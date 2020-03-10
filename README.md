@@ -12,3 +12,18 @@ Special praze to Flightless Mango, he is the man and the mind behind MangoHUD.
   https://discordapp.com/invite/Gj5YmBb
 
 <a href="https://ibb.co/CQcFD7T"><img src="https://i.ibb.co/Ttf5d8F/goverlay-screenshot.png" alt="goverlay-screenshot" border="0"></a>
+
+
+Installation
+
+1 - Install MangoHud.
+
+git clone --recurse-submodules https://github.com/flightlessmango/MangoHud.git
+cd MangoHud
+./build.sh install
+
+2- Extract the file
+tar -zxvf goverlay_0_1_3.tar.gz
+
+3- Execute the binary
+./goverlay
