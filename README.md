@@ -19,10 +19,13 @@ Installation
 1 - Install MangoHud.
 
 git clone --recurse-submodules https://github.com/flightlessmango/MangoHud.git
+
 cd MangoHud
+
 ./build.sh install
 
 2- Extract the file
+
 tar -zxvf goverlay_0_1_3.tar.gz
 
 3- Execute the binary
