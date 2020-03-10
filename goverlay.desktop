@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=GOverlay
+GenericName=Overlay configuration
+Comment=Graphical UI to help manage Linux overlays
+Exec=goverlay
+Icon=goverlay
+Terminal=false
+Type=Application
+Categories=Graphics;
