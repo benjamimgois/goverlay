@@ -1,10 +1,10 @@
 object goverlayform: Tgoverlayform
-  Left = 264
+  Left = 339
   Height = 729
-  Top = 8
+  Top = 14
   Width = 975
   BorderStyle = bsDialog
-  Caption = 'GOverlay 0.1.3 (Alpha)'
+  Caption = 'GOverlay 0.1.4 (Alpha)'
   ClientHeight = 729
   ClientWidth = 975
   OnCreate = FormCreate
@@ -848,7 +848,7 @@ object goverlayform: Tgoverlayform
       Height = 62
       Top = 27
       Width = 177
-      Brush.Color = clHotLight
+      Brush.Color = clBtnShadow
       Shape = stRoundRect
     end
     object cpulabel1: TLabel
@@ -1014,7 +1014,7 @@ object goverlayform: Tgoverlayform
       ShowHint = True
     end
   end
-  object BitBtn1: TBitBtn
+  object saveBitBtn: TBitBtn
     Left = 423
     Height = 30
     Hint = 'Save current setup in a Mangohud.conf file'
@@ -1060,13 +1060,13 @@ object goverlayform: Tgoverlayform
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
     }
-    OnClick = BitBtn1Click
+    OnClick = saveBitBtnClick
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
     TabOrder = 2
   end
-  object BitBtn2: TBitBtn
+  object vkcubeBitBtn: TBitBtn
     Left = 836
     Height = 30
     Hint = 'Execute VKcube with current HUD settings'
@@ -1112,7 +1112,7 @@ object goverlayform: Tgoverlayform
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
     }
-    OnClick = BitBtn2Click
+    OnClick = vkcubeBitBtnClick
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
@@ -1200,10 +1200,10 @@ object goverlayform: Tgoverlayform
     ClientWidth = 226
     TabOrder = 5
     object transpTrackBar: TTrackBar
-      Left = 24
+      Left = 10
       Height = 38
       Top = 72
-      Width = 180
+      Width = 202
       Position = 5
       TabOrder = 0
     end
@@ -1220,7 +1220,7 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object Label6: TLabel
-      Left = 24
+      Left = 10
       Height = 15
       Top = 11
       Width = 55
@@ -1228,22 +1228,23 @@ object goverlayform: Tgoverlayform
       ParentColor = False
     end
     object fontsizeComboBox: TComboBox
-      Left = 24
+      Left = 10
       Height = 28
       Top = 30
-      Width = 180
+      Width = 110
       ItemHeight = 0
       ItemIndex = 1
       Items.Strings = (
-        '19 - Good for 720p'
-        '24 - Good for 1080p'
-        '40 - Good for 4K'
+        '19 (720p)'
+        '24 (1080p)'
+        '40 (4K)'
+        'Custom'
       )
       TabOrder = 1
-      Text = '24 - Good for 1080p'
+      Text = '24 (1080p)'
     end
     object Label8: TLabel
-      Left = 24
+      Left = 16
       Height = 9
       Top = 111
       Width = 15
@@ -1254,7 +1255,7 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object Label9: TLabel
-      Left = 179
+      Left = 187
       Height = 9
       Top = 111
       Width = 25
@@ -1263,6 +1264,15 @@ object goverlayform: Tgoverlayform
       Font.Name = 'Cantarell'
       ParentColor = False
       ParentFont = False
+    end
+    object fontsizeSpinEdit: TSpinEdit
+      Left = 136
+      Height = 28
+      Top = 30
+      Width = 76
+      MinValue = 10
+      TabOrder = 2
+      Value = 10
     end
   end
   object visualGroupBox1: TGroupBox
@@ -1469,14 +1479,14 @@ object goverlayform: Tgoverlayform
       TabOrder = 0
     end
   end
-  object BitBtn3: TBitBtn
+  object aboutBitBtn: TBitBtn
     Left = 16
     Height = 30
     Hint = 'About'
     Top = 688
     Width = 32
     Kind = bkHelp
-    OnClick = BitBtn3Click
+    OnClick = aboutBitBtnClick
     ParentShowHint = False
     ShowHint = True
     TabOrder = 7

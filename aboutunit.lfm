@@ -55,7 +55,6 @@ object aboutForm: TaboutForm
         Top = 151
         Width = 211
         Caption = 'https://flightlessmango.com/'
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Style = [fsBold]

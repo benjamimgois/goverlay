@@ -177,6 +177,7 @@ end;
 
 procedure TaboutForm.FormCreate(Sender: TObject);
 begin
+  //Centralize window
   Left:=(Screen.Width-Width)  div 2;
   Top:=(Screen.Height-Height) div 2;
 end;
