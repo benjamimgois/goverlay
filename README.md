@@ -39,7 +39,7 @@ cd goverlay
 ./goverlay
 
 
-# Secound Method (Get the binaries)
+# Second Method (Get the binaries)
 
 1- Download the latest release from
 
