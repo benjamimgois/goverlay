@@ -14,7 +14,39 @@ Special praze to Flightless Mango, he is the man and the mind behind MangoHUD.
 <a href="https://ibb.co/CQcFD7T"><img src="https://i.ibb.co/Ttf5d8F/goverlay-screenshot.png" alt="goverlay-screenshot" border="0"></a>
 
 
-# Installation (First method, from source)
+# Installation 
+
+# First method (repositories)
+
+ARCH / Manjaro Linux and derivatives
+
+<code>goverlay-git</code> is now avaiable on the AUR, install it with your favourite AUR helper. 
+
+
+Ubuntu / Debian
+
+
+Not avaiale yet
+
+
+# Second Method (Get the binaries)
+
+1- Download the latest release from
+
+<a href="https://ibb.co/XpSxjpB"><img src="https://i.ibb.co/P4wGF4p/github-release1.png" alt="github-release1" border="0"></a>
+
+<a href="https://ibb.co/R2zDsMB"><img src="https://i.ibb.co/Pxw6Pb9/github-release2.png" alt="github-release2" border="0"></a>
+
+2- Extract the file
+
+tar -zxvf goverlay_0_1_3.tar.gz
+
+3- Execute the binary
+
+./goverlay
+
+
+# Third method (from source)
 
 1 - Clone and build MangoHud from git
 
@@ -35,22 +67,5 @@ cd goverlay
 lazbuild -B goverlay.lpi
 
 cd goverlay
-
-./goverlay
-
-
-# Second Method (Get the binaries)
-
-1- Download the latest release from
-
-<a href="https://ibb.co/XpSxjpB"><img src="https://i.ibb.co/P4wGF4p/github-release1.png" alt="github-release1" border="0"></a>
-
-<a href="https://ibb.co/R2zDsMB"><img src="https://i.ibb.co/Pxw6Pb9/github-release2.png" alt="github-release2" border="0"></a>
-
-2- Extract the file
-
-tar -zxvf goverlay_0_1_3.tar.gz
-
-3- Execute the binary
 
 ./goverlay
