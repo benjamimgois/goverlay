@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, Spin, ComCtrls, Buttons, aboutunit;
+  StdCtrls, Spin, ComCtrls, Buttons, aboutunit,ATStringProc_HtmlColor;
 
 
 
@@ -15,6 +15,7 @@ type
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
+    rrggbbLabel: TLabel;
     saveBitBtn: TBitBtn;
     fontsizeSpinEdit: TSpinEdit;
     vkcubeBitBtn: TBitBtn;
@@ -68,6 +69,7 @@ type
     Label2: TLabel;
     cpulabel: TLabel;
     Shape1: TShape;
+    procedure fontsizeComboBoxChange(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure vkcubeBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
@@ -87,10 +89,15 @@ type
 var
   goverlayform: Tgoverlayform;
   s: string;
-  vsync: integer;
-  fpslimit: integer;
+  Color: string;
   fontsizeCustomValue:TextFile;
   fontsizeCustomScript:TextFile;
+  crosshairsizeScript:TextFile;
+  crosshairsizeValue:TextFile;
+  crosshaircolorValue:TextFile;
+  crosshaircolorScript:TextFile;
+
+
 
 implementation
 
@@ -189,11 +196,52 @@ begin
   RunCommand('bash -c ''echo "time" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
   if otherCheckgroup.Checked[2] then
-  begin
-    RunCommand('bash -c ''echo "crosshair" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
-    RunCommand('bash -c ''echo "crosshair_size=20" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
-  end;
+  RunCommand('bash -c ''echo "crosshair" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
+
+
+
+  //Crosshair Size
+
+      // Assign value to file
+      AssignFile(crosshairsizeValue, '/tmp/goverlay/crosshairsizeValue');
+      Rewrite(crosshairsizeValue);
+      Writeln(crosshairsizeValue,crosshairTrackbar.Position);
+      CloseFile(crosshairsizeValue);
+
+      // Create custom script
+      AssignFile(crosshairsizeScript, '/tmp/goverlay/crosshairsizeScript.sh');
+      Rewrite(crosshairsizeScript);
+      Writeln(crosshairsizeScript,'CROSSHAIRs=$(cat /tmp/goverlay/crosshairsizeValue)');  //Store crosshair size in Linux/Unix variable
+      Writeln(crosshairsizeScript,'echo "crosshair_size=$CROSSHAIRs" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair value
+      CloseFile(crosshairsizeScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/crosshairsizeScript.sh''', s);
+
+
+  //Crosshair Color
+      //Convert TCOLOR to RGB format
+     // Color := SColorToHtmlColor(paintShape.Brush.Color);
+     // rrggbbLabel.Caption := Color;
+
+
+
+      // Assign value to file
+      AssignFile(crosshaircolorValue, '/tmp/goverlay/crosshaircolorValue');
+      Rewrite(crosshaircolorValue);
+      Writeln(crosshaircolorValue,rrggbbLabel.Caption);
+      CloseFile(crosshaircolorValue);
+
+      // Create custom script
+      AssignFile(crosshaircolorScript, '/tmp/goverlay/crosshaircolorScript.sh');
+      Rewrite(crosshaircolorScript);
+      Writeln(crosshaircolorScript,'CROSSHAIRc=$(cat /tmp/goverlay/crosshaircolorValue | cut -c 2-10)');  //Store crosshair color in Linux/Unix variable and remove # character
+      Writeln(crosshaircolorScript,'echo "crosshair_color=$CROSSHAIRc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(crosshaircolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/crosshaircolorScript.sh''', s);
 
   //####################################################################################### VISUALS
 
@@ -276,6 +324,14 @@ begin
 
 end;
 
+procedure Tgoverlayform.fontsizeComboBoxChange(Sender: TObject);
+begin
+  if fontsizeCombobox.ItemIndex=3 then
+  fontsizeSpinEdit.Enabled:=true
+  else
+    fontsizeSpinEdit.Enabled:=false;
+end;
+
 procedure Tgoverlayform.vkcubeBitBtnClick(Sender: TObject);
 begin
   RunCommand('bash -c ''MANGOHUD=1 vkcube''', s);
@@ -318,7 +374,11 @@ end;
 procedure Tgoverlayform.paintSpeedButtonClick(Sender: TObject);
 begin
     if colordialog1.Execute then
+    // Change color of Tshape
     paintShape.Brush.Color:=(colordialog1.Color);
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    rrggbbLabel.Caption := SColorToHtmlColor(colordialog1.Color);
 end;
 
 procedure Tgoverlayform.topleftShapeMouseEnter(Sender: TObject);

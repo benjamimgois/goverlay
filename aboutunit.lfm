@@ -1,5 +1,5 @@
 object aboutForm: TaboutForm
-  Left = 431
+  Left = 1962
   Height = 455
   Top = 200
   Width = 538
