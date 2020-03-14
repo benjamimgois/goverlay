@@ -1,10 +1,10 @@
 object goverlayform: Tgoverlayform
-  Left = 343
+  Left = 330
   Height = 729
   Top = 14
   Width = 975
   BorderStyle = bsDialog
-  Caption = 'GOverlay 0.2 (Beta)'
+  Caption = 'GOverlay 0.2.1 (Beta)'
   ClientHeight = 729
   ClientWidth = 975
   Icon.Data = {
@@ -152,7 +152,7 @@ object goverlayform: Tgoverlayform
       TabOrder = 1
       Text = 'ON'
     end
-    object Label1: TLabel
+    object vsyncLabel: TLabel
       Left = 16
       Height = 15
       Top = 73
@@ -160,7 +160,7 @@ object goverlayform: Tgoverlayform
       Caption = 'VSYNC'
       ParentColor = False
     end
-    object Label2: TLabel
+    object fpslimLabel: TLabel
       Left = 16
       Height = 15
       Top = 11
@@ -184,10 +184,23 @@ object goverlayform: Tgoverlayform
         '120'
         '144'
         'Unlocked'
+        'Custom'
       )
+      OnChange = fpslimComboBoxChange
       OnKeyPress = fpslimComboBoxKeyPress
       TabOrder = 0
       Text = '60'
+    end
+    object fpscustomSpinEdit: TSpinEdit
+      Left = 144
+      Height = 28
+      Top = 30
+      Width = 76
+      Enabled = False
+      MaxValue = 200
+      MinValue = 1
+      TabOrder = 2
+      Value = 1
     end
   end
   object GroupBox2: TGroupBox
@@ -1781,12 +1794,12 @@ object goverlayform: Tgoverlayform
         03000000020202
       }
     end
-    object Shape1: TShape
+    object hudbackgroundShape: TShape
       Left = 324
       Height = 128
       Top = 24
       Width = 177
-      Brush.Color = 3092271
+      Brush.Color = 2302755
       Shape = stRoundRect
     end
     object gpulabel: TLabel
@@ -1806,21 +1819,27 @@ object goverlayform: Tgoverlayform
       Height = 1
       Top = 50
       Width = 1
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object gpuusagelabel: TLabel
       Left = 393
       Height = 1
       Top = 33
       Width = 1
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object gputemplabel: TLabel
       Left = 445
       Height = 1
       Top = 33
       Width = 1
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object vramlabel: TLabel
       Left = 334
@@ -1839,7 +1858,9 @@ object goverlayform: Tgoverlayform
       Height = 1
       Top = 67
       Width = 1
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object cpulabel: TLabel
       Left = 337
@@ -1858,7 +1879,9 @@ object goverlayform: Tgoverlayform
       Height = 1
       Top = 50
       Width = 1
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object previewLabel: TLabel
       Left = 556
@@ -1884,6 +1907,7 @@ object goverlayform: Tgoverlayform
       TabOrder = 4
     end
     object toprightShape: TShape
+      Cursor = crHandPoint
       Left = 879
       Height = 40
       Hint = 'Place the HUD on Top Right'
@@ -1898,6 +1922,7 @@ object goverlayform: Tgoverlayform
       ShowHint = True
     end
     object topleftShape: TShape
+      Cursor = crHandPoint
       Left = 272
       Height = 40
       Hint = 'Place the HUD on Top Left'
@@ -1910,6 +1935,7 @@ object goverlayform: Tgoverlayform
       ShowHint = True
     end
     object bottomrightShape: TShape
+      Cursor = crHandPoint
       Left = 879
       Height = 40
       Hint = 'Place the HUD on Bottom Right'
@@ -1923,6 +1949,7 @@ object goverlayform: Tgoverlayform
       ShowHint = True
     end
     object bottomleftShape: TShape
+      Cursor = crHandPoint
       Left = 272
       Height = 40
       Hint = 'Place the HUD on Bottom left'
@@ -1952,7 +1979,9 @@ object goverlayform: Tgoverlayform
       Height = 1
       Top = 84
       Width = 1
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object vulkanlabel: TLabel
       Left = 334
@@ -1973,7 +2002,9 @@ object goverlayform: Tgoverlayform
       Top = 102
       Width = 35
       Caption = '60fps'
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object vulkanftimelabel: TLabel
       Left = 445
@@ -1981,7 +2012,9 @@ object goverlayform: Tgoverlayform
       Top = 102
       Width = 43
       Caption = '16.6ms'
+      Font.Color = clWhite
       ParentColor = False
+      ParentFont = False
     end
     object frametimelabel: TLabel
       Left = 334
@@ -2000,6 +2033,7 @@ object goverlayform: Tgoverlayform
       Height = 1
       Top = 126
       Width = 1
+      Font.Color = clWhite
       Font.Height = -9
       Font.Name = 'Sans'
       ParentColor = False
@@ -2022,10 +2056,27 @@ object goverlayform: Tgoverlayform
       Height = 1
       Top = 26
       Width = 1
+      Font.Color = clWhite
       Font.Height = -9
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
+    end
+    object crosshairVShape: TShape
+      Left = 598
+      Height = 30
+      Top = 209
+      Width = 5
+      Brush.Color = clBlack
+      Visible = False
+    end
+    object crosshairHShape: TShape
+      Left = 586
+      Height = 5
+      Top = 221
+      Width = 30
+      Brush.Color = clBlack
+      Visible = False
     end
   end
   object saveBitBtn: TBitBtn
@@ -2223,7 +2274,7 @@ object goverlayform: Tgoverlayform
       Position = 6
       TabOrder = 0
     end
-    object Label3: TLabel
+    object transparencyLabel: TLabel
       Left = 72
       Height = 12
       Top = 108
@@ -2235,7 +2286,7 @@ object goverlayform: Tgoverlayform
       ParentColor = False
       ParentFont = False
     end
-    object Label6: TLabel
+    object fontsizeLabel: TLabel
       Left = 10
       Height = 15
       Top = 11
@@ -2261,7 +2312,7 @@ object goverlayform: Tgoverlayform
       TabOrder = 1
       Text = '24 (1080p)'
     end
-    object Label8: TLabel
+    object transpminLabel: TLabel
       Left = 16
       Height = 9
       Top = 111
@@ -2272,7 +2323,7 @@ object goverlayform: Tgoverlayform
       ParentColor = False
       ParentFont = False
     end
-    object Label9: TLabel
+    object transpmaxLabel: TLabel
       Left = 187
       Height = 9
       Top = 111
@@ -2303,7 +2354,7 @@ object goverlayform: Tgoverlayform
     ClientHeight = 134
     ClientWidth = 226
     TabOrder = 6
-    object Label11: TLabel
+    object crosssizeLabel: TLabel
       Left = 98
       Height = 12
       Top = 108
@@ -2315,7 +2366,7 @@ object goverlayform: Tgoverlayform
       ParentColor = False
       ParentFont = False
     end
-    object Label14: TLabel
+    object crosssizemaxLabel: TLabel
       Left = 179
       Height = 9
       Top = 111
@@ -2473,7 +2524,7 @@ object goverlayform: Tgoverlayform
       Brush.Color = clBlack
       Shape = stCircle
     end
-    object Label13: TLabel
+    object crosssizeminLabel: TLabel
       Left = 24
       Height = 9
       Top = 111
