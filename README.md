@@ -11,7 +11,7 @@ Special praze to Flightless Mango, he is the man and the mind behind MangoHUD.
   
   https://discordapp.com/invite/Gj5YmBb
 
-<a href="https://ibb.co/HFWMksg"><img src="https://i.ibb.co/BzX7Sxs/goverlay-02-beta.png" alt="goverlay-02-beta" border="0"></a>
+<a href="https://ibb.co/tqZsJQq"><img src="https://i.ibb.co/3pfNC4p/goverlay021beta2.png" alt="goverlay021beta2" border="0"></a><br /><a target='_blank' href='https://pt-br.imgbb.com/'>fazer imagem png online</a><br />
 
 
 # Installation 
@@ -69,3 +69,9 @@ lazbuild -B goverlay.lpi
 cd goverlay
 
 ./goverlay
+
+
+
+This project was built with Lazarus
+
+<a href="hhttps://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
