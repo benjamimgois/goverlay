@@ -1,10 +1,10 @@
 object goverlayform: Tgoverlayform
-  Left = 330
+  Left = 231
   Height = 729
   Top = 14
   Width = 975
   BorderStyle = bsDialog
-  Caption = 'GOverlay 0.2.1 (Beta)'
+  Caption = 'GOverlay 0.2.2 (Beta)'
   ClientHeight = 729
   ClientWidth = 975
   Icon.Data = {
@@ -133,11 +133,12 @@ object goverlayform: Tgoverlayform
     ParentColor = False
     TabOrder = 0
     object vsyncComboBox: TComboBox
-      Left = 16
+      Left = 7
       Height = 28
       Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'
       Top = 92
-      Width = 113
+      Width = 99
+      Color = clMaroon
       ItemHeight = 0
       ItemIndex = 3
       Items.Strings = (
@@ -153,15 +154,15 @@ object goverlayform: Tgoverlayform
       Text = 'ON'
     end
     object vsyncLabel: TLabel
-      Left = 16
+      Left = 7
       Height = 15
       Top = 73
-      Width = 42
-      Caption = 'VSYNC'
+      Width = 86
+      Caption = 'Vulkan VSYNC'
       ParentColor = False
     end
     object fpslimLabel: TLabel
-      Left = 16
+      Left = 7
       Height = 15
       Top = 11
       Width = 56
@@ -169,10 +170,10 @@ object goverlayform: Tgoverlayform
       ParentColor = False
     end
     object fpslimComboBox: TComboBox
-      Left = 16
+      Left = 7
       Height = 28
       Top = 30
-      Width = 113
+      Width = 99
       ItemHeight = 0
       ItemIndex = 3
       Items.Strings = (
@@ -192,18 +193,55 @@ object goverlayform: Tgoverlayform
       Text = '60'
     end
     object fpscustomSpinEdit: TSpinEdit
-      Left = 144
+      Left = 122
       Height = 28
       Top = 30
-      Width = 76
+      Width = 99
       Enabled = False
       MaxValue = 200
       MinValue = 1
       TabOrder = 2
       Value = 1
     end
+    object glvsyncComboBox: TComboBox
+      Left = 122
+      Height = 28
+      Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'
+      Top = 92
+      Width = 99
+      Color = clTeal
+      ItemHeight = 0
+      ItemIndex = 3
+      Items.Strings = (
+        'Adaptive'
+        'OFF'
+        '-N-'
+        'ON'
+      )
+      OnKeyPress = glvsyncComboBoxKeyPress
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 3
+      Text = 'ON'
+    end
+    object glvsyncLabel: TLabel
+      Left = 122
+      Height = 15
+      Top = 73
+      Width = 62
+      Caption = 'GL VSYNC'
+      ParentColor = False
+    end
+    object fpslimLabel1: TLabel
+      Left = 122
+      Height = 15
+      Top = 11
+      Width = 47
+      Caption = 'Custom'
+      ParentColor = False
+    end
   end
-  object GroupBox2: TGroupBox
+  object mangohudGroupBox: TGroupBox
     Left = 16
     Height = 504
     Top = 176
@@ -1695,16 +1733,18 @@ object goverlayform: Tgoverlayform
       ChildSizing.EnlargeVertical = crsHomogenousChildResize
       ChildSizing.ShrinkHorizontal = crsScaleChilds
       ChildSizing.ShrinkVertical = crsScaleChilds
-      ChildSizing.Layout = cclLeftToRightThenTopToBottom
-      ChildSizing.ControlsPerLine = 1
+      ChildSizing.Layout = cclTopToBottomThenLeftToRight
+      ChildSizing.ControlsPerLine = 3
       ClientHeight = 87
       ClientWidth = 226
+      ColumnLayout = clVerticalThenHorizontal
       Items.Strings = (
         'Average Load'
         'Temperature'
-        'Load and frequency by core'
+        'Load by core'
       )
       OnItemClick = cpuCheckGroupItemClick
+      ParentColor = False
       TabOrder = 0
       Data = {
         03000000020202
@@ -1723,10 +1763,11 @@ object goverlayform: Tgoverlayform
       ChildSizing.EnlargeVertical = crsHomogenousChildResize
       ChildSizing.ShrinkHorizontal = crsScaleChilds
       ChildSizing.ShrinkVertical = crsScaleChilds
-      ChildSizing.Layout = cclLeftToRightThenTopToBottom
-      ChildSizing.ControlsPerLine = 1
+      ChildSizing.Layout = cclTopToBottomThenLeftToRight
+      ChildSizing.ControlsPerLine = 3
       ClientHeight = 87
       ClientWidth = 226
+      ColumnLayout = clVerticalThenHorizontal
       Items.Strings = (
         'Average Load'
         'Temperature'
@@ -1751,10 +1792,11 @@ object goverlayform: Tgoverlayform
       ChildSizing.EnlargeVertical = crsHomogenousChildResize
       ChildSizing.ShrinkHorizontal = crsScaleChilds
       ChildSizing.ShrinkVertical = crsScaleChilds
-      ChildSizing.Layout = cclLeftToRightThenTopToBottom
-      ChildSizing.ControlsPerLine = 1
+      ChildSizing.Layout = cclTopToBottomThenLeftToRight
+      ChildSizing.ControlsPerLine = 3
       ClientHeight = 87
       ClientWidth = 226
+      ColumnLayout = clVerticalThenHorizontal
       Items.Strings = (
         'RAM'
         'VRAM'
@@ -1779,10 +1821,11 @@ object goverlayform: Tgoverlayform
       ChildSizing.EnlargeVertical = crsHomogenousChildResize
       ChildSizing.ShrinkHorizontal = crsScaleChilds
       ChildSizing.ShrinkVertical = crsScaleChilds
-      ChildSizing.Layout = cclLeftToRightThenTopToBottom
-      ChildSizing.ControlsPerLine = 1
+      ChildSizing.Layout = cclTopToBottomThenLeftToRight
+      ChildSizing.ControlsPerLine = 3
       ClientHeight = 87
       ClientWidth = 226
+      ColumnLayout = clVerticalThenHorizontal
       Items.Strings = (
         'Frame Time Graph'
         'Display Clock'
@@ -1795,18 +1838,19 @@ object goverlayform: Tgoverlayform
       }
     end
     object hudbackgroundShape: TShape
-      Left = 324
-      Height = 128
+      Left = 316
+      Height = 144
       Top = 24
-      Width = 177
+      Width = 236
       Brush.Color = 2302755
       Shape = stRoundRect
     end
     object gpulabel: TLabel
-      Left = 336
-      Height = 1
-      Top = 34
-      Width = 1
+      Left = 326
+      Height = 14
+      Top = 36
+      Width = 26
+      Caption = 'GPU'
       Font.Color = clLime
       Font.Height = -13
       Font.Name = 'Cantarell'
@@ -1816,36 +1860,40 @@ object goverlayform: Tgoverlayform
     end
     object cputemplabel: TLabel
       Left = 445
-      Height = 1
+      Height = 15
       Top = 50
-      Width = 1
+      Width = 28
+      Caption = '71ºC'
       Font.Color = clWhite
       ParentColor = False
       ParentFont = False
     end
     object gpuusagelabel: TLabel
-      Left = 393
-      Height = 1
-      Top = 33
-      Width = 1
+      Left = 392
+      Height = 15
+      Top = 35
+      Width = 29
+      Caption = '90%'
       Font.Color = clWhite
       ParentColor = False
       ParentFont = False
     end
     object gputemplabel: TLabel
       Left = 445
-      Height = 1
-      Top = 33
-      Width = 1
+      Height = 15
+      Top = 35
+      Width = 30
+      Caption = '82ºC'
       Font.Color = clWhite
       ParentColor = False
       ParentFont = False
     end
     object vramlabel: TLabel
-      Left = 334
-      Height = 1
-      Top = 67
-      Width = 1
+      Left = 326
+      Height = 14
+      Top = 86
+      Width = 36
+      Caption = 'VRAM'
       Font.Color = clPurple
       Font.Height = -13
       Font.Name = 'Cantarell'
@@ -1854,19 +1902,21 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object vramusagelabel: TLabel
-      Left = 394
-      Height = 1
-      Top = 67
-      Width = 1
+      Left = 393
+      Height = 15
+      Top = 86
+      Width = 43
+      Caption = '2.56GB'
       Font.Color = clWhite
       ParentColor = False
       ParentFont = False
     end
     object cpulabel: TLabel
-      Left = 337
-      Height = 1
-      Top = 50
-      Width = 1
+      Left = 326
+      Height = 14
+      Top = 51
+      Width = 25
+      Caption = 'CPU'
       Font.Color = clSkyBlue
       Font.Height = -13
       Font.Name = 'Cantarell'
@@ -1876,9 +1926,10 @@ object goverlayform: Tgoverlayform
     end
     object cpuusagelabel: TLabel
       Left = 393
-      Height = 1
+      Height = 15
       Top = 50
-      Width = 1
+      Width = 28
+      Caption = '28%'
       Font.Color = clWhite
       ParentColor = False
       ParentFont = False
@@ -1890,6 +1941,7 @@ object goverlayform: Tgoverlayform
       Width = 80
       Caption = 'PREVIEW'
       Color = clPurple
+      Font.Color = clWhite
       Font.Height = -19
       Font.Name = 'Cantarell'
       ParentColor = False
@@ -1963,10 +2015,11 @@ object goverlayform: Tgoverlayform
       ShowHint = True
     end
     object ramlabel: TLabel
-      Left = 334
-      Height = 1
-      Top = 84
-      Width = 1
+      Left = 326
+      Height = 14
+      Top = 103
+      Width = 28
+      Caption = 'RAM'
       Font.Color = clPurple
       Font.Height = -13
       Font.Name = 'Cantarell'
@@ -1975,18 +2028,19 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object ramusagelabel: TLabel
-      Left = 394
-      Height = 1
-      Top = 84
-      Width = 1
+      Left = 393
+      Height = 15
+      Top = 103
+      Width = 44
+      Caption = '5.99GB'
       Font.Color = clWhite
       ParentColor = False
       ParentFont = False
     end
     object vulkanlabel: TLabel
-      Left = 334
+      Left = 326
       Height = 14
-      Top = 102
+      Top = 121
       Width = 51
       Caption = 'VULKAN'
       Font.Color = 6977279
@@ -1997,9 +2051,9 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object vulkanfpslabel: TLabel
-      Left = 394
+      Left = 392
       Height = 15
-      Top = 102
+      Top = 121
       Width = 35
       Caption = '60fps'
       Font.Color = clWhite
@@ -2009,7 +2063,7 @@ object goverlayform: Tgoverlayform
     object vulkanftimelabel: TLabel
       Left = 445
       Height = 15
-      Top = 102
+      Top = 121
       Width = 43
       Caption = '16.6ms'
       Font.Color = clWhite
@@ -2017,10 +2071,11 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object frametimelabel: TLabel
-      Left = 334
-      Height = 1
-      Top = 120
-      Width = 1
+      Left = 326
+      Height = 9
+      Top = 139
+      Width = 45
+      Caption = 'Frametime'
       Font.Color = 6977279
       Font.Height = -9
       Font.Name = 'Cantarell'
@@ -2029,10 +2084,11 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object frametimelabel2: TLabel
-      Left = 445
-      Height = 1
-      Top = 126
-      Width = 1
+      Left = 504
+      Height = 10
+      Top = 145
+      Width = 35
+      Caption = '16.6ms'
       Font.Color = clWhite
       Font.Height = -9
       Font.Name = 'Sans'
@@ -2040,10 +2096,11 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object frametimegraphlabel: TLabel
-      Left = 336
-      Height = 1
-      Top = 131
-      Width = 1
+      Left = 326
+      Height = 9
+      Top = 150
+      Width = 172
+      Caption = '-------------------------------------------'
       Font.Color = clLime
       Font.Height = -9
       Font.Name = 'Cantarell'
@@ -2052,13 +2109,15 @@ object goverlayform: Tgoverlayform
       ParentFont = False
     end
     object timelabel: TLabel
-      Left = 336
-      Height = 1
+      Left = 326
+      Height = 10
       Top = 26
-      Width = 1
+      Width = 28
+      Caption = '22:30'
       Font.Color = clWhite
       Font.Height = -9
       Font.Name = 'Sans'
+      Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
     end
@@ -2077,6 +2136,53 @@ object goverlayform: Tgoverlayform
       Width = 30
       Brush.Color = clBlack
       Visible = False
+    end
+    object iordrwlabel: TLabel
+      Left = 326
+      Height = 14
+      Top = 68
+      Width = 61
+      Caption = 'IO RD/RW'
+      Font.Color = clSkyBlue
+      Font.Height = -13
+      Font.Name = 'Cantarell'
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object iordvaluelabel: TLabel
+      Left = 393
+      Height = 13
+      Top = 68
+      Width = 47
+      Caption = '32MiB/s'
+      Font.Color = clWhite
+      Font.Height = -12
+      Font.Name = 'Sans'
+      ParentColor = False
+      ParentFont = False
+    end
+    object iorwvaluelabel: TLabel
+      Left = 445
+      Height = 13
+      Top = 68
+      Width = 47
+      Caption = '22MiB/s'
+      Font.Color = clWhite
+      Font.Height = -12
+      Font.Name = 'Sans'
+      ParentColor = False
+      ParentFont = False
+    end
+    object gpuclocklabel: TLabel
+      Left = 493
+      Height = 15
+      Top = 35
+      Width = 54
+      Caption = '1733MHz'
+      Font.Color = clWhite
+      ParentColor = False
+      ParentFont = False
     end
   end
   object saveBitBtn: TBitBtn
@@ -2131,53 +2237,53 @@ object goverlayform: Tgoverlayform
     ShowHint = True
     TabOrder = 2
   end
-  object vkcubeBitBtn: TBitBtn
+  object runBitBtn: TBitBtn
     Left = 836
     Height = 30
-    Hint = 'Execute VKcube with current HUD settings'
+    Hint = 'Execute VKcube and GLXgears with current  settings'
     Top = 688
     Width = 128
-    Caption = 'VKcube Test'
+    Caption = 'RUN'
     Font.Height = -12
     Font.Name = 'Sans'
     Font.Style = [fsBold]
     Glyph.Data = {
       36040000424D3604000000000000360000002800000010000000100000000100
       2000000000000004000064000000640000000000000000000000000000000000
-      0000000000000000000000000000000000000000000000000000000000050000
-      0001000000000000000000000000000000000000000000000000000000000000
-      00000000000000000000000000000000000225190D397F5F439F884520D43616
-      0070020100110000000000000000000000000000000000000000000000000000
-      00000000000008040112523A226DAD8055D1DEAB7EFEDEAB83FFA74D28FF9931
-      00FF883500E03C1A007102010010000000000000000000000000000000002718
-      093B805627A1D39B5CF4E1AA6FFFDEA571FFDBA273FFD89F75FFA04524FE952C
-      00FF9D3600FFA74302FF994E12E24424087303020010000000000C04001AE4A5
-      50FFE09D4BFFDE9E59FFDB9D62FFD79863FFD49565FFD29268FF9B3C20FE9026
-      00FF993100FFA23D02FFB15513FFBA631CFFA3591AE3060300110C04001AE09E
-      4BFFDA9445FFD68E47FFD48F54FFD18B55FFCE8757FFCB845AFF983921FE8B1F
-      00FF942B00FF9D3600FFAA4B0DFFB55B16FFBC651DFF090500110B03001ADA94
-      46FFD58B40FFCF7F39FFCC7E41FFCA7C47FFC67849FFC4754BFF963724FE8618
-      00FF902500FF983000FFA34006FFAF5110FFB75F17FF090500110B03001AD288
-      3FFFCF813AFFC97633FFC36C2EFFC16A35FFBF6839FFBB653CFF953827FE8112
-      00FF8B1F00FF942A00FF9D3601FFA9480AFFB25712FF090400110A02001AC97B
-      37FFC67433FFC46D2EFFBE6227FFB75721FFB35020FFB04D24FF96392AFE7D0E
-      00FF861800FF8F2500FF982F00FFA23D03FFAC4E0CFF090400110A02001AC06E
-      30FFBD672BFFBA5F26FFB75721FFB24D1BFFAB4214FFA5370DFF973B2EFE7C0C
-      00FF801200FF8A1E00FF932A00FF9C3400FFA54203FF090400110A02001AB862
-      29FFB55B25FFB15320FFAD4B1AFFAC4C21FEC27B5EFED9AC8FFDE4C1A1FEB36F
-      5BFE862011FE831500FF8E2300FF972F00FF9F3900FF080400110901001AB057
-      23FFB56538FECC9478FEE4C5AEFEF9ECD2FEFBE7BDFFFAE0ABFFF9DA9DFFF8D5
-      91FFF3D093FECE9468FEA54F2EFD902701FE9A3300FF080300110400000B7B61
-      559EDCD0C5EDFDF2DAFFFCECCCFFFBE7BFFFFAE2B2FFF8DBA5FFF6D497FFF4CD
-      8AFFF1C479FFECB45CFFE8A847FFD99946FD924A1ADA0502000C000000000000
-      00000200000534282147856C4D9BD2A867EBF2C370FFF0BC66FFEDB459FFE8AA
-      49FFC78731EB895A20A84C301064130902200000000000000000000000000000
-      0000000000000000000000000000010000042E1B0944764E1C935A3A14751F10
-      0531010000020000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFBADFDFDF30000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFEE0E0E0AAE1E1E12200000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFF9DFDFDF99DBDBDB150000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFEEDFDF
+      DF77DFDFDF080000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
+      DFFFDFDFDFE2DFDFDF66FFFFFF03000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
+      DFFFDFDFDFFFDFDFDFFFDFDFDFD4DDDDDD4C0000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
+      DFFFDFDFDFFFDFDFDFFFDFDFDFD5DEDEDE550000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
+      DFFFE0E0E0E3DFDFDF66FFFFFF03000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFEEDFDF
+      DF77DFDFDF080000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFF9DFDFDF99DBDBDB150000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000DFDFDFFFDFDFDFFEE0E0E0AAE1E1E12200000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000E0E0E0BBE0E0E032000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
     }
-    OnClick = vkcubeBitBtnClick
+    OnClick = runBitBtnClick
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
@@ -2204,7 +2310,7 @@ object goverlayform: Tgoverlayform
       Left = 9
       Height = 28
       Top = 30
-      Width = 120
+      Width = 90
       ItemHeight = 0
       ItemIndex = 2
       Items.Strings = (
@@ -2228,7 +2334,7 @@ object goverlayform: Tgoverlayform
       Left = 9
       Height = 28
       Top = 92
-      Width = 120
+      Width = 90
       ItemHeight = 0
       ItemIndex = 1
       Items.Strings = (
@@ -2304,7 +2410,7 @@ object goverlayform: Tgoverlayform
       Items.Strings = (
         '19 (720p)'
         '24 (1080p)'
-        '40 (4K)'
+        '38 (4K)'
         'Custom'
       )
       OnChange = fontsizeComboBoxChange
@@ -2343,6 +2449,14 @@ object goverlayform: Tgoverlayform
       MinValue = 10
       TabOrder = 2
       Value = 10
+    end
+    object fontsizeLabel1: TLabel
+      Left = 136
+      Height = 15
+      Top = 11
+      Width = 47
+      Caption = 'Custom'
+      ParentColor = False
     end
   end
   object visualGroupBox1: TGroupBox

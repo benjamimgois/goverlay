@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, Spin, ComCtrls, Buttons, aboutunit,ATStringProc_HtmlColor;
+  StdCtrls, Spin, ComCtrls, Buttons, ColorBox, aboutunit,ATStringProc_HtmlColor;
 
 
 
@@ -16,6 +16,12 @@ type
 
   Tgoverlayform = class(TForm)
     checkallBitBtn: TBitBtn;
+    fontsizeLabel1: TLabel;
+    fpslimLabel1: TLabel;
+    gpuclocklabel: TLabel;
+    iordrwlabel: TLabel;
+    iorwvaluelabel: TLabel;
+    iordvaluelabel: TLabel;
     frametimegraphlabel: TLabel;
     fpscustomSpinEdit: TSpinEdit;
     crosshairVShape: TShape;
@@ -23,6 +29,8 @@ type
     timelabel: TLabel;
     ramlabel: TLabel;
     frametimelabel2: TLabel;
+    glvsyncComboBox: TComboBox;
+    glvsyncLabel: TLabel;
     vulkanlabel: TLabel;
     vulkanftimelabel: TLabel;
     ramusagelabel: TLabel;
@@ -30,7 +38,7 @@ type
     rrggbbLabel: TLabel;
     saveBitBtn: TBitBtn;
     fontsizeSpinEdit: TSpinEdit;
-    vkcubeBitBtn: TBitBtn;
+    runBitBtn: TBitBtn;
     aboutBitBtn: TBitBtn;
     ColorDialog1: TColorDialog;
     crosshairShape: TShape;
@@ -74,7 +82,7 @@ type
     gpuusagelabel: TLabel;
     vramusagelabel: TLabel;
     GroupBox1: TGroupBox;
-    GroupBox2: TGroupBox;
+    mangohudGroupBox: TGroupBox;
     backgroundImage: TImage;
     vsyncLabel: TLabel;
     fpslimLabel: TLabel;
@@ -87,13 +95,14 @@ type
     procedure fontsizeComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure fpslimComboBoxChange(Sender: TObject);
     procedure fpslimComboBoxKeyPress(Sender: TObject; var Key: char);
+    procedure glvsyncComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure gpuCheckGroupItemClick(Sender: TObject; Index: integer);
     procedure hudonoffComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure loggingComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure memCheckGroupItemClick(Sender: TObject; Index: integer);
     procedure otherCheckGroupItemClick(Sender: TObject; Index: integer);
     procedure saveBitBtnClick(Sender: TObject);
-    procedure vkcubeBitBtnClick(Sender: TObject);
+    procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
     procedure bottomleftShapeMouseEnter(Sender: TObject);
     procedure bottomrightShapeMouseEnter(Sender: TObject);
@@ -180,12 +189,22 @@ begin
 
   end;
 
-  //Setup vsync
+  //Setup VSYNC
+
+  //VULKAN VSYNC
   case vsyncCombobox.ItemIndex of
     0:RunCommand('bash -c ''echo "vsync=0" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     1:RunCommand('bash -c ''echo "vsync=1" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     2:RunCommand('bash -c ''echo "vsync=2" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     3:RunCommand('bash -c ''echo "vsync=3" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+  end;
+
+  //OPENGL VSYNC
+  case glvsyncCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "gl_vsync=-1" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "gl_vsync=0" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "gl_vsync=n" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+    3:RunCommand('bash -c ''echo "gl_vsync=1" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   end;
 
   //####################################################################################### MANGOHUD
@@ -228,8 +247,10 @@ begin
   RunCommand('bash -c ''echo "vram" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
   if gpuCheckgroup.Checked[2] then
-  RunCommand('bash -c ''echo "io_read,io_write" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
-
+  begin
+  RunCommand('bash -c ''echo "io_read" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "io_write" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+  end;
 
   //Others checks
   if otherCheckgroup.Checked[0] then
@@ -397,6 +418,12 @@ begin
   key:=#0;
 end;
 
+procedure Tgoverlayform.glvsyncComboBoxKeyPress(Sender: TObject; var Key: char);
+begin
+   //Block keypress on combobox
+  key:=#0;
+end;
+
 procedure Tgoverlayform.gpuCheckGroupItemClick(Sender: TObject; Index: integer);
 begin
     //Preview GPU Average Load
@@ -519,6 +546,7 @@ begin
   //Preview all hud options
   cpulabel.Caption:='CPU';
   cpuusagelabel.Caption:='28%';
+  cputemplabel.Caption:='71ºC';
   gpulabel.Caption:='GPU';
   gpuusagelabel.Caption:='90%';
   gpulabel.Caption:='GPU';
@@ -531,6 +559,10 @@ begin
   frametimelabel2.Caption:='16.6ms';
   frametimegraphlabel.Caption:='-------------------------';
   timelabel.Caption:='22:40';
+  iordrwlabel.caption:='IO RF/RW';
+  iordvaluelabel.caption:='32MiB/s';
+  iorwvaluelabel.caption:='22MiB/s';
+  gpuclocklabel.caption:='1733MHz';
 end;
 
 procedure Tgoverlayform.cpuCheckGroupItemClick(Sender: TObject; Index: integer);
@@ -560,9 +592,9 @@ begin
 
 end;
 
-procedure Tgoverlayform.vkcubeBitBtnClick(Sender: TObject);
+procedure Tgoverlayform.runBitBtnClick(Sender: TObject);
 begin
-  RunCommand('bash -c ''MANGOHUD=1 vkcube''', s);
+  RunCommand('bash -c ''mangohud vkcube & mangohud glxgears''', s);
 end;
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
@@ -597,6 +629,27 @@ begin
   //Centralize window
   Left:=(Screen.Width-Width)  div 2;
   Top:=(Screen.Height-Height) div 2;
+
+  //Clear hud preview options
+  cpulabel.Caption:='';
+  cpuusagelabel.Caption:='';
+  cputemplabel.Caption:='';
+  gpulabel.Caption:='';
+  gpuusagelabel.Caption:='';
+  gpulabel.Caption:='';
+  gputemplabel.Caption:='';
+  vramlabel.Caption:='';
+  vramusagelabel.Caption:='';
+  ramlabel.Caption:='';
+  ramusagelabel.Caption:='';
+  frametimelabel.Caption:='';
+  frametimelabel2.Caption:='';
+  frametimegraphlabel.Caption:='';
+  timelabel.Caption:='';
+  iordrwlabel.caption:='';
+  iordvaluelabel.caption:='';
+  iorwvaluelabel.caption:='';
+  gpuclocklabel.caption:='';
 end;
 
 procedure Tgoverlayform.paintSpeedButtonClick(Sender: TObject);
