@@ -11,7 +11,7 @@ Special praze to Flightless Mango, he is the man and the mind behind MangoHUD.
   
   https://discordapp.com/invite/Gj5YmBb
 
-<a href="https://ibb.co/tqZsJQq"><img src="https://i.ibb.co/3pfNC4p/goverlay021beta2.png" alt="goverlay021beta2" border="0"></a><br /><a target='_blank' href='https://pt-br.imgbb.com/'></a><br />
+<a href="https://ibb.co/XyYQ3Yg"><img src="https://i.ibb.co/1szgdz5/goverlay023.png" alt="goverlay023" border="0"></a>
 
 
 # Installation 
