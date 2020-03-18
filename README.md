@@ -13,6 +13,15 @@ Special praze to Flightless Mango, he is the man and the mind behind MangoHUD.
 
 <a href="https://ibb.co/XyYQ3Yg"><img src="https://i.ibb.co/1szgdz5/goverlay023.png" alt="goverlay023" border="0"></a>
 
+# Dependencies
+
+    mangohud – Configure MangoHUD
+    mesa-demos – OpenGL preview
+    vulkan-tools – Vulkan preview
+
+
+Required by (0)
+
 
 # Installation 
 
