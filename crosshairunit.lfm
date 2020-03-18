@@ -1,0 +1,60 @@
+object crosshairsizeForm: TcrosshairsizeForm
+  Left = 588
+  Height = 73
+  Top = 319
+  Width = 247
+  BorderStyle = bsDialog
+  Caption = 'Cross Hair Size'
+  ClientHeight = 73
+  ClientWidth = 247
+  Color = 3684408
+  OnCreate = FormCreate
+  LCLVersion = '2.0.6.0'
+  object crosssizemaxLabel: TLabel
+    Left = 220
+    Height = 9
+    Top = 48
+    Width = 16
+    Caption = '100'
+    Font.Height = -9
+    Font.Name = 'Cantarell'
+    ParentColor = False
+    ParentFont = False
+  end
+  object crosssizeLabel: TLabel
+    Left = 104
+    Height = 12
+    Top = 44
+    Width = 25
+    Caption = 'Size'
+    Font.Height = -11
+    Font.Name = 'Sans'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+  end
+  object crosssizeminLabel: TLabel
+    Left = 8
+    Height = 9
+    Top = 48
+    Width = 10
+    Caption = '10'
+    Font.Height = -9
+    Font.Name = 'Cantarell'
+    ParentColor = False
+    ParentFont = False
+  end
+  object crosshairTrackBar: TTrackBar
+    Left = 8
+    Height = 38
+    Top = 8
+    Width = 228
+    Frequency = 20
+    Max = 100
+    Position = 20
+    TickMarks = tmBoth
+    Color = clInfoBk
+    ParentColor = False
+    TabOrder = 0
+  end
+end

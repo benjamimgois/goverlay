@@ -29,7 +29,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="5">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -46,6 +46,22 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ATStringProc_HtmlColor"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="crosshairunit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="crosshairsizeForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="crosshairUnit"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="hudbackgroundunit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="hudbackgroundForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="hudbackgroundUnit"/>
+      </Unit4>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

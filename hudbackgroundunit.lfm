@@ -1,0 +1,54 @@
+object hudbackgroundForm: ThudbackgroundForm
+  Left = 658
+  Height = 73
+  Top = 344
+  Width = 304
+  BorderStyle = bsDialog
+  Caption = 'Background Transparency'
+  ClientHeight = 73
+  ClientWidth = 304
+  OnCreate = FormCreate
+  LCLVersion = '2.0.6.0'
+  object transpTrackBar: TTrackBar
+    Left = 8
+    Height = 38
+    Top = 8
+    Width = 288
+    Position = 6
+    TabOrder = 0
+  end
+  object transparencyLabel: TLabel
+    Left = 112
+    Height = 12
+    Top = 48
+    Width = 83
+    Caption = 'Transparency'
+    Font.Height = -11
+    Font.Name = 'Sans'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+  end
+  object transpminLabel: TLabel
+    Left = 16
+    Height = 12
+    Top = 48
+    Width = 18
+    Caption = '0%'
+    Font.Height = -11
+    Font.Name = 'Cantarell'
+    ParentColor = False
+    ParentFont = False
+  end
+  object transpmaxLabel: TLabel
+    Left = 266
+    Height = 12
+    Top = 48
+    Width = 30
+    Caption = '100%'
+    Font.Height = -11
+    Font.Name = 'Cantarell'
+    ParentColor = False
+    ParentFont = False
+  end
+end

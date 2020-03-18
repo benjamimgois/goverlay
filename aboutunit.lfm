@@ -1,11 +1,13 @@
 object aboutForm: TaboutForm
-  Left = 1962
+  Left = 828
   Height = 455
   Top = 200
   Width = 538
+  BorderStyle = bsDialog
   Caption = 'About'
   ClientHeight = 455
   ClientWidth = 538
+  Color = 3684408
   OnCreate = FormCreate
   LCLVersion = '2.0.6.0'
   object PageControl1: TPageControl
@@ -26,6 +28,7 @@ object aboutForm: TaboutForm
         Top = 40
         Width = 512
         BorderStyle = bsNone
+        Color = 3684408
         Lines.Strings = (
           'GOverlay is an opensource project that aims to create a Graphical UI to help manage Linux overlays. It still in early alpha, so here will be dragons ! Be warned ! :)'
           'This project is only possible due to the hard work of other people that did the really heavy lighting. I am just a Network Engineer that realy likes Linux and Gaming.'
@@ -55,11 +58,13 @@ object aboutForm: TaboutForm
         Top = 151
         Width = 211
         Caption = 'https://flightlessmango.com/'
+        Color = 3684408
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
+        Transparent = False
         OnClick = mangolinkClick
       end
       object Memo1: TMemo
@@ -68,6 +73,7 @@ object aboutForm: TaboutForm
         Top = 192
         Width = 512
         BorderStyle = bsNone
+        Color = 3684408
         Lines.Strings = (
           'Also thanks to Jason Evangelo from Linux for everyone for helping with the name and making me fall in love with linux again.'
         )
@@ -82,11 +88,13 @@ object aboutForm: TaboutForm
         Top = 234
         Width = 245
         Caption = 'https://www.linux4everyone.com/'
+        Color = 3684408
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
+        Transparent = False
         OnClick = Label1Click
       end
       object Image1: TImage
@@ -11080,6 +11088,7 @@ object aboutForm: TaboutForm
         Top = 272
         Width = 392
         BorderStyle = bsNone
+        Color = 3684408
         Lines.Strings = (
           'Benjamim Góis'
           ''
@@ -12227,6 +12236,7 @@ object aboutForm: TaboutForm
         Top = 8
         Width = 526
         Alignment = taCenter
+        Color = 3684408
         Lines.Strings = (
           'GNU GENERAL PUBLIC LICENSE'
           '                       Version 3, 29 June 2007'

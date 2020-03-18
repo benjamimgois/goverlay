@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, Spin, ComCtrls, Buttons, ColorBox, aboutunit,ATStringProc_HtmlColor;
+  StdCtrls, Spin, ComCtrls, Buttons, ColorBox, aboutunit,ATStringProc_HtmlColor,crosshairUnit,hudbackgroundUnit;
 
 
 
@@ -15,10 +15,39 @@ type
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
+    crosshairsizeBitBtn: TBitBtn;
     checkallBitBtn: TBitBtn;
+    hudtranspBitBtn: TBitBtn;
+    hudbackgroundColorButton: TColorButton;
+    gpuColorButton: TColorButton;
+    Image1: TImage;
+    ImageList1: TImageList;
+    GlobalenableLabel: TLabel;
+    geSpeedButton: TSpeedButton;
+    vramColorButton: TColorButton;
+    iordrwColorButton: TColorButton;
+    ramColorButton: TColorButton;
+    frametimegraphColorButton: TColorButton;
+    crosshairColorButton: TColorButton;
+    cpuavrloadCheckBox: TCheckBox;
+    frametimegraphCheckBox: TCheckBox;
+    otherGroupBox: TGroupBox;
+    ramusageCheckBox: TCheckBox;
+    memGroupBox: TGroupBox;
+    diskioCheckBox: TCheckBox;
+    crosshairCheckBox: TCheckBox;
+    vramusageCheckBox: TCheckBox;
+    gpuavrloadCheckBox: TCheckBox;
+    gpuGroupBox: TGroupBox;
+    gpufreqCheckBox: TCheckBox;
+    cputempCheckBox: TCheckBox;
+    cpuloadcoreCheckBox: TCheckBox;
+    cpuColorButton: TColorButton;
+    gputempCheckBox: TCheckBox;
     fontsizeLabel1: TLabel;
     fpslimLabel1: TLabel;
     gpuclocklabel: TLabel;
+    cpuGroupBox: TGroupBox;
     iordrwlabel: TLabel;
     iorwvaluelabel: TLabel;
     iordvaluelabel: TLabel;
@@ -31,48 +60,30 @@ type
     frametimelabel2: TLabel;
     glvsyncComboBox: TComboBox;
     glvsyncLabel: TLabel;
+    timeCheckBox: TCheckBox;
     vulkanlabel: TLabel;
     vulkanftimelabel: TLabel;
     ramusagelabel: TLabel;
     vulkanfpslabel: TLabel;
-    rrggbbLabel: TLabel;
     saveBitBtn: TBitBtn;
     fontsizeSpinEdit: TSpinEdit;
     runBitBtn: TBitBtn;
     aboutBitBtn: TBitBtn;
-    ColorDialog1: TColorDialog;
-    crosshairShape: TShape;
     fontsizeComboBox: TComboBox;
     fpslimComboBox: TComboBox;
-    GroupBox4: TGroupBox;
-    cpuCheckGroup: TCheckGroup;
-    gpuCheckGroup: TCheckGroup;
+    keybindingsGroupBox: TGroupBox;
     hidehudCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
-    Label10: TLabel;
-    crosssizeLabel: TLabel;
-    crosssizeminLabel: TLabel;
-    crosssizemaxLabel: TLabel;
-    transparencyLabel: TLabel;
     Label4: TLabel;
     Label5: TLabel;
     fontsizeLabel: TLabel;
     previewLabel: TLabel;
-    transpminLabel: TLabel;
-    transpmaxLabel: TLabel;
     loggingComboBox: TComboBox;
-    memCheckGroup: TCheckGroup;
-    otherCheckGroup: TCheckGroup;
-    paintShape: TShape;
-    paintSpeedButton: TSpeedButton;
     toprightShape: TShape;
     topleftShape: TShape;
     bottomrightShape: TShape;
     bottomleftShape: TShape;
-    transpTrackBar: TTrackBar;
-    crosshairTrackBar: TTrackBar;
     visualGroupBox: TGroupBox;
-    visualGroupBox1: TGroupBox;
     vsyncComboBox: TComboBox;
     gpulabel: TLabel;
     vramlabel: TLabel;
@@ -81,7 +92,7 @@ type
     cputemplabel: TLabel;
     gpuusagelabel: TLabel;
     vramusagelabel: TLabel;
-    GroupBox1: TGroupBox;
+    performanceGroupBox: TGroupBox;
     mangohudGroupBox: TGroupBox;
     backgroundImage: TImage;
     vsyncLabel: TLabel;
@@ -90,26 +101,43 @@ type
     hudbackgroundShape: TShape;
     frametimelabel: TLabel;
     procedure checkallBitBtnClick(Sender: TObject);
-    procedure cpuCheckGroupItemClick(Sender: TObject; Index: integer);
+    procedure crosshairsizeBitBtnClick(Sender: TObject);
+    procedure geSpeedButtonClick(Sender: TObject);
+    procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
+    procedure cpuColorButtonColorChanged(Sender: TObject);
+    procedure cpuavrloadCheckBoxClick(Sender: TObject);
+    procedure cputempCheckBoxClick(Sender: TObject);
+    procedure crosshairCheckBoxClick(Sender: TObject);
+    procedure crosshairColorButtonColorChanged(Sender: TObject);
+    procedure diskioCheckBoxClick(Sender: TObject);
+    procedure frametimegraphColorButtonColorChanged(Sender: TObject);
+    procedure hudtranspBitBtnClick(Sender: TObject);
+    procedure iordrwColorButtonColorChanged(Sender: TObject);
     procedure fontsizeComboBoxChange(Sender: TObject);
     procedure fontsizeComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure fpslimComboBoxChange(Sender: TObject);
     procedure fpslimComboBoxKeyPress(Sender: TObject; var Key: char);
+    procedure frametimegraphCheckBoxClick(Sender: TObject);
     procedure glvsyncComboBoxKeyPress(Sender: TObject; var Key: char);
-    procedure gpuCheckGroupItemClick(Sender: TObject; Index: integer);
+    procedure gpuavrloadCheckBoxClick(Sender: TObject);
+    procedure gpuColorButtonColorChanged(Sender: TObject);
+    procedure gpufreqCheckBoxClick(Sender: TObject);
+    procedure gputempCheckBoxClick(Sender: TObject);
     procedure hudonoffComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure loggingComboBoxKeyPress(Sender: TObject; var Key: char);
-    procedure memCheckGroupItemClick(Sender: TObject; Index: integer);
-    procedure otherCheckGroupItemClick(Sender: TObject; Index: integer);
+    procedure ramColorButtonColorChanged(Sender: TObject);
+    procedure ramusageCheckBoxClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
     procedure bottomleftShapeMouseEnter(Sender: TObject);
     procedure bottomrightShapeMouseEnter(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure paintSpeedButtonClick(Sender: TObject);
+    procedure timeCheckBoxClick(Sender: TObject);
     procedure topleftShapeMouseEnter(Sender: TObject);
     procedure toprightShapeMouseEnter(Sender: TObject);
+    procedure vramColorButtonColorChanged(Sender: TObject);
+    procedure vramusageCheckBoxClick(Sender: TObject);
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
 
   private
@@ -128,8 +156,32 @@ var
   fontsizeCustomScript:TextFile;
   crosshairsizeScript:TextFile;
   crosshairsizeValue:TextFile;
-  crosshaircolorValue:TextFile;
-  crosshaircolorScript:TextFile;
+  gpucolorValue:TextFile;
+  gpucolorScript:TextFile;
+  cpucolorValue:TextFile;
+  cpucolorScript:TextFile;
+  cpucolorhtml: string;
+  gpucolorhtml: string;
+  iordrwcolorhtml: string;
+  iordrwcolorScript:TextFile;
+  iordrwcolorValue:TextFile;
+  vramcolorhtml: string;
+  vramcolorValue: TextFile;
+  vramcolorScript: TextFile;
+  ramcolorhtml: string;
+  ramcolorValue: TextFile;
+  ramcolorScript: TextFile;
+  frametimegraphcolorhtml: string;
+  frametimegraphcolorValue: TextFile;
+  frametimegraphcolorScript: TextFile;
+  crosshaircolorhtml: string;
+  crosshaircolorValue: Textfile;
+  crosshaircolorScript: Textfile;
+  hudbackgroundcolorhtml: string;
+  hudbackgroundcolorValue: Textfile;
+  hudbackgroundcolorScript: Textfile;
+  togglestateValueVAR: Textfile;
+  togglestateValueSTR: string;
 
 
 
@@ -144,13 +196,13 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 begin
   //Create directories
   RunCommand('bash -c ''mkdir -p /home/$USER/.config/MangoHud/''', s);
-  RunCommand('bash -c ''mkdir -p /tmp/goverlay/''', s);
+
 
   // Delete old file if it exists
   RunCommand('bash -c ''rm /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
   // Create a new file for overlaygui
-  RunCommand('bash -c ''echo "################### File Generated by GOverlay 0.2.1 (beta) ###################" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "################### File Generated by GOverlay 0.2.3 (beta) ###################" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
   // Popup a notification
   RunCommand('bash -c ''notify-send Config_saved''', s);
@@ -209,92 +261,179 @@ begin
 
   //####################################################################################### MANGOHUD
 
-  //CPU checks
-  if cpuCheckgroup.Checked[0] then
+  //###################################################### CPU
+  if cpuavrloadCheckbox.Checked=true then
   RunCommand('bash -c ''echo "cpu_stats" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if cpuCheckgroup.Checked[1] then
+  if cputempCheckbox.Checked=true then
   RunCommand('bash -c ''echo "cpu_temp" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if cpuCheckgroup.Checked[2] then
+  if cpuloadcoreCheckbox.Checked=true then
   RunCommand('bash -c ''echo "core_load" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
 
+  //CPU Color
+
+      // Assign value to file
+      AssignFile(cpucolorValue, '/tmp/goverlay/cpucolorValue');
+      Rewrite(cpucolorValue);
+      Writeln(cpucolorValue,cpucolorhtml);
+      CloseFile(cpucolorValue);
+
+      // Create custom script
+      AssignFile(cpucolorScript, '/tmp/goverlay/cpucolorScript.sh');
+      Rewrite(cpucolorScript);
+      Writeln(cpucolorScript,'CPUc=$(cat /tmp/goverlay/cpucolorValue | cut -c 2-10)');  //Store cpu color in Linux/Unix variable and remove # character
+      Writeln(cpucolorScript,'echo "cpu_color=$CPUc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with color value
+      CloseFile(cpucolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/cpucolorScript.sh''', s);
+
+      //###################################################### CPU
+
+
+
+      //###################################################### GPU
 
   //GPU checks
-  if gpuCheckgroup.Checked[0] then
+  if gpuavrloadCheckbox.Checked=true then
   RunCommand('bash -c ''echo "gpu_stats" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if gpuCheckgroup.Checked[1] then
+  if gputempCheckbox.Checked=true then
   RunCommand('bash -c ''echo "gpu_temp" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if gpuCheckgroup.Checked[2] then
+  if gpufreqCheckbox.Checked=true then
   RunCommand('bash -c ''echo "gpu_core_clock" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
+   //GPU Color
+
+      // Assign value to file
+      AssignFile(gpucolorValue, '/tmp/goverlay/gpucolorValue');
+      Rewrite(gpucolorValue);
+      Writeln(gpucolorValue,gpucolorhtml);
+      CloseFile(gpucolorValue);
+
+      // Create custom script
+      AssignFile(gpucolorScript, '/tmp/goverlay/gpucolorScript.sh');
+      Rewrite(gpucolorScript);
+      Writeln(gpucolorScript,'GPUc=$(cat /tmp/goverlay/gpucolorValue | cut -c 2-10)');  //Store gpu color in Linux/Unix variable and remove # character
+      Writeln(gpucolorScript,'echo "gpu_color=$GPUc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(gpucolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/gpucolorScript.sh''', s);
 
 
-  //GPU
-  if gpuCheckgroup.Checked[0] then
-  RunCommand('bash -c ''echo "gpu_stats" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+    //###################################################### GPU
 
 
-
-  //Memory checks
-  if memCheckgroup.Checked[0] then
+    //###################################################### MEMORY
+  if ramusageCheckbox.Checked=true then
   RunCommand('bash -c ''echo "ram" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if gpuCheckgroup.Checked[1] then
+    //RAM Color
+    // Assign value to file
+      AssignFile(ramcolorValue, '/tmp/goverlay/ramcolorValue');
+      Rewrite(ramcolorValue);
+      Writeln(ramcolorValue,ramcolorhtml);
+      CloseFile(ramcolorValue);
+
+      // Create custom script
+      AssignFile(ramcolorScript, '/tmp/goverlay/ramcolorScript.sh');
+      Rewrite(ramcolorScript);
+      Writeln(ramcolorScript,'RAMc=$(cat /tmp/goverlay/ramcolorValue | cut -c 2-10)');  //Store ram color in Linux/Unix variable and remove # character
+      Writeln(ramcolorScript,'echo "ram_color=$RAMc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(ramcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/ramcolorScript.sh''', s);
+
+
+
+  if vramusageCheckbox.Checked=true then
   RunCommand('bash -c ''echo "vram" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if gpuCheckgroup.Checked[2] then
+  //VRAM Color
+
+      // Assign value to file
+      AssignFile(vramcolorValue, '/tmp/goverlay/vramcolorValue');
+      Rewrite(vramcolorValue);
+      Writeln(vramcolorValue,vramcolorhtml);
+      CloseFile(vramcolorValue);
+
+      // Create custom script
+      AssignFile(vramcolorScript, '/tmp/goverlay/vramcolorScript.sh');
+      Rewrite(vramcolorScript);
+      Writeln(vramcolorScript,'VRAMc=$(cat /tmp/goverlay/vramcolorValue | cut -c 2-10)');  //Store vram color in Linux/Unix variable and remove # character
+      Writeln(vramcolorScript,'echo "vram_color=$VRAMc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(vramcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/vramcolorScript.sh''', s);
+
+  if diskioCheckbox.Checked=true then
   begin
   RunCommand('bash -c ''echo "io_read" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   RunCommand('bash -c ''echo "io_write" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   end;
 
+  //DISK IO Color
+
+      // Assign value to file
+      AssignFile(iordrwcolorValue, '/tmp/goverlay/iordrwcolorValue');
+      Rewrite(iordrwcolorValue);
+      Writeln(iordrwcolorValue,iordrwcolorhtml);
+      CloseFile(iordrwcolorValue);
+
+      // Create custom script
+      AssignFile(iordrwcolorScript, '/tmp/goverlay/iordrwcolorScript.sh');
+      Rewrite(iordrwcolorScript);
+      Writeln(iordrwcolorScript,'IOc=$(cat /tmp/goverlay/iordrwcolorValue | cut -c 2-10)');  //Store io color in Linux/Unix variable and remove # character
+      Writeln(iordrwcolorScript,'echo "io_color=$IOc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with color value
+      CloseFile(iordrwcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/iordrwcolorScript.sh''', s);
+
+
+//###################################################### MEMORY
+
+//###################################################### OTHERS
+
   //Others checks
-  if otherCheckgroup.Checked[0] then
+  if frametimegraphCheckbox.Checked=true then
   RunCommand('bash -c ''echo "frame_timing" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if otherCheckgroup.Checked[1] then
+    //Frame time Graph Color
+    // Assign value to file
+      AssignFile(frametimegraphcolorValue, '/tmp/goverlay/frametimegraphcolorValue');
+      Rewrite(frametimegraphcolorValue);
+      Writeln(frametimegraphcolorValue,frametimegraphcolorhtml);
+      CloseFile(frametimegraphcolorValue);
+
+      // Create custom script
+      AssignFile(frametimegraphcolorScript, '/tmp/goverlay/frametimegraphcolorScript.sh');
+      Rewrite(frametimegraphcolorScript);
+      Writeln(frametimegraphcolorScript,'FTGc=$(cat /tmp/goverlay/frametimegraphcolorValue | cut -c 2-10)');  //Store frame time graph color in Linux/Unix variable and remove # character
+      Writeln(frametimegraphcolorScript,'echo "frametime_color=$FTGc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(frametimegraphcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/frametimegraphcolorScript.sh''', s);
+
+  if timeCheckbox.Checked=true then
   RunCommand('bash -c ''echo "time" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
-  if otherCheckgroup.Checked[2] then
+  if crosshairCheckbox.Checked=true then
   RunCommand('bash -c ''echo "crosshair" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
 
-
-
-  //Crosshair Size
-
-      // Assign value to file
-      AssignFile(crosshairsizeValue, '/tmp/goverlay/crosshairsizeValue');
-      Rewrite(crosshairsizeValue);
-      Writeln(crosshairsizeValue,crosshairTrackbar.Position);
-      CloseFile(crosshairsizeValue);
-
-      // Create custom script
-      AssignFile(crosshairsizeScript, '/tmp/goverlay/crosshairsizeScript.sh');
-      Rewrite(crosshairsizeScript);
-      Writeln(crosshairsizeScript,'CROSSHAIRs=$(cat /tmp/goverlay/crosshairsizeValue)');  //Store crosshair size in Linux/Unix variable
-      Writeln(crosshairsizeScript,'echo "crosshair_size=$CROSSHAIRs" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair value
-      CloseFile(crosshairsizeScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/crosshairsizeScript.sh''', s);
-
-
-  //Crosshair Color
-      //Convert TCOLOR to RGB format
-     // Color := SColorToHtmlColor(paintShape.Brush.Color);
-     // rrggbbLabel.Caption := Color;
-
-
-
+      //Crosshair Color
       // Assign value to file
       AssignFile(crosshaircolorValue, '/tmp/goverlay/crosshaircolorValue');
       Rewrite(crosshaircolorValue);
-      Writeln(crosshaircolorValue,rrggbbLabel.Caption);
+      Writeln(crosshaircolorValue,crosshaircolorhtml);
       CloseFile(crosshaircolorValue);
 
       // Create custom script
@@ -307,6 +446,27 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/crosshaircolorScript.sh''', s);
 
+
+      //Crosshair Size
+
+           // Assign value to file
+           AssignFile(crosshairsizeValue, '/tmp/goverlay/crosshairsizeValue');
+           Rewrite(crosshairsizeValue);
+           Writeln(crosshairsizeValue,crosshairsizeform.crosshairTrackbar.Position);
+           CloseFile(crosshairsizeValue);
+
+           // Create custom script
+           AssignFile(crosshairsizeScript, '/tmp/goverlay/crosshairsizeScript.sh');
+           Rewrite(crosshairsizeScript);
+           Writeln(crosshairsizeScript,'CROSSHAIRs=$(cat /tmp/goverlay/crosshairsizeValue)');  //Store crosshair size in Linux/Unix variable
+           Writeln(crosshairsizeScript,'echo "crosshair_size=$CROSSHAIRs" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair value
+           CloseFile(crosshairsizeScript);
+
+           //execute custom script to store custom value on mangohud.conf
+           RunCommand('bash -c ''sh /tmp/goverlay/crosshairsizeScript.sh''', s);
+
+      //###################################################### OTHERS
+
   //####################################################################################### VISUALS
 
 
@@ -315,7 +475,7 @@ begin
   RunCommand('bash -c ''echo "no_display" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
   //Background transparency
-   case transptrackbar.Position of
+   case hudbackgroundForm.transptrackbar.Position of
     0:RunCommand('bash -c ''echo "background_alpha=1" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     1:RunCommand('bash -c ''echo "background_alpha=0.9" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     2:RunCommand('bash -c ''echo "background_alpha=0.8" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
@@ -354,6 +514,24 @@ begin
       end;
   end;
 
+
+  //HUD BACKGROUND COLOR
+
+      // Assign custom value to file
+      AssignFile(hudbackgroundcolorValue, '/tmp/goverlay/hudbackgroundcolorValue');
+      Rewrite(hudbackgroundcolorValue);
+      Writeln(hudbackgroundcolorValue,hudbackgroundcolorhtml);
+      CloseFile(hudbackgroundcolorValue);
+
+      // Create custom script
+      AssignFile(hudbackgroundcolorScript, '/tmp/goverlay/hudbackgroundcolorScript.sh');
+      Rewrite(hudbackgroundcolorScript);
+      Writeln(hudbackgroundcolorScript,'HUDBACKGROUNDc=$(cat /tmp/goverlay/hudbackgroundcolorValue| cut -c 2-10)');  //Store hud color in a Linux/Unix variable
+      Writeln(hudbackgroundcolorScript,'echo "background_color=$HUDBACKGROUNDc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
+      CloseFile(hudbackgroundcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/hudbackgroundcolorScript.sh''', s);
 
   //HUD Position
   if toprightShape.Brush.Style=bsSolid then
@@ -418,16 +596,33 @@ begin
   key:=#0;
 end;
 
+procedure Tgoverlayform.frametimegraphCheckBoxClick(Sender: TObject);
+begin
+     //Preview frame time graph
+     if frametimegraphCheckbox.Checked=true then
+     begin
+       frametimelabel.Caption:='Frametime';
+       frametimelabel2.Caption:='16.6ms';
+       frametimegraphlabel.Caption:='-------------------------------------------'
+     end
+   else
+     begin
+       frametimelabel.Caption:='';
+       frametimelabel2.Caption:='';
+       frametimegraphlabel.Caption:=''
+     end;
+end;
+
 procedure Tgoverlayform.glvsyncComboBoxKeyPress(Sender: TObject; var Key: char);
 begin
    //Block keypress on combobox
   key:=#0;
 end;
 
-procedure Tgoverlayform.gpuCheckGroupItemClick(Sender: TObject; Index: integer);
+procedure Tgoverlayform.gpuavrloadCheckBoxClick(Sender: TObject);
 begin
-    //Preview GPU Average Load
-  if gpuCheckgroup.Checked[0] then
+  //Preview GPU Average Load
+  if gpuavrloadCheckbox.Checked=true then
   begin
   gpulabel.Caption:='GPU';
   gpuusagelabel.Caption:='90%'
@@ -437,9 +632,35 @@ begin
   gpulabel.Caption:='';
   gpuusagelabel.Caption:='';
   end;
+end;
 
-  //Preview GPU temperature
-  if gpuCheckgroup.Checked[1] then
+procedure Tgoverlayform.gpuColorButtonColorChanged(Sender: TObject);
+begin
+     // Change GPU color labels
+    gpulabel.font.Color:=gpucolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    gpucolorhtml := SColorToHtmlColor(gpucolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.gpufreqCheckBoxClick(Sender: TObject);
+begin
+  //Preview GPU Clock
+  if gpufreqCheckbox.Checked=true then
+  begin
+  gpulabel.Caption:='GPU';
+  gpuclocklabel.Caption:='1733MHz';
+  end
+  else
+  begin
+  gpuclocklabel.Caption:='';
+  end;
+end;
+
+procedure Tgoverlayform.gputempCheckBoxClick(Sender: TObject);
+begin
+  //PREVIEW GPU TEMPERATURE
+  if gputempCheckbox.Checked=true then
   begin
   gpulabel.Caption:='GPU';
   gputemplabel.Caption:='82ºC';
@@ -463,23 +684,20 @@ begin
   key:=#0;
 end;
 
-procedure Tgoverlayform.memCheckGroupItemClick(Sender: TObject; Index: integer);
+procedure Tgoverlayform.ramColorButtonColorChanged(Sender: TObject);
 begin
-    //Preview RAM usage
-  if memCheckgroup.Checked[1] then
-    begin
-    vramlabel.Caption:='VRAM';
-    vramusagelabel.Caption:='2.56GB'
-    end
-  else
-    begin
-    vramlabel.Caption:='';
-    vramusagelabel.Caption:=''
-  end;
+    // Change RAM label color
+    ramlabel.font.Color:=ramcolorButton.ButtonColor;
 
-   //Preview VRAM usage
-   if memCheckgroup.Checked[0] then
-     begin
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    ramcolorhtml := SColorToHtmlColor(ramcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.ramusageCheckBoxClick(Sender: TObject);
+begin
+  //Preview RAM usage
+  if ramusageCheckbox.Checked=true then
+    begin
      ramlabel.Caption:='RAM';
      ramusagelabel.Caption:='5.99GB'
      end
@@ -487,61 +705,23 @@ begin
      begin
      ramlabel.Caption:='';
      ramusagelabel.Caption:=''
-   end;
-
-end;
-
-procedure Tgoverlayform.otherCheckGroupItemClick(Sender: TObject; Index: integer
-  );
-begin
-   //Preview frame time graph
-     if otherCheckgroup.Checked[0] then
-     begin
-       frametimelabel.Caption:='Frametime';
-       frametimelabel2.Caption:='16.6ms';
-       frametimegraphlabel.Caption:='-------------------------'
-     end
-   else
-     begin
-       frametimelabel.Caption:='';
-       frametimelabel2.Caption:='';
-       frametimegraphlabel.Caption:=''
-     end;
-
-  //Preview TIME
-   if otherCheckgroup.Checked[1] then
-      timelabel.Caption:='22:40'
-   else
-    timelabel.Caption:='';
-
-  //Preview crosshair
-   if otherCheckgroup.Checked[2] then
-     begin
-     crosshairVShape.Visible:=true;
-     crosshairHShape.Visible:=true;
-     end
-   else
-     begin
-     crosshairVShape.Visible:=false;
-     crosshairHShape.Visible:=false;
-   end;
-
+  end;
 end;
 
 procedure Tgoverlayform.checkallBitBtnClick(Sender: TObject);
 begin
   //Check all hud options
-  cpuCheckgroup.Checked[0]:=true;
-  cpuCheckgroup.Checked[1]:=true;
-  cpuCheckgroup.Checked[2]:=true;
-  gpuCheckgroup.Checked[0]:=true;
-  gpuCheckgroup.Checked[1]:=true;
-  gpuCheckgroup.Checked[2]:=true;
-  memCheckgroup.Checked[0]:=true;
-  memCheckgroup.Checked[1]:=true;
-  memCheckgroup.Checked[2]:=true;
-  otherCheckgroup.Checked[0]:=true;
-  otherCheckgroup.Checked[1]:=true;
+  cpuavrloadCheckbox.Checked:=true;
+  cputempCheckbox.Checked:=true;
+  cpuloadcoreCheckbox.Checked:=true;
+  gpuavrloadCheckbox.Checked:=true;
+  gputempCheckbox.Checked:=true;
+  gpufreqCheckbox.Checked:=true;
+  diskioCheckbox.Checked:=true;
+  vramusageCheckbox.Checked:=true;
+  ramusageCheckbox.Checked:=true;
+  frametimegraphCheckbox.Checked:=true;
+  timeCheckbox.Checked:=true;
 
   //Preview all hud options
   cpulabel.Caption:='CPU';
@@ -557,7 +737,7 @@ begin
   ramusagelabel.Caption:='5.99GB';
   frametimelabel.Caption:='Frametime';
   frametimelabel2.Caption:='16.6ms';
-  frametimegraphlabel.Caption:='-------------------------';
+  frametimegraphlabel.Caption:='-------------------------------------------';
   timelabel.Caption:='22:40';
   iordrwlabel.caption:='IO RF/RW';
   iordvaluelabel.caption:='32MiB/s';
@@ -565,10 +745,34 @@ begin
   gpuclocklabel.caption:='1733MHz';
 end;
 
-procedure Tgoverlayform.cpuCheckGroupItemClick(Sender: TObject; Index: integer);
+procedure Tgoverlayform.crosshairsizeBitBtnClick(Sender: TObject);
 begin
-  //Preview CPU Average Load
-  if cpuCheckgroup.Checked[0] then
+  crosshairsizeForm.show;
+end;
+
+procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
+begin
+   // Change backgroud preview color
+    hudbackgroundShape.brush.Color:=hudbackgroundcolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    hudbackgroundcolorhtml := SColorToHtmlColor(hudbackgroundcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.cpuColorButtonColorChanged(Sender: TObject);
+begin
+    // Change color of labels
+    cpulabel.font.Color:=cpucolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    cpucolorhtml := SColorToHtmlColor(cpucolorButton.ButtonColor);
+end;
+
+
+procedure Tgoverlayform.cpuavrloadCheckBoxClick(Sender: TObject);
+begin
+   //Preview CPU Average Load
+  if cpuavrloadCheckbox.Checked=true then
   begin
   cpulabel.Caption:='CPU';
   cpuusagelabel.Caption:='28%'
@@ -578,9 +782,13 @@ begin
   cpulabel.Caption:='';
   cpuusagelabel.Caption:='';
   end;
+end;
 
+
+procedure Tgoverlayform.cputempCheckBoxClick(Sender: TObject);
+begin
   //Preview CPU temperature
-  if cpuCheckgroup.Checked[1] then
+  if cputempCheckbox.Checked=true then
   begin
   cpulabel.Caption:='CPU';
   cputemplabel.Caption:='44ºC';
@@ -589,13 +797,81 @@ begin
   begin
   cputemplabel.Caption:='';
   end;
+end;
 
+procedure Tgoverlayform.crosshairCheckBoxClick(Sender: TObject);
+begin
+    //Preview crosshair
+   if crosshairCheckbox.Checked=true then
+     begin
+     crosshairVShape.Visible:=true;
+     crosshairHShape.Visible:=true;
+     end
+   else
+     begin
+     crosshairVShape.Visible:=false;
+     crosshairHShape.Visible:=false;
+   end;
+end;
+
+procedure Tgoverlayform.crosshairColorButtonColorChanged(Sender: TObject);
+begin
+    // Change Crosshair shapes color
+    crosshairVShape.Brush.Color:=crosshaircolorButton.ButtonColor;
+    crosshairHShape.Brush.Color:=crosshaircolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    crosshaircolorhtml := SColorToHtmlColor(crosshaircolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.diskioCheckBoxClick(Sender: TObject);
+begin
+      //Preview DISK IO
+  if diskioCheckbox.Checked=true then
+    begin
+     iordrwlabel.caption:='IO RF/RW';
+     iordvaluelabel.caption:='32MiB/s';
+     iorwvaluelabel.caption:='22MiB/s';
+    end
+  else
+    begin
+     iordrwlabel.caption:='';
+     iordvaluelabel.caption:='';
+     iorwvaluelabel.caption:='';
+  end;
+end;
+
+procedure Tgoverlayform.frametimegraphColorButtonColorChanged(Sender: TObject);
+begin
+      // Frame Time Graph color
+    frametimegraphlabel.font.Color:=frametimegraphcolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    frametimegraphcolorhtml := SColorToHtmlColor(frametimegraphcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.hudtranspBitBtnClick(Sender: TObject);
+begin
+  hudbackgroundForm.show;
+end;
+
+procedure Tgoverlayform.iordrwColorButtonColorChanged(Sender: TObject);
+begin
+    // Change color of DISK IO label
+    iordrwlabel.font.Color:=iordrwColorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    iordrwcolorhtml := SColorToHtmlColor(iordrwColorButton.ButtonColor);
 end;
 
 procedure Tgoverlayform.runBitBtnClick(Sender: TObject);
 begin
-  RunCommand('bash -c ''mangohud vkcube & mangohud glxgears''', s);
-end;
+
+     //Run vkcube and glxgears
+     RunCommand('bash -c ''mangohud vkcube & mangohud glxgears''', s);
+
+    end;
+
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
 begin
@@ -650,18 +926,69 @@ begin
   iordvaluelabel.caption:='';
   iorwvaluelabel.caption:='';
   gpuclocklabel.caption:='';
+
+  //Initialize Variables with stock Mangohud colors
+  cpucolorhtml :='#2e97cb';
+  gpucolorhtml :='#2e9762';
+  iordrwcolorhtml :='#a491d3';
+  vramcolorhtml :='#ad64c1';
+  ramcolorhtml :='#c26693';
+  frametimegraphcolorhtml := '#00ff00';
+  crosshaircolorhtml := '#000000';
+  hudbackgroundcolorhtml := '#020202';
+
+
+  //Create temporary folder and files for goverlay
+  RunCommand('bash -c ''mkdir -p /tmp/goverlay/''', s);
+  RunCommand('bash -c ''touch /tmp/goverlay/togglestateValue''', s);
+
+  //Determine toggle position
+
+     //Read file .profile and store result in tmp folder
+     RunCommand('bash -c ''cat /home/$USER/.profile | grep MANGOHUD=1 >> /tmp/goverlay/togglestateValue''', s);
+
+      // Assign Text file to variable
+      AssignFile(togglestateValueVAR, '/tmp/goverlay/togglestateValue'); //
+      Reset(togglestateValueVAR);
+      Readln(togglestateValueVAR,togglestateValueSTR); //Assign Text file to String
+      CloseFile(togglestateValueVAR);
+
+      // Read String with toggle value
+      if togglestateValueSTR = 'export MANGOHUD=1' then
+      geSpeedbutton.imageIndex:=1
+      else
+      geSpeedbutton.imageIndex:=0;
+
 end;
 
-procedure Tgoverlayform.paintSpeedButtonClick(Sender: TObject);
+procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
-    if colordialog1.Execute then
-    // Change color of Tshapes
-    paintShape.Brush.Color:=(colordialog1.Color);
-    crosshairVShape.Brush.Color:=(colordialog1.Color);
-    crosshairHShape.Brush.Color:=(colordialog1.Color);
+   case geSpeedButton.imageIndex of
+     0: begin
+       geSpeedButton.ImageIndex:=1; //switch button position
+       RunCommand('bash -c ''yes | cp -rf /home/$USER/.profile /home/$USER/.profile.bkp''', s); //backup original .profile file
+       RunCommand('bash -c ''echo "export MANGOHUD=1" >> /home/$USER/.profile''', s);  // Activate MANGOHUD globally for vulkan apps
+       //RunCommand('bash -c ''echo "export LD_PRELOAD=/usr/lib/libMangoHud.so" >> /home/$USER/.profile''', s);  // Activate MANGOHUD globally for opengl apps #Future look
+       RunCommand('bash -c ''notify-send Activated_after_system_restart''', s); // Popup a notification
+     end;
+     1: begin
+        geSpeedButton.ImageIndex:=0;
+        RunCommand('bash -c ''yes | cp -rf /home/$USER/.profile.bkp /home/$USER/.profile''', s);  //restore original .profile file
+        RunCommand('bash -c ''notify-send notify-send Deactivated_after_system_restart''', s); // Popup a notification
+     end;
 
-    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
-    rrggbbLabel.Caption := SColorToHtmlColor(colordialog1.Color);
+  end;
+
+   end;
+
+procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
+begin
+   //Preview TIME
+     if timeCheckbox.Checked=true then
+        timelabel.Caption:='22:40'
+     else
+        timelabel.Caption:='';
+
 end;
 
 procedure Tgoverlayform.topleftShapeMouseEnter(Sender: TObject);
@@ -684,6 +1011,30 @@ begin
   bottomleftShape.Brush.Style:=bsClear;
   bottomrightShape.Brush.Style:=bsClear;
   topleftShape.Brush.Style:=bsClear;
+end;
+
+procedure Tgoverlayform.vramColorButtonColorChanged(Sender: TObject);
+begin
+    // Change VRAM label color
+    vramlabel.font.Color:=vramcolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    vramcolorhtml := SColorToHtmlColor(vramcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.vramusageCheckBoxClick(Sender: TObject);
+begin
+      //Preview VRAM usage
+  if vramusageCheckbox.Checked=true then
+    begin
+    vramlabel.Caption:='VRAM';
+    vramusagelabel.Caption:='2.56GB'
+    end
+  else
+    begin
+    vramlabel.Caption:='';
+    vramusagelabel.Caption:=''
+  end;
 end;
 
 procedure Tgoverlayform.vsyncComboBoxKeyPress(Sender: TObject; var Key: char);

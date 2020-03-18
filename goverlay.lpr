@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, overlayunit, aboutunit
+  Forms, overlayunit, aboutunit, crosshairUnit, hudbackgroundUnit
   { you can add units after this };
 
 {$R *.res}
@@ -18,6 +18,8 @@ begin
   Application.Initialize;
   Application.CreateForm(Tgoverlayform, goverlayform);
   Application.CreateForm(TaboutForm, aboutForm);
+  Application.CreateForm(TcrosshairsizeForm, crosshairsizeForm);
+  Application.CreateForm(ThudbackgroundForm, hudbackgroundForm);
   Application.Run;
 end.
 
