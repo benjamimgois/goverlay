@@ -31,6 +31,9 @@ ARCH / Manjaro Linux and derivatives
 
 <code>goverlay-git</code> is now avaiable on the AUR, install it with your favourite AUR helper. 
 
+Fedora
+
+<code>sudo dnf install goverlay</code>
 
 Ubuntu / Debian
 
