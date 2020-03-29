@@ -7,6 +7,7 @@ object hudbackgroundForm: ThudbackgroundForm
   Caption = 'Background Transparency'
   ClientHeight = 73
   ClientWidth = 304
+  Font.Quality = fqAntialiased
   OnCreate = FormCreate
   LCLVersion = '2.0.6.0'
   object transpTrackBar: TTrackBar
@@ -25,6 +26,7 @@ object hudbackgroundForm: ThudbackgroundForm
     Caption = 'Transparency'
     Font.Height = -11
     Font.Name = 'Sans'
+    Font.Quality = fqAntialiased
     Font.Style = [fsBold]
     ParentColor = False
     ParentFont = False
@@ -37,6 +39,7 @@ object hudbackgroundForm: ThudbackgroundForm
     Caption = '0%'
     Font.Height = -11
     Font.Name = 'Cantarell'
+    Font.Quality = fqAntialiased
     ParentColor = False
     ParentFont = False
   end
@@ -48,6 +51,7 @@ object hudbackgroundForm: ThudbackgroundForm
     Caption = '100%'
     Font.Height = -11
     Font.Name = 'Cantarell'
+    Font.Quality = fqAntialiased
     ParentColor = False
     ParentFont = False
   end

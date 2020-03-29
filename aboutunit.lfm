@@ -8,6 +8,7 @@ object aboutForm: TaboutForm
   ClientHeight = 455
   ClientWidth = 538
   Color = 3684408
+  Font.Quality = fqAntialiased
   OnCreate = FormCreate
   LCLVersion = '2.0.6.0'
   object PageControl1: TPageControl
@@ -61,6 +62,7 @@ object aboutForm: TaboutForm
         Color = 3684408
         Font.Height = -13
         Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
@@ -91,6 +93,7 @@ object aboutForm: TaboutForm
         Color = 3684408
         Font.Height = -13
         Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False

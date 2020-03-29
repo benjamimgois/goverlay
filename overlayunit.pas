@@ -15,6 +15,11 @@ type
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
+    FontcolorLabel: TLabel;
+    destfolderpathLabel: TLabel;
+    FontcolorButton: TColorButton;
+    TittlelogLabel: TLabel;
+    logpathBitBtn: TBitBtn;
     crosshairsizeBitBtn: TBitBtn;
     checkallBitBtn: TBitBtn;
     hudtranspBitBtn: TBitBtn;
@@ -102,6 +107,8 @@ type
     frametimelabel: TLabel;
     procedure checkallBitBtnClick(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
+    procedure FontcolorButtonClick(Sender: TObject);
+    procedure FontcolorButtonColorChanged(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
@@ -125,6 +132,7 @@ type
     procedure gputempCheckBoxClick(Sender: TObject);
     procedure hudonoffComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure loggingComboBoxKeyPress(Sender: TObject; var Key: char);
+    procedure logpathBitBtnClick(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
@@ -148,6 +156,7 @@ type
 
 var
   goverlayform: Tgoverlayform;
+  //logpathForm: TlogpathForm;
   s: string;
   Color: string;
   fpsCustomValue:TextFile;
@@ -182,7 +191,13 @@ var
   hudbackgroundcolorScript: Textfile;
   togglestateValueVAR: Textfile;
   togglestateValueSTR: string;
-
+  userhomepathVAR: Textfile;
+  userhomepathSTR: string;
+  destinationfolderValue: TextFile;
+  destinationfolderScript: TextFile;
+  hudfontcolorhtml: string;
+  hudfontcolorValue: TextFile;
+  hudfontcolorScript: TextFile;
 
 
 implementation
@@ -191,6 +206,9 @@ implementation
 
 
 { Tgoverlayform }
+
+// Reference to logpathunit so the homepath can be aquired from overlayUnit
+uses logpathUnit;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 begin
@@ -238,7 +256,7 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/fpsCustomScript.sh''', s);
      end;
-
+     9:RunCommand('bash -c ''echo "" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   end;
 
   //Setup VSYNC
@@ -249,6 +267,7 @@ begin
     1:RunCommand('bash -c ''echo "vsync=1" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     2:RunCommand('bash -c ''echo "vsync=2" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     3:RunCommand('bash -c ''echo "vsync=3" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+    4:RunCommand('bash -c ''echo "" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   end;
 
   //OPENGL VSYNC
@@ -257,6 +276,7 @@ begin
     1:RunCommand('bash -c ''echo "gl_vsync=0" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     2:RunCommand('bash -c ''echo "gl_vsync=n" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     3:RunCommand('bash -c ''echo "gl_vsync=1" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+    4:RunCommand('bash -c ''echo "" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   end;
 
   //####################################################################################### MANGOHUD
@@ -423,7 +443,7 @@ begin
       RunCommand('bash -c ''sh /tmp/goverlay/frametimegraphcolorScript.sh''', s);
 
   if timeCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "time" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "time" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   if crosshairCheckbox.Checked=true then
   RunCommand('bash -c ''echo "crosshair" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
@@ -547,6 +567,25 @@ begin
   RunCommand('bash -c ''echo "position=bottom-left" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
 
 
+
+    //HUD Font Color
+
+      // Assign value to file
+      AssignFile(hudfontcolorValue, '/tmp/goverlay/hudfontcolorValue');
+      Rewrite(hudfontcolorValue);
+      Writeln(hudfontcolorValue,hudfontcolorhtml);
+      CloseFile(hudfontcolorValue);
+
+      // Create custom script
+      AssignFile(hudfontcolorScript, '/tmp/goverlay/hudfontcolorScript.sh');
+      Rewrite(hudfontcolorScript);
+      Writeln(hudfontcolorScript,'HUDFONTc=$(cat /tmp/goverlay/hudfontcolorValue | cut -c 2-10)');  //Store hud font color in Linux/Unix variable and remove # character
+      Writeln(hudfontcolorScript,'echo "text_color=$HUDFONTc" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with color value
+      CloseFile(hudfontcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/hudfontcolorScript.sh''', s);
+
   //####################################################################################### KEYBINDINGS
 
 
@@ -563,6 +602,33 @@ begin
     1:RunCommand('bash -c ''echo "toggle_logging=F2" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
     2:RunCommand('bash -c ''echo "toggle_logging=F3" >> /home/$USER/.config/MangoHud/MangoHud.conf''', s);
   end;
+
+
+  //Set logging destination folder
+
+  // Assign custom value to file
+  AssignFile(destinationfolderValue, '/tmp/goverlay/destinationlogfolder');
+  Rewrite(destinationfolderValue);
+  Writeln(destinationfolderValue,destinationfolder);
+  CloseFile(destinationfolderValue);
+
+  // Create custom script
+  AssignFile(destinationfolderScript, '/tmp/goverlay/destinationfolderScript.sh');
+  Rewrite(destinationfolderScript);
+  Writeln(destinationfolderScript,'DESTFOLDER=$(cat /tmp/goverlay/destinationlogfolder)');  //Store destination folder in a Linux/Unix variable
+  Writeln(destinationfolderScript,'echo "output_file=$DESTFOLDER" >> /home/$USER/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
+  CloseFile(destinationfolderScript);
+
+  //execute custom script to store custom value on mangohud.conf
+  RunCommand('bash -c ''sh /tmp/goverlay/destinationfolderScript.sh''', s);
+
+
+  //update logging label
+  destfolderpathLabel.Caption:=destinationfolder;
+
+  //Show logging label
+  TittlelogLabel.Visible:=true;
+  destfolderpathLabel.Visible:=true;
 
 end;
 
@@ -684,6 +750,11 @@ begin
   key:=#0;
 end;
 
+procedure Tgoverlayform.logpathBitBtnClick(Sender: TObject);
+begin
+  logpathForm.show;
+end;
+
 procedure Tgoverlayform.ramColorButtonColorChanged(Sender: TObject);
 begin
     // Change RAM label color
@@ -748,6 +819,31 @@ end;
 procedure Tgoverlayform.crosshairsizeBitBtnClick(Sender: TObject);
 begin
   crosshairsizeForm.show;
+end;
+
+procedure Tgoverlayform.FontcolorButtonClick(Sender: TObject);
+begin
+
+end;
+
+procedure Tgoverlayform.FontcolorButtonColorChanged(Sender: TObject);
+begin
+   // PREVIEW - Change Font color labels
+    gpuusagelabel.font.Color:=FontcolorButton.ButtonColor;
+    gputemplabel.font.Color:=FontcolorButton.ButtonColor;
+    gpuclocklabel.font.Color:=FontcolorButton.ButtonColor;
+    cpuusagelabel.font.Color:=FontcolorButton.ButtonColor;
+    cputemplabel.font.Color:=FontcolorButton.ButtonColor;
+    iordvaluelabel.font.Color:=FontcolorButton.ButtonColor;
+    iorwvaluelabel.font.Color:=FontcolorButton.ButtonColor;
+    vramusagelabel.font.Color:=FontcolorButton.ButtonColor;
+    ramusagelabel.font.Color:=FontcolorButton.ButtonColor;
+    vulkanfpslabel.font.Color:=FontcolorButton.ButtonColor;
+    vulkanftimelabel.font.Color:=FontcolorButton.ButtonColor;
+    frametimelabel2.font.Color:=FontcolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
 end;
 
 procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
@@ -936,6 +1032,7 @@ begin
   frametimegraphcolorhtml := '#00ff00';
   crosshaircolorhtml := '#000000';
   hudbackgroundcolorhtml := '#020202';
+  hudfontcolorhtml := '#ffffff';
 
 
   //Create temporary folder and files for goverlay
@@ -959,6 +1056,23 @@ begin
       else
       geSpeedbutton.imageIndex:=0;
 
+
+   //Define user Home Folder and store in variable userhomepathVAR
+
+    //Read file $HOME variable and store result in tmp folder text file
+     RunCommand('bash -c ''echo $HOME >> /tmp/goverlay/userhomepath''', s);
+
+    // Assign Text file to variable
+     AssignFile(userhomepathVAR, '/tmp/goverlay/userhomepath'); //
+     Reset(userhomepathVAR);
+     Readln(userhomepathVAR,userhomepathSTR); //Assign Text file to String
+     CloseFile(userhomepathVAR);
+
+   //Stock folder logging
+   destinationfolder := userhomepathSTR+'/mangohud_log_ ';
+
+   destfolderpathLabel.Caption:=destinationfolder;
+
 end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
@@ -968,13 +1082,14 @@ begin
        geSpeedButton.ImageIndex:=1; //switch button position
        RunCommand('bash -c ''yes | cp -rf /home/$USER/.profile /home/$USER/.profile.bkp''', s); //backup original .profile file
        RunCommand('bash -c ''echo "export MANGOHUD=1" >> /home/$USER/.profile''', s);  // Activate MANGOHUD globally for vulkan apps
-       //RunCommand('bash -c ''echo "export LD_PRELOAD=/usr/lib/libMangoHud.so" >> /home/$USER/.profile''', s);  // Activate MANGOHUD globally for opengl apps #Future look
-       RunCommand('bash -c ''notify-send Activated_after_system_restart''', s); // Popup a notification
+       RunCommand('bash -c ''notify-send VULKAN_Global_Enable_Activated''', s); // Popup a notification
+       showmessage ('Restart your system to take effect');
      end;
      1: begin
         geSpeedButton.ImageIndex:=0;
         RunCommand('bash -c ''yes | cp -rf /home/$USER/.profile.bkp /home/$USER/.profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''notify-send notify-send Deactivated_after_system_restart''', s); // Popup a notification
+        RunCommand('bash -c ''notify-send Desactivated''', s); // Popup a notification
+        showmessage ('Restart your system to take effect');
      end;
 
   end;

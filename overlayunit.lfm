@@ -1,14 +1,15 @@
 object goverlayform: Tgoverlayform
-  Left = 362
+  Left = 1730
   Height = 724
-  Top = 11
+  Top = 8
   Width = 975
   BorderStyle = bsDialog
-  Caption = 'GOverlay 0.2.3 (Beta)'
+  Caption = 'GOverlay 0.2.4 (Beta)'
   ClientHeight = 724
   ClientWidth = 975
   Color = 3684408
   Font.Color = clWhite
+  Font.Quality = fqAntialiased
   Icon.Data = {
     D40D00000000010001000000000001002000BE0D00001600000089504E470D0A
     1A0A0000000D4948445200000100000000E50806000000BC8C29E300000D8549
@@ -138,7 +139,7 @@ object goverlayform: Tgoverlayform
     object vsyncComboBox: TComboBox
       Left = 7
       Height = 28
-      Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'
+      Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
       Top = 92
       Width = 99
       Color = clMaroon
@@ -150,6 +151,7 @@ object goverlayform: Tgoverlayform
         'OFF'
         'Mailbox'
         'ON'
+        'Unset'
       )
       OnKeyPress = vsyncComboBoxKeyPress
       ParentFont = False
@@ -177,6 +179,7 @@ object goverlayform: Tgoverlayform
     object fpslimComboBox: TComboBox
       Left = 7
       Height = 28
+      Hint = 'UNSET - Let the game decide'
       Top = 30
       Width = 99
       Color = clBtnFace
@@ -192,6 +195,7 @@ object goverlayform: Tgoverlayform
         '144'
         'Unlocked'
         'Custom'
+        'Unset'
       )
       OnChange = fpslimComboBoxChange
       OnKeyPress = fpslimComboBoxKeyPress
@@ -215,7 +219,7 @@ object goverlayform: Tgoverlayform
     object glvsyncComboBox: TComboBox
       Left = 122
       Height = 28
-      Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'
+      Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
       Top = 92
       Width = 99
       Color = clTeal
@@ -227,6 +231,7 @@ object goverlayform: Tgoverlayform
         'OFF'
         '-N-'
         'ON'
+        'Unset'
       )
       OnKeyPress = glvsyncComboBoxKeyPress
       ParentFont = False
@@ -1749,6 +1754,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clLime
       Font.Height = -13
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -1760,6 +1766,7 @@ object goverlayform: Tgoverlayform
       Width = 28
       Caption = '71ºC'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1770,6 +1777,7 @@ object goverlayform: Tgoverlayform
       Width = 29
       Caption = '90%'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1780,6 +1788,7 @@ object goverlayform: Tgoverlayform
       Width = 30
       Caption = '82ºC'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1792,6 +1801,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clPurple
       Font.Height = -13
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -1803,6 +1813,7 @@ object goverlayform: Tgoverlayform
       Width = 43
       Caption = '2.56GB'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1815,6 +1826,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clSkyBlue
       Font.Height = -13
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -1826,6 +1838,7 @@ object goverlayform: Tgoverlayform
       Width = 28
       Caption = '28%'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1839,6 +1852,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clWhite
       Font.Height = -19
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
       Transparent = False
@@ -1918,6 +1932,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clPurple
       Font.Height = -13
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -1929,6 +1944,7 @@ object goverlayform: Tgoverlayform
       Width = 44
       Caption = '5.99GB'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1941,6 +1957,7 @@ object goverlayform: Tgoverlayform
       Font.Color = 6977279
       Font.Height = -13
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -1952,6 +1969,7 @@ object goverlayform: Tgoverlayform
       Width = 35
       Caption = '60fps'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1962,6 +1980,7 @@ object goverlayform: Tgoverlayform
       Width = 43
       Caption = '16.6ms'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1974,6 +1993,7 @@ object goverlayform: Tgoverlayform
       Font.Color = 6977279
       Font.Height = -9
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -1987,6 +2007,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clWhite
       Font.Height = -9
       Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -1999,6 +2020,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clLime
       Font.Height = -9
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -2041,6 +2063,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clSkyBlue
       Font.Height = -13
       Font.Name = 'Cantarell'
+      Font.Quality = fqAntialiased
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -2054,6 +2077,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clWhite
       Font.Height = -11
       Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -2066,6 +2090,7 @@ object goverlayform: Tgoverlayform
       Font.Color = clWhite
       Font.Height = -11
       Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -2076,6 +2101,7 @@ object goverlayform: Tgoverlayform
       Width = 54
       Caption = '1733MHz'
       Font.Color = clWhite
+      Font.Quality = fqAntialiased
       ParentColor = False
       ParentFont = False
     end
@@ -2334,10 +2360,10 @@ object goverlayform: Tgoverlayform
         OnColorChanged = crosshairColorButtonColorChanged
       end
       object crosshairsizeBitBtn: TBitBtn
-        Left = 141
+        Left = 143
         Height = 26
         Top = 53
-        Width = 30
+        Width = 26
         Color = 3684408
         Glyph.Data = {
           36090000424D3609000000000000360000002800000018000000180000000100
@@ -2355,52 +2381,52 @@ object goverlayform: Tgoverlayform
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000E0E0E0C3DFDFDFFFDFDFDFFFDFDFDFFFDFDF
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
           DFFF00000000000000000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDF
-          DFFFE0E0E0C30000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
+          DFFFDFDFDFFFDFDFDFFF00000000000000000000000000000000000000000000
+          00000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
           DFFF00000000000000000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFF00000000000000000000
-          000000000000000000000000000000000000000000000000000000000000DFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFF00000000000000000000
-          000000000000000000000000000000000000000000000000000000000000DFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFF00000000000000000000
-          000000000000000000000000000000000000000000000000000000000000DFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFF00000000000000000000
-          000000000000000000000000000000000000000000000000000000000000DFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFF00000000000000000000
-          000000000000000000000000000000000000000000000000000000000000DFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFF00000000000000000000
-          000000000000000000000000000000000000000000000000000000000000DFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
+          DFFFDFDFDFFFDFDFDFFF00000000000000000000000000000000000000000000
+          00000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
           DFFF00000000000000000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDF
-          DFFFDFDFDFFF0000000000000000000000000000000000000000000000000000
-          0000000000000000000000000000E0E0E0C3DFDFDFFFDFDFDFFFDFDFDFFFDFDF
+          DFFFDFDFDFFFDFDFDFFF00000000000000000000000000000000000000000000
+          00000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFFDFDF
           DFFF00000000000000000000000000000000DFDFDFFFDFDFDFFFDFDFDFFFDFDF
-          DFFFE0E0E0C30000000000000000000000000000000000000000000000000000
+          DFFFDFDFDFFFDFDFDFFF00000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000DFDFDFFFDFDFDFFFDFDFDFFFDFDFDFFF0000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000000000000000
@@ -2419,6 +2445,34 @@ object goverlayform: Tgoverlayform
         TabOrder = 3
       end
     end
+    object destfolderpathLabel: TLabel
+      Left = 587
+      Height = 12
+      Top = 392
+      Width = 168
+      Caption = '/destination/folder/path'
+      Font.Color = clWhite
+      Font.Height = -11
+      Font.Name = 'Monospace'
+      Font.Quality = fqAntialiased
+      ParentColor = False
+      ParentFont = False
+      Visible = False
+    end
+    object TittlelogLabel: TLabel
+      Left = 472
+      Height = 12
+      Top = 392
+      Width = 105
+      Caption = 'Logging Place >'
+      Font.Color = clWhite
+      Font.Height = -11
+      Font.Name = 'Monospace'
+      Font.Quality = fqAntialiased
+      ParentColor = False
+      ParentFont = False
+      Visible = False
+    end
   end
   object saveBitBtn: TBitBtn
     Left = 423
@@ -2430,6 +2484,7 @@ object goverlayform: Tgoverlayform
     Color = clBtnFace
     Font.Height = -12
     Font.Name = 'Sans'
+    Font.Quality = fqAntialiased
     Font.Style = [fsBold]
     Glyph.Data = {
       36040000424D3604000000000000360000002800000010000000100000000100
@@ -2483,6 +2538,7 @@ object goverlayform: Tgoverlayform
     Color = clBtnFace
     Font.Height = -12
     Font.Name = 'Sans'
+    Font.Quality = fqAntialiased
     Font.Style = [fsBold]
     Glyph.Data = {
       36040000424D3604000000000000360000002800000010000000100000000100
@@ -2527,13 +2583,13 @@ object goverlayform: Tgoverlayform
     TabOrder = 0
   end
   object keybindingsGroupBox: TGroupBox
-    Left = 824
+    Left = 816
     Height = 152
     Top = 16
-    Width = 140
+    Width = 148
     Caption = 'Keybindings'
     ClientHeight = 134
-    ClientWidth = 138
+    ClientWidth = 146
     TabOrder = 4
     object Label4: TLabel
       Left = 8
@@ -2587,15 +2643,102 @@ object goverlayform: Tgoverlayform
       TabOrder = 1
       Text = 'F2'
     end
+    object logpathBitBtn: TBitBtn
+      Left = 108
+      Height = 26
+      Hint = 'Destination folder for logging files'
+      Top = 92
+      Width = 30
+      Glyph.Data = {
+        36090000424D3609000000000000360000002800000018000000180000000100
+        2000000000000009000064000000640000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000007F8F
+        A0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8F
+        A0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8F
+        A0FF7F8FA0FF7F8FA0FF8291A1F58493A4A6748BA20B00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFC4CEDAFF98A6B5F78391A39C00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFC2CDD7FF8291A2F300000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF0000000000000000808F
+        A0FFC8D3DDFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000008393
+        A3FFA9B6C2FFC9D3DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFF7F8FA0FF00000000000000007F8F
+        A0FF8999A9FF8090A0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8F
+        A0FF95A3B2FFC8D2DDFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFCAD4DEFFC8D3DDFF808FA0FF00000000000000007F8F
+        A0FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA6B7
+        C8FF8D9DADFF95A3B2FFC8D2DDFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4DEFFCAD4
+        DEFFCAD4DEFFCAD4DEFFC9D3DEFFA9B6C2FF8393A3FF00000000000000007F8F
+        A0FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8
+        C9FFA6B7C8FF8D9DADFF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8F
+        A0FF7F8FA0FF7F8FA0FF8090A0FF8999A9FF7F8FA0FF00000000000000007F8F
+        A0FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8
+        C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8
+        C9FFA7B8C9FFA7B8C9FFA7B8C9FFA6B7C8FF808FA0FD00000000000000007F8F
+        A0FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8
+        C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8
+        C9FFA7B8C9FFA7B8C9FFA6B7C9FF96A6B6FC8192A2CB0000000000000000808F
+        A0FDA6B7C8FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FF9DAE
+        BFFF808FA2FB7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8F
+        A0FF7F8FA0FF7F8FA0FF7F8F9FFD8192A3D57B8C9C1F00000000000000008192
+        A2CB96A6B6FCA6B7C9FFA7B8C9FFA7B8C9FFA7B8C9FFA7B8C9FF9DAEBFFF8191
+        A1F5808F9F400000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000007B8C
+        9C1F8192A3D57F8F9FFD7F8FA0FF7F8FA0FF7F8FA0FF7F8FA0FF7F8FA1F9808F
+        9F40000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000
+      }
+      OnClick = logpathBitBtnClick
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 2
+    end
   end
   object visualGroupBox: TGroupBox
-    Left = 525
+    Left = 516
     Height = 152
     Top = 16
-    Width = 280
+    Width = 290
     Caption = 'Visual'
     ClientHeight = 134
-    ClientWidth = 278
+    ClientWidth = 288
     TabOrder = 5
     object fontsizeLabel: TLabel
       Left = 8
@@ -2607,10 +2750,12 @@ object goverlayform: Tgoverlayform
     end
     object fontsizeComboBox: TComboBox
       Left = 5
-      Height = 28
-      Top = 30
-      Width = 117
+      Height = 27
+      Top = 31
+      Width = 110
       Color = clBtnFace
+      Font.Height = -13
+      Font.Name = 'Sans'
       ItemHeight = 0
       ItemIndex = 1
       Items.Strings = (
@@ -2626,10 +2771,10 @@ object goverlayform: Tgoverlayform
       Text = '24 (1080p)'
     end
     object fontsizeSpinEdit: TSpinEdit
-      Left = 133
+      Left = 123
       Height = 28
-      Top = 30
-      Width = 117
+      Top = 32
+      Width = 110
       Color = clBtnFace
       Enabled = False
       MinValue = 10
@@ -2638,7 +2783,7 @@ object goverlayform: Tgoverlayform
       Value = 10
     end
     object fontsizeLabel1: TLabel
-      Left = 136
+      Left = 131
       Height = 15
       Top = 11
       Width = 47
@@ -2649,22 +2794,26 @@ object goverlayform: Tgoverlayform
       Left = 5
       Height = 28
       Top = 92
-      Width = 117
+      Width = 110
       BorderWidth = 2
       ButtonColorSize = 16
       ButtonColor = clBlack
       Caption = 'Background'
       Color = 3684408
+      Font.Height = -11
+      Font.Name = 'Sans'
       OnColorChanged = hudbackgroundColorButtonColorChanged
       ParentFont = False
     end
     object hudtranspBitBtn: TBitBtn
-      Left = 133
+      Left = 123
       Height = 28
       Top = 92
-      Width = 117
+      Width = 110
       Caption = 'Transparency'
       Color = 3684408
+      Font.Height = -11
+      Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
         2000000000001005000064000000640000000000000000000000000000000000
@@ -2714,6 +2863,29 @@ object goverlayform: Tgoverlayform
       ParentFont = False
       TabOrder = 2
     end
+    object FontcolorLabel: TLabel
+      Left = 245
+      Height = 15
+      Top = 11
+      Width = 34
+      Caption = 'Color'
+      ParentColor = False
+    end
+    object FontcolorButton: TColorButton
+      Left = 248
+      Height = 28
+      Top = 32
+      Width = 30
+      BorderWidth = 2
+      ButtonColorSize = 16
+      ButtonColor = clWhite
+      Color = 3684408
+      Font.Height = -11
+      Font.Name = 'Sans'
+      OnClick = FontcolorButtonClick
+      OnColorChanged = FontcolorButtonColorChanged
+      ParentFont = False
+    end
   end
   object aboutBitBtn: TBitBtn
     Left = 16
@@ -2725,6 +2897,7 @@ object goverlayform: Tgoverlayform
     Font.Color = clWhite
     Font.Height = -12
     Font.Name = 'Sans'
+    Font.Quality = fqAntialiased
     Font.Style = [fsBold]
     Kind = bkHelp
     OnClick = aboutBitBtnClick
@@ -2743,6 +2916,7 @@ object goverlayform: Tgoverlayform
     Color = clBtnFace
     Font.Height = -12
     Font.Name = 'Sans'
+    Font.Quality = fqAntialiased
     Font.Style = [fsBold]
     Kind = bkYesToAll
     ModalResult = 10
@@ -3745,8 +3919,8 @@ object goverlayform: Tgoverlayform
   object ImageList1: TImageList
     Height = 29
     Width = 55
-    left = 744
-    top = 240
+    left = 928
+    top = 296
     Bitmap = {
       4C6902000000370000001D000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000001212

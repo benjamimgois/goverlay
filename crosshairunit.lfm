@@ -1,13 +1,14 @@
 object crosshairsizeForm: TcrosshairsizeForm
-  Left = 588
+  Left = 714
   Height = 73
-  Top = 319
+  Top = 384
   Width = 247
   BorderStyle = bsDialog
   Caption = 'Cross Hair Size'
   ClientHeight = 73
   ClientWidth = 247
   Color = 3684408
+  Font.Quality = fqAntialiased
   OnCreate = FormCreate
   LCLVersion = '2.0.6.0'
   object crosssizemaxLabel: TLabel
@@ -18,6 +19,7 @@ object crosshairsizeForm: TcrosshairsizeForm
     Caption = '100'
     Font.Height = -9
     Font.Name = 'Cantarell'
+    Font.Quality = fqAntialiased
     ParentColor = False
     ParentFont = False
   end
@@ -29,6 +31,7 @@ object crosshairsizeForm: TcrosshairsizeForm
     Caption = 'Size'
     Font.Height = -11
     Font.Name = 'Sans'
+    Font.Quality = fqAntialiased
     Font.Style = [fsBold]
     ParentColor = False
     ParentFont = False
@@ -41,6 +44,7 @@ object crosshairsizeForm: TcrosshairsizeForm
     Caption = '10'
     Font.Height = -9
     Font.Name = 'Cantarell'
+    Font.Quality = fqAntialiased
     ParentColor = False
     ParentFont = False
   end
