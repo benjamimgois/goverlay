@@ -1,12 +1,7 @@
 # GOverlay
+
 GOverlay is an opensource project that aims to create a Graphical UI to help manage Linux overlays. It still in early development, so here will be dragons ! Be warned ! :)
 
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-<input type="hidden" name="cmd" value="_s-xclick" />
-<input type="hidden" name="hosted_button_id" value="BL6MLM7BGEL6G" />
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
-<img alt="" border="0" src="https://www.paypal.com/en_BR/i/scr/pixel.gif" width="1" height="1" />
-</form>
 
 
 This project is only possible due to the hard work of other people that did the really heavy lighting, i am just a Network Engineer that realy likes Linux and Gaming.
@@ -95,3 +90,9 @@ cd goverlay
 This project was built with Lazarus
 
 <a href="hhttps://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
+
+
+If this project was usefull to you, i accept a cup of coffee :)
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Q5EYYEJ5NSJAU&source=url)
+
