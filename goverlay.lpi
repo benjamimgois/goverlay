@@ -29,7 +29,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="6">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -65,16 +65,11 @@
       <Unit5>
         <Filename Value="logpathunit.pas"/>
         <IsPartOfProject Value="True"/>
-        <HasResources Value="True"/>
-        <UnitName Value="logpathUnit"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="logpathunit.pas"/>
-        <IsPartOfProject Value="True"/>
         <ComponentName Value="logpathForm"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="logpathUnit"/>
-      </Unit6>
+      </Unit5>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
