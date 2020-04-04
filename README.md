@@ -23,7 +23,9 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://ibb.co/XyYQ3Yg"><img src="https://i.ibb.co/1szgdz5/goverlay023.png" alt="goverlay023" border="0"></a>
+<a href="https://ibb.co/sQbngG9"><img src="https://i.ibb.co/wCBVdXh/goverlay-0-3.png" alt="goverlay-0-3" border="0"></a>
+
+<a href="https://ibb.co/xgcJvxV"><img src="https://i.ibb.co/C9XhdRx/goverlay-0-3-2.png" alt="goverlay-0-3-2" border="0"></a>
 
 ## Prerequisites
 
@@ -32,6 +34,7 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`mangohud`**](https://github.com/flightlessmango/MangoHud) - Configure MangoHud
  - **`mesa-demos`** - OpenGL preview
  - **`vulkan-tools`** - Vulkan preview
+ - **`vkBasalt`** - Configure vkBasalt
 
 ## Installation 
 
@@ -108,6 +111,12 @@ https://flightlessmango.com/
 https://github.com/flightlessmango/MangoHud
 
 https://discordapp.com/invite/Gj5YmBb
+
+#### DadSchoorse
+
+Special thanks to DadSchoorse, he is the creator of vkBasalt project.
+
+https://github.com/DadSchoorse/vkBasalt
 
 #### Lazarus
 
