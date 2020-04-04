@@ -69,7 +69,7 @@ tar -zxvf goverlay*.tar.gz
 
 ### Prerequisites
 
-The prerequisites are required to build GOverlay:
+Before building, you will need to install the following:
 
  - [Lazarus](https://github.com/graemeg/lazarus) - IDE
 
