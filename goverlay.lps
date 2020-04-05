@@ -18,7 +18,6 @@
         <ComponentName Value="aboutForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="6"/>
         <TopLine Value="79"/>
         <CursorPos X="3" Y="98"/>
@@ -82,6 +81,7 @@
         <ComponentName Value="goverlayform"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="1327"/>
         <CursorPos X="27" Y="1347"/>
         <UsageCount Value="64"/>
