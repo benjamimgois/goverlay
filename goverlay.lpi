@@ -29,7 +29,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="6">
+    <Units Count="7">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -70,6 +70,13 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="logpathUnit"/>
       </Unit5>
+      <Unit6>
+        <Filename Value="customeffectsunit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="customeffectsForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

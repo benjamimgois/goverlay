@@ -1,0 +1,271 @@
+object customeffectsForm: TcustomeffectsForm
+  Left = 1670
+  Height = 499
+  Top = 169
+  Width = 966
+  Caption = 'Advanced Effects Customization'
+  ClientHeight = 499
+  ClientWidth = 966
+  LCLVersion = '2.0.6.0'
+  object effectsGroupBox: TGroupBox
+    Left = 263
+    Height = 95
+    Top = 24
+    Width = 689
+    Caption = 'Effects'
+    ClientHeight = 77
+    ClientWidth = 687
+    TabOrder = 0
+    object fxaaCheckBox: TCheckBox
+      Left = 10
+      Height = 23
+      Top = 23
+      Width = 95
+      Caption = 'Force FXAA'
+      OnChange = fxaaCheckBoxChange
+      TabOrder = 0
+    end
+    object Label1: TLabel
+      Left = 157
+      Height = 15
+      Top = 4
+      Width = 84
+      Caption = 'Quality Subpix'
+      ParentColor = False
+    end
+    object Label2: TLabel
+      Left = 339
+      Height = 15
+      Top = 4
+      Width = 96
+      Caption = 'Edge Threshold'
+      ParentColor = False
+    end
+    object Label3: TLabel
+      Left = 523
+      Height = 15
+      Top = 4
+      Width = 118
+      Caption = 'Edge ThresholdMin'
+      ParentColor = False
+    end
+    object fxaa1ComboBox: TComboBox
+      Left = 157
+      Height = 28
+      Top = 21
+      Width = 130
+      Enabled = False
+      ItemHeight = 0
+      ItemIndex = 3
+      Items.Strings = (
+        '0 - Off'
+        '0.25 - Little'
+        '0.5 - Lower limit'
+        '0.75 - Default'
+        '1.0 - Upper Limit (Softer)'
+      )
+      TabOrder = 1
+      Text = '0.75 - Default'
+    end
+    object fxaa2ComboBox: TComboBox
+      Left = 339
+      Height = 28
+      Top = 21
+      Width = 130
+      Enabled = False
+      ItemHeight = 0
+      ItemIndex = 2
+      Items.Strings = (
+        '0.333 - Faster'
+        '0.250 - Low quality'
+        '0.166 - Default'
+        '0.125 - High Quality'
+        '0.063 - Overkill (slow)'
+      )
+      TabOrder = 2
+      Text = '0.166 - Default'
+    end
+    object fxaa3ComboBox: TComboBox
+      Left = 521
+      Height = 28
+      Top = 21
+      Width = 130
+      Enabled = False
+      ItemHeight = 0
+      ItemIndex = 3
+      Items.Strings = (
+        '0.0833 - Upper limit'
+        '0.0625 - High quality'
+        '0.0312 - Slower'
+        '0 - Default'
+      )
+      TabOrder = 3
+      Text = '0 - Default'
+    end
+  end
+  object smaaGroupBox: TGroupBox
+    Left = 24
+    Height = 95
+    Top = 136
+    Width = 928
+    Caption = 'SMAA'
+    ClientHeight = 77
+    ClientWidth = 926
+    TabOrder = 1
+    Visible = False
+    object smaaCheckBox: TCheckBox
+      Left = 10
+      Height = 23
+      Top = 23
+      Width = 97
+      Caption = 'Force SMAA'
+      TabOrder = 0
+    end
+    object Label6: TLabel
+      Left = 126
+      Height = 15
+      Top = 6
+      Width = 92
+      Caption = 'Edge Detection'
+      ParentColor = False
+    end
+    object Label7: TLabel
+      Left = 285
+      Height = 15
+      Top = 6
+      Width = 99
+      Caption = 'SMAA Threshold'
+      ParentColor = False
+    end
+    object Label8: TLabel
+      Left = 444
+      Height = 15
+      Top = 6
+      Width = 103
+      Caption = 'Max Search Steps'
+      ParentColor = False
+    end
+    object ComboBox1: TComboBox
+      Left = 126
+      Height = 27
+      Top = 22
+      Width = 140
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
+      ItemHeight = 0
+      ItemIndex = 0
+      Items.Strings = (
+        'Luma (default)'
+        'Color (expensive)'
+      )
+      ParentFont = False
+      TabOrder = 1
+      Text = 'Luma (default)'
+    end
+    object ComboBox5: TComboBox
+      Left = 285
+      Height = 27
+      Top = 22
+      Width = 140
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
+      ItemHeight = 0
+      ItemIndex = 4
+      Items.Strings = (
+        '0.5'
+        '0.4'
+        '0.3'
+        '0.2'
+        '0.1 - Default'
+        '0.05 - Overkill'
+      )
+      ParentFont = False
+      TabOrder = 2
+      Text = '0.1 - Default'
+    end
+    object ComboBox6: TComboBox
+      Left = 444
+      Height = 27
+      Top = 22
+      Width = 140
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
+      ItemHeight = 0
+      ItemIndex = 3
+      Items.Strings = (
+        '4 - Low'
+        '8 - Medium'
+        '16 - High'
+        '32 - Ultra (default)'
+      )
+      ParentFont = False
+      TabOrder = 3
+      Text = '32 - Ultra (default)'
+    end
+    object ComboBox7: TComboBox
+      Left = 603
+      Height = 27
+      Top = 22
+      Width = 140
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
+      ItemHeight = 0
+      ItemIndex = 3
+      Items.Strings = (
+        '0 - Low'
+        '4 - Medium'
+        '8 - High'
+        '16 - Ultra (default)'
+        ''
+      )
+      ParentFont = False
+      TabOrder = 4
+      Text = '16 - Ultra (default)'
+    end
+    object Label9: TLabel
+      Left = 603
+      Height = 15
+      Top = 6
+      Width = 133
+      Caption = 'Max Search Steps Diag'
+      ParentColor = False
+    end
+    object ComboBox8: TComboBox
+      Left = 762
+      Height = 27
+      Top = 22
+      Width = 140
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Sans'
+      Font.Quality = fqAntialiased
+      ItemHeight = 0
+      ItemIndex = 2
+      Items.Strings = (
+        '5 - low'
+        '15 - Medium'
+        '25 - High (default)'
+        '50 - Ultra'
+      )
+      ParentFont = False
+      TabOrder = 5
+      Text = '25 - High (default)'
+    end
+    object Label10: TLabel
+      Left = 762
+      Height = 15
+      Top = 6
+      Width = 103
+      Caption = 'Corner Rounding'
+      ParentColor = False
+    end
+  end
+end
