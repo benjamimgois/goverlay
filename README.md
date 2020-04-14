@@ -46,7 +46,7 @@ Here are the dependencies needed in order to make GOverlay run:
 
 #### Fedora
 
-To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverlay-0.2.3-1.fc31.x86_64.rpm.html), following the following command as root:
+To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverlay-0.2.3-1.fc31.x86_64.rpm.html), run the following command as root:
 
 ```bash
 dnf install goverlay
@@ -54,7 +54,7 @@ dnf install goverlay
 
 ## Tarball
 
-1. Download the latest tarball in the [Releases](https://github.com/benjamimgois/goverlay/releases) section.
+1. Download the latest tarball from [Releases](https://github.com/benjamimgois/goverlay/releases).
 
 2. Extract the file by running the following command:
 
@@ -114,7 +114,7 @@ https://discordapp.com/invite/Gj5YmBb
 
 #### DadSchoorse
 
-Special thanks to DadSchoorse, he is the creator of vkBasalt project.
+Special thanks to DadSchoorse, creator of the vkBasalt project.
 
 https://github.com/DadSchoorse/vkBasalt
 
