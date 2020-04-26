@@ -1,6 +1,6 @@
 # GOverlay
 
-GOverlay is an open source project aimed to create a Graphical UI to manage Linux overlays. It is still in early development, so it lacks a lot of features.
+GOverlay is an open source project aimed to create a Graphical UI to manage Vulkan/OpenGL overlays. It is still in early development, so it lacks a lot of features.
 
 This project was only possible thanks to the other maintainers and contributors that have done the hard work. I am just a Network Engineer that really likes Linux and Gaming.
 
