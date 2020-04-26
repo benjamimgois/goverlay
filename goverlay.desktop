@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=GOverlay
 GenericName=Overlay configuration
-Comment=Graphical UI to help manage Linux overlays
+Comment=Graphical UI to help manage Vulkan/OpenGL overlays
 Exec=goverlay
 Icon=goverlay
 Terminal=false
