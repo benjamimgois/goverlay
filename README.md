@@ -32,9 +32,9 @@ Table of contents
 Here are the dependencies needed in order to make GOverlay run:
 
  - [**`mangohud`**](https://github.com/flightlessmango/MangoHud) - Configure MangoHud
- - **`mesa-demos`** - OpenGL preview
- - **`vulkan-tools`** - Vulkan preview
- - **`vkBasalt`** - Configure vkBasalt
+ - [**`mesa-demos`**](https://github.com/freedesktop/mesa-demos) - OpenGL preview
+ - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) - Vulkan preview
+ - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
 
 ## Installation 
 
