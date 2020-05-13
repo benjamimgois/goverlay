@@ -17,6 +17,12 @@ type
   Tgoverlayform = class(TForm)
     aboutBitBtn: TBitBtn;
     backgroundImage: TImage;
+    archlabel: TLabel;
+    hudversionlabel: TLabel;
+    spotify1label: TLabel;
+    spotify2label: TLabel;
+    spotify3label: TLabel;
+    transparencyLabel: TLabel;
     BitBtn1: TBitBtn;
     bottomleftShape: TShape;
     bottomrightShape: TShape;
@@ -30,6 +36,12 @@ type
     cas08Image: TImage;
     cas09Image: TImage;
     cas10Image: TImage;
+    archCheckBox: TCheckBox;
+    backgroundLabel: TLabel;
+    hidehudCheckBox: TCheckBox;
+    visibilityLabel: TLabel;
+    hudversionCheckBox: TCheckBox;
+    spotifyCheckBox: TCheckBox;
     fxaaCheckBox: TCheckBox;
     casLabel: TLabel;
     casorigLabel: TLabel;
@@ -88,7 +100,6 @@ type
     gpuusagelabel: TLabel;
     casGroupBox: TGroupBox;
     effectsGroupBox: TGroupBox;
-    hidehudCheckBox: TCheckBox;
     hudbackgroundColorButton: TColorButton;
     hudbackgroundShape: TShape;
     hudonoffComboBox: TComboBox;
@@ -140,6 +151,7 @@ type
     vulkanfpslabel: TLabel;
     vulkanftimelabel: TLabel;
     vulkanlabel: TLabel;
+    procedure archCheckBoxClick(Sender: TObject);
     procedure basaltgeSpeedButtonClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
     procedure casCheckBoxChange(Sender: TObject);
@@ -183,9 +195,11 @@ type
     procedure bottomleftShapeMouseEnter(Sender: TObject);
     procedure bottomrightShapeMouseEnter(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure spotifyCheckBoxClick(Sender: TObject);
     procedure timeCheckBoxClick(Sender: TObject);
     procedure topleftShapeMouseEnter(Sender: TObject);
     procedure toprightShapeMouseEnter(Sender: TObject);
+    procedure hudversionCheckBoxClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure vkbasaltLabelMouseEnter(Sender: TObject);
     procedure vkbasaltLabelMouseLeave(Sender: TObject);
@@ -536,6 +550,19 @@ begin
 
            //execute custom script to store custom value on mangohud.conf
            RunCommand('bash -c ''sh /tmp/goverlay/crosshairsizeScript.sh''', s);
+
+
+
+  if hudversionCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if archCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "arch" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if spotifyCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "media_player" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
 
       //###################################################### OTHERS
 
@@ -1159,6 +1186,15 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.archCheckBoxClick(Sender: TObject);
+begin
+       //Preview Arch
+     if archCheckbox.Checked=true then
+       archlabel.Caption:='64bit'
+     else
+       archlabel.Caption:='';
+end;
+
 procedure Tgoverlayform.crosshairsizeBitBtnClick(Sender: TObject);
 begin
   crosshairsizeForm.show;
@@ -1366,6 +1402,11 @@ begin
   iordvaluelabel.caption:='';
   iorwvaluelabel.caption:='';
   gpuclocklabel.caption:='';
+  hudversionlabel.caption:='';
+  archlabel.caption:='';
+  spotify1label.caption:='';
+  spotify2label.caption:='';
+  spotify3label.caption:='';
 
   //Initialize Variables with stock Mangohud colors
   cpucolorhtml :='#2e97cb';
@@ -1464,6 +1505,23 @@ begin
 
 end;
 
+procedure Tgoverlayform.spotifyCheckBoxClick(Sender: TObject);
+begin
+    //Preview spotify status
+     if spotifyCheckbox.Checked=true then
+     begin
+        spotify1label.Caption:='Lonely no more';
+        spotify2label.Caption:='Rob Thomas' ;
+        spotify3label.Caption:='Something to be' ;
+     end
+     else
+       begin
+        spotify1label.Caption:='';
+        spotify2label.Caption:='';
+        spotify3label.Caption:='';
+       end;
+end;
+
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
    case geSpeedButton.imageIndex of
@@ -1489,7 +1547,7 @@ procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
 begin
    //Preview TIME
      if timeCheckbox.Checked=true then
-        timelabel.Caption:='22:40'
+        timelabel.Caption:='22:30:43'
      else
         timelabel.Caption:='';
 
@@ -1515,6 +1573,15 @@ begin
   bottomleftShape.Brush.Style:=bsClear;
   bottomrightShape.Brush.Style:=bsClear;
   topleftShape.Brush.Style:=bsClear;
+end;
+
+procedure Tgoverlayform.hudversionCheckBoxClick(Sender: TObject);
+begin
+     //Preview HudVersion
+     if hudversionCheckbox.Checked=true then
+       hudversionlabel.Caption:='v0.3.5-31'
+     else
+        hudversionlabel.Caption:='';
 end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
