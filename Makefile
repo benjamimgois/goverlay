@@ -1,5 +1,4 @@
 prefix = /usr/local
-
 bindir = /bin
 datadir = /share
 
@@ -13,12 +12,12 @@ clean:
 	rm -Rf lib
 
 install: goverlay
-	install -D goverlay $(DESTDIR)$(prefix)$(bindir)/goverlay
-	install -D data/goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/goverlay.desktop
-	install -D data/goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/goverlay.metainfo.xml
-	install -D data/icons/128x128/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/goverlay.png
-	install -D data/icons/256x256/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/goverlay.png
-	install -D data/icons/512x512/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/goverlay.png
+	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(bindir)/goverlay
+	install -D -m=644 data/goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/goverlay.desktop
+	install -D -m=644 data/goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/goverlay.metainfo.xml
+	install -D -m=644 data/icons/128x128/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/goverlay.png
+	install -D -m=644 data/icons/256x256/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/goverlay.png
+	install -D -m=644 data/icons/512x512/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/goverlay.png
 
 uninstall:
 	rm -f $(DESTDIR)$(prefix)$(bindir)/goverlay
