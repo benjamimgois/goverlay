@@ -96,6 +96,9 @@
         </Win32>
       </Options>
     </Linking>
+    <Other>
+      <CustomOptions Value="-fPIC"/>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">
