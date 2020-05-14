@@ -87,7 +87,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <Libraries Value="/usr/lib/gcc/x86_64-pc-linux-gnu/9.3.0/"/>
+      <Libraries Value="/usr/lib/gcc/x86_64-pc-linux-gnu/9.3.0/;/usr/lib/gcc/x86_64-pc-linux-gnu/10.1.0/"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
