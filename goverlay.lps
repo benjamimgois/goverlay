@@ -3,11 +3,11 @@
   <ProjectSession>
     <Version Value="11"/>
     <BuildModes Active="Default"/>
-    <Units Count="12">
+    <Units Count="13">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos Y="26"/>
+        <CursorPos X="85" Y="13"/>
         <UsageCount Value="148"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -76,6 +76,7 @@
         <ComponentName Value="customeffectsForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
         <TopLine Value="24"/>
         <CursorPos X="57" Y="24"/>
@@ -88,7 +89,6 @@
         <ComponentName Value="goverlayform"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <TopLine Value="539"/>
         <CursorPos X="43" Y="563"/>
@@ -124,6 +124,13 @@
         <EditorIndex Value="-1"/>
         <UsageCount Value="9"/>
       </Unit11>
+      <Unit12>
+        <Filename Value="goverlay.lpi"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="73"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="XML"/>
+      </Unit12>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
