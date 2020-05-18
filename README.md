@@ -133,8 +133,7 @@ https://github.com/DadSchoorse/vkBasalt
 
 This project was built using [Lazarus](https://github.com/graemeg/lazarus).
 
-<a href="hhttps://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
-
+[![lazarus-ide](https://i.ibb.co/9ykXNtw/Laz-banner.png)](https://www.lazarus-ide.org/)
 ## Donations
 
 If this project was useful to you, don't hesitate to donate to me :)
