@@ -42,18 +42,7 @@ Here are the dependencies needed in order to make GOverlay run:
 
 #### Arch / Manjaro / Other Arch derivatives
 
-Install the development package from the AUR [`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/). You can use an AUR Helper like `yay` or `pamac`:
-
-```bash
-yay -S goverlay-git
-```
-or
-
-```bash
-pamac install goverlay-git
-```
-
-You can also install the binary package from [`chaotic-AUR`](http://lonewolf-builder.duckdns.org/chaotic-aur) (unofficial Arch repo).
+[`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) is now in the AUR. You can install it using your favourite AUR helper.
 
 #### Fedora
 
@@ -133,7 +122,8 @@ https://github.com/DadSchoorse/vkBasalt
 
 This project was built using [Lazarus](https://github.com/graemeg/lazarus).
 
-[![lazarus-ide](https://i.ibb.co/9ykXNtw/Laz-banner.png)](https://www.lazarus-ide.org/)
+<a href="hhttps://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
+
 ## Donations
 
 If this project was useful to you, don't hesitate to donate to me :)

@@ -16,16 +16,23 @@ type
 
   Tgoverlayform = class(TForm)
     aboutBitBtn: TBitBtn;
+    gpunamelabel: TLabel;
     backgroundImage: TImage;
     archlabel: TLabel;
+    gpunameCheckBox: TCheckBox;
+    driverversionCheckBox: TCheckBox;
+    driverversionlabel: TLabel;
     hudversionlabel: TLabel;
+    ImageList2: TImageList;
+    topleftSpeedButton: TSpeedButton;
     spotify1label: TLabel;
     spotify2label: TLabel;
     spotify3label: TLabel;
+    toprightSpeedButton: TSpeedButton;
+    bottomleftSpeedButton: TSpeedButton;
+    bottomrightSpeedButton: TSpeedButton;
     transparencyLabel: TLabel;
     BitBtn1: TBitBtn;
-    bottomleftShape: TShape;
-    bottomrightShape: TShape;
     cas01Image: TImage;
     cas02Image: TImage;
     cas03Image: TImage;
@@ -139,8 +146,6 @@ type
     timeCheckBox: TCheckBox;
     timelabel: TLabel;
     TittlelogLabel: TLabel;
-    topleftShape: TShape;
-    toprightShape: TShape;
     visualGroupBox: TGroupBox;
     vramColorButton: TColorButton;
     vramlabel: TLabel;
@@ -154,13 +159,17 @@ type
     procedure archCheckBoxClick(Sender: TObject);
     procedure basaltgeSpeedButtonClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
+    procedure bottomleftSpeedButtonClick(Sender: TObject);
+    procedure bottomrightSpeedButtonClick(Sender: TObject);
     procedure casCheckBoxChange(Sender: TObject);
     procedure casTrackBarChange(Sender: TObject);
     procedure checkallBitBtnClick(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
+    procedure driverversionCheckBoxChange(Sender: TObject);
     procedure FontcolorButtonClick(Sender: TObject);
     procedure FontcolorButtonColorChanged(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
+    procedure gpunameCheckBoxClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure cpuavrloadCheckBoxClick(Sender: TObject);
@@ -192,14 +201,12 @@ type
     procedure saveBitBtnClick(Sender: TObject);
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
-    procedure bottomleftShapeMouseEnter(Sender: TObject);
-    procedure bottomrightShapeMouseEnter(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure spotifyCheckBoxClick(Sender: TObject);
     procedure timeCheckBoxClick(Sender: TObject);
-    procedure topleftShapeMouseEnter(Sender: TObject);
-    procedure toprightShapeMouseEnter(Sender: TObject);
+    procedure topleftSpeedButtonClick(Sender: TObject);
     procedure hudversionCheckBoxClick(Sender: TObject);
+    procedure toprightSpeedButtonClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure vkbasaltLabelMouseEnter(Sender: TObject);
     procedure vkbasaltLabelMouseLeave(Sender: TObject);
@@ -389,6 +396,12 @@ begin
 
   if gpufreqCheckbox.Checked=true then
   RunCommand('bash -c ''echo "gpu_core_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if gpunameCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_name" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if driverversionCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "vulkan_driver" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
    //GPU Color
 
@@ -633,17 +646,21 @@ begin
       RunCommand('bash -c ''sh /tmp/goverlay/hudbackgroundcolorScript.sh''', s);
 
   //HUD Position
-  if toprightShape.Brush.Style=bsSolid then
-  RunCommand('bash -c ''echo "position=top-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if topleftShape.Brush.Style=bsSolid then
+  //if toprightShape.Brush.Style=bsSolid then
+  if topleftSpeedbutton.ImageIndex=0 then
   RunCommand('bash -c ''echo "position=top-left" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  if bottomrightShape.Brush.Style=bsSolid then
-  RunCommand('bash -c ''echo "position=bottom-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  //if topleftShape.Brush.Style=bsSolid then
+  if toprightSpeedbutton.ImageIndex=1 then
+  RunCommand('bash -c ''echo "position=top-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  if bottomleftShape.Brush.Style=bsSolid then
+  if bottomleftSpeedbutton.ImageIndex=2 then
+  //if bottomrightShape.Brush.Style=bsSolid then
   RunCommand('bash -c ''echo "position=bottom-left" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  //if bottomleftShape.Brush.Style=bsSolid then
+  if bottomrightSpeedbutton.ImageIndex=3 then
+  RunCommand('bash -c ''echo "position=bottom-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
 
@@ -913,6 +930,9 @@ begin
   ramusageCheckbox.Checked:=true;
   frametimegraphCheckbox.Checked:=true;
   timeCheckbox.Checked:=true;
+  archCheckbox.Checked:=true;
+  gpunameCheckbox.Checked:=true;
+  driverversionCheckbox.Checked:=true;
 
   //Preview all hud options
   cpulabel.Caption:='CPU';
@@ -934,6 +954,9 @@ begin
   iordvaluelabel.caption:='32MiB/s';
   iorwvaluelabel.caption:='22MiB/s';
   gpuclocklabel.caption:='1733MHz';
+  archlabel.caption:='64bit';
+  gpunamelabel.caption:='Geforce GTX 180';
+  driverversionlabel.caption:='NVIDIA 440.18.00';
 end;
 
 procedure Tgoverlayform.basaltsaveBitBtnClick(Sender: TObject);
@@ -1006,6 +1029,29 @@ begin
   end;
 
 
+end;
+
+procedure Tgoverlayform.bottomleftSpeedButtonClick(Sender: TObject);
+begin
+  //Highlight main button
+  bottomleftSpeedbutton.ImageIndex:=2;
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+end;
+
+procedure Tgoverlayform.bottomrightSpeedButtonClick(Sender: TObject);
+begin
+   //Highlight main button
+   bottomrightSpeedbutton.ImageIndex:=3;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
 end;
 
 procedure Tgoverlayform.casCheckBoxChange(Sender: TObject);
@@ -1200,6 +1246,16 @@ begin
   crosshairsizeForm.show;
 end;
 
+procedure Tgoverlayform.driverversionCheckBoxChange(Sender: TObject);
+begin
+  //Preview Driver Version
+  if driverversionCheckbox.Checked=true then
+  driverversionlabel.Caption:='NVIDIA 440.18.00'
+  else
+  driverversionlabel.Caption:='';
+end;
+
+
 procedure Tgoverlayform.FontcolorButtonClick(Sender: TObject);
 begin
 
@@ -1354,27 +1410,8 @@ begin
   aboutForm.show;
 end;
 
-procedure Tgoverlayform.bottomleftShapeMouseEnter(Sender: TObject);
-begin
-  //Highlight main button
-  bottomleftShape.Brush.Style:=bsSolid;
 
-  //Clear other buttons
-  bottomrightShape.Brush.Style:=bsClear;
-  toprightShape.Brush.Style:=bsClear;
-  topleftShape.Brush.Style:=bsClear;
-end;
 
-procedure Tgoverlayform.bottomrightShapeMouseEnter(Sender: TObject);
-begin
-  //Highlight main button
-  bottomrightShape.Brush.Style:=bsSolid;
-
-  //Clear other buttons
-  bottomleftShape.Brush.Style:=bsClear;
-  toprightShape.Brush.Style:=bsClear;
-  topleftShape.Brush.Style:=bsClear;
-end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 begin
@@ -1407,6 +1444,8 @@ begin
   spotify1label.caption:='';
   spotify2label.caption:='';
   spotify3label.caption:='';
+  gpunamelabel.caption:='';
+  driverversionlabel.caption:='';
 
   //Initialize Variables with stock Mangohud colors
   cpucolorhtml :='#2e97cb';
@@ -1543,6 +1582,15 @@ begin
 
    end;
 
+procedure Tgoverlayform.gpunameCheckBoxClick(Sender: TObject);
+begin
+    //Preview GPU Name
+  if gpunameCheckbox.Checked=true then
+  gpunamelabel.Caption:='Geforce GTX 1080'
+  else
+  gpunamelabel.Caption:='';
+end;
+
 procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
 begin
    //Preview TIME
@@ -1553,27 +1601,20 @@ begin
 
 end;
 
-procedure Tgoverlayform.topleftShapeMouseEnter(Sender: TObject);
+
+
+procedure Tgoverlayform.topleftSpeedButtonClick(Sender: TObject);
 begin
   //Highlight main button
-  topleftShape.Brush.Style:=bsSolid;
+  topleftSpeedbutton.ImageIndex:=0;
 
   //Clear other buttons
-  bottomleftShape.Brush.Style:=bsClear;
-  bottomrightShape.Brush.Style:=bsClear;
-  toprightShape.Brush.Style:=bsClear;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
 end;
 
-procedure Tgoverlayform.toprightShapeMouseEnter(Sender: TObject);
-begin
-  //Highlight main button
-  toprightShape.Brush.Style:=bsSolid;
 
-  //Clear other buttons
-  bottomleftShape.Brush.Style:=bsClear;
-  bottomrightShape.Brush.Style:=bsClear;
-  topleftShape.Brush.Style:=bsClear;
-end;
 
 procedure Tgoverlayform.hudversionCheckBoxClick(Sender: TObject);
 begin
@@ -1582,6 +1623,17 @@ begin
        hudversionlabel.Caption:='v0.3.5-31'
      else
         hudversionlabel.Caption:='';
+end;
+
+procedure Tgoverlayform.toprightSpeedButtonClick(Sender: TObject);
+begin
+    //Highlight main button
+  toprightSpeedbutton.ImageIndex:=1;
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
 end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
