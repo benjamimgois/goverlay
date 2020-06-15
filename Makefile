@@ -15,7 +15,7 @@ install: goverlay
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(bindir)/goverlay
 	install -D -m=644 data/goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/goverlay.desktop
 	install -D -m=644 data/goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/goverlay.metainfo.xml
-	install -D -m=644 data.goverlay.1 $(DESTDIR)$(prefix)$(datadir)/man/man1/goverlay.1
+	install -D -m=644 data/goverlay.1 $(DESTDIR)$(prefix)$(datadir)/man/man1/goverlay.1
 	install -D -m=644 data/icons/128x128/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/goverlay.png
 	install -D -m=644 data/icons/256x256/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/goverlay.png
 	install -D -m=644 data/icons/512x512/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/goverlay.png
