@@ -16,14 +16,31 @@ type
 
   Tgoverlayform = class(TForm)
     aboutBitBtn: TBitBtn;
-    gpunamelabel: TLabel;
-    backgroundImage: TImage;
-    archlabel: TLabel;
     gpunameCheckBox: TCheckBox;
+    gpumemfreqlabel: TLabel;
+    cpunameCheckBox: TCheckBox;
+    engineversionlabel: TLabel;
+    mediaComboBox: TComboBox;
+    diskioCheckBox: TCheckBox;
+    gpumodelCheckBox: TCheckBox;
+    gpupowerCheckBox: TCheckBox;
+    gpunameEdit: TEdit;
+    cpunameEdit: TEdit;
+    gpupowerlabel: TLabel;
+    gpumemfreqCheckBox: TCheckBox;
+    gpunamelabel: TLabel;
+    archlabel: TLabel;
     driverversionCheckBox: TCheckBox;
     driverversionlabel: TLabel;
+    engineversionCheckBox: TCheckBox;
     hudversionlabel: TLabel;
+    Image1: TImage;
     ImageList2: TImageList;
+    iordrwColorButton: TColorButton;
+    framegraphRadioButton: TRadioButton;
+    framehistogramRadioButton: TRadioButton;
+    ramColorButton: TColorButton;
+    ramusageCheckBox: TCheckBox;
     topleftSpeedButton: TSpeedButton;
     spotify1label: TLabel;
     spotify2label: TLabel;
@@ -48,7 +65,7 @@ type
     hidehudCheckBox: TCheckBox;
     visibilityLabel: TLabel;
     hudversionCheckBox: TCheckBox;
-    spotifyCheckBox: TCheckBox;
+    mediaCheckBox: TCheckBox;
     fxaaCheckBox: TCheckBox;
     casLabel: TLabel;
     casorigLabel: TLabel;
@@ -65,13 +82,7 @@ type
     cputempCheckBox: TCheckBox;
     cputemplabel: TLabel;
     cpuusagelabel: TLabel;
-    crosshairCheckBox: TCheckBox;
-    crosshairColorButton: TColorButton;
-    crosshairHShape: TShape;
-    crosshairsizeBitBtn: TBitBtn;
-    crosshairVShape: TShape;
     destfolderpathLabel: TLabel;
-    diskioCheckBox: TCheckBox;
     FontcolorButton: TColorButton;
     FontcolorLabel: TLabel;
     fontsizeComboBox: TComboBox;
@@ -114,7 +125,6 @@ type
     cas00Image: TImage;
     originalImage: TImage;
     ImageList1: TImageList;
-    iordrwColorButton: TColorButton;
     iordrwlabel: TLabel;
     iordvaluelabel: TLabel;
     iorwvaluelabel: TLabel;
@@ -129,15 +139,12 @@ type
     loggingComboBox: TComboBox;
     logpathBitBtn: TBitBtn;
     mangohudGroupBox: TGroupBox;
-    memGroupBox: TGroupBox;
     otherGroupBox: TGroupBox;
     mangohudPanel: TPanel;
     goverlayimage: TImage;
     performanceGroupBox: TGroupBox;
     previewLabel: TLabel;
-    ramColorButton: TColorButton;
     ramlabel: TLabel;
-    ramusageCheckBox: TCheckBox;
     ramusagelabel: TLabel;
     runBitBtn: TBitBtn;
     saveBitBtn: TBitBtn;
@@ -164,18 +171,25 @@ type
     procedure casCheckBoxChange(Sender: TObject);
     procedure casTrackBarChange(Sender: TObject);
     procedure checkallBitBtnClick(Sender: TObject);
+    procedure cpunameEditChange(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
     procedure driverversionCheckBoxChange(Sender: TObject);
+    procedure engineversionCheckBoxClick(Sender: TObject);
     procedure FontcolorButtonClick(Sender: TObject);
     procedure FontcolorButtonColorChanged(Sender: TObject);
+    procedure framegraphRadioButtonChange(Sender: TObject);
+    procedure framegraphRadioButtonClick(Sender: TObject);
+    procedure framehistogramRadioButtonClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
-    procedure gpunameCheckBoxClick(Sender: TObject);
+    procedure gpumemfreqCheckBoxClick(Sender: TObject);
+    procedure cpunameCheckBoxClick(Sender: TObject);
+    procedure gpumodelCheckBoxClick(Sender: TObject);
+    procedure gpunameEditChange(Sender: TObject);
+    procedure gpupowerCheckBoxClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure cpuavrloadCheckBoxClick(Sender: TObject);
     procedure cputempCheckBoxClick(Sender: TObject);
-    procedure crosshairCheckBoxClick(Sender: TObject);
-    procedure crosshairColorButtonColorChanged(Sender: TObject);
     procedure diskioCheckBoxClick(Sender: TObject);
     procedure frametimegraphColorButtonColorChanged(Sender: TObject);
     procedure hudtranspBitBtnClick(Sender: TObject);
@@ -202,7 +216,7 @@ type
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure spotifyCheckBoxClick(Sender: TObject);
+    procedure mediaCheckBoxClick(Sender: TObject);
     procedure timeCheckBoxClick(Sender: TObject);
     procedure topleftSpeedButtonClick(Sender: TObject);
     procedure hudversionCheckBoxClick(Sender: TObject);
@@ -267,6 +281,12 @@ var
   hudfontcolorValue: TextFile;
   hudfontcolorScript: TextFile;
   effectssum: Integer;
+  cpunameValue: Textfile;
+  cpunameScript: Textfile;
+  cpunameSTR: string;
+  gpunameValue: Textfile;
+  gpunameScript: Textfile;
+  gpunameSTR: string;
 
 
   mangohudsel: boolean;
@@ -363,6 +383,7 @@ begin
   RunCommand('bash -c ''echo "core_load" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
+
   //CPU Color
 
       // Assign value to file
@@ -381,6 +402,28 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/cpucolorScript.sh''', s);
 
+
+
+       //CPU Name
+
+      cpunameSTR := cpunameEdit.text;
+
+      // Assign value to file
+      AssignFile(cpunameValue, '/tmp/goverlay/cpunameValue');
+      Rewrite(cpunameValue);
+      Writeln(cpunameValue,cpunameSTR);
+      CloseFile(cpunameValue);
+
+      // Create custom script
+      AssignFile(cpunameScript, '/tmp/goverlay/cpunameScript.sh');
+      Rewrite(cpunameScript);
+      Writeln(cpunameScript,'CPUname=$(cat /tmp/goverlay/cpunameValue)');  //Store cpu name in Linux/Unix variable and remove # character
+      Writeln(cpunameScript,'echo "cpu_text=$CPUname" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
+      CloseFile(cpunameScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/cpunameScript.sh''', s);
+
       //###################################################### CPU
 
 
@@ -397,11 +440,17 @@ begin
   if gpufreqCheckbox.Checked=true then
   RunCommand('bash -c ''echo "gpu_core_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  if gpunameCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_name" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  if gpumemfreqCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_mem_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if gpupowerCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_power" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   if driverversionCheckbox.Checked=true then
   RunCommand('bash -c ''echo "vulkan_driver" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if gpumodelCheckBox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_name" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
    //GPU Color
 
@@ -422,31 +471,26 @@ begin
       RunCommand('bash -c ''sh /tmp/goverlay/gpucolorScript.sh''', s);
 
 
-    //###################################################### GPU
 
+      //GPU Name
 
-    //###################################################### MEMORY
-  if ramusageCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "ram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      gpunameSTR := gpunameEdit.text;
 
-    //RAM Color
-    // Assign value to file
-      AssignFile(ramcolorValue, '/tmp/goverlay/ramcolorValue');
-      Rewrite(ramcolorValue);
-      Writeln(ramcolorValue,ramcolorhtml);
-      CloseFile(ramcolorValue);
+      // Assign value to file
+      AssignFile(gpunameValue, '/tmp/goverlay/gpunameValue');
+      Rewrite(gpunameValue);
+      Writeln(gpunameValue,gpunameSTR);
+      CloseFile(gpunameValue);
 
       // Create custom script
-      AssignFile(ramcolorScript, '/tmp/goverlay/ramcolorScript.sh');
-      Rewrite(ramcolorScript);
-      Writeln(ramcolorScript,'RAMc=$(cat /tmp/goverlay/ramcolorValue | cut -c 2-10)');  //Store ram color in Linux/Unix variable and remove # character
-      Writeln(ramcolorScript,'echo "ram_color=$RAMc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(ramcolorScript);
+      AssignFile(gpunameScript, '/tmp/goverlay/gpunameScript.sh');
+      Rewrite(gpunameScript);
+      Writeln(gpunameScript,'gpuname=$(cat /tmp/goverlay/gpunameValue)');  //Store gpu name in Linux/Unix variable and remove # character
+      Writeln(gpunameScript,'echo "gpu_text=$gpuname" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
+      CloseFile(gpunameScript);
 
       //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/ramcolorScript.sh''', s);
-
-
+      RunCommand('bash -c ''sh /tmp/goverlay/gpunameScript.sh''', s);
 
   if vramusageCheckbox.Checked=true then
   RunCommand('bash -c ''echo "vram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -468,6 +512,32 @@ begin
 
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/vramcolorScript.sh''', s);
+
+    //###################################################### GPU
+
+   //###################################################### OTHERS
+
+  if ramusageCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "ram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+    //RAM Color
+    // Assign value to file
+      AssignFile(ramcolorValue, '/tmp/goverlay/ramcolorValue');
+      Rewrite(ramcolorValue);
+      Writeln(ramcolorValue,ramcolorhtml);
+      CloseFile(ramcolorValue);
+
+      // Create custom script
+      AssignFile(ramcolorScript, '/tmp/goverlay/ramcolorScript.sh');
+      Rewrite(ramcolorScript);
+      Writeln(ramcolorScript,'RAMc=$(cat /tmp/goverlay/ramcolorValue | cut -c 2-10)');  //Store ram color in Linux/Unix variable and remove # character
+      Writeln(ramcolorScript,'echo "ram_color=$RAMc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(ramcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/ramcolorScript.sh''', s);
+
+
 
   if diskioCheckbox.Checked=true then
   begin
@@ -494,9 +564,9 @@ begin
       RunCommand('bash -c ''sh /tmp/goverlay/iordrwcolorScript.sh''', s);
 
 
-//###################################################### MEMORY
 
-//###################################################### OTHERS
+
+
 
   //Others checks
   if frametimegraphCheckbox.Checked=true then
@@ -521,50 +591,15 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/frametimegraphcolorScript.sh''', s);
 
+
+      //Change Frame time graph to histogram
+
+      if framehistogramRadioButton.Checked=true then
+      RunCommand('bash -c ''echo "histogram" >> $HOME/.config/MangoHud/MangoHud.conf''', s) ;
+
+
   if timeCheckbox.Checked=true then
   RunCommand('bash -c ''echo "time" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if crosshairCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "crosshair" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-
-      //Crosshair Color
-      // Assign value to file
-      AssignFile(crosshaircolorValue, '/tmp/goverlay/crosshaircolorValue');
-      Rewrite(crosshaircolorValue);
-      Writeln(crosshaircolorValue,crosshaircolorhtml);
-      CloseFile(crosshaircolorValue);
-
-      // Create custom script
-      AssignFile(crosshaircolorScript, '/tmp/goverlay/crosshaircolorScript.sh');
-      Rewrite(crosshaircolorScript);
-      Writeln(crosshaircolorScript,'CROSSHAIRc=$(cat /tmp/goverlay/crosshaircolorValue | cut -c 2-10)');  //Store crosshair color in Linux/Unix variable and remove # character
-      Writeln(crosshaircolorScript,'echo "crosshair_color=$CROSSHAIRc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(crosshaircolorScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/crosshaircolorScript.sh''', s);
-
-
-      //Crosshair Size
-
-           // Assign value to file
-           AssignFile(crosshairsizeValue, '/tmp/goverlay/crosshairsizeValue');
-           Rewrite(crosshairsizeValue);
-           Writeln(crosshairsizeValue,crosshairsizeform.crosshairTrackbar.Position);
-           CloseFile(crosshairsizeValue);
-
-           // Create custom script
-           AssignFile(crosshairsizeScript, '/tmp/goverlay/crosshairsizeScript.sh');
-           Rewrite(crosshairsizeScript);
-           Writeln(crosshairsizeScript,'CROSSHAIRs=$(cat /tmp/goverlay/crosshairsizeValue)');  //Store crosshair size in Linux/Unix variable
-           Writeln(crosshairsizeScript,'echo "crosshair_size=$CROSSHAIRs" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair value
-           CloseFile(crosshairsizeScript);
-
-           //execute custom script to store custom value on mangohud.conf
-           RunCommand('bash -c ''sh /tmp/goverlay/crosshairsizeScript.sh''', s);
-
-
 
   if hudversionCheckbox.Checked=true then
   RunCommand('bash -c ''echo "version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -572,7 +607,7 @@ begin
   if archCheckbox.Checked=true then
   RunCommand('bash -c ''echo "arch" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  if spotifyCheckbox.Checked=true then
+  if mediaCheckBox.Checked=true then
   RunCommand('bash -c ''echo "media_player" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
@@ -687,16 +722,16 @@ begin
 
     //HUD ON / OFF
   case hudonoffCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "toggle_hud=F10" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    1:RunCommand('bash -c ''echo "toggle_hud=F11" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    2:RunCommand('bash -c ''echo "toggle_hud=F12" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    0:RunCommand('bash -c ''echo "toggle_hud=Shift_R+F10" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "toggle_hud=Shift_R+F11" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "toggle_hud=Shift_R+F12" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   end;
 
      //LOGGING
   case loggingCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "toggle_logging=F1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    1:RunCommand('bash -c ''echo "toggle_logging=F2" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    2:RunCommand('bash -c ''echo "toggle_logging=F3" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    0:RunCommand('bash -c ''echo "toggle_logging=Shift_L+F1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "toggle_logging=Shift_L+F2" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "toggle_logging=Shift_L+F3" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   end;
 
 
@@ -725,6 +760,14 @@ begin
   //Show logging label
   TittlelogLabel.Visible:=true;
   destfolderpathLabel.Visible:=true;
+
+  // Select media player
+  case mediaCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "media_player_name=spotify" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "media_player_name=vlc" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "media_player_name=audacious" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    3:RunCommand('bash -c ''echo "media_player_name=cantata" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  end;
 
 end;
 
@@ -760,20 +803,33 @@ end;
 
 procedure Tgoverlayform.frametimegraphCheckBoxClick(Sender: TObject);
 begin
-     //Preview frame time graph
+
      if frametimegraphCheckbox.Checked=true then
-     begin
-       frametimelabel.Caption:='Frametime';
-       frametimelabel2.Caption:='16.6ms';
-       frametimegraphlabel.Caption:='-------------------------------------------'
-     end
-   else
-     begin
-       frametimelabel.Caption:='';
-       frametimelabel2.Caption:='';
-       frametimegraphlabel.Caption:=''
+        begin
+        framegraphRadioButton.Enabled := true;   // enable graph radiobutton
+        framehistogramRadioButton.Enabled := true;   // enable histogram radiobutton
+        framegraphRadioButton.checked := True;   // check graph option by default
+
+        //Preview changes
+        frametimelabel.Caption:='Frametime';
+        frametimelabel2.Caption:='16.6ms';
+        frametimegraphlabel.Caption:='-------------------------------------------';
+        end
+
+        else
+
+        begin
+        framegraphRadioButton.Enabled := false;   // enable graph radiobutton
+        framehistogramRadioButton.Enabled := false;   // enable histogram radiobutton
+        framegraphRadioButton.checked := false;   // check graph option by default
+
+        //Preview changes
+        frametimelabel.Caption:='';
+        frametimelabel2.Caption:='';
+        frametimegraphlabel.Caption:='';
+        end
      end;
-end;
+
 
 procedure Tgoverlayform.glvsyncComboBoxKeyPress(Sender: TObject; var Key: char);
 begin
@@ -931,8 +987,12 @@ begin
   frametimegraphCheckbox.Checked:=true;
   timeCheckbox.Checked:=true;
   archCheckbox.Checked:=true;
-  gpunameCheckbox.Checked:=true;
+  cpunameCheckBox.Checked:=true;
   driverversionCheckbox.Checked:=true;
+  gpupowerCheckBox.Checked:=true;
+  gpumodelCheckBox.Checked:=true;
+  gpumemfreqCheckBox.Checked:=true;
+  engineversionCheckBox.Checked:=true;
 
   //Preview all hud options
   cpulabel.Caption:='CPU';
@@ -957,6 +1017,14 @@ begin
   archlabel.caption:='64bit';
   gpunamelabel.caption:='Geforce GTX 180';
   driverversionlabel.caption:='NVIDIA 440.18.00';
+  gpupowerlabel.Caption:='120W';
+  gpumemfreqlabel.Caption:='600MHz';
+  engineversionlabel.Caption:='1.2.131';
+end;
+
+procedure Tgoverlayform.cpunameEditChange(Sender: TObject);
+begin
+  cpulabel.Caption:=cpunameEdit.Text;
 end;
 
 procedure Tgoverlayform.basaltsaveBitBtnClick(Sender: TObject);
@@ -1255,6 +1323,15 @@ begin
   driverversionlabel.Caption:='';
 end;
 
+procedure Tgoverlayform.engineversionCheckBoxClick(Sender: TObject);
+begin
+  //PREVIEW Engine Version
+  if engineversionCheckbox.Checked=true then
+     engineversionlabel.Caption:='1.2.131'
+  else
+     engineversionlabel.Caption:=''  ;
+  end;
+
 
 procedure Tgoverlayform.FontcolorButtonClick(Sender: TObject);
 begin
@@ -1280,6 +1357,47 @@ begin
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
 end;
+
+procedure Tgoverlayform.framegraphRadioButtonChange(Sender: TObject);
+begin
+
+end;
+
+procedure Tgoverlayform.framegraphRadioButtonClick(Sender: TObject);
+begin
+      //Preview frame time graph
+     if framegraphRadiobutton.Checked=true then
+     begin
+       frametimelabel.Caption:='Frametime';
+       frametimelabel2.Caption:='16.6ms';
+       frametimegraphlabel.Caption:='-------------------------------------------'
+     end
+   else
+     begin
+       frametimelabel.Caption:='';
+       frametimelabel2.Caption:='';
+       frametimegraphlabel.Caption:=''
+     end;
+end;
+
+procedure Tgoverlayform.framehistogramRadioButtonClick(Sender: TObject);
+begin
+   //Preview frame time graph
+     if framehistogramRadiobutton.Checked=true then
+     begin
+       frametimelabel.Caption:='Frametime';
+       frametimelabel2.Caption:='16.6ms';
+       frametimegraphlabel.Caption:='--||------||||||||||||||||||||------|||----'
+     end
+   else
+     begin
+       frametimelabel.Caption:='';
+       frametimelabel2.Caption:='';
+       frametimegraphlabel.Caption:=''
+     end;
+end;
+
+
 
 
 procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
@@ -1329,31 +1447,6 @@ begin
   begin
   cputemplabel.Caption:='';
   end;
-end;
-
-procedure Tgoverlayform.crosshairCheckBoxClick(Sender: TObject);
-begin
-    //Preview crosshair
-   if crosshairCheckbox.Checked=true then
-     begin
-     crosshairVShape.Visible:=true;
-     crosshairHShape.Visible:=true;
-     end
-   else
-     begin
-     crosshairVShape.Visible:=false;
-     crosshairHShape.Visible:=false;
-   end;
-end;
-
-procedure Tgoverlayform.crosshairColorButtonColorChanged(Sender: TObject);
-begin
-    // Change Crosshair shapes color
-    crosshairVShape.Brush.Color:=crosshaircolorButton.ButtonColor;
-    crosshairHShape.Brush.Color:=crosshaircolorButton.ButtonColor;
-
-    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
-    crosshaircolorhtml := SColorToHtmlColor(crosshaircolorButton.ButtonColor);
 end;
 
 procedure Tgoverlayform.diskioCheckBoxClick(Sender: TObject);
@@ -1446,6 +1539,8 @@ begin
   spotify3label.caption:='';
   gpunamelabel.caption:='';
   driverversionlabel.caption:='';
+  gpupowerlabel.caption:='';
+  gpumemfreqlabel.caption:='';
 
   //Initialize Variables with stock Mangohud colors
   cpucolorhtml :='#2e97cb';
@@ -1544,10 +1639,10 @@ begin
 
 end;
 
-procedure Tgoverlayform.spotifyCheckBoxClick(Sender: TObject);
+procedure Tgoverlayform.mediaCheckBoxClick(Sender: TObject);
 begin
     //Preview spotify status
-     if spotifyCheckbox.Checked=true then
+     if mediaCheckBox.Checked=true then
      begin
         spotify1label.Caption:='Lonely no more';
         spotify2label.Caption:='Rob Thomas' ;
@@ -1582,14 +1677,48 @@ begin
 
    end;
 
-procedure Tgoverlayform.gpunameCheckBoxClick(Sender: TObject);
+procedure Tgoverlayform.gpumemfreqCheckBoxClick(Sender: TObject);
+begin
+      //PREVIEW GPU Mem Frequency
+  if gpumemfreqCheckbox.Checked=true then
+     gpumemfreqlabel.Caption:='600MHz'
+  else
+     gpumemfreqlabel.Caption:='' ;
+  end;
+
+
+procedure Tgoverlayform.cpunameCheckBoxClick(Sender: TObject);
 begin
     //Preview GPU Name
-  if gpunameCheckbox.Checked=true then
+  if cpunameCheckBox.Checked=true then
   gpunamelabel.Caption:='Geforce GTX 1080'
   else
   gpunamelabel.Caption:='';
 end;
+
+procedure Tgoverlayform.gpumodelCheckBoxClick(Sender: TObject);
+begin
+      //PREVIEW GPU Model
+  if gpumodelCheckbox.Checked=true then
+     gpunamelabel.Caption:='GTX 1080'
+  else
+     gpunamelabel.Caption:='' ;
+  end;
+
+
+procedure Tgoverlayform.gpunameEditChange(Sender: TObject);
+begin
+   gpulabel.Caption:=gpunameEdit.Text;
+end;
+
+procedure Tgoverlayform.gpupowerCheckBoxClick(Sender: TObject);
+begin
+    //PREVIEW GPU POWER
+  if gpupowerCheckbox.Checked=true then
+     gpupowerlabel.Caption:='120W'
+  else
+     gpupowerlabel.Caption:='' ;
+  end;
 
 procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
 begin

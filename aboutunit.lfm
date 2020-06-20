@@ -10,7 +10,7 @@ object aboutForm: TaboutForm
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.0.6.0'
+  LCLVersion = '2.0.8.0'
   object PageControl1: TPageControl
     Left = 0
     Height = 672
@@ -21,20 +21,24 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 641
+      ClientHeight = 637
       ClientWidth = 526
       object descriptionMemo: TMemo
         Left = 8
-        Height = 80
+        Height = 112
         Top = 40
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Lines.Strings = (
           'GOverlay is an opensource project that aims to create a Graphical UI to help manage Linux overlays. It still in development, so here will be dragons ! Be warned ! :)'
           'This project is only possible due to the hard work of other people that did the really heavy lighting. I am just a Network Engineer that realy likes Linux and Gaming.'
         )
         ParentBidiMode = False
+        ParentFont = False
         ReadOnly = True
         TabOrder = 1
       end
@@ -54,7 +58,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 8
         Height = 15
-        Top = 275
+        Top = 283
         Width = 340
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Color = 3684408
@@ -70,14 +74,18 @@ object aboutForm: TaboutForm
       object jasonMemo: TMemo
         Left = 8
         Height = 40
-        Top = 400
+        Top = 397
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Lines.Strings = (
           'Also thanks to Jason Evangelo from Linux for everyone for helping with the name and making me fall in love with linux again.'
         )
         ParentBidiMode = False
+        ParentFont = False
         ReadOnly = True
         TabOrder = 2
       end
@@ -11085,16 +11093,20 @@ object aboutForm: TaboutForm
       end
       object Memo2: TMemo
         Left = 128
-        Height = 56
-        Top = 494
+        Height = 72
+        Top = 480
         Width = 392
         BorderStyle = bsNone
         Color = 3684408
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Lines.Strings = (
           'Benjamim Góis'
           ''
           'benjamim.gois@gmail.com'
         )
+        ParentFont = False
         ReadOnly = True
         TabOrder = 3
       end
@@ -12228,9 +12240,9 @@ object aboutForm: TaboutForm
       end
       object donateImage: TImage
         Cursor = crHandPoint
-        Left = 160
+        Left = 164
         Height = 80
-        Top = 136
+        Top = 152
         Width = 184
         OnClick = donateImageClick
         Picture.Data = {
@@ -15251,28 +15263,36 @@ object aboutForm: TaboutForm
       object mangoMemo: TMemo
         Left = 8
         Height = 33
-        Top = 243
+        Top = 251
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Lines.Strings = (
           'Special Thanks to Flightless Mango, he is the man and the mind behind MangoHUD.'
         )
         ParentBidiMode = False
+        ParentFont = False
         ReadOnly = True
         TabOrder = 4
       end
       object schoorseMemo: TMemo
         Left = 8
         Height = 33
-        Top = 312
+        Top = 317
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
         Lines.Strings = (
           'Special Thanks to Dad Schoorse, the man and the mind behind vkBasalt.'
         )
         ParentBidiMode = False
+        ParentFont = False
         ReadOnly = True
         TabOrder = 5
       end
@@ -15280,7 +15300,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 8
         Height = 15
-        Top = 356
+        Top = 359
         Width = 304
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Color = 3684408
@@ -15296,7 +15316,7 @@ object aboutForm: TaboutForm
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 641
+      ClientHeight = 637
       ClientWidth = 526
       object Memo3: TMemo
         Left = 0
