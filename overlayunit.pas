@@ -16,10 +16,10 @@ type
 
   Tgoverlayform = class(TForm)
     aboutBitBtn: TBitBtn;
-    gpunameCheckBox: TCheckBox;
     gpumemfreqlabel: TLabel;
-    cpunameCheckBox: TCheckBox;
     engineversionlabel: TLabel;
+    Label1: TLabel;
+    Label2: TLabel;
     mediaComboBox: TComboBox;
     diskioCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
@@ -41,6 +41,7 @@ type
     framehistogramRadioButton: TRadioButton;
     ramColorButton: TColorButton;
     ramusageCheckBox: TCheckBox;
+    SelectDirectoryDialog1: TSelectDirectoryDialog;
     topleftSpeedButton: TSpeedButton;
     spotify1label: TLabel;
     spotify2label: TLabel;
@@ -182,7 +183,6 @@ type
     procedure framehistogramRadioButtonClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure gpumemfreqCheckBoxClick(Sender: TObject);
-    procedure cpunameCheckBoxClick(Sender: TObject);
     procedure gpumodelCheckBoxClick(Sender: TObject);
     procedure gpunameEditChange(Sender: TObject);
     procedure gpupowerCheckBoxClick(Sender: TObject);
@@ -210,8 +210,10 @@ type
     procedure mangohudLabelClick(Sender: TObject);
     procedure mangohudLabelMouseEnter(Sender: TObject);
     procedure mangohudLabelMouseLeave(Sender: TObject);
+    procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
+    procedure saveasBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
@@ -948,6 +950,12 @@ begin
   mangohudShape.Visible:=true
 end;
 
+procedure Tgoverlayform.mediaComboBoxKeyPress(Sender: TObject; var Key: char);
+begin
+  //Block keypress on combobox
+  key:=#0;
+end;
+
 procedure Tgoverlayform.ramColorButtonColorChanged(Sender: TObject);
 begin
     // Change RAM label color
@@ -972,6 +980,11 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.saveasBitBtnClick(Sender: TObject);
+begin
+  selectdirectorydialog1.Execute;
+end;
+
 procedure Tgoverlayform.checkallBitBtnClick(Sender: TObject);
 begin
   //Check all hud options
@@ -987,7 +1000,6 @@ begin
   frametimegraphCheckbox.Checked:=true;
   timeCheckbox.Checked:=true;
   archCheckbox.Checked:=true;
-  cpunameCheckBox.Checked:=true;
   driverversionCheckbox.Checked:=true;
   gpupowerCheckBox.Checked:=true;
   gpumodelCheckBox.Checked:=true;
@@ -1686,15 +1698,6 @@ begin
      gpumemfreqlabel.Caption:='' ;
   end;
 
-
-procedure Tgoverlayform.cpunameCheckBoxClick(Sender: TObject);
-begin
-    //Preview GPU Name
-  if cpunameCheckBox.Checked=true then
-  gpunamelabel.Caption:='Geforce GTX 1080'
-  else
-  gpunamelabel.Caption:='';
-end;
 
 procedure Tgoverlayform.gpumodelCheckBoxClick(Sender: TObject);
 begin
