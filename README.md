@@ -23,8 +23,7 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://ibb.co/sQbngG9"><img src="https://i.ibb.co/wCBVdXh/goverlay-0-3.png" alt="goverlay-0-3" border="0"></a>
-
+<a href="https://ibb.co/MDS1rjv"><img src="https://i.ibb.co/rG0pYLj/goverlay-shot-034.png" alt="goverlay-shot-034" border="0"></a>
 <a href="https://ibb.co/xgcJvxV"><img src="https://i.ibb.co/C9XhdRx/goverlay-0-3-2.png" alt="goverlay-0-3-2" border="0"></a>
 
 ## Prerequisites
@@ -42,7 +41,20 @@ Here are the dependencies needed in order to make GOverlay run:
 
 #### Arch / Manjaro / Other Arch derivatives
 
-[`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) is now in the AUR. You can install it using your favourite AUR helper.
+[`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) is in the AUR. You can install it using your favourite AUR helper. You can also grab the latest binary without have to compile the code from [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/)
+
+#### Debian / Ubuntu	
+
+Add the following line to /etc/apt/sources.list:	
+
+deb https://mentors.debian.net/debian/ sid main	
+
+Than install goverlay with the commands:	
+
+```bash	
+sudo apt-get update	
+sudo apt-get install goverlay	
+```
 
 #### Fedora
 
