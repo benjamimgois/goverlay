@@ -43,18 +43,6 @@ Here are the dependencies needed in order to make GOverlay run:
 
 [`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) is in the AUR. You can install it using your favourite AUR helper. You can also grab the latest binary without have to compile the code from [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/)
 
-#### Debian / Ubuntu	
-
-Add the following line to /etc/apt/sources.list:	
-
-deb https://mentors.debian.net/debian/ sid main	
-
-Than install goverlay with the commands:	
-
-```bash	
-sudo apt-get update	
-sudo apt-get install goverlay	
-```
 
 #### Fedora
 
