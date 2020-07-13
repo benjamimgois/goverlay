@@ -5,7 +5,7 @@ datadir = /share
 all: goverlay
 
 goverlay:
-	lazbuild -B goverlay.lpi
+	lazbuild -B goverlay.lpi $(LAZBUILDOPTS)
 
 clean:
 	rm -f goverlay
