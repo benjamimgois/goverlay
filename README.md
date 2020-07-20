@@ -43,13 +43,20 @@ Here are the dependencies needed in order to make GOverlay run:
 
 [`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) is in the AUR. You can install it using your favourite AUR helper. You can also grab the latest binary without have to compile the code from [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/)
 
-
 #### Fedora
 
 To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverlay-0.2.3-1.fc31.x86_64.rpm.html), run the following command as root:
 
 ```bash
 dnf install goverlay
+```
+
+#### Solus
+
+To install [`goverlay`](https://dev.getsol.us/source/goverlay/), run the following command as root:
+
+```bash
+eopkg it goverlay
 ```
 
 ## Tarball
