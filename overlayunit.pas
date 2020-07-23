@@ -1677,7 +1677,7 @@ begin
          //Determine Mangohud dependency staus
 
          //locate MangoHud and store result in tmp folder
-       RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/MangoHud.json >> /tmp/goverlay/dependency_mangohud''', s);
+       RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/MangoHud.x86_64.json >> /tmp/goverlay/dependency_mangohud''', s);
 
           // Assign Text file dependency_mangohud to variable mangohudVAR
           AssignFile(mangohudVAR, '/tmp/goverlay/dependency_mangohud');
@@ -1686,7 +1686,7 @@ begin
           CloseFile(mangohudVAR);
 
           // Read String and store value on mangohuddependencyVALUE based on result
-          if mangohudSTR = '/usr/share/vulkan/implicit_layer.d/MangoHud.json' then
+          if mangohudSTR = '/usr/share/vulkan/implicit_layer.d/MangoHud.x86_64.json' then
           mangohuddependencyVALUE := 1
           else
           mangohuddependencyVALUE := 0;
