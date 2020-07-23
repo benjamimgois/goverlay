@@ -291,11 +291,11 @@ var
   gpunameValue: Textfile;
   gpunameScript: Textfile;
   gpunameSTR: string;
-  libmangohudVAR: Textfile;
-  libmangohudSTR: string;
+  mangohudVAR: Textfile;
+  mangohudSTR: string;
   mangohuddependencyVALUE: Integer;
-  libvkbasaltVAR: Textfile;
-  libvkbasaltSTR: string;
+  vkbasaltVAR: Textfile;
+  vkbasaltSTR: string;
   vkbasaltdependencyVALUE: Integer;
   mangohudsel: boolean;
   vkbasaltsel: boolean;
@@ -1676,17 +1676,17 @@ begin
 
          //Determine Mangohud dependency staus
 
-         //locate libmangohud.so and store result in tmp folder
-       RunCommand('bash -c ''find /usr/lib/mangohud/lib64/libMangoHud.so >> /tmp/goverlay/dependency_mangohud''', s);
+         //locate MangoHud and store result in tmp folder
+       RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/MangoHud.json >> /tmp/goverlay/dependency_mangohud''', s);
 
-          // Assign Text file dependency_mangohud to variable libmangohudVAR
-          AssignFile(libmangohudVAR, '/tmp/goverlay/dependency_mangohud');
-          Reset(libmangohudVAR);
-          Readln(libmangohudVAR,libmangohudSTR); //Assign Text file to String
-          CloseFile(libmangohudVAR);
+          // Assign Text file dependency_mangohud to variable mangohudVAR
+          AssignFile(mangohudVAR, '/tmp/goverlay/dependency_mangohud');
+          Reset(mangohudVAR);
+          Readln(mangohudVAR,mangohudSTR); //Assign Text file to String
+          CloseFile(mangohudVAR);
 
           // Read String and store value on mangohuddependencyVALUE based on result
-          if libmangohudSTR = '/usr/lib/mangohud/lib64/libMangoHud.so' then
+          if mangohudSTR = '/usr/share/vulkan/implicit_layer.d/MangoHud.json' then
           mangohuddependencyVALUE := 1
           else
           mangohuddependencyVALUE := 0;
@@ -1694,17 +1694,17 @@ begin
 
           //Determine vkBasalt dependency staus
 
-          //locate libvkbasalt.so and store result in tmp folder
-        RunCommand('bash -c ''find /usr/lib/libvkbasalt.so >> /tmp/goverlay/dependency_vkbasalt''', s);
+          //locate vkBasalt and store result in tmp folder
+        RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/vkBasalt.json >> /tmp/goverlay/dependency_vkbasalt''', s);
 
-           // Assign Text file dependency_mangohud to variable libmangohudVAR
-           AssignFile(libvkbasaltVAR, '/tmp/goverlay/dependency_vkbasalt');
-           Reset(libvkbasaltVAR);
-           Readln(libvkbasaltVAR,libvkbasaltSTR); //Assign Text file to String
-           CloseFile(libvkbasaltVAR);
+           // Assign Text file dependency_mangohud to variable mangohudVAR
+           AssignFile(vkbasaltVAR, '/tmp/goverlay/dependency_vkbasalt');
+           Reset(vkbasaltVAR);
+           Readln(vkbasaltVAR,vkbasaltSTR); //Assign Text file to String
+           CloseFile(vkbasaltVAR);
 
            // Read String and store value on vkbasaltdependencyVALUE based on result
-           if libvkbasaltSTR = '/usr/lib/libvkbasalt.so' then
+           if vkbasaltSTR = '/usr/share/vulkan/implicit_layer.d/vkBasalt.json' then
            vkbasaltdependencyVALUE := 1
            else
            vkbasaltdependencyVALUE := 0;
@@ -1719,19 +1719,19 @@ begin
 
         if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) then
         begin
-        dependenciesLabel.Caption:= 'Missing libMangoHud.so';
+        dependenciesLabel.Caption:= 'Missing MangoHud';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
         if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) then
         begin
-        dependenciesLabel.Caption:= 'Missing libvkbasalt.so';
+        dependenciesLabel.Caption:= 'Missing vkBasalt';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
         if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) then
         begin
-        dependenciesLabel.Caption:= 'libMangoHud.so libvkbasalt.so';
+        dependenciesLabel.Caption:= 'MangoHud vkBasalt';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
