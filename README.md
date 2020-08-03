@@ -23,7 +23,7 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://ibb.co/MDS1rjv"><img src="https://i.ibb.co/rG0pYLj/goverlay-shot-034.png" alt="goverlay-shot-034" border="0"></a>
+<a href="https://ibb.co/tJW6VBd"><img src="https://i.ibb.co/9rC0QnM/goverlay-0-3-7.png" alt="goverlay-0-3-7" border="0"></a>
 <a href="https://ibb.co/xgcJvxV"><img src="https://i.ibb.co/C9XhdRx/goverlay-0-3-2.png" alt="goverlay-0-3-2" border="0"></a>
 
 ## Prerequisites
