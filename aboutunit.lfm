@@ -10,7 +10,7 @@ object aboutForm: TaboutForm
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.0.8.0'
+  LCLVersion = '2.0.10.0'
   object PageControl1: TPageControl
     Left = 0
     Height = 672
@@ -30,6 +30,7 @@ object aboutForm: TaboutForm
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -48,6 +49,7 @@ object aboutForm: TaboutForm
         Top = 16
         Width = 131
         Caption = 'GOverlay'
+        Font.Color = clWhite
         Font.Height = -19
         Font.Name = 'Sans'
         Font.Style = [fsBold]
@@ -62,6 +64,7 @@ object aboutForm: TaboutForm
         Width = 340
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -78,6 +81,7 @@ object aboutForm: TaboutForm
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -94,9 +98,10 @@ object aboutForm: TaboutForm
         Left = 8
         Height = 15
         Top = 439
-        Width = 245
+        Width = 244
         Caption = 'https://www.linux4everyone.com/'
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -11098,6 +11103,7 @@ object aboutForm: TaboutForm
         Width = 392
         BorderStyle = bsNone
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15267,6 +15273,7 @@ object aboutForm: TaboutForm
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15285,6 +15292,7 @@ object aboutForm: TaboutForm
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15304,6 +15312,7 @@ object aboutForm: TaboutForm
         Width = 304
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Color = 3684408
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15325,6 +15334,8 @@ object aboutForm: TaboutForm
         Width = 526
         Alignment = taCenter
         Color = 3684408
+        Font.Color = clWhite
+        Font.Quality = fqAntialiased
         Lines.Strings = (
           'GNU GENERAL PUBLIC LICENSE'
           '                       Version 3, 29 June 2007'
@@ -16001,6 +16012,7 @@ object aboutForm: TaboutForm
           'Public License instead of this License.  But first, please read'
           '<https://www.gnu.org/licenses/why-not-lgpl.html>.'
         )
+        ParentFont = False
         ReadOnly = True
         ScrollBars = ssAutoVertical
         TabOrder = 0

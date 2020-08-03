@@ -5,7 +5,7 @@ unit overlayunit;
 interface
 
 uses
-  Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
+  Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, unix,
   StdCtrls, Spin, ComCtrls, Buttons, ColorBox, aboutunit,ATStringProc_HtmlColor,crosshairUnit,hudbackgroundUnit,customeffectsunit;
 
 
@@ -19,8 +19,6 @@ type
     gpumemfreqlabel: TLabel;
     engineversionlabel: TLabel;
     ImageList3: TImageList;
-    Label1: TLabel;
-    Label2: TLabel;
     mediaComboBox: TComboBox;
     diskioCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
@@ -66,7 +64,6 @@ type
     archCheckBox: TCheckBox;
     backgroundLabel: TLabel;
     hidehudCheckBox: TCheckBox;
-    visibilityLabel: TLabel;
     hudversionCheckBox: TCheckBox;
     mediaCheckBox: TCheckBox;
     fxaaCheckBox: TCheckBox;
@@ -101,7 +98,6 @@ type
     frametimegraphlabel: TLabel;
     frametimelabel: TLabel;
     frametimelabel2: TLabel;
-    debandCheckBox: TCheckBox;
     lutCheckBox: TCheckBox;
     smaaCheckBox: TCheckBox;
     geSpeedButton: TSpeedButton;
@@ -240,7 +236,6 @@ type
 
 var
   goverlayform: Tgoverlayform;
-  //logpathForm: TlogpathForm;
   s: string;
   Color: string;
   fpsCustomValue:TextFile;
@@ -302,6 +297,73 @@ var
   mangofile: Textfile;
   fileline : String;
 
+  //Variables for initial values
+  initfpslimit: Textfile;
+  initfpslimitSTR: string;
+  initvsync: Textfile;
+  initvsyncSTR: string;
+  initgl_vsync: Textfile;
+  initgl_vsyncSTR: string;
+  initcpustats: Textfile;
+  initcpustatsSTR: string;
+  initcputemp: Textfile;
+  initcputempSTR: string;
+  initcoreload: Textfile;
+  initcoreloadSTR: string;
+  initgpustats: Textfile;
+  initgpustatsSTR: string;
+  initgputemp: Textfile;
+  initgputempSTR: string;
+  initgpucoreclock: Textfile;
+  initgpucoreclockSTR: string;
+  initgpumemclock: Textfile;
+  initgpumemclockSTR: string;
+  initgpupower: Textfile;
+  initgpupowerSTR: string;
+  initvulkandriver: Textfile;
+  initvulkandriverSTR: string;
+  initgpuname: Textfile;
+  initgpunameSTR: string;
+  initvram: Textfile;
+  initvramSTR: string;
+  initram: Textfile;
+  initramSTR: string;
+  initioread: Textfile;
+  initioreadSTR: string;
+  initframetiming: Textfile;
+  initframetimingSTR: string;
+  inithistogram: Textfile;
+  inithistogramSTR: string;
+  inittime: Textfile;
+  inittimeSTR: string;
+  inithudversion: Textfile;
+  inithudversionSTR: string;
+  initarch: Textfile;
+  initarchSTR: string;
+  initengineversion: Textfile;
+  initengineversionSTR: string;
+  initmediaplayer: Textfile;
+  initmediaplayerSTR: string;
+  initfontsize: Textfile;
+  initfontsizeSTR: string;
+  initposition: Textfile;
+  initpositionSTR: string;
+  initnodisplay: Textfile;
+  initnodisplaySTR: string;
+  inittogglehud: Textfile;
+  inittogglehudSTR: string;
+  inittogglelogging: Textfile;
+  inittoggleloggingSTR: string;
+  initmediaplayername: Textfile;
+  initmediaplayernameSTR: string;
+  initvkbasalteffects: Textfile;
+  initvkbasalteffectsSTR: string;
+  initcasSharpness: Textfile;
+  initcasSharpnessSTR: string;
+  initcputextvalue: Textfile;
+  initcputextvalueSTR: string;
+  initgputextvalue: Textfile;
+  initgputextvalueSTR: string;
 
 implementation
 
@@ -317,7 +379,8 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 begin
   //Create directories
   RunCommand('bash -c ''mkdir -p $HOME/.config/MangoHud/''', s);
-  RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/values/''', s);
+  //RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/values/''', s);
+
 
   // Delete old file if it exists
   RunCommand('bash -c ''rm $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -633,7 +696,7 @@ begin
 
 
   //Setup Default HUD Visualization
-  if hidehudcheckbox.Checked=false then
+  if hidehudcheckbox.Checked=true then
   RunCommand('bash -c ''echo "no_display" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   //Background transparency
@@ -655,7 +718,7 @@ begin
   case fontsizeCombobox.ItemIndex of
     0:RunCommand('bash -c ''echo "font_size=19" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
     1:RunCommand('bash -c ''echo "font_size=24" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    2:RunCommand('bash -c ''echo "font_size=40" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "font_size=38" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
     3:begin
       // Assign custom value to file
       AssignFile(fontsizeCustomValue, '/tmp/goverlay/fontsizeCustom');
@@ -787,6 +850,61 @@ begin
   //Copy generated Mangohud.conf to goverlay config folder
   RunCommand('bash -c ''yes | cp -rf $HOME/.config/MangoHud/MangoHud.conf $HOME/.config/goverlay/MangoHud.conf ''', s);
 
+  // Delete old initial values and recreate folder
+  RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/''', s);
+  RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/initial_values/''', s);
+  RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/''', s);
+  RunCommand('bash -c ''mkdir -p /tmp/goverlay/initial_values/''', s);
+
+
+  //Extract configurations from main config File to the initial_values folder for MangoHud
+
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps_limit >> $HOME/.config/goverlay/initial_values/fps_limit''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gl_vsync >> $HOME/.config/goverlay/initial_values/gl_vsync''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vsync >> $HOME/.config/goverlay/initial_values/vsync''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_stats >> $HOME/.config/goverlay/initial_values/cpu_stats''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_temp >> $HOME/.config/goverlay/initial_values/cpu_temp''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w core_load >> $HOME/.config/goverlay/initial_values/core_load''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_color >> $HOME/.config/goverlay/initial_values/cpu_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_stats >> $HOME/.config/goverlay/initial_values/gpu_stats''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_temp >> $HOME/.config/goverlay/initial_values/gpu_temp''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_core_clock >> $HOME/.config/goverlay/initial_values/gpu_core_clock''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_mem_clock >> $HOME/.config/goverlay/initial_values/gpu_mem_clock''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_power >> $HOME/.config/goverlay/initial_values/gpu_power''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vulkan_driver >> $HOME/.config/goverlay/initial_values/vulkan_driver''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_name >> $HOME/.config/goverlay/initial_values/gpu_name''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_color >> $HOME/.config/goverlay/initial_values/gpu_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vram >> $HOME/.config/goverlay/initial_values/vram''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vram_color >> $HOME/.config/goverlay/initial_values/vram''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w ram >> $HOME/.config/goverlay/initial_values/ram''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w ram_color >> $HOME/.config/goverlay/initial_values/ram_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w io_read >> $HOME/.config/goverlay/initial_values/io_read''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w io_write >> $HOME/.config/goverlay/initial_values/io_write''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w io_color >> $HOME/.config/goverlay/initial_values/io_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w frame_timing >> $HOME/.config/goverlay/initial_values/frame_timing''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w histogram >> $HOME/.config/goverlay/initial_values/histogram''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w frametime_color >> $HOME/.config/goverlay/initial_values/frametime_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w time >> $HOME/.config/goverlay/initial_values/time''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w version >> $HOME/.config/goverlay/initial_values/version''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w arch >> $HOME/.config/goverlay/initial_values/arch''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w engine_version >> $HOME/.config/goverlay/initial_values/engine_version''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w media_player >> $HOME/.config/goverlay/initial_values/media_player''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w background_alpha >> $HOME/.config/goverlay/initial_values/background_alpha''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w background_color >> $HOME/.config/goverlay/initial_values/background_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w position >> $HOME/.config/goverlay/initial_values/position''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w text_color >> $HOME/.config/goverlay/initial_values/text_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_hud >> $HOME/.config/goverlay/initial_values/toggle_hud''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_logging >> $HOME/.config/goverlay/initial_values/toggle_logging''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w output_file >> $HOME/.config/goverlay/initial_values/output_file''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w media_player_name >> $HOME/.config/goverlay/initial_values/media_player_name''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w no_display >> $HOME/.config/goverlay/initial_values/no_display''', s);
+
+
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_text >> $HOME/.config/goverlay/initial_values/cpu_text''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/cpu_text_value''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text >> $HOME/.config/goverlay/initial_values/gpu_text''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/gpu_text_value''', s);
 end;
 
 procedure Tgoverlayform.fontsizeComboBoxChange(Sender: TObject);
@@ -1124,6 +1242,20 @@ begin
     10:RunCommand('bash -c ''echo "casSharpness=1.0" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
   end;
 
+
+   //Copy generated vkBasalt.conf to goverlay config folder
+    RunCommand('bash -c ''yes | cp -rf $HOME/.config/vkBasalt/vkBasalt.conf $HOME/.config/goverlay/vkBasalt.conf ''', s);
+
+    // Delete old initial values
+    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/vkbasalteffects''', s);
+    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/casSharpness''', s);
+    RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/vkbasalteffects''', s);
+    RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/casSharpness''', s);
+
+
+    //Extract configurations from main config File to the initial_values folder for vkbasalt
+  RunCommand('bash -c ''cat $HOME/.config/vkBasalt/vkBasalt.conf | grep -w casSharpness >> $HOME/.config/goverlay/initial_values/casSharpness''', s);
+  RunCommand('bash -c ''cat $HOME/.config/vkBasalt/vkBasalt.conf | grep -w effects >> $HOME/.config/goverlay/initial_values/vkbasalteffects''', s);
 
 end;
 
@@ -1590,10 +1722,13 @@ begin
 
   //Create temporary folder and files for goverlay
   RunCommand('bash -c ''mkdir -p /tmp/goverlay/''', s);
+  RunCommand('bash -c ''mkdir -p /tmp/goverlay/initial_values/''', s);
   RunCommand('bash -c ''touch /tmp/goverlay/togglestateValue''', s);
 
+
+
   //Create goverlay config folder
-  RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/values/''', s);
+  RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/initial_values/''', s);
 
 
   //Erase dependecy files check
@@ -1731,9 +1866,596 @@ begin
 
         if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) then
         begin
-        dependenciesLabel.Caption:= 'MangoHud vkBasalt';
+        dependenciesLabel.Caption:= 'Missing MangoHud vkBasalt';
         dependencieSpeedButton.ImageIndex := 1;
         end;
+
+// ########################################## LOAD INITIAL CONFIG ########################################################
+
+//Delete old tmp files and recreate directory
+RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/''', s);
+RunCommand('bash -c ''mkdir -p /tmp/goverlay/initial_values/''', s);
+
+//Create dummy files
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/fps_limit''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vsync''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gl_vsync''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_stats''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_temp''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/mem_load''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_stats''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_temp''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_core_clock''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_mem_clock''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_power''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vulkan_driver''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_name''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vram''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/ram''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/io_read''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/frame_timing''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/time''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/version''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/arch''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/engine_version''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/media_player''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/font_size''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/position''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_hud''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_logging''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/media_player_name''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/core_load''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalteffects''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/casSharpness''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/no_display''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_text_value''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_text_value''', s);
+
+//Copy files with initial values to tmp folder
+RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/ /tmp/goverlay/''', s); //backup original .profile file
+
+//Read configuration files
+
+//###################################################################### FPS_LIMIT
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initfpslimit, '/tmp/goverlay/initial_values/fps_limit');
+Reset(initfpslimit);
+Readln(initfpslimit,initfpslimitSTR); //Assign Text file to String
+CloseFile(initfpslimit);
+
+case initfpslimitSTR of
+'fps_limit=15':fpslimComboBox.ItemIndex:=0;
+'fps_limit=30':fpslimComboBox.ItemIndex:=1;
+'fps_limit=45':fpslimComboBox.ItemIndex:=2;
+'fps_limit=60':fpslimComboBox.ItemIndex:=3;
+'fps_limit=90':fpslimComboBox.ItemIndex:=4;
+'fps_limit=120':fpslimComboBox.ItemIndex:=5;
+'fps_limit=144':fpslimComboBox.ItemIndex:=6;
+'#fps_limit=':fpslimComboBox.ItemIndex:=7;
+'':fpslimComboBox.ItemIndex:=9;
+ end;
+
+
+//###################################################################### VSYNC
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initvsync, '/tmp/goverlay/initial_values/vsync');
+Reset(initvsync);
+Readln(initvsync,initvsyncSTR); //Assign Text file to String
+CloseFile(initvsync);
+
+case initvsyncSTR of
+'vsync=0':vsyncComboBox.ItemIndex:=0;
+'vsync=1':vsyncComboBox.ItemIndex:=1;
+'vsync=2':vsyncComboBox.ItemIndex:=2;
+'vsync=3':vsyncComboBox.ItemIndex:=3;
+'':vsyncComboBox.ItemIndex:=4;
+ end;
+
+//###################################################################### gl_vsync
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgl_vsync, '/tmp/goverlay/initial_values/gl_vsync');
+Reset(initgl_vsync);
+Readln(initgl_vsync,initgl_vsyncSTR); //Assign Text file to String
+CloseFile(initgl_vsync);
+
+case initgl_vsyncSTR of
+'gl_vsync=-1':glvsyncComboBox.ItemIndex:=0;
+'gl_vsync=0':glvsyncComboBox.ItemIndex:=1;
+'gl_vsync=n':glvsyncComboBox.ItemIndex:=2;
+'gl_vsync=1':glvsyncComboBox.ItemIndex:=3;
+'':glvsyncComboBox.ItemIndex:=4;
+ end;
+
+//###################################################################### cpu_stats (cpu load)
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initcpustats, '/tmp/goverlay/initial_values/cpu_stats');
+Reset(initcpustats);
+Readln(initcpustats,initcpustatsSTR); //Assign Text file to String
+CloseFile(initcpustats);
+
+case initcpustatsSTR of
+'':cpuavrloadCheckbox.Checked:=false;
+'cpu_stats':cpuavrloadCheckbox.Checked:=true;
+ end;
+
+//###################################################################### cpu_temp
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initcputemp, '/tmp/goverlay/initial_values/cpu_temp');
+Reset(initcputemp);
+Readln(initcputemp,initcputempSTR); //Assign Text file to String
+CloseFile(initcputemp);
+
+case initcputempSTR of
+'':cputempCheckbox.Checked:=false;
+'cpu_temp':cputempCheckbox.Checked:=true;
+ end;
+
+//###################################################################### cpu core load (multiple cores)
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initcoreload, '/tmp/goverlay/initial_values/core_load');
+Reset(initcoreload);
+Readln(initcoreload,initcoreloadSTR); //Assign Text file to String
+CloseFile(initcoreload);
+
+case initcoreloadSTR of
+'':cpuloadcoreCheckbox.Checked:=false;
+'core_load':cpuloadcoreCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### cpu_text_value
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initcputextvalue, '/tmp/goverlay/initial_values/cpu_text_value');
+Reset(initcputextvalue);
+Readln(initcputextvalue,initcputextvalueSTR); //Assign Text file to String
+CloseFile(initcputextvalue);
+
+if initcputextvalueSTR = '' then
+   cpunameEdit.text:= 'CPU'
+   else
+   cpunameEdit.text:= initcputextvalueSTR;
+
+
+//###################################################################### gpu load
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgpustats, '/tmp/goverlay/initial_values/gpu_stats');
+Reset(initgpustats);
+Readln(initgpustats,initgpustatsSTR); //Assign Text file to String
+CloseFile(initgpustats);
+
+case initgpustatsSTR of
+'':gpuavrloadCheckbox.Checked:=false;
+'gpu_stats':gpuavrloadCheckbox.Checked:=true;
+ end;
+
+//###################################################################### gpu load
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgpustats, '/tmp/goverlay/initial_values/gpu_stats');
+Reset(initgpustats);
+Readln(initgpustats,initgpustatsSTR); //Assign Text file to String
+CloseFile(initgpustats);
+
+case initgpustatsSTR of
+'':gpuavrloadCheckbox.Checked:=false;
+'gpu_stats':gpuavrloadCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### gpu_temp
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgputemp, '/tmp/goverlay/initial_values/gpu_temp');
+Reset(initgputemp);
+Readln(initgputemp,initgputempSTR); //Assign Text file to String
+CloseFile(initgputemp);
+
+case initgputempSTR of
+'':gputempCheckbox.Checked:=false;
+'gpu_temp':gputempCheckbox.Checked:=true;
+ end;
+
+//###################################################################### gpu_core_clock
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgpucoreclock, '/tmp/goverlay/initial_values/gpu_core_clock');
+Reset(initgpucoreclock);
+Readln(initgpucoreclock,initgpucoreclockSTR); //Assign Text file to String
+CloseFile(initgpucoreclock);
+
+case initgpucoreclockSTR of
+'':gpufreqCheckbox.Checked:=false;
+'gpu_core_clock':gpufreqCheckbox.Checked:=true;
+ end;
+
+//###################################################################### gpu_mem_clock
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgpumemclock, '/tmp/goverlay/initial_values/gpu_mem_clock');
+Reset(initgpumemclock);
+Readln(initgpumemclock,initgpumemclockSTR); //Assign Text file to String
+CloseFile(initgpumemclock);
+
+case initgpumemclockSTR of
+'':gpumemfreqCheckbox.Checked:=false;
+'gpu_mem_clock':gpumemfreqCheckbox.Checked:=true;
+ end;
+
+//###################################################################### gpu_power
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgpupower, '/tmp/goverlay/initial_values/gpu_power');
+Reset(initgpupower);
+Readln(initgpupower,initgpupowerSTR); //Assign Text file to String
+CloseFile(initgpupower);
+
+case initgpupowerSTR of
+'':gpupowerCheckbox.Checked:=false;
+'gpu_power':gpupowerCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### gpu_text_value
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgputextvalue, '/tmp/goverlay/initial_values/gpu_text_value');
+Reset(initgputextvalue);
+Readln(initgputextvalue,initgputextvalueSTR); //Assign Text file to String
+CloseFile(initgputextvalue);
+
+if initgputextvalueSTR = '' then
+   gpunameEdit.text:= 'GPU'
+   else
+   gpunameEdit.text:= initgputextvalueSTR;
+
+//###################################################################### vulkan_driver
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initvulkandriver, '/tmp/goverlay/initial_values/vulkan_driver');
+Reset(initvulkandriver);
+Readln(initvulkandriver,initvulkandriverSTR); //Assign Text file to String
+CloseFile(initvulkandriver);
+
+case initvulkandriverSTR of
+'':driverversionCheckbox.Checked:=false;
+'vulkan_driver':driverversionCheckbox.Checked:=true;
+ end;
+
+//###################################################################### gpu_name
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgpuname, '/tmp/goverlay/initial_values/gpu_name');
+Reset(initgpuname);
+Readln(initgpuname,initgpunameSTR); //Assign Text file to String
+CloseFile(initgpuname);
+
+case initgpunameSTR of
+'':gpumodelCheckbox.Checked:=false;
+'gpu_name':gpumodelCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### vram
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initvram, '/tmp/goverlay/initial_values/vram');
+Reset(initvram);
+Readln(initvram,initvramSTR); //Assign Text file to String
+CloseFile(initvram);
+
+case initvramSTR of
+'':vramusageCheckbox.Checked:=false;
+'vram':vramusageCheckbox.Checked:=true;
+ end;
+
+//###################################################################### ram
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initram, '/tmp/goverlay/initial_values/ram');
+Reset(initram);
+Readln(initram,initramSTR); //Assign Text file to String
+CloseFile(initram);
+
+case initramSTR of
+'':ramusageCheckbox.Checked:=false;
+'ram':ramusageCheckbox.Checked:=true;
+ end;
+
+//###################################################################### io_read
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initioread, '/tmp/goverlay/initial_values/io_read');
+Reset(initioread);
+Readln(initioread,initioreadSTR); //Assign Text file to String
+CloseFile(initioread);
+
+case initioreadSTR of
+'':diskioCheckbox.Checked:=false;
+'io_read':diskioCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### frame_timing
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initframetiming, '/tmp/goverlay/initial_values/frame_timing');
+Reset(initframetiming);
+Readln(initframetiming,initframetimingSTR); //Assign Text file to String
+CloseFile(initframetiming);
+
+case initframetimingSTR of
+'frame_timing=0':frametimegraphCheckbox.Checked:=false;
+'frame_timing=1':frametimegraphCheckbox.Checked:=true;
+ end;
+
+//###################################################################### frame_timing histogram
+
+// Assign Text file to variable than assign variable to string
+//AssignFile(inithistogram, '/tmp/goverlay/initial_values/histogram');
+//Reset(inithistogram);
+//Readln(inithistogram,inithistogramSTR); //Assign Text file to String
+//CloseFile(inithistogram);
+
+//case inithistogramSTR of
+//'':framehistogramRadioButton.Checked:=false;
+//'histogram':framehistogramRadioButton.Checked:=true;
+// end;
+
+//###################################################################### time
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inittime, '/tmp/goverlay/initial_values/time');
+Reset(inittime);
+Readln(inittime,inittimeSTR); //Assign Text file to String
+CloseFile(inittime);
+
+case inittimeSTR of
+'':timeCheckbox.Checked:=false;
+'time':timeCheckbox.Checked:=true;
+ end;
+
+//###################################################################### hud version
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inithudversion, '/tmp/goverlay/initial_values/version');
+Reset(inithudversion);
+Readln(inithudversion,inithudversionSTR); //Assign Text file to String
+CloseFile(inithudversion);
+
+case inithudversionSTR of
+'':hudversionCheckbox.Checked:=false;
+'version':hudversionCheckbox.Checked:=true;
+ end;
+
+//###################################################################### arch
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initarch, '/tmp/goverlay/initial_values/arch');
+Reset(initarch);
+Readln(initarch,initarchSTR); //Assign Text file to String
+CloseFile(initarch);
+
+case initarchSTR of
+'':archCheckbox.Checked:=false;
+'arch':archCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### engine_version
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initengineversion, '/tmp/goverlay/initial_values/engine_version');
+Reset(initengineversion);
+Readln(initengineversion,initengineversionSTR); //Assign Text file to String
+CloseFile(initengineversion);
+
+case initengineversionSTR of
+'':engineversionCheckbox.Checked:=false;
+'engine_version':engineversionCheckbox.Checked:=true;
+ end;
+
+//###################################################################### media_player
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initmediaplayer, '/tmp/goverlay/initial_values/media_player');
+Reset(initmediaplayer);
+Readln(initmediaplayer,initmediaplayerSTR); //Assign Text file to String
+CloseFile(initmediaplayer);
+
+case initmediaplayerSTR of
+'':mediaCheckbox.Checked:=false;
+'media_player':mediaCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### font size
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initfontsize, '/tmp/goverlay/initial_values/font_size');
+Reset(initfontsize);
+Readln(initfontsize,initfontsizeSTR); //Assign Text file to String
+CloseFile(initfontsize);
+
+case initfontsizeSTR of
+'font_size=19':fontsizeComboBox.ItemIndex:=0;
+'font_size=24':fontsizeComboBox.ItemIndex:=1;
+'font_size=38':fontsizeComboBox.ItemIndex:=2;
+// to be implemented custom sizes
+ end;
+
+
+//###################################################################### hud position
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initposition, '/tmp/goverlay/initial_values/position');
+Reset(initposition);
+Readln(initposition,initpositionSTR); //Assign Text file to String
+CloseFile(initposition);
+
+case initpositionSTR of
+'position=top-left':begin
+  //Highlight main button
+  topleftSpeedbutton.ImageIndex:=0;
+
+  //Clear other buttons
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  end;
+
+'position=top-right':begin
+  //Highlight main button
+  toprightSpeedbutton.ImageIndex:=1;
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  end;
+
+'position=bottom-left':begin
+  //Highlight main button
+  bottomleftSpeedbutton.ImageIndex:=2;
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  end;
+
+
+ 'position=bottom-right':begin
+   //Highlight main button
+   bottomrightSpeedbutton.ImageIndex:=3;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+end;
+
+end;
+
+
+//###################################################################### no_display (hide hud by default)
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initnodisplay, '/tmp/goverlay/initial_values/no_display');
+Reset(initnodisplay);
+Readln(initnodisplay,initnodisplaySTR); //Assign Text file to String
+CloseFile(initnodisplay);
+
+case initnodisplaySTR of
+'':hidehudCheckbox.Checked:=false;
+'no_display':hidehudCheckbox.Checked:=true;
+ end;
+
+//###################################################################### toggle hud ON OFF
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inittogglehud, '/tmp/goverlay/initial_values/toggle_hud');
+Reset(inittogglehud);
+Readln(inittogglehud,inittogglehudSTR); //Assign Text file to String
+CloseFile(inittogglehud);
+
+case inittogglehudSTR of
+'toggle_hud=Shift_R+F10':hudonoffComboBox.ItemIndex:=0;
+'toggle_hud=Shift_R+F11':hudonoffComboBox.ItemIndex:=1;
+'toggle_hud=Shift_R+F12':hudonoffComboBox.ItemIndex:=2;
+ end;
+
+//###################################################################### toggle logging
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inittogglelogging, '/tmp/goverlay/initial_values/toggle_logging');
+Reset(inittogglelogging);
+Readln(inittogglelogging,inittoggleloggingSTR); //Assign Text file to String
+CloseFile(inittogglelogging);
+
+case inittoggleloggingSTR of
+'toggle_logging=Shift_L+F1':loggingComboBox.ItemIndex:=0;
+'toggle_logging=Shift_L+F2':loggingComboBox.ItemIndex:=1;
+'toggle_logging=Shift_L+F3':loggingComboBox.ItemIndex:=2;
+ end;
+
+//###################################################################### media player name
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initmediaplayername, '/tmp/goverlay/initial_values/media_player_name');
+Reset(initmediaplayername);
+Readln(initmediaplayername,initmediaplayernameSTR); //Assign Text file to String
+CloseFile(initmediaplayername);
+
+case initmediaplayernameSTR of
+'media_player_name=spotify':mediaComboBox.ItemIndex:=0;
+'media_player_name=vlc':mediaComboBox.ItemIndex:=1;
+'media_player_name=audacious':mediaComboBox.ItemIndex:=2;
+'media_player_name=cantata':mediaComboBox.ItemIndex:=3;
+ end;
+
+
+//###################################################################### vkbasalt effects
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initvkbasalteffects, '/tmp/goverlay/initial_values/vkbasalteffects');
+Reset(initvkbasalteffects);
+Readln(initvkbasalteffects,initvkbasalteffectsSTR); //Assign Text file to String
+CloseFile(initvkbasalteffects);
+
+case initvkbasalteffectsSTR of
+'effects = cas':casCheckbox.Checked:=true;
+'effects = fxaa':fxaaCheckbox.Checked:=true;
+'effects = smaa':smaaCheckbox.Checked:=true;
+'effects = cas:fxaa':begin
+casCheckbox.Checked:=true;
+fxaaCheckbox.Checked:=true;
+end;
+'effects = cas:fxaa:smaa':begin
+casCheckbox.Checked:=true;
+fxaaCheckbox.Checked:=true;
+smaaCheckbox.Checked:=true;
+end;
+'effects = cas:smaa':begin
+casCheckbox.Checked:=true;
+smaaCheckbox.Checked:=true;
+end;
+'effects = fxaa:smaa':begin
+smaaCheckbox.Checked:=true;
+fxaaCheckbox.Checked:=true;
+end;
+
+end;
+
+//###################################################################### cas Sharpness
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initcasSharpness, '/tmp/goverlay/initial_values/casSharpness');
+Reset(initcasSharpness);
+Readln(initcasSharpness,initcasSharpnessSTR); //Assign Text file to String
+CloseFile(initcasSharpness);
+
+case initcasSharpnessSTR of
+'casSharpness=0.1':casTrackbar.position:=1;
+'casSharpness=0.2':casTrackbar.position:=2;
+'casSharpness=0.3':casTrackbar.position:=3;
+'casSharpness=0.4':casTrackbar.position:=4;
+'casSharpness=0.5':casTrackbar.position:=5;
+'casSharpness=0.6':casTrackbar.position:=6;
+'casSharpness=0.7':casTrackbar.position:=7;
+'casSharpness=0.8':casTrackbar.position:=8;
+'casSharpness=0.9':casTrackbar.position:=9;
+'casSharpness=1.0':casTrackbar.position:=10;
+end;
+
 
 
 

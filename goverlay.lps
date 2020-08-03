@@ -17,10 +17,12 @@
         <ComponentName Value="aboutForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="74"/>
-        <CursorPos X="3" Y="98"/>
-        <UsageCount Value="190"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="11"/>
+        <CursorPos X="31" Y="18"/>
+        <UsageCount Value="200"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="atstringproc_htmlcolor.pas"/>
@@ -29,7 +31,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="48"/>
         <CursorPos X="5" Y="80"/>
-        <UsageCount Value="176"/>
+        <UsageCount Value="200"/>
       </Unit2>
       <Unit3>
         <Filename Value="crosshairunit.pas"/>
@@ -41,7 +43,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="11"/>
         <CursorPos X="42" Y="39"/>
-        <UsageCount Value="142"/>
+        <UsageCount Value="179"/>
       </Unit3>
       <Unit4>
         <Filename Value="hudbackgroundunit.pas"/>
@@ -52,7 +54,7 @@
         <UnitName Value="hudbackgroundUnit"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="23"/>
-        <UsageCount Value="140"/>
+        <UsageCount Value="177"/>
       </Unit4>
       <Unit5>
         <Filename Value="logpathunit.pas"/>
@@ -64,7 +66,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="46"/>
         <CursorPos X="37" Y="59"/>
-        <UsageCount Value="132"/>
+        <UsageCount Value="169"/>
       </Unit5>
       <Unit6>
         <Filename Value="customeffectsunit.pas"/>
@@ -75,7 +77,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="24"/>
         <CursorPos X="57" Y="24"/>
-        <UsageCount Value="95"/>
+        <UsageCount Value="132"/>
       </Unit6>
       <Unit7>
         <Filename Value="overlayunit.pas"/>
@@ -83,8 +85,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1535"/>
-        <CursorPos X="3" Y="1535"/>
+        <TopLine Value="1246"/>
+        <CursorPos X="3" Y="1253"/>
         <UsageCount Value="103"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -95,7 +97,7 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="7"/>
+        <UsageCount Value="4"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit8>
       <Unit9>
@@ -103,25 +105,25 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="183"/>
         <CursorPos X="2" Y="177"/>
-        <UsageCount Value="7"/>
+        <UsageCount Value="4"/>
       </Unit9>
       <Unit10>
         <Filename Value="/usr/lib/lazarus/lcl/include/customform.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2309"/>
         <CursorPos Y="2326"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="18"/>
       </Unit10>
       <Unit11>
         <Filename Value="overlayunit.lrs"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="4"/>
+        <UsageCount Value="1"/>
       </Unit11>
       <Unit12>
         <Filename Value="goverlay.lpi"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
-        <UsageCount Value="5"/>
+        <UsageCount Value="2"/>
         <DefaultSyntaxHighlighter Value="XML"/>
       </Unit12>
       <Unit13>
@@ -131,25 +133,24 @@
         <ResourceBaseClass Value="Form"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="38" Y="8"/>
-        <UsageCount Value="5"/>
+        <UsageCount Value="2"/>
       </Unit13>
       <Unit14>
         <Filename Value="../ntfix/ntfix.pas"/>
         <EditorIndex Value="-1"/>
         <WindowIndex Value="-1"/>
-        <UsageCount Value="5"/>
+        <UsageCount Value="2"/>
       </Unit14>
       <Unit15>
         <Filename Value="logpathunit.lfm"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="57" Y="8"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit15>
       <Unit16>
         <Filename Value="aboutunit.lfm"/>
         <EditorIndex Value="-1"/>
-        <WindowIndex Value="-1"/>
         <CursorPos X="52" Y="7"/>
         <UsageCount Value="7"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
@@ -158,126 +159,130 @@
         <Filename Value="/usr/lib/lazarus/lcl/interfaces/gtk3/gtk3defines.inc"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="2" Y="41"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="7"/>
       </Unit17>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1314" Column="71" TopLine="1293"/>
+        <Caret Line="183" Column="86" TopLine="181"/>
       </Position1>
       <Position2>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1313" Column="71" TopLine="1292"/>
+        <Caret Line="360" Column="22" TopLine="333"/>
       </Position2>
       <Position3>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1312" Column="71" TopLine="1291"/>
+        <Caret Line="361" Column="22" TopLine="334"/>
       </Position3>
       <Position4>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1311" Column="71" TopLine="1290"/>
+        <Caret Line="900" Column="84" TopLine="766"/>
       </Position4>
       <Position5>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1310" Column="71" TopLine="1289"/>
+        <Caret Line="2323" TopLine="2317"/>
       </Position5>
       <Position6>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1311" Column="71" TopLine="1290"/>
+        <Caret Line="1855" Column="58" TopLine="1848"/>
       </Position6>
       <Position7>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1312" Column="71" TopLine="1291"/>
+        <Caret Line="1856" Column="26" TopLine="1850"/>
       </Position7>
       <Position8>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1313" Column="71" TopLine="1292"/>
+        <Caret Line="1663" Column="53" TopLine="1643"/>
       </Position8>
       <Position9>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1666" Column="103" TopLine="1647"/>
+        <Caret Line="1863" TopLine="1843"/>
       </Position9>
       <Position10>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1670" Column="47" TopLine="1658"/>
+        <Caret Line="1856" Column="71" TopLine="1850"/>
       </Position10>
       <Position11>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1649" Column="40" TopLine="1634"/>
+        <Caret Line="1886" Column="58" TopLine="1864"/>
       </Position11>
       <Position12>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1679" Column="40" TopLine="1656"/>
+        <Caret Line="1887" Column="73" TopLine="1875"/>
       </Position12>
       <Position13>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="296" Column="17" TopLine="276"/>
+        <Caret Line="1863" Column="63" TopLine="1847"/>
       </Position13>
       <Position14>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1709" Column="9" TopLine="1682"/>
+        <Caret Line="363" Column="22" TopLine="347"/>
       </Position14>
       <Position15>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1359" TopLine="1337"/>
+        <Caret Line="362" Column="22" TopLine="346"/>
       </Position15>
       <Position16>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="179" Column="57" TopLine="165"/>
+        <Caret Line="2547" Column="80" TopLine="2535"/>
       </Position16>
       <Position17>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1701" Column="49" TopLine="1674"/>
+        <Caret Line="1897" Column="39" TopLine="1876"/>
       </Position17>
       <Position18>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1727" Column="13" TopLine="1720"/>
+        <Caret Line="1892" Column="83" TopLine="1668"/>
       </Position18>
       <Position19>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="317" Column="76" TopLine="312"/>
+        <Caret Line="2006" Column="4" TopLine="1985"/>
       </Position19>
       <Position20>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="479" Column="35" TopLine="474"/>
+        <Caret Line="2001" Column="33" TopLine="1986"/>
       </Position20>
       <Position21>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1737" Column="106" TopLine="1725"/>
+        <Caret Line="2004" Column="8" TopLine="1986"/>
       </Position21>
       <Position22>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1747" Column="4" TopLine="1449"/>
+        <Caret Line="6" Column="80"/>
       </Position22>
       <Position23>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="787" Column="19" TopLine="761"/>
+        <Caret Line="406" Column="64" TopLine="396"/>
       </Position23>
       <Position24>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1740" Column="9" TopLine="1728"/>
+        <Caret Line="1827" Column="65" TopLine="1809"/>
       </Position24>
       <Position25>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="783" Column="86" TopLine="772"/>
+        <Caret Line="2397" Column="35" TopLine="2378"/>
       </Position25>
       <Position26>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1749" Column="38" TopLine="1736"/>
+        <Caret Line="858" Column="79" TopLine="846"/>
       </Position26>
       <Position27>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1750" Column="11" TopLine="1736"/>
+        <Caret Line="1258" TopLine="1236"/>
       </Position27>
       <Position28>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1744" Column="8" TopLine="1736"/>
+        <Caret Line="2441" Column="33" TopLine="2425"/>
       </Position28>
       <Position29>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1736" Column="13" TopLine="1667"/>
+        <Caret Line="1908" Column="63" TopLine="1894"/>
       </Position29>
+      <Position30>
+        <Filename Value="overlayunit.pas"/>
+        <Caret Line="876" Column="83" TopLine="882"/>
+      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
