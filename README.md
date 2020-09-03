@@ -14,6 +14,7 @@ Table of contents
 		- [Arch / Manjaro / Other Arch derivatives](#arch--manjaro--other-arch-derivatives)
 		- [Fedora](#fedora)
 		- [Gentoo](#gentoo)
+		- [Solus](#solus)
 	- [Tarball](#tarball)
 	- [Source](#source)
 		- [Prerequisites](#prerequisites-1)
