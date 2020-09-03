@@ -13,6 +13,8 @@ Table of contents
 	- [Distributions](#distributions)
 		- [Arch / Manjaro / Other Arch derivatives](#arch--manjaro--other-arch-derivatives)
 		- [Fedora](#fedora)
+		- [Gentoo](#gentoo)
+		- [Solus](#solus)
 	- [Tarball](#tarball)
 	- [Source](#source)
 		- [Prerequisites](#prerequisites-1)
@@ -53,6 +55,17 @@ To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverla
 
 ```bash
 dnf install goverlay
+```
+
+#### Gentoo
+
+To install [`goverlay`](https://gitlab.com/TheGreatMcPain/thegreatmcpain-overlay/-/tree/master/games-util/goverlay):
+
+1. Install the TheGreatMcPain overlay: [thegreatmcpain-overlay#installation](https://gitlab.com/TheGreatMcPain/thegreatmcpain-overlay#installation)
+2. [Unmask](https://wiki.gentoo.org/wiki/Knowledge_Base:Unmasking_a_package) [`games-util/goverlay`](https://gitlab.com/TheGreatMcPain/thegreatmcpain-overlay/-/tree/master/games-util/goverlay)
+3. Run the following command as root:
+```bash
+emerge --verbose games-util/goverlay
 ```
 
 #### Solus
