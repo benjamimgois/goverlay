@@ -83,7 +83,7 @@ eopkg it goverlay
 2. Extract the file by running the following command:
 
 ```bash
-tar -zxvf goverlay*.tar.gz
+tar -xf goverlay*.tar.xz
 ```
 
 3. Execute the binary by running the following command:
