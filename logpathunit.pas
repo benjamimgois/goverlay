@@ -48,7 +48,7 @@ begin
 
 
   // Use Home path variable in Logging default Path
-  logpathForm.homepathEdit.Text:=userhomepathSTR+'/mangohud_log_';
+  logpathForm.homepathEdit.Text:=userhomepathSTR;
 
 end;
 

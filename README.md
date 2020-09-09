@@ -13,8 +13,6 @@ Table of contents
 	- [Distributions](#distributions)
 		- [Arch / Manjaro / Other Arch derivatives](#arch--manjaro--other-arch-derivatives)
 		- [Fedora](#fedora)
-		- [Gentoo](#gentoo)
-		- [Solus](#solus)
 	- [Tarball](#tarball)
 	- [Source](#source)
 		- [Prerequisites](#prerequisites-1)
@@ -25,7 +23,7 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://ibb.co/tJW6VBd"><img src="https://i.ibb.co/9rC0QnM/goverlay-0-3-7.png" alt="goverlay-0-3-7" border="0"></a>
+<a href="https://ibb.co/MDS1rjv"><img src="https://i.ibb.co/rG0pYLj/goverlay-shot-034.png" alt="goverlay-shot-034" border="0"></a>
 <a href="https://ibb.co/xgcJvxV"><img src="https://i.ibb.co/C9XhdRx/goverlay-0-3-2.png" alt="goverlay-0-3-2" border="0"></a>
 
 ## Prerequisites
@@ -43,11 +41,7 @@ Here are the dependencies needed in order to make GOverlay run:
 
 #### Arch / Manjaro / Other Arch derivatives
 
-Binary AUR package: [`goverlay-bin`](https://aur.archlinux.org/packages/goverlay-bin/)
-
-Development AUR package: [`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) 
-
-You can also grab the latest compiled binary package from the [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/) unofficial user repository.
+[`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/) is in the AUR. You can install it using your favourite AUR helper. You can also grab the latest binary without have to compile the code from [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/)
 
 #### Fedora
 
@@ -55,17 +49,6 @@ To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverla
 
 ```bash
 dnf install goverlay
-```
-
-#### Gentoo
-
-To install [`goverlay`](https://gitlab.com/TheGreatMcPain/thegreatmcpain-overlay/-/tree/master/games-util/goverlay):
-
-1. Install the TheGreatMcPain overlay: [thegreatmcpain-overlay#installation](https://gitlab.com/TheGreatMcPain/thegreatmcpain-overlay#installation)
-2. [Unmask](https://wiki.gentoo.org/wiki/Knowledge_Base:Unmasking_a_package) [`games-util/goverlay`](https://gitlab.com/TheGreatMcPain/thegreatmcpain-overlay/-/tree/master/games-util/goverlay)
-3. Run the following command as root:
-```bash
-emerge --verbose games-util/goverlay
 ```
 
 #### Solus
@@ -83,7 +66,7 @@ eopkg it goverlay
 2. Extract the file by running the following command:
 
 ```bash
-tar -xf goverlay*.tar.xz
+tar -zxvf goverlay*.tar.gz
 ```
 
 3. Execute the binary by running the following command:

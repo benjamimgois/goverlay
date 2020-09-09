@@ -16,9 +16,24 @@ type
 
   Tgoverlayform = class(TForm)
     aboutBitBtn: TBitBtn;
+    addBitBtn: TBitBtn;
+    autouploadCheckBox: TCheckBox;
+    winelabel: TLabel;
+    reshadeProgressBar: TProgressBar;
+    subBitBtn: TBitBtn;
+    aveffectsListBox: TListBox;
+    acteffectsListBox: TListBox;
+    reshadeLabel1: TLabel;
+    reshadeLabel2: TLabel;
+    reshadesyncBitBtn: TBitBtn;
+    casCheckBox: TCheckBox;
+    effectsGroupBox: TGroupBox;
     gpumemfreqlabel: TLabel;
     engineversionlabel: TLabel;
+    wineCheckBox: TCheckBox;
+    vkbtogglekeyCombobox: TComboBox;
     ImageList3: TImageList;
+    Label6: TLabel;
     mediaComboBox: TComboBox;
     diskioCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
@@ -40,7 +55,6 @@ type
     framehistogramRadioButton: TRadioButton;
     ramColorButton: TColorButton;
     ramusageCheckBox: TCheckBox;
-    SelectDirectoryDialog1: TSelectDirectoryDialog;
     dependencieSpeedButton: TSpeedButton;
     topleftSpeedButton: TSpeedButton;
     spotify1label: TLabel;
@@ -49,8 +63,8 @@ type
     toprightSpeedButton: TSpeedButton;
     bottomleftSpeedButton: TSpeedButton;
     bottomrightSpeedButton: TSpeedButton;
+    topcenterSpeedButton: TSpeedButton;
     transparencyLabel: TLabel;
-    BitBtn1: TBitBtn;
     cas01Image: TImage;
     cas02Image: TImage;
     cas03Image: TImage;
@@ -66,14 +80,11 @@ type
     hidehudCheckBox: TCheckBox;
     hudversionCheckBox: TCheckBox;
     mediaCheckBox: TCheckBox;
-    fxaaCheckBox: TCheckBox;
-    casLabel: TLabel;
     casorigLabel: TLabel;
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
     casTrackBar2: TTrackBar;
     checkallBitBtn: TBitBtn;
-    casCheckBox: TCheckBox;
     cpuavrloadCheckBox: TCheckBox;
     cpuColorButton: TColorButton;
     cpuGroupBox: TGroupBox;
@@ -98,8 +109,6 @@ type
     frametimegraphlabel: TLabel;
     frametimelabel: TLabel;
     frametimelabel2: TLabel;
-    lutCheckBox: TCheckBox;
-    smaaCheckBox: TCheckBox;
     geSpeedButton: TSpeedButton;
     basaltgeSpeedButton: TSpeedButton;
     GlobalenableLabel: TLabel;
@@ -116,7 +125,6 @@ type
     gputemplabel: TLabel;
     gpuusagelabel: TLabel;
     casGroupBox: TGroupBox;
-    effectsGroupBox: TGroupBox;
     hudbackgroundColorButton: TColorButton;
     hudbackgroundShape: TShape;
     hudonoffComboBox: TComboBox;
@@ -163,6 +171,7 @@ type
     vulkanfpslabel: TLabel;
     vulkanftimelabel: TLabel;
     vulkanlabel: TLabel;
+    procedure addBitBtnClick(Sender: TObject);
     procedure archCheckBoxClick(Sender: TObject);
     procedure basaltgeSpeedButtonClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
@@ -211,13 +220,15 @@ type
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
-    procedure saveasBitBtnClick(Sender: TObject);
+    procedure reshadesyncBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure mediaCheckBoxClick(Sender: TObject);
+    procedure subBitBtnClick(Sender: TObject);
     procedure timeCheckBoxClick(Sender: TObject);
+    procedure topcenterSpeedButtonClick(Sender: TObject);
     procedure topleftSpeedButtonClick(Sender: TObject);
     procedure hudversionCheckBoxClick(Sender: TObject);
     procedure toprightSpeedButtonClick(Sender: TObject);
@@ -227,6 +238,7 @@ type
     procedure vramColorButtonColorChanged(Sender: TObject);
     procedure vramusageCheckBoxClick(Sender: TObject);
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
+    procedure wineCheckBoxChange(Sender: TObject);
 
   private
 
@@ -296,6 +308,176 @@ var
   vkbasaltsel: boolean;
   mangofile: Textfile;
   fileline : String;
+  reshadepath1Value: Textfile;
+  reshadepath1STR: string;
+  reshadepath2Value: Textfile;
+  reshadepath2STR: string;
+  shaderspathValue: Textfile;
+  shaderspathSTR: string;
+  reshadegitVAR: Textfile;
+  reshadegitSTR: string;
+  numeffect: Integer;
+  effectsValue: Textfile;
+  effectsSTR: string;
+  numeffects: integer;
+  effect0Value: Textfile;
+  effect0: string;
+  effect1Value: Textfile;
+  effect1: string;
+  effect2Value: Textfile;
+  effect2: string;
+  effect3Value: Textfile;
+  effect3: string;
+  effect4Value: Textfile;
+  effect4: string;
+  casSTR: Boolean;
+  cascheckValue: Textfile;
+
+  // Variables for Shaders path
+  TDFXshaderpathValue: Textfile;
+  TDFXshaderpathSTR: string;
+  AdaptiveFogshaderpathValue: Textfile;
+  AdaptiveFogshaderpathSTR: string;
+  AdaptiveSharpenshaderpathValue: Textfile;
+  AdaptiveSharpenshaderpathSTR: string;
+  AmbientLightshaderpathValue: Textfile;
+  AmbientLightshaderpathSTR: string;
+  ASCIIshaderpathValue: Textfile;
+  ASCIIshaderpathSTR: string;
+  AspectRatioshaderpathValue: Textfile;
+  AspectRatioshaderpathSTR: string;
+  BloomshaderpathValue: Textfile;
+  BloomshaderpathSTR: string;
+  BordershaderpathValue: Textfile;
+  BordershaderpathSTR: string;
+  CartoonshaderpathValue: Textfile;
+  CartoonshaderpathSTR: string;
+  ChromaKeyshaderpathValue: Textfile;
+  ChromaKeyshaderpathSTR: string;
+  ChromaticAberrationshaderpathValue: Textfile;
+  ChromaticAberrationshaderpathSTR: string;
+  CinematicDOFshaderpathValue: Textfile;
+  CinematicDOFshaderpathSTR: string;
+  ClarityshaderpathValue: Textfile;
+  ClarityshaderpathSTR: string;
+  ColorMatrixshaderpathValue: Textfile;
+  ColorMatrixshaderpathSTR: string;
+  ColourfulnessshaderpathValue: Textfile;
+  ColourfulnessshaderpathSTR: string;
+  CRTshaderpathValue: Textfile;
+  CRTshaderpathSTR: string;
+  CurvesshaderpathValue: Textfile;
+  CurvesshaderpathSTR: string;
+  DaltonizeshaderpathValue: Textfile;
+  DaltonizeshaderpathSTR: string;
+  DebandshaderpathValue: Textfile;
+  DebandshaderpathSTR: string;
+  DenoiseshaderpathValue: Textfile;
+  DenoiseshaderpathSTR: string;
+  Depth3DshaderpathValue: Textfile;
+  Depth3DshaderpathSTR: string;
+  DephhazeshaderpathValue: Textfile;
+  DephhazeshaderpathSTR: string;
+  DisplayDepthshaderpathValue: Textfile;
+  DisplayDepthshaderpathSTR: string;
+  DOFshaderpathValue: Textfile;
+  DOFshaderpathSTR: string;
+  DPXshaderpathValue: Textfile;
+  DPXshaderpathSTR: string;
+  EmphasizeshaderpathValue: Textfile;
+  EmphasizeshaderpathSTR: string;
+  EyeAdaptionshaderpathValue: Textfile;
+  EyeAdaptionshaderpathSTR: string;
+  FakeHDRshaderpathValue: Textfile;
+  FakeHDRshaderpathSTR: string;
+  FakeMotionBlurshaderpathValue: Textfile;
+  FakeMotionBlurshaderpathSTR: string;
+  FilmGrainshaderpathValue: Textfile;
+  FilmGrainshaderpathSTR: string;
+  FilmGrain2shaderpathValue: Textfile;
+  FilmGrain2shaderpathSTR: string;
+  FilmicAnamorphSharpenshaderpathValue: Textfile;
+  FilmicAnamorphSharpenshaderpathSTR: string;
+  FilmicPassshaderpathValue: Textfile;
+  FilmicPassshaderpathSTR: string;
+  FineSharpshaderpathValue: Textfile;
+  FineSharpshaderpathSTR: string;
+  FXAAshaderpathValue: Textfile;
+  FXAAshaderpathSTR: string;
+  GaussianBlurshaderpathValue: Textfile;
+  GaussianBlurshaderpathSTR: string;
+  GlitchshaderpathValue: Textfile;
+  GlitchshaderpathSTR: string;
+  HighPassSharpenshaderpathValue: Textfile;
+  HighPassSharpenshaderpathSTR: string;
+  HQ4XshaderpathValue: Textfile;
+  HQ4XshaderpathSTR: string;
+  HSLShiftshaderpathValue: Textfile;
+  HSLShiftshaderpathSTR: string;
+  LayershaderpathValue: Textfile;
+  LayershaderpathSTR: string;
+  LevelsshaderpathValue: Textfile;
+  LevelsshaderpathSTR: string;
+  LevelsPlusshaderpathValue: Textfile;
+  LevelsPlusshaderpathSTR: string;
+  LiftGammaGainshaderpathValue: Textfile;
+  LiftGammaGainshaderpathSTR: string;
+  LightDoFshaderpathValue: Textfile;
+  LightDoFshaderpathSTR: string;
+  LumaSharpenshaderpathValue: Textfile;
+  LumaSharpenshaderpathSTR: string;
+  LUTshaderpathValue: Textfile;
+  LUTshaderpathSTR: string;
+  MagicBloomshaderpathValue: Textfile;
+  MagicBloomshaderpathSTR: string;
+  MonochromeshaderpathValue: Textfile;
+  MonochromeshaderpathSTR: string;
+  MultiLUTshaderpathValue: Textfile;
+  MultiLUTshaderpathSTR: string;
+  MXAOshaderpathValue: Textfile;
+  MXAOshaderpathSTR: string;
+  NightVisionshaderpathValue: Textfile;
+  NightVisionshaderpathSTR: string;
+  NostalgiashaderpathValue: Textfile;
+  NostalgiashaderpathSTR: string;
+  PerfectPerspectiveshaderpathValue: Textfile;
+  PerfectPerspectiveshaderpathSTR: string;
+  PPFX_BloomshaderpathValue: Textfile;
+  PPFX_BloomshaderpathSTR: string;
+  PPFX_GodraysshaderpathValue: Textfile;
+  PPFX_GodraysshaderpathSTR: string;
+  PrismshaderpathValue: Textfile;
+  PrismshaderpathSTR: string;
+  ReflectiveBumpMappingshaderpathValue: Textfile;
+  ReflectiveBumpMappingshaderpathSTR: string;
+  SepiashaderpathValue: Textfile;
+  SepiashaderpathSTR: string;
+  SMAAshaderpathValue: Textfile;
+  SMAAshaderpathSTR: string;
+  SplitscreenshaderpathValue: Textfile;
+  SplitscreenshaderpathSTR: string;
+  StageDepthshaderpathValue: Textfile;
+  StageDepthshaderpathSTR: string;
+  SurfaceBlurshaderpathValue: Textfile;
+  SurfaceBlurshaderpathSTR: string;
+  TechnicolorshaderpathValue: Textfile;
+  TechnicolorshaderpathSTR: string;
+  Technicolor2shaderpathValue: Textfile;
+  Technicolor2shaderpathSTR: string;
+  TiltShiftshaderpathValue: Textfile;
+  TiltShiftshaderpathSTR: string;
+  TonemapshaderpathValue: Textfile;
+  TonemapshaderpathSTR: string;
+  TriDithershaderpathValue: Textfile;
+  TriDithershaderpathSTR: string;
+  UIDetectshaderpathValue: Textfile;
+  UIDetectshaderpathSTR: string;
+  UIMaskshaderpathValue: Textfile;
+  UIMaskshaderpathSTR: string;
+  VibranceshaderpathValue: Textfile;
+  VibranceshaderpathSTR: string;
+  VignetteshaderpathValue: Textfile;
+  VignetteshaderpathSTR: string;
 
   //Variables for initial values
   initfpslimit: Textfile;
@@ -356,15 +538,25 @@ var
   inittoggleloggingSTR: string;
   initmediaplayername: Textfile;
   initmediaplayernameSTR: string;
-  initvkbasalteffects: Textfile;
-  initvkbasalteffectsSTR: string;
+  initvkbasaltcas: Textfile;
+  initvkbasaltcasSTR: string;
   initcasSharpness: Textfile;
   initcasSharpnessSTR: string;
   initcputextvalue: Textfile;
   initcputextvalueSTR: string;
   initgputextvalue: Textfile;
   initgputextvalueSTR: string;
-
+  initfontsizevalue: Textfile;
+  initfontsizevalueSTR: string;
+  fontsizeINT: Integer;
+  initwine: Textfile;
+  initwineSTR: string;
+  initeffect0: Textfile;
+  initeffect0STR: string;
+  initcascheckValue: Textfile;
+  initcascheckSTR: string;
+  initautoupload: Textfile;
+  initautouploadSTR: string;
 implementation
 
 {$R *.lfm}
@@ -389,7 +581,7 @@ begin
   RunCommand('bash -c ''echo "################### File Generated by GOverlay ###################" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   // Popup a notification
-  RunCommand('bash -c ''notify-send MangoHud_Config_saved''', s);
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Configuration saved"''', s);
 
 
   //####################################################################################### PERFORMANCE
@@ -644,6 +836,8 @@ begin
 
 
   //Others checks
+
+  //Frame time
   if frametimegraphCheckbox.Checked=true then
   RunCommand('bash -c ''echo "frame_timing=1" >> $HOME/.config/MangoHud/MangoHud.conf''', s)
   else
@@ -672,23 +866,29 @@ begin
       if framehistogramRadioButton.Checked=true then
       RunCommand('bash -c ''echo "histogram" >> $HOME/.config/MangoHud/MangoHud.conf''', s) ;
 
-
+  //Time
   if timeCheckbox.Checked=true then
   RunCommand('bash -c ''echo "time" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+  //Hud version
   if hudversionCheckbox.Checked=true then
   RunCommand('bash -c ''echo "version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+  //Arch
   if archCheckbox.Checked=true then
   RunCommand('bash -c ''echo "arch" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+  //Engine version
   if engineversionCheckbox.Checked=true then
   RunCommand('bash -c ''echo "engine_version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+  //Media Player
   if mediaCheckBox.Checked=true then
   RunCommand('bash -c ''echo "media_player" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-
+  //Wine
+  if wineCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "wine" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
       //###################################################### OTHERS
 
@@ -758,24 +958,23 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/hudbackgroundcolorScript.sh''', s);
 
-  //HUD Position
-  //if toprightShape.Brush.Style=bsSolid then
+
+      //HUD Position
+
   if topleftSpeedbutton.ImageIndex=0 then
   RunCommand('bash -c ''echo "position=top-left" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  //if topleftShape.Brush.Style=bsSolid then
   if toprightSpeedbutton.ImageIndex=1 then
   RunCommand('bash -c ''echo "position=top-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   if bottomleftSpeedbutton.ImageIndex=2 then
-  //if bottomrightShape.Brush.Style=bsSolid then
   RunCommand('bash -c ''echo "position=bottom-left" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  //if bottomleftShape.Brush.Style=bsSolid then
   if bottomrightSpeedbutton.ImageIndex=3 then
   RunCommand('bash -c ''echo "position=bottom-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-
+  if topcenterSpeedbutton.ImageIndex=4 then
+  RunCommand('bash -c ''echo "position=top-center" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
     //HUD Font Color
 
@@ -813,6 +1012,10 @@ begin
   end;
 
 
+    //Auto upload log
+  if autouploadcheckbox.Checked=true then
+  RunCommand('bash -c ''echo "permit_upload" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
   //Set logging destination folder
 
   // Assign custom value to file
@@ -825,7 +1028,7 @@ begin
   AssignFile(destinationfolderScript, '/tmp/goverlay/destinationfolderScript.sh');
   Rewrite(destinationfolderScript);
   Writeln(destinationfolderScript,'DESTFOLDER=$(cat /tmp/goverlay/destinationlogfolder)');  //Store destination folder in a Linux/Unix variable
-  Writeln(destinationfolderScript,'echo "output_file=$DESTFOLDER" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
+  Writeln(destinationfolderScript,'echo "output_folder=$DESTFOLDER" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
   CloseFile(destinationfolderScript);
 
   //execute custom script to store custom value on mangohud.conf
@@ -890,21 +1093,23 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w arch >>
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w engine_version >> $HOME/.config/goverlay/initial_values/engine_version''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w media_player >> $HOME/.config/goverlay/initial_values/media_player''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w background_alpha >> $HOME/.config/goverlay/initial_values/background_alpha''', s);
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w background_color >> $HOME/.config/goverlay/initial_values/background_color''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w position >> $HOME/.config/goverlay/initial_values/position''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w text_color >> $HOME/.config/goverlay/initial_values/text_color''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_hud >> $HOME/.config/goverlay/initial_values/toggle_hud''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_logging >> $HOME/.config/goverlay/initial_values/toggle_logging''', s);
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w output_file >> $HOME/.config/goverlay/initial_values/output_file''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w output_folder >> $HOME/.config/goverlay/initial_values/output_folder''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w media_player_name >> $HOME/.config/goverlay/initial_values/media_player_name''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w no_display >> $HOME/.config/goverlay/initial_values/no_display''', s);
-
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w wine >> $HOME/.config/goverlay/initial_values/wine''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w permit_upload >> $HOME/.config/goverlay/initial_values/autoupload''', s);
 
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_text >> $HOME/.config/goverlay/initial_values/cpu_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/cpu_text_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text >> $HOME/.config/goverlay/initial_values/gpu_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/gpu_text_value''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size | cut -c 11-13 >> $HOME/.config/goverlay/initial_values/font_size_value''', s);
 end;
 
 procedure Tgoverlayform.fontsizeComboBoxChange(Sender: TObject);
@@ -1114,10 +1319,52 @@ begin
   end;
 end;
 
-procedure Tgoverlayform.saveasBitBtnClick(Sender: TObject);
+procedure Tgoverlayform.reshadesyncBitBtnClick(Sender: TObject);
 begin
-  selectdirectorydialog1.Execute;
+  //Delete old reshade files
+  RunCommand('bash -c ''rm -Rf /tmp/goverlay/reshade''', s);
+
+  // Popup a notification  and sync reshade git repositorie
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Syncing Reshade repositories..." "This can take a fill seconds, please Wait until complete" | git clone https://github.com/crosire/reshade-shaders.git $HOME/.local/share/reshade''', s);
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Sync Complete"''', s); // Popup a notification
+
+
+  // Copy reshade files to tmp folder
+  RunCommand('bash -c ''yes | cp -rf $HOME/.local/share/reshade/ /tmp/goverlay/''', s);
+
+
+// Check if Reshade files exist
+RunCommand('bash -c ''rm $HOME/.config/goverlay/initial_values/reshade_git''', s); //delete old file in original folder
+RunCommand('bash -c ''touch $HOME/.config/goverlay/initial_values/reshade_git''', s);   //create dummy file
+RunCommand('bash -c ''cat $HOME/.local/share/reshade/README.md | grep -w master.zip >> $HOME/.config/goverlay/initial_values/reshade_git''', s);
+RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/reshade_git /tmp/goverlay/''', s); //copy file to tmp folder
+
+// Assign Text file to variable
+     AssignFile(reshadegitVAR, '/tmp/goverlay/reshade_git');
+     Reset(reshadegitVAR);
+     Readln(reshadegitVAR,reshadegitSTR); //Assign Text file to String
+     CloseFile(reshadegitVAR);
+
+//Check state and activate components acordingly
+if reshadegitSTR = '1. [Download](https://github.com/crosire/reshade-shaders/archive/master.zip) this repository' then
+   begin
+   aveffectsListbox.Enabled := true;
+   acteffectsListbox.Enabled:= true;
+   addBitbtn.Enabled:=true;
+   subBitbtn.Enabled:=true;
+   reshadeProgressbar.Position:=100;
+   end
+else
+    begin
+    aveffectsListbox.Enabled := false;
+    acteffectsListbox.Enabled:= false;
+    addBitbtn.Enabled:=false;
+    subBitbtn.Enabled:=false;
+    end;
+
+
 end;
+
 
 procedure Tgoverlayform.checkallBitBtnClick(Sender: TObject);
 begin
@@ -1139,6 +1386,7 @@ begin
   gpumodelCheckBox.Checked:=true;
   gpumemfreqCheckBox.Checked:=true;
   engineversionCheckBox.Checked:=true;
+  wineCheckbox.Checked:=true;
 
   //Preview all hud options
   cpulabel.Caption:='CPU';
@@ -1166,6 +1414,7 @@ begin
   gpupowerlabel.Caption:='120W';
   gpumemfreqlabel.Caption:='600MHz';
   engineversionlabel.Caption:='1.2.131';
+  winelabel.Caption:='Proton 5.0-9';
 end;
 
 procedure Tgoverlayform.cpunameEditChange(Sender: TObject);
@@ -1175,56 +1424,919 @@ end;
 
 procedure Tgoverlayform.basaltsaveBitBtnClick(Sender: TObject);
 begin
-    //Create directories
-  RunCommand('bash -c ''mkdir -p $HOME/.config/vkBasalt/''', s);
+//Create directories
+RunCommand('bash -c ''mkdir -p $HOME/.config/vkBasalt/''', s);
 
 
-  // Delete old file if it exists
-  RunCommand('bash -c ''rm $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+// Delete old file if it exists
+RunCommand('bash -c ''rm $HOME/.config/vkBasalt/vkBasalt.conf''', s);
 
 
-  // Create a new file for goverlay
-  RunCommand('bash -c ''echo "################### File Generated by GOverlay ###################" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+// Create a new vkbasalt file for goverlay
+RunCommand('bash -c ''echo "################### File Generated by GOverlay ###################" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Insert reshade Paths in vkbasalt.conf
+                 reshadepath1STR := 'reshadeTexturePath = '+userhomepathSTR+'/.local/share/reshade';
+                 reshadepath2STR := 'reshadeIncludePath = '+userhomepathSTR+'/.local/share/reshade';
+
+
+                 // Assign reshadepath1STR to text file
+                 AssignFile(reshadepath1Value, '/tmp/goverlay/reshadepath1Value');
+                 Rewrite(reshadepath1Value);
+                 Writeln(reshadepath1Value,reshadepath1STR);
+                 CloseFile(reshadepath1Value);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/reshadepath1Value >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 // Assign reshadepath2STR to text file
+                 AssignFile(reshadepath2Value, '/tmp/goverlay/reshadepath2Value');
+                 Rewrite(reshadepath2Value);
+                 Writeln(reshadepath2Value,reshadepath2STR);
+                 CloseFile(reshadepath2Value);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/reshadepath2Value >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+
+//#########################################       RESHADE SHADERS       ###########################################################################
+
+                 //TDFX
+                 TDFXshaderpathSTR := '3DFX = '+userhomepathSTR+'/.local/share/reshade/Shaders/3DFX.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(TDFXshaderpathValue, '/tmp/goverlay/TDFXshaderpathValue');
+                 Rewrite(TDFXshaderpathValue);
+                 Writeln(TDFXshaderpathValue,TDFXshaderpathSTR);
+                 CloseFile(TDFXshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/TDFXshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //AdaptiveFog
+                 AdaptiveFogshaderpathSTR := 'AdaptiveFog = '+userhomepathSTR+'/.local/share/reshade/Shaders/AdaptiveFog.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(AdaptiveFogshaderpathValue, '/tmp/goverlay/AdaptiveFogshaderpathValue');
+                 Rewrite(AdaptiveFogshaderpathValue);
+                 Writeln(AdaptiveFogshaderpathValue,AdaptiveFogshaderpathSTR);
+                 CloseFile(AdaptiveFogshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/AdaptiveFogshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //AdaptiveSharpen
+                 AdaptiveSharpenshaderpathSTR := 'AdaptiveSharpen = '+userhomepathSTR+'/.local/share/reshade/Shaders/AdaptiveSharpen.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(AdaptiveSharpenshaderpathValue, '/tmp/goverlay/AdaptiveSharpenshaderpathValue');
+                 Rewrite(AdaptiveSharpenshaderpathValue);
+                 Writeln(AdaptiveSharpenshaderpathValue,AdaptiveSharpenshaderpathSTR);
+                 CloseFile(AdaptiveSharpenshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/AdaptiveSharpenshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //AmbientLight
+                 AmbientLightshaderpathSTR := 'AmbientLight = '+userhomepathSTR+'/.local/share/reshade/Shaders/AmbientLight.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(AmbientLightshaderpathValue, '/tmp/goverlay/AmbientLightshaderpathValue');
+                 Rewrite(AmbientLightshaderpathValue);
+                 Writeln(AmbientLightshaderpathValue,AmbientLightshaderpathSTR);
+                 CloseFile(AmbientLightshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/AmbientLightshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //ASCII
+                 ASCIIshaderpathSTR := 'ASCII = '+userhomepathSTR+'/.local/share/reshade/Shaders/ASCII.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(ASCIIshaderpathValue, '/tmp/goverlay/ASCIIshaderpathValue');
+                 Rewrite(ASCIIshaderpathValue);
+                 Writeln(ASCIIshaderpathValue,ASCIIshaderpathSTR);
+                 CloseFile(ASCIIshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ASCIIshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //AspectRatio
+                 AspectRatioshaderpathSTR := 'AspectRatio = '+userhomepathSTR+'/.local/share/reshade/Shaders/AspectRatio.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(AspectRatioshaderpathValue, '/tmp/goverlay/AspectRatioshaderpathValue');
+                 Rewrite(AspectRatioshaderpathValue);
+                 Writeln(AspectRatioshaderpathValue,AspectRatioshaderpathSTR);
+                 CloseFile(AspectRatioshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/AspectRatioshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Bloom
+                 BloomshaderpathSTR := 'Bloom = '+userhomepathSTR+'/.local/share/reshade/Shaders/Bloom.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(BloomshaderpathValue, '/tmp/goverlay/BloomshaderpathValue');
+                 Rewrite(BloomshaderpathValue);
+                 Writeln(BloomshaderpathValue,BloomshaderpathSTR);
+                 CloseFile(BloomshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/BloomshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //Border
+                 BordershaderpathSTR := 'Border = '+userhomepathSTR+'/.local/share/reshade/Shaders/Border.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(BordershaderpathValue, '/tmp/goverlay/BordershaderpathValue');
+                 Rewrite(BordershaderpathValue);
+                 Writeln(BordershaderpathValue,BordershaderpathSTR);
+                 CloseFile(BordershaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/BordershaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Cartoon
+                 CartoonshaderpathSTR := 'Cartoon = '+userhomepathSTR+'/.local/share/reshade/Shaders/Cartoon.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(CartoonshaderpathValue, '/tmp/goverlay/CartoonshaderpathValue');
+                 Rewrite(CartoonshaderpathValue);
+                 Writeln(CartoonshaderpathValue,CartoonshaderpathSTR);
+                 CloseFile(CartoonshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/CartoonshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //ChromaKey
+                 ChromaKeyshaderpathSTR := 'ChromaKey = '+userhomepathSTR+'/.local/share/reshade/Shaders/ChromaKey.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(ChromaKeyshaderpathValue, '/tmp/goverlay/ChromaKeyshaderpathValue');
+                 Rewrite(ChromaKeyshaderpathValue);
+                 Writeln(ChromaKeyshaderpathValue,ChromaKeyshaderpathSTR);
+                 CloseFile(ChromaKeyshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ChromaKeyshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //ChromaticAberration
+                 ChromaticAberrationshaderpathSTR := 'ChromaticAberration = '+userhomepathSTR+'/.local/share/reshade/Shaders/ChromaticAberration.fx';
+
+                 // Assign shadersSTR to text file
+                 AssignFile(ChromaticAberrationshaderpathValue, '/tmp/goverlay/ChromaticAberrationshaderpathValue');
+                 Rewrite(ChromaticAberrationshaderpathValue);
+                 Writeln(ChromaticAberrationshaderpathValue,ChromaticAberrationshaderpathSTR);
+                 CloseFile(ChromaticAberrationshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ChromaticAberrationshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //CinematicDOF
+                 CinematicDOFshaderpathSTR := 'CinematicDOF = '+userhomepathSTR+'/.local/share/reshade/Shaders/CinematicDOF.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(CinematicDOFshaderpathValue, '/tmp/goverlay/CinematicDOFshaderpathValue');
+                 Rewrite(CinematicDOFshaderpathValue);
+                 Writeln(CinematicDOFshaderpathValue,CinematicDOFshaderpathSTR);
+                 CloseFile(CinematicDOFshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/CinematicDOFshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Clarity
+                 ClarityshaderpathSTR := 'Clarity = '+userhomepathSTR+'/.local/share/reshade/Shaders/Clarity.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(ClarityshaderpathValue, '/tmp/goverlay/ClarityshaderpathValue');
+                 Rewrite(ClarityshaderpathValue);
+                 Writeln(ClarityshaderpathValue,ClarityshaderpathSTR);
+                 CloseFile(ClarityshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ClarityshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //ColorMatrix
+                 ColorMatrixshaderpathSTR := 'ColorMatrix = '+userhomepathSTR+'/.local/share/reshade/Shaders/ColorMatrix.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(ColorMatrixshaderpathValue, '/tmp/goverlay/ColorMatrixshaderpathValue');
+                 Rewrite(ColorMatrixshaderpathValue);
+                 Writeln(ColorMatrixshaderpathValue,ColorMatrixshaderpathSTR);
+                 CloseFile(ColorMatrixshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ColorMatrixshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Colourfulness
+                 ColourfulnessshaderpathSTR := 'Colourfulness = '+userhomepathSTR+'/.local/share/reshade/Shaders/Colourfulness.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(ColourfulnessshaderpathValue, '/tmp/goverlay/ColourfulnessshaderpathValue');
+                 Rewrite(ColourfulnessshaderpathValue);
+                 Writeln(ColourfulnessshaderpathValue,ColourfulnessshaderpathSTR);
+                 CloseFile(ColourfulnessshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ColourfulnessshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //CRT
+                 CRTshaderpathSTR := 'CRT = '+userhomepathSTR+'/.local/share/reshade/Shaders/CRT.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(CRTshaderpathValue, '/tmp/goverlay/CRTshaderpathValue');
+                 Rewrite(CRTshaderpathValue);
+                 Writeln(CRTshaderpathValue,CRTshaderpathSTR);
+                 CloseFile(CRTshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/CRTshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //Curves
+                 CurvesshaderpathSTR := 'Curves = '+userhomepathSTR+'/.local/share/reshade/Shaders/Curves.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(CurvesshaderpathValue, '/tmp/goverlay/CurvesshaderpathValue');
+                 Rewrite(CurvesshaderpathValue);
+                 Writeln(CurvesshaderpathValue,CurvesshaderpathSTR);
+                 CloseFile(CurvesshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/CurvesshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Daltonize
+                 DaltonizeshaderpathSTR := 'Daltonize = '+userhomepathSTR+'/.local/share/reshade/Shaders/Daltonize.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DaltonizeshaderpathValue, '/tmp/goverlay/DaltonizeshaderpathValue');
+                 Rewrite(DaltonizeshaderpathValue);
+                 Writeln(DaltonizeshaderpathValue,DaltonizeshaderpathSTR);
+                 CloseFile(DaltonizeshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DaltonizeshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //Deband
+                 DebandshaderpathSTR := 'Deband = '+userhomepathSTR+'/.local/share/reshade/Shaders/Deband.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DebandshaderpathValue, '/tmp/goverlay/DebandshaderpathValue');
+                 Rewrite(DebandshaderpathValue);
+                 Writeln(DebandshaderpathValue,DebandshaderpathSTR);
+                 CloseFile(DebandshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DebandshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                                  //Denoise
+                 DenoiseshaderpathSTR := 'Denoise = '+userhomepathSTR+'/.local/share/reshade/Shaders/Denoise.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DenoiseshaderpathValue, '/tmp/goverlay/DenoiseshaderpathValue');
+                 Rewrite(DenoiseshaderpathValue);
+                 Writeln(DenoiseshaderpathValue,DenoiseshaderpathSTR);
+                 CloseFile(DenoiseshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DenoiseshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                               //Depth3D
+                 Depth3DshaderpathSTR := 'Depth3D = '+userhomepathSTR+'/.local/share/reshade/Shaders/Depth3D.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(Depth3DshaderpathValue, '/tmp/goverlay/Depth3DshaderpathValue');
+                 Rewrite(Depth3DshaderpathValue);
+                 Writeln(Depth3DshaderpathValue,Depth3DshaderpathSTR);
+                 CloseFile(Depth3DshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/Depth3DshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //Dephhaze
+                 DephhazeshaderpathSTR := 'Dephhaze = '+userhomepathSTR+'/.local/share/reshade/Shaders/Dephhaze.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DephhazeshaderpathValue, '/tmp/goverlay/DephhazeshaderpathValue');
+                 Rewrite(DephhazeshaderpathValue);
+                 Writeln(DephhazeshaderpathValue,DephhazeshaderpathSTR);
+                 CloseFile(DephhazeshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DephhazeshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //DisplayDepth
+                 DisplayDepthshaderpathSTR := 'DisplayDepth = '+userhomepathSTR+'/.local/share/reshade/Shaders/DisplayDepth.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DisplayDepthshaderpathValue, '/tmp/goverlay/DisplayDepthshaderpathValue');
+                 Rewrite(DisplayDepthshaderpathValue);
+                 Writeln(DisplayDepthshaderpathValue,DisplayDepthshaderpathSTR);
+                 CloseFile(DisplayDepthshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DisplayDepthshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                                  //DOF
+                 DOFshaderpathSTR := 'DOF = '+userhomepathSTR+'/.local/share/reshade/Shaders/DOF.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DOFshaderpathValue, '/tmp/goverlay/DOFshaderpathValue');
+                 Rewrite(DOFshaderpathValue);
+                 Writeln(DOFshaderpathValue,DOFshaderpathSTR);
+                 CloseFile(DOFshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DOFshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //DPX
+                 DPXshaderpathSTR := 'DPX = '+userhomepathSTR+'/.local/share/reshade/Shaders/DPX.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(DPXshaderpathValue, '/tmp/goverlay/DPXshaderpathValue');
+                 Rewrite(DPXshaderpathValue);
+                 Writeln(DPXshaderpathValue,DPXshaderpathSTR);
+                 CloseFile(DPXshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/DPXshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //Emphasize
+                 EmphasizeshaderpathSTR := 'Emphasize = '+userhomepathSTR+'/.local/share/reshade/Shaders/Emphasize.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(EmphasizeshaderpathValue, '/tmp/goverlay/EmphasizeshaderpathValue');
+                 Rewrite(EmphasizeshaderpathValue);
+                 Writeln(EmphasizeshaderpathValue,EmphasizeshaderpathSTR);
+                 CloseFile(EmphasizeshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/EmphasizeshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                                  //EyeAdaption
+                 EyeAdaptionshaderpathSTR := 'EyeAdaption = '+userhomepathSTR+'/.local/share/reshade/Shaders/EyeAdaption.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(EyeAdaptionshaderpathValue, '/tmp/goverlay/EyeAdaptionshaderpathValue');
+                 Rewrite(EyeAdaptionshaderpathValue);
+                 Writeln(EyeAdaptionshaderpathValue,EyeAdaptionshaderpathSTR);
+                 CloseFile(EyeAdaptionshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/EyeAdaptionshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //FakeHDR
+                 FakeHDRshaderpathSTR := 'FakeHDR = '+userhomepathSTR+'/.local/share/reshade/Shaders/FakeHDR.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FakeHDRshaderpathValue, '/tmp/goverlay/FakeHDRshaderpathValue');
+                 Rewrite(FakeHDRshaderpathValue);
+                 Writeln(FakeHDRshaderpathValue,FakeHDRshaderpathSTR);
+                 CloseFile(FakeHDRshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FakeHDRshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //FakeMotionBlur
+                 FakeMotionBlurshaderpathSTR := 'FakeMotionBlur = '+userhomepathSTR+'/.local/share/reshade/Shaders/FakeMotionBlur.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FakeMotionBlurshaderpathValue, '/tmp/goverlay/FakeMotionBlurshaderpathValue');
+                 Rewrite(FakeMotionBlurshaderpathValue);
+                 Writeln(FakeMotionBlurshaderpathValue,FakeMotionBlurshaderpathSTR);
+                 CloseFile(FakeMotionBlurshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FakeMotionBlurshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //FilmGrain
+                 FilmGrainshaderpathSTR := 'FilmGrain = '+userhomepathSTR+'/.local/share/reshade/Shaders/FilmGrain.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FilmGrainshaderpathValue, '/tmp/goverlay/FilmGrainshaderpathValue');
+                 Rewrite(FilmGrainshaderpathValue);
+                 Writeln(FilmGrainshaderpathValue,FilmGrainshaderpathSTR);
+                 CloseFile(FilmGrainshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FilmGrainshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //FilmGrain2
+                 FilmGrain2shaderpathSTR := 'FilmGrain2 = '+userhomepathSTR+'/.local/share/reshade/Shaders/FilmGrain2.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FilmGrain2shaderpathValue, '/tmp/goverlay/FilmGrain2shaderpathValue');
+                 Rewrite(FilmGrain2shaderpathValue);
+                 Writeln(FilmGrain2shaderpathValue,FilmGrain2shaderpathSTR);
+                 CloseFile(FilmGrain2shaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FilmGrain2shaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+
+                                  //FilmicAnamorphSharpen
+                 FilmicAnamorphSharpenshaderpathSTR := 'FilmicAnamorphSharpen = '+userhomepathSTR+'/.local/share/reshade/Shaders/FilmicAnamorphSharpen.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FilmicAnamorphSharpenshaderpathValue, '/tmp/goverlay/FilmicAnamorphSharpenshaderpathValue');
+                 Rewrite(FilmicAnamorphSharpenshaderpathValue);
+                 Writeln(FilmicAnamorphSharpenshaderpathValue,FilmicAnamorphSharpenshaderpathSTR);
+                 CloseFile(FilmicAnamorphSharpenshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FilmicAnamorphSharpenshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+
+                                  //FilmicPass
+                 FilmicPassshaderpathSTR := 'FilmicPass = '+userhomepathSTR+'/.local/share/reshade/Shaders/FilmicPass.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FilmicPassshaderpathValue, '/tmp/goverlay/FilmicPassshaderpathValue');
+                 Rewrite(FilmicPassshaderpathValue);
+                 Writeln(FilmicPassshaderpathValue,FilmicPassshaderpathSTR);
+                 CloseFile(FilmicPassshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FilmicPassshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //FineSharp
+                 FineSharpshaderpathSTR := 'FineSharp = '+userhomepathSTR+'/.local/share/reshade/Shaders/FineSharp.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FineSharpshaderpathValue, '/tmp/goverlay/FineSharpshaderpathValue');
+                 Rewrite(FineSharpshaderpathValue);
+                 Writeln(FineSharpshaderpathValue,FineSharpshaderpathSTR);
+                 CloseFile(FineSharpshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FineSharpshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //FXAA
+                 FXAAshaderpathSTR := 'FXAA = '+userhomepathSTR+'/.local/share/reshade/Shaders/FXAA.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(FXAAshaderpathValue, '/tmp/goverlay/FXAAshaderpathValue');
+                 Rewrite(FXAAshaderpathValue);
+                 Writeln(FXAAshaderpathValue,FXAAshaderpathSTR);
+                 CloseFile(FXAAshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/FXAAshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //GaussianBlur
+                 GaussianBlurshaderpathSTR := 'GaussianBlur = '+userhomepathSTR+'/.local/share/reshade/Shaders/GaussianBlur.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(GaussianBlurshaderpathValue, '/tmp/goverlay/GaussianBlurshaderpathValue');
+                 Rewrite(GaussianBlurshaderpathValue);
+                 Writeln(GaussianBlurshaderpathValue,GaussianBlurshaderpathSTR);
+                 CloseFile(GaussianBlurshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/GaussianBlurshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //Glitch
+                 GlitchshaderpathSTR := 'Glitch = '+userhomepathSTR+'/.local/share/reshade/Shaders/Glitch.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(GlitchshaderpathValue, '/tmp/goverlay/GlitchshaderpathValue');
+                 Rewrite(GlitchshaderpathValue);
+                 Writeln(GlitchshaderpathValue,GlitchshaderpathSTR);
+                 CloseFile(GlitchshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/GlitchshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //HighPassSharpen
+                 HighPassSharpenshaderpathSTR := 'HighPassSharpen = '+userhomepathSTR+'/.local/share/reshade/Shaders/HighPassSharpen.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(HighPassSharpenshaderpathValue, '/tmp/goverlay/HighPassSharpenshaderpathValue');
+                 Rewrite(HighPassSharpenshaderpathValue);
+                 Writeln(HighPassSharpenshaderpathValue,HighPassSharpenshaderpathSTR);
+                 CloseFile(HighPassSharpenshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/HighPassSharpenshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //HQ4X
+                 HQ4XshaderpathSTR := 'HQ4X = '+userhomepathSTR+'/.local/share/reshade/Shaders/HQ4X.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(HQ4XshaderpathValue, '/tmp/goverlay/HQ4XshaderpathValue');
+                 Rewrite(HQ4XshaderpathValue);
+                 Writeln(HQ4XshaderpathValue,HQ4XshaderpathSTR);
+                 CloseFile(HQ4XshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/HQ4XshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //HSLShift
+                 HSLShiftshaderpathSTR := 'HSLShift = '+userhomepathSTR+'/.local/share/reshade/Shaders/HSLShift.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(HSLShiftshaderpathValue, '/tmp/goverlay/HSLShiftshaderpathValue');
+                 Rewrite(HSLShiftshaderpathValue);
+                 Writeln(HSLShiftshaderpathValue,HSLShiftshaderpathSTR);
+                 CloseFile(HSLShiftshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/HSLShiftshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //Layer
+                 LayershaderpathSTR := 'Layer = '+userhomepathSTR+'/.local/share/reshade/Shaders/Layer.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LayershaderpathValue, '/tmp/goverlay/LayershaderpathValue');
+                 Rewrite(LayershaderpathValue);
+                 Writeln(LayershaderpathValue,LayershaderpathSTR);
+                 CloseFile(LayershaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LayershaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //Levels
+                 LevelsshaderpathSTR := 'Levels = '+userhomepathSTR+'/.local/share/reshade/Shaders/Levels.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LevelsshaderpathValue, '/tmp/goverlay/LevelsshaderpathValue');
+                 Rewrite(LevelsshaderpathValue);
+                 Writeln(LevelsshaderpathValue,LevelsshaderpathSTR);
+                 CloseFile(LevelsshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LevelsshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //LevelsPlus
+                 LevelsPlusshaderpathSTR := 'LevelsPlus = '+userhomepathSTR+'/.local/share/reshade/Shaders/LevelsPlus.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LevelsPlusshaderpathValue, '/tmp/goverlay/LevelsPlusshaderpathValue');
+                 Rewrite(LevelsPlusshaderpathValue);
+                 Writeln(LevelsPlusshaderpathValue,LevelsPlusshaderpathSTR);
+                 CloseFile(LevelsPlusshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LevelsPlusshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                 //LiftGammaGain
+                 LiftGammaGainshaderpathSTR := 'LiftGammaGain = '+userhomepathSTR+'/.local/share/reshade/Shaders/LiftGammaGain.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LiftGammaGainshaderpathValue, '/tmp/goverlay/LiftGammaGainshaderpathValue');
+                 Rewrite(LiftGammaGainshaderpathValue);
+                 Writeln(LiftGammaGainshaderpathValue,LiftGammaGainshaderpathSTR);
+                 CloseFile(LiftGammaGainshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LiftGammaGainshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //LightDoF
+                 LightDoFshaderpathSTR := 'LightDoF = '+userhomepathSTR+'/.local/share/reshade/Shaders/LightDoF.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LightDoFshaderpathValue, '/tmp/goverlay/LightDoFshaderpathValue');
+                 Rewrite(LightDoFshaderpathValue);
+                 Writeln(LightDoFshaderpathValue,LightDoFshaderpathSTR);
+                 CloseFile(LightDoFshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LightDoFshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //LumaSharpen
+                 LumaSharpenshaderpathSTR := 'LumaSharpen = '+userhomepathSTR+'/.local/share/reshade/Shaders/LumaSharpen.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LumaSharpenshaderpathValue, '/tmp/goverlay/LumaSharpenshaderpathValue');
+                 Rewrite(LumaSharpenshaderpathValue);
+                 Writeln(LumaSharpenshaderpathValue,LumaSharpenshaderpathSTR);
+                 CloseFile(LumaSharpenshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LumaSharpenshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //LUT
+                 LUTshaderpathSTR := 'LUT = '+userhomepathSTR+'/.local/share/reshade/Shaders/LUT.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(LUTshaderpathValue, '/tmp/goverlay/LUTshaderpathValue');
+                 Rewrite(LUTshaderpathValue);
+                 Writeln(LUTshaderpathValue,LUTshaderpathSTR);
+                 CloseFile(LUTshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/LUTshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //MagicBloom
+                 MagicBloomshaderpathSTR := 'MagicBloom = '+userhomepathSTR+'/.local/share/reshade/Shaders/MagicBloom.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(MagicBloomshaderpathValue, '/tmp/goverlay/MagicBloomshaderpathValue');
+                 Rewrite(MagicBloomshaderpathValue);
+                 Writeln(MagicBloomshaderpathValue,MagicBloomshaderpathSTR);
+                 CloseFile(MagicBloomshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/MagicBloomshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //Monochrome
+                 MonochromeshaderpathSTR := 'Monochrome = '+userhomepathSTR+'/.local/share/reshade/Shaders/Monochrome.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(MonochromeshaderpathValue, '/tmp/goverlay/MonochromeshaderpathValue');
+                 Rewrite(MonochromeshaderpathValue);
+                 Writeln(MonochromeshaderpathValue,MonochromeshaderpathSTR);
+                 CloseFile(MonochromeshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/MonochromeshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //MultiLUT
+                 MultiLUTshaderpathSTR := 'MultiLUT = '+userhomepathSTR+'/.local/share/reshade/Shaders/MultiLUT.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(MultiLUTshaderpathValue, '/tmp/goverlay/MultiLUTshaderpathValue');
+                 Rewrite(MultiLUTshaderpathValue);
+                 Writeln(MultiLUTshaderpathValue,MultiLUTshaderpathSTR);
+                 CloseFile(MultiLUTshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/MultiLUTshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //MXAO
+                 MXAOshaderpathSTR := 'MXAO = '+userhomepathSTR+'/.local/share/reshade/Shaders/MXAO.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(MXAOshaderpathValue, '/tmp/goverlay/MXAOshaderpathValue');
+                 Rewrite(MXAOshaderpathValue);
+                 Writeln(MXAOshaderpathValue,MXAOshaderpathSTR);
+                 CloseFile(MXAOshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/MXAOshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //NightVision
+                 NightVisionshaderpathSTR := 'NightVision = '+userhomepathSTR+'/.local/share/reshade/Shaders/NightVision.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(NightVisionshaderpathValue, '/tmp/goverlay/NightVisionshaderpathValue');
+                 Rewrite(NightVisionshaderpathValue);
+                 Writeln(NightVisionshaderpathValue,NightVisionshaderpathSTR);
+                 CloseFile(NightVisionshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/NightVisionshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                 //Nostalgia
+                 NostalgiashaderpathSTR := 'Nostalgia = '+userhomepathSTR+'/.local/share/reshade/Shaders/Nostalgia.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(NostalgiashaderpathValue, '/tmp/goverlay/NostalgiashaderpathValue');
+                 Rewrite(NostalgiashaderpathValue);
+                 Writeln(NostalgiashaderpathValue,NostalgiashaderpathSTR);
+                 CloseFile(NostalgiashaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/NostalgiashaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                                  //PerfectPerspective
+                 PerfectPerspectiveshaderpathSTR := 'PerfectPerspective = '+userhomepathSTR+'/.local/share/reshade/Shaders/PerfectPerspective.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(PerfectPerspectiveshaderpathValue, '/tmp/goverlay/PerfectPerspectiveshaderpathValue');
+                 Rewrite(PerfectPerspectiveshaderpathValue);
+                 Writeln(PerfectPerspectiveshaderpathValue,PerfectPerspectiveshaderpathSTR);
+                 CloseFile(PerfectPerspectiveshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/PerfectPerspectiveshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //PPFX_Bloom
+                 PPFX_BloomshaderpathSTR := 'PPFX_Bloom = '+userhomepathSTR+'/.local/share/reshade/Shaders/PPFX_Bloom.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(PPFX_BloomshaderpathValue, '/tmp/goverlay/PPFX_BloomshaderpathValue');
+                 Rewrite(PPFX_BloomshaderpathValue);
+                 Writeln(PPFX_BloomshaderpathValue,PPFX_BloomshaderpathSTR);
+                 CloseFile(PPFX_BloomshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/PPFX_BloomshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //PPFX_Godrays
+                 PPFX_GodraysshaderpathSTR := 'PPFX_Godrays = '+userhomepathSTR+'/.local/share/reshade/Shaders/PPFX_Godrays.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(PPFX_GodraysshaderpathValue, '/tmp/goverlay/PPFX_GodraysshaderpathValue');
+                 Rewrite(PPFX_GodraysshaderpathValue);
+                 Writeln(PPFX_GodraysshaderpathValue,PPFX_GodraysshaderpathSTR);
+                 CloseFile(PPFX_GodraysshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/PPFX_GodraysshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Prism
+                 PrismshaderpathSTR := 'Prism = '+userhomepathSTR+'/.local/share/reshade/Shaders/Prism.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(PrismshaderpathValue, '/tmp/goverlay/PrismshaderpathValue');
+                 Rewrite(PrismshaderpathValue);
+                 Writeln(PrismshaderpathValue,PrismshaderpathSTR);
+                 CloseFile(PrismshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/PrismshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //ReflectiveBumpMapping
+                 ReflectiveBumpMappingshaderpathSTR := 'ReflectiveBumpMapping = '+userhomepathSTR+'/.local/share/reshade/Shaders/ReflectiveBumpMapping.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(ReflectiveBumpMappingshaderpathValue, '/tmp/goverlay/ReflectiveBumpMappingshaderpathValue');
+                 Rewrite(ReflectiveBumpMappingshaderpathValue);
+                 Writeln(ReflectiveBumpMappingshaderpathValue,ReflectiveBumpMappingshaderpathSTR);
+                 CloseFile(ReflectiveBumpMappingshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/ReflectiveBumpMappingshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Sepia
+                 SepiashaderpathSTR := 'Sepia = '+userhomepathSTR+'/.local/share/reshade/Shaders/Sepia.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(SepiashaderpathValue, '/tmp/goverlay/SepiashaderpathValue');
+                 Rewrite(SepiashaderpathValue);
+                 Writeln(SepiashaderpathValue,SepiashaderpathSTR);
+                 CloseFile(SepiashaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/SepiashaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //SMAA
+                 SMAAshaderpathSTR := 'SMAA = '+userhomepathSTR+'/.local/share/reshade/Shaders/SMAA.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(SMAAshaderpathValue, '/tmp/goverlay/SMAAshaderpathValue');
+                 Rewrite(SMAAshaderpathValue);
+                 Writeln(SMAAshaderpathValue,SMAAshaderpathSTR);
+                 CloseFile(SMAAshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/SMAAshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Splitscreen
+                 SplitscreenshaderpathSTR := 'Splitscreen = '+userhomepathSTR+'/.local/share/reshade/Shaders/Splitscreen.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(SplitscreenshaderpathValue, '/tmp/goverlay/SplitscreenshaderpathValue');
+                 Rewrite(SplitscreenshaderpathValue);
+                 Writeln(SplitscreenshaderpathValue,SplitscreenshaderpathSTR);
+                 CloseFile(SplitscreenshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/SplitscreenshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //StageDepth
+                 StageDepthshaderpathSTR := 'StageDepth = '+userhomepathSTR+'/.local/share/reshade/Shaders/StageDepth.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(StageDepthshaderpathValue, '/tmp/goverlay/StageDepthshaderpathValue');
+                 Rewrite(StageDepthshaderpathValue);
+                 Writeln(StageDepthshaderpathValue,StageDepthshaderpathSTR);
+                 CloseFile(StageDepthshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/StageDepthshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //SurfaceBlur
+                 SurfaceBlurshaderpathSTR := 'SurfaceBlur = '+userhomepathSTR+'/.local/share/reshade/Shaders/SurfaceBlur.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(SurfaceBlurshaderpathValue, '/tmp/goverlay/SurfaceBlurshaderpathValue');
+                 Rewrite(SurfaceBlurshaderpathValue);
+                 Writeln(SurfaceBlurshaderpathValue,SurfaceBlurshaderpathSTR);
+                 CloseFile(SurfaceBlurshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/SurfaceBlurshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Technicolor
+                 TechnicolorshaderpathSTR := 'Technicolor = '+userhomepathSTR+'/.local/share/reshade/Shaders/Technicolor.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(TechnicolorshaderpathValue, '/tmp/goverlay/TechnicolorshaderpathValue');
+                 Rewrite(TechnicolorshaderpathValue);
+                 Writeln(TechnicolorshaderpathValue,TechnicolorshaderpathSTR);
+                 CloseFile(TechnicolorshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/TechnicolorshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Technicolor2
+                 Technicolor2shaderpathSTR := 'Technicolor2 = '+userhomepathSTR+'/.local/share/reshade/Shaders/Technicolor2.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(Technicolor2shaderpathValue, '/tmp/goverlay/Technicolor2shaderpathValue');
+                 Rewrite(Technicolor2shaderpathValue);
+                 Writeln(Technicolor2shaderpathValue,Technicolor2shaderpathSTR);
+                 CloseFile(Technicolor2shaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/Technicolor2shaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //TiltShift
+                 TiltShiftshaderpathSTR := 'TiltShift = '+userhomepathSTR+'/.local/share/reshade/Shaders/TiltShift.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(TiltShiftshaderpathValue, '/tmp/goverlay/TiltShiftshaderpathValue');
+                 Rewrite(TiltShiftshaderpathValue);
+                 Writeln(TiltShiftshaderpathValue,TiltShiftshaderpathSTR);
+                 CloseFile(TiltShiftshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/TiltShiftshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Tonemap
+                 TonemapshaderpathSTR := 'Tonemap = '+userhomepathSTR+'/.local/share/reshade/Shaders/Tonemap.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(TonemapshaderpathValue, '/tmp/goverlay/TonemapshaderpathValue');
+                 Rewrite(TonemapshaderpathValue);
+                 Writeln(TonemapshaderpathValue,TonemapshaderpathSTR);
+                 CloseFile(TonemapshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/TonemapshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //TriDither
+                 TriDithershaderpathSTR := 'TriDither = '+userhomepathSTR+'/.local/share/reshade/Shaders/TriDither.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(TriDithershaderpathValue, '/tmp/goverlay/TriDithershaderpathValue');
+                 Rewrite(TriDithershaderpathValue);
+                 Writeln(TriDithershaderpathValue,TriDithershaderpathSTR);
+                 CloseFile(TriDithershaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/TriDithershaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //UIDetect
+                 UIDetectshaderpathSTR := 'UIDetect = '+userhomepathSTR+'/.local/share/reshade/Shaders/UIDetect.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(UIDetectshaderpathValue, '/tmp/goverlay/UIDetectshaderpathValue');
+                 Rewrite(UIDetectshaderpathValue);
+                 Writeln(UIDetectshaderpathValue,UIDetectshaderpathSTR);
+                 CloseFile(UIDetectshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/UIDetectshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+                 //UIMask
+                 UIMaskshaderpathSTR := 'UIMask = '+userhomepathSTR+'/.local/share/reshade/Shaders/UIMask.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(UIMaskshaderpathValue, '/tmp/goverlay/UIMaskshaderpathValue');
+                 Rewrite(UIMaskshaderpathValue);
+                 Writeln(UIMaskshaderpathValue,UIMaskshaderpathSTR);
+                 CloseFile(UIMaskshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/UIMaskshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Vibrance
+                 VibranceshaderpathSTR := 'Vibrance = '+userhomepathSTR+'/.local/share/reshade/Shaders/Vibrance.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(VibranceshaderpathValue, '/tmp/goverlay/VibranceshaderpathValue');
+                 Rewrite(VibranceshaderpathValue);
+                 Writeln(VibranceshaderpathValue,VibranceshaderpathSTR);
+                 CloseFile(VibranceshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/VibranceshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+                 //Vignette
+                 VignetteshaderpathSTR := 'Vignette = '+userhomepathSTR+'/.local/share/reshade/Shaders/Vignette.fx';
+
+                 // Assign STRING to text file
+                 AssignFile(VignetteshaderpathValue, '/tmp/goverlay/VignetteshaderpathValue');
+                 Rewrite(VignetteshaderpathValue);
+                 Writeln(VignetteshaderpathValue,VignetteshaderpathSTR);
+                 CloseFile(VignetteshaderpathValue);
+
+                 RunCommand('bash -c ''cat /tmp/goverlay/VignetteshaderpathValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
+//#########################################       RESHADE SHADERS       ###########################################################################
 
   // Popup a notification
-  RunCommand('bash -c ''notify-send vkBasalt_Config_saved''', s);
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "vkBasalt" "Configuration saved"''', s);
 
 
-  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   TEMPORARY AJUST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // Effects in use
 
   //CAS
-  if (casCheckbox.Checked=true) and (fxaaCheckbox.Checked=false) and (smaaCheckbox.Checked=false) then
-  RunCommand('bash -c ''echo "effects = cas" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-
-
-  //CAS + FXAA
-  if (casCheckbox.Checked=true) and (fxaaCheckbox.Checked=true) and (smaaCheckbox.Checked=false) then
-  RunCommand('bash -c ''echo "effects = cas:fxaa" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-
-  //CAS + FXAA + SMAA
-  if (casCheckbox.Checked=true) and (fxaaCheckbox.Checked=true) and (smaaCheckbox.Checked=true) then
-  RunCommand('bash -c ''echo "effects = cas:fxaa:smaa" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-
-
-  //CAS + SMAA
-  if (casCheckbox.Checked=true) and (fxaaCheckbox.Checked=false) and (smaaCheckbox.Checked=true) then
-  RunCommand('bash -c ''echo "effects = cas:smaa" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-
-
-
-  //FXAA
-  if (casCheckbox.Checked=false) and (fxaaCheckbox.Checked=true) and (smaaCheckbox.Checked=false) then
-  RunCommand('bash -c ''echo "effects = fxaa" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-
-  //SMAA
-  if (casCheckbox.Checked=false) and (fxaaCheckbox.Checked=false) and (smaaCheckbox.Checked=true) then
-  RunCommand('bash -c ''echo "effects = smaa" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-
-
-  //FXAA + SMAA
-  if (casCheckbox.Checked=false) and (fxaaCheckbox.Checked=true) and (smaaCheckbox.Checked=true) then
-  RunCommand('bash -c ''echo "effects = fxaa:smaa" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+  if  casCheckBox.Checked = true then
+  begin
+  casSTR := true;
+     // Assign cas value to text file
+      AssignFile(cascheckValue, '/tmp/goverlay/cascheckValue');
+      Rewrite(cascheckValue);
+      Writeln(cascheckValue,casSTR);
+      CloseFile(cascheckValue);
+  end;
+ RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/cascheckValue $HOME/.config/goverlay/initial_values/cascheckValue''', s);
 
 
   //CAS VALUE
@@ -1243,21 +2355,136 @@ begin
   end;
 
 
+
+  //Toggle Key
+  case vkbtogglekeyCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "toggleKey = Home" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+    1:RunCommand('bash -c ''echo "toggleKey = F4" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+    2:RunCommand('bash -c ''echo "toggleKey = F5" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+  end;
+
+
+   //Count number of active effects
+  numeffects := acteffectsListbox.Items.Count;
+
+  //Create temporary variables and store in vkbasalt.conf
+  case numeffects of
+  0:effectsSTR := 'effects = ';
+  1:begin
+         effect0:= acteffectsListbox.Items[0];
+         effectsSTR := 'effects = ' +effect0;
+    end;
+  2:begin
+         effect0:= acteffectsListbox.Items[0];
+         effect1:= acteffectsListbox.Items[1];
+         effectsSTR := 'effects = ' +effect0+':'+effect1;
+    end;
+  3:begin
+         effect0:= acteffectsListbox.Items[0];
+         effect1:= acteffectsListbox.Items[1];
+         effect2:= acteffectsListbox.Items[2];
+         effectsSTR := 'effects = ' +effect0+':'+effect1+':'+effect2;
+    end;
+  4:begin
+         effect0:= acteffectsListbox.Items[0];
+         effect1:= acteffectsListbox.Items[1];
+         effect2:= acteffectsListbox.Items[2];
+         effect3:= acteffectsListbox.Items[3];
+         effectsSTR := 'effects = ' +effect0+':'+effect1+':'+effect2+':'+effect3;
+    end;
+  5:begin
+         effect0:= acteffectsListbox.Items[0];
+         effect1:= acteffectsListbox.Items[1];
+         effect2:= acteffectsListbox.Items[2];
+         effect3:= acteffectsListbox.Items[3];
+         effect4:= acteffectsListbox.Items[4];
+        effectsSTR := 'effects = ' +effect0+':'+effect1+':'+effect2+':'+effect3+':'+effect4;
+      end;
+  end;
+
+
+  //Store effects in textfiles
+
+    // Assign effect0 to text file
+      AssignFile(effect0Value, '/tmp/goverlay/effect0Value');
+      Rewrite(effect0Value);
+      Writeln(effect0Value,effect0);
+      CloseFile(effect0Value);
+
+      //Save value
+      RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/effect0Value >> $HOME/.config/goverlay/initial_values/effect0''', s);
+
+
+       // Assign effect1 to text file
+      AssignFile(effect1Value, '/tmp/goverlay/effect1Value');
+      Rewrite(effect1Value);
+      Writeln(effect1Value,effect1);
+      CloseFile(effect1Value);
+
+       RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/effect1Value >> $HOME/.config/goverlay/initial_values/effect1''', s);
+
+          // Assign effect2 to text file
+      AssignFile(effect2Value, '/tmp/goverlay/effect2Value');
+      Rewrite(effect2Value);
+      Writeln(effect2Value,effect2);
+      CloseFile(effect2Value);
+
+       RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/effect2Value >> $HOME/.config/goverlay/initial_values/effect2''', s);
+
+          // Assign effect3 to text file
+      AssignFile(effect3Value, '/tmp/goverlay/effect3Value');
+      Rewrite(effect3Value);
+      Writeln(effect3Value,effect3);
+      CloseFile(effect3Value);
+
+        RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/effect3Value >> $HOME/.config/goverlay/initial_values/effect3''', s);
+
+          // Assign effect4 to text file
+      AssignFile(effect4Value, '/tmp/goverlay/effect4Value');
+      Rewrite(effect4Value);
+      Writeln(effect4Value,effect4);
+      CloseFile(effect4Value);
+
+      RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/effect4Value >> $HOME/.config/goverlay/initial_values/effect4''', s);
+
+
+      //Inject contrast adaptive sharpening if checkbox is checked
+
+       if casCheckbox.Checked = true then
+           effectsSTR := effectsSTR+':cas';
+
+
+      // Assign command inside effectsSTR to text file
+      AssignFile(effectsValue, '/tmp/goverlay/effectsValue');
+      Rewrite(effectsValue);
+      Writeln(effectsValue,effectsSTR);
+      CloseFile(effectsValue);
+
+      RunCommand('bash -c ''cat /tmp/goverlay/effectsValue >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
+
+
    //Copy generated vkBasalt.conf to goverlay config folder
     RunCommand('bash -c ''yes | cp -rf $HOME/.config/vkBasalt/vkBasalt.conf $HOME/.config/goverlay/vkBasalt.conf ''', s);
 
+
+   //Extract configurations from main config File to the initial_values folder for vkbasalt
+   RunCommand('bash -c ''cat $HOME/.config/vkBasalt/vkBasalt.conf | grep -w casSharpness >> $HOME/.config/goverlay/initial_values/casSharpness''', s);
+   RunCommand('bash -c ''cat $HOME/.config/vkBasalt/vkBasalt.conf | grep -w cas >> $HOME/.config/goverlay/initial_values/vkbasaltcas''', s);
+
+
+
     // Delete old initial values
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/vkbasalteffects''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/casSharpness''', s);
-    RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/vkbasalteffects''', s);
-    RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/casSharpness''', s);
+   // RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/vkbasalteffects''', s);
+   // RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/casSharpness''', s);
+   // RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/vkbasalteffects''', s);
+   // RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/casSharpness''', s);
+    //RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/effect0''', s);
+    //RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/casSharpness''', s);
 
 
-    //Extract configurations from main config File to the initial_values folder for vkbasalt
-  RunCommand('bash -c ''cat $HOME/.config/vkBasalt/vkBasalt.conf | grep -w casSharpness >> $HOME/.config/goverlay/initial_values/casSharpness''', s);
-  RunCommand('bash -c ''cat $HOME/.config/vkBasalt/vkBasalt.conf | grep -w effects >> $HOME/.config/goverlay/initial_values/vkbasalteffects''', s);
 
 end;
+
 
 procedure Tgoverlayform.bottomleftSpeedButtonClick(Sender: TObject);
 begin
@@ -1268,6 +2495,7 @@ begin
   topleftSpeedbutton.ImageIndex:=-1;
   toprightSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  topcenterSpeedButton.imageIndex:=-1;
 end;
 
 procedure Tgoverlayform.bottomrightSpeedButtonClick(Sender: TObject);
@@ -1280,6 +2508,7 @@ begin
   topleftSpeedbutton.ImageIndex:=-1;
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
+  topcenterSpeedButton.imageIndex:=-1;
 end;
 
 procedure Tgoverlayform.casCheckBoxChange(Sender: TObject);
@@ -1447,13 +2676,13 @@ begin
        basaltgeSpeedButton.ImageIndex:=1; //switch button position
        RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile_vkbasalt.bkp''', s); //backup original .profile file
        RunCommand('bash -c ''echo "export ENABLE_VKBASALT=1" >> $HOME/.profile''', s);  // Activate vkBasalt globally for vulkan apps
-       RunCommand('bash -c ''notify-send vkBasalt_Global_Enable_Activated''', s); // Popup a notification
+       RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "vkBasalt Global Enable Activated" "Every vulkan application will have this effects applied"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
         basaltgeSpeedButton.ImageIndex:=0;
         RunCommand('bash -c ''yes | cp -rf $HOME/.profile_vkbasalt.bkp $HOME/.profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''notify-send Desactivated''', s); // Popup a notification
+        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Desactivated"''', s); // Popup a notification
         showmessage ('Restart your system to take effect');
      end;
 
@@ -1468,6 +2697,89 @@ begin
      else
        archlabel.Caption:='';
 end;
+
+procedure Tgoverlayform.addBitBtnClick(Sender: TObject);
+begin
+
+  // Add selected effect to active effects listbox
+
+  case aveffectslistbox.Itemindex of
+0:      acteffectslistbox.Items.Add     ('3DFX');
+1:      acteffectslistbox.Items.Add     ('AdaptiveFog');
+2:      acteffectslistbox.Items.Add     ('AdaptiveSharpen');
+3:	acteffectslistbox.Items.Add	('AmbientLight');
+4:	acteffectslistbox.Items.Add	('ASCII');
+5:	acteffectslistbox.Items.Add	('AspectRatio');
+6:	acteffectslistbox.Items.Add	('Bloom');
+7:	acteffectslistbox.Items.Add	('Border');
+8:	acteffectslistbox.Items.Add	('Cartoon');
+9:	acteffectslistbox.Items.Add	('Chromakey');
+10:	acteffectslistbox.Items.Add	('ChromaticAberration');
+11:	acteffectslistbox.Items.Add	('CinematicDOF');
+12:	acteffectslistbox.Items.Add	('Clarity');
+13:	acteffectslistbox.Items.Add	('ColorMatrix');
+14:	acteffectslistbox.Items.Add	('Colourfulness');
+15:	acteffectslistbox.Items.Add	('CRT');
+16:	acteffectslistbox.Items.Add	('Curves');
+17:	acteffectslistbox.Items.Add	('Daltonize');
+18:	acteffectslistbox.Items.Add	('Deband');
+19:	acteffectslistbox.Items.Add	('Denoise');
+20:	acteffectslistbox.Items.Add	('Depth3D');
+21:	acteffectslistbox.Items.Add	('Depth Haze');
+22:	acteffectslistbox.Items.Add	('DisplayDepth');
+23:	acteffectslistbox.Items.Add	('DOF');
+24:	acteffectslistbox.Items.Add	('DPX');
+25:	acteffectslistbox.Items.Add	('Emphasize');
+26:	acteffectslistbox.Items.Add	('EyeAdaption');
+27:	acteffectslistbox.Items.Add	('FakeHDR');
+28:	acteffectslistbox.Items.Add	('FakeMotion Blur');
+29:	acteffectslistbox.Items.Add	('FilmGrain');
+30:	acteffectslistbox.Items.Add	('FilmGrain2');
+31:	acteffectslistbox.Items.Add	('FilmicAnamorphSharpen');
+32:	acteffectslistbox.Items.Add	('FilmicPass');
+33:	acteffectslistbox.Items.Add	('FineSharp');
+34:	acteffectslistbox.Items.Add	('FXAA');
+35:	acteffectslistbox.Items.Add	('GaussianBlur');
+36:	acteffectslistbox.Items.Add	('Glitch');
+37:	acteffectslistbox.Items.Add	('HighPassSharpen');
+38:	acteffectslistbox.Items.Add	('HQ4X');
+39:	acteffectslistbox.Items.Add	('HSLShift');
+40:	acteffectslistbox.Items.Add	('Layer');
+41:	acteffectslistbox.Items.Add	('Levels');
+42:	acteffectslistbox.Items.Add	('Levels Plus');
+43:	acteffectslistbox.Items.Add	('LiftGammaGain');
+44:	acteffectslistbox.Items.Add	('LightDOF');
+45:	acteffectslistbox.Items.Add	('LumaSharpen');
+46:	acteffectslistbox.Items.Add	('LUT');
+47:	acteffectslistbox.Items.Add	('MagicBloom');
+48:	acteffectslistbox.Items.Add	('Monochrome');
+49:	acteffectslistbox.Items.Add	('MultiLUT');
+50:	acteffectslistbox.Items.Add	('MXAO');
+51:	acteffectslistbox.Items.Add	('NightVision');
+52:	acteffectslistbox.Items.Add	('Nostalgia');
+53:	acteffectslistbox.Items.Add	('PerfectPerspective');
+54:	acteffectslistbox.Items.Add	('PPFX_Bloom');
+55:	acteffectslistbox.Items.Add	('PPFX_Godrays');
+56:	acteffectslistbox.Items.Add	('Prism');
+57:	acteffectslistbox.Items.Add	('ReflectiveBumpMapping');
+58:	acteffectslistbox.Items.Add	('Sepia');
+59:	acteffectslistbox.Items.Add	('SMAA');
+60:	acteffectslistbox.Items.Add	('SplitScreen');
+61:	acteffectslistbox.Items.Add	('StageDepth');
+62:	acteffectslistbox.Items.Add	('SurfaceBlur');
+63:	acteffectslistbox.Items.Add	('Technicolor');
+64:	acteffectslistbox.Items.Add	('Technicolor2');
+65:	acteffectslistbox.Items.Add	('TiltShift');
+66:	acteffectslistbox.Items.Add	('Tonemap');
+67:	acteffectslistbox.Items.Add	('TriDither');
+68:	acteffectslistbox.Items.Add	('UIDetect');
+69:	acteffectslistbox.Items.Add	('UIMask');
+70:	acteffectslistbox.Items.Add	('Vibrance');
+71:	acteffectslistbox.Items.Add	('Vignette');
+  end;
+
+end;
+
 
 procedure Tgoverlayform.crosshairsizeBitBtnClick(Sender: TObject);
 begin
@@ -1697,6 +3009,7 @@ begin
   driverversionlabel.caption:='';
   gpupowerlabel.caption:='';
   gpumemfreqlabel.caption:='';
+  winelabel.Caption:='';
 
   //Initialize Variables with stock Mangohud colors
   cpucolorhtml :='#2e97cb';
@@ -1802,17 +3115,17 @@ begin
      CloseFile(userhomepathVAR);
 
    //Stock folder logging
-   destinationfolder := userhomepathSTR+'/mangohud_log_ ';
+   destinationfolder := userhomepathSTR;
 
    destfolderpathLabel.Caption:=destinationfolder;
 
 
 
 
-         //Determine Mangohud dependency staus
+         //Determine Mangohud dependency status
 
          //locate MangoHud and store result in tmp folder
-       RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/MangoHud.x86_64.json >> /tmp/goverlay/dependency_mangohud''', s);
+       RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/MangoHud.json >> /tmp/goverlay/dependency_mangohud''', s);
 
           // Assign Text file dependency_mangohud to variable mangohudVAR
           AssignFile(mangohudVAR, '/tmp/goverlay/dependency_mangohud');
@@ -1821,7 +3134,7 @@ begin
           CloseFile(mangohudVAR);
 
           // Read String and store value on mangohuddependencyVALUE based on result
-          if mangohudSTR = '/usr/share/vulkan/implicit_layer.d/MangoHud.x86_64.json' then
+          if mangohudSTR = '/usr/share/vulkan/implicit_layer.d/MangoHud.json' then
           mangohuddependencyVALUE := 1
           else
           mangohuddependencyVALUE := 0;
@@ -1870,6 +3183,35 @@ begin
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
+
+// Check if Reshade files exist
+RunCommand('bash -c ''rm $HOME/.config/goverlay/initial_values/reshade_git''', s); //delete old file in original folder
+RunCommand('bash -c ''touch $HOME/.config/goverlay/initial_values/reshade_git''', s);   //create dummy file
+RunCommand('bash -c ''cat $HOME/.local/share/reshade/README.md | grep -w master.zip >> $HOME/.config/goverlay/initial_values/reshade_git''', s);
+RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/reshade_git /tmp/goverlay/''', s); //copy file to tmp folder
+
+// Assign Text file to variable
+     AssignFile(reshadegitVAR, '/tmp/goverlay/reshade_git');
+     Reset(reshadegitVAR);
+     Readln(reshadegitVAR,reshadegitSTR); //Assign Text file to String
+     CloseFile(reshadegitVAR);
+
+//Check state and activate components acordingly
+if reshadegitSTR = '1. [Download](https://github.com/crosire/reshade-shaders/archive/master.zip) this repository' then
+   begin
+   aveffectsListbox.Enabled := true;
+   acteffectsListbox.Enabled:= true;
+   addBitbtn.Enabled:=true;
+   subBitbtn.Enabled:=true;
+   end
+else
+    begin
+    aveffectsListbox.Enabled := false;
+    acteffectsListbox.Enabled:= false;
+    addBitbtn.Enabled:=false;
+    subBitbtn.Enabled:=false;
+end;
+
 // ########################################## LOAD INITIAL CONFIG ########################################################
 
 //Delete old tmp files and recreate directory
@@ -1905,16 +3247,27 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_hud''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_logging''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/media_player_name''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/core_load''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalteffects''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalcas''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/casSharpness''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/no_display''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_text_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_text_value''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autoupload''', s);
+RunCommand('bash -c ''echo 24 >> /tmp/goverlay/initial_values/font_size_value''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
+
+
+
+
 
 //Copy files with initial values to tmp folder
-RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/ /tmp/goverlay/''', s); //backup original .profile file
+RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/ /tmp/goverlay/''', s);
 
-//Read configuration files
+
+// ########################################         Read configuration files   ########################################################
+
+
 
 //###################################################################### FPS_LIMIT
 
@@ -2276,20 +3629,19 @@ case initmediaplayerSTR of
  end;
 
 
-//###################################################################### font size
+//###################################################################### wine
 
 // Assign Text file to variable than assign variable to string
-AssignFile(initfontsize, '/tmp/goverlay/initial_values/font_size');
-Reset(initfontsize);
-Readln(initfontsize,initfontsizeSTR); //Assign Text file to String
-CloseFile(initfontsize);
+AssignFile(initwine, '/tmp/goverlay/initial_values/wine');
+Reset(initwine);
+Readln(initwine,initwineSTR); //Assign Text file to String
+CloseFile(initwine);
 
-case initfontsizeSTR of
-'font_size=19':fontsizeComboBox.ItemIndex:=0;
-'font_size=24':fontsizeComboBox.ItemIndex:=1;
-'font_size=38':fontsizeComboBox.ItemIndex:=2;
-// to be implemented custom sizes
+case initwineSTR of
+'':wineCheckbox.Checked:=false;
+'wine':wineCheckbox.Checked:=true;
  end;
+
 
 
 //###################################################################### hud position
@@ -2343,6 +3695,18 @@ case initpositionSTR of
   bottomleftSpeedbutton.ImageIndex:=-1;
 end;
 
+  'position=top-center':begin
+   //Highlight main button
+   topcenterSpeedbutton.ImageIndex:=4;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+end;
+
 end;
 
 
@@ -2387,6 +3751,20 @@ case inittoggleloggingSTR of
 'toggle_logging=Shift_L+F3':loggingComboBox.ItemIndex:=2;
  end;
 
+
+//###################################################################### auto upload logging
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initautoupload, '/tmp/goverlay/initial_values/autoupload');
+Reset(initautoupload);
+Readln(initautoupload,initautouploadSTR); //Assign Text file to String
+CloseFile(initautoupload);
+
+case initautouploadSTR of
+'':autouploadCheckbox.Checked:=false;
+'permit_upload':autouploadCheckbox.Checked:=true;
+ end;
+
 //###################################################################### media player name
 
 // Assign Text file to variable than assign variable to string
@@ -2402,38 +3780,42 @@ case initmediaplayernameSTR of
 'media_player_name=cantata':mediaComboBox.ItemIndex:=3;
  end;
 
-
-//###################################################################### vkbasalt effects
+//###################################################################### font_size_value
 
 // Assign Text file to variable than assign variable to string
-AssignFile(initvkbasalteffects, '/tmp/goverlay/initial_values/vkbasalteffects');
-Reset(initvkbasalteffects);
-Readln(initvkbasalteffects,initvkbasalteffectsSTR); //Assign Text file to String
-CloseFile(initvkbasalteffects);
+AssignFile(initfontsizevalue, '/tmp/goverlay/initial_values/font_size_value');
+Reset(initfontsizevalue);
+Readln(initfontsizevalue,initfontsizevalueSTR); //Assign Text file to String
+CloseFile(initfontsizevalue);
 
-case initvkbasalteffectsSTR of
-'effects = cas':casCheckbox.Checked:=true;
-'effects = fxaa':fxaaCheckbox.Checked:=true;
-'effects = smaa':smaaCheckbox.Checked:=true;
-'effects = cas:fxaa':begin
-casCheckbox.Checked:=true;
-fxaaCheckbox.Checked:=true;
-end;
-'effects = cas:fxaa:smaa':begin
-casCheckbox.Checked:=true;
-fxaaCheckbox.Checked:=true;
-smaaCheckbox.Checked:=true;
-end;
-'effects = cas:smaa':begin
-casCheckbox.Checked:=true;
-smaaCheckbox.Checked:=true;
-end;
-'effects = fxaa:smaa':begin
-smaaCheckbox.Checked:=true;
-fxaaCheckbox.Checked:=true;
+
+// If value is customized than set fontsizecombobox to custom
+if fontsizeSpinEdit.Value  <> (19) and (24) and (38) then
+begin
+fontsizeComboBox.ItemIndex := 3;
+fontsizeINT := StrtoInt(initfontsizevalueSTR);
+fontsizeSpinEdit.Value := fontsizeINT;
 end;
 
-end;
+//###################################################################### font size
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initfontsize, '/tmp/goverlay/initial_values/font_size');
+Reset(initfontsize);
+Readln(initfontsize,initfontsizeSTR); //Assign Text file to String
+CloseFile(initfontsize);
+
+case initfontsizeSTR of
+'font_size=19':fontsizeComboBox.ItemIndex:=0;
+'font_size=24':fontsizeComboBox.ItemIndex:=1;
+'font_size=38':fontsizeComboBox.ItemIndex:=2;
+// to be implemented custom sizes
+ end;
+
+
+
+
+
 
 //###################################################################### cas Sharpness
 
@@ -2458,6 +3840,18 @@ end;
 
 
 
+//###################################################################### vkbasalt CAS
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initcascheckValue, '/tmp/goverlay/initial_values/cascheckValue');
+Reset(initcascheckValue);
+Readln(initcascheckValue,initcascheckSTR); //Assign Text file to String
+CloseFile(initcascheckValue);
+
+case initcascheckSTR of
+'TRUE':cascheckbox.checked:=true;
+end;
+
 
 end;
 
@@ -2478,6 +3872,14 @@ begin
        end;
 end;
 
+procedure Tgoverlayform.subBitBtnClick(Sender: TObject);
+begin
+  // Remove selected active effect
+
+ acteffectslistbox.deleteselected;
+
+end;
+
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
    case geSpeedButton.imageIndex of
@@ -2485,13 +3887,13 @@ begin
        geSpeedButton.ImageIndex:=1; //switch button position
        RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile.bkp''', s); //backup original .profile file
        RunCommand('bash -c ''echo "export MANGOHUD=1" >> $HOME/.profile''', s);  // Activate MANGOHUD globally for vulkan apps
-       RunCommand('bash -c ''notify-send VULKAN_Global_Enable_Activated''', s); // Popup a notification
+       RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
         geSpeedButton.ImageIndex:=0;
         RunCommand('bash -c ''yes | cp -rf $HOME/.profile.bkp $HOME/.profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''notify-send Desactivated''', s); // Popup a notification
+        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Desactivated"''', s); // Popup a notification
         showmessage ('Restart your system to take effect');
      end;
 
@@ -2533,6 +3935,7 @@ begin
      gpupowerlabel.Caption:='' ;
   end;
 
+
 procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
 begin
    //Preview TIME
@@ -2541,6 +3944,19 @@ begin
      else
         timelabel.Caption:='';
 
+end;
+
+procedure Tgoverlayform.topcenterSpeedButtonClick(Sender: TObject);
+begin
+     //Highlight main button
+   topcenterSpeedButton.imageIndex:=4;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
 end;
 
 
@@ -2554,6 +3970,7 @@ begin
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  topcenterSpeedButton.imageIndex:=-1;
 end;
 
 
@@ -2576,6 +3993,7 @@ begin
   topleftSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  topcenterSpeedButton.imageIndex:=-1;
 end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
@@ -2648,6 +4066,15 @@ procedure Tgoverlayform.vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
 begin
    //Block keypress on combobox
   key:=#0;
+end;
+
+procedure Tgoverlayform.wineCheckBoxChange(Sender: TObject);
+begin
+     //Preview Wine Version
+     if wineCheckbox.Checked=true then
+        winelabel.Caption:='Proton 5.0-9'
+     else
+        winelabel.Caption:='';
 end;
 
 
