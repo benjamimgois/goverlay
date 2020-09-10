@@ -34,6 +34,7 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`mesa-demos`**](https://github.com/freedesktop/mesa-demos) - OpenGL preview
  - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) - Vulkan preview
  - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
+ - [**`git`**](https://github.com/git/git) - Clone reshade repository
 
 ## Installation 
 
