@@ -1325,7 +1325,7 @@ begin
   RunCommand('bash -c ''rm -Rf /tmp/goverlay/reshade''', s);
 
   // Popup a notification  and sync reshade git repositorie
-  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Syncing Reshade repositories..." "This can take a fill seconds, please Wait until complete" | git clone https://github.com/crosire/reshade-shaders.git $HOME/.local/share/reshade''', s);
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Syncing Reshade repositories..." "This can take a fill seconds, please Wait until complete" | git clone https://github.com/benjamimgois/reshade-shaders.git $HOME/.local/share/reshade''', s);
   RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Sync Complete"''', s); // Popup a notification
 
 
