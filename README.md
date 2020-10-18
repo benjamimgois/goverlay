@@ -13,6 +13,8 @@ Table of contents
 	- [Distributions](#distributions)
 		- [Arch / Manjaro / Other Arch derivatives](#arch--manjaro--other-arch-derivatives)
 		- [Fedora](#fedora)
+		- [Solus](#solus)
+		- [Ubuntu](#ubuntu)
 	- [Tarball](#tarball)
 	- [Source](#source)
 		- [Prerequisites](#prerequisites-1)
@@ -59,6 +61,12 @@ To install [`goverlay`](https://dev.getsol.us/source/goverlay/), run the followi
 ```bash
 eopkg it goverlay
 ```
+
+#### Ubuntu
+
+Help is needed to create a ubuntu PPA :)
+
+
 
 ## Tarball
 
