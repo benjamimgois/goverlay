@@ -68,9 +68,15 @@ eopkg it goverlay
 
 #### Ubuntu
 
-Help is needed to create a ubuntu PPA :)
+Help is needed to create a ubuntu PPA or SNAP package
 
+A bash script created by the reddit user [`Bladertom`](https://www.reddit.com/r/linux_gaming/comments/isimkp/i_use_popos_2004_with_gnome_and_made_a_little/) can be used for Ubuntu based distros. There's also a great video tutorial by [`BIntelligent Gaming - Linux`](https://www.youtube.com/watch?v=pRJbDRzT1AI&feature=youtu.be) 
 
+```bash
+wget https://github.com/benjamimgois/goverlay/blob/master/install_ubuntu.sh
+chmod +x install_ubuntu.sh
+./install_ubuntu.sh
+```
 
 ## Tarball
 
