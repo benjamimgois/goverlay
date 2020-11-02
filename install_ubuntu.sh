@@ -1,5 +1,5 @@
 #!/bin/sh
-# Author Ryan - Intelligent Gaming - Linux Tutorials & Gameplay
+# Author Bladertom from Reddit and Ryan from Intelligent Gaming - Linux Tutorials & Gameplay
 # Modified by Benjamim Gois at 02/11/20
 
 sudo apt update && sudo apt upgrade -y
