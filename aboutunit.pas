@@ -14,6 +14,8 @@ type
   TaboutForm = class(TForm)
     Image1: TImage;
     donateImage: TImage;
+    jasonMemo1: TMemo;
+    linux4elink1: TLabel;
     schoorselinkLabel: TLabel;
     schoorseMemo: TMemo;
     Memo3: TMemo;
@@ -205,7 +207,7 @@ begin
     v.FindDefaultBrowser(BrowserPath,BrowserParams);
     debugln(['Path=',BrowserPath,' Params=',BrowserParams]);
 
-    URL:='https://www.linux4everyone.com/';
+    URL:='https://github.com/matanui159/ReplaySorcery';
     p:=System.Pos('%s', BrowserParams);
     System.Delete(BrowserParams,p,2);
     System.Insert(URL,BrowserParams,p);

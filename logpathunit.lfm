@@ -1,7 +1,7 @@
 object logpathForm: TlogpathForm
-  Left = 1742
+  Left = 1659
   Height = 116
-  Top = 239
+  Top = 258
   Width = 450
   BorderStyle = bsDialog
   Caption = 'MangoHUD Logging'

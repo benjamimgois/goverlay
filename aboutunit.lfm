@@ -1,19 +1,19 @@
 object aboutForm: TaboutForm
-  Left = 437
-  Height = 646
-  Top = 58
-  Width = 538
+  Left = 631
+  Height = 772
+  Top = 136
+  Width = 533
   BorderStyle = bsDialog
   Caption = 'About'
-  ClientHeight = 646
-  ClientWidth = 538
+  ClientHeight = 772
+  ClientWidth = 533
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
   LCLVersion = '2.0.10.0'
   object PageControl1: TPageControl
     Left = 0
-    Height = 672
+    Height = 784
     Top = 0
     Width = 536
     ActivePage = TabSheet1
@@ -21,7 +21,7 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 637
+      ClientHeight = 749
       ClientWidth = 526
       object descriptionMemo: TMemo
         Left = 8
@@ -60,7 +60,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 8
         Height = 15
-        Top = 283
+        Top = 289
         Width = 340
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Color = 3684408
@@ -77,7 +77,7 @@ object aboutForm: TaboutForm
       object jasonMemo: TMemo
         Left = 8
         Height = 40
-        Top = 397
+        Top = 399
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
@@ -86,7 +86,7 @@ object aboutForm: TaboutForm
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
         Lines.Strings = (
-          'Also thanks to Jason Evangelo from Linux for everyone for helping with the name and making me fall in love with linux again.'
+          'Special Thanks to Joshua ''Pip'' Minter, the man and the mind behind replay-sorcery.'
         )
         ParentBidiMode = False
         ParentFont = False
@@ -97,9 +97,9 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 8
         Height = 15
-        Top = 439
-        Width = 244
-        Caption = 'https://www.linux4everyone.com/'
+        Top = 448
+        Width = 335
+        Caption = 'https://github.com/matanui159/ReplaySorcery'
         Color = 3684408
         Font.Color = clWhite
         Font.Height = -13
@@ -114,7 +114,7 @@ object aboutForm: TaboutForm
       object Image1: TImage
         Left = 8
         Height = 136
-        Top = 472
+        Top = 595
         Width = 104
         Picture.Data = {
           0A544A706567496D616765C05B0500FFD8FFE100344578696600004D4D002A00
@@ -11099,7 +11099,7 @@ object aboutForm: TaboutForm
       object Memo2: TMemo
         Left = 128
         Height = 72
-        Top = 480
+        Top = 603
         Width = 392
         BorderStyle = bsNone
         Color = 3684408
@@ -11120,7 +11120,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 184
         Height = 42
-        Top = 566
+        Top = 689
         Width = 40
         OnClick = twitterlinkClick
         Picture.Data = {
@@ -11359,7 +11359,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 128
         Height = 42
-        Top = 566
+        Top = 689
         Width = 40
         OnClick = linkedinlinkClick
         Picture.Data = {
@@ -15269,7 +15269,7 @@ object aboutForm: TaboutForm
       object mangoMemo: TMemo
         Left = 8
         Height = 33
-        Top = 251
+        Top = 254
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
@@ -15288,7 +15288,7 @@ object aboutForm: TaboutForm
       object schoorseMemo: TMemo
         Left = 8
         Height = 33
-        Top = 317
+        Top = 322
         Width = 512
         BorderStyle = bsNone
         Color = 3684408
@@ -15308,7 +15308,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 8
         Height = 15
-        Top = 359
+        Top = 364
         Width = 304
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Color = 3684408
@@ -15322,17 +15322,55 @@ object aboutForm: TaboutForm
         Transparent = False
         OnClick = schoorselinkLabelClick
       end
+      object jasonMemo1: TMemo
+        Left = 7
+        Height = 40
+        Top = 494
+        Width = 512
+        BorderStyle = bsNone
+        Color = 3684408
+        Font.Color = clWhite
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
+        Lines.Strings = (
+          'Also thanks to Jason Evangelo from Linux for everyone for helping with the name and making me fall in love with linux again.'
+        )
+        ParentBidiMode = False
+        ParentFont = False
+        ReadOnly = True
+        TabOrder = 6
+      end
+      object linux4elink1: TLabel
+        Cursor = crHandPoint
+        Left = 8
+        Height = 15
+        Top = 541
+        Width = 244
+        Caption = 'https://www.linux4everyone.com/'
+        Color = 3684408
+        Font.Color = clWhite
+        Font.Height = -13
+        Font.Name = 'Sans'
+        Font.Quality = fqAntialiased
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+        Transparent = False
+        OnClick = Label1Click
+      end
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 637
+      ClientHeight = 749
       ClientWidth = 526
       object Memo3: TMemo
         Left = 0
-        Height = 616
+        Height = 744
         Top = 8
         Width = 526
         Alignment = taCenter
+        BorderStyle = bsNone
         Color = 3684408
         Font.Color = clWhite
         Font.Quality = fqAntialiased
