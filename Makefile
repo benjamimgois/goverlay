@@ -31,5 +31,6 @@ uninstall:
 
 tests:
 	appstreamcli validate --pedantic data/goverlay.metainfo.xml
+	desktop-file-validate data/goverlay.desktop
 
 .PHONY: all clean install uninstall tests
