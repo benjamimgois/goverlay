@@ -13,8 +13,8 @@ clean:
 
 install: goverlay
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(bindir)/goverlay
-	install -D -m=644 data/goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/goverlay.desktop
-	install -D -m=644 data/goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/goverlay.metainfo.xml
+	install -D -m=644 data/io.github.benjamimgois.goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/io.github.benjamimgois.goverlay.desktop
+	install -D -m=644 data/io.github.benjamimgois.goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/io.github.benjamimgois.goverlay.metainfo.xml
 	install -D -m=644 data/goverlay.1 $(DESTDIR)$(prefix)$(datadir)/man/man1/goverlay.1
 	install -D -m=644 data/icons/128x128/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/goverlay.png
 	install -D -m=644 data/icons/256x256/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/goverlay.png
@@ -30,7 +30,7 @@ uninstall:
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/goverlay.png
 
 tests:
-	appstreamcli validate --pedantic data/goverlay.metainfo.xml
-	desktop-file-validate data/goverlay.desktop
+	appstreamcli validate --pedantic data/io.github.benjamimgois.goverlay.metainfo.xml
+	desktop-file-validate data/io.github.benjamimgois.goverlay.desktop
 
 .PHONY: all clean install uninstall tests

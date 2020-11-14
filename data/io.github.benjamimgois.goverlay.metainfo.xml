@@ -3,18 +3,17 @@
   <id>io.github.benjamimgois.goverlay</id>
   
   <name>GOverlay</name>
-  <summary>Graphical UI to help manage Vulkan/OpenGL overlays</summary>
-  
+  <summary>Graphical UI to help manage Vulkan / OpenGL overlays</summary>
+
+  <launchable type="desktop-id">io.github.benjamimgois.goverlay.desktop</launchable>
+
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   
   <description>
-    <p>
-      GOverlay can configure Vulakn/OpenGL overlays with a live preview. Currently supported are the MangoHud and the vkBasalt overlays.
-    </p>
+    <p>GOverlay can configure Vulakn / OpenGL overlays with a preview. Currently supported are MangoHud, vkBasalt and ReplaySorcery.</p>
   </description>
   
-  <launchable type="desktop-id">goverlay.desktop</launchable>
   <screenshots>
     <screenshot type="default">
       <caption>Options for MangoHud</caption>
@@ -32,4 +31,10 @@
   
   <url type="homepage">https://github.com/benjamimgois/goverlay</url>
   <url type="bugtracker">https://github.com/benjamimgois/goverlay/issues</url>
+
+  <content_rating type="oars-1.1" />
+  <categories>
+    <category>Utility</category>
+    <category>Game</category>
+  </categories>
 </component>
