@@ -19,10 +19,14 @@ type
     addBitBtn: TBitBtn;
     autoresCheckBox: TCheckBox;
     autouploadCheckBox: TCheckBox;
+    compacthudBitBtn: TBitBtn;
+    engineColorButton: TColorButton;
+    wineColorButton: TColorButton;
+    mediaColorButton: TColorButton;
+    GlobalenableLabel1: TLabel;
     replaystateLabel: TLabel;
     replaystateSpeedButton: TSpeedButton;
     heightImage: TImage;
-    logpathBitBtn1: TBitBtn;
     offxImage: TImage;
     offyImage: TImage;
     replaykeyCombobox: TComboBox;
@@ -84,7 +88,7 @@ type
     wineCheckBox: TCheckBox;
     vkbtogglekeyCombobox: TComboBox;
     ImageList3: TImageList;
-    Label6: TLabel;
+    vktoggleLabel: TLabel;
     mediaComboBox: TComboBox;
     diskioCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
@@ -135,7 +139,7 @@ type
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
     casTrackBar2: TTrackBar;
-    checkallBitBtn: TBitBtn;
+    completehudBitBtn: TBitBtn;
     cpuavrloadCheckBox: TCheckBox;
     cpuColorButton: TColorButton;
     cpuGroupBox: TGroupBox;
@@ -236,11 +240,13 @@ type
     procedure bottomrightSpeedButtonClick(Sender: TObject);
     procedure casCheckBoxChange(Sender: TObject);
     procedure casTrackBarChange(Sender: TObject);
-    procedure checkallBitBtnClick(Sender: TObject);
+    procedure compacthudBitBtnClick(Sender: TObject);
+    procedure completehudBitBtnClick(Sender: TObject);
     procedure clipdurationComboboxKeyPress(Sender: TObject; var Key: char);
     procedure cpunameEditChange(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
     procedure driverversionCheckBoxChange(Sender: TObject);
+    procedure engineColorButtonColorChanged(Sender: TObject);
     procedure engineversionCheckBoxClick(Sender: TObject);
     procedure FontcolorButtonColorChanged(Sender: TObject);
     procedure framegraphRadioButtonChange(Sender: TObject);
@@ -276,6 +282,7 @@ type
     procedure mangohudLabelClick(Sender: TObject);
     procedure mangohudLabelMouseEnter(Sender: TObject);
     procedure mangohudLabelMouseLeave(Sender: TObject);
+    procedure mediaColorButtonColorChanged(Sender: TObject);
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure offsetxSpinEditMouseEnter(Sender: TObject);
     procedure offsetxSpinEditMouseLeave(Sender: TObject);
@@ -315,6 +322,7 @@ type
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure widthImageMouseEnter(Sender: TObject);
     procedure wineCheckBoxChange(Sender: TObject);
+    procedure wineColorButtonColorChanged(Sender: TObject);
     procedure x264presetComboboxKeyPress(Sender: TObject; var Key: char);
 
   private
@@ -413,6 +421,16 @@ var
   effect4: string;
   casSTR: Boolean;
   cascheckValue: Textfile;
+  winecolorhtml: string;
+  winecolorValue: TextFile;
+  winecolorScript: TextFile;
+  enginecolorhtml: string;
+  enginecolorValue: TextFile;
+  enginecolorScript: TextFile;
+  mediacolorhtml: string;
+  mediacolorValue: TextFile;
+  mediacolorScript: TextFile;
+
 
   //Replay-Sorcery variables
   reswidthCustomValue:TextFile;
@@ -1020,6 +1038,64 @@ begin
   if wineCheckbox.Checked=true then
   RunCommand('bash -c ''echo "wine" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+
+
+  //wine Color
+    // Assign value to file
+      AssignFile(winecolorValue, '/tmp/goverlay/winecolorValue');
+      Rewrite(winecolorValue);
+      Writeln(winecolorValue,winecolorhtml);
+      CloseFile(winecolorValue);
+
+      // Create custom script
+      AssignFile(winecolorScript, '/tmp/goverlay/winecolorScript.sh');
+      Rewrite(winecolorScript);
+      Writeln(winecolorScript,'WINEc=$(cat /tmp/goverlay/winecolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
+      Writeln(winecolorScript,'echo "wine_color=$WINEc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(winecolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/winecolorScript.sh''', s);
+
+
+
+
+  //engine Color
+      // Assign value to file
+      AssignFile(enginecolorValue, '/tmp/goverlay/enginecolorValue');
+      Rewrite(enginecolorValue);
+      Writeln(enginecolorValue,enginecolorhtml);
+      CloseFile(enginecolorValue);
+
+      // Create custom script
+      AssignFile(enginecolorScript, '/tmp/goverlay/enginecolorScript.sh');
+      Rewrite(enginecolorScript);
+      Writeln(enginecolorScript,'ENGc=$(cat /tmp/goverlay/enginecolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
+      Writeln(enginecolorScript,'echo "engine_color=$ENGc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(enginecolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/enginecolorScript.sh''', s);
+
+
+
+  //Media Color
+    // Assign value to file
+      AssignFile(mediacolorValue, '/tmp/goverlay/mediacolorValue');
+      Rewrite(mediacolorValue);
+      Writeln(mediacolorValue,mediacolorhtml);
+      CloseFile(mediacolorValue);
+
+      // Create custom script
+      AssignFile(mediacolorScript, '/tmp/goverlay/mediacolorScript.sh');
+      Rewrite(mediacolorScript);
+      Writeln(mediacolorScript,'MEDc=$(cat /tmp/goverlay/mediacolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
+      Writeln(mediacolorScript,'echo "media_player_color=$MEDc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(mediacolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/mediacolorScript.sh''', s);
+
       //###################################################### OTHERS
 
   //####################################################################################### VISUALS
@@ -1432,6 +1508,17 @@ begin
   if replaysel = true  then
   mangohudShape.Visible:=false;
 
+end;
+
+procedure Tgoverlayform.mediaColorButtonColorChanged(Sender: TObject);
+begin
+    // Media color
+    spotify1label.font.Color:=mediacolorButton.ButtonColor;
+    spotify2label.font.Color:=mediacolorButton.ButtonColor;
+    spotify3label.font.Color:=mediacolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    mediacolorhtml := SColorToHtmlColor(mediacolorButton.ButtonColor);
 end;
 
 procedure Tgoverlayform.mediaComboBoxKeyPress(Sender: TObject; var Key: char);
@@ -1966,7 +2053,7 @@ begin
 end;
 
 
-procedure Tgoverlayform.checkallBitBtnClick(Sender: TObject);
+procedure Tgoverlayform.completehudBitBtnClick(Sender: TObject);
 begin
   //Check all hud options
   cpuavrloadCheckbox.Checked:=true;
@@ -3297,6 +3384,59 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.compacthudBitBtnClick(Sender: TObject);
+begin
+  //Check compact hud options
+   cpuavrloadCheckbox.Checked:=true;
+   cputempCheckbox.Checked:=true;
+   cpuloadcoreCheckbox.Checked:=false;
+   gpuavrloadCheckbox.Checked:=true;
+   gputempCheckbox.Checked:=true;
+   gpufreqCheckbox.Checked:=false;
+   diskioCheckbox.Checked:=false;
+   vramusageCheckbox.Checked:=true;
+   ramusageCheckbox.Checked:=true;
+   frametimegraphCheckbox.Checked:=true;
+   timeCheckbox.Checked:=false;
+   archCheckbox.Checked:=false;
+   driverversionCheckbox.Checked:=false;
+   gpupowerCheckBox.Checked:=false;
+   gpumodelCheckBox.Checked:=false;
+   gpumemfreqCheckBox.Checked:=false;
+   engineversionCheckBox.Checked:=false;
+   wineCheckbox.Checked:=false;
+
+
+   //Preview compact hud options
+   cpulabel.Caption:='CPU';
+   cpuusagelabel.Caption:='28%';
+   cputemplabel.Caption:='71ºC';
+   gpulabel.Caption:='GPU';
+   gpuusagelabel.Caption:='90%';
+   gpulabel.Caption:='GPU';
+   gputemplabel.Caption:='82ºC';
+   vramlabel.Caption:='VRAM';
+   vramusagelabel.Caption:='2.56GB';
+   ramlabel.Caption:='RAM';
+   ramusagelabel.Caption:='5.99GB';
+   frametimelabel.Caption:='Frametime';
+   frametimelabel2.Caption:='16.6ms';
+   frametimegraphlabel.Caption:='-------------------------------------------';
+
+   timelabel.Caption:='';
+   iordrwlabel.caption:='';
+   iordvaluelabel.caption:='';
+   iorwvaluelabel.caption:='';
+   gpuclocklabel.caption:='';
+   archlabel.caption:='';
+   gpunamelabel.caption:='';
+   driverversionlabel.caption:='';
+   gpupowerlabel.Caption:='';
+   gpumemfreqlabel.Caption:='';
+   engineversionlabel.Caption:='';
+   winelabel.Caption:='';
+end;
+
 procedure Tgoverlayform.basaltgeSpeedButtonClick(Sender: TObject);
 begin
      case basaltgeSpeedButton.imageIndex of
@@ -3490,6 +3630,20 @@ begin
   driverversionlabel.Caption:='';
 end;
 
+procedure Tgoverlayform.engineColorButtonColorChanged(Sender: TObject);
+begin
+    // engine color
+    engineversionlabel.font.Color:=enginecolorButton.ButtonColor;
+    vulkanlabel.font.Color:=enginecolorButton.ButtonColor;
+    gpunamelabel.font.Color:=enginecolorButton.ButtonColor;
+    driverversionlabel.font.Color:=enginecolorButton.ButtonColor;
+    archlabel.font.Color:=enginecolorButton.ButtonColor;
+    frametimelabel.font.Color:=enginecolorButton.ButtonColor;
+
+    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+    enginecolorhtml := SColorToHtmlColor(enginecolorButton.ButtonColor);
+end;
+
 procedure Tgoverlayform.engineversionCheckBoxClick(Sender: TObject);
 begin
   //PREVIEW Engine Version
@@ -3515,6 +3669,8 @@ begin
     vulkanfpslabel.font.Color:=FontcolorButton.ButtonColor;
     vulkanftimelabel.font.Color:=FontcolorButton.ButtonColor;
     frametimelabel2.font.Color:=FontcolorButton.ButtonColor;
+    gpupowerlabel.font.Color:=FontcolorButton.ButtonColor;
+    gpumemfreqlabel.font.Color:=FontcolorButton.ButtonColor;
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
@@ -3722,6 +3878,9 @@ begin
   crosshaircolorhtml := '#000000';
   hudbackgroundcolorhtml := '#020202';
   hudfontcolorhtml := '#ffffff';
+  enginecolorhtml := '#eb5b5b';
+  winecolorhtml := '#eb5b5b';
+  mediacolorhtml := '#ffffff' ;
 
   // Initialize vkBasalt default value
   cas04Image.Visible:=true;
@@ -3886,7 +4045,7 @@ begin
         //Missing single dependency
         if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
         begin
-        dependenciesLabel.Caption:= 'All dependencies OK';
+        dependenciesLabel.Caption:= '    All dependencies OK';
         dependencieSpeedButton.ImageIndex := 0;
         end;
 
@@ -5119,6 +5278,16 @@ begin
         winelabel.Caption:='Proton 5.0-9'
      else
         winelabel.Caption:='';
+end;
+
+procedure Tgoverlayform.wineColorButtonColorChanged(Sender: TObject);
+begin
+  
+  // wine color
+   winelabel.font.Color:=winecolorButton.ButtonColor;
+
+   //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
+   winecolorhtml := SColorToHtmlColor(winecolorButton.ButtonColor);
 end;
 
 procedure Tgoverlayform.x264presetComboboxKeyPress(Sender: TObject;

@@ -39,7 +39,6 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
  - [**`replay-sorcery`**](https://github.com/matanui159/ReplaySorcery) - Instant replay solution
  - [**`git`**](https://github.com/git/git) - Clone reshade repository
- - [**`qt5pas`**](https://svn.freepascal.org/svn/lazarus/trunk/lcl/interfaces/qt5/cbindings/) - Free Pascal Qt5 binding library updated by lazarus IDE
 
 ## Installation 
 
@@ -121,27 +120,12 @@ cd goverlay
 lazbuild -B goverlay.lpi
 ```
 
-To build the new QT5 interface, run the following commands:
-
-```bash
-cd goverlay
-
-lazbuild -B goverlay.lpi --ws=qt5
-```
-
-
 ### Running
 
 To run GOverlay, run the following command:
 
 ```bash
 ./goverlay
-```
-
-If running the new QT5 interface, force the default QT style with:
-
-```bash
-./goverlay --style fusion
 ```
 
 ## Credits

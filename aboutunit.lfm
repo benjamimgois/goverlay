@@ -21,8 +21,8 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 749
-      ClientWidth = 526
+      ClientHeight = 745
+      ClientWidth = 532
       object descriptionMemo: TMemo
         Left = 8
         Height = 112
@@ -59,9 +59,9 @@ object aboutForm: TaboutForm
       object mangolink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 15
+        Height = 17
         Top = 289
-        Width = 340
+        Width = 342
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Color = 3684408
         Font.Color = clWhite
@@ -96,9 +96,9 @@ object aboutForm: TaboutForm
       object linux4elink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 15
+        Height = 17
         Top = 448
-        Width = 335
+        Width = 340
         Caption = 'https://github.com/matanui159/ReplaySorcery'
         Color = 3684408
         Font.Color = clWhite
@@ -15307,9 +15307,9 @@ object aboutForm: TaboutForm
       object schoorselinkLabel: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 15
+        Height = 17
         Top = 364
-        Width = 304
+        Width = 305
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Color = 3684408
         Font.Color = clWhite
@@ -15344,9 +15344,9 @@ object aboutForm: TaboutForm
       object linux4elink1: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 15
+        Height = 17
         Top = 541
-        Width = 244
+        Width = 247
         Caption = 'https://www.linux4everyone.com/'
         Color = 3684408
         Font.Color = clWhite
@@ -15362,8 +15362,8 @@ object aboutForm: TaboutForm
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 749
-      ClientWidth = 526
+      ClientHeight = 745
+      ClientWidth = 532
       object Memo3: TMemo
         Left = 0
         Height = 744
