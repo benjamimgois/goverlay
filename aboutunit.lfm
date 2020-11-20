@@ -86,7 +86,7 @@ object aboutForm: TaboutForm
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
         Lines.Strings = (
-          'Special Thanks to Joshua ''Pip'' Minter, the man and the mind behind replay-sorcery.'
+          'Special Thanks to Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'
         )
         ParentBidiMode = False
         ParentFont = False
