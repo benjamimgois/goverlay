@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=GOverlay
 Comment=Graphical UI to help manage Vulkan / OpenGL overlays
-Exec=env QT_STYLE_OVERRIDE=fusion goverlay %U
+Exec=goverlay --style fusion
 Icon=goverlay
 Terminal=false
 Type=Application
