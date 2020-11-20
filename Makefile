@@ -4,12 +4,13 @@ datadir = /share
 
 all: goverlay
 
-goverlay: *.pas *.lfm *.lrs goverlay.lpi goverlay.lpr goverlay.lps goverlay.res goverlay.ico
+goverlay: *.pas *.lfm *.lrs goverlay.lpi goverlay.lpr goverlay.res goverlay.ico
 	lazbuild -B goverlay.lpi --bm=Release $(LAZBUILDOPTS)
 
 clean:
 	rm -f goverlay
 	rm -rf lib/
+	rm -rf backup/
 
 install: goverlay
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(bindir)/goverlay
