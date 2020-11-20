@@ -117,15 +117,7 @@ Then, change directory and build GOverlay by running the following commands:
 
 ```bash
 cd goverlay
-
-lazbuild -B goverlay.lpi
-```
-To build the new QT5 interface, run the following commands:
-
-```bash
-cd goverlay
-
-lazbuild -B goverlay.lpi --ws=qt5
+make
 ```
 
 ### Running
