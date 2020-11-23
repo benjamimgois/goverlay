@@ -12,6 +12,7 @@ cd MangoHud
 ./build.sh install
 cd ..
 rm -rf MangoHud
+sudo apt install -y spirv-headers
 git clone https://github.com/DadSchoorse/vkBasalt.git
 cd vkBasalt
 meson --buildtype=release --prefix=/usr builddir
@@ -20,6 +21,7 @@ cd ..
 rm -rf vkBasalt
 git clone https://github.com/benjamimgois/goverlay.git
 cd goverlay
+sudo apt install -y libqt5pas1 libqt5pas-dev
 lazbuild -B goverlay.lpi
 sudo mv goverlay /usr/games/
 cd ..
