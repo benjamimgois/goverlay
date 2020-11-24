@@ -132,6 +132,15 @@ If running the new QT5 interface, force the default QT style with:
 ```bash
 ./goverlay --style fusion
 ```
+
+### Wayland
+
+QT5PAS still isn't compatible with wayland display server, but you can run the application by forcing the x11 backend. Credits by [**`Darklink999999`**](https://github.com/Darklink999999)
+
+```bash
+QT_QPA_PLATFORM=xcb goverlay --style fusion
+```
+
 ## Credits
 
 #### Mango
@@ -149,6 +158,12 @@ https://discordapp.com/invite/Gj5YmBb
 Special thanks to DadSchoorse, creator of the vkBasalt project.
 
 https://github.com/DadSchoorse/vkBasalt
+
+#### matanui159
+
+Special thanks to matanui159, creator of the ReplaySorcery project.
+
+https://github.com/matanui159/ReplaySorcery
 
 #### Lazarus
 
