@@ -69,16 +69,21 @@ To install [`goverlay`](https://dev.getsol.us/source/goverlay/), run the followi
 eopkg it goverlay
 ```
 
-#### Ubuntu
+#### Debian
 
-Help is needed to create a ubuntu PPA or SNAP package
-
-A bash script created by the reddit user [`Bladertom`](https://www.reddit.com/r/linux_gaming/comments/isimkp/i_use_popos_2004_with_gnome_and_made_a_little/) can be used for Ubuntu based distros. There's also a great video tutorial by [`BIntelligent Gaming - Linux`](https://www.youtube.com/watch?v=pRJbDRzT1AI&feature=youtu.be) 
+To install [`goverlay`](https://packages.debian.org/sid/amd64/goverlay/download) in debian sid, run the following command as root:
 
 ```bash
-wget https://raw.githubusercontent.com/benjamimgois/goverlay/master/install_ubuntu.sh
-chmod +x install_ubuntu.sh
-./install_ubuntu.sh
+apt install goverlay
+```
+
+#### Ubuntu
+
+To install [`goverlay`](https://packages.debian.org/sid/amd64/goverlay/download) in Ubuntu and derivatives, run the following commands as root:
+
+```bash
+wget http://ftp.us.debian.org/debian/pool/main/g/goverlay/goverlay_0.4.2-1_amd64.deb
+sudo dpkg -i goverlay_0.4.2-1_amd64.deb
 ```
 
 ## Tarball
