@@ -18,15 +18,34 @@ type
     aboutBitBtn: TBitBtn;
     addBitBtn: TBitBtn;
     audiobitrateCombobox: TComboBox;
-    audiochanCombobox: TComboBox;
+    aacprofileCombobox: TComboBox;
     audiodevCombobox: TComboBox;
+    audioinputCombobox: TComboBox;
+    audioencoderCombobox: TComboBox;
+    Label26: TLabel;
+    Label29: TLabel;
+    Label30: TLabel;
+    videodevEdit: TEdit;
     audioGroupBox: TGroupBox;
     audiosampCombobox: TComboBox;
     autoresCheckBox: TCheckBox;
+    autoscaleCheckBox: TCheckBox;
     autouploadCheckBox: TCheckBox;
+    autovideoqualityCheckBox: TCheckBox;
+    autovideobitrateCheckBox: TCheckBox;
+    autoaudiobitrateCheckBox: TCheckBox;
     clipdurationCombobox: TComboBox;
     compacthudBitBtn: TBitBtn;
-    compressqualityLabel: TLabel;
+    audiodevEdit: TEdit;
+    Label25: TLabel;
+    Label27: TLabel;
+    Label28: TLabel;
+    scalewidthSpinEdit: TSpinEdit;
+    scaleheightSpinEdit: TSpinEdit;
+    outputscaleGroupBox: TGroupBox;
+    videoqualityLabel: TLabel;
+    videobitrateLabel: TLabel;
+    videogopLabel: TLabel;
     cpupowerlabel: TLabel;
     cpuload1ColorButton: TColorButton;
     cpuload2ColorButton: TColorButton;
@@ -35,6 +54,15 @@ type
     cpufreqlabel: TLabel;
     fpslimLabel2: TLabel;
     framerateCombobox: TComboBox;
+    hlepresetLabel: TLabel;
+    Label22: TLabel;
+    Label24: TLabel;
+    videobitrateTrackBar: TTrackBar;
+    videogopTrackBar: TTrackBar;
+    videodeviceCombobox: TComboBox;
+    videoencoderCombobox: TComboBox;
+    videodeviceLabel: TLabel;
+    videodeviceLabel1: TLabel;
     gpuload1ColorButton: TColorButton;
     gpuload2ColorButton: TColorButton;
     gpuload3ColorButton: TColorButton;
@@ -49,7 +77,7 @@ type
     casValueLabel: TLabel;
     Label10: TLabel;
     Label11: TLabel;
-    Label16: TLabel;
+    h264profileLabel: TLabel;
     Label17: TLabel;
     Label18: TLabel;
     Label19: TLabel;
@@ -62,16 +90,16 @@ type
     logpathBitBtn: TBitBtn;
     replaykeyCombobox: TComboBox;
     replaytoggleLabel: TLabel;
-    replayTrackBar: TTrackBar;
+    videoqualityTrackBar: TTrackBar;
     saveclipEdit: TEdit;
+    videoinputCombobox: TComboBox;
+    videoinputLabel: TLabel;
     wineColorButton: TColorButton;
     mediaColorButton: TColorButton;
     GlobalenableLabel1: TLabel;
     replaystateLabel: TLabel;
     replaystateSpeedButton: TSpeedButton;
     heightImage: TImage;
-    offxImage: TImage;
-    offyImage: TImage;
     replaystopBitBtn: TBitBtn;
     widthImage: TImage;
     replaygeSpeedButton: TSpeedButton;
@@ -82,16 +110,12 @@ type
     videocustomGroupBox: TGroupBox;
     Label12: TLabel;
     Label13: TLabel;
-    Label14: TLabel;
-    Label15: TLabel;
     replayImage: TImage;
     replayPanel: TPanel;
     replayLabel: TLabel;
     replayShape: TShape;
     reswidthSpinEdit: TSpinEdit;
     resheightSpinEdit: TSpinEdit;
-    offsetxSpinEdit: TSpinEdit;
-    offsetySpinEdit: TSpinEdit;
     customresShape: TShape;
     fullscreenShape: TShape;
     winelabel: TLabel;
@@ -241,15 +265,18 @@ type
     vulkanfpslabel: TLabel;
     vulkanftimelabel: TLabel;
     vulkanlabel: TLabel;
-    x264presetCombobox: TComboBox;
+    h264profileCombobox: TComboBox;
+    videohlepresetCombobox: TComboBox;
     procedure addBitBtnClick(Sender: TObject);
     procedure archCheckBoxClick(Sender: TObject);
     procedure audiobitrateComboboxKeyPress(Sender: TObject; var Key: char);
-    procedure audiochanComboboxKeyPress(Sender: TObject; var Key: char);
+    procedure aacprofileComboboxKeyPress(Sender: TObject; var Key: char);
     procedure audiodevComboboxKeyPress(Sender: TObject; var Key: char);
     procedure audiosampComboboxKeyPress(Sender: TObject; var Key: char);
     procedure autoresCheckBoxChange(Sender: TObject);
     procedure autoresCheckBoxClick(Sender: TObject);
+    procedure autovideobitrateCheckBoxChange(Sender: TObject);
+    procedure autovideoqualityCheckBoxChange(Sender: TObject);
     procedure basaltgeSpeedButtonClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
     procedure bottomleftSpeedButtonClick(Sender: TObject);
@@ -306,10 +333,6 @@ type
     procedure mangohudLabelMouseLeave(Sender: TObject);
     procedure mediaColorButtonColorChanged(Sender: TObject);
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
-    procedure offsetxSpinEditMouseEnter(Sender: TObject);
-    procedure offsetxSpinEditMouseLeave(Sender: TObject);
-    procedure offsetySpinEditMouseEnter(Sender: TObject);
-    procedure offsetySpinEditMouseLeave(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
     procedure replaygeSpeedButtonClick(Sender: TObject);
@@ -320,7 +343,9 @@ type
     procedure replaysaveBitBtnClick(Sender: TObject);
     procedure replaystartBitBtnClick(Sender: TObject);
     procedure replaystopBitBtnClick(Sender: TObject);
-    procedure replayTrackBarChange(Sender: TObject);
+    procedure videobitrateTrackBarChange(Sender: TObject);
+    procedure videogopTrackBarChange(Sender: TObject);
+    procedure videoqualityTrackBarChange(Sender: TObject);
     procedure reshadesyncBitBtnClick(Sender: TObject);
     procedure resheightSpinEditMouseEnter(Sender: TObject);
     procedure resheightSpinEditMouseLeave(Sender: TObject);
@@ -346,7 +371,7 @@ type
     procedure widthImageMouseEnter(Sender: TObject);
     procedure wineCheckBoxChange(Sender: TObject);
     procedure wineColorButtonColorChanged(Sender: TObject);
-    procedure x264presetComboboxKeyPress(Sender: TObject; var Key: char);
+    procedure h264profileComboboxKeyPress(Sender: TObject; var Key: char);
 
   private
 
@@ -460,10 +485,11 @@ var
   reswidthCustomValueScript:TextFile;
   resheightCustomValue:TextFile;
   resheightCustomValueScript:TextFile;
-  offsety:TextFile;
-  offsetyScript:TextFile;
-  offsetx:TextFile;
-  offsetxScript:TextFile;
+  scaleheightCustomValue:TextFile;
+  scaleheightCustomValueScript:TextFile;
+  scalewidthCustomValue:TextFile;
+  scalewidthCustomValueScript:TextFile;
+
 
 
   // Variables for Shaders path
@@ -1805,29 +1831,7 @@ begin
   key:=#0;
 end;
 
-procedure Tgoverlayform.offsetxSpinEditMouseEnter(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    offxImage.Visible:= true;
-end;
 
-procedure Tgoverlayform.offsetxSpinEditMouseLeave(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    offxImage.Visible:= false;
-end;
-
-procedure Tgoverlayform.offsetySpinEditMouseEnter(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    offyImage.Visible:= true;
-end;
-
-procedure Tgoverlayform.offsetySpinEditMouseLeave(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    offyImage.Visible:= false;
-end;
 
 procedure Tgoverlayform.ramColorButtonColorChanged(Sender: TObject);
 begin
@@ -1958,8 +1962,8 @@ begin
 
     if autoresCheckbox.Checked = true then
     begin
-       RunCommand('bash -c ''echo "width = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''echo "height = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+       RunCommand('bash -c ''echo "videoWidth = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+       RunCommand('bash -c ''echo "videoHeight = auto" >> $HOME/.config/replay-sorcery.conf''', s);
        RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_FULLSCREEN''', s); // delete old variable to manage initial value
        RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_FULLSCREEN''', s); // variable to manage initial value
     end;
@@ -1986,7 +1990,7 @@ begin
       AssignFile(reswidthCustomValueScript, '/tmp/goverlay/reswidthCustomValueScript.sh');
       Rewrite(reswidthCustomValueScript);
       Writeln(reswidthCustomValueScript,'RWSc=$(cat /tmp/goverlay/reswidthCustomValue)');  //Store custom value in a Linux/Unix variable
-      Writeln(reswidthCustomValueScript,'echo "width=$RWSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
+      Writeln(reswidthCustomValueScript,'echo "videowidth=$RWSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
       CloseFile(reswidthCustomValueScript);
 
       //execute custom script to store custom value on replay-sorcery.conf
@@ -2007,119 +2011,238 @@ begin
       AssignFile(resheightCustomValueScript, '/tmp/goverlay/resheightCustomValueScript.sh');
       Rewrite(resheightCustomValueScript);
       Writeln(resheightCustomValueScript,'RHSc=$(cat /tmp/goverlay/resheightCustomValue)');  //Store custom value in a Linux/Unix variable
-      Writeln(resheightCustomValueScript,'echo "height=$RHSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
+      Writeln(resheightCustomValueScript,'echo "videoheight=$RHSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
       CloseFile(resheightCustomValueScript);
 
       //execute custom script to store custom value on replay-sorcery.conf
       RunCommand('bash -c ''sh /tmp/goverlay/resheightCustomValueScript.sh''', s);
 
+    end;
 
 
-      //Custom retangle - Offset Y
+   // Auto Scale
 
-      // Assign custom value to file
-      AssignFile(offsety, '/tmp/goverlay/offsety');
-      Rewrite(offsety);
-      Writeln(offsety,offsetySpinedit.Value);
-      CloseFile(offsety);
+    if autoscaleCheckbox.Checked = true then
+    begin
+       RunCommand('bash -c ''echo "scaleWidth = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+       RunCommand('bash -c ''echo "scaleHeight = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // delete old variable to manage initial value
+       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // variable to manage initial value
+    end;
+
+
+   //Custom Scale
+
+
+
+   if autoscaleCheckbox.Checked = false then
+    begin
+
+    RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // delete old variable to manage initial value
+    RunCommand('bash -c ''echo "FALSE" >> /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // variable to manage initial value
+
+
+
+    //Custom scale - Width
+
+       // Assign custom value to file
+      AssignFile(scalewidthCustomValue, '/tmp/goverlay/scalewidthCustomValue');
+      Rewrite(scalewidthCustomValue);
+      Writeln(scalewidthCustomValue,scalewidthSpinedit.Value);
+      CloseFile(scalewidthCustomValue);
 
       // Create custom script
-      AssignFile(offsetyScript, '/tmp/goverlay/offsetyScript.sh');
-      Rewrite(offsetyScript);
-      Writeln(offsetyScript,'OFFy=$(cat /tmp/goverlay/offsety)');  //Store custom value in a Linux/Unix variable
-      Writeln(offsetyScript,'echo "offsetY=$OFFy" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
-      CloseFile(offsetyScript);
+      AssignFile(scalewidthCustomValueScript, '/tmp/goverlay/scalewidthCustomValueScript.sh');
+      Rewrite(scalewidthCustomValueScript);
+      Writeln(scalewidthCustomValueScript,'SWSc=$(cat /tmp/goverlay/scalewidthCustomValue)');  //Store custom value in a Linux/Unix variable
+      Writeln(scalewidthCustomValueScript,'echo "scaleWidth=$SWSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
+      CloseFile(scalewidthCustomValueScript);
 
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/offsetyScript.sh''', s);
-
-
+      //execute custom script to store custom value on replay-sorcery.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/scalewidthCustomValueScript.sh''', s);
 
 
-      //Custom retangle - Offset X
+
+
+      //Custom scale - Height
 
       // Assign custom value to file
-      AssignFile(offsetx, '/tmp/goverlay/offsetx');
-      Rewrite(offsetx);
-      Writeln(offsetx,offsetxSpinedit.Value);
-      CloseFile(offsetx);
+      AssignFile(scaleheightCustomValue, '/tmp/goverlay/scaleheightCustomValue');
+      Rewrite(scaleheightCustomValue);
+      Writeln(scaleheightCustomValue,scaleheightSpinedit.Value);
+      CloseFile(scaleheightCustomValue);
 
       // Create custom script
-      AssignFile(offsetxScript, '/tmp/goverlay/offsetxScript.sh');
-      Rewrite(offsetxScript);
-      Writeln(offsetxScript,'OFFx=$(cat /tmp/goverlay/offsetx)');  //Store custom value in a Linux/Unix variable
-      Writeln(offsetxScript,'echo "offsetx=$OFFx" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
-      CloseFile(offsetxScript);
+      AssignFile(scaleheightCustomValueScript, '/tmp/goverlay/scaleheightCustomValueScript.sh');
+      Rewrite(scaleheightCustomValueScript);
+      Writeln(scaleheightCustomValueScript,'SHSc=$(cat /tmp/goverlay/scaleheightCustomValue)');  //Store custom value in a Linux/Unix variable
+      Writeln(scaleheightCustomValueScript,'echo "scaleHeight=$SHSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
+      CloseFile(scaleheightCustomValueScript);
 
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/offsetxScript.sh''', s);
+      //execute custom script to store custom value on replay-sorcery.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/scaleheightCustomValueScript.sh''', s);
 
     end;
 
-  //REPLAY FPS
+
+
+    //REPLAY video input
+  case videoinputCombobox.ItemIndex of
+        0:RunCommand('bash -c ''echo "videoInput = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+        1:RunCommand('bash -c ''echo "videoInput = hwaccel" >> $HOME/.config/replay-sorcery.conf''', s);
+	2:RunCommand('bash -c ''echo "videoInput = x11" >> $HOME/.config/replay-sorcery.conf''', s);
+	3:RunCommand('bash -c ''echo "videoInput = kms" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
+
+  //REPLAY video device
+  case videodeviceCombobox.ItemIndex of
+        0:RunCommand('bash -c ''echo "videoDevice = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+        1:RunCommand('bash -c ''echo "videoDevice = auto" >> $HOME/.config/replay-sorcery.conf''', s);  // LATER
+
+  end;
+
+
+   //REPLAY FPS
   case framerateCombobox.ItemIndex of
-        0:RunCommand('bash -c ''echo "framerate = 15" >> $HOME/.config/replay-sorcery.conf''', s);
-        1:RunCommand('bash -c ''echo "framerate = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-	2:RunCommand('bash -c ''echo "framerate = 60" >> $HOME/.config/replay-sorcery.conf''', s);
-	3:RunCommand('bash -c ''echo "framerate = 90" >> $HOME/.config/replay-sorcery.conf''', s);
-	4:RunCommand('bash -c ''echo "framerate = 120" >> $HOME/.config/replay-sorcery.conf''', s);
-	5:RunCommand('bash -c ''echo "framerate = 144" >> $HOME/.config/replay-sorcery.conf''', s);
-	6:RunCommand('bash -c ''echo "framerate = 240" >> $HOME/.config/replay-sorcery.conf''', s);
+        0:RunCommand('bash -c ''echo "videoFramerate = 15" >> $HOME/.config/replay-sorcery.conf''', s);
+        1:RunCommand('bash -c ''echo "videoFramerate = 30" >> $HOME/.config/replay-sorcery.conf''', s);
+	2:RunCommand('bash -c ''echo "videoFramerate = 60" >> $HOME/.config/replay-sorcery.conf''', s);
+	3:RunCommand('bash -c ''echo "videoFramerate = 90" >> $HOME/.config/replay-sorcery.conf''', s);
+	4:RunCommand('bash -c ''echo "videoFramerate = 120" >> $HOME/.config/replay-sorcery.conf''', s);
+	5:RunCommand('bash -c ''echo "videoFramerate = 144" >> $HOME/.config/replay-sorcery.conf''', s);
+	6:RunCommand('bash -c ''echo "videoFramerate = 240" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
 
-    //REPLAY Clip duration
+    //REPLAY record duration
   case clipdurationCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "duration = 10" >> $HOME/.config/replay-sorcery.conf''', s);
-	1:RunCommand('bash -c ''echo "duration = 15" >> $HOME/.config/replay-sorcery.conf''', s);
-	2:RunCommand('bash -c ''echo "duration = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-	3:RunCommand('bash -c ''echo "duration = 60" >> $HOME/.config/replay-sorcery.conf''', s);
-	4:RunCommand('bash -c ''echo "duration = 120" >> $HOME/.config/replay-sorcery.conf''', s);
+        0:RunCommand('bash -c ''echo "recordSeconds = 10" >> $HOME/.config/replay-sorcery.conf''', s);
+	1:RunCommand('bash -c ''echo "recordSeconds = 15" >> $HOME/.config/replay-sorcery.conf''', s);
+	2:RunCommand('bash -c ''echo "recordSeconds = 30" >> $HOME/.config/replay-sorcery.conf''', s);
+	3:RunCommand('bash -c ''echo "recordSeconds = 60" >> $HOME/.config/replay-sorcery.conf''', s);
+	4:RunCommand('bash -c ''echo "recordSeconds = 120" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
 
+   //REPLAY Video Encoder
+  case videoencoderCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "videoEncoder = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "videoEncoder = x264" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "videoEncoder = openh264" >> $HOME/.config/replay-sorcery.conf''', s);
+    3:RunCommand('bash -c ''echo "videoEncoder = vaapi" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
 
-
-  //REPLAY x264 preset
-  case x264presetCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "outputX264Preset = ultrafast" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "outputX264Preset = superfast" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "outputX264Preset = veryfast" >> $HOME/.config/replay-sorcery.conf''', s);
-    3:RunCommand('bash -c ''echo "outputX264Preset = faster" >> $HOME/.config/replay-sorcery.conf''', s);
-    4:RunCommand('bash -c ''echo "outputX264Preset = fast" >> $HOME/.config/replay-sorcery.conf''', s);
-    5:RunCommand('bash -c ''echo "outputX264Preset = medium" >> $HOME/.config/replay-sorcery.conf''', s);
-    6:RunCommand('bash -c ''echo "outputX264Preset = slow" >> $HOME/.config/replay-sorcery.conf''', s);
-    7:RunCommand('bash -c ''echo "outputX264Preset = slower" >> $HOME/.config/replay-sorcery.conf''', s);
-    8:RunCommand('bash -c ''echo "outputX264Preset = placebo" >> $HOME/.config/replay-sorcery.conf''', s);
+  //REPLAY H264 Profile
+  case h264profileCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "videoProfile = baseline" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "videoProfile = main" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "videoProfile = high" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
 
-    //REPLAY Compression
-   case replaytrackbar.Position of
+    //REPLAY HLE Preset
+  case videohlepresetCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "videoPreset = fast" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "videoPreset = medium" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "videoPreset = slow" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
 
-    1:RunCommand('bash -c ''echo "compressQuality = 10" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "compressQuality = 20" >> $HOME/.config/replay-sorcery.conf''', s);
-    3:RunCommand('bash -c ''echo "compressQuality = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-    4:RunCommand('bash -c ''echo "compressQuality = 40" >> $HOME/.config/replay-sorcery.conf''', s);
-    5:RunCommand('bash -c ''echo "compressQuality = 50" >> $HOME/.config/replay-sorcery.conf''', s);
-    6:RunCommand('bash -c ''echo "compressQuality = 60" >> $HOME/.config/replay-sorcery.conf''', s);
-    7:RunCommand('bash -c ''echo "compressQuality = 70" >> $HOME/.config/replay-sorcery.conf''', s);
-    8:RunCommand('bash -c ''echo "compressQuality = 80" >> $HOME/.config/replay-sorcery.conf''', s);
-    9:RunCommand('bash -c ''echo "compressQuality = 90" >> $HOME/.config/replay-sorcery.conf''', s);
-    10:RunCommand('bash -c ''echo "compressQuality = 100" >> $HOME/.config/replay-sorcery.conf''', s);
+
+    //REPLAY Video quality
+    if autovideoqualityCheckbox.Checked = true then
+       RunCommand('bash -c ''echo "videoQuality = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+
+    if autovideoqualityCheckbox.Checked = false then
+
+       case videoqualityTrackBar.Position of
+       1:RunCommand('bash -c ''echo "videoQuality = 50" >> $HOME/.config/replay-sorcery.conf''', s);
+       2:RunCommand('bash -c ''echo "videoQuality = 45" >> $HOME/.config/replay-sorcery.conf''', s);
+       3:RunCommand('bash -c ''echo "videoQuality = 40" >> $HOME/.config/replay-sorcery.conf''', s);
+       4:RunCommand('bash -c ''echo "videoQuality = 35" >> $HOME/.config/replay-sorcery.conf''', s);
+       5:RunCommand('bash -c ''echo "videoQuality = 30" >> $HOME/.config/replay-sorcery.conf''', s);
+       6:RunCommand('bash -c ''echo "videoQuality = 25" >> $HOME/.config/replay-sorcery.conf''', s);
+       7:RunCommand('bash -c ''echo "videoQuality = 20" >> $HOME/.config/replay-sorcery.conf''', s);
+       8:RunCommand('bash -c ''echo "videoQuality = 15" >> $HOME/.config/replay-sorcery.conf''', s);
+       9:RunCommand('bash -c ''echo "videoQuality = 10" >> $HOME/.config/replay-sorcery.conf''', s);
+       10:RunCommand('bash -c ''echo "videoQuality = 5" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
+
+
+      //REPLAY Video bitrate
+    if autovideobitrateCheckbox.Checked = true then
+       RunCommand('bash -c ''echo "videoBitrate = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+
+    if autovideobitrateCheckbox.Checked = false then
+
+       case videobitrateTrackBar.Position of
+       1:RunCommand('bash -c ''echo "videoBitrate = 1M" >> $HOME/.config/replay-sorcery.conf''', s);
+       2:RunCommand('bash -c ''echo "videoBitrate = 2M" >> $HOME/.config/replay-sorcery.conf''', s);
+       3:RunCommand('bash -c ''echo "videoBitrate = 3M" >> $HOME/.config/replay-sorcery.conf''', s);
+       4:RunCommand('bash -c ''echo "videoBitrate = 4M" >> $HOME/.config/replay-sorcery.conf''', s);
+       5:RunCommand('bash -c ''echo "videoBitrate = 5M" >> $HOME/.config/replay-sorcery.conf''', s);
+       6:RunCommand('bash -c ''echo "videoBitrate = 6M" >> $HOME/.config/replay-sorcery.conf''', s);
+       7:RunCommand('bash -c ''echo "videoBitrate = 7M" >> $HOME/.config/replay-sorcery.conf''', s);
+       8:RunCommand('bash -c ''echo "videoBitrate = 8M" >> $HOME/.config/replay-sorcery.conf''', s);
+       9:RunCommand('bash -c ''echo "videoBitrate = 9M" >> $HOME/.config/replay-sorcery.conf''', s);
+       10:RunCommand('bash -c ''echo "videoBitratey = 10M" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
+
+
+      //REPLAY Video GOPs
+
+
+      case videogopTrackBar.Position of
+      20:RunCommand('bash -c ''echo "videoGOP = 20" >> $HOME/.config/replay-sorcery.conf''', s);
+      21:RunCommand('bash -c ''echo "videoGOP = 21" >> $HOME/.config/replay-sorcery.conf''', s);
+      22:RunCommand('bash -c ''echo "videoGOP = 22" >> $HOME/.config/replay-sorcery.conf''', s);
+      23:RunCommand('bash -c ''echo "videoGOP = 23" >> $HOME/.config/replay-sorcery.conf''', s);
+      24:RunCommand('bash -c ''echo "videoGOP = 24" >> $HOME/.config/replay-sorcery.conf''', s);
+      25:RunCommand('bash -c ''echo "videoGOP = 25" >> $HOME/.config/replay-sorcery.conf''', s);
+      26:RunCommand('bash -c ''echo "videoGOP = 26" >> $HOME/.config/replay-sorcery.conf''', s);
+      27:RunCommand('bash -c ''echo "videoGOP = 27" >> $HOME/.config/replay-sorcery.conf''', s);
+      28:RunCommand('bash -c ''echo "videoGOP = 28" >> $HOME/.config/replay-sorcery.conf''', s);
+      29:RunCommand('bash -c ''echo "videoGOP = 29" >> $HOME/.config/replay-sorcery.conf''', s);
+      30:RunCommand('bash -c ''echo "videoGOP = 30" >> $HOME/.config/replay-sorcery.conf''', s);
+      31:RunCommand('bash -c ''echo "videoGOP = 31" >> $HOME/.config/replay-sorcery.conf''', s);
+      32:RunCommand('bash -c ''echo "videoGOP = 32" >> $HOME/.config/replay-sorcery.conf''', s);
+      33:RunCommand('bash -c ''echo "videoGOP = 33" >> $HOME/.config/replay-sorcery.conf''', s);
+      34:RunCommand('bash -c ''echo "videoGOP = 34" >> $HOME/.config/replay-sorcery.conf''', s);
+      35:RunCommand('bash -c ''echo "videoGOP = 35" >> $HOME/.config/replay-sorcery.conf''', s);
+      36:RunCommand('bash -c ''echo "videoGOP = 36" >> $HOME/.config/replay-sorcery.conf''', s);
+      37:RunCommand('bash -c ''echo "videoGOP = 37" >> $HOME/.config/replay-sorcery.conf''', s);
+      38:RunCommand('bash -c ''echo "videoGOP = 38" >> $HOME/.config/replay-sorcery.conf''', s);
+      39:RunCommand('bash -c ''echo "videoGOP = 39" >> $HOME/.config/replay-sorcery.conf''', s);
+      40:RunCommand('bash -c ''echo "videoGOP = 40" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
     //####################################################################################### Audio Settings
 
-  //REPLAY audio device
-  case audiodevCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioDeviceName = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+  //REPLAY audio input
+  case audioinputCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "audioInput = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "audioInput = pulse" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "audioInput = none" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
-   //REPLAY audio channels
-  case audiochanCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioChannels = 1" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioChannels = 2" >> $HOME/.config/replay-sorcery.conf''', s);
+    //REPLAY audio device
+  case audiodevCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "audioDevice = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "audioDevice = system" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "audioDevice = custom" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
+
+     //REPLAY audio encoder
+  case audioencoderCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "audioEncoder = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "audioEncoder = aac" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "audioEncoder = fdk" >> $HOME/.config/replay-sorcery.conf''', s);
+  end;
+
+       //REPLAY aac profile
+  case aacprofileCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "audioProfile = low" >> $HOME/.config/replay-sorcery.conf''', s);
+    1:RunCommand('bash -c ''echo "audioProfile = main" >> $HOME/.config/replay-sorcery.conf''', s);
+    2:RunCommand('bash -c ''echo "audioProfile = high" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
    //REPLAY audio sample rate
@@ -2131,12 +2254,18 @@ begin
   end;
 
      //REPLAY audio bit rate
-  case audiobitrateCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioBitrate = 32000" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioBitrate = 64000" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "audioBitrate = 96000" >> $HOME/.config/replay-sorcery.conf''', s);
-    3:RunCommand('bash -c ''echo "audioBitrate = 128000" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
+    if autoaudiobitrateCheckbox.Checked = true then
+          RunCommand('bash -c ''echo "audioBitrate = auto" >> $HOME/.config/replay-sorcery.conf''', s);
+
+       if autoaudiobitrateCheckbox.Checked = false then
+
+          case audiobitrateCombobox.ItemIndex of
+          1:RunCommand('bash -c ''echo "audioBitrate = 32K" >> $HOME/.config/replay-sorcery.conf''', s);
+          2:RunCommand('bash -c ''echo "audioBitrate = 64K" >> $HOME/.config/replay-sorcery.conf''', s);
+          3:RunCommand('bash -c ''echo "audioBitrate = 96K" >> $HOME/.config/replay-sorcery.conf''', s);
+          4:RunCommand('bash -c ''echo "audioBitrate = 128K" >> $HOME/.config/replay-sorcery.conf''', s);
+
+     end;
 
       //####################################################################################### Other Settings
 
@@ -2150,8 +2279,8 @@ begin
   end;
 
       //REPLAY Save message
-      RunCommand('bash -c ''echo "preOutputCommand = notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png Saving_video_recording" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "postOutputCommand = notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png Video_Saved_in_the_home_folder" >> $HOME/.config/replay-sorcery.conf''', s);
+      //RunCommand('bash -c ''echo "preOutputCommand = notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png Saving_video_recording" >> $HOME/.config/replay-sorcery.conf''', s);
+      RunCommand('bash -c ''echo "outputCommand = notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png Video_Saved_in_the_home_folder" >> $HOME/.config/replay-sorcery.conf''', s);
 
 
      //Replay output folder
@@ -2279,9 +2408,19 @@ begin
          end;
 end;
 
-procedure Tgoverlayform.replayTrackBarChange(Sender: TObject);
+procedure Tgoverlayform.videobitrateTrackBarChange(Sender: TObject);
 begin
-   compressqualityLabel.Caption:= inttostr(replayTrackBar.Position);
+   videobitrateLabel.Caption:= inttostr(videobitrateTrackBar.Position)+' Mbps';
+end;
+
+procedure Tgoverlayform.videogopTrackBarChange(Sender: TObject);
+begin
+  videogopLabel.Caption:= inttostr(videogopTrackBar.Position);
+end;
+
+procedure Tgoverlayform.videoqualityTrackBarChange(Sender: TObject);
+begin
+   videoqualityLabel.Caption:= inttostr(videoqualityTrackBar.Position);
 end;
 
 
@@ -3837,7 +3976,7 @@ begin
   key:=#0;
 end;
 
-procedure Tgoverlayform.audiochanComboboxKeyPress(Sender: TObject; var Key: char
+procedure Tgoverlayform.aacprofileComboboxKeyPress(Sender: TObject; var Key: char
   );
 begin
     //Block keypress on combobox
@@ -3869,8 +4008,7 @@ begin
           // Disable custom resolution controls
           reswidthSpinedit.Enabled := false;
           resheightSpinedit.Enabled := false;
-          offsetxSpinedit.Enabled := false;
-          offsetySpinedit.Enabled := false;
+
        end;
 
        if autoresCheckbox.Checked = false then
@@ -3882,13 +4020,45 @@ begin
           // Disable custom resolution controls
           reswidthSpinedit.Enabled := true;
           resheightSpinedit.Enabled := true;
-          offsetxSpinedit.Enabled := true;
-          offsetySpinedit.Enabled := true;
+
        end;
  end;
 
 procedure Tgoverlayform.autoresCheckBoxClick(Sender: TObject);
 begin
+
+end;
+
+procedure Tgoverlayform.autovideobitrateCheckBoxChange(Sender: TObject);
+begin
+    if autovideobitrateCheckbox.Checked = true then
+   begin
+        videobitrateTrackBar.Enabled := false;
+        videobitrateLabel.Caption:= '';
+   end;
+
+
+    if autovideobitrateCheckbox.Checked = false then
+     begin
+          videobitrateTrackBar.Enabled := true;
+          videobitrateLabel.Caption:=inttostr (videobitrateTrackBar.Position)+' Mbps'; //video bitrate value
+     end;
+end;
+
+procedure Tgoverlayform.autovideoqualityCheckBoxChange(Sender: TObject);
+begin
+  if autovideoqualityCheckbox.Checked = true then
+   begin
+        videoqualityTrackBar.Enabled := false;
+        videoqualityLabel.Caption:= '';
+   end;
+
+
+    if autovideoqualityCheckbox.Checked = false then
+     begin
+          videoqualityTrackBar.Enabled := true;
+          videoqualityLabel.Caption:=inttostr (videoqualityTrackBar.Position); //compress quality value
+     end;
 
 end;
 
@@ -4261,7 +4431,9 @@ begin
   replayPanel.Visible:=false;
 
   //Initial trackbar labels value
-  compressqualityLabel.Caption:=inttostr (replayTrackbar.Position); //compress quality value
+  videoqualityLabel.Caption:=inttostr (videoqualityTrackBar.Position); //video quality value
+  videobitrateLabel.Caption:=inttostr (videobitrateTrackBar.Position)+' Mbps'; //video bitrate value
+  videogopLabel.Caption:=inttostr (videogopTrackBar.Position); //video bitrate value
   casValueLabel.Caption:=inttostr (casTrackbar.Position); //cas value
 
 
@@ -5295,15 +5467,15 @@ Readln(initreplayoutputX264PresetValue,initreplayoutputX264PresetSTR); //Assign 
 CloseFile(initreplayoutputX264PresetValue);
 
 case initreplayoutputX264PresetSTR of
-  'outputX264Preset = ultrafast':x264presetCombobox.ItemIndex:=0;
-  'outputX264Preset = superfast':x264presetCombobox.ItemIndex:=1;
-  'outputX264Preset = veryfast':x264presetCombobox.ItemIndex:=2;
-  'outputX264Preset = faster':x264presetCombobox.ItemIndex:=3;
-  'outputX264Preset = medium':x264presetCombobox.ItemIndex:=4;
-  'outputX264Preset = slow':x264presetCombobox.ItemIndex:=5;
-  'outputX264Preset = slower':x264presetCombobox.ItemIndex:=6;
-  'outputX264Preset = veryslow':x264presetCombobox.ItemIndex:=7;
-  'outputX264Preset = placebo':x264presetCombobox.ItemIndex:=8;
+  'outputX264Preset = ultrafast':h264profileCombobox.ItemIndex:=0;
+  'outputX264Preset = superfast':h264profileCombobox.ItemIndex:=1;
+  'outputX264Preset = veryfast':h264profileCombobox.ItemIndex:=2;
+  'outputX264Preset = faster':h264profileCombobox.ItemIndex:=3;
+  'outputX264Preset = medium':h264profileCombobox.ItemIndex:=4;
+  'outputX264Preset = slow':h264profileCombobox.ItemIndex:=5;
+  'outputX264Preset = slower':h264profileCombobox.ItemIndex:=6;
+  'outputX264Preset = veryslow':h264profileCombobox.ItemIndex:=7;
+  'outputX264Preset = placebo':h264profileCombobox.ItemIndex:=8;
 end;
 
 
@@ -5333,8 +5505,8 @@ Readln(initreplayaudiochannelsValue,initreplayaudiochannelsSTR); //Assign Text f
 CloseFile(initreplayaudiochannelsValue);
 
 case initreplayaudiochannelsSTR of
-  'audioChannels = 1':audiochanCombobox.ItemIndex:=0;
-  'audioChannels = 2':audiochanCombobox.ItemIndex:=1;
+  'audioChannels = 1':aacprofileCombobox.ItemIndex:=0;
+  'audioChannels = 2':aacprofileCombobox.ItemIndex:=1;
 end;
 
 
@@ -5379,16 +5551,16 @@ Readln(initreplaycompressQualityValue,initreplaycompressQualitySTR); //Assign Te
 CloseFile(initreplaycompressQualityValue);
 
 case initreplaycompressQualitySTR of
-  'compressQuality = 10':replayTrackbar.position:=1;
-  'compressQuality = 20':replayTrackbar.position:=2;
-  'compressQuality = 30':replayTrackbar.position:=3;
-  'compressQuality = 40':replayTrackbar.position:=4;
-  'compressQuality = 50':replayTrackbar.position:=5;
-  'compressQuality = 60':replayTrackbar.position:=6;
-  'compressQuality = 70':replayTrackbar.position:=7;
-  'compressQuality = 80':replayTrackbar.position:=8;
-  'compressQuality = 90':replayTrackbar.position:=9;
-  'compressQuality = 100':replayTrackbar.position:=10;
+  'compressQuality = 10':videoqualityTrackBar.position:=1;
+  'compressQuality = 20':videoqualityTrackBar.position:=2;
+  'compressQuality = 30':videoqualityTrackBar.position:=3;
+  'compressQuality = 40':videoqualityTrackBar.position:=4;
+  'compressQuality = 50':videoqualityTrackBar.position:=5;
+  'compressQuality = 60':videoqualityTrackBar.position:=6;
+  'compressQuality = 70':videoqualityTrackBar.position:=7;
+  'compressQuality = 80':videoqualityTrackBar.position:=8;
+  'compressQuality = 90':videoqualityTrackBar.position:=9;
+  'compressQuality = 100':videoqualityTrackBar.position:=10;
 end;
 
 
@@ -5451,12 +5623,7 @@ reswidthSpinEdit.Value := customreswidthINT;
 customresheightINT := StrtoInt(initcustomheightSTR);
 resheightSpinEdit.Value := customresheightINT;
 
-customoffsetYINT := StrtoInt(initcustomoffsetYSTR);
-offsetYSpinEdit.Value := customoffsetYINT;
 
-
-customoffsetXINT := StrtoInt(initcustomoffsetXSTR);
-offsetXSpinEdit.Value := customoffsetXINT;
 end;
 
 
@@ -5749,7 +5916,7 @@ begin
    winecolorhtml := SColorToHtmlColor(winecolorButton.ButtonColor);
 end;
 
-procedure Tgoverlayform.x264presetComboboxKeyPress(Sender: TObject;
+procedure Tgoverlayform.h264profileComboboxKeyPress(Sender: TObject;
   var Key: char);
 begin
     //Block keypress on combobox
