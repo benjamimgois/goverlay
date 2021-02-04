@@ -79,11 +79,12 @@ apt install goverlay
 
 #### Ubuntu
 
-To install [`goverlay`](https://packages.debian.org/sid/amd64/goverlay/download) in Ubuntu and derivatives, run the following commands as root:
+To install [`goverlay`](https://packages.debian.org/sid/amd64/goverlay/download) in Ubuntu and derivatives use the PPA from Martin Wimpress. Run the following commands as root:
 
 ```bash
-wget http://ftp.us.debian.org/debian/pool/main/g/goverlay/goverlay_0.4.2-1_amd64.deb
-sudo dpkg -i goverlay_0.4.2-1_amd64.deb
+sudo add-apt-repository ppa:flexiondotorg/mangohud
+sudo apt-get update
+sudo apt-get install goverlay
 ```
 
 ## Tarball
