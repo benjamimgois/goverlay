@@ -22,6 +22,17 @@ type
     audiodevCombobox: TComboBox;
     audioinputCombobox: TComboBox;
     audioencoderCombobox: TComboBox;
+    graphhudBitBtn: TBitBtn;
+    fpsCheckBox: TCheckBox;
+    intelpowerfixBitBtn: TBitBtn;
+    cpuloadgraphBitBtn: TBitBtn;
+    cputempgraphBitBtn: TBitBtn;
+    ramgraphBitBtn: TBitBtn;
+    gpuloadgraphBitBtn: TBitBtn;
+    gputempgraphBitBtn: TBitBtn;
+    gpucfgraphBitBtn: TBitBtn;
+    gpumfgraphBitBtn: TBitBtn;
+    vramgraphBitBtn: TBitBtn;
     Label26: TLabel;
     Label29: TLabel;
     Label30: TLabel;
@@ -290,24 +301,32 @@ type
     procedure cpufreqCheckBoxClick(Sender: TObject);
     procedure cpuloadcolorCheckBoxChange(Sender: TObject);
     procedure cpuloadcolorCheckBoxClick(Sender: TObject);
+    procedure cpuloadgraphBitBtnClick(Sender: TObject);
     procedure cpunameEditChange(Sender: TObject);
     procedure cpupowerCheckBoxClick(Sender: TObject);
+    procedure cputempgraphBitBtnClick(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
     procedure driverversionCheckBoxChange(Sender: TObject);
     procedure engineColorButtonColorChanged(Sender: TObject);
     procedure engineversionCheckBoxClick(Sender: TObject);
     procedure FontcolorButtonColorChanged(Sender: TObject);
+    procedure fpsCheckBoxClick(Sender: TObject);
     procedure framegraphRadioButtonChange(Sender: TObject);
     procedure framegraphRadioButtonClick(Sender: TObject);
     procedure framehistogramRadioButtonClick(Sender: TObject);
     procedure framerateComboboxKeyPress(Sender: TObject; var Key: char);
     procedure geSpeedButtonClick(Sender: TObject);
+    procedure gpucfgraphBitBtnClick(Sender: TObject);
     procedure gpuloadcolorCheckBoxChange(Sender: TObject);
     procedure gpuloadcolorCheckBoxClick(Sender: TObject);
+    procedure gpuloadgraphBitBtnClick(Sender: TObject);
     procedure gpumemfreqCheckBoxClick(Sender: TObject);
+    procedure gpumfgraphBitBtnClick(Sender: TObject);
     procedure gpumodelCheckBoxClick(Sender: TObject);
     procedure gpunameEditChange(Sender: TObject);
     procedure gpupowerCheckBoxClick(Sender: TObject);
+    procedure gputempgraphBitBtnClick(Sender: TObject);
+    procedure graphhudBitBtnClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure cpuavrloadCheckBoxClick(Sender: TObject);
@@ -315,6 +334,7 @@ type
     procedure diskioCheckBoxClick(Sender: TObject);
     procedure frametimegraphColorButtonColorChanged(Sender: TObject);
     procedure hudtranspBitBtnClick(Sender: TObject);
+    procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure iordrwColorButtonColorChanged(Sender: TObject);
     procedure fontsizeComboBoxChange(Sender: TObject);
     procedure fontsizeComboBoxKeyPress(Sender: TObject; var Key: char);
@@ -335,6 +355,7 @@ type
     procedure mediaColorButtonColorChanged(Sender: TObject);
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure ramColorButtonColorChanged(Sender: TObject);
+    procedure ramgraphBitBtnClick(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
     procedure replaygeSpeedButtonClick(Sender: TObject);
     procedure replaykeyComboboxKeyPress(Sender: TObject; var Key: char);
@@ -367,6 +388,7 @@ type
     procedure vkbasaltLabelMouseEnter(Sender: TObject);
     procedure vkbasaltLabelMouseLeave(Sender: TObject);
     procedure vramColorButtonColorChanged(Sender: TObject);
+    procedure vramgraphBitBtnClick(Sender: TObject);
     procedure vramusageCheckBoxClick(Sender: TObject);
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure widthImageMouseEnter(Sender: TObject);
@@ -719,6 +741,26 @@ var
   initautouploadSTR: string;
   initvkbasalttoggleValue: Textfile;
   initvkbasalttoggleSTR: string;
+  initfps: Textfile;
+  initfpsSTR: string;
+
+  //GRAPHs variables
+  initgraphgpuload: Textfile;
+  initgraphgpuloadSTR: string;
+  initgraphgputemp: Textfile;
+  initgraphgputempSTR: string;
+  initgraphgpucf: Textfile;
+  initgraphgpucfSTR: string;
+  initgraphgpumf: Textfile;
+  initgraphgpumfSTR: string;
+  initgraphvram: Textfile;
+  initgraphvramSTR: string;
+  initgraphcpuload: Textfile;
+  initgraphcpuloadSTR: string;
+  initgraphcputemp: Textfile;
+  initgraphcputempSTR: string;
+  initgraphram: Textfile;
+  initgraphramSTR: string;
 
   //############################################Replay sorcery initial values
   initreplayframerateValue: Textfile;
@@ -830,6 +872,9 @@ var
   initautologSTR: string;
   autologINT: integer;
 
+  //######################################## Variables for Mangohud Graphs
+   gpuloadgraphVAR: boolean;
+
 implementation
 
 {$R *.lfm}
@@ -856,8 +901,8 @@ begin
   // Popup a notification
   RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Configuration saved"''', s);
 
-
   //####################################################################################### PERFORMANCE
+
 
 
     //Setup FPS Limit
@@ -911,23 +956,197 @@ begin
   end;
 
   //####################################################################################### MANGOHUD
+  
+  // Set non legacy mode
+  RunCommand('bash -c ''echo "legacy_layout=false" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+        //###################################################### GPU
+
+  //GPU checks
+
+  //GPU LOAD
+  if gpuavrloadCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_stats" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+    //GPU LOAD GRAPH
+     if gpuloadgraphBitbtn.ImageIndex=2 then
+     RunCommand('bash -c ''echo "graphs=gpu_load" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+  //GPU TEMP
+  if gputempCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_temp" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+      //GPU TEMP GRAPH
+     if gpucfgraphBitbtn.ImageIndex=2 then
+     RunCommand('bash -c ''echo "graphs=gpu_temp" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+  //GPU CORE FREQ
+  if gpufreqCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_core_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+        //GPU CORE FREQ GRAPH
+     if gputempgraphBitbtn.ImageIndex=2 then
+     RunCommand('bash -c ''echo "graphs=gpu_core_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+  //GPU MEM FREQ
+  if gpumemfreqCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_mem_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+       //GPU MEM FREQ GRAPH
+     if gpumfgraphBitbtn.ImageIndex=2 then
+     RunCommand('bash -c ''echo "graphs=gpu_mem_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+  //GPU Power
+  if gpupowerCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "gpu_power" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+  //GPU LOAD COLORS
+  if gpuloadcolorCheckbox.Checked=true then
+  begin
+  RunCommand('bash -c ''echo "gpu_load_change" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "gpu_load_value=50,90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+   //Store gpu load colors
+          //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and store in text file
+          gpuload1colorhtml := SColorToHtmlColor(gpuload1colorButton.ButtonColor);
+          gpuload2colorhtml := SColorToHtmlColor(gpuload2colorButton.ButtonColor);
+          gpuload3colorhtml := SColorToHtmlColor(gpuload3colorButton.ButtonColor);
+
+          // gpu LOAD 1 Color - Assign value to file
+          AssignFile(gpuload1colorValue, '/tmp/goverlay/gpuload1colorValue');
+          Rewrite(gpuload1colorValue);
+          Writeln(gpuload1colorValue,gpuload1colorhtml);
+          CloseFile(gpuload1colorValue);
+
+          // gpu LOAD 1 Color - Create custom script to store value in unix variable
+          AssignFile(gpuload1colorScript, '/tmp/goverlay/gpuload1colorScript.sh');
+          Rewrite(gpuload1colorScript);
+          Writeln(gpuload1colorScript,'gpuL1c=$(cat /tmp/goverlay/gpuload1colorValue | cut -c 2-10)');  //Store gpu Load1 color in Linux/Unix variable and remove # character
+          CloseFile(gpuload1colorScript);
+
+          //gpu LOAD 1 Color - execute custom script
+          RunCommand('bash -c ''sh /tmp/goverlay/gpuload1colorScript.sh''', s);
+
+
+
+          // gpu LOAD 2 Color - Assign value to file
+          AssignFile(gpuload2colorValue, '/tmp/goverlay/gpuload2colorValue');
+          Rewrite(gpuload2colorValue);
+          Writeln(gpuload2colorValue,gpuload2colorhtml);
+          CloseFile(gpuload2colorValue);
+
+          // gpu LOAD 2 Color - Create custom script to store value in unix variable
+          AssignFile(gpuload2colorScript, '/tmp/goverlay/gpuload2colorScript.sh');
+          Rewrite(gpuload2colorScript);
+          Writeln(gpuload2colorScript,'gpuL2c=$(cat /tmp/goverlay/gpuload2colorValue | cut -c 2-10)');  //Store gpu Load2 color in Linux/Unix variable and remove # character
+          CloseFile(gpuload2colorScript);
+
+          //gpu LOAD 2 Color - execute custom script
+          RunCommand('bash -c ''sh /tmp/goverlay/gpuload2colorScript.sh''', s);
+
+
+
+
+          // gpu LOAD 3 Color - Assign value to file
+          AssignFile(gpuload3colorValue, '/tmp/goverlay/gpuload3colorValue');
+          Rewrite(gpuload3colorValue);
+          Writeln(gpuload3colorValue,gpuload3colorhtml);
+          CloseFile(gpuload3colorValue);
+
+          // gpu LOAD 3 Color - Create custom script to store value in unix variable
+          AssignFile(gpuload3colorScript, '/tmp/goverlay/gpuload3colorScript.sh');
+          Rewrite(gpuload3colorScript);
+          Writeln(gpuload3colorScript,'gpuL3c=$(cat /tmp/goverlay/gpuload3colorValue | cut -c 2-10)');  //Store gpu Load3 color in Linux/Unix variable and remove # character
+          CloseFile(gpuload3colorScript);
+
+          //gpu LOAD 3 Color - execute custom script
+          RunCommand('bash -c ''sh /tmp/goverlay/gpuload3colorScript.sh''', s);
+
+
+
+
+          //gpu LOAD Colors - Create custom script with all colors
+          AssignFile(gpuloadcolorsScript, '/tmp/goverlay/gpuloadcolorsScript.sh');
+          Rewrite(gpuloadcolorsScript);
+          Writeln(gpuloadcolorsScript,'gpuL1c=$(cat /tmp/goverlay/gpuload1colorValue | cut -c 2-10)');  //Store gpu Load1 color in Linux/Unix variable and remove # character
+          Writeln(gpuloadcolorsScript,'gpuL2c=$(cat /tmp/goverlay/gpuload2colorValue | cut -c 2-10)');  //Store gpu Load2 color in Linux/Unix variable and remove # character
+          Writeln(gpuloadcolorsScript,'gpuL3c=$(cat /tmp/goverlay/gpuload3colorValue | cut -c 2-10)');  //Store gpu Load3 color in Linux/Unix variable and remove # character
+          Writeln(gpuloadcolorsScript,'echo gpu_load_color=$gpuL1c,$gpuL2c,$gpuL3c >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command
+          CloseFile(gpuloadcolorsScript);
+
+
+          //gpu LOAD Colors - execute custom script with all colors
+          RunCommand('bash -c ''sh /tmp/goverlay/gpuloadcolorsScript.sh''', s);
+
+  end;
+
+      //GPU Name
+
+      gpunameSTR := gpunameEdit.text;
+
+      // Assign value to file
+      AssignFile(gpunameValue, '/tmp/goverlay/gpunameValue');
+      Rewrite(gpunameValue);
+      Writeln(gpunameValue,gpunameSTR);
+      CloseFile(gpunameValue);
+
+      // Create custom script
+      AssignFile(gpunameScript, '/tmp/goverlay/gpunameScript.sh');
+      Rewrite(gpunameScript);
+      Writeln(gpunameScript,'gpuname=$(cat /tmp/goverlay/gpunameValue)');  //Store gpu name in Linux/Unix variable and remove # character
+      Writeln(gpunameScript,'echo "gpu_text=$gpuname" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
+      CloseFile(gpunameScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/gpunameScript.sh''', s);
+
+    //###################################################### GPU
 
   //###################################################### CPU
+
+
+  //CPU LOAD
   if cpuavrloadCheckbox.Checked=true then
   RunCommand('bash -c ''echo "cpu_stats" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+          //CPU LOAD GRAPH
+        if cpuloadgraphBitbtn.ImageIndex=2 then
+        RunCommand('bash -c ''echo "graphs=cpu_load" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+  //CPU TEMP
   if cputempCheckbox.Checked=true then
   RunCommand('bash -c ''echo "cpu_temp" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+            //CPU TEMP GRAPH
+        if cputempgraphBitbtn.ImageIndex=2 then
+        RunCommand('bash -c ''echo "graphs=cpu_temp" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+  //CPU LOAD CORES
   if cpuloadcoreCheckbox.Checked=true then
   RunCommand('bash -c ''echo "core_load" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+
+  //CPU POWER
   if cpupowerCheckbox.Checked=true then
   RunCommand('bash -c ''echo "cpu_power" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+
+  //CPU FREQUENCY
   if cpufreqCheckbox.Checked=true then
   RunCommand('bash -c ''echo "cpu_mhz" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+
+  //CPU LOAD COLOR
   if cpuloadcolorCheckbox.Checked=true then
   begin
   RunCommand('bash -c ''echo "cpu_load_change" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -1055,202 +1274,16 @@ begin
 
 
 
-      //###################################################### GPU
 
-  //GPU checks
-  if gpuavrloadCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_stats" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if gputempCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_temp" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if gpufreqCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_core_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if gpumemfreqCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_mem_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if gpupowerCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_power" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  if driverversionCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "vulkan_driver" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-
-
-  if gpuloadcolorCheckbox.Checked=true then
-  begin
-  RunCommand('bash -c ''echo "gpu_load_change" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-  RunCommand('bash -c ''echo "gpu_load_value=50,90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-   //Store gpu load colors
-          //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and store in text file
-          gpuload1colorhtml := SColorToHtmlColor(gpuload1colorButton.ButtonColor);
-          gpuload2colorhtml := SColorToHtmlColor(gpuload2colorButton.ButtonColor);
-          gpuload3colorhtml := SColorToHtmlColor(gpuload3colorButton.ButtonColor);
-
-          // gpu LOAD 1 Color - Assign value to file
-          AssignFile(gpuload1colorValue, '/tmp/goverlay/gpuload1colorValue');
-          Rewrite(gpuload1colorValue);
-          Writeln(gpuload1colorValue,gpuload1colorhtml);
-          CloseFile(gpuload1colorValue);
-
-          // gpu LOAD 1 Color - Create custom script to store value in unix variable
-          AssignFile(gpuload1colorScript, '/tmp/goverlay/gpuload1colorScript.sh');
-          Rewrite(gpuload1colorScript);
-          Writeln(gpuload1colorScript,'gpuL1c=$(cat /tmp/goverlay/gpuload1colorValue | cut -c 2-10)');  //Store gpu Load1 color in Linux/Unix variable and remove # character
-          CloseFile(gpuload1colorScript);
-
-          //gpu LOAD 1 Color - execute custom script
-          RunCommand('bash -c ''sh /tmp/goverlay/gpuload1colorScript.sh''', s);
-
-
-
-          // gpu LOAD 2 Color - Assign value to file
-          AssignFile(gpuload2colorValue, '/tmp/goverlay/gpuload2colorValue');
-          Rewrite(gpuload2colorValue);
-          Writeln(gpuload2colorValue,gpuload2colorhtml);
-          CloseFile(gpuload2colorValue);
-
-          // gpu LOAD 2 Color - Create custom script to store value in unix variable
-          AssignFile(gpuload2colorScript, '/tmp/goverlay/gpuload2colorScript.sh');
-          Rewrite(gpuload2colorScript);
-          Writeln(gpuload2colorScript,'gpuL2c=$(cat /tmp/goverlay/gpuload2colorValue | cut -c 2-10)');  //Store gpu Load2 color in Linux/Unix variable and remove # character
-          CloseFile(gpuload2colorScript);
-
-          //gpu LOAD 2 Color - execute custom script
-          RunCommand('bash -c ''sh /tmp/goverlay/gpuload2colorScript.sh''', s);
-
-
-
-
-          // gpu LOAD 3 Color - Assign value to file
-          AssignFile(gpuload3colorValue, '/tmp/goverlay/gpuload3colorValue');
-          Rewrite(gpuload3colorValue);
-          Writeln(gpuload3colorValue,gpuload3colorhtml);
-          CloseFile(gpuload3colorValue);
-
-          // gpu LOAD 3 Color - Create custom script to store value in unix variable
-          AssignFile(gpuload3colorScript, '/tmp/goverlay/gpuload3colorScript.sh');
-          Rewrite(gpuload3colorScript);
-          Writeln(gpuload3colorScript,'gpuL3c=$(cat /tmp/goverlay/gpuload3colorValue | cut -c 2-10)');  //Store gpu Load3 color in Linux/Unix variable and remove # character
-          CloseFile(gpuload3colorScript);
-
-          //gpu LOAD 3 Color - execute custom script
-          RunCommand('bash -c ''sh /tmp/goverlay/gpuload3colorScript.sh''', s);
-
-
-
-
-          //gpu LOAD Colors - Create custom script with all colors
-          AssignFile(gpuloadcolorsScript, '/tmp/goverlay/gpuloadcolorsScript.sh');
-          Rewrite(gpuloadcolorsScript);
-          Writeln(gpuloadcolorsScript,'gpuL1c=$(cat /tmp/goverlay/gpuload1colorValue | cut -c 2-10)');  //Store gpu Load1 color in Linux/Unix variable and remove # character
-          Writeln(gpuloadcolorsScript,'gpuL2c=$(cat /tmp/goverlay/gpuload2colorValue | cut -c 2-10)');  //Store gpu Load2 color in Linux/Unix variable and remove # character
-          Writeln(gpuloadcolorsScript,'gpuL3c=$(cat /tmp/goverlay/gpuload3colorValue | cut -c 2-10)');  //Store gpu Load3 color in Linux/Unix variable and remove # character
-          Writeln(gpuloadcolorsScript,'echo gpu_load_color=$gpuL1c,$gpuL2c,$gpuL3c >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command
-          CloseFile(gpuloadcolorsScript);
-
-
-          //gpu LOAD Colors - execute custom script with all colors
-          RunCommand('bash -c ''sh /tmp/goverlay/gpuloadcolorsScript.sh''', s);
-
-  end;
-
-
-
-  if gpumodelCheckBox.Checked=true then
-  RunCommand('bash -c ''echo "gpu_name" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-   //GPU name Color
-
-      // Assign value to file
-      AssignFile(gpucolorValue, '/tmp/goverlay/gpucolorValue');
-      Rewrite(gpucolorValue);
-      Writeln(gpucolorValue,gpucolorhtml);
-      CloseFile(gpucolorValue);
-
-      // Create custom script
-      AssignFile(gpucolorScript, '/tmp/goverlay/gpucolorScript.sh');
-      Rewrite(gpucolorScript);
-      Writeln(gpucolorScript,'GPUc=$(cat /tmp/goverlay/gpucolorValue | cut -c 2-10)');  //Store gpu color in Linux/Unix variable and remove # character
-      Writeln(gpucolorScript,'echo "gpu_color=$GPUc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(gpucolorScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/gpucolorScript.sh''', s);
-
-
-
-      //GPU Name
-
-      gpunameSTR := gpunameEdit.text;
-
-      // Assign value to file
-      AssignFile(gpunameValue, '/tmp/goverlay/gpunameValue');
-      Rewrite(gpunameValue);
-      Writeln(gpunameValue,gpunameSTR);
-      CloseFile(gpunameValue);
-
-      // Create custom script
-      AssignFile(gpunameScript, '/tmp/goverlay/gpunameScript.sh');
-      Rewrite(gpunameScript);
-      Writeln(gpunameScript,'gpuname=$(cat /tmp/goverlay/gpunameValue)');  //Store gpu name in Linux/Unix variable and remove # character
-      Writeln(gpunameScript,'echo "gpu_text=$gpuname" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
-      CloseFile(gpunameScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/gpunameScript.sh''', s);
-
-  if vramusageCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "vram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  //VRAM Color
-
-      // Assign value to file
-      AssignFile(vramcolorValue, '/tmp/goverlay/vramcolorValue');
-      Rewrite(vramcolorValue);
-      Writeln(vramcolorValue,vramcolorhtml);
-      CloseFile(vramcolorValue);
-
-      // Create custom script
-      AssignFile(vramcolorScript, '/tmp/goverlay/vramcolorScript.sh');
-      Rewrite(vramcolorScript);
-      Writeln(vramcolorScript,'VRAMc=$(cat /tmp/goverlay/vramcolorValue | cut -c 2-10)');  //Store vram color in Linux/Unix variable and remove # character
-      Writeln(vramcolorScript,'echo "vram_color=$VRAMc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(vramcolorScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/vramcolorScript.sh''', s);
-
-    //###################################################### GPU
 
    //###################################################### OTHERS
 
-  if ramusageCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "ram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-    //RAM Color
-    // Assign value to file
-      AssignFile(ramcolorValue, '/tmp/goverlay/ramcolorValue');
-      Rewrite(ramcolorValue);
-      Writeln(ramcolorValue,ramcolorhtml);
-      CloseFile(ramcolorValue);
-
-      // Create custom script
-      AssignFile(ramcolorScript, '/tmp/goverlay/ramcolorScript.sh');
-      Rewrite(ramcolorScript);
-      Writeln(ramcolorScript,'RAMc=$(cat /tmp/goverlay/ramcolorValue | cut -c 2-10)');  //Store ram color in Linux/Unix variable and remove # character
-      Writeln(ramcolorScript,'echo "ram_color=$RAMc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(ramcolorScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/ramcolorScript.sh''', s);
-
-
+  //Disk IO
 
   if diskioCheckbox.Checked=true then
   begin
+  RunCommand('bash -c ''echo "io_stats" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   RunCommand('bash -c ''echo "io_read" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   RunCommand('bash -c ''echo "io_write" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   end;
@@ -1275,10 +1308,147 @@ begin
 
 
 
+ //VRAM
+  if vramusageCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "vram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+        //VRAM GRAPH
+        if vramgraphBitbtn.ImageIndex=2 then
+        RunCommand('bash -c ''echo "graphs=vram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  //VRAM Color
+
+      // Assign value to file
+      AssignFile(vramcolorValue, '/tmp/goverlay/vramcolorValue');
+      Rewrite(vramcolorValue);
+      Writeln(vramcolorValue,vramcolorhtml);
+      CloseFile(vramcolorValue);
+
+      // Create custom script
+      AssignFile(vramcolorScript, '/tmp/goverlay/vramcolorScript.sh');
+      Rewrite(vramcolorScript);
+      Writeln(vramcolorScript,'VRAMc=$(cat /tmp/goverlay/vramcolorValue | cut -c 2-10)');  //Store vram color in Linux/Unix variable and remove # character
+      Writeln(vramcolorScript,'echo "vram_color=$VRAMc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(vramcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/vramcolorScript.sh''', s);
+
+   //RAM
+   if ramusageCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "ram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+        //RAM GRAPH
+        if ramgraphBitbtn.ImageIndex=2 then
+        RunCommand('bash -c ''echo "graphs=ram" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+    //RAM Color
+    // Assign value to file
+      AssignFile(ramcolorValue, '/tmp/goverlay/ramcolorValue');
+      Rewrite(ramcolorValue);
+      Writeln(ramcolorValue,ramcolorhtml);
+      CloseFile(ramcolorValue);
+
+      // Create custom script
+      AssignFile(ramcolorScript, '/tmp/goverlay/ramcolorScript.sh');
+      Rewrite(ramcolorScript);
+      Writeln(ramcolorScript,'RAMc=$(cat /tmp/goverlay/ramcolorValue | cut -c 2-10)');  //Store ram color in Linux/Unix variable and remove # character
+      Writeln(ramcolorScript,'echo "ram_color=$RAMc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(ramcolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/ramcolorScript.sh''', s);
+
+
+//FPS
+   if fpsCheckbox.Checked=true then
+   RunCommand('bash -c ''echo "fps" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+  //Engine version
+  if engineversionCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "engine_version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+  //engine Color
+      // Assign value to file
+      AssignFile(enginecolorValue, '/tmp/goverlay/enginecolorValue');
+      Rewrite(enginecolorValue);
+      Writeln(enginecolorValue,enginecolorhtml);
+      CloseFile(enginecolorValue);
+
+      // Create custom script
+      AssignFile(enginecolorScript, '/tmp/goverlay/enginecolorScript.sh');
+      Rewrite(enginecolorScript);
+      Writeln(enginecolorScript,'ENGc=$(cat /tmp/goverlay/enginecolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
+      Writeln(enginecolorScript,'echo "engine_color=$ENGc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(enginecolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/enginecolorScript.sh''', s);
 
 
   //Others checks
+
+    //GPU Name - Model
+    if gpumodelCheckBox.Checked=true then
+    RunCommand('bash -c ''echo "gpu_name" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+    //GPU name Color
+
+      // Assign value to file
+      AssignFile(gpucolorValue, '/tmp/goverlay/gpucolorValue');
+      Rewrite(gpucolorValue);
+      Writeln(gpucolorValue,gpucolorhtml);
+      CloseFile(gpucolorValue);
+
+      // Create custom script
+      AssignFile(gpucolorScript, '/tmp/goverlay/gpucolorScript.sh');
+      Rewrite(gpucolorScript);
+      Writeln(gpucolorScript,'GPUc=$(cat /tmp/goverlay/gpucolorValue | cut -c 2-10)');  //Store gpu color in Linux/Unix variable and remove # character
+      Writeln(gpucolorScript,'echo "gpu_color=$GPUc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(gpucolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/gpucolorScript.sh''', s);
+
+  //Driver version
+    if driverversionCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "vulkan_driver" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  //Arch
+  if archCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "arch" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+  //Wine
+  if wineCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "wine" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+  //wine Color
+    // Assign value to file
+      AssignFile(winecolorValue, '/tmp/goverlay/winecolorValue');
+      Rewrite(winecolorValue);
+      Writeln(winecolorValue,winecolorhtml);
+      CloseFile(winecolorValue);
+
+      // Create custom script
+      AssignFile(winecolorScript, '/tmp/goverlay/winecolorScript.sh');
+      Rewrite(winecolorScript);
+      Writeln(winecolorScript,'WINEc=$(cat /tmp/goverlay/winecolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
+      Writeln(winecolorScript,'echo "wine_color=$WINEc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
+      CloseFile(winecolorScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/winecolorScript.sh''', s);
+
+
+
 
   //Frame time
   if frametimegraphCheckbox.Checked=true then
@@ -1309,69 +1479,12 @@ begin
       if framehistogramRadioButton.Checked=true then
       RunCommand('bash -c ''echo "histogram" >> $HOME/.config/MangoHud/MangoHud.conf''', s) ;
 
-  //Time
-  if timeCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "time" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  //Hud version
-  if hudversionCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-  //Arch
-  if archCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "arch" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  //Engine version
-  if engineversionCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "engine_version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   //Media Player
   if mediaCheckBox.Checked=true then
   RunCommand('bash -c ''echo "media_player" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-  //Wine
-  if wineCheckbox.Checked=true then
-  RunCommand('bash -c ''echo "wine" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-
-
-  //wine Color
-    // Assign value to file
-      AssignFile(winecolorValue, '/tmp/goverlay/winecolorValue');
-      Rewrite(winecolorValue);
-      Writeln(winecolorValue,winecolorhtml);
-      CloseFile(winecolorValue);
-
-      // Create custom script
-      AssignFile(winecolorScript, '/tmp/goverlay/winecolorScript.sh');
-      Rewrite(winecolorScript);
-      Writeln(winecolorScript,'WINEc=$(cat /tmp/goverlay/winecolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
-      Writeln(winecolorScript,'echo "wine_color=$WINEc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(winecolorScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/winecolorScript.sh''', s);
-
-
-
-
-  //engine Color
-      // Assign value to file
-      AssignFile(enginecolorValue, '/tmp/goverlay/enginecolorValue');
-      Rewrite(enginecolorValue);
-      Writeln(enginecolorValue,enginecolorhtml);
-      CloseFile(enginecolorValue);
-
-      // Create custom script
-      AssignFile(enginecolorScript, '/tmp/goverlay/enginecolorScript.sh');
-      Rewrite(enginecolorScript);
-      Writeln(enginecolorScript,'ENGc=$(cat /tmp/goverlay/enginecolorValue | cut -c 2-10)');  //Store color in Linux/Unix variable and remove # character
-      Writeln(enginecolorScript,'echo "engine_color=$ENGc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with crosshair color value
-      CloseFile(enginecolorScript);
-
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/enginecolorScript.sh''', s);
-
 
 
   //Media Color
@@ -1390,6 +1503,15 @@ begin
 
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/mediacolorScript.sh''', s);
+
+
+   //Time
+  if timeCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "time" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  //Hud version
+  if hudversionCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "version" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
       //###################################################### OTHERS
 
@@ -1653,8 +1775,19 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_pow
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_mhz >> $HOME/.config/goverlay/initial_values/cpu_mhz''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w autostart_log >> $HOME/.config/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''cp /tmp/goverlay/autolog_value $HOME/.config/goverlay/initial_values/''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps >> $HOME/.config/goverlay/initial_values/fps''', s);
 
+//GRAPHs configs
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=gpu_load >> $HOME/.config/goverlay/initial_values/graphs_gpu_load''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=gpu_temp >> $HOME/.config/goverlay/initial_values/graphs_gpu_temp''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=gpu_core_clock >> $HOME/.config/goverlay/initial_values/graphs_gpu_core_clock''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=gpu_mem_clock >> $HOME/.config/goverlay/initial_values/graphs_gpu_mem_clock''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=cpu_load >> $HOME/.config/goverlay/initial_values/graphs_cpu_load''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=cpu_temp >> $HOME/.config/goverlay/initial_values/graphs_cpu_temp''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=vram >> $HOME/.config/goverlay/initial_values/graphs_vram''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=ram >> $HOME/.config/goverlay/initial_values/graphs_ram''', s);
 
+//TEXT configs
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_text >> $HOME/.config/goverlay/initial_values/cpu_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/cpu_text_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text >> $HOME/.config/goverlay/initial_values/gpu_text''', s);
@@ -1667,9 +1800,9 @@ end;
 procedure Tgoverlayform.fontsizeComboBoxChange(Sender: TObject);
 begin
   if fontsizeCombobox.ItemIndex=3 then
-  fontsizeSpinEdit.Enabled:=true
+   fontsizeSpinEdit.Enabled:=true
   else
-    fontsizeSpinEdit.Enabled:=false;
+   fontsizeSpinEdit.Enabled:=false;
 end;
 
 procedure Tgoverlayform.fontsizeComboBoxKeyPress(Sender: TObject; var Key: char
@@ -1877,6 +2010,14 @@ begin
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     ramcolorhtml := SColorToHtmlColor(ramcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.ramgraphBitBtnClick(Sender: TObject);
+begin
+     case ramgraphBitbtn.ImageIndex of
+     2:ramgraphBitbtn.ImageIndex:= 3;
+     3:ramgraphBitbtn.ImageIndex:= 2;
+     end;
 end;
 
 procedure Tgoverlayform.ramusageCheckBoxClick(Sender: TObject);
@@ -2631,6 +2772,16 @@ begin
   gpuloadcolorCheckbox.Checked:=true;
   cpuloadcolorCheckbox.Checked:=true;
   hudversionCheckbox.Checked:=false;
+  fpsCheckbox.Checked:=true;
+
+   gpuloadgraphBitbtn.imageindex:=3;
+   gputempgraphBitbtn.imageindex:=3;
+   gpucfgraphBitbtn.imageindex:=3;
+   gpumfgraphBitbtn.imageindex:=3;
+   vramgraphBitbtn.imageindex:=3;
+   cpuloadgraphBitbtn.imageindex:=3;
+   cputempgraphBitbtn.imageindex:=3;
+   ramgraphBitbtn.imageindex:=3;
 
   //Preview all hud options
   cpulabel.Caption:='CPU';
@@ -2699,6 +2850,14 @@ begin
      cpuusagelabel.Font.Color:=cpuload1Colorbutton.ButtonColor;
 end;
 
+procedure Tgoverlayform.cpuloadgraphBitBtnClick(Sender: TObject);
+begin
+     case cpuloadgraphBitbtn.ImageIndex of
+     2:cpuloadgraphBitbtn.ImageIndex:= 3;
+     3:cpuloadgraphBitbtn.ImageIndex:= 2;
+     end;
+end;
+
 procedure Tgoverlayform.cpunameEditChange(Sender: TObject);
 begin
   cpulabel.Caption:=cpunameEdit.Text;
@@ -2712,6 +2871,14 @@ begin
   else
      cpupowerlabel.Caption:='' ;
 
+end;
+
+procedure Tgoverlayform.cputempgraphBitBtnClick(Sender: TObject);
+begin
+     case cputempgraphBitbtn.ImageIndex of
+     2:cputempgraphBitbtn.ImageIndex:= 3;
+     3:cputempgraphBitbtn.ImageIndex:= 2;
+     end;
 end;
 
 procedure Tgoverlayform.basaltsaveBitBtnClick(Sender: TObject);
@@ -4012,6 +4179,16 @@ begin
    cpupowerCheckbox.Checked:=false;
    cpufreqCheckbox.Checked:=false;
    hudversionCheckbox.Checked:=false;
+   fpsCheckbox.Checked:=true;
+
+   gpuloadgraphBitbtn.imageindex:=3;
+   gputempgraphBitbtn.imageindex:=3;
+   gpucfgraphBitbtn.imageindex:=3;
+   gpumfgraphBitbtn.imageindex:=3;
+   vramgraphBitbtn.imageindex:=3;
+   cpuloadgraphBitbtn.imageindex:=3;
+   cputempgraphBitbtn.imageindex:=3;
+   ramgraphBitbtn.imageindex:=3;
 
    //Preview compact hud options
    cpulabel.Caption:='CPU';
@@ -4349,6 +4526,22 @@ begin
     hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
 end;
 
+procedure Tgoverlayform.fpsCheckBoxClick(Sender: TObject);
+begin
+     //Preview FPS
+     if fpsCheckbox.Checked=true then
+      begin
+      vulkanlabel.visible:=true;
+      vulkanfpslabel.visible:=true;
+      end;
+
+     if fpsCheckbox.Checked=false then
+      begin
+      vulkanlabel.visible:=false;
+      vulkanfpslabel.visible:=false;
+      end;
+end;
+
 procedure Tgoverlayform.framegraphRadioButtonChange(Sender: TObject);
 begin
 
@@ -4477,6 +4670,13 @@ procedure Tgoverlayform.hudtranspBitBtnClick(Sender: TObject);
 begin
   hudbackgroundForm.show;
 end;
+
+procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
+begin
+  RunCommand('bash -c ''pkexec chmod o+r /sys/class/powercap/intel-rapl\:0/energy_uj''', s); // Enable reading for intel power drawn
+  intelpowerfixBitBtn.ImageIndex:=0;
+end;
+
 
 procedure Tgoverlayform.iordrwColorButtonColorChanged(Sender: TObject);
 begin
@@ -4857,6 +5057,16 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_power''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_mhz''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/fps''', s);
+
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_load''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_temp''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_core_clock''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_mem_clock''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_cpu_load''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_cpu_temp''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_vram''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_ram''', s);
 
 //vkbasalt dummy initials
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
@@ -5513,6 +5723,123 @@ case initfontsizeSTR of
  end;
 
 
+//###################################################################### GRAPH_GPU_LOAD
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphgpuload, '/tmp/goverlay/initial_values/graphs_gpu_load');
+Reset(initgraphgpuload);
+Readln(initgraphgpuload,initgraphgpuloadSTR); //Assign Text file to String
+CloseFile(initgraphgpuload);
+
+case initgraphgpuloadSTR of
+  '':gpuloadgraphBitbtn.imageindex:=3;
+  'graphs=gpu_load':gpuloadgraphBitbtn.imageindex:=2;
+end;
+
+
+
+//###################################################################### FPS
+// Assign Text file to variable than assign variable to string
+AssignFile(initfps, '/tmp/goverlay/initial_values/fps');
+Reset(initfps);
+Readln(initfps,initfpsSTR); //Assign Text file to String
+CloseFile(initfps);
+
+case initfpsSTR of
+  '':fpsCheckbox.checked:=false;
+  'fps':fpsCheckbox.checked:=true;
+end;
+
+//###################################################################### GRAPH_GPU_temp
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphgputemp, '/tmp/goverlay/initial_values/graphs_gpu_temp');
+Reset(initgraphgputemp);
+Readln(initgraphgputemp,initgraphgputempSTR); //Assign Text file to String
+CloseFile(initgraphgputemp);
+
+case initgraphgputempSTR of
+  '':gputempgraphBitbtn.imageindex:=3;
+  'graphs=gpu_temp':gputempgraphBitbtn.imageindex:=2;
+end;
+
+
+//###################################################################### GRAPH_GPU_CORE_CLOCK
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphgpucf, '/tmp/goverlay/initial_values/graphs_gpu_core_clock');
+Reset(initgraphgpucf);
+Readln(initgraphgpucf,initgraphgpucfSTR); //Assign Text file to String
+CloseFile(initgraphgpucf);
+
+case initgraphgpucfSTR of
+  '':gpucfgraphBitbtn.imageindex:=3;
+  'graphs=gpu_core_clock':gpucfgraphBitbtn.imageindex:=2;
+end;
+
+
+//###################################################################### GRAPH_GPU_MEM_CLOCK
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphgpumf, '/tmp/goverlay/initial_values/graphs_gpu_mem_clock');
+Reset(initgraphgpumf);
+Readln(initgraphgpumf,initgraphgpumfSTR); //Assign Text file to String
+CloseFile(initgraphgpumf);
+
+case initgraphgpumfSTR of
+  '':gpumfgraphBitbtn.imageindex:=3;
+  'graphs=gpu_mem_clock':gpumfgraphBitbtn.imageindex:=2;
+end;
+
+
+
+//###################################################################### GRAPH_VRAM
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphvram, '/tmp/goverlay/initial_values/graphs_vram');
+Reset(initgraphvram);
+Readln(initgraphvram,initgraphvramSTR); //Assign Text file to String
+CloseFile(initgraphvram);
+
+case initgraphvramSTR of
+  '':vramgraphBitbtn.imageindex:=3;
+  'graphs=vram':vramgraphBitbtn.imageindex:=2;
+end;
+
+
+//###################################################################### GRAPH_CPU_LOAD
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphcpuload, '/tmp/goverlay/initial_values/graphs_cpu_load');
+Reset(initgraphcpuload);
+Readln(initgraphcpuload,initgraphcpuloadSTR); //Assign Text file to String
+CloseFile(initgraphcpuload);
+
+case initgraphcpuloadSTR of
+  '':cpuloadgraphBitbtn.imageindex:=3;
+  'graphs=cpu_load':cpuloadgraphBitbtn.imageindex:=2;
+end;
+
+
+//###################################################################### GRAPH_CPU_temp
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphcputemp, '/tmp/goverlay/initial_values/graphs_cpu_temp');
+Reset(initgraphcputemp);
+Readln(initgraphcputemp,initgraphcputempSTR); //Assign Text file to String
+CloseFile(initgraphcputemp);
+
+case initgraphcputempSTR of
+  '':cputempgraphBitbtn.imageindex:=3;
+  'graphs=cpu_temp':cputempgraphBitbtn.imageindex:=2;
+end;
+
+//###################################################################### GRAPH_ram
+// Assign Text file to variable than assign variable to string
+AssignFile(initgraphram, '/tmp/goverlay/initial_values/graphs_ram');
+Reset(initgraphram);
+Readln(initgraphram,initgraphramSTR); //Assign Text file to String
+CloseFile(initgraphram);
+
+case initgraphramSTR of
+  '':ramgraphBitbtn.imageindex:=3;
+  'graphs=ram':ramgraphBitbtn.imageindex:=2;
+end;
+
+
 
 // ########################################         Read configuration files - VKBASALT  ########################################################
 
@@ -6062,6 +6389,14 @@ begin
 
    end;
 
+procedure Tgoverlayform.gpucfgraphBitBtnClick(Sender: TObject);
+begin
+     case gpucfgraphBitbtn.ImageIndex of
+     2:gpucfgraphBitbtn.ImageIndex:= 3;
+     3:gpucfgraphBitbtn.ImageIndex:= 2;
+     end;
+end;
+
 procedure Tgoverlayform.gpuloadcolorCheckBoxChange(Sender: TObject);
 begin
 
@@ -6076,6 +6411,16 @@ begin
      gpuusagelabel.Font.Color:=gpuload1Colorbutton.ButtonColor;
 end;
 
+procedure Tgoverlayform.gpuloadgraphBitBtnClick(Sender: TObject);
+begin
+
+  case gpuloadgraphBitbtn.ImageIndex of
+    2:gpuloadgraphBitbtn.ImageIndex:= 3;
+    3:gpuloadgraphBitbtn.ImageIndex:= 2;
+    end;
+
+end;
+
 procedure Tgoverlayform.gpumemfreqCheckBoxClick(Sender: TObject);
 begin
       //PREVIEW GPU Mem Frequency
@@ -6084,6 +6429,14 @@ begin
   else
      gpumemfreqlabel.Caption:='' ;
   end;
+
+procedure Tgoverlayform.gpumfgraphBitBtnClick(Sender: TObject);
+begin
+     case gpumfgraphBitbtn.ImageIndex of
+     2:gpumfgraphBitbtn.ImageIndex:= 3;
+     3:gpumfgraphBitbtn.ImageIndex:= 2;
+     end;
+end;
 
 
 procedure Tgoverlayform.gpumodelCheckBoxClick(Sender: TObject);
@@ -6109,6 +6462,52 @@ begin
   else
      gpupowerlabel.Caption:='' ;
   end;
+
+procedure Tgoverlayform.gputempgraphBitBtnClick(Sender: TObject);
+begin
+     case gputempgraphBitbtn.ImageIndex of
+     2:gputempgraphBitbtn.ImageIndex:= 3;
+     3:gputempgraphBitbtn.ImageIndex:= 2;
+     end;
+end;
+
+procedure Tgoverlayform.graphhudBitBtnClick(Sender: TObject);
+begin
+   //Check graph hud options
+  cpuavrloadCheckbox.Checked:=false;
+  cputempCheckbox.Checked:=false;
+  cpuloadcoreCheckbox.Checked:=false;
+  gpuavrloadCheckbox.Checked:=false;
+  gputempCheckbox.Checked:=false;
+  gpufreqCheckbox.Checked:=false;
+  diskioCheckbox.Checked:=false;
+  vramusageCheckbox.Checked:=false;
+  ramusageCheckbox.Checked:=false;
+  frametimegraphCheckbox.Checked:=false;
+  timeCheckbox.Checked:=false;
+  archCheckbox.Checked:=false;
+  driverversionCheckbox.Checked:=false;
+  gpupowerCheckBox.Checked:=false;
+  gpumodelCheckBox.Checked:=false;
+  gpumemfreqCheckBox.Checked:=false;
+  engineversionCheckBox.Checked:=false;
+  wineCheckbox.Checked:=false;
+  cpufreqCheckbox.Checked:=false;
+  cpupowerCheckbox.Checked:=false;
+  gpuloadcolorCheckbox.Checked:=false;
+  cpuloadcolorCheckbox.Checked:=false;
+  hudversionCheckbox.Checked:=false;
+  fpsCheckbox.Checked:=false;
+
+   gpuloadgraphBitbtn.imageindex:=2;
+   gputempgraphBitbtn.imageindex:=2;
+   gpucfgraphBitbtn.imageindex:=2;
+   gpumfgraphBitbtn.imageindex:=2;
+   vramgraphBitbtn.imageindex:=2;
+   cpuloadgraphBitbtn.imageindex:=2;
+   cputempgraphBitbtn.imageindex:=2;
+   ramgraphBitbtn.imageindex:=2;
+end;
 
 
 procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
@@ -6228,6 +6627,14 @@ begin
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     vramcolorhtml := SColorToHtmlColor(vramcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.vramgraphBitBtnClick(Sender: TObject);
+begin
+     case vramgraphBitbtn.ImageIndex of
+     2:vramgraphBitbtn.ImageIndex:= 3;
+     3:vramgraphBitbtn.ImageIndex:= 2;
+     end;
 end;
 
 procedure Tgoverlayform.vramusageCheckBoxClick(Sender: TObject);

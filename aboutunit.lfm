@@ -10,7 +10,7 @@ object aboutForm: TaboutForm
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.0.10.0'
+  LCLVersion = '2.0.12.0'
   object PageControl1: TPageControl
     Left = 0
     Height = 784
@@ -23,14 +23,15 @@ object aboutForm: TaboutForm
       Caption = 'About'
       ClientHeight = 745
       ClientWidth = 532
+      Font.Color = clBlack
+      Font.Quality = fqAntialiased
+      ParentFont = False
       object descriptionMemo: TMemo
         Left = 8
         Height = 112
         Top = 40
         Width = 512
         BorderStyle = bsNone
-        Color = 3684408
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -49,11 +50,12 @@ object aboutForm: TaboutForm
         Top = 16
         Width = 131
         Caption = 'GOverlay'
-        Font.Color = clWhite
+        Color = clDefault
         Font.Height = -19
         Font.Name = 'Sans'
         Font.Style = [fsBold]
         ParentFont = False
+        ParentColor = False
         TabOrder = 0
       end
       object mangolink: TLabel
@@ -63,8 +65,8 @@ object aboutForm: TaboutForm
         Top = 289
         Width = 342
         Caption = 'https://github.com/flightlessmango/MangoHud'
-        Color = 3684408
-        Font.Color = clWhite
+        Color = clDefault
+        Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -80,8 +82,6 @@ object aboutForm: TaboutForm
         Top = 399
         Width = 512
         BorderStyle = bsNone
-        Color = 3684408
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -100,8 +100,8 @@ object aboutForm: TaboutForm
         Top = 448
         Width = 340
         Caption = 'https://github.com/matanui159/ReplaySorcery'
-        Color = 3684408
-        Font.Color = clWhite
+        Color = clDefault
+        Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -11102,8 +11102,6 @@ object aboutForm: TaboutForm
         Top = 603
         Width = 392
         BorderStyle = bsNone
-        Color = 3684408
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -12248,7 +12246,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 164
         Height = 80
-        Top = 152
+        Top = 159
         Width = 184
         OnClick = donateImageClick
         Picture.Data = {
@@ -15272,8 +15270,6 @@ object aboutForm: TaboutForm
         Top = 254
         Width = 512
         BorderStyle = bsNone
-        Color = 3684408
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15291,8 +15287,6 @@ object aboutForm: TaboutForm
         Top = 322
         Width = 512
         BorderStyle = bsNone
-        Color = 3684408
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15311,8 +15305,8 @@ object aboutForm: TaboutForm
         Top = 364
         Width = 305
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
-        Color = 3684408
-        Font.Color = clWhite
+        Color = clDefault
+        Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15328,8 +15322,6 @@ object aboutForm: TaboutForm
         Top = 494
         Width = 512
         BorderStyle = bsNone
-        Color = 3684408
-        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15348,8 +15340,8 @@ object aboutForm: TaboutForm
         Top = 541
         Width = 247
         Caption = 'https://www.linux4everyone.com/'
-        Color = 3684408
-        Font.Color = clWhite
+        Color = clDefault
+        Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
