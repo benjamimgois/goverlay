@@ -1917,7 +1917,7 @@ begin
     1: begin
       replaygeSpeedButton.ImageIndex:=0;  //switch button position
       RunCommand('bash -c ''rm $HOME/.config/autostart/replay.desktop''', s); //delete old file
-      RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Desactivated"''', s); // Popup a notification
+      RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
       showmessage ('Restart your system to take effect');
      end;
   end;
@@ -4061,7 +4061,7 @@ begin
      1: begin
         basaltgeSpeedButton.ImageIndex:=0;
         RunCommand('bash -c ''yes | cp -rf $HOME/.profile_vkbasalt.bkp $HOME/.profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Desactivated"''', s); // Popup a notification
+        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
         showmessage ('Restart your system to take effect');
      end;
 
@@ -6054,7 +6054,7 @@ begin
      1: begin
         geSpeedButton.ImageIndex:=0;
         RunCommand('bash -c ''yes | cp -rf $HOME/.profile.bkp $HOME/.profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Desactivated"''', s); // Popup a notification
+        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
         showmessage ('Restart your system to take effect');
      end;
 
