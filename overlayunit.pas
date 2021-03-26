@@ -5,8 +5,9 @@ unit overlayunit;
 interface
 
 uses
-  Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, unix,
-  StdCtrls, Spin, ComCtrls, Buttons, ColorBox, aboutunit,ATStringProc_HtmlColor,crosshairUnit,hudbackgroundUnit,customeffectsunit;
+  Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
+  unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
+  ATStringProc_HtmlColor, crosshairUnit, hudbackgroundUnit, customeffectsunit;
 
 
 
@@ -27,11 +28,16 @@ type
     intelpowerfixBitBtn: TBitBtn;
     cpuloadgraphBitBtn: TBitBtn;
     cputempgraphBitBtn: TBitBtn;
+    steamMenuItem: TMenuItem;
+    lutrisMenuItem: TMenuItem;
+    heroicMenuItem: TMenuItem;
+    gamePopupMenu: TPopupMenu;
     ramgraphBitBtn: TBitBtn;
     gpuloadgraphBitBtn: TBitBtn;
     gputempgraphBitBtn: TBitBtn;
     gpucfgraphBitBtn: TBitBtn;
     gpumfgraphBitBtn: TBitBtn;
+    runsteamBitBtn: TBitBtn;
     vramgraphBitBtn: TBitBtn;
     Label26: TLabel;
     Label29: TLabel;
@@ -327,6 +333,7 @@ type
     procedure gpupowerCheckBoxClick(Sender: TObject);
     procedure gputempgraphBitBtnClick(Sender: TObject);
     procedure graphhudBitBtnClick(Sender: TObject);
+    procedure heroicMenuItemClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure cpuavrloadCheckBoxClick(Sender: TObject);
@@ -349,6 +356,7 @@ type
     procedure hudonoffComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure loggingComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure logpathBitBtnClick(Sender: TObject);
+    procedure lutrisMenuItemClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
     procedure mangohudLabelMouseEnter(Sender: TObject);
     procedure mangohudLabelMouseLeave(Sender: TObject);
@@ -365,6 +373,9 @@ type
     procedure replaysaveBitBtnClick(Sender: TObject);
     procedure replaystartBitBtnClick(Sender: TObject);
     procedure replaystopBitBtnClick(Sender: TObject);
+    procedure runsteamBitBtnClick(Sender: TObject);
+    procedure saveBitBtn1Click(Sender: TObject);
+    procedure steamMenuItemClick(Sender: TObject);
     procedure videobitrateTrackBarChange(Sender: TObject);
     procedure videogopTrackBarChange(Sender: TObject);
     procedure videoqualityTrackBarChange(Sender: TObject);
@@ -1933,6 +1944,11 @@ begin
   logpathForm.show;
 end;
 
+procedure Tgoverlayform.lutrisMenuItemClick(Sender: TObject);
+begin
+  RunCommand('bash -c ''mangohud lutris''', s);  // run lutris
+end;
+
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
   //On Select mangohud shape - Change variables
@@ -2655,6 +2671,22 @@ begin
             replaystateSpeedButton.ImageIndex:=0;
             replaystateLabel.Caption:='Service is running';
          end;
+end;
+
+procedure Tgoverlayform.runsteamBitBtnClick(Sender: TObject);
+begin
+      with runsteamBitbtn.ClientToScreen(point(0, 0)) do
+     gamePopupMenu.Popup(X, Y);
+end;
+
+procedure Tgoverlayform.saveBitBtn1Click(Sender: TObject);
+begin
+  RunCommand('bash -c ''export GALLIUM_HUD=simple,fps,cpu,frametime''', s); // test GALLIUMHUD
+end;
+
+procedure Tgoverlayform.steamMenuItemClick(Sender: TObject);
+begin
+  RunCommand('bash -c ''mangohud steam ''', s);   //Run steam
 end;
 
 procedure Tgoverlayform.videobitrateTrackBarChange(Sender: TObject);
@@ -6507,6 +6539,11 @@ begin
    cpuloadgraphBitbtn.imageindex:=2;
    cputempgraphBitbtn.imageindex:=2;
    ramgraphBitbtn.imageindex:=2;
+end;
+
+procedure Tgoverlayform.heroicMenuItemClick(Sender: TObject);
+begin
+  RunCommand('bash -c ''mangohud heroic''', s);  // run heroic
 end;
 
 
