@@ -2713,7 +2713,7 @@ begin
   RunCommand('bash -c ''rm -Rf /tmp/goverlay/reshade''', s);
 
   // Popup a notification  and sync reshade git repositorie
-  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Syncing Reshade repositories..." "This can take a fill seconds, please Wait until complete" | git clone https://github.com/benjamimgois/reshade-shaders.git $HOME/.local/share/reshade''', s);
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Syncing Reshade repositories..." "This can take a few seconds, please wait until complete" | git clone https://github.com/benjamimgois/reshade-shaders.git $HOME/.local/share/reshade''', s);
   RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Sync Complete"''', s); // Popup a notification
 
 
@@ -4264,7 +4264,7 @@ begin
        basaltgeSpeedButton.ImageIndex:=1; //switch button position
        RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile_vkbasalt.bkp''', s); //backup original .profile file
        RunCommand('bash -c ''echo "export ENABLE_VKBASALT=1" >> $HOME/.profile''', s);  // Activate vkBasalt globally for vulkan apps
-       RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "vkBasalt Global Enable Activated" "Every vulkan application will have this effects applied"''', s); // Popup a notification
+       RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "vkBasalt Global Enable Activated" "Every Vulkan application will have these effects applied"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
