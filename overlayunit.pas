@@ -4966,6 +4966,7 @@ begin
         if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud';
+        dependencieSpeedButton.ImageIndex := 1;
         end;
 
         if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) then
