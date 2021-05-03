@@ -4939,7 +4939,7 @@ begin
    //Determine replay-sorcery dependency staus
 
             //locate replay-sorcey and store result in tmp folder
-            RunCommand('bash -c ''find /usr/bin/replay-sorcery >> /tmp/goverlay/dependency_replay''', s);
+            RunCommand('bash -c ''which replay-sorcery >> /tmp/goverlay/dependency_replay''', s);
 
             // Assign Text file dependency_replay to variable replayVAR
             AssignFile(replayVAR, '/tmp/goverlay/dependency_replay');
@@ -4948,7 +4948,7 @@ begin
             CloseFile(replayVAR);
 
             // Read String and store value on replaydependencyVALUE based on result
-            if replaySTR = '/usr/bin/replay-sorcery' then
+            if replaySTR <> '' then
                replaydependencyVALUE := 1
                else
                replaydependencyVALUE := 0;
