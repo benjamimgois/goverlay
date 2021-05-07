@@ -4721,11 +4721,12 @@ end;
 
 procedure Tgoverlayform.runBitBtnClick(Sender: TObject);
 begin
-
-     //Run vkcube and glxgears
-     RunCommand('bash -c ''ENABLE_VKBASALT=1 mangohud vkcube & mangohud glxgears''', s);
-
-    end;
+    //Run vkcube and glxgears
+    if mangohuddependencyVALUE=1 then
+        RunCommand('bash -c ''ENABLE_VKBASALT=1 mangohud vkcube & mangohud glxgears''', s)
+    else
+        RunCommand('bash -c ''ENABLE_VKBASALT=1 vkcube & glxgears''', s)
+end;
 
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
