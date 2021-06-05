@@ -73,134 +73,130 @@
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="6544"/>
-        <CursorPos X="3" Y="6546"/>
+        <TopLine Value="4599"/>
+        <CursorPos X="54" Y="4610"/>
         <UsageCount Value="421"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit7>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2668" Column="6" TopLine="2652"/>
+        <Caret Line="6715" Column="29" TopLine="6696"/>
       </Position1>
       <Position2>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2669" Column="6" TopLine="2653"/>
+        <Caret Line="6717" TopLine="6702"/>
       </Position2>
       <Position3>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2670" Column="6" TopLine="2654"/>
+        <Caret Line="2884" Column="7" TopLine="2882"/>
       </Position3>
       <Position4>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2671" Column="6" TopLine="2655"/>
+        <Caret Line="2718" Column="4" TopLine="2708"/>
       </Position4>
       <Position5>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2672" Column="6" TopLine="2656"/>
+        <Caret Line="2823" Column="7" TopLine="2804"/>
       </Position5>
       <Position6>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2671" Column="6" TopLine="2655"/>
+        <Caret Line="2845" Column="8" TopLine="2818"/>
       </Position6>
       <Position7>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2672" Column="15" TopLine="2656"/>
+        <Caret Line="2858" Column="27" TopLine="2831"/>
       </Position7>
       <Position8>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2688" Column="63" TopLine="2662"/>
+        <Caret Line="2859" Column="7" TopLine="2832"/>
       </Position8>
       <Position9>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1949" Column="3" TopLine="1947"/>
+        <Caret Line="4231" Column="8" TopLine="4203"/>
       </Position9>
       <Position10>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="6546" Column="63" TopLine="6544"/>
+        <Caret Line="4254" Column="8" TopLine="4227"/>
       </Position10>
       <Position11>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="33" Column="31" TopLine="3"/>
+        <Caret Line="4267" Column="28" TopLine="4240"/>
       </Position11>
       <Position12>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2688" Column="40" TopLine="2686"/>
+        <Caret Line="4268" Column="8" TopLine="4241"/>
       </Position12>
       <Position13>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="1948" Column="3" TopLine="1946"/>
+        <Caret Line="4584" Column="9" TopLine="4556"/>
       </Position13>
       <Position14>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="6545" Column="3" TopLine="6543"/>
+        <Caret Line="4790" Column="7" TopLine="4762"/>
       </Position14>
       <Position15>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="6544" Column="3" TopLine="6542"/>
+        <Caret Line="4791" Column="7" TopLine="4763"/>
       </Position15>
       <Position16>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="6543" Column="3" TopLine="6541"/>
+        <Caret Line="4820" Column="7" TopLine="4793"/>
       </Position16>
       <Position17>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="6542" Column="3" TopLine="6540"/>
+        <Caret Line="5101" Column="62" TopLine="5074"/>
       </Position17>
       <Position18>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2675" TopLine="2659"/>
+        <Caret Line="5140" Column="69" TopLine="5113"/>
       </Position18>
       <Position19>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2676" TopLine="2660"/>
+        <Caret Line="5479" Column="78" TopLine="5452"/>
       </Position19>
       <Position20>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="4721" Column="3" TopLine="4719"/>
+        <Caret Line="5482" Column="56" TopLine="5455"/>
       </Position20>
       <Position21>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2675" Column="7" TopLine="2673"/>
+        <Caret Line="716" Column="11" TopLine="703"/>
       </Position21>
       <Position22>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2676" Column="7" TopLine="2674"/>
+        <Caret Line="4830" Column="9" TopLine="4798"/>
       </Position22>
       <Position23>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2677" Column="7" TopLine="2675"/>
+        <Caret Line="1871" Column="83" TopLine="1854"/>
       </Position23>
       <Position24>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2678" Column="7" TopLine="2676"/>
+        <Caret Line="2867" Column="61" TopLine="2840"/>
       </Position24>
       <Position25>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2679" TopLine="2673"/>
+        <Caret Line="4275" Column="63" TopLine="4248"/>
       </Position25>
       <Position26>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2678" Column="7" TopLine="2673"/>
+        <Caret Line="4627" Column="63" TopLine="4599"/>
       </Position26>
       <Position27>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="34" Column="5" TopLine="18"/>
+        <Caret Line="1871" Column="70" TopLine="1864"/>
       </Position27>
       <Position28>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2678" Column="7" TopLine="2676"/>
+        <Caret Line="2867" Column="59" TopLine="2840"/>
       </Position28>
       <Position29>
         <Filename Value="overlayunit.pas"/>
-        <Caret Line="2689" Column="3" TopLine="2676"/>
+        <Caret Line="4275" Column="64" TopLine="4248"/>
       </Position29>
-      <Position30>
-        <Filename Value="overlayunit.pas"/>
-        <Caret Line="1949" Column="3" TopLine="1947"/>
-      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

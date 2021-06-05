@@ -18,30 +18,123 @@ type
   Tgoverlayform = class(TForm)
     aboutBitBtn: TBitBtn;
     addBitBtn: TBitBtn;
+    archCheckBox: TCheckBox;
+    archlabel: TLabel;
     audiobitrateCombobox: TComboBox;
     aacprofileCombobox: TComboBox;
     audiodevCombobox: TComboBox;
     audioinputCombobox: TComboBox;
     audioencoderCombobox: TComboBox;
-    graphhudBitBtn: TBitBtn;
-    fpsCheckBox: TCheckBox;
-    intelpowerfixBitBtn: TBitBtn;
+    bottomleftSpeedButton: TSpeedButton;
+    bottomrightSpeedButton: TSpeedButton;
+    cpuavrloadCheckBox: TCheckBox;
+    cpuColorButton: TColorButton;
+    cpufreqCheckBox: TCheckBox;
     cpuloadgraphBitBtn: TBitBtn;
     cputempgraphBitBtn: TBitBtn;
+    gpucfgraphBitBtn: TBitBtn;
+    gpuloadgraphBitBtn: TBitBtn;
+    gpumfgraphBitBtn: TBitBtn;
+    gputempgraphBitBtn: TBitBtn;
+    graph1: TLabel;
+    graph10: TLabel;
+    graph11: TLabel;
+    graph2: TLabel;
+    graph3: TLabel;
+    graph4: TLabel;
+    graph5: TLabel;
+    graph9: TLabel;
+    swapusagelabel: TLabel;
+    performanceGroupBox2: TGroupBox;
+    ramgraphBitBtn: TBitBtn;
+    swapusageCheckBox: TCheckBox;
+    cpufreqlabel: TLabel;
+    cpuGroupBox: TGroupBox;
+    cpulabel: TLabel;
+    cpuload1ColorButton: TColorButton;
+    cpuload2ColorButton: TColorButton;
+    cpuload3ColorButton: TColorButton;
+    cpuloadcolorCheckBox: TCheckBox;
+    cpuloadcoreCheckBox: TCheckBox;
+    cpunameEdit: TEdit;
+    cpupowerCheckBox: TCheckBox;
+    cpupowerlabel: TLabel;
+    cputempCheckBox: TCheckBox;
+    cputemplabel: TLabel;
+    cpuusagelabel: TLabel;
+    destfolderpathLabel: TLabel;
+    diskioCheckBox: TCheckBox;
+    driverversionCheckBox: TCheckBox;
+    driverversionlabel: TLabel;
+    engineColorButton: TColorButton;
+    engineversionCheckBox: TCheckBox;
+    engineversionlabel: TLabel;
+    fpsCheckBox: TCheckBox;
+    framegraphRadioButton: TRadioButton;
+    framehistogramRadioButton: TRadioButton;
+    frametimegraphCheckBox: TCheckBox;
+    frametimegraphColorButton: TColorButton;
+    frametimegraphlabel: TLabel;
+    frametimelabel: TLabel;
+    frametimelabel2: TLabel;
+    gpuavrloadCheckBox: TCheckBox;
+    gpuclocklabel: TLabel;
+    gpuColorButton: TColorButton;
+    gpufreqCheckBox: TCheckBox;
+    gpuGroupBox: TGroupBox;
+    gpulabel: TLabel;
+    gpuload1ColorButton: TColorButton;
+    gpuload2ColorButton: TColorButton;
+    gpuload3ColorButton: TColorButton;
+    gpuloadcolorCheckBox: TCheckBox;
+    gpumemfreqCheckBox: TCheckBox;
+    gpumemfreqlabel: TLabel;
+    gpumodelCheckBox: TCheckBox;
+    gpunameEdit: TEdit;
+    gpunamelabel: TLabel;
+    gpupowerCheckBox: TCheckBox;
+    gpupowerlabel: TLabel;
+    gputempCheckBox: TCheckBox;
+    gputemplabel: TLabel;
+    gpuusagelabel: TLabel;
+    graphhudBitBtn: TBitBtn;
+    GroupBox3: TGroupBox;
+    hudbackgroundShape: TShape;
+    hudversionCheckBox: TCheckBox;
+    hudversionlabel: TLabel;
+    Image1: TImage;
+    intelpowerfixBitBtn: TBitBtn;
+    iordrwColorButton: TColorButton;
+    iordrwlabel: TLabel;
+    iordvaluelabel: TLabel;
+    iorwvaluelabel: TLabel;
+    mediaCheckBox: TCheckBox;
+    mediaColorButton: TColorButton;
+    mediaComboBox: TComboBox;
+    otherGroupBox: TGroupBox;
+    performanceGroupBox1: TGroupBox;
+    previewLabel: TLabel;
+    ramColorButton: TColorButton;
+    ramlabel: TLabel;
+    ramusageCheckBox: TCheckBox;
+    ramusagelabel: TLabel;
+    spotify1label: TLabel;
+    spotify2label: TLabel;
+    spotify3label: TLabel;
     steamMenuItem: TMenuItem;
     lutrisMenuItem: TMenuItem;
     heroicMenuItem: TMenuItem;
     gamePopupMenu: TPopupMenu;
-    ramgraphBitBtn: TBitBtn;
-    gpuloadgraphBitBtn: TBitBtn;
-    gputempgraphBitBtn: TBitBtn;
-    gpucfgraphBitBtn: TBitBtn;
-    gpumfgraphBitBtn: TBitBtn;
     runsteamBitBtn: TBitBtn;
-    vramgraphBitBtn: TBitBtn;
     Label26: TLabel;
     Label29: TLabel;
     Label30: TLabel;
+    timeCheckBox: TCheckBox;
+    timelabel: TLabel;
+    TittlelogLabel: TLabel;
+    topcenterSpeedButton: TSpeedButton;
+    topleftSpeedButton: TSpeedButton;
+    toprightSpeedButton: TSpeedButton;
     videodevEdit: TEdit;
     audioGroupBox: TGroupBox;
     audiosampCombobox: TComboBox;
@@ -63,12 +156,7 @@ type
     videoqualityLabel: TLabel;
     videobitrateLabel: TLabel;
     videogopLabel: TLabel;
-    cpupowerlabel: TLabel;
-    cpuload1ColorButton: TColorButton;
-    cpuload2ColorButton: TColorButton;
-    cpuload3ColorButton: TColorButton;
     autologSpinEdit: TSpinEdit;
-    cpufreqlabel: TLabel;
     fpslimLabel2: TLabel;
     framerateCombobox: TComboBox;
     hlepresetLabel: TLabel;
@@ -80,14 +168,6 @@ type
     videoencoderCombobox: TComboBox;
     videodeviceLabel: TLabel;
     videodeviceLabel1: TLabel;
-    gpuload1ColorButton: TColorButton;
-    gpuload2ColorButton: TColorButton;
-    gpuload3ColorButton: TColorButton;
-    cpupowerCheckBox: TCheckBox;
-    cpufreqCheckBox: TCheckBox;
-    engineColorButton: TColorButton;
-    cpuloadcolorCheckBox: TCheckBox;
-    gpuloadcolorCheckBox: TCheckBox;
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
     hudonoffComboBox: TComboBox;
@@ -111,13 +191,19 @@ type
     saveclipEdit: TEdit;
     videoinputCombobox: TComboBox;
     videoinputLabel: TLabel;
-    wineColorButton: TColorButton;
-    mediaColorButton: TColorButton;
+    vramColorButton: TColorButton;
+    vramgraphBitBtn: TBitBtn;
+    vramlabel: TLabel;
+    vramusageCheckBox: TCheckBox;
     GlobalenableLabel1: TLabel;
     replaystateLabel: TLabel;
     replaystateSpeedButton: TSpeedButton;
     heightImage: TImage;
     replaystopBitBtn: TBitBtn;
+    vramusagelabel: TLabel;
+    vulkanfpslabel: TLabel;
+    vulkanftimelabel: TLabel;
+    vulkanlabel: TLabel;
     widthImage: TImage;
     replaygeSpeedButton: TSpeedButton;
     replayGlobalenableLabel: TLabel;
@@ -135,7 +221,8 @@ type
     resheightSpinEdit: TSpinEdit;
     customresShape: TShape;
     fullscreenShape: TShape;
-    winelabel: TLabel;
+    wineCheckBox: TCheckBox;
+    wineColorButton: TColorButton;
     reshadeProgressBar: TProgressBar;
     subBitBtn: TBitBtn;
     aveffectsListBox: TListBox;
@@ -145,42 +232,11 @@ type
     reshadesyncBitBtn: TBitBtn;
     casCheckBox: TCheckBox;
     effectsGroupBox: TGroupBox;
-    gpumemfreqlabel: TLabel;
-    engineversionlabel: TLabel;
-    wineCheckBox: TCheckBox;
     vkbtogglekeyCombobox: TComboBox;
     ImageList3: TImageList;
     vktoggleLabel: TLabel;
-    mediaComboBox: TComboBox;
-    diskioCheckBox: TCheckBox;
-    gpumodelCheckBox: TCheckBox;
-    gpupowerCheckBox: TCheckBox;
-    gpunameEdit: TEdit;
-    cpunameEdit: TEdit;
-    gpupowerlabel: TLabel;
-    gpumemfreqCheckBox: TCheckBox;
-    gpunamelabel: TLabel;
-    archlabel: TLabel;
-    driverversionCheckBox: TCheckBox;
-    driverversionlabel: TLabel;
-    engineversionCheckBox: TCheckBox;
-    hudversionlabel: TLabel;
-    Image1: TImage;
     ImageList2: TImageList;
-    iordrwColorButton: TColorButton;
-    framegraphRadioButton: TRadioButton;
-    framehistogramRadioButton: TRadioButton;
-    ramColorButton: TColorButton;
-    ramusageCheckBox: TCheckBox;
     dependencieSpeedButton: TSpeedButton;
-    topleftSpeedButton: TSpeedButton;
-    spotify1label: TLabel;
-    spotify2label: TLabel;
-    spotify3label: TLabel;
-    toprightSpeedButton: TSpeedButton;
-    bottomleftSpeedButton: TSpeedButton;
-    bottomrightSpeedButton: TSpeedButton;
-    topcenterSpeedButton: TSpeedButton;
     transparencyLabel: TLabel;
     cas01Image: TImage;
     cas02Image: TImage;
@@ -192,25 +248,13 @@ type
     cas08Image: TImage;
     cas09Image: TImage;
     cas10Image: TImage;
-    archCheckBox: TCheckBox;
     backgroundLabel: TLabel;
     hidehudCheckBox: TCheckBox;
-    hudversionCheckBox: TCheckBox;
-    mediaCheckBox: TCheckBox;
     casorigLabel: TLabel;
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
     casTrackBar2: TTrackBar;
     completehudBitBtn: TBitBtn;
-    cpuavrloadCheckBox: TCheckBox;
-    cpuColorButton: TColorButton;
-    cpuGroupBox: TGroupBox;
-    cpulabel: TLabel;
-    cpuloadcoreCheckBox: TCheckBox;
-    cputempCheckBox: TCheckBox;
-    cputemplabel: TLabel;
-    cpuusagelabel: TLabel;
-    destfolderpathLabel: TLabel;
     FontcolorButton: TColorButton;
     FontcolorLabel: TLabel;
     fontsizeComboBox: TComboBox;
@@ -221,69 +265,37 @@ type
     fpslimComboBox: TComboBox;
     fpslimLabel: TLabel;
     fpslimLabel1: TLabel;
-    frametimegraphCheckBox: TCheckBox;
-    frametimegraphColorButton: TColorButton;
-    frametimegraphlabel: TLabel;
-    frametimelabel: TLabel;
-    frametimelabel2: TLabel;
     geSpeedButton: TSpeedButton;
     basaltgeSpeedButton: TSpeedButton;
     GlobalenableLabel: TLabel;
     basaltGlobalenableLabel: TLabel;
     glvsyncComboBox: TComboBox;
     glvsyncLabel: TLabel;
-    gpuavrloadCheckBox: TCheckBox;
-    gpuclocklabel: TLabel;
-    gpuColorButton: TColorButton;
-    gpufreqCheckBox: TCheckBox;
-    gpuGroupBox: TGroupBox;
-    gpulabel: TLabel;
-    gputempCheckBox: TCheckBox;
-    gputemplabel: TLabel;
-    gpuusagelabel: TLabel;
     casGroupBox: TGroupBox;
     hudbackgroundColorButton: TColorButton;
-    hudbackgroundShape: TShape;
     hudtranspBitBtn: TBitBtn;
     cas00Image: TImage;
     originalImage: TImage;
     ImageList1: TImageList;
-    iordrwlabel: TLabel;
-    iordvaluelabel: TLabel;
-    iorwvaluelabel: TLabel;
     mangohudLabel: TLabel;
     basaltrunBitBtn: TBitBtn;
     basaltsaveBitBtn: TBitBtn;
     dependenciesLabel: TLabel;
     vkbasaltPanel: TPanel;
     vkbasaltLabel: TLabel;
-    mangohudGroupBox: TGroupBox;
-    otherGroupBox: TGroupBox;
     mangohudPanel: TPanel;
     goverlayimage: TImage;
     performanceGroupBox: TGroupBox;
-    previewLabel: TLabel;
-    ramlabel: TLabel;
-    ramusagelabel: TLabel;
     runBitBtn: TBitBtn;
     saveBitBtn: TBitBtn;
     mangohudShape: TShape;
     vkbasaltShape: TShape;
-    timeCheckBox: TCheckBox;
-    timelabel: TLabel;
-    TittlelogLabel: TLabel;
     visualGroupBox: TGroupBox;
-    vramColorButton: TColorButton;
-    vramlabel: TLabel;
-    vramusageCheckBox: TCheckBox;
-    vramusagelabel: TLabel;
     vsyncComboBox: TComboBox;
     vsyncLabel: TLabel;
-    vulkanfpslabel: TLabel;
-    vulkanftimelabel: TLabel;
-    vulkanlabel: TLabel;
     h264profileCombobox: TComboBox;
     videohlepresetCombobox: TComboBox;
+    winelabel: TLabel;
     procedure addBitBtnClick(Sender: TObject);
     procedure archCheckBoxClick(Sender: TObject);
     procedure audiobitrateComboboxKeyPress(Sender: TObject; var Key: char);
@@ -376,6 +388,7 @@ type
     procedure runsteamBitBtnClick(Sender: TObject);
     procedure saveBitBtn1Click(Sender: TObject);
     procedure steamMenuItemClick(Sender: TObject);
+    procedure swapusageCheckBoxClick(Sender: TObject);
     procedure videobitrateTrackBarChange(Sender: TObject);
     procedure videogopTrackBarChange(Sender: TObject);
     procedure videoqualityTrackBarChange(Sender: TObject);
@@ -699,6 +712,8 @@ var
   initvulkandriverSTR: string;
   initgpuname: Textfile;
   initgpunameSTR: string;
+  initswap: Textfile;
+  initswapSTR: string;
   initvram: Textfile;
   initvramSTR: string;
   initram: Textfile;
@@ -1317,7 +1332,9 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/iordrwcolorScript.sh''', s);
 
-
+  //SWAP
+  if swapusageCheckbox.Checked=true then
+  RunCommand('bash -c ''echo "swap" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
  //VRAM
   if vramusageCheckbox.Checked=true then
@@ -1750,6 +1767,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_pow
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vulkan_driver >> $HOME/.config/goverlay/initial_values/vulkan_driver''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_name >> $HOME/.config/goverlay/initial_values/gpu_name''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_color >> $HOME/.config/goverlay/initial_values/gpu_color''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w swap >> $HOME/.config/goverlay/initial_values/swap''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vram >> $HOME/.config/goverlay/initial_values/vram''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vram_color >> $HOME/.config/goverlay/initial_values/vram''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w ram >> $HOME/.config/goverlay/initial_values/ram''', s);
@@ -1850,7 +1868,7 @@ begin
         //Preview changes
         frametimelabel.Caption:='Frametime';
         frametimelabel2.Caption:='16.6ms';
-        frametimegraphlabel.Caption:='-------------------------------------------';
+        frametimegraphlabel.Caption:='------------------------------------';
         end
 
         else
@@ -2689,6 +2707,21 @@ begin
   RunCommand('bash -c ''mangohud steam ''', s);   //Run steam
 end;
 
+procedure Tgoverlayform.swapusageCheckBoxClick(Sender: TObject);
+begin
+        //Preview SWAP usage
+  if swapusageCheckbox.Checked=true then
+    begin
+
+    swapusagelabel.Caption:='2.00GB'
+    end
+  else
+    begin
+
+   swapusagelabel.Caption:='2.00GB'
+  end;
+end;
+
 procedure Tgoverlayform.videobitrateTrackBarChange(Sender: TObject);
 begin
    videobitrateLabel.Caption:= inttostr(videobitrateTrackBar.Position)+' Mbps';
@@ -2788,6 +2821,7 @@ begin
   gputempCheckbox.Checked:=true;
   gpufreqCheckbox.Checked:=true;
   diskioCheckbox.Checked:=true;
+  swapusageCheckbox.Checked:=true;
   vramusageCheckbox.Checked:=true;
   ramusageCheckbox.Checked:=true;
   frametimegraphCheckbox.Checked:=true;
@@ -2825,11 +2859,12 @@ begin
   gputemplabel.Caption:='82ºC';
   vramlabel.Caption:='VRAM';
   vramusagelabel.Caption:='2.56GB';
+  //swapusagelabel.Caption:='3.2GB';
   ramlabel.Caption:='RAM';
   ramusagelabel.Caption:='5.99GB';
   frametimelabel.Caption:='Frametime';
   frametimelabel2.Caption:='16.6ms';
-  frametimegraphlabel.Caption:='-------------------------------------------';
+  frametimegraphlabel.Caption:='--------------------------------------';
   timelabel.Caption:='';
   iordrwlabel.caption:='IO RF/RW';
   iordvaluelabel.caption:='32MiB/s';
@@ -4197,6 +4232,7 @@ begin
    diskioCheckbox.Checked:=false;
    vramusageCheckbox.Checked:=true;
    ramusageCheckbox.Checked:=true;
+   swapusageCheckbox.Checked:=false;
    frametimegraphCheckbox.Checked:=true;
    timeCheckbox.Checked:=false;
    archCheckbox.Checked:=false;
@@ -4236,7 +4272,7 @@ begin
    ramusagelabel.Caption:='5.99GB';
    frametimelabel.Caption:='Frametime';
    frametimelabel2.Caption:='16.6ms';
-   frametimegraphlabel.Caption:='-------------------------------------------';
+   frametimegraphlabel.Caption:='--------------------------------------';
    gpuusagelabel.Font.Color:=gpuload3Colorbutton.ButtonColor;
    cpuusagelabel.Font.Color:=cpuload2Colorbutton.ButtonColor;
 
@@ -4255,6 +4291,7 @@ begin
    cpufreqlabel.Caption:='';
    cpupowerlabel.Caption:='';
    hudversionlabel.Caption:='';
+   swapusagelabel.Caption:='';
 end;
 
 procedure Tgoverlayform.basaltgeSpeedButtonClick(Sender: TObject);
@@ -4548,6 +4585,7 @@ begin
     iorwvaluelabel.font.Color:=FontcolorButton.ButtonColor;
     vramusagelabel.font.Color:=FontcolorButton.ButtonColor;
     ramusagelabel.font.Color:=FontcolorButton.ButtonColor;
+    swapusagelabel.font.Color:=FontcolorButton.ButtonColor;
     vulkanfpslabel.font.Color:=FontcolorButton.ButtonColor;
     vulkanftimelabel.font.Color:=FontcolorButton.ButtonColor;
     frametimelabel2.font.Color:=FontcolorButton.ButtonColor;
@@ -4586,7 +4624,7 @@ begin
      begin
        frametimelabel.Caption:='Frametime';
        frametimelabel2.Caption:='16.6ms';
-       frametimegraphlabel.Caption:='-------------------------------------------'
+       frametimegraphlabel.Caption:='--------------------------------------'
      end
    else
      begin
@@ -4753,6 +4791,7 @@ begin
   gputemplabel.Caption:='';
   vramlabel.Caption:='';
   vramusagelabel.Caption:='';
+  swapusagelabel.Caption:='';
   ramlabel.Caption:='';
   ramusagelabel.Caption:='';
   frametimelabel.Caption:='';
@@ -4782,6 +4821,7 @@ begin
   iordrwcolorhtml :='#a491d3';
   vramcolorhtml :='#ad64c1';
   ramcolorhtml :='#c26693';
+  //swapcolorhtml :='#c26693';
   frametimegraphcolorhtml := '#00ff00';
   crosshaircolorhtml := '#000000';
   hudbackgroundcolorhtml := '#020202';
@@ -5061,6 +5101,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_power''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vulkan_driver''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_name''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vram''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/swap''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/ram''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/io_read''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/frame_timing''', s);
@@ -5099,6 +5140,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_mem_clock'''
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_cpu_load''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_cpu_temp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_vram''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_swap''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_ram''', s);
 
 //vkbasalt dummy initials
@@ -5422,6 +5464,19 @@ case initgpunameSTR of
 'gpu_name':gpumodelCheckbox.Checked:=true;
  end;
 
+
+//###################################################################### swap
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initswap, '/tmp/goverlay/initial_values/swap');
+Reset(initswap);
+Readln(initswap,initswapSTR); //Assign Text file to String
+CloseFile(initswap);
+
+case initswapSTR of
+'':swapusageCheckbox.Checked:=false;
+'swap':swapusageCheckbox.Checked:=true;
+ end;
 
 //###################################################################### vram
 
