@@ -31,11 +31,24 @@ type
     cpuColorButton: TColorButton;
     cpufreqCheckBox: TCheckBox;
     cpuloadgraphBitBtn: TBitBtn;
+    fpsCheckBox5: TCheckBox;
+    fpsCheckBox6: TCheckBox;
+    sessionCheckBox: TCheckBox;
+    fpsCheckBox8: TCheckBox;
+    hudtitleEdit: TEdit;
+    cpunameEdit2: TEdit;
     cputempgraphBitBtn: TBitBtn;
+    resolutionCheckBox: TCheckBox;
+    gamemodestatusCheckBox: TCheckBox;
+    vkbasaltstatusCheckBox: TCheckBox;
+    batteryCheckBox: TCheckBox;
+    fpslimtoggleComboBox: TComboBox;
+    fpslimLabel3: TLabel;
     gpucfgraphBitBtn: TBitBtn;
     gpuloadgraphBitBtn: TBitBtn;
     gpumfgraphBitBtn: TBitBtn;
     gputempgraphBitBtn: TBitBtn;
+    hudtitlelabel: TLabel;
     graph1: TLabel;
     graph10: TLabel;
     graph11: TLabel;
@@ -44,6 +57,8 @@ type
     graph4: TLabel;
     graph5: TLabel;
     graph9: TLabel;
+    hidehudCheckBox: TCheckBox;
+    showfpslimCheckBox: TCheckBox;
     swapusagelabel: TLabel;
     performanceGroupBox2: TGroupBox;
     ramgraphBitBtn: TBitBtn;
@@ -249,7 +264,6 @@ type
     cas09Image: TImage;
     cas10Image: TImage;
     backgroundLabel: TLabel;
-    hidehudCheckBox: TCheckBox;
     casorigLabel: TLabel;
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
@@ -352,6 +366,7 @@ type
     procedure cputempCheckBoxClick(Sender: TObject);
     procedure diskioCheckBoxClick(Sender: TObject);
     procedure frametimegraphColorButtonColorChanged(Sender: TObject);
+    procedure hudtitleEditChange(Sender: TObject);
     procedure hudtranspBitBtnClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure iordrwColorButtonColorChanged(Sender: TObject);
@@ -372,6 +387,7 @@ type
     procedure mangohudLabelClick(Sender: TObject);
     procedure mangohudLabelMouseEnter(Sender: TObject);
     procedure mangohudLabelMouseLeave(Sender: TObject);
+    procedure mangohudPanelClick(Sender: TObject);
     procedure mediaColorButtonColorChanged(Sender: TObject);
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure ramColorButtonColorChanged(Sender: TObject);
@@ -769,6 +785,21 @@ var
   initvkbasalttoggleSTR: string;
   initfps: Textfile;
   initfpsSTR: string;
+  initshowfpslimit: Textfile;
+  initshowfpslimitSTR: string;
+  inittogglefpslimit: Textfile;
+  inittogglefpslimitSTR: string;
+  initresolution: Textfile;
+  initresolutionSTR: string;
+  initbattery: Textfile;
+  initbatterySTR: string;
+  initvkbasaltstatus: Textfile;
+  initvkbasaltstatusSTR: string;
+  initgamemodestatus: Textfile;
+  initgamemodestatusSTR: string;
+  initsession: Textfile;
+  initsessionSTR: string;
+
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -931,35 +962,47 @@ begin
 
 
 
-    //Setup FPS Limit
-     case fpslimCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "fps_limit=15" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    1:RunCommand('bash -c ''echo "fps_limit=30" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    2:RunCommand('bash -c ''echo "fps_limit=45" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    3:RunCommand('bash -c ''echo "fps_limit=60" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    4:RunCommand('bash -c ''echo "fps_limit=90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    5:RunCommand('bash -c ''echo "fps_limit=120" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    6:RunCommand('bash -c ''echo "fps_limit=144" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    7:RunCommand('bash -c ''echo "#fps_limit=" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    8:begin
-      // Assign custom value to file
-      AssignFile(fpsCustomValue, '/tmp/goverlay/fpsCustom');
-      Rewrite(fpsCustomValue);
-      Writeln(fpsCustomValue,fpscustomSpinedit.Value);
-      CloseFile(fpsCustomValue);
+  //Setup FPS Limit
+       case fpslimCombobox.ItemIndex of
+      0:RunCommand('bash -c ''echo "fps_limit=15" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      1:RunCommand('bash -c ''echo "fps_limit=30" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      2:RunCommand('bash -c ''echo "fps_limit=45" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      3:RunCommand('bash -c ''echo "fps_limit=60" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      4:RunCommand('bash -c ''echo "fps_limit=90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      5:RunCommand('bash -c ''echo "fps_limit=120" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      6:RunCommand('bash -c ''echo "fps_limit=144" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      7:RunCommand('bash -c ''echo "fps_limit=30,60" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      8:RunCommand('bash -c ''echo "fps_limit=60,120" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      9:RunCommand('bash -c ''echo "#fps_limit=" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      10:begin
+        // Assign custom value to file
+        AssignFile(fpsCustomValue, '/tmp/goverlay/fpsCustom');
+        Rewrite(fpsCustomValue);
+        Writeln(fpsCustomValue,fpscustomSpinedit.Value);
+        CloseFile(fpsCustomValue);
 
-      // Create custom script
-      AssignFile(fpsCustomScript, '/tmp/goverlay/fpsCustomScript.sh');
-      Rewrite(fpsCustomScript);
-      Writeln(fpsCustomScript,'FPSc=$(cat /tmp/goverlay/fpsCustom)');  //Store fps custom value in a Linux/Unix variable
-      Writeln(fpsCustomScript,'echo "fps_limit=$FPSc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
-      CloseFile(fpsCustomScript);
+        // Create custom script
+        AssignFile(fpsCustomScript, '/tmp/goverlay/fpsCustomScript.sh');
+        Rewrite(fpsCustomScript);
+        Writeln(fpsCustomScript,'FPSc=$(cat /tmp/goverlay/fpsCustom)');  //Store fps custom value in a Linux/Unix variable
+        Writeln(fpsCustomScript,'echo "fps_limit=$FPSc" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
+        CloseFile(fpsCustomScript);
 
-      //execute custom script to store custom value on mangohud.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/fpsCustomScript.sh''', s);
-     end;
-     9:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+        //execute custom script to store custom value on mangohud.conf
+        RunCommand('bash -c ''sh /tmp/goverlay/fpsCustomScript.sh''', s);
+       end;
+       11:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    end;
+
+
+   //FPS Limit toggle
+  case fpslimtoggleCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "toggle_fps_limit=F1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "toggle_fps_limit=F2" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "toggle_fps_limit=F3" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    3:RunCommand('bash -c ''echo "toggle_fps_limit=F4" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   end;
+
 
   //Setup VSYNC
 
@@ -987,7 +1030,7 @@ begin
   RunCommand('bash -c ''echo "legacy_layout=false" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
-        //###################################################### GPU
+  //###################################################### GPU
 
   //GPU checks
 
@@ -1176,6 +1219,7 @@ begin
   if cpuloadcolorCheckbox.Checked=true then
   begin
   RunCommand('bash -c ''echo "cpu_load_change" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "core_load_change" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   RunCommand('bash -c ''echo "cpu_load_value=50,90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
      //Store cpu load colors
@@ -1508,6 +1552,34 @@ begin
       RunCommand('bash -c ''echo "histogram" >> $HOME/.config/MangoHud/MangoHud.conf''', s) ;
 
 
+//show fps limitation
+if showfpslimCheckbox.Checked=true then
+RunCommand('bash -c ''echo "show_fps_limit" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+//show Session type
+if sessionCheckbox.Checked=true then
+begin
+RunCommand('bash -c ''echo "custom_text=Session:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=printf $XDG_SESSION_TYPE" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+end;
+
+//show Resolution
+if resolutionCheckbox.Checked=true then
+RunCommand('bash -c ''echo "resolution" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+//show vkbasalt status
+if vkbasaltstatusCheckbox.Checked=true then
+RunCommand('bash -c ''echo "vkbasalt" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+//show gamemode status
+if gamemodestatusCheckbox.Checked=true then
+RunCommand('bash -c ''echo "gamemode" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
+
+//show Battery
+if batteryCheckbox.Checked=true then
+RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
   //Media Player
@@ -1805,6 +1877,13 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_mhz
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w autostart_log >> $HOME/.config/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''cp /tmp/goverlay/autolog_value $HOME/.config/goverlay/initial_values/''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps >> $HOME/.config/goverlay/initial_values/fps''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w show_fps_limit >> $HOME/.config/goverlay/initial_values/show_fps_limit''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_fps_limit >> $HOME/.config/goverlay/initial_values/toggle_fps_limit''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w resolution >> $HOME/.config/goverlay/initial_values/resolution''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w battery >> $HOME/.config/goverlay/initial_values/battery''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vkbasalt >> $HOME/.config/goverlay/initial_values/vkbasalt''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamemode >> $HOME/.config/goverlay/initial_values/gamemode''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w session >> $HOME/.config/goverlay/initial_values/session''', s);
 
 //GRAPHs configs
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=gpu_load >> $HOME/.config/goverlay/initial_values/graphs_gpu_load''', s);
@@ -2015,6 +2094,11 @@ begin
 
   if replaysel = true  then
   mangohudShape.Visible:=false;
+
+end;
+
+procedure Tgoverlayform.mangohudPanelClick(Sender: TObject);
+begin
 
 end;
 
@@ -4299,14 +4383,17 @@ begin
      case basaltgeSpeedButton.imageIndex of
      0: begin
        basaltgeSpeedButton.ImageIndex:=1; //switch button position
-       RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile_vkbasalt.bkp''', s); //backup original .profile file
+       RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile_vkbasalt_bkp''', s); //backup original .profile file
+       RunCommand('bash -c ''yes | cp -rf $HOME/.bash_profile $HOME/.bash_profile_vkbasalt_bkp''', s); //backup original .bash_profile file
        RunCommand('bash -c ''echo "export ENABLE_VKBASALT=1" >> $HOME/.profile''', s);  // Activate vkBasalt globally for vulkan apps
+       RunCommand('bash -c ''echo "export ENABLE_VKBASALT=1" >> $HOME/.bash_profile''', s);  // Workaround to Activate vkBasalt globally for vulkan apps on some distros
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "vkBasalt Global Enable Activated" "Every Vulkan application will have these effects applied"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
         basaltgeSpeedButton.ImageIndex:=0;
-        RunCommand('bash -c ''yes | cp -rf $HOME/.profile_vkbasalt.bkp $HOME/.profile''', s);  //restore original .profile file
+        RunCommand('bash -c ''yes | cp -rf $HOME/.profile_vkbasalt_bkp $HOME/.profile''', s);  //restore original .profile file
+        RunCommand('bash -c ''yes | cp -rf $HOME/.bash_profile_vkbasalt_bkp $HOME/.bash_profile''', s);  //restore original .profile file
         RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
         showmessage ('Restart your system to take effect');
      end;
@@ -4736,6 +4823,11 @@ begin
     frametimegraphcolorhtml := SColorToHtmlColor(frametimegraphcolorButton.ButtonColor);
 end;
 
+procedure Tgoverlayform.hudtitleEditChange(Sender: TObject);
+begin
+  hudtitlelabel.Caption:=hudtitleEdit.Text;
+end;
+
 procedure Tgoverlayform.hudtranspBitBtnClick(Sender: TObject);
 begin
   hudbackgroundForm.show;
@@ -5142,6 +5234,13 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_cpu_temp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_vram''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_swap''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_ram''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/show_fps_limit''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_fps_limit''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/resolution''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/battery''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalt''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gamemode''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/session''', s);
 
 //vkbasalt dummy initials
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
@@ -5201,10 +5300,107 @@ case initfpslimitSTR of
 'fps_limit=90':fpslimComboBox.ItemIndex:=4;
 'fps_limit=120':fpslimComboBox.ItemIndex:=5;
 'fps_limit=144':fpslimComboBox.ItemIndex:=6;
-'#fps_limit=':fpslimComboBox.ItemIndex:=7;
-'':fpslimComboBox.ItemIndex:=9;
+'fps_limit=30,60':fpslimComboBox.ItemIndex:=7;
+'fps_limit=60,120':fpslimComboBox.ItemIndex:=8;
+'#fps_limit=':fpslimComboBox.ItemIndex:=9;
+'':fpslimComboBox.ItemIndex:=11;
  end;
 
+//###################################################################### show_fps_limit
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initshowfpslimit, '/tmp/goverlay/initial_values/show_fps_limit');
+Reset(initshowfpslimit);
+Readln(initshowfpslimit,initshowfpslimitSTR); //Assign Text file to String
+CloseFile(initshowfpslimit);
+
+case initshowfpslimitSTR of
+'':showfpslimCheckbox.Checked:=false;
+'show_fps_limit':showfpslimCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### Resolution
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initresolution, '/tmp/goverlay/initial_values/resolution');
+Reset(initresolution);
+Readln(initresolution,initresolutionSTR); //Assign Text file to String
+CloseFile(initresolution);
+
+case initresolutionSTR of
+'':resolutionCheckbox.Checked:=false;
+'resolution':resolutionCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### battery
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initbattery, '/tmp/goverlay/initial_values/battery');
+Reset(initbattery);
+Readln(initbattery,initbatterySTR); //Assign Text file to String
+CloseFile(initbattery);
+
+case initbatterySTR of
+'':batteryCheckbox.Checked:=false;
+'battery':batteryCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### vkbasalt status
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initvkbasaltstatus, '/tmp/goverlay/initial_values/vkbasalt');
+Reset(initvkbasaltstatus);
+Readln(initvkbasaltstatus,initvkbasaltstatusSTR); //Assign Text file to String
+CloseFile(initvkbasaltstatus);
+
+case initvkbasaltstatusSTR of
+'':vkbasaltstatusCheckbox.Checked:=false;
+'vkbasalt':vkbasaltstatusCheckbox.Checked:=true;
+ end;
+
+//###################################################################### Gamemode status
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgamemodestatus, '/tmp/goverlay/initial_values/gamemode');
+Reset(initgamemodestatus);
+Readln(initgamemodestatus,initgamemodestatusSTR); //Assign Text file to String
+CloseFile(initgamemodestatus);
+
+case initgamemodestatusSTR of
+'':gamemodestatusCheckbox.Checked:=false;
+'gamemode':gamemodestatusCheckbox.Checked:=true;
+ end;
+
+//###################################################################### Session type
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initsession, '/tmp/goverlay/initial_values/session');
+Reset(initsession);
+Readln(initsession,initsessionSTR); //Assign Text file to String
+CloseFile(initsession);
+
+case initsessionSTR of
+'':sessionCheckbox.Checked:=false;
+'session':sessionCheckbox.Checked:=true;
+ end;
+
+//###################################################################### toggle key for fps limit
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inittogglefpslimit, '/tmp/goverlay/initial_values/toggle_fps_limit');
+Reset(inittogglefpslimit);
+Readln(inittogglefpslimit,inittogglefpslimitSTR); //Assign Text file to String
+CloseFile(inittogglefpslimit);
+
+case inittogglefpslimitSTR of
+'toggle_fps_limit=F1':fpslimtoggleCombobox.ItemIndex:=0;
+'toggle_fps_limit=F2':fpslimtoggleCombobox.ItemIndex:=1;
+'toggle_fps_limit=F3':fpslimtoggleCombobox.ItemIndex:=2;
+'toggle_fps_limit=F4':fpslimtoggleCombobox.ItemIndex:=3;
+ end;
 
 //###################################################################### VSYNC
 
@@ -6461,14 +6657,17 @@ begin
    case geSpeedButton.imageIndex of
      0: begin
        geSpeedButton.ImageIndex:=1; //switch button position
-       RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile.bkp''', s); //backup original .profile file
+       RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile_bkp''', s); //backup original .profile file
+       RunCommand('bash -c ''yes | cp -rf $HOME/.bash_profile $HOME/.bash_profile_bkp''', s); //backup original .profile file
        RunCommand('bash -c ''echo "export MANGOHUD=1" >> $HOME/.profile''', s);  // Activate MANGOHUD globally for vulkan apps
+       RunCommand('bash -c ''echo "export MANGOHUD=1" >> $HOME/.bash_profile''', s);  // Workaround to Activate MANGOHUD globally for vulkan apps in some distros
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
         geSpeedButton.ImageIndex:=0;
-        RunCommand('bash -c ''yes | cp -rf $HOME/.profile.bkp $HOME/.profile''', s);  //restore original .profile file
+        RunCommand('bash -c ''yes | cp -rf $HOME/.profile_bkp $HOME/.profile''', s);  //restore original .profile file
+        RunCommand('bash -c ''yes | cp -rf $HOME/.bash_profile_bkp $HOME/.bash_profile''', s);  //restore original .profile file
         RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
         showmessage ('Restart your system to take effect');
      end;
