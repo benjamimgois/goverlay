@@ -31,10 +31,9 @@ type
     cpuColorButton: TColorButton;
     cpufreqCheckBox: TCheckBox;
     cpuloadgraphBitBtn: TBitBtn;
-    fpsCheckBox5: TCheckBox;
-    fpsCheckBox6: TCheckBox;
+    distroinfoCheckBox: TCheckBox;
     sessionCheckBox: TCheckBox;
-    fpsCheckBox8: TCheckBox;
+    homepartCheckBox: TCheckBox;
     hudtitleEdit: TEdit;
     cpunameEdit2: TEdit;
     cputempgraphBitBtn: TBitBtn;
@@ -799,7 +798,10 @@ var
   initgamemodestatusSTR: string;
   initsession: Textfile;
   initsessionSTR: string;
-
+  inithomepart: Textfile;
+  inithomepartSTR: string;
+  initdistroinfo: Textfile;
+  initdistroinfoSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1556,16 +1558,13 @@ begin
 if showfpslimCheckbox.Checked=true then
 RunCommand('bash -c ''echo "show_fps_limit" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-//show Session type
-if sessionCheckbox.Checked=true then
-begin
-RunCommand('bash -c ''echo "custom_text=Session:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=printf $XDG_SESSION_TYPE" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-end;
+
 
 //show Resolution
 if resolutionCheckbox.Checked=true then
 RunCommand('bash -c ''echo "resolution" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
 
 //show vkbasalt status
 if vkbasaltstatusCheckbox.Checked=true then
@@ -1575,12 +1574,36 @@ RunCommand('bash -c ''echo "vkbasalt" >> $HOME/.config/MangoHud/MangoHud.conf'''
 if gamemodestatusCheckbox.Checked=true then
 RunCommand('bash -c ''echo "gamemode" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-
-
 //show Battery
 if batteryCheckbox.Checked=true then
 RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+
+//show Distro info
+if distroinfoCheckBox.Checked=true then
+begin
+RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=lsb_release -a | grep Description | cut -c 14-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=lsb_release -a | grep Release | cut -c 10-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=uname -r" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+end;
+
+//show Session type
+if sessionCheckbox.Checked=true then
+begin
+RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "custom_text=Session:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=printf $XDG_SESSION_TYPE" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+end;
+
+//show home partition size
+if homepartCheckbox.Checked=true then
+begin
+RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+end;
 
   //Media Player
   if mediaCheckBox.Checked=true then
@@ -1883,7 +1906,12 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w resolut
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w battery >> $HOME/.config/goverlay/initial_values/battery''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vkbasalt >> $HOME/.config/goverlay/initial_values/vkbasalt''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamemode >> $HOME/.config/goverlay/initial_values/gamemode''', s);
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w session >> $HOME/.config/goverlay/initial_values/session''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text=Session: >> $HOME/.config/goverlay/initial_values/session''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df  >> $HOME/.config/goverlay/initial_values/homepart''', s);
+
+//distro info
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w Description  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
+
 
 //GRAPHs configs
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w graphs=gpu_load >> $HOME/.config/goverlay/initial_values/graphs_gpu_load''', s);
@@ -5241,6 +5269,8 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/battery''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalt''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gamemode''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/session''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/homepart''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/distroinfo''', s);
 
 //vkbasalt dummy initials
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
@@ -5384,7 +5414,31 @@ CloseFile(initsession);
 
 case initsessionSTR of
 '':sessionCheckbox.Checked:=false;
-'session':sessionCheckbox.Checked:=true;
+'custom_text=Session:':sessionCheckbox.Checked:=true;
+ end;
+
+//###################################################################### Distro info
+// Assign Text file to variable than assign variable to string
+AssignFile(initdistroinfo, '/tmp/goverlay/initial_values/distroinfo');
+Reset(initdistroinfo);
+Readln(initdistroinfo,initdistroinfoSTR); //Assign Text file to String
+CloseFile(initdistroinfo);
+
+case initdistroinfoSTR of
+'':distroinfoCheckbox.Checked:=false;
+'exec=lsb_release -a | grep Description | cut -c 14-26':distroinfoCheckbox.Checked:=true;
+ end;
+
+//###################################################################### Home partition
+// Assign Text file to variable than assign variable to string
+AssignFile(inithomepart, '/tmp/goverlay/initial_values/homepart');
+Reset(inithomepart);
+Readln(inithomepart,inithomepartSTR); //Assign Text file to String
+CloseFile(inithomepart);
+
+case inithomepartSTR of
+'':homepartCheckbox.Checked:=false;
+'exec=df -h /home | tail -n 1':homepartCheckbox.Checked:=true;
  end;
 
 //###################################################################### toggle key for fps limit
