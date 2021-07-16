@@ -35,7 +35,7 @@ type
     sessionCheckBox: TCheckBox;
     homepartCheckBox: TCheckBox;
     hudtitleEdit: TEdit;
-    cpunameEdit2: TEdit;
+    customcommandEdit: TEdit;
     cputempgraphBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
     gamemodestatusCheckBox: TCheckBox;
@@ -540,7 +540,12 @@ var
   mediacolorhtml: string;
   mediacolorValue: TextFile;
   mediacolorScript: TextFile;
-
+  hudtitleValue: Textfile;
+  hudtitleScript: Textfile;
+  hudtitleSTR: string;
+  customcommandValue: Textfile;
+  customcommandScript: Textfile;
+  customcommandSTR: string;
 
   //ReplaySorcery variables
   reswidthCustomValue:TextFile;
@@ -802,6 +807,8 @@ var
   inithomepartSTR: string;
   initdistroinfo: Textfile;
   initdistroinfoSTR: string;
+  inithudtitlevalue: Textfile;
+  inithudtitlevalueSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -960,9 +967,37 @@ begin
   // Popup a notification
   RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Configuration saved"''', s);
 
+
+
+
+  // ###################################################################################### HUD Title
+
+      // Only create title entry if title isn't blank
+      //if (hudtitleEdit.text <> '') or (hudtitleEdit.text <> 'HUD Title') then
+       if (hudtitleEdit.text <> '') then
+       begin
+
+      hudtitleSTR := hudtitleEdit.text;
+
+      // Assign value to file
+      AssignFile(hudtitleValue, '/tmp/goverlay/hudtitleValue');
+      Rewrite(hudtitleValue);
+      Writeln(hudtitleValue,hudtitleSTR);
+      CloseFile(hudtitleValue);
+
+      // Create custom script
+      AssignFile(hudtitleScript, '/tmp/goverlay/hudtitleScript.sh');
+      Rewrite(hudtitleScript);
+      Writeln(hudtitleScript,'hudtitle=$(cat /tmp/goverlay/hudtitleValue)');  //Store hud title in Linux/Unix variable and remove # character
+      Writeln(hudtitleScript,'echo "custom_text_center=$hudtitle" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
+      CloseFile(hudtitleScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/hudtitleScript.sh''', s);
+
+
   //####################################################################################### PERFORMANCE
-
-
+       end;
 
   //Setup FPS Limit
        case fpslimCombobox.ItemIndex of
@@ -1576,16 +1611,20 @@ RunCommand('bash -c ''echo "gamemode" >> $HOME/.config/MangoHud/MangoHud.conf'''
 
 //show Battery
 if batteryCheckbox.Checked=true then
+begin
 RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+end;
 
 //show Distro info
 if distroinfoCheckBox.Checked=true then
 begin
-RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=lsb_release -a | grep Description | cut -c 14-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=lsb_release -a | grep Release | cut -c 10-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=uname -r" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
@@ -1593,7 +1632,7 @@ end;
 //show Session type
 if sessionCheckbox.Checked=true then
 begin
-RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "custom_text=Session:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=printf $XDG_SESSION_TYPE" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
@@ -1601,10 +1640,41 @@ end;
 //show home partition size
 if homepartCheckbox.Checked=true then
 begin
-RunCommand('bash -c ''echo "exec=echo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
 
+
+// ###################################################################################### Custom Command
+
+    // Only create custom command entry if entry isn't blank
+    if customcommandEdit.text <> '' then
+
+     begin
+
+    customcommandSTR := customcommandEdit.text;
+
+    // Assign value to file
+    AssignFile(customcommandValue, '/tmp/goverlay/customcommandValue');
+    Rewrite(customcommandValue);
+    Writeln(customcommandValue,customcommandSTR);
+    CloseFile(customcommandValue);
+
+    // Create custom script
+    AssignFile(customcommandScript, '/tmp/goverlay/customcommandScript.sh');
+    Rewrite(customcommandScript);
+    Writeln(customcommandScript,'customcommand=$(cat /tmp/goverlay/customcommandValue)');  //Store custom command in Linux/Unix variable and remove # character
+    Writeln(customcommandScript,'echo "exec=$customcommand" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
+    CloseFile(customcommandScript);
+
+    //execute custom script to store custom value on mangohud.conf
+    RunCommand('bash -c ''sh /tmp/goverlay/customcommandScript.sh''', s);
+
+
+
+     end;
   //Media Player
   if mediaCheckBox.Checked=true then
   RunCommand('bash -c ''echo "media_player" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -1930,6 +2000,8 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_tex
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/gpu_text_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size | cut -c 11-13 >> $HOME/.config/goverlay/initial_values/font_size_value''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center >> $HOME/.config/goverlay/initial_values/hudtitle_text''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center | cut -c 20-40 >> $HOME/.config/goverlay/initial_values/hudtitle_value''', s);
 
 end;
 
@@ -5246,6 +5318,7 @@ RunCommand('bash -c ''echo 24 >> /tmp/goverlay/initial_values/font_size_value'''
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/hudtitle_value''', s);
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_load_change''', s);
@@ -5687,6 +5760,20 @@ if initgputextvalueSTR = '' then
    gpunameEdit.text:= 'GPU'
    else
    gpunameEdit.text:= initgputextvalueSTR;
+
+
+//###################################################################### hudtitle_value
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inithudtitlevalue, '/tmp/goverlay/initial_values/hudtitle_value');
+Reset(inithudtitlevalue);
+Readln(inithudtitlevalue,inithudtitlevalueSTR); //Assign Text file to String
+CloseFile(inithudtitlevalue);
+
+if inithudtitlevalueSTR = '' then
+   hudtitleEdit.text:= ''
+   else
+   hudtitleEdit.text:= inithudtitlevalueSTR;
 
 //###################################################################### vulkan_driver
 
