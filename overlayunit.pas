@@ -972,9 +972,9 @@ begin
 
   // ###################################################################################### HUD Title
 
-      // Only create title entry if title isn't blank
-      //if (hudtitleEdit.text <> '') or (hudtitleEdit.text <> 'HUD Title') then
-       if (hudtitleEdit.text <> '') then
+      // Only create title entry if title isn't blank and diferent of default title
+      if (hudtitleEdit.text <> '') and (hudtitleEdit.text <> 'HUD Title') then
+
        begin
 
       hudtitleSTR := hudtitleEdit.text;
@@ -994,10 +994,11 @@ begin
 
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/hudtitleScript.sh''', s);
+        end;
 
 
   //####################################################################################### PERFORMANCE
-       end;
+
 
   //Setup FPS Limit
        case fpslimCombobox.ItemIndex of
@@ -1005,13 +1006,18 @@ begin
       1:RunCommand('bash -c ''echo "fps_limit=30" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
       2:RunCommand('bash -c ''echo "fps_limit=45" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
       3:RunCommand('bash -c ''echo "fps_limit=60" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      4:RunCommand('bash -c ''echo "fps_limit=90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      5:RunCommand('bash -c ''echo "fps_limit=120" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      6:RunCommand('bash -c ''echo "fps_limit=144" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      7:RunCommand('bash -c ''echo "fps_limit=30,60" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      8:RunCommand('bash -c ''echo "fps_limit=60,120" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      9:RunCommand('bash -c ''echo "#fps_limit=" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-      10:begin
+      4:RunCommand('bash -c ''echo "fps_limit=60,30" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      5:RunCommand('bash -c ''echo "fps_limit=90" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      6:RunCommand('bash -c ''echo "fps_limit=120" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      7:RunCommand('bash -c ''echo "fps_limit=120,60" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      8:RunCommand('bash -c ''echo "fps_limit=144" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      9:RunCommand('bash -c ''echo "fps_limit=240" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      10:RunCommand('bash -c ''echo "fps_limit=300" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      11:RunCommand('bash -c ''echo "fps_limit=360" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      12:RunCommand('bash -c ''echo "fps_limit=420" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      13:RunCommand('bash -c ''echo "#fps_limit=" >> $HOME/.config/MangoHud/MangoHud.conf''', s);    // unlocked
+
+      14:begin        //14 is the custom command
         // Assign custom value to file
         AssignFile(fpsCustomValue, '/tmp/goverlay/fpsCustom');
         Rewrite(fpsCustomValue);
@@ -1028,8 +1034,10 @@ begin
         //execute custom script to store custom value on mangohud.conf
         RunCommand('bash -c ''sh /tmp/goverlay/fpsCustomScript.sh''', s);
        end;
-       11:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    end;
+
+       15:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);  // unset
+       end;
+
 
 
    //FPS Limit toggle
@@ -1650,9 +1658,10 @@ end;
 // ###################################################################################### Custom Command
 
     // Only create custom command entry if entry isn't blank
-    if customcommandEdit.text <> '' then
+    //if customcommandEdit.text <> '' then
 
-     begin
+    if (customcommandEdit.text <> '') and (customcommandEdit.text <> 'Custom command') then
+    begin
 
     customcommandSTR := customcommandEdit.text;
 
@@ -1672,9 +1681,9 @@ end;
     //execute custom script to store custom value on mangohud.conf
     RunCommand('bash -c ''sh /tmp/goverlay/customcommandScript.sh''', s);
 
-
-
      end;
+
+
   //Media Player
   if mediaCheckBox.Checked=true then
   RunCommand('bash -c ''echo "media_player" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -5400,13 +5409,17 @@ case initfpslimitSTR of
 'fps_limit=30':fpslimComboBox.ItemIndex:=1;
 'fps_limit=45':fpslimComboBox.ItemIndex:=2;
 'fps_limit=60':fpslimComboBox.ItemIndex:=3;
-'fps_limit=90':fpslimComboBox.ItemIndex:=4;
-'fps_limit=120':fpslimComboBox.ItemIndex:=5;
-'fps_limit=144':fpslimComboBox.ItemIndex:=6;
-'fps_limit=30,60':fpslimComboBox.ItemIndex:=7;
-'fps_limit=60,120':fpslimComboBox.ItemIndex:=8;
-'#fps_limit=':fpslimComboBox.ItemIndex:=9;
-'':fpslimComboBox.ItemIndex:=11;
+'fps_limit=60,30':fpslimComboBox.ItemIndex:=4;
+'fps_limit=90':fpslimComboBox.ItemIndex:=5;
+'fps_limit=120':fpslimComboBox.ItemIndex:=6;
+'fps_limit=120,60':fpslimComboBox.ItemIndex:=7;
+'fps_limit=144':fpslimComboBox.ItemIndex:=8;
+'fps_limit=240':fpslimComboBox.ItemIndex:=9;
+'fps_limit=300':fpslimComboBox.ItemIndex:=10;
+'fps_limit=360':fpslimComboBox.ItemIndex:=11;
+'fps_limit=420':fpslimComboBox.ItemIndex:=12;
+'#fps_limit=':fpslimComboBox.ItemIndex:=13;
+'':fpslimComboBox.ItemIndex:=15;
  end;
 
 //###################################################################### show_fps_limit
