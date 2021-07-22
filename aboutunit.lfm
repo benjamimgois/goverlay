@@ -21,8 +21,8 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 745
-      ClientWidth = 532
+      ClientHeight = 749
+      ClientWidth = 526
       Font.Color = clBlack
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -32,6 +32,7 @@ object aboutForm: TaboutForm
         Top = 40
         Width = 512
         BorderStyle = bsNone
+        Color = clNone
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -50,7 +51,7 @@ object aboutForm: TaboutForm
         Top = 16
         Width = 131
         Caption = 'GOverlay'
-        Color = clDefault
+        Color = clNone
         Font.Height = -19
         Font.Name = 'Sans'
         Font.Style = [fsBold]
@@ -61,11 +62,10 @@ object aboutForm: TaboutForm
       object mangolink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 289
-        Width = 342
+        Width = 340
         Caption = 'https://github.com/flightlessmango/MangoHud'
-        Color = clDefault
         Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
@@ -73,7 +73,6 @@ object aboutForm: TaboutForm
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
-        Transparent = False
         OnClick = mangolinkClick
       end
       object jasonMemo: TMemo
@@ -82,6 +81,7 @@ object aboutForm: TaboutForm
         Top = 399
         Width = 512
         BorderStyle = bsNone
+        Color = clNone
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -96,11 +96,10 @@ object aboutForm: TaboutForm
       object linux4elink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 448
-        Width = 340
+        Width = 335
         Caption = 'https://github.com/matanui159/ReplaySorcery'
-        Color = clDefault
         Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
@@ -108,7 +107,6 @@ object aboutForm: TaboutForm
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
-        Transparent = False
         OnClick = Label1Click
       end
       object Image1: TImage
@@ -11102,6 +11100,7 @@ object aboutForm: TaboutForm
         Top = 603
         Width = 392
         BorderStyle = bsNone
+        Color = clNone
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15270,6 +15269,7 @@ object aboutForm: TaboutForm
         Top = 254
         Width = 512
         BorderStyle = bsNone
+        Color = clNone
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15287,6 +15287,7 @@ object aboutForm: TaboutForm
         Top = 322
         Width = 512
         BorderStyle = bsNone
+        Color = clNone
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15301,11 +15302,10 @@ object aboutForm: TaboutForm
       object schoorselinkLabel: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 364
-        Width = 305
+        Width = 304
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
-        Color = clDefault
         Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
@@ -15313,7 +15313,6 @@ object aboutForm: TaboutForm
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
-        Transparent = False
         OnClick = schoorselinkLabelClick
       end
       object jasonMemo1: TMemo
@@ -15322,6 +15321,7 @@ object aboutForm: TaboutForm
         Top = 494
         Width = 512
         BorderStyle = bsNone
+        Color = clNone
         Font.Height = -13
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
@@ -15336,11 +15336,10 @@ object aboutForm: TaboutForm
       object linux4elink1: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 541
-        Width = 247
+        Width = 244
         Caption = 'https://www.linux4everyone.com/'
-        Color = clDefault
         Font.Color = clBlue
         Font.Height = -13
         Font.Name = 'Sans'
@@ -15348,14 +15347,13 @@ object aboutForm: TaboutForm
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
-        Transparent = False
         OnClick = Label1Click
       end
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 745
-      ClientWidth = 532
+      ClientHeight = 749
+      ClientWidth = 526
       object Memo3: TMemo
         Left = 0
         Height = 744

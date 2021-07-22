@@ -25,6 +25,16 @@ type
     audiodevCombobox: TComboBox;
     audioinputCombobox: TComboBox;
     audioencoderCombobox: TComboBox;
+    distroinfolabel: TLabel;
+    distroinfolabel2: TLabel;
+    MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
+    MenuItem3: TMenuItem;
+    runvkbasaltBitBtn: TBitBtn;
+    vkbasaltPopupMenu: TPopupMenu;
+    sessionlabel: TLabel;
+    homepartitionlabel: TLabel;
+    customcommandlabel: TLabel;
     bottomleftSpeedButton: TSpeedButton;
     bottomrightSpeedButton: TSpeedButton;
     cpuavrloadCheckBox: TCheckBox;
@@ -32,6 +42,16 @@ type
     cpufreqCheckBox: TCheckBox;
     cpuloadgraphBitBtn: TBitBtn;
     distroinfoCheckBox: TCheckBox;
+    resolutionvaluelabel: TLabel;
+    resolutionlabel: TLabel;
+    batterylabel: TLabel;
+    vkbasaltstatuslabel: TLabel;
+    fpslimitvaluelabel: TLabel;
+    gamemodestatuslabel: TLabel;
+    vkbasaltstatusvaluelabel: TLabel;
+    gamemodestatusvaluelabel: TLabel;
+    batteryvaluelabel2: TLabel;
+    batteryvaluelabel: TLabel;
     sessionCheckBox: TCheckBox;
     homepartCheckBox: TCheckBox;
     hudtitleEdit: TEdit;
@@ -39,6 +59,7 @@ type
     cputempgraphBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
     gamemodestatusCheckBox: TCheckBox;
+    fpslimitlabel: TLabel;
     vkbasaltstatusCheckBox: TCheckBox;
     batteryCheckBox: TCheckBox;
     fpslimtoggleComboBox: TComboBox;
@@ -321,7 +342,9 @@ type
     procedure autovideobitrateCheckBoxChange(Sender: TObject);
     procedure autovideoqualityCheckBoxChange(Sender: TObject);
     procedure basaltgeSpeedButtonClick(Sender: TObject);
+    procedure basaltrunBitBtnClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
+    procedure batteryCheckBoxClick(Sender: TObject);
     procedure bottomleftSpeedButtonClick(Sender: TObject);
     procedure bottomrightSpeedButtonClick(Sender: TObject);
     procedure casCheckBoxChange(Sender: TObject);
@@ -337,6 +360,8 @@ type
     procedure cpupowerCheckBoxClick(Sender: TObject);
     procedure cputempgraphBitBtnClick(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
+    procedure customcommandEditChange(Sender: TObject);
+    procedure distroinfoCheckBoxClick(Sender: TObject);
     procedure driverversionCheckBoxChange(Sender: TObject);
     procedure engineColorButtonColorChanged(Sender: TObject);
     procedure engineversionCheckBoxClick(Sender: TObject);
@@ -346,6 +371,7 @@ type
     procedure framegraphRadioButtonClick(Sender: TObject);
     procedure framehistogramRadioButtonClick(Sender: TObject);
     procedure framerateComboboxKeyPress(Sender: TObject; var Key: char);
+    procedure gamemodestatusCheckBoxClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure gpucfgraphBitBtnClick(Sender: TObject);
     procedure gpuloadcolorCheckBoxChange(Sender: TObject);
@@ -359,6 +385,7 @@ type
     procedure gputempgraphBitBtnClick(Sender: TObject);
     procedure graphhudBitBtnClick(Sender: TObject);
     procedure heroicMenuItemClick(Sender: TObject);
+    procedure homepartCheckBoxClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure cpuavrloadCheckBoxClick(Sender: TObject);
@@ -389,6 +416,9 @@ type
     procedure mangohudPanelClick(Sender: TObject);
     procedure mediaColorButtonColorChanged(Sender: TObject);
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
+    procedure MenuItem1Click(Sender: TObject);
+    procedure MenuItem2Click(Sender: TObject);
+    procedure MenuItem3Click(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramgraphBitBtnClick(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
@@ -400,8 +430,12 @@ type
     procedure replaysaveBitBtnClick(Sender: TObject);
     procedure replaystartBitBtnClick(Sender: TObject);
     procedure replaystopBitBtnClick(Sender: TObject);
+    procedure resolutionCheckBoxClick(Sender: TObject);
     procedure runsteamBitBtnClick(Sender: TObject);
+    procedure runvkbasaltBitBtnClick(Sender: TObject);
     procedure saveBitBtn1Click(Sender: TObject);
+    procedure sessionCheckBoxClick(Sender: TObject);
+    procedure showfpslimCheckBoxClick(Sender: TObject);
     procedure steamMenuItemClick(Sender: TObject);
     procedure swapusageCheckBoxClick(Sender: TObject);
     procedure videobitrateTrackBarChange(Sender: TObject);
@@ -426,6 +460,7 @@ type
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure vkbasaltLabelMouseEnter(Sender: TObject);
     procedure vkbasaltLabelMouseLeave(Sender: TObject);
+    procedure vkbasaltstatusCheckBoxClick(Sender: TObject);
     procedure vramColorButtonColorChanged(Sender: TObject);
     procedure vramgraphBitBtnClick(Sender: TObject);
     procedure vramusageCheckBoxClick(Sender: TObject);
@@ -2228,6 +2263,21 @@ begin
   key:=#0;
 end;
 
+procedure Tgoverlayform.MenuItem1Click(Sender: TObject);
+begin
+   RunCommand('bash -c ''ENABLE_VKBASALT=1 steam''', s)     //Run steam
+end;
+
+procedure Tgoverlayform.MenuItem2Click(Sender: TObject);
+begin
+   RunCommand('bash -c ''ENABLE_VKBASALT=1 lutris''', s)    //Run lutris
+end;
+
+procedure Tgoverlayform.MenuItem3Click(Sender: TObject);
+begin
+    RunCommand('bash -c ''ENABLE_VKBASALT=1 heroic''', s)  //Run heroic
+end;
+
 
 
 procedure Tgoverlayform.ramColorButtonColorChanged(Sender: TObject);
@@ -2545,7 +2595,10 @@ begin
     0:RunCommand('bash -c ''echo "videoEncoder = auto" >> $HOME/.config/replay-sorcery.conf''', s);
     1:RunCommand('bash -c ''echo "videoEncoder = x264" >> $HOME/.config/replay-sorcery.conf''', s);
     2:RunCommand('bash -c ''echo "videoEncoder = openh264" >> $HOME/.config/replay-sorcery.conf''', s);
-    3:RunCommand('bash -c ''echo "videoEncoder = vaapi" >> $HOME/.config/replay-sorcery.conf''', s);
+    3:RunCommand('bash -c ''echo "videoEncoder = x265" >> $HOME/.config/replay-sorcery.conf''', s);
+    4:RunCommand('bash -c ''echo "videoEncoder = hevc" >> $HOME/.config/replay-sorcery.conf''', s);
+    5:RunCommand('bash -c ''echo "videoEncoder = vaapi_h264" >> $HOME/.config/replay-sorcery.conf''', s);
+    6:RunCommand('bash -c ''echo "videoEncoder = vaapi_hevc" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
   //REPLAY H264 Profile
@@ -2884,15 +2937,66 @@ begin
          end;
 end;
 
+procedure Tgoverlayform.resolutionCheckBoxClick(Sender: TObject);
+begin
+         //Preview resolution
+  if resolutionCheckbox.Checked=true then
+  begin
+  resolutionlabel.Caption:='Resolution';
+  resolutionvaluelabel.Caption:='1920x1080';
+  end
+  else
+  begin
+  resolutionlabel.Caption:='';
+   resolutionvaluelabel.Caption:='';
+  end;
+end;
+
 procedure Tgoverlayform.runsteamBitBtnClick(Sender: TObject);
 begin
       with runsteamBitbtn.ClientToScreen(point(0, 0)) do
      gamePopupMenu.Popup(X, Y);
 end;
 
+procedure Tgoverlayform.runvkbasaltBitBtnClick(Sender: TObject);
+begin
+     with runvkbasaltBitbtn.ClientToScreen(point(0, 0)) do
+     vkbasaltPopupMenu.Popup(X, Y);
+end;
+
 procedure Tgoverlayform.saveBitBtn1Click(Sender: TObject);
 begin
   RunCommand('bash -c ''export GALLIUM_HUD=simple,fps,cpu,frametime''', s); // test GALLIUMHUD
+end;
+
+procedure Tgoverlayform.sessionCheckBoxClick(Sender: TObject);
+begin
+    //Preview session
+  if sessionCheckbox.Checked=true then
+  begin
+  sessionlabel.Caption:='Session:    x11';
+
+  end
+  else
+  begin
+  sessionlabel.Caption:='';
+
+  end;
+end;
+
+procedure Tgoverlayform.showfpslimCheckBoxClick(Sender: TObject);
+begin
+     //Preview fps limit
+  if showfpslimCheckbox.Checked=true then
+  begin
+  fpslimitlabel.Caption:='FPS Limit';
+  fpslimitvaluelabel.Caption:='60';
+  end
+  else
+  begin
+  fpslimitlabel.Caption:='';
+  fpslimitvaluelabel.Caption:='';
+  end;
 end;
 
 procedure Tgoverlayform.steamMenuItemClick(Sender: TObject);
@@ -3033,14 +3137,23 @@ begin
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=true;
 
-   gpuloadgraphBitbtn.imageindex:=3;
-   gputempgraphBitbtn.imageindex:=3;
-   gpucfgraphBitbtn.imageindex:=3;
-   gpumfgraphBitbtn.imageindex:=3;
-   vramgraphBitbtn.imageindex:=3;
-   cpuloadgraphBitbtn.imageindex:=3;
-   cputempgraphBitbtn.imageindex:=3;
-   ramgraphBitbtn.imageindex:=3;
+  showfpslimCheckbox.Checked:=true;
+  batteryCheckbox.Checked:=true;
+  resolutionCheckbox.Checked:=true;
+  vkbasaltstatusCheckbox.Checked:=true;
+  gamemodestatusCheckbox.Checked:=true;
+  sessionCheckbox.Checked:=true;
+  distroinfoCheckbox.Checked:=true;
+  homepartCheckbox.Checked:=true;
+
+  gpuloadgraphBitbtn.imageindex:=3;
+  gputempgraphBitbtn.imageindex:=3;
+  gpucfgraphBitbtn.imageindex:=3;
+  gpumfgraphBitbtn.imageindex:=3;
+  vramgraphBitbtn.imageindex:=3;
+  cpuloadgraphBitbtn.imageindex:=3;
+  cputempgraphBitbtn.imageindex:=3;
+  ramgraphBitbtn.imageindex:=3;
 
   //Preview all hud options
   cpulabel.Caption:='CPU';
@@ -3075,6 +3188,23 @@ begin
   cpupowerlabel.Caption:='150W' ;
   gpuusagelabel.Font.Color:=gpuload3Colorbutton.ButtonColor;
   cpuusagelabel.Font.Color:=cpuload2Colorbutton.ButtonColor;
+
+  fpslimitlabel.Caption:='FPS Limit';
+  fpslimitvaluelabel.Caption:='60';
+  batterylabel.Caption:='BATT';
+  batteryvaluelabel.Caption:='83%';
+  batteryvaluelabel2.Caption:='25.3W';
+  resolutionlabel.Caption:='Resolution';
+  resolutionvaluelabel.Caption:='1920x1080';
+  vkbasaltstatuslabel.Caption:='VKBASALT';
+  vkbasaltstatusvaluelabel.Caption:='ON';
+  gamemodestatuslabel.Caption:='GAMEMODE';
+  gamemodestatusvaluelabel.Caption:='ON';
+  sessionlabel.Caption:='Session:    x11';
+  distroinfolabel.Caption:='Distribution info';
+  distroinfolabel2.Caption:='Kernel:      version';
+  homepartitionlabel.Caption:='/home/ partition size';
+
 end;
 
 procedure Tgoverlayform.clipdurationComboboxKeyPress(Sender: TObject;
@@ -4225,6 +4355,23 @@ RunCommand('bash -c ''echo "################### File Generated by GOverlay #####
 
 end;
 
+procedure Tgoverlayform.batteryCheckBoxClick(Sender: TObject);
+begin
+       //Preview battery
+  if batteryCheckbox.Checked=true then
+  begin
+  batterylabel.Caption:='BATT';
+  batteryvaluelabel.Caption:='83%';
+  batteryvaluelabel2.Caption:='25.3W';
+  end
+  else
+  begin
+  batterylabel.Caption:='';
+  batteryvaluelabel.Caption:='';
+  batteryvaluelabel2.Caption:='';
+  end;
+end;
+
 
 procedure Tgoverlayform.bottomleftSpeedButtonClick(Sender: TObject);
 begin
@@ -4442,6 +4589,15 @@ begin
    hudversionCheckbox.Checked:=false;
    fpsCheckbox.Checked:=true;
 
+  showfpslimCheckbox.Checked:=false;
+  batteryCheckbox.Checked:=false;
+  resolutionCheckbox.Checked:=false;
+  vkbasaltstatusCheckbox.Checked:=false;
+  gamemodestatusCheckbox.Checked:=false;
+  sessionCheckbox.Checked:=false;
+  distroinfoCheckbox.Checked:=false;
+  homepartCheckbox.Checked:=false;
+
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
    gpucfgraphBitbtn.imageindex:=3;
@@ -4485,6 +4641,22 @@ begin
    cpupowerlabel.Caption:='';
    hudversionlabel.Caption:='';
    swapusagelabel.Caption:='';
+
+  fpslimitlabel.Caption:='';
+  fpslimitvaluelabel.Caption:='';
+  batterylabel.Caption:='';
+  batteryvaluelabel.Caption:='';
+  batteryvaluelabel2.Caption:='';
+  resolutionlabel.Caption:='';
+  resolutionvaluelabel.Caption:='';
+  vkbasaltstatuslabel.Caption:='';
+  vkbasaltstatusvaluelabel.Caption:='';
+  gamemodestatuslabel.Caption:='';
+  gamemodestatusvaluelabel.Caption:='';
+  sessionlabel.Caption:='';
+  distroinfolabel.Caption:='';
+  distroinfolabel2.Caption:='';
+  homepartitionlabel.Caption:='';
 end;
 
 procedure Tgoverlayform.basaltgeSpeedButtonClick(Sender: TObject);
@@ -4508,6 +4680,15 @@ begin
      end;
 
   end;
+end;
+
+procedure Tgoverlayform.basaltrunBitBtnClick(Sender: TObject);
+begin
+    //Run vkcube
+  if mangohuddependencyVALUE=1 then
+      RunCommand('bash -c ''ENABLE_VKBASALT=1 mangohud vkcube''', s)
+  else
+      RunCommand('bash -c ''ENABLE_VKBASALT=1 vkcube''', s)
 end;
 
 procedure Tgoverlayform.archCheckBoxClick(Sender: TObject);
@@ -4733,6 +4914,26 @@ begin
   crosshairsizeForm.show;
 end;
 
+procedure Tgoverlayform.customcommandEditChange(Sender: TObject);
+begin
+   customcommandlabel.Caption:=customcommandEdit.Text;
+end;
+
+procedure Tgoverlayform.distroinfoCheckBoxClick(Sender: TObject);
+begin
+      //Preview distro info
+  if distroinfoCheckbox.Checked=true then
+  begin
+  distroinfolabel.Caption:='Distribution info';
+  distroinfolabel2.Caption:='Kernel:      version';
+  end
+  else
+  begin
+  distroinfolabel.Caption:='';
+  distroinfolabel2.Caption:='';
+  end;
+end;
+
 
 
 
@@ -4854,6 +5055,21 @@ begin
   key:=#0;
 end;
 
+procedure Tgoverlayform.gamemodestatusCheckBoxClick(Sender: TObject);
+begin
+  //Preview gamemode
+  if gamemodestatusCheckbox.Checked=true then
+  begin
+  gamemodestatuslabel.Caption:='GAMEMODE';
+  gamemodestatusvaluelabel.Caption:='ON';
+  end
+  else
+  begin
+  gamemodestatuslabel.Caption:='';
+  gamemodestatusvaluelabel.Caption:='';
+  end;
+end;
+
 
 
 
@@ -4960,11 +5176,11 @@ end;
 
 procedure Tgoverlayform.runBitBtnClick(Sender: TObject);
 begin
-    //Run vkcube and glxgears
-    if mangohuddependencyVALUE=1 then
-        RunCommand('bash -c ''ENABLE_VKBASALT=1 mangohud vkcube & mangohud glxgears''', s)
-    else
-        RunCommand('bash -c ''ENABLE_VKBASALT=1 vkcube & glxgears''', s)
+  //Run vkcube and glxgears
+  if vkbasaltdependencyVALUE=1 then
+      RunCommand('bash -c ''ENABLE_VKBASALT=1 mangohud vkcube & mangohud glxgears''', s)
+  else
+      RunCommand('bash -c ''mangohud vkcube & mangohud glxgears''', s)
 end;
 
 
@@ -5015,6 +5231,22 @@ begin
   winelabel.Caption:='';
   cpupowerlabel.Caption:='';
   cpufreqlabel.Caption:='';
+
+  fpslimitlabel.Caption:='';
+  fpslimitvaluelabel.Caption:='';
+  batterylabel.Caption:='';
+  batteryvaluelabel.Caption:='';
+  batteryvaluelabel2.Caption:='';
+  resolutionlabel.Caption:='';
+  resolutionvaluelabel.Caption:='';
+  vkbasaltstatuslabel.Caption:='';
+  vkbasaltstatusvaluelabel.Caption:='';
+  gamemodestatuslabel.Caption:='';
+  gamemodestatusvaluelabel.Caption:='';
+  sessionlabel.Caption:='';
+  distroinfolabel.Caption:='';
+  distroinfolabel2.Caption:='';
+  homepartitionlabel.Caption:='';
 
   //Initialize Variables with stock Mangohud colors
   cpucolorhtml :='#2e97cb';
@@ -5208,6 +5440,7 @@ begin
         if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud';
+        dependencieSpeedButton.ImageIndex := 1;
         end;
 
         if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) then
@@ -6538,7 +6771,10 @@ case initreplayvideoEncoderSTR of
   'videoEncoder = auto':videoencoderCombobox.ItemIndex:=0;
   'videoEncoder = x264':videoencoderCombobox.ItemIndex:=1;
   'videoEncoder = openh264':videoencoderCombobox.ItemIndex:=2;
-  'videoEncoder = vaapi':videoencoderCombobox.ItemIndex:=3;
+  'videoEncoder = x265':videoencoderCombobox.ItemIndex:=3;
+  'videoEncoder = hevc':videoencoderCombobox.ItemIndex:=4;
+  'videoEncoder = vaapi_h264':videoencoderCombobox.ItemIndex:=5;
+  'videoEncoder = vaapi_hevc':videoencoderCombobox.ItemIndex:=6;
 end;
 
 
@@ -6925,6 +7161,7 @@ begin
   vramusageCheckbox.Checked:=false;
   ramusageCheckbox.Checked:=false;
   frametimegraphCheckbox.Checked:=false;
+
   timeCheckbox.Checked:=false;
   archCheckbox.Checked:=false;
   driverversionCheckbox.Checked:=false;
@@ -6940,19 +7177,42 @@ begin
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=false;
 
-   gpuloadgraphBitbtn.imageindex:=2;
-   gputempgraphBitbtn.imageindex:=2;
-   gpucfgraphBitbtn.imageindex:=2;
-   gpumfgraphBitbtn.imageindex:=2;
-   vramgraphBitbtn.imageindex:=2;
-   cpuloadgraphBitbtn.imageindex:=2;
-   cputempgraphBitbtn.imageindex:=2;
-   ramgraphBitbtn.imageindex:=2;
+  showfpslimCheckbox.Checked:=false;
+  batteryCheckbox.Checked:=false;
+  resolutionCheckbox.Checked:=false;
+  vkbasaltstatusCheckbox.Checked:=false;
+  gamemodestatusCheckbox.Checked:=false;
+  sessionCheckbox.Checked:=false;
+  distroinfoCheckbox.Checked:=false;
+  homepartCheckbox.Checked:=false;
+
+  gpuloadgraphBitbtn.imageindex:=2;
+  gputempgraphBitbtn.imageindex:=2;
+  gpucfgraphBitbtn.imageindex:=2;
+  gpumfgraphBitbtn.imageindex:=2;
+  vramgraphBitbtn.imageindex:=2;
+  cpuloadgraphBitbtn.imageindex:=2;
+  cputempgraphBitbtn.imageindex:=2;
+  ramgraphBitbtn.imageindex:=2;
 end;
 
 procedure Tgoverlayform.heroicMenuItemClick(Sender: TObject);
 begin
   RunCommand('bash -c ''mangohud heroic''', s);  // run heroic
+end;
+
+procedure Tgoverlayform.homepartCheckBoxClick(Sender: TObject);
+begin
+        //Preview home partition
+  if homepartCheckbox.Checked=true then
+  begin
+  homepartitionlabel.Caption:='/home/ partition size';
+
+  end
+  else
+  begin
+  homepartitionlabel.Caption:='';
+  end;
 end;
 
 
@@ -7064,6 +7324,21 @@ begin
 
  if replaysel = true  then
  vkbasaltShape.Visible:=false;
+end;
+
+procedure Tgoverlayform.vkbasaltstatusCheckBoxClick(Sender: TObject);
+begin
+           //Preview vkbasalt
+  if vkbasaltstatusCheckbox.Checked=true then
+  begin
+  vkbasaltstatuslabel.Caption:='VKBASALT';
+  vkbasaltstatusvaluelabel.Caption:='ON';
+  end
+  else
+  begin
+  vkbasaltstatuslabel.Caption:='';
+  vkbasaltstatusvaluelabel.Caption:='';
+  end;
 end;
 
 procedure Tgoverlayform.vramColorButtonColorChanged(Sender: TObject);
