@@ -79,7 +79,7 @@ apt install goverlay
 
 #### Ubuntu
 
-To install goverlay in Ubuntu (20.04 and up) and derivatives use the PPA from Martin Wimpress. Run the following commands as root:
+To install goverlay in Ubuntu (20.04 and up) and derivatives use the PPA from Martin Wimpress. Run the following commands:
 
 ```bash
 sudo add-apt-repository ppa:flexiondotorg/mangohud
