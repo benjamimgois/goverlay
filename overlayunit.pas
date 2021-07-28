@@ -844,6 +844,8 @@ var
   initdistroinfoSTR: string;
   inithudtitlevalue: Textfile;
   inithudtitlevalueSTR: string;
+  initcustomcommandvalue: Textfile;
+  initcustomcommandvalueSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1663,11 +1665,12 @@ end;
 //show Distro info
 if distroinfoCheckBox.Checked=true then
 begin
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=lsb_release -a | grep Description | cut -c 14-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=lsb_release -a | grep Release | cut -c 10-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
 RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=uname -r" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
@@ -1675,7 +1678,6 @@ end;
 //show Session type
 if sessionCheckbox.Checked=true then
 begin
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "custom_text=Session:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=printf $XDG_SESSION_TYPE" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
@@ -1683,10 +1685,8 @@ end;
 //show home partition size
 if homepartCheckbox.Checked=true then
 begin
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "custom_text=Home:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
 
 
@@ -1710,6 +1710,7 @@ end;
     AssignFile(customcommandScript, '/tmp/goverlay/customcommandScript.sh');
     Rewrite(customcommandScript);
     Writeln(customcommandScript,'customcommand=$(cat /tmp/goverlay/customcommandValue)');  //Store custom command in Linux/Unix variable and remove # character
+    Writeln(customcommandScript,'echo "custom_text=Custom:" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
     Writeln(customcommandScript,'echo "exec=$customcommand" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with name value
     CloseFile(customcommandScript);
 
@@ -2974,7 +2975,7 @@ begin
     //Preview session
   if sessionCheckbox.Checked=true then
   begin
-  sessionlabel.Caption:='Session:    x11';
+  sessionlabel.Caption:='Session:          x11';
 
   end
   else
@@ -4916,7 +4917,7 @@ end;
 
 procedure Tgoverlayform.customcommandEditChange(Sender: TObject);
 begin
-   customcommandlabel.Caption:=customcommandEdit.Text;
+   customcommandlabel.Caption:='Custom:          '+customcommandEdit.Text;
 end;
 
 procedure Tgoverlayform.distroinfoCheckBoxClick(Sender: TObject);
@@ -4924,8 +4925,8 @@ begin
       //Preview distro info
   if distroinfoCheckbox.Checked=true then
   begin
-  distroinfolabel.Caption:='Distribution info';
-  distroinfolabel2.Caption:='Kernel:      version';
+  distroinfolabel.Caption:='Distro:           Name';
+  distroinfolabel2.Caption:='Kernek:          Version';
   end
   else
   begin
@@ -6017,9 +6018,25 @@ Readln(inithudtitlevalue,inithudtitlevalueSTR); //Assign Text file to String
 CloseFile(inithudtitlevalue);
 
 if inithudtitlevalueSTR = '' then
-   hudtitleEdit.text:= ''
+   hudtitleEdit.text:= 'HUD Title'
    else
    hudtitleEdit.text:= inithudtitlevalueSTR;
+
+
+//###################################################################### customcommand
+
+// Assign Text file to variable than assign variable to string
+
+//AssignFile(initcustomcommandvalue, '/tmp/goverlay/initial_values/customcommandvalue');
+//Reset(initcustomcommandvalue);
+//Readln(initcustomcommandvalue,initcustomcommandvalueSTR); //Assign Text file to String
+//CloseFile(initcustomcommandvalue);
+
+//if initcustomcommandvalueSTR = '' then
+//   customcommandEdit.text:= 'Custom command'
+//   else
+//   customcommandEdit.text:= initcustomcommandvalueSTR;
+
 
 //###################################################################### vulkan_driver
 
@@ -7206,7 +7223,7 @@ begin
         //Preview home partition
   if homepartCheckbox.Checked=true then
   begin
-  homepartitionlabel.Caption:='/home/ partition size';
+  homepartitionlabel.Caption:='Home:            partition size';
 
   end
   else
