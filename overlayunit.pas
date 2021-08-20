@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, hudbackgroundUnit, customeffectsunit;
+  ATStringProc_HtmlColor, crosshairUnit, hudbackgroundUnit, customeffectsunit,
+  OpenGLContext, GL, GLU;
 
 
 
@@ -19,39 +20,31 @@ type
     aboutBitBtn: TBitBtn;
     addBitBtn: TBitBtn;
     archCheckBox: TCheckBox;
-    archlabel: TLabel;
     audiobitrateCombobox: TComboBox;
     aacprofileCombobox: TComboBox;
     audiodevCombobox: TComboBox;
     audioinputCombobox: TComboBox;
     audioencoderCombobox: TComboBox;
-    distroinfolabel: TLabel;
-    distroinfolabel2: TLabel;
+    bottomleftSpeedButton: TSpeedButton;
+    bottomrightSpeedButton: TSpeedButton;
+    destfolderpathLabel: TLabel;
+    Label6: TLabel;
+    uploadlogComboBox: TComboBox;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
+    OpenGLControl1: TOpenGLControl;
     runvkbasaltBitBtn: TBitBtn;
+    TittlelogLabel: TLabel;
+    topcenterSpeedButton: TSpeedButton;
+    topleftSpeedButton: TSpeedButton;
+    toprightSpeedButton: TSpeedButton;
     vkbasaltPopupMenu: TPopupMenu;
-    sessionlabel: TLabel;
-    homepartitionlabel: TLabel;
-    customcommandlabel: TLabel;
-    bottomleftSpeedButton: TSpeedButton;
-    bottomrightSpeedButton: TSpeedButton;
     cpuavrloadCheckBox: TCheckBox;
     cpuColorButton: TColorButton;
     cpufreqCheckBox: TCheckBox;
     cpuloadgraphBitBtn: TBitBtn;
     distroinfoCheckBox: TCheckBox;
-    resolutionvaluelabel: TLabel;
-    resolutionlabel: TLabel;
-    batterylabel: TLabel;
-    vkbasaltstatuslabel: TLabel;
-    fpslimitvaluelabel: TLabel;
-    gamemodestatuslabel: TLabel;
-    vkbasaltstatusvaluelabel: TLabel;
-    gamemodestatusvaluelabel: TLabel;
-    batteryvaluelabel2: TLabel;
-    batteryvaluelabel: TLabel;
     sessionCheckBox: TCheckBox;
     homepartCheckBox: TCheckBox;
     hudtitleEdit: TEdit;
@@ -59,7 +52,6 @@ type
     cputempgraphBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
     gamemodestatusCheckBox: TCheckBox;
-    fpslimitlabel: TLabel;
     vkbasaltstatusCheckBox: TCheckBox;
     batteryCheckBox: TCheckBox;
     fpslimtoggleComboBox: TComboBox;
@@ -68,7 +60,6 @@ type
     gpuloadgraphBitBtn: TBitBtn;
     gpumfgraphBitBtn: TBitBtn;
     gputempgraphBitBtn: TBitBtn;
-    hudtitlelabel: TLabel;
     graph1: TLabel;
     graph10: TLabel;
     graph11: TLabel;
@@ -79,13 +70,10 @@ type
     graph9: TLabel;
     hidehudCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
-    swapusagelabel: TLabel;
     performanceGroupBox2: TGroupBox;
     ramgraphBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
-    cpufreqlabel: TLabel;
     cpuGroupBox: TGroupBox;
-    cpulabel: TLabel;
     cpuload1ColorButton: TColorButton;
     cpuload2ColorButton: TColorButton;
     cpuload3ColorButton: TColorButton;
@@ -93,69 +81,40 @@ type
     cpuloadcoreCheckBox: TCheckBox;
     cpunameEdit: TEdit;
     cpupowerCheckBox: TCheckBox;
-    cpupowerlabel: TLabel;
     cputempCheckBox: TCheckBox;
-    cputemplabel: TLabel;
-    cpuusagelabel: TLabel;
-    destfolderpathLabel: TLabel;
     diskioCheckBox: TCheckBox;
     driverversionCheckBox: TCheckBox;
-    driverversionlabel: TLabel;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
-    engineversionlabel: TLabel;
     fpsCheckBox: TCheckBox;
     framegraphRadioButton: TRadioButton;
     framehistogramRadioButton: TRadioButton;
     frametimegraphCheckBox: TCheckBox;
     frametimegraphColorButton: TColorButton;
-    frametimegraphlabel: TLabel;
-    frametimelabel: TLabel;
-    frametimelabel2: TLabel;
     gpuavrloadCheckBox: TCheckBox;
-    gpuclocklabel: TLabel;
     gpuColorButton: TColorButton;
     gpufreqCheckBox: TCheckBox;
     gpuGroupBox: TGroupBox;
-    gpulabel: TLabel;
     gpuload1ColorButton: TColorButton;
     gpuload2ColorButton: TColorButton;
     gpuload3ColorButton: TColorButton;
     gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
-    gpumemfreqlabel: TLabel;
     gpumodelCheckBox: TCheckBox;
     gpunameEdit: TEdit;
-    gpunamelabel: TLabel;
     gpupowerCheckBox: TCheckBox;
-    gpupowerlabel: TLabel;
     gputempCheckBox: TCheckBox;
-    gputemplabel: TLabel;
-    gpuusagelabel: TLabel;
     graphhudBitBtn: TBitBtn;
-    GroupBox3: TGroupBox;
-    hudbackgroundShape: TShape;
     hudversionCheckBox: TCheckBox;
-    hudversionlabel: TLabel;
-    Image1: TImage;
     intelpowerfixBitBtn: TBitBtn;
     iordrwColorButton: TColorButton;
-    iordrwlabel: TLabel;
-    iordvaluelabel: TLabel;
-    iorwvaluelabel: TLabel;
     mediaCheckBox: TCheckBox;
     mediaColorButton: TColorButton;
     mediaComboBox: TComboBox;
     otherGroupBox: TGroupBox;
     performanceGroupBox1: TGroupBox;
-    previewLabel: TLabel;
     ramColorButton: TColorButton;
-    ramlabel: TLabel;
     ramusageCheckBox: TCheckBox;
-    ramusagelabel: TLabel;
-    spotify1label: TLabel;
-    spotify2label: TLabel;
-    spotify3label: TLabel;
     steamMenuItem: TMenuItem;
     lutrisMenuItem: TMenuItem;
     heroicMenuItem: TMenuItem;
@@ -165,11 +124,6 @@ type
     Label29: TLabel;
     Label30: TLabel;
     timeCheckBox: TCheckBox;
-    timelabel: TLabel;
-    TittlelogLabel: TLabel;
-    topcenterSpeedButton: TSpeedButton;
-    topleftSpeedButton: TSpeedButton;
-    toprightSpeedButton: TSpeedButton;
     videodevEdit: TEdit;
     audioGroupBox: TGroupBox;
     audiosampCombobox: TComboBox;
@@ -203,7 +157,7 @@ type
     videoencoderCombobox: TComboBox;
     videodeviceLabel: TLabel;
     videodeviceLabel1: TLabel;
-    GroupBox1: TGroupBox;
+    loggingGroupBox: TGroupBox;
     GroupBox2: TGroupBox;
     hudonoffComboBox: TComboBox;
     casValueLabel: TLabel;
@@ -228,17 +182,11 @@ type
     videoinputLabel: TLabel;
     vramColorButton: TColorButton;
     vramgraphBitBtn: TBitBtn;
-    vramlabel: TLabel;
     vramusageCheckBox: TCheckBox;
-    GlobalenableLabel1: TLabel;
     replaystateLabel: TLabel;
     replaystateSpeedButton: TSpeedButton;
     heightImage: TImage;
     replaystopBitBtn: TBitBtn;
-    vramusagelabel: TLabel;
-    vulkanfpslabel: TLabel;
-    vulkanftimelabel: TLabel;
-    vulkanlabel: TLabel;
     widthImage: TImage;
     replaygeSpeedButton: TSpeedButton;
     replayGlobalenableLabel: TLabel;
@@ -320,7 +268,6 @@ type
     mangohudPanel: TPanel;
     goverlayimage: TImage;
     performanceGroupBox: TGroupBox;
-    runBitBtn: TBitBtn;
     saveBitBtn: TBitBtn;
     mangohudShape: TShape;
     vkbasaltShape: TShape;
@@ -329,7 +276,6 @@ type
     vsyncLabel: TLabel;
     h264profileCombobox: TComboBox;
     videohlepresetCombobox: TComboBox;
-    winelabel: TLabel;
     procedure addBitBtnClick(Sender: TObject);
     procedure archCheckBoxClick(Sender: TObject);
     procedure audiobitrateComboboxKeyPress(Sender: TObject; var Key: char);
@@ -419,6 +365,9 @@ type
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
+    procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure OpenGLControl1Paint(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramgraphBitBtnClick(Sender: TObject);
     procedure ramusageCheckBoxClick(Sender: TObject);
@@ -470,10 +419,16 @@ type
     procedure wineColorButtonColorChanged(Sender: TObject);
     procedure h264profileComboboxKeyPress(Sender: TObject; var Key: char);
 
+    //openglpreview
+    procedure OpenGLControl1Resize(Sender: TObject);
+    procedure OnAppIdle(Sender: TObject; var Done: Boolean);
+    procedure Panel1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
   private
 
   public
-
+  cube_rotationx: GLFloat;
+    cube_rotationy: GLFloat;
+    cube_rotationz: GLFloat;
   end;
 
 var
@@ -846,6 +801,8 @@ var
   inithudtitlevalueSTR: string;
   initcustomcommandvalue: Textfile;
   initcustomcommandvalueSTR: string;
+   inittoggleuploadlog: Textfile;
+   inittoggleuploadlogSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1876,6 +1833,13 @@ end;
     4:RunCommand('bash -c ''echo "toggle_logging=F4" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   end;
 
+  // Upload LOGGING - Toggle Key
+  case uploadlogCombobox.ItemIndex of
+    0:RunCommand('bash -c ''echo "upload_log=F5" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "upload_log=F6" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "upload_log=F7" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    3:RunCommand('bash -c ''echo "upload_log=F8" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  end;
 
 //LOGGING
 
@@ -2023,6 +1987,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w vkbasal
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamemode >> $HOME/.config/goverlay/initial_values/gamemode''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text=Session: >> $HOME/.config/goverlay/initial_values/session''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df  >> $HOME/.config/goverlay/initial_values/homepart''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w Description  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2089,10 +2054,7 @@ begin
         framehistogramRadioButton.Enabled := true;   // enable histogram radiobutton
         framegraphRadioButton.checked := True;   // check graph option by default
 
-        //Preview changes
-        frametimelabel.Caption:='Frametime';
-        frametimelabel2.Caption:='16.6ms';
-        frametimegraphlabel.Caption:='------------------------------------';
+
         end
 
         else
@@ -2102,10 +2064,7 @@ begin
         framehistogramRadioButton.Enabled := false;   // enable histogram radiobutton
         framegraphRadioButton.checked := false;   // check graph option by default
 
-        //Preview changes
-        frametimelabel.Caption:='';
-        frametimelabel2.Caption:='';
-        frametimegraphlabel.Caption:='';
+
         end
      end;
 
@@ -2119,22 +2078,13 @@ end;
 procedure Tgoverlayform.gpuavrloadCheckBoxClick(Sender: TObject);
 begin
   //Preview GPU Average Load
-  if gpuavrloadCheckbox.Checked=true then
-  begin
-  gpulabel.Caption:='GPU';
-  gpuusagelabel.Caption:='95%'
-  end
-  else
-  begin
-  gpulabel.Caption:='';
-  gpuusagelabel.Caption:='';
-  end;
+
+
 end;
 
 procedure Tgoverlayform.gpuColorButtonColorChanged(Sender: TObject);
 begin
-     // Change GPU color labels
-    gpulabel.font.Color:=gpucolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     gpucolorhtml := SColorToHtmlColor(gpucolorButton.ButtonColor);
@@ -2142,30 +2092,12 @@ end;
 
 procedure Tgoverlayform.gpufreqCheckBoxClick(Sender: TObject);
 begin
-  //Preview GPU Clock
-  if gpufreqCheckbox.Checked=true then
-  begin
-  gpulabel.Caption:='GPU';
-  gpuclocklabel.Caption:='1733MHz';
-  end
-  else
-  begin
-  gpuclocklabel.Caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.gputempCheckBoxClick(Sender: TObject);
 begin
-  //PREVIEW GPU TEMPERATURE
-  if gputempCheckbox.Checked=true then
-  begin
-  gpulabel.Caption:='GPU';
-  gputemplabel.Caption:='82ºC';
-  end
-  else
-  begin
-  gputemplabel.Caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.hudonoffComboBoxKeyPress(Sender: TObject; var Key: char
@@ -2249,10 +2181,7 @@ end;
 
 procedure Tgoverlayform.mediaColorButtonColorChanged(Sender: TObject);
 begin
-    // Media color
-    spotify1label.font.Color:=mediacolorButton.ButtonColor;
-    spotify2label.font.Color:=mediacolorButton.ButtonColor;
-    spotify3label.font.Color:=mediacolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     mediacolorhtml := SColorToHtmlColor(mediacolorButton.ButtonColor);
@@ -2279,12 +2208,89 @@ begin
     RunCommand('bash -c ''ENABLE_VKBASALT=1 heroic''', s)  //Run heroic
 end;
 
+procedure Tgoverlayform.OpenGLControl1MouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+begin
+
+end;
+
+procedure Tgoverlayform.OpenGLControl1Paint(Sender: TObject);
+
+//##########################################      OPENGL - DRAWN SPINNING CUBE
+ var
+  Speed: Double;
+begin
+  writeln('paint');
+  glClearColor(0.1,0.1,0.1,0.0);//background - dark gray
+  glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_DEPTH_TEST);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(45.0, double(width) / height, 0.1, 100.0);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  glTranslatef(0.0, 0.0,-6.0);
+  glRotatef(cube_rotationx, cube_rotationy, cube_rotationz, 0.0);
+
+  glBegin(GL_QUADS);
+          glColor3f(0.0,1.0,0.0);                              // Set The Color To Green
+          glVertex3f( 1.0, 1.0,-1.0);                  // Top Right Of The Quad (Top)
+          glVertex3f(-1.0, 1.0,-1.0);                  // Top Left Of The Quad (Top)
+          glVertex3f(-1.0, 1.0, 1.0);                  // Bottom Left Of The Quad (Top)
+          glVertex3f( 1.0, 1.0, 1.0);                  // Bottom Right Of The Quad (Top)
+  glEnd();
+  glBegin(GL_QUADS);
+          glColor3f(1.0,0.5,0.0);                              // Set The Color To Orange
+          glVertex3f( 1.0,-1.0, 1.0);                  // Top Right Of The Quad (Bottom)
+          glVertex3f(-1.0,-1.0, 1.0);                  // Top Left Of The Quad (Bottom)
+          glVertex3f(-1.0,-1.0,-1.0);                  // Bottom Left Of The Quad (Bottom)
+          glVertex3f( 1.0,-1.0,-1.0);                  // Bottom Right Of The Quad (Bottom)
+  glEnd();
+  glBegin(GL_QUADS);
+          glColor3f(1.0,0.0,0.0);                              // Set The Color To Red
+          glVertex3f( 1.0, 1.0, 1.0);                  // Top Right Of The Quad (Front)
+          glVertex3f(-1.0, 1.0, 1.0);                  // Top Left Of The Quad (Front)
+          glVertex3f(-1.0,-1.0, 1.0);                  // Bottom Left Of The Quad (Front)
+          glVertex3f( 1.0,-1.0, 1.0);                  // Bottom Right Of The Quad (Front)
+  glEnd();
+  glBegin(GL_QUADS);
+          glColor3f(1.0,1.0,0.0);                              // Set The Color To Yellow
+          glVertex3f( 1.0,-1.0,-1.0);                  // Bottom Left Of The Quad (Back)
+          glVertex3f(-1.0,-1.0,-1.0);                  // Bottom Right Of The Quad (Back)
+          glVertex3f(-1.0, 1.0,-1.0);                  // Top Right Of The Quad (Back)
+          glVertex3f( 1.0, 1.0,-1.0);                  // Top Left Of The Quad (Back)
+  glEnd();
+  glBegin(GL_QUADS);
+          glColor3f(0.0,0.0,1.0);                              // Set The Color To Blue
+          glVertex3f(-1.0, 1.0, 1.0);                  // Top Right Of The Quad (Left)
+          glVertex3f(-1.0, 1.0,-1.0);                  // Top Left Of The Quad (Left)
+          glVertex3f(-1.0,-1.0,-1.0);                  // Bottom Left Of The Quad (Left)
+          glVertex3f(-1.0,-1.0, 1.0);                  // Bottom Right Of The Quad (Left)
+  glEnd();
+  glBegin(GL_QUADS);
+          glColor3f(1.0,0.0,1.0);                              // Set The Color To Violet
+          glVertex3f( 1.0, 1.0,-1.0);                  // Top Right Of The Quad (Right)
+          glVertex3f( 1.0, 1.0, 1.0);                  // Top Left Of The Quad (Right)
+          glVertex3f( 1.0,-1.0, 1.0);                  // Bottom Left Of The Quad (Right)
+          glVertex3f( 1.0,-1.0,-1.0);                  // Bottom Right Of The Quad (Right)
+  glEnd();
+
+  Speed := double(OpenGLControl1.FrameDiffTimeInMSecs)/250;
+
+  cube_rotationx += 5.15 * Speed;
+  cube_rotationy += 5.15 * Speed;
+  cube_rotationz += 20.0 * Speed;
+
+  OpenGLControl1.SwapBuffers;
+  //##########################################      OPENGL - DRAWN SPINNING CUBE
+end;
+
 
 
 procedure Tgoverlayform.ramColorButtonColorChanged(Sender: TObject);
 begin
-    // Change RAM label color
-    ramlabel.font.Color:=ramcolorButton.ButtonColor;
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     ramcolorhtml := SColorToHtmlColor(ramcolorButton.ButtonColor);
@@ -2300,17 +2306,7 @@ end;
 
 procedure Tgoverlayform.ramusageCheckBoxClick(Sender: TObject);
 begin
-  //Preview RAM usage
-  if ramusageCheckbox.Checked=true then
-    begin
-     ramlabel.Caption:='RAM';
-     ramusagelabel.Caption:='5.99GB'
-     end
-   else
-     begin
-     ramlabel.Caption:='';
-     ramusagelabel.Caption:=''
-  end;
+
 end;
 
 procedure Tgoverlayform.replaygeSpeedButtonClick(Sender: TObject);
@@ -2940,17 +2936,7 @@ end;
 
 procedure Tgoverlayform.resolutionCheckBoxClick(Sender: TObject);
 begin
-         //Preview resolution
-  if resolutionCheckbox.Checked=true then
-  begin
-  resolutionlabel.Caption:='Resolution';
-  resolutionvaluelabel.Caption:='1920x1080';
-  end
-  else
-  begin
-  resolutionlabel.Caption:='';
-   resolutionvaluelabel.Caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.runsteamBitBtnClick(Sender: TObject);
@@ -2972,32 +2958,12 @@ end;
 
 procedure Tgoverlayform.sessionCheckBoxClick(Sender: TObject);
 begin
-    //Preview session
-  if sessionCheckbox.Checked=true then
-  begin
-  sessionlabel.Caption:='Session:          x11';
 
-  end
-  else
-  begin
-  sessionlabel.Caption:='';
-
-  end;
 end;
 
 procedure Tgoverlayform.showfpslimCheckBoxClick(Sender: TObject);
 begin
-     //Preview fps limit
-  if showfpslimCheckbox.Checked=true then
-  begin
-  fpslimitlabel.Caption:='FPS Limit';
-  fpslimitvaluelabel.Caption:='60';
-  end
-  else
-  begin
-  fpslimitlabel.Caption:='';
-  fpslimitvaluelabel.Caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.steamMenuItemClick(Sender: TObject);
@@ -3007,17 +2973,7 @@ end;
 
 procedure Tgoverlayform.swapusageCheckBoxClick(Sender: TObject);
 begin
-        //Preview SWAP usage
-  if swapusageCheckbox.Checked=true then
-    begin
 
-    swapusagelabel.Caption:='2.00GB'
-    end
-  else
-    begin
-
-   swapusagelabel.Caption:='2.00GB'
-  end;
 end;
 
 procedure Tgoverlayform.videobitrateTrackBarChange(Sender: TObject);
@@ -3156,55 +3112,7 @@ begin
   cputempgraphBitbtn.imageindex:=3;
   ramgraphBitbtn.imageindex:=3;
 
-  //Preview all hud options
-  cpulabel.Caption:='CPU';
-  cpuusagelabel.Caption:='51%';
-  cputemplabel.Caption:='71ºC';
-  gpulabel.Caption:='GPU';
-  gpuusagelabel.Caption:='95%';
-  gpulabel.Caption:='GPU';
-  gputemplabel.Caption:='82ºC';
-  vramlabel.Caption:='VRAM';
-  vramusagelabel.Caption:='2.56GB';
-  //swapusagelabel.Caption:='3.2GB';
-  ramlabel.Caption:='RAM';
-  ramusagelabel.Caption:='5.99GB';
-  frametimelabel.Caption:='Frametime';
-  frametimelabel2.Caption:='16.6ms';
-  frametimegraphlabel.Caption:='--------------------------------------';
-  timelabel.Caption:='';
-  iordrwlabel.caption:='IO RF/RW';
-  iordvaluelabel.caption:='32MiB/s';
-  iorwvaluelabel.caption:='22MiB/s';
-  gpuclocklabel.caption:='1733MHz';
-  archlabel.caption:='64bit';
-  gpunamelabel.caption:='Geforce GTX 180';
-  driverversionlabel.caption:='NVIDIA 440.18.00';
-  gpupowerlabel.Caption:='120W';
-  gpumemfreqlabel.Caption:='600MHz';
-  engineversionlabel.Caption:='1.2.131';
-  winelabel.Caption:='Proton 5.0-9';
-  hudversionlabel.Caption:='';
-  cpufreqlabel.Caption:='3400 MHz';
-  cpupowerlabel.Caption:='150W' ;
-  gpuusagelabel.Font.Color:=gpuload3Colorbutton.ButtonColor;
-  cpuusagelabel.Font.Color:=cpuload2Colorbutton.ButtonColor;
 
-  fpslimitlabel.Caption:='FPS Limit';
-  fpslimitvaluelabel.Caption:='60';
-  batterylabel.Caption:='BATT';
-  batteryvaluelabel.Caption:='83%';
-  batteryvaluelabel2.Caption:='25.3W';
-  resolutionlabel.Caption:='Resolution';
-  resolutionvaluelabel.Caption:='1920x1080';
-  vkbasaltstatuslabel.Caption:='VKBASALT';
-  vkbasaltstatusvaluelabel.Caption:='ON';
-  gamemodestatuslabel.Caption:='GAMEMODE';
-  gamemodestatusvaluelabel.Caption:='ON';
-  sessionlabel.Caption:='Session:    x11';
-  distroinfolabel.Caption:='Distribution info';
-  distroinfolabel2.Caption:='Kernel:      version';
-  homepartitionlabel.Caption:='/home/ partition size';
 
 end;
 
@@ -3217,11 +3125,7 @@ end;
 
 procedure Tgoverlayform.cpufreqCheckBoxClick(Sender: TObject);
 begin
-      //PREVIEW CPU FREQUENCY
-  if cpufreqCheckbox.Checked=true then
-     cpufreqlabel.Caption:='3400 MHz'
-  else
-     cpufreqlabel.Caption:='' ;
+
 
 end;
 
@@ -3234,11 +3138,7 @@ end;
 
 procedure Tgoverlayform.cpuloadcolorCheckBoxClick(Sender: TObject);
 begin
-            //PREVIEW  CPU load color
-  if cpuloadcolorCheckbox.Checked=true then
-     cpuusagelabel.Font.Color:=cpuload2Colorbutton.ButtonColor;
-  if cpuloadcolorCheckbox.Checked=false then
-     cpuusagelabel.Font.Color:=cpuload1Colorbutton.ButtonColor;
+
 end;
 
 procedure Tgoverlayform.cpuloadgraphBitBtnClick(Sender: TObject);
@@ -3251,16 +3151,11 @@ end;
 
 procedure Tgoverlayform.cpunameEditChange(Sender: TObject);
 begin
-  cpulabel.Caption:=cpunameEdit.Text;
+
 end;
 
 procedure Tgoverlayform.cpupowerCheckBoxClick(Sender: TObject);
 begin
-      //PREVIEW CPU POWER
-  if cpupowerCheckbox.Checked=true then
-     cpupowerlabel.Caption:='150W'
-  else
-     cpupowerlabel.Caption:='' ;
 
 end;
 
@@ -3289,7 +3184,7 @@ RunCommand('bash -c ''echo "################### File Generated by GOverlay #####
 
                  //Insert reshade Paths in vkbasalt.conf
                  reshadepath1STR := 'reshadeTexturePath = '+userhomepathSTR+'/.local/share/reshade/Textures';
-                 reshadepath2STR := 'reshadeIncludePath = '+userhomepathSTR+'/.local/share/reshade';
+                 reshadepath2STR := 'reshadeIncludePath = '+userhomepathSTR+'/.local/share/reshade/Shaders';
 
 
                  // Assign reshadepath1STR to text file
@@ -4358,19 +4253,7 @@ end;
 
 procedure Tgoverlayform.batteryCheckBoxClick(Sender: TObject);
 begin
-       //Preview battery
-  if batteryCheckbox.Checked=true then
-  begin
-  batterylabel.Caption:='BATT';
-  batteryvaluelabel.Caption:='83%';
-  batteryvaluelabel2.Caption:='25.3W';
-  end
-  else
-  begin
-  batterylabel.Caption:='';
-  batteryvaluelabel.Caption:='';
-  batteryvaluelabel2.Caption:='';
-  end;
+
 end;
 
 
@@ -4608,56 +4491,6 @@ begin
    cputempgraphBitbtn.imageindex:=3;
    ramgraphBitbtn.imageindex:=3;
 
-   //Preview compact hud options
-   cpulabel.Caption:='CPU';
-   cpuusagelabel.Caption:='51%';
-   cputemplabel.Caption:='71ºC';
-   gpulabel.Caption:='GPU';
-   gpuusagelabel.Caption:='95%';
-   gpulabel.Caption:='GPU';
-   gputemplabel.Caption:='82ºC';
-   vramlabel.Caption:='VRAM';
-   vramusagelabel.Caption:='2.56GB';
-   ramlabel.Caption:='RAM';
-   ramusagelabel.Caption:='5.99GB';
-   frametimelabel.Caption:='Frametime';
-   frametimelabel2.Caption:='16.6ms';
-   frametimegraphlabel.Caption:='--------------------------------------';
-   gpuusagelabel.Font.Color:=gpuload3Colorbutton.ButtonColor;
-   cpuusagelabel.Font.Color:=cpuload2Colorbutton.ButtonColor;
-
-   timelabel.Caption:='';
-   iordrwlabel.caption:='';
-   iordvaluelabel.caption:='';
-   iorwvaluelabel.caption:='';
-   gpuclocklabel.caption:='';
-   archlabel.caption:='';
-   gpunamelabel.caption:='';
-   driverversionlabel.caption:='';
-   gpupowerlabel.Caption:='';
-   gpumemfreqlabel.Caption:='';
-   engineversionlabel.Caption:='';
-   winelabel.Caption:='';
-   cpufreqlabel.Caption:='';
-   cpupowerlabel.Caption:='';
-   hudversionlabel.Caption:='';
-   swapusagelabel.Caption:='';
-
-  fpslimitlabel.Caption:='';
-  fpslimitvaluelabel.Caption:='';
-  batterylabel.Caption:='';
-  batteryvaluelabel.Caption:='';
-  batteryvaluelabel2.Caption:='';
-  resolutionlabel.Caption:='';
-  resolutionvaluelabel.Caption:='';
-  vkbasaltstatuslabel.Caption:='';
-  vkbasaltstatusvaluelabel.Caption:='';
-  gamemodestatuslabel.Caption:='';
-  gamemodestatusvaluelabel.Caption:='';
-  sessionlabel.Caption:='';
-  distroinfolabel.Caption:='';
-  distroinfolabel2.Caption:='';
-  homepartitionlabel.Caption:='';
 end;
 
 procedure Tgoverlayform.basaltgeSpeedButtonClick(Sender: TObject);
@@ -4694,11 +4527,7 @@ end;
 
 procedure Tgoverlayform.archCheckBoxClick(Sender: TObject);
 begin
-       //Preview Arch
-     if archCheckbox.Checked=true then
-       archlabel.Caption:='64bit'
-     else
-       archlabel.Caption:='';
+
 end;
 
 procedure Tgoverlayform.audiobitrateComboboxKeyPress(Sender: TObject;
@@ -4917,22 +4746,12 @@ end;
 
 procedure Tgoverlayform.customcommandEditChange(Sender: TObject);
 begin
-   customcommandlabel.Caption:='Custom:          '+customcommandEdit.Text;
+
 end;
 
 procedure Tgoverlayform.distroinfoCheckBoxClick(Sender: TObject);
 begin
-      //Preview distro info
-  if distroinfoCheckbox.Checked=true then
-  begin
-  distroinfolabel.Caption:='Distro:           Name';
-  distroinfolabel2.Caption:='Kernek:          Version';
-  end
-  else
-  begin
-  distroinfolabel.Caption:='';
-  distroinfolabel2.Caption:='';
-  end;
+
 end;
 
 
@@ -4940,22 +4759,12 @@ end;
 
 procedure Tgoverlayform.driverversionCheckBoxChange(Sender: TObject);
 begin
-  //Preview Driver Version
-  if driverversionCheckbox.Checked=true then
-  driverversionlabel.Caption:='NVIDIA 440.18.00'
-  else
-  driverversionlabel.Caption:='';
+
 end;
 
 procedure Tgoverlayform.engineColorButtonColorChanged(Sender: TObject);
 begin
-    // engine color
-    engineversionlabel.font.Color:=enginecolorButton.ButtonColor;
-    vulkanlabel.font.Color:=enginecolorButton.ButtonColor;
-    gpunamelabel.font.Color:=enginecolorButton.ButtonColor;
-    driverversionlabel.font.Color:=enginecolorButton.ButtonColor;
-    archlabel.font.Color:=enginecolorButton.ButtonColor;
-    frametimelabel.font.Color:=enginecolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     enginecolorhtml := SColorToHtmlColor(enginecolorButton.ButtonColor);
@@ -4963,32 +4772,13 @@ end;
 
 procedure Tgoverlayform.engineversionCheckBoxClick(Sender: TObject);
 begin
-  //PREVIEW Engine Version
-  if engineversionCheckbox.Checked=true then
-     engineversionlabel.Caption:='1.2.131'
-  else
-     engineversionlabel.Caption:=''  ;
+
   end;
 
 
 procedure Tgoverlayform.FontcolorButtonColorChanged(Sender: TObject);
 begin
-   // PREVIEW - Change Font color labels
-    gpuusagelabel.font.Color:=FontcolorButton.ButtonColor;
-    gputemplabel.font.Color:=FontcolorButton.ButtonColor;
-    gpuclocklabel.font.Color:=FontcolorButton.ButtonColor;
-    cpuusagelabel.font.Color:=FontcolorButton.ButtonColor;
-    cputemplabel.font.Color:=FontcolorButton.ButtonColor;
-    iordvaluelabel.font.Color:=FontcolorButton.ButtonColor;
-    iorwvaluelabel.font.Color:=FontcolorButton.ButtonColor;
-    vramusagelabel.font.Color:=FontcolorButton.ButtonColor;
-    ramusagelabel.font.Color:=FontcolorButton.ButtonColor;
-    swapusagelabel.font.Color:=FontcolorButton.ButtonColor;
-    vulkanfpslabel.font.Color:=FontcolorButton.ButtonColor;
-    vulkanftimelabel.font.Color:=FontcolorButton.ButtonColor;
-    frametimelabel2.font.Color:=FontcolorButton.ButtonColor;
-    gpupowerlabel.font.Color:=FontcolorButton.ButtonColor;
-    gpumemfreqlabel.font.Color:=FontcolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
@@ -4996,18 +4786,7 @@ end;
 
 procedure Tgoverlayform.fpsCheckBoxClick(Sender: TObject);
 begin
-     //Preview FPS
-     if fpsCheckbox.Checked=true then
-      begin
-      vulkanlabel.visible:=true;
-      vulkanfpslabel.visible:=true;
-      end;
 
-     if fpsCheckbox.Checked=false then
-      begin
-      vulkanlabel.visible:=false;
-      vulkanfpslabel.visible:=false;
-      end;
 end;
 
 procedure Tgoverlayform.framegraphRadioButtonChange(Sender: TObject);
@@ -5017,36 +4796,12 @@ end;
 
 procedure Tgoverlayform.framegraphRadioButtonClick(Sender: TObject);
 begin
-      //Preview frame time graph
-     if framegraphRadiobutton.Checked=true then
-     begin
-       frametimelabel.Caption:='Frametime';
-       frametimelabel2.Caption:='16.6ms';
-       frametimegraphlabel.Caption:='--------------------------------------'
-     end
-   else
-     begin
-       frametimelabel.Caption:='';
-       frametimelabel2.Caption:='';
-       frametimegraphlabel.Caption:=''
-     end;
+
 end;
 
 procedure Tgoverlayform.framehistogramRadioButtonClick(Sender: TObject);
 begin
-   //Preview frame time graph
-     if framehistogramRadiobutton.Checked=true then
-     begin
-       frametimelabel.Caption:='Frametime';
-       frametimelabel2.Caption:='16.6ms';
-       frametimegraphlabel.Caption:='--||------||||||||||||||||||||------|||----'
-     end
-   else
-     begin
-       frametimelabel.Caption:='';
-       frametimelabel2.Caption:='';
-       frametimegraphlabel.Caption:=''
-     end;
+
 end;
 
 procedure Tgoverlayform.framerateComboboxKeyPress(Sender: TObject; var Key: char
@@ -5058,17 +4813,7 @@ end;
 
 procedure Tgoverlayform.gamemodestatusCheckBoxClick(Sender: TObject);
 begin
-  //Preview gamemode
-  if gamemodestatusCheckbox.Checked=true then
-  begin
-  gamemodestatuslabel.Caption:='GAMEMODE';
-  gamemodestatusvaluelabel.Caption:='ON';
-  end
-  else
-  begin
-  gamemodestatuslabel.Caption:='';
-  gamemodestatusvaluelabel.Caption:='';
-  end;
+
 end;
 
 
@@ -5076,8 +4821,7 @@ end;
 
 procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
 begin
-   // Change backgroud preview color
-    hudbackgroundShape.brush.Color:=hudbackgroundcolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     hudbackgroundcolorhtml := SColorToHtmlColor(hudbackgroundcolorButton.ButtonColor);
@@ -5085,8 +4829,7 @@ end;
 
 procedure Tgoverlayform.cpuColorButtonColorChanged(Sender: TObject);
 begin
-    // Change color of labels
-    cpulabel.font.Color:=cpucolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     cpucolorhtml := SColorToHtmlColor(cpucolorButton.ButtonColor);
@@ -5095,55 +4838,22 @@ end;
 
 procedure Tgoverlayform.cpuavrloadCheckBoxClick(Sender: TObject);
 begin
-   //Preview CPU Average Load
-  if cpuavrloadCheckbox.Checked=true then
-  begin
-  cpulabel.Caption:='CPU';
-  cpuusagelabel.Caption:='51%'
-  end
-  else
-  begin
-  cpulabel.Caption:='';
-  cpuusagelabel.Caption:='';
-  end;
+
 end;
 
 
 procedure Tgoverlayform.cputempCheckBoxClick(Sender: TObject);
 begin
-  //Preview CPU temperature
-  if cputempCheckbox.Checked=true then
-  begin
-  cpulabel.Caption:='CPU';
-  cputemplabel.Caption:='44ºC';
-  end
-  else
-  begin
-  cputemplabel.Caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.diskioCheckBoxClick(Sender: TObject);
 begin
-      //Preview DISK IO
-  if diskioCheckbox.Checked=true then
-    begin
-     iordrwlabel.caption:='IO RF/RW';
-     iordvaluelabel.caption:='32MiB/s';
-     iorwvaluelabel.caption:='22MiB/s';
-    end
-  else
-    begin
-     iordrwlabel.caption:='';
-     iordvaluelabel.caption:='';
-     iorwvaluelabel.caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.frametimegraphColorButtonColorChanged(Sender: TObject);
 begin
-      // Frame Time Graph color
-    frametimegraphlabel.font.Color:=frametimegraphcolorButton.ButtonColor;
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     frametimegraphcolorhtml := SColorToHtmlColor(frametimegraphcolorButton.ButtonColor);
@@ -5151,7 +4861,7 @@ end;
 
 procedure Tgoverlayform.hudtitleEditChange(Sender: TObject);
 begin
-  hudtitlelabel.Caption:=hudtitleEdit.Text;
+
 end;
 
 procedure Tgoverlayform.hudtranspBitBtnClick(Sender: TObject);
@@ -5168,8 +4878,7 @@ end;
 
 procedure Tgoverlayform.iordrwColorButtonColorChanged(Sender: TObject);
 begin
-    // Change color of DISK IO label
-    iordrwlabel.font.Color:=iordrwColorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     iordrwcolorhtml := SColorToHtmlColor(iordrwColorButton.ButtonColor);
@@ -5199,55 +4908,8 @@ begin
   Left:=(Screen.Width-Width)  div 2;
   Top:=(Screen.Height-Height) div 2;
 
-  //Clear hud preview options
-  cpulabel.Caption:='';
-  cpuusagelabel.Caption:='';
-  cputemplabel.Caption:='';
-  gpulabel.Caption:='';
-  gpuusagelabel.Caption:='';
-  gpulabel.Caption:='';
-  gputemplabel.Caption:='';
-  vramlabel.Caption:='';
-  vramusagelabel.Caption:='';
-  swapusagelabel.Caption:='';
-  ramlabel.Caption:='';
-  ramusagelabel.Caption:='';
-  frametimelabel.Caption:='';
-  frametimelabel2.Caption:='';
-  frametimegraphlabel.Caption:='';
-  timelabel.Caption:='';
-  iordrwlabel.caption:='';
-  iordvaluelabel.caption:='';
-  iorwvaluelabel.caption:='';
-  gpuclocklabel.caption:='';
-  hudversionlabel.caption:='';
-  archlabel.caption:='';
-  spotify1label.caption:='';
-  spotify2label.caption:='';
-  spotify3label.caption:='';
-  gpunamelabel.caption:='';
-  driverversionlabel.caption:='';
-  gpupowerlabel.caption:='';
-  gpumemfreqlabel.caption:='';
-  winelabel.Caption:='';
-  cpupowerlabel.Caption:='';
-  cpufreqlabel.Caption:='';
-
-  fpslimitlabel.Caption:='';
-  fpslimitvaluelabel.Caption:='';
-  batterylabel.Caption:='';
-  batteryvaluelabel.Caption:='';
-  batteryvaluelabel2.Caption:='';
-  resolutionlabel.Caption:='';
-  resolutionvaluelabel.Caption:='';
-  vkbasaltstatuslabel.Caption:='';
-  vkbasaltstatusvaluelabel.Caption:='';
-  gamemodestatuslabel.Caption:='';
-  gamemodestatusvaluelabel.Caption:='';
-  sessionlabel.Caption:='';
-  distroinfolabel.Caption:='';
-  distroinfolabel2.Caption:='';
-  homepartitionlabel.Caption:='';
+   //OPENGL - Start Govercube
+   Application.AddOnIdleHandler(@OnAppIdle);
 
   //Initialize Variables with stock Mangohud colors
   cpucolorhtml :='#2e97cb';
@@ -5549,6 +5211,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/font_size''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/position''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_hud''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_logging''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_uploadlog''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/media_player_name''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/core_load''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalcas''', s);
@@ -6337,6 +6000,20 @@ case inittoggleloggingSTR of
 'toggle_logging=F4':loggingComboBox.ItemIndex:=4;
  end;
 
+//###################################################################### toggle upload logging
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inittoggleuploadlog, '/tmp/goverlay/initial_values/toggle_uploadlog');
+Reset(inittoggleuploadlog);
+Readln(inittoggleuploadlog,inittoggleuploadlogSTR); //Assign Text file to String
+CloseFile(inittoggleuploadlog);
+
+case inittoggleuploadlogSTR of
+'upload_log=F5':uploadlogComboBox.ItemIndex:=0;
+'upload_log=F6':uploadlogComboBox.ItemIndex:=1;
+'upload_log=F7':uploadlogComboBox.ItemIndex:=2;
+'upload_log=F8':uploadlogComboBox.ItemIndex:=3;
+ end;
 
 //###################################################################### auto upload logging
 
@@ -7029,26 +6706,13 @@ end;
 
 
 
-
-
-
 end;
+
+
 
 procedure Tgoverlayform.mediaCheckBoxClick(Sender: TObject);
 begin
-    //Preview spotify status
-     if mediaCheckBox.Checked=true then
-     begin
-        spotify1label.Caption:='Lonely no more';
-        spotify2label.Caption:='Rob Thomas' ;
-        spotify3label.Caption:='Something to be' ;
-     end
-     else
-       begin
-        spotify1label.Caption:='';
-        spotify2label.Caption:='';
-        spotify3label.Caption:='';
-       end;
+
 end;
 
 procedure Tgoverlayform.subBitBtnClick(Sender: TObject);
@@ -7098,11 +6762,7 @@ end;
 
 procedure Tgoverlayform.gpuloadcolorCheckBoxClick(Sender: TObject);
 begin
-        //PREVIEW GPU load color
-  if gpuloadcolorCheckbox.Checked=true then
-     gpuusagelabel.Font.Color:=gpuload3Colorbutton.ButtonColor;
-  if gpuloadcolorCheckbox.Checked=false then
-     gpuusagelabel.Font.Color:=gpuload1Colorbutton.ButtonColor;
+
 end;
 
 procedure Tgoverlayform.gpuloadgraphBitBtnClick(Sender: TObject);
@@ -7117,11 +6777,7 @@ end;
 
 procedure Tgoverlayform.gpumemfreqCheckBoxClick(Sender: TObject);
 begin
-      //PREVIEW GPU Mem Frequency
-  if gpumemfreqCheckbox.Checked=true then
-     gpumemfreqlabel.Caption:='600MHz'
-  else
-     gpumemfreqlabel.Caption:='' ;
+
   end;
 
 procedure Tgoverlayform.gpumfgraphBitBtnClick(Sender: TObject);
@@ -7135,26 +6791,18 @@ end;
 
 procedure Tgoverlayform.gpumodelCheckBoxClick(Sender: TObject);
 begin
-      //PREVIEW GPU Model
-  if gpumodelCheckbox.Checked=true then
-     gpunamelabel.Caption:='GTX 1080'
-  else
-     gpunamelabel.Caption:='' ;
+
   end;
 
 
 procedure Tgoverlayform.gpunameEditChange(Sender: TObject);
 begin
-   gpulabel.Caption:=gpunameEdit.Text;
+
 end;
 
 procedure Tgoverlayform.gpupowerCheckBoxClick(Sender: TObject);
 begin
-    //PREVIEW GPU POWER
-  if gpupowerCheckbox.Checked=true then
-     gpupowerlabel.Caption:='120W'
-  else
-     gpupowerlabel.Caption:='' ;
+
   end;
 
 procedure Tgoverlayform.gputempgraphBitBtnClick(Sender: TObject);
@@ -7220,26 +6868,12 @@ end;
 
 procedure Tgoverlayform.homepartCheckBoxClick(Sender: TObject);
 begin
-        //Preview home partition
-  if homepartCheckbox.Checked=true then
-  begin
-  homepartitionlabel.Caption:='Home:            partition size';
 
-  end
-  else
-  begin
-  homepartitionlabel.Caption:='';
-  end;
 end;
 
 
 procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
 begin
-   //Preview TIME
-     if timeCheckbox.Checked=true then
-        timelabel.Caption:='22:30:43'
-     else
-        timelabel.Caption:='';
 
 end;
 
@@ -7274,11 +6908,7 @@ end;
 
 procedure Tgoverlayform.hudversionCheckBoxClick(Sender: TObject);
 begin
-     //Preview HudVersion
-     if hudversionCheckbox.Checked=true then
-       hudversionlabel.Caption:='v0.3.5-31'
-     else
-        hudversionlabel.Caption:='';
+
 end;
 
 procedure Tgoverlayform.toprightSpeedButtonClick(Sender: TObject);
@@ -7345,23 +6975,12 @@ end;
 
 procedure Tgoverlayform.vkbasaltstatusCheckBoxClick(Sender: TObject);
 begin
-           //Preview vkbasalt
-  if vkbasaltstatusCheckbox.Checked=true then
-  begin
-  vkbasaltstatuslabel.Caption:='VKBASALT';
-  vkbasaltstatusvaluelabel.Caption:='ON';
-  end
-  else
-  begin
-  vkbasaltstatuslabel.Caption:='';
-  vkbasaltstatusvaluelabel.Caption:='';
-  end;
+
 end;
 
 procedure Tgoverlayform.vramColorButtonColorChanged(Sender: TObject);
 begin
-    // Change VRAM label color
-    vramlabel.font.Color:=vramcolorButton.ButtonColor;
+
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     vramcolorhtml := SColorToHtmlColor(vramcolorButton.ButtonColor);
@@ -7377,17 +6996,7 @@ end;
 
 procedure Tgoverlayform.vramusageCheckBoxClick(Sender: TObject);
 begin
-      //Preview VRAM usage
-  if vramusageCheckbox.Checked=true then
-    begin
-    vramlabel.Caption:='VRAM';
-    vramusagelabel.Caption:='2.56GB'
-    end
-  else
-    begin
-    vramlabel.Caption:='';
-    vramusagelabel.Caption:=''
-  end;
+
 end;
 
 procedure Tgoverlayform.vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
@@ -7404,18 +7013,12 @@ end;
 
 procedure Tgoverlayform.wineCheckBoxChange(Sender: TObject);
 begin
-     //Preview Wine Version
-     if wineCheckbox.Checked=true then
-        winelabel.Caption:='Proton 5.0-9'
-     else
-        winelabel.Caption:='';
+
 end;
 
 procedure Tgoverlayform.wineColorButtonColorChanged(Sender: TObject);
 begin
   
-  // wine color
-   winelabel.font.Color:=winecolorButton.ButtonColor;
 
    //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
    winecolorhtml := SColorToHtmlColor(winecolorButton.ButtonColor);
@@ -7426,6 +7029,25 @@ procedure Tgoverlayform.h264profileComboboxKeyPress(Sender: TObject;
 begin
     //Block keypress on combobox
   key:=#0;
+end;
+
+procedure Tgoverlayform.OpenGLControl1Resize(Sender: TObject);
+begin
+
+end;
+
+procedure Tgoverlayform.OnAppIdle(Sender: TObject; var Done: Boolean);
+begin
+      Done:=false;
+  //DebugLn(['TForm1.OnAppIdle ']);
+  //OpenGLControl1.Paint;
+  OpenGLControl1.Invalidate;
+end;
+
+procedure Tgoverlayform.Panel1MouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+begin
+
 end;
 
 

@@ -10,12 +10,12 @@ object logpathForm: TlogpathForm
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.0.10.0'
+  LCLVersion = '2.0.12.0'
   object pathLabel: TLabel
     Left = 8
-    Height = 19
+    Height = 18
     Top = 16
-    Width = 188
+    Width = 167
     Caption = 'Destination Logging Folder'
     Font.Color = clWhite
     Font.Quality = fqAntialiased
@@ -50,9 +50,9 @@ object logpathForm: TlogpathForm
   end
   object changepathCheckBox: TCheckBox
     Left = 361
-    Height = 25
+    Height = 22
     Top = 41
-    Width = 78
+    Width = 75
     Caption = 'Change'
     Font.Color = clWhite
     Font.Quality = fqAntialiased

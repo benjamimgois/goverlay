@@ -14,25 +14,23 @@ type
   TaboutForm = class(TForm)
     Image1: TImage;
     donateImage: TImage;
-    jasonMemo1: TMemo;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
     linux4elink1: TLabel;
+    goverlaylink: TLabel;
     schoorselinkLabel: TLabel;
-    schoorseMemo: TMemo;
     Memo3: TMemo;
-    mangoMemo: TMemo;
     twitterlink: TImage;
     linkedinlink: TImage;
     linux4elink: TLabel;
     mangolink: TLabel;
-    descriptionMemo: TMemo;
-    jasonMemo: TMemo;
-    Memo2: TMemo;
     PageControl1: TPageControl;
-    GoverlayText: TStaticText;
     TabSheet1: TTabSheet;
     TabSheet2: TTabSheet;
     procedure FormCreate(Sender: TObject);
     procedure donateImageClick(Sender: TObject);
+    procedure goverlaylinkClick(Sender: TObject);
     procedure Label1Click(Sender: TObject);
     procedure linkedinlinkClick(Sender: TObject);
     procedure mangolink1Click(Sender: TObject);
@@ -247,6 +245,38 @@ begin
     debugln(['Path=',BrowserPath,' Params=',BrowserParams]);
 
     URL:='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Q5EYYEJ5NSJAU&source=url';
+    p:=System.Pos('%s', BrowserParams);
+    System.Delete(BrowserParams,p,2);
+    System.Insert(URL,BrowserParams,p);
+
+    // start browser
+    BrowserProcess:=TProcessUTF8.Create(nil);
+    try
+      BrowserProcess.CommandLine:=BrowserPath+' '+BrowserParams;
+      BrowserProcess.Execute;
+    finally
+      BrowserProcess.Free;
+    end;
+  finally
+    v.Free;
+  end;
+end;
+
+procedure TaboutForm.goverlaylinkClick(Sender: TObject);
+
+    var
+  v: THTMLBrowserHelpViewer;
+  BrowserPath, BrowserParams: string;
+  p: LongInt;
+  URL: String;
+  BrowserProcess: TProcessUTF8;
+begin
+  v:=THTMLBrowserHelpViewer.Create(nil);
+  try
+    v.FindDefaultBrowser(BrowserPath,BrowserParams);
+    debugln(['Path=',BrowserPath,' Params=',BrowserParams]);
+
+    URL:='https://github.com/benjamimgois/goverlay';
     p:=System.Pos('%s', BrowserParams);
     System.Delete(BrowserParams,p,2);
     System.Insert(URL,BrowserParams,p);

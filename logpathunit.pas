@@ -72,6 +72,7 @@ begin
    //Store path in variable
   destinationfolder := homepathEdit.Text;
   SavecheckImage.Visible:=true;
+  logpathForm.Close;
 end;
 
 end.
