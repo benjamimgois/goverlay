@@ -25,9 +25,9 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://ibb.co/CJK18Yr"><img src="https://i.ibb.co/JxjBtGh/goverlay-043-1.png" alt="goverlay-043-1" border="0"></a>
-<a href="https://ibb.co/2vTj3gg"><img src="https://i.ibb.co/McmRkMM/goverlay-043-2.png" alt="goverlay-043-2" border="0"></a>
-<a href="https://ibb.co/Dz5jNWw"><img src="https://i.ibb.co/Jm5SNtr/goverlay-043-3.png" alt="goverlay-043-3" border="0"></a>
+<a href="https://ibb.co/MfQzLJW"><img src="https://i.ibb.co/gdh0CcH/goverlay062-1c.jpg" alt="goverlay062-1c" border="0"></a>
+<a href="https://ibb.co/DY1L22Q"><img src="https://i.ibb.co/T1wr33t/goverlay062-2b.jpg" alt="goverlay062-2b" border="0"></a>
+<a href="https://ibb.co/MDPknx5"><img src="https://i.ibb.co/4Z4RWng/goverlay062-3b.jpg" alt="goverlay062-3b" border="0"></a>
 
 ## Prerequisites
 
@@ -128,23 +128,19 @@ make
 
 ### Running
 
-To run GOverlay, run the following command:
+Starting in 0.6.2 version you'll need mangohud installed to run GOverlay, run the following command:
 
 ```bash
-./goverlay
+mangohud --dlsym ./goverlay --style fusion
 ```
-If running the new QT5 interface, force the default QT style with:
 
-```bash
-./goverlay --style fusion
-```
 
 ### Wayland
 
 QT5PAS still isn't compatible with wayland display server, but you can run the application by forcing the x11 backend. Credits by [**`Darklink999999`**](https://github.com/Darklink999999)
 
 ```bash
-QT_QPA_PLATFORM=xcb goverlay --style fusion
+QT_QPA_PLATFORM=xcb mangohud --dlsym goverlay --style fusion
 ```
 
 ## Credits
