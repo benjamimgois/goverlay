@@ -169,7 +169,7 @@ https://github.com/matanui159/ReplaySorcery
 
 #### Lazarus
 
-This project was built using [Lazarus](https://github.com/graemeg/lazarus).
+This project was built using [Lazarus](https://www.lazarus-ide.org/).
 
 <a href="hhttps://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
 
