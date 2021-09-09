@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
   ATStringProc_HtmlColor, crosshairUnit, hudbackgroundUnit, customeffectsunit,
-  OpenGLContext, GL, GLU;
+  OpenGLContext, GL, GLU,LCLType;
 
 
 
@@ -29,6 +29,7 @@ type
     bottomrightSpeedButton: TSpeedButton;
     destfolderpathLabel: TLabel;
     Label6: TLabel;
+    vkcubeMenuItem: TMenuItem;
     uploadlogComboBox: TComboBox;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
@@ -277,6 +278,8 @@ type
     h264profileCombobox: TComboBox;
     videohlepresetCombobox: TComboBox;
     procedure addBitBtnClick(Sender: TObject);
+    procedure addBitBtnKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
     procedure archCheckBoxClick(Sender: TObject);
     procedure audiobitrateComboboxKeyPress(Sender: TObject; var Key: char);
     procedure aacprofileComboboxKeyPress(Sender: TObject; var Key: char);
@@ -287,10 +290,11 @@ type
     procedure autoscaleCheckBoxChange(Sender: TObject);
     procedure autovideobitrateCheckBoxChange(Sender: TObject);
     procedure autovideoqualityCheckBoxChange(Sender: TObject);
+    procedure aveffectsListBoxKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
     procedure basaltgeSpeedButtonClick(Sender: TObject);
     procedure basaltrunBitBtnClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
-    procedure batteryCheckBoxClick(Sender: TObject);
     procedure bottomleftSpeedButtonClick(Sender: TObject);
     procedure bottomrightSpeedButtonClick(Sender: TObject);
     procedure casCheckBoxChange(Sender: TObject);
@@ -298,47 +302,23 @@ type
     procedure compacthudBitBtnClick(Sender: TObject);
     procedure completehudBitBtnClick(Sender: TObject);
     procedure clipdurationComboboxKeyPress(Sender: TObject; var Key: char);
-    procedure cpufreqCheckBoxClick(Sender: TObject);
-    procedure cpuloadcolorCheckBoxChange(Sender: TObject);
-    procedure cpuloadcolorCheckBoxClick(Sender: TObject);
     procedure cpuloadgraphBitBtnClick(Sender: TObject);
-    procedure cpunameEditChange(Sender: TObject);
-    procedure cpupowerCheckBoxClick(Sender: TObject);
     procedure cputempgraphBitBtnClick(Sender: TObject);
     procedure crosshairsizeBitBtnClick(Sender: TObject);
-    procedure customcommandEditChange(Sender: TObject);
-    procedure distroinfoCheckBoxClick(Sender: TObject);
-    procedure driverversionCheckBoxChange(Sender: TObject);
     procedure engineColorButtonColorChanged(Sender: TObject);
-    procedure engineversionCheckBoxClick(Sender: TObject);
     procedure FontcolorButtonColorChanged(Sender: TObject);
-    procedure fpsCheckBoxClick(Sender: TObject);
-    procedure framegraphRadioButtonChange(Sender: TObject);
-    procedure framegraphRadioButtonClick(Sender: TObject);
-    procedure framehistogramRadioButtonClick(Sender: TObject);
     procedure framerateComboboxKeyPress(Sender: TObject; var Key: char);
-    procedure gamemodestatusCheckBoxClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure gpucfgraphBitBtnClick(Sender: TObject);
     procedure gpuloadcolorCheckBoxChange(Sender: TObject);
-    procedure gpuloadcolorCheckBoxClick(Sender: TObject);
     procedure gpuloadgraphBitBtnClick(Sender: TObject);
-    procedure gpumemfreqCheckBoxClick(Sender: TObject);
     procedure gpumfgraphBitBtnClick(Sender: TObject);
-    procedure gpumodelCheckBoxClick(Sender: TObject);
-    procedure gpunameEditChange(Sender: TObject);
-    procedure gpupowerCheckBoxClick(Sender: TObject);
     procedure gputempgraphBitBtnClick(Sender: TObject);
     procedure graphhudBitBtnClick(Sender: TObject);
     procedure heroicMenuItemClick(Sender: TObject);
-    procedure homepartCheckBoxClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
-    procedure cpuavrloadCheckBoxClick(Sender: TObject);
-    procedure cputempCheckBoxClick(Sender: TObject);
-    procedure diskioCheckBoxClick(Sender: TObject);
     procedure frametimegraphColorButtonColorChanged(Sender: TObject);
-    procedure hudtitleEditChange(Sender: TObject);
     procedure hudtranspBitBtnClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure iordrwColorButtonColorChanged(Sender: TObject);
@@ -348,10 +328,7 @@ type
     procedure fpslimComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure frametimegraphCheckBoxClick(Sender: TObject);
     procedure glvsyncComboBoxKeyPress(Sender: TObject; var Key: char);
-    procedure gpuavrloadCheckBoxClick(Sender: TObject);
     procedure gpuColorButtonColorChanged(Sender: TObject);
-    procedure gpufreqCheckBoxClick(Sender: TObject);
-    procedure gputempCheckBoxClick(Sender: TObject);
     procedure hudonoffComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure loggingComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure logpathBitBtnClick(Sender: TObject);
@@ -359,18 +336,17 @@ type
     procedure mangohudLabelClick(Sender: TObject);
     procedure mangohudLabelMouseEnter(Sender: TObject);
     procedure mangohudLabelMouseLeave(Sender: TObject);
-    procedure mangohudPanelClick(Sender: TObject);
     procedure mediaColorButtonColorChanged(Sender: TObject);
     procedure mediaComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
+    procedure vkcubeMenuItemClick(Sender: TObject);
     procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure OpenGLControl1Paint(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramgraphBitBtnClick(Sender: TObject);
-    procedure ramusageCheckBoxClick(Sender: TObject);
     procedure replaygeSpeedButtonClick(Sender: TObject);
     procedure replaykeyComboboxKeyPress(Sender: TObject; var Key: char);
     procedure replayLabelClick(Sender: TObject);
@@ -379,14 +355,10 @@ type
     procedure replaysaveBitBtnClick(Sender: TObject);
     procedure replaystartBitBtnClick(Sender: TObject);
     procedure replaystopBitBtnClick(Sender: TObject);
-    procedure resolutionCheckBoxClick(Sender: TObject);
     procedure runsteamBitBtnClick(Sender: TObject);
     procedure runvkbasaltBitBtnClick(Sender: TObject);
     procedure saveBitBtn1Click(Sender: TObject);
-    procedure sessionCheckBoxClick(Sender: TObject);
-    procedure showfpslimCheckBoxClick(Sender: TObject);
     procedure steamMenuItemClick(Sender: TObject);
-    procedure swapusageCheckBoxClick(Sender: TObject);
     procedure videobitrateTrackBarChange(Sender: TObject);
     procedure videogopTrackBarChange(Sender: TObject);
     procedure videoqualityTrackBarChange(Sender: TObject);
@@ -399,28 +371,22 @@ type
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure mediaCheckBoxClick(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
-    procedure timeCheckBoxClick(Sender: TObject);
     procedure topcenterSpeedButtonClick(Sender: TObject);
     procedure topleftSpeedButtonClick(Sender: TObject);
-    procedure hudversionCheckBoxClick(Sender: TObject);
     procedure toprightSpeedButtonClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure vkbasaltLabelMouseEnter(Sender: TObject);
     procedure vkbasaltLabelMouseLeave(Sender: TObject);
-    procedure vkbasaltstatusCheckBoxClick(Sender: TObject);
     procedure vramColorButtonColorChanged(Sender: TObject);
     procedure vramgraphBitBtnClick(Sender: TObject);
-    procedure vramusageCheckBoxClick(Sender: TObject);
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure widthImageMouseEnter(Sender: TObject);
-    procedure wineCheckBoxChange(Sender: TObject);
     procedure wineColorButtonColorChanged(Sender: TObject);
     procedure h264profileComboboxKeyPress(Sender: TObject; var Key: char);
 
     //openglpreview
-    procedure OpenGLControl1Resize(Sender: TObject);
+
     procedure OnAppIdle(Sender: TObject; var Done: Boolean);
     procedure Panel1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
   private
@@ -871,10 +837,6 @@ var
   initreplayaudioprofileSTR: string;
   initreplayaudiobitrateValue: Textfile;
   initreplayaudiobitrateSTR: string;
-
-
-
-
   customreswidthINT: integer;
   initcustomwidthValue: Textfile;
   initcustomwidthSTR: string;
@@ -893,7 +855,6 @@ var
   replaystateSTR: string;
   replaytogglestateValueVAR: textfile;
   replaytogglestateValueSTR: string;
-
   cpuload1colorhtml: string;
   cpuload1colorValue: Textfile;
   cpuload1colorScript: Textfile;
@@ -918,7 +879,6 @@ var
   gpuloadcolorsScript: Textfile;
   autologValue: Textfile;
   autologScript: Textfile;
-
 
   initgpuloadchange: Textfile;
   initgpuloadchangeSTR: string;
@@ -2033,7 +1993,7 @@ end;
 procedure Tgoverlayform.fpslimComboBoxChange(Sender: TObject);
 begin
   //Enable spinedit only when custom option is selected
-  if fpslimCombobox.ItemIndex=8 then
+  if fpslimCombobox.ItemIndex=14 then
   fpscustomSpinEdit.Enabled:=true
   else
     fpscustomSpinEdit.Enabled:=false;
@@ -2075,12 +2035,7 @@ begin
   key:=#0;
 end;
 
-procedure Tgoverlayform.gpuavrloadCheckBoxClick(Sender: TObject);
-begin
-  //Preview GPU Average Load
 
-
-end;
 
 procedure Tgoverlayform.gpuColorButtonColorChanged(Sender: TObject);
 begin
@@ -2090,18 +2045,7 @@ begin
     gpucolorhtml := SColorToHtmlColor(gpucolorButton.ButtonColor);
 end;
 
-procedure Tgoverlayform.gpufreqCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.gputempCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.hudonoffComboBoxKeyPress(Sender: TObject; var Key: char
-  );
+procedure Tgoverlayform.hudonoffComboBoxKeyPress(Sender: TObject; var Key: char);
 begin
     //Block keypress on combobox
   key:=#0;
@@ -2174,11 +2118,6 @@ begin
 
 end;
 
-procedure Tgoverlayform.mangohudPanelClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.mediaColorButtonColorChanged(Sender: TObject);
 begin
 
@@ -2206,6 +2145,12 @@ end;
 procedure Tgoverlayform.MenuItem3Click(Sender: TObject);
 begin
     RunCommand('bash -c ''ENABLE_VKBASALT=1 heroic''', s)  //Run heroic
+end;
+
+procedure Tgoverlayform.vkcubeMenuItemClick(Sender: TObject);
+begin
+  //Vkcube test
+  RunCommand('bash -c ''mangohud vkcube''', s)
 end;
 
 procedure Tgoverlayform.OpenGLControl1MouseMove(Sender: TObject;
@@ -2302,11 +2247,6 @@ begin
      2:ramgraphBitbtn.ImageIndex:= 3;
      3:ramgraphBitbtn.ImageIndex:= 2;
      end;
-end;
-
-procedure Tgoverlayform.ramusageCheckBoxClick(Sender: TObject);
-begin
-
 end;
 
 procedure Tgoverlayform.replaygeSpeedButtonClick(Sender: TObject);
@@ -2934,11 +2874,6 @@ begin
          end;
 end;
 
-procedure Tgoverlayform.resolutionCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.runsteamBitBtnClick(Sender: TObject);
 begin
       with runsteamBitbtn.ClientToScreen(point(0, 0)) do
@@ -2956,24 +2891,9 @@ begin
   RunCommand('bash -c ''export GALLIUM_HUD=simple,fps,cpu,frametime''', s); // test GALLIUMHUD
 end;
 
-procedure Tgoverlayform.sessionCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.showfpslimCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.steamMenuItemClick(Sender: TObject);
 begin
   RunCommand('bash -c ''mangohud steam ''', s);   //Run steam
-end;
-
-procedure Tgoverlayform.swapusageCheckBoxClick(Sender: TObject);
-begin
-
 end;
 
 procedure Tgoverlayform.videobitrateTrackBarChange(Sender: TObject);
@@ -2990,8 +2910,6 @@ procedure Tgoverlayform.videoqualityTrackBarChange(Sender: TObject);
 begin
    videoqualityLabel.Caption:= inttostr(videoqualityTrackBar.Position);
 end;
-
-
 
 
 procedure Tgoverlayform.reshadesyncBitBtnClick(Sender: TObject);
@@ -3123,40 +3041,12 @@ begin
   key:=#0;
 end;
 
-procedure Tgoverlayform.cpufreqCheckBoxClick(Sender: TObject);
-begin
-
-
-end;
-
-procedure Tgoverlayform.cpuloadcolorCheckBoxChange(Sender: TObject);
-begin
-
-end;
-
-
-
-procedure Tgoverlayform.cpuloadcolorCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.cpuloadgraphBitBtnClick(Sender: TObject);
 begin
      case cpuloadgraphBitbtn.ImageIndex of
      2:cpuloadgraphBitbtn.ImageIndex:= 3;
      3:cpuloadgraphBitbtn.ImageIndex:= 2;
      end;
-end;
-
-procedure Tgoverlayform.cpunameEditChange(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.cpupowerCheckBoxClick(Sender: TObject);
-begin
-
 end;
 
 procedure Tgoverlayform.cputempgraphBitBtnClick(Sender: TObject);
@@ -4251,11 +4141,6 @@ RunCommand('bash -c ''echo "################### File Generated by GOverlay #####
 
 end;
 
-procedure Tgoverlayform.batteryCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 
 procedure Tgoverlayform.bottomleftSpeedButtonClick(Sender: TObject);
 begin
@@ -4654,6 +4539,13 @@ begin
 
 end;
 
+procedure Tgoverlayform.aveffectsListBoxKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+    if Key = VK_RETURN then
+    addbitbtn.Click;
+     end;
+
 
 
 procedure Tgoverlayform.addBitBtnClick(Sender: TObject);
@@ -4738,29 +4630,21 @@ begin
 
 end;
 
+procedure Tgoverlayform.addBitBtnKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+      if Key = VK_RETURN then
+    addbitbtn.Click;
+end;
+
+
+
 
 procedure Tgoverlayform.crosshairsizeBitBtnClick(Sender: TObject);
 begin
   crosshairsizeForm.show;
 end;
 
-procedure Tgoverlayform.customcommandEditChange(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.distroinfoCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-
-
-
-procedure Tgoverlayform.driverversionCheckBoxChange(Sender: TObject);
-begin
-
-end;
 
 procedure Tgoverlayform.engineColorButtonColorChanged(Sender: TObject);
 begin
@@ -4769,11 +4653,6 @@ begin
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     enginecolorhtml := SColorToHtmlColor(enginecolorButton.ButtonColor);
 end;
-
-procedure Tgoverlayform.engineversionCheckBoxClick(Sender: TObject);
-begin
-
-  end;
 
 
 procedure Tgoverlayform.FontcolorButtonColorChanged(Sender: TObject);
@@ -4784,25 +4663,7 @@ begin
     hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
 end;
 
-procedure Tgoverlayform.fpsCheckBoxClick(Sender: TObject);
-begin
 
-end;
-
-procedure Tgoverlayform.framegraphRadioButtonChange(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.framegraphRadioButtonClick(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.framehistogramRadioButtonClick(Sender: TObject);
-begin
-
-end;
 
 procedure Tgoverlayform.framerateComboboxKeyPress(Sender: TObject; var Key: char
   );
@@ -4810,14 +4671,6 @@ begin
     //Block keypress on combobox
   key:=#0;
 end;
-
-procedure Tgoverlayform.gamemodestatusCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-
-
 
 procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
 begin
@@ -4835,23 +4688,6 @@ begin
     cpucolorhtml := SColorToHtmlColor(cpucolorButton.ButtonColor);
 end;
 
-
-procedure Tgoverlayform.cpuavrloadCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-
-procedure Tgoverlayform.cputempCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.diskioCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.frametimegraphColorButtonColorChanged(Sender: TObject);
 begin
 
@@ -4859,10 +4695,6 @@ begin
     frametimegraphcolorhtml := SColorToHtmlColor(frametimegraphcolorButton.ButtonColor);
 end;
 
-procedure Tgoverlayform.hudtitleEditChange(Sender: TObject);
-begin
-
-end;
 
 procedure Tgoverlayform.hudtranspBitBtnClick(Sender: TObject);
 begin
@@ -6709,12 +6541,6 @@ end;
 end;
 
 
-
-procedure Tgoverlayform.mediaCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.subBitBtnClick(Sender: TObject);
 begin
   // Remove selected active effect
@@ -6760,11 +6586,6 @@ begin
 
 end;
 
-procedure Tgoverlayform.gpuloadcolorCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.gpuloadgraphBitBtnClick(Sender: TObject);
 begin
 
@@ -6775,11 +6596,6 @@ begin
 
 end;
 
-procedure Tgoverlayform.gpumemfreqCheckBoxClick(Sender: TObject);
-begin
-
-  end;
-
 procedure Tgoverlayform.gpumfgraphBitBtnClick(Sender: TObject);
 begin
      case gpumfgraphBitbtn.ImageIndex of
@@ -6787,23 +6603,6 @@ begin
      3:gpumfgraphBitbtn.ImageIndex:= 2;
      end;
 end;
-
-
-procedure Tgoverlayform.gpumodelCheckBoxClick(Sender: TObject);
-begin
-
-  end;
-
-
-procedure Tgoverlayform.gpunameEditChange(Sender: TObject);
-begin
-
-end;
-
-procedure Tgoverlayform.gpupowerCheckBoxClick(Sender: TObject);
-begin
-
-  end;
 
 procedure Tgoverlayform.gputempgraphBitBtnClick(Sender: TObject);
 begin
@@ -6866,17 +6665,6 @@ begin
   RunCommand('bash -c ''mangohud heroic''', s);  // run heroic
 end;
 
-procedure Tgoverlayform.homepartCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
-
-procedure Tgoverlayform.timeCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.topcenterSpeedButtonClick(Sender: TObject);
 begin
      //Highlight main button
@@ -6902,13 +6690,6 @@ begin
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
   topcenterSpeedButton.imageIndex:=-1;
-end;
-
-
-
-procedure Tgoverlayform.hudversionCheckBoxClick(Sender: TObject);
-begin
-
 end;
 
 procedure Tgoverlayform.toprightSpeedButtonClick(Sender: TObject);
@@ -6973,11 +6754,6 @@ begin
  vkbasaltShape.Visible:=false;
 end;
 
-procedure Tgoverlayform.vkbasaltstatusCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.vramColorButtonColorChanged(Sender: TObject);
 begin
 
@@ -6994,11 +6770,6 @@ begin
      end;
 end;
 
-procedure Tgoverlayform.vramusageCheckBoxClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
 begin
    //Block keypress on combobox
@@ -7009,11 +6780,6 @@ procedure Tgoverlayform.widthImageMouseEnter(Sender: TObject);
 begin
     if autoresCheckbox.Checked = false then
     widthImage.Visible:= true;
-end;
-
-procedure Tgoverlayform.wineCheckBoxChange(Sender: TObject);
-begin
-
 end;
 
 procedure Tgoverlayform.wineColorButtonColorChanged(Sender: TObject);
@@ -7029,11 +6795,6 @@ procedure Tgoverlayform.h264profileComboboxKeyPress(Sender: TObject;
 begin
     //Block keypress on combobox
   key:=#0;
-end;
-
-procedure Tgoverlayform.OpenGLControl1Resize(Sender: TObject);
-begin
-
 end;
 
 procedure Tgoverlayform.OnAppIdle(Sender: TObject; var Done: Boolean);
