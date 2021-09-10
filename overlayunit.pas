@@ -1582,14 +1582,22 @@ end;
 //show Distro info
 if distroinfoCheckBox.Checked=true then
 begin
-RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=lsb_release -a | grep Description | cut -c 14-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);  //insert Custom text in mangohud.conf
+RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroinfo''', s);      // remove old file
+RunCommand('bash -c ''lsb_release -a | grep Description | cut -c 14-26 >> $HOME/.config/goverlay/distroinfo''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroinfo" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 
-RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=lsb_release -a | grep Release | cut -c 10-26" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=uname -r" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
+RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroversion''', s);      // remove old file
+RunCommand('bash -c ''lsb_release -a | grep Release | cut -c 10-26 >> $HOME/.config/goverlay/distroversion''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
+
+
+RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
+RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/kernelversion''', s);      // remove old file
+RunCommand('bash -c ''uname -r >> $HOME/.config/goverlay/kernelversion''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/kernelversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 end;
 
 //show Session type
@@ -1950,7 +1958,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
 
 //distro info
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w Description  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
 
 
 //GRAPHs configs
@@ -5241,7 +5249,7 @@ CloseFile(initdistroinfo);
 
 case initdistroinfoSTR of
 '':distroinfoCheckbox.Checked:=false;
-'exec=lsb_release -a | grep Description | cut -c 14-26':distroinfoCheckbox.Checked:=true;
+'exec=cat /home/benjamim/.config/goverlay/distroinfo':distroinfoCheckbox.Checked:=true;
  end;
 
 //###################################################################### Home partition
