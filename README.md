@@ -97,11 +97,13 @@ sudo apt-get install goverlay
 tar -zxvf goverlay*.tar.gz
 ```
 
-3. Execute the binary by running the following command:
+3. Properly execute the binary by running the script inside the tar file:
 
 ```bash
-./goverlay
+chmod +x start_goverlay.sh
+./start_goverlay.sh
 ```
+
 
 ## Source
 
