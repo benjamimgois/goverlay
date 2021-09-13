@@ -7,7 +7,7 @@
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
       </Unit0>
       <Unit1>
         <Filename Value="aboutunit.pas"/>
@@ -17,7 +17,7 @@
         <ResourceBaseClass Value="Form"/>
         <TopLine Value="262"/>
         <CursorPos X="57" Y="277"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -25,7 +25,7 @@
         <Filename Value="atstringproc_htmlcolor.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ATStringProc_HtmlColor"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
       </Unit2>
       <Unit3>
         <Filename Value="crosshairunit.pas"/>
@@ -34,7 +34,7 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="crosshairUnit"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
       </Unit3>
       <Unit4>
         <Filename Value="hudbackgroundunit.pas"/>
@@ -43,7 +43,7 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="hudbackgroundUnit"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
       </Unit4>
       <Unit5>
         <Filename Value="logpathunit.pas"/>
@@ -55,7 +55,7 @@
         <EditorIndex Value="1"/>
         <TopLine Value="39"/>
         <CursorPos X="79" Y="55"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit5>
@@ -65,7 +65,7 @@
         <ComponentName Value="customeffectsForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="78"/>
       </Unit6>
       <Unit7>
         <Filename Value="overlayunit.pas"/>
@@ -76,7 +76,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="5228"/>
         <CursorPos X="53" Y="5252"/>
-        <UsageCount Value="39"/>
+        <UsageCount Value="40"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit7>
@@ -123,7 +123,7 @@
         <EditorIndex Value="3"/>
         <TopLine Value="134"/>
         <CursorPos X="213" Y="150"/>
-        <UsageCount Value="15"/>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
       </Unit13>
     </Units>
