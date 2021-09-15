@@ -15,6 +15,7 @@ Table of contents
 		- [Fedora](#fedora)
 		- [Solus](#solus)
 		- [Ubuntu](#ubuntu)
+		- [OpenSUSE](#opensuse)
 	- [Tarball](#tarball)
 	- [Source](#source)
 		- [Prerequisites](#prerequisites-1)
@@ -60,6 +61,27 @@ To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverla
 ```bash
 dnf install goverlay
 ```
+
+#### OpenSUSE
+
+##### Tumbleweed
+
+To install [`goverlay`](https://build.opensuse.org/package/show/openSUSE%3AFactory/goverlay), run the following command as root:
+
+```bash
+zypper install goverlay
+```
+
+##### Leap 15.2
+
+To install [`goverlay`](https://build.opensuse.org/package/show/games%3Atools/goverlay) from the [games:tools](https://build.opensuse.org/project/show/games:tools) repo, run the following commands as root:
+
+```bash
+zypper addrepo https://download.opensuse.org/repositories/games:tools/openSUSE_Leap_15.2/games:tools.repo
+zypper refresh
+zypper install goverlay
+```
+
 
 #### Solus
 
