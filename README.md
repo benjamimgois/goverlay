@@ -108,6 +108,7 @@ sudo add-apt-repository ppa:flexiondotorg/mangohud
 sudo apt-get update
 sudo apt-get install goverlay
 ```
+NOTE: Currently the PPA does not offer 32-bit support.
 
 ## Tarball
 
