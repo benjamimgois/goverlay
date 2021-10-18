@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=GOverlay
 Comment=Graphical UI to help manage Vulkan / OpenGL overlays
-Exec=mangohud --dlsym goverlay --style fusion
+Exec=env QT_QPA_PLATFORM=xcb mangohud --dlsym goverlay --style fusion
 Icon=goverlay
 Terminal=false
 Type=Application
