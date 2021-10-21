@@ -25,9 +25,12 @@ type
     audiodevCombobox: TComboBox;
     audioinputCombobox: TComboBox;
     audioencoderCombobox: TComboBox;
+    fonttypeLabel: TLabel;
     bottomleftSpeedButton: TSpeedButton;
     bottomrightSpeedButton: TSpeedButton;
     destfolderpathLabel: TLabel;
+    fonttypeComboBox: TComboBox;
+    hidehudCheckBox: TCheckBox;
     Label6: TLabel;
     vkcubeMenuItem: TMenuItem;
     uploadlogComboBox: TComboBox;
@@ -69,7 +72,6 @@ type
     graph4: TLabel;
     graph5: TLabel;
     graph9: TLabel;
-    hidehudCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     performanceGroupBox2: TGroupBox;
     ramgraphBitBtn: TBitBtn;
@@ -767,8 +769,10 @@ var
   inithudtitlevalueSTR: string;
   initcustomcommandvalue: Textfile;
   initcustomcommandvalueSTR: string;
-   inittoggleuploadlog: Textfile;
-   inittoggleuploadlogSTR: string;
+  inittoggleuploadlog: Textfile;
+  inittoggleuploadlogSTR: string;
+  initfonttype: Textfile;
+  initfonttypeSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1726,6 +1730,16 @@ end;
   end;
 
 
+  //Font Type
+  case fonttypeComboBox.ItemIndex of
+    0:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    1:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    2:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-Bold.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    3:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    4:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    5:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-ExtraLight.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  end;
+
   //HUD BACKGROUND COLOR
 
       // Assign custom value to file
@@ -1978,6 +1992,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_tex
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/gpu_text_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size | cut -c 11-13 >> $HOME/.config/goverlay/initial_values/font_size_value''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | cut -c 11-60 >> $HOME/.config/goverlay/initial_values/font_type''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center >> $HOME/.config/goverlay/initial_values/hudtitle_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center | cut -c 20-40 >> $HOME/.config/goverlay/initial_values/hudtitle_value''', s);
 
@@ -4802,7 +4817,7 @@ begin
        //Determine toggle position - MangoHUD
 
          //Read file .profile and store result in tmp folder
-         RunCommand('bash -c ''cat $HOME/.profile | grep MANGOHUD=1 >> /tmp/goverlay/togglestateValue''', s);
+         RunCommand('bash -c ''cat /etc/environment | grep MANGOHUD=1 >> /tmp/goverlay/togglestateValue''', s);
 
          // Assign Text file to variable
          AssignFile(togglestateValueVAR, '/tmp/goverlay/togglestateValue'); //
@@ -5065,6 +5080,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/hudtitle_value''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/font_type''', s);
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_load_change''', s);
@@ -5928,6 +5944,24 @@ case initfontsizeSTR of
  end;
 
 
+
+//###################################################################### font type
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initfonttype, '/tmp/goverlay/initial_values/font_type');
+Reset(initfonttype);
+Readln(initfonttype,initfonttypeSTR); //Assign Text file to String
+CloseFile(initfonttype);
+
+case initfonttypeSTR of
+'':fonttypeComboBox.ItemIndex:=0;
+'/usr/share/fonts/TTF/DejaVuSans.ttf':fonttypeComboBox.ItemIndex:=1;
+'/usr/share/fonts/TTF/DejaVuSans-Bold.ttf':fonttypeComboBox.ItemIndex:=2;
+'/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf':fonttypeComboBox.ItemIndex:=3;
+'/usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf':fonttypeComboBox.ItemIndex:=4;
+'/usr/share/fonts/TTF/DejaVuSans-ExtraLight.ttf':fonttypeComboBox.ItemIndex:=5;
+ end;
+
 //###################################################################### GRAPH_GPU_LOAD
 // Assign Text file to variable than assign variable to string
 AssignFile(initgraphgpuload, '/tmp/goverlay/initial_values/graphs_gpu_load');
@@ -6562,19 +6596,18 @@ begin
    case geSpeedButton.imageIndex of
      0: begin
        geSpeedButton.ImageIndex:=1; //switch button position
-       RunCommand('bash -c ''yes | cp -rf $HOME/.profile $HOME/.profile_bkp''', s); //backup original .profile file
-       RunCommand('bash -c ''yes | cp -rf $HOME/.bash_profile $HOME/.bash_profile_bkp''', s); //backup original .profile file
-       RunCommand('bash -c ''echo "export MANGOHUD=1" >> $HOME/.profile''', s);  // Activate MANGOHUD globally for vulkan apps
-       RunCommand('bash -c ''echo "export MANGOHUD=1" >> $HOME/.bash_profile''', s);  // Workaround to Activate MANGOHUD globally for vulkan apps in some distros
+       RunCommand('bash -c ''yes | cp -rf /etc/environment  $HOME/.config/goverlay/environment.bkp''', s); //backup original environment file
+       RunCommand('bash -c ''pkexec chmod 777 /etc/environment''', s);  // Change permitions in /etc/enviroment
+       RunCommand('bash -c ''echo "export MANGOHUD=1" >> /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
+       RunCommand('bash -c ''pkexec chmod 644 /etc/environment''', s);  // Restore permitions in /etc/enviroment
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
-        geSpeedButton.ImageIndex:=0;
-        RunCommand('bash -c ''yes | cp -rf $HOME/.profile_bkp $HOME/.profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''yes | cp -rf $HOME/.bash_profile_bkp $HOME/.bash_profile''', s);  //restore original .profile file
-        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
-        showmessage ('Restart your system to take effect');
+       geSpeedButton.ImageIndex:=0;
+       RunCommand('bash -c ''yes | pkexec cp -rf $HOME/.config/goverlay/environment.bkp /etc/environment  ''', s); //restore the original environment file
+       RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
+       showmessage ('Restart your system to take effect');
      end;
 
   end;
