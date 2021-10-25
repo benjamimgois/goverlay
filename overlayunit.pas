@@ -25,6 +25,7 @@ type
     audiodevCombobox: TComboBox;
     audioinputCombobox: TComboBox;
     audioencoderCombobox: TComboBox;
+    procmemCheckBox: TCheckBox;
     fonttypeLabel: TLabel;
     bottomleftSpeedButton: TSpeedButton;
     bottomrightSpeedButton: TSpeedButton;
@@ -1075,7 +1076,7 @@ begin
      RunCommand('bash -c ''echo "graphs=gpu_mem_clock" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
-  //GPU Power
+  //GPU
   if gpupowerCheckbox.Checked=true then
   RunCommand('bash -c ''echo "gpu_power" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
@@ -1434,6 +1435,14 @@ begin
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/ramcolorScript.sh''', s);
 
+   //Process Memory usage
+  if procmemCheckbox.Checked=true then
+  begin
+  RunCommand('bash -c ''echo "procmem" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "procmem_shared" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  RunCommand('bash -c ''echo "procmem_virt" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  end;
+
 
 //FPS
    if fpsCheckbox.Checked=true then
@@ -1732,12 +1741,15 @@ end;
 
   //Font Type
   case fonttypeComboBox.ItemIndex of
-    0:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    1:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    2:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-Bold.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    3:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    4:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-    5:RunCommand('bash -c ''echo "font_file=/usr/share/fonts/TTF/DejaVuSans-ExtraLight.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  0:RunCommand('bash -c ''echo "" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  1:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/DejaVuSans.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  2:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/DejaVuSans-Bold.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  3:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/DejaVuSans-Oblique.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  4:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/DejaVuSans-BoldOblique.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  5:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/DejaVuSans-ExtraLight.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  6:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/Ubuntu-R.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  7:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/Ubuntu-B.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+  8:RunCommand('bash -c ''echo "font_file=$HOME/.config/goverlay/fonts/Ubuntu-M.ttf" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
   end;
 
   //HUD BACKGROUND COLOR
@@ -1992,7 +2004,10 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_tex
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/gpu_text_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size | cut -c 11-13 >> $HOME/.config/goverlay/initial_values/font_size_value''', s);
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | cut -c 11-60 >> $HOME/.config/goverlay/initial_values/font_type''', s);
+
+//RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | cut -c 11-60 >> $HOME/.config/goverlay/initial_values/font_type''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | rev | cut -c 1-14 | rev >> $HOME/.config/goverlay/initial_values/font_type''', s);
+
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center >> $HOME/.config/goverlay/initial_values/hudtitle_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center | cut -c 20-40 >> $HOME/.config/goverlay/initial_values/hudtitle_value''', s);
 
@@ -2623,7 +2638,7 @@ begin
        7:RunCommand('bash -c ''echo "videoBitrate = 7M" >> $HOME/.config/replay-sorcery.conf''', s);
        8:RunCommand('bash -c ''echo "videoBitrate = 8M" >> $HOME/.config/replay-sorcery.conf''', s);
        9:RunCommand('bash -c ''echo "videoBitrate = 9M" >> $HOME/.config/replay-sorcery.conf''', s);
-       10:RunCommand('bash -c ''echo "videoBitratey = 10M" >> $HOME/.config/replay-sorcery.conf''', s);
+       10:RunCommand('bash -c ''echo "videoBitrate = 10M" >> $HOME/.config/replay-sorcery.conf''', s);
   end;
 
 
@@ -4807,6 +4822,7 @@ begin
 
   //Create goverlay config folder
   RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/initial_values/''', s);
+  RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/fonts/''', s);
 
   //Erase dependecy files check
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_mangohud''', s);
@@ -5143,6 +5159,15 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_keyName''', s);
 //Copy files with initial values to tmp folder
 RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/ /tmp/goverlay/''', s);
 
+//Copy fonts to goverlay folder
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/TTF/DejaVuSans.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/TTF/DejaVuSans-Oblique.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/TTF/DejaVuSans-ExtraLight.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/ubuntu/Ubuntu-R.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/ubuntu/Ubuntu-B.ttf $HOME/.config/goverlay/fonts/''', s);
+RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/ubuntu/Ubuntu-M.ttf $HOME/.config/goverlay/fonts/''', s);
 
 
 // ########################################         Read configuration files - MANGOHUD  ########################################################
@@ -5953,16 +5978,23 @@ Reset(initfonttype);
 Readln(initfonttype,initfonttypeSTR); //Assign Text file to String
 CloseFile(initfonttype);
 
+// The text in this case statement is the output of the command: "cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | rev | cut -c 1-14 | rev"
+
 case initfonttypeSTR of
 '':fonttypeComboBox.ItemIndex:=0;
-'/usr/share/fonts/TTF/DejaVuSans.ttf':fonttypeComboBox.ItemIndex:=1;
-'/usr/share/fonts/TTF/DejaVuSans-Bold.ttf':fonttypeComboBox.ItemIndex:=2;
-'/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf':fonttypeComboBox.ItemIndex:=3;
-'/usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf':fonttypeComboBox.ItemIndex:=4;
-'/usr/share/fonts/TTF/DejaVuSans-ExtraLight.ttf':fonttypeComboBox.ItemIndex:=5;
+'DejaVuSans.ttf':fonttypeComboBox.ItemIndex:=1;
+'uSans-Bold.ttf':fonttypeComboBox.ItemIndex:=2;
+'ns-Oblique.ttf':fonttypeComboBox.ItemIndex:=3;
+'oldOblique.ttf':fonttypeComboBox.ItemIndex:=4;
+'ExtraLight.ttf':fonttypeComboBox.ItemIndex:=5;
+'s/Ubuntu-R.ttf':fonttypeComboBox.ItemIndex:=6;
+'s/Ubuntu-B.ttf':fonttypeComboBox.ItemIndex:=7;
+'s/Ubuntu-M.ttf':fonttypeComboBox.ItemIndex:=8;
  end;
 
+
 //###################################################################### GRAPH_GPU_LOAD
+
 // Assign Text file to variable than assign variable to string
 AssignFile(initgraphgpuload, '/tmp/goverlay/initial_values/graphs_gpu_load');
 Reset(initgraphgpuload);
