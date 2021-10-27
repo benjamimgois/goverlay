@@ -774,6 +774,8 @@ var
   inittoggleuploadlogSTR: string;
   initfonttype: Textfile;
   initfonttypeSTR: string;
+  initprocmem: Textfile;
+  initprocmemSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1982,6 +1984,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamemod
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text=Session: >> $HOME/.config/goverlay/initial_values/session''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df  >> $HOME/.config/goverlay/initial_values/homepart''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem >> $HOME/.config/goverlay/initial_values/procmem''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2004,10 +2007,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_tex
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_text | cut -c 10-20 >> $HOME/.config/goverlay/initial_values/gpu_text_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size >> $HOME/.config/goverlay/initial_values/font_size''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_size | cut -c 11-13 >> $HOME/.config/goverlay/initial_values/font_size_value''', s);
-
-//RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | cut -c 11-60 >> $HOME/.config/goverlay/initial_values/font_type''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | rev | cut -c 1-14 | rev >> $HOME/.config/goverlay/initial_values/font_type''', s);
-
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center >> $HOME/.config/goverlay/initial_values/hudtitle_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center | cut -c 20-40 >> $HOME/.config/goverlay/initial_values/hudtitle_value''', s);
 
@@ -3049,6 +3049,7 @@ begin
   cpuloadcolorCheckbox.Checked:=true;
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=true;
+  procmemCheckbox.Checked:=true;
 
   showfpslimCheckbox.Checked:=true;
   batteryCheckbox.Checked:=true;
@@ -4404,6 +4405,7 @@ begin
   sessionCheckbox.Checked:=false;
   distroinfoCheckbox.Checked:=false;
   homepartCheckbox.Checked:=false;
+  procmemCheckbox.Checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -5122,6 +5124,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gamemode''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/session''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/homepart''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/distroinfo''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/procmem''', s);
 
 //vkbasalt dummy initials
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
@@ -6020,6 +6023,21 @@ case initfpsSTR of
   'fps':fpsCheckbox.checked:=true;
 end;
 
+
+//###################################################################### procmem
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initprocmem, '/tmp/goverlay/initial_values/procmem');
+Reset(initprocmem);
+Readln(initprocmem,initprocmemSTR); //Assign Text file to String
+CloseFile(initprocmem);
+
+case initprocmemSTR of
+'':procmemCheckbox.Checked:=false;
+'procmem':procmemCheckbox.Checked:=true;
+ end;
+
+
 //###################################################################### GRAPH_GPU_temp
 // Assign Text file to variable than assign variable to string
 AssignFile(initgraphgputemp, '/tmp/goverlay/initial_values/graphs_gpu_temp');
@@ -6722,6 +6740,8 @@ begin
   sessionCheckbox.Checked:=false;
   distroinfoCheckbox.Checked:=false;
   homepartCheckbox.Checked:=false;
+  procmemCheckbox.Checked:=false;
+  swapusageCheckbox.Checked:=false;
 
   gpuloadgraphBitbtn.imageindex:=2;
   gputempgraphBitbtn.imageindex:=2;
