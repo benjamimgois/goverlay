@@ -16,6 +16,7 @@ clean:
 	rm -f data/goverlay.sh
 	rm -rf lib/
 	rm -rf backup/
+	rm -rf goverlay.lps
 
 install: goverlay data/goverlay.sh
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay-bin
