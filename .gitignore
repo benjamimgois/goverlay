@@ -1,4 +1,5 @@
-goverlay.lps
-backup/
 goverlay
+data/goverlay.sh
 lib/
+backup/
+goverlay.lps
