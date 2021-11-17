@@ -123,10 +123,10 @@ tar -zxvf goverlay*.tar.gz
 3. Properly execute the binary by running the script inside the tar file:
 
 ```bash
-chmod +x start_goverlay.sh
 ./start_goverlay.sh
 ```
 
+Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
 
 ## Source
 
@@ -153,20 +153,23 @@ make
 
 ### Running
 
-Starting in 0.6.2 version you'll need mangohud installed to run GOverlay, run the following command:
+Start GOverlay with:
 
 ```bash
-mangohud --dlsym ./goverlay --style fusion
+./start_goverlay.sh
 ```
 
+Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
 
-### Wayland
+### Installing
 
-QT5PAS still isn't compatible with wayland display server, but you can run the application by forcing the x11 backend. Credits by [**`Darklink999999`**](https://github.com/Darklink999999)
+To install GOverlay execute:
 
 ```bash
-QT_QPA_PLATFORM=xcb mangohud --dlsym goverlay --style fusion
+make install
 ```
+
+This will install the start script to `/usr/local/bin/goverlay`, so that it can be launched via `goverlay` in the console. 
 
 ## Credits
 
