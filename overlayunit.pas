@@ -17,214 +17,31 @@ type
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
+    aacprofileCombobox: TComboBox;
     aboutBitBtn: TBitBtn;
+    acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     archCheckBox: TCheckBox;
     audiobitrateCombobox: TComboBox;
-    aacprofileCombobox: TComboBox;
     audiodevCombobox: TComboBox;
-    audioinputCombobox: TComboBox;
+    audiodevEdit: TEdit;
     audioencoderCombobox: TComboBox;
-    procmemCheckBox: TCheckBox;
-    fonttypeLabel: TLabel;
-    bottomleftSpeedButton: TSpeedButton;
-    bottomrightSpeedButton: TSpeedButton;
-    destfolderpathLabel: TLabel;
-    fonttypeComboBox: TComboBox;
-    hidehudCheckBox: TCheckBox;
-    Label6: TLabel;
-    vkcubeMenuItem: TMenuItem;
-    uploadlogComboBox: TComboBox;
-    MenuItem1: TMenuItem;
-    MenuItem2: TMenuItem;
-    MenuItem3: TMenuItem;
-    OpenGLControl1: TOpenGLControl;
-    runvkbasaltBitBtn: TBitBtn;
-    TittlelogLabel: TLabel;
-    topcenterSpeedButton: TSpeedButton;
-    topleftSpeedButton: TSpeedButton;
-    toprightSpeedButton: TSpeedButton;
-    vkbasaltPopupMenu: TPopupMenu;
-    cpuavrloadCheckBox: TCheckBox;
-    cpuColorButton: TColorButton;
-    cpufreqCheckBox: TCheckBox;
-    cpuloadgraphBitBtn: TBitBtn;
-    distroinfoCheckBox: TCheckBox;
-    sessionCheckBox: TCheckBox;
-    homepartCheckBox: TCheckBox;
-    hudtitleEdit: TEdit;
-    customcommandEdit: TEdit;
-    cputempgraphBitBtn: TBitBtn;
-    resolutionCheckBox: TCheckBox;
-    gamemodestatusCheckBox: TCheckBox;
-    vkbasaltstatusCheckBox: TCheckBox;
-    batteryCheckBox: TCheckBox;
-    fpslimtoggleComboBox: TComboBox;
-    fpslimLabel3: TLabel;
-    gpucfgraphBitBtn: TBitBtn;
-    gpuloadgraphBitBtn: TBitBtn;
-    gpumfgraphBitBtn: TBitBtn;
-    gputempgraphBitBtn: TBitBtn;
-    graph1: TLabel;
-    graph10: TLabel;
-    graph11: TLabel;
-    graph2: TLabel;
-    graph3: TLabel;
-    graph4: TLabel;
-    graph5: TLabel;
-    graph9: TLabel;
-    showfpslimCheckBox: TCheckBox;
-    performanceGroupBox2: TGroupBox;
-    ramgraphBitBtn: TBitBtn;
-    swapusageCheckBox: TCheckBox;
-    cpuGroupBox: TGroupBox;
-    cpuload1ColorButton: TColorButton;
-    cpuload2ColorButton: TColorButton;
-    cpuload3ColorButton: TColorButton;
-    cpuloadcolorCheckBox: TCheckBox;
-    cpuloadcoreCheckBox: TCheckBox;
-    cpunameEdit: TEdit;
-    cpupowerCheckBox: TCheckBox;
-    cputempCheckBox: TCheckBox;
-    diskioCheckBox: TCheckBox;
-    driverversionCheckBox: TCheckBox;
-    engineColorButton: TColorButton;
-    engineversionCheckBox: TCheckBox;
-    fpsCheckBox: TCheckBox;
-    framegraphRadioButton: TRadioButton;
-    framehistogramRadioButton: TRadioButton;
-    frametimegraphCheckBox: TCheckBox;
-    frametimegraphColorButton: TColorButton;
-    gpuavrloadCheckBox: TCheckBox;
-    gpuColorButton: TColorButton;
-    gpufreqCheckBox: TCheckBox;
-    gpuGroupBox: TGroupBox;
-    gpuload1ColorButton: TColorButton;
-    gpuload2ColorButton: TColorButton;
-    gpuload3ColorButton: TColorButton;
-    gpuloadcolorCheckBox: TCheckBox;
-    gpumemfreqCheckBox: TCheckBox;
-    gpumodelCheckBox: TCheckBox;
-    gpunameEdit: TEdit;
-    gpupowerCheckBox: TCheckBox;
-    gputempCheckBox: TCheckBox;
-    graphhudBitBtn: TBitBtn;
-    hudversionCheckBox: TCheckBox;
-    intelpowerfixBitBtn: TBitBtn;
-    iordrwColorButton: TColorButton;
-    mediaCheckBox: TCheckBox;
-    mediaColorButton: TColorButton;
-    mediaComboBox: TComboBox;
-    otherGroupBox: TGroupBox;
-    performanceGroupBox1: TGroupBox;
-    ramColorButton: TColorButton;
-    ramusageCheckBox: TCheckBox;
-    steamMenuItem: TMenuItem;
-    lutrisMenuItem: TMenuItem;
-    heroicMenuItem: TMenuItem;
-    gamePopupMenu: TPopupMenu;
-    runsteamBitBtn: TBitBtn;
-    Label26: TLabel;
-    Label29: TLabel;
-    Label30: TLabel;
-    timeCheckBox: TCheckBox;
-    videodevEdit: TEdit;
-    audioGroupBox: TGroupBox;
+    audioinputCombobox: TComboBox;
     audiosampCombobox: TComboBox;
+    autoaudiobitrateCheckBox: TCheckBox;
+    autologSpinEdit: TSpinEdit;
     autoresCheckBox: TCheckBox;
     autoscaleCheckBox: TCheckBox;
+    autostartLabel1: TLabel;
+    autostartLabel2: TLabel;
     autouploadCheckBox: TCheckBox;
-    autovideoqualityCheckBox: TCheckBox;
     autovideobitrateCheckBox: TCheckBox;
-    autoaudiobitrateCheckBox: TCheckBox;
-    clipdurationCombobox: TComboBox;
-    compacthudBitBtn: TBitBtn;
-    audiodevEdit: TEdit;
-    Label25: TLabel;
-    Label27: TLabel;
-    Label28: TLabel;
-    scalewidthSpinEdit: TSpinEdit;
-    scaleheightSpinEdit: TSpinEdit;
-    outputscaleGroupBox: TGroupBox;
-    videoqualityLabel: TLabel;
-    videobitrateLabel: TLabel;
-    videogopLabel: TLabel;
-    autologSpinEdit: TSpinEdit;
-    fpslimLabel2: TLabel;
-    framerateCombobox: TComboBox;
-    hlepresetLabel: TLabel;
-    Label22: TLabel;
-    Label24: TLabel;
-    videobitrateTrackBar: TTrackBar;
-    videogopTrackBar: TTrackBar;
-    videodeviceCombobox: TComboBox;
-    videoencoderCombobox: TComboBox;
-    videodeviceLabel: TLabel;
-    videodeviceLabel1: TLabel;
-    loggingGroupBox: TGroupBox;
-    GroupBox2: TGroupBox;
-    hudonoffComboBox: TComboBox;
-    casValueLabel: TLabel;
-    Label10: TLabel;
-    Label11: TLabel;
-    h264profileLabel: TLabel;
-    Label17: TLabel;
-    Label18: TLabel;
-    Label19: TLabel;
-    Label20: TLabel;
-    Label23: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
-    Label9: TLabel;
-    loggingComboBox: TComboBox;
-    logpathBitBtn: TBitBtn;
-    replaykeyCombobox: TComboBox;
-    replaytoggleLabel: TLabel;
-    videoqualityTrackBar: TTrackBar;
-    saveclipEdit: TEdit;
-    videoinputCombobox: TComboBox;
-    videoinputLabel: TLabel;
-    vramColorButton: TColorButton;
-    vramgraphBitBtn: TBitBtn;
-    vramusageCheckBox: TCheckBox;
-    replaystateLabel: TLabel;
-    replaystateSpeedButton: TSpeedButton;
-    heightImage: TImage;
-    replaystopBitBtn: TBitBtn;
-    widthImage: TImage;
-    replaygeSpeedButton: TSpeedButton;
-    replayGlobalenableLabel: TLabel;
-    replaystartBitBtn: TBitBtn;
-    replaysaveBitBtn: TBitBtn;
-    videoGroupBox: TGroupBox;
-    videocustomGroupBox: TGroupBox;
-    Label12: TLabel;
-    Label13: TLabel;
-    replayImage: TImage;
-    replayPanel: TPanel;
-    replayLabel: TLabel;
-    replayShape: TShape;
-    reswidthSpinEdit: TSpinEdit;
-    resheightSpinEdit: TSpinEdit;
-    customresShape: TShape;
-    fullscreenShape: TShape;
-    wineCheckBox: TCheckBox;
-    wineColorButton: TColorButton;
-    reshadeProgressBar: TProgressBar;
-    subBitBtn: TBitBtn;
+    autovideoqualityCheckBox: TCheckBox;
     aveffectsListBox: TListBox;
-    acteffectsListBox: TListBox;
-    reshadeLabel1: TLabel;
-    reshadeLabel2: TLabel;
-    reshadesyncBitBtn: TBitBtn;
-    casCheckBox: TCheckBox;
-    effectsGroupBox: TGroupBox;
-    vkbtogglekeyCombobox: TComboBox;
-    ImageList3: TImageList;
-    vktoggleLabel: TLabel;
-    ImageList2: TImageList;
-    dependencieSpeedButton: TSpeedButton;
-    transparencyLabel: TLabel;
+    backgroundLabel: TLabel;
+    batteryCheckBox: TCheckBox;
+    bottomleftSpeedButton: TSpeedButton;
+    cas00Image: TImage;
     cas01Image: TImage;
     cas02Image: TImage;
     cas03Image: TImage;
@@ -235,33 +52,247 @@ type
     cas08Image: TImage;
     cas09Image: TImage;
     cas10Image: TImage;
-    backgroundLabel: TLabel;
+    casCheckBox: TCheckBox;
     casorigLabel: TLabel;
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
-    casTrackBar2: TTrackBar;
+    casValueLabel: TLabel;
+    fontsImage1: TImage;
+    gpuImage: TImage;
+    glvsyncComboBox: TComboBox;
+    gpuImage1: TImage;
+    layoutImage: TImage;
+    GroupBox4: TGroupBox;
+    Image1: TImage;
+    Image2: TImage;
+    fontsImage: TImage;
+    layoutImage1: TImage;
+    loggingImage: TImage;
+    fpslimImage: TImage;
+    vsyncImage: TImage;
+    originalImage: TImage;
+    PageControl2: TPageControl;
+    reshadeLabel1: TLabel;
+    reshadeLabel2: TLabel;
+    reshadeProgressBar: TProgressBar;
+    reshadesyncBitBtn: TBitBtn;
+    roundcornervalueLabel: TLabel;
+    middleleftSpeedButton: TSpeedButton;
+    middlerightSpeedButton: TSpeedButton;
+    bottomrightSpeedButton: TSpeedButton;
+    clipdurationCombobox: TComboBox;
+    compacthudBitBtn: TBitBtn;
     completehudBitBtn: TBitBtn;
+    cpuavrloadCheckBox: TCheckBox;
+    cpuColorButton: TColorButton;
+    cpufreqCheckBox: TCheckBox;
+    cpuGroupBox: TGroupBox;
+    cpuload1ColorButton: TColorButton;
+    cpuload2ColorButton: TColorButton;
+    cpuload3ColorButton: TColorButton;
+    cpuloadcolorCheckBox: TCheckBox;
+    cpuloadcoreCheckBox: TCheckBox;
+    cpuloadgraphBitBtn: TBitBtn;
+    cpunameEdit: TEdit;
+    cpupowerCheckBox: TCheckBox;
+    cputempCheckBox: TCheckBox;
+    cputempgraphBitBtn: TBitBtn;
+    customcommandEdit: TEdit;
+    diskioCheckBox: TCheckBox;
+    distroinfoCheckBox: TCheckBox;
+    driverversionCheckBox: TCheckBox;
+    engineColorButton: TColorButton;
+    engineversionCheckBox: TCheckBox;
     FontcolorButton: TColorButton;
-    FontcolorLabel: TLabel;
     fontsizeComboBox: TComboBox;
     fontsizeLabel: TLabel;
     fontsizeLabel1: TLabel;
     fontsizeSpinEdit: TSpinEdit;
+    fonttypeComboBox: TComboBox;
+    fonttypeLabel: TLabel;
+    fpsCheckBox: TCheckBox;
     fpscustomSpinEdit: TSpinEdit;
     fpslimComboBox: TComboBox;
     fpslimLabel: TLabel;
     fpslimLabel1: TLabel;
+    autostartLabel: TLabel;
+    fpslimLabel3: TLabel;
+    fpslimtoggleComboBox: TComboBox;
+    framegraphRadioButton: TRadioButton;
+    framehistogramRadioButton: TRadioButton;
+    framerateCombobox: TComboBox;
+    frametimegraphCheckBox: TCheckBox;
+    frametimegraphColorButton: TColorButton;
+    gamemodestatusCheckBox: TCheckBox;
+    gpuavrloadCheckBox: TCheckBox;
+    gpucfgraphBitBtn: TBitBtn;
+    gpuColorButton: TColorButton;
+    gpufreqCheckBox: TCheckBox;
+    gpuGroupBox: TGroupBox;
+    gpuload1ColorButton: TColorButton;
+    gpuload2ColorButton: TColorButton;
+    gpuload3ColorButton: TColorButton;
+    gpuloadcolorCheckBox: TCheckBox;
+    gpuloadgraphBitBtn: TBitBtn;
+    gpumemfreqCheckBox: TCheckBox;
+    gpumfgraphBitBtn: TBitBtn;
+    gpumodelCheckBox: TCheckBox;
+    gpunameEdit: TEdit;
+    gpupowerCheckBox: TCheckBox;
+    gputempCheckBox: TCheckBox;
+    gputempgraphBitBtn: TBitBtn;
+    graph1: TLabel;
+    graph10: TLabel;
+    graph11: TLabel;
+    graph2: TLabel;
+    graph3: TLabel;
+    graph4: TLabel;
+    graph5: TLabel;
+    graph9: TLabel;
+    graphhudBitBtn: TBitBtn;
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    GroupBox3: TGroupBox;
+    h264profileCombobox: TComboBox;
+    h264profileLabel: TLabel;
+    hlepresetLabel: TLabel;
+    hudbackgroundColorButton: TColorButton;
+    hudGroupBox: TGroupBox;
+    hidehudCheckBox: TCheckBox;
+    homepartCheckBox: TCheckBox;
+    hudonoffComboBox: TComboBox;
+    hudtitleEdit: TEdit;
+    hudtranspBitBtn: TBitBtn;
+    hudversionCheckBox: TCheckBox;
+    intelpowerfixBitBtn: TBitBtn;
+    iordrwColorButton: TColorButton;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    Label17: TLabel;
+    Label18: TLabel;
+    Label19: TLabel;
+    Label20: TLabel;
+    Label22: TLabel;
+    Label23: TLabel;
+    Label24: TLabel;
+    Label25: TLabel;
+    Label26: TLabel;
+    Label27: TLabel;
+    Label28: TLabel;
+    Label29: TLabel;
+    Label30: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label9: TLabel;
+    loggingComboBox: TComboBox;
+    loggingGroupBox: TGroupBox;
+    logpathBitBtn: TBitBtn;
+    mediaCheckBox: TCheckBox;
+    mediaColorButton: TColorButton;
+    mediaComboBox: TComboBox;
+    otherGroupBox: TGroupBox;
+    mangohudPageControl: TPageControl;
+    outputscaleGroupBox: TGroupBox;
+    PageControl1: TPageControl;
+    performanceGroupBox: TGroupBox;
+    destfolderpathLabel: TLabel;
+    performanceGroupBox1: TGroupBox;
+    performanceGroupBox2: TGroupBox;
+    procmemCheckBox: TCheckBox;
+    ramColorButton: TColorButton;
+    ramgraphBitBtn: TBitBtn;
+    ramusageCheckBox: TCheckBox;
+    replaykeyCombobox: TComboBox;
+    replaytoggleLabel: TLabel;
+    resheightSpinEdit: TSpinEdit;
+    resolutionCheckBox: TCheckBox;
+    reswidthSpinEdit: TSpinEdit;
+    saveclipEdit: TEdit;
+    scaleheightSpinEdit: TSpinEdit;
+    scalewidthSpinEdit: TSpinEdit;
+    sessionCheckBox: TCheckBox;
+    showfpslimCheckBox: TCheckBox;
+    subBitBtn: TBitBtn;
+    swapusageCheckBox: TCheckBox;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    TabSheet3: TTabSheet;
+    TabSheet4: TTabSheet;
+    TabSheet5: TTabSheet;
+    TabSheet6: TTabSheet;
+    TabSheet7: TTabSheet;
+    TabSheet8: TTabSheet;
+    TabSheet9: TTabSheet;
+    timeCheckBox: TCheckBox;
+    topcenterSpeedButton: TSpeedButton;
+    topleftSpeedButton: TSpeedButton;
+    toprightSpeedButton: TSpeedButton;
+    roundcornerTrackBar: TTrackBar;
+    transparencyLabel: TLabel;
+    transparencyLabel1: TLabel;
+    uploadlogComboBox: TComboBox;
+    videobitrateLabel: TLabel;
+    videobitrateTrackBar: TTrackBar;
+    videocustomGroupBox: TGroupBox;
+    videodevEdit: TEdit;
+    videodeviceCombobox: TComboBox;
+    videodeviceLabel: TLabel;
+    videodeviceLabel1: TLabel;
+    videoencoderCombobox: TComboBox;
+    videogopLabel: TLabel;
+    videogopTrackBar: TTrackBar;
+    videohlepresetCombobox: TComboBox;
+    videoinputCombobox: TComboBox;
+    videoinputLabel: TLabel;
+    videoqualityLabel: TLabel;
+    videoqualityTrackBar: TTrackBar;
+    visualGroupBox: TGroupBox;
+    vkbasaltstatusCheckBox: TCheckBox;
+    vkcubeMenuItem: TMenuItem;
+    MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
+    MenuItem3: TMenuItem;
+    OpenGLControl1: TOpenGLControl;
+    runvkbasaltBitBtn: TBitBtn;
+    TittlelogLabel: TLabel;
+    vkbasaltPopupMenu: TPopupMenu;
+    steamMenuItem: TMenuItem;
+    lutrisMenuItem: TMenuItem;
+    heroicMenuItem: TMenuItem;
+    gamePopupMenu: TPopupMenu;
+    runsteamBitBtn: TBitBtn;
+    vramColorButton: TColorButton;
+    replaystateLabel: TLabel;
+    replaystateSpeedButton: TSpeedButton;
+    heightImage: TImage;
+    replaystopBitBtn: TBitBtn;
+    vramgraphBitBtn: TBitBtn;
+    vramusageCheckBox: TCheckBox;
+    vsyncComboBox: TComboBox;
+    widthImage: TImage;
+    replaygeSpeedButton: TSpeedButton;
+    replayGlobalenableLabel: TLabel;
+    replaystartBitBtn: TBitBtn;
+    replaysaveBitBtn: TBitBtn;
+    replayImage: TImage;
+    replayPanel: TPanel;
+    replayLabel: TLabel;
+    replayShape: TShape;
+    customresShape: TShape;
+    fullscreenShape: TShape;
+    vkbtogglekeyCombobox: TComboBox;
+    ImageList3: TImageList;
+    vktoggleLabel: TLabel;
+    ImageList2: TImageList;
+    dependencieSpeedButton: TSpeedButton;
+    casTrackBar2: TTrackBar;
     geSpeedButton: TSpeedButton;
     basaltgeSpeedButton: TSpeedButton;
     GlobalenableLabel: TLabel;
     basaltGlobalenableLabel: TLabel;
-    glvsyncComboBox: TComboBox;
-    glvsyncLabel: TLabel;
-    casGroupBox: TGroupBox;
-    hudbackgroundColorButton: TColorButton;
-    hudtranspBitBtn: TBitBtn;
-    cas00Image: TImage;
-    originalImage: TImage;
     ImageList1: TImageList;
     mangohudLabel: TLabel;
     basaltrunBitBtn: TBitBtn;
@@ -271,15 +302,11 @@ type
     vkbasaltLabel: TLabel;
     mangohudPanel: TPanel;
     goverlayimage: TImage;
-    performanceGroupBox: TGroupBox;
     saveBitBtn: TBitBtn;
     mangohudShape: TShape;
     vkbasaltShape: TShape;
-    visualGroupBox: TGroupBox;
-    vsyncComboBox: TComboBox;
-    vsyncLabel: TLabel;
-    h264profileCombobox: TComboBox;
-    videohlepresetCombobox: TComboBox;
+    wineCheckBox: TCheckBox;
+    wineColorButton: TColorButton;
     procedure addBitBtnClick(Sender: TObject);
     procedure addBitBtnKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -344,6 +371,9 @@ type
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
+    procedure middleleftSpeedButtonClick(Sender: TObject);
+    procedure middlerightSpeedButtonClick(Sender: TObject);
+    procedure roundcornerTrackBarChange(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
     procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
@@ -776,6 +806,8 @@ var
   initfonttypeSTR: string;
   initprocmem: Textfile;
   initprocmemSTR: string;
+  initroundcornersValue: Textfile;
+  initroundcornersSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1790,6 +1822,12 @@ end;
   if topcenterSpeedbutton.ImageIndex=4 then
   RunCommand('bash -c ''echo "position=top-center" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+  if middleleftSpeedbutton.ImageIndex=5 then
+  RunCommand('bash -c ''echo "position=middle-left" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+  if middlerightSpeedbutton.ImageIndex=6 then
+  RunCommand('bash -c ''echo "position=middle-right" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
     //HUD Font Color
 
       // Assign value to file
@@ -1807,6 +1845,24 @@ end;
 
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/hudfontcolorScript.sh''', s);
+
+
+
+      //Round Corners
+
+      case roundcornerTrackBar.Position of
+           0:RunCommand('bash -c ''echo "round_corners=0" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           1:RunCommand('bash -c ''echo "round_corners=1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           2:RunCommand('bash -c ''echo "round_corners=2" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           3:RunCommand('bash -c ''echo "round_corners=3" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           4:RunCommand('bash -c ''echo "round_corners=4" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           5:RunCommand('bash -c ''echo "round_corners=5" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           6:RunCommand('bash -c ''echo "round_corners=6" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           7:RunCommand('bash -c ''echo "round_corners=7" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           8:RunCommand('bash -c ''echo "round_corners=8" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           9:RunCommand('bash -c ''echo "round_corners=9" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           10:RunCommand('bash -c ''echo "round_corners=10" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      end;
 
   //####################################################################################### KEYBINDINGS
 
@@ -1985,6 +2041,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df  >> $HOME/.config/goverlay/initial_values/homepart''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem >> $HOME/.config/goverlay/initial_values/procmem''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w round_corners >> $HOME/.config/goverlay/initial_values/round_corners''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2183,6 +2240,41 @@ end;
 procedure Tgoverlayform.MenuItem3Click(Sender: TObject);
 begin
     RunCommand('bash -c ''ENABLE_VKBASALT=1 heroic''', s)  //Run heroic
+end;
+
+procedure Tgoverlayform.middleleftSpeedButtonClick(Sender: TObject);
+begin
+     //Highlight main button
+  middleleftSpeedbutton.ImageIndex:=5;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  topcenterSpeedButton.imageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
+end;
+
+procedure Tgoverlayform.middlerightSpeedButtonClick(Sender: TObject);
+begin
+       //Highlight main button
+  middlerightSpeedbutton.ImageIndex:=6;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  topcenterSpeedButton.imageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+end;
+
+procedure Tgoverlayform.roundcornerTrackBarChange(Sender: TObject);
+begin
+  roundcornerValueLabel.Caption:= inttostr(roundcornerTrackBar.Position);
 end;
 
 procedure Tgoverlayform.vkcubeMenuItemClick(Sender: TObject);
@@ -4191,6 +4283,8 @@ begin
   toprightSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
   topcenterSpeedButton.imageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
 procedure Tgoverlayform.bottomrightSpeedButtonClick(Sender: TObject);
@@ -4204,6 +4298,8 @@ begin
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   topcenterSpeedButton.imageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
 procedure Tgoverlayform.casCheckBoxChange(Sender: TObject);
@@ -4686,6 +4782,8 @@ begin
 end;
 
 
+
+
 procedure Tgoverlayform.engineColorButtonColorChanged(Sender: TObject);
 begin
 
@@ -4815,7 +4913,7 @@ begin
   videobitrateLabel.Caption:=inttostr (videobitrateTrackBar.Position)+' Mbps'; //video bitrate value
   videogopLabel.Caption:=inttostr (videogopTrackBar.Position); //video bitrate value
   casValueLabel.Caption:=inttostr (casTrackbar.Position); //cas value
-
+  roundcornervalueLabel.Caption:=inttostr (roundcornerTrackBar.Position); //round corner value
 
   //Create temporary folder and files for goverlay
   RunCommand('bash -c ''mkdir -p /tmp/goverlay/''', s);
@@ -5099,6 +5197,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/hudtitle_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/font_type''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/round_corners''', s);
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_load_change''', s);
@@ -5790,6 +5889,8 @@ case initpositionSTR of
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
   end;
 
 'position=top-right':begin
@@ -5800,6 +5901,8 @@ case initpositionSTR of
   topleftSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
   end;
 
 'position=bottom-left':begin
@@ -5810,6 +5913,8 @@ case initpositionSTR of
   topleftSpeedbutton.ImageIndex:=-1;
   toprightSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
   end;
 
 
@@ -5822,6 +5927,8 @@ case initpositionSTR of
   topleftSpeedbutton.ImageIndex:=-1;
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
   'position=top-center':begin
@@ -5834,6 +5941,34 @@ end;
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
+end;
+
+    'position=middle-left':begin
+   //Highlight main button
+   middleleftSpeedbutton.ImageIndex:=5;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
+end;
+
+   'position=middle-right':begin
+   //Highlight main button
+   middlerightSpeedbutton.ImageIndex:=6;
+
+
+  //Clear other buttons
+  topleftSpeedbutton.ImageIndex:=-1;
+  toprightSpeedbutton.ImageIndex:=-1;
+  bottomleftSpeedbutton.ImageIndex:=-1;
+  bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
 end;
 
 end;
@@ -6036,6 +6171,29 @@ case initprocmemSTR of
 '':procmemCheckbox.Checked:=false;
 'procmem':procmemCheckbox.Checked:=true;
  end;
+
+
+//###################################################################### round corners
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initroundcornersValue, '/tmp/goverlay/initial_values/round_corners');
+Reset(initroundcornersValue);
+Readln(initroundcornersValue,initroundcornersSTR); //Assign Text file to String
+CloseFile(initroundcornersValue);
+
+case initroundcornersSTR of
+  'round_corners=0':roundcornerTrackBar.Position:=0;
+  'round_corners=1':roundcornerTrackBar.Position:=1;
+  'round_corners=2':roundcornerTrackBar.Position:=2;
+  'round_corners=3':roundcornerTrackBar.Position:=3;
+  'round_corners=4':roundcornerTrackBar.Position:=4;
+  'round_corners=5':roundcornerTrackBar.Position:=5;
+  'round_corners=6':roundcornerTrackBar.Position:=6;
+  'round_corners=7':roundcornerTrackBar.Position:=7;
+  'round_corners=8':roundcornerTrackBar.Position:=8;
+  'round_corners=9':roundcornerTrackBar.Position:=9;
+  'round_corners=10':roundcornerTrackBar.Position:=10;
+end;
 
 
 //###################################################################### GRAPH_GPU_temp
@@ -6769,6 +6927,8 @@ begin
   toprightSpeedbutton.ImageIndex:=-1;
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
 
@@ -6783,6 +6943,8 @@ begin
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
   topcenterSpeedButton.imageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
 procedure Tgoverlayform.toprightSpeedButtonClick(Sender: TObject);
@@ -6795,6 +6957,8 @@ begin
   bottomleftSpeedbutton.ImageIndex:=-1;
   bottomrightSpeedbutton.ImageIndex:=-1;
   topcenterSpeedButton.imageIndex:=-1;
+  middleleftSpeedbutton.ImageIndex:=-1;
+  middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);

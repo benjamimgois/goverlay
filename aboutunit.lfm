@@ -1,12 +1,12 @@
 object aboutForm: TaboutForm
-  Left = 2228
+  Left = 2646
   Height = 682
-  Top = 139
-  Width = 533
+  Top = 179
+  Width = 621
   BorderStyle = bsDialog
   Caption = 'About'
   ClientHeight = 682
-  ClientWidth = 533
+  ClientWidth = 621
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
@@ -15,26 +15,26 @@ object aboutForm: TaboutForm
     Left = 0
     Height = 784
     Top = 0
-    Width = 536
-    ActivePage = TabSheet1
+    Width = 616
+    ActivePage = TabSheet2
     Font.Color = clWhite
     Font.Quality = fqAntialiased
     ParentFont = False
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 747
-      ClientWidth = 528
+      ClientHeight = 751
+      ClientWidth = 606
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
       object mangolink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 402
-        Width = 342
+        Width = 340
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Font.Color = clBlue
         Font.Height = -13
@@ -48,9 +48,9 @@ object aboutForm: TaboutForm
       object linux4elink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 450
-        Width = 340
+        Width = 335
         Caption = 'https://github.com/matanui159/ReplaySorcery'
         Font.Color = clBlue
         Font.Height = -13
@@ -12176,9 +12176,9 @@ object aboutForm: TaboutForm
       end
       object donateImage: TImage
         Cursor = crHandPoint
-        Left = 328
+        Left = 413
         Height = 80
-        Top = 557
+        Top = 560
         Width = 184
         OnClick = donateImageClick
         Picture.Data = {
@@ -15199,9 +15199,9 @@ object aboutForm: TaboutForm
       object schoorselinkLabel: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 426
-        Width = 305
+        Width = 304
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Font.Color = clBlue
         Font.Height = -13
@@ -15215,9 +15215,9 @@ object aboutForm: TaboutForm
       object linux4elink1: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 15
         Top = 471
-        Width = 247
+        Width = 244
         Caption = 'https://www.linux4everyone.com/'
         Font.Color = clBlue
         Font.Height = -13
@@ -15230,7 +15230,7 @@ object aboutForm: TaboutForm
       end
       object Label1: TLabel
         Left = 8
-        Height = 49
+        Height = 47
         Top = 24
         Width = 155
         Caption = 'Goverlay'
@@ -15244,9 +15244,9 @@ object aboutForm: TaboutForm
       end
       object Label2: TLabel
         Left = 128
-        Height = 54
+        Height = 57
         Top = 504
-        Width = 166
+        Width = 189
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
         Font.Color = clWhite
         Font.Quality = fqAntialiased
@@ -15255,9 +15255,9 @@ object aboutForm: TaboutForm
       end
       object Label3: TLabel
         Left = 8
-        Height = 252
+        Height = 266
         Top = 88
-        Width = 518
+        Width = 589
         Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a gaming platform.'
         Font.Color = clWhite
         Font.Quality = fqAntialiased
@@ -15266,10 +15266,10 @@ object aboutForm: TaboutForm
       end
       object goverlaylink: TLabel
         Cursor = crHandPoint
-        Left = 112
-        Height = 17
-        Top = 360
-        Width = 313
+        Left = 8
+        Height = 15
+        Top = 376
+        Width = 308
         Caption = 'https://github.com/benjamimgois/goverlay'
         Font.Color = clBlue
         Font.Height = -13
@@ -15283,13 +15283,13 @@ object aboutForm: TaboutForm
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 747
-      ClientWidth = 528
+      ClientHeight = 751
+      ClientWidth = 606
       object Memo3: TMemo
         Left = 0
         Height = 744
         Top = 8
-        Width = 526
+        Width = 656
         Alignment = taCenter
         BorderStyle = bsNone
         Color = 3684408
@@ -15973,7 +15973,7 @@ object aboutForm: TaboutForm
         )
         ParentFont = False
         ReadOnly = True
-        ScrollBars = ssAutoVertical
+        ScrollBars = ssVertical
         TabOrder = 0
       end
     end
