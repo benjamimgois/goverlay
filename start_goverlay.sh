@@ -1,9 +1,0 @@
-#!/bin/sh
-# This script will launch the compiled goverlay binary the correct way
-#
-# QT_QPA_PLATFORM=xcb will force the application to run in x11 mode, so it works on wayland desktops.
-# mangohud --dlsym will force the mangohud display on the spinning cube on goverlay.
-# --style Breeze will make sure the interface doesn't break in diferent DE and QT themes.
-
-export QT_QPA_PLATFORM=xcb
-mangohud --dlsym ./goverlay --style Breeze

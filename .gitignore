@@ -1,4 +1,5 @@
 goverlay
+start_goverlay.sh
 data/goverlay.sh
 lib/
 backup/
