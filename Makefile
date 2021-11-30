@@ -13,6 +13,7 @@ data/goverlay.sh: data/goverlay.sh.in
 
 start_goverlay.sh: data/goverlay.sh.in
 	sed s%@libexecdir@%.%g data/goverlay.sh.in > start_goverlay.sh
+	chmod +x ./start_goverlay.sh
 
 clean:
 	rm -f goverlay
@@ -20,7 +21,8 @@ clean:
 	rm -f data/goverlay.sh
 	rm -rf lib/
 	rm -rf backup/
-	rm -rf goverlay.lps
+	rm -f goverlay.lps
+	rm -f goverlay_*.tar.xz
 
 install: goverlay data/goverlay.sh
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay
@@ -46,4 +48,7 @@ tests:
 	appstreamcli validate --pedantic data/io.github.benjamimgois.goverlay.metainfo.xml
 	desktop-file-validate data/io.github.benjamimgois.goverlay.desktop
 
-.PHONY: all data/goverlay.sh start_goverlay.sh clean install uninstall tests
+tarball: goverlay start_goverlay.sh
+	tar -cJf goverlay_${VERSION}.tar.xz goverlay start_goverlay.sh
+
+.PHONY: all data/goverlay.sh start_goverlay.sh clean install uninstall tests tarball

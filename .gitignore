@@ -4,3 +4,4 @@ data/goverlay.sh
 lib/
 backup/
 goverlay.lps
+goverlay_*.tar.xz
