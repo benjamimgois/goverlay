@@ -58,18 +58,23 @@ type
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
     fontsImage1: TImage;
+    fpslimImage: TImage;
+    fpslimImage2: TImage;
     gpuImage: TImage;
     glvsyncComboBox: TComboBox;
     gpuImage1: TImage;
     layoutImage: TImage;
-    GroupBox4: TGroupBox;
+    loggingImage1: TImage;
+    loggingImage2: TImage;
+    vsyncGroupBox: TGroupBox;
     Image1: TImage;
     Image2: TImage;
     fontsImage: TImage;
     layoutImage1: TImage;
-    loggingImage: TImage;
-    fpslimImage: TImage;
-    vsyncImage: TImage;
+    performancePanel: TPanel;
+    visualPanel: TPanel;
+    metricsPanel: TPanel;
+    extrasPanel: TPanel;
     originalImage: TImage;
     PageControl2: TPageControl;
     reshadeLabel1: TLabel;
@@ -150,7 +155,7 @@ type
     graph5: TLabel;
     graph9: TLabel;
     graphhudBitBtn: TBitBtn;
-    GroupBox1: TGroupBox;
+    positionGroupBox: TGroupBox;
     GroupBox2: TGroupBox;
     GroupBox3: TGroupBox;
     h264profileCombobox: TComboBox;
@@ -217,10 +222,10 @@ type
     showfpslimCheckBox: TCheckBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
-    TabSheet1: TTabSheet;
-    TabSheet2: TTabSheet;
-    TabSheet3: TTabSheet;
-    TabSheet4: TTabSheet;
+    performanceTabSheet: TTabSheet;
+    visualTabSheet: TTabSheet;
+    metricsTabSheet: TTabSheet;
+    extrasTabSheet: TTabSheet;
     TabSheet5: TTabSheet;
     TabSheet6: TTabSheet;
     TabSheet7: TTabSheet;
@@ -272,6 +277,8 @@ type
     vramgraphBitBtn: TBitBtn;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
+    vsyncImage1: TImage;
+    vsyncImage2: TImage;
     widthImage: TImage;
     replaygeSpeedButton: TSpeedButton;
     replayGlobalenableLabel: TLabel;
@@ -4929,6 +4936,11 @@ begin
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_vkbasalt''', s);
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_replay''', s);
 
+
+  //Define tabsheet color
+  //performanceTabSheet.Color:=clBlue;
+  //mangohudPageControl.Color:= $444b4e;
+  //mangohudPageControl.Color:= clblue;
 
        //Determine toggle position - MangoHUD
 

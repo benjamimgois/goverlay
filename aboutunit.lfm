@@ -16,11 +16,11 @@ object aboutForm: TaboutForm
     Height = 784
     Top = 0
     Width = 616
-    ActivePage = TabSheet2
+    ActivePage = TabSheet1
     Font.Color = clWhite
     Font.Quality = fqAntialiased
     ParentFont = False
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
