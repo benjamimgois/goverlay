@@ -41,7 +41,7 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`replay-sorcery`**](https://github.com/matanui159/ReplaySorcery) - Instant replay solution
  - [**`git`**](https://github.com/git/git) - Clone reshade repository
  - [**`qt5pas`**](https://svn.freepascal.org/svn/lazarus/trunk/lcl/interfaces/qt5/cbindings/) - Free Pascal Qt5 binding library updated by lazarus IDE
- - [**`breeze`**][https://invent.kde.org/plasma/breeze] - Breeze Qt theme
+ - [**`breeze`**](https://invent.kde.org/plasma/breeze) - Breeze Qt theme
 
 ## Installation 
 
