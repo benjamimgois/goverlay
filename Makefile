@@ -13,7 +13,7 @@ data/goverlay.sh: data/goverlay.sh.in
 
 start_goverlay.sh: data/goverlay.sh.in
 	sed s%@libexecdir@%.%g data/goverlay.sh.in > start_goverlay.sh
-	chmod +x ./start_goverlay.sh
+	chmod +x start_goverlay.sh
 
 clean:
 	rm -f goverlay
