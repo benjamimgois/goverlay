@@ -20,7 +20,7 @@ type
     linux4elink1: TLabel;
     goverlaylink: TLabel;
     schoorselinkLabel: TLabel;
-    Memo3: TMemo;
+    gplMemo: TMemo;
     twitterlink: TImage;
     linkedinlink: TImage;
     linux4elink: TLabel;
