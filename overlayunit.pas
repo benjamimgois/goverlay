@@ -1613,8 +1613,8 @@ RunCommand('bash -c ''echo "gamemode" >> $HOME/.config/MangoHud/MangoHud.conf'''
 if batteryCheckbox.Checked=true then
 begin
 RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=echo #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec= #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec= #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
 
 //show Distro info
@@ -3135,7 +3135,7 @@ begin
   procmemCheckbox.Checked:=true;
 
   showfpslimCheckbox.Checked:=true;
-  batteryCheckbox.Checked:=true;
+  batteryCheckbox.Checked:=false;
   resolutionCheckbox.Checked:=true;
   vkbasaltstatusCheckbox.Checked:=true;
   gamemodestatusCheckbox.Checked:=true;
