@@ -135,7 +135,7 @@ Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
 
 Before building, you will need to install the following:
 
- - [Lazarus](https://github.com/graemeg/lazarus) - IDE
+ - [Lazarus](https://gitlab.com/freepascal.org/lazarus/lazarus) - IDE
 
 ### Building
 
