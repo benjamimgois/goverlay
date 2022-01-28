@@ -3135,7 +3135,7 @@ begin
   procmemCheckbox.Checked:=true;
 
   showfpslimCheckbox.Checked:=true;
-  batteryCheckbox.Checked:=false;
+  batteryCheckbox.Checked:=true;
   resolutionCheckbox.Checked:=true;
   vkbasaltstatusCheckbox.Checked:=true;
   gamemodestatusCheckbox.Checked:=true;
