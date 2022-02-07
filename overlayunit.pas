@@ -61,6 +61,7 @@ type
     glvsyncComboBox: TComboBox;
     themesGroupBox: TGroupBox;
     notificationLabel: TLabel;
+    gamepadCheckBox: TCheckBox;
     vsyncGroupBox: TGroupBox;
     Image1: TImage;
     Image2: TImage;
@@ -803,6 +804,8 @@ var
   initprocmemSTR: string;
   initroundcornersValue: Textfile;
   initroundcornersSTR: string;
+  initgamepad: Textfile;
+  initgamepadSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1656,6 +1659,13 @@ RunCommand('bash -c ''echo "custom_text=Home:" >> $HOME/.config/MangoHud/MangoHu
 RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
 
+//show gamepad battery status
+if gamepadCheckbox.Checked=true then
+begin
+RunCommand('bash -c ''echo "custom_text=Gamepad:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "exec=cat /sys/bus/xone-gip/devices/gip0.0/power_supply/gip0.0/capacity_level" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+end;
+
 
 // ###################################################################################### Custom Command
 
@@ -2037,6 +2047,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem >> $HOME/.config/goverlay/initial_values/procmem''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w round_corners >> $HOME/.config/goverlay/initial_values/round_corners''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w Gamepad  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -3142,6 +3153,7 @@ begin
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=true;
   procmemCheckbox.Checked:=true;
+  gamepadcheckbox.checked:=true;
 
   showfpslimCheckbox.Checked:=true;
   batteryCheckbox.Checked:=true;
@@ -4503,6 +4515,7 @@ begin
   distroinfoCheckbox.Checked:=false;
   homepartCheckbox.Checked:=false;
   procmemCheckbox.Checked:=false;
+  gamepadcheckbox.checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -5233,6 +5246,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/session''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/homepart''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/distroinfo''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/procmem''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gamepad''', s);
 
 //vkbasalt dummy initials
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
@@ -5350,6 +5364,20 @@ CloseFile(initbattery);
 case initbatterySTR of
 '':batteryCheckbox.Checked:=false;
 'battery':batteryCheckbox.Checked:=true;
+ end;
+
+
+//###################################################################### Gamepad
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initgamepad, '/tmp/goverlay/initial_values/gamepad');
+Reset(initgamepad);
+Readln(initgamepad,initgamepadSTR); //Assign Text file to String
+CloseFile(initgamepad);
+
+case initgamepadSTR of
+'':gamepadCheckbox.Checked:=false;
+'custom_text=Gamepad:':gamepadCheckbox.Checked:=true;
  end;
 
 
