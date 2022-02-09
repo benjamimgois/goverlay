@@ -57,11 +57,11 @@ type
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
-    ComboBox1: TComboBox;
     glvsyncComboBox: TComboBox;
-    themesGroupBox: TGroupBox;
     notificationLabel: TLabel;
     gamepadCheckBox: TCheckBox;
+    themesComboBox: TComboBox;
+    themesGroupBox: TGroupBox;
     vsyncGroupBox: TGroupBox;
     Image1: TImage;
     Image2: TImage;
@@ -154,7 +154,6 @@ type
     hudbackgroundColorButton: TColorButton;
     hudGroupBox: TGroupBox;
     hidehudCheckBox: TCheckBox;
-    homepartCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
     hudtitleEdit: TEdit;
     hudtranspBitBtn: TBitBtn;
@@ -1600,13 +1599,9 @@ begin
 if showfpslimCheckbox.Checked=true then
 RunCommand('bash -c ''echo "show_fps_limit" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
-
-
 //show Resolution
 if resolutionCheckbox.Checked=true then
 RunCommand('bash -c ''echo "resolution" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-
-
 
 //show vkbasalt status
 if vkbasaltstatusCheckbox.Checked=true then
@@ -1618,15 +1613,16 @@ RunCommand('bash -c ''echo "gamemode" >> $HOME/.config/MangoHud/MangoHud.conf'''
 
 //show Battery
 if batteryCheckbox.Checked=true then
-begin
 RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec= #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec= #add a line for text space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-end;
+
+//show gamepad battery status
+if gamepadCheckbox.Checked=true then
+RunCommand('bash -c ''echo "xone_battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 //show Distro info
 if distroinfoCheckBox.Checked=true then
 begin
+RunCommand('bash -c ''echo "custom_text= #add line for space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);  //insert Custom text in mangohud.conf
 RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroinfo''', s);      // remove old file
 RunCommand('bash -c ''lsb_release -a | grep Description | cut -c 14-26 >> $HOME/.config/goverlay/distroinfo''', s);      // store distro name in goverlay folder
@@ -1653,18 +1649,12 @@ RunCommand('bash -c ''echo "exec=printf $XDG_SESSION_TYPE" >> $HOME/.config/Mang
 end;
 
 //show home partition size
-if homepartCheckbox.Checked=true then
-begin
-RunCommand('bash -c ''echo "custom_text=Home:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-end;
+//if homepartCheckbox.Checked=true then
+//begin
+//RunCommand('bash -c ''echo "custom_text=Home:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+//RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+//end;
 
-//show gamepad battery status
-if gamepadCheckbox.Checked=true then
-begin
-RunCommand('bash -c ''echo "custom_text=Gamepad:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-RunCommand('bash -c ''echo "exec=cat /sys/bus/xone-gip/devices/gip0.0/power_supply/gip0.0/capacity_level" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-end;
 
 
 // ###################################################################################### Custom Command
@@ -2047,7 +2037,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem >> $HOME/.config/goverlay/initial_values/procmem''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w round_corners >> $HOME/.config/goverlay/initial_values/round_corners''', s);
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w Gamepad  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w xone_battery  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2073,6 +2063,38 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_si
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | rev | cut -c 1-14 | rev >> $HOME/.config/goverlay/initial_values/font_type''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center >> $HOME/.config/goverlay/initial_values/hudtitle_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center | cut -c 20-40 >> $HOME/.config/goverlay/initial_values/hudtitle_value''', s);
+
+//Thene selection
+case themesCombobox.ItemIndex of
+ 0: begin //Mangohud theme
+       	cpucolorhtml :='#2e97cb';
+       	gpucolorhtml :='#2e9762';
+      	iordrwcolorhtml :='#a491d3';
+     	vramcolorhtml :='#ad64c1';
+     	ramcolorhtml :='#c26693';
+     	frametimegraphcolorhtml := '#00ff00';
+     	crosshaircolorhtml := '#000000';
+     	hudbackgroundcolorhtml := '#020202';
+      	hudfontcolorhtml := '#ffffff';
+      	enginecolorhtml := '#eb5b5b';
+       	winecolorhtml := '#eb5b5b';
+      	mediacolorhtml := '#ffffff' ;
+     	end;
+ 1: begin //Simple Gray
+       	cpucolorhtml :='#ffffff';
+       	gpucolorhtml :='#ffffff';
+      	iordrwcolorhtml :='#ffffff';
+     	vramcolorhtml :='#ffffff';
+     	ramcolorhtml :='#ffffff';
+     	frametimegraphcolorhtml := '#ffffff';
+     	crosshaircolorhtml := '#ffffff';
+     	hudbackgroundcolorhtml := '#ffffff';
+      	hudfontcolorhtml := '#ffffff';
+      	enginecolorhtml := '#ffffff';
+       	winecolorhtml := '#ffffff';
+      	mediacolorhtml := '#ffffff' ;
+     	end;
+end;
 
 end;
 
@@ -3162,7 +3184,6 @@ begin
   gamemodestatusCheckbox.Checked:=true;
   sessionCheckbox.Checked:=true;
   distroinfoCheckbox.Checked:=true;
-  homepartCheckbox.Checked:=true;
 
   gpuloadgraphBitbtn.imageindex:=3;
   gputempgraphBitbtn.imageindex:=3;
@@ -4513,7 +4534,6 @@ begin
   gamemodestatusCheckbox.Checked:=false;
   sessionCheckbox.Checked:=false;
   distroinfoCheckbox.Checked:=false;
-  homepartCheckbox.Checked:=false;
   procmemCheckbox.Checked:=false;
   gamepadcheckbox.checked:=false;
 
@@ -4947,10 +4967,6 @@ begin
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_replay''', s);
 
 
-  //Define tabsheet color
-  //performanceTabSheet.Color:=clBlue;
-  //mangohudPageControl.Color:= $444b4e;
-  //mangohudPageControl.Color:= clblue;
 
        //Determine toggle position - MangoHUD
 
@@ -5377,7 +5393,7 @@ CloseFile(initgamepad);
 
 case initgamepadSTR of
 '':gamepadCheckbox.Checked:=false;
-'custom_text=Gamepad:':gamepadCheckbox.Checked:=true;
+'xone_battery':gamepadCheckbox.Checked:=true;
  end;
 
 
@@ -5420,6 +5436,8 @@ case initsessionSTR of
 'custom_text=Session:':sessionCheckbox.Checked:=true;
  end;
 
+
+
 //###################################################################### Distro info
 // Assign Text file to variable than assign variable to string
 AssignFile(initdistroinfo, '/tmp/goverlay/initial_values/distroinfo');
@@ -5432,17 +5450,6 @@ case initdistroinfoSTR of
 'exec=cat /home/benjamim/.config/goverlay/distroinfo':distroinfoCheckbox.Checked:=true;
  end;
 
-//###################################################################### Home partition
-// Assign Text file to variable than assign variable to string
-AssignFile(inithomepart, '/tmp/goverlay/initial_values/homepart');
-Reset(inithomepart);
-Readln(inithomepart,inithomepartSTR); //Assign Text file to String
-CloseFile(inithomepart);
-
-case inithomepartSTR of
-'':homepartCheckbox.Checked:=false;
-'exec=df -h /home | tail -n 1':homepartCheckbox.Checked:=true;
- end;
 
 //###################################################################### toggle key for fps limit
 
@@ -6934,7 +6941,6 @@ begin
   gamemodestatusCheckbox.Checked:=false;
   sessionCheckbox.Checked:=false;
   distroinfoCheckbox.Checked:=false;
-  homepartCheckbox.Checked:=false;
   procmemCheckbox.Checked:=false;
   swapusageCheckbox.Checked:=false;
 
