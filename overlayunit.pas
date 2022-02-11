@@ -369,6 +369,7 @@ type
     procedure middleleftSpeedButtonClick(Sender: TObject);
     procedure middlerightSpeedButtonClick(Sender: TObject);
     procedure roundcornerTrackBarChange(Sender: TObject);
+    procedure themesComboBoxChange(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
     procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
@@ -1617,7 +1618,7 @@ RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''',
 
 //show gamepad battery status
 if gamepadCheckbox.Checked=true then
-RunCommand('bash -c ''echo "xone_battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+RunCommand('bash -c ''echo "gamepad_battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 //show Distro info
 if distroinfoCheckBox.Checked=true then
@@ -2037,7 +2038,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w exec=df
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_log >> $HOME/.config/goverlay/initial_values/toggle_uploadlog''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem >> $HOME/.config/goverlay/initial_values/procmem''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w round_corners >> $HOME/.config/goverlay/initial_values/round_corners''', s);
-RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w xone_battery  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamepad_battery  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2063,38 +2064,6 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_si
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w font_file | rev | cut -c 1-14 | rev >> $HOME/.config/goverlay/initial_values/font_type''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center >> $HOME/.config/goverlay/initial_values/hudtitle_text''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w custom_text_center | cut -c 20-40 >> $HOME/.config/goverlay/initial_values/hudtitle_value''', s);
-
-//Thene selection
-case themesCombobox.ItemIndex of
- 0: begin //Mangohud theme
-       	cpucolorhtml :='#2e97cb';
-       	gpucolorhtml :='#2e9762';
-      	iordrwcolorhtml :='#a491d3';
-     	vramcolorhtml :='#ad64c1';
-     	ramcolorhtml :='#c26693';
-     	frametimegraphcolorhtml := '#00ff00';
-     	crosshaircolorhtml := '#000000';
-     	hudbackgroundcolorhtml := '#020202';
-      	hudfontcolorhtml := '#ffffff';
-      	enginecolorhtml := '#eb5b5b';
-       	winecolorhtml := '#eb5b5b';
-      	mediacolorhtml := '#ffffff' ;
-     	end;
- 1: begin //Simple Gray
-       	cpucolorhtml :='#ffffff';
-       	gpucolorhtml :='#ffffff';
-      	iordrwcolorhtml :='#ffffff';
-     	vramcolorhtml :='#ffffff';
-     	ramcolorhtml :='#ffffff';
-     	frametimegraphcolorhtml := '#ffffff';
-     	crosshaircolorhtml := '#ffffff';
-     	hudbackgroundcolorhtml := '#ffffff';
-      	hudfontcolorhtml := '#ffffff';
-      	enginecolorhtml := '#ffffff';
-       	winecolorhtml := '#ffffff';
-      	mediacolorhtml := '#ffffff' ;
-     	end;
-end;
 
 end;
 
@@ -2308,6 +2277,161 @@ end;
 procedure Tgoverlayform.roundcornerTrackBarChange(Sender: TObject);
 begin
   roundcornerValueLabel.Caption:= inttostr(roundcornerTrackBar.Position);
+end;
+
+procedure Tgoverlayform.themesComboBoxChange(Sender: TObject);
+begin
+     case themesComboBox.ItemIndex of
+   0: begin  //Mangohud default
+      gpuloadcolorCheckbox.Checked:=true;
+      cpuloadcolorCheckbox.Checked:=true;
+
+      fontcolorButton.ButtonColor:=$ffffff;
+      gpucolorbutton.ButtonColor:=$0062972E;
+      cpucolorbutton.ButtonColor:=$00CB972E;
+      ramcolorbutton.ButtonColor:=$009366C2;
+      vramcolorbutton.ButtonColor:=$00C164AD;
+      iordrwcolorbutton.ButtonColor:=$00D391A4;
+      frametimegraphcolorbutton.ButtonColor:=$00ff00;
+      enginecolorbutton.ButtonColor:=$005B5BEB;
+      winecolorbutton.ButtonColor:=$005B5BEB;
+      mediaColorbutton.ButtonColor:=$ffffff;
+
+        //Save to update preview
+        saveBitbtn.Click;
+
+   end;
+   1: begin //Simple white
+      gpuloadcolorCheckbox.Checked:=false;
+      cpuloadcolorCheckbox.Checked:=false;
+
+      fontcolorButton.ButtonColor:=clWhite;
+      gpucolorbutton.ButtonColor:=clWhite;
+      cpucolorbutton.ButtonColor:=clWhite;
+      ramcolorbutton.ButtonColor:=clWhite;
+      vramcolorbutton.ButtonColor:=clWhite;
+      iordrwcolorbutton.ButtonColor:=clWhite;
+      frametimegraphcolorbutton.ButtonColor:=clWhite;
+      enginecolorbutton.ButtonColor:=clWhite;
+      winecolorbutton.ButtonColor:=clWhite;
+      mediaColorbutton.ButtonColor:=clWhite;
+
+      //Save to update preview
+      saveBitbtn.Click;
+
+   end;
+
+   2: begin  //Afterburner
+      gpuloadcolorCheckbox.Checked:=false;
+      cpuloadcolorCheckbox.Checked:=false;
+
+      fontcolorButton.ButtonColor:=$00CB0FC2;
+      gpucolorbutton.ButtonColor:=$00CB0FC2;
+      cpucolorbutton.ButtonColor:=$00CB0FC2;
+      ramcolorbutton.ButtonColor:=$00CB0FC2;
+      vramcolorbutton.ButtonColor:=$00CB0FC2;
+      iordrwcolorbutton.ButtonColor:=$00CB0FC2;
+      frametimegraphcolorbutton.ButtonColor:=$00CB0FC2;
+      enginecolorbutton.ButtonColor:=$00CB0FC2;
+      winecolorbutton.ButtonColor:=$00CB0FC2;
+      mediaColorbutton.ButtonColor:=$00CB0FC2;
+
+       //Save to update preview
+       saveBitbtn.Click;
+   end;
+
+   3: begin  //Intel ($00B56800, $00D8D8D8) + Nvidia ($0030B84F , $0023863A)
+   gpuloadcolorCheckbox.Checked:=false;
+   cpuloadcolorCheckbox.Checked:=false;
+
+   cpucolorbutton.ButtonColor:=$00B56800;
+   ramcolorbutton.ButtonColor:=$00B56800;
+
+   fontcolorButton.ButtonColor:=$00D8D8D8;
+   iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+   gpucolorbutton.ButtonColor:=$0030B84F;
+   vramcolorbutton.ButtonColor:=$0030B84F;
+   frametimegraphcolorbutton.ButtonColor:=$0030B84F;
+
+   enginecolorbutton.ButtonColor:=$0023863A;
+   winecolorbutton.ButtonColor:=$0023863A;
+   mediaColorbutton.ButtonColor:=$0023863A;
+
+       //Save to update preview
+       saveBitbtn.Click;
+
+   end;
+
+     4: begin  //Intel ($00B56800, $00D8D8D8) + Radeon ($003508DE, $00240595)
+      gpuloadcolorCheckbox.Checked:=false;
+      cpuloadcolorCheckbox.Checked:=false;
+
+      cpucolorbutton.ButtonColor:=$00B56800;
+      ramcolorbutton.ButtonColor:=$00B56800;
+
+      fontcolorButton.ButtonColor:=$00D8D8D8;
+      iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+      gpucolorbutton.ButtonColor:=$003508DE;
+      vramcolorbutton.ButtonColor:=$003508DE;
+      frametimegraphcolorbutton.ButtonColor:=$003508DE;
+
+      enginecolorbutton.ButtonColor:=$00240595;
+      winecolorbutton.ButtonColor:=$00240595;
+      mediaColorbutton.ButtonColor:=$00240595;
+
+       //Save to update preview
+       saveBitbtn.Click;
+   end;
+
+     5: begin  //AMD ($003508DE, $00D8D8D8) + Nvidia ($0030B84F , $0023863A)
+    gpuloadcolorCheckbox.Checked:=false;
+    cpuloadcolorCheckbox.Checked:=false;
+
+    cpucolorbutton.ButtonColor:=$003508DE;
+    ramcolorbutton.ButtonColor:=$003508DE;
+
+    fontcolorButton.ButtonColor:=$00D8D8D8;
+    iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+ gpucolorbutton.ButtonColor:=$0030B84F;
+ vramcolorbutton.ButtonColor:=$0030B84F;
+ frametimegraphcolorbutton.ButtonColor:=$0030B84F;
+
+ enginecolorbutton.ButtonColor:=$0023863A;
+ winecolorbutton.ButtonColor:=$0023863A;
+ mediaColorbutton.ButtonColor:=$0023863A;
+
+     //Save to update preview
+     saveBitbtn.Click;
+  end;
+
+     6: begin  //AMD ($003508DE, $00D8D8D8) + Radeon ($003508DE, $00240595)
+    gpuloadcolorCheckbox.Checked:=false;
+    cpuloadcolorCheckbox.Checked:=false;
+
+  cpucolorbutton.ButtonColor:=$003508DE;
+  ramcolorbutton.ButtonColor:=$003508DE;
+
+  fontcolorButton.ButtonColor:=$00D8D8D8;
+  iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+    gpucolorbutton.ButtonColor:=$003508DE;
+    vramcolorbutton.ButtonColor:=$003508DE;
+    frametimegraphcolorbutton.ButtonColor:=$003508DE;
+
+    enginecolorbutton.ButtonColor:=$00240595;
+    winecolorbutton.ButtonColor:=$00240595;
+    mediaColorbutton.ButtonColor:=$00240595;
+
+     //Save to update preview
+     saveBitbtn.Click;
+  end;
+
+
+end;
+
 end;
 
 procedure Tgoverlayform.vkcubeMenuItemClick(Sender: TObject);
@@ -3193,6 +3317,13 @@ begin
   cpuloadgraphBitbtn.imageindex:=3;
   cputempgraphBitbtn.imageindex:=3;
   ramgraphBitbtn.imageindex:=3;
+
+  //theme exception (simple white and old afterburner)
+   if (themescombobox.ItemIndex=1) or (themescombobox.ItemIndex=2) then
+      begin
+          gpuloadcolorCheckbox.Checked:=false;
+          cpuloadcolorCheckbox.Checked:=false;
+      end;
 
   //Save to update preview
   saveBitbtn.Click;
@@ -4546,6 +4677,13 @@ begin
    cputempgraphBitbtn.imageindex:=3;
    ramgraphBitbtn.imageindex:=3;
 
+   //theme exception (simple white and old afterburner)
+   if (themescombobox.ItemIndex=1) or (themescombobox.ItemIndex=2) then
+      begin
+          gpuloadcolorCheckbox.Checked:=false;
+          cpuloadcolorCheckbox.Checked:=false;
+      end;
+
    //Save to update preview
    saveBitbtn.Click;
 
@@ -4849,8 +4987,6 @@ end;
 
 procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
 begin
-
-
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     hudbackgroundcolorhtml := SColorToHtmlColor(hudbackgroundcolorButton.ButtonColor);
 end;
@@ -5393,7 +5529,7 @@ CloseFile(initgamepad);
 
 case initgamepadSTR of
 '':gamepadCheckbox.Checked:=false;
-'xone_battery':gamepadCheckbox.Checked:=true;
+'gamepad_battery':gamepadCheckbox.Checked:=true;
  end;
 
 
