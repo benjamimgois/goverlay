@@ -4556,16 +4556,13 @@ begin
      case basaltgeSpeedButton.imageIndex of
        0: begin
        basaltgeSpeedButton.ImageIndex:=1; //switch button position
-       RunCommand('bash -c ''yes | cp -rf /etc/environment  $HOME/.config/goverlay/environment_vkbasalt.bkp''', s); //backup original environment file
-       RunCommand('bash -c ''pkexec chmod 777 /etc/environment''', s);  // Change permitions in /etc/enviroment
-       RunCommand('bash -c ''echo "export ENABLE_VKBASALT=1" >> /etc/environment''', s);  // Activate VKBASALT globally for vulkan apps
-       RunCommand('bash -c ''pkexec chmod 644 /etc/environment''', s);  // Restore permitions in /etc/enviroment
+       RunCommand('bash -c ''echo "ENABLE_VKBASALT=1" | pkexec tee -a /etc/environment''', s);  // Activate VKBASALT globally for vulkan apps
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "vkBasalt Global Enable Activated" "Every Vulkan application will have these effects applied"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
        basaltgeSpeedButton.ImageIndex:=0;
-       RunCommand('bash -c ''yes | pkexec cp -rf $HOME/.config/goverlay/environment_vkbasalt.bkp /etc/environment  ''', s); //restore the original environment file
+       RunCommand('bash -c ''pkexec sed -i -e "/ENABLE_VKBASALT=1/d" /etc/environment''', s); // Remove lines containing ENABLE_VKBASALT=1 from /etc/environment
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
@@ -6845,26 +6842,23 @@ end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
-   case geSpeedButton.imageIndex of
-     0: begin
+     case geSpeedButton.imageIndex of
+       0: begin
        geSpeedButton.ImageIndex:=1; //switch button position
-       RunCommand('bash -c ''yes | cp -rf /etc/environment  $HOME/.config/goverlay/environment.bkp''', s); //backup original environment file
-       RunCommand('bash -c ''pkexec chmod 777 /etc/environment''', s);  // Change permitions in /etc/enviroment
-       RunCommand('bash -c ''echo "export MANGOHUD=1" >> /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
-       RunCommand('bash -c ''pkexec chmod 644 /etc/environment''', s);  // Restore permitions in /etc/enviroment
+       RunCommand('bash -c ''echo "MANGOHUD=1" | pkexec tee -a /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
      1: begin
        geSpeedButton.ImageIndex:=0;
-       RunCommand('bash -c ''yes | pkexec cp -rf $HOME/.config/goverlay/environment.bkp /etc/environment  ''', s); //restore the original environment file
+       RunCommand('bash -c ''pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment''', s); // Remove lines containing MANGOHUD=1 from /etc/environment
        RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
        showmessage ('Restart your system to take effect');
      end;
 
-  end;
 
-   end;
+  end;
+end;
 
 procedure Tgoverlayform.gpucfgraphBitBtnClick(Sender: TObject);
 begin
