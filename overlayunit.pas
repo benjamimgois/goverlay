@@ -4967,8 +4967,8 @@ begin
 
        //Determine toggle position - MangoHUD
 
-         //Read file .profile and store result in tmp folder
-         RunCommand('bash -c ''cat /etc/environment | grep MANGOHUD=1 >> /tmp/goverlay/togglestateValue''', s);
+         //Read file /etc/environment and store result in tmp folder
+         RunCommand('bash -c ''cat /etc/environment | grep MANGOHUD=1 > /tmp/goverlay/togglestateValue''', s);
 
          // Assign Text file to variable
          AssignFile(togglestateValueVAR, '/tmp/goverlay/togglestateValue'); //
@@ -4977,17 +4977,17 @@ begin
          CloseFile(togglestateValueVAR);
 
          // Read String with toggle value
-         if togglestateValueSTR = 'export MANGOHUD=1' then
-            geSpeedbutton.imageIndex:=1
+         if togglestateValueSTR = '' then
+            geSpeedbutton.imageIndex:=0
          else
-            geSpeedbutton.imageIndex:=0;
+            geSpeedbutton.imageIndex:=1;
 
 
 
       //Determine toggle position - vkBasalt
 
-         //Read file .profile and store result in tmp folder
-         RunCommand('bash -c ''cat $HOME/.profile | grep ENABLE_VKBASALT=1 >> /tmp/goverlay/togglebasaltstateValue''', s);
+         //Read file /etc/environment and store result in tmp folder
+         RunCommand('bash -c ''cat /etc/environment | grep ENABLE_VKBASALT=1 > /tmp/goverlay/togglebasaltstateValue''', s);
 
           // Assign Text file to variable
           AssignFile(toggleBasaltstateValueVAR, '/tmp/goverlay/togglebasaltstateValue'); //
@@ -4996,10 +4996,10 @@ begin
           CloseFile(toggleBasaltstateValueVAR);
 
           // Read String with toggle value
-          if toggleBasaltstateValueSTR = 'export ENABLE_VKBASALT=1' then
-             basaltgeSpeedbutton.imageIndex:=1
+          if toggleBasaltstateValueSTR = '' then
+             basaltgeSpeedbutton.imageIndex:=0
           else
-             basaltgeSpeedbutton.imageIndex:=0;
+             basaltgeSpeedbutton.imageIndex:=1;
 
 
 
