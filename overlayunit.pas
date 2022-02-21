@@ -30,10 +30,14 @@ type
     audiosampCombobox: TComboBox;
     autoaudiobitrateCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
+    autostartLabel: TLabel;
+    autostartLabel2: TLabel;
+    destfolderpathLabel: TLabel;
+    logdurationSpinEdit: TSpinEdit;
     autoresCheckBox: TCheckBox;
     autoscaleCheckBox: TCheckBox;
-    autostartLabel1: TLabel;
-    autostartLabel2: TLabel;
+    logdurationtLabel3: TLabel;
+    logdurationLabel: TLabel;
     autouploadCheckBox: TCheckBox;
     autovideobitrateCheckBox: TCheckBox;
     autovideoqualityCheckBox: TCheckBox;
@@ -57,6 +61,8 @@ type
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
+    minimalhudBitBtn: TBitBtn;
+    fpsonlyCheckBox: TCheckBox;
     glvsyncComboBox: TComboBox;
     notificationLabel: TLabel;
     gamepadCheckBox: TCheckBox;
@@ -110,7 +116,6 @@ type
     fpslimComboBox: TComboBox;
     fpslimLabel: TLabel;
     fpslimLabel1: TLabel;
-    autostartLabel: TLabel;
     fpslimLabel3: TLabel;
     fpslimtoggleComboBox: TComboBox;
     framegraphRadioButton: TRadioButton;
@@ -192,7 +197,6 @@ type
     outputscaleGroupBox: TGroupBox;
     PageControl1: TPageControl;
     performanceGroupBox: TGroupBox;
-    destfolderpathLabel: TLabel;
     performanceGroupBox1: TGroupBox;
     performanceGroupBox2: TGroupBox;
     procmemCheckBox: TCheckBox;
@@ -331,6 +335,8 @@ type
     procedure crosshairsizeBitBtnClick(Sender: TObject);
     procedure engineColorButtonColorChanged(Sender: TObject);
     procedure FontcolorButtonColorChanged(Sender: TObject);
+    procedure fpsCheckBoxChange(Sender: TObject);
+    procedure fpsonlyCheckBoxChange(Sender: TObject);
     procedure framerateComboboxKeyPress(Sender: TObject; var Key: char);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure gpucfgraphBitBtnClick(Sender: TObject);
@@ -368,6 +374,7 @@ type
     procedure MenuItem3Click(Sender: TObject);
     procedure middleleftSpeedButtonClick(Sender: TObject);
     procedure middlerightSpeedButtonClick(Sender: TObject);
+    procedure minimalhudBitBtnClick(Sender: TObject);
     procedure roundcornerTrackBarChange(Sender: TObject);
     procedure themesComboBoxChange(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
@@ -774,6 +781,8 @@ var
   initvkbasalttoggleSTR: string;
   initfps: Textfile;
   initfpsSTR: string;
+  initfpsonly: Textfile;
+  initfpsonlySTR: string;
   initshowfpslimit: Textfile;
   initshowfpslimitSTR: string;
   inittogglefpslimit: Textfile;
@@ -916,6 +925,8 @@ var
   gpuloadcolorsScript: Textfile;
   autologValue: Textfile;
   autologScript: Textfile;
+  logdurationValue: Textfile;
+  logdurationScript: Textfile;
 
   initgpuloadchange: Textfile;
   initgpuloadchangeSTR: string;
@@ -928,6 +939,11 @@ var
   initautolog: Textfile;
   initautologSTR: string;
   autologINT: integer;
+  initlogduration: Textfile;
+  initlogdurationSTR: string;
+  logdurationINT: integer;
+  inittheme: Textfile;
+  initthemeSTR: string;
 
   //######################################## Variables for Mangohud Graphs
    gpuloadgraphVAR: boolean;
@@ -1481,6 +1497,10 @@ begin
    RunCommand('bash -c ''echo "fps" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
+//FPS only
+   if fpsonlyCheckbox.Checked=true then
+   RunCommand('bash -c ''echo "fps_only" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
 
   //Engine version
   if engineversionCheckbox.Checked=true then
@@ -1860,6 +1880,18 @@ end;
            10:RunCommand('bash -c ''echo "round_corners=10" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
       end;
 
+
+     //Save Theme selection in mangohud.conf
+
+       case themesComboBox.ItemIndex of
+           0: RunCommand('bash -c ''echo "#GOVERLAY_THEME=mangohuddefault" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           1: RunCommand('bash -c ''echo "#GOVERLAY_THEME=simplewhite" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           2: RunCommand('bash -c ''echo "#GOVERLAY_THEME=oldafterburner" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           3: RunCommand('bash -c ''echo "#GOVERLAY_THEME=intelnvidia" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           4: RunCommand('bash -c ''echo "#GOVERLAY_THEME=intelradeon" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           5: RunCommand('bash -c ''echo "#GOVERLAY_THEME=amdnvidia" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+           6: RunCommand('bash -c ''echo "#GOVERLAY_THEME=amdradeon" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+     end;
   //####################################################################################### KEYBINDINGS
 
 
@@ -1909,7 +1941,6 @@ end;
       CloseFile(autologValue);
 
 
-
       // Create custom script
       AssignFile(autologScript, '/tmp/goverlay/autologScript.sh');
       Rewrite(autologScript);
@@ -1922,6 +1953,33 @@ end;
   end;
 
 
+   //Log duration
+
+  if logdurationSpinedit.Value > 0 then
+  begin
+   // Assign custom value to file
+      AssignFile(logdurationValue, '/tmp/goverlay/logduration');
+      Rewrite(logdurationValue);
+      Writeln(logdurationValue,logdurationSpinedit.Value);
+      CloseFile(logdurationValue);
+
+   // Save only value for later
+      AssignFile(logdurationValue, '/tmp/goverlay/logduration_value');
+      Rewrite(logdurationValue);
+      Writeln(logdurationValue,logdurationSpinedit.Value);
+      CloseFile(logdurationValue);
+
+
+      // Create custom script
+      AssignFile(logdurationScript, '/tmp/goverlay/logdurationScript.sh');
+      Rewrite(logdurationScript);
+      Writeln(logdurationScript,'LOGD=$(cat /tmp/goverlay/logduration)');  //Store logduration value in a Linux/Unix variable
+      Writeln(logdurationScript,'echo "log_duration=$LOGD" >> $HOME/.config/MangoHud/MangoHud.conf'); //Create correct command with custom value
+      CloseFile(logdurationScript);
+
+      //execute custom script to store custom value on mangohud.conf
+      RunCommand('bash -c ''sh /tmp/goverlay/logdurationScript.sh''', s);
+  end;
 
 
   //Auto upload log
@@ -2024,9 +2082,15 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_loa
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_load_value >> $HOME/.config/goverlay/initial_values/gpu_load_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_power >> $HOME/.config/goverlay/initial_values/cpu_power''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_mhz >> $HOME/.config/goverlay/initial_values/cpu_mhz''', s);
+
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w autostart_log >> $HOME/.config/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''cp /tmp/goverlay/autolog_value $HOME/.config/goverlay/initial_values/''', s);
+
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w log_duration >> $HOME/.config/goverlay/initial_values/logduration''', s);
+RunCommand('bash -c ''cp /tmp/goverlay/logduration_value $HOME/.config/goverlay/initial_values/''', s);
+
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps >> $HOME/.config/goverlay/initial_values/fps''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps_only >> $HOME/.config/goverlay/initial_values/fpsonly''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w show_fps_limit >> $HOME/.config/goverlay/initial_values/show_fps_limit''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_fps_limit >> $HOME/.config/goverlay/initial_values/toggle_fps_limit''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w resolution >> $HOME/.config/goverlay/initial_values/resolution''', s);
@@ -2042,6 +2106,10 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamepad
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
+
+
+//Theme
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w GOVERLAY_THEME  >> $HOME/.config/goverlay/initial_values/theme''', s);
 
 
 //GRAPHs configs
@@ -2274,6 +2342,66 @@ begin
   middleleftSpeedbutton.ImageIndex:=-1;
 end;
 
+procedure Tgoverlayform.minimalhudBitBtnClick(Sender: TObject);
+begin
+    //Check minimal hud options
+   fpsonlyCheckbox.Checked:=true;
+
+   cpuavrloadCheckbox.Checked:=false;
+   cputempCheckbox.Checked:=false;
+   cpuloadcoreCheckbox.Checked:=false;
+   gpuavrloadCheckbox.Checked:=false;
+   gputempCheckbox.Checked:=false;
+   gpufreqCheckbox.Checked:=false;
+   diskioCheckbox.Checked:=false;
+   vramusageCheckbox.Checked:=false;
+   ramusageCheckbox.Checked:=false;
+   swapusageCheckbox.Checked:=false;
+   frametimegraphCheckbox.Checked:=true;
+   timeCheckbox.Checked:=false;
+   archCheckbox.Checked:=false;
+   driverversionCheckbox.Checked:=false;
+   gpupowerCheckBox.Checked:=false;
+   gpumodelCheckBox.Checked:=false;
+   gpumemfreqCheckBox.Checked:=false;
+   engineversionCheckBox.Checked:=false;
+   wineCheckbox.Checked:=false;
+   gpuloadcolorCheckbox.Checked:=false;
+   cpuloadcolorCheckbox.Checked:=false;
+   cpupowerCheckbox.Checked:=false;
+   cpufreqCheckbox.Checked:=false;
+   hudversionCheckbox.Checked:=false;
+   fpsCheckbox.Checked:=true;
+  showfpslimCheckbox.Checked:=false;
+  batteryCheckbox.Checked:=false;
+  resolutionCheckbox.Checked:=false;
+  vkbasaltstatusCheckbox.Checked:=false;
+  gamemodestatusCheckbox.Checked:=false;
+  sessionCheckbox.Checked:=false;
+  distroinfoCheckbox.Checked:=false;
+  procmemCheckbox.Checked:=false;
+  gamepadcheckbox.checked:=false;
+
+   gpuloadgraphBitbtn.imageindex:=3;
+   gputempgraphBitbtn.imageindex:=3;
+   gpucfgraphBitbtn.imageindex:=3;
+   gpumfgraphBitbtn.imageindex:=3;
+   vramgraphBitbtn.imageindex:=3;
+   cpuloadgraphBitbtn.imageindex:=3;
+   cputempgraphBitbtn.imageindex:=3;
+   ramgraphBitbtn.imageindex:=3;
+
+   //theme exception (simple white and old afterburner)
+   if (themescombobox.ItemIndex=1) or (themescombobox.ItemIndex=2) then
+      begin
+          gpuloadcolorCheckbox.Checked:=false;
+          cpuloadcolorCheckbox.Checked:=false;
+      end;
+
+   //Save to update preview
+   saveBitbtn.Click;
+end;
+
 procedure Tgoverlayform.roundcornerTrackBarChange(Sender: TObject);
 begin
   roundcornerValueLabel.Caption:= inttostr(roundcornerTrackBar.Position);
@@ -2297,8 +2425,11 @@ begin
       winecolorbutton.ButtonColor:=$005B5BEB;
       mediaColorbutton.ButtonColor:=$ffffff;
 
-        //Save to update preview
-        saveBitbtn.Click;
+      //Save theme config in mangohud file
+      RunCommand('bash -c ''echo "#GOVERLAY_THEME=mangohuddefault" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+      //Save to update preview
+      saveBitbtn.Click;
 
    end;
    1: begin //Simple white
@@ -2316,12 +2447,15 @@ begin
       winecolorbutton.ButtonColor:=clWhite;
       mediaColorbutton.ButtonColor:=clWhite;
 
+      //Save theme config in mangohud file
+      RunCommand('bash -c ''echo "#GOVERLAY_THEME=simplewhite" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
       //Save to update preview
       saveBitbtn.Click;
 
    end;
 
-   2: begin  //Afterburner
+   2: begin  //simple Afterburner
       gpuloadcolorCheckbox.Checked:=false;
       cpuloadcolorCheckbox.Checked:=false;
 
@@ -2335,6 +2469,9 @@ begin
       enginecolorbutton.ButtonColor:=$00CB0FC2;
       winecolorbutton.ButtonColor:=$00CB0FC2;
       mediaColorbutton.ButtonColor:=$00CB0FC2;
+
+      //Save theme config in mangohud file
+      RunCommand('bash -c ''echo "#GOVERLAY_THEME=simpleafterburner" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
        //Save to update preview
        saveBitbtn.Click;
@@ -2357,6 +2494,9 @@ begin
    enginecolorbutton.ButtonColor:=$0023863A;
    winecolorbutton.ButtonColor:=$0023863A;
    mediaColorbutton.ButtonColor:=$0023863A;
+
+    //Save theme config in mangohud file
+    RunCommand('bash -c ''echo "#GOVERLAY_THEME=intelnvidia" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
        //Save to update preview
        saveBitbtn.Click;
@@ -2381,6 +2521,9 @@ begin
       winecolorbutton.ButtonColor:=$00240595;
       mediaColorbutton.ButtonColor:=$00240595;
 
+    //Save theme config in mangohud file
+    RunCommand('bash -c ''echo "#GOVERLAY_THEME=intelradeon" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
        //Save to update preview
        saveBitbtn.Click;
    end;
@@ -2403,6 +2546,9 @@ begin
  winecolorbutton.ButtonColor:=$0023863A;
  mediaColorbutton.ButtonColor:=$0023863A;
 
+ //Save theme config in mangohud file
+    RunCommand('bash -c ''echo "#GOVERLAY_THEME=amdnvidia" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
      //Save to update preview
      saveBitbtn.Click;
   end;
@@ -2424,6 +2570,9 @@ begin
     enginecolorbutton.ButtonColor:=$00240595;
     winecolorbutton.ButtonColor:=$00240595;
     mediaColorbutton.ButtonColor:=$00240595;
+
+        //Save theme config in mangohud file
+    RunCommand('bash -c ''echo "#GOVERLAY_THEME=amdradeon" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
      //Save to update preview
      saveBitbtn.Click;
@@ -3298,6 +3447,7 @@ begin
   cpuloadcolorCheckbox.Checked:=true;
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=true;
+  fpsonlyCheckbox.Checked:=false;
   procmemCheckbox.Checked:=true;
   gamepadcheckbox.checked:=true;
 
@@ -4658,6 +4808,7 @@ begin
    hudversionCheckbox.Checked:=false;
    fpsCheckbox.Checked:=true;
 
+  fpsonlyCheckbox.Checked:=false;
   showfpslimCheckbox.Checked:=false;
   batteryCheckbox.Checked:=false;
   resolutionCheckbox.Checked:=false;
@@ -4974,6 +5125,18 @@ begin
 
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
     hudfontcolorhtml := SColorToHtmlColor(FontcolorButton.ButtonColor);
+end;
+
+procedure Tgoverlayform.fpsCheckBoxChange(Sender: TObject);
+begin
+    if fpsCheckbox.Checked=true then
+    fpsonlyCheckbox.Checked:=false;
+end;
+
+procedure Tgoverlayform.fpsonlyCheckBoxChange(Sender: TObject);
+begin
+  if fpsonlyCheckbox.Checked=true then
+  fpsCheckbox.Checked:=false;
 end;
 
 
@@ -5367,11 +5530,17 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_text_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autoupload''', s);
 RunCommand('bash -c ''echo 24 >> /tmp/goverlay/initial_values/font_size_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
+
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
+
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/logduration''', s);
+RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/logduration_value''', s);
+
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/hudtitle_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/font_type''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/round_corners''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/fpsonly''', s);
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_load_change''', s);
@@ -5399,6 +5568,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/homepart''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/distroinfo''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/procmem''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gamepad''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/theme''', s);
 
 //vkbasalt dummy initials
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
@@ -6239,6 +6409,17 @@ autologINT := StrtoInt(initautologSTR);
 autologSpinEdit.Value := autologINT;
 
 
+//###################################################################### Log duration
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initlogduration, '/tmp/goverlay/initial_values/logduration_value');
+Reset(initlogduration);
+Readln(initlogduration,initlogdurationSTR); //Assign Text file to String
+CloseFile(initlogduration);
+
+logdurationINT := StrtoInt(initlogdurationSTR);
+logdurationSpinEdit.Value := logdurationINT;
+
 //###################################################################### media player name
 
 // Assign Text file to variable than assign variable to string
@@ -6310,6 +6491,165 @@ case initfonttypeSTR of
 's/Ubuntu-M.ttf':fonttypeComboBox.ItemIndex:=8;
  end;
 
+//###################################################################### Theme
+
+// Assign Text file to variable than assign variable to string
+AssignFile(inittheme, '/tmp/goverlay/initial_values/theme');
+Reset(inittheme);
+Readln(inittheme,initthemeSTR); //Assign Text file to String
+CloseFile(inittheme);
+
+case initthemeSTR of
+'#GOVERLAY_THEME=mangohuddefault':begin
+
+      gpuloadcolorCheckbox.Checked:=true;
+      cpuloadcolorCheckbox.Checked:=true;
+
+      fontcolorButton.ButtonColor:=$ffffff;
+      gpucolorbutton.ButtonColor:=$0062972E;
+      cpucolorbutton.ButtonColor:=$00CB972E;
+      ramcolorbutton.ButtonColor:=$009366C2;
+      vramcolorbutton.ButtonColor:=$00C164AD;
+      iordrwcolorbutton.ButtonColor:=$00D391A4;
+      frametimegraphcolorbutton.ButtonColor:=$00ff00;
+      enginecolorbutton.ButtonColor:=$005B5BEB;
+      winecolorbutton.ButtonColor:=$005B5BEB;
+      mediaColorbutton.ButtonColor:=$ffffff;
+
+      themesCombobox.ItemIndex:=0;
+
+  end;
+
+ '#GOVERLAY_THEME=simplewhite':begin
+
+    gpuloadcolorCheckbox.Checked:=false;
+      cpuloadcolorCheckbox.Checked:=false;
+
+      fontcolorButton.ButtonColor:=clWhite;
+      gpucolorbutton.ButtonColor:=clWhite;
+      cpucolorbutton.ButtonColor:=clWhite;
+      ramcolorbutton.ButtonColor:=clWhite;
+      vramcolorbutton.ButtonColor:=clWhite;
+      iordrwcolorbutton.ButtonColor:=clWhite;
+      frametimegraphcolorbutton.ButtonColor:=clWhite;
+      enginecolorbutton.ButtonColor:=clWhite;
+      winecolorbutton.ButtonColor:=clWhite;
+      mediaColorbutton.ButtonColor:=clWhite;
+
+       themesCombobox.ItemIndex:=1;
+  end;
+
+    '#GOVERLAY_THEME=oldafterburner':begin
+
+      gpuloadcolorCheckbox.Checked:=false;
+      cpuloadcolorCheckbox.Checked:=false;
+
+      fontcolorButton.ButtonColor:=$00CB0FC2;
+      gpucolorbutton.ButtonColor:=$00CB0FC2;
+      cpucolorbutton.ButtonColor:=$00CB0FC2;
+      ramcolorbutton.ButtonColor:=$00CB0FC2;
+      vramcolorbutton.ButtonColor:=$00CB0FC2;
+      iordrwcolorbutton.ButtonColor:=$00CB0FC2;
+      frametimegraphcolorbutton.ButtonColor:=$00CB0FC2;
+      enginecolorbutton.ButtonColor:=$00CB0FC2;
+      winecolorbutton.ButtonColor:=$00CB0FC2;
+      mediaColorbutton.ButtonColor:=$00CB0FC2;
+
+       themesCombobox.ItemIndex:=2;
+
+  end;
+
+   '#GOVERLAY_THEME=intelnvidia':begin
+
+     gpuloadcolorCheckbox.Checked:=false;
+     cpuloadcolorCheckbox.Checked:=false;
+
+     cpucolorbutton.ButtonColor:=$00B56800;
+     ramcolorbutton.ButtonColor:=$00B56800;
+
+     fontcolorButton.ButtonColor:=$00D8D8D8;
+     iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+     gpucolorbutton.ButtonColor:=$0030B84F;
+     vramcolorbutton.ButtonColor:=$0030B84F;
+     frametimegraphcolorbutton.ButtonColor:=$0030B84F;
+
+     enginecolorbutton.ButtonColor:=$0023863A;
+     winecolorbutton.ButtonColor:=$0023863A;
+     mediaColorbutton.ButtonColor:=$0023863A;
+
+      themesCombobox.ItemIndex:=3;
+  end;
+
+    '#GOVERLAY_THEME=intelradeon':begin
+
+      gpuloadcolorCheckbox.Checked:=false;
+      cpuloadcolorCheckbox.Checked:=false;
+
+      cpucolorbutton.ButtonColor:=$00B56800;
+      ramcolorbutton.ButtonColor:=$00B56800;
+
+      fontcolorButton.ButtonColor:=$00D8D8D8;
+      iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+      gpucolorbutton.ButtonColor:=$003508DE;
+      vramcolorbutton.ButtonColor:=$003508DE;
+      frametimegraphcolorbutton.ButtonColor:=$003508DE;
+
+      enginecolorbutton.ButtonColor:=$00240595;
+      winecolorbutton.ButtonColor:=$00240595;
+      mediaColorbutton.ButtonColor:=$00240595;
+
+       themesCombobox.ItemIndex:=4;
+  end;
+
+     '#GOVERLAY_THEME=amdnvidia':begin
+
+     gpuloadcolorCheckbox.Checked:=false;
+     cpuloadcolorCheckbox.Checked:=false;
+
+     cpucolorbutton.ButtonColor:=$003508DE;
+     ramcolorbutton.ButtonColor:=$003508DE;
+
+     fontcolorButton.ButtonColor:=$00D8D8D8;
+     iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+     gpucolorbutton.ButtonColor:=$0030B84F;
+     vramcolorbutton.ButtonColor:=$0030B84F;
+     frametimegraphcolorbutton.ButtonColor:=$0030B84F;
+
+     enginecolorbutton.ButtonColor:=$0023863A;
+     winecolorbutton.ButtonColor:=$0023863A;
+     mediaColorbutton.ButtonColor:=$0023863A;
+
+      themesCombobox.ItemIndex:=5;
+  end;
+
+
+
+     '#GOVERLAY_THEME=amdradeon':begin
+
+    gpuloadcolorCheckbox.Checked:=false;
+    cpuloadcolorCheckbox.Checked:=false;
+
+    cpucolorbutton.ButtonColor:=$003508DE;
+    ramcolorbutton.ButtonColor:=$003508DE;
+
+    fontcolorButton.ButtonColor:=$00D8D8D8;
+    iordrwcolorbutton.ButtonColor:=$00D8D8D8;
+
+    gpucolorbutton.ButtonColor:=$003508DE;
+    vramcolorbutton.ButtonColor:=$003508DE;
+    frametimegraphcolorbutton.ButtonColor:=$003508DE;
+
+    enginecolorbutton.ButtonColor:=$00240595;
+    winecolorbutton.ButtonColor:=$00240595;
+    mediaColorbutton.ButtonColor:=$00240595;
+
+     themesCombobox.ItemIndex:=6;
+  end;
+
+     end;
 
 //###################################################################### GRAPH_GPU_LOAD
 
@@ -6338,6 +6678,17 @@ case initfpsSTR of
   'fps':fpsCheckbox.checked:=true;
 end;
 
+//###################################################################### FPS only
+// Assign Text file to variable than assign variable to string
+AssignFile(initfpsonly, '/tmp/goverlay/initial_values/fpsonly');
+Reset(initfpsonly);
+Readln(initfpsonly,initfpsonlySTR); //Assign Text file to String
+CloseFile(initfpsonly);
+
+case initfpsonlySTR of
+  '':fpsonlyCheckbox.checked:=false;
+  'fps_only':fpsonlyCheckbox.checked:=true;
+end;
 
 //###################################################################### procmem
 
@@ -7069,6 +7420,7 @@ begin
   cpuloadcolorCheckbox.Checked:=false;
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=false;
+  fpsonlyCheckbox.Checked:=false;
 
   showfpslimCheckbox.Checked:=false;
   batteryCheckbox.Checked:=false;
