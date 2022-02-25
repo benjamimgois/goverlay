@@ -66,6 +66,7 @@ type
     glvsyncComboBox: TComboBox;
     notificationLabel: TLabel;
     gamepadCheckBox: TCheckBox;
+    showfpslimCheckBox: TCheckBox;
     themesComboBox: TComboBox;
     themesGroupBox: TGroupBox;
     vsyncGroupBox: TGroupBox;
@@ -212,7 +213,6 @@ type
     scaleheightSpinEdit: TSpinEdit;
     scalewidthSpinEdit: TSpinEdit;
     sessionCheckBox: TCheckBox;
-    showfpslimCheckBox: TCheckBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
     performanceTabSheet: TTabSheet;
@@ -255,7 +255,6 @@ type
     MenuItem3: TMenuItem;
     OpenGLControl1: TOpenGLControl;
     runvkbasaltBitBtn: TBitBtn;
-    TittlelogLabel: TLabel;
     vkbasaltPopupMenu: TPopupMenu;
     steamMenuItem: TMenuItem;
     lutrisMenuItem: TMenuItem;
@@ -538,6 +537,9 @@ var
   customcommandValue: Textfile;
   customcommandScript: Textfile;
   customcommandSTR: string;
+  breezeVAR: Textfile;
+  breezeSTR: string;
+  breezedependencyVALUE: Integer;
 
   //ReplaySorcery variables
   reswidthCustomValue:TextFile;
@@ -2009,8 +2011,8 @@ end;
   destfolderpathLabel.Caption:=destinationfolder;
 
   //Show logging label
-  TittlelogLabel.Visible:=true;
-  destfolderpathLabel.Visible:=true;
+  //TittlelogLabel.Visible:=true;
+  //destfolderpathLabel.Visible:=true;
 
   // Select media player
   case mediaCombobox.ItemIndex of
@@ -5261,6 +5263,7 @@ begin
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_mangohud''', s);
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_vkbasalt''', s);
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_replay''', s);
+  RunCommand('bash -c ''rm /tmp/goverlay/dependency_breeze''', s);
 
 
 
@@ -5396,51 +5399,109 @@ begin
                replaydependencyVALUE := 0;
 
 
+      //Determine breeze dependency status
+
+          //locate breeze and store result in tmp folder
+          RunCommand('bash -c ''find /usr/share/plasma/desktoptheme/breeze-light/metadata.desktop   >> /tmp/goverlay/dependency_breeze''', s);
+
+          // Assign Text file dependency_breeze to variable breezeVAR
+          AssignFile(breezeVAR, '/tmp/goverlay/dependency_breeze');
+          Reset(breezeVAR);
+          Readln(breezeVAR,breezeSTR); //Assign Text file to String
+          CloseFile(breezeVAR);
+
+          // Read String and store value on breezedependencyVALUE based on result
+          if breezeSTR = '/usr/share/plasma/desktoptheme/breeze-light/metadata.desktop' then
+          breezedependencyVALUE := 1
+          else
+          breezedependencyVALUE := 0;
+
+
         //Print Dependency status information
 
         //Missing single dependency
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= '    All dependencies OK';
         dependencieSpeedButton.ImageIndex := 0;
         end;
 
-        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing vkBasalt';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) then
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing ReplaySorcery';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 0 ) then
+        begin
+        dependenciesLabel.Caption:= 'Missing Breeze theme';
+        dependencieSpeedButton.ImageIndex := 1;
+        end;
+
+
         //Missing dual dependency
-        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud / vkbasalt';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
-        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) then
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud / ReplaySorcery';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 0 ) then
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 0 ) and ( breezedependencyVALUE = 1 ) then
         begin
         dependenciesLabel.Caption:= 'Missing vkbasalt / ReplaySorcery';
         dependencieSpeedButton.ImageIndex := 1;
         end;
+
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 0 ) then
+        begin
+        dependenciesLabel.Caption:= 'Missing MangoHud / Breeze';
+        dependencieSpeedButton.ImageIndex := 1;
+        end;
+
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) and ( breezedependencyVALUE = 0 ) then
+        begin
+        dependenciesLabel.Caption:= 'Missing VKbasalt / Breeze';
+        dependencieSpeedButton.ImageIndex := 1;
+        end;
+
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) and ( breezedependencyVALUE = 0 ) then
+        begin
+        dependenciesLabel.Caption:= 'Missing ReplaySorcery / Breeze';
+        dependencieSpeedButton.ImageIndex := 1;
+        end;
+
+
+          //Missing triple dependency
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 0 ) and ( breezedependencyVALUE = 0 ) then
+        begin
+        dependenciesLabel.Caption:= 'Missing Vkbasalt / ReplaySorcery / Breeze';
+        dependencieSpeedButton.ImageIndex := 1;
+        end;
+
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) and ( breezedependencyVALUE = 0 ) then
+        begin
+        dependenciesLabel.Caption:= 'Missing Mangohud / ReplaySorcery / Breeze';
+        dependencieSpeedButton.ImageIndex := 1;
+        end;
+
 
         //Missing all dependencies
         if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 0 ) then
@@ -5448,6 +5509,7 @@ begin
         dependenciesLabel.Caption:= 'Missing all dependencies';
         dependencieSpeedButton.ImageIndex := 1;
         end;
+
 
 
 // Check if Reshade files exist
