@@ -61,6 +61,7 @@ type
     caspostLabel: TLabel;
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
+    MenuItem4: TMenuItem;
     minimalhudBitBtn: TBitBtn;
     fpsonlyCheckBox: TCheckBox;
     glvsyncComboBox: TComboBox;
@@ -257,8 +258,6 @@ type
     runvkbasaltBitBtn: TBitBtn;
     vkbasaltPopupMenu: TPopupMenu;
     steamMenuItem: TMenuItem;
-    lutrisMenuItem: TMenuItem;
-    heroicMenuItem: TMenuItem;
     gamePopupMenu: TPopupMenu;
     runsteamBitBtn: TBitBtn;
     vramColorButton: TColorButton;
@@ -371,10 +370,12 @@ type
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
+    procedure MenuItem4Click(Sender: TObject);
     procedure middleleftSpeedButtonClick(Sender: TObject);
     procedure middlerightSpeedButtonClick(Sender: TObject);
     procedure minimalhudBitBtnClick(Sender: TObject);
     procedure roundcornerTrackBarChange(Sender: TObject);
+    procedure safemodeBitBtnClick(Sender: TObject);
     procedure themesComboBoxChange(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
     procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -2314,6 +2315,16 @@ begin
     RunCommand('bash -c ''ENABLE_VKBASALT=1 heroic''', s)  //Run heroic
 end;
 
+procedure Tgoverlayform.MenuItem4Click(Sender: TObject);
+begin
+  // Classic mode (Run goverlay with windows style)
+  goverlayform.Close;
+  goverlayform.Visible:=false;
+  RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Classic Mode" "This mode is a workaround for GTK desktops with no Breeze Theme"''', s); // Popup a notification
+  RunCommand('bash -c ''QT_QPA_PLATFORM=xcb mangohud --dlsym /usr/lib/goverlay --style Windows''', s);
+
+end;
+
 procedure Tgoverlayform.middleleftSpeedButtonClick(Sender: TObject);
 begin
      //Highlight main button
@@ -2407,6 +2418,13 @@ end;
 procedure Tgoverlayform.roundcornerTrackBarChange(Sender: TObject);
 begin
   roundcornerValueLabel.Caption:= inttostr(roundcornerTrackBar.Position);
+end;
+
+procedure Tgoverlayform.safemodeBitBtnClick(Sender: TObject);
+begin
+  // Run goverlay in windows style
+  goverlayform.Close;
+  RunCommand('bash -c ''QT_QPA_PLATFORM=xcb mangohud --dlsym /usr/lib/goverlay --style Windows''', s);
 end;
 
 procedure Tgoverlayform.themesComboBoxChange(Sender: TObject);
