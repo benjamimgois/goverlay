@@ -62,6 +62,7 @@ type
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
     MenuItem4: TMenuItem;
+    MenuItem5: TMenuItem;
     minimalhudBitBtn: TBitBtn;
     fpsonlyCheckBox: TCheckBox;
     glvsyncComboBox: TComboBox;
@@ -371,6 +372,7 @@ type
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
+    procedure MenuItem5Click(Sender: TObject);
     procedure middleleftSpeedButtonClick(Sender: TObject);
     procedure middlerightSpeedButtonClick(Sender: TObject);
     procedure minimalhudBitBtnClick(Sender: TObject);
@@ -2323,6 +2325,15 @@ begin
   RunCommand('bash -c ''notify-send -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Classic Mode" "This mode is a workaround for GTK desktops with no Breeze Theme"''', s); // Popup a notification
   RunCommand('bash -c ''QT_QPA_PLATFORM=xcb mangohud --dlsym /usr/lib/goverlay --style Windows''', s);
 
+end;
+
+procedure Tgoverlayform.MenuItem5Click(Sender: TObject);
+begin
+  // run steam with Deck UI
+  RunCommand('bash -c ''yes | cp -rf $HOME/.steam/steam/package/beta $HOME/.steam/steam/package/beta.bkp ''', s); //make a copy of the original file
+  RunCommand('bash -c ''rm -Rf $HOME/.steam/steam/package/beta''', s);
+  RunCommand('bash -c ''echo "steampal_stable_9a24a2bf68596b860cb6710d9ea307a76c29a04d" >> $HOME/.steam/steam/package/beta''', s);   // write new value to beta file
+  RunCommand('bash -c ''steam -gamepadui''', s);   // start steam in deck ui
 end;
 
 procedure Tgoverlayform.middleleftSpeedButtonClick(Sender: TObject);
