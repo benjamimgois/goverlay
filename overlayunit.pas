@@ -33,6 +33,7 @@ type
     autostartLabel: TLabel;
     autostartLabel2: TLabel;
     destfolderpathLabel: TLabel;
+    driverversionCheckBox: TCheckBox;
     logdurationSpinEdit: TSpinEdit;
     autoresCheckBox: TCheckBox;
     autoscaleCheckBox: TCheckBox;
@@ -68,6 +69,7 @@ type
     glvsyncComboBox: TComboBox;
     notificationLabel: TLabel;
     gamepadCheckBox: TCheckBox;
+    framecountCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     themesComboBox: TComboBox;
     themesGroupBox: TGroupBox;
@@ -104,7 +106,7 @@ type
     customcommandEdit: TEdit;
     diskioCheckBox: TCheckBox;
     distroinfoCheckBox: TCheckBox;
-    driverversionCheckBox: TCheckBox;
+    gputhrottlingCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
     FontcolorButton: TColorButton;
@@ -820,6 +822,10 @@ var
   initroundcornersSTR: string;
   initgamepad: Textfile;
   initgamepadSTR: string;
+  initthrottlings: Textfile;
+  initthrottlingsSTR: string;
+  initframecount: Textfile;
+  initframecountSTR: string;
 
   //GRAPHs variables
   initgraphgpuload: Textfile;
@@ -1090,6 +1096,10 @@ begin
   //###################################################### GPU
 
   //GPU checks
+
+  //GPU throttling
+  if gputhrottlingCheckBox.Checked=true then
+  RunCommand('bash -c ''echo "throttling_status" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   //GPU LOAD
   if gpuavrloadCheckbox.Checked=true then
@@ -1556,7 +1566,7 @@ begin
       RunCommand('bash -c ''sh /tmp/goverlay/gpucolorScript.sh''', s);
 
   //Driver version
-    if driverversionCheckbox.Checked=true then
+    if gputhrottlingCheckBox.Checked=true then
   RunCommand('bash -c ''echo "vulkan_driver" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   //Arch
@@ -1619,6 +1629,12 @@ begin
 
       if framehistogramRadioButton.Checked=true then
       RunCommand('bash -c ''echo "histogram" >> $HOME/.config/MangoHud/MangoHud.conf''', s) ;
+
+
+
+//show frame count
+if framecountCheckBox.Checked=true then
+RunCommand('bash -c ''echo "frame_count" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
 //show fps limitation
@@ -2087,6 +2103,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_loa
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gpu_load_value >> $HOME/.config/goverlay/initial_values/gpu_load_value''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_power >> $HOME/.config/goverlay/initial_values/cpu_power''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w cpu_mhz >> $HOME/.config/goverlay/initial_values/cpu_mhz''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w throttling_status >> $HOME/.config/goverlay/initial_values/throttling_status''', s);
 
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w autostart_log >> $HOME/.config/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''cp /tmp/goverlay/autolog_value $HOME/.config/goverlay/initial_values/''', s);
@@ -2096,6 +2113,7 @@ RunCommand('bash -c ''cp /tmp/goverlay/logduration_value $HOME/.config/goverlay/
 
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps >> $HOME/.config/goverlay/initial_values/fps''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w fps_only >> $HOME/.config/goverlay/initial_values/fpsonly''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w frame_count >> $HOME/.config/goverlay/initial_values/frame_count''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w show_fps_limit >> $HOME/.config/goverlay/initial_values/show_fps_limit''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w toggle_fps_limit >> $HOME/.config/goverlay/initial_values/toggle_fps_limit''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w resolution >> $HOME/.config/goverlay/initial_values/resolution''', s);
@@ -2384,7 +2402,7 @@ begin
    frametimegraphCheckbox.Checked:=true;
    timeCheckbox.Checked:=false;
    archCheckbox.Checked:=false;
-   driverversionCheckbox.Checked:=false;
+   gputhrottlingCheckBox.Checked:=false;
    gpupowerCheckBox.Checked:=false;
    gpumodelCheckBox.Checked:=false;
    gpumemfreqCheckBox.Checked:=false;
@@ -2405,6 +2423,8 @@ begin
   distroinfoCheckbox.Checked:=false;
   procmemCheckbox.Checked:=false;
   gamepadcheckbox.checked:=false;
+  gputhrottlingCheckBox.Checked:=false;
+  framecountCheckBox.Checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -2421,6 +2441,13 @@ begin
           gpuloadcolorCheckbox.Checked:=false;
           cpuloadcolorCheckbox.Checked:=false;
       end;
+
+  //Change button to active collor
+  minimalhudbitbtn.Color:=clActiveCaption;
+
+  compacthudbitbtn.Color:=cldefault;
+  completehudbitbtn.Color:=cldefault;
+  graphhudbitbtn.Color:=cldefault;
 
    //Save to update preview
    saveBitbtn.Click;
@@ -3466,7 +3493,7 @@ begin
   frametimegraphCheckbox.Checked:=true;
   timeCheckbox.Checked:=false;
   archCheckbox.Checked:=true;
-  driverversionCheckbox.Checked:=true;
+  gputhrottlingCheckBox.Checked:=true;
   gpupowerCheckBox.Checked:=true;
   gpumodelCheckBox.Checked:=true;
   gpumemfreqCheckBox.Checked:=true;
@@ -3481,6 +3508,8 @@ begin
   fpsonlyCheckbox.Checked:=false;
   procmemCheckbox.Checked:=true;
   gamepadcheckbox.checked:=true;
+  gputhrottlingCheckBox.Checked:=true;
+  framecountCheckBox.Checked:=true;
 
   showfpslimCheckbox.Checked:=true;
   batteryCheckbox.Checked:=true;
@@ -3505,6 +3534,13 @@ begin
           gpuloadcolorCheckbox.Checked:=false;
           cpuloadcolorCheckbox.Checked:=false;
       end;
+
+  //Change button to active collor
+  completehudbitbtn.Color:=clActiveCaption;
+
+  minimalhudbitbtn.Color:=cldefault;
+  compacthudbitbtn.Color:=cldefault;
+  graphhudbitbtn.Color:=cldefault;
 
   //Save to update preview
   saveBitbtn.Click;
@@ -4826,7 +4862,7 @@ begin
    frametimegraphCheckbox.Checked:=true;
    timeCheckbox.Checked:=false;
    archCheckbox.Checked:=false;
-   driverversionCheckbox.Checked:=false;
+   gputhrottlingCheckBox.Checked:=false;
    gpupowerCheckBox.Checked:=false;
    gpumodelCheckBox.Checked:=false;
    gpumemfreqCheckBox.Checked:=false;
@@ -4849,6 +4885,8 @@ begin
   distroinfoCheckbox.Checked:=false;
   procmemCheckbox.Checked:=false;
   gamepadcheckbox.checked:=false;
+  gputhrottlingCheckBox.Checked:=false;
+  framecountCheckBox.Checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -4865,6 +4903,15 @@ begin
           gpuloadcolorCheckbox.Checked:=false;
           cpuloadcolorCheckbox.Checked:=false;
       end;
+
+
+  //Change button to active collor
+  compacthudbitbtn.Color:=clActiveCaption;
+
+
+  minimalhudbitbtn.Color:=cldefault;
+  completehudbitbtn.Color:=cldefault;
+  graphhudbitbtn.Color:=cldefault;
 
    //Save to update preview
    saveBitbtn.Click;
@@ -5587,6 +5634,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_stats''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_temp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/mem_load''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_stats''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/throttling_status ''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_temp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_core_clock''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_mem_clock''', s);
@@ -5646,6 +5694,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_vram''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_swap''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_ram''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/show_fps_limit''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/frame_count''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/toggle_fps_limit''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/resolution''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/battery''', s);
@@ -5746,6 +5795,19 @@ CloseFile(initshowfpslimit);
 case initshowfpslimitSTR of
 '':showfpslimCheckbox.Checked:=false;
 'show_fps_limit':showfpslimCheckbox.Checked:=true;
+ end;
+
+//###################################################################### frame count
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initframecount, '/tmp/goverlay/initial_values/frame_count');
+Reset(initframecount);
+Readln(initframecount,initframecountSTR); //Assign Text file to String
+CloseFile(initframecount);
+
+case initframecountSTR of
+'':framecountCheckBox.Checked:=false;
+'frame_count':framecountCheckBox.Checked:=true;
  end;
 
 
@@ -5999,17 +6061,17 @@ case initgpustatsSTR of
 'gpu_stats':gpuavrloadCheckbox.Checked:=true;
  end;
 
-//###################################################################### gpu load
+//###################################################################### gpu throttling
 
 // Assign Text file to variable than assign variable to string
-AssignFile(initgpustats, '/tmp/goverlay/initial_values/gpu_stats');
-Reset(initgpustats);
-Readln(initgpustats,initgpustatsSTR); //Assign Text file to String
-CloseFile(initgpustats);
+AssignFile(initthrottlings, '/tmp/goverlay/initial_values/throttling_status');
+Reset(initthrottlings);
+Readln(initthrottlings,initthrottlingsSTR); //Assign Text file to String
+CloseFile(initthrottlings);
 
-case initgpustatsSTR of
-'':gpuavrloadCheckbox.Checked:=false;
-'gpu_stats':gpuavrloadCheckbox.Checked:=true;
+case initthrottlingsSTR of
+'':gputhrottlingCheckBox.Checked:=false;
+'throttling_status':gputhrottlingCheckBox.Checked:=true;
  end;
 
 
@@ -6131,8 +6193,8 @@ Readln(initvulkandriver,initvulkandriverSTR); //Assign Text file to String
 CloseFile(initvulkandriver);
 
 case initvulkandriverSTR of
-'':driverversionCheckbox.Checked:=false;
-'vulkan_driver':driverversionCheckbox.Checked:=true;
+'':gputhrottlingCheckBox.Checked:=false;
+'vulkan_driver':gputhrottlingCheckBox.Checked:=true;
  end;
 
 //###################################################################### gpu_name
@@ -7493,7 +7555,7 @@ begin
 
   timeCheckbox.Checked:=false;
   archCheckbox.Checked:=false;
-  driverversionCheckbox.Checked:=false;
+  gputhrottlingCheckBox.Checked:=false;
   gpupowerCheckBox.Checked:=false;
   gpumodelCheckBox.Checked:=false;
   gpumemfreqCheckBox.Checked:=false;
@@ -7506,6 +7568,8 @@ begin
   hudversionCheckbox.Checked:=false;
   fpsCheckbox.Checked:=false;
   fpsonlyCheckbox.Checked:=false;
+  gputhrottlingCheckBox.Checked:=false;
+  framecountCheckBox.Checked:=false;
 
   showfpslimCheckbox.Checked:=false;
   batteryCheckbox.Checked:=false;
@@ -7517,6 +7581,7 @@ begin
   procmemCheckbox.Checked:=false;
   swapusageCheckbox.Checked:=false;
 
+
   gpuloadgraphBitbtn.imageindex:=2;
   gputempgraphBitbtn.imageindex:=2;
   gpucfgraphBitbtn.imageindex:=2;
@@ -7525,6 +7590,14 @@ begin
   cpuloadgraphBitbtn.imageindex:=2;
   cputempgraphBitbtn.imageindex:=2;
   ramgraphBitbtn.imageindex:=2;
+
+  //Change button to active collor
+  graphhudbitbtn.Color:=clActiveCaption;
+
+  minimalhudbitbtn.Color:=cldefault;
+  compacthudbitbtn.Color:=cldefault;
+  completehudbitbtn.Color:=cldefault;
+
 
   //Save to update preview
   saveBitbtn.Click;
