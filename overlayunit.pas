@@ -64,6 +64,7 @@ type
     casValueLabel: TLabel;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
+    vkcubegsMenuItem: TMenuItem;
     minimalhudBitBtn: TBitBtn;
     fpsonlyCheckBox: TCheckBox;
     glvsyncComboBox: TComboBox;
@@ -381,6 +382,7 @@ type
     procedure roundcornerTrackBarChange(Sender: TObject);
     procedure safemodeBitBtnClick(Sender: TObject);
     procedure themesComboBoxChange(Sender: TObject);
+    procedure vkcubegsMenuItemClick(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
     procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
@@ -1097,9 +1099,7 @@ begin
 
   //GPU checks
 
-  //GPU throttling
-  if gputhrottlingCheckBox.Checked=true then
-  RunCommand('bash -c ''echo "throttling_status" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
 
   //GPU LOAD
   if gpuavrloadCheckbox.Checked=true then
@@ -1243,6 +1243,8 @@ begin
 
       //execute custom script to store custom value on mangohud.conf
       RunCommand('bash -c ''sh /tmp/goverlay/gpunameScript.sh''', s);
+
+
 
     //###################################################### GPU
 
@@ -1566,7 +1568,7 @@ begin
       RunCommand('bash -c ''sh /tmp/goverlay/gpucolorScript.sh''', s);
 
   //Driver version
-    if gputhrottlingCheckBox.Checked=true then
+  if driverversionCheckBox.Checked=true then
   RunCommand('bash -c ''echo "vulkan_driver" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   //Arch
@@ -1630,6 +1632,10 @@ begin
       if framehistogramRadioButton.Checked=true then
       RunCommand('bash -c ''echo "histogram" >> $HOME/.config/MangoHud/MangoHud.conf''', s) ;
 
+
+      //GPU throttling
+      if gputhrottlingCheckBox.Checked=true then
+      RunCommand('bash -c ''echo "throttling_status" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
 //show frame count
@@ -2425,6 +2431,7 @@ begin
   gamepadcheckbox.checked:=false;
   gputhrottlingCheckBox.Checked:=false;
   framecountCheckBox.Checked:=false;
+  driverversioncheckbox.Checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -2639,6 +2646,12 @@ begin
 
 end;
 
+end;
+
+procedure Tgoverlayform.vkcubegsMenuItemClick(Sender: TObject);
+begin
+  //Vkcube test with Gamescope
+  RunCommand('bash -c ''gamescope mangohud vkcube''', s)
 end;
 
 procedure Tgoverlayform.vkcubeMenuItemClick(Sender: TObject);
@@ -3510,6 +3523,7 @@ begin
   gamepadcheckbox.checked:=true;
   gputhrottlingCheckBox.Checked:=true;
   framecountCheckBox.Checked:=true;
+  driverversioncheckbox.Checked:=true;
 
   showfpslimCheckbox.Checked:=true;
   batteryCheckbox.Checked:=true;
@@ -4887,6 +4901,7 @@ begin
   gamepadcheckbox.checked:=false;
   gputhrottlingCheckBox.Checked:=false;
   framecountCheckBox.Checked:=false;
+  driverversioncheckbox.Checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -6193,8 +6208,8 @@ Readln(initvulkandriver,initvulkandriverSTR); //Assign Text file to String
 CloseFile(initvulkandriver);
 
 case initvulkandriverSTR of
-'':gputhrottlingCheckBox.Checked:=false;
-'vulkan_driver':gputhrottlingCheckBox.Checked:=true;
+'':driverversionCheckBox.Checked:=false;
+'vulkan_driver':driverversionCheckBox.Checked:=true;
  end;
 
 //###################################################################### gpu_name
@@ -6968,7 +6983,6 @@ case initgraphramSTR of
 end;
 
 
-
 // ########################################         Read configuration files - VKBASALT  ########################################################
 
 
@@ -7570,6 +7584,7 @@ begin
   fpsonlyCheckbox.Checked:=false;
   gputhrottlingCheckBox.Checked:=false;
   framecountCheckBox.Checked:=false;
+  driverversioncheckbox.Checked:=false;
 
   showfpslimCheckbox.Checked:=false;
   batteryCheckbox.Checked:=false;
