@@ -1670,24 +1670,32 @@ RunCommand('bash -c ''echo "gamepad_battery" >> $HOME/.config/MangoHud/MangoHud.
 //show Distro info
 if distroinfoCheckBox.Checked=true then
 begin
+// Distro name
 RunCommand('bash -c ''echo "custom_text= #add line for space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);  //insert Custom text in mangohud.conf
 RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroinfo''', s);      // remove old file
 RunCommand('bash -c ''lsb_release -a | grep Description | cut -c 14-26 >> $HOME/.config/goverlay/distroinfo''', s);      // store distro name in goverlay folder
 RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroinfo" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 
-
+//Distro version
 RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
 RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroversion''', s);      // remove old file
 RunCommand('bash -c ''lsb_release -a | grep Release | cut -c 10-26 >> $HOME/.config/goverlay/distroversion''', s);      // store distro name in goverlay folder
 RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 
-
+//kernel version
 RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
-RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/kernelversion''', s);      // remove old file
-RunCommand('bash -c ''uname -r >> $HOME/.config/goverlay/kernelversion''', s);      // store distro name in goverlay folder
-RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/kernelversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
+RunCommand('bash -c ''echo "exec=uname -r" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+//RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
+//RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/kernelversion''', s);      // remove old file
+//RunCommand('bash -c ''uname -r >> $HOME/.config/goverlay/kernelversion''', s);      // store distro name in goverlay folder
+//RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/kernelversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 end;
+
+
+
+
 
 //show Session type
 if sessionCheckbox.Checked=true then
