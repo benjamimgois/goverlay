@@ -1,7 +1,7 @@
 object hudbackgroundForm: ThudbackgroundForm
-  Left = 658
+  Left = 2736
   Height = 73
-  Top = 344
+  Top = 486
   Width = 304
   BorderStyle = bsDialog
   Caption = 'Background Transparency'
@@ -9,7 +9,7 @@ object hudbackgroundForm: ThudbackgroundForm
   ClientWidth = 304
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.0.6.0'
+  LCLVersion = '2.2.2.0'
   object transpTrackBar: TTrackBar
     Left = 8
     Height = 38
@@ -20,9 +20,9 @@ object hudbackgroundForm: ThudbackgroundForm
   end
   object transparencyLabel: TLabel
     Left = 112
-    Height = 12
+    Height = 16
     Top = 48
-    Width = 83
+    Width = 75
     Caption = 'Transparency'
     Font.Height = -11
     Font.Name = 'Sans'
@@ -33,7 +33,7 @@ object hudbackgroundForm: ThudbackgroundForm
   end
   object transpminLabel: TLabel
     Left = 16
-    Height = 12
+    Height = 14
     Top = 48
     Width = 18
     Caption = '0%'
@@ -45,9 +45,9 @@ object hudbackgroundForm: ThudbackgroundForm
   end
   object transpmaxLabel: TLabel
     Left = 266
-    Height = 12
+    Height = 14
     Top = 48
-    Width = 30
+    Width = 29
     Caption = '100%'
     Font.Height = -11
     Font.Name = 'Cantarell'

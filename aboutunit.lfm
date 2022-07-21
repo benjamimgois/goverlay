@@ -10,31 +10,30 @@ object aboutForm: TaboutForm
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.0.12.0'
+  LCLVersion = '2.2.2.0'
   object PageControl1: TPageControl
     Left = 0
     Height = 784
     Top = 0
     Width = 616
     ActivePage = TabSheet1
-    Font.Color = clWhite
     Font.Quality = fqAntialiased
     ParentFont = False
     TabIndex = 0
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 751
-      ClientWidth = 606
+      ClientHeight = 749
+      ClientWidth = 612
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
       object mangolink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 18
         Top = 396
-        Width = 340
+        Width = 311
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Font.Color = clAqua
         Font.Height = -13
@@ -48,9 +47,9 @@ object aboutForm: TaboutForm
       object linux4elink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 18
         Top = 442
-        Width = 336
+        Width = 305
         Caption = 'https://github.com/matanui159/ReplaySorcery'
         Font.Color = clAqua
         Font.Height = -13
@@ -15199,9 +15198,9 @@ object aboutForm: TaboutForm
       object schoorselinkLabel: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 18
         Top = 419
-        Width = 304
+        Width = 274
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Font.Color = clAqua
         Font.Height = -13
@@ -15215,9 +15214,9 @@ object aboutForm: TaboutForm
       object linux4elink1: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 18
         Top = 465
-        Width = 244
+        Width = 223
         Caption = 'https://www.linux4everyone.com/'
         Font.Color = clAqua
         Font.Height = -13
@@ -15234,7 +15233,6 @@ object aboutForm: TaboutForm
         Top = 8
         Width = 155
         Caption = 'Goverlay'
-        Font.Color = clWhite
         Font.Height = -35
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
@@ -15244,22 +15242,20 @@ object aboutForm: TaboutForm
       end
       object Label2: TLabel
         Left = 128
-        Height = 63
+        Height = 54
         Top = 508
-        Width = 189
+        Width = 157
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
-        Font.Color = clWhite
         Font.Quality = fqAntialiased
         ParentColor = False
         ParentFont = False
       end
       object Label3: TLabel
         Left = 8
-        Height = 294
+        Height = 252
         Top = 65
-        Width = 589
+        Width = 490
         Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a gaming platform.'
-        Font.Color = clWhite
         Font.Quality = fqAntialiased
         ParentColor = False
         ParentFont = False
@@ -15267,9 +15263,9 @@ object aboutForm: TaboutForm
       object goverlaylink: TLabel
         Cursor = crHandPoint
         Left = 8
-        Height = 17
+        Height = 18
         Top = 373
-        Width = 309
+        Width = 284
         Caption = 'https://github.com/benjamimgois/goverlay'
         Font.Color = clAqua
         Font.Height = -13
@@ -15283,19 +15279,20 @@ object aboutForm: TaboutForm
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 751
-      ClientWidth = 606
+      ClientHeight = 749
+      ClientWidth = 612
+      Font.Color = clWhite
+      Font.Quality = fqAntialiased
+      ParentFont = False
       object gplMemo: TMemo
         Left = 0
-        Height = 751
+        Height = 749
         Top = 0
         Width = 656
         Align = alLeft
         Alignment = taCenter
         BorderStyle = bsNone
-        Color = 3684408
         DoubleBuffered = False
-        Font.Color = clWhite
         Font.Height = -12
         Font.Name = 'Sans'
         Font.Quality = fqAntialiased
