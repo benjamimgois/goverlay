@@ -6,4 +6,4 @@
 # --style Breeze will make sure the interface doesn't break in diferent DE and QT themes.
 
 export QT_QPA_PLATFORM=xcb
-mangohud --dlsym @libexecdir@/goverlay --style Breeze
+mangohud --dlsym @libexecdir@/goverlay
