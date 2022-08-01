@@ -1674,13 +1674,13 @@ begin
 RunCommand('bash -c ''echo "custom_text= #add line for space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);  //insert Custom text in mangohud.conf
 RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroinfo''', s);      // remove old file
-RunCommand('bash -c ''lsb_release -a | grep Description | cut -c 14-26 >> $HOME/.config/goverlay/distroinfo''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''cat /usr/lib/os-release | grep -w NAME | cut -d "=" -f2 | cut -d "\"" -f 2 >> $HOME/.config/goverlay/distroinfo''', s);      // store distro name in goverlay folder
 RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroinfo" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 
 //Distro version
 RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
 RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroversion''', s);      // remove old file
-RunCommand('bash -c ''lsb_release -a | grep Release | cut -c 10-26 >> $HOME/.config/goverlay/distroversion''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''cat /usr/lib/os-release | grep VERSION_ID | cut -d "=" -f2 >> $HOME/.config/goverlay/distroversion''', s);      // store distro name in goverlay folder
 RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 
 //kernel version
