@@ -1680,7 +1680,7 @@ RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroinfo" >> $HOME
 //Distro version
 RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf''', s); //insert Custom text in mangohud.conf
 RunCommand('bash -c ''rm -rf $HOME/.config/goverlay/distroversion''', s);      // remove old file
-RunCommand('bash -c ''cat /usr/lib/os-release | grep VERSION_ID | cut -d "=" -f2 >> $HOME/.config/goverlay/distroversion''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''VERSION=$(cat /usr/lib/os-release | grep VERSION_ID | cut -d "=" -f2);if [[ "$VERSION" == "" ]]; then VERSION=$(cat /usr/lib/os-release | grep BUILD_ID | cut -d "=" -f2); fi; if [[ "$VERSION" != "" ]]; then echo $VERSION >> $HOME/.config/goverlay/distroversion; else echo rolling >> $HOME/.config/goverlay/distroversion; fi;''', s);      // store distro name in goverlay folder
 RunCommand('bash -c ''echo "exec=cat $HOME/.config/goverlay/distroversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s); // read the text file in goverlay folder
 
 //kernel version
