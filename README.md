@@ -102,14 +102,15 @@ apt install goverlay
 
 #### Ubuntu
 
-To install goverlay in Ubuntu (20.04 and up) and derivatives use the PPA from Martin Wimpress. Run the following commands:
+To install goverlay in Ubuntu (20.04 and up) and derivatives, run the following commands:
 
 ```bash
-sudo add-apt-repository ppa:flexiondotorg/mangohud
 sudo apt-get update
 sudo apt-get install goverlay
 ```
-NOTE: Currently the PPA does not offer 32-bit support.
+
+To avoid a issue with libdl.so on ubuntu based distros it's recomended to build Mangohud from source.
+https://github.com/flightlessmango/MangoHud
 
 ## Tarball
 
@@ -171,6 +172,19 @@ make install
 ```
 
 This will install the start script to `/usr/local/bin/goverlay`, so that it can be launched via `goverlay` in the console. 
+
+
+## Theme compatibility
+
+Since GOverlay 0.9 the official supported themes are Breeze (plasma) and Adwaita (Gnome). If you run into issues with your current one you can force goverlay to run with a specific theme:
+
+```bash
+goverlay --style breeze
+```
+or
+```bash
+goverlay --style fusion
+```
 
 ## Credits
 
