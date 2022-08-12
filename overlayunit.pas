@@ -1674,10 +1674,10 @@ begin
 RunCommand('bash -c ''echo "custom_text= #add line for space" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 // Distro name
-RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=cat /usr/lib/os-release | grep -w NAME | cut -d \"=\" -f2 | cut -d \"\\\"\" -f 2" >> $HOME/.config/MangoHud/MangoHud.conf''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf; cat /usr/lib/os-release | grep -w NAME | cut -d "=" -f2 | cut -d "\"" -f 2 > $HOME/.config/goverlay/distroinfo ;echo "exec=cat $HOME/.config/goverlay/distroinfo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);      // store distro name in goverlay folder
 
 //Distro version
-RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=VERSION=\$(cat /usr/lib/os-release | grep VERSION_ID | cut -d \"=\" -f2);if [[ \"\$VERSION\" == \"\" ]]; then VERSION=\$(cat /usr/lib/os-release | grep BUILD_ID | cut -d \"=\" -f2); fi; if [[ "\$VERSION" != \"\" ]]; then echo \$VERSION; else echo rolling; fi" >> $HOME/.config/MangoHud/MangoHud.conf''', s);      // store distro name in goverlay folder
+RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf; VERSION=$(cat /usr/lib/os-release | grep VERSION_ID | cut -d "=" -f2);if [[ "$VERSION" == "" ]]; then VERSION=$(cat /usr/lib/os-release | grep BUILD_ID | cut -d "=" -f2); fi; if [[ "$VERSION" != "" ]]; then echo $VERSION > $HOME/.config/goverlay/distroversion; else echo rolling > $HOME/.config/goverlay/distroversion; fi;echo "exec=cat $HOME/.config/goverlay/distroversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s);      // store distro name in goverlay folder
 
 //kernel version
 RunCommand('bash -c ''echo "custom_text=Kernel:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=uname -r" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
