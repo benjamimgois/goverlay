@@ -34,6 +34,9 @@ type
     autostartLabel2: TLabel;
     destfolderpathLabel: TLabel;
     driverversionCheckBox: TCheckBox;
+    Image3: TImage;
+    Image4: TImage;
+    nvmetempCheckBox: TCheckBox;
     logdurationSpinEdit: TSpinEdit;
     autoresCheckBox: TCheckBox;
     autoscaleCheckBox: TCheckBox;
@@ -64,6 +67,11 @@ type
     casValueLabel: TLabel;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
+    RadioButton1: TRadioButton;
+    RadioButton2: TRadioButton;
+    themesGroupBox1: TGroupBox;
+    wideBitBtn: TBitBtn;
+    normalBitBtn: TBitBtn;
     vkcubegsMenuItem: TMenuItem;
     minimalhudBitBtn: TBitBtn;
     fpsonlyCheckBox: TCheckBox;
@@ -379,6 +387,7 @@ type
     procedure middleleftSpeedButtonClick(Sender: TObject);
     procedure middlerightSpeedButtonClick(Sender: TObject);
     procedure minimalhudBitBtnClick(Sender: TObject);
+    procedure normalBitBtnClick(Sender: TObject);
     procedure roundcornerTrackBarChange(Sender: TObject);
     procedure safemodeBitBtnClick(Sender: TObject);
     procedure themesComboBoxChange(Sender: TObject);
@@ -423,6 +432,7 @@ type
     procedure vramColorButtonColorChanged(Sender: TObject);
     procedure vramgraphBitBtnClick(Sender: TObject);
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
+    procedure wideBitBtnClick(Sender: TObject);
     procedure widthImageMouseEnter(Sender: TObject);
     procedure wineColorButtonColorChanged(Sender: TObject);
     procedure h264profileComboboxKeyPress(Sender: TObject; var Key: char);
@@ -824,6 +834,8 @@ var
   initroundcornersSTR: string;
   initgamepad: Textfile;
   initgamepadSTR: string;
+  initnvmetemp: Textfile;
+  initnvmetempSTR: string;
   initthrottlings: Textfile;
   initthrottlingsSTR: string;
   initframecount: Textfile;
@@ -1667,6 +1679,11 @@ RunCommand('bash -c ''echo "battery" >> $HOME/.config/MangoHud/MangoHud.conf''',
 if gamepadCheckbox.Checked=true then
 RunCommand('bash -c ''echo "gamepad_battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
+//show NVME Temperature
+      if nvmetempCheckBox.Checked=true then
+      RunCommand('bash -c ''echo "custom_text=NVME Temp:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=sensors | grep Composite | cut -c 15-22" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
 //show Distro info
 if distroinfoCheckBox.Checked=true then
 begin
@@ -1689,12 +1706,7 @@ begin
 RunCommand('bash -c ''echo "custom_text=Session:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=echo \$XDG_SESSION_TYPE" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 end;
 
-//show home partition size
-//if homepartCheckbox.Checked=true then
-//begin
-//RunCommand('bash -c ''echo "custom_text=Home:" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-//RunCommand('bash -c ''echo "exec=df -h /home | tail -n 1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
-//end;
+
 
 
 
@@ -2125,6 +2137,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w upload_
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem >> $HOME/.config/goverlay/initial_values/procmem''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w round_corners >> $HOME/.config/goverlay/initial_values/round_corners''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamepad_battery  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w sensors  >> $HOME/.config/goverlay/initial_values/nvmetemp''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2425,6 +2438,7 @@ begin
   gputhrottlingCheckBox.Checked:=false;
   framecountCheckBox.Checked:=false;
   driverversioncheckbox.Checked:=false;
+  nvmetempCheckbox.checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -2451,6 +2465,14 @@ begin
 
    //Save to update preview
    saveBitbtn.Click;
+end;
+
+procedure Tgoverlayform.normalBitBtnClick(Sender: TObject);
+begin
+  //Change opengl window to normal mode
+  openglcontrol1.Width:=524;
+  openglcontrol1.Height:=513;
+  openglcontrol1.Left:=493;
 end;
 
 procedure Tgoverlayform.roundcornerTrackBarChange(Sender: TObject);
@@ -3515,7 +3537,7 @@ begin
   procmemCheckbox.Checked:=true;
   gamepadcheckbox.checked:=true;
   gputhrottlingCheckBox.Checked:=true;
-  framecountCheckBox.Checked:=true;
+  framecountCheckBox.Checked:=false;
   driverversioncheckbox.Checked:=true;
 
   showfpslimCheckbox.Checked:=true;
@@ -3525,6 +3547,7 @@ begin
   gamemodestatusCheckbox.Checked:=true;
   sessionCheckbox.Checked:=true;
   distroinfoCheckbox.Checked:=true;
+  nvmetempCheckbox.checked:=true;
 
   gpuloadgraphBitbtn.imageindex:=3;
   gputempgraphBitbtn.imageindex:=3;
@@ -4895,6 +4918,7 @@ begin
   gputhrottlingCheckBox.Checked:=false;
   framecountCheckBox.Checked:=false;
   driverversioncheckbox.Checked:=false;
+  nvmetempCheckbox.checked:=false;
 
    gpuloadgraphBitbtn.imageindex:=3;
    gputempgraphBitbtn.imageindex:=3;
@@ -5642,6 +5666,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_text_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autoupload''', s);
 RunCommand('bash -c ''echo 24 >> /tmp/goverlay/initial_values/font_size_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/nvmetemp''', s);
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
@@ -5828,6 +5853,18 @@ case initgamepadSTR of
 'gamepad_battery':gamepadCheckbox.Checked:=true;
  end;
 
+//###################################################################### NVME temperature
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initnvmetemp, '/tmp/goverlay/initial_values/nvmetemp');
+Reset(initnvmetemp);
+Readln(initnvmetemp,initnvmetempSTR); //Assign Text file to String
+CloseFile(initnvmetemp);
+
+case initnvmetempSTR of
+'':nvmetempCheckbox.Checked:=false;
+'exec=sensors | grep Composite | cut -c 15-22':nvmetempCheckbox.Checked:=true;
+ end;
 
 //###################################################################### vkbasalt status
 
@@ -7546,6 +7583,7 @@ begin
   gputhrottlingCheckBox.Checked:=false;
   framecountCheckBox.Checked:=false;
   driverversioncheckbox.Checked:=false;
+  nvmetempCheckbox.checked:=false;
 
   showfpslimCheckbox.Checked:=false;
   batteryCheckbox.Checked:=false;
@@ -7700,6 +7738,14 @@ procedure Tgoverlayform.vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
 begin
    //Block keypress on combobox
   key:=#0;
+end;
+
+procedure Tgoverlayform.wideBitBtnClick(Sender: TObject);
+begin
+  //Change opengl window to widemode
+  openglcontrol1.Width:=1007;
+  openglcontrol1.Height:=513;
+  openglcontrol1.Left:=8;
 end;
 
 procedure Tgoverlayform.widthImageMouseEnter(Sender: TObject);

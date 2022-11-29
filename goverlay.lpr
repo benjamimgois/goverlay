@@ -8,7 +8,7 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, overlayunit, aboutunit, crosshairUnit, hudbackgroundUnit, logpathUnit,
-  lazopenglcontext
+  lazopenglcontext, fullscreenUnit
   { you can add units after this };
 
 {$R *.res}
@@ -23,6 +23,7 @@ begin
   Application.CreateForm(TcrosshairsizeForm, crosshairsizeForm);
   Application.CreateForm(ThudbackgroundForm, hudbackgroundForm);
   Application.CreateForm(TlogpathForm, logpathForm);
+  Application.CreateForm(TfullscreenForm, fullscreenForm);
   Application.Run;
 end.
 
