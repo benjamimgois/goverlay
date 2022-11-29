@@ -6,16 +6,24 @@
       <Flags>
         <CompatibilityMode Value="True"/>
       </Flags>
-      <SessionStorage Value="InProjectDir"/>
+      <SessionStorage Value="InIDEConfig"/>
       <Title Value="GOverlay"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
       <XPManifest>
         <DpiAware Value="True"/>
+        <TextName Value="GOverlay"/>
+        <TextDesc Value="GOverlay"/>
       </XPManifest>
       <Icon Value="0"/>
     </General>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+      <MinorVersionNr Value="9"/>
+      <RevisionNr Value="1"/>
+      <StringTable InternalName="Goverlay" ProductName="Goverlay" ProductVersion="0.9.1"/>
+    </VersionInfo>
     <MacroValues Count="1">
       <Macro1 Name="LCLWidgetType" Value="qt5"/>
     </MacroValues>
@@ -80,7 +88,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="8">
+    <Units Count="7">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -128,14 +136,6 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit6>
-      <Unit7>
-        <Filename Value="fullscreenunit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="fullscreenForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="fullscreenUnit"/>
-      </Unit7>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
