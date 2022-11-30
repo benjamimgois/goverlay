@@ -37,7 +37,7 @@ object aboutForm: TaboutForm
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Font.Color = clAqua
         Font.Height = -13
-        Font.Name = 'Sans'
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
@@ -53,7 +53,7 @@ object aboutForm: TaboutForm
         Caption = 'https://github.com/matanui159/ReplaySorcery'
         Font.Color = clAqua
         Font.Height = -13
-        Font.Name = 'Sans'
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
@@ -15204,7 +15204,7 @@ object aboutForm: TaboutForm
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Font.Color = clAqua
         Font.Height = -13
-        Font.Name = 'Sans'
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
@@ -15220,7 +15220,7 @@ object aboutForm: TaboutForm
         Caption = 'https://www.linux4everyone.com/'
         Font.Color = clAqua
         Font.Height = -13
-        Font.Name = 'Sans'
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
@@ -15256,6 +15256,8 @@ object aboutForm: TaboutForm
         Top = 65
         Width = 490
         Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a gaming platform.'
+        Font.Height = -13
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         ParentColor = False
         ParentFont = False
@@ -15269,7 +15271,7 @@ object aboutForm: TaboutForm
         Caption = 'https://github.com/benjamimgois/goverlay'
         Font.Color = clAqua
         Font.Height = -13
-        Font.Name = 'Sans'
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         Font.Style = [fsBold]
         ParentColor = False
@@ -15288,13 +15290,13 @@ object aboutForm: TaboutForm
         Left = 0
         Height = 749
         Top = 0
-        Width = 656
-        Align = alLeft
+        Width = 612
+        Align = alTop
         Alignment = taCenter
         BorderStyle = bsNone
         DoubleBuffered = False
-        Font.Height = -12
-        Font.Name = 'Sans'
+        Font.Height = -13
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         Lines.Strings = (
           'GNU GENERAL PUBLIC LICENSE'
