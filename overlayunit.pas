@@ -66,10 +66,9 @@ type
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
     MenuItem4: TMenuItem;
-    MenuItem5: TMenuItem;
-    RadioButton1: TRadioButton;
-    RadioButton2: TRadioButton;
-    themesGroupBox1: TGroupBox;
+    verticalRadioButton: TRadioButton;
+    horizontalRadioButton: TRadioButton;
+    orientationGroupBox: TGroupBox;
     wideBitBtn: TBitBtn;
     normalBitBtn: TBitBtn;
     vkcubegsMenuItem: TMenuItem;
@@ -356,6 +355,7 @@ type
     procedure gputempgraphBitBtnClick(Sender: TObject);
     procedure graphhudBitBtnClick(Sender: TObject);
     procedure heroicMenuItemClick(Sender: TObject);
+    procedure horizontalRadioButtonClick(Sender: TObject);
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure frametimegraphColorButtonColorChanged(Sender: TObject);
@@ -383,7 +383,6 @@ type
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
-    procedure MenuItem5Click(Sender: TObject);
     procedure middleleftSpeedButtonClick(Sender: TObject);
     procedure middlerightSpeedButtonClick(Sender: TObject);
     procedure minimalhudBitBtnClick(Sender: TObject);
@@ -391,6 +390,7 @@ type
     procedure roundcornerTrackBarChange(Sender: TObject);
     procedure safemodeBitBtnClick(Sender: TObject);
     procedure themesComboBoxChange(Sender: TObject);
+    procedure verticalRadioButtonClick(Sender: TObject);
     procedure vkcubegsMenuItemClick(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
     procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -836,6 +836,8 @@ var
   initgamepadSTR: string;
   initnvmetemp: Textfile;
   initnvmetempSTR: string;
+  initorientation: Textfile;
+  initorientationSTR: string;
   initthrottlings: Textfile;
   initthrottlingsSTR: string;
   initframecount: Textfile;
@@ -1005,7 +1007,7 @@ begin
   // ###################################################################################### HUD Title
 
       // Only create title entry if title isn't blank and diferent of default title
-      if (hudtitleEdit.text <> '') and (hudtitleEdit.text <> 'HUD Title') then
+      if (hudtitleEdit.text <> '') and (hudtitleEdit.text <> 'Title') then
 
        begin
 
@@ -1680,8 +1682,8 @@ if gamepadCheckbox.Checked=true then
 RunCommand('bash -c ''echo "gamepad_battery" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 //show NVME Temperature
-      if nvmetempCheckBox.Checked=true then
-      RunCommand('bash -c ''echo "custom_text=NVME Temp:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=sensors | grep Composite | cut -c 15-22" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+if nvmetempCheckBox.Checked=true then
+RunCommand('bash -c ''echo "custom_text=NVME Temp:" >> $HOME/.config/MangoHud/MangoHud.conf; echo "exec=sensors | grep Composite | cut -c 15-22" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
 
 //show Distro info
@@ -1692,6 +1694,16 @@ RunCommand('bash -c ''echo "custom_text= #add line for space" >> $HOME/.config/M
 
 // Distro name
 RunCommand('bash -c ''echo "custom_text=Distro:" >> $HOME/.config/MangoHud/MangoHud.conf; cat /usr/lib/os-release | grep -w NAME | cut -d "=" -f2 | cut -d "\"" -f 2 > $HOME/.config/goverlay/distroinfo ;echo "exec=cat $HOME/.config/goverlay/distroinfo" >> $HOME/.config/MangoHud/MangoHud.conf''', s);      // store distro name in goverlay folder
+
+
+
+//Store the value on text file - TEMPORARY might remove
+
+//RunCommand('bash -c ''cat /usr/lib/os-release | grep -w NAME | cut -d "=" -f2 | cut -d "\"" -f 2 > $HOME/.config/goverlay/distroinfo''', s);
+//Write manoghud.conf correct line
+//RunCommand('bash -c ''printf "exec= echo Distro: cat $HOME/.config/goverlay/distroinfo" > $HOME/.config/MangoHud/MangoHud.conf''', s);
+
+
 
 //Distro version
 RunCommand('bash -c ''echo "custom_text=Version:" >> $HOME/.config/MangoHud/MangoHud.conf; VERSION=$(cat /usr/lib/os-release | grep VERSION_ID | cut -d "=" -f2);if [[ "$VERSION" == "" ]]; then VERSION=$(cat /usr/lib/os-release | grep BUILD_ID | cut -d "=" -f2); fi; if [[ "$VERSION" != "" ]]; then echo $VERSION > $HOME/.config/goverlay/distroversion; else echo rolling > $HOME/.config/goverlay/distroversion; fi;echo "exec=cat $HOME/.config/goverlay/distroversion" >> $HOME/.config/MangoHud/MangoHud.conf''', s);      // store distro name in goverlay folder
@@ -1775,6 +1787,23 @@ end;
 
   //####################################################################################### VISUALS
 
+
+  //HUD Orientation
+
+    //Vertical
+    if verticalRadiobutton.Checked=true then
+      begin
+      horizontalRadiobutton.Checked:=false;
+      RunCommand('bash -c ''echo "table_columns=3" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    end;
+
+    //Horizontal
+    if horizontalRadiobutton.Checked=true then
+      begin
+      verticalRadiobutton.Checked:=false;
+      RunCommand('bash -c ''echo "horizontal" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+      RunCommand('bash -c ''echo "table_columns=30" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+    end;
 
   //Setup Default HUD Visualization
   if hidehudcheckbox.Checked=true then
@@ -2138,6 +2167,7 @@ RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w procmem
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w round_corners >> $HOME/.config/goverlay/initial_values/round_corners''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w gamepad_battery  >> $HOME/.config/goverlay/initial_values/gamepad''', s);
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w sensors  >> $HOME/.config/goverlay/initial_values/nvmetemp''', s);
+RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w horizontal  >> $HOME/.config/goverlay/initial_values/orientation''', s);
 
 //distro info
 RunCommand('bash -c ''cat $HOME/.config/MangoHud/MangoHud.conf | grep -w distroinfo  >> $HOME/.config/goverlay/initial_values/distroinfo''', s);
@@ -2357,14 +2387,7 @@ begin
 
 end;
 
-procedure Tgoverlayform.MenuItem5Click(Sender: TObject);
-begin
-  // run steam with Deck UI
-  RunCommand('bash -c ''yes | cp -rf $HOME/.steam/steam/package/beta $HOME/.steam/steam/package/beta.bkp ''', s); //make a copy of the original file
-  RunCommand('bash -c ''rm -Rf $HOME/.steam/steam/package/beta''', s);
-  RunCommand('bash -c ''echo "steampal_stable_9a24a2bf68596b860cb6710d9ea307a76c29a04d" >> $HOME/.steam/steam/package/beta''', s);   // write new value to beta file
-  RunCommand('bash -c ''steam -gamepadui''', s);   // start steam in deck ui
-end;
+
 
 procedure Tgoverlayform.middleleftSpeedButtonClick(Sender: TObject);
 begin
@@ -2471,7 +2494,7 @@ procedure Tgoverlayform.normalBitBtnClick(Sender: TObject);
 begin
   //Change opengl window to normal mode
   openglcontrol1.Width:=524;
-  openglcontrol1.Height:=513;
+  openglcontrol1.Height:=514;
   openglcontrol1.Left:=493;
 end;
 
@@ -2663,6 +2686,12 @@ end;
 
 end;
 
+procedure Tgoverlayform.verticalRadioButtonClick(Sender: TObject);
+begin
+   if verticalRadiobutton.Checked=true then
+   horizontalRadiobutton.Checked:=false;
+end;
+
 procedure Tgoverlayform.vkcubegsMenuItemClick(Sender: TObject);
 begin
   //Vkcube test with Gamescope
@@ -2687,7 +2716,7 @@ procedure Tgoverlayform.OpenGLControl1Paint(Sender: TObject);
  var
   Speed: Double;
 begin
-  writeln('paint');
+ // writeln('paint');
   glClearColor(0.1,0.1,0.1,0.0);//background - dark gray
   glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
   glEnable(GL_DEPTH_TEST);
@@ -2698,7 +2727,7 @@ begin
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  glTranslatef(0.0, 0.0,-6.0);
+  glTranslatef(0.0, 0.0,-5.0);
   glRotatef(cube_rotationx, cube_rotationy, cube_rotationz, 0.0);
 
   glBegin(GL_QUADS);
@@ -5667,6 +5696,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autoupload''', s);
 RunCommand('bash -c ''echo 24 >> /tmp/goverlay/initial_values/font_size_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/nvmetemp''', s);
+RunCommand('bash -c ''touch /tmp/goverlay/initial_values/orientation''', s);
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
@@ -5864,6 +5894,19 @@ CloseFile(initnvmetemp);
 case initnvmetempSTR of
 '':nvmetempCheckbox.Checked:=false;
 'exec=sensors | grep Composite | cut -c 15-22':nvmetempCheckbox.Checked:=true;
+ end;
+
+//###################################################################### Hud orientation
+
+// Assign Text file to variable than assign variable to string
+AssignFile(initorientation, '/tmp/goverlay/initial_values/orientation');
+Reset(initorientation);
+Readln(initorientation,initorientationSTR); //Assign Text file to String
+CloseFile(initorientation);
+
+case initorientationSTR of
+'':verticalRadioButton.Checked:=true;
+'horizontal':horizontalRadioButton.Checked:=true;
  end;
 
 //###################################################################### vkbasalt status
@@ -6177,7 +6220,7 @@ Readln(inithudtitlevalue,inithudtitlevalueSTR); //Assign Text file to String
 CloseFile(inithudtitlevalue);
 
 if inithudtitlevalueSTR = '' then
-   hudtitleEdit.text:= 'HUD Title'
+   hudtitleEdit.text:= 'Title'
    else
    hudtitleEdit.text:= inithudtitlevalueSTR;
 
@@ -7623,9 +7666,15 @@ begin
   RunCommand('bash -c ''mangohud heroic''', s);  // run heroic
 end;
 
+procedure Tgoverlayform.horizontalRadioButtonClick(Sender: TObject);
+begin
+   if horizontalRadiobutton.Checked=true then
+   verticalRadiobutton.Checked:=false;
+end;
+
 procedure Tgoverlayform.topcenterSpeedButtonClick(Sender: TObject);
 begin
-     //Highlight main button
+   //Highlight main button
    topcenterSpeedButton.imageIndex:=4;
 
 
@@ -7744,7 +7793,7 @@ procedure Tgoverlayform.wideBitBtnClick(Sender: TObject);
 begin
   //Change opengl window to widemode
   openglcontrol1.Width:=1007;
-  openglcontrol1.Height:=513;
+  openglcontrol1.Height:=514;
   openglcontrol1.Left:=8;
 end;
 
