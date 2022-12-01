@@ -17,6 +17,8 @@ object aboutForm: TaboutForm
     Top = 0
     Width = 616
     ActivePage = TabSheet1
+    Font.Height = -13
+    Font.Name = 'Noto Sans'
     Font.Quality = fqAntialiased
     ParentFont = False
     TabIndex = 0
@@ -15246,6 +15248,8 @@ object aboutForm: TaboutForm
         Top = 508
         Width = 157
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
+        Font.Height = -13
+        Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         ParentColor = False
         ParentFont = False
@@ -15255,7 +15259,7 @@ object aboutForm: TaboutForm
         Height = 252
         Top = 65
         Width = 490
-        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a gaming platform.'
+        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a AWESOME gaming platform.'
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased

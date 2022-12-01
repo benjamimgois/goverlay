@@ -69,6 +69,8 @@ type
     verticalRadioButton: TRadioButton;
     horizontalRadioButton: TRadioButton;
     orientationGroupBox: TGroupBox;
+    vsyncComboBox1: TComboBox;
+    vsyncGroupBox1: TGroupBox;
     wideBitBtn: TBitBtn;
     normalBitBtn: TBitBtn;
     vkcubegsMenuItem: TMenuItem;
