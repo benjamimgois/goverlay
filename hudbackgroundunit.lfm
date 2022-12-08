@@ -9,15 +9,7 @@ object hudbackgroundForm: ThudbackgroundForm
   ClientWidth = 304
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.2.2.0'
-  object transpTrackBar: TTrackBar
-    Left = 8
-    Height = 38
-    Top = 8
-    Width = 288
-    Position = 6
-    TabOrder = 0
-  end
+  LCLVersion = '2.2.4.0'
   object transparencyLabel: TLabel
     Left = 112
     Height = 16

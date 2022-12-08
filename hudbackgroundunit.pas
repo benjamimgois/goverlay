@@ -15,7 +15,6 @@ type
     transparencyLabel: TLabel;
     transpmaxLabel: TLabel;
     transpminLabel: TLabel;
-    transpTrackBar: TTrackBar;
     procedure FormCreate(Sender: TObject);
   private
 
