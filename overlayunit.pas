@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, hudbackgroundUnit, customeffectsunit,
+  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,
   OpenGLContext, GL, GLU,LCLType;
 
 
@@ -34,8 +34,10 @@ type
     autostartLabel2: TLabel;
     destfolderpathLabel: TLabel;
     driverversionCheckBox: TCheckBox;
+    gpudescLabel: TLabel;
     Image3: TImage;
     Image4: TImage;
+    ImageList4: TImageList;
     nvmetempCheckBox: TCheckBox;
     logdurationSpinEdit: TSpinEdit;
     autoresCheckBox: TCheckBox;
@@ -66,10 +68,13 @@ type
     casTrackBar: TTrackBar;
     casValueLabel: TLabel;
     MenuItem4: TMenuItem;
+    transpmaxLabel: TLabel;
+    transpminLabel: TLabel;
+    transpTrackBar: TTrackBar;
     verticalRadioButton: TRadioButton;
     horizontalRadioButton: TRadioButton;
     orientationGroupBox: TGroupBox;
-    vsyncComboBox1: TComboBox;
+    pcidevComboBox: TComboBox;
     vsyncGroupBox1: TGroupBox;
     wideBitBtn: TBitBtn;
     normalBitBtn: TBitBtn;
@@ -84,8 +89,8 @@ type
     themesComboBox: TComboBox;
     themesGroupBox: TGroupBox;
     vsyncGroupBox: TGroupBox;
-    Image1: TImage;
-    Image2: TImage;
+    vulkanImage: TImage;
+    openglImage: TImage;
     originalImage: TImage;
     PageControl2: TPageControl;
     reshadeLabel1: TLabel;
@@ -176,7 +181,6 @@ type
     hidehudCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
     hudtitleEdit: TEdit;
-    hudtranspBitBtn: TBitBtn;
     hudversionCheckBox: TCheckBox;
     intelpowerfixBitBtn: TBitBtn;
     iordrwColorButton: TColorButton;
@@ -361,7 +365,6 @@ type
     procedure hudbackgroundColorButtonColorChanged(Sender: TObject);
     procedure cpuColorButtonColorChanged(Sender: TObject);
     procedure frametimegraphColorButtonColorChanged(Sender: TObject);
-    procedure hudtranspBitBtnClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure iordrwColorButtonColorChanged(Sender: TObject);
     procedure fontsizeComboBoxChange(Sender: TObject);
@@ -389,14 +392,14 @@ type
     procedure middlerightSpeedButtonClick(Sender: TObject);
     procedure minimalhudBitBtnClick(Sender: TObject);
     procedure normalBitBtnClick(Sender: TObject);
+    procedure pcidevComboBoxChange(Sender: TObject);
     procedure roundcornerTrackBarChange(Sender: TObject);
     procedure safemodeBitBtnClick(Sender: TObject);
     procedure themesComboBoxChange(Sender: TObject);
     procedure verticalRadioButtonClick(Sender: TObject);
     procedure vkcubegsMenuItemClick(Sender: TObject);
     procedure vkcubeMenuItemClick(Sender: TObject);
-    procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
+    procedure OpenGLControl1MouseMove(Sender: TObject; Shift: TShiftState; X,Y: Integer);
     procedure OpenGLControl1Paint(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramgraphBitBtnClick(Sender: TObject);
@@ -559,6 +562,23 @@ var
   breezeVAR: Textfile;
   breezeSTR: string;
   breezedependencyVALUE: Integer;
+  initpcidev1: Textfile;
+  initpcidev1STR: string;
+  initpcidev2: Textfile;
+  initpcidev2STR: string;
+  initpcidev3: Textfile;
+  initpcidev3STR: string;
+  initpcidev4: Textfile;
+  initpcidev4STR: string;
+
+  initgpudesc1: Textfile;
+  initgpudesc1STR: string;
+  initgpudesc2: Textfile;
+  initgpudesc2STR: string;
+  initgpudesc3: Textfile;
+  initgpudesc3STR: string;
+  initgpudesc4: Textfile;
+  initgpudesc4STR: string;
 
   //ReplaySorcery variables
   reswidthCustomValue:TextFile;
@@ -1812,7 +1832,7 @@ end;
   RunCommand('bash -c ''echo "no_display" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
 
   //Background transparency
-   case hudbackgroundForm.transptrackbar.Position of
+   case transptrackbar.Position of
     0:RunCommand('bash -c ''echo "background_alpha=1" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
     1:RunCommand('bash -c ''echo "background_alpha=0.9" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
     2:RunCommand('bash -c ''echo "background_alpha=0.8" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
@@ -2499,6 +2519,35 @@ begin
   openglcontrol1.Height:=514;
   openglcontrol1.Left:=493;
 end;
+
+procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
+begin
+    case pcidevCombobox.ItemIndex of
+    0: begin
+    gpudesclabel.caption:=initgpudesc1STR;//GPU Description Label
+    // GPU vendor Icon
+    end;
+
+    1: begin
+    gpudesclabel.caption:=initgpudesc2STR;//GPU Description Label
+    // GPU vendor Icon
+    end;
+
+    2: begin
+    gpudesclabel.caption:=initgpudesc3STR;//GPU Description Label
+    // GPU vendor Icon
+    end;
+
+    3: begin
+    gpudesclabel.caption:=initgpudesc4STR;//GPU Description Label
+    // GPU vendor Icon
+    end;
+  end;
+end;
+
+
+
+
 
 procedure Tgoverlayform.roundcornerTrackBarChange(Sender: TObject);
 begin
@@ -5308,10 +5357,7 @@ begin
 end;
 
 
-procedure Tgoverlayform.hudtranspBitBtnClick(Sender: TObject);
-begin
-  hudbackgroundForm.show;
-end;
+
 
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
 begin
@@ -5402,7 +5448,7 @@ begin
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_mangohud''', s);
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_vkbasalt''', s);
   RunCommand('bash -c ''rm /tmp/goverlay/dependency_replay''', s);
-//  RunCommand('bash -c ''rm /tmp/goverlay/dependency_breeze''', s);
+
 
 
 
@@ -5538,23 +5584,6 @@ begin
                replaydependencyVALUE := 0;
 
 
-      //Determine breeze dependency status
-
-          //locate breeze and store result in tmp folder
-       //   RunCommand('bash -c ''find /usr/share/plasma/desktoptheme/breeze-light/metadata.desktop   >> /tmp/goverlay/dependency_breeze''', s);
-
-          // Assign Text file dependency_breeze to variable breezeVAR
-      //    AssignFile(breezeVAR, '/tmp/goverlay/dependency_breeze');
-     //     Reset(breezeVAR);
-      //    Readln(breezeVAR,breezeSTR); //Assign Text file to String
-     //     CloseFile(breezeVAR);
-
-          // Read String and store value on breezedependencyVALUE based on result
-    //      if breezeSTR = '/usr/share/plasma/desktoptheme/breeze-light/metadata.desktop' then
-    //      breezedependencyVALUE := 1
-    //      else
-    //      breezedependencyVALUE := 0;
-
 
         //Print Dependency status information
 
@@ -5655,6 +5684,13 @@ end;
 RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/''', s);
 RunCommand('bash -c ''mkdir -p /tmp/goverlay/initial_values/''', s);
 
+//Identify VGA and Display controllers
+RunCommand('bash -c ''lspci | grep VGA >> /tmp/goverlay/initial_values/pcidevs''', s);
+RunCommand('bash -c ''lspci | grep Display >> /tmp/goverlay/initial_values/pcidevs''', s);
+//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep VGA >> /tmp/goverlay/initial_values/pcidevs''', s);         // TEST FILE
+//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep Display >> /tmp/goverlay/initial_values/pcidevs''', s);     // TEST FILE
+//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep 3D >> /tmp/goverlay/initial_values/pcidevs''', s);     // TEST FILE
+
 //Create dummy files to avoid program error at boot
 
 //Mangohud dummy initials
@@ -5700,23 +5736,23 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/nvmetemp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/orientation''', s);
 
+
+//RunCommand('bash -c ''touch /tmp/goverlay/initial_values/pcidevs''', s);
+
+
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/autolog_value''', s);
-
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/logduration''', s);
 RunCommand('bash -c ''echo 0 >> /tmp/goverlay/initial_values/logduration_value''', s);
-
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/hudtitle_value''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/font_type''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/round_corners''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/fpsonly''', s);
-
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/gpu_load_change''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_power''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cpu_mhz''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/fps''', s);
-
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_load''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_temp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/graphs_gpu_core_clock''', s);
@@ -5789,7 +5825,93 @@ RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/ubuntu/Ubuntu-M.ttf $HOME/.c
 
 // ########################################         Read configuration files - MANGOHUD  ########################################################
 
+//###################################################################### PCIDEVs
 
+// Store pcidev number of first line and GPU description in separated files
+RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev1''', s); // pcidev1
+RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/initial_values/pcidevs | cut -c 35-150 >> /tmp/goverlay/initial_values/gpudesc1''', s); // gpudesc1
+//RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/initial_values/pcidevs | awk -F":" "{print $3}" >> /tmp/goverlay/initial_values/gpudesc1''', s); // gpudesc1
+
+// Store pcidev1 in string
+AssignFile(initpcidev1, '/tmp/goverlay/initial_values/pcidev1');
+Reset(initpcidev1);
+Readln(initpcidev1,initpcidev1STR); //Assign Text file to String
+CloseFile(initpcidev1);
+
+// Store gpudesc1 in string
+AssignFile(initgpudesc1, '/tmp/goverlay/initial_values/gpudesc1');
+Reset(initgpudesc1);
+Readln(initgpudesc1,initgpudesc1STR); //Assign Text file to String
+CloseFile(initgpudesc1);
+
+//Add pcidev number into Combobox
+pcidevcombobox.AddItem(initpcidev1STR,Nil);
+
+//Set pcidevCombobox to the first value
+//pcidevCombobox.
+
+
+// Store pcidev number of second line and GPU description in separated files
+RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev2''', s); // pcidev2
+RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/initial_values/pcidevs | cut -c 9-100 >> /tmp/goverlay/initial_values/gpudesc2''', s); // gpudesc2
+
+// Store pcidev2 in string
+AssignFile(initpcidev2, '/tmp/goverlay/initial_values/pcidev2');
+Reset(initpcidev2);
+Readln(initpcidev2,initpcidev2STR); //Assign Text file to String
+CloseFile(initpcidev2);
+
+// Store gpudesc2 in string
+AssignFile(initgpudesc2, '/tmp/goverlay/initial_values/gpudesc2');
+Reset(initgpudesc2);
+Readln(initgpudesc2,initgpudesc2STR); //Assign Text file to String
+CloseFile(initgpudesc2);
+
+//Add pcidev number into Combobox
+pcidevcombobox.AddItem(initpcidev2STR,Nil);
+
+
+
+
+// Store pcidev number of second line and GPU description in separated files
+RunCommand('bash -c ''sed -n "3p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev3''', s); // pcidev3
+RunCommand('bash -c ''sed -n "3p" /tmp/goverlay/initial_values/pcidevs | cut -c 9-100 >> /tmp/goverlay/initial_values/gpudesc3''', s); // gpudesc3
+
+// Store pcidev3 in string
+AssignFile(initpcidev3, '/tmp/goverlay/initial_values/pcidev3');
+Reset(initpcidev3);
+Readln(initpcidev3,initpcidev3STR); //Assign Text file to String
+CloseFile(initpcidev3);
+
+// Store gpudesc3 in string
+AssignFile(initgpudesc3, '/tmp/goverlay/initial_values/gpudesc3');
+Reset(initgpudesc3);
+Readln(initgpudesc3,initgpudesc3STR); //Assign Text file to String
+CloseFile(initgpudesc3);
+
+//Add pcidev number into Combobox
+pcidevcombobox.AddItem(initpcidev3STR,Nil);
+
+
+
+// Store pcidev number of second line and GPU description in separated files
+RunCommand('bash -c ''sed -n "4p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev4''', s); // pcidev4
+RunCommand('bash -c ''sed -n "4p" /tmp/goverlay/initial_values/pcidevs | cut -c 9-100 >> /tmp/goverlay/initial_values/gpudesc4''', s); // gpudesc4
+
+// Store pcidev4 in string
+AssignFile(initpcidev4, '/tmp/goverlay/initial_values/pcidev4');
+Reset(initpcidev4);
+Readln(initpcidev4,initpcidev4STR); //Assign Text file to String
+CloseFile(initpcidev4);
+
+// Store gpudesc4 in string
+AssignFile(initgpudesc4, '/tmp/goverlay/initial_values/gpudesc4');
+Reset(initgpudesc4);
+Readln(initgpudesc4,initgpudesc4STR); //Assign Text file to String
+CloseFile(initgpudesc4);
+
+//Add pcidev number into Combobox
+pcidevcombobox.AddItem(initpcidev4STR,Nil);
 
 //###################################################################### FPS_LIMIT
 
