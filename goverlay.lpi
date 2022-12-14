@@ -87,7 +87,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="6">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -113,28 +113,20 @@
         <UnitName Value="crosshairUnit"/>
       </Unit3>
       <Unit4>
-        <Filename Value="hudbackgroundunit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="hudbackgroundForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="hudbackgroundUnit"/>
-      </Unit4>
-      <Unit5>
         <Filename Value="logpathunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="logpathForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="logpathUnit"/>
-      </Unit5>
-      <Unit6>
+      </Unit4>
+      <Unit5>
         <Filename Value="customeffectsunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="customeffectsForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit6>
+      </Unit5>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

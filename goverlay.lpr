@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, overlayunit, aboutunit, crosshairUnit, hudbackgroundUnit, logpathUnit,
+  Forms, overlayunit, aboutunit, crosshairUnit, logpathUnit,
   lazopenglcontext;
 
 {$R *.res}
@@ -18,7 +18,6 @@ begin
   Application.Initialize;
   Application.CreateForm(Tgoverlayform, goverlayform);
   Application.CreateForm(TaboutForm, aboutForm);
-  Application.CreateForm(ThudbackgroundForm, hudbackgroundForm);
   Application.CreateForm(TlogpathForm, logpathForm);
   Application.Run;
 end.

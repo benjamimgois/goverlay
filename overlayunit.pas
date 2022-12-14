@@ -176,7 +176,7 @@ type
     h264profileCombobox: TComboBox;
     h264profileLabel: TLabel;
     hlepresetLabel: TLabel;
-    hudbackgroundColorButton: TColorButton;
+   // hudbackgroundColorButton: TColorButton;
     hudGroupBox: TGroupBox;
     hidehudCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
@@ -1135,6 +1135,16 @@ begin
 
   //GPU checks
 
+
+  //PCI DEV
+
+  case pcidevCombobox.ItemIndex of
+    //Add string "0:" before actual pcidev number
+    0:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev1 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    1:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev2 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    2:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev3 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    3:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev4 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+  end;
 
 
   //GPU LOAD
@@ -5338,7 +5348,7 @@ end;
 procedure Tgoverlayform.hudbackgroundColorButtonColorChanged(Sender: TObject);
 begin
     //Use function SColorToHtmlColor from unit ATStringProc_htmlColor to change color format to RGB and write value to label
-    hudbackgroundcolorhtml := SColorToHtmlColor(hudbackgroundcolorButton.ButtonColor);
+    //hudbackgroundcolorhtml := SColorToHtmlColor(hudbackgroundcolorButton.ButtonColor);
 end;
 
 procedure Tgoverlayform.cpuColorButtonColorChanged(Sender: TObject);
@@ -5438,6 +5448,7 @@ begin
   //Create temporary folder and files for goverlay
   RunCommand('bash -c ''mkdir -p /tmp/goverlay/''', s);
   RunCommand('bash -c ''mkdir -p /tmp/goverlay/initial_values/''', s);
+  RunCommand('bash -c ''mkdir -p /tmp/goverlay/pcidev/''', s);
   RunCommand('bash -c ''touch /tmp/goverlay/togglestateValue''', s);
 
   //Create goverlay config folder
@@ -5683,13 +5694,16 @@ end;
 //Delete old tmp files and recreate directory
 RunCommand('bash -c ''rm -Rf /tmp/goverlay/initial_values/''', s);
 RunCommand('bash -c ''mkdir -p /tmp/goverlay/initial_values/''', s);
+RunCommand('bash -c ''rm -Rf /tmp/goverlay/pcidev/''', s);
+RunCommand('bash -c ''mkdir -p /tmp/goverlay/pcidev/''', s);
+
 
 //Identify VGA and Display controllers
-RunCommand('bash -c ''lspci | grep VGA >> /tmp/goverlay/initial_values/pcidevs''', s);
-RunCommand('bash -c ''lspci | grep Display >> /tmp/goverlay/initial_values/pcidevs''', s);
-//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep VGA >> /tmp/goverlay/initial_values/pcidevs''', s);         // TEST FILE
-//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep Display >> /tmp/goverlay/initial_values/pcidevs''', s);     // TEST FILE
-//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep 3D >> /tmp/goverlay/initial_values/pcidevs''', s);     // TEST FILE
+RunCommand('bash -c ''lspci | grep VGA >> /tmp/goverlay/pcidev/pcidevs''', s);
+RunCommand('bash -c ''lspci | grep Display >> /tmp/goverlay/pcidev/pcidevs''', s);
+//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep VGA >> /tmp/goverlay/pcidev/pcidevs''', s);         // TEST FILE
+//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep Display >> /tmp/goverlay/pcidev/pcidevs''', s);     // TEST FILE
+//RunCommand('bash -c ''cat /home/benjamim/Documentos/lspci_intel_2discrete.txt | grep 3D >> /tmp/goverlay/pcidev/pcidevs''', s);     // TEST FILE
 
 //Create dummy files to avoid program error at boot
 
@@ -5736,8 +5750,10 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/nvmetemp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/orientation''', s);
 
+//pcidev dummys
+//RunCommand('bash -c ''touch /tmp/goverlay/pcidev/pcidev1''', s);
+//RunCommand('bash -c ''touch /tmp/goverlay/pcidev/gpudesc1''', s);
 
-//RunCommand('bash -c ''touch /tmp/goverlay/initial_values/pcidevs''', s);
 
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
@@ -5828,18 +5844,18 @@ RunCommand('bash -c ''yes | cp -rf /usr/share/fonts/ubuntu/Ubuntu-M.ttf $HOME/.c
 //###################################################################### PCIDEVs
 
 // Store pcidev number of first line and GPU description in separated files
-RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev1''', s); // pcidev1
-RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/initial_values/pcidevs | cut -c 35-150 >> /tmp/goverlay/initial_values/gpudesc1''', s); // gpudesc1
-//RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/initial_values/pcidevs | awk -F":" "{print $3}" >> /tmp/goverlay/initial_values/gpudesc1''', s); // gpudesc1
+RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/pcidev/pcidevs | cut -c 1-7 >> /tmp/goverlay/pcidev/pcidev1''', s); // pcidev1
+RunCommand('bash -c ''sed -n "1p" /tmp/goverlay/pcidev/pcidevs | cut -c 35-150 >> /tmp/goverlay/pcidev/gpudesc1''', s); // gpudesc1
+
 
 // Store pcidev1 in string
-AssignFile(initpcidev1, '/tmp/goverlay/initial_values/pcidev1');
+AssignFile(initpcidev1, '/tmp/goverlay/pcidev/pcidev1');
 Reset(initpcidev1);
 Readln(initpcidev1,initpcidev1STR); //Assign Text file to String
 CloseFile(initpcidev1);
 
 // Store gpudesc1 in string
-AssignFile(initgpudesc1, '/tmp/goverlay/initial_values/gpudesc1');
+AssignFile(initgpudesc1, '/tmp/goverlay/pcidev/gpudesc1');
 Reset(initgpudesc1);
 Readln(initgpudesc1,initgpudesc1STR); //Assign Text file to String
 CloseFile(initgpudesc1);
@@ -5847,22 +5863,20 @@ CloseFile(initgpudesc1);
 //Add pcidev number into Combobox
 pcidevcombobox.AddItem(initpcidev1STR,Nil);
 
-//Set pcidevCombobox to the first value
-//pcidevCombobox.
 
 
 // Store pcidev number of second line and GPU description in separated files
-RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev2''', s); // pcidev2
-RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/initial_values/pcidevs | cut -c 9-100 >> /tmp/goverlay/initial_values/gpudesc2''', s); // gpudesc2
+RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/pcidev/pcidevs | cut -c 1-7 >> /tmp/goverlay/pcidev/pcidev2''', s); // pcidev2
+RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/pcidev/pcidevs | cut -c 35-150 >> /tmp/goverlay/pcidev/gpudesc2''', s); // gpudesc2
 
 // Store pcidev2 in string
-AssignFile(initpcidev2, '/tmp/goverlay/initial_values/pcidev2');
+AssignFile(initpcidev2, '/tmp/goverlay/pcidev/pcidev2');
 Reset(initpcidev2);
 Readln(initpcidev2,initpcidev2STR); //Assign Text file to String
 CloseFile(initpcidev2);
 
 // Store gpudesc2 in string
-AssignFile(initgpudesc2, '/tmp/goverlay/initial_values/gpudesc2');
+AssignFile(initgpudesc2, '/tmp/goverlay/pcidev/gpudesc2');
 Reset(initgpudesc2);
 Readln(initgpudesc2,initgpudesc2STR); //Assign Text file to String
 CloseFile(initgpudesc2);
@@ -5874,17 +5888,17 @@ pcidevcombobox.AddItem(initpcidev2STR,Nil);
 
 
 // Store pcidev number of second line and GPU description in separated files
-RunCommand('bash -c ''sed -n "3p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev3''', s); // pcidev3
-RunCommand('bash -c ''sed -n "3p" /tmp/goverlay/initial_values/pcidevs | cut -c 9-100 >> /tmp/goverlay/initial_values/gpudesc3''', s); // gpudesc3
+RunCommand('bash -c ''sed -n "3p" /tmp/goverlay/pcidev/pcidevs | cut -c 1-7 >> /tmp/goverlay/pcidev/pcidev3''', s); // pcidev3
+RunCommand('bash -c ''sed -n "3p" /tmp/goverlay/pcidev/pcidevs | cut -c 35-150 >> /tmp/goverlay/pcidev/gpudesc3''', s); // gpudesc3
 
 // Store pcidev3 in string
-AssignFile(initpcidev3, '/tmp/goverlay/initial_values/pcidev3');
+AssignFile(initpcidev3, '/tmp/goverlay/pcidev/pcidev3');
 Reset(initpcidev3);
 Readln(initpcidev3,initpcidev3STR); //Assign Text file to String
 CloseFile(initpcidev3);
 
 // Store gpudesc3 in string
-AssignFile(initgpudesc3, '/tmp/goverlay/initial_values/gpudesc3');
+AssignFile(initgpudesc3, '/tmp/goverlay/pcidev/gpudesc3');
 Reset(initgpudesc3);
 Readln(initgpudesc3,initgpudesc3STR); //Assign Text file to String
 CloseFile(initgpudesc3);
@@ -5895,17 +5909,17 @@ pcidevcombobox.AddItem(initpcidev3STR,Nil);
 
 
 // Store pcidev number of second line and GPU description in separated files
-RunCommand('bash -c ''sed -n "4p" /tmp/goverlay/initial_values/pcidevs | cut -c 1-7 >> /tmp/goverlay/initial_values/pcidev4''', s); // pcidev4
-RunCommand('bash -c ''sed -n "4p" /tmp/goverlay/initial_values/pcidevs | cut -c 9-100 >> /tmp/goverlay/initial_values/gpudesc4''', s); // gpudesc4
+RunCommand('bash -c ''sed -n "4p" /tmp/goverlay/pcidev/pcidevs | cut -c 1-7 >> /tmp/goverlay/pcidev/pcidev4''', s); // pcidev4
+RunCommand('bash -c ''sed -n "4p" /tmp/goverlay/pcidev/pcidevs | cut -c 35-150 >> /tmp/goverlay/pcidev/gpudesc4''', s); // gpudesc4
 
 // Store pcidev4 in string
-AssignFile(initpcidev4, '/tmp/goverlay/initial_values/pcidev4');
+AssignFile(initpcidev4, '/tmp/goverlay/pcidev/pcidev4');
 Reset(initpcidev4);
 Readln(initpcidev4,initpcidev4STR); //Assign Text file to String
 CloseFile(initpcidev4);
 
 // Store gpudesc4 in string
-AssignFile(initgpudesc4, '/tmp/goverlay/initial_values/gpudesc4');
+AssignFile(initgpudesc4, '/tmp/goverlay/pcidev/gpudesc4');
 Reset(initgpudesc4);
 Readln(initgpudesc4,initgpudesc4STR); //Assign Text file to String
 CloseFile(initgpudesc4);
