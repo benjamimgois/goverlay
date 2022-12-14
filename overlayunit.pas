@@ -1140,10 +1140,10 @@ begin
 
   case pcidevCombobox.ItemIndex of
     //Add string "0:" before actual pcidev number
-    0:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev1 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
-    1:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev2 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
-    2:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev3 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
-    3:RunCommand('bash -c ''echo -n "pcidev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev4 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    0:RunCommand('bash -c ''echo -n "pci_dev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev1 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    1:RunCommand('bash -c ''echo -n "pci_dev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev2 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    2:RunCommand('bash -c ''echo -n "pci_dev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev3 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
+    3:RunCommand('bash -c ''echo -n "pci_dev=0:" >> $HOME/.config/MangoHud/MangoHud.conf | cat /tmp/goverlay/pcidev/pcidev4 >> $HOME/.config/MangoHud/MangoHud.conf ''', s);
   end;
 
 
@@ -5750,10 +5750,6 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/wine''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/nvmetemp''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/orientation''', s);
 
-//pcidev dummys
-//RunCommand('bash -c ''touch /tmp/goverlay/pcidev/pcidev1''', s);
-//RunCommand('bash -c ''touch /tmp/goverlay/pcidev/gpudesc1''', s);
-
 
 
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/autolog''', s);
@@ -5865,6 +5861,8 @@ pcidevcombobox.AddItem(initpcidev1STR,Nil);
 
 
 
+
+
 // Store pcidev number of second line and GPU description in separated files
 RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/pcidev/pcidevs | cut -c 1-7 >> /tmp/goverlay/pcidev/pcidev2''', s); // pcidev2
 RunCommand('bash -c ''sed -n "2p" /tmp/goverlay/pcidev/pcidevs | cut -c 35-150 >> /tmp/goverlay/pcidev/gpudesc2''', s); // gpudesc2
@@ -5881,8 +5879,12 @@ Reset(initgpudesc2);
 Readln(initgpudesc2,initgpudesc2STR); //Assign Text file to String
 CloseFile(initgpudesc2);
 
-//Add pcidev number into Combobox
-pcidevcombobox.AddItem(initpcidev2STR,Nil);
+// Check if pcidev2 exists add line to combobox
+if initpcidev2STR <> '' then
+ //Add pcidev number into Combobox
+ pcidevcombobox.AddItem(initpcidev2STR,Nil);
+
+
 
 
 
@@ -5903,8 +5905,12 @@ Reset(initgpudesc3);
 Readln(initgpudesc3,initgpudesc3STR); //Assign Text file to String
 CloseFile(initgpudesc3);
 
-//Add pcidev number into Combobox
-pcidevcombobox.AddItem(initpcidev3STR,Nil);
+
+// Check if pcidev3 exists add line to combobox
+if initpcidev3STR <> '' then
+ //Add pcidev number into Combobox
+ pcidevcombobox.AddItem(initpcidev3STR,Nil);
+
 
 
 
@@ -5924,8 +5930,10 @@ Reset(initgpudesc4);
 Readln(initgpudesc4,initgpudesc4STR); //Assign Text file to String
 CloseFile(initgpudesc4);
 
-//Add pcidev number into Combobox
-pcidevcombobox.AddItem(initpcidev4STR,Nil);
+// Check if pcidev4 exists add line to combobox
+if initpcidev4STR <> '' then
+ //Add pcidev number into Combobox
+ pcidevcombobox.AddItem(initpcidev4STR,Nil);
 
 //###################################################################### FPS_LIMIT
 
