@@ -5959,10 +5959,10 @@ CloseFile(initpcidevsave);
 
 if initpcidevsaveSTR <> '' then
    case initpcidevsaveSTR of
-        'pcidev1':pcidevCombobox.itemindex:=0 and pcidevCombobox.OnChange.
-        'pcidev2':pcidevCombobox.itemindex:=1 and pcidevCombobox.OnChange;
-        'pcidev3':pcidevCombobox.itemindex:=2 and pcidevCombobox.OnChange;
-        'pcidev4':pcidevCombobox.itemindex:=3 and pcidevCombobox.OnChange;
+        'pcidev1':pcidevCombobox.itemindex:=0 ;
+        'pcidev2':pcidevCombobox.itemindex:=1 ;
+        'pcidev3':pcidevCombobox.itemindex:=2 ;
+        'pcidev4':pcidevCombobox.itemindex:=3 ;
          end;
 
 
