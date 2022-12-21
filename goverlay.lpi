@@ -8,6 +8,7 @@
       </Flags>
       <SessionStorage Value="InIDEConfig"/>
       <Title Value="GOverlay"/>
+      <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
       <XPManifest>

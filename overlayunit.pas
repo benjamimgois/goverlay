@@ -5949,8 +5949,6 @@ if initpcidev4STR <> '' then
 
 
 
-
-
 // Assign Text file to variable than assign variable to string
 AssignFile(initpcidevsave, '/tmp/goverlay/pcidev/pcidev_save');
 Reset(initpcidevsave);
@@ -5959,10 +5957,31 @@ CloseFile(initpcidevsave);
 
 if initpcidevsaveSTR <> '' then
    case initpcidevsaveSTR of
-        'pcidev1':pcidevCombobox.itemindex:=0 ;
-        'pcidev2':pcidevCombobox.itemindex:=1 ;
-        'pcidev3':pcidevCombobox.itemindex:=2 ;
-        'pcidev4':pcidevCombobox.itemindex:=3 ;
+        'pcidev1':
+          begin
+            pcidevCombobox.itemindex:=0;
+            gpudesclabel.caption:=initgpudesc1STR;
+          end;
+
+        'pcidev2':
+          begin
+            pcidevCombobox.itemindex:=1 ;
+            gpudesclabel.caption:=initgpudesc2STR;
+          end;
+
+
+        'pcidev3':
+          begin
+            pcidevCombobox.itemindex:=2 ;
+            gpudesclabel.caption:=initgpudesc3STR;
+          end;
+
+        'pcidev4':
+          begin
+             pcidevCombobox.itemindex:=3 ;
+             gpudesclabel.caption:=initgpudesc4STR;
+          end;
+
          end;
 
 

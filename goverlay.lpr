@@ -14,6 +14,7 @@ uses
 
 begin
   RequireDerivedFormResource:=True;
+  Application.Scaled:=True;
   Application.Title:='GOverlay';
   Application.Initialize;
   Application.CreateForm(Tgoverlayform, goverlayform);
