@@ -1,8 +1,8 @@
 [Desktop Entry]
 Name=GOverlay
 Comment=Graphical UI to help manage Vulkan / OpenGL overlays
-Exec=goverlay
-Icon=goverlay
+Exec=io.github.benjamimgois.goverlay
+Icon=io.github.benjamimgois.goverlay
 Terminal=false
 Type=Application
 Categories=Game;
