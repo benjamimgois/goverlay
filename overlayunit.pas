@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
   ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,
-  OpenGLContext, GL, GLU,LCLType;
+  OpenGLContext, GL, GLU,LCLtype;
 
 
 
@@ -17,57 +17,46 @@ type
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
-    aacprofileCombobox: TComboBox;
     aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     archCheckBox: TCheckBox;
-    audiobitrateCombobox: TComboBox;
-    audiodevCombobox: TComboBox;
-    audiodevEdit: TEdit;
-    audioencoderCombobox: TComboBox;
-    audioinputCombobox: TComboBox;
-    audiosampCombobox: TComboBox;
-    autoaudiobitrateCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
     autostartLabel: TLabel;
     autostartLabel2: TLabel;
     destfolderpathLabel: TLabel;
     driverversionCheckBox: TCheckBox;
+    fpsCheckBox1: TCheckBox;
+    fpsCheckBox2: TCheckBox;
+    fpsCheckBox3: TCheckBox;
     gpudescLabel: TLabel;
+    gputempCheckBox1: TCheckBox;
+    gputempCheckBox2: TCheckBox;
+    hudbackgroundColorButton: TColorButton;
+    hudonoffComboBox1: TComboBox;
     Image3: TImage;
     Image4: TImage;
     ImageList4: TImageList;
+    normalBitBtn: TBitBtn;
     nvmetempCheckBox: TCheckBox;
     logdurationSpinEdit: TSpinEdit;
-    autoresCheckBox: TCheckBox;
-    autoscaleCheckBox: TCheckBox;
     logdurationtLabel3: TLabel;
     logdurationLabel: TLabel;
     autouploadCheckBox: TCheckBox;
-    autovideobitrateCheckBox: TCheckBox;
-    autovideoqualityCheckBox: TCheckBox;
     aveffectsListBox: TListBox;
     backgroundLabel: TLabel;
     batteryCheckBox: TCheckBox;
     bottomleftSpeedButton: TSpeedButton;
-    cas00Image: TImage;
-    cas01Image: TImage;
-    cas02Image: TImage;
-    cas03Image: TImage;
-    cas04Image: TImage;
-    cas05Image: TImage;
-    cas06Image: TImage;
-    cas07Image: TImage;
-    cas08Image: TImage;
-    cas09Image: TImage;
-    cas10Image: TImage;
-    casCheckBox: TCheckBox;
-    casorigLabel: TLabel;
-    caspostLabel: TLabel;
-    casTrackBar: TTrackBar;
-    casValueLabel: TLabel;
     MenuItem4: TMenuItem;
+    RadioGroup1: TRadioGroup;
+    roundcornerTrackBar1: TTrackBar;
+    roundcornerTrackBar2: TTrackBar;
+    roundcornervalueLabel1: TLabel;
+    filtersSheet: TTabSheet;
+    roundcornervalueLabel2: TLabel;
+    topcenterSpeedButton1: TSpeedButton;
+    transparencyLabel2: TLabel;
+    transparencyLabel3: TLabel;
     transpmaxLabel: TLabel;
     transpminLabel: TLabel;
     transpTrackBar: TTrackBar;
@@ -75,9 +64,9 @@ type
     horizontalRadioButton: TRadioButton;
     orientationGroupBox: TGroupBox;
     pcidevComboBox: TComboBox;
+    vkbtogglekeyCombobox: TComboBox;
+    vktoggleLabel: TLabel;
     vsyncGroupBox1: TGroupBox;
-    wideBitBtn: TBitBtn;
-    normalBitBtn: TBitBtn;
     vkcubegsMenuItem: TMenuItem;
     minimalhudBitBtn: TBitBtn;
     fpsonlyCheckBox: TCheckBox;
@@ -91,7 +80,6 @@ type
     vsyncGroupBox: TGroupBox;
     vulkanImage: TImage;
     openglImage: TImage;
-    originalImage: TImage;
     PageControl2: TPageControl;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
@@ -101,7 +89,6 @@ type
     middleleftSpeedButton: TSpeedButton;
     middlerightSpeedButton: TSpeedButton;
     bottomrightSpeedButton: TSpeedButton;
-    clipdurationCombobox: TComboBox;
     compacthudBitBtn: TBitBtn;
     completehudBitBtn: TBitBtn;
     cpuavrloadCheckBox: TCheckBox;
@@ -140,7 +127,6 @@ type
     fpslimtoggleComboBox: TComboBox;
     framegraphRadioButton: TRadioButton;
     framehistogramRadioButton: TRadioButton;
-    framerateCombobox: TComboBox;
     frametimegraphCheckBox: TCheckBox;
     frametimegraphColorButton: TColorButton;
     gamemodestatusCheckBox: TCheckBox;
@@ -171,11 +157,7 @@ type
     graph9: TLabel;
     graphhudBitBtn: TBitBtn;
     positionGroupBox: TGroupBox;
-    GroupBox2: TGroupBox;
     layoutsGroupBox: TGroupBox;
-    h264profileCombobox: TComboBox;
-    h264profileLabel: TLabel;
-    hlepresetLabel: TLabel;
    // hudbackgroundColorButton: TColorButton;
     hudGroupBox: TGroupBox;
     hidehudCheckBox: TCheckBox;
@@ -184,27 +166,9 @@ type
     hudversionCheckBox: TCheckBox;
     intelpowerfixBitBtn: TBitBtn;
     iordrwColorButton: TColorButton;
-    Label10: TLabel;
-    Label11: TLabel;
-    Label12: TLabel;
-    Label13: TLabel;
-    Label17: TLabel;
-    Label18: TLabel;
-    Label19: TLabel;
-    Label20: TLabel;
-    Label22: TLabel;
-    Label23: TLabel;
-    Label24: TLabel;
-    Label25: TLabel;
-    Label26: TLabel;
-    Label27: TLabel;
-    Label28: TLabel;
-    Label29: TLabel;
-    Label30: TLabel;
     Label4: TLabel;
     Label5: TLabel;
     Label6: TLabel;
-    Label9: TLabel;
     loggingComboBox: TComboBox;
     loggingGroupBox: TGroupBox;
     logpathBitBtn: TBitBtn;
@@ -213,8 +177,6 @@ type
     mediaComboBox: TComboBox;
     otherGroupBox: TGroupBox;
     mangohudPageControl: TPageControl;
-    outputscaleGroupBox: TGroupBox;
-    PageControl1: TPageControl;
     performanceGroupBox: TGroupBox;
     performanceGroupBox1: TGroupBox;
     performanceGroupBox2: TGroupBox;
@@ -222,14 +184,7 @@ type
     ramColorButton: TColorButton;
     ramgraphBitBtn: TBitBtn;
     ramusageCheckBox: TCheckBox;
-    replaykeyCombobox: TComboBox;
-    replaytoggleLabel: TLabel;
-    resheightSpinEdit: TSpinEdit;
     resolutionCheckBox: TCheckBox;
-    reswidthSpinEdit: TSpinEdit;
-    saveclipEdit: TEdit;
-    scaleheightSpinEdit: TSpinEdit;
-    scalewidthSpinEdit: TSpinEdit;
     sessionCheckBox: TCheckBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
@@ -237,11 +192,7 @@ type
     visualTabSheet: TTabSheet;
     metricsTabSheet: TTabSheet;
     extrasTabSheet: TTabSheet;
-    TabSheet5: TTabSheet;
-    TabSheet6: TTabSheet;
-    TabSheet7: TTabSheet;
     TabSheet8: TTabSheet;
-    TabSheet9: TTabSheet;
     timeCheckBox: TCheckBox;
     topcenterSpeedButton: TSpeedButton;
     topleftSpeedButton: TSpeedButton;
@@ -250,55 +201,22 @@ type
     transparencyLabel: TLabel;
     transparencyLabel1: TLabel;
     uploadlogComboBox: TComboBox;
-    videobitrateLabel: TLabel;
-    videobitrateTrackBar: TTrackBar;
-    videocustomGroupBox: TGroupBox;
-    videodevEdit: TEdit;
-    videodeviceCombobox: TComboBox;
-    videodeviceLabel: TLabel;
-    videodeviceLabel1: TLabel;
-    videoencoderCombobox: TComboBox;
-    videogopLabel: TLabel;
-    videogopTrackBar: TTrackBar;
-    videohlepresetCombobox: TComboBox;
-    videoinputCombobox: TComboBox;
-    videoinputLabel: TLabel;
-    videoqualityLabel: TLabel;
-    videoqualityTrackBar: TTrackBar;
     visualGroupBox: TGroupBox;
     vkbasaltstatusCheckBox: TCheckBox;
     vkcubeMenuItem: TMenuItem;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
-    OpenGLControl1: TOpenGLControl;
     runvkbasaltBitBtn: TBitBtn;
     vkbasaltPopupMenu: TPopupMenu;
     steamMenuItem: TMenuItem;
     gamePopupMenu: TPopupMenu;
     runsteamBitBtn: TBitBtn;
     vramColorButton: TColorButton;
-    replaystateLabel: TLabel;
-    replaystateSpeedButton: TSpeedButton;
-    heightImage: TImage;
-    replaystopBitBtn: TBitBtn;
     vramgraphBitBtn: TBitBtn;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
-    widthImage: TImage;
-    replaygeSpeedButton: TSpeedButton;
-    replayGlobalenableLabel: TLabel;
-    replaystartBitBtn: TBitBtn;
-    replaysaveBitBtn: TBitBtn;
-    replayImage: TImage;
-    replayPanel: TPanel;
-    replayLabel: TLabel;
-    replayShape: TShape;
-    customresShape: TShape;
-    fullscreenShape: TShape;
-    vkbtogglekeyCombobox: TComboBox;
     ImageList3: TImageList;
-    vktoggleLabel: TLabel;
     ImageList2: TImageList;
     dependencieSpeedButton: TSpeedButton;
     casTrackBar2: TTrackBar;
@@ -318,6 +236,7 @@ type
     saveBitBtn: TBitBtn;
     mangohudShape: TShape;
     vkbasaltShape: TShape;
+    wideBitBtn: TBitBtn;
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
     procedure addBitBtnClick(Sender: TObject);
@@ -328,20 +247,16 @@ type
     procedure aacprofileComboboxKeyPress(Sender: TObject; var Key: char);
     procedure audiodevComboboxKeyPress(Sender: TObject; var Key: char);
     procedure audiosampComboboxKeyPress(Sender: TObject; var Key: char);
-    procedure autoaudiobitrateCheckBoxChange(Sender: TObject);
-    procedure autoresCheckBoxChange(Sender: TObject);
-    procedure autoscaleCheckBoxChange(Sender: TObject);
-    procedure autovideobitrateCheckBoxChange(Sender: TObject);
-    procedure autovideoqualityCheckBoxChange(Sender: TObject);
-    procedure aveffectsListBoxKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
+
+
+
     procedure basaltgeSpeedButtonClick(Sender: TObject);
     procedure basaltrunBitBtnClick(Sender: TObject);
     procedure basaltsaveBitBtnClick(Sender: TObject);
     procedure bottomleftSpeedButtonClick(Sender: TObject);
     procedure bottomrightSpeedButtonClick(Sender: TObject);
-    procedure casCheckBoxChange(Sender: TObject);
-    procedure casTrackBarChange(Sender: TObject);
+
+
     procedure compacthudBitBtnClick(Sender: TObject);
     procedure completehudBitBtnClick(Sender: TObject);
     procedure clipdurationComboboxKeyPress(Sender: TObject; var Key: char);
@@ -403,26 +318,16 @@ type
     procedure OpenGLControl1Paint(Sender: TObject);
     procedure ramColorButtonColorChanged(Sender: TObject);
     procedure ramgraphBitBtnClick(Sender: TObject);
-    procedure replaygeSpeedButtonClick(Sender: TObject);
-    procedure replaykeyComboboxKeyPress(Sender: TObject; var Key: char);
-    procedure replayLabelClick(Sender: TObject);
-    procedure replayLabelMouseEnter(Sender: TObject);
-    procedure replayLabelMouseLeave(Sender: TObject);
-    procedure replaysaveBitBtnClick(Sender: TObject);
-    procedure replaystartBitBtnClick(Sender: TObject);
-    procedure replaystopBitBtnClick(Sender: TObject);
+
+
+
     procedure runsteamBitBtnClick(Sender: TObject);
     procedure runvkbasaltBitBtnClick(Sender: TObject);
     procedure saveBitBtn1Click(Sender: TObject);
     procedure steamMenuItemClick(Sender: TObject);
-    procedure videobitrateTrackBarChange(Sender: TObject);
-    procedure videogopTrackBarChange(Sender: TObject);
-    procedure videoqualityTrackBarChange(Sender: TObject);
+
     procedure reshadesyncBitBtnClick(Sender: TObject);
-    procedure resheightSpinEditMouseEnter(Sender: TObject);
-    procedure resheightSpinEditMouseLeave(Sender: TObject);
-    procedure reswidthSpinEditMouseEnter(Sender: TObject);
-    procedure reswidthSpinEditMouseLeave(Sender: TObject);
+
     procedure saveBitBtnClick(Sender: TObject);
     procedure runBitBtnClick(Sender: TObject);
     procedure aboutBitBtnClick(Sender: TObject);
@@ -438,7 +343,7 @@ type
     procedure vramgraphBitBtnClick(Sender: TObject);
     procedure vsyncComboBoxKeyPress(Sender: TObject; var Key: char);
     procedure wideBitBtnClick(Sender: TObject);
-    procedure widthImageMouseEnter(Sender: TObject);
+
     procedure wineColorButtonColorChanged(Sender: TObject);
     procedure h264profileComboboxKeyPress(Sender: TObject; var Key: char);
 
@@ -2343,13 +2248,11 @@ begin
   mangohudLabel.Font.color:=clwhite;
   vkbasaltlabel.Font.color:=clgray;
   vkbasaltshape.Visible:=false;
-  replaylabel.Font.color:=clgray;
-  replayshape.Visible:=false;
+
 
   //Display mangohud panel
   mangohudPanel.Visible:=true;
   vkbasaltPanel.Visible:=false;
-  replayPanel.Visible:=false;
 end;
 
 procedure Tgoverlayform.mangohudLabelMouseEnter(Sender: TObject);
@@ -2531,9 +2434,9 @@ end;
 procedure Tgoverlayform.normalBitBtnClick(Sender: TObject);
 begin
   //Change opengl window to normal mode
-  openglcontrol1.Width:=524;
-  openglcontrol1.Height:=514;
-  openglcontrol1.Left:=493;
+ // openglcontrol1.Width:=524;
+ // openglcontrol1.Height:=514;
+ // openglcontrol1.Left:=493;
 end;
 
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
@@ -2840,13 +2743,13 @@ begin
           glVertex3f( 1.0,-1.0,-1.0);                  // Bottom Right Of The Quad (Right)
   glEnd();
 
-  Speed := double(OpenGLControl1.FrameDiffTimeInMSecs)/250;
+//  Speed := double(OpenGLControl1.FrameDiffTimeInMSecs)/250;
 
   cube_rotationx += 5.15 * Speed;
   cube_rotationy += 5.15 * Speed;
   cube_rotationz += 20.0 * Speed;
 
-  OpenGLControl1.SwapBuffers;
+//  OpenGLControl1.SwapBuffers;
   //##########################################      OPENGL - DRAWN SPINNING CUBE
 end;
 
@@ -2867,630 +2770,7 @@ begin
      end;
 end;
 
-procedure Tgoverlayform.replaygeSpeedButtonClick(Sender: TObject);
-begin
-  case replaygeSpeedButton.imageIndex of
-    0: begin
-      replaygeSpeedButton.ImageIndex:=1; //switch button position
-      RunCommand('bash -c ''rm $HOME/.config/autostart/replay.desktop''', s); //delete old file
-      RunCommand('bash -c ''echo "[Desktop Entry]" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Type=Application" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Encoding=UTF-8" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Name=replay-sourcery" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Comment=replay-sourcery" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Terminal=false" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Categories=Graphics;Game;" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Exec=systemctl --user enable --now replay-sorcery" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "X-GNOME-Autostart-enabled=true" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''echo "Keywords=replay;goverlay;" >> $HOME/.config/autostart/replay.desktop''', s);  // create autostart file
-      RunCommand('bash -c ''chmod +x $HOME/.config/autostart/replay.desktop''', s);  // turn file executable
-      RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "ReplaySorcery Global Enable Activated" "The desktop will be continually recorded in the background"''', s); // Popup a notification
-      showmessage ('Restart your system to take effect');
-    end;
-    1: begin
-      replaygeSpeedButton.ImageIndex:=0;  //switch button position
-      RunCommand('bash -c ''rm $HOME/.config/autostart/replay.desktop''', s); //delete old file
-      RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
-      showmessage ('Restart your system to take effect');
-     end;
-  end;
-end;
 
-procedure Tgoverlayform.replaykeyComboboxKeyPress(Sender: TObject; var Key: char
-  );
-begin
-    //Block keypress on combobox
-  key:=#0;
-end;
-
-procedure Tgoverlayform.replayLabelClick(Sender: TObject);
-begin
-    //On Select replay shape - Change variables
-  mangohudsel := false;
-  vkbasaltsel := false;
-  replaysel := true;
-
-  //On Select replaysorce shape - Change colors and unselect Mangohud and replaysoruce
-  replayShape.Brush.Color:=$00383838;
-  replayShape.Visible:=true;
-  replayLabel.Font.color:=clwhite;
-  mangohudlabel.Font.color:=clgray;
-  mangohudshape.Visible:=false;
-  vkbasaltlabel.Font.color:=clgray;
-  vkbasaltshape.Visible:=false;
-
-  //Display replay-sourcery panel
-  Mangohudpanel.Visible:=false;
-  vkbasaltPanel.Visible:=false;
-  replaypanel.Visible:=true;
-end;
-
-procedure Tgoverlayform.replayLabelMouseEnter(Sender: TObject);
-begin
-  //highlight replay shape on mouse enter if mangohud is selected
- if mangohudsel = true  then
-   begin
-    replayShape.Brush.Color:=$00232323;
-    replayShape.Visible:=true;
-   end;
-
- //highlight replay shape on mouse enter if vkbasalt is selected
- if vkbasaltsel = true  then
-   begin
-   replayShape.Brush.Color:=$00232323;
-   replayShape.Visible:=true;
-   end;
-end;
-
-procedure Tgoverlayform.replayLabelMouseLeave(Sender: TObject);
-begin
- //hide replay shape on mouse leave if mangohud is selected
-if mangohudsel = true  then
-replayShape.Visible:=false;
-
-if vkbasaltsel = true  then
-replayShape.Visible:=false;
-end;
-
-procedure Tgoverlayform.replaysaveBitBtnClick(Sender: TObject);
-begin
-    // Delete old config file if it exists
-  RunCommand('bash -c ''rm $HOME/.config/replay-sorcery.conf''', s);
-
-  // Create a new file for GOverlay
-  RunCommand('bash -c ''echo "################### File Generated by GOverlay ###################" >> $HOME/.config/replay-sorcery.conf''', s);
-
-  // Popup a notification
-  RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "ReplaySorcery" "Configuration saved"''', s);
-
-
-
-  //####################################################################################### Video Settings
-
-
-  //Record the whole display - AUTO
-
-    if autoresCheckbox.Checked = true then
-    begin
-       RunCommand('bash -c ''echo "videoWidth = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''echo "videoHeight = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_FULLSCREEN''', s); // delete old variable to manage initial value
-       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_FULLSCREEN''', s); // variable to manage initial value
-    end;
-
-
-      //Auto Scale
-
-    if autoscaleCheckbox.Checked = true then
-    begin
-       RunCommand('bash -c ''echo "scaleWidth = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''echo "scaleHeight = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // delete old variable to manage initial value
-       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // variable to manage initial value
-    end;
-
-
-
-  //Record custom area
-
-   if autoresCheckbox.Checked = false then
-    begin
-
-    RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_FULLSCREEN''', s); // delete old variable to manage initial value
-    RunCommand('bash -c ''echo "FALSE" >> /tmp/goverlay/initial_values/replay_FULLSCREEN''', s); // variable to manage initial value
-
-    //Custom retangle - Width
-
-       // Assign custom value to file
-      AssignFile(reswidthCustomValue, '/tmp/goverlay/reswidthCustomValue');
-      Rewrite(reswidthCustomValue);
-      Writeln(reswidthCustomValue,reswidthSpinedit.Value);
-      CloseFile(reswidthCustomValue);
-
-      // Create custom script
-      AssignFile(reswidthCustomValueScript, '/tmp/goverlay/reswidthCustomValueScript.sh');
-      Rewrite(reswidthCustomValueScript);
-      Writeln(reswidthCustomValueScript,'RWSc=$(cat /tmp/goverlay/reswidthCustomValue)');  //Store custom value in a Linux/Unix variable
-      Writeln(reswidthCustomValueScript,'echo "videoWidth=$RWSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
-      CloseFile(reswidthCustomValueScript);
-
-      //execute custom script to store custom value on replay-sorcery.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/reswidthCustomValueScript.sh''', s);
-
-
-
-
-      //Custom retangle - Height
-
-      // Assign custom value to file
-      AssignFile(resheightCustomValue, '/tmp/goverlay/resheightCustomValue');
-      Rewrite(resheightCustomValue);
-      Writeln(resheightCustomValue,resheightSpinedit.Value);
-      CloseFile(resheightCustomValue);
-
-      // Create custom script
-      AssignFile(resheightCustomValueScript, '/tmp/goverlay/resheightCustomValueScript.sh');
-      Rewrite(resheightCustomValueScript);
-      Writeln(resheightCustomValueScript,'RHSc=$(cat /tmp/goverlay/resheightCustomValue)');  //Store custom value in a Linux/Unix variable
-      Writeln(resheightCustomValueScript,'echo "videoHeight=$RHSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
-      CloseFile(resheightCustomValueScript);
-
-      //execute custom script to store custom value on replay-sorcery.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/resheightCustomValueScript.sh''', s);
-
-    end;
-
-
-   // Auto Scale
-
-    if autoscaleCheckbox.Checked = true then
-    begin
-       RunCommand('bash -c ''echo "scaleWidth = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''echo "scaleHeight = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // delete old variable to manage initial value
-       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // variable to manage initial value
-    end;
-
-
-   //Custom Scale
-
-
-
-   if autoscaleCheckbox.Checked = false then
-    begin
-
-    RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // delete old variable to manage initial value
-    RunCommand('bash -c ''echo "FALSE" >> /tmp/goverlay/initial_values/replay_AUTOSCALE''', s); // variable to manage initial value
-
-
-
-    //Custom scale - Width
-
-       // Assign custom value to file
-      AssignFile(scalewidthCustomValue, '/tmp/goverlay/scalewidthCustomValue');
-      Rewrite(scalewidthCustomValue);
-      Writeln(scalewidthCustomValue,scalewidthSpinedit.Value);
-      CloseFile(scalewidthCustomValue);
-
-      // Create custom script
-      AssignFile(scalewidthCustomValueScript, '/tmp/goverlay/scalewidthCustomValueScript.sh');
-      Rewrite(scalewidthCustomValueScript);
-      Writeln(scalewidthCustomValueScript,'SWSc=$(cat /tmp/goverlay/scalewidthCustomValue)');  //Store custom value in a Linux/Unix variable
-      Writeln(scalewidthCustomValueScript,'echo "scaleWidth=$SWSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
-      CloseFile(scalewidthCustomValueScript);
-
-      //execute custom script to store custom value on replay-sorcery.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/scalewidthCustomValueScript.sh''', s);
-
-
-
-
-      //Custom scale - Height
-
-      // Assign custom value to file
-      AssignFile(scaleheightCustomValue, '/tmp/goverlay/scaleheightCustomValue');
-      Rewrite(scaleheightCustomValue);
-      Writeln(scaleheightCustomValue,scaleheightSpinedit.Value);
-      CloseFile(scaleheightCustomValue);
-
-      // Create custom script
-      AssignFile(scaleheightCustomValueScript, '/tmp/goverlay/scaleheightCustomValueScript.sh');
-      Rewrite(scaleheightCustomValueScript);
-      Writeln(scaleheightCustomValueScript,'SHSc=$(cat /tmp/goverlay/scaleheightCustomValue)');  //Store custom value in a Linux/Unix variable
-      Writeln(scaleheightCustomValueScript,'echo "scaleHeight=$SHSc" >> $HOME/.config/replay-sorcery.conf'); //Create correct command with custom value
-      CloseFile(scaleheightCustomValueScript);
-
-      //execute custom script to store custom value on replay-sorcery.conf
-      RunCommand('bash -c ''sh /tmp/goverlay/scaleheightCustomValueScript.sh''', s);
-
-    end;
-
-
-
-    //REPLAY video input
-  case videoinputCombobox.ItemIndex of
-        0:RunCommand('bash -c ''echo "videoInput = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-        1:RunCommand('bash -c ''echo "videoInput = hwaccel" >> $HOME/.config/replay-sorcery.conf''', s);
-	2:RunCommand('bash -c ''echo "videoInput = x11" >> $HOME/.config/replay-sorcery.conf''', s);
-	3:RunCommand('bash -c ''echo "videoInput = kms" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-  //REPLAY video device
-  case videodeviceCombobox.ItemIndex of
-        0:RunCommand('bash -c ''echo "videoDevice = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-        1:RunCommand('bash -c ''echo "videoDevice = auto" >> $HOME/.config/replay-sorcery.conf''', s);  // LATER
-
-  end;
-
-
-   //REPLAY FPS
-  case framerateCombobox.ItemIndex of
-        0:RunCommand('bash -c ''echo "videoFramerate = 15" >> $HOME/.config/replay-sorcery.conf''', s);
-        1:RunCommand('bash -c ''echo "videoFramerate = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-	2:RunCommand('bash -c ''echo "videoFramerate = 60" >> $HOME/.config/replay-sorcery.conf''', s);
-	3:RunCommand('bash -c ''echo "videoFramerate = 90" >> $HOME/.config/replay-sorcery.conf''', s);
-	4:RunCommand('bash -c ''echo "videoFramerate = 120" >> $HOME/.config/replay-sorcery.conf''', s);
-	5:RunCommand('bash -c ''echo "videoFramerate = 144" >> $HOME/.config/replay-sorcery.conf''', s);
-	6:RunCommand('bash -c ''echo "videoFramerate = 240" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-
-    //REPLAY record duration
-  case clipdurationCombobox.ItemIndex of
-        0:RunCommand('bash -c ''echo "recordSeconds = 10" >> $HOME/.config/replay-sorcery.conf''', s);
-	1:RunCommand('bash -c ''echo "recordSeconds = 15" >> $HOME/.config/replay-sorcery.conf''', s);
-	2:RunCommand('bash -c ''echo "recordSeconds = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-	3:RunCommand('bash -c ''echo "recordSeconds = 60" >> $HOME/.config/replay-sorcery.conf''', s);
-	4:RunCommand('bash -c ''echo "recordSeconds = 120" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-
-   //REPLAY Video Encoder
-  case videoencoderCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "videoEncoder = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "videoEncoder = x264" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "videoEncoder = openh264" >> $HOME/.config/replay-sorcery.conf''', s);
-    3:RunCommand('bash -c ''echo "videoEncoder = x265" >> $HOME/.config/replay-sorcery.conf''', s);
-    4:RunCommand('bash -c ''echo "videoEncoder = hevc" >> $HOME/.config/replay-sorcery.conf''', s);
-    5:RunCommand('bash -c ''echo "videoEncoder = vaapi_h264" >> $HOME/.config/replay-sorcery.conf''', s);
-    6:RunCommand('bash -c ''echo "videoEncoder = vaapi_hevc" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-  //REPLAY H264 Profile
-  case h264profileCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "videoProfile = baseline" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "videoProfile = main" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "videoProfile = high" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-
-    //REPLAY HLE Preset
-  case videohlepresetCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "videoPreset = fast" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "videoPreset = medium" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "videoPreset = slow" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-
-    //REPLAY Video quality
-    if autovideoqualityCheckbox.Checked = true then
-       begin
-       RunCommand('bash -c ''echo "videoQuality = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_VIDEO_AUTO_QUALITY''', s); // delete old variable to manage initial value
-       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_VIDEO_AUTO_QUALITY''', s); // variable to manage initial value
-       end;
-
-
-    if autovideoqualityCheckbox.Checked = false then
-
-       case videoqualityTrackBar.Position of
-       1:RunCommand('bash -c ''echo "videoQuality = 50" >> $HOME/.config/replay-sorcery.conf''', s);
-       2:RunCommand('bash -c ''echo "videoQuality = 45" >> $HOME/.config/replay-sorcery.conf''', s);
-       3:RunCommand('bash -c ''echo "videoQuality = 40" >> $HOME/.config/replay-sorcery.conf''', s);
-       4:RunCommand('bash -c ''echo "videoQuality = 35" >> $HOME/.config/replay-sorcery.conf''', s);
-       5:RunCommand('bash -c ''echo "videoQuality = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-       6:RunCommand('bash -c ''echo "videoQuality = 25" >> $HOME/.config/replay-sorcery.conf''', s);
-       7:RunCommand('bash -c ''echo "videoQuality = 20" >> $HOME/.config/replay-sorcery.conf''', s);
-       8:RunCommand('bash -c ''echo "videoQuality = 15" >> $HOME/.config/replay-sorcery.conf''', s);
-       9:RunCommand('bash -c ''echo "videoQuality = 10" >> $HOME/.config/replay-sorcery.conf''', s);
-       10:RunCommand('bash -c ''echo "videoQuality = 5" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-
-      //REPLAY Video bitrate
-    if autovideobitrateCheckbox.Checked = true then
-       begin
-       RunCommand('bash -c ''echo "videoBitrate = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_VIDEO_AUTO_BITRATE''', s); // delete old variable to manage initial value
-       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_VIDEO_AUTO_BITRATE''', s); // variable to manage initial value
-       end;
-
-
-    if autovideobitrateCheckbox.Checked = false then
-
-       case videobitrateTrackBar.Position of
-       1:RunCommand('bash -c ''echo "videoBitrate = 1M" >> $HOME/.config/replay-sorcery.conf''', s);
-       2:RunCommand('bash -c ''echo "videoBitrate = 2M" >> $HOME/.config/replay-sorcery.conf''', s);
-       3:RunCommand('bash -c ''echo "videoBitrate = 3M" >> $HOME/.config/replay-sorcery.conf''', s);
-       4:RunCommand('bash -c ''echo "videoBitrate = 4M" >> $HOME/.config/replay-sorcery.conf''', s);
-       5:RunCommand('bash -c ''echo "videoBitrate = 5M" >> $HOME/.config/replay-sorcery.conf''', s);
-       6:RunCommand('bash -c ''echo "videoBitrate = 6M" >> $HOME/.config/replay-sorcery.conf''', s);
-       7:RunCommand('bash -c ''echo "videoBitrate = 7M" >> $HOME/.config/replay-sorcery.conf''', s);
-       8:RunCommand('bash -c ''echo "videoBitrate = 8M" >> $HOME/.config/replay-sorcery.conf''', s);
-       9:RunCommand('bash -c ''echo "videoBitrate = 9M" >> $HOME/.config/replay-sorcery.conf''', s);
-       10:RunCommand('bash -c ''echo "videoBitrate = 10M" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-
-      //REPLAY Video GOPs
-
-
-      case videogopTrackBar.Position of
-      20:RunCommand('bash -c ''echo "videoGOP = 20" >> $HOME/.config/replay-sorcery.conf''', s);
-      21:RunCommand('bash -c ''echo "videoGOP = 21" >> $HOME/.config/replay-sorcery.conf''', s);
-      22:RunCommand('bash -c ''echo "videoGOP = 22" >> $HOME/.config/replay-sorcery.conf''', s);
-      23:RunCommand('bash -c ''echo "videoGOP = 23" >> $HOME/.config/replay-sorcery.conf''', s);
-      24:RunCommand('bash -c ''echo "videoGOP = 24" >> $HOME/.config/replay-sorcery.conf''', s);
-      25:RunCommand('bash -c ''echo "videoGOP = 25" >> $HOME/.config/replay-sorcery.conf''', s);
-      26:RunCommand('bash -c ''echo "videoGOP = 26" >> $HOME/.config/replay-sorcery.conf''', s);
-      27:RunCommand('bash -c ''echo "videoGOP = 27" >> $HOME/.config/replay-sorcery.conf''', s);
-      28:RunCommand('bash -c ''echo "videoGOP = 28" >> $HOME/.config/replay-sorcery.conf''', s);
-      29:RunCommand('bash -c ''echo "videoGOP = 29" >> $HOME/.config/replay-sorcery.conf''', s);
-      30:RunCommand('bash -c ''echo "videoGOP = 30" >> $HOME/.config/replay-sorcery.conf''', s);
-      31:RunCommand('bash -c ''echo "videoGOP = 31" >> $HOME/.config/replay-sorcery.conf''', s);
-      32:RunCommand('bash -c ''echo "videoGOP = 32" >> $HOME/.config/replay-sorcery.conf''', s);
-      33:RunCommand('bash -c ''echo "videoGOP = 33" >> $HOME/.config/replay-sorcery.conf''', s);
-      34:RunCommand('bash -c ''echo "videoGOP = 34" >> $HOME/.config/replay-sorcery.conf''', s);
-      35:RunCommand('bash -c ''echo "videoGOP = 35" >> $HOME/.config/replay-sorcery.conf''', s);
-      36:RunCommand('bash -c ''echo "videoGOP = 36" >> $HOME/.config/replay-sorcery.conf''', s);
-      37:RunCommand('bash -c ''echo "videoGOP = 37" >> $HOME/.config/replay-sorcery.conf''', s);
-      38:RunCommand('bash -c ''echo "videoGOP = 38" >> $HOME/.config/replay-sorcery.conf''', s);
-      39:RunCommand('bash -c ''echo "videoGOP = 39" >> $HOME/.config/replay-sorcery.conf''', s);
-      40:RunCommand('bash -c ''echo "videoGOP = 40" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-    //####################################################################################### Audio Settings
-
-  //REPLAY audio input
-  case audioinputCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioInput = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioInput = pulse" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "audioInput = none" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-    //REPLAY audio device
-  case audiodevCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioDevice = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioDevice = system" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "audioDevice = custom" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-     //REPLAY audio encoder
-  case audioencoderCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioEncoder = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioEncoder = aac" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "audioEncoder = fdk" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-       //REPLAY aac profile
-  case aacprofileCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioProfile = low" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioProfile = main" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "audioProfile = high" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-   //REPLAY audio sample rate
-  case audiosampCombobox.ItemIndex of
-    0:RunCommand('bash -c ''echo "audioSamplerate = 11025" >> $HOME/.config/replay-sorcery.conf''', s);
-    1:RunCommand('bash -c ''echo "audioSamplerate = 22050" >> $HOME/.config/replay-sorcery.conf''', s);
-    2:RunCommand('bash -c ''echo "audioSamplerate = 44100" >> $HOME/.config/replay-sorcery.conf''', s);
-    3:RunCommand('bash -c ''echo "audioSamplerate = 48000" >> $HOME/.config/replay-sorcery.conf''', s);
-  end;
-
-     //REPLAY audio bit rate
-    if autoaudiobitrateCheckbox.Checked = true then
-       begin
-       RunCommand('bash -c ''echo "audioBitrate = auto" >> $HOME/.config/replay-sorcery.conf''', s);
-       RunCommand('bash -c ''rm /tmp/goverlay/initial_values/replay_AUDIO_AUTO_BITRATE''', s); // delete old variable to manage initial value
-       RunCommand('bash -c ''echo "TRUE" >> /tmp/goverlay/initial_values/replay_AUDIO_AUTO_BITRATE''', s); // variable to manage initial value
-       end;
-
-
-       if autoaudiobitrateCheckbox.Checked = false then
-
-          case audiobitrateCombobox.ItemIndex of
-          1:RunCommand('bash -c ''echo "audioBitrate = 32K" >> $HOME/.config/replay-sorcery.conf''', s);
-          2:RunCommand('bash -c ''echo "audioBitrate = 64K" >> $HOME/.config/replay-sorcery.conf''', s);
-          3:RunCommand('bash -c ''echo "audioBitrate = 96K" >> $HOME/.config/replay-sorcery.conf''', s);
-          4:RunCommand('bash -c ''echo "audioBitrate = 128K" >> $HOME/.config/replay-sorcery.conf''', s);
-
-     end;
-
-      //####################################################################################### Other Settings
-
-       //REPLAY toogle key
-    case replaykeyCombobox.ItemIndex of
-    0:begin
-      RunCommand('bash -c ''echo "keyMods = ctrl+super" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "keyName = r" >> $HOME/.config/replay-sorcery.conf''', s);
-    end;
-    1:begin
-      RunCommand('bash -c ''echo "keyMods = ctrl+super" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "keyName = F1" >> $HOME/.config/replay-sorcery.conf''', s);
-    end;
-    2:begin
-      RunCommand('bash -c ''echo "keyMods = ctrl+super" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "keyName = F2" >> $HOME/.config/replay-sorcery.conf''', s);
-    end;
-    3:begin
-      RunCommand('bash -c ''echo "keyMods = ctrl+super" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "keyName = F3" >> $HOME/.config/replay-sorcery.conf''', s);
-    end;
-    4:begin
-      RunCommand('bash -c ''echo "keyMods = ctrl+super" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "keyName = F4" >> $HOME/.config/replay-sorcery.conf''', s);
-    end;
-  end;
-
-      //REPLAY Save message
-      //RunCommand('bash -c ''echo "preOutputCommand = notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png Saving_video_recording" >> $HOME/.config/replay-sorcery.conf''', s);
-      RunCommand('bash -c ''echo "outputCommand = notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png Video_Saved_in_the_home_folder" >> $HOME/.config/replay-sorcery.conf''', s);
-
-
-     //Replay output folder
-     RunCommand('bash -c ''echo "outputFile = $HOME/%F_%H-%M-%S.mp4" >> $HOME/.config/replay-sorcery.conf''', s);
-
-   //####################################################################################### End of file creation
-
-
-    //Copy generated replay-sorcery.conf to goverlay config folder
-    RunCommand('bash -c ''yes | cp -rf $HOME/.config/replay-sorcery.conf $HOME/.config/goverlay/replay-sorcery.conf ''', s);
-
-
-
-    // Delete old initial values and recreate folder
-    //RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/''', s);
-    //RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/initial_values/''', s);
-
-    // Delete old initial values and recreate folder
-    RunCommand('bash -c ''mkdir -p $HOME/.config/goverlay/initial_values/''', s);
-
-
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_height''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_height_custom''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_width''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_width_custom''', s);
-
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoFramerate''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_recordSeconds''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoInput''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoDevice''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoEncoder''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoProfile''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoPreset''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoQuality''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoBitrate''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_videoGOP''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_FULLSCREEN''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_AUTOSCALE''', s);
-
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_audioInput''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_audioDevice''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_audioEncoder''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_audioProfile''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_audioSamplerate''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_audioBitrate''', s);
-
-
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_keyCombo''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_offsetX''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_offsetX_custom''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_offsetY''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_offsetY_custom''', s);
-    RunCommand('bash -c ''rm -Rf $HOME/.config/goverlay/initial_values/replay_outputX264Preset''', s);
-
-
-
-   //Extract configurations from main config File to the initial_values folder for replay-sorcery
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoWidth >> $HOME/.config/goverlay/initial_values/replay_width''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoWidth | cut -c 12-16  >> $HOME/.config/goverlay/initial_values/replay_width_custom''', s);  //store just the integer for initial values
-
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoHeight >> $HOME/.config/goverlay/initial_values/replay_height''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoHeight | cut -c 13-16  >> $HOME/.config/goverlay/initial_values/replay_height_custom''', s);  //store just the integer for initial values
-
-
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoFramerate >> $HOME/.config/goverlay/initial_values/replay_videoFramerate''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w recordSeconds >> $HOME/.config/goverlay/initial_values/replay_recordSeconds''', s);
-
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoInput >> $HOME/.config/goverlay/initial_values/replay_videoInput''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoDevice >> $HOME/.config/goverlay/initial_values/replay_videoDevice''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoEncoder >> $HOME/.config/goverlay/initial_values/replay_videoEncoder''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoProfile >> $HOME/.config/goverlay/initial_values/replay_videoProfile''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoPreset >> $HOME/.config/goverlay/initial_values/replay_videoPreset''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoQuality >> $HOME/.config/goverlay/initial_values/replay_videoQuality''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoBitrate >> $HOME/.config/goverlay/initial_values/replay_videoBitrate''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w videoGOP >> $HOME/.config/goverlay/initial_values/replay_videoGOP''', s);
-
-    RunCommand('bash -c ''cat /tmp/goverlay/initial_values/replay_FULLSCREEN >> $HOME/.config/goverlay/initial_values/replay_FULLSCREEN''', s);
-    RunCommand('bash -c ''cat /tmp/goverlay/initial_values/replay_AUTOSCALE >> $HOME/.config/goverlay/initial_values/replay_AUTOSCALE''', s);
-    RunCommand('bash -c ''cat /tmp/goverlay/initial_values/replay_VIDEO_AUTO_QUALITY >> $HOME/.config/goverlay/initial_values/replay_VIDEO_AUTO_QUALITY''', s);
-    RunCommand('bash -c ''cat /tmp/goverlay/initial_values/replay_VIDEO_AUTO_BITRATE >> $HOME/.config/goverlay/initial_values/replay_VIDEO_AUTO_BITRATE''', s);
-    RunCommand('bash -c ''cat /tmp/goverlay/initial_values/replay_AUDIO_AUTO_BITRATE >> $HOME/.config/goverlay/initial_values/replay_AUDIO_AUTO_BITRATE''', s);
-
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w audioInput >> $HOME/.config/goverlay/initial_values/replay_audioInput''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w audioDevice >> $HOME/.config/goverlay/initial_values/replay_audioDevice''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w audioEncoder >> $HOME/.config/goverlay/initial_values/replay_audioEncoder''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w audioProfile >> $HOME/.config/goverlay/initial_values/replay_audioProfile''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w audioSamplerate >> $HOME/.config/goverlay/initial_values/replay_audioSamplerate''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w audioBitrate >> $HOME/.config/goverlay/initial_values/replay_audioBitrate''', s);
-
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w keyMods >> $HOME/.config/goverlay/initial_values/replay_keyMods''', s);
-    RunCommand('bash -c ''cat $HOME/.config/replay-sorcery.conf | grep -w keyName >> $HOME/.config/goverlay/initial_values/replay_keyName''', s);
-
-
-
-    end;
-
-procedure Tgoverlayform.replaystartBitBtnClick(Sender: TObject);
-begin
-   RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Replay-Sorcery" "Service running in background, press the toggle key clip it"''', s);
-   RunCommand('bash -c ''systemctl --user enable --now replay-sorcery''', s);
-   RunCommand('bash -c ''rm /tmp/goverlay/replay_state''', s); // delete old variable for replay-sorcery state
-   RunCommand('bash -c ''ps -e | grep replay >> /tmp/goverlay/replay_state''', s);
-
-   //Store the state of replay-sorcery service
-     AssignFile(replaystateVAR, '/tmp/goverlay/replay_state');
-     Reset(replaystateVAR);
-     Readln(replaystateVAR,replaystateSTR); //Assign Text file to String
-     CloseFile(replaystateVAR);
-
-     //Check state and activate components acordingly
-     if replaystateSTR = '' then     // if service is not running
-         begin
-            replaystopBitbtn.Enabled := false;
-            replayStartBitbtn.enabled := true;
-            replaystateSpeedButton.ImageIndex:=1;
-            replaystateLabel.Caption:='Service is not running';
-         end
-     else       // if service is running
-         begin
-            replaystopBitbtn.Enabled := true;
-            replayStartBitbtn.enabled := false;
-            replaystateSpeedButton.ImageIndex:=0;
-            replaystateLabel.Caption:='Service is running';
-         end;
-
-end;
-
-procedure Tgoverlayform.replaystopBitBtnClick(Sender: TObject);
-begin
-   RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Replay-Sorcery" "Service stopped"''', s);
-   RunCommand('bash -c ''systemctl --user stop --now replay-sorcery''', s);
-   RunCommand('bash -c ''rm /tmp/goverlay/replay_state''', s); // delete old variable for replay-sorcery state
-   RunCommand('bash -c ''ps -e | grep replay >> /tmp/goverlay/replay_state''', s);
-
-   //Store the state of replay-sorcery service
-     AssignFile(replaystateVAR, '/tmp/goverlay/replay_state');
-     Reset(replaystateVAR);
-     Readln(replaystateVAR,replaystateSTR); //Assign Text file to String
-     CloseFile(replaystateVAR);
-
-     //Check state and activate components acordingly
-     if replaystateSTR = '' then     // if service is not running
-         begin
-            replaystopBitbtn.Enabled := false;
-            replayStartBitbtn.enabled := true;
-            replaystateSpeedButton.ImageIndex:=1;
-            replaystateLabel.Caption:='Service is not running';
-         end
-     else       // if service is running
-         begin
-            replaystopBitbtn.Enabled := true;
-            replayStartBitbtn.enabled := false;
-            replaystateSpeedButton.ImageIndex:=0;
-            replaystateLabel.Caption:='Service is running';
-         end;
-end;
 
 procedure Tgoverlayform.runsteamBitBtnClick(Sender: TObject);
 begin
@@ -3514,20 +2794,6 @@ begin
   RunCommand('bash -c ''mangohud steam ''', s);   //Run steam
 end;
 
-procedure Tgoverlayform.videobitrateTrackBarChange(Sender: TObject);
-begin
-   videobitrateLabel.Caption:= inttostr(videobitrateTrackBar.Position)+' Mbps';
-end;
-
-procedure Tgoverlayform.videogopTrackBarChange(Sender: TObject);
-begin
-  videogopLabel.Caption:= inttostr(videogopTrackBar.Position);
-end;
-
-procedure Tgoverlayform.videoqualityTrackBarChange(Sender: TObject);
-begin
-   videoqualityLabel.Caption:= inttostr(videoqualityTrackBar.Position);
-end;
 
 
 procedure Tgoverlayform.reshadesyncBitBtnClick(Sender: TObject);
@@ -3576,29 +2842,7 @@ else
 
 end;
 
-procedure Tgoverlayform.resheightSpinEditMouseEnter(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    heightImage.Visible:= true;
-end;
 
-procedure Tgoverlayform.resheightSpinEditMouseLeave(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    heightImage.Visible:= false;
-end;
-
-procedure Tgoverlayform.reswidthSpinEditMouseEnter(Sender: TObject);
-begin
-  if autoresCheckbox.Checked = false then
-  widthImage.Visible:= true;
-end;
-
-procedure Tgoverlayform.reswidthSpinEditMouseLeave(Sender: TObject);
-begin
-  if autoresCheckbox.Checked = false then
-  widthImage.Visible:=false;
-end;
 
 
 procedure Tgoverlayform.completehudBitBtnClick(Sender: TObject);
@@ -4600,44 +3844,6 @@ RunCommand('bash -c ''echo "################### File Generated by GOverlay #####
 
   // Effects in use
 
-  //CAS
-  if  casCheckBox.Checked = true then
-  begin
-  casSTR := true;
-     // Assign cas value to text file
-      AssignFile(cascheckValue, '/tmp/goverlay/cascheckValue');
-      Rewrite(cascheckValue);
-      Writeln(cascheckValue,casSTR);
-      CloseFile(cascheckValue);
-  end;
- RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/cascheckValue $HOME/.config/goverlay/initial_values/cascheckValue''', s);
-
-  if  casCheckBox.Checked = false then
-  begin
-  casSTR := false;
-     // Assign cas value to text file
-      AssignFile(cascheckValue, '/tmp/goverlay/cascheckValue');
-      Rewrite(cascheckValue);
-      Writeln(cascheckValue,casSTR);
-      CloseFile(cascheckValue);
-  end;
-  RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/cascheckValue $HOME/.config/goverlay/initial_values/cascheckValue''', s);
-
-  //CAS VALUE
-   case castrackbar.Position of
-    0:RunCommand('bash -c ''echo "casSharpness=0.0" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    1:RunCommand('bash -c ''echo "casSharpness=0.1" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    2:RunCommand('bash -c ''echo "casSharpness=0.2" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    3:RunCommand('bash -c ''echo "casSharpness=0.3" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    4:RunCommand('bash -c ''echo "casSharpness=0.4" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    5:RunCommand('bash -c ''echo "casSharpness=0.5" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    6:RunCommand('bash -c ''echo "casSharpness=0.6" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    7:RunCommand('bash -c ''echo "casSharpness=0.7" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    8:RunCommand('bash -c ''echo "casSharpness=0.8" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    9:RunCommand('bash -c ''echo "casSharpness=0.9" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-    10:RunCommand('bash -c ''echo "casSharpness=1.0" >> $HOME/.config/vkBasalt/vkBasalt.conf''', s);
-  end;
-
 
 
   //Toggle Key
@@ -4656,11 +3862,7 @@ RunCommand('bash -c ''echo "################### File Generated by GOverlay #####
   //Create temporary variables and store in vkbasalt.conf
   case numeffects of
   0:begin
-  if casCheckbox.Checked = false then
-  effectsSTR := 'effects = ';
 
-  if casCheckbox.Checked = true then
-  effectsSTR := 'effects = cas ';
   end;
 
  1:begin
@@ -4741,11 +3943,6 @@ RunCommand('bash -c ''echo "################### File Generated by GOverlay #####
       RunCommand('bash -c ''yes | cp -rf /tmp/goverlay/effect4Value >> $HOME/.config/goverlay/initial_values/effect4''', s);
 
 
-      //Inject contrast adaptive sharpening if checkbox is checked
-
-      if numeffects > 0 then
-       if casCheckbox.Checked = true then
-           effectsSTR := effectsSTR+':cas';
 
 
       // Assign command inside effectsSTR to text file
@@ -4810,167 +4007,7 @@ begin
   middlerightSpeedbutton.ImageIndex:=-1;
 end;
 
-procedure Tgoverlayform.casCheckBoxChange(Sender: TObject);
-begin
-  if casCheckbox.Checked=true then casTrackbar.Enabled:= true;
-end;
 
-
-
-procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
-begin
-
-  casValueLabel.Caption:= inttostr(casTrackBar.Position);
-
-  //CAS Preview heightImage
-
-
-    case castrackbar.Position of
-     0:begin
-    cas00Image.Visible:=true;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     1:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=true;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     2:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=true;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     3:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=true;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     4:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=true;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     5:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=true;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     6:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=true;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     7:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=true;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     8:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=true;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=false;
-    end;
-     9:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=true;
-    cas10Image.Visible:=false;
-    end;
-     10:begin
-    cas00Image.Visible:=false;
-    cas01Image.Visible:=false;
-    cas02Image.Visible:=false;
-    cas03Image.Visible:=false;
-    cas04Image.Visible:=false;
-    cas05Image.Visible:=false;
-    cas06Image.Visible:=false;
-    cas07Image.Visible:=false;
-    cas08Image.Visible:=false;
-    cas09Image.Visible:=false;
-    cas10Image.Visible:=true;
-    end;
-  end;
-end;
 
 procedure Tgoverlayform.compacthudBitBtnClick(Sender: TObject);
 begin
@@ -5107,110 +4144,6 @@ begin
     //Block keypress on combobox
   key:=#0;
 end;
-
-procedure Tgoverlayform.autoaudiobitrateCheckBoxChange(Sender: TObject);
-begin
-         if autoaudiobitrateCheckbox.Checked = true then
-
-       begin
-       // Disable audio bitrate controls
-          audiobitrateCombobox.Enabled:=false;
-       end;
-
-       if autoaudiobitrateCheckbox.Checked = false then
-       begin
-          // Enable audio bitrate controls
-             audiobitrateCombobox.Enabled:=true;
-       end;
-end;
-
-procedure Tgoverlayform.autoresCheckBoxChange(Sender: TObject);
-begin
-         if autoresCheckbox.Checked = true then
-       begin
-          //Change video preview
-          fullscreenShape.Visible:= true;
-          customresShape.Visible:= false;
-
-          // Disable custom resolution controls
-          reswidthSpinedit.Enabled := false;
-          resheightSpinedit.Enabled := false;
-
-       end;
-
-       if autoresCheckbox.Checked = false then
-       begin
-           //Change video preview
-          fullscreenShape.Visible:= false;
-          customresShape.Visible:= true;
-
-          // Disable custom resolution controls
-          reswidthSpinedit.Enabled := true;
-          resheightSpinedit.Enabled := true;
-
-       end;
- end;
-
-
-
-procedure Tgoverlayform.autoscaleCheckBoxChange(Sender: TObject);
-begin
-       if autoscaleCheckbox.Checked = true then
-
-       begin
-       // Disable custom scale controls
-          scalewidthSpinedit.Enabled := false;
-          scaleheightSpinedit.Enabled := false;
-       end;
-
-       if autoscaleCheckbox.Checked = false then
-       begin
-       // Enable custom  scale controls
-       scalewidthSpinedit.Enabled := true;
-       scaleheightSpinedit.Enabled := true;
-       end;
-end;
-
-procedure Tgoverlayform.autovideobitrateCheckBoxChange(Sender: TObject);
-begin
-    if autovideobitrateCheckbox.Checked = true then
-   begin
-        videobitrateTrackBar.Enabled := false;
-        videobitrateLabel.Caption:= '';
-   end;
-
-
-    if autovideobitrateCheckbox.Checked = false then
-     begin
-          videobitrateTrackBar.Enabled := true;
-          videobitrateLabel.Caption:=inttostr (videobitrateTrackBar.Position)+' Mbps'; //video bitrate value
-     end;
-end;
-
-procedure Tgoverlayform.autovideoqualityCheckBoxChange(Sender: TObject);
-begin
-  if autovideoqualityCheckbox.Checked = true then
-   begin
-        videoqualityTrackBar.Enabled := false;
-        videoqualityLabel.Caption:= '';
-   end;
-
-
-    if autovideoqualityCheckbox.Checked = false then
-     begin
-          videoqualityTrackBar.Enabled := true;
-          videoqualityLabel.Caption:=inttostr (videoqualityTrackBar.Position); //compress quality value
-     end;
-
-end;
-
-procedure Tgoverlayform.aveffectsListBoxKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-    if Key = VK_RETURN then
-    addbitbtn.Click;
-     end;
-
 
 
 procedure Tgoverlayform.addBitBtnClick(Sender: TObject);
@@ -5409,6 +4342,11 @@ end;
 
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
+
+var
+Process: TProcess;
+AppHandle: THandle;
+
 begin
   //Centralize window
   Left:=(Screen.Width-Width)  div 2;
@@ -5433,7 +4371,7 @@ begin
   mediacolorhtml := '#ffffff' ;
 
   // Initialize vkBasalt default value
-  cas04Image.Visible:=true;
+//  cas04Image.Visible:=true;
   effectssum:=0;
 
   // Initialize menu selections
@@ -5441,14 +4379,11 @@ begin
   mangohudPanel.Visible:=true;
   vkbasaltsel := false;
   vkbasaltPanel.Visible:=false;
-  replaysel := false;
-  replayPanel.Visible:=false;
+
+
 
   //Initial trackbar labels value
-  videoqualityLabel.Caption:=inttostr (videoqualityTrackBar.Position); //video quality value
-  videobitrateLabel.Caption:=inttostr (videobitrateTrackBar.Position)+' Mbps'; //video bitrate value
-  videogopLabel.Caption:=inttostr (videogopTrackBar.Position); //video bitrate value
-  casValueLabel.Caption:=inttostr (casTrackbar.Position); //cas value
+
   roundcornervalueLabel.Caption:=inttostr (roundcornerTrackBar.Position); //round corner value
 
   //Create temporary folder and files for goverlay
@@ -5507,22 +4442,6 @@ begin
 
 
 
-       //Determine toggle position - Replay-Sorcery
-
-          //Read file .desktop file and store result in tmp folder
-          RunCommand('bash -c ''cat $HOME/.config/autostart/replay.desktop | grep Name=replay-sourcery >> /tmp/goverlay/replaytogglestateValue''', s);
-
-          // Assign Text file to variable
-          AssignFile(replaytogglestateValueVAR, '/tmp/goverlay/replaytogglestateValue'); //
-          Reset(replaytogglestateValueVAR);
-          Readln(replaytogglestateValueVAR,replaytogglestateValueSTR); //Assign Text file to String
-          CloseFile(replaytogglestateValueVAR);
-
-          // Read String with toggle value
-          if replaytogglestateValueSTR = 'Name=replay-sourcery' then
-             replaygeSpeedButton.imageIndex:=1
-          else
-             replaygeSpeedButton.imageIndex:=0;
 
 
 
@@ -5541,16 +4460,14 @@ begin
    destinationfolder := userhomepathSTR;
    destfolderpathLabel.Caption:=destinationfolder;
 
-   //Stock folder replay videos
-   destinationfolder := userhomepathSTR;
-   saveclipEdit.Text:=destinationfolder;
+
 
 
 
    //Determine Mangohud dependency status
 
           //locate MangoHud and store result in tmp folder
-          RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/MangoHud.json >> /tmp/goverlay/dependency_mangohud''', s);
+          RunCommand('bash -c ''find /usr/bin/mangohud >> /tmp/goverlay/dependency_mangohud''', s);
 
           // Assign Text file dependency_mangohud to variable mangohudVAR
           AssignFile(mangohudVAR, '/tmp/goverlay/dependency_mangohud');
@@ -5559,7 +4476,7 @@ begin
           CloseFile(mangohudVAR);
 
           // Read String and store value on mangohuddependencyVALUE based on result
-          if mangohudSTR = '/usr/share/vulkan/implicit_layer.d/MangoHud.json' then
+          if mangohudSTR = '/usr/bin/mangohud' then
           mangohuddependencyVALUE := 1
           else
           mangohuddependencyVALUE := 0;
@@ -5568,7 +4485,7 @@ begin
    //Determine vkBasalt dependency staus
 
            //locate vkBasalt and store result in tmp folder
-           RunCommand('bash -c ''find /usr/share/vulkan/implicit_layer.d/vkBasalt.json >> /tmp/goverlay/dependency_vkbasalt''', s);
+           RunCommand('bash -c ''find /usr/lib/libvkbasalt.so >> /tmp/goverlay/dependency_vkbasalt''', s);
 
            // Assign Text file dependency_mangohud to variable mangohudVAR
            AssignFile(vkbasaltVAR, '/tmp/goverlay/dependency_vkbasalt');
@@ -5577,55 +4494,30 @@ begin
            CloseFile(vkbasaltVAR);
 
            // Read String and store value on vkbasaltdependencyVALUE based on result
-           if vkbasaltSTR = '/usr/share/vulkan/implicit_layer.d/vkBasalt.json' then
+           if vkbasaltSTR = '/usr/lib/libvkbasalt.so' then
            vkbasaltdependencyVALUE := 1
            else
            vkbasaltdependencyVALUE := 0;
 
 
-   //Determine replay-sorcery dependency staus
-
-            //locate replay-sorcey and store result in tmp folder
-            RunCommand('bash -c ''which replay-sorcery >> /tmp/goverlay/dependency_replay''', s);
-
-            // Assign Text file dependency_replay to variable replayVAR
-            AssignFile(replayVAR, '/tmp/goverlay/dependency_replay');
-            Reset(replayVAR);
-            Readln(replayVAR,replaySTR); //Assign Text file to String
-            CloseFile(replayVAR);
-
-            // Read String and store value on replaydependencyVALUE based on result
-            if replaySTR <> '' then
-               replaydependencyVALUE := 1
-               else
-               replaydependencyVALUE := 0;
-
-
-
         //Print Dependency status information
 
         //Missing single dependency
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) then
         begin
         dependenciesLabel.Caption:= '    All dependencies OK';
         dependencieSpeedButton.ImageIndex := 0;
         end;
 
-        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) then
         begin
         dependenciesLabel.Caption:= 'Missing vkBasalt';
-        dependencieSpeedButton.ImageIndex := 1;
-        end;
-
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) then
-        begin
-        dependenciesLabel.Caption:= 'Missing ReplaySorcery';
         dependencieSpeedButton.ImageIndex := 1;
         end;
 
@@ -5633,27 +4525,11 @@ begin
 
 
         //Missing dual dependency
-        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 1 ) then
+        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 0) then
         begin
         dependenciesLabel.Caption:= 'Missing MangoHud / vkbasalt';
         dependencieSpeedButton.ImageIndex := 1;
         end;
-
-        if (mangohuddependencyVALUE = 0) and ( vkbasaltdependencyVALUE = 1) and ( replaydependencyVALUE = 0 ) then
-        begin
-        dependenciesLabel.Caption:= 'Missing MangoHud / ReplaySorcery';
-        dependencieSpeedButton.ImageIndex := 1;
-        end;
-
-        if (mangohuddependencyVALUE = 1) and ( vkbasaltdependencyVALUE = 0) and ( replaydependencyVALUE = 0 ) then
-        begin
-        dependenciesLabel.Caption:= 'Missing vkbasalt / ReplaySorcery';
-        dependencieSpeedButton.ImageIndex := 1;
-        end;
-
-
-
-
 
 
         //Missing all dependencies
@@ -5803,34 +4679,7 @@ RunCommand('bash -c ''touch /tmp/goverlay/initial_values/theme''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/cascheckValue''', s);
 RunCommand('bash -c ''touch /tmp/goverlay/initial_values/vkbasalt_toggle''', s);
 
-//replay-sorcery dummy initials
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_width''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_width_custom''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_height''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_height_custom''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoFramerate''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_recordSeconds''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoDevice''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoEncoder''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoInput''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoProfile''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoPreset''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoQuality''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoBitrate''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_videoGOP''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_FULLSCREEN''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_AUTOSCALE''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_VIDEO_AUTO_QUALITY''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_VIDEO_AUTO_BITRATE''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_AUDIO_AUTO_BITRATE''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_audioInput''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_audioDevice''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_audioEncoder''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_audioProfile''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_audioSamplerate''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_audioBitrate''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_keyMods''', s);
-RunCommand('bash -c ''touch /tmp/goverlay/initial_values/replay_keyName''', s);
+
 
 //Copy files with initial values to tmp folder
 RunCommand('bash -c ''yes | cp -rf $HOME/.config/goverlay/initial_values/ /tmp/goverlay/''', s);
@@ -7223,26 +6072,9 @@ end;
 // ########################################         Read configuration files - VKBASALT  ########################################################
 
 
-//###################################################################### cas Sharpness
 
-// Assign Text file to variable than assign variable to string
-AssignFile(initcasSharpness, '/tmp/goverlay/initial_values/casSharpness');
-Reset(initcasSharpness);
-Readln(initcasSharpness,initcasSharpnessSTR); //Assign Text file to String
-CloseFile(initcasSharpness);
 
-case initcasSharpnessSTR of
-'casSharpness=0.1':casTrackbar.position:=1;
-'casSharpness=0.2':casTrackbar.position:=2;
-'casSharpness=0.3':casTrackbar.position:=3;
-'casSharpness=0.4':casTrackbar.position:=4;
-'casSharpness=0.5':casTrackbar.position:=5;
-'casSharpness=0.6':casTrackbar.position:=6;
-'casSharpness=0.7':casTrackbar.position:=7;
-'casSharpness=0.8':casTrackbar.position:=8;
-'casSharpness=0.9':casTrackbar.position:=9;
-'casSharpness=1.0':casTrackbar.position:=10;
-end;
+
 
 
 
@@ -7265,456 +6097,15 @@ end;
 
 //###################################################################### vkbasalt toggle
 
-// Assign Text file to variable than assign variable to string
-AssignFile(initcascheckValue, '/tmp/goverlay/initial_values/cascheckValue');
-Reset(initcascheckValue);
-Readln(initcascheckValue,initcascheckSTR); //Assign Text file to String
-CloseFile(initcascheckValue);
 
-case initcascheckSTR of
-'TRUE':cascheckbox.checked:=true;
-end;
 
-
-// ########################################         Read configuration files - replay-sorcery  ########################################################
-
-
-//###################################################################### replay-sorcery fullscreen
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayfullscreenValue, '/tmp/goverlay/initial_values/replay_FULLSCREEN');
-Reset(initreplayfullscreenValue);
-Readln(initreplayfullscreenValue,initreplayfullscreenSTR); //Assign Text file to String
-CloseFile(initreplayfullscreenValue);
-
-case initreplayfullscreenSTR of
-  'TRUE':begin
-  autoresCheckbox.Checked:=true;
-  fullscreenShape.Visible:=true;
-  customresShape.Visible:=false;
-  end;
-   'FALSE':begin
-   autoresCheckbox.Checked:=false;
-   fullscreenShape.Visible:=false;
-   customresShape.Visible:=true;
-   end;
-end;
-
-
-//###################################################################### replay-sorcery AUTOSCALE
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayautoscaleValue, '/tmp/goverlay/initial_values/replay_AUTOSCALE');
-Reset(initreplayautoscaleValue);
-Readln(initreplayautoscaleValue,initreplayautoscaleSTR); //Assign Text file to String
-CloseFile(initreplayautoscaleValue);
-
-case initreplayautoscaleSTR of
-  'TRUE':autoscaleCheckbox.Checked:=true;
-   'FALSE':autoscaleCheckbox.Checked:=false;
-
-end;
-
-
-
-//###################################################################### replay-sorcery VIDEO AUTO QUALITY
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoautoqualityValue, '/tmp/goverlay/initial_values/replay_VIDEO_AUTO_QUALITY');
-Reset(initreplayvideoautoqualityValue);
-Readln(initreplayvideoautoqualityValue,initreplayvideoautoqualitySTR); //Assign Text file to String
-CloseFile(initreplayvideoautoqualityValue);
-
-case initreplayvideoautoqualitySTR of
-  'TRUE':autovideoqualityCheckbox.Checked:=true;
-   '':autovideoqualityCheckbox.Checked:=false;
-end;
-
-
-//###################################################################### replay-sorcery VIDEO AUTO BITRATE
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoautobitrateValue, '/tmp/goverlay/initial_values/replay_VIDEO_AUTO_BITRATE');
-Reset(initreplayvideoautobitrateValue);
-Readln(initreplayvideoautobitrateValue,initreplayvideoautobitrateSTR); //Assign Text file to String
-CloseFile(initreplayvideoautobitrateValue);
-
-case initreplayvideoautobitrateSTR of
-  'TRUE':autovideobitrateCheckbox.Checked:=true;
-   '':autovideobitrateCheckbox.Checked:=false;
-end;
-
-
-
-//###################################################################### replay-sorcery AUDIO_AUTO_BITRATE
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudioautobitrateValue, '/tmp/goverlay/initial_values/replay_AUDIO_AUTO_BITRATE');
-Reset(initreplayaudioautobitrateValue);
-Readln(initreplayaudioautobitrateValue,initreplayaudioautobitrateSTR); //Assign Text file to String
-CloseFile(initreplayaudioautobitrateValue);
-
-case initreplayaudioautobitrateSTR of
-  'TRUE':autoaudiobitrateCheckbox.Checked:=true;
-   '':autoaudiobitrateCheckbox.Checked:=false;
-end;
-
-
-//###################################################################### custom_resolution_values
-
-// custom width
-AssignFile(initcustomwidthValue, '/tmp/goverlay/initial_values/replay_width_custom');
-Reset(initcustomwidthValue);
-Readln(initcustomwidthValue,initcustomwidthSTR); //Assign Text file to String
-CloseFile(initcustomwidthValue);
-
-// custom height
-AssignFile(initcustomheightValue, '/tmp/goverlay/initial_values/replay_height_custom');
-Reset(initcustomheightValue);
-Readln(initcustomheightValue,initcustomheightSTR); //Assign Text file to String
-CloseFile(initcustomheightValue);
-
-
-//###################################################################### replay state
-
-// Check the state of reḉay-sorcery state
-RunCommand('bash -c ''rm /tmp/goverlay/replay_state''', s); // delete old variable for replay-sorcery state
-RunCommand('bash -c ''ps -e | grep replay >> /tmp/goverlay/replay_state''', s);
-
-//Store the state of replay-sorcery service
-  AssignFile(replaystateVAR, '/tmp/goverlay/replay_state');
-  Reset(replaystateVAR);
-  Readln(replaystateVAR,replaystateSTR); //Assign Text file to String
-  CloseFile(replaystateVAR);
-
- //Check state and activate components acordingly
- if replaystateSTR = '' then     // if service is not running
-     begin
-        replaystopBitbtn.Enabled := false;
-        replayStartBitbtn.enabled := true;
-        replaystateSpeedButton.ImageIndex:=1;
-        replaystateLabel.Caption:='Service is not running';
-     end
- else       // if service is running
-     begin
-        replaystopBitbtn.Enabled := true;
-        replayStartBitbtn.enabled := false;
-        replaystateSpeedButton.ImageIndex:=0;
-        replaystateLabel.Caption:='Service is running';
-     end;
-
- //###################################################################### replay-sorcery framerate
-
-     // Assign Text file to variable than assign variable to string
-     AssignFile(initreplayframerateValue, '/tmp/goverlay/initial_values/replay_videoFramerate');
-     Reset(initreplayframerateValue);
-     Readln(initreplayframerateValue,initreplayframerateSTR); //Assign Text file to String
-     CloseFile(initreplayframerateValue);
-
-     case initreplayframerateSTR of
-       'videoFramerate = 15':framerateCombobox.ItemIndex:=0;
-       'videoFramerate = 30':framerateCombobox.ItemIndex:=1;
-       'videoFramerate = 60':framerateCombobox.ItemIndex:=2;
-       'videoFramerate = 90':framerateCombobox.ItemIndex:=3;
-       'videoFramerate = 120':framerateCombobox.ItemIndex:=4;
-       'videoFramerate = 144':framerateCombobox.ItemIndex:=5;
-       'videoFramerate = 240':framerateCombobox.ItemIndex:=6;
-     end;
-
-
-//###################################################################### replay-sorcery duration
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplaydurationValue, '/tmp/goverlay/initial_values/replay_recordSeconds');
-Reset(initreplaydurationValue);
-Readln(initreplaydurationValue,initreplaydurationSTR); //Assign Text file to String
-CloseFile(initreplaydurationValue);
-
-case initreplaydurationSTR of
-  'recordSeconds = 10':clipdurationCombobox.ItemIndex:=0;
-  'recordSeconds = 15':clipdurationCombobox.ItemIndex:=1;
-  'recordSeconds = 30':clipdurationCombobox.ItemIndex:=2;
-  'recordSeconds = 60':clipdurationCombobox.ItemIndex:=3;
-  'recordSeconds = 120':clipdurationCombobox.ItemIndex:=4;
-end;
-
-
-//###################################################################### replay-sorcery video input
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoInputValue, '/tmp/goverlay/initial_values/replay_videoInput');
-Reset(initreplayvideoInputValue);
-Readln(initreplayvideoInputValue,initreplayvideoInputSTR); //Assign Text file to String
-CloseFile(initreplayvideoInputValue);
-
-case initreplayvideoInputSTR of
-  'videoInput = auto':videoInputCombobox.ItemIndex:=0;
-  'videoInput = hwaccel':videoInputCombobox.ItemIndex:=1;
-  'videoInput = x11':videoInputCombobox.ItemIndex:=2;
-  'videoInput = kms':videoInputCombobox.ItemIndex:=3;
-end;
-
-//###################################################################### replay-sorcery video device
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoDeviceValue, '/tmp/goverlay/initial_values/replay_videoDevice');
-Reset(initreplayvideoDeviceValue);
-Readln(initreplayvideoDeviceValue,initreplayvideoDeviceSTR); //Assign Text file to String
-CloseFile(initreplayvideoDeviceValue);
-
-case initreplayvideoDeviceSTR of
-  'videoDevice = auto':videodeviceCombobox.ItemIndex:=0;
-end;
-
-
-//###################################################################### replay-sorcery video encoder
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoEncoderValue, '/tmp/goverlay/initial_values/replay_videoEncoder');
-Reset(initreplayvideoEncoderValue);
-Readln(initreplayvideoEncoderValue,initreplayvideoEncoderSTR); //Assign Text file to String
-CloseFile(initreplayvideoEncoderValue);
-
-case initreplayvideoEncoderSTR of
-  'videoEncoder = auto':videoencoderCombobox.ItemIndex:=0;
-  'videoEncoder = x264':videoencoderCombobox.ItemIndex:=1;
-  'videoEncoder = openh264':videoencoderCombobox.ItemIndex:=2;
-  'videoEncoder = x265':videoencoderCombobox.ItemIndex:=3;
-  'videoEncoder = hevc':videoencoderCombobox.ItemIndex:=4;
-  'videoEncoder = vaapi_h264':videoencoderCombobox.ItemIndex:=5;
-  'videoEncoder = vaapi_hevc':videoencoderCombobox.ItemIndex:=6;
-end;
-
-
-//###################################################################### replay-sorcery video profile
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoProfileValue, '/tmp/goverlay/initial_values/replay_videoProfile');
-Reset(initreplayvideoProfileValue);
-Readln(initreplayvideoProfileValue,initreplayvideoProfileSTR); //Assign Text file to String
-CloseFile(initreplayvideoProfileValue);
-
-case initreplayvideoProfileSTR of
-  'videoProfile = baseline':h264profileCombobox.ItemIndex:=0;
-  'videoProfile = main':h264profileCombobox.ItemIndex:=1;
-  'videoProfile = high':h264profileCombobox.ItemIndex:=2;
-
-end;
-
-
-//###################################################################### replay-sorcery video preset
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoPresetValue, '/tmp/goverlay/initial_values/replay_videoPreset');
-Reset(initreplayvideoPresetValue);
-Readln(initreplayvideoPresetValue,initreplayvideoPresetSTR); //Assign Text file to String
-CloseFile(initreplayvideoPresetValue);
-
-case initreplayvideoPresetSTR of
-  'videoProfile = fast':videohlepresetCombobox.ItemIndex:=0;
-  'videoProfile = medium':videohlepresetCombobox.ItemIndex:=1;
-  'videoProfile = slow':videohlepresetCombobox.ItemIndex:=2;
-
-end;
-
-
-//###################################################################### replay-sorcery video quality
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoQualityValue, '/tmp/goverlay/initial_values/replay_videoQuality');
-Reset(initreplayvideoQualityValue);
-Readln(initreplayvideoQualityValue,initreplayvideoQualitySTR); //Assign Text file to String
-CloseFile(initreplayvideoQualityValue);
-
-case initreplayvideoQualitySTR of
-  'videoQuality = 50':videoqualityTrackBar.Position:=1;
-  'videoQuality = 45':videoqualityTrackBar.Position:=2;
-  'videoQuality = 40':videoqualityTrackBar.Position:=3;
-  'videoQuality = 35':videoqualityTrackBar.Position:=4;
-  'videoQuality = 30':videoqualityTrackBar.Position:=5;
-  'videoQuality = 25':videoqualityTrackBar.Position:=6;
-  'videoQuality = 20':videoqualityTrackBar.Position:=7;
-  'videoQuality = 15':videoqualityTrackBar.Position:=8;
-  'videoQuality = 10':videoqualityTrackBar.Position:=9;
-  'videoQuality = 5':videoqualityTrackBar.Position:=10;
-end;
-
-//###################################################################### replay-sorcery video bitrate
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoBitrateValue, '/tmp/goverlay/initial_values/replay_videoBitrate');
-Reset(initreplayvideoBitrateValue);
-Readln(initreplayvideoBitrateValue,initreplayvideoBitrateSTR); //Assign Text file to String
-CloseFile(initreplayvideoBitrateValue);
-
-case initreplayvideoBitrateSTR of
-  'videoBitrate = 1M':videobitrateTrackBar.Position:=1;
-  'videoBitrate = 2M':videobitrateTrackBar.Position:=2;
-  'videoBitrate = 3M':videobitrateTrackBar.Position:=3;
-  'videoBitrate = 4M':videobitrateTrackBar.Position:=4;
-  'videoBitrate = 5M':videobitrateTrackBar.Position:=5;
-  'videoBitrate = 6M':videobitrateTrackBar.Position:=6;
-  'videoBitrate = 7M':videobitrateTrackBar.Position:=7;
-  'videoBitrate = 8M':videobitrateTrackBar.Position:=8;
-  'videoBitrate = 9M':videobitrateTrackBar.Position:=9;
-  'videoBitrate = 10M':videobitrateTrackBar.Position:=10;
-end;
-
-
-//###################################################################### replay-sorcery video gop
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayvideoGOPValue, '/tmp/goverlay/initial_values/replay_videoGOP');
-Reset(initreplayvideoGOPValue);
-Readln(initreplayvideoGOPValue,initreplayvideoGOPSTR); //Assign Text file to String
-CloseFile(initreplayvideoGOPValue);
-
-case initreplayvideoGOPSTR of
-  'videoGOP = 20':videogopTrackBar.Position:=20;
-  'videoGOP = 21':videogopTrackBar.Position:=21;
-  'videoGOP = 22':videogopTrackBar.Position:=22;
-  'videoGOP = 23':videogopTrackBar.Position:=23;
-  'videoGOP = 24':videogopTrackBar.Position:=24;
-  'videoGOP = 25':videogopTrackBar.Position:=25;
-  'videoGOP = 26':videogopTrackBar.Position:=26;
-  'videoGOP = 27':videogopTrackBar.Position:=27;
-  'videoGOP = 28':videogopTrackBar.Position:=28;
-  'videoGOP = 29':videogopTrackBar.Position:=29;
-  'videoGOP = 30':videogopTrackBar.Position:=30;
-  'videoGOP = 31':videogopTrackBar.Position:=31;
-  'videoGOP = 32':videogopTrackBar.Position:=32;
-  'videoGOP = 33':videogopTrackBar.Position:=33;
-  'videoGOP = 34':videogopTrackBar.Position:=34;
-  'videoGOP = 35':videogopTrackBar.Position:=35;
-  'videoGOP = 36':videogopTrackBar.Position:=36;
-  'videoGOP = 37':videogopTrackBar.Position:=37;
-  'videoGOP = 38':videogopTrackBar.Position:=38;
-  'videoGOP = 39':videogopTrackBar.Position:=39;
-  'videoGOP = 40':videogopTrackBar.Position:=40;
-end;
-
-
-//###################################################################### replay-sorcery keyname
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplaykeynameValue, '/tmp/goverlay/initial_values/replay_keyName');
-Reset(initreplaykeynameValue);
-Readln(initreplaykeynameValue,initreplaykeynameSTR); //Assign Text file to String
-CloseFile(initreplaykeynameValue);
-
-case initreplaykeynameSTR of
-  'keyName = r':replaykeyCombobox.ItemIndex:=0;
-  'keyName = F1':replaykeyCombobox.ItemIndex:=1;
-  'keyName = F2':replaykeyCombobox.ItemIndex:=2;
-  'keyName = F3':replaykeyCombobox.ItemIndex:=3;
-  'keyName = F4':replaykeyCombobox.ItemIndex:=4;
-end;
-
-//###################################################################### replay-sorcery audio input
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudioinputValue, '/tmp/goverlay/initial_values/replay_audioInput');
-Reset(initreplayaudioinputValue);
-Readln(initreplayaudioinputValue,initreplayaudioinputSTR); //Assign Text file to String
-CloseFile(initreplayaudioinputValue);
-
-case initreplayaudioinputSTR of
-  'audioInput = auto':audioinputcombobox.ItemIndex:=0;
-  'audioInput = pulse':audioinputcombobox.ItemIndex:=1;
-  'audioInput = none':audioinputcombobox.ItemIndex:=2;
-end;
-
-
-//###################################################################### replay-sorcery audio device
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudiodeviceValue, '/tmp/goverlay/initial_values/replay_audioDevice');
-Reset(initreplayaudiodeviceValue);
-Readln(initreplayaudiodeviceValue,initreplayaudiodeviceSTR); //Assign Text file to String
-CloseFile(initreplayaudiodeviceValue);
-
-case initreplayaudiodeviceSTR of
-  'audioDevice = auto':audiodevCombobox.ItemIndex:=0;
-end;
-
-
-
-//###################################################################### replay-sorcery audiosample
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudiosampleValue, '/tmp/goverlay/initial_values/replay_audioSamplerate');
-Reset(initreplayaudiosampleValue);
-Readln(initreplayaudiosampleValue,initreplayaudiosampleSTR); //Assign Text file to String
-CloseFile(initreplayaudiosampleValue);
-
-case initreplayaudiosampleSTR of
-  'audioSamplerate = 11025':audiosampCombobox.ItemIndex:=0;
-  'audioSamplerate = 22050':audiosampCombobox.ItemIndex:=1;
-  'audioSamplerate = 44100':audiosampCombobox.ItemIndex:=2;
-  'audioSamplerate = 48000':audiosampCombobox.ItemIndex:=3;
-end;
-
-
-//###################################################################### replay-sorcery bitrate
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplaybitrateValue, '/tmp/goverlay/initial_values/replay_audioBitrate');
-Reset(initreplaybitrateValue);
-Readln(initreplaybitrateValue,initreplaybitrateSTR); //Assign Text file to String
-CloseFile(initreplaybitrateValue);
-
-case initreplaybitrateSTR of
-  'audioBitrate = 32000':audiobitrateCombobox.ItemIndex:=0;
-  'audioBitrate = 64000':audiobitrateCombobox.ItemIndex:=1;
-  'audioBitrate = 96000':audiobitrateCombobox.ItemIndex:=2;
-  'audioBitrate = 128000':audiobitrateCombobox.ItemIndex:=3;
-end;
-
-
-//###################################################################### replay-sorcery audio device
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudioencoderValue, '/tmp/goverlay/initial_values/replay_audioEncoder');
-Reset(initreplayaudioencoderValue);
-Readln(initreplayaudioencoderValue,initreplayaudioencoderSTR); //Assign Text file to String
-CloseFile(initreplayaudioencoderValue);
-
-case initreplayaudioencoderSTR of
-  'audioEncoder = auto':audioencoderCombobox.ItemIndex:=0;
-  'audioEncoder = aac':audioencoderCombobox.ItemIndex:=1;
-  'audioEncoder = fdk':audioencoderCombobox.ItemIndex:=2;
-end;
-
-
-//###################################################################### replay-sorcery audio profile
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudioprofileValue, '/tmp/goverlay/initial_values/replay_audioProfile');
-Reset(initreplayaudioprofileValue);
-Readln(initreplayaudioprofileValue,initreplayaudioprofileSTR); //Assign Text file to String
-CloseFile(initreplayaudioprofileValue);
-
-case initreplayaudioprofileSTR of
-  'audioProfile = low':aacprofileCombobox.ItemIndex:=0;
-  'audioProfile = main':aacprofileCombobox.ItemIndex:=1;
-  'audioProfile = high':aacprofileCombobox.ItemIndex:=2;
-end;
-
-
-//###################################################################### replay-sorcery audio bitrate
-
-// Assign Text file to variable than assign variable to string
-AssignFile(initreplayaudiobitrateValue, '/tmp/goverlay/initial_values/replay_audioBitrate');
-Reset(initreplayaudiobitrateValue);
-Readln(initreplayaudiobitrateValue,initreplayaudiobitrateSTR); //Assign Text file to String
-CloseFile(initreplayaudiobitrateValue);
-
-case initreplayaudiobitrateSTR of
-  'audioBitrate = 32K':audiobitrateCombobox.ItemIndex:=0;
-  'audioBitrate = 64K':audiobitrateCombobox.ItemIndex:=1;
-  'audioBitrate = 96K':audiobitrateCombobox.ItemIndex:=2;
-  'audioBitrate = 128K':audiobitrateCombobox.ItemIndex:=3;
-end;
+//Start vkcube with goverlay
+Process := TProcess.Create(nil);
+Process.Executable := 'sh';
+Process.Parameters.Add('-c');
+Process.Parameters.Add('mangohud vkcube');
+Process.Options := [poUsePipes];
+Process.Execute;
 
 
 
@@ -7926,13 +6317,13 @@ begin
   vkbasaltLabel.Font.color:=clwhite;
   mangohudlabel.Font.color:=clgray;
   mangohudshape.Visible:=false;
-  replaylabel.Font.color:=clgray;
-  replayshape.Visible:=false;
+
+
 
   //Display vkbasalt panel
   Mangohudpanel.Visible:=false;
   vkbasaltPanel.Visible:=true;
-  replaypanel.Visible:=false;
+
 
 end;
 
@@ -7988,16 +6379,12 @@ end;
 procedure Tgoverlayform.wideBitBtnClick(Sender: TObject);
 begin
   //Change opengl window to widemode
-  openglcontrol1.Width:=1007;
-  openglcontrol1.Height:=514;
-  openglcontrol1.Left:=8;
+//  openglcontrol1.Width:=1007;
+//  openglcontrol1.Height:=514;
+//  openglcontrol1.Left:=8;
 end;
 
-procedure Tgoverlayform.widthImageMouseEnter(Sender: TObject);
-begin
-    if autoresCheckbox.Checked = false then
-    widthImage.Visible:= true;
-end;
+
 
 procedure Tgoverlayform.wineColorButtonColorChanged(Sender: TObject);
 begin
@@ -8019,7 +6406,7 @@ begin
       Done:=false;
   //DebugLn(['TForm1.OnAppIdle ']);
   //OpenGLControl1.Paint;
-  OpenGLControl1.Invalidate;
+ // OpenGLControl1.Invalidate;
 end;
 
 procedure Tgoverlayform.Panel1MouseMove(Sender: TObject; Shift: TShiftState; X,
