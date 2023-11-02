@@ -1,4 +1,4 @@
-# Goverlay
+# GOverlay
 
 GOverlay is an open source project aimed to create a Graphical UI to manage Vulkan/OpenGL overlays. It is still in early development, so it lacks a lot of features.
 
@@ -49,10 +49,10 @@ Here are the dependencies needed in order to make GOverlay run:
 
 #### Arch / Manjaro / Other Arch derivatives
 
-To install [`goverlay`](https://archlinux.org/packages/extra/x86_64/goverlay/), run the following command as root:
+[`goverlay-bin`](https://aur.archlinux.org/packages/goverlay-bin/) is in the AUR. You can install it using your favourite AUR helper. You can also grab the latest git code with [`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/). The repository  [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/) provides the binaries from the latest GIT code.
 
 ```bash
-pacman -S goverlay
+pamac install goverlay-bin
 ```
 
 #### Fedora
