@@ -132,6 +132,7 @@ type
     borderGroupBox: TGroupBox;
     GroupBox2: TGroupBox;
     hudversionCheckBox: TCheckBox;
+    alphavalueLabel: TLabel;
     Label5: TLabel;
     Label6: TLabel;
     layoutsGroupBox2: TGroupBox;
@@ -251,6 +252,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
+    procedure transpTrackBarChange(Sender: TObject);
 
 
   public
@@ -314,7 +316,10 @@ begin
   Process.Execute;
 
 // Define mangohud config file path
-  MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf'
+  MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
+
+// Initial values
+alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
 end;
 
 procedure Tgoverlayform.PaintBox1Paint(Sender: TObject);
@@ -336,8 +341,8 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE: string;
-  //HUDTITLE: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA: string;
+
 
   begin
 
@@ -383,6 +388,9 @@ var
       if roundRadioButton.checked = true then
         BORDERTYPE := 'round_corners=10';
 
+       //Transparency
+
+      HUDALPHA := 'background_alpha=' + FormatFloat('#0.0', transpTrackbar.Position/10);
 
       //##################################################################################################################  Write config file
 
@@ -405,9 +413,22 @@ var
       Process1.Execute;
       Process1.Free;
 
+      //HUD ALPHA (transparency)
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + HUDALPHA + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
 
 
 end; // ########################################      end save button click       ###############################################################################
+
+procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
+begin
+   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+end;
 
 
 

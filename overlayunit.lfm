@@ -1,11 +1,11 @@
 object goverlayform: Tgoverlayform
   Left = 2902
-  Height = 650
+  Height = 648
   Top = 168
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
-  ClientHeight = 650
+  ClientHeight = 648
   ClientWidth = 1000
   Color = 1710618
   Font.Color = clWhite
@@ -5342,12 +5342,28 @@ object goverlayform: Tgoverlayform
               Height = 20
               Top = 56
               Width = 147
+              OnChange = transpTrackBarChange
               Position = 6
-              TickMarks = tmTopLeft
               TickStyle = tsNone
               BorderSpacing.Left = 10
               ParentColor = False
               TabOrder = 0
+            end
+            object alphavalueLabel: TLabel
+              AnchorSideLeft.Control = transpTrackBar
+              AnchorSideLeft.Side = asrCenter
+              AnchorSideTop.Control = transpTrackBar
+              AnchorSideTop.Side = asrBottom
+              Left = 124
+              Height = 17
+              Top = 76
+              Width = 8
+              Caption = 'X'
+              Font.Height = -12
+              Font.Name = 'Noto Sans'
+              Font.Quality = fqAntialiased
+              ParentColor = False
+              ParentFont = False
             end
           end
         end
