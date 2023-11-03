@@ -3953,10 +3953,17 @@ object goverlayform: Tgoverlayform
           Text = 'Title'
         end
         object themesComboBox: TComboBox
-          Left = 560
+          AnchorSideLeft.Control = positionGroupBox
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = colorthemeLabel
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = visualTabSheet
+          AnchorSideRight.Side = asrCenter
+          Left = 549
           Height = 32
-          Top = 360
+          Top = 362
           Width = 180
+          BorderSpacing.Left = 50
           ItemHeight = 24
           ItemIndex = 0
           Items.Strings = (
@@ -3992,16 +3999,101 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           TabOrder = 2
+          object Image1: TImage
+            AnchorSideLeft.Control = positionGroupBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = positionGroupBox
+            Left = -1
+            Height = 190
+            Top = 0
+            Width = 215
+            Picture.Data = {
+              1754506F727461626C654E6574776F726B47726170686963D308000089504E47
+              0D0A1A0A0000000D49484452000000E6000000C80806000000FCCC9DFD000000
+              0970485973000036AE000036AE0112A2FE170000001974455874536F66747761
+              7265007777772E696E6B73636170652E6F72679BEE3C1A000008604944415478
+              9CEDDD5D6CDD751DC7F1CFF7F73F0FED6A9FB6B614264C4C46C14E98CB84B040
+              A00131C107229811BCF5D270A1179A10CD6862BC201A6FE4DA3B8C33E80D8912
+              34E00324C878080863600C301C6C65EB0376DB79F8FFBE5ED04E2019D205F87F
+              7BFA7EDDFDCFF9B7F9A4EDFBF4D773537377AD9A9ADA3DE696BF69D21E37BF50
+              52BF007C5C4E99DB61971E2BACFE9B83071F3FBEFA84AD863935F5859B3DD9F7
+              25EF7BE799543759AA662FD0FB5C9EE5B9B37279CAB2DD73E8D053BF9756C2DC
+              7EE9AEAF9BF95D72A5A25E3FBF48C57992D52BDC0C6C10DE297379B4EC748EC8
+              E492FFF8A583CF3C60D3D35F9C6C77BBFB65EAABD71B979AA54199546F3465B2
+              AA57033DCBDDD5E9B424973CE7A54EA77D48A6539DA27D7BAD95DB779859A356
+              D4B79AA5C17AB3A9E1E131A5A2A87A37D0F372596A71614E9D767BA8A8D5B696
+              65E770BD5BBF3DA56C57CB65A928262C998647C78912F884A4A2D0C8E8B82C99
+              8AA29890CB5CDA935C366929D525ABD5EB0D25DEEF013E51960AD56B0D4956B3
+              94EA66369964DE902B49928928812AD8EA2F445792BC49894040840904449840
+              40B5B5DC3C74CD7764FDA31FD716A067F9A9792DFDEDDE0F7DFF9AC2B4E6B052
+              DFF09A47011B5DCE794DF773940502224C2020C20402224C2020C20402224C20
+              20C20402224C2020C20402224C2020C20402224C2020C20402224C2020C20402
+              224C2020C20402224C2020C20402224C2020C20402224C2020C20402224C2020
+              C20402224C2020C20402224C2020C20402224C2020C20402224C2020C2040222
+              4C2020C20402224C2020C20402224C2020C20402224C2020C20402224C2020C2
+              0402224C2020C20402224C2020C20402224C2020C20402224C2020C20402224C
+              2020C20402224C2020C20402224C2020C20402224C2020C20402224C2020C204
+              02224C2020C20402224C2020C20402224C2020C20402224C2020C20402224C20
+              20C20402224C2020C20402224C2020C20402224C2020C20402224C2020C20402
+              224C2020C20402224C2020C20402224C2020C20402224C2020C20402224C2020
+              C20402224C2020C20402224C2020C20402224C2020C20402224C2020C2040222
+              4C2020C20402224C2020C20402224C2020C20402224C2020C20402224C2020C2
+              0402224C2020C20402224C2020C20402224C2020C20402224C2020C20402224C
+              2020C20402224C2020C20402224C2020C20402224C2020C20402224C2020C204
+              02224C2020C20402AAADE5E6EEFC2B4A278F7F5C5B809E955B6FAFE9FE3585B9
+              FCD47D6BFAE400CE0D47592020C20402224C20A024E9949B4A49CA5E563C07D8
+              98CA95F6565A3C95CCF5BA3C77246F77DA6D95DD4EB50B810DA65B76D56DB725
+              795B9E3BEE763829E9CF925496DD372469617E4E9D76ABD2A1C046D169B7B478
+              E298A4FF3528F7BFD472A7B9DF6AADBD65D995591A505763F3C78FCA52A194AC
+              CACD404FF39C95739624E55CCE9565F74D498B850DFCDADC5D53533BAF74B39F
+              C9542F52B125A5DA84156940AEA2DAE9400F33955EE6E59CBB47CB5C9E90AB63
+              AEEF1D3AF4F413E6EE92A4A9A95D5764F3BBCD747EC573D7BD64B501A5545FBD
+              9EBE6CFB7633EB8977C0DD3D3F7FF0E597CF3C9073277B77B9C249BDE248F274
+              F78B2F3EF9AC249D09539276EFDE5D7FFBEDF24B6EDA23D356C9862A9BB98EA5
+              A23162A9E85BBDBEFEDA2BAF32B39E387DB87BF9C85FFFFEF899EB5C9ECE657B
+              A1CA4DEB972FC9F56F737B747030FDF1C0810367DE797D4F98F868DC70DBEC2E
+              374DAE5E3FF8ABBBEE97D4F7011FB29E9CFEF21D3FB96DF5C25C6FFEE9FE7D4F
+              5539A817F5C4F10AE83584090444984040840904449840408409044498404084
+              0904449840408409044498404084090444984040840904449840408409044498
+              4040840904449840408409044498404084090444984040840904449840408409
+              04449840408409044498404084090444984040B5AA07AC373BF6CE36C6A546D1
+              6D3553D96C7636A96165D14CB96C76BD6C9A174D4B7960A3BCE6B9E5F199BDB3
+              D71465D99215AD9C8A961765AB7E52ED5CB45A65ADD99A93DAFFD8BFAF5DF5D6
+              F58430CF626666B6963677B64AF52D4AEA53A93E931A13E99DE2726A2A27C93A
+              92542A4B4A5648266D9428DF910ACB1ACAABFF303B97B22C75EB92D494656942
+              D28DB7CE6697DA2A745A59A753A1B7BA733AF2F0C3FBBA158E0F6B23FD047D68
+              37ECFDE1D66234CFB8D5A7DD34E9AE114FEACB89AFD7B9CA49C993FADC35E2A6
+              C9326B47319A676EBA65F682AAB745C4BF7A7F9FEBF6FEE8E222D72E3B978F6D
+              361B9ABEECA24D975C343EF0D96DE70D6D1EFDD4D0F0F0C0F045176CF9AE7AE7
+              74D27DEDC8F19F2F2E2E2F9E98FFCFD2BF5E3DBAF4D26B73CBCF1F7CED64AB75
+              6EA7552FF5C2C3BFDBF7CA473B737D23CC7799F9C6EC48AAD9D5EE6EEF7EFCE2
+              6D13B59DD39F19D9F6E9B181F32746474687068606069AA39BFA1A9B8B5AB1B9
+              512F26DC7D3CA5342EA9A8687ED5CA9CF39C99CDB53BE5B1B25B9E3879BA7D62
+              79B9353FBFB4BCF4C6B1F985575F7F6BF9B9E75F59F8E7ABC7DE737C35334FD6
+              7CECA1FD3F58AC6A7C34BDF22AFE912852DA9E3D9F89F2CE6FDFBCF52B375C71
+              A799EDD0CA5F8F6763F6814F6F04454A6952D264B351931A356DDAD4D4D8E641
+              6DD398764E6F5BBDCFDDFDB9071E7AFADE5FFCF20FAFAF3C609DBC7C89A427AA
+              1A1F0D7F33AD989999AD79EA8EAD5E5FBF676AF0AB37EEFCA9997D5EFF274AAC
+              8999D9E55FBB69D73DD75E3535B8FA60916C6C6666965F142B08734567A8BFDF
+              3D9D09F08E5BAEDB2169A8C249BD6EF85BB75E3BBD7AE19EAC33D4DF5FE5A048
+              08738595F3EF79B5EEEBAF6DAE6ACB46B1A9BFB1E5DDD7EFFF1E6C6484090444
+              984040840904C499FE2CEEFBED638F5EFEB90B0F56BDA3973DFBC2E113556F88
+              8A30CFE2C1479E5978F0916716AADE818D89A32C1010610201FD17D6122F88EB
+              AF283C0000000049454E44AE426082
+            }
+            Proportional = True
+            Stretch = True
+          end
           object hudonoffComboBox1: TComboBox
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = positionGroupBox
-            AnchorSideTop.Side = asrCenter
             Left = 56
             Height = 32
             Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
-            Top = 64
+            Top = 55
             Width = 100
+            BorderSpacing.Top = 55
             Color = clBtnFace
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -4024,13 +4116,14 @@ object goverlayform: Tgoverlayform
           object topleftRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
-            Left = 5
+            Left = 8
             Height = 20
-            Top = 5
+            Top = 10
             Width = 28
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
+            BorderSpacing.Left = 8
+            BorderSpacing.Top = 10
             Checked = True
+            ParentColor = False
             TabOrder = 8
             TabStop = True
           end
@@ -4040,9 +4133,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             Left = 92
             Height = 20
-            Top = 5
+            Top = 10
             Width = 28
-            BorderSpacing.Top = 5
+            BorderSpacing.Top = 10
             TabOrder = 1
           end
           object toprightRadioButton: TRadioButton
@@ -4052,10 +4145,10 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             Left = 184
             Height = 20
-            Top = 5
+            Top = 10
             Width = 28
             Anchors = [akTop, akRight]
-            BorderSpacing.Top = 5
+            BorderSpacing.Top = 10
             TabOrder = 2
           end
           object bottomleftRadioButton: TRadioButton
@@ -4063,14 +4156,14 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 5
+            Left = 8
             Height = 20
-            Top = 135
+            Top = 111
             Width = 28
             Anchors = [akLeft, akBottom]
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
+            BorderSpacing.Left = 8
+            BorderSpacing.Top = 10
+            BorderSpacing.Bottom = 29
             TabOrder = 3
           end
           object bottomrightRadioButton: TRadioButton
@@ -4082,11 +4175,11 @@ object goverlayform: Tgoverlayform
             AnchorSideBottom.Side = asrBottom
             Left = 184
             Height = 20
-            Top = 135
+            Top = 111
             Width = 28
             Anchors = [akRight, akBottom]
             BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
+            BorderSpacing.Bottom = 29
             TabOrder = 4
           end
           object bottomcenterRadioButton: TRadioButton
@@ -4097,38 +4190,36 @@ object goverlayform: Tgoverlayform
             AnchorSideBottom.Side = asrBottom
             Left = 92
             Height = 20
-            Top = 135
+            Top = 111
             Width = 28
             Anchors = [akLeft, akBottom]
             BorderSpacing.Left = 5
             BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
+            BorderSpacing.Bottom = 29
             TabOrder = 5
           end
           object middleleftRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
-            AnchorSideTop.Side = asrCenter
-            Left = 5
+            Left = 8
             Height = 20
-            Top = 70
+            Top = 60
             Width = 28
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
+            BorderSpacing.Left = 8
+            BorderSpacing.Top = 60
             TabOrder = 6
           end
           object middlerightRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
-            AnchorSideTop.Side = asrCenter
             AnchorSideRight.Control = positionGroupBox
             AnchorSideRight.Side = asrBottom
             Left = 184
             Height = 20
-            Top = 70
+            Top = 60
             Width = 28
             Anchors = [akTop, akRight]
-            BorderSpacing.Top = 5
+            BorderSpacing.Top = 60
             TabOrder = 7
           end
         end
@@ -4665,14 +4756,16 @@ object goverlayform: Tgoverlayform
           WordWrap = True
         end
         object hudtoggleLabel: TLabel
-          AnchorSideLeft.Control = hudonoffComboBox
+          AnchorSideLeft.Control = themesComboBox
           AnchorSideLeft.Side = asrCenter
+          AnchorSideTop.Control = themesComboBox
+          AnchorSideTop.Side = asrBottom
           AnchorSideBottom.Control = hudonoffComboBox
-          Left = 601
-          Height = 20
-          Top = 424
+          Left = 590
+          Height = 18
+          Top = 414
           Width = 98
-          Anchors = [akTop, akLeft, akBottom]
+          BorderSpacing.Top = 20
           Caption = 'HUD Toggle Key'
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4681,11 +4774,16 @@ object goverlayform: Tgoverlayform
           ParentFont = False
         end
         object hudonoffComboBox: TComboBox
-          Left = 560
+          AnchorSideLeft.Control = themesComboBox
+          AnchorSideLeft.Side = asrCenter
+          AnchorSideTop.Control = hudtoggleLabel
+          AnchorSideTop.Side = asrBottom
+          Left = 549
           Height = 32
           Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
-          Top = 444
+          Top = 442
           Width = 180
+          BorderSpacing.Top = 10
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4730,13 +4828,14 @@ object goverlayform: Tgoverlayform
         object colorthemeLabel: TLabel
           AnchorSideLeft.Control = themesComboBox
           AnchorSideLeft.Side = asrCenter
-          AnchorSideTop.Control = themesComboBox
+          AnchorSideTop.Control = positionGroupBox
           AnchorSideBottom.Control = themesComboBox
-          Left = 611
+          Left = 600
           Height = 18
-          Top = 342
+          Top = 334
           Width = 79
-          Anchors = [akLeft, akBottom]
+          BorderSpacing.Top = 17
+          BorderSpacing.Bottom = 10
           Caption = 'Color Theme'
           Font.Height = -13
           Font.Name = 'Noto Sans'

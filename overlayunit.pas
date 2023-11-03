@@ -20,6 +20,7 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     bottomcenterRadioButton: TRadioButton;
+    colorthemeLabel: TLabel;
     fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
@@ -129,6 +130,7 @@ type
     GroupBox2: TGroupBox;
     hudversionCheckBox: TCheckBox;
     alphavalueLabel: TLabel;
+    Image1: TImage;
     Label5: TLabel;
     Label6: TLabel;
     layoutsGroupBox2: TGroupBox;
@@ -166,7 +168,6 @@ type
     intelpowerfixBitBtn1: TBitBtn;
     iordrwColorButton1: TColorButton;
     hudtoggleLabel: TLabel;
-    colorthemeLabel: TLabel;
     layoutsGroupBox: TGroupBox;
     mangohudPageControl: TPageControl;
     mangohudPanel: TPanel;
