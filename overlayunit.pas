@@ -279,6 +279,7 @@ var
   //########################################
 
 
+
 implementation
 
 {$R *.lfm}
@@ -286,7 +287,19 @@ implementation
 
 { Tgoverlayform }
 
-// Reference to logpathunit so the homepath can be aquired from overlayUnit
+
+//Function to convert color codes to #RRGGBB format
+function ColorToHTMLColor(const AColor: TColor): string;
+var
+  Red, Green, Blue: Byte;
+begin
+  Red := Byte(AColor); // Extrai o componente vermelho
+  Green := Byte(AColor shr 8); // Extrai o componente verde
+  Blue := Byte(AColor shr 16); // Extrai o componente azul
+
+  Result := Format('%.2x%.2x%.2x', [Red, Green, Blue]); // Formata a string no formato HTML (#RRGGBB)
+end;
+
 
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -341,7 +354,7 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR: string;
 
 
   begin
@@ -390,9 +403,13 @@ var
       if roundRadioButton.checked = true then
         BORDERTYPE := 'round_corners=10';
 
-       //Transparency
+       //HUD Alpha (transparency)
 
       HUDALPHA := 'background_alpha=' + FormatFloat('#0.0', transpTrackbar.Position/10);
+
+       //HUD Color
+
+      HUDCOLOR := 'background_color=' + ColorToHTMLColor(hudbackgroundColorButton.ButtonColor);
 
       //##################################################################################################################  Write config file
 
@@ -433,6 +450,15 @@ var
       Process1.Execute;
       Process1.Free;
 
+      //HUD ALPHA (transparency)
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + HUDCOLOR + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
 
 end; // ########################################      end save button click       ###############################################################################
 
@@ -440,6 +466,7 @@ procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
 begin
    alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
 end;
+
 
 
 
