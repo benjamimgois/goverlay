@@ -19,6 +19,7 @@ type
     aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
+    bottomcenterRadioButton: TRadioButton;
     fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
@@ -37,8 +38,6 @@ type
     batteryCheckBox: TCheckBox;
     batteryCheckBox1: TCheckBox;
     batteryCheckBox2: TCheckBox;
-    bottomleftSpeedButton: TSpeedButton;
-    bottomrightSpeedButton: TSpeedButton;
     CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
     compacthudBitBtn: TBitBtn;
@@ -153,6 +152,13 @@ type
     PaintBox1: TPaintBox;
     fontLabel: TLabel;
     fontsizeTrackBar: TTrackBar;
+    topleftRadioButton: TRadioButton;
+    topcenterRadioButton: TRadioButton;
+    bottomleftRadioButton: TRadioButton;
+    middleleftRadioButton: TRadioButton;
+    toprightRadioButton: TRadioButton;
+    bottomrightRadioButton: TRadioButton;
+    middlerightRadioButton: TRadioButton;
     vImage: TImage;
     hImage: TImage;
     squareImage: TImage;
@@ -164,8 +170,6 @@ type
     layoutsGroupBox: TGroupBox;
     mangohudPageControl: TPageControl;
     mangohudPanel: TPanel;
-    middleleftSpeedButton: TSpeedButton;
-    middlerightSpeedButton: TSpeedButton;
     MenuItem4: TMenuItem;
     minimalhudBitBtn: TBitBtn;
     notificationLabel: TLabel;
@@ -201,10 +205,6 @@ type
     TabSheet8: TTabSheet;
     themesComboBox: TComboBox;
     timeCheckBox: TCheckBox;
-    topcenterSpeedButton: TSpeedButton;
-    topcenterSpeedButton1: TSpeedButton;
-    topleftSpeedButton: TSpeedButton;
-    toprightSpeedButton: TSpeedButton;
     transparencyLabel: TLabel;
     transparencyLabel2: TLabel;
     transparencyLabel3: TLabel;
@@ -363,7 +363,7 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTSIZE, FONTCOLOR: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTSIZE, FONTCOLOR, HUDPOSITION: string;
 
 
   begin
@@ -429,6 +429,32 @@ var
 
       FONTCOLOR := 'text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor);
 
+      //Position
+
+      if topleftRadioButton.checked = true then
+        HUDPOSITION := 'position=top-left';
+
+      if toprightRadioButton.checked = true then
+        HUDPOSITION := 'position=top-right';
+
+      if topcenterRadioButton.checked = true then
+        HUDPOSITION := 'position=top-center';
+
+      if bottomcenterRadioButton.checked = true then
+        HUDPOSITION := 'position=bottom-center';
+
+      if bottomleftRadioButton.checked = true then
+        HUDPOSITION := 'position=bottom-left';
+
+      if bottomrightRadioButton.checked = true then
+        HUDPOSITION := 'position=bottom-right';
+
+      if middleleftRadioButton.checked = true then
+        HUDPOSITION := 'position=middle-left';
+
+      if middlerightRadioButton.checked = true then
+        HUDPOSITION := 'position=middle-right';
+
       //##################################################################################################################  Write config file
 
       //HUD Title
@@ -493,6 +519,15 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + FONTCOLOR + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //Position
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + HUDPOSITION + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
