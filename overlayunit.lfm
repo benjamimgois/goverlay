@@ -2130,6 +2130,17 @@ object goverlayform: Tgoverlayform
   OnCreate = FormCreate
   ShowInTaskBar = stAlways
   LCLVersion = '2.2.6.0'
+  object PaintBox1: TPaintBox
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    Left = 0
+    Height = 700
+    Top = 0
+    Width = 210
+    Color = clNone
+    ParentColor = False
+    OnPaint = PaintBox1Paint
+  end
   object vkbasaltPanel: TPanel
     Left = 216
     Height = 600
@@ -2711,12 +2722,13 @@ object goverlayform: Tgoverlayform
   object goverlayimage: TImage
     AnchorSideLeft.Control = Owner
     AnchorSideTop.Control = Owner
-    Left = 4
+    AnchorSideRight.Control = mangohudPanel
+    Left = 5
     Height = 47
     Top = 4
-    Width = 203
+    Width = 200
     AntialiasingMode = amOn
-    BorderSpacing.Left = 4
+    BorderSpacing.Left = 5
     BorderSpacing.Top = 4
     Picture.Data = {
       1754506F727461626C654E6574776F726B477261706869638177000089504E47
@@ -3679,6 +3691,7 @@ object goverlayform: Tgoverlayform
     }
     Proportional = True
     Stretch = True
+    Transparent = True
   end
   object aboutBitBtn: TBitBtn
     Left = 69
@@ -3765,9 +3778,11 @@ object goverlayform: Tgoverlayform
     Height = 650
     Top = 0
     Width = 789
+    BevelColor = clNone
     BevelOuter = bvNone
-    ClientHeight = 650
-    ClientWidth = 789
+    BorderStyle = bsSingle
+    ClientHeight = 646
+    ClientWidth = 785
     Color = 3684408
     ParentBackground = False
     ParentColor = False
@@ -3783,7 +3798,7 @@ object goverlayform: Tgoverlayform
       Left = 689
       Height = 30
       Hint = 'Save current setup in a Mangohud.conf file'
-      Top = 618
+      Top = 614
       Width = 95
       Align = alCustom
       Anchors = [akRight, akBottom]
@@ -3831,6 +3846,7 @@ object goverlayform: Tgoverlayform
         0000000000000000000000000000000000000000000000000000000000000000
         0000000000000000000000000000000000000000000000000000
       }
+      OnClick = saveBitBtnClick
       ParentFont = False
       ParentShowHint = False
       ShowHint = True
@@ -3843,7 +3859,7 @@ object goverlayform: Tgoverlayform
       Left = 660
       Height = 30
       Hint = 'Execute VKcube and GLXgears with current  settings'
-      Top = 618
+      Top = 614
       Width = 25
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 2
@@ -3895,6 +3911,8 @@ object goverlayform: Tgoverlayform
       TabOrder = 1
     end
     object mangohudPageControl: TPageControl
+      AnchorSideLeft.Control = mangohudPanel
+      AnchorSideTop.Control = mangohudPanel
       Left = 0
       Height = 610
       Top = 0
@@ -10463,9 +10481,9 @@ object goverlayform: Tgoverlayform
       AnchorSideRight.Side = asrCenter
       AnchorSideBottom.Control = mangohudPanel
       AnchorSideBottom.Side = asrBottom
-      Left = 357
+      Left = 355
       Height = 16
-      Top = 627
+      Top = 623
       Width = 74
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 7
@@ -10489,7 +10507,7 @@ object goverlayform: Tgoverlayform
       Left = 93
       Height = 32
       Hint = 'MangoHUD will be automagically enabled for all VULKAN applications.'#10'(not need use MANGOHUD=1 every single time.)'#10#10'NEEDS RESTART !'
-      Top = 618
+      Top = 614
       Width = 60
       Anchors = [akLeft, akBottom]
       Color = 3684408
@@ -10504,7 +10522,7 @@ object goverlayform: Tgoverlayform
       AnchorSideBottom.Control = mangohudPanel
       AnchorSideBottom.Side = asrBottom
       Left = 4
-      Height = 27
+      Height = 23
       Top = 623
       Width = 89
       Anchors = [akTop, akLeft, akBottom]
