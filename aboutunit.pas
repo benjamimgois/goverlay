@@ -12,18 +12,17 @@ type
   { TaboutForm }
 
   TaboutForm = class(TForm)
-    Image1: TImage;
+    meImage: TImage;
     donateImage: TImage;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
+    titleLabel: TLabel;
+    meLabel: TLabel;
+    textLabel: TLabel;
     linux4elink1: TLabel;
     goverlaylink: TLabel;
     schoorselinkLabel: TLabel;
     gplMemo: TMemo;
     twitterlink: TImage;
     linkedinlink: TImage;
-    linux4elink: TLabel;
     mangolink: TLabel;
     PageControl1: TPageControl;
     TabSheet1: TTabSheet;

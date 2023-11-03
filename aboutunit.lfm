@@ -13,7 +13,7 @@ object aboutForm: TaboutForm
   LCLVersion = '2.2.6.0'
   object PageControl1: TPageControl
     Left = 0
-    Height = 784
+    Height = 680
     Top = 0
     Width = 616
     ActivePage = TabSheet1
@@ -25,7 +25,7 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 749
+      ClientHeight = 645
       ClientWidth = 612
       Font.Color = clWhite
       Font.Quality = fqAntialiased
@@ -46,27 +46,16 @@ object aboutForm: TaboutForm
         ParentFont = False
         OnClick = mangolinkClick
       end
-      object linux4elink: TLabel
-        Cursor = crHandPoint
-        Left = 8
-        Height = 18
-        Top = 442
-        Width = 305
-        Caption = 'https://github.com/matanui159/ReplaySorcery'
-        Font.Color = clAqua
-        Font.Height = -13
-        Font.Name = 'Noto Sans'
-        Font.Quality = fqAntialiased
-        Font.Style = [fsBold]
-        ParentColor = False
-        ParentFont = False
-        OnClick = Label1Click
-      end
-      object Image1: TImage
-        Left = 8
+      object meImage: TImage
+        AnchorSideLeft.Control = TabSheet1
+        AnchorSideBottom.Control = TabSheet1
+        AnchorSideBottom.Side = asrBottom
+        Left = 10
         Height = 136
-        Top = 508
+        Top = 509
         Width = 104
+        Anchors = [akLeft, akBottom]
+        BorderSpacing.Left = 10
         Picture.Data = {
           0A544A706567496D616765C05B0500FFD8FFE100344578696600004D4D002A00
           0000080002011200030000000100000000876900040000000100000026000000
@@ -11048,11 +11037,17 @@ object aboutForm: TaboutForm
         Stretch = True
       end
       object twitterlink: TImage
+        AnchorSideLeft.Control = linkedinlink
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideBottom.Control = meImage
+        AnchorSideBottom.Side = asrBottom
         Cursor = crHandPoint
-        Left = 184
+        Left = 159
         Height = 42
-        Top = 602
+        Top = 603
         Width = 40
+        Anchors = [akLeft, akBottom]
+        BorderSpacing.Left = 5
         OnClick = twitterlinkClick
         Picture.Data = {
           1754506F727461626C654E6574776F726B47726170686963461C000089504E47
@@ -11287,11 +11282,17 @@ object aboutForm: TaboutForm
         Proportional = True
       end
       object linkedinlink: TImage
+        AnchorSideLeft.Control = meImage
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = meImage
+        AnchorSideBottom.Control = meImage
+        AnchorSideBottom.Side = asrBottom
         Cursor = crHandPoint
-        Left = 128
+        Left = 114
         Height = 42
-        Top = 602
+        Top = 603
         Width = 40
+        Anchors = [akLeft, akBottom]
         OnClick = linkedinlinkClick
         Picture.Data = {
           1754506F727461626C654E6574776F726B477261706869639B6D000089504E47
@@ -12176,11 +12177,17 @@ object aboutForm: TaboutForm
         Proportional = True
       end
       object donateImage: TImage
+        AnchorSideRight.Control = TabSheet1
+        AnchorSideRight.Side = asrBottom
+        AnchorSideBottom.Control = TabSheet1
+        AnchorSideBottom.Side = asrBottom
         Cursor = crHandPoint
         Left = 413
-        Height = 80
+        Height = 81
         Top = 564
-        Width = 184
+        Width = 176
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        BorderSpacing.Right = 23
         OnClick = donateImageClick
         Picture.Data = {
           1754506F727461626C654E6574776F726B477261706869630D78010089504E47
@@ -15217,7 +15224,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 8
         Height = 18
-        Top = 465
+        Top = 440
         Width = 223
         Caption = 'https://www.linux4everyone.com/'
         Font.Color = clAqua
@@ -15229,11 +15236,15 @@ object aboutForm: TaboutForm
         ParentFont = False
         OnClick = Label1Click
       end
-      object Label1: TLabel
-        Left = 8
+      object titleLabel: TLabel
+        AnchorSideLeft.Control = TabSheet1
+        AnchorSideTop.Control = TabSheet1
+        Left = 10
         Height = 49
-        Top = 8
+        Top = 3
         Width = 155
+        BorderSpacing.Left = 10
+        BorderSpacing.Top = 3
         Caption = 'Goverlay'
         Font.Height = -35
         Font.Name = 'Noto Sans'
@@ -15242,10 +15253,14 @@ object aboutForm: TaboutForm
         ParentColor = False
         ParentFont = False
       end
-      object Label2: TLabel
-        Left = 128
+      object meLabel: TLabel
+        AnchorSideLeft.Control = meImage
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = meImage
+        AnchorSideBottom.Control = meImage
+        Left = 114
         Height = 54
-        Top = 508
+        Top = 509
         Width = 166
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
         Font.Height = -13
@@ -15254,12 +15269,15 @@ object aboutForm: TaboutForm
         ParentColor = False
         ParentFont = False
       end
-      object Label3: TLabel
-        Left = 8
-        Height = 252
-        Top = 65
+      object textLabel: TLabel
+        AnchorSideLeft.Control = titleLabel
+        AnchorSideTop.Control = titleLabel
+        AnchorSideTop.Side = asrBottom
+        Left = 10
+        Height = 234
+        Top = 52
         Width = 518
-        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Joshua ''Pip'' Minter, the man and the mind behind ReplaySorcery.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a AWESOME gaming platform.'
+        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a AWESOME gaming platform.'
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
@@ -15285,7 +15303,7 @@ object aboutForm: TaboutForm
     end
     object TabSheet2: TTabSheet
       Caption = 'License'
-      ClientHeight = 749
+      ClientHeight = 645
       ClientWidth = 612
       Font.Color = clWhite
       Font.Quality = fqAntialiased
