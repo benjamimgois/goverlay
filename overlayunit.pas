@@ -19,6 +19,7 @@ type
     aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
+    fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
     autologSpinEdit1: TSpinEdit;
@@ -64,10 +65,6 @@ type
     extrasTabSheet: TTabSheet;
     filtersSheet: TTabSheet;
     FontcolorButton: TColorButton;
-    fontsizeComboBox: TComboBox;
-    fontsizeLabel: TLabel;
-    fontsizeLabel1: TLabel;
-    fontsizeSpinEdit: TSpinEdit;
     fonttypeComboBox: TComboBox;
     fonttypeLabel: TLabel;
     fpsCheckBox: TCheckBox;
@@ -154,6 +151,8 @@ type
     hudonoffComboBox1: TComboBox;
     hudtitleEdit: TEdit;
     PaintBox1: TPaintBox;
+    fontLabel: TLabel;
+    fontsizeTrackBar: TTrackBar;
     vImage: TImage;
     hImage: TImage;
     squareImage: TImage;
@@ -212,7 +211,7 @@ type
     transpTrackBar: TTrackBar;
     uploadlogComboBox: TComboBox;
     verticalRadioButton: TRadioButton;
-    visualGroupBox: TGroupBox;
+    fontsGroupBox: TGroupBox;
     visualTabSheet: TTabSheet;
     vkbasaltPanel: TPanel;
     vkbasaltstatusCheckBox: TCheckBox;
@@ -249,6 +248,7 @@ type
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
 
+    procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
@@ -328,17 +328,26 @@ begin
   Process.Options := [poUsePipes];
   Process.Execute;
 
-// Define mangohud config file path
+  // Define mangohud config file path
   MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
 
-// Initial values
-alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+  // Initial values
+  alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+  fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
+end;
+
+procedure Tgoverlayform.fontsizeTrackBarChange(Sender: TObject);
+begin
+  //Display new values and trackbar changes
+  fontsizevalueLabel.Caption:= inttostr(fontsizeTrackbar.Position);
 end;
 
 procedure Tgoverlayform.PaintBox1Paint(Sender: TObject);
 var
   i: Integer;
-begin
+
+  //Gradient color of main menu
+  begin
   for i := 0 to PaintBox1.Height do
   begin
     // Calcula um valor entre 97 (#616161) e 0 (#000000) para cada componente RGB
@@ -354,7 +363,7 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTSIZE, FONTCOLOR: string;
 
 
   begin
@@ -411,6 +420,15 @@ var
 
       HUDCOLOR := 'background_color=' + ColorToHTMLColor(hudbackgroundColorButton.ButtonColor);
 
+
+       //Font size
+
+      FONTSIZE := 'font_size=' + inttostr(fontsizeTrackbar.Position);
+
+       //Font Color
+
+      FONTCOLOR := 'text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor);
+
       //##################################################################################################################  Write config file
 
       //HUD Title
@@ -450,7 +468,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //HUD ALPHA (transparency)
+      //HUD Color
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -460,11 +478,31 @@ var
       Process1.Free;
 
 
+      //Font Size
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + FONTSIZE + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+
+      //Font Color
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + FONTCOLOR + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
 end; // ########################################      end save button click       ###############################################################################
 
 procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
 begin
-   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+  //Display new values and trackbar changes
+  alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
 end;
 
 

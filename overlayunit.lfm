@@ -5367,7 +5367,7 @@ object goverlayform: Tgoverlayform
             end
           end
         end
-        object visualGroupBox: TGroupBox
+        object fontsGroupBox: TGroupBox
           AnchorSideLeft.Control = huddesignGroupBox
           AnchorSideTop.Control = huddesignGroupBox
           AnchorSideTop.Side = asrBottom
@@ -5387,72 +5387,16 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           TabOrder = 3
-          object fontsizeLabel: TLabel
-            Left = 12
-            Height = 18
-            Top = 66
-            Width = 24
-            Caption = 'Size'
-            Font.Height = -13
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            ParentColor = False
-            ParentFont = False
-          end
-          object fontsizeComboBox: TComboBox
-            Left = 12
-            Height = 32
-            Top = 86
-            Width = 130
-            Color = clBtnFace
-            Font.Height = -13
-            Font.Name = 'Noto Sans'
-            Font.Quality = fqAntialiased
-            ItemHeight = 24
-            ItemIndex = 1
-            Items.Strings = (
-              '19 (720p)'
-              '24 (1080p)'
-              '38 (4K)'
-              'Custom'
-            )
-            ParentFont = False
-            TabOrder = 0
-            Text = '24 (1080p)'
-          end
-          object fontsizeSpinEdit: TSpinEdit
-            Left = 148
-            Height = 32
-            Top = 86
-            Width = 55
-            Color = clBtnFace
-            Enabled = False
-            Font.Height = -13
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            MaxValue = 999
-            MinValue = 10
-            ParentFont = False
-            TabOrder = 1
-            Value = 10
-          end
-          object fontsizeLabel1: TLabel
-            Left = 152
-            Height = 18
-            Top = 66
-            Width = 48
-            Caption = 'Custom'
-            Font.Height = -13
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            ParentColor = False
-            ParentFont = False
-          end
           object FontcolorButton: TColorButton
-            Left = 148
+            AnchorSideLeft.Control = fonttypeComboBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = fonttypeComboBox
+            AnchorSideTop.Side = asrCenter
+            Left = 175
             Height = 23
-            Top = 33
+            Top = 38
             Width = 30
+            BorderSpacing.Left = 4
             BorderWidth = 2
             ButtonColorSize = 16
             ButtonColor = clWhite
@@ -5462,10 +5406,15 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fonttypeLabel: TLabel
-            Left = 12
+            AnchorSideLeft.Control = fontsGroupBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = fontsGroupBox
+            Left = 92
             Height = 18
-            Top = 6
+            Top = 10
             Width = 29
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 10
             Caption = 'Type'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -5474,10 +5423,15 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fonttypeComboBox: TComboBox
-            Left = 12
+            AnchorSideLeft.Control = fonttypeLabel
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = fonttypeLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 41
             Height = 32
-            Top = 30
+            Top = 33
             Width = 130
+            BorderSpacing.Top = 5
             Color = clBtnFace
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -5496,8 +5450,60 @@ object goverlayform: Tgoverlayform
               'Ubuntu (M)'
             )
             ParentFont = False
-            TabOrder = 2
+            TabOrder = 0
             Text = 'Default'
+          end
+          object fontsizeTrackBar: TTrackBar
+            AnchorSideLeft.Control = fontLabel
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = fontLabel
+            AnchorSideTop.Side = asrCenter
+            Left = 44
+            Height = 20
+            Hint = 'Recomended Values:'#10'720p - 19'#10'1080 - 24'#10'4K - 31'
+            Top = 104
+            Width = 147
+            Max = 100
+            Min = 1
+            OnChange = fontsizeTrackBarChange
+            Position = 24
+            TickStyle = tsNone
+            BorderSpacing.Left = 10
+            ParentColor = False
+            TabOrder = 1
+          end
+          object fontsizevalueLabel: TLabel
+            AnchorSideLeft.Control = fontsizeTrackBar
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = fontsizeTrackBar
+            AnchorSideTop.Side = asrBottom
+            Left = 113
+            Height = 17
+            Top = 124
+            Width = 8
+            Caption = 'X'
+            Font.Height = -12
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentColor = False
+            ParentFont = False
+          end
+          object fontLabel: TLabel
+            AnchorSideLeft.Control = fontsGroupBox
+            AnchorSideTop.Control = fonttypeComboBox
+            AnchorSideTop.Side = asrBottom
+            Left = 10
+            Height = 18
+            Top = 105
+            Width = 24
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 40
+            Caption = 'Size'
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentColor = False
+            ParentFont = False
           end
         end
         object pcidevComboBox: TComboBox
