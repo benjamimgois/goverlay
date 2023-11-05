@@ -149,7 +149,6 @@ type
     horizontalRadioButton: TRadioButton;
     hudbackgroundColorButton: TColorButton;
     hudonoffComboBox: TComboBox;
-    hudonoffComboBox1: TComboBox;
     hudtitleEdit: TEdit;
     PaintBox1: TPaintBox;
     fontLabel: TLabel;
@@ -364,7 +363,7 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTSIZE, FONTCOLOR, HUDPOSITION: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD: string;
 
 
   begin
@@ -456,7 +455,19 @@ var
       if middlerightRadioButton.checked = true then
         HUDPOSITION := 'position=middle-right';
 
+
+      //HUD Toggle ON/OFF
+
+      case hudonoffCombobox.ItemIndex of
+        0:TOGGLEHUD := 'toggle_hud=Shift_R+F12' ;
+        1:TOGGLEHUD := 'toggle_hud=Shift_R+F1' ;
+        2:TOGGLEHUD := 'toggle_hud=Shift_R+F2' ;
+        3:TOGGLEHUD := 'toggle_hud=Shift_R+F3' ;
+        4:TOGGLEHUD := 'toggle_hud=Shift_R+F4' ;
+
+
       //##################################################################################################################  Write config file
+      end;
 
       //HUD Title
       Process1 := TProcess.Create(nil);
@@ -524,11 +535,20 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //Position
+      //HUD Position
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + HUDPOSITION + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //TOGGLE HUD
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + TOGGLEHUD + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

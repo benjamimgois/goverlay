@@ -4084,35 +4084,6 @@ object goverlayform: Tgoverlayform
             Proportional = True
             Stretch = True
           end
-          object hudonoffComboBox1: TComboBox
-            AnchorSideLeft.Control = positionGroupBox
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = positionGroupBox
-            Left = 56
-            Height = 32
-            Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
-            Top = 55
-            Width = 100
-            BorderSpacing.Top = 55
-            Color = clBtnFace
-            Font.Height = -13
-            Font.Name = 'Noto Sans'
-            Font.Quality = fqAntialiased
-            ItemHeight = 24
-            ItemIndex = 0
-            Items.Strings = (
-              'Shift_R+F12'
-              'F1'
-              'F2'
-              'F3'
-              'F4'
-            )
-            ParentFont = False
-            ParentShowHint = False
-            ShowHint = True
-            TabOrder = 0
-            Text = 'Shift_R+F12'
-          end
           object topleftRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
@@ -4124,7 +4095,7 @@ object goverlayform: Tgoverlayform
             BorderSpacing.Top = 10
             Checked = True
             ParentColor = False
-            TabOrder = 8
+            TabOrder = 7
             TabStop = True
           end
           object topcenterRadioButton: TRadioButton
@@ -4136,7 +4107,7 @@ object goverlayform: Tgoverlayform
             Top = 10
             Width = 28
             BorderSpacing.Top = 10
-            TabOrder = 1
+            TabOrder = 0
           end
           object toprightRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
@@ -4149,7 +4120,7 @@ object goverlayform: Tgoverlayform
             Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Top = 10
-            TabOrder = 2
+            TabOrder = 1
           end
           object bottomleftRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
@@ -4164,7 +4135,7 @@ object goverlayform: Tgoverlayform
             BorderSpacing.Left = 8
             BorderSpacing.Top = 10
             BorderSpacing.Bottom = 29
-            TabOrder = 3
+            TabOrder = 2
           end
           object bottomrightRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
@@ -4180,7 +4151,7 @@ object goverlayform: Tgoverlayform
             Anchors = [akRight, akBottom]
             BorderSpacing.Top = 5
             BorderSpacing.Bottom = 29
-            TabOrder = 4
+            TabOrder = 3
           end
           object bottomcenterRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
@@ -4196,7 +4167,7 @@ object goverlayform: Tgoverlayform
             BorderSpacing.Left = 5
             BorderSpacing.Top = 5
             BorderSpacing.Bottom = 29
-            TabOrder = 5
+            TabOrder = 4
           end
           object middleleftRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
@@ -4207,7 +4178,7 @@ object goverlayform: Tgoverlayform
             Width = 28
             BorderSpacing.Left = 8
             BorderSpacing.Top = 60
-            TabOrder = 6
+            TabOrder = 5
           end
           object middlerightRadioButton: TRadioButton
             AnchorSideLeft.Control = positionGroupBox
@@ -4220,7 +4191,7 @@ object goverlayform: Tgoverlayform
             Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Top = 60
-            TabOrder = 7
+            TabOrder = 6
           end
         end
         object huddesignGroupBox: TGroupBox
@@ -4791,10 +4762,10 @@ object goverlayform: Tgoverlayform
           ItemIndex = 0
           Items.Strings = (
             'Shift_R+F12'
-            'F1'
-            'F2'
-            'F3'
-            'F4'
+            'Shift_R+F1'
+            'Shift_R+F2'
+            'Shift_R+F3'
+            'Shift_R+F4'
           )
           ParentFont = False
           ParentShowHint = False
