@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype;
+  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype, FileUtil;
 
 
 
@@ -21,6 +21,8 @@ type
     addBitBtn: TBitBtn;
     bottomcenterRadioButton: TRadioButton;
     colorthemeLabel: TLabel;
+    fontComboBox: TComboBox;
+    fontcolorLabel: TLabel;
     fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
@@ -65,8 +67,7 @@ type
     extrasTabSheet: TTabSheet;
     filtersSheet: TTabSheet;
     FontcolorButton: TColorButton;
-    fonttypeComboBox: TComboBox;
-    fonttypeLabel: TLabel;
+    C: TComboBox;
     fpsCheckBox: TCheckBox;
     fpsCheckBox1: TCheckBox;
     fpsCheckBox2: TCheckBox;
@@ -272,6 +273,7 @@ var
 
   //Mangohud variables ##########################
   MANGOHUDCFGFILE: string;
+  FONTFOLDER: string;
   fpslimVAR : string;
   fpslimtoggleVAR : string;
   vulkanvsyncVAR: string;
@@ -302,6 +304,28 @@ end;
 
 
 
+//Function to find font files (*.ttf) in /usr/share/fonts
+procedure ListarFontesNoDiretorio(Diretorio: string; ComboBox: TComboBox);
+var
+  Arquivos: TStringList;
+  Arquivo: String;
+begin
+  //ComboBox.Clear; // Limpa o ComboBox antes de preenchê-lo
+
+  Arquivos := FindAllFiles(Diretorio, '*.ttf'); // Procura por arquivos TTF no diretório
+
+  try
+    for Arquivo in Arquivos do
+    begin
+      ComboBox.Items.Add(ExtractFileName(Arquivo)); // Adiciona o nome do arquivo ao ComboBox
+    end;
+  finally
+    Arquivos.Free; // Libera a memória alocada para a lista de arquivos
+  end;
+end;
+
+
+
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
 var
@@ -328,12 +352,19 @@ begin
   Process.Options := [poUsePipes];
   Process.Execute;
 
-  // Define mangohud config file path
+  // Define important file paths
   MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
+  FONTFOLDER := '/usr/share/fonts/TTF/';
+
+  //Load avaiable text fonts in /usr/share/fonts
+  ListarFontesNoDiretorio('/usr/share/fonts/TTF/', fontComboBox);
 
   // Initial values
   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
   fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
+  fontcombobox.ItemIndex:=0;
+
+
 end;
 
 procedure Tgoverlayform.fontsizeTrackBarChange(Sender: TObject);
@@ -363,8 +394,8 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD: string;
-
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD: string;
+  LOCATEDFILE: TStringList;
 
   begin
 
@@ -421,7 +452,18 @@ var
       HUDCOLOR := 'background_color=' + ColorToHTMLColor(hudbackgroundColorButton.ButtonColor);
 
 
-       //Font size
+      //Font type
+      if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
+        begin
+          LOCATEDFILE := FindAllFiles(FONTFOLDER, fontCombobox.Text);  //Locate specific folder for selected font
+          FONTPATH := LOCATEDFILE[0];
+          FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
+        end;
+
+
+
+
+      //Font size
 
       FONTSIZE := 'font_size=' + inttostr(fontsizeTrackbar.Position);
 
@@ -515,6 +557,19 @@ var
       Process1.Execute;
       Process1.Free;
 
+
+      //Font Type
+
+      if fontcomboBox.ItemIndex <> 0  then    //It doesnt apply for the DEFAULT font
+      begin
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + FONTTYPE + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+      end;
 
       //Font Size
       Process1 := TProcess.Create(nil);

@@ -4572,15 +4572,16 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 3
           object FontcolorButton: TColorButton
-            AnchorSideLeft.Control = fonttypeComboBox
+            AnchorSideLeft.Control = fontcolorLabel
             AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = fonttypeComboBox
+            AnchorSideTop.Control = fontcolorLabel
             AnchorSideTop.Side = asrCenter
-            Left = 175
+            Left = 52
             Height = 23
-            Top = 38
+            Top = 69
             Width = 30
-            BorderSpacing.Left = 4
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 17
             BorderWidth = 2
             ButtonColorSize = 16
             ButtonColor = clWhite
@@ -4589,49 +4590,23 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             ParentFont = False
           end
-          object fonttypeLabel: TLabel
+          object fontComboBox: TComboBox
             AnchorSideLeft.Control = fontsGroupBox
-            AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = fontsGroupBox
-            Left = 92
-            Height = 18
-            Top = 10
-            Width = 29
-            BorderSpacing.Left = 10
-            BorderSpacing.Top = 10
-            Caption = 'Type'
-            Font.Height = -13
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            ParentColor = False
-            ParentFont = False
-          end
-          object fonttypeComboBox: TComboBox
-            AnchorSideLeft.Control = fonttypeLabel
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = fonttypeLabel
-            AnchorSideTop.Side = asrBottom
-            Left = 41
+            Left = 8
             Height = 32
-            Top = 33
-            Width = 130
-            BorderSpacing.Top = 5
+            Top = 10
+            Width = 190
+            BorderSpacing.Left = 8
+            BorderSpacing.Top = 10
             Color = clBtnFace
-            Font.Height = -13
+            Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 22
             ItemIndex = 0
             Items.Strings = (
               'Default'
-              'DejaVuSans'
-              'DejaVuSans (B)'
-              'DejaVuSans (O)'
-              'DejaVuSans (BO)'
-              'DejaVuSans (L)'
-              'Ubuntu'
-              'Ubuntu (B)'
-              'Ubuntu (M)'
             )
             ParentFont = False
             TabOrder = 0
@@ -4642,11 +4617,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = fontLabel
             AnchorSideTop.Side = asrCenter
-            Left = 44
+            Left = 42
             Height = 20
             Hint = 'Recomended Values:'#10'720p - 19'#10'1080 - 24'#10'4K - 31'
-            Top = 104
-            Width = 147
+            Top = 113
+            Width = 156
             Max = 100
             Min = 1
             OnChange = fontsizeTrackBarChange
@@ -4661,9 +4636,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = fontsizeTrackBar
             AnchorSideTop.Side = asrBottom
-            Left = 113
+            Left = 116
             Height = 17
-            Top = 124
+            Top = 133
             Width = 8
             Caption = 'X'
             Font.Height = -12
@@ -4674,15 +4649,31 @@ object goverlayform: Tgoverlayform
           end
           object fontLabel: TLabel
             AnchorSideLeft.Control = fontsGroupBox
-            AnchorSideTop.Control = fonttypeComboBox
+            AnchorSideTop.Control = fontcolorLabel
             AnchorSideTop.Side = asrBottom
-            Left = 10
+            Left = 8
             Height = 18
-            Top = 105
+            Top = 114
             Width = 24
-            BorderSpacing.Left = 10
-            BorderSpacing.Top = 40
+            BorderSpacing.Left = 8
+            BorderSpacing.Top = 25
             Caption = 'Size'
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentColor = False
+            ParentFont = False
+          end
+          object fontcolorLabel: TLabel
+            AnchorSideLeft.Control = fontsGroupBox
+            AnchorSideTop.Control = fontsGroupBox
+            AnchorSideTop.Side = asrCenter
+            Left = 8
+            Height = 18
+            Top = 71
+            Width = 34
+            BorderSpacing.Left = 8
+            Caption = 'Color'
             Font.Height = -13
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
