@@ -394,7 +394,7 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -506,10 +506,15 @@ var
         2:TOGGLEHUD := 'toggle_hud=Shift_R+F2' ;
         3:TOGGLEHUD := 'toggle_hud=Shift_R+F3' ;
         4:TOGGLEHUD := 'toggle_hud=Shift_R+F4' ;
+        end;
 
+      //Hide HUD by default
+
+      if hidehudCheckbox.checked = true then
+         HIDEHUD := 'no_display';
 
       //##################################################################################################################  Write config file
-      end;
+
 
       //HUD Title
       Process1 := TProcess.Create(nil);
@@ -604,6 +609,15 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + TOGGLEHUD + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //TOGGLE HUD
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + HIDEHUD + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
