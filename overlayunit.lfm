@@ -1,11 +1,11 @@
 object goverlayform: Tgoverlayform
   Left = 2902
-  Height = 648
+  Height = 649
   Top = 168
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
-  ClientHeight = 648
+  ClientHeight = 649
   ClientWidth = 1000
   Color = 1710618
   Font.Color = clWhite
@@ -3776,7 +3776,7 @@ object goverlayform: Tgoverlayform
   object mangohudPanel: TPanel
     Left = 211
     Height = 650
-    Top = 0
+    Top = -1
     Width = 789
     BevelColor = clNone
     BevelOuter = bvNone
@@ -3938,10 +3938,10 @@ object goverlayform: Tgoverlayform
           Left = 206
           Height = 32
           Hint = 'Create a custom title for the hud'
-          Top = 5
+          Top = 10
           Width = 368
           Alignment = taCenter
-          BorderSpacing.Top = 5
+          BorderSpacing.Top = 10
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -3953,17 +3953,16 @@ object goverlayform: Tgoverlayform
           Text = 'Title'
         end
         object themesComboBox: TComboBox
-          AnchorSideLeft.Control = positionGroupBox
-          AnchorSideLeft.Side = asrBottom
+          AnchorSideLeft.Control = colorthemeLabel
+          AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = colorthemeLabel
           AnchorSideTop.Side = asrBottom
           AnchorSideRight.Control = visualTabSheet
           AnchorSideRight.Side = asrCenter
-          Left = 549
+          Left = 572
           Height = 32
-          Top = 362
+          Top = 348
           Width = 180
-          BorderSpacing.Left = 50
           ItemHeight = 24
           ItemIndex = 0
           Items.Strings = (
@@ -3979,15 +3978,15 @@ object goverlayform: Tgoverlayform
           Text = 'Mangohud Default'
         end
         object positionGroupBox: TGroupBox
-          AnchorSideLeft.Control = huddesignGroupBox
+          AnchorSideLeft.Control = borderGroupBox
           AnchorSideLeft.Side = asrCenter
-          AnchorSideTop.Control = huddesignGroupBox
+          AnchorSideTop.Control = borderGroupBox
           AnchorSideTop.Side = asrBottom
-          Left = 283
+          Left = 282
           Height = 190
-          Top = 317
+          Top = 300
           Width = 216
-          BorderSpacing.Top = 10
+          BorderSpacing.Top = 40
           Caption = 'Position'
           ClientHeight = 160
           ClientWidth = 212
@@ -3996,6 +3995,7 @@ object goverlayform: Tgoverlayform
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
           Font.Style = [fsBold]
+          ParentBackground = False
           ParentColor = False
           ParentFont = False
           TabOrder = 2
@@ -4194,373 +4194,15 @@ object goverlayform: Tgoverlayform
             TabOrder = 6
           end
         end
-        object huddesignGroupBox: TGroupBox
-          Left = 16
-          Height = 179
-          Top = 128
-          Width = 750
-          Caption = 'HUD design'
-          ClientHeight = 149
-          ClientWidth = 746
-          Font.Height = -13
-          Font.Name = 'Noto Sans'
-          Font.Quality = fqAntialiased
-          Font.Style = [fsBold]
-          ParentColor = False
-          ParentFont = False
-          TabOrder = 4
-          object borderGroupBox: TGroupBox
-            AnchorSideLeft.Control = huddesignGroupBox
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = huddesignGroupBox
-            AnchorSideTop.Side = asrCenter
-            Left = 265
-            Height = 130
-            Top = 9
-            Width = 216
-            Caption = 'Borders'
-            ClientHeight = 100
-            ClientWidth = 212
-            TabOrder = 0
-            object roundImage: TImage
-              AnchorSideLeft.Control = roundRadioButton
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = roundRadioButton
-              AnchorSideTop.Side = asrCenter
-              Left = 156
-              Height = 35
-              Hint = 'Round edge'
-              Top = 33
-              Width = 40
-              Picture.Data = {
-                1754506F727461626C654E6574776F726B477261706869630B05000089504E47
-                0D0A1A0A0000000D49484452000000470000004C08060000003F77AADC000000
-                0473424954080808087C086488000004C249444154789CEDDA5B6C93651CC7F1
-                EFF39EFA763D6D5D19DB609B0B182A04821213256AD4188C51A366DE20488C24
-                5C99188DC60B8CE2D9C478E1859A800A7241821824812C82281EA6D1C0401D20
-                4608070539D5D26E5D0FDBDBD78B09A2A15DB775ED7BE8EFF6F93F4FDF7EFA7F
-                DE530AB5D4524B2DB5D4528B8D239E78BBDBACD3557CBA8A4FD7F07B35C2C13A
-                1EB869B6A8F6C1553BE2BED7B69B66DE206F18987903D3303086B31843594CD3
-                C4A3CA4C9F12A2AD2944C7D47A962DBAD6356862C99A0366A14163388791CB60
-                E4B20C0F65307269B2A9248A3089B64F61EE8C6696DFB5C0B1584571AE18D364
-                2893223B9824974A30941E40950537CE69E7B965B7390A6AEC38FF8B69E6C90D
-                F6934B5D209D88E1F748DC3ABF93C7BB16DA1E6AC238FF8969924D254827CE91
-                1D88D31CF673F70DB3587CFB3C5B429517E7B2E48D613289F3A4E2A7A9534CEE
-                BF79368FDC799DAD90260DE7524C937432C640EC241E6170EFC2282BEEB9DE16
-                48938F73292699FE3803E74FA2E4732C5D34DFF2DBAD8238FF263B7081FEB3C7
-                69A9F7B0EE992ECB0249D5F8508FBF9EC6CE79C4F301EE786A9DF9E2FA5D15FF
-                814A49553AE7F218B90C89D3C79086533C7AD702BA6E9963994EAA4AE75C1E59
-                D309B747F1443A7877EB1E56BEB7C3325D54759C8BF10623443AE7D27B34CEE2
-                97365A02C8323800B2EA21DC319B011160D1D36BCD8DBBFAAA8A64291C002124
-                82533B08B45CCD9AEEBDAC7CFFB3AA01590EE762F4400391CEB9EC3912E3B1B7
-                B65605C8B238F0CF366BBF86C3E7D22C7F6373C5812C8D0320C90AE1B628A792
-                7996BCF25145812C8F0320249986B628F1218DAEE737540CC816380042081A5A
-                679295033CB8AA3240B6C101400882CD9DA4F1B2F4D54D930E642F1C463A28D4
-                3A93581A56BCB96552816C870323F742F5D367713C96E1C977BA270DC8963800
-                9224136E8BB2FF449C55EB3E9F1420DBE200488A4A435B946F0FFCC1C75FED2F
-                3B90AD7100144D27D83283D5DBF6947D6DDBE3C0C8A38627D4C4432F97F726D1
-                11380081A676FE4AC3B3657C50750C8E1082FAD6997C7FE8149FF41C2C0B9063
-                700064CD43B0B9930FBA7BCBB29EA37000BCC1460CA58E173EFC62C2DDE3381C
-                80C0D4ABF8A6EFF884D771248EA2E9F8C22D3C3CC1E72F47E200F81AA7712699
-                63EDA77BC70DE4581C2149049ADAD9F465DFB8D7702C0E801E0863481E566FDB
-                3DAEEE71340E803F328DADDF1D1AD75CC7E3E881303954D66FDF37E6EE713C0E
-                80BF711A9B7B0E8E799E2B70F46003E961898DBB7E1E53F7B8020704BE482B5B
-                7A7E19D32C97E080EE0F732E9919D31CD7E00849420F84797DC3D7256F2DD7E0
-                007843117AFA8E955CEF2A1CAD2E402E2FB17DF76F25758FAB7040A08722ECEC
-                3D5252B5CB7046FE41B6EFF09F25D5BA0E47F1789164959DBD8747DD5AAEC301
-                D07C417E3A727AD43A77E2D405F9B184ADE5529C10A762FDA3D6B91247563564
-                D5C38E512EE9AEC401D07C21F61F3D53B4C6B538AAEEE3D8990B456B5C8B236B
-                3A276A38578EA2E9F4A773456B5C8B232B1A422AFEF55D8B0320AB5EBA7FF8B5
-                E015CBD5388AA6F3FBD944C17157E3488A4A2C992E3C5EC163B15C244966303B
-                5478BC82C762B90859663053F88AE56E1C49663053EB9C2B46D4B655E1D4CE39
-                4532B2AD6AE79C8231F285DF5AB81EA758FE0667C37DF38811231F0000000049
-                454E44AE426082
-              }
-              Stretch = True
-              Transparent = True
-            end
-            object roundRadioButton: TRadioButton
-              AnchorSideLeft.Control = squareImage
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = squareRadioButton
-              Left = 128
-              Height = 20
-              Top = 40
-              Width = 28
-              BorderSpacing.Left = 50
-              TabOrder = 0
-            end
-            object squareImage: TImage
-              AnchorSideLeft.Control = squareRadioButton
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = squareRadioButton
-              AnchorSideTop.Side = asrCenter
-              Left = 38
-              Height = 35
-              Hint = 'Square edge'
-              Top = 33
-              Width = 40
-              Picture.Data = {
-                1754506F727461626C654E6574776F726B47726170686963C500000089504E47
-                0D0A1A0A0000000D494844520000003000000027080600000049D1CBA4000000
-                0473424954080808087C0864880000007C494441545885EDCFA10D80301844E1
-                965422914CC1128CC16C5D00DF253A050E1C0481298A017E025C48DEE72FB9E7
-                1C0028F99872519FB80C7DE7AD9B30E6F98D2F66C7BEBA9872B14684BA69DFFA
-                64B22DD3AD5DF5F08FCF11A046801A016A04A811A046801A016A04A811A04680
-                1A016A04A811A04680DAEF034EB2FD109027C245C10000000049454E44AE4260
-                82
-              }
-              Stretch = True
-              Transparent = True
-            end
-            object squareRadioButton: TRadioButton
-              AnchorSideLeft.Control = borderGroupBox
-              AnchorSideTop.Control = borderGroupBox
-              AnchorSideTop.Side = asrCenter
-              Left = 10
-              Height = 20
-              Top = 40
-              Width = 28
-              BorderSpacing.Left = 10
-              Checked = True
-              TabOrder = 1
-              TabStop = True
-            end
-          end
-          object orientationGroupBox: TGroupBox
-            AnchorSideLeft.Control = huddesignGroupBox
-            AnchorSideTop.Control = huddesignGroupBox
-            AnchorSideTop.Side = asrCenter
-            Left = 10
-            Height = 130
-            Top = 9
-            Width = 216
-            BorderSpacing.Left = 10
-            Caption = 'Orientation'
-            ClientHeight = 100
-            ClientWidth = 212
-            TabOrder = 1
-            object verticalRadioButton: TRadioButton
-              AnchorSideLeft.Control = orientationGroupBox
-              AnchorSideTop.Control = orientationGroupBox
-              AnchorSideTop.Side = asrCenter
-              Left = 10
-              Height = 20
-              Top = 40
-              Width = 28
-              BorderSpacing.Left = 10
-              Checked = True
-              TabOrder = 0
-              TabStop = True
-            end
-            object vImage: TImage
-              AnchorSideLeft.Control = verticalRadioButton
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = verticalRadioButton
-              AnchorSideTop.Side = asrCenter
-              Left = 38
-              Height = 42
-              Hint = 'Vertical'
-              Top = 29
-              Width = 24
-              Picture.Data = {
-                1754506F727461626C654E6574776F726B47726170686963F503000089504E47
-                0D0A1A0A0000000D49484452000000AC000001440806000000BA51D583000000
-                0473424954080808087C086488000003AC49444154789CEDD2B14E02511445D1
-                8710C5CE84D682FFFF2A0B5B123B8438624726462B13C69DACD5DD5B9D628F01
-                003056F3E3F5ED74399EA7A5B6C0D5E3FD7A3C3F3DACBEFF37F3E3789EC6CBE1
-                FD76ABE017FBDDF6C7FFDD8D77C09F089614C192225852044B8A6049112C2982
-                2545B0A4089614C192225852044B8A6049112C29822545B0A4089614C1922258
-                52044B8A6049112C29822545B0A4089614C192225852044B8A6049112C298225
-                45B0A4089614C192225852044B8A6049112C29822545B0A4089614C192225852
-                044B8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545
-                B0A4089614C192225852044B8A6049112C29822545B0A4089614C19222585204
-                4B8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545B0
-                A4089614C192225852044B8A6049112C29822545B0A4089614C192225852044B
-                8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545B0A4
-                089614C192225852044B8A6049112C29822545B0A4089614C192225852044B8A
-                6049112C29822545B0A4089614C192225852044B8A6049112C29822545B0A408
-                9614C192225852044B8A6049112C29822545B0A4089614C192225852044B8A60
-                49112C29822545B0A4089614C192225852044B8A6049112C29822545B0A40896
-                14C192225852044B8A6049112C29822545B0A4089614C192225852044B8A6049
-                112C29822545B0A4089614C192225852044B8A6049112C29822545B0A4089614
-                C192225852044B8A6049112C29822545B0A4089614C192225852044B8A604911
-                2C29822545B0A4089614C192225852044B8A6049112C29822545B0A4089614C1
-                92225852044B8A6049112C29822545B0A4089614C192225852044B8A6049112C
-                29822545B0A4089614C192225852044B8A6049112C29822545B0A4089614C192
-                225852044B8A6049112C29822545B0A4089614C192225852044B8A6049112C29
-                822545B0A4089614C192225852044B8A6049112C29822545B0A4089614C19222
-                5852044B8A6049112C29822545B0A4089614C192225852044B8A6049112C2982
-                2545B0A4089614C192225852044B8A6049112C29822545B0A4089614C1922258
-                52044B8A6049112C29822545B0A4089614C192225852044B8A6049112C298225
-                45B0A4089614C192225852044B8A6049112C29822545B0A4089614C192225852
-                044B8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545
-                B0A4089614C192B2991F1F9F63EC77DBA5B6C0D574597A0100F08F7D017E6A13
-                9FF0BA33730000000049454E44AE426082
-              }
-              Stretch = True
-              Transparent = True
-            end
-            object horizontalRadioButton: TRadioButton
-              AnchorSideLeft.Control = vImage
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = verticalRadioButton
-              AnchorSideRight.Control = orientationGroupBox
-              AnchorSideRight.Side = asrCenter
-              Left = 112
-              Height = 20
-              Top = 40
-              Width = 28
-              BorderSpacing.Left = 50
-              TabOrder = 1
-            end
-            object hImage: TImage
-              AnchorSideLeft.Control = horizontalRadioButton
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = horizontalRadioButton
-              AnchorSideTop.Side = asrCenter
-              Left = 140
-              Height = 24
-              Hint = 'Horizontal'
-              Top = 38
-              Width = 42
-              Picture.Data = {
-                1754506F727461626C654E6574776F726B47726170686963BC02000089504E47
-                0D0A1A0A0000000D4948445200000148000000B008060000006DA2F7F3000000
-                0473424954080808087C0864880000027349444154789CEDD4214EC5501445D1
-                47E927D5FC0974FE6342E0091ADC63007407450BC95AF2E68AA3F61800000000
-                00009CEEE1E8F8F2F631E79C676F01B8C46D5DC6FEBC7DEBE17AF43CE71CAFEF
-                9FBFBF0AE00FD8EFDBE17D397907C0BF21900041200182400204810408020910
-                0412200824401048802090004120018240020481040802091004122008244010
-                4880209000412001824002048104080209100412200824401048802090004120
-                0182400204810408020910041220082440104880209000412001824002048104
-                0802091004122008244010488020900041200182400204810408020910041220
-                0824401048802090004120018240020481040802091004122008244010488020
-                9000412001824002048104080209100412200824401048802090004120018240
-                0204810408020910041220082440104880209000412001824002048104080209
-                1004122008244010488020900041200182400204810408020910041220082440
-                1048802090004120018240020481040802091004122008244010488020900041
-                2001824002048104080209100412200824401048802090004120018240020481
-                0408020910041220082440104880209000412001824002048104080209100412
-                2008244010488020900041200182400204810408020910041220082440104880
-                2090004120018240020481040802091004122008244010488020900041200182
-                4002048104080209100412200824401048802090004120018240020481040802
-                0910041220082440104880209000412001824002048104080209100412200824
-                40104880209000613D3A3EADCBD8EFDBD95B002EB1DD1EAF9E00000000000000
-                003FF802110A0EA20B96C5D60000000049454E44AE426082
-              }
-              Stretch = True
-              Transparent = True
-            end
-          end
-          object backgroundGroupBox: TGroupBox
-            AnchorSideLeft.Control = huddesignGroupBox
-            AnchorSideTop.Control = huddesignGroupBox
-            AnchorSideTop.Side = asrCenter
-            Left = 510
-            Height = 130
-            Top = 9
-            Width = 216
-            BorderSpacing.Left = 510
-            Caption = 'Background'
-            ClientHeight = 100
-            ClientWidth = 212
-            TabOrder = 2
-            object backgroundLabel: TLabel
-              AnchorSideLeft.Control = backgroundGroupBox
-              AnchorSideTop.Control = backgroundGroupBox
-              Left = 10
-              Height = 18
-              Top = 19
-              Width = 34
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 19
-              Caption = 'Color'
-              Font.Height = -13
-              Font.Name = 'Noto Sans'
-              Font.Quality = fqAntialiased
-              ParentColor = False
-              ParentFont = False
-            end
-            object hudbackgroundColorButton: TColorButton
-              AnchorSideLeft.Control = backgroundLabel
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = backgroundLabel
-              AnchorSideTop.Side = asrCenter
-              Left = 54
-              Height = 23
-              Top = 17
-              Width = 30
-              BorderSpacing.Left = 10
-              BorderWidth = 2
-              ButtonColorSize = 16
-              ButtonColor = clBlack
-              Color = 3684408
-              Font.Height = -11
-              Font.Name = 'Sans'
-              ParentFont = False
-            end
-            object transparencyLabel: TLabel
-              AnchorSideLeft.Control = backgroundGroupBox
-              AnchorSideTop.Control = backgroundLabel
-              AnchorSideTop.Side = asrBottom
-              Left = 10
-              Height = 18
-              Top = 57
-              Width = 35
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 20
-              Caption = 'Alpha'
-              Font.Height = -13
-              Font.Name = 'Noto Sans'
-              Font.Quality = fqAntialiased
-              ParentColor = False
-              ParentFont = False
-            end
-            object transpTrackBar: TTrackBar
-              AnchorSideLeft.Control = transparencyLabel
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = transparencyLabel
-              AnchorSideTop.Side = asrCenter
-              Left = 55
-              Height = 20
-              Top = 56
-              Width = 147
-              OnChange = transpTrackBarChange
-              Position = 6
-              TickStyle = tsNone
-              BorderSpacing.Left = 10
-              ParentColor = False
-              TabOrder = 0
-            end
-            object alphavalueLabel: TLabel
-              AnchorSideLeft.Control = transpTrackBar
-              AnchorSideLeft.Side = asrCenter
-              AnchorSideTop.Control = transpTrackBar
-              AnchorSideTop.Side = asrBottom
-              Left = 124
-              Height = 17
-              Top = 76
-              Width = 8
-              Caption = 'X'
-              Font.Height = -12
-              Font.Name = 'Noto Sans'
-              Font.Quality = fqAntialiased
-              ParentColor = False
-              ParentFont = False
-            end
-          end
-        end
         object fontsGroupBox: TGroupBox
-          AnchorSideLeft.Control = huddesignGroupBox
-          AnchorSideTop.Control = huddesignGroupBox
+          AnchorSideLeft.Control = orientationGroupBox
+          AnchorSideTop.Control = orientationGroupBox
           AnchorSideTop.Side = asrBottom
-          Left = 26
+          Left = 10
           Height = 190
-          Top = 317
+          Top = 300
           Width = 216
-          BorderSpacing.Left = 10
-          BorderSpacing.Top = 10
+          BorderSpacing.Top = 40
           Caption = 'Fonts'
           ClientHeight = 160
           ClientWidth = 212
@@ -4568,6 +4210,7 @@ object goverlayform: Tgoverlayform
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
           Font.Style = [fsBold]
+          ParentBackground = False
           ParentColor = False
           ParentFont = False
           TabOrder = 3
@@ -4682,10 +4325,14 @@ object goverlayform: Tgoverlayform
           end
         end
         object pcidevComboBox: TComboBox
-          Left = 16
+          AnchorSideLeft.Control = visualTabSheet
+          AnchorSideTop.Control = visualTabSheet
+          Left = 10
           Height = 32
-          Top = 71
+          Top = 69
           Width = 90
+          BorderSpacing.Left = 10
+          BorderSpacing.Top = 69
           Color = clBtnFace
           Font.Height = -11
           Font.Name = 'Noto Sans'
@@ -4695,16 +4342,18 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 5
+          TabOrder = 4
           Text = 'Active GPU'
           TextHint = 'PCI ID in format domain:bus:slot.func'
         end
         object gpudescLabel: TLabel
           AnchorSideLeft.Control = pcidevComboBox
           AnchorSideLeft.Side = asrBottom
-          Left = 106
+          AnchorSideTop.Control = pcidevComboBox
+          AnchorSideTop.Side = asrCenter
+          Left = 100
           Height = 32
-          Top = 71
+          Top = 69
           Width = 655
           Align = alCustom
           Alignment = taCenter
@@ -4723,9 +4372,9 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Control = themesComboBox
           AnchorSideTop.Side = asrBottom
           AnchorSideBottom.Control = hudonoffComboBox
-          Left = 590
+          Left = 613
           Height = 18
-          Top = 414
+          Top = 400
           Width = 98
           BorderSpacing.Top = 20
           Caption = 'HUD Toggle Key'
@@ -4740,10 +4389,10 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = hudtoggleLabel
           AnchorSideTop.Side = asrBottom
-          Left = 549
+          Left = 572
           Height = 32
           Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
-          Top = 442
+          Top = 428
           Width = 180
           BorderSpacing.Top = 10
           Font.Height = -13
@@ -4761,21 +4410,25 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 6
+          TabOrder = 5
           Text = 'Shift_R+F12'
         end
         object hidehudCheckBox: TCheckBox
+          AnchorSideLeft.Control = fontsGroupBox
+          AnchorSideTop.Control = fontsGroupBox
+          AnchorSideTop.Side = asrBottom
           AnchorSideRight.Control = visualTabSheet
           AnchorSideRight.Side = asrBottom
           AnchorSideBottom.Control = visualTabSheet
           AnchorSideBottom.Side = asrBottom
-          Left = 592
+          Left = 10
           Height = 22
           Hint = 'This option will turn the hud off by default. Pressing the keybinding will show it up.'
-          Top = 547
-          Width = 188
-          Anchors = [akLeft, akRight, akBottom]
-          BorderSpacing.Bottom = 6
+          Top = 540
+          Width = 121
+          BorderSpacing.Top = 50
+          BorderSpacing.Right = 10
+          BorderSpacing.Bottom = 20
           Caption = 'Hide by default'
           Color = clDefault
           Font.Height = -13
@@ -4785,18 +4438,19 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 7
+          TabOrder = 6
         end
         object colorthemeLabel: TLabel
-          AnchorSideLeft.Control = themesComboBox
+          AnchorSideLeft.Control = backgroundGroupBox
           AnchorSideLeft.Side = asrCenter
-          AnchorSideTop.Control = positionGroupBox
+          AnchorSideTop.Control = backgroundGroupBox
+          AnchorSideTop.Side = asrBottom
           AnchorSideBottom.Control = themesComboBox
-          Left = 600
+          Left = 623
           Height = 18
-          Top = 334
+          Top = 320
           Width = 79
-          BorderSpacing.Top = 17
+          BorderSpacing.Top = 60
           BorderSpacing.Bottom = 10
           Caption = 'Color Theme'
           Font.Height = -13
@@ -4804,6 +4458,376 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           ParentColor = False
           ParentFont = False
+        end
+        object orientationGroupBox: TGroupBox
+          AnchorSideLeft.Control = visualTabSheet
+          AnchorSideTop.Control = visualTabSheet
+          Left = 10
+          Height = 130
+          Top = 130
+          Width = 216
+          BorderSpacing.Left = 10
+          BorderSpacing.Top = 130
+          Caption = 'Orientation'
+          ClientHeight = 100
+          ClientWidth = 212
+          Font.Color = clWhite
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+          TabOrder = 7
+          object verticalRadioButton: TRadioButton
+            AnchorSideLeft.Control = orientationGroupBox
+            AnchorSideTop.Control = orientationGroupBox
+            AnchorSideTop.Side = asrCenter
+            Left = 10
+            Height = 20
+            Top = 40
+            Width = 28
+            BorderSpacing.Left = 10
+            Checked = True
+            TabOrder = 0
+            TabStop = True
+          end
+          object vImage: TImage
+            AnchorSideLeft.Control = verticalRadioButton
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = verticalRadioButton
+            AnchorSideTop.Side = asrCenter
+            Left = 38
+            Height = 42
+            Hint = 'Vertical'
+            Top = 29
+            Width = 24
+            Picture.Data = {
+              1754506F727461626C654E6574776F726B47726170686963F503000089504E47
+              0D0A1A0A0000000D49484452000000AC000001440806000000BA51D583000000
+              0473424954080808087C086488000003AC49444154789CEDD2B14E02511445D1
+              8710C5CE84D682FFFF2A0B5B123B8438624726462B13C69DACD5DD5B9D628F01
+              003056F3E3F5ED74399EA7A5B6C0D5E3FD7A3C3F3DACBEFF37F3E3789EC6CBE1
+              FD76ABE017FBDDF6C7FFDD8D77C09F089614C192225852044B8A6049112C2982
+              2545B0A4089614C192225852044B8A6049112C29822545B0A4089614C1922258
+              52044B8A6049112C29822545B0A4089614C192225852044B8A6049112C298225
+              45B0A4089614C192225852044B8A6049112C29822545B0A4089614C192225852
+              044B8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545
+              B0A4089614C192225852044B8A6049112C29822545B0A4089614C19222585204
+              4B8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545B0
+              A4089614C192225852044B8A6049112C29822545B0A4089614C192225852044B
+              8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545B0A4
+              089614C192225852044B8A6049112C29822545B0A4089614C192225852044B8A
+              6049112C29822545B0A4089614C192225852044B8A6049112C29822545B0A408
+              9614C192225852044B8A6049112C29822545B0A4089614C192225852044B8A60
+              49112C29822545B0A4089614C192225852044B8A6049112C29822545B0A40896
+              14C192225852044B8A6049112C29822545B0A4089614C192225852044B8A6049
+              112C29822545B0A4089614C192225852044B8A6049112C29822545B0A4089614
+              C192225852044B8A6049112C29822545B0A4089614C192225852044B8A604911
+              2C29822545B0A4089614C192225852044B8A6049112C29822545B0A4089614C1
+              92225852044B8A6049112C29822545B0A4089614C192225852044B8A6049112C
+              29822545B0A4089614C192225852044B8A6049112C29822545B0A4089614C192
+              225852044B8A6049112C29822545B0A4089614C192225852044B8A6049112C29
+              822545B0A4089614C192225852044B8A6049112C29822545B0A4089614C19222
+              5852044B8A6049112C29822545B0A4089614C192225852044B8A6049112C2982
+              2545B0A4089614C192225852044B8A6049112C29822545B0A4089614C1922258
+              52044B8A6049112C29822545B0A4089614C192225852044B8A6049112C298225
+              45B0A4089614C192225852044B8A6049112C29822545B0A4089614C192225852
+              044B8A6049112C29822545B0A4089614C192225852044B8A6049112C29822545
+              B0A4089614C192B2991F1F9F63EC77DBA5B6C0D574597A0100F08F7D017E6A13
+              9FF0BA33730000000049454E44AE426082
+            }
+            Stretch = True
+            Transparent = True
+          end
+          object horizontalRadioButton: TRadioButton
+            AnchorSideLeft.Control = vImage
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = verticalRadioButton
+            AnchorSideRight.Control = orientationGroupBox
+            AnchorSideRight.Side = asrCenter
+            Left = 112
+            Height = 20
+            Top = 40
+            Width = 28
+            BorderSpacing.Left = 50
+            TabOrder = 1
+          end
+          object hImage: TImage
+            AnchorSideLeft.Control = horizontalRadioButton
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = horizontalRadioButton
+            AnchorSideTop.Side = asrCenter
+            Left = 140
+            Height = 24
+            Hint = 'Horizontal'
+            Top = 38
+            Width = 42
+            Picture.Data = {
+              1754506F727461626C654E6574776F726B47726170686963BC02000089504E47
+              0D0A1A0A0000000D4948445200000148000000B008060000006DA2F7F3000000
+              0473424954080808087C0864880000027349444154789CEDD4214EC5501445D1
+              47E927D5FC0974FE6342E0091ADC63007407450BC95AF2E68AA3F61800000000
+              00009CEEE1E8F8F2F631E79C676F01B8C46D5DC6FEBC7DEBE17AF43CE71CAFEF
+              9FBFBF0AE00FD8EFDBE17D397907C0BF21900041200182400204810408020910
+              0412200824401048802090004120018240020481040802091004122008244010
+              4880209000412001824002048104080209100412200824401048802090004120
+              0182400204810408020910041220082440104880209000412001824002048104
+              0802091004122008244010488020900041200182400204810408020910041220
+              0824401048802090004120018240020481040802091004122008244010488020
+              9000412001824002048104080209100412200824401048802090004120018240
+              0204810408020910041220082440104880209000412001824002048104080209
+              1004122008244010488020900041200182400204810408020910041220082440
+              1048802090004120018240020481040802091004122008244010488020900041
+              2001824002048104080209100412200824401048802090004120018240020481
+              0408020910041220082440104880209000412001824002048104080209100412
+              2008244010488020900041200182400204810408020910041220082440104880
+              2090004120018240020481040802091004122008244010488020900041200182
+              4002048104080209100412200824401048802090004120018240020481040802
+              0910041220082440104880209000412001824002048104080209100412200824
+              40104880209000613D3A3EADCBD8EFDBD95B002EB1DD1EAF9E00000000000000
+              003FF802110A0EA20B96C5D60000000049454E44AE426082
+            }
+            Stretch = True
+            Transparent = True
+          end
+        end
+        object borderGroupBox: TGroupBox
+          AnchorSideLeft.Control = orientationGroupBox
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = visualTabSheet
+          AnchorSideRight.Control = backgroundGroupBox
+          Left = 282
+          Height = 130
+          Top = 130
+          Width = 216
+          Anchors = [akTop]
+          BorderSpacing.Left = 40
+          BorderSpacing.Top = 130
+          Caption = 'Borders'
+          ClientHeight = 100
+          ClientWidth = 212
+          Font.Color = clWhite
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+          TabOrder = 8
+          object roundImage: TImage
+            AnchorSideLeft.Control = roundRadioButton
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = roundRadioButton
+            AnchorSideTop.Side = asrCenter
+            Left = 156
+            Height = 35
+            Hint = 'Round edge'
+            Top = 33
+            Width = 40
+            Picture.Data = {
+              1754506F727461626C654E6574776F726B477261706869630B05000089504E47
+              0D0A1A0A0000000D49484452000000470000004C08060000003F77AADC000000
+              0473424954080808087C086488000004C249444154789CEDDA5B6C93651CC7F1
+              EFF39EFA763D6D5D19DB609B0B182A04821213256AD4188C51A366DE20488C24
+              5C99188DC60B8CE2D9C478E1859A800A7241821824812C82281EA6D1C0401D20
+              4608070539D5D26E5D0FDBDBD78B09A2A15DB775ED7BE8EFF6F93F4FDF7EFA7F
+              DE530AB5D4524B2DB5D4528B8D239E78BBDBACD3557CBA8A4FD7F07B35C2C13A
+              1EB869B6A8F6C1553BE2BED7B69B66DE206F18987903D3303086B31843594CD3
+              C4A3CA4C9F12A2AD2944C7D47A962DBAD6356862C99A0366A14163388791CB60
+              E4B20C0F65307269B2A9248A3089B64F61EE8C6696DFB5C0B1584571AE18D364
+              2893223B9824974A30941E40950537CE69E7B965B7390A6AEC38FF8B69E6C90D
+              F6934B5D209D88E1F748DC3ABF93C7BB16DA1E6AC238FF8969924D254827CE91
+              1D88D31CF673F70DB3587CFB3C5B429517E7B2E48D613289F3A4E2A7A9534CEE
+              BF79368FDC799DAD90260DE7524C937432C640EC241E6170EFC2282BEEB9DE16
+              48938F73292699FE3803E74FA2E4732C5D34DFF2DBAD8238FF263B7081FEB3C7
+              69A9F7B0EE992ECB0249D5F8508FBF9EC6CE79C4F301EE786A9DF9E2FA5D15FF
+              814A49553AE7F218B90C89D3C79086533C7AD702BA6E9963994EAA4AE75C1E59
+              D309B747F1443A7877EB1E56BEB7C3325D54759C8BF10623443AE7D27B34CEE2
+              97365A02C8323800B2EA21DC319B011160D1D36BCD8DBBFAAA8A64291C002124
+              82533B08B45CCD9AEEBDAC7CFFB3AA01590EE762F4400391CEB9EC3912E3B1B7
+              B65605C8B238F0CF366BBF86C3E7D22C7F6373C5812C8D0320C90AE1B628A792
+              7996BCF25145812C8F0320249986B628F1218DAEE737540CC816380042081A5A
+              679295033CB8AA3240B6C101400882CD9DA4F1B2F4D54D930E642F1C463A28D4
+              3A93581A56BCB96552816C870323F742F5D367713C96E1C977BA270DC8963800
+              9224136E8BB2FF449C55EB3E9F1420DBE200488A4A435B946F0FFCC1C75FED2F
+              3B90AD7100144D27D83283D5DBF6947D6DDBE3C0C8A38627D4C4432F97F726D1
+              11380081A676FE4AC3B3657C50750C8E1082FAD6997C7FE8149FF41C2C0B9063
+              700064CD43B0B9930FBA7BCBB29EA37000BCC1460CA58E173EFC62C2DDE3381C
+              80C0D4ABF8A6EFF884D771248EA2E9F8C22D3C3CC1E72F47E200F81AA7712699
+              63EDA77BC70DE4581C2149049ADAD9F465DFB8D7702C0E801E0863481E566FDB
+              3DAEEE71340E803F328DADDF1D1AD75CC7E3E881303954D66FDF37E6EE713C0E
+              80BF711A9B7B0E8E799E2B70F46003E961898DBB7E1E53F7B8020704BE482B5B
+              7A7E19D32C97E080EE0F732E9919D31CD7E00849420F84797DC3D7256F2DD7E0
+              007843117AFA8E955CEF2A1CAD2E402E2FB17DF76F25758FAB7040A08722ECEC
+              3D5252B5CB7046FE41B6EFF09F25D5BA0E47F1789164959DBD8747DD5AAEC301
+              D07C417E3A727AD43A77E2D405F9B184ADE5529C10A762FDA3D6B91247563564
+              D5C38E512EE9AEC401D07C21F61F3D53B4C6B538AAEEE3D8990B456B5C8B236B
+              3A276A38578EA2E9F4A773456B5C8B232B1A422AFEF55D8B0320AB5EBA7FF8B5
+              E015CBD5388AA6F3FBD944C17157E3488A4A2C992E3C5EC163B15C244966303B
+              5478BC82C762B90859663053F88AE56E1C49663053EB9C2B46D4B655E1D4CE39
+              4532B2AD6AE79C8231F285DF5AB81EA758FE0667C37DF38811231F0000000049
+              454E44AE426082
+            }
+            Stretch = True
+            Transparent = True
+          end
+          object roundRadioButton: TRadioButton
+            AnchorSideLeft.Control = squareImage
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = squareRadioButton
+            Left = 128
+            Height = 20
+            Top = 40
+            Width = 28
+            BorderSpacing.Left = 50
+            TabOrder = 0
+          end
+          object squareImage: TImage
+            AnchorSideLeft.Control = squareRadioButton
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = squareRadioButton
+            AnchorSideTop.Side = asrCenter
+            Left = 38
+            Height = 35
+            Hint = 'Square edge'
+            Top = 33
+            Width = 40
+            Picture.Data = {
+              1754506F727461626C654E6574776F726B47726170686963C500000089504E47
+              0D0A1A0A0000000D494844520000003000000027080600000049D1CBA4000000
+              0473424954080808087C0864880000007C494441545885EDCFA10D80301844E1
+              965422914CC1128CC16C5D00DF253A050E1C0481298A017E025C48DEE72FB9E7
+              1C0028F99872519FB80C7DE7AD9B30E6F98D2F66C7BEBA9872B14684BA69DFFA
+              64B22DD3AD5DF5F08FCF11A046801A016A04A811A046801A016A04A811A04680
+              1A016A04A811A04680DAEF034EB2FD109027C245C10000000049454E44AE4260
+              82
+            }
+            Stretch = True
+            Transparent = True
+          end
+          object squareRadioButton: TRadioButton
+            AnchorSideLeft.Control = borderGroupBox
+            AnchorSideTop.Control = borderGroupBox
+            AnchorSideTop.Side = asrCenter
+            Left = 10
+            Height = 20
+            Top = 40
+            Width = 28
+            BorderSpacing.Left = 10
+            Checked = True
+            TabOrder = 1
+            TabStop = True
+          end
+        end
+        object backgroundGroupBox: TGroupBox
+          AnchorSideLeft.Control = borderGroupBox
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = visualTabSheet
+          AnchorSideRight.Control = visualTabSheet
+          AnchorSideRight.Side = asrBottom
+          Left = 554
+          Height = 130
+          Top = 130
+          Width = 216
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 40
+          BorderSpacing.Top = 130
+          BorderSpacing.Right = 10
+          Caption = 'Background'
+          ClientHeight = 100
+          ClientWidth = 212
+          Font.Color = clWhite
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+          TabOrder = 9
+          object backgroundLabel: TLabel
+            AnchorSideLeft.Control = backgroundGroupBox
+            AnchorSideTop.Control = backgroundGroupBox
+            Left = 10
+            Height = 18
+            Top = 19
+            Width = 34
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 19
+            Caption = 'Color'
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentColor = False
+            ParentFont = False
+          end
+          object hudbackgroundColorButton: TColorButton
+            AnchorSideLeft.Control = backgroundLabel
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = backgroundLabel
+            AnchorSideTop.Side = asrCenter
+            Left = 54
+            Height = 23
+            Top = 17
+            Width = 30
+            BorderSpacing.Left = 10
+            BorderWidth = 2
+            ButtonColorSize = 16
+            ButtonColor = clBlack
+            Color = 3684408
+            Font.Height = -11
+            Font.Name = 'Sans'
+            ParentFont = False
+          end
+          object transparencyLabel: TLabel
+            AnchorSideLeft.Control = backgroundGroupBox
+            AnchorSideTop.Control = backgroundLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
+            Height = 18
+            Top = 57
+            Width = 35
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 20
+            Caption = 'Alpha'
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentColor = False
+            ParentFont = False
+          end
+          object transpTrackBar: TTrackBar
+            AnchorSideLeft.Control = transparencyLabel
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = transparencyLabel
+            AnchorSideTop.Side = asrCenter
+            Left = 55
+            Height = 20
+            Top = 56
+            Width = 147
+            OnChange = transpTrackBarChange
+            Position = 6
+            TickStyle = tsNone
+            BorderSpacing.Left = 10
+            ParentColor = False
+            TabOrder = 0
+          end
+          object alphavalueLabel: TLabel
+            AnchorSideLeft.Control = transpTrackBar
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = transpTrackBar
+            AnchorSideTop.Side = asrBottom
+            Left = 124
+            Height = 17
+            Top = 76
+            Width = 8
+            Caption = 'X'
+            Font.Height = -12
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentColor = False
+            ParentFont = False
+          end
         end
       end
       object performanceTabSheet: TTabSheet
@@ -9707,12 +9731,12 @@ object goverlayform: Tgoverlayform
       AnchorSideLeft.Side = asrBottom
       AnchorSideRight.Control = GlobalenableLabel
       AnchorSideRight.Side = asrBottom
-      AnchorSideBottom.Control = mangohudPanel
-      AnchorSideBottom.Side = asrBottom
-      Left = 93
+      AnchorSideBottom.Control = GlobalenableLabel
+      AnchorSideBottom.Side = asrCenter
+      Left = 94
       Height = 32
       Hint = 'MangoHUD will be automagically enabled for all VULKAN applications.'#10'(not need use MANGOHUD=1 every single time.)'#10#10'NEEDS RESTART !'
-      Top = 614
+      Top = 612
       Width = 60
       Anchors = [akLeft, akBottom]
       Color = 3684408
@@ -9726,12 +9750,13 @@ object goverlayform: Tgoverlayform
       AnchorSideLeft.Control = mangohudPanel
       AnchorSideBottom.Control = mangohudPanel
       AnchorSideBottom.Side = asrBottom
-      Left = 4
-      Height = 23
-      Top = 623
+      Left = 5
+      Height = 18
+      Top = 619
       Width = 89
-      Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 4
+      Anchors = [akLeft, akBottom]
+      BorderSpacing.Left = 5
+      BorderSpacing.Bottom = 9
       Caption = 'Global Enable'
       Font.Color = clWhite
       Font.Height = -13
@@ -9762,8 +9787,8 @@ object goverlayform: Tgoverlayform
   object globalbuttonImageList: TImageList
     Height = 29
     Width = 55
-    Left = 160
-    Top = 464
+    Left = 88
+    Top = 496
     Bitmap = {
       4C7A02000000370000001D000000190A00000000000078DABD9A0B58CCF91AC7
       492595B323A9384A96A62491EE35DDA7EB34B345F7A2DB0CB9B6C2B6A84DF654
@@ -9850,8 +9875,8 @@ object goverlayform: Tgoverlayform
     }
   end
   object positionImageList: TImageList
-    Left = 160
-    Top = 400
+    Left = 88
+    Top = 440
     Bitmap = {
       4C7A070000001000000010000000C70500000000000078DACD985B481C6714C7
       E73E3B7BBFB95E77D5A46A45AD96148A01ED9395D0E2BD0F36A481DA2644D728
@@ -10017,8 +10042,8 @@ object goverlayform: Tgoverlayform
     }
   end
   object iconsImageList: TImageList
-    Left = 160
-    Top = 352
+    Left = 88
+    Top = 376
     Bitmap = {
       4C7A060000001000000010000000E30800000000000078DAED97795054D915C6
       9BA617687B01D9054622231AC16822A0A538AE800B880AE36040D934C8224817
@@ -10393,7 +10418,7 @@ object goverlayform: Tgoverlayform
     WindowTop = 0
     WindowWidth = 0
     FillAttribute = 0
-    Left = 40
-    Top = 344
+    Left = 88
+    Top = 304
   end
 end
