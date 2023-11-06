@@ -4339,6 +4339,7 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           Font.Style = [fsBold]
           ItemHeight = 22
+          OnChange = pcidevComboBoxChange
           ParentFont = False
           ParentShowHint = False
           ShowHint = True
@@ -4354,13 +4355,13 @@ object goverlayform: Tgoverlayform
           Left = 100
           Height = 32
           Top = 69
-          Width = 655
+          Width = 670
           Align = alCustom
           Alignment = taCenter
           AutoSize = False
           Caption = 'GPU Description of the current PCI ID'
-          Font.Height = -13
-          Font.Name = 'Noto Sans'
+          Font.Height = -11
+          Font.Name = 'Noto Sans Mono'
           Font.Quality = fqAntialiased
           ParentColor = False
           ParentFont = False

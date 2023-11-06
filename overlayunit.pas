@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype, FileUtil;
+  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype, FileUtil, Types;
 
 
 
@@ -251,6 +251,7 @@ type
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
+    procedure pcidevComboBoxChange(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
 
@@ -276,7 +277,7 @@ var
   fpslimVAR : string;
   fpslimtoggleVAR : string;
   vulkanvsyncVAR: string;
-
+  GPU0DESC,GPU1DESC, GPU2DESC, GPU3DESC: string;
   //########################################
 
 
@@ -330,7 +331,7 @@ procedure Tgoverlayform.FormCreate(Sender: TObject);
 var
 Process: TProcess;
 AppHandle: THandle;
-
+saida: TStringList;
 
 begin
   //Centralize window
@@ -358,11 +359,44 @@ begin
   //Load avaiable text fonts in /usr/share/fonts
   ListarFontesNoDiretorio('/usr/share/fonts/TTF/', fontComboBox);
 
+  //Detect system GPUs
+    //Read GPU0 pcidev
+    Process1 := TProcess.Create(nil);
+    saida := TStringList.Create;
+
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "1p" | cut -c 1-7');  //Pick just the first line
+    Process1.Options := [poUsePipes];
+    Process1.Execute;
+
+    saida.LoadFromStream(Process1.output);
+    pcidevComboBox.Items.Insert(0, saida[0]);
+    Process1.Free;
+    saida.Free;
+
+    //Read GPU0 description
+    Process1 := TProcess.Create(nil);
+    saida := TStringList.Create;
+
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "1p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
+    Process1.Options := [poUsePipes];
+    Process1.Execute;
+
+    saida.LoadFromStream(Process1.output);
+    GPU0DESC:= saida[0];
+    Process1.Free;
+    saida.Free;
+
+
+
   // Initial values
   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
   fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
   fontcombobox.ItemIndex:=0;
-
+  //pcidevComboBox.ItemIndex:=;
 
 end;
 
@@ -389,6 +423,17 @@ var
     PaintBox1.Canvas.Line(0, i, PaintBox1.Width, i);
   end;
 end;
+
+procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
+begin
+       case pcidevCombobox.ItemIndex of
+      0:gpudesclabel.Caption:=GPU0DESC;
+      1:gpudesclabel.Caption:=GPU1DESC;
+      2:gpudesclabel.Caption:=GPU2DESC;
+      3:gpudesclabel.Caption:=GPU3DESC;
+    end;
+end;
+
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
@@ -511,6 +556,8 @@ var
 
       if hidehudCheckbox.checked = true then
          HIDEHUD := 'no_display';
+
+
 
       //##################################################################################################################  Write config file
 
