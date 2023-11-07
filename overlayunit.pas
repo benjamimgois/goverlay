@@ -462,7 +462,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -604,6 +604,10 @@ var
         //VRAM  - Config Variable
         if vramusageCheckbox.checked = true then
           VRAM := 'vram';
+
+        //Core freq  - Config Variable
+        if gpufreqCheckbox.checked = true then
+          GPUFREQ := 'gpu_core_clock';
 
       //##################################################################################################################  Write config file
 
@@ -754,11 +758,20 @@ var
       Process1.Free;
 
 
-      //GPU AVG LOAD  - Write Config
+      //VRAM  - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + VRAM + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU CORE FREQ  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUFREQ + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
