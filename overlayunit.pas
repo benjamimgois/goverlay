@@ -119,7 +119,7 @@ type
     gpuload2ColorButton2: TColorButton;
     gpuload3ColorButton1: TColorButton;
     gpuload3ColorButton2: TColorButton;
-    gpuloadcolorCheckBox1: TCheckBox;
+    gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
     gpumodelCheckBox1: TCheckBox;
     gpunameEdit1: TEdit;
@@ -240,7 +240,7 @@ type
     vkbasaltShape: TShape;
     vktoggleLabel: TLabel;
     vramColorButton1: TColorButton;
-    vramusageCheckBox1: TCheckBox;
+    vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
     vsyncGroupBox: TGroupBox;
     vsyncGroupBox1: TGroupBox;
@@ -462,7 +462,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -594,7 +594,16 @@ var
         if gpuavgloadCheckbox.checked = true then
           GPUAVGLOAD := 'gpu_stats';
 
+        //AVG Load color  - Config Variable
+        if gpuloadcolorCheckbox.checked = true then
+          begin
+             GPULOADCOLOR := 'gpu_load_change';
+             GPULOADVALUE := 'gpu_load_value=50,90';
+          end;
 
+        //VRAM  - Config Variable
+        if vramusageCheckbox.checked = true then
+          VRAM := 'vram';
 
       //##################################################################################################################  Write config file
 
@@ -718,11 +727,38 @@ var
 
         //###############################################################################################   METRICS TAB
 
-       //GPU AVG LOAD  - Write Config
+      //GPU AVG LOAD  - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUAVGLOAD + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU LOAD COLOR  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPULOADCOLOR + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPULOADVALUE + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+
+      //GPU AVG LOAD  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + VRAM + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

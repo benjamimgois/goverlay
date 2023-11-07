@@ -8150,7 +8150,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 6
           end
-          object vramusageCheckBox1: TCheckBox
+          object vramusageCheckBox: TCheckBox
             Left = 256
             Height = 22
             Top = 74
@@ -8188,7 +8188,7 @@ object goverlayform: Tgoverlayform
             TabOrder = 8
             Text = 'GPU'
           end
-          object gpuloadcolorCheckBox1: TCheckBox
+          object gpuloadcolorCheckBox: TCheckBox
             Left = 143
             Height = 22
             Top = 74
