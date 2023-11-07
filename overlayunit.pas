@@ -52,7 +52,7 @@ type
     cpuavrloadCheckBox1: TCheckBox;
     cpuColorButton1: TColorButton;
     cpufreqCheckBox2: TCheckBox;
-    cpuGroupBox1: TGroupBox;
+    cpuGroupBox: TGroupBox;
     cpuload1ColorButton1: TColorButton;
     cpuload2ColorButton1: TColorButton;
     cpuload3ColorButton1: TColorButton;
@@ -109,10 +109,10 @@ type
     geSpeedButton: TSpeedButton;
     GlobalenableLabel: TLabel;
     glvsyncComboBox: TComboBox;
-    gpuavrloadCheckBox1: TCheckBox;
-    gpuColorButton1: TColorButton;
-    gpufreqCheckBox1: TCheckBox;
-    gpuGroupBox1: TGroupBox;
+    gpuavgloadCheckBox: TCheckBox;
+    gpuColorButton: TColorButton;
+    gpufreqCheckBox: TCheckBox;
+    gpuGroupBox: TGroupBox;
     gpuload1ColorButton1: TColorButton;
     gpuload1ColorButton2: TColorButton;
     gpuload2ColorButton1: TColorButton;
@@ -120,15 +120,15 @@ type
     gpuload3ColorButton1: TColorButton;
     gpuload3ColorButton2: TColorButton;
     gpuloadcolorCheckBox1: TCheckBox;
-    gpumemfreqCheckBox1: TCheckBox;
+    gpumemfreqCheckBox: TCheckBox;
     gpumodelCheckBox1: TCheckBox;
     gpunameEdit1: TEdit;
     gpupowerCheckBox1: TCheckBox;
-    gputempCheckBox4: TCheckBox;
+    gputempCheckBox: TCheckBox;
     gputempCheckBox5: TCheckBox;
     gputempCheckBox6: TCheckBox;
     gputempCheckBox7: TCheckBox;
-    gputhrottlingCheckBox1: TCheckBox;
+    gputhrottlingCheckBox: TCheckBox;
     graphhudBitBtn: TBitBtn;
     GroupBox2: TGroupBox;
     hImage: TImage;
@@ -461,7 +461,8 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
+  GPUAVGLOAD: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -487,13 +488,13 @@ var
     //###############################################################################################    VISUAL TAB
 
 
-     // HUD Title
+     // HUD Title - Config Variable
 
       // Only create title entry if title isn't blank and diferent of default title
       if (hudtitleEdit.text <> '') and (hudtitleEdit.text <> 'Title') then
       HUDTITLE:= 'custom_text_center=' + hudtitleEdit.text;
 
-    //Orientation
+      //Orientation  - Config Variable
 
       if horizontalRadioButton.checked = true then
         ORIENTATION := 'horizontal';
@@ -502,7 +503,7 @@ var
         ORIENTATION := '';
 
 
-      //Borders
+      //Borders - Config Variable
 
       if squareRadioButton.checked = true then
         BORDERTYPE := 'round_corners=0';
@@ -510,16 +511,17 @@ var
       if roundRadioButton.checked = true then
         BORDERTYPE := 'round_corners=10';
 
-       //HUD Alpha (transparency)
+      //HUD Alpha (transparency)   - Config Variable
 
       HUDALPHA := 'background_alpha=' + FormatFloat('#0.0', transpTrackbar.Position/10);
 
-       //HUD Color
+      //HUD Color  - Config Variable
 
       HUDCOLOR := 'background_color=' + ColorToHTMLColor(hudbackgroundColorButton.ButtonColor);
 
 
-      //Font type
+      //Font type  - Config Variable
+
       if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
         begin
           LOCATEDFILE := FindAllFiles(FONTFOLDER, fontCombobox.Text);  //Locate specific folder for selected font
@@ -528,17 +530,15 @@ var
         end;
 
 
-
-
-      //Font size
+      //Font size  - Config Variable
 
       FONTSIZE := 'font_size=' + inttostr(fontsizeTrackbar.Position);
 
-       //Font Color
+       //Font Color  - Config Variable
 
       FONTCOLOR := 'text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor);
 
-      //Position
+      //Position  - Config Variable
 
       if topleftRadioButton.checked = true then
         HUDPOSITION := 'position=top-left';
@@ -565,7 +565,7 @@ var
         HUDPOSITION := 'position=middle-right';
 
 
-      //HUD Toggle ON/OFF
+      //HUD Toggle ON/OFF   - Config Variable
 
       case hudonoffCombobox.ItemIndex of
         0:TOGGLEHUD := 'toggle_hud=Shift_R+F12' ;
@@ -575,21 +575,31 @@ var
         4:TOGGLEHUD := 'toggle_hud=Shift_R+F4' ;
         end;
 
-      //Hide HUD by default
+      //Hide HUD by default  - Config Variable
 
       if hidehudCheckbox.checked = true then
          HIDEHUD := 'no_display';
 
-      //GPU PCIDEV
+      //GPU PCIDEV  - Config Variable
+
       if pcidevCombobox.ItemIndex <> -1 then  // Does not create pci_dev line if no GPU is selected
-      PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
+        PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
+
+
+
+      //###############################################################################################   METRICS TAB
+
+      //GPU
+        //AVG Load  - Config Variable
+        if gpuavgloadCheckbox.checked = true then
+          GPUAVGLOAD := 'gpu_stats';
 
 
 
       //##################################################################################################################  Write config file
 
 
-      //HUD Title
+      //HUD Title - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -598,7 +608,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //orientation
+      //orientation - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -608,7 +618,7 @@ var
       Process1.Free;
 
 
-      //Border type
+      //Border type - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -617,7 +627,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //HUD ALPHA (transparency)
+      //HUD ALPHA (transparency) - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -626,7 +636,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //HUD Color
+      //HUD Color - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -636,7 +646,7 @@ var
       Process1.Free;
 
 
-      //Font Type
+      //Font Type - Write Config
 
       if fontcomboBox.ItemIndex <> 0  then    //It doesnt apply for the DEFAULT font
       begin
@@ -649,7 +659,7 @@ var
       Process1.Free;
       end;
 
-      //Font Size
+      //Font Size  - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -659,7 +669,7 @@ var
       Process1.Free;
 
 
-      //Font Color
+      //Font Color - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -668,7 +678,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //HUD Position
+      //HUD Position  - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -677,7 +687,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //TOGGLE HUD
+      //TOGGLE HUD - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -686,7 +696,7 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //TOGGLE HUD
+      //TOGGLE HUD - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
@@ -695,11 +705,24 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //GPU PCIDEV
+      //GPU PCIDEV  - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + PCIDEV + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+
+
+        //###############################################################################################   METRICS TAB
+
+       //GPU AVG LOAD  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUAVGLOAD + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

@@ -3917,12 +3917,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = filtersSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -8024,7 +8024,7 @@ object goverlayform: Tgoverlayform
         Caption = 'Metrics'
         ClientHeight = 575
         ClientWidth = 780
-        object gpuGroupBox1: TGroupBox
+        object gpuGroupBox: TGroupBox
           Left = 1
           Height = 295
           Top = 0
@@ -8040,7 +8040,7 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           TabOrder = 0
-          object gpuavrloadCheckBox1: TCheckBox
+          object gpuavgloadCheckBox: TCheckBox
             Left = 8
             Height = 22
             Top = 74
@@ -8054,7 +8054,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 0
           end
-          object gputempCheckBox4: TCheckBox
+          object gputempCheckBox: TCheckBox
             Left = 16
             Height = 22
             Top = 129
@@ -8068,7 +8068,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 1
           end
-          object gpufreqCheckBox1: TCheckBox
+          object gpufreqCheckBox: TCheckBox
             Left = 376
             Height = 22
             Top = 74
@@ -8082,7 +8082,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 2
           end
-          object gpuColorButton1: TColorButton
+          object gpuColorButton: TColorButton
             Left = 259
             Height = 12
             Top = 40
@@ -8093,7 +8093,7 @@ object goverlayform: Tgoverlayform
             ButtonColor = 6461230
             Color = 3684408
           end
-          object gputhrottlingCheckBox1: TCheckBox
+          object gputhrottlingCheckBox: TCheckBox
             Left = 125
             Height = 22
             Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
@@ -8108,7 +8108,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 3
           end
-          object gpumemfreqCheckBox1: TCheckBox
+          object gpumemfreqCheckBox: TCheckBox
             Left = 529
             Height = 22
             Top = 74
@@ -8356,7 +8356,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
         end
-        object cpuGroupBox1: TGroupBox
+        object cpuGroupBox: TGroupBox
           Left = 1
           Height = 271
           Top = 299
