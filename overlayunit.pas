@@ -25,6 +25,7 @@ type
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     colorthemeLabel: TLabel;
+    gpudescEdit: TEdit;
     fontComboBox: TComboBox;
     fontcolorLabel: TLabel;
     fontsizevalueLabel: TLabel;
@@ -110,7 +111,6 @@ type
     glvsyncComboBox: TComboBox;
     gpuavrloadCheckBox1: TCheckBox;
     gpuColorButton1: TColorButton;
-    gpudescLabel: TLabel;
     gpufreqCheckBox1: TCheckBox;
     gpuGroupBox1: TGroupBox;
     gpuload1ColorButton1: TColorButton;
@@ -420,16 +420,10 @@ begin
     end; //while
 
 
-
-
-
-
-
   // Initial values
   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
   fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
   fontcombobox.ItemIndex:=0;
-  //pcidevComboBox.ItemIndex:=;
 
 end;
 
@@ -459,7 +453,8 @@ end;
 
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
 begin
-  gpudesclabel.Caption:=GPUDESC[pcidevCombobox.ItemIndex];
+  //gpudesclabel.Caption:=GPUDESC[pcidevCombobox.ItemIndex];
+  gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
 end;
 
 
@@ -586,7 +581,7 @@ var
          HIDEHUD := 'no_display';
 
       //GPU PCIDEV
-
+      if pcidevCombobox.ItemIndex <> -1 then  // Does not create pci_dev line if no GPU is selected
       PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
 
 

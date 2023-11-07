@@ -3974,6 +3974,7 @@ object goverlayform: Tgoverlayform
             'AMD + Nvidia'
             'AMD + Radeon'
           )
+          ReadOnly = True
           TabOrder = 1
           Text = 'Mangohud Default'
         end
@@ -4252,6 +4253,7 @@ object goverlayform: Tgoverlayform
               'Default'
             )
             ParentFont = False
+            ReadOnly = True
             TabOrder = 0
             Text = 'Default'
           end
@@ -4329,6 +4331,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Control = visualTabSheet
           Left = 10
           Height = 32
+          Hint = 'PCIDEV of GPU, as listed by "lspci"'
           Top = 69
           Width = 90
           BorderSpacing.Left = 10
@@ -4342,30 +4345,11 @@ object goverlayform: Tgoverlayform
           OnChange = pcidevComboBoxChange
           ParentFont = False
           ParentShowHint = False
+          ReadOnly = True
           ShowHint = True
           TabOrder = 4
           Text = 'Active GPU'
           TextHint = 'PCI ID in format domain:bus:slot.func'
-        end
-        object gpudescLabel: TLabel
-          AnchorSideLeft.Control = pcidevComboBox
-          AnchorSideLeft.Side = asrBottom
-          AnchorSideTop.Control = pcidevComboBox
-          AnchorSideTop.Side = asrCenter
-          Left = 100
-          Height = 32
-          Top = 69
-          Width = 670
-          Align = alCustom
-          Alignment = taCenter
-          AutoSize = False
-          Caption = 'GPU Description of the current PCI ID'
-          Font.Height = -11
-          Font.Name = 'Noto Sans Mono'
-          Font.Quality = fqAntialiased
-          ParentColor = False
-          ParentFont = False
-          WordWrap = True
         end
         object hudtoggleLabel: TLabel
           AnchorSideLeft.Control = themesComboBox
@@ -4410,6 +4394,7 @@ object goverlayform: Tgoverlayform
           )
           ParentFont = False
           ParentShowHint = False
+          ReadOnly = True
           ShowHint = True
           TabOrder = 5
           Text = 'Shift_R+F12'
@@ -4829,6 +4814,26 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
+        end
+        object gpudescEdit: TEdit
+          AnchorSideLeft.Control = pcidevComboBox
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = pcidevComboBox
+          AnchorSideTop.Side = asrCenter
+          Left = 100
+          Height = 32
+          Top = 69
+          Width = 670
+          Alignment = taCenter
+          AutoSize = False
+          Font.Color = clWhite
+          Font.Height = -12
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          ParentFont = False
+          ReadOnly = True
+          TabOrder = 10
+          Text = 'Select GPU to use'
         end
       end
       object performanceTabSheet: TTabSheet
