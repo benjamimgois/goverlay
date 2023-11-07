@@ -277,10 +277,11 @@ var
   fpslimVAR : string;
   fpslimtoggleVAR : string;
   vulkanvsyncVAR: string;
-  GPU0DESC,GPU1DESC, GPU2DESC, GPU3DESC: string;
+
+
   //########################################
-
-
+  GPUNUMBER: integer;
+  GPUDESC: TStringList;
 
 implementation
 
@@ -332,6 +333,7 @@ var
 Process: TProcess;
 AppHandle: THandle;
 saida: TStringList;
+i: integer;
 
 begin
   //Centralize window
@@ -360,35 +362,66 @@ begin
   ListarFontesNoDiretorio('/usr/share/fonts/TTF/', fontComboBox);
 
   //Detect system GPUs
-    //Read GPU0 pcidev
+
+  // Count the number of detected GPUs
     Process1 := TProcess.Create(nil);
     saida := TStringList.Create;
 
     Process1.Executable := 'sh';
     Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "1p" | cut -c 1-7');  //Pick just the first line
+    Process1.Parameters.Add('lspci | grep -i "VGA\|video" | wc -l'); //Count the number of lines
     Process1.Options := [poUsePipes];
     Process1.Execute;
 
     saida.LoadFromStream(Process1.output);
-    pcidevComboBox.Items.Insert(0, saida[0]);
+    GPUNUMBER:= strtoint(saida[0]);
     Process1.Free;
     saida.Free;
 
-    //Read GPU0 description
-    Process1 := TProcess.Create(nil);
-    saida := TStringList.Create;
 
-    Process1.Executable := 'sh';
-    Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "1p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
-    Process1.Options := [poUsePipes];
-    Process1.Execute;
 
-    saida.LoadFromStream(Process1.output);
-    GPU0DESC:= saida[0];
-    Process1.Free;
-    saida.Free;
+    i := 1; // Integer variable to the while loop
+    GPUDESC := TStringList.Create;  // List variable for GPU descriptions
+
+    while i <= GPUNUMBER do
+    begin
+      //Read GPU0 pcidev
+      Process1 := TProcess.Create(nil);
+      saida := TStringList.Create;
+
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
+      Process1.Options := [poUsePipes];
+      Process1.Execute;
+
+      saida.LoadFromStream(Process1.output);
+      pcidevComboBox.Items.Insert(i-1, saida[0]); //First position of combobox is 0, so we need i-1
+      Process1.Free;
+      saida.Free;
+
+
+      //Read GPU description
+      Process1 := TProcess.Create(nil);
+      saida := TStringList.Create;
+
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
+      Process1.Options := [poUsePipes];
+      Process1.Execute;
+
+      saida.LoadFromStream(Process1.output);
+      GPUDESC.Add(saida[0]);
+      Process1.Free;
+      saida.Free;
+
+      i := i + 1; //increment "i"variable
+    end; //while
+
+
+
+
 
 
 
@@ -426,19 +459,14 @@ end;
 
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
 begin
-       case pcidevCombobox.ItemIndex of
-      0:gpudesclabel.Caption:=GPU0DESC;
-      1:gpudesclabel.Caption:=GPU1DESC;
-      2:gpudesclabel.Caption:=GPU2DESC;
-      3:gpudesclabel.Caption:=GPU3DESC;
-    end;
+  gpudesclabel.Caption:=GPUDESC[pcidevCombobox.ItemIndex];
 end;
 
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD: string;
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -557,6 +585,10 @@ var
       if hidehudCheckbox.checked = true then
          HIDEHUD := 'no_display';
 
+      //GPU PCIDEV
+
+      PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
+
 
 
       //##################################################################################################################  Write config file
@@ -664,6 +696,15 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + HIDEHUD + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU PCIDEV
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + PCIDEV + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
