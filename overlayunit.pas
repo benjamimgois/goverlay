@@ -462,7 +462,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -610,8 +610,12 @@ var
           GPUFREQ := 'gpu_core_clock';
 
         //Mem Freq  - Config Variable
-        if gpumemfreqCheckbox.checked = true then
+        if gputempCheckbox.checked = true then
           GPUMEMFREQ := 'gpu_mem_clock';
+
+        //GPU Temp  - Config Variable
+        if gputempCheckbox.checked = true then
+          GPUTEMP := 'gpu_temp';
 
       //##################################################################################################################  Write config file
 
@@ -780,11 +784,20 @@ var
       Process1.Execute;
       Process1.Free;
 
-      //GPU CORE FREQ  - Write Config
+      //GPU MEM FREQ  - Write Config
       Process1 := TProcess.Create(nil);
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUMEMFREQ + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU TEMP  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUTEMP + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
