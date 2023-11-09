@@ -66,11 +66,12 @@ type
     diskioCheckBox1: TCheckBox;
     distroinfoCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
+    Image2: TImage;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
     extrasTabSheet: TTabSheet;
-    filtersSheet: TTabSheet;
+    metricsSheet: TTabSheet;
     FontcolorButton: TColorButton;
     C: TComboBox;
     fpsCheckBox: TCheckBox;
@@ -92,7 +93,7 @@ type
     fpslimLabel18: TLabel;
     fpslimLabel3: TLabel;
     fpslimLabel4: TLabel;
-    fpslimLabel6: TLabel;
+    mainmetricLabel: TLabel;
     fpslimLabel7: TLabel;
     fpslimLabel8: TLabel;
     fpslimLabel9: TLabel;
