@@ -65,7 +65,8 @@ type
     destfolderpathLabel: TLabel;
     diskioCheckBox1: TCheckBox;
     distroinfoCheckBox: TCheckBox;
-    driverversionCheckBox1: TCheckBox;
+    gpuvoltageCheckBox: TCheckBox;
+    vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
     extrasTabSheet: TTabSheet;
@@ -463,7 +464,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -645,6 +646,10 @@ var
         //GPU MODEL   - Config Variable
         if gpumodelCheckbox.checked = true then
           GPUMODEL := 'gpu_name';
+
+        //VULKAN DRIVER   - Config Variable
+        if vulkandriverCheckbox.checked = true then
+          VULKANDRIVER := 'vulkan_driver';
       //##################################################################################################################  Write config file
 
 
@@ -882,6 +887,15 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUMODEL + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //VULKAN DRIVER - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + VULKANDRIVER + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

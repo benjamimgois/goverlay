@@ -8094,7 +8094,7 @@ object goverlayform: Tgoverlayform
             Color = 3684408
           end
           object gputhrottlingCheckBox: TCheckBox
-            Left = 125
+            Left = 240
             Height = 22
             Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
             Top = 184
@@ -8247,14 +8247,14 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             ParentShowHint = False
           end
-          object driverversionCheckBox1: TCheckBox
+          object vulkandriverCheckBox: TCheckBox
             Left = 125
             Height = 22
             Top = 239
-            Width = 115
+            Width = 112
             Align = alCustom
             Alignment = taLeftJustify
-            Caption = 'Driver Version'
+            Caption = 'Vulkan Driver'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -8356,7 +8356,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object gputhrottlinggraphCheckBox: TCheckBox
-            Left = 240
+            Left = 376
             Height = 22
             Hint = 'Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling'
             Top = 184
@@ -8369,6 +8369,20 @@ object goverlayform: Tgoverlayform
             Font.Quality = fqAntialiased
             ParentFont = False
             TabOrder = 14
+          end
+          object gpuvoltageCheckBox: TCheckBox
+            Left = 125
+            Height = 22
+            Top = 184
+            Width = 75
+            Align = alCustom
+            Alignment = taLeftJustify
+            Caption = 'Voltage'
+            Font.Height = -13
+            Font.Name = 'Sans'
+            Font.Quality = fqAntialiased
+            ParentFont = False
+            TabOrder = 15
           end
         end
         object cpuGroupBox: TGroupBox
