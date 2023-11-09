@@ -121,7 +121,7 @@ type
     gpuload3ColorButton2: TColorButton;
     gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
-    gpumodelCheckBox1: TCheckBox;
+    gpumodelCheckBox: TCheckBox;
     gpunameEdit1: TEdit;
     gpupowerCheckBox: TCheckBox;
     gputempCheckBox: TCheckBox;
@@ -463,7 +463,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -642,7 +642,9 @@ var
         if gputhrottlinggraphCheckbox.checked = true then
           GPUTHRG := 'throttling_status_graph';
 
-
+        //GPU MODEL   - Config Variable
+        if gpumodelCheckbox.checked = true then
+          GPUMODEL := 'gpu_name';
       //##################################################################################################################  Write config file
 
 
@@ -871,6 +873,15 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUTHRG + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU MODEL  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUMODEL + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

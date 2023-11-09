@@ -8122,7 +8122,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 4
           end
-          object gpumodelCheckBox1: TCheckBox
+          object gpumodelCheckBox: TCheckBox
             Left = 16
             Height = 22
             Top = 239
@@ -8358,7 +8358,7 @@ object goverlayform: Tgoverlayform
           object gputhrottlinggraphCheckBox: TCheckBox
             Left = 240
             Height = 22
-            Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
+            Hint = 'Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling'
             Top = 184
             Width = 135
             Align = alCustom
