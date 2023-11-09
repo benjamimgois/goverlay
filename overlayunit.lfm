@@ -8029,11 +8029,11 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = metricsSheet
           Left = 0
-          Height = 295
+          Height = 301
           Top = 0
           Width = 780
           Caption = 'GPU'
-          ClientHeight = 265
+          ClientHeight = 271
           ClientWidth = 776
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -8063,12 +8063,17 @@ object goverlayform: Tgoverlayform
             TabOrder = 0
           end
           object gputempCheckBox: TCheckBox
-            Left = 16
+            AnchorSideLeft.Control = gpuGroupBox
+            AnchorSideTop.Control = gputempLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 129
+            Top = 132
             Width = 55
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 2
             Caption = 'GPU'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8077,12 +8082,18 @@ object goverlayform: Tgoverlayform
             TabOrder = 1
           end
           object gpufreqCheckBox: TCheckBox
-            Left = 376
+            AnchorSideLeft.Control = vramusageCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = mainmetricLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 377
             Height = 22
             Top = 74
             Width = 87
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 50
+            BorderSpacing.Top = 2
             Caption = 'Core Freq'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8106,13 +8117,17 @@ object goverlayform: Tgoverlayform
             Color = 3684408
           end
           object gputhrottlingCheckBox: TCheckBox
-            Left = 240
+            AnchorSideLeft.Control = gpujunctempCheckBox
+            AnchorSideTop.Control = gpupowerLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 263
             Height = 22
             Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
-            Top = 184
+            Top = 190
             Width = 89
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Throttling'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8121,12 +8136,18 @@ object goverlayform: Tgoverlayform
             TabOrder = 3
           end
           object gpumemfreqCheckBox: TCheckBox
-            Left = 529
+            AnchorSideLeft.Control = gpufreqCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = mainmetricLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 514
             Height = 22
             Top = 74
             Width = 90
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 50
+            BorderSpacing.Top = 2
             Caption = 'Mem Freq'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8135,12 +8156,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 4
           end
           object gpumodelCheckBox: TCheckBox
-            Left = 16
+            AnchorSideLeft.Control = gpupowerCheckBox
+            AnchorSideTop.Control = gpuinfoLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 239
+            Top = 248
             Width = 67
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Model'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8149,12 +8174,17 @@ object goverlayform: Tgoverlayform
             TabOrder = 5
           end
           object gpupowerCheckBox: TCheckBox
-            Left = 16
+            AnchorSideLeft.Control = gpuGroupBox
+            AnchorSideTop.Control = gpupowerLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 184
+            Top = 190
             Width = 68
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 2
             Caption = 'Power'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8163,12 +8193,18 @@ object goverlayform: Tgoverlayform
             TabOrder = 6
           end
           object vramusageCheckBox: TCheckBox
-            Left = 256
+            AnchorSideLeft.Control = gpuloadcolorCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = mainmetricLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 263
             Height = 22
             Top = 74
             Width = 64
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 50
+            BorderSpacing.Top = 2
             Caption = 'VRAM'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8177,9 +8213,13 @@ object goverlayform: Tgoverlayform
             TabOrder = 7
           end
           object vramColorButton1: TColorButton
-            Left = 256
+            AnchorSideLeft.Control = vramusageCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = vramusageCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 263
             Height = 12
-            Top = 94
+            Top = 96
             Width = 64
             Align = alCustom
             BorderWidth = 2
@@ -8204,12 +8244,18 @@ object goverlayform: Tgoverlayform
             Text = 'GPU'
           end
           object gpuloadcolorCheckBox: TCheckBox
-            Left = 125
+            AnchorSideLeft.Control = gpuavgloadCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = mainmetricLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 118
             Height = 22
             Top = 74
             Width = 95
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 50
+            BorderSpacing.Top = 2
             Caption = 'Load Color'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8218,7 +8264,10 @@ object goverlayform: Tgoverlayform
             TabOrder = 9
           end
           object gpuload1ColorButton2: TColorButton
-            Left = 125
+            AnchorSideLeft.Control = gpuloadcolorCheckBox
+            AnchorSideTop.Control = gpuloadcolorCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 118
             Height = 12
             Hint = 'Low load color (0 - 50%)'
             Top = 96
@@ -8232,7 +8281,11 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object gpuload2ColorButton2: TColorButton
-            Left = 157
+            AnchorSideLeft.Control = gpuloadcolorCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = gpuloadcolorCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 150
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
             Top = 96
@@ -8249,12 +8302,18 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object gpuload3ColorButton2: TColorButton
-            Left = 190
+            AnchorSideLeft.Control = gpuloadcolorCheckBox
+            AnchorSideTop.Control = gpuloadcolorCheckBox
+            AnchorSideTop.Side = asrBottom
+            AnchorSideRight.Control = gpuloadcolorCheckBox
+            AnchorSideRight.Side = asrBottom
+            Left = 183
             Height = 12
             Hint = 'High load color (90 - 100%)'
             Top = 96
             Width = 30
             Align = alCustom
+            Anchors = [akTop, akRight]
             BorderWidth = 2
             ButtonColorSize = 16
             ButtonColor = 204
@@ -8263,12 +8322,16 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object vulkandriverCheckBox: TCheckBox
-            Left = 125
+            AnchorSideLeft.Control = gpuvoltageCheckBox
+            AnchorSideTop.Control = gpuinfoLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 118
             Height = 22
-            Top = 239
+            Top = 248
             Width = 112
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Vulkan Driver'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8277,12 +8340,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 10
           end
           object gpujunctempCheckBox: TCheckBox
-            Left = 237
+            AnchorSideLeft.Control = vramusageCheckBox
+            AnchorSideTop.Control = gputempLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 263
             Height = 22
-            Top = 129
+            Top = 132
             Width = 78
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Junction'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8291,12 +8358,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 11
           end
           object gpumemtempCheckBox: TCheckBox
-            Left = 125
+            AnchorSideLeft.Control = gpuloadcolorCheckBox
+            AnchorSideTop.Control = gputempLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 118
             Height = 22
-            Top = 129
+            Top = 132
             Width = 80
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Memory'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8305,12 +8376,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 12
           end
           object gpufanCheckBox: TCheckBox
-            Left = 376
+            AnchorSideLeft.Control = gpufreqCheckBox
+            AnchorSideTop.Control = gputempLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 377
             Height = 22
-            Top = 128
+            Top = 132
             Width = 57
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Fans'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8336,11 +8411,16 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpslimLabel7: TLabel
-            Left = 16
+          object gputempLabel: TLabel
+            AnchorSideLeft.Control = gpuGroupBox
+            AnchorSideTop.Control = vramusageCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 18
-            Top = 110
+            Top = 112
             Width = 79
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 16
             Caption = 'Temperature'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8349,11 +8429,16 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpslimLabel8: TLabel
-            Left = 16
+          object gpupowerLabel: TLabel
+            AnchorSideLeft.Control = gpuGroupBox
+            AnchorSideTop.Control = gputempCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 18
-            Top = 164
+            Top = 170
             Width = 40
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 16
             Caption = 'Power'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8362,11 +8447,16 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpslimLabel9: TLabel
-            Left = 16
+          object gpuinfoLabel: TLabel
+            AnchorSideLeft.Control = gpuGroupBox
+            AnchorSideTop.Control = gpuvoltageCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 18
-            Top = 218
+            Top = 228
             Width = 75
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 16
             Caption = 'Information'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8376,13 +8466,17 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object gputhrottlinggraphCheckBox: TCheckBox
-            Left = 376
+            AnchorSideLeft.Control = gpufanCheckBox
+            AnchorSideTop.Control = gpupowerLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 377
             Height = 22
             Hint = 'Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling'
-            Top = 184
+            Top = 190
             Width = 135
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Throttling GRAPH'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -8391,12 +8485,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 14
           end
           object gpuvoltageCheckBox: TCheckBox
-            Left = 125
+            AnchorSideLeft.Control = gpumemtempCheckBox
+            AnchorSideTop.Control = gpupowerLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 118
             Height = 22
-            Top = 184
+            Top = 190
             Width = 75
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Voltage'
             Font.Height = -13
             Font.Name = 'Sans'

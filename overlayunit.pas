@@ -94,9 +94,9 @@ type
     fpslimLabel3: TLabel;
     fpslimLabel4: TLabel;
     mainmetricLabel: TLabel;
-    fpslimLabel7: TLabel;
-    fpslimLabel8: TLabel;
-    fpslimLabel9: TLabel;
+    gputempLabel: TLabel;
+    gpupowerLabel: TLabel;
+    gpuinfoLabel: TLabel;
     fpslimtoggleComboBox: TComboBox;
     fpsonlyCheckBox: TCheckBox;
     fpsTrackBar: TTrackBar;
