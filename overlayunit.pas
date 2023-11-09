@@ -123,7 +123,7 @@ type
     gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
-    gpunameEdit1: TEdit;
+    gpunameEdit: TEdit;
     gpupowerCheckBox: TCheckBox;
     gputempCheckBox: TCheckBox;
     gpujunctempCheckBox: TCheckBox;
@@ -465,6 +465,7 @@ var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
+  GPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -654,6 +655,9 @@ var
         //GPU VOLTAGE   - Config Variable
         if gpuvoltageCheckbox.checked = true then
           GPUVOLTAGE := 'gpu_voltage';
+
+        //GPU TEXT
+        GPUTEXT := 'gpu_text=' + gpunameEdit.Text;
       //##################################################################################################################  Write config file
 
 
@@ -909,6 +913,15 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUVOLTAGE + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU TEXT - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUTEXT + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

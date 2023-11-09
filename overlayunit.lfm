@@ -8175,7 +8175,7 @@ object goverlayform: Tgoverlayform
             ButtonColor = 12674221
             Color = 3684408
           end
-          object gpunameEdit1: TEdit
+          object gpunameEdit: TEdit
             Left = 259
             Height = 32
             Top = 8
