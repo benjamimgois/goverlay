@@ -3763,7 +3763,7 @@ object goverlayform: Tgoverlayform
     ImageWidth = 10
   end
   object mangohudShape: TShape
-    Left = 67
+    Left = 68
     Height = 50
     Hint = 'A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more.'
     Top = 136
@@ -8041,7 +8041,7 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           object gpuavgloadCheckBox: TCheckBox
-            Left = 8
+            Left = 16
             Height = 22
             Top = 74
             Width = 112
@@ -8136,7 +8136,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 5
           end
-          object gpupowerCheckBox1: TCheckBox
+          object gpupowerCheckBox: TCheckBox
             Left = 16
             Height = 22
             Top = 184
@@ -8261,7 +8261,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 10
           end
-          object gputempCheckBox5: TCheckBox
+          object gpujunctempCheckBox: TCheckBox
             Left = 237
             Height = 22
             Top = 129
@@ -8275,7 +8275,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 11
           end
-          object gputempCheckBox6: TCheckBox
+          object gpumemtempCheckBox: TCheckBox
             Left = 125
             Height = 22
             Top = 129
@@ -8289,10 +8289,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 12
           end
-          object gputempCheckBox7: TCheckBox
-            Left = 320
+          object gpufanCheckBox: TCheckBox
+            Left = 376
             Height = 22
-            Top = 129
+            Top = 128
             Width = 58
             Align = alCustom
             Alignment = taLeftJustify

@@ -123,11 +123,11 @@ type
     gpumemfreqCheckBox: TCheckBox;
     gpumodelCheckBox1: TCheckBox;
     gpunameEdit1: TEdit;
-    gpupowerCheckBox1: TCheckBox;
+    gpupowerCheckBox: TCheckBox;
     gputempCheckBox: TCheckBox;
-    gputempCheckBox5: TCheckBox;
-    gputempCheckBox6: TCheckBox;
-    gputempCheckBox7: TCheckBox;
+    gpujunctempCheckBox: TCheckBox;
+    gpumemtempCheckBox: TCheckBox;
+    gpufanCheckBox: TCheckBox;
     gputhrottlingCheckBox: TCheckBox;
     graphhudBitBtn: TBitBtn;
     GroupBox2: TGroupBox;
@@ -462,7 +462,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -616,6 +616,31 @@ var
         //GPU Temp  - Config Variable
         if gputempCheckbox.checked = true then
           GPUTEMP := 'gpu_temp';
+
+        //GPU mem Temp  - Config Variable
+        if gpumemtempCheckbox.checked = true then
+          GPUMEMTEMP := 'gpu_mem_temp';
+
+        //GPU Junction Temp  - Config Variable
+        if gpujunctempCheckbox.checked = true then
+          GPUJUNCTEMP := 'gpu_junction_temp';
+
+        //GPU FAN  - Config Variable
+        if gpupowerCheckbox.checked = true then
+          GPUFAN := 'gpu_fan';
+
+        //GPU POWER  - Config Variable
+        if gpupowerCheckbox.checked = true then
+          GPUPOWER := 'gpu_power';
+
+        //GPU POWER  - Config Variable
+        if gpupowerCheckbox.checked = true then
+          GPUPOWER := 'gpu_power';
+
+        //GPU POWER  - Config Variable
+        if gputhrottlingCheckbox.checked = true then
+          GPUTHR := 'throttling_status';
+
 
       //##################################################################################################################  Write config file
 
@@ -798,6 +823,35 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUTEMP + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+
+      //GPU MEM TEMP  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUMEMTEMP + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+
+      //GPU JUNC TEMP  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUJUNCTEMP + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU POWER  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUPOWER + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
