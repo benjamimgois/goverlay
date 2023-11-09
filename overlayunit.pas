@@ -129,6 +129,7 @@ type
     gpumemtempCheckBox: TCheckBox;
     gpufanCheckBox: TCheckBox;
     gputhrottlingCheckBox: TCheckBox;
+    gputhrottlinggraphCheckBox: TCheckBox;
     graphhudBitBtn: TBitBtn;
     GroupBox2: TGroupBox;
     hImage: TImage;
@@ -462,7 +463,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG: string;  //metrics tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -633,13 +634,13 @@ var
         if gpupowerCheckbox.checked = true then
           GPUPOWER := 'gpu_power';
 
-        //GPU POWER  - Config Variable
-        if gpupowerCheckbox.checked = true then
-          GPUPOWER := 'gpu_power';
-
-        //GPU POWER  - Config Variable
+        //GPU THROTTLING   - Config Variable
         if gputhrottlingCheckbox.checked = true then
           GPUTHR := 'throttling_status';
+
+        //GPU THROTTLING GRAPH   - Config Variable
+        if gputhrottlinggraphCheckbox.checked = true then
+          GPUTHRG := 'throttling_status_graph';
 
 
       //##################################################################################################################  Write config file
@@ -852,6 +853,24 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUPOWER + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+       //GPU THROTTLING  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUTHR + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //GPU THROTTLING GRAPH  - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + GPUTHRG + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;

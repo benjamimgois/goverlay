@@ -8355,6 +8355,21 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
+          object gputhrottlinggraphCheckBox: TCheckBox
+            Left = 240
+            Height = 22
+            Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
+            Top = 184
+            Width = 135
+            Align = alCustom
+            Alignment = taLeftJustify
+            Caption = 'Throttling GRAPH'
+            Font.Height = -13
+            Font.Name = 'Sans'
+            Font.Quality = fqAntialiased
+            ParentFont = False
+            TabOrder = 14
+          end
         end
         object cpuGroupBox: TGroupBox
           Left = 1
