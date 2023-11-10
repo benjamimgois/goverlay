@@ -49,7 +49,7 @@ type
     CheckBox2: TCheckBox;
     compacthudBitBtn: TBitBtn;
     completehudBitBtn: TBitBtn;
-    cpuavrloadCheckBox1: TCheckBox;
+    cpuavgloadCheckBox: TCheckBox;
     cpuColorButton1: TColorButton;
     cpufreqCheckBox2: TCheckBox;
     cpuGroupBox: TGroupBox;
@@ -58,15 +58,16 @@ type
     cpuload3ColorButton1: TColorButton;
     cpuloadcolorCheckBox1: TCheckBox;
     cpuloadcoreCheckBox1: TCheckBox;
-    cpunameEdit1: TEdit;
+    cpunameEdit: TEdit;
     cpupowerCheckBox1: TCheckBox;
     cputempCheckBox1: TCheckBox;
     customcommandEdit: TEdit;
     destfolderpathLabel: TLabel;
     diskioCheckBox1: TCheckBox;
     distroinfoCheckBox: TCheckBox;
+    cpuImage: TImage;
     gpuvoltageCheckBox: TCheckBox;
-    Image2: TImage;
+    gpuImage: TImage;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
@@ -466,7 +467,8 @@ var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
-  GPUTEXT: string;
+
+  CPUAVGLOAD,GPUTEXT, CPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -659,6 +661,18 @@ var
 
         //GPU TEXT
         GPUTEXT := 'gpu_text=' + gpunameEdit.Text;
+
+
+
+
+        //CPU
+       //GPU TEXT - Config Variable
+        CPUTEXT := 'cpu_text=' + cpunameEdit.Text;
+
+
+       //AVG Load  - Config Variable
+        if cpuavgloadCheckbox.checked = true then
+          CPUAVGLOAD := 'cpu_stats';
       //##################################################################################################################  Write config file
 
 
@@ -923,6 +937,24 @@ var
       Process1.Executable := 'sh';
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('echo ' + GPUTEXT + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //CPU TEXT - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + CPUTEXT + ' >> ' + MANGOHUDCFGFILE );
+      Process1.Options := [poWaitOnExit, poUsePipes];
+      Process1.Execute;
+      Process1.Free;
+
+      //CPU AVG LOAD - Write Config
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('echo ' + CPUAVGLOAD + ' >> ' + MANGOHUDCFGFILE );
       Process1.Options := [poWaitOnExit, poUsePipes];
       Process1.Execute;
       Process1.Free;
