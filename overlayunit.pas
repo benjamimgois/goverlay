@@ -278,10 +278,6 @@ var
   //Mangohud variables ##########################
   MANGOHUDCFGFILE: string;
   FONTFOLDER: string;
-  fpslimVAR : string;
-  fpslimtoggleVAR : string;
-  vulkanvsyncVAR: string;
-
 
   //########################################
   GPUNUMBER: integer;
@@ -329,7 +325,7 @@ begin
   end;
 end;
 
-//Function saveconfig
+//Procedure to saveconfig
 Procedure SaveConfig(PARAMETRO, FILEPATH: string);
 var
   Process1: TProcess;
@@ -667,7 +663,7 @@ var
         //GPU THROTTLING   - Config Variable
         if gputhrottlingCheckbox.checked = true then
           GPUTHR := 'throttling_status';
-        SaveConfig(GPUTHR,MANGOHUDCFGFILE);
+
 
         //GPU THROTTLING GRAPH   - Config Variable
         if gputhrottlinggraphCheckbox.checked = true then
@@ -687,11 +683,11 @@ var
         //GPU VOLTAGE   - Config Variable
         if gpuvoltageCheckbox.checked = true then
           GPUVOLTAGE := 'gpu_voltage';
-        SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
+
 
         //GPU TEXT
         GPUTEXT := 'gpu_text=' + gpunameEdit.Text;
-        SaveConfig(GPUTEXT,MANGOHUDCFGFILE);
+
 
 
 
@@ -724,10 +720,13 @@ var
     SaveConfig(PCIDEV,MANGOHUDCFGFILE);
 
     //Metrics - GPU
+    SaveConfig(GPUTEXT,MANGOHUDCFGFILE);
     SaveConfig(GPUAVGLOAD,MANGOHUDCFGFILE);
     SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(GPULOADVALUE,MANGOHUDCFGFILE);
+    SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
     SaveConfig(VRAM,MANGOHUDCFGFILE);
+    SaveConfig(GPUTHR,MANGOHUDCFGFILE);
     SaveConfig(GPUFREQ,MANGOHUDCFGFILE);
     SaveConfig(GPUMEMFREQ,MANGOHUDCFGFILE);
     SaveConfig(GPUTEMP,MANGOHUDCFGFILE);
