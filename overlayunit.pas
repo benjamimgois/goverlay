@@ -329,6 +329,21 @@ begin
   end;
 end;
 
+//Function saveconfig
+Procedure SaveConfig(PARAMETRO, FILEPATH: string);
+var
+  Process1: TProcess;
+begin
+  Process1 := TProcess.Create(nil);
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
+    Process1.Options := [poWaitOnExit, poUsePipes];
+    Process1.Execute;
+    Process1.Free;
+  end;
+
+
 
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -600,6 +615,7 @@ var
         if gpuavgloadCheckbox.checked = true then
           GPUAVGLOAD := 'gpu_stats';
 
+
         //AVG Load color  - Config Variable
         if gpuloadcolorCheckbox.checked = true then
           begin
@@ -607,61 +623,75 @@ var
              GPULOADVALUE := 'gpu_load_value=50,90';
           end;
 
+
         //VRAM  - Config Variable
         if vramusageCheckbox.checked = true then
           VRAM := 'vram';
+
 
         //Core freq  - Config Variable
         if gpufreqCheckbox.checked = true then
           GPUFREQ := 'gpu_core_clock';
 
+
         //Mem Freq  - Config Variable
         if gputempCheckbox.checked = true then
           GPUMEMFREQ := 'gpu_mem_clock';
+
 
         //GPU Temp  - Config Variable
         if gputempCheckbox.checked = true then
           GPUTEMP := 'gpu_temp';
 
+
         //GPU mem Temp  - Config Variable
         if gpumemtempCheckbox.checked = true then
           GPUMEMTEMP := 'gpu_mem_temp';
+
 
         //GPU Junction Temp  - Config Variable
         if gpujunctempCheckbox.checked = true then
           GPUJUNCTEMP := 'gpu_junction_temp';
 
+
         //GPU FAN  - Config Variable
         if gpupowerCheckbox.checked = true then
           GPUFAN := 'gpu_fan';
+
 
         //GPU POWER  - Config Variable
         if gpupowerCheckbox.checked = true then
           GPUPOWER := 'gpu_power';
 
+
         //GPU THROTTLING   - Config Variable
         if gputhrottlingCheckbox.checked = true then
           GPUTHR := 'throttling_status';
+        SaveConfig(GPUTHR,MANGOHUDCFGFILE);
 
         //GPU THROTTLING GRAPH   - Config Variable
         if gputhrottlinggraphCheckbox.checked = true then
           GPUTHRG := 'throttling_status_graph';
 
+
         //GPU MODEL   - Config Variable
         if gpumodelCheckbox.checked = true then
           GPUMODEL := 'gpu_name';
+
 
         //VULKAN DRIVER   - Config Variable
         if vulkandriverCheckbox.checked = true then
           VULKANDRIVER := 'vulkan_driver';
 
+
         //GPU VOLTAGE   - Config Variable
         if gpuvoltageCheckbox.checked = true then
           GPUVOLTAGE := 'gpu_voltage';
+        SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
 
         //GPU TEXT
         GPUTEXT := 'gpu_text=' + gpunameEdit.Text;
-
+        SaveConfig(GPUTEXT,MANGOHUDCFGFILE);
 
 
 
@@ -673,291 +703,46 @@ var
        //AVG Load  - Config Variable
         if cpuavgloadCheckbox.checked = true then
           CPUAVGLOAD := 'cpu_stats';
-      //##################################################################################################################  Write config file
-
-
-      //HUD Title - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + HUDTITLE + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //orientation - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + ORIENTATION + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-
-      //Border type - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + BORDERTYPE + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //HUD ALPHA (transparency) - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + HUDALPHA + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //HUD Color - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + HUDCOLOR + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-
-      //Font Type - Write Config
-
-      if fontcomboBox.ItemIndex <> 0  then    //It doesnt apply for the DEFAULT font
-      begin
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + FONTTYPE + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-      end;
-
-      //Font Size  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + FONTSIZE + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-
-      //Font Color - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + FONTCOLOR + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //HUD Position  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + HUDPOSITION + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //TOGGLE HUD - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + TOGGLEHUD + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //TOGGLE HUD - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + HIDEHUD + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU PCIDEV  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + PCIDEV + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
 
 
 
-        //###############################################################################################   METRICS TAB
+          //##################################################################################################################  Write config file
 
-      //GPU AVG LOAD  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUAVGLOAD + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
+    //Visual Tab
+    SaveConfig(HUDTITLE,MANGOHUDCFGFILE);
+    SaveConfig(ORIENTATION,MANGOHUDCFGFILE);
+    SaveConfig(HUDALPHA,MANGOHUDCFGFILE);
+    SaveConfig(BORDERTYPE,MANGOHUDCFGFILE);
+    SaveConfig(HUDALPHA,MANGOHUDCFGFILE);
+    SaveConfig(HUDCOLOR,MANGOHUDCFGFILE);
+    SaveConfig(FONTTYPE,MANGOHUDCFGFILE);
+    SaveConfig(FONTSIZE,MANGOHUDCFGFILE);
+    SaveConfig(FONTCOLOR,MANGOHUDCFGFILE);
+    SaveConfig(HUDPOSITION,MANGOHUDCFGFILE);
+    SaveConfig(TOGGLEHUD,MANGOHUDCFGFILE);
+    SaveConfig(HIDEHUD,MANGOHUDCFGFILE);
+    SaveConfig(PCIDEV,MANGOHUDCFGFILE);
 
-      //GPU LOAD COLOR  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPULOADCOLOR + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
+    //Metrics - GPU
+    SaveConfig(GPUAVGLOAD,MANGOHUDCFGFILE);
+    SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
+    SaveConfig(GPULOADVALUE,MANGOHUDCFGFILE);
+    SaveConfig(VRAM,MANGOHUDCFGFILE);
+    SaveConfig(GPUFREQ,MANGOHUDCFGFILE);
+    SaveConfig(GPUMEMFREQ,MANGOHUDCFGFILE);
+    SaveConfig(GPUTEMP,MANGOHUDCFGFILE);
+    SaveConfig(GPUMEMTEMP,MANGOHUDCFGFILE);
+    SaveConfig(GPUJUNCTEMP,MANGOHUDCFGFILE);
+    SaveConfig(GPUFAN,MANGOHUDCFGFILE);
+    SaveConfig(GPUPOWER,MANGOHUDCFGFILE);
+    SaveConfig(GPUTHRG,MANGOHUDCFGFILE);
+    SaveConfig(GPUMODEL,MANGOHUDCFGFILE);
+    SaveConfig(VULKANDRIVER,MANGOHUDCFGFILE);
 
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPULOADVALUE + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
+    //Metrics - CPU
+    SaveConfig(CPUTEXT,MANGOHUDCFGFILE);
+    SaveConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
 
-
-      //VRAM  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + VRAM + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU CORE FREQ  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUFREQ + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU MEM FREQ  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUMEMFREQ + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU TEMP  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUTEMP + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-
-      //GPU MEM TEMP  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUMEMTEMP + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-
-      //GPU JUNC TEMP  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUJUNCTEMP + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU POWER  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUPOWER + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-       //GPU THROTTLING  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUTHR + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU THROTTLING GRAPH  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUTHRG + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU MODEL  - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUMODEL + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //VULKAN DRIVER - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + VULKANDRIVER + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU VOLTAGE - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUVOLTAGE + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //GPU TEXT - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + GPUTEXT + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //CPU TEXT - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + CPUTEXT + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
-
-      //CPU AVG LOAD - Write Config
-      Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
-      Process1.Parameters.Add('-c');
-      Process1.Parameters.Add('echo ' + CPUAVGLOAD + ' >> ' + MANGOHUDCFGFILE );
-      Process1.Options := [poWaitOnExit, poUsePipes];
-      Process1.Execute;
-      Process1.Free;
 
 end; // ########################################      end save button click       ###############################################################################
 
