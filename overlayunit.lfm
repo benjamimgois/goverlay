@@ -11013,8 +11013,8 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 7
           end
-          object cpufreqCheckBox2: TCheckBox
-            Left = 505
+          object cpufreqCheckBox: TCheckBox
+            Left = 407
             Height = 24
             Top = 80
             Width = 84

@@ -52,7 +52,7 @@ type
     completehudBitBtn: TBitBtn;
     cpuavgloadCheckBox: TCheckBox;
     cpuColorButton1: TColorButton;
-    cpufreqCheckBox2: TCheckBox;
+    cpufreqCheckBox: TCheckBox;
     cpuGroupBox: TGroupBox;
     cpuload1ColorButton1: TColorButton;
     cpuload2ColorButton1: TColorButton;
@@ -499,7 +499,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
+  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -734,6 +734,11 @@ var
              CPULOADCOLOR := 'cpu_load_change';
              CPULOADVALUE := 'cpu_load_value=50,90';
           end;
+
+       //CPU Core Freq - Config Variable
+        if cpufreqCheckbox.checked = true then
+           CPUCOREFREQ := 'cpu_mhz';
+
           //##################################################################################################################  Write config file
 
     //Visual Tab
@@ -777,6 +782,7 @@ var
     SaveConfig(CORELOADTYPE,MANGOHUDCFGFILE);
     SaveConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(CPULOADVALUE,MANGOHUDCFGFILE);
+    SaveConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
