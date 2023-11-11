@@ -22,6 +22,7 @@ type
     alphavalueLabel: TLabel;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
+    coreloadtypeBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     colorthemeLabel: TLabel;
@@ -56,7 +57,7 @@ type
     cpuload1ColorButton1: TColorButton;
     cpuload2ColorButton1: TColorButton;
     cpuload3ColorButton1: TColorButton;
-    cpuloadcolorCheckBox1: TCheckBox;
+    cpuloadcolorCheckBox: TCheckBox;
     cpuloadcoreCheckBox: TCheckBox;
     cpunameEdit: TEdit;
     cpupowerCheckBox1: TCheckBox;
@@ -252,6 +253,7 @@ type
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
 
+    procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
@@ -448,6 +450,24 @@ begin
   fontsizevalueLabel.Caption:= inttostr(fontsizeTrackbar.Position);
 end;
 
+procedure Tgoverlayform.coreloadtypeBitBtnClick(Sender: TObject);
+begin
+
+  //Change icon and hint on click
+  case coreloadtypeBitBtn.ImageIndex of
+    6: begin
+      coreloadtypeBitBtn.ImageIndex:=7;
+      coreloadtypeBitBtn.Hint:='Use vertical bars for core load';
+    end;
+    7: begin
+      coreloadtypeBitBtn.ImageIndex:=6;
+      coreloadtypeBitBtn.Hint:='Use numbers for core load';
+
+    end;
+ end;
+
+end;
+
 procedure Tgoverlayform.PaintBox1Paint(Sender: TObject);
 var
   i: Integer;
@@ -479,7 +499,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD, CPULOADCORE, GPUTEXT, CPUTEXT: string;
+  CPUAVGLOAD, CPULOADCORE, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -704,6 +724,10 @@ var
         if cpuloadcoreCheckbox.checked = true then
           CPULOADCORE := 'core_load';
 
+       //Load by core type - Config Variable
+        if coreloadtypeBitbtn.ImageIndex = 7 then
+          CORELOADTYPE := 'core_bars';
+
           //##################################################################################################################  Write config file
 
     //Visual Tab
@@ -744,6 +768,7 @@ var
     SaveConfig(CPUTEXT,MANGOHUDCFGFILE);
     SaveConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
     SaveConfig(CPULOADCORE,MANGOHUDCFGFILE);
+    SaveConfig(CORELOADTYPE,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
