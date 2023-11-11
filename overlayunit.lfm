@@ -1,7 +1,7 @@
 object goverlayform: Tgoverlayform
-  Left = 2902
+  Left = 204
   Height = 649
-  Top = 168
+  Top = 64
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
@@ -2417,7 +2417,7 @@ object goverlayform: Tgoverlayform
             'Vibrance'
             'Vignette'
           )
-          ItemHeight = 23
+          ItemHeight = 17
           ParentDoubleBuffered = False
           ParentFont = False
           TabOrder = 2
@@ -2510,14 +2510,14 @@ object goverlayform: Tgoverlayform
         end
         object vkbtogglekeyCombobox: TComboBox
           Left = 160
-          Height = 32
+          Height = 26
           Hint = 'Key that will enable and disable effects'
           Top = 434
           Width = 110
           Color = clBtnFace
           Font.Height = -13
           Font.Name = 'Noto Sans'
-          ItemHeight = 24
+          ItemHeight = 18
           ItemIndex = 0
           Items.Strings = (
             'Home'
@@ -3781,8 +3781,8 @@ object goverlayform: Tgoverlayform
     BevelColor = clNone
     BevelOuter = bvNone
     BorderStyle = bsSingle
-    ClientHeight = 646
-    ClientWidth = 785
+    ClientHeight = 648
+    ClientWidth = 787
     Color = 3684408
     ParentBackground = False
     ParentColor = False
@@ -3798,7 +3798,7 @@ object goverlayform: Tgoverlayform
       Left = 689
       Height = 30
       Hint = 'Save current setup in a Mangohud.conf file'
-      Top = 614
+      Top = 616
       Width = 95
       Align = alCustom
       Anchors = [akRight, akBottom]
@@ -3859,7 +3859,7 @@ object goverlayform: Tgoverlayform
       Left = 660
       Height = 30
       Hint = 'Execute VKcube and GLXgears with current  settings'
-      Top = 614
+      Top = 616
       Width = 25
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 2
@@ -3936,7 +3936,7 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = visualTabSheet
           Left = 206
-          Height = 32
+          Height = 26
           Hint = 'Create a custom title for the hud'
           Top = 10
           Width = 368
@@ -3960,10 +3960,10 @@ object goverlayform: Tgoverlayform
           AnchorSideRight.Control = visualTabSheet
           AnchorSideRight.Side = asrCenter
           Left = 572
-          Height = 32
+          Height = 26
           Top = 348
           Width = 180
-          ItemHeight = 24
+          ItemHeight = 18
           ItemIndex = 0
           Items.Strings = (
             'Mangohud Default'
@@ -3989,8 +3989,8 @@ object goverlayform: Tgoverlayform
           Width = 216
           BorderSpacing.Top = 40
           Caption = 'Position'
-          ClientHeight = 160
-          ClientWidth = 212
+          ClientHeight = 163
+          ClientWidth = 210
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4004,7 +4004,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = positionGroupBox
-            Left = -1
+            Left = -2
             Height = 190
             Top = 0
             Width = 215
@@ -4089,9 +4089,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
             Left = 8
-            Height = 20
+            Height = 15
             Top = 10
-            Width = 28
+            Width = 14
             BorderSpacing.Left = 8
             BorderSpacing.Top = 10
             Checked = True
@@ -4103,10 +4103,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = positionGroupBox
-            Left = 92
-            Height = 20
+            Left = 98
+            Height = 15
             Top = 10
-            Width = 28
+            Width = 14
             BorderSpacing.Top = 10
             TabOrder = 0
           end
@@ -4115,10 +4115,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideRight.Control = positionGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 184
-            Height = 20
+            Left = 196
+            Height = 15
             Top = 10
-            Width = 28
+            Width = 14
             Anchors = [akTop, akRight]
             BorderSpacing.Top = 10
             TabOrder = 1
@@ -4129,9 +4129,9 @@ object goverlayform: Tgoverlayform
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
             Left = 8
-            Height = 20
-            Top = 111
-            Width = 28
+            Height = 15
+            Top = 119
+            Width = 14
             Anchors = [akLeft, akBottom]
             BorderSpacing.Left = 8
             BorderSpacing.Top = 10
@@ -4145,10 +4145,10 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 184
-            Height = 20
-            Top = 111
-            Width = 28
+            Left = 196
+            Height = 15
+            Top = 119
+            Width = 14
             Anchors = [akRight, akBottom]
             BorderSpacing.Top = 5
             BorderSpacing.Bottom = 29
@@ -4160,10 +4160,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 92
-            Height = 20
-            Top = 111
-            Width = 28
+            Left = 98
+            Height = 15
+            Top = 119
+            Width = 14
             Anchors = [akLeft, akBottom]
             BorderSpacing.Left = 5
             BorderSpacing.Top = 5
@@ -4174,9 +4174,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
             Left = 8
-            Height = 20
+            Height = 15
             Top = 60
-            Width = 28
+            Width = 14
             BorderSpacing.Left = 8
             BorderSpacing.Top = 60
             TabOrder = 5
@@ -4186,10 +4186,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideRight.Control = positionGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 184
-            Height = 20
+            Left = 196
+            Height = 15
             Top = 60
-            Width = 28
+            Width = 14
             Anchors = [akTop, akRight]
             BorderSpacing.Top = 60
             TabOrder = 6
@@ -4205,8 +4205,8 @@ object goverlayform: Tgoverlayform
           Width = 216
           BorderSpacing.Top = 40
           Caption = 'Fonts'
-          ClientHeight = 160
-          ClientWidth = 212
+          ClientHeight = 163
+          ClientWidth = 210
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4222,7 +4222,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrCenter
             Left = 52
             Height = 23
-            Top = 69
+            Top = 70
             Width = 30
             BorderSpacing.Left = 10
             BorderSpacing.Top = 17
@@ -4238,7 +4238,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = fontsGroupBox
             AnchorSideTop.Control = fontsGroupBox
             Left = 8
-            Height = 32
+            Height = 24
             Top = 10
             Width = 190
             BorderSpacing.Left = 8
@@ -4247,7 +4247,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 22
+            ItemHeight = 16
             ItemIndex = 0
             Items.Strings = (
               'Default'
@@ -4265,7 +4265,7 @@ object goverlayform: Tgoverlayform
             Left = 42
             Height = 20
             Hint = 'Recomended Values:'#10'720p - 19'#10'1080 - 24'#10'4K - 31'
-            Top = 113
+            Top = 114
             Width = 156
             Max = 100
             Min = 1
@@ -4283,7 +4283,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 116
             Height = 17
-            Top = 133
+            Top = 134
             Width = 8
             Caption = 'X'
             Font.Height = -12
@@ -4298,7 +4298,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 8
             Height = 18
-            Top = 114
+            Top = 115
             Width = 24
             BorderSpacing.Left = 8
             BorderSpacing.Top = 25
@@ -4315,7 +4315,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrCenter
             Left = 8
             Height = 18
-            Top = 71
+            Top = 72
             Width = 34
             BorderSpacing.Left = 8
             Caption = 'Color'
@@ -4330,7 +4330,7 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Control = visualTabSheet
           AnchorSideTop.Control = visualTabSheet
           Left = 10
-          Height = 32
+          Height = 24
           Hint = 'PCIDEV of GPU, as listed by "lspci"'
           Top = 69
           Width = 90
@@ -4341,7 +4341,7 @@ object goverlayform: Tgoverlayform
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
           Font.Style = [fsBold]
-          ItemHeight = 22
+          ItemHeight = 16
           OnChange = pcidevComboBoxChange
           ParentFont = False
           ParentShowHint = False
@@ -4359,7 +4359,7 @@ object goverlayform: Tgoverlayform
           AnchorSideBottom.Control = hudonoffComboBox
           Left = 613
           Height = 18
-          Top = 400
+          Top = 394
           Width = 98
           BorderSpacing.Top = 20
           Caption = 'HUD Toggle Key'
@@ -4375,15 +4375,15 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Control = hudtoggleLabel
           AnchorSideTop.Side = asrBottom
           Left = 572
-          Height = 32
+          Height = 26
           Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
-          Top = 428
+          Top = 422
           Width = 180
           BorderSpacing.Top = 10
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
-          ItemHeight = 24
+          ItemHeight = 18
           ItemIndex = 0
           Items.Strings = (
             'Shift_R+F12'
@@ -4408,10 +4408,10 @@ object goverlayform: Tgoverlayform
           AnchorSideBottom.Control = visualTabSheet
           AnchorSideBottom.Side = asrBottom
           Left = 10
-          Height = 22
+          Height = 24
           Hint = 'This option will turn the hud off by default. Pressing the keybinding will show it up.'
           Top = 540
-          Width = 121
+          Width = 118
           BorderSpacing.Top = 50
           BorderSpacing.Right = 10
           BorderSpacing.Bottom = 20
@@ -4455,8 +4455,8 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Left = 10
           BorderSpacing.Top = 130
           Caption = 'Orientation'
-          ClientHeight = 100
-          ClientWidth = 212
+          ClientHeight = 103
+          ClientWidth = 210
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4470,9 +4470,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = orientationGroupBox
             AnchorSideTop.Side = asrCenter
             Left = 10
-            Height = 20
-            Top = 40
-            Width = 28
+            Height = 15
+            Top = 44
+            Width = 14
             BorderSpacing.Left = 10
             Checked = True
             TabOrder = 0
@@ -4483,10 +4483,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = verticalRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 38
+            Left = 24
             Height = 42
             Hint = 'Vertical'
-            Top = 29
+            Top = 30
             Width = 24
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963F503000089504E47
@@ -4532,10 +4532,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = verticalRadioButton
             AnchorSideRight.Control = orientationGroupBox
             AnchorSideRight.Side = asrCenter
-            Left = 112
-            Height = 20
-            Top = 40
-            Width = 28
+            Left = 98
+            Height = 15
+            Top = 44
+            Width = 14
             BorderSpacing.Left = 50
             TabOrder = 1
           end
@@ -4544,10 +4544,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = horizontalRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 140
+            Left = 112
             Height = 24
             Hint = 'Horizontal'
-            Top = 38
+            Top = 39
             Width = 42
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963BC02000089504E47
@@ -4591,8 +4591,8 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Left = 40
           BorderSpacing.Top = 130
           Caption = 'Borders'
-          ClientHeight = 100
-          ClientWidth = 212
+          ClientHeight = 103
+          ClientWidth = 210
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4606,10 +4606,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = roundRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 156
+            Left = 128
             Height = 35
             Hint = 'Round edge'
-            Top = 33
+            Top = 34
             Width = 40
             Picture.Data = {
               1754506F727461626C654E6574776F726B477261706869630B05000089504E47
@@ -4662,10 +4662,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = squareImage
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = squareRadioButton
-            Left = 128
-            Height = 20
-            Top = 40
-            Width = 28
+            Left = 114
+            Height = 15
+            Top = 44
+            Width = 14
             BorderSpacing.Left = 50
             TabOrder = 0
           end
@@ -4674,10 +4674,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = squareRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 38
+            Left = 24
             Height = 35
             Hint = 'Square edge'
-            Top = 33
+            Top = 34
             Width = 40
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963C500000089504E47
@@ -4697,9 +4697,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = borderGroupBox
             AnchorSideTop.Side = asrCenter
             Left = 10
-            Height = 20
-            Top = 40
-            Width = 28
+            Height = 15
+            Top = 44
+            Width = 14
             BorderSpacing.Left = 10
             Checked = True
             TabOrder = 1
@@ -4721,8 +4721,8 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Top = 130
           BorderSpacing.Right = 10
           Caption = 'Background'
-          ClientHeight = 100
-          ClientWidth = 212
+          ClientHeight = 103
+          ClientWidth = 210
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4822,7 +4822,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrCenter
           Left = 100
           Height = 32
-          Top = 69
+          Top = 65
           Width = 670
           Alignment = taCenter
           AutoSize = False
@@ -4851,8 +4851,8 @@ object goverlayform: Tgoverlayform
           Top = 9
           Width = 380
           Caption = 'FPS Limiters'
-          ClientHeight = 353
-          ClientWidth = 376
+          ClientHeight = 356
+          ClientWidth = 374
           DoubleBuffered = True
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4876,7 +4876,7 @@ object goverlayform: Tgoverlayform
           end
           object fpslimComboBox: TComboBox
             Left = 9
-            Height = 32
+            Height = 26
             Hint = '60 - Will limit the FPS to 60'#10'60 / 30 - 60 is the default limit, pressing the toggle key will switch the limit to 30fps'#10'UNSET - Let the game decide'
             Top = 37
             Width = 115
@@ -4884,7 +4884,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 0
             Items.Strings = (
               'Unlocked'
@@ -4897,7 +4897,7 @@ object goverlayform: Tgoverlayform
           end
           object fpslimtoggleComboBox: TComboBox
             Left = 173
-            Height = 32
+            Height = 26
             Hint = 'FPS limit toggle key'
             Top = 264
             Width = 75
@@ -4905,7 +4905,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 0
             Items.Strings = (
               'F1'
@@ -4960,9 +4960,9 @@ object goverlayform: Tgoverlayform
           end
           object CheckBox1: TCheckBox
             Left = 48
-            Height = 22
+            Height = 24
             Top = 161
-            Width = 200
+            Width = 197
             Caption = 'Change colors based on FPS'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -5017,7 +5017,7 @@ object goverlayform: Tgoverlayform
           end
           object fpslimComboBox1: TComboBox
             Left = 178
-            Height = 32
+            Height = 26
             Hint = '60 - Will limit the FPS to 60'#10'60 / 30 - 60 is the default limit, pressing the toggle key will switch the limit to 30fps'#10'UNSET - Let the game decide'
             Top = 37
             Width = 115
@@ -5025,7 +5025,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 0
             Items.Strings = (
               'Late (default)'
@@ -5109,10 +5109,10 @@ object goverlayform: Tgoverlayform
           end
           object showfpslimCheckBox: TCheckBox
             Left = 232
-            Height = 22
+            Height = 24
             Hint = 'Display FPS Limit'
             Top = 320
-            Width = 120
+            Width = 117
             Caption = 'Show FPS Limit'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -5124,10 +5124,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsonlyCheckBox: TCheckBox
             Left = 124
-            Height = 22
+            Height = 24
             Hint = 'Display only the fps number'
             Top = 320
-            Width = 79
+            Width = 76
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FPS only'
@@ -5139,10 +5139,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsCheckBox: TCheckBox
             Left = 16
-            Height = 22
+            Height = 24
             Hint = 'Display fps and api in use'
             Top = 320
-            Width = 50
+            Width = 47
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FPS'
@@ -5159,8 +5159,8 @@ object goverlayform: Tgoverlayform
           Top = 8
           Width = 380
           Caption = 'VSYNC'
-          ClientHeight = 139
-          ClientWidth = 376
+          ClientHeight = 142
+          ClientWidth = 374
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -5170,7 +5170,7 @@ object goverlayform: Tgoverlayform
           TabOrder = 1
           object vsyncComboBox: TComboBox
             Left = 168
-            Height = 32
+            Height = 26
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
             Top = 24
             Width = 110
@@ -5178,7 +5178,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 4
             Items.Strings = (
               'Adaptive'
@@ -5195,7 +5195,7 @@ object goverlayform: Tgoverlayform
           end
           object glvsyncComboBox: TComboBox
             Left = 168
-            Height = 32
+            Height = 26
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
             Top = 80
             Width = 110
@@ -5203,7 +5203,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 4
             Items.Strings = (
               'Adaptive'
@@ -7818,8 +7818,8 @@ object goverlayform: Tgoverlayform
           Top = 184
           Width = 380
           Caption = 'Filters'
-          ClientHeight = 347
-          ClientWidth = 376
+          ClientHeight = 350
+          ClientWidth = 374
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -7894,10 +7894,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsCheckBox1: TCheckBox
             Left = 0
-            Height = 22
+            Height = 24
             Hint = 'Display fps and api in use'
             Top = 312
-            Width = 126
+            Width = 123
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Bicubic Filtering'
@@ -7909,10 +7909,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsCheckBox2: TCheckBox
             Left = 272
-            Height = 22
+            Height = 24
             Hint = 'Display fps and api in use'
             Top = 312
-            Width = 97
+            Width = 94
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Retro Filter'
@@ -7924,10 +7924,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsCheckBox3: TCheckBox
             Left = 136
-            Height = 22
+            Height = 24
             Hint = 'Display fps and api in use'
             Top = 312
-            Width = 132
+            Width = 129
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Trilinear Filtering'
@@ -7944,16 +7944,16 @@ object goverlayform: Tgoverlayform
           Top = 400
           Width = 380
           Caption = 'Frames'
-          ClientHeight = 131
-          ClientWidth = 376
+          ClientHeight = 134
+          ClientWidth = 374
           ParentBackground = False
           ParentColor = False
           TabOrder = 3
           object frametimegraphCheckBox: TCheckBox
             Left = 32
-            Height = 22
+            Height = 24
             Top = 16
-            Width = 100
+            Width = 97
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Frame Time'
@@ -7976,9 +7976,9 @@ object goverlayform: Tgoverlayform
           end
           object framegraphRadioButton: TRadioButton
             Left = 178
-            Height = 21
+            Height = 23
             Top = 17
-            Width = 63
+            Width = 60
             Caption = 'Graph'
             Checked = True
             Enabled = False
@@ -7991,9 +7991,9 @@ object goverlayform: Tgoverlayform
           end
           object framehistogramRadioButton: TRadioButton
             Left = 272
-            Height = 21
+            Height = 23
             Top = 17
-            Width = 88
+            Width = 85
             Caption = 'Histogram'
             Enabled = False
             Font.Color = clWhite
@@ -8005,10 +8005,10 @@ object goverlayform: Tgoverlayform
           end
           object framecountCheckBox: TCheckBox
             Left = 32
-            Height = 22
+            Height = 24
             Hint = 'Shows the number of frames since start'
             Top = 88
-            Width = 111
+            Width = 108
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Count frames'
@@ -8033,8 +8033,8 @@ object goverlayform: Tgoverlayform
           Top = 0
           Width = 780
           Caption = 'GPU'
-          ClientHeight = 271
-          ClientWidth = 776
+          ClientHeight = 274
+          ClientWidth = 774
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -8048,9 +8048,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 22
-            Top = 74
-            Width = 58
+            Height = 24
+            Top = 68
+            Width = 55
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -8067,9 +8067,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 22
-            Top = 132
-            Width = 55
+            Height = 24
+            Top = 128
+            Width = 52
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -8086,10 +8086,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 377
-            Height = 22
-            Top = 74
-            Width = 87
+            Left = 368
+            Height = 24
+            Top = 68
+            Width = 84
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 50
@@ -8106,9 +8106,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpunameEdit
             AnchorSideTop.Side = asrBottom
-            Left = 263
+            Left = 262
             Height = 12
-            Top = 32
+            Top = 26
             Width = 250
             Align = alCustom
             BorderWidth = 2
@@ -8120,11 +8120,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpujunctempCheckBox
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
-            Left = 263
-            Height = 22
+            Left = 257
+            Height = 24
             Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
-            Top = 190
-            Width = 89
+            Top = 188
+            Width = 86
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8140,10 +8140,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 514
-            Height = 22
-            Top = 74
-            Width = 90
+            Left = 502
+            Height = 24
+            Top = 68
+            Width = 87
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 50
@@ -8160,9 +8160,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpuinfoLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 22
+            Height = 24
             Top = 248
-            Width = 67
+            Width = 64
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8178,9 +8178,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 22
-            Top = 190
-            Width = 68
+            Height = 24
+            Top = 188
+            Width = 65
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -8197,10 +8197,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 263
-            Height = 22
-            Top = 74
-            Width = 64
+            Left = 257
+            Height = 24
+            Top = 68
+            Width = 61
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 50
@@ -8217,9 +8217,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = vramusageCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 263
+            Left = 255
             Height = 12
-            Top = 96
+            Top = 92
             Width = 64
             Align = alCustom
             BorderWidth = 2
@@ -8231,8 +8231,8 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpuGroupBox
-            Left = 263
-            Height = 32
+            Left = 262
+            Height = 26
             Top = 0
             Width = 250
             Font.Height = -13
@@ -8248,10 +8248,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 118
-            Height = 22
-            Top = 74
-            Width = 95
+            Left = 115
+            Height = 24
+            Top = 68
+            Width = 92
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 50
@@ -8267,10 +8267,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideTop.Control = gpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 118
+            Left = 115
             Height = 12
             Hint = 'Low load color (0 - 50%)'
-            Top = 96
+            Top = 92
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -8285,10 +8285,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 150
+            Left = 146
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
-            Top = 96
+            Top = 92
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -8307,10 +8307,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             AnchorSideRight.Control = gpuloadcolorCheckBox
             AnchorSideRight.Side = asrBottom
-            Left = 183
+            Left = 177
             Height = 12
             Hint = 'High load color (90 - 100%)'
-            Top = 96
+            Top = 92
             Width = 30
             Align = alCustom
             Anchors = [akTop, akRight]
@@ -8325,10 +8325,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuvoltageCheckBox
             AnchorSideTop.Control = gpuinfoLabel
             AnchorSideTop.Side = asrBottom
-            Left = 118
-            Height = 22
+            Left = 115
+            Height = 24
             Top = 248
-            Width = 112
+            Width = 109
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8343,10 +8343,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = vramusageCheckBox
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 263
-            Height = 22
-            Top = 132
-            Width = 78
+            Left = 257
+            Height = 24
+            Top = 128
+            Width = 75
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8361,10 +8361,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 118
-            Height = 22
-            Top = 132
-            Width = 80
+            Left = 115
+            Height = 24
+            Top = 128
+            Width = 77
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8379,10 +8379,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpufreqCheckBox
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 377
-            Height = 22
-            Top = 132
-            Width = 57
+            Left = 368
+            Height = 24
+            Top = 128
+            Width = 54
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8399,7 +8399,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 54
+            Top = 48
             Width = 81
             BorderSpacing.Left = 10
             BorderSpacing.Top = 10
@@ -8417,7 +8417,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 112
+            Top = 108
             Width = 79
             BorderSpacing.Left = 10
             BorderSpacing.Top = 16
@@ -8435,7 +8435,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 170
+            Top = 168
             Width = 40
             BorderSpacing.Left = 10
             BorderSpacing.Top = 16
@@ -8469,11 +8469,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpufanCheckBox
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
-            Left = 377
-            Height = 22
+            Left = 368
+            Height = 24
             Hint = 'Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling'
-            Top = 190
-            Width = 135
+            Top = 188
+            Width = 132
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8488,10 +8488,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpumemtempCheckBox
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
-            Left = 118
-            Height = 22
-            Top = 190
-            Width = 75
+            Left = 115
+            Height = 24
+            Top = 188
+            Width = 72
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8506,7 +8506,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpuGroupBox
             AnchorSideRight.Control = gpuGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 703
+            Left = 701
             Height = 36
             Top = 0
             Width = 71
@@ -10860,8 +10860,8 @@ object goverlayform: Tgoverlayform
           Width = 780
           Anchors = [akLeft, akBottom]
           Caption = 'CPU / Memory'
-          ClientHeight = 241
-          ClientWidth = 776
+          ClientHeight = 244
+          ClientWidth = 774
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -10871,9 +10871,9 @@ object goverlayform: Tgoverlayform
           TabOrder = 1
           object cpuavgloadCheckBox: TCheckBox
             Left = 7
-            Height = 22
+            Height = 24
             Top = 80
-            Width = 58
+            Width = 55
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Load'
@@ -10885,9 +10885,9 @@ object goverlayform: Tgoverlayform
           end
           object cputempCheckBox1: TCheckBox
             Left = 7
-            Height = 22
+            Height = 24
             Top = 139
-            Width = 107
+            Width = 104
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Temperature'
@@ -10897,11 +10897,11 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 1
           end
-          object cpuloadcoreCheckBox1: TCheckBox
+          object cpuloadcoreCheckBox: TCheckBox
             Left = 148
-            Height = 22
+            Height = 24
             Top = 80
-            Width = 106
+            Width = 103
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Load by core'
@@ -10924,7 +10924,7 @@ object goverlayform: Tgoverlayform
           end
           object cpunameEdit: TEdit
             Left = 259
-            Height = 32
+            Height = 26
             Top = 5
             Width = 250
             Font.Height = -13
@@ -10937,9 +10937,9 @@ object goverlayform: Tgoverlayform
           end
           object ramusageCheckBox1: TCheckBox
             Left = 10
-            Height = 22
+            Height = 24
             Top = 203
-            Width = 57
+            Width = 54
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'RAM'
@@ -10962,9 +10962,9 @@ object goverlayform: Tgoverlayform
           end
           object diskioCheckBox1: TCheckBox
             Left = 148
-            Height = 22
+            Height = 24
             Top = 203
-            Width = 75
+            Width = 72
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'DISK IO'
@@ -10987,9 +10987,9 @@ object goverlayform: Tgoverlayform
           end
           object cpupowerCheckBox1: TCheckBox
             Left = 148
-            Height = 22
+            Height = 24
             Top = 139
-            Width = 68
+            Width = 65
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Power'
@@ -11001,9 +11001,9 @@ object goverlayform: Tgoverlayform
           end
           object cpuloadcolorCheckBox1: TCheckBox
             Left = 283
-            Height = 22
+            Height = 24
             Top = 80
-            Width = 95
+            Width = 92
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Load Color'
@@ -11015,9 +11015,9 @@ object goverlayform: Tgoverlayform
           end
           object cpufreqCheckBox2: TCheckBox
             Left = 407
-            Height = 22
+            Height = 24
             Top = 80
-            Width = 87
+            Width = 84
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Core Freq'
@@ -11083,9 +11083,9 @@ object goverlayform: Tgoverlayform
           end
           object swapusageCheckBox1: TCheckBox
             Left = 407
-            Height = 22
+            Height = 24
             Top = 203
-            Width = 61
+            Width = 58
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Swap'
@@ -11097,10 +11097,10 @@ object goverlayform: Tgoverlayform
           end
           object procmemCheckBox1: TCheckBox
             Left = 283
-            Height = 22
+            Height = 24
             Hint = 'Displays process'' memory usage: resident, shared and/or virtual.'
             Top = 203
-            Width = 110
+            Width = 107
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Process Mem'
@@ -11153,7 +11153,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpuGroupBox
             AnchorSideRight.Control = gpuGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 720
+            Left = 718
             Height = 51
             Top = 5
             Width = 48
@@ -11970,8 +11970,8 @@ object goverlayform: Tgoverlayform
           Top = 404
           Width = 282
           Caption = 'Quick Layouts'
-          ClientHeight = 139
-          ClientWidth = 278
+          ClientHeight = 142
+          ClientWidth = 276
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -12209,8 +12209,8 @@ object goverlayform: Tgoverlayform
           Top = 404
           Width = 464
           Caption = 'Logging'
-          ClientHeight = 138
-          ClientWidth = 460
+          ClientHeight = 141
+          ClientWidth = 458
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -12233,7 +12233,7 @@ object goverlayform: Tgoverlayform
           end
           object loggingComboBox: TComboBox
             Left = 8
-            Height = 32
+            Height = 26
             Hint = 'Key to start and stop logging'#10'(Shif_L = Left shift)'
             Top = 38
             Width = 110
@@ -12241,7 +12241,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 0
             Items.Strings = (
               'Shift_L+F2'
@@ -12258,10 +12258,10 @@ object goverlayform: Tgoverlayform
           end
           object autouploadCheckBox: TCheckBox
             Left = 336
-            Height = 20
+            Height = 22
             Hint = 'Permit to upload results to  Flightlessmango.com'
             Top = 104
-            Width = 106
+            Width = 103
             Caption = ' Upload results'
             Checked = True
             Font.Height = -11
@@ -12417,7 +12417,7 @@ object goverlayform: Tgoverlayform
           end
           object uploadlogComboBox: TComboBox
             Left = 8
-            Height = 32
+            Height = 26
             Hint = 'Key to upload logging to flightlessmango.com'
             Top = 100
             Width = 110
@@ -12425,7 +12425,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 18
             ItemIndex = 0
             Items.Strings = (
               'F5'
@@ -12453,7 +12453,7 @@ object goverlayform: Tgoverlayform
           end
           object logdurationSpinEdit: TSpinEdit
             Left = 176
-            Height = 32
+            Height = 27
             Hint = 'Amount of time the logging will run for '
             Top = 100
             Width = 70
@@ -12506,7 +12506,7 @@ object goverlayform: Tgoverlayform
           end
           object autologSpinEdit: TSpinEdit
             Left = 176
-            Height = 32
+            Height = 27
             Hint = 'Autostart logging after X seconds.'#10'"0" disable autologging'
             Top = 37
             Width = 70
@@ -12551,8 +12551,8 @@ object goverlayform: Tgoverlayform
           Top = 0
           Width = 760
           Caption = 'System Information'
-          ClientHeight = 372
-          ClientWidth = 756
+          ClientHeight = 375
+          ClientWidth = 754
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -12563,10 +12563,10 @@ object goverlayform: Tgoverlayform
           TabOrder = 2
           object distroinfoCheckBox: TCheckBox
             Left = 8
-            Height = 22
+            Height = 24
             Hint = 'Display Distribution name, version and kernel'
             Top = 20
-            Width = 92
+            Width = 89
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Distro info'
@@ -12580,9 +12580,9 @@ object goverlayform: Tgoverlayform
           end
           object archCheckBox: TCheckBox
             Left = 135
-            Height = 22
+            Height = 24
             Top = 20
-            Width = 56
+            Width = 53
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Arch'
@@ -12594,9 +12594,9 @@ object goverlayform: Tgoverlayform
           end
           object resolutionCheckBox: TCheckBox
             Left = 243
-            Height = 22
+            Height = 24
             Top = 20
-            Width = 93
+            Width = 90
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Resolution'
@@ -12608,9 +12608,9 @@ object goverlayform: Tgoverlayform
           end
           object engineversionCheckBox: TCheckBox
             Left = 135
-            Height = 22
+            Height = 24
             Top = 81
-            Width = 95
+            Width = 92
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Engine Ver'
@@ -12622,9 +12622,9 @@ object goverlayform: Tgoverlayform
           end
           object wineCheckBox: TCheckBox
             Left = 8
-            Height = 22
+            Height = 24
             Top = 81
-            Width = 84
+            Width = 81
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Wine Ver'
@@ -12636,9 +12636,9 @@ object goverlayform: Tgoverlayform
           end
           object mediaCheckBox: TCheckBox
             Left = 8
-            Height = 22
+            Height = 24
             Top = 264
-            Width = 94
+            Width = 91
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Media Info'
@@ -12650,10 +12650,10 @@ object goverlayform: Tgoverlayform
           end
           object gamemodestatusCheckBox: TCheckBox
             Left = 135
-            Height = 22
+            Height = 24
             Hint = 'Feral gamemode status'
             Top = 148
-            Width = 100
+            Width = 97
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Gamemode'
@@ -12667,14 +12667,14 @@ object goverlayform: Tgoverlayform
           end
           object mediaComboBox: TComboBox
             Left = 115
-            Height = 32
+            Height = 25
             Top = 264
             Width = 92
             Color = clBtnFace
             Font.Height = -12
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 23
+            ItemHeight = 17
             ItemIndex = 0
             Items.Strings = (
               'Spotify'
@@ -12700,10 +12700,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox: TCheckBox
             Left = 243
-            Height = 22
+            Height = 24
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 81
+            Width = 78
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'VKbasalt'
@@ -12742,9 +12742,9 @@ object goverlayform: Tgoverlayform
           end
           object CheckBox2: TCheckBox
             Left = 243
-            Height = 22
+            Height = 24
             Top = 81
-            Width = 106
+            Width = 103
             Caption = 'Short names'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -12806,10 +12806,10 @@ object goverlayform: Tgoverlayform
           end
           object gamepadCheckBox: TCheckBox
             Left = 376
-            Height = 22
+            Height = 24
             Hint = 'Gamepad battery status (Need xone driver for xbox controllers)'
             Top = 208
-            Width = 135
+            Width = 132
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Gamepad battery'
@@ -12823,9 +12823,9 @@ object goverlayform: Tgoverlayform
           end
           object batteryCheckBox2: TCheckBox
             Left = 243
-            Height = 22
+            Height = 24
             Top = 208
-            Width = 125
+            Width = 122
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Remaining time'
@@ -12837,9 +12837,9 @@ object goverlayform: Tgoverlayform
           end
           object batteryCheckBox1: TCheckBox
             Left = 135
-            Height = 22
+            Height = 24
             Top = 208
-            Width = 80
+            Width = 77
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Wattage'
@@ -12862,9 +12862,9 @@ object goverlayform: Tgoverlayform
           end
           object batteryCheckBox: TCheckBox
             Left = 8
-            Height = 22
+            Height = 24
             Top = 208
-            Width = 98
+            Width = 95
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Percentage'
@@ -12889,10 +12889,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox1: TCheckBox
             Left = 488
-            Height = 22
+            Height = 24
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 50
+            Width = 47
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FSR'
@@ -12906,10 +12906,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox2: TCheckBox
             Left = 576
-            Height = 22
+            Height = 24
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 117
+            Width = 114
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FSR Sharpness'
@@ -12923,10 +12923,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox3: TCheckBox
             Left = 376
-            Height = 22
+            Height = 24
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 53
+            Width = 50
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Fcat'
@@ -12940,7 +12940,7 @@ object goverlayform: Tgoverlayform
           end
           object customcommandEdit: TEdit
             Left = 8
-            Height = 31
+            Height = 25
             Hint = 'Print the output of a custom command'
             Top = 334
             Width = 360
@@ -12969,9 +12969,9 @@ object goverlayform: Tgoverlayform
           end
           object hudversionCheckBox: TCheckBox
             Left = 8
-            Height = 22
+            Height = 24
             Top = 148
-            Width = 106
+            Width = 103
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'HUD Version'
@@ -12983,9 +12983,9 @@ object goverlayform: Tgoverlayform
           end
           object timeCheckBox: TCheckBox
             Left = 488
-            Height = 22
+            Height = 24
             Top = 20
-            Width = 59
+            Width = 56
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Time'
@@ -12997,10 +12997,10 @@ object goverlayform: Tgoverlayform
           end
           object sessionCheckBox: TCheckBox
             Left = 376
-            Height = 22
+            Height = 24
             Hint = 'Display if your session is x11 or wayland'
             Top = 20
-            Width = 75
+            Width = 72
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Session'
@@ -13020,9 +13020,9 @@ object goverlayform: Tgoverlayform
       AnchorSideRight.Side = asrCenter
       AnchorSideBottom.Control = mangohudPanel
       AnchorSideBottom.Side = asrBottom
-      Left = 355
+      Left = 356
       Height = 16
-      Top = 623
+      Top = 625
       Width = 74
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 7
@@ -13046,7 +13046,7 @@ object goverlayform: Tgoverlayform
       Left = 94
       Height = 32
       Hint = 'MangoHUD will be automagically enabled for all VULKAN applications.'#10'(not need use MANGOHUD=1 every single time.)'#10#10'NEEDS RESTART !'
-      Top = 612
+      Top = 614
       Width = 60
       Anchors = [akLeft, akBottom]
       Color = 3684408
@@ -13062,7 +13062,7 @@ object goverlayform: Tgoverlayform
       AnchorSideBottom.Side = asrBottom
       Left = 5
       Height = 18
-      Top = 619
+      Top = 621
       Width = 89
       Anchors = [akLeft, akBottom]
       BorderSpacing.Left = 5

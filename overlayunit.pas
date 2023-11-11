@@ -57,7 +57,7 @@ type
     cpuload2ColorButton1: TColorButton;
     cpuload3ColorButton1: TColorButton;
     cpuloadcolorCheckBox1: TCheckBox;
-    cpuloadcoreCheckBox1: TCheckBox;
+    cpuloadcoreCheckBox: TCheckBox;
     cpunameEdit: TEdit;
     cpupowerCheckBox1: TCheckBox;
     cputempCheckBox1: TCheckBox;
@@ -479,7 +479,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD,GPUTEXT, CPUTEXT: string;
+  CPUAVGLOAD, CPULOADCORE, GPUTEXT, CPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -700,7 +700,9 @@ var
         if cpuavgloadCheckbox.checked = true then
           CPUAVGLOAD := 'cpu_stats';
 
-
+       //Load by core  - Config Variable
+        if cpuloadcoreCheckbox.checked = true then
+          CPULOADCORE := 'core_load';
 
           //##################################################################################################################  Write config file
 
@@ -741,7 +743,7 @@ var
     //Metrics - CPU
     SaveConfig(CPUTEXT,MANGOHUDCFGFILE);
     SaveConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
-
+    SaveConfig(CPULOADCORE,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
