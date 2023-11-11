@@ -499,7 +499,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD, CPULOADCORE, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
+  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -728,6 +728,12 @@ var
         if coreloadtypeBitbtn.ImageIndex = 7 then
           CORELOADTYPE := 'core_bars';
 
+       //CPU Load color  - Config Variable
+        if cpuloadcolorCheckbox.checked = true then
+          begin
+             CPULOADCOLOR := 'cpu_load_change';
+             CPULOADVALUE := 'cpu_load_value=50,90';
+          end;
           //##################################################################################################################  Write config file
 
     //Visual Tab
@@ -769,6 +775,8 @@ var
     SaveConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
     SaveConfig(CPULOADCORE,MANGOHUDCFGFILE);
     SaveConfig(CORELOADTYPE,MANGOHUDCFGFILE);
+    SaveConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
+    SaveConfig(CPULOADVALUE,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

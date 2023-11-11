@@ -1,7 +1,7 @@
 object goverlayform: Tgoverlayform
-  Left = 1878
+  Left = 246
   Height = 649
-  Top = 229
+  Top = 61
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
@@ -11000,9 +11000,9 @@ object goverlayform: Tgoverlayform
             TabOrder = 6
           end
           object cpuloadcolorCheckBox: TCheckBox
-            Left = 381
+            Left = 288
             Height = 24
-            Top = 80
+            Top = 73
             Width = 92
             Align = alCustom
             Alignment = taLeftJustify
@@ -11028,10 +11028,10 @@ object goverlayform: Tgoverlayform
             TabOrder = 8
           end
           object cpuload1ColorButton1: TColorButton
-            Left = 381
+            Left = 288
             Height = 12
             Hint = 'Low load color (0 - 50%)'
-            Top = 100
+            Top = 93
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -11042,10 +11042,10 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object cpuload2ColorButton1: TColorButton
-            Left = 412
+            Left = 319
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
-            Top = 100
+            Top = 93
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -11056,10 +11056,10 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object cpuload3ColorButton1: TColorButton
-            Left = 444
+            Left = 351
             Height = 12
             Hint = 'High load color (90 - 100%)'
-            Top = 100
+            Top = 94
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -11956,7 +11956,7 @@ object goverlayform: Tgoverlayform
             Transparent = True
           end
           object coreloadtypeBitBtn: TBitBtn
-            Left = 251
+            Left = 248
             Height = 26
             Top = 80
             Width = 26
