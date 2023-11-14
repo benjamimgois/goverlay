@@ -1,7 +1,7 @@
 object goverlayform: Tgoverlayform
-  Left = 246
+  Left = 177
   Height = 649
-  Top = 61
+  Top = 59
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
@@ -10883,7 +10883,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 0
           end
-          object cputempCheckBox1: TCheckBox
+          object cputempCheckBox: TCheckBox
             Left = 7
             Height = 24
             Top = 139

@@ -61,7 +61,7 @@ type
     cpuloadcoreCheckBox: TCheckBox;
     cpunameEdit: TEdit;
     cpupowerCheckBox1: TCheckBox;
-    cputempCheckBox1: TCheckBox;
+    cputempCheckBox: TCheckBox;
     customcommandEdit: TEdit;
     destfolderpathLabel: TLabel;
     diskioCheckBox1: TCheckBox;
@@ -273,6 +273,7 @@ var
   s: string;
   Color: string;
 
+
   //Boolean variables
   mangohudsel: boolean;
   vkbasaltsel: boolean;
@@ -313,26 +314,26 @@ var
   Arquivos: TStringList;
   Arquivo: String;
 begin
-  //ComboBox.Clear; // Limpa o ComboBox antes de preenchê-lo
 
-  Arquivos := FindAllFiles(Diretorio, '*.ttf'); // Procura por arquivos TTF no diretório
+  Arquivos := FindAllFiles(Diretorio, '*.ttf'); // Locate TTF files in Diretorio
 
   try
     for Arquivo in Arquivos do
     begin
-      ComboBox.Items.Add(ExtractFileName(Arquivo)); // Adiciona o nome do arquivo ao ComboBox
+      ComboBox.Items.Add(ExtractFileName(Arquivo)); // Add filename into combobox
     end;
   finally
-    Arquivos.Free; // Libera a memória alocada para a lista de arquivos
+    Arquivos.Free; // Free memory
   end;
 end;
+
 
 //Procedure to saveconfig
 Procedure SaveConfig(PARAMETRO, FILEPATH: string);
 var
   Process1: TProcess;
 begin
-  Process1 := TProcess.Create(nil);
+    Process1 := TProcess.Create(nil);
     Process1.Executable := 'sh';
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
@@ -342,6 +343,13 @@ begin
   end;
 
 
+//Procedure to store info from check;boxes
+procedure SaveCheckbox(CHECKBOXNAME: TCheckbox; var VARNAME: string; const VALUE: string);
+
+begin
+    if CHECKBOXNAME.checked = true then
+      VARNAME := VALUE;
+end;
 
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -499,7 +507,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
+  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -598,9 +606,9 @@ var
       if middleleftRadioButton.checked = true then
         HUDPOSITION := 'position=middle-left';
 
-      if middlerightRadioButton.checked = true then
-        HUDPOSITION := 'position=middle-right';
-
+     // if middlerightRadioButton.checked = true then
+     //   HUDPOSITION := 'position=middle-right';
+      Savecheckbox (middlerightRadioButton, HUDPOSITION, 'position=middle-right');
 
       //HUD Toggle ON/OFF   - Config Variable
 
@@ -613,9 +621,7 @@ var
         end;
 
       //Hide HUD by default  - Config Variable
-
-      if hidehudCheckbox.checked = true then
-         HIDEHUD := 'no_display';
+      Savecheckbox (hidehudCheckbox, HIDEHUD, 'no_display');
 
       //GPU PCIDEV  - Config Variable
 
@@ -628,9 +634,7 @@ var
 
       //GPU
         //AVG Load  - Config Variable
-        if gpuavgloadCheckbox.checked = true then
-          GPUAVGLOAD := 'gpu_stats';
-
+       Savecheckbox (gpuavgloadCheckbox, GPUAVGLOAD, 'gpu_stats');
 
         //AVG Load color  - Config Variable
         if gpuloadcolorCheckbox.checked = true then
@@ -641,68 +645,45 @@ var
 
 
         //VRAM  - Config Variable
-        if vramusageCheckbox.checked = true then
-          VRAM := 'vram';
-
+        Savecheckbox (vramusageCheckbox, VRAM, 'vram');
 
         //Core freq  - Config Variable
-        if gpufreqCheckbox.checked = true then
-          GPUFREQ := 'gpu_core_clock';
-
+        Savecheckbox (gpufreqCheckbox, GPUFREQ, 'gpu_core_clock');
 
         //Mem Freq  - Config Variable
-        if gputempCheckbox.checked = true then
-          GPUMEMFREQ := 'gpu_mem_clock';
+        Savecheckbox (gputempCheckbox, GPUMEMFREQ, 'gpu_mem_clock');
 
 
         //GPU Temp  - Config Variable
-        if gputempCheckbox.checked = true then
-          GPUTEMP := 'gpu_temp';
-
+        Savecheckbox (gputempCheckbox, GPUTEMP, 'gpu_temp');
 
         //GPU mem Temp  - Config Variable
-        if gpumemtempCheckbox.checked = true then
-          GPUMEMTEMP := 'gpu_mem_temp';
-
+        Savecheckbox (gpumemtempCheckbox, GPUMEMTEMP, 'gpu_mem_temp');
 
         //GPU Junction Temp  - Config Variable
-        if gpujunctempCheckbox.checked = true then
-          GPUJUNCTEMP := 'gpu_junction_temp';
-
+        Savecheckbox (gpujunctempCheckbox, GPUJUNCTEMP, 'gpu_junction_temp');
 
         //GPU FAN  - Config Variable
-        if gpupowerCheckbox.checked = true then
-          GPUFAN := 'gpu_fan';
-
+        Savecheckbox (gpupowerCheckbox, GPUFAN, 'gpu_fan');
 
         //GPU POWER  - Config Variable
-        if gpupowerCheckbox.checked = true then
-          GPUPOWER := 'gpu_power';
-
+        Savecheckbox (gpupowerCheckbox, GPUPOWER, 'gpu_power');
 
         //GPU THROTTLING   - Config Variable
-        if gputhrottlingCheckbox.checked = true then
-          GPUTHR := 'throttling_status';
-
+       Savecheckbox (gputhrottlingCheckbox, GPUTHR, 'throttling_status');
 
         //GPU THROTTLING GRAPH   - Config Variable
-        if gputhrottlinggraphCheckbox.checked = true then
-          GPUTHRG := 'throttling_status_graph';
 
+        Savecheckbox (gputhrottlinggraphCheckbox, GPUTHRG, 'throttling_status_graph');
 
         //GPU MODEL   - Config Variable
-        if gpumodelCheckbox.checked = true then
-          GPUMODEL := 'gpu_name';
-
+        Savecheckbox (gpumodelCheckbox, GPUTHRG, 'gpu_name');
 
         //VULKAN DRIVER   - Config Variable
-        if vulkandriverCheckbox.checked = true then
-          VULKANDRIVER := 'vulkan_driver';
-
+        Savecheckbox (vulkandriverCheckbox, VULKANDRIVER, 'vulkan_driver');
 
         //GPU VOLTAGE   - Config Variable
-        if gpuvoltageCheckbox.checked = true then
-          GPUVOLTAGE := 'gpu_voltage';
+         Savecheckbox (gpuvoltageCheckbox, GPUVOLTAGE, 'gpu_voltage');
 
 
         //GPU TEXT
@@ -717,16 +698,15 @@ var
 
 
        //AVG Load  - Config Variable
-        if cpuavgloadCheckbox.checked = true then
-          CPUAVGLOAD := 'cpu_stats';
+        Savecheckbox (cpuavgloadCheckbox, CPUAVGLOAD, 'cpu_stats');
 
        //Load by core  - Config Variable
-        if cpuloadcoreCheckbox.checked = true then
-          CPULOADCORE := 'core_load';
+        Savecheckbox (cpuloadcoreCheckbox, CPULOADCORE, 'core_load');
 
        //Load by core type - Config Variable
         if coreloadtypeBitbtn.ImageIndex = 7 then
           CORELOADTYPE := 'core_bars';
+
 
        //CPU Load color  - Config Variable
         if cpuloadcolorCheckbox.checked = true then
@@ -735,9 +715,13 @@ var
              CPULOADVALUE := 'cpu_load_value=50,90';
           end;
 
-       //CPU Core Freq - Config Variable
-        if cpufreqCheckbox.checked = true then
-           CPUCOREFREQ := 'cpu_mhz';
+
+        //   CPUCOREFREQ := 'cpu_mhz';
+       Savecheckbox (cpufreqCheckbox, CPUCOREFREQ, 'cpu_mhz');
+
+       ////CPU TEMP - Config Variable
+       Savecheckbox (cputempCheckbox, CPUTEMP, 'cpu_temp');
+
 
           //##################################################################################################################  Write config file
 
@@ -783,6 +767,7 @@ var
     SaveConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(CPULOADVALUE,MANGOHUDCFGFILE);
     SaveConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
+    SaveConfig(CPUTEMP,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
