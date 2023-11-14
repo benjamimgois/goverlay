@@ -343,11 +343,20 @@ begin
   end;
 
 
-//Procedure to store info from check;boxes
+//Procedure to store info from checkboxes
 procedure SaveCheckbox(CHECKBOXNAME: TCheckbox; var VARNAME: string; const VALUE: string);
 
 begin
     if CHECKBOXNAME.checked = true then
+      VARNAME := VALUE;
+end;
+
+
+//Procedure to store info from Radiobuttons
+procedure SaveRadioButton(RADIOBUTTONNAME: TRadioButton; var VARNAME: string; const VALUE: string);
+
+begin
+    if RADIOBUTTONNAME.checked = true then
       VARNAME := VALUE;
 end;
 
@@ -541,20 +550,13 @@ var
 
       //Orientation  - Config Variable
 
-      if horizontalRadioButton.checked = true then
-        ORIENTATION := 'horizontal';
-
-      if verticalRadioButton.checked = true then
-        ORIENTATION := '';
-
+      SaveRadioButton (horizontalRadioButton, ORIENTATION, 'horizontal');
+      SaveRadioButton (verticalRadioButton, ORIENTATION, '');
 
       //Borders - Config Variable
 
-      if squareRadioButton.checked = true then
-        BORDERTYPE := 'round_corners=0';
-
-      if roundRadioButton.checked = true then
-        BORDERTYPE := 'round_corners=10';
+      SaveRadioButton (squareRadioButton, BORDERTYPE, 'round_corners=0');
+      SaveRadioButton (roundRadioButton, BORDERTYPE, 'round_corners=10');
 
       //HUD Alpha (transparency)   - Config Variable
 
@@ -583,34 +585,19 @@ var
 
       FONTCOLOR := 'text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor);
 
+
       //Position  - Config Variable
 
-      if topleftRadioButton.checked = true then
-        HUDPOSITION := 'position=top-left';
+      SaveRadioButton (topleftRadioButton, HUDPOSITION, 'position=top-left');
+      SaveRadioButton (toprightRadioButton, HUDPOSITION, 'position=top-right');
+      SaveRadioButton (topcenterRadioButton, HUDPOSITION, 'position=top-center');
+      SaveRadioButton (bottomcenterRadioButton, HUDPOSITION, 'position=bottom-center');
+      SaveRadioButton (bottomleftRadioButton, HUDPOSITION, 'position=bottom-left');
+      SaveRadioButton (bottomrightRadioButton, HUDPOSITION, 'position=bottom-right');
+      SaveRadioButton (middleleftRadioButton, HUDPOSITION, 'position=middle-left');
+      SaveRadioButton (middlerightRadioButton, HUDPOSITION, 'position=middle-right');
 
-      if toprightRadioButton.checked = true then
-        HUDPOSITION := 'position=top-right';
-
-      if topcenterRadioButton.checked = true then
-        HUDPOSITION := 'position=top-center';
-
-      if bottomcenterRadioButton.checked = true then
-        HUDPOSITION := 'position=bottom-center';
-
-      if bottomleftRadioButton.checked = true then
-        HUDPOSITION := 'position=bottom-left';
-
-      if bottomrightRadioButton.checked = true then
-        HUDPOSITION := 'position=bottom-right';
-
-      if middleleftRadioButton.checked = true then
-        HUDPOSITION := 'position=middle-left';
-
-     // if middlerightRadioButton.checked = true then
-     //   HUDPOSITION := 'position=middle-right';
-      Savecheckbox (middlerightRadioButton, HUDPOSITION, 'position=middle-right');
-
-      //HUD Toggle ON/OFF   - Config Variable
+     //HUD Toggle ON/OFF   - Config Variable
 
       case hudonoffCombobox.ItemIndex of
         0:TOGGLEHUD := 'toggle_hud=Shift_R+F12' ;
