@@ -60,7 +60,7 @@ type
     cpuloadcolorCheckBox: TCheckBox;
     cpuloadcoreCheckBox: TCheckBox;
     cpunameEdit: TEdit;
-    cpupowerCheckBox1: TCheckBox;
+    cpupowerCheckBox: TCheckBox;
     cputempCheckBox: TCheckBox;
     customcommandEdit: TEdit;
     destfolderpathLabel: TLabel;
@@ -189,7 +189,7 @@ type
     Process1: TProcess;
     procmemCheckBox1: TCheckBox;
     ramColorButton1: TColorButton;
-    ramusageCheckBox1: TCheckBox;
+    ramusageCheckBox: TCheckBox;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
     reshadeProgressBar: TProgressBar;
@@ -516,7 +516,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, GPUTEXT, CPUTEXT: string;
+  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -709,6 +709,11 @@ var
        ////CPU TEMP - Config Variable
        Savecheckbox (cputempCheckbox, CPUTEMP, 'cpu_temp');
 
+        ////CPU Power - Config Variable
+       Savecheckbox (cpupowerCheckbox, CPUPOWER, 'cpu_power');
+
+       ////RAM - Config Variable
+       Savecheckbox (ramusageCheckBox, RAM, 'ram');
 
           //##################################################################################################################  Write config file
 
@@ -755,6 +760,8 @@ var
     SaveConfig(CPULOADVALUE,MANGOHUDCFGFILE);
     SaveConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
     SaveConfig(CPUTEMP,MANGOHUDCFGFILE);
+    SaveConfig(CPUPOWER,MANGOHUDCFGFILE);
+    SaveConfig(RAM,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

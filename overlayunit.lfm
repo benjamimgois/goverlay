@@ -3917,12 +3917,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = metricsSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -10935,7 +10935,7 @@ object goverlayform: Tgoverlayform
             TabOrder = 3
             Text = 'CPU'
           end
-          object ramusageCheckBox1: TCheckBox
+          object ramusageCheckBox: TCheckBox
             Left = 10
             Height = 24
             Top = 203
@@ -10985,7 +10985,7 @@ object goverlayform: Tgoverlayform
             ButtonColor = 13865380
             Color = 3684408
           end
-          object cpupowerCheckBox1: TCheckBox
+          object cpupowerCheckBox: TCheckBox
             Left = 148
             Height = 24
             Top = 139
