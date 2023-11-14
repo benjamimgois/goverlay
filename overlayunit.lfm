@@ -1,7 +1,7 @@
 object goverlayform: Tgoverlayform
-  Left = 177
+  Left = 150
   Height = 649
-  Top = 59
+  Top = 122
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
@@ -8263,7 +8263,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 9
           end
-          object gpuload1ColorButton2: TColorButton
+          object gpuload1ColorButton: TColorButton
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideTop.Control = gpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
@@ -8280,7 +8280,7 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             ParentShowHint = False
           end
-          object gpuload2ColorButton2: TColorButton
+          object gpuload2ColorButton: TColorButton
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpuloadcolorCheckBox
@@ -8301,7 +8301,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
           end
-          object gpuload3ColorButton2: TColorButton
+          object gpuload3ColorButton: TColorButton
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideTop.Control = gpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
@@ -10960,7 +10960,7 @@ object goverlayform: Tgoverlayform
             ButtonColor = 9660098
             Color = 3684408
           end
-          object diskioCheckBox1: TCheckBox
+          object diskioCheckBox: TCheckBox
             Left = 148
             Height = 24
             Top = 203
@@ -11027,7 +11027,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 8
           end
-          object cpuload1ColorButton1: TColorButton
+          object cpuload1ColorButton: TColorButton
             Left = 288
             Height = 12
             Hint = 'Low load color (0 - 50%)'
@@ -11041,7 +11041,7 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             ParentShowHint = False
           end
-          object cpuload2ColorButton1: TColorButton
+          object cpuload2ColorButton: TColorButton
             Left = 319
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
@@ -11055,7 +11055,7 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             ParentShowHint = False
           end
-          object cpuload3ColorButton1: TColorButton
+          object cpuload3ColorButton: TColorButton
             Left = 351
             Height = 12
             Hint = 'High load color (90 - 100%)'
@@ -11081,7 +11081,7 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 9
           end
-          object swapusageCheckBox1: TCheckBox
+          object swapusageCheckBox: TCheckBox
             Left = 407
             Height = 24
             Top = 203

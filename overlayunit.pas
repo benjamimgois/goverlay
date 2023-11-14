@@ -54,9 +54,9 @@ type
     cpuColorButton1: TColorButton;
     cpufreqCheckBox: TCheckBox;
     cpuGroupBox: TGroupBox;
-    cpuload1ColorButton1: TColorButton;
-    cpuload2ColorButton1: TColorButton;
-    cpuload3ColorButton1: TColorButton;
+    cpuload1ColorButton: TColorButton;
+    cpuload2ColorButton: TColorButton;
+    cpuload3ColorButton: TColorButton;
     cpuloadcolorCheckBox: TCheckBox;
     cpuloadcoreCheckBox: TCheckBox;
     cpunameEdit: TEdit;
@@ -64,7 +64,7 @@ type
     cputempCheckBox: TCheckBox;
     customcommandEdit: TEdit;
     destfolderpathLabel: TLabel;
-    diskioCheckBox1: TCheckBox;
+    diskioCheckBox: TCheckBox;
     distroinfoCheckBox: TCheckBox;
     cpuImage: TImage;
     gpuvoltageCheckBox: TCheckBox;
@@ -118,11 +118,11 @@ type
     gpufreqCheckBox: TCheckBox;
     gpuGroupBox: TGroupBox;
     gpuload1ColorButton1: TColorButton;
-    gpuload1ColorButton2: TColorButton;
+    gpuload1ColorButton: TColorButton;
     gpuload2ColorButton1: TColorButton;
-    gpuload2ColorButton2: TColorButton;
+    gpuload2ColorButton: TColorButton;
     gpuload3ColorButton1: TColorButton;
-    gpuload3ColorButton2: TColorButton;
+    gpuload3ColorButton: TColorButton;
     gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
@@ -205,7 +205,7 @@ type
     sessionCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     subBitBtn: TBitBtn;
-    swapusageCheckBox1: TCheckBox;
+    swapusageCheckBox: TCheckBox;
     TabSheet8: TTabSheet;
     themesComboBox: TComboBox;
     timeCheckBox: TCheckBox;
@@ -514,9 +514,9 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
-  CPUAVGLOAD, CPULOADCORE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM: string;
+  CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string;
   LOCATEDFILE: TStringList;
 
   begin
@@ -581,7 +581,7 @@ var
 
       FONTSIZE := 'font_size=' + inttostr(fontsizeTrackbar.Position);
 
-       //Font Color  - Config Variable
+      //Font Color  - Config Variable
 
       FONTCOLOR := 'text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor);
 
@@ -626,8 +626,9 @@ var
         //AVG Load color  - Config Variable
         if gpuloadcolorCheckbox.checked = true then
           begin
-             GPULOADCOLOR := 'gpu_load_change';
+             GPULOADCHANGE := 'gpu_load_change';
              GPULOADVALUE := 'gpu_load_value=50,90';
+             GPULOADCOLOR := 'gpu_load_color='+ ColorToHTMLColor(gpuload1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(gpuload2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(gpuload3ColorButton.ButtonColor);
           end;
 
 
@@ -698,8 +699,9 @@ var
        //CPU Load color  - Config Variable
         if cpuloadcolorCheckbox.checked = true then
           begin
-             CPULOADCOLOR := 'cpu_load_change';
+             CPULOADCHANGE := 'cpu_load_change';
              CPULOADVALUE := 'cpu_load_value=50,90';
+             CPULOADCOLOR := 'cpu_load_color='+ ColorToHTMLColor(cpuload1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(cpuload2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(cpuload3ColorButton.ButtonColor);
           end;
 
 
@@ -714,6 +716,17 @@ var
 
        ////RAM - Config Variable
        Savecheckbox (ramusageCheckBox, RAM, 'ram');
+
+       //Disk IO  - Config Variable
+        if diskioCheckbox.checked = true then
+          begin
+             IOSTATS := 'io_stats';
+             IOREAD := 'io_read';
+             IOWRITE := 'io_write';
+          end;
+
+        ////RAM - Config Variable
+       Savecheckbox (swapusageCheckBox, SWAP, 'swap');
 
           //##################################################################################################################  Write config file
 
@@ -735,8 +748,9 @@ var
     //Metrics - GPU
     SaveConfig(GPUTEXT,MANGOHUDCFGFILE);
     SaveConfig(GPUAVGLOAD,MANGOHUDCFGFILE);
-    SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
+    SaveConfig(GPULOADCHANGE,MANGOHUDCFGFILE);
     SaveConfig(GPULOADVALUE,MANGOHUDCFGFILE);
+    SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
     SaveConfig(VRAM,MANGOHUDCFGFILE);
     SaveConfig(GPUTHR,MANGOHUDCFGFILE);
@@ -751,17 +765,22 @@ var
     SaveConfig(GPUMODEL,MANGOHUDCFGFILE);
     SaveConfig(VULKANDRIVER,MANGOHUDCFGFILE);
 
-    //Metrics - CPU
+    //Metrics - CPU / MEM
     SaveConfig(CPUTEXT,MANGOHUDCFGFILE);
     SaveConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
     SaveConfig(CPULOADCORE,MANGOHUDCFGFILE);
     SaveConfig(CORELOADTYPE,MANGOHUDCFGFILE);
-    SaveConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
+    SaveConfig(CPULOADCHANGE,MANGOHUDCFGFILE);
     SaveConfig(CPULOADVALUE,MANGOHUDCFGFILE);
+    SaveConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
     SaveConfig(CPUTEMP,MANGOHUDCFGFILE);
     SaveConfig(CPUPOWER,MANGOHUDCFGFILE);
     SaveConfig(RAM,MANGOHUDCFGFILE);
+    SaveConfig(IOSTATS,MANGOHUDCFGFILE);
+    SaveConfig(IOREAD,MANGOHUDCFGFILE);
+    SaveConfig(IOWRITE,MANGOHUDCFGFILE);
+    SaveConfig(SWAP,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
