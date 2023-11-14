@@ -244,7 +244,7 @@ type
     mangohudShape: TShape;
     vkbasaltShape: TShape;
     vktoggleLabel: TLabel;
-    vramColorButton1: TColorButton;
+    vramColorButton: TColorButton;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
     vsyncGroupBox: TGroupBox;
@@ -514,7 +514,7 @@ procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
 
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string;
   LOCATEDFILE: TStringList;
@@ -635,6 +635,9 @@ var
         //VRAM  - Config Variable
         Savecheckbox (vramusageCheckbox, VRAM, 'vram');
 
+        //VRAM Color
+        VRAMCOLOR := 'vram_color='+ ColorToHTMLColor(vramColorButton.ButtonColor) ;
+
         //Core freq  - Config Variable
         Savecheckbox (gpufreqCheckbox, GPUFREQ, 'gpu_core_clock');
 
@@ -753,6 +756,7 @@ var
     SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
     SaveConfig(VRAM,MANGOHUDCFGFILE);
+    SaveConfig(VRAMCOLOR,MANGOHUDCFGFILE);
     SaveConfig(GPUTHR,MANGOHUDCFGFILE);
     SaveConfig(GPUFREQ,MANGOHUDCFGFILE);
     SaveConfig(GPUMEMFREQ,MANGOHUDCFGFILE);

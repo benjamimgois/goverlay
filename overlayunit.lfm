@@ -8212,7 +8212,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 7
           end
-          object vramColorButton1: TColorButton
+          object vramColorButton: TColorButton
             AnchorSideLeft.Control = vramusageCheckBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = vramusageCheckBox
