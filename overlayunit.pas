@@ -22,6 +22,7 @@ type
     alphavalueLabel: TLabel;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
+    CheckGroup1: TCheckGroup;
     coreloadtypeBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
@@ -94,14 +95,12 @@ type
     fpslimLabel17: TLabel;
     fpslimLabel18: TLabel;
     fpslimLabel3: TLabel;
-    fpslimLabel4: TLabel;
     mainmetricLabel: TLabel;
     gputempLabel: TLabel;
     gpupowerLabel: TLabel;
     gpuinfoLabel: TLabel;
     fpslimtoggleComboBox: TComboBox;
     fpsonlyCheckBox: TCheckBox;
-    fpsTrackBar: TTrackBar;
     framecountCheckBox: TCheckBox;
     framegraphRadioButton: TRadioButton;
     framehistogramRadioButton: TRadioButton;

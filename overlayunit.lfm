@@ -1,7 +1,7 @@
 object goverlayform: Tgoverlayform
-  Left = 150
+  Left = 1791
   Height = 649
-  Top = 122
+  Top = 206
   Width = 1000
   BorderStyle = bsDialog
   Caption = 'Goverlay 1.0 alpha'
@@ -3917,16 +3917,16 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = metricsSheet
+      ActivePage = performanceTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 2
+      TabIndex = 1
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
-        ClientHeight = 575
+        ClientHeight = 578
         ClientWidth = 780
         Font.Color = clWhite
         Font.Quality = fqAntialiased
@@ -3983,7 +3983,7 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = borderGroupBox
           AnchorSideTop.Side = asrBottom
-          Left = 282
+          Left = 276
           Height = 190
           Top = 300
           Width = 216
@@ -4583,12 +4583,11 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = visualTabSheet
           AnchorSideRight.Control = backgroundGroupBox
-          Left = 282
+          Left = 276
           Height = 130
           Top = 130
           Width = 216
-          Anchors = [akTop]
-          BorderSpacing.Left = 40
+          BorderSpacing.Left = 50
           BorderSpacing.Top = 130
           Caption = 'Borders'
           ClientHeight = 103
@@ -4838,7 +4837,7 @@ object goverlayform: Tgoverlayform
       end
       object performanceTabSheet: TTabSheet
         Caption = 'Performance'
-        ClientHeight = 575
+        ClientHeight = 578
         ClientWidth = 780
         Font.Color = clWhite
         Font.Height = -13
@@ -4931,33 +4930,6 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpsTrackBar: TTrackBar
-            Left = 10
-            Height = 22
-            Hint = 'FPS Limit'
-            Top = 114
-            Width = 339
-            LineSize = 2
-            Max = 500
-            Min = 1
-            Position = 120
-            TickStyle = tsNone
-            ParentColor = False
-            TabOrder = 2
-          end
-          object fpslimLabel4: TLabel
-            Left = 156
-            Height = 18
-            Top = 94
-            Width = 46
-            Caption = '120 fps'
-            Font.Height = -13
-            Font.Name = 'Noto Sans'
-            Font.Quality = fqAntialiased
-            Font.Style = [fsBold]
-            ParentColor = False
-            ParentFont = False
-          end
           object CheckBox1: TCheckBox
             Left = 48
             Height = 24
@@ -4968,7 +4940,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 3
+            TabOrder = 2
           end
           object gpuload1ColorButton1: TColorButton
             Left = 48
@@ -5032,7 +5004,7 @@ object goverlayform: Tgoverlayform
               'Early'
             )
             ParentFont = False
-            TabOrder = 4
+            TabOrder = 3
             Text = 'Late (default)'
           end
           object fpslimLabel1: TLabel
@@ -5064,7 +5036,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 5
+            TabOrder = 4
             Value = 60
           end
           object autologSpinEdit2: TSpinEdit
@@ -5084,7 +5056,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 6
+            TabOrder = 5
             Value = 90
           end
           object autologSpinEdit3: TSpinEdit
@@ -5104,7 +5076,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 7
+            TabOrder = 6
             Value = 120
           end
           object showfpslimCheckBox: TCheckBox
@@ -5120,7 +5092,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 8
+            TabOrder = 7
           end
           object fpsonlyCheckBox: TCheckBox
             Left = 124
@@ -5135,7 +5107,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 9
+            TabOrder = 8
           end
           object fpsCheckBox: TCheckBox
             Left = 16
@@ -5150,7 +5122,40 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
+            TabOrder = 9
+          end
+          object CheckGroup1: TCheckGroup
+            Left = 8
+            Height = 80
+            Top = 72
+            Width = 349
+            AutoFill = True
+            Caption = 'Frame Limits'
+            ChildSizing.LeftRightSpacing = 6
+            ChildSizing.TopBottomSpacing = 6
+            ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+            ChildSizing.EnlargeVertical = crsHomogenousChildResize
+            ChildSizing.ShrinkHorizontal = crsScaleChilds
+            ChildSizing.ShrinkVertical = crsScaleChilds
+            ChildSizing.Layout = cclLeftToRightThenTopToBottom
+            ChildSizing.ControlsPerLine = 4
+            ClientHeight = 53
+            ClientWidth = 343
+            Columns = 4
+            Items.Strings = (
+              '30'
+              '40'
+              '60'
+              '90'
+              '120'
+              '144'
+              '165'
+              '240'
+            )
             TabOrder = 10
+            Data = {
+              080000000202020202020202
+            }
           end
         end
         object vsyncGroupBox: TGroupBox
@@ -8022,7 +8027,7 @@ object goverlayform: Tgoverlayform
       end
       object metricsSheet: TTabSheet
         Caption = 'Metrics'
-        ClientHeight = 575
+        ClientHeight = 578
         ClientWidth = 780
         object gpuGroupBox: TGroupBox
           AnchorSideLeft.Control = metricsSheet
@@ -10856,7 +10861,7 @@ object goverlayform: Tgoverlayform
           AnchorSideBottom.Side = asrBottom
           Left = 0
           Height = 271
-          Top = 304
+          Top = 307
           Width = 780
           Anchors = [akLeft, akBottom]
           Caption = 'CPU / Memory'
@@ -11970,7 +11975,7 @@ object goverlayform: Tgoverlayform
       end
       object extrasTabSheet: TTabSheet
         Caption = 'Extras'
-        ClientHeight = 575
+        ClientHeight = 578
         ClientWidth = 780
         Font.Color = clWhite
         Font.Quality = fqAntialiased
