@@ -3704,6 +3704,7 @@ object goverlayform: Tgoverlayform
     Font.Name = 'Noto Sans'
     Font.Quality = fqAntialiased
     Font.Style = [fsBold]
+    OnClick = aboutBitBtnClick
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
@@ -3918,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = performanceTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 1
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
