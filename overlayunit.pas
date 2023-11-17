@@ -491,15 +491,55 @@ procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
     case geSpeedButton.imageIndex of
        0: begin
-       geSpeedButton.ImageIndex:=1; //switch button position
-       RunCommand('bash -c ''echo "MANGOHUD=1" | pkexec tee -a /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
-       RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
-       showmessage ('Restart your system to take effect');
+       geSpeedButton.ImageIndex:=1; //switch button position to ON
+
+       //RunCommand('bash -c ''echo "MANGOHUD=1" | pkexec tee -a /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
+       //RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
+
+         Process1 := TProcess.Create(nil);
+         Process1.Executable := 'sh';
+         Process1.Parameters.Add('-c');
+         Process1.Parameters.Add('echo MANGOHUD=1 | pkexec tee -a /etc/environment');
+         Process1.Options := [poUsePipes];
+         Process1.Execute;
+         Process1.WaitOnExit;
+         Process1.Free;
+
+         Process1 := TProcess.Create(nil);
+         Process1.Executable := 'sh';
+         Process1.Parameters.Add('-c');
+         Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"');
+         Process1.Options := [poUsePipes];
+         Process1.Execute;
+         Process1.WaitOnExit;
+         Process1.Free;
+
+
+      showmessage ('Restart your system to take effect');
     end;
+
      1: begin
-       geSpeedButton.ImageIndex:=0;
-       RunCommand('bash -c ''pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment''', s); // Remove lines containing MANGOHUD=1 from /etc/environment
-       RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
+       geSpeedButton.ImageIndex:=0; ////switch button position to OFF
+       //RunCommand('bash -c ''pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment''', s); // Remove lines containing MANGOHUD=1 from /etc/environment
+       //RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
+
+         Process1 := TProcess.Create(nil);
+         Process1.Executable := 'sh';
+         Process1.Parameters.Add('-c');
+         Process1.Parameters.Add('pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment');
+         Process1.Options := [poWaitOnExit, poUsePipes];
+         Process1.Execute;
+         Process1.Free;
+
+         Process1 := TProcess.Create(nil);
+         Process1.Executable := 'sh';
+         Process1.Parameters.Add('-c');
+         Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"');
+         Process1.Options := [poWaitOnExit, poUsePipes];
+         Process1.Execute;
+         Process1.Free;
+
+
        showmessage ('Restart your system to take effect');
     end;
 end;
