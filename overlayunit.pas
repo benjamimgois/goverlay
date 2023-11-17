@@ -70,6 +70,7 @@ type
     cpuImage: TImage;
     gpuvoltageCheckBox: TCheckBox;
     gpuImage: TImage;
+    RadioGroup1: TRadioGroup;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
@@ -78,16 +79,13 @@ type
     FontcolorButton: TColorButton;
     C: TComboBox;
     fpsCheckBox: TCheckBox;
-    fpsCheckBox1: TCheckBox;
-    fpsCheckBox2: TCheckBox;
-    fpsCheckBox3: TCheckBox;
     fpslimComboBox: TComboBox;
     fpslimComboBox1: TComboBox;
     fpslimLabel: TLabel;
     fpslimLabel1: TLabel;
-    fpslimLabel10: TLabel;
-    fpslimLabel11: TLabel;
-    fpslimLabel12: TLabel;
+    cpumainmetricsLabel: TLabel;
+    cputempLabel: TLabel;
+    memLabel: TLabel;
     fpslimLabel13: TLabel;
     fpslimLabel14: TLabel;
     fpslimLabel15: TLabel;
@@ -171,7 +169,7 @@ type
     bottomrightRadioButton: TRadioButton;
     middlerightRadioButton: TRadioButton;
     intelpowerfixBitBtn1: TBitBtn;
-    iordrwColorButton1: TColorButton;
+    iordrwColorButton: TColorButton;
     hudtoggleLabel: TLabel;
     layoutsGroupBox: TGroupBox;
     mangohudPageControl: TPageControl;
@@ -186,7 +184,7 @@ type
     performanceTabSheet: TTabSheet;
     positionGroupBox: TGroupBox;
     Process1: TProcess;
-    procmemCheckBox1: TCheckBox;
+    procmemCheckBox: TCheckBox;
     ramColorButton1: TColorButton;
     ramusageCheckBox: TCheckBox;
     reshadeLabel1: TLabel;
@@ -255,6 +253,7 @@ type
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure geSpeedButtonClick(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
@@ -367,6 +366,7 @@ Process: TProcess;
 AppHandle: THandle;
 saida: TStringList;
 i: integer;
+GEMANGOHUD : TStringList;  // Global enable
 
 begin
   //Centralize window
@@ -393,6 +393,8 @@ begin
 
   //Load avaiable text fonts in /usr/share/fonts
   ListarFontesNoDiretorio('/usr/share/fonts/TTF/', fontComboBox);
+
+
 
   //Detect system GPUs
 
@@ -453,10 +455,50 @@ begin
     end; //while
 
 
-  // Initial values
-  alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
-  fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
-  fontcombobox.ItemIndex:=0;
+     //Determine toggle position - MangoHUD
+     Process1 := TProcess.Create(nil);
+     saida := TStringList.Create;
+
+     Process1.Executable := 'sh';
+     Process1.Parameters.Add('-c');
+     Process1.Parameters.Add('cat /etc/environment | grep MANGOHUD=1');
+     Process1.Options := [poUsePipes];
+     Process1.Execute;
+     saida.LoadFromStream(Process1.output);
+
+
+     if saida.Count > 0 then    // Count will prevent the out of bound error, case the string doesn't exist
+       geSpeedbutton.ImageIndex := 1
+     else
+       geSpeedbutton.ImageIndex := 0;
+
+     Process1.Free;
+     saida.Free;
+
+
+      // Initial values
+     alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+     fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
+     fontcombobox.ItemIndex:=0;
+
+end;
+
+procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
+begin
+    case geSpeedButton.imageIndex of
+       0: begin
+       geSpeedButton.ImageIndex:=1; //switch button position
+       RunCommand('bash -c ''echo "MANGOHUD=1" | pkexec tee -a /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
+       RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
+       showmessage ('Restart your system to take effect');
+    end;
+     1: begin
+       geSpeedButton.ImageIndex:=0;
+       RunCommand('bash -c ''pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment''', s); // Remove lines containing MANGOHUD=1 from /etc/environment
+       RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
+       showmessage ('Restart your system to take effect');
+     end;
+end;
 
 end;
 
@@ -511,11 +553,10 @@ end;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
-
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
-  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab
+  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
+  CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
 
-  CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string;
   LOCATEDFILE: TStringList;
 
   begin
