@@ -71,6 +71,7 @@ type
     gpuvoltageCheckBox: TCheckBox;
     gpuImage: TImage;
     RadioGroup1: TRadioGroup;
+    ToggleBox1: TToggleBox;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
@@ -560,11 +561,13 @@ begin
   case coreloadtypeBitBtn.ImageIndex of
     6: begin
       coreloadtypeBitBtn.ImageIndex:=7;
+      coreloadtypeBitBtn.Caption:= 'Graph';
       coreloadtypeBitBtn.Hint:='Use vertical bars for core load';
     end;
     7: begin
       coreloadtypeBitBtn.ImageIndex:=6;
-      coreloadtypeBitBtn.Hint:='Use numbers for core load';
+      coreloadtypeBitBtn.Caption:= 'Percent';
+      coreloadtypeBitBtn.Hint:='Use percentage numbers for core load';
 
     end;
  end;

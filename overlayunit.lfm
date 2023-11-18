@@ -2417,7 +2417,7 @@ object goverlayform: Tgoverlayform
             'Vibrance'
             'Vignette'
           )
-          ItemHeight = 17
+          ItemHeight = 23
           ParentDoubleBuffered = False
           ParentFont = False
           TabOrder = 2
@@ -2510,14 +2510,14 @@ object goverlayform: Tgoverlayform
         end
         object vkbtogglekeyCombobox: TComboBox
           Left = 160
-          Height = 26
+          Height = 32
           Hint = 'Key that will enable and disable effects'
           Top = 434
           Width = 110
           Color = clBtnFace
           Font.Height = -13
           Font.Name = 'Noto Sans'
-          ItemHeight = 18
+          ItemHeight = 24
           ItemIndex = 0
           Items.Strings = (
             'Home'
@@ -3782,8 +3782,8 @@ object goverlayform: Tgoverlayform
     BevelColor = clNone
     BevelOuter = bvNone
     BorderStyle = bsSingle
-    ClientHeight = 648
-    ClientWidth = 787
+    ClientHeight = 646
+    ClientWidth = 785
     Color = 3684408
     ParentBackground = False
     ParentColor = False
@@ -3799,7 +3799,7 @@ object goverlayform: Tgoverlayform
       Left = 705
       Height = 29
       Hint = 'Save current setup in a Mangohud.conf file'
-      Top = 617
+      Top = 615
       Width = 79
       Align = alCustom
       Anchors = [akRight, akBottom]
@@ -3861,7 +3861,7 @@ object goverlayform: Tgoverlayform
       Left = 676
       Height = 29
       Hint = 'Execute VKcube and GLXgears with current  settings'
-      Top = 617
+      Top = 615
       Width = 25
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 2
@@ -3919,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = performanceTabSheet
+      ActivePage = metricsSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 1
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -3938,7 +3938,7 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = visualTabSheet
           Left = 206
-          Height = 26
+          Height = 32
           Hint = 'Create a custom title for the hud'
           Top = 10
           Width = 368
@@ -3962,10 +3962,10 @@ object goverlayform: Tgoverlayform
           AnchorSideRight.Control = visualTabSheet
           AnchorSideRight.Side = asrCenter
           Left = 572
-          Height = 26
+          Height = 32
           Top = 348
           Width = 180
-          ItemHeight = 18
+          ItemHeight = 24
           ItemIndex = 0
           Items.Strings = (
             'Mangohud Default'
@@ -3991,8 +3991,8 @@ object goverlayform: Tgoverlayform
           Width = 216
           BorderSpacing.Top = 40
           Caption = 'Position'
-          ClientHeight = 163
-          ClientWidth = 210
+          ClientHeight = 160
+          ClientWidth = 212
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4006,7 +4006,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = positionGroupBox
-            Left = -2
+            Left = -1
             Height = 190
             Top = 0
             Width = 215
@@ -4091,9 +4091,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
             Left = 8
-            Height = 15
+            Height = 20
             Top = 10
-            Width = 14
+            Width = 28
             BorderSpacing.Left = 8
             BorderSpacing.Top = 10
             Checked = True
@@ -4105,10 +4105,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = positionGroupBox
-            Left = 98
-            Height = 15
+            Left = 92
+            Height = 20
             Top = 10
-            Width = 14
+            Width = 28
             BorderSpacing.Top = 10
             TabOrder = 0
           end
@@ -4117,13 +4117,12 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideRight.Control = positionGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 190
-            Height = 15
+            Left = 184
+            Height = 20
             Top = 10
-            Width = 14
+            Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Top = 10
-            BorderSpacing.Right = 6
             TabOrder = 1
           end
           object bottomleftRadioButton: TRadioButton
@@ -4132,9 +4131,9 @@ object goverlayform: Tgoverlayform
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
             Left = 8
-            Height = 15
-            Top = 119
-            Width = 14
+            Height = 20
+            Top = 111
+            Width = 28
             Anchors = [akLeft, akBottom]
             BorderSpacing.Left = 8
             BorderSpacing.Top = 10
@@ -4148,13 +4147,12 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 190
-            Height = 15
-            Top = 119
-            Width = 14
+            Left = 184
+            Height = 20
+            Top = 111
+            Width = 28
             Anchors = [akRight, akBottom]
             BorderSpacing.Top = 5
-            BorderSpacing.Right = 6
             BorderSpacing.Bottom = 29
             TabOrder = 3
           end
@@ -4164,10 +4162,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideBottom.Control = positionGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 98
-            Height = 15
-            Top = 119
-            Width = 14
+            Left = 92
+            Height = 20
+            Top = 111
+            Width = 28
             Anchors = [akLeft, akBottom]
             BorderSpacing.Left = 5
             BorderSpacing.Top = 5
@@ -4178,9 +4176,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideTop.Control = positionGroupBox
             Left = 8
-            Height = 15
+            Height = 20
             Top = 60
-            Width = 14
+            Width = 28
             BorderSpacing.Left = 8
             BorderSpacing.Top = 60
             TabOrder = 5
@@ -4190,13 +4188,12 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = positionGroupBox
             AnchorSideRight.Control = positionGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 190
-            Height = 15
+            Left = 184
+            Height = 20
             Top = 60
-            Width = 14
+            Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Top = 60
-            BorderSpacing.Right = 6
             TabOrder = 6
           end
         end
@@ -4210,8 +4207,8 @@ object goverlayform: Tgoverlayform
           Width = 216
           BorderSpacing.Top = 40
           Caption = 'Fonts'
-          ClientHeight = 163
-          ClientWidth = 210
+          ClientHeight = 160
+          ClientWidth = 212
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4227,7 +4224,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrCenter
             Left = 52
             Height = 23
-            Top = 70
+            Top = 69
             Width = 30
             BorderSpacing.Left = 10
             BorderSpacing.Top = 17
@@ -4243,7 +4240,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = fontsGroupBox
             AnchorSideTop.Control = fontsGroupBox
             Left = 8
-            Height = 24
+            Height = 32
             Top = 10
             Width = 190
             BorderSpacing.Left = 8
@@ -4252,7 +4249,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 16
+            ItemHeight = 22
             ItemIndex = 0
             Items.Strings = (
               'Default'
@@ -4270,7 +4267,7 @@ object goverlayform: Tgoverlayform
             Left = 42
             Height = 20
             Hint = 'Recomended Values:'#10'720p - 19'#10'1080 - 24'#10'4K - 31'
-            Top = 114
+            Top = 113
             Width = 156
             Max = 100
             Min = 1
@@ -4288,7 +4285,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 116
             Height = 17
-            Top = 134
+            Top = 133
             Width = 8
             Caption = 'X'
             Font.Height = -12
@@ -4303,7 +4300,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 8
             Height = 18
-            Top = 115
+            Top = 114
             Width = 24
             BorderSpacing.Left = 8
             BorderSpacing.Top = 25
@@ -4320,7 +4317,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrCenter
             Left = 8
             Height = 18
-            Top = 72
+            Top = 71
             Width = 34
             BorderSpacing.Left = 8
             Caption = 'Color'
@@ -4335,7 +4332,7 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Control = visualTabSheet
           AnchorSideTop.Control = visualTabSheet
           Left = 10
-          Height = 24
+          Height = 32
           Hint = 'PCIDEV of GPU, as listed by "lspci"'
           Top = 69
           Width = 90
@@ -4346,7 +4343,7 @@ object goverlayform: Tgoverlayform
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
           Font.Style = [fsBold]
-          ItemHeight = 16
+          ItemHeight = 22
           OnChange = pcidevComboBoxChange
           ParentFont = False
           ParentShowHint = False
@@ -4364,7 +4361,7 @@ object goverlayform: Tgoverlayform
           AnchorSideBottom.Control = hudonoffComboBox
           Left = 613
           Height = 18
-          Top = 394
+          Top = 400
           Width = 98
           BorderSpacing.Top = 20
           Caption = 'HUD Toggle Key'
@@ -4380,15 +4377,15 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Control = hudtoggleLabel
           AnchorSideTop.Side = asrBottom
           Left = 572
-          Height = 26
+          Height = 32
           Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
-          Top = 422
+          Top = 428
           Width = 180
           BorderSpacing.Top = 10
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
-          ItemHeight = 18
+          ItemHeight = 24
           ItemIndex = 0
           Items.Strings = (
             'Shift_R+F12'
@@ -4413,10 +4410,10 @@ object goverlayform: Tgoverlayform
           AnchorSideBottom.Control = visualTabSheet
           AnchorSideBottom.Side = asrBottom
           Left = 10
-          Height = 24
+          Height = 22
           Hint = 'This option will turn the hud off by default. Pressing the keybinding will show it up.'
           Top = 540
-          Width = 118
+          Width = 121
           BorderSpacing.Top = 50
           BorderSpacing.Right = 10
           BorderSpacing.Bottom = 20
@@ -4460,8 +4457,8 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Left = 10
           BorderSpacing.Top = 130
           Caption = 'Orientation'
-          ClientHeight = 103
-          ClientWidth = 210
+          ClientHeight = 100
+          ClientWidth = 212
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4475,9 +4472,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = orientationGroupBox
             AnchorSideTop.Side = asrCenter
             Left = 10
-            Height = 15
-            Top = 44
-            Width = 14
+            Height = 20
+            Top = 40
+            Width = 28
             BorderSpacing.Left = 10
             Checked = True
             TabOrder = 0
@@ -4488,10 +4485,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = verticalRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 24
+            Left = 38
             Height = 42
             Hint = 'Vertical'
-            Top = 30
+            Top = 29
             Width = 24
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963F503000089504E47
@@ -4537,10 +4534,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = verticalRadioButton
             AnchorSideRight.Control = orientationGroupBox
             AnchorSideRight.Side = asrCenter
-            Left = 98
-            Height = 15
-            Top = 44
-            Width = 14
+            Left = 112
+            Height = 20
+            Top = 40
+            Width = 28
             BorderSpacing.Left = 50
             TabOrder = 1
           end
@@ -4549,10 +4546,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = horizontalRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 112
+            Left = 140
             Height = 24
             Hint = 'Horizontal'
-            Top = 39
+            Top = 38
             Width = 42
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963BC02000089504E47
@@ -4595,8 +4592,8 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Left = 50
           BorderSpacing.Top = 130
           Caption = 'Borders'
-          ClientHeight = 103
-          ClientWidth = 210
+          ClientHeight = 100
+          ClientWidth = 212
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4610,10 +4607,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = roundRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 128
+            Left = 156
             Height = 35
             Hint = 'Round edge'
-            Top = 34
+            Top = 33
             Width = 40
             Picture.Data = {
               1754506F727461626C654E6574776F726B477261706869630B05000089504E47
@@ -4666,10 +4663,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = squareImage
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = squareRadioButton
-            Left = 114
-            Height = 15
-            Top = 44
-            Width = 14
+            Left = 128
+            Height = 20
+            Top = 40
+            Width = 28
             BorderSpacing.Left = 50
             TabOrder = 0
           end
@@ -4678,10 +4675,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = squareRadioButton
             AnchorSideTop.Side = asrCenter
-            Left = 24
+            Left = 38
             Height = 35
             Hint = 'Square edge'
-            Top = 34
+            Top = 33
             Width = 40
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963C500000089504E47
@@ -4701,9 +4698,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = borderGroupBox
             AnchorSideTop.Side = asrCenter
             Left = 10
-            Height = 15
-            Top = 44
-            Width = 14
+            Height = 20
+            Top = 40
+            Width = 28
             BorderSpacing.Left = 10
             Checked = True
             TabOrder = 1
@@ -4725,8 +4722,8 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Top = 130
           BorderSpacing.Right = 10
           Caption = 'Background'
-          ClientHeight = 103
-          ClientWidth = 210
+          ClientHeight = 100
+          ClientWidth = 212
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4826,7 +4823,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrCenter
           Left = 100
           Height = 32
-          Top = 65
+          Top = 69
           Width = 670
           Alignment = taCenter
           AutoSize = False
@@ -4855,8 +4852,8 @@ object goverlayform: Tgoverlayform
           Top = 9
           Width = 380
           Caption = 'FPS Limiters'
-          ClientHeight = 356
-          ClientWidth = 374
+          ClientHeight = 353
+          ClientWidth = 376
           DoubleBuffered = True
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -4880,7 +4877,7 @@ object goverlayform: Tgoverlayform
           end
           object fpslimComboBox: TComboBox
             Left = 9
-            Height = 26
+            Height = 32
             Hint = '60 - Will limit the FPS to 60'#10'60 / 30 - 60 is the default limit, pressing the toggle key will switch the limit to 30fps'#10'UNSET - Let the game decide'
             Top = 37
             Width = 115
@@ -4888,7 +4885,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 0
             Items.Strings = (
               'Unlocked'
@@ -4901,7 +4898,7 @@ object goverlayform: Tgoverlayform
           end
           object fpslimtoggleComboBox: TComboBox
             Left = 282
-            Height = 26
+            Height = 32
             Hint = 'FPS limit toggle key'
             Top = 96
             Width = 75
@@ -4909,7 +4906,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 0
             Items.Strings = (
               'F1'
@@ -4937,9 +4934,9 @@ object goverlayform: Tgoverlayform
           end
           object CheckBox1: TCheckBox
             Left = 67
-            Height = 24
+            Height = 22
             Top = 224
-            Width = 138
+            Width = 141
             Caption = 'Change FPS colors'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -4994,7 +4991,7 @@ object goverlayform: Tgoverlayform
           end
           object fpslimComboBox1: TComboBox
             Left = 178
-            Height = 26
+            Height = 32
             Hint = '60 - Will limit the FPS to 60'#10'60 / 30 - 60 is the default limit, pressing the toggle key will switch the limit to 30fps'#10'UNSET - Let the game decide'
             Top = 37
             Width = 115
@@ -5002,7 +4999,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 0
             Items.Strings = (
               'Late (default)'
@@ -5086,10 +5083,10 @@ object goverlayform: Tgoverlayform
           end
           object showfpslimCheckBox: TCheckBox
             Left = 232
-            Height = 24
+            Height = 22
             Hint = 'Display FPS Limit'
             Top = 320
-            Width = 117
+            Width = 120
             Caption = 'Show FPS Limit'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -5101,10 +5098,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsonlyCheckBox: TCheckBox
             Left = 124
-            Height = 24
+            Height = 22
             Hint = 'Display only the fps number'
             Top = 320
-            Width = 76
+            Width = 79
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FPS only'
@@ -5116,10 +5113,10 @@ object goverlayform: Tgoverlayform
           end
           object fpsCheckBox: TCheckBox
             Left = 16
-            Height = 24
+            Height = 22
             Hint = 'Display fps and api in use'
             Top = 320
-            Width = 47
+            Width = 50
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FPS'
@@ -5144,8 +5141,8 @@ object goverlayform: Tgoverlayform
             ChildSizing.ShrinkVertical = crsScaleChilds
             ChildSizing.Layout = cclLeftToRightThenTopToBottom
             ChildSizing.ControlsPerLine = 4
-            ClientHeight = 53
-            ClientWidth = 343
+            ClientHeight = 50
+            ClientWidth = 345
             Columns = 4
             Items.Strings = (
               '30'
@@ -5169,8 +5166,8 @@ object goverlayform: Tgoverlayform
           Top = 8
           Width = 380
           Caption = 'VSYNC'
-          ClientHeight = 142
-          ClientWidth = 374
+          ClientHeight = 139
+          ClientWidth = 376
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -5180,7 +5177,7 @@ object goverlayform: Tgoverlayform
           TabOrder = 1
           object vsyncComboBox: TComboBox
             Left = 168
-            Height = 26
+            Height = 32
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
             Top = 24
             Width = 110
@@ -5188,7 +5185,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 4
             Items.Strings = (
               'Adaptive'
@@ -5205,7 +5202,7 @@ object goverlayform: Tgoverlayform
           end
           object glvsyncComboBox: TComboBox
             Left = 168
-            Height = 26
+            Height = 32
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
             Top = 80
             Width = 110
@@ -5213,7 +5210,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 4
             Items.Strings = (
               'Adaptive'
@@ -7828,8 +7825,8 @@ object goverlayform: Tgoverlayform
           Top = 184
           Width = 380
           Caption = 'Filters'
-          ClientHeight = 350
-          ClientWidth = 374
+          ClientHeight = 347
+          ClientWidth = 376
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -7915,8 +7912,8 @@ object goverlayform: Tgoverlayform
             ChildSizing.ShrinkVertical = crsScaleChilds
             ChildSizing.Layout = cclLeftToRightThenTopToBottom
             ChildSizing.ControlsPerLine = 4
-            ClientHeight = 32
-            ClientWidth = 355
+            ClientHeight = 37
+            ClientWidth = 357
             Columns = 4
             Items.Strings = (
               'None'
@@ -7933,16 +7930,16 @@ object goverlayform: Tgoverlayform
           Top = 400
           Width = 380
           Caption = 'Frames'
-          ClientHeight = 134
-          ClientWidth = 374
+          ClientHeight = 131
+          ClientWidth = 376
           ParentBackground = False
           ParentColor = False
           TabOrder = 3
           object frametimegraphCheckBox: TCheckBox
             Left = 32
-            Height = 24
+            Height = 22
             Top = 16
-            Width = 97
+            Width = 100
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Frame Time'
@@ -7965,9 +7962,9 @@ object goverlayform: Tgoverlayform
           end
           object framegraphRadioButton: TRadioButton
             Left = 178
-            Height = 23
+            Height = 21
             Top = 17
-            Width = 60
+            Width = 63
             Caption = 'Graph'
             Checked = True
             Enabled = False
@@ -7980,9 +7977,9 @@ object goverlayform: Tgoverlayform
           end
           object framehistogramRadioButton: TRadioButton
             Left = 272
-            Height = 23
+            Height = 21
             Top = 17
-            Width = 85
+            Width = 88
             Caption = 'Histogram'
             Enabled = False
             Font.Color = clWhite
@@ -7994,10 +7991,10 @@ object goverlayform: Tgoverlayform
           end
           object framecountCheckBox: TCheckBox
             Left = 32
-            Height = 24
+            Height = 22
             Hint = 'Shows the number of frames since start'
             Top = 88
-            Width = 108
+            Width = 111
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Count frames'
@@ -8022,8 +8019,8 @@ object goverlayform: Tgoverlayform
           Top = 0
           Width = 780
           Caption = 'GPU'
-          ClientHeight = 274
-          ClientWidth = 774
+          ClientHeight = 271
+          ClientWidth = 776
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -8037,9 +8034,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
-            Top = 68
-            Width = 55
+            Height = 22
+            Top = 74
+            Width = 58
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -8056,9 +8053,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
-            Top = 128
-            Width = 52
+            Height = 22
+            Top = 132
+            Width = 55
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -8075,10 +8072,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 383
-            Height = 24
-            Top = 68
-            Width = 84
+            Left = 392
+            Height = 22
+            Top = 74
+            Width = 87
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 55
@@ -8095,9 +8092,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpunameEdit
             AnchorSideTop.Side = asrBottom
-            Left = 262
+            Left = 263
             Height = 12
-            Top = 26
+            Top = 32
             Width = 250
             Align = alCustom
             BorderWidth = 2
@@ -8109,11 +8106,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpujunctempCheckBox
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
-            Left = 267
-            Height = 24
+            Left = 273
+            Height = 22
             Hint = 'Shows if GPU is throttling based on Power, current, temp or "other" (Only shows if throttling is currently happening)'
-            Top = 188
-            Width = 86
+            Top = 190
+            Width = 89
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8129,10 +8126,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 522
-            Height = 24
-            Top = 68
-            Width = 87
+            Left = 534
+            Height = 22
+            Top = 74
+            Width = 90
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 55
@@ -8149,9 +8146,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpuinfoLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
+            Height = 22
             Top = 248
-            Width = 64
+            Width = 67
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8167,9 +8164,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
-            Top = 188
-            Width = 65
+            Height = 22
+            Top = 190
+            Width = 68
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -8186,10 +8183,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 267
-            Height = 24
-            Top = 68
-            Width = 61
+            Left = 273
+            Height = 22
+            Top = 74
+            Width = 64
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 55
@@ -8206,9 +8203,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = vramusageCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 265
+            Left = 273
             Height = 12
-            Top = 92
+            Top = 96
             Width = 64
             Align = alCustom
             BorderWidth = 2
@@ -8220,8 +8217,8 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpuGroupBox
-            Left = 262
-            Height = 26
+            Left = 263
+            Height = 32
             Top = 0
             Width = 250
             Font.Height = -13
@@ -8237,10 +8234,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mainmetricLabel
             AnchorSideTop.Side = asrBottom
-            Left = 120
-            Height = 24
-            Top = 68
-            Width = 92
+            Left = 123
+            Height = 22
+            Top = 74
+            Width = 95
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 55
@@ -8256,10 +8253,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideTop.Control = gpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 120
+            Left = 123
             Height = 12
             Hint = 'Low load color (0 - 50%)'
-            Top = 92
+            Top = 96
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -8274,10 +8271,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = gpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 151
+            Left = 155
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
-            Top = 92
+            Top = 96
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -8296,10 +8293,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             AnchorSideRight.Control = gpuloadcolorCheckBox
             AnchorSideRight.Side = asrBottom
-            Left = 182
+            Left = 188
             Height = 12
             Hint = 'High load color (90 - 100%)'
-            Top = 92
+            Top = 96
             Width = 30
             Align = alCustom
             Anchors = [akTop, akRight]
@@ -8314,10 +8311,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuvoltageCheckBox
             AnchorSideTop.Control = gpuinfoLabel
             AnchorSideTop.Side = asrBottom
-            Left = 120
-            Height = 24
+            Left = 123
+            Height = 22
             Top = 248
-            Width = 109
+            Width = 112
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8332,10 +8329,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = vramusageCheckBox
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 267
-            Height = 24
-            Top = 128
-            Width = 75
+            Left = 273
+            Height = 22
+            Top = 132
+            Width = 78
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8350,10 +8347,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpuloadcolorCheckBox
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 120
-            Height = 24
-            Top = 128
-            Width = 77
+            Left = 123
+            Height = 22
+            Top = 132
+            Width = 80
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8368,10 +8365,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpufreqCheckBox
             AnchorSideTop.Control = gputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 383
-            Height = 24
-            Top = 128
-            Width = 54
+            Left = 392
+            Height = 22
+            Top = 132
+            Width = 57
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8388,7 +8385,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 48
+            Top = 54
             Width = 81
             BorderSpacing.Left = 10
             BorderSpacing.Top = 10
@@ -8406,7 +8403,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 108
+            Top = 112
             Width = 79
             BorderSpacing.Left = 10
             BorderSpacing.Top = 16
@@ -8424,7 +8421,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 168
+            Top = 170
             Width = 40
             BorderSpacing.Left = 10
             BorderSpacing.Top = 16
@@ -8458,11 +8455,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpufanCheckBox
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
-            Left = 383
-            Height = 24
+            Left = 392
+            Height = 22
             Hint = 'Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling'
-            Top = 188
-            Width = 132
+            Top = 190
+            Width = 135
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8477,10 +8474,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = gpumemtempCheckBox
             AnchorSideTop.Control = gpupowerLabel
             AnchorSideTop.Side = asrBottom
-            Left = 120
-            Height = 24
-            Top = 188
-            Width = 72
+            Left = 123
+            Height = 22
+            Top = 190
+            Width = 75
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -8495,7 +8492,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpuGroupBox
             AnchorSideRight.Control = gpuGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 701
+            Left = 703
             Height = 36
             Top = 0
             Width = 71
@@ -10849,8 +10846,8 @@ object goverlayform: Tgoverlayform
           Width = 780
           Anchors = [akLeft, akBottom]
           Caption = 'CPU / Memory'
-          ClientHeight = 244
-          ClientWidth = 774
+          ClientHeight = 241
+          ClientWidth = 776
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -10863,9 +10860,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = cpumainmetricsLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
-            Top = 56
-            Width = 55
+            Height = 22
+            Top = 62
+            Width = 58
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -10882,9 +10879,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = cputempLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
-            Top = 126
-            Width = 87
+            Height = 22
+            Top = 130
+            Width = 90
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -10900,10 +10897,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuloadcolorCheckBox
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = cpuavgloadCheckBox
-            Left = 267
-            Height = 24
-            Top = 56
-            Width = 84
+            Left = 273
+            Height = 22
+            Top = 62
+            Width = 87
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 55
@@ -10919,9 +10916,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = cpunameEdit
             AnchorSideTop.Side = asrBottom
-            Left = 262
+            Left = 263
             Height = 12
-            Top = 26
+            Top = 32
             Width = 250
             Align = alCustom
             BorderWidth = 2
@@ -10933,8 +10930,8 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = cpuGroupBox
-            Left = 262
-            Height = 26
+            Left = 263
+            Height = 32
             Top = 0
             Width = 250
             Font.Height = -13
@@ -10950,9 +10947,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = memLabel
             AnchorSideTop.Side = asrBottom
             Left = 10
-            Height = 24
-            Top = 196
-            Width = 54
+            Height = 22
+            Top = 198
+            Width = 57
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 10
@@ -10969,7 +10966,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = ramusageCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 9
+            Left = 10
             Height = 12
             Top = 220
             Width = 57
@@ -10983,10 +10980,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpupowerCheckBox
             AnchorSideTop.Control = memLabel
             AnchorSideTop.Side = asrBottom
-            Left = 120
-            Height = 24
-            Top = 196
-            Width = 72
+            Left = 123
+            Height = 22
+            Top = 198
+            Width = 75
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -11001,7 +10998,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = procmemCheckBox
             AnchorSideTop.Control = procmemCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 267
+            Left = 273
             Height = 12
             Top = 220
             Width = 110
@@ -11015,10 +11012,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuloadcolorCheckBox
             AnchorSideTop.Control = cputempLabel
             AnchorSideTop.Side = asrBottom
-            Left = 120
-            Height = 24
-            Top = 126
-            Width = 94
+            Left = 123
+            Height = 22
+            Top = 130
+            Width = 97
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -11033,10 +11030,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuavgloadCheckBox
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = cpuavgloadCheckBox
-            Left = 120
-            Height = 24
-            Top = 56
-            Width = 92
+            Left = 123
+            Height = 22
+            Top = 62
+            Width = 95
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 55
@@ -11051,10 +11048,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuloadcoreCheckBox
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = cpuloadcoreCheckBox
-            Left = 384
-            Height = 24
-            Top = 56
-            Width = 84
+            Left = 393
+            Height = 22
+            Top = 62
+            Width = 87
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Left = 33
@@ -11069,10 +11066,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuloadcolorCheckBox
             AnchorSideTop.Control = cpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 120
+            Left = 123
             Height = 12
             Hint = 'Low load color (0 - 50%)'
-            Top = 80
+            Top = 84
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -11087,10 +11084,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = cpuloadcolorCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 151
+            Left = 155
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
-            Top = 80
+            Top = 84
             Width = 30
             Align = alCustom
             BorderWidth = 2
@@ -11107,10 +11104,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             AnchorSideRight.Control = cpuloadcolorCheckBox
             AnchorSideRight.Side = asrBottom
-            Left = 182
+            Left = 188
             Height = 12
             Hint = 'High load color (90 - 100%)'
-            Top = 80
+            Top = 84
             Width = 30
             Align = alCustom
             Anchors = [akTop, akRight]
@@ -11126,10 +11123,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = cpupowerCheckBox
             AnchorSideTop.Side = asrCenter
-            Left = 214
+            Left = 220
             Height = 20
             Hint = 'Fix for power draw on intel CPUs'
-            Top = 128
+            Top = 131
             Width = 20
             Images = iconsImageList
             ImageIndex = 1
@@ -11141,10 +11138,10 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpufreqCheckBox
             AnchorSideTop.Control = memLabel
             AnchorSideTop.Side = asrBottom
-            Left = 384
-            Height = 24
-            Top = 196
-            Width = 58
+            Left = 393
+            Height = 22
+            Top = 198
+            Width = 61
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -11159,11 +11156,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = cpuloadcoreCheckBox
             AnchorSideTop.Control = memLabel
             AnchorSideTop.Side = asrBottom
-            Left = 267
-            Height = 24
+            Left = 273
+            Height = 22
             Hint = 'Displays process'' memory usage: resident, shared and/or virtual.'
-            Top = 196
-            Width = 107
+            Top = 198
+            Width = 110
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
@@ -11179,7 +11176,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = cpuColorButton1
             Left = 10
             Height = 18
-            Top = 36
+            Top = 42
             Width = 81
             BorderSpacing.Left = 10
             BorderSpacing.Top = 10
@@ -11197,7 +11194,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 106
+            Top = 110
             Width = 130
             BorderSpacing.Left = 10
             BorderSpacing.Top = 26
@@ -11215,7 +11212,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 176
+            Top = 178
             Width = 78
             BorderSpacing.Left = 10
             BorderSpacing.Top = 26
@@ -11231,7 +11228,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = gpuGroupBox
             AnchorSideRight.Control = gpuGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 718
+            Left = 720
             Height = 51
             Top = 5
             Width = 48
@@ -12038,15 +12035,34 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = cpuloadcoreCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 296
-            Height = 26
-            Top = 80
-            Width = 26
+            Left = 273
+            Height = 20
+            Top = 84
+            Width = 87
+            Caption = 'Percent'
+            Font.Height = -11
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
             Images = iconsImageList
             ImageIndex = 6
-            ImageWidth = 32
+            ImageWidth = 14
             OnClick = coreloadtypeBitBtnClick
+            ParentFont = False
             TabOrder = 12
+          end
+          object ToggleBox1: TToggleBox
+            Left = 416
+            Height = 25
+            Top = 110
+            Width = 87
+            Caption = 'Numbers'
+            DoubleBuffered = True
+            Font.Height = -11
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentDoubleBuffered = False
+            ParentFont = False
+            TabOrder = 13
           end
         end
       end
@@ -12063,8 +12079,8 @@ object goverlayform: Tgoverlayform
           Top = 404
           Width = 282
           Caption = 'Quick Layouts'
-          ClientHeight = 142
-          ClientWidth = 276
+          ClientHeight = 139
+          ClientWidth = 278
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -12302,8 +12318,8 @@ object goverlayform: Tgoverlayform
           Top = 404
           Width = 464
           Caption = 'Logging'
-          ClientHeight = 141
-          ClientWidth = 458
+          ClientHeight = 138
+          ClientWidth = 460
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -12326,7 +12342,7 @@ object goverlayform: Tgoverlayform
           end
           object loggingComboBox: TComboBox
             Left = 8
-            Height = 26
+            Height = 32
             Hint = 'Key to start and stop logging'#10'(Shif_L = Left shift)'
             Top = 38
             Width = 110
@@ -12334,7 +12350,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 0
             Items.Strings = (
               'Shift_L+F2'
@@ -12351,10 +12367,10 @@ object goverlayform: Tgoverlayform
           end
           object autouploadCheckBox: TCheckBox
             Left = 336
-            Height = 22
+            Height = 20
             Hint = 'Permit to upload results to  Flightlessmango.com'
             Top = 104
-            Width = 103
+            Width = 106
             Caption = ' Upload results'
             Checked = True
             Font.Height = -11
@@ -12510,7 +12526,7 @@ object goverlayform: Tgoverlayform
           end
           object uploadlogComboBox: TComboBox
             Left = 8
-            Height = 26
+            Height = 32
             Hint = 'Key to upload logging to flightlessmango.com'
             Top = 100
             Width = 110
@@ -12518,7 +12534,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 18
+            ItemHeight = 24
             ItemIndex = 0
             Items.Strings = (
               'F5'
@@ -12546,7 +12562,7 @@ object goverlayform: Tgoverlayform
           end
           object logdurationSpinEdit: TSpinEdit
             Left = 176
-            Height = 27
+            Height = 32
             Hint = 'Amount of time the logging will run for '
             Top = 100
             Width = 70
@@ -12599,7 +12615,7 @@ object goverlayform: Tgoverlayform
           end
           object autologSpinEdit: TSpinEdit
             Left = 176
-            Height = 27
+            Height = 32
             Hint = 'Autostart logging after X seconds.'#10'"0" disable autologging'
             Top = 37
             Width = 70
@@ -12644,8 +12660,8 @@ object goverlayform: Tgoverlayform
           Top = 0
           Width = 760
           Caption = 'System Information'
-          ClientHeight = 375
-          ClientWidth = 754
+          ClientHeight = 372
+          ClientWidth = 756
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -12656,10 +12672,10 @@ object goverlayform: Tgoverlayform
           TabOrder = 2
           object distroinfoCheckBox: TCheckBox
             Left = 8
-            Height = 24
+            Height = 22
             Hint = 'Display Distribution name, version and kernel'
             Top = 20
-            Width = 89
+            Width = 92
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Distro info'
@@ -12673,9 +12689,9 @@ object goverlayform: Tgoverlayform
           end
           object archCheckBox: TCheckBox
             Left = 135
-            Height = 24
+            Height = 22
             Top = 20
-            Width = 53
+            Width = 56
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Arch'
@@ -12687,9 +12703,9 @@ object goverlayform: Tgoverlayform
           end
           object resolutionCheckBox: TCheckBox
             Left = 243
-            Height = 24
+            Height = 22
             Top = 20
-            Width = 90
+            Width = 93
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Resolution'
@@ -12701,9 +12717,9 @@ object goverlayform: Tgoverlayform
           end
           object engineversionCheckBox: TCheckBox
             Left = 135
-            Height = 24
+            Height = 22
             Top = 81
-            Width = 92
+            Width = 95
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Engine Ver'
@@ -12715,9 +12731,9 @@ object goverlayform: Tgoverlayform
           end
           object wineCheckBox: TCheckBox
             Left = 8
-            Height = 24
+            Height = 22
             Top = 81
-            Width = 81
+            Width = 84
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Wine Ver'
@@ -12729,9 +12745,9 @@ object goverlayform: Tgoverlayform
           end
           object mediaCheckBox: TCheckBox
             Left = 8
-            Height = 24
+            Height = 22
             Top = 264
-            Width = 91
+            Width = 94
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Media Info'
@@ -12743,10 +12759,10 @@ object goverlayform: Tgoverlayform
           end
           object gamemodestatusCheckBox: TCheckBox
             Left = 135
-            Height = 24
+            Height = 22
             Hint = 'Feral gamemode status'
             Top = 148
-            Width = 97
+            Width = 100
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Gamemode'
@@ -12760,14 +12776,14 @@ object goverlayform: Tgoverlayform
           end
           object mediaComboBox: TComboBox
             Left = 115
-            Height = 25
+            Height = 32
             Top = 264
             Width = 92
             Color = clBtnFace
             Font.Height = -12
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 17
+            ItemHeight = 23
             ItemIndex = 0
             Items.Strings = (
               'Spotify'
@@ -12793,10 +12809,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox: TCheckBox
             Left = 243
-            Height = 24
+            Height = 22
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 78
+            Width = 81
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'VKbasalt'
@@ -12835,9 +12851,9 @@ object goverlayform: Tgoverlayform
           end
           object CheckBox2: TCheckBox
             Left = 243
-            Height = 24
+            Height = 22
             Top = 81
-            Width = 103
+            Width = 106
             Caption = 'Short names'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -12899,10 +12915,10 @@ object goverlayform: Tgoverlayform
           end
           object gamepadCheckBox: TCheckBox
             Left = 376
-            Height = 24
+            Height = 22
             Hint = 'Gamepad battery status (Need xone driver for xbox controllers)'
             Top = 208
-            Width = 132
+            Width = 135
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Gamepad battery'
@@ -12916,9 +12932,9 @@ object goverlayform: Tgoverlayform
           end
           object batteryCheckBox2: TCheckBox
             Left = 243
-            Height = 24
+            Height = 22
             Top = 208
-            Width = 122
+            Width = 125
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Remaining time'
@@ -12930,9 +12946,9 @@ object goverlayform: Tgoverlayform
           end
           object batteryCheckBox1: TCheckBox
             Left = 135
-            Height = 24
+            Height = 22
             Top = 208
-            Width = 77
+            Width = 80
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Wattage'
@@ -12955,9 +12971,9 @@ object goverlayform: Tgoverlayform
           end
           object batteryCheckBox: TCheckBox
             Left = 8
-            Height = 24
+            Height = 22
             Top = 208
-            Width = 95
+            Width = 98
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Percentage'
@@ -12982,10 +12998,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox1: TCheckBox
             Left = 488
-            Height = 24
+            Height = 22
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 47
+            Width = 50
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FSR'
@@ -12999,10 +13015,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox2: TCheckBox
             Left = 576
-            Height = 24
+            Height = 22
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 114
+            Width = 117
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'FSR Sharpness'
@@ -13016,10 +13032,10 @@ object goverlayform: Tgoverlayform
           end
           object vkbasaltstatusCheckBox3: TCheckBox
             Left = 376
-            Height = 24
+            Height = 22
             Hint = 'VKbasalt status'
             Top = 148
-            Width = 50
+            Width = 53
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Fcat'
@@ -13033,7 +13049,7 @@ object goverlayform: Tgoverlayform
           end
           object customcommandEdit: TEdit
             Left = 8
-            Height = 25
+            Height = 31
             Hint = 'Print the output of a custom command'
             Top = 334
             Width = 360
@@ -13062,9 +13078,9 @@ object goverlayform: Tgoverlayform
           end
           object hudversionCheckBox: TCheckBox
             Left = 8
-            Height = 24
+            Height = 22
             Top = 148
-            Width = 103
+            Width = 106
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'HUD Version'
@@ -13076,9 +13092,9 @@ object goverlayform: Tgoverlayform
           end
           object timeCheckBox: TCheckBox
             Left = 488
-            Height = 24
+            Height = 22
             Top = 20
-            Width = 56
+            Width = 59
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Time'
@@ -13090,10 +13106,10 @@ object goverlayform: Tgoverlayform
           end
           object sessionCheckBox: TCheckBox
             Left = 376
-            Height = 24
+            Height = 22
             Hint = 'Display if your session is x11 or wayland'
             Top = 20
-            Width = 72
+            Width = 75
             Align = alCustom
             Alignment = taLeftJustify
             Caption = 'Session'
@@ -13113,9 +13129,9 @@ object goverlayform: Tgoverlayform
       AnchorSideRight.Side = asrCenter
       AnchorSideBottom.Control = mangohudPanel
       AnchorSideBottom.Side = asrBottom
-      Left = 356
+      Left = 355
       Height = 16
-      Top = 625
+      Top = 623
       Width = 74
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 7
@@ -13139,7 +13155,7 @@ object goverlayform: Tgoverlayform
       Left = 94
       Height = 32
       Hint = 'MangoHUD will be automagically enabled for all VULKAN applications.'#10'(not need use MANGOHUD=1 every single time.)'#10#10'NEEDS RESTART !'
-      Top = 614
+      Top = 612
       Width = 60
       Anchors = [akLeft, akBottom]
       Color = 3684408
@@ -13156,7 +13172,7 @@ object goverlayform: Tgoverlayform
       AnchorSideBottom.Side = asrBottom
       Left = 5
       Height = 18
-      Top = 621
+      Top = 619
       Width = 89
       Anchors = [akLeft, akBottom]
       BorderSpacing.Left = 5
@@ -13449,370 +13465,398 @@ object goverlayform: Tgoverlayform
     Left = 88
     Top = 376
     Bitmap = {
-      4C7A080000001000000010000000650A00000000000078DAED57675054D9121E
-      60020C330C48146145593120EA530173261831B08A8A82A0AB04498544471054
-      54944761C0B796A8A5E2EAF2CC040326C4B060564C85611563092222E253CFFB
-      1A99B7E3C8C00CAEF5FE6C7FD53577CE3DDF397DFB76F7E9CBE1288819C75C32
-      4F12EB96EB7634F8467069604960A96B8EEB11BD30BD288E09EE2A134D8EA67E
-      B87E6C5A555A4D05AB60AF80A7C03DA0043803845586BD15078B23381A8002B7
-      EDC6B699C5AC983D024A01E25C00887714C80676022B00D374D38DF26BE845EA
-      2D38CC0EB3CB401150081C030E02FB801DC0466035B0140804B483B523EAC8E6
-      1CCBD037A1EF688F4300EDB317C802B6039B8075C04A2001080766023D2B7BBE
-      257FE8C6E8C66F655BEBE66E03B600C4D900102F0D5806C40161802F300EE80F
-      70C3B851DDF2BB9D4A635F2315A03D9700514000E003B80383814E80304778A4
-      CFDD3E65522665F100D9B71848AA07ED493CB2D713A07D9D0147C006D02FD12F
-      35BB6B5636814D6041003D5B0C40BC0540643DC86E3F601AE0060C04BA00C637
-      8C4B4D8E99143A3007361298010403642FD9433690FD743D0F980D78002E803D
-      609C6B9CAF375F2FA11FEBC7C600DE4028B010F82740FE4B07E89AC6E81ECDA1
-      B97D0151B8289663C969DDABBAD77BF20BAD1F0D508C6400F4DE7F05E85D2403
-      64D7CF003DAF4395430DC53A8580E17CC384496C529DAFE8D9D700C4A5F8C903
-      E89A62877C4273260206E10631FF8B5F2D8E96CD569BACB96C6EDD3BF8174031
-      74BA1E7B001AA367A0D8B3CEB0CEA498FF2207B0C60FB13F24845487BCA7B9C4
-      29AC075D932F82DE04BDB388B0907EC5954F254BCDD676F3ED12BC8F7A172EBC
-      BBB02CBE34FE9157BE57816DB46DBC86B98605A709E16B09C41281BB8F44B076
-      AB895E76818924BB80AE25DA13670AB4B4F51AE31AE878F8D975282BF7F2622C
-      3191B1952B3F2B5D7B7A32D6F1C7C715063A5303157948640D23E1D2F5438732
-      1615A55C2323191B368C3163D1CA4D1A9C3F7D60A0ED1F6B6BCB988F8F6ADAAB
-      176306DAC1F1C4D5E19958F135AB6A9D9C181B3DFAB38E1AD5B41AEA57BF17F2
-      5A5AEB09A293381CC6ACAC18EBD489B19E3D197374FCAC0E0E9FB5470FC6DAB7
-      67AC552BC62C2C18EBDA95317D7DC6F404D21562FED162E2CBAB40C09848C498
-      AE2E637CFE97F7E455CC2FB82CE2DD2B5776BF2915F11E55E97E235FC4FBDA7E
-      D5F9B09F1F95D47CBE748540CBA43557F375ADBA5CAEC69BF7DADC96D6140362
-      BE5FACBA7C313F285E3E84C5BCA5EB55E5EAF1BF8C5F9988781E7E02ADB20A65
-      3CBEE6E30A11EFEBFC9117AEA6402CE4BAFB0AB96BB7EA686517900AB9E9DB84
-      DC8933B99A5FE7AFA5A5655B3F3FBFB99050759438C4BD71E3C63DD64C9171BD
-      BDBDC3B0968D3A4A1CD93AA3468D9ACC515388A30ADFD6D6F61FA5A5A58FACAC
-      AC6CE4C7BDBCBCFC55E1E7E7E79FA639BB76EDCA958DE9E8E8086FDFBE7DBF29
-      FEE4C993BDE97E4A4ACA7AFA757171194BE3B1B1B189F27E243E8FC713A4A6A6
-      FE626A6A5A57E3452291E4E1C3874FB76FDFBE87E2333737F7D8AD5BB7EEB56B
-      D7AEF39B376F6A2E5CB8502ACF0F0B0B8BA6EBCCCCCC5DC44F4A4A4AADAAAAAA
-      69D5AA9515FDB7B1B1E95C5B5BFB9F172F5EBC7AF0E041998787C76C197FD6AC
-      5991AF5EBDAA2E2A2ABAFEE9D327367BF6EC709A1B19191927FF3C583385E6BB
-      BBBB4F91F73FECAC282B2B7B2191480C8F1F3F7E86C64A4A4A4AF97CBECE17F9
-      2112897D7D7DE728BE3F124F4FCF5934DEB973E71ED8FB83ABABEB1855DF7F41
-      41419106446E1F893AF1337EFCF8E9CD8DBFA74F9F96D7D4D47CAAAEAEFEA88E
-      1287B80E0E0EFDD2D2D2D6AC5DBBF617759438C455B40BEFC068CE9C3961BB77
-      EFCEB978F1E2F5CB972F971C3870E048484848B4A1A1A15963CF347DFAF4392F
-      5FBE7CAD2CDF5FBF7EFD16B5635E435CA9549AA46ADD58BE7CF97A79EED4A953
-      672A9B7BF5EAD55BFDFBF71F46B1D4BE7DFB6E393939F9341E1010104E5C8140
-      207EF2E44979435CF8B8D6C2C2A2CDC2850B93A3A3A3972C5BB66C9DB1B1B1F9
-      952B576E55565656B768D1C2147BFB2ADB1B3ECC7372721AD9AF5F3FA7FAB86A
-      111A1A2A8D8F8F5F4AF7E18BA8CD9B37EF54C6777373F3183264C870D8EF427C
-      7D7D7DA3E0E0E0F9090909CBE9FEFEFDFB0FF9F8F804DCBF7FFFB12277CB962D
-      BFD51D4C1A1A9AF3E6CD5BB460C182B4C58B17AF363333B3B879F3665DEDB974
-      E9D2F5BAD6534B8B87789C801A711C39FF1EEB1E148BC506F23E160A85127B7B
-      FB01A86785B23D283614DF23EA904E9F3E7D5C509F83656323478EFCE9F9F3E7
-      5FF998EC876F5C82828222F16CC6F2EB383B3B8F193870E08855AB566528F30F
-      7C11855A2AA63CA05AE5EFEF1F666464D49AF8A84F335097221A8B45C4B329CD
-      45EDA88B9F8A8A8AAA69D3A6CD0E0F0F4F9C316346F0B163C74E2BE307060686
-      CBDB8B779A4CE354FF70AEDDA7F59571939393D77F6E7BBF14F8CCBFBCBCBC4A
-      85FCD150968394BFE487E6E4AFBC74EDDAB53B7CBF1AE7412662D089E2A8290E
-      E25B0FB523E0DCB973C58AB6DFB973A7342626260EF167AEC8EBDBB7EF808C8C
-      8C4D3897AA9BCAFD0F1F3E7CDCBB77EFBED1A3478F47DC6AE18C9CBA6FDFBEBC
-      E2E2E24BAAD60FB2056BE4C11E29CEA4A4FA33A80C677436D6CAC15956A9C8C1
-      99528BFC38BC67CF9EEC6BD7AEDDA431FCCF95F165F2F1E3C74F384FCE62DEFE
-      53A74E9D41ADB88EBDB2F3F2F2F2DFBD7B572B3FB721BEBCE09C7D09EE1165F7
-      9BE2A346B113274E5CFC9BAF9CBF68D1A2C5CDE523AFB2353535B9A86FA3916F
-      FB54E51716169E45FFE8ADADAD2D94CF83962D5BB68A88888841BF7957918FBE
-      EB25CEBD951D3A74B06D2A0F2957070F1E3C343D3D3D13752965C284091371FE
-      0938DF499C9D9D86A3CFFCB53159B264C932F8AAC11A72FAF4E9B3A8B50C6B28
-      55F43CACB3ADAD5D437CF49D45A8D96CD0A0414AF5D9B367F80EEFD1D3D373EA
-      8CE6F2874390C3EFBE958F1EBD2562C6ADB9FCB163C78E439F7CBCB9FC7190BF
-      94FFFBEF451B376E64F82E51AAA8A94AF9F8F68878D0849C3C79B2D0DADAFAC7
-      86F832B1B7EFE938BE11C1B7836F637C8469D6BD26E4ECB9B345CAF832193162
-      F8A89F1A119CFFC9CAF85C2E978F33FBEA9D26043DFCBABF2277D13F09E2E2E2
-      569D3973A6F2FCF9F34C15A5B9C491710F1D3AF407E2D91DF9D55715A5B9070F
-      1EFC43B62FFD57D76EE2C86CA635D5E513073D036B88AFABABABE3E7E717B561
-      C3867CE89149932679A9C3479FEC809A5685FEE9379C11B7691E7A286755F924
-      A81146F57D58379A871E39411DBE4CA64C993293E6D1B784BA7C7C4B77C159F5
-      6AC78E1DE7D0D76B29F265F1D010BF4B972EDD10E22FD04FDD40CF67DA90FF94
-      F1BB77EFEE48FB927DA9A9A959A81FE9489B9F55E5E3990370B4DF9257C45A9A
-      3AF6AB123FB25CF896F8A51CA05C50377F28E7E47350960BE433796D2A7FD5B1
-      79E7CE9D9947FE94C3BD7BF7B657958B5E87A3D807E15B61D6F7E09B9B9B9BA2
-      1FDB81EFCB7F936665656D33313111ABCAC779D75F71AEA3A363C7EFC1B7B3B3
-      EBB879F3E60C99A6A4A42C53874FAA38EEE2E232E05BF8AEAEAE7FF3FF8FFC86
-      DE1FCE940E0DF16D6C6CACD7AC59B312FD400A29FAFD28894422C2EFFCC4C4C4
-      7852A9541A25100878212121FEB231685C9B366D2CFF0B3A58230B
+      4C7A080000001000000010000000540B00000000000078DAED5869545447166E
+      A01768BB5944564151229A201A4716E3824B64314A304A0C0A0A828E82841682
+      ECAD082A208A1EE2367A02121513C7710D8B026A445C0207B788DBB4CB89241A
+      475091008E5AF35DE4256D43434392337F52DFB9A7DFAB575F55BDFBEE56CDE3
+      A934739EA5C1128304EF42EF63B2AB3245587598C2B3C0B3443F523F96678AA7
+      EA9A364FDB30CA3021AB3EABB18ED5B1C7C07DE036500D9C01229F44FE229549
+      A3795A800AB77F4EFFBC4A56C9EE010A80385500F18E01F9C01E600D60B6D92C
+      47790EFD18FDA5C5AC985D042A8072E038700438047C0DE4001B8034200CD095
+      E946B7902D79D611CF229A688DA300AD7310D80BEC06B6035B80B540321005CC
+      031C9F38FE42FAE811DF236927DBD9327617B00320CE1700F1B2807460191009
+      04031F0163007E243FF6DDD2774F65B1B6580FD09AAB805860111004F800E381
+      77007181B864E4AD91357226674900ED6F2590DA0A5A9378B45F7F80D675075C
+      003BC0B0DA50617ECBBC663A9BCEC2017AB77880784B819856D0BE4380D98037
+      30161802985C3551981E372D7766CE6C3230179001B45FDA0FED81F64FD74B80
+      05802FE0013801268526A5FA89FAC9A3D968F62110084400CB817500E96F3340
+      D7D447CF680C8D1D0548A224093C6B5EDF110D239E935E68FE38806C241BA0EF
+      FE1540DF2203A07DFD1DA0F775AE776E245B2713304E344EFE847DD2A22B7AF7
+      8D0071C97E8A00BA26DB219DD0981980519451FCAFF6ABC3D3B1DB69B7F753F6
+      69CB37F807403674BA150700EAA37720DBB3CDB6CD239B7FC30730479F843EC9
+      8B1B163FA7B1C4296F055D932EC29F853759455BC9DB70955DC95ABBAF43A243
+      72E0B1C0F2E5B796D7242992EE05940694D9C7D92769596A59F13A69421D91D4
+      40E4136420DAB4D3543FBFCCD420BF8CAE0D7467CC13E9E8EA77C435D2F30D71
+      1854531B10C0584A0A636BD7BE16BAF6F767ECEDB77EAC33D2F30B53E5C191B5
+      7A89D3B6BDFF3E63B1B1EA252686B18913193391ACDDAEC5FB4D0746BAA109F6
+      F68C0505692623463066A42B4B22AE9EC0D446A85DDFECE6C69897D76B9932A5
+      7331366C782E1658D8EA8BE252793CC66C6C187BE71DC61C1D197371792DCECE
+      AF65F870C6060E64AC776FC6ACAC181B3A94314343C6F445F23552E1B14AE22B
+      8B48C49844C2588F1E8C09856F3E5316A9B0ECA24470BB56DDF3CE4422B857DF
+      E377F22582B6FBD79C8FFD0B6353BBCF97AF11E998F6E56B3F6DEE2A97AFF5EC
+      B92EDFC2966C402A0C49E82A5F2A0C4F523661A9206D9BA65C7DE19BF6CB3589
+      C03744A45353A78E27D4FEB14E2268EB3FCA8DAF2D928AF93EC162FEA69D7A3A
+      F9652462FEE65D62FE8C797CEDB6FE6B6D6DDD3F2424E453B488AE0871887BF5
+      EAD5DBAC9B8DE306060646622EBBAE0871B879A64C993293D7C5461C4DF8F6F6
+      F6C3140AC53D1B1B1B3BE5FE808080504DF8A5A5A5A769CCBE7DFB0AB93E3D3D
+      3DF18D1B37EE74C69F397366203DCFCCCCDC46BF1E1E1E53A93F21212145598F
+      C4170804A2F5EBD76F3533336B89F11289C4E0871F7EB8BF7BF7EE03649F8585
+      85C7AF5FBF7E7BC08001839F3D7BD6585555A550E6474646C6D1755E5EDE3EE2
+      A7A6A6AEAFAFAF6FECDDBBB70DDDDBD9D90D6E6E6EFEEFC3870F1FDFBD7BB7C6
+      D7D77701C79F3F7F7ECCE3C78F1B2A2A2AAEBC7AF58A2D58B0208AC6C6C4C42C
+      537E1FCC9949E37D7C7C6629EB1FFBACABA9A979686060607CE2C48933D4575D
+      5DAD100A857A6FF88744220D0E0E5EA8FAFDA8F9FBFBCFA7FEC183070FC7DA2F
+      3C3D3D3FD4F4FB9795955568A129AD63D015FB99366DDA9CEEDADFFDFBF76B1B
+      1B1B5F353434BCEC8A1087B8CECECEA3B3B2B2366EDAB4696B578438C455DD17
+      BE41AF850B1746EEDFBFBFE0FCF9F3572E5EBC58FDCD37DF942C5EBC38CED8D8
+      D8BCA3779A3367CEC2478F1E3D55E7EF4F9F3EFD05B163497B5CB95C9EAA69DC
+      58BD7AF53665AE9F9FDF3C75632F5FBE7C7DCC983113C996060E1CF86E414141
+      29F52F5AB4288AB8229148FAD34F3FD5B6C7858E9BADACACFA2D5FBE3C232E2E
+      6E557A7AFA16131313CB4B972E5D7FF2E44943CF9E3DCDB076B0BAB5A1C32237
+      37B7C9A3478F766BB5AB9E111111F2A4A4A4347A0E5DC4E6E6E6EE51C7F7F6F6
+      F69D3061C224ECDF83F8868686BD643259627272F26A7A7EF8F0E1A34141418B
+      EEDCB9F3A32A77C78E1DFF6C494C5A5ADA4B962C59B174E9D2AC952B576E3037
+      37B7BA76ED5A4BECB970E1C29596D2534747007B9C8E1871023EFF1CF31E914A
+      A546CA3A168BC5064E4E4EAE8867E5DC1A641BAADF1171486FE4C8911E88CF32
+      AE6FF2E4C91FFFFCF3CF6D744CFB876E3CC2C3C363F06E26CAF3B8BBBB7F3876
+      ECD80F3EFFFCF36C75FA812E62114BA5E40714AB424343237BF5EAD597F8884F
+      731197A23BB245D8B3198D45EC68B19FBABABAFAD9B3672F888A8A4A993B77AE
+      ECF8F1E3A7D5F1C3C2C2A294F78B6F9A41FD14FF90D7EED0FCEAB8191919DB5E
+      97BD6F36E82CB4B6B6B65E03FFD152E783E4BFA487EEF8AF721B3A74E8DFA0FB
+      0DC80779B04137B2A3CE38B06F7DC48E45E7CE9DAB54DDFBCD9B3715F1F1F1CB
+      607F96AABC51A346B96667676F475E6AE8CCF75FBC78F1F2E0C18387BCBCBCA6
+      C16E759023FD0E1D3A545459597941D3F8417BC11C45D88F1C3929B53507D520
+      47E763AE02E4B227AA1CE49466F847F1810307F2BFFFFEFB6BD487FB428ECFB5
+      972F5FBE423E398B71874F9D3A7506B1E20AD6CA2F2A2A2A6D6A6A6A561EDB1E
+      5FB921CF3E02B744DDF3CEF88851ECDB6FBF3DFF175F3D7FC58A152BBBCB875F
+      E56B6B6BF311DFBCE06F8734E59797979F45FD18A8ABAB2B56F6030B0B8BDED1
+      D1D1F1A8376FA9F251773D42DE5B3B68D020FBCEFC907C75FCF8F1EF6FDEBC39
+      0F712973FAF4E93390FF44BC3FA9B9BBBB4D429DF955476DD5AA55E9D055BB31
+      E4F4E9D367116B19E6502BA879D8607B7B87F6F8A83B2B10B3D9B871E3D4CA83
+      070F700E1FEEE8EFEF37B7BBFC4968F0E1A6DFCB478D6E019BF1EE2E7FEAD4A9
+      1FA14E3ED15DFE47687F28FFBBEF2A72727218CE256A0531552D1F678FE8BB9D
+      B493274F96DBDADABED51E9F6B4E4E8E2ED33A68383B0477C48799EEBDDD493B
+      7BEE6C853A3ED73EF860D2948F3B68C8FF19EAF87C3E5F889C7DF966270D35FC
+      963FCA7F51E3F647ED2EC3993E0179D50F35B16E7BE310B364A82D1249504B0F
+      A13ED46893910F9B709E659CA0C6BE82FAD150998B1814C43D2F2E2EBE89D8D7
+      72B6437EBB407D6BD6ACD9396BD6AC90A3478FDEA07BD45F911C1735B705F27B
+      1DF5E30CCB706E19C73D3B73E6CC03EA7774741C43F788E7DBE81E7134831BB3
+      61C3867DDCDAA89DDFD05B677C9CB97D382E6CF09EEAD91079FE3C3D5BB76EDD
+      57A4C39292927FD33D6AB908D46246886DF7393E62B297AA4E51FF7AE28CD2A8
+      AC3FD4C597689DB4B4B4ED5C5F6666E66E75DF0F79A30F74174AF52E5CAC25D6
+      A3A672E7B8A8C7FE83B38A89A6F6809ABA07E2F16D8E4F3641FDF41F086AFB89
+      0E0E0E4E08E53AEAF8898989591C77EBD6ADF9F4DFC4C68D1BF72BBFE3912347
+      AEF7E9D3E72D55EEB061C346E27CF292C65455553D45BD688DFA3C8C7B0F9CC1
+      72493F74BF65CB96C32A670F21527A35B7066AC390D6DA7C13DD230EAD6FB5D9
+      49748FB38C42998F1A3985E3EEDAB5EB24F79F802ADFD5D5B50D9FFCA1BABAFA
+      39F5D3F784AE0670CF105BD3A9FFCB2FBF3C3664C810E7CF3EFB2C95EEC9F65B
+      CF5F3AA83D2BB9B5E9FF14E57DF5EBD76F106AF97A65FD91904FBD8E7B4EAEA4
+      5F12E4D92F301D5F55AFF4ED68FF18B30F769543E7AEAEC6893D7BF6E495FCD6
+      8ADF7BEF3D274DB9F0779E6A1D84B3C2FC3F836F696969867AEC6BD8C9BF48F6
+      EEDDBBCBD4D454AA291FF96E8CEA58171797B7FF0C3E7CE9EDDCDCDC6C4EE0E7
+      E95DE193A8F62366B9FE1EBEA7A7E75FFCFF23BFBDEF071F1FD41EDFCECECE16
+      3EBD16F540260962552CF28E04BF89292929492472B93C16395D80F816CAF541
+      9621AE58FF0F54B67F95
     }
     BitmapAdv = {
-      4C69020000004C7A0800000008000000080000007B0400000000000078DAB594
-      6D485B5718C7EFCDEBD840A665BE24C6A4A61671143F88DA8D3952ECB0526B35
-      269DD31985FA52A70EC117149C4D535FB238B5C55963A226C6C5D6E898D122B5
-      E2AA4C51E6706EA5D3D55135718949C7541426F4C3D973A2574288947DD8FFCF
-      436ECEEF9C73CF73CE730F41100483C7E0E7EA73FBFAADFD768D556313F7887B
-      E9C1741E20821E4217E8EC3AC733F40CCD811F818DE0FC3FF3EDB4601AEF92E1
-      92D18CCCC8043680DBC172F07530AF87D72BB3CB9C2AA4425F81BF04978165E0
-      8B608E95633B673FE7C47DABC037C135E01BE0CB60A1556813F409EE67A00C54
-      0BEE026BC15F80711B5FCFEF63F019A7A50EE94B3CFFD8919BC012BBC481F3C2
-      39B0F9ECD3C97DC9F7EFD9EF39DB6DEDCE244392911DC276312C06CD9F137EE6
-      4EC795C4A7CF719C0DBDAB8636EE21E3F0DF8BB1D84A4A10728F0FDEB76E3168
-      5C019BAE7F101B8BD0850B87211221141383D0F9F308F9BCD56762D1EC7F1304
-      422489109379F88BFFE360D19CBBCC23EE2D0EB9FEC1C9DC60A2931C3E9DB4D8
-      3C199DB46ED149AEC07586A43F8749BBA366904F9FE360D2EEAAA1CD955F4747
-      87766C6CEC91B7C06C707070D4C7C7E794B7C0ACBFBF7F887093D96C1E8B8A8A
-      8AA5811617177FC53C2C2C2C9CC562B1C562F1B5E6E6E636987B222F2FEFB3BD
-      BDBD7F8686861E2E2C2CFCA250289413131353D0EF8DC2C2C292F9F9F99F0606
-      06860F0E0E5E4924924FC6C7C727131313AFB8F20105050571F0DCB3B3B33F52
-      6D84873037994CDF419F056F8119EE171818C8E9ECECEC595B5BB36C6C6C6C76
-      77771BB85CAEABFEFDFDFD83703B3AD2CCCCCC9C4AA56A595A5AFA0DF7696B6B
-      5353CCE170FC95909070353E3EFE726565656D5757572FACFB09C56B6A6AE471
-      71711F81AE565555C9D7D7D7ADF00A5224125DACAEAE96C37C023F3FBF779A9A
-      9A5AB7B7B777F15A0A0A0A3ECFCCCCCC613299EC9494944F373737EDD47CB0CE
-      DE808080A0D5D5D535C86514D6B640318BC562A372C0F969341AAFF91DED1D23
-      292929797878D8FC1824954A3FC6E785596A6AAA647979F977E42198DF9A9D9D
-      7DFD0710ACC9B6B2B2F207E805E46481E755788F15D6B58A3935667F7FFF15F4
-      B152FF3D399C3582F1F6FFC2CBCBCB2B9C4EE74B4FBEB3B3B3DBD8D8A8C439E0
-      5CA086AE8D8C8C3C361A8DDFCA64B29C374198F9FAFAFAA5A5A549DC151A1A2A
-      A4F626373737AFA1A1019595951D476B6BAB1AF63D1073A8E3BC8C8C0CF8EE45
-      C701B5F40DD4B302CEF2D4491C2B078439E480B2B2B28E43ABD51EF3E0E0605E
-      2D48E326A8891B14C76B8888887857A1B8A570EF03436E521C2B3A3A3AA6C443
-      F05D9E2D2D2DBD5D5757A797CBE5DDEE81DB28469C206A1C7E7E1BA456AB1F42
-      6D4DC2A32F6EA3E6A2FA430D33954AA531323232C61B876F47DCD2D262224992
-      F0E442A1307C6A6A6A4BA7D34D422E1F52FC75EB7B5D7EDEC615171717BE00C1
-      FDD74EB5410D31D3D3D3A51012A8ABDBB8C64647474728CEE7F343A8BA84F3FB
-      9AE270DF35C15DF1737D7DFD2D6F1C077E86E3D4FD1F1CF6BB1EEED7B98A8A8A
-      52D8BF2710DF171515E54F4F4F4F4189CAFF0527F208674C7A08000000200000
-      0020000000101E00000000000078DAED7D075C5457F3F6DEBDDBE882205529D2
-      411150104150AA1D1154AC8051047B43C582A0C416B1E43556229614B14511C5
-      0276235630B105050B225294DE61EF7F86DD1B371B7AF37DBF8FF3647EBBDC3D
-      F73C3373E69C3373590C83F1CFC6ECC2942778044F65B08A93ACA5AC95646FC9
-      3EB68B6C83AC6659CDF1FFCD3FD637DAF7E477CFBE4BD9F8C7C6E7BB327665ED
-      CED89DB52975D3DB6D6FB765CCBC32F3C6823B0BEEDBADB7DBECF283CB5E6517
-      E5219A9E9AE37426E84C2635C81EA436D993D158E302480629D5534A97A3C651
-      677563296B8CD0705775547571D8EB70C07A87F5AEF9F7E627CFFE7DF683D0D4
-      D0F4B0D4B0F4457F2EFA6BF98BE569438F0F3DED15E715AF394333506F99DE2A
-      493D490399DE327DE42CE5FA11D2840C214BC8D5478B3C4C49A6947180F16CB5
-      D16A9E21F74392022F0626F89EF13D77A5F24A755C455CD5474A80F7800F8057
-      8034C09F80A78044C07DC0D1EAA335E7F8E7F8331ECF78BAF4FDD28F219F420A
-      CC369B6DB5DA6315C931E29870CDB97DC5F9919BC166B0BB0DED3642C65CC6D2
-      EF92DF55B7C36EBFDAEDB6FB31A63CA632BA2CBA329712201B9003780B4807BC
-      00A4001E029201BF54FD527DBEE63CDFF386E79D99AF66BE59F87161AEDA1CB5
-      859A2B3543995D998AA432A942F3125D0879F4B94180C11CC5618A23235223DE
-      043D0E7AF2847A423D06E0787F09F107006D451B1F006E016E03E20109801840
-      2CE028E018603720121005589ABFB420AC3CACC2788F71A4C56F1667999A4C6D
-      A601D388C103C07CAB7AA87A495B48F75DFE78F99389D726DE467F227F12007D
-      FC1AF01C80B6A24EF819FAFB2EE01AE006200E70117002F01B601FE020E00860
-      51F6A2DCD0D2D0528D308DF53A7B740E107260B902A1D8D5B1AB0B4F97A73FEB
-      C1AC64F778F7EBD7A9EBD45500DAF53BE00E00C7C7EB970168EB39C07900729C
-      06FC0A88061C0020DF7F003F00D6033601BE03AC00AC0678667A66F994F89428
-      2C5358A5FCBDF21EA97E52D66C35B6C6A44B93AED8FD64177D93BA59CB7F0F40
-      FB99D605AFA32E9784380B407F1F079C041C06FC0440BFEF05206F04601B00B9
-      C3001EAF3DDEFA14F8144AFB49FBCB2D970BE199F1CCC96EA4F2D898B1717DF7
-      F58DA2F99117E3E911007D80BE461FA09FC5FD80DCE80BF4F3CF803D80FD802D
-      00E4DE0158035807F078E991EA93E793CF1BCF9B2C35576A91E912D3654AA394
-      C6FCA7F23FD51BCA3754E11C5E00D0B62107FAF80C00E715B9D0DF18638700C8
-      89F38C7CDB01E8FB6F011B00CB012B0168FB1CC03C80578D177F227F22A517A7
-      77C9EC2FB354A3D946F3BB3A771DB2BD627BF5DAB2B595E857B40FED8A1302E3
-      1AF53905403B71AE31BE911BFD8D31FE23E07BC04E0072E3BCD3738EB623F702
-      C0D8EAB13593F993F97A317AE77B3FEB9DE274D629CEE847A3230729010E0981
-      6B86BE7640884821D0BF38BF682BF2D1F31C0A401F0701960166026601D0F689
-      80290037C03080E15F862FCDF3CCF3069F1C7C46EF07BD7D680B1D3F88C342E0
-      755A2F5A0FDADF18E3BB00748C2137FA1EB9D1F640C05C00DA8EDC3E80A18011
-      00E367C62F2C3F597EF648F1783D2869D0D32D940011426C1542F43D0279E87E
-      F43C23D72A00EDE369801980F100B47B1260386014A03FC016A095ABF559B74C
-      B7DCE3B9C74B87FB0E8FB751026C6F02685D360236034200E8FB8580C500E446
-      DF4F00A0DD53012301A30136808100AD6CAD5CBD52BD32976C97CFFDD3FB67E1
-      7D783FDA81318B311322C45A21C285C0F7E86B8C6FB49DF631CD8BF622A73B60
-      0CC013E002C0B9EF07B00668176997E855EA550DCF1EFED921DD212B980AAE1D
-      4F9413F70BB48BE65D2F043DCFF4FAA263EC1BC07400DA8D3AD0367B009C00A8
-      8325C00AA055A455A25BA95B65F8CE30B3474A8F37A827F6F707E018E88BF900
-      B40B7930A6560B41EB48FF8C3E403DD08718FB0180D9003AE631EE70EE5117F4
-      BD03C030DFB0C0B4DCB4C2F883718ED66BAD0C6FCABBD64F6807DAB304B04808
-      1C1FFD23CA8BAF780D3F43FDF03D3DFF6803EA8063A21F50078C79D40163CF1E
-      6050685064526152A9794B3351E5ACCA05D4093FF302A09E388FE8078C65D401
-      C7A6B931EE30EEE9B58131886B02E70BE70975407FE1FD380EAE435C0B382FCE
-      008C0393B726E9168516455A0FB51EAB5E55BD853A0D00203FC68D383FAE2B3A
-      3671EE9167B310A80BEA84FAA10EA82BFA8F5E8738D65800EA8071E00A30F960
-      92695E6C5EA21AA1BA5D6EAEDC42C71A47BE7DB53D1F7D863AE0FCE17D783FFA
-      772900B99007F73F3CE3A284C0BD08F75F5CBFB807D3F18B73897AA3FEB81E7C
-      0143F9436BE3CCE8B651A245BA4586FA7EF52885350AE18E7C47CA9E6F4F8D03
-      602CA2CF901B631AB9D11EB4136DC77D0FF7DEFD42D0E72D7DDEA19F70DD601C
-      D17B92F8FE67F2D024D9F2A36596CC3099916C63B669FF67FD53CCEE9A3DC27E
-      384FE8435CD7E807F429DA84BC681F9E7F78CE9E16823EFF5117F407EA896702
-      DA8D7180B18976605CBAE5BA7D1A5536AA4C355C75A3D661AD5FBA4CE83289DB
-      976B35F0E3C01CABB7561993A9C9B5718B3AD36B01F7228C3BB419F73FFA7CA0
-      CF633ADF431FE0F9843EC2F30F6DA0CF223A1686160F2D71AF74AFD2DCA779C0
-      20DEE09ABC8FFC34AE0DD77650C1A0629B5C9B7C9A1FD73EDA8EF380B6A34FD1
-      76F42F9E49781E1D17E21700EA80F3803EC0D8C438411B44F9319E87950FAB70
-      AF76AFD1F95927DAE4AEC94396264B9B29CB94D5DDA1FB834A904AB077A17791
-      C7278F3C9C6FBC1FE70FEDC17842DBD046F439DA1D2F04E60A9877A25E383718
-      0798F360DCD039C03715DF54CEAC9959D3FF6AFF1B839F0E7ECEB3E339480D97
-      7267EBB10DB0E6323C68F893FAB7EA9B26574CAE1C5736AE1CF9D1071803343F
-      DA86B18F3908FA9ECE55304FC23C05E7047D81738FF344F3A3EFA6D74CAF09E0
-      07F0ED1FDA270D7937E4BDA49BE470196F9929741D20D94BD20C6B20CB28CB9F
-      F437EB6F0BC80EC8F179E7F37E52DAA437E135E1FCD09A503EC616FA00B990F3
-      7721AE00306F44DB51AF087E446DACCCCA9DF57971C9E2D265E5CB2A5DAFB9DE
-      1CF57054B282A7C2F86ED3BB05320821844DDA5ADA06F26075BBF376977B1DEE
-      757441E982D2C0C2C022FF02FF82DA3387BF8E6A2A3FEE8998172D2C5B58BEBC
-      6A79D5CAEA95351E4F3D5E4C4C9FF81EB9D582D5D688F3D38DD793A747CA930A
-      BD437AAFD30ED49EA7EEA33EDDFBB2F755CF38CFCBA1AF42D356A5AC7A19F539
-      2A7FFFA7FD79A74B4E97A1FC5AF06BF189A213A59BD33767ECC8DC9135E3CE8C
-      BBF392E63DB6F8D662B343A44394EB2FAEC76407CA0E961F223FA23EDEBFE7C1
-      54300F36FB6C0E1A85196DD05EAABD6A76EAECB7FE29FE693BF277146CCDDB9A
-      77A2FC44C5D1B2A3E5F155F1D528B115B195172A2F54ED2BDA577CB0E460E9B2
-      F7CB3E84658565DB1FB13FEA9EE07E63FCBDF18F14462A78284D54F2698C9F49
-      48CB120C36478AD7CF96C73632E3B27A1AA928FA0628294CF0ED65B8EF8889FE
-      7F7EEC6F79EDAEB545FCEFF6368F5EA0D85ADD491ED8FFFE1373D3E8B37D7BC7
-      5CD6545F1AA2ABB56E8BB484ED603929B751F2D223BD584C657536535DABB1F2
-      1FB9410B92C352EDCE6276ED4632BB749593B2192C23D1C75A4369F52675A5A0
-      301D8D5397B4D5A2CF196A5F7B80A2A71977535F2B3EB187F28E1F3555228F2A
-      CA8D99ACACE03787CBEAAE2DC9E96924C5D53725084969B4AD3E5E9250502218
-      3C4905D949DF48F35C46F6354BF8DD443FFAAC41CF83C7468F2A2A1B31B4A074
-      DE3C8A9A3D9BA2C2C2282A3494A2BEFD5620EBD65154783845050551D4CA9514
-      35617C4595AF4F758D954562B2FD8057E98E0E1F72BBABACD9A4A5BE65379BD4
-      33E190BDFAFEDB6E9E0468C192E6D939735986BD0D748E9ED5528BD8D7BD5BD8
-      36A7417925F603728B907BE64C01D7DAB514B5699340366CA0A88D1BBFF0BB8F
-      2CABF41E5F5563D4F3FC353393C72996BDD33E28CAFACC52969FB39C49C87725
-      0945E52FF32D2B4F30385C39499F00298ED370F3DE4F5FE9EBFC9E34650A458D
-      1B47519E9E14357F7ECBC4CF8FA20202043E7371FA5C307C5879857AB79D0734
-      D5A263D94C4D5D0E53BF1770F3C06E528AEB369ACB32313735F83D495BFD4CC2
-      E4C91435660C458D1C49514B96344F162F16BCFAFA52D4AC591485F3666FF731
-      D7D9A9A454496EE54615851D516837CC79370E69EFC2666A1BA82BDF49EA2A73
-      EE9AB333450D1C087338E1DFE2EDDD72415BC68EA5284B8B8F39B6034A4A6578
-      C16BBB48EE8CE230CDAD49424543BD5B6C82A2CCFEA34E4E1465634351E8FFB6
-      14E4461BFAF47E9D6E6D555024CD9D36578E17BC9EC334EE83F1A0AE74FC9CA2
-      CCF61F1D1D29CADA5AE03B71F1F169B9602C4D9A445166A62FDFF4EB9B5720CD
-      F1FE468E3B77258FB57085046BC43855E5CA1A59A9F26A0707982B7B8A727585
-      987111889B5BC3827D45FBA30D2883067D11FC79F060B0CDAA86EF00E37791BE
-      745D5E36F52D8F15B890C71A3C5C5DB5A25A4EBAAC0AE71FFB0E1DFA45860D13
-      88E8B5BA64C810C1ABB85E28F4351B9B1ABEE3603EF09F8F97974D792DC13A1B
-      2FC5FE319AC7A32892A42835358A5255A5281D1D8AD2D2A2284D4D8A3230A028
-      7D7D8A32361688898940E89F0D0D0582F7E8EA0AEE5757A72845C52FA2A24251
-      DDBA51948686604C69C9D477D252F98512AC13E7A4D83B0F4A4A52148B25F8AC
-      7B77C178C889D2BBB740CCCDFF297DFA08C4CC4C20780FEA85F7A3EEC889A2AC
-      2CE045DBB4B50563CA4AA5BC9695C92BE0912FDF4BB29253190C8AAA4F0842F0
-      CA660B047D85C2E15014974B514CA6C0770D8D212E24915F4C302AAA78E4F3B7
-      92EC072F9AC28F5CC889BE42A1F5406EF45DF3F83F17118CF24A2E995D2CC17A
-      5FD09C7BDB4248A2AC9A6054F3915FF2ABF2BFCB9560A564763C7F7139C1A8AC
-      E692990512AC37B91DCF5F5A4930AA6AB8E48D0792AC33091DCF9F9145308A4B
-      B9E483A792AC847B1DCF9FF58960949671C94DDFF358014B3016D01FEDCFCDAF
-      7D6511771E3219EF3F72C93D8725582B3708AED7F03BCA7E1691FC94C9C8CA65
-      339D47B0083D133633F93987BCD6EEF3C064E4E481DFCB39CC755BB8E4C1E36C
-      A6E72436B3B71549BCCF66335FA6B7373FC61C835159C561EE3BC261C6DF6233
-      274EE3302D6D713F64313FE6B53F7F792583515DC366FE72924DDC7D4C126A9A
-      04434A964B7EBB9D47CE8438FC5CC0243273DA9E9BE6BD7C83453C86B9B671E2
-      916E9E24A1A94B3064BB70C99D5112ACA5EB188CB20A818FDA9ABF1AD6169FCF
-      22EE25338937EF79A4D3284996D7B42FF58FAE31C1E8D295C3DCB697472E5BC7
-      24DE7D2089BFD248E2690AEE93705656379D0BD7111F622D339BC9C88773AEB8
-      8CCD8CBBC2226EDFE79243BD78E48419B5250FE34B1DCA224C2D0986A23297F9
-      CB190932623FC12884F3F9733EC1C8CD138CD79CB5C9178935F47B65358B487A
-      CA24D2DE4900B7246BCE4A71FE2F7E50E90EF120C325031773C9315378E4104F
-      36F3F85988975324AC599278F887C0376F3260FD7EAA152203ECCCCC218917AF
-      48E2D51B1671E91A49DC4CE430834238CC2D3FB099BB21CF37EBCF25AD1D1BAB
-      7F59440F8C07791EB976AB04CB7FB1046B42009B99F48CC3BCFF27C1C8CE2518
-      593902DFA0949409A4B854F08AFECA2F248997AF998C77195C727B248779328E
-      C3BC748B4BDABA4A902E6318FF658D200872E9D2A5EBEFDDBBF7F8E5CB97EF3A
-      42900B39917BC58A1550417F9D86DCE9E9E9455F8B5F94FBD4A953F76C6D6D47
-      74842097B82E7BF7EE3DDB5131875C9DFC6DC7AFA8A8D8FDD6AD5BC931313157
-      252424643B9A7FFFFEFDC7E871962F5FBEB9A1BE525252B22F5EBCF8D056FC16
-      16168E5555557F8F53585858D9BD7B77C3FAFA070707AFAF6B2DB6849FC56271
-      EEDEBDFB547CAC63C78E5DAEABBF8E8E8E09E857D156FC3366CC5842DF0F7B6A
-      CA9B376FB2F03D9FCFA79C9C9CBCC4FB9F3C7932A1BEBDA8B9FCDDBA7553CFCC
-      CCCCA7EFB7B1B1711D376EDC74E4C6F6E4C993776C365B92EEEFE8E838BAA6A6
-      866A2A3FCCA1B1B5B5F5F0FAF877EDDAF5137D2FC4DFC9DA67A94C2679F5EAD5
-      44FAFAE2C58BC3F13AEAF1E79F7FA6D2D7C14FE50DF1836D1A1F3F7EACDD9BA7
-      4D9B1624CEDDA74F1F87B2B2B25A637273734B9494947AD09F19191959959696
-      D67E969F9F5FAEA1A1A10F6B6203CD93909090B86FDFBED886F8E1FDAFF4F5AC
-      ACAC22D0E7EFF1C146D6952B5792E9CF0303035789EB171111B19FFEFCC2850B
-      778B8A8A6A63AEBCBCBCBA57AF5EFD1A5AFFFDFAF51B545D5DCD17FD6CCF9E3D
-      D1F4D83E3E3E73E8EB0F1F3E7C459224579C5F4646460962E3B338C7D6AD5BF7
-      36B4FF603E70E3C68DBFD713ED63D09B0F7A39C9CACA76CBC8C8C8C36B184B0E
-      0E0EF5C6C7A449930245C7FFF0E1432EDCAFD8103FCCF542FA6758D72FE6CC99
-      1342FF9C9898F864DBB66D3FD33F1F3A7428A691BC8A79FDFAF54774FF2953A6
-      0434B4FF1E3D7AF47E4E4E4E01BEAFACACA4060C183004E69A0D3E7E41F7A1D7
-      0FF42B515353D36D6C8D429C5AA5A6A666C2791F876BA3217EE4A45B6464E46F
-      745FF0BBABF8BA9D3B776E5833F24B6653CE1FBAE17A525555D516EB7F82FE1C
-      D6711A8FC7936CEBF357C4B610F1FECACACA9AD9D9D9C570CEF09D9D9D47B5C7
-      F98F2D3939F935EC55DC7ACE7875D81375DB2BFFC07DDBCECE6EE4D7CA7F4E9F
-      3E7DE7FFC7FC0FF6E6DAD7E2E2623EC45865470872D1DC274E9C88FB5AF50F72
-      2B2828A8DFBE7DFB4943B9415B37E4424EE4A6F3861E3D7AF4343535EDDB1182
-      5CA2FB71531BE4F68AAEAEAE5ECB962D5BBF73E7CE63D860DD9CD9BD7BF7B135
-      6BD6447878784CEBD2A58B7A5BC72BE4D82E070F1E8CABA8A868D4B7988B9F3F
-      7FFE01E47B9EADE5D5D4D4EC03F9CBFD96CE33E6C4C6C6C6D62DE1F6F3F30B2A
-      2828286B6DACA1CF424343B737871BF2C5367F26F2FDF7DFC736851B72E6767B
-      1E033A34983341CE36A7157BC995A143878E835CB93BD4653CC873072C5CB870
-      A3686D880DD6C9B6BAB8614D1A40EED1ECF986BD949A3C79B23FE439757EA707
-      F2349DC78F1FBF168907CC65FFF51CF2C89123675B62F7FCF9F36BF315C8C3A5
-      213F8DC2FC292F2FAFE4DAB56B8F6D6D6D5DF133C87BD5201FFFFB59D3CD9B37
-      9F89ADB3BE9063379BFBD5AB5719B87D72B95CE9A4A4A46750274481BDDA90C3
-      4843FDE9999E9E5EE0E2E2E28E1CD3A74F0F12BD17AE7B8BD42BFB5A62FBCA95
-      2B37E1FD010101C1B0155E10F7A99595D548C89FD3F03DD468DAA2F7464747DF
-      A0FBBD7EFD3AAF25FCB0C78D17D6D5E7870F1F3EB5AEF97FFFFEFD27F07FEDF3
-      88CF9F3FFF639F9492925235313119D8126EA8678ABB76EDAA86E31E3F7E3C76
-      E4C891BE75F143AD9B07B9A331BE875AF21F63B8BBBB4F85D89DD7127E3737B7
-      F13407D4360B70FD89730F1A34C813F6E097C27ADE447C8CD5AB577F376FDEBC
-      D0E672C35974529487C3E1489E3B77EE2E9E51060606167272724AA0D36298D7
-      42A8A35CB00FD4721BC4C7D9B56BD73161CD6EBD7DFBF6FD8585858D72BF7BF7
-      EEB3BCBCBC621D67B30C9ECBF7EFDFCF4E4949C1E7B9F130B7B5DF33D3D7D737
-      C63559C773A263A263A0DE50832E821AE74D7DFCD6D6D66ECD394BE0FCEB0B6B
-      F3755D6341DC9EAAF33B88909B00CF10502F0EF785E7CF9FE7E019367AF4E8F1
-      4DE1047F0EC4B907FF1E2D2929A9AECF16DAFF0D3588F11EB0B7F12007718639
-      0C3233331BD4405F75D0F96253E368D5AA55DF35D58FA803E457BE972F5F7E02
-      B172A48EBD6638ACB5DCE6C431F8D357986B84C0B9D5B389AAB0606F4F863C70
-      A2F0D996C4FAF5EB77D1CFDD9ADAB0DE877853C531E0DC3800F35C75F8F0E10B
-      B0A77935A6C0D4A953037EF8E187631A1A1ADAD7AF5F7FDE92FD232626E62E3D
-      9EAEAE6EDFB2B22F472FC46B1A3E7BA98F1FF68CD55BB66C3904B5F8D896E60B
-      B07F798B8EF9EBAFBF5E12EF037BC7304343432788E701743F1515156D58DF99
-      70860F011D76B7843B3131F105C4135BECD9B0414E4ECE3FF28FF8F8F80790CF
-      2B45464646DFB973E719ECB13761FF29F0F7F70F823DC50CF694CA96E4A3B0B6
-      EBFC3D289CD18BC5FBFFF6DB6F57545555B5B4B5B58DEDEDED47484A4A7601DB
-      DDE0FCF9D412DBD7AE5DDB602EBC62C58A6D75D51410F38FA2A2A262E03C7F29
-      FAACAA390DEAA45871BFD7F54C3F3C3C7C37D5C60D7223CCBF39CD78B6BF12EA
-      8FF2D6F2A2AFD0E76037A7B935103ECB86FAEB414BB9E12C4CB1B1B1716E6D1D
-      E8E0E0E009EBB359F5E7B061C326C2DEC861B461ABABFE86F5D1EEF5775D8D07
-      CD1B1AF0AE81DCAA7B473DBB82BACA7CC78E1D7BA1CEF8FB773FD5D0E2E2E212
-      C68C19E38DB9585B7342FEDCD5C7C7C7FFF6EDDBF71B7B4E9491919109E76104
-      9C297D5AF9BD0816C4AE03EC393F410E53D292F8477D7D7D7D67C09E29DD545E
-      A85394E07C5B929C9CFCB4ADF69EFCFCFC62A8BDF7F485561F2F9CA543319CA1
-      9EADA0DAA9418EC2877AE0D9ECD9B31740EE2127CCDD3990078D837C2212EAA3
-      E2F67EF687B10A39DC75A80F66C119AA8F7AE0F5478F1E3D090A0A5A05F5F44A
-      A88F7F6F6B5EA803DF6FDCB871079CDD4BA0F63C05F94E1970CDA7F9459E0797
-      ECDFBFFF30E8377DD3A64DDBB2B3B30B5A612BD621717096F8070707AFFDEBAF
-      BFD2C49E1DFC8B5FB4E1EF5A20470E9B3B776ED0A54B97AEC1DEDAA487B4A9A9
-      A9AFC3C2C236435DBE283636F622FEFEAE9E67170DF2D3ADB4B4B4127C761A6B
-      A375D0D2D2D2DED5F11CA6E228349CD70D1B366C873CE943139E9D34895FEC3B
-      3BE990A3847FF3CD3773211F8B79FAF4E9CB254B96AC080C0C5C9A90907005E3
-      AB19CF6E9ACD2F3AB73FFFFC73AC979797DFA74F9F0A5B32466BF885BEC0DC22
-      AAA5F777F277F277F277F277F27F3D7E69687076567E0D7E3F3F3F7F615D253F
-      131AE4867FB6377F4E4E4ED156683A3A3A4675E5C1BD7BF7EE8BB9725E5E5E61
-      5BF1E3590D75F4554F4FCF0958B735B1BE93845C66C6C58B176FD4F76CAF317E
-      C89332207FDB08B590416B6A212D2D2D03C8A92220CFF8D4147EA889CF0D1932
-      64545BD781585B628D0939652CA4CFD5A2FC7FFCF1C773C871D7A8AAAAF6E888
-      3A585D5DBD3BE4F26BF0F75803060C1884F522A3B3B5AA292828288E1C316274
-      6B9AABABEB301E972BD1ECEF1AF4E8A19BF9E1432ED506EDFEBD7B8F61FD4A35
-      873F3C7CDDE6B6AC3747BBBB8F6D0EFF6E68C2B54B8D1A35AAC502F5502DBF0F
-      B496F0439D470D1A34A8C502FBC07F0DBF8C8C8CC2A3478F9E1D3E74E8E4D7E0
-      B7B0B0B0143EFF29F81AFC96D0F07D01B44E7E0663EA94C933B3B2B30A9C9D9D
-      467C0DFE43D0F0E730689DFC9DFC9DFC5FDACE9D3B770B7366FCFD518B85FE8E
-      CFD4A9539BC53FD6CB6B625B9DFD555595D506FAFABD9AC34FC07F41414B426E
-      DCB871B3352D2121E19AE7983113704C71FEC3D0EAE36F8FD61CFBFF75AF85C5
-      00E87EE4E756B438682DE53F72E470745BC503D4B2CDE67772721A161F1F7FA5
-      2DDAD2A54B439ACBDF1EAD15FCC4EA55ABD61F6F657B03AD25FC5017A9B4656D
-      10B22624B4B9F647446CD919D706ED4CCC9958030303D3CE6AF75F7F33C79D3B
-      77EE42FCEEC2C3870FCB40A8B694070F1E94E1D8C8815CA2DCFAFAFA1AF0D99F
-      6DCD599F201772D2768B72C7C6C6262D59B2649DBFBFFFD2B6141C13C716D581
-      F6397D2D343474239BCD26DA6B8E716CE4A0F944E6BBD6EEF6E416D501B9201E
-      28D15843FF7454AC2317F2634CD2BEC039EA287EE412F253FF8BFCE6E6E6FABE
-      BEBE81AB56ADDA8CDF6185F7FEDADADA2AEDCD6F6A6AAA0FF9F925B17D8596F2
-      050B16CC6B4FFEEDDBB71FA8635FFB878C1D3B76747BF13B3B3BDB62DFB367CF
-      3EF4F3F39BE9E1E1E13A7FFEFC25F7EEDD2BA2C783B575AFBDF8F14F4CC68D1B
-      E7C1E170FEB14FC03EB244C40735B2B2B2EC8E8C7FF0C328D139807C85D791FC
-      212121EBE9F1AE5FBF9ED691EB1FD69D7A6262623E3DDEEAD5ABC33B8A5F5A5A
-      9A73F2E4C99BF418B76EDDCA545656966B0ABFF83A6A2E3F97CB651D3870E094
-      C818556E6E6E839BBAFE5BC32F2929C98E8C8C3C21E23F3EACC7A9CDD9FF5ACA
-      0F6B8B076544ACC8FCD54C9B36CDAFB9FB7F4BF8959494E460BEAF8BAE35C827
-      D61A1A1A9A898A9C9C9C547BF0C3BEF7487CBFAD2BBF1B3366CC94F6E017E7EE
-      687E88F713870F1F8E694C6CA1B5F7FA6B6DFEF15FC4FF55F24F9AFB6BE5DFC2
-      1AE4C1D7AE3FBE76FDD558FD59D79A6F6CFD37A7FEACABFE16AD4BDA90BFDEFA
-      BB3D9A838343BFE0E0E065F508FEFD50BB7D4F822449466161614E43CFA0AE5E
-      BD7AAEBDF8BB74E94234F60C2C2929E97E27FFFF163F93C924BCBDBD87CF9C39
-      73625D3262C408FBF6E4877D6C5263E3C2D16FD15EFCB077AF6C6C5C5F5F5F8F
-      4EFEFF2D7EA867B88E8E8EB62003EB1255555585F6E43F7EFC7883DF614C4B4B
-      7BDA9EFCF8BEB1FE50D3105F931FC7ECE4EFE4EFE4EFE4EFE4EFE4FF7F8CFF5E
-      63FDA16645FEE0C6FA4D9C38D11DF21906BCE537C2FFF7BFFFB167CF9EEF1AEA
-      9B9C9C7C1DFBD9D9D959969696E217ACAAEA929C9C9CB73D7AF4A8FD7FAB5DBC
-      78F1587DFD402AC3C3C3978AD4150C434343555353530D7131313151C767DD74
-      5F168BC5E47038ACBA04EA5E42F47735F5F503F9FBDFFEFB3F61564ACC
+      4C69020000004C7A080000000800000008000000EA0400000000000078DAB554
+      694C5457149E952192908A29CBB00C4BB1C4C63484308029E910AC2CA222CCB8
+      40011316656B1B7612449C06A45045820802B216D49152B6B2484040082A4669
+      8940A56599A13332342EC1A424A4B9FD2EF008998C3FFAA3DF97937973BFF3CE
+      BDE79D732E8BC562F1AC79A2A8DAA886265593A64255A10EAA0EAAE35A71AD21
+      B1B8365CDB1A4DCDF273F29C8C813D602318F3678C8663C5B1F6ADF76D6C236D
+      4401D683A5600E18095A575BD7856BC2B505A4807C0F7E072683E1E04150A812
+      AAF76BF66BA96F067801CC02CF818741079583DAB6C1F656080921D960155809
+      9E07E99AA856D4C013F1EC64CBB2151ABF6B8B85A054235DA679D11C042281DD
+      D186A3B7AE6BAE6B4BD5A5DA80FA8046818D6043A3E0714C854E1F5D2D3BE237
+      F982DA5EFBE272AC596E6A42918758A94E4C2464A77D7640F592C7B1B415706B
+      6FBBB911E2E5B569120921623121EEEE84181B35280C389A572C16216C36217C
+      FEE62FFD4FCD80A37DCBDFD2F5D9A65E7BFBFD7ABD82CB168AB86CA55A57E3B2
+      552FB96C4BDB8D1AB24D857CCED5721E7BF205353EA7B81C6B1BF99595955576
+      7575F5E833AADDBD7BB7C3D8D8788F3EA35A535353336B07DADADABA5C5C5CDC
+      38C0D3A74F7FA5BAA3A3A393818181202828E8C4E5CB974B10BB2F3A3A3A6E75
+      75F5EFE6E6E6CEF1F1F15FE472797E5F5FDF20FC0C636363131F3E7CF8E4CE9D
+      3BAD6B6B6BEB52A9F4746F6F6FBF9F9FDF918D7C000B0B0B218D3D3A3AFA9859
+      63E980EA0A85E227F88CEB33AA513F737373E18D1B37AAE7E7E7958B8B8B4B37
+      6FDEACB7B4B4DCE87F5353530BBA4EB63032323256505070656262628AFA9494
+      949433DAF2F2F25F3E3E3EC7BCBDBD0FA7A5A565575555D5E1DCF7193D2B2B2B
+      C7D3D3F30BE058464646CEC2C2820A5BB02512C9C1CCCCCC1CC4B3353131F9B0
+      B0B0B0E8F5EBD76FE959CE9E3DFB556868E8193E9F2F080C0CFC72696949C3C4
+      C339EBCCCCCC2C666767E7914B07CE36CE684AA552CDE440F3ABA8A8D09BDFD6
+      B7E30504041C6D6D6D6DBB07C864B293B45E543B7EFCB8747A7AFA37A203C457
+      454444443E007026F5CCCCCCEFC01C7252E27916FBA870AE59AA33EFBC7BF76E
+      1D3E2AE6BFAE8E5A13BCAFF92F7A4A4A4AAA56AB5DD1D5DFBC79F3F6D2A54BF9
+      34079A0B7AE8447B7BFBBDC6C6C61FC3C3C3CFEC02A8B67BF76E93E0E060E94E
+      D8DBDB3B30DF262A2A2A3A2F2F8F2427276F5B51515139BEBB39D5D1C7D12121
+      21987BC9B6A1977E403FCB51CB3DEFD329CE0054470E242C2C6CDB2A2B2BB775
+      2B2B2BEB6CA06207D013E7189D9E61DFBE7D9FC8E517E53B7DF0CA0546A77075
+      751527EA0073B917753F5D5353730FFD7785F601F58D8C8C4C41889F8D8C8C8C
+      319BAF0E1D3A14DCDFDFFF87582CFE1C7B39A31FD6F15DD2A82FD57D7D7D65D0
+      E73C3C3CBCD143CF5A5A5A9E30F3E8EFEF7F12FDD6939E9E5E181717777E6A6A
+      6ADDC9C9E953DD59B5B3B3FB787272722D29292917B15351BB6AEC27A11A1BC0
+      2C3FE8EEEE9EC6FCF80C0C0CCCA3F7BE1E1E1E5EA23AE6231E3DF78FB3B3F301
+      E8BE9D9D9D93EEEEEE5E8F1E3D5AC13DF501EE98C7889B477D0D0D0D77151717
+      2BA80FEA12C7D283848484D83900F75F29B3861EE29F3A754A0693E26CDFD21E
+      EBE8E8686774914864C3F425EA778DD171DF15E2AE78969B9B7B519F4E8D3EA3
+      9C35FF879E9F9F9F8B1A8DA5A6A67E333838781F36101F1F1F333434348816CD
+      F917BF4E1F914C7A0800000020000000200000000D2000000000000078DAED7D
+      095C4D5BF4FF3D776E569A8B06CDA5284A4A519290A410A24C0DE629F4224586
+      3C19DE33F3647A669E39439987C89047869021A181E6B9EEF9ADD5BD87EBBEDB
+      A8F8FDFEFFF6D7FEDCDB3DFBECEF5E6BAFBDF65AFB9E42A37D5FE86DE8F20497
+      E0AAF6527596B592B5963497EC6437D32EC47AA2F5E4807F024EF91FF03FF2FB
+      93DF5397FFBBFCE9868C0D991B33366646BF8A7EBBFAEDEA8CC08B8157A7DF9A
+      9E64BFD47E85CB7A97CD2A2E2A7DB5BCB486EA0ED7F5656832DA3374181D68F5
+      150E804163487590D263ABB33598CA4C15CD019A1E6A4E6A2E8E9B1DB7DBACB5
+      D930EDCEB4E4493727DD8D7815911EF92A327DE6A399CFE73D9B97E676C8ED98
+      779C77BCD604AD60FDB9FAF325F5250D65CC653AC959C97525A40919429690AB
+      8D1679E892742993209349EA83D4BDC293C21F049F0B4EF03FEE7FFA62C5C5AA
+      B8F2B8CA4F241FEF011F002F01698047801440222009B0BF6A7FF569DE69DE84
+      871352E6BC9FF329FC7378BEC50A8B55D69BACB7B18DD9A69CCE9C2EA2FCC84D
+      63D158CA6ECA03643ACB588D393FE692EB2ED77DF61BEDFF3A5176A2E240E981
+      8A1C928F2C4036E02D201DF00C900AB8074806ECADDC5B75A6FA0CCFEBAAD7AD
+      C097816F667C9A91A33E597D8656985604BD2D5D91A1C250A5788936843CEADC
+      30C870B2623F45F79857316F421E863C7E4C3E261F02B0BFE702FC0B405951C6
+      BB80EB801B80784002E004E014603FE0206023601B201630276F4E7E645964B9
+      C926936D96FF589EA46BD175E88674631A1700F3ADE6A9E62D6D29DD65DEC379
+      8F475C1E7103F589FC0F00A8E3D780A7009415C784D750DFB701970157017180
+      7380C3807F005B003B00BB0133B366E64494449468466A2ED5DDA4BB9D9003C9
+      1508C5B64E6D5DB87A5C83897727267BC47B5CB9425E212F0150AE9B805B00EC
+      1F3FBF0040594F03CE0090E318601FE000603B00F9FE04AC072C0544037E07FC
+      065800F0FAE895E957EC57AC305761BECA1F2A9BA4BA4AD9B0D4599A23CF8FBC
+      68BFC7FEC035F25A0DFF1D00A5676A2CF8398EE5BC002701A8EF438023805D80
+      3D00D4FB6600F2C6005603903B12E0F9DAF3AD5FBE5F81F418E900B97972E15C
+      0B6E6786324365C88921715DB67489A5F89117EDE93E007580BA461DA09E45F5
+      80DCA80BD4F3DF804D80AD809500E45E0B5808580CF07CE1F9CA2FD72F8F3B8C
+      EB2B35456AA6D96CB3B94A039506FF59F167D5B2B2659538876701946CC8813A
+      3E0EC079452ED437DAD84E0072E23C23DF1A00EA7E096019601E200C80B24F06
+      4C0578577BF346F04690FA71FAE72D9E5BBC329E643CAD6DEFB67DD794AFA95A
+      54BAA802F58AF2A15C7102A05DE3788E02504E9C6BB46FE4467DA38DFF05F803
+      B00E80DC38EFD49CA3ECC83D1D30A46A48B52FCF97A77F42FF8CF913F354E793
+      CE71C67F19EFDE41F2B153005C33D467DB05D82600EA17E71765453E6A9E2300
+      A8E310C05C4020602200651F0118057005F403183D377AD139B7736EAF23BD8E
+      EBAFD7DF82B250F683D825007E4E8D8B1A07A56FB4F10D00CAC6901B758FDC28
+      7B30600A0065476E3F801B6000C0E489C933ABCF565F3C533D5FF77CD0336525
+      C9478C00AB04107E8F401EAA1D35CFC8351F40E9782C6002601800E51E09E80F
+      1808E806B00368E7687FD12BD52BF37CEAF9C231C9F1E16A928F350D003596E5
+      8015807000EA7E06601600B951F7C30128F768803B6010C016D003A09DA59DA3
+      5FA25FEA92E5F2A55B7AB74CBC0FEF4739D066D166C2055824409400F81E758D
+      F68DB2533AA678515EE4F4000C0678015C0038F75D0136009D429D62FD0AFDCA
+      FE59FDBF38A63B668692A135FD0973A2BF40B928DEA50250F34CAD2FCAC6C601
+      C603506E1C0325B327C0198063B0025803B40BB58BF52AF42A8DDE197D6C9FDA
+      FE0D8E13DB0700B00FD4C53400CA853C68530B04A0C648FD8C3AC071A00ED1F6
+      8300930094CDA3DDE1DCE35850F78E00A33CA37CB332B372930F26D9DAAFB533
+      7C489F1A3DA11C28CF6CC04C01B07FD48F302FBEE267780DC787EFA9F9471970
+      0CD827EA01C780368F6340DB7300181618169A969B56685DD74A543DA97A16C7
+      84D7BC01384E9C47D403DA328E01FBA6B8D1EED0EEA9B58136886B02E70BE709
+      C780FAC2FBB11F5C87B816705E7A03D00E4CDF9AA65B1658166ADFD37EA87649
+      ED3A8EA93B00F9D16E44F9715D51B689738F3C2B04C0B1E098707C38061C2BEA
+      8F5A87D8D710008E01EDA00FC0F483E9C7CE459D8BD562D4D6C84D919BE154ED
+      C473A872E0A1CE700C387F781FDE8FFA9D03402EE441FF877B5CAC00E88BD0FF
+      E2FA451F4CD92FCE258E1BC78FEBC11FE0C673ABB133E31BC68996E996191A5B
+      356215162A4439F19C48079E03391480B6883A436EB469E44679504E941DFD1E
+      FADEAD0250FB2DB5DFA19E70DDA01D513E49D4FF99DE334DB6FA649529D34FC6
+      9D65C232EBF6A45BAAC56D8BFBD80EE7097588EB1AF5803A45999017E5C3FD0F
+      F7D9630250FB3F8E05F581E3C43D01E5463B40DB4439D02E5D735C3F0F2C1D58
+      AA16A5B65C7B97F6DE36C3DB8CE474E158F7F8D423DBFAAD75862FE95B63B738
+      666A2DA02F42BB4399D1FF51FB03B51F53F11EEA00F727D411EE7F2803B51751
+      B6E056E456EC51E151A9B5456BBB61BCE165793FF9B11C5B8E5DCFFC9E45B639
+      B679143FAE7D941DE70165479DA2ECA85FDC93703F3A24C05E008E01E7017580
+      B68976823208F3A33DF72BEB57EE51E551ADFBB7EE01D3DBA6F7985A4C1DBA2C
+      5D566FADDE7AD510D5509F029F42CFCF9EB938DF783FCE1FCA83F684B2A18CA8
+      73943B5E008C1530EEC471E1DCA01D60CC837643C500E3CAC7550456075677BB
+      D4ED6AAF945E4FB9F65C47A9FE521E2C7D9621E65C463B8CF6682CD188F62DF7
+      AD185A3AB40CF951076803143FCA86B68F3108EA9E8A55304EC23805E7047581
+      738FF344F1A3EEC6578FAF0EE205F11CEE393CE8FBAEEF7B4957C9FE323E32A3
+      A83C40B2A3A405E64056B1567B0C5618AC0ECA0ACAF67BE7F77E64DAC83751D5
+      51BC88EA081EDA16EA00B990F3A60017011837A2EC38AE185E4C8DAD4CCC99F8
+      6556F1AC92B965732BFA5CEE736DE0BD81C90A5E0AC394C72B07D308010445DA
+      46DA16E2600DFB33F6173AEEEAB87F7AC9F492E082E0C280FC80FC9A3D87B798
+      6C283FFA448C8B6694CE289B5739AF32AC2AACDA33C5F3D988F411EF915B3D54
+      7DA1283F55B81DB8FA0C79868279B8F9629D609DA91A7E1AE37D2EF85CF28AF3
+      BA10F132226D7EEAFC17B15F62F3B67EDE9A7BACF85829D67DF9FB8A0E171E2E
+      5991BE2263EDC7B599136E4DB83DF5C1D487964B2C57386E738CEDB3B7CF41D9
+      1EB2BDE4FBCA0FA88DF7EB3C98F1E7C1768BED0EE348E3653A7374E64F7A35E9
+      6D406A40DADABCB5F9AB7257E51E2E3B5CBEBF747F597C657C15D653E5A72ACE
+      569CADDC52B8A56847F18E92B9EFE77E88CC8CCC72D8EDB0DF23C1E3EAB03BC3
+      EE2BB82B782A8D50F2AB8F9F4E48CB1234165B8ADBD58ECB32B6E0303B18AB2A
+      FA0729290CF7EF68B465B7A9C19F7F75B3BA7CDBC632FEA683EDFD6758EDAC6F
+      25F7E896F4B8B3D981935DCC4F5CD0D29813AEA7BD78A5B4845D2F3929D781F2
+      D2EEDE4CBA8A068BAEA15D5FFA8FDC300A069BA9D68E496FABCCA0B7692B2765
+      DB4B46A2938DA6D282680DA590485DCDA3E775D40F9C36D2B97C17ABBE56DC35
+      03EDF8C4F62A6BFFD252DDB65F516EB0AF8AC298C91C663B1D49760763298E81
+      1941484AA36CB5F13208052582C69554901D394E9AEBE2DEC522E1A6A9C18193
+      861D761C1C34B0B074805B7EC9D4A92439691249464692644404492E59C2AF8B
+      179364541449868490645818490E1F565EE9EF57556D6D9998ECD0FD65BA93E3
+      879C76AA0BA3B535566E6431F44DD98C8E5DFE2B37570246C194E6DAF7E6308D
+      CC0D75F79FD4568FD9D24E3972B573CFDC6287EE3985C81D18C8E75AB48824A3
+      A3F975D932925CBEFC1BBF877B6985CFB0CA6AE30E672E5B983E4CB5324FFBA0
+      28EB3751457EF23C3A21DF964128AA7C9B6F597982C6E6C849FA0549B19DFB77
+      364F7969A07BF3C1A85124397428497A7991E4B4694DAB63C6906450105F672E
+      CE5FF2FBF72B2BD7505EB75D4BFDC029165D4B8F4D37E808DC5C909B21C5711D
+      C4619A763633BCF94047E37882AF2F490E1E4C92EEEE24397B76E3EAAC59FC57
+      7F7F929C38912471DE1CEC3FE5F4762E2E51920B5BAEAAB03616E58639576633
+      1C5C58741D430D955B0FDACA9CBEDCBB3749F6E8017338FCBFD5C7A7E9156519
+      328424AD2C3F65DB752F2E91E1862E6A23B92E964DEF6CC320543535944F2528
+      CA6CDDEFEC4C92B6B62489FA6FCE8ADC284327F3D7E936D6F985D29CB153E4B8
+      A14BD974934E680F1A4A874E2BCAACF9CBC989246D6CF8BA13AD7E7E4DAF684B
+      234792A485D98B375DBBE4E64BB37DC6C971A6847199337E93600E18AAA65251
+      2D2B5556E5E80873E540927DFA80CDB8F0ABAB6BDD15DB0AB74719B0F6ECF9AD
+      E2CFBD7A816CD6D53C47E8BF8DF4F92BF2B2AFDE7299C133B8CC5EFD35D4CAAB
+      E4A44B2B71FEB1AD9BDBB7DAAF1FBF0A7F26AEF6EDCB7F151D1756EA335BDB6A
+      9E532F1EF09F8997974D7D2DC13C192FC5FAEB00974B920C0649AAAB93A49A1A
+      49EAEA92A4B636496A6991A4A121491A1890A48909BF9A9AF22BF5B39111BFE2
+      3D7A7AFCFB3534485251F15B55552549656592D4D4E4F7292DF9EA9DB4545E81
+      04F3F06929D6BA1D929224C964F2AFB56BC7EF0F39B19A9BF36BE7CEDFD74E9D
+      F8D5C2825FF11E1C17DE8F63474EAC2A2A7C5E944D4787DFA7AC54EA6B5999DC
+      7C2EE3C57B4966F22B1A8D246BAB04C17F65B1F815758595CD26490E8724E974
+      BEEEEAEA43B43288BC2282565EC9653C7D2BC9BAFBAC21FCC8859CA82BACD438
+      901B75D738FE2F8504ADAC82C3C82A9260BECF6FCCBDCD511944691541ABE221
+      BFE42FE57F9723C14CFDF8F3F98BCA085A451587F1315F82F926E7E7F3975410
+      B4CA6A0EE3EA5D49E6F1849FCF9F9149D08A4A388CBB2992CC843B3F9F3FF333
+      412B29E530A2FFE0328366A32DA03E5A9E9B57F3CA246EDDA3D3DE7FE23036ED
+      9260862DE37F5ECDFB59F23389E4143A2D338745EF3D8049E89BB2E8C94FD98C
+      CB2D3E0F745A762EE8BD8C4D5FBC92C3D8718845F71AC9A29B5B3388F7592CFA
+      8BF496E6479BA3D12A2AD9F42DBBD9F4F8EB2CFA88B16CBA951DFA4326FD536E
+      CBF39755D06855D52CFADE232CE2F64306A1AE45D0A464398C256BB88C40B0C3
+      2FF974E26376F37353BC17AE32898730D7B6CE5C86AB1783D0D22368B26D388C
+      75B112CC398B69B4D272BE8E9A9BBF0AD6168FC724EE24D38937EFB90CE78192
+      4CEFB1DFF21F3D1382D6A62D9BBE7A33973177319D78F781413C4F631029A9E8
+      2761AFAC6A3817AE231ED8DAC72C3A2D0FF6B9A252163DEE2293B891C461B879
+      7319C327D4A43CB46F79289330B322688A2A1CFADEE3128C98AD04AD00F6E72F
+      79042D2797DF5F63D6264FC8D650EF15554CE2410A9D487B2701DC92CCC961A2
+      FCDFF4A0DA0EEC4186C3089EC5610C1EC565F4F562D10F9D047B39CA8035CB20
+      EEFDCBD7CD9B0C58BF9F6B2A9101727ECC6610CF5E3288976F98C4F9CB0CE25A
+      229B1E12CEA6AF5CCFA26F8438DFA21B8761E3545FFECB24DAA33DC873198B56
+      4930036649308707B1E80F9EB0E9498F085A560E41CBCCE6EB066B7129BF1695
+      F05F515F79050CE2C56B3AED5D0687B1661B9B7E248E4D3F7F9DC3B0EB23C170
+      194CFB5F56088260CC993367E99D3B771EBE78F1E2DDCFA8C8859CC8FDDB6FBF
+      4106FD6B0A72A7A7A717FE2A7E61EEA3478FDEB1B3B31BF0332A72898E65F3E6
+      CD277F96CD21572B7FF3F12B2A2AB6BB7EFD7AF28913272E494848C8FE6CFEAD
+      5BB71EA4FA99376FDE8ABADA4A4949C93E7BF6EC4373F15B5A5A3A5556567EED
+      A7A0A0A0A25DBB7646B5B50F0D0D5D2A6E2D36859FC964B26FDFBE9D22DAD7C1
+      83072F886BAFABAB6B0AE32B6F2EFE091326CCA6EE079F9AFAE6CD9B4C7CCFE3
+      F1486767676FD1F6478E1C49A8CD1735965F595959E3E3C78F79D4FDB6B6B67D
+      860E1D3A1EB9B13C7EFCF81D8BC592A4DA3B39390DAAAEAE261BCA0F73686263
+      63D3BF36FE0D1B36ECA1EE05FB3B5273964AA7332E5DBA94487D3E6BD6AC28FC
+      1CC7F1E8D1A357D4E7A0A7B2BAF84136CD4F9F3ED5F8E6B163C786887277EAD4
+      C9B1B4B4B446989C9C9C622525A5F6D435636363EB9292929A6B797979659A9A
+      9A06B02696513C090909895BB66C3955173FBCDF477D9E99995908E3F9DA3FC8
+      C8BC78F16232753D383878BEE8F8626262B652D7CF9E3D7BBBB0B0B0C6E6CACA
+      CAAA3A76ECD8B5AEF5DFB56BD79E5555553CE16B9B366D3A40F5EDE7E73799FA
+      FCDEBD7B2F190C0647945F464646096CE38B28C7AA55AB36D7E57F301EB87AF5
+      EAD7F544E918C6CD837139CBCACA2A676464E4E267684B8E8E8EB5DAC7C89123
+      8385FBFFF0E1430EDCAF58173FCCF50CEA6758D7CF264F9E1C4EFD9C9898F878
+      F5EAD57F533FEFDCB9F3443D7115FDCA952BF7A9F6A3468D0AAACBFFEEDFBF3F
+      293B3B3B1FDF57545490DDBB77EF0B73CD021D3FA3DA50EB07DA15ABABABEBD5
+      B746C14EAD5FBD7AF511F6FB385C1B75F1232755B66DDBF60FD516F4DE4774DD
+      4E993225B211F125BD21FB0F55703DA9A9A9E988B43F4C5D87759CC6E572259B
+      7BFF15922D5CB4BD8A8A8A5656565611EC33BCDEBD7B0F6C89FD1F4B7272F26B
+      F0559C5AF6780DF0897A2D157FA0DFB6B7B777FF55F1CFB163C76EFDFF18FF81
+      6FAE792D2A2AE2818D55FC8C8A5C14F7E1C387E37E55FE83DC0A0A0A1A376EDC
+      785C576CD0DC05B99013B9A9B8A17DFBF61DCCCCCCBAFC8C8A5CC2FEB8A10562
+      7BC53E7DFA78CF9D3B77E9BA75EB0E628175737CE3C68D07172E5C18E3E9E939
+      B64D9B361ACD6DAF1063BBECD8B123AEBCBCBC5EDD622C7EE6CC99BB10EF79FD
+      28AF96965627885F929A3ACF18139B9898D834857BCC983121F9F9F9A53F6A6B
+      A8B3888888358DE18678B1D9CF44FEF8E38F530DE18698B9C5CE63600C75C64C
+      10B34DFE015F72D1CDCD6D28C4CAED202FE3429CDB7DC68C19CB8573432CB04E
+      568BE386356908B147A3E71B7C29E9EBEB1B00718ED8677A204ED37DF8F0E16B
+      217BC058F63FE790BB77EF3ED914B9A74D9B5613AF401C2E0DF1692CC64FB9B9
+      B9C5972F5F7E686767D707AF41DCAB0EF1F8D7B3A66BD7AE3D1159675D20C66E
+      34F7CB972F33D07D72381CE9070F1E3C813C2116E4D58118461AF24FAFF4F4F4
+      7C1717170FE4183F7E7C88F0BDF0B98F50BEB2A529B287858545E3FD414141A1
+      E00ACF8AEAD4DADADA1DE2E7347C0F399A8EF0BD070E1CB84AB57BFDFA756E53
+      F8C1C70D13E4D567FAF7EF3F5ADCFCBF7FFFFE33E8BFE63CE2CB972FDFF94929
+      2929355353D31E4DE1867CA6A86DDBB6EAD8EFA143874EB9BBBBFB8BE3875C37
+      176247137C0FB9E4777D7878788C06DB9DDA147E5757D7611407E436D371FD89
+      72F7ECD9D30B7CF00B413E6F2ADAC782050B7E9F3A756A4463B9612F3A22CCC3
+      66B3254F9F3E7D1BF7284343434B3939392518D32C98D702C8A35CB00DE472CB
+      44FBD9B061C34141CE6EB366CD9AAD050505F572BF7BF7EE8BBCBCBCA298BD59
+      06F7E5A4A4A4ACD4D4543CCF8D87B9AD79CECCC0C0C004D7A49873A283C27DE0
+      B821079D0939CE9BDAF86D6C6C5C1BB397C0FED705D6E66B717D81DD1E15FB0C
+      22C426C0D3178617877EE1E9D3A7D9B8870D1A3468584338419F3D70EE41BFFB
+      8B8B8BAB6A9385D27F5D056CBC3DF8362EC420BD610E432C2C2C7AD6D15603C6
+      7CAEA176347FFEFCDF1BAA471C03C457FE172E5C780CB6B25B8CAFE90F6B2DA7
+      31760CFAF417C41AE1B06F7568E05098E0DB93210E1C2138DB9258BA74E906EA
+      DCADA105F37DB03735EC03F68DED30CF95BB76ED3A0B3ECDBBBE018C1E3D3A68
+      FDFAF50735353575AE5CB9F2B429FEE3C48913B7A9FEF4F4F4BA94967EDB7AC1
+      5ED3F0ECA5367EF0190B56AE5CB91372F1214D8D17C07FF908F7B96FDFBEF3A2
+      6DC077F433323272067BEE4EB5535555D581F5FD11F6F0BE30868D4DE14E4C4C
+      7C06F6C412391B36CCCECEFE2EFE888F8FBF0BF1BCD2B66DDB0EDCBA75EB09F8
+      D86BE07FF203020242C0A758804FA9684A3C0A6B5BECF7A0B047CF126DFFCF3F
+      FF5C545353D3D6D1D13171707018202929D906647785FDE77353645FB468519D
+      B1F06FBFFDB65A5C4E01367F3F3636F604ECE72F84CFAA1A53204F3A25AA7771
+      67FA5151511BC9662E101B61FCCD6EC4D97E18E41F653FCA8BBA429D83DCECC6
+      E64078960DF9D7DDA672C35E986A6B6BDBFB47F3404747472F589F8DCA3FFBF5
+      EB37027C239BD68C455CFE0DEBA3C5F36F71850BC5070AF02E84D8AADDCF3ABB
+      82BCAAF3DAB56B37439EF1F5BB9F2A287171710983070FF6C158ACB939217E6E
+      EBE7E71770E3C68DA4FACE893232323EC27E18037B4AA71F7C2E8209B6EB083E
+      670FC430C54DB17F1CAFBFBFFF04F099D20DE5853C4509F6B7D9C9C9C929CDE5
+      7BF2F2F28A20F7DED4054A6DBCB097BAA139433E5B4EB65081188507F9C09349
+      93264D87D8434E10BBB3210E1A0AF1C436C88F8A5AFAEC0F6D1562B82B901F4C
+      843DD400C7819FDFBF7FFF714848C87CC8A7C3203FBED9DCBC9007BE5FBE7CF9
+      5AD8BB6743EE7914E29D52E09A46F10B9D07176FDDBA75178C6F7C7474F4EAAC
+      ACACFC1F9015F39038D84B02424343173D7FFE3C4DE4ECE03FFCC205BF6B8118
+      3972CA942921E7CF9FBF0CBEB54187B4AF5EBD7A1D1919B902F2F299A74E9D3A
+      87DFDFD5727651273F554A4A4A2A4067C730375A0C252D2DED9D987398F2FD50
+      705E972D5BB606E2A40F0D383B6910BFC8333BE910A3448D1B376E0AC4632752
+      52525ECC9E3DFBB7E0E0E03909090917D1BE1A7176D3687EE1B9FDFBEFBF4F79
+      7B7B8FF9FCF9734153FAF8117E812E30B6886DEAFDADFCADFCADFCADFCADFCBF
+      8E5F1A0AEC9D15BF827FCC98310182BC4A3E100AC4868F5A9A3F3B3BBB701514
+      5D5D5D637171B0B9B979178C957373730B9A8B1FF76AC8A32F7979790DC7BCAD
+      81F99D24C43213CE9D3B77B5B6B3BDFAF8214ECA80F86D39E442863F920B696B
+      6B1B424C150371C6E786F0434E7CBA6FDFBE039B3B0FC4DC12734C88294F41F8
+      5C25CCFFEFBFFF3E851877A19A9A5AFB9F91076B6868B483587E217E8FD5BD7B
+      F79E982FD25ACB0F1505050545F7010306FD48E9D3A74F3F2E8723D1E8670DDA
+      B7D7FBF8E1430ED90C25E9CE9D87B07EA51AC31F15B5784573E69B833C3C8634
+      867F2314C1DA25070E1CD8E40AF9500DBF1F94A6F0439E47F6ECD9B3C915FCC0
+      FF1A7E19191985FBF7EF3FD9B573E7915FC16F6969692538FFC9FF15FC5650F0
+      7D3E94567E1A6DF428DFC0CCACCCFCDEBD9D07FC0AFE9D50F0E74828ADFCADFC
+      ADFCDFCABA75EB360A6266FCFEA8C9957AC667F4E8D18DE21FE2ED3DA2B9F6FE
+      CACA8A2A4303838E8DE127E05F48C8ECF0AB57AF5EFB9192909070D96BF0E0E1
+      D8A728FF2E28B5F1B744698CFCFFB9D7D2B23B34DFFDF70F9438284DE5DFBD7B
+      D781E6B207C8651BCDEFECECDC2F3E3EFE6273943973E6843796BF25CA0FF013
+      0BE6CF5F7AE807CB1B284DE187BC48B5397383F085E1118D953F2666E5BAB866
+      28C74F1C3F65686868D69AEDFEEF2A52525232818181A1870F1F4EBA77EF5EFE
+      E3C78FCB612F2D397BF6ECB3050B16AC6BD7AE9D6E23BE3B27F6EDDB7703FB10
+      ADDBB76F3F2FE63993CE57AE5C49C7E7266BAB8F1E3D2AF3F4F41CD3107E7F7F
+      FF99E2FA4079B4B5B50D449EB96C7BE3C68D4F757153F5F9F3E73C6B6BEB5E75
+      716B6A6AE2F3DEC5E2EE9F3061C25CD1F693274F5E28DA0E74F1EEE4C9930F61
+      B93C11BDB677EFDE6B75F1EFD8B1235E1C37E4F5F7180CC67FCEA8609BBA2ADC
+      EECF3FFF3C22FC2CFBC891232789EA80CD668B3DC3F4F6F61E278EFBE9D3A755
+      B0E62DC4DD0372FE2BDC363838384CF8BA8585858D687FE00F9545FB51545454
+      BD7BF7EE1771FC3366CC58529BBE9A8B7FFDFAF5FF88E386397C0AFAE2B4247F
+      DFBE7D8788E37EF6EC59B5A5A5A57D5DF6F2A3FCB2B2B2F2376FDE14BB7ED06F
+      D41FE7ECBE2C7CCFA64D9B4E0AFF6E94E85A4699847F4772F9F2E53BC5715FBA
+      74E96D439EBB090A0A0A13BDF7D6AD5B9910FBBC803EDE885E83F15EA2EEB5B7
+      B777ADCD57E0B586F82A191999361073BF6F88FF119E4F944DDCF8B0464747EF
+      6C8CEFD7D3D33385B83DAD2E6EF4696E6E6E5F9F999D3F7FFE1FE2DA812D6482
+      4F5568C2F36C9290334DDBB367CF95EBD7AF7FC4B57CFBF6ED1CF05BF7434242
+      A255555535857E1FCD0E75218E1FD7424BEE93687BB8A6C5716FD8B0E1784BEF
+      D3D3A74F5F2C8E1BF495ABA4A4A4D692DCE8C39F3C7952298E1F7DBF705B7D7D
+      7D335F5FDFC9B367CF8EC6F9837D2E027F3F0BFFFE4753B8D1271C3D7AF49E38
+      6E08EB136882BF2585DFFF608C519B1DDFBF7FBF60CC9831B31BCB3F7EFCF839
+      B5AD0B2A36C2BF89D1D0B53C6FDEBC558DF8FECD00631771FDA07FA4DAAD59B3
+      E66043B8A97DBC53A74EB60D09E7604D5E16D707A43489302F74C177B852A2B6
+      81EBC1D6D6D6D9C6C6A697BBBBFB88A4A4A45CE1EBE1E1E1F5EE0F3E3E3E81E2
+      B8535252CAD1C6847C9899681B9897EF7EA762E1C285EB85AF8B8B45850BFA1C
+      B41771FC18B709B7353030E828DA4643E3FBBFB70DFBE1773E333636F6425DFC
+      9B376F3E258E1BF6EC47A27F27A0B9F9070C1830BC963D88676E6E6E2DDABE39
+      F9F1F7AB121313B36B593731E2EED1D1D131126DDBA1430713E1364B962CD926
+      7C7DCB962D67C4F5B572E5CABFC571E31E09FB94442DDF4D7344E3FE63C78E3D
+      803D6D2AFAC19933672E459B15BE0E7EF13F7F2BA957AF5EEEB5ADD76EDDBA39
+      D7652FA0DF3F1BBAFE712CA0B3EF9E0B90969696AB2D0F8B8A8ADA56DF5A8598
+      44A6361F2D220B09EB3A58F4FE8888888DE2DA433CF001E3A4063EA32F151A1A
+      BABA367F79FAF4E9941E3D7AB889DE87B9D1C081037D070D1A345AB4427EDAE8
+      67C9711CE8F73C3C3C46611FAEAEAEDEA2F6D892C5D1D1B12BE8616E2D157F7F
+      A8C59E93005DD20A0A0AB2EB3A8382D8F5744BF1B769D386A8EF0CECC1830749
+      ADFCFFB7F821D420C06FF40F0C0C1C21AEC29EE5D092FC01010123EBEBD7CECE
+      CEB2A5F8C13F86D5D72FC4839EADFCFFB7F861DFE4383939D941ED21AE424EA3
+      D092FC10C7D7F90C635A5A5A4A4BF2E3FBFADACBC9C911BF921FFB6CE56FE56F
+      E56FE56FE56FE5FF7F8CFF4E7DED21FF46FED0FADA8D1831C203E2191ABCE5D5
+      C3FFF5EF7F6CDAB4E9F7BADA2627275F117CDF62555252820F58558AABD9D9D9
+      6FDBB76F5FF37FAB9D3B77EE606DEDA056444545CD11CA2B684646466A666666
+      9AA2D5D4D45483C3E17CFDDE94C964D2D96C36535C85BC9710FA0E9C565B3BA8
+      5FBFDFFA1F765FBCC6
     }
   end
   object gamePopupMenu: TPopupMenu
