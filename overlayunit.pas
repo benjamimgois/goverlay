@@ -27,6 +27,8 @@ type
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     colorthemeLabel: TLabel;
+    coreloadtypeBitBtn1: TBitBtn;
+    fpsCheckBox: TCheckBox;
     gpudescEdit: TEdit;
     fontComboBox: TComboBox;
     fontcolorLabel: TLabel;
@@ -71,7 +73,7 @@ type
     gpuvoltageCheckBox: TCheckBox;
     gpuImage: TImage;
     RadioGroup1: TRadioGroup;
-    ToggleBox1: TToggleBox;
+    showfpslimCheckBox: TCheckBox;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
@@ -79,7 +81,6 @@ type
     metricsSheet: TTabSheet;
     FontcolorButton: TColorButton;
     C: TComboBox;
-    fpsCheckBox: TCheckBox;
     fpslimComboBox: TComboBox;
     fpslimComboBox1: TComboBox;
     fpslimLabel: TLabel;
@@ -99,10 +100,7 @@ type
     gpupowerLabel: TLabel;
     gpuinfoLabel: TLabel;
     fpslimtoggleComboBox: TComboBox;
-    fpsonlyCheckBox: TCheckBox;
     framecountCheckBox: TCheckBox;
-    framegraphRadioButton: TRadioButton;
-    framehistogramRadioButton: TRadioButton;
     frametimegraphCheckBox: TCheckBox;
     frametimegraphColorButton: TColorButton;
     frametimegraphColorButton1: TColorButton;
@@ -133,7 +131,7 @@ type
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     graphhudBitBtn: TBitBtn;
-    GroupBox2: TGroupBox;
+    fpsGroupBox: TGroupBox;
     hImage: TImage;
     horizontalRadioButton: TRadioButton;
     hudbackgroundColorButton: TColorButton;
@@ -201,7 +199,6 @@ type
     runvkbasaltBitBtn: TBitBtn;
     saveBitBtn: TBitBtn;
     sessionCheckBox: TCheckBox;
-    showfpslimCheckBox: TCheckBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
     TabSheet8: TTabSheet;
@@ -609,7 +606,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-
+  FPS: string; //performance tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -866,6 +863,11 @@ var
           end;
 
         ////RAM - Config Variable
+       Savecheckbox (fpsCheckBox, FPS, 'fps');
+
+        //###############################################################################################   Performance TAB
+
+        ////FPS - Config Variable
        Savecheckbox (swapusageCheckBox, SWAP, 'swap');
 
           //##################################################################################################################  Write config file
@@ -922,6 +924,9 @@ var
     SaveConfig(IOREAD,MANGOHUDCFGFILE);
     SaveConfig(IOWRITE,MANGOHUDCFGFILE);
     SaveConfig(SWAP,MANGOHUDCFGFILE);
+
+    //Performance
+    SaveConfig(FPS,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
