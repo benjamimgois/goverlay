@@ -606,7 +606,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS: string; //performance tab
+  FPS, FRAMETIMING: string; //performance tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -870,6 +870,9 @@ var
         ////FPS - Config Variable
        Savecheckbox (swapusageCheckBox, SWAP, 'swap');
 
+       ////Frame time - Config Variable
+       Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
+
           //##################################################################################################################  Write config file
 
     //Visual Tab
@@ -927,6 +930,7 @@ var
 
     //Performance
     SaveConfig(FPS,MANGOHUDCFGFILE);
+    SaveConfig(FRAMETIMING,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
