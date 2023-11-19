@@ -606,7 +606,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC: string; //performance tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -873,6 +873,15 @@ var
        ////Frame time - Config Variable
        Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
 
+       //Frame time Color - Config Variable
+       FRAMETIMEC := 'frametime_color=' + ColorToHTMLColor(frametimegraphColorButton.ButtonColor);
+
+        ////Show fps limit - Config Variable
+       Savecheckbox (showfpslimCheckBox, SHOWFPSLIM, 'show_fps_limit');
+
+
+         ////Show fps limit - Config Variable
+       Savecheckbox (framecountCheckBox, FRAMECOUNT, 'frame_count');
           //##################################################################################################################  Write config file
 
     //Visual Tab
@@ -931,6 +940,9 @@ var
     //Performance
     SaveConfig(FPS,MANGOHUDCFGFILE);
     SaveConfig(FRAMETIMING,MANGOHUDCFGFILE);
+    SaveConfig(SHOWFPSLIM,MANGOHUDCFGFILE);
+    SaveConfig(FRAMECOUNT,MANGOHUDCFGFILE);
+    SaveConfig(FRAMETIMEC,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
