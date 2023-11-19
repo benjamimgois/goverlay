@@ -27,7 +27,7 @@ type
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     colorthemeLabel: TLabel;
-    coreloadtypeBitBtn1: TBitBtn;
+    frametimetypeBitBtn: TBitBtn;
     fpsCheckBox: TCheckBox;
     gpudescEdit: TEdit;
     fontComboBox: TComboBox;
@@ -252,6 +252,7 @@ type
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
@@ -485,6 +486,23 @@ begin
 
 end;
 
+procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
+begin
+     //Change icon and hint on click
+  case frametimetypeBitBtn.ImageIndex of
+    8: begin
+      frametimetypeBitBtn.ImageIndex:=7;
+      frametimetypeBitBtn.Caption:= 'Histogram';
+      frametimetypeBitBtn.Hint:='Use histogram for frametime information';
+    end;
+    7: begin
+      frametimetypeBitBtn.ImageIndex:=8;
+      frametimetypeBitBtn.Caption:= 'Curve';
+      frametimetypeBitBtn.Hint:='Use regular curve for frametime information';
+    end;
+ end;
+end;
+
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
     case geSpeedButton.imageIndex of
@@ -606,7 +624,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM: string; //performance tab
   LOCATEDFILE: TStringList;
 
   begin
@@ -882,6 +900,10 @@ var
 
          ////Show fps limit - Config Variable
        Savecheckbox (framecountCheckBox, FRAMECOUNT, 'frame_count');
+
+          //Histogram - Config Variable
+        if frametimetypeBitbtn.ImageIndex = 7 then
+          HISTOGRAM := 'histogram';
           //##################################################################################################################  Write config file
 
     //Visual Tab
@@ -943,6 +965,7 @@ var
     SaveConfig(SHOWFPSLIM,MANGOHUDCFGFILE);
     SaveConfig(FRAMECOUNT,MANGOHUDCFGFILE);
     SaveConfig(FRAMETIMEC,MANGOHUDCFGFILE);
+    SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

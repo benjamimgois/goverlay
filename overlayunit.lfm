@@ -7989,7 +7989,7 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 3
           end
-          object coreloadtypeBitBtn1: TBitBtn
+          object frametimetypeBitBtn: TBitBtn
             AnchorSideLeft.Control = frametimegraphColorButton
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = frametimegraphColorButton
@@ -8005,7 +8005,7 @@ object goverlayform: Tgoverlayform
             Images = iconsImageList
             ImageIndex = 8
             ImageWidth = 20
-            OnClick = coreloadtypeBitBtnClick
+            OnClick = frametimetypeBitBtnClick
             ParentFont = False
             TabOrder = 4
           end
