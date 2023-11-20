@@ -22,7 +22,7 @@ type
     alphavalueLabel: TLabel;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
-    CheckGroup1: TCheckGroup;
+    fpslimCheckGroup: TCheckGroup;
     coreloadtypeBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
@@ -81,9 +81,7 @@ type
     metricsSheet: TTabSheet;
     FontcolorButton: TColorButton;
     C: TComboBox;
-    fpslimComboBox: TComboBox;
     fpslimComboBox1: TComboBox;
-    fpslimLabel: TLabel;
     fpslimLabel1: TLabel;
     cpumainmetricsLabel: TLabel;
     cputempLabel: TLabel;
@@ -179,7 +177,7 @@ type
     openglImage: TImage;
     PageControl2: TPageControl;
     pcidevComboBox: TComboBox;
-    performanceGroupBox: TGroupBox;
+    fpslimiterGroupBox: TGroupBox;
     performanceTabSheet: TTabSheet;
     positionGroupBox: TGroupBox;
     Process1: TProcess;
@@ -243,7 +241,7 @@ type
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
     vsyncGroupBox: TGroupBox;
-    vsyncGroupBox1: TGroupBox;
+    filtersGroupBox: TGroupBox;
     vulkanImage: TImage;
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
@@ -252,6 +250,7 @@ type
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure fpslimCheckBoxChange(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
@@ -486,6 +485,13 @@ begin
 
 end;
 
+procedure Tgoverlayform.fpslimCheckBoxChange(Sender: TObject);
+begin
+
+end;
+
+
+
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
 begin
      //Change icon and hint on click
@@ -624,9 +630,12 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM: string; //performance tab
-  LOCATEDFILE: TStringList;
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM: string; //performance tab
 
+  ValorItem: string;
+  LOCATEDFILE, FPSSEL: TStringList;
+  i: integer;
+  NOITEMCHECK: boolean;
   begin
 
   //Create directories
@@ -904,7 +913,35 @@ var
           //Histogram - Config Variable
         if frametimetypeBitbtn.ImageIndex = 7 then
           HISTOGRAM := 'histogram';
+
+
+
+        // FPS limit - Config Variable
+
+        FPSSEL := TStringList.Create; //store selected options here
+        NOITEMCHECK := True; // Variable is true if no item is checked
+
+        // Check fpslimCheckgroup items
+        for i := 0 to fpslimCheckgroup.Items.Count - 1 do
+          begin
+          // check if item is checked
+          if fpslimCheckgroup.Checked[i] then
+          begin
+            // Add item value to stringlist
+            ValorItem := fpslimCheckgroup.Items[i];
+            FPSSEL.Add(ValorItem);
+            NOITEMCHECK := false; // Variable is become false
+          end;
+          end;
+
+          if NOITEMCHECK = true then
+             FPSLIM := 'fps_limit=0' //If no item is check fps_limit is unlimited
+          else
+          FPSLIM := 'fps_limit=' + FPSSEL.CommaText;
+          FPSSEL.Free;
+
           //##################################################################################################################  Write config file
+        //  end;
 
     //Visual Tab
     SaveConfig(HUDTITLE,MANGOHUDCFGFILE);
@@ -966,6 +1003,7 @@ var
     SaveConfig(FRAMECOUNT,MANGOHUDCFGFILE);
     SaveConfig(FRAMETIMEC,MANGOHUDCFGFILE);
     SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
+    SaveConfig(FPSLIM,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

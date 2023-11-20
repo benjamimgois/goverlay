@@ -4846,12 +4846,12 @@ object goverlayform: Tgoverlayform
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
         ParentFont = False
-        object performanceGroupBox: TGroupBox
+        object fpslimiterGroupBox: TGroupBox
           Left = 0
           Height = 377
           Top = 184
           Width = 380
-          Caption = 'FPS'
+          Caption = 'FPS Limit'
           ClientHeight = 347
           ClientWidth = 376
           DoubleBuffered = True
@@ -4863,46 +4863,14 @@ object goverlayform: Tgoverlayform
           ParentDoubleBuffered = False
           ParentFont = False
           TabOrder = 0
-          object fpslimLabel: TLabel
-            Left = 17
-            Height = 18
-            Top = 0
-            Width = 31
-            Caption = 'Limit'
-            Font.Height = -13
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            ParentColor = False
-            ParentFont = False
-          end
-          object fpslimComboBox: TComboBox
-            Left = 17
-            Height = 32
-            Hint = '60 - Will limit the FPS to 60'#10'60 / 30 - 60 is the default limit, pressing the toggle key will switch the limit to 30fps'#10'UNSET - Let the game decide'
-            Top = 19
-            Width = 115
-            Color = clBtnFace
-            Font.Height = -13
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            ItemHeight = 24
-            ItemIndex = 0
-            Items.Strings = (
-              'Unlocked'
-              'Custom'
-              'Unset'
-            )
-            ParentFont = False
-            TabOrder = 0
-            Text = 'Unlocked'
-          end
           object fpslimtoggleComboBox: TComboBox
-            Left = 112
+            Left = 245
             Height = 32
             Hint = 'FPS limit toggle key'
-            Top = 184
-            Width = 75
+            Top = 216
+            Width = 115
             Color = clBtnFace
+            Enabled = False
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -4917,11 +4885,11 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 1
+            TabOrder = 0
             Text = 'F1'
           end
           object fpslimLabel3: TLabel
-            Left = 28
+            Left = 272
             Height = 18
             Top = 192
             Width = 75
@@ -4933,22 +4901,22 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object CheckBox1: TCheckBox
-            Left = 67
+            Left = 80
             Height = 22
-            Top = 224
+            Top = 264
             Width = 141
             Caption = 'Change FPS colors'
             Font.Height = -13
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 2
+            TabOrder = 1
           end
           object gpuload1ColorButton1: TColorButton
-            Left = 67
+            Left = 80
             Height = 12
             Hint = 'Low load color (0 - 50%)'
-            Top = 247
+            Top = 287
             Width = 50
             Align = alCustom
             BorderWidth = 2
@@ -4959,10 +4927,10 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object gpuload2ColorButton1: TColorButton
-            Left = 143
+            Left = 156
             Height = 12
             Hint = 'Medium load color (50 - 90%)'
-            Top = 247
+            Top = 287
             Width = 50
             Align = alCustom
             BorderWidth = 2
@@ -4976,10 +4944,10 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object gpuload3ColorButton1: TColorButton
-            Left = 217
+            Left = 230
             Height = 12
             Hint = 'High load color (90 - 100%)'
-            Top = 247
+            Top = 287
             Width = 50
             Align = alCustom
             BorderWidth = 2
@@ -4990,12 +4958,13 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object fpslimComboBox1: TComboBox
-            Left = 222
+            Left = 11
             Height = 32
             Hint = '60 - Will limit the FPS to 60'#10'60 / 30 - 60 is the default limit, pressing the toggle key will switch the limit to 30fps'#10'UNSET - Let the game decide'
-            Top = 20
+            Top = 211
             Width = 115
             Color = clBtnFace
+            Enabled = False
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -5006,13 +4975,13 @@ object goverlayform: Tgoverlayform
               'Early'
             )
             ParentFont = False
-            TabOrder = 3
+            TabOrder = 2
             Text = 'Late (default)'
           end
           object fpslimLabel1: TLabel
-            Left = 224
+            Left = 11
             Height = 18
-            Top = 1
+            Top = 192
             Width = 48
             Caption = 'Method'
             Font.Height = -13
@@ -5022,10 +4991,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object autologSpinEdit1: TSpinEdit
-            Left = 67
+            Left = 80
             Height = 28
             Hint = 'Autostart logging after X seconds.'#10'"0" disable autologging'
-            Top = 264
+            Top = 304
             Width = 50
             AutoSize = False
             Color = clBtnFace
@@ -5038,14 +5007,14 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 4
-            Value = 60
+            TabOrder = 3
+            Value = 30
           end
           object autologSpinEdit2: TSpinEdit
-            Left = 143
+            Left = 156
             Height = 28
             Hint = 'Autostart logging after X seconds.'#10'"0" disable autologging'
-            Top = 264
+            Top = 304
             Width = 50
             AutoSize = False
             Color = clBtnFace
@@ -5058,14 +5027,14 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 5
-            Value = 90
+            TabOrder = 4
+            Value = 45
           end
           object autologSpinEdit3: TSpinEdit
-            Left = 217
+            Left = 230
             Height = 28
             Hint = 'Autostart logging after X seconds.'#10'"0" disable autologging'
-            Top = 264
+            Top = 304
             Width = 50
             AutoSize = False
             Color = clBtnFace
@@ -5078,16 +5047,20 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 6
-            Value = 120
+            TabOrder = 5
+            Value = 60
           end
-          object CheckGroup1: TCheckGroup
-            Left = 11
-            Height = 88
-            Top = 88
-            Width = 349
+          object fpslimCheckGroup: TCheckGroup
+            AnchorSideLeft.Control = fpslimiterGroupBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = fpslimiterGroupBox
+            Left = 54
+            Height = 164
+            Top = 10
+            Width = 269
             AutoFill = True
-            Caption = 'Frame Limits'
+            BorderSpacing.Top = 10
+            Caption = 'FPS Limiter'
             ChildSizing.LeftRightSpacing = 6
             ChildSizing.TopBottomSpacing = 6
             ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
@@ -5095,10 +5068,10 @@ object goverlayform: Tgoverlayform
             ChildSizing.ShrinkHorizontal = crsScaleChilds
             ChildSizing.ShrinkVertical = crsScaleChilds
             ChildSizing.Layout = cclLeftToRightThenTopToBottom
-            ChildSizing.ControlsPerLine = 4
-            ClientHeight = 58
-            ClientWidth = 345
-            Columns = 4
+            ChildSizing.ControlsPerLine = 3
+            ClientHeight = 134
+            ClientWidth = 265
+            Columns = 3
             Items.Strings = (
               '30'
               '40'
@@ -5107,11 +5080,12 @@ object goverlayform: Tgoverlayform
               '120'
               '144'
               '165'
+              '175'
               '240'
             )
-            TabOrder = 7
+            TabOrder = 6
             Data = {
-              080000000202020202020202
+              09000000020202020202020202
             }
           end
         end
@@ -7774,7 +7748,7 @@ object goverlayform: Tgoverlayform
             Transparent = True
           end
         end
-        object vsyncGroupBox1: TGroupBox
+        object filtersGroupBox: TGroupBox
           Left = 388
           Height = 377
           Top = 184
@@ -7884,7 +7858,7 @@ object goverlayform: Tgoverlayform
           Height = 169
           Top = 8
           Width = 380
-          Caption = 'FPS'
+          Caption = 'FPS Info'
           ClientHeight = 139
           ClientWidth = 376
           ParentBackground = False
