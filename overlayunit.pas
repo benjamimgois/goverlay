@@ -35,9 +35,9 @@ type
     fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
-    autologSpinEdit1: TSpinEdit;
-    autologSpinEdit2: TSpinEdit;
-    autologSpinEdit3: TSpinEdit;
+    fpscolor1SpinEdit: TSpinEdit;
+    fpscolor2SpinEdit: TSpinEdit;
+    fpscolor3SpinEdit: TSpinEdit;
     autostartLabel: TLabel;
     autostartLabel2: TLabel;
     autouploadCheckBox: TCheckBox;
@@ -72,6 +72,8 @@ type
     cpuImage: TImage;
     gpuvoltageCheckBox: TCheckBox;
     gpuImage: TImage;
+    fpstoggleImage: TImage;
+    hudtoggleImage: TImage;
     RadioGroup1: TRadioGroup;
     showfpslimCheckBox: TCheckBox;
     vulkandriverCheckBox: TCheckBox;
@@ -81,7 +83,7 @@ type
     metricsSheet: TTabSheet;
     FontcolorButton: TColorButton;
     C: TComboBox;
-    fpslimComboBox1: TComboBox;
+    fpslimmetComboBox: TComboBox;
     fpslimLabel1: TLabel;
     cpumainmetricsLabel: TLabel;
     cputempLabel: TLabel;
@@ -111,11 +113,11 @@ type
     gpuColorButton: TColorButton;
     gpufreqCheckBox: TCheckBox;
     gpuGroupBox: TGroupBox;
-    gpuload1ColorButton1: TColorButton;
+    fpscolor1ColorButton: TColorButton;
     gpuload1ColorButton: TColorButton;
-    gpuload2ColorButton1: TColorButton;
+    fpscolor2ColorButton: TColorButton;
     gpuload2ColorButton: TColorButton;
-    gpuload3ColorButton1: TColorButton;
+    fpscolor3ColorButton: TColorButton;
     gpuload3ColorButton: TColorButton;
     gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
@@ -630,7 +632,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET: string; //performance tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -937,8 +939,28 @@ var
           if NOITEMCHECK = true then
              FPSLIM := 'fps_limit=0' //If no item is check fps_limit is unlimited
           else
-          FPSLIM := 'fps_limit=' + FPSSEL.CommaText;
-          FPSSEL.Free;
+              FPSLIM := 'fps_limit=' + FPSSEL.CommaText;
+              FPSSEL.Free;
+
+
+
+
+      //FPS Limit method - Config Variable
+
+      case fpslimmetComboBox.ItemIndex of
+        0:FPSLIMMET := 'fps_limit_method=late' ;
+        1:FPSLIMMET := 'fps_limit_method=early' ;
+      end;
+
+
+      //FPS toggle key - Config Variable
+
+      case fpslimtoggleComboBox.ItemIndex of
+        0:FPSLIMMET := 'toggle_fps_limit=Shift_L+F1' ;
+        1:FPSLIMMET := 'toggle_fps_limit=Shift_L+F2' ;
+        2:FPSLIMMET := 'toggle_fps_limit=Shift_L+F3' ;
+        3:FPSLIMMET := 'toggle_fps_limit=Shift_L+F4' ;
+      end;
 
           //##################################################################################################################  Write config file
         //  end;
@@ -1004,6 +1026,8 @@ var
     SaveConfig(FRAMETIMEC,MANGOHUDCFGFILE);
     SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
     SaveConfig(FPSLIM,MANGOHUDCFGFILE);
+    SaveConfig(FPSLIMMET ,MANGOHUDCFGFILE);
+
 
 end; // ########################################      end save button click       ###############################################################################
 
