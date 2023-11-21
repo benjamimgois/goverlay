@@ -22,6 +22,7 @@ type
     alphavalueLabel: TLabel;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
+    fpscolor2ColorButton: TColorButton;
     fpslimCheckGroup: TCheckGroup;
     coreloadtypeBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
@@ -36,7 +37,6 @@ type
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
     fpscolor1SpinEdit: TSpinEdit;
-    fpscolor2SpinEdit: TSpinEdit;
     fpscolor3SpinEdit: TSpinEdit;
     autostartLabel: TLabel;
     autostartLabel2: TLabel;
@@ -49,7 +49,7 @@ type
     batteryCheckBox: TCheckBox;
     batteryCheckBox1: TCheckBox;
     batteryCheckBox2: TCheckBox;
-    CheckBox1: TCheckBox;
+    fpscolorCheckBox: TCheckBox;
     CheckBox2: TCheckBox;
     compacthudBitBtn: TBitBtn;
     completehudBitBtn: TBitBtn;
@@ -115,7 +115,6 @@ type
     gpuGroupBox: TGroupBox;
     fpscolor1ColorButton: TColorButton;
     gpuload1ColorButton: TColorButton;
-    fpscolor2ColorButton: TColorButton;
     gpuload2ColorButton: TColorButton;
     fpscolor3ColorButton: TColorButton;
     gpuload3ColorButton: TColorButton;
@@ -632,7 +631,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE: string; //performance tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -962,6 +961,19 @@ var
         3:FPSLIMMET := 'toggle_fps_limit=Shift_L+F4' ;
       end;
 
+
+        ////FPS color - Config Variable
+
+        if fpscolorCheckbox.checked = true then
+        begin
+          FPSCHANGE:= 'fps_color_change';
+          FPSCOLOR := 'fps_color='+ ColorToHTMLColor(fpscolor1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(fpscolor2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(fpscolor3ColorButton.ButtonColor);
+          FPSVALUE := 'fps_value='+ inttostr(fpscolor1Spinedit.Value)+ ',' + inttostr(fpscolor3SpinEdit.Value)
+        end;
+
+         ////FPS color Value - Config Variable
+
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1027,7 +1039,9 @@ var
     SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
     SaveConfig(FPSLIM,MANGOHUDCFGFILE);
     SaveConfig(FPSLIMMET ,MANGOHUDCFGFILE);
-
+    SaveConfig(FPSCHANGE ,MANGOHUDCFGFILE);
+    SaveConfig(FPSCOLOR ,MANGOHUDCFGFILE);
+    SaveConfig(FPSVALUE ,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
