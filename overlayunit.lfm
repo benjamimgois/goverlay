@@ -9666,31 +9666,45 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           TabOrder = 2
-          object roundcornervalueLabel1: TLabel
-            Left = 280
+          object mipmapvalueLabel: TLabel
+            AnchorSideTop.Control = mipmapTrackBar
+            AnchorSideTop.Side = asrCenter
+            AnchorSideRight.Control = mipmapTrackBar
+            AnchorSideRight.Side = asrBottom
+            Left = 320
             Height = 18
-            Top = 143
+            Top = 205
             Width = 9
+            Anchors = [akTop, akRight]
             Caption = 'X'
             ParentColor = False
           end
-          object roundcornerTrackBar1: TTrackBar
-            Left = 66
-            Height = 250
-            Top = 26
+          object afTrackBar: TTrackBar
+            AnchorSideLeft.Control = afLabel
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = afLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 55
+            Height = 268
+            Top = 79
             Width = 45
             Max = 16
             Orientation = trVertical
             Position = 0
             Reversed = True
+            BorderSpacing.Top = 10
             ParentColor = False
             TabOrder = 0
           end
-          object transparencyLabel2: TLabel
-            Left = 24
+          object afLabel: TLabel
+            AnchorSideLeft.Control = filterRadioGroup
+            AnchorSideTop.Control = filterRadioGroup
+            AnchorSideTop.Side = asrBottom
+            Left = 15
             Height = 18
-            Top = 1
+            Top = 51
             Width = 124
+            BorderSpacing.Top = 10
             Caption = 'Anisotropic filtering '
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -9698,11 +9712,17 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object transparencyLabel3: TLabel
-            Left = 252
+          object mipmapLabel: TLabel
+            AnchorSideTop.Control = filterRadioGroup
+            AnchorSideTop.Side = asrBottom
+            AnchorSideRight.Control = filterRadioGroup
+            AnchorSideRight.Side = asrBottom
+            Left = 248
             Height = 18
-            Top = 1
-            Width = 114
+            Top = 51
+            Width = 117
+            Anchors = [akTop, akLeft, akRight]
+            BorderSpacing.Top = 10
             Caption = 'Mip-map LoD bias '
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -9710,32 +9730,45 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object roundcornerTrackBar2: TTrackBar
-            Left = 288
-            Height = 250
-            Top = 26
+          object mipmapTrackBar: TTrackBar
+            AnchorSideLeft.Control = mipmapLabel
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = mipmapLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 284
+            Height = 270
+            Top = 79
             Width = 45
             Max = 16
             Min = -16
             Orientation = trVertical
             Position = 0
             Reversed = True
+            BorderSpacing.Top = 10
             ParentColor = False
             TabOrder = 1
           end
-          object roundcornervalueLabel2: TLabel
-            Left = 54
+          object afvalueLabel: TLabel
+            AnchorSideTop.Control = afTrackBar
+            AnchorSideTop.Side = asrCenter
+            AnchorSideRight.Control = afTrackBar
+            AnchorSideRight.Side = asrBottom
+            Left = 91
             Height = 18
-            Top = 143
+            Top = 204
             Width = 9
+            Anchors = [akTop, akRight]
             Caption = 'X'
             ParentColor = False
           end
-          object RadioGroup1: TRadioGroup
-            Left = 8
+          object filterRadioGroup: TRadioGroup
+            AnchorSideLeft.Control = filtersGroupBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = filtersGroupBox
+            Left = 15
             Height = 41
-            Top = 296
-            Width = 361
+            Top = 0
+            Width = 350
             AutoFill = True
             ChildSizing.LeftRightSpacing = 6
             ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
@@ -9745,14 +9778,18 @@ object goverlayform: Tgoverlayform
             ChildSizing.Layout = cclLeftToRightThenTopToBottom
             ChildSizing.ControlsPerLine = 4
             ClientHeight = 37
-            ClientWidth = 357
+            ClientWidth = 346
             Columns = 4
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
             Items.Strings = (
               'None'
               'Bicubic'
               'Trilinear'
               'Retro'
             )
+            ParentFont = False
             TabOrder = 2
           end
         end

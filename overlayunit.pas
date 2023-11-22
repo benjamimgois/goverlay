@@ -74,7 +74,7 @@ type
     gpuImage: TImage;
     fpstoggleImage: TImage;
     hudtoggleImage: TImage;
-    RadioGroup1: TRadioGroup;
+    filterRadioGroup: TRadioGroup;
     showfpslimCheckBox: TCheckBox;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
@@ -190,10 +190,10 @@ type
     reshadeProgressBar: TProgressBar;
     reshadesyncBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
-    roundcornerTrackBar1: TTrackBar;
-    roundcornerTrackBar2: TTrackBar;
-    roundcornervalueLabel1: TLabel;
-    roundcornervalueLabel2: TLabel;
+    afTrackBar: TTrackBar;
+    mipmapTrackBar: TTrackBar;
+    mipmapvalueLabel: TLabel;
+    afvalueLabel: TLabel;
     runsteamBitBtn: TBitBtn;
     runvkbasaltBitBtn: TBitBtn;
     saveBitBtn: TBitBtn;
@@ -204,8 +204,8 @@ type
     themesComboBox: TComboBox;
     timeCheckBox: TCheckBox;
     transparencyLabel: TLabel;
-    transparencyLabel2: TLabel;
-    transparencyLabel3: TLabel;
+    afLabel: TLabel;
+    mipmapLabel: TLabel;
     transpTrackBar: TTrackBar;
     uploadlogComboBox: TComboBox;
     fontsGroupBox: TGroupBox;
