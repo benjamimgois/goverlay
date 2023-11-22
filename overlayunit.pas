@@ -36,7 +36,7 @@ type
     fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autologSpinEdit: TSpinEdit;
-    fpscolor1SpinEdit: TSpinEdit;
+    fpscolor2SpinEdit: TSpinEdit;
     fpscolor3SpinEdit: TSpinEdit;
     autostartLabel: TLabel;
     autostartLabel2: TLabel;
@@ -493,6 +493,8 @@ end;
 
 
 
+
+
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
 begin
      //Change icon and hint on click
@@ -631,7 +633,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC: string; //performance tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -968,11 +970,26 @@ var
         begin
           FPSCHANGE:= 'fps_color_change';
           FPSCOLOR := 'fps_color='+ ColorToHTMLColor(fpscolor1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(fpscolor2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(fpscolor3ColorButton.ButtonColor);
-          FPSVALUE := 'fps_value='+ inttostr(fpscolor1Spinedit.Value)+ ',' + inttostr(fpscolor3SpinEdit.Value)
+          FPSVALUE := 'fps_value='+ inttostr(fpscolor2SpinEdit.Value)+ ',' + inttostr(fpscolor3SpinEdit.Value)
         end;
 
-         ////FPS color Value - Config Variable
+      //VULKAN VSync   - Config Variable
 
+      case vsyncComboBox.ItemIndex of
+        0:VSYNC := 'vsync=0' ;
+        1:VSYNC := 'vsync=1' ;
+        2:VSYNC := 'vsync=2' ;
+        3:VSYNC := 'vsync=3' ;
+      end;
+
+      //GL VSync   - Config Variable
+
+      case glvsyncComboBox.ItemIndex of
+        0:GLVSYNC := 'gl_vsync=-1' ;
+        1:GLVSYNC := 'gl_vsync=0' ;
+        2:GLVSYNC := 'gl_vsync=1' ;
+        3:GLVSYNC := 'gl_vsync=n' ;
+      end;
 
           //##################################################################################################################  Write config file
         //  end;
@@ -1042,6 +1059,8 @@ var
     SaveConfig(FPSCHANGE ,MANGOHUDCFGFILE);
     SaveConfig(FPSCOLOR ,MANGOHUDCFGFILE);
     SaveConfig(FPSVALUE ,MANGOHUDCFGFILE);
+    SaveConfig(VSYNC ,MANGOHUDCFGFILE);
+    SaveConfig(GLVSYNC ,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

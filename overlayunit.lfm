@@ -3919,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = performanceTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 1
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -5765,13 +5765,17 @@ object goverlayform: Tgoverlayform
         Font.Quality = fqAntialiased
         ParentFont = False
         object fpslimiterGroupBox: TGroupBox
+          AnchorSideLeft.Control = performanceTabSheet
+          AnchorSideBottom.Control = performanceTabSheet
+          AnchorSideBottom.Side = asrBottom
           Left = 0
-          Height = 377
-          Top = 184
-          Width = 380
+          Height = 390
+          Top = 185
+          Width = 385
+          Anchors = [akLeft, akBottom]
           Caption = 'Limiters'
-          ClientHeight = 347
-          ClientWidth = 376
+          ClientHeight = 360
+          ClientWidth = 381
           DoubleBuffered = True
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -5786,10 +5790,10 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             AnchorSideBottom.Control = fpslimiterGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 266
+            Left = 271
             Height = 32
             Hint = 'FPS limit toggle key'
-            Top = 305
+            Top = 318
             Width = 100
             Anchors = [akRight, akBottom]
             BorderSpacing.Right = 10
@@ -5816,9 +5820,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = fpslimtoggleComboBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideBottom.Control = fpslimtoggleComboBox
-            Left = 284
+            Left = 289
             Height = 18
-            Top = 285
+            Top = 298
             Width = 65
             Anchors = [akLeft, akBottom]
             BorderSpacing.Bottom = 2
@@ -5834,12 +5838,12 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = fpslimCheckGroup
             AnchorSideTop.Side = asrBottom
-            Left = 118
-            Height = 27
-            Top = 176
+            Left = 120
+            Height = 28
+            Top = 188
             Width = 141
             Anchors = [akTop, akLeft, akBottom]
-            BorderSpacing.Top = 8
+            BorderSpacing.Top = 15
             BorderSpacing.Bottom = 10
             Caption = 'Change FPS colors'
             Font.Height = -13
@@ -5849,16 +5853,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 1
           end
           object fpscolor1ColorButton: TColorButton
-            AnchorSideLeft.Control = fpscolor1SpinEdit
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideBottom.Control = fpscolor1SpinEdit
-            Left = 68
+            AnchorSideLeft.Control = fpslimCheckGroup
+            AnchorSideTop.Control = fpscolorCheckBox
+            AnchorSideTop.Side = asrBottom
+            AnchorSideBottom.Control = fpscolor2SpinEdit
+            Left = 70
             Height = 12
             Hint = 'Low color'
-            Top = 213
+            Top = 226
             Width = 80
             Align = alCustom
-            Anchors = [akLeft, akBottom]
             BorderWidth = 2
             ButtonColorSize = 16
             ButtonColor = 2237106
@@ -5867,16 +5871,20 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
           end
           object fpscolor3ColorButton: TColorButton
-            AnchorSideLeft.Control = fpscolor3SpinEdit
-            AnchorSideLeft.Side = asrCenter
+            AnchorSideLeft.Control = fpslimCheckGroup
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = fpscolorCheckBox
+            AnchorSideTop.Side = asrBottom
+            AnchorSideRight.Control = fpslimCheckGroup
+            AnchorSideRight.Side = asrBottom
             AnchorSideBottom.Control = fpscolor3SpinEdit
-            Left = 228
+            Left = 230
             Height = 12
             Hint = 'High color'
-            Top = 212
+            Top = 226
             Width = 80
             Align = alCustom
-            Anchors = [akLeft, akBottom]
+            Anchors = [akTop, akRight]
             BorderWidth = 2
             ButtonColorSize = 16
             ButtonColor = 63801
@@ -5891,7 +5899,7 @@ object goverlayform: Tgoverlayform
             Left = 10
             Height = 32
             Hint = 'If FPS limiter should wait before or after presenting a frame. '#10#10'- Late (default) for the lowest latency  '#10'- Early for the smoothest frametimes'
-            Top = 305
+            Top = 318
             Width = 100
             Anchors = [akLeft, akBottom]
             BorderSpacing.Left = 10
@@ -5916,7 +5924,7 @@ object goverlayform: Tgoverlayform
             AnchorSideBottom.Control = fpslimmetComboBox
             Left = 36
             Height = 18
-            Top = 285
+            Top = 298
             Width = 48
             Anchors = [akLeft, akBottom]
             BorderSpacing.Bottom = 2
@@ -5927,17 +5935,20 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpscolor1SpinEdit: TSpinEdit
+          object fpscolor2SpinEdit: TSpinEdit
             AnchorSideLeft.Control = fpslimCheckGroup
-            Left = 68
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = fpscolor2ColorButton
+            AnchorSideTop.Side = asrBottom
+            Left = 150
             Height = 28
-            Hint = 'Inferior break point for FPS colors'
-            Top = 225
+            Hint = 'Middle break point for FPS colors'
+            Top = 238
             Width = 80
             Alignment = taCenter
             AutoSize = False
             Color = clBtnFace
-            Font.Color = 2237106
+            Font.Color = 654845
             Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -5950,12 +5961,14 @@ object goverlayform: Tgoverlayform
             Value = 30
           end
           object fpscolor3SpinEdit: TSpinEdit
+            AnchorSideTop.Control = fpscolor3ColorButton
+            AnchorSideTop.Side = asrBottom
             AnchorSideRight.Control = fpslimCheckGroup
             AnchorSideRight.Side = asrBottom
-            Left = 228
+            Left = 230
             Height = 28
             Hint = 'Superior break point for FPS colors'
-            Top = 224
+            Top = 238
             Width = 80
             Alignment = taCenter
             Anchors = [akTop, akRight]
@@ -5977,13 +5990,13 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = fpslimiterGroupBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = fpslimiterGroupBox
-            Left = 68
+            Left = 70
             Height = 158
             Hint = 'Check all the FPS limits you need and toggle between '#10'then with the toggle key'
-            Top = 10
+            Top = 15
             Width = 240
             AutoFill = True
-            BorderSpacing.Top = 10
+            BorderSpacing.Top = 15
             Caption = 'FPS Limit'
             ChildSizing.LeftRightSpacing = 6
             ChildSizing.TopBottomSpacing = 6
@@ -6023,9 +6036,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = fpslimtoggleComboBox
             AnchorSideTop.Side = asrCenter
             AnchorSideRight.Control = fpslimtoggleComboBox
-            Left = 236
+            Left = 241
             Height = 28
-            Top = 307
+            Top = 320
             Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Right = 2
@@ -6939,14 +6952,15 @@ object goverlayform: Tgoverlayform
           object fpscolor2ColorButton: TColorButton
             AnchorSideLeft.Control = fpslimCheckGroup
             AnchorSideLeft.Side = asrCenter
-            AnchorSideBottom.Control = fpscolor1SpinEdit
-            Left = 148
+            AnchorSideTop.Control = fpscolorCheckBox
+            AnchorSideTop.Side = asrBottom
+            AnchorSideBottom.Control = fpscolor2SpinEdit
+            Left = 150
             Height = 12
             Hint = 'Median color'
-            Top = 213
+            Top = 226
             Width = 80
             Align = alCustom
-            Anchors = [akLeft, akBottom]
             BorderWidth = 2
             ButtonColorSize = 16
             ButtonColor = 654845
@@ -6956,13 +6970,17 @@ object goverlayform: Tgoverlayform
           end
         end
         object vsyncGroupBox: TGroupBox
-          Left = 388
-          Height = 169
-          Top = 8
-          Width = 380
+          AnchorSideTop.Control = performanceTabSheet
+          AnchorSideRight.Control = performanceTabSheet
+          AnchorSideRight.Side = asrBottom
+          Left = 395
+          Height = 180
+          Top = 0
+          Width = 385
+          Anchors = [akTop, akRight]
           Caption = 'VSYNC'
-          ClientHeight = 139
-          ClientWidth = 376
+          ClientHeight = 150
+          ClientWidth = 381
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -6971,11 +6989,15 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 1
           object vsyncComboBox: TComboBox
-            Left = 168
+            AnchorSideLeft.Control = vulkanImage
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = vulkanImage
+            Left = 190
             Height = 32
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
-            Top = 24
+            Top = 25
             Width = 110
+            BorderSpacing.Left = 10
             Color = clBtnFace
             Font.Height = -13
             Font.Name = 'Sans'
@@ -6996,10 +7018,12 @@ object goverlayform: Tgoverlayform
             Text = 'Unset'
           end
           object glvsyncComboBox: TComboBox
-            Left = 168
+            AnchorSideLeft.Control = vsyncComboBox
+            AnchorSideTop.Control = openglImage
+            Left = 190
             Height = 32
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
-            Top = 80
+            Top = 75
             Width = 110
             Color = clBtnFace
             Font.Height = -13
@@ -7021,11 +7045,15 @@ object goverlayform: Tgoverlayform
             Text = 'Unset'
           end
           object vulkanImage: TImage
-            Left = 81
+            AnchorSideLeft.Control = vsyncGroupBox
+            AnchorSideTop.Control = vsyncGroupBox
+            Left = 110
             Height = 30
-            Top = 24
+            Top = 25
             Width = 70
             AntialiasingMode = amOn
+            BorderSpacing.Left = 110
+            BorderSpacing.Top = 25
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963636B000089504E47
               0D0A1A0A0000000D4948445200000349000000FF080600000024029DB5000000
@@ -7893,11 +7921,15 @@ object goverlayform: Tgoverlayform
             Transparent = True
           end
           object openglImage: TImage
-            Left = 81
+            AnchorSideLeft.Control = vulkanImage
+            AnchorSideTop.Control = vulkanImage
+            AnchorSideTop.Side = asrBottom
+            Left = 110
             Height = 30
-            Top = 82
+            Top = 75
             Width = 70
             AntialiasingMode = amOn
+            BorderSpacing.Top = 20
             Picture.Data = {
               1754506F727461626C654E6574776F726B477261706869637ED5000089504E47
               0D0A1A0A0000000D494844520000047F000001F9080600000018FA92E0000000
@@ -9615,13 +9647,18 @@ object goverlayform: Tgoverlayform
           end
         end
         object filtersGroupBox: TGroupBox
-          Left = 388
-          Height = 377
-          Top = 184
-          Width = 380
+          AnchorSideRight.Control = performanceTabSheet
+          AnchorSideRight.Side = asrBottom
+          AnchorSideBottom.Control = performanceTabSheet
+          AnchorSideBottom.Side = asrBottom
+          Left = 395
+          Height = 390
+          Top = 185
+          Width = 385
+          Anchors = [akRight, akBottom]
           Caption = 'Filters'
-          ClientHeight = 347
-          ClientWidth = 376
+          ClientHeight = 360
+          ClientWidth = 381
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -9720,13 +9757,15 @@ object goverlayform: Tgoverlayform
           end
         end
         object fpsGroupBox: TGroupBox
+          AnchorSideLeft.Control = performanceTabSheet
+          AnchorSideTop.Control = performanceTabSheet
           Left = 0
-          Height = 169
-          Top = 8
-          Width = 380
+          Height = 180
+          Top = 0
+          Width = 385
           Caption = 'Information'
-          ClientHeight = 139
-          ClientWidth = 376
+          ClientHeight = 150
+          ClientWidth = 381
           ParentBackground = False
           ParentColor = False
           TabOrder = 3
@@ -9771,7 +9810,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = frametimegraphCheckBox
             AnchorSideRight.Control = fpsGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 208
+            Left = 213
             Height = 22
             Hint = 'Shows the number of frames since start'
             Top = 62
@@ -9811,7 +9850,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = fpsGroupBox
             AnchorSideRight.Control = fpsGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 208
+            Left = 213
             Height = 22
             Hint = 'Display FPS Limit'
             Top = 10
