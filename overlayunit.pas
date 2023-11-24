@@ -633,7 +633,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER: string; //performance tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -991,6 +991,16 @@ var
         3:GLVSYNC := 'gl_vsync=n' ;
       end;
 
+
+     // Filters - Config Variable
+
+      case filterRadiogroup.ItemIndex of
+        0:FILTER := '' ;
+        1:FILTER := 'bicubic' ;
+        2:FILTER := 'trilinear' ;
+        3:FILTER := 'retro' ;
+      end;
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1061,6 +1071,7 @@ var
     SaveConfig(FPSVALUE ,MANGOHUDCFGFILE);
     SaveConfig(VSYNC ,MANGOHUDCFGFILE);
     SaveConfig(GLVSYNC ,MANGOHUDCFGFILE);
+    SaveConfig(FILTER ,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

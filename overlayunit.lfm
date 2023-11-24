@@ -9673,7 +9673,7 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             Left = 320
             Height = 18
-            Top = 205
+            Top = 210
             Width = 9
             Anchors = [akTop, akRight]
             Caption = 'X'
@@ -9686,7 +9686,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 55
             Height = 268
-            Top = 79
+            Top = 84
             Width = 45
             Max = 16
             Orientation = trVertical
@@ -9702,7 +9702,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 15
             Height = 18
-            Top = 51
+            Top = 56
             Width = 124
             BorderSpacing.Top = 10
             Caption = 'Anisotropic filtering '
@@ -9719,7 +9719,7 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             Left = 248
             Height = 18
-            Top = 51
+            Top = 56
             Width = 117
             Anchors = [akTop, akLeft, akRight]
             BorderSpacing.Top = 10
@@ -9737,7 +9737,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 284
             Height = 270
-            Top = 79
+            Top = 84
             Width = 45
             Max = 16
             Min = -16
@@ -9755,7 +9755,7 @@ object goverlayform: Tgoverlayform
             AnchorSideRight.Side = asrBottom
             Left = 91
             Height = 18
-            Top = 204
+            Top = 209
             Width = 9
             Anchors = [akTop, akRight]
             Caption = 'X'
@@ -9767,9 +9767,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = filtersGroupBox
             Left = 15
             Height = 41
-            Top = 0
+            Top = 5
             Width = 350
             AutoFill = True
+            BorderSpacing.Top = 5
             ChildSizing.LeftRightSpacing = 6
             ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
             ChildSizing.EnlargeVertical = crsHomogenousChildResize
@@ -9783,6 +9784,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
+            ItemIndex = 0
             Items.Strings = (
               'None'
               'Bicubic'
