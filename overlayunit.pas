@@ -248,12 +248,14 @@ type
     wineColorButton: TColorButton;
 
     procedure aboutBitBtnClick(Sender: TObject);
+    procedure afTrackBarChange(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure fpslimCheckBoxChange(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
+    procedure mipmapTrackBarChange(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
@@ -483,7 +485,8 @@ begin
      alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
      fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
      fontcombobox.ItemIndex:=0;
-
+     afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
+     mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
 end;
 
 procedure Tgoverlayform.fpslimCheckBoxChange(Sender: TObject);
@@ -571,6 +574,12 @@ end;
 
 end;
 
+procedure Tgoverlayform.mipmapTrackBarChange(Sender: TObject);
+begin
+  //Display new values and trackbar changes
+  mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+end;
+
 
 procedure Tgoverlayform.fontsizeTrackBarChange(Sender: TObject);
 begin
@@ -603,6 +612,12 @@ begin
    aboutForm.show;
 end;
 
+procedure Tgoverlayform.afTrackBarChange(Sender: TObject);
+begin
+  //Display new values and trackbar changes
+  afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
+end;
+
 procedure Tgoverlayform.PaintBox1Paint(Sender: TObject);
 var
   i: Integer;
@@ -633,7 +648,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER: string; //performance tab
+  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1001,6 +1016,17 @@ var
         3:FILTER := 'retro' ;
       end;
 
+
+
+       //AF Filter   - Config Variable
+
+      AFFILTER := 'af=' + FormatFloat('#0', afTrackbar.Position);
+
+
+       //MIPMAP Filter   - Config Variable
+
+      MIPMAPFILTER := 'picmip=' + FormatFloat('#0', mipmapTrackbar.Position);
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1072,6 +1098,10 @@ var
     SaveConfig(VSYNC ,MANGOHUDCFGFILE);
     SaveConfig(GLVSYNC ,MANGOHUDCFGFILE);
     SaveConfig(FILTER ,MANGOHUDCFGFILE);
+    SaveConfig(AFFILTER ,MANGOHUDCFGFILE);
+    SaveConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
+
+
 
 end; // ########################################      end save button click       ###############################################################################
 

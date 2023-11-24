@@ -9670,12 +9670,12 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = mipmapTrackBar
             AnchorSideTop.Side = asrCenter
             AnchorSideRight.Control = mipmapTrackBar
-            AnchorSideRight.Side = asrBottom
-            Left = 320
+            Left = 270
             Height = 18
             Top = 210
             Width = 9
             Anchors = [akTop, akRight]
+            BorderSpacing.Right = 5
             Caption = 'X'
             ParentColor = False
           end
@@ -9685,10 +9685,12 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = afLabel
             AnchorSideTop.Side = asrBottom
             Left = 55
-            Height = 268
+            Height = 270
+            Hint = 'Anisotropic filtering is a technique used to improve the quality of '#10'textures applied to the surfaces of 3D objects when drawn at a '#10'sharp angle.'
             Top = 84
             Width = 45
             Max = 16
+            OnChange = afTrackBarChange
             Orientation = trVertical
             Position = 0
             Reversed = True
@@ -9737,10 +9739,12 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Side = asrBottom
             Left = 284
             Height = 270
+            Hint = 'The Mipmap LOD Bias is a graphics setting that determines how detailed a texture looks at different distances. '#10#10'Positive values simplify for better performance.'#10'Negative values enhance detail. '#10#10'It''s handy for optimizing visuals in games, adjusting texture quality based on viewing distance or object scale.'
             Top = 84
             Width = 45
             Max = 16
             Min = -16
+            OnChange = mipmapTrackBarChange
             Orientation = trVertical
             Position = 0
             Reversed = True
@@ -9752,12 +9756,12 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = afTrackBar
             AnchorSideTop.Side = asrCenter
             AnchorSideRight.Control = afTrackBar
-            AnchorSideRight.Side = asrBottom
-            Left = 91
+            Left = 41
             Height = 18
-            Top = 209
+            Top = 210
             Width = 9
             Anchors = [akTop, akRight]
+            BorderSpacing.Right = 5
             Caption = 'X'
             ParentColor = False
           end
