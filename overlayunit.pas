@@ -22,6 +22,12 @@ type
     alphavalueLabel: TLabel;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
+    columShape1: TShape;
+    columShape2: TShape;
+    columShape3: TShape;
+    columShape4: TShape;
+    columShape5: TShape;
+    columsGroupBox: TGroupBox;
     fpscolor2ColorButton: TColorButton;
     fpslimCheckGroup: TCheckGroup;
     coreloadtypeBitBtn: TBitBtn;
@@ -75,7 +81,11 @@ type
     fpstoggleImage: TImage;
     hudtoggleImage: TImage;
     filterRadioGroup: TRadioGroup;
+    columShape: TShape;
+    Label1: TLabel;
     showfpslimCheckBox: TCheckBox;
+    plusSpeedButton: TSpeedButton;
+    minusButton: TSpeedButton;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
@@ -227,7 +237,7 @@ type
     steamMenuItem: TMenuItem;
     gamePopupMenu: TPopupMenu;
     iconsImageList: TImageList;
-    positionImageList: TImageList;
+    columImageList: TImageList;
     dependencieSpeedButton: TSpeedButton;
     casTrackBar2: TTrackBar;
     globalbuttonImageList: TImageList;
