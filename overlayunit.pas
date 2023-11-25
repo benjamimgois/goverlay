@@ -82,7 +82,7 @@ type
     hudtoggleImage: TImage;
     filterRadioGroup: TRadioGroup;
     columShape: TShape;
-    Label1: TLabel;
+    columvalueLabel: TLabel;
     showfpslimCheckBox: TCheckBox;
     plusSpeedButton: TSpeedButton;
     minusButton: TSpeedButton;
@@ -265,9 +265,11 @@ type
     procedure fpslimCheckBoxChange(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
+    procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
+    procedure plusSpeedButtonClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
 
@@ -292,7 +294,7 @@ var
   MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER: string;
 
   //########################################
-  GPUNUMBER: integer;
+  GPUNUMBER, COLUMNS: integer;
   GPUDESC: TStringList;
 
 implementation
@@ -497,6 +499,60 @@ begin
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+
+     COLUMNS := 3;
+     columvalueLabel.Caption:= inttostr(COLUMNS);
+
+     case COLUMNS of
+       1:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       2:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       3:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       4:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       5:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=true;
+         columShape5.Visible:=false;
+       end;
+       6:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=true;
+         columShape5.Visible:=true;
+       end;
+     end;
 end;
 
 procedure Tgoverlayform.fpslimCheckBoxChange(Sender: TObject);
@@ -584,6 +640,66 @@ end;
 
 end;
 
+procedure Tgoverlayform.minusButtonClick(Sender: TObject);
+begin
+   COLUMNS := COLUMNS-1;
+   if COLUMNS <= 1 then
+     COLUMNS:=1;
+
+   columvalueLabel.Caption:=inttostr(COLUMNS);
+
+     case COLUMNS of
+       1:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       2:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       3:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       4:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       5:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=true;
+         columShape5.Visible:=false;
+       end;
+       6:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=true;
+         columShape5.Visible:=true;
+       end;
+     end;
+end;
+
 procedure Tgoverlayform.mipmapTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
@@ -652,10 +768,70 @@ begin
   gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
 end;
 
+procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);
+begin
+   COLUMNS := COLUMNS+1;
+   if COLUMNS >= 6 then
+     COLUMNS:=6;
+
+   columvalueLabel.Caption:=inttostr(COLUMNS);
+
+     case COLUMNS of
+       1:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       2:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       3:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       4:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
+       end;
+       5:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=true;
+         columShape5.Visible:=false;
+       end;
+       6:begin
+         columShape.Visible:=true;
+         columShape1.Visible:=true;
+         columShape2.Visible:=true;
+         columShape3.Visible:=true;
+         columShape4.Visible:=true;
+         columShape5.Visible:=true;
+       end;
+     end;
+end;
+
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV: string; //visualtab
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
@@ -804,6 +980,9 @@ var
       if pcidevCombobox.ItemIndex <> -1 then  // Does not create pci_dev line if no GPU is selected
         PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
 
+
+      // Table Columns - - Config Variable
+      TABLECOLUMNS := 'table_columns=' + inttostr(COLUMNS);
 
 
       //###############################################################################################   METRICS TAB
@@ -1054,6 +1233,8 @@ var
     SaveConfig(TOGGLEHUD,MANGOHUDCFGFILE);
     SaveConfig(HIDEHUD,MANGOHUDCFGFILE);
     SaveConfig(PCIDEV,MANGOHUDCFGFILE);
+    SaveConfig(TABLECOLUMNS,MANGOHUDCFGFILE);
+
 
     //Metrics - GPU
     SaveConfig(GPUTEXT,MANGOHUDCFGFILE);
@@ -1110,6 +1291,7 @@ var
     SaveConfig(FILTER ,MANGOHUDCFGFILE);
     SaveConfig(AFFILTER ,MANGOHUDCFGFILE);
     SaveConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
+
 
 
 

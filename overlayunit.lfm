@@ -5864,6 +5864,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Font.Style = [fsBold]
+            OnClick = plusSpeedButtonClick
             ParentFont = False
           end
           object minusButton: TSpeedButton
@@ -5882,9 +5883,10 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Font.Style = [fsBold]
+            OnClick = minusButtonClick
             ParentFont = False
           end
-          object Label1: TLabel
+          object columvalueLabel: TLabel
             AnchorSideLeft.Control = columShape4
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = plusSpeedButton
