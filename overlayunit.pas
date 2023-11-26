@@ -840,9 +840,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4: string; //extra tab
-
-  DISTRONAME, BUILDID: string;  // os-release vars
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1252,6 +1250,12 @@ var
       Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=Kernel');
       Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=uname -r"');
 
+
+      ////Arch - Config Variable
+      Savecheckbox (archCheckBox, ARCH, 'arch');
+
+
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1333,6 +1337,7 @@ var
     SaveConfig(DISTROINFO2,MANGOHUDCFGFILE);
     SaveConfig(DISTROINFO3,MANGOHUDCFGFILE);
     SaveConfig(DISTROINFO4,MANGOHUDCFGFILE);
+    SaveConfig(ARCH,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
