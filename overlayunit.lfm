@@ -14923,7 +14923,7 @@ object goverlayform: Tgoverlayform
             ButtonColor = 5987307
             Color = 3684408
           end
-          object CheckBox2: TCheckBox
+          object engineshortCheckBox: TCheckBox
             Left = 243
             Height = 22
             Top = 81
