@@ -840,7 +840,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1271,6 +1271,14 @@ var
 
       WINECOLOR := 'wine_color=' + ColorToHTMLColor(wineColorButton.ButtonColor);
 
+
+      // Engine - Config Variable
+      Savecheckbox (engineversionCheckBox, ENGINE, 'engine');
+
+      //Engine Color  - Config Variable
+
+      ENGINECOLOR := 'engine_color=' + ColorToHTMLColor(engineColorButton.ButtonColor);
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1359,6 +1367,8 @@ var
     SaveConfig(TIME,MANGOHUDCFGFILE);
     SaveConfig(WINE,MANGOHUDCFGFILE);
     SaveConfig(WINECOLOR,MANGOHUDCFGFILE);
+    SaveConfig(ENGINE,MANGOHUDCFGFILE);
+    SaveConfig(ENGINECOLOR,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
