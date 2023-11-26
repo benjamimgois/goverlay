@@ -148,7 +148,7 @@ type
     Image1: TImage;
     Label5: TLabel;
     Label6: TLabel;
-    layoutsGroupBox2: TGroupBox;
+    systemGroupBox: TGroupBox;
     logdurationLabel: TLabel;
     logdurationSpinEdit: TSpinEdit;
     logdurationtLabel3: TLabel;
@@ -385,6 +385,8 @@ begin
   Left:=(Screen.Width-Width)  div 2;
   Top:=(Screen.Height-Height) div 2;
 
+  mangohudPageControl.ActivePage:=visualTabsheet; //Set initial TAB
+
    // Initialize menu selections
   mangohudsel := true;
   mangohudPanel.Visible:=true;
@@ -494,11 +496,14 @@ begin
 
 
       // Initial values
+
      alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
      fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+
+
 
      COLUMNS := 3;
      columvalueLabel.Caption:= inttostr(COLUMNS);
@@ -835,11 +840,18 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4: string; //extra tab
+
+  DISTRONAME, BUILDID: string;  // os-release vars
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
   i: integer;
   NOITEMCHECK: boolean;
+
+  Process: TProcess;
+  Output: TStringList;
+
   begin
 
   //Create directories
@@ -1216,6 +1228,30 @@ var
 
       MIPMAPFILTER := 'picmip=' + FormatFloat('#0', mipmapTrackbar.Position);
 
+
+      //###############################################################################################   Extra TAB
+
+      ////Distro info - Config Variable
+      Process := TProcess.Create(nil);
+      Output := TStringList.Create;
+
+      Process.Executable := '/bin/bash';
+      Process.Parameters.Add('-c');
+      Process.Parameters.Add('cat /usr/lib/os-release');
+
+      Process.Options := [poUsePipes];
+      Process.Execute;
+
+      Output.LoadFromStream(Process.Output);
+      DISTRONAME := Output.Values['NAME'];
+
+      Savecheckbox (distroinfoCheckBox, DISTROINFO1, 'custom_text=' + DISTRONAME);
+      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=lsb_release -a | grep Release | uniq | cut -c 10-26"');
+
+
+      Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=Kernel');
+      Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=uname -r"');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1292,8 +1328,11 @@ var
     SaveConfig(AFFILTER ,MANGOHUDCFGFILE);
     SaveConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
 
-
-
+    //Extra
+    SaveConfig(DISTROINFO1,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO2,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO3,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO4,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

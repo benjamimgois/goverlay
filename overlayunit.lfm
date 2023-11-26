@@ -3919,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = metricsSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -14716,7 +14716,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
         end
-        object layoutsGroupBox2: TGroupBox
+        object systemGroupBox: TGroupBox
           Left = 8
           Height = 402
           Top = 0
