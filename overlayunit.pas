@@ -840,7 +840,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1284,6 +1284,10 @@ var
 
       Savecheckbox (engineshortCheckBox, ENGINESHORT, 'engine_short_names');
 
+       //HUD Version  - Config Variable
+
+      Savecheckbox (hudversionCheckBox, HUDVERSION, 'version');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1375,7 +1379,7 @@ var
     SaveConfig(ENGINE,MANGOHUDCFGFILE);
     SaveConfig(ENGINECOLOR,MANGOHUDCFGFILE);
     SaveConfig(ENGINESHORT,MANGOHUDCFGFILE);
-
+    SaveConfig(HUDVERSION,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
