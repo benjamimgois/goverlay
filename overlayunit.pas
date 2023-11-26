@@ -840,7 +840,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1257,6 +1257,10 @@ var
       // Resolution - Config Variable
       Savecheckbox (resolutionCheckBox, RESOLUTION, 'resolution');
 
+      // Session - Config Variable
+      Savecheckbox (sessionCheckBox, SESSIONTXT, 'custom_text=Session:');
+      Savecheckbox (sessionCheckBox, SESSION, '"exec=echo \$XDG_SESSION_TYPE"');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1340,6 +1344,8 @@ var
     SaveConfig(DISTROINFO4,MANGOHUDCFGFILE);
     SaveConfig(ARCH,MANGOHUDCFGFILE);
     SaveConfig(RESOLUTION,MANGOHUDCFGFILE);
+    SaveConfig(SESSIONTXT,MANGOHUDCFGFILE);
+    SaveConfig(SESSION,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
