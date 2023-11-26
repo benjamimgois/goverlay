@@ -15104,7 +15104,7 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 15
           end
-          object vkbasaltstatusCheckBox3: TCheckBox
+          object fcatCheckBox: TCheckBox
             Left = 376
             Height = 22
             Hint = 'VKbasalt status'

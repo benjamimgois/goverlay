@@ -226,7 +226,7 @@ type
     vkbasaltstatusCheckBox: TCheckBox;
     vkbasaltstatusCheckBox1: TCheckBox;
     vkbasaltstatusCheckBox2: TCheckBox;
-    vkbasaltstatusCheckBox3: TCheckBox;
+    fcatCheckBox: TCheckBox;
     vkbtogglekeyCombobox: TComboBox;
     vkcubegsMenuItem: TMenuItem;
     vkcubeMenuItem: TMenuItem;
@@ -840,7 +840,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1296,6 +1296,10 @@ var
 
       Savecheckbox (vkbasaltstatusCheckBox, VKBASALT, 'vkbasalt');
 
+      //HUD Version  - Config Variable
+
+      Savecheckbox (fcatCheckBox, FCAT, 'fcat');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1390,6 +1394,7 @@ var
     SaveConfig(HUDVERSION,MANGOHUDCFGFILE);
     SaveConfig(GAMEMODE,MANGOHUDCFGFILE);
     SaveConfig(VKBASALT,MANGOHUDCFGFILE);
+    SaveConfig(FCAT,MANGOHUDCFGFILE);
 
 
 end; // ########################################      end save button click       ###############################################################################
