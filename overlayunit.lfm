@@ -14987,15 +14987,15 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object gamepadCheckBox: TCheckBox
+          object deviceCheckBox: TCheckBox
             Left = 376
             Height = 22
             Hint = 'Gamepad battery status (Need xone driver for xbox controllers)'
             Top = 208
-            Width = 135
+            Width = 75
             Align = alCustom
             Alignment = taLeftJustify
-            Caption = 'Gamepad battery'
+            Caption = 'Devices'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -15004,14 +15004,14 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 10
           end
-          object batteryCheckBox2: TCheckBox
+          object batterytimeCheckBox: TCheckBox
             Left = 243
             Height = 22
             Top = 208
-            Width = 125
+            Width = 105
             Align = alCustom
             Alignment = taLeftJustify
-            Caption = 'Remaining time'
+            Caption = 'Time remain'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased

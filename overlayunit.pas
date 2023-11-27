@@ -54,7 +54,7 @@ type
     basaltsaveBitBtn: TBitBtn;
     batteryCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
-    batteryCheckBox2: TCheckBox;
+    batterytimeCheckBox: TCheckBox;
     fpscolorCheckBox: TCheckBox;
     engineshortCheckBox: TCheckBox;
     compacthudBitBtn: TBitBtn;
@@ -116,7 +116,7 @@ type
     frametimegraphColorButton: TColorButton;
     batteryColorButton: TColorButton;
     gamemodestatusCheckBox: TCheckBox;
-    gamepadCheckBox: TCheckBox;
+    deviceCheckBox: TCheckBox;
     geSpeedButton: TSpeedButton;
     GlobalenableLabel: TLabel;
     glvsyncComboBox: TComboBox;
@@ -841,7 +841,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1325,6 +1325,14 @@ var
 
       Savecheckbox (batterywattCheckBox, BATTERYWATT, 'battery_watt');
 
+      //Battery time - Config Variable
+
+      Savecheckbox (batterytimeCheckBox, BATTERYTIME, 'battery_time');
+
+      //Battery time - Config Variable
+
+      Savecheckbox (deviceCheckBox, DEVICE, 'device_battery');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1426,6 +1434,8 @@ var
     SaveConfig(BATTERY,MANGOHUDCFGFILE);
     SaveConfig(BATTERYCOLOR,MANGOHUDCFGFILE);
     SaveConfig(BATTERYWATT,MANGOHUDCFGFILE);
+    SaveConfig(BATTERYTIME,MANGOHUDCFGFILE);
+    SaveConfig(DEVICE,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
