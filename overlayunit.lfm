@@ -15018,7 +15018,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 11
           end
-          object batteryCheckBox1: TCheckBox
+          object batterywattCheckBox: TCheckBox
             Left = 135
             Height = 22
             Top = 208
@@ -15032,7 +15032,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 12
           end
-          object frametimegraphColorButton1: TColorButton
+          object batteryColorButton: TColorButton
             Left = 8
             Height = 12
             Top = 227
