@@ -14776,7 +14776,7 @@ object goverlayform: Tgoverlayform
             TabOrder = 1
           end
           object resolutionCheckBox: TCheckBox
-            Left = 243
+            Left = 376
             Height = 22
             Top = 20
             Width = 93
@@ -15165,9 +15165,9 @@ object goverlayform: Tgoverlayform
             TabOrder = 18
           end
           object timeCheckBox: TCheckBox
-            Left = 488
+            Left = 576
             Height = 22
-            Top = 20
+            Top = 24
             Width = 59
             Align = alCustom
             Alignment = taLeftJustify
@@ -15179,10 +15179,10 @@ object goverlayform: Tgoverlayform
             TabOrder = 19
           end
           object sessionCheckBox: TCheckBox
-            Left = 376
+            Left = 488
             Height = 22
             Hint = 'Display if your session is x11 or wayland'
-            Top = 20
+            Top = 24
             Width = 75
             Align = alCustom
             Alignment = taLeftJustify
@@ -15194,6 +15194,21 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
             ShowHint = True
             TabOrder = 20
+          end
+          object refreshrateCheckBox: TCheckBox
+            Left = 243
+            Height = 22
+            Hint = '*Gamescope only'
+            Top = 20
+            Width = 110
+            Align = alCustom
+            Alignment = taLeftJustify
+            Caption = 'Refresh rate*'
+            Font.Height = -13
+            Font.Name = 'Sans'
+            Font.Quality = fqAntialiased
+            ParentFont = False
+            TabOrder = 21
           end
         end
       end

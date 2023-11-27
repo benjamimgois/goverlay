@@ -83,6 +83,7 @@ type
     filterRadioGroup: TRadioGroup;
     columShape: TShape;
     columvalueLabel: TLabel;
+    refreshrateCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     plusSpeedButton: TSpeedButton;
     minusButton: TSpeedButton;
@@ -840,7 +841,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT, FSR, HDR: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT, FSR, HDR, REFRESHRATE: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1308,6 +1309,10 @@ var
 
       Savecheckbox (hdrCheckBox, HDR, 'hdr');
 
+      //Refresh Rate - Config Variable
+
+      Savecheckbox (refreshrateCheckBox, REFRESHRATE, 'refresh_rate');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1405,7 +1410,7 @@ var
     SaveConfig(FCAT,MANGOHUDCFGFILE);
     SaveConfig(FSR,MANGOHUDCFGFILE);
     SaveConfig(HDR,MANGOHUDCFGFILE);
-
+    SaveConfig(REFRESHRATE,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
