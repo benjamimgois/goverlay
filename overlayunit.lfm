@@ -15070,15 +15070,15 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object vkbasaltstatusCheckBox1: TCheckBox
+          object fsrCheckBox: TCheckBox
             Left = 488
             Height = 22
-            Hint = 'VKbasalt status'
+            Hint = '*Gamescope Only'
             Top = 148
-            Width = 50
+            Width = 58
             Align = alCustom
             Alignment = taLeftJustify
-            Caption = 'FSR'
+            Caption = 'FSR*'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -15087,15 +15087,15 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 14
           end
-          object vkbasaltstatusCheckBox2: TCheckBox
+          object hdrCheckBox: TCheckBox
             Left = 576
             Height = 22
-            Hint = 'VKbasalt status'
+            Hint = '*Gamescope Only'
             Top = 148
-            Width = 117
+            Width = 63
             Align = alCustom
             Alignment = taLeftJustify
-            Caption = 'FSR Sharpness'
+            Caption = 'HDR*'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -15107,7 +15107,7 @@ object goverlayform: Tgoverlayform
           object fcatCheckBox: TCheckBox
             Left = 376
             Height = 22
-            Hint = 'VKbasalt status'
+            Hint = 'Frame capture analysis'
             Top = 148
             Width = 53
             Align = alCustom

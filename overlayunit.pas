@@ -224,8 +224,8 @@ type
     visualTabSheet: TTabSheet;
     vkbasaltPanel: TPanel;
     vkbasaltstatusCheckBox: TCheckBox;
-    vkbasaltstatusCheckBox1: TCheckBox;
-    vkbasaltstatusCheckBox2: TCheckBox;
+    fsrCheckBox: TCheckBox;
+    hdrCheckBox: TCheckBox;
     fcatCheckBox: TCheckBox;
     vkbtogglekeyCombobox: TComboBox;
     vkcubegsMenuItem: TMenuItem;
@@ -840,7 +840,7 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT, FSR, HDR: string; //extra tab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1288,17 +1288,25 @@ var
 
       Savecheckbox (hudversionCheckBox, HUDVERSION, 'version');
 
-      //HUD Version  - Config Variable
+      //GAMEMODE  - Config Variable
 
       Savecheckbox (gamemodestatusCheckBox, GAMEMODE, 'gamemode');
 
-      //HUD Version  - Config Variable
+      //VKBASALT - Config Variable
 
       Savecheckbox (vkbasaltstatusCheckBox, VKBASALT, 'vkbasalt');
 
-      //HUD Version  - Config Variable
+      //FCAT - Config Variable
 
       Savecheckbox (fcatCheckBox, FCAT, 'fcat');
+
+      //FSR - Config Variable
+
+      Savecheckbox (fsrCheckBox, FSR, 'fsr');
+
+       //HDR - Config Variable
+
+      Savecheckbox (hdrCheckBox, HDR, 'hdr');
 
           //##################################################################################################################  Write config file
         //  end;
@@ -1395,6 +1403,8 @@ var
     SaveConfig(GAMEMODE,MANGOHUDCFGFILE);
     SaveConfig(VKBASALT,MANGOHUDCFGFILE);
     SaveConfig(FCAT,MANGOHUDCFGFILE);
+    SaveConfig(FSR,MANGOHUDCFGFILE);
+    SaveConfig(HDR,MANGOHUDCFGFILE);
 
 
 end; // ########################################      end save button click       ###############################################################################
