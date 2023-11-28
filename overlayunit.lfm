@@ -14848,28 +14848,6 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 6
           end
-          object mediaComboBox: TComboBox
-            Left = 115
-            Height = 32
-            Top = 264
-            Width = 92
-            Color = clBtnFace
-            Font.Height = -12
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            ItemHeight = 23
-            ItemIndex = 0
-            Items.Strings = (
-              'Spotify'
-              'VLC'
-              'Audacious'
-              'Cantata'
-            )
-            ParentFont = False
-            ParentShowHint = False
-            TabOrder = 7
-            Text = 'Spotify'
-          end
           object mediaColorButton: TColorButton
             Left = 8
             Height = 12
@@ -14896,7 +14874,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 8
+            TabOrder = 7
           end
           object engineColorButton: TColorButton
             Left = 135
@@ -14933,7 +14911,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 9
+            TabOrder = 8
           end
           object fpslimLabel13: TLabel
             Left = 8
@@ -15002,7 +14980,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 10
+            TabOrder = 9
           end
           object batterytimeCheckBox: TCheckBox
             Left = 243
@@ -15016,7 +14994,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 11
+            TabOrder = 10
           end
           object batterywattCheckBox: TCheckBox
             Left = 135
@@ -15030,7 +15008,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 12
+            TabOrder = 11
           end
           object batteryColorButton: TColorButton
             Left = 8
@@ -15055,14 +15033,14 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 13
+            TabOrder = 12
           end
           object fpslimLabel17: TLabel
             Left = 10
             Height = 18
             Top = 248
-            Width = 37
-            Caption = 'Music'
+            Width = 42
+            Caption = 'Others'
             Font.Height = -13
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -15085,7 +15063,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 14
+            TabOrder = 13
           end
           object hdrCheckBox: TCheckBox
             Left = 576
@@ -15102,7 +15080,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 15
+            TabOrder = 14
           end
           object fcatCheckBox: TCheckBox
             Left = 376
@@ -15119,13 +15097,13 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 16
+            TabOrder = 15
           end
           object customcommandEdit: TEdit
-            Left = 8
+            Left = 135
             Height = 31
             Hint = 'Print the output of a custom command'
-            Top = 334
+            Top = 263
             Width = 360
             Font.Height = -12
             Font.Name = 'Noto Sans'
@@ -15134,21 +15112,8 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 17
+            TabOrder = 16
             Text = 'Custom command'
-          end
-          object fpslimLabel18: TLabel
-            Left = 10
-            Height = 18
-            Top = 313
-            Width = 119
-            Caption = 'Custom Commands'
-            Font.Height = -13
-            Font.Name = 'Noto Sans'
-            Font.Quality = fqAntialiased
-            Font.Style = [fsBold, fsItalic, fsUnderline]
-            ParentColor = False
-            ParentFont = False
           end
           object hudversionCheckBox: TCheckBox
             Left = 8
@@ -15162,7 +15127,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 18
+            TabOrder = 17
           end
           object timeCheckBox: TCheckBox
             Left = 576
@@ -15176,7 +15141,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 19
+            TabOrder = 18
           end
           object sessionCheckBox: TCheckBox
             Left = 488
@@ -15193,7 +15158,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            TabOrder = 20
+            TabOrder = 19
           end
           object refreshrateCheckBox: TCheckBox
             Left = 243
@@ -15208,7 +15173,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
-            TabOrder = 21
+            TabOrder = 20
           end
         end
       end

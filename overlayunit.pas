@@ -104,7 +104,6 @@ type
     fpslimLabel15: TLabel;
     fpslimLabel16: TLabel;
     fpslimLabel17: TLabel;
-    fpslimLabel18: TLabel;
     fpslimLabel3: TLabel;
     mainmetricLabel: TLabel;
     gputempLabel: TLabel;
@@ -158,7 +157,6 @@ type
     logpathBitBtn: TBitBtn;
     mediaCheckBox: TCheckBox;
     mediaColorButton: TColorButton;
-    mediaComboBox: TComboBox;
     hidehudCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
     hudtitleEdit: TEdit;
@@ -841,7 +839,8 @@ var
   GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE, VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE: string; //extra tab
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
+  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2: string; //extratab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1333,6 +1332,18 @@ var
 
       Savecheckbox (deviceCheckBox, DEVICE, 'device_battery');
 
+      //Media player - Config Variable
+
+      Savecheckbox (mediaCheckBox, MEDIA, 'media_player');
+
+      //Media player Color  - Config Variable
+
+      MEDIACOLOR := 'media_player_color=' + ColorToHTMLColor(mediaColorButton.ButtonColor);
+
+      //Custom command  - Config Variable
+      CUSTOMCMD1 := 'custom_text=Custom';
+      CUSTOMCMD2 := 'exec=' + customcommandEdit.Text;
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1436,6 +1447,10 @@ var
     SaveConfig(BATTERYWATT,MANGOHUDCFGFILE);
     SaveConfig(BATTERYTIME,MANGOHUDCFGFILE);
     SaveConfig(DEVICE,MANGOHUDCFGFILE);
+    SaveConfig(MEDIA,MANGOHUDCFGFILE);
+    SaveConfig(MEDIACOLOR,MANGOHUDCFGFILE);
+    SaveConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
+    SaveConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
