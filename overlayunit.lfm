@@ -14135,262 +14135,20 @@ object goverlayform: Tgoverlayform
         Font.Color = clWhite
         Font.Quality = fqAntialiased
         ParentFont = False
-        object layoutsGroupBox: TGroupBox
-          AnchorSideLeft.Control = extrasTabSheet
-          AnchorSideBottom.Control = extrasTabSheet
-          AnchorSideBottom.Side = asrBottom
-          Left = 0
-          Height = 169
-          Top = 406
-          Width = 315
-          Anchors = [akLeft, akBottom]
-          Caption = 'Quick Layouts'
-          ClientHeight = 139
-          ClientWidth = 311
-          Font.Height = -13
-          Font.Name = 'Noto Sans'
-          Font.Quality = fqAntialiased
-          ParentColor = False
-          ParentFont = False
-          TabOrder = 0
-          object compacthudBitBtn: TBitBtn
-            Left = 160
-            Height = 30
-            Hint = 'Compact HUD'
-            Top = 24
-            Width = 100
-            Caption = 'Compact'
-            Font.Height = -12
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            Font.Style = [fsBold]
-            Glyph.Data = {
-              36040000424D3604000000000000360000002800000010000000100000000100
-              2000000000000004000064000000640000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000
-            }
-            ModalResult = 10
-            ParentFont = False
-            ParentShowHint = False
-            ShowHint = True
-            TabOrder = 0
-          end
-          object completehudBitBtn: TBitBtn
-            Left = 24
-            Height = 30
-            Hint = 'Complete HUD'
-            Top = 80
-            Width = 100
-            Caption = 'Complete'
-            Font.Height = -12
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            Font.Style = [fsBold]
-            Glyph.Data = {
-              36040000424D3604000000000000360000002800000010000000100000000100
-              2000000000000004000064000000640000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF0000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF0000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF0000000000000000000000000000000000000000000000000000
-              00000000000000000000000000006E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF0000000000000000000000000000000000000000000000000000
-              00000000000000000000000000006E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              00000000000000000000000000006E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              00000000000000000000000000006E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000
-            }
-            ModalResult = 10
-            ParentFont = False
-            ParentShowHint = False
-            ShowHint = True
-            TabOrder = 1
-          end
-          object graphhudBitBtn: TBitBtn
-            Left = 160
-            Height = 30
-            Hint = 'GRAPH HUD'
-            Top = 80
-            Width = 100
-            Caption = 'Graph'
-            Font.Height = -12
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            Font.Style = [fsBold]
-            Glyph.Data = {
-              B6070000424DB607000000000000360000002800000018000000140000000100
-              20000000000080070000640000006400000000000000000000007F7F7F187D7D
-              7D6E7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C
-              7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C
-              7C6F7C7C7C6F7C7C7C6F7C7C7C6F7C7C7C6F7E7E7E6D8888880F828282607E7E
-              7EF3818181A3818181A3818181A3818181A3818181A3818181A3818181A38181
-              81A3818181A3818181A3818181A3818181A3818181A3818181A3818181A38181
-              81A3818181A3818181A3818181A3818181A3828282A07B7B7B1D828282607E7E
-              7EDE000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000828282607E7E
-              7EDE000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000828282607E7E
-              7EDE000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000828282607E7E
-              7EDE000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000828282607E7E
-              7EFB808080CF808080A77F7F7F80808080597F7F7F327F7F7F0C000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000828282607F7F
-              7FE4818181497F7F7F707F7F7F98808080BF7F7F7FE67E7E7EFB8080809DFFFF
-              FF01000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000828282607F7F
-              7FDE00000000000000000000000000000000000000007C7C7C27808080E97F7F
-              7F82000000000000000000000000000000000000000000000000818181557F7F
-              7F3A000000000000000000000000000000000000000000000000828282607F7F
-              7FDE0000000000000000000000000000000000000000000000007F7F7F388080
-              80F57F7F7F600000000000000000000000007F7F7F1E808080B57E7E7EF77F7F
-              7FE27F7F7F0A0000000000000000000000000000000000000000828282607F7F
-              7FDE000000000000000000000000000000000000000000000000000000008181
-              81537F7F7FF67F7F7F427F7F7F028080806B7E7E7EF1808080A18484841B7F7F
-              7FDC808080810000000000000000000000000000000000000000828282607F7F
-              7FDE000000000000000000000000000000000000000000000000000000000000
-              0000808080737F7F7FEE808080C57F7F7FDE7F7F7F4600000000000000007F7F
-              7F507E7E7EF57F7F7F2000000000000000000000000000000000828282607F7F
-              7FDE000000000000000000000000000000000000000000000000000000000000
-              000000000000808080837F7F7F8C7F7F7F0C0000000000000000000000000000
-              0000808080B9808080AB00000000000000000000000000000000828282607F7F
-              7FDE000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              00007F7F7F2A808080F98181813F000000000000000000000000828282607F7F
-              7FDE000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000008080808F7F7F7FD0AAAAAA030000000000000000818181457F7F
-              7FB6000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              000000000000878787117F7F7FEA808080690000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              000000000000000000007F7F7F667F7F7FEA8787871100000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              000000000000000000007F7F7F02808080CD7E7E7E9100000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              00000000000000000000000000008181813D7E7E7EF97F7F7F24000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000008181814B7F7F7F0C
-            }
-            ModalResult = 10
-            ParentFont = False
-            ParentShowHint = False
-            ShowHint = True
-            TabOrder = 2
-          end
-          object minimalhudBitBtn: TBitBtn
-            Left = 24
-            Height = 30
-            Hint = 'Minimal hud with FPS only'
-            Top = 24
-            Width = 100
-            Caption = 'Minimal'
-            Font.Height = -12
-            Font.Name = 'Sans'
-            Font.Quality = fqAntialiased
-            Font.Style = [fsBold]
-            Glyph.Data = {
-              36020000424D3602000000000000360000002800000010000000080000000100
-              2000000000000002000064000000640000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000006E6E
-              6EFF6E6E6EFF00000000000000006E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E
-              6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF6E6E6EFF00000000000000000000
-              0000000000000000000000000000000000000000000000000000000000000000
-              0000000000000000000000000000000000000000000000000000
-            }
-            ModalResult = 10
-            ParentFont = False
-            ParentShowHint = False
-            ShowHint = True
-            TabOrder = 3
-          end
-        end
         object loggingGroupBox: TGroupBox
+          AnchorSideLeft.Control = extrasTabSheet
           AnchorSideRight.Control = extrasTabSheet
           AnchorSideRight.Side = asrBottom
           AnchorSideBottom.Control = extrasTabSheet
           AnchorSideBottom.Side = asrBottom
-          Left = 316
-          Height = 168
-          Top = 407
-          Width = 464
-          Anchors = [akRight, akBottom]
+          Left = 0
+          Height = 210
+          Top = 365
+          Width = 780
+          Anchors = [akLeft, akBottom]
           Caption = 'Logging'
-          ClientHeight = 138
-          ClientWidth = 460
+          ClientHeight = 180
+          ClientWidth = 776
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -14398,7 +14156,7 @@ object goverlayform: Tgoverlayform
           ParentBackground = False
           ParentColor = False
           ParentFont = False
-          TabOrder = 1
+          TabOrder = 0
           object Label5: TLabel
             Left = 8
             Height = 18
@@ -14730,11 +14488,11 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Control = extrasTabSheet
           Left = 0
-          Height = 402
+          Height = 360
           Top = 0
           Width = 780
           Caption = 'System Information'
-          ClientHeight = 372
+          ClientHeight = 330
           ClientWidth = 776
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -14743,15 +14501,19 @@ object goverlayform: Tgoverlayform
           ParentBackground = False
           ParentColor = False
           ParentFont = False
-          TabOrder = 2
+          TabOrder = 1
           object distroinfoCheckBox: TCheckBox
-            Left = 8
+            AnchorSideLeft.Control = systemLabel
+            AnchorSideTop.Control = systemLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
             Hint = 'Display Distribution name, version and kernel'
-            Top = 20
+            Top = 30
             Width = 92
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Distro info'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -14762,12 +14524,17 @@ object goverlayform: Tgoverlayform
             TabOrder = 0
           end
           object archCheckBox: TCheckBox
-            Left = 135
+            AnchorSideLeft.Control = timeCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = distroinfoCheckBox
+            AnchorSideTop.Side = asrCenter
+            Left = 579
             Height = 22
-            Top = 20
+            Top = 30
             Width = 56
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 30
             Caption = 'Arch'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -14776,12 +14543,17 @@ object goverlayform: Tgoverlayform
             TabOrder = 1
           end
           object resolutionCheckBox: TCheckBox
-            Left = 376
+            AnchorSideLeft.Control = refreshrateCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = refreshrateCheckBox
+            AnchorSideTop.Side = asrCenter
+            Left = 262
             Height = 22
-            Top = 20
+            Top = 30
             Width = 93
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 20
             Caption = 'Resolution'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -14790,12 +14562,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 2
           end
           object engineversionCheckBox: TCheckBox
-            Left = 135
+            AnchorSideLeft.Control = refreshrateCheckBox
+            AnchorSideTop.Control = wineLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 132
             Height = 22
-            Top = 81
+            Top = 88
             Width = 95
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Engine Ver'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -14804,12 +14580,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 3
           end
           object wineCheckBox: TCheckBox
-            Left = 8
+            AnchorSideLeft.Control = wineLabel
+            AnchorSideTop.Control = wineLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 81
+            Top = 88
             Width = 84
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Wine Ver'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -14818,12 +14598,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 4
           end
           object mediaCheckBox: TCheckBox
-            Left = 8
+            AnchorSideLeft.Control = distroinfoCheckBox
+            AnchorSideTop.Control = othersLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 264
+            Top = 286
             Width = 94
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Media Info'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -14832,10 +14616,12 @@ object goverlayform: Tgoverlayform
             TabOrder = 5
           end
           object gamemodestatusCheckBox: TCheckBox
-            Left = 135
+            AnchorSideLeft.Control = engineversionCheckBox
+            AnchorSideTop.Control = hudversionCheckBox
+            Left = 132
             Height = 22
             Hint = 'Feral gamemode status'
-            Top = 148
+            Top = 158
             Width = 100
             Align = alCustom
             Alignment = taLeftJustify
@@ -14849,9 +14635,13 @@ object goverlayform: Tgoverlayform
             TabOrder = 6
           end
           object mediaColorButton: TColorButton
-            Left = 8
+            AnchorSideLeft.Control = mediaCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = mediaCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 11
             Height = 12
-            Top = 282
+            Top = 308
             Width = 92
             Align = alCustom
             BorderWidth = 2
@@ -14860,10 +14650,12 @@ object goverlayform: Tgoverlayform
             Color = 3684408
           end
           object vkbasaltstatusCheckBox: TCheckBox
-            Left = 243
+            AnchorSideLeft.Control = engineshortCheckBox
+            AnchorSideTop.Control = gamemodestatusCheckBox
+            Left = 262
             Height = 22
             Hint = 'VKbasalt status'
-            Top = 148
+            Top = 158
             Width = 81
             Align = alCustom
             Alignment = taLeftJustify
@@ -14877,9 +14669,13 @@ object goverlayform: Tgoverlayform
             TabOrder = 7
           end
           object engineColorButton: TColorButton
-            Left = 135
+            AnchorSideLeft.Control = engineversionCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = engineversionCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 132
             Height = 12
-            Top = 102
+            Top = 110
             Width = 95
             Align = alCustom
             BorderWidth = 2
@@ -14891,9 +14687,13 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object wineColorButton: TColorButton
-            Left = 8
+            AnchorSideLeft.Control = wineCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = wineCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 12
             Height = 12
-            Top = 102
+            Top = 110
             Width = 81
             Align = alCustom
             BorderWidth = 2
@@ -14902,9 +14702,11 @@ object goverlayform: Tgoverlayform
             Color = 3684408
           end
           object engineshortCheckBox: TCheckBox
-            Left = 243
+            AnchorSideLeft.Control = resolutionCheckBox
+            AnchorSideTop.Control = engineversionCheckBox
+            Left = 262
             Height = 22
-            Top = 81
+            Top = 88
             Width = 106
             Caption = 'Short names'
             Font.Height = -13
@@ -14913,11 +14715,15 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 8
           end
-          object fpslimLabel13: TLabel
-            Left = 8
+          object systemLabel: TLabel
+            AnchorSideLeft.Control = systemGroupBox
+            AnchorSideTop.Control = systemGroupBox
+            Left = 10
             Height = 18
-            Top = 0
+            Top = 10
             Width = 45
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 10
             Caption = 'System'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -14926,11 +14732,15 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpslimLabel14: TLabel
-            Left = 8
+          object wineLabel: TLabel
+            AnchorSideLeft.Control = distroinfoCheckBox
+            AnchorSideTop.Control = distroinfoCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 18
-            Top = 64
+            Top = 68
             Width = 31
+            BorderSpacing.Top = 16
             Caption = 'Wine'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -14939,11 +14749,15 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpslimLabel15: TLabel
-            Left = 8
+          object optionsLabel: TLabel
+            AnchorSideLeft.Control = distroinfoCheckBox
+            AnchorSideTop.Control = wineColorButton
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 18
-            Top = 132
+            Top = 138
             Width = 48
+            BorderSpacing.Top = 16
             Caption = 'Options'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -14952,12 +14766,15 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object fpslimLabel16: TLabel
+          object batteryLabel: TLabel
+            AnchorSideTop.Control = hudversionCheckBox
+            AnchorSideTop.Side = asrBottom
             Left = 8
             Height = 18
-            Top = 191
-            Width = 43
-            Caption = 'Energy'
+            Top = 196
+            Width = 47
+            BorderSpacing.Top = 16
+            Caption = 'Battery'
             Font.Height = -13
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -14966,10 +14783,12 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object deviceCheckBox: TCheckBox
-            Left = 376
+            AnchorSideLeft.Control = fcatCheckBox
+            AnchorSideTop.Control = batterytimeCheckBox
+            Left = 385
             Height = 22
             Hint = 'Gamepad battery status (Need xone driver for xbox controllers)'
-            Top = 208
+            Top = 216
             Width = 75
             Align = alCustom
             Alignment = taLeftJustify
@@ -14983,9 +14802,11 @@ object goverlayform: Tgoverlayform
             TabOrder = 9
           end
           object batterytimeCheckBox: TCheckBox
-            Left = 243
+            AnchorSideLeft.Control = vkbasaltstatusCheckBox
+            AnchorSideTop.Control = batterywattCheckBox
+            Left = 262
             Height = 22
-            Top = 208
+            Top = 216
             Width = 105
             Align = alCustom
             Alignment = taLeftJustify
@@ -14997,9 +14818,11 @@ object goverlayform: Tgoverlayform
             TabOrder = 10
           end
           object batterywattCheckBox: TCheckBox
-            Left = 135
+            AnchorSideLeft.Control = gamemodestatusCheckBox
+            AnchorSideTop.Control = batteryCheckBox
+            Left = 132
             Height = 22
-            Top = 208
+            Top = 216
             Width = 80
             Align = alCustom
             Alignment = taLeftJustify
@@ -15011,9 +14834,13 @@ object goverlayform: Tgoverlayform
             TabOrder = 11
           end
           object batteryColorButton: TColorButton
-            Left = 8
+            AnchorSideLeft.Control = batteryCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = batteryCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 12
-            Top = 227
+            Top = 238
             Width = 98
             Align = alCustom
             BorderWidth = 2
@@ -15022,12 +14849,16 @@ object goverlayform: Tgoverlayform
             Color = 3684408
           end
           object batteryCheckBox: TCheckBox
-            Left = 8
+            AnchorSideLeft.Control = distroinfoCheckBox
+            AnchorSideTop.Control = batteryLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 208
+            Top = 216
             Width = 98
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'Percentage'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -15035,11 +14866,14 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 12
           end
-          object fpslimLabel17: TLabel
+          object othersLabel: TLabel
+            AnchorSideTop.Control = batteryColorButton
+            AnchorSideTop.Side = asrBottom
             Left = 10
             Height = 18
-            Top = 248
+            Top = 266
             Width = 42
+            BorderSpacing.Top = 16
             Caption = 'Others'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -15049,10 +14883,12 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fsrCheckBox: TCheckBox
-            Left = 488
+            AnchorSideLeft.Control = timeCheckBox
+            AnchorSideTop.Control = fcatCheckBox
+            Left = 490
             Height = 22
             Hint = '*Gamescope Only'
-            Top = 148
+            Top = 158
             Width = 58
             Align = alCustom
             Alignment = taLeftJustify
@@ -15066,10 +14902,12 @@ object goverlayform: Tgoverlayform
             TabOrder = 13
           end
           object hdrCheckBox: TCheckBox
-            Left = 576
+            AnchorSideLeft.Control = archCheckBox
+            AnchorSideTop.Control = fsrCheckBox
+            Left = 579
             Height = 22
             Hint = '*Gamescope Only'
-            Top = 148
+            Top = 158
             Width = 63
             Align = alCustom
             Alignment = taLeftJustify
@@ -15083,10 +14921,12 @@ object goverlayform: Tgoverlayform
             TabOrder = 14
           end
           object fcatCheckBox: TCheckBox
-            Left = 376
+            AnchorSideLeft.Control = sessionCheckBox
+            AnchorSideTop.Control = vkbasaltstatusCheckBox
+            Left = 385
             Height = 22
             Hint = 'Frame capture analysis'
-            Top = 148
+            Top = 158
             Width = 53
             Align = alCustom
             Alignment = taLeftJustify
@@ -15100,11 +14940,13 @@ object goverlayform: Tgoverlayform
             TabOrder = 15
           end
           object customcommandEdit: TEdit
-            Left = 135
+            AnchorSideLeft.Control = batterywattCheckBox
+            AnchorSideTop.Control = mediaCheckBox
+            Left = 132
             Height = 31
             Hint = 'Print the output of a custom command'
-            Top = 263
-            Width = 360
+            Top = 286
+            Width = 328
             Font.Height = -12
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -15116,12 +14958,16 @@ object goverlayform: Tgoverlayform
             Text = 'Custom command'
           end
           object hudversionCheckBox: TCheckBox
-            Left = 8
+            AnchorSideLeft.Control = distroinfoCheckBox
+            AnchorSideTop.Control = optionsLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 10
             Height = 22
-            Top = 148
+            Top = 158
             Width = 106
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Top = 2
             Caption = 'HUD Version'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -15130,12 +14976,17 @@ object goverlayform: Tgoverlayform
             TabOrder = 17
           end
           object timeCheckBox: TCheckBox
-            Left = 576
+            AnchorSideLeft.Control = sessionCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = sessionCheckBox
+            AnchorSideTop.Side = asrCenter
+            Left = 490
             Height = 22
-            Top = 24
+            Top = 30
             Width = 59
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 30
             Caption = 'Time'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -15144,13 +14995,18 @@ object goverlayform: Tgoverlayform
             TabOrder = 18
           end
           object sessionCheckBox: TCheckBox
-            Left = 488
+            AnchorSideLeft.Control = resolutionCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = resolutionCheckBox
+            AnchorSideTop.Side = asrCenter
+            Left = 385
             Height = 22
             Hint = 'Display if your session is x11 or wayland'
-            Top = 24
+            Top = 30
             Width = 75
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 30
             Caption = 'Session'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -15161,13 +15017,18 @@ object goverlayform: Tgoverlayform
             TabOrder = 19
           end
           object refreshrateCheckBox: TCheckBox
-            Left = 243
+            AnchorSideLeft.Control = distroinfoCheckBox
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = archCheckBox
+            AnchorSideTop.Side = asrCenter
+            Left = 132
             Height = 22
             Hint = '*Gamescope only'
-            Top = 20
+            Top = 30
             Width = 110
             Align = alCustom
             Alignment = taLeftJustify
+            BorderSpacing.Left = 30
             Caption = 'Refresh rate*'
             Font.Height = -13
             Font.Name = 'Sans'

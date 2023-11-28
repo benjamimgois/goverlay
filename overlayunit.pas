@@ -57,8 +57,6 @@ type
     batterytimeCheckBox: TCheckBox;
     fpscolorCheckBox: TCheckBox;
     engineshortCheckBox: TCheckBox;
-    compacthudBitBtn: TBitBtn;
-    completehudBitBtn: TBitBtn;
     cpuavgloadCheckBox: TCheckBox;
     cpuColorButton1: TColorButton;
     cpufreqCheckBox: TCheckBox;
@@ -99,11 +97,11 @@ type
     cpumainmetricsLabel: TLabel;
     cputempLabel: TLabel;
     memLabel: TLabel;
-    fpslimLabel13: TLabel;
-    fpslimLabel14: TLabel;
-    fpslimLabel15: TLabel;
-    fpslimLabel16: TLabel;
-    fpslimLabel17: TLabel;
+    systemLabel: TLabel;
+    wineLabel: TLabel;
+    optionsLabel: TLabel;
+    batteryLabel: TLabel;
+    othersLabel: TLabel;
     fpslimLabel3: TLabel;
     mainmetricLabel: TLabel;
     gputempLabel: TLabel;
@@ -139,7 +137,6 @@ type
     gpufanCheckBox: TCheckBox;
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
-    graphhudBitBtn: TBitBtn;
     fpsGroupBox: TGroupBox;
     hImage: TImage;
     horizontalRadioButton: TRadioButton;
@@ -178,11 +175,9 @@ type
     intelpowerfixBitBtn1: TBitBtn;
     iordrwColorButton: TColorButton;
     hudtoggleLabel: TLabel;
-    layoutsGroupBox: TGroupBox;
     mangohudPageControl: TPageControl;
     mangohudPanel: TPanel;
     MenuItem4: TMenuItem;
-    minimalhudBitBtn: TBitBtn;
     notificationLabel: TLabel;
     openglImage: TImage;
     PageControl2: TPageControl;
