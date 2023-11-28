@@ -81,6 +81,8 @@ type
     filterRadioGroup: TRadioGroup;
     columShape: TShape;
     columvalueLabel: TLabel;
+    Image2: TImage;
+    sysinfoImage: TImage;
     refreshrateCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     plusSpeedButton: TSpeedButton;
