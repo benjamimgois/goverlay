@@ -20,20 +20,24 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    autouploadCheckBox1: TCheckBox;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
+    logfolderBitBtn: TBitBtn;
     columShape1: TShape;
     columShape2: TShape;
     columShape3: TShape;
     columShape4: TShape;
     columShape5: TShape;
     columsGroupBox: TGroupBox;
+    logfolderEdit: TEdit;
     fpscolor2ColorButton: TColorButton;
     fpslimCheckGroup: TCheckGroup;
     coreloadtypeBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     colorthemeLabel: TLabel;
+    logtoggleImage: TImage;
     frametimetypeBitBtn: TBitBtn;
     fpsCheckBox: TCheckBox;
     gpudescEdit: TEdit;
@@ -41,11 +45,8 @@ type
     fontcolorLabel: TLabel;
     fontsizevalueLabel: TLabel;
     archCheckBox: TCheckBox;
-    autologSpinEdit: TSpinEdit;
     fpscolor2SpinEdit: TSpinEdit;
     fpscolor3SpinEdit: TSpinEdit;
-    autostartLabel: TLabel;
-    autostartLabel2: TLabel;
     autouploadCheckBox: TCheckBox;
     aveffectsListBox: TListBox;
     basaltgeSpeedButton: TSpeedButton;
@@ -70,7 +71,6 @@ type
     cpupowerCheckBox: TCheckBox;
     cputempCheckBox: TCheckBox;
     customcommandEdit: TEdit;
-    destfolderpathLabel: TLabel;
     diskioCheckBox: TCheckBox;
     distroinfoCheckBox: TCheckBox;
     cpuImage: TImage;
@@ -82,11 +82,22 @@ type
     columShape: TShape;
     columvalueLabel: TLabel;
     Image2: TImage;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    logtoggleLabel: TLabel;
+    logdurationLabel: TLabel;
+    logintervalLabel: TLabel;
+    logdelayLabel: TLabel;
+    logfolderLabel: TLabel;
     sysinfoImage: TImage;
     refreshrateCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     plusSpeedButton: TSpeedButton;
     minusButton: TSpeedButton;
+    durationTrackBar: TTrackBar;
+    delayTrackBar: TTrackBar;
+    intervalTrackBar: TTrackBar;
     vulkandriverCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
@@ -145,15 +156,9 @@ type
     hudbackgroundColorButton: TColorButton;
     hudversionCheckBox: TCheckBox;
     Image1: TImage;
-    Label5: TLabel;
-    Label6: TLabel;
     systemGroupBox: TGroupBox;
-    logdurationLabel: TLabel;
-    logdurationSpinEdit: TSpinEdit;
-    logdurationtLabel3: TLabel;
-    loggingComboBox: TComboBox;
+    logtoggleComboBox: TComboBox;
     loggingGroupBox: TGroupBox;
-    logpathBitBtn: TBitBtn;
     mediaCheckBox: TCheckBox;
     mediaColorButton: TColorButton;
     hidehudCheckBox: TCheckBox;
@@ -213,7 +218,6 @@ type
     afLabel: TLabel;
     mipmapLabel: TLabel;
     transpTrackBar: TTrackBar;
-    uploadlogComboBox: TComboBox;
     fontsGroupBox: TGroupBox;
     verticalRadioButton: TRadioButton;
     vImage: TImage;
@@ -226,10 +230,6 @@ type
     vkbtogglekeyCombobox: TComboBox;
     vkcubegsMenuItem: TMenuItem;
     vkcubeMenuItem: TMenuItem;
-    MenuItem1: TMenuItem;
-    MenuItem2: TMenuItem;
-    MenuItem3: TMenuItem;
-    vkbasaltPopupMenu: TPopupMenu;
     steamMenuItem: TMenuItem;
     gamePopupMenu: TPopupMenu;
     iconsImageList: TImageList;
@@ -255,6 +255,7 @@ type
 
     procedure aboutBitBtnClick(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
+    procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -287,7 +288,7 @@ var
   vkbasaltsel: boolean;
 
   //Mangohud variables ##########################
-  MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER: string;
+  MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
 
   //########################################
   GPUNUMBER, COLUMNS: integer;
@@ -401,6 +402,7 @@ begin
   MANGOHUDFOLDER:= '$HOME/.config/MangoHud/' ;
   MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
   FONTFOLDER := '/usr/share/fonts/TTF/';
+  USERHOME := '$HOME/';
 
   //Load avaiable text fonts in /usr/share/fonts
   ListarFontesNoDiretorio('/usr/share/fonts/TTF/', fontComboBox);
@@ -498,8 +500,8 @@ begin
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
-
-
+     //HOMEPATH := GetAppConfigDir(False); // Get user home
+     logfolderEdit.text := USERHOME;
 
      COLUMNS := 3;
      columvalueLabel.Caption:= inttostr(COLUMNS);
@@ -745,6 +747,35 @@ begin
   afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
 end;
 
+procedure Tgoverlayform.logfolderBitBtnClick(Sender: TObject);
+var
+  selectedFolder: string;
+
+  begin
+    // Dialog to select folder
+    with TSelectDirectoryDialog.Create(Self) do
+    begin
+      try
+        // Configurations
+        Title := 'Select folder for logs';
+
+
+        // if folder is selected
+        if Execute then
+        begin
+          // store path in variable
+          selectedFolder := FileName;
+
+          // display path in edit
+          logfolderEdit.Text := selectedFolder;
+
+        end;
+      finally
+        Free;
+      end;
+    end;
+  end;
+
 procedure Tgoverlayform.PaintBox1Paint(Sender: TObject);
 var
   i: Integer;
@@ -837,7 +868,7 @@ var
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
   DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2: string; //extratab
+  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER: string; //extratab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1340,6 +1371,13 @@ var
       //Custom command  - Config Variable
       CUSTOMCMD1 := 'custom_text=Custom';
       CUSTOMCMD2 := 'exec=' + customcommandEdit.Text;
+
+
+
+      // Logging
+
+      //Store logfolder in variable
+      LOGFOLDER := logfolderEdit.Text;
 
           //##################################################################################################################  Write config file
         //  end;
