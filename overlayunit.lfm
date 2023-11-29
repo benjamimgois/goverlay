@@ -3919,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = performanceTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 1
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -6162,18 +6162,18 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Items.Strings = (
-              '30'
-              '40'
-              '45'
-              '48'
-              '60'
-              '75'
-              '90'
-              '120'
-              '144'
-              '165'
-              '175'
               '240'
+              '175'
+              '165'
+              '144'
+              '120'
+              '90'
+              '75'
+              '60'
+              '48'
+              '45'
+              '40'
+              '30'
             )
             ParentFont = False
             TabOrder = 5
