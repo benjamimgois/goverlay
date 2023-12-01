@@ -16084,11 +16084,12 @@ object goverlayform: Tgoverlayform
             Top = 56
             Width = 213
             Max = 200
+            OnChange = durationTrackBarChange
             Position = 30
             TickStyle = tsNone
             TabOrder = 4
           end
-          object Label1: TLabel
+          object durationvalueLabel: TLabel
             Left = 237
             Height = 18
             Top = 56
@@ -16118,11 +16119,12 @@ object goverlayform: Tgoverlayform
             Top = 104
             Width = 213
             Max = 200
+            OnChange = delayTrackBarChange
             Position = 5
             TickStyle = tsNone
             TabOrder = 5
           end
-          object Label2: TLabel
+          object delayvalueLabel: TLabel
             Left = 237
             Height = 18
             Top = 104
@@ -16140,11 +16142,12 @@ object goverlayform: Tgoverlayform
             Top = 151
             Width = 213
             Max = 500
+            OnChange = intervalTrackBarChange
             Position = 100
             TickStyle = tsNone
             TabOrder = 6
           end
-          object Label3: TLabel
+          object intervalvalueLabel: TLabel
             Left = 237
             Height = 18
             Top = 151

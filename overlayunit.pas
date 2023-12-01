@@ -82,9 +82,9 @@ type
     columShape: TShape;
     columvalueLabel: TLabel;
     Image2: TImage;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
+    durationvalueLabel: TLabel;
+    delayvalueLabel: TLabel;
+    intervalvalueLabel: TLabel;
     logtoggleLabel: TLabel;
     logdurationLabel: TLabel;
     logintervalLabel: TLabel;
@@ -255,6 +255,9 @@ type
 
     procedure aboutBitBtnClick(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
+    procedure delayTrackBarChange(Sender: TObject);
+    procedure durationTrackBarChange(Sender: TObject);
+    procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
@@ -500,8 +503,10 @@ begin
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
-     //HOMEPATH := GetAppConfigDir(False); // Get user home
      logfolderEdit.text := USERHOME;
+     durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position);
+     delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position);
+     intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position);
 
      COLUMNS := 3;
      columvalueLabel.Caption:= inttostr(COLUMNS);
@@ -745,6 +750,24 @@ procedure Tgoverlayform.afTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
+end;
+
+procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
+begin
+    //Display new values and trackbar changes
+  delayvalueLabel.Caption:= FormatFloat('#0', delayTrackbar.Position);
+end;
+
+procedure Tgoverlayform.durationTrackBarChange(Sender: TObject);
+begin
+  //Display new values and trackbar changes
+  durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position);
+end;
+
+procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
+begin
+   //Display new values and trackbar changes
+  intervalvalueLabel.Caption:= FormatFloat('#0', intervalTrackbar.Position);
 end;
 
 procedure Tgoverlayform.logfolderBitBtnClick(Sender: TObject);
@@ -1377,7 +1400,9 @@ var
       // Logging
 
       //Store logfolder in variable
-      LOGFOLDER := logfolderEdit.Text;
+      LOGFOLDER := 'output_folder='+ logfolderEdit.Text;
+
+
 
           //##################################################################################################################  Write config file
         //  end;
@@ -1486,6 +1511,7 @@ var
     SaveConfig(MEDIACOLOR,MANGOHUDCFGFILE);
     SaveConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
     SaveConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
+    SaveConfig(LOGFOLDER,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
