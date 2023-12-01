@@ -891,7 +891,7 @@ var
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
   DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL: string; //extratab
+  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE: string; //extratab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1408,6 +1408,17 @@ var
      LOGDELAY := 'autostart_log=' + FormatFloat('#0', delayTrackbar.Position);
      LOGINTERVAL := 'log_interval=' + FormatFloat('#0', intervalTrackbar.Position);
 
+     //Toggle logging
+
+
+
+      case logtoggleComboBox.ItemIndex of
+        0:LOGTOGGLE := 'toggle_logging==Shift_L+F2' ;
+        1:LOGTOGGLE := 'toggle_logging==Shift_L+F3' ;
+        2:LOGTOGGLE := 'toggle_logging==Shift_L+F4' ;
+        3:LOGTOGGLE := 'toggle_logging==Shift_L+F5' ;
+      end;
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1516,10 +1527,10 @@ var
     SaveConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
     SaveConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
     SaveConfig(LOGFOLDER,MANGOHUDCFGFILE);
-
     SaveConfig(LOGDURATION,MANGOHUDCFGFILE);
     SaveConfig(LOGDELAY,MANGOHUDCFGFILE);
     SaveConfig(LOGINTERVAL,MANGOHUDCFGFILE);
+    SaveConfig(LOGTOGGLE,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 

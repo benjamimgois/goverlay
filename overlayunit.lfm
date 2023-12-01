@@ -14171,10 +14171,9 @@ object goverlayform: Tgoverlayform
             ItemIndex = 0
             Items.Strings = (
               'Shift_L+F2'
-              'F1'
-              'F2'
-              'F3'
-              'F4'
+              'Shift_L+F3'
+              'Shift_L+F4'
+              'Shift_L+F5'
             )
             ParentFont = False
             ParentShowHint = False
@@ -16118,9 +16117,9 @@ object goverlayform: Tgoverlayform
             Height = 25
             Top = 104
             Width = 213
-            Max = 200
+            Max = 30
             OnChange = delayTrackBarChange
-            Position = 5
+            Position = 0
             TickStyle = tsNone
             TabOrder = 5
           end
