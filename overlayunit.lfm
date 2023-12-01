@@ -16105,8 +16105,8 @@ object goverlayform: Tgoverlayform
             Left = 80
             Height = 18
             Top = 80
-            Width = 97
-            Caption = 'Start delay (sec)'
+            Width = 124
+            Caption = 'Autostart delay (sec)'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased

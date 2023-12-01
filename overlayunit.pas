@@ -891,7 +891,7 @@ var
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
   DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER: string; //extratab
+  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL: string; //extratab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1402,7 +1402,11 @@ var
       //Store logfolder in variable
       LOGFOLDER := 'output_folder='+ logfolderEdit.Text;
 
+     //Log duration, delay and interval  - Config Variable
 
+     LOGDURATION := 'log_duration=' + FormatFloat('#0', durationTrackbar.Position);
+     LOGDELAY := 'autostart_log=' + FormatFloat('#0', delayTrackbar.Position);
+     LOGINTERVAL := 'log_interval=' + FormatFloat('#0', intervalTrackbar.Position);
 
           //##################################################################################################################  Write config file
         //  end;
@@ -1512,6 +1516,10 @@ var
     SaveConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
     SaveConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
     SaveConfig(LOGFOLDER,MANGOHUDCFGFILE);
+
+    SaveConfig(LOGDURATION,MANGOHUDCFGFILE);
+    SaveConfig(LOGDELAY,MANGOHUDCFGFILE);
+    SaveConfig(LOGINTERVAL,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
