@@ -285,6 +285,12 @@ var
   s: string;
   Color: string;
 
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
+GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
+CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
+FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
+DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
+VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
 
   //Boolean variables
   mangohudsel: boolean;
@@ -296,6 +302,10 @@ var
   //########################################
   GPUNUMBER, COLUMNS: integer;
   GPUDESC: TStringList;
+
+  ArquivoConfig: TextFile;
+  Linha: string;
+  CaminhoArquivo, NomeCampo, ValorCampo: string;
 
 implementation
 
@@ -379,6 +389,9 @@ Process: TProcess;
 AppHandle: THandle;
 saida: TStringList;
 i: integer;
+Output: TStringList;
+
+
 
 begin
   //Centralize window
@@ -404,9 +417,8 @@ begin
   // Define important file paths
   MANGOHUDFOLDER:= '$HOME/.config/MangoHud/' ;
   MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
-  //FONTFOLDER := '/usr/share/fonts/TTF/';
   FONTFOLDER := '/usr/share/fonts/';
-  USERHOME := '$HOME/';
+  USERHOME :=  GetEnvironmentVariable('HOME') ;
 
   //Load avaiable text fonts in /usr/share/fonts
    ListarFontesNoDiretorio('/usr/share/fonts/', fontComboBox);
@@ -414,7 +426,6 @@ begin
   //ListarFontesNoDiretorio('/usr/share/fonts/liberation', fontComboBox);
   //ListarFontesNoDiretorio('/usr/share/fonts/gnu-free', fontComboBox);
   //ListarFontesNoDiretorio('/usr/share/fonts/ubuntu', fontComboBox);
-  //ListarFontesNoDiretorio('/usr/share/fonts/ubuntu2', fontComboBox);
 
 
   //Detect system GPUs
@@ -501,7 +512,47 @@ begin
      saida.Free;
 
 
-      // Initial values
+
+
+
+       // Abre o arquivo
+       //CaminhoArquivo := '/home/benjamim/.config/MangoHud/MangoHud.conf';
+       CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+       //CaminhoArquivo := MANGOHUDCFGFILE;
+       AssignFile(ArquivoConfig, ExpandFileName(CaminhoArquivo));
+       Reset(ArquivoConfig);
+
+
+  try
+    // Lê cada linha do arquivo
+    while not Eof(ArquivoConfig) do
+    begin
+      ReadLn(ArquivoConfig, Linha);
+
+      // Ignora linhas em branco ou comentadas
+      if (Trim(Linha) <> '') and (Pos('#', Linha) <> 1) then
+      begin
+        // Divide a linha em NomeCampo e ValorCampo
+        NomeCampo := Trim(Copy(Linha, 1, Pos('=', Linha) - 1));
+        ValorCampo := Trim(Copy(Linha, Pos('=', Linha) + 1, Length(Linha)));
+
+        // Armazena o valor do campo "table_columns" na variável TABLECOLUMNS
+        if NomeCampo = 'table_columns' then
+          TABLECOLUMNS := ValorCampo;
+      end;
+    end;
+
+    // Exibe o valor da variável TABLECOLUMNS
+    Showmessage('O valor de TABLECOLUMNS é: ' + TABLECOLUMNS);
+  finally
+    // Fecha o arquivo
+    CloseFile(ArquivoConfig);
+  end;
+
+
+
+
+      // Initial STOCK values
 
      alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
      fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
@@ -891,12 +942,7 @@ end;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
-  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
-  CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
-  FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
-  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
+
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;

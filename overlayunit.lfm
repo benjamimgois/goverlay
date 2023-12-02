@@ -3919,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = extrasTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 3
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -4242,6 +4242,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = fontsGroupBox
             Left = 8
             Height = 32
+            Hint = 'ttf fonts  in /usr/share/fonts'
             Top = 10
             Width = 190
             BorderSpacing.Left = 8
