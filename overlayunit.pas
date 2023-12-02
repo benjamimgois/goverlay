@@ -891,7 +891,7 @@ var
   CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
   FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER: string; //performance tab
   DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER: string; //extratab
+  VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL: TStringList;
@@ -1423,6 +1423,10 @@ var
 
        Savecheckbox (versioningCheckBox, LOGVER, 'log_versioning');
 
+       //Log versioning  - Config Variable
+
+       Savecheckbox (autouploadCheckBox, LOGAUTO, 'upload_logs');
+
           //##################################################################################################################  Write config file
         //  end;
 
@@ -1536,6 +1540,7 @@ var
     SaveConfig(LOGINTERVAL,MANGOHUDCFGFILE);
     SaveConfig(LOGTOGGLE,MANGOHUDCFGFILE);
     SaveConfig(LOGVER,MANGOHUDCFGFILE);
+    SaveConfig(LOGAUTO,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
