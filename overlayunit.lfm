@@ -14158,10 +14158,10 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           object logtoggleComboBox: TComboBox
-            Left = 360
+            Left = 640
             Height = 32
             Hint = 'Key to start and stop logging'#10'(Shif_L = Left shift)'
-            Top = 134
+            Top = 142
             Width = 110
             Color = clBtnFace
             Font.Height = -13
@@ -14182,10 +14182,10 @@ object goverlayform: Tgoverlayform
             Text = 'Shift_L+F2'
           end
           object autouploadCheckBox: TCheckBox
-            Left = 632
+            Left = 624
             Height = 20
             Hint = 'Permit to upload results to  Flightlessmango.com'
-            Top = 112
+            Top = 96
             Width = 126
             Caption = 'Autoupload results'
             Checked = True
@@ -14604,9 +14604,9 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = fpslimtoggleComboBox
             AnchorSideTop.Side = asrCenter
             AnchorSideRight.Control = fpslimtoggleComboBox
-            Left = 328
+            Left = 608
             Height = 28
-            Top = 138
+            Top = 146
             Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Right = 2
@@ -15520,7 +15520,7 @@ object goverlayform: Tgoverlayform
           object logfolderBitBtn: TBitBtn
             Left = 528
             Height = 32
-            Top = 66
+            Top = 97
             Width = 32
             Glyph.Data = {
               36400000424D3640000000000000360000002800000040000000400000000100
@@ -16044,7 +16044,7 @@ object goverlayform: Tgoverlayform
           object logfolderEdit: TEdit
             Left = 288
             Height = 32
-            Top = 66
+            Top = 96
             Width = 244
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -16054,9 +16054,9 @@ object goverlayform: Tgoverlayform
             TabOrder = 3
           end
           object logfolderLabel: TLabel
-            Left = 376
+            Left = 385
             Height = 18
-            Top = 42
+            Top = 72
             Width = 64
             Caption = 'Log folder'
             Font.Height = -13
@@ -16170,11 +16170,11 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
-          object autouploadCheckBox1: TCheckBox
-            Left = 632
+          object versioningCheckBox: TCheckBox
+            Left = 624
             Height = 20
             Hint = 'Permit to upload results to  Flightlessmango.com'
-            Top = 88
+            Top = 64
             Width = 120
             Caption = 'Enable versioning'
             Checked = True
@@ -16188,9 +16188,9 @@ object goverlayform: Tgoverlayform
             TabOrder = 7
           end
           object logtoggleLabel: TLabel
-            Left = 376
+            Left = 656
             Height = 18
-            Top = 112
+            Top = 120
             Width = 65
             Caption = 'Toggle key'
             Font.Height = -13
