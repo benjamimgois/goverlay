@@ -4,7 +4,7 @@ object goverlayform: Tgoverlayform
   Top = 232
   Width = 1000
   BorderStyle = bsDialog
-  Caption = 'Goverlay 1.0 alpha'
+  Caption = 'Goverlay 1.0'
   ClientHeight = 649
   ClientWidth = 1000
   Color = 1710618
@@ -3979,6 +3979,7 @@ object goverlayform: Tgoverlayform
           ReadOnly = True
           TabOrder = 1
           Text = 'Mangohud Default'
+          Visible = False
         end
         object positionGroupBox: TGroupBox
           AnchorSideLeft.Control = borderGroupBox
@@ -4456,6 +4457,7 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           ParentColor = False
           ParentFont = False
+          Visible = False
         end
         object orientationGroupBox: TGroupBox
           AnchorSideLeft.Control = visualTabSheet
@@ -14158,16 +14160,17 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           object logtoggleComboBox: TComboBox
-            Left = 640
+            AnchorSideTop.Control = logfolderEdit
+            Left = 376
             Height = 32
             Hint = 'Key to start and stop logging'#10'(Shif_L = Left shift)'
-            Top = 142
+            Top = 138
             Width = 110
             Color = clBtnFace
-            Font.Height = -13
-            Font.Name = 'Sans'
+            Font.Height = -12
+            Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 23
             ItemIndex = 0
             Items.Strings = (
               'Shift_L+F2'
@@ -14182,20 +14185,23 @@ object goverlayform: Tgoverlayform
             Text = 'Shift_L+F2'
           end
           object autouploadCheckBox: TCheckBox
-            Left = 624
+            AnchorSideLeft.Control = logfolderEdit
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideBottom.Control = logfolderEdit
+            Left = 566
             Height = 20
-            Hint = 'Permit to upload results to  Flightlessmango.com'
-            Top = 96
+            Hint = 'Enables automatic uploads of logs to flightlessmango.com'
+            Top = 78
             Width = 126
+            Anchors = [akLeft, akBottom]
+            BorderSpacing.Bottom = 40
             Caption = 'Autoupload results'
-            Checked = True
             Font.Height = -11
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            State = cbChecked
             TabOrder = 1
           end
           object Image2: TImage
@@ -14601,12 +14607,12 @@ object goverlayform: Tgoverlayform
             Stretch = True
           end
           object logtoggleImage: TImage
-            AnchorSideTop.Control = fpslimtoggleComboBox
+            AnchorSideTop.Control = logtoggleComboBox
             AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Control = fpslimtoggleComboBox
-            Left = 608
+            AnchorSideRight.Control = logtoggleComboBox
+            Left = 346
             Height = 28
-            Top = 146
+            Top = 140
             Width = 28
             Anchors = [akTop, akRight]
             BorderSpacing.Right = 2
@@ -15518,10 +15524,17 @@ object goverlayform: Tgoverlayform
             Stretch = True
           end
           object logfolderBitBtn: TBitBtn
-            Left = 528
+            AnchorSideRight.Control = loggingGroupBox
+            AnchorSideRight.Side = asrBottom
+            AnchorSideBottom.Control = loggingGroupBox
+            AnchorSideBottom.Side = asrBottom
+            Left = 739
             Height = 32
-            Top = 97
+            Top = 138
             Width = 32
+            Anchors = [akRight, akBottom]
+            BorderSpacing.Right = 5
+            BorderSpacing.Bottom = 10
             Glyph.Data = {
               36400000424D3640000000000000360000002800000040000000400000000100
               2000000000000040000064000000640000000000000000000000000000000000
@@ -16042,11 +16055,15 @@ object goverlayform: Tgoverlayform
             TabOrder = 2
           end
           object logfolderEdit: TEdit
-            Left = 288
-            Height = 32
-            Top = 96
-            Width = 244
-            Font.Height = -13
+            AnchorSideLeft.Control = logfolderBitBtn
+            AnchorSideTop.Control = logfolderBitBtn
+            AnchorSideRight.Control = logfolderBitBtn
+            Left = 519
+            Height = 31
+            Top = 138
+            Width = 220
+            Anchors = [akTop, akRight]
+            Font.Height = -12
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
@@ -16054,10 +16071,16 @@ object goverlayform: Tgoverlayform
             TabOrder = 3
           end
           object logfolderLabel: TLabel
-            Left = 385
+            AnchorSideLeft.Control = logfolderEdit
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = logfolderEdit
+            AnchorSideBottom.Control = logfolderEdit
+            Left = 597
             Height = 18
-            Top = 72
+            Top = 118
             Width = 64
+            Anchors = [akLeft, akBottom]
+            BorderSpacing.Bottom = 2
             Caption = 'Log folder'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16066,10 +16089,14 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object logdurationLabel: TLabel
-            Left = 80
+            AnchorSideLeft.Control = loggingGroupBox
+            AnchorSideTop.Control = loggingGroupBox
+            Left = 10
             Height = 18
-            Top = 30
+            Top = 10
             Width = 85
+            BorderSpacing.Left = 10
+            BorderSpacing.Top = 10
             Caption = 'Duration (sec)'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16078,21 +16105,33 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object durationTrackBar: TTrackBar
-            Left = 16
-            Height = 25
-            Top = 56
-            Width = 213
+            AnchorSideLeft.Control = logdurationLabel
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = logdurationLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 40
+            Height = 130
+            Top = 38
+            Width = 25
             Max = 200
             OnChange = durationTrackBarChange
+            Orientation = trVertical
             Position = 30
+            Reversed = True
             TickStyle = tsNone
+            BorderSpacing.Top = 10
             TabOrder = 4
           end
           object durationvalueLabel: TLabel
-            Left = 237
+            AnchorSideLeft.Control = durationTrackBar
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = durationTrackBar
+            AnchorSideTop.Side = asrCenter
+            Left = 67
             Height = 18
-            Top = 56
+            Top = 94
             Width = 8
+            BorderSpacing.Left = 2
             Caption = 'X'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -16101,11 +16140,15 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object logdelayLabel: TLabel
-            Left = 80
+            AnchorSideLeft.Control = logdurationLabel
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = logdurationLabel
+            Left = 115
             Height = 18
-            Top = 80
-            Width = 124
-            Caption = 'Autostart delay (sec)'
+            Top = 10
+            Width = 92
+            BorderSpacing.Left = 20
+            Caption = 'Autostart  (sec)'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -16113,21 +16156,33 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object delayTrackBar: TTrackBar
-            Left = 16
-            Height = 25
-            Top = 104
-            Width = 213
+            AnchorSideLeft.Control = logdelayLabel
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = logdelayLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 149
+            Height = 130
+            Top = 38
+            Width = 25
             Max = 30
             OnChange = delayTrackBarChange
+            Orientation = trVertical
             Position = 0
+            Reversed = True
             TickStyle = tsNone
+            BorderSpacing.Top = 10
             TabOrder = 5
           end
           object delayvalueLabel: TLabel
-            Left = 237
+            AnchorSideLeft.Control = delayTrackBar
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = delayTrackBar
+            AnchorSideTop.Side = asrCenter
+            Left = 176
             Height = 18
-            Top = 104
+            Top = 94
             Width = 8
+            BorderSpacing.Left = 2
             Caption = 'X'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -16136,21 +16191,33 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object intervalTrackBar: TTrackBar
-            Left = 16
-            Height = 25
-            Top = 151
-            Width = 213
+            AnchorSideLeft.Control = logintervalLabel
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = logintervalLabel
+            AnchorSideTop.Side = asrBottom
+            Left = 260
+            Height = 130
+            Top = 38
+            Width = 25
             Max = 500
             OnChange = intervalTrackBarChange
+            Orientation = trVertical
             Position = 100
+            Reversed = True
             TickStyle = tsNone
+            BorderSpacing.Top = 10
             TabOrder = 6
           end
           object intervalvalueLabel: TLabel
-            Left = 237
+            AnchorSideLeft.Control = intervalTrackBar
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = intervalTrackBar
+            AnchorSideTop.Side = asrCenter
+            Left = 287
             Height = 18
-            Top = 151
+            Top = 94
             Width = 8
+            BorderSpacing.Left = 2
             Caption = 'X'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -16159,10 +16226,14 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object logintervalLabel: TLabel
-            Left = 80
+            AnchorSideLeft.Control = logdelayLabel
+            AnchorSideLeft.Side = asrBottom
+            AnchorSideTop.Control = logdelayLabel
+            Left = 227
             Height = 18
-            Top = 128
+            Top = 10
             Width = 91
+            BorderSpacing.Left = 20
             Caption = 'Interval (msec)'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16171,27 +16242,34 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object versioningCheckBox: TCheckBox
-            Left = 624
+            AnchorSideLeft.Control = autouploadCheckBox
+            AnchorSideBottom.Control = autouploadCheckBox
+            Left = 566
             Height = 20
-            Hint = 'Permit to upload results to  Flightlessmango.com'
-            Top = 64
-            Width = 120
-            Caption = 'Enable versioning'
-            Checked = True
+            Hint = 'Adds more headers and information such as versioning to the log. '#10'This format is not supported on flightlessmango.com (yet)'
+            Top = 53
+            Width = 106
+            Anchors = [akLeft, akBottom]
+            BorderSpacing.Bottom = 5
+            Caption = 'Log Versioning'
             Font.Height = -11
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
             ParentFont = False
             ParentShowHint = False
             ShowHint = True
-            State = cbChecked
             TabOrder = 7
           end
           object logtoggleLabel: TLabel
-            Left = 656
+            AnchorSideLeft.Control = logtoggleComboBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideBottom.Control = logtoggleComboBox
+            Left = 399
             Height = 18
-            Top = 120
+            Top = 118
             Width = 65
+            Anchors = [akLeft, akBottom]
+            BorderSpacing.Bottom = 2
             Caption = 'Toggle key'
             Font.Height = -13
             Font.Name = 'Sans'

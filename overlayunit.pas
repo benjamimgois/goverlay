@@ -1392,8 +1392,14 @@ var
       MEDIACOLOR := 'media_player_color=' + ColorToHTMLColor(mediaColorButton.ButtonColor);
 
       //Custom command  - Config Variable
-      CUSTOMCMD1 := 'custom_text=Custom';
-      CUSTOMCMD2 := 'exec=' + customcommandEdit.Text;
+
+      if (customcommandEdit.Text <> '') and (customcommandEdit.Text <> 'Custom command') then
+      begin
+           CUSTOMCMD1 := 'custom_text=Custom';
+           CUSTOMCMD2 := 'exec=' + customcommandEdit.Text;
+      end;
+
+
 
 
 
