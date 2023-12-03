@@ -292,12 +292,13 @@ FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMM
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
 
+
   //Boolean variables
   mangohudsel: boolean;
   vkbasaltsel: boolean;
 
   //Mangohud variables ##########################
-  MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
+  AUX, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
 
   //########################################
   GPUNUMBER, COLUMNS: integer;
@@ -372,7 +373,6 @@ begin
       VARNAME := VALUE;
 end;
 
-
 //Procedure to store info from Radiobuttons
 procedure SaveRadioButton(RADIOBUTTONNAME: TRadioButton; var VARNAME: string; const VALUE: string);
 
@@ -380,6 +380,40 @@ begin
     if RADIOBUTTONNAME.checked = true then
       VARNAME := VALUE;
 end;
+
+
+
+
+
+
+
+// ########   Procedure Load values from mangohud variables
+function LoadValue(const Parametro: string; out Valor: string): Boolean;
+var
+  Process: TProcess;
+  Output: TStringList;
+  CaminhoArquivo: string;
+begin
+  Process := TProcess.Create(nil);
+  Output := TStringList.Create;
+
+  CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+
+  Process.Executable := '/bin/bash';
+  Process.Parameters.Add('-c');
+  Process.Parameters.Add('cat ' +  CaminhoArquivo);
+  Process.Options := [poUsePipes];
+  Process.Execute;
+
+  Output.LoadFromStream(Process.Output);
+
+  Valor := Output.Values[Parametro];
+  Result := Valor <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+end;
+
+
+
+
 
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -515,39 +549,25 @@ begin
 
 
 
-       // Abre o arquivo
-       //CaminhoArquivo := '/home/benjamim/.config/MangoHud/MangoHud.conf';
-       CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
-       //CaminhoArquivo := MANGOHUDCFGFILE;
-       AssignFile(ArquivoConfig, ExpandFileName(CaminhoArquivo));
-       Reset(ArquivoConfig);
+    // Load Mangohud config file
+
+    //HUD TILE
+    if LoadValue('custom_text_center',AUX) then
+      hudtitleEdit.Text:= AUX;
+
+    //Background alpha
+    if LoadValue('background_alpha',AUX) then
+      transpTrackbar.Position :=  Round(StrToFloat(AUX) * 10);
+
+     //Round corners
+    if LoadValue('round_corners=10',AUX) then
+      roundRadiobutton.Checked :=  true
+      else
+      squareRadioButton.Checked:=true;
 
 
-  try
-    // Lê cada linha do arquivo
-    while not Eof(ArquivoConfig) do
-    begin
-      ReadLn(ArquivoConfig, Linha);
-
-      // Ignora linhas em branco ou comentadas
-      if (Trim(Linha) <> '') and (Pos('#', Linha) <> 1) then
-      begin
-        // Divide a linha em NomeCampo e ValorCampo
-        NomeCampo := Trim(Copy(Linha, 1, Pos('=', Linha) - 1));
-        ValorCampo := Trim(Copy(Linha, Pos('=', Linha) + 1, Length(Linha)));
-
-        // Armazena o valor do campo "table_columns" na variável TABLECOLUMNS
-        if NomeCampo = 'table_columns' then
-          TABLECOLUMNS := ValorCampo;
-      end;
-    end;
-
-    // Exibe o valor da variável TABLECOLUMNS
-    Showmessage('O valor de TABLECOLUMNS é: ' + TABLECOLUMNS);
-  finally
-    // Fecha o arquivo
-    CloseFile(ArquivoConfig);
-  end;
+      Showmessage('O valor de AUX é: ' +  AUX);
+     // Showmessage('O valor de tabbles é: ' +  TABLECOLUMNS );
 
 
 
