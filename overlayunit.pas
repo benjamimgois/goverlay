@@ -298,7 +298,7 @@ VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTE
   vkbasaltsel: boolean;
 
   //Mangohud variables ##########################
-  AUX, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
 
   //########################################
   GPUNUMBER, COLUMNS: integer;
@@ -387,7 +387,7 @@ end;
 
 
 
-// ########   Procedure Load values from mangohud variables
+// ########   Function Load strings with values from mangohud variables
 function LoadValue(const Parametro: string; out Valor: string): Boolean;
 var
   Process: TProcess;
@@ -408,11 +408,57 @@ begin
   Output.LoadFromStream(Process.Output);
 
   Valor := Output.Values[Parametro];
+
+   // Debug
+  WriteLn('Parametro: ', Parametro);
+  WriteLn('Value: ', Valor);
+
+
   Result := Valor <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
 end;
 
 
+// ########   Function to Load strings from mangohud variables
+function LoadName(const Parametro: string): Boolean;
+var
+  Process: TProcess;
+  Output: TStringList;
+  CaminhoArquivo: string;
+  variavel: string;
+begin
+  Process := TProcess.Create(nil);
+  Output := TStringList.Create;
 
+  CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+
+  Process.Executable := '/bin/bash';
+  Process.Parameters.Add('-c');
+  Process.Parameters.Add('cat ' +  CaminhoArquivo + ' | grep ' + Parametro);
+  Process.Options := [poUsePipes];
+  Process.Execute;
+
+  Output.LoadFromStream(Process.Output);
+
+
+  // debug
+  WriteLn('Parametro: ', Parametro);
+
+
+  if output.Count > 0 then
+    Result := true
+    else
+    Result := false;    // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+end;
+
+
+
+//Function to convert hexadecimal to TColor
+function HexToColor(const HexValue: string): TColor;
+begin
+  Result := RGBToColor(StrToInt('$' + Copy(HexValue, 1, 2)),
+                       StrToInt('$' + Copy(HexValue, 3, 2)),
+                       StrToInt('$' + Copy(HexValue, 5, 2)));
+end;
 
 
 
@@ -555,19 +601,40 @@ begin
     if LoadValue('custom_text_center',AUX) then
       hudtitleEdit.Text:= AUX;
 
+
     //Background alpha
     if LoadValue('background_alpha',AUX) then
       transpTrackbar.Position :=  Round(StrToFloat(AUX) * 10);
 
      //Round corners
-    if LoadValue('round_corners=10',AUX) then
-      roundRadiobutton.Checked :=  true
-      else
-      squareRadioButton.Checked:=true;
+    if LoadValue('round_corners',AUX) then
+      begin
+        if strtoint(AUX) = 0 then
+          squareRadiobutton.Checked:=true
+        else
+          roundRadiobutton.Checked:=true;
+      end;
 
 
-      Showmessage('O valor de AUX é: ' +  AUX);
-     // Showmessage('O valor de tabbles é: ' +  TABLECOLUMNS );
+      //Orientation
+    if LoadName('horizontal') then
+      horizontalRadiobutton.Checked := True
+    else
+      verticalRadiobutton.Checked := True;
+
+
+
+    //Background color
+    if LoadValue('background_color',AUX) then
+      begin
+        //AUX := '#' + AUX;
+        hudbackgroundColorbutton.ButtonColor:=  HexToColor(AUX);
+      end;
+
+
+
+     Showmessage('O valor de AUX é: ' +  AUX);
+
 
 
 
