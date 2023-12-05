@@ -692,6 +692,46 @@ begin
 
       end; //if
 
+
+    //toggle fps limit
+    if LoadValue('toggle_fps_limit',AUX) then
+      begin
+        case AUX of
+          'Shift_L+F1': fpslimtoggleCombobox.ItemIndex:=0;
+          'Shift_L+F2': fpslimtoggleCombobox.ItemIndex:=1;
+          'Shift_L+F3': fpslimtoggleCombobox.ItemIndex:=2;
+          'Shift_L+F4': fpslimtoggleCombobox.ItemIndex:=3;
+        end; //case
+
+      end; //if
+
+
+    //vulkan vsync
+    if LoadValue('vsync',AUX) then
+      begin
+        case AUX of
+          '0': vsyncCombobox.ItemIndex:=0;
+          '1': vsyncCombobox.ItemIndex:=1;
+          '2': vsyncCombobox.ItemIndex:=2;
+          '3': vsyncCombobox.ItemIndex:=3;
+          '4': vsyncCombobox.ItemIndex:=4;
+        end; //case
+
+      end; //if
+
+    //GL vsync
+    if LoadValue('gl_vsync',AUX) then
+      begin
+        case AUX of
+          '-1': glvsyncCombobox.ItemIndex:=0;
+          '0': glvsyncCombobox.ItemIndex:=1;
+          '1': glvsyncCombobox.ItemIndex:=2;
+          'n': glvsyncCombobox.ItemIndex:=3;
+          '3': glvsyncCombobox.ItemIndex:=4;
+        end; //case
+
+      end; //if
+
      Showmessage('O valor de AUX é:' + AUX);
 
     //#################################################    Color buttons
