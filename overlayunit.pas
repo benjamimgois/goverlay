@@ -597,16 +597,41 @@ begin
 
     // Load Mangohud config file
 
+    //#################################################    EDITs
+
     //HUD TILE
     if LoadValue('custom_text_center',AUX) then
       hudtitleEdit.Text:= AUX;
 
+    //GPU Text
+    if LoadValue('gpu_text',AUX) then
+      gpunameEdit.Text:= AUX;
+
+    //CPU Text
+    if LoadValue('cpu_text',AUX) then
+      cpunameEdit.Text:= AUX;
+
+    //Log folder
+    if LoadValue('output_folder',AUX) then
+      logfolderEdit.Text:= AUX;
+
+     //#################################################    Trackbars
 
     //Background alpha
     if LoadValue('background_alpha',AUX) then
       transpTrackbar.Position :=  Round(StrToFloat(AUX) * 10);
 
-     //Round corners
+
+
+     //#################################################    Radio buttons
+
+    //Orientation
+    if LoadName('horizontal') then
+      horizontalRadiobutton.Checked := True
+    else
+      verticalRadiobutton.Checked := True;
+
+    //Round corners
     if LoadValue('round_corners',AUX) then
       begin
         if strtoint(AUX) = 0 then
@@ -615,15 +640,7 @@ begin
           roundRadiobutton.Checked:=true;
       end;
 
-
-      //Orientation
-    if LoadName('horizontal') then
-      horizontalRadiobutton.Checked := True
-    else
-      verticalRadiobutton.Checked := True;
-
-
-    //Color buttons
+    //#################################################    Color buttons
 
       //Background color button
       if LoadValue('background_color',AUX) then
