@@ -645,7 +645,7 @@ begin
     if LoadValue('log_interval',AUX) then
       intervalTrackbar.Position :=  Round(StrToFloat(AUX));
 
-    Showmessage('O valor de AUX é:' + AUX);
+
 
      //#################################################    Radio buttons
 
@@ -663,6 +663,26 @@ begin
         else
           roundRadiobutton.Checked:=true;
       end;
+
+    //Position
+    if LoadValue('position',AUX) then
+      begin
+        case AUX of
+          'top-left': topleftRadiobutton.Checked:=true;
+          'top-center': topcenterRadiobutton.Checked:=true;
+          'top-right': toprightRadiobutton.Checked:=true;
+          'middle-right': middlerightRadiobutton.Checked:=true;
+          'middle-left': middleleftRadiobutton.Checked:=true;
+          'bottom-left': bottomleftRadiobutton.Checked:=true;
+          'bottom-center': bottomcenterRadiobutton.Checked:=true;
+          'bottom-right': bottomrightRadiobutton.Checked:=true;
+        end; //case
+
+      end; //if
+
+
+
+     Showmessage('O valor de AUX é:' + AUX);
 
     //#################################################    Color buttons
 
