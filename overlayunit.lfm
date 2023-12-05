@@ -12990,7 +12990,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 2
           end
-          object cpuColorButton1: TColorButton
+          object cpuColorButton: TColorButton
             AnchorSideLeft.Control = cpunameEdit
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = cpunameEdit
@@ -13040,7 +13040,7 @@ object goverlayform: Tgoverlayform
             ParentFont = False
             TabOrder = 4
           end
-          object ramColorButton1: TColorButton
+          object ramColorButton: TColorButton
             AnchorSideLeft.Control = ramusageCheckBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = ramusageCheckBox
@@ -13074,13 +13074,13 @@ object goverlayform: Tgoverlayform
             TabOrder = 5
           end
           object iordrwColorButton: TColorButton
-            AnchorSideLeft.Control = procmemCheckBox
+            AnchorSideLeft.Control = diskioCheckBox
             AnchorSideTop.Control = procmemCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 273
+            Left = 123
             Height = 12
             Top = 220
-            Width = 110
+            Width = 75
             Align = alCustom
             BorderWidth = 2
             ButtonColorSize = 16
@@ -13239,11 +13239,11 @@ object goverlayform: Tgoverlayform
             Height = 22
             Hint = 'Displays process'' memory usage: resident, shared and/or virtual.'
             Top = 198
-            Width = 110
+            Width = 75
             Align = alCustom
             Alignment = taLeftJustify
             BorderSpacing.Top = 2
-            Caption = 'Process Mem'
+            Caption = 'Process'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -13252,7 +13252,7 @@ object goverlayform: Tgoverlayform
           end
           object cpumainmetricsLabel: TLabel
             AnchorSideLeft.Control = cpuGroupBox
-            AnchorSideTop.Control = cpuColorButton1
+            AnchorSideTop.Control = cpuColorButton
             Left = 10
             Height = 18
             Top = 42

@@ -59,7 +59,7 @@ type
     fpscolorCheckBox: TCheckBox;
     engineshortCheckBox: TCheckBox;
     cpuavgloadCheckBox: TCheckBox;
-    cpuColorButton1: TColorButton;
+    cpuColorButton: TColorButton;
     cpufreqCheckBox: TCheckBox;
     cpuGroupBox: TGroupBox;
     cpuload1ColorButton: TColorButton;
@@ -194,7 +194,7 @@ type
     positionGroupBox: TGroupBox;
     Process1: TProcess;
     procmemCheckBox: TCheckBox;
-    ramColorButton1: TColorButton;
+    ramColorButton: TColorButton;
     ramusageCheckBox: TCheckBox;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
@@ -623,21 +623,79 @@ begin
       verticalRadiobutton.Checked := True;
 
 
+    //Color buttons
 
-    //Background color
-    if LoadValue('background_color',AUX) then
-      begin
-        //AUX := '#' + AUX;
-        hudbackgroundColorbutton.ButtonColor:=  HexToColor(AUX);
-      end;
+      //Background color button
+      if LoadValue('background_color',AUX) then
+        begin
+          hudbackgroundColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
+      //Text color button
+      if LoadValue('text_color',AUX) then
+        begin
+          FontColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
+      //Frametime color  button
+      if LoadValue('frametime_color',AUX) then
+        begin
+          FrametimegraphColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
-     Showmessage('O valor de AUX é: ' +  AUX);
+      //GPU color  button
+      if LoadValue('gpu_color',AUX) then
+        begin
+          gpuColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
+      //CPU color  button
+      if LoadValue('cpu_color',AUX) then
+        begin
+          cpuColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
+      //VRAM color  button
+      if LoadValue('vram_color',AUX) then
+        begin
+          vramColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
+      //RAM color  button
+      if LoadValue('ram_color',AUX) then
+        begin
+          ramColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
+      //IO color  button
+      if LoadValue('io_color',AUX) then
+        begin
+          iordrwColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
+
+      //Wine color  button
+      if LoadValue('wine_color',AUX) then
+        begin
+          wineColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
+
+      //Engine color  button
+      if LoadValue('engine_color',AUX) then
+        begin
+          engineColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
+
+      //battery color  button
+      if LoadValue('battery_color',AUX) then
+        begin
+          batteryColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
+
+      //media player color  button
+      if LoadValue('media_player_color',AUX) then
+        begin
+          mediaColorbutton.ButtonColor:=  HexToColor(AUX);
+        end;
 
       // Initial STOCK values
 
