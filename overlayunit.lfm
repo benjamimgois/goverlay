@@ -14161,8 +14161,10 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           object logtoggleComboBox: TComboBox
+            AnchorSideLeft.Control = loggingGroupBox
+            AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = logfolderEdit
-            Left = 376
+            Left = 333
             Height = 32
             Hint = 'Key to start and stop logging'#10'(Shif_L = Left shift)'
             Top = 138
@@ -14189,7 +14191,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = logfolderEdit
             AnchorSideLeft.Side = asrCenter
             AnchorSideBottom.Control = logfolderEdit
-            Left = 566
+            Left = 556
             Height = 20
             Hint = 'Enables automatic uploads of logs to flightlessmango.com'
             Top = 78
@@ -14611,7 +14613,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = logtoggleComboBox
             AnchorSideTop.Side = asrCenter
             AnchorSideRight.Control = logtoggleComboBox
-            Left = 346
+            Left = 303
             Height = 28
             Top = 140
             Width = 28
@@ -16059,11 +16061,12 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = logfolderBitBtn
             AnchorSideTop.Control = logfolderBitBtn
             AnchorSideRight.Control = logfolderBitBtn
-            Left = 519
-            Height = 31
+            Left = 499
+            Height = 32
             Top = 138
-            Width = 220
+            Width = 240
             Anchors = [akTop, akRight]
+            AutoSize = False
             Font.Height = -12
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -16076,7 +16079,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = logfolderEdit
             AnchorSideBottom.Control = logfolderEdit
-            Left = 597
+            Left = 587
             Height = 18
             Top = 118
             Width = 64
@@ -16095,10 +16098,10 @@ object goverlayform: Tgoverlayform
             Left = 10
             Height = 18
             Top = 10
-            Width = 85
+            Width = 54
             BorderSpacing.Left = 10
             BorderSpacing.Top = 10
-            Caption = 'Duration (sec)'
+            Caption = 'Duration'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -16110,7 +16113,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = logdurationLabel
             AnchorSideTop.Side = asrBottom
-            Left = 40
+            Left = 25
             Height = 130
             Top = 38
             Width = 25
@@ -16128,7 +16131,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = durationTrackBar
             AnchorSideTop.Side = asrCenter
-            Left = 67
+            Left = 52
             Height = 18
             Top = 94
             Width = 8
@@ -16144,12 +16147,12 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = logdurationLabel
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = logdurationLabel
-            Left = 115
+            Left = 104
             Height = 18
             Top = 10
-            Width = 92
-            BorderSpacing.Left = 20
-            Caption = 'Autostart  (sec)'
+            Width = 61
+            BorderSpacing.Left = 40
+            Caption = 'Autostart '
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -16161,7 +16164,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = logdelayLabel
             AnchorSideTop.Side = asrBottom
-            Left = 149
+            Left = 122
             Height = 130
             Top = 38
             Width = 25
@@ -16179,7 +16182,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = delayTrackBar
             AnchorSideTop.Side = asrCenter
-            Left = 176
+            Left = 149
             Height = 18
             Top = 94
             Width = 8
@@ -16196,7 +16199,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = logintervalLabel
             AnchorSideTop.Side = asrBottom
-            Left = 260
+            Left = 217
             Height = 130
             Top = 38
             Width = 25
@@ -16214,7 +16217,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = intervalTrackBar
             AnchorSideTop.Side = asrCenter
-            Left = 287
+            Left = 244
             Height = 18
             Top = 94
             Width = 8
@@ -16230,12 +16233,12 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = logdelayLabel
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = logdelayLabel
-            Left = 227
+            Left = 205
             Height = 18
             Top = 10
-            Width = 91
-            BorderSpacing.Left = 20
-            Caption = 'Interval (msec)'
+            Width = 48
+            BorderSpacing.Left = 40
+            Caption = 'Interval'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -16245,7 +16248,7 @@ object goverlayform: Tgoverlayform
           object versioningCheckBox: TCheckBox
             AnchorSideLeft.Control = autouploadCheckBox
             AnchorSideBottom.Control = autouploadCheckBox
-            Left = 566
+            Left = 556
             Height = 20
             Hint = 'Adds more headers and information such as versioning to the log. '#10'This format is not supported on flightlessmango.com (yet)'
             Top = 53
@@ -16265,7 +16268,7 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = logtoggleComboBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideBottom.Control = logtoggleComboBox
-            Left = 399
+            Left = 356
             Height = 18
             Top = 118
             Width = 65

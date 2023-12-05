@@ -621,7 +621,31 @@ begin
     if LoadValue('background_alpha',AUX) then
       transpTrackbar.Position :=  Round(StrToFloat(AUX) * 10);
 
+    //Font size
+    if LoadValue('font_size',AUX) then
+      fontsizeTrackbar.Position :=  Round(StrToFloat(AUX));
 
+    //AF
+    if LoadValue('af',AUX) then
+      afTrackbar.Position :=  Round(StrToFloat(AUX));
+
+    //Mipmap
+    if LoadValue('picmip',AUX) then
+      mipmapTrackbar.Position :=  Round(StrToFloat(AUX));
+
+    //Log duration
+    if LoadValue('log_duration',AUX) then
+      durationTrackbar.Position :=  Round(StrToFloat(AUX));
+
+    //Log delay
+    if LoadValue('autostart_log',AUX) then
+      delayTrackbar.Position :=  Round(StrToFloat(AUX));
+
+    //Log interval
+    if LoadValue('log_interval',AUX) then
+      intervalTrackbar.Position :=  Round(StrToFloat(AUX));
+
+    Showmessage('O valor de AUX é:' + AUX);
 
      //#################################################    Radio buttons
 
@@ -722,9 +746,9 @@ begin
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
      logfolderEdit.text := USERHOME;
-     durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position);
-     delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position);
-     intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position);
+     durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
+     delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
+     intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
 
      COLUMNS := 3;
      columvalueLabel.Caption:= inttostr(COLUMNS);
@@ -973,19 +997,19 @@ end;
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
 begin
     //Display new values and trackbar changes
-  delayvalueLabel.Caption:= FormatFloat('#0', delayTrackbar.Position);
+  delayvalueLabel.Caption:= FormatFloat('#0', delayTrackbar.Position)+ 's';
 end;
 
 procedure Tgoverlayform.durationTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
-  durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position);
+  durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position) + 's' ;
 end;
 
 procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
 begin
    //Display new values and trackbar changes
-  intervalvalueLabel.Caption:= FormatFloat('#0', intervalTrackbar.Position);
+  intervalvalueLabel.Caption:= FormatFloat('#0', intervalTrackbar.Position) + 'ms';
 end;
 
 procedure Tgoverlayform.logfolderBitBtnClick(Sender: TObject);
