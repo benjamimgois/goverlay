@@ -732,7 +732,19 @@ begin
 
       end; //if
 
-     Showmessage('O valor de AUX é:' + AUX);
+    //toggle logging
+    if LoadValue('toggle_logging',AUX) then
+      begin
+        case AUX of
+          'Shift_L+F2': logtoggleCombobox.ItemIndex:=0;
+          'Shift_L+F3': logtoggleCombobox.ItemIndex:=1;
+          'Shift_L+F4': logtoggleCombobox.ItemIndex:=2;
+          'Shift_L+F5': logtoggleCombobox.ItemIndex:=3;
+        end; //case
+
+      end; //if
+
+     //Showmessage('O valor de AUX é:' + AUX);
 
     //#################################################    Color buttons
 
@@ -807,6 +819,71 @@ begin
         begin
           mediaColorbutton.ButtonColor:=  HexToColor(AUX);
         end;
+
+      //#################################################    Checkboxes
+
+    //hide hud
+    if LoadName('no_display') then
+      hidehudcheckbox.Checked := True
+    else
+      hidehudcheckbox.Checked := false;
+
+    //fps
+    if LoadName('fps') then
+      fpscheckbox.Checked := True
+    else
+      fpscheckbox.Checked := false;
+
+    //frame time
+    if LoadName('frame_timing') then
+      frametimegraphcheckbox.Checked := True
+    else
+      frametimegraphcheckbox.Checked := false;
+
+    //fps limit
+    if LoadName('show_fps_limit') then
+      showfpslimcheckbox.Checked := True
+    else
+      showfpslimcheckbox.Checked := false;
+
+
+    //frame count
+    if LoadName('frame_count') then
+      framecountcheckbox.Checked := True
+    else
+      framecountcheckbox.Checked := false;
+
+    //gpu load
+    if LoadName('gpu_stats') then
+      gpuavgloadcheckbox.Checked := True
+    else
+      gpuavgloadcheckbox.Checked := false;
+
+    //gpu load change
+    if LoadName('gpu_load_change') then
+      gpuloadcolorcheckbox.Checked := True
+    else
+      gpuloadcolorcheckbox.Checked := false;
+
+    //vram
+    if LoadName('vram') then
+      vramusagecheckbox.Checked := True
+    else
+      vramusagecheckbox.Checked := false;
+
+    //gpu core clock
+    if LoadName('gpu_core_clock') then
+      gpufreqcheckbox.Checked := True
+    else
+      gpufreqcheckbox.Checked := false;
+
+    //gpu mem clock
+    if LoadName('gpu_mem_clock') then
+      gpumemfreqCheckBox.Checked := True
+    else
+      gpumemfreqCheckBox.Checked := false;
+
+      //#################################################
 
       // Initial STOCK values
 
@@ -1375,7 +1452,7 @@ var
         Savecheckbox (gpufreqCheckbox, GPUFREQ, 'gpu_core_clock');
 
         //Mem Freq  - Config Variable
-        Savecheckbox (gputempCheckbox, GPUMEMFREQ, 'gpu_mem_clock');
+        Savecheckbox (gpumemfreqCheckbox, GPUMEMFREQ, 'gpu_mem_clock');
 
 
         //GPU Temp  - Config Variable
