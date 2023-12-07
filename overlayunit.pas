@@ -1013,6 +1013,45 @@ begin
     else
       swapusagecheckbox.Checked := false;
 
+
+    // Distro info
+    if LoadName('lsb_release -a | grep Release | uniq | cut -c 10-26') then
+      distroinfocheckbox.Checked := True
+    else
+      distroinfocheckbox.Checked := false;
+
+    // refresh rate
+    if LoadName('refresh_rate') then
+      refreshratecheckbox.Checked := True
+    else
+      refreshratecheckbox.Checked := false;
+
+    // resolution
+    if LoadName('resolution') then
+      resolutioncheckbox.Checked := True
+    else
+      resolutioncheckbox.Checked := false;
+
+    // session
+    if LoadName('SESSION_TYPE') then
+      sessioncheckbox.Checked := True
+    else
+      sessioncheckbox.Checked := false;
+
+
+
+    // session
+    if LoadName('time') then
+      timecheckbox.Checked := True
+    else
+      timecheckbox.Checked := false;
+
+    // arch
+    if LoadName('arch') then
+      archcheckbox.Checked := True
+    else
+      archcheckbox.Checked := false;
+
       //#################################################
 
       // Initial STOCK values
