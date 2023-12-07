@@ -287,7 +287,7 @@ var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
-CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP: string; //metrics tab - CPU
+CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
@@ -882,6 +882,136 @@ begin
       gpumemfreqCheckBox.Checked := True
     else
       gpumemfreqCheckBox.Checked := false;
+
+
+    //gpu temperature  core
+    if LoadName('gpu_temp') then
+      gputempCheckBox.Checked := True
+    else
+      gputempCheckBox.Checked := false;
+
+
+    //gpu temperature   mem
+    if LoadName('gpu_mem_temp') then
+      gpumemtempCheckBox.Checked := True
+    else
+      gpumemtempCheckBox.Checked := false;
+
+
+    //gpu temperature   junction
+    if LoadName('gpu_junction_temp') then
+      gpujunctempCheckBox.Checked := True
+    else
+      gpujunctempCheckBox.Checked := false;
+
+
+    //gpu fan
+    if LoadName('gpu_fan') then
+      gpufanCheckBox.Checked := True
+    else
+      gpufanCheckBox.Checked := false;
+
+
+    //gpu power
+    if LoadName('gpu_power') then
+      gpupowerCheckBox.Checked := True
+    else
+      gpupowerCheckBox.Checked := false;
+
+    //gpu voltage
+    if LoadName('gpu_voltage') then
+      gpuvoltageCheckBox.Checked := True
+    else
+      gpuvoltageCheckBox.Checked := false;
+
+    //gpu throttling
+    if LoadName('throttling_status') then
+      gputhrottlingCheckBox.Checked := True
+    else
+      gputhrottlingCheckBox.Checked := false;
+
+    //gpu throttling  graph
+    if LoadName('throttling_status_graph') then
+      gputhrottlinggraphCheckBox.Checked := True
+    else
+      gputhrottlinggraphCheckBox.Checked := false;
+
+
+    //gpu name
+    if LoadName('gpu_name') then
+      gpumodelCheckBox.Checked := True
+    else
+      gpumodelCheckBox.Checked := false;
+
+
+    //vulkan driver
+    if LoadName('vulkan_driver') then
+     vulkandriverCheckBox.Checked := True
+    else
+      vulkandriverCheckBox.Checked := false;
+
+
+
+     //cpu load
+    if LoadName('cpu_stats') then
+      cpuavgloadcheckbox.Checked := True
+    else
+      cpuavgloadcheckbox.Checked := false;
+
+    //cpu load change
+    if LoadName('cpu_load_change') then
+      cpuloadcolorcheckbox.Checked := True
+    else
+      cpuloadcolorcheckbox.Checked := false;
+
+    //cpu core load
+    if LoadName('core_load') then
+      cpuloadcorecheckbox.Checked := True
+    else
+      cpuloadcorecheckbox.Checked := false;
+
+
+    //cpu core freq
+    if LoadName('cpu_mhz') then
+      cpufreqcheckbox.Checked := True
+    else
+      cpufreqcheckbox.Checked := false;
+
+     //cpu temp
+    if LoadName('cpu_temp') then
+      cputempcheckbox.Checked := True
+    else
+      cputempcheckbox.Checked := false;
+
+    //cpu power
+    if LoadName('cpu_power') then
+      cpupowercheckbox.Checked := True
+    else
+      cpupowercheckbox.Checked := false;
+
+    //ram
+    if LoadName('ram') then
+      ramusagecheckbox.Checked := True
+    else
+      ramusagecheckbox.Checked := false;
+
+    //disk
+    if LoadName('io_stats') then
+      diskiocheckbox.Checked := True
+    else
+      diskiocheckbox.Checked := false;
+
+    //procmem
+    if LoadName('procmem') then
+      procmemcheckbox.Checked := True
+    else
+      procmemcheckbox.Checked := false;
+
+    //swap
+    if LoadName('swap') then
+      swapusagecheckbox.Checked := True
+    else
+      swapusagecheckbox.Checked := false;
 
       //#################################################
 
@@ -1543,7 +1673,10 @@ var
 
         //###############################################################################################   Performance TAB
 
-        ////FPS - Config Variable
+         ////PROCMEM - Config Variable
+       Savecheckbox (procmemCheckBox, PROCMEM, 'procmem');
+
+        ////SWAP - Config Variable
        Savecheckbox (swapusageCheckBox, SWAP, 'swap');
 
        ////Frame time - Config Variable
@@ -1870,6 +2003,7 @@ var
     SaveConfig(IOSTATS,MANGOHUDCFGFILE);
     SaveConfig(IOREAD,MANGOHUDCFGFILE);
     SaveConfig(IOWRITE,MANGOHUDCFGFILE);
+    SaveConfig(PROCMEM,MANGOHUDCFGFILE);
     SaveConfig(SWAP,MANGOHUDCFGFILE);
 
     //Performance
