@@ -680,6 +680,17 @@ begin
 
       end; //if
 
+
+     //#################################################    Radiogroups
+
+    //Filters
+    if LoadName('bicubic') then
+     filterRadiogroup.ItemIndex:=1;
+    if LoadName('trilinear') then
+     filterRadiogroup.ItemIndex:=2;
+    if LoadName('retro') then
+     filterRadiogroup.ItemIndex:=3;
+
      //#################################################    Comboboxes
 
     //Method
@@ -2162,7 +2173,7 @@ var
     SaveConfig(FPSVALUE ,MANGOHUDCFGFILE);
     SaveConfig(VSYNC ,MANGOHUDCFGFILE);
     SaveConfig(GLVSYNC ,MANGOHUDCFGFILE);
-    SaveConfig(FILTER ,MANGOHUDCFGFILE);
+    SaveConfig(FILTER,MANGOHUDCFGFILE);
     SaveConfig(AFFILTER ,MANGOHUDCFGFILE);
     SaveConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
 
