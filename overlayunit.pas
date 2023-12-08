@@ -1052,6 +1052,108 @@ begin
     else
       archcheckbox.Checked := false;
 
+    // wine
+    if LoadName('wine') then
+      winecheckbox.Checked := True
+    else
+      winecheckbox.Checked := false;
+
+    // engine
+    if LoadName('engine') then
+      engineversioncheckbox.Checked := True
+    else
+      engineversioncheckbox.Checked := false;
+
+
+    // engine short
+    if LoadName('engine_short_names') then
+      engineshortcheckbox.Checked := True
+    else
+      engineshortcheckbox.Checked := false;
+
+
+
+    // hud version
+    if LoadName('version') then
+     hudversioncheckbox.Checked := True
+    else
+      hudversioncheckbox.Checked := false;
+
+    // game mode
+    if LoadName('gamemode') then
+     gamemodestatuscheckbox.Checked := True
+    else
+      gamemodestatuscheckbox.Checked := false;
+
+    // vkbasalt
+    if LoadName('vkbasalt') then
+     vkbasaltstatuscheckbox.Checked := True
+    else
+      vkbasaltstatuscheckbox.Checked := false;
+
+
+    // fcat
+    if LoadName('fcat') then
+     fcatcheckbox.Checked := True
+    else
+      fcatcheckbox.Checked := false;
+
+
+    // fsr
+    if LoadName('fsr') then
+     fsrcheckbox.Checked := True
+    else
+      fsrcheckbox.Checked := false;
+
+    // hdr
+    if LoadName('hdr') then
+     hdrcheckbox.Checked := True
+    else
+      hdrcheckbox.Checked := false;
+
+    // battery
+    if LoadName('battery') then
+     batterycheckbox.Checked := True
+    else
+     batterycheckbox.Checked := false;
+
+    // battery watt
+    if LoadName('battery_watt') then
+     batterywattcheckbox.Checked := True
+    else
+     batterywattcheckbox.Checked := false;
+
+    // battery time
+    if LoadName('battery_time') then
+     batterytimecheckbox.Checked := True
+    else
+     batterytimecheckbox.Checked := false;
+
+    // battery time
+    if LoadName('device_battery') then
+     devicecheckbox.Checked := True
+    else
+     devicecheckbox.Checked := false;
+
+    // media player
+    if LoadName('media_player') then
+     mediacheckbox.Checked := True
+    else
+     mediacheckbox.Checked := false;
+
+
+    // log versioning
+    if LoadName('log_versioning') then
+     versioningcheckbox.Checked := True
+    else
+     versioningcheckbox.Checked := false;
+
+    // auto upload
+    if LoadName('upload_logs') then
+     autouploadcheckbox.Checked := True
+    else
+     autouploadcheckbox.Checked := false;
+
       //#################################################
 
       // Initial STOCK values
@@ -1490,7 +1592,7 @@ var
     Process1.Free;
 
 
-  //RunCommand('bash -c ''echo "legacy_layout=false" >> $HOME/.config/MangoHud/MangoHud.conf''', s);
+
     Process1 := TProcess.Create(nil);
     Process1.Executable := 'sh';
     Process1.Parameters.Add('-c');
