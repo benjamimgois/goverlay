@@ -3919,12 +3919,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = performanceTabSheet
+      ActivePage = visualTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 1
+      TabIndex = 0
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -5828,6 +5828,7 @@ object goverlayform: Tgoverlayform
             Width = 24
             BorderSpacing.Left = 2
             Brush.Color = 14849106
+            Enabled = False
           end
           object columShape4: TShape
             AnchorSideLeft.Control = columShape3
@@ -5839,6 +5840,7 @@ object goverlayform: Tgoverlayform
             Width = 24
             BorderSpacing.Left = 2
             Brush.Color = 14849106
+            Enabled = False
           end
           object columShape5: TShape
             AnchorSideLeft.Control = columShape4
@@ -5850,6 +5852,7 @@ object goverlayform: Tgoverlayform
             Width = 24
             BorderSpacing.Left = 2
             Brush.Color = 14849106
+            Enabled = False
           end
           object plusSpeedButton: TSpeedButton
             AnchorSideLeft.Control = columShape3
@@ -5894,11 +5897,11 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = plusSpeedButton
             AnchorSideTop.Side = asrCenter
-            Left = 142
+            Left = 143
             Height = 17
             Top = 136
-            Width = 8
-            Caption = 'X'
+            Width = 7
+            Caption = '3'
             Font.Height = -12
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased

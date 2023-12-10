@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype, FileUtil, Types;
+  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype, FileUtil, StrUtils,Types;
 
 
 
@@ -262,7 +262,6 @@ type
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure fpslimCheckBoxChange(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
@@ -301,12 +300,14 @@ VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTE
   AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
 
   //########################################
-  GPUNUMBER, COLUMNS: integer;
+  i, GPUNUMBER, COLUMNS: integer;
   GPUDESC: TStringList;
 
   ArquivoConfig: TextFile;
   Linha: string;
   CaminhoArquivo, NomeCampo, ValorCampo: string;
+
+  fpsArray: TStringArray;
 
 implementation
 
@@ -385,8 +386,6 @@ end;
 
 
 
-
-
 // ########   Function Load strings with values from mangohud variables
 function LoadValue(const Parametro: string; out Valor: string): Boolean;
 var
@@ -414,7 +413,7 @@ begin
   WriteLn('Value: ', Valor);
 
 
-  Result := Valor <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+Result := Valor <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
 end;
 
 
@@ -461,6 +460,35 @@ begin
 end;
 
 
+// Procedure to search for values in a checkbox
+procedure LoadCheckgroup(const ACheckGroup: TCheckGroup; const AString: string);
+var
+  Values: TStringDynArray;
+  i, j: Integer;
+begin
+  // Divide a string em substrings usando a vírgula como delimitador
+  Values := SplitString(AUX, ',');
+
+  // Percorre cada valor na string
+  for i := Low(Values) to High(Values) do
+  begin
+    // Remove espaços em branco em excesso antes e depois do valor
+    Values[i] := Trim(Values[i]);
+
+    // Percorre todos os itens do TCheckGroup
+    for j := 0 to ACheckGroup.Items.Count - 1 do
+    begin
+      // Verifica se o valor da substring é igual ao valor do item
+      if Values[i] = ACheckGroup.Items[j] then
+      begin
+        // Marca o checkbox correspondente
+        ACheckGroup.Checked[j] := True;
+        // Pode sair do loop interno, pois já encontrou correspondência para este valor
+        Break;
+      end;
+    end;
+  end;
+end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
@@ -502,10 +530,7 @@ begin
 
   //Load avaiable text fonts in /usr/share/fonts
    ListarFontesNoDiretorio('/usr/share/fonts/', fontComboBox);
-  //ListarFontesNoDiretorio('/usr/share/fonts/TTF', fontComboBox);
-  //ListarFontesNoDiretorio('/usr/share/fonts/liberation', fontComboBox);
-  //ListarFontesNoDiretorio('/usr/share/fonts/gnu-free', fontComboBox);
-  //ListarFontesNoDiretorio('/usr/share/fonts/ubuntu', fontComboBox);
+
 
 
   //Detect system GPUs
@@ -593,6 +618,17 @@ begin
 
 
 
+     // Initial STOCK values
+
+     alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+     fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
+     fontcombobox.ItemIndex:=0;
+     afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
+     mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+     logfolderEdit.text := USERHOME;
+     durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
+     delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
+     intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
 
 
     // Load Mangohud config file
@@ -681,6 +717,17 @@ begin
       end; //if
 
 
+     //#################################################    Checkgroups
+
+    //FPS limits
+    if LoadValue('fps_limit',AUX) then
+      begin
+      LoadCheckgroup(fpslimCheckGroup, '240, 120, 30');
+
+
+
+
+
      //#################################################    Radiogroups
 
     //Filters
@@ -755,7 +802,70 @@ begin
 
       end; //if
 
-     //Showmessage('O valor de AUX é:' + AUX);
+    //table Columns
+    if LoadValue('table_columns',AUX) then
+      begin
+      //showmessage ('o valor de AUX é: ' + AUX);
+      case AUX of
+            '1':begin
+              columShape.Visible:=true;
+              columShape1.Visible:=false;
+              columShape2.Visible:=false;
+              columShape3.Visible:=false;
+              columShape4.Visible:=false;
+              columShape5.Visible:=false;
+              columvalueLabel.Caption:= AUX;
+            end;
+            '2':begin
+              columShape.Visible:=true;
+              columShape1.Visible:=true;
+              columShape2.Visible:=false;
+              columShape3.Visible:=false;
+              columShape4.Visible:=false;
+              columShape5.Visible:=false;
+              columvalueLabel.Caption:= AUX;
+            end;
+            '3':begin
+              columShape.Visible:=true;
+              columShape1.Visible:=true;
+              columShape2.Visible:=true;
+              columShape3.Visible:=false;
+              columShape4.Visible:=false;
+              columShape5.Visible:=false;
+              columvalueLabel.Caption:= AUX;
+            end;
+            '4':begin
+              columShape.Visible:=true;
+              columShape1.Visible:=true;
+              columShape2.Visible:=true;
+              columShape3.Visible:=true;
+              columShape4.Visible:=false;
+              columShape5.Visible:=false;
+              columvalueLabel.Caption:= AUX;
+            end;
+            '5':begin
+              columShape.Visible:=true;
+              columShape1.Visible:=true;
+              columShape2.Visible:=true;
+              columShape3.Visible:=true;
+              columShape4.Visible:=true;
+              columShape5.Visible:=false;
+              columvalueLabel.Caption:= AUX;
+            end;
+            '6':begin
+              columShape.Visible:=true;
+              columShape1.Visible:=true;
+              columShape2.Visible:=true;
+              columShape3.Visible:=true;
+              columShape4.Visible:=true;
+              columShape5.Visible:=true;
+              columvalueLabel.Caption:= AUX;
+            end;
+          end;
+
+
+
+      end; //if
 
     //#################################################    Color buttons
 
@@ -1165,79 +1275,19 @@ begin
     else
      autouploadcheckbox.Checked := false;
 
-      //#################################################
 
-      // Initial STOCK values
 
-     alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
-     fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
-     fontcombobox.ItemIndex:=0;
-     afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
-     mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
-     logfolderEdit.text := USERHOME;
-     durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
-     delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
-     intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
 
-     COLUMNS := 3;
-     columvalueLabel.Caption:= inttostr(COLUMNS);
 
-     case COLUMNS of
-       1:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       2:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       3:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       4:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       5:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=true;
-         columShape5.Visible:=false;
-       end;
-       6:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=true;
-         columShape5.Visible:=true;
-       end;
-     end;
-end;
 
-procedure Tgoverlayform.fpslimCheckBoxChange(Sender: TObject);
-begin
 
-end;
+
+    end;
+    end;
+
+
+
+
 
 
 
