@@ -802,6 +802,24 @@ begin
 
       end; //if
 
+   //#################################################    Bitbtns
+
+    //Frametime type
+    if LoadName('histogram') then
+     begin
+      frametimetypeBitBtn.ImageIndex:=7;
+      frametimetypeBitBtn.Caption:= 'Histogram';
+      frametimetypeBitBtn.Hint:='Use histogram for frametime information';
+     end
+    else
+      begin
+      frametimetypeBitBtn.ImageIndex:=8;
+      frametimetypeBitBtn.Caption:= 'Curve';
+      frametimetypeBitBtn.Hint:='Use regular curve for frametime information';
+      end;
+
+    //#################################################    others
+
     //table Columns
     if LoadValue('table_columns',AUX) then
       begin
