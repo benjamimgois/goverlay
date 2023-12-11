@@ -3738,6 +3738,7 @@ object goverlayform: Tgoverlayform
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
+    Visible = False
   end
   object dependenciesLabel: TLabel
     Left = 54
@@ -3919,12 +3920,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = extrasTabSheet
+      ActivePage = metricsSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 3
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'

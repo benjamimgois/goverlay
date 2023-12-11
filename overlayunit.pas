@@ -629,6 +629,13 @@ begin
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
      delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
      intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
+     columvalueLabel.Caption:='3';
+       columShape.Visible:=true;
+       columShape1.Visible:=true;
+       columShape2.Visible:=true;
+       columShape3.Visible:=false;
+       columShape4.Visible:=false;
+       columShape5.Visible:=false;
 
 
     // Load Mangohud config file
@@ -1792,6 +1799,7 @@ var
 
 
       // Table Columns - - Config Variable
+      COLUMNS :=  strtoint(columvalueLabel.Caption);
       TABLECOLUMNS := 'table_columns=' + inttostr(COLUMNS);
 
 
