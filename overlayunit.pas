@@ -286,7 +286,7 @@ var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
-CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
+CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
@@ -818,6 +818,23 @@ begin
       frametimetypeBitBtn.Hint:='Use regular curve for frametime information';
       end;
 
+    //coreload type
+    if LoadName('core_bars') then
+     begin
+      coreloadtypeBitBtn.ImageIndex:=7;
+      coreloadtypeBitBtn.Caption:= 'Graph';
+      coreloadtypeBitBtn.Hint:='Use vertical bars for core load';
+     end
+    else
+      begin
+      coreloadtypeBitBtn.ImageIndex:=6;
+      coreloadtypeBitBtn.Caption:= 'Percent';
+      coreloadtypeBitBtn.Hint:='Use percentage numbers for core load';
+      end;
+
+
+
+
     //#################################################    others
 
     //table Columns
@@ -918,10 +935,11 @@ begin
         end;
 
       //VRAM color  button
+
       if LoadValue('vram_color',AUX) then
-        begin
-          vramColorbutton.ButtonColor:=  HexToColor(AUX);
-        end;
+      vramColorbutton.ButtonColor:=  HexToColor(AUX);
+
+
 
       //RAM color  button
       if LoadValue('ram_color',AUX) then
@@ -1179,7 +1197,7 @@ begin
 
 
 
-    // session
+    // time
     if LoadName('time') then
       timecheckbox.Checked := True
     else
@@ -1891,6 +1909,9 @@ var
         ////RAM - Config Variable
        Savecheckbox (fpsCheckBox, FPS, 'fps');
 
+        //VRAM Color
+        RAMCOLOR := 'ram_color='+ ColorToHTMLColor(ramColorButton.ButtonColor) ;
+
         //###############################################################################################   Performance TAB
 
          ////PROCMEM - Config Variable
@@ -2194,8 +2215,6 @@ var
     SaveConfig(GPULOADVALUE,MANGOHUDCFGFILE);
     SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
     SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
-    SaveConfig(VRAM,MANGOHUDCFGFILE);
-    SaveConfig(VRAMCOLOR,MANGOHUDCFGFILE);
     SaveConfig(GPUTHR,MANGOHUDCFGFILE);
     SaveConfig(GPUFREQ,MANGOHUDCFGFILE);
     SaveConfig(GPUMEMFREQ,MANGOHUDCFGFILE);
@@ -2204,9 +2223,9 @@ var
     SaveConfig(GPUJUNCTEMP,MANGOHUDCFGFILE);
     SaveConfig(GPUFAN,MANGOHUDCFGFILE);
     SaveConfig(GPUPOWER,MANGOHUDCFGFILE);
-    SaveConfig(GPUTHRG,MANGOHUDCFGFILE);
-    SaveConfig(GPUMODEL,MANGOHUDCFGFILE);
-    SaveConfig(VULKANDRIVER,MANGOHUDCFGFILE);
+
+
+
 
     //Metrics - CPU / MEM
     SaveConfig(CPUTEXT,MANGOHUDCFGFILE);
@@ -2219,25 +2238,86 @@ var
     SaveConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
     SaveConfig(CPUTEMP,MANGOHUDCFGFILE);
     SaveConfig(CPUPOWER,MANGOHUDCFGFILE);
-    SaveConfig(RAM,MANGOHUDCFGFILE);
+
+
+
+
+    //Metrics - IO/ SWAP / VRAM / RAM
     SaveConfig(IOSTATS,MANGOHUDCFGFILE);
     SaveConfig(IOREAD,MANGOHUDCFGFILE);
     SaveConfig(IOWRITE,MANGOHUDCFGFILE);
-    SaveConfig(PROCMEM,MANGOHUDCFGFILE);
     SaveConfig(SWAP,MANGOHUDCFGFILE);
 
-    //Performance
+    SaveConfig(VRAM,MANGOHUDCFGFILE);
+    if vramusageCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
+    SaveConfig(VRAMCOLOR,MANGOHUDCFGFILE);
+
+    SaveConfig(RAM,MANGOHUDCFGFILE);
+    if ramusageCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
+    SaveConfig(RAMCOLOR,MANGOHUDCFGFILE);
+
+    // Metrocs - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
+    SaveConfig(PROCMEM,MANGOHUDCFGFILE);
     SaveConfig(FPS,MANGOHUDCFGFILE);
+
+    SaveConfig(ENGINE,MANGOHUDCFGFILE);
+    if engineversionCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
+    SaveConfig(ENGINECOLOR,MANGOHUDCFGFILE);
+
+    SaveConfig(ENGINESHORT,MANGOHUDCFGFILE);
+    SaveConfig(GPUMODEL,MANGOHUDCFGFILE);
+    SaveConfig(VULKANDRIVER,MANGOHUDCFGFILE);
+    SaveConfig(ARCH,MANGOHUDCFGFILE);
+
+    SaveConfig(WINE,MANGOHUDCFGFILE);
+    if wineCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
+    SaveConfig(WINECOLOR,MANGOHUDCFGFILE);
+
     SaveConfig(FRAMETIMING,MANGOHUDCFGFILE);
-    SaveConfig(SHOWFPSLIM,MANGOHUDCFGFILE);
-    SaveConfig(FRAMECOUNT,MANGOHUDCFGFILE);
+    if frametimegraphCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     SaveConfig(FRAMETIMEC,MANGOHUDCFGFILE);
-    SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
-    SaveConfig(FPSLIM,MANGOHUDCFGFILE);
+
+    SaveConfig(GPUTHRG,MANGOHUDCFGFILE);
+    SaveConfig(FRAMECOUNT,MANGOHUDCFGFILE);
+
+
     SaveConfig(FPSLIMMET ,MANGOHUDCFGFILE);
     SaveConfig(FPSLIMTOGGLE,MANGOHUDCFGFILE);
+
+    //Performance
+
+
+    SaveConfig(SHOWFPSLIM,MANGOHUDCFGFILE);
+    SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
+    SaveConfig(FPSLIM,MANGOHUDCFGFILE);
+    SaveConfig(SESSIONTXT,MANGOHUDCFGFILE);
+    SaveConfig(RESOLUTION,MANGOHUDCFGFILE);
+    SaveConfig(FCAT,MANGOHUDCFGFILE);
+    SaveConfig(FSR,MANGOHUDCFGFILE);
+    SaveConfig(HDR,MANGOHUDCFGFILE);
+    SaveConfig(REFRESHRATE,MANGOHUDCFGFILE);
+    SaveConfig(GAMEMODE,MANGOHUDCFGFILE);
+    SaveConfig(VKBASALT,MANGOHUDCFGFILE);
+    SaveConfig(SESSION,MANGOHUDCFGFILE);
+
+    SaveConfig(BATTERY,MANGOHUDCFGFILE);
+    if batteryCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
+    SaveConfig(BATTERYCOLOR,MANGOHUDCFGFILE);
+
+    SaveConfig(BATTERYWATT,MANGOHUDCFGFILE);
+    SaveConfig(BATTERYTIME,MANGOHUDCFGFILE);
+    SaveConfig(DEVICE,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO1,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO2,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO3,MANGOHUDCFGFILE);
+    SaveConfig(DISTROINFO4,MANGOHUDCFGFILE);
+
     SaveConfig(FPSCHANGE ,MANGOHUDCFGFILE);
+
     SaveConfig(FPSCOLOR ,MANGOHUDCFGFILE);
+    if fpscolorCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
+    SaveConfig(FPSCOLOR,MANGOHUDCFGFILE);
+
     SaveConfig(FPSVALUE ,MANGOHUDCFGFILE);
     SaveConfig(VSYNC ,MANGOHUDCFGFILE);
     SaveConfig(GLVSYNC ,MANGOHUDCFGFILE);
@@ -2246,34 +2326,15 @@ var
     SaveConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
 
     //Extra
-    SaveConfig(DISTROINFO1,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO2,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO3,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO4,MANGOHUDCFGFILE);
-    SaveConfig(ARCH,MANGOHUDCFGFILE);
-    SaveConfig(RESOLUTION,MANGOHUDCFGFILE);
-    SaveConfig(SESSIONTXT,MANGOHUDCFGFILE);
-    SaveConfig(SESSION,MANGOHUDCFGFILE);
+
     SaveConfig(TIME,MANGOHUDCFGFILE);
-    SaveConfig(WINE,MANGOHUDCFGFILE);
-    SaveConfig(WINECOLOR,MANGOHUDCFGFILE);
-    SaveConfig(ENGINE,MANGOHUDCFGFILE);
-    SaveConfig(ENGINECOLOR,MANGOHUDCFGFILE);
-    SaveConfig(ENGINESHORT,MANGOHUDCFGFILE);
     SaveConfig(HUDVERSION,MANGOHUDCFGFILE);
-    SaveConfig(GAMEMODE,MANGOHUDCFGFILE);
-    SaveConfig(VKBASALT,MANGOHUDCFGFILE);
-    SaveConfig(FCAT,MANGOHUDCFGFILE);
-    SaveConfig(FSR,MANGOHUDCFGFILE);
-    SaveConfig(HDR,MANGOHUDCFGFILE);
-    SaveConfig(REFRESHRATE,MANGOHUDCFGFILE);
-    SaveConfig(BATTERY,MANGOHUDCFGFILE);
-    SaveConfig(BATTERYCOLOR,MANGOHUDCFGFILE);
-    SaveConfig(BATTERYWATT,MANGOHUDCFGFILE);
-    SaveConfig(BATTERYTIME,MANGOHUDCFGFILE);
-    SaveConfig(DEVICE,MANGOHUDCFGFILE);
+
+
     SaveConfig(MEDIA,MANGOHUDCFGFILE);
+    if mediaCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     SaveConfig(MEDIACOLOR,MANGOHUDCFGFILE);
+
     SaveConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
     SaveConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
     SaveConfig(LOGFOLDER,MANGOHUDCFGFILE);
