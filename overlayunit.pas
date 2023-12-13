@@ -351,8 +351,8 @@ begin
 end;
 
 
-//Procedure to saveconfig
-Procedure SaveConfig(PARAMETRO, FILEPATH: string);
+//Procedure to WriteConfig to file
+Procedure WriteConfig(PARAMETRO, FILEPATH: string);
 var
   Process1: TProcess;
 begin
@@ -363,6 +363,26 @@ begin
     Process1.Options := [poWaitOnExit, poUsePipes];
     Process1.Execute;
     Process1.Free;
+end;
+
+
+//Procedure to WriteConfig to file if checkbox is checked
+Procedure WriteCheckboxConfig(CHECKBOXNAME: TCheckbox; PARAMETRO, FILEPATH: string);
+var
+  Process1: TProcess;
+begin
+
+    if CHECKBOXNAME.checked = true then
+    begin
+    Process1 := TProcess.Create(nil);
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
+    Process1.Options := [poWaitOnExit, poUsePipes];
+    Process1.Execute;
+    Process1.Free;
+    end;
+
   end;
 
 
@@ -2200,158 +2220,158 @@ var
 
 
     //Visual Tab
-    SaveConfig(HUDTITLE,MANGOHUDCFGFILE);
-    SaveConfig(ORIENTATION,MANGOHUDCFGFILE);
-    SaveConfig(HUDALPHA,MANGOHUDCFGFILE);
-    SaveConfig(BORDERTYPE,MANGOHUDCFGFILE);
-    SaveConfig(HUDALPHA,MANGOHUDCFGFILE);
-    SaveConfig(HUDCOLOR,MANGOHUDCFGFILE);
-    SaveConfig(FONTTYPE,MANGOHUDCFGFILE);
-    SaveConfig(FONTSIZE,MANGOHUDCFGFILE);
-    SaveConfig(FONTCOLOR,MANGOHUDCFGFILE);
-    SaveConfig(HUDPOSITION,MANGOHUDCFGFILE);
-    SaveConfig(TOGGLEHUD,MANGOHUDCFGFILE);
-    SaveConfig(HIDEHUD,MANGOHUDCFGFILE);
-    SaveConfig(PCIDEV,MANGOHUDCFGFILE);
-    SaveConfig(TABLECOLUMNS,MANGOHUDCFGFILE);
+    WriteConfig(HUDTITLE,MANGOHUDCFGFILE);
+    WriteConfig(ORIENTATION,MANGOHUDCFGFILE);
+    WriteConfig(HUDALPHA,MANGOHUDCFGFILE);
+    WriteConfig(BORDERTYPE,MANGOHUDCFGFILE);
+    WriteConfig(HUDALPHA,MANGOHUDCFGFILE);
+    WriteConfig(HUDCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(FONTTYPE,MANGOHUDCFGFILE);
+    WriteConfig(FONTSIZE,MANGOHUDCFGFILE);
+    WriteConfig(FONTCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(HUDPOSITION,MANGOHUDCFGFILE);
+    WriteConfig(TOGGLEHUD,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(hidehudCheckbox,HIDEHUD,MANGOHUDCFGFILE);
+    WriteConfig(PCIDEV,MANGOHUDCFGFILE);
+    WriteConfig(TABLECOLUMNS,MANGOHUDCFGFILE);
 
 
     //Metrics - GPU
-    SaveConfig(GPUTEXT,MANGOHUDCFGFILE);
-    SaveConfig(GPUAVGLOAD,MANGOHUDCFGFILE);
-    SaveConfig(GPULOADCHANGE,MANGOHUDCFGFILE);
-    SaveConfig(GPULOADVALUE,MANGOHUDCFGFILE);
-    SaveConfig(GPULOADCOLOR,MANGOHUDCFGFILE);
-    SaveConfig(GPUVOLTAGE,MANGOHUDCFGFILE);
-    SaveConfig(GPUTHR,MANGOHUDCFGFILE);
-    SaveConfig(GPUFREQ,MANGOHUDCFGFILE);
-    SaveConfig(GPUMEMFREQ,MANGOHUDCFGFILE);
-    SaveConfig(GPUTEMP,MANGOHUDCFGFILE);
-    SaveConfig(GPUMEMTEMP,MANGOHUDCFGFILE);
-    SaveConfig(GPUJUNCTEMP,MANGOHUDCFGFILE);
-    SaveConfig(GPUFAN,MANGOHUDCFGFILE);
-    SaveConfig(GPUPOWER,MANGOHUDCFGFILE);
+    WriteConfig(GPUTEXT,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpuavgloadCheckBox,GPUAVGLOAD,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpuloadcolorCheckBox,GPULOADCHANGE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpuloadcolorCheckBox,GPULOADVALUE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpuloadcolorCheckBox,GPULOADCOLOR,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpuvoltageCheckBox,GPUVOLTAGE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gputhrottlingCheckBox,GPUTHR,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpufreqCheckBox,GPUFREQ,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpumemfreqCheckBox,GPUMEMFREQ,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gputempCheckBox,GPUTEMP,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpumemtempCheckBox,GPUMEMTEMP,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpujunctempCheckBox,GPUJUNCTEMP,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpufanCheckBox,GPUFAN,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(gpupowerCheckBox,GPUPOWER,MANGOHUDCFGFILE);
 
 
 
 
     //Metrics - CPU / MEM
-    SaveConfig(CPUTEXT,MANGOHUDCFGFILE);
-    SaveConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
-    SaveConfig(CPULOADCORE,MANGOHUDCFGFILE);
-    SaveConfig(CORELOADTYPE,MANGOHUDCFGFILE);
-    SaveConfig(CPULOADCHANGE,MANGOHUDCFGFILE);
-    SaveConfig(CPULOADVALUE,MANGOHUDCFGFILE);
-    SaveConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
-    SaveConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
-    SaveConfig(CPUTEMP,MANGOHUDCFGFILE);
-    SaveConfig(CPUPOWER,MANGOHUDCFGFILE);
+    WriteConfig(CPUTEXT,MANGOHUDCFGFILE);
+    WriteConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
+    WriteConfig(CPULOADCORE,MANGOHUDCFGFILE);
+    WriteConfig(CORELOADTYPE,MANGOHUDCFGFILE);
+    WriteConfig(CPULOADCHANGE,MANGOHUDCFGFILE);
+    WriteConfig(CPULOADVALUE,MANGOHUDCFGFILE);
+    WriteConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
+    WriteConfig(CPUTEMP,MANGOHUDCFGFILE);
+    WriteConfig(CPUPOWER,MANGOHUDCFGFILE);
 
 
 
 
     //Metrics - IO/ SWAP / VRAM / RAM
-    SaveConfig(IOSTATS,MANGOHUDCFGFILE);
-    SaveConfig(IOREAD,MANGOHUDCFGFILE);
-    SaveConfig(IOWRITE,MANGOHUDCFGFILE);
-    SaveConfig(SWAP,MANGOHUDCFGFILE);
+    WriteConfig(IOSTATS,MANGOHUDCFGFILE);
+    WriteConfig(IOREAD,MANGOHUDCFGFILE);
+    WriteConfig(IOWRITE,MANGOHUDCFGFILE);
+    WriteConfig(SWAP,MANGOHUDCFGFILE);
 
-    SaveConfig(VRAM,MANGOHUDCFGFILE);
+    WriteConfig(VRAM,MANGOHUDCFGFILE);
     if vramusageCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(VRAMCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(VRAMCOLOR,MANGOHUDCFGFILE);
 
-    SaveConfig(RAM,MANGOHUDCFGFILE);
+    WriteConfig(RAM,MANGOHUDCFGFILE);
     if ramusageCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(RAMCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(RAMCOLOR,MANGOHUDCFGFILE);
 
     // Metrocs - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
-    SaveConfig(PROCMEM,MANGOHUDCFGFILE);
-    SaveConfig(FPS,MANGOHUDCFGFILE);
+    WriteConfig(PROCMEM,MANGOHUDCFGFILE);
+    WriteConfig(FPS,MANGOHUDCFGFILE);
 
-    SaveConfig(ENGINE,MANGOHUDCFGFILE);
+    WriteConfig(ENGINE,MANGOHUDCFGFILE);
     if engineversionCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(ENGINECOLOR,MANGOHUDCFGFILE);
+    WriteConfig(ENGINECOLOR,MANGOHUDCFGFILE);
 
-    SaveConfig(ENGINESHORT,MANGOHUDCFGFILE);
-    SaveConfig(GPUMODEL,MANGOHUDCFGFILE);
-    SaveConfig(VULKANDRIVER,MANGOHUDCFGFILE);
-    SaveConfig(ARCH,MANGOHUDCFGFILE);
+    WriteConfig(ENGINESHORT,MANGOHUDCFGFILE);
+    WriteConfig(GPUMODEL,MANGOHUDCFGFILE);
+    WriteConfig(VULKANDRIVER,MANGOHUDCFGFILE);
+    WriteConfig(ARCH,MANGOHUDCFGFILE);
 
-    SaveConfig(WINE,MANGOHUDCFGFILE);
+    WriteConfig(WINE,MANGOHUDCFGFILE);
     if wineCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(WINECOLOR,MANGOHUDCFGFILE);
+    WriteConfig(WINECOLOR,MANGOHUDCFGFILE);
 
-    SaveConfig(FRAMETIMING,MANGOHUDCFGFILE);
+    WriteConfig(FRAMETIMING,MANGOHUDCFGFILE);
     if frametimegraphCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(FRAMETIMEC,MANGOHUDCFGFILE);
+    WriteConfig(FRAMETIMEC,MANGOHUDCFGFILE);
 
-    SaveConfig(GPUTHRG,MANGOHUDCFGFILE);
-    SaveConfig(FRAMECOUNT,MANGOHUDCFGFILE);
+    WriteConfig(GPUTHRG,MANGOHUDCFGFILE);
+    WriteConfig(FRAMECOUNT,MANGOHUDCFGFILE);
 
 
-    SaveConfig(FPSLIMMET ,MANGOHUDCFGFILE);
-    SaveConfig(FPSLIMTOGGLE,MANGOHUDCFGFILE);
+    WriteConfig(FPSLIMMET ,MANGOHUDCFGFILE);
+    WriteConfig(FPSLIMTOGGLE,MANGOHUDCFGFILE);
 
     //Performance
 
 
-    SaveConfig(SHOWFPSLIM,MANGOHUDCFGFILE);
-    SaveConfig(HISTOGRAM,MANGOHUDCFGFILE);
-    SaveConfig(FPSLIM,MANGOHUDCFGFILE);
-    SaveConfig(SESSIONTXT,MANGOHUDCFGFILE);
-    SaveConfig(RESOLUTION,MANGOHUDCFGFILE);
-    SaveConfig(FCAT,MANGOHUDCFGFILE);
-    SaveConfig(FSR,MANGOHUDCFGFILE);
-    SaveConfig(HDR,MANGOHUDCFGFILE);
-    SaveConfig(REFRESHRATE,MANGOHUDCFGFILE);
-    SaveConfig(GAMEMODE,MANGOHUDCFGFILE);
-    SaveConfig(VKBASALT,MANGOHUDCFGFILE);
-    SaveConfig(SESSION,MANGOHUDCFGFILE);
+    WriteConfig(SHOWFPSLIM,MANGOHUDCFGFILE);
+    WriteConfig(HISTOGRAM,MANGOHUDCFGFILE);
+    WriteConfig(FPSLIM,MANGOHUDCFGFILE);
+    WriteConfig(SESSIONTXT,MANGOHUDCFGFILE);
+    WriteConfig(RESOLUTION,MANGOHUDCFGFILE);
+    WriteConfig(FCAT,MANGOHUDCFGFILE);
+    WriteConfig(FSR,MANGOHUDCFGFILE);
+    WriteConfig(HDR,MANGOHUDCFGFILE);
+    WriteConfig(REFRESHRATE,MANGOHUDCFGFILE);
+    WriteConfig(GAMEMODE,MANGOHUDCFGFILE);
+    WriteConfig(VKBASALT,MANGOHUDCFGFILE);
+    WriteConfig(SESSION,MANGOHUDCFGFILE);
 
-    SaveConfig(BATTERY,MANGOHUDCFGFILE);
+    WriteConfig(BATTERY,MANGOHUDCFGFILE);
     if batteryCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(BATTERYCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(BATTERYCOLOR,MANGOHUDCFGFILE);
 
-    SaveConfig(BATTERYWATT,MANGOHUDCFGFILE);
-    SaveConfig(BATTERYTIME,MANGOHUDCFGFILE);
-    SaveConfig(DEVICE,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO1,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO2,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO3,MANGOHUDCFGFILE);
-    SaveConfig(DISTROINFO4,MANGOHUDCFGFILE);
+    WriteConfig(BATTERYWATT,MANGOHUDCFGFILE);
+    WriteConfig(BATTERYTIME,MANGOHUDCFGFILE);
+    WriteConfig(DEVICE,MANGOHUDCFGFILE);
+    WriteConfig(DISTROINFO1,MANGOHUDCFGFILE);
+    WriteConfig(DISTROINFO2,MANGOHUDCFGFILE);
+    WriteConfig(DISTROINFO3,MANGOHUDCFGFILE);
+    WriteConfig(DISTROINFO4,MANGOHUDCFGFILE);
 
-    SaveConfig(FPSCHANGE ,MANGOHUDCFGFILE);
+    WriteConfig(FPSCHANGE ,MANGOHUDCFGFILE);
 
-    SaveConfig(FPSCOLOR ,MANGOHUDCFGFILE);
+    WriteConfig(FPSCOLOR ,MANGOHUDCFGFILE);
     if fpscolorCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(FPSCOLOR,MANGOHUDCFGFILE);
+    WriteConfig(FPSCOLOR,MANGOHUDCFGFILE);
 
-    SaveConfig(FPSVALUE ,MANGOHUDCFGFILE);
-    SaveConfig(VSYNC ,MANGOHUDCFGFILE);
-    SaveConfig(GLVSYNC ,MANGOHUDCFGFILE);
-    SaveConfig(FILTER,MANGOHUDCFGFILE);
-    SaveConfig(AFFILTER ,MANGOHUDCFGFILE);
-    SaveConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
+    WriteConfig(FPSVALUE ,MANGOHUDCFGFILE);
+    WriteConfig(VSYNC ,MANGOHUDCFGFILE);
+    WriteConfig(GLVSYNC ,MANGOHUDCFGFILE);
+    WriteConfig(FILTER,MANGOHUDCFGFILE);
+    WriteConfig(AFFILTER ,MANGOHUDCFGFILE);
+    WriteConfig(MIPMAPFILTER ,MANGOHUDCFGFILE);
 
     //Extra
 
-    SaveConfig(TIME,MANGOHUDCFGFILE);
-    SaveConfig(HUDVERSION,MANGOHUDCFGFILE);
+    WriteConfig(TIME,MANGOHUDCFGFILE);
+    WriteConfig(HUDVERSION,MANGOHUDCFGFILE);
 
 
-    SaveConfig(MEDIA,MANGOHUDCFGFILE);
+    WriteConfig(MEDIA,MANGOHUDCFGFILE);
     if mediaCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-    SaveConfig(MEDIACOLOR,MANGOHUDCFGFILE);
+    WriteConfig(MEDIACOLOR,MANGOHUDCFGFILE);
 
-    SaveConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
-    SaveConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
-    SaveConfig(LOGFOLDER,MANGOHUDCFGFILE);
-    SaveConfig(LOGDURATION,MANGOHUDCFGFILE);
-    SaveConfig(LOGDELAY,MANGOHUDCFGFILE);
-    SaveConfig(LOGINTERVAL,MANGOHUDCFGFILE);
-    SaveConfig(LOGTOGGLE,MANGOHUDCFGFILE);
-    SaveConfig(LOGVER,MANGOHUDCFGFILE);
-    SaveConfig(LOGAUTO,MANGOHUDCFGFILE);
+    WriteConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
+    WriteConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
+    WriteConfig(LOGFOLDER,MANGOHUDCFGFILE);
+    WriteConfig(LOGDURATION,MANGOHUDCFGFILE);
+    WriteConfig(LOGDELAY,MANGOHUDCFGFILE);
+    WriteConfig(LOGINTERVAL,MANGOHUDCFGFILE);
+    WriteConfig(LOGTOGGLE,MANGOHUDCFGFILE);
+    WriteConfig(LOGVER,MANGOHUDCFGFILE);
+    WriteConfig(LOGAUTO,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
