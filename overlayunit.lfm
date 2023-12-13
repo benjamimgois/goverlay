@@ -3912,6 +3912,7 @@ object goverlayform: Tgoverlayform
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
+      Visible = False
     end
     object mangohudPageControl: TPageControl
       AnchorSideLeft.Control = mangohudPanel

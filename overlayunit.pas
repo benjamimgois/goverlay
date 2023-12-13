@@ -2277,11 +2277,9 @@ var
     WriteCheckboxConfig(swapusageCheckBox,SWAP,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(vramusageCheckBox,VRAM,MANGOHUDCFGFILE);
-    //if vramusageCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(vramusageCheckBox,VRAMCOLOR,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(ramusageCheckBox,RAM,MANGOHUDCFGFILE);
-   // if ramusageCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(ramusageCheckBox,RAMCOLOR,MANGOHUDCFGFILE);
 
     // Metrocs - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
@@ -2289,7 +2287,6 @@ var
     WriteCheckboxConfig(fpsCheckBox,FPS,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(engineversionCheckBox,ENGINE,MANGOHUDCFGFILE);
-    //if engineversionCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(engineversionCheckBox,ENGINECOLOR,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(engineshortCheckBox,ENGINESHORT,MANGOHUDCFGFILE);
@@ -2298,11 +2295,9 @@ var
     WriteCheckboxConfig(archCheckBox,ARCH,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(wineCheckBox,WINE,MANGOHUDCFGFILE);
-   // if wineCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(wineCheckBox,WINECOLOR,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(frametimegraphCheckBox,FRAMETIMING,MANGOHUDCFGFILE);
-   // if frametimegraphCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(frametimegraphCheckBox,FRAMETIMEC,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(gputhrottlinggraphCheckBox,GPUTHRG,MANGOHUDCFGFILE);
@@ -2330,7 +2325,6 @@ var
 
 
     WriteCheckboxConfig(batteryCheckBox,BATTERY,MANGOHUDCFGFILE);
-    //if batteryCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(batteryCheckBox,BATTERYCOLOR,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(batterywattCheckBox,BATTERYWATT,MANGOHUDCFGFILE);
@@ -2342,12 +2336,9 @@ var
     WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO4,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(fpscolorCheckBox,FPSCHANGE ,MANGOHUDCFGFILE);
-
     WriteCheckboxConfig(fpscolorCheckBox,FPSCOLOR ,MANGOHUDCFGFILE);
-   // if fpscolorCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
-   // WriteConfig(FPSCOLOR,MANGOHUDCFGFILE);
-
     WriteCheckboxConfig(fpscolorCheckBox,FPSVALUE ,MANGOHUDCFGFILE);
+
     WriteConfig(VSYNC ,MANGOHUDCFGFILE);
     WriteConfig(GLVSYNC ,MANGOHUDCFGFILE);
     WriteConfig(FILTER,MANGOHUDCFGFILE);
@@ -2361,7 +2352,6 @@ var
 
 
     WriteCheckboxConfig(mediaCheckBox,MEDIA,MANGOHUDCFGFILE);
-   // if mediaCheckbox.Checked = true then //Do not save color information if checkbox isnt checked
     WriteCheckboxConfig(mediaCheckBox,MEDIACOLOR,MANGOHUDCFGFILE);
 
     WriteConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
