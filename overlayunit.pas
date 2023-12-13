@@ -2257,15 +2257,15 @@ var
 
     //Metrics - CPU / MEM
     WriteConfig(CPUTEXT,MANGOHUDCFGFILE);
-    WriteConfig(CPUAVGLOAD,MANGOHUDCFGFILE);
-    WriteConfig(CPULOADCORE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpuavgloadCheckBox,CPUAVGLOAD,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpuloadcoreCheckBox,CPULOADCORE,MANGOHUDCFGFILE);
     WriteConfig(CORELOADTYPE,MANGOHUDCFGFILE);
-    WriteConfig(CPULOADCHANGE,MANGOHUDCFGFILE);
-    WriteConfig(CPULOADVALUE,MANGOHUDCFGFILE);
-    WriteConfig(CPULOADCOLOR,MANGOHUDCFGFILE);
-    WriteConfig(CPUCOREFREQ,MANGOHUDCFGFILE);
-    WriteConfig(CPUTEMP,MANGOHUDCFGFILE);
-    WriteConfig(CPUPOWER,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpuloadcolorCheckBox,CPULOADCHANGE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpuloadcolorCheckBox,CPULOADVALUE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpuloadcolorCheckBox,CPULOADCOLOR,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpufreqCheckBox,CPUCOREFREQ,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cputempCheckBox,CPUTEMP,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(cpupowerCheckBox,CPUPOWER,MANGOHUDCFGFILE);
 
 
 
