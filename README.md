@@ -49,10 +49,9 @@ Here are the dependencies needed in order to make GOverlay run:
 
 #### Arch / Manjaro / Other Arch derivatives
 
-You can grab the latest git code with [`goverlay-git`](https://aur.archlinux.org/packages/goverlay-git/). The repository  [`chaotic-aur`](https://lonewolf.pedrohlc.com/chaotic-aur/) provides the binaries from the latest GIT code.
-
+To install [`goverlay`](https://archlinux.org/packages/extra/x86_64/goverlay/), run the following command as root:
 ```bash
-pamac install goverlay-bin
+pacman -S goverlay
 ```
 
 #### Fedora
