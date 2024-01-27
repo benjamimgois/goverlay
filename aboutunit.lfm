@@ -15277,7 +15277,7 @@ object aboutForm: TaboutForm
         Height = 234
         Top = 52
         Width = 518
-        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lighting. '#10#10'I am just a Network Engineer that realy likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making linux a AWESOME gaming platform.'
+        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'I am just a Network Engineer that really likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
