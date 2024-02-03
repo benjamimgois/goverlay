@@ -1874,7 +1874,7 @@ var
         Savecheckbox (gputhrottlinggraphCheckbox, GPUTHRG, 'throttling_status_graph');
 
         //GPU MODEL   - Config Variable
-        Savecheckbox (gpumodelCheckbox, GPUTHRG, 'gpu_name');
+        Savecheckbox (gpumodelCheckbox, GPUMODEL, 'gpu_name');
 
         //VULKAN DRIVER   - Config Variable
         Savecheckbox (vulkandriverCheckbox, VULKANDRIVER, 'vulkan_driver');
