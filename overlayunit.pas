@@ -2202,10 +2202,10 @@ var
 
 
       case logtoggleComboBox.ItemIndex of
-        0:LOGTOGGLE := 'toggle_logging==Shift_L+F2' ;
-        1:LOGTOGGLE := 'toggle_logging==Shift_L+F3' ;
-        2:LOGTOGGLE := 'toggle_logging==Shift_L+F4' ;
-        3:LOGTOGGLE := 'toggle_logging==Shift_L+F5' ;
+        0:LOGTOGGLE := 'toggle_logging=Shift_L+F2' ;
+        1:LOGTOGGLE := 'toggle_logging=Shift_L+F3' ;
+        2:LOGTOGGLE := 'toggle_logging=Shift_L+F4' ;
+        3:LOGTOGGLE := 'toggle_logging=Shift_L+F5' ;
       end;
 
        //Log versioning  - Config Variable
