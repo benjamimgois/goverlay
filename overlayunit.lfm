@@ -2146,6 +2146,7 @@ object goverlayform: Tgoverlayform
     Height = 600
     Top = 1
     Width = 668
+    Alignment = taRightJustify
     BevelColor = 3684408
     BevelOuter = bvNone
     ClientHeight = 600
@@ -3780,6 +3781,7 @@ object goverlayform: Tgoverlayform
     Height = 650
     Top = -1
     Width = 789
+    Alignment = taRightJustify
     BevelColor = clNone
     BevelOuter = bvNone
     BorderStyle = bsSingle
@@ -3923,13 +3925,13 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = performanceTabSheet
+      ActivePage = visualTabSheet
       Font.Color = clWhite
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 1
+      TabIndex = 0
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -9983,7 +9985,6 @@ object goverlayform: Tgoverlayform
             Top = 62
             Width = 100
             Align = alCustom
-            Alignment = taLeftJustify
             AutoSize = False
             BorderSpacing.Top = 30
             BorderSpacing.Bottom = 3
@@ -10019,7 +10020,6 @@ object goverlayform: Tgoverlayform
             Top = 62
             Width = 111
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Right = 10
             Caption = 'Count frames'
             Font.Height = -13
@@ -10038,7 +10038,6 @@ object goverlayform: Tgoverlayform
             Top = 10
             Width = 87
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 40
             Caption = 'Show FPS'
             Font.Height = -13
@@ -10125,7 +10124,6 @@ object goverlayform: Tgoverlayform
             Top = 74
             Width = 58
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 10
             BorderSpacing.Top = 2
             Caption = 'Load'
@@ -10144,7 +10142,6 @@ object goverlayform: Tgoverlayform
             Top = 132
             Width = 55
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 10
             BorderSpacing.Top = 2
             Caption = 'GPU'
@@ -10164,7 +10161,6 @@ object goverlayform: Tgoverlayform
             Top = 74
             Width = 87
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 55
             BorderSpacing.Top = 2
             Caption = 'Core Freq'
@@ -10199,7 +10195,6 @@ object goverlayform: Tgoverlayform
             Top = 190
             Width = 89
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Throttling'
             Font.Height = -13
@@ -10218,7 +10213,6 @@ object goverlayform: Tgoverlayform
             Top = 74
             Width = 90
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 55
             BorderSpacing.Top = 2
             Caption = 'Mem Freq'
@@ -10237,7 +10231,6 @@ object goverlayform: Tgoverlayform
             Top = 248
             Width = 67
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Model'
             Font.Height = -13
@@ -10255,7 +10248,6 @@ object goverlayform: Tgoverlayform
             Top = 190
             Width = 68
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 10
             BorderSpacing.Top = 2
             Caption = 'Power'
@@ -10275,7 +10267,6 @@ object goverlayform: Tgoverlayform
             Top = 74
             Width = 64
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 55
             BorderSpacing.Top = 2
             Caption = 'VRAM'
@@ -10326,7 +10317,6 @@ object goverlayform: Tgoverlayform
             Top = 74
             Width = 95
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 55
             BorderSpacing.Top = 2
             Caption = 'Load Color'
@@ -10403,7 +10393,6 @@ object goverlayform: Tgoverlayform
             Top = 248
             Width = 112
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Vulkan Driver'
             Font.Height = -13
@@ -10421,7 +10410,6 @@ object goverlayform: Tgoverlayform
             Top = 132
             Width = 78
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Junction'
             Font.Height = -13
@@ -10439,7 +10427,6 @@ object goverlayform: Tgoverlayform
             Top = 132
             Width = 80
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Memory'
             Font.Height = -13
@@ -10457,7 +10444,6 @@ object goverlayform: Tgoverlayform
             Top = 132
             Width = 57
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Fans'
             Font.Height = -13
@@ -10548,7 +10534,6 @@ object goverlayform: Tgoverlayform
             Top = 190
             Width = 135
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Throttling GRAPH'
             Font.Height = -13
@@ -10566,7 +10551,6 @@ object goverlayform: Tgoverlayform
             Top = 190
             Width = 75
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Voltage'
             Font.Height = -13
@@ -12951,7 +12935,6 @@ object goverlayform: Tgoverlayform
             Top = 62
             Width = 58
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 10
             BorderSpacing.Top = 2
             Caption = 'Load'
@@ -12970,7 +12953,6 @@ object goverlayform: Tgoverlayform
             Top = 130
             Width = 90
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 10
             BorderSpacing.Top = 2
             Caption = 'CPU temp'
@@ -12989,7 +12971,6 @@ object goverlayform: Tgoverlayform
             Top = 62
             Width = 87
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 55
             Caption = 'Core load'
             Font.Height = -13
@@ -13038,7 +13019,6 @@ object goverlayform: Tgoverlayform
             Top = 198
             Width = 57
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 10
             BorderSpacing.Top = 2
             Caption = 'RAM'
@@ -13072,7 +13052,6 @@ object goverlayform: Tgoverlayform
             Top = 198
             Width = 75
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'DISK IO'
             Font.Height = -13
@@ -13104,7 +13083,6 @@ object goverlayform: Tgoverlayform
             Top = 130
             Width = 97
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'CPU Power'
             Font.Height = -13
@@ -13122,7 +13100,6 @@ object goverlayform: Tgoverlayform
             Top = 62
             Width = 95
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 55
             Caption = 'Load Color'
             Font.Height = -13
@@ -13140,7 +13117,6 @@ object goverlayform: Tgoverlayform
             Top = 62
             Width = 87
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 33
             Caption = 'Core Freq'
             Font.Height = -13
@@ -13230,7 +13206,6 @@ object goverlayform: Tgoverlayform
             Top = 198
             Width = 61
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Swap'
             Font.Height = -13
@@ -13249,7 +13224,6 @@ object goverlayform: Tgoverlayform
             Top = 198
             Width = 75
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Process'
             Font.Height = -13
@@ -16319,7 +16293,6 @@ object goverlayform: Tgoverlayform
             Top = 30
             Width = 92
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Distro info'
             Font.Height = -13
@@ -16340,7 +16313,6 @@ object goverlayform: Tgoverlayform
             Top = 30
             Width = 56
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 30
             Caption = 'Arch'
             Font.Height = -13
@@ -16359,7 +16331,6 @@ object goverlayform: Tgoverlayform
             Top = 30
             Width = 93
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 20
             Caption = 'Resolution'
             Font.Height = -13
@@ -16377,7 +16348,6 @@ object goverlayform: Tgoverlayform
             Top = 88
             Width = 95
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Engine Ver'
             Font.Height = -13
@@ -16395,7 +16365,6 @@ object goverlayform: Tgoverlayform
             Top = 88
             Width = 84
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Wine Ver'
             Font.Height = -13
@@ -16413,7 +16382,6 @@ object goverlayform: Tgoverlayform
             Top = 286
             Width = 94
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Media Info'
             Font.Height = -13
@@ -16431,7 +16399,6 @@ object goverlayform: Tgoverlayform
             Top = 158
             Width = 100
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'Gamemode'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16465,7 +16432,6 @@ object goverlayform: Tgoverlayform
             Top = 158
             Width = 81
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'VKbasalt'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16598,7 +16564,6 @@ object goverlayform: Tgoverlayform
             Top = 216
             Width = 75
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'Devices'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16616,7 +16581,6 @@ object goverlayform: Tgoverlayform
             Top = 216
             Width = 105
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'Time remain'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16632,7 +16596,6 @@ object goverlayform: Tgoverlayform
             Top = 216
             Width = 80
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'Wattage'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16664,7 +16627,6 @@ object goverlayform: Tgoverlayform
             Top = 216
             Width = 98
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'Percentage'
             Font.Height = -13
@@ -16698,7 +16660,6 @@ object goverlayform: Tgoverlayform
             Top = 158
             Width = 58
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'FSR*'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16717,7 +16678,6 @@ object goverlayform: Tgoverlayform
             Top = 158
             Width = 63
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'HDR*'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16736,7 +16696,6 @@ object goverlayform: Tgoverlayform
             Top = 158
             Width = 53
             Align = alCustom
-            Alignment = taLeftJustify
             Caption = 'Fcat'
             Font.Height = -13
             Font.Name = 'Sans'
@@ -16773,7 +16732,6 @@ object goverlayform: Tgoverlayform
             Top = 158
             Width = 106
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Top = 2
             Caption = 'HUD Version'
             Font.Height = -13
@@ -16792,7 +16750,6 @@ object goverlayform: Tgoverlayform
             Top = 30
             Width = 59
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 30
             Caption = 'Time'
             Font.Height = -13
@@ -16812,7 +16769,6 @@ object goverlayform: Tgoverlayform
             Top = 30
             Width = 75
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 30
             Caption = 'Session'
             Font.Height = -13
@@ -16834,7 +16790,6 @@ object goverlayform: Tgoverlayform
             Top = 30
             Width = 110
             Align = alCustom
-            Alignment = taLeftJustify
             BorderSpacing.Left = 30
             Caption = 'Refresh rate*'
             Font.Height = -13
