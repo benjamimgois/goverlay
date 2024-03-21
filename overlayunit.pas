@@ -297,10 +297,10 @@ VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTE
   vkbasaltsel: boolean;
 
   //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
 
   //########################################
-  i, GPUNUMBER, COLUMNS: integer;
+  i, GPUNUMBER, GPUCOUNT, COLUMNS: integer;
   GPUDESC: TStringList;
 
   ArquivoConfig: TextFile;
@@ -543,6 +543,7 @@ begin
   Process.Execute;
 
   // Define important file paths
+  GOVERLAYFOLDER:= '$HOME/.config/goverlay/' ;
   MANGOHUDFOLDER:= '$HOME/.config/MangoHud/' ;
   MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
   FONTFOLDER := '/usr/share/fonts/';
@@ -612,7 +613,13 @@ begin
       saida.Free;
 
       i := i + 1; //increment "i"variable
+
+
+
     end; //while
+
+
+
 
 
      //Determine toggle position - MangoHUD
@@ -828,6 +835,36 @@ begin
         end; //case
 
       end; //if
+
+    //Read system GPUs
+      Process1 := TProcess.Create(nil);
+      saida := TStringList.Create;
+
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
+      Process1.Options := [poUsePipes];
+      Process1.WaitOnExit;
+      Process1.Execute;
+
+      saida.LoadFromStream(Process1.output);
+      LSPCI0 := Trim(saida.text); // store output um variable
+      GPU0 :=  pcidevCombobox.Items[0]; //store first value in variable
+
+      Writeln ('LSPCI0: ', LSPCI0);
+      Writeln ('GPU0: ', GPU0);
+
+      if LSPCI0 = GPU0 then
+       begin
+        pcidevCombobox.ItemIndex:=0;
+        gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
+       end
+       else
+        begin
+          pcidevCombobox.ItemIndex:=1;
+          gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
+        end;
+
 
    //#################################################    Bitbtns
 
@@ -1338,6 +1375,8 @@ begin
     else
      autouploadcheckbox.Checked := false;
 
+
+
     // fps color change
     if LoadName('fps_color_change') then
      fpscolorcheckbox.Checked := True
@@ -1383,8 +1422,7 @@ begin
        0: begin
        geSpeedButton.ImageIndex:=1; //switch button position to ON
 
-       //RunCommand('bash -c ''echo "MANGOHUD=1" | pkexec tee -a /etc/environment''', s);  // Activate MANGOHUD globally for vulkan apps
-       //RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"''', s); // Popup a notification
+
 
          Process1 := TProcess.Create(nil);
          Process1.Executable := 'sh';
@@ -1410,8 +1448,8 @@ begin
 
      1: begin
        geSpeedButton.ImageIndex:=0; ////switch button position to OFF
-       //RunCommand('bash -c ''pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment''', s); // Remove lines containing MANGOHUD=1 from /etc/environment
-       //RunCommand('bash -c ''notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"''', s); // Popup a notification
+
+
 
          Process1 := TProcess.Create(nil);
          Process1.Executable := 'sh';
