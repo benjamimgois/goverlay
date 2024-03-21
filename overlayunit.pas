@@ -1338,7 +1338,11 @@ begin
     else
      autouploadcheckbox.Checked := false;
 
-
+    // fps color change
+    if LoadName('fps_color_change') then
+     fpscolorcheckbox.Checked := True
+    else
+     fpscolorcheckbox.Checked := false;
 
 
 
