@@ -1,14 +1,13 @@
 object goverlayform: Tgoverlayform
   Left = 1801
-  Height = 649
+  Height = 646
   Top = 232
   Width = 1000
   BorderStyle = bsDialog
-  Caption = 'Goverlay 1.0'
-  ClientHeight = 649
+  Caption = 'Goverlay 1.1'
+  ClientHeight = 646
   ClientWidth = 1000
   Color = 1710618
-  Font.Color = clWhite
   Font.Quality = fqAntialiased
   Icon.Data = {
     3E08010000000100010080800000010020002808010016000000280000008000
@@ -3719,6 +3718,7 @@ object goverlayform: Tgoverlayform
     Width = 190
     Brush.Color = 2302755
     ParentShowHint = False
+    Pen.Color = 5328459
     Shape = stRoundRect
     ShowHint = True
     Visible = False
@@ -3766,28 +3766,28 @@ object goverlayform: Tgoverlayform
     ImageWidth = 10
   end
   object mangohudShape: TShape
-    Left = 68
+    Left = 69
     Height = 50
     Hint = 'A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more.'
     Top = 136
     Width = 190
-    Brush.Color = 3684408
+    Brush.Color = 4538426
     ParentShowHint = False
+    Pen.Color = 4538426
     Shape = stRoundRect
     ShowHint = True
   end
   object mangohudPanel: TPanel
     Left = 211
-    Height = 650
-    Top = -1
-    Width = 789
+    Height = 646
+    Top = 0
+    Width = 800
     Alignment = taRightJustify
     BevelColor = clNone
     BevelOuter = bvNone
-    BorderStyle = bsSingle
-    ClientHeight = 650
-    ClientWidth = 789
-    Font.Color = clTeal
+    ClientHeight = 646
+    ClientWidth = 800
+    Color = 4538426
     Font.Quality = fqAntialiased
     ParentBackground = False
     ParentColor = False
@@ -3799,12 +3799,12 @@ object goverlayform: Tgoverlayform
       AnchorSideLeft.Control = mangohudPanel
       AnchorSideRight.Control = mangohudPageControl
       AnchorSideRight.Side = asrBottom
-      AnchorSideBottom.Control = mangohudPanel
-      AnchorSideBottom.Side = asrBottom
+      AnchorSideBottom.Control = GlobalenableLabel
+      AnchorSideBottom.Side = asrCenter
       Left = 705
       Height = 29
       Hint = 'Save current setup in a Mangohud.conf file'
-      Top = 619
+      Top = 614
       Width = 79
       Align = alCustom
       Anchors = [akRight, akBottom]
@@ -3813,6 +3813,7 @@ object goverlayform: Tgoverlayform
       BorderSpacing.Bottom = 2
       Caption = ' Save '
       Color = 33536
+      Font.Color = clWhite
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
@@ -3861,17 +3862,16 @@ object goverlayform: Tgoverlayform
     end
     object runsteamBitBtn: TBitBtn
       AnchorSideRight.Control = saveBitBtn
-      AnchorSideBottom.Control = mangohudPanel
-      AnchorSideBottom.Side = asrBottom
+      AnchorSideBottom.Control = GlobalenableLabel
+      AnchorSideBottom.Side = asrCenter
       Left = 676
       Height = 29
       Hint = 'Execute VKcube and GLXgears with current  settings'
-      Top = 619
+      Top = 614
       Width = 25
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 2
       Caption = 'RUN'
-      Color = 3552302
       Font.Height = -12
       Font.Name = 'Sans'
       Font.Quality = fqAntialiased
@@ -3925,13 +3925,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
-      Font.Color = clWhite
+      ActivePage = metricsSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -4001,7 +4000,6 @@ object goverlayform: Tgoverlayform
           Caption = 'Position'
           ClientHeight = 161
           ClientWidth = 212
-          Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4479,7 +4477,6 @@ object goverlayform: Tgoverlayform
           Caption = 'Orientation'
           ClientHeight = 101
           ClientWidth = 212
-          Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4614,7 +4611,6 @@ object goverlayform: Tgoverlayform
           Caption = 'Borders'
           ClientHeight = 101
           ClientWidth = 212
-          Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4744,7 +4740,6 @@ object goverlayform: Tgoverlayform
           Caption = 'Background'
           ClientHeight = 101
           ClientWidth = 212
-          Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -4847,7 +4842,6 @@ object goverlayform: Tgoverlayform
           Width = 670
           Alignment = taCenter
           AutoSize = False
-          Font.Color = clWhite
           Font.Height = -12
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -9971,8 +9965,13 @@ object goverlayform: Tgoverlayform
           Caption = 'Information'
           ClientHeight = 151
           ClientWidth = 381
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          Font.Style = [fsBold]
           ParentBackground = False
           ParentColor = False
+          ParentFont = False
           TabOrder = 3
           object frametimegraphCheckBox: TCheckBox
             AnchorSideLeft.Control = fpsCheckBox
@@ -10096,6 +10095,11 @@ object goverlayform: Tgoverlayform
         Caption = 'Metrics'
         ClientHeight = 575
         ClientWidth = 778
+        Font.Color = clWhite
+        Font.Height = -13
+        Font.Name = 'Noto Sans'
+        Font.Quality = fqAntialiased
+        ParentFont = False
         object gpuGroupBox: TGroupBox
           AnchorSideLeft.Control = metricsSheet
           AnchorSideLeft.Side = asrCenter
@@ -17475,11 +17479,11 @@ object goverlayform: Tgoverlayform
     object notificationLabel: TLabel
       AnchorSideRight.Control = mangohudPanel
       AnchorSideRight.Side = asrCenter
-      AnchorSideBottom.Control = mangohudPanel
-      AnchorSideBottom.Side = asrBottom
-      Left = 357
+      AnchorSideBottom.Control = GlobalenableLabel
+      AnchorSideBottom.Side = asrCenter
+      Left = 363
       Height = 15
-      Top = 628
+      Top = 621
       Width = 74
       Anchors = [akRight, akBottom]
       BorderSpacing.Bottom = 7
@@ -17503,7 +17507,7 @@ object goverlayform: Tgoverlayform
       Left = 94
       Height = 32
       Hint = 'MangoHUD will be automagically enabled for all VULKAN applications.'#10'(not need use MANGOHUD=1 every single time.)'#10#10'NEEDS RESTART !'
-      Top = 616
+      Top = 613
       Width = 60
       Anchors = [akLeft, akBottom]
       Color = 3684408
@@ -17516,14 +17520,16 @@ object goverlayform: Tgoverlayform
     end
     object GlobalenableLabel: TLabel
       AnchorSideLeft.Control = mangohudPanel
+      AnchorSideTop.Control = mangohudPageControl
+      AnchorSideTop.Side = asrBottom
       AnchorSideBottom.Control = mangohudPanel
       AnchorSideBottom.Side = asrBottom
       Left = 5
       Height = 18
-      Top = 623
+      Top = 620
       Width = 89
-      Anchors = [akLeft, akBottom]
       BorderSpacing.Left = 5
+      BorderSpacing.Top = 10
       BorderSpacing.Bottom = 9
       Caption = 'Global Enable'
       Font.Color = clWhite
