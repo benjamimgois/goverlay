@@ -699,6 +699,7 @@ begin
     if LoadValue('af',AUX) then
       afTrackbar.Position :=  Round(StrToFloat(AUX));
 
+
     //Mipmap
     if LoadValue('picmip',AUX) then
       mipmapTrackbar.Position :=  Round(StrToFloat(AUX));
@@ -2095,11 +2096,12 @@ var
 
        //AF Filter   - Config Variable
 
+      if afTrackbar.Position <> 0 then
       AFFILTER := 'af=' + FormatFloat('#0', afTrackbar.Position);
 
 
        //MIPMAP Filter   - Config Variable
-
+      if mipmapTrackbar.Position <> 0 then
       MIPMAPFILTER := 'picmip=' + FormatFloat('#0', mipmapTrackbar.Position);
 
 
