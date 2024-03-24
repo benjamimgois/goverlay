@@ -26,9 +26,10 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://ibb.co/PMQ6w3Z"><img src="https://i.ibb.co/Mf6CMWD/goverlay-09-2.jpg" alt="goverlay-09-2" border="0"></a>
-<a href="https://ibb.co/7tW4Tz3"><img src="https://i.ibb.co/Zz8mwJQ/goverlay-09-3.jpg" alt="goverlay-09-3" border="0"></a>
-<a href="https://ibb.co/CV79rbT"><img src="https://i.ibb.co/BTZ61yS/goverlay-09-4.jpg" alt="goverlay-09-4" border="0"></a>
+<a href="https://imgbb.host/vCWK9"><img src="https://imgbb.host/images/vCWK9.png" alt="vCWK9.png" border="0" /></a>
+<a href="https://imgbb.host/vCkkz"><img src="https://imgbb.host/images/vCkkz.png" alt="vCkkz.png" border="0"></a>
+<a href="https://imgbb.host/vCofK"><img src="https://imgbb.host/images/vCofK.png" alt="vCofK.png" border="0"></a>
+<a href="https://imgbb.host/vCjt7"><img src="https://imgbb.host/images/vCjt7.png" alt="vCjt7.png" border="0"></a>
 
 ## Prerequisites
 
