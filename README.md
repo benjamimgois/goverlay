@@ -1,4 +1,4 @@
-# GOverlay
+# Goverlay
 
 GOverlay is an open source project aimed to create a Graphical UI to manage Vulkan/OpenGL overlays. It is still in early development, so it lacks a lot of features.
 
@@ -38,10 +38,8 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`mesa-demos`**](https://github.com/freedesktop/mesa-demos) - OpenGL preview
  - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) - Vulkan preview
  - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
- - [**`replay-sorcery`**](https://github.com/matanui159/ReplaySorcery) - Instant replay solution
  - [**`git`**](https://github.com/git/git) - Clone reshade repository
- - [**`qt5pas`**](https://svn.freepascal.org/svn/lazarus/trunk/lcl/interfaces/qt5/cbindings/) - Free Pascal Qt5 binding library updated by lazarus IDE
- - [**`breeze`**](https://invent.kde.org/plasma/breeze) - Breeze Qt theme
+ - [**`qt6pas`**](https://svn.freepascal.org/svn/lazarus/trunk/lcl/interfaces/qt5/cbindings/) - Free Pascal Qt5 binding library updated by lazarus IDE
 
 ## Installation 
 
@@ -105,7 +103,10 @@ To install goverlay in Ubuntu (20.04 and up) and derivatives, run the following 
 
 ```bash
 sudo apt-get update
-sudo apt-get install goverlay
+wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.7/libqt6pas6_6.2.7-1_amd64.deb
+sudo dpkg -i libqt6pas6_6.2.7-1_amd64.deb
+tar -zxvf goverlay*.tar.gz
+./goverlay
 ```
 
 To avoid a issue with libdl.so on ubuntu based distros it's recomended to build Mangohud from source.
@@ -157,7 +158,7 @@ make
 Start GOverlay with:
 
 ```bash
-./start_goverlay.sh
+./goverlay
 ```
 
 Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
@@ -203,11 +204,6 @@ Special thanks to DadSchoorse, creator of the vkBasalt project.
 
 https://github.com/DadSchoorse/vkBasalt
 
-#### matanui159
-
-Special thanks to matanui159, creator of the ReplaySorcery project.
-
-https://github.com/matanui159/ReplaySorcery
 
 #### Lazarus
 
