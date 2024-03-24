@@ -25,13 +25,13 @@
       <StringTable InternalName="Goverlay" ProductName="Goverlay" ProductVersion="0.9.1"/>
     </VersionInfo>
     <MacroValues Count="1">
-      <Macro1 Name="LCLWidgetType" Value="qt5"/>
+      <Macro1 Name="LCLWidgetType" Value="qt6"/>
     </MacroValues>
     <BuildModes Count="2">
       <Item1 Name="Default" Default="True"/>
       <Item2 Name="Release">
         <MacroValues Count="1">
-          <Macro1 Name="LCLWidgetType" Value="qt5"/>
+          <Macro1 Name="LCLWidgetType" Value="qt6"/>
         </MacroValues>
         <CompilerOptions>
           <Version Value="11"/>
@@ -70,7 +70,7 @@
         </CompilerOptions>
       </Item2>
       <SharedMatrixOptions Count="1">
-        <Item1 ID="703304125782" Modes="Default,Release" Type="IDEMacro" MacroName="LCLWidgetType" Value="qt5"/>
+        <Item1 ID="703304125782" Modes="Default,Release" Type="IDEMacro" MacroName="LCLWidgetType" Value="qt6"/>
       </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
