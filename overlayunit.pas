@@ -523,8 +523,8 @@ Output: TStringList;
 
 begin
   //Centralize window
-  Left:=(Screen.Width-Width)  div 2;
-  Top:=(Screen.Height-Height) div 2;
+ // Left:=(Screen.Width-Width)  div 2;
+ // Top:=(Screen.Height-Height) div 2;
 
   mangohudPageControl.ActivePage:=visualTabsheet; //Set initial TAB
 
