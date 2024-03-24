@@ -4,7 +4,7 @@ object goverlayform: Tgoverlayform
   Top = 232
   Width = 1000
   BorderStyle = bsDialog
-  Caption = 'Goverlay 1.10'
+  Caption = 'Goverlay 1.1.1'
   ClientHeight = 646
   ClientWidth = 1000
   Color = 1710618
