@@ -40,7 +40,7 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) - Vulkan preview
  - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
  - [**`git`**](https://github.com/git/git) - Clone reshade repository
- - [**`qt6pas`**](https://svn.freepascal.org/svn/lazarus/trunk/lcl/interfaces/qt6/cbindings/) - Free Pascal Qt6 binding library updated by lazarus IDE
+ - [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) - Free Pascal Qt6 binding library updated by lazarus IDE
 
 ## Installation 
 
