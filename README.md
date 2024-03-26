@@ -123,10 +123,10 @@ https://github.com/flightlessmango/MangoHud
 tar -zxvf goverlay*.tar.gz
 ```
 
-3. Properly execute the binary by running the script inside the tar file:
+3. Properly execute the binary inside the tar file:
 
 ```bash
-./start_goverlay.sh
+./goverlay
 ```
 
 Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
@@ -177,7 +177,7 @@ This will install the start script to `/usr/local/bin/goverlay`, so that it can 
 
 ## Theme compatibility
 
-Since GOverlay 0.9 the official supported themes are Breeze (plasma) and Adwaita (Gnome). If you run into issues with your current one you can force goverlay to run with a specific theme:
+Since Goverlay 0.9 the official supported themes are Breeze (plasma) and Adwaita (Gnome). If you run into issues with your current one you can force goverlay to run with a specific theme:
 
 ```bash
 goverlay --style breeze
