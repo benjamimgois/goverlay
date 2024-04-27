@@ -9,7 +9,12 @@ uses
   Interfaces, // this includes the LCL widgetset
   Forms, overlayunit, aboutunit;
 
+
+
+
 {$R *.res}
+
+
 
 begin
   RequireDerivedFormResource:=True;
@@ -18,7 +23,6 @@ begin
   Application.Initialize;
   Application.CreateForm(Tgoverlayform, goverlayform);
   Application.CreateForm(TaboutForm, aboutForm);
-  //Application.CreateForm(TlogpathForm, logpathForm);
   Application.Run;
 end.
 

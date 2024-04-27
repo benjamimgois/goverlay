@@ -20,6 +20,7 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    frametimetypeBitBtn1: TBitBtn;
     versioningCheckBox: TCheckBox;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
@@ -286,10 +287,11 @@ var
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
-CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
+CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
+
 
 
   //Boolean variables
@@ -1869,6 +1871,10 @@ var
       //###############################################################################################   METRICS TAB
 
       //GPU
+
+        //GPU Color
+        GPUCOLOR := 'gpu_color='+ ColorToHTMLColor(gpuColorButton.ButtonColor) ;
+
         //AVG Load  - Config Variable
        Savecheckbox (gpuavgloadCheckbox, GPUAVGLOAD, 'gpu_stats');
 
@@ -1933,6 +1939,10 @@ var
 
 
         //CPU
+
+        //GPU Color
+        CPUCOLOR := 'cpu_color='+ ColorToHTMLColor(cpuColorButton.ButtonColor) ;
+
        //GPU TEXT - Config Variable
         CPUTEXT := 'cpu_text=' + cpunameEdit.Text;
 
@@ -1977,7 +1987,7 @@ var
              IOWRITE := 'io_write';
           end;
 
-        ////RAM - Config Variable
+        ////FPS - Config Variable
        Savecheckbox (fpsCheckBox, FPS, 'fps');
 
         //VRAM Color
@@ -1990,6 +2000,9 @@ var
 
         ////SWAP - Config Variable
        Savecheckbox (swapusageCheckBox, SWAP, 'swap');
+
+        ////FPS AVG - Config Variable
+       Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
 
        ////Frame time - Config Variable
        Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
@@ -2295,7 +2308,7 @@ var
     WriteCheckboxConfig(gpujunctempCheckBox,GPUJUNCTEMP,MANGOHUDCFGFILE);
     WriteCheckboxConfig(gpufanCheckBox,GPUFAN,MANGOHUDCFGFILE);
     WriteCheckboxConfig(gpupowerCheckBox,GPUPOWER,MANGOHUDCFGFILE);
-
+    WriteCheckboxConfig(gpuavgloadCheckBox,GPUCOLOR,MANGOHUDCFGFILE);
 
 
 
@@ -2310,7 +2323,7 @@ var
     WriteCheckboxConfig(cpufreqCheckBox,CPUCOREFREQ,MANGOHUDCFGFILE);
     WriteCheckboxConfig(cputempCheckBox,CPUTEMP,MANGOHUDCFGFILE);
     WriteCheckboxConfig(cpupowerCheckBox,CPUPOWER,MANGOHUDCFGFILE);
-
+     WriteCheckboxConfig(cpuavgloadCheckBox,CPUCOLOR,MANGOHUDCFGFILE);
 
 
 

@@ -4,7 +4,7 @@ object goverlayform: Tgoverlayform
   Top = 232
   Width = 1000
   BorderStyle = bsDialog
-  Caption = 'Goverlay 1.1.1'
+  Caption = 'Goverlay 1.2'
   ClientHeight = 646
   ClientWidth = 1000
   Color = 1710618
@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = metricsSheet
+      ActivePage = performanceTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 2
+      TabIndex = 1
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -9565,17 +9565,18 @@ object goverlayform: Tgoverlayform
           TabOrder = 3
           object frametimegraphCheckBox: TCheckBox
             AnchorSideLeft.Control = fpsCheckBox
+            AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = fpsCheckBox
             AnchorSideTop.Side = asrBottom
             AnchorSideBottom.Control = fpsGroupBox
             AnchorSideBottom.Side = asrBottom
-            Left = 40
+            Left = 33
             Height = 17
-            Top = 62
+            Top = 72
             Width = 100
             Align = alCustom
             AutoSize = False
-            BorderSpacing.Top = 30
+            BorderSpacing.Top = 40
             BorderSpacing.Bottom = 3
             Caption = 'Frame Time'
             Font.Height = -13
@@ -9588,9 +9589,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = frametimegraphCheckBox
             AnchorSideTop.Control = frametimegraphCheckBox
             AnchorSideTop.Side = asrBottom
-            Left = 40
+            Left = 33
             Height = 12
-            Top = 82
+            Top = 92
             Width = 100
             Align = alCustom
             BorderWidth = 2
@@ -9606,7 +9607,7 @@ object goverlayform: Tgoverlayform
             Left = 213
             Height = 22
             Hint = 'Shows the number of frames since start'
-            Top = 62
+            Top = 72
             Width = 111
             Align = alCustom
             BorderSpacing.Right = 10
@@ -9664,9 +9665,9 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = frametimegraphColorButton
             AnchorSideTop.Side = asrBottom
-            Left = 40
+            Left = 33
             Height = 25
-            Top = 94
+            Top = 104
             Width = 100
             Caption = 'Curve'
             Font.Height = -11
@@ -9678,6 +9679,26 @@ object goverlayform: Tgoverlayform
             OnClick = frametimetypeBitBtnClick
             ParentFont = False
             TabOrder = 4
+          end
+          object frametimetypeBitBtn1: TBitBtn
+            AnchorSideLeft.Control = fpsCheckBox
+            AnchorSideLeft.Side = asrCenter
+            AnchorSideTop.Control = fpsCheckBox
+            AnchorSideTop.Side = asrBottom
+            Left = 33
+            Height = 25
+            Top = 32
+            Width = 100
+            Caption = 'AVG'
+            Font.Height = -11
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            Images = iconsImageList
+            ImageIndex = 8
+            ImageWidth = 20
+            OnClick = frametimetypeBitBtnClick
+            ParentFont = False
+            TabOrder = 5
           end
         end
       end
