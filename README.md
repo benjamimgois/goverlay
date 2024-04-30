@@ -100,12 +100,13 @@ apt install goverlay
 
 #### Ubuntu
 
-To install goverlay in Ubuntu (20.04 and up) and derivatives, run the following commands:
+To install goverlay in Ubuntu (20.04 and up) and derivatives, you need to install libqt6pas that isn't provided by official repo, but
+you can grab it in https://github.com/davidbannon/libqt6pas
 
 ```bash
 sudo apt-get update
-wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.7/libqt6pas6_6.2.7-1_amd64.deb
-sudo dpkg -i libqt6pas6_6.2.7-1_amd64.deb
+wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.8/libqt6pas6_6.2.8-1_amd64.deb
+sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
 tar -zxvf goverlay*.tar.gz
 ./goverlay
 ```
