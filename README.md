@@ -121,7 +121,7 @@ https://github.com/flightlessmango/MangoHud
 2. Extract the file by running the following command:
 
 ```bash
-tar -zxvf goverlay*.tar.gz
+tar -xvf goverlay*.tar.xz
 ```
 
 3. Properly execute the binary inside the tar file:
