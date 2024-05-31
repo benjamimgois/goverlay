@@ -20,7 +20,10 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
-    frametimetypeBitBtn1: TBitBtn;
+    fpsavgCheckBox: TCheckBox;
+    fpsavgBitBtn: TBitBtn;
+    networkComboBox: TComboBox;
+    networkCheckBox: TCheckBox;
     versioningCheckBox: TCheckBox;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
@@ -258,6 +261,7 @@ type
     procedure afTrackBarChange(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
+    procedure fpsavgBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
@@ -288,7 +292,7 @@ var
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
-FPS, FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
+FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
 
@@ -900,6 +904,20 @@ begin
       end;
 
 
+    //FPS avg
+    if LoadName('fps_metrics=avg,0.01') then
+     begin
+      fpsavgCheckbox.checked:=true;
+      fpsavgBitBtn.Caption:= '1% low';
+      fpsavgBitBtn.Hint:='Display 1% low fps';
+     end;
+
+    if LoadName('fps_metrics=avg,0.001') then
+      begin
+      fpsavgCheckbox.checked:=true;
+      fpsavgBitBtn.Caption:= '0.1% low';
+      fpsavgBitBtn.Hint:='Display 0.1% low fps';
+      end;
 
 
     //#################################################    others
@@ -1593,6 +1611,23 @@ begin
   durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position) + 's' ;
 end;
 
+procedure Tgoverlayform.fpsavgBitBtnClick(Sender: TObject);
+begin
+       //Change caption and hint on click
+  case fpsavgBitBtn.ImageIndex of
+    9: begin
+      fpsavgBitBtn.ImageIndex:=10;
+      fpsavgBitBtn.Caption:= '0.1% low';
+      fpsavgBitBtn.Hint:='Display 0.1% low fps';
+    end;
+    10: begin
+      fpsavgBitBtn.ImageIndex:=9;
+      fpsavgBitBtn.Caption:= '1% low';
+      fpsavgBitBtn.Hint:='Display 1% low fps';
+    end;
+ end;
+end;
+
 procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
 begin
    //Display new values and trackbar changes
@@ -1990,6 +2025,15 @@ var
         ////FPS - Config Variable
        Savecheckbox (fpsCheckBox, FPS, 'fps');
 
+
+
+        //FPS AVG - Config Variable
+        if fpsavgBitbtn.ImageIndex = 9 then
+          FPSAVG := 'fps_metrics=avg,0.01'
+        else
+          FPSAVG := 'fps_metrics=avg,0.001';
+
+
         //VRAM Color
         RAMCOLOR := 'ram_color='+ ColorToHTMLColor(ramColorButton.ButtonColor) ;
 
@@ -2001,8 +2045,7 @@ var
         ////SWAP - Config Variable
        Savecheckbox (swapusageCheckBox, SWAP, 'swap');
 
-        ////FPS AVG - Config Variable
-       Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
+
 
        ////Frame time - Config Variable
        Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
@@ -2012,6 +2055,8 @@ var
 
         ////Show fps limit - Config Variable
        Savecheckbox (showfpslimCheckBox, SHOWFPSLIM, 'show_fps_limit');
+
+
 
 
          ////Show fps limit - Config Variable
@@ -2339,9 +2384,11 @@ var
     WriteCheckboxConfig(ramusageCheckBox,RAM,MANGOHUDCFGFILE);
     WriteCheckboxConfig(ramusageCheckBox,RAMCOLOR,MANGOHUDCFGFILE);
 
-    // Metrocs - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
+    // Metrics - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
     WriteCheckboxConfig(procmemCheckBox,PROCMEM,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fpsCheckBox,FPS,MANGOHUDCFGFILE);
+
+    WriteCheckboxConfig(fpsavgCheckBox,FPSAVG,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(engineversionCheckBox,ENGINE,MANGOHUDCFGFILE);
     WriteCheckboxConfig(engineversionCheckBox,ENGINECOLOR,MANGOHUDCFGFILE);
