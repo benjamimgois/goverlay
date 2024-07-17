@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = extrasTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 3
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -15906,6 +15906,7 @@ object goverlayform: Tgoverlayform
           Height = 360
           Top = 0
           Width = 780
+          Anchors = [akTop]
           Caption = 'System Information'
           ClientHeight = 331
           ClientWidth = 776
@@ -16344,11 +16345,13 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = networkCheckBox
             AnchorSideRight.Control = systemGroupBox
             AnchorSideRight.Side = asrBottom
-            Left = 262
+            Left = 385
             Height = 29
             Hint = 'Print the output of a custom command'
             Top = 286
-            Width = 508
+            Width = 389
+            Anchors = [akTop, akRight]
+            BorderSpacing.Right = 2
             Color = clBlack
             Font.Color = clLime
             Font.Height = -11
@@ -17149,6 +17152,24 @@ object goverlayform: Tgoverlayform
             ShowHint = True
             TabOrder = 22
             Text = 'Interface'
+          end
+          object fahrenheitCheckBox: TCheckBox
+            AnchorSideLeft.Control = batterytimeCheckBox
+            AnchorSideTop.Control = networkCheckBox
+            Left = 262
+            Height = 22
+            Hint = 'Use Fahrenheit temperature unit'
+            Top = 286
+            Width = 94
+            Align = alCustom
+            Caption = 'Fahrenheit'
+            Font.Height = -13
+            Font.Name = 'Sans'
+            Font.Quality = fqAntialiased
+            ParentFont = False
+            ParentShowHint = False
+            ShowHint = True
+            TabOrder = 23
           end
         end
       end
