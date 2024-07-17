@@ -792,16 +792,32 @@ begin
       end; //if
 
 
+    //toggle hud
+    if LoadValue('toggle_hud',AUX) then
+      begin
+        case AUX of
+          'Shift_R+F12': hudonoffCombobox.ItemIndex:=0;
+          'Shift_R+F1': hudonoffCombobox.ItemIndex:=1;
+          'Shift_R+F2': hudonoffCombobox.ItemIndex:=2;
+          'Shift_R+F3': hudonoffCombobox.ItemIndex:=3;
+          'Shift_R+F4': hudonoffCombobox.ItemIndex:=4;
+          else
+          hudonoffCombobox.ItemIndex:=5;
+
+        end; //case
+
+      end; //if
+
+
     //toggle fps limit
     if LoadValue('toggle_fps_limit',AUX) then
       begin
         case AUX of
-          'Shift_L+F12': fpslimtoggleCombobox.ItemIndex:=0;
-          'Shift_L+F1': fpslimtoggleCombobox.ItemIndex:=1;
-          'Shift_L+F2': fpslimtoggleCombobox.ItemIndex:=2;
-          'Shift_L+F3': fpslimtoggleCombobox.ItemIndex:=3;
-          'Shift_L+F4': fpslimtoggleCombobox.ItemIndex:=4;
-          'None': fpslimtoggleCombobox.ItemIndex:=5;
+          'Shift_L+F1': fpslimtoggleCombobox.ItemIndex:=0;
+          'Shift_L+F2': fpslimtoggleCombobox.ItemIndex:=1;
+          'Shift_L+F3': fpslimtoggleCombobox.ItemIndex:=2;
+          'Shift_L+F4': fpslimtoggleCombobox.ItemIndex:=3;
+          '': fpslimtoggleCombobox.ItemIndex:=5;
         end; //case
 
       end; //if
@@ -1889,7 +1905,7 @@ var
         2:TOGGLEHUD := 'toggle_hud=Shift_R+F2' ;
         3:TOGGLEHUD := 'toggle_hud=Shift_R+F3' ;
         4:TOGGLEHUD := 'toggle_hud=Shift_R+F4' ;
-        5:TOGGLEHUD := ' ' ;
+        5:TOGGLEHUD := 'toggle_hud=none' ;
         end;
 
       //Hide HUD by default  - Config Variable
