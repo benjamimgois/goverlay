@@ -3979,7 +3979,7 @@ object goverlayform: Tgoverlayform
           AnchorSideBottom.Side = asrBottom
           Left = 40
           Height = 32
-          Hint = 'Key to enable and disable the HUD'#10'(Shift_R = right shift)'
+          Hint = 'Key to enable and disable the HUD'#10'(Shift_L = left shift)'#10'(Shift_R = right shift)'
           Top = 533
           Width = 180
           Anchors = [akLeft, akBottom]
@@ -4446,6 +4446,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrCenter
           Left = 10
           Height = 28
+          Hint = 'Key to enable and disable the HUD'#10'(Shift_L = left shift)'#10'(Shift_R = right shift)'
           Top = 535
           Width = 28
           BorderSpacing.Right = 2
@@ -5538,7 +5539,7 @@ object goverlayform: Tgoverlayform
             AnchorSideBottom.Side = asrBottom
             Left = 271
             Height = 32
-            Hint = 'FPS limit toggle key'
+            Hint = 'FPS limit toggle key'#10'(Shift_L = left shift)'#10'(Shift_R = right shift)'
             Top = 319
             Width = 100
             Anchors = [akRight, akBottom]
@@ -13781,7 +13782,7 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = logfolderEdit
             Left = 333
             Height = 32
-            Hint = 'Key to start and stop logging'#10'(Shif_L = Left shift)'
+            Hint = 'Key to start and stop logging'#10'(Shift_L = left shift)'#10'(Shift_R = right shift)'
             Top = 139
             Width = 110
             Color = clBtnFace
