@@ -817,7 +817,8 @@ begin
           'Shift_L+F2': fpslimtoggleCombobox.ItemIndex:=1;
           'Shift_L+F3': fpslimtoggleCombobox.ItemIndex:=2;
           'Shift_L+F4': fpslimtoggleCombobox.ItemIndex:=3;
-          '': fpslimtoggleCombobox.ItemIndex:=5;
+          else
+          fpslimtoggleCombobox.ItemIndex:=4;
         end; //case
 
       end; //if
@@ -857,6 +858,8 @@ begin
           'Shift_L+F3': logtoggleCombobox.ItemIndex:=1;
           'Shift_L+F4': logtoggleCombobox.ItemIndex:=2;
           'Shift_L+F5': logtoggleCombobox.ItemIndex:=3;
+           else
+          logtoggleCombobox.ItemIndex:=4;
         end; //case
 
       end; //if
@@ -2129,6 +2132,7 @@ var
         1:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F2' ;
         2:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F3' ;
         3:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F4' ;
+        4:FPSLIMTOGGLE := 'toggle_fps_limit=none' ;
       end;
 
 
@@ -2327,6 +2331,7 @@ var
         1:LOGTOGGLE := 'toggle_logging=Shift_L+F3' ;
         2:LOGTOGGLE := 'toggle_logging=Shift_L+F4' ;
         3:LOGTOGGLE := 'toggle_logging=Shift_L+F5' ;
+        4:LOGTOGGLE := 'toggle_logging=none' ;
       end;
 
        //Log versioning  - Config Variable
