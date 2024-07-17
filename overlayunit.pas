@@ -20,6 +20,7 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    winesyncCheckBox: TCheckBox;
     fpsavgCheckBox: TCheckBox;
     fpsavgBitBtn: TBitBtn;
     fahrenheitCheckBox: TCheckBox;
@@ -295,7 +296,7 @@ GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-VKBASALT, FCAT, FSR, HDR, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
+VKBASALT, FCAT, FSR, HDR, WINESYNC, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
 
 
 
@@ -1434,7 +1435,11 @@ begin
       fahrenheitcheckbox.Checked := false;
 
 
-
+    // winesync
+    if LoadName('winesync') then
+     winesynccheckbox.Checked := True
+    else
+      winesynccheckbox.Checked := false;
 
     end;
     end;
@@ -2310,6 +2315,10 @@ var
 
       Savecheckbox (fahrenheitCheckBox, FTEMP, 'temp_fahrenheit');
 
+      //Wine Sync - Config Variable
+
+      Savecheckbox (winesyncCheckBox, WINESYNC, 'winesync');
+
       //Custom command  - Config Variable
 
       if (customcommandEdit.Text <> '') and (customcommandEdit.Text <> 'Custom command') then
@@ -2458,6 +2467,7 @@ var
     WriteCheckboxConfig(fcatCheckBox,FCAT,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fsrCheckBox,FSR,MANGOHUDCFGFILE);
     WriteCheckboxConfig(hdrCheckBox,HDR,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(winesyncCheckBox,WINESYNC,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fahrenheitCheckBox,FTEMP,MANGOHUDCFGFILE);
     WriteCheckboxConfig(refreshrateCheckBox,REFRESHRATE,MANGOHUDCFGFILE);
     WriteCheckboxConfig(gamemodestatusCheckBox,GAMEMODE,MANGOHUDCFGFILE);

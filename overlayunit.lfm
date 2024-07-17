@@ -16114,9 +16114,10 @@ object goverlayform: Tgoverlayform
             AnchorSideTop.Control = engineversionCheckBox
             Left = 262
             Height = 22
+            Hint = 'Use short names for engines'
             Top = 88
-            Width = 106
-            Caption = 'Short names'
+            Width = 107
+            Caption = 'Engine Short'
             Font.Height = -13
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -17170,6 +17171,20 @@ object goverlayform: Tgoverlayform
             ParentShowHint = False
             ShowHint = True
             TabOrder = 23
+          end
+          object winesyncCheckBox: TCheckBox
+            AnchorSideLeft.Control = sessionCheckBox
+            AnchorSideTop.Control = engineversionCheckBox
+            Left = 385
+            Height = 22
+            Top = 88
+            Width = 91
+            Caption = 'Wine Sync'
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentFont = False
+            TabOrder = 24
           end
         end
       end
