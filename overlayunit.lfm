@@ -2129,7 +2129,7 @@ object goverlayform: Tgoverlayform
   OnCreate = FormCreate
   Position = poDesktopCenter
   ShowInTaskBar = stAlways
-  LCLVersion = '3.2.0.0'
+  LCLVersion = '3.4.0.0'
   object PaintBox1: TPaintBox
     AnchorSideLeft.Control = Owner
     AnchorSideTop.Control = Owner
@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = performanceTabSheet
+      ActivePage = visualTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 1
+      TabIndex = 0
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -3956,14 +3956,14 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrBottom
           AnchorSideBottom.Control = colorthemeLabel
           AnchorSideBottom.Side = asrCenter
-          Left = 95
+          Left = 81
           Height = 18
           Top = 513
-          Width = 70
+          Width = 98
           Anchors = [akLeft, akBottom]
           BorderSpacing.Top = 20
           BorderSpacing.Bottom = 2
-          Caption = ' Toggle Key'
+          Caption = 'HUD Toggle Key'
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -3990,13 +3990,13 @@ object goverlayform: Tgoverlayform
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
           ItemHeight = 24
-          ItemIndex = 0
           Items.Strings = (
             'Shift_R+F12'
             'Shift_R+F1'
             'Shift_R+F2'
             'Shift_R+F3'
             'Shift_R+F4'
+            'None'
           )
           ParentFont = False
           ParentShowHint = False

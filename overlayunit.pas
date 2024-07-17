@@ -796,10 +796,12 @@ begin
     if LoadValue('toggle_fps_limit',AUX) then
       begin
         case AUX of
-          'Shift_L+F1': fpslimtoggleCombobox.ItemIndex:=0;
-          'Shift_L+F2': fpslimtoggleCombobox.ItemIndex:=1;
-          'Shift_L+F3': fpslimtoggleCombobox.ItemIndex:=2;
-          'Shift_L+F4': fpslimtoggleCombobox.ItemIndex:=3;
+          'Shift_L+F12': fpslimtoggleCombobox.ItemIndex:=0;
+          'Shift_L+F1': fpslimtoggleCombobox.ItemIndex:=1;
+          'Shift_L+F2': fpslimtoggleCombobox.ItemIndex:=2;
+          'Shift_L+F3': fpslimtoggleCombobox.ItemIndex:=3;
+          'Shift_L+F4': fpslimtoggleCombobox.ItemIndex:=4;
+          'None': fpslimtoggleCombobox.ItemIndex:=5;
         end; //case
 
       end; //if
@@ -1887,6 +1889,7 @@ var
         2:TOGGLEHUD := 'toggle_hud=Shift_R+F2' ;
         3:TOGGLEHUD := 'toggle_hud=Shift_R+F3' ;
         4:TOGGLEHUD := 'toggle_hud=Shift_R+F4' ;
+        5:TOGGLEHUD := ' ' ;
         end;
 
       //Hide HUD by default  - Config Variable
