@@ -1322,7 +1322,7 @@ begin
       winecheckbox.Checked := false;
 
     // engine
-    if LoadName('engine') then
+    if LoadName('engine_version') then
       engineversioncheckbox.Checked := True
     else
       engineversioncheckbox.Checked := false;
@@ -2232,7 +2232,7 @@ var
 
 
       // Engine - Config Variable
-      Savecheckbox (engineversionCheckBox, ENGINE, 'engine');
+      Savecheckbox (engineversionCheckBox, ENGINE, 'engine_version');
 
       //Engine Color  - Config Variable
 
