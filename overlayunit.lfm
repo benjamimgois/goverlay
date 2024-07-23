@@ -3515,15 +3515,65 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = TabSheet1
+      ActivePage = visualTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 1
       TabOrder = 2
       object TabSheet1: TTabSheet
         Caption = 'Quick Layouts'
+        ClientHeight = 575
+        ClientWidth = 778
+        object colorthemeLabel: TLabel
+          AnchorSideLeft.Control = themesComboBox
+          AnchorSideLeft.Side = asrCenter
+          AnchorSideTop.Control = backgroundGroupBox
+          AnchorSideTop.Side = asrBottom
+          AnchorSideBottom.Control = themesComboBox
+          Left = 88
+          Height = 18
+          Top = 448
+          Width = 79
+          Anchors = [akLeft, akBottom]
+          BorderSpacing.Top = 60
+          BorderSpacing.Bottom = 2
+          Caption = 'Color Theme'
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          ParentColor = False
+          ParentFont = False
+          Visible = False
+        end
+        object themesComboBox: TComboBox
+          AnchorSideLeft.Control = positionGroupBox
+          AnchorSideLeft.Side = asrCenter
+          AnchorSideTop.Control = hudtoggleImage
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = visualTabSheet
+          AnchorSideRight.Side = asrCenter
+          Left = 37
+          Height = 32
+          Top = 468
+          Width = 180
+          ItemHeight = 24
+          ItemIndex = 0
+          Items.Strings = (
+            'Mangohud Default'
+            'Simple white'
+            'Old Afterburner'
+            'Intel + Nvidia'
+            'Intel + Radeon'
+            'AMD + Nvidia'
+            'AMD + Radeon'
+          )
+          ReadOnly = True
+          TabOrder = 0
+          Text = 'Mangohud Default'
+          Visible = False
+        end
       end
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -3553,33 +3603,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 0
           Text = 'Title'
         end
-        object themesComboBox: TComboBox
-          AnchorSideLeft.Control = positionGroupBox
-          AnchorSideLeft.Side = asrCenter
-          AnchorSideTop.Control = hudtoggleImage
-          AnchorSideTop.Side = asrCenter
-          AnchorSideRight.Control = visualTabSheet
-          AnchorSideRight.Side = asrCenter
-          Left = 294
-          Height = 32
-          Top = 533
-          Width = 180
-          ItemHeight = 24
-          ItemIndex = 0
-          Items.Strings = (
-            'Mangohud Default'
-            'Simple white'
-            'Old Afterburner'
-            'Intel + Nvidia'
-            'Intel + Radeon'
-            'AMD + Nvidia'
-            'AMD + Radeon'
-          )
-          ReadOnly = True
-          TabOrder = 1
-          Text = 'Mangohud Default'
-          Visible = False
-        end
         object positionGroupBox: TGroupBox
           AnchorSideLeft.Control = borderGroupBox
           AnchorSideLeft.Side = asrCenter
@@ -3600,7 +3623,7 @@ object goverlayform: Tgoverlayform
           ParentBackground = False
           ParentColor = False
           ParentFont = False
-          TabOrder = 2
+          TabOrder = 1
           object Image1: TImage
             AnchorSideLeft.Control = positionGroupBox
             AnchorSideLeft.Side = asrCenter
@@ -3815,7 +3838,7 @@ object goverlayform: Tgoverlayform
           ParentBackground = False
           ParentColor = False
           ParentFont = False
-          TabOrder = 3
+          TabOrder = 2
           object FontcolorButton: TColorButton
             AnchorSideLeft.Control = fontcolorLabel
             AnchorSideLeft.Side = asrBottom
@@ -3948,7 +3971,7 @@ object goverlayform: Tgoverlayform
           ParentShowHint = False
           ReadOnly = True
           ShowHint = True
-          TabOrder = 4
+          TabOrder = 3
           Text = 'Active GPU'
           TextHint = 'PCI ID in format domain:bus:slot.func'
           OnChange = pcidevComboBoxChange
@@ -3957,7 +3980,6 @@ object goverlayform: Tgoverlayform
           AnchorSideLeft.Control = hudonoffComboBox
           AnchorSideLeft.Side = asrCenter
           AnchorSideTop.Side = asrBottom
-          AnchorSideBottom.Control = colorthemeLabel
           AnchorSideBottom.Side = asrCenter
           Left = 81
           Height = 18
@@ -4005,7 +4027,7 @@ object goverlayform: Tgoverlayform
           ParentShowHint = False
           ReadOnly = True
           ShowHint = True
-          TabOrder = 5
+          TabOrder = 4
           Text = 'Shift_R+F12'
         end
         object hidehudCheckBox: TCheckBox
@@ -4035,28 +4057,7 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 6
-        end
-        object colorthemeLabel: TLabel
-          AnchorSideLeft.Control = themesComboBox
-          AnchorSideLeft.Side = asrCenter
-          AnchorSideTop.Control = backgroundGroupBox
-          AnchorSideTop.Side = asrBottom
-          AnchorSideBottom.Control = themesComboBox
-          Left = 345
-          Height = 18
-          Top = 513
-          Width = 79
-          Anchors = [akLeft, akBottom]
-          BorderSpacing.Top = 60
-          BorderSpacing.Bottom = 2
-          Caption = 'Color Theme'
-          Font.Height = -13
-          Font.Name = 'Noto Sans'
-          Font.Quality = fqAntialiased
-          ParentColor = False
-          ParentFont = False
-          Visible = False
+          TabOrder = 5
         end
         object orientationGroupBox: TGroupBox
           AnchorSideLeft.Control = visualTabSheet
@@ -4076,7 +4077,7 @@ object goverlayform: Tgoverlayform
           Font.Style = [fsBold]
           ParentColor = False
           ParentFont = False
-          TabOrder = 7
+          TabOrder = 6
           object verticalRadioButton: TRadioButton
             AnchorSideLeft.Control = orientationGroupBox
             AnchorSideTop.Control = orientationGroupBox
@@ -4210,7 +4211,7 @@ object goverlayform: Tgoverlayform
           Font.Style = [fsBold]
           ParentColor = False
           ParentFont = False
-          TabOrder = 8
+          TabOrder = 7
           object roundImage: TImage
             AnchorSideLeft.Control = roundRadioButton
             AnchorSideLeft.Side = asrBottom
@@ -4339,7 +4340,7 @@ object goverlayform: Tgoverlayform
           Font.Style = [fsBold]
           ParentColor = False
           ParentFont = False
-          TabOrder = 9
+          TabOrder = 8
           object backgroundLabel: TLabel
             AnchorSideLeft.Control = backgroundGroupBox
             AnchorSideTop.Control = backgroundGroupBox
@@ -4440,7 +4441,7 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           ParentFont = False
           ReadOnly = True
-          TabOrder = 10
+          TabOrder = 9
           Text = 'Select GPU to use'
         end
         object hudtoggleImage: TImage
@@ -5379,7 +5380,7 @@ object goverlayform: Tgoverlayform
           ParentBackground = False
           ParentColor = False
           ParentFont = False
-          TabOrder = 11
+          TabOrder = 10
           object columShape: TShape
             AnchorSideLeft.Control = columsGroupBox
             AnchorSideTop.Control = columsGroupBox
@@ -5503,6 +5504,36 @@ object goverlayform: Tgoverlayform
             ParentColor = False
             ParentFont = False
           end
+        end
+        object hudcompactCheckBox: TCheckBox
+          AnchorSideLeft.Control = positionGroupBox
+          AnchorSideLeft.Side = asrCenter
+          AnchorSideTop.Control = fontsGroupBox
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = visualTabSheet
+          AnchorSideRight.Side = asrBottom
+          AnchorSideBottom.Control = visualTabSheet
+          AnchorSideBottom.Side = asrBottom
+          Left = 327
+          Height = 22
+          Hint = 'Display compact version of MangoHud'
+          Top = 538
+          Width = 115
+          Anchors = [akLeft, akBottom]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 50
+          BorderSpacing.Right = 10
+          BorderSpacing.Bottom = 15
+          Caption = 'Compact HUD'
+          Color = clDefault
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          ParentColor = False
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 11
         end
       end
       object performanceTabSheet: TTabSheet

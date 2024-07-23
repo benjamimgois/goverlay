@@ -20,7 +20,10 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    colorthemeLabel: TLabel;
+    hudcompactCheckBox: TCheckBox;
     TabSheet1: TTabSheet;
+    themesComboBox: TComboBox;
     winesyncCheckBox: TCheckBox;
     fpsavgCheckBox: TCheckBox;
     fpsavgBitBtn: TBitBtn;
@@ -43,7 +46,6 @@ type
     coreloadtypeBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
-    colorthemeLabel: TLabel;
     logtoggleImage: TImage;
     frametimetypeBitBtn: TBitBtn;
     fpsCheckBox: TCheckBox;
@@ -219,7 +221,6 @@ type
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
     TabSheet8: TTabSheet;
-    themesComboBox: TComboBox;
     timeCheckBox: TCheckBox;
     transparencyLabel: TLabel;
     afLabel: TLabel;
@@ -292,7 +293,7 @@ var
   s: string;
   Color: string;
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, PCIDEV, TABLECOLUMNS: string; //visualtab
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, HUDCOMPACT, PCIDEV, TABLECOLUMNS: string; //visualtab
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
@@ -1093,6 +1094,12 @@ begin
       hidehudcheckbox.Checked := True
     else
       hidehudcheckbox.Checked := false;
+
+    //hud compact
+    if LoadName('hud_compact') then
+     hudcompactcheckbox.Checked := True
+    else
+      hudcompactcheckbox.Checked := false;
 
     //fps
     if LoadName('fps') then
@@ -1926,6 +1933,9 @@ var
       //Hide HUD by default  - Config Variable
       Savecheckbox (hidehudCheckbox, HIDEHUD, 'no_display');
 
+      //HUD compact - Config Variable
+      Savecheckbox (hudcompactCheckbox, HUDCOMPACT, 'hud_compact');
+
       //GPU PCIDEV  - Config Variable
 
       if pcidevCombobox.ItemIndex <> -1 then  // Does not create pci_dev line if no GPU is selected
@@ -2381,6 +2391,7 @@ var
     WriteConfig(HUDPOSITION,MANGOHUDCFGFILE);
     WriteConfig(TOGGLEHUD,MANGOHUDCFGFILE);
     WriteCheckboxConfig(hidehudCheckbox,HIDEHUD,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(hudcompactCheckbox,HUDCOMPACT,MANGOHUDCFGFILE);
     WriteConfig(PCIDEV,MANGOHUDCFGFILE);
     WriteConfig(TABLECOLUMNS,MANGOHUDCFGFILE);
 
