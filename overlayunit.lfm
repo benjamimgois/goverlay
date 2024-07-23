@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = extrasTabSheet
+      ActivePage = metricsSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 3
+      TabIndex = 2
       TabOrder = 2
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
@@ -5567,13 +5567,13 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = fpslimtoggleComboBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideBottom.Control = fpslimtoggleComboBox
-            Left = 289
+            Left = 273
             Height = 18
             Top = 299
-            Width = 65
+            Width = 97
             Anchors = [akLeft, akBottom]
             BorderSpacing.Bottom = 2
-            Caption = 'Toggle key'
+            Caption = 'Limit toggle key'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -9934,7 +9934,7 @@ object goverlayform: Tgoverlayform
             Top = 0
             Width = 250
             Font.Height = -13
-            Font.Name = 'Sans'
+            Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             MaxLength = 10
             ParentFont = False
@@ -12637,7 +12637,7 @@ object goverlayform: Tgoverlayform
             Top = 0
             Width = 250
             Font.Height = -13
-            Font.Name = 'Sans'
+            Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             MaxLength = 10
             ParentFont = False
@@ -15884,13 +15884,13 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = logtoggleComboBox
             AnchorSideLeft.Side = asrCenter
             AnchorSideBottom.Control = logtoggleComboBox
-            Left = 356
+            Left = 343
             Height = 18
             Top = 119
-            Width = 65
+            Width = 90
             Anchors = [akLeft, akBottom]
             BorderSpacing.Bottom = 2
-            Caption = 'Toggle key'
+            Caption = 'Log toggle key'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased

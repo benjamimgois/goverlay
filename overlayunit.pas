@@ -2092,8 +2092,12 @@ var
 
 
 
-         ////Show fps limit - Config Variable
+       ////Show fps limit - Config Variable
        Savecheckbox (framecountCheckBox, FRAMECOUNT, 'frame_count');
+
+      //Wine Sync - Config Variable
+
+      Savecheckbox (winesyncCheckBox, WINESYNC, 'winesync');
 
           //Histogram - Config Variable
         if frametimetypeBitbtn.ImageIndex = 7 then
@@ -2315,9 +2319,6 @@ var
 
       Savecheckbox (fahrenheitCheckBox, FTEMP, 'temp_fahrenheit');
 
-      //Wine Sync - Config Variable
-
-      Savecheckbox (winesyncCheckBox, WINESYNC, 'winesync');
 
       //Custom command  - Config Variable
 
