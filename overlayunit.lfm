@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = visualTabSheet
+      ActivePage = performanceTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 1
+      TabIndex = 2
       TabOrder = 2
       object TabSheet1: TTabSheet
         Caption = 'Quick Layouts'
@@ -9682,7 +9682,7 @@ object goverlayform: Tgoverlayform
             Top = 10
             Width = 80
             Anchors = [akTop, akRight]
-            BorderSpacing.Left = 50
+            BorderSpacing.Left = 52
             BorderSpacing.Top = 10
             BorderSpacing.Right = 5
             Caption = 'FPS limit'
@@ -9752,6 +9752,24 @@ object goverlayform: Tgoverlayform
             OnClick = fpsavgBitBtnClick
             ParentFont = False
             TabOrder = 6
+          end
+          object vpsCheckBox: TCheckBox
+            AnchorSideLeft.Control = showfpslimCheckBox
+            AnchorSideTop.Control = engineversionCheckBox
+            AnchorSideRight.Control = fpsGroupBox
+            AnchorSideRight.Side = asrBottom
+            Left = 296
+            Height = 22
+            Hint = 'Display Vulkan Present Mode'
+            Top = 72
+            Width = 51
+            BorderSpacing.Right = 5
+            Caption = 'VPS'
+            Font.Height = -13
+            Font.Name = 'Noto Sans'
+            Font.Quality = fqAntialiased
+            ParentFont = False
+            TabOrder = 7
           end
         end
       end

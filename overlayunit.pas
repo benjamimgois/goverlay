@@ -260,6 +260,7 @@ type
     vulkanImage: TImage;
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
+    vpsCheckBox: TCheckBox;
 
     procedure aboutBitBtnClick(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
@@ -298,7 +299,7 @@ GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-VKBASALT, FCAT, FSR, HDR, WINESYNC, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
+VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
 
 
 
@@ -1449,6 +1450,12 @@ begin
     else
       winesynccheckbox.Checked := false;
 
+    // VPS - vulkan present mode
+    if LoadName('present_mode') then
+     vpscheckbox.Checked := True
+    else
+      vpscheckbox.Checked := false;
+
     end;
     end;
 
@@ -2107,10 +2114,12 @@ var
        Savecheckbox (framecountCheckBox, FRAMECOUNT, 'frame_count');
 
       //Wine Sync - Config Variable
-
       Savecheckbox (winesyncCheckBox, WINESYNC, 'winesync');
 
-          //Histogram - Config Variable
+      //VPS - Config Variable
+      Savecheckbox (vpsCheckBox, VPS, 'present_mode');
+
+      //Histogram - Config Variable
         if frametimetypeBitbtn.ImageIndex = 7 then
           HISTOGRAM := 'histogram';
 
@@ -2482,6 +2491,7 @@ var
     WriteCheckboxConfig(fsrCheckBox,FSR,MANGOHUDCFGFILE);
     WriteCheckboxConfig(hdrCheckBox,HDR,MANGOHUDCFGFILE);
     WriteCheckboxConfig(winesyncCheckBox,WINESYNC,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(vpsCheckBox,VPS,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fahrenheitCheckBox,FTEMP,MANGOHUDCFGFILE);
     WriteCheckboxConfig(refreshrateCheckBox,REFRESHRATE,MANGOHUDCFGFILE);
     WriteCheckboxConfig(gamemodestatusCheckBox,GAMEMODE,MANGOHUDCFGFILE);
