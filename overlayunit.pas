@@ -1306,7 +1306,7 @@ begin
 
 
     // time
-    if LoadName('time') then
+    if LoadName('time#') then
       timecheckbox.Checked := True
     else
       timecheckbox.Checked := false;
@@ -1394,7 +1394,7 @@ begin
     else
      batterytimecheckbox.Checked := false;
 
-    // battery time
+    // device battery
     if LoadName('device_battery') then
      devicecheckbox.Checked := True
     else
@@ -2232,7 +2232,7 @@ var
       Savecheckbox (sessionCheckBox, SESSION, '"exec=echo \$XDG_SESSION_TYPE"');
 
       // Time - Config Variable
-      Savecheckbox (timeCheckBox, TIME, 'time');
+      Savecheckbox (timeCheckBox, TIME, 'time#');
 
       // Wine - Config Variable
       Savecheckbox (wineCheckBox, WINE, 'wine');
@@ -2298,7 +2298,7 @@ var
 
       Savecheckbox (batterytimeCheckBox, BATTERYTIME, 'battery_time');
 
-      //Battery time - Config Variable
+      //device Battery - Config Variable
 
       Savecheckbox (deviceCheckBox, DEVICE, 'device_battery');
 
