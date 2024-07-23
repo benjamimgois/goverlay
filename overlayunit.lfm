@@ -3515,13 +3515,16 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = metricsSheet
+      ActivePage = TabSheet1
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 2
+      TabIndex = 0
       TabOrder = 2
+      object TabSheet1: TTabSheet
+        Caption = 'Quick Layouts'
+      end
       object visualTabSheet: TTabSheet
         Caption = 'Visual'
         ClientHeight = 575

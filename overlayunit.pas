@@ -20,6 +20,7 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    TabSheet1: TTabSheet;
     winesyncCheckBox: TCheckBox;
     fpsavgCheckBox: TCheckBox;
     fpsavgBitBtn: TBitBtn;
@@ -2304,7 +2305,7 @@ var
 
       //device Battery - Config Variable
 
-      Savecheckbox (deviceCheckBox, DEVICE, 'device_battery');
+      Savecheckbox (deviceCheckBox, DEVICE, 'device_battery=gamepad,mouse');
 
       //Media player - Config Variable
 
