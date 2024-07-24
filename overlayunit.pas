@@ -20,8 +20,14 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    fpsonlyBitBtn: TBitBtn;
+    fullBitBtn: TBitBtn;
+    basicBitBtn: TBitBtn;
+    basichorizontalBitBtn: TBitBtn;
+    usercustomBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     hudcompactCheckBox: TCheckBox;
+    Label1: TLabel;
     TabSheet1: TTabSheet;
     themesComboBox: TComboBox;
     winesyncCheckBox: TCheckBox;
@@ -267,6 +273,7 @@ type
     procedure delayTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
+    procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
@@ -281,7 +288,7 @@ type
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
-
+    procedure SetAllCheckBoxesToFalse;
 
   public
 
@@ -489,6 +496,22 @@ begin
                        StrToInt('$' + Copy(HexValue, 3, 2)),
                        StrToInt('$' + Copy(HexValue, 5, 2)));
 end;
+
+
+//Procedure to uncheck all checkboxes
+procedure Tgoverlayform.SetAllCheckBoxesToFalse;
+var
+  i: Integer;
+begin
+  for i := 0 to ComponentCount - 1 do
+  begin
+    if Components[i] is TCheckBox then
+      (Components[i] as TCheckBox).Checked := False;
+  end;
+end;
+
+
+
 
 
 // Procedure to search for values in a checkbox
@@ -1673,6 +1696,21 @@ begin
       fpsavgBitBtn.Hint:='Display 1% low fps';
     end;
  end;
+end;
+
+procedure Tgoverlayform.fpsonlyBitBtnClick(Sender: TObject);
+begin
+
+
+  //Set all checkboxes to false
+  SetAllCheckBoxesToFalse;
+
+  //Check FPS
+  fpsCheckbox.Checked:=true;
+
+  //Save button
+  saveBitbtn.Click;
+
 end;
 
 procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);

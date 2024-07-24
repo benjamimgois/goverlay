@@ -3370,7 +3370,7 @@ object goverlayform: Tgoverlayform
   object mangohudPanel: TPanel
     Left = 211
     Height = 646
-    Top = 0
+    Top = 1
     Width = 800
     Alignment = taRightJustify
     BevelColor = clNone
@@ -3515,15 +3515,15 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = performanceTabSheet
+      ActivePage = TabSheet1
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 2
+      TabIndex = 0
       TabOrder = 2
       object TabSheet1: TTabSheet
-        Caption = 'Quick Layouts'
+        Caption = 'Presets'
         ClientHeight = 575
         ClientWidth = 778
         object colorthemeLabel: TLabel
@@ -3532,9 +3532,9 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Control = backgroundGroupBox
           AnchorSideTop.Side = asrBottom
           AnchorSideBottom.Control = themesComboBox
-          Left = 88
+          Left = 37
           Height = 18
-          Top = 448
+          Top = 440
           Width = 79
           Anchors = [akLeft, akBottom]
           BorderSpacing.Top = 60
@@ -3573,6 +3573,59 @@ object goverlayform: Tgoverlayform
           TabOrder = 0
           Text = 'Mangohud Default'
           Visible = False
+        end
+        object fullBitBtn: TBitBtn
+          Left = 24
+          Height = 96
+          Top = 88
+          Width = 123
+          Caption = 'Full'
+          TabOrder = 1
+        end
+        object Label1: TLabel
+          Left = 24
+          Height = 18
+          Top = 32
+          Width = 52
+          Caption = 'Layouts'
+          Font.Height = -13
+          Font.Name = 'Noto Sans'
+          Font.Quality = fqAntialiased
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object basicBitBtn: TBitBtn
+          Left = 176
+          Height = 96
+          Top = 88
+          Width = 123
+          Caption = 'Basic'
+          TabOrder = 2
+        end
+        object basichorizontalBitBtn: TBitBtn
+          Left = 328
+          Height = 96
+          Top = 88
+          Width = 123
+          Caption = 'Basic Horizontal'
+          TabOrder = 3
+        end
+        object usercustomBitBtn: TBitBtn
+          Left = 640
+          Height = 96
+          Top = 88
+          Width = 123
+          Caption = 'User custom'
+          TabOrder = 4
+        end
+        object fpsonlyBitBtn: TBitBtn
+          Left = 488
+          Height = 96
+          Top = 88
+          Width = 123
+          Caption = 'FPS only'
+          OnClick = fpsonlyBitBtnClick
+          TabOrder = 5
         end
       end
       object visualTabSheet: TTabSheet
