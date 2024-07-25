@@ -271,6 +271,7 @@ type
     procedure aboutBitBtnClick(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
     procedure basicBitBtnClick(Sender: TObject);
+    procedure basichorizontalBitBtnClick(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
@@ -1690,6 +1691,9 @@ begin
     //Set all checkboxes to false
   SetAllCheckBoxesToFalse;
 
+    //Set vertical orientation
+  verticalRadioButton.Checked:=true;
+
   //Check basic options
     //fps
     fpsCheckbox.Checked:=true;
@@ -1705,6 +1709,33 @@ begin
     cpuavgloadCheckbox.Checked:=true;
     cpufreqCheckbox.Checked:=true;
     cputempCheckbox.Checked:=true;
+    cpupowerCheckbox.Checked:=true;
+    ramusageCheckbox.Checked:=true;
+    //battery
+    batteryCheckbox.Checked:=true;
+
+  //Save button
+  saveBitbtn.Click;
+end;
+
+procedure Tgoverlayform.basichorizontalBitBtnClick(Sender: TObject);
+begin
+   //Set all checkboxes to false
+  SetAllCheckBoxesToFalse;
+
+  //Set horizontal orientation
+  horizontalRadioButton.Checked:=true;
+
+  //Check basic options
+    //fps
+    fpsCheckbox.Checked:=true;
+    frametimegraphCheckbox.Checked:=true;
+    //gpu
+    gpuavgloadCheckbox.Checked:=true;
+    vramusageCheckbox.Checked:=true;
+    gpupowerCheckbox.Checked:=true;
+    //cpu
+    cpuavgloadCheckbox.Checked:=true;
     cpupowerCheckbox.Checked:=true;
     ramusageCheckbox.Checked:=true;
     //battery
@@ -1749,6 +1780,9 @@ begin
   //Set all checkboxes to false
   SetAllCheckBoxesToFalse;
 
+  //Set vertical orientation
+  verticalRadioButton.Checked:=true;
+
   //Check FPS  only
   fpsCheckbox.Checked:=true;
 
@@ -1762,7 +1796,10 @@ begin
     //Set all checkboxes to true
   SetAllCheckBoxesToTrue;
 
-    //uncheck specific ones
+  //Set vertical orientation
+  verticalRadioButton.Checked:=true;
+
+  //uncheck specific ones
   hidehudCheckbox.Checked:=false;
   engineshortCheckbox.Checked:=false;
   fcatcheckbox.Checked:=false;

@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = extrasTabSheet
+      ActivePage = TabSheet1
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 4
+      TabIndex = 0
       TabOrder = 2
       object TabSheet1: TTabSheet
         Caption = 'Presets'
@@ -3610,6 +3610,7 @@ object goverlayform: Tgoverlayform
           Top = 88
           Width = 123
           Caption = 'Basic Horizontal'
+          OnClick = basichorizontalBitBtnClick
           TabOrder = 3
         end
         object usercustomBitBtn: TBitBtn
