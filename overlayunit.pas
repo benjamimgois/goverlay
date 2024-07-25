@@ -274,6 +274,7 @@ type
     procedure durationTrackBarChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
+    procedure fullBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
@@ -289,6 +290,7 @@ type
     procedure saveBitBtnClick(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
+    procedure SetAllCheckBoxesToTrue;
 
   public
 
@@ -507,6 +509,19 @@ begin
   begin
     if Components[i] is TCheckBox then
       (Components[i] as TCheckBox).Checked := False;
+  end;
+end;
+
+
+//Procedure to check all checkboxes
+procedure Tgoverlayform.SetAllCheckBoxesToTrue;
+var
+  i: Integer;
+begin
+  for i := 0 to ComponentCount - 1 do
+  begin
+    if Components[i] is TCheckBox then
+      (Components[i] as TCheckBox).Checked := True;
   end;
 end;
 
@@ -1701,16 +1716,32 @@ end;
 procedure Tgoverlayform.fpsonlyBitBtnClick(Sender: TObject);
 begin
 
-
   //Set all checkboxes to false
   SetAllCheckBoxesToFalse;
 
-  //Check FPS
+  //Check FPS  only
   fpsCheckbox.Checked:=true;
 
   //Save button
   saveBitbtn.Click;
 
+end;
+
+procedure Tgoverlayform.fullBitBtnClick(Sender: TObject);
+begin
+    //Set all checkboxes to true
+  SetAllCheckBoxesToTrue;
+
+    //uncheck specific ones
+  hidehudCheckbox.Checked:=false;
+  engineshortCheckbox.Checked:=false;
+  fcatcheckbox.Checked:=false;
+  fahrenheitCheckBox.Checked:=false;
+  versioningCheckbox.Checked:=false;
+  autouploadCheckbox.Checked:=false;
+
+  //Save button
+  saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
@@ -2289,9 +2320,7 @@ var
       // Resolution - Config Variable
       Savecheckbox (resolutionCheckBox, RESOLUTION, 'resolution');
 
-      // Session - Config Variable
-      Savecheckbox (sessionCheckBox, SESSIONTXT, 'custom_text=Session:');
-      Savecheckbox (sessionCheckBox, SESSION, '"exec=echo \$XDG_SESSION_TYPE"');
+
 
       // Time - Config Variable
       Savecheckbox (timeCheckBox, TIME, 'time#');
@@ -2373,6 +2402,9 @@ var
 
       MEDIACOLOR := 'media_player_color=' + ColorToHTMLColor(mediaColorButton.ButtonColor);
 
+      // Session - Config Variable
+      Savecheckbox (sessionCheckBox, SESSIONTXT, 'custom_text=Session:');
+      Savecheckbox (sessionCheckBox, SESSION, '"exec=echo \$XDG_SESSION_TYPE"');
 
       // Fahrenheit - Config Variable
 
@@ -2522,8 +2554,7 @@ var
     WriteCheckboxConfig(showfpslimCheckBox,SHOWFPSLIM,MANGOHUDCFGFILE);
     WriteConfig(HISTOGRAM,MANGOHUDCFGFILE);
     WriteConfig(FPSLIM,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(sessionCheckBox,SESSIONTXT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(sessionCheckBox,SESSION,MANGOHUDCFGFILE);
+
     WriteCheckboxConfig(resolutionCheckBox,RESOLUTION,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fcatCheckBox,FCAT,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fsrCheckBox,FSR,MANGOHUDCFGFILE);
@@ -2547,6 +2578,8 @@ var
     WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO2,MANGOHUDCFGFILE);
     WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO3,MANGOHUDCFGFILE);
     WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO4,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(sessionCheckBox,SESSIONTXT,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(sessionCheckBox,SESSION,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(fpscolorCheckBox,FPSCHANGE ,MANGOHUDCFGFILE);
     WriteCheckboxConfig(fpscolorCheckBox,FPSCOLOR ,MANGOHUDCFGFILE);

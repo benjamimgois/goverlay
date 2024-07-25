@@ -3515,12 +3515,12 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = TabSheet1
+      ActivePage = extrasTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
-      TabIndex = 0
+      TabIndex = 4
       TabOrder = 2
       object TabSheet1: TTabSheet
         Caption = 'Presets'
@@ -3580,6 +3580,7 @@ object goverlayform: Tgoverlayform
           Top = 88
           Width = 123
           Caption = 'Full'
+          OnClick = fullBitBtnClick
           TabOrder = 1
         end
         object Label1: TLabel
