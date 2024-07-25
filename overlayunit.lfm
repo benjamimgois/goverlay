@@ -3601,6 +3601,7 @@ object goverlayform: Tgoverlayform
           Top = 88
           Width = 123
           Caption = 'Basic'
+          OnClick = basicBitBtnClick
           TabOrder = 2
         end
         object basichorizontalBitBtn: TBitBtn
