@@ -3515,14 +3515,14 @@ object goverlayform: Tgoverlayform
       Height = 610
       Top = 0
       Width = 784
-      ActivePage = TabSheet1
+      ActivePage = presetTabSheet
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
       TabIndex = 0
       TabOrder = 2
-      object TabSheet1: TTabSheet
+      object presetTabSheet: TTabSheet
         Caption = 'Presets'
         ClientHeight = 575
         ClientWidth = 778
@@ -3575,19 +3575,27 @@ object goverlayform: Tgoverlayform
           Visible = False
         end
         object fullBitBtn: TBitBtn
-          Left = 24
+          AnchorSideLeft.Control = layoutsLabel
+          AnchorSideTop.Control = layoutsLabel
+          AnchorSideTop.Side = asrBottom
+          Left = 20
           Height = 96
-          Top = 88
+          Top = 58
           Width = 123
+          BorderSpacing.Top = 20
           Caption = 'Full'
           OnClick = fullBitBtnClick
           TabOrder = 1
         end
-        object Label1: TLabel
-          Left = 24
+        object layoutsLabel: TLabel
+          AnchorSideLeft.Control = presetTabSheet
+          AnchorSideTop.Control = presetTabSheet
+          Left = 20
           Height = 18
-          Top = 32
+          Top = 20
           Width = 52
+          BorderSpacing.Left = 20
+          BorderSpacing.Top = 20
           Caption = 'Layouts'
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -3596,36 +3604,52 @@ object goverlayform: Tgoverlayform
           ParentFont = False
         end
         object basicBitBtn: TBitBtn
-          Left = 176
+          AnchorSideLeft.Control = fullBitBtn
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = fullBitBtn
+          Left = 173
           Height = 96
-          Top = 88
+          Top = 58
           Width = 123
+          BorderSpacing.Left = 30
           Caption = 'Basic'
           OnClick = basicBitBtnClick
           TabOrder = 2
         end
         object basichorizontalBitBtn: TBitBtn
-          Left = 328
+          AnchorSideLeft.Control = basicBitBtn
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = basicBitBtn
+          Left = 326
           Height = 96
-          Top = 88
+          Top = 58
           Width = 123
+          BorderSpacing.Left = 30
           Caption = 'Basic Horizontal'
           OnClick = basichorizontalBitBtnClick
           TabOrder = 3
         end
         object usercustomBitBtn: TBitBtn
-          Left = 640
+          AnchorSideLeft.Control = fpsonlyBitBtn
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = fpsonlyBitBtn
+          Left = 632
           Height = 96
-          Top = 88
+          Top = 58
           Width = 123
+          BorderSpacing.Left = 30
           Caption = 'User custom'
           TabOrder = 4
         end
         object fpsonlyBitBtn: TBitBtn
-          Left = 488
+          AnchorSideLeft.Control = basichorizontalBitBtn
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = basichorizontalBitBtn
+          Left = 479
           Height = 96
-          Top = 88
+          Top = 58
           Width = 123
+          BorderSpacing.Left = 30
           Caption = 'FPS only'
           OnClick = fpsonlyBitBtnClick
           TabOrder = 5

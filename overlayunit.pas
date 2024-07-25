@@ -27,8 +27,8 @@ type
     usercustomBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     hudcompactCheckBox: TCheckBox;
-    Label1: TLabel;
-    TabSheet1: TTabSheet;
+    layoutsLabel: TLabel;
+    presetTabSheet: TTabSheet;
     themesComboBox: TComboBox;
     winesyncCheckBox: TCheckBox;
     fpsavgCheckBox: TCheckBox;
