@@ -2593,6 +2593,12 @@ var
 
     // Metrics - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
     WriteCheckboxConfig(procmemCheckBox,PROCMEM,MANGOHUDCFGFILE);
+
+    WriteCheckboxConfig(batteryCheckBox,BATTERY,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(batteryCheckBox,BATTERYCOLOR,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(batterywattCheckBox,BATTERYWATT,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(batterytimeCheckBox,BATTERYTIME,MANGOHUDCFGFILE);
+
     WriteCheckboxConfig(fpsCheckBox,FPS,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(fpsavgCheckBox,FPSAVG,MANGOHUDCFGFILE);
@@ -2637,11 +2643,8 @@ var
     WriteCheckboxConfig(vkbasaltstatusCheckBox,VKBASALT,MANGOHUDCFGFILE);
 
 
-    WriteCheckboxConfig(batteryCheckBox,BATTERY,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(batteryCheckBox,BATTERYCOLOR,MANGOHUDCFGFILE);
 
-    WriteCheckboxConfig(batterywattCheckBox,BATTERYWATT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(batterytimeCheckBox,BATTERYTIME,MANGOHUDCFGFILE);
+
     WriteCheckboxConfig(deviceCheckBox,DEVICE,MANGOHUDCFGFILE);
     WriteCheckboxConfig(deviceCheckBox,DEVICEICON,MANGOHUDCFGFILE);
     WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO1,MANGOHUDCFGFILE);
