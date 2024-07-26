@@ -583,7 +583,8 @@ begin
  // Left:=(Screen.Width-Width)  div 2;
  // Top:=(Screen.Height-Height) div 2;
 
-  mangohudPageControl.ActivePage:=visualTabsheet; //Set initial TAB
+  //mangohudPageControl.ActivePage:=visualTabsheet; //Set initial TAB
+  mangohudPageControl.ActivePage:=presetTabsheet; //Set initial TAB
 
    // Initialize menu selections
   mangohudsel := true;
