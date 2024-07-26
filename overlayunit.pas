@@ -24,6 +24,12 @@ type
     fullBitBtn: TBitBtn;
     basicBitBtn: TBitBtn;
     basichorizontalBitBtn: TBitBtn;
+    fullLabel: TLabel;
+    basicLabel: TLabel;
+    basichorizontalLabel: TLabel;
+    fpsonlyLabel: TLabel;
+    customLabel: TLabel;
+    layoutImageList: TImageList;
     usercustomBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     hudcompactCheckBox: TCheckBox;
