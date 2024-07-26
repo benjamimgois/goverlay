@@ -200,7 +200,7 @@ type
     toprightRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
     middlerightRadioButton: TRadioButton;
-    intelpowerfixBitBtn1: TBitBtn;
+    intelpowerfixBitBtn: TBitBtn;
     iordrwColorButton: TColorButton;
     hudtoggleLabel: TLabel;
     mangohudPageControl: TPageControl;
@@ -283,6 +283,7 @@ type
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
+    procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
@@ -1842,6 +1843,41 @@ begin
   saveBitbtn.Click;
 
 
+end;
+
+procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
+var
+  Response: Integer;
+
+begin
+
+    Response := MessageDlg('Due to a known vulnerability in intel cpus,  the corresponding energy_uj file has to be readable by corresponding user. Having the file readable may potentially be a security vulnerability persisting until system reboots.', mtConfirmation, [mbYes, mbNo], 0);
+
+      if Response = mrYes then
+      begin
+      Process1 := TProcess.Create(nil);
+      Process1.Executable := 'sh';
+      Process1.Parameters.Add('-c');
+      Process1.Parameters.Add('pkexec chmod o+r /sys/class/powercap/intel-rapl\:0/energy_uj');
+      Process1.Options := [poUsePipes];
+      Process1.Execute;
+      Process1.WaitOnExit;
+      Process1.Free;
+
+      //Change button color
+      intelpowerfixBitBtn.ImageIndex:=0;
+
+      Application.ProcessMessages; // update interface
+      end
+
+      else
+
+      //Show cancel message
+      ShowMessage('Action aborted by user');
+       //Change button color
+      intelpowerfixBitBtn.ImageIndex:=1;
+
+      Application.ProcessMessages; // update interface
 end;
 
 procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
