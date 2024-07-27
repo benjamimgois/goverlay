@@ -20,6 +20,8 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    Label1: TLabel;
+    offsetSpinEdit: TSpinEdit;
     fpsonlyBitBtn: TBitBtn;
     fullBitBtn: TBitBtn;
     basicBitBtn: TBitBtn;
@@ -609,6 +611,9 @@ begin
     end;
   end;
 end;
+
+
+
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
@@ -2054,7 +2059,7 @@ var
 
 
   ValorItem: string;
-  LOCATEDFILE, FPSSEL: TStringList;
+  LOCATEDFILE, FPSSEL, FPSSELOFF: TStringList;
   i: integer;
   NOITEMCHECK: boolean;
 
@@ -2394,12 +2399,12 @@ var
           begin
           // check if item is checked
           if fpslimCheckgroup.Checked[i] then
-          begin
-            // Add item value to stringlist
-            ValorItem := fpslimCheckgroup.Items[i];
-            FPSSEL.Add(ValorItem);
-            NOITEMCHECK := false; // Variable is become false
-          end;
+            begin
+              // Add item value to stringlist
+              ValorItem := fpslimCheckgroup.Items[i];
+              FPSSEL.Add(inttostr(strtoint(ValorItem) + offsetSpinEdit.Value));
+              NOITEMCHECK := false; // Variable is become false
+            end;
           end;
 
           if NOITEMCHECK = true then
@@ -2407,6 +2412,8 @@ var
           else
               FPSLIM := 'fps_limit=' + FPSSEL.CommaText;
               FPSSEL.Free;
+
+          // FPS limit - offset
 
 
 
