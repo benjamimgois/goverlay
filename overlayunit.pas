@@ -317,7 +317,7 @@ GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO: string; //extratab
+VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
 
 
 
@@ -534,7 +534,49 @@ begin
   end;
 end;
 
+//Procedure to list network interfaces
+procedure GetNetworkInterfaces(ComboBox: TComboBox);
+var
+  AProcess: TProcess;
+  AStringList: TStringList;
+  OutputLine, InterfaceName: String;
+  i: Integer;
+begin
+  // Inicializa o TProcess
+  AProcess := TProcess.Create(nil);
+  AStringList := TStringList.Create;
+  try
+    // Configura o processo para executar o comando 'ip link'
+    AProcess.Executable := '/sbin/ip';
+    AProcess.Parameters.Add('link');
+    AProcess.Options := AProcess.Options + [poWaitOnExit, poUsePipes];
 
+    // Executa o comando
+    AProcess.Execute;
+
+    // Lê a saída do comando
+    AStringList.LoadFromStream(AProcess.Output);
+
+    // Limpa o ComboBox
+    ComboBox.Items.Clear;
+
+    // Processa a saída para obter os nomes das interfaces
+    for i := 0 to AStringList.Count - 1 do
+    begin
+      OutputLine := AStringList[i];
+      if Pos(': ', OutputLine) > 0 then
+      begin
+        // Extrai o nome da interface (parte entre ": " e ":")
+        InterfaceName := Trim(Copy(OutputLine, Pos(': ', OutputLine) + 2, Pos(':', OutputLine, Pos(': ', OutputLine) + 2) - Pos(': ', OutputLine) - 2));
+        // Adiciona o nome da interface ao ComboBox
+        ComboBox.Items.Add(InterfaceName);
+      end;
+    end;
+  finally
+    AStringList.Free;
+    AProcess.Free;
+  end;
+end;
 
 
 
@@ -678,7 +720,8 @@ begin
     end; //while
 
 
-
+   //Detect network devices on startup
+   GetNetworkInterfaces(networkcombobox);
 
 
      //Determine toggle position - MangoHUD
@@ -1504,6 +1547,12 @@ begin
     else
       vpscheckbox.Checked := false;
 
+    // Network
+    if LoadName('network=') then
+     networkcheckbox.Checked := True
+    else
+      networkcheckbox.Checked := false;
+
     end;
     end;
 
@@ -2154,6 +2203,11 @@ var
         PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
 
 
+       //Network interface  - Config Variable
+
+      if networkCombobox.ItemIndex <> -1 then  // Does not create network line if interface is selected
+        NETWORK := 'network=' + networkCombobox.Items[networkCombobox.ItemIndex] ;
+
       // Table Columns - - Config Variable
       COLUMNS :=  strtoint(columvalueLabel.Caption);
       TABLECOLUMNS := 'table_columns=' + inttostr(COLUMNS);
@@ -2748,6 +2802,7 @@ var
     WriteConfig(LOGTOGGLE,MANGOHUDCFGFILE);
     WriteCheckboxConfig(versioningCheckBox,LOGVER,MANGOHUDCFGFILE);
     WriteCheckboxConfig(autouploadCheckBox,LOGAUTO,MANGOHUDCFGFILE);
+    WriteConfig(NETWORK,MANGOHUDCFGFILE);
 
 end; // ########################################      end save button click       ###############################################################################
 
