@@ -544,6 +544,8 @@ begin
    MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
 
+
+
 if not FileExists(CUSTOMCFGFILE) then
 begin
   ShowMessage('You need to save a custom preset first. Click on the hamburguer menu and click save as custom config.');
@@ -563,6 +565,21 @@ begin
   end;
 end;
 
+  // Change button color
+  fullBitbtn.Color:=clDefault;
+  basicBitbtn.Color:=clDefault;
+  basichorizontalBitbtn.Color:=clDefault;
+  fpsonlyBitbtn.Color:=clDefault;
+  usercustomBitbtn.Color:=$007F5500;
+
+  Process1 := TProcess.Create(nil);
+  Process1.Executable := 'sh';
+  Process1.Parameters.Add('-c');
+  Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Reloading custom user preset"');
+  Process1.Options := [poUsePipes];
+  Process1.Execute;
+  Process1.WaitOnExit;
+  Process1.Free;
 
   end;
 
