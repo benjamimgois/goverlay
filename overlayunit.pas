@@ -21,6 +21,7 @@ type
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
     Label1: TLabel;
+    MenuItem1: TMenuItem;
     offsetSpinEdit: TSpinEdit;
     fpsonlyBitBtn: TBitBtn;
     fullBitBtn: TBitBtn;
@@ -32,6 +33,7 @@ type
     fpsonlyLabel: TLabel;
     customLabel: TLabel;
     layoutImageList: TImageList;
+    popsaveMenu: TPopupMenu;
     usercustomBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     hudcompactCheckBox: TCheckBox;
@@ -207,7 +209,6 @@ type
     hudtoggleLabel: TLabel;
     mangohudPageControl: TPageControl;
     mangohudPanel: TPanel;
-    MenuItem4: TMenuItem;
     notificationLabel: TLabel;
     openglImage: TImage;
     PageControl2: TPageControl;
@@ -228,7 +229,7 @@ type
     mipmapTrackBar: TTrackBar;
     mipmapvalueLabel: TLabel;
     afvalueLabel: TLabel;
-    runsteamBitBtn: TBitBtn;
+    popupBitBtn: TBitBtn;
     runvkbasaltBitBtn: TBitBtn;
     saveBitBtn: TBitBtn;
     sessionCheckBox: TCheckBox;
@@ -250,10 +251,6 @@ type
     hdrCheckBox: TCheckBox;
     fcatCheckBox: TCheckBox;
     vkbtogglekeyCombobox: TComboBox;
-    vkcubegsMenuItem: TMenuItem;
-    vkcubeMenuItem: TMenuItem;
-    steamMenuItem: TMenuItem;
-    gamePopupMenu: TPopupMenu;
     iconsImageList: TImageList;
     columImageList: TImageList;
     dependencieSpeedButton: TSpeedButton;
@@ -293,11 +290,13 @@ type
     procedure FormCreate(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
+    procedure MenuItem1Click(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
     procedure plusSpeedButtonClick(Sender: TObject);
+    procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
@@ -328,7 +327,7 @@ VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOL
   vkbasaltsel: boolean;
 
   //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
 
   //########################################
   i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
@@ -652,6 +651,7 @@ begin
   GOVERLAYFOLDER:= '$HOME/.config/goverlay/' ;
   MANGOHUDFOLDER:= '$HOME/.config/MangoHud/' ;
   MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
+  CUSTOMCFGFILE:= '$HOME/.config/MangoHud/custom.conf' ;
   FONTFOLDER := '/usr/share/fonts/';
   USERHOME :=  GetEnvironmentVariable('HOME') ;
 
@@ -1649,6 +1649,34 @@ end;
 
 end;
 
+procedure Tgoverlayform.MenuItem1Click(Sender: TObject);
+begin
+     // Save current config
+    saveBitbtn.Click;
+
+    // Copy Mangohud.conf file to custom.conf
+
+    Process1 := TProcess.Create(nil);
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('cp '+ MANGOHUDCFGFILE + ' ' + CUSTOMCFGFILE);
+    Process1.Options := [poWaitOnExit, poUsePipes];
+    Process1.Execute;
+    Process1.WaitOnExit;
+    Process1.Free;
+
+    //Notification
+    Process1 := TProcess.Create(nil);
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "Settings saved as custom config"');
+    Process1.Options := [poWaitOnExit, poUsePipes];
+    Process1.Execute;
+    Process1.WaitOnExit;
+    Process1.Free;
+end;
+
+
 procedure Tgoverlayform.minusButtonClick(Sender: TObject);
 begin
    COLUMNS := COLUMNS-1;
@@ -2058,6 +2086,13 @@ begin
      end;
 end;
 
+procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
+begin
+
+popsaveMenu.PopUp;
+
+end;
+
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
@@ -2215,7 +2250,7 @@ var
 
        //Network interface  - Config Variable
 
-      if networkCombobox.ItemIndex <> -1 then  // Does not create network line if interface is selected
+      if (networkCombobox.ItemIndex <> -1) and (networkCheckbox.Checked = true) then  // Does not create network line if interface is selected
         NETWORK := 'network=' + networkCombobox.Items[networkCombobox.ItemIndex] ;
 
       // Table Columns - - Config Variable
