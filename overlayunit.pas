@@ -301,6 +301,7 @@ type
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
+    procedure usercustomBitBtnClick(Sender: TObject);
 
   public
 
@@ -534,6 +535,36 @@ begin
       (Components[i] as TCheckBox).Checked := True;
   end;
 end;
+
+procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
+begin
+
+  // Update the config files path
+   CUSTOMCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/custom.conf';
+   MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+
+
+if not FileExists(CUSTOMCFGFILE) then
+begin
+  ShowMessage('You need to save a custom preset first. Click on the hamburguer menu and click save as custom config.');
+end
+else
+begin
+  Process1 := TProcess.Create(nil);
+  try
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('cp ' + CUSTOMCFGFILE + ' ' + MANGOHUDCFGFILE);
+    Process1.Options := [poWaitOnExit, poUsePipes];
+    Process1.Execute;
+    Process1.WaitOnExit;
+  finally
+    Process1.Free;
+  end;
+end;
+
+
+  end;
 
 //Procedure to list network interfaces
 procedure GetNetworkInterfaces(ComboBox: TComboBox);
@@ -1891,7 +1922,7 @@ begin
   //Check FPS  only
   fpsCheckbox.Checked:=true;
 
-      // Change button color
+  // Change button color
     fullBitbtn.Color:=clDefault;
     basicBitbtn.Color:=clDefault;
     basichorizontalBitbtn.Color:=clDefault;
