@@ -26,10 +26,16 @@ Table of contents
 
 ## Screenshot
 
-<a href="https://imgbb.host/vCWK9"><img src="https://imgbb.host/images/vCWK9.png" alt="vCWK9.png" border="0" /></a>
-<a href="https://imgbb.host/vCkkz"><img src="https://imgbb.host/images/vCkkz.png" alt="vCkkz.png" border="0"></a>
-<a href="https://imgbb.host/vCofK"><img src="https://imgbb.host/images/vCofK.png" alt="vCofK.png" border="0"></a>
-<a href="https://imgbb.host/vCjt7"><img src="https://imgbb.host/images/vCjt7.png" alt="vCjt7.png" border="0"></a>
+[![image.png](https://i.postimg.cc/d0p8hsBv/image.png)](https://postimg.cc/2qdqJfMX)
+
+[![image.png](https://i.postimg.cc/mkNMpQG2/image.png)](https://postimg.cc/ctCrrtHV)
+
+[![image.png](https://i.postimg.cc/15sDnYpg/image.png)](https://postimg.cc/qgDNWwD0)
+
+[![image.png](https://i.postimg.cc/RVdKcQRg/image.png)](https://postimg.cc/svBMzWbW)
+
+[![image.png](https://i.postimg.cc/P5FD7X0Z/image.png)](https://postimg.cc/NKmL9csf)
+
 
 ## Prerequisites
 
