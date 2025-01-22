@@ -2,15 +2,15 @@ object aboutForm: TaboutForm
   Left = 534
   Height = 682
   Top = 277
-  Width = 621
+  Width = 619
   BorderStyle = bsDialog
   Caption = 'About'
   ClientHeight = 682
-  ClientWidth = 621
+  ClientWidth = 619
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '2.2.6.0'
+  LCLVersion = '3.8.0.0'
   object PageControl1: TPageControl
     Left = 0
     Height = 680
@@ -26,7 +26,7 @@ object aboutForm: TaboutForm
     object TabSheet1: TTabSheet
       Caption = 'About'
       ClientHeight = 645
-      ClientWidth = 612
+      ClientWidth = 610
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -35,7 +35,7 @@ object aboutForm: TaboutForm
         Left = 8
         Height = 18
         Top = 396
-        Width = 311
+        Width = 310
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Font.Color = clAqua
         Font.Height = -13
@@ -12185,7 +12185,7 @@ object aboutForm: TaboutForm
         Left = 413
         Height = 81
         Top = 564
-        Width = 176
+        Width = 174
         Anchors = [akTop, akLeft, akRight, akBottom]
         BorderSpacing.Right = 23
         OnClick = donateImageClick
@@ -15240,7 +15240,7 @@ object aboutForm: TaboutForm
         AnchorSideLeft.Control = TabSheet1
         AnchorSideTop.Control = TabSheet1
         Left = 10
-        Height = 49
+        Height = 48
         Top = 3
         Width = 155
         BorderSpacing.Left = 10
@@ -15275,7 +15275,7 @@ object aboutForm: TaboutForm
         AnchorSideTop.Side = asrBottom
         Left = 10
         Height = 234
-        Top = 52
+        Top = 51
         Width = 518
         Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'I am just a Network Engineer that really likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
         Font.Height = -13
@@ -15289,7 +15289,7 @@ object aboutForm: TaboutForm
         Left = 8
         Height = 18
         Top = 373
-        Width = 284
+        Width = 283
         Caption = 'https://github.com/benjamimgois/goverlay'
         Font.Color = clAqua
         Font.Height = -13
@@ -15304,7 +15304,7 @@ object aboutForm: TaboutForm
     object TabSheet2: TTabSheet
       Caption = 'License'
       ClientHeight = 645
-      ClientWidth = 612
+      ClientWidth = 610
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -15312,7 +15312,7 @@ object aboutForm: TaboutForm
         Left = 0
         Height = 749
         Top = 0
-        Width = 612
+        Width = 610
         Align = alTop
         Alignment = taCenter
         BorderStyle = bsNone

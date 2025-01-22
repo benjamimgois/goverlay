@@ -20,7 +20,11 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    BitBtn1: TBitBtn;
+    blacklistEdit: TEdit;
     Label1: TLabel;
+    blacklistLabel: TLabel;
+    blackListBox: TListBox;
     MenuItem1: TMenuItem;
     offsetSpinEdit: TSpinEdit;
     fpsonlyBitBtn: TBitBtn;
