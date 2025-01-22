@@ -723,6 +723,17 @@ begin
    // Verifica se o arquivo existe
    if not FileExists(ConfigFilePath) then
    begin
+
+     // Exibe notificacao
+    Process1 := TProcess.Create(nil);
+    Process1.Executable := 'sh';
+    Process1.Parameters.Add('-c');
+    Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "No configuration files located, creating files and folders."');
+    Process1.Options := [poUsePipes];
+    Process1.Execute;
+    Process1.WaitOnExit;
+    Process1.Free;
+
      // Cria o conteúdo padrão do arquivo
      DefaultConfigContent := TStringList.Create;
      try
