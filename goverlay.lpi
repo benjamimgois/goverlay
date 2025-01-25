@@ -88,7 +88,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="6">
+    <Units Count="7">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -128,6 +128,13 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit5>
+      <Unit6>
+        <Filename Value="blacklistunit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="blacklistForm"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="blacklistUnit"/>
+      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

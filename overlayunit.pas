@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit, LCLtype, CheckLst,
+  ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,
   FileUtil, StrUtils, Types;
 
 
@@ -20,18 +20,15 @@ type
     aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
+    blacklistBitBtn: TBitBtn;
     customcolorBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
-    removeblacklistBitBtn: TBitBtn;
     mangocolorLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
     whitecolorLabel: TLabel;
     whitecolorBitBtn: TBitBtn;
-    insertblacklistBitBtn: TBitBtn;
     GroupBox1: TGroupBox;
     Label1: TLabel;
-    blacklistLabel: TLabel;
-    blackListBox: TListBox;
     MenuItem1: TMenuItem;
     offsetSpinEdit: TSpinEdit;
     fpsonlyBitBtn: TBitBtn;
@@ -290,6 +287,7 @@ type
     procedure afTrackBarChange(Sender: TObject);
     procedure basicBitBtnClick(Sender: TObject);
     procedure basichorizontalBitBtnClick(Sender: TObject);
+    procedure blacklistBitBtnClick(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
@@ -1987,6 +1985,11 @@ begin
     usercustomBitbtn.Color:=clDefault;
   //Save button
   saveBitbtn.Click;
+end;
+
+procedure Tgoverlayform.blacklistBitBtnClick(Sender: TObject);
+begin
+  blacklistForm.Show;
 end;
 
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
