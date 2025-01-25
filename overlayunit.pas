@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
-  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit,LCLtype, FileUtil, StrUtils,Types;
+  ATStringProc_HtmlColor, crosshairUnit, customeffectsunit, LCLtype, CheckLst,
+  FileUtil, StrUtils, Types;
 
 
 
@@ -19,9 +20,14 @@ type
     aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
+    customcolorBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
-    BitBtn1: TBitBtn;
-    blacklistEdit: TEdit;
+    removeblacklistBitBtn: TBitBtn;
+    mangocolorLabel: TLabel;
+    mangocolorBitBtn: TBitBtn;
+    whitecolorLabel: TLabel;
+    whitecolorBitBtn: TBitBtn;
+    insertblacklistBitBtn: TBitBtn;
     GroupBox1: TGroupBox;
     Label1: TLabel;
     blacklistLabel: TLabel;
@@ -44,7 +50,9 @@ type
     hudcompactCheckBox: TCheckBox;
     layoutsLabel: TLabel;
     presetTabSheet: TTabSheet;
-    themesComboBox: TComboBox;
+    afterburnercolorBitBtn1: TBitBtn;
+    afterburnercolorLabel: TLabel;
+    customolorLabel: TLabel;
     winesyncCheckBox: TCheckBox;
     fpsavgCheckBox: TCheckBox;
     fpsavgBitBtn: TBitBtn;
