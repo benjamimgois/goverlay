@@ -1,21 +1,22 @@
 object blacklistForm: TblacklistForm
-  Left = 1530
-  Height = 375
-  Top = 145
-  Width = 360
+  Left = 2907
+  Height = 281
+  Top = 225
+  Width = 270
   Caption = 'Blacklist Apps'
-  ClientHeight = 375
-  ClientWidth = 360
+  ClientHeight = 281
+  ClientWidth = 270
+  DesignTimePPI = 72
   LCLVersion = '3.8.0.0'
   object blackListBox: TListBox
     AnchorSideLeft.Control = blacklistEdit
     AnchorSideTop.Control = blacklistEdit
     AnchorSideTop.Side = asrBottom
-    Left = 10
-    Height = 246
-    Top = 102
-    Width = 304
-    BorderSpacing.Top = 10
+    Left = 8
+    Height = 184
+    Top = 75
+    Width = 228
+    BorderSpacing.Top = 8
     Items.Strings = (
       'program 1'
       'program 2'
@@ -36,13 +37,13 @@ object blacklistForm: TblacklistForm
     AnchorSideLeft.Side = asrBottom
     AnchorSideTop.Control = blackListBox
     AnchorSideRight.Side = asrBottom
-    Left = 324
-    Height = 32
+    Left = 244
+    Height = 24
     Hint = 'Insert command'
-    Top = 192
-    Width = 32
-    BorderSpacing.Left = 10
-    BorderSpacing.Top = 90
+    Top = 143
+    Width = 24
+    BorderSpacing.Left = 8
+    BorderSpacing.Top = 68
     Color = clGreen
     Glyph.Data = {
       761B0400424D761B0400000000003600000028000000E8000000220100000100
@@ -8470,13 +8471,13 @@ object blacklistForm: TblacklistForm
     AnchorSideTop.Control = insertblacklistBitBtn
     AnchorSideTop.Side = asrBottom
     AnchorSideRight.Side = asrBottom
-    Left = 324
-    Height = 32
+    Left = 244
+    Height = 24
     Hint = 'Insert command'
-    Top = 229
-    Width = 32
-    BorderSpacing.Left = 10
-    BorderSpacing.Top = 5
+    Top = 171
+    Width = 24
+    BorderSpacing.Left = 8
+    BorderSpacing.Top = 4
     Color = clMaroon
     Default = True
     Glyph.Data = {
@@ -16902,24 +16903,24 @@ object blacklistForm: TblacklistForm
   object blacklistEdit: TEdit
     AnchorSideLeft.Control = Owner
     AnchorSideTop.Control = Owner
-    Left = 10
-    Height = 32
-    Top = 60
-    Width = 304
-    BorderSpacing.Left = 10
-    BorderSpacing.Top = 60
+    Left = 8
+    Height = 22
+    Top = 45
+    Width = 228
+    BorderSpacing.Left = 8
+    BorderSpacing.Top = 45
     TabOrder = 3
   end
   object blacklistLabel: TLabel
-    Left = 10
-    Height = 18
-    Top = 24
-    Width = 142
+    Left = 8
+    Height = 17
+    Top = 18
+    Width = 131
     Caption = 'Enter application name'
   end
   object iconsImageList: TImageList
-    Left = 184
-    Top = 8
+    Left = 138
+    Top = 6
     Bitmap = {
       4C7A0F0000001000000010000000D21100000000000078DAED5B09588E59FB6F
       DF5729B4C99692EC128AB164DFA589B29524A59416ED1B8A880969CA9612D287

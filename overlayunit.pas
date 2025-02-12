@@ -301,6 +301,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
+    procedure mangocolorBitBtnClick(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
@@ -313,6 +314,7 @@ type
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
     procedure usercustomBitBtnClick(Sender: TObject);
+    procedure whitecolorBitBtnClick(Sender: TObject);
 
   public
 
@@ -326,7 +328,7 @@ var
   Color: string;
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, HUDCOMPACT, PCIDEV, TABLECOLUMNS: string; //visualtab
-GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
+GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, IOCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE, OFFSET: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
@@ -593,6 +595,27 @@ end;
   Process1.Free;
 
   end;
+
+procedure Tgoverlayform.whitecolorBitBtnClick(Sender: TObject);
+begin
+  //Set mangohud colors
+hudbackgroundColorButton.ButtonColor:= clblack;
+fontColorButton.ButtonColor := clwhite;
+gpuColorButton.ButtonColor:=clwhite;
+cpuColorButton.ButtonColor:=clwhite;
+vramColorButton.ButtonColor:=clwhite;
+ramColorButton.ButtonColor:=clwhite;
+iordrwColorButton.ButtonColor:=clwhite;
+wineColorButton.ButtonColor:=clwhite;
+engineColorButton.ButtonColor:=clwhite;
+batteryColorButton.ButtonColor:= clwhite;
+mediaColorButton.ButtonColor:= clwhite;
+frametimegraphColorButton.ButtonColor:= clwhite;
+
+
+//Save button
+saveBitbtn.Click;
+end;
 
 //Procedure to list network interfaces
 procedure GetNetworkInterfaces(ComboBox: TComboBox);
@@ -1288,6 +1311,11 @@ begin
       if LoadValue('vram_color',AUX) then
       vramColorbutton.ButtonColor:=  HexToColor(AUX);
 
+       //IO color  button
+
+      if LoadValue('io_color',AUX) then
+      iordrwColorButton.ButtonColor:=  HexToColor(AUX);
+
 
 
       //RAM color  button
@@ -1784,6 +1812,27 @@ begin
     end;
 end;
 
+end;
+
+procedure Tgoverlayform.mangocolorBitBtnClick(Sender: TObject);
+begin
+
+//Set mangohud colors
+hudbackgroundColorButton.ButtonColor:= clblack;
+fontColorButton.ButtonColor := clwhite;
+gpuColorButton.ButtonColor:=$0062972E;
+cpuColorButton.ButtonColor:=$00CB972E;
+vramColorButton.ButtonColor:=$00C164AD;
+ramColorButton.ButtonColor:=$009366C2;
+iordrwColorButton.ButtonColor:=$00D391A4;
+wineColorButton.ButtonColor:=$005B5BEB;
+engineColorButton.ButtonColor:=$005B5BEB;
+batteryColorButton.ButtonColor:= clLime;
+mediaColorButton.ButtonColor:= clYellow;
+
+
+//Save button
+saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.MenuItem1Click(Sender: TObject);
@@ -2425,6 +2474,9 @@ var
         //VRAM Color
         VRAMCOLOR := 'vram_color='+ ColorToHTMLColor(vramColorButton.ButtonColor) ;
 
+        //IO Color
+        IOCOLOR := 'io_color='+ ColorToHTMLColor(iordrwColorButton.ButtonColor) ;
+
         //Core freq  - Config Variable
         Savecheckbox (gpufreqCheckbox, GPUFREQ, 'gpu_core_clock');
 
@@ -2893,9 +2945,11 @@ var
     WriteCheckboxConfig(diskioCheckBox,IOSTATS,MANGOHUDCFGFILE);
     WriteCheckboxConfig(diskioCheckBox,IOREAD,MANGOHUDCFGFILE);
     WriteCheckboxConfig(diskioCheckBox,IOWRITE,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(diskioCheckBox,IOCOLOR,MANGOHUDCFGFILE);
     WriteCheckboxConfig(swapusageCheckBox,SWAP,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(vramusageCheckBox,VRAM,MANGOHUDCFGFILE);
+    WriteCheckboxConfig(vramusageCheckBox,VRAMCOLOR,MANGOHUDCFGFILE);
     WriteCheckboxConfig(vramusageCheckBox,VRAMCOLOR,MANGOHUDCFGFILE);
 
     WriteCheckboxConfig(ramusageCheckBox,RAM,MANGOHUDCFGFILE);

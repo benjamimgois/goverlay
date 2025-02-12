@@ -132,6 +132,7 @@
         <Filename Value="blacklistunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="blacklistForm"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="blacklistUnit"/>
       </Unit6>
