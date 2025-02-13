@@ -284,6 +284,7 @@ type
     vpsCheckBox: TCheckBox;
 
     procedure aboutBitBtnClick(Sender: TObject);
+    procedure afterburnercolorBitBtn1Click(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
     procedure basicBitBtnClick(Sender: TObject);
     procedure basichorizontalBitBtnClick(Sender: TObject);
@@ -1959,6 +1960,26 @@ end;
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
 begin
    aboutForm.show;
+end;
+
+procedure Tgoverlayform.afterburnercolorBitBtn1Click(Sender: TObject);
+begin
+//Set afterburner colors
+hudbackgroundColorButton.ButtonColor:= clblack;
+fontColorButton.ButtonColor := clFuchsia;
+gpuColorButton.ButtonColor:=clFuchsia;
+cpuColorButton.ButtonColor:=clFuchsia;
+vramColorButton.ButtonColor:=clFuchsia;
+ramColorButton.ButtonColor:=clFuchsia;
+iordrwColorButton.ButtonColor:=clFuchsia;
+wineColorButton.ButtonColor:=clFuchsia;
+engineColorButton.ButtonColor:=clFuchsia;
+batteryColorButton.ButtonColor:= clFuchsia;
+mediaColorButton.ButtonColor:= clFuchsia;
+
+
+//Save button
+saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.afTrackBarChange(Sender: TObject);
