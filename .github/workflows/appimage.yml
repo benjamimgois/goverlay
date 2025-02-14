@@ -17,7 +17,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - name: Prerequisites
+      - name: Get dependencies
         run: |
           sed -i 's/DownloadUser/#DownloadUser/g' /etc/pacman.conf
           pacman -Syu --noconfirm \
@@ -49,6 +49,7 @@ jobs:
             glu \
             qt6pas \
             vulkan-tools \
+            qt6-wayland \
             lazarus
 
       - name: Install debloated llvm-libs
