@@ -1631,7 +1631,7 @@ begin
 
 
     // hud version
-    if LoadName('version') then
+    if LoadName('version#') then
      hudversioncheckbox.Checked := True
     else
       hudversioncheckbox.Checked := false;
@@ -2816,7 +2816,7 @@ var
 
        //HUD Version  - Config Variable
 
-      Savecheckbox (hudversionCheckBox, HUDVERSION, 'version');
+      Savecheckbox (hudversionCheckBox, HUDVERSION, 'version#');
 
       //GAMEMODE  - Config Variable
 
