@@ -1,0 +1,81 @@
+name: AppImage CI
+
+# Controls when the action will run.
+on:
+  push:
+    paths-ignore: [ '**/README.md' ]
+  pull_request:
+    paths-ignore: [ '**/README.md' ]
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: artixlinux/artixlinux:latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      - name: Get dependencies
+        run: |
+          sed -i 's/DownloadUser/#DownloadUser/g' /etc/pacman.conf
+          pacman -Syu --noconfirm \
+            base-devel \
+            git \
+            cmake \
+            strace \
+            patchelf \
+            curl \
+            wget \
+            git \
+            artix-archlinux-support \
+            llvm \
+            mesa \
+            mangohud \
+            xorg-server-xvfb \
+            vulkan-radeon \
+            vulkan-intel \
+            vulkan-nouveau
+
+          pacman-key --init && pacman-key --populate archlinux
+          printf "\n[extra]\nInclude = /etc/pacman.d/mirrorlist-arch\n" | tee -a /etc/pacman.conf
+          cat /etc/pacman.conf
+          sudo sed -i 's/NoExtract/#NoExtract/g' /etc/pacman.conf
+
+          pacman -Syu --noconfirm \
+            zsync \
+            qt6ct \
+            glu \
+            qt6pas \
+            vulkan-tools \
+            qt6-wayland \
+            lazarus
+
+      - name: Install debloated llvm-libs
+        run: |
+          LLVM="https://github.com/pkgforge-dev/llvm-libs-debloated/releases/download/continuous/llvm-libs-nano-x86_64.pkg.tar.zst"
+          wget "$LLVM" -O ./llvm-libs.pkg.tar.zst
+          pacman -U --noconfirm ./llvm-libs.pkg.tar.zst
+
+      # Runs a set of commands using the runners shell
+      - name: Build GOverlay
+        run: |
+          make LAZBUILDOPTS=--lazarusdir=/usr/lib/lazarus
+          make prefix=/usr libexecdir=/lib install
+
+      - name: Make AppImage
+        run: |
+          chmod +x ./appimage/goverlay-appimage.sh
+          ./appimage/goverlay-appimage.sh
+          mkdir ./dist
+          echo "$PWD"
+          ls .
+          sha256sum *.AppImage*
+          mv *.AppImage* ./dist
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: AppImage
+          path: 'dist'
