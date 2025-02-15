@@ -332,7 +332,7 @@ var
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, IOCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
 CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE, OFFSET: string; //performance tab
-DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
+DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, USERSESSION, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
 
 
@@ -724,13 +724,7 @@ begin
   vkbasaltsel := false;
   vkbasaltPanel.Visible:=false;
 
-  // Start vkcube (vulkan demo)
-  Process := TProcess.Create(nil);
-  Process.Executable := 'sh';
-  Process.Parameters.Add('-c');
-  Process.Parameters.Add('mangohud vkcube');
-  Process.Options := [poUsePipes];
-  Process.Execute;
+
 
   // Define important file paths
   GOVERLAYFOLDER:= '$HOME/.config/goverlay/' ;
@@ -739,7 +733,29 @@ begin
   CUSTOMCFGFILE:= '$HOME/.config/MangoHud/custom.conf' ;
   FONTFOLDER := '/usr/share/fonts/';
   USERHOME :=  GetEnvironmentVariable('HOME') ;
+  USERSESSION :=  GetEnvironmentVariable('XDG_SESSION_TYPE') ;
 
+
+    // Start vkcube (vulkan demo)
+
+  if USERSESSION = 'wayland' then
+  begin
+     Process := TProcess.Create(nil);
+     Process.Executable := 'sh';
+     Process.Parameters.Add('-c');
+     Process.Parameters.Add('mangohud vkcube-wayland');
+     Process.Options := [poUsePipes];
+     Process.Execute;
+  end
+      else
+    begin
+     Process := TProcess.Create(nil);
+     Process.Executable := 'sh';
+     Process.Parameters.Add('-c');
+     Process.Parameters.Add('mangohud vkcube');
+     Process.Options := [poUsePipes];
+     Process.Execute;
+  end;
 
 
   // Substitui $HOME pelo caminho real do diretório do usuário
