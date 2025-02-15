@@ -45,7 +45,7 @@ echo 'libMangoHud_shim.so' > ./.preload
 # Goverlay is also going to run sh -c mangohud vkcube so we need to wrap this
 echo '#!/bin/sh
 CURRENTDIR="$(dirname "$(readlink -f "$0")")"
-if [ "$2" = "vkcube-wayland" ]; then
+if [ "$1" = "vkcube-wayland" ]; then
   "$CURRENTDIR"/vkcube-wayland
 else
   "$CURRENTDIR"/vkcube
