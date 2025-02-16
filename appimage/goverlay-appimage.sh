@@ -33,7 +33,7 @@ xvfb-run -a -- ./lib4bin -p -v -e -s -k \
 	/usr/lib/qt6/plugins/platformtheme/* \
 	/usr/lib/qt6/plugins/styles/* \
 	/usr/lib/qt6/plugins/xcbglintegrations/* \
-	/usr/lib/qt6/plugins/wayland-*
+	/usr/lib/qt6/plugins/wayland-*/*
 
 # VERY IMPORTANT!
 cp -rv /usr/share/vulkan/implicit_layer.d ./share/vulkan
