@@ -3,19 +3,22 @@ name: AppImage CI
 # Controls when the action will run.
 on:
   push:
-    paths-ignore: [ '**/README.md' ]
+    paths-ignore: ["**/README.md"]
   pull_request:
-    paths-ignore: [ '**/README.md' ]
-  workflow_dispatch:
+    paths-ignore: ["**/README.md"]
+  workflow_dispatch: {}
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
+    name: "build goverlay appimage"
     runs-on: ubuntu-latest
     container: artixlinux/artixlinux:latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Get dependencies
         run: |
@@ -73,9 +76,35 @@ jobs:
           ls .
           sha256sum *.AppImage*
           mv *.AppImage* ./dist
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4.4.3
         with:
           name: AppImage
-          path: 'dist'
+          path: "dist"
+
+  release_nightly:
+    name: "nightly release"
+    needs: [build]
+    permissions:
+      actions: read
+      security-events: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4.1.8
+        with:
+          name: AppImage
+
+      - name: Create pre-release
+        uses: softprops/action-gh-release@v2
+        if: ${{ github.ref_name == 'main' }}
+        with:
+          name: "Goverlay Nightly"
+          tag_name: "nightly"
+          prerelease: true
+          draft: false
+          generate_release_notes: true
+          make_latest: false
+          files: |
+            *.AppImage*
