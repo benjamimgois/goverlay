@@ -342,11 +342,11 @@ VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOL
   vkbasaltsel: boolean;
 
   //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
 
   //########################################
   i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
-  GPUDESC: TStringList;
+  FILELINES, GPUDESC: TStringList;
 
   ArquivoConfig: TextFile;
   Linha: string;
@@ -700,23 +700,17 @@ end;
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
 var
-Process: TProcess;
-AppHandle: THandle;
-saida: TStringList;
-i: integer;
-Output: TStringList;
-ConfigFilePath: string;
-ConfigDir: string;
-DefaultConfigContent: TStringList;
+  Process: TProcess;
+  AppHandle: THandle;
+  saida, Output, FileLines, DefaultConfigContent: TStringList;
+  i: Integer;
+  ConfigFilePath, ConfigDir, BlacklistFile: string;
 
 
 begin
-  //Centralize window
- // Left:=(Screen.Width-Width)  div 2;
- // Top:=(Screen.Height-Height) div 2;
 
-  //mangohudPageControl.ActivePage:=visualTabsheet; //Set initial TAB
-  mangohudPageControl.ActivePage:=presetTabsheet; //Set initial TAB
+  //Set initial TAB
+  mangohudPageControl.ActivePage:=presetTabsheet;
 
    // Initialize menu selections
   mangohudsel := true;
@@ -727,16 +721,21 @@ begin
 
 
   // Define important file paths
-  GOVERLAYFOLDER:= '$HOME/.config/goverlay/' ;
-  MANGOHUDFOLDER:= '$HOME/.config/MangoHud/' ;
-  MANGOHUDCFGFILE:= '$HOME/.config/MangoHud/MangoHud.conf' ;
-  CUSTOMCFGFILE:= '$HOME/.config/MangoHud/custom.conf' ;
+
+  GOVERLAYFOLDER := GetEnvironmentVariable('HOME') + '/.config/goverlay/';
+  MANGOHUDFOLDER := GetEnvironmentVariable('HOME') + '/.config/MangoHud/';
+  MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
+  CUSTOMCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/custom.conf';
   FONTFOLDER := '/usr/share/fonts/';
-  USERHOME :=  GetEnvironmentVariable('HOME') ;
-  USERSESSION :=  GetEnvironmentVariable('XDG_SESSION_TYPE') ;
+  USERHOME := GetEnvironmentVariable('HOME');
+  USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
+
+
 
 
     // Start vkcube (vulkan demo)
+
 
   if USERSESSION = 'wayland' then
   begin
