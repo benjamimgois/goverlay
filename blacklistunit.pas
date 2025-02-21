@@ -5,7 +5,8 @@ unit blacklistUnit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons,
+  ExtCtrls;
 
 type
 
@@ -15,6 +16,7 @@ type
     blackListBox: TListBox;
     blacklistEdit: TEdit;
     iconsImageList: TImageList;
+    Image1: TImage;
     insertblacklistBitBtn: TBitBtn;
     blacklistLabel: TLabel;
     removeblacklistBitBtn: TBitBtn;
@@ -41,52 +43,62 @@ implementation
 
 procedure TblacklistForm.insertblacklistBitBtnClick(Sender: TObject);
 begin
-    // Verifica se o campo de edição não está vazio
+    // check if field is empty
   if Trim(blacklistedit.Text) = '' then
   begin
-    ShowMessage('Por favor, insira um nome válido.');
+    ShowMessage('Insert a program name');
     Exit;
   end;
 
-  // Verifica se o item já está na lista para evitar duplicatas
+  // check for double values
   if blackListBox.Items.IndexOf(blacklistedit.Text) = -1 then
   begin
-    blackListBox.Items.Add(blacklistedit.Text); // Adiciona ao ListBox
+    blackListBox.Items.Add(blacklistedit.Text); // add to listbox
   end
   else
   begin
-    ShowMessage('Este programa já está na blacklist.');
+    ShowMessage('This program is already on the blacklist.');
     Exit;
   end;
 
-  // Salva a nova lista no arquivo
+  // Save new file
   FileLines := TStringList.Create;
   try
     FileLines.Assign(blackListBox.Items);
-    ForceDirectories(ExtractFilePath(BlacklistFile)); // Garante que o diretório existe
-    FileLines.SaveToFile(BlacklistFile); // Salva no arquivo
+    ForceDirectories(ExtractFilePath(BlacklistFile)); // make sure directory exists
+    FileLines.SaveToFile(BlacklistFile); // save file
   finally
     FileLines.Free;
   end;
 
-  // Limpa o campo de edição após adicionar
+  // clean edit field
   blacklistedit.Clear;
 
-
-
-  //ShowMessage(IntToStr(blackListBox.Items.Count)); // Exibe a quantidade de itens carregados
 end;
 
 procedure TblacklistForm.removeblacklistBitBtnClick(Sender: TObject);
 begin
+  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
   SelectedIndex := blackListBox.ItemIndex;
 
-  // check if item is selected
-  if SelectedIndex = -1 then
-  begin
-    ShowMessage('Select item to remove');
-    Exit;
-  end;
+   // check if any item is selected
+   if SelectedIndex = -1 then
+   begin
+     ShowMessage('Selecione um item para remover.');
+     Exit;
+   end;
+
+   // Remove selected item
+   blackListBox.Items.Delete(SelectedIndex);
+
+   // save new list
+   FileLines := TStringList.Create;
+   try
+     FileLines.Assign(blackListBox.Items);
+     FileLines.SaveToFile(BlacklistFile);
+   finally
+     FileLines.Free;
+   end;
 
 
 

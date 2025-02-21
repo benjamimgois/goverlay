@@ -334,12 +334,14 @@ CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CP
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE, OFFSET: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, USERSESSION, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
+BlacklistStr, blacklistVAR: string;
 
 
 
   //Boolean variables
   mangohudsel: boolean;
   vkbasaltsel: boolean;
+  Found: Boolean;
 
   //Mangohud variables ##########################
   AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
@@ -704,7 +706,7 @@ var
   AppHandle: THandle;
   saida, Output, FileLines, DefaultConfigContent: TStringList;
   i: Integer;
-  ConfigFilePath, ConfigDir, BlacklistFile: string;
+  ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir, BlacklistFile: string;
 
 
 begin
@@ -769,7 +771,8 @@ begin
    if not FileExists(ConfigFilePath) then
    begin
 
-     // Exibe notificacao
+
+    // Exibe notificacao
     Process1 := TProcess.Create(nil);
     Process1.Executable := 'sh';
     Process1.Parameters.Add('-c');
@@ -779,7 +782,7 @@ begin
     Process1.WaitOnExit;
     Process1.Free;
 
-     // Cria o conte√∫do padr√£o do arquivo
+     // Create stock mangohud config
      DefaultConfigContent := TStringList.Create;
      try
        DefaultConfigContent.Text :=
@@ -827,6 +830,27 @@ begin
        DefaultConfigContent.Free;
      end;
    end;
+
+
+   // Check blacklist directory
+  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
+
+  // Garante que o diretÛrio existe
+  ForceDirectories(ExtractFilePath(BlacklistFile));
+
+  // Verifica se o arquivo n„o existe e cria com valores padr„o
+  if not FileExists(BlacklistFile) then
+  begin
+    FileLines := TStringList.Create;
+    try
+      FileLines.Add('pamac-manager');
+      FileLines.Add('lact');
+      FileLines.Add('ghb');
+      FileLines.SaveToFile(BlacklistFile);
+    finally
+      FileLines.Free;
+    end;
+  end;
 
 
 
@@ -2327,11 +2351,11 @@ var
 
   ValorItem: string;
   LOCATEDFILE, FPSSEL, FPSSELOFF: TStringList;
-  i: integer;
+  FoundIndex,i: integer;
   NOITEMCHECK: boolean;
-
   Process: TProcess;
-  Output: TStringList;
+  Output,FileLines, ConfigLines: TStringList;
+
 
   begin
 
@@ -3085,6 +3109,56 @@ var
     WriteCheckboxConfig(versioningCheckBox,LOGVER,MANGOHUDCFGFILE);
     WriteCheckboxConfig(autouploadCheckBox,LOGAUTO,MANGOHUDCFGFILE);
     WriteConfig(NETWORK,MANGOHUDCFGFILE);
+
+    //########################################### SAVE BLACKLIST
+
+  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
+  MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+
+  FileLines := TStringList.Create;
+  ConfigLines := TStringList.Create;
+  try
+    // if blacklist.conf dont exist, create a stock one
+    if not FileExists(BlacklistFile) then
+    begin
+      FileLines.Add('pamac-manager');
+      FileLines.Add('lact');
+      FileLines.Add('ghb');
+      ForceDirectories(ExtractFilePath(BlacklistFile)); // create directory
+      FileLines.SaveToFile(BlacklistFile);
+    end
+    else
+      FileLines.LoadFromFile(BlacklistFile);  // load file
+
+
+    // create string blacklistVAR with correct format
+    blacklistVAR := 'blacklist=' + FileLines[0];
+    for i := 1 to FileLines.Count - 1 do
+      blacklistVAR := blacklistVAR + ',' + FileLines[i];
+
+    // load mangohud config file
+    if FileExists(MANGOHUDCFGFILE) then
+      ConfigLines.LoadFromFile(MANGOHUDCFGFILE);
+
+
+    // if there's no blacklist, add it to the end of file
+    if not Found then
+    begin
+      ConfigLines.Add(blacklistVAR);
+    end;
+
+    // make sure mangohud directory exists
+    ForceDirectories(ExtractFilePath(MANGOHUDCFGFILE));
+
+    // Save changes to mangohud file
+    ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+
+
+  finally
+    FileLines.Free;
+    ConfigLines.Free;
+  end;
+
 
 end; // ########################################      end save button click       ###############################################################################
 
