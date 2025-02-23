@@ -846,6 +846,7 @@ begin
       FileLines.Add('pamac-manager');
       FileLines.Add('lact');
       FileLines.Add('ghb');
+      FileLines.Add('bitwig-studio');
       FileLines.SaveToFile(BlacklistFile);
     finally
       FileLines.Free;
@@ -3124,6 +3125,7 @@ var
       FileLines.Add('pamac-manager');
       FileLines.Add('lact');
       FileLines.Add('ghb');
+      FileLines.Add('bitwig-studio');
       ForceDirectories(ExtractFilePath(BlacklistFile)); // create directory
       FileLines.SaveToFile(BlacklistFile);
     end

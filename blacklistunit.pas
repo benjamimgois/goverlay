@@ -119,7 +119,10 @@ begin
     begin
       // if file doesnt exist, create a new one
       ForceDirectories(ExtractFilePath(BlacklistFile)); // Garante que o diretório existe
-      FileLines.Add('pamac-manager'); // Opcional: adicionar uma entrada inicial
+      FileLines.Add('pamac-manager');
+      FileLines.Add('lact');
+      FileLines.Add('ghb');
+      FileLines.Add('bitwig-studio');
       FileLines.SaveToFile(BlacklistFile);
     end;
 
