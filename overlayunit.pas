@@ -21,7 +21,7 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     blacklistBitBtn: TBitBtn;
-    customcolorBitBtn: TBitBtn;
+    goverlayBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
     mangocolorLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
@@ -294,6 +294,7 @@ type
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
+    procedure goverlayBitBtnClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
@@ -795,6 +796,7 @@ begin
     end;
   end;
 end;
+
 
 
 
@@ -2141,6 +2143,7 @@ begin
     //fps
     fpsCheckbox.Checked:=true;
     frametimegraphCheckbox.Checked:=true;
+    engineversionCheckbox.Checked:=true;
     //gpu
     gpuavgloadCheckbox.Checked:=true;
     vramusageCheckbox.Checked:=true;
@@ -2178,6 +2181,7 @@ begin
     //fps
     fpsCheckbox.Checked:=true;
     frametimegraphCheckbox.Checked:=true;
+    engineversionCheckbox.Checked:=true;
     //gpu
     gpuavgloadCheckbox.Checked:=true;
     vramusageCheckbox.Checked:=true;
@@ -2283,6 +2287,77 @@ begin
   saveBitbtn.Click;
 
 
+end;
+
+procedure Tgoverlayform.goverlayBitBtnClick(Sender: TObject);
+var
+GPUInfo: TStringList;
+AProcess: TProcess;
+I: Integer;
+GPUBrand: string;
+
+begin
+//Set common colors
+hudbackgroundColorButton.ButtonColor:= clblack;
+fontColorButton.ButtonColor := clSilver;
+engineColorButton.ButtonColor:=clSilver;
+wineColorButton.ButtonColor:=clyellow;
+batteryColorButton.ButtonColor:= clSilver;
+mediaColorButton.ButtonColor:= clSilver;
+iordrwColorButton.ButtonColor:=clSilver;
+
+//Detect GPU and set colors according to BRAND
+GPUBrand := '';
+ AProcess := TProcess.Create(nil);
+ GPUInfo := TStringList.Create;
+ try
+   // Execute the command lspci to list PCI devices
+   AProcess.Executable := '/usr/bin/lspci';
+   AProcess.Parameters.Add('-nn');
+   AProcess.Options := [poWaitOnExit, poUsePipes];
+   AProcess.Execute;
+
+   GPUInfo.LoadFromStream(AProcess.Output);
+
+   // Look for a line that contains "VGA" (video card)
+   for I := 0 to GPUInfo.Count - 1 do
+   begin
+     if Pos('VGA', GPUInfo[I]) > 0 then
+     begin
+       GPUBrand := GPUInfo[I];
+       Break;
+     end;
+   end;
+ finally
+   GPUInfo.Free;
+   AProcess.Free;
+ end;
+
+ // Change button colors based on GPU brand
+ if Pos('AMD', GPUBrand) > 0 then
+ begin
+   gpuColorButton.ButtonColor := $000000AA;
+   vramColorButton.ButtonColor := $000000AA;
+ end
+ else if Pos('NVIDIA', GPUBrand) > 0 then
+ begin
+   gpuColorButton.ButtonColor := $0000B875;
+   vramColorButton.ButtonColor := $0000B875;
+ end
+ else if Pos('Intel', GPUBrand) > 0 then
+ begin
+   if Pos('ARC', GPUBrand) > 0 then
+   begin
+     gpuColorButton.ButtonColor := $00FEC601;
+     vramColorButton.ButtonColor := $00FEC601;
+   end;
+ end;
+
+
+
+
+//Save button
+saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
