@@ -2295,6 +2295,8 @@ GPUInfo: TStringList;
 AProcess: TProcess;
 I: Integer;
 GPUBrand: string;
+CPUInfo: TStringList;
+CPUBrand: string;
 
 begin
 //Set common colors
@@ -2305,6 +2307,7 @@ wineColorButton.ButtonColor:=clyellow;
 batteryColorButton.ButtonColor:= clSilver;
 mediaColorButton.ButtonColor:= clSilver;
 iordrwColorButton.ButtonColor:=clSilver;
+
 
 //Detect GPU and set colors according to BRAND
 GPUBrand := '';
@@ -2352,6 +2355,42 @@ GPUBrand := '';
      vramColorButton.ButtonColor := $00FEC601;
    end;
  end;
+
+
+
+  //Detect CPU and set colors according to BRAND
+  CPUBrand := '';
+  CPUInfo := TStringList.Create;
+  try
+    // Load CPU information from /proc/cpuinfo
+    CPUInfo.LoadFromFile('/proc/cpuinfo');
+
+    // Look for the line that contains "vendor_id" (CPU brand)
+    for I := 0 to CPUInfo.Count - 1 do
+    begin
+      if Pos('vendor_id', CPUInfo[I]) > 0 then
+      begin
+        CPUBrand := Trim(Copy(CPUInfo[I], Pos(':', CPUInfo[I]) + 1, MaxInt));
+        Break;
+      end;
+    end;
+  finally
+    CPUInfo.Free;
+  end;
+
+  // Change button colors based on CPU brand
+  if Pos('AuthenticAMD', CPUBrand) > 0 then
+  begin
+     cpuColorButton.ButtonColor := $000055AA; // Change color for AMD
+     ramColorButton.ButtonColor := $000055AA; // Change color for RAM button
+     frametimegraphColorButton.ButtonColor := $000055AA; // Change color for Frame Time Graph
+  end
+  else if Pos('GenuineIntel', CPUBrand) > 0 then
+  begin
+    cpuColorButton.ButtonColor := $007D3926; // Example color for Intel
+    ramColorButton.ButtonColor := $007D3926; // Example color for RAM button
+    frametimegraphColorButton.ButtonColor := $007D3926; // Example color for Frame Time Graph
+  end;
 
 
 
