@@ -552,6 +552,106 @@ begin
   end;
 end;
 
+
+
+
+
+function GetKernelVersion: string;
+var
+  Output: TStringList;
+  AProcess: TProcess;
+begin
+  Result := '';
+  AProcess := TProcess.Create(nil);
+  Output := TStringList.Create;
+  try
+    AProcess.Executable := '/bin/uname';
+    AProcess.Parameters.Add('-r');
+    AProcess.Options := [poWaitOnExit, poUsePipes];
+    AProcess.Execute;
+
+    Output.LoadFromStream(AProcess.Output);
+    if Output.Count > 0 then
+      Result := Trim(Output[0]);  // Remove espa?os extras
+  finally
+    Output.Free;
+    AProcess.Free;
+  end;
+end;
+
+
+procedure SaveDistroInfo;
+var
+  DistroInfo, VersionOrBuildID, KernelVersion, Line: string;
+  F: TextFile;
+  SL: TStringList;
+  I: Integer;
+begin
+  DistroInfo := '';
+  VersionOrBuildID := '';
+
+  // Verifica se o arquivo /etc/os-release existe
+  if FileExists('/etc/os-release') then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile('/etc/os-release');
+
+      for I := 0 to SL.Count - 1 do
+      begin
+        Line := SL[I];
+
+        if Pos('PRETTY_NAME=', Line) = 1 then
+        begin
+          // Remove "PRETTY_NAME=" e as aspas
+          DistroInfo := Copy(Line, 13, Length(Line) - 12);
+          DistroInfo := StringReplace(DistroInfo, '"', '', [rfReplaceAll]);
+        end
+        else if Pos('VERSION_ID=', Line) = 1 then
+        begin
+          // Remove "VERSION_ID=" e as aspas
+          VersionOrBuildID := Copy(Line, 12, Length(Line) - 11);
+          VersionOrBuildID := StringReplace(VersionOrBuildID, '"', '', [rfReplaceAll]);
+        end
+        else if (Pos('BUILD_ID=', Line) = 1) and (VersionOrBuildID = '') then
+        begin
+          // Se VERSION_ID n?o foi encontrado, usa BUILD_ID
+          VersionOrBuildID := Copy(Line, 10, Length(Line) - 9);
+          VersionOrBuildID := StringReplace(VersionOrBuildID, '"', '', [rfReplaceAll]);
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+
+  // Obt?m a vers?o do kernel
+  KernelVersion := GetKernelVersion;
+
+  // Criando o diret?rio caso n?o exista
+  if not DirectoryExists(GetUserDir + '.config/goverlay') then
+    CreateDir(GetUserDir + '.config/goverlay');
+
+  // Gravando as informa??es da distribui??o
+  AssignFile(F, GetUserDir + '.config/goverlay/distro');
+  try
+    Rewrite(F);
+    WriteLn(F, DistroInfo + ' (' + VersionOrBuildID + ')');
+  finally
+    CloseFile(F);
+  end;
+
+  // Gravando a vers?o do kernel
+  AssignFile(F, GetUserDir + '.config/goverlay/kernel');
+  try
+    Rewrite(F);
+    WriteLn(F, KernelVersion);
+  finally
+    CloseFile(F);
+  end;
+end;
+
+
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
 begin
 
@@ -733,7 +833,8 @@ begin
   USERHOME := GetEnvironmentVariable('HOME');
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
 
-
+  //Get distro information
+  SaveDistroInfo;
 
 
     // Start vkcube (vulkan demo)
@@ -835,10 +936,10 @@ begin
    // Check blacklist directory
   BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
 
-  // Garante que o diretório existe
+  // make sure directory exists
   ForceDirectories(ExtractFilePath(BlacklistFile));
 
-  // Verifica se o arquivo não existe e cria com valores padrão
+  // Check if file exists and create default
   if not FileExists(BlacklistFile) then
   begin
     FileLines := TStringList.Create;
@@ -1596,7 +1697,7 @@ begin
 
 
     // Distro info
-    if LoadName('lsb_release -a | grep Release | uniq | cut -c 10-26') then
+    if LoadName('uname -r') then
       distroinfocheckbox.Checked := True
     else
       distroinfocheckbox.Checked := false;
@@ -2786,24 +2887,14 @@ var
       //###############################################################################################   Extra TAB
 
       // Distro info - Config Variable
-      Process := TProcess.Create(nil);
-      Output := TStringList.Create;
-
-      Process.Executable := '/bin/bash';
-      Process.Parameters.Add('-c');
-      Process.Parameters.Add('cat /usr/lib/os-release');
-
-      Process.Options := [poUsePipes];
-      Process.Execute;
-
-      Output.LoadFromStream(Process.Output);
-      DISTRONAME := Output.Values['NAME'];
-
-      Savecheckbox (distroinfoCheckBox, DISTROINFO1, 'custom_text=' + DISTRONAME);
-      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=lsb_release -a | grep Release | uniq | cut -c 10-26"');
 
 
-      Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=Kernel');
+      Savecheckbox (distroinfoCheckBox, DISTROINFO1, 'custom_text=-');
+      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=cat $HOME/.config/goverlay/distro"');
+
+
+      Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=-');
+      //Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=cat $HOME/.config/goverlay/kernel"');
       Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=uname -r"');
 
 
