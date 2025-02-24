@@ -123,6 +123,8 @@ begin
       FileLines.Add('lact');
       FileLines.Add('ghb');
       FileLines.Add('bitwig-studio');
+      FileLines.Add('ptyxis');
+      FileLines.Add('yumex');
       FileLines.SaveToFile(BlacklistFile);
     end;
 

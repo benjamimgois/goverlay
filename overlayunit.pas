@@ -573,7 +573,7 @@ begin
 
     Output.LoadFromStream(AProcess.Output);
     if Output.Count > 0 then
-      Result := Trim(Output[0]);  // Remove espa?os extras
+      Result := Trim(Output[0]);  // Remove spaces
   finally
     Output.Free;
     AProcess.Free;
@@ -616,7 +616,7 @@ begin
         end
         else if (Pos('BUILD_ID=', Line) = 1) and (VersionOrBuildID = '') then
         begin
-          // Se VERSION_ID n?o foi encontrado, usa BUILD_ID
+          // Se VERSION_ID no foi encontrado, usa BUILD_ID
           VersionOrBuildID := Copy(Line, 10, Length(Line) - 9);
           VersionOrBuildID := StringReplace(VersionOrBuildID, '"', '', [rfReplaceAll]);
         end;
@@ -626,14 +626,14 @@ begin
     end;
   end;
 
-  // Obt?m a vers?o do kernel
+  // Got kernel version
   KernelVersion := GetKernelVersion;
 
-  // Criando o diret?rio caso n?o exista
+  // Criando o diretrio caso n exista
   if not DirectoryExists(GetUserDir + '.config/goverlay') then
     CreateDir(GetUserDir + '.config/goverlay');
 
-  // Gravando as informa??es da distribui??o
+  // Gravando as informaes da distribuio
   AssignFile(F, GetUserDir + '.config/goverlay/distro');
   try
     Rewrite(F);
@@ -642,7 +642,7 @@ begin
     CloseFile(F);
   end;
 
-  // Gravando a vers?o do kernel
+  // Gravando a verso do kernel
   AssignFile(F, GetUserDir + '.config/goverlay/kernel');
   try
     Rewrite(F);
@@ -950,6 +950,8 @@ begin
       FileLines.Add('lact');
       FileLines.Add('ghb');
       FileLines.Add('bitwig-studio');
+      FileLines.Add('ptyxis');
+      FileLines.Add('yumex');
       FileLines.SaveToFile(BlacklistFile);
     finally
       FileLines.Free;
@@ -3331,6 +3333,8 @@ var
       FileLines.Add('lact');
       FileLines.Add('ghb');
       FileLines.Add('bitwig-studio');
+      FileLines.Add('ptyxis');
+      FileLines.Add('yumex');
       ForceDirectories(ExtractFilePath(BlacklistFile)); // create directory
       FileLines.SaveToFile(BlacklistFile);
     end
