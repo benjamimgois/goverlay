@@ -810,11 +810,13 @@ var
   saida, Output, FileLines, DefaultConfigContent: TStringList;
   i: Integer;
   ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir, BlacklistFile: string;
+
   FPSList: TStringList;
   ConfigFile: TStringList;
   Line, FPSValues, OffsetValue: string;
-  Offset, FPS: Integer;
+  Offset, FPS, MaxFPS: Integer;
   FPSNumbers: TStringList;
+  FoundFPSLimit: Boolean;
 
 begin
 
@@ -1178,56 +1180,75 @@ begin
      //#################################################    Checkgroups
 
     //FPS limits
-  //  if LoadValue('fps_limit',AUX) then
- //     begin
- //     LoadCheckgroup(fpslimCheckGroup, '240, 120, 30');
- //     end;
-   FPSList := TStringList.Create;
-  ConfigFile := TStringList.Create;
-  FPSNumbers := TStringList.Create;
-  try
-    if FileExists(MANGOHUDCFGFILE) then
-    begin
-      ConfigFile.LoadFromFile(MANGOHUDCFGFILE);
 
-      // Procurando as linhas fps_limit e offset
-      FPSValues := '';
-      OffsetValue := '0';
-      for Line in ConfigFile do
-      begin
-        if StartsText('fps_limit=', Line) then
-          FPSValues := Copy(Line, Pos('=', Line) + 1, Length(Line));
-        if StartsText('#offset=', Line) then
-          OffsetValue := Copy(Line, Pos('=', Line) + 1, Length(Line));
+    FPSList := TStringList.Create;
+      ConfigFile := TStringList.Create;
+      FPSNumbers := TStringList.Create;
+      try
+        MaxFPS := 0;
+        FoundFPSLimit := False;
+
+        if FileExists(MANGOHUDCFGFILE) then
+        begin
+          ConfigFile.LoadFromFile(MANGOHUDCFGFILE);
+
+          // Searching for fps_limit and offset lines
+          FPSValues := '';
+          OffsetValue := '0';
+          for Line in ConfigFile do
+          begin
+            if StartsText('fps_limit=', Line) then
+            begin
+              FPSValues := Copy(Line, Pos('=', Line) + 1, Length(Line));
+              FoundFPSLimit := True;
+            end;
+            if StartsText('#offset=', Line) then
+              OffsetValue := Copy(Line, Pos('=', Line) + 1, Length(Line));
+          end;
+
+          // Converting offset to an integer
+          Offset := Abs(StrToIntDef(OffsetValue, 0));
+
+          if FoundFPSLimit and (Trim(FPSValues) <> '0') then
+          begin
+            // Processing FPS values
+            FPSNumbers.DelimitedText := FPSValues;
+            FPSNumbers.Delimiter := ',';
+
+            for i := 0 to FPSNumbers.Count - 1 do
+            begin
+              FPS := StrToIntDef(FPSNumbers[i], 0) + Offset;
+              FPSList.Add(IntToStr(FPS));
+              if FPS > MaxFPS then
+                MaxFPS := FPS;
+            end;
+
+            // Marking values in the CheckGroup
+            for i := 0 to fpslimcheckgroup.Items.Count - 1 do
+            begin
+              if FPSList.IndexOf(fpslimcheckgroup.Items[i]) <> -1 then
+                fpslimcheckgroup.Checked[i] := True
+              else
+                fpslimcheckgroup.Checked[i] := False;
+            end;
+          end;
+        end;
+
+        // Setting values for the SpinEdits
+        if (MaxFPS = 0) or (not FoundFPSLimit) then
+          MaxFPS := 60;
+
+        fpscolor3spinedit.Value := MaxFPS;
+        fpscolor2spinedit.Value := Round(MaxFPS / 2);
+
+      finally
+        FPSList.Free;
+        ConfigFile.Free;
+        FPSNumbers.Free;
       end;
 
-      // Convertendo offset para inteiro
-      Offset := Abs(StrToIntDef(OffsetValue, 0));
 
-      // Processando os valores de FPS
-      FPSNumbers.DelimitedText := FPSValues;
-      FPSNumbers.Delimiter := ',';
 
-      for i := 0 to FPSNumbers.Count - 1 do
-      begin
-        FPS := StrToIntDef(FPSNumbers[i], 0) + Offset;
-        FPSList.Add(IntToStr(FPS));
-      end;
-
-      // Marcando os valores no CheckGroup
-      for i := 0 to fpslimcheckgroup.Items.Count - 1 do
-      begin
-        if FPSList.IndexOf(fpslimcheckgroup.Items[i]) <> -1 then
-          fpslimcheckgroup.Checked[i] := True
-        else
-          fpslimcheckgroup.Checked[i] := False;
-      end;
-    end;
-  finally
-    FPSList.Free;
-    ConfigFile.Free;
-    FPSNumbers.Free;
-  end;
 
 
 
@@ -2628,6 +2649,8 @@ var
   Process: TProcess;
   Output,FileLines, ConfigLines: TStringList;
 
+  MaxFPS, SelectedFPS: Integer;
+  SelectedValues: TStringList;
 
   begin
 
@@ -2960,6 +2983,8 @@ var
         FPSSEL := TStringList.Create; //store selected options here
         NOITEMCHECK := True; // Variable is true if no item is checked
 
+
+
         // Check fpslimCheckgroup items
         for i := 0 to fpslimCheckgroup.Items.Count - 1 do
           begin
@@ -2984,6 +3009,36 @@ var
       //OFFSET Value
       OFFSET := '"#offset="' + inttostr(offsetspinedit.Value);
       Writeln(OFFSET); // debug
+
+
+
+      // Ajust FPS color limits
+       SelectedValues := TStringList.Create;
+  try
+    MaxFPS := 0;
+
+    // Reading selected values from the CheckGroup
+    for i := 0 to fpslimcheckgroup.Items.Count - 1 do
+    begin
+      if fpslimcheckgroup.Checked[i] then
+      begin
+        SelectedFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
+        SelectedValues.Add(IntToStr(SelectedFPS));
+        if SelectedFPS > MaxFPS then
+          MaxFPS := SelectedFPS;
+      end;
+    end;
+
+    // Setting values for the SpinEdits
+    if SelectedValues.Count = 0 then
+      MaxFPS := 60;
+
+    fpscolor3spinedit.Value := MaxFPS;
+    fpscolor2spinedit.Value := Round(MaxFPS / 2);
+
+  finally
+    SelectedValues.Free;
+  end;
 
       //FPS Limit method - Config Variable
 
