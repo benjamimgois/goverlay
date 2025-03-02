@@ -854,7 +854,8 @@ begin
      Process := TProcess.Create(nil);
      Process.Executable := 'sh';
      Process.Parameters.Add('-c');
-     Process.Parameters.Add('mangohud vkcube-wayland');
+     //Process.Parameters.Add('mangohud vkcube-wayland');
+     Process.Parameters.Add('mangohud vkcube --wsi wayland');
      Process.Options := [poUsePipes];
      Process.Execute;
   end
