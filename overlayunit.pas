@@ -591,7 +591,7 @@ begin
   DistroInfo := '';
   VersionOrBuildID := '';
 
-  // Verifica se o arquivo /etc/os-release existe
+  // check if /etc/os-release exists
   if FileExists('/etc/os-release') then
   begin
     SL := TStringList.Create;
@@ -629,11 +629,11 @@ begin
   // Got kernel version
   KernelVersion := GetKernelVersion;
 
-  // Criando o diretrio caso n exista
+  // create directory
   if not DirectoryExists(GetUserDir + '.config/goverlay') then
     CreateDir(GetUserDir + '.config/goverlay');
 
-  // Gravando as informaes da distribuio
+  // storing distro name
   AssignFile(F, GetUserDir + '.config/goverlay/distro');
   try
     Rewrite(F);
@@ -642,7 +642,7 @@ begin
     CloseFile(F);
   end;
 
-  // Gravando a verso do kernel
+  // storing kernel version
   AssignFile(F, GetUserDir + '.config/goverlay/kernel');
   try
     Rewrite(F);
@@ -651,6 +651,10 @@ begin
     CloseFile(F);
   end;
 end;
+
+
+
+
 
 
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
@@ -818,6 +822,7 @@ var
   FPSNumbers: TStringList;
   FoundFPSLimit: Boolean;
 
+  OSFile: TextFile;
 begin
 
   //Set initial TAB
@@ -845,8 +850,43 @@ begin
   //Get distro information
   SaveDistroInfo;
 
+  //Check for bazzite
+   if FileExists('/etc/os-release') then
+  begin
+    AssignFile(OSFile, '/etc/os-release');
+    try
+      Reset(OSFile);
 
-    // Start vkcube (vulkan demo)
+      while not EOF(OSFile) do
+      begin
+        ReadLn(OSFile, Line);
+
+        // Verifica se a linha contém "PRETTY_NAME="
+        if Pos('PRETTY_NAME=', Line) = 1 then
+        begin
+          // Remove "PRETTY_NAME=" e aspas extras
+          Delete(Line, 1, Length('PRETTY_NAME='));
+          Line := StringReplace(Line, '"', '', [rfReplaceAll]);
+
+          // Converte para minúsculas e verifica se contém "bazzite"
+          if Pos('bazzite', LowerCase(Line)) > 0 then
+          begin
+            if Assigned(gespeedbutton) then
+            begin
+              gespeedbutton.Visible := False; // Oculta o botão
+              GlobalenableLabel.Caption:='Global enable is not avaiable in Bazzite';
+            end;
+          end;
+          Break; // Já encontramos a informação necessária, saímos do loop
+        end;
+      end;
+    finally
+      CloseFile(OSFile);
+    end;
+  end;
+
+
+// Start vkcube (vulkan demo)
 
 
   if USERSESSION = 'wayland' then
@@ -854,7 +894,7 @@ begin
      Process := TProcess.Create(nil);
      Process.Executable := 'sh';
      Process.Parameters.Add('-c');
-     //Process.Parameters.Add('mangohud vkcube-wayland');
+     //Process.Parameters.Add('mangohud vkcube-wayland');  //deprecated ??
      Process.Parameters.Add('mangohud vkcube --wsi wayland');
      Process.Options := [poUsePipes];
      Process.Execute;
@@ -935,7 +975,7 @@ begin
          'autostart_log=0' + LineEnding +
          'log_interval=100';
 
-       // Salva o conteúdo no arquivo
+       // save file content
        DefaultConfigContent.SaveToFile(ConfigFilePath);
      finally
        DefaultConfigContent.Free;
