@@ -26,7 +26,7 @@ Table of contents
 
 ## Screenshot
 
-[![image.png](https://i.postimg.cc/d0p8hsBv/image.png)](https://postimg.cc/2qdqJfMX)
+![image](https://github.com/user-attachments/assets/e635b1a4-38e7-418b-9e7a-210c65702ad8)
 
 ![image](https://github.com/user-attachments/assets/9fa13c5f-b00d-4eab-832b-fa38ccad8331)
 
@@ -52,6 +52,14 @@ Here are the dependencies needed in order to make GOverlay run:
 ## Installation 
 
 ### Distributions
+
+#### Universal method - Appimage
+
+To install [`goverlay`](https://github.com/benjamimgois/goverlay/releases/download/1.3/Goverlay_1_3.AppImage), just double click to execute, or you can run in the terminal with
+```bash
+chmod +x Goverlay_1_3.AppImage
+./Goverlay_1_3.AppImage
+```
 
 #### Arch / Manjaro / Other Arch derivatives
 
