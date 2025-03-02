@@ -2221,6 +2221,7 @@ begin
     fpsCheckbox.Checked:=true;
     frametimegraphCheckbox.Checked:=true;
     engineversionCheckbox.Checked:=true;
+    fpscolorCheckbox.Checked:=true;
     //gpu
     gpuavgloadCheckbox.Checked:=true;
     vramusageCheckbox.Checked:=true;
@@ -2228,12 +2229,14 @@ begin
     gpufreqCheckbox.Checked:=true;
     gpupowerCheckbox.Checked:=true;
     gpumemfreqCheckbox.Checked:=true;
+    gpuloadcolorCheckbox.Checked:=true;
     //cpu
     cpuavgloadCheckbox.Checked:=true;
     cpufreqCheckbox.Checked:=true;
     cputempCheckbox.Checked:=true;
     cpupowerCheckbox.Checked:=true;
     ramusageCheckbox.Checked:=true;
+    cpuloadcolorCheckbox.Checked:=true;
     //battery
     batteryCheckbox.Checked:=true;
     // Change button color
@@ -2259,14 +2262,17 @@ begin
     fpsCheckbox.Checked:=true;
     frametimegraphCheckbox.Checked:=true;
     engineversionCheckbox.Checked:=true;
+    fpscolorCheckbox.Checked:=true;
     //gpu
     gpuavgloadCheckbox.Checked:=true;
     vramusageCheckbox.Checked:=true;
     gpupowerCheckbox.Checked:=true;
+    gpuloadcolorCheckbox.Checked:=true;
     //cpu
     cpuavgloadCheckbox.Checked:=true;
     cpupowerCheckbox.Checked:=true;
     ramusageCheckbox.Checked:=true;
+    cpuloadcolorCheckbox.Checked:=true;
     //battery
     batteryCheckbox.Checked:=true;
     // Change button color
@@ -2324,6 +2330,7 @@ begin
 
   //Check FPS  only
   fpsCheckbox.Checked:=true;
+  fpscolorCheckbox.Checked:=true;
 
   // Change button color
     fullBitbtn.Color:=clDefault;
@@ -2416,8 +2423,8 @@ GPUBrand := '';
  // Change button colors based on GPU brand
  if Pos('AMD', GPUBrand) > 0 then
  begin
-   gpuColorButton.ButtonColor := $000000AA;
-   vramColorButton.ButtonColor := $000000AA;
+   gpuColorButton.ButtonColor := $003B00F1;
+   vramColorButton.ButtonColor := $003B00F1;
  end
  else if Pos('NVIDIA', GPUBrand) > 0 then
  begin
@@ -2458,9 +2465,9 @@ GPUBrand := '';
   // Change button colors based on CPU brand
   if Pos('AuthenticAMD', CPUBrand) > 0 then
   begin
-     cpuColorButton.ButtonColor := $000055AA; // Change color for AMD
-     ramColorButton.ButtonColor := $000055AA; // Change color for RAM button
-     frametimegraphColorButton.ButtonColor := $000055AA; // Change color for Frame Time Graph
+     cpuColorButton.ButtonColor := $000080FA; // Change color for AMD
+     ramColorButton.ButtonColor := $000080FA; // Change color for RAM button
+     frametimegraphColorButton.ButtonColor := $000080FA; // Change color for Frame Time Graph
   end
   else if Pos('GenuineIntel', CPUBrand) > 0 then
   begin
