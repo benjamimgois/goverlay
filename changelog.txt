@@ -1,0 +1,3719 @@
+commit 0c5151646dba96262f7ef54b090faed79626ca81
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 1 23:19:47 2025 -0300
+
+    Disable global-enable button for bazzite distribution
+
+commit 52c89e9908e2e59c7c7ebe2809dfa8ccee732a72
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 1 22:37:51 2025 -0300
+
+    change command vkcube-wayland to vkcube --wsi wayland
+
+commit 45b38d4fd247c1694dc18e6e5d6bef7877b3213f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 1 22:33:12 2025 -0300
+
+    Add colorchange config to all quick layouts
+
+commit dec64d21235badd218e3e9dcb0358c5c43b88e93
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 26 15:44:51 2025 -0300
+
+    disable spinedit increment function since its done automagically now
+
+commit 71a2118e432ced55caea5e41e77fef6bfca9ab25
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 26 15:37:53 2025 -0300
+
+    Ajust FPS limit colors based on selection in checkgroup
+
+commit c4bbe12d4c770b0a91381048d84a13372c1d4fa1
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 26 15:08:32 2025 -0300
+
+    Fix FPS limit checkgroup not loading correctly
+
+commit f82fbc5d9533795ce0fdbd8b36a4357a4fd4fe19
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 26 14:08:04 2025 -0300
+
+    Ajust position of color theme icons
+
+commit b7723127f5a991c5dc39ed5bce0ddb4c0cc6abba
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 23 23:15:51 2025 -0300
+
+    Add brand match theme icons and description
+
+commit 1b9436810a91b3c3207072d2c1943642520384b3
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 23 23:01:06 2025 -0300
+
+    add yumex and ptyxis to blacklisted apps
+
+commit 2a5a74c9e7798ed08e7a6d8600e1861018c23a48
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 23 22:41:02 2025 -0300
+
+    Detect CPU BRAND and set colors for goverlay theme
+
+commit d193d31166bc741feac5a0bf10bb24c4751867c9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 23 22:23:48 2025 -0300
+
+    Detect GPU BRAND and set colors for goverlay theme
+
+commit 06dda81b9767349ffe048444f30c7985c93b8024
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 23 21:33:08 2025 -0300
+
+    fix distro name not working inside proton
+
+commit 01775d28b569aedfd729b0998f61d865fbfc24bb
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 23 18:10:29 2025 -0300
+
+    added bitwig-studio to standart blacklist file
+
+commit d441067f17938e60e70a65ae58b16706d674cc9e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Feb 20 22:54:58 2025 -0300
+
+    Implement blacklist function
+
+commit 65b566e8d72be4d3b7927941a1b729780115e5f4
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 19 15:54:43 2025 -0300
+
+    Implement buttons in blacklist form
+
+commit 30ffcd03b0c72db45eede4914e8f1e9be63447e5
+Merge: 75634e2 e6d83fc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 19 14:43:58 2025 -0300
+
+    Merge pull request #150 from psadi/main
+    
+    add nightly release on push
+
+commit e6d83fc9489b70ceafe0dcd34d6f5f358b9d03ef
+Author: psadi <ps.adithya@icloud.com>
+Date:   Wed Feb 19 19:31:31 2025 +0530
+
+    ci: add nighly builds on main branch
+
+commit 75634e2e1d18ac4dc0398f206341b3b08f928d97
+Merge: aa77225 450f59d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 16 21:02:17 2025 -0300
+
+    Merge pull request #149 from Samueru-sama/main
+    
+    fix terrible typo
+
+commit 450f59d08b3a612a460b4eb73ebe1bbde747c1fc
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Sun Feb 16 15:31:37 2025 -0400
+
+    fix terrible typo
+
+commit aa772256e3cf16f00baba4dcd92630a76d6cd3f0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Feb 15 14:29:52 2025 -0300
+
+    Fix hudversion also selected if engine_version is enabled
+
+commit f844ac6e0f9ba0260beda0f2e5aabb49cf9674df
+Merge: 5ab401f 6792603
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Feb 15 13:54:37 2025 -0300
+
+    Merge pull request #148 from Samueru-sama/patch-1
+    
+    fix error in mangohud wrapper
+
+commit 67926033c972d6e605272c2d71530d68b309009d
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Sat Feb 15 12:36:44 2025 -0400
+
+    fix error in mangohud wrapper
+
+commit 5ab401f84860725da15d17e4bbc652297bba26bb
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Feb 15 11:01:53 2025 -0300
+
+    Use vkcube-wayland if wayland is detected
+
+commit 960f7483efe0b17c2fde32902888261b0f4c425c
+Merge: 4ae6d59 aeebdc3
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Feb 14 23:57:20 2025 -0300
+
+    Merge pull request #147 from Samueru-sama/appimage
+    
+    make appimage that works on any linux system (even musl ones)
+
+commit aeebdc31b5e23175f96a38b6d131a12db843bb1e
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Fri Feb 14 20:27:12 2025 -0400
+
+    switch to nano llvm to reduce size further
+
+commit b3fb86aa4a3f0b41c92ccbcf1a1f4d84e2707a15
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Fri Feb 14 16:39:19 2025 -0400
+
+    oops
+
+commit aeca341d8c6f27bec4874836d515cb10fdc2d3a9
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Fri Feb 14 16:35:45 2025 -0400
+
+    add wayland
+
+commit a4778d679b2abe03266518747bdcf6608bac5f7b
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Fri Feb 14 16:33:06 2025 -0400
+
+    oops wrong location
+
+commit f8426488a1ad993e5137d59b7a094f71d4af5631
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Fri Feb 14 16:31:27 2025 -0400
+
+    setup appimage CI
+
+commit a92f53b5615b5012daeb1ece33f2b9c138813ef0
+Author: Samuel <36420837+Samueru-sama@users.noreply.github.com>
+Date:   Fri Feb 14 16:08:48 2025 -0400
+
+    create appimage script
+
+commit 4ae6d596e169383b886a58d897ad96fb612babbc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 12 21:23:35 2025 -0300
+
+    implement afterburner theme and fix IO colors
+
+commit 815b8f5ecc759d03241a598618755e7eb70165a4
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 12 19:21:23 2025 -0300
+
+    implement mangohud and simple white themes
+
+commit 514d63db928c985934578cac1cfa5840c7a26494
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Jan 25 17:46:22 2025 -0300
+
+    Move blacklist to separated form
+
+commit 286178b0a5ad27568139a0e58d3b69f927e8bec2
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Jan 25 17:05:47 2025 -0300
+
+    Implement color themes bitbuttons
+
+commit 04faca76d90d5ee2f10321068872c84dd99f5b70
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 22 13:39:55 2025 -0300
+
+    popup a notification case config files doesnt exist
+
+commit f4277d84643bc2325e6837d1dc466b5fe27b8f25
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 22 11:09:42 2025 -0300
+
+    check if config file exists and create it if not
+
+commit f67b8f506ab84474460cd50578e75556d5365429
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 22 10:17:51 2025 -0300
+
+    UI changes
+
+commit a861c81c0bfe5ec5f5b95ee41e5d4e35568a66d5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 22 09:39:23 2025 -0300
+
+    Initial 1.3 UI changes
+
+commit 1cea2cf9c29436855de931eec8b57952c36dd78e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Aug 4 17:38:44 2024 -0300
+
+    fixed wrong font colors in presets tab
+
+commit e042c9e57df4a353909bb49495fecb849bd36118
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Jul 29 23:33:29 2024 -0300
+
+    new screenshots
+
+commit fee4c9e1ddd5dc69f91f51b97c19fb6fbdf4fc54
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Jul 29 23:30:49 2024 -0300
+
+    update screenshots
+
+commit b750d4569baa0b7d39952e072a04c57a04e457b6
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Jul 28 16:02:42 2024 -0300
+
+    implement notification for loading custom user preset
+
+commit b9ff9834e72c59c6d443360f43e2c3a3d2d46ed9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Jul 28 15:55:55 2024 -0300
+
+    implement load custom config
+
+commit 452cb8f75e628579bdc239a29d78c8a2b8132781
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Jul 27 23:17:53 2024 -0300
+
+    implement save custom config
+
+commit 7faaa4505be066d503385c558848898d927c10ec
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Jul 27 22:13:09 2024 -0300
+
+    offset value is saved as comment in .cfg
+
+commit 04ff7cc1bfd65a0c7dcdd836e6ecb0a6ccf2a27b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Jul 27 00:13:09 2024 -0300
+
+    implement negative offet for fps values
+
+commit de2124f2e81cae6d1befe4b1c87a66b8659924fd
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jul 26 23:09:44 2024 -0300
+
+    implement network option
+
+commit 0be060df17134e2ef33590e58150c89faf4f30c1
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 23:52:38 2024 -0300
+
+    reimplemented fix for intel power not working
+
+commit 39e82de67553f17431229160ac9717d2aef2c3a2
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 23:09:55 2024 -0300
+
+    Set preset tab as initial tab
+
+commit 49f2880fe4fa9e36f3c3c6131f6f7096792d7079
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 22:56:53 2024 -0300
+
+    Align preset button labels
+
+commit accab26e92b9424e2a6d21e0ef9e96c93c2c12f6
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 22:53:54 2024 -0300
+
+    Created icons for preset buttons
+
+commit 6521df5178f001bf5fea0e6b71c243b4d5718597
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 00:28:24 2024 -0300
+
+    button aligment in presets tab
+
+commit e67c8d0c6d25290a215109c5f39a7563f2cac471
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 00:17:08 2024 -0300
+
+    change bitbtn colors on click
+
+commit 304b5b0442eb399e192d32e382f13af2735d5fc5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 00:10:32 2024 -0300
+
+    reorder battery percentage to match mangohud default
+
+commit 3c7f32cded021c800b0d4f8429a32015977a0951
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 25 00:03:09 2024 -0300
+
+    implement basic horizontal preset
+
+commit 41e717338ea9fabd0f2eb601bf8401c29cd0077d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 24 23:52:11 2024 -0300
+
+    implement basic preset
+
+commit 342f829c250dc290e6dfc5166fe09b6bb8e8880d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 24 23:36:10 2024 -0300
+
+    implement presets full and fps only
+
+commit 7ba9d1ceefaa522d55cc90faa309097bd055123b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 24 17:36:08 2024 -0300
+
+    initial work on presets screen
+
+commit 7b5a5af7e10224e8f7fb90c3347005f7f3617cf0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Jul 23 11:06:36 2024 -0300
+
+    add vulkan present mode option
+
+commit 7525587cb527bdb9107828db7663ed72b911c736
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Jul 23 10:47:53 2024 -0300
+
+    add option hud_compact
+
+commit 2aa3c37b9a557cd9f4897b35a543efe44809e453
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Jul 23 10:34:23 2024 -0300
+
+    Force icons for device_battery
+
+commit 93cce25a1230c9a036f12de4a44bba6885431d95
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Jul 23 10:27:57 2024 -0300
+
+    added missing arguments for device_battery
+
+commit d5f855301afda6c86737051e8e156810e61a4c02
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Jul 23 10:06:14 2024 -0300
+
+    winesync repositioned
+
+commit fb37c23c4cd852a5149a7e60c44e6d543c9393c0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Jul 23 09:58:31 2024 -0300
+
+    fixed time option always checked
+
+commit 234353ff7c3bae36f46ef713044cae73b9e8cc16
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 13:33:58 2024 -0300
+
+    add wine sync option
+
+commit 679d93e506ec900aca3bb3d11615c3a0b16ec9b8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 13:14:29 2024 -0300
+
+    add Fahrenheit temperature unit option
+
+commit 4d9e7a0d5427e93945440de88e18ecb80151c8a9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 12:52:14 2024 -0300
+
+    small fixes in hint texts
+
+commit e0cc4d21627d80623405ce4a40a040a231a6792e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 12:41:39 2024 -0300
+
+    Update README.md
+    
+    update mesa-demos url
+
+commit c4d29e8b646b9edc99e72bde4e67b6ba42d3bffc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 12:39:12 2024 -0300
+
+    fix invalid string engine for engine_version
+
+commit 122cb5e21588fd6d9391aa0a572ed62cce2c2ade
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 11:22:38 2024 -0300
+
+    Add none option to logging and fps toggles
+
+commit c04f14d76ca66354337911e7c262223b26c5ea73
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 11:14:20 2024 -0300
+
+    fix loading hud toggles
+
+commit 6e505c2d75a094344d1e1439cc5c8ca2efa8e16f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 17 10:16:31 2024 -0300
+
+    add none option to hud toggle
+
+commit 4cd2c3fcab84ed9e89e65a43140a8e997a667159
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri May 31 15:30:38 2024 -0300
+
+    push new icon for 0.1% low
+
+commit cdc5a3759b3cb62848106143e37175758041c1b2
+Merge: 66f9f08 6cfcfb8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri May 31 15:24:40 2024 -0300
+
+    Merge branch 'main' of github.com:benjamimgois/goverlay
+
+commit 66f9f08f747fe79be76c64c62a3fa9709eb65d0a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri May 31 15:23:54 2024 -0300
+
+    Implemented FPS avg 1% and 0.1%
+
+commit 6cfcfb87d991b37ac36420fd95ea9662e2864041
+Merge: cf78a52 cf7bff4
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon May 13 08:36:27 2024 -0300
+
+    Merge pull request #110 from BondarenkoArtur/patch-1
+    
+    Update README.md
+
+commit cf7bff49eefe5c0fcce35cc4dc6c79df01b9d2e4
+Author: Artur Bondarenko <ua.bondarenko.artur@gmail.com>
+Date:   Sat May 11 01:01:09 2024 -0400
+
+    Update README.md
+    
+    Fixed issue with command. In Releases we have .tar.xz files
+
+commit cf78a5291f7a3640be116b501e31212315cd429f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Apr 30 13:32:14 2024 -0300
+
+    Update README.md
+    
+    Update ubuntu instructions
+
+commit fe92dcc80f6ccdb3877dae8feea7b3d92e073b0e
+Merge: f586546 456fc8d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Apr 27 16:48:34 2024 -0300
+
+    Merge branch 'main' of github.com:benjamimgois/goverlay
+
+commit f58654656fbdb59e1ae91d21db1ff706f1f7b693
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Apr 27 16:46:40 2024 -0300
+
+    Fix GPU and CPU colors not working
+
+commit 456fc8dd506c2d9980beff442c2daf03bc3f45a7
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Mar 25 22:34:39 2024 -0300
+
+    Update README.md
+
+commit 3ff607448349e83c55b796ec637c359a53a74c53
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Mar 24 18:29:35 2024 -0300
+
+    update version to 1.1.1 to avoid problems in future versions
+
+commit 608c32b71eba59885cef30d9c53fedfb25ef0a2b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Mar 24 15:00:54 2024 -0300
+
+    update version to 1.10
+
+commit 0bfaa9a45274f468466aae6ebbe54ffab1c21de2
+Merge: 813a588 576523a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Mar 24 14:52:50 2024 -0300
+
+    Merge pull request #104 from Antiz96/main
+    
+    FIX: Update dependencies definition to QT6
+
+commit 576523a555239854096ffe1d584847521fba6f1c
+Merge: f99a2c1 813a588
+Author: Robin Candau <53110319+Antiz96@users.noreply.github.com>
+Date:   Sun Mar 24 17:52:28 2024 +0000
+
+    Merge branch 'main' into main
+
+commit 813a58815950b6cf8b6e07270a53fd0eb1583a1a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Mar 24 14:28:53 2024 -0300
+
+    update qt6pas url
+
+commit f99a2c1b5640491d1de247e01de0570fcdcdb869
+Author: Robin Candau <robincandau@protonmail.com>
+Date:   Sun Mar 24 10:24:42 2024 +0100
+
+    FIX: Update dependencies definition to QT6
+
+commit 5c485bb4c13eeadfbcca30ed7b210a88e93459f8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 23 22:40:38 2024 -0300
+
+    Update README.md
+    
+    new screenshots
+
+commit 5bd2fcb30b37a2a7e05d897b33b4474bfaacff3d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 23 22:31:29 2024 -0300
+
+    Update README.md
+    
+    add new installation tips
+
+commit 6a88c349163fa94b4682ad94175ca0b86e0e944f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 23 22:06:32 2024 -0300
+
+    Update app logo and centralize main app window
+
+commit dd0a1ca3ca22a1952b0662f48f5ee0b9852051f7
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 23 16:48:01 2024 -0300
+
+    Disable AF and Mipmap if value is 0
+
+commit fae1455752dc99ef3d0fe339525d8eeffdc6144b
+Merge: 5b51fa4 021642e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 23 15:58:10 2024 -0300
+
+    Merge branch 'main' of github.com:benjamimgois/goverlay
+    merging new icons
+
+commit 5b51fa4ab159ddcb9738eb4686a12f89beb53b0f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 23 15:56:14 2024 -0300
+
+    interface color ajustments for light themes
+
+commit 021642ed447439ffe09b2b38d32e3983167b51f7
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 22:46:42 2024 -0300
+
+    Update io.github.benjamimgois.goverlay.desktop
+
+commit d5f6066ca73b3c18f7846f2f9e04977d787e9eaa
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 22:45:09 2024 -0300
+
+    Add files via upload
+    
+    new 128x128 icon
+
+commit 61b77e2f4972061b5b31d7b0d642e310fadfbdda
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 22:44:26 2024 -0300
+
+    Add files via upload
+    
+    new 256x256 icon
+
+commit bdbf3f54d7d24740f5d131d8d0e76dc799aa4f5f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 22:43:55 2024 -0300
+
+    Add files via upload
+    
+    new 512x512 icon
+
+commit e0aa5dad9b2097f36436d6a0159a0abf9574dd5f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 22:36:27 2024 -0300
+
+    implemented method to restore pcidev option
+
+commit dd41ef4e82b317db59901dbb36f37f290a466355
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 21:33:23 2024 -0300
+
+    fix checkbox inverted sides in latest lazarus 3.2
+
+commit 540a78b192b9978dbef945b346d3c8543f5814d3
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 20 21:15:21 2024 -0300
+
+    fix change fps color not loading config
+
+commit 9434c3e3f3f29a00e710b75f62e49c8ff768421f
+Merge: 8e421e4 d3b09b5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Feb 13 16:36:50 2024 -0300
+
+    Merge pull request #92 from CatEricka/patch-1
+    
+    Fix `toggle_logging` config string
+
+commit d3b09b56c1557a35cae1312b50ed11e1bcf1010f
+Author: Cat Ericka <32029431+CatEricka@users.noreply.github.com>
+Date:   Sun Feb 11 16:09:34 2024 +0800
+
+    Fix `toggle_logging` config string
+
+commit 8e421e450560b0399c183f0d8e7f841dd9c226db
+Merge: 4e23aab b70a54b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Feb 3 09:18:18 2024 -0300
+
+    Merge pull request #91 from GloriousEggroll/gpu_model_fixup
+    
+    Fix broken gpu model checkbox.
+
+commit b70a54b8f0d0159777e37102dba90b258e8dc971
+Author: GloriousEggroll <gloriouseggroll@gmail.com>
+Date:   Sat Feb 3 01:58:27 2024 -0700
+
+    Fix broken gpu model checkbox.
+    
+    I checked mangohud to verifu gpu_name was working when added manually.
+    I then checked the code here and found the gpu model checkbox had
+    incorrect value set (GPUTHRG) so it wasn't working. This correctly
+    sets it to GPUMODEL
+
+commit 4e23aabdde5c4bf5dbb4a561c6506c22dcc10c4b
+Merge: fc654d0 e7f8439
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Jan 29 13:19:48 2024 -0300
+
+    Merge pull request #90 from TheWyn/patch-1
+    
+    About Window: Wording
+
+commit e7f84393e95dccaf8d639e2a06a994a53fcc7469
+Author: Wyn <841141+TheWyn@users.noreply.github.com>
+Date:   Sat Jan 27 14:59:55 2024 -0500
+
+    About Window: Wording
+    
+    Heavy lifting, not heavy lighting
+
+commit fc654d033847a3280ac3a1eb7945f64789b8fc54
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 15 11:41:48 2023 -0300
+
+    Update README.md
+    
+    Update Arch instructions
+
+commit 8453556f1751e385b0b2cdbd36afb0212370f566
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Dec 12 23:03:47 2023 -0300
+
+    some code clean up for release
+
+commit 9f40162232bfc4d8004d6e685f2f42278c5cd12c
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Dec 12 23:00:14 2023 -0300
+
+    Replace function writeconfig to writecheckbox everywhere
+
+commit 98760976a440a2e74f8b6f2d8f4e8e0d329f859d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Dec 12 22:38:00 2023 -0300
+
+    Replace function writeconfig to writecheckbox config in GPU and CPU options
+
+commit 0e2b4bd2244cca532153f8963027201e4aa1d379
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Dec 12 22:30:51 2023 -0300
+
+    Implemented new procedure to save checkboxes
+
+commit 3af65f0aabcdc41fdc54cf254be9172b2f2a4d34
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Dec 10 23:29:56 2023 -0300
+
+    fixes in columns initial values
+
+commit aace9ee0b0221f28ccba28beac2e5ea4e3bd8548
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Dec 10 23:19:06 2023 -0300
+
+    avoid saving color info if element isnt checked
+
+commit d49bf728c881e3e38a9c7488473450c51d125378
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Dec 10 16:05:54 2023 -0300
+
+    implemented load config for frametime type bitbtn
+
+commit 6f516b6278777840a9ef5002ca79bf9e2b1ff0da
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 9 23:17:33 2023 -0300
+
+    implemented load config for fps limit and columns table
+
+commit d1643aa11a9c5da4d9c55a667ec52a16cfc41e38
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 8 15:14:32 2023 -0300
+
+    implemented load config for filters radiogroup
+
+commit b99978000ffd83b1560f3b250a7e105a21800960
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 8 15:04:23 2023 -0300
+
+    implemented load config for system checkbox in extras tab
+
+commit 3481ae512f9c21e3535ce6c57eff027c55894b59
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 6 23:13:21 2023 -0300
+
+    implemented load config for system checkbox in extra tab
+
+commit f53c95c1fd69604639c507de182228f825a91abc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 6 22:58:40 2023 -0300
+
+    implemented load config for checkbox in metrics tab
+
+commit 698207c73ccee362448d99ecae12e77aa11d1cfc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Dec 5 22:55:42 2023 -0300
+
+    implemented load config for checkbox in visual and performance tab
+
+commit e30ecb5aa63ed0c66f8a4cc208132aa0e35ebcdc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Dec 4 22:59:28 2023 -0300
+
+    implemented load config for performancetab comboboxes
+
+commit 499e938c8e5e92e6ef369ef11d71c16e49e0b19e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Dec 4 22:44:58 2023 -0300
+
+    fixed error in variable for fps lim method
+
+commit 421334c3f685588c5486da9892d88defdf8786b5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Dec 4 22:28:48 2023 -0300
+
+    implemented load config of all radio buttons
+
+commit aa1ba354b16a9b148f6da75bbd7a4016c5ed1d13
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Dec 4 22:07:02 2023 -0300
+
+    implemented load config of all trackbars
+
+commit 9265691214000a4ce19d33fce6bf7bc3244afc75
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Dec 4 21:41:03 2023 -0300
+
+    implemented load config for all Edits
+
+commit e2ebd0cfd181ec25088ed3104d7966517b3022f9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Dec 4 21:25:10 2023 -0300
+
+    implemented load config for all color buttons
+
+commit 6f779c2c4089cb0652d6792b3163f031c2eb68e1
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Dec 3 22:58:43 2023 -0300
+
+    created new functions to load config and colors convertion
+
+commit 1d207aaaf915d3cb478a534e8e99f6e4bedb2831
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 2 23:38:05 2023 -0300
+
+    another step to read mangohud.conf
+
+commit fdef38d5c8b82b671a371de3b41212c090d0736a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 2 17:19:19 2023 -0300
+
+    initial implementation to read mangohud.conf
+
+commit 4da5166c161c3017e3e475531bcb96dd333dcbac
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 2 15:14:04 2023 -0300
+
+    fixed system fonts folder
+
+commit 3d8c67856d881e8ad1c8247bf2062dc947bc80a7
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 2 14:34:09 2023 -0300
+
+    Fixes in custom command and logging UI
+
+commit c2f02c9163bd865b4fd52ca52ad4fc818f768d42
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 2 13:43:20 2023 -0300
+
+    implement autoupload logs
+
+commit 2ae6bd20a39e9eb6abc6a8df60716248e0a12f97
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Dec 2 13:40:29 2023 -0300
+
+    implement log versioning
+
+commit df345ba9ae9e2a719056c0f379450ff61b5d233d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 30 23:51:43 2023 -0300
+
+    implement logging toggle
+
+commit 508874aeb4b1a32b956f79b4838e9986c514fb63
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 30 23:44:56 2023 -0300
+
+    implement logging duration, autostart and interval
+
+commit 35f5551e5ccf28b9befbe17612c8aef6306f62ff
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 30 23:29:42 2023 -0300
+
+    implement output folder for logging
+
+commit 9fe55b04fa811c6651641da7bd1165d62da18123
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 28 23:33:05 2023 -0300
+
+    New logging GUI and initial implementation
+
+commit 5f4a047d75861b4b13b218c99e155204844009e1
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 28 21:54:28 2023 -0300
+
+    Inverted fps numbers so higher values comes first
+
+commit 0e0a78fb3f52ecc541fdbff8f34387f051a0f2f9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 27 23:24:48 2023 -0300
+
+    added icons for extras tab
+
+commit bed32d81f9a243ff02bbe8316291e10e71f3af18
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 27 23:13:19 2023 -0300
+
+    UI ajustments in System information
+
+commit 1c9e1672cb2b97ec92446a794a8e14c5da791ca5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 27 22:42:20 2023 -0300
+
+    implemented media player and custom cmd
+
+commit 78636f2a04d84f53bf3d8d89b26b76dc697b72a2
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 21:35:33 2023 -0300
+
+    implemented Battery time and devices bat
+
+commit 03da5a98f932dad6706471798211f058ec937605
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 21:26:18 2023 -0300
+
+    implemented Battery percent and wattage
+
+commit 9dfeb812222aa8d295b828971581d1a26c8bdb03
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 21:11:08 2023 -0300
+
+    implemented Refresh rate status
+
+commit e7f8b010c22f91cb468e0f603a7e4d786aeb05cb
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 21:03:57 2023 -0300
+
+    implemented HDR status
+
+commit 174dff5191e2aac91bccfbe2d946fd34b8eb499e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 20:54:39 2023 -0300
+
+    implemented FCAT
+
+commit 56a289c37958731aed94facf9ce9ea4ba105e45b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 20:50:27 2023 -0300
+
+    implemented vkbasalt status
+
+commit 73351a16eb4269dc11d17f9462b433aba62e9896
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 14:50:15 2023 -0300
+
+    implemented gamemode status
+
+commit cb5492717308ef76bf7a71939401cacf1ad6c001
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 14:46:54 2023 -0300
+
+    implemented hud version
+
+commit b8ad32a97ce8ed0e1aa0de9836a95ebe94e1bdbb
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 14:39:17 2023 -0300
+
+    implemented Engine short names
+
+commit 794c7444f46655cef382cfafd9628ef213dfa846
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 00:22:37 2023 -0300
+
+    reimplemented engine version and color
+
+commit f9082499c67b05714f8c2351bb1593cad959d9f6
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 00:19:16 2023 -0300
+
+    reimplemented wine and winecolor
+
+commit 9b7d688bb5069194ebd3ed13f4e8718aafc7ef4a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 00:05:50 2023 -0300
+
+    reimplemented time info
+
+commit 7b009b3b52a438fc638ebd6c94b52dbdd576e153
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 26 00:01:19 2023 -0300
+
+    reimplemented session info
+
+commit aecdc4faed4e93e4b967920d813ac135e410db8b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 25 23:51:03 2023 -0300
+
+    reimplemented resolution info
+
+commit 0e75d3526cd8e8b5bd9c406a7f71c0b96e60465f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 25 23:48:03 2023 -0300
+
+    reimplemented Arch info
+
+commit 6bd8a74eae671a2f8233adc57f23b216ccaea601
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 25 23:39:53 2023 -0300
+
+    Implemented Distro info
+
+commit ab34a2182bb865286e23b7f3fa2d1e49f6998891
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 25 18:10:02 2023 -0300
+
+    Implemented Table columns
+
+commit 56ed082f3dc62bae182405b8d889f496559eedc3
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 24 00:22:10 2023 -0300
+
+    implemented UI elements for Table columns
+
+commit 390c4e3c91d0ad50baa3ddf07e55c0a1c80d1f94
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 23 22:34:59 2023 -0300
+
+    implemented AF and Mipmap filters
+
+commit 1defd8296dc8923ae84868914c2779bb11b38217
+Merge: 89de823 055ad11
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 23 21:59:38 2023 -0300
+
+    Merge branch 'main' of github.com:benjamimgois/goverlay
+    Mergin README changes
+
+commit 89de8239b0c0ee6388143896cfc9f65d38449305
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 23 21:55:56 2023 -0300
+
+    implemented Filters
+
+commit 055ad112a2deb896bea2e4af45d1fbada63648bc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 23 21:43:57 2023 -0300
+
+    Update README.md
+    
+    Remove goverlay-bin references
+
+commit da18d80b36b06fa1ad447a355301d8a6436664a8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 21 23:40:20 2023 -0300
+
+    UI fixes and alignment in Performance tab
+
+commit 45ea991a998f6d9a4a3f8f29788c11173f9dd04b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 21 23:23:12 2023 -0300
+
+    Reimplemented vulkan vsync and gl vsync
+
+commit 386693c29df7d4f3ef1d81e32e851a01d7b9cc43
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 21 00:07:27 2023 -0300
+
+    implemented FPS color change
+
+commit d8e8e9e3a0a2d7c0127231c63b8ec355a1e2316b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 19 23:59:12 2023 -0300
+
+    implemented FPS limit method and FPS toggle key
+
+commit d0f50e16ea1f60c2d593ea646ecb71f6f6017471
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 19 23:12:11 2023 -0300
+
+    reimplemented FPS limit as a Checkgroup
+
+commit f8533786f40babf04cb78d73672ff4ed7d580dae
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 18 23:12:50 2023 -0300
+
+    reimplemented Histogram for frametime info
+
+commit 0fded7ac8b06dddbd827829dde37acacef8fd7e9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 18 23:03:22 2023 -0300
+
+    reimplemented Show fps limit, count frames and Frame time color
+
+commit acdce27244a573eb1dccdd889eb20abebdee4e89
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 18 00:47:53 2023 -0300
+
+    reimplemented show Frame timing
+
+commit c4629d9c43f9c900678a26344f7cecb7fdae0f6d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 18 00:43:08 2023 -0300
+
+    reimplemented show FPS function
+
+commit 948e1c1a48167f70bc9d9cc3a6c2f0207ecef3f0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 17 23:20:53 2023 -0300
+
+    New style for coreloattype button
+
+commit 593d4f84545617d440ffe1d9ede15c196453a35b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 17 00:23:44 2023 -0300
+
+    Replace another deprecated runcommand for TProcess
+
+commit d6ff1beb5ebe74b9940cc45ef4481d8478d421b6
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 16 23:54:13 2023 -0300
+
+    Replace deprecated runcommands for TProcess
+
+commit 0868bcd2f7303dd74467bbb119d185699a856b31
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 16 23:21:47 2023 -0300
+
+    Reimplementation of Global enable
+
+commit 20b12a943fb54a532500879a567acf91a3c2788e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 15 22:18:43 2023 -0300
+
+    Ajustments on metrics tab
+
+commit 8c1dd68d53420b1460aa8019f7b2248b716ca706
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 13 23:47:39 2023 -0300
+
+    Reimplemented VRAM Color
+
+commit 2f6e671399c28186ad3396f78660459999f2567d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 13 23:39:56 2023 -0300
+
+    Reimplemented Load Colors, SWAP , diskio and process
+
+commit 07f7343cbf8279e992b581f64d0674972fe4b8a8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 13 22:52:36 2023 -0300
+
+    Reimplemented RAM and cpu temp
+
+commit 7a5b08d8e3e4b5718813340341987b261a3ce582
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 13 22:42:43 2023 -0300
+
+    Replace Radiobutton events for a single procedure
+
+commit 4ee89cfc94321129557cf57e7fc25a63bcdacfe5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 13 22:20:05 2023 -0300
+
+    Replace checkbox eventos for a single procedure
+
+commit f6603d02744ebdda04c05937a2c92292d57f7f41
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 11 00:36:42 2023 -0300
+
+    reimplemented CPU core Frequency
+
+commit 596c0a9e583e358e80fc83af6567b871695adf14
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 11 00:31:14 2023 -0300
+
+    reimplemented CPU Load color
+
+commit 8149fdec2b25066d750a9d1e862eab14ad483b92
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 11 00:20:34 2023 -0300
+
+    implemented CPU Load by core TYPE
+
+commit 4cb06cbc711fbc871db75ca38ed2b05ee9fbb142
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 10 23:20:55 2023 -0300
+
+    reimplemented CPU Load by core
+
+commit b34077c2ad57f42d00401e125f539fe0f29e61c7
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 9 23:17:22 2023 -0300
+
+    code cleanup
+
+commit 237ed5a6a1a6888349003ee80f965e54d8bbc776
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 9 23:12:00 2023 -0300
+
+    created new to procedure to save files
+
+commit 8bc9214d6a5a960d61abf7d53aec7d29952b2895
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 9 22:04:52 2023 -0300
+
+    reimplemented CPUTEXT and CPU Load
+
+commit 4a7c13b184413ed0415677325eab84098e68150f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Nov 9 00:06:06 2023 -0300
+
+    aligment of elements in GPU Metrics
+
+commit 7735f93f7bb8e26088da4264e23106c750f783aa
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 23:43:52 2023 -0300
+
+    UI changes in GPU Metrics
+
+commit dd2d833ffda06cc33d0f27a3dc7dc8f3437bdd15
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 23:13:22 2023 -0300
+
+    reimplemented GPU TEXT
+
+commit d7fd54b77e1a956406076763fccd9c82d0b94383
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 23:07:24 2023 -0300
+
+    implemented GPU VOLTAGE
+
+commit feb733f27e8de9ad76f0c7c8d59eb1459b433100
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 23:03:24 2023 -0300
+
+    reimplemented Vulkan Driver
+
+commit b053dc76d6dc0ee514b6b311a7756518e60ea047
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 22:56:04 2023 -0300
+
+    reimplemented GPU MODEL
+
+commit ba39e2cd2c8616a0b7a388e595c0d2884dc98cf4
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 22:50:05 2023 -0300
+
+    implemented throttling GRAPH
+
+commit faf508a1cdc66521aa9601e886b748813a124551
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 22:41:43 2023 -0300
+
+    reimplemented mem, junction, fan, Power and throttling functions
+
+commit fd6337d476dca7e3439a885a3a7421dbaa34bc0d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 8 22:16:52 2023 -0300
+
+    reimplemented GPU temperature
+
+commit 2fe65c724663f57c013cbe92c402778eebd36a87
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 23:46:36 2023 -0300
+
+    reimplemented GPU MEM Frequencies
+
+commit 285fdadbba5111261f8b07b568962e6dd8b4d368
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 23:43:57 2023 -0300
+
+    reimplemented GPU CORE Frequencies
+
+commit a548915995cb7a2e1898bf5ea07936d08658e932
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 23:39:43 2023 -0300
+
+    reimplemented GPU LOAD COLORs and VRAM usage
+
+commit e4554448ec452ece1f54de0b19246a2bfa555b00
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 23:28:22 2023 -0300
+
+    reimplemented GPU AVG LOAD
+
+commit fff2396d4dcd07068b5c385bebeff61b2957ab97
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 22:53:51 2023 -0300
+
+    UI fixes and exception treatment for GPU selection
+
+commit 873fc72143b46e8933b47a080a48b7615a95bc2a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 22:33:13 2023 -0300
+
+    reimplementation of pcidevices enumeration
+
+commit 6051d2cfe55a6d5e68fa5d7d3fc820581a1ba17a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 6 00:00:04 2023 -0300
+
+    initial reimplementation of pcidevices enumeration
+
+commit 76f43b3e999267fb823087abf1ba74f03d21a852
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 5 22:32:23 2023 -0300
+
+    Interface ajustments in Visual tab
+
+commit a4dddc6feaa7d9f2374d94db42b8b4437431ab95
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 5 01:05:12 2023 -0300
+
+    reimplementation of hidehud byt default
+
+commit bf979f813e9f6e19bc927e1dea982e8d3e544b66
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Nov 5 00:56:29 2023 -0300
+
+    reimplementation using system fonts
+
+commit 0619b9713db91baf92340bfb9b3a4862c3453cba
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Nov 4 22:14:29 2023 -0300
+
+    reimplementation of hud toggle key
+
+commit 52f0918d6f591cab199d14d8447f8a55b3810ffe
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 16:21:31 2023 -0300
+
+    new image for position groupbox
+
+commit f936d022821286f4585e6eff60b6bebabe0dc964
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 15:22:32 2023 -0300
+
+    reimplementation of hud position and new radiobuttons
+
+commit 9f482bc3b7690ad14bb1c78de88d40d318a61ca0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 14:56:17 2023 -0300
+
+    reimplementation of font_color and new font size trackbar
+
+commit f04f3f3175b986a4e337ddf5c1a9d63800364791
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 11:02:36 2023 -0300
+
+    reimplementation o color convertion and background_color
+
+commit 59f853621438041e63fd1a5582d3d261ce22ff3a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 09:59:52 2023 -0300
+
+    add legacy_layout and reimplement hudtitle
+
+commit 5a77363493c2a61ab7dbdeba0567946b74a5c420
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 00:48:14 2023 -0300
+
+    UI changes in about form
+
+commit d8e3e6f297ba26421761c97f86b6cb3f882f54f9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 00:34:28 2023 -0300
+
+    reimplemented hud alpha transparency
+
+commit d1f0d8637b4669dd758bf84c3237a4d5043158fa
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Nov 3 00:05:56 2023 -0300
+
+    reimplemented orientation and borders
+
+commit b8b0daa7276f1ce106d20630ca7682aff6d8a453
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 1 23:36:51 2023 -0300
+
+    UI changes for goverlay 1.0
+
+commit 9b8ae9f30997327855169db176ed9cb2fe0c9aee
+Merge: 9f80288 ecc656d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Oct 30 13:17:25 2023 -0300
+
+    Merge pull request #76 from Antiz96/arch-package
+    
+    Update installation instructions for Arch
+
+commit ecc656db6deae6493eb78abdf61d79ab83ca0de1
+Author: Robin Candau <robincandau@protonmail.com>
+Date:   Mon Oct 30 17:00:51 2023 +0100
+
+    Update installation instructions for Arch
+    
+    Goverlay is now in the [official Arch [extra] repository](https://archlinux.org/packages/extra/x86_64/goverlay/).
+    
+    This PR aims to update the `Arch / Manjaro / Other Arch derivatives` installation instructions accordingly.
+    I used the same wording as the Fedora instructions.
+    
+    I remain available if needed :)
+
+commit 9f802881a797d358e4a382e5e02d66f9a1ae54b5
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jun 15 23:27:07 2023 -0300
+
+    Update README.md
+
+commit 0efc8c820b6d2aa4e8f0f4c4fe30e86a6cd18697
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jun 15 23:26:46 2023 -0300
+
+    Update io.github.benjamimgois.goverlay.metainfo.xml
+
+commit add2c5d6695f74dd27b1fc85323eea59e732eb82
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jun 15 23:25:54 2023 -0300
+
+    Update goverlay.sh.in
+    
+    testing for 0.9.2
+
+commit 48c909a33dcf5c89608386eecb811583c92c9b07
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jun 15 23:24:04 2023 -0300
+
+    initial testing in 0.9.2
+
+commit be1867a5ffbeb0728d57211693bde6308d459413
+Merge: f6f4eb0 c8d0b61
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Jan 22 14:32:08 2023 -0300
+
+    Merge pull request #42 from benjamimgois/p-man-typo
+    
+    man: fix typo
+
+commit c8d0b61cf6e09a7301c1e1e734870234aa755f12
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Sun Jan 22 15:23:37 2023 +0100
+
+    man: fix typo
+
+commit f6f4eb001b9598eecca3e76e45d589ec7bcc324f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 21 18:24:47 2022 -0300
+
+    0.9.1
+    
+    Final code fixes
+
+commit 2eb8c8bd430fc794005734fe2b9ba1e1fc35e05e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 16 17:49:40 2022 -0300
+
+    pcidev save config fix
+
+commit 5b14f956c4c826a219fa2e6068b704ab8c899bc8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 16 17:46:44 2022 -0300
+
+    pcidev save config
+
+commit 13c6859d55a0ef1f5dd69b2bab4d0103d68d8508
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 14 18:06:56 2022 -0300
+
+    fix pcidev var name and remove unused items
+
+commit a340bc44b36349736652082d5a8b96032e6b7385
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Dec 13 22:08:22 2022 -0300
+
+    Fix hudbackground error and pcidev implementation
+
+commit ee6f39c5b129f67caef6b67e42ef39f207383118
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 9 09:33:49 2022 -0300
+
+    remove hudbackground form
+
+commit be315773d8a331a83f2cb7413435495b334d862a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Dec 9 09:33:37 2022 -0300
+
+    remove hudbackground form
+
+commit f4dcb4685334507ed3b926d5a6327819e3d4ca3a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Dec 8 21:00:47 2022 -0300
+
+    fix compilation error
+
+commit 758c25e5068a6390b0fc97f350a070e06cc8673d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Dec 8 15:35:01 2022 -0300
+
+    Disabled LCL scalling and script for GPU detection
+
+commit d0c9768b35990748fd928c1e788808a451e6837b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 30 22:50:54 2022 -0300
+
+    More Interface fixes
+    
+    Added field for pci_dev on performance
+
+commit 59cfee8f757e2dacf68d42676d4494503d008a55
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 30 17:35:19 2022 -0300
+
+    Font size ajustments
+
+commit 9b6cbf2c6d97beb37a6c726670fa126f6483cdb2
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 30 12:17:55 2022 -0300
+
+    Orientation fixes and GLcube changes
+
+commit 2e5abe171892fdc7cc74bcda47f8049ca5b7815c
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 29 09:45:29 2022 -0300
+
+    mods to lazarus enviroment files
+
+commit 651cb98ae5a5d293395128ffb68cdf1fd738925d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 29 09:28:50 2022 -0300
+
+    Add files via upload
+
+commit c4f73af66760643a9bbdb3ef719bd2a54e90c729
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 28 23:42:27 2022 -0300
+
+    Added NVME temperature option and opengl widemode
+
+commit 1ab728dd216baed6262fec03b677c4933d272cf0
+Merge: 5e19638 a29420e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Aug 12 16:52:05 2022 -0300
+
+    Merge pull request #15 from GloriousEggroll/write_to_file_again
+    
+    revert to writing os and version to separate file and just having man…
+
+commit a29420efa191b798a295d0d0f1a679e31e115a9a
+Author: Thomas Crider <gloriouseggroll@gmail.com>
+Date:   Fri Aug 12 13:08:17 2022 -0600
+
+    revert to writing os and version to separate file and just having mangohud read it
+    
+    The latest steam runtime implemented their own os-release and lsb_release information,
+    so now it just says 'Steam Runtime' for the distro. When using lsb-release it just
+    comes out blank. This reverts one change so that the os and version are written to separate files,
+    this way mangohud just reads the already existing custom files instead of pulling them
+    from Valve's runtime.
+    
+    Signed-off-by: Thomas Crider <gloriouseggroll@gmail.com>
+
+commit 5e196387f8edd6d395f40e9928c6de5c9e02a5e7
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Aug 8 16:05:47 2022 -0300
+
+    Update images
+
+commit f087773de6a403902745c2c59d6de3826983d062
+Merge: 482ed97 4c79417
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Aug 7 22:22:14 2022 -0300
+
+    Merge pull request #13 from GloriousEggroll/exec_options_cleanup
+    
+    Avoid printing output to a separate file for distro/version/kernel/se…
+
+commit 482ed9724d8a03eeefc6c1d8463ff2ff4bf9e74b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Aug 7 22:21:02 2022 -0300
+
+    Update ubuntu instructions and Theme compatibility
+
+commit 4c79417230413b89e5a7b374c035adb520aa3d98
+Author: Thomas Crider <gloriouseggroll@gmail.com>
+Date:   Sun Aug 7 15:13:35 2022 -0600
+
+    Avoid printing output to a separate file for distro/version/kernel/session + condense code/cleanup
+
+commit 1ae883ce65c1b69d6e359e50ba00462603c937d8
+Merge: 7c893a5 6d384f8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Aug 2 00:19:14 2022 -0300
+
+    Merge pull request #9 from GloriousEggroll/os-release-fixup
+    
+    Check for BUILD_ID if VERSION_ID doesn't exist in os-release, fallbac…
+
+commit 6d384f8f2e332e99b45ffc541754cf4f2625bbe7
+Author: Thomas Crider <gloriouseggroll@gmail.com>
+Date:   Mon Aug 1 19:27:44 2022 -0600
+
+    Check for BUILD_ID if VERSION_ID doesn't exist in os-release, fallback to 'rolling'
+
+commit 7c893a5dfe2c3f464b281523cb8bdddd284db458
+Merge: 358b68a 88d78ab
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Aug 1 14:43:20 2022 -0300
+
+    Merge pull request #7 from GloriousEggroll/remove_lsb-release_dependency
+    
+    Read from the os-release file instead of using lsb-release so that go…
+
+commit 88d78ab0eeef71a9488242e754d745c771318614
+Author: Thomas Crider <gloriouseggroll@gmail.com>
+Date:   Sun Jul 31 14:19:36 2022 -0600
+
+    Read from the os-release file instead of using lsb-release so that goverlay does not require lsb-release
+
+commit 358b68ac26bbfcb4729d3ba7df55617f4789d724
+Merge: c569f56 899d385
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 21 09:37:10 2022 -0300
+
+    Merge pull request #2 from stephanlachnit/p-add-possibility-to-execute-with-style-option
+    
+    Add possibility to execute with style option
+
+commit 899d385ee974146f2358b1dda5f42ca5a89d570c
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Thu Jul 21 13:50:30 2022 +0200
+
+    Add possibility to execute with style option
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit c569f562f7f721124d79ba07198451b5634ac581
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 20 21:26:40 2022 -0300
+
+    Do not force the breeze style
+    
+    removing breeze style
+
+commit 4571b681c40e342768930ffd9b0e7bbc91367723
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 20 21:23:29 2022 -0300
+
+    0.9
+    
+    Final fixes in adwaita and light themes compatibility
+
+commit 390addb718b387f2f7e6ab6905c8da26a71d7a29
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Jul 17 23:37:41 2022 -0300
+
+    Final tests for 0.8.2
+    
+    - Change font colors do cldefault
+    - Change kernelversion method
+
+commit 3222e317ec734a09696d36a2aee81f7f7c878dc0
+Merge: 055d8a3 d469da9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Jun 6 11:57:08 2022 -0300
+
+    Merge pull request #1 from NoXPhasma/transient
+    
+    Send notifications transient
+
+commit d469da97fa8482b5611b2ead46f73c575ae6c59b
+Author: NoXPhasma <noxphasma@live.de>
+Date:   Mon Jun 6 16:51:11 2022 +0200
+
+    Send notifications transient
+
+commit 055d8a30c20ac6cf5531ac4a00544b33d5637079
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed May 18 23:18:12 2022 -0300
+
+    0.8.2 new beta
+    
+    0.8.2 new beta
+
+commit 01cabffa3361d4f5bbc0cc0954a6f4e5221ea3ae
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat May 7 00:13:26 2022 -0300
+
+    0.8.2 testing
+    
+    testing release
+
+commit e955035a21d3b04bbf157087bf525ae218bd8075
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 5 17:56:34 2022 -0300
+
+    0.8.1
+    
+    
+    NEW - New Classic mode to fix the problem of white text in white background for GTK desktops with no Breeze theme
+    NEW - New option to start steam using the Deck UI
+    NEW - Created icons for hamburguer options
+    FIX - Re-add Autostart logging feature
+    FIX - Wrong hint on log duration
+
+commit 8e8af0d49f42547cb29e91221b1f05d775807cae
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Mar 2 11:23:01 2022 -0300
+
+    0.8.1 initial release
+    
+    NEW - New Classic mode to fix the problem of white text in white background for GTK desktops with no Breeze theme
+    NEW - Created icons for hamburguer options
+    FIX - Re-add Autostart logging feature
+    FIX - Wrong hint on log duration
+
+commit c5f16b18099a586a070f9c1b839f996a38f86f87
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Feb 25 13:56:40 2022 -0300
+
+    0.8 final
+
+commit 3f6cd6e28787518f6450e5857837a7f498c24415
+Merge: abdaa51 063df82
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 23 15:08:04 2022 -0300
+
+    Merge pull request #187 from lukashoracek/improve-toggles
+    
+    Improve MangoHud & vkBasalt global toggle code
+
+commit abdaa51a72d63dec2277448e25e0703709ff3486
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Feb 21 17:53:33 2022 -0300
+
+    several fixes 21022022
+    
+    several fixes 21022022
+
+commit 063df82bd8c44f636b60ac82d99cd3c9e6fee227
+Author: Lukáš Horáček <lukas.horacek@protonmail.com>
+Date:   Sat Feb 12 10:54:26 2022 +0100
+
+    Fix MangoHud & vkBasalt /etc/environment global detection
+
+commit 595fc0f6d116d9fe1c8bdfe0dc945198d9553dcb
+Author: Lukáš Horáček <lukas.horacek@protonmail.com>
+Date:   Fri Feb 11 21:43:25 2022 +0100
+
+    Improve MangoHud & vkBasalt global toggle code
+
+commit 162f49ef6a49c9fca66e929c8aae1b7b27c89693
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Feb 11 17:17:57 2022 -0300
+
+    changes in xone_battery and theme support
+
+commit fdaedc932c561c0db3c0ed6ec5de6ed0fe836324
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 9 10:48:55 2022 -0300
+
+    implemented xone_battery xone branch
+
+commit f2e8fb551c6831dfe5e43548fab05f0ea6c276f0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sun Feb 6 21:17:14 2022 -0300
+
+    experimental xone battery status
+    
+    experimental xone battery status
+
+commit c03355c0a289798783c5f23472f96dfc77780df8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 2 18:18:47 2022 -0300
+
+    new fixes and updates
+    
+    - FIX: Global enable method of vkbasalt updated to the new one used in mangohud.  Issue #186
+    - CHANGE: Preconfigure layouts now instantly save the new options and update previews
+    - CHANGE: Now a “Config saved” message is also displayed next to the save button. It disapear on mouse enter the mangohud panel.
+    - Change layouts to Quick layouts
+    - Scratching themes support
+
+commit 04a86d89e50f7ac8b0b8da83a39ed9d82c1d026d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jan 28 14:05:39 2022 -0300
+
+    revert to lazarus 2.0.12
+
+commit e44a3350796de6e8ed52602b88bec8b072876e5a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 26 21:55:05 2022 -0300
+
+    testing lazarus new build
+
+commit b9b26a5483fe3a84ae98e86c8c02e8c7b054108f
+Merge: 3030f70 db20322
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 26 21:49:32 2022 -0300
+
+    Merge pull request #183 from gamingdoom/lazarus-link
+    
+    Fix link to Lazarus
+
+commit db203221d0077baa767d64b698cd787ee5cb83c8
+Author: gamingdoom <37276884+gamingdoom@users.noreply.github.com>
+Date:   Wed Jan 26 12:53:52 2022 -0800
+
+    Fix link to Lazarus
+
+commit 3030f70e709326b03f74a801c7b2882022e1b616
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jan 26 15:19:27 2022 -0300
+
+    small requested fixes
+    
+    - FIX: Removed the lines "exec=echo" from baterry config. It seems it were causing steam errors.  Issue #178
+    - FIX: Custom FPS field was locked to 200. Now the maximum value is 999. Issue #172
+    - FIX: Changed cpuload color 2 to a lighter orange tone: old $000078FF , new $007FAAFF
+
+commit 8985e1b8fba4327e61bbea44e1ba1f921c0ec133
+Merge: caed475 57183ce
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Dec 16 09:26:12 2021 -0300
+
+    Merge pull request #171 from stephanlachnit/p/remove-start-script
+    
+    Remove start_script.sh again
+
+commit 57183ce7c94470b844e4ea01a09e72196dcfb18b
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Thu Dec 16 11:28:39 2021 +0100
+
+    Remove start_script.sh again
+    
+    Create by either 'make' or 'make start_goverlay.sh'
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit caed4754166902f857a21d33d469a02afda6f2e6
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 15 22:16:54 2021 -0300
+
+    switch from fusion to breeze
+
+commit 976039cf390d97c6137c2fd66ba9460093f6fecc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 15 22:06:33 2021 -0300
+
+    more breeze fixes
+
+commit f900c8d50f95c294f2677bec07f9f13491a13311
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 15 14:00:09 2021 -0300
+
+    small fix for breeze website link
+
+commit 1d2c1722db6c16e6547f4e5d48f930af66234381
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 15 11:44:07 2021 -0300
+
+    switch to breeze style
+
+commit dc782ba2e1cdec256001b381a99f6d93d40a4e52
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 15 11:42:57 2021 -0300
+
+    Breeze theme ajustments
+
+commit f4e5a66ffecfd7636fa2f1f3e5c5f29297bbf250
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Dec 1 15:00:26 2021 -0300
+
+    test fix for adwaita theme
+
+commit 4f1f1cc36071af824703c6eb5dee96da4f5ebfd2
+Merge: d666ce0 d5e1367
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Nov 30 08:48:48 2021 -0300
+
+    Merge pull request #167 from stephanlachnit/p/chmod-fix
+    
+    chmod fix + tarball target
+
+commit d666ce0706d5c938f25404938b578b3d2273b914
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 29 19:46:38 2021 -0300
+
+    Add files via upload
+
+commit 237df38a62f6d0b809ed6fd1538f84a5a908d505
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 29 19:33:10 2021 -0300
+
+    revert back to fusion
+
+commit c74294f90fcf599499d0a6e6fe934927388f5f63
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 29 19:32:35 2021 -0300
+
+    revert back to fusion style
+
+commit d5e13675ecb39d64f675f6905948dfdf4983e611
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Mon Nov 29 22:35:23 2021 +0100
+
+    add tarball target
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit 19cf5e6d93ca59400485c55b7269dee130faea75
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Mon Nov 29 22:33:48 2021 +0100
+
+    start_goverlay.sh: fix permission
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit ca9def5f9e61526110a961c10204e57879fd459d
+Merge: f18ddb4 5d02c67
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 29 18:19:45 2021 -0300
+
+    Merge pull request #166 from stephanlachnit/p/theme-fix
+    
+    Change to Breeze Qt theme
+
+commit 5d02c67c5d0cb3dfeff91471b6a99ca2e5fdfb3e
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Mon Nov 29 22:14:53 2021 +0100
+
+    make local start script via make
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit 6dbec2bae86e5abca6727bb14fe759e7050f88ef
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Mon Nov 29 22:03:04 2021 +0100
+
+    Change to Breeze Qt theme
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit f18ddb4220ac8433748052a0c9fb1a0372dd76da
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 29 16:35:36 2021 -0300
+
+    0.7 final
+    
+    change form name
+
+commit e4e13872d86bfba998025438bc0cd994b550dca1
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Nov 29 15:56:33 2021 -0300
+
+    0.7
+    
+    New UI and fixes
+
+commit dcb3ce7d8629b5d38734ff459103ad8e981711cf
+Merge: 5b32046 16e0fcb
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 17 10:11:42 2021 -0300
+
+    Merge pull request #160 from stephanlachnit/p/start-script-fix
+    
+    Update README and start script
+
+commit 5b320465d20d6eeb84589e92ab0dbe8ffd041a8e
+Merge: b795c30 52d2b8f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 17 10:11:18 2021 -0300
+
+    Merge pull request #161 from stephanlachnit/p/screenshots
+    
+    Update screenshots in metainfo
+
+commit 52d2b8fbc86dd6d9300dccfa1fecde3a5c869906
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Wed Nov 17 11:34:41 2021 +0100
+
+    Update screenshots in metainfo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit 16e0fcb0af162b5884eeb2f110dbbc64d0582f45
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Wed Nov 17 11:28:13 2021 +0100
+
+    Update README and start script
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit b795c3072d34ab72bf081c51862462e7d3814d94
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 10 09:14:17 2021 -0300
+
+    Delete install_ubuntu.sh
+
+commit d256c9b60926a779faf98cc5100f482aabe7a4bc
+Merge: 54e43d6 3186a82
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Nov 10 08:59:07 2021 -0300
+
+    Merge pull request #157 from stephanlachnit/p/start-script
+    
+    Add proper start script
+
+commit 3186a82e3a490c756ab0d4751d3d5a941d4d0a0a
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Wed Nov 10 00:46:42 2021 +0100
+
+    Remove session file
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit bc598a8e1bb529cf426e08e2b9716a5304a1f8e7
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Wed Nov 10 00:40:11 2021 +0100
+
+    Add proper start script
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit 54e43d63222695f21a3e9404af976410c54f5a86
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Oct 27 15:50:07 2021 -0300
+
+    Add process memory usage
+
+commit c56a75a9393adf925ed0521605af49981d2fb3eb
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Oct 25 17:36:49 2021 -0300
+
+    side-step steam container for custom fonts
+
+commit a6f420e9bf1be6e495c9acd310a3ad2d2df90c2a
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Oct 21 17:24:14 2021 -0300
+
+    add font type
+
+commit 43698996e8e04120223418cfd6b3752987074bdf
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Oct 18 15:01:39 2021 -0300
+
+    force x11 mode
+
+commit 4f1093a1b8f8d314c5b4ca0aafa802b6c25ba99e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Oct 18 14:36:13 2021 -0300
+
+    Force the application to run in x11 mode
+
+commit f0d100707337f5bd1391a59f44c31425036bd6bd
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Sep 29 09:12:10 2021 -0300
+
+    Add notes about 32bit support on ubuntu ppa
+
+commit cfd8b4760b81133fd17498a104e359d160bc5606
+Merge: 9c20d69 b912ef8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Sep 15 09:15:19 2021 -0300
+
+    Merge pull request #146 from ishchow/patch-1
+    
+    Add instructions for OpenSUSE installation
+
+commit b912ef85648c0a0c4831e8145a1f9d9c0096d915
+Author: Ishaat Chowdhury <ishaat@ualberta.ca>
+Date:   Tue Sep 14 22:00:23 2021 -0700
+
+    Add instructions for OpenSUSE installation
+
+commit 9c20d692e499dea83eba8c01273973fdf84cf5bf
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Sep 13 17:36:24 2021 -0300
+
+    Add start_goverlay.sh script to instructions.
+
+commit c26ba097b145c35dbba50d4b5872aad601680b8f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Sep 13 15:35:40 2021 -0300
+
+    0.6.3
+
+commit 183eb8126212679c763559821d8e42430c5356dd
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Sep 10 17:09:21 2021 -0300
+
+    0.6.3 beta 2
+    
+    more stuff
+
+commit 31f35a2c91140de83e370c803fc1006c7b9b929d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Sep 9 17:11:35 2021 -0300
+
+    0.6.3 testing
+    
+    - fixed custom fps
+    - added vkcube test
+
+commit a60ba286208a9f3731dd6b60365d2b5bafbbece9
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Aug 26 08:57:42 2021 -0300
+
+    add msi and afterburner as keywords
+    
+    add msi and afterburner as keywords
+
+commit 3818edc0994eecf22334fba3807db515b8e946fc
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Aug 21 22:35:25 2021 -0300
+
+    updated lazarus url
+
+commit a525eb9f81b52085e14f382ad50d3ba46fbf1e81
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Aug 20 15:12:35 2021 -0300
+
+    update readme and requisities
+
+commit bd16958a01e720fd859675cd4e89c17c452367dd
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Aug 20 14:37:33 2021 -0300
+
+    0.6.2
+
+commit f28a72dfbad2b0b59d50478ba6be089b7a98d72c
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Aug 20 13:53:44 2021 -0300
+
+    force mangohud dlsym for real time preview
+
+commit 8cfb51e76093cdcd0c729f6bc234d94434eaf84e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jul 28 13:50:10 2021 -0300
+
+    0.6.1
+    
+    - Fix in custom fileds spacing
+    - fix for hud title doesn't showing
+    - fix for hints in hud title and custom commands doesn't appearing
+
+commit 9150a8990aec79ca8e34f4fa8add6146e60efe67
+Merge: df36f1e f2f8171
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Jul 26 00:29:34 2021 -0300
+
+    Merge pull request #132 from JokerGermany/patch-1
+    
+    Update Ubuntu instructions
+
+commit df36f1efa2c2e0e3bff0344451eef62ce32c60a9
+Merge: 06a7fbe 997be36
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Jul 26 00:26:27 2021 -0300
+
+    Merge pull request #133 from stephanlachnit/p/remove-binary
+    
+    Remove goverlay binary and Lazarus session file
+
+commit 997be36d602bb2208d31fdc12d5bafdfe2cbc7cf
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Sun Jul 25 11:18:00 2021 +0200
+
+    Remove Lazarus session file
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit eee7ee9b107da622f23ab0bcf2ec58216aa1d3e0
+Author: Stephan Lachnit <stephanlachnit@debian.org>
+Date:   Sun Jul 25 11:15:35 2021 +0200
+
+    Remove goverlay binary
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@debian.org>
+
+commit f2f8171fc21fcf76a61163e72313cdb548da2007
+Author: JokerGermany <30293477+JokerGermany@users.noreply.github.com>
+Date:   Sun Jul 25 01:39:33 2021 +0200
+
+    Update Ubuntu instructions
+    
+    You did not need root for sudo commands.
+
+commit 06a7fbee8cd7f9c334d415c9b658654bdc7c3e0d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 22 19:20:50 2021 -0300
+
+    0.6
+    
+    Goverlay 0.6
+
+commit 36a350fd0d5eed3d6df4fb4100a1e5a5119e52a0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Jul 17 18:35:03 2021 -0300
+
+    more fixes in 0.6
+    
+    new fps limits and fixes in title and custom commands
+
+commit ac0f338177fb7e592b0925b8d1be41fe1bf6b31e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jul 16 16:42:18 2021 -0300
+
+    fixes in 0.6
+
+commit 20118cd7d4cac35c8a36d3ac0b8e33861e61b280
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Jul 15 23:18:57 2021 -0300
+
+    more work on 0.6
+    
+    fixes to distro info, session name and text formating.
+
+commit 2f956e0e14d67b120978b3595b97dc8dec78a000
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Jun 30 14:47:34 2021 -0300
+
+    update to mangohud 0.6
+
+commit a5b155b29244c066b396f26f50c722b1287b32f0
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jun 4 23:12:10 2021 -0300
+
+    0.5.1
+
+commit ad63e152abcacc85b9fd557a2f02fb64fd59db69
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jun 4 22:24:27 2021 -0300
+
+    0.5.1 git
+    
+    new UI for Graphs
+
+commit c9a48efaed6385aa650b8b9d739dcc258ee2cc52
+Merge: 03209f1 1a7e9ee
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri May 7 13:43:09 2021 -0300
+
+    Merge pull request #124 from MetaDark/previews-without-mangohud
+    
+    support running previews without MangoHud installed
+
+commit 03209f12a5c165d1b98c504776ffea02e7991f5b
+Merge: bdcbdb8 ed2cade
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon May 3 15:12:01 2021 -0300
+
+    Merge pull request #126 from MetaDark/fix-notification-typos
+    
+    fix typos in notification messages
+
+commit bdcbdb8c05f296d68f4988319d8d3e1b40b88c6c
+Merge: 7841890 09da4db
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon May 3 15:08:50 2021 -0300
+
+    Merge pull request #123 from MetaDark/find-in-path
+    
+    find replay-sorcery in PATH using which command
+
+commit ed2cadefb0d09a05d2164ece1f2de8c69a285a68
+Author: Kira Bruneau <kira.bruneau@pm.me>
+Date:   Fri Apr 30 16:11:09 2021 -0400
+
+    fix typos in notification messages
+
+commit 09da4db26196f42578b11bd6541be5ede1125cdf
+Author: Kira Bruneau <kira.bruneau@pm.me>
+Date:   Fri Apr 30 17:28:46 2021 -0400
+
+    find replay-sorcery in PATH using which command
+    
+    Use the `which` command to check if `replay-sorcery` is installed, since
+    not all distros will install it to `/usr/bin/replay-sorcery`.
+
+commit 1a7e9eee5113c45e93000dfd41f79b36fd169475
+Author: Kira Bruneau <kira.bruneau@pm.me>
+Date:   Fri Apr 30 18:42:15 2021 -0400
+
+    support running previews without MangoHud installed
+
+commit 784189020ff9f21a2b0a6e67bb1e787d03acd07f
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Mar 26 17:06:47 2021 -0300
+
+    add Option to force mangohud in launchers
+    
+    - add Option to force mangohud in launchers
+    - small tweaks to the interface to fix theming issues
+
+commit 6ebf1fbe8e497ca60aa8ca5d2cf5b490f65010d8
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Tue Mar 23 16:20:15 2021 -0300
+
+    enhance UI spacing
+
+commit 7cd78f0d233133e00df92efdfdd4896113ae439d
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 20 15:25:29 2021 -0300
+
+    Goverlay 0.5
+    
+    - New: Mangohud - Added option to display GRAPHs on Mangohud
+    - New: Mangohud - Added new Hud Type (GRAPH HUD)
+    - New: Mangohud - Added Fix to display power Drawn on intel CPUs
+    - New: Mangohud - Added option to display or hide the FPS counter
+    - New: Mangohud - Moved HUD version and Time options to the botton part of the HUD
+    - Fix: GUI - small fixes in the interfaces.
+    - Fix: VKbasalt - Wrong color used on Toggle key combobox
+    - Fix: About - Wrong colors on about page
+
+commit 11a71fd7e8d5de6f725f175114b36756d393508d
+Merge: 6d868a2 c1961f3
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Sat Mar 20 15:20:55 2021 -0300
+
+    Merge pull request #113 from RandoNandoz/master
+    
+    Fixed typo.
+
+commit 6d868a27f4043da5017c7d0a5e5eb9b4903bb106
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Mon Mar 15 22:21:59 2021 -0300
+
+    update ubuntu ppa instructions
+    
+    update ubuntu ppa instructions
+
+commit c1961f30e576e9a5b156c05e6c03f55676509a38
+Author: Randy Zhu <randyzhu@protonmail.com>
+Date:   Sun Mar 7 08:51:06 2021 -0800
+
+    Fixed typo.
+    
+    There was a typo in the notification, in where instead of "deactivated"
+    it notified "desactivated"
+
+commit 5c4a50f2883862f4019975153cf6e7dcce8c4108
+Merge: 526bdc8 5aefc4b
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Thu Feb 4 16:26:22 2021 -0300
+
+    Merge pull request #106 from stephanlachnit/p/typo
+    
+    fix typo
+
+commit 5aefc4b66e92f4c4ba1127b5c1392523293771dc
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Thu Feb 4 19:48:56 2021 +0100
+
+    fix typo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 526bdc80040809c30c2fdce01eb050d42f716b15
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 3 22:24:43 2021 -0300
+
+    fix mistake
+
+commit 8c78dfdb9259475306234125ae0876ae25f24862
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Wed Feb 3 22:07:08 2021 -0300
+
+    0.4.4
+    
+    Replaysorcery update to 0.5
+
+commit 266eaed4bcec5ba6556565f71793b3f5a9a6d81e
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jan 22 00:35:00 2021 -0300
+
+    initial replaysorcery refactor
+
+commit f01cbea818dcc3a139a607d5a0a4a7157a82e8c2
+Merge: d45f54d ad67f7d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Dec 20 11:07:00 2020 -0300
+
+    Merge pull request #100 from stephanlachnit/p/typo
+    
+    fix typo
+
+commit ad67f7d4a6b72cc048f086f2997de72703ceb0f1
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun Dec 20 14:38:54 2020 +0100
+
+    fix typo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit d45f54d9f3c1c63bf510e63b0b3043df5bcb0f78
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Dec 19 16:20:39 2020 -0300
+
+    update screenshots
+
+commit 8901cf701bc94c34e087433590c208998ce6d7cd
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Dec 19 15:59:32 2020 -0300
+
+    0.4.3b
+    
+    0.4.3b
+
+commit a11c5ec18b2d19929df4027a25423f0fd280df7b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Dec 19 15:52:25 2020 -0300
+
+    0.4.3
+    
+    New - Added option to change CPU and GPU colors based on Load introduced in MangoHUD 0.6.1
+    New - Added option to autostart logging after specific seconds introduced in MangoHUD 0.6.1
+    New - Added option to display CPU Power introduced in MangoHUD 0.6.1
+    New - Added option to display CPU Frequency introduced in MangoHUD 0.6.1
+    Fix - Interface overhaul in replaysorcery
+    Fix - Mangohud lost configuration after saving a config for replaysorcery
+    Fix - CAS doesn't work in VKbasalt if other effects weren't in use
+    Fix - Comboboxes with wrong font sizes
+    Fix - Hudversion remove from compact and complete hud profile
+    Fix - Time removed from complete hud profile
+    Fix - trackbars of CAS in vkbasalt and Compress quality in replaySorcery do not display values on QT5
+    Fix - Small interface changes
+
+commit ccc419a04f5b89a6eb953fb9d1703cdb6cd0efe9
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Dec 19 02:31:59 2020 -0300
+
+    additions to mangohud and replaysorcery
+
+commit 4366a33e4311219ba1370b8ed23431a96f28bd6b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Dec 19 02:27:28 2020 -0300
+
+    new additions to mangohud and replaysorcery
+
+commit 55119ce1bcf739960d8b1c14223b96ef914485f5
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Dec 18 00:39:04 2020 -0300
+
+    Added Ubuntu PPA from Martin Wimpress
+
+commit d10afac93de787afaff6ae4a018b0fc390a919f7
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 25 09:02:07 2020 -0300
+
+    Update debian and ubuntu installation
+
+commit 26dc34be0f049835556f91225ccd6e6dd5021418
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 23 22:49:56 2020 -0300
+
+    wayland workaround and credits to replaysorcery
+
+commit aceeb26d5095a4a97f0190e4a0653991ea045b01
+Merge: f712f20 54f34a4
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 23 14:05:08 2020 -0300
+
+    Merge pull request #90 from ROTARTSI82/patch-1
+    
+    Satisfy deps for ubuntu build
+
+commit 54f34a4b55f068a19de5a1e4c1a9e878737bbd6c
+Author: Rotartsi <38170305+ROTARTSI82@users.noreply.github.com>
+Date:   Mon Nov 23 08:39:42 2020 -0800
+
+    Satisfy deps for ubuntu build
+    
+    Building vkBasalt requires spirv-headers.
+    And of course, Qt bindings for pascal.
+    Install script wasn't working for me, this should fix it.
+
+commit f712f20f599a575d415b858cf35bf5dc9cb38d1c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Nov 20 09:38:04 2020 -0300
+
+    0.4.2
+
+commit 927990641233fc696c678165a86a2e9535595e8c
+Merge: 76c9cb0 bbac5c3
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Nov 20 09:15:58 2020 -0300
+
+    Merge pull request #85 from stephanlachnit/p/qt5-build
+    
+    Default to Qt5
+
+commit 76c9cb095e09b0f61ed399b01f1c30a73fad457c
+Merge: 5b307e9 dc14a8c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Nov 20 09:13:16 2020 -0300
+
+    Merge pull request #77 from stephanlachnit/p/replay-sorvery-name
+    
+    ReplaySorcery consistent naming
+
+commit dc14a8cf6007b1bc13a50961e1678f4638c00002
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Fri Nov 20 13:01:37 2020 +0100
+
+    ReplaySorcery consistent naming
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 5b307e95c70d608a1cefe16531a0fe54c4962d32
+Merge: a12209f 553bdef
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Nov 20 09:01:26 2020 -0300
+
+    Merge pull request #84 from stephanlachnit/p/remove-tar
+    
+    Remove binary tarball
+
+commit a12209f01115c04cf23522bb787764419489d450
+Merge: f69704d e3bbd05
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Nov 20 09:00:25 2020 -0300
+
+    Merge pull request #83 from stephanlachnit/p/screenshots
+    
+    Update metainfo screenshots for 0.4.1
+
+commit bbac5c3600b3fefd170c830db372835277d3bb43
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Fri Nov 20 12:56:27 2020 +0100
+
+    Use cmdline arg instead of env var for qt style
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit db27cbd481ea3e6d6cc466d61a5587940b6ce7fc
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Fri Nov 20 12:46:54 2020 +0100
+
+    Default to Qt5
+    
+    This defaults to Qt5 within Lazarus and removes the local session files from git.
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 553bdefe17ba34b731f1753709216ceaa861095d
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Fri Nov 20 12:25:03 2020 +0100
+
+    Remove binary tarball
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit e3bbd05a0a3700602078ff22d63271d46e2d7d10
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Fri Nov 20 12:24:00 2020 +0100
+
+    Update metainfo screenshots for 0.4.1
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit f69704d62acd878eebfb0f0675e570e7da890a5a
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Nov 19 00:10:32 2020 -0300
+
+    update screenshots
+
+commit b3943044bb11f5f4f14984e114c6d1a5b97405fb
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Nov 19 00:01:13 2020 -0300
+
+    Update QT5 build instructions
+
+commit 0acfb1d4919586ac86bb340feb99a90dac00cdda
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 18 23:48:31 2020 -0300
+
+    env missed in command
+
+commit 82c55810e5a32e342fd73f235ee0a10c53417e7a
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 18 23:38:26 2020 -0300
+
+    0.4.1
+    
+    Changelog
+    
+    New - Migration from GTK2 to QT5 toolkit with Fusion QT Style
+    New - Added precustom compact Hud option in mangohud
+    New - Added option to customize colors of Engine, Wine and Media in mangohud
+    Fix - Theme ajustments for QT5 integration
+    Fix - Some items weren't correctly colored on the preview interface in mangohud
+    Fix - Minor typos in ReplaySorcery
+    Fix - HIDPI displays works correctly with goverlay in QT5
+
+commit b2b79fdcf91978d456781d0b545e98208f3aa164
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 18 23:11:44 2020 -0300
+
+    build instructions for QT5
+
+commit 1782dc46f0d6f546e790dca5a00dc1fb4c9c65e4
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 18 22:57:35 2020 -0300
+
+    override qt5 style
+
+commit 8020010535f2dc3d9a85de45e03bd39ab005e463
+Merge: e7cede1 97f1bbf
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Nov 14 16:56:15 2020 -0300
+
+    Merge pull request #76 from stephanlachnit/p/meta
+    
+    meta improvements
+
+commit 97f1bbfae278765b98ba876df4330af6338751b3
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sat Nov 14 13:15:37 2020 +0100
+
+    meta improvements
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit e7cede1b848687bef8eba83f722b988b8b7c1352
+Merge: 87029a8 48a459c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Nov 12 22:47:19 2020 -0300
+
+    Merge pull request #73 from Duckbuster/master
+    
+    Make script wgetable from github and add newlines to the script to make it work.
+
+commit 48a459c650b91e643caf9806544dcb2117d0c048
+Author: Duckbuster <duckbuster@lolisandstuff.moe>
+Date:   Fri Nov 13 01:33:53 2020 +0100
+
+    Make script wgetable from github and add newlines to the script to make it actually work.
+
+commit 87029a8822c39503fd56c6d78c5b8a52a97e2b44
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 9 11:09:44 2020 -0300
+
+    qt5 test release
+
+commit 9c86fca515f8eac6677a0ce14a596b6daf1f8501
+Merge: 5cd7af9 cc06c82
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 4 11:47:58 2020 -0300
+
+    Merge pull request #69 from stephanlachnit/p/metainfo
+    
+    Update Screenshots in metainfo
+
+commit 5cd7af947f108b2851d392b61a08718cc6b451e1
+Merge: ac6c848 d9fc2b3
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 4 11:47:16 2020 -0300
+
+    Merge pull request #70 from stephanlachnit/p/desktop-validate
+    
+    add .desktop validation test
+
+commit ac6c848ceea0c5c0cc911835cf8d5bc7cfe266f1
+Merge: 45673c3 b4abd2c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 4 11:36:15 2020 -0300
+
+    Merge pull request #71 from stephanlachnit/p/release-by-default
+    
+    enable Release mode by default
+
+commit 45673c3748b920ed1f8cde96384db7efa8bd7aab
+Merge: cdf6db7 78f5cb5
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Nov 4 11:33:18 2020 -0300
+
+    Merge pull request #68 from stephanlachnit/p/spelling
+    
+    fix typo
+
+commit b4abd2c8304a37445f4383265e76ffa8fae7d1d7
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed Nov 4 15:09:19 2020 +0100
+
+    enable Release mode by default
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit d9fc2b3b15cd1eed57b9e832240923054f6aa00c
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed Nov 4 15:02:21 2020 +0100
+
+    add .desktop validation test
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit cc06c823165294da6fed2c2afb725e966f7cb742
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed Nov 4 14:59:29 2020 +0100
+
+    Update Screenshots in metainfo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 78f5cb5c4b48855a20163e226c0a788fc6f395ab
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed Nov 4 14:55:38 2020 +0100
+
+    fix typo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit cdf6db7a134c67621a9df1cdc97c559898811629
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 23:22:34 2020 -0300
+
+    add replay-sorcery to requisites
+
+commit 38c2dcea35ca3a0a690e06ba619d7f3a947ac2f4
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 23:02:18 2020 -0300
+
+    update screenshots
+
+commit a35016564349455b0913579011b8e8b682052d66
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 22:43:38 2020 -0300
+
+    0.4
+    
+    New - Added full replay-sourcery implementation
+    New - created hint messages for each application
+    New - Toggle keys refactored to F1 - F4 (stock values mantained)
+    fix - vkbasalt wasn't correctly activated when running the test button
+    fix - vkbasalt doesn't save toggle button option
+    fix - vkbasalt doesn't save CAS option when in false state
+    fix - Dependency error message doesn't fit screen space
+    Fix - font colors doesn't fit light themes in some ocasions
+
+commit 893143449f6046641c9a18a91458c5c5ebad4132
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 01:29:47 2020 -0300
+
+    Update install_ubuntu.sh
+
+commit 8a417fd5242b916178bd7dc0d6822c4e3e63f069
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 01:28:25 2020 -0300
+
+    Update ubuntu installation method
+
+commit 62d790b4a4cda8aa2451b67c371b0e4e8e29948f
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 01:14:00 2020 -0300
+
+    Script for installation on ubuntu based distros
+
+commit 3f103358079a88668238e1724c249b37bf59a691
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 01:05:14 2020 -0300
+
+    update goverlay installation in Arch based distros
+    
+    added link to goverlay binaries in AUR
+
+commit 52a106ba09d1c8a048099f520330de9a27898e51
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Nov 2 00:51:22 2020 -0300
+
+    added replay-sorcery
+
+commit 34820566d30495b8331725bb9a931957f7090290
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Oct 17 22:25:08 2020 -0300
+
+    update documentation
+    
+    Added solus link and ubuntu ppa help request
+
+commit e51a04438c83a0ff4248e6c140c0c5a5ec2d416e
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Oct 1 16:22:44 2020 -0300
+
+    0.3.8F
+    
+    fix to reshade texture path and reshade repository
+
+commit 59c36f7ed3ffb69ea0f5d1de575b4b3a9379da71
+Merge: ef2fbc7 0f373a2
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Oct 1 16:19:15 2020 -0300
+
+    Merge pull request #65 from JacekJagosz/master
+    
+    Fix Reshade Textures path
+
+commit 0f373a268c8ca9a5b8dff75106cdb6a089c9a201
+Author: Jacek Jagosz <jacek.jagosz@outlook.com>
+Date:   Thu Oct 1 16:05:33 2020 +0200
+
+    Fix Reshade Textures path
+    
+    Previously some effects (like SMAA) caused instant game crashing, fixes #62
+
+commit ef2fbc72213d41c3272a93b9e4500fba0dfd5969
+Merge: 4f8b22e 4a1c14d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Sep 29 08:58:35 2020 -0300
+
+    Merge pull request #64 from stephanlachnit/p/releasemode
+    
+    add a release mode
+
+commit 4f8b22e12af3e02e7e24a2d61f400b5a5b9877b0
+Merge: c34443f ffa7a9c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Sep 29 08:55:43 2020 -0300
+
+    Merge pull request #63 from stephanlachnit/p/screenshot-update
+    
+    update screenshot links in metainfo
+
+commit 4a1c14dea29c3985d5e3af7e0f7d22a5b7cdab16
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Mon Sep 28 23:37:53 2020 +0200
+
+    add a release mode
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit ffa7a9c885a81551c704554c4fee878d1e1d7fb6
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Mon Sep 28 23:00:32 2020 +0200
+
+    update screenshot links in metainfo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit c34443faef29764c766ccfb0657368787a9adfae
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Sep 10 08:24:11 2020 -0300
+
+    screenshot update
+
+commit 031b3f737acb36fb04609c564818dbbd1e5f2d79
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Sep 10 08:19:03 2020 -0300
+
+    Add git as dependency to readme
+    
+    new dependency
+
+commit 062ba521984672d524b2d602b794168792c53b08
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Sep 9 18:06:49 2020 -0300
+
+    0.3.8
+    
+    new - Initial Reshade implementation in vkBasalt (lim of 5 simultaneous effects by now)
+    new - Added missing top-center hud position in Mangohud
+    new - Added wine version option in Mangohud
+    new - Rebuild notifications with custom goverlay icon and better descriptions
+    new - Implemented Auto_upload option to automatically send benchmarks to Flightlessmango.com
+    Fix - custom font sizes are now loaded correctly
+    Fix - Mangohud dependency missing in 0.5.1 due to change in json file name
+    Fix - Change logging output files from "output_file" to "output_folder" just like mangohud 0.5.1
+
+commit f4aec22f13e9aba68ab146cf161115c01c012050
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Sep 5 22:54:18 2020 -0300
+
+    Wrong tar extraction command
+    
+    update tar.xz extraction commands
+
+commit 3458b1128c7cecab425905b014e1fe0344a89bc3
+Merge: 37208d3 12b51e2
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Sep 3 12:11:13 2020 -0300
+
+    Merge pull request #58 from TheEvilSkeleton/master
+    
+    Add Gentoo; add Solus in Table of contents
+
+commit 12b51e247b0e04cc390d6a52425b1ca1996afca2
+Author: Proprietary Chrome-chan <50847364+TheEvilSkeleton@users.noreply.github.com>
+Date:   Thu Sep 3 02:56:48 2020 +0000
+
+    Add Solus in Table of contents
+
+commit 3f9d10afefb041567c2f4537102d9134c6ec1a1b
+Author: Proprietary Chrome-chan <50847364+TheEvilSkeleton@users.noreply.github.com>
+Date:   Thu Sep 3 02:56:07 2020 +0000
+
+    Add Gentoo
+
+commit 37208d3dbe49360aba6d4cec063fe46902018139
+Merge: b2402a2 0b36bf9
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Aug 3 16:14:06 2020 -0300
+
+    Merge pull request #54 from yochananmarqos/patch-2
+    
+    Update README.md with new binary AUR package
+
+commit 0b36bf940efe3a45146ce1a5c7eaf2856547d6c6
+Author: Mark Wagie <mark.wagie@tutanota.com>
+Date:   Mon Aug 3 12:46:21 2020 -0600
+
+    Update README.md with new binary AUR package
+
+commit b2402a26fb8cc646d124052ee3b7a52547bb168a
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Aug 3 15:17:06 2020 -0300
+
+    screenshot update
+
+commit 739f588bedf43d11f7a46f440671974c6daed3f0
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Aug 3 11:53:15 2020 -0300
+
+    0.3.7
+    
+    Goverlay 0.3.7
+    
+    Implemented load saved files in mangohud and vkbasalt
+    Fixes in missing libraries detection (thanks to stephanlachnit)
+    Default settings for FPS limit and VSYNC changed to "unset"
+    Fixed wrong font size in 4K preset
+    Removed debrand option in vkbasalt since it's deprecated on the original project
+    Fixed wrong font colors on the about page
+    Small tweaks in the UI
+
+commit 00218fc82b4dae9e421b65aff66db15223ba96fc
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Jul 23 11:03:54 2020 -0300
+
+    Update overlayunit.pas
+    
+    Chango Mangohud.json to MangoHud.x86_64.json
+
+commit b9208455085fd5b697492f865780f39a4f34c02d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Jul 23 10:58:16 2020 -0300
+
+    Update goverlay.desktop
+    
+    Change "Gaming" to "Game"
+
+commit c55e07a5f1b195fc5917858642491642d53b0968
+Merge: 46d4662 9b63518
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Jul 23 10:32:14 2020 -0300
+
+    Merge pull request #49 from stephanlachnit/p/dependencies
+    
+    search for MangoHud and vkBasalt via Vulkan files
+
+commit 46d466280a8691541d0c13b03dea3d4c60d8fa84
+Merge: 80fceb5 2c2628f
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Jul 23 10:27:24 2020 -0300
+
+    Merge pull request #50 from stephanlachnit/p/make-improvements
+    
+    make make aware of code changes
+
+commit 2c2628fa7de0682b1a0f62ecca044f042c46d10b
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Thu Jul 23 13:59:09 2020 +0200
+
+    make make aware of code changes
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 9b6351802a4ed587dc388a7487cb0b26faaea721
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Thu Jul 23 13:48:15 2020 +0200
+
+    search for MangoHud and vkBasalt via Vulkan files
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 80fceb56077771d0994d7a5582b17a15e71ed8c9
+Merge: 8a0d84a 38ca420
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Jul 20 09:58:00 2020 -0300
+
+    Merge pull request #47 from JacekJagosz/patch-1
+    
+    Add Solus install instructions to README.md
+
+commit 38ca42099572e065354894bf8fc20621c15a6c8c
+Author: Jacek Jagosz <jacek.jagosz@outlook.com>
+Date:   Mon Jul 20 14:19:53 2020 +0200
+
+    Add Solus install instructions to README.md
+    
+    I have recently packaged goverlay for Solus
+
+commit 8a0d84aeaa0d2d557545705e16561df0db61eca1
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Jul 18 19:40:01 2020 -0300
+
+    0.3.6
+    
+    # Changelog
+    
+    * Fixed Engine Version checkbox doesn't working properly
+    * Display error messages if there're missing dependencies (Mangohud and vkbasalt) on the main menu
+    * Change in global enablement for vkbasalt to avoid problems with mangohud global enablement
+
+commit 53bdeeea8913f4900dc3a077fdce5c3d4ce3d888
+Merge: b4e5085 e4c113b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Jul 13 17:36:27 2020 -0300
+
+    Merge pull request #42 from stephanlachnit/p/buildopts
+    
+    add optional build options to Makefile
+
+commit e4c113b731b7399c74848b7d43c0e8f4f0951d82
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Mon Jul 6 23:50:44 2020 +0200
+
+    add optional build options to Makefile
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit b4e508576aa5a53f046c2f82cd184d8c848f69a4
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Jun 25 09:18:55 2020 -0300
+
+    removed debian repository
+
+commit fb3e4e4195a4facfa2829d87563d75b4e05c151a
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Jun 23 10:20:03 2020 -0300
+
+    New screenshot
+    
+    New screenshot
+
+commit 444871bcf7f4e5314b752a4418b612b95716356b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Jun 23 09:55:17 2020 -0300
+
+    Fixing updates to readme
+    
+    Fixing updates to readme
+
+commit 14284eb91999d89d8c3460d58b812a5b2970f714
+Merge: 2251c54 f41eecb
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Jun 23 08:34:41 2020 -0300
+
+    Merge pull request #39 from stephanlachnit/p/gaming
+    
+    add category "Gaming" to .desktop file
+
+commit f41eecb11d43536e76e753d921996c89e3985614
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Tue Jun 23 10:24:43 2020 +0200
+
+    add category "Gaming" to .desktop file
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 2251c544cdd33922b12fac2a0decc9835bbe644d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Jun 21 21:32:10 2020 -0300
+
+    0.3.5
+    
+    Removed checkbox from CPU / GPU name
+    Made media data combobox read only
+
+commit 01d0de11417a1bb5b71e94cb49a7ee95508cd17e
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Jun 20 21:02:25 2020 -0300
+
+    Updated install instructions
+    
+    Add reference to chaotic-aur
+    Add debian / ubuntu instalation
+
+commit 88e479ddfcfea36c5e9e9d0143f8b70d61fafc92
+Merge: acb8862 ddca7a6
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Jun 20 20:50:34 2020 -0300
+
+    Merge pull request #37 from TotalCaesar659/patch-1
+    
+    Add FUNDING.yml
+
+commit ddca7a643e343e7498268e5a5ef40f09de3ceeb1
+Author: TotalCaesar659 <14265316+TotalCaesar659@users.noreply.github.com>
+Date:   Sun Jun 21 01:32:10 2020 +0300
+
+    Add FUNDING.yml
+    
+    Display a "Sponsor" button at the top of the repository.
+    More information:
+    https://github.blog/2019-05-23-announcing-github-sponsors-a-new-way-to-contribute-to-open-source/
+    https://help.github.com/en/articles/displaying-a-sponsor-button-in-your-repository
+
+commit acb88626a6b083981ab4f313d9e25f9ad6abdfd3
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Jun 19 23:34:05 2020 -0300
+
+    screenshot update
+
+commit 1855f5572fcf55ee49a0572d35ffea068a0f1022
+Author: Benjamim Gois <benjamim.gois@gmail.com>
+Date:   Fri Jun 19 23:24:29 2020 -0300
+
+            modified:   aboutunit.lfm
+            modified:   goverlay.lps
+            modified:   overlayunit.lfm
+            modified:   overlayunit.pas
+
+commit d1bb2f0098e83ec4247a16e804022f5b130dd495
+Merge: 0a854f3 7ceb194
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Jun 15 09:09:45 2020 -0300
+
+    Merge pull request #31 from stephanlachnit/p/makefile-fix
+    
+    fix typo in makefile
+
+commit 7ceb194cf282b1c3484de3c2196e9785f9461d0a
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sat Jun 13 11:45:11 2020 +0200
+
+    fix typo in makefile
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 0a854f3f24436bc62120bb026c55e06a7f027c5d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu May 28 23:51:04 2020 -0300
+
+    0.3.3
+    
+    Changed hud-position from hover to button click
+    Implemented GPU NAME option
+    Implemented Driver Version option
+
+commit 8d8d7a23a0fb3200f42714a97db487a0df22b453
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon May 18 10:26:42 2020 -0300
+
+    Added link to lazarus-ide webpage
+
+commit 93d94b24eb786769f4a98a2f5cc44d921445f942
+Merge: a4a36d4 813856c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon May 18 10:15:51 2020 -0300
+
+    Merge pull request #29 from yochananmarqos/patch-1
+    
+    Correct Arch instructions
+
+commit 813856c3fa7315ddf41ed984ed8e9b41fa35e2cf
+Author: Mark Wagie <mark.wagie@tutanota.com>
+Date:   Sun May 17 20:02:44 2020 -0600
+
+    Correct Arch instructions
+    
+    AUR packages can't be installed with `pacman`.
+
+commit a4a36d44d09628a4cde2b1459192f37cffd6718b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun May 17 17:06:42 2020 -0300
+
+    Ajustments to arch instrunctions
+    
+    Added Chaotic-aur and instructions commands
+
+commit 9357eea21e943df83f63ca404da751da6ef2ad39
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu May 14 13:00:34 2020 -0300
+
+    Added missing library seach path (another)
+    
+    Added missing library seach path
+
+commit 4d0eb30d67b281d78f8ee361ada63d20540fcc35
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed May 13 23:18:55 2020 -0300
+
+    Added missing library seach path
+    
+      <Libraries Value="/usr/lib/gcc/x86_64-pc-linux-gnu/9.3.0/"/>
+
+commit 02813235358f1ab837fa0461ecb7d9de63b820b2
+Merge: a5471aa 9d4d172
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed May 13 18:29:47 2020 -0300
+
+    Merge pull request #27 from stephanlachnit/patch/fPIC
+    
+    make executable position independent
+
+commit 9d4d1725cf3237ca59a01345f29a7742bbbfafd2
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed May 13 22:06:08 2020 +0200
+
+    make executable position independent
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit a5471aab317f91243a5cf076522a02a626dbb1a3
+Merge: 35098d6 7842725
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed May 13 16:22:46 2020 -0300
+
+    Merge pull request #26 from stephanlachnit/patch/executable-metainfo
+    
+    file permissions and man page
+
+commit 784272538d61b870f50e92b5c7316bce062e802d
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed May 13 21:12:14 2020 +0200
+
+    add man page
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 2edaf3420c540b6e68ac4bb887ee702880207be4
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Wed May 13 20:57:37 2020 +0200
+
+    Makefile: set proper permissions
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 35098d643dc27b398c02a0f48fb55c9d79c07af0
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue May 12 22:56:23 2020 -0300
+
+    Version 0.3.2
+    
+    *Implemented option to display Mangohud Version
+    *Implemented option to display Spotify status
+    *Implemented option to display Mangohud Version
+    *Little tweaks on the UI
+    *Improvements to project files (by stephanlachnit)
+    *Created makefile (by stephanlachnit)
+    *Improved icons (by stephanlachnit)
+
+commit 03bcfc90fcbf84310857e1feca903e932826138c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon May 4 10:36:15 2020 -0300
+
+    Minor changes
+    
+    added some missing links
+
+commit fd06a9c054888480666c843d3486ede4cf8b0ca6
+Merge: 36f148e f5a8b1e
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon May 4 10:30:44 2020 -0300
+
+    Merge pull request #23 from stephanlachnit/patch/makefile
+    
+    add makefile
+
+commit f5a8b1e28899d5315529ddc18bd441a74b16157c
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Mon May 4 15:22:21 2020 +0200
+
+    add makefile
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 36f148e9a0186de6004d2391a8286b2b0ef9063b
+Merge: 0680d73 2a27eeb
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon May 4 09:49:42 2020 -0300
+
+    Merge pull request #20 from stephanlachnit/patch/icons
+    
+    Minor improvements
+
+commit 2a27eeb556e966c9ab48adaed4e71cc855d1bdb6
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun May 3 22:25:54 2020 +0200
+
+    better folder layout
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 000316adf3c386ba24ff0ff6aa0c8b5eddb76dc8
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun May 3 22:21:58 2020 +0200
+
+    remove .ico files (not required)
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 95f481fde68b5bf2f31adef42c06936756c7a0f1
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun May 3 22:19:58 2020 +0200
+
+    Lazarus Project improvements
+    
+    Use icon, rename to GOverlay.
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 0680d73c4f3c42e2c2b02c9849b361710c731fc9
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Apr 27 14:20:58 2020 -0300
+
+    Add new icon sizes
+    
+    Add new icon sizes
+
+commit 89d4096b95f5d2d907b66d8ab3cf8b4caefc096e
+Merge: 28c069c ef818d8
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Apr 26 17:47:09 2020 -0300
+
+    Merge pull request #19 from stephanlachnit/patch/appstream
+    
+    add appstream metainfo
+
+commit 28c069c90f7cb99078f49cd4dbad5e52fd4228aa
+Merge: e92a94e 91e9f95
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Apr 26 17:42:07 2020 -0300
+
+    Merge pull request #16 from stephanlachnit/patch/keywords
+    
+    add .desktop keywords
+
+commit ef818d8a9880e83e9de96cd0b02abc420ce9f530
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun Apr 26 15:12:23 2020 +0200
+
+    add appstream metainfo
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit c496ff038619cecb75f162783dbe8169bc00ac99
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun Apr 26 14:54:46 2020 +0200
+
+    don't use Linux in description
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit 91e9f950888bc29ec2db1640ee7ea7e7be47adcc
+Author: Stephan Lachnit <stephanlachnit@protonmail.com>
+Date:   Sun Apr 26 14:49:30 2020 +0200
+
+    add .desktop keywords
+    
+    Signed-off-by: Stephan Lachnit <stephanlachnit@protonmail.com>
+
+commit e92a94edcdd3ff3357041b6e860a54916d0cd70e
+Merge: 2570a1c 89e435d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Mon Apr 13 23:55:24 2020 -0300
+
+    Merge pull request #15 from Newbytee/patch-1
+    
+    Minor changes to README
+
+commit 89e435d16e5f9fb5a458660c09eb3db3f34df73f
+Author: Newbyte <newbie13xd@gmail.com>
+Date:   Sun Apr 12 10:58:23 2020 +0200
+
+    Minor changes to README
+    
+    Fixed incorrect word choice and other fix-ups.
+
+commit 2570a1ca63ebe13fbf9c82b62c9e41ed5b83b991
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Apr 9 15:03:45 2020 -0300
+
+    0.3.1
+    
+    Changelog
+    
+    * Fixed Frametiming showing up even if it was disabled in config
+    * Implemented FXAA injection
+    * Implemented SMAA injection
+    * Implemented HINT boxes for antialiasing methods
+
+commit fb502d62481ec56bd980bf97232d4ec8d123fdb3
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Apr 5 00:15:14 2020 -0300
+
+    0.3 - fixed file size error
+    
+    Images converted from PNG tp JPG
+
+commit 773e0931311aaac08bed0aab7a01ee00112f0f62
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Apr 4 22:45:16 2020 -0300
+
+    Fixing latest upload
+
+commit 9ed1d53e240157fbac4ef370a176c65a0dbf32c7
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Apr 4 18:54:25 2020 -0300
+
+    Update to 0.3 version
+    
+    * Added new screenshots
+    * References to DadSchoorse and vkBasalt
+
+commit 84a06e43f8b39630500d2194c4b04529662d02d1
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Apr 4 18:40:20 2020 -0300
+
+    0.3
+    
+    * Added vkBasalt option
+    * Implemented vkBasalt-CAS function
+    * Implemented Global enable for vkBasalt
+    * Revemped interface to make room for vkBasalt
+    * Added Donation link on the about page
+    * Another fix to $HOME variable implementation
+
+commit 52612febb66467ea814cf40ab9ceec7bb4df29ea
+Merge: c505c84 a0954d1
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Apr 4 16:03:40 2020 -0300
+
+    Merge pull request #12 from TheEvilSkeleton/master
+    
+    Revamped README
+
+commit a0954d156bf4bc96cbd7c9333d36ee039912c3cb
+Author: TheEvilSkeleton <theevilskely@tutanota.com>
+Date:   Fri Apr 3 23:41:53 2020 -0400
+
+    Minor fix
+
+commit f041e984c24a533a8a1c861890749252a2c3f287
+Author: TheEvilSkeleton <theevilskely@tutanota.com>
+Date:   Fri Apr 3 23:37:39 2020 -0400
+
+    Revamped README
+
+commit c505c841f8c3e98ee1bba9960b894b69a0cf7dbc
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 31 15:46:39 2020 -0300
+
+    added paypal donation link
+
+commit e45af3ef3bcf8b5ff56a7185451c7fdfd80a0b39
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 31 15:13:55 2020 -0300
+
+    Update README.md
+
+commit 2551fad46018e0c1925879e5e4f847d6ffdfb3f7
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Mar 29 00:03:13 2020 -0300
+
+    0.2.4
+    
+        Implemented option to set and change logging folder and filename. Usefull for benchmarks
+        Implemented option to change the hud text color.
+        Added "unset" option to performance parameters, this will let the game use default parameters.
+        Configuration now is created using the $HOME variable. It fixes problems for users with home folders in other disks / partitions.
+        Interface now use Antialiased fonts. (We all love antialeasing)
+        Added notification to restart system after changing Global Enable toggle. Some people thought it wasn't functioning because they didn't restart the system.
+        Changed crosshair icon
+
+commit 3586f6c8022bc9a9c25e721824691f5dc9df967a
+Merge: ebbaf05 a9f4f0c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Mar 26 14:54:58 2020 -0300
+
+    Merge pull request #11 from tim77/tim77-patch-1
+    
+    Add Fedora installation info
+
+commit a9f4f0c9b86372785488b331318a53576a237a18
+Author: Artem Polishchuk <tim77@users.noreply.github.com>
+Date:   Thu Mar 26 19:37:10 2020 +0200
+
+    Add Fedora installation info
+
+commit ebbaf05ba28ef4b1e9287cd1c9915e85eabdc228
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Mar 18 11:22:41 2020 -0300
+
+    Depencies needed
+
+commit c47d5c71c738d97f4a3811955b69169d15deac4d
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Mar 18 00:23:07 2020 -0300
+
+    Screenshot updated to latest version
+    
+    Screenshot updated to latest version
+
+commit ebc3964261888a0b731c80e91b61c10be26ffceb
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Mar 18 00:16:51 2020 -0300
+
+    0.2.3
+    
+    - Implemented Color setup for the major HUD options
+    - Implemented toggle for Global enablement of Mangohud
+    - Implemented system notification for Global enablement
+    - Changed Checkgroupboxes for Checkgroups to implement colorbuttons
+    - Moved Crosshair size slider to a new form
+    - Moved Hud background Transparency to a new form
+    - Created Program logo
+    - Fix GPU core frequency preview doesn't show up
+    - Interface overhaul
+    - Dark theme ajustments
+
+commit cdd3c5d81b2f45c93c1e82ea9ca2c9af738b00d7
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Mar 15 01:56:32 2020 -0300
+
+    Delete goverlay
+
+commit a151755ca7a02231e94ce30e795eeb9ee075e753
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sun Mar 15 01:55:57 2020 -0300
+
+    0.2.2
+    
+    Implemented OpenGL Vsync from Mangohud 0.3
+    "VKcube test" option changed to "RUN" now both VKcube and Glxgears are executed
+    Fix Disk IO Read/Write wasn't working properly
+    Fix GPU Clock wasn't showing on hud preview
+    Font size recomended to 4K screen reduced to 38
+
+commit 47ddc3b50d54c3c42af77be632a84f924132c589
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Mar 14 10:51:13 2020 -0300
+
+    Update README.md
+
+commit 481b857f6f4e0decf8990d09cf33a0a2862eb807
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Mar 14 00:51:51 2020 -0300
+
+    Update screenshot 0.2.1 beta
+    
+    Update screenshot and add lazarus reference
+
+commit 9ecdcbe42dc71f37d8213964e89a612932f83aa7
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Sat Mar 14 00:20:10 2020 -0300
+
+    0.2.1 (Beta)
+    
+    Added option for Custom FPS limit
+    Fix button "check all" doesn't update the hud preview
+    Added cross-hair preview with correct colors
+    Change cursor to "hand point" when selecting the HUD position
+    Fix preview HUD for RAM and VRAM options swaped
+    Try fix colors in HUD preview not correct in some gtk for some themes
+
+commit e16fbcb7f45b6fff96d21a01e189a4fd7cb80ccc
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Mar 13 01:07:11 2020 -0300
+
+    update screenshot to 0.2 beta
+
+commit 5033fbdf908333883e3aa54ae4e73e00f3c04135
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Fri Mar 13 00:48:44 2020 -0300
+
+    0.2 beta
+    
+    Initial implementation of HUD preview
+    Implemented Check All button
+    Implemented Hint baloon explaining the Vsync options
+    Block editing on comboboxes
+    Changed background image
+
+commit 2d4630d4367e04eb736e110dfb5cc809eb154420
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Thu Mar 12 00:52:13 2020 -0300
+
+    0.1.5
+    
+    Enable custom font size field only when Custom size is selected
+    Implemented Crosshair Size ajustment
+    Implemented function to convert Tcolor to RRGGBB Format
+    Implemented Crosshair Color selection
+    Implemented label to show the color code in RRGGBB format
+    Created a basic temporary icon
+
+commit 5d8735da78c8a55cf94eb66a6552ac2c2ce5ac2c
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Mar 11 13:46:32 2020 -0300
+
+    Updated installation methods
+    
+    Added AUR repositorie
+
+commit 12af6a4f1fc1854f3a2222b208cf590d036cbb14
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Wed Mar 11 01:00:05 2020 -0300
+
+    Version 0.1.4
+    
+    Create directories before try to write in the file
+    Implemented notification with notify-send when clicking save button
+    Fix wrong color on https://flightlessmango.com/ label inside aboutform
+    Implemented support for custom font sizes
+    Fixed background color on the Preview window
+
+commit 3b006bbe880b9fabda89f55d7ce6eac3d1ffe02b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 21:06:46 2020 -0300
+
+    Update README.md
+
+commit 1f007015769edf409b31314066d0334eec0f1418
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 13:08:30 2020 -0300
+
+    Updated instalation instructions
+    
+    Added compilations step by step and how to get the binaries.
+
+commit 9e433cd33c4b481184482dbce3ba9c18846d9481
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 12:51:06 2020 -0300
+
+    Forgotten files
+
+commit 7be145c9dd5b502d8b57cb7fc5f11dbb63c14575
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 12:50:55 2020 -0300
+
+    Forgotten files
+
+commit 20df4aebb2197064be74f28fd1e561cbb42dc74e
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 12:50:45 2020 -0300
+
+    Forgotten files
+
+commit babbad3285911017307bb3f83cbdd224e572cf33
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 12:50:35 2020 -0300
+
+    Forgotten files
+
+commit 86398dccfbf962bfd807461bbd05cf00b877e671
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 12:50:11 2020 -0300
+
+    Forgotten files
+
+commit 6774cee45c93ac9d35a8823d3c39faaa4ca6911b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 09:36:35 2020 -0300
+
+    Update README.md
+
+commit bdd97e6c212b628e4cde711314363829b6ee78b9
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 09:17:29 2020 -0300
+
+    Installation instructions
+
+commit 5e69d0d95ae6633a215435664f9a4392d56c491a
+Merge: fd34480 299309b
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 09:06:01 2020 -0300
+
+    Merge pull request #1 from akien-mga/desktop
+    
+    Add .desktop file for packaging
+
+commit 299309be021dee80225e3c860435602c5bccf321
+Author: Rémi Verschelde <rverschelde@gmail.com>
+Date:   Tue Mar 10 12:53:13 2020 +0100
+
+    Add .desktop file for packaging
+
+commit fd344805c9d044a571562fceb3c58706f7d1c311
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 08:54:03 2020 -0300
+
+    added Flightless mango references
+
+commit 85a1c84a9cf52fc1f21af8c72b6aec37b6d7d9ac
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 01:26:53 2020 -0300
+
+    Binary uploaded by mistake
+    
+    Binary uploaded by mistake
+
+commit 4505003bf6e70cf572409f1897c77da10303b52e
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 01:25:55 2020 -0300
+
+    Initial public release
+    
+    Added hud position
+    Inverted transparency trackbar
+    Added about page
+    Many UI changes
+    Initial implementation of Crosshair color dialog
+
+commit 85f47068bc25da5eb3f812b1590b11b153b40074
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 01:20:36 2020 -0300
+
+    Update README.md
+
+commit 3ff091f159ddc181abf17739043e5aa70c09cdfb
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 01:20:22 2020 -0300
+
+    Update README.md
+
+commit 3d7527fcfef8ede52f5bc81ea942bebb675b4cd2
+Author: benjamimgois <benjamim.gois@gmail.com>
+Date:   Tue Mar 10 01:13:06 2020 -0300
+
+    Initial commit
