@@ -28,7 +28,7 @@ type
     whitecolorLabel: TLabel;
     whitecolorBitBtn: TBitBtn;
     GroupBox1: TGroupBox;
-    Label1: TLabel;
+    offsetLabel: TLabel;
     MenuItem1: TMenuItem;
     offsetSpinEdit: TSpinEdit;
     fpsonlyBitBtn: TBitBtn;
@@ -849,41 +849,6 @@ begin
 
   //Get distro information
   SaveDistroInfo;
-
-  //Check for bazzite
-   if FileExists('/etc/os-release') then
-  begin
-    AssignFile(OSFile, '/etc/os-release');
-    try
-      Reset(OSFile);
-
-      while not EOF(OSFile) do
-      begin
-        ReadLn(OSFile, Line);
-
-        // Verifica se a linha contém "PRETTY_NAME="
-        if Pos('PRETTY_NAME=', Line) = 1 then
-        begin
-          // Remove "PRETTY_NAME=" e aspas extras
-          Delete(Line, 1, Length('PRETTY_NAME='));
-          Line := StringReplace(Line, '"', '', [rfReplaceAll]);
-
-          // Converte para minúsculas e verifica se contém "bazzite"
-          if Pos('bazzite', LowerCase(Line)) > 0 then
-          begin
-            if Assigned(gespeedbutton) then
-            begin
-              gespeedbutton.Visible := False; // Oculta o botão
-              GlobalenableLabel.Caption:='Global enable is not avaiable in Bazzite';
-            end;
-          end;
-          Break; // Já encontramos a informação necessária, saímos do loop
-        end;
-      end;
-    finally
-      CloseFile(OSFile);
-    end;
-  end;
 
 
 // Start vkcube (vulkan demo)
