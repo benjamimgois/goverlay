@@ -27,6 +27,7 @@ xvfb-run -a -- ./lib4bin -p -v -e -s -k \
 	/usr/lib/mangohud/* \
 	/usr/bin/vkcube \
 	/usr/bin/vkcube-wayland \
+	/usr/bin/lspci \
 	/usr/lib/qt6/plugins/iconengines/* \
 	/usr/lib/qt6/plugins/imageformats/* \
 	/usr/lib/qt6/plugins/platforms/* \
