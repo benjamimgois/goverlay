@@ -53,7 +53,8 @@ jobs:
             qt6pas \
             vulkan-tools \
             qt6-wayland \
-            lazarus
+            lazarus \
+            pciutils
 
       - name: Install debloated llvm-libs
         run: |
