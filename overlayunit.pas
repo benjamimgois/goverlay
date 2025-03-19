@@ -1760,7 +1760,7 @@ begin
       ramusagecheckbox.Checked := false;
 
     //disk
-    if LoadName('io_stats') then
+    if LoadName('io_read') then
       diskiocheckbox.Checked := True
     else
       diskiocheckbox.Checked := false;
@@ -2405,7 +2405,7 @@ GPUBrand := '';
  GPUInfo := TStringList.Create;
  try
    // Execute the command lspci to list PCI devices
-   AProcess.Executable := 'lspci';
+   AProcess.Executable := '/usr/bin/lspci';
    AProcess.Parameters.Add('-nn');
    AProcess.Options := [poWaitOnExit, poUsePipes];
    AProcess.Execute;
@@ -2934,7 +2934,7 @@ var
        //Disk IO  - Config Variable
         if diskioCheckbox.checked = true then
           begin
-             IOSTATS := 'io_stats';
+          // IOSTATS := 'io_stats';
              IOREAD := 'io_read';
              IOWRITE := 'io_write';
           end;
@@ -3332,7 +3332,7 @@ var
 
 
     //Metrics - IO/ SWAP / VRAM / RAM
-    WriteCheckboxConfig(diskioCheckBox,IOSTATS,MANGOHUDCFGFILE);
+  //WriteCheckboxConfig(diskioCheckBox,IOSTATS,MANGOHUDCFGFILE);
     WriteCheckboxConfig(diskioCheckBox,IOREAD,MANGOHUDCFGFILE);
     WriteCheckboxConfig(diskioCheckBox,IOWRITE,MANGOHUDCFGFILE);
     WriteCheckboxConfig(diskioCheckBox,IOCOLOR,MANGOHUDCFGFILE);
