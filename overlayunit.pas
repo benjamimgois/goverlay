@@ -975,7 +975,7 @@ begin
 
 
   //Load avaiable text fonts in /usr/share/fonts
-   ListarFontesNoDiretorio('/usr/share/fonts/', fontComboBox);
+   ListarFontesNoDiretorio(FONTFOLDER, fontComboBox);
 
 
 
