@@ -2405,7 +2405,7 @@ GPUBrand := '';
  GPUInfo := TStringList.Create;
  try
    // Execute the command lspci to list PCI devices
-   AProcess.Executable := '/usr/bin/lspci';
+   AProcess.Executable := 'lspci';
    AProcess.Parameters.Add('-nn');
    AProcess.Options := [poWaitOnExit, poUsePipes];
    AProcess.Execute;
