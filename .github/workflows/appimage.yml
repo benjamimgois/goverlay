@@ -111,6 +111,14 @@ jobs:
         with:
           name: AppImage
 
+      - name: Delete previous pre-release
+        run: |
+          gh release delete "nightly" --repo "${GITHUB_REPOSITORY}" --cleanup-tag  -y
+          sleep 5
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
       - name: Create pre-release
         uses: softprops/action-gh-release@v2
         if: ${{ github.ref_name == 'main' }}
