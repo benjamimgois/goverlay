@@ -5,7 +5,7 @@ set -eu
 # make appimage
 export ARCH="$(uname -m)"
 export APPIMAGE_EXTRACT_AND_RUN=1
-export VERSION="$GITHUB_SHA"
+export VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
 UPINFO="gh-releases-zsync|$(echo "$GITHUB_REPOSITORY" | tr '/' '|')|latest|*$ARCH.AppImage.zsync"
 LIB4BN="https://raw.githubusercontent.com/VHSgunzo/sharun/refs/heads/main/lib4bin"
 URUNTIME="https://github.com/VHSgunzo/uruntime/releases/latest/download/uruntime-appimage-dwarfs-$ARCH"
