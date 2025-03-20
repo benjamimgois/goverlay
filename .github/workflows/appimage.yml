@@ -33,7 +33,6 @@ jobs:
             wget \
             git \
             artix-archlinux-support \
-            llvm \
             mesa \
             mangohud \
             xorg-server-xvfb \
