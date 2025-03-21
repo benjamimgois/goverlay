@@ -33,7 +33,6 @@ jobs:
             wget \
             git \
             artix-archlinux-support \
-            llvm \
             mesa \
             mangohud \
             xorg-server-xvfb \
@@ -111,6 +110,14 @@ jobs:
       - uses: actions/download-artifact@v4.1.8
         with:
           name: AppImage
+
+      - name: Delete previous pre-release
+        run: |
+          gh release delete "nightly" --repo "${GITHUB_REPOSITORY}" --cleanup-tag  -y
+          sleep 5
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
 
       - name: Create pre-release
         uses: softprops/action-gh-release@v2
