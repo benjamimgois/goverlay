@@ -466,7 +466,7 @@ begin
 
   CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
-  Process.Executable := '/bin/bash';
+  Process.Executable := 'sh';
   Process.Parameters.Add('-c');
   Process.Parameters.Add('cat ' +  CaminhoArquivo);
   Process.Options := [poUsePipes];
@@ -498,9 +498,9 @@ begin
 
   CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
-  Process.Executable := '/bin/bash';
+  Process.Executable := 'sh';
   Process.Parameters.Add('-c');
-  Process.Parameters.Add('cat ' +  CaminhoArquivo + ' | grep ' + Parametro);
+  Process.Parameters.Add('grep ''' + Parametro + ''' ' + CaminhoArquivo);
   Process.Options := [poUsePipes];
   Process.Execute;
 
