@@ -112,6 +112,7 @@ jobs:
           name: AppImage
 
       - name: Delete previous pre-release
+        if: ${{ github.ref_name == 'main' }}
         run: |
           gh release delete "nightly" --repo "${GITHUB_REPOSITORY}" --cleanup-tag  -y
           sleep 5
