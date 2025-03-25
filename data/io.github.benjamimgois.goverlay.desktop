@@ -3,6 +3,7 @@ Name=Goverlay
 Comment=Graphical UI to help manage Vulkan / OpenGL overlays
 Exec=goverlay
 Icon=goverlay
+StartupWMClass=Goverlay
 Terminal=false
 Type=Application
 Categories=Game;
