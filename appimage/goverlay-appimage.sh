@@ -9,6 +9,7 @@ export VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
 UPINFO="gh-releases-zsync|$(echo "$GITHUB_REPOSITORY" | tr '/' '|')|latest|*$ARCH.AppImage.zsync"
 LIB4BN="https://raw.githubusercontent.com/VHSgunzo/sharun/refs/heads/main/lib4bin"
 URUNTIME="https://github.com/VHSgunzo/uruntime/releases/latest/download/uruntime-appimage-dwarfs-$ARCH"
+URUNTIME_LITE="https://github.com/VHSgunzo/uruntime/releases/latest/download/uruntime-appimage-dwarfs-lite-$ARCH"
 
 # Prepare AppDir
 mkdir -p ./AppDir
@@ -54,18 +55,19 @@ ln ./sharun ./AppRun
 # make appimage with uruntime
 cd ..
 wget --retry-connrefused --tries=30 "$URUNTIME" -O ./uruntime
-chmod +x ./uruntime
+wget --retry-connrefused --tries=30 "$URUNTIME_LITE" -O ./uruntime-lite
+chmod +x ./uruntime*
 
 # Add udpate info to runtime
 echo "Adding update information \"$UPINFO\" to runtime..."
-./uruntime --appimage-addupdinfo "$UPINFO"
+./uruntime-lite --appimage-addupdinfo "$UPINFO"
 
 echo "Generating AppImage..."
 ./uruntime --appimage-mkdwarfs -f \
 	--set-owner 0 --set-group 0 \
 	--no-history --no-create-timestamp \
 	--compression zstd:level=22 -S26 -B8 \
-	--header uruntime \
+	--header uruntime-lite \
 	-i ./AppDir -o GOverlay-"$VERSION"-anylinux-"$ARCH".AppImage
 
 zsyncmake *.AppImage -u *.AppImage
