@@ -11,9 +11,18 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
-    name: "build goverlay appimage"
-    runs-on: ubuntu-latest
-    container: artixlinux/artixlinux:latest
+    name: "${{ matrix.name }} (${{ matrix.arch }})"
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            name: "Build goverlay appimage"
+            arch: x86_64
+#          - runs-on: ubuntu-24.04-arm
+#            name: "Build goverlay appimage"
+#            arch: aarch64
+    container: ghcr.io/pkgforge-dev/archlinux:latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
@@ -22,59 +31,8 @@ jobs:
 
       - name: Get dependencies
         run: |
-          sed -i 's/DownloadUser/#DownloadUser/g' /etc/pacman.conf
-          pacman -Syu --noconfirm \
-            base-devel \
-            git \
-            cmake \
-            strace \
-            patchelf \
-            curl \
-            wget \
-            git \
-            artix-archlinux-support \
-            mesa \
-            mangohud \
-            xorg-server-xvfb \
-            vulkan-radeon \
-            vulkan-intel \
-            vulkan-nouveau
-
-          pacman-key --init && pacman-key --populate archlinux
-          printf "\n[extra]\nInclude = /etc/pacman.d/mirrorlist-arch\n" | tee -a /etc/pacman.conf
-          cat /etc/pacman.conf
-          sudo sed -i 's/NoExtract/#NoExtract/g' /etc/pacman.conf
-
-          pacman -Syu --noconfirm \
-            zsync \
-            qt6ct \
-            glu \
-            qt6pas \
-            vulkan-tools \
-            qt6-wayland \
-            lazarus \
-            pciutils
-
-      - name: Install debloated llvm-libs
-        run: |
-          LLVM_URL="https://github.com/pkgforge-dev/llvm-libs-debloated/releases/download/continuous/llvm-libs-nano-x86_64.pkg.tar.zst"
-          wget --retry-connrefused --tries=30 "$LLVM_URL" -O ./llvm-libs.pkg.tar.zst
-          pacman -U --noconfirm ./llvm-libs.pkg.tar.zst
-          rm -f ./llvm-libs.pkg.tar.zst
-  
-      - name: Install iculess libxml2
-        run: |
-          LIBXML_URL="https://github.com/pkgforge-dev/llvm-libs-debloated/releases/download/continuous/libxml2-iculess-x86_64.pkg.tar.zst"
-          wget --retry-connrefused --tries=30 "$LIBXML_URL" -O ./libxml2-iculess.pkg.tar.zst
-          pacman -U --noconfirm ./libxml2-iculess.pkg.tar.zst
-          rm -f ./libxml2-iculess.pkg.tar.zst
-
-      - name: Install iculess qt6-base
-        run: |
-          QT6_URL="https://github.com/pkgforge-dev/llvm-libs-debloated/releases/download/continuous/qt6-base-iculess-x86_64.pkg.tar.zst"
-          wget --retry-connrefused --tries=30 "$QT6_URL" -O ./qt6-base.pkg.tar.zst
-          pacman -U --noconfirm ./qt6-base.pkg.tar.zst
-          rm -f ./qt6-base.pkg.tar.zst
+          chmod +x ./appimage/get-dependencies.sh
+          ./appimage/get-dependencies.sh
 
       # Runs a set of commands using the runners shell
       - name: Build GOverlay
@@ -95,7 +53,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: AppImage
+          name: AppImage-${{ matrix.arch }}
           path: "dist"
 
   release_nightly:
@@ -107,9 +65,13 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4.1.8
+      - uses: actions/download-artifact@v4.1.9
         with:
-          name: AppImage
+          name: AppImage-x86_64
+
+#      - uses: actions/download-artifact@v4.1.9
+#        with:
+#          name: AppImage-aarch64
 
       - name: Delete previous pre-release
         if: ${{ github.ref_name == 'main' }}
