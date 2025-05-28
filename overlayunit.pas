@@ -405,7 +405,7 @@ var
   Process1: TProcess;
 begin
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -423,7 +423,7 @@ begin
     if CHECKBOXNAME.checked = true then
     begin
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -466,7 +466,7 @@ begin
 
   CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
-  Process.Executable := 'sh';
+  Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
   Process.Parameters.Add('cat ' +  CaminhoArquivo);
   Process.Options := [poUsePipes];
@@ -498,7 +498,7 @@ begin
 
   CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
-  Process.Executable := 'sh';
+  Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
   Process.Parameters.Add('grep ''' + Parametro + ''' ' + CaminhoArquivo);
   Process.Options := [poUsePipes];
@@ -566,7 +566,7 @@ begin
   AProcess := TProcess.Create(nil);
   Output := TStringList.Create;
   try
-    AProcess.Executable := '/bin/uname';
+    AProcess.Executable := FindDefaultExecutablePath('uname');
     AProcess.Parameters.Add('-r');
     AProcess.Options := [poWaitOnExit, poUsePipes];
     AProcess.Execute;
@@ -675,7 +675,7 @@ else
 begin
   Process1 := TProcess.Create(nil);
   try
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('cp ' + CUSTOMCFGFILE + ' ' + MANGOHUDCFGFILE);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -694,7 +694,7 @@ end;
   usercustomBitbtn.Color:=$007F5500;
 
   Process1 := TProcess.Create(nil);
-  Process1.Executable := 'sh';
+  Process1.Executable := FindDefaultExecutablePath('sh');
   Process1.Parameters.Add('-c');
   Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Reloading custom user preset"');
   Process1.Options := [poUsePipes];
@@ -738,7 +738,7 @@ begin
   AStringList := TStringList.Create;
   try
     // Configura o processo para executar o comando 'ip link'
-    AProcess.Executable := '/sbin/ip';
+    AProcess.Executable := FindDefaultExecutablePath('ip');
     AProcess.Parameters.Add('link');
     AProcess.Options := AProcess.Options + [poWaitOnExit, poUsePipes];
 
@@ -857,7 +857,7 @@ begin
   if USERSESSION = 'wayland' then
   begin
      Process := TProcess.Create(nil);
-     Process.Executable := 'sh';
+     Process.Executable := FindDefaultExecutablePath('sh');
      Process.Parameters.Add('-c');
      //Process.Parameters.Add('mangohud vkcube-wayland');  //deprecated ??
      Process.Parameters.Add('mangohud vkcube --wsi wayland');
@@ -867,7 +867,7 @@ begin
       else
     begin
      Process := TProcess.Create(nil);
-     Process.Executable := 'sh';
+     Process.Executable := FindDefaultExecutablePath('sh');
      Process.Parameters.Add('-c');
      Process.Parameters.Add('mangohud vkcube');
      Process.Options := [poUsePipes];
@@ -890,7 +890,7 @@ begin
 
     // Exibe notificacao
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "No configuration files located, creating files and folders."');
     Process1.Options := [poUsePipes];
@@ -985,7 +985,7 @@ begin
     Process1 := TProcess.Create(nil);
     saida := TStringList.Create;
 
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('lspci | grep -i "VGA\|video" | wc -l'); //Count the number of lines
     Process1.Options := [poUsePipes];
@@ -1008,7 +1008,7 @@ begin
       Process1 := TProcess.Create(nil);
       saida := TStringList.Create;
 
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
       Process1.Options := [poUsePipes];
@@ -1025,7 +1025,7 @@ begin
       Process1 := TProcess.Create(nil);
       saida := TStringList.Create;
 
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
       Process1.Options := [poUsePipes];
@@ -1052,7 +1052,7 @@ begin
      Process1 := TProcess.Create(nil);
      saida := TStringList.Create;
 
-     Process1.Executable := 'sh';
+     Process1.Executable := FindDefaultExecutablePath('sh');
      Process1.Parameters.Add('-c');
      Process1.Parameters.Add('cat /etc/environment | grep MANGOHUD=1');
      Process1.Options := [poUsePipes];
@@ -1358,7 +1358,7 @@ begin
       Process1 := TProcess.Create(nil);
       saida := TStringList.Create;
 
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
       Process1.Options := [poUsePipes];
@@ -1992,7 +1992,7 @@ begin
 
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('echo MANGOHUD=1 | pkexec tee -a /etc/environment');
          Process1.Options := [poUsePipes];
@@ -2001,7 +2001,7 @@ begin
          Process1.Free;
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"');
          Process1.Options := [poUsePipes];
@@ -2019,7 +2019,7 @@ begin
 
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment');
          Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2027,7 +2027,7 @@ begin
          Process1.Free;
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"');
          Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2070,7 +2070,7 @@ begin
     // Copy Mangohud.conf file to custom.conf
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('cp '+ MANGOHUDCFGFILE + ' ' + CUSTOMCFGFILE);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2080,7 +2080,7 @@ begin
 
     //Notification
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "Settings saved as custom config"');
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2405,7 +2405,7 @@ GPUBrand := '';
  GPUInfo := TStringList.Create;
  try
    // Execute the command lspci to list PCI devices
-   AProcess.Executable := 'lspci';
+   AProcess.Executable := FindDefaultExecutablePath('lspci');
    AProcess.Parameters.Add('-nn');
    AProcess.Options := [poWaitOnExit, poUsePipes];
    AProcess.Execute;
@@ -2500,7 +2500,7 @@ begin
       if Response = mrYes then
       begin
       Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('pkexec chmod o+r /sys/class/powercap/intel-rapl\:0/energy_uj');
       Process1.Options := [poUsePipes];
@@ -2670,7 +2670,7 @@ var
   //Create directories
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('mkdir -p '+ MANGOHUDFOLDER);
     Process1.Options := [poUsePipes];
@@ -2681,7 +2681,7 @@ var
   // Delete old files if it exists
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('rm '+ MANGOHUDCFGFILE);
     Process1.Options := [poUsePipes];
@@ -2692,7 +2692,7 @@ var
   // Create a new file for GOverlay
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo "################### File Generated by Goverlay ###################" >> '+ MANGOHUDCFGFILE);
     Process1.Options := [poUsePipes];
@@ -2703,7 +2703,7 @@ var
 
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo "legacy_layout=false" >> '+ MANGOHUDCFGFILE);
     Process1.Options := [poUsePipes];
@@ -2716,7 +2716,7 @@ var
 
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Configuration saved"');
     Process1.Options := [poUsePipes];
