@@ -337,7 +337,7 @@ DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
 BlacklistStr, blacklistVAR: string;
 
-
+  FONT, FONTFOLDERS: TStringList;
 
   //Boolean variables
   mangohudsel: boolean;
@@ -345,7 +345,7 @@ BlacklistStr, blacklistVAR: string;
   Found: Boolean;
 
   //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
 
   //########################################
   i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
@@ -378,20 +378,104 @@ begin
 end;
 
 
+//Function to load strings from fc-list
+function LoadFont(const Parametro: string; out Valor: TStringList): Boolean;
+const
+  BUF_SIZE = 2048;
+var
+  Process: TProcess;
+  Output: TStream;
+  BytesRead: longint;
+  Buffer: array[1..BUF_SIZE] of byte;
+begin
+  Process := TProcess.Create(nil);
+  Output := TMemoryStream.Create;
+  Valor := TStringList.Create;
+  Valor.Sorted := True;
+  Valor.Duplicates := dupIgnore;
 
-//Function to find font files (*.ttf) in /usr/share/fonts
-procedure ListarFontesNoDiretorio(Diretorio: string; ComboBox: TComboBox);
+  Process.Executable := FindDefaultExecutablePath('sh');
+  Process.Parameters.Add('-c');
+  Process.Parameters.Add('fc-list -f "%{file}\n"');
+  Process.Options := [poUsePipes];
+  Process.Execute;
+
+  repeat
+    BytesRead := Process.Output.Read(Buffer, BUF_SIZE);
+
+    Output.Write(Buffer, BytesRead)
+
+  until BytesRead = 0;  // Stop if no more data is available
+
+  Process.Free;
+
+  with TStringList.Create do
+  begin
+    Output.Position := 0; // Required to make sure all data is copied from the start
+    LoadFromStream(Output);
+    Valor.Text := StringReplace(Text, '\n', LineEnding, [rfReplaceAll, rfIgnoreCase]);
+    Free
+  end;
+
+  Output.Free;
+
+  Result := Valor.Text <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+end;
+
+
+//Function to find font files (*.ttf)
+procedure ListarFontesNoDiretorio(ComboBox: TComboBox);
 var
   Arquivos: TStringList;
   Arquivo: String;
+  i: Integer;
 begin
+  Arquivos := TStringList.Create;
 
-  Arquivos := FindAllFiles(Diretorio, '*.ttf'); // Locate TTF files in Diretorio
+  LoadFont('fonts', FONT);
+
+  i := 0;
+  while i < FONT.Count do
+    begin
+        Arquivos.Add(FONT[i]); // Add TTF files
+        inc(i);
+    end;
+  FONT.Free;
 
   try
     for Arquivo in Arquivos do
     begin
       ComboBox.Items.Add(ExtractFileName(Arquivo)); // Add filename into combobox
+    end;
+  finally
+    Arquivos.Free; // Free memory
+  end;
+end;
+
+
+//Function to find font directories
+procedure ListFontDirectories(Dirs: TStringList);
+var
+  Arquivos: TStringList;
+  Arquivo: String;
+  i: Integer;
+begin
+  Arquivos := TStringList.Create;
+
+  LoadFont('fonts', FONT);
+
+  i := 0;
+  while i < FONT.Count do
+    begin
+        Arquivos.Add(FONT[i]); // Add TTF files
+        inc(i);
+    end;
+  FONT.Free;
+
+  try
+    for Arquivo in Arquivos do
+    begin
+      Dirs.Add(ExtractFileDir(Arquivo));
     end;
   finally
     Arquivos.Free; // Free memory
@@ -843,7 +927,6 @@ begin
   MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
   BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
   CUSTOMCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/custom.conf';
-  FONTFOLDER := '/usr/share/fonts/';
   USERHOME := GetEnvironmentVariable('HOME');
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
 
@@ -974,8 +1057,8 @@ begin
 
 
 
-  //Load avaiable text fonts in /usr/share/fonts
-   ListarFontesNoDiretorio(FONTFOLDER, fontComboBox);
+  //Load avaiable text fonts
+   ListarFontesNoDiretorio(fontComboBox);
 
 
 
@@ -2775,11 +2858,21 @@ var
       //Font type  - Config Variable
 
       if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
-        begin
-          LOCATEDFILE := FindAllFiles(FONTFOLDER, fontCombobox.Text);  //Locate specific folder for selected font
-          FONTPATH := LOCATEDFILE[0];
-          FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
-        end;
+      begin
+        FONTFOLDERS := TStringList.Create;
+        FONTFOLDERS.Sorted := True;
+        FONTFOLDERS.Duplicates := dupIgnore;
+        FONTFOLDERS.Delimiter := ';';
+        ListFontDirectories(FONTFOLDERS);
+
+        LOCATEDFILE := FindAllFiles(FONTFOLDERS.DelimitedText, fontCombobox.Text);  //Locate specific folder for selected font
+        FONTPATH := LOCATEDFILE[0];
+        FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
+      end
+      else
+      begin
+        FONTTYPE := '';
+      end;
 
 
       //Font size  - Config Variable
