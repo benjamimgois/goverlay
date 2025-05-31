@@ -2665,6 +2665,10 @@ var
   MaxFPS, SelectedFPS: Integer;
   SelectedValues: TStringList;
 
+  XdgDataDirsVariable: string;
+  XdgDataDirs: TStringDynArray;
+  IconPath: string;
+
   begin
 
   //Create directories
@@ -2714,11 +2718,25 @@ var
 
   // Popup a notification
 
+    IconPath := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
+    XdgDataDirsVariable := GetEnvironmentVariable('XDG_DATA_DIRS');
+    if Length(XdgDataDirsVariable) > 0 then
+    begin
+        XdgDataDirs := SplitString(XdgDataDirsVariable, ':');
+        for i := Low(XdgDataDirs) to High(XdgDataDirs) do
+        begin
+            IconPath := XdgDataDirs[i] + '/icons/hicolor/128x128/apps/goverlay.png';
+            if FileExists(IconPath) then
+            begin
+                Break;
+            end;
+        end;
+    end;
 
     Process1 := TProcess.Create(nil);
     Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Configuration saved"');
+    Process1.Parameters.Add('notify-send -e -i ' + IconPath + ' "MangoHud" "Configuration saved"');
     Process1.Options := [poUsePipes];
     Process1.Execute;
     Process1.WaitOnExit;
@@ -3506,4 +3524,3 @@ end;
 
 
 end.
-
