@@ -337,7 +337,7 @@ DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
 BlacklistStr, blacklistVAR: string;
 
-
+  FONT, FONTFOLDERS: TStringList;
 
   //Boolean variables
   mangohudsel: boolean;
@@ -345,7 +345,7 @@ BlacklistStr, blacklistVAR: string;
   Found: Boolean;
 
   //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, FONTFOLDER, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
 
   //########################################
   i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
@@ -378,20 +378,104 @@ begin
 end;
 
 
+//Function to load strings from fc-list
+function LoadFont(const Parametro: string; out Valor: TStringList): Boolean;
+const
+  BUF_SIZE = 2048;
+var
+  Process: TProcess;
+  Output: TStream;
+  BytesRead: longint;
+  Buffer: array[1..BUF_SIZE] of byte;
+begin
+  Process := TProcess.Create(nil);
+  Output := TMemoryStream.Create;
+  Valor := TStringList.Create;
+  Valor.Sorted := True;
+  Valor.Duplicates := dupIgnore;
 
-//Function to find font files (*.ttf) in /usr/share/fonts
-procedure ListarFontesNoDiretorio(Diretorio: string; ComboBox: TComboBox);
+  Process.Executable := FindDefaultExecutablePath('sh');
+  Process.Parameters.Add('-c');
+  Process.Parameters.Add('fc-list -f "%{file}\n"');
+  Process.Options := [poUsePipes];
+  Process.Execute;
+
+  repeat
+    BytesRead := Process.Output.Read(Buffer, BUF_SIZE);
+
+    Output.Write(Buffer, BytesRead)
+
+  until BytesRead = 0;  // Stop if no more data is available
+
+  Process.Free;
+
+  with TStringList.Create do
+  begin
+    Output.Position := 0; // Required to make sure all data is copied from the start
+    LoadFromStream(Output);
+    Valor.Text := StringReplace(Text, '\n', LineEnding, [rfReplaceAll, rfIgnoreCase]);
+    Free
+  end;
+
+  Output.Free;
+
+  Result := Valor.Text <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+end;
+
+
+//Function to find font files (*.ttf)
+procedure ListarFontesNoDiretorio(ComboBox: TComboBox);
 var
   Arquivos: TStringList;
   Arquivo: String;
+  i: Integer;
 begin
+  Arquivos := TStringList.Create;
 
-  Arquivos := FindAllFiles(Diretorio, '*.ttf'); // Locate TTF files in Diretorio
+  LoadFont('fonts', FONT);
+
+  i := 0;
+  while i < FONT.Count do
+    begin
+        Arquivos.Add(FONT[i]); // Add TTF files
+        inc(i);
+    end;
+  FONT.Free;
 
   try
     for Arquivo in Arquivos do
     begin
       ComboBox.Items.Add(ExtractFileName(Arquivo)); // Add filename into combobox
+    end;
+  finally
+    Arquivos.Free; // Free memory
+  end;
+end;
+
+
+//Function to find font directories
+procedure ListFontDirectories(Dirs: TStringList);
+var
+  Arquivos: TStringList;
+  Arquivo: String;
+  i: Integer;
+begin
+  Arquivos := TStringList.Create;
+
+  LoadFont('fonts', FONT);
+
+  i := 0;
+  while i < FONT.Count do
+    begin
+        Arquivos.Add(FONT[i]); // Add TTF files
+        inc(i);
+    end;
+  FONT.Free;
+
+  try
+    for Arquivo in Arquivos do
+    begin
+      Dirs.Add(ExtractFileDir(Arquivo));
     end;
   finally
     Arquivos.Free; // Free memory
@@ -405,7 +489,7 @@ var
   Process1: TProcess;
 begin
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -423,7 +507,7 @@ begin
     if CHECKBOXNAME.checked = true then
     begin
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -466,7 +550,7 @@ begin
 
   CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
-  Process.Executable := 'sh';
+  Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
   Process.Parameters.Add('cat ' +  CaminhoArquivo);
   Process.Options := [poUsePipes];
@@ -498,7 +582,7 @@ begin
 
   CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
 
-  Process.Executable := 'sh';
+  Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
   Process.Parameters.Add('grep ''' + Parametro + ''' ' + CaminhoArquivo);
   Process.Options := [poUsePipes];
@@ -566,7 +650,7 @@ begin
   AProcess := TProcess.Create(nil);
   Output := TStringList.Create;
   try
-    AProcess.Executable := '/bin/uname';
+    AProcess.Executable := FindDefaultExecutablePath('uname');
     AProcess.Parameters.Add('-r');
     AProcess.Options := [poWaitOnExit, poUsePipes];
     AProcess.Execute;
@@ -675,7 +759,7 @@ else
 begin
   Process1 := TProcess.Create(nil);
   try
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('cp ' + CUSTOMCFGFILE + ' ' + MANGOHUDCFGFILE);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -694,7 +778,7 @@ end;
   usercustomBitbtn.Color:=$007F5500;
 
   Process1 := TProcess.Create(nil);
-  Process1.Executable := 'sh';
+  Process1.Executable := FindDefaultExecutablePath('sh');
   Process1.Parameters.Add('-c');
   Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Reloading custom user preset"');
   Process1.Options := [poUsePipes];
@@ -738,7 +822,7 @@ begin
   AStringList := TStringList.Create;
   try
     // Configura o processo para executar o comando 'ip link'
-    AProcess.Executable := '/sbin/ip';
+    AProcess.Executable := FindDefaultExecutablePath('ip');
     AProcess.Parameters.Add('link');
     AProcess.Options := AProcess.Options + [poWaitOnExit, poUsePipes];
 
@@ -843,7 +927,6 @@ begin
   MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
   BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
   CUSTOMCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/custom.conf';
-  FONTFOLDER := '/usr/share/fonts/';
   USERHOME := GetEnvironmentVariable('HOME');
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
 
@@ -857,7 +940,7 @@ begin
   if USERSESSION = 'wayland' then
   begin
      Process := TProcess.Create(nil);
-     Process.Executable := 'sh';
+     Process.Executable := FindDefaultExecutablePath('sh');
      Process.Parameters.Add('-c');
      //Process.Parameters.Add('mangohud vkcube-wayland');  //deprecated ??
      Process.Parameters.Add('mangohud vkcube --wsi wayland');
@@ -867,7 +950,7 @@ begin
       else
     begin
      Process := TProcess.Create(nil);
-     Process.Executable := 'sh';
+     Process.Executable := FindDefaultExecutablePath('sh');
      Process.Parameters.Add('-c');
      Process.Parameters.Add('mangohud vkcube');
      Process.Options := [poUsePipes];
@@ -890,7 +973,7 @@ begin
 
     // Exibe notificacao
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "No configuration files located, creating files and folders."');
     Process1.Options := [poUsePipes];
@@ -974,8 +1057,8 @@ begin
 
 
 
-  //Load avaiable text fonts in /usr/share/fonts
-   ListarFontesNoDiretorio(FONTFOLDER, fontComboBox);
+  //Load avaiable text fonts
+   ListarFontesNoDiretorio(fontComboBox);
 
 
 
@@ -985,7 +1068,7 @@ begin
     Process1 := TProcess.Create(nil);
     saida := TStringList.Create;
 
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('lspci | grep -i "VGA\|video" | wc -l'); //Count the number of lines
     Process1.Options := [poUsePipes];
@@ -1008,7 +1091,7 @@ begin
       Process1 := TProcess.Create(nil);
       saida := TStringList.Create;
 
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
       Process1.Options := [poUsePipes];
@@ -1025,7 +1108,7 @@ begin
       Process1 := TProcess.Create(nil);
       saida := TStringList.Create;
 
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
       Process1.Options := [poUsePipes];
@@ -1052,7 +1135,7 @@ begin
      Process1 := TProcess.Create(nil);
      saida := TStringList.Create;
 
-     Process1.Executable := 'sh';
+     Process1.Executable := FindDefaultExecutablePath('sh');
      Process1.Parameters.Add('-c');
      Process1.Parameters.Add('cat /etc/environment | grep MANGOHUD=1');
      Process1.Options := [poUsePipes];
@@ -1358,7 +1441,7 @@ begin
       Process1 := TProcess.Create(nil);
       saida := TStringList.Create;
 
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
       Process1.Options := [poUsePipes];
@@ -1992,7 +2075,7 @@ begin
 
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('echo MANGOHUD=1 | pkexec tee -a /etc/environment');
          Process1.Options := [poUsePipes];
@@ -2001,7 +2084,7 @@ begin
          Process1.Free;
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"');
          Process1.Options := [poUsePipes];
@@ -2019,7 +2102,7 @@ begin
 
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment');
          Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2027,7 +2110,7 @@ begin
          Process1.Free;
 
          Process1 := TProcess.Create(nil);
-         Process1.Executable := 'sh';
+         Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
          Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"');
          Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2070,7 +2153,7 @@ begin
     // Copy Mangohud.conf file to custom.conf
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('cp '+ MANGOHUDCFGFILE + ' ' + CUSTOMCFGFILE);
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2080,7 +2163,7 @@ begin
 
     //Notification
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "Settings saved as custom config"');
     Process1.Options := [poWaitOnExit, poUsePipes];
@@ -2405,7 +2488,7 @@ GPUBrand := '';
  GPUInfo := TStringList.Create;
  try
    // Execute the command lspci to list PCI devices
-   AProcess.Executable := 'lspci';
+   AProcess.Executable := FindDefaultExecutablePath('lspci');
    AProcess.Parameters.Add('-nn');
    AProcess.Options := [poWaitOnExit, poUsePipes];
    AProcess.Execute;
@@ -2500,7 +2583,7 @@ begin
       if Response = mrYes then
       begin
       Process1 := TProcess.Create(nil);
-      Process1.Executable := 'sh';
+      Process1.Executable := FindDefaultExecutablePath('sh');
       Process1.Parameters.Add('-c');
       Process1.Parameters.Add('pkexec chmod o+r /sys/class/powercap/intel-rapl\:0/energy_uj');
       Process1.Options := [poUsePipes];
@@ -2665,12 +2748,16 @@ var
   MaxFPS, SelectedFPS: Integer;
   SelectedValues: TStringList;
 
+  XdgDataDirsVariable: string;
+  XdgDataDirs: TStringDynArray;
+  IconPath: string;
+
   begin
 
   //Create directories
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('mkdir -p '+ MANGOHUDFOLDER);
     Process1.Options := [poUsePipes];
@@ -2681,7 +2768,7 @@ var
   // Delete old files if it exists
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('rm '+ MANGOHUDCFGFILE);
     Process1.Options := [poUsePipes];
@@ -2692,7 +2779,7 @@ var
   // Create a new file for GOverlay
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo "################### File Generated by Goverlay ###################" >> '+ MANGOHUDCFGFILE);
     Process1.Options := [poUsePipes];
@@ -2703,7 +2790,7 @@ var
 
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
     Process1.Parameters.Add('echo "legacy_layout=false" >> '+ MANGOHUDCFGFILE);
     Process1.Options := [poUsePipes];
@@ -2714,11 +2801,25 @@ var
 
   // Popup a notification
 
+    IconPath := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
+    XdgDataDirsVariable := GetEnvironmentVariable('XDG_DATA_DIRS');
+    if Length(XdgDataDirsVariable) > 0 then
+    begin
+        XdgDataDirs := SplitString(XdgDataDirsVariable, ':');
+        for i := Low(XdgDataDirs) to High(XdgDataDirs) do
+        begin
+            IconPath := XdgDataDirs[i] + '/icons/hicolor/128x128/apps/goverlay.png';
+            if FileExists(IconPath) then
+            begin
+                Break;
+            end;
+        end;
+    end;
 
     Process1 := TProcess.Create(nil);
-    Process1.Executable := 'sh';
+    Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Configuration saved"');
+    Process1.Parameters.Add('notify-send -e -i ' + IconPath + ' "MangoHud" "Configuration saved"');
     Process1.Options := [poUsePipes];
     Process1.Execute;
     Process1.WaitOnExit;
@@ -2757,11 +2858,21 @@ var
       //Font type  - Config Variable
 
       if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
-        begin
-          LOCATEDFILE := FindAllFiles(FONTFOLDER, fontCombobox.Text);  //Locate specific folder for selected font
-          FONTPATH := LOCATEDFILE[0];
-          FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
-        end;
+      begin
+        FONTFOLDERS := TStringList.Create;
+        FONTFOLDERS.Sorted := True;
+        FONTFOLDERS.Duplicates := dupIgnore;
+        FONTFOLDERS.Delimiter := ';';
+        ListFontDirectories(FONTFOLDERS);
+
+        LOCATEDFILE := FindAllFiles(FONTFOLDERS.DelimitedText, fontCombobox.Text);  //Locate specific folder for selected font
+        FONTPATH := LOCATEDFILE[0];
+        FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
+      end
+      else
+      begin
+        FONTTYPE := '';
+      end;
 
 
       //Font size  - Config Variable
@@ -3506,4 +3617,3 @@ end;
 
 
 end.
-
