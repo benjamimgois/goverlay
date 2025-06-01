@@ -337,7 +337,6 @@ DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
 BlacklistStr, blacklistVAR: string;
 
-  FONT, FONTFOLDERS: TStringList;
 
   //Boolean variables
   mangohudsel: boolean;
@@ -345,7 +344,8 @@ BlacklistStr, blacklistVAR: string;
   Found: Boolean;
 
   //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, HOMEPATH, USERHOME, GOVERLAYFOLDER, GPU0, LSPCI0: string;
+  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, DATADIRS, GOVERLAYFOLDER, GPU0, LSPCI0: string;
+  FONTS, FONTFOLDERS: TStringList;
 
   //########################################
   i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
@@ -378,6 +378,44 @@ begin
 end;
 
 
+//Function to get user config directory
+function GetUserConfig(): String;
+var
+  UserConfig: String;
+begin;
+  UserConfig := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if not DirectoryExists(UserConfig) then
+  begin
+    UserConfig := GetUserDir + '.config';
+  end;
+  Result := UserConfig;
+end;
+
+
+//Function to get icon file
+function GetIconFile(): String;
+var
+    Dirs: TStringDynArray;
+    IconFile: String;
+begin;
+    DATADIRS := GetEnvironmentVariable('XDG_DATA_DIRS');
+    IconFile := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
+    if Length(DATADIRS) > 0 then
+    begin
+        Dirs := SplitString(DATADIRS, ':');
+        for i := Low(Dirs) to High(Dirs) do
+        begin
+            IconFile := Dirs[i] + '/icons/hicolor/128x128/apps/goverlay.png';
+            if FileExists(IconFile) then
+            begin
+                Break;
+            end;
+        end;
+    end;
+    Result := IconFile;
+end;
+
+
 //Function to load strings from fc-list
 function LoadFont(const Parametro: string; out Valor: TStringList): Boolean;
 const
@@ -396,7 +434,7 @@ begin
 
   Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
-  Process.Parameters.Add('fc-list -f "%{file}\n"');
+  Process.Parameters.Add('fc-list -f "%{file}\n" :lang=en:fontformat=TrueType');
   Process.Options := [poUsePipes];
   Process.Execute;
 
@@ -423,24 +461,22 @@ begin
 end;
 
 
-//Function to find font files (*.ttf)
+//Procedure to find font files (*.ttf)
 procedure ListarFontesNoDiretorio(ComboBox: TComboBox);
 var
   Arquivos: TStringList;
   Arquivo: String;
-  i: Integer;
 begin
   Arquivos := TStringList.Create;
 
-  LoadFont('fonts', FONT);
-
-  i := 0;
-  while i < FONT.Count do
-    begin
-        Arquivos.Add(FONT[i]); // Add TTF files
-        inc(i);
-    end;
-  FONT.Free;
+  if LoadFont('fonts', FONTS) then
+  begin
+    Arquivos := FONTS;
+  end
+  else
+  begin
+    Arquivos := FindAllFiles('/usr/share/fonts', '*.ttf');
+  end;
 
   try
     for Arquivo in Arquivos do
@@ -453,32 +489,25 @@ begin
 end;
 
 
-//Function to find font directories
-procedure ListFontDirectories(Dirs: TStringList);
+//Procedure to find font directories
+procedure ListFontDirectories(out Dirs: TStringList);
 var
   Arquivos: TStringList;
   Arquivo: String;
-  i: Integer;
 begin
   Arquivos := TStringList.Create;
 
-  LoadFont('fonts', FONT);
-
-  i := 0;
-  while i < FONT.Count do
-    begin
-        Arquivos.Add(FONT[i]); // Add TTF files
-        inc(i);
+  if LoadFont('fonts', FONTS) then
+  begin
+    Arquivos := FONTS;
+    try
+      for Arquivo in Arquivos do
+      begin
+        Dirs.Add(ExtractFileDir(Arquivo));
+      end;
+    finally
+      Arquivos.Free; // Free memory
     end;
-  FONT.Free;
-
-  try
-    for Arquivo in Arquivos do
-    begin
-      Dirs.Add(ExtractFileDir(Arquivo));
-    end;
-  finally
-    Arquivos.Free; // Free memory
   end;
 end;
 
@@ -548,7 +577,7 @@ begin
   Process := TProcess.Create(nil);
   Output := TStringList.Create;
 
-  CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+  CaminhoArquivo := GetUserConfig + '/MangoHud/MangoHud.conf';
 
   Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
@@ -580,7 +609,7 @@ begin
   Process := TProcess.Create(nil);
   Output := TStringList.Create;
 
-  CaminhoArquivo := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+  CaminhoArquivo := GetUserConfig + '/MangoHud/MangoHud.conf';
 
   Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
@@ -745,8 +774,8 @@ procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
 begin
 
   // Update the config files path
-   CUSTOMCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/custom.conf';
-   MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+   CUSTOMCFGFILE := GetUserConfig + '/MangoHud/custom.conf';
+   MANGOHUDCFGFILE := GetUserConfig + '/MangoHud/MangoHud.conf';
 
 
 
@@ -780,7 +809,7 @@ end;
   Process1 := TProcess.Create(nil);
   Process1.Executable := FindDefaultExecutablePath('sh');
   Process1.Parameters.Add('-c');
-  Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "MangoHud" "Reloading custom user preset"');
+  Process1.Parameters.Add('notify-send -e -i ' + GetIconFile + ' "MangoHud" "Reloading custom user preset"');
   Process1.Options := [poUsePipes];
   Process1.Execute;
   Process1.WaitOnExit;
@@ -897,7 +926,7 @@ var
   AppHandle: THandle;
   saida, Output, FileLines, DefaultConfigContent: TStringList;
   i: Integer;
-  ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir, BlacklistFile: string;
+  ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir: string;
 
   FPSList: TStringList;
   ConfigFile: TStringList;
@@ -922,12 +951,11 @@ begin
 
   // Define important file paths
 
-  GOVERLAYFOLDER := GetEnvironmentVariable('HOME') + '/.config/goverlay/';
-  MANGOHUDFOLDER := GetEnvironmentVariable('HOME') + '/.config/MangoHud/';
-  MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
-  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
-  CUSTOMCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/custom.conf';
-  USERHOME := GetEnvironmentVariable('HOME');
+  GOVERLAYFOLDER := GetUserConfig + '/goverlay/';
+  MANGOHUDFOLDER := GetUserConfig + '/MangoHud/';
+  MANGOHUDCFGFILE := GetUserConfig + '/MangoHud/MangoHud.conf';
+  BLACKLISTFILE := GetUserConfig + '/goverlay/blacklist.conf';
+  CUSTOMCFGFILE := GetUserConfig + '/MangoHud/custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
 
   //Get distro information
@@ -958,8 +986,7 @@ begin
   end;
 
 
-  // Substitui $HOME pelo caminho real do diretório do usuário
-   ConfigFilePath := StringReplace(MANGOHUDCFGFILE, '$HOME', GetEnvironmentVariable('HOME'), [rfReplaceAll]);
+   ConfigFilePath := MANGOHUDCFGFILE;
    ConfigDir := ExtractFilePath(ConfigFilePath);
 
    // Verifica se o diretório existe, se não, cria
@@ -975,7 +1002,7 @@ begin
     Process1 := TProcess.Create(nil);
     Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "No configuration files located, creating files and folders."');
+    Process1.Parameters.Add('notify-send -e -i ' + GetIconFile + ' "Goverlay" "No configuration files located, creating files and folders."');
     Process1.Options := [poUsePipes];
     Process1.Execute;
     Process1.WaitOnExit;
@@ -1032,13 +1059,13 @@ begin
 
 
    // Check blacklist directory
-  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
+  BLACKLISTFILE := GetUserConfig + '/goverlay/blacklist.conf';
 
   // make sure directory exists
-  ForceDirectories(ExtractFilePath(BlacklistFile));
+  ForceDirectories(ExtractFilePath(BLACKLISTFILE));
 
   // Check if file exists and create default
-  if not FileExists(BlacklistFile) then
+  if not FileExists(BLACKLISTFILE) then
   begin
     FileLines := TStringList.Create;
     try
@@ -1048,7 +1075,7 @@ begin
       FileLines.Add('bitwig-studio');
       FileLines.Add('ptyxis');
       FileLines.Add('yumex');
-      FileLines.SaveToFile(BlacklistFile);
+      FileLines.SaveToFile(BLACKLISTFILE);
     finally
       FileLines.Free;
     end;
@@ -1161,7 +1188,7 @@ begin
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
-     logfolderEdit.text := USERHOME;
+     logfolderEdit.text := GetUserDir;
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
      delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
      intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
@@ -2086,7 +2113,7 @@ begin
          Process1 := TProcess.Create(nil);
          Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
-         Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"');
+         Process1.Parameters.Add('notify-send -e -i ' + GetIconFile + ' "VULKAN Global Enable Activated" "Every Vulkan application will have Mangohud Enabled now"');
          Process1.Options := [poUsePipes];
          Process1.Execute;
          Process1.WaitOnExit;
@@ -2112,7 +2139,7 @@ begin
          Process1 := TProcess.Create(nil);
          Process1.Executable := FindDefaultExecutablePath('sh');
          Process1.Parameters.Add('-c');
-         Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Deactivated"');
+         Process1.Parameters.Add('notify-send -e -i ' + GetIconFile + ' "Deactivated"');
          Process1.Options := [poWaitOnExit, poUsePipes];
          Process1.Execute;
          Process1.Free;
@@ -2165,7 +2192,7 @@ begin
     Process1 := TProcess.Create(nil);
     Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('notify-send -e -i /usr/share/icons/hicolor/128x128/apps/goverlay.png "Goverlay" "Settings saved as custom config"');
+    Process1.Parameters.Add('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Settings saved as custom config"');
     Process1.Options := [poWaitOnExit, poUsePipes];
     Process1.Execute;
     Process1.WaitOnExit;
@@ -2748,10 +2775,6 @@ var
   MaxFPS, SelectedFPS: Integer;
   SelectedValues: TStringList;
 
-  XdgDataDirsVariable: string;
-  XdgDataDirs: TStringDynArray;
-  IconPath: string;
-
   begin
 
   //Create directories
@@ -2801,25 +2824,10 @@ var
 
   // Popup a notification
 
-    IconPath := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
-    XdgDataDirsVariable := GetEnvironmentVariable('XDG_DATA_DIRS');
-    if Length(XdgDataDirsVariable) > 0 then
-    begin
-        XdgDataDirs := SplitString(XdgDataDirsVariable, ':');
-        for i := Low(XdgDataDirs) to High(XdgDataDirs) do
-        begin
-            IconPath := XdgDataDirs[i] + '/icons/hicolor/128x128/apps/goverlay.png';
-            if FileExists(IconPath) then
-            begin
-                Break;
-            end;
-        end;
-    end;
-
     Process1 := TProcess.Create(nil);
     Process1.Executable := FindDefaultExecutablePath('sh');
     Process1.Parameters.Add('-c');
-    Process1.Parameters.Add('notify-send -e -i ' + IconPath + ' "MangoHud" "Configuration saved"');
+    Process1.Parameters.Add('notify-send -e -i ' + GetIconFile + ' "MangoHud" "Configuration saved"');
     Process1.Options := [poUsePipes];
     Process1.Execute;
     Process1.WaitOnExit;
@@ -2859,13 +2867,17 @@ var
 
       if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
       begin
-        FONTFOLDERS := TStringList.Create;
-        FONTFOLDERS.Sorted := True;
-        FONTFOLDERS.Duplicates := dupIgnore;
-        FONTFOLDERS.Delimiter := ';';
-        ListFontDirectories(FONTFOLDERS);
-
-        LOCATEDFILE := FindAllFiles(FONTFOLDERS.DelimitedText, fontCombobox.Text);  //Locate specific folder for selected font
+        LOCATEDFILE := FindAllFiles('/usr/share/fonts', fontCombobox.Text); //Locate specific folder for selected font
+        try
+            FONTFOLDERS := TStringList.Create;
+            FONTFOLDERS.Sorted := True;
+            FONTFOLDERS.Duplicates := dupIgnore;
+            FONTFOLDERS.Delimiter := ';';
+            ListFontDirectories(FONTFOLDERS);
+            LOCATEDFILE := FindAllFiles(FONTFOLDERS.DelimitedText, fontCombobox.Text);
+        finally
+            FONTFOLDERS.Free;
+        end;
         FONTPATH := LOCATEDFILE[0];
         FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
       end
@@ -3239,11 +3251,11 @@ var
 
 
       Savecheckbox (distroinfoCheckBox, DISTROINFO1, 'custom_text=-');
-      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=cat $HOME/.config/goverlay/distro"');
+      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=cat ' + GetUserConfig + '/goverlay/distro"');
 
 
       Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=-');
-      //Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=cat $HOME/.config/goverlay/kernel"');
+      //Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=cat ' + GetUserConfig + '/goverlay/kernel"');
       Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=uname -r"');
 
 
@@ -3553,14 +3565,14 @@ var
 
     //########################################### SAVE BLACKLIST
 
-  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
-  MANGOHUDCFGFILE := GetEnvironmentVariable('HOME') + '/.config/MangoHud/MangoHud.conf';
+  BLACKLISTFILE := GetUserConfig + '/goverlay/blacklist.conf';
+  MANGOHUDCFGFILE := GetUserConfig + '/MangoHud/MangoHud.conf';
 
   FileLines := TStringList.Create;
   ConfigLines := TStringList.Create;
   try
     // if blacklist.conf dont exist, create a stock one
-    if not FileExists(BlacklistFile) then
+    if not FileExists(BLACKLISTFILE) then
     begin
       FileLines.Add('pamac-manager');
       FileLines.Add('lact');
@@ -3568,11 +3580,11 @@ var
       FileLines.Add('bitwig-studio');
       FileLines.Add('ptyxis');
       FileLines.Add('yumex');
-      ForceDirectories(ExtractFilePath(BlacklistFile)); // create directory
-      FileLines.SaveToFile(BlacklistFile);
+      ForceDirectories(ExtractFilePath(BLACKLISTFILE)); // create directory
+      FileLines.SaveToFile(BLACKLISTFILE);
     end
     else
-      FileLines.LoadFromFile(BlacklistFile);  // load file
+      FileLines.LoadFromFile(BLACKLISTFILE);  // load file
 
 
     // create string blacklistVAR with correct format
