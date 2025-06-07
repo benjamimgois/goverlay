@@ -41,6 +41,19 @@ implementation
 
 { TblacklistForm }
 
+// Function to get user config directory
+function GetUserConfig(): String;
+var
+  UserConfig: String;
+begin;
+  UserConfig := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if not DirectoryExists(UserConfig) then
+  begin
+    UserConfig := GetUserDir + '.config';
+  end;
+  Result := UserConfig;
+end;
+
 procedure TblacklistForm.insertblacklistBitBtnClick(Sender: TObject);
 begin
     // check if field is empty
@@ -78,7 +91,7 @@ end;
 
 procedure TblacklistForm.removeblacklistBitBtnClick(Sender: TObject);
 begin
-  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
+  BlacklistFile := GetUserConfig + '/goverlay/blacklist.conf';
   SelectedIndex := blackListBox.ItemIndex;
 
    // check if any item is selected
@@ -107,7 +120,7 @@ end;
 procedure TblacklistForm.FormShow(Sender: TObject);
 
 begin
-  BlacklistFile := GetEnvironmentVariable('HOME') + '/.config/goverlay/blacklist.conf';
+  BlacklistFile := GetUserConfig + '/goverlay/blacklist.conf';
   FileLines := TStringList.Create;
   try
     if FileExists(BlacklistFile) then
@@ -137,4 +150,3 @@ end;
 
 
 end.
-
