@@ -48,6 +48,7 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
  - [**`git`**](https://github.com/git/git) - Clone reshade repository
  - [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) - Free Pascal Qt6 binding library updated by lazarus IDE
+ - [**`zenergy`**]([https://github.com/git/git](https://github.com/BoukeHaarsma23/zenergy)) - To display AMD CPU power
 
 ## Installation 
 
