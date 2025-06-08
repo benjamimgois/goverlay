@@ -743,11 +743,11 @@ begin
   KernelVersion := GetKernelVersion;
 
   // create directory
-  if not DirectoryExists(GetUserDir + '.config/goverlay') then
-    CreateDir(GetUserDir + '.config/goverlay');
+  if not DirectoryExists(GetUserConfig + '/goverlay') then
+    CreateDir(GetUserConfig + '/goverlay');
 
   // storing distro name
-  AssignFile(F, GetUserDir + '.config/goverlay/distro');
+  AssignFile(F, GetUserConfig + '/goverlay/distro');
   try
     Rewrite(F);
     WriteLn(F, DistroInfo + ' (' + VersionOrBuildID + ')');
@@ -756,7 +756,7 @@ begin
   end;
 
   // storing kernel version
-  AssignFile(F, GetUserDir + '.config/goverlay/kernel');
+  AssignFile(F, GetUserConfig + '/goverlay/kernel');
   try
     Rewrite(F);
     WriteLn(F, KernelVersion);
