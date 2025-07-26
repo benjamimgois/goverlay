@@ -1075,6 +1075,7 @@ else
   begin
     FileLines := TStringList.Create;
     try
+      FileLines.Add('protonplus');
       FileLines.Add('lsfg-vk-ui');
       FileLines.Add('bazzar');
       FileLines.Add('gnome-calculator');
