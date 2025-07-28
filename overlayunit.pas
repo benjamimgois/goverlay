@@ -965,35 +965,40 @@ var
   i: Integer;
   ctrl: TControl;
 begin
+
+
   for i := 0 to AControl.ControlCount - 1 do
   begin
     ctrl := AControl.Controls[i];
 
     if ctrl is TLabel then
-      TLabel(ctrl).Font.Color := clWhite
+      TLabel(ctrl).Font.Color := DarkTextColor
     else if ctrl is TCheckBox then
-      TCheckBox(ctrl).Font.Color := clWhite
+      TCheckBox(ctrl).Font.Color := DarkTextColor
     else if ctrl is TGroupBox then
     begin
-      TGroupBox(ctrl).Font.Color := clWhite;
+      TGroupBox(ctrl).Font.Color := DarkTextColor;
       TGroupBox(ctrl).Color := DarkBackgroundColor;
       if TGroupBox(ctrl) is TWinControl then
         SetDarkColorsRecursively(TWinControl(ctrl));
     end
     else if ctrl is TCheckGroup then
     begin
-      TCheckGroup(ctrl).Font.Color := clWhite;
+      TCheckGroup(ctrl).Font.Color := DarkTextColor;
       TCheckGroup(ctrl).Color := DarkBackgroundColor;
       if TCheckGroup(ctrl) is TWinControl then
         SetDarkColorsRecursively(TWinControl(ctrl));
     end
     else if ctrl is TRadioGroup then
     begin
-      TRadioGroup(ctrl).Font.Color := clWhite;
+      TRadioGroup(ctrl).Font.Color := DarkTextColor;
       TRadioGroup(ctrl).Color := DarkBackgroundColor;
     end
     else if ctrl is TBitBtn then
-      TBitBtn(ctrl).Color := DarkBackgroundColor
+    begin
+      TBitBtn(ctrl).Font.Color := DarkTextColor;
+      TBitBtn(ctrl).Color := DarkBackgroundColor;
+    end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := DarkBackgroundColor
     else if ctrl is TWinControl then
@@ -1040,10 +1045,11 @@ begin
 
   // Force dark theme
   presettabsheet.Color:= $0045403A;
-  mangohudPageControl.ActivePage.Color:= $0045403A;
   SetDarkColorsRecursively(Self);
-  saveBitbtn.Color:=$00008300; //Save button is the only exception
+  saveBitbtn.Color:=$00008300; //Save button color exception
 
+
+  // fix for radiobutton wrong colors
   topleftRadiobutton.Color:=clDefault;
   topcenterRadiobutton.Color:=clDefault;
   toprightRadiobutton.Color:=clDefault;
@@ -1052,6 +1058,7 @@ begin
   bottomcenterRadiobutton.Color:=clDefault;
   middleleftRadiobutton.Color:=clDefault;
   middlerightRadiobutton.Color:=clDefault;
+
 
   // Define important file paths
 
