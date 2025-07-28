@@ -8,9 +8,9 @@ object blacklistForm: TblacklistForm
   ClientHeight = 289
   ClientWidth = 357
   Color = 1710618
-  OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '3.8.0.0'
+  LCLVersion = '4.2.0.0'
+  OnShow = FormShow
   object blackListBox: TListBox
     AnchorSideLeft.Control = blacklistEdit
     AnchorSideTop.Control = blacklistEdit
@@ -8458,10 +8458,10 @@ object blacklistForm: TblacklistForm
     Images = iconsImageList
     ImageIndex = 13
     ImageWidth = 20
-    OnClick = insertblacklistBitBtnClick
     ParentShowHint = False
     ShowHint = True
     TabOrder = 1
+    OnClick = insertblacklistBitBtnClick
   end
   object removeblacklistBitBtn: TBitBtn
     AnchorSideLeft.Control = blackListBox
@@ -16896,10 +16896,10 @@ object blacklistForm: TblacklistForm
     Images = iconsImageList
     ImageIndex = 15
     ImageWidth = 20
-    OnClick = removeblacklistBitBtnClick
     ParentShowHint = False
     ShowHint = True
     TabOrder = 2
+    OnClick = removeblacklistBitBtnClick
   end
   object blacklistEdit: TEdit
     AnchorSideLeft.Control = blacklistLabel

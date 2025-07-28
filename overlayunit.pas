@@ -21,6 +21,7 @@ type
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     blacklistBitBtn: TBitBtn;
+    fpslimLabel: TLabel;
     goverlayBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
     mangocolorLabel: TLabel;
@@ -495,7 +496,7 @@ begin
 
   Output.Free;
 
-  Result := Valor.Text <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+  Result := Valor.Text <> ''; // Return true if value is located, false if not
 end;
 
 
@@ -631,37 +632,51 @@ end;
 
 
 // ########   Function to Load strings from mangohud variables
-function LoadName(const Parametro: string): Boolean;
+function LoadName(const AParametro: string): Boolean;
 var
-  Output: TStringList;
-  CaminhoArquivo: string;
-  i: Integer;
+  Lines: TStringList;
+  RawLine, KeyName: string;
+  SepPos, i: Integer;
+  ConfigPath: string;
 begin
-  CaminhoArquivo := GetUserConfig + '/MangoHud/MangoHud.conf';
+  ConfigPath := IncludeTrailingPathDelimiter(GetUserConfig) +
+                'MangoHud/MangoHud.conf';
 
-  if not FileExists(CaminhoArquivo) then
-    Exit(False);
+  Result := False;
+  if not FileExists(ConfigPath) then
+    Exit;
 
-  Output := TStringList.Create;
+  Lines := TStringList.Create;
   try
-    Output.LoadFromFile(CaminhoArquivo);
+    Lines.LoadFromFile(ConfigPath);
 
-    // debug
-    WriteLn('Parametro: ', Parametro);
-
-    Result := False;
-    for i := 0 to Output.Count - 1 do
+    for i := 0 to Lines.Count - 1 do
     begin
-      if Pos(Parametro, Output[i]) > 0 then
+      RawLine := Trim(Lines[i]);
+
+      // só ignora linhas vazias
+      if RawLine = '' then
+        Continue;
+
+      // separa chave/valor ou considera toda a linha como chave
+      SepPos := Pos('=', RawLine);
+      if SepPos > 0 then
+        KeyName := Trim(Copy(RawLine, 1, SepPos-1))
+      else
+        KeyName := RawLine;
+
+      // compara chave exata (case‑insensitive)
+      if SameText(KeyName, AParametro) then
       begin
         Result := True;
-        Break;
+        Exit;
       end;
     end;
   finally
-    Output.Free;
+    Lines.Free;
   end;
 end;
+
 
 
 
@@ -830,7 +845,11 @@ procedure Tgoverlayform.whitecolorBitBtnClick(Sender: TObject);
 begin
   //Set mangohud colors
 hudbackgroundColorButton.ButtonColor:= clblack;
+
 fontColorButton.ButtonColor := clwhite;
+gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+
 gpuColorButton.ButtonColor:=clwhite;
 cpuColorButton.ButtonColor:=clwhite;
 vramColorButton.ButtonColor:=clwhite;
@@ -937,6 +956,55 @@ begin
 end;
 
 
+const
+  DarkBackgroundColor = $0045403A; // dark panel color BGR
+  DarkTextColor = clWhite;  // set light color
+
+procedure SetDarkColorsRecursively(AControl: TWinControl);
+var
+  i: Integer;
+  ctrl: TControl;
+begin
+  for i := 0 to AControl.ControlCount - 1 do
+  begin
+    ctrl := AControl.Controls[i];
+
+    if ctrl is TLabel then
+      TLabel(ctrl).Font.Color := clWhite
+    else if ctrl is TCheckBox then
+      TCheckBox(ctrl).Font.Color := clWhite
+    else if ctrl is TGroupBox then
+    begin
+      TGroupBox(ctrl).Font.Color := clWhite;
+      TGroupBox(ctrl).Color := DarkBackgroundColor;
+      if TGroupBox(ctrl) is TWinControl then
+        SetDarkColorsRecursively(TWinControl(ctrl));
+    end
+    else if ctrl is TCheckGroup then
+    begin
+      TCheckGroup(ctrl).Font.Color := clWhite;
+      TCheckGroup(ctrl).Color := DarkBackgroundColor;
+      if TCheckGroup(ctrl) is TWinControl then
+        SetDarkColorsRecursively(TWinControl(ctrl));
+    end
+    else if ctrl is TRadioGroup then
+    begin
+      TRadioGroup(ctrl).Font.Color := clWhite;
+      TRadioGroup(ctrl).Color := DarkBackgroundColor;
+    end
+    else if ctrl is TBitBtn then
+      TBitBtn(ctrl).Color := DarkBackgroundColor
+    else if ctrl is TColorButton then
+      TColorButton(ctrl).Color := DarkBackgroundColor
+    else if ctrl is TWinControl then
+      SetDarkColorsRecursively(TWinControl(ctrl));
+  end;
+end;
+
+
+
+
+
 
 
 
@@ -970,6 +1038,20 @@ begin
   vkbasaltPanel.Visible:=false;
 
 
+  // Force dark theme
+  presettabsheet.Color:= $0045403A;
+  mangohudPageControl.ActivePage.Color:= $0045403A;
+  SetDarkColorsRecursively(Self);
+  saveBitbtn.Color:=$00008300; //Save button is the only exception
+
+  topleftRadiobutton.Color:=clDefault;
+  topcenterRadiobutton.Color:=clDefault;
+  toprightRadiobutton.Color:=clDefault;
+  bottomleftRadiobutton.Color:=clDefault;
+  bottomrightRadiobutton.Color:=clDefault;
+  bottomcenterRadiobutton.Color:=clDefault;
+  middleleftRadiobutton.Color:=clDefault;
+  middlerightRadiobutton.Color:=clDefault;
 
   // Define important file paths
 
@@ -985,9 +1067,6 @@ begin
 
 
 // Start vkcube (vulkan demo)
-
-// Force X for now, wayland crashs window after some config changes. May revert in the future
-// ExecuteGUICommand('mangohud vkcube');
 
 
 if USERSESSION = 'wayland' then
@@ -2133,7 +2212,11 @@ begin
 
 //Set mangohud colors
 hudbackgroundColorButton.ButtonColor:= clblack;
+
 fontColorButton.ButtonColor := clwhite;
+gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+
 gpuColorButton.ButtonColor:=$0062972E;
 cpuColorButton.ButtonColor:=$00CB972E;
 vramColorButton.ButtonColor:=$00C164AD;
@@ -2264,7 +2347,11 @@ procedure Tgoverlayform.afterburnercolorBitBtn1Click(Sender: TObject);
 begin
 //Set afterburner colors
 hudbackgroundColorButton.ButtonColor:= clblack;
+
 fontColorButton.ButtonColor := clFuchsia;
+gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+
 gpuColorButton.ButtonColor:=clFuchsia;
 cpuColorButton.ButtonColor:=clFuchsia;
 vramColorButton.ButtonColor:=clFuchsia;
@@ -2365,7 +2452,7 @@ end;
 
 procedure Tgoverlayform.blacklistBitBtnClick(Sender: TObject);
 begin
-  blacklistForm.Show;
+  blacklistForm.ShowModal; // Form show as modal window
 end;
 
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
@@ -2463,7 +2550,11 @@ CPUBrand: string;
 begin
 //Set common colors
 hudbackgroundColorButton.ButtonColor:= clblack;
+
 fontColorButton.ButtonColor := clSilver;
+gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor ;
+cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+
 engineColorButton.ButtonColor:=clSilver;
 wineColorButton.ButtonColor:=clyellow;
 batteryColorButton.ButtonColor:= clSilver;
@@ -2549,9 +2640,9 @@ GPUBrand := '';
   end
   else if Pos('GenuineIntel', CPUBrand) > 0 then
   begin
-    cpuColorButton.ButtonColor := $007D3926; // Example color for Intel
-    ramColorButton.ButtonColor := $007D3926; // Example color for RAM button
-    frametimegraphColorButton.ButtonColor := $007D3926; // Example color for Frame Time Graph
+    cpuColorButton.ButtonColor := $00ff5500; // Example color for Intel
+    ramColorButton.ButtonColor := $00ff5500; // Example color for RAM button
+    frametimegraphColorButton.ButtonColor := $00ff5500; // Example color for Frame Time Graph
   end;
 
 

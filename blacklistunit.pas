@@ -132,6 +132,10 @@ begin
     begin
       // if file doesnt exist, create a new one
       ForceDirectories(ExtractFilePath(BlacklistFile)); // Garante que o diretório existe
+      FileLines.Add('protonplus');
+      FileLines.Add('lsfg-vk-ui');
+      FileLines.Add('bazzar');
+      FileLines.Add('gnome-calculator');
       FileLines.Add('pamac-manager');
       FileLines.Add('lact');
       FileLines.Add('ghb');
