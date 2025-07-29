@@ -201,7 +201,7 @@ type
     hudonoffComboBox: TComboBox;
     hudtitleEdit: TEdit;
     orientationGroupBox: TGroupBox;
-    PaintBox1: TPaintBox;
+    goverlayPaintBox: TPaintBox;
     fontLabel: TLabel;
     fontsizeTrackBar: TTrackBar;
     roundImage: TImage;
@@ -308,7 +308,7 @@ type
     procedure MenuItem1Click(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
-    procedure PaintBox1Paint(Sender: TObject);
+    procedure goverlayPaintBoxPaint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure popupBitBtnClick(Sender: TObject);
@@ -958,7 +958,7 @@ end;
 
 const
   DarkBackgroundColor = $0045403A; // dark panel color BGR
-  DarkTextColor = clWhite;  // set light color
+  DarkTextColor = clwhite;  // set light color
 
 procedure SetDarkColorsRecursively(AControl: TWinControl);
 var
@@ -1047,6 +1047,9 @@ begin
   presettabsheet.Color:= $0045403A;
   SetDarkColorsRecursively(Self);
   saveBitbtn.Color:=$00008300; //Save button color exception
+  Self.Font.Name := 'Roboto';   // ou 'Roboto', ou outra fonte instalada
+  Self.Font.Size := 10;           // ajuste o tamanho conforme necessário
+  Self.Font.Color := clWhite;
 
 
   // fix for radiobutton wrong colors
@@ -2719,23 +2722,33 @@ var
     end;
   end;
 
-procedure Tgoverlayform.PaintBox1Paint(Sender: TObject);
+procedure Tgoverlayform.goverlayPaintBoxPaint(Sender: TObject);
 var
   i: Integer;
+  BaseR, BaseG, BaseB: Byte;
+  Factor: Single;
+  R, G, B: Byte;
+begin
+  BaseR := 69; // vermelho
+  BaseG := 64; // verde
+  BaseB := 58; // azul
 
-  //Gradient color of main menu
+  for i := 0 to goverlayPaintBox.Height - 1 do
   begin
-  for i := 0 to PaintBox1.Height do
-  begin
-    // Calcula um valor entre 97 (#616161) e 0 (#000000) para cada componente RGB
-    // na faixa da parte superior para a inferior do PaintBox1
-    PaintBox1.Canvas.Pen.Color := RGBToColor(Round(i / PaintBox1.Height * 97),
-                                             Round(i / PaintBox1.Height * 97),
-                                             Round(i / PaintBox1.Height * 97));
-    PaintBox1.Canvas.Brush.Color := PaintBox1.Canvas.Pen.Color;
-    PaintBox1.Canvas.Line(0, i, PaintBox1.Width, i);
+    // Factor varia de 0.3 (mais escuro) no topo a 1.0 (mais claro) na base
+    Factor := 0.3 + 0.7 * (i / (goverlayPaintBox.Height - 1));
+
+    R := Round(BaseR * Factor);
+    G := Round(BaseG * Factor);
+    B := Round(BaseB * Factor);
+
+    goverlayPaintBox.Canvas.Pen.Color := RGBToColor(R, G, B);
+    goverlayPaintBox.Canvas.Brush.Color := goverlayPaintBox.Canvas.Pen.Color;
+    goverlayPaintBox.Canvas.Line(0, i, goverlayPaintBox.Width, i);
   end;
 end;
+
+
 
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
 begin
