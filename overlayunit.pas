@@ -5,7 +5,7 @@ unit overlayunit;
 interface
 
 uses
-  Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls,
+  Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,
   FileUtil, StrUtils, Types;
@@ -22,10 +22,17 @@ type
     addBitBtn: TBitBtn;
     blacklistBitBtn: TBitBtn;
     fpslimLabel: TLabel;
+    geSpeedButton: TSpeedButton;
+    GlobalenableLabel: TLabel;
     goverlayBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
     mangocolorLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
+    notificationLabel: TLabel;
+    mangobarPanel: TPanel;
+    popupBitBtn: TBitBtn;
+    saveBitBtn: TBitBtn;
+    Timer1: TTimer;
     whitecolorLabel: TLabel;
     whitecolorBitBtn: TBitBtn;
     GroupBox1: TGroupBox;
@@ -142,7 +149,7 @@ type
     FontcolorButton: TColorButton;
     C: TComboBox;
     fpslimmetComboBox: TComboBox;
-    fpslimLabel1: TLabel;
+    methodLabel: TLabel;
     cpumainmetricsLabel: TLabel;
     cputempLabel: TLabel;
     memLabel: TLabel;
@@ -151,7 +158,7 @@ type
     optionsLabel: TLabel;
     batteryLabel: TLabel;
     othersLabel: TLabel;
-    fpslimLabel3: TLabel;
+    limtoggleLabel: TLabel;
     mainmetricLabel: TLabel;
     gputempLabel: TLabel;
     gpupowerLabel: TLabel;
@@ -163,8 +170,6 @@ type
     batteryColorButton: TColorButton;
     gamemodestatusCheckBox: TCheckBox;
     deviceCheckBox: TCheckBox;
-    geSpeedButton: TSpeedButton;
-    GlobalenableLabel: TLabel;
     glvsyncComboBox: TComboBox;
     gpuavgloadCheckBox: TCheckBox;
     gpuColorButton: TColorButton;
@@ -220,7 +225,6 @@ type
     hudtoggleLabel: TLabel;
     mangohudPageControl: TPageControl;
     mangohudPanel: TPanel;
-    notificationLabel: TLabel;
     openglImage: TImage;
     PageControl2: TPageControl;
     pcidevComboBox: TComboBox;
@@ -240,9 +244,7 @@ type
     mipmapTrackBar: TTrackBar;
     mipmapvalueLabel: TLabel;
     afvalueLabel: TLabel;
-    popupBitBtn: TBitBtn;
     runvkbasaltBitBtn: TBitBtn;
-    saveBitBtn: TBitBtn;
     sessionCheckBox: TCheckBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
@@ -313,16 +315,23 @@ type
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
     procedure usercustomBitBtnClick(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
 
+
+  private
+    FStartTick: Cardinal;
+
   public
 
 
   end;
+
+
 
 var
   goverlayform: Tgoverlayform;
@@ -337,6 +346,8 @@ FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, 
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, USERSESSION, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
 BlacklistStr, blacklistVAR: string;
+
+
 
 
   //Boolean variables
@@ -357,6 +368,8 @@ BlacklistStr, blacklistVAR: string;
   CaminhoArquivo, NomeCampo, ValorCampo: string;
 
   fpsArray: TStringArray;
+
+
 
 implementation
 
@@ -418,7 +431,7 @@ end;
 
 
 //Function to get user config directory
-function GetUserConfig(): String;
+function GetUserConfigDir(): String;
 var
   UserConfig: String;
 begin;
@@ -610,7 +623,7 @@ begin
   Process := TProcess.Create(nil);
   Output := TStringList.Create;
 
-  CaminhoArquivo := GetUserConfig + '/MangoHud/MangoHud.conf';
+  CaminhoArquivo := GetUserConfigDir + '/MangoHud/MangoHud.conf';
 
   Process.Executable := FindDefaultExecutablePath('sh');
   Process.Parameters.Add('-c');
@@ -639,7 +652,7 @@ var
   SepPos, i: Integer;
   ConfigPath: string;
 begin
-  ConfigPath := IncludeTrailingPathDelimiter(GetUserConfig) +
+  ConfigPath := IncludeTrailingPathDelimiter(GetUserConfigDir) +
                 'MangoHud/MangoHud.conf';
 
   Result := False;
@@ -716,8 +729,72 @@ begin
 end;
 
 
+//Function to check for dependencies
+function IsCommandAvailable(const Cmd: string): Boolean;
+begin
+  Result := FindDefaultExecutablePath(Cmd) <> '';
+end;
+
+function LibraryExists(const LibName: string): Boolean;
+const
+  SearchPaths: array[0..2] of string = (
+    '/usr/lib/',
+    '/usr/lib64/',
+    '/usr/local/lib/'
+  );
+var
+  Path: string;
+begin
+  Result := False;
+  for Path in SearchPaths do
+    if FileExists(Path + LibName) then
+      Exit(True);
+end;
 
 
+// Function to check for kernel modules
+function IsKernelModuleAvailable(const ModuleName: string): Boolean;
+var
+  AProcess: TProcess;
+  OutputLines: TStringList;
+begin
+  Result := False;
+  AProcess := TProcess.Create(nil);
+  OutputLines := TStringList.Create;
+  try
+    AProcess.Executable := FindDefaultExecutablePath('lsmod');
+    AProcess.Options := [poUsePipes];
+    AProcess.Execute;
+    OutputLines.LoadFromStream(AProcess.Output);
+    Result := OutputLines.Text.Contains(ModuleName);
+  finally
+    AProcess.Free;
+    OutputLines.Free;
+  end;
+end;
+
+
+//Function to check for dependencies
+function CheckDependencies(out Missing: TStringList): Boolean;
+begin
+  Missing := TStringList.Create;
+
+  if not IsCommandAvailable('mangohud') then
+    Missing.Add('mangohud');
+
+  if not LibraryExists('libMangoHud.so') then
+    Missing.Add('libMangoHud.so');
+
+  if not IsCommandAvailable('vkcube') then
+    Missing.Add('vkcube');
+
+  if not IsKernelModuleAvailable('zenergy') then
+    Missing.Add('zenergy');
+
+  Result := Missing.Count = 0;
+end;
+
+//Function to get kernel version
 
 function GetKernelVersion: string;
 var
@@ -752,7 +829,7 @@ var
 begin
   DistroInfo := '';
   VersionOrBuildID := '';
-  SavePath := GetUserConfig + '/goverlay';
+  SavePath := GetUserConfigDir + '/goverlay';
 
   // check if /etc/os-release exists
   if FileExists('/etc/os-release') then
@@ -799,23 +876,12 @@ begin
 end;
 
 
-
-
-
-
-
-
-
-
-
-
-
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
 begin
 
   // Update the config files path
-   CUSTOMCFGFILE := GetUserConfig + '/MangoHud/custom.conf';
-   MANGOHUDCFGFILE := GetUserConfig + '/MangoHud/MangoHud.conf';
+   CUSTOMCFGFILE := GetUserConfigDir + '/MangoHud/custom.conf';
+   MANGOHUDCFGFILE := GetUserConfigDir + '/MangoHud/MangoHud.conf';
 
 
 
@@ -867,7 +933,7 @@ saveBitbtn.Click;
 end;
 
 
-//Function por allowes interface types
+//Function for allowed interface types
 function IsInterfaceAllowed(const Name: String): Boolean;
 begin
   Result :=
@@ -956,6 +1022,83 @@ begin
 end;
 
 
+function GetTickCount: Cardinal;
+var
+  tv: TTimeVal;
+begin
+  FpGettimeofday(@tv, nil);
+  Result := (tv.tv_sec * 1000) + (tv.tv_usec div 1000);
+end;
+
+procedure Tgoverlayform.Timer1Timer(Sender: TObject);
+begin
+  goverlayPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.goverlayPaintBoxPaint(Sender: TObject);
+const
+  BlockSize = 4; // block size in pixels
+var
+  X, Y, TWidth, THeight: Integer;
+  BaseR, BaseG, BaseB: Byte;
+  Factor, OffsetX, OffsetY: Single;
+  R, G, B: Byte;
+  TimeElapsed: Single;
+  RectRight, RectBottom: Integer;
+begin
+//Blueish
+BaseR := 36;  // 0x24
+BaseG := 50;  // 0x32
+BaseB := 70;  // 0x46
+
+
+  TWidth := goverlayPaintBox.Width;
+  THeight := goverlayPaintBox.Height;
+
+  TimeElapsed := (GetTickCount - FStartTick) / 1000;
+
+  Y := 0;
+  while Y < Height do
+  begin
+    X := 0;
+    while X < Width do
+    begin
+      // Smaller coeeficients in X and Y gets bigger effects
+      // Smaller timeelapsed get slower speeds
+    //  OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.02) + TimeElapsed * 0.65);
+    //  OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.5);
+      OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
+      OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
+
+      Factor := 0.3 + 0.35 * (OffsetX + 1) + 0.35 * (OffsetY + 1);
+      if Factor > 1.0 then Factor := 1.0;
+      if Factor < 0.3 then Factor := 0.3;
+
+      R := Round(BaseR * Factor);
+      G := Round(BaseG * Factor);
+      B := Round(BaseB * Factor);
+
+      // Define o retângulo do bloco, tomando cuidado para não ultrapassar os limites
+      RectRight := X + BlockSize - 1;
+      if RectRight >= Width then
+        RectRight := Width - 1;
+
+      RectBottom := Y + BlockSize - 1;
+      if RectBottom >= Height then
+        RectBottom := Height - 1;
+
+      goverlayPaintBox.Canvas.Brush.Color := RGBToColor(R, G, B);
+      goverlayPaintBox.Canvas.FillRect(Rect(X, Y, RectRight + 1, RectBottom + 1));
+
+      Inc(X, BlockSize);
+    end;
+    Inc(Y, BlockSize);
+  end;
+end;
+
+
+
+//Procedure to force dark theme on elements
 const
   DarkBackgroundColor = $0045403A; // dark panel color BGR
   DarkTextColor = clwhite;  // set light color
@@ -1007,13 +1150,6 @@ begin
 end;
 
 
-
-
-
-
-
-
-
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
 var
@@ -1029,7 +1165,7 @@ var
   Offset, FPS, MaxFPS: Integer;
   FPSNumbers: TStringList;
   FoundFPSLimit: Boolean;
-
+  Missing: TStringList;
   OSFile: TextFile;
 begin
 
@@ -1044,12 +1180,16 @@ begin
 
 
   // Force dark theme
-  presettabsheet.Color:= $0045403A;
-  SetDarkColorsRecursively(Self);
+  presettabsheet.Color:= DarkBackgroundColor;
+  SetDarkColorsRecursively(Self); //set all elements to dark tones
   saveBitbtn.Color:=$00008300; //Save button color exception
-  Self.Font.Name := 'Roboto';   // ou 'Roboto', ou outra fonte instalada
-  Self.Font.Size := 10;           // ajuste o tamanho conforme necessário
-  Self.Font.Color := clWhite;
+
+
+  FStartTick := GetTickCount;
+  Timer1.Interval := 50; // 20 fps aprox
+  Timer1.Enabled := True;
+  Timer1.OnTimer := @Timer1Timer;
+  goverlayPaintBox.OnPaint := @goverlayPaintBoxPaint;
 
 
   // fix for radiobutton wrong colors
@@ -1064,21 +1204,33 @@ begin
 
 
   // Define important file paths
-
-  GOVERLAYFOLDER := GetUserConfig + '/goverlay/';
-  MANGOHUDFOLDER := GetUserConfig + '/MangoHud/';
-  MANGOHUDCFGFILE := GetUserConfig + '/MangoHud/MangoHud.conf';
-  BLACKLISTFILE := GetUserConfig + '/goverlay/blacklist.conf';
-  CUSTOMCFGFILE := GetUserConfig + '/MangoHud/custom.conf';
+  GOVERLAYFOLDER := GetUserConfigDir + '/goverlay/';
+  MANGOHUDFOLDER := GetUserConfigDir + '/MangoHud/';
+  MANGOHUDCFGFILE := GetUserConfigDir + '/MangoHud/MangoHud.conf';
+  BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
+  CUSTOMCFGFILE := GetUserConfigDir + '/MangoHud/custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
+
 
   //Get distro information
   SaveDistroInfo;
 
 
+  //Check for dependencies
+   if CheckDependencies(Missing) then
+   begin
+    dependencieSpeedbutton.ImageIndex := 0 ; //green icon
+    dependenciesLabel.Caption := 'All dependencies OK' ;
+   end
+  else
+  begin
+    dependencieSpeedbutton.ImageIndex := 1 ;  //red icon
+    dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
+  end;
+  Missing.Free;
+
+
 // Start vkcube (vulkan demo)
-
-
 if USERSESSION = 'wayland' then
   ExecuteGUICommand('mangohud vkcube --wsi wayland')
 else
@@ -1099,7 +1251,6 @@ else
 
 
     // Exibe notificacao
-
     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "No configuration files located, creating files and folders."');
 
 
@@ -1154,7 +1305,7 @@ else
 
 
    // Check blacklist directory
-  BLACKLISTFILE := GetUserConfig + '/goverlay/blacklist.conf';
+  BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
 
   // make sure directory exists
   ForceDirectories(ExtractFilePath(BLACKLISTFILE));
@@ -2722,31 +2873,7 @@ var
     end;
   end;
 
-procedure Tgoverlayform.goverlayPaintBoxPaint(Sender: TObject);
-var
-  i: Integer;
-  BaseR, BaseG, BaseB: Byte;
-  Factor: Single;
-  R, G, B: Byte;
-begin
-  BaseR := 69; // vermelho
-  BaseG := 64; // verde
-  BaseB := 58; // azul
 
-  for i := 0 to goverlayPaintBox.Height - 1 do
-  begin
-    // Factor varia de 0.3 (mais escuro) no topo a 1.0 (mais claro) na base
-    Factor := 0.3 + 0.7 * (i / (goverlayPaintBox.Height - 1));
-
-    R := Round(BaseR * Factor);
-    G := Round(BaseG * Factor);
-    B := Round(BaseB * Factor);
-
-    goverlayPaintBox.Canvas.Pen.Color := RGBToColor(R, G, B);
-    goverlayPaintBox.Canvas.Brush.Color := goverlayPaintBox.Canvas.Pen.Color;
-    goverlayPaintBox.Canvas.Line(0, i, goverlayPaintBox.Width, i);
-  end;
-end;
 
 
 
@@ -3274,11 +3401,10 @@ var
 
 
       Savecheckbox (distroinfoCheckBox, DISTROINFO1, 'custom_text=-');
-      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=cat ' + GetUserConfig + '/goverlay/distro"');
+      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=cat ' + GetUserConfigDir + '/goverlay/distro"');
 
 
       Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=-');
-      //Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=cat ' + GetUserConfig + '/goverlay/kernel"');
       Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=uname -r"');
 
 
@@ -3588,8 +3714,8 @@ var
 
     //########################################### SAVE BLACKLIST
 
-  BLACKLISTFILE := GetUserConfig + '/goverlay/blacklist.conf';
-  MANGOHUDCFGFILE := GetUserConfig + '/MangoHud/MangoHud.conf';
+  BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
+  MANGOHUDCFGFILE := GetUserConfigDir + '/MangoHud/MangoHud.conf';
 
   FileLines := TStringList.Create;
   ConfigLines := TStringList.Create;
