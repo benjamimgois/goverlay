@@ -24,9 +24,9 @@ type
     twitterlink: TImage;
     linkedinlink: TImage;
     mangolink: TLabel;
-    PageControl1: TPageControl;
-    TabSheet1: TTabSheet;
-    TabSheet2: TTabSheet;
+    aboutPageControl: TPageControl;
+    aboutTabSheet: TTabSheet;
+    licenseTabSheet: TTabSheet;
     procedure FormCreate(Sender: TObject);
     procedure donateImageClick(Sender: TObject);
     procedure goverlaylinkClick(Sender: TObject);
@@ -50,6 +50,55 @@ implementation
 {$R *.lfm}
 
 { TaboutForm }
+
+//Procedure to force dark theme on elements
+const
+  DarkBackgroundColor = $0045403A; // dark panel color BGR
+  DarkTextColor = clwhite;  // set light color
+
+procedure SetDarkColorsRecursively(AControl: TWinControl);
+var
+  i: Integer;
+  ctrl: TControl;
+begin
+
+
+  for i := 0 to AControl.ControlCount - 1 do
+  begin
+    ctrl := AControl.Controls[i];
+
+    if ctrl is TLabel then
+      TLabel(ctrl).Font.Color := DarkTextColor
+    else if ctrl is TCheckBox then
+      TCheckBox(ctrl).Font.Color := DarkTextColor
+    else if ctrl is TGroupBox then
+    begin
+      TGroupBox(ctrl).Font.Color := DarkTextColor;
+      TGroupBox(ctrl).Color := DarkBackgroundColor;
+      if TGroupBox(ctrl) is TWinControl then
+        SetDarkColorsRecursively(TWinControl(ctrl));
+    end
+    else if ctrl is TCheckGroup then
+    begin
+      TCheckGroup(ctrl).Font.Color := DarkTextColor;
+      TCheckGroup(ctrl).Color := DarkBackgroundColor;
+      if TCheckGroup(ctrl) is TWinControl then
+        SetDarkColorsRecursively(TWinControl(ctrl));
+    end
+    else if ctrl is TRadioGroup then
+    begin
+      TRadioGroup(ctrl).Font.Color := DarkTextColor;
+      TRadioGroup(ctrl).Color := DarkBackgroundColor;
+    end
+
+    else if ctrl is TColorButton then
+      TColorButton(ctrl).Color := DarkBackgroundColor
+    else if ctrl is TWinControl then
+      SetDarkColorsRecursively(TWinControl(ctrl))
+
+  end;
+end;
+
 
 procedure TaboutForm.mangolinkClick(Sender: TObject);
 
@@ -224,9 +273,16 @@ end;
 
 procedure TaboutForm.FormCreate(Sender: TObject);
 begin
+  //Set initial TAB
+  aboutPageControl.ActivePage:=aboutTabsheet;
+
   //Centralize window
   Left:=(Screen.Width-Width)  div 2;
   Top:=(Screen.Height-Height) div 2;
+
+   // Force dark theme
+   abouttabsheet.Color:= DarkBackgroundColor;
+   SetDarkColorsRecursively(Self); //set all elements to dark tones
 end;
 
 procedure TaboutForm.donateImageClick(Sender: TObject);
@@ -237,7 +293,8 @@ procedure TaboutForm.donateImageClick(Sender: TObject);
   p: LongInt;
   URL: String;
   BrowserProcess: TProcessUTF8;
-begin
+
+  begin
   v:=THTMLBrowserHelpViewer.Create(nil);
   try
     v.FindDefaultBrowser(BrowserPath,BrowserParams);

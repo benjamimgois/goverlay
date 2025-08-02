@@ -10,23 +10,22 @@ object aboutForm: TaboutForm
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
-  LCLVersion = '3.8.0.0'
-  object PageControl1: TPageControl
+  object aboutPageControl: TPageControl
     Left = 0
     Height = 680
     Top = 0
     Width = 616
-    ActivePage = TabSheet1
+    ActivePage = aboutTabSheet
     Font.Height = -13
     Font.Name = 'Noto Sans'
     Font.Quality = fqAntialiased
     ParentFont = False
     TabIndex = 0
     TabOrder = 0
-    object TabSheet1: TTabSheet
+    object aboutTabSheet: TTabSheet
       Caption = 'About'
-      ClientHeight = 645
-      ClientWidth = 610
+      ClientHeight = 649
+      ClientWidth = 612
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -47,12 +46,12 @@ object aboutForm: TaboutForm
         OnClick = mangolinkClick
       end
       object meImage: TImage
-        AnchorSideLeft.Control = TabSheet1
-        AnchorSideBottom.Control = TabSheet1
+        AnchorSideLeft.Control = aboutTabSheet
+        AnchorSideBottom.Control = aboutTabSheet
         AnchorSideBottom.Side = asrBottom
         Left = 10
         Height = 136
-        Top = 509
+        Top = 513
         Width = 104
         Anchors = [akLeft, akBottom]
         BorderSpacing.Left = 10
@@ -11044,11 +11043,10 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 159
         Height = 42
-        Top = 603
+        Top = 607
         Width = 40
         Anchors = [akLeft, akBottom]
         BorderSpacing.Left = 5
-        OnClick = twitterlinkClick
         Picture.Data = {
           1754506F727461626C654E6574776F726B47726170686963461C000089504E47
           0D0A1A0A0000000D49484452000000F0000000ED0806000000811DF8D7000000
@@ -11280,6 +11278,7 @@ object aboutForm: TaboutForm
           6082
         }
         Proportional = True
+        OnClick = twitterlinkClick
       end
       object linkedinlink: TImage
         AnchorSideLeft.Control = meImage
@@ -11290,10 +11289,9 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 114
         Height = 42
-        Top = 603
+        Top = 607
         Width = 40
         Anchors = [akLeft, akBottom]
-        OnClick = linkedinlinkClick
         Picture.Data = {
           1754506F727461626C654E6574776F726B477261706869639B6D000089504E47
           0D0A1A0A0000000D49484452000002720000026F0806000000FF663CD0000000
@@ -12175,20 +12173,20 @@ object aboutForm: TaboutForm
           E7FF071C06B402D199FAB30000000049454E44AE426082
         }
         Proportional = True
+        OnClick = linkedinlinkClick
       end
       object donateImage: TImage
-        AnchorSideRight.Control = TabSheet1
+        AnchorSideRight.Control = aboutTabSheet
         AnchorSideRight.Side = asrBottom
-        AnchorSideBottom.Control = TabSheet1
+        AnchorSideBottom.Control = aboutTabSheet
         AnchorSideBottom.Side = asrBottom
         Cursor = crHandPoint
         Left = 413
-        Height = 81
+        Height = 85
         Top = 564
-        Width = 174
+        Width = 176
         Anchors = [akTop, akLeft, akRight, akBottom]
         BorderSpacing.Right = 23
-        OnClick = donateImageClick
         Picture.Data = {
           1754506F727461626C654E6574776F726B477261706869630D78010089504E47
           0D0A1A0A0000000D4948445200000214000000F708060000004535CDE0000000
@@ -15203,6 +15201,7 @@ object aboutForm: TaboutForm
         }
         Proportional = True
         Stretch = True
+        OnClick = donateImageClick
       end
       object schoorselinkLabel: TLabel
         Cursor = crHandPoint
@@ -15237,8 +15236,8 @@ object aboutForm: TaboutForm
         OnClick = Label1Click
       end
       object titleLabel: TLabel
-        AnchorSideLeft.Control = TabSheet1
-        AnchorSideTop.Control = TabSheet1
+        AnchorSideLeft.Control = aboutTabSheet
+        AnchorSideTop.Control = aboutTabSheet
         Left = 10
         Height = 48
         Top = 3
@@ -15260,7 +15259,7 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Control = meImage
         Left = 114
         Height = 54
-        Top = 509
+        Top = 513
         Width = 166
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
         Font.Height = -13
@@ -15278,6 +15277,7 @@ object aboutForm: TaboutForm
         Top = 51
         Width = 518
         Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'I am just a Network Engineer that really likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
+        Color = 4538426
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
@@ -15301,10 +15301,10 @@ object aboutForm: TaboutForm
         OnClick = goverlaylinkClick
       end
     end
-    object TabSheet2: TTabSheet
+    object licenseTabSheet: TTabSheet
       Caption = 'License'
-      ClientHeight = 645
-      ClientWidth = 610
+      ClientHeight = 649
+      ClientWidth = 612
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -15312,10 +15312,11 @@ object aboutForm: TaboutForm
         Left = 0
         Height = 749
         Top = 0
-        Width = 610
+        Width = 612
         Align = alTop
         Alignment = taCenter
         BorderStyle = bsNone
+        Color = 4538426
         DoubleBuffered = False
         Font.Height = -13
         Font.Name = 'Noto Sans'

@@ -286,6 +286,7 @@ type
     wineColorButton: TColorButton;
     vpsCheckBox: TCheckBox;
 
+
     procedure aboutBitBtnClick(Sender: TObject);
     procedure afterburnercolorBitBtn1Click(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
@@ -350,6 +351,7 @@ BlacklistStr, blacklistVAR: string;
 
 
 
+
   //Boolean variables
   mangohudsel: boolean;
   vkbasaltsel: boolean;
@@ -377,6 +379,8 @@ implementation
 
 
 { Tgoverlayform }
+
+
 
 
 //Procedure to execute external shell commands
@@ -1145,9 +1149,11 @@ begin
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := DarkBackgroundColor
     else if ctrl is TWinControl then
-      SetDarkColorsRecursively(TWinControl(ctrl));
+      SetDarkColorsRecursively(TWinControl(ctrl))
+
   end;
 end;
+
 
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -1167,6 +1173,8 @@ var
   FoundFPSLimit: Boolean;
   Missing: TStringList;
   OSFile: TextFile;
+
+
 begin
 
   //Set initial TAB
@@ -1191,6 +1199,12 @@ begin
   Timer1.OnTimer := @Timer1Timer;
   goverlayPaintBox.OnPaint := @goverlayPaintBoxPaint;
 
+
+   // Ajust tab text color
+  for i := 0 to mangohudPageControl.PageCount - 1 do
+  begin
+    mangohudPageControl.Pages[i].Font.Color := clBtnText;
+  end;
 
   // fix for radiobutton wrong colors
   topleftRadiobutton.Color:=clDefault;
