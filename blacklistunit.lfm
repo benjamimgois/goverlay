@@ -7,9 +7,8 @@ object blacklistForm: TblacklistForm
   Caption = 'Blacklisted Apps'
   ClientHeight = 289
   ClientWidth = 357
-  Color = 1710618
+  Color = 4538426
   Position = poMainFormCenter
-  LCLVersion = '4.2.0.0'
   OnShow = FormShow
   object blackListBox: TListBox
     AnchorSideLeft.Control = blacklistEdit
@@ -17,15 +16,16 @@ object blacklistForm: TblacklistForm
     AnchorSideTop.Side = asrBottom
     Left = 10
     Height = 165
-    Top = 85
+    Top = 78
     Width = 336
     BorderSpacing.Top = 11
-    Color = 4605510
+    Color = 4934475
     Font.Color = clMaroon
     ItemHeight = 0
     ParentFont = False
     Style = lbOwnerDrawFixed
     TabOrder = 0
+    TopIndex = -1
   end
   object insertblacklistBitBtn: TBitBtn
     AnchorSideLeft.Control = blacklistEdit
@@ -34,10 +34,10 @@ object blacklistForm: TblacklistForm
     AnchorSideTop.Side = asrCenter
     AnchorSideRight.Side = asrBottom
     Left = 319
-    Height = 30
+    Height = 25
     Hint = 'Save application name'
-    Top = 43
-    Width = 30
+    Top = 42
+    Width = 25
     BorderSpacing.Left = 5
     Color = clGreen
     Glyph.Data = {
@@ -8472,7 +8472,7 @@ object blacklistForm: TblacklistForm
     Left = 163
     Height = 30
     Hint = 'Remove selected application'
-    Top = 255
+    Top = 248
     Width = 30
     BorderSpacing.Left = 11
     BorderSpacing.Top = 5
@@ -16906,7 +16906,7 @@ object blacklistForm: TblacklistForm
     AnchorSideTop.Control = blacklistLabel
     AnchorSideTop.Side = asrBottom
     Left = 10
-    Height = 32
+    Height = 25
     Top = 42
     Width = 304
     BorderSpacing.Top = 14
@@ -16923,6 +16923,7 @@ object blacklistForm: TblacklistForm
     BorderSpacing.Top = 10
     Caption = 'Enter application name to ignore MangoHud'
     Font.Color = clWhite
+    Font.Height = -13
     ParentColor = False
     ParentFont = False
   end
@@ -16930,10 +16931,10 @@ object blacklistForm: TblacklistForm
     AnchorSideLeft.Control = insertblacklistBitBtn
     AnchorSideLeft.Side = asrCenter
     AnchorSideTop.Control = Owner
-    AnchorSideRight.Control = Owner
-    AnchorSideRight.Side = asrBottom
+    AnchorSideRight.Control = insertblacklistBitBtn
+    AnchorSideRight.Side = asrCenter
     AnchorSideBottom.Control = insertblacklistBitBtn
-    Left = 329
+    Left = 322
     Height = 21
     Top = 10
     Width = 18
@@ -17324,8 +17325,8 @@ object blacklistForm: TblacklistForm
     Stretch = True
   end
   object iconsImageList: TImageList
-    Left = 184
-    Top = 8
+    Left = 240
+    Top = 248
     Bitmap = {
       4C7A1000000010000000100000000F1300000000000078DAED5B07545547B7A6
       F72A824A13A32288D84554B044B1B728212858001129D242EF45050581A022C1

@@ -1,21 +1,28 @@
 object aboutForm: TaboutForm
   Left = 534
-  Height = 682
+  Height = 591
   Top = 277
   Width = 619
   BorderStyle = bsDialog
   Caption = 'About'
-  ClientHeight = 682
+  ClientHeight = 591
   ClientWidth = 619
   Color = 3684408
   Font.Quality = fqAntialiased
   OnCreate = FormCreate
   object aboutPageControl: TPageControl
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
     Left = 0
-    Height = 680
+    Height = 591
     Top = 0
-    Width = 616
+    Width = 619
     ActivePage = aboutTabSheet
+    Anchors = [akTop, akLeft, akRight, akBottom]
     Font.Height = -13
     Font.Name = 'Noto Sans'
     Font.Quality = fqAntialiased
@@ -24,17 +31,21 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object aboutTabSheet: TTabSheet
       Caption = 'About'
-      ClientHeight = 649
-      ClientWidth = 612
+      ClientHeight = 560
+      ClientWidth = 615
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
       object mangolink: TLabel
+        AnchorSideLeft.Control = aboutTabSheet
+        AnchorSideTop.Control = goverlaylink
+        AnchorSideTop.Side = asrBottom
         Cursor = crHandPoint
-        Left = 8
+        Left = 10
         Height = 18
-        Top = 396
+        Top = 353
         Width = 310
+        BorderSpacing.Left = 10
         Caption = 'https://github.com/flightlessmango/MangoHud'
         Font.Color = clAqua
         Font.Height = -13
@@ -51,7 +62,7 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Side = asrBottom
         Left = 10
         Height = 136
-        Top = 513
+        Top = 424
         Width = 104
         Anchors = [akLeft, akBottom]
         BorderSpacing.Left = 10
@@ -11043,7 +11054,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 159
         Height = 42
-        Top = 607
+        Top = 518
         Width = 40
         Anchors = [akLeft, akBottom]
         BorderSpacing.Left = 5
@@ -11289,7 +11300,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 114
         Height = 42
-        Top = 607
+        Top = 518
         Width = 40
         Anchors = [akLeft, akBottom]
         Picture.Data = {
@@ -12182,10 +12193,10 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Side = asrBottom
         Cursor = crHandPoint
         Left = 413
-        Height = 85
-        Top = 564
-        Width = 176
-        Anchors = [akTop, akLeft, akRight, akBottom]
+        Height = 87
+        Top = 473
+        Width = 179
+        Anchors = [akRight, akBottom]
         BorderSpacing.Right = 23
         Picture.Data = {
           1754506F727461626C654E6574776F726B477261706869630D78010089504E47
@@ -15204,11 +15215,15 @@ object aboutForm: TaboutForm
         OnClick = donateImageClick
       end
       object schoorselinkLabel: TLabel
+        AnchorSideLeft.Control = aboutTabSheet
+        AnchorSideTop.Control = mangolink
+        AnchorSideTop.Side = asrBottom
         Cursor = crHandPoint
-        Left = 8
+        Left = 10
         Height = 18
-        Top = 419
+        Top = 371
         Width = 274
+        BorderSpacing.Left = 10
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
         Font.Color = clAqua
         Font.Height = -13
@@ -15244,7 +15259,7 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Control = meImage
         Left = 114
         Height = 54
-        Top = 513
+        Top = 424
         Width = 166
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
         Font.Color = clWhite
@@ -15272,11 +15287,16 @@ object aboutForm: TaboutForm
         ParentFont = False
       end
       object goverlaylink: TLabel
+        AnchorSideLeft.Control = aboutTabSheet
+        AnchorSideTop.Control = textLabel
+        AnchorSideTop.Side = asrBottom
         Cursor = crHandPoint
-        Left = 8
+        Left = 10
         Height = 18
-        Top = 373
+        Top = 335
         Width = 283
+        BorderSpacing.Left = 10
+        BorderSpacing.Top = 50
         Caption = 'https://github.com/benjamimgois/goverlay'
         Font.Color = clAqua
         Font.Height = -13
@@ -15290,18 +15310,24 @@ object aboutForm: TaboutForm
     end
     object licenseTabSheet: TTabSheet
       Caption = 'License'
-      ClientHeight = 649
-      ClientWidth = 612
+      ClientHeight = 560
+      ClientWidth = 615
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
       object gplMemo: TMemo
+        AnchorSideLeft.Control = licenseTabSheet
+        AnchorSideTop.Control = licenseTabSheet
+        AnchorSideRight.Control = licenseTabSheet
+        AnchorSideBottom.Control = licenseTabSheet
+        AnchorSideBottom.Side = asrBottom
         Left = 0
-        Height = 749
+        Height = 560
         Top = 0
-        Width = 612
+        Width = 615
         Align = alTop
         Alignment = taCenter
+        Anchors = [akTop, akLeft, akRight, akBottom]
         BorderStyle = bsNone
         Color = 4538426
         DoubleBuffered = False

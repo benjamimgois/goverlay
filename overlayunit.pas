@@ -2515,7 +2515,7 @@ end;
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
 begin
-   aboutForm.show;
+   aboutForm.ShowModal;
 end;
 
 procedure Tgoverlayform.afterburnercolorBitBtn1Click(Sender: TObject);
