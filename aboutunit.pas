@@ -17,7 +17,6 @@ type
     titleLabel: TLabel;
     meLabel: TLabel;
     textLabel: TLabel;
-    linux4elink1: TLabel;
     goverlaylink: TLabel;
     schoorselinkLabel: TLabel;
     gplMemo: TMemo;
@@ -66,7 +65,8 @@ begin
   for i := 0 to AControl.ControlCount - 1 do
   begin
     ctrl := AControl.Controls[i];
-
+     if ctrl is TMemo then
+      TMemo(ctrl).Font.Color := DarkTextColor;
     if ctrl is TLabel then
       TLabel(ctrl).Font.Color := DarkTextColor
     else if ctrl is TCheckBox then
@@ -247,6 +247,7 @@ procedure TaboutForm.Label1Click(Sender: TObject);
   p: LongInt;
   URL: String;
   BrowserProcess: TProcessUTF8;
+  i: Integer;
 begin
   v:=THTMLBrowserHelpViewer.Create(nil);
   try
@@ -272,6 +273,8 @@ begin
 end;
 
 procedure TaboutForm.FormCreate(Sender: TObject);
+  var
+   i: Integer;
 begin
   //Set initial TAB
   aboutPageControl.ActivePage:=aboutTabsheet;
@@ -283,6 +286,12 @@ begin
    // Force dark theme
    abouttabsheet.Color:= DarkBackgroundColor;
    SetDarkColorsRecursively(Self); //set all elements to dark tones
+
+  // Ajust tab text color
+  for i := 0 to aboutPageControl.PageCount - 1 do
+  begin
+    aboutPageControl.Pages[i].Font.Color := clBtnText;
+  end;
 end;
 
 procedure TaboutForm.donateImageClick(Sender: TObject);

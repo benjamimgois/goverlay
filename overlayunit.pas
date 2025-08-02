@@ -1192,7 +1192,7 @@ begin
   SetDarkColorsRecursively(Self); //set all elements to dark tones
   saveBitbtn.Color:=$00008300; //Save button color exception
 
-
+  //Turbulence animation start
   FStartTick := GetTickCount;
   Timer1.Interval := 50; // 20 fps aprox
   Timer1.Enabled := True;

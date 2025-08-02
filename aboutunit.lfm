@@ -15219,22 +15219,6 @@ object aboutForm: TaboutForm
         ParentFont = False
         OnClick = schoorselinkLabelClick
       end
-      object linux4elink1: TLabel
-        Cursor = crHandPoint
-        Left = 8
-        Height = 18
-        Top = 440
-        Width = 223
-        Caption = 'https://www.linux4everyone.com/'
-        Font.Color = clAqua
-        Font.Height = -13
-        Font.Name = 'Noto Sans'
-        Font.Quality = fqAntialiased
-        Font.Style = [fsBold]
-        ParentColor = False
-        ParentFont = False
-        OnClick = Label1Click
-      end
       object titleLabel: TLabel
         AnchorSideLeft.Control = aboutTabSheet
         AnchorSideTop.Control = aboutTabSheet
@@ -15245,6 +15229,7 @@ object aboutForm: TaboutForm
         BorderSpacing.Left = 10
         BorderSpacing.Top = 3
         Caption = 'Goverlay'
+        Font.Color = clWhite
         Font.Height = -35
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
@@ -15262,6 +15247,7 @@ object aboutForm: TaboutForm
         Top = 513
         Width = 166
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
@@ -15278,6 +15264,7 @@ object aboutForm: TaboutForm
         Width = 518
         Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'I am just a Network Engineer that really likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
         Color = 4538426
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
@@ -15318,6 +15305,7 @@ object aboutForm: TaboutForm
         BorderStyle = bsNone
         Color = 4538426
         DoubleBuffered = False
+        Font.Color = clWhite
         Font.Height = -13
         Font.Name = 'Noto Sans'
         Font.Quality = fqAntialiased
