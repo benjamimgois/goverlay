@@ -792,8 +792,8 @@ begin
     Missing.Add('vkcube');
 
    //check if zenergy module is avaiable
-  if not IsKernelModuleAvailable('zenergy') then
-    Missing.Add('- zenergy kernel module');
+  //if not IsKernelModuleAvailable('zenergy') then
+  //  Missing.Add('- zenergy kernel module');
 
   Result := Missing.Count = 0;
 end;
