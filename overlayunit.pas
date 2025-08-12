@@ -1191,7 +1191,7 @@ begin
   presettabsheet.Color:= DarkBackgroundColor;
   SetDarkColorsRecursively(Self); //set all elements to dark tones
   saveBitbtn.Color:=$00008300; //Save button color exception
-
+  notificationLabel.Font.color:=clyellow; //color exception
 
   //Turbulence animation start
   FStartTick := GetTickCount;
