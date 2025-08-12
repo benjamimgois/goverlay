@@ -783,23 +783,23 @@ function CheckDependencies(out Missing: TStringList): Boolean;
 begin
   Missing := TStringList.Create;
 
+  //check if mangohud if avaiable
   if not IsCommandAvailable('mangohud') then
     Missing.Add('mangohud');
 
-  if not LibraryExists('libMangoHud.so') then
-    Missing.Add('libMangoHud.so');
-
+  //check if vkcube is avaiable
   if not IsCommandAvailable('vkcube') then
     Missing.Add('vkcube');
 
+   //check if zenergy module is avaiable
   if not IsKernelModuleAvailable('zenergy') then
-    Missing.Add('zenergy');
+    Missing.Add('- zenergy kernel module');
 
   Result := Missing.Count = 0;
 end;
 
-//Function to get kernel version
 
+//Function to get kernel version
 function GetKernelVersion: string;
 var
   Output: TStringList;
