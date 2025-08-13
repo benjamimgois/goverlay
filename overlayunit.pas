@@ -153,7 +153,7 @@ type
     engineColorButton: TColorButton;
     engineversionCheckBox: TCheckBox;
     extrasTabSheet: TTabSheet;
-    metricsSheet: TTabSheet;
+    metricsTabSheet: TTabSheet;
     FontcolorButton: TColorButton;
     C: TComboBox;
     fpslimmetComboBox: TComboBox;
@@ -231,7 +231,7 @@ type
     intelpowerfixBitBtn: TBitBtn;
     iordrwColorButton: TColorButton;
     hudtoggleLabel: TLabel;
-    mangohudPageControl: TPageControl;
+    goverlayPageControl: TPageControl;
     mangohudPanel: TPanel;
     openglImage: TImage;
     pcidevComboBox: TComboBox;
@@ -305,6 +305,7 @@ type
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
+    procedure mangohudLabelClick(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
@@ -318,6 +319,7 @@ type
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
     procedure usercustomBitBtnClick(Sender: TObject);
+    procedure vkbasaltLabelClick(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
 
 
@@ -368,7 +370,10 @@ BlacklistStr, blacklistVAR: string;
 
   fpsArray: TStringArray;
 
-
+  const
+  DarkBackgroundColor = $0045403A; // dark panel color BGR
+  DarkerBackgroundColor = $00232323;  // darker panel color BGR for unselected item
+  DarkTextColor = clwhite;  // set light color
 
 implementation
 
@@ -908,6 +913,24 @@ end;
 
   end;
 
+procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
+begin
+  //unselecte mangohud
+  mangohudLabel.Font.Color:=clgray;
+  mangohudShape.Color:= DarkerBackgroundColor;
+  presettabsheet.TabVisible:=false;
+  visualtabsheet.TabVisible:=false;
+  performancetabsheet.TabVisible:=false;
+  metricstabsheet.TabVisible:=false;
+  extrastabsheet.TabVisible:=false;
+
+  // select vkbasalt
+  vkbasaltLabel.Font.Color:=clwhite;
+  vkbasaltShape.Color:= DarkBackgroundColor;
+  vkbasalttabsheet.TabVisible:=true;
+  goverlayPageControl.ActivePage:=vkbasaltTabsheet;
+end;
+
 procedure Tgoverlayform.whitecolorBitBtnClick(Sender: TObject);
 begin
   //Set mangohud colors
@@ -1100,9 +1123,8 @@ end;
 
 
 //Procedure to force dark theme on elements
-const
-  DarkBackgroundColor = $0045403A; // dark panel color BGR
-  DarkTextColor = clwhite;  // set light color
+
+
 
 procedure SetDarkColorsRecursively(AControl: TWinControl);
 var
@@ -1175,7 +1197,7 @@ var
 begin
 
   //Set initial TAB
-  mangohudPageControl.ActivePage:=presetTabsheet;
+  goverlayPageControl.ActivePage:=presetTabsheet;
 
    // Initialize menu selections
   mangohudsel := true;
@@ -1188,6 +1210,7 @@ begin
   SetDarkColorsRecursively(Self); //set all elements to dark tones
   saveBitbtn.Color:=$00008300; //Save button color exception
   notificationLabel.Font.color:=clyellow; //color exception
+  vkbasaltLabel.Font.Color:=clgray;
 
   //Turbulence animation start
   FStartTick := GetTickCount;
@@ -1198,9 +1221,9 @@ begin
 
 
    // Ajust tab text color
-  for i := 0 to mangohudPageControl.PageCount - 1 do
+  for i := 0 to goverlayPageControl.PageCount - 1 do
   begin
-    mangohudPageControl.Pages[i].Font.Color := clBtnText;
+    goverlayPageControl.Pages[i].Font.Color := clBtnText;
   end;
 
   // fix for radiobutton wrong colors
@@ -2404,6 +2427,24 @@ mediaColorButton.ButtonColor:= clYellow;
 saveBitbtn.Click;
 end;
 
+procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
+begin
+  //unselecte vkbasalt
+  vkbasaltLabel.Font.Color:=clgray;
+  vkbasaltShape.Color:= DarkerBackgroundColor;
+  vkbasalttabsheet.TabVisible:=false;
+
+  // select mangohud
+  mangohudLabel.Font.Color:=clwhite;
+  mangohudShape.Color:= DarkBackgroundColor;
+  presettabsheet.TabVisible:=true;
+  visualtabsheet.TabVisible:=true;
+  performancetabsheet.TabVisible:=true;
+  metricstabsheet.TabVisible:=true;
+  extrastabsheet.TabVisible:=true;
+  goverlayPageControl.ActivePage:=presetTabsheet;
+end;
+
 procedure Tgoverlayform.MenuItem1Click(Sender: TObject);
 begin
      // Save current config
@@ -2823,6 +2864,7 @@ GPUBrand := '';
 //Save button
 saveBitbtn.Click;
 end;
+
 
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
 var
