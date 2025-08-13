@@ -28,22 +28,22 @@ type
     GlobalenableLabel: TLabel;
     goverlayBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
-    hudtoggleImage1: TImage;
+    toggleImage: TImage;
     mangocolorLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
     notificationLabel: TLabel;
     mangobarPanel: TPanel;
     popupBitBtn: TBitBtn;
-    popupBitBtn1: TBitBtn;
+    reshaderefreshBitBtn: TBitBtn;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
     reshadeProgressBar: TProgressBar;
     saveBitBtn: TBitBtn;
     subBitBtn: TBitBtn;
-    TabSheet1: TTabSheet;
+    vkbasaltTabSheet: TTabSheet;
     Timer1: TTimer;
-    transparencyLabel1: TLabel;
-    transpTrackBar1: TTrackBar;
+    casLabel: TLabel;
+    casTrackBar: TTrackBar;
     vkbtogglekeyCombobox: TComboBox;
     vktoggleLabel: TLabel;
     whitecolorLabel: TLabel;
@@ -1181,7 +1181,6 @@ begin
   mangohudsel := true;
   mangohudPanel.Visible:=true;
   vkbasaltsel := false;
-  vkbasaltPanel.Visible:=false;
 
 
   // Force dark theme
