@@ -1274,13 +1274,6 @@ begin
   Missing.Free;
 
 
-// Start vkcube (vulkan demo)
-if USERSESSION = 'wayland' then
-  ExecuteGUICommand('mangohud vkcube --wsi wayland &')
-else
-  ExecuteGUICommand('mangohud vkcube &');
-
-
    //Check if mangohud file exists
    ConfigFilePath := MANGOHUDCFGFILE;
    ConfigDir := ExtractFilePath(ConfigFilePath);
@@ -1375,6 +1368,12 @@ else
     end;
   end;
 
+  
+// Start vkcube (vulkan demo)
+if USERSESSION = 'wayland' then
+  ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+else
+  ExecuteGUICommand('mangohud vkcube &');
 
 
 
