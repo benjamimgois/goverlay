@@ -28,7 +28,7 @@ type
     GlobalenableLabel: TLabel;
     goverlayBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
-    MenuItem2: TMenuItem;
+    runvkcubeItem: TMenuItem;
     toggleImage: TImage;
     mangocolorLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
@@ -51,7 +51,7 @@ type
     whitecolorBitBtn: TBitBtn;
     GroupBox1: TGroupBox;
     offsetLabel: TLabel;
-    MenuItem1: TMenuItem;
+    savecustomItem: TMenuItem;
     offsetSpinEdit: TSpinEdit;
     fpsonlyBitBtn: TBitBtn;
     fullBitBtn: TBitBtn;
@@ -307,8 +307,8 @@ type
     procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
-    procedure MenuItem1Click(Sender: TObject);
-    procedure MenuItem2Click(Sender: TObject);
+    procedure savecustomItemClick(Sender: TObject);
+    procedure runvkcubeItemClick(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
     procedure goverlayPaintBoxPaint(Sender: TObject);
@@ -1248,6 +1248,14 @@ begin
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
 
 
+  //Disable custom theme if file doesnt exist
+  if not FileExists(CUSTOMCFGFILE) then
+  begin
+    usercustomBitbtn.Enabled:=false;
+    usercustomBitbtn.Hint:='Save a custom.conf file load the custom config';
+  end;
+
+
   //Get distro information
   SaveDistroInfo;
 
@@ -1273,11 +1281,11 @@ else
   ExecuteGUICommand('mangohud vkcube &');
 
 
-
+   //Check if mangohud file exists
    ConfigFilePath := MANGOHUDCFGFILE;
    ConfigDir := ExtractFilePath(ConfigFilePath);
 
-   // Verifica se o diretório existe, se não, cria
+   // check if directory exists
    if not DirectoryExists(ConfigDir) then
      CreateDir(ConfigDir);
 
@@ -1286,7 +1294,7 @@ else
    begin
 
 
-    // Exibe notificacao
+    // shot notification
     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "No configuration files located, creating files and folders."');
 
 
@@ -2447,7 +2455,7 @@ begin
   goverlayPageControl.ActivePage:=presetTabsheet;
 end;
 
-procedure Tgoverlayform.MenuItem1Click(Sender: TObject);
+procedure Tgoverlayform.savecustomItemClick(Sender: TObject);
 begin
      // Save current config
     saveBitbtn.Click;
@@ -2459,19 +2467,16 @@ begin
     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Settings saved as custom config"');
 end;
 
-procedure Tgoverlayform.MenuItem2Click(Sender: TObject);
-var
-  //Process: TProcess;
-  Output: string;
+procedure Tgoverlayform.runvkcubeItemClick(Sender: TObject);
 begin
-  // Verificar se vkcube já está em execução
+  // check if vkcube is running
   Process := TProcess.Create(nil);
   try
     Process.CommandLine := 'pgrep -x vkcube';
     Process.Options := Process.Options + [poWaitOnExit, poUsePipes];
     Process.Execute;
 
-    // Se o código de saída for 0, significa que o processo foi encontrado
+    // if output is 0, process is running, show message and stop
     if Process.ExitStatus = 0 then
     begin
       ShowMessage('vkcube is running !');
