@@ -367,7 +367,7 @@ BlacklistStr, blacklistVAR: string;
 
 
   //vkbasalt variable
-  VKBASALTFOLDER, VKBASALTCFGFILE, RESHADEFOLDER : string;
+  VKBASALTFOLDER, VKBASALTCFGFILE : string;
 
   //########################################
   i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
@@ -1256,7 +1256,7 @@ begin
 
   VKBASALTFOLDER := GetUserConfigDir + '/vkBasalt/';
   VKBASALTCFGFILE := GetUserConfigDir + '/vkBasalt/vkBasalt.conf';
-  RESHADEFOLDER := GetUserConfigDir + '/vkBasalt/reshade';
+
 
   //Disable custom theme button if file doesnt exist
   if not FileExists(CUSTOMCFGFILE) then
@@ -1384,8 +1384,7 @@ begin
 
   // make sure directory exists - VKBASALT
   ForceDirectories(ExtractFilePath(VKBASALTCFGFILE));
-  if not DirectoryExists(RESHADEFOLDER) then
-  CreateDir(RESHADEFOLDER);
+
 
     // Check if file exists and create default - VKBASALT
   if not FileExists(VKBASALTCFGFILE) then
@@ -2479,14 +2478,41 @@ begin
 end;
 
 procedure Tgoverlayform.reshaderefreshBitBtnClick(Sender: TObject);
+var
+  ShellProcess: TProcess;
+  Command: string;
 begin
-  ExecuteShellCommand('git clone https://github.com/crosire/reshade-shaders.git');
+  if VKBASALTFOLDER = '' then
+  begin
+    ShowMessage('vkBasalt directory not found');
+    Exit;
+  end;
+
+  // Comando para executar via shell
+  Command := 'cd "' + VKBASALTFOLDER + '" && git clone https://github.com/crosire/reshade-shaders.git';
+
+  ShellProcess := TProcess.Create(nil);
+  try
+    ShellProcess.Executable := '/bin/bash';
+    ShellProcess.Parameters.Add('-c');
+    ShellProcess.Parameters.Add(Command);
+    ShellProcess.Options := [poWaitOnExit];
+    ShellProcess.Execute;
+
+    if ShellProcess.ExitStatus = 0 then
+      ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Reshade shaders downloaded sucessfully"')
+    else
+      ShowMessage('Error cloning repository. Code: ' + IntToStr(ShellProcess.ExitStatus));
+
+  finally
+    ShellProcess.Free;
+  end;
 end;
 
 procedure Tgoverlayform.runvkbasaltItemClick(Sender: TObject);
 begin
 ExecuteGUICommand('killall vkcube');
-ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "VKbasalt test" "vkcube reestarted with vkbasalt effects"');
+ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
 ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 vkcube &');
 end;
 
