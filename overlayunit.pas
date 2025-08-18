@@ -28,6 +28,7 @@ type
     GlobalenableLabel: TLabel;
     goverlayBitBtn: TBitBtn;
     alphavalueLabel: TLabel;
+    MenuItem2: TMenuItem;
     toggleImage: TImage;
     mangocolorLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
@@ -307,6 +308,7 @@ type
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
+    procedure MenuItem2Click(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
     procedure goverlayPaintBoxPaint(Sender: TObject);
@@ -1266,9 +1268,9 @@ begin
 
 // Start vkcube (vulkan demo)
 if USERSESSION = 'wayland' then
-  ExecuteGUICommand('mangohud vkcube --wsi wayland')
+  ExecuteGUICommand('mangohud vkcube --wsi wayland &')
 else
-  ExecuteGUICommand('mangohud vkcube');
+  ExecuteGUICommand('mangohud vkcube &');
 
 
 
@@ -2455,6 +2457,35 @@ begin
 
     //Notification
     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Settings saved as custom config"');
+end;
+
+procedure Tgoverlayform.MenuItem2Click(Sender: TObject);
+var
+  //Process: TProcess;
+  Output: string;
+begin
+  // Verificar se vkcube já está em execução
+  Process := TProcess.Create(nil);
+  try
+    Process.CommandLine := 'pgrep -x vkcube';
+    Process.Options := Process.Options + [poWaitOnExit, poUsePipes];
+    Process.Execute;
+
+    // Se o código de saída for 0, significa que o processo foi encontrado
+    if Process.ExitStatus = 0 then
+    begin
+      ShowMessage('vkcube is running !');
+      Exit;
+    end;
+  finally
+    Process.Free;
+  end;
+
+  // Start vkcube (vulkan demo) apenas se não estiver em execução
+  if USERSESSION = 'wayland' then
+    ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+  else
+    ExecuteGUICommand('mangohud vkcube &');
 end;
 
 

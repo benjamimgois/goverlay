@@ -1,14 +1,15 @@
 object aboutForm: TaboutForm
   Left = 534
-  Height = 591
+  Height = 592
   Top = 277
   Width = 619
   BorderStyle = bsDialog
   Caption = 'About'
-  ClientHeight = 591
+  ClientHeight = 592
   ClientWidth = 619
   Color = 3684408
   Font.Quality = fqAntialiased
+  LCLVersion = '4.2.0.0'
   OnCreate = FormCreate
   object aboutPageControl: TPageControl
     AnchorSideLeft.Control = Owner
@@ -18,7 +19,7 @@ object aboutForm: TaboutForm
     AnchorSideBottom.Control = Owner
     AnchorSideBottom.Side = asrBottom
     Left = 0
-    Height = 591
+    Height = 592
     Top = 0
     Width = 619
     ActivePage = aboutTabSheet
@@ -31,8 +32,8 @@ object aboutForm: TaboutForm
     TabOrder = 0
     object aboutTabSheet: TTabSheet
       Caption = 'About'
-      ClientHeight = 560
-      ClientWidth = 615
+      ClientHeight = 557
+      ClientWidth = 613
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -62,7 +63,7 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Side = asrBottom
         Left = 10
         Height = 136
-        Top = 424
+        Top = 421
         Width = 104
         Anchors = [akLeft, akBottom]
         BorderSpacing.Left = 10
@@ -11054,7 +11055,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 159
         Height = 42
-        Top = 518
+        Top = 515
         Width = 40
         Anchors = [akLeft, akBottom]
         BorderSpacing.Left = 5
@@ -11300,7 +11301,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 114
         Height = 42
-        Top = 518
+        Top = 515
         Width = 40
         Anchors = [akLeft, akBottom]
         Picture.Data = {
@@ -12192,9 +12193,9 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Control = aboutTabSheet
         AnchorSideBottom.Side = asrBottom
         Cursor = crHandPoint
-        Left = 413
+        Left = 411
         Height = 87
-        Top = 473
+        Top = 470
         Width = 179
         Anchors = [akRight, akBottom]
         BorderSpacing.Right = 23
@@ -15259,7 +15260,7 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Control = meImage
         Left = 114
         Height = 54
-        Top = 424
+        Top = 421
         Width = 166
         Caption = 'Benjamim Góis'#10#10'benjamim.gois@gmail.com'
         Font.Color = clWhite
@@ -15310,8 +15311,8 @@ object aboutForm: TaboutForm
     end
     object licenseTabSheet: TTabSheet
       Caption = 'License'
-      ClientHeight = 560
-      ClientWidth = 615
+      ClientHeight = 557
+      ClientWidth = 613
       Font.Color = clWhite
       Font.Quality = fqAntialiased
       ParentFont = False
@@ -15322,9 +15323,9 @@ object aboutForm: TaboutForm
         AnchorSideBottom.Control = licenseTabSheet
         AnchorSideBottom.Side = asrBottom
         Left = 0
-        Height = 560
+        Height = 557
         Top = 0
-        Width = 615
+        Width = 613
         Align = alTop
         Alignment = taCenter
         Anchors = [akTop, akLeft, akRight, akBottom]
