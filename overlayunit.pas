@@ -48,6 +48,7 @@ type
     casTrackBar: TTrackBar;
     vkbtogglekeyCombobox: TComboBox;
     vktoggleLabel: TLabel;
+    pbarLabel: TLabel;
     whitecolorLabel: TLabel;
     whitecolorBitBtn: TBitBtn;
     GroupBox1: TGroupBox;
@@ -2479,34 +2480,172 @@ end;
 
 procedure Tgoverlayform.reshaderefreshBitBtnClick(Sender: TObject);
 var
-  ShellProcess: TProcess;
-  Command: string;
+  P: TProcess;
+  Buf: array[0..8191] of byte;
+  ReadCount: SizeInt;
+  Chunk, Piece, S: string;
+  Percent: Integer;
+  Phase: string;
+  RepoDir: string;
+
+
+  function ExtractPercentAnywhere(const S: string; out Pct: Integer): Boolean;
+  var
+    i, j: Integer;
+  begin
+    // procura um número imediatamente antes de '%'
+    Result := False;
+    Pct := -1;
+    for i := 1 to Length(S) do
+      if S[i] = '%' then
+      begin
+        j := i - 1;
+        while (j >= 1) and (S[j] in ['0'..'9']) do Dec(j);
+        Inc(j);
+        if (j <= i - 1) and TryStrToInt(Copy(S, j, i - j), Pct) then
+        begin
+          if Pct < 0 then Pct := 0;
+          if Pct > 100 then Pct := 100;
+          Exit(True);
+        end;
+      end;
+  end;
+
+  procedure UpdatePhase(const S: string);
+  begin
+    if Pos('Receiving objects', S) > 0 then Phase := 'Downloading';
+    if Pos('Resolving deltas',   S) > 0 then Phase := 'Installing';
+    if Pos('Checking out files', S) > 0 then Phase := 'Checking files';
+  end;
+
+  procedure ApplyPercent(Pct: Integer);
+  begin
+    if reshadeProgressbar.Min <> 0 then reshadeProgressbar.Min := 0;
+    if reshadeProgressbar.Max <> 100 then reshadeProgressbar.Max := 100;
+    reshadeProgressbar.Position := Pct;
+    if Phase <> '' then
+      pbarLabel.Caption := Format('%s: %d%%', [Phase, Pct])
+    else
+      pbarLabel.Caption := Format('%d%%', [Pct]);
+    Application.ProcessMessages; // garante pintura imediata
+  end;
+
+  procedure ProcessPiecesFromChunk(var C: string);
+  var
+    pCR, pLF, pMin: SizeInt;
+  begin
+    // quebra por CR (\r) e LF (\n); git usa muito \r em progresso
+    while True do
+    begin
+      pCR := Pos(#13, C);
+      pLF := Pos(#10, C);
+      if (pCR = 0) and (pLF = 0) then Break;
+
+      if (pCR = 0) then pMin := pLF
+      else if (pLF = 0) then pMin := pCR
+      else pMin := IfThen(pCR < pLF, pCR, pLF);
+
+      Piece := Copy(C, 1, pMin - 1);
+      Delete(C, 1, pMin);
+      // se era CRLF, remove o LF remanescente
+      if (pMin = 1) and (Length(C) > 0) and ((C[1] = #10) or (C[1] = #13)) then
+        Delete(C, 1, 1);
+
+      UpdatePhase(Piece);
+      if ExtractPercentAnywhere(Piece, Percent) then
+        ApplyPercent(Percent);
+    end;
+
+    // também tenta extrair percent do que sobrou (linha parcial)
+    if (C <> '') and ExtractPercentAnywhere(C, Percent) then
+      ApplyPercent(Percent);
+  end;
+
+  procedure StartGit(const AParams: array of string; const AWorkDir: string);
+  var
+    i: Integer;
+  begin
+    P := TProcess.Create(nil);
+    P.Executable := FindDefaultExecutablePath('git');
+    for i := 0 to High(AParams) do
+      P.Parameters.Add(AParams[i]);
+    P.CurrentDirectory := AWorkDir;
+
+    // junta stderr->stdout e usa pipes
+    P.Options := [poUsePipes, poStderrToOutPut, poNoConsole];
+
+    // força progresso imediato
+    P.Environment.Add('GIT_PROGRESS_DELAY=0');
+    P.Environment.Add('GIT_FLUSH=1');
+
+    P.Execute;
+  end;
+
+  procedure PumpOutput;
+  begin
+    if P.Output.NumBytesAvailable > 0 then
+    begin
+      ReadCount := P.Output.Read(Buf{%H-}, SizeOf(Buf));
+      if ReadCount > 0 then
+      begin
+        SetString(S, PChar(@Buf[0]), ReadCount);
+        Chunk := Chunk + S;
+        ProcessPiecesFromChunk(Chunk);
+      end;
+    end;
+  end;
+
 begin
+
+  //Disable update button
+  reshaderefreshBitbtn.Enabled:=false;
+
   if VKBASALTFOLDER = '' then
   begin
     ShowMessage('vkBasalt directory not found');
     Exit;
   end;
 
-  // Comando para executar via shell
-  Command := 'cd "' + VKBASALTFOLDER + '" && git clone https://github.com/crosire/reshade-shaders.git';
+  RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
 
-  ShellProcess := TProcess.Create(nil);
+  reshadeProgressbar.Min := 0;
+  reshadeProgressbar.Max := 100;
+  reshadeProgressbar.Position := 0;
+  pbarLabel.Caption := 'Starting...';
+  Phase := '';
+  Chunk := '';
+
   try
-    ShellProcess.Executable := '/bin/bash';
-    ShellProcess.Parameters.Add('-c');
-    ShellProcess.Parameters.Add(Command);
-    ShellProcess.Options := [poWaitOnExit];
-    ShellProcess.Execute;
-
-    if ShellProcess.ExitStatus = 0 then
-      ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Reshade shaders downloaded sucessfully"')
+    if DirectoryExists(RepoDir) then
+      StartGit(['-C', 'reshade-shaders', 'pull', '--progress'], VKBASALTFOLDER)
     else
-      ShowMessage('Error cloning repository. Code: ' + IntToStr(ShellProcess.ExitStatus));
+      StartGit(['clone', '--progress', 'https://github.com/crosire/reshade-shaders.git'], VKBASALTFOLDER);
+
+    while P.Running do
+    begin
+      PumpOutput;
+      Application.ProcessMessages; // mantém UI viva e repinta a barra
+    end;
+
+    // drena restos após sair
+    PumpOutput;
+
+    if P.ExitStatus = 0 then
+    begin
+      ApplyPercent(100);
+      pbarLabel.Caption := 'Completed';
+      ExecuteShellCommand('notify-send -e -i ' + GetIconFile +
+        ' "Goverlay" "Reshade shaders downloaded sucessfully"');
+    end
+    else
+      ShowMessage('Error while synchronizing repo. Code: ' + IntToStr(P.ExitStatus));
 
   finally
-    ShellProcess.Free;
+    if Assigned(P) then P.Free;
   end;
+
+  //Enable update button
+  reshaderefreshBitbtn.Enabled:=true;
 end;
 
 procedure Tgoverlayform.runvkbasaltItemClick(Sender: TObject);
