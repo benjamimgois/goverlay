@@ -1183,7 +1183,87 @@ begin
   end;
 end;
 
+//Functions for shaders
 
+// Lista arquivos do diretório BaseDir no ListBox, opcionalmente filtrando por extensões.
+// Ex.: FilterExts = []  -> lista tudo
+//      FilterExts = ['.fx', '.fxh'] -> lista apenas efeitos ReShade
+procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
+  const FilterExts: array of string; const Recursive: Boolean = True;
+  const SkipDotDirs: Boolean = True);
+
+  function HasAllowedExt(const FileName: string): Boolean;
+  var
+    i: Integer;
+    E: String;
+  begin
+    if Length(FilterExts) = 0 then
+      Exit(True);
+    E := LowerCase(ExtractFileExt(FileName));
+    for i := 0 to High(FilterExts) do
+      if E = LowerCase(FilterExts[i]) then
+        Exit(True);
+    Result := False;
+  end;
+
+  function RelativeToBase(const FullPath, Base: string): string;
+  var
+    A, B: String;
+  begin
+    A := ExpandFileName(FullPath);
+    B := IncludeTrailingPathDelimiter(ExpandFileName(Base));
+    Result := A;
+    if Pos(B, A) = 1 then
+      Delete(Result, 1, Length(B));
+  end;
+
+  procedure Scan(const Dir: string);
+  var
+    SR: TSearchRec;
+    Path, Child: String;
+  begin
+    Path := IncludeTrailingPathDelimiter(Dir);
+    if FindFirst(Path + '*', faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Name = '.') or (SR.Name = '..') then
+            Continue;
+
+          Child := Path + SR.Name;
+
+          if (SR.Attr and faDirectory) <> 0 then
+          begin
+            // pula pastas ocultas (.git, .github, etc.) se desejado
+            if SkipDotDirs and (Length(SR.Name) > 0) and (SR.Name[1] = '.') then
+              Continue;
+            if Recursive then
+              Scan(Child);
+          end
+          else
+          begin
+            if HasAllowedExt(SR.Name) then
+              ListBox.Items.Add(RelativeToBase(Child, BaseDir));
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+  end;
+
+begin
+  ListBox.Items.BeginUpdate;
+  try
+    ListBox.Items.Clear;
+    Scan(BaseDir);
+    // Ordena no final (opcional)
+    // Obs.: se você quiser manter a hierarquia natural, comente a linha abaixo.
+    ListBox.Sorted := True;
+  finally
+    ListBox.Items.EndUpdate;
+  end;
+end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
@@ -2643,6 +2723,15 @@ begin
   finally
     if Assigned(P) then P.Free;
   end;
+
+  // Listar TODOS os arquivos do repo:
+  ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+
+  //Enable elements
+   aveffectsListbox.Enabled:=true;
+   acteffectsListbox.Enabled:=true;
+   addBitbtn.Enabled:=true;
+   subBitbtn.Enabled:=true;
 
   //Enable update button
   reshaderefreshBitbtn.Enabled:=true;
