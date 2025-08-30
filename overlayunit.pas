@@ -333,7 +333,6 @@ type
 
   private
     FStartTick: Cardinal;
-
   public
 
 
@@ -353,7 +352,7 @@ CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CP
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE, OFFSET: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, USERSESSION, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
-BlacklistStr, blacklistVAR: string;
+BlacklistStr, blacklistVAR, RepoDir: string;
 
 
 
@@ -894,6 +893,12 @@ begin
 end;
 
 
+
+
+
+
+
+
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
 begin
 
@@ -1339,7 +1344,24 @@ begin
 
   VKBASALTFOLDER := GetUserConfigDir + '/vkBasalt/';
   VKBASALTCFGFILE := GetUserConfigDir + '/vkBasalt/vkBasalt.conf';
+  RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
 
+
+  //if reshade dir exists just load the files and enable fields
+  if DirectoryExists(RepoDir) then
+  begin
+   //ShowMessage('diretorio existe".');
+  ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+
+  //Enable elements
+   aveffectsListbox.Enabled:=true;
+   acteffectsListbox.Enabled:=true;
+   addBitbtn.Enabled:=true;
+   subBitbtn.Enabled:=true;
+
+  //Enable update button
+  reshaderefreshBitbtn.Enabled:=true;
+  end;
 
   //Disable custom theme button if file doesnt exist
   if not FileExists(CUSTOMCFGFILE) then
@@ -1375,13 +1397,21 @@ begin
    if not DirectoryExists(ConfigDir) then
      CreateDir(ConfigDir);
 
-   // Verifica se o arquivo existe
+   // check if files exists
    if not FileExists(ConfigFilePath) then
    begin
 
 
     // shot notification
     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "No configuration files located, creating files and folders."');
+
+
+  // estado padrão ao iniciar
+  aveffectsListbox.Enabled := False;
+  addBitbtn.Enabled := False;
+  subBitbtn.Enabled := False;
+
+
 
 
      // Create stock mangohud config
@@ -2568,7 +2598,7 @@ var
   Chunk, Piece, S: string;
   Percent: Integer;
   Phase: string;
-  RepoDir: string;
+
 
 
   function ExtractPercentAnywhere(const S: string; out Pct: Integer): Boolean;
