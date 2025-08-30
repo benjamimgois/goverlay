@@ -288,6 +288,7 @@ type
 
 
     procedure aboutBitBtnClick(Sender: TObject);
+    procedure addBitBtnClick(Sender: TObject);
     procedure afterburnercolorBitBtn1Click(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
     procedure basicBitBtnClick(Sender: TObject);
@@ -320,6 +321,7 @@ type
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
+    procedure subBitBtnClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
@@ -2715,10 +2717,10 @@ begin
       ApplyPercent(100);
       pbarLabel.Caption := 'Completed';
       ExecuteShellCommand('notify-send -e -i ' + GetIconFile +
-        ' "Goverlay" "Reshade shaders downloaded sucessfully"');
+        ' "Goverlay" "Reshade shaders are ready"');
     end
     else
-      ShowMessage('Error while synchronizing repo. Code: ' + IntToStr(P.ExitStatus));
+      ShowMessage('Error while synchronizing reshade repo. Code: ' + IntToStr(P.ExitStatus));
 
   finally
     if Assigned(P) then P.Free;
@@ -2879,6 +2881,68 @@ end;
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
 begin
    aboutForm.ShowModal;
+end;
+
+procedure Tgoverlayform.addBitBtnClick(Sender: TObject);
+  var
+  i, added: Integer;
+  S: string;
+
+  function AnySelected(LB: TListBox): Boolean;
+  var
+    j: Integer;
+  begin
+    if LB.MultiSelect then
+    begin
+      for j := 0 to LB.Items.Count - 1 do
+        if LB.Selected[j] then Exit(True);
+      Result := False;
+    end
+    else
+      Result := LB.ItemIndex >= 0;
+  end;
+
+begin
+  // check selection
+  if not AnySelected(aveffectsListbox) then
+  begin
+    ShowMessage('Select at least one effect in "Avaiable effects".');
+    Exit;
+  end;
+
+  added := 0;
+
+  if aveffectsListbox.MultiSelect then
+  begin
+    // Add all elements
+    for i := 0 to aveffectsListbox.Items.Count - 1 do
+      if aveffectsListbox.Selected[i] then
+      begin
+        S := aveffectsListbox.Items[i];
+        if acteffectsListbox.Items.IndexOf(S) = -1 then
+        begin
+          acteffectsListbox.Items.Add(S);
+          Inc(added);
+        end;
+      end;
+  end
+  else
+  begin
+    // Add unique item
+    S := aveffectsListbox.Items[aveffectsListbox.ItemIndex];
+    if acteffectsListbox.Items.IndexOf(S) = -1 then
+    begin
+      acteffectsListbox.Items.Add(S);
+      Inc(added);
+    end
+    else
+      ShowMessage('This effect is already active');
+  end;
+
+  // select the last selected:
+  if added > 0 then
+    acteffectsListbox.ItemIndex := acteffectsListbox.Items.Count - 1;
+
 end;
 
 procedure Tgoverlayform.afterburnercolorBitBtn1Click(Sender: TObject);
@@ -4144,6 +4208,73 @@ var
 
 
 end; // ########################################      end save button click       ###############################################################################
+
+procedure Tgoverlayform.subBitBtnClick(Sender: TObject);
+  var
+  i, idx, removed: Integer;
+
+  function AnySelected(LB: TListBox): Boolean;
+  var
+    j: Integer;
+  begin
+    if LB.MultiSelect then
+    begin
+      for j := 0 to LB.Items.Count - 1 do
+        if LB.Selected[j] then Exit(True);
+      Result := False;
+    end
+    else
+      Result := LB.ItemIndex >= 0;
+  end;
+
+begin
+  if acteffectsListbox.Items.Count = 0 then
+  begin
+    ShowMessage('There is no active effects');
+    Exit;
+  end;
+
+  if not AnySelected(acteffectsListbox) then
+  begin
+    ShowMessage('Select at least one effect to remove');
+    Exit;
+  end;
+
+  removed := 0;
+
+  if acteffectsListbox.MultiSelect then
+  begin
+    // Remove last to first
+    acteffectsListbox.Items.BeginUpdate;
+    try
+      for i := acteffectsListbox.Items.Count - 1 downto 0 do
+        if acteffectsListbox.Selected[i] then
+        begin
+          acteffectsListbox.Items.Delete(i);
+          Inc(removed);
+        end;
+    finally
+      acteffectsListbox.Items.EndUpdate;
+    end;
+    // clean selection
+    acteffectsListbox.ItemIndex := -1;
+  end
+  else
+  begin
+    idx := acteffectsListbox.ItemIndex;
+    acteffectsListbox.Items.Delete(idx);
+    Inc(removed);
+    // Select next neighbor item if exists
+    if acteffectsListbox.Items.Count > 0 then
+    begin
+      if idx >= acteffectsListbox.Items.Count then
+        idx := acteffectsListbox.Items.Count - 1;
+      acteffectsListbox.ItemIndex := idx;
+    end
+    else
+      acteffectsListbox.ItemIndex := -1;
+  end;
+end;
 
 procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
 begin
