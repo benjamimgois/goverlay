@@ -932,18 +932,16 @@ end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 begin
+  //Disable tabs
+  goverlayPageControl.ShowTabs:=false;
+
   //unselecte mangohud
   mangohudLabel.Font.Color:=clgray;
-  mangohudShape.Color:= DarkerBackgroundColor;
-  presettabsheet.TabVisible:=false;
-  visualtabsheet.TabVisible:=false;
-  performancetabsheet.TabVisible:=false;
-  metricstabsheet.TabVisible:=false;
-  extrastabsheet.TabVisible:=false;
+  mangohudShape.Brush.Color:= DarkerBackgroundColor;
 
   // select vkbasalt
   vkbasaltLabel.Font.Color:=clwhite;
-  vkbasaltShape.Color:= DarkBackgroundColor;
+  vkbasaltShape.Brush.Color:= DarkBackgroundColor;
   vkbasalttabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 end;
@@ -2574,19 +2572,18 @@ end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
-  //unselecte vkbasalt
+  //Enable tabs
+  goverlayPageControl.ShowTabs:=true;
+  vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+
+  //unselect vkbasalt
   vkbasaltLabel.Font.Color:=clgray;
-  vkbasaltShape.Color:= DarkerBackgroundColor;
-  vkbasalttabsheet.TabVisible:=false;
+  vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
+
 
   // select mangohud
   mangohudLabel.Font.Color:=clwhite;
-  mangohudShape.Color:= DarkBackgroundColor;
-  presettabsheet.TabVisible:=true;
-  visualtabsheet.TabVisible:=true;
-  performancetabsheet.TabVisible:=true;
-  metricstabsheet.TabVisible:=true;
-  extrastabsheet.TabVisible:=true;
+  mangohudShape.Brush.Color:= DarkBackgroundColor;
   goverlayPageControl.ActivePage:=presetTabsheet;
 end;
 
