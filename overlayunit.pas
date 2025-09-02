@@ -20,251 +20,232 @@ type
     aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
-    alphavalueLabel1: TLabel;
-    aveffectsListBox: TListBox;
-    blacklistBitBtn: TBitBtn;
-    fpslimLabel: TLabel;
-    geSpeedButton: TSpeedButton;
-    GlobalenableLabel: TLabel;
-    goverlayBitBtn: TBitBtn;
-    alphavalueLabel: TLabel;
-    runvkbasaltItem: TMenuItem;
-    runvkcubeItem: TMenuItem;
-    toggleImage: TImage;
-    mangocolorLabel: TLabel;
-    mangocolorBitBtn: TBitBtn;
-    notificationLabel: TLabel;
-    mangobarPanel: TPanel;
-    popupBitBtn: TBitBtn;
-    reshaderefreshBitBtn: TBitBtn;
-    reshadeLabel1: TLabel;
-    reshadeLabel2: TLabel;
-    reshadeProgressBar: TProgressBar;
-    saveBitBtn: TBitBtn;
-    subBitBtn: TBitBtn;
-    vkbasaltTabSheet: TTabSheet;
-    Timer1: TTimer;
-    casLabel: TLabel;
-    casTrackBar: TTrackBar;
-    vkbtogglekeyCombobox: TComboBox;
-    vktoggleLabel: TLabel;
-    pbarLabel: TLabel;
-    whitecolorLabel: TLabel;
-    whitecolorBitBtn: TBitBtn;
-    GroupBox1: TGroupBox;
-    offsetLabel: TLabel;
-    savecustomItem: TMenuItem;
-    offsetSpinEdit: TSpinEdit;
-    fpsonlyBitBtn: TBitBtn;
-    fullBitBtn: TBitBtn;
-    basicBitBtn: TBitBtn;
-    basichorizontalBitBtn: TBitBtn;
-    fullLabel: TLabel;
-    basicLabel: TLabel;
-    basichorizontalLabel: TLabel;
-    fpsonlyLabel: TLabel;
-    customLabel: TLabel;
-    layoutImageList: TImageList;
-    popsaveMenu: TPopupMenu;
-    usercustomBitBtn: TBitBtn;
-    colorthemeLabel: TLabel;
-    hudcompactCheckBox: TCheckBox;
-    layoutsLabel: TLabel;
-    presetTabSheet: TTabSheet;
+    afLabel: TLabel;
     afterburnercolorBitBtn1: TBitBtn;
     afterburnercolorLabel: TLabel;
-    customolorLabel: TLabel;
-    winesyncCheckBox: TCheckBox;
-    fpsavgCheckBox: TCheckBox;
-    fpsavgBitBtn: TBitBtn;
-    fahrenheitCheckBox: TCheckBox;
-    networkComboBox: TComboBox;
-    networkCheckBox: TCheckBox;
-    versioningCheckBox: TCheckBox;
+    afTrackBar: TTrackBar;
+    afvalueLabel: TLabel;
+    alphavalueLabel: TLabel;
+    archCheckBox: TCheckBox;
+    autouploadCheckBox: TCheckBox;
+    aveffectsListBox: TListBox;
     backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
-    logfolderBitBtn: TBitBtn;
+    basicBitBtn: TBitBtn;
+    basichorizontalBitBtn: TBitBtn;
+    basichorizontalLabel: TLabel;
+    basicLabel: TLabel;
+    batteryCheckBox: TCheckBox;
+    batteryColorButton: TColorButton;
+    batteryLabel: TLabel;
+    batterytimeCheckBox: TCheckBox;
+    batterywattCheckBox: TCheckBox;
+    blacklistBitBtn: TBitBtn;
+    borderGroupBox: TGroupBox;
+    bottomcenterRadioButton: TRadioButton;
+    bottomleftRadioButton: TRadioButton;
+    bottomrightRadioButton: TRadioButton;
+    casLabel: TLabel;
+    casTrackBar: TTrackBar;
+    casvalueLabel: TLabel;
+    colorthemeLabel: TLabel;
+    columsGroupBox: TGroupBox;
+    columShape: TShape;
     columShape1: TShape;
     columShape2: TShape;
     columShape3: TShape;
     columShape4: TShape;
     columShape5: TShape;
-    columsGroupBox: TGroupBox;
-    logfolderEdit: TEdit;
-    fpscolor2ColorButton: TColorButton;
-    fpslimCheckGroup: TCheckGroup;
+    columvalueLabel: TLabel;
     coreloadtypeBitBtn: TBitBtn;
-    borderGroupBox: TGroupBox;
-    bottomcenterRadioButton: TRadioButton;
-    logtoggleImage: TImage;
-    frametimetypeBitBtn: TBitBtn;
-    fpsCheckBox: TCheckBox;
-    gpudescEdit: TEdit;
-    fontComboBox: TComboBox;
-    fontcolorLabel: TLabel;
-    fontsizevalueLabel: TLabel;
-    archCheckBox: TCheckBox;
-    fpscolor2SpinEdit: TSpinEdit;
-    fpscolor3SpinEdit: TSpinEdit;
-    autouploadCheckBox: TCheckBox;
-    batteryCheckBox: TCheckBox;
-    batterywattCheckBox: TCheckBox;
-    batterytimeCheckBox: TCheckBox;
-    fpscolorCheckBox: TCheckBox;
-    engineshortCheckBox: TCheckBox;
     cpuavgloadCheckBox: TCheckBox;
     cpuColorButton: TColorButton;
     cpufreqCheckBox: TCheckBox;
     cpuGroupBox: TGroupBox;
+    cpuImage: TImage;
     cpuload1ColorButton: TColorButton;
     cpuload2ColorButton: TColorButton;
     cpuload3ColorButton: TColorButton;
     cpuloadcolorCheckBox: TCheckBox;
     cpuloadcoreCheckBox: TCheckBox;
+    cpumainmetricsLabel: TLabel;
     cpunameEdit: TEdit;
     cpupowerCheckBox: TCheckBox;
     cputempCheckBox: TCheckBox;
+    cputempLabel: TLabel;
     customcommandEdit: TEdit;
+    customLabel: TLabel;
+    customolorLabel: TLabel;
+    delayTrackBar: TTrackBar;
+    delayvalueLabel: TLabel;
+    deviceCheckBox: TCheckBox;
     diskioCheckBox: TCheckBox;
     distroinfoCheckBox: TCheckBox;
-    cpuImage: TImage;
-    gpuvoltageCheckBox: TCheckBox;
-    gpuImage: TImage;
-    fpstoggleImage: TImage;
-    hudtoggleImage: TImage;
-    filterRadioGroup: TRadioGroup;
-    columShape: TShape;
-    columvalueLabel: TLabel;
-    Image2: TImage;
-    durationvalueLabel: TLabel;
-    delayvalueLabel: TLabel;
-    intervalvalueLabel: TLabel;
-    logtoggleLabel: TLabel;
-    logdurationLabel: TLabel;
-    logintervalLabel: TLabel;
-    logdelayLabel: TLabel;
-    logfolderLabel: TLabel;
-    sysinfoImage: TImage;
-    refreshrateCheckBox: TCheckBox;
-    showfpslimCheckBox: TCheckBox;
-    plusSpeedButton: TSpeedButton;
-    minusButton: TSpeedButton;
     durationTrackBar: TTrackBar;
-    delayTrackBar: TTrackBar;
-    intervalTrackBar: TTrackBar;
-    vulkandriverCheckBox: TCheckBox;
+    durationvalueLabel: TLabel;
     engineColorButton: TColorButton;
+    engineshortCheckBox: TCheckBox;
     engineversionCheckBox: TCheckBox;
     extrasTabSheet: TTabSheet;
-    metricsTabSheet: TTabSheet;
+    fahrenheitCheckBox: TCheckBox;
+    fcatCheckBox: TCheckBox;
+    filterRadioGroup: TRadioGroup;
+    filtersGroupBox: TGroupBox;
     FontcolorButton: TColorButton;
-    C: TComboBox;
+    fontcolorLabel: TLabel;
+    fontComboBox: TComboBox;
+    fontLabel: TLabel;
+    fontsGroupBox: TGroupBox;
+    fontsizeTrackBar: TTrackBar;
+    fontsizevalueLabel: TLabel;
+    fpsavgBitBtn: TBitBtn;
+    fpsavgCheckBox: TCheckBox;
+    fpsCheckBox: TCheckBox;
+    fpscolor1ColorButton: TColorButton;
+    fpscolor2ColorButton: TColorButton;
+    fpscolor2SpinEdit: TSpinEdit;
+    fpscolor3ColorButton: TColorButton;
+    fpscolor3SpinEdit: TSpinEdit;
+    fpscolorCheckBox: TCheckBox;
+    fpsGroupBox: TGroupBox;
+    fpslimCheckGroup: TCheckGroup;
+    fpslimiterGroupBox: TGroupBox;
+    fpslimLabel: TLabel;
     fpslimmetComboBox: TComboBox;
-    methodLabel: TLabel;
-    cpumainmetricsLabel: TLabel;
-    cputempLabel: TLabel;
-    memLabel: TLabel;
-    systemLabel: TLabel;
-    wineLabel: TLabel;
-    optionsLabel: TLabel;
-    batteryLabel: TLabel;
-    othersLabel: TLabel;
-    limtoggleLabel: TLabel;
-    mainmetricLabel: TLabel;
-    gputempLabel: TLabel;
-    gpupowerLabel: TLabel;
-    gpuinfoLabel: TLabel;
     fpslimtoggleComboBox: TComboBox;
+    fpsonlyBitBtn: TBitBtn;
+    fpsonlyLabel: TLabel;
+    fpstoggleImage: TImage;
     framecountCheckBox: TCheckBox;
     frametimegraphCheckBox: TCheckBox;
     frametimegraphColorButton: TColorButton;
-    batteryColorButton: TColorButton;
+    frametimetypeBitBtn: TBitBtn;
+    fsrCheckBox: TCheckBox;
+    fullBitBtn: TBitBtn;
+    fullLabel: TLabel;
     gamemodestatusCheckBox: TCheckBox;
-    deviceCheckBox: TCheckBox;
+    geSpeedButton: TSpeedButton;
+    GlobalenableLabel: TLabel;
     glvsyncComboBox: TComboBox;
+    goverlayBitBtn: TBitBtn;
+    goverlayPageControl: TPageControl;
     gpuavgloadCheckBox: TCheckBox;
     gpuColorButton: TColorButton;
+    gpudescEdit: TEdit;
+    gpufanCheckBox: TCheckBox;
     gpufreqCheckBox: TCheckBox;
     gpuGroupBox: TGroupBox;
-    fpscolor1ColorButton: TColorButton;
+    gpuImage: TImage;
+    gpuinfoLabel: TLabel;
+    gpujunctempCheckBox: TCheckBox;
     gpuload1ColorButton: TColorButton;
     gpuload2ColorButton: TColorButton;
-    fpscolor3ColorButton: TColorButton;
     gpuload3ColorButton: TColorButton;
     gpuloadcolorCheckBox: TCheckBox;
     gpumemfreqCheckBox: TCheckBox;
+    gpumemtempCheckBox: TCheckBox;
     gpumodelCheckBox: TCheckBox;
     gpunameEdit: TEdit;
     gpupowerCheckBox: TCheckBox;
+    gpupowerLabel: TLabel;
     gputempCheckBox: TCheckBox;
-    gpujunctempCheckBox: TCheckBox;
-    gpumemtempCheckBox: TCheckBox;
-    gpufanCheckBox: TCheckBox;
+    gputempLabel: TLabel;
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
-    fpsGroupBox: TGroupBox;
+    gpuvoltageCheckBox: TCheckBox;
+    reshadeGroupBox: TGroupBox;
+    hdrCheckBox: TCheckBox;
+    hidehudCheckBox: TCheckBox;
     hImage: TImage;
     horizontalRadioButton: TRadioButton;
     hudbackgroundColorButton: TColorButton;
-    hudversionCheckBox: TCheckBox;
-    Image1: TImage;
-    systemGroupBox: TGroupBox;
-    logtoggleComboBox: TComboBox;
-    loggingGroupBox: TGroupBox;
-    mediaCheckBox: TCheckBox;
-    mediaColorButton: TColorButton;
-    hidehudCheckBox: TCheckBox;
+    hudcompactCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
     hudtitleEdit: TEdit;
-    orientationGroupBox: TGroupBox;
-    goverlayPaintBox: TPaintBox;
-    fontLabel: TLabel;
-    fontsizeTrackBar: TTrackBar;
-    roundImage: TImage;
-    roundRadioButton: TRadioButton;
-    squareImage: TImage;
-    squareRadioButton: TRadioButton;
-    topleftRadioButton: TRadioButton;
-    topcenterRadioButton: TRadioButton;
-    bottomleftRadioButton: TRadioButton;
-    middleleftRadioButton: TRadioButton;
-    toprightRadioButton: TRadioButton;
-    bottomrightRadioButton: TRadioButton;
-    middlerightRadioButton: TRadioButton;
-    intelpowerfixBitBtn: TBitBtn;
-    iordrwColorButton: TColorButton;
+    hudtoggleImage: TImage;
     hudtoggleLabel: TLabel;
-    goverlayPageControl: TPageControl;
+    hudversionCheckBox: TCheckBox;
+    Image1: TImage;
+    Image2: TImage;
+    intelpowerfixBitBtn: TBitBtn;
+    intervalTrackBar: TTrackBar;
+    intervalvalueLabel: TLabel;
+    iordrwColorButton: TColorButton;
+    layoutsLabel: TLabel;
+    limtoggleLabel: TLabel;
+    logdelayLabel: TLabel;
+    logdurationLabel: TLabel;
+    logfolderBitBtn: TBitBtn;
+    logfolderEdit: TEdit;
+    logfolderLabel: TLabel;
+    loggingGroupBox: TGroupBox;
+    logintervalLabel: TLabel;
+    logtoggleComboBox: TComboBox;
+    logtoggleImage: TImage;
+    logtoggleLabel: TLabel;
+    mainmetricLabel: TLabel;
+    mangobarPanel: TPanel;
+    mangocolorBitBtn: TBitBtn;
+    mangocolorLabel: TLabel;
     mangohudPanel: TPanel;
+    mediaCheckBox: TCheckBox;
+    mediaColorButton: TColorButton;
+    memLabel: TLabel;
+    methodLabel: TLabel;
+    metricsTabSheet: TTabSheet;
+    middleleftRadioButton: TRadioButton;
+    middlerightRadioButton: TRadioButton;
+    minusButton: TSpeedButton;
+    mipmapLabel: TLabel;
+    mipmapTrackBar: TTrackBar;
+    mipmapvalueLabel: TLabel;
+    networkCheckBox: TCheckBox;
+    networkComboBox: TComboBox;
+    notificationLabel: TLabel;
+    offsetLabel: TLabel;
+    offsetSpinEdit: TSpinEdit;
     openglImage: TImage;
+    optionsLabel: TLabel;
+    orientationGroupBox: TGroupBox;
+    othersLabel: TLabel;
+    pbarLabel: TLabel;
     pcidevComboBox: TComboBox;
-    fpslimiterGroupBox: TGroupBox;
     performanceTabSheet: TTabSheet;
+    plusSpeedButton: TSpeedButton;
+    popupBitBtn: TBitBtn;
     positionGroupBox: TGroupBox;
-    Process: TProcess;
+    presetTabSheet: TTabSheet;
     procmemCheckBox: TCheckBox;
     ramColorButton: TColorButton;
     ramusageCheckBox: TCheckBox;
+    refreshrateCheckBox: TCheckBox;
+    reshadeLabel1: TLabel;
+    reshadeLabel2: TLabel;
+    reshadeProgressBar: TProgressBar;
+    reshaderefreshBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
-    afTrackBar: TTrackBar;
-    mipmapTrackBar: TTrackBar;
-    mipmapvalueLabel: TLabel;
-    afvalueLabel: TLabel;
+    roundImage: TImage;
+    roundRadioButton: TRadioButton;
+    runvkbasaltItem: TMenuItem;
+    runvkcubeItem: TMenuItem;
+    saveBitBtn: TBitBtn;
     sessionCheckBox: TCheckBox;
+    showfpslimCheckBox: TCheckBox;
+    squareImage: TImage;
+    squareRadioButton: TRadioButton;
+    subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
+    sysinfoImage: TImage;
+    systemGroupBox: TGroupBox;
+    systemLabel: TLabel;
     timeCheckBox: TCheckBox;
-    transparencyLabel: TLabel;
-    afLabel: TLabel;
-    mipmapLabel: TLabel;
-    transpTrackBar: TTrackBar;
-    fontsGroupBox: TGroupBox;
-    verticalRadioButton: TRadioButton;
-    vImage: TImage;
-    visualTabSheet: TTabSheet;
-    vkbasaltstatusCheckBox: TCheckBox;
-    fsrCheckBox: TCheckBox;
-    hdrCheckBox: TCheckBox;
-    fcatCheckBox: TCheckBox;
+    Timer1: TTimer;
+    savecustomItem: TMenuItem;
+    layoutImageList: TImageList;
+    popsaveMenu: TPopupMenu;
+    C: TComboBox;
+    goverlayPaintBox: TPaintBox;
+    Process: TProcess;
     iconsImageList: TImageList;
     columImageList: TImageList;
     dependencieSpeedButton: TSpeedButton;
@@ -272,19 +253,38 @@ type
     globalbuttonImageList: TImageList;
     mangohudLabel: TLabel;
     dependenciesLabel: TLabel;
+    toggleImage: TImage;
+    topcenterRadioButton: TRadioButton;
+    topleftRadioButton: TRadioButton;
+    toprightRadioButton: TRadioButton;
+    transparencyLabel: TLabel;
+    transpTrackBar: TTrackBar;
+    usercustomBitBtn: TBitBtn;
+    versioningCheckBox: TCheckBox;
+    verticalRadioButton: TRadioButton;
+    vImage: TImage;
+    visualTabSheet: TTabSheet;
     vkbasaltLabel: TLabel;
     goverlayimage: TImage;
     mangohudShape: TShape;
     vkbasaltShape: TShape;
+    vkbasaltstatusCheckBox: TCheckBox;
+    vkbasaltTabSheet: TTabSheet;
+    vkbtogglekeyCombobox: TComboBox;
+    vktoggleLabel: TLabel;
+    vpsCheckBox: TCheckBox;
     vramColorButton: TColorButton;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
     vsyncGroupBox: TGroupBox;
-    filtersGroupBox: TGroupBox;
+    vulkandriverCheckBox: TCheckBox;
     vulkanImage: TImage;
+    whitecolorBitBtn: TBitBtn;
+    whitecolorLabel: TLabel;
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
-    vpsCheckBox: TCheckBox;
+    wineLabel: TLabel;
+    winesyncCheckBox: TCheckBox;
 
 
     procedure aboutBitBtnClick(Sender: TObject);
@@ -294,6 +294,7 @@ type
     procedure basicBitBtnClick(Sender: TObject);
     procedure basichorizontalBitBtnClick(Sender: TObject);
     procedure blacklistBitBtnClick(Sender: TObject);
+    procedure casTrackBarChange(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
@@ -3084,6 +3085,13 @@ begin
   blacklistForm.ShowModal; // Form show as modal window
 end;
 
+procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
+begin
+  casvaluelabel.Caption := inttostr(casTrackbar.Position);
+end;
+
+
+
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
 begin
     //Display new values and trackbar changes
@@ -3436,6 +3444,8 @@ var
   RepoDir, RelPath, EffectName, EffectKey, FullPath, EffectsLine: string;
   TexPath, IncPath: string;
   Lines: TStringList;
+  Sharp: Double;
+  FS: TFormatSettings;
 
   procedure AddEffectToLine(const NameOnly: string);
    begin
@@ -4238,16 +4248,10 @@ end;  //  ################### END - SAVE MANGOHUD
 
    // ################### START - SAVE VKBASALT
 
-
+  //Save only if active page is vkbasalt tab
   if goverlayPageControl.ActivePage <> vkbasaltTabSheet then Exit;
 
 
-
-  if acteffectsListbox.Items.Count = 0 then
-  begin
-    ShowMessage('No active effects');
-    Exit;
-  end;
 
   if VKBASALTFOLDER = '' then
   begin
@@ -4262,57 +4266,79 @@ end;  //  ################### END - SAVE MANGOHUD
     Lines.Add('################### File Generated by Goverlay ###################');
     Lines.Add('toggleKey = Home');
     Lines.Add('enableOnLaunch = True');
-    Lines.Add(''); // blank line
+    Lines.Add('');
 
+    // --- create effects list" ---
     EffectsLine := '';
 
-    // Mount "effects = E1:E2:E3"
+    // 1) CAS (if active)
+    if casTrackBar.Position >= 1 then
+      AddEffectToLine('cas');
+
+    // 2) reshade effects on the list
     for i := 0 to acteffectsListbox.Items.Count - 1 do
     begin
-      RelPath := acteffectsListbox.Items[i];                      // "Shaders/LUT.fx"
-      EffectName := ChangeFileExt(ExtractFileName(RelPath), '');  // "LUT"
+      RelPath := acteffectsListbox.Items[i];                       // ex: "Shaders/LUT.fx"
+      EffectName := ChangeFileExt(ExtractFileName(RelPath), '');   // "LUT"
       AddEffectToLine(EffectName);
     end;
-    Lines.Add('effects = ' + EffectsLine);
-    Lines.Add(''); // blank line
 
-    // Map: <effect> = <RepoDir>/<file>.fx
+    // nothing to save ?
+    if EffectsLine = '' then
+    begin
+      ShowMessage('No active effects');
+      Exit;
+    end;
+
+    Lines.Add('effects = ' + EffectsLine);
+    Lines.Add('');
+
+    // --- CAS ajustment if active ---
+    if casTrackBar.Position >= 1 then
+    begin
+      // map 1..10 -> 0.1..1.0
+      Sharp := casTrackBar.Position / 10.0;
+
+      // use dot for decimal value
+      FS := DefaultFormatSettings;
+      FS.DecimalSeparator := '.';
+
+      Lines.Add('casSharpness = ' + FloatToStrF(Sharp, ffFixed, 3, 1, FS));
+    end;
+
+    // --- Map reshade effects ---
     for i := 0 to acteffectsListbox.Items.Count - 1 do
     begin
-      RelPath := acteffectsListbox.Items[i];                      // "Shaders/Colorfulness.fx"
-      EffectName := ChangeFileExt(ExtractFileName(RelPath), '');  // "Colorfulness"
-      EffectKey := EffectName;
-      FullPath := IncludeTrailingPathDelimiter(RepoDir) + RelPath;// ".../reshade-shaders/Shaders/Colorfulness.fx"
+      RelPath := acteffectsListbox.Items[i];                       // "Shaders/Colorfulness.fx"
+      EffectName := ChangeFileExt(ExtractFileName(RelPath), '');   // "Colorfulness"
+      EffectKey := (EffectName);
+      FullPath := IncludeTrailingPathDelimiter(RepoDir) + RelPath; // ".../reshade-shaders/Shaders/Colorfulness.fx"
       Lines.Add(EffectKey + ' = ' + FullPath);
     end;
 
-    // --- final lines ---
+
     Lines.Add('');
     TexPath := IncludeTrailingPathDelimiter(RepoDir) + 'Textures';
     IncPath := IncludeTrailingPathDelimiter(RepoDir) + 'Shaders';
     Lines.Add('reshadeTexturePath = ' + TexPath);
     Lines.Add('reshadeIncludePath = ' + IncPath);
 
-    // Make sure folder exists
+    // --- Save ---
     if not DirectoryExists(ExtractFileDir(VKBASALTCFGFILE)) then
       ForceDirectories(ExtractFileDir(VKBASALTCFGFILE));
-
-    // Remove older file
     if FileExists(VKBASALTCFGFILE) then
       DeleteFile(VKBASALTCFGFILE);
 
-    // save and show notification
     Lines.SaveToFile(VKBASALTCFGFILE);
-
-    ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "vkBasalt" "Configuration saved"');
-    notificationlabel.Visible:=true;
+    ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "vkBasalt configuration saved"');
 
   except
     on E: Exception do
-      ShowMessage('Failed to sabe vkbasalt.conf: ' + E.Message);
+      ShowMessage('Fail to save vkbasalt.conf: ' + E.Message);
   end;
 
   Lines.Free;
+
 
 
 end; // ########################################      end save button click       ###############################################################################
