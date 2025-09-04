@@ -1519,11 +1519,16 @@ begin
 
 
   // Start vkcube (vulkan demo)
-  if USERSESSION = 'wayland' then
-    ExecuteGUICommand('mangohud vkcube --wsi wayland &')
-  else
-    ExecuteGUICommand('mangohud vkcube &');
+ // if USERSESSION = 'wayland' then
+ //   ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+ // else
+ //   ExecuteGUICommand('mangohud vkcube &');
 
+   // Start pasCube
+  if USERSESSION = 'wayland' then
+    ExecuteGUICommand('mangohud QT_QPA_PLATFORM=xcb ./pascube &')
+  else
+    ExecuteGUICommand('mangohud /pascube &');
 
   //Load avaiable text fonts
    ListarFontesNoDiretorio(fontComboBox);
