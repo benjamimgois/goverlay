@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,
-  FileUtil, StrUtils, Types;
+  FileUtil, StrUtils, gfxlaunch, Types;
 
 
 
@@ -393,6 +393,8 @@ implementation
 
 
 { Tgoverlayform }
+
+
 
 
 
@@ -945,6 +947,14 @@ begin
   vkbasaltShape.Brush.Color:= DarkBackgroundColor;
   vkbasalttabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
+
+
+  //Activate vkbasalt effects
+  ExecuteGUICommand('killall pascube');
+  ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
+  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb ./pascube &');
+  //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1' + RunPasCube ');
+
 end;
 
 procedure Tgoverlayform.whitecolorBitBtnClick(Sender: TObject);
@@ -1525,10 +1535,7 @@ begin
  //   ExecuteGUICommand('mangohud vkcube &');
 
    // Start pasCube
-  if USERSESSION = 'wayland' then
-    ExecuteGUICommand('mangohud QT_QPA_PLATFORM=xcb ./pascube &')
-  else
-    ExecuteGUICommand('mangohud /pascube &');
+   RunPasCube;
 
   //Load avaiable text fonts
    ListarFontesNoDiretorio(fontComboBox);
@@ -2774,9 +2781,16 @@ end;
 
 procedure Tgoverlayform.runvkbasaltItemClick(Sender: TObject);
 begin
-ExecuteGUICommand('killall vkcube');
+//ExecuteGUICommand('killall vkcube');
+//ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
+//ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 vkcube &');
+
+ExecuteGUICommand('killall pascube');
 ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
-ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 vkcube &');
+// Start pasCube
+ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb ./pascube &');
+
+
 end;
 
 procedure Tgoverlayform.savecustomItemClick(Sender: TObject);
