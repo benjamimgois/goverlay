@@ -157,7 +157,7 @@ type
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
-    effectsGroupBox: TGroupBox;
+    builtineffectsGroupBox: TGroupBox;
     reshadeGroupBox: TGroupBox;
     hdrCheckBox: TCheckBox;
     hidehudCheckBox: TCheckBox;
