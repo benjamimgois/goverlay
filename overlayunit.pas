@@ -101,6 +101,10 @@ type
     fpsavgBitBtn: TBitBtn;
     fpsavgCheckBox: TCheckBox;
     fpsCheckBox: TCheckBox;
+    fxaaCheckBox: TCheckBox;
+    smaaCheckBox: TCheckBox;
+    dlsCheckBox: TCheckBox;
+    lutCheckBox: TCheckBox;
     fpscolor1ColorButton: TColorButton;
     fpscolor2ColorButton: TColorButton;
     fpscolor2SpinEdit: TSpinEdit;
@@ -153,6 +157,7 @@ type
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
+    effectsGroupBox: TGroupBox;
     reshadeGroupBox: TGroupBox;
     hdrCheckBox: TCheckBox;
     hidehudCheckBox: TCheckBox;
