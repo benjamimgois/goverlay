@@ -48,13 +48,13 @@ begin
   begin
     // Método para driver NVIDIA proprietário
     Cmd := '__GLX_VENDOR_LIBRARY_NAME=mesa MESA_LOADER_DRIVER_OVERRIDE=zink ' +
-           'QT_QPA_PLATFORM=xcb mangohud ./pascube &';
+           'QT_QPA_PLATFORM=xcb mangohud pascube &';
   end
   else
   begin
     // Método para driver Mesa
     Cmd := 'MESA_LOADER_DRIVER_OVERRIDE=zink mangohud ' +
-           'QT_QPA_PLATFORM=xcb ./pascube &';
+           'QT_QPA_PLATFORM=xcb pascube &';
   end;
 
   RunDetached(Cmd);

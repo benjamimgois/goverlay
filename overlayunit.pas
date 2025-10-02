@@ -965,7 +965,7 @@ begin
   //Activate vkbasalt effects
   ExecuteGUICommand('killall pascube');
   ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
-  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb ./pascube &');
+  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
   //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1' + RunPasCube ');
 
 end;
@@ -2801,7 +2801,7 @@ begin
 ExecuteGUICommand('killall pascube');
 ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
 // Start pasCube
-ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb ./pascube &');
+ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
 
 
 end;
@@ -4408,7 +4408,7 @@ end;  //  ################### END - SAVE MANGOHUD
    //Activate vkbasalt effects
    ExecuteGUICommand('killall pascube');
    ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
-   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb ./pascube &');
+   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
 
 end; // ########################################      end save button click       ###############################################################################
 
