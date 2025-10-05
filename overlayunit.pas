@@ -812,6 +812,10 @@ function CheckDependencies(out Missing: TStringList): Boolean;
 begin
   Missing := TStringList.Create;
 
+  //check if pascubeis avaiable
+  if not IsCommandAvailable('pascube') then
+    Missing.Add('pascube');
+
   //check if mangohud if avaiable
   if not IsCommandAvailable('mangohud') then
     Missing.Add('mangohud');

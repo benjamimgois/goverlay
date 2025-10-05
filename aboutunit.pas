@@ -12,12 +12,13 @@ type
   { TaboutForm }
 
   TaboutForm = class(TForm)
+    goverlaylink: TLabel;
     meImage: TImage;
     donateImage: TImage;
     titleLabel: TLabel;
     meLabel: TLabel;
     textLabel: TLabel;
-    goverlaylink: TLabel;
+    pascubelink: TLabel;
     schoorselinkLabel: TLabel;
     gplMemo: TMemo;
     twitterlink: TImage;
@@ -28,7 +29,7 @@ type
     licenseTabSheet: TTabSheet;
     procedure FormCreate(Sender: TObject);
     procedure donateImageClick(Sender: TObject);
-    procedure goverlaylinkClick(Sender: TObject);
+    procedure pascubelinkClick(Sender: TObject);
     procedure Label1Click(Sender: TObject);
     procedure linkedinlinkClick(Sender: TObject);
     procedure mangolink1Click(Sender: TObject);
@@ -327,7 +328,7 @@ procedure TaboutForm.donateImageClick(Sender: TObject);
   end;
 end;
 
-procedure TaboutForm.goverlaylinkClick(Sender: TObject);
+procedure TaboutForm.pascubelinkClick(Sender: TObject);
 
     var
   v: THTMLBrowserHelpViewer;

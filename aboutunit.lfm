@@ -39,12 +39,12 @@ object aboutForm: TaboutForm
       ParentFont = False
       object mangolink: TLabel
         AnchorSideLeft.Control = aboutTabSheet
-        AnchorSideTop.Control = goverlaylink
+        AnchorSideTop.Control = pascubelink
         AnchorSideTop.Side = asrBottom
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 353
+        Top = 317
         Width = 310
         BorderSpacing.Left = 10
         Caption = 'https://github.com/flightlessmango/MangoHud'
@@ -15222,7 +15222,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 371
+        Top = 335
         Width = 274
         BorderSpacing.Left = 10
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
@@ -15275,10 +15275,10 @@ object aboutForm: TaboutForm
         AnchorSideTop.Control = titleLabel
         AnchorSideTop.Side = asrBottom
         Left = 10
-        Height = 234
+        Height = 198
         Top = 51
         Width = 518
-        Caption = 'Goverlay is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'I am just a Network Engineer that really likes Linux and Gaming.'#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
+        Caption = 'This is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
         Color = 4538426
         Font.Color = clWhite
         Font.Height = -13
@@ -15287,6 +15287,27 @@ object aboutForm: TaboutForm
         ParentColor = False
         ParentFont = False
       end
+      object pascubelink: TLabel
+        AnchorSideLeft.Control = aboutTabSheet
+        AnchorSideTop.Control = textLabel
+        AnchorSideTop.Side = asrBottom
+        Cursor = crHandPoint
+        Left = 10
+        Height = 18
+        Top = 299
+        Width = 280
+        BorderSpacing.Left = 10
+        BorderSpacing.Top = 50
+        Caption = 'https://github.com/benjamimgois/pascube'
+        Font.Color = clAqua
+        Font.Height = -13
+        Font.Name = 'Noto Sans'
+        Font.Quality = fqAntialiased
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+        OnClick = pascubelinkClick
+      end
       object goverlaylink: TLabel
         AnchorSideLeft.Control = aboutTabSheet
         AnchorSideTop.Control = textLabel
@@ -15294,10 +15315,10 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 335
+        Top = 282
         Width = 283
         BorderSpacing.Left = 10
-        BorderSpacing.Top = 50
+        BorderSpacing.Top = 33
         Caption = 'https://github.com/benjamimgois/goverlay'
         Font.Color = clAqua
         Font.Height = -13
@@ -15306,7 +15327,7 @@ object aboutForm: TaboutForm
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
-        OnClick = goverlaylinkClick
+        OnClick = pascubelinkClick
       end
     end
     object licenseTabSheet: TTabSheet
