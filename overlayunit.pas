@@ -343,7 +343,7 @@ type
     procedure usercustomBitBtnClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
-
+    procedure LoadVkBasaltConfig;
 
   private
     FStartTick: Cardinal;
@@ -1291,6 +1291,144 @@ begin
     ListBox.Sorted := True;
   finally
     ListBox.Items.EndUpdate;
+  end;
+end;
+
+procedure Tgoverlayform.LoadVkBasaltConfig;
+var
+  ConfigLines: TStringList;
+  Line, TrimmedLine, Key, Value, EffectsStr: string;
+  EffectsList: TStringArray;
+  i, j, ColonPos: Integer;  // <-- Adicione a variável j
+  FloatValue: Double;
+  FS: TFormatSettings;
+begin
+  if not FileExists(VKBASALTCFGFILE) then
+    Exit;
+
+  ConfigLines := TStringList.Create;
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  try
+    ConfigLines.LoadFromFile(VKBASALTCFGFILE);
+
+    // Limpa a lista de efeitos ativos
+    acteffectsListBox.Items.Clear;
+
+    for i := 0 to ConfigLines.Count - 1 do
+    begin
+      Line := ConfigLines[i];
+      TrimmedLine := Trim(Line);
+
+      // Ignora comentários e linhas vazias
+      if (TrimmedLine = '') or (TrimmedLine[1] = '#') then
+        Continue;
+
+      ColonPos := Pos('=', TrimmedLine);
+      if ColonPos = 0 then
+        Continue;
+
+      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
+      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
+
+      // Remove aspas se houver
+      if (Length(Value) > 0) and (Value[1] = '"') then
+        Value := StringReplace(Value, '"', '', [rfReplaceAll]);
+
+      // Processa cada chave
+      if SameText(Key, 'effects') then
+      begin
+        // Parseia a lista de efeitos (separados por :)
+        EffectsStr := Value;
+        EffectsList := SplitString(EffectsStr, ':');
+
+        for j := Low(EffectsList) to High(EffectsList) do  // <-- Use j em vez de i
+        begin
+          EffectsList[j] := Trim(EffectsList[j]);
+
+          // CAS, FXAA, SMAA e DLS são tratados pelos trackbars, não pela lista
+          if SameText(EffectsList[j], 'cas') then
+          begin
+            if casTrackBar.Position = 0 then
+              casTrackBar.Position := 5; // valor padrão
+          end
+          else if SameText(EffectsList[j], 'fxaa') then
+          begin
+            if fxaaTrackBar.Position = 0 then
+              fxaaTrackBar.Position := 5; // valor padrão
+          end
+          else if SameText(EffectsList[j], 'smaa') then
+          begin
+            if smaaTrackBar.Position = 0 then
+              smaaTrackBar.Position := 5; // valor padrão
+          end
+          else if SameText(EffectsList[j], 'dls') then
+          begin
+            if dlsTrackBar.Position = 0 then
+              dlsTrackBar.Position := 5; // valor padrão
+          end
+          else if EffectsList[j] <> '' then
+          begin
+            // É um efeito reshade customizado
+            // Não adiciona duplicatas
+            if acteffectsListBox.Items.IndexOf(EffectsList[j]) = -1 then
+              acteffectsListBox.Items.Add(EffectsList[j]);
+          end;
+        end;
+      end
+      else if SameText(Key, 'casSharpness') then
+      begin
+        if TryStrToFloat(Value, FloatValue, FS) then
+        begin
+          // Converte 0.1..1.0 -> 1..10
+          casTrackBar.Position := Round(FloatValue * 10);
+          casvalueLabel.Caption := IntToStr(casTrackBar.Position);
+        end;
+      end
+      else if SameText(Key, 'fxaaQualitySubpix') then
+      begin
+        if TryStrToFloat(Value, FloatValue, FS) then
+        begin
+          // Converte 0.1..1.0 -> 1..10
+          fxaaTrackBar.Position := Round(FloatValue * 10);
+          fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
+        end;
+      end
+      else if SameText(Key, 'smaaCornerRounding') then
+      begin
+        if TryStrToFloat(Value, FloatValue, FS) then
+        begin
+          // Converte 0.0..1.0 -> 1..10
+          smaaTrackBar.Position := Round(FloatValue * 9) + 1;
+          smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
+        end;
+      end
+      else if SameText(Key, 'dlsSharpness') then
+      begin
+        if TryStrToFloat(Value, FloatValue, FS) then
+        begin
+          // Converte 0.0..1.0 -> 1..10
+          dlsTrackBar.Position := Round(FloatValue * 9) + 1;
+          dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
+        end;
+      end
+      else if SameText(Key, 'toggleKey') then
+      begin
+        // Atualiza o combobox de toggle key se existir
+        if Assigned(vkbtogglekeyCombobox) then
+        begin
+          case LowerCase(Value) of
+            'home': vkbtogglekeyCombobox.ItemIndex := 0;
+            'insert': vkbtogglekeyCombobox.ItemIndex := 1;
+            'end': vkbtogglekeyCombobox.ItemIndex := 2;
+          end;
+        end;
+      end;
+    end;
+
+  finally
+    ConfigLines.Free;
   end;
 end;
 
@@ -2527,7 +2665,8 @@ begin
     else
       networkcheckbox.Checked := false;
 
-
+    //Load vkbasalt configuration
+    LoadVkBasaltConfig;
 
 
 end; // form create
