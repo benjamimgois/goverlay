@@ -53,3 +53,13 @@ echo "---------------------------------------------------------------"
 wget --retry-connrefused --tries=30 "$EXTRA_PACKAGES" -O ./get-debloated-pkgs.sh
 chmod +x ./get-debloated-pkgs.sh
 ./get-debloated-pkgs.sh --add-common mangohud-mini
+
+echo "Building pascube..."
+echo "---------------------------------------------------------------"
+sed -i 's|EUID == 0|EUID == 69|g' /usr/bin/makepkg
+git clone --depth 1 https://github.com/benjamimgois/pascube ./pascube && (
+	cd ./pascube
+	makepkg -fs --noconfirm
+	ls -la .
+	pacman --noconfirm -U ./*.pkg.tar.*
+)
