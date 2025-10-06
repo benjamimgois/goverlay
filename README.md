@@ -49,6 +49,7 @@ Here are the dependencies needed in order to make GOverlay run:
  - [**`git`**](https://github.com/git/git) - Clone reshade repository
  - [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) - Free Pascal Qt6 binding library updated by lazarus IDE
  - [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) - To display AMD CPU power
+ - [**`pascube`**](https://github.com/benjamimgois/pascube) - pasCube is openGL spining cube to preview configuration changes
 
 ## Installation 
 
