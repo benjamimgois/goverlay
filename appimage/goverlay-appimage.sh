@@ -24,9 +24,11 @@ chmod +x ./lib4bin
 xvfb-run -a -- ./lib4bin -p -v -e -s -k \
 	/usr/lib/goverlay \
 	/usr/lib/mangohud/* \
+	/usr/lib/libvkbasalt.so* \
 	/usr/bin/vkcube \
 	/usr/bin/vkcube-wayland \
 	/usr/bin/lspci \
+	/usr/bin/mangohud \
 	/usr/lib/qt6/plugins/iconengines/* \
 	/usr/lib/qt6/plugins/imageformats/* \
 	/usr/lib/qt6/plugins/platforms/* \
@@ -39,15 +41,11 @@ xvfb-run -a -- ./lib4bin -p -v -e -s -k \
 cp -rv /usr/share/vulkan/implicit_layer.d ./share/vulkan
 sed -i 's|/usr/lib/mangohud/||' ./share/vulkan/implicit_layer.d/*
 
-echo 'MANGOHUD=1' > ./.env
-echo 'libMangoHud_shim.so' > ./.preload
+# remove full lib path from mangohud
+sed -i 's|/usr/.*/libMangoHud_shim.so|libMangoHud_shim.so|' ./bin/mangohud
 
-# Goverlay is also going to run sh -c mangohud vkcube so we need to wrap this
-echo '#!/bin/sh
-CURRENTDIR="$(dirname "$(readlink -f "$0")")"
-shift
-"$CURRENTDIR"/vkcube "$@"' > ./bin/mangohud
-chmod +x ./bin/mangohud
+# sharun does not allow LD_PRELOAD by default
+sed -i '1a\export SHARUN_ALLOW_LD_PRELOAD=1' ./bin/mangohud
 
 ln ./sharun ./AppRun
 ./sharun -g
