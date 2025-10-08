@@ -965,12 +965,22 @@ begin
   vkbasalttabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 
+  //Run vkcube with effects
+  ExecuteGUICommand('killall vkcube');
+  ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
+
+  if USERSESSION = 'wayland' then
+  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+  else
+  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
 
   //Activate vkbasalt effects
-  ExecuteGUICommand('killall pascube');
-  ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
-  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
+  //ExecuteGUICommand('killall pascube');
+  //ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
+  //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
   //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1' + RunPasCube ');
+
+
 
 end;
 
@@ -1684,13 +1694,13 @@ begin
 
 
   // Start vkcube (vulkan demo)
- // if USERSESSION = 'wayland' then
- //   ExecuteGUICommand('mangohud vkcube --wsi wayland &')
- // else
- //   ExecuteGUICommand('mangohud vkcube &');
+  if USERSESSION = 'wayland' then
+    ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+    else
+    ExecuteGUICommand('mangohud vkcube &');
 
    // Start pasCube
-   RunPasCube;
+   //RunPasCube;
 
   //Load avaiable text fonts
    ListarFontesNoDiretorio(fontComboBox);
@@ -2937,15 +2947,10 @@ end;
 
 procedure Tgoverlayform.runvkbasaltItemClick(Sender: TObject);
 begin
-//ExecuteGUICommand('killall vkcube');
-//ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
-//ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 vkcube &');
 
-ExecuteGUICommand('killall pascube');
-ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
+
 // Start pasCube
-ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
-
+RunPasCube;
 
 end;
 
@@ -4548,10 +4553,20 @@ end;  //  ################### END - SAVE MANGOHUD
    end;
    Lines.Free;
    //Restart VKcube with effects
-   //Activate vkbasalt effects
-   ExecuteGUICommand('killall pascube');
-   ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
-   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
+
+   ExecuteGUICommand('killall vkcube');
+   ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
+
+   if USERSESSION = 'wayland' then
+   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+   else
+   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
+
+
+  // ExecuteGUICommand('killall pascube');
+  // ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
+  // ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
+
 
 end; // ########################################      end save button click       ###############################################################################
 
