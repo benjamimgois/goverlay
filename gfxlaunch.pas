@@ -53,7 +53,7 @@ begin
   else
   begin
     // Método para driver Mesa
-    Cmd := 'LIBGL_KOPPER_DRI2=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud ' +
+    Cmd := 'MESA_LOADER_DRIVER_OVERRIDE=zink mangohud ' +
            'QT_QPA_PLATFORM=xcb pascube &';
   end;
 
