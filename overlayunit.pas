@@ -46,6 +46,7 @@ type
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
     casLabel: TLabel;
+    spoofCheckBox: TCheckBox;
     dlsLabel: TLabel;
     dlsTrackBar: TTrackBar;
     dlsvalueLabel: TLabel;
