@@ -333,6 +333,7 @@ type
     procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
+    procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runvkbasaltItemClick(Sender: TObject);
     procedure savecustomItemClick(Sender: TObject);
@@ -964,10 +965,14 @@ procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 begin
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
+  optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+
 
   //unselecte mangohud
   mangohudLabel.Font.Color:=clgray;
   mangohudShape.Brush.Color:= DarkerBackgroundColor;
+  optiscalerLabel.Font.Color:=clgray;
+  optiscalerShape.Brush.Color:= DarkerBackgroundColor;
 
   // select vkbasalt
   vkbasaltLabel.Font.Color:=clwhite;
@@ -2761,19 +2766,43 @@ end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
-  //Enable tabs
-  goverlayPageControl.ShowTabs:=true;
-  vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+//Enable tabs
+goverlayPageControl.ShowTabs:=true;
+vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+optiscalertabsheet.TabVisible:=true; //disable optiscaler tab
 
-  //unselect vkbasalt
+//unselect vkbasalt , optiscaler
+vkbasaltLabel.Font.Color:=clgray;
+vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
+optiscalerLabel.Font.Color:=clgray;
+optiscalerShape.Brush.Color:= DarkerBackgroundColor;
+
+// select mangohud
+mangohudLabel.Font.Color:=clwhite;
+mangohudShape.Brush.Color:= DarkBackgroundColor;
+goverlayPageControl.ActivePage:=presetTabsheet;
+end;
+
+procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
+begin
+//Disable tabs
+  goverlayPageControl.ShowTabs:=false;
+  vkbasalttabsheet.TabVisible:=false;
+
+
+
+  //unselecte mangohud
+  mangohudLabel.Font.Color:=clgray;
+  mangohudShape.Brush.Color:= DarkerBackgroundColor;
   vkbasaltLabel.Font.Color:=clgray;
   vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
 
 
-  // select mangohud
-  mangohudLabel.Font.Color:=clwhite;
-  mangohudShape.Brush.Color:= DarkBackgroundColor;
-  goverlayPageControl.ActivePage:=presetTabsheet;
+  // select optscaler
+  optiscalerLabel.Font.Color:=clwhite;
+  optiscalerShape.Brush.Color:= DarkBackgroundColor;
+  optiscalertabsheet.TabVisible:=true;
+  goverlayPageControl.ActivePage:= optiscalerTabsheet;
 end;
 
 procedure Tgoverlayform.reshaderefreshBitBtnClick(Sender: TObject);
