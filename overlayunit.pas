@@ -49,6 +49,11 @@ type
     dlsLabel: TLabel;
     dlsTrackBar: TTrackBar;
     dlsvalueLabel: TLabel;
+    gpudriverGroupBox: TGroupBox;
+    mesaImage: TImage;
+    nvidiaRadioButton: TRadioButton;
+    mesaRadioButton: TRadioButton;
+    filenameRadioGroup: TRadioGroup;
     smaaLabel: TLabel;
     smaaTrackBar: TTrackBar;
     smaavalueLabel: TLabel;
@@ -248,6 +253,7 @@ type
     sysinfoImage: TImage;
     systemGroupBox: TGroupBox;
     systemLabel: TLabel;
+    optiscalerTabSheet: TTabSheet;
     timeCheckBox: TCheckBox;
     Timer1: TTimer;
     savecustomItem: TMenuItem;
@@ -273,11 +279,14 @@ type
     versioningCheckBox: TCheckBox;
     verticalRadioButton: TRadioButton;
     vImage: TImage;
+    nvidiaImage: TImage;
     visualTabSheet: TTabSheet;
     vkbasaltLabel: TLabel;
     goverlayimage: TImage;
     mangohudShape: TShape;
+    optiscalerLabel: TLabel;
     vkbasaltShape: TShape;
+    optiscalerShape: TShape;
     vkbasaltstatusCheckBox: TCheckBox;
     vkbasaltTabSheet: TTabSheet;
     vkbtogglekeyCombobox: TComboBox;
