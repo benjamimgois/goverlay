@@ -45,8 +45,19 @@ type
     bottomcenterRadioButton: TRadioButton;
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
+    builtineffectsGroupBox1: TGroupBox;
     casLabel: TLabel;
-    spoofCheckBox: TCheckBox;
+    fsr4typeLabel: TLabel;
+    fsrtypeComboBox: TComboBox;
+    optversionLabel: TLabel;
+    menuLabel: TLabel;
+    menuscaleTrackBar: TTrackBar;
+    menuscalevalueLabel: TLabel;
+    framegenComboBox: TComboBox;
+    filenameLabel: TLabel;
+    filenameLabel1: TLabel;
+    Label1: TLabel;
+    optionsGroupBox: TGroupBox;
     dlsLabel: TLabel;
     dlsTrackBar: TTrackBar;
     dlsvalueLabel: TLabel;
@@ -54,7 +65,10 @@ type
     mesaImage: TImage;
     nvidiaRadioButton: TRadioButton;
     mesaRadioButton: TRadioButton;
-    filenameRadioGroup: TRadioGroup;
+    optversionLabel1: TLabel;
+    optversionLabel2: TLabel;
+    optversionLabel3: TLabel;
+    optversionLabel4: TLabel;
     smaaLabel: TLabel;
     smaaTrackBar: TTrackBar;
     smaavalueLabel: TLabel;
@@ -247,6 +261,7 @@ type
     saveBitBtn: TBitBtn;
     sessionCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
+    spoofCheckBox: TCheckBox;
     squareImage: TImage;
     squareRadioButton: TRadioButton;
     subBitBtn: TBitBtn;
@@ -296,6 +311,7 @@ type
     vramColorButton: TColorButton;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
+    filenameComboBox: TComboBox;
     vsyncGroupBox: TGroupBox;
     vulkandriverCheckBox: TCheckBox;
     vulkanImage: TImage;
