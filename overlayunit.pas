@@ -45,19 +45,28 @@ type
     bottomcenterRadioButton: TRadioButton;
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
-    builtineffectsGroupBox1: TGroupBox;
     casLabel: TLabel;
+    dlssenLabel1: TLabel;
+    fakenvLabel1: TLabel;
+    filenameComboBox: TComboBox;
+    filenameLabel: TLabel;
+    filenameLabel1: TLabel;
+    framegenComboBox: TComboBox;
     fsr4typeLabel: TLabel;
+    fsrLabel1: TLabel;
     fsrtypeComboBox: TComboBox;
-    optversionLabel: TLabel;
+    optLabel: TLabel;
+    dlssenLabel: TLabel;
+    fakenvLabel: TLabel;
+    fsrLabel: TLabel;
+    optLabel1: TLabel;
+    xessLabel: TLabel;
+    optionsGroupBox: TGroupBox;
+    statusGroupBox: TGroupBox;
+    Label1: TLabel;
     menuLabel: TLabel;
     menuscaleTrackBar: TTrackBar;
     menuscalevalueLabel: TLabel;
-    framegenComboBox: TComboBox;
-    filenameLabel: TLabel;
-    filenameLabel1: TLabel;
-    Label1: TLabel;
-    optionsGroupBox: TGroupBox;
     dlsLabel: TLabel;
     dlsTrackBar: TTrackBar;
     dlsvalueLabel: TLabel;
@@ -65,10 +74,6 @@ type
     mesaImage: TImage;
     nvidiaRadioButton: TRadioButton;
     mesaRadioButton: TRadioButton;
-    optversionLabel1: TLabel;
-    optversionLabel2: TLabel;
-    optversionLabel3: TLabel;
-    optversionLabel4: TLabel;
     smaaLabel: TLabel;
     smaaTrackBar: TTrackBar;
     smaavalueLabel: TLabel;
@@ -311,7 +316,6 @@ type
     vramColorButton: TColorButton;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
-    filenameComboBox: TComboBox;
     vsyncGroupBox: TGroupBox;
     vulkandriverCheckBox: TCheckBox;
     vulkanImage: TImage;
@@ -321,6 +325,7 @@ type
     wineColorButton: TColorButton;
     wineLabel: TLabel;
     winesyncCheckBox: TCheckBox;
+    xessLabel1: TLabel;
 
 
     procedure aboutBitBtnClick(Sender: TObject);
@@ -2785,7 +2790,7 @@ begin
 //Enable tabs
 goverlayPageControl.ShowTabs:=true;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
-optiscalertabsheet.TabVisible:=true; //disable optiscaler tab
+optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 
 //unselect vkbasalt , optiscaler
 vkbasaltLabel.Font.Color:=clgray;
