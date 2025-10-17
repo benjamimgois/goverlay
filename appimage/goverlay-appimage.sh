@@ -5,7 +5,6 @@ set -eu
 # make appimage
 ARCH="$(uname -m)"
 VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
-UPINFO="gh-releases-zsync|$(echo "$GITHUB_REPOSITORY" | tr '/' '|')|latest|*$ARCH.AppImage.zsync"
 SHARUN="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/quick-sharun.sh"
 URUNTIME="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/uruntime2appimage.sh"
 
@@ -13,6 +12,7 @@ export DESKTOP=/usr/share/applications/io.github.benjamimgois.goverlay.desktop
 export ICON=/usr/share/icons/hicolor/256x256/apps/goverlay.png
 export DEPLOY_OPENGL=1
 export DEPLOY_VULKAN=1
+export UPINFO="gh-releases-zsync|$(echo "$GITHUB_REPOSITORY" | tr '/' '|')|latest|*$ARCH.AppImage.zsync"
 export OUTNAME=GOverlay-"$VERSION"-anylinux-"$ARCH".AppImage
 
 # ADD LIBRARIES
