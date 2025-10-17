@@ -14,7 +14,6 @@ pacman -Syu --noconfirm \
 	curl \
 	dbus \
 	fmt \
-	gcc-libs \
 	git \
 	glew \
 	glfw \
@@ -22,13 +21,10 @@ pacman -Syu --noconfirm \
 	glu \
 	hicolor-icon-theme \
 	lazarus \
-	libglvnd \
 	libx11 \
 	libxkbcommon \
-	mesa \
 	meson \
 	nlohmann-json \
-	patchelf \
 	pciutils \
 	python \
 	python-mako \
@@ -38,11 +34,6 @@ pacman -Syu --noconfirm \
 	qt6pas \
 	qt6-wayland \
 	strace \
-	vulkan-headers \
-	vulkan-icd-loader \
-	vulkan-nouveau \
-	vulkan-radeon \
-	vulkan-tools \
 	wayland \
 	wget \
 	xorg-server-xvfb \
@@ -56,7 +47,7 @@ pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring
 pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 echo '[chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist' >> /etc/pacman.conf
-pacman -Syu --noconfirm pascube
+pacman -Syu --noconfirm pascube vkbasalt
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
