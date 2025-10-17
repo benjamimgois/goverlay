@@ -26,7 +26,7 @@ chmod +x ./quick-sharun
 	/usr/bin/vkcube          \
 	/usr/bin/lspci           \
 	/usr/bin/mangohud
-cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./share/vulkan/implicit_layer.d
+cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./AppDir/share/vulkan/implicit_layer.d
 
 # make appimage with uruntime
 wget --retry-connrefused --tries=30 "$URUNTIME" -O ./uruntime2appimage
