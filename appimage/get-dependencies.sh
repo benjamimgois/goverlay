@@ -33,7 +33,7 @@ pacman -Syu --noconfirm \
 	qt6ct \
 	qt6pas \
 	qt6-wayland \
-	strace \
+	vulkan-tools \
 	wayland \
 	wget \
 	xorg-server-xvfb \
