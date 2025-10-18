@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge" alt="Latest release">
 
   <a href="https://aur.archlinux.org/packages/goverlay-git">
-    <img src="https://img.shields.io/aur/version/goverlay?color=1793d1&label=AUR&style=for-the-badge" alt="AUR version">
+    <img src="https://img.shields.io/aur/version/goverlay-git?color=1793d1&label=AUR&style=for-the-badge" alt="AUR version">
   </a>
   <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/benjamimgois/Goverlay?color=2196f3&label=License&style=for-the-badge" alt="License">
