@@ -5,11 +5,8 @@
 <p align="center">
   <a href="https://github.com/benjamimgois/Goverlay/releases">
     <img src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge" alt="Latest release">
-  </a>
-  <a href="https://github.com/benjamimgois/Goverlay/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/benjamimgois/Goverlay/build.yml?label=Build%20status&style=for-the-badge" alt="Build status">
-  </a>
-  <a href="https://aur.archlinux.org/packages/goverlay">
+
+  <a href="https://aur.archlinux.org/packages/goverlay-git">
     <img src="https://img.shields.io/aur/version/goverlay?color=1793d1&label=AUR&style=for-the-badge" alt="AUR version">
   </a>
   <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
@@ -93,10 +90,16 @@ chmod +x Goverlay_1_3.AppImage
 
 #### Arch / Manjaro / Other Arch-based Distributions
 
-Install **Goverlay** from the official repositories:
+**Option 1 – Official Repository**
 
 ```bash
 sudo pacman -S goverlay
+```
+
+**Option 2 – Arch User Repository (AUR)**
+
+```bash
+yay -S goverlay
 ```
 
 #### Fedora
