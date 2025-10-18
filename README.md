@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="https://github.com/benjamimgois/goverlay/blob/main/data/goverlay_logo.png" width="120" alt="Goverlay logo">
+  <img src="https://github.com/benjamimgois/goverlay/blob/main/data/goverlay_logo.png" width="320" alt="Goverlay logo">
 </p>
-
-<h1 align="center">Goverlay</h1>
 
 <p align="center">
   <a href="https://github.com/benjamimgois/Goverlay/releases">
