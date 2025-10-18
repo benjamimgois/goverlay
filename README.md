@@ -1,238 +1,233 @@
+<p align="center">
+  <img src="https://github.com/benjamimgois/goverlay/blob/main/data/goverlay_logo.png" width="120" alt="Goverlay logo">
+</p>
+
+<h1 align="center">Goverlay</h1>
+
+<p align="center">
+  <a href="https://github.com/benjamimgois/Goverlay/releases">
+    <img src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge" alt="Latest release">
+  </a>
+  <a href="https://github.com/benjamimgois/Goverlay/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/benjamimgois/Goverlay/build.yml?label=Build%20status&style=for-the-badge" alt="Build status">
+  </a>
+  <a href="https://aur.archlinux.org/packages/goverlay">
+    <img src="https://img.shields.io/aur/version/goverlay?color=1793d1&label=AUR&style=for-the-badge" alt="AUR version">
+  </a>
+  <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/benjamimgois/Goverlay?color=2196f3&label=License&style=for-the-badge" alt="License">
+  </a>
+  <a href="https://github.com/benjamimgois/Goverlay/releases">
+    <img src="https://img.shields.io/badge/AppImage-Available-orange?style=for-the-badge&logo=linux" alt="AppImage available">
+  </a>
+</p>
+
+---
+
 # Goverlay
 
-GOverlay is an open source project aimed to create a Graphical UI to manage Vulkan/OpenGL overlays. It is still in early development, so it lacks a lot of features.
+**Goverlay** is an open-source project that provides a graphical user interface (GUI) to manage **Vulkan** and **OpenGL** overlays.  
+It’s still under active development, so some features may be missing or incomplete.
 
-This project was only possible thanks to the other maintainers and contributors that have done the hard work. I am just a Network Engineer that really likes Linux and Gaming.
+This project exists thanks to the amazing work of the original maintainers and contributors behind the core tools.  
+I’m just a network engineer who loves Linux and gaming — this is my way of giving something back to the community.
 
-Table of contents
-=================
+---
 
- - [Screenshot](#screenshot)
- - [Prerequisites](#prerequisites)
- - [Installation](#installation)
-	- [Distributions](#distributions)
-		- [Arch / Manjaro / Other Arch derivatives](#arch--manjaro--other-arch-derivatives)
-		- [Fedora](#fedora)
-		- [Solus](#solus)
-		- [Ubuntu](#ubuntu)
-		- [OpenSUSE](#opensuse)
-	- [Tarball](#tarball)
-	- [Source](#source)
-		- [Prerequisites](#prerequisites-1)
-		- [Building](#building)
-		- [Running](#running)
- - [Credits](#credits)
- - [Donations](#donations)
+## Table of Contents
 
-## Screenshot
+- [Screenshots](#screenshots)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+  - [Distributions](#distributions)
+    - [Arch / Manjaro / Other Arch-based distributions](#arch--manjaro--other-arch-based-distributions)
+    - [Fedora](#fedora)
+    - [Solus](#solus)
+    - [Ubuntu](#ubuntu)
+    - [OpenSUSE](#opensuse)
+  - [Tarball](#tarball)
+  - [Building from Source](#building-from-source)
+    - [Prerequisites](#prerequisites-1)
+    - [Building](#building)
+    - [Running](#running)
+- [Credits](#credits)
+- [Donations](#donations)
+
+---
+
+## Screenshots
 
 ![image](https://github.com/user-attachments/assets/e635b1a4-38e7-418b-9e7a-210c65702ad8)
-
 ![image](https://github.com/user-attachments/assets/9fa13c5f-b00d-4eab-832b-fa38ccad8331)
-
 [![image.png](https://i.postimg.cc/15sDnYpg/image.png)](https://postimg.cc/qgDNWwD0)
-
 [![image.png](https://i.postimg.cc/RVdKcQRg/image.png)](https://postimg.cc/svBMzWbW)
-
 ![image](https://github.com/user-attachments/assets/df99af4d-29dc-41a2-ae88-5f3372d31a02)
 
-
+---
 
 ## Prerequisites
 
-Here are the dependencies needed in order to make GOverlay run:
+Dependencies required to run **Goverlay**:
 
- - [**`mangohud`**](https://github.com/flightlessmango/MangoHud) - Configure MangoHud
- - [**`mesa-demos`**](https://gitlab.freedesktop.org/mesa/demos) - OpenGL preview
- - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) - Vulkan preview
- - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) - Configure vkBasalt
- - [**`git`**](https://github.com/git/git) - Clone reshade repository
- - [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) - Free Pascal Qt6 binding library updated by lazarus IDE
- - [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) - To display AMD CPU power
- - [**`pascube`**](https://github.com/benjamimgois/pascube) - pasCube is openGL spining cube to preview configuration changes
+- [**`mangohud`**](https://github.com/flightlessmango/MangoHud) — Configure MangoHud  
+- [**`mesa-demos`**](https://gitlab.freedesktop.org/mesa/demos) — OpenGL demo tools  
+- [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) — Vulkan demo tools  
+- [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) — Configure vkBasalt  
+- [**`git`**](https://github.com/git/git) — Used to clone repositories (e.g., ReShade)  
+- [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) — Qt6 bindings for Free Pascal / Lazarus  
+- [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) — Displays AMD CPU power metrics  
+- [**`pascube`**](https://github.com/benjamimgois/pascube) — A simple OpenGL spinning cube used for configuration previews  
 
-## Installation 
+---
+
+## Installation
 
 ### Distributions
 
-#### Universal method - Appimage
+#### Universal Method — AppImage
 
-To install [`goverlay`](https://github.com/benjamimgois/goverlay/releases/download/1.3/Goverlay_1_3.AppImage), just double click to execute, or you can run in the terminal with
+Download the AppImage from the [Releases page](https://github.com/benjamimgois/Goverlay/releases/download/1.3/Goverlay_1_3.AppImage) and make it executable:
+
 ```bash
 chmod +x Goverlay_1_3.AppImage
 ./Goverlay_1_3.AppImage
 ```
 
-#### Arch / Manjaro / Other Arch derivatives
+#### Arch / Manjaro / Other Arch-based Distributions
 
-To install [`goverlay`](https://archlinux.org/packages/extra/x86_64/goverlay/), run the following command as root:
+Install **Goverlay** from the official repositories:
+
 ```bash
-pacman -S goverlay
+sudo pacman -S goverlay
 ```
 
 #### Fedora
 
-To install [`goverlay`](https://fedora.pkgs.org/31/fedora-updates-x86_64/goverlay-0.2.3-1.fc31.x86_64.rpm.html), run the following command as root:
-
 ```bash
-dnf install goverlay
+sudo dnf install goverlay
 ```
 
 #### OpenSUSE
 
 ##### Tumbleweed
 
-To install [`goverlay`](https://build.opensuse.org/package/show/openSUSE%3AFactory/goverlay), run the following command as root:
-
 ```bash
-zypper install goverlay
+sudo zypper install goverlay
 ```
 
 ##### Leap 15.2
 
-To install [`goverlay`](https://build.opensuse.org/package/show/games%3Atools/goverlay) from the [games:tools](https://build.opensuse.org/project/show/games:tools) repo, run the following commands as root:
+Add the *games:tools* repository and install:
 
 ```bash
-zypper addrepo https://download.opensuse.org/repositories/games:tools/openSUSE_Leap_15.2/games:tools.repo
-zypper refresh
-zypper install goverlay
+sudo zypper addrepo https://download.opensuse.org/repositories/games:tools/openSUSE_Leap_15.2/games:tools.repo
+sudo zypper refresh
+sudo zypper install goverlay
 ```
-
 
 #### Solus
 
-To install [`goverlay`](https://dev.getsol.us/source/goverlay/), run the following command as root:
-
 ```bash
-eopkg it goverlay
+sudo eopkg it goverlay
 ```
 
-#### Debian
-
-To install [`goverlay`](https://packages.debian.org/sid/amd64/goverlay/download) in debian sid, run the following command as root:
+#### Debian (Sid)
 
 ```bash
-apt install goverlay
+sudo apt install goverlay
 ```
 
-#### Ubuntu
+#### Ubuntu (20.04 and newer)
 
-To install goverlay in Ubuntu (20.04 and up) and derivatives, you need to install libqt6pas that isn't provided by official repo, but
-you can grab it in https://github.com/davidbannon/libqt6pas
+The `libqt6pas` package is not available in official repositories.  
+You can get it from [David Bannon’s repository](https://github.com/davidbannon/libqt6pas):
 
 ```bash
 sudo apt-get update
 wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.8/libqt6pas6_6.2.8-1_amd64.deb
 sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
-tar -zxvf goverlay*.tar.gz
-./goverlay
+tar -zxvf Goverlay*.tar.gz
+./Goverlay
 ```
 
-To avoid a issue with libdl.so on ubuntu based distros it's recomended to build Mangohud from source.
-https://github.com/flightlessmango/MangoHud
+---
 
 ## Tarball
 
-1. Download the latest tarball from [Releases](https://github.com/benjamimgois/goverlay/releases).
+1. Download the latest tarball from the [Releases page](https://github.com/benjamimgois/Goverlay/releases).
+2. Extract it:
+   ```bash
+   tar -xvf Goverlay*.tar.xz
+   ```
+3. Run the binary:
+   ```bash
+   ./Goverlay
+   ```
 
-2. Extract the file by running the following command:
+> **Note:** Since version 0.6.4, MangoHud must be installed to run Goverlay.
 
-```bash
-tar -xvf goverlay*.tar.xz
-```
+---
 
-3. Properly execute the binary inside the tar file:
-
-```bash
-./goverlay
-```
-
-Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
-
-## Source
+## Building from Source
 
 ### Prerequisites
 
-Before building, you will need to install the following:
-
- - [Lazarus](https://gitlab.com/freepascal.org/lazarus/lazarus) - IDE
+- [Lazarus IDE](https://gitlab.com/freepascal.org/lazarus/lazarus)
 
 ### Building
 
-To build GOverlay, clone the git repository by running following command:
-
 ```bash
-git clone https://github.com/benjamimgois/goverlay.git
-```
-
-Then, change directory and build GOverlay by running the following commands:
-
-```bash
-cd goverlay
+git clone https://github.com/benjamimgois/Goverlay.git
+cd Goverlay
 make
 ```
 
 ### Running
 
-Start GOverlay with:
-
 ```bash
-./goverlay
+./Goverlay
 ```
-
-Note: Since version 0.6.4 mangohud needs to be installed to run GOverlay.
 
 ### Installing
 
-To install GOverlay execute:
-
 ```bash
-make install
+sudo make install
 ```
 
-This will install the start script to `/usr/local/bin/goverlay`, so that it can be launched via `goverlay` in the console. 
-
-
-## Theme compatibility
-
-Since Goverlay 0.9 the official supported themes are Breeze (plasma) and Adwaita (Gnome). If you run into issues with your current one you can force goverlay to run with a specific theme:
+This installs the startup script to `/usr/local/bin/Goverlay`, allowing you to launch it directly via:
 
 ```bash
-goverlay --style breeze
+Goverlay
 ```
-or
-```bash
-goverlay --style fusion
-```
+
+---
 
 ## Credits
 
-#### Mango
+### FlightlessMango
 
-Most of the credits go to Flightless Mango. He is the man and the mind behind MangoHud.
+Huge thanks to **FlightlessMango**, creator and maintainer of **MangoHud** — the foundation that made Goverlay possible.
 
-https://flightlessmango.com/
+- https://flightlessmango.com  
+- https://github.com/flightlessmango/MangoHud  
+- https://discordapp.com/invite/Gj5YmBb
 
-https://github.com/flightlessmango/MangoHud
+### DadSchoorse
 
-https://discordapp.com/invite/Gj5YmBb
+Special thanks to **DadSchoorse**, creator of **vkBasalt**, which adds post-processing effects to Vulkan.
 
-#### DadSchoorse
+- https://github.com/DadSchoorse/vkBasalt
 
-Special thanks to DadSchoorse, creator of the vkBasalt project.
+### Lazarus IDE
 
-https://github.com/DadSchoorse/vkBasalt
+This project was built using the [Lazarus IDE](https://www.lazarus-ide.org/).
 
+<a href="https://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
 
-#### Lazarus
-
-This project was built using [Lazarus](https://www.lazarus-ide.org/).
-
-<a href="hhttps://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
+---
 
 ## Donations
 
-If this project was useful to you, don't hesitate to donate to me :)
+If this project has been useful to you, consider supporting its development ❤️
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Q5EYYEJ5NSJAU&source=url)
-
