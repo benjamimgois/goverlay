@@ -19,8 +19,6 @@
 
 ---
 
-# Goverlay
-
 **Goverlay** is an open-source project that provides a graphical user interface (GUI) to manage **Vulkan** and **OpenGL** overlays.  
 It’s still under active development, so some features may be missing or incomplete.
 
