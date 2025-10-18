@@ -209,7 +209,7 @@ Huge thanks to **FlightlessMango**, creator and maintainer of **MangoHud** — t
 
 - https://flightlessmango.com  
 - https://github.com/flightlessmango/MangoHud  
-- https://discordapp.com/invite/Gj5YmBb
+- https://discord.com/invite/Gj5YmBb" 
 
 ### DadSchoorse
 
