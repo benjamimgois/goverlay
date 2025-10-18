@@ -44,7 +44,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 317
+        Top = 358
         Width = 310
         BorderSpacing.Left = 10
         Caption = 'https://github.com/flightlessmango/MangoHud'
@@ -15222,7 +15222,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 335
+        Top = 376
         Width = 274
         BorderSpacing.Left = 10
         Caption = 'https://github.com/DadSchoorse/vkBasalt'
@@ -15271,14 +15271,20 @@ object aboutForm: TaboutForm
         ParentFont = False
       end
       object textLabel: TLabel
-        AnchorSideLeft.Control = titleLabel
+        AnchorSideLeft.Control = aboutTabSheet
         AnchorSideTop.Control = titleLabel
         AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = aboutTabSheet
+        AnchorSideRight.Side = asrBottom
         Left = 10
-        Height = 198
-        Top = 51
-        Width = 518
-        Caption = 'This is an opensource project that aims to create a Graphical UI to help manage '#10'Linux overlays. This project is only possible due to the hard work of other people that '#10'did the really heavy lifting. '#10#10'Special Thanks to:'#10'- Flightless Mango, he is the man and the mind behind MangoHUD.'#10'- Dad Schoorse, the man and the mind behind vkBasalt.'#10'- Jason Evangelo from Linux for everyone for helping with the name  and making me '#10'fall in love with linux again.'#10#10'Also Valve for making Linux an AWESOME gaming platform.'
+        Height = 234
+        Top = 56
+        Width = 593
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Left = 10
+        BorderSpacing.Top = 5
+        BorderSpacing.Right = 10
+        Caption = 'This is an open-source project that aims to provide a graphical interface to help manage Linux overlays.'#10'This project exists thanks to the hard work of many others who did the real heavy lifting.'#10#10'Special thanks to:'#10#10'Flightless Mango – the man and the mind behind MangoHUD.'#10#10'Dad Schoorse – the man and the mind behind vkBasalt.'#10#10'Jason Evangelho from Linux for Everyone – for helping with the name and making me fall in love with Linux '#10'all over again.'#10#10'And of course, Valve, for making Linux an awesome gaming platform.'
         Color = 4538426
         Font.Color = clWhite
         Font.Height = -13
@@ -15294,7 +15300,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 299
+        Top = 340
         Width = 280
         BorderSpacing.Left = 10
         BorderSpacing.Top = 50
@@ -15315,7 +15321,7 @@ object aboutForm: TaboutForm
         Cursor = crHandPoint
         Left = 10
         Height = 18
-        Top = 282
+        Top = 323
         Width = 283
         BorderSpacing.Left = 10
         BorderSpacing.Top = 33
