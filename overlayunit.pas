@@ -55,6 +55,7 @@ type
     fsr4typeLabel: TLabel;
     fsrLabel1: TLabel;
     fsrtypeComboBox: TComboBox;
+    Image3: TImage;
     optLabel: TLabel;
     dlssenLabel: TLabel;
     fakenvLabel: TLabel;
