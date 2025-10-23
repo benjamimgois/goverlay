@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
-  unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit,
+  unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,
   FileUtil, StrUtils, gfxlaunch, Types;
 
@@ -55,12 +55,17 @@ type
     fsr4typeLabel: TLabel;
     fsrLabel1: TLabel;
     fsrtypeComboBox: TComboBox;
-    Image3: TImage;
+    autodetectLabel: TLabel;
+    updatestatusLabel: TLabel;
     optLabel: TLabel;
     dlssenLabel: TLabel;
     fakenvLabel: TLabel;
     fsrLabel: TLabel;
     optLabel1: TLabel;
+    deckyLabel: TLabel;
+    deckyLabel1: TLabel;
+    updateProgressBar: TProgressBar;
+    updateBitBtn: TBitBtn;
     xessLabel: TLabel;
     optionsGroupBox: TGroupBox;
     statusGroupBox: TGroupBox;
@@ -373,13 +378,16 @@ type
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
+    procedure updateBitBtnClick(Sender: TObject);
     procedure usercustomBitBtnClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
+    procedure LoadMangoHudConfig;
 
   private
     FStartTick: Cardinal;
+    FOptiscalerUpdate: TOptiscalerTab;
   public
 
 
@@ -792,6 +800,11 @@ begin
     if Components[i] is TCheckBox then
       (Components[i] as TCheckBox).Checked := True;
   end;
+end;
+
+procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
+begin
+   FOptiscalerUpdate.UpdateButtonClick(Sender);
 end;
 
 
@@ -1345,6 +1358,462 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.LoadMangoHudConfig;
+var
+  ConfigLines: TStringList;
+  Line, TrimmedLine, Key, Value: string;
+  i, ColonPos: Integer;
+  FloatValue: Double;
+  IntValue: Integer;
+begin
+  if not FileExists(MANGOHUDCFGFILE) then
+    Exit;
+
+  ConfigLines := TStringList.Create;
+  try
+    ConfigLines.LoadFromFile(MANGOHUDCFGFILE);
+
+    for i := 0 to ConfigLines.Count - 1 do
+    begin
+      Line := ConfigLines[i];
+      TrimmedLine := Trim(Line);
+
+      // Ignora comentários e linhas vazias
+      if (TrimmedLine = '') or (TrimmedLine[1] = '#') then
+        Continue;
+
+      ColonPos := Pos('=', TrimmedLine);
+
+      // Chaves sem valor (flags booleanas)
+      if ColonPos = 0 then
+      begin
+        // Checkboxes que são apenas flags (sem valor)
+        if SameText(TrimmedLine, 'horizontal') then
+          horizontalRadioButton.Checked := True
+        else if SameText(TrimmedLine, 'no_display') then
+          hidehudCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'hud_compact') then
+          hudcompactCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'fps') then
+          fpsCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'frame_timing') then
+          frametimegraphCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'show_fps_limit') then
+          showfpslimCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'frame_count') then
+          framecountCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'histogram') then
+        begin
+          frametimetypeBitBtn.ImageIndex := 7;
+          frametimetypeBitBtn.Caption := 'Histogram';
+        end
+        else if SameText(TrimmedLine, 'gpu_stats') then
+          gpuavgloadCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_load_change') then
+          gpuloadcolorCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'vram') then
+          vramusageCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_core_clock') then
+          gpufreqCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_mem_clock') then
+          gpumemfreqCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_temp') then
+          gputempCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_mem_temp') then
+          gpumemtempCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_junction_temp') then
+          gpujunctempCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_fan') then
+          gpufanCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_power') then
+          gpupowerCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_voltage') then
+          gpuvoltageCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'throttling_status') then
+          gputhrottlingCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'throttling_status_graph') then
+          gputhrottlinggraphCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_name') then
+          gpumodelCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'vulkan_driver') then
+          vulkandriverCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'cpu_stats') then
+          cpuavgloadCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'cpu_load_change') then
+          cpuloadcolorCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'core_load') then
+          cpuloadcoreCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'core_bars') then
+        begin
+          coreloadtypeBitBtn.ImageIndex := 7;
+          coreloadtypeBitBtn.Caption := 'Graph';
+        end
+        else if SameText(TrimmedLine, 'cpu_mhz') then
+          cpufreqCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'cpu_temp') then
+          cputempCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'cpu_power') then
+          cpupowerCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'ram') then
+          ramusageCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'io_read') then
+          diskioCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'io_write') then
+          diskioCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'procmem') then
+          procmemCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'swap') then
+          swapusageCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'arch') then
+          archCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'resolution') then
+          resolutionCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'wine') then
+          wineCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'engine_version') then
+          engineversionCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'engine_short_names') then
+          engineshortCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gamemode') then
+          gamemodestatusCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'vkbasalt') then
+          vkbasaltstatusCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'fcat') then
+          fcatCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'fsr') then
+          fsrCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'hdr') then
+          hdrCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'refresh_rate') then
+          refreshrateCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'battery') then
+          batteryCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'battery_watt') then
+          batterywattCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'battery_time') then
+          batterytimeCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'media_player') then
+          mediaCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'temp_fahrenheit') then
+          fahrenheitCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'winesync') then
+          winesyncCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'present_mode') then
+          vpsCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'log_versioning') then
+          versioningCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'upload_logs') then
+          autouploadCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'fps_color_change') then
+          fpscolorCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'bicubic') then
+          filterRadioGroup.ItemIndex := 1
+        else if SameText(TrimmedLine, 'trilinear') then
+          filterRadioGroup.ItemIndex := 2
+        else if SameText(TrimmedLine, 'retro') then
+          filterRadioGroup.ItemIndex := 3;
+
+        Continue;
+      end;
+
+      // Chaves com valor
+      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
+      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
+
+      // Remove aspas se houver
+      if (Length(Value) > 0) and (Value[1] = '"') then
+        Value := StringReplace(Value, '"', '', [rfReplaceAll]);
+
+      // ============= VISUAL TAB =============
+      if SameText(Key, 'custom_text_center') then
+        hudtitleEdit.Text := Value
+      else if SameText(Key, 'background_alpha') then
+      begin
+        if TryStrToFloat(Value, FloatValue) then
+        begin
+          transpTrackBar.Position := Round(FloatValue * 10);
+          alphavalueLabel.Caption := FormatFloat('#0.0', FloatValue);
+        end;
+      end
+      else if SameText(Key, 'round_corners') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          if IntValue = 0 then
+            squareRadioButton.Checked := True
+          else
+            roundRadioButton.Checked := True;
+        end;
+      end
+      else if SameText(Key, 'background_color') then
+        hudbackgroundColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'font_size') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          fontsizeTrackBar.Position := IntValue;
+          fontsizevalueLabel.Caption := IntToStr(IntValue);
+        end;
+      end
+      else if SameText(Key, 'text_color') then
+        fontColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'position') then
+      begin
+        if SameText(Value, 'top-left') then
+          topleftRadioButton.Checked := True
+        else if SameText(Value, 'top-center') then
+          topcenterRadioButton.Checked := True
+        else if SameText(Value, 'top-right') then
+          toprightRadioButton.Checked := True
+        else if SameText(Value, 'middle-left') then
+          middleleftRadioButton.Checked := True
+        else if SameText(Value, 'middle-right') then
+          middlerightRadioButton.Checked := True
+        else if SameText(Value, 'bottom-left') then
+          bottomleftRadioButton.Checked := True
+        else if SameText(Value, 'bottom-center') then
+          bottomcenterRadioButton.Checked := True
+        else if SameText(Value, 'bottom-right') then
+          bottomrightRadioButton.Checked := True;
+      end
+      else if SameText(Key, 'toggle_hud') then
+      begin
+        if SameText(Value, 'Shift_R+F12') then
+          hudonoffComboBox.ItemIndex := 0
+        else if SameText(Value, 'Shift_R+F1') then
+          hudonoffComboBox.ItemIndex := 1
+        else if SameText(Value, 'Shift_R+F2') then
+          hudonoffComboBox.ItemIndex := 2
+        else if SameText(Value, 'Shift_R+F3') then
+          hudonoffComboBox.ItemIndex := 3
+        else if SameText(Value, 'Shift_R+F4') then
+          hudonoffComboBox.ItemIndex := 4
+        else
+          hudonoffComboBox.ItemIndex := 5;
+      end
+      else if SameText(Key, 'table_columns') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          columvalueLabel.Caption := Value;
+          case IntValue of
+            1: begin
+              columShape.Visible := True;
+              columShape1.Visible := False;
+              columShape2.Visible := False;
+              columShape3.Visible := False;
+              columShape4.Visible := False;
+              columShape5.Visible := False;
+            end;
+            2: begin
+              columShape.Visible := True;
+              columShape1.Visible := True;
+              columShape2.Visible := False;
+              columShape3.Visible := False;
+              columShape4.Visible := False;
+              columShape5.Visible := False;
+            end;
+            3: begin
+              columShape.Visible := True;
+              columShape1.Visible := True;
+              columShape2.Visible := True;
+              columShape3.Visible := False;
+              columShape4.Visible := False;
+              columShape5.Visible := False;
+            end;
+            4: begin
+              columShape.Visible := True;
+              columShape1.Visible := True;
+              columShape2.Visible := True;
+              columShape3.Visible := True;
+              columShape4.Visible := False;
+              columShape5.Visible := False;
+            end;
+            5: begin
+              columShape.Visible := True;
+              columShape1.Visible := True;
+              columShape2.Visible := True;
+              columShape3.Visible := True;
+              columShape4.Visible := True;
+              columShape5.Visible := False;
+            end;
+            6: begin
+              columShape.Visible := True;
+              columShape1.Visible := True;
+              columShape2.Visible := True;
+              columShape3.Visible := True;
+              columShape4.Visible := True;
+              columShape5.Visible := True;
+            end;
+          end;
+        end;
+      end
+
+      // ============= METRICS TAB =============
+      else if SameText(Key, 'gpu_text') then
+        gpunameEdit.Text := Value
+      else if SameText(Key, 'gpu_color') then
+        gpuColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'cpu_text') then
+        cpunameEdit.Text := Value
+      else if SameText(Key, 'cpu_color') then
+        cpuColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'vram_color') then
+        vramColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'ram_color') then
+        ramColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'io_color') then
+        iordrwColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'frametime_color') then
+        frametimegraphColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'gpu_load_value') then
+        // Ignora por enquanto, já tratado por gpu_load_change
+      else if SameText(Key, 'gpu_load_color') then
+      begin
+        // Parseia cores separadas por vírgula
+        // Exemplo: "00FF00,FFFF00,FF0000"
+        // Implementação simplificada
+      end
+      else if SameText(Key, 'cpu_load_value') then
+        // Ignora por enquanto
+      else if SameText(Key, 'cpu_load_color') then
+        // Ignora por enquanto
+
+      // ============= PERFORMANCE TAB =============
+      else if SameText(Key, 'fps_limit_method') then
+      begin
+        if SameText(Value, 'late') then
+          fpslimmetComboBox.ItemIndex := 0
+        else if SameText(Value, 'early') then
+          fpslimmetComboBox.ItemIndex := 1;
+      end
+      else if SameText(Key, 'toggle_fps_limit') then
+      begin
+        if SameText(Value, 'Shift_L+F1') then
+          fpslimtoggleComboBox.ItemIndex := 0
+        else if SameText(Value, 'Shift_L+F2') then
+          fpslimtoggleComboBox.ItemIndex := 1
+        else if SameText(Value, 'Shift_L+F3') then
+          fpslimtoggleComboBox.ItemIndex := 2
+        else if SameText(Value, 'Shift_L+F4') then
+          fpslimtoggleComboBox.ItemIndex := 3
+        else
+          fpslimtoggleComboBox.ItemIndex := 4;
+      end
+      else if SameText(Key, 'vsync') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+          vsyncComboBox.ItemIndex := IntValue;
+      end
+      else if SameText(Key, 'gl_vsync') then
+      begin
+        if SameText(Value, '-1') then
+          glvsyncComboBox.ItemIndex := 0
+        else if SameText(Value, '0') then
+          glvsyncComboBox.ItemIndex := 1
+        else if SameText(Value, '1') then
+          glvsyncComboBox.ItemIndex := 2
+        else if SameText(Value, 'n') then
+          glvsyncComboBox.ItemIndex := 3;
+      end
+      else if SameText(Key, 'af') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          afTrackBar.Position := IntValue;
+          afvalueLabel.Caption := IntToStr(IntValue);
+        end;
+      end
+      else if SameText(Key, 'picmip') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          mipmapTrackBar.Position := IntValue;
+          mipmapvalueLabel.Caption := IntToStr(IntValue);
+        end;
+      end
+      else if SameText(Key, 'fps_limit') then
+      begin
+        // Parseia FPS limits (pode ser uma lista separada por vírgula)
+        // Implementação simplificada - apenas mostra que há limite
+      end
+      else if SameText(Key, 'fps_color_change') then
+        fpscolorCheckBox.Checked := True
+      else if SameText(Key, 'fps_color') then
+        // Parseia cores de FPS (formato: cor1,cor2,cor3)
+      else if SameText(Key, 'fps_value') then
+        // Parseia valores de threshold de FPS
+
+      // ============= EXTRAS TAB =============
+      else if SameText(Key, 'wine_color') then
+        wineColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'engine_color') then
+        engineColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'battery_color') then
+        batteryColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'media_player_color') then
+        mediaColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'output_folder') then
+        logfolderEdit.Text := Value
+      else if SameText(Key, 'log_duration') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          durationTrackBar.Position := IntValue;
+          durationvalueLabel.Caption := IntToStr(IntValue) + 's';
+        end;
+      end
+      else if SameText(Key, 'autostart_log') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          delayTrackBar.Position := IntValue;
+          delayvalueLabel.Caption := IntToStr(IntValue) + 's';
+        end;
+      end
+      else if SameText(Key, 'log_interval') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+        begin
+          intervalTrackBar.Position := IntValue;
+          intervalvalueLabel.Caption := IntToStr(IntValue) + 'ms';
+        end;
+      end
+      else if SameText(Key, 'toggle_logging') then
+      begin
+        if SameText(Value, 'Shift_L+F2') then
+          logtoggleComboBox.ItemIndex := 0
+        else if SameText(Value, 'Shift_L+F3') then
+          logtoggleComboBox.ItemIndex := 1
+        else if SameText(Value, 'Shift_L+F4') then
+          logtoggleComboBox.ItemIndex := 2
+        else if SameText(Value, 'Shift_L+F5') then
+          logtoggleComboBox.ItemIndex := 3
+        else
+          logtoggleComboBox.ItemIndex := 4;
+      end
+      else if SameText(Key, 'fps_metrics') then
+      begin
+        if Pos('0.01', Value) > 0 then
+        begin
+          fpsavgCheckBox.Checked := True;
+          fpsavgBitBtn.ImageIndex := 9;
+          fpsavgBitBtn.Caption := '1% low';
+        end
+        else if Pos('0.001', Value) > 0 then
+        begin
+          fpsavgCheckBox.Checked := True;
+          fpsavgBitBtn.ImageIndex := 10;
+          fpsavgBitBtn.Caption := '0.1% low';
+        end;
+      end;
+    end;
+
+  finally
+    ConfigLines.Free;
+  end;
+end;
+
 procedure Tgoverlayform.LoadVkBasaltConfig;
 var
   ConfigLines: TStringList;
@@ -1552,7 +2021,6 @@ begin
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
   CUSTOMCFGFILE := GetUserConfigDir + '/MangoHud/custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
-
   VKBASALTFOLDER := GetUserConfigDir + '/vkBasalt/';
   VKBASALTCFGFILE := GetUserConfigDir + '/vkBasalt/vkBasalt.conf';
   RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
@@ -1835,6 +2303,9 @@ begin
 
 
 
+     //Select mangohud as initial option
+     mangohudLabelClick(mangohudLabel);
+
      // Initial MANGOHUD STOCK values
 
      alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
@@ -1854,8 +2325,7 @@ begin
      columShape4.Visible:=false;
      columShape5.Visible:=false;
 
-
-    // Load Mangohud config file
+      // Load Mangohud config file
 
     //#################################################    EDITs
 
@@ -2716,9 +3186,31 @@ begin
     else
       networkcheckbox.Checked := false;
 
+
+    // Load Mangohud config file
+    // LoadMangoHudConfig;
+
+
     //Load vkbasalt configuration
     LoadVkBasaltConfig;
 
+
+
+    //Initiate optiscaler
+     FOptiscalerUpdate := TOptiscalerTab.Create;
+     FOptiscalerUpdate.UpdateBtn := updatebitBtn;
+     FOptiscalerUpdate.ProgressBar := updateProgressBar;
+     FOptiscalerUpdate.StatusLabel := updatestatusLabel;
+     FOptiscalerUpdate.DeckyLabel := deckylabel1;
+     FOptiscalerUpdate.OptiLabel := optlabel1;
+
+     optlabel1.Caption := '';
+     deckylabel1.Caption := '';
+     updateProgressBar.Min := 0;
+     updateProgressBar.Max := 100;
+     updateProgressBar.Position := 0;
+
+     updatestatusLabel.Caption := '0%';
 
 end; // form create
 
@@ -2788,7 +3280,7 @@ end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
-//Enable tabs
+//Enable goverlay tabs
 goverlayPageControl.ShowTabs:=true;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
