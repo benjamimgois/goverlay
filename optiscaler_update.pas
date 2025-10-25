@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, ComCtrls, Buttons, Process,
-  RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics;
+  RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils;
 
 type
   TOptiscalerTab = class
@@ -14,9 +14,11 @@ type
     FStatusLabel: TLabel;
     FDeckyLabel: TLabel;
     FOptiLabel: TLabel;
+    FFakeNvapiLabel: TLabel;
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
+    function GetFakeNvapiReleaseTag: string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
@@ -30,6 +32,7 @@ type
     property StatusLabel: TLabel read FStatusLabel write FStatusLabel;
     property DeckyLabel: TLabel read FDeckyLabel write FDeckyLabel;
     property OptiLabel: TLabel read FOptiLabel write FOptiLabel;
+    property FakeNvapiLabel: TLabel read FFakeNvapiLabel write FFakeNvapiLabel;
   end;
 
 implementation
@@ -130,6 +133,69 @@ begin
       begin
         ShowMessage('Error getting latest release: ' + E.Message + sLineBreak +
                    'Check your internet connection and if curl is installed.');
+      end;
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+end;
+
+function TOptiscalerTab.GetFakeNvapiReleaseTag: string;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  Response: string;
+  JSONData: TJSONData;
+  JSONObject: TJSONObject;
+begin
+  Result := '';
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    try
+      // Use curl to get GitHub API for FakeNvapi
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-s');  // Silent mode
+      Process.Parameters.Add('-L');  // Follow redirects
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: Mozilla/5.0');
+      Process.Parameters.Add('https://api.github.com/repos/optiscaler/fakenvapi/releases/latest');
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+
+      // Read response
+      OutputList.LoadFromStream(Process.Output);
+      Response := OutputList.Text;
+
+      if (Process.ExitStatus = 0) and (Response <> '') then
+      begin
+        JSONData := GetJSON(Response);
+        try
+          if Assigned(JSONData) and (JSONData is TJSONObject) then
+          begin
+            JSONObject := TJSONObject(JSONData);
+            Result := JSONObject.Get('tag_name', '');
+          end;
+        finally
+          JSONData.Free;
+        end;
+      end;
+
+      // If unable to get, show warning
+      if Result = '' then
+      begin
+        ShowMessage('Warning: Could not get FakeNvapi version automatically.' + sLineBreak +
+                   'Continuing without FakeNvapi installation.');
+      end;
+
+    except
+      on E: Exception do
+      begin
+        ShowMessage('Warning: Error getting FakeNvapi release: ' + E.Message + sLineBreak +
+                   'Continuing without FakeNvapi installation.');
       end;
     end;
   finally
@@ -321,6 +387,9 @@ var
   LatestTag: string;
   DeckyVersion: string;
   OptiVersion: string;
+  FakeNvapiVersion: string;
+  FakeNvapiURL: string;
+  FakeNvapi7zPath: string;
   DownloadURL: string;
   ZipFilePath: string;
   ExtractPath: string;
@@ -329,6 +398,8 @@ var
   AssetsPath, BinPath: string;
   SearchRec: TSearchRec;
   SevenZFile: string;
+  VarsFile: TextFile;
+  VarsFilePath: string;
 begin
   // Disable button
   if Assigned(FUpdateBtn) then
@@ -352,12 +423,17 @@ begin
     // Store version in DeckyVersion variable
     DeckyVersion := LatestTag;
 
-    // Update DeckyLabel with the version
+    // Update DeckyLabel with the version (with safety check)
     if Assigned(FDeckyLabel) then
     begin
-      FDeckyLabel.Caption := DeckyVersion;
-      FDeckyLabel.Font.Color := clYellow;
-      Application.ProcessMessages;
+      try
+        FDeckyLabel.Caption := DeckyVersion;
+        FDeckyLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        on E: Exception do
+          ShowMessage('Warning: Could not update Decky label: ' + E.Message);
+      end;
     end;
 
     ShowMessage('Version to be downloaded: ' + LatestTag);
@@ -423,12 +499,17 @@ begin
         // Extract OptiScaler version from filename
         OptiVersion := ExtractOptiScalerVersion(SearchRec.Name);
 
-        // Update OptiLabel with the version
+        // Update OptiLabel with the version (with safety check)
         if Assigned(FOptiLabel) and (OptiVersion <> '') then
         begin
-          FOptiLabel.Caption := OptiVersion;
-          FOptiLabel.Font.Color := clYellow;
-          Application.ProcessMessages;
+          try
+            FOptiLabel.Caption := OptiVersion;
+            FOptiLabel.Font.Color := clYellow;
+            Application.ProcessMessages;
+          except
+            on E: Exception do
+              ShowMessage('Warning: Could not update OptiScaler label: ' + E.Message);
+          end;
         end;
 
       finally
@@ -502,11 +583,82 @@ begin
         ShowMessage('Warning: Could not delete bin folder');
     end;
 
-    UpdateProgress(100);
+    // 11. Get FakeNvapi version and download
+    FakeNvapiVersion := GetFakeNvapiReleaseTag;
+
+    if FakeNvapiVersion <> '' then
+    begin
+      // Update FakeNvapiLabel with the version (with safety check)
+      if Assigned(FFakeNvapiLabel) then
+      begin
+        try
+          FFakeNvapiLabel.Caption := FakeNvapiVersion;
+          FFakeNvapiLabel.Font.Color := clYellow;
+          Application.ProcessMessages;
+        except
+          on E: Exception do
+            ShowMessage('Warning: Could not update FakeNvapi label: ' + E.Message);
+        end;
+      end;
+
+      // Build FakeNvapi download URL - format: fakenvapi-v1.3.4.7z
+      FakeNvapiURL := Format('https://github.com/optiscaler/fakenvapi/releases/download/%s/fakenvapi-%s.7z', [FakeNvapiVersion, FakeNvapiVersion]);
+      FakeNvapi7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-' + FakeNvapiVersion + '.7z';
+
+      // Download FakeNvapi .7z
+      UpdateProgress(99);
+      if DownloadFile(FakeNvapiURL, FakeNvapi7zPath) then
+      begin
+        // Extract FakeNvapi .7z to fgmod folder
+        if Extract7z(FakeNvapi7zPath, FFGModPath) then
+        begin
+          UpdateProgress(100);
+          // Delete temporary .7z file
+          DeleteFile(FakeNvapi7zPath);
+        end
+        else
+        begin
+          ShowMessage('Warning: Failed to extract FakeNvapi 7z file.');
+          DeleteFile(FakeNvapi7zPath);
+        end;
+      end
+      else
+        ShowMessage('Warning: Failed to download FakeNvapi.');
+    end
+    else
+      UpdateProgress(100);
 
     // Clean up temporary files
     DeleteFile(ZipFilePath);
     DeleteDirectory(ExtractPath, False);
+
+    // 12. Create goverlayvars.txt file with version information
+    try
+      VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlayvars.txt';
+      AssignFile(VarsFile, VarsFilePath);
+      Rewrite(VarsFile);
+
+      // Write header
+      WriteLn(VarsFile, '################### File Generated by Goverlay ###################');
+
+      // Write generation date and time
+      WriteLn(VarsFile, 'GeneratedAt=' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
+
+      // Write version variables
+      if DeckyVersion <> '' then
+        WriteLn(VarsFile, 'DeckyVersion=' + DeckyVersion);
+
+      if OptiVersion <> '' then
+        WriteLn(VarsFile, 'OptiScalerVersion=' + OptiVersion);
+
+      if FakeNvapiVersion <> '' then
+        WriteLn(VarsFile, 'FakeNvapiVersion=' + FakeNvapiVersion);
+
+      CloseFile(VarsFile);
+    except
+      on E: Exception do
+        ShowMessage('Warning: Could not create goverlayvars.txt: ' + E.Message);
+    end;
 
     ShowMessage('Update completed successfully!' + sLineBreak +
                 'Files installed in: ' + FFGModPath);

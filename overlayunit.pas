@@ -46,8 +46,7 @@ type
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
     casLabel: TLabel;
-    dlssenLabel1: TLabel;
-    fakenvLabel1: TLabel;
+    fakenvapi1: TLabel;
     filenameComboBox: TComboBox;
     filenameLabel: TLabel;
     filenameLabel1: TLabel;
@@ -58,8 +57,7 @@ type
     autodetectLabel: TLabel;
     updatestatusLabel: TLabel;
     optLabel: TLabel;
-    dlssenLabel: TLabel;
-    fakenvLabel: TLabel;
+    fakenvapiLabel: TLabel;
     fsrLabel: TLabel;
     optLabel1: TLabel;
     deckyLabel: TLabel;
@@ -3203,7 +3201,9 @@ begin
      FOptiscalerUpdate.StatusLabel := updatestatusLabel;
      FOptiscalerUpdate.DeckyLabel := deckylabel1;
      FOptiscalerUpdate.OptiLabel := optlabel1;
+     FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
 
+     fakenvapi1.Caption := '';
      optlabel1.Caption := '';
      deckylabel1.Caption := '';
      updateProgressBar.Min := 0;
