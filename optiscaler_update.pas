@@ -15,6 +15,8 @@ type
     FDeckyLabel: TLabel;
     FOptiLabel: TLabel;
     FFakeNvapiLabel: TLabel;
+    FXessLabel: TLabel;
+    FFsrLabel: TLabel;
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
@@ -33,6 +35,8 @@ type
     property DeckyLabel: TLabel read FDeckyLabel write FDeckyLabel;
     property OptiLabel: TLabel read FOptiLabel write FOptiLabel;
     property FakeNvapiLabel: TLabel read FFakeNvapiLabel write FFakeNvapiLabel;
+    property XessLabel: TLabel read FXessLabel write FXessLabel;
+    property FsrLabel: TLabel read FFsrLabel write FFsrLabel;
   end;
 
 implementation
@@ -125,7 +129,6 @@ begin
           JSONData.Free;
         end;
       end;
-
 
 
     except
@@ -662,6 +665,31 @@ begin
 
     ShowMessage('Update completed successfully!' + sLineBreak +
                 'Files installed in: ' + FFGModPath);
+
+    // 13. Update xessLabel1 and fsrlabel1 with text "decky built-in"
+    if Assigned(FXessLabel) then
+    begin
+      try
+        FXessLabel.Caption := 'decky built-in';
+        FXessLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        on E: Exception do
+          ShowMessage('Warning: Could not update Xess label: ' + E.Message);
+      end;
+    end;
+
+    if Assigned(FFsrLabel) then
+    begin
+      try
+        FFsrLabel.Caption := 'decky built-in';
+        FFsrLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        on E: Exception do
+          ShowMessage('Warning: Could not update Fsr label: ' + E.Message);
+      end;
+    end;
 
   finally
     // Re-enable button

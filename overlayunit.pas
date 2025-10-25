@@ -3202,6 +3202,8 @@ begin
      FOptiscalerUpdate.DeckyLabel := deckylabel1;
      FOptiscalerUpdate.OptiLabel := optlabel1;
      FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
+     FOptiscalerUpdate.XessLabel := xessLabel1;
+     FOptiscalerUpdate.FsrLabel := fsrlabel1;
 
      fakenvapi1.Caption := '';
      optlabel1.Caption := '';
