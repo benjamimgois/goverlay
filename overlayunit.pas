@@ -1065,7 +1065,10 @@ begin
   //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
   //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1' + RunPasCube ');
 
-
+  //Hide notification messages
+  notificationLabel.Visible:=false;
+  commandLabel.Visible:=false;
+  copyBitbtn.Visible:=false;
 
 end;
 
@@ -3349,6 +3352,12 @@ optiscalerShape.Brush.Color:= DarkerBackgroundColor;
 mangohudLabel.Font.Color:=clwhite;
 mangohudShape.Brush.Color:= DarkBackgroundColor;
 goverlayPageControl.ActivePage:=presetTabsheet;
+
+//Hide notification messages
+notificationLabel.Visible:=false;
+commandLabel.Visible:=false;
+copyBitbtn.Visible:=false;
+
 end;
 
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
@@ -3371,6 +3380,11 @@ begin
   optiscalerShape.Brush.Color:= DarkBackgroundColor;
   optiscalertabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:= optiscalerTabsheet;
+
+  //Hide notification messages
+  notificationLabel.Visible:=false;
+  commandLabel.Visible:=false;
+  copyBitbtn.Visible:=false;
 end;
 
 procedure Tgoverlayform.reshaderefreshBitBtnClick(Sender: TObject);
