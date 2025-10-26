@@ -4257,10 +4257,10 @@ var
   FS: TFormatSettings;
 
   //OptiScaler vars
-  FGModFilePath, SelectedDllName: string;
+  FGModFilePath, SelectedDllName, DllNameWithoutExt: string;
   FGModLines: TStringList;
   LineIndex: Integer;
-  LineFound: Boolean;
+  LineFound, WineOverrideFound: Boolean;
 
   procedure AddEffectToLine(const NameOnly: string);
    begin
@@ -4276,87 +4276,109 @@ var
 
   // ################### SAVE OPTISCALER SETTINGS
 
-  // Check if we're on the OptiScaler tab
-  if goverlayPageControl.ActivePage = optiscalerTabSheet then
-  begin
-    // Get the fgmod file path
-    FGModFilePath := GetUserDir + 'fgmod' + PathDelim + 'fgmod';
-
-    // Check if fgmod file exists
-    if FileExists(FGModFilePath) then
+    // Check if we're on the OptiScaler tab
+    if goverlayPageControl.ActivePage = optiscalerTabSheet then
     begin
-      FGModLines := TStringList.Create;
-      try
-        // Load the fgmod file
-        FGModLines.LoadFromFile(FGModFilePath);
+      // Get the fgmod file path
+      FGModFilePath := GetUserDir + 'fgmod' + PathDelim + 'fgmod';
 
-        // Get selected DLL name from combobox
-        case filenameComboBox.ItemIndex of
-          0: SelectedDllName := 'dxgi.dll';
-          1: SelectedDllName := 'version.dll';
-          2: SelectedDllName := 'dbghelp.dll';
-          3: SelectedDllName := 'd3d12.dll';
-          4: SelectedDllName := 'wininet.dll';
-          5: SelectedDllName := 'winhttp.dll';
-          6: SelectedDllName := 'OptiScaler.asi';
-        else
-          SelectedDllName := 'dxgi.dll'; // Default
-        end;
+      // Check if fgmod file exists
+      if FileExists(FGModFilePath) then
+      begin
+        FGModLines := TStringList.Create;
+        try
+          // Load the fgmod file
+          FGModLines.LoadFromFile(FGModFilePath);
 
-        // Search for the line containing dll_name="${DLL:-
-        LineFound := False;
-        for LineIndex := 0 to FGModLines.Count - 1 do
-        begin
-          if Pos('dll_name="${DLL:-', FGModLines[LineIndex]) > 0 then
-          begin
-            // Replace the line with the new DLL name
-            FGModLines[LineIndex] := 'dll_name="${DLL:-' + SelectedDllName + '}"';
-            LineFound := True;
-            Break;
+          // Get selected DLL name from combobox
+          case filenameComboBox.ItemIndex of
+            0: SelectedDllName := 'dxgi.dll';
+            1: SelectedDllName := 'version.dll';
+            2: SelectedDllName := 'dbghelp.dll';
+            3: SelectedDllName := 'd3d12.dll';
+            4: SelectedDllName := 'wininet.dll';
+            5: SelectedDllName := 'winhttp.dll';
+            6: SelectedDllName := 'OptiScaler.asi';
+          else
+            SelectedDllName := 'dxgi.dll'; // Default
           end;
+
+          // Extract DLL name without extension
+          DllNameWithoutExt := ChangeFileExt(SelectedDllName, '');
+
+          // Search for the line containing dll_name="${DLL:-
+          LineFound := False;
+          for LineIndex := 0 to FGModLines.Count - 1 do
+          begin
+            if Pos('dll_name="${DLL:-', FGModLines[LineIndex]) > 0 then
+            begin
+              // Replace the line with the new DLL name
+              FGModLines[LineIndex] := 'dll_name="${DLL:-' + SelectedDllName + '}"';
+              LineFound := True;
+              Break;
+            end;
+          end;
+
+          // Search for the WINEDLLOVERRIDES line and update it
+          WineOverrideFound := False;
+          if LineFound then
+          begin
+            for LineIndex := 0 to FGModLines.Count - 1 do
+            begin
+              if Pos('export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,', FGModLines[LineIndex]) > 0 then
+              begin
+                // Replace the line with the new DLL name (without extension)
+                FGModLines[LineIndex] := 'export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,' + DllNameWithoutExt + '=n,b"';
+                WineOverrideFound := True;
+                Break;
+              end;
+            end;
+          end;
+
+          if LineFound and WineOverrideFound then
+          begin
+            // Save the modified file
+            FGModLines.SaveToFile(FGModFilePath);
+
+            // Give execute permission (chmod 755)
+            //fpChmod(FGModFilePath, &755);
+
+            // Show notification
+            ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
+
+            // Update notificationLabel
+            notificationLabel.Caption := 'Launch command:';
+            notificationLabel.Font.Color := clYellow;
+            notificationLabel.Font.Style := [fsBold];
+            notificationLabel.Visible := True;
+
+            // Update commandLabel with launch command
+            commandLabel.caption := '~/fgmod/fgmod %command%';
+            commandLabel.AutoSize:=true;
+            commandLabel.Font.Color := clwhite;
+           // commandlabel.Font.Style := [fsBold];
+            commandLabel.Visible := True;
+            copyBitbtn.Visible:=true;
+          end
+          else
+          begin
+            if not LineFound then
+              ShowMessage('Warning: Could not find dll_name line in fgmod file');
+            if not WineOverrideFound then
+              ShowMessage('Warning: Could not find WINEDLLOVERRIDES line in fgmod file');
+          end;
+
+        finally
+          FGModLines.Free;
         end;
-
-        if LineFound then
-        begin
-          // Save the modified file
-          FGModLines.SaveToFile(FGModFilePath);
-
-          // Give execute permission (chmod 755)
-          //fpChmod(FGModFilePath, &755);
-
-          // Show notification
-          ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
-
-          // Update notificationLabel
-          notificationLabel.Caption := 'Launch command:';
-          notificationLabel.Font.Color := clYellow;
-          notificationLabel.Font.Style := [fsBold];
-          notificationLabel.Visible := True;
-
-          // Update commandLabel with launch command
-          commandLabel.caption := '~/fgmod/fgmod %command%';
-          commandLabel.AutoSize:=true;
-          commandLabel.Font.Color := clwhite;
-         // commandlabel.Font.Style := [fsBold];
-          commandLabel.Visible := True;
-          copyBitbtn.Visible:=true;
-        end
-        else
-        begin
-          ShowMessage('Warning: Could not find dll_name line in fgmod file');
-        end;
-
-      finally
-        FGModLines.Free;
+      end
+      else
+      begin
+        ShowMessage('Error: fgmod file not found at: ' + FGModFilePath);
       end;
-    end
-    else
-    begin
-      ShowMessage('Error: fgmod file not found at: ' + FGModFilePath);
-    end;
 
-    Exit; // Exit after saving OptiScaler settings
-  end;
+      Exit; // Exit after saving OptiScaler settings
+    end;
 
   // ################### SAVE MANGOHUD
 
