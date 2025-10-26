@@ -3195,24 +3195,20 @@ begin
 
 
     //Initiate optiscaler
-     FOptiscalerUpdate := TOptiscalerTab.Create;
-     FOptiscalerUpdate.UpdateBtn := updatebitBtn;
-     FOptiscalerUpdate.ProgressBar := updateProgressBar;
-     FOptiscalerUpdate.StatusLabel := updatestatusLabel;
-     FOptiscalerUpdate.DeckyLabel := deckylabel1;
-     FOptiscalerUpdate.OptiLabel := optlabel1;
-     FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
-     FOptiscalerUpdate.XessLabel := xessLabel1;
-     FOptiscalerUpdate.FsrLabel := fsrlabel1;
 
-     fakenvapi1.Caption := '';
-     optlabel1.Caption := '';
-     deckylabel1.Caption := '';
-     updateProgressBar.Min := 0;
-     updateProgressBar.Max := 100;
-     updateProgressBar.Position := 0;
+    FOptiscalerUpdate := TOptiscalerTab.Create;
 
-     updatestatusLabel.Caption := '0%';
+    FOptiscalerUpdate.FGModPath := GetUserDir + 'fgmod';
+    FOptiscalerUpdate.UpdateBtn := updatebitBtn;
+    FOptiscalerUpdate.ProgressBar := updateProgressBar;
+    FOptiscalerUpdate.StatusLabel := updatestatusLabel;
+    FOptiscalerUpdate.DeckyLabel := deckylabel1;
+    FOptiscalerUpdate.OptiLabel := optlabel1;
+    FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
+    FOptiscalerUpdate.XessLabel := xessLabel1;
+    FOptiscalerUpdate.FsrLabel := fsrlabel1;
+    //load versions installed
+    FOptiscalerUpdate.LoadVersionsFromFile;
 
 end; // form create
 

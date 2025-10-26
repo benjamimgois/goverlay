@@ -1,4 +1,4 @@
-unit Optiscaler_Update;
+unit optiscaler_update;
 
 interface
 
@@ -28,7 +28,10 @@ type
     procedure UpdateProgress(AProgress: Integer);
     function ExtractOptiScalerVersion(const AFileName: string): string;
   public
+
+    procedure LoadVersionsFromFile;
     procedure UpdateButtonClick(Sender: TObject);
+    property FGModPath: string read FFGModPath write FFGModPath;
     property UpdateBtn: TBitBtn read FUpdateBtn write FUpdateBtn;
     property ProgressBar: TProgressBar read FProgressBar write FProgressBar;
     property StatusLabel: TLabel read FStatusLabel write FStatusLabel;
@@ -129,6 +132,7 @@ begin
           JSONData.Free;
         end;
       end;
+
 
 
     except
@@ -382,6 +386,123 @@ begin
     finally
       FindClose(SearchRec);
     end;
+  end;
+end;
+
+procedure TOptiscalerTab.LoadVersionsFromFile;
+var
+  VarsFilePath: string;
+  VarsFile: TextFile;
+  Line: string;
+  Key, Value: string;
+  SepPos: Integer;
+  DeckyVer, OptiVer, FakeNvapiVer: string;
+begin
+  // Build path to goverlayvars.txt
+  VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlayvars.txt';
+
+  // Check if file exists
+  if not FileExists(VarsFilePath) then
+    Exit;
+
+  // Initialize version strings
+  DeckyVer := '';
+  OptiVer := '';
+  FakeNvapiVer := '';
+
+  try
+    AssignFile(VarsFile, VarsFilePath);
+    Reset(VarsFile);
+    try
+      while not Eof(VarsFile) do
+      begin
+        ReadLn(VarsFile, Line);
+
+        // Skip header line (starts with #)
+        if (Length(Line) > 0) and (Line[1] = '#') then
+          Continue;
+
+        // Parse KEY=VALUE
+        SepPos := Pos('=', Line);
+        if SepPos > 0 then
+        begin
+          Key := Copy(Line, 1, SepPos - 1);
+          Value := Copy(Line, SepPos + 1, Length(Line));
+
+          // Store values
+          if Key = 'DeckyVersion' then
+            DeckyVer := Value
+          else if Key = 'OptiScalerVersion' then
+            OptiVer := Value
+          else if Key = 'FakeNvapiVersion' then
+            FakeNvapiVer := Value;
+        end;
+      end;
+    finally
+      CloseFile(VarsFile);
+    end;
+
+    // Update labels with loaded versions
+    if Assigned(FDeckyLabel) and (DeckyVer <> '') then
+    begin
+      try
+        FDeckyLabel.Caption := DeckyVer;
+        FDeckyLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    if Assigned(FOptiLabel) and (OptiVer <> '') then
+    begin
+      try
+        FOptiLabel.Caption := OptiVer;
+        FOptiLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    if Assigned(FFakeNvapiLabel) and (FakeNvapiVer <> '') then
+    begin
+      try
+        FFakeNvapiLabel.Caption := FakeNvapiVer;
+        FFakeNvapiLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    // Update XESS and FSR labels with fixed text
+    if Assigned(FXessLabel) then
+    begin
+      try
+        FXessLabel.Caption := 'decky built-in';
+        FXessLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    if Assigned(FFsrLabel) then
+    begin
+      try
+        FFsrLabel.Caption := 'decky built-in';
+        FFsrLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+  except
+    on E: Exception do
+      // Silently ignore errors when loading versions
+      Exit;
   end;
 end;
 
