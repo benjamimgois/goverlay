@@ -26,6 +26,7 @@ type
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
     procedure CopyDirectory(const ASource, ADest: string);
     procedure UpdateProgress(AProgress: Integer);
+    procedure UpdateStatus(const AStatus: string);
     function ExtractOptiScalerVersion(const AFileName: string): string;
   public
 
@@ -57,9 +58,19 @@ begin
     Application.ProcessMessages;
   end;
 
+  // Show percentage on button (but don't change if resetting to 0)
+  if Assigned(FUpdateBtn) and (AProgress > 0) then
+  begin
+    FUpdateBtn.Caption := IntToStr(AProgress) + '%';
+    Application.ProcessMessages;
+  end;
+end;
+
+procedure TOptiscalerTab.UpdateStatus(const AStatus: string);
+begin
   if Assigned(FStatusLabel) then
   begin
-    FStatusLabel.Caption := IntToStr(AProgress) + '%';
+    FStatusLabel.Caption := AStatus;
     Application.ProcessMessages;
   end;
 end;
@@ -398,8 +409,8 @@ var
   SepPos: Integer;
   DeckyVer, OptiVer, FakeNvapiVer: string;
 begin
-  // Build path to goverlayvars.txt
-  VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlayvars.txt';
+  // Build path to goverlay.vars
+  VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
 
   // Check if file exists
   if not FileExists(VarsFilePath) then
@@ -560,8 +571,8 @@ begin
       end;
     end;
 
-    ShowMessage('Version to be downloaded: ' + LatestTag);
     UpdateProgress(10);
+    UpdateStatus('Downloading');
 
     // 2. Build download URL
     DownloadURL := Format('https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/%s/Decky-Framegen.zip', [LatestTag]);
@@ -574,6 +585,7 @@ begin
       Exit;
     end;
     UpdateProgress(50);
+    UpdateStatus('Installing');
 
     // 4. Extract ZIP directly to user's home
     // The ZIP already contains a folder called Decky-Framegen
@@ -731,8 +743,10 @@ begin
 
       // Download FakeNvapi .7z
       UpdateProgress(99);
+      UpdateStatus('Downloading FakeNvapi');
       if DownloadFile(FakeNvapiURL, FakeNvapi7zPath) then
       begin
+        UpdateStatus('Installing');
         // Extract FakeNvapi .7z to fgmod folder
         if Extract7z(FakeNvapi7zPath, FFGModPath) then
         begin
@@ -756,9 +770,9 @@ begin
     DeleteFile(ZipFilePath);
     DeleteDirectory(ExtractPath, False);
 
-    // 12. Create goverlayvars.txt file with version information
+    // 12. Create goverlay.vars file with version information
     try
-      VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlayvars.txt';
+      VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
       AssignFile(VarsFile, VarsFilePath);
       Rewrite(VarsFile);
 
@@ -781,11 +795,15 @@ begin
       CloseFile(VarsFile);
     except
       on E: Exception do
-        ShowMessage('Warning: Could not create goverlayvars.txt: ' + E.Message);
+        ShowMessage('Warning: Could not create goverlay.vars: ' + E.Message);
     end;
 
-    ShowMessage('Update completed successfully!' + sLineBreak +
-                'Files installed in: ' + FFGModPath);
+    UpdateProgress(100);
+    UpdateStatus('Complete');
+
+    // Restore button text after completion
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Caption := 'Update';
 
     // 13. Update xessLabel1 and fsrlabel1 with text "decky built-in"
     if Assigned(FXessLabel) then
@@ -817,6 +835,7 @@ begin
     if Assigned(FUpdateBtn) then
       FUpdateBtn.Enabled := True;
     UpdateProgress(0);
+    UpdateStatus('');
   end;
 end;
 
