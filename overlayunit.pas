@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
-  ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,
+  ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd,
   FileUtil, StrUtils, gfxlaunch, Types;
 
 
@@ -41,6 +41,7 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
+    copyBitBtn: TBitBtn;
     blacklistBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
@@ -52,10 +53,11 @@ type
     filenameLabel: TLabel;
     filenameLabel1: TLabel;
     framegenComboBox: TComboBox;
-    fsr4typeLabel: TLabel;
+    fsrautoupdateLabel: TLabel;
     fsrLabel1: TLabel;
     fsrtypeComboBox: TComboBox;
     autodetectnvLabel: TLabel;
+    commandLabel: TLabel;
     updatestatusLabel: TLabel;
     optLabel: TLabel;
     fakenvapiLabel: TLabel;
@@ -341,6 +343,7 @@ type
     procedure basichorizontalBitBtnClick(Sender: TObject);
     procedure blacklistBitBtnClick(Sender: TObject);
     procedure casTrackBarChange(Sender: TObject);
+    procedure copyBitBtnClick(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
@@ -3874,6 +3877,15 @@ begin
   casvaluelabel.Caption := inttostr(casTrackbar.Position);
 end;
 
+procedure Tgoverlayform.copyBitBtnClick(Sender: TObject);
+begin
+   // Copy the command to clipboard
+  Clipboard.AsText := '~/fgmod/fgmod %command%';
+
+  // Show notification
+  ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Command copied to clipboard"');
+end;
+
 
 
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
@@ -4244,6 +4256,12 @@ var
   DlsSharp: Double;
   FS: TFormatSettings;
 
+  //OptiScaler vars
+  FGModFilePath, SelectedDllName: string;
+  FGModLines: TStringList;
+  LineIndex: Integer;
+  LineFound: Boolean;
+
   procedure AddEffectToLine(const NameOnly: string);
    begin
      if EffectsLine = '' then
@@ -4253,6 +4271,92 @@ var
    end;
 
   begin
+
+
+
+  // ################### SAVE OPTISCALER SETTINGS
+
+  // Check if we're on the OptiScaler tab
+  if goverlayPageControl.ActivePage = optiscalerTabSheet then
+  begin
+    // Get the fgmod file path
+    FGModFilePath := GetUserDir + 'fgmod' + PathDelim + 'fgmod';
+
+    // Check if fgmod file exists
+    if FileExists(FGModFilePath) then
+    begin
+      FGModLines := TStringList.Create;
+      try
+        // Load the fgmod file
+        FGModLines.LoadFromFile(FGModFilePath);
+
+        // Get selected DLL name from combobox
+        case filenameComboBox.ItemIndex of
+          0: SelectedDllName := 'dxgi.dll';
+          1: SelectedDllName := 'version.dll';
+          2: SelectedDllName := 'dbghelp.dll';
+          3: SelectedDllName := 'd3d12.dll';
+          4: SelectedDllName := 'wininet.dll';
+          5: SelectedDllName := 'winhttp.dll';
+          6: SelectedDllName := 'OptiScaler.asi';
+        else
+          SelectedDllName := 'dxgi.dll'; // Default
+        end;
+
+        // Search for the line containing dll_name="${DLL:-
+        LineFound := False;
+        for LineIndex := 0 to FGModLines.Count - 1 do
+        begin
+          if Pos('dll_name="${DLL:-', FGModLines[LineIndex]) > 0 then
+          begin
+            // Replace the line with the new DLL name
+            FGModLines[LineIndex] := 'dll_name="${DLL:-' + SelectedDllName + '}"';
+            LineFound := True;
+            Break;
+          end;
+        end;
+
+        if LineFound then
+        begin
+          // Save the modified file
+          FGModLines.SaveToFile(FGModFilePath);
+
+          // Give execute permission (chmod 755)
+          //fpChmod(FGModFilePath, &755);
+
+          // Show notification
+          ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
+
+          // Update notificationLabel
+          notificationLabel.Caption := 'Launch command:';
+          notificationLabel.Font.Color := clYellow;
+          notificationLabel.Font.Style := [fsBold];
+          notificationLabel.Visible := True;
+
+          // Update commandLabel with launch command
+          commandLabel.caption := '~/fgmod/fgmod %command%';
+          commandLabel.AutoSize:=true;
+          commandLabel.Font.Color := clwhite;
+         // commandlabel.Font.Style := [fsBold];
+          commandLabel.Visible := True;
+          copyBitbtn.Visible:=true;
+        end
+        else
+        begin
+          ShowMessage('Warning: Could not find dll_name line in fgmod file');
+        end;
+
+      finally
+        FGModLines.Free;
+      end;
+    end
+    else
+    begin
+      ShowMessage('Error: fgmod file not found at: ' + FGModFilePath);
+    end;
+
+    Exit; // Exit after saving OptiScaler settings
+  end;
 
   // ################### SAVE MANGOHUD
 
@@ -5170,6 +5274,10 @@ end;  //  ################### END - SAVE MANGOHUD
   // ExecuteGUICommand('killall pascube');
   // ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
   // ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
+
+
+
+
 
 
 end; // ########################################      end save button click       ###############################################################################
