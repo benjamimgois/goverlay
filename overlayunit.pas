@@ -27,6 +27,7 @@ type
     afvalueLabel: TLabel;
     alphavalueLabel: TLabel;
     archCheckBox: TCheckBox;
+    autodetectmesaLabel: TLabel;
     autouploadCheckBox: TCheckBox;
     aveffectsListBox: TListBox;
     backgroundGroupBox: TGroupBox;
@@ -54,7 +55,7 @@ type
     fsr4typeLabel: TLabel;
     fsrLabel1: TLabel;
     fsrtypeComboBox: TComboBox;
-    autodetectLabel: TLabel;
+    autodetectnvLabel: TLabel;
     updatestatusLabel: TLabel;
     optLabel: TLabel;
     fakenvapiLabel: TLabel;
@@ -440,6 +441,39 @@ BlacklistStr, blacklistVAR, RepoDir: string;
   DarkTextColor = clwhite;  // set light color
 
 implementation
+
+
+function IsNvidiaModuleLoaded: Boolean;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  Output: string;
+begin
+  Result := False;
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    try
+      // Use lsmod to check if nvidia module is loaded
+      Process.Executable := 'lsmod';
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+
+      // Read output
+      OutputList.LoadFromStream(Process.Output);
+      Output := OutputList.Text;
+
+      // Check if 'nvidia' appears in the output
+      Result := Pos('nvidia', LowerCase(Output)) > 0;
+    except
+      on E: Exception do
+        Result := False; // If error, assume not loaded
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+end;
 
 {$R *.lfm}
 
@@ -3193,6 +3227,25 @@ begin
     LoadVkBasaltConfig;
 
 
+    // Check NVIDIA module and configure controls
+    if IsNvidiaModuleLoaded then
+    begin
+      // NVIDIA driver is loaded
+      nvidiaRadioButton.Checked := True;
+      spoofCheckBox.Checked := False;
+      spoofCheckBox.Enabled := False;
+      autodetectnvLabel.Visible:=true;
+      autodetectnvLabel.Font.color:=clyellow;
+    end
+    else
+    begin
+      // NVIDIA driver is NOT loaded (using Mesa/AMD/Intel)
+      mesaRadioButton.Checked := True;
+      spoofCheckBox.Checked := True;
+      spoofCheckBox.Enabled := True;
+      autodetectmesaLabel.Visible:=true;
+      autodetectmesaLabel.Font.color:=clyellow;
+  end;
 
     //Initiate optiscaler
 
