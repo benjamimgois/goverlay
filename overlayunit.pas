@@ -70,7 +70,6 @@ type
     xessLabel: TLabel;
     optionsGroupBox: TGroupBox;
     statusGroupBox: TGroupBox;
-    Label1: TLabel;
     menuLabel: TLabel;
     menuscaleTrackBar: TTrackBar;
     menuscalevalueLabel: TLabel;
