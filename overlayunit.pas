@@ -53,11 +53,14 @@ type
     filenameLabel: TLabel;
     filenameLabel1: TLabel;
     framegenComboBox: TComboBox;
-    fsrautoupdateLabel: TLabel;
     fsrLabel1: TLabel;
-    fsrtypeComboBox: TComboBox;
     autodetectnvLabel: TLabel;
     commandLabel: TLabel;
+    optiscalerGroupBox: TGroupBox;
+    fakenvapiGroupBox: TGroupBox;
+    menuLabel: TLabel;
+    menuscaleTrackBar: TTrackBar;
+    menuscalevalueLabel: TLabel;
     updatestatusLabel: TLabel;
     optLabel: TLabel;
     fakenvapiLabel: TLabel;
@@ -70,9 +73,6 @@ type
     xessLabel: TLabel;
     optionsGroupBox: TGroupBox;
     statusGroupBox: TGroupBox;
-    menuLabel: TLabel;
-    menuscaleTrackBar: TTrackBar;
-    menuscalevalueLabel: TLabel;
     dlsLabel: TLabel;
     dlsTrackBar: TTrackBar;
     dlsvalueLabel: TLabel;
