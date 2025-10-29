@@ -361,6 +361,7 @@ type
     procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
+    procedure menuscaleTrackBarChange(Sender: TObject);
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runvkbasaltItemClick(Sender: TObject);
@@ -3359,6 +3360,12 @@ copyBitbtn.Visible:=false;
 
 end;
 
+procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
+begin
+  //Display new values and trackbar changes (divide by 10)
+  menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
+end;
+
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
 begin
 //Disable tabs
@@ -4275,6 +4282,12 @@ var
   LineIndex: Integer;
   LineFound, WineOverrideFound: Boolean;
 
+  // Optiscaler.ini vars
+  OptiScalerIniPath, SelectedFGType, ScaleValue: string;
+  OptiScalerIniLines: TStringList;
+  FGTypeFound, ScaleFound: Boolean;
+  ScaleFloat: Double;
+
   procedure AddEffectToLine(const NameOnly: string);
    begin
      if EffectsLine = '' then
@@ -4353,8 +4366,84 @@ var
             // Save the modified file
             FGModLines.SaveToFile(FGModFilePath);
 
-            // Give execute permission (chmod 755)
-            //fpChmod(FGModFilePath, &755);
+                   // Get OptiScaler.ini file path
+          OptiScalerIniPath := GetUserDir + 'fgmod' + PathDelim + 'OptiScaler.ini';
+
+          // Get selected FGType from framegenComboBox
+          case framegenComboBox.ItemIndex of
+            0: SelectedFGType := 'auto';
+            1: SelectedFGType := 'optifg';
+            2: SelectedFGType := 'nukems';
+          else
+            SelectedFGType := 'auto'; // Default
+          end;
+
+
+          // Calculate Scale value from menuscaleTrackBar (divide by 10)
+          ScaleFloat := menuscaleTrackBar.Position / 10.0;
+          // Format with dot as decimal separator
+          FS := DefaultFormatSettings;
+          FS.DecimalSeparator := '.';
+          ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
+
+
+          // Check if OptiScaler.ini exists
+              if FileExists(OptiScalerIniPath) then
+              begin
+                OptiScalerIniLines := TStringList.Create;
+                try
+                  // Load the OptiScaler.ini file
+                  OptiScalerIniLines.LoadFromFile(OptiScalerIniPath);
+
+                  // Search for the line containing FGType=
+                  FGTypeFound := False;
+                  ScaleFound := False;
+
+                  for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
+                  begin
+                    // Check for FGType line
+                    if Pos('FGType=', OptiScalerIniLines[LineIndex]) > 0 then
+                    begin
+                      // Replace the line with the new FGType value
+                      OptiScalerIniLines[LineIndex] := 'FGType=' + SelectedFGType;
+                      FGTypeFound := True;
+                    end;
+
+                    // Check for Scale line
+                    if Pos('Scale=', OptiScalerIniLines[LineIndex]) > 0 then
+                    begin
+                      // Replace the line with the new Scale value
+                      OptiScalerIniLines[LineIndex] := 'Scale=' + ScaleValue;
+                      ScaleFound := True;
+                    end;
+
+                    // Exit loop if both found
+                    if FGTypeFound and ScaleFound then
+                      Break;
+                  end;
+
+                  if FGTypeFound and ScaleFound then
+                  begin
+                    // Save the modified OptiScaler.ini file
+                    OptiScalerIniLines.SaveToFile(OptiScalerIniPath);
+                  end
+                  else
+                  begin
+                    if not FGTypeFound then
+                      ShowMessage('Warning: Could not find FGType line in OptiScaler.ini file');
+                    if not ScaleFound then
+                      ShowMessage('Warning: Could not find Scale line in OptiScaler.ini file');
+                  end;
+
+            finally
+              OptiScalerIniLines.Free;
+            end;
+          end
+          else
+          begin
+            ShowMessage('Warning: OptiScaler.ini file not found at: ' + OptiScalerIniPath);
+          end;
+
 
             // Show notification
             ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
