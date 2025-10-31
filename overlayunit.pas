@@ -911,6 +911,14 @@ begin
   if not IsCommandAvailable('vkcube') then
     Missing.Add('vkcube');
 
+    //check if 7z is avaiable
+  if not IsCommandAvailable('7z') then
+    Missing.Add('p7zip');
+
+      //check if wget is avaiable
+  if not IsCommandAvailable('wget') then
+    Missing.Add('wget');
+
    //check if zenergy module is avaiable
   //if not IsKernelModuleAvailable('zenergy') then
   //  Missing.Add('- zenergy kernel module');
