@@ -41,6 +41,10 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
+    tracelogCheckBox: TCheckBox;
+    overrideCheckBox: TCheckBox;
+    forcelatencyflexCheckBox: TCheckBox;
+    forcereflexCheckBox: TCheckBox;
     copyBitBtn: TBitBtn;
     blacklistBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
@@ -50,12 +54,14 @@ type
     casLabel: TLabel;
     fakenvapi1: TLabel;
     filenameComboBox: TComboBox;
-    filenameLabel: TLabel;
-    filenameLabel1: TLabel;
+    latencyflexComboBox: TComboBox;
+    reflexComboBox: TComboBox;
     framegenComboBox: TComboBox;
     fsrLabel1: TLabel;
     autodetectnvLabel: TLabel;
     commandLabel: TLabel;
+    filenameLabel: TLabel;
+    framegenLabel: TLabel;
     optiscalerGroupBox: TGroupBox;
     fakenvapiGroupBox: TGroupBox;
     menuLabel: TLabel;
