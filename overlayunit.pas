@@ -4323,6 +4323,8 @@ ForceReflexValue: string;
 ForceReflexFound: Boolean;
 ForceLatencyFlexValue, LatencyFlexModeValue: string;
 ForceLatencyFlexFound, LatencyFlexModeFound: Boolean;
+EnableTraceLogsValue: string;
+EnableTraceLogsFound: Boolean;
 
   procedure AddEffectToLine(const NameOnly: string);
    begin
@@ -4491,6 +4493,7 @@ ForceLatencyFlexFound, LatencyFlexModeFound: Boolean;
             ForceReflexFound := False;
             ForceLatencyFlexFound := False;
             LatencyFlexModeFound := False;
+            EnableTraceLogsFound := False;
 
             // Get selected force_reflex value from reflexComboBox
             if forcereflexCheckBox.Checked then
@@ -4527,6 +4530,12 @@ ForceLatencyFlexFound, LatencyFlexModeFound: Boolean;
                          LatencyFlexModeValue := '0'; // Also set mode to 0
                        end;
 
+            // Get enable_trace_logs value from tracelogCheckBox
+            if tracelogCheckBox.Checked then
+              EnableTraceLogsValue := '1' // Checkbox is checked, set to 1
+            else
+              EnableTraceLogsValue := '0'; // Checkbox is not checked, set to 0
+
             // Check if fakenvapi.ini exists
             if FileExists(FakeNvapiIniPath) then
             begin
@@ -4557,6 +4566,13 @@ ForceLatencyFlexFound, LatencyFlexModeFound: Boolean;
                   begin
                     FakeNvapiIniLines[LineIndex] := 'latencyflex_mode=' + LatencyFlexModeValue;
                     LatencyFlexModeFound := True;
+                  end;
+
+                  // Check for enable_trace_logs line (always modify)
+                  if Pos('enable_trace_logs=', FakeNvapiIniLines[LineIndex]) > 0 then
+                  begin
+                    FakeNvapiIniLines[LineIndex] := 'enable_trace_logs=' + EnableTraceLogsValue;
+                    EnableTraceLogsFound := True;
                   end;
                 end;
 
