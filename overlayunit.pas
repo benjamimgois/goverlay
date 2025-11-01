@@ -352,6 +352,7 @@ type
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
+    procedure forcelatencyflexCheckBoxChange(Sender: TObject);
     procedure forcereflexCheckBoxChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
@@ -3940,6 +3941,12 @@ begin
   durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position) + 's' ;
 end;
 
+procedure Tgoverlayform.forcelatencyflexCheckBoxChange(Sender: TObject);
+begin
+  // Enable/disable latencyflexComboBox based on forcelatencyflexCheckBox state
+  latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
+end;
+
 procedure Tgoverlayform.forcereflexCheckBoxChange(Sender: TObject);
 begin
    // Enable/disable reflexComboBox based on forcereflexCheckBox state
@@ -4314,6 +4321,8 @@ FakeNvapiIniPath: string;
 FakeNvapiIniLines: TStringList;
 ForceReflexValue: string;
 ForceReflexFound: Boolean;
+ForceLatencyFlexValue, LatencyFlexModeValue: string;
+ForceLatencyFlexFound, LatencyFlexModeFound: Boolean;
 
   procedure AddEffectToLine(const NameOnly: string);
    begin
@@ -4473,20 +4482,50 @@ ForceReflexFound: Boolean;
 
           // ##### Now modify fakenvapi.ini file #####
 
-          // Only modify if forcereflexCheckBox is checked
-          if forcereflexCheckBox.Checked then
+          // Always modify fakenvapi.ini file (set to 0 if checkbox not checked)
           begin
             // Get fakenvapi.ini file path
             FakeNvapiIniPath := GetUserDir + 'fgmod' + PathDelim + 'fakenvapi.ini';
 
+            // Initialize found flags
+            ForceReflexFound := False;
+            ForceLatencyFlexFound := False;
+            LatencyFlexModeFound := False;
+
             // Get selected force_reflex value from reflexComboBox
-            case reflexComboBox.ItemIndex of
-              0: ForceReflexValue := '0'; // Follow game setting
-              1: ForceReflexValue := '1'; // Force disable
-              2: ForceReflexValue := '2'; // Force enable
+            if forcereflexCheckBox.Checked then
+            begin
+              // Usa valor do reflexComboBox (0, 1 ou 2)
+              case reflexComboBox.ItemIndex of
+                0: ForceReflexValue := '0'; // Follow game setting
+                1: ForceReflexValue := '1'; // Force disable
+                2: ForceReflexValue := '2'; // Force enable
+              end;
+            end
             else
-              ForceReflexValue := '0'; // Default
+            begin
+              ForceReflexValue := '0'; // Checkbox desmarcado = 0 (ignora combobox)
             end;
+
+            // Get force_latencyflex and latencyflex_mode values
+                       if forcelatencyflexCheckBox.Checked then
+                       begin
+                         ForceLatencyFlexValue := '1'; // Checkbox is checked, set to 1
+
+                         // Get latencyflex_mode from latencyflexComboBox
+                         case latencyflexComboBox.ItemIndex of
+                           0: LatencyFlexModeValue := '0'; // Conservative
+                           1: LatencyFlexModeValue := '1'; // Agressive
+                           2: LatencyFlexModeValue := '2'; // Use reflex ids
+                         else
+                           LatencyFlexModeValue := '0'; // Default
+                         end;
+                       end
+                       else
+                       begin
+                         ForceLatencyFlexValue := '0'; // Checkbox is not checked, set to 0
+                         LatencyFlexModeValue := '0'; // Also set mode to 0
+                       end;
 
             // Check if fakenvapi.ini exists
             if FileExists(FakeNvapiIniPath) then
@@ -4496,27 +4535,46 @@ ForceReflexFound: Boolean;
                 // Load the fakenvapi.ini file
                 FakeNvapiIniLines.LoadFromFile(FakeNvapiIniPath);
 
-                // Search for the line containing force_reflex=
-                ForceReflexFound := False;
+                // Search and modify all relevant lines
                 for LineIndex := 0 to FakeNvapiIniLines.Count - 1 do
                 begin
+                  // Check for force_reflex line (always modify)
                   if Pos('force_reflex=', FakeNvapiIniLines[LineIndex]) > 0 then
                   begin
-                    // Replace the line with the new force_reflex value
                     FakeNvapiIniLines[LineIndex] := 'force_reflex=' + ForceReflexValue;
                     ForceReflexFound := True;
-                    Break;
+                  end;
+
+                  // Check for force_latencyflex line (always modify)
+                  if Pos('force_latencyflex=', FakeNvapiIniLines[LineIndex]) > 0 then
+                  begin
+                    FakeNvapiIniLines[LineIndex] := 'force_latencyflex=' + ForceLatencyFlexValue;
+                    ForceLatencyFlexFound := True;
+                  end;
+
+                  // Check for latencyflex_mode line (always modify)
+                  if Pos('latencyflex_mode=', FakeNvapiIniLines[LineIndex]) > 0 then
+                  begin
+                    FakeNvapiIniLines[LineIndex] := 'latencyflex_mode=' + LatencyFlexModeValue;
+                    LatencyFlexModeFound := True;
                   end;
                 end;
 
-                if ForceReflexFound then
+                // Check if all expected lines were found and modified
+                if (not forcereflexCheckBox.Checked or ForceReflexFound) and
+                   (not forcelatencyflexCheckBox.Checked or (ForceLatencyFlexFound and LatencyFlexModeFound)) then
                 begin
                   // Save the modified fakenvapi.ini file
                   FakeNvapiIniLines.SaveToFile(FakeNvapiIniPath);
                 end
                 else
                 begin
-                  ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
+                  if forcereflexCheckBox.Checked and not ForceReflexFound then
+                    ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
+                  if forcelatencyflexCheckBox.Checked and not ForceLatencyFlexFound then
+                    ShowMessage('Warning: Could not find force_latencyflex line in fakenvapi.ini file');
+                  if forcelatencyflexCheckBox.Checked and not LatencyFlexModeFound then
+                    ShowMessage('Warning: Could not find latencyflex_mode line in fakenvapi.ini file');
                 end;
 
               finally
