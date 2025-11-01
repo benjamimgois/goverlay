@@ -2277,8 +2277,8 @@ begin
     Process.Parameters.Add('-c');
     Process.Parameters.Add('lspci | grep -i "VGA\|video" | wc -l'); //Count the number of lines
     Process.Options := [poUsePipes];
-    Process.WaitOnExit;
     Process.Execute;
+    Process.WaitOnExit;
 
     saida.LoadFromStream(Process.output);
     GPUNUMBER:= strtoint(saida[0]);
@@ -2300,8 +2300,8 @@ begin
       Process.Parameters.Add('-c');
       Process.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
       Process.Options := [poUsePipes];
-      Process.WaitOnExit;
       Process.Execute;
+      Process.WaitOnExit;
 
       saida.LoadFromStream(Process.output);
       pcidevComboBox.Items.Insert(i-1, saida[0]); //First position of combobox is 0, so we need i-1
@@ -2317,8 +2317,8 @@ begin
       Process.Parameters.Add('-c');
       Process.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
       Process.Options := [poUsePipes];
-      Process.WaitOnExit;
       Process.Execute;
+      Process.WaitOnExit;
 
       saida.LoadFromStream(Process.output);
       GPUDESC.Add(saida[0]);
@@ -2647,8 +2647,8 @@ begin
       Process.Parameters.Add('-c');
       Process.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
       Process.Options := [poUsePipes];
-      Process.WaitOnExit;
       Process.Execute;
+      Process.WaitOnExit;
 
       saida.LoadFromStream(Process.output);
       LSPCI0 := Trim(saida.text); // store output um variable
