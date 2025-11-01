@@ -352,6 +352,7 @@ type
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
+    procedure forcereflexCheckBoxChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
@@ -3939,6 +3940,12 @@ begin
   durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position) + 's' ;
 end;
 
+procedure Tgoverlayform.forcereflexCheckBoxChange(Sender: TObject);
+begin
+   // Enable/disable reflexComboBox based on forcereflexCheckBox state
+  reflexComboBox.Enabled := forcereflexCheckBox.Checked;
+end;
+
 procedure Tgoverlayform.fpsavgBitBtnClick(Sender: TObject);
 begin
        //Change caption and hint on click
@@ -4302,6 +4309,12 @@ var
   FGTypeFound, ScaleFound: Boolean;
   ScaleFloat: Double;
 
+  // fakenvapi.ini vars
+FakeNvapiIniPath: string;
+FakeNvapiIniLines: TStringList;
+ForceReflexValue: string;
+ForceReflexFound: Boolean;
+
   procedure AddEffectToLine(const NameOnly: string);
    begin
      if EffectsLine = '' then
@@ -4458,6 +4471,63 @@ var
             ShowMessage('Warning: OptiScaler.ini file not found at: ' + OptiScalerIniPath);
           end;
 
+          // ##### Now modify fakenvapi.ini file #####
+
+          // Only modify if forcereflexCheckBox is checked
+          if forcereflexCheckBox.Checked then
+          begin
+            // Get fakenvapi.ini file path
+            FakeNvapiIniPath := GetUserDir + 'fgmod' + PathDelim + 'fakenvapi.ini';
+
+            // Get selected force_reflex value from reflexComboBox
+            case reflexComboBox.ItemIndex of
+              0: ForceReflexValue := '0'; // Follow game setting
+              1: ForceReflexValue := '1'; // Force disable
+              2: ForceReflexValue := '2'; // Force enable
+            else
+              ForceReflexValue := '0'; // Default
+            end;
+
+            // Check if fakenvapi.ini exists
+            if FileExists(FakeNvapiIniPath) then
+            begin
+              FakeNvapiIniLines := TStringList.Create;
+              try
+                // Load the fakenvapi.ini file
+                FakeNvapiIniLines.LoadFromFile(FakeNvapiIniPath);
+
+                // Search for the line containing force_reflex=
+                ForceReflexFound := False;
+                for LineIndex := 0 to FakeNvapiIniLines.Count - 1 do
+                begin
+                  if Pos('force_reflex=', FakeNvapiIniLines[LineIndex]) > 0 then
+                  begin
+                    // Replace the line with the new force_reflex value
+                    FakeNvapiIniLines[LineIndex] := 'force_reflex=' + ForceReflexValue;
+                    ForceReflexFound := True;
+                    Break;
+                  end;
+                end;
+
+                if ForceReflexFound then
+                begin
+                  // Save the modified fakenvapi.ini file
+                  FakeNvapiIniLines.SaveToFile(FakeNvapiIniPath);
+                end
+                else
+                begin
+                  ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
+                end;
+
+              finally
+                FakeNvapiIniLines.Free;
+              end;
+            end
+            else
+            begin
+              ShowMessage('Warning: fakenvapi.ini file not found at: ' + FakeNvapiIniPath);
+            end;
+          end;
 
             // Show notification
             ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
