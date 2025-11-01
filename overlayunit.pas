@@ -370,6 +370,8 @@ type
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
     procedure menuscaleTrackBarChange(Sender: TObject);
+    procedure mesaRadioButtonChange(Sender: TObject);
+    procedure nvidiaRadioButtonChange(Sender: TObject);
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runvkbasaltItemClick(Sender: TObject);
@@ -3258,6 +3260,9 @@ begin
       spoofCheckBox.Enabled := False;
       autodetectnvLabel.Visible:=true;
       autodetectnvLabel.Font.color:=clyellow;
+      forcereflexCheckBox.Checked := false;
+      forcereflexCheckBox.Enabled := false;
+      reflexComboBox.Enabled:= false;
     end
     else
     begin
@@ -3267,6 +3272,9 @@ begin
       spoofCheckBox.Enabled := True;
       autodetectmesaLabel.Visible:=true;
       autodetectmesaLabel.Font.color:=clyellow;
+//    forcereflexCheckBox.Checked := false;
+      forcereflexCheckBox.Enabled := true;
+      reflexComboBox.Enabled:= true;
   end;
 
     //Initiate optiscaler
@@ -3380,6 +3388,28 @@ procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes (divide by 10)
   menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
+end;
+
+procedure Tgoverlayform.mesaRadioButtonChange(Sender: TObject);
+begin
+      //Enable reflex options
+      forcereflexCheckBox.Checked := true;
+      forcereflexCheckBox.Enabled := true;
+      reflexComboBox.Enabled:= true;
+      reflexCombobox.ItemIndex:=2;
+      spoofCheckBox.Enabled:=true;
+      spoofCheckBox.Checked:=true;
+end;
+
+procedure Tgoverlayform.nvidiaRadioButtonChange(Sender: TObject);
+begin
+      //disable reflex options
+      forcereflexCheckBox.Checked := false;
+      forcereflexCheckBox.Enabled := false;
+      reflexComboBox.Enabled:= false;
+      reflexCombobox.ItemIndex:=0;
+      spoofCheckBox.Enabled:=false;
+      spoofCheckBox.Checked:=false;
 end;
 
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
