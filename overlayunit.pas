@@ -4315,6 +4315,8 @@ var
   OptiScalerIniLines: TStringList;
   FGTypeFound, ScaleFound: Boolean;
   ScaleFloat: Double;
+  OverrideNvapiDllValue: string;
+  OverrideNvapiDllFound: Boolean;
 
   // fakenvapi.ini vars
 FakeNvapiIniPath: string;
@@ -4424,6 +4426,11 @@ EnableTraceLogsFound: Boolean;
           FS.DecimalSeparator := '.';
           ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
 
+          // Get OverrideNvapiDll value from overrideCheckBox
+          if overrideCheckBox.Checked then
+            OverrideNvapiDllValue := 'true' // Checkbox is checked, set to true
+          else
+            OverrideNvapiDllValue := 'auto'; // Checkbox is not checked, set to auto
 
           // Check if OptiScaler.ini exists
               if FileExists(OptiScalerIniPath) then
@@ -4434,6 +4441,7 @@ EnableTraceLogsFound: Boolean;
                   OptiScalerIniLines.LoadFromFile(OptiScalerIniPath);
 
                   // Search for the line containing FGType=
+                  OverrideNvapiDllFound := False;
                   FGTypeFound := False;
                   ScaleFound := False;
 
@@ -4455,9 +4463,18 @@ EnableTraceLogsFound: Boolean;
                       ScaleFound := True;
                     end;
 
+                    // Check for OverrideNvapiDll line
+                    if Pos('OverrideNvapiDll=', OptiScalerIniLines[LineIndex]) > 0 then
+                    begin
+                      // Replace the line with the new OverrideNvapiDll value
+                      OptiScalerIniLines[LineIndex] := 'OverrideNvapiDll=' + OverrideNvapiDllValue;
+                      OverrideNvapiDllFound := True;
+                    end;
+
+
                     // Exit loop if both found
-                    if FGTypeFound and ScaleFound then
-                      Break;
+                     if FGTypeFound and ScaleFound and OverrideNvapiDllFound then
+                       Break;
                   end;
 
                   if FGTypeFound and ScaleFound then
@@ -4471,6 +4488,8 @@ EnableTraceLogsFound: Boolean;
                       ShowMessage('Warning: Could not find FGType line in OptiScaler.ini file');
                     if not ScaleFound then
                       ShowMessage('Warning: Could not find Scale line in OptiScaler.ini file');
+                    if not OverrideNvapiDllFound then
+                      ShowMessage('Warning: Could not find OverrideNvapiDll line in OptiScaler.ini file');
                   end;
 
             finally
