@@ -396,6 +396,9 @@ type
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
     procedure LoadMangoHudConfig;
+    procedure LoadOptiScalerConfig;
+    procedure LoadFakeNvapiConfig;
+    procedure LoadFgmodConfig;
 
   private
     FStartTick: Cardinal;
@@ -452,7 +455,7 @@ BlacklistStr, blacklistVAR, RepoDir: string;
   DarkBackgroundColor = $0045403A; // dark panel color BGR
   DarkerBackgroundColor = $00232323;  // darker panel color BGR for unselected item
   DarkTextColor = clwhite;  // set light color
-
+  clRADEON = TColor($241CED); // ou RGB(237,28,36)
 implementation
 
 
@@ -494,7 +497,23 @@ end;
 { Tgoverlayform }
 
 
-
+//radeon theme
+procedure ApplyRadeonTheme(AForm: TForm);
+var
+  i: Integer;
+begin
+  AForm.Color := clRADEON;  // cor de fundo do formulário ativo
+  for i := 0 to AForm.ControlCount - 1 do
+  begin
+    if (AForm.Controls[i] is TButton) then
+    begin
+      (AForm.Controls[i] as TButton).Font.Color := clWhite;
+      (AForm.Controls[i] as TButton).Color := clRADEON;
+    end
+    else if (AForm.Controls[i] is TLabel) then
+      (AForm.Controls[i] as TLabel).Font.Color := clWhite;
+  end;
+end;
 
 
 
@@ -1248,8 +1267,6 @@ BaseB := 70;  // 0x46
     begin
       // Smaller coeeficients in X and Y gets bigger effects
       // Smaller timeelapsed get slower speeds
-    //  OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.02) + TimeElapsed * 0.65);
-    //  OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.5);
       OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
       OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
 
@@ -1411,6 +1428,215 @@ begin
     ListBox.Sorted := True;
   finally
     ListBox.Items.EndUpdate;
+  end;
+end;
+
+procedure Tgoverlayform.LoadOptiScalerConfig;
+var
+  ConfigLines: TStringList;
+  Line, TrimmedLine, Key, Value: string;
+  i, ColonPos: Integer;
+  FloatValue: Double;
+  FS: TFormatSettings;
+  OptiScalerIniPath: string;
+begin
+  // Get OptiScaler.ini file path
+  OptiScalerIniPath := GetUserDir + 'fgmod' + PathDelim + 'OptiScaler.ini';
+
+  if not FileExists(OptiScalerIniPath) then
+    Exit;
+
+  ConfigLines := TStringList.Create;
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  try
+    ConfigLines.LoadFromFile(OptiScalerIniPath);
+
+    for i := 0 to ConfigLines.Count - 1 do
+    begin
+      Line := ConfigLines[i];
+      TrimmedLine := Trim(Line);
+
+      // Ignora comentários e linhas vazias
+      if (TrimmedLine = '') or (TrimmedLine[1] = '#') or (TrimmedLine[1] = ';') then
+        Continue;
+
+      ColonPos := Pos('=', TrimmedLine);
+      if ColonPos = 0 then
+        Continue;
+
+      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
+      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
+
+      // Processa cada chave
+      if SameText(Key, 'FGType') then
+      begin
+        if SameText(Value, 'auto') then
+          framegenComboBox.ItemIndex := 0
+        else if SameText(Value, 'optifg') then
+          framegenComboBox.ItemIndex := 1
+        else if SameText(Value, 'nukems') then
+          framegenComboBox.ItemIndex := 2;
+      end
+      else if SameText(Key, 'Scale') then
+      begin
+        if TryStrToFloat(Value, FloatValue, FS) then
+        begin
+          // Converte 0.5..2.0 -> 5..20
+          menuscaleTrackBar.Position := Round(FloatValue * 10);
+          menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
+        end;
+      end
+      else if SameText(Key, 'OverrideNvapiDll') then
+      begin
+        overrideCheckBox.Checked := SameText(Value, 'true');
+      end;
+    end;
+
+  finally
+    ConfigLines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.LoadFakeNvapiConfig;
+var
+  ConfigLines: TStringList;
+  Line, TrimmedLine, Key, Value: string;
+  i, ColonPos: Integer;
+  FakeNvapiIniPath: string;
+begin
+  // Get fakenvapi.ini file path
+  FakeNvapiIniPath := GetUserDir + 'fgmod' + PathDelim + 'fakenvapi.ini';
+
+  if not FileExists(FakeNvapiIniPath) then
+    Exit;
+
+  ConfigLines := TStringList.Create;
+
+  try
+    ConfigLines.LoadFromFile(FakeNvapiIniPath);
+
+    for i := 0 to ConfigLines.Count - 1 do
+    begin
+      Line := ConfigLines[i];
+      TrimmedLine := Trim(Line);
+
+      // Ignora comentários e linhas vazias
+      if (TrimmedLine = '') or (TrimmedLine[1] = '#') or (TrimmedLine[1] = ';') then
+        Continue;
+
+      ColonPos := Pos('=', TrimmedLine);
+      if ColonPos = 0 then
+        Continue;
+
+      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
+      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
+
+      // Processa cada chave
+      if SameText(Key, 'force_reflex') then
+      begin
+        if Value = '0' then
+        begin
+          forcereflexCheckBox.Checked := False;
+          reflexComboBox.ItemIndex := 0; // Follow game setting
+        end
+        else
+        begin
+          forcereflexCheckBox.Checked := True;
+          case Value of
+            '1': reflexComboBox.ItemIndex := 1; // Force disable
+            '2': reflexComboBox.ItemIndex := 2; // Force enable
+          else
+            reflexComboBox.ItemIndex := 0;
+          end;
+        end;
+        reflexComboBox.Enabled := forcereflexCheckBox.Checked;
+      end
+      else if SameText(Key, 'force_latencyflex') then
+      begin
+        forcelatencyflexCheckBox.Checked := (Value = '1');
+        latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
+      end
+      else if SameText(Key, 'latencyflex_mode') then
+      begin
+        if forcelatencyflexCheckBox.Checked then
+        begin
+          case Value of
+            '0': latencyflexComboBox.ItemIndex := 0; // Conservative
+            '1': latencyflexComboBox.ItemIndex := 1; // Agressive
+            '2': latencyflexComboBox.ItemIndex := 2; // Use reflex ids
+          else
+            latencyflexComboBox.ItemIndex := 0;
+          end;
+        end;
+      end
+      else if SameText(Key, 'enable_trace_logs') then
+      begin
+        tracelogCheckBox.Checked := (Value = '1');
+      end;
+    end;
+
+  finally
+    ConfigLines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.LoadFgmodConfig;
+var
+  ConfigLines: TStringList;
+  Line, TrimmedLine, DllName: string;
+  i: Integer;
+  FgmodPath: string;
+begin
+  // Get fgmod file path
+  FgmodPath := GetUserDir + 'fgmod' + PathDelim + 'fgmod';
+
+  if not FileExists(FgmodPath) then
+    Exit;
+
+  ConfigLines := TStringList.Create;
+
+  try
+    ConfigLines.LoadFromFile(FgmodPath);
+
+    for i := 0 to ConfigLines.Count - 1 do
+    begin
+      Line := ConfigLines[i];
+      TrimmedLine := Trim(Line);
+
+      // Procura pela linha dll_name="${DLL:-
+      if Pos('dll_name="${DLL:-', TrimmedLine) > 0 then
+      begin
+        // Extrai o nome da DLL
+        // Formato: dll_name="${DLL:-dxgi.dll}"
+        DllName := Copy(TrimmedLine, Pos(':-', TrimmedLine) + 2, Length(TrimmedLine));
+        DllName := Copy(DllName, 1, Pos('}"', DllName) - 1);
+
+        // Define o índice do combobox baseado no nome da DLL
+        if SameText(DllName, 'dxgi.dll') then
+          filenameComboBox.ItemIndex := 0
+        else if SameText(DllName, 'version.dll') then
+          filenameComboBox.ItemIndex := 1
+        else if SameText(DllName, 'dbghelp.dll') then
+          filenameComboBox.ItemIndex := 2
+        else if SameText(DllName, 'd3d12.dll') then
+          filenameComboBox.ItemIndex := 3
+        else if SameText(DllName, 'wininet.dll') then
+          filenameComboBox.ItemIndex := 4
+        else if SameText(DllName, 'winhttp.dll') then
+          filenameComboBox.ItemIndex := 5
+        else if SameText(DllName, 'OptiScaler.asi') then
+          filenameComboBox.ItemIndex := 6
+        else
+          filenameComboBox.ItemIndex := 0; // Default: dxgi.dll
+
+        Break; // Encontrou, pode sair do loop
+      end;
+    end;
+
+  finally
+    ConfigLines.Free;
   end;
 end;
 
@@ -3250,6 +3476,14 @@ begin
     //Load vkbasalt configuration
     LoadVkBasaltConfig;
 
+    //Load fgmod configuration
+    LoadFgmodConfig;
+
+    //Load OptiScaler configuration
+    LoadOptiScalerConfig;
+
+    //Load FakeNvapi configuration
+    LoadFakeNvapiConfig;
 
     // Check NVIDIA module and configure controls
     if IsNvidiaModuleLoaded then
@@ -3983,6 +4217,7 @@ begin
   reflexComboBox.Enabled := forcereflexCheckBox.Checked;
 end;
 
+
 procedure Tgoverlayform.fpsavgBitBtnClick(Sender: TObject);
 begin
        //Change caption and hint on click
@@ -4713,7 +4948,7 @@ EnableTraceLogsFound: Boolean;
   // Popup a notification
 
     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "MangoHud" "Configuration saved"');
-    notificationlabel.Visible:=true;
+   // notificationlabel.Visible:=true;
 
 
     //###############################################################################################    VISUAL TAB
@@ -5585,7 +5820,7 @@ end;  //  ################### END - SAVE MANGOHUD
      if FileExists(VKBASALTCFGFILE) then
        DeleteFile(VKBASALTCFGFILE);
      Lines.SaveToFile(VKBASALTCFGFILE);
-     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "vkBasalt configuration saved"');
+     ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "vkBasalt" "configuration saved"');
    except
      on E: Exception do
        ShowMessage('Fail to save vkbasalt.conf: ' + E.Message);
