@@ -41,6 +41,8 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
+    deckyLabel2: TLabel;
+    fakenvapi2: TLabel;
     tracelogCheckBox: TCheckBox;
     overrideCheckBox: TCheckBox;
     forcelatencyflexCheckBox: TCheckBox;
@@ -67,15 +69,15 @@ type
     menuLabel: TLabel;
     menuscaleTrackBar: TTrackBar;
     menuscalevalueLabel: TLabel;
-    updatestatusLabel: TLabel;
+    updateProgressBar: TProgressBar;
     optLabel: TLabel;
     fakenvapiLabel: TLabel;
     fsrLabel: TLabel;
     optLabel1: TLabel;
     deckyLabel: TLabel;
     deckyLabel1: TLabel;
-    updateProgressBar: TProgressBar;
     updateBitBtn: TBitBtn;
+    updatestatusLabel: TLabel;
     xessLabel: TLabel;
     optionsGroupBox: TGroupBox;
     statusGroupBox: TGroupBox;
@@ -868,7 +870,11 @@ end;
 
 procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
 begin
-   FOptiscalerUpdate.UpdateButtonClick(Sender);
+ updateProgressBar.Visible:=true;
+ updatestatusLabel.Visible:=true;
+ FOptiscalerUpdate.UpdateButtonClick(Sender);
+ updateProgressBar.Visible:=false;
+ updatestatusLabel.Visible:=false;
 end;
 
 
