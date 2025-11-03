@@ -76,6 +76,7 @@ type
     optLabel1: TLabel;
     deckyLabel: TLabel;
     deckyLabel1: TLabel;
+    checkupdBitBtn: TBitBtn;
     updateBitBtn: TBitBtn;
     updatestatusLabel: TLabel;
     xessLabel: TLabel;
@@ -392,6 +393,7 @@ type
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
+    procedure checkupdBitBtnClick(Sender: TObject);
     procedure updateBitBtnClick(Sender: TObject);
     procedure usercustomBitBtnClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
@@ -866,6 +868,12 @@ begin
     if Components[i] is TCheckBox then
       (Components[i] as TCheckBox).Checked := True;
   end;
+end;
+
+procedure Tgoverlayform.checkupdBitBtnClick(Sender: TObject);
+begin
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.CheckForUpdatesOnClick;
 end;
 
 procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
@@ -3523,6 +3531,7 @@ begin
 
     FOptiscalerUpdate.FGModPath := GetUserDir + 'fgmod';
     FOptiscalerUpdate.UpdateBtn := updatebitBtn;
+    FOptiscalerUpdate.CheckupdBtn := checkupdBitbtn;
     FOptiscalerUpdate.ProgressBar := updateProgressBar;
     FOptiscalerUpdate.StatusLabel := updatestatusLabel;
     FOptiscalerUpdate.DeckyLabel := deckylabel1;
@@ -3530,8 +3539,12 @@ begin
     FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
     FOptiscalerUpdate.XessLabel := xessLabel1;
     FOptiscalerUpdate.FsrLabel := fsrlabel1;
-    //load versions installed
-    FOptiscalerUpdate.LoadVersionsFromFile;
+    FOptiscalerUpdate.DeckyLabel2 := deckylabel2;
+    FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
+    FOptiscalerUpdate.NotificationLabel := notificationLabel;
+    
+    //Initialize tab and check for updates
+    FOptiscalerUpdate.InitializeTab;
 
 end; // form create
 

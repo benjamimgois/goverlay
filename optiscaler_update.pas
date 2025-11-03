@@ -10,6 +10,7 @@ type
   TOptiscalerTab = class
   private
     FUpdateBtn: TBitBtn;
+    FCheckupdBtn: TBitBtn;
     FProgressBar: TProgressBar;
     FStatusLabel: TLabel;
     FDeckyLabel: TLabel;
@@ -17,6 +18,9 @@ type
     FFakeNvapiLabel: TLabel;
     FXessLabel: TLabel;
     FFsrLabel: TLabel;
+    FDeckyLabel2: TLabel;      // Label for update notification
+    FFakeNvapiLabel2: TLabel;  // Label for update notification
+    FNotificationLabel: TLabel; // Label for general notifications
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
@@ -28,12 +32,16 @@ type
     procedure UpdateProgress(AProgress: Integer);
     procedure UpdateStatus(const AStatus: string);
     function ExtractOptiScalerVersion(const AFileName: string): string;
+    procedure CheckForUpdates;
   public
 
     procedure LoadVersionsFromFile;
     procedure UpdateButtonClick(Sender: TObject);
+    procedure InitializeTab;
+    procedure CheckForUpdatesOnClick;
     property FGModPath: string read FFGModPath write FFGModPath;
     property UpdateBtn: TBitBtn read FUpdateBtn write FUpdateBtn;
+    property CheckupdBtn: TBitBtn read FCheckupdBtn write FCheckupdBtn;
     property ProgressBar: TProgressBar read FProgressBar write FProgressBar;
     property StatusLabel: TLabel read FStatusLabel write FStatusLabel;
     property DeckyLabel: TLabel read FDeckyLabel write FDeckyLabel;
@@ -41,6 +49,9 @@ type
     property FakeNvapiLabel: TLabel read FFakeNvapiLabel write FFakeNvapiLabel;
     property XessLabel: TLabel read FXessLabel write FXessLabel;
     property FsrLabel: TLabel read FFsrLabel write FFsrLabel;
+    property DeckyLabel2: TLabel read FDeckyLabel2 write FDeckyLabel2;
+    property FakeNvapiLabel2: TLabel read FFakeNvapiLabel2 write FFakeNvapiLabel2;
+    property NotificationLabel: TLabel read FNotificationLabel write FNotificationLabel;
   end;
 
 implementation
@@ -517,6 +528,182 @@ begin
   end;
 end;
 
+procedure TOptiscalerTab.CheckForUpdatesOnClick;
+var
+  HasUpdates: Boolean;
+begin
+  HasUpdates := False;
+
+  // Hide labels before checking
+  if Assigned(FDeckyLabel2) then
+    FDeckyLabel2.Visible := False;
+
+  if Assigned(FFakeNvapiLabel2) then
+    FFakeNvapiLabel2.Visible := False;
+
+  // Hide notification label initially
+  if Assigned(FNotificationLabel) then
+    FNotificationLabel.Visible := False;
+
+  // Check for updates if fgmod exists
+  if DirectoryExists(FFGModPath) then
+  begin
+    CheckForUpdates;
+
+    // Check if any update label is visible
+    if Assigned(FDeckyLabel2) and FDeckyLabel2.Visible then
+      HasUpdates := True;
+
+    if Assigned(FFakeNvapiLabel2) and FFakeNvapiLabel2.Visible then
+      HasUpdates := True;
+
+    // Control button visibility based on updates
+    if HasUpdates then
+    begin
+      // Hide checkupdBtn and show updateBtn
+      if Assigned(FCheckupdBtn) then
+        FCheckupdBtn.Visible := False;
+
+      if Assigned(FUpdateBtn) then
+        FUpdateBtn.Visible := True;
+    end
+    else
+    begin
+      // No updates available - show notification
+      if Assigned(FNotificationLabel) then
+      begin
+        FNotificationLabel.Caption := 'No updates available';
+        FNotificationLabel.Visible := True;
+      end;
+    end;
+  end;
+end;
+
+procedure TOptiscalerTab.CheckForUpdates;
+var
+  VarsFilePath: string;
+  VarsFile: TextFile;
+  Line: string;
+  Key, Value: string;
+  SepPos: Integer;
+  StoredDeckyVersion, StoredFakeNvapiVersion: string;
+  LatestDeckyVersion, LatestFakeNvapiVersion: string;
+begin
+  // Build path to goverlay.vars
+  VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+
+  // Check if file exists
+  if not FileExists(VarsFilePath) then
+    Exit;
+
+  // Initialize stored versions
+  StoredDeckyVersion := '';
+  StoredFakeNvapiVersion := '';
+
+  try
+    // Read stored versions from goverlay.vars
+    AssignFile(VarsFile, VarsFilePath);
+    Reset(VarsFile);
+    try
+      while not Eof(VarsFile) do
+      begin
+        ReadLn(VarsFile, Line);
+
+        // Skip header line (starts with #)
+        if (Length(Line) > 0) and (Line[1] = '#') then
+          Continue;
+
+        // Parse KEY=VALUE
+        SepPos := Pos('=', Line);
+        if SepPos > 0 then
+        begin
+          Key := Copy(Line, 1, SepPos - 1);
+          Value := Copy(Line, SepPos + 1, Length(Line));
+
+          if Key = 'DeckyVersion' then
+            StoredDeckyVersion := Value
+          else if Key = 'FakeNvapiVersion' then
+            StoredFakeNvapiVersion := Value;
+        end;
+      end;
+    finally
+      CloseFile(VarsFile);
+    end;
+
+    // Check for Decky updates
+    if StoredDeckyVersion <> '' then
+    begin
+      LatestDeckyVersion := GetLatestReleaseTag;
+      if (LatestDeckyVersion <> '') and (LatestDeckyVersion <> StoredDeckyVersion) then
+      begin
+        // Update available
+        if Assigned(FDeckyLabel2) then
+        begin
+          try
+            FDeckyLabel2.Caption := ' Update available ' + '(' + LatestDeckyVersion + ')';
+            FDeckyLabel2.Visible := True;
+            FDeckyLabel2.Font.Color := clLime;
+            Application.ProcessMessages;
+          except
+            // Ignore errors
+          end;
+        end;
+      end;
+    end;
+
+    // Check for FakeNvapi updates
+    if StoredFakeNvapiVersion <> '' then
+    begin
+      LatestFakeNvapiVersion := GetFakeNvapiReleaseTag;
+      if (LatestFakeNvapiVersion <> '') and (LatestFakeNvapiVersion <> StoredFakeNvapiVersion) then
+      begin
+        // Update available
+        if Assigned(FFakeNvapiLabel2) then
+        begin
+          try
+            FFakeNvapiLabel2.Caption := ' Update available ' + '(' + LatestFakeNvapiVersion + ')';
+            FFakeNvapiLabel2.Visible := True;
+            FFakeNvapiLabel2.Font.Color := clLime;
+            Application.ProcessMessages;
+          except
+            // Ignore errors
+          end;
+        end;
+      end;
+    end;
+
+  except
+    on E: Exception do
+      ShowMessage('Error checking for updates: ' + E.Message);
+  end;
+end;
+
+procedure TOptiscalerTab.InitializeTab;
+begin
+  // Hide update labels initially
+  if Assigned(FDeckyLabel2) then
+    FDeckyLabel2.Visible := False;
+
+  if Assigned(FFakeNvapiLabel2) then
+    FFakeNvapiLabel2.Visible := False;
+
+  // Check if fgmod folder exists
+  if not DirectoryExists(FFGModPath) then
+  begin
+    // fgmod doesn't exist - change button caption to "Install"
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Caption := 'Install';
+  end
+  else
+  begin
+    // fgmod exists - load current versions and set button to "Update"
+    LoadVersionsFromFile;
+
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Caption := 'Update';
+  end;
+end;
+
 procedure TOptiscalerTab.UpdateButtonClick(Sender: TObject);
 var
   LatestTag: string;
@@ -542,6 +729,10 @@ begin
 
   try
     UpdateProgress(0);
+
+    // Hide notification label when starting installation
+    if Assigned(FNotificationLabel) then
+      FNotificationLabel.Visible := False;
 
     // Get user directory at the beginning
     UserDir := GetUserDir;
@@ -829,6 +1020,40 @@ begin
           ShowMessage('Warning: Could not update Fsr label: ' + E.Message);
       end;
     end;
+
+    // 14. Hide update notification labels after successful installation
+    if Assigned(FDeckyLabel2) then
+      FDeckyLabel2.Visible := False;
+
+    if Assigned(FFakeNvapiLabel2) then
+      FFakeNvapiLabel2.Visible := False;
+
+    // 15. Update version labels with newly installed versions
+    if Assigned(FDeckyLabel) and (DeckyVersion <> '') then
+    begin
+      try
+        FDeckyLabel.Caption := DeckyVersion;
+        FDeckyLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    if Assigned(FFakeNvapiLabel) and (FakeNvapiVersion <> '') then
+    begin
+      try
+        FFakeNvapiLabel.Caption := FakeNvapiVersion;
+        FFakeNvapiLabel.Font.Color := clYellow;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    // 16. Show checkupdBitBtn again
+    if Assigned(FCheckupdBtn) then
+      FCheckupdBtn.Visible := True;
 
   finally
     // Re-enable button
