@@ -17,7 +17,6 @@ type
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
-    aboutBitBtn: TBitBtn;
     acteffectsListBox: TListBox;
     addBitBtn: TBitBtn;
     afLabel: TLabel;
@@ -44,6 +43,7 @@ type
     deckyLabel2: TLabel;
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
+    aboutMenuItem: TMenuItem;
     tracelogCheckBox: TCheckBox;
     overrideCheckBox: TCheckBox;
     forcelatencyflexCheckBox: TCheckBox;
@@ -345,6 +345,7 @@ type
 
 
     procedure aboutBitBtnClick(Sender: TObject);
+    procedure aboutMenuItemClick(Sender: TObject);
     procedure addBitBtnClick(Sender: TObject);
     procedure afterburnercolorBitBtn1Click(Sender: TObject);
     procedure afTrackBarChange(Sender: TObject);
@@ -4016,7 +4017,12 @@ end;
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
 begin
-   aboutForm.ShowModal;
+
+end;
+
+procedure Tgoverlayform.aboutMenuItemClick(Sender: TObject);
+begin
+  aboutForm.ShowModal;
 end;
 
 procedure Tgoverlayform.addBitBtnClick(Sender: TObject);
