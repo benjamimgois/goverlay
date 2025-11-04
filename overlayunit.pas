@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
-  ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd,
+  ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types;
 
 
@@ -43,6 +43,7 @@ type
     batterywattCheckBox: TCheckBox;
     deckyLabel2: TLabel;
     fakenvapi2: TLabel;
+    donateMenuItem: TMenuItem;
     tracelogCheckBox: TCheckBox;
     overrideCheckBox: TCheckBox;
     forcelatencyflexCheckBox: TCheckBox;
@@ -354,6 +355,7 @@ type
     procedure copyBitBtnClick(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
+    procedure donateMenuItemClick(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure forcelatencyflexCheckBoxChange(Sender: TObject);
     procedure forcereflexCheckBoxChange(Sender: TObject);
@@ -4216,6 +4218,17 @@ end;
 procedure Tgoverlayform.dlsTrackBarChange(Sender: TObject);
 begin
    dlsvaluelabel.Caption := inttostr(dlsTrackbar.Position);
+end;
+
+procedure Tgoverlayform.donateMenuItemClick(Sender: TObject);
+begin
+   try
+    if not OpenURL('https://ko-fi.com/benjamimgois') then
+      ShowMessage('Unable to open the link in the default web browser.');
+  except
+    on E: Exception do
+      ShowMessage('Error opening the link: ' + E.Message);
+  end;
 end;
 
 procedure Tgoverlayform.durationTrackBarChange(Sender: TObject);

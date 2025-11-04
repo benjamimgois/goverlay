@@ -5,16 +5,16 @@ unit aboutunit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,ExtCtrls, LCLProc, LazHelpHTML, UTF8Process;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,ExtCtrls, LCLProc, LazHelpHTML, UTF8Process, LCLIntf;
 
 type
 
   { TaboutForm }
 
   TaboutForm = class(TForm)
+    donateImage: TImage;
     goverlaylink: TLabel;
     meImage: TImage;
-    donateImage: TImage;
     titleLabel: TLabel;
     meLabel: TLabel;
     textLabel: TLabel;
@@ -296,36 +296,14 @@ begin
 end;
 
 procedure TaboutForm.donateImageClick(Sender: TObject);
-
-   var
-  v: THTMLBrowserHelpViewer;
-  BrowserPath, BrowserParams: string;
-  p: LongInt;
-  URL: String;
-  BrowserProcess: TProcessUTF8;
-
   begin
-  v:=THTMLBrowserHelpViewer.Create(nil);
-  try
-    v.FindDefaultBrowser(BrowserPath,BrowserParams);
-    debugln(['Path=',BrowserPath,' Params=',BrowserParams]);
-
-    URL:='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Q5EYYEJ5NSJAU&source=url';
-    p:=System.Pos('%s', BrowserParams);
-    System.Delete(BrowserParams,p,2);
-    System.Insert(URL,BrowserParams,p);
-
-    // start browser
-    BrowserProcess:=TProcessUTF8.Create(nil);
     try
-      BrowserProcess.CommandLine:=BrowserPath+' '+BrowserParams;
-      BrowserProcess.Execute;
-    finally
-      BrowserProcess.Free;
-    end;
-  finally
-    v.Free;
-  end;
+     if not OpenURL('https://ko-fi.com/benjamimgois') then
+       ShowMessage('Unable to open the link in the default web browser.');
+   except
+     on E: Exception do
+       ShowMessage('Error opening the link: ' + E.Message);
+   end;
 end;
 
 procedure TaboutForm.pascubelinkClick(Sender: TObject);
