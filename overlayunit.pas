@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
-  FileUtil, StrUtils, gfxlaunch, Types;
+  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser;
 
 
 
@@ -40,6 +40,7 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
+    gupdateBitBtn: TBitBtn;
     deckyLabel2: TLabel;
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
@@ -429,7 +430,7 @@ CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CP
 FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE, OFFSET: string; //performance tab
 DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, USERSESSION, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
 VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
-BlacklistStr, blacklistVAR, RepoDir, GVERSION: string;
+BlacklistStr, blacklistVAR, RepoDir, GVERSION, GCHANNEL: string;
 
 
 
@@ -464,6 +465,91 @@ BlacklistStr, blacklistVAR, RepoDir, GVERSION: string;
   DarkTextColor = clwhite;  // set light color
   clRADEON = TColor($241CED); // ou RGB(237,28,36)
 implementation
+
+
+
+// Function to get latest Goverlay version from GitHub
+function GetLatestGoverlayVersion: string;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  Response: string;
+  JSONData: TJSONData;
+  JSONObject: TJSONObject;
+begin
+  Result := '';
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    try
+      // Use curl to get GitHub API
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-s');  // Silent mode
+      Process.Parameters.Add('-L');  // Follow redirects
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: Mozilla/5.0');
+      Process.Parameters.Add('https://api.github.com/repos/benjamimgois/goverlay/releases/latest');
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+
+      // Read response
+      OutputList.LoadFromStream(Process.Output);
+      Response := OutputList.Text;
+
+      if (Process.ExitStatus = 0) and (Response <> '') then
+      begin
+        JSONData := GetJSON(Response);
+        try
+          if Assigned(JSONData) and (JSONData is TJSONObject) then
+          begin
+            JSONObject := TJSONObject(JSONData);
+            Result := JSONObject.Get('tag_name', '');
+
+            // Remove 'v' prefix if exists (e.g., "v1.6.0" -> "1.6.0")
+            if (Length(Result) > 0) and (Result[1] = 'v') then
+              Delete(Result, 1, 1);
+          end;
+        finally
+          JSONData.Free;
+        end;
+      end;
+
+    except
+      on E: Exception do
+        // Silently ignore errors when checking for updates
+        Result := '';
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+end;
+
+
+//procedure to Check for goverlay update
+procedure CheckGoverlayUpdate(const CurrentVersion, Channel: string; UpdateButton: TBitBtn);
+var
+  LatestVersion: string;
+begin
+  // Only check for stable channel
+  if Channel <> 'stable' then
+    Exit;
+
+  // Get latest version from GitHub
+  LatestVersion := GetLatestGoverlayVersion;
+
+  // If we got a valid version and it's different from current
+  if (LatestVersion <> '') and (LatestVersion <> CurrentVersion) then
+  begin
+    if Assigned(UpdateButton) then
+    begin
+      UpdateButton.Caption := 'New Version ' + LatestVersion + ' available';
+      UpdateButton.Visible := True;
+    end;
+  end;
+end;
 
 
 function IsNvidiaModuleLoaded: Boolean;
@@ -2274,9 +2360,13 @@ begin
 
   //Program Version
   GVERSION := '1.6.0';
+  GCHANNEL := 'stable';
 
   //Set Window caption
   goverlayform.Caption:= 'Goverlay ' + GVERSION;
+
+   // Check for Goverlay updates
+  CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
 
   //Set initial TAB
   goverlayPageControl.ActivePage:=presetTabsheet;
@@ -2290,9 +2380,13 @@ begin
   // Force dark theme
   presettabsheet.Color:= DarkBackgroundColor;
   SetDarkColorsRecursively(Self); //set all elements to dark tones
-  saveBitbtn.Color:=$00008300; //Save button color exception
-  notificationLabel.Font.color:=clyellow; //color exception
+
+  //Color exceptions
+  saveBitbtn.Color:=$00008300;
+  notificationLabel.Font.color:=clyellow;
   vkbasaltLabel.Font.Color:=clgray;
+  gupdateBitbtn.Color := clMaroon ;
+  gupdateBitbtn.Font.Color := clYellow;
 
   //Turbulence animation start
   FStartTick := GetTickCount;
