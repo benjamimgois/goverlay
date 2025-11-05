@@ -692,7 +692,13 @@ begin
   begin
     // fgmod doesn't exist - change button caption to "Install"
     if Assigned(FUpdateBtn) then
-      FUpdateBtn.Caption := 'Install';
+    begin
+      FUpdateBtn.AutoSize:=true;
+      FUpdateBtn.Caption := 'Install OptiScaler';
+      FUpdateBtn.visible := true;
+      FCheckupdBtn.visible := false;
+      FUpdateBtn.Color:=clteal;
+    end;
   end
   else
   begin
@@ -700,7 +706,11 @@ begin
     LoadVersionsFromFile;
 
     if Assigned(FUpdateBtn) then
+    begin
       FUpdateBtn.Caption := 'Update';
+      FUpdateBtn.visible := false;
+      FCheckupdBtn.visible := true;
+    end;
   end;
 end;
 
@@ -1054,6 +1064,11 @@ begin
     // 16. Show checkupdBitBtn again
     if Assigned(FCheckupdBtn) then
       FCheckupdBtn.Visible := True;
+
+    // 17. Hide updateBitBtn after successful installation
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Visible := False;
+
 
   finally
     // Re-enable button
