@@ -468,29 +468,32 @@ implementation
 
 
 
-// Function to get latest Goverlay version from GitHub
+// Function to get the "second-latest" Goverlay tag from GitHub
+// (avoids nightly by design if it's the first tag)
 function GetLatestGoverlayVersion: string;
 var
   Process: TProcess;
   OutputList: TStringList;
   Response: string;
   JSONData: TJSONData;
+  JSONArray: TJSONArray;
   JSONObject: TJSONObject;
+  TagName: string;
 begin
   Result := '';
   Process := TProcess.Create(nil);
   OutputList := TStringList.Create;
   try
     try
-      // Use curl to get GitHub API
+      // Fetch only the first 2 tags (most-recent first)
       Process.Executable := 'curl';
-      Process.Parameters.Add('-s');  // Silent mode
+      Process.Parameters.Add('-s');  // Silent
       Process.Parameters.Add('-L');  // Follow redirects
       Process.Parameters.Add('-H');
       Process.Parameters.Add('Accept: application/vnd.github.v3+json');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add('https://api.github.com/repos/benjamimgois/goverlay/releases/latest');
+      Process.Parameters.Add('https://api.github.com/repos/benjamimgois/goverlay/tags?per_page=2');
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
 
@@ -502,30 +505,41 @@ begin
       begin
         JSONData := GetJSON(Response);
         try
-          if Assigned(JSONData) and (JSONData is TJSONObject) then
+          if Assigned(JSONData) and (JSONData is TJSONArray) then
           begin
-            JSONObject := TJSONObject(JSONData);
-            Result := JSONObject.Get('tag_name', '');
+            JSONArray := TJSONArray(JSONData);
 
-            // Remove 'v' prefix if exists (e.g., "v1.6.0" -> "1.6.0")
-            if (Length(Result) > 0) and (Result[1] = 'v') then
-              Delete(Result, 1, 1);
+            // Prefer the 2nd tag (index 1). If it doesn't exist, fall back to the 1st (index 0).
+            if JSONArray.Count >= 2 then
+              JSONObject := JSONArray.Objects[1]
+            else if JSONArray.Count = 1 then
+              JSONObject := JSONArray.Objects[0]
+            else
+              JSONObject := nil;
+
+            if Assigned(JSONObject) then
+            begin
+              TagName := JSONObject.Get('name', '');
+              if (TagName <> '') and (TagName[1] = 'v') then
+                Delete(TagName, 1, 1); // strip 'v' prefix
+              Result := TagName;
+            end;
           end;
         finally
           JSONData.Free;
         end;
       end;
-
     except
       on E: Exception do
-        // Silently ignore errors when checking for updates
-        Result := '';
+        Result := ''; // keep silent behavior
     end;
   finally
     OutputList.Free;
     Process.Free;
   end;
 end;
+
+
 
 
 //procedure to Check for goverlay update
@@ -960,9 +974,28 @@ begin
 end;
 
 procedure Tgoverlayform.checkupdBitBtnClick(Sender: TObject);
+var
+  HasUpdates: Boolean;
 begin
   if Assigned(FOptiscalerUpdate) then
+  begin
+    // Store the state before checking
+    HasUpdates := False;
+
+    // Check for updates
     FOptiscalerUpdate.CheckForUpdatesOnClick;
+
+    // Check if any update is available after checking
+    if Assigned(FOptiscalerUpdate.DeckyLabel2) and FOptiscalerUpdate.DeckyLabel2.Visible then
+      HasUpdates := True;
+
+    if Assigned(FOptiscalerUpdate.FakeNvapiLabel2) and FOptiscalerUpdate.FakeNvapiLabel2.Visible then
+      HasUpdates := True;
+
+    // Show notification if no updates available
+    if not HasUpdates then
+      ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "No updates for OptiScaler available"');
+  end;
 end;
 
 procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
@@ -2360,10 +2393,13 @@ begin
 
   //Program Version
   GVERSION := '1.6.0';
-  GCHANNEL := 'stable';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
-  goverlayform.Caption:= 'Goverlay ' + GVERSION;
+  if GCHANNEL = 'stable' then
+  goverlayform.Caption:= 'Goverlay ' + GVERSION
+  else
+  goverlayform.Caption:= 'Goverlay ' + GVERSION + ' git';
 
    // Check for Goverlay updates
   CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
@@ -2386,7 +2422,7 @@ begin
   notificationLabel.Font.color:=clyellow;
   vkbasaltLabel.Font.Color:=clgray;
   gupdateBitbtn.Color := clMaroon ;
-  gupdateBitbtn.Font.Color := clYellow;
+  gupdateBitbtn.Font.Color := clwhite;
 
   //Turbulence animation start
   FStartTick := GetTickCount;
@@ -3646,8 +3682,12 @@ begin
     FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
     FOptiscalerUpdate.NotificationLabel := notificationLabel;
     
-    //Initialize tab and check for updates
+    //Initialize tab
     FOptiscalerUpdate.InitializeTab;
+
+    //Check for updates on startup
+    if Assigned(FOptiscalerUpdate) then
+      FOptiscalerUpdate.CheckForUpdatesOnClick;
 
 end; // form create
 

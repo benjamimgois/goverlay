@@ -566,16 +566,9 @@ begin
 
       if Assigned(FUpdateBtn) then
         FUpdateBtn.Visible := True;
-    end
-    else
-    begin
-      // No updates available - show notification
-      if Assigned(FNotificationLabel) then
-      begin
-        FNotificationLabel.Caption := 'No updates available';
-        FNotificationLabel.Visible := True;
-      end;
     end;
+    // If no updates: just hide notification label (already hidden above)
+    // Don't show any message
   end;
 end;
 
