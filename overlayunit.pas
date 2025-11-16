@@ -1243,6 +1243,10 @@ begin
   commandLabel.Visible:=false;
   copyBitbtn.Visible:=false;
 
+  //Hide Global Enable controls (temporary fix, will remove in 1.6.1)
+  geSpeedButton.Visible:=false;
+  GlobalenableLabel.Visible:=false;
+
 end;
 
 procedure Tgoverlayform.whitecolorBitBtnClick(Sender: TObject);
@@ -3778,6 +3782,10 @@ notificationLabel.Visible:=false;
 commandLabel.Visible:=false;
 copyBitbtn.Visible:=false;
 
+//Show Global Enable controls
+geSpeedButton.Visible:=true;
+GlobalenableLabel.Visible:=true;
+
 end;
 
 procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
@@ -3833,6 +3841,10 @@ begin
   notificationLabel.Visible:=false;
   commandLabel.Visible:=false;
   copyBitbtn.Visible:=false;
+
+  //Hide Global Enable controls (temporary fix, will remove in 1.6.1)
+  geSpeedButton.Visible:=false;
+  GlobalenableLabel.Visible:=false;
 end;
 
 procedure Tgoverlayform.reshaderefreshBitBtnClick(Sender: TObject);
