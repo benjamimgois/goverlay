@@ -1059,8 +1059,8 @@ begin
   Missing := TStringList.Create;
 
   //check if pascubeis avaiable
-  if not IsCommandAvailable('pascube') then
-    Missing.Add('pascube');
+  //if not IsCommandAvailable('pascube') then
+  //  Missing.Add('pascube');
 
   //check if mangohud if avaiable
   if not IsCommandAvailable('mangohud') then
@@ -2397,7 +2397,7 @@ begin
 
   //Program Version
   GVERSION := '1.6.0';
-  GCHANNEL := 'git'; //stable ou git
+  GCHANNEL := 'stable'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
