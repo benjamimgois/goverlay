@@ -511,8 +511,6 @@ begin
 
             // Prefer the 2nd tag (index 1). If it doesn't exist, fall back to the 1st (index 0).
             if JSONArray.Count >= 2 then
-              JSONObject := JSONArray.Objects[1]
-            else if JSONArray.Count = 1 then
               JSONObject := JSONArray.Objects[0]
             else
               JSONObject := nil;
