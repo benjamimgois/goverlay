@@ -366,6 +366,7 @@ type
     procedure fullBitBtnClick(Sender: TObject);
     procedure fxaaTrackBarChange(Sender: TObject);
     procedure goverlayBitBtnClick(Sender: TObject);
+    procedure gupdateBitBtnClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
@@ -423,6 +424,7 @@ var
 
   s: string;
   Color: string;
+  GLatestVersion: string = '';
 
   ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, HUDCOMPACT, PCIDEV, TABLECOLUMNS: string; //visualtab
 GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, IOCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
@@ -467,9 +469,43 @@ BlacklistStr, blacklistVAR, RepoDir, GVERSION, GCHANNEL: string;
 implementation
 
 
+//Function to compare version strings (e.g., "1.5.3" vs "1.6.0")
+function CompareVersions(const Version1, Version2: string): Integer;
+var
+  V1Parts, V2Parts: TStringArray;
+  i, Num1, Num2, MaxLen: Integer;
+begin
+  // Split versions by dot
+  V1Parts := SplitString(Version1, '.');
+  V2Parts := SplitString(Version2, '.');
 
-// Function to get the "second-latest" Goverlay tag from GitHub
-// (avoids nightly by design if it's the first tag)
+  // Get the maximum length
+  MaxLen := Max(Length(V1Parts), Length(V2Parts));
+
+  // Compare each part
+  for i := 0 to MaxLen - 1 do
+  begin
+    // Get numeric value (0 if part doesn't exist)
+    if i < Length(V1Parts) then
+      Num1 := StrToIntDef(V1Parts[i], 0)
+    else
+      Num1 := 0;
+
+    if i < Length(V2Parts) then
+      Num2 := StrToIntDef(V2Parts[i], 0)
+    else
+      Num2 := 0;
+
+    // Compare this part
+    if Num1 < Num2 then
+      Exit(-1)  // Version1 is older
+    else if Num1 > Num2 then
+      Exit(1);  // Version1 is newer
+  end;
+
+  Result := 0;  // Versions are equal
+end;
+
 function GetLatestGoverlayVersion: string;
 var
   Process: TProcess;
@@ -479,25 +515,32 @@ var
   JSONArray: TJSONArray;
   JSONObject: TJSONObject;
   TagName: string;
+  i: Integer;
+  MaxVersion: string;
+  CurrentTag: string;
+  ComparisonResult: Integer;
 begin
   Result := '';
+  MaxVersion := '';
   Process := TProcess.Create(nil);
   OutputList := TStringList.Create;
   try
     try
-      // Fetch only the first 2 tags (most-recent first)
+      // Fetch only the last 4 tags to avoid GitHub API rate limits
+      // Tags are returned in reverse chronological order (most recent first)
       Process.Executable := 'curl';
-      Process.Parameters.Add('-s');  // Silent
+      Process.Parameters.Add('-s');  // Silent mode
       Process.Parameters.Add('-L');  // Follow redirects
       Process.Parameters.Add('-H');
       Process.Parameters.Add('Accept: application/vnd.github.v3+json');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add('https://api.github.com/repos/benjamimgois/goverlay/tags?per_page=2');
+      // Fetch only 4 tags to minimize API usage
+      Process.Parameters.Add('https://api.github.com/repos/benjamimgois/goverlay/tags?per_page=3');
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
 
-      // Read response
+      // Read response from curl
       OutputList.LoadFromStream(Process.Output);
       Response := OutputList.Text;
 
@@ -509,19 +552,34 @@ begin
           begin
             JSONArray := TJSONArray(JSONData);
 
-            // Prefer the 2nd tag (index 1). If it doesn't exist, fall back to the 1st (index 0).
-            if JSONArray.Count >= 2 then
-              JSONObject := JSONArray.Objects[0]
-            else
-              JSONObject := nil;
-
-            if Assigned(JSONObject) then
+            // Iterate through all returned tags (up to 3)
+            for i := 0 to JSONArray.Count - 1 do
             begin
-              TagName := JSONObject.Get('name', '');
-              if (TagName <> '') and (TagName[1] = 'v') then
-                Delete(TagName, 1, 1); // strip 'v' prefix
-              Result := TagName;
+              JSONObject := JSONArray.Objects[i];
+              if Assigned(JSONObject) then
+              begin
+                TagName := JSONObject.Get('name', '');
+                // Remove 'v' prefix if present (e.g., "v1.5.3" -> "1.5.3")
+                if (TagName <> '') and (TagName[1] = 'v') then
+                  Delete(TagName, 1, 1);
+
+                // If this is the first valid tag, use it as initial max
+                if MaxVersion = '' then
+                begin
+                  MaxVersion := TagName;
+                end
+                else
+                begin
+                  // Compare with current maximum version
+                  ComparisonResult := CompareVersions(TagName, MaxVersion);
+                  // If current tag is greater than max, update max
+                  if ComparisonResult > 0 then
+                    MaxVersion := TagName;
+                end;
+              end;
             end;
+
+            Result := MaxVersion;
           end;
         finally
           JSONData.Free;
@@ -529,7 +587,7 @@ begin
       end;
     except
       on E: Exception do
-        Result := ''; // keep silent behavior
+        Result := ''; // Keep silent behavior on error
     end;
   finally
     OutputList.Free;
@@ -544,22 +602,47 @@ end;
 procedure CheckGoverlayUpdate(const CurrentVersion, Channel: string; UpdateButton: TBitBtn);
 var
   LatestVersion: string;
+  ComparisonResult: Integer;
 begin
-  // Only check for stable channel
-  if Channel <> 'stable' then
+  // MODIFICATION 1: Never show button if channel is "git" (development mode)
+  if LowerCase(Channel) = 'git' then
+  begin
+    if Assigned(UpdateButton) then
+      UpdateButton.Visible := False;
     Exit;
+  end;
 
   // Get latest version from GitHub
   LatestVersion := GetLatestGoverlayVersion;
+  GLatestVersion := LatestVersion;
 
-  // If we got a valid version and it's different from current
-  if (LatestVersion <> '') and (LatestVersion <> CurrentVersion) then
+  // If we got a valid version from GitHub
+  if LatestVersion <> '' then
   begin
-    if Assigned(UpdateButton) then
+    // Compare versions numerically
+    ComparisonResult := CompareVersions(CurrentVersion, LatestVersion);
+
+    // MODIFICATION 2: Only show button if LatestVersion is GREATER than CurrentVersion
+    if ComparisonResult < 0 then
     begin
-      UpdateButton.Caption := 'New Version ' + LatestVersion + ' available';
-      UpdateButton.Visible := True;
+      if Assigned(UpdateButton) then
+      begin
+        UpdateButton.Caption := 'New Version ' + LatestVersion + ' available';
+        UpdateButton.Visible := True;
+      end;
+    end
+    else
+    begin
+      // If current version is equal or greater, hide the button
+      if Assigned(UpdateButton) then
+        UpdateButton.Visible := False;
     end;
+  end
+  else
+  begin
+    // If failed to get version from GitHub, hide the button
+    if Assigned(UpdateButton) then
+      UpdateButton.Visible := False;
   end;
 end;
 
@@ -2394,7 +2477,7 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.0';
+  GVERSION := '1.6.1';
   GCHANNEL := 'stable'; //stable ou git
 
   //Set Window caption
@@ -4595,6 +4678,18 @@ GPUBrand := '';
 //Save button
 saveBitbtn.Click;
 end;
+
+procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);
+  var
+  ReleaseURL: string;
+begin
+  if GLatestVersion <> '' then
+  begin
+    ReleaseURL := 'https://github.com/benjamimgois/goverlay/releases/tag/' + GLatestVersion;
+    OpenURL(ReleaseURL);
+  end;
+end;
+
 
 
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
