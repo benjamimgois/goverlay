@@ -288,7 +288,7 @@ begin
    abouttabsheet.Color:= DarkBackgroundColor;
    SetDarkColorsRecursively(Self); //set all elements to dark tones
 
-  // Ajust tab text color
+  // Adjust tab text color
   for i := 0 to aboutPageControl.PageCount - 1 do
   begin
     aboutPageControl.Pages[i].Font.Color := clBtnText;

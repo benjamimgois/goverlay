@@ -46,13 +46,13 @@ begin
 
   if NvidiaDriver then
   begin
-    // Método para driver NVIDIA proprietário
+    // Method for proprietary NVIDIA driver
     Cmd := '__GLX_VENDOR_LIBRARY_NAME=mesa MESA_LOADER_DRIVER_OVERRIDE=zink ' +
            'QT_QPA_PLATFORM=xcb mangohud pascube &';
   end
   else
   begin
-    // Método para driver Mesa
+    // Method for Mesa driver
     Cmd := 'MESA_LOADER_DRIVER_OVERRIDE=zink mangohud ' +
            'QT_QPA_PLATFORM=xcb pascube &';
   end;

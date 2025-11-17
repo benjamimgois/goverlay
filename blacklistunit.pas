@@ -97,7 +97,7 @@ begin
    // check if any item is selected
    if SelectedIndex = -1 then
    begin
-     ShowMessage('Selecione um item para remover.');
+     ShowMessage('Select an item to remove.');
      Exit;
    end;
 
@@ -131,7 +131,7 @@ begin
     else
     begin
       // if file doesnt exist, create a new one
-      ForceDirectories(ExtractFilePath(BlacklistFile)); // Garante que o diretório existe
+      ForceDirectories(ExtractFilePath(BlacklistFile)); // Ensure directory exists
       FileLines.Add('zenity');
       FileLines.Add('protonplus');
       FileLines.Add('lsfg-vk-ui');

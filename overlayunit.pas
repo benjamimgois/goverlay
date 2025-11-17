@@ -690,7 +690,7 @@ procedure ApplyRadeonTheme(AForm: TForm);
 var
   i: Integer;
 begin
-  AForm.Color := clRADEON;  // cor de fundo do formul�rio ativo
+  AForm.Color := clRADEON;  // cor de fundo do formul�rio ativo
   for i := 0 to AForm.ControlCount - 1 do
   begin
     if (AForm.Controls[i] is TButton) then
@@ -966,7 +966,7 @@ begin
   WriteLn('Value: ', Valor);
 
 
-Result := Valor <> ''; // Retorna verdadeiro se o valor foi encontrado, falso caso contrário
+Result := Valor <> ''; // Returns true if value was found, false otherwise
 end;
 
 
@@ -993,18 +993,18 @@ begin
     begin
       RawLine := Trim(Lines[i]);
 
-      // só ignora linhas vazias
+      // only ignore empty lines
       if RawLine = '' then
         Continue;
 
-      // separa chave/valor ou considera toda a linha como chave
+      // separate key/value or consider entire line as key
       SepPos := Pos('=', RawLine);
       if SepPos > 0 then
         KeyName := Trim(Copy(RawLine, 1, SepPos-1))
       else
         KeyName := RawLine;
 
-      // compara chave exata (case‑insensitive)
+      // compare exact key (case-insensitive)
       if SameText(KeyName, AParametro) then
       begin
         Result := True;
@@ -1220,7 +1220,7 @@ begin
           VersionOrBuildID := StringReplace(Line, 'BUILD_ID=', '', []);
       end;
 
-      // remove aspas
+      // remove quotes
       DistroInfo := StringReplace(DistroInfo, '"', '', [rfReplaceAll]);
       VersionOrBuildID := StringReplace(VersionOrBuildID, '"', '', [rfReplaceAll]);
     finally
@@ -1234,7 +1234,7 @@ begin
   if not DirectoryExists(SavePath) then
     CreateDir(SavePath);
 
-  // salvar Distro
+  // save Distro
   OutputSL := TStringList.Create;
   try
     OutputSL.Text := DistroInfo + ' (' + VersionOrBuildID + ')';
@@ -1360,10 +1360,10 @@ end;
 function IsInterfaceAllowed(const Name: String): Boolean;
 begin
   Result :=
-    Name.StartsWith('eth') or   // Ethernet tradicional
-    Name.StartsWith('enp') or   // Ethernet com nomes modernos
-    Name.StartsWith('wlan') or  // Wi-Fi tradicional
-    Name.StartsWith('wlp');     // Wi-Fi com nomes modernos
+    Name.StartsWith('eth') or   // Traditional Ethernet
+    Name.StartsWith('enp') or   // Ethernet with modern names
+    Name.StartsWith('wlan') or  // Traditional Wi-Fi
+    Name.StartsWith('wlp');     // Wi-Fi with modern names
 end;
 
 
@@ -1392,7 +1392,7 @@ begin
     begin
       Line := Trim(Output[i]);
 
-      // Verifica se a linha inicia com número + ": "
+      // Check if line starts with number + ": "
       if (Line <> '') and (CharInSet(Line[1], ['0'..'9'])) then
       begin
         SepPos := Pos(': ', Line);
@@ -1420,24 +1420,24 @@ var
   Values: TStringDynArray;
   i, j: Integer;
 begin
-  // Divide a string em substrings usando a vírgula como delimitador
+  // Split string into substrings using comma as delimiter
   Values := SplitString(AUX, ',');
 
-  // Percorre cada valor na string
+  // Iterate through each value in the string
   for i := Low(Values) to High(Values) do
   begin
-    // Remove espaços em branco em excesso antes e depois do valor
+    // Remove excess whitespace before and after the value
     Values[i] := Trim(Values[i]);
 
-    // Percorre todos os itens do TCheckGroup
+    // Iterate through all items in TCheckGroup
     for j := 0 to ACheckGroup.Items.Count - 1 do
     begin
-      // Verifica se o valor da substring é igual ao valor do item
+      // Check if substring value equals item value
       if Values[i] = ACheckGroup.Items[j] then
       begin
-        // Marca o checkbox correspondente
+        // Mark corresponding checkbox
         ACheckGroup.Checked[j] := True;
-        // Pode sair do loop interno, pois já encontrou correspondência para este valor
+        // Can exit inner loop as match was already found for this value
         Break;
       end;
     end;
@@ -1499,7 +1499,7 @@ BaseB := 70;  // 0x46
       G := Round(BaseG * Factor);
       B := Round(BaseB * Factor);
 
-      // Define o retângulo do bloco, tomando cuidado para não ultrapassar os limites
+      // Define block rectangle, taking care not to exceed limits
       RectRight := X + BlockSize - 1;
       if RectRight >= Width then
         RectRight := Width - 1;
@@ -1572,9 +1572,9 @@ end;
 
 //Functions for shaders
 
-// Lista arquivos do diretório BaseDir no ListBox, opcionalmente filtrando por extensões.
-// Ex.: FilterExts = []  -> lista tudo
-//      FilterExts = ['.fx', '.fxh'] -> lista apenas efeitos ReShade
+// List files from BaseDir directory in ListBox, optionally filtering by extensions.
+// Ex.: FilterExts = []  -> list everything
+//      FilterExts = ['.fx', '.fxh'] -> list only ReShade effects
 procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
   const FilterExts: array of string; const Recursive: Boolean = True;
   const SkipDotDirs: Boolean = True);
@@ -1621,7 +1621,7 @@ procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
 
           if (SR.Attr and faDirectory) <> 0 then
           begin
-            // pula pastas ocultas (.git, .github, etc.) se desejado
+            // skip hidden folders (.git, .github, etc.) if desired
             if SkipDotDirs and (Length(SR.Name) > 0) and (SR.Name[1] = '.') then
               Continue;
             if Recursive then
@@ -1644,8 +1644,8 @@ begin
   try
     ListBox.Items.Clear;
     Scan(BaseDir);
-    // Ordena no final (opcional)
-    // Obs.: se você quiser manter a hierarquia natural, comente a linha abaixo.
+    // Sort at the end (optional)
+    // Note: if you want to keep natural hierarchy, comment out the line below.
     ListBox.Sorted := True;
   finally
     ListBox.Items.EndUpdate;
@@ -1679,7 +1679,7 @@ begin
       Line := ConfigLines[i];
       TrimmedLine := Trim(Line);
 
-      // Ignora coment�rios e linhas vazias
+      // Ignore comments and empty lines
       if (TrimmedLine = '') or (TrimmedLine[1] = '#') or (TrimmedLine[1] = ';') then
         Continue;
 
@@ -1690,7 +1690,7 @@ begin
       Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
       Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
 
-      // Processa cada chave
+      // Process each key
       if SameText(Key, 'FGType') then
       begin
         if SameText(Value, 'auto') then
@@ -1704,7 +1704,7 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Converte 0.5..2.0 -> 5..20
+          // Convert 0.5..2.0 -> 5..20
           menuscaleTrackBar.Position := Round(FloatValue * 10);
           menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
         end;
@@ -1743,7 +1743,7 @@ begin
       Line := ConfigLines[i];
       TrimmedLine := Trim(Line);
 
-      // Ignora coment�rios e linhas vazias
+      // Ignore comments and empty lines
       if (TrimmedLine = '') or (TrimmedLine[1] = '#') or (TrimmedLine[1] = ';') then
         Continue;
 
@@ -1754,7 +1754,7 @@ begin
       Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
       Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
 
-      // Processa cada chave
+      // Process each key
       if SameText(Key, 'force_reflex') then
       begin
         if Value = '0' then
@@ -1826,15 +1826,15 @@ begin
       Line := ConfigLines[i];
       TrimmedLine := Trim(Line);
 
-      // Procura pela linha dll_name="${DLL:-
+      // Search for line dll_name="${DLL:-
       if Pos('dll_name="${DLL:-', TrimmedLine) > 0 then
       begin
-        // Extrai o nome da DLL
-        // Formato: dll_name="${DLL:-dxgi.dll}"
+        // Extract DLL name
+        // Format: dll_name="${DLL:-dxgi.dll}"
         DllName := Copy(TrimmedLine, Pos(':-', TrimmedLine) + 2, Length(TrimmedLine));
         DllName := Copy(DllName, 1, Pos('}"', DllName) - 1);
 
-        // Define o �ndice do combobox baseado no nome da DLL
+        // Set combobox index based on DLL name
         if SameText(DllName, 'dxgi.dll') then
           filenameComboBox.ItemIndex := 0
         else if SameText(DllName, 'version.dll') then
@@ -1852,7 +1852,7 @@ begin
         else
           filenameComboBox.ItemIndex := 0; // Default: dxgi.dll
 
-        Break; // Encontrou, pode sair do loop
+        Break; // Found, can exit loop
       end;
     end;
 
@@ -1881,16 +1881,16 @@ begin
       Line := ConfigLines[i];
       TrimmedLine := Trim(Line);
 
-      // Ignora coment�rios e linhas vazias
+      // Ignore comments and empty lines
       if (TrimmedLine = '') or (TrimmedLine[1] = '#') then
         Continue;
 
       ColonPos := Pos('=', TrimmedLine);
 
-      // Chaves sem valor (flags booleanas)
+      // Keys without value (boolean flags)
       if ColonPos = 0 then
       begin
-        // Checkboxes que s�o apenas flags (sem valor)
+        // Checkboxes that are only flags (no value)
         if SameText(TrimmedLine, 'horizontal') then
           horizontalRadioButton.Checked := True
         else if SameText(TrimmedLine, 'no_display') then
@@ -2019,11 +2019,11 @@ begin
         Continue;
       end;
 
-      // Chaves com valor
+      // Keys with value
       Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
       Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
 
-      // Remove aspas se houver
+      // Remove quotes if present
       if (Length(Value) > 0) and (Value[1] = '"') then
         Value := StringReplace(Value, '"', '', [rfReplaceAll]);
 
@@ -2170,17 +2170,17 @@ begin
       else if SameText(Key, 'frametime_color') then
         frametimegraphColorButton.ButtonColor := HexToColor(Value)
       else if SameText(Key, 'gpu_load_value') then
-        // Ignora por enquanto, j� tratado por gpu_load_change
+        // Ignore for now, already handled by gpu_load_change
       else if SameText(Key, 'gpu_load_color') then
       begin
-        // Parseia cores separadas por v�rgula
-        // Exemplo: "00FF00,FFFF00,FF0000"
-        // Implementa��o simplificada
+        // Parse comma-separated colors
+        // Example: "00FF00,FFFF00,FF0000"
+        // Simplified implementation
       end
       else if SameText(Key, 'cpu_load_value') then
-        // Ignora por enquanto
+        // Ignore for now
       else if SameText(Key, 'cpu_load_color') then
-        // Ignora por enquanto
+        // Ignore for now
 
       // ============= PERFORMANCE TAB =============
       else if SameText(Key, 'fps_limit_method') then
@@ -2237,15 +2237,15 @@ begin
       end
       else if SameText(Key, 'fps_limit') then
       begin
-        // Parseia FPS limits (pode ser uma lista separada por v�rgula)
-        // Implementa��o simplificada - apenas mostra que h� limite
+        // Parse FPS limits (can be comma-separated list)
+        // Simplified implementation - only shows if there's a limit
       end
       else if SameText(Key, 'fps_color_change') then
         fpscolorCheckBox.Checked := True
       else if SameText(Key, 'fps_color') then
-        // Parseia cores de FPS (formato: cor1,cor2,cor3)
+        // Parse FPS colors (format: color1,color2,color3)
       else if SameText(Key, 'fps_value') then
-        // Parseia valores de threshold de FPS
+        // Parse FPS threshold values
 
       // ============= EXTRAS TAB =============
       else if SameText(Key, 'wine_color') then
@@ -2336,7 +2336,7 @@ begin
   try
     ConfigLines.LoadFromFile(VKBASALTCFGFILE);
 
-    // Limpa a lista de efeitos ativos
+    // Clear active effects list
     acteffectsListBox.Items.Clear;
 
     for i := 0 to ConfigLines.Count - 1 do
@@ -2355,46 +2355,46 @@ begin
       Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
       Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
 
-      // Remove aspas se houver
+      // Remove quotes if present
       if (Length(Value) > 0) and (Value[1] = '"') then
         Value := StringReplace(Value, '"', '', [rfReplaceAll]);
 
-      // Processa cada chave
+      // Process each key
       if SameText(Key, 'effects') then
       begin
-        // Parseia a lista de efeitos (separados por :)
+        // Parse effects list (separated by :)
         EffectsStr := Value;
         EffectsList := SplitString(EffectsStr, ':');
 
-        for j := Low(EffectsList) to High(EffectsList) do  // <-- Use j em vez de i
+        for j := Low(EffectsList) to High(EffectsList) do  // <-- Use j instead of i
         begin
           EffectsList[j] := Trim(EffectsList[j]);
 
-          // CAS, FXAA, SMAA e DLS são tratados pelos trackbars, não pela lista
+          // CAS, FXAA, SMAA and DLS are handled by trackbars, not by the list
           if SameText(EffectsList[j], 'cas') then
           begin
             if casTrackBar.Position = 0 then
-              casTrackBar.Position := 5; // valor padrão
+              casTrackBar.Position := 5; // default value
           end
           else if SameText(EffectsList[j], 'fxaa') then
           begin
             if fxaaTrackBar.Position = 0 then
-              fxaaTrackBar.Position := 5; // valor padrão
+              fxaaTrackBar.Position := 5; // default value
           end
           else if SameText(EffectsList[j], 'smaa') then
           begin
             if smaaTrackBar.Position = 0 then
-              smaaTrackBar.Position := 5; // valor padrão
+              smaaTrackBar.Position := 5; // default value
           end
           else if SameText(EffectsList[j], 'dls') then
           begin
             if dlsTrackBar.Position = 0 then
-              dlsTrackBar.Position := 5; // valor padrão
+              dlsTrackBar.Position := 5; // default value
           end
           else if EffectsList[j] <> '' then
           begin
-            // É um efeito reshade customizado
-            // Não adiciona duplicatas
+            // It's a custom reshade effect
+            // Don't add duplicates
             if acteffectsListBox.Items.IndexOf(EffectsList[j]) = -1 then
               acteffectsListBox.Items.Add(EffectsList[j]);
           end;
@@ -2404,7 +2404,7 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Converte 0.1..1.0 -> 1..10
+          // Convert 0.1..1.0 -> 1..10
           casTrackBar.Position := Round(FloatValue * 10);
           casvalueLabel.Caption := IntToStr(casTrackBar.Position);
         end;
@@ -2413,7 +2413,7 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Converte 0.1..1.0 -> 1..10
+          // Convert 0.1..1.0 -> 1..10
           fxaaTrackBar.Position := Round(FloatValue * 10);
           fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
         end;
@@ -2422,7 +2422,7 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Converte 0.0..1.0 -> 1..10
+          // Convert 0.0..1.0 -> 1..10
           smaaTrackBar.Position := Round(FloatValue * 9) + 1;
           smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
         end;
@@ -2431,14 +2431,14 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Converte 0.0..1.0 -> 1..10
+          // Convert 0.0..1.0 -> 1..10
           dlsTrackBar.Position := Round(FloatValue * 9) + 1;
           dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
         end;
       end
       else if SameText(Key, 'toggleKey') then
       begin
-        // Atualiza o combobox de toggle key se existir
+        // Update toggle key combobox if it exists
         if Assigned(vkbtogglekeyCombobox) then
         begin
           case LowerCase(Value) of
@@ -3185,7 +3185,7 @@ begin
     //table Columns
     if LoadValue('table_columns',AUX) then
       begin
-      //showmessage ('o valor de AUX é: ' + AUX);
+      //showmessage ('the value of AUX is: ' + AUX);
       case AUX of
             '1':begin
               columShape.Visible:=true;
@@ -3943,7 +3943,7 @@ var
   var
     i, j: Integer;
   begin
-    // procura um número imediatamente antes de '%'
+    // search for a number immediately before '%'
     Result := False;
     Pct := -1;
     for i := 1 to Length(S) do
@@ -3984,7 +3984,7 @@ var
   var
     pCR, pLF, pMin: SizeInt;
   begin
-    // quebra por CR (\r) e LF (\n); git usa muito \r em progresso
+    // split by CR (\r) and LF (\n); git uses \r heavily for progress
     while True do
     begin
       pCR := Pos(#13, C);
@@ -3997,7 +3997,7 @@ var
 
       Piece := Copy(C, 1, pMin - 1);
       Delete(C, 1, pMin);
-      // se era CRLF, remove o LF remanescente
+      // if it was CRLF, remove remaining LF
       if (pMin = 1) and (Length(C) > 0) and ((C[1] = #10) or (C[1] = #13)) then
         Delete(C, 1, 1);
 
@@ -4006,7 +4006,7 @@ var
         ApplyPercent(Percent);
     end;
 
-    // também tenta extrair percent do que sobrou (linha parcial)
+    // also try to extract percent from what's left (partial line)
     if (C <> '') and ExtractPercentAnywhere(C, Percent) then
       ApplyPercent(Percent);
   end;
@@ -4021,10 +4021,10 @@ var
       P.Parameters.Add(AParams[i]);
     P.CurrentDirectory := AWorkDir;
 
-    // junta stderr->stdout e usa pipes
+    // merge stderr->stdout and use pipes
     P.Options := [poUsePipes, poStderrToOutPut, poNoConsole];
 
-    // força progresso imediato
+    // force immediate progress
     P.Environment.Add('GIT_PROGRESS_DELAY=0');
     P.Environment.Add('GIT_FLUSH=1');
 
@@ -4074,10 +4074,10 @@ begin
     while P.Running do
     begin
       PumpOutput;
-      Application.ProcessMessages; // mantém UI viva e repinta a barra
+      Application.ProcessMessages; // keep UI alive and repaint the bar
     end;
 
-    // drena restos após sair
+    // drain remaining output after exit
     PumpOutput;
 
     if P.ExitStatus = 0 then
@@ -4094,7 +4094,7 @@ begin
     if Assigned(P) then P.Free;
   end;
 
-  // Listar TODOS os arquivos do repo:
+  // List ALL repository files:
   ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
 
   //Enable elements
@@ -4147,7 +4147,7 @@ begin
     Process.Free;
   end;
 
-  // Start vkcube (vulkan demo) apenas se não estiver em execução
+  // Start vkcube (vulkan demo) only if not already running
   if USERSESSION = 'wayland' then
     ExecuteGUICommand('mangohud vkcube --wsi wayland &')
   else
@@ -5065,7 +5065,7 @@ EnableTraceLogsFound: Boolean;
             // Get selected force_reflex value from reflexComboBox
             if forcereflexCheckBox.Checked then
             begin
-              // Usa valor do reflexComboBox (0, 1 ou 2)
+              // Use reflexComboBox value (0, 1 or 2)
               case reflexComboBox.ItemIndex of
                 0: ForceReflexValue := '0'; // Follow game setting
                 1: ForceReflexValue := '1'; // Force disable
@@ -5074,7 +5074,7 @@ EnableTraceLogsFound: Boolean;
             end
             else
             begin
-              ForceReflexValue := '0'; // Checkbox desmarcado = 0 (ignora combobox)
+              ForceReflexValue := '0'; // Checkbox unchecked = 0 (ignore combobox)
             end;
 
             // Get force_latencyflex and latencyflex_mode values
