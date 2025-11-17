@@ -43,7 +43,10 @@ type
   end;
 
 var
-  aboutForm: TaboutForm;
+  // ============================================================================
+  // FORM INSTANCE
+  // ============================================================================
+  aboutForm: TaboutForm;                // About dialog form
 
 implementation
 

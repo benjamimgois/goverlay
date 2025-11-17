@@ -24,7 +24,10 @@ type
   end;
 
 var
-  crosshairsizeForm: TcrosshairsizeForm;
+  // ============================================================================
+  // FORM INSTANCE
+  // ============================================================================
+  crosshairsizeForm: TcrosshairsizeForm;  // Crosshair size configuration form
 
 implementation
 

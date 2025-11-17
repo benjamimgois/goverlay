@@ -28,8 +28,15 @@ type
   end;
 
 var
-  logpathForm: TlogpathForm;
-  destinationfolder: string;
+  // ============================================================================
+  // FORM INSTANCE
+  // ============================================================================
+  logpathForm: TlogpathForm;            // Logging path configuration form
+
+  // ============================================================================
+  // LOG CONFIGURATION
+  // ============================================================================
+  destinationfolder: string;            // Selected destination folder for logs
 
 implementation
 

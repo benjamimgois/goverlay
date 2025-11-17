@@ -30,10 +30,17 @@ type
   end;
 
 var
-blacklistForm: TblacklistForm;
-BlacklistFile: string;
-FileLines: TStringList;
-SelectedIndex: Integer;
+  // ============================================================================
+  // FORM INSTANCE
+  // ============================================================================
+  blacklistForm: TblacklistForm;        // Blacklist management form
+
+  // ============================================================================
+  // BLACKLIST CONFIGURATION
+  // ============================================================================
+  BlacklistFile: string;                // Path to blacklist configuration file
+  FileLines: TStringList;               // Blacklist entries buffer
+  SelectedIndex: Integer;               // Currently selected blacklist item index
 
 implementation
 

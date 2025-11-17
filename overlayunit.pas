@@ -422,44 +422,168 @@ type
 var
   goverlayform: Tgoverlayform;
 
-  s: string;
-  Color: string;
-  GLatestVersion: string = '';
+  // ============================================================================
+  // APPLICATION STATE AND VERSION
+  // ============================================================================
+  GLatestVersion: string = '';          // Latest available Goverlay version from GitHub
+  GVERSION: string;                     // Current Goverlay version
+  GCHANNEL: string;                     // Release channel (stable/git)
+  mangohudsel: boolean;                 // MangoHud tab selected
+  vkbasaltsel: boolean;                 // vkBasalt tab selected
+  Found: Boolean;                       // General search/find result flag
 
-  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, HUDCOMPACT, PCIDEV, TABLECOLUMNS: string; //visualtab
-GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR , GPULOADVALUE, VRAM, VRAMCOLOR, IOCOLOR, GPUFREQ, GPUMEMFREQ, GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP, GPUFAN, GPUPOWER, GPUTHR, GPUTHRG, GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  //metrics tab - GPU
-CPUAVGLOAD, CPULOADCORE, CPULOADCHANGE, CPUCOLOR, CPULOADCOLOR, CPULOADVALUE, CPUCOREFREQ, CPUTEMP, CORELOADTYPE, CPUPOWER, GPUTEXT, GPUCOLOR, CPUTEXT, RAM, RAMCOLOR, IOSTATS, IOREAD, IOWRITE, SWAP, PROCMEM: string; //metrics tab - CPU
-FPS, FPSAVG,FRAMETIMING, SHOWFPSLIM, FRAMECOUNT, FRAMETIMEC, HISTOGRAM, FPSLIM, FPSLIMMET, FPSCOLOR, FPSVALUE, FPSCHANGE, VSYNC, GLVSYNC, FILTER, AFFILTER, MIPMAPFILTER, FPSLIMTOGGLE, OFFSET: string; //performance tab
-DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4, DISTRONAME, ARCH, RESOLUTION, SESSION, SESSIONTXT, USERSESSION, TIME, WINE, WINECOLOR, ENGINE, ENGINECOLOR, ENGINESHORT, HUDVERSION,GAMEMODE: string; //extra tab
-VKBASALT, FCAT, FSR, HDR, WINESYNC, VPS, FTEMP, REFRESHRATE, BATTERY, BATTERYCOLOR, BATTERYWATT, BATTERYTIME, DEVICE,DEVICEICON, MEDIA, MEDIACOLOR, CUSTOMCMD1, CUSTOMCMD2, LOGFOLDER, LOGDURATION, LOGDELAY, LOGINTERVAL, LOGTOGGLE, LOGVER, LOGAUTO, NETWORK: string; //extratab
-BlacklistStr, blacklistVAR, RepoDir, GVERSION, GCHANNEL: string;
+  // ============================================================================
+  // CONFIGURATION FILE PATHS AND FOLDERS
+  // ============================================================================
+  MANGOHUDCFGFILE: string;              // Path to MangoHud.conf
+  MANGOHUDFOLDER: string;               // MangoHud configuration folder
+  CUSTOMCFGFILE: string;                // Path to custom.conf (MangoHud presets)
+  VKBASALTFOLDER: string;               // vkBasalt configuration folder
+  VKBASALTCFGFILE: string;              // Path to vkBasalt.conf
+  GOVERLAYFOLDER: string;               // Goverlay configuration folder
+  BLACKLISTFILE: string;                // Path to application blacklist
+  DATADIRS: string;                     // XDG data directories
 
+  // ============================================================================
+  // GENERAL UTILITY VARIABLES
+  // ============================================================================
+  s: string;                            // General purpose string variable
+  AUX: string;                          // Auxiliary string variable 1
+  AUX2: string;                         // Auxiliary string variable 2
+  Color: string;                        // Color value storage
 
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - VISUAL SETTINGS
+  // ============================================================================
+  ORIENTATION, HUDTITLE, BORDERTYPE, HUDALPHA, HUDCOLOR, FONTTYPE, FONTPATH, FONTSIZE, FONTCOLOR, HUDPOSITION, TOGGLEHUD, HIDEHUD, HUDCOMPACT, PCIDEV, TABLECOLUMNS: string;
+  OFFSET: string;                       // HUD offset from edge
 
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - GPU METRICS
+  // ============================================================================
+  GPUTEXT, GPUCOLOR: string;            // GPU text label and color
+  GPUAVGLOAD, GPULOADCHANGE, GPULOADCOLOR, GPULOADVALUE: string;  // GPU load metrics
+  VRAM, VRAMCOLOR, IOCOLOR: string;     // VRAM and I/O settings
+  GPUFREQ, GPUMEMFREQ: string;          // GPU frequencies
+  GPUTEMP, GPUMEMTEMP, GPUJUNCTEMP: string;  // GPU temperatures
+  GPUFAN: string;                       // GPU fan speed
+  GPUPOWER: string;                     // GPU power consumption
+  GPUTHR, GPUTHRG: string;              // GPU throttling
+  GPUMODEL, VULKANDRIVER, GPUVOLTAGE: string;  // GPU info
 
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - CPU METRICS
+  // ============================================================================
+  CPUTEXT, CPUCOLOR: string;            // CPU text label and color
+  CPUAVGLOAD, CPULOADCORE: string;      // CPU load metrics
+  CPULOADCHANGE, CPULOADCOLOR, CPULOADVALUE: string;  // CPU load display settings
+  CPUCOREFREQ: string;                  // CPU core frequencies
+  CPUTEMP: string;                      // CPU temperature
+  CORELOADTYPE: string;                 // Core load display type
+  CPUPOWER: string;                     // CPU power consumption
+  RAM, RAMCOLOR: string;                // RAM usage and color
+  IOSTATS, IOREAD, IOWRITE: string;     // I/O statistics
+  SWAP: string;                         // Swap memory usage
+  PROCMEM: string;                      // Process memory usage
 
-  //Boolean variables
-  mangohudsel: boolean;
-  vkbasaltsel: boolean;
-  Found: Boolean;
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - PERFORMANCE METRICS
+  // ============================================================================
+  FPS, FPSAVG: string;                  // FPS display
+  FRAMETIMING: string;                  // Frame timing graph
+  SHOWFPSLIM: string;                   // Show FPS limiter value
+  FRAMECOUNT: string;                   // Frame count display
+  FRAMETIMEC: string;                   // Frame time calculation
+  HISTOGRAM: string;                    // Frame time histogram
+  FPSLIM, FPSLIMMET: string;            // FPS limit value and method
+  FPSCOLOR, FPSVALUE, FPSCHANGE: string;  // FPS color settings
+  VSYNC, GLVSYNC: string;               // V-Sync settings
+  FILTER, AFFILTER, MIPMAPFILTER: string;  // Texture filters
+  FPSLIMTOGGLE: string;                 // FPS limiter toggle hotkey
+  fpsArray: TStringArray;               // FPS value array for parsing
 
-  //Mangohud variables ##########################
-  AUX, AUX2, MANGOHUDCFGFILE, MANGOHUDFOLDER, CUSTOMCFGFILE, BLACKLISTFILE, DATADIRS, GOVERLAYFOLDER, GPU0, LSPCI0: string;
-  FONTS, FONTFOLDERS: TStringList;
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - SYSTEM INFORMATION
+  // ============================================================================
+  DISTROINFO1, DISTROINFO2, DISTROINFO3, DISTROINFO4: string;  // Distribution info lines
+  DISTRONAME: string;                   // Linux distribution name
+  ARCH: string;                         // System architecture
+  RESOLUTION: string;                   // Screen resolution
+  SESSION, SESSIONTXT, USERSESSION: string;  // Session type info
+  TIME: string;                         // Time display
+  WINE, WINECOLOR: string;              // Wine version and color
+  ENGINE, ENGINECOLOR, ENGINESHORT: string;  // Rendering engine info
+  HUDVERSION: string;                   // MangoHud version display
+  GAMEMODE: string;                     // GameMode status
 
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - EXTRA FEATURES
+  // ============================================================================
+  VKBASALT: string;                     // vkBasalt effects display
+  FCAT: string;                         // Frame rate target monitor
+  FSR: string;                          // FidelityFX Super Resolution
+  HDR: string;                          // HDR setting
+  WINESYNC: string;                     // Wine sync method
+  VPS: string;                          // Variable Pre-scaled
+  FTEMP: string;                        // Frame temperature
+  REFRESHRATE: string;                  // Screen refresh rate
+  BATTERY, BATTERYCOLOR: string;        // Battery status and color
+  BATTERYWATT, BATTERYTIME: string;     // Battery wattage and time remaining
+  DEVICE, DEVICEICON: string;           // Device name and icon
+  MEDIA, MEDIACOLOR: string;            // Media player info and color
+  CUSTOMCMD1, CUSTOMCMD2: string;       // Custom commands
+  NETWORK: string;                      // Network interface
 
-  //vkbasalt variable
-  VKBASALTFOLDER, VKBASALTCFGFILE : string;
+  // ============================================================================
+  // MANGOHUD CONFIGURATION - LOGGING
+  // ============================================================================
+  LOGFOLDER: string;                    // Log output folder
+  LOGDURATION: string;                  // Log duration
+  LOGDELAY: string;                     // Log start delay
+  LOGINTERVAL: string;                  // Log sampling interval
+  LOGTOGGLE: string;                    // Log toggle hotkey
+  LOGVER: string;                       // Log version/format
+  LOGAUTO: string;                      // Automatic logging
 
-  //########################################
-  i, GPUNUMBER, GPUCOUNT, COLUMNS, maxValue, currentValue: integer;
-  FILELINES, GPUDESC: TStringList;
+  // ============================================================================
+  // APPLICATION BLACKLIST AND REPOSITORY
+  // ============================================================================
+  BlacklistStr: string;                 // Blacklist string representation
+  blacklistVAR: string;                 // Blacklist variable
+  RepoDir: string;                      // ReShade shader repository directory
 
-  ArquivoConfig: TextFile;
-  Linha: string;
-  CaminhoArquivo, NomeCampo, ValorCampo: string;
+  // ============================================================================
+  // SYSTEM DETECTION AND HARDWARE INFO
+  // ============================================================================
+  GPU0: string;                         // Primary GPU identifier
+  LSPCI0: string;                       // lspci output cache
+  GPUNUMBER: integer;                   // Selected GPU number
+  GPUCOUNT: integer;                    // Total GPU count
+  GPUDESC: TStringList;                 // GPU description list
 
-  fpsArray: TStringArray;
+  // ============================================================================
+  // UI AND DISPLAY CONTROL
+  // ============================================================================
+  COLUMNS: integer;                     // UI column count
+  maxValue: integer;                    // Maximum value for progress/range
+  currentValue: integer;                // Current value for progress/range
+  i: integer;                           // General loop counter
+
+  // ============================================================================
+  // DATA STRUCTURES AND COLLECTIONS
+  // ============================================================================
+  FONTS: TStringList;                   // Available system fonts
+  FONTFOLDERS: TStringList;             // Font directory paths
+  FILELINES: TStringList;               // File content buffer
+
+  // ============================================================================
+  // TEMPORARY PROCESSING VARIABLES (kept for compatibility)
+  // ============================================================================
+  ArquivoConfig: TextFile;              // Config file handle (Portuguese name kept)
+  Linha: string;                        // Line buffer (Portuguese name kept)
+  CaminhoArquivo: string;               // File path (Portuguese name kept)
+  NomeCampo: string;                    // Field name (Portuguese name kept)
+  ValorCampo: string;                   // Field value (Portuguese name kept)
 
   const
   DarkBackgroundColor = $0045403A; // dark panel color BGR
@@ -2477,8 +2601,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.1';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.2';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then

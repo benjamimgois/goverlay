@@ -12,7 +12,10 @@ uses
   Classes, SysUtils, Process;
 
 var
-  NvidiaDriver: Boolean = False;
+  // ============================================================================
+  // GPU DRIVER DETECTION
+  // ============================================================================
+  NvidiaDriver: Boolean = False;        // Flag indicating NVIDIA proprietary driver is loaded
 
 function IsNvidiaLoaded: Boolean;
 var

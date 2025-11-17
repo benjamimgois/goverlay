@@ -40,7 +40,10 @@ type
   end;
 
 var
-  customeffectsForm: TcustomeffectsForm;
+  // ============================================================================
+  // FORM INSTANCE
+  // ============================================================================
+  customeffectsForm: TcustomeffectsForm;  // Custom vkBasalt effects form
 
 implementation
 
