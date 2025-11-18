@@ -927,6 +927,7 @@ var
   Output: TStream;
   BytesRead: longint;
   Buffer: array[1..BUF_SIZE] of byte;
+  TempList: TStringList;
 begin
   Process := TProcess.Create(nil);
   Output := TMemoryStream.Create;
@@ -949,12 +950,13 @@ begin
 
   Process.Free;
 
-  with TStringList.Create do
-  begin
+  TempList := TStringList.Create;
+  try
     Output.Position := 0; // Required to make sure all data is copied from the start
-    LoadFromStream(Output);
-    Valor.Text := StringReplace(Text, '\n', LineEnding, [rfReplaceAll, rfIgnoreCase]);
-    Free
+    TempList.LoadFromStream(Output);
+    Valor.Text := StringReplace(TempList.Text, '\n', LineEnding, [rfReplaceAll, rfIgnoreCase]);
+  finally
+    TempList.Free;
   end;
 
   Output.Free;
