@@ -50,11 +50,15 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Screenshots
 
-![image](https://github.com/user-attachments/assets/e635b1a4-38e7-418b-9e7a-210c65702ad8)
-![image](https://github.com/user-attachments/assets/9fa13c5f-b00d-4eab-832b-fa38ccad8331)
-[![image.png](https://i.postimg.cc/15sDnYpg/image.png)](https://postimg.cc/qgDNWwD0)
-[![image.png](https://i.postimg.cc/RVdKcQRg/image.png)](https://postimg.cc/svBMzWbW)
-![image](https://github.com/user-attachments/assets/df99af4d-29dc-41a2-ae88-5f3372d31a02)
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/b05323d4-7c56-4413-a986-3ad2a0adc0db" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/e4c390a2-d07c-46ae-b291-b964adc60566" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/6bc1a47d-8c9a-4bdc-b244-58d45db4a238" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/1d15dea8-ec09-40f3-8f03-792a553aec89" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/ac8ae86a-bc8d-4e01-8104-6e03e3c781c8" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/d23118a4-a536-4edd-bdc5-33ef7d4a1d55" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/e9417dcf-e8d9-494f-8a10-9d40e7f3576a" />
+
+
 
 ---
 
