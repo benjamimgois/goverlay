@@ -55,7 +55,7 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 <img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/6bc1a47d-8c9a-4bdc-b244-58d45db4a238" />
 <img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/1d15dea8-ec09-40f3-8f03-792a553aec89" />
 <img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/ac8ae86a-bc8d-4e01-8104-6e03e3c781c8" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/d23118a4-a536-4edd-bdc5-33ef7d4a1d55" />
+<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/36febbff-849f-43cc-8fe9-05c4525b2234" />
 <img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/e9417dcf-e8d9-494f-8a10-9d40e7f3576a" />
 
 
