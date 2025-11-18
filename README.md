@@ -19,8 +19,8 @@
 
 ---
 
-**Goverlay** is an open-source project that provides a graphical user interface (GUI) to manage **Vulkan** and **OpenGL** overlays.  
-It’s still under active development, so some features may be missing or incomplete.
+**Goverlay** helps Linux gamers get the most out of their system by offering an easy graphical interface to configure **MangoHud**, **vkBasalt**, and **OptiScaler**.
+Whether you want performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
 
 This project exists thanks to the amazing work of the original maintainers and contributors behind the core tools.  
 I’m just a network engineer who loves Linux and gaming — this is my way of giving something back to the community.
@@ -216,6 +216,42 @@ Huge thanks to **FlightlessMango**, creator and maintainer of **MangoHud** — t
 Special thanks to **DadSchoorse**, creator of **vkBasalt**, which adds post-processing effects to Vulkan.
 
 - https://github.com/DadSchoorse/vkBasalt
+
+### OptiScaler Team & Contributors
+
+Goverlay integrates several components from the OptiScaler ecosystem and community-driven projects that enable upscaling, frame generation and NVIDIA APIs on Linux.
+
+**OptiScaler**
+
+Core upscaling and frame-generation project for Linux.
+
+https://github.com/optiscaler/OptiScaler
+
+**fakenvapi**
+
+User-space implementation of NVAPI used by OptiScaler and other tools.
+
+https://github.com/optiscaler/fakenvapi
+
+**Decky-Framegen (xXJSONDeruloXx)**
+
+Pioneer project that inspired much of the OptiScaler installation logic.
+
+https://github.com/xXJSONDeruloXx/Decky-Framegen
+
+**fgmod (FakeMichau)**
+
+Another important reference implementation for frame-generation utilities on Linux.
+
+https://github.com/FakeMichau/fgmod
+
+**DLSS-Enabler (Artur Graniszewski)**
+
+Tooling that expands compatibility layers for DLSS and NVAPI-based features.
+
+https://github.com/artur-graniszewski/DLSS-Enabler
+
+
 
 ### Lazarus IDE
 
