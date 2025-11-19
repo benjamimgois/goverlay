@@ -13,17 +13,14 @@ type
 
   TaboutForm = class(TForm)
     donateImage: TImage;
-    goverlaylink: TLabel;
     meImage: TImage;
+    creditsLabel: TLabel;
     titleLabel: TLabel;
     meLabel: TLabel;
-    textLabel: TLabel;
-    pascubelink: TLabel;
-    schoorselinkLabel: TLabel;
+    descLabel: TLabel;
     gplMemo: TMemo;
     twitterlink: TImage;
     linkedinlink: TImage;
-    mangolink: TLabel;
     aboutPageControl: TPageControl;
     aboutTabSheet: TTabSheet;
     licenseTabSheet: TTabSheet;

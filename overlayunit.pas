@@ -859,7 +859,9 @@ begin
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
     Process.Parameters.Add(Command);
-    Process.Options := [poUsePipes];
+    // Don't use poUsePipes - we're not reading the output and it causes
+    // the child process to block when pipes fill up after multiple executions
+    Process.Options := [];
     Process.Execute;
     sleep(200); //wait 0.2sec for GUI to initiate
   finally
@@ -1439,11 +1441,6 @@ begin
   else
   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
 
-  //Activate vkbasalt effects
-  //ExecuteGUICommand('killall pascube');
-  //ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
-  //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
-  //ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1' + RunPasCube ');
 
   //Hide notification messages
   notificationLabel.Visible:=false;
@@ -6238,17 +6235,14 @@ end;  //  ################### END - SAVE MANGOHUD
    //Restart VKcube with effects
 
    ExecuteGUICommand('killall vkcube');
+   // Small delay to ensure vkcube is fully terminated before restarting
+   Sleep(100);
    ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
 
    if USERSESSION = 'wayland' then
    ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
    else
    ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
-
-
-  // ExecuteGUICommand('killall pascube');
-  // ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Activating vkbasalt effects"');
-  // ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MESA_LOADER_DRIVER_OVERRIDE=zink mangohud QT_QPA_PLATFORM=xcb pascube &');
 
 
 
