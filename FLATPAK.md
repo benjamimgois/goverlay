@@ -46,13 +46,22 @@ The Flatpak support is currently **in development** and not fully complete. Some
 
 ---
 
-## ❌ Not Yet Implemented
+## ✅ Recently Implemented
 
-### 7. **Replace wget with Native HTTP Client**
-- **Current**: Uses external `wget` command
-- **Needed**: Use Free Pascal's `fphttpclient` for downloads
-- **Impact**: Downloads for OptiScaler updates
-- **Status**: ❌ TODO
+### 7. **Native HTTP Client (wget replacement)**
+- **Status**: ✅ COMPLETE
+- **Implementation**: Replaced `wget` with `fphttpclient` (Free Pascal native)
+- **Features**:
+  - Progress tracking during downloads
+  - Redirect support
+  - Proper error handling with HTTP status codes
+  - No external dependencies
+- **Impact**: OptiScaler downloads now work in Flatpak sandbox
+- **Files modified**: `optiscaler_update.pas`
+
+---
+
+## ❌ Not Yet Implemented
 
 ### 8. **Git Operations for ReShade Shaders**
 - **Current**: Uses external `git` command

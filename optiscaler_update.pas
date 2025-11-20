@@ -4,7 +4,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, ComCtrls, Buttons, Process,
-  RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils;
+  RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils,
+  fphttpclient, opensslsockets; // For native HTTP downloads (Flatpak-compatible)
 
 type
   TOptiscalerTab = class
@@ -22,10 +23,12 @@ type
     FFakeNvapiLabel2: TLabel;  // Label for update notification
     FNotificationLabel: TLabel; // Label for general notifications
     FFGModPath: string;
+    FLastProgress: Integer;    // For tracking HTTP download progress
 
     function GetLatestReleaseTag: string;
     function GetFakeNvapiReleaseTag: string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
+    procedure HTTPDataReceived(Sender: TObject; const ContentLength, CurrentPos: Int64);
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
     procedure CopyDirectory(const ASource, ADest: string);
@@ -233,80 +236,70 @@ begin
   end;
 end;
 
-function TOptiscalerTab.DownloadFile(const AURL, ADestFile: string): Boolean;
+// Progress callback for HTTP downloads (class method)
+procedure TOptiscalerTab.HTTPDataReceived(Sender: TObject; const ContentLength, CurrentPos: Int64);
 var
-  Process: TProcess;
-  OutputLine: string;
-  OutputList: TStringList;
-  ProgressRegex: TRegExpr;
-  PercentStr: string;
   PercentValue: Integer;
 begin
+  if ContentLength > 0 then
+  begin
+    PercentValue := Round((CurrentPos / ContentLength) * 100);
+
+    // Only update if progress changed (avoid excessive updates)
+    if PercentValue <> FLastProgress then
+    begin
+      FLastProgress := PercentValue;
+      // Map 0-100% of download to 10-50% of total progress
+      UpdateProgress(10 + Round((PercentValue / 100) * 40));
+      Application.ProcessMessages;
+    end;
+  end;
+end;
+
+function TOptiscalerTab.DownloadFile(const AURL, ADestFile: string): Boolean;
+var
+  HTTPClient: TFPHTTPClient;
+  FileStream: TFileStream;
+begin
   Result := False;
-  OutputLine := '';  // Initialize
-  Process := TProcess.Create(nil);
-  OutputList := TStringList.Create;
-  ProgressRegex := TRegExpr.Create;
+  FLastProgress := -1;
+  HTTPClient := TFPHTTPClient.Create(nil);
   try
     try
-      // Configure wget to show progress
-      Process.Executable := 'wget';
-      Process.Parameters.Add('--progress=bar:force');
-      Process.Parameters.Add('-O');
-      Process.Parameters.Add(ADestFile);
-      Process.Parameters.Add(AURL);
-      Process.Options := [poUsePipes, poStderrToOutPut];
-      Process.Execute;
+      // Configure HTTP client
+      HTTPClient.AllowRedirect := True;
+      HTTPClient.OnDataReceived := @HTTPDataReceived;
 
-      // Regex to capture wget percentage
-      // Format: 10% [=====>     ] 1,234,567   123KB/s
-      ProgressRegex.Expression := '(\d+)%';
+      // Add user agent for better compatibility
+      HTTPClient.AddHeader('User-Agent', 'Goverlay/1.6 (Linux; Flatpak-compatible)');
 
-      // Read progress in real time
-      while Process.Running do
-      begin
-        if Process.Output.NumBytesAvailable > 0 then
-        begin
-          SetLength(OutputLine, Process.Output.NumBytesAvailable);
-          Process.Output.Read(OutputLine[1], Length(OutputLine));
+      // Create file stream for download
+      FileStream := TFileStream.Create(ADestFile, fmCreate);
+      try
+        UpdateStatus('Downloading file...');
 
-          // Try to extract percentage
-          if ProgressRegex.Exec(OutputLine) then
-          begin
-            PercentStr := ProgressRegex.Match[1];
-            if TryStrToInt(PercentStr, PercentValue) then
-            begin
-              // Map 0-100% of wget to 10-50% of total progress
-              UpdateProgress(10 + Round((PercentValue / 100) * 40));
-            end;
-          end;
-        end;
-        Sleep(100);
-        Application.ProcessMessages;
+        // Perform HTTP GET request
+        HTTPClient.Get(AURL, FileStream);
+
+        Result := FileExists(ADestFile) and (FileStream.Size > 0);
+
+        if not Result then
+          ShowMessage('Error: Downloaded file is empty or does not exist.');
+
+      finally
+        FileStream.Free;
       end;
-
-      // Read any remaining output
-      while Process.Output.NumBytesAvailable > 0 do
-      begin
-        SetLength(OutputLine, Process.Output.NumBytesAvailable);
-        Process.Output.Read(OutputLine[1], Length(OutputLine));
-      end;
-
-      Process.WaitOnExit;
-      Result := (Process.ExitStatus = 0) and FileExists(ADestFile);
-
-      if not Result then
-        ShowMessage('Error downloading file via wget. Exit code: ' + IntToStr(Process.ExitStatus));
 
     except
+      on E: EHTTPClient do
+        ShowMessage('HTTP Error downloading file: ' + E.Message + sLineBreak +
+                   'HTTP Status: ' + IntToStr(HTTPClient.ResponseStatusCode));
       on E: Exception do
-        ShowMessage('Error executing wget: ' + E.Message + sLineBreak +
-                   'Make sure wget is installed: sudo apt-get install wget');
+        ShowMessage('Error downloading file: ' + E.Message + sLineBreak +
+                   'URL: ' + AURL);
     end;
   finally
-    ProgressRegex.Free;
-    OutputList.Free;
-    Process.Free;
+    HTTPClient.Free;
   end;
 end;
 

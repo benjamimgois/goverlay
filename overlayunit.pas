@@ -1460,9 +1460,9 @@ begin
   if not IsCommandAvailable('7z') then
     Missing.Add('p7zip');
 
-      //check if wget is avaiable
-  if not IsCommandAvailable('wget') then
-    Missing.Add('wget');
+      //wget is no longer required - using native HTTP client (fphttpclient)
+  // if not IsCommandAvailable('wget') then
+  //   Missing.Add('wget');
 
    //check if zenergy module is avaiable
   //if not IsKernelModuleAvailable('zenergy') then
