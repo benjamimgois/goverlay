@@ -52,12 +52,28 @@ modules:
       - /lib/pkgconfig
       - '*.a'
 
+  # libgit2 - Native git operations without external git command
+  - name: libgit2
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTS=OFF
+      - -DUSE_SSH=OFF
+    sources:
+      - type: archive
+        url: https://github.com/libgit2/libgit2/archive/refs/tags/v1.7.2.tar.gz
+        sha256: de384e29d7efc9330c6cdb126ebf88342b5025d920dcb7c645defad85195ea7f
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - '*.a'
+
   # Required tools for Goverlay functionality
   - name: tools
     buildsystem: simple
     build-commands:
       - install -D /usr/bin/git /app/bin/git
-      - install -D /usr/bin/wget /app/bin/wget
       - install -D /usr/bin/curl /app/bin/curl
       - install -D /usr/bin/7z /app/bin/7z
     only-arches:

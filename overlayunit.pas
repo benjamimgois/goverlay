@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
-  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser;
+  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas;
 
 
 
@@ -412,6 +412,9 @@ type
   private
     FStartTick: Cardinal;
     FOptiscalerUpdate: TOptiscalerTab;
+    FReshadeProgressBar: TProgressBar;
+    FReshadePhaseLabel: TLabel;
+    procedure ReshadeGitProgress(APhase: string; APercent: Integer);
   public
 
 
@@ -4254,6 +4257,26 @@ begin
   GlobalenableLabel.Visible:=false;
 end;
 
+procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
+begin
+  if Assigned(FReshadeProgressBar) then
+  begin
+    if FReshadeProgressBar.Min <> 0 then FReshadeProgressBar.Min := 0;
+    if FReshadeProgressBar.Max <> 100 then FReshadeProgressBar.Max := 100;
+    FReshadeProgressBar.Position := APercent;
+  end;
+
+  if Assigned(FReshadePhaseLabel) then
+  begin
+    if APhase <> '' then
+      FReshadePhaseLabel.Caption := Format('%s: %d%%', [APhase, APercent])
+    else
+      FReshadePhaseLabel.Caption := Format('%d%%', [APercent]);
+  end;
+
+  Application.ProcessMessages;
+end;
+
 procedure Tgoverlayform.reshaderefreshBitBtnClick(Sender: TObject);
 var
   P: TProcess;
@@ -4262,6 +4285,8 @@ var
   Chunk, Piece, S: string;
   Percent: Integer;
   Phase: string;
+  GitHelper: TGit2Helper;
+  Success: Boolean;
 
 
 
@@ -4391,33 +4416,84 @@ begin
   Phase := '';
   Chunk := '';
 
-  try
-    if DirectoryExists(RepoDir) then
-      StartGit(['-C', 'reshade-shaders', 'pull', '--progress'], VKBASALTFOLDER)
-    else
-      //StartGit(['clone', '--progress', 'https://github.com/crosire/reshade-shaders.git'], VKBASALTFOLDER);
-      StartGit(['clone', '--progress', 'https://github.com/benjamimgois/reshade-shaders.git'], VKBASALTFOLDER);
-    while P.Running do
-    begin
-      PumpOutput;
-      Application.ProcessMessages; // keep UI alive and repaint the bar
+  // Setup progress bar and label references for callback
+  FReshadeProgressBar := reshadeProgressbar;
+  FReshadePhaseLabel := pbarLabel;
+
+  // Try libgit2 first (Flatpak-compatible), fallback to git command
+  Success := False;
+  if TGit2Helper.IsLibGit2Available then
+  begin
+    // Use libgit2 for git operations (no external dependencies)
+    try
+      GitHelper := TGit2Helper.Create;
+      try
+        // Setup progress callback
+        GitHelper.OnProgress := @ReshadeGitProgress;
+
+        // Clone or pull repository
+        if DirectoryExists(RepoDir) then
+        begin
+          pbarLabel.Caption := 'Updating repository...';
+          Success := GitHelper.Pull(RepoDir);
+        end
+        else
+        begin
+          pbarLabel.Caption := 'Cloning repository...';
+          Success := GitHelper.Clone('https://github.com/benjamimgois/reshade-shaders.git', RepoDir);
+        end;
+
+        if Success then
+        begin
+          ApplyPercent(100);
+          pbarLabel.Caption := 'Completed';
+          ExecuteShellCommand('notify-send -e -i ' + GetIconFile +
+            ' "Goverlay" "Reshade shaders are ready"');
+        end;
+
+      finally
+        GitHelper.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        // libgit2 failed, will fallback to external git
+        Success := False;
+      end;
     end;
+  end;
 
-    // drain remaining output after exit
-    PumpOutput;
+  // Fallback to external git command if libgit2 failed or unavailable
+  if not Success then
+  begin
+    // Fallback to external git command
+    try
+      if DirectoryExists(RepoDir) then
+        StartGit(['-C', 'reshade-shaders', 'pull', '--progress'], VKBASALTFOLDER)
+      else
+        //StartGit(['clone', '--progress', 'https://github.com/crosire/reshade-shaders.git'], VKBASALTFOLDER);
+        StartGit(['clone', '--progress', 'https://github.com/benjamimgois/reshade-shaders.git'], VKBASALTFOLDER);
+      while P.Running do
+      begin
+        PumpOutput;
+        Application.ProcessMessages; // keep UI alive and repaint the bar
+      end;
 
-    if P.ExitStatus = 0 then
-    begin
-      ApplyPercent(100);
-      pbarLabel.Caption := 'Completed';
-      ExecuteShellCommand('notify-send -e -i ' + GetIconFile +
-        ' "Goverlay" "Reshade shaders are ready"');
-    end
-    else
-      ShowMessage('Error while synchronizing reshade repo. Code: ' + IntToStr(P.ExitStatus));
+      // drain remaining output after exit
+      PumpOutput;
 
-  finally
-    if Assigned(P) then P.Free;
+      if P.ExitStatus = 0 then
+      begin
+        ApplyPercent(100);
+        pbarLabel.Caption := 'Completed';
+        ExecuteShellCommand('notify-send -e -i ' + GetIconFile +
+          ' "Goverlay" "Reshade shaders are ready"');
+      end
+      else
+        ShowMessage('Error while synchronizing reshade repo. Code: ' + IntToStr(P.ExitStatus));
+    finally
+      if Assigned(P) then P.Free;
+    end;
   end;
 
   // List ALL repository files:
