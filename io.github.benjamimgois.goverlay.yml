@@ -1,0 +1,84 @@
+app-id: io.github.benjamimgois.goverlay
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: goverlay
+
+finish-args:
+  # GPU access for Vulkan/OpenGL overlays
+  - --device=dri
+
+  # Filesystem access for configuration files
+  - --filesystem=xdg-config/MangoHud:create
+  - --filesystem=xdg-config/vkBasalt:create
+  - --filesystem=xdg-config/goverlay:create
+  - --filesystem=xdg-data/goverlay:create
+
+  # Read-only access to /sys for hardware detection
+  - --filesystem=/sys/class/drm:ro
+  - --filesystem=/sys/bus/pci:ro
+  - --filesystem=/sys/class/net:ro
+
+  # Network access for downloads (OptiScaler, ReShade shaders, updates)
+  - --share=network
+
+  # GUI requirements
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+
+  # Desktop notifications
+  - --talk-name=org.freedesktop.Notifications
+
+  # Font access
+  - --filesystem=/usr/share/fonts:ro
+  - --filesystem=/run/current-system/sw/share/fonts:ro
+  - --filesystem=xdg-data/fonts:ro
+
+modules:
+  # Qt6 Pascal bindings
+  - name: qt6pas
+    buildsystem: simple
+    build-commands:
+      - qmake6 Qt6Pas.pro
+      - make
+      - make install INSTALL_ROOT=/app
+    sources:
+      - type: git
+        url: https://github.com/davidbannon/qt6pas.git
+        tag: v6.2.7
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - '*.a'
+
+  # Required tools for Goverlay functionality
+  - name: tools
+    buildsystem: simple
+    build-commands:
+      - install -D /usr/bin/git /app/bin/git
+      - install -D /usr/bin/wget /app/bin/wget
+      - install -D /usr/bin/curl /app/bin/curl
+      - install -D /usr/bin/7z /app/bin/7z
+    only-arches:
+      - x86_64
+      - aarch64
+
+  # Goverlay application
+  - name: goverlay
+    buildsystem: simple
+    build-commands:
+      - make LAZBUILDOPTS="--lazarusdir=/app/share/lazarus"
+      - make install prefix=/app
+    sources:
+      - type: dir
+        path: .
+    cleanup:
+      - /share/lazarus
+      - /lib/*.a
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.la'
