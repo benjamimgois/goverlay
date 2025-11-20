@@ -967,6 +967,116 @@ begin
 end;
 
 
+//Function to detect if running inside Flatpak sandbox
+function IsRunningInFlatpak: Boolean;
+begin
+  Result := GetEnvironmentVariable('FLATPAK_ID') <> '';
+end;
+
+
+//Function to detect GPU vendor without lspci (Flatpak-compatible)
+function DetectGPUVendorFromSys: string;
+var
+  SearchRec: TSearchRec;
+  VendorFile, DeviceClassFile: string;
+  VendorID: string;
+  DeviceClass: string;
+  VendorText: TStringList;
+begin
+  Result := 'unknown';
+
+  // Search for VGA devices in /sys/bus/pci/devices/
+  if FindFirst('/sys/bus/pci/devices/*', faDirectory, SearchRec) = 0 then
+  begin
+    try
+      repeat
+        if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') then
+        begin
+          DeviceClassFile := '/sys/bus/pci/devices/' + SearchRec.Name + '/class';
+          VendorFile := '/sys/bus/pci/devices/' + SearchRec.Name + '/vendor';
+
+          // Check if this is a VGA device (class 0x03xxxx)
+          if FileExists(DeviceClassFile) and FileExists(VendorFile) then
+          begin
+            VendorText := TStringList.Create;
+            try
+              VendorText.LoadFromFile(DeviceClassFile);
+              if VendorText.Count > 0 then
+              begin
+                DeviceClass := Trim(VendorText[0]);
+                // VGA controller class starts with 0x03
+                if (Length(DeviceClass) >= 4) and (Copy(DeviceClass, 1, 4) = '0x03') then
+                begin
+                  VendorText.Clear;
+                  VendorText.LoadFromFile(VendorFile);
+                  if VendorText.Count > 0 then
+                  begin
+                    VendorID := Trim(VendorText[0]);
+                    // Check vendor IDs
+                    case VendorID of
+                      '0x1002': Result := 'AMD';      // AMD/ATI
+                      '0x10de': Result := 'NVIDIA';   // NVIDIA
+                      '0x8086': Result := 'Intel';    // Intel
+                    end;
+
+                    if Result <> 'unknown' then
+                      Break; // Found a GPU, stop searching
+                  end;
+                end;
+              end;
+            finally
+              VendorText.Free;
+            end;
+          end;
+        end;
+      until FindNext(SearchRec) <> 0;
+    finally
+      FindClose(SearchRec);
+    end;
+  end;
+
+  // Note: In Flatpak, /sys/bus/pci should be accessible with proper permissions
+  // If detection fails, the application will use default theme
+end;
+
+
+//Function to get network interfaces without ip command (Flatpak-compatible)
+function GetNetworkInterfacesFromSys: TStringList;
+var
+  SearchRec: TSearchRec;
+  InterfaceName: string;
+begin
+  Result := TStringList.Create;
+  Result.Sorted := True;
+  Result.Duplicates := dupIgnore;
+
+  // Read directly from /sys/class/net/
+  if FindFirst('/sys/class/net/*', faAnyFile, SearchRec) = 0 then
+  begin
+    try
+      repeat
+        InterfaceName := SearchRec.Name;
+        // Filter out . and .. and loopback
+        if (InterfaceName <> '.') and (InterfaceName <> '..') and (InterfaceName <> 'lo') then
+        begin
+          // Add common network interface types
+          if (Pos('eth', InterfaceName) = 1) or
+             (Pos('enp', InterfaceName) = 1) or
+             (Pos('wlan', InterfaceName) = 1) or
+             (Pos('wlp', InterfaceName) = 1) or
+             (Pos('wlo', InterfaceName) = 1) then
+          begin
+            Result.Add(InterfaceName);
+          end;
+        end;
+      until FindNext(SearchRec) <> 0;
+    finally
+      FindClose(SearchRec);
+    end;
+  end;
+end;
+
+
 //Function to get standard font directories for different distributions
 function GetStandardFontDirectories: TStringList;
 var
@@ -1565,39 +1675,56 @@ var
   Line, InterfaceName: String;
   SepPos: Integer;
   i: Integer;
+  Interfaces: TStringList;
 begin
-  AProcess := TProcess.Create(nil);
-  Output := TStringList.Create;
-  try
-    AProcess.Executable := FindDefaultExecutablePath('ip');
-    AProcess.Parameters.Add('link');
-    AProcess.Options := [poUsePipes, poWaitOnExit, poNoConsole];
-    AProcess.Execute;
+  ComboBox.Items.Clear;
 
-    Output.LoadFromStream(AProcess.Output);
+  // Use Flatpak-compatible detection if running in sandbox or ip command not available
+  if IsRunningInFlatpak or not IsCommandAvailable('ip') then
+  begin
+    // Flatpak-compatible: read from /sys/class/net/
+    Interfaces := GetNetworkInterfacesFromSys;
+    try
+      for i := 0 to Interfaces.Count - 1 do
+        ComboBox.Items.Add(Interfaces[i]);
+    finally
+      Interfaces.Free;
+    end;
+  end
+  else
+  begin
+    // Traditional method: use ip link command
+    AProcess := TProcess.Create(nil);
+    Output := TStringList.Create;
+    try
+      AProcess.Executable := FindDefaultExecutablePath('ip');
+      AProcess.Parameters.Add('link');
+      AProcess.Options := [poUsePipes, poWaitOnExit, poNoConsole];
+      AProcess.Execute;
 
-    ComboBox.Items.Clear;
+      Output.LoadFromStream(AProcess.Output);
 
-    for i := 0 to Output.Count - 1 do
-    begin
-      Line := Trim(Output[i]);
-
-      // Check if line starts with number + ": "
-      if (Line <> '') and (CharInSet(Line[1], ['0'..'9'])) then
+      for i := 0 to Output.Count - 1 do
       begin
-        SepPos := Pos(': ', Line);
-        if SepPos > 0 then
-        begin
-          InterfaceName := Copy(Line, SepPos + 2, Pos(':', Line, SepPos + 2) - SepPos - 2);
+        Line := Trim(Output[i]);
 
-          if IsInterfaceAllowed(InterfaceName) then
-            ComboBox.Items.Add(InterfaceName);
+        // Check if line starts with number + ": "
+        if (Line <> '') and (CharInSet(Line[1], ['0'..'9'])) then
+        begin
+          SepPos := Pos(': ', Line);
+          if SepPos > 0 then
+          begin
+            InterfaceName := Copy(Line, SepPos + 2, Pos(':', Line, SepPos + 2) - SepPos - 2);
+
+            if IsInterfaceAllowed(InterfaceName) then
+              ComboBox.Items.Add(InterfaceName);
+          end;
         end;
       end;
+    finally
+      Output.Free;
+      AProcess.Free;
     end;
-  finally
-    Output.Free;
-    AProcess.Free;
   end;
 end;
 
@@ -3987,6 +4114,15 @@ end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
+    // Check if running in Flatpak - global MangoHud activation not supported
+    if IsRunningInFlatpak then
+    begin
+      ShowMessage('Global MangoHud activation is not available in Flatpak.' + LineEnding + LineEnding +
+                  'Flatpak applications run in a sandbox and cannot modify system files like /etc/environment.' + LineEnding + LineEnding +
+                  'Please configure MangoHud per-application instead.');
+      Exit;
+    end;
+
     case geSpeedButton.imageIndex of
        0: begin
          geSpeedButton.ImageIndex:=1; //switch button position to ON
@@ -4781,30 +4917,41 @@ iordrwColorButton.ButtonColor:=clSilver;
 
 //Detect GPU and set colors according to BRAND
 GPUBrand := '';
- AProcess := TProcess.Create(nil);
- GPUInfo := TStringList.Create;
- try
-   // Execute the command lspci to list PCI devices
-   AProcess.Executable := FindDefaultExecutablePath('lspci');
-   AProcess.Parameters.Add('-nn');
-   AProcess.Options := [poWaitOnExit, poUsePipes];
-   AProcess.Execute;
 
-   GPUInfo.LoadFromStream(AProcess.Output);
+// Use Flatpak-compatible detection if running in sandbox, fallback to lspci otherwise
+if IsRunningInFlatpak or not IsCommandAvailable('lspci') then
+begin
+  // Flatpak-compatible: read from /sys/bus/pci/devices/
+  GPUBrand := DetectGPUVendorFromSys;
+end
+else
+begin
+  // Traditional method: use lspci command
+  AProcess := TProcess.Create(nil);
+  GPUInfo := TStringList.Create;
+  try
+    // Execute the command lspci to list PCI devices
+    AProcess.Executable := FindDefaultExecutablePath('lspci');
+    AProcess.Parameters.Add('-nn');
+    AProcess.Options := [poWaitOnExit, poUsePipes];
+    AProcess.Execute;
 
-   // Look for a line that contains "VGA" (video card)
-   for I := 0 to GPUInfo.Count - 1 do
-   begin
-     if Pos('VGA', GPUInfo[I]) > 0 then
-     begin
-       GPUBrand := GPUInfo[I];
-       Break;
-     end;
-   end;
- finally
-   GPUInfo.Free;
-   AProcess.Free;
- end;
+    GPUInfo.LoadFromStream(AProcess.Output);
+
+    // Look for a line that contains "VGA" (video card)
+    for I := 0 to GPUInfo.Count - 1 do
+    begin
+      if Pos('VGA', GPUInfo[I]) > 0 then
+      begin
+        GPUBrand := GPUInfo[I];
+        Break;
+      end;
+    end;
+  finally
+    GPUInfo.Free;
+    AProcess.Free;
+  end;
+end;
 
  // Change button colors based on GPU brand
  if Pos('AMD', GPUBrand) > 0 then
@@ -4887,6 +5034,14 @@ var
   Response: Integer;
 
 begin
+    // Check if running in Flatpak - cannot modify /sys permissions
+    if IsRunningInFlatpak then
+    begin
+      ShowMessage('Intel CPU power monitoring fix is not available in Flatpak.' + LineEnding + LineEnding +
+                  'Flatpak applications cannot modify system file permissions in /sys/.' + LineEnding + LineEnding +
+                  'This fix must be applied from outside the Flatpak sandbox on the host system.');
+      Exit;
+    end;
 
     Response := MessageDlg('Due to a known vulnerability in intel cpus,  the corresponding energy_uj file has to be readable by corresponding user. Having the file readable may potentially be a security vulnerability persisting until system reboots.', mtConfirmation, [mbYes, mbNo], 0);
 
