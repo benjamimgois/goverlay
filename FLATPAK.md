@@ -2,9 +2,9 @@
 
 This branch contains experimental Flatpak compatibility improvements for Goverlay.
 
-## Status: WORK IN PROGRESS ⚠️
+## Status: WORK IN PROGRESS ⚠️ (~90% Complete)
 
-The Flatpak support is currently **in development** and not fully complete. Some features work, others need additional implementation.
+The Flatpak support is currently **in development** and not fully complete. Most core features work, with git operations remaining as the primary outstanding item.
 
 ---
 
@@ -37,16 +37,18 @@ The Flatpak support is currently **in development** and not fully complete. Some
 
 ---
 
-## ⚠️ Partially Implemented
+## ✅ Recently Implemented
 
 ### 6. **OptiScaler Installation Path**
-- **Current**: Uses `~/fgmod/`
-- **Needed**: Should use `~/.var/app/io.github.benjamimgois.goverlay/data/` in Flatpak
-- **Status**: ⚠️ Needs implementation
-
----
-
-## ✅ Recently Implemented
+- **Status**: ✅ COMPLETE
+- **Implementation**: Added Flatpak-aware path detection
+- **Features**:
+  - New function `GetOptiScalerInstallPath()` detects Flatpak environment
+  - Uses `~/.var/app/io.github.benjamimgois.goverlay/data/fgmod` in Flatpak
+  - Uses `~/fgmod` on normal systems
+  - Automatically creates parent directories as needed
+- **Impact**: OptiScaler installations now work correctly in Flatpak sandbox
+- **Files modified**: `optiscaler_update.pas`, `overlayunit.pas`
 
 ### 7. **Native HTTP Client (wget replacement)**
 - **Status**: ✅ COMPLETE
@@ -143,17 +145,10 @@ flatpak-builder --user --install --force-clean build-dir io.github.benjamimgois.
 ## 🔧 Remaining Work
 
 ### High Priority
-1. **Implement OptiScaler path handling for Flatpak**
-   - Use `XDG_DATA_HOME` in sandbox
-   - Update all references to `~/fgmod/`
-
-2. **Replace wget with fphttpclient**
-   - Rewrite download functions in `optiscaler_update.pas`
-   - Remove external wget dependency
-
-3. **Test and fix git operations**
+1. **Test and fix git operations**
    - Ensure git is available in runtime
    - Test ReShade shader cloning
+   - Consider libgit2 as alternative
 
 ### Medium Priority
 4. **Complete Flatpak manifest**
@@ -176,9 +171,7 @@ flatpak-builder --user --install --force-clean build-dir io.github.benjamimgois.
 ## 🐛 Known Issues
 
 1. **Manifest is untested** - needs actual Flatpak build attempt
-2. **wget replacement not implemented** - downloads may fail
-3. **git operations untested** - ReShade shaders may not work
-4. **OptiScaler paths not updated** - installation may fail in sandbox
+2. **git operations untested** - ReShade shaders may not work in sandbox
 
 ---
 

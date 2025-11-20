@@ -7,6 +7,9 @@ uses
   RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils,
   fphttpclient, opensslsockets; // For native HTTP downloads (Flatpak-compatible)
 
+// Function to get the correct OptiScaler installation path (Flatpak-aware)
+function GetOptiScalerInstallPath: string;
+
 type
   TOptiscalerTab = class
   private
@@ -61,6 +64,34 @@ implementation
 
 uses
   FileUtil, LazFileUtils, BaseUnix;
+
+// Function to detect if running in Flatpak environment
+function IsRunningInFlatpak: Boolean;
+begin
+  Result := GetEnvironmentVariable('FLATPAK_ID') <> '';
+end;
+
+// Function to get the correct OptiScaler installation path
+// Returns ~/.var/app/io.github.benjamimgois.goverlay/data/fgmod in Flatpak
+// Returns ~/fgmod in normal systems
+function GetOptiScalerInstallPath: string;
+var
+  UserDir: string;
+begin
+  UserDir := GetUserDir;
+
+  if IsRunningInFlatpak then
+  begin
+    // Flatpak data directory
+    Result := IncludeTrailingPathDelimiter(UserDir) +
+              '.var/app/io.github.benjamimgois.goverlay/data/fgmod';
+  end
+  else
+  begin
+    // Standard user directory
+    Result := IncludeTrailingPathDelimiter(UserDir) + 'fgmod';
+  end;
+end;
 
 { TOptiscalerTab }
 
@@ -783,9 +814,9 @@ begin
     end;
     UpdateProgress(60);
 
-    // 5. Create fgmod folder in user's home
+    // 5. Create fgmod folder (Flatpak-aware path)
     ExtractPath := IncludeTrailingPathDelimiter(UserDir) + 'Decky-Framegen';
-    FFGModPath := IncludeTrailingPathDelimiter(UserDir) + 'fgmod';
+    FFGModPath := GetOptiScalerInstallPath;
 
     if DirectoryExists(FFGModPath) then
       DeleteDirectory(FFGModPath, False);

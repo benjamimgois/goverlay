@@ -4070,7 +4070,7 @@ begin
 
     FOptiscalerUpdate := TOptiscalerTab.Create;
 
-    FOptiscalerUpdate.FGModPath := GetUserDir + 'fgmod';
+    FOptiscalerUpdate.FGModPath := GetOptiScalerInstallPath;
     FOptiscalerUpdate.UpdateBtn := updatebitBtn;
     FOptiscalerUpdate.CheckupdBtn := checkupdBitbtn;
     FOptiscalerUpdate.ProgressBar := updateProgressBar;
