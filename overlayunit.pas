@@ -967,30 +967,84 @@ begin
 end;
 
 
+//Function to get standard font directories for different distributions
+function GetStandardFontDirectories: TStringList;
+var
+  Dir: String;
+begin
+  Result := TStringList.Create;
+  Result.Duplicates := dupIgnore;
+  Result.Sorted := True;
+
+  // Standard Linux font directories
+  Result.Add('/usr/share/fonts');
+  Result.Add('/usr/local/share/fonts');
+  Result.Add(GetUserConfigDir + '/../.local/share/fonts'); // ~/.local/share/fonts
+  Result.Add(GetUserConfigDir + '/../.fonts'); // ~/.fonts
+
+  // NixOS-specific directories
+  Result.Add('/run/current-system/sw/share/fonts');
+  Result.Add(GetEnvironmentVariable('HOME') + '/.nix-profile/share/fonts');
+
+  // Flatpak font directories
+  Result.Add('/var/lib/flatpak/exports/share/fonts');
+  Result.Add(GetUserConfigDir + '/../.local/share/flatpak/exports/share/fonts');
+
+  // Remove directories that don't exist
+  for Dir in Result do
+  begin
+    if not DirectoryExists(Dir) then
+      Result.Delete(Result.IndexOf(Dir));
+  end;
+end;
+
+
 //Procedure to find font files (*.ttf)
 procedure ListarFontesNoDiretorio(ComboBox: TComboBox);
 var
-  Arquivos: TStringList;
-  Arquivo: String;
+  Arquivos, AllFonts, FontDirs: TStringList;
+  Arquivo, FontDir: String;
 begin
-  Arquivos := TStringList.Create;
+  AllFonts := TStringList.Create;
+  AllFonts.Duplicates := dupIgnore;
+  AllFonts.Sorted := True;
 
+  // First, try to load from cache
   if LoadFont('fonts', FONTS) then
   begin
-    Arquivos := FONTS;
+    for Arquivo in FONTS do
+      AllFonts.Add(Arquivo);
   end
   else
   begin
-    Arquivos := FindAllFiles('/usr/share/fonts', '*.ttf');
+    // If no cache, search in standard font directories
+    FontDirs := GetStandardFontDirectories;
+    try
+      for FontDir in FontDirs do
+      begin
+        if DirectoryExists(FontDir) then
+        begin
+          Arquivos := FindAllFiles(FontDir, '*.ttf', True); // True for recursive search
+          try
+            for Arquivo in Arquivos do
+              AllFonts.Add(Arquivo);
+          finally
+            Arquivos.Free;
+          end;
+        end;
+      end;
+    finally
+      FontDirs.Free;
+    end;
   end;
 
   try
-    for Arquivo in Arquivos do
+    for Arquivo in AllFonts do
     begin
       ComboBox.Items.Add(ExtractFileName(Arquivo)); // Add filename into combobox
     end;
   finally
-    Arquivos.Free; // Free memory
+    AllFonts.Free; // Free memory
   end;
 end;
 
@@ -998,11 +1052,10 @@ end;
 //Procedure to find font directories
 procedure ListFontDirectories(out Dirs: TStringList);
 var
-  Arquivos: TStringList;
-  Arquivo: String;
+  Arquivos, FontDirs: TStringList;
+  Arquivo, FontDir: String;
 begin
-  Arquivos := TStringList.Create;
-
+  // First, try to load from cache
   if LoadFont('fonts', FONTS) then
   begin
     Arquivos := FONTS;
@@ -1013,6 +1066,20 @@ begin
       end;
     finally
       Arquivos.Free; // Free memory
+    end;
+  end
+  else
+  begin
+    // If no cache, use standard font directories
+    FontDirs := GetStandardFontDirectories;
+    try
+      for FontDir in FontDirs do
+      begin
+        if DirectoryExists(FontDir) then
+          Dirs.Add(FontDir);
+      end;
+    finally
+      FontDirs.Free;
     end;
   end;
 end;
@@ -4964,6 +5031,8 @@ var
   Output,FileLines, ConfigLines: TStringList;
   MaxFPS, SelectedFPS: Integer;
   SelectedValues: TStringList;
+  FONTDIR, TempFile: String;
+  TempFiles: TStringList;
 
   //vkbasalt vars
   RepoDir, RelPath, EffectName, EffectKey, FullPath, EffectsLine: string;
@@ -5389,19 +5458,46 @@ EnableTraceLogsFound: Boolean;
 
       if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
       begin
-        LOCATEDFILE := FindAllFiles('/usr/share/fonts', fontCombobox.Text); //Locate specific folder for selected font
         try
             FONTFOLDERS := TStringList.Create;
             FONTFOLDERS.Sorted := True;
             FONTFOLDERS.Duplicates := dupIgnore;
-            FONTFOLDERS.Delimiter := ';';
+
+            // Get all standard font directories
             ListFontDirectories(FONTFOLDERS);
-            LOCATEDFILE := FindAllFiles(FONTFOLDERS.DelimitedText, fontCombobox.Text);
+
+            // Search for the selected font in all directories
+            LOCATEDFILE := TStringList.Create;
+            for FONTDIR in FONTFOLDERS do
+            begin
+              if DirectoryExists(FONTDIR) then
+              begin
+                TempFiles := FindAllFiles(FONTDIR, fontCombobox.Text, True);
+                try
+                  for TempFile in TempFiles do
+                    LOCATEDFILE.Add(TempFile);
+                finally
+                  TempFiles.Free;
+                end;
+              end;
+            end;
         finally
             FONTFOLDERS.Free;
         end;
-        FONTPATH := LOCATEDFILE[0];
-        FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
+
+        // Check if font file was found before accessing index
+        if LOCATEDFILE.Count > 0 then
+        begin
+          FONTPATH := LOCATEDFILE[0];
+          FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
+          LOCATEDFILE.Free;
+        end
+        else
+        begin
+          FONTTYPE := ''; // Fallback to default font if not found
+          if Assigned(LOCATEDFILE) then
+            LOCATEDFILE.Free;
+        end;
       end
       else
       begin
