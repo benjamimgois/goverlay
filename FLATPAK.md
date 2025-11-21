@@ -1,10 +1,10 @@
 # Goverlay Flatpak Support
 
-This branch contains experimental Flatpak compatibility improvements for Goverlay.
+This branch contains Flatpak compatibility improvements for Goverlay.
 
-## Status: NEARLY COMPLETE ✅ (~95% Complete)
+## Status: COMPLETE ✅ (100%)
 
-The Flatpak support implementation is essentially complete. All core features are functional, with only final testing and manifest refinement remaining.
+The Flatpak support implementation is complete! All core features are functional and tested. The package builds successfully and MangoHud works correctly via Vulkan layers.
 
 ---
 
@@ -77,10 +77,28 @@ The Flatpak support implementation is essentially complete. All core features ar
 - **Impact**: ReShade shader downloads now work in Flatpak without external git command
 - **Files modified**: `git2pas.pas` (new), `overlayunit.pas`
 
-### 9. **Dependency Bundling**
+### 9. **MangoHud Invocation Method + vkcube Binary Selection**
+- **Status**: ✅ COMPLETE
+- **Implementation**: Fixed MangoHud invocation and vkcube binary selection for Flatpak
+- **Features**:
+  - Detects Flatpak environment via `IsRunningInFlatpak()`
+  - Uses `MANGOHUD=1` environment variable instead of `mangohud` wrapper command
+  - Uses `vkcube-wayland` binary on Wayland (instead of `vkcube --wsi wayland`)
+  - Applies to all vkcube launch points (4 locations in code)
+  - Works with Vulkan layer system (`/app/share/vulkan/implicit_layer.d/MangoHud.x86_64.json`)
+- **Impact**: MangoHud overlay now works correctly in Flatpak via Vulkan layers, vkcube launches properly
+- **Technical Details**:
+  - Native systems (Wayland): `mangohud vkcube --wsi wayland`
+  - Native systems (X11): `mangohud vkcube`
+  - Flatpak (Wayland): `MANGOHUD=1 vkcube-wayland`
+  - Flatpak (X11): `MANGOHUD=1 vkcube`
+- **Root Cause**: Flatpak's vulkan-tools builds separate binaries (`vkcube`, `vkcube-wayland`, `vkcubepp`) instead of supporting `--wsi` flag
+- **Files modified**: `overlayunit.pas` (lines 1619-1634, 3041-3068, 4575-4592, 6602-6620)
+
+### 10. **Dependency Bundling**
 - **Current**: Checks for system commands (7z, wget, git, etc.)
 - **Needed**: Bundle or provide these tools in Flatpak
-- **Status**: ❌ Partially addressed in manifest
+- **Status**: ✅ Addressed in manifest (git, p7zip, wget replaced by native HTTP client)
 
 ---
 
@@ -109,22 +127,99 @@ The Flatpak support implementation is essentially complete. All core features ar
 
 ## 🛠️ Building the Flatpak
 
-### Prerequisites
+### Method 1: Automated Build (Recommended for Testing)
+
+Use the provided build script:
+
 ```bash
+./build-flatpak.sh
+```
+
+The script will:
+- Check and install all required dependencies
+- Install runtime and SDK automatically
+- Build the Flatpak package
+- Optionally install it locally for testing
+
+### Method 2: Manual Build
+
+#### Prerequisites
+```bash
+# Install flatpak and flatpak-builder
+sudo pacman -S flatpak flatpak-builder  # Arch/CachyOS
+# OR
+sudo apt install flatpak flatpak-builder  # Ubuntu/Debian
+
+# Install runtime and SDK
 flatpak install flathub org.freedesktop.Platform//23.08
 flatpak install flathub org.freedesktop.Sdk//23.08
 ```
 
-### Build (when ready)
+#### Build Steps
+
+1. **Build the package:**
 ```bash
-flatpak-builder --force-clean build-dir io.github.benjamimgois.goverlay.yml
-flatpak-builder --run build-dir io.github.benjamimgois.goverlay.yml goverlay
+flatpak-builder \
+    --force-clean \
+    --repo=flatpak-repo \
+    --disable-rofiles-fuse \
+    --ccache \
+    --state-dir=.flatpak-builder \
+    flatpak-build \
+    io.github.benjamimgois.goverlay.yml
 ```
 
-### Install Locally
+2. **Install locally:**
 ```bash
-flatpak-builder --user --install --force-clean build-dir io.github.benjamimgois.goverlay.yml
+flatpak --user install flatpak-repo io.github.benjamimgois.goverlay
 ```
+
+3. **Run the application:**
+```bash
+flatpak run io.github.benjamimgois.goverlay
+```
+
+#### Create Distributable Bundle
+
+To create a `.flatpak` bundle for distribution:
+
+```bash
+flatpak build-bundle flatpak-repo goverlay.flatpak io.github.benjamimgois.goverlay
+```
+
+Users can install with:
+```bash
+flatpak install goverlay.flatpak
+```
+
+### Troubleshooting Build Issues
+
+#### Checksum Errors
+If you encounter checksum mismatches, calculate correct checksums:
+
+```bash
+# For local files
+sha256sum file.tar.gz
+
+# For remote files
+curl -L URL | sha256sum
+```
+
+Then update the `sha256` field in `io.github.benjamimgois.goverlay.yml`.
+
+#### Build Debug
+To debug build issues, enter the build environment:
+
+```bash
+flatpak-builder --run flatpak-build io.github.benjamimgois.goverlay.yml bash
+```
+
+### Uninstall
+```bash
+flatpak uninstall io.github.benjamimgois.goverlay
+```
+
+For complete documentation, see the build script (`build-flatpak.sh`) and comments in the manifest.
 
 ---
 
@@ -174,8 +269,13 @@ None - all core features implemented!
 
 ## 🐛 Known Issues
 
-1. **Manifest needs testing** - Requires actual Flatpak build attempt to verify all components work together
-2. **libgit2 dependency** - Needs to be added to Flatpak manifest runtime dependencies
+None! All major issues have been resolved. The Flatpak builds successfully and all core features are functional.
+
+### Recently Fixed:
+- ✅ MangoHud invocation method (now uses environment variables in Flatpak)
+- ✅ Manifest compilation (all dependencies build correctly)
+- ✅ libgit2 integration (included in manifest)
+- ✅ vkcube availability (bundled in Flatpak)
 
 ---
 

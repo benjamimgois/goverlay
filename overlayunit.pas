@@ -1616,10 +1616,22 @@ begin
   ExecuteGUICommand('killall vkcube');
   ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
 
-  if USERSESSION = 'wayland' then
-  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+  // In Flatpak, MangoHud works via environment variable, not as a wrapper command
+  // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
+  if IsRunningInFlatpak then
+  begin
+    if USERSESSION = 'wayland' then
+      ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
+    else
+      ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
+  end
   else
-  ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
+  begin
+    if USERSESSION = 'wayland' then
+      ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+    else
+      ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
+  end;
 
 
   //Hide notification messages
@@ -3039,10 +3051,22 @@ begin
 
 
   // Start vkcube (vulkan demo)
-  if USERSESSION = 'wayland' then
-    ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+  // In Flatpak, MangoHud works via environment variable, not as a wrapper command
+  // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
+  if IsRunningInFlatpak then
+  begin
+    if USERSESSION = 'wayland' then
+      ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
     else
-    ExecuteGUICommand('mangohud vkcube &');
+      ExecuteGUICommand('MANGOHUD=1 vkcube &');
+  end
+  else
+  begin
+    if USERSESSION = 'wayland' then
+      ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+    else
+      ExecuteGUICommand('mangohud vkcube &');
+  end;
 
    // Start pasCube
    //RunPasCube;
@@ -4550,10 +4574,22 @@ begin
   end;
 
   // Start vkcube (vulkan demo) only if not already running
-  if USERSESSION = 'wayland' then
-    ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+  // In Flatpak, MangoHud works via environment variable, not as a wrapper command
+  // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
+  if IsRunningInFlatpak then
+  begin
+    if USERSESSION = 'wayland' then
+      ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
+    else
+      ExecuteGUICommand('MANGOHUD=1 vkcube &');
+  end
   else
-    ExecuteGUICommand('mangohud vkcube &');
+  begin
+    if USERSESSION = 'wayland' then
+      ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+    else
+      ExecuteGUICommand('mangohud vkcube &');
+  end;
 end;
 
 
@@ -6566,10 +6602,22 @@ end;  //  ################### END - SAVE MANGOHUD
    Sleep(100);
    ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "Goverlay" "Trying vkbasalt effects"');
 
-   if USERSESSION = 'wayland' then
-   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+   // In Flatpak, MangoHud works via environment variable, not as a wrapper command
+   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
+   if IsRunningInFlatpak then
+   begin
+     if USERSESSION = 'wayland' then
+       ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
+     else
+       ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
+   end
    else
-   ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
+   begin
+     if USERSESSION = 'wayland' then
+       ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+     else
+       ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
+   end;
 
 
 

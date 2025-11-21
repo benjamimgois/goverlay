@@ -1,0 +1,18 @@
+#!/bin/sh
+# Flatpak launcher for Goverlay
+# In Flatpak, MangoHud works via Vulkan layers, not as a wrapper command
+
+# Check if running in Flatpak
+if [ -n "$FLATPAK_ID" ]; then
+    # Running in Flatpak - execute binary directly
+    # MangoHud will be loaded automatically via Vulkan layers
+    exec @libexecdir@/goverlay "$@"
+else
+    # Running natively - use mangohud wrapper if available
+    if command -v mangohud > /dev/null 2>&1; then
+        mangohud @libexecdir@/goverlay "$@"
+    else
+        # mangohud not available, run directly
+        exec @libexecdir@/goverlay "$@"
+    fi
+fi
