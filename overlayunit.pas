@@ -45,6 +45,7 @@ type
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
+    spoofCheckBox: TCheckBox;
     tracelogCheckBox: TCheckBox;
     overrideCheckBox: TCheckBox;
     forcelatencyflexCheckBox: TCheckBox;
@@ -283,7 +284,6 @@ type
     saveBitBtn: TBitBtn;
     sessionCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
-    spoofCheckBox: TCheckBox;
     squareImage: TImage;
     squareRadioButton: TRadioButton;
     subBitBtn: TBitBtn;
@@ -4876,9 +4876,21 @@ begin
 end;
 
 procedure Tgoverlayform.copyBitBtnClick(Sender: TObject);
+var
+  FGModPath: string;
+  LaunchCommand: string;
 begin
-   // Copy the command to clipboard
-  Clipboard.AsText := '~/fgmod/fgmod %command%';
+  // Get the correct fgmod path (Flatpak-aware)
+  FGModPath := GetOptiScalerInstallPath;
+
+  // Build launch command with the appropriate path
+  if IsRunningInFlatpak then
+    LaunchCommand := FGModPath + '/fgmod %command%'
+  else
+    LaunchCommand := '~/fgmod/fgmod %command%';
+
+  // Copy the command to clipboard
+  Clipboard.AsText := LaunchCommand;
 
   // Show notification
   ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Command copied to clipboard"');
@@ -5313,6 +5325,7 @@ var
 
   //OptiScaler vars
   FGModFilePath, SelectedDllName, DllNameWithoutExt: string;
+  FGModPath, LaunchCommand: string;
   FGModLines: TStringList;
   LineIndex: Integer;
   LineFound, WineOverrideFound: Boolean;
@@ -5632,6 +5645,15 @@ EnableTraceLogsFound: Boolean;
             // Show notification
             ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
 
+            // Get the correct fgmod path (Flatpak-aware)
+            FGModPath := GetOptiScalerInstallPath;
+
+            // Build launch command with the appropriate path
+            if IsRunningInFlatpak then
+              LaunchCommand := FGModPath + '/fgmod %command%'
+            else
+              LaunchCommand := '~/fgmod/fgmod %command%';
+
             // Update notificationLabel
             notificationLabel.Caption := 'Launch command:';
             notificationLabel.Font.Color := clYellow;
@@ -5639,7 +5661,7 @@ EnableTraceLogsFound: Boolean;
             notificationLabel.Visible := True;
 
             // Update commandLabel with launch command
-            commandLabel.caption := '~/fgmod/fgmod %command%';
+            commandLabel.caption := LaunchCommand;
             commandLabel.AutoSize:=true;
             commandLabel.Font.Color := clwhite;
            // commandlabel.Font.Style := [fsBold];
