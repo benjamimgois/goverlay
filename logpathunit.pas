@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons,
-  ExtCtrls, process;
+  ExtCtrls, process, themeunit;
 
 type
 
@@ -49,14 +49,11 @@ uses overlayunit;
 
 procedure TlogpathForm.FormCreate(Sender: TObject);
 begin
-   //Centralize window
-  Left:=(Screen.Width-Width)  div 2;
-  Top:=(Screen.Height-Height) div 2;
-
+  //Centralize window
+  CenterFormOnScreen(Self);
 
   // Use Home path variable in Logging default Path
   logpathForm.homepathEdit.Text:=userhomepathSTR;
-
 end;
 
 procedure TlogpathForm.changepathCheckBoxChange(Sender: TObject);

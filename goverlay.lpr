@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, overlayunit, aboutunit, blacklistUnit;
+  Forms, overlayunit, aboutunit, blacklistUnit, howto, themeunit, urlutils;
 
 
 
@@ -24,6 +24,7 @@ begin
   Application.CreateForm(Tgoverlayform, goverlayform);
   Application.CreateForm(TaboutForm, aboutForm);
   Application.CreateForm(TblacklistForm, blacklistForm);
+  Application.CreateForm(ThowtoForm, howtoForm);
   Application.Run;
 end.
 

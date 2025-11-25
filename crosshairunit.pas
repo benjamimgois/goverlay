@@ -5,7 +5,7 @@ unit crosshairUnit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls, themeunit;
 
 type
 
@@ -38,8 +38,7 @@ implementation
 procedure TcrosshairsizeForm.FormCreate(Sender: TObject);
 begin
   //Centralize window
-  Left:=(Screen.Width-Width)  div 2;
-  Top:=(Screen.Height-Height) div 2;
+  CenterFormOnScreen(Self);
 end;
 
 end.
