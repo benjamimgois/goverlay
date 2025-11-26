@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
-  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit;
+  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector;
 
 
 
@@ -972,14 +972,8 @@ begin
 end;
 
 
-//Function to detect if running inside Flatpak sandbox
-function IsRunningInFlatpak: Boolean;
-begin
-  Result := GetEnvironmentVariable('FLATPAK_ID') <> '';
-end;
-
-
 //Function to detect GPU vendor without lspci (Flatpak-compatible)
+// NOTE: This function is deprecated - use systemdetector.DetectGPUVendor instead
 function DetectGPUVendorFromSys: string;
 var
   SearchRec: TSearchRec;
@@ -1696,52 +1690,13 @@ var
 begin
   ComboBox.Items.Clear;
 
-  // Use Flatpak-compatible detection if running in sandbox or ip command not available
-  if IsRunningInFlatpak or not IsCommandAvailable('ip') then
-  begin
-    // Flatpak-compatible: read from /sys/class/net/
-    Interfaces := GetNetworkInterfacesFromSys;
-    try
-      for i := 0 to Interfaces.Count - 1 do
-        ComboBox.Items.Add(Interfaces[i]);
-    finally
-      Interfaces.Free;
-    end;
-  end
-  else
-  begin
-    // Traditional method: use ip link command
-    AProcess := TProcess.Create(nil);
-    Output := TStringList.Create;
-    try
-      AProcess.Executable := FindDefaultExecutablePath('ip');
-      AProcess.Parameters.Add('link');
-      AProcess.Options := [poUsePipes, poWaitOnExit, poNoConsole];
-      AProcess.Execute;
-
-      Output.LoadFromStream(AProcess.Output);
-
-      for i := 0 to Output.Count - 1 do
-      begin
-        Line := Trim(Output[i]);
-
-        // Check if line starts with number + ": "
-        if (Line <> '') and (CharInSet(Line[1], ['0'..'9'])) then
-        begin
-          SepPos := Pos(': ', Line);
-          if SepPos > 0 then
-          begin
-            InterfaceName := Copy(Line, SepPos + 2, Pos(':', Line, SepPos + 2) - SepPos - 2);
-
-            if IsInterfaceAllowed(InterfaceName) then
-              ComboBox.Items.Add(InterfaceName);
-          end;
-        end;
-      end;
-    finally
-      Output.Free;
-      AProcess.Free;
-    end;
+  // Use systemdetector to get network interfaces (automatically chooses method)
+  Interfaces := systemdetector.GetNetworkInterfaces;
+  try
+    for i := 0 to Interfaces.Count - 1 do
+      ComboBox.Items.Add(Interfaces[i]);
+  finally
+    Interfaces.Free;
   end;
 end;
 
@@ -4988,46 +4943,11 @@ mediaColorButton.ButtonColor:= clSilver;
 iordrwColorButton.ButtonColor:=clSilver;
 
 
-//Detect GPU and set colors according to BRAND
-GPUBrand := '';
+//Detect GPU and set colors according to BRAND using systemdetector
+GPUBrand := GPUVendorToString(DetectGPUVendor);
 
-// Use Flatpak-compatible detection if running in sandbox, fallback to lspci otherwise
-if IsRunningInFlatpak or not IsCommandAvailable('lspci') then
-begin
-  // Flatpak-compatible: read from /sys/bus/pci/devices/
-  GPUBrand := DetectGPUVendorFromSys;
-end
-else
-begin
-  // Traditional method: use lspci command
-  AProcess := TProcess.Create(nil);
-  GPUInfo := TStringList.Create;
-  try
-    // Execute the command lspci to list PCI devices
-    AProcess.Executable := FindDefaultExecutablePath('lspci');
-    AProcess.Parameters.Add('-nn');
-    AProcess.Options := [poWaitOnExit, poUsePipes];
-    AProcess.Execute;
-
-    GPUInfo.LoadFromStream(AProcess.Output);
-
-    // Look for a line that contains "VGA" (video card)
-    for I := 0 to GPUInfo.Count - 1 do
-    begin
-      if Pos('VGA', GPUInfo[I]) > 0 then
-      begin
-        GPUBrand := GPUInfo[I];
-        Break;
-      end;
-    end;
-  finally
-    GPUInfo.Free;
-    AProcess.Free;
-  end;
-end;
-
- // Change button colors based on GPU brand
- if Pos('AMD', GPUBrand) > 0 then
+// Change button colors based on GPU brand
+if Pos('AMD', GPUBrand) > 0 then
  begin
    gpuColorButton.ButtonColor := $003B00F1;
    vramColorButton.ButtonColor := $003B00F1;
