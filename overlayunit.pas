@@ -294,7 +294,7 @@ type
     systemLabel: TLabel;
     optiscalerTabSheet: TTabSheet;
     timeCheckBox: TCheckBox;
-    Timer1: TTimer;
+    Timer: TTimer;
     savecustomItem: TMenuItem;
     layoutImageList: TImageList;
     popsaveMenu: TPopupMenu;
@@ -396,7 +396,7 @@ type
     procedure saveBitBtnClick(Sender: TObject);
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
+    procedure TimerTimer(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
@@ -1742,7 +1742,7 @@ begin
   Result := (tv.tv_sec * 1000) + (tv.tv_usec div 1000);
 end;
 
-procedure Tgoverlayform.Timer1Timer(Sender: TObject);
+procedure Tgoverlayform.TimerTimer(Sender: TObject);
 begin
   goverlayPaintBox.Invalidate;
 end;
@@ -2745,11 +2745,14 @@ begin
   gupdateBitbtn.Color := clMaroon ;
   gupdateBitbtn.Font.Color := clwhite;
 
+  //Hide howto button until OptiScaler configuration is saved
+  howtoBitBtn.Visible := False;
+
   //Turbulence animation start
   FStartTick := GetTickCount;
-  Timer1.Interval := 50; // 20 fps aprox
-  Timer1.Enabled := True;
-  Timer1.OnTimer := @Timer1Timer;
+  Timer.Interval := 50; // 20 fps aprox
+  Timer.Enabled := True;
+  Timer.OnTimer := @TimerTimer;
   goverlayPaintBox.OnPaint := @goverlayPaintBoxPaint;
 
 
@@ -5518,6 +5521,9 @@ EnableTraceLogsFound: Boolean;
 
             // Show notification
             ExecuteShellCommand('notify-send -e -i ' + GetIconFile + ' "OptiScaler" "Configuration saved"');
+
+            // Show the howto button after saving OptiScaler configuration
+            howtoBitBtn.Visible := True;
 
             // Get the correct fgmod path (Flatpak-aware)
             FGModPath := GetOptiScalerInstallPath;
