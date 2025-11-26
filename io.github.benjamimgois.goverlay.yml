@@ -68,6 +68,9 @@ modules:
         # Create proper fpc.cfg in /app/etc
         mkdir -p /app/etc
         /app/lib/fpc/3.2.2/samplecfg /app/lib/fpc/3.2.2 /app/etc
+      - |
+        # Add library path to fpc.cfg
+        echo "-Fl/app/lib" >> /app/etc/fpc.cfg
     sources:
       - type: file
         url: https://sourceforge.net/projects/freepascal/files/Linux/3.2.2/fpc-3.2.2.x86_64-linux.tar/download
@@ -94,7 +97,7 @@ modules:
         install -d /app/bin
         install -d /app/share/lazarus
         install -m 755 lazbuild /app/bin/lazbuild
-        cp -r packager components lcl lazarus.app /app/share/lazarus/
+        cp -r packager components lcl lazarus.app ide /app/share/lazarus/
         cp -r images languages tools /app/share/lazarus/
     sources:
       - type: archive
@@ -119,10 +122,11 @@ modules:
         tar xf data.tar.*
         # Copy libraries to /app/lib
         cp -v usr/lib/x86_64-linux-gnu/libQt6Pas.so* /app/lib/ || cp -v usr/lib/libQt6Pas.so* /app/lib/ || find . -name "libQt6Pas.so*" -exec cp -v {} /app/lib/ \;
-        # Create symlink if needed
+        # Create symlinks for linking
         cd /app/lib
-        if [ -f libQt6Pas.so.6.2.10 ] && [ ! -f libQt6Pas.so.6 ]; then
-          ln -s libQt6Pas.so.6.2.10 libQt6Pas.so.6
+        if [ -f libQt6Pas.so.6.2.10 ]; then
+          ln -sf libQt6Pas.so.6.2.10 libQt6Pas.so.6
+          ln -sf libQt6Pas.so.6 libQt6Pas.so
         fi
     sources:
       - type: file
@@ -183,9 +187,9 @@ modules:
       - -DCMAKE_BUILD_TYPE=Release
       - -DVOLK_INSTALL=ON
     sources:
-      - type: git
-        url: https://github.com/zeux/volk.git
-        tag: vulkan-sdk-1.3.296.0
+      - type: archive
+        url: https://github.com/zeux/volk/archive/refs/tags/vulkan-sdk-1.3.296.0.tar.gz
+        sha256: 8ffd0e81e29688f4abaa39e598937160b098228f37503903b10d481d4862ab85
     cleanup:
       - /include
 
@@ -225,7 +229,18 @@ modules:
       - |
         # Use Flatpak-compatible launcher script
         cp data/goverlay.sh.flatpak data/goverlay.sh.in
-      - make LAZBUILDOPTS="--lazarusdir=/app/share/lazarus"
+      - |
+        # Debug: Check if Qt6Pas libraries exist
+        echo "=== Checking for Qt6Pas libraries in /app/lib ==="
+        ls -la /app/lib/libQt6Pas* || echo "No Qt6Pas libraries found!"
+        echo "=== End of library check ==="
+      - |
+        # Set up environment for lazbuild to find FPC
+        export PATH=/app/bin:$PATH
+        export FPCDIR=/app/lib/fpc/3.2.2
+        export PPC_CONFIG_PATH=/app/etc
+        # Build with lazbuild using configured fpc.cfg
+        make LAZBUILDOPTS="--lazarusdir=/app/share/lazarus --compiler=/app/bin/fpc"
       - make install prefix=/app
       - |
         # Create directories for Vulkan layer extensions
