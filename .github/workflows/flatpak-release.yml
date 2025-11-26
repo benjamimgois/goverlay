@@ -3,7 +3,7 @@ name: Build Flatpak Release
 on:
   push:
     tags:
-      - 'v*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+      - '*'  # Triggers on any tag
 
 jobs:
   build-flatpak:
