@@ -5,7 +5,7 @@ interface
 uses
   Classes, SysUtils, Forms, ComCtrls, Buttons, Process,
   RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils,
-  fphttpclient, opensslsockets; // For native HTTP downloads (Flatpak-compatible)
+  fphttpclient, opensslsockets, constants; // For native HTTP downloads (Flatpak-compatible)
 
 // Function to get the correct OptiScaler installation path (Flatpak-aware)
 function GetOptiScalerInstallPath: string;
@@ -167,7 +167,7 @@ begin
       Process.Parameters.Add('Accept: application/vnd.github.v3+json');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add('https://api.github.com/repos/xXJSONDeruloXx/Decky-Framegen/releases/latest');
+      Process.Parameters.Add(URL_DECKY_FRAMEGEN_API);
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
 
@@ -225,7 +225,7 @@ begin
       Process.Parameters.Add('Accept: application/vnd.github.v3+json');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add('https://api.github.com/repos/optiscaler/fakenvapi/releases/latest');
+      Process.Parameters.Add(URL_FAKENVAPI_API);
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
 

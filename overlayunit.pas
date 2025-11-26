@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
-  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector;
+  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants;
 
 
 
@@ -664,8 +664,8 @@ begin
       Process.Parameters.Add('Accept: application/vnd.github.v3+json');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      // Fetch only 4 tags to minimize API usage
-      Process.Parameters.Add('https://api.github.com/repos/benjamimgois/goverlay/tags?per_page=3');
+      // Fetch only 3 tags to minimize API usage
+      Process.Parameters.Add(URL_GOVERLAY_API_TAGS);
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
 
@@ -4368,7 +4368,7 @@ begin
         else
         begin
           pbarLabel.Caption := 'Cloning repository...';
-          Success := GitHelper.Clone('https://github.com/benjamimgois/reshade-shaders.git', RepoDir);
+          Success := GitHelper.Clone(URL_RESHADE_SHADERS_REPO, RepoDir);
         end;
 
         if Success then
@@ -4399,8 +4399,8 @@ begin
       if DirectoryExists(RepoDir) then
         StartGit(['-C', 'reshade-shaders', 'pull', '--progress'], VKBASALTFOLDER)
       else
-        //StartGit(['clone', '--progress', 'https://github.com/crosire/reshade-shaders.git'], VKBASALTFOLDER);
-        StartGit(['clone', '--progress', 'https://github.com/benjamimgois/reshade-shaders.git'], VKBASALTFOLDER);
+        //StartGit(['clone', '--progress', URL_RESHADE_SHADERS_CROSIRE], VKBASALTFOLDER);
+        StartGit(['clone', '--progress', URL_RESHADE_SHADERS_REPO], VKBASALTFOLDER);
       while P.Running do
       begin
         PumpOutput;
@@ -4815,8 +4815,8 @@ end;
 
 procedure Tgoverlayform.donateMenuItemClick(Sender: TObject);
 begin
-   try
-    if not OpenURL('https://ko-fi.com/benjamimgois') then
+  try
+    if not OpenURL(URL_KOFI) then
       ShowMessage('Unable to open the link in the default web browser.');
   except
     on E: Exception do
@@ -4949,20 +4949,20 @@ GPUBrand := GPUVendorToString(DetectGPUVendor);
 // Change button colors based on GPU brand
 if Pos('AMD', GPUBrand) > 0 then
  begin
-   gpuColorButton.ButtonColor := $003B00F1;
-   vramColorButton.ButtonColor := $003B00F1;
+   gpuColorButton.ButtonColor := COLOR_AMD_RED;
+   vramColorButton.ButtonColor := COLOR_AMD_RED;
  end
  else if Pos('NVIDIA', GPUBrand) > 0 then
  begin
-   gpuColorButton.ButtonColor := $0000B875;
-   vramColorButton.ButtonColor := $0000B875;
+   gpuColorButton.ButtonColor := COLOR_NVIDIA_GREEN;
+   vramColorButton.ButtonColor := COLOR_NVIDIA_GREEN;
  end
  else if Pos('Intel', GPUBrand) > 0 then
  begin
    if Pos('ARC', GPUBrand) > 0 then
    begin
-     gpuColorButton.ButtonColor := $00FEC601;
-     vramColorButton.ButtonColor := $00FEC601;
+     gpuColorButton.ButtonColor := COLOR_INTEL_ARC_YELLOW;
+     vramColorButton.ButtonColor := COLOR_INTEL_ARC_YELLOW;
    end;
  end;
 
@@ -5015,7 +5015,7 @@ procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);
 begin
   if GLatestVersion <> '' then
   begin
-    ReleaseURL := 'https://github.com/benjamimgois/goverlay/releases/tag/' + GLatestVersion;
+    ReleaseURL := URL_GOVERLAY_RELEASES + GLatestVersion;
     OpenURL(ReleaseURL);
   end;
 end;

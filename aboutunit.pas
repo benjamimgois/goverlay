@@ -5,7 +5,7 @@ unit aboutunit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,ExtCtrls, LCLProc, LCLIntf, urlutils, themeunit;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,ExtCtrls, LCLProc, LCLIntf, urlutils, themeunit, constants;
 
 type
 
@@ -54,23 +54,23 @@ implementation
 
 procedure TaboutForm.mangolinkClick(Sender: TObject);
 begin
-  OpenURLInBrowser('https://github.com/flightlessmango/MangoHud');
+  OpenURLInBrowser(URL_MANGOHUD_REPO);
 end;
 
 procedure TaboutForm.schoorselinkLabelClick(Sender: TObject);
 begin
-  OpenURLInBrowser('https://github.com/DadSchoorse/vkBasalt');
+  OpenURLInBrowser(URL_VKBASALT_REPO);
 end;
 
 procedure TaboutForm.twitterlinkClick(Sender: TObject);
 begin
-  OpenURLInBrowser('https://twitter.com/benjamimgois');
+  OpenURLInBrowser(URL_TWITTER);
 end;
 
 
 procedure TaboutForm.linkedinlinkClick(Sender: TObject);
 begin
-  OpenURLInBrowser('https://www.linkedin.com/in/benjamim-gois-37100155/');
+  OpenURLInBrowser(URL_LINKEDIN);
 end;
 
 procedure TaboutForm.mangolink1Click(Sender: TObject);
@@ -80,7 +80,7 @@ end;
 
 procedure TaboutForm.Label1Click(Sender: TObject);
 begin
-  OpenURLInBrowser('https://github.com/matanui159/ReplaySorcery');
+  OpenURLInBrowser(URL_REPLAYSORCERY_REPO);
 end;
 
 procedure TaboutForm.FormCreate(Sender: TObject);
@@ -105,19 +105,19 @@ begin
 end;
 
 procedure TaboutForm.donateImageClick(Sender: TObject);
-  begin
-    try
-     if not OpenURL('https://ko-fi.com/benjamimgois') then
-       ShowMessage('Unable to open the link in the default web browser.');
-   except
-     on E: Exception do
-       ShowMessage('Error opening the link: ' + E.Message);
-   end;
+begin
+  try
+    if not OpenURL(URL_KOFI) then
+      ShowMessage('Unable to open the link in the default web browser.');
+  except
+    on E: Exception do
+      ShowMessage('Error opening the link: ' + E.Message);
+  end;
 end;
 
 procedure TaboutForm.pascubelinkClick(Sender: TObject);
 begin
-  OpenURLInBrowser('https://github.com/benjamimgois/goverlay');
+  OpenURLInBrowser(URL_GOVERLAY_REPO);
 end;
 
 
