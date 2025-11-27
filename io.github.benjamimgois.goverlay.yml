@@ -26,10 +26,10 @@ finish-args:
   - --device=dri
 
   # Filesystem access for configuration files
-  - --filesystem=xdg-config/MangoHud:create
-  - --filesystem=xdg-config/vkBasalt:create
-  - --filesystem=xdg-config/goverlay:create
-  - --filesystem=xdg-data/goverlay:create
+  - --filesystem=xdg-config/MangoHud:rw
+  - --filesystem=xdg-config/vkBasalt:rw
+  - --filesystem=xdg-config/goverlay:rw
+  - --filesystem=xdg-data/goverlay:rw
   - --filesystem=home
 
   # Read-only access to /sys for hardware detection
