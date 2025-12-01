@@ -70,25 +70,17 @@ begin
 end;
 
 // Function to get the correct OptiScaler installation path
-// Returns ~/.var/app/io.github.benjamimgois.goverlay/data/fgmod in Flatpak
-// Returns ~/fgmod in normal systems
+// Always returns ~/fgmod for both Flatpak and native installations
+// Flatpak has --filesystem=home permission allowing access to user's home directory
 function GetOptiScalerInstallPath: string;
 var
   UserDir: string;
 begin
   UserDir := GetUserDir;
 
-  if IsRunningInFlatpak then
-  begin
-    // Flatpak data directory
-    Result := IncludeTrailingPathDelimiter(UserDir) +
-              '.var/app/io.github.benjamimgois.goverlay/data/fgmod';
-  end
-  else
-  begin
-    // Standard user directory
-    Result := IncludeTrailingPathDelimiter(UserDir) + 'fgmod';
-  end;
+  // Always use ~/fgmod regardless of Flatpak or native installation
+  // Flatpak has --filesystem=home permission, so it can access user's home directory
+  Result := IncludeTrailingPathDelimiter(UserDir) + 'fgmod';
 end;
 
 { TOptiscalerTab }
