@@ -5,7 +5,7 @@ interface
 uses
   Classes, SysUtils, Forms, ComCtrls, Buttons, Process,
   RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils,
-  fphttpclient, opensslsockets, constants; // For native HTTP downloads (Flatpak-compatible)
+  constants;
 
 // Function to get the correct OptiScaler installation path (Flatpak-aware)
 function GetOptiScalerInstallPath: string;
@@ -26,12 +26,10 @@ type
     FFakeNvapiLabel2: TLabel;  // Label for update notification
     FNotificationLabel: TLabel; // Label for general notifications
     FFGModPath: string;
-    FLastProgress: Integer;    // For tracking HTTP download progress
 
     function GetLatestReleaseTag: string;
     function GetFakeNvapiReleaseTag: string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
-    procedure HTTPDataReceived(Sender: TObject; const ContentLength, CurrentPos: Int64);
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
     procedure CopyDirectory(const ASource, ADest: string);
@@ -267,70 +265,60 @@ begin
   end;
 end;
 
-// Progress callback for HTTP downloads (class method)
-procedure TOptiscalerTab.HTTPDataReceived(Sender: TObject; const ContentLength, CurrentPos: Int64);
-var
-  PercentValue: Integer;
-begin
-  if ContentLength > 0 then
-  begin
-    PercentValue := Round((CurrentPos / ContentLength) * 100);
-
-    // Only update if progress changed (avoid excessive updates)
-    if PercentValue <> FLastProgress then
-    begin
-      FLastProgress := PercentValue;
-      // Map 0-100% of download to 10-50% of total progress
-      UpdateProgress(10 + Round((PercentValue / 100) * 40));
-      Application.ProcessMessages;
-    end;
-  end;
-end;
-
 function TOptiscalerTab.DownloadFile(const AURL, ADestFile: string): Boolean;
 var
-  HTTPClient: TFPHTTPClient;
-  FileStream: TFileStream;
+  Process: TProcess;
+  OutputList: TStringList;
 begin
   Result := False;
-  FLastProgress := -1;
-  HTTPClient := TFPHTTPClient.Create(nil);
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
   try
     try
-      // Configure HTTP client
-      HTTPClient.AllowRedirect := True;
-      HTTPClient.OnDataReceived := @HTTPDataReceived;
+      UpdateStatus('Downloading file...');
 
-      // Add user agent for better compatibility
-      HTTPClient.AddHeader('User-Agent', 'Goverlay/1.6 (Linux; Flatpak-compatible)');
+      // Use curl to download file with progress
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');  // Follow redirects
+      Process.Parameters.Add('-#');  // Show progress bar
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(ADestFile);
+      Process.Parameters.Add('-A');  // User agent
+      Process.Parameters.Add('Goverlay/1.6 (Linux; Flatpak-compatible)');
+      Process.Parameters.Add(AURL);
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
 
-      // Create file stream for download
-      FileStream := TFileStream.Create(ADestFile, fmCreate);
-      try
-        UpdateStatus('Downloading file...');
+      // Read any output (curl progress goes to stderr)
+      if Process.Stderr.NumBytesAvailable > 0 then
+        OutputList.LoadFromStream(Process.Stderr);
 
-        // Perform HTTP GET request
-        HTTPClient.Get(AURL, FileStream);
-
-        Result := FileExists(ADestFile) and (FileStream.Size > 0);
-
-        if not Result then
-          ShowMessage('Error: Downloaded file is empty or does not exist.');
-
-      finally
-        FileStream.Free;
+      // Check if download succeeded
+      if (Process.ExitStatus = 0) and FileExists(ADestFile) then
+      begin
+        Result := True;
+        UpdateProgress(50);  // Mark download complete at 50%
+      end
+      else
+      begin
+        if Process.ExitStatus <> 0 then
+          ShowMessage('Error downloading file: curl exited with code ' + IntToStr(Process.ExitStatus) + sLineBreak +
+                     'URL: ' + AURL + sLineBreak +
+                     'Check your internet connection and if curl is installed.')
+        else if not FileExists(ADestFile) then
+          ShowMessage('Error: Downloaded file does not exist.' + sLineBreak +
+                     'URL: ' + AURL);
       end;
 
     except
-      on E: EHTTPClient do
-        ShowMessage('HTTP Error downloading file: ' + E.Message + sLineBreak +
-                   'HTTP Status: ' + IntToStr(HTTPClient.ResponseStatusCode));
       on E: Exception do
         ShowMessage('Error downloading file: ' + E.Message + sLineBreak +
-                   'URL: ' + AURL);
+                   'URL: ' + AURL + sLineBreak +
+                   'Check your internet connection and if curl is installed.');
     end;
   finally
-    HTTPClient.Free;
+    OutputList.Free;
+    Process.Free;
   end;
 end;
 

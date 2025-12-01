@@ -69,6 +69,21 @@ flatpak-builder \
 
 echo -e "\n${GREEN}✓ Build concluído com sucesso!${NC}"
 
+# Criar o arquivo .flatpak bundle
+echo -e "\n${YELLOW}Criando arquivo goverlay.flatpak...${NC}"
+flatpak build-bundle "$REPO_DIR" goverlay.flatpak io.github.benjamimgois.goverlay || {
+    echo -e "\n${RED}Erro ao criar bundle do Flatpak${NC}"
+    exit 1
+}
+
+if [ -f "goverlay.flatpak" ]; then
+    FILESIZE=$(ls -lh goverlay.flatpak | awk '{print $5}')
+    echo -e "${GREEN}✓ Arquivo goverlay.flatpak criado com sucesso! (${FILESIZE})${NC}"
+else
+    echo -e "${RED}Erro: Arquivo goverlay.flatpak não foi criado${NC}"
+    exit 1
+fi
+
 # Instalar localmente
 echo -e "\n${YELLOW}Deseja instalar o Flatpak localmente? (s/N)${NC}"
 read -r -n 1 INSTALL
@@ -77,21 +92,16 @@ echo
 if [[ $INSTALL =~ ^[Ss]$ ]]; then
     echo -e "${YELLOW}Instalando Goverlay...${NC}"
 
-    # Add local repo temporarily
-    flatpak --user remote-add --no-gpg-verify --if-not-exists goverlay-local "$REPO_DIR" || true
-
-    # Install from local repo
-    flatpak --user install -y goverlay-local io.github.benjamimgois.goverlay
-
-    # Remove local repo (optional, keep for updates)
-    # flatpak --user remote-delete goverlay-local
+    # Install from bundle file
+    flatpak --user install -y goverlay.flatpak
 
     echo -e "\n${GREEN}✓ Goverlay instalado com sucesso!${NC}"
     echo -e "${GREEN}Execute com: flatpak run io.github.benjamimgois.goverlay${NC}"
 fi
 
 echo -e "\n${GREEN}=== Processo concluído ===${NC}"
-echo -e "\nPara exportar o bundle:"
-echo -e "  flatpak build-bundle $REPO_DIR goverlay.flatpak io.github.benjamimgois.goverlay"
+echo -e "\nArquivo criado: ${GREEN}goverlay.flatpak${NC}"
+echo -e "\nPara instalar manualmente:"
+echo -e "  flatpak install goverlay.flatpak"
 echo -e "\nPara desinstalar:"
 echo -e "  flatpak uninstall io.github.benjamimgois.goverlay"
