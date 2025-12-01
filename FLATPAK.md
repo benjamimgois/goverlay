@@ -41,13 +41,14 @@ The Flatpak support implementation is complete! All core features are functional
 
 ### 6. **OptiScaler Installation Path**
 - **Status**: ✅ COMPLETE
-- **Implementation**: Added Flatpak-aware path detection
+- **Implementation**: Unified installation path for all environments
 - **Features**:
-  - New function `GetOptiScalerInstallPath()` detects Flatpak environment
-  - Uses `~/.var/app/io.github.benjamimgois.goverlay/data/fgmod` in Flatpak
-  - Uses `~/fgmod` on normal systems
+  - New function `GetOptiScalerInstallPath()` returns consistent path
+  - Uses `~/fgmod` for both Flatpak and native installations
+  - Flatpak has `--filesystem=home` permission for home directory access
   - Automatically creates parent directories as needed
-- **Impact**: OptiScaler installations now work correctly in Flatpak sandbox
+  - Configuration files (OptiScaler.ini, fakenvapi.ini) saved to same location
+- **Impact**: Simplified code and consistent user experience across installation methods
 - **Files modified**: `optiscaler_update.pas`, `overlayunit.pas`
 
 ### 7. **Native HTTP Client (wget replacement)**
