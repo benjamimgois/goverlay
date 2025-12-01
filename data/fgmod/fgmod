@@ -7,7 +7,7 @@ error_exit() {
   echo "❌ $1"
   if [[ -n $STEAM_ZENITY ]]; then
     $STEAM_ZENITY --error --text "$1"
-  else
+  else 
     zenity --error --text "$1" || echo "Zenity failed to display error"
   fi
   logger -t fgmod "❌ ERROR: $1"
@@ -15,15 +15,7 @@ error_exit() {
 }
 
 # === CONFIG ===
-# Detect if running in Flatpak and set appropriate path
-if [[ -n "$FLATPAK_ID" ]]; then
-  # Running in Flatpak - use data directory
-  fgmod_path="$HOME/.var/app/io.github.benjamimgois.goverlay/data/fgmod"
-  logger -t fgmod "🟢 Flatpak detected, using path: $fgmod_path"
-else
-  # Normal installation
-  fgmod_path="$HOME/fgmod"
-fi
+fgmod_path="$HOME/fgmod"
 dll_name="${DLL:-dxgi.dll}"
 preserve_ini="${PRESERVE_INI:-true}"
 
@@ -150,13 +142,8 @@ cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true
 cp -f "$fgmod_path/d3dcompiler_47.dll" "$exe_folder_path/" || true
 
 echo "✅ Installation completed successfully!"
-if [[ -n "$FLATPAK_ID" ]]; then
-  echo "📄 For Steam, add this to the launch options: flatpak run --command=fgmod io.github.benjamimgois.goverlay %COMMAND%"
-  echo "📄 For Heroic, the Flatpak wrapper is automatically configured"
-else
-  echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"
-  echo "📄 For Heroic, add this as a new wrapper: \"$fgmod_path/fgmod\""
-fi
+echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"
+echo "📄 For Heroic, add this as a new wrapper: \"$fgmod_path/fgmod\""
 logger -t fgmod "🟢 Installation completed successfully for $exe_folder_path"
 
 # === Execute original command ===
