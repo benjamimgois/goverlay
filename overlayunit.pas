@@ -1897,8 +1897,8 @@ var
   FS: TFormatSettings;
   OptiScalerIniPath: string;
 begin
-  // Get OptiScaler.ini file path
-  OptiScalerIniPath := GetUserDir + 'fgmod' + PathDelim + 'OptiScaler.ini';
+  // Get OptiScaler.ini file path (Flatpak-aware)
+  OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
   if not FileExists(OptiScalerIniPath) then
     Exit;
@@ -1963,8 +1963,8 @@ var
   i, ColonPos: Integer;
   FakeNvapiIniPath: string;
 begin
-  // Get fakenvapi.ini file path
-  FakeNvapiIniPath := GetUserDir + 'fgmod' + PathDelim + 'fakenvapi.ini';
+  // Get fakenvapi.ini file path (Flatpak-aware)
+  FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
 
   if not FileExists(FakeNvapiIniPath) then
     Exit;
@@ -2046,8 +2046,8 @@ var
   i: Integer;
   FgmodPath: string;
 begin
-  // Get fgmod file path
-  FgmodPath := GetUserDir + 'fgmod' + PathDelim + 'fgmod';
+  // Get fgmod file path (Flatpak-aware)
+  FgmodPath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
 
   if not FileExists(FgmodPath) then
     Exit;
@@ -5242,8 +5242,8 @@ EnableTraceLogsFound: Boolean;
     // Check if we're on the OptiScaler tab
     if goverlayPageControl.ActivePage = optiscalerTabSheet then
     begin
-      // Get the fgmod file path
-      FGModFilePath := GetUserDir + 'fgmod' + PathDelim + 'fgmod';
+      // Get the fgmod file path (Flatpak-aware)
+      FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
 
       // Check if fgmod file exists
       if FileExists(FGModFilePath) then
@@ -5303,8 +5303,8 @@ EnableTraceLogsFound: Boolean;
             // Save the modified file
             FGModLines.SaveToFile(FGModFilePath);
 
-                   // Get OptiScaler.ini file path
-          OptiScalerIniPath := GetUserDir + 'fgmod' + PathDelim + 'OptiScaler.ini';
+                   // Get OptiScaler.ini file path (Flatpak-aware)
+          OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
           // Get selected FGType from framegenComboBox
           case framegenComboBox.ItemIndex of
@@ -5402,8 +5402,8 @@ EnableTraceLogsFound: Boolean;
 
           // Always modify fakenvapi.ini file (set to 0 if checkbox not checked)
           begin
-            // Get fakenvapi.ini file path
-            FakeNvapiIniPath := GetUserDir + 'fgmod' + PathDelim + 'fakenvapi.ini';
+            // Get fakenvapi.ini file path (Flatpak-aware)
+            FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
 
             // Initialize found flags
             ForceReflexFound := False;
