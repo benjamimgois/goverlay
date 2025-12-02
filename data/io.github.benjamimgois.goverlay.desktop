@@ -1,10 +1,10 @@
 [Desktop Entry]
 Name=Goverlay
-Comment=Graphical UI to help manage Vulkan / OpenGL overlays
+Comment=Linux gaming tools, made easy
 Exec=goverlay
 Icon=io.github.benjamimgois.goverlay
 StartupWMClass=Goverlay
 Terminal=false
 Type=Application
 Categories=Game;
-Keywords=MangoHud;vkBasalt;msi;afterburner;
+Keywords=MangoHud;vkBasalt;msi;afterburner;OptiScaler
