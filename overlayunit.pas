@@ -852,19 +852,24 @@ var
     end;
   end;
 
-// Send desktop notification compatible with both Flatpak and normal environments
+// Send desktop notification - works in both Flatpak and normal environments
+// Uses D-Bus (modern and sandbox-compatible) with notify-send fallback
 procedure SendNotification(const Title, Message: string; const IconPath: string = '');
 var
   Process: TProcess;
   DBusCommand: string;
-  FlatpakID: string;
+  UseDBus: Boolean;
 begin
-  // Check if running in Flatpak environment
-  FlatpakID := GetEnvironmentVariable('FLATPAK_ID');
+  // Try to use D-Bus notifications (works in both Flatpak and modern Linux)
+  // D-Bus is preferred because:
+  // - Works inside Flatpak sandbox
+  // - More reliable and modern
+  // - Direct communication with notification daemon
+  UseDBus := True;
 
-  if FlatpakID <> '' then
+  if UseDBus then
   begin
-    // Use D-Bus API for Flatpak (sandbox-compatible)
+    // Build D-Bus command for org.freedesktop.Notifications
     DBusCommand := 'gdbus call --session --dest org.freedesktop.Notifications ' +
                    '--object-path /org/freedesktop/Notifications ' +
                    '--method org.freedesktop.Notifications.Notify ' +
@@ -885,13 +890,18 @@ begin
       Process.Parameters.Add(DBusCommand);
       Process.Options := [poUsePipes, poNoConsole];
       Process.Execute;
+
+      // If D-Bus failed, fallback to notify-send
+      if Process.ExitStatus <> 0 then
+        UseDBus := False;
     finally
       Process.Free;
     end;
-  end
-  else
+  end;
+
+  // Fallback to notify-send if D-Bus is not available
+  if not UseDBus then
   begin
-    // Use notify-send for normal installations
     Process := TProcess.Create(nil);
     try
       Process.Executable := FindDefaultExecutablePath('sh');
