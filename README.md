@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/benjamimgois/goverlay/blob/main/data/goverlay_logo.png" width="320" alt="Goverlay logo">
+ <img width="320" height="225" alt="image" src="https://github.com/user-attachments/assets/17497f5b-41bc-43cc-9aa9-44473f03d007" />
 </p>
 
 <p align="center">
