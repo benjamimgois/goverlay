@@ -2,8 +2,8 @@
 <component type="desktop-application">
   <id>io.github.benjamimgois.goverlay</id>
   
-  <name>GOverlay</name>
-  <summary>Graphical UI to help manage Vulkan / OpenGL overlays</summary>
+  <name>Goverlay</name>
+  <summary>Linux gaming tools, made easy</summary>
 
   <launchable type="desktop-id">io.github.benjamimgois.goverlay.desktop</launchable>
 
@@ -11,21 +11,21 @@
   <project_license>GPL-3.0-or-later</project_license>
   
   <description>
-    <p>GOverlay can configure Vulkan / OpenGL overlays with a preview. Currently supported are MangoHud, vkBasalt</p>
+    <p>Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler</p>
   </description>
   
   <screenshots>
     <screenshot type="default">
       <caption>Options for MangoHud</caption>
-      <image>https://i.ibb.co/gdh0CcH/goverlay062-1c.jpg</image>
+      <image>https://github.com/user-attachments/assets/b05323d4-7c56-4413-a986-3ad2a0adc0db</image>
     </screenshot>
     <screenshot>
       <caption>Options for vkBasalt</caption>
-      <image>https://i.ibb.co/T1wr33t/goverlay062-2b.jpg</image>
+      <image>https://github.com/user-attachments/assets/36febbff-849f-43cc-8fe9-05c4525b2234</image>
     </screenshot>
     <screenshot>
-      <caption>Options for ReplaySorcery</caption>
-      <image>https://i.ibb.co/4Z4RWng/goverlay062-3b.jpg</image>
+      <caption>Options for OptiScaler</caption>
+      <image>https://github.com/user-attachments/assets/e9417dcf-e8d9-494f-8a10-9d40e7f3576a</image>
     </screenshot>
   </screenshots>
   
