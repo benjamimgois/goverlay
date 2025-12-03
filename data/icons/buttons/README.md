@@ -18,6 +18,8 @@ All icons are available in three sizes: 16x16, 24x24, and 32x32 pixels.
 | `folder.svg` / `folder.png` | Folder icon | Browse folder/log path buttons |
 | `help.svg` / `help.png` | Question mark | Help/how-to buttons |
 | `check.svg` / `check.png` | Check mark | Verify/check status buttons |
+| `theme-light.svg` / `theme-light.png` | Sun icon | Light theme toggle button |
+| `theme-dark.svg` / `theme-dark.png` | Moon icon | Dark theme toggle button |
 
 ## Button Mapping
 
