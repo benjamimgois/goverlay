@@ -46,6 +46,7 @@ type
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
+    ToggleSpeedButton: TSpeedButton;
     spoofCheckBox: TCheckBox;
     tracelogCheckBox: TCheckBox;
     overrideCheckBox: TCheckBox;
@@ -304,6 +305,7 @@ type
     iconsImageList: TImageList;
     columImageList: TImageList;
     dependencieSpeedButton: TSpeedButton;
+    themeToggleSpeedButton: TSpeedButton;
     casTrackBar2: TTrackBar;
     globalbuttonImageList: TImageList;
     mangohudLabel: TLabel;
@@ -396,6 +398,8 @@ type
     procedure saveBitBtnClick(Sender: TObject);
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
+    procedure ToggleSpeedButtonClick(Sender: TObject);
+    procedure themeToggleSpeedButtonClick(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
@@ -2777,6 +2781,7 @@ var
   Missing: TStringList;
   OSFile: TextFile;
 
+  SavedTheme: TThemeMode;
 
 begin
 
@@ -2802,9 +2807,15 @@ begin
   vkbasaltsel := false;
 
 
-  // Force dark theme
-  presettabsheet.Color:= DarkBackgroundColor;
-  ApplyDarkTheme(Self); //set all elements to dark tones
+  // Load and apply saved theme
+  SavedTheme := LoadThemePreference;
+  ApplyTheme(Self, SavedTheme);
+
+  // Update theme toggle button icon based on loaded theme
+  if SavedTheme = tmLight then
+    themeToggleSpeedButton.ImageIndex := 9   // sun icon (light theme)
+  else
+    themeToggleSpeedButton.ImageIndex := 10; // moon icon (dark theme)
 
   //Color exceptions
   saveBitbtn.Color:=$00008300;
@@ -6667,6 +6678,31 @@ begin
     else
       acteffectsListbox.ItemIndex := -1;
   end;
+end;
+
+procedure Tgoverlayform.ToggleSpeedButtonClick(Sender: TObject);
+begin
+  // Original ToggleSpeedButton code (if any)
+end;
+
+procedure Tgoverlayform.themeToggleSpeedButtonClick(Sender: TObject);
+var
+  NewTheme: TThemeMode;
+begin
+  // Toggle between themes
+  NewTheme := ToggleTheme(Self);
+
+  // Update button icon
+  if NewTheme = tmLight then
+    themeToggleSpeedButton.ImageIndex := 9   // sun icon (light theme)
+  else
+    themeToggleSpeedButton.ImageIndex := 10; // moon icon (dark theme)
+
+  // Optional: Show notification
+  if NewTheme = tmLight then
+    SendNotification('Goverlay', 'Light theme activated', GetIconFile)
+  else
+    SendNotification('Goverlay', 'Dark theme activated', GetIconFile);
 end;
 
 procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
