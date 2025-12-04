@@ -2817,6 +2817,9 @@ begin
   else
     themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
 
+  // Bring theme toggle button to front to ensure it's visible
+  themeToggleSpeedButton.BringToFront;
+
   //Color exceptions
   saveBitbtn.Color:=$00008300;
   notificationLabel.Font.color:=clyellow;
@@ -6697,6 +6700,8 @@ begin
     themeToggleSpeedButton.ImageIndex := 30   // sun icon (light theme)
   else
     themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
+
+
 
   // Optional: Show notification
   if NewTheme = tmLight then
