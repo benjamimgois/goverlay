@@ -3,9 +3,9 @@ program goverlay;
 {$mode objfpc}{$H+}
 
 uses
-  {$IFDEF UNIX}{$IFDEF UseCThreads}
-  cthreads,
-  {$ENDIF}{$ENDIF}
+  {$IFDEF UNIX}
+  cthreads, // <--- Agora será sempre incluído no Linux
+  {$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, overlayunit, aboutunit, blacklistUnit, howto, themeunit, urlutils;
 

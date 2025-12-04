@@ -46,6 +46,7 @@ type
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
+    themeToggleSpeedButton: TSpeedButton;
     ToggleSpeedButton: TSpeedButton;
     spoofCheckBox: TCheckBox;
     tracelogCheckBox: TCheckBox;
@@ -305,7 +306,6 @@ type
     iconsImageList: TImageList;
     columImageList: TImageList;
     dependencieSpeedButton: TSpeedButton;
-    themeToggleSpeedButton: TSpeedButton;
     casTrackBar2: TTrackBar;
     globalbuttonImageList: TImageList;
     mangohudLabel: TLabel;
@@ -2813,9 +2813,9 @@ begin
 
   // Update theme toggle button icon based on loaded theme
   if SavedTheme = tmLight then
-    themeToggleSpeedButton.ImageIndex := 9   // sun icon (light theme)
+    themeToggleSpeedButton.ImageIndex := 30   // sun icon (light theme)
   else
-    themeToggleSpeedButton.ImageIndex := 10; // moon icon (dark theme)
+    themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
 
   //Color exceptions
   saveBitbtn.Color:=$00008300;
@@ -6694,9 +6694,9 @@ begin
 
   // Update button icon
   if NewTheme = tmLight then
-    themeToggleSpeedButton.ImageIndex := 9   // sun icon (light theme)
+    themeToggleSpeedButton.ImageIndex := 30   // sun icon (light theme)
   else
-    themeToggleSpeedButton.ImageIndex := 10; // moon icon (dark theme)
+    themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
 
   // Optional: Show notification
   if NewTheme = tmLight then
