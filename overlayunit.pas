@@ -6701,13 +6701,8 @@ begin
   else
     themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
 
-
-
-  // Optional: Show notification
-  if NewTheme = tmLight then
-    SendNotification('Goverlay', 'Light theme activated', GetIconFile)
-  else
-    SendNotification('Goverlay', 'Dark theme activated', GetIconFile);
+  // Theme notifications removed to prevent duplicate notifications
+  // The theme change is visually obvious from the UI update
 end;
 
 procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
