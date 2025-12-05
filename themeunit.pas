@@ -94,6 +94,13 @@ begin
   begin
     ctrl := AControl.Controls[i];
 
+    // Skip color exceptions - components that should maintain their custom colors
+    if (ctrl.Name = 'saveBitbtn') or
+       (ctrl.Name = 'notificationLabel') or
+       (ctrl.Name = 'vkbasaltLabel') or
+       (ctrl.Name = 'gupdateBitbtn') then
+      Continue;
+
     if ctrl is TMemo then
     begin
       TMemo(ctrl).Font.Color := DarkTextColor;
@@ -150,6 +157,13 @@ begin
   for i := 0 to AControl.ControlCount - 1 do
   begin
     ctrl := AControl.Controls[i];
+
+    // Skip color exceptions - components that should maintain their custom colors
+    if (ctrl.Name = 'saveBitbtn') or
+       (ctrl.Name = 'notificationLabel') or
+       (ctrl.Name = 'vkbasaltLabel') or
+       (ctrl.Name = 'gupdateBitbtn') then
+      Continue;
 
     if ctrl is TMemo then
     begin
