@@ -473,7 +473,7 @@ begin
     begin
       try
         FDeckyLabel.Caption := DeckyVer;
-        FDeckyLabel.Font.Color := clBlue;
+        FDeckyLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -484,7 +484,7 @@ begin
     begin
       try
         FOptiLabel.Caption := OptiVer;
-        FOptiLabel.Font.Color := clBlue;
+        FOptiLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -495,7 +495,7 @@ begin
     begin
       try
         FFakeNvapiLabel.Caption := FakeNvapiVer;
-        FFakeNvapiLabel.Font.Color := clBlue;
+        FFakeNvapiLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -507,7 +507,7 @@ begin
     begin
       try
         FXessLabel.Caption := 'decky built-in';
-        FXessLabel.Font.Color := clBlue;
+        FXessLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -518,7 +518,7 @@ begin
     begin
       try
         FFsrLabel.Caption := 'decky built-in';
-        FFsrLabel.Font.Color := clBlue;
+        FFsrLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -761,7 +761,7 @@ begin
     begin
       try
         FDeckyLabel.Caption := DeckyVersion;
-        FDeckyLabel.Font.Color := clBlue;
+        FDeckyLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         on E: Exception do
@@ -838,7 +838,7 @@ begin
         begin
           try
             FOptiLabel.Caption := OptiVersion;
-            FOptiLabel.Font.Color := clBlue;
+            FOptiLabel.Font.Color := clOlive;
             Application.ProcessMessages;
           except
             on E: Exception do
@@ -927,7 +927,7 @@ begin
       begin
         try
           FFakeNvapiLabel.Caption := FakeNvapiVersion;
-          FFakeNvapiLabel.Font.Color := clBlue;
+          FFakeNvapiLabel.Font.Color := clOlive;
           Application.ProcessMessages;
         except
           on E: Exception do
@@ -1008,7 +1008,7 @@ begin
     begin
       try
         FXessLabel.Caption := 'decky built-in';
-        FXessLabel.Font.Color := clBlue;
+        FXessLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         on E: Exception do
@@ -1020,7 +1020,7 @@ begin
     begin
       try
         FFsrLabel.Caption := 'decky built-in';
-        FFsrLabel.Font.Color := clBlue;
+        FFsrLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         on E: Exception do
@@ -1040,7 +1040,7 @@ begin
     begin
       try
         FDeckyLabel.Caption := DeckyVersion;
-        FDeckyLabel.Font.Color := clBlue;
+        FDeckyLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -1051,7 +1051,7 @@ begin
     begin
       try
         FFakeNvapiLabel.Caption := FakeNvapiVersion;
-        FFakeNvapiLabel.Font.Color := clBlue;
+        FFakeNvapiLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors

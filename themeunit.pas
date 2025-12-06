@@ -5,7 +5,7 @@ unit themeunit;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles;
+  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles, Buttons;
 
 type
   TThemeMode = (tmLight, tmDark);
@@ -21,6 +21,7 @@ const
   LighterBackgroundColor = $00F5F5F5;  // Lighter gray for unselected items
   LightTextColor = clBlack;         // Dark text color
   LightBorderColor = $00D0D0D0;     // Light border color
+  LightButtonColor = $00E0E0E0;     // Light gray for buttons
 
 var
   CurrentTheme: TThemeMode = tmDark;  // Default to dark theme
@@ -237,6 +238,11 @@ begin
       TPanel(ctrl).Font.Color := LightTextColor;
       if TPanel(ctrl) is TWinControl then
         ApplyLightTheme(TWinControl(ctrl));
+    end
+    else if ctrl is TBitBtn then
+    begin
+      TBitBtn(ctrl).Color := LightButtonColor;
+      TBitBtn(ctrl).Font.Color := LightTextColor;
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := LightBackgroundColor

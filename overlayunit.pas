@@ -2820,12 +2820,7 @@ begin
   // Bring theme toggle button to front to ensure it's visible
   themeToggleSpeedButton.BringToFront;
 
-  //Color exceptions
-  saveBitbtn.Color:=$00008300;
-  notificationLabel.Font.color:=clyellow;
-  vkbasaltLabel.Font.Color:=clgray;
-  gupdateBitbtn.Color := clMaroon ;
-  gupdateBitbtn.Font.Color := clwhite;
+
 
   //Hide howto button until OptiScaler configuration is saved
   howtoBitBtn.Visible := False;
@@ -2839,20 +2834,20 @@ begin
 
 
    // Ajust tab text color
-  for i := 0 to goverlayPageControl.PageCount - 1 do
-  begin
-    goverlayPageControl.Pages[i].Font.Color := clBtnText;
-  end;
+//  for i := 0 to goverlayPageControl.PageCount - 1 do
+//  begin
+//    goverlayPageControl.Pages[i].Font.Color := clBtnText;
+//  end;
 
   // fix for radiobutton wrong colors
-  topleftRadiobutton.Color:=clDefault;
-  topcenterRadiobutton.Color:=clDefault;
-  toprightRadiobutton.Color:=clDefault;
-  bottomleftRadiobutton.Color:=clDefault;
-  bottomrightRadiobutton.Color:=clDefault;
-  bottomcenterRadiobutton.Color:=clDefault;
-  middleleftRadiobutton.Color:=clDefault;
-  middlerightRadiobutton.Color:=clDefault;
+ // topleftRadiobutton.Color:=clDefault;
+ // topcenterRadiobutton.Color:=clDefault;
+ // toprightRadiobutton.Color:=clDefault;
+ // bottomleftRadiobutton.Color:=clDefault;
+ // bottomrightRadiobutton.Color:=clDefault;
+ // bottomcenterRadiobutton.Color:=clDefault;
+ // middleleftRadiobutton.Color:=clDefault;
+ // middlerightRadiobutton.Color:=clDefault;
 
 
   // Define important file paths
