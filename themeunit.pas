@@ -98,7 +98,8 @@ begin
     if (ctrl.Name = 'saveBitbtn') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'vkbasaltLabel') or
-       (ctrl.Name = 'gupdateBitbtn') then
+       (ctrl.Name = 'gupdateBitbtn') or
+       (ctrl.Name = 'customcommandEdit') then
       Continue;
 
     if ctrl is TMemo then
@@ -110,6 +111,11 @@ begin
     begin
       TComboBox(ctrl).Font.Color := DarkTextColor;
       TComboBox(ctrl).Color := DarkerBackgroundColor;
+    end
+    else if ctrl is TEdit then
+    begin
+      TEdit(ctrl).Font.Color := DarkTextColor;
+      TEdit(ctrl).Color := DarkerBackgroundColor;
     end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := DarkTextColor
@@ -175,7 +181,8 @@ begin
        (ctrl.Name = 'fakenvapi2') or
        (ctrl.Name = 'fsrLabel1') or
        (ctrl.Name = 'xessLabel2') or
-       (ctrl.Name = 'gupdateBitbtn') then
+       (ctrl.Name = 'gupdateBitbtn') or
+       (ctrl.Name = 'customcommandEdit') then
       Continue;
 
     if ctrl is TMemo then
@@ -187,6 +194,11 @@ begin
     begin
       TComboBox(ctrl).Font.Color := LightTextColor;
       TComboBox(ctrl).Color := LightBackgroundColor;
+    end
+    else if ctrl is TEdit then
+    begin
+      TEdit(ctrl).Font.Color := LightTextColor;
+      TEdit(ctrl).Color := LightBackgroundColor;
     end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := LightTextColor
