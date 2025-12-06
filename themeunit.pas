@@ -176,7 +176,6 @@ begin
        (ctrl.Name = 'deckyLabel1') or
        (ctrl.Name = 'deckyLabel2') or
        (ctrl.Name = 'optLabel1') or
-       (ctrl.Name = 'fakenvapiLabel') or
        (ctrl.Name = 'fakenvapi1') or
        (ctrl.Name = 'fakenvapi2') or
        (ctrl.Name = 'fsrLabel1') or
