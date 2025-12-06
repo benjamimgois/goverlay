@@ -241,6 +241,9 @@ begin
     end
     else if ctrl is TBitBtn then
     begin
+      if (ctrl.Name = 'saveBitbtn') or
+         (ctrl.Name = 'gupdateBitbtn') then
+        Continue;
       TBitBtn(ctrl).Color := LightButtonColor;
       TBitBtn(ctrl).Font.Color := LightTextColor;
     end
