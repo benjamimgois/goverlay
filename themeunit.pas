@@ -173,13 +173,6 @@ begin
     if (ctrl.Name = 'saveBitbtn') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'dependenciesLabel') or
-       (ctrl.Name = 'deckyLabel1') or
-       (ctrl.Name = 'deckyLabel2') or
-       (ctrl.Name = 'optLabel1') or
-       (ctrl.Name = 'fakenvapi1') or
-       (ctrl.Name = 'fakenvapi2') or
-       (ctrl.Name = 'fsrLabel1') or
-       (ctrl.Name = 'xessLabel2') or
        (ctrl.Name = 'gupdateBitbtn') or
        (ctrl.Name = 'customcommandEdit') then
       Continue;
