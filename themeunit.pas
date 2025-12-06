@@ -106,6 +106,11 @@ begin
       TMemo(ctrl).Font.Color := DarkTextColor;
       TMemo(ctrl).Color := DarkerBackgroundColor;
     end
+    else if ctrl is TComboBox then
+    begin
+      TComboBox(ctrl).Font.Color := DarkTextColor;
+      TComboBox(ctrl).Color := DarkerBackgroundColor;
+    end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := DarkTextColor
     else if ctrl is TCheckBox then
@@ -161,7 +166,15 @@ begin
     // Skip color exceptions - components that should maintain their custom colors
     if (ctrl.Name = 'saveBitbtn') or
        (ctrl.Name = 'notificationLabel') or
-       (ctrl.Name = 'vkbasaltLabel') or
+       (ctrl.Name = 'dependenciesLabel') or
+       (ctrl.Name = 'deckyLabel1') or
+       (ctrl.Name = 'deckyLabel2') or
+       (ctrl.Name = 'optLabel1') or
+       (ctrl.Name = 'fakenvapiLabel') or
+       (ctrl.Name = 'fakenvapi1') or
+       (ctrl.Name = 'fakenvapi2') or
+       (ctrl.Name = 'fsrLabel1') or
+       (ctrl.Name = 'xessLabel2') or
        (ctrl.Name = 'gupdateBitbtn') then
       Continue;
 
@@ -169,6 +182,11 @@ begin
     begin
       TMemo(ctrl).Font.Color := LightTextColor;
       TMemo(ctrl).Color := LightBackgroundColor;
+    end
+    else if ctrl is TComboBox then
+    begin
+      TComboBox(ctrl).Font.Color := LightTextColor;
+      TComboBox(ctrl).Color := LightBackgroundColor;
     end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := LightTextColor
