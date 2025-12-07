@@ -892,7 +892,7 @@ begin
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
       Process.Parameters.Add(DBusCommand);
-      Process.Options := [poUsePipes, poNoConsole];
+      Process.Options := [poWaitOnExit, poUsePipes, poNoConsole];
       Process.Execute;
 
       // If D-Bus failed, fallback to notify-send
@@ -1531,9 +1531,13 @@ begin
   if not IsCommandAvailable('7z') then
     Missing.Add('p7zip');
 
-      //wget is no longer required - using native HTTP client (fphttpclient)
-  // if not IsCommandAvailable('wget') then
-  //   Missing.Add('wget');
+    //check if curl is avaiable
+  if not IsCommandAvailable('curl') then
+    Missing.Add('curl');
+
+    //check if git is avaiable
+  if not IsCommandAvailable('git') then
+    Missing.Add('git');
 
    //check if zenergy module is avaiable
   //if not IsKernelModuleAvailable('zenergy') then
@@ -2793,7 +2797,7 @@ begin
   if GCHANNEL = 'stable' then
   goverlayform.Caption:= 'Goverlay ' + GVERSION
   else
-  goverlayform.Caption:= 'Goverlay ' + GVERSION + ' git';
+  goverlayform.Caption:= 'Goverlay ' + GVERSION + ' (git testing build)';
 
    // Check for Goverlay updates
   CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
@@ -5643,6 +5647,9 @@ EnableTraceLogsFound: Boolean;
     end;
 
   // ################### SAVE MANGOHUD
+
+  // Hide howtoBitBtn when not on OptiScaler tab
+  howtoBitBtn.Visible := False;
 
    if goverlayPageControl.ActivePage <> vkbasaltTabSheet then
    begin
