@@ -2813,9 +2813,9 @@ begin
 
   // Update theme toggle button icon based on loaded theme
   if SavedTheme = tmLight then
-    themeToggleSpeedButton.ImageIndex := 30   // sun icon (light theme)
+    themeToggleSpeedButton.ImageIndex := 29   // sun icon (light theme)
   else
-    themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
+    themeToggleSpeedButton.ImageIndex := 28; // moon icon (dark theme)
 
   // Bring theme toggle button to front to ensure it's visible
   themeToggleSpeedButton.BringToFront;
@@ -4059,7 +4059,7 @@ begin
       spoofCheckBox.Checked := False;
       spoofCheckBox.Enabled := False;
       autodetectnvLabel.Visible:=true;
-      autodetectnvLabel.Font.color:=clyellow;
+      autodetectnvLabel.Font.color:=clOlive;
       forcereflexCheckBox.Checked := false;
       forcereflexCheckBox.Enabled := false;
       reflexComboBox.Enabled:= false;
@@ -4071,7 +4071,7 @@ begin
       spoofCheckBox.Checked := True;
       spoofCheckBox.Enabled := True;
       autodetectmesaLabel.Visible:=true;
-      autodetectmesaLabel.Font.color:=clyellow;
+      autodetectmesaLabel.Font.color:=clOlive;
 //    forcereflexCheckBox.Checked := false;
       forcereflexCheckBox.Enabled := true;
       reflexComboBox.Enabled:= true;
@@ -5611,14 +5611,13 @@ EnableTraceLogsFound: Boolean;
 
             // Update notificationLabel
             notificationLabel.Caption := 'Launch command:';
-            notificationLabel.Font.Color := clYellow;
+            notificationLabel.Font.Color := clOlive;
             notificationLabel.Font.Style := [fsBold];
             notificationLabel.Visible := True;
 
             // Update commandLabel with launch command
             commandLabel.caption := LaunchCommand;
             commandLabel.AutoSize:=true;
-            commandLabel.Font.Color := clwhite;
            // commandlabel.Font.Style := [fsBold];
             commandLabel.Visible := True;
             copyBitbtn.Visible:=true;
@@ -6692,9 +6691,9 @@ begin
 
   // Update button icon
   if NewTheme = tmLight then
-    themeToggleSpeedButton.ImageIndex := 30   // sun icon (light theme)
+    themeToggleSpeedButton.ImageIndex := 29   // sun icon (light theme)
   else
-    themeToggleSpeedButton.ImageIndex := 29; // moon icon (dark theme)
+    themeToggleSpeedButton.ImageIndex := 28; // moon icon (dark theme)
 
   // Theme notifications removed to prevent duplicate notifications
   // The theme change is visually obvious from the UI update

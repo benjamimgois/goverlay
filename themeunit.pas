@@ -96,7 +96,7 @@ begin
     ctrl := AControl.Controls[i];
 
     // Skip color exceptions - components that should maintain their custom colors
-    if (ctrl.Name = 'saveBitbtn') or
+    if (ctrl.Name = 'saveBitBtn') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'vkbasaltLabel') or
        (ctrl.Name = 'deckyLabel1') or
@@ -106,8 +106,23 @@ begin
        (ctrl.Name = 'fakenvapi2') or
        (ctrl.Name = 'fsrLabel1') or
        (ctrl.Name = 'xessLabel1') or
-       (ctrl.Name = 'gupdateBitbtn') or
-       (ctrl.Name = 'customcommandEdit') then
+       (ctrl.Name = 'gupdateBitBtn') or
+       (ctrl.Name = 'customcommandEdit') or
+       (ctrl.Name = 'mangohudLabel') or
+       (ctrl.Name = 'optiscalerLabel') or
+       (ctrl.Name = 'mangohudShape') or
+       (ctrl.Name = 'vkbasaltShape') or
+       (ctrl.Name = 'optiscalerShape') or
+       (ctrl.Name = 'autodetectnvLabel') or
+       (ctrl.Name = 'autodetectmesaLabel') or
+       (ctrl.Name = 'topleftRadioButton') or
+       (ctrl.Name = 'topcenterRadioButton') or
+       (ctrl.Name = 'toprightRadioButton') or
+       (ctrl.Name = 'bottomleftRadioButton') or
+       (ctrl.Name = 'bottomrightRadioButton') or
+       (ctrl.Name = 'bottomcenterRadioButton') or
+       (ctrl.Name = 'middleleftRadioButton') or
+       (ctrl.Name = 'middlerightRadioButton') then
       Continue;
 
     if ctrl is TMemo then
@@ -154,8 +169,18 @@ begin
     begin
       TPanel(ctrl).Color := DarkBackgroundColor;
       TPanel(ctrl).Font.Color := DarkTextColor;
+      if ctrl.Name = 'mangobarPanel' then
+        TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
         ApplyDarkTheme(TWinControl(ctrl));
+    end
+    else if ctrl is TBitBtn then
+    begin
+      if (ctrl.Name = 'saveBitBtn') or
+         (ctrl.Name = 'gupdateBitBtn') then
+        Continue;
+      TBitBtn(ctrl).Color := DarkBackgroundColor;
+      TBitBtn(ctrl).Font.Color := DarkTextColor;
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := DarkBackgroundColor
@@ -178,7 +203,7 @@ begin
     ctrl := AControl.Controls[i];
 
     // Skip color exceptions - components that should maintain their custom colors
-    if (ctrl.Name = 'saveBitbtn') or
+    if (ctrl.Name = 'saveBitBtn') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'dependenciesLabel') or
        (ctrl.Name = 'deckyLabel1') or
@@ -188,8 +213,24 @@ begin
        (ctrl.Name = 'fakenvapi2') or
        (ctrl.Name = 'fsrLabel1') or
        (ctrl.Name = 'xessLabel1') or
-       (ctrl.Name = 'gupdateBitbtn') or
-       (ctrl.Name = 'customcommandEdit') then
+       (ctrl.Name = 'gupdateBitBtn') or
+       (ctrl.Name = 'customcommandEdit') or
+       (ctrl.Name = 'mangohudLabel') or
+       (ctrl.Name = 'vkbasaltLabel') or
+       (ctrl.Name = 'optiscalerLabel') or
+       (ctrl.Name = 'mangohudShape') or
+       (ctrl.Name = 'vkbasaltShape') or
+       (ctrl.Name = 'optiscalerShape') or
+       (ctrl.Name = 'autodetectnvLabel') or
+       (ctrl.Name = 'autodetectmesaLabel') or
+       (ctrl.Name = 'topleftRadioButton') or
+       (ctrl.Name = 'topcenterRadioButton') or
+       (ctrl.Name = 'toprightRadioButton') or
+       (ctrl.Name = 'bottomleftRadioButton') or
+       (ctrl.Name = 'bottomrightRadioButton') or
+       (ctrl.Name = 'bottomcenterRadioButton') or
+       (ctrl.Name = 'middleleftRadioButton') or
+       (ctrl.Name = 'middlerightRadioButton') then
       Continue;
 
     if ctrl is TMemo then
@@ -236,13 +277,15 @@ begin
     begin
       TPanel(ctrl).Color := LighterBackgroundColor;
       TPanel(ctrl).Font.Color := LightTextColor;
+      if ctrl.Name = 'mangobarPanel' then
+        TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
         ApplyLightTheme(TWinControl(ctrl));
     end
     else if ctrl is TBitBtn then
     begin
-      if (ctrl.Name = 'saveBitbtn') or
-         (ctrl.Name = 'gupdateBitbtn') then
+      if (ctrl.Name = 'saveBitBtn') or
+         (ctrl.Name = 'gupdateBitBtn') then
         Continue;
       TBitBtn(ctrl).Color := LightButtonColor;
       TBitBtn(ctrl).Font.Color := LightTextColor;
