@@ -40,12 +40,20 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
+    cpucoretypeCheckBox: TCheckBox;
+    ftraceCheckBox: TCheckBox;
+    gpupowerlimitCheckBox: TCheckBox;
+    gpuframesjouleBitBtn: TBitBtn;
+    gpuefficiencyCheckBox: TCheckBox;
+    cpuefficiencyCheckBox: TCheckBox;
+    cpuframesjouleBitBtn: TBitBtn;
     howtoBitBtn: TBitBtn;
     gupdateBitBtn: TBitBtn;
     deckyLabel2: TLabel;
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
+    geLabel: TLabel;
     themeToggleSpeedButton: TSpeedButton;
     ToggleSpeedButton: TSpeedButton;
     spoofCheckBox: TCheckBox;
@@ -85,6 +93,8 @@ type
     checkupdBitBtn: TBitBtn;
     updateBitBtn: TBitBtn;
     updatestatusLabel: TLabel;
+    procvramCheckBox: TCheckBox;
+    dxapiCheckBox: TCheckBox;
     xessLabel: TLabel;
     optionsGroupBox: TGroupBox;
     statusGroupBox: TGroupBox;
@@ -180,7 +190,6 @@ type
     fullLabel: TLabel;
     gamemodestatusCheckBox: TCheckBox;
     geSpeedButton: TSpeedButton;
-    GlobalenableLabel: TLabel;
     glvsyncComboBox: TComboBox;
     goverlayBitBtn: TBitBtn;
     goverlayPageControl: TPageControl;
@@ -1652,7 +1661,7 @@ begin
 
   //Hide Global Enable controls (temporary fix, will remove in 1.6.1)
   geSpeedButton.Visible:=false;
-  GlobalenableLabel.Visible:=false;
+  geLabel.Visible:=false;
 
 end;
 
@@ -3454,7 +3463,7 @@ copyBitbtn.Visible:=false;
 
 //Show Global Enable controls
 geSpeedButton.Visible:=true;
-GlobalenableLabel.Visible:=true;
+geLabel.Visible:=true;
 
 end;
 
@@ -3514,7 +3523,7 @@ begin
 
   //Hide Global Enable controls (temporary fix, will remove in 1.6.1)
   geSpeedButton.Visible:=false;
-  GlobalenableLabel.Visible:=false;
+  geLabel.Visible:=false;
 end;
 
 procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
