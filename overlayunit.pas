@@ -2192,7 +2192,7 @@ procedure Tgoverlayform.LoadMangoHudConfig;
 var
   ConfigLines: TStringList;
   Line, TrimmedLine, Key, Value: string;
-  i, ColonPos: Integer;
+  i, j, ColonPos: Integer;
   FloatValue: Double;
   IntValue: Integer;
 begin
@@ -2636,6 +2636,40 @@ begin
           fpsavgBitBtn.ImageIndex := 10;
           fpsavgBitBtn.Caption := '0.1% low';
         end;
+      end
+      // Network: network=<interface>
+      else if SameText(Key, 'network') then
+      begin
+        networkCheckBox.Checked := True;
+        // Also set the interface in the combo box if found
+        if Value <> '' then
+        begin
+          for j := 0 to networkComboBox.Items.Count - 1 do
+          begin
+            if SameText(networkComboBox.Items[j], Value) then
+            begin
+              networkComboBox.ItemIndex := j;
+              Break;
+            end;
+          end;
+          // If not found in list, add it and select it
+          if networkComboBox.ItemIndex = -1 then
+          begin
+            networkComboBox.Items.Add(Value);
+            networkComboBox.ItemIndex := networkComboBox.Items.Count - 1;
+          end;
+        end;
+      end;
+
+      // Check exec= lines for distro and session patterns
+      if SameText(Key, 'exec') then
+      begin
+        // Distro info: exec=cat .../goverlay/distro or exec=uname -r
+        if (Pos('uname -r', Value) > 0) or (Pos('goverlay/distro', Value) > 0) then
+          distroinfoCheckBox.Checked := True
+        // Session: exec=echo $XDG_SESSION_TYPE
+        else if Pos('XDG_SESSION_TYPE', Value) > 0 then
+          sessionCheckBox.Checked := True;
       end;
     end;
 
@@ -2647,9 +2681,9 @@ end;
 procedure Tgoverlayform.LoadVkBasaltConfig;
 var
   ConfigLines: TStringList;
-  Line, TrimmedLine, Key, Value, EffectsStr: string;
+  Line, TrimmedLine, Key, Value, EffectsStr, FullEffectPath: string;
   EffectsList: TStringArray;
-  i, j, ColonPos: Integer;  // <-- Adicione a variável j
+  i, j, k, ColonPos: Integer;
   FloatValue: Double;
   FS: TFormatSettings;
 begin
@@ -2721,9 +2755,23 @@ begin
           else if EffectsList[j] <> '' then
           begin
             // It's a custom reshade effect
+            // Find full path in aveffectsListbox (e.g., "ASCII" -> "Shaders/ASCII.fx")
+            FullEffectPath := '';
+            for k := 0 to aveffectsListbox.Items.Count - 1 do
+            begin
+              // Extract effect name from path (e.g., "Shaders/ASCII.fx" -> "ASCII")
+              if SameText(ChangeFileExt(ExtractFileName(aveffectsListbox.Items[k]), ''), EffectsList[j]) then
+              begin
+                FullEffectPath := aveffectsListbox.Items[k];
+                Break;
+              end;
+            end;
+            // If found, use full path; otherwise use original name
+            if FullEffectPath = '' then
+              FullEffectPath := EffectsList[j];
             // Don't add duplicates
-            if acteffectsListBox.Items.IndexOf(EffectsList[j]) = -1 then
-              acteffectsListBox.Items.Add(EffectsList[j]);
+            if acteffectsListBox.Items.IndexOf(FullEffectPath) = -1 then
+              acteffectsListBox.Items.Add(FullEffectPath);
           end;
         end;
       end
@@ -4054,7 +4102,7 @@ begin
 
 
     // Load Mangohud config file
-    // LoadMangoHudConfig;
+    LoadMangoHudConfig;
 
 
     //Load vkbasalt configuration
