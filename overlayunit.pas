@@ -277,7 +277,6 @@ type
     refreshrateCheckBox: TCheckBox;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
-    reshadeProgressBar: TProgressBar;
     reshaderefreshBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
     roundImage: TImage;
@@ -1538,6 +1537,22 @@ begin
     //check if git is avaiable
   if not IsCommandAvailable('git') then
     Missing.Add('git');
+
+  //check if vkbasalt is available
+  if IsRunningInFlatpak then
+  begin
+    // Flatpak: check for vkbasalt in Flatpak extension path
+    if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/libvkbasalt.so') then
+      Missing.Add('vkbasalt');
+  end
+  else
+  begin
+    // Traditional distros: check for libvkbasalt.so
+    if not FileExists('/usr/lib/libvkbasalt.so') and
+       not FileExists('/usr/lib64/libvkbasalt.so') and
+       not FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so') then
+      Missing.Add('vkbasalt');
+  end;
 
    //check if zenergy module is avaiable
   //if not IsKernelModuleAvailable('zenergy') then
@@ -4332,9 +4347,9 @@ var
 
   procedure ApplyPercent(Pct: Integer);
   begin
-    if reshadeProgressbar.Min <> 0 then reshadeProgressbar.Min := 0;
-    if reshadeProgressbar.Max <> 100 then reshadeProgressbar.Max := 100;
-    reshadeProgressbar.Position := Pct;
+    if updateProgressBar.Min <> 0 then updateProgressBar.Min := 0;
+    if updateProgressBar.Max <> 100 then updateProgressBar.Max := 100;
+    updateProgressBar.Position := Pct;
     if Phase <> '' then
       pbarLabel.Caption := Format('%s: %d%%', [Phase, Pct])
     else
@@ -4420,15 +4435,17 @@ begin
 
   RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
 
-  reshadeProgressbar.Min := 0;
-  reshadeProgressbar.Max := 100;
-  reshadeProgressbar.Position := 0;
+  // Show progress bar
+  updateProgressBar.Visible := True;
+  updateProgressBar.Min := 0;
+  updateProgressBar.Max := 100;
+  updateProgressBar.Position := 0;
   pbarLabel.Caption := 'Starting...';
   Phase := '';
   Chunk := '';
 
   // Setup progress bar and label references for callback
-  FReshadeProgressBar := reshadeProgressbar;
+  FReshadeProgressBar := updateProgressBar;
   FReshadePhaseLabel := pbarLabel;
 
   // Try libgit2 first (Flatpak-compatible), fallback to git command
@@ -4513,6 +4530,9 @@ begin
    acteffectsListbox.Enabled:=true;
    addBitbtn.Enabled:=true;
    subBitbtn.Enabled:=true;
+
+  // Hide progress bar
+  updateProgressBar.Visible := False;
 
   //Enable update button
   reshaderefreshBitbtn.Enabled:=true;
