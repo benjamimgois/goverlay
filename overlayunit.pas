@@ -2159,6 +2159,8 @@ begin
           gpufanCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gpu_power') then
           gpupowerCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_power_limit') then
+          gpupowerlimitCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gpu_efficiency') then
           gpuefficiencyCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gpu_voltage') then
@@ -2746,6 +2748,9 @@ begin
 
     // GPU power
     AddIfChecked(gpupowerCheckBox, 'gpu_power');
+
+    // GPU power limit
+    AddIfChecked(gpupowerlimitCheckBox, 'gpu_power_limit');
 
     // GPU efficiency
     AddIfChecked(gpuefficiencyCheckBox, 'gpu_efficiency');
