@@ -3325,6 +3325,13 @@ begin
   //Hide howto button until OptiScaler configuration is saved
   howtoBitBtn.Visible := False;
 
+  // Hide global enable controls in Flatpak mode (not supported in sandbox)
+  if IsRunningInFlatpak then
+  begin
+    geLabel.Visible := False;
+    geSpeedButton.Visible := False;
+  end;
+
   //Turbulence animation start
   FStartTick := GetTickCount;
   Timer.Interval := 50; // 20 fps aprox
