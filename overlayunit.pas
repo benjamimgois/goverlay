@@ -419,6 +419,7 @@ type
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
     procedure LoadMangoHudConfig;
+    procedure SaveMangoHudConfig;
     procedure LoadOptiScalerConfig;
     procedure LoadFakeNvapiConfig;
     procedure LoadFgmodConfig;
@@ -1274,50 +1275,6 @@ begin
 end;
 
 
-//Procedure to WriteConfig to file
-Procedure WriteConfig(PARAMETRO, FILEPATH: string);
-var
-  Process: TProcess;
-begin
-   ExecuteShellCommand('echo "' + PARAMETRO + '" >> "' + FILEPATH + '"');
-end;
-
-
-//Procedure to WriteConfig to file if checkbox is checked
-Procedure WriteCheckboxConfig(CHECKBOXNAME: TCheckbox; PARAMETRO, FILEPATH: string);
-var
-  Process: TProcess;
-begin
-
-    if CHECKBOXNAME.checked = true then
-    begin
-    Process := TProcess.Create(nil);
-    Process.Executable := FindDefaultExecutablePath('sh');
-    Process.Parameters.Add('-c');
-    Process.Parameters.Add('echo ' + PARAMETRO + ' >> ' + FILEPATH);
-    Process.Options := [poWaitOnExit, poUsePipes];
-    Process.Execute;
-    Process.Free;
-    end;
-
-  end;
-
-
-//Procedure to store info from checkboxes
-procedure SaveCheckbox(CHECKBOXNAME: TCheckbox; var VARNAME: string; const VALUE: string);
-
-begin
-    if CHECKBOXNAME.checked = true then
-      VARNAME := VALUE;
-end;
-
-//Procedure to store info from Radiobuttons
-procedure SaveRadioButton(RADIOBUTTONNAME: TRadioButton; var VARNAME: string; const VALUE: string);
-
-begin
-    if RADIOBUTTONNAME.checked = true then
-      VARNAME := VALUE;
-end;
 
 
 
@@ -2202,6 +2159,8 @@ begin
           gpufanCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gpu_power') then
           gpupowerCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'gpu_efficiency') then
+          gpuefficiencyCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gpu_voltage') then
           gpuvoltageCheckBox.Checked := True
         else if SameText(TrimmedLine, 'throttling_status') then
@@ -2624,6 +2583,493 @@ begin
           sessionCheckBox.Checked := True;
       end;
     end;
+
+  finally
+    ConfigLines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.SaveMangoHudConfig;
+var
+  ConfigLines: TStringList;
+  ConfigDir, FontPath, FontDir, DistroFile: string;
+  SelectedValues: TStringList;
+  i, MaxFPS: Integer;
+  TempFiles: TStringList;
+  TempFile: string;
+  FS: TFormatSettings;
+
+  // Helper procedure to add a line if checkbox is checked
+  procedure AddIfChecked(ACheckBox: TCheckBox; const ALine: string);
+  begin
+    if ACheckBox.Checked then
+      ConfigLines.Add(ALine);
+  end;
+
+  // Helper procedure to add a key=value line if checkbox is checked
+  procedure AddValueIfChecked(ACheckBox: TCheckBox; const AKey, AValue: string);
+  begin
+    if ACheckBox.Checked then
+      ConfigLines.Add(AKey + '=' + AValue);
+  end;
+
+begin
+  ConfigDir := GetUserConfigDir + '/MangoHud';
+
+  // Create directory if it doesn't exist
+  if not DirectoryExists(ConfigDir) then
+    ForceDirectories(ConfigDir);
+
+  ConfigLines := TStringList.Create;
+  try
+    // ============= VISUAL TAB =============
+
+    // HUD Title
+    if hudtitleEdit.Text <> '' then
+      ConfigLines.Add('custom_text_center=' + hudtitleEdit.Text);
+
+    // Orientation
+    if horizontalRadioButton.Checked then
+      ConfigLines.Add('horizontal');
+
+    // Background alpha
+    ConfigLines.Add('background_alpha=' + FormatFloat('0.0', transpTrackBar.Position / 10));
+
+    // Border type (round corners)
+    if roundRadioButton.Checked then
+      ConfigLines.Add('round_corners=10')
+    else
+      ConfigLines.Add('round_corners=0');
+
+    // Background color
+    ConfigLines.Add('background_color=' + ColorToHTMLColor(hudbackgroundColorButton.ButtonColor));
+
+    // Font file
+    if fontComboBox.ItemIndex > 0 then
+    begin
+      FontDir := '/usr/share/fonts';
+      TempFiles := FindAllFiles(FontDir, fontComboBox.Text + '.ttf', True);
+      if TempFiles.Count > 0 then
+      begin
+        FontPath := TempFiles[0];
+        ConfigLines.Add('font_file=' + FontPath);
+      end;
+      TempFiles.Free;
+    end;
+
+    // Font size
+    ConfigLines.Add('font_size=' + IntToStr(fontsizeTrackBar.Position));
+
+    // Font color
+    ConfigLines.Add('text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor));
+
+    // Position
+    if topleftRadioButton.Checked then
+      ConfigLines.Add('position=top-left')
+    else if topcenterRadioButton.Checked then
+      ConfigLines.Add('position=top-center')
+    else if toprightRadioButton.Checked then
+      ConfigLines.Add('position=top-right')
+    else if middleleftRadioButton.Checked then
+      ConfigLines.Add('position=middle-left')
+    else if middlerightRadioButton.Checked then
+      ConfigLines.Add('position=middle-right')
+    else if bottomleftRadioButton.Checked then
+      ConfigLines.Add('position=bottom-left')
+    else if bottomcenterRadioButton.Checked then
+      ConfigLines.Add('position=bottom-center')
+    else if bottomrightRadioButton.Checked then
+      ConfigLines.Add('position=bottom-right');
+
+    // Toggle HUD
+    case hudonoffComboBox.ItemIndex of
+      0: ConfigLines.Add('toggle_hud=Shift_R+F12');
+      1: ConfigLines.Add('toggle_hud=Shift_R+F1');
+      2: ConfigLines.Add('toggle_hud=Shift_R+F2');
+      3: ConfigLines.Add('toggle_hud=Shift_R+F3');
+      4: ConfigLines.Add('toggle_hud=Shift_R+F4');
+      5: ConfigLines.Add('toggle_hud=none');
+    end;
+
+    // Hide HUD
+    AddIfChecked(hidehudCheckBox, 'no_display');
+
+    // HUD compact
+    AddIfChecked(hudcompactCheckBox, 'hud_compact');
+
+    // PCI device
+    if pcidevComboBox.ItemIndex <> -1 then
+      ConfigLines.Add('pci_dev=0:' + pcidevComboBox.Items[pcidevComboBox.ItemIndex]);
+
+    // Table columns
+    ConfigLines.Add('table_columns=' + columvalueLabel.Caption);
+
+    // ============= METRICS TAB - GPU =============
+
+    // GPU text
+    if gpunameEdit.Text <> '' then
+      ConfigLines.Add('gpu_text=' + gpunameEdit.Text);
+
+    // GPU stats
+    AddIfChecked(gpuavgloadCheckBox, 'gpu_stats');
+
+    // GPU load color change
+    if gpuloadcolorCheckBox.Checked then
+    begin
+      ConfigLines.Add('gpu_load_change');
+      ConfigLines.Add('gpu_load_value=50,90');
+      ConfigLines.Add('gpu_load_color=' + ColorToHTMLColor(gpuload1ColorButton.ButtonColor) + ',' +
+                      ColorToHTMLColor(gpuload2ColorButton.ButtonColor) + ',' +
+                      ColorToHTMLColor(gpuload3ColorButton.ButtonColor));
+    end;
+
+    // VRAM
+    AddIfChecked(vramusageCheckBox, 'vram');
+    if vramusageCheckBox.Checked then
+      ConfigLines.Add('vram_color=' + ColorToHTMLColor(vramColorButton.ButtonColor));
+
+    // GPU frequency
+    AddIfChecked(gpufreqCheckBox, 'gpu_core_clock');
+
+    // GPU memory frequency
+    AddIfChecked(gpumemfreqCheckBox, 'gpu_mem_clock');
+
+    // GPU temperatures
+    AddIfChecked(gputempCheckBox, 'gpu_temp');
+    AddIfChecked(gpumemtempCheckBox, 'gpu_mem_temp');
+    AddIfChecked(gpujunctempCheckBox, 'gpu_junction_temp');
+
+    // GPU fan
+    AddIfChecked(gpufanCheckBox, 'gpu_fan');
+
+    // GPU power
+    AddIfChecked(gpupowerCheckBox, 'gpu_power');
+
+    // GPU efficiency
+    AddIfChecked(gpuefficiencyCheckBox, 'gpu_efficiency');
+
+    // GPU voltage
+    AddIfChecked(gpuvoltageCheckBox, 'gpu_voltage');
+
+    // GPU throttling
+    AddIfChecked(gputhrottlingCheckBox, 'throttling_status');
+    AddIfChecked(gputhrottlinggraphCheckBox, 'throttling_status_graph');
+
+    // GPU model
+    AddIfChecked(gpumodelCheckBox, 'gpu_name');
+
+    // Vulkan driver
+    AddIfChecked(vulkandriverCheckBox, 'vulkan_driver');
+
+    // GPU color
+    if gpuavgloadCheckBox.Checked then
+      ConfigLines.Add('gpu_color=' + ColorToHTMLColor(gpuColorButton.ButtonColor));
+
+    // ============= METRICS TAB - CPU =============
+
+    // CPU text
+    if cpunameEdit.Text <> '' then
+      ConfigLines.Add('cpu_text=' + cpunameEdit.Text);
+
+    // CPU stats
+    AddIfChecked(cpuavgloadCheckBox, 'cpu_stats');
+
+    // CPU core load
+    AddIfChecked(cpuloadcoreCheckBox, 'core_load');
+
+    // Core load type (bars)
+    if coreloadtypeBitBtn.Caption = 'Graph' then
+      ConfigLines.Add('core_bars');
+
+    // CPU load color change
+    if cpuloadcolorCheckBox.Checked then
+    begin
+      ConfigLines.Add('cpu_load_change');
+      ConfigLines.Add('cpu_load_value=50,90');
+      ConfigLines.Add('cpu_load_color=' + ColorToHTMLColor(cpuload1ColorButton.ButtonColor) + ',' +
+                      ColorToHTMLColor(cpuload2ColorButton.ButtonColor) + ',' +
+                      ColorToHTMLColor(cpuload3ColorButton.ButtonColor));
+    end;
+
+    // CPU frequency
+    AddIfChecked(cpufreqCheckBox, 'cpu_mhz');
+
+    // CPU temperature
+    AddIfChecked(cputempCheckBox, 'cpu_temp');
+
+    // CPU power
+    AddIfChecked(cpupowerCheckBox, 'cpu_power');
+
+    // CPU color
+    if cpuavgloadCheckBox.Checked then
+      ConfigLines.Add('cpu_color=' + ColorToHTMLColor(cpuColorButton.ButtonColor));
+
+    // ============= METRICS TAB - MEMORY/IO =============
+
+    // I/O stats
+    if diskioCheckBox.Checked then
+    begin
+      ConfigLines.Add('io_read');
+      ConfigLines.Add('io_write');
+      ConfigLines.Add('io_color=' + ColorToHTMLColor(iordrwColorButton.ButtonColor));
+    end;
+
+    // Swap
+    AddIfChecked(swapusageCheckBox, 'swap');
+
+    // RAM
+    if ramusageCheckBox.Checked then
+    begin
+      ConfigLines.Add('ram');
+      ConfigLines.Add('ram_color=' + ColorToHTMLColor(ramColorButton.ButtonColor));
+    end;
+
+    // Process memory
+    AddIfChecked(procmemCheckBox, 'procmem');
+
+    // ============= METRICS TAB - OTHER =============
+
+    // Battery
+    if batteryCheckBox.Checked then
+    begin
+      ConfigLines.Add('battery');
+      ConfigLines.Add('battery_color=' + ColorToHTMLColor(batteryColorButton.ButtonColor));
+    end;
+    AddIfChecked(batterywattCheckBox, 'battery_watt');
+    AddIfChecked(batterytimeCheckBox, 'battery_time');
+
+    // Device battery
+    if deviceCheckBox.Checked then
+    begin
+      ConfigLines.Add('device_battery=gamepad');
+      ConfigLines.Add('device_battery_icon');
+    end;
+
+    // FPS
+    AddIfChecked(fpsCheckBox, 'fps');
+
+    // FPS metrics (avg)
+    if fpsavgCheckBox.Checked then
+    begin
+      if fpsavgBitBtn.Caption = '1% low' then
+        ConfigLines.Add('fps_metrics=avg,0.01')
+      else
+        ConfigLines.Add('fps_metrics=avg,0.001');
+    end;
+
+    // Frame timing
+    if frametimegraphCheckBox.Checked then
+    begin
+      ConfigLines.Add('frame_timing');
+      ConfigLines.Add('frametime_color=' + ColorToHTMLColor(frametimegraphColorButton.ButtonColor));
+    end;
+
+    // Histogram
+    if frametimetypeBitBtn.Caption = 'Histogram' then
+      ConfigLines.Add('histogram');
+
+    // Frame count
+    AddIfChecked(framecountCheckBox, 'frame_count');
+
+    // Engine
+    if engineversionCheckBox.Checked then
+    begin
+      ConfigLines.Add('engine_version');
+      ConfigLines.Add('engine_color=' + ColorToHTMLColor(engineColorButton.ButtonColor));
+    end;
+    AddIfChecked(engineshortCheckBox, 'engine_short_names');
+
+    // Arch
+    AddIfChecked(archCheckBox, 'arch');
+
+    // Wine
+    if wineCheckBox.Checked then
+    begin
+      ConfigLines.Add('wine');
+      ConfigLines.Add('wine_color=' + ColorToHTMLColor(wineColorButton.ButtonColor));
+    end;
+
+    // Winesync
+    AddIfChecked(winesyncCheckBox, 'winesync');
+
+    // ============= PERFORMANCE TAB =============
+
+    // Show FPS limit
+    AddIfChecked(showfpslimCheckBox, 'show_fps_limit');
+
+    // FPS limit method
+    case fpslimmetComboBox.ItemIndex of
+      0: ConfigLines.Add('fps_limit_method=late');
+      1: ConfigLines.Add('fps_limit_method=early');
+    end;
+
+    // FPS limit toggle
+    case fpslimtoggleComboBox.ItemIndex of
+      0: ConfigLines.Add('toggle_fps_limit=Shift_L+F1');
+      1: ConfigLines.Add('toggle_fps_limit=Shift_L+F2');
+      2: ConfigLines.Add('toggle_fps_limit=Shift_L+F3');
+      3: ConfigLines.Add('toggle_fps_limit=Shift_L+F4');
+    end;
+
+    // FPS limits (from checkgroup)
+    SelectedValues := TStringList.Create;
+    try
+      MaxFPS := 0;
+      for i := 0 to fpslimcheckgroup.Items.Count - 1 do
+      begin
+        if fpslimcheckgroup.Checked[i] then
+        begin
+          SelectedValues.Add(IntToStr(StrToIntDef(fpslimcheckgroup.Items[i], 0) - offsetSpinedit.Value));
+          if StrToIntDef(fpslimcheckgroup.Items[i], 0) > MaxFPS then
+            MaxFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
+        end;
+      end;
+      if SelectedValues.Count > 0 then
+        ConfigLines.Add('fps_limit=' + SelectedValues.CommaText)
+      else
+        ConfigLines.Add('fps_limit=0');
+    finally
+      SelectedValues.Free;
+    end;
+
+    // Offset
+    ConfigLines.Add('#offset=' + IntToStr(offsetSpinedit.Value));
+
+    // Resolution
+    AddIfChecked(resolutionCheckBox, 'resolution');
+
+    // Refresh rate
+    AddIfChecked(refreshrateCheckBox, 'refresh_rate');
+
+    // FCAT
+    AddIfChecked(fcatCheckBox, 'fcat');
+
+    // FSR
+    AddIfChecked(fsrCheckBox, 'fsr');
+
+    // HDR
+    AddIfChecked(hdrCheckBox, 'hdr');
+
+    // VPS (present mode)
+    AddIfChecked(vpsCheckBox, 'present_mode');
+
+    // Fahrenheit
+    AddIfChecked(fahrenheitCheckBox, 'temp_fahrenheit');
+
+    // Gamemode
+    AddIfChecked(gamemodestatusCheckBox, 'gamemode');
+
+    // vkBasalt status
+    AddIfChecked(vkbasaltstatusCheckBox, 'vkbasalt');
+
+    // VSync
+    case vsyncComboBox.ItemIndex of
+      0: ConfigLines.Add('vsync=0');
+      1: ConfigLines.Add('vsync=1');
+      2: ConfigLines.Add('vsync=2');
+      3: ConfigLines.Add('vsync=3');
+      4: ConfigLines.Add('vsync=4');
+    end;
+
+    // GL VSync
+    case glvsyncComboBox.ItemIndex of
+      0: ConfigLines.Add('gl_vsync=-1');
+      1: ConfigLines.Add('gl_vsync=0');
+      2: ConfigLines.Add('gl_vsync=1');
+      3: ConfigLines.Add('gl_vsync=n');
+    end;
+
+    // Filters
+    case filterRadioGroup.ItemIndex of
+      1: ConfigLines.Add('bicubic');
+      2: ConfigLines.Add('trilinear');
+      3: ConfigLines.Add('retro');
+    end;
+
+    // AF filter
+    if afTrackBar.Position > 0 then
+      ConfigLines.Add('af=' + IntToStr(afTrackBar.Position));
+
+    // Mipmap filter
+    if mipmapTrackBar.Position > 0 then
+      ConfigLines.Add('picmip=' + IntToStr(mipmapTrackBar.Position));
+
+    // FPS color change
+    if fpscolorCheckBox.Checked then
+    begin
+      ConfigLines.Add('fps_color_change');
+      ConfigLines.Add('fps_color=' + ColorToHTMLColor(fpscolor1ColorButton.ButtonColor) + ',' +
+                      ColorToHTMLColor(fpscolor2ColorButton.ButtonColor) + ',' +
+                      ColorToHTMLColor(fpscolor3ColorButton.ButtonColor));
+      ConfigLines.Add('fps_value=' + IntToStr(fpscolor2SpinEdit.Value) + ',' + IntToStr(fpscolor3SpinEdit.Value));
+    end;
+
+    // ============= EXTRAS TAB =============
+
+    // Distro info
+    if distroinfoCheckBox.Checked then
+    begin
+      DistroFile := GetUserConfigDir + '/goverlay/distro';
+      ConfigLines.Add('exec=cat ' + DistroFile);
+      ConfigLines.Add('exec=uname -r');
+    end;
+
+    // Session
+    if sessionCheckBox.Checked then
+    begin
+      ConfigLines.Add('exec=printf "Session: "');
+      ConfigLines.Add('exec=echo $XDG_SESSION_TYPE');
+    end;
+
+    // Time
+    AddIfChecked(timeCheckBox, 'time#');
+
+    // HUD version
+    AddIfChecked(hudversionCheckBox, 'version#');
+
+    // Media player
+    if mediaCheckBox.Checked then
+    begin
+      ConfigLines.Add('media_player');
+      ConfigLines.Add('media_player_color=' + ColorToHTMLColor(mediaColorButton.ButtonColor));
+    end;
+
+    // Network
+    if networkCheckBox.Checked and (networkComboBox.ItemIndex <> -1) then
+      ConfigLines.Add('network=' + networkComboBox.Items[networkComboBox.ItemIndex]);
+
+    // Log folder
+    if logfolderEdit.Text <> '' then
+      ConfigLines.Add('output_folder=' + logfolderEdit.Text);
+
+    // Log duration
+    if durationTrackBar.Position > 0 then
+      ConfigLines.Add('log_duration=' + IntToStr(durationTrackBar.Position));
+
+    // Log delay (autostart)
+    if delayTrackBar.Position > 0 then
+      ConfigLines.Add('autostart_log=' + IntToStr(delayTrackBar.Position));
+
+    // Log interval
+    if intervalTrackBar.Position > 0 then
+      ConfigLines.Add('log_interval=' + IntToStr(intervalTrackBar.Position));
+
+    // Log toggle
+    case logtoggleComboBox.ItemIndex of
+      0: ConfigLines.Add('toggle_logging=Shift_L+F2');
+      1: ConfigLines.Add('toggle_logging=Shift_L+F3');
+      2: ConfigLines.Add('toggle_logging=Shift_L+F4');
+      3: ConfigLines.Add('toggle_logging=Shift_L+F5');
+    end;
+
+    // Log versioning
+    AddIfChecked(versioningCheckBox, 'log_versioning');
+
+    // Auto upload
+    AddIfChecked(autouploadCheckBox, 'upload_logs');
+
+    // Save to file
+    ConfigLines.SaveToFile(MANGOHUDCFGFILE);
 
   finally
     ConfigLines.Free;
@@ -4917,758 +5363,12 @@ EnableTraceLogsFound: Boolean;
    begin
 
 
-  //Create directories
-
-    if not DirectoryExists(ExtractFileDir(MANGOHUDCFGFILE)) then
-      ForceDirectories(ExtractFileDir(MANGOHUDCFGFILE));
-
-  // Delete old files if it exists
-
-     if FileExists(MANGOHUDCFGFILE) then
-      DeleteFile(MANGOHUDCFGFILE);
-
-
-  // Create a new file for GOverlay
-  ExecuteShellCommand('echo "################### File Generated by Goverlay ###################" >> '+ MANGOHUDCFGFILE);
-  ExecuteShellCommand('echo "legacy_layout=false" >> '+ MANGOHUDCFGFILE);
+  // Save MangoHud configuration
+    SaveMangoHudConfig;
 
   // Popup a notification
-
     SendNotification('MangoHud', 'Configuration saved', GetIconFile);
-   // notificationlabel.Visible:=true;
 
-
-    //###############################################################################################    VISUAL TAB
-
-
-     // HUD Title - Config Variable
-
-      // Only create title entry if title isn't blank and diferent of default title
-      if (hudtitleEdit.text <> '') and (hudtitleEdit.text <> 'Title') then
-      HUDTITLE:= 'custom_text_center=' + hudtitleEdit.text;
-
-      //Orientation  - Config Variable
-
-      SaveRadioButton (horizontalRadioButton, ORIENTATION, 'horizontal');
-      SaveRadioButton (verticalRadioButton, ORIENTATION, '');
-
-      //Borders - Config Variable
-
-      SaveRadioButton (squareRadioButton, BORDERTYPE, 'round_corners=0');
-      SaveRadioButton (roundRadioButton, BORDERTYPE, 'round_corners=10');
-
-      //HUD Alpha (transparency)   - Config Variable
-
-      HUDALPHA := 'background_alpha=' + FormatFloat('#0.0', transpTrackbar.Position/10);
-
-      //HUD Color  - Config Variable
-
-      HUDCOLOR := 'background_color=' + ColorToHTMLColor(hudbackgroundColorButton.ButtonColor);
-
-
-      //Font type  - Config Variable
-
-      if fontCombobox.ItemIndex <> 0 then  //It doesnt apply for the DEFAULT font
-      begin
-        try
-            FONTFOLDERS := TStringList.Create;
-            FONTFOLDERS.Sorted := True;
-            FONTFOLDERS.Duplicates := dupIgnore;
-
-            // Get all standard font directories
-            ListFontDirectories(FONTFOLDERS);
-
-            // Search for the selected font in all directories
-            LOCATEDFILE := TStringList.Create;
-            for FONTDIR in FONTFOLDERS do
-            begin
-              if DirectoryExists(FONTDIR) then
-              begin
-                TempFiles := FindAllFiles(FONTDIR, fontCombobox.Text, True);
-                try
-                  for TempFile in TempFiles do
-                    LOCATEDFILE.Add(TempFile);
-                finally
-                  TempFiles.Free;
-                end;
-              end;
-            end;
-        finally
-            FONTFOLDERS.Free;
-        end;
-
-        // Check if font file was found before accessing index
-        if LOCATEDFILE.Count > 0 then
-        begin
-          FONTPATH := LOCATEDFILE[0];
-          FONTTYPE := 'font_file=' + FONTPATH; //Use the correct path to point the font file
-          LOCATEDFILE.Free;
-        end
-        else
-        begin
-          FONTTYPE := ''; // Fallback to default font if not found
-          if Assigned(LOCATEDFILE) then
-            LOCATEDFILE.Free;
-        end;
-      end
-      else
-      begin
-        FONTTYPE := '';
-      end;
-
-
-      //Font size  - Config Variable
-
-      FONTSIZE := 'font_size=' + inttostr(fontsizeTrackbar.Position);
-
-      //Font Color  - Config Variable
-
-      FONTCOLOR := 'text_color=' + ColorToHTMLColor(fontColorButton.ButtonColor);
-
-
-      //Position  - Config Variable
-
-      SaveRadioButton (topleftRadioButton, HUDPOSITION, 'position=top-left');
-      SaveRadioButton (toprightRadioButton, HUDPOSITION, 'position=top-right');
-      SaveRadioButton (topcenterRadioButton, HUDPOSITION, 'position=top-center');
-      SaveRadioButton (bottomcenterRadioButton, HUDPOSITION, 'position=bottom-center');
-      SaveRadioButton (bottomleftRadioButton, HUDPOSITION, 'position=bottom-left');
-      SaveRadioButton (bottomrightRadioButton, HUDPOSITION, 'position=bottom-right');
-      SaveRadioButton (middleleftRadioButton, HUDPOSITION, 'position=middle-left');
-      SaveRadioButton (middlerightRadioButton, HUDPOSITION, 'position=middle-right');
-
-     //HUD Toggle ON/OFF   - Config Variable
-
-      case hudonoffCombobox.ItemIndex of
-        0:TOGGLEHUD := 'toggle_hud=Shift_R+F12' ;
-        1:TOGGLEHUD := 'toggle_hud=Shift_R+F1' ;
-        2:TOGGLEHUD := 'toggle_hud=Shift_R+F2' ;
-        3:TOGGLEHUD := 'toggle_hud=Shift_R+F3' ;
-        4:TOGGLEHUD := 'toggle_hud=Shift_R+F4' ;
-        5:TOGGLEHUD := 'toggle_hud=none' ;
-        end;
-
-      //Hide HUD by default  - Config Variable
-      Savecheckbox (hidehudCheckbox, HIDEHUD, 'no_display');
-
-      //HUD compact - Config Variable
-      Savecheckbox (hudcompactCheckbox, HUDCOMPACT, 'hud_compact');
-
-      //GPU PCIDEV  - Config Variable
-
-      if pcidevCombobox.ItemIndex <> -1 then  // Does not create pci_dev line if no GPU is selected
-        PCIDEV := 'pci_dev=0:' + pcidevCombobox.Items[pcidevCombobox.ItemIndex] ;
-
-
-       //Network interface  - Config Variable
-
-      if (networkCombobox.ItemIndex <> -1) and (networkCheckbox.Checked = true) then  // Does not create network line if interface is selected
-        NETWORK := 'network=' + networkCombobox.Items[networkCombobox.ItemIndex] ;
-
-      // Table Columns - - Config Variable
-      COLUMNS :=  strtoint(columvalueLabel.Caption);
-      TABLECOLUMNS := 'table_columns=' + inttostr(COLUMNS);
-
-
-      //###############################################################################################   METRICS TAB
-
-      //GPU
-
-        //GPU Color
-        GPUCOLOR := 'gpu_color='+ ColorToHTMLColor(gpuColorButton.ButtonColor) ;
-
-        //AVG Load  - Config Variable
-       Savecheckbox (gpuavgloadCheckbox, GPUAVGLOAD, 'gpu_stats');
-
-        //AVG Load color  - Config Variable
-        if gpuloadcolorCheckbox.checked = true then
-          begin
-             GPULOADCHANGE := 'gpu_load_change';
-             GPULOADVALUE := 'gpu_load_value=50,90';
-             GPULOADCOLOR := 'gpu_load_color='+ ColorToHTMLColor(gpuload1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(gpuload2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(gpuload3ColorButton.ButtonColor);
-          end;
-
-
-        //VRAM  - Config Variable
-        Savecheckbox (vramusageCheckbox, VRAM, 'vram');
-
-        //VRAM Color
-        VRAMCOLOR := 'vram_color='+ ColorToHTMLColor(vramColorButton.ButtonColor) ;
-
-        //IO Color
-        IOCOLOR := 'io_color='+ ColorToHTMLColor(iordrwColorButton.ButtonColor) ;
-
-        //Core freq  - Config Variable
-        Savecheckbox (gpufreqCheckbox, GPUFREQ, 'gpu_core_clock');
-
-        //Mem Freq  - Config Variable
-        Savecheckbox (gpumemfreqCheckbox, GPUMEMFREQ, 'gpu_mem_clock');
-
-
-        //GPU Temp  - Config Variable
-        Savecheckbox (gputempCheckbox, GPUTEMP, 'gpu_temp');
-
-        //GPU mem Temp  - Config Variable
-        Savecheckbox (gpumemtempCheckbox, GPUMEMTEMP, 'gpu_mem_temp');
-
-        //GPU Junction Temp  - Config Variable
-        Savecheckbox (gpujunctempCheckbox, GPUJUNCTEMP, 'gpu_junction_temp');
-
-        //GPU FAN  - Config Variable
-        Savecheckbox (gpupowerCheckbox, GPUFAN, 'gpu_fan');
-
-        //GPU POWER  - Config Variable
-        Savecheckbox (gpupowerCheckbox, GPUPOWER, 'gpu_power');
-
-        //GPU THROTTLING   - Config Variable
-       Savecheckbox (gputhrottlingCheckbox, GPUTHR, 'throttling_status');
-
-        //GPU THROTTLING GRAPH   - Config Variable
-
-        Savecheckbox (gputhrottlinggraphCheckbox, GPUTHRG, 'throttling_status_graph');
-
-        //GPU MODEL   - Config Variable
-        Savecheckbox (gpumodelCheckbox, GPUMODEL, 'gpu_name');
-
-        //VULKAN DRIVER   - Config Variable
-        Savecheckbox (vulkandriverCheckbox, VULKANDRIVER, 'vulkan_driver');
-
-        //GPU VOLTAGE   - Config Variable
-         Savecheckbox (gpuvoltageCheckbox, GPUVOLTAGE, 'gpu_voltage');
-
-
-        //GPU TEXT
-        GPUTEXT := 'gpu_text=' + gpunameEdit.Text;
-
-
-
-
-        //CPU
-
-        //GPU Color
-        CPUCOLOR := 'cpu_color='+ ColorToHTMLColor(cpuColorButton.ButtonColor) ;
-
-       //GPU TEXT - Config Variable
-        CPUTEXT := 'cpu_text=' + cpunameEdit.Text;
-
-
-       //AVG Load  - Config Variable
-        Savecheckbox (cpuavgloadCheckbox, CPUAVGLOAD, 'cpu_stats');
-
-       //Load by core  - Config Variable
-        Savecheckbox (cpuloadcoreCheckbox, CPULOADCORE, 'core_load');
-
-       //Load by core type - Config Variable
-        if coreloadtypeBitbtn.ImageIndex = 7 then
-          CORELOADTYPE := 'core_bars';
-
-
-       //CPU Load color  - Config Variable
-        if cpuloadcolorCheckbox.checked = true then
-          begin
-             CPULOADCHANGE := 'cpu_load_change';
-             CPULOADVALUE := 'cpu_load_value=50,90';
-             CPULOADCOLOR := 'cpu_load_color='+ ColorToHTMLColor(cpuload1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(cpuload2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(cpuload3ColorButton.ButtonColor);
-          end;
-
-
-        //   CPUCOREFREQ := 'cpu_mhz';
-       Savecheckbox (cpufreqCheckbox, CPUCOREFREQ, 'cpu_mhz');
-
-       ////CPU TEMP - Config Variable
-       Savecheckbox (cputempCheckbox, CPUTEMP, 'cpu_temp');
-
-        ////CPU Power - Config Variable
-       Savecheckbox (cpupowerCheckbox, CPUPOWER, 'cpu_power');
-
-       ////RAM - Config Variable
-       Savecheckbox (ramusageCheckBox, RAM, 'ram');
-
-       //Disk IO  - Config Variable
-        if diskioCheckbox.checked = true then
-          begin
-          // IOSTATS := 'io_stats';
-             IOREAD := 'io_read';
-             IOWRITE := 'io_write';
-          end;
-
-        ////FPS - Config Variable
-       Savecheckbox (fpsCheckBox, FPS, 'fps');
-
-
-
-        //FPS AVG - Config Variable
-        if fpsavgBitbtn.ImageIndex = 9 then
-          FPSAVG := 'fps_metrics=avg,0.01'
-        else
-          FPSAVG := 'fps_metrics=avg,0.001';
-
-
-        //VRAM Color
-        RAMCOLOR := 'ram_color='+ ColorToHTMLColor(ramColorButton.ButtonColor) ;
-
-        //###############################################################################################   Performance TAB
-
-         ////PROCMEM - Config Variable
-       Savecheckbox (procmemCheckBox, PROCMEM, 'procmem');
-
-        ////SWAP - Config Variable
-       Savecheckbox (swapusageCheckBox, SWAP, 'swap');
-
-
-
-       ////Frame time - Config Variable
-       Savecheckbox (frametimegraphCheckBox, FRAMETIMING, 'frame_timing');
-
-       //Frame time Color - Config Variable
-       FRAMETIMEC := 'frametime_color=' + ColorToHTMLColor(frametimegraphColorButton.ButtonColor);
-
-        ////Show fps limit - Config Variable
-       Savecheckbox (showfpslimCheckBox, SHOWFPSLIM, 'show_fps_limit');
-
-
-
-
-       ////Show fps limit - Config Variable
-       Savecheckbox (framecountCheckBox, FRAMECOUNT, 'frame_count');
-
-      //Wine Sync - Config Variable
-      Savecheckbox (winesyncCheckBox, WINESYNC, 'winesync');
-
-      //VPS - Config Variable
-      Savecheckbox (vpsCheckBox, VPS, 'present_mode');
-
-      //Histogram - Config Variable
-        if frametimetypeBitbtn.ImageIndex = 7 then
-          HISTOGRAM := 'histogram';
-
-
-
-        // FPS limit - Config Variable
-
-        FPSSEL := TStringList.Create; //store selected options here
-        NOITEMCHECK := True; // Variable is true if no item is checked
-
-
-
-        // Check fpslimCheckgroup items
-        for i := 0 to fpslimCheckgroup.Items.Count - 1 do
-          begin
-          // check if item is checked
-          if fpslimCheckgroup.Checked[i] then
-            begin
-              // Add item value to stringlist
-              ValorItem := fpslimCheckgroup.Items[i];
-              FPSSEL.Add(inttostr(strtoint(ValorItem) + offsetSpinEdit.Value));
-              NOITEMCHECK := false; // Variable is become false
-            end;
-          end;
-
-          if NOITEMCHECK = true then
-             FPSLIM := 'fps_limit=0' //If no item is check fps_limit is unlimited
-          else
-              FPSLIM := 'fps_limit=' + FPSSEL.CommaText;
-              FPSSEL.Free;
-
-
-
-      //OFFSET Value
-      OFFSET := '"#offset="' + inttostr(offsetspinedit.Value);
-      Writeln(OFFSET); // debug
-
-
-
-      // Ajust FPS color limits
-       SelectedValues := TStringList.Create;
-  try
-    MaxFPS := 0;
-
-    // Reading selected values from the CheckGroup
-    for i := 0 to fpslimcheckgroup.Items.Count - 1 do
-    begin
-      if fpslimcheckgroup.Checked[i] then
-      begin
-        SelectedFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
-        SelectedValues.Add(IntToStr(SelectedFPS));
-        if SelectedFPS > MaxFPS then
-          MaxFPS := SelectedFPS;
-      end;
-    end;
-
-    // Setting values for the SpinEdits
-    if SelectedValues.Count = 0 then
-      MaxFPS := 60;
-
-    fpscolor3spinedit.Value := MaxFPS;
-    fpscolor2spinedit.Value := Round(MaxFPS / 2);
-
-  finally
-    SelectedValues.Free;
-  end;
-
-      //FPS Limit method - Config Variable
-
-      case fpslimmetComboBox.ItemIndex of
-        0:FPSLIMMET := 'fps_limit_method=late' ;
-        1:FPSLIMMET := 'fps_limit_method=early' ;
-      end;
-
-
-      //FPS toggle key - Config Variable
-
-      case fpslimtoggleComboBox.ItemIndex of
-        0:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F1' ;
-        1:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F2' ;
-        2:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F3' ;
-        3:FPSLIMTOGGLE := 'toggle_fps_limit=Shift_L+F4' ;
-        4:FPSLIMTOGGLE := 'toggle_fps_limit=none' ;
-      end;
-
-
-        ////FPS color - Config Variable
-
-        if fpscolorCheckbox.checked = true then
-        begin
-          FPSCHANGE:= 'fps_color_change';
-          FPSCOLOR := 'fps_color='+ ColorToHTMLColor(fpscolor1ColorButton.ButtonColor) + ',' + ColorToHTMLColor(fpscolor2ColorButton.ButtonColor) + ',' + ColorToHTMLColor(fpscolor3ColorButton.ButtonColor);
-          FPSVALUE := 'fps_value='+ inttostr(fpscolor2SpinEdit.Value)+ ',' + inttostr(fpscolor3SpinEdit.Value)
-        end;
-
-      //VULKAN VSync   - Config Variable
-
-      case vsyncComboBox.ItemIndex of
-        0:VSYNC := 'vsync=0' ;
-        1:VSYNC := 'vsync=1' ;
-        2:VSYNC := 'vsync=2' ;
-        3:VSYNC := 'vsync=3' ;
-      end;
-
-      //GL VSync   - Config Variable
-
-      case glvsyncComboBox.ItemIndex of
-        0:GLVSYNC := 'gl_vsync=-1' ;
-        1:GLVSYNC := 'gl_vsync=0' ;
-        2:GLVSYNC := 'gl_vsync=1' ;
-        3:GLVSYNC := 'gl_vsync=n' ;
-      end;
-
-
-     // Filters - Config Variable
-
-      case filterRadiogroup.ItemIndex of
-        0:FILTER := '' ;
-        1:FILTER := 'bicubic' ;
-        2:FILTER := 'trilinear' ;
-        3:FILTER := 'retro' ;
-      end;
-
-
-
-       //AF Filter   - Config Variable
-
-      if afTrackbar.Position <> 0 then
-      AFFILTER := 'af=' + FormatFloat('#0', afTrackbar.Position);
-
-
-       //MIPMAP Filter   - Config Variable
-      if mipmapTrackbar.Position <> 0 then
-      MIPMAPFILTER := 'picmip=' + FormatFloat('#0', mipmapTrackbar.Position);
-
-
-      //###############################################################################################   Extra TAB
-
-      // Distro info - Config Variable
-
-
-      Savecheckbox (distroinfoCheckBox, DISTROINFO1, 'custom_text=-');
-      Savecheckbox (distroinfoCheckBox, DISTROINFO2, '"exec=cat ' + GetUserConfigDir + '/goverlay/distro"');
-
-
-      Savecheckbox (distroinfoCheckBox, DISTROINFO3, 'custom_text=-');
-      Savecheckbox (distroinfoCheckBox, DISTROINFO4, '"exec=uname -r"');
-
-
-      // Arch - Config Variable
-      Savecheckbox (archCheckBox, ARCH, 'arch');
-
-      // Resolution - Config Variable
-      Savecheckbox (resolutionCheckBox, RESOLUTION, 'resolution');
-
-
-
-      // Time - Config Variable
-      Savecheckbox (timeCheckBox, TIME, 'time#');
-
-      // Wine - Config Variable
-      Savecheckbox (wineCheckBox, WINE, 'wine');
-
-      //Wine Color  - Config Variable
-
-      WINECOLOR := 'wine_color=' + ColorToHTMLColor(wineColorButton.ButtonColor);
-
-
-      // Engine - Config Variable
-      Savecheckbox (engineversionCheckBox, ENGINE, 'engine_version');
-
-      //Engine Color  - Config Variable
-
-      ENGINECOLOR := 'engine_color=' + ColorToHTMLColor(engineColorButton.ButtonColor);
-
-
-       //Engine Short  - Config Variable
-
-      Savecheckbox (engineshortCheckBox, ENGINESHORT, 'engine_short_names');
-
-       //HUD Version  - Config Variable
-
-      Savecheckbox (hudversionCheckBox, HUDVERSION, 'version#');
-
-      //GAMEMODE  - Config Variable
-
-      Savecheckbox (gamemodestatusCheckBox, GAMEMODE, 'gamemode');
-
-      //VKBASALT - Config Variable
-
-      Savecheckbox (vkbasaltstatusCheckBox, VKBASALT, 'vkbasalt');
-
-      //FCAT - Config Variable
-
-      Savecheckbox (fcatCheckBox, FCAT, 'fcat');
-
-      //FSR - Config Variable
-
-      Savecheckbox (fsrCheckBox, FSR, 'fsr');
-
-       //HDR - Config Variable
-
-      Savecheckbox (hdrCheckBox, HDR, 'hdr');
-
-      //Refresh Rate - Config Variable
-
-      Savecheckbox (refreshrateCheckBox, REFRESHRATE, 'refresh_rate');
-
-      //Battery percent - Config Variable
-
-      Savecheckbox (batteryCheckBox, BATTERY, 'battery');
-
-      //Battery Color  - Config Variable
-
-      BATTERYCOLOR := 'battery_color=' + ColorToHTMLColor(batteryColorButton.ButtonColor);
-
-       //Battery wattage - Config Variable
-
-      Savecheckbox (batterywattCheckBox, BATTERYWATT, 'battery_watt');
-
-      //Battery time - Config Variable
-
-      Savecheckbox (batterytimeCheckBox, BATTERYTIME, 'battery_time');
-
-      //device Battery - Config Variable
-
-      Savecheckbox (deviceCheckBox, DEVICE, 'device_battery=gamepad,mouse');
-      Savecheckbox (deviceCheckBox, DEVICEICON, 'device_battery_icon');
-
-      //Media player - Config Variable
-
-      Savecheckbox (mediaCheckBox, MEDIA, 'media_player');
-
-      //Media player Color  - Config Variable
-
-      MEDIACOLOR := 'media_player_color=' + ColorToHTMLColor(mediaColorButton.ButtonColor);
-
-      // Session - Config Variable
-      Savecheckbox (sessionCheckBox, SESSIONTXT, 'custom_text=Session:');
-      Savecheckbox (sessionCheckBox, SESSION, '"exec=echo \$XDG_SESSION_TYPE"');
-
-      // Fahrenheit - Config Variable
-
-      Savecheckbox (fahrenheitCheckBox, FTEMP, 'temp_fahrenheit');
-
-
-      //Custom command  - Config Variable
-
-      if (customcommandEdit.Text <> '') and (customcommandEdit.Text <> 'Custom command') then
-      begin
-           CUSTOMCMD1 := 'custom_text=Custom';
-           CUSTOMCMD2 := 'exec=' + customcommandEdit.Text;
-      end;
-
-
-
-
-
-      // Logging
-
-      //Store logfolder in variable
-      LOGFOLDER := 'output_folder='+ logfolderEdit.Text;
-
-     //Log duration, delay and interval  - Config Variable
-
-     LOGDURATION := 'log_duration=' + FormatFloat('#0', durationTrackbar.Position);
-     LOGDELAY := 'autostart_log=' + FormatFloat('#0', delayTrackbar.Position);
-     LOGINTERVAL := 'log_interval=' + FormatFloat('#0', intervalTrackbar.Position);
-
-     //Toggle logging
-
-
-
-      case logtoggleComboBox.ItemIndex of
-        0:LOGTOGGLE := 'toggle_logging=Shift_L+F2' ;
-        1:LOGTOGGLE := 'toggle_logging=Shift_L+F3' ;
-        2:LOGTOGGLE := 'toggle_logging=Shift_L+F4' ;
-        3:LOGTOGGLE := 'toggle_logging=Shift_L+F5' ;
-        4:LOGTOGGLE := 'toggle_logging=none' ;
-      end;
-
-       //Log versioning  - Config Variable
-
-       Savecheckbox (versioningCheckBox, LOGVER, 'log_versioning');
-
-       //Log versioning  - Config Variable
-
-       Savecheckbox (autouploadCheckBox, LOGAUTO, 'upload_logs');
-
-    //##################################################################################################################  END -  Write config file
-
-
-    //Visual Tab
-    WriteConfig(HUDTITLE,MANGOHUDCFGFILE);
-    WriteConfig(ORIENTATION,MANGOHUDCFGFILE);
-    WriteConfig(HUDALPHA,MANGOHUDCFGFILE);
-    WriteConfig(BORDERTYPE,MANGOHUDCFGFILE);
-    WriteConfig(HUDALPHA,MANGOHUDCFGFILE);
-    WriteConfig(HUDCOLOR,MANGOHUDCFGFILE);
-    WriteConfig(FONTTYPE,MANGOHUDCFGFILE);
-    WriteConfig(FONTSIZE,MANGOHUDCFGFILE);
-    WriteConfig(FONTCOLOR,MANGOHUDCFGFILE);
-    WriteConfig(HUDPOSITION,MANGOHUDCFGFILE);
-    WriteConfig(TOGGLEHUD,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(hidehudCheckbox,HIDEHUD,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(hudcompactCheckbox,HUDCOMPACT,MANGOHUDCFGFILE);
-    WriteConfig(PCIDEV,MANGOHUDCFGFILE);
-    WriteConfig(TABLECOLUMNS,MANGOHUDCFGFILE);
-
-
-    //Metrics - GPU
-    WriteConfig(GPUTEXT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpuavgloadCheckBox,GPUAVGLOAD,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpuloadcolorCheckBox,GPULOADCHANGE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpuloadcolorCheckBox,GPULOADVALUE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpuloadcolorCheckBox,GPULOADCOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpuvoltageCheckBox,GPUVOLTAGE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gputhrottlingCheckBox,GPUTHR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpufreqCheckBox,GPUFREQ,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpumemfreqCheckBox,GPUMEMFREQ,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gputempCheckBox,GPUTEMP,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpumemtempCheckBox,GPUMEMTEMP,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpujunctempCheckBox,GPUJUNCTEMP,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpufanCheckBox,GPUFAN,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpupowerCheckBox,GPUPOWER,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpuavgloadCheckBox,GPUCOLOR,MANGOHUDCFGFILE);
-
-
-
-    //Metrics - CPU / MEM
-    WriteConfig(CPUTEXT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpuavgloadCheckBox,CPUAVGLOAD,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpuloadcoreCheckBox,CPULOADCORE,MANGOHUDCFGFILE);
-    WriteConfig(CORELOADTYPE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpuloadcolorCheckBox,CPULOADCHANGE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpuloadcolorCheckBox,CPULOADVALUE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpuloadcolorCheckBox,CPULOADCOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpufreqCheckBox,CPUCOREFREQ,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cputempCheckBox,CPUTEMP,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpupowerCheckBox,CPUPOWER,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(cpuavgloadCheckBox,CPUCOLOR,MANGOHUDCFGFILE);
-
-
-
-    //Metrics - IO/ SWAP / VRAM / RAM
-  //WriteCheckboxConfig(diskioCheckBox,IOSTATS,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(diskioCheckBox,IOREAD,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(diskioCheckBox,IOWRITE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(diskioCheckBox,IOCOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(swapusageCheckBox,SWAP,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(vramusageCheckBox,VRAM,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(vramusageCheckBox,VRAMCOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(vramusageCheckBox,VRAMCOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(ramusageCheckBox,RAM,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(ramusageCheckBox,RAMCOLOR,MANGOHUDCFGFILE);
-
-    // Metrics - FPS / Engine / GPU model / Vulkan driver / Arch / Wine
-    WriteCheckboxConfig(procmemCheckBox,PROCMEM,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(batteryCheckBox,BATTERY,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(batteryCheckBox,BATTERYCOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(batterywattCheckBox,BATTERYWATT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(batterytimeCheckBox,BATTERYTIME,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fpsCheckBox,FPS,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fpsavgCheckBox,FPSAVG,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(engineversionCheckBox,ENGINE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(engineversionCheckBox,ENGINECOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(engineshortCheckBox,ENGINESHORT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gpumodelCheckBox,GPUMODEL,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(vulkandriverCheckBox,VULKANDRIVER,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(archCheckBox,ARCH,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(wineCheckBox,WINE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(wineCheckBox,WINECOLOR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(frametimegraphCheckBox,FRAMETIMING,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(frametimegraphCheckBox,FRAMETIMEC,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gputhrottlinggraphCheckBox,GPUTHRG,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(framecountCheckBox,FRAMECOUNT,MANGOHUDCFGFILE);
-    WriteConfig(FPSLIMMET,MANGOHUDCFGFILE);
-    WriteConfig(FPSLIMTOGGLE,MANGOHUDCFGFILE);
-
-    //Performance
-
-
-    WriteCheckboxConfig(showfpslimCheckBox,SHOWFPSLIM,MANGOHUDCFGFILE);
-    WriteConfig(HISTOGRAM,MANGOHUDCFGFILE);
-    WriteConfig(FPSLIM,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(resolutionCheckBox,RESOLUTION,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fcatCheckBox,FCAT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fsrCheckBox,FSR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(hdrCheckBox,HDR,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(winesyncCheckBox,WINESYNC,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(vpsCheckBox,VPS,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fahrenheitCheckBox,FTEMP,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(refreshrateCheckBox,REFRESHRATE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(gamemodestatusCheckBox,GAMEMODE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(vkbasaltstatusCheckBox,VKBASALT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(deviceCheckBox,DEVICE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(deviceCheckBox,DEVICEICON,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO1,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO2,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO3,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(distroinfoCheckBox,DISTROINFO4,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(sessionCheckBox,SESSIONTXT,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(sessionCheckBox,SESSION,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fpscolorCheckBox,FPSCHANGE ,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fpscolorCheckBox,FPSCOLOR ,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(fpscolorCheckBox,FPSVALUE ,MANGOHUDCFGFILE);
-    WriteConfig(OFFSET,MANGOHUDCFGFILE);
-    WriteConfig(VSYNC,MANGOHUDCFGFILE);
-    WriteConfig(GLVSYNC,MANGOHUDCFGFILE);
-    WriteConfig(FILTER,MANGOHUDCFGFILE);
-    WriteConfig(AFFILTER,MANGOHUDCFGFILE);
-    WriteConfig(MIPMAPFILTER,MANGOHUDCFGFILE);
-
-
-    //Extra
-
-    WriteCheckboxConfig(timeCheckBox,TIME,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(hudversionCheckBox,HUDVERSION,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(mediaCheckBox,MEDIA,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(mediaCheckBox,MEDIACOLOR,MANGOHUDCFGFILE);
-    WriteConfig(CUSTOMCMD1,MANGOHUDCFGFILE);
-    WriteConfig(CUSTOMCMD2,MANGOHUDCFGFILE);
-    WriteConfig(LOGFOLDER,MANGOHUDCFGFILE);
-    WriteConfig(LOGDURATION,MANGOHUDCFGFILE);
-    WriteConfig(LOGDELAY,MANGOHUDCFGFILE);
-    WriteConfig(LOGINTERVAL,MANGOHUDCFGFILE);
-    WriteConfig(LOGTOGGLE,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(versioningCheckBox,LOGVER,MANGOHUDCFGFILE);
-    WriteCheckboxConfig(autouploadCheckBox,LOGAUTO,MANGOHUDCFGFILE);
-    WriteConfig(NETWORK,MANGOHUDCFGFILE);
 
     //########################################### SAVE BLACKLIST
 
