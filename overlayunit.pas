@@ -2134,8 +2134,6 @@ begin
           showfpslimCheckBox.Checked := True
         else if SameText(TrimmedLine, 'frame_count') then
           framecountCheckBox.Checked := True
-        else if SameText(TrimmedLine, 'ftrace') then
-          ftraceCheckBox.Checked := True
         else if SameText(TrimmedLine, 'histogram') then
         begin
           frametimetypeBitBtn.ImageIndex := 7;
@@ -2218,6 +2216,8 @@ begin
           engineversionCheckBox.Checked := True
         else if SameText(TrimmedLine, 'engine_short_names') then
           engineshortCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'dx_api') then
+          dxapiCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gamemode') then
           gamemodestatusCheckBox.Checked := True
         else if SameText(TrimmedLine, 'vkbasalt') then
@@ -2893,9 +2893,6 @@ begin
     // Frame count
     AddIfChecked(framecountCheckBox, 'frame_count');
 
-    // Ftrace
-    AddIfChecked(ftraceCheckBox, 'ftrace');
-
     // Engine
     if engineversionCheckBox.Checked then
     begin
@@ -2903,6 +2900,9 @@ begin
       ConfigLines.Add('engine_color=' + ColorToHTMLColor(engineColorButton.ButtonColor));
     end;
     AddIfChecked(engineshortCheckBox, 'engine_short_names');
+
+    // DX API
+    AddIfChecked(dxapiCheckBox, 'dx_api');
 
     // Arch
     AddIfChecked(archCheckBox, 'arch');
