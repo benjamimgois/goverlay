@@ -372,6 +372,7 @@ type
     procedure durationTrackBarChange(Sender: TObject);
     procedure forcelatencyflexCheckBoxChange(Sender: TObject);
     procedure forcereflexCheckBoxChange(Sender: TObject);
+    procedure framesjouleBitBtnClick(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
@@ -3853,6 +3854,22 @@ begin
       frametimetypeBitBtn.Hint:='Use regular curve for frametime information';
     end;
  end;
+end;
+
+procedure Tgoverlayform.framesjouleBitBtnClick(Sender: TObject);
+begin
+  // Toggle caption between 'Frames / Joule' and 'Joules / Frame'
+  // Both buttons share the same caption
+  if gpuframesjouleBitBtn.Caption = 'Frames / Joule' then
+  begin
+    gpuframesjouleBitBtn.Caption := 'Joules / Frame';
+    cpuframesjouleBitBtn.Caption := 'Joules / Frame';
+  end
+  else
+  begin
+    gpuframesjouleBitBtn.Caption := 'Frames / Joule';
+    cpuframesjouleBitBtn.Caption := 'Frames / Joule';
+  end;
 end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
