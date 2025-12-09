@@ -1,9 +1,9 @@
 app-id: io.github.benjamimgois.goverlay
 runtime: org.kde.Platform
-runtime-version: '6.7'
+runtime-version: '6.10'
 sdk: org.kde.Sdk
 base: io.qt.qtwebengine.BaseApp
-base-version: '6.7'
+base-version: '6.10'
 command: goverlay
 
 add-extensions:
@@ -101,8 +101,8 @@ modules:
         cp -r images languages tools /app/share/lazarus/
     sources:
       - type: archive
-        url: https://downloads.sourceforge.net/project/lazarus/Lazarus%20Zip%20_%20GZip/Lazarus%203.6/lazarus-3.6-0.tar.gz
-        sha256: e65b90367f63bf17cb7bf35f5be69c9ef704ca494e91d8c67d072e3373fab085
+        url: https://downloads.sourceforge.net/project/lazarus/Lazarus%20Zip%20_%20GZip/Lazarus%204.4/lazarus-4.4-0.tar.gz
+        sha256: 190edc7b7a7b18430502c964a45dfdf5418ff16bbcad5c04423b33a09d22cc06
         x-checker-data:
           type: html
           url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Zip%20_%20GZip/
@@ -159,8 +159,8 @@ modules:
       - NO_GETTEXT=1
     sources:
       - type: archive
-        url: https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.43.0.tar.xz
-        sha256: 5446603e73d911781d259e565750dcd277a42836c8e392cac91cf137aa9b76ec
+        url: https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.48.1.tar.xz
+        sha256: 1c5d545f5dc1eb51e95d2c50d98fdf88b1a36ba1fa30e9ae5d5385c6024f82ad
     cleanup:
       - /share/git-core/templates
       - /share/git-gui
@@ -219,8 +219,8 @@ modules:
       - -Dwith_xnvctrl=disabled
     sources:
       - type: archive
-        url: https://github.com/flightlessmango/MangoHud/releases/download/v0.8.1/MangoHud-v0.8.1-Source.tar.xz
-        sha256: 4c8d8098f5deff7737978d792eef909b7469933f456a47132dccc06804825482
+        url: https://github.com/flightlessmango/MangoHud/releases/download/v0.8.2/MangoHud-v0.8.2-Source.tar.xz
+        sha256: 9fe98da24f790f4489efc1e0c8e3ad0291c80efd882a406797d54dab82f8765b
 
   # Goverlay application
   - name: goverlay

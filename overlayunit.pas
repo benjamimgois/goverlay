@@ -3291,9 +3291,16 @@ begin
 
   //Set Window caption
   if GCHANNEL = 'stable' then
-  goverlayform.Caption:= 'Goverlay ' + GVERSION
+  begin
+    goverlayform.Caption:= 'Goverlay ' + GVERSION;
+  end
   else
-  goverlayform.Caption:= 'Goverlay ' + GVERSION + ' (git testing build)';
+  begin
+    goverlayform.Caption:= 'Goverlay ' + GVERSION + ' (git testing build)';
+    // Add flatpak indicator for non-stable builds in Flatpak mode
+    if IsRunningInFlatpak then
+      goverlayform.Caption:= goverlayform.Caption + ' flatpak';
+  end;
 
    // Check for Goverlay updates
   CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
