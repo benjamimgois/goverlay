@@ -2134,6 +2134,8 @@ begin
           showfpslimCheckBox.Checked := True
         else if SameText(TrimmedLine, 'frame_count') then
           framecountCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'ftrace') then
+          ftraceCheckBox.Checked := True
         else if SameText(TrimmedLine, 'histogram') then
         begin
           frametimetypeBitBtn.ImageIndex := 7;
@@ -2890,6 +2892,9 @@ begin
 
     // Frame count
     AddIfChecked(framecountCheckBox, 'frame_count');
+
+    // Ftrace
+    AddIfChecked(ftraceCheckBox, 'ftrace');
 
     // Engine
     if engineversionCheckBox.Checked then
