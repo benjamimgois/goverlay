@@ -2202,6 +2202,8 @@ begin
           diskioCheckBox.Checked := True
         else if SameText(TrimmedLine, 'procmem') then
           procmemCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'proc_vram') then
+          procvramCheckBox.Checked := True
         else if SameText(TrimmedLine, 'swap') then
           swapusageCheckBox.Checked := True
         else if SameText(TrimmedLine, 'arch') then
@@ -2841,6 +2843,9 @@ begin
 
     // Process memory
     AddIfChecked(procmemCheckBox, 'procmem');
+
+    // Process VRAM
+    AddIfChecked(procvramCheckBox, 'proc_vram');
 
     // ============= METRICS TAB - OTHER =============
 
