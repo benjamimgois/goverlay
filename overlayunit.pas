@@ -372,12 +372,12 @@ type
     procedure durationTrackBarChange(Sender: TObject);
     procedure forcelatencyflexCheckBoxChange(Sender: TObject);
     procedure forcereflexCheckBoxChange(Sender: TObject);
-    procedure framesjouleBitBtnClick(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
     procedure fxaaTrackBarChange(Sender: TObject);
     procedure goverlayBitBtnClick(Sender: TObject);
+    procedure gpuframesjouleBitBtnClick(Sender: TObject);
     procedure gupdateBitBtnClick(Sender: TObject);
     procedure howtoBitBtnClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
@@ -3856,22 +3856,6 @@ begin
  end;
 end;
 
-procedure Tgoverlayform.framesjouleBitBtnClick(Sender: TObject);
-begin
-  // Toggle caption between 'Frames / Joule' and 'Joules / Frame'
-  // Both buttons share the same caption
-  if gpuframesjouleBitBtn.Caption = 'Frames / Joule' then
-  begin
-    gpuframesjouleBitBtn.Caption := 'Joules / Frame';
-    cpuframesjouleBitBtn.Caption := 'Joules / Frame';
-  end
-  else
-  begin
-    gpuframesjouleBitBtn.Caption := 'Frames / Joule';
-    cpuframesjouleBitBtn.Caption := 'Frames / Joule';
-  end;
-end;
-
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
     // Check if running in Flatpak - global MangoHud activation not supported
@@ -4839,6 +4823,22 @@ if Pos('AMD', GPUBrand) > 0 then
 
 //Save button
 saveBitbtn.Click;
+end;
+
+procedure Tgoverlayform.gpuframesjouleBitBtnClick(Sender: TObject);
+begin
+  // Toggle caption between 'Frames / Joule' and 'Joules / Frame'
+  // Both buttons share the same caption
+  if gpuframesjouleBitBtn.Caption = 'Frames / Joule' then
+  begin
+    gpuframesjouleBitBtn.Caption := 'Joules / Frame';
+    cpuframesjouleBitBtn.Caption := 'Joules / Frame';
+  end
+  else
+  begin
+    gpuframesjouleBitBtn.Caption := 'Frames / Joule';
+    cpuframesjouleBitBtn.Caption := 'Frames / Joule';
+  end;
 end;
 
 procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);
