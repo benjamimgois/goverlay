@@ -2192,6 +2192,8 @@ begin
           cpupowerCheckBox.Checked := True
         else if SameText(TrimmedLine, 'cpu_efficiency') then
           cpuefficiencyCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'core_type') then
+          cpucoretypeCheckBox.Checked := True
         else if SameText(TrimmedLine, 'ram') then
           ramusageCheckBox.Checked := True
         else if SameText(TrimmedLine, 'io_read') then
@@ -2809,6 +2811,9 @@ begin
 
     // CPU efficiency
     AddIfChecked(cpuefficiencyCheckBox, 'cpu_efficiency');
+
+    // CPU core type
+    AddIfChecked(cpucoretypeCheckBox, 'core_type');
 
     // CPU color
     if cpuavgloadCheckBox.Checked then
