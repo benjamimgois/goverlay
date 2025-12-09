@@ -2164,6 +2164,11 @@ begin
           gpupowerlimitCheckBox.Checked := True
         else if SameText(TrimmedLine, 'gpu_efficiency') then
           gpuefficiencyCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'flip_efficiency') then
+        begin
+          gpuframesjouleBitBtn.Caption := 'Joules / Frame';
+          cpuframesjouleBitBtn.Caption := 'Joules / Frame';
+        end
         else if SameText(TrimmedLine, 'gpu_voltage') then
           gpuvoltageCheckBox.Checked := True
         else if SameText(TrimmedLine, 'throttling_status') then
@@ -2764,6 +2769,10 @@ begin
 
     // GPU efficiency
     AddIfChecked(gpuefficiencyCheckBox, 'gpu_efficiency');
+
+    // Flip efficiency (Joules / Frame mode)
+    if gpuframesjouleBitBtn.Caption = 'Joules / Frame' then
+      ConfigLines.Add('flip_efficiency');
 
     // GPU voltage
     AddIfChecked(gpuvoltageCheckBox, 'gpu_voltage');
