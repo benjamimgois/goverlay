@@ -2720,6 +2720,10 @@ begin
     if pcidevComboBox.ItemIndex <> -1 then
       ConfigLines.Add('pci_dev=0:' + pcidevComboBox.Items[pcidevComboBox.ItemIndex]);
 
+    // GPU list (show all GPUs when multiple GPUs are detected)
+    if GPUNUMBER > 1 then
+      ConfigLines.Add('gpu_list=0,1');
+
     // Table columns
     ConfigLines.Add('table_columns=' + columvalueLabel.Caption);
 
