@@ -107,6 +107,7 @@ begin
        (ctrl.Name = 'fsrLabel1') or
        (ctrl.Name = 'xessLabel1') or
        (ctrl.Name = 'gupdateBitBtn') or
+       (ctrl.Name = 'updateBitBtn') or
        (ctrl.Name = 'customcommandEdit') or
        (ctrl.Name = 'mangohudLabel') or
        (ctrl.Name = 'optiscalerLabel') or
@@ -177,7 +178,8 @@ begin
     else if ctrl is TBitBtn then
     begin
       if (ctrl.Name = 'saveBitBtn') or
-         (ctrl.Name = 'gupdateBitBtn') then
+         (ctrl.Name = 'gupdateBitBtn') or
+         (ctrl.Name = 'updateBitBtn') then
         Continue;
       TBitBtn(ctrl).Color := DarkBackgroundColor;
       TBitBtn(ctrl).Font.Color := DarkTextColor;
@@ -214,6 +216,7 @@ begin
        (ctrl.Name = 'fsrLabel1') or
        (ctrl.Name = 'xessLabel1') or
        (ctrl.Name = 'gupdateBitBtn') or
+       (ctrl.Name = 'updateBitBtn') or
        (ctrl.Name = 'customcommandEdit') or
        (ctrl.Name = 'mangohudLabel') or
        (ctrl.Name = 'vkbasaltLabel') or
@@ -285,7 +288,8 @@ begin
     else if ctrl is TBitBtn then
     begin
       if (ctrl.Name = 'saveBitBtn') or
-         (ctrl.Name = 'gupdateBitBtn') then
+         (ctrl.Name = 'gupdateBitBtn') or
+         (ctrl.Name = 'updateBitBtn') then
         Continue;
       TBitBtn(ctrl).Color := LightButtonColor;
       TBitBtn(ctrl).Font.Color := LightTextColor;
