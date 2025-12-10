@@ -1432,8 +1432,9 @@ begin
   //check if vkbasalt is available
   if IsRunningInFlatpak then
   begin
-    // Flatpak: check for vkbasalt in Flatpak extension path
-    if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/libvkbasalt.so') then
+    // Flatpak: check for vkbasalt in /app/lib (standard Flatpak installation path)
+    if not FileExists('/app/lib/libvkbasalt.so') and
+       not FileExists('/app/lib/x86_64-linux-gnu/libvkbasalt.so') then
       Missing.Add('vkbasalt');
   end
   else
