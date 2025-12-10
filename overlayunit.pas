@@ -3956,9 +3956,12 @@ notificationLabel.Visible:=false;
 commandLabel.Visible:=false;
 copyBitbtn.Visible:=false;
 
-//Show Global Enable controls
-geSpeedButton.Visible:=true;
-geLabel.Visible:=true;
+//Show Global Enable controls (unless in Flatpak mode)
+if not IsRunningInFlatpak then
+begin
+  geSpeedButton.Visible:=true;
+  geLabel.Visible:=true;
+end;
 
 end;
 
