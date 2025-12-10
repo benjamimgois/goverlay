@@ -222,6 +222,16 @@ modules:
         url: https://github.com/flightlessmango/MangoHud/releases/download/v0.8.2/MangoHud-v0.8.2-Source.tar.xz
         sha256: 9fe98da24f790f4489efc1e0c8e3ad0291c80efd882a406797d54dab82f8765b
 
+  # vkBasalt (Vulkan post-processing layer)
+  - name: vkbasalt
+    buildsystem: meson
+    config-opts:
+      - --buildtype=release
+    sources:
+      - type: archive
+        url: https://github.com/DadSchoorse/vkBasalt/releases/download/v0.3.2.10/vkBasalt-0.3.2.10.tar.gz
+        sha256: eb196ff446fa36ec0ca99c4406d753c1fa210afddeec5e7a76e1c2e74ed605e3
+
   # Goverlay application
   - name: goverlay
     buildsystem: simple
