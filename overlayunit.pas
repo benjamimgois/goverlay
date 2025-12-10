@@ -41,6 +41,7 @@ type
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
     cpucoretypeCheckBox: TCheckBox;
+    framegenComboBox1: TComboBox;
     ftraceCheckBox: TCheckBox;
     gpupowerlimitCheckBox: TCheckBox;
     gpuframesjouleBitBtn: TBitBtn;
@@ -54,6 +55,7 @@ type
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
     geLabel: TLabel;
+    Image3: TImage;
     themeToggleSpeedButton: TSpeedButton;
     ToggleSpeedButton: TSpeedButton;
     spoofCheckBox: TCheckBox;
@@ -72,12 +74,12 @@ type
     filenameComboBox: TComboBox;
     latencyflexComboBox: TComboBox;
     reflexComboBox: TComboBox;
-    framegenComboBox: TComboBox;
+    shortcutkeyComboBox: TComboBox;
     fsrLabel1: TLabel;
     autodetectnvLabel: TLabel;
     commandLabel: TLabel;
     filenameLabel: TLabel;
-    framegenLabel: TLabel;
+    shortcutkeyLabel: TLabel;
     optiscalerGroupBox: TGroupBox;
     fakenvapiGroupBox: TGroupBox;
     menuLabel: TLabel;
@@ -1910,14 +1912,18 @@ begin
       Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
 
       // Process each key
-      if SameText(Key, 'FGType') then
+      if SameText(Key, 'ShortcutKey') then
       begin
         if SameText(Value, 'auto') then
-          framegenComboBox.ItemIndex := 0
-        else if SameText(Value, 'optifg') then
-          framegenComboBox.ItemIndex := 1
-        else if SameText(Value, 'nukems') then
-          framegenComboBox.ItemIndex := 2;
+          shortcutkeyComboBox.ItemIndex := 0
+        else if SameText(Value, '0x70') then
+          shortcutkeyComboBox.ItemIndex := 1
+        else if SameText(Value, '0x71') then
+          shortcutkeyComboBox.ItemIndex := 2
+        else if SameText(Value, '0x72') then
+          shortcutkeyComboBox.ItemIndex := 3
+        else if SameText(Value, '0x73') then
+          shortcutkeyComboBox.ItemIndex := 4;
       end
       else if SameText(Key, 'Scale') then
       begin
@@ -3292,7 +3298,7 @@ begin
 
   //Program Version
   GVERSION := '1.6.2';
-  GCHANNEL := 'git'; //stable ou git
+  GCHANNEL := 'stable'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
@@ -3997,6 +4003,7 @@ begin
       spoofCheckBox.Enabled:=false;
       spoofCheckBox.Checked:=false;
 end;
+
 
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
 begin
@@ -5068,9 +5075,9 @@ var
   LineFound, WineOverrideFound: Boolean;
 
   // Optiscaler.ini vars
-  OptiScalerIniPath, SelectedFGType, ScaleValue: string;
+  OptiScalerIniPath, SelectedShortcutKey, ScaleValue: string;
   OptiScalerIniLines: TStringList;
-  FGTypeFound, ScaleFound: Boolean;
+  ShortcutKeyFound, ScaleFound: Boolean;
   ScaleFloat: Double;
   OverrideNvapiDllValue: string;
   OverrideNvapiDllFound: Boolean;
@@ -5166,13 +5173,15 @@ EnableTraceLogsFound: Boolean;
                    // Get OptiScaler.ini file path (Flatpak-aware)
           OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
-          // Get selected FGType from framegenComboBox
-          case framegenComboBox.ItemIndex of
-            0: SelectedFGType := 'auto';
-            1: SelectedFGType := 'optifg';
-            2: SelectedFGType := 'nukems';
+          // Get selected ShortcutKey from shortcutkeyComboBox
+          case shortcutkeyComboBox.ItemIndex of
+            0: SelectedShortcutKey := 'auto';
+            1: SelectedShortcutKey := '0x70';
+            2: SelectedShortcutKey := '0x71';
+            3: SelectedShortcutKey := '0x72';
+            4: SelectedShortcutKey := '0x73';
           else
-            SelectedFGType := 'auto'; // Default
+            SelectedShortcutKey := 'auto'; // Default
           end;
 
 
@@ -5197,19 +5206,19 @@ EnableTraceLogsFound: Boolean;
                   // Load the OptiScaler.ini file
                   OptiScalerIniLines.LoadFromFile(OptiScalerIniPath);
 
-                  // Search for the line containing FGType=
+                  // Search for the line containing ShortcutKey=
                   OverrideNvapiDllFound := False;
-                  FGTypeFound := False;
+                  ShortcutKeyFound := False;
                   ScaleFound := False;
 
                   for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
                   begin
-                    // Check for FGType line
-                    if Pos('FGType=', OptiScalerIniLines[LineIndex]) > 0 then
+                    // Check for ShortcutKey line
+                    if Pos('ShortcutKey=', OptiScalerIniLines[LineIndex]) > 0 then
                     begin
-                      // Replace the line with the new FGType value
-                      OptiScalerIniLines[LineIndex] := 'FGType=' + SelectedFGType;
-                      FGTypeFound := True;
+                      // Replace the line with the new ShortcutKey value
+                      OptiScalerIniLines[LineIndex] := 'ShortcutKey=' + SelectedShortcutKey;
+                      ShortcutKeyFound := True;
                     end;
 
                     // Check for Scale line
@@ -5229,20 +5238,20 @@ EnableTraceLogsFound: Boolean;
                     end;
 
 
-                    // Exit loop if both found
-                     if FGTypeFound and ScaleFound and OverrideNvapiDllFound then
+                    // Exit loop if all found
+                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound then
                        Break;
                   end;
 
-                  if FGTypeFound and ScaleFound then
+                  if ShortcutKeyFound and ScaleFound then
                   begin
                     // Save the modified OptiScaler.ini file
                     OptiScalerIniLines.SaveToFile(OptiScalerIniPath);
                   end
                   else
                   begin
-                    if not FGTypeFound then
-                      ShowMessage('Warning: Could not find FGType line in OptiScaler.ini file');
+                    if not ShortcutKeyFound then
+                      ShowMessage('Warning: Could not find ShortcutKey line in OptiScaler.ini file');
                     if not ScaleFound then
                       ShowMessage('Warning: Could not find Scale line in OptiScaler.ini file');
                     if not OverrideNvapiDllFound then
