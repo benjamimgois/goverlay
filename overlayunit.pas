@@ -1442,7 +1442,7 @@ begin
   else
   begin
     // Traditional distros: check for libvkbasalt.so
-    if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json' and
+    if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
        not FileExists('/usr/lib/libvkbasalt.so') and
        not FileExists('/usr/lib64/libvkbasalt.so') and
        not FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so') then
