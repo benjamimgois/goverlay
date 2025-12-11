@@ -2965,7 +2965,7 @@ begin
       begin
         if fpslimcheckgroup.Checked[i] then
         begin
-          SelectedValues.Add(IntToStr(StrToIntDef(fpslimcheckgroup.Items[i], 0) - offsetSpinedit.Value));
+          SelectedValues.Add(IntToStr(StrToIntDef(fpslimcheckgroup.Items[i], 0) + offsetSpinedit.Value));
           if StrToIntDef(fpslimcheckgroup.Items[i], 0) > MaxFPS then
             MaxFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
         end;
