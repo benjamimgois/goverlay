@@ -3071,7 +3071,9 @@ begin
     if distroinfoCheckBox.Checked then
     begin
       DistroFile := GetUserConfigDir + '/goverlay/distro';
+      ConfigLines.Add('custom_text=-');
       ConfigLines.Add('exec=cat ' + DistroFile);
+      ConfigLines.Add('custom_text=-');
       ConfigLines.Add('exec=uname -r');
     end;
 
