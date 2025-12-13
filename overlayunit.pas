@@ -407,6 +407,10 @@ type
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runvkbasaltItemClick(Sender: TObject);
     procedure saveasItemClick(Sender: TObject);
+    procedure deckpreset1MenuItemClick(Sender: TObject);
+    procedure deckpreset2MenuItemClick(Sender: TObject);
+    procedure deckpreset3MenuItemClick(Sender: TObject);
+    procedure deckpreset4MenuItemClick(Sender: TObject);
     procedure runvkcubeItemClick(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
@@ -432,6 +436,7 @@ type
     procedure LoadVkBasaltConfig;
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
+    procedure SaveMangoHudPreset(PresetNumber: Integer);
     procedure LoadOptiScalerConfig;
     procedure LoadFakeNvapiConfig;
     procedure LoadFgmodConfig;
@@ -5788,8 +5793,149 @@ begin
   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
 end;
 
+procedure Tgoverlayform.SaveMangoHudPreset(PresetNumber: Integer);
+var
+  ConfigLines: TStringList;
+  ConfigDir, PresetsFilePath: string;
+  PresetHeader: string;
+  ExistingLines: TStringList;
+  i: Integer;
+  CurrentPresetNumber: Integer;
+  InPresetSection: Boolean;
+  PresetAlreadyExists: Boolean;
+begin
+  ConfigDir := GetUserConfigDir + '/MangoHud';
+  PresetsFilePath := ConfigDir + '/presets.conf';
 
+  // Create directory if it doesn't exist
+  if not DirectoryExists(ConfigDir) then
+    ForceDirectories(ConfigDir);
 
+  ConfigLines := TStringList.Create;
+  try
+    // Generate current configuration using SaveMangoHudConfig logic
+    // We'll reuse the same logic but save to a different file
 
+    // First, call SaveMangoHudConfig to generate the configuration
+    SaveMangoHudConfig;
+
+    // Read the generated MangoHud.conf to get current settings
+    ConfigLines.LoadFromFile(ConfigDir + '/MangoHud.conf');
+
+    // Now we need to check if presets.conf exists and if this preset already exists
+    PresetAlreadyExists := False;
+
+    if FileExists(PresetsFilePath) then
+    begin
+      ExistingLines := TStringList.Create;
+      try
+        ExistingLines.LoadFromFile(PresetsFilePath);
+
+        // Check if this preset number already exists
+        for i := 0 to ExistingLines.Count - 1 do
+        begin
+          if Trim(ExistingLines[i]) = '[preset ' + IntToStr(PresetNumber) + ']' then
+          begin
+            PresetAlreadyExists := True;
+            Break;
+          end;
+        end;
+
+        if PresetAlreadyExists then
+        begin
+          // Remove existing preset section
+          InPresetSection := False;
+          i := 0;
+          while i < ExistingLines.Count do
+          begin
+            if Trim(ExistingLines[i]) = '[preset ' + IntToStr(PresetNumber) + ']' then
+            begin
+              InPresetSection := True;
+              ExistingLines.Delete(i);
+              Continue;
+            end;
+
+            if InPresetSection then
+            begin
+              // Check if we hit another preset section
+              if (Length(Trim(ExistingLines[i])) > 0) and
+                 (Trim(ExistingLines[i])[1] = '[') and
+                 (Pos('[preset ', Trim(ExistingLines[i])) = 1) then
+              begin
+                InPresetSection := False;
+              end
+              else
+              begin
+                ExistingLines.Delete(i);
+                Continue;
+              end;
+            end;
+
+            Inc(i);
+          end;
+
+          // Save existing lines (without the old preset)
+          ExistingLines.SaveToFile(PresetsFilePath);
+        end;
+
+      finally
+        ExistingLines.Free;
+      end;
+    end;
+
+    // Prepare the preset content to append
+    PresetHeader := '[preset ' + IntToStr(PresetNumber) + ']';
+
+    // Create new preset content
+    ExistingLines := TStringList.Create;
+    try
+      if FileExists(PresetsFilePath) then
+        ExistingLines.LoadFromFile(PresetsFilePath);
+
+      // Add blank line before new preset if file is not empty
+      if ExistingLines.Count > 0 then
+        ExistingLines.Add('');
+
+      // Add preset header
+      ExistingLines.Add(PresetHeader);
+
+      // Add all configuration lines from ConfigLines
+      for i := 0 to ConfigLines.Count - 1 do
+        ExistingLines.Add(ConfigLines[i]);
+
+      // Save the complete file
+      ExistingLines.SaveToFile(PresetsFilePath);
+
+      // Send notification via D-Bus
+      SendNotification('GOverlay', 'Steam Deck Preset ' + IntToStr(PresetNumber) + ' saved successfully!');
+
+    finally
+      ExistingLines.Free;
+    end;
+
+  finally
+    ConfigLines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.deckpreset1MenuItemClick(Sender: TObject);
+begin
+  SaveMangoHudPreset(1);
+end;
+
+procedure Tgoverlayform.deckpreset2MenuItemClick(Sender: TObject);
+begin
+  SaveMangoHudPreset(2);
+end;
+
+procedure Tgoverlayform.deckpreset3MenuItemClick(Sender: TObject);
+begin
+  SaveMangoHudPreset(3);
+end;
+
+procedure Tgoverlayform.deckpreset4MenuItemClick(Sender: TObject);
+begin
+  SaveMangoHudPreset(4);
+end;
 
 end.
