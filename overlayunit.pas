@@ -56,6 +56,14 @@ type
     aboutMenuItem: TMenuItem;
     geLabel: TLabel;
     Image3: TImage;
+    blacklistMenuItem: TMenuItem;
+    savecustomMenuItem: TMenuItem;
+    deckpreset1MenuItem: TMenuItem;
+    deckpreset2MenuItem: TMenuItem;
+    deckpreset3MenuItem: TMenuItem;
+    deckpreset4MenuItem: TMenuItem;
+    Separator1: TMenuItem;
+    SpeedButton2: TSpeedButton;
     themeToggleSpeedButton: TSpeedButton;
     ToggleSpeedButton: TSpeedButton;
     spoofCheckBox: TCheckBox;
@@ -64,7 +72,6 @@ type
     forcelatencyflexCheckBox: TCheckBox;
     forcereflexCheckBox: TCheckBox;
     copyBitBtn: TBitBtn;
-    blacklistBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     bottomleftRadioButton: TRadioButton;
@@ -251,10 +258,10 @@ type
     logtoggleImage: TImage;
     logtoggleLabel: TLabel;
     mainmetricLabel: TLabel;
-    mangobarPanel: TPanel;
+    goverlaybarPanel: TPanel;
     mangocolorBitBtn: TBitBtn;
     mangocolorLabel: TLabel;
-    mangohudPanel: TPanel;
+    goverlayPanel: TPanel;
     mediaCheckBox: TCheckBox;
     mediaColorButton: TColorButton;
     memLabel: TLabel;
@@ -307,7 +314,7 @@ type
     optiscalerTabSheet: TTabSheet;
     timeCheckBox: TCheckBox;
     Timer: TTimer;
-    savecustomItem: TMenuItem;
+    saveasItem: TMenuItem;
     layoutImageList: TImageList;
     popsaveMenu: TPopupMenu;
     C: TComboBox;
@@ -366,6 +373,7 @@ type
     procedure basicBitBtnClick(Sender: TObject);
     procedure basichorizontalBitBtnClick(Sender: TObject);
     procedure blacklistBitBtnClick(Sender: TObject);
+    procedure blacklistMenuItemClick(Sender: TObject);
     procedure casTrackBarChange(Sender: TObject);
     procedure copyBitBtnClick(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
@@ -398,7 +406,7 @@ type
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runvkbasaltItemClick(Sender: TObject);
-    procedure savecustomItemClick(Sender: TObject);
+    procedure saveasItemClick(Sender: TObject);
     procedure runvkcubeItemClick(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
@@ -407,6 +415,7 @@ type
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
+    procedure savecustomMenuItemClick(Sender: TObject);
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
     procedure ToggleSpeedButtonClick(Sender: TObject);
@@ -3298,8 +3307,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.2';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.3';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
@@ -3322,7 +3331,7 @@ begin
 
    // Initialize menu selections
   mangohudsel := true;
-  mangohudPanel.Visible:=true;
+  goverlayPanel.Visible:=true;
   vkbasaltsel := false;
 
 
@@ -4301,16 +4310,9 @@ RunPasCube;
 
 end;
 
-procedure Tgoverlayform.savecustomItemClick(Sender: TObject);
+procedure Tgoverlayform.saveasItemClick(Sender: TObject);
 begin
-     // Save current config
-    saveBitbtn.Click;
 
-    // Copy Mangohud.conf file to custom.conf
-    ExecuteShellCommand('cp '+ MANGOHUDCFGFILE + ' ' + CUSTOMCFGFILE);
-
-    //Notification
-    SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
 end;
 
 procedure Tgoverlayform.runvkcubeItemClick(Sender: TObject);
@@ -4627,6 +4629,11 @@ end;
 procedure Tgoverlayform.blacklistBitBtnClick(Sender: TObject);
 begin
   blacklistForm.ShowModal; // Form show as modal window
+end;
+
+procedure Tgoverlayform.blacklistMenuItemClick(Sender: TObject);
+begin
+   blacklistForm.ShowModal; // Form show as modal window
 end;
 
 procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
@@ -5038,9 +5045,21 @@ end;
 
 procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
 begin
+  // Hide "Save As" and "Blacklist" options when on vkBasalt or OptiScaler tabs
+  // These features only apply to MangoHud configurations
+  if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+     (goverlayPageControl.ActivePage = optiscalerTabSheet) then
+  begin
+    saveasItem.Visible := False;
+    blacklistMenuItem.Visible := False;
+  end
+  else
+  begin
+    saveasItem.Visible := True;
+    blacklistMenuItem.Visible := True;
+  end;
 
-popsaveMenu.PopUp;
-
+  popsaveMenu.PopUp;
 end;
 
 
@@ -5653,6 +5672,18 @@ end;  //  ################### END - SAVE MANGOHUD
 
 
 end; // ########################################      end save button click       ###############################################################################
+
+procedure Tgoverlayform.savecustomMenuItemClick(Sender: TObject);
+begin
+      // Save current config
+    saveBitbtn.Click;
+
+    // Copy Mangohud.conf file to custom.conf
+    ExecuteShellCommand('cp '+ MANGOHUDCFGFILE + ' ' + CUSTOMCFGFILE);
+
+    //Notification
+    SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
+end;
 
 procedure Tgoverlayform.smaaTrackBarChange(Sender: TObject);
 begin

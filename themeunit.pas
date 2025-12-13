@@ -170,7 +170,7 @@ begin
     begin
       TPanel(ctrl).Color := DarkBackgroundColor;
       TPanel(ctrl).Font.Color := DarkTextColor;
-      if ctrl.Name = 'mangobarPanel' then
+      if (ctrl.Name = 'mangobarPanel') or (ctrl.Name = 'goverlaybarPanel') then
         TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
         ApplyDarkTheme(TWinControl(ctrl));
@@ -280,7 +280,7 @@ begin
     begin
       TPanel(ctrl).Color := LighterBackgroundColor;
       TPanel(ctrl).Font.Color := LightTextColor;
-      if ctrl.Name = 'mangobarPanel' then
+      if (ctrl.Name = 'mangobarPanel') or (ctrl.Name = 'goverlaybarPanel') then
         TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
         ApplyLightTheme(TWinControl(ctrl));
