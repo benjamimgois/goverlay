@@ -25,6 +25,7 @@ type
     FDeckyLabel2: TLabel;      // Label for update notification
     FFakeNvapiLabel2: TLabel;  // Label for update notification
     FNotificationLabel: TLabel; // Label for general notifications
+    FFsrVersionComboBox: TComboBox; // ComboBox for FSR version selection
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
@@ -56,6 +57,7 @@ type
     property DeckyLabel2: TLabel read FDeckyLabel2 write FDeckyLabel2;
     property FakeNvapiLabel2: TLabel read FFakeNvapiLabel2 write FFakeNvapiLabel2;
     property NotificationLabel: TLabel read FNotificationLabel write FNotificationLabel;
+    property FsrVersionComboBox: TComboBox read FFsrVersionComboBox write FFsrVersionComboBox;
   end;
 
 implementation
@@ -422,7 +424,7 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  DeckyVer, OptiVer, FakeNvapiVer: string;
+  DeckyVer, OptiVer, FakeNvapiVer, FsrVer: string;
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
@@ -435,6 +437,7 @@ begin
   DeckyVer := '';
   OptiVer := '';
   FakeNvapiVer := '';
+  FsrVer := '';
 
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -461,7 +464,9 @@ begin
           else if Key = 'OptiScalerVersion' then
             OptiVer := Value
           else if Key = 'FakeNvapiVersion' then
-            FakeNvapiVer := Value;
+            FakeNvapiVer := Value
+          else if Key = 'fsrversion' then
+            FsrVer := Value;
         end;
       end;
     finally
@@ -517,7 +522,18 @@ begin
     if Assigned(FFsrLabel) then
     begin
       try
-        FFsrLabel.Caption := 'decky built-in';
+        // If fsrversion was found in goverlay.vars, use that value
+        // Otherwise, use the default 'decky built-in'
+        if FsrVer <> '' then
+        begin
+          FFsrLabel.Caption := FsrVer;
+
+          // If the version is '4.0.2 (INT8)', set combobox to index 1
+          if Assigned(FFsrVersionComboBox) and (FsrVer = '4.0.2 (INT8)') then
+            FFsrVersionComboBox.ItemIndex := 1;
+        end
+        else
+          FFsrLabel.Caption := 'decky built-in';
         FFsrLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
@@ -997,6 +1013,37 @@ begin
     end;
 
     UpdateProgress(100);
+
+    // Create FSR4_LATEST and FSR4_INT8 folders and setup files
+    try
+      UpdateStatus('Setting up FSR4 variants');
+
+      // Create FSR4_LATEST folder
+      ForceDirectories(IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_LATEST');
+
+      // Copy amd_fidelityfx_upscaler_dx12.dll to FSR4_LATEST
+      if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(FFGModPath) + 'amd_fidelityfx_upscaler_dx12.dll',
+                 IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
+      end;
+
+      // Create FSR4_INT8 folder
+      ForceDirectories(IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_INT8');
+
+      // Download INT8 version to FSR4_INT8 folder
+      if DownloadFile('https://github.com/xXJSONDeruloXx/OptiScaler-Bleeding-Edge/releases/download/amd-fsr-r-int8/amd_fidelityfx_upscaler_dx12.dll',
+                      IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+      begin
+        UpdateStatus('FSR4 variants ready');
+      end
+      else
+        ShowMessage('Warning: Failed to download FSR4 INT8 variant.');
+    except
+      on E: Exception do
+        ShowMessage('Warning: Could not setup FSR4 variants: ' + E.Message);
+    end;
+
     UpdateStatus('Complete');
 
     // Restore button text after completion

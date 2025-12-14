@@ -40,6 +40,7 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
+    fsrversionComboBox: TComboBox;
     cpucoretypeCheckBox: TCheckBox;
     framegenComboBox1: TComboBox;
     ftraceCheckBox: TCheckBox;
@@ -57,6 +58,11 @@ type
     geLabel: TLabel;
     Image3: TImage;
     blacklistMenuItem: TMenuItem;
+    fsrversionLabel: TLabel;
+    mark1Label: TLabel;
+    Label3: TLabel;
+    mark2Label: TLabel;
+    shortcutImage: TImage;
     savecustomMenuItem: TMenuItem;
     deckpreset1MenuItem: TMenuItem;
     deckpreset2MenuItem: TMenuItem;
@@ -3314,8 +3320,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.3';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.4';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
@@ -3875,6 +3881,7 @@ begin
     FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
     FOptiscalerUpdate.XessLabel := xessLabel1;
     FOptiscalerUpdate.FsrLabel := fsrlabel1;
+    FOptiscalerUpdate.FsrVersionComboBox := fsrversionComboBox;
     FOptiscalerUpdate.DeckyLabel2 := deckylabel2;
     FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
     FOptiscalerUpdate.NotificationLabel := notificationLabel;
@@ -5096,7 +5103,7 @@ var
 
   //OptiScaler vars
   FGModFilePath, SelectedDllName, DllNameWithoutExt: string;
-  FGModPath, LaunchCommand: string;
+  FGModPath, LaunchCommand, VarsFilePath: string;
   FGModLines: TStringList;
   LineIndex: Integer;
   LineFound, WineOverrideFound: Boolean;
@@ -5414,6 +5421,65 @@ EnableTraceLogsFound: Boolean;
               ShowMessage('Warning: fakenvapi.ini file not found at: ' + FakeNvapiIniPath);
             end;
           end;
+
+            // ##### Copy FSR4 DLL based on fsrversionCombobox selection #####
+            try
+              FGModPath := GetOptiScalerInstallPath;
+
+              case fsrversionComboBox.ItemIndex of
+                0: // Latest (FP8)
+                  begin
+                    // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_LATEST to fgmod root
+                    if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+                    begin
+                      CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                               IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+                    end
+                    else
+                      ShowMessage('Warning: FSR4_LATEST version not found. Please update OptiScaler first.');
+                  end;
+
+                1: // 4.0.2 (INT8)
+                  begin
+                    // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_INT8 to fgmod root
+                    if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+                    begin
+                      CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                               IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+
+                      // Add fsrversion line to goverlay.vars
+                      VarsFilePath := IncludeTrailingPathDelimiter(FGModPath) + 'goverlay.vars';
+                      if FileExists(VarsFilePath) then
+                      begin
+                        Lines := TStringList.Create;
+                        try
+                          Lines.LoadFromFile(VarsFilePath);
+
+                          // Check if fsrversion line already exists and remove it
+                          for i := Lines.Count - 1 downto 0 do
+                          begin
+                            if Pos('fsrversion=', Lines[i]) > 0 then
+                              Lines.Delete(i);
+                          end;
+
+                          // Add fsrversion line at the end
+                          Lines.Add('fsrversion=4.0.2 (INT8)');
+
+                          // Save the file
+                          Lines.SaveToFile(VarsFilePath);
+                        finally
+                          Lines.Free;
+                        end;
+                      end;
+                    end
+                    else
+                      ShowMessage('Warning: FSR4_INT8 version not found. Please update OptiScaler first.');
+                  end;
+              end;
+            except
+              on E: Exception do
+                ShowMessage('Warning: Could not copy FSR4 DLL: ' + E.Message);
+            end;
 
             // Show notification
             SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
