@@ -2630,7 +2630,7 @@ var
   ConfigLines: TStringList;
   ConfigDir, FontPath, FontDir, DistroFile: string;
   SelectedValues: TStringList;
-  i, MaxFPS: Integer;
+  i,TempFPS, MaxFPS: Integer;
   TempFiles: TStringList;
   TempFile: string;
   FS: TFormatSettings;
@@ -2980,7 +2980,10 @@ begin
       begin
         if fpslimcheckgroup.Checked[i] then
         begin
-          SelectedValues.Add(IntToStr(StrToIntDef(fpslimcheckgroup.Items[i], 0) + offsetSpinedit.Value));
+          TempFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
+          if TempFPS <> 0 then
+            TempFPS := TempFPS + offsetSpinedit.Value;
+          SelectedValues.Add(IntToStr(TempFPS));
           if StrToIntDef(fpslimcheckgroup.Items[i], 0) > MaxFPS then
             MaxFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
         end;
@@ -3754,7 +3757,9 @@ begin
 
             for i := 0 to FPSNumbers.Count - 1 do
             begin
-              FPS := StrToIntDef(FPSNumbers[i], 0) + Offset;
+              FPS := StrToIntDef(FPSNumbers[i], 0);
+              if FPS <> 0 then
+                FPS := FPS + Offset;
               FPSList.Add(IntToStr(FPS));
               if FPS > MaxFPS then
                 MaxFPS := FPS;
