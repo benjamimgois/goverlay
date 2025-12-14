@@ -3324,7 +3324,7 @@ begin
 
   //Program Version
   GVERSION := '1.6.4';
-  GCHANNEL := 'git'; //stable ou git
+  GCHANNEL := 'stable'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
