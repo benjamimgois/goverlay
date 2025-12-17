@@ -3,24 +3,45 @@
 </p>
 
 <p align="center">
+  <!-- Latest Release -->
   <a href="https://github.com/benjamimgois/Goverlay/releases">
-    <img src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge" alt="Latest release">
+    <img
+      src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge"
+      alt="Latest release">
+  </a>
 
+  <!-- Flatpak (Flathub) -->
+<a href="https://github.com/benjamimgois/Goverlay#flatpak">
+  <img src="https://img.shields.io/badge/Flatpak-Beta-orange?style=for-the-badge&logo=flathub" alt="Flatpak beta">
+</a>
+
+  <!-- AUR -->
   <a href="https://aur.archlinux.org/packages/goverlay-git">
-    <img src="https://img.shields.io/aur/version/goverlay-git?color=1793d1&label=AUR&style=for-the-badge" alt="AUR version">
+    <img
+      src="https://img.shields.io/aur/version/goverlay-git?color=1793d1&label=AUR&style=for-the-badge"
+      alt="AUR version">
   </a>
-  <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/benjamimgois/Goverlay?color=2196f3&label=License&style=for-the-badge" alt="License">
-  </a>
+
+  <!-- AppImage -->
   <a href="https://github.com/benjamimgois/Goverlay/releases">
-    <img src="https://img.shields.io/badge/AppImage-Available-orange?style=for-the-badge&logo=linux" alt="AppImage available">
+    <img
+      src="https://img.shields.io/badge/AppImage-Available-orange?style=for-the-badge&logo=linux"
+      alt="AppImage available">
+  </a>
+
+  <!-- License -->
+  <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
+    <img
+      src="https://img.shields.io/github/license/benjamimgois/Goverlay?color=2196f3&label=License&style=for-the-badge"
+      alt="License">
   </a>
 </p>
 
 ---
 
-**Goverlay** helps Linux gamers get the most out of their system by offering an easy graphical interface to configure **MangoHud**, **vkBasalt**, and **OptiScaler**.
-Whether you want performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
+**Goverlay** helps Linux gamers get the most out of their systems by providing an easy-to-use graphical interface to configure **MangoHud**, **vkBasalt**, and **OptiScaler**.
+
+Whether you’re looking for performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
 
 This project exists thanks to the amazing work of the original maintainers and contributors behind the core tools.  
 I’m just a network engineer who loves Linux and gaming — this is my way of giving something back to the community.
@@ -32,17 +53,16 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 - [Screenshots](#screenshots)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+  - [Universal Methods](#universal-methods)
+    - [Flatpak (Beta)](#flatpak-beta)
+    - [AppImage](#appimage)
   - [Distributions](#distributions)
-    - [Arch / Manjaro / Other Arch-based distributions](#arch--manjaro--other-arch-based-distributions)
-    - [Fedora](#fedora)
-    - [Solus](#solus)
-    - [Ubuntu](#ubuntu)
+    - [Arch and derivatives](#arch-and-derivatives)
     - [OpenSUSE](#opensuse)
+    - [Solus](#solus)
+    - [Fedora / Debian / Ubuntu](#fedora--debian--ubuntu)
   - [Tarball](#tarball)
   - [Building from Source](#building-from-source)
-    - [Prerequisites](#prerequisites-1)
-    - [Building](#building)
-    - [Running](#running)
 - [Credits](#credits)
 - [Donations](#donations)
 
@@ -50,13 +70,18 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Screenshots
 
-<img width="1129" height="843" alt="image" src="/data/screenshots/1.webp" />
-<img width="1129" height="843" alt="image" src="/data/screenshots/2.webp" />
-<img width="1129" height="843" alt="image" src="/data/screenshots/3.webp" />
-<img width="1129" height="843" alt="image" src="/data/screenshots/4.webp" />
-<img width="1129" height="843" alt="image" src="/data/screenshots/5.webp" />
-<img width="1129" height="843" alt="image" src="/data/screenshots/6.webp" />
-<img width="1129" height="843" alt="image" src="/data/screenshots/7.webp" />
+<details>
+<summary><strong>Click to view screenshots</strong></summary>
+
+<img width="1129" height="843" alt="Screenshot 1" src="/data/screenshots/1.webp" />
+<img width="1129" height="843" alt="Screenshot 2" src="/data/screenshots/2.webp" />
+<img width="1129" height="843" alt="Screenshot 3" src="/data/screenshots/3.webp" />
+<img width="1129" height="843" alt="Screenshot 4" src="/data/screenshots/4.webp" />
+<img width="1129" height="843" alt="Screenshot 5" src="/data/screenshots/5.webp" />
+<img width="1129" height="843" alt="Screenshot 6" src="/data/screenshots/6.webp" />
+<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/7.webp" />
+
+</details>
 
 
 
@@ -64,96 +89,86 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Prerequisites
 
-Dependencies required to run **Goverlay**:
+### Required
 
-- [**`mangohud`**](https://github.com/flightlessmango/MangoHud) — Configure MangoHud  
+- [**`mangohud`**](https://github.com/flightlessmango/MangoHud) — Performance overlay / monitoring  
+- [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) — Vulkan post-processing effects
 - [**`mesa-demos`**](https://gitlab.freedesktop.org/mesa/demos) — OpenGL demo tools  
 - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) — Vulkan demo tools  
-- [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) — Configure vkBasalt  
 - [**`git`**](https://github.com/git/git) — Used to clone repositories (e.g., ReShade)  
 - [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) — Qt6 bindings for Free Pascal / Lazarus  
+
+### Optional / Used by specific features
+
 - [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) — Displays AMD CPU power metrics  
-- [**`pascube`**](https://github.com/benjamimgois/pascube) — A simple OpenGL spinning cube used for configuration previews  
+- [**`pascube`**](https://github.com/benjamimgois/pascube) — Simple OpenGL spinning cube used for configuration previews  
+
+
 
 ---
 
 ## Installation
 
-### Distributions
+## Universal Methods
 
-#### Universal Method — AppImage
+### Flatpak (Beta)
 
-Download the AppImage from the [Releases page](https://github.com/benjamimgois/Goverlay/releases/download/1.3/Goverlay_1_3.AppImage) and make it executable:
+Since the flatpak file isn't in flathub yet, you can Download the file from the [Releases page](https://github.com/benjamimgois/Goverlay/releases) and install it.
+
+```bash
+flatpak install goverlay_1.6.4_stable.flatpak   
+```
+
+### AppImage
+
+Download the AppImage from the  and make it executable:
 
 ```bash
 chmod +x Goverlay_1_3.AppImage
 ./Goverlay_1_3.AppImage
 ```
 
-#### Arch / Manjaro / Other Arch-based Distributions
+## Distributions
+
+### Arch and derivatives
 
 **Option 1 – Official Repository**
-
 ```bash
 sudo pacman -S goverlay
 ```
-
-**Option 2 – Arch User Repository (AUR)**
-
-```bash
-yay -S goverlay
+**Option 2 – AUR**
+```
+yay -S goverlay-git
 ```
 
-#### Fedora
-
-```bash
-sudo dnf install goverlay
-```
-
-#### OpenSUSE
-
-##### Tumbleweed
-
+### OpenSUSE
 ```bash
 sudo zypper install goverlay
 ```
 
-##### Leap 15.2
-
-Add the *games:tools* repository and install:
-
-```bash
-sudo zypper addrepo https://download.opensuse.org/repositories/games:tools/openSUSE_Leap_15.2/games:tools.repo
-sudo zypper refresh
-sudo zypper install goverlay
-```
-
-#### Solus
-
+### Solus
 ```bash
 sudo eopkg it goverlay
 ```
 
-#### Debian (Sid)
+### Fedora / Debian / Ubuntu
+These distributions currently ship very old versions of Goverlay in their repositories, so it is strongly recommended to use one of the universal installation methods instead.
 
-```bash
-sudo apt install goverlay
+---
+
+#### Libqt6pas
+The `libqt6pas` package is not available in some distributions official repositories.  
+You can get it from [David Bannon’s repository](https://github.com/davidbannon/libqt6pas/releases):
+
+Ubuntu example:
 ```
-
-#### Ubuntu (20.04 and newer)
-
-The `libqt6pas` package is not available in official repositories.  
-You can get it from [David Bannon’s repository](https://github.com/davidbannon/libqt6pas):
-
-```bash
+bash
 sudo apt-get update
 wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.8/libqt6pas6_6.2.8-1_amd64.deb
 sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
 tar -zxvf Goverlay*.tar.gz
 ./Goverlay
 ```
-
----
 
 ## Tarball
 
@@ -169,7 +184,6 @@ tar -zxvf Goverlay*.tar.gz
 
 > **Note:** Since version 0.6.4, MangoHud must be installed to run Goverlay.
 
----
 
 ## Building from Source
 
