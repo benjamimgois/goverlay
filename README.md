@@ -1,5 +1,5 @@
 <p align="center">
- <img width="320" height="225" alt="image" src="/assets/goverlay_header.webp" />
+ <img width="320" height="225" alt="image" src="/data/goverlay_header.webp" />
 </p>
 
 <p align="center">
@@ -50,13 +50,13 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Screenshots
 
-<img width="1129" height="843" alt="image" src="/assets/1.webp" />
-<img width="1129" height="843" alt="image" src="/assets/2.webp" />
-<img width="1129" height="843" alt="image" src="/assets/3.webp" />
-<img width="1129" height="843" alt="image" src="/assets/4.webp" />
-<img width="1129" height="843" alt="image" src="/assets/5.webp" />
-<img width="1129" height="843" alt="image" src="/assets/6.webp" />
-<img width="1129" height="843" alt="image" src="/assets/7.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/1.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/2.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/3.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/4.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/5.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/6.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/7.webp" />
 
 
 
