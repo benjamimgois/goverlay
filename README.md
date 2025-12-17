@@ -1,5 +1,5 @@
 <p align="center">
- <img width="320" height="225" alt="image" src="https://github.com/user-attachments/assets/17497f5b-41bc-43cc-9aa9-44473f03d007" />
+ <img width="320" height="225" alt="image" src="/data/goverlay_header.webp" />
 </p>
 
 <p align="center">
@@ -50,13 +50,13 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Screenshots
 
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/b05323d4-7c56-4413-a986-3ad2a0adc0db" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/e4c390a2-d07c-46ae-b291-b964adc60566" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/6bc1a47d-8c9a-4bdc-b244-58d45db4a238" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/1d15dea8-ec09-40f3-8f03-792a553aec89" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/ac8ae86a-bc8d-4e01-8104-6e03e3c781c8" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/36febbff-849f-43cc-8fe9-05c4525b2234" />
-<img width="1129" height="843" alt="image" src="https://github.com/user-attachments/assets/e9417dcf-e8d9-494f-8a10-9d40e7f3576a" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/1.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/2.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/3.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/4.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/5.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/6.webp" />
+<img width="1129" height="843" alt="image" src="/data/screenshots/7.webp" />
 
 
 
