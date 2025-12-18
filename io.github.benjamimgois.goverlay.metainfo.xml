@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<component type="desktop-application">
+  <id>io.github.benjamimgois.goverlay</id>
+
+  <name>App</name>
+  <summary>Goverlay</summary>
+  <developer id="io.github.benjamimgois">
+    <name>Benjamim Gois</name>
+  </developer>
+
+  <url type="homepage">https://github.com/benjamimgois/goverlay</url>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0</project_license>
+
+  <description>
+    <p>
+      Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.benjamimgois.goverlay.desktop</launchable>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#ff00ff</color>
+    <color type="primary" scheme_preference="dark">#993d3d</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Screenshot 1</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/1.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Screenshot 2</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/2.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Screenshot 3</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/3.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Screenshot 4</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/4.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Screenshot 5</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/5.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Screenshot 6</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/6.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Screenshot 7</caption>
+      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/7.webp</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="1.6.4" date="2025-12-15">
+      <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.4</url>
+      <description>
+        <ul>
+          <li>Another day, another release...</li>
+          <li>This small release brings a FSR version management system, now you can choose betwen the latest FSR DLL (with ML features for RDNA4) or stick to the INT8 version that keeps RDNA2 and 3 compatibility.</li>
+          <li>Also there's another regression fix catched by @LuanVSO. Thanks dude !</li>
+          <li>Major Features:</li>
+          </li>FSR4 Variant Management System: Switch between FP8 (latest) and INT8 (4.0.2) variants</li>
+          </li>Automatic folder creation and setup during OptiScaler update</li>
+          </li>User-selectable via dropdown menu</li>
+          </li>Persistent configuration with automatic restoration</li>
+          </li>Bug Fixes:</li>
+          </li>FPS limit offset now correctly handles zero (unlimited) values (PR #222 by @LuanVSO)</li>
+          </li>OBS: Delete your old FGMOD folder and install it again so everything works smoothly</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <categories>
+    <category>Game</category>
+    <category>Utility</category>
+  </categories>
+
+  <content_rating type="oars-1.1" />
+</component>
