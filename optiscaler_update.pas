@@ -280,8 +280,16 @@ begin
       Process.Parameters.Add('-A');  // User agent
       Process.Parameters.Add('Goverlay/1.6 (Linux; Flatpak-compatible)');
       Process.Parameters.Add(AURL);
-      Process.Options := [poWaitOnExit, poUsePipes];
+      // Don't use poWaitOnExit - we'll wait manually while processing UI events
+      Process.Options := [poUsePipes];
       Process.Execute;
+
+      // Wait for download to complete while keeping UI responsive
+      while Process.Running do
+      begin
+        Application.ProcessMessages;  // Keep UI responsive
+        Sleep(100);  // Small delay to avoid excessive CPU usage
+      end;
 
       // Read any output (curl progress goes to stderr)
       if Process.Stderr.NumBytesAvailable > 0 then
