@@ -3323,8 +3323,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.4';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.5';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
@@ -3408,8 +3408,10 @@ begin
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
   CUSTOMCFGFILE := GetUserConfigDir + '/MangoHud/custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
-  VKBASALTFOLDER := GetUserConfigDir + '/vkBasalt/';
-  VKBASALTCFGFILE := GetUserConfigDir + '/vkBasalt/vkBasalt.conf';
+  // Always use ~/.config/vkBasalt/ for both Flatpak and native installations
+  // This ensures ReShade shader paths are consistent across installation methods
+  VKBASALTFOLDER := IncludeTrailingPathDelimiter(GetUserDir) + '.config/vkBasalt/';
+  VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/vkBasalt/vkBasalt.conf';
   RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
 
 
