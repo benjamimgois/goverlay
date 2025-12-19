@@ -924,12 +924,9 @@ begin
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
       Process.Parameters.Add(DBusCommand);
-      Process.Options := [poWaitOnExit, poUsePipes, poNoConsole];
+      // Don't wait for notification to complete - send asynchronously for instant response
+      Process.Options := [poUsePipes, poNoConsole];
       Process.Execute;
-
-      // If D-Bus failed, fallback to notify-send
-      if Process.ExitStatus <> 0 then
-        UseDBus := False;
     finally
       Process.Free;
     end;
