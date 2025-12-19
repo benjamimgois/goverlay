@@ -1,14 +1,20 @@
 name: Build Flatpak Release
 
 on:
-  push:
-    tags:
-      - '*'  # Triggers on any tag
+  workflow_dispatch:
 
 jobs:
   build-flatpak:
-    name: Build Flatpak Bundle
-    runs-on: ubuntu-latest
+    name: Build Flatpak Bundle (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Checkout code
@@ -27,8 +33,9 @@ jobs:
 
       - name: Install Flatpak SDK and runtime
         run: |
-          sudo flatpak install -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
-          sudo flatpak install -y flathub io.qt.qtwebengine.BaseApp//6.7
+          sudo flatpak install -y flathub org.kde.Platform//6.10 org.kde.Sdk//6.10
+          sudo flatpak install -y flathub io.qt.qtwebengine.BaseApp//6.10
+          sudo flatpak install -y flathub org.freedesktop.Sdk.Extension.freepascal//25.08
 
       - name: Build Flatpak
         run: |
@@ -45,48 +52,19 @@ jobs:
         run: |
           flatpak build-bundle \
             flatpak-repo \
-            goverlay-${{ github.ref_name }}.flatpak \
+            goverlay-${{ github.ref_name }}-${{ matrix.arch }}.flatpak \
             io.github.benjamimgois.goverlay
 
       - name: Get bundle info
         id: bundle_info
         run: |
-          BUNDLE_SIZE=$(du -h goverlay-${{ github.ref_name }}.flatpak | cut -f1)
+          BUNDLE_SIZE=$(du -h goverlay-${{ github.ref_name }}-${{ matrix.arch }}.flatpak | cut -f1)
           echo "size=$BUNDLE_SIZE" >> $GITHUB_OUTPUT
-          echo "filename=goverlay-${{ github.ref_name }}.flatpak" >> $GITHUB_OUTPUT
-
-      - name: Upload Flatpak bundle to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: goverlay-${{ github.ref_name }}.flatpak
-          body: |
-            ## Flatpak Package
-
-            **File:** `goverlay-${{ github.ref_name }}.flatpak`
-            **Size:** ${{ steps.bundle_info.outputs.size }}
-
-            ### Installation
-
-            ```bash
-            flatpak install goverlay-${{ github.ref_name }}.flatpak
-            ```
-
-            ### Running
-
-            ```bash
-            flatpak run io.github.benjamimgois.goverlay
-            ```
-
-            ### Requirements
-
-            - Flatpak installed on your system
-            - Flathub repository configured (for dependencies)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "filename=goverlay-${{ github.ref_name }}-${{ matrix.arch }}.flatpak" >> $GITHUB_OUTPUT
 
       - name: Upload bundle as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flatpak-bundle
-          path: goverlay-${{ github.ref_name }}.flatpak
+          name: flatpak-bundle-${{ matrix.arch }}
+          path: goverlay-${{ github.ref_name }}-${{ matrix.arch }}.flatpak
           retention-days: 90
