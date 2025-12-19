@@ -2335,6 +2335,12 @@ begin
       end
       else if SameText(Key, 'text_color') then
         fontColorButton.ButtonColor := HexToColor(Value)
+      else if SameText(Key, 'font_file') then
+      begin
+        // Extract just the filename from the full path
+        // e.g., /usr/share/fonts/Adwaita/AdwaitaSans-Italic.ttf -> AdwaitaSans-Italic.ttf
+        fontComboBox.Text := ExtractFileName(Value);
+      end
       else if SameText(Key, 'position') then
       begin
         if SameText(Value, 'top-left') then
@@ -2594,6 +2600,8 @@ begin
         // Also set the interface in the combo box if found
         if Value <> '' then
         begin
+          // Reset ItemIndex before searching to ensure proper detection
+          networkComboBox.ItemIndex := -1;
           for j := 0 to networkComboBox.Items.Count - 1 do
           begin
             if SameText(networkComboBox.Items[j], Value) then
