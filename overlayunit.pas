@@ -1424,27 +1424,27 @@ function CheckDependencies(out Missing: TStringList): Boolean;
 begin
   Missing := TStringList.Create;
 
-  //check if pascubeis avaiable
+  //check if pascubeis available
   //if not IsCommandAvailable('pascube') then
   //  Missing.Add('pascube');
 
-  //check if mangohud if avaiable
+  //check if mangohud if available
   if not IsCommandAvailable('mangohud') then
     Missing.Add('mangohud');
 
-  //check if vkcube is avaiable
+  //check if vkcube is available
   if not IsCommandAvailable('vkcube') then
     Missing.Add('vkcube');
 
-    //check if 7z is avaiable
+    //check if 7z is available
   if not IsCommandAvailable('7z') then
     Missing.Add('p7zip');
 
-    //check if curl is avaiable
+    //check if curl is available
   if not IsCommandAvailable('curl') then
     Missing.Add('curl');
 
-    //check if git is avaiable
+    //check if git is available
   if not IsCommandAvailable('git') then
     Missing.Add('git');
 
@@ -1466,7 +1466,7 @@ begin
       Missing.Add('vkbasalt');
   end;
 
-   //check if zenergy module is avaiable
+   //check if zenergy module is available
   //if not IsKernelModuleAvailable('zenergy') then
   //  Missing.Add('- zenergy kernel module');
 
@@ -3604,7 +3604,7 @@ begin
    // Start pasCube
    //RunPasCube;
 
-  //Load avaiable text fonts
+  //Load available text fonts
    ListarFontesNoDiretorio(fontComboBox);
 
 
@@ -4498,7 +4498,7 @@ begin
   // check selection
   if not AnySelected(aveffectsListbox) then
   begin
-    ShowMessage('Select at least one effect in "Avaiable effects".');
+    ShowMessage('Select at least one effect in "available effects".');
     Exit;
   end;
 
