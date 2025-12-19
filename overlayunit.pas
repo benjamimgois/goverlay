@@ -4670,11 +4670,9 @@ begin
   // Get the correct fgmod path (Flatpak-aware)
   FGModPath := GetOptiScalerInstallPath;
 
-  // Build launch command with the appropriate path
-  if IsRunningInFlatpak then
-    LaunchCommand := FGModPath + '/fgmod %command%'
-  else
-    LaunchCommand := '~/fgmod/fgmod %command%';
+  // Build launch command with full absolute path
+  // Using absolute path ensures compatibility with all game launchers
+  LaunchCommand := FGModPath + '/fgmod %command%';
 
   // Copy the command to clipboard
   Clipboard.AsText := LaunchCommand;
@@ -5497,11 +5495,9 @@ EnableTraceLogsFound: Boolean;
             // Get the correct fgmod path (Flatpak-aware)
             FGModPath := GetOptiScalerInstallPath;
 
-            // Build launch command with the appropriate path
-            if IsRunningInFlatpak then
-              LaunchCommand := FGModPath + '/fgmod %command%'
-            else
-              LaunchCommand := '~/fgmod/fgmod %command%';
+            // Build launch command with full absolute path
+            // Using absolute path ensures compatibility with all game launchers
+            LaunchCommand := FGModPath + '/fgmod %command%';
 
             // Update notificationLabel
             notificationLabel.Caption := 'Launch command:';
