@@ -2634,7 +2634,7 @@ var
   ConfigDir, FontPath, FontDir, DistroFile: string;
   SelectedValues: TStringList;
   i,TempFPS, MaxFPS: Integer;
-  TempFiles: TStringList;
+  TempFiles, FontDirs: TStringList;
   TempFile: string;
   FS: TFormatSettings;
 
@@ -2691,14 +2691,30 @@ begin
     // Font file
     if fontComboBox.ItemIndex > 0 then
     begin
-      FontDir := '/usr/share/fonts';
-      TempFiles := FindAllFiles(FontDir, fontComboBox.Text + '.ttf', True);
-      if TempFiles.Count > 0 then
-      begin
-        FontPath := TempFiles[0];
-        ConfigLines.Add('font_file=' + FontPath);
+      // Search in all standard font directories (including Flatpak)
+      FontDirs := GetStandardFontDirectories;
+      try
+        for FontDir in FontDirs do
+        begin
+          if DirectoryExists(FontDir) then
+          begin
+            // fontComboBox.Text already includes .ttf extension
+            TempFiles := FindAllFiles(FontDir, fontComboBox.Text, True);
+            try
+              if TempFiles.Count > 0 then
+              begin
+                FontPath := TempFiles[0];
+                ConfigLines.Add('font_file=' + FontPath);
+                Break; // Found the font, stop searching
+              end;
+            finally
+              TempFiles.Free;
+            end;
+          end;
+        end;
+      finally
+        FontDirs.Free;
       end;
-      TempFiles.Free;
     end;
 
     // Font size
