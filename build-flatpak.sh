@@ -39,13 +39,14 @@ else
 fi
 
 # Check FreePascal extension
+# Note: KDE SDK 6.10 is based on Freedesktop SDK 24.08, so we need freepascal//24.08
 echo -e "\n${YELLOW}Checking FreePascal extension...${NC}"
-if ! flatpak list --runtime | grep -q "org.freedesktop.Sdk.Extension.freepascal.*6.10"; then
-    echo -e "${YELLOW}Extension org.freedesktop.Sdk.Extension.freepascal 6.10 not found${NC}"
-    echo "Installing FreePascal extension..."
-    flatpak install -y flathub org.freedesktop.Sdk.Extension.freepascal//23.08
+if ! flatpak list --runtime | grep -q "org.freedesktop.Sdk.Extension.freepascal.*24.08"; then
+    echo -e "${YELLOW}Extension org.freedesktop.Sdk.Extension.freepascal 24.08 not found${NC}"
+    echo "Installing FreePascal extension (compatible with KDE SDK 6.10)..."
+    flatpak install -y flathub org.freedesktop.Sdk.Extension.freepascal//24.08
 else
-    echo -e "${GREEN}✓ Extension org.freedesktop.Sdk.Extension.freepascal already installed${NC}"
+    echo -e "${GREEN}✓ Extension org.freedesktop.Sdk.Extension.freepascal 24.08 already installed${NC}"
 fi
 
 # Check Qt WebEngine base
