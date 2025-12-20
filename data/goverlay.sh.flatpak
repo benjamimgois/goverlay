@@ -4,6 +4,8 @@
 
 # Check if running in Flatpak
 if [ -n "$FLATPAK_ID" ]; then
+    # Set Qt plugin path for Flatpak
+    export QT_PLUGIN_PATH=/app/plugins
     # Running in Flatpak - execute binary directly
     # MangoHud will be loaded automatically via Vulkan layers
     exec @libexecdir@/goverlay "$@"
