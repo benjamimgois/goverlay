@@ -30,12 +30,32 @@ echo -e "${GREEN}✓ Flatpak installed: $(flatpak --version)${NC}"
 
 # Check runtime
 echo -e "\n${YELLOW}Checking Flatpak runtime...${NC}"
-if ! flatpak list --runtime | grep -q "org.freedesktop.Platform.*23.08"; then
-    echo -e "${YELLOW}Runtime org.freedesktop.Platform 23.08 not found${NC}"
+if ! flatpak list --runtime | grep -q "org.kde.Platform.*6.10"; then
+    echo -e "${YELLOW}Runtime org.kde.Platform 6.10 not found${NC}"
     echo "Installing runtime..."
-    flatpak install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+    flatpak install -y flathub org.kde.Platform//6.10 org.kde.Sdk//6.10
 else
-    echo -e "${GREEN}✓ Runtime org.freedesktop.Platform 23.08 already installed${NC}"
+    echo -e "${GREEN}✓ Runtime org.kde.Platform 6.10 already installed${NC}"
+fi
+
+# Check FreePascal extension
+echo -e "\n${YELLOW}Checking FreePascal extension...${NC}"
+if ! flatpak list --runtime | grep -q "org.freedesktop.Sdk.Extension.freepascal.*6.10"; then
+    echo -e "${YELLOW}Extension org.freedesktop.Sdk.Extension.freepascal 6.10 not found${NC}"
+    echo "Installing FreePascal extension..."
+    flatpak install -y flathub org.freedesktop.Sdk.Extension.freepascal//23.08
+else
+    echo -e "${GREEN}✓ Extension org.freedesktop.Sdk.Extension.freepascal already installed${NC}"
+fi
+
+# Check Qt WebEngine base
+echo -e "\n${YELLOW}Checking Qt WebEngine base...${NC}"
+if ! flatpak list --runtime | grep -q "io.qt.qtwebengine.BaseApp.*6.10"; then
+    echo -e "${YELLOW}Base io.qt.qtwebengine.BaseApp 6.10 not found${NC}"
+    echo "Installing Qt WebEngine base..."
+    flatpak install -y flathub io.qt.qtwebengine.BaseApp//6.10
+else
+    echo -e "${GREEN}✓ Base io.qt.qtwebengine.BaseApp 6.10 already installed${NC}"
 fi
 
 # Create build directory
