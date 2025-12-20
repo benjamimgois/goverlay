@@ -5,6 +5,7 @@ lib/
 backup/
 goverlay.lps
 goverlay_*.tar.xz
+*.flatpak
 
 # Created by https://www.toptal.com/developers/gitignore/api/lazarus
 # Edit at https://www.toptal.com/developers/gitignore?templates=lazarus
