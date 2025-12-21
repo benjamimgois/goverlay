@@ -66,13 +66,13 @@
           <li>This small release brings a FSR version management system, now you can choose betwen the latest FSR DLL (with ML features for RDNA4) or stick to the INT8 version that keeps RDNA2 and 3 compatibility.</li>
           <li>Also there's another regression fix catched by @LuanVSO. Thanks dude !</li>
           <li>Major Features:</li>
-          </li>FSR4 Variant Management System: Switch between FP8 (latest) and INT8 (4.0.2) variants</li>
-          </li>Automatic folder creation and setup during OptiScaler update</li>
-          </li>User-selectable via dropdown menu</li>
-          </li>Persistent configuration with automatic restoration</li>
-          </li>Bug Fixes:</li>
-          </li>FPS limit offset now correctly handles zero (unlimited) values (PR #222 by @LuanVSO)</li>
-          </li>OBS: Delete your old FGMOD folder and install it again so everything works smoothly</li>
+          <li>FSR4 Variant Management System: Switch between FP8 (latest) and INT8 (4.0.2) variants</li>
+          <li>Automatic folder creation and setup during OptiScaler update</li>
+          <li>User-selectable via dropdown menu</li>
+          <li>Persistent configuration with automatic restoration</li>
+          <li>Bug Fixes:</li>
+          <li>FPS limit offset now correctly handles zero (unlimited) values (PR #222 by @LuanVSO)</li>
+          <li>OBS: Delete your old FGMOD folder and install it again so everything works smoothly</li>
         </ul>
       </description>
     </release>
