@@ -5,7 +5,7 @@ unit themeunit;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles, Buttons;
+  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles, Buttons, ComCtrls;
 
 type
   TThemeMode = (tmLight, tmDark);
@@ -70,6 +70,12 @@ function LoadThemePreference: TThemeMode;
 function GetConfigFilePath: string;
 
 /// <summary>
+/// Detects if the application is running on GNOME
+/// </summary>
+/// <returns>True if running on GNOME, False otherwise</returns>
+function IsGNOMEDesktop: Boolean;
+
+/// <summary>
 /// Centers a form on the screen
 /// </summary>
 /// <param name="AForm">The form to center</param>
@@ -82,9 +88,35 @@ begin
   Result := GetEnvironmentVariable('HOME') + '/.config/goverlay/goverlay.conf';
 end;
 
+function IsGNOMEDesktop: Boolean;
+var
+  DesktopEnv, CurrentDesktop: string;
+begin
+  Result := False;
+
+  // Check XDG_CURRENT_DESKTOP environment variable
+  CurrentDesktop := UpperCase(GetEnvironmentVariable('XDG_CURRENT_DESKTOP'));
+  if (Pos('GNOME', CurrentDesktop) > 0) or
+     (Pos('UNITY', CurrentDesktop) > 0) or
+     (Pos('PANTHEON', CurrentDesktop) > 0) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // Fallback: Check DESKTOP_SESSION
+  DesktopEnv := UpperCase(GetEnvironmentVariable('DESKTOP_SESSION'));
+  if (Pos('GNOME', DesktopEnv) > 0) or
+     (Pos('UNITY', DesktopEnv) > 0) or
+     (Pos('PANTHEON', DesktopEnv) > 0) then
+  begin
+    Result := True;
+  end;
+end;
+
 procedure ApplyDarkTheme(AControl: TWinControl);
 var
-  i: Integer;
+  i, j: Integer;
   ctrl: TControl;
 begin
   // Set form background
@@ -186,6 +218,37 @@ begin
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := DarkBackgroundColor
+    else if ctrl is TPageControl then
+    begin
+      // Apply dark theme to all tab pages
+      for j := 0 to TPageControl(ctrl).PageCount - 1 do
+      begin
+        // Use system default colors on GNOME for GTK compatibility
+        // Use explicit colors on other DEs (KDE/Plasma) for consistency
+        if IsGNOMEDesktop then
+        begin
+          TPageControl(ctrl).Pages[j].Font.Color := clDefault;
+          TPageControl(ctrl).Pages[j].ParentFont := False;
+        end
+        else
+          TPageControl(ctrl).Pages[j].Font.Color := DarkTextColor;
+      end;
+      ApplyDarkTheme(TWinControl(ctrl));
+    end
+    else if ctrl is TTabSheet then
+    begin
+      // Use system default colors on GNOME for GTK compatibility
+      // Use explicit colors on other DEs (KDE/Plasma) for consistency
+      if IsGNOMEDesktop then
+      begin
+        TTabSheet(ctrl).Font.Color := clDefault;
+        TTabSheet(ctrl).ParentFont := False;
+      end
+      else
+        TTabSheet(ctrl).Font.Color := DarkTextColor;
+      if TTabSheet(ctrl) is TWinControl then
+        ApplyDarkTheme(TWinControl(ctrl));
+    end
     else if ctrl is TWinControl then
       ApplyDarkTheme(TWinControl(ctrl));
   end;
@@ -193,7 +256,7 @@ end;
 
 procedure ApplyLightTheme(AControl: TWinControl);
 var
-  i: Integer;
+  i, j: Integer;
   ctrl: TControl;
 begin
   // Set form background
@@ -296,6 +359,37 @@ begin
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := LightBackgroundColor
+    else if ctrl is TPageControl then
+    begin
+      // Apply light theme to all tab pages
+      for j := 0 to TPageControl(ctrl).PageCount - 1 do
+      begin
+        // Use system default colors on GNOME for GTK compatibility
+        // Use explicit colors on other DEs (KDE/Plasma) for consistency
+        if IsGNOMEDesktop then
+        begin
+          TPageControl(ctrl).Pages[j].Font.Color := clDefault;
+          TPageControl(ctrl).Pages[j].ParentFont := False;
+        end
+        else
+          TPageControl(ctrl).Pages[j].Font.Color := LightTextColor;
+      end;
+      ApplyLightTheme(TWinControl(ctrl));
+    end
+    else if ctrl is TTabSheet then
+    begin
+      // Use system default colors on GNOME for GTK compatibility
+      // Use explicit colors on other DEs (KDE/Plasma) for consistency
+      if IsGNOMEDesktop then
+      begin
+        TTabSheet(ctrl).Font.Color := clDefault;
+        TTabSheet(ctrl).ParentFont := False;
+      end
+      else
+        TTabSheet(ctrl).Font.Color := LightTextColor;
+      if TTabSheet(ctrl) is TWinControl then
+        ApplyLightTheme(TWinControl(ctrl));
+    end
     else if ctrl is TWinControl then
       ApplyLightTheme(TWinControl(ctrl));
   end;
