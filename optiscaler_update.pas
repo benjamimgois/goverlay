@@ -119,8 +119,11 @@ var
 begin
   Result := '';
 
+  WriteLn('[DEBUG] ExtractOptiScalerVersion: Input filename = ', AFileName);
+
   // Get filename without path and extension
   BaseName := ChangeFileExt(ExtractFileName(AFileName), '');
+  WriteLn('[DEBUG] ExtractOptiScalerVersion: Base name (no ext) = ', BaseName);
 
   // Use regex to extract version pattern (numbers separated by dots)
   // Pattern: OptiScaler_X.X.X or similar
@@ -129,10 +132,20 @@ begin
     // Match pattern like: 0.7.9 or 1.2.3.4
     RegEx.Expression := '(\d+\.\d+\.\d+(?:\.\d+)?)';
 
+    WriteLn('[DEBUG] ExtractOptiScalerVersion: Attempting regex match with pattern: ', RegEx.Expression);
     if RegEx.Exec(BaseName) then
     begin
-      Result := RegEx.Match[1];
-    end;
+      WriteLn('[DEBUG] ExtractOptiScalerVersion: Regex matched, MatchCount = ', RegEx.SubExprMatchCount);
+      if RegEx.SubExprMatchCount >= 1 then
+      begin
+        Result := RegEx.Match[1];
+        WriteLn('[DEBUG] ExtractOptiScalerVersion: Extracted version = "', Result, '"');
+      end
+      else
+        WriteLn('[ERROR] ExtractOptiScalerVersion: Match found but SubExprMatchCount < 1');
+    end
+    else
+      WriteLn('[WARN] ExtractOptiScalerVersion: No regex match found in basename');
   finally
     RegEx.Free;
   end;
@@ -151,6 +164,8 @@ begin
   OutputList := TStringList.Create;
   try
     try
+      WriteLn('[DEBUG] GetLatestReleaseTag: Fetching from ', URL_DECKY_FRAMEGEN_API);
+
       // Use curl to get GitHub API
       Process.Executable := 'curl';
       Process.Parameters.Add('-s');  // Silent mode
@@ -167,18 +182,32 @@ begin
       OutputList.LoadFromStream(Process.Output);
       Response := OutputList.Text;
 
+      WriteLn('[DEBUG] GetLatestReleaseTag: Curl exit status: ', Process.ExitStatus);
+      WriteLn('[DEBUG] GetLatestReleaseTag: Response length: ', Length(Response), ' bytes');
+
       if (Process.ExitStatus = 0) and (Response <> '') then
       begin
+        WriteLn('[DEBUG] GetLatestReleaseTag: Parsing JSON response...');
         JSONData := GetJSON(Response);
         try
           if Assigned(JSONData) and (JSONData is TJSONObject) then
           begin
+            WriteLn('[DEBUG] GetLatestReleaseTag: Valid JSON object received');
             JSONObject := TJSONObject(JSONData);
             Result := JSONObject.Get('tag_name', '');
-          end;
+            WriteLn('[DEBUG] GetLatestReleaseTag: tag_name = "', Result, '"');
+          end
+          else
+            WriteLn('[ERROR] GetLatestReleaseTag: JSON data is not a valid object');
         finally
           JSONData.Free;
         end;
+      end
+      else
+      begin
+        WriteLn('[ERROR] GetLatestReleaseTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
+        if Response <> '' then
+          WriteLn('[ERROR] GetLatestReleaseTag: Response content: ', Copy(Response, 1, 200));
       end;
 
 
@@ -186,6 +215,7 @@ begin
     except
       on E: Exception do
       begin
+        WriteLn('[ERROR] GetLatestReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
         ShowMessage('Error getting latest release: ' + E.Message + sLineBreak +
                    'Check your internet connection and if curl is installed.');
       end;
@@ -209,6 +239,8 @@ begin
   OutputList := TStringList.Create;
   try
     try
+      WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Fetching from ', URL_FAKENVAPI_API);
+
       // Use curl to get GitHub API for FakeNvapi
       Process.Executable := 'curl';
       Process.Parameters.Add('-s');  // Silent mode
@@ -225,23 +257,38 @@ begin
       OutputList.LoadFromStream(Process.Output);
       Response := OutputList.Text;
 
+      WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Curl exit status: ', Process.ExitStatus);
+      WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Response length: ', Length(Response), ' bytes');
+
       if (Process.ExitStatus = 0) and (Response <> '') then
       begin
+        WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Parsing JSON response...');
         JSONData := GetJSON(Response);
         try
           if Assigned(JSONData) and (JSONData is TJSONObject) then
           begin
+            WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Valid JSON object received');
             JSONObject := TJSONObject(JSONData);
             Result := JSONObject.Get('tag_name', '');
-          end;
+            WriteLn('[DEBUG] GetFakeNvapiReleaseTag: tag_name = "', Result, '"');
+          end
+          else
+            WriteLn('[ERROR] GetFakeNvapiReleaseTag: JSON data is not a valid object');
         finally
           JSONData.Free;
         end;
+      end
+      else
+      begin
+        WriteLn('[ERROR] GetFakeNvapiReleaseTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
+        if Response <> '' then
+          WriteLn('[ERROR] GetFakeNvapiReleaseTag: Response content: ', Copy(Response, 1, 200));
       end;
 
       // If unable to get, show warning
       if Result = '' then
       begin
+        WriteLn('[WARN] GetFakeNvapiReleaseTag: No version obtained, continuing without FakeNvapi');
         ShowMessage('Warning: Could not get FakeNvapi version automatically.' + sLineBreak +
                    'Continuing without FakeNvapi installation.');
       end;
@@ -249,6 +296,7 @@ begin
     except
       on E: Exception do
       begin
+        WriteLn('[ERROR] GetFakeNvapiReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
         ShowMessage('Warning: Error getting FakeNvapi release: ' + E.Message + sLineBreak +
                    'Continuing without FakeNvapi installation.');
       end;
@@ -269,6 +317,10 @@ begin
   OutputList := TStringList.Create;
   try
     try
+      WriteLn('[DEBUG] DownloadFile: Starting download');
+      WriteLn('[DEBUG] DownloadFile: URL = ', AURL);
+      WriteLn('[DEBUG] DownloadFile: Destination = ', ADestFile);
+
       UpdateStatus('Downloading file...');
 
       // Use curl to download file with progress
@@ -282,6 +334,8 @@ begin
       Process.Parameters.Add(AURL);
       // Don't use poWaitOnExit - we'll wait manually while processing UI events
       Process.Options := [poUsePipes];
+
+      WriteLn('[DEBUG] DownloadFile: Executing curl...');
       Process.Execute;
 
       // Wait for download to complete while keeping UI responsive
@@ -291,6 +345,8 @@ begin
         Sleep(100);  // Small delay to avoid excessive CPU usage
       end;
 
+      WriteLn('[DEBUG] DownloadFile: Curl finished with exit status: ', Process.ExitStatus);
+
       // Read any output (curl progress goes to stderr)
       if Process.Stderr.NumBytesAvailable > 0 then
         OutputList.LoadFromStream(Process.Stderr);
@@ -298,25 +354,35 @@ begin
       // Check if download succeeded
       if (Process.ExitStatus = 0) and FileExists(ADestFile) then
       begin
+        WriteLn('[DEBUG] DownloadFile: Download successful, file exists at: ', ADestFile);
         Result := True;
         UpdateProgress(50);  // Mark download complete at 50%
       end
       else
       begin
         if Process.ExitStatus <> 0 then
+        begin
+          WriteLn('[ERROR] DownloadFile: Curl failed with exit code: ', Process.ExitStatus);
           ShowMessage('Error downloading file: curl exited with code ' + IntToStr(Process.ExitStatus) + sLineBreak +
                      'URL: ' + AURL + sLineBreak +
-                     'Check your internet connection and if curl is installed.')
+                     'Check your internet connection and if curl is installed.');
+        end
         else if not FileExists(ADestFile) then
+        begin
+          WriteLn('[ERROR] DownloadFile: File does not exist after download: ', ADestFile);
           ShowMessage('Error: Downloaded file does not exist.' + sLineBreak +
                      'URL: ' + AURL);
+        end;
       end;
 
     except
       on E: Exception do
+      begin
+        WriteLn('[ERROR] DownloadFile: Exception - ', E.ClassName, ': ', E.Message);
         ShowMessage('Error downloading file: ' + E.Message + sLineBreak +
                    'URL: ' + AURL + sLineBreak +
                    'Check your internet connection and if curl is installed.');
+      end;
     end;
   finally
     OutputList.Free;
@@ -754,6 +820,10 @@ var
   VarsFile: TextFile;
   VarsFilePath: string;
 begin
+  WriteLn('[DEBUG] ========================================');
+  WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update');
+  WriteLn('[DEBUG] ========================================');
+
   // Disable button
   if Assigned(FUpdateBtn) then
     FUpdateBtn.Enabled := False;
@@ -767,11 +837,14 @@ begin
 
     // Get user directory at the beginning
     UserDir := GetUserDir;
+    WriteLn('[DEBUG] UpdateButtonClick: User directory = ', UserDir);
 
     // 1. Get the latest tag from repository and store in variable
+    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Getting latest release tag...');
     LatestTag := GetLatestReleaseTag;
     if LatestTag = '' then
     begin
+      WriteLn('[ERROR] UpdateButtonClick: Failed to get latest release tag, aborting');
       ShowMessage('Could not get version for download.' + sLineBreak +
                  'Operation cancelled.');
       Exit;
@@ -779,6 +852,7 @@ begin
 
     // Store version in DeckyVersion variable
     DeckyVersion := LatestTag;
+    WriteLn('[DEBUG] UpdateButtonClick: DeckyVersion = "', DeckyVersion, '"');
 
     // Update DeckyLabel with the version (with safety check)
     if Assigned(FDeckyLabel) then
@@ -789,7 +863,10 @@ begin
         Application.ProcessMessages;
       except
         on E: Exception do
+        begin
+          WriteLn('[ERROR] UpdateButtonClick: Could not update Decky label - ', E.Message);
           ShowMessage('Warning: Could not update Decky label: ' + E.Message);
+        end;
       end;
     end;
 
@@ -799,23 +876,32 @@ begin
     // 2. Build download URL
     DownloadURL := Format('https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/%s/Decky-Framegen.zip', [LatestTag]);
     ZipFilePath := IncludeTrailingPathDelimiter(UserDir) + 'Decky-Framegen.zip';
+    WriteLn('[DEBUG] UpdateButtonClick: Step 2 - Building download URL');
+    WriteLn('[DEBUG] UpdateButtonClick: Download URL = ', DownloadURL);
+    WriteLn('[DEBUG] UpdateButtonClick: Zip file path = ', ZipFilePath);
 
     // 3. Download file to user's home
+    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Downloading Decky-Framegen.zip...');
     if not DownloadFile(DownloadURL, ZipFilePath) then
     begin
+      WriteLn('[ERROR] UpdateButtonClick: Download failed, aborting');
       ShowMessage('Failed to download file.');
       Exit;
     end;
+    WriteLn('[DEBUG] UpdateButtonClick: Download completed successfully');
     UpdateProgress(50);
     UpdateStatus('Installing');
 
     // 4. Extract ZIP directly to user's home
     // The ZIP already contains a folder called Decky-Framegen
+    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Extracting ZIP to ', UserDir);
     if not ExtractZip(ZipFilePath, UserDir) then
     begin
+      WriteLn('[ERROR] UpdateButtonClick: ZIP extraction failed, aborting');
       ShowMessage('Failed to extract ZIP file.');
       Exit;
     end;
+    WriteLn('[DEBUG] UpdateButtonClick: ZIP extraction completed');
     UpdateProgress(60);
 
     // 5. Create fgmod folder (Flatpak-aware path)
@@ -848,14 +934,17 @@ begin
       ShowMessage('Bin folder not found!');
 
     // 7. Find and extract .7z file from bin folder
+    WriteLn('[DEBUG] UpdateButtonClick: Step 7 - Looking for .7z file in bin folder...');
     SevenZFile := '';
     if FindFirst(IncludeTrailingPathDelimiter(FFGModPath) + 'bin' + PathDelim + '*.7z', faAnyFile, SearchRec) = 0 then
     begin
       try
         SevenZFile := IncludeTrailingPathDelimiter(FFGModPath) + 'bin' + PathDelim + SearchRec.Name;
+        WriteLn('[DEBUG] UpdateButtonClick: Found .7z file: ', SevenZFile);
 
         // Extract OptiScaler version from filename
         OptiVersion := ExtractOptiScalerVersion(SearchRec.Name);
+        WriteLn('[DEBUG] UpdateButtonClick: Extracted OptiVersion = "', OptiVersion, '"');
 
         // Update OptiLabel with the version (with safety check)
         if Assigned(FOptiLabel) and (OptiVersion <> '') then
@@ -866,24 +955,39 @@ begin
             Application.ProcessMessages;
           except
             on E: Exception do
+            begin
+              WriteLn('[ERROR] UpdateButtonClick: Could not update OptiScaler label - ', E.Message);
               ShowMessage('Warning: Could not update OptiScaler label: ' + E.Message);
+            end;
           end;
         end;
 
       finally
         FindClose(SearchRec);
       end;
-    end;
+    end
+    else
+      WriteLn('[ERROR] UpdateButtonClick: No .7z file found in bin folder');
 
     if SevenZFile <> '' then
     begin
+      WriteLn('[DEBUG] UpdateButtonClick: Extracting .7z file to ', FFGModPath);
       if Extract7z(SevenZFile, FFGModPath) then
-        UpdateProgress(90)
+      begin
+        WriteLn('[DEBUG] UpdateButtonClick: .7z extraction successful');
+        UpdateProgress(90);
+      end
       else
+      begin
+        WriteLn('[ERROR] UpdateButtonClick: .7z extraction failed');
         ShowMessage('Failed to extract 7z file.');
+      end;
     end
     else
+    begin
+      WriteLn('[ERROR] UpdateButtonClick: Cannot extract - no .7z file found');
       ShowMessage('.7z file not found in bin folder!');
+    end;
 
     // 8. Move and rename specific .sh files from assets to fgmod root
     UpdateProgress(92);
@@ -942,10 +1046,13 @@ begin
     end;
 
     // 11. Get FakeNvapi version and download
+    WriteLn('[DEBUG] UpdateButtonClick: Step 11 - Getting FakeNvapi version...');
     FakeNvapiVersion := GetFakeNvapiReleaseTag;
 
     if FakeNvapiVersion <> '' then
     begin
+      WriteLn('[DEBUG] UpdateButtonClick: FakeNvapiVersion = "', FakeNvapiVersion, '"');
+
       // Update FakeNvapiLabel with the version (with safety check)
       if Assigned(FFakeNvapiLabel) then
       begin
@@ -955,46 +1062,67 @@ begin
           Application.ProcessMessages;
         except
           on E: Exception do
+          begin
+            WriteLn('[ERROR] UpdateButtonClick: Could not update FakeNvapi label - ', E.Message);
             ShowMessage('Warning: Could not update FakeNvapi label: ' + E.Message);
+          end;
         end;
       end;
 
       // Build FakeNvapi download URL - format: fakenvapi-v1.3.4.7z
       FakeNvapiURL := Format('https://github.com/optiscaler/fakenvapi/releases/download/%s/fakenvapi-%s.7z', [FakeNvapiVersion, FakeNvapiVersion]);
       FakeNvapi7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-' + FakeNvapiVersion + '.7z';
+      WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi URL = ', FakeNvapiURL);
+      WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi 7z path = ', FakeNvapi7zPath);
 
       // Download FakeNvapi .7z
       UpdateProgress(99);
       UpdateStatus('Downloading FakeNvapi');
+      WriteLn('[DEBUG] UpdateButtonClick: Downloading FakeNvapi...');
       if DownloadFile(FakeNvapiURL, FakeNvapi7zPath) then
       begin
+        WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi download successful');
         UpdateStatus('Installing');
         // Extract FakeNvapi .7z to fgmod folder
+        WriteLn('[DEBUG] UpdateButtonClick: Extracting FakeNvapi to ', FFGModPath);
         if Extract7z(FakeNvapi7zPath, FFGModPath) then
         begin
+          WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi extraction successful');
           UpdateProgress(100);
           // Delete temporary .7z file
           DeleteFile(FakeNvapi7zPath);
+          WriteLn('[DEBUG] UpdateButtonClick: Deleted temporary FakeNvapi .7z file');
         end
         else
         begin
+          WriteLn('[ERROR] UpdateButtonClick: FakeNvapi extraction failed');
           ShowMessage('Warning: Failed to extract FakeNvapi 7z file.');
           DeleteFile(FakeNvapi7zPath);
         end;
       end
       else
+      begin
+        WriteLn('[ERROR] UpdateButtonClick: FakeNvapi download failed');
         ShowMessage('Warning: Failed to download FakeNvapi.');
+      end;
     end
     else
+    begin
+      WriteLn('[WARN] UpdateButtonClick: No FakeNvapi version obtained, skipping');
       UpdateProgress(100);
+    end;
 
     // Clean up temporary files
+    WriteLn('[DEBUG] UpdateButtonClick: Cleaning up temporary files...');
     DeleteFile(ZipFilePath);
     DeleteDirectory(ExtractPath, False);
+    WriteLn('[DEBUG] UpdateButtonClick: Cleanup complete');
 
     // 12. Create goverlay.vars file with version information
+    WriteLn('[DEBUG] UpdateButtonClick: Step 12 - Creating goverlay.vars file...');
     try
       VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+      WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars path = ', VarsFilePath);
       AssignFile(VarsFile, VarsFilePath);
       Rewrite(VarsFile);
 
@@ -1015,14 +1143,19 @@ begin
         WriteLn(VarsFile, 'FakeNvapiVersion=' + FakeNvapiVersion);
 
       CloseFile(VarsFile);
+      WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars created successfully');
     except
       on E: Exception do
+      begin
+        WriteLn('[ERROR] UpdateButtonClick: Could not create goverlay.vars - ', E.Message);
         ShowMessage('Warning: Could not create goverlay.vars: ' + E.Message);
+      end;
     end;
 
     UpdateProgress(100);
 
     // Create FSR4_LATEST and FSR4_INT8 folders and setup files
+    WriteLn('[DEBUG] UpdateButtonClick: Setting up FSR4 variants...');
     try
       UpdateStatus('Setting up FSR4 variants');
 
@@ -1053,6 +1186,10 @@ begin
     end;
 
     UpdateStatus('Complete');
+
+    WriteLn('[DEBUG] ========================================');
+    WriteLn('[DEBUG] UpdateButtonClick: Installation completed successfully!');
+    WriteLn('[DEBUG] ========================================');
 
     // Restore button text after completion
     if Assigned(FUpdateBtn) then
