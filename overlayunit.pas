@@ -42,7 +42,7 @@ type
     batterywattCheckBox: TCheckBox;
     fsrversionComboBox: TComboBox;
     cpucoretypeCheckBox: TCheckBox;
-    framegenComboBox1: TComboBox;
+    optversionComboBox: TComboBox;
     ftraceCheckBox: TCheckBox;
     gpupowerlimitCheckBox: TCheckBox;
     gpuframesjouleBitBtn: TBitBtn;
@@ -51,7 +51,6 @@ type
     cpuframesjouleBitBtn: TBitBtn;
     howtoBitBtn: TBitBtn;
     gupdateBitBtn: TBitBtn;
-    deckyLabel2: TLabel;
     fakenvapi2: TLabel;
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
@@ -62,6 +61,7 @@ type
     mark1Label: TLabel;
     Label3: TLabel;
     mark2Label: TLabel;
+    optLabel2: TLabel;
     shortcutImage: TImage;
     savecustomMenuItem: TMenuItem;
     deckpreset1MenuItem: TMenuItem;
@@ -69,7 +69,6 @@ type
     deckpreset3MenuItem: TMenuItem;
     deckpreset4MenuItem: TMenuItem;
     Separator1: TMenuItem;
-    SpeedButton2: TSpeedButton;
     themeToggleSpeedButton: TSpeedButton;
     ToggleSpeedButton: TSpeedButton;
     spoofCheckBox: TCheckBox;
@@ -103,8 +102,6 @@ type
     fakenvapiLabel: TLabel;
     fsrLabel: TLabel;
     optLabel1: TLabel;
-    deckyLabel: TLabel;
-    deckyLabel1: TLabel;
     checkupdBitBtn: TBitBtn;
     updateBitBtn: TBitBtn;
     updatestatusLabel: TLabel;
@@ -422,6 +419,7 @@ type
     procedure mipmapTrackBarChange(Sender: TObject);
     procedure goverlayPaintBoxPaint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
+    procedure optversionComboBoxChange(Sender: TObject);
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
@@ -1900,7 +1898,7 @@ var
   FS: TFormatSettings;
   OptiScalerIniPath: string;
 begin
-  // Get OptiScaler.ini file path (Flatpak-aware)
+  // Get OptiScaler.ini file path
   OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
   if not FileExists(OptiScalerIniPath) then
@@ -1970,7 +1968,7 @@ var
   i, ColonPos: Integer;
   FakeNvapiIniPath: string;
 begin
-  // Get fakenvapi.ini file path (Flatpak-aware)
+  // Get fakenvapi.ini file path
   FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
 
   if not FileExists(FakeNvapiIniPath) then
@@ -2053,7 +2051,7 @@ var
   i: Integer;
   FgmodPath: string;
 begin
-  // Get fgmod file path (Flatpak-aware)
+  // Get fgmod file path
   FgmodPath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
 
   if not FileExists(FgmodPath) then
@@ -2640,6 +2638,7 @@ procedure Tgoverlayform.SaveMangoHudConfig;
 var
   ConfigLines: TStringList;
   ConfigDir, FontPath, FontDir, DistroFile: string;
+  FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
   SelectedValues: TStringList;
   i,TempFPS, MaxFPS: Integer;
   TempFiles, FontDirs: TStringList;
@@ -3161,8 +3160,26 @@ begin
     // Auto upload
     AddIfChecked(autouploadCheckBox, 'upload_logs');
 
-    // Save to file
+    // Save to native MangoHud config file
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+
+    // Also save to Steam Flatpak MangoHud config location
+    // This ensures MangoHud works for both native and Flatpak Steam games
+    try
+      FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+      FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
+
+      // Create Flatpak directory if it doesn't exist
+      if not DirectoryExists(FlatpakSteamConfigDir) then
+        ForceDirectories(FlatpakSteamConfigDir);
+
+      // Save the same configuration to Flatpak location
+      ConfigLines.SaveToFile(FlatpakMangoHudFile);
+      WriteLn('[DEBUG] SaveMangoHudConfig: Configuration also saved to Steam Flatpak location: ', FlatpakMangoHudFile);
+    except
+      on E: Exception do
+        WriteLn('[WARN] SaveMangoHudConfig: Could not save to Steam Flatpak location: ', E.Message);
+    end;
 
   finally
     ConfigLines.Free;
@@ -3344,8 +3361,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.5';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.7';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
@@ -3904,16 +3921,19 @@ begin
     FOptiscalerUpdate.CheckupdBtn := checkupdBitbtn;
     FOptiscalerUpdate.ProgressBar := updateProgressBar;
     FOptiscalerUpdate.StatusLabel := updatestatusLabel;
-    FOptiscalerUpdate.DeckyLabel := deckylabel1;
     FOptiscalerUpdate.OptiLabel := optlabel1;
+    FOptiscalerUpdate.OptiLabel2 := optlabel2;
     FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
     FOptiscalerUpdate.XessLabel := xessLabel1;
     FOptiscalerUpdate.FsrLabel := fsrlabel1;
     FOptiscalerUpdate.FsrVersionComboBox := fsrversionComboBox;
-    FOptiscalerUpdate.DeckyLabel2 := deckylabel2;
+    FOptiscalerUpdate.OptVersionComboBox := optversionComboBox;
     FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
     FOptiscalerUpdate.NotificationLabel := notificationLabel;
-    
+
+    // Connect OnChange event for OptiScaler channel selection
+    optversionComboBox.OnChange := @optversionComboBoxChange;
+
     //Initialize tab
     FOptiscalerUpdate.InitializeTab;
 
@@ -5023,6 +5043,13 @@ begin
   gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
 end;
 
+procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);
+begin
+  // When user changes the OptiScaler channel, automatically check for updates
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.CheckForUpdatesOnClick;
+end;
+
 procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);
 begin
    COLUMNS := COLUMNS+1;
@@ -5169,7 +5196,7 @@ EnableTraceLogsFound: Boolean;
     // Check if we're on the OptiScaler tab
     if goverlayPageControl.ActivePage = optiscalerTabSheet then
     begin
-      // Get the fgmod file path (Flatpak-aware)
+      // Get the fgmod file path
       FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
 
       // Check if fgmod file exists
@@ -5230,7 +5257,7 @@ EnableTraceLogsFound: Boolean;
             // Save the modified file
             FGModLines.SaveToFile(FGModFilePath);
 
-                   // Get OptiScaler.ini file path (Flatpak-aware)
+                   // Get OptiScaler.ini file path
           OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
           // Get selected ShortcutKey from shortcutkeyComboBox
@@ -5331,7 +5358,7 @@ EnableTraceLogsFound: Boolean;
 
           // Always modify fakenvapi.ini file (set to 0 if checkbox not checked)
           begin
-            // Get fakenvapi.ini file path (Flatpak-aware)
+            // Get fakenvapi.ini file path
             FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
 
             // Initialize found flags
@@ -5460,6 +5487,31 @@ EnableTraceLogsFound: Boolean;
                     begin
                       CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
                                IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+
+                      // Add fsrversion=built in to goverlay.vars
+                      VarsFilePath := IncludeTrailingPathDelimiter(FGModPath) + 'goverlay.vars';
+                      if FileExists(VarsFilePath) then
+                      begin
+                        Lines := TStringList.Create;
+                        try
+                          Lines.LoadFromFile(VarsFilePath);
+
+                          // Check if fsrversion line already exists and remove it
+                          for i := Lines.Count - 1 downto 0 do
+                          begin
+                            if Pos('fsrversion=', Lines[i]) > 0 then
+                              Lines.Delete(i);
+                          end;
+
+                          // Add fsrversion line at the end
+                          Lines.Add('fsrversion=built in');
+
+                          // Save the file
+                          Lines.SaveToFile(VarsFilePath);
+                        finally
+                          Lines.Free;
+                        end;
+                      end;
                     end
                     else
                       ShowMessage('Warning: FSR4_LATEST version not found. Please update OptiScaler first.');
@@ -5513,7 +5565,7 @@ EnableTraceLogsFound: Boolean;
             // Show the howto button after saving OptiScaler configuration
             howtoBitBtn.Visible := True;
 
-            // Get the correct fgmod path (Flatpak-aware)
+            // Always use ~/fgmod path (simplified architecture)
             FGModPath := GetOptiScalerInstallPath;
 
             // Build launch command with full absolute path

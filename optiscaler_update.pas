@@ -19,6 +19,7 @@ type
     FStatusLabel: TLabel;
     FDeckyLabel: TLabel;
     FOptiLabel: TLabel;
+    FOptiLabel2: TLabel;       // Label for OptiScaler update notification
     FFakeNvapiLabel: TLabel;
     FXessLabel: TLabel;
     FFsrLabel: TLabel;
@@ -26,10 +27,12 @@ type
     FFakeNvapiLabel2: TLabel;  // Label for update notification
     FNotificationLabel: TLabel; // Label for general notifications
     FFsrVersionComboBox: TComboBox; // ComboBox for FSR version selection
+    FOptVersionComboBox: TComboBox; // ComboBox for OptiScaler channel selection
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
-    function GetFakeNvapiReleaseTag: string;
+    function GetOptiScalerStableTag: string;
+    function GetOptiScalerPreReleaseTag: string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
@@ -38,6 +41,7 @@ type
     procedure UpdateStatus(const AStatus: string);
     function ExtractOptiScalerVersion(const AFileName: string): string;
     procedure CheckForUpdates;
+    procedure FixFgmodPathInScript(const ScriptPath: string);
   public
 
     procedure LoadVersionsFromFile;
@@ -51,6 +55,7 @@ type
     property StatusLabel: TLabel read FStatusLabel write FStatusLabel;
     property DeckyLabel: TLabel read FDeckyLabel write FDeckyLabel;
     property OptiLabel: TLabel read FOptiLabel write FOptiLabel;
+    property OptiLabel2: TLabel read FOptiLabel2 write FOptiLabel2;
     property FakeNvapiLabel: TLabel read FFakeNvapiLabel write FFakeNvapiLabel;
     property XessLabel: TLabel read FXessLabel write FXessLabel;
     property FsrLabel: TLabel read FFsrLabel write FFsrLabel;
@@ -58,6 +63,7 @@ type
     property FakeNvapiLabel2: TLabel read FFakeNvapiLabel2 write FFakeNvapiLabel2;
     property NotificationLabel: TLabel read FNotificationLabel write FNotificationLabel;
     property FsrVersionComboBox: TComboBox read FFsrVersionComboBox write FFsrVersionComboBox;
+    property OptVersionComboBox: TComboBox read FOptVersionComboBox write FOptVersionComboBox;
   end;
 
 implementation
@@ -188,10 +194,14 @@ begin
       if (Process.ExitStatus = 0) and (Response <> '') then
       begin
         WriteLn('[DEBUG] GetLatestReleaseTag: Parsing JSON response...');
-        JSONData := GetJSON(Response);
-        try
-          if Assigned(JSONData) and (JSONData is TJSONObject) then
-          begin
+
+        // Validate response is JSON before parsing (to handle GitHub API errors/rate limiting)
+        if (Length(Response) > 0) and ((Response[1] = '{') or (Response[1] = '[')) then
+        begin
+          JSONData := GetJSON(Response);
+          try
+            if Assigned(JSONData) and (JSONData is TJSONObject) then
+            begin
             WriteLn('[DEBUG] GetLatestReleaseTag: Valid JSON object received');
             JSONObject := TJSONObject(JSONData);
             Result := JSONObject.Get('tag_name', '');
@@ -201,6 +211,12 @@ begin
             WriteLn('[ERROR] GetLatestReleaseTag: JSON data is not a valid object');
         finally
           JSONData.Free;
+        end;
+        end
+        else
+        begin
+          WriteLn('[ERROR] GetLatestReleaseTag: API returned non-JSON response (possibly rate limited or error)');
+          WriteLn('[ERROR] GetLatestReleaseTag: Response preview: ', Copy(Response, 1, 200));
         end;
       end
       else
@@ -226,22 +242,27 @@ begin
   end;
 end;
 
-function TOptiscalerTab.GetFakeNvapiReleaseTag: string;
+function TOptiscalerTab.GetOptiScalerStableTag: string;
 var
   Process: TProcess;
   OutputList: TStringList;
   Response: string;
   JSONData: TJSONData;
+  JSONArray: TJSONArray;
   JSONObject: TJSONObject;
+  i: Integer;
+  TagName: string;
+  RegEx: TRegExpr;
 begin
   Result := '';
   Process := TProcess.Create(nil);
   OutputList := TStringList.Create;
+  RegEx := TRegExpr.Create;
   try
     try
-      WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Fetching from ', URL_FAKENVAPI_API);
+      WriteLn('[DEBUG] GetOptiScalerStableTag: Fetching from ', URL_OPTISCALER_BUILDS_API);
 
-      // Use curl to get GitHub API for FakeNvapi
+      // Use curl to get GitHub API for OptiScaler-builds tags
       Process.Executable := 'curl';
       Process.Parameters.Add('-s');  // Silent mode
       Process.Parameters.Add('-L');  // Follow redirects
@@ -249,7 +270,7 @@ begin
       Process.Parameters.Add('Accept: application/vnd.github.v3+json');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add(URL_FAKENVAPI_API);
+      Process.Parameters.Add(URL_OPTISCALER_BUILDS_API);
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
 
@@ -257,51 +278,205 @@ begin
       OutputList.LoadFromStream(Process.Output);
       Response := OutputList.Text;
 
-      WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Curl exit status: ', Process.ExitStatus);
-      WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Response length: ', Length(Response), ' bytes');
+      WriteLn('[DEBUG] GetOptiScalerStableTag: Curl exit status: ', Process.ExitStatus);
+      WriteLn('[DEBUG] GetOptiScalerStableTag: Response length: ', Length(Response), ' bytes');
 
       if (Process.ExitStatus = 0) and (Response <> '') then
       begin
-        WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Parsing JSON response...');
-        JSONData := GetJSON(Response);
-        try
-          if Assigned(JSONData) and (JSONData is TJSONObject) then
-          begin
-            WriteLn('[DEBUG] GetFakeNvapiReleaseTag: Valid JSON object received');
-            JSONObject := TJSONObject(JSONData);
-            Result := JSONObject.Get('tag_name', '');
-            WriteLn('[DEBUG] GetFakeNvapiReleaseTag: tag_name = "', Result, '"');
+        WriteLn('[DEBUG] GetOptiScalerStableTag: Parsing JSON response...');
+
+        // Validate response is JSON before parsing (to handle GitHub API errors/rate limiting)
+        if (Length(Response) > 0) and ((Response[1] = '{') or (Response[1] = '[')) then
+        begin
+          JSONData := GetJSON(Response);
+          try
+            if Assigned(JSONData) and (JSONData is TJSONArray) then
+            begin
+            WriteLn('[DEBUG] GetOptiScalerStableTag: Valid JSON array received');
+            JSONArray := TJSONArray(JSONData);
+
+            if JSONArray.Count > 0 then
+            begin
+              WriteLn('[DEBUG] GetOptiScalerStableTag: Array has ', JSONArray.Count, ' tags');
+
+              // Regex pattern to match semantic versioning (e.g., 0.7.9, 1.2.3)
+              // Only digits and dots, must start with digit
+              RegEx.Expression := '^\d+\.\d+\.\d+$';
+
+              // Iterate through tags to find the first one that matches semantic versioning
+              for i := 0 to JSONArray.Count - 1 do
+              begin
+                JSONObject := TJSONObject(JSONArray[i]);
+                TagName := JSONObject.Get('name', '');
+
+                WriteLn('[DEBUG] GetOptiScalerStableTag: Checking tag[', i, '] = "', TagName, '"');
+
+                // Check if tag matches semantic version pattern (stable release)
+                if RegEx.Exec(TagName) then
+                begin
+                  Result := TagName;
+                  WriteLn('[DEBUG] GetOptiScalerStableTag: Found stable version tag = "', Result, '"');
+                  Break;
+                end
+                else
+                  WriteLn('[DEBUG] GetOptiScalerStableTag: Tag "', TagName, '" is not a stable version (pre-release), skipping');
+              end;
+
+              if Result = '' then
+                WriteLn('[ERROR] GetOptiScalerStableTag: No stable version tag found in the array');
+            end
+            else
+              WriteLn('[ERROR] GetOptiScalerStableTag: JSON array is empty');
           end
           else
-            WriteLn('[ERROR] GetFakeNvapiReleaseTag: JSON data is not a valid object');
+            WriteLn('[ERROR] GetOptiScalerStableTag: JSON data is not an array');
         finally
           JSONData.Free;
+        end;
+        end
+        else
+        begin
+          WriteLn('[ERROR] GetOptiScalerStableTag: API returned non-JSON response (possibly rate limited or error)');
+          WriteLn('[ERROR] GetOptiScalerStableTag: Response preview: ', Copy(Response, 1, 200));
         end;
       end
       else
       begin
-        WriteLn('[ERROR] GetFakeNvapiReleaseTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
+        WriteLn('[ERROR] GetOptiScalerStableTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
         if Response <> '' then
-          WriteLn('[ERROR] GetFakeNvapiReleaseTag: Response content: ', Copy(Response, 1, 200));
-      end;
-
-      // If unable to get, show warning
-      if Result = '' then
-      begin
-        WriteLn('[WARN] GetFakeNvapiReleaseTag: No version obtained, continuing without FakeNvapi');
-        ShowMessage('Warning: Could not get FakeNvapi version automatically.' + sLineBreak +
-                   'Continuing without FakeNvapi installation.');
+          WriteLn('[ERROR] GetOptiScalerStableTag: Response content: ', Copy(Response, 1, 200));
       end;
 
     except
       on E: Exception do
       begin
-        WriteLn('[ERROR] GetFakeNvapiReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
-        ShowMessage('Warning: Error getting FakeNvapi release: ' + E.Message + sLineBreak +
-                   'Continuing without FakeNvapi installation.');
+        WriteLn('[ERROR] GetOptiScalerStableTag: Exception - ', E.ClassName, ': ', E.Message);
+        ShowMessage('Error getting OptiScaler version: ' + E.Message + sLineBreak +
+                   'Check your internet connection and if curl is installed.');
       end;
     end;
   finally
+    RegEx.Free;
+    OutputList.Free;
+    Process.Free;
+  end;
+end;
+
+function TOptiscalerTab.GetOptiScalerPreReleaseTag: string;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  Response: string;
+  JSONData: TJSONData;
+  JSONArray: TJSONArray;
+  JSONObject: TJSONObject;
+  i: Integer;
+  TagName: string;
+  RegEx: TRegExpr;
+begin
+  Result := '';
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  RegEx := TRegExpr.Create;
+  try
+    try
+      WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Fetching from ', URL_OPTISCALER_BUILDS_API);
+
+      // Use curl to get GitHub API for OptiScaler-builds tags
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-s');  // Silent mode
+      Process.Parameters.Add('-L');  // Follow redirects
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: Mozilla/5.0');
+      Process.Parameters.Add(URL_OPTISCALER_BUILDS_API);
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+
+      // Read response
+      OutputList.LoadFromStream(Process.Output);
+      Response := OutputList.Text;
+
+      WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Curl exit status: ', Process.ExitStatus);
+      WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Response length: ', Length(Response), ' bytes');
+
+      if (Process.ExitStatus = 0) and (Response <> '') then
+      begin
+        WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Parsing JSON response...');
+
+        // Validate response is JSON before parsing (to handle GitHub API errors/rate limiting)
+        if (Length(Response) > 0) and ((Response[1] = '{') or (Response[1] = '[')) then
+        begin
+          JSONData := GetJSON(Response);
+          try
+            if Assigned(JSONData) and (JSONData is TJSONArray) then
+            begin
+            WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Valid JSON array received');
+            JSONArray := TJSONArray(JSONData);
+
+            if JSONArray.Count > 0 then
+            begin
+              WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Array has ', JSONArray.Count, ' tags');
+
+              // Regex pattern to match pre-release tags starting with "edge-"
+              // Example: edge-0.9.7.1215
+              RegEx.Expression := '^edge-';
+
+              // Iterate through tags to find the first pre-release tag
+              for i := 0 to JSONArray.Count - 1 do
+              begin
+                JSONObject := TJSONObject(JSONArray[i]);
+                TagName := JSONObject.Get('name', '');
+
+                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '"');
+
+                // Check if tag starts with "edge-"
+                if RegEx.Exec(TagName) then
+                begin
+                  Result := TagName;
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found pre-release tag = "', Result, '"');
+                  Break;
+                end
+                else
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Tag "', TagName, '" does not start with "edge-", skipping');
+              end;
+
+              if Result = '' then
+                WriteLn('[ERROR] GetOptiScalerPreReleaseTag: No pre-release tag found in the array');
+            end
+            else
+              WriteLn('[ERROR] GetOptiScalerPreReleaseTag: JSON array is empty');
+          end
+          else
+            WriteLn('[ERROR] GetOptiScalerPreReleaseTag: JSON data is not an array');
+        finally
+          JSONData.Free;
+        end;
+        end
+        else
+        begin
+          WriteLn('[ERROR] GetOptiScalerPreReleaseTag: API returned non-JSON response (possibly rate limited or error)');
+          WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Response preview: ', Copy(Response, 1, 200));
+        end;
+      end
+      else
+      begin
+        WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
+        if Response <> '' then
+          WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Response content: ', Copy(Response, 1, 200));
+      end;
+
+    except
+      on E: Exception do
+      begin
+        WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
+        ShowMessage('Error getting OptiScaler pre-release version: ' + E.Message + sLineBreak +
+                   'Check your internet connection and if curl is installed.');
+      end;
+    end;
+  finally
+    RegEx.Free;
     OutputList.Free;
     Process.Free;
   end;
@@ -416,27 +591,97 @@ function TOptiscalerTab.Extract7z(const A7zFile, ADestPath: string): Boolean;
 var
   Process: TProcess;
   OutputLines: TStringList;
+  StdoutOutput, StderrOutput: string;
+  FileInfo: TSearchRec;
+  FullCommand: string;
 begin
   Result := False;
   Process := TProcess.Create(nil);
   OutputLines := TStringList.Create;
   try
     try
+      WriteLn('[DEBUG] Extract7z: Starting 7z extraction');
+      WriteLn('[DEBUG] Extract7z: Source file = ', A7zFile);
+      WriteLn('[DEBUG] Extract7z: Destination path = ', ADestPath);
+      WriteLn('[DEBUG] Extract7z: File exists = ', FileExists(A7zFile));
+
+      // Check file size if exists
+      if FileExists(A7zFile) then
+      begin
+        if FindFirst(A7zFile, faAnyFile, FileInfo) = 0 then
+        begin
+          WriteLn('[DEBUG] Extract7z: File size = ', FileInfo.Size, ' bytes');
+          FindClose(FileInfo);
+        end;
+      end
+      else
+      begin
+        WriteLn('[ERROR] Extract7z: Source file does not exist!');
+        ShowMessage('Error: 7z file not found at: ' + A7zFile);
+        Exit;
+      end;
+
+      WriteLn('[DEBUG] Extract7z: Destination directory exists = ', DirectoryExists(ADestPath));
+
       Process.Executable := '7z';
       Process.Parameters.Add('x');
       Process.Parameters.Add('-y');  // Yes to all questions
       Process.Parameters.Add('-o' + ADestPath);
       Process.Parameters.Add(A7zFile);
       Process.Options := [poWaitOnExit, poUsePipes];
+
+      // Build full command string for debugging
+      FullCommand := '7z x -y -o' + ADestPath + ' ' + A7zFile;
+      WriteLn('[DEBUG] Extract7z: Full command = ', FullCommand);
+      WriteLn('[DEBUG] Extract7z: Executing...');
+
       Process.Execute;
+
+      WriteLn('[DEBUG] Extract7z: Process completed');
+      WriteLn('[DEBUG] Extract7z: Exit status = ', Process.ExitStatus);
+
+      // Capture stdout output
+      if Process.Output.NumBytesAvailable > 0 then
+      begin
+        OutputLines.LoadFromStream(Process.Output);
+        StdoutOutput := OutputLines.Text;
+        WriteLn('[DEBUG] Extract7z: stdout output:');
+        WriteLn(StdoutOutput);
+      end
+      else
+        WriteLn('[DEBUG] Extract7z: No stdout output');
+
+      // Capture stderr output
+      if Process.Stderr.NumBytesAvailable > 0 then
+      begin
+        OutputLines.Clear;
+        OutputLines.LoadFromStream(Process.Stderr);
+        StderrOutput := OutputLines.Text;
+        WriteLn('[ERROR] Extract7z: stderr output:');
+        WriteLn(StderrOutput);
+      end
+      else
+        WriteLn('[DEBUG] Extract7z: No stderr output');
 
       Result := Process.ExitStatus = 0;
 
       if not Result then
-        ShowMessage('Error extracting 7z file. Exit code: ' + IntToStr(Process.ExitStatus));
+      begin
+        WriteLn('[ERROR] Extract7z: Extraction failed with exit code ', Process.ExitStatus);
+        WriteLn('[ERROR] Extract7z: 7z exit code 2 typically means: fatal error, file not found, or invalid archive');
+        ShowMessage('Error extracting 7z file. Exit code: ' + IntToStr(Process.ExitStatus) +
+                   sLineBreak + sLineBreak +
+                   'Check terminal output for details.' + sLineBreak +
+                   'File: ' + A7zFile);
+      end
+      else
+        WriteLn('[DEBUG] Extract7z: Extraction completed successfully');
     except
       on E: Exception do
+      begin
+        WriteLn('[ERROR] Extract7z: Exception - ', E.ClassName, ': ', E.Message);
         ShowMessage('Error executing 7z: ' + E.Message);
+      end;
     end;
   finally
     OutputLines.Free;
@@ -491,6 +736,54 @@ begin
   end;
 end;
 
+procedure TOptiscalerTab.FixFgmodPathInScript(const ScriptPath: string);
+var
+  Lines: TStringList;
+  i: Integer;
+  Line: string;
+  CorrectPath: string;
+begin
+  WriteLn('[DEBUG] FixFgmodPathInScript: Processing ', ScriptPath);
+
+  if not FileExists(ScriptPath) then
+  begin
+    WriteLn('[WARN] FixFgmodPathInScript: Script file not found: ', ScriptPath);
+    Exit;
+  end;
+
+  CorrectPath := 'fgmod_path="$HOME/fgmod"';
+  Lines := TStringList.Create;
+  try
+    // Read the entire fgmod script
+    Lines.LoadFromFile(ScriptPath);
+    WriteLn('[DEBUG] FixFgmodPathInScript: Loaded ', Lines.Count, ' lines from script');
+
+    // Find and replace fgmod_path line
+    for i := 0 to Lines.Count - 1 do
+    begin
+      Line := Lines[i];
+      if Pos('fgmod_path=', Line) > 0 then
+      begin
+        WriteLn('[DEBUG] FixFgmodPathInScript: Found fgmod_path at line ', i + 1, ': ', Line);
+        Lines[i] := CorrectPath;
+        WriteLn('[DEBUG] FixFgmodPathInScript: Replaced with: ', CorrectPath);
+      end;
+    end;
+
+    // Save the modified script
+    Lines.SaveToFile(ScriptPath);
+    WriteLn('[DEBUG] FixFgmodPathInScript: Script saved successfully');
+
+    // Ensure it remains executable
+    fpChmod(ScriptPath, &755);
+    WriteLn('[DEBUG] FixFgmodPathInScript: Executable permissions restored');
+  except
+    on E: Exception do
+      WriteLn('[ERROR] FixFgmodPathInScript: ', E.Message);
+  end;
+  Lines.Free;
+end;
+
 procedure TOptiscalerTab.LoadVersionsFromFile;
 var
   VarsFilePath: string;
@@ -498,7 +791,7 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  DeckyVer, OptiVer, FakeNvapiVer, FsrVer: string;
+  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer: string;
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
@@ -512,6 +805,7 @@ begin
   OptiVer := '';
   FakeNvapiVer := '';
   FsrVer := '';
+  XessVer := '';
 
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -532,15 +826,15 @@ begin
           Key := Copy(Line, 1, SepPos - 1);
           Value := Copy(Line, SepPos + 1, Length(Line));
 
-          // Store values
-          if Key = 'DeckyVersion' then
-            DeckyVer := Value
-          else if Key = 'OptiScalerVersion' then
-            OptiVer := Value
-          else if Key = 'FakeNvapiVersion' then
+          // Store values - support both old and new key names (case-insensitive)
+          if SameText(Key, 'DeckyVersion') or SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
+            OptiVer := Value  // Support both optiScalerVersion and OptiScalerVersion
+          else if SameText(Key, 'FakeNvapiVersion') then
             FakeNvapiVer := Value
-          else if Key = 'fsrversion' then
-            FsrVer := Value;
+          else if SameText(Key, 'fsrversion') then
+            FsrVer := Value
+          else if SameText(Key, 'xessversion') then
+            XessVer := Value;
         end;
       end;
     finally
@@ -581,11 +875,16 @@ begin
       end;
     end;
 
-    // Update XESS and FSR labels with fixed text
+    // Update XESS label
     if Assigned(FXessLabel) then
     begin
       try
-        FXessLabel.Caption := 'decky built-in';
+        // If xessversion was found in goverlay.vars, use that value
+        // Otherwise, use the default 'built in'
+        if XessVer <> '' then
+          FXessLabel.Caption := XessVer
+        else
+          FXessLabel.Caption := 'built in';
         FXessLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
@@ -597,7 +896,7 @@ begin
     begin
       try
         // If fsrversion was found in goverlay.vars, use that value
-        // Otherwise, use the default 'decky built-in'
+        // Otherwise, use the default 'built in'
         if FsrVer <> '' then
         begin
           FFsrLabel.Caption := FsrVer;
@@ -607,7 +906,7 @@ begin
             FFsrVersionComboBox.ItemIndex := 1;
         end
         else
-          FFsrLabel.Caption := 'decky built-in';
+          FFsrLabel.Caption := 'built in';
         FFsrLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
@@ -622,9 +921,12 @@ begin
   end;
 end;
 
+
 procedure TOptiscalerTab.CheckForUpdatesOnClick;
 var
   HasUpdates: Boolean;
+  CurrentVersion, LatestTag: string;
+  IsStableChannel: Boolean;
 begin
   HasUpdates := False;
 
@@ -632,38 +934,102 @@ begin
   if Assigned(FDeckyLabel2) then
     FDeckyLabel2.Visible := False;
 
-  if Assigned(FFakeNvapiLabel2) then
-    FFakeNvapiLabel2.Visible := False;
+  if Assigned(FOptiLabel2) then
+    FOptiLabel2.Visible := False;
 
   // Hide notification label initially
   if Assigned(FNotificationLabel) then
     FNotificationLabel.Visible := False;
 
-  // Check for updates if fgmod exists
+  // Determine channel based on ComboBox selection
+  IsStableChannel := True;  // Default to stable
+  if Assigned(FOptVersionComboBox) then
+  begin
+    if FOptVersionComboBox.ItemIndex = 0 then
+      IsStableChannel := True
+    else if FOptVersionComboBox.ItemIndex = 1 then
+      IsStableChannel := False;
+  end;
+
+  // Always use ~/fgmod path
+  FFGModPath := GetOptiScalerInstallPath;
+  WriteLn('[DEBUG] CheckForUpdatesOnClick: Using path = ', FFGModPath);
+
+  // Load versions from goverlay.vars if it exists
   if DirectoryExists(FFGModPath) then
   begin
+    WriteLn('[DEBUG] CheckForUpdatesOnClick: Directory exists, loading versions from file...');
+    LoadVersionsFromFile;
+  end;
+
+  // Check for OptiScaler updates based on selected channel
+  if Assigned(FOptiLabel2) then
+  begin
+    // Check if fgmod exists
+    if DirectoryExists(FFGModPath) then
+    begin
+      if Assigned(FOptiLabel) then
+        CurrentVersion := FOptiLabel.Caption
+      else
+        CurrentVersion := '';
+
+      // Get latest version based on selected channel
+      if IsStableChannel then
+      begin
+        WriteLn('[DEBUG] CheckForUpdatesOnClick: Checking Stable channel updates...');
+        LatestTag := GetOptiScalerStableTag;
+      end
+      else
+      begin
+        WriteLn('[DEBUG] CheckForUpdatesOnClick: Checking Bleeding-Edge channel updates...');
+        LatestTag := GetOptiScalerPreReleaseTag;
+      end;
+    end
+    else
+    begin
+      CurrentVersion := '';
+      LatestTag := '';
+    end;
+
+    WriteLn('[DEBUG] CheckForUpdatesOnClick: Current OptiScaler version = "', CurrentVersion, '"');
+    WriteLn('[DEBUG] CheckForUpdatesOnClick: Latest OptiScaler tag = "', LatestTag, '"');
+
+    // Show update if tag is available and different from current
+    if (LatestTag <> '') and (LatestTag <> CurrentVersion) then
+    begin
+      FOptiLabel2.Caption := 'Update Available ' + LatestTag;
+      FOptiLabel2.Font.Color := clLime;
+      FOptiLabel2.Visible := True;
+      HasUpdates := True;
+      WriteLn('[DEBUG] CheckForUpdatesOnClick: OptiScaler update available: ', LatestTag);
+    end
+    else
+      WriteLn('[DEBUG] CheckForUpdatesOnClick: OptiScaler is up to date');
+  end;
+
+  // Check for Decky updates only if fgmod exists
+  if DirectoryExists(FFGModPath) then
     CheckForUpdates;
 
-    // Check if any update label is visible
-    if Assigned(FDeckyLabel2) and FDeckyLabel2.Visible then
-      HasUpdates := True;
+  // Check if any update label is visible
+  if Assigned(FDeckyLabel2) and FDeckyLabel2.Visible then
+    HasUpdates := True;
 
-    if Assigned(FFakeNvapiLabel2) and FFakeNvapiLabel2.Visible then
-      HasUpdates := True;
+  if Assigned(FOptiLabel2) and FOptiLabel2.Visible then
+    HasUpdates := True;
 
-    // Control button visibility based on updates
-    if HasUpdates then
-    begin
-      // Hide checkupdBtn and show updateBtn
-      if Assigned(FCheckupdBtn) then
-        FCheckupdBtn.Visible := False;
+  // Control button visibility based on updates
+  if HasUpdates then
+  begin
+    // Hide checkupdBtn and show updateBtn
+    if Assigned(FCheckupdBtn) then
+      FCheckupdBtn.Visible := False;
 
-      if Assigned(FUpdateBtn) then
-        FUpdateBtn.Visible := True;
-    end;
-    // If no updates: just hide notification label (already hidden above)
-    // Don't show any message
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Visible := True;
   end;
+  // If no updates: just hide notification label (already hidden above)
+  // Don't show any message
 end;
 
 procedure TOptiscalerTab.CheckForUpdates;
@@ -673,8 +1039,8 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  StoredDeckyVersion, StoredFakeNvapiVersion: string;
-  LatestDeckyVersion, LatestFakeNvapiVersion: string;
+  StoredDeckyVersion: string;
+  LatestDeckyVersion: string;
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
@@ -685,7 +1051,6 @@ begin
 
   // Initialize stored versions
   StoredDeckyVersion := '';
-  StoredFakeNvapiVersion := '';
 
   try
     // Read stored versions from goverlay.vars
@@ -708,9 +1073,7 @@ begin
           Value := Copy(Line, SepPos + 1, Length(Line));
 
           if Key = 'DeckyVersion' then
-            StoredDeckyVersion := Value
-          else if Key = 'FakeNvapiVersion' then
-            StoredFakeNvapiVersion := Value;
+            StoredDeckyVersion := Value;
         end;
       end;
     finally
@@ -738,27 +1101,6 @@ begin
       end;
     end;
 
-    // Check for FakeNvapi updates
-    if StoredFakeNvapiVersion <> '' then
-    begin
-      LatestFakeNvapiVersion := GetFakeNvapiReleaseTag;
-      if (LatestFakeNvapiVersion <> '') and (LatestFakeNvapiVersion <> StoredFakeNvapiVersion) then
-      begin
-        // Update available
-        if Assigned(FFakeNvapiLabel2) then
-        begin
-          try
-            FFakeNvapiLabel2.Caption := ' Update available ' + '(' + LatestFakeNvapiVersion + ')';
-            FFakeNvapiLabel2.Visible := True;
-            FFakeNvapiLabel2.Font.Color := clLime;
-            Application.ProcessMessages;
-          except
-            // Ignore errors
-          end;
-        end;
-      end;
-    end;
-
   except
     on E: Exception do
       ShowMessage('Error checking for updates: ' + E.Message);
@@ -766,18 +1108,70 @@ begin
 end;
 
 procedure TOptiscalerTab.InitializeTab;
+var
+  CurrentVersion: string;
 begin
   // Hide update labels initially
   if Assigned(FDeckyLabel2) then
     FDeckyLabel2.Visible := False;
 
-  if Assigned(FFakeNvapiLabel2) then
-    FFakeNvapiLabel2.Visible := False;
+  if Assigned(FOptiLabel2) then
+    FOptiLabel2.Visible := False;
 
   // Check if fgmod folder exists
-  if not DirectoryExists(FFGModPath) then
+  if DirectoryExists(FFGModPath) then
   begin
-    // fgmod doesn't exist - change button caption to "Install"
+    WriteLn('[DEBUG] InitializeTab: fgmod directory found');
+
+    // Load current versions
+    LoadVersionsFromFile;
+
+    // Detect if bleeding-edge version is installed
+    if Assigned(FOptiLabel) then
+    begin
+      CurrentVersion := FOptiLabel.Caption;
+      WriteLn('[DEBUG] InitializeTab: Current OptiScaler version = "', CurrentVersion, '"');
+
+      // If version starts with "edge-", select bleeding-edge in ComboBox
+      if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
+      begin
+        if Assigned(FOptVersionComboBox) then
+        begin
+          FOptVersionComboBox.ItemIndex := 1;  // Select bleeding-edge
+          WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
+        end;
+      end
+      else
+      begin
+        // Stable version
+        if Assigned(FOptVersionComboBox) then
+        begin
+          FOptVersionComboBox.ItemIndex := 0;  // Select stable
+          WriteLn('[DEBUG] InitializeTab: Detected stable version, set ComboBox to index 0');
+        end;
+      end;
+    end;
+
+    // Set button to "Update" mode
+    if Assigned(FUpdateBtn) then
+    begin
+      FUpdateBtn.Caption := 'Update';
+      FUpdateBtn.visible := false;
+      FCheckupdBtn.visible := true;
+    end;
+  end
+  else
+  begin
+    WriteLn('[DEBUG] InitializeTab: No installation found');
+
+    // No installation found - default to stable (index 0)
+    if Assigned(FOptVersionComboBox) then
+    begin
+      FOptVersionComboBox.ItemIndex := 0;
+      WriteLn('[DEBUG] InitializeTab: Set ComboBox to stable (index 0) by default');
+    end;
+
+    // Change button caption to "Install"
     if Assigned(FUpdateBtn) then
     begin
       FUpdateBtn.AutoSize:=true;
@@ -786,42 +1180,24 @@ begin
       FCheckupdBtn.visible := false;
       FUpdateBtn.Color:=clteal;
     end;
-  end
-  else
-  begin
-    // fgmod exists - load current versions and set button to "Update"
-    LoadVersionsFromFile;
-
-    if Assigned(FUpdateBtn) then
-    begin
-      FUpdateBtn.Caption := 'Update';
-      FUpdateBtn.visible := false;
-      FCheckupdBtn.visible := true;
-    end;
   end;
 end;
 
 procedure TOptiscalerTab.UpdateButtonClick(Sender: TObject);
 var
-  LatestTag: string;
-  DeckyVersion: string;
-  OptiVersion: string;
-  FakeNvapiVersion: string;
-  FakeNvapiURL: string;
-  FakeNvapi7zPath: string;
+  OptiScalerTag: string;
   DownloadURL: string;
-  ZipFilePath: string;
-  ExtractPath: string;
+  SevenZFilePath: string;
   UserDir: string;
-  AssetsSource, BinSource: string;
-  AssetsPath, BinPath: string;
-  SearchRec: TSearchRec;
-  SevenZFile: string;
   VarsFile: TextFile;
   VarsFilePath: string;
+  Line: string;
+  Key, Value: string;
+  SepPos: Integer;
+  IsStableChannel: Boolean;
 begin
   WriteLn('[DEBUG] ========================================');
-  WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update');
+  WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
   WriteLn('[DEBUG] ========================================');
 
   // Disable button
@@ -839,425 +1215,267 @@ begin
     UserDir := GetUserDir;
     WriteLn('[DEBUG] UpdateButtonClick: User directory = ', UserDir);
 
-    // 1. Get the latest tag from repository and store in variable
-    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Getting latest release tag...');
-    LatestTag := GetLatestReleaseTag;
-    if LatestTag = '' then
+    // Check if Stable Channel is selected (item 0) or Bleeding-Edge (item 1)
+    IsStableChannel := False;
+    if Assigned(FOptVersionComboBox) then
     begin
-      WriteLn('[ERROR] UpdateButtonClick: Failed to get latest release tag, aborting');
-      ShowMessage('Could not get version for download.' + sLineBreak +
+      if FOptVersionComboBox.ItemIndex = 0 then
+      begin
+        IsStableChannel := True;
+        WriteLn('[DEBUG] UpdateButtonClick: Stable Channel selected');
+      end
+      else if FOptVersionComboBox.ItemIndex = 1 then
+      begin
+        IsStableChannel := False;
+        WriteLn('[DEBUG] UpdateButtonClick: Bleeding-Edge Channel selected');
+      end
+      else
+      begin
+        ShowMessage('Please select a valid OptiScaler channel.');
+        Exit;
+      end;
+    end
+    else
+    begin
+      ShowMessage('OptiScaler channel not configured.');
+      Exit;
+    end;
+
+    // STEP 1: Always use ~/fgmod/ directory
+    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing fgmod directory...');
+    FFGModPath := GetOptiScalerInstallPath;
+    WriteLn('[DEBUG] UpdateButtonClick: fgmod path = ', FFGModPath);
+
+    // If directory exists, delete all contents to ensure clean installation
+    if DirectoryExists(FFGModPath) then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: fgmod directory exists, deleting contents for clean install...');
+      try
+        DeleteDirectory(FFGModPath, False);
+        WriteLn('[DEBUG] UpdateButtonClick: Directory contents deleted successfully');
+      except
+        on E: Exception do
+        begin
+          WriteLn('[ERROR] UpdateButtonClick: Failed to delete directory contents: ', E.Message);
+          ShowMessage('Error: Could not clean fgmod directory.' + sLineBreak + E.Message);
+          Exit;
+        end;
+      end;
+    end;
+
+    // Create fresh directory
+    WriteLn('[DEBUG] UpdateButtonClick: Creating fresh fgmod directory...');
+    ForceDirectories(FFGModPath);
+
+    UpdateProgress(10);
+
+    // STEP 2: Get version tag based on selected channel
+    if IsStableChannel then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Getting OptiScaler Stable tag...');
+      OptiScalerTag := GetOptiScalerStableTag;
+    end
+    else
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Getting OptiScaler Bleeding-Edge tag...');
+      OptiScalerTag := GetOptiScalerPreReleaseTag;
+    end;
+
+    // Verify we have a tag to proceed
+    if OptiScalerTag = '' then
+    begin
+      WriteLn('[ERROR] UpdateButtonClick: No OptiScaler tag available, aborting');
+      ShowMessage('Could not get OptiScaler version for download.' + sLineBreak +
                  'Operation cancelled.');
       Exit;
     end;
 
-    // Store version in DeckyVersion variable
-    DeckyVersion := LatestTag;
-    WriteLn('[DEBUG] UpdateButtonClick: DeckyVersion = "', DeckyVersion, '"');
-
-    // Update DeckyLabel with the version (with safety check)
-    if Assigned(FDeckyLabel) then
-    begin
-      try
-        FDeckyLabel.Caption := DeckyVersion;
-        FDeckyLabel.Font.Color := clOlive;
-        Application.ProcessMessages;
-      except
-        on E: Exception do
-        begin
-          WriteLn('[ERROR] UpdateButtonClick: Could not update Decky label - ', E.Message);
-          ShowMessage('Warning: Could not update Decky label: ' + E.Message);
-        end;
-      end;
-    end;
-
-    UpdateProgress(10);
+    UpdateProgress(20);
     UpdateStatus('Downloading');
 
-    // 2. Build download URL
-    DownloadURL := Format('https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/%s/Decky-Framegen.zip', [LatestTag]);
-    ZipFilePath := IncludeTrailingPathDelimiter(UserDir) + 'Decky-Framegen.zip';
-    WriteLn('[DEBUG] UpdateButtonClick: Step 2 - Building download URL');
-    WriteLn('[DEBUG] UpdateButtonClick: Download URL = ', DownloadURL);
-    WriteLn('[DEBUG] UpdateButtonClick: Zip file path = ', ZipFilePath);
+    // Build download URL for .7z file
+    if IsStableChannel then
+    begin
+      // URL format: https://github.com/benjamimgois/OptiScaler-builds/releases/download/{tag}/optiscaler-stable.7z
+      // Note: The stable release always uses the fixed filename "optiscaler-stable.7z"
+      DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
+      SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-stable.7z';
+    end
+    else
+    begin
+      // URL format: https://github.com/benjamimgois/OptiScaler-builds/releases/download/{tag}/optiscaler-edge.7z
+      // Note: The bleeding-edge release always uses the fixed filename "optiscaler-edge.7z"
+      DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-edge.7z', [OptiScalerTag]);
+      SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-edge.7z';
+    end;
 
-    // 3. Download file to user's home
-    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Downloading Decky-Framegen.zip...');
-    if not DownloadFile(DownloadURL, ZipFilePath) then
+    WriteLn('[DEBUG] UpdateButtonClick: Download URL = ', DownloadURL);
+    WriteLn('[DEBUG] UpdateButtonClick: 7z file path = ', SevenZFilePath);
+
+    // Download OptiScaler .7z file
+    WriteLn('[DEBUG] UpdateButtonClick: Downloading OptiScaler .7z file...');
+    if not DownloadFile(DownloadURL, SevenZFilePath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: Download failed, aborting');
-      ShowMessage('Failed to download file.');
+      ShowMessage('Failed to download OptiScaler file.');
       Exit;
     end;
+
     WriteLn('[DEBUG] UpdateButtonClick: Download completed successfully');
     UpdateProgress(50);
     UpdateStatus('Installing');
 
-    // 4. Extract ZIP directly to user's home
-    // The ZIP already contains a folder called Decky-Framegen
-    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Extracting ZIP to ', UserDir);
-    if not ExtractZip(ZipFilePath, UserDir) then
+    // STEP 3: Extract .7z file directly to fgmod folder
+    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to fgmod...');
+    if not Extract7z(SevenZFilePath, FFGModPath) then
     begin
-      WriteLn('[ERROR] UpdateButtonClick: ZIP extraction failed, aborting');
-      ShowMessage('Failed to extract ZIP file.');
+      WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
+      ShowMessage('Failed to extract .7z file.');
       Exit;
     end;
-    WriteLn('[DEBUG] UpdateButtonClick: ZIP extraction completed');
-    UpdateProgress(60);
 
-    // 5. Create fgmod folder (Flatpak-aware path)
-    ExtractPath := IncludeTrailingPathDelimiter(UserDir) + 'Decky-Framegen';
-    FFGModPath := GetOptiScalerInstallPath;
+    WriteLn('[DEBUG] UpdateButtonClick: Extraction completed successfully');
+    UpdateProgress(70);
 
-    if DirectoryExists(FFGModPath) then
-      DeleteDirectory(FFGModPath, False);
-    ForceDirectories(FFGModPath);
-    UpdateProgress(65);
-
-    // 6. Copy assets and bin to fgmod
-    AssetsSource := IncludeTrailingPathDelimiter(ExtractPath) + 'assets';
-    BinSource := IncludeTrailingPathDelimiter(ExtractPath) + 'bin';
-
-    if DirectoryExists(AssetsSource) then
-    begin
-      CopyDirectory(AssetsSource, IncludeTrailingPathDelimiter(FFGModPath) + 'assets');
-      UpdateProgress(75);
-    end
-    else
-      ShowMessage('Assets folder not found!');
-
-    if DirectoryExists(BinSource) then
-    begin
-      CopyDirectory(BinSource, IncludeTrailingPathDelimiter(FFGModPath) + 'bin');
-      UpdateProgress(85);
-    end
-    else
-      ShowMessage('Bin folder not found!');
-
-    // 7. Find and extract .7z file from bin folder
-    WriteLn('[DEBUG] UpdateButtonClick: Step 7 - Looking for .7z file in bin folder...');
-    SevenZFile := '';
-    if FindFirst(IncludeTrailingPathDelimiter(FFGModPath) + 'bin' + PathDelim + '*.7z', faAnyFile, SearchRec) = 0 then
-    begin
-      try
-        SevenZFile := IncludeTrailingPathDelimiter(FFGModPath) + 'bin' + PathDelim + SearchRec.Name;
-        WriteLn('[DEBUG] UpdateButtonClick: Found .7z file: ', SevenZFile);
-
-        // Extract OptiScaler version from filename
-        OptiVersion := ExtractOptiScalerVersion(SearchRec.Name);
-        WriteLn('[DEBUG] UpdateButtonClick: Extracted OptiVersion = "', OptiVersion, '"');
-
-        // Update OptiLabel with the version (with safety check)
-        if Assigned(FOptiLabel) and (OptiVersion <> '') then
-        begin
-          try
-            FOptiLabel.Caption := OptiVersion;
-            FOptiLabel.Font.Color := clOlive;
-            Application.ProcessMessages;
-          except
-            on E: Exception do
-            begin
-              WriteLn('[ERROR] UpdateButtonClick: Could not update OptiScaler label - ', E.Message);
-              ShowMessage('Warning: Could not update OptiScaler label: ' + E.Message);
-            end;
-          end;
-        end;
-
-      finally
-        FindClose(SearchRec);
-      end;
-    end
-    else
-      WriteLn('[ERROR] UpdateButtonClick: No .7z file found in bin folder');
-
-    if SevenZFile <> '' then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Extracting .7z file to ', FFGModPath);
-      if Extract7z(SevenZFile, FFGModPath) then
-      begin
-        WriteLn('[DEBUG] UpdateButtonClick: .7z extraction successful');
-        UpdateProgress(90);
-      end
-      else
-      begin
-        WriteLn('[ERROR] UpdateButtonClick: .7z extraction failed');
-        ShowMessage('Failed to extract 7z file.');
-      end;
-    end
-    else
-    begin
-      WriteLn('[ERROR] UpdateButtonClick: Cannot extract - no .7z file found');
-      ShowMessage('.7z file not found in bin folder!');
-    end;
-
-    // 8. Move and rename specific .sh files from assets to fgmod root
-    UpdateProgress(92);
-
-    // Move fgmod.sh, fgmod-uninstaller.sh, and fgmod-remover.sh
-    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'assets' + PathDelim + 'fgmod.sh') then
-    begin
-      RenameFile(IncludeTrailingPathDelimiter(FFGModPath) + 'assets' + PathDelim + 'fgmod.sh',
-                 IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod.sh');
-    end;
-
-    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'assets' + PathDelim + 'fgmod-uninstaller.sh') then
-    begin
-      RenameFile(IncludeTrailingPathDelimiter(FFGModPath) + 'assets' + PathDelim + 'fgmod-uninstaller.sh',
-                 IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh');
-    end;
-
-    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'assets' + PathDelim + 'fgmod-remover.sh') then
-    begin
-      RenameFile(IncludeTrailingPathDelimiter(FFGModPath) + 'assets' + PathDelim + 'fgmod-remover.sh',
-                 IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh');
-    end;
-
-    UpdateProgress(95);
-
-    // 9. Rename fgmod.sh to fgmod and give it execute permission
+    // STEP 4: Make fgmod.sh executable
+    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making fgmod.sh executable...');
     if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod.sh') then
     begin
+      // Rename fgmod.sh to fgmod
       RenameFile(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod.sh',
                  IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod');
 
-      // Make fgmod executable
+      // Make fgmod executable (chmod 755)
       fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod', &755);
-    end;
+      WriteLn('[DEBUG] UpdateButtonClick: fgmod is now executable');
 
-    UpdateProgress(97);
+      // Fix fgmod_path to always use ~/fgmod regardless of channel
+      WriteLn('[DEBUG] UpdateButtonClick: Fixing fgmod_path in fgmod script...');
+      FixFgmodPathInScript(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod');
+    end
+    else
+      WriteLn('[WARN] UpdateButtonClick: fgmod.sh not found');
 
-    // 10. Delete assets and bin folders and all their contents
-    AssetsPath := IncludeTrailingPathDelimiter(FFGModPath) + 'assets';
-    BinPath := IncludeTrailingPathDelimiter(FFGModPath) + 'bin';
+    UpdateProgress(80);
 
-    if DirectoryExists(AssetsPath) then
+    // STEP 5: Read goverlay.vars and update all labels
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Reading goverlay.vars file...');
+    VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+
+    if FileExists(VarsFilePath) then
     begin
-      if DeleteDirectory(AssetsPath, False) then
-        UpdateProgress(98)
-      else
-        ShowMessage('Warning: Could not delete assets folder');
-    end;
+      try
+        WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars found at ', VarsFilePath);
+        AssignFile(VarsFile, VarsFilePath);
+        Reset(VarsFile);
 
-    if DirectoryExists(BinPath) then
-    begin
-      if DeleteDirectory(BinPath, False) then
-        UpdateProgress(99)
-      else
-        ShowMessage('Warning: Could not delete bin folder');
-    end;
-
-    // 11. Get FakeNvapi version and download
-    WriteLn('[DEBUG] UpdateButtonClick: Step 11 - Getting FakeNvapi version...');
-    FakeNvapiVersion := GetFakeNvapiReleaseTag;
-
-    if FakeNvapiVersion <> '' then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: FakeNvapiVersion = "', FakeNvapiVersion, '"');
-
-      // Update FakeNvapiLabel with the version (with safety check)
-      if Assigned(FFakeNvapiLabel) then
-      begin
         try
-          FFakeNvapiLabel.Caption := FakeNvapiVersion;
-          FFakeNvapiLabel.Font.Color := clOlive;
-          Application.ProcessMessages;
-        except
-          on E: Exception do
+          while not Eof(VarsFile) do
           begin
-            WriteLn('[ERROR] UpdateButtonClick: Could not update FakeNvapi label - ', E.Message);
-            ShowMessage('Warning: Could not update FakeNvapi label: ' + E.Message);
+            ReadLn(VarsFile, Line);
+
+            // Skip comments and header lines
+            if (Length(Line) > 0) and (Line[1] <> '#') then
+            begin
+              SepPos := Pos('=', Line);
+              if SepPos > 0 then
+              begin
+                Key := Copy(Line, 1, SepPos - 1);
+                Value := Copy(Line, SepPos + 1, Length(Line));
+
+                WriteLn('[DEBUG] UpdateButtonClick: Found key: "', Key, '" = "', Value, '"');
+
+                // Update labels based on keys (case-insensitive)
+                if SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
+                begin
+                  if Assigned(FOptiLabel) then
+                  begin
+                    FOptiLabel.Caption := Value;
+                    FOptiLabel.Font.Color := clOlive;
+                    WriteLn('[DEBUG] UpdateButtonClick: Updated OptLabel to "', Value, '"');
+                  end;
+                end
+                else if SameText(Key, 'FakeNvapiVersion') then
+                begin
+                  if Assigned(FFakeNvapiLabel) then
+                  begin
+                    FFakeNvapiLabel.Caption := Value;
+                    FFakeNvapiLabel.Font.Color := clOlive;
+                    WriteLn('[DEBUG] UpdateButtonClick: Updated FakeNvapiLabel to "', Value, '"');
+                  end;
+                end
+                else if SameText(Key, 'fsrversion') then
+                begin
+                  if Assigned(FFsrLabel) then
+                  begin
+                    FFsrLabel.Caption := Value;
+                    FFsrLabel.Font.Color := clOlive;
+                    WriteLn('[DEBUG] UpdateButtonClick: Updated FsrLabel to "', Value, '"');
+                  end;
+                end
+                else if SameText(Key, 'xessversion') then
+                begin
+                  if Assigned(FXessLabel) then
+                  begin
+                    FXessLabel.Caption := Value;
+                    FXessLabel.Font.Color := clOlive;
+                    WriteLn('[DEBUG] UpdateButtonClick: Updated XessLabel to "', Value, '"');
+                  end;
+                end;
+              end;
+            end;
           end;
+        finally
+          CloseFile(VarsFile);
         end;
-      end;
 
-      // Build FakeNvapi download URL - format: fakenvapi-v1.3.4.7z
-      FakeNvapiURL := Format('https://github.com/optiscaler/fakenvapi/releases/download/%s/fakenvapi-%s.7z', [FakeNvapiVersion, FakeNvapiVersion]);
-      FakeNvapi7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-' + FakeNvapiVersion + '.7z';
-      WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi URL = ', FakeNvapiURL);
-      WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi 7z path = ', FakeNvapi7zPath);
-
-      // Download FakeNvapi .7z
-      UpdateProgress(99);
-      UpdateStatus('Downloading FakeNvapi');
-      WriteLn('[DEBUG] UpdateButtonClick: Downloading FakeNvapi...');
-      if DownloadFile(FakeNvapiURL, FakeNvapi7zPath) then
-      begin
-        WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi download successful');
-        UpdateStatus('Installing');
-        // Extract FakeNvapi .7z to fgmod folder
-        WriteLn('[DEBUG] UpdateButtonClick: Extracting FakeNvapi to ', FFGModPath);
-        if Extract7z(FakeNvapi7zPath, FFGModPath) then
+        WriteLn('[DEBUG] UpdateButtonClick: Finished reading goverlay.vars');
+      except
+        on E: Exception do
         begin
-          WriteLn('[DEBUG] UpdateButtonClick: FakeNvapi extraction successful');
-          UpdateProgress(100);
-          // Delete temporary .7z file
-          DeleteFile(FakeNvapi7zPath);
-          WriteLn('[DEBUG] UpdateButtonClick: Deleted temporary FakeNvapi .7z file');
-        end
-        else
-        begin
-          WriteLn('[ERROR] UpdateButtonClick: FakeNvapi extraction failed');
-          ShowMessage('Warning: Failed to extract FakeNvapi 7z file.');
-          DeleteFile(FakeNvapi7zPath);
+          WriteLn('[ERROR] UpdateButtonClick: Error reading goverlay.vars - ', E.Message);
+          ShowMessage('Warning: Could not read goverlay.vars: ' + E.Message);
         end;
-      end
-      else
-      begin
-        WriteLn('[ERROR] UpdateButtonClick: FakeNvapi download failed');
-        ShowMessage('Warning: Failed to download FakeNvapi.');
       end;
     end
     else
-    begin
-      WriteLn('[WARN] UpdateButtonClick: No FakeNvapi version obtained, skipping');
-      UpdateProgress(100);
-    end;
+      WriteLn('[WARN] UpdateButtonClick: goverlay.vars file not found at ', VarsFilePath);
 
-    // Clean up temporary files
+    UpdateProgress(90);
+
+    // Clean up temporary downloaded file
     WriteLn('[DEBUG] UpdateButtonClick: Cleaning up temporary files...');
-    DeleteFile(ZipFilePath);
-    DeleteDirectory(ExtractPath, False);
+    DeleteFile(SevenZFilePath);
     WriteLn('[DEBUG] UpdateButtonClick: Cleanup complete');
 
-    // 12. Create goverlay.vars file with version information
-    WriteLn('[DEBUG] UpdateButtonClick: Step 12 - Creating goverlay.vars file...');
-    try
-      VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
-      WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars path = ', VarsFilePath);
-      AssignFile(VarsFile, VarsFilePath);
-      Rewrite(VarsFile);
-
-      // Write header
-      WriteLn(VarsFile, '################### File Generated by Goverlay ###################');
-
-      // Write generation date and time
-      WriteLn(VarsFile, 'GeneratedAt=' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
-
-      // Write version variables
-      if DeckyVersion <> '' then
-        WriteLn(VarsFile, 'DeckyVersion=' + DeckyVersion);
-
-      if OptiVersion <> '' then
-        WriteLn(VarsFile, 'OptiScalerVersion=' + OptiVersion);
-
-      if FakeNvapiVersion <> '' then
-        WriteLn(VarsFile, 'FakeNvapiVersion=' + FakeNvapiVersion);
-
-      CloseFile(VarsFile);
-      WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars created successfully');
-    except
-      on E: Exception do
-      begin
-        WriteLn('[ERROR] UpdateButtonClick: Could not create goverlay.vars - ', E.Message);
-        ShowMessage('Warning: Could not create goverlay.vars: ' + E.Message);
-      end;
-    end;
-
     UpdateProgress(100);
-
-    // Create FSR4_LATEST and FSR4_INT8 folders and setup files
-    WriteLn('[DEBUG] UpdateButtonClick: Setting up FSR4 variants...');
-    try
-      UpdateStatus('Setting up FSR4 variants');
-
-      // Create FSR4_LATEST folder
-      ForceDirectories(IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_LATEST');
-
-      // Copy amd_fidelityfx_upscaler_dx12.dll to FSR4_LATEST
-      if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
-      begin
-        CopyFile(IncludeTrailingPathDelimiter(FFGModPath) + 'amd_fidelityfx_upscaler_dx12.dll',
-                 IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
-      end;
-
-      // Create FSR4_INT8 folder
-      ForceDirectories(IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_INT8');
-
-      // Download INT8 version to FSR4_INT8 folder
-      if DownloadFile('https://github.com/xXJSONDeruloXx/OptiScaler-Bleeding-Edge/releases/download/amd-fsr-r-int8/amd_fidelityfx_upscaler_dx12.dll',
-                      IncludeTrailingPathDelimiter(FFGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-      begin
-        UpdateStatus('FSR4 variants ready');
-      end
-      else
-        ShowMessage('Warning: Failed to download FSR4 INT8 variant.');
-    except
-      on E: Exception do
-        ShowMessage('Warning: Could not setup FSR4 variants: ' + E.Message);
-    end;
-
     UpdateStatus('Complete');
 
     WriteLn('[DEBUG] ========================================');
     WriteLn('[DEBUG] UpdateButtonClick: Installation completed successfully!');
     WriteLn('[DEBUG] ========================================');
 
-    // Restore button text after completion
+    // After successful installation, hide Update button and show Check Updates button
     if Assigned(FUpdateBtn) then
-      FUpdateBtn.Caption := 'Update';
-
-    // 13. Update xessLabel1 and fsrlabel1 with text "decky built-in"
-    if Assigned(FXessLabel) then
     begin
-      try
-        FXessLabel.Caption := 'decky built-in';
-        FXessLabel.Font.Color := clOlive;
-        Application.ProcessMessages;
-      except
-        on E: Exception do
-          ShowMessage('Warning: Could not update Xess label: ' + E.Message);
-      end;
-    end;
-
-    if Assigned(FFsrLabel) then
-    begin
-      try
-        FFsrLabel.Caption := 'decky built-in';
-        FFsrLabel.Font.Color := clOlive;
-        Application.ProcessMessages;
-      except
-        on E: Exception do
-          ShowMessage('Warning: Could not update Fsr label: ' + E.Message);
-      end;
-    end;
-
-    // 14. Hide update notification labels after successful installation
-    if Assigned(FDeckyLabel2) then
-      FDeckyLabel2.Visible := False;
-
-    if Assigned(FFakeNvapiLabel2) then
-      FFakeNvapiLabel2.Visible := False;
-
-    // 15. Update version labels with newly installed versions
-    if Assigned(FDeckyLabel) and (DeckyVersion <> '') then
-    begin
-      try
-        FDeckyLabel.Caption := DeckyVersion;
-        FDeckyLabel.Font.Color := clOlive;
-        Application.ProcessMessages;
-      except
-        // Ignore errors
-      end;
-    end;
-
-    if Assigned(FFakeNvapiLabel) and (FakeNvapiVersion <> '') then
-    begin
-      try
-        FFakeNvapiLabel.Caption := FakeNvapiVersion;
-        FFakeNvapiLabel.Font.Color := clOlive;
-        Application.ProcessMessages;
-      except
-        // Ignore errors
-      end;
-    end;
-
-    // 16. Show checkupdBitBtn again
-    if Assigned(FCheckupdBtn) then
-      FCheckupdBtn.Visible := True;
-
-    // 17. Hide updateBitBtn after successful installation
-    if Assigned(FUpdateBtn) then
       FUpdateBtn.Visible := False;
+      WriteLn('[DEBUG] UpdateButtonClick: Update button hidden');
+    end;
 
+    if Assigned(FCheckupdBtn) then
+    begin
+      FCheckupdBtn.Visible := True;
+      WriteLn('[DEBUG] UpdateButtonClick: Check Updates button shown');
+    end;
+
+    // Hide optLabel2 after installation
+    if Assigned(FOptiLabel2) then
+    begin
+      FOptiLabel2.Visible := False;
+      WriteLn('[DEBUG] UpdateButtonClick: optLabel2 hidden after installation');
+    end;
+
+    ShowMessage('OptiScaler installation completed successfully!');
 
   finally
     // Re-enable button
