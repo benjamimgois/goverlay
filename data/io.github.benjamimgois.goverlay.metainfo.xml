@@ -1,85 +1,84 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <component type="desktop-application">
-  <id>io.github.benjamimgois.goverlay</id>
+    <id>io.github.benjamimgois.goverlay</id>
 
-  <name>Goverlay</name>
-  <summary>Goverlay</summary>
-  <developer id="io.github.benjamimgois">
-    <name>Benjamim Gois</name>
-  </developer>
+    <name>Goverlay</name>
+    <summary>Goverlay</summary>
+    <developer id="io.github.benjamimgois">
+        <name>Benjamim Gois</name>
+    </developer>
 
-  <url type="homepage">https://github.com/benjamimgois/goverlay</url>
+    <url type="homepage">https://github.com/benjamimgois/goverlay</url>
 
-  <metadata_license>CC0-1.0</metadata_license>
-  <project_license>GPL-3.0</project_license>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-3.0</project_license>
 
-  <description>
-    <p>
-      Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Goverlay helps Linux gamers get the most out of their systems by providing an easy-to-use graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Whether you’re looking for performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
-    </p>
-  </description>
+    <description>
+        <p>
+            Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Goverlay helps Linux gamers get the most out of their systems by providing an easy-to-use graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Whether you're looking for performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
+        </p>
+    </description>
 
-  <launchable type="desktop-id">io.github.benjamimgois.goverlay.desktop</launchable>
+    <launchable type="desktop-id">io.github.benjamimgois.goverlay.desktop</launchable>
 
-  <branding>
-    <color type="primary" scheme_preference="light">#ff00ff</color>
-    <color type="primary" scheme_preference="dark">#993d3d</color>
-  </branding>
+    <branding>
+        <color type="primary" scheme_preference="light">#ff00ff</color>
+        <color type="primary" scheme_preference="dark">#993d3d</color>
+    </branding>
 
-  <screenshots>
-    <screenshot type="default">
-      <caption>Pre configured presets</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/1.webp</image>
-    </screenshot>
-    <screenshot>
-      <caption>Visual section to configure orientation,borders..</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/2.webp</image>
-    </screenshot>
-    <screenshot>
-      <caption>Performance section to configure fps,frame time..</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/3.webp</image>
-    </screenshot>
-    <screenshot>
-      <caption>Metrics section to configure CPU and GPU stats.</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/4.webp</image>
-    </screenshot>
-    <screenshot>
-      <caption>Extra goodies like distro info, wine version..</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/5.webp</image>
-    </screenshot>
-    <screenshot>
-      <caption>VkBasalt configuration section</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/6.webp</image>
-    </screenshot>
-    <screenshot>
-      <caption>OptiScaler configuration section</caption>
-      <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/7.webp</image>
-    </screenshot>
-  </screenshots>
+    <screenshots>
+        <screenshot type="default">
+            <caption>Pre configured presets</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/1.webp</image>
+        </screenshot>
+        <screenshot>
+            <caption>Visual section to configure orientation,borders..</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/2.webp</image>
+        </screenshot>
+        <screenshot>
+            <caption>Performance section to configure fps,frame time..</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/3.webp</image>
+        </screenshot>
+        <screenshot>
+            <caption>Metrics section to configure CPU and GPU stats.</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/4.webp</image>
+        </screenshot>
+        <screenshot>
+            <caption>Extra goodies like distro info, wine version..</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/5.webp</image>
+        </screenshot>
+        <screenshot>
+            <caption>VkBasalt configuration section</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/6.webp</image>
+        </screenshot>
+        <screenshot>
+            <caption>OptiScaler configuration section</caption>
+            <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/7.webp</image>
+        </screenshot>
+    </screenshots>
 
-  <releases>
-    <release version="1.6.7" date="2025-12-23">
-      <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.7</url>
-      <description>
-        <ul>
-          <li>Optiscaler channel selection (stable or bleeding-edge versions)</li>
-          <li>Sync versions with Optiscaler (now we don't use decky-framegen builds anymore)</li>
-          <li>Optiscaler builds repo
-            workflow for optiscaler builds by @xXJSONDeruloXx</li>
-          <li>GNOME Fixes: Tab text visibility on GNOME with dark themes</li>
-          </li>Debug Logging: 50+ debug checkpoints throughout OptiScaler operations</li>
-          </li>Flatpak Support: MangoHud configuration for Flatpak Steam</li>
-          </li>As a christmas gift, Goverlay is in final phases of approaval in flathub, this was only possible due to @Twig6943 hard work. Without him it wouldn't happen. Thanks man ! you rock those manifests.</li>
-          </li>Wish you all great hollidays and keep gaming on Linux</li>
-        </ul>
-      </description>
-    </release>
-  </releases>
+    <releases>
+        <release version="1.6.7" date="2025-12-23">
+            <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.7</url>
+            <description>
+                <ul>
+                    <li>OptiScaler channel selection (stable or bleeding-edge versions)</li>
+                    <li>Sync versions with OptiScaler (now we don't use decky-framegen builds anymore)</li>
+                    <li>OptiScaler builds repo workflow for OptiScaler builds by @xXJSONDeruloXx</li>
+                    <li>GNOME fixes: tab text visibility on GNOME with dark themes</li>
+                    <li>Debug logging: 50+ debug checkpoints throughout OptiScaler operations</li>
+                    <li>Flatpak support: MangoHud configuration for Flatpak Steam</li>
+                    <li>As a Christmas gift, Goverlay is in final phases of approval in Flathub. This was only possible due to @Twig6943 hard work — thanks!</li>
+                    <li>Wish you all great holidays and keep gaming on Linux</li>
+                </ul>
+            </description>
+        </release>
+    </releases>
 
-  <categories>
-    <category>Game</category>
-    <category>Utility</category>
-  </categories>
+    <categories>
+        <category>Game</category>
+        <category>Utility</category>
+    </categories>
 
-  <content_rating type="oars-1.1" />
+    <content_rating type="oars-1.1" />
 </component>
