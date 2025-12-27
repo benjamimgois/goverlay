@@ -3361,7 +3361,7 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.7';
+  GVERSION := '1.6.8';
   GCHANNEL := 'stable'; //stable ou git
 
   //Set Window caption
