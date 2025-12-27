@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>io.github.benjamimgois.goverlay</id>
 
-  <name>App</name>
+  <name>Goverlay</name>
   <summary>Goverlay</summary>
   <developer id="io.github.benjamimgois">
     <name>Benjamim Gois</name>
@@ -15,7 +15,7 @@
 
   <description>
     <p>
-      Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler.
+      Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Goverlay helps Linux gamers get the most out of their systems by providing an easy-to-use graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Whether you’re looking for performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
     </p>
   </description>
 
@@ -28,31 +28,31 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>Screenshot 1</caption>
+      <caption>Pre configured presets</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/1.webp</image>
     </screenshot>
     <screenshot>
-      <caption>Screenshot 2</caption>
+      <caption>Visual section to configure orientation,borders..</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/2.webp</image>
     </screenshot>
     <screenshot>
-      <caption>Screenshot 3</caption>
+      <caption>Performance section to configure fps,frame time..</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/3.webp</image>
     </screenshot>
     <screenshot>
-      <caption>Screenshot 4</caption>
+      <caption>Metrics section to configure CPU and GPU stats.</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/4.webp</image>
     </screenshot>
     <screenshot>
-      <caption>Screenshot 5</caption>
+      <caption>Extra goodies like distro info, wine version..</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/5.webp</image>
     </screenshot>
     <screenshot>
-      <caption>Screenshot 6</caption>
+      <caption>VkBasalt configuration section</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/6.webp</image>
     </screenshot>
     <screenshot>
-      <caption>Screenshot 7</caption>
+      <caption>OptiScaler configuration section</caption>
       <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/7.webp</image>
     </screenshot>
   </screenshots>
