@@ -37,6 +37,9 @@ const
   URL_DECKY_FRAMEGEN_API = 'https://api.github.com/repos/xXJSONDeruloXx/Decky-Framegen/releases/latest';
   URL_DECKY_FRAMEGEN_REPO = 'https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/';
 
+  // OptiScaler Builds (Stable Channel)
+  URL_OPTISCALER_BUILDS_API = 'https://api.github.com/repos/benjamimgois/OptiScaler-builds/tags';
+
   // FakeNvapi
   URL_FAKENVAPI_API = 'https://api.github.com/repos/optiscaler/fakenvapi/releases/latest';
   URL_FAKENVAPI_REPO = 'https://github.com/optiscaler/fakenvapi/releases/download/';

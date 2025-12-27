@@ -12,12 +12,11 @@ finish-args:
   # GPU access for Vulkan/OpenGL overlays
   - --device=dri
 
-  # Filesystem access for configuration files
-  # Using create because of https://github.com/benjamimgois/goverlay/issues/63#issuecomment-3583286483
-  - --persist=xdg-config/MangoHud:rw
-  - --persist=xdg-config/vkBasalt:rw
-  - --persist=~/fgmod:rw
-
+  # Persistent file access
+  - --persist=.config/MangoHud
+  - --persist=.config/vkBasalt
+  - --persist=fgmod
+  
   # Network access for downloads (OptiScaler, ReShade shaders, updates)
   - --share=network
 
@@ -122,8 +121,8 @@ modules:
     sources:
       - type: git
         url: https://github.com/benjamimgois/goverlay.git
-        tag: 1.6.4
-        commit: 3374c45f924ede516200505e4f548fb4cfa3b5c7
+        tag: 1.6.6
+        commit: de54e634f1a53ed294840381b483f21e159d231a
     build-commands:
       - |
         # Use Flatpak-compatible launcher script
