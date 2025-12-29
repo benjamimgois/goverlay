@@ -42,6 +42,7 @@ type
     batterywattCheckBox: TCheckBox;
     fsrversionComboBox: TComboBox;
     cpucoretypeCheckBox: TCheckBox;
+    activegpuLabel: TLabel;
     optversionComboBox: TComboBox;
     ftraceCheckBox: TCheckBox;
     gpupowerlimitCheckBox: TCheckBox;
@@ -2764,13 +2765,28 @@ begin
     // HUD compact
     AddIfChecked(hudcompactCheckBox, 'hud_compact');
 
-    // PCI device
+    // PCI device and GPU List logic
     if pcidevComboBox.ItemIndex <> -1 then
-      ConfigLines.Add('pci_dev=0:' + pcidevComboBox.Items[pcidevComboBox.ItemIndex]);
+    begin
+      // Check if "Use both GPUs" is selected
+      if pcidevComboBox.Items[pcidevComboBox.ItemIndex] = 'Use both GPUs' then
+      begin
+        ConfigLines.Add('gpu_list=0,1');
+      end
+      else
+      begin
+        // Write pci_dev for specific GPU
+        ConfigLines.Add('pci_dev=0:' + pcidevComboBox.Items[pcidevComboBox.ItemIndex]);
 
-    // GPU list (show all GPUs when multiple GPUs are detected)
-    if GPUNUMBER > 1 then
-      ConfigLines.Add('gpu_list=0,1');
+        // Write gpu_list based on index
+        if pcidevComboBox.ItemIndex = 0 then
+             ConfigLines.Add('gpu_list=0')
+        else if pcidevComboBox.ItemIndex = 1 then
+             ConfigLines.Add('gpu_list=1')
+        else
+             ConfigLines.Add('gpu_list=' + IntToStr(pcidevComboBox.ItemIndex));
+      end;
+    end;
 
     // Table columns
     ConfigLines.Add('table_columns=' + columvalueLabel.Caption);
@@ -3712,6 +3728,14 @@ begin
 
 
     end; //while
+
+
+    // Add "Use both GPUs" option if multiple GPUs are detected
+    if GPUNUMBER > 1 then
+    begin
+      pcidevCombobox.Items.Add('Use both GPUs');
+      GPUDESC.Add('All GPUs');
+    end;
 
 
    //Detect network devices on startup
