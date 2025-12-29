@@ -108,6 +108,36 @@ function FindDefaultExecutablePath(const ExecutableName: string): string;
 
 implementation
 
+
+function RunCommand(const Executable: string; const Parameters: array of string; out Output: string): Boolean;
+var
+  AProcess: TProcess;
+  i: Integer;
+  SL: TStringList;
+begin
+  Result := False;
+  Output := '';
+  AProcess := TProcess.Create(nil);
+  SL := TStringList.Create;
+  try
+    try
+      AProcess.Executable := Executable;
+      for i := Low(Parameters) to High(Parameters) do
+        AProcess.Parameters.Add(Parameters[i]);
+      AProcess.Options := [poWaitOnExit, poUsePipes];
+      AProcess.Execute;
+      SL.LoadFromStream(AProcess.Output);
+      Output := Trim(SL.Text);
+      Result := AProcess.ExitStatus = 0;
+    except
+      Result := False;
+    end;
+  finally
+    SL.Free;
+    AProcess.Free;
+  end;
+end;
+
 function IsRunningInFlatpak: Boolean;
 begin
   Result := GetEnvironmentVariable('FLATPAK_ID') <> '';
@@ -115,23 +145,10 @@ end;
 
 function IsCommandAvailable(const CommandName: string): Boolean;
 var
-  AProcess: TProcess;
+  Output: string;
 begin
-  Result := False;
-  AProcess := TProcess.Create(nil);
-  try
-    try
-      AProcess.Executable := 'which';
-      AProcess.Parameters.Add(CommandName);
-      AProcess.Options := [poWaitOnExit, poUsePipes];
-      AProcess.Execute;
-      Result := AProcess.ExitStatus = 0;
-    except
-      Result := False;
-    end;
-  finally
-    AProcess.Free;
-  end;
+  // We use 'which' to check if command exists
+  Result := RunCommand('which', [CommandName], Output);
 end;
 
 function DetectGPUVendorFromSys: TGPUVendor;
@@ -197,44 +214,25 @@ end;
 
 function DetectGPUVendorFromLspci: TGPUVendor;
 var
-  AProcess: TProcess;
-  GPUInfo: TStringList;
-  Line: string;
+  Output: string;
+  Executable: string;
 begin
   Result := gpuUnknown;
-  AProcess := TProcess.Create(nil);
-  GPUInfo := TStringList.Create;
-  try
-    try
-      AProcess.Executable := FindDefaultExecutablePath('lspci');
-      AProcess.Parameters.Add('-nn');
-      AProcess.Options := [poWaitOnExit, poUsePipes];
-      AProcess.Execute;
-      GPUInfo.LoadFromStream(AProcess.Output);
-
-      // Search for VGA or 3D controller
-      for Line in GPUInfo do
-      begin
-        if (Pos('VGA', Line) > 0) or (Pos('3D controller', Line) > 0) then
-        begin
-          // Check for vendor identifiers
-          if (Pos('AMD', Line) > 0) or (Pos('ATI', Line) > 0) or (Pos('[1002:', Line) > 0) then
-            Result := gpuAMD
-          else if (Pos('NVIDIA', Line) > 0) or (Pos('[10de:', Line) > 0) then
-            Result := gpuNVIDIA
-          else if (Pos('Intel', Line) > 0) or (Pos('[8086:', Line) > 0) then
-            Result := gpuIntel;
-
-          if Result <> gpuUnknown then
-            Break;
-        end;
-      end;
-    except
-      Result := gpuUnknown;
+  Executable := FindDefaultExecutablePath('lspci');
+  
+  if RunCommand(Executable, ['-nn'], Output) then
+  begin
+    // Search for VGA or 3D controller in Output
+    if (Pos('VGA', Output) > 0) or (Pos('3D controller', Output) > 0) then
+    begin
+      // Check for vendor identifiers
+      if (Pos('AMD', Output) > 0) or (Pos('ATI', Output) > 0) or (Pos('[1002:', Output) > 0) then
+        Result := gpuAMD
+      else if (Pos('NVIDIA', Output) > 0) or (Pos('[10de:', Output) > 0) then
+        Result := gpuNVIDIA
+      else if (Pos('Intel', Output) > 0) or (Pos('[8086:', Output) > 0) then
+        Result := gpuIntel;
     end;
-  finally
-    GPUInfo.Free;
-    AProcess.Free;
   end;
 end;
 
@@ -259,28 +257,19 @@ end;
 
 function IsNvidiaDriverLoaded: Boolean;
 var
-  AProcess: TProcess;
-  OutputList: TStringList;
+  SL: TStringList;
 begin
   Result := False;
-  AProcess := TProcess.Create(nil);
-  OutputList := TStringList.Create;
-  try
+  // Direct file read from /proc/modules is faster and works in sandboxes
+  if FileExists('/proc/modules') then
+  begin
+    SL := TStringList.Create;
     try
-      // Use lsmod to check if nvidia module is loaded
-      AProcess.Executable := 'lsmod';
-      AProcess.Options := [poWaitOnExit, poUsePipes];
-      AProcess.Execute;
-      OutputList.LoadFromStream(AProcess.Output);
-
-      // Check if nvidia module appears in the output
-      Result := OutputList.Text.Contains('nvidia');
-    except
-      Result := False;
+      SL.LoadFromFile('/proc/modules');
+      Result := Pos('nvidia', SL.Text) > 0;
+    finally
+      SL.Free;
     end;
-  finally
-    OutputList.Free;
-    AProcess.Free;
   end;
 end;
 
@@ -321,25 +310,24 @@ end;
 
 function GetNetworkInterfacesFromCommand: TStringList;
 var
-  AProcess: TProcess;
+  OutputStr: string;
   Output: TStringList;
   i: Integer;
   Line, InterfaceName: string;
+  Executable: string;
 begin
   Result := TStringList.Create;
   Result.Sorted := True;
   Result.Duplicates := dupIgnore;
 
-  AProcess := TProcess.Create(nil);
-  Output := TStringList.Create;
-  try
+  Executable := FindDefaultExecutablePath('ip');
+  
+  if RunCommand(Executable, ['link'], OutputStr) then
+  begin
+    Output := TStringList.Create;
     try
-      AProcess.Executable := FindDefaultExecutablePath('ip');
-      AProcess.Parameters.Add('link');
-      AProcess.Options := [poWaitOnExit, poUsePipes];
-      AProcess.Execute;
-      Output.LoadFromStream(AProcess.Output);
-
+      Output.Text := OutputStr;
+      
       // Parse ip link output
       for i := 0 to Output.Count - 1 do
       begin
@@ -364,12 +352,9 @@ begin
           end;
         end;
       end;
-    except
-      // If command fails, return empty list
+    finally
+      Output.Free;
     end;
-  finally
-    Output.Free;
-    AProcess.Free;
   end;
 end;
 
@@ -440,33 +425,14 @@ end;
 
 function FindDefaultExecutablePath(const ExecutableName: string): string;
 var
-  AProcess: TProcess;
-  Output: TStringList;
+  Output: string;
 begin
   Result := ExecutableName; // Default fallback
 
-  AProcess := TProcess.Create(nil);
-  Output := TStringList.Create;
-  try
-    try
-      AProcess.Executable := 'which';
-      AProcess.Parameters.Add(ExecutableName);
-      AProcess.Options := [poWaitOnExit, poUsePipes];
-      AProcess.Execute;
-
-      if AProcess.ExitStatus = 0 then
-      begin
-        Output.LoadFromStream(AProcess.Output);
-        if Output.Count > 0 then
-          Result := Trim(Output[0]);
-      end;
-    except
-      // If which fails, return the executable name as-is
-      Result := ExecutableName;
-    end;
-  finally
-    Output.Free;
-    AProcess.Free;
+  if RunCommand('which', [ExecutableName], Output) then
+  begin
+    if Output <> '' then
+      Result := Output;
   end;
 end;
 

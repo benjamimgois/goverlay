@@ -3361,8 +3361,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.8';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.9';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
