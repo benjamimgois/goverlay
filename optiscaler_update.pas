@@ -82,8 +82,22 @@ end;
 // Flatpak has --filesystem=home permission allowing access to user's home directory
 function GetOptiScalerInstallPath: string;
 var
-  UserDir: string;
+  UserDir, UserName: string;
 begin
+  // Check if running in Flatpak
+  if IsRunningInFlatpak then
+  begin
+    // Try to get the real user name
+    UserName := GetEnvironmentVariable('USER');
+    if UserName <> '' then
+    begin
+      // Construct path using standard /home/ structure
+      // This avoids the ~/.var/app/... sandbox path returned by GetUserDir
+      Result := '/home/' + UserName + '/fgmod';
+      Exit;
+    end;
+  end;
+
   UserDir := GetUserDir;
 
   // Always use ~/fgmod regardless of Flatpak or native installation

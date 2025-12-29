@@ -1424,8 +1424,8 @@ begin
   Missing := TStringList.Create;
 
   //check if pascubeis available
-  //if not IsCommandAvailable('pascube') then
-  //  Missing.Add('pascube');
+  if not IsCommandAvailable('pascube') then
+     Missing.Add('pascube');
 
   //check if mangohud if available
   if not IsCommandAvailable('mangohud') then
@@ -3658,8 +3658,6 @@ begin
       ExecuteGUICommand('mangohud vkcube &');
   end;
 
-   // Start pasCube
-   //RunPasCube;
 
   //Load available text fonts
    ListarFontesNoDiretorio(fontComboBox);
