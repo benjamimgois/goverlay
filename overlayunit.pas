@@ -1572,7 +1572,7 @@ begin
 
 if not FileExists(CUSTOMCFGFILE) then
 begin
-  ShowMessage('You need to save a custom preset first. Click on the hamburguer menu and click save as custom config.');
+  ShowMessage('You need to save a custom preset first. Click on the hamburger menu and click save as custom config.');
 end
 
 else
@@ -4432,7 +4432,7 @@ begin
     // if output is 0, process is running, show message and stop
     if Process.ExitStatus = 0 then
     begin
-      ShowMessage('vkcube is running !');
+      ShowMessage('vkcube is running!');
       Exit;
     end;
   finally
@@ -5022,7 +5022,7 @@ begin
       Exit;
     end;
 
-    Response := MessageDlg('Due to a known vulnerability in intel cpus,  the corresponding energy_uj file has to be readable by corresponding user. Having the file readable may potentially be a security vulnerability persisting until system reboots.', mtConfirmation, [mbYes, mbNo], 0);
+    Response := MessageDlg('Due to a known vulnerability in Intel CPUs,  the corresponding energy_uj file has to be readable by corresponding user. Having the file readable may potentially be a security vulnerability persisting until system reboots.', mtConfirmation, [mbYes, mbNo], 0);
 
       if Response = mrYes then
       begin
@@ -5916,7 +5916,7 @@ procedure Tgoverlayform.subBitBtnClick(Sender: TObject);
 begin
   if acteffectsListbox.Items.Count = 0 then
   begin
-    ShowMessage('There is no active effects');
+    ShowMessage('There are no active effects');
     Exit;
   end;
 

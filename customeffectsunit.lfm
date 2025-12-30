@@ -30,7 +30,7 @@ object customeffectsForm: TcustomeffectsForm
       Height = 15
       Top = 4
       Width = 84
-      Caption = 'Quality Subpix'
+      Caption = 'Quality Subpixel'
       ParentColor = False
     end
     object Label2: TLabel
@@ -46,7 +46,7 @@ object customeffectsForm: TcustomeffectsForm
       Height = 15
       Top = 4
       Width = 118
-      Caption = 'Edge ThresholdMin'
+      Caption = 'Edge Threshold Min'
       ParentColor = False
     end
     object fxaa1ComboBox: TComboBox
@@ -235,7 +235,7 @@ object customeffectsForm: TcustomeffectsForm
       Height = 15
       Top = 6
       Width = 133
-      Caption = 'Max Search Steps Diag'
+      Caption = 'Max Search Steps Diagonal'
       ParentColor = False
     end
     object ComboBox8: TComboBox
