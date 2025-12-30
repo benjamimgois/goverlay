@@ -455,6 +455,7 @@ type
   public
 
 
+    procedure CheckFlatpakRuntimes;
   end;
 
 
@@ -3999,10 +4000,46 @@ begin
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
 
+    //Check for Flatpak runtimes
+    CheckFlatpakRuntimes;
+
 end; // form create
 
 
 
+procedure Tgoverlayform.CheckFlatpakRuntimes;
+var
+  Output: string;
+  MissingList: string;
+  RunCommandResult: Boolean;
+begin
+  if not IsRunningInFlatpak then Exit;
+
+  // Check for MangoHud layer
+  RunCommandResult := RunCommand('flatpak-spawn', ['--host', 'flatpak', 'list', '--columns=ref'], Output);
+  
+  MissingList := '';
+  
+  if RunCommandResult then
+  begin
+    if Pos('runtime/org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/25.08', Output) = 0 then
+      MissingList := MissingList + 'org.freedesktop.Platform.VulkanLayer.MangoHud ';
+      
+    if Pos('runtime/org.freedesktop.Platform.VulkanLayer.vkBasalt/x86_64/25.08', Output) = 0 then
+      MissingList := MissingList + 'org.freedesktop.Platform.VulkanLayer.vkBasalt ';
+      
+    if MissingList <> '' then
+    begin
+      if MessageDlg('Missing Flatpak Runtimes', 
+         'The following Flatpak runtimes are missing but required for full functionality: ' + LineEnding + 
+         MissingList + LineEnding + LineEnding + 
+         'Do you want to install them now?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+      begin
+        ExecuteGUICommand('flatpak-spawn --host flatpak install -y ' + MissingList);
+      end;
+    end;
+  end;
+end;
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
 begin
      //Change icon and hint on click
