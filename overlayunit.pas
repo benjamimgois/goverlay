@@ -963,7 +963,9 @@ begin
   try
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
-    Process.Parameters.Add(Command);
+    // Use nohup with sh -c to handle environment variables and detachment properly
+    // We wrap the command in single quotes for the inner sh
+    Process.Parameters.Add('nohup sh -c ''' + Command + ''' &');
     // Don't use poUsePipes - we're not reading the output and it causes
     // the child process to block when pipes fill up after multiple executions
     Process.Options := [];
@@ -1374,10 +1376,7 @@ end;
 
 
 //Function to check for dependencies
-function IsCommandAvailable(const Cmd: string): Boolean;
-begin
-  Result := FindDefaultExecutablePath(Cmd) <> '';
-end;
+
 
 function LibraryExists(const LibName: string): Boolean;
 const
@@ -3538,7 +3537,7 @@ begin
     SendNotification('Goverlay', 'No configuration files located, creating files and folders.', GetIconFile);
 
 
-  // estado padrão ao iniciar
+  // default state
   aveffectsListbox.Enabled := False;
   addBitbtn.Enabled := False;
   subBitbtn.Enabled := False;
@@ -3651,32 +3650,48 @@ begin
 
 
   // Start pascube or vkcube (vulkan demo)
-  if IsCommandAvailable('pascube') then
+  
+  // Check if running in Flatpak
+  if IsRunningInFlatpak then
   begin
-     ExecuteGUICommand('MANGOHUD=1 pascube &');
+      // FLATPAK MODE
+      if IsCommandAvailable('pascube') then
+      begin
+         ExecuteGUICommand('MANGOHUD=1 pascube &');
+      end
+      else if IsCommandAvailable('vkcube') then
+      begin
+         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
+         if USERSESSION = 'wayland' then
+           ExecuteGUICommand('MANGOHUD=1 vkcube --wsi wayland &')
+         else
+           ExecuteGUICommand('MANGOHUD=1 vkcube &');
+       end
+       else
+       begin
+         // None found
+          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
+       end;
   end
   else
   begin
-    // Show notification
-    SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
-
-    // Fallback to vkcube logic
-    // In Flatpak, MangoHud works via environment variable, not as a wrapper command
-    // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
-    if IsRunningInFlatpak then
-    begin
-      if USERSESSION = 'wayland' then
-        ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
+      // NATIVE MODE
+      if IsCommandAvailable('pascube') then
+      begin
+         ExecuteGUICommand('MANGOHUD=1 pascube &');
+      end
+      else if IsCommandAvailable('vkcube') then
+      begin
+        SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
+        if USERSESSION = 'wayland' then
+          ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+        else
+          ExecuteGUICommand('mangohud vkcube &');
+      end
       else
-        ExecuteGUICommand('MANGOHUD=1 vkcube &');
-    end
-    else
-    begin
-      if USERSESSION = 'wayland' then
-        ExecuteGUICommand('mangohud vkcube --wsi wayland &')
-      else
-        ExecuteGUICommand('mangohud vkcube &');
-    end;
+      begin
+         SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
+      end;
   end;
 
 
