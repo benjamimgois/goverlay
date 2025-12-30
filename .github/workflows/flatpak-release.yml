@@ -1,4 +1,4 @@
-name: Build Flatpak Release
+name: Flatpak CI
 
 on:
   workflow_dispatch:
