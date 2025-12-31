@@ -4737,12 +4737,7 @@ begin
     cpuloadcolorCheckbox.Checked:=true;
     //battery
     batteryCheckbox.Checked:=true;
-    // Change button color
-    fullBitbtn.Color:=clDefault;
-    basicBitbtn.Color:=$007F5500;
-    basichorizontalBitbtn.Color:=clDefault;
-    fpsonlyBitbtn.Color:=clDefault;
-    usercustomBitbtn.Color:=clDefault;
+
   //Save button
   saveBitbtn.Click;
 end;
@@ -4773,12 +4768,7 @@ begin
     cpuloadcolorCheckbox.Checked:=true;
     //battery
     batteryCheckbox.Checked:=true;
-    // Change button color
-    fullBitbtn.Color:=clDefault;
-    basicBitbtn.Color:=clDefault;
-    basichorizontalBitbtn.Color:=$007F5500;
-    fpsonlyBitbtn.Color:=clDefault;
-    usercustomBitbtn.Color:=clDefault;
+
   //Save button
   saveBitbtn.Click;
 end;
@@ -4890,12 +4880,6 @@ begin
   fpsCheckbox.Checked:=true;
   fpscolorCheckbox.Checked:=true;
 
-  // Change button color
-    fullBitbtn.Color:=clDefault;
-    basicBitbtn.Color:=clDefault;
-    basichorizontalBitbtn.Color:=clDefault;
-    fpsonlyBitbtn.Color:=$007F5500;
-    usercustomBitbtn.Color:=clDefault;
 
   //Save button
   saveBitbtn.Click;
@@ -4918,12 +4902,6 @@ begin
   versioningCheckbox.Checked:=false;
   autouploadCheckbox.Checked:=false;
 
-  // Change button color
-  fullBitbtn.Color:=$007F5500;
-  basicBitbtn.Color:=clDefault;
-  basichorizontalBitbtn.Color:=clDefault;
-  fpsonlyBitbtn.Color:=clDefault;
-  usercustomBitbtn.Color:=clDefault;
 
   //Save button
   saveBitbtn.Click;
