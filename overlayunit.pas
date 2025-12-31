@@ -1625,13 +1625,14 @@ begin
   begin
     SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
 
-    if IsRunningInFlatpak then
-    begin
-      if USERSESSION = 'wayland' then
-        ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
-      else
-        ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
-    end
+      if IsRunningInFlatpak then
+      begin
+         // In Flatpak, use vkcube-wayland binary if available and on Wayland
+         if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
+            ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
+         else
+            ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
+      end
     else
     begin
       if USERSESSION = 'wayland' then
@@ -3663,10 +3664,11 @@ begin
       else if IsCommandAvailable('vkcube') then
       begin
          SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
-         if USERSESSION = 'wayland' then
-           ExecuteGUICommand('MANGOHUD=1 vkcube --wsi wayland &')
+         // In Flatpak, vkcube auto-detects or doesn't support --wsi flag
+         if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
+            ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
          else
-           ExecuteGUICommand('MANGOHUD=1 vkcube &');
+            ExecuteGUICommand('MANGOHUD=1 vkcube &');
        end
        else
        begin
@@ -3685,9 +3687,9 @@ begin
       begin
         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
         if USERSESSION = 'wayland' then
-          ExecuteGUICommand('mangohud vkcube --wsi wayland &')
+        ExecuteGUICommand('MANGOHUD=1 vkcube --wsi wayland &')
         else
-          ExecuteGUICommand('mangohud vkcube &');
+        ExecuteGUICommand('mangohud vkcube &');
       end
       else
       begin
@@ -4462,8 +4464,32 @@ procedure Tgoverlayform.runvkbasaltItemClick(Sender: TObject);
 begin
 
 
-// Start pasCube
-RunPasCube;
+  // Check if running in Flatpak
+    if IsRunningInFlatpak then
+    begin
+        // FLATPAK MODE
+        if IsCommandAvailable('pascube') then
+        begin
+           ExecuteGUICommand('MANGOHUD=1 pascube &');
+        end
+        else
+         begin
+           // None found
+            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
+         end;
+    end
+    else
+    begin
+        // NATIVE MODE
+        if IsCommandAvailable('pascube') then
+        begin
+           ExecuteGUICommand('MANGOHUD=1 pascube &');
+        end
+        else
+        begin
+           SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
+        end;
+    end;
 
 end;
 
@@ -4496,17 +4522,16 @@ begin
   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
   if IsRunningInFlatpak then
   begin
-    if USERSESSION = 'wayland' then
-      ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
-    else
-      ExecuteGUICommand('MANGOHUD=1 vkcube &');
+      // In Flatpak, vkcube auto-detects WSI
+      if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
+         ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
+      else
+         ExecuteGUICommand('MANGOHUD=1 vkcube &');
   end
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand('mangohud vkcube --wsi wayland &')
-    else
-      ExecuteGUICommand('mangohud vkcube &');
+      ExecuteGUICommand('MANGOHUD=1 vkcube &');
   end;
 end;
 
@@ -5906,10 +5931,11 @@ end;  //  ################### END - SAVE MANGOHUD
 
      if IsRunningInFlatpak then
      begin
-       if USERSESSION = 'wayland' then
-         ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
+       // In Flatpak, vkcube auto-detects WSI
+       if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
+          ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
        else
-         ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
+          ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
      end
      else
      begin
