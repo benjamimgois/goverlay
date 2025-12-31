@@ -455,7 +455,6 @@ type
   public
 
 
-    procedure CheckFlatpakRuntimes;
   end;
 
 
@@ -1420,16 +1419,43 @@ end;
 
 //Function to check for dependencies
 function CheckDependencies(out Missing: TStringList): Boolean;
+var
+  Output: string;
 begin
   Missing := TStringList.Create;
 
-  //check if pascubeis available
+  //check if pascube is available
   if not IsCommandAvailable('pascube') then
      Missing.Add('pascube');
 
-  //check if mangohud if available
-  if not IsCommandAvailable('mangohud') then
-    Missing.Add('mangohud');
+  // Check for Flatpak runtimes or native binaries
+  if IsRunningInFlatpak then
+  begin
+    // Flatpak mode: check for runtimes via flatpak-spawn
+    if RunCommand('flatpak-spawn', ['--host', 'flatpak', 'list', '--columns=ref'], Output) then
+    begin
+      // Check MangoHud runtime
+      if Pos('runtime/org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/25.08', Output) = 0 then
+        Missing.Add('MangoHud runtime 25.08');
+
+      // Check vkBasalt runtime
+      if Pos('runtime/org.freedesktop.Platform.VulkanLayer.vkBasalt/x86_64/25.08', Output) = 0 then
+        Missing.Add('vkBasalt runtime 25.08');
+    end;
+  end
+  else
+  begin
+    // Native mode: check for binaries normally
+    if not IsCommandAvailable('mangohud') then
+      Missing.Add('mangohud');
+
+    // Traditional distros: check for libvkbasalt.so
+    if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
+       not FileExists('/usr/lib/libvkbasalt.so') and
+       not FileExists('/usr/lib64/libvkbasalt.so') and
+       not FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so') then
+      Missing.Add('vkbasalt');
+  end;
 
   //check if vkcube is available
   if not IsCommandAvailable('vkcube') then
@@ -1446,24 +1472,6 @@ begin
     //check if git is available
   if not IsCommandAvailable('git') then
     Missing.Add('git');
-
-  //check if vkbasalt is available
-  if IsRunningInFlatpak then
-  begin
-    // Flatpak: check for vkbasalt
-    if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/$(uname -m)-linux-gnu/vkbasalt/libvkbasalt.so')
-       then
-    Missing.Add('vkbasalt');
-  end
-  else
-  begin
-    // Traditional distros: check for libvkbasalt.so
-    if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
-       not FileExists('/usr/lib/libvkbasalt.so') and
-       not FileExists('/usr/lib64/libvkbasalt.so') and
-       not FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so') then
-      Missing.Add('vkbasalt');
-  end;
 
    //check if zenergy module is available
   //if not IsKernelModuleAvailable('zenergy') then
@@ -4002,46 +4010,13 @@ begin
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
 
-    //Check for Flatpak runtimes
-    CheckFlatpakRuntimes;
+
 
 end; // form create
 
 
 
-procedure Tgoverlayform.CheckFlatpakRuntimes;
-var
-  Output: string;
-  MissingList: string;
-  RunCommandResult: Boolean;
-begin
-  if not IsRunningInFlatpak then Exit;
 
-  // Check for MangoHud layer
-  RunCommandResult := RunCommand('flatpak-spawn', ['--host', 'flatpak', 'list', '--columns=ref'], Output);
-  
-  MissingList := '';
-  
-  if RunCommandResult then
-  begin
-    if Pos('runtime/org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/25.08', Output) = 0 then
-      MissingList := MissingList + 'org.freedesktop.Platform.VulkanLayer.MangoHud ';
-      
-    if Pos('runtime/org.freedesktop.Platform.VulkanLayer.vkBasalt/x86_64/25.08', Output) = 0 then
-      MissingList := MissingList + 'org.freedesktop.Platform.VulkanLayer.vkBasalt ';
-      
-    if MissingList <> '' then
-    begin
-      if MessageDlg('Missing Flatpak Runtimes', 
-         'The following Flatpak runtimes are missing but required for full functionality: ' + LineEnding + 
-         MissingList + LineEnding + LineEnding + 
-         'Do you want to install them now?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-      begin
-        ExecuteGUICommand('flatpak-spawn --host flatpak install -y ' + MissingList);
-      end;
-    end;
-  end;
-end;
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
 begin
      //Change icon and hint on click
