@@ -1435,11 +1435,11 @@ begin
     if RunCommand('flatpak-spawn', ['--host', 'flatpak', 'list', '--columns=ref'], Output) then
     begin
       // Check MangoHud runtime
-      if Pos('runtime/org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/25.08', Output) = 0 then
+      if Pos('org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/25.08', Output) = 0 then
         Missing.Add('MangoHud runtime 25.08');
 
       // Check vkBasalt runtime
-      if Pos('runtime/org.freedesktop.Platform.VulkanLayer.vkBasalt/x86_64/25.08', Output) = 0 then
+      if Pos('org.freedesktop.Platform.VulkanLayer.vkBasalt/x86_64/25.08', Output) = 0 then
         Missing.Add('vkBasalt runtime 25.08');
     end;
   end
