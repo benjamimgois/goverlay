@@ -126,6 +126,7 @@ Version 1.6.9 delivers substantial improvements to Flatpak compatibility, enhanc
 ⚡ Better Wayland detection and handling  
 ⚡ Improved dependency check for Flatpak environments  
 ⚡ Optimized system detection routines  
+⚡ Center aligned DEPENDENCIES STATUS label for better UI consistency  
 
 ---
 
@@ -133,6 +134,8 @@ Version 1.6.9 delivers substantial improvements to Flatpak compatibility, enhanc
 
 | Commit | Description |
 |--------|-------------|
+| `ab2d05b2` | Center align DEPENDENCIES STATUS label |
+| `4fa4b267` | Remove preset button color changes and add 1.6.9 changelog |
 | `91cd0e03` | Fix Flatpak runtime detection for MangoHud and vkBasalt |
 | `65214c2e` | fix(flatpak): Use correct fgmod path for Flatpak persist directory |
 | `5196732f` | feat(flatpak): Check for MangoHud/vkBasalt runtimes instead of disk files |
