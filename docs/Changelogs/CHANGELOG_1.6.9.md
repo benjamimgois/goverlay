@@ -119,6 +119,7 @@ Version 1.6.9 delivers substantial improvements to Flatpak compatibility, enhanc
 🐛 Fixed fgmod path in Flatpak using sandbox path instead of real home  
 🐛 Fixed vkcube Wayland support in Flatpak mode  
 🐛 Fixed spelling errors in UI and source code  
+🐛 Removed redundant preset button color changes that caused visual inconsistency  
 
 ### Improvements
 ⚡ Enhanced PasCube/vkCube fallback logic  
