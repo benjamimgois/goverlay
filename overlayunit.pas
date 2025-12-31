@@ -5665,7 +5665,11 @@ EnableTraceLogsFound: Boolean;
 
             // Build launch command with full absolute path
             // Using absolute path ensures compatibility with all game launchers
-            LaunchCommand := FGModPath + '/fgmod %command%';
+            // In Flatpak mode, use the actual persist path for display
+            if IsRunningInFlatpak then
+              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+            else
+              LaunchCommand := FGModPath + '/fgmod %command%';
 
             // Update notificationLabel
             notificationLabel.Caption := 'Launch command:';

@@ -765,7 +765,11 @@ begin
     Exit;
   end;
 
-  CorrectPath := 'fgmod_path="$HOME/fgmod"';
+  // Use appropriate path based on environment
+  if IsRunningInFlatpak then
+    CorrectPath := 'fgmod_path="$HOME/.var/app/io.github.benjamimgois.goverlay/fgmod"'
+  else
+    CorrectPath := 'fgmod_path="$HOME/fgmod"';
   Lines := TStringList.Create;
   try
     // Read the entire fgmod script
