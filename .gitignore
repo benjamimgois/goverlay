@@ -8,6 +8,23 @@ goverlay_*.tar.xz
 *.flatpak
 docs/Changelogs/
 
+# Flatpak build artifacts
+.flatpak-builder/
+build-dir/
+flatpak-build/
+flatpak-build-test/
+flatpak-repo/
+*.local.yml
+
+# Misc
+nohup.out
+.claude/
+
+# GNU Global tags
+GTAGS
+GRTAGS
+GPATH
+
 # Created by https://www.toptal.com/developers/gitignore/api/lazarus
 # Edit at https://www.toptal.com/developers/gitignore?templates=lazarus
 
