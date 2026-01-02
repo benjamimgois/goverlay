@@ -116,8 +116,8 @@ You can download it from [**`Flathub`**](https://flathub.org/en/apps/io.github.b
 flatpak install flathub io.github.benjamimgois.goverlay
 
 # Install required runtimes for MangoHud and vkBasalt support
-flatpak --user install flathub org.freedesktop.Platform.VulkanLayer.MangoHud//24.08 \
-org.freedesktop.Platform.VulkanLayer.vkBasalt//24.08 -y
+flatpak --user install flathub org.freedesktop.Platform.VulkanLayer.MangoHud//25.08 \
+org.freedesktop.Platform.VulkanLayer.vkBasalt//25.08 -y
 ```
 
 
