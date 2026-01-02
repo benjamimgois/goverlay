@@ -3,33 +3,28 @@
 </p>
 
 <p align="center">
-  <!-- Latest Release -->
   <a href="https://github.com/benjamimgois/Goverlay/releases">
     <img
       src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge"
       alt="Latest release">
   </a>
 
-  <!-- Flatpak (Flathub) -->
-<a href="https://github.com/benjamimgois/Goverlay#flatpak">
-  <img src="https://img.shields.io/badge/Flatpak-Beta-orange?style=for-the-badge&logo=flathub" alt="Flatpak beta">
-</a>
+  <a href="https://flathub.org/apps/io.github.benjamimgois.goverlay">
+    <img src="https://img.shields.io/badge/Flathub-Stable-blue?style=for-the-badge&logo=flathub" alt="Flathub status">
+  </a>
 
-  <!-- AUR -->
   <a href="https://aur.archlinux.org/packages/goverlay-git">
     <img
       src="https://img.shields.io/aur/version/goverlay-git?color=1793d1&label=AUR&style=for-the-badge"
       alt="AUR version">
   </a>
 
-  <!-- AppImage -->
-  <a href="https://github.com/benjamimgois/Goverlay/releases">
-    <img
-      src="https://img.shields.io/badge/AppImage-Available-orange?style=for-the-badge&logo=linux"
-      alt="AppImage available">
-  </a>
+<a href="https://github.com/benjamimgois/Goverlay/releases">
+  <img
+    src="https://img.shields.io/badge/AppImage-Stable-orange?style=for-the-badge&logo=linux"
+    alt="AppImage stable">
+</a>
 
-  <!-- License -->
   <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
     <img
       src="https://img.shields.io/github/license/benjamimgois/Goverlay?color=2196f3&label=License&style=for-the-badge"
@@ -54,7 +49,7 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
   - [Universal Methods](#universal-methods)
-    - [Flatpak (Beta)](#flatpak-beta)
+    - [Flatpak](#flatpak)
     - [AppImage](#appimage)
   - [Distributions](#distributions)
     - [Arch and derivatives](#arch-and-derivatives)
@@ -96,7 +91,7 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 - [**`mesa-demos`**](https://gitlab.freedesktop.org/mesa/demos) — OpenGL demo tools  
 - [**`vulkan-tools`**](https://github.com/LunarG/VulkanTools) — Vulkan demo tools  
 - [**`git`**](https://github.com/git/git) — Used to clone repositories (e.g., ReShade)  
-- [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) — Qt6 bindings for Free Pascal / Lazarus  
+- [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) — Qt6 bindings for Free Pascal / Lazarus
 
 ### Optional / Used by specific features
 
@@ -111,13 +106,20 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Universal Methods
 
-### Flatpak (Beta)
+### Flatpak
 
-Since the flatpak file isn't in flathub yet, you can Download the file from the [Releases page](https://github.com/benjamimgois/Goverlay/releases) and install it.
+You can download it from [**`Flathub`**](https://flathub.org/en/apps/io.github.benjamimgois.goverlay)
+
 
 ```bash
-flatpak install goverlay_1.6.4_stable.flatpak   
+# Install Goverlay
+flatpak install flathub io.github.benjamimgois.goverlay
+
+# Install required runtimes for MangoHud and vkBasalt support
+flatpak --user install flathub org.freedesktop.Platform.VulkanLayer.MangoHud//24.08 \
+org.freedesktop.Platform.VulkanLayer.vkBasalt//24.08 -y
 ```
+
 
 ### AppImage
 
@@ -151,8 +153,11 @@ sudo zypper install goverlay
 sudo eopkg it goverlay
 ```
 
-### Fedora / Debian / Ubuntu
-These distributions currently ship very old versions of Goverlay in their repositories, so it is strongly recommended to use one of the universal installation methods instead.
+
+
+> [!IMPORTANT]
+> **Fedora / Debian / Ubuntu users:** Official repositories for these distros often ship outdated versions. It is **strongly recommended** to use the [Flatpak](#flatpak) or [AppImage](#appimage) instead.
+
 
 ---
 
