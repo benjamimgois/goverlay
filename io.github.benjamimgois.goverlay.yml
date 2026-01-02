@@ -12,9 +12,10 @@ finish-args:
   # GPU access for Vulkan/OpenGL overlays
   - --device=dri
 
-  # Persistent file access
-  - --persist=.config/MangoHud
-  - --persist=.config/vkBasalt
+  # File access - use :create to allow creating directories if they don't exist
+  - --filesystem=xdg-config/MangoHud:create
+  - --filesystem=xdg-config/vkBasalt:create
+  - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
   - --persist=fgmod
   
   # Network access for downloads (OptiScaler, ReShade shaders, updates)
@@ -25,6 +26,8 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
 
+  # Desktop notifications
+  - --talk-name=org.freedesktop.Notifications
 cleanup:
   - /include
   - /lib/pkgconfig

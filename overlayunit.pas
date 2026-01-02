@@ -1002,6 +1002,14 @@ begin;
   Result := UserConfig;
 end;
 
+// Function to create directory ensuring it exists
+// For Flatpak, the manifest must have :create permission on the parent directory
+procedure CreateHostDirectory(const DirPath: String);
+begin
+  if not DirectoryExists(DirPath) then
+    ForceDirectories(DirPath);
+end;
+
 
 //Function to get icon file
 function GetIconFile(): String;
@@ -1419,29 +1427,29 @@ end;
 
 //Function to check for dependencies
 function CheckDependencies(out Missing: TStringList): Boolean;
-var
-  Output: string;
 begin
   Missing := TStringList.Create;
 
-  //check if pascube is available
-  if not IsCommandAvailable('pascube') then
-     Missing.Add('pascube');
+  //check if pascube is available (skip in Flatpak mode - no Flatpak version yet)
+  if not IsRunningInFlatpak then
+  begin
+    if not IsCommandAvailable('pascube') then
+       Missing.Add('pascube');
+  end;
 
   // Check for Flatpak runtimes or native binaries
   if IsRunningInFlatpak then
   begin
-    // Flatpak mode: check for runtimes via flatpak-spawn
-    if RunCommand('flatpak-spawn', ['--host', 'flatpak', 'list', '--columns=ref'], Output) then
-    begin
-      // Check MangoHud runtime
-      if Pos('org.freedesktop.Platform.VulkanLayer.MangoHud/x86_64/25.08', Output) = 0 then
-        Missing.Add('MangoHud runtime 25.08');
+    // Flatpak mode: check for .so files in container paths
+    // MangoHud extension
+    if not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/x86_64-linux-gnu/libMangoHud.so') and
+       not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/i386-linux-gnu/libMangoHud.so') then
+      Missing.Add('MangoHud runtime 25.08');
 
-      // Check vkBasalt runtime
-      if Pos('org.freedesktop.Platform.VulkanLayer.vkBasalt/x86_64/25.08', Output) = 0 then
-        Missing.Add('vkBasalt runtime 25.08');
-    end;
+    // vkBasalt extension
+    if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') and
+       not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') then
+      Missing.Add('vkBasalt runtime 25.08');
   end
   else
   begin
@@ -1544,9 +1552,9 @@ begin
 
   KernelVersion := GetKernelVersion;
 
-  // create config dir if needed
+  // create config dir if needed (use ForceDirectories to create full path)
   if not DirectoryExists(SavePath) then
-    CreateDir(SavePath);
+    ForceDirectories(SavePath);
 
   // save Distro
   OutputSL := TStringList.Create;
@@ -1571,9 +1579,9 @@ end;
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
 begin
 
-  // Update the config files path
-   CUSTOMCFGFILE := GetUserConfigDir + '/MangoHud/custom.conf';
-   MANGOHUDCFGFILE := GetUserConfigDir + '/MangoHud/MangoHud.conf';
+  // Update the config files path (always use ~/.config/MangoHud/ for Flatpak compatibility)
+   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/custom.conf';
+   MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/MangoHud.conf';
 
 
 
@@ -2680,11 +2688,12 @@ var
   end;
 
 begin
-  ConfigDir := GetUserConfigDir + '/MangoHud';
+  // Always use ~/.config/MangoHud/ for Flatpak compatibility
+  ConfigDir := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud';
 
-  // Create directory if it doesn't exist
+  // Create directory if it doesn't exist (use CreateHostDirectory for Flatpak compatibility)
   if not DirectoryExists(ConfigDir) then
-    ForceDirectories(ConfigDir);
+    CreateHostDirectory(ConfigDir);
 
   ConfigLines := TStringList.Create;
   try
@@ -3187,6 +3196,7 @@ begin
       1: ConfigLines.Add('toggle_logging=Shift_L+F3');
       2: ConfigLines.Add('toggle_logging=Shift_L+F4');
       3: ConfigLines.Add('toggle_logging=Shift_L+F5');
+      4: ConfigLines.Add('toggle_logging=');  // None - disable toggle key
     end;
 
     // Log versioning
@@ -3396,8 +3406,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.9';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.6.10';
+  GCHANNEL := 'git'; //stable ou git
 
   //Set Window caption
   if GCHANNEL = 'stable' then
@@ -3476,10 +3486,12 @@ begin
 
   // Define important file paths
   GOVERLAYFOLDER := GetUserConfigDir + '/goverlay/';
-  MANGOHUDFOLDER := GetUserConfigDir + '/MangoHud/';
-  MANGOHUDCFGFILE := GetUserConfigDir + '/MangoHud/MangoHud.conf';
+  // Always use ~/.config/MangoHud/ for both Flatpak and native installations
+  // Games don't run in sandbox, so MangoHud needs configs in ~/.config/MangoHud/
+  MANGOHUDFOLDER := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/';
+  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/MangoHud.conf';
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-  CUSTOMCFGFILE := GetUserConfigDir + '/MangoHud/custom.conf';
+  CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
   // Always use ~/.config/vkBasalt/ for both Flatpak and native installations
   // This ensures ReShade shader paths are consistent across installation methods
@@ -3534,9 +3546,9 @@ begin
    ConfigFilePath := MANGOHUDCFGFILE;
    ConfigDir := ExtractFilePath(ConfigFilePath);
 
-   // check if directory exists
+   // check if directory exists (use CreateHostDirectory for Flatpak compatibility)
    if not DirectoryExists(ConfigDir) then
-     CreateDir(ConfigDir);
+     CreateHostDirectory(ConfigDir);
 
    // check if files exists
    if not FileExists(ConfigFilePath) then
@@ -3634,10 +3646,11 @@ begin
   end;
 
   // Check vkbasalt directory
-  VKBASALTCFGFILE := GetUserConfigDir + '/vkBasalt/vkBasalt.conf';
+  // Always use ~/.config/vkBasalt/ for Flatpak compatibility
+  VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/vkBasalt/vkBasalt.conf';
 
-  // make sure directory exists - VKBASALT
-  ForceDirectories(ExtractFilePath(VKBASALTCFGFILE));
+  // make sure directory exists - VKBASALT (use CreateHostDirectory for Flatpak compatibility)
+  CreateHostDirectory(ExtractFilePath(VKBASALTCFGFILE));
 
 
     // Check if file exists and create default - VKBASALT
@@ -3820,7 +3833,11 @@ begin
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
-     logfolderEdit.text := GetUserDir;
+     // Set log folder path - use Flatpak-specific path when running in Flatpak
+     if IsRunningInFlatpak then
+       logfolderEdit.text := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/'
+     else
+       logfolderEdit.text := GetUserDir;
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
      delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
      intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
@@ -5701,7 +5718,7 @@ EnableTraceLogsFound: Boolean;
     //########################################### SAVE BLACKLIST
 
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-  MANGOHUDCFGFILE := GetUserConfigDir + '/MangoHud/MangoHud.conf';
+  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/MangoHud.conf';
 
   FileLines := TStringList.Create;
   ConfigLines := TStringList.Create;
@@ -5738,8 +5755,8 @@ EnableTraceLogsFound: Boolean;
       ConfigLines.Add(blacklistVAR);
     end;
 
-    // make sure mangohud directory exists
-    ForceDirectories(ExtractFilePath(MANGOHUDCFGFILE));
+    // make sure mangohud directory exists (use CreateHostDirectory for Flatpak compatibility)
+    CreateHostDirectory(ExtractFilePath(MANGOHUDCFGFILE));
 
     // Save changes to mangohud file
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
@@ -6036,12 +6053,13 @@ var
   InPresetSection: Boolean;
   PresetAlreadyExists: Boolean;
 begin
-  ConfigDir := GetUserConfigDir + '/MangoHud';
+  // Always use ~/.config/MangoHud/ for Flatpak compatibility
+  ConfigDir := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud';
   PresetsFilePath := ConfigDir + '/presets.conf';
 
-  // Create directory if it doesn't exist
+  // Create directory if it doesn't exist (use CreateHostDirectory for Flatpak compatibility)
   if not DirectoryExists(ConfigDir) then
-    ForceDirectories(ConfigDir);
+    CreateHostDirectory(ConfigDir);
 
   ConfigLines := TStringList.Create;
   try
