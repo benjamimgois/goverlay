@@ -28,6 +28,7 @@ finish-args:
 
   # Desktop notifications
   - --talk-name=org.freedesktop.Notifications
+
 cleanup:
   - /include
   - /lib/pkgconfig

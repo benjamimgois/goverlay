@@ -67,6 +67,7 @@
                     <li>Improved: Flatpak dependency detection via .so files instead of runtime checks</li>
                     <li>Added: "None" option for log toggle key to disable logging hotkey</li>
                     <li>Changed: Log folder path uses Flatpak-specific location when running in Flatpak</li>
+                    <li>Added: "Use both GPUs" option for multi-GPU systems</li>
                 </ul>
             </description>
         </release>
@@ -74,7 +75,7 @@
             <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.9</url>
             <description>
                 <ul>
-                    <li>Added: "Use both GPUs" option for multi-GPU systems</li>
+
                     <li>Improved: GPU detection and gpu_list configuration</li>
                     <li>Fixed: Flatpak runtime detection for MangoHud and vkBasalt</li>
                     <li>Fixed: PasCube/vkCube fallback logic with Wayland support</li>
