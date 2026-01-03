@@ -5,7 +5,7 @@ datadir = /share
 
 all: goverlay start_goverlay.sh
 
-goverlay: *.pas *.lfm *.lrs goverlay.lpi goverlay.lpr goverlay.res goverlay.ico
+goverlay: *.pas *.lfm goverlay.lpi goverlay.lpr goverlay.ico
 	lazbuild -B goverlay.lpi --bm=Release $(LAZBUILDOPTS)
 
 data/goverlay.sh: data/goverlay.sh.in
