@@ -306,7 +306,7 @@ type
     runvkbasaltItem: TMenuItem;
     runvkcubeItem: TMenuItem;
     saveBitBtn: TBitBtn;
-    sessionCheckBox: TCheckBox;
+    displayserverCheckBox: TCheckBox;
     showfpslimCheckBox: TCheckBox;
     squareImage: TImage;
     squareRadioButton: TRadioButton;
@@ -2311,6 +2311,9 @@ begin
           filterRadioGroup.ItemIndex := 2
         else if SameText(TrimmedLine, 'retro') then
           filterRadioGroup.ItemIndex := 3
+        // Display server
+        else if SameText(TrimmedLine, 'display_server') then
+          displayserverCheckBox.Checked := True
         // Special flags with # suffix (disabled in config but should be detected)
         else if SameText(TrimmedLine, 'time#') then
           timeCheckBox.Checked := True
@@ -2645,15 +2648,12 @@ begin
         end;
       end;
 
-      // Check exec= lines for distro and session patterns
+      // Check exec= lines for distro patterns
       if SameText(Key, 'exec') then
       begin
         // Distro info: exec=cat .../goverlay/distro or exec=uname -r
         if (Pos('uname -r', Value) > 0) or (Pos('goverlay/distro', Value) > 0) then
-          distroinfoCheckBox.Checked := True
-        // Session: exec=echo $XDG_SESSION_TYPE
-        else if Pos('XDG_SESSION_TYPE', Value) > 0 then
-          sessionCheckBox.Checked := True;
+          distroinfoCheckBox.Checked := True;
       end;
     end;
 
@@ -3150,12 +3150,8 @@ begin
       ConfigLines.Add('exec=uname -r');
     end;
 
-    // Session
-    if sessionCheckBox.Checked then
-    begin
-      ConfigLines.Add('exec=printf "Session: "');
-      ConfigLines.Add('exec=echo $XDG_SESSION_TYPE');
-    end;
+    // Display server
+    AddIfChecked(displayserverCheckBox, 'display_server');
 
     // Time
     AddIfChecked(timeCheckBox, 'time#');
