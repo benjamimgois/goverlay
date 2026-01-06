@@ -5867,6 +5867,27 @@ EnableTraceLogsFound: Boolean;
   // Popup a notification
     SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
+  // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
+    if geSpeedButton.ImageIndex = 1 then
+    begin
+      // Build launch command with full absolute path
+      if IsRunningInFlatpak then
+        LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+      else
+        LaunchCommand := GetFGModPath + '/fgmod %command%';
+
+      // Update notificationLabel
+      notificationLabel.Caption := 'Launch command:';
+      notificationLabel.Font.Color := clOlive;
+      notificationLabel.Font.Style := [fsBold];
+      notificationLabel.Visible := True;
+
+      // Update commandLabel with launch command
+      commandLabel.Caption := LaunchCommand;
+      commandLabel.AutoSize := True;
+      commandLabel.Visible := True;
+      copyBitbtn.Visible := True;
+    end;
 
     //########################################### SAVE BLACKLIST
 
