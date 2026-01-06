@@ -37,6 +37,7 @@ else
       [[ "$arg" == *"Warhammer 40,000 DARKTIDE"* ]] && arg=${arg//launcher\/Launcher.exe/binaries/Darktide.exe}
       [[ "$arg" == *"Warhammer Vermintide 2"* ]]    && arg=${arg//launcher\/Launcher.exe/binaries_dx12/vermintide2_dx12.exe}
       [[ "$arg" == *"Satisfactory"* ]]   && arg=${arg//FactoryGameSteam.exe/Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe}
+      [[ "$arg" == *"FINAL FANTASY XIV Online"* ]] && arg=${arg//boot\/ffxivboot.exe/game/ffxiv_dx11.exe}
       exe_folder_path=$(dirname "$arg")
       break
     fi
@@ -114,8 +115,21 @@ rm -f "nvapi64.dll" "fakenvapi.ini" "fakenvapi.log"
 
 # === Remove Supporting Libraries ===
 echo "🧹 Removing supporting libraries..."
-rm -f "libxess.dll" "libxess_dx11.dll" "nvngx.dll" "nvngx.ini"
+rm -f "libxess.dll" "libxess_dx11.dll" "libxess_fg.dll" "libxell.dll" "nvngx.dll" "nvngx.ini"
 rm -f "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll"
+
+# === Remove FG Mod Files ===
+echo "🧹 Removing frame generation mod files..."
+rm -f "dlssg_to_fsr3_amd_is_better.dll" "dlssg_to_fsr3.ini"
+
+# === Remove NVAPI Files (Current and Legacy) ===
+echo "🧹 Removing NVAPI files..."
+rm -f "fakenvapi.dll" "fakenvapi.ini"  # Current v0.9.0-pre4 approach
+rm -f "nvapi64.dll" "nvapi64.dll.b"    # Legacy cleanup for older versions and backups
+
+# === Remove ASI Plugins ===
+echo "🧹 Removing ASI plugins directory..."
+rm -rf "plugins"
 
 # === Remove Legacy Files ===
 echo "🧹 Removing legacy files..."
@@ -125,7 +139,7 @@ rm -f "dlssg_to_fsr3_amd_is_better-3.0.dll"
 
 # === Restore Original DLLs ===
 echo "🔄 Restoring original DLLs..."
-original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll" "nvapi64.dll" "libxess.dll" "libxess_dx11.dll")
+original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll" "libxess.dll" "libxess_dx11.dll" "libxess_fg.dll" "libxell.dll")
 for dll in "${original_dlls[@]}"; do
   if [[ -f "${dll}.b" ]]; then
     mv "${dll}.b" "$dll"

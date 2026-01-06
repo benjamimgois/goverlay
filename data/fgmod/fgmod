@@ -40,6 +40,7 @@ else
       [[ "$arg" == *"Warhammer 40,000 DARKTIDE"* ]] && arg=${arg//launcher\/Launcher.exe/binaries/Darktide.exe}
       [[ "$arg" == *"Warhammer Vermintide 2"* ]]    && arg=${arg//launcher\/Launcher.exe/binaries_dx12/vermintide2_dx12.exe}
       [[ "$arg" == *"Satisfactory"* ]]   && arg=${arg//FactoryGameSteam.exe/Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe}
+      [[ "$arg" == *"FINAL FANTASY XIV Online"* ]] && arg=${arg//boot\/ffxivboot.exe/game/ffxiv_dx11.exe}
       exe_folder_path=$(dirname "$arg")
       break
     fi
@@ -99,10 +100,14 @@ logger -t fgmod "📄 Preserve INI: $preserve_ini"
 rm -f "$exe_folder_path"/{dxgi.dll,winmm.dll,nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}
 
 # === Optional: Backup Original DLLs ===
-original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll" "nvapi64.dll")
+original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll")
 for dll in "${original_dlls[@]}"; do
   [[ -f "$exe_folder_path/$dll" && ! -f "$exe_folder_path/$dll.b" ]] && mv -f "$exe_folder_path/$dll" "$exe_folder_path/$dll.b"
 done
+
+# === Remove nvapi64.dll and its backup (conflicts from previous fakenvapi versions) ===
+rm -f "$exe_folder_path/nvapi64.dll" "$exe_folder_path/nvapi64.dll.b"
+echo "🧹 Cleaned up nvapi64.dll and backup (legacy fakenvapi conflicts)"
 
 # === Core Install ===
 if [[ -f "$fgmod_path/renames/$dll_name" ]]; then
@@ -123,9 +128,20 @@ else
   logger -t fgmod "📄 OptiScaler.ini installed to $exe_folder_path"
 fi
 
+# === ASI Plugins Directory ===
+if [[ -d "$fgmod_path/plugins" ]]; then
+  echo "🔌 Installing ASI plugins directory"
+  cp -r "$fgmod_path/plugins" "$exe_folder_path/" || true
+  logger -t fgmod "🔌 ASI plugins directory installed to $exe_folder_path"
+else
+  echo "⚠️ No plugins directory found in fgmod"
+fi
+
 # === Supporting Libraries ===
 cp -f "$fgmod_path/libxess.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/libxess_dx11.dll" "$exe_folder_path/" || true
+cp -f "$fgmod_path/libxess_fg.dll" "$exe_folder_path/" || true
+cp -f "$fgmod_path/libxell.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/amd_fidelityfx_dx12.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/amd_fidelityfx_framegeneration_dx12.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/amd_fidelityfx_upscaler_dx12.dll" "$exe_folder_path/" || true
@@ -134,12 +150,22 @@ cp -f "$fgmod_path/nvngx.dll" "$exe_folder_path/" || true
 
 # === Nukem FG Mod Files (now in fgmod directory) ===
 cp -f "$fgmod_path/dlssg_to_fsr3_amd_is_better.dll" "$exe_folder_path/" || true
-cp -f "$fgmod_path/dlssg_to_fsr3.ini" "$exe_folder_path/" || true
-cp -f "$fgmod_path/nvapi64.dll" "$exe_folder_path/" || true
+# Note: dlssg_to_fsr3.ini is not included in v0.9.0-pre4 archive
+
+# === FakeNVAPI Files ===
+# Remove legacy nvapi64.dll to avoid conflicts
+# rm -f "$exe_folder_path/nvapi64.dll"
+# echo "🧹 Removed legacy nvapi64.dll"
+
+# Copy fakenvapi.dll with original name (v1.3.8.1) 
+cp -f "$fgmod_path/fakenvapi.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true
+echo "📦 Installed fakenvapi.dll and fakenvapi.ini"
 
 # === Additional Support Files ===
-cp -f "$fgmod_path/d3dcompiler_47.dll" "$exe_folder_path/" || true
+# cp -f "$fgmod_path/d3dcompiler_47.dll" "$exe_folder_path/" || true
+
+# Note: d3dcompiler_47.dll is not included in v0.9.0-pre4 archive
 
 echo "✅ Installation completed successfully!"
 echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"

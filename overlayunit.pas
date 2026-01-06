@@ -8,7 +8,8 @@ uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
-  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants;
+  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
+  fgmod_resources;
 
 
 
@@ -3416,6 +3417,10 @@ begin
   //Program Version
   GVERSION := '1.6.11';
   GCHANNEL := 'git'; //stable ou git
+
+  // Initialize fgmod directory with embedded scripts
+  // This ensures fgmod scripts are always available without downloading
+  InitializeFGModDirectory;
 
   //Set Window caption
   if GCHANNEL = 'stable' then
