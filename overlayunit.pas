@@ -403,6 +403,7 @@ type
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
+    procedure fsrversionComboBoxChange(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
@@ -5145,6 +5146,23 @@ begin
   // When user changes the OptiScaler channel, automatically check for updates
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.CheckForUpdatesOnClick;
+end;
+
+procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
+begin
+  // Disable emufp8CheckBox when "4.0.2 (INT8)" is selected (ItemIndex = 1)
+  // Enable emufp8CheckBox when "Latest (FP8)" is selected (ItemIndex = 0)
+  case fsrversionComboBox.ItemIndex of
+    0: // Latest (FP8)
+      begin
+        emufp8CheckBox.Enabled := True;
+      end;
+    1: // 4.0.2 (INT8)
+      begin
+        emufp8CheckBox.Enabled := False;
+        emufp8CheckBox.Checked := False;  // Also uncheck when disabled
+      end;
+  end;
 end;
 
 procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);
