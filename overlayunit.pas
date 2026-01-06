@@ -18,6 +18,7 @@ type
 
   Tgoverlayform = class(TForm)
     acteffectsListBox: TListBox;
+    activegpuLabel: TLabel;
     addBitBtn: TBitBtn;
     afLabel: TLabel;
     afterburnercolorBitBtn1: TBitBtn;
@@ -27,6 +28,7 @@ type
     alphavalueLabel: TLabel;
     archCheckBox: TCheckBox;
     autodetectmesaLabel: TLabel;
+    autodetectnvLabel: TLabel;
     autouploadCheckBox: TCheckBox;
     aveffectsListBox: TListBox;
     backgroundGroupBox: TGroupBox;
@@ -40,92 +42,15 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
-    fsrversionComboBox: TComboBox;
-    cpucoretypeCheckBox: TCheckBox;
-    activegpuLabel: TLabel;
-    optversionComboBox: TComboBox;
-    ftraceCheckBox: TCheckBox;
-    gpupowerlimitCheckBox: TCheckBox;
-    gpuframesjouleBitBtn: TBitBtn;
-    gpuefficiencyCheckBox: TCheckBox;
-    cpuefficiencyCheckBox: TCheckBox;
-    cpuframesjouleBitBtn: TBitBtn;
-    howtoBitBtn: TBitBtn;
-    gupdateBitBtn: TBitBtn;
-    fakenvapi2: TLabel;
-    donateMenuItem: TMenuItem;
-    aboutMenuItem: TMenuItem;
-    geLabel: TLabel;
-    Image3: TImage;
-    blacklistMenuItem: TMenuItem;
-    fsrversionLabel: TLabel;
-    mark1Label: TLabel;
-    Label3: TLabel;
-    mark2Label: TLabel;
-    optLabel2: TLabel;
-    shortcutImage: TImage;
-    savecustomMenuItem: TMenuItem;
-    deckpreset1MenuItem: TMenuItem;
-    deckpreset2MenuItem: TMenuItem;
-    deckpreset3MenuItem: TMenuItem;
-    deckpreset4MenuItem: TMenuItem;
-    Separator1: TMenuItem;
-    themeToggleSpeedButton: TSpeedButton;
-    ToggleSpeedButton: TSpeedButton;
-    spoofCheckBox: TCheckBox;
-    tracelogCheckBox: TCheckBox;
-    overrideCheckBox: TCheckBox;
-    forcelatencyflexCheckBox: TCheckBox;
-    forcereflexCheckBox: TCheckBox;
-    copyBitBtn: TBitBtn;
     borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
+    builtineffectsGroupBox: TGroupBox;
     casLabel: TLabel;
-    fakenvapi1: TLabel;
-    filenameComboBox: TComboBox;
-    latencyflexComboBox: TComboBox;
-    reflexComboBox: TComboBox;
-    shortcutkeyComboBox: TComboBox;
-    fsrLabel1: TLabel;
-    autodetectnvLabel: TLabel;
-    commandLabel: TLabel;
-    filenameLabel: TLabel;
-    shortcutkeyLabel: TLabel;
-    optiscalerGroupBox: TGroupBox;
-    fakenvapiGroupBox: TGroupBox;
-    menuLabel: TLabel;
-    menuscaleTrackBar: TTrackBar;
-    menuscalevalueLabel: TLabel;
-    updateProgressBar: TProgressBar;
-    optLabel: TLabel;
-    fakenvapiLabel: TLabel;
-    fsrLabel: TLabel;
-    optLabel1: TLabel;
-    checkupdBitBtn: TBitBtn;
-    updateBitBtn: TBitBtn;
-    updatestatusLabel: TLabel;
-    procvramCheckBox: TCheckBox;
-    dxapiCheckBox: TCheckBox;
-    xessLabel: TLabel;
-    optionsGroupBox: TGroupBox;
-    statusGroupBox: TGroupBox;
-    dlsLabel: TLabel;
-    dlsTrackBar: TTrackBar;
-    dlsvalueLabel: TLabel;
-    gpudriverGroupBox: TGroupBox;
-    mesaImage: TImage;
-    nvidiaRadioButton: TRadioButton;
-    mesaRadioButton: TRadioButton;
-    smaaLabel: TLabel;
-    smaaTrackBar: TTrackBar;
-    smaavalueLabel: TLabel;
-    fxaaLabel: TLabel;
     casTrackBar: TTrackBar;
-    fxaaTrackBar: TTrackBar;
     casvalueLabel: TLabel;
-    fxaavalueLabel: TLabel;
+    checkupdBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     columsGroupBox: TGroupBox;
     columShape: TShape;
@@ -135,9 +60,14 @@ type
     columShape4: TShape;
     columShape5: TShape;
     columvalueLabel: TLabel;
+    commandLabel: TLabel;
+    copyBitBtn: TBitBtn;
     coreloadtypeBitBtn: TBitBtn;
     cpuavgloadCheckBox: TCheckBox;
     cpuColorButton: TColorButton;
+    cpucoretypeCheckBox: TCheckBox;
+    cpuefficiencyCheckBox: TCheckBox;
+    cpuframesjouleBitBtn: TBitBtn;
     cpufreqCheckBox: TCheckBox;
     cpuGroupBox: TGroupBox;
     cpuImage: TImage;
@@ -158,15 +88,27 @@ type
     delayvalueLabel: TLabel;
     deviceCheckBox: TCheckBox;
     diskioCheckBox: TCheckBox;
+    displayserverCheckBox: TCheckBox;
     distroinfoCheckBox: TCheckBox;
+    dlsLabel: TLabel;
+    dlsTrackBar: TTrackBar;
+    dlsvalueLabel: TLabel;
     durationTrackBar: TTrackBar;
     durationvalueLabel: TLabel;
+    dxapiCheckBox: TCheckBox;
+    emufp8CheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineshortCheckBox: TCheckBox;
     engineversionCheckBox: TCheckBox;
     extrasTabSheet: TTabSheet;
     fahrenheitCheckBox: TCheckBox;
+    fakenvapi1: TLabel;
+    fakenvapi2: TLabel;
+    fakenvapiGroupBox: TGroupBox;
+    fakenvapiLabel: TLabel;
     fcatCheckBox: TCheckBox;
+    filenameComboBox: TComboBox;
+    filenameLabel: TLabel;
     filterRadioGroup: TRadioGroup;
     filtersGroupBox: TGroupBox;
     FontcolorButton: TColorButton;
@@ -176,6 +118,8 @@ type
     fontsGroupBox: TGroupBox;
     fontsizeTrackBar: TTrackBar;
     fontsizevalueLabel: TLabel;
+    forcelatencyflexCheckBox: TCheckBox;
+    forcereflexCheckBox: TCheckBox;
     fpsavgBitBtn: TBitBtn;
     fpsavgCheckBox: TCheckBox;
     fpsCheckBox: TCheckBox;
@@ -199,17 +143,31 @@ type
     frametimegraphColorButton: TColorButton;
     frametimetypeBitBtn: TBitBtn;
     fsrCheckBox: TCheckBox;
+    fsrLabel: TLabel;
+    fsrLabel1: TLabel;
+    fsrversionComboBox: TComboBox;
+    fsrversionLabel: TLabel;
+    ftraceCheckBox: TCheckBox;
     fullBitBtn: TBitBtn;
     fullLabel: TLabel;
+    fxaaLabel: TLabel;
+    fxaaTrackBar: TTrackBar;
+    fxaavalueLabel: TLabel;
     gamemodestatusCheckBox: TCheckBox;
+    geLabel: TLabel;
     geSpeedButton: TSpeedButton;
     glvsyncComboBox: TComboBox;
+    goverlaybarPanel: TPanel;
     goverlayBitBtn: TBitBtn;
     goverlayPageControl: TPageControl;
+    goverlayPanel: TPanel;
     gpuavgloadCheckBox: TCheckBox;
     gpuColorButton: TColorButton;
     gpudescEdit: TEdit;
+    gpudriverGroupBox: TGroupBox;
+    gpuefficiencyCheckBox: TCheckBox;
     gpufanCheckBox: TCheckBox;
+    gpuframesjouleBitBtn: TBitBtn;
     gpufreqCheckBox: TCheckBox;
     gpuGroupBox: TGroupBox;
     gpuImage: TImage;
@@ -225,17 +183,22 @@ type
     gpunameEdit: TEdit;
     gpupowerCheckBox: TCheckBox;
     gpupowerLabel: TLabel;
+    gpupowerlimitCheckBox: TCheckBox;
     gputempCheckBox: TCheckBox;
     gputempLabel: TLabel;
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
-    builtineffectsGroupBox: TGroupBox;
-    reshadeGroupBox: TGroupBox;
+    imgmenuGroupBox: TGroupBox;
+    gupdateBitBtn: TBitBtn;
+    donateMenuItem: TMenuItem;
+    aboutMenuItem: TMenuItem;
+    blacklistMenuItem: TMenuItem;
     hdrCheckBox: TCheckBox;
     hidehudCheckBox: TCheckBox;
     hImage: TImage;
     horizontalRadioButton: TRadioButton;
+    howtoBitBtn: TBitBtn;
     hudbackgroundColorButton: TColorButton;
     hudcompactCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
@@ -245,10 +208,14 @@ type
     hudversionCheckBox: TCheckBox;
     Image1: TImage;
     Image2: TImage;
+    Image3: TImage;
     intelpowerfixBitBtn: TBitBtn;
     intervalTrackBar: TTrackBar;
     intervalvalueLabel: TLabel;
     iordrwColorButton: TColorButton;
+    mark1Label: TLabel;
+    mark2Label: TLabel;
+    latencyflexComboBox: TComboBox;
     layoutsLabel: TLabel;
     limtoggleLabel: TLabel;
     logdelayLabel: TLabel;
@@ -262,13 +229,17 @@ type
     logtoggleImage: TImage;
     logtoggleLabel: TLabel;
     mainmetricLabel: TLabel;
-    goverlaybarPanel: TPanel;
     mangocolorBitBtn: TBitBtn;
     mangocolorLabel: TLabel;
-    goverlayPanel: TPanel;
+    mark3Label: TLabel;
     mediaCheckBox: TCheckBox;
     mediaColorButton: TColorButton;
     memLabel: TLabel;
+    menuLabel: TLabel;
+    menuscaleTrackBar: TTrackBar;
+    menuscalevalueLabel: TLabel;
+    mesaImage: TImage;
+    mesaRadioButton: TRadioButton;
     methodLabel: TLabel;
     metricsTabSheet: TTabSheet;
     middleleftRadioButton: TRadioButton;
@@ -280,12 +251,22 @@ type
     networkCheckBox: TCheckBox;
     networkComboBox: TComboBox;
     notificationLabel: TLabel;
+    nvidiaImage: TImage;
+    nvidiaRadioButton: TRadioButton;
     offsetLabel: TLabel;
     offsetSpinEdit: TSpinEdit;
     openglImage: TImage;
+    optionsGroupBox: TGroupBox;
     optionsLabel: TLabel;
+    optiscalerGroupBox: TGroupBox;
+    optiscalerTabSheet: TTabSheet;
+    optLabel: TLabel;
+    optLabel1: TLabel;
+    optLabel2: TLabel;
+    optversionComboBox: TComboBox;
     orientationGroupBox: TGroupBox;
     othersLabel: TLabel;
+    overrideCheckBox: TCheckBox;
     pbarLabel: TLabel;
     pcidevComboBox: TComboBox;
     performanceTabSheet: TTabSheet;
@@ -294,29 +275,47 @@ type
     positionGroupBox: TGroupBox;
     presetTabSheet: TTabSheet;
     procmemCheckBox: TCheckBox;
+    procvramCheckBox: TCheckBox;
     ramColorButton: TColorButton;
     ramusageCheckBox: TCheckBox;
+    reflexComboBox: TComboBox;
     refreshrateCheckBox: TCheckBox;
+    reshadeGroupBox: TGroupBox;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
     reshaderefreshBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
     roundImage: TImage;
     roundRadioButton: TRadioButton;
-    runvkbasaltItem: TMenuItem;
-    runvkcubeItem: TMenuItem;
     saveBitBtn: TBitBtn;
-    displayserverCheckBox: TCheckBox;
+    savecustomMenuItem: TMenuItem;
+    deckpreset1MenuItem: TMenuItem;
+    deckpreset2MenuItem: TMenuItem;
+    deckpreset3MenuItem: TMenuItem;
+    deckpreset4MenuItem: TMenuItem;
+    Separator1: TMenuItem;
+    shortcutImage: TImage;
+    shortcutkeyComboBox: TComboBox;
+    shortcutkeyLabel: TLabel;
     showfpslimCheckBox: TCheckBox;
+    smaaLabel: TLabel;
+    smaaTrackBar: TTrackBar;
+    smaavalueLabel: TLabel;
+    spoofCheckBox: TCheckBox;
     squareImage: TImage;
     squareRadioButton: TRadioButton;
+    statusGroupBox: TGroupBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
     sysinfoImage: TImage;
     systemGroupBox: TGroupBox;
     systemLabel: TLabel;
-    optiscalerTabSheet: TTabSheet;
+    themeToggleSpeedButton: TSpeedButton;
     timeCheckBox: TCheckBox;
+    toggleImage: TImage;
+    ToggleSpeedButton: TSpeedButton;
+    runvkbasaltItem: TMenuItem;
+    runvkcubeItem: TMenuItem;
     Timer: TTimer;
     saveasItem: TMenuItem;
     layoutImageList: TImageList;
@@ -331,17 +330,19 @@ type
     globalbuttonImageList: TImageList;
     mangohudLabel: TLabel;
     dependenciesLabel: TLabel;
-    toggleImage: TImage;
     topcenterRadioButton: TRadioButton;
     topleftRadioButton: TRadioButton;
     toprightRadioButton: TRadioButton;
+    tracelogCheckBox: TCheckBox;
     transparencyLabel: TLabel;
     transpTrackBar: TTrackBar;
+    updateBitBtn: TBitBtn;
+    updateProgressBar: TProgressBar;
+    updatestatusLabel: TLabel;
     usercustomBitBtn: TBitBtn;
     versioningCheckBox: TCheckBox;
     verticalRadioButton: TRadioButton;
     vImage: TImage;
-    nvidiaImage: TImage;
     visualTabSheet: TTabSheet;
     vkbasaltLabel: TLabel;
     goverlayimage: TImage;
@@ -366,6 +367,7 @@ type
     wineColorButton: TColorButton;
     wineLabel: TLabel;
     winesyncCheckBox: TCheckBox;
+    xessLabel: TLabel;
     xessLabel1: TLabel;
 
 
@@ -2078,6 +2080,7 @@ var
   Line, TrimmedLine, DllName: string;
   i: Integer;
   FgmodPath: string;
+  DxilSpirvFound: Boolean;
 begin
   // Get fgmod file path
   FgmodPath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
@@ -2086,6 +2089,7 @@ begin
     Exit;
 
   ConfigLines := TStringList.Create;
+  DxilSpirvFound := False;
 
   try
     ConfigLines.LoadFromFile(FgmodPath);
@@ -2120,10 +2124,15 @@ begin
           filenameComboBox.ItemIndex := 6
         else
           filenameComboBox.ItemIndex := 0; // Default: dxgi.dll
-
-        Break; // Found, can exit loop
       end;
+
+      // Check for DXIL_SPIRV_CONFIG line (emufp8 workaround)
+      if Pos('export DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"', TrimmedLine) > 0 then
+        DxilSpirvFound := True;
     end;
+
+    // Set emufp8CheckBox based on whether the line was found
+    emufp8CheckBox.Checked := DxilSpirvFound;
 
   finally
     ConfigLines.Free;
@@ -5336,6 +5345,34 @@ EnableTraceLogsFound: Boolean;
                 FGModLines[LineIndex] := 'export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,' + DllNameWithoutExt + '=n,b"';
                 WineOverrideFound := True;
                 Break;
+              end;
+            end;
+          end;
+
+          // Handle emufp8CheckBox - add or remove DXIL_SPIRV_CONFIG line
+          if WineOverrideFound then
+          begin
+            // First, find and remove any existing DXIL_SPIRV_CONFIG line
+            for LineIndex := FGModLines.Count - 1 downto 0 do
+            begin
+              if Pos('export DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"', FGModLines[LineIndex]) > 0 then
+              begin
+                FGModLines.Delete(LineIndex);
+                Break; // Only one such line should exist
+              end;
+            end;
+
+            // If checkbox is checked, add the line after WINEDLLOVERRIDES
+            if emufp8CheckBox.Checked then
+            begin
+              for LineIndex := 0 to FGModLines.Count - 1 do
+              begin
+                if Pos('export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,', FGModLines[LineIndex]) > 0 then
+                begin
+                  // Insert the DXIL_SPIRV_CONFIG line right after WINEDLLOVERRIDES
+                  FGModLines.Insert(LineIndex + 1, '  export DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"');
+                  Break;
+                end;
               end;
             end;
           end;
