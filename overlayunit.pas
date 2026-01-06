@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
-  unix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
+  unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   fgmod_resources;
@@ -456,6 +456,7 @@ type
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
+    procedure UpdateGeSpeedButtonState;
   public
 
 
@@ -3415,7 +3416,7 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.6.11';
+  GVERSION := '1.7.0';
   GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
@@ -3465,12 +3466,8 @@ begin
   //Hide howto button until OptiScaler configuration is saved
   howtoBitBtn.Visible := False;
 
-  // Hide global enable controls in Flatpak mode (not supported in sandbox)
-  if IsRunningInFlatpak then
-  begin
-    geLabel.Visible := False;
-    geSpeedButton.Visible := False;
-  end;
+  // Update geSpeedButton state from fgmod file
+  UpdateGeSpeedButtonState;
 
   //Turbulence animation start
   FStartTick := GetTickCount;
@@ -4065,32 +4062,132 @@ begin
 end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
+var
+  FGModFilePath: string;
+  FileLines: TStringList;
+  i, SteamDeckLineIndex: Integer;
+  MangoHudLineExists: Boolean;
+  IsMangoHudTab: Boolean;
 begin
-    // Check if running in Flatpak - global MangoHud activation not supported
-    if IsRunningInFlatpak then
+  // Check if current tab is a MangoHud-related tab
+  IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
+                   (goverlayPageControl.ActivePage = visualTabSheet) or
+                   (goverlayPageControl.ActivePage = performanceTabSheet) or
+                   (goverlayPageControl.ActivePage = metricsTabSheet) or
+                   (goverlayPageControl.ActivePage = extrasTabSheet);
+
+  if not IsMangoHudTab then
+    Exit;
+
+  // Get fgmod file path
+  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
+  // Check if fgmod file exists
+  if not FileExists(FGModFilePath) then
+  begin
+    ShowMessage('fgmod file not found at: ' + FGModFilePath);
+    Exit;
+  end;
+
+  FileLines := TStringList.Create;
+  try
+    FileLines.LoadFromFile(FGModFilePath);
+
+    // Find the SteamDeck line and check if MANGOHUD line exists
+    SteamDeckLineIndex := -1;
+    MangoHudLineExists := False;
+
+    for i := 0 to FileLines.Count - 1 do
     begin
-      ShowMessage('Global MangoHud activation is not available in Flatpak.' + LineEnding + LineEnding +
-                  'Flatpak applications run in a sandbox and cannot modify system files like /etc/environment.' + LineEnding + LineEnding +
-                  'Please configure MangoHud per-application instead.');
-      Exit;
+      if Pos('export SteamDeck=0', FileLines[i]) > 0 then
+        SteamDeckLineIndex := i;
+      if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
+        MangoHudLineExists := True;
     end;
 
-    case geSpeedButton.imageIndex of
-       0: begin
-         geSpeedButton.ImageIndex:=1; //switch button position to ON
-         ExecuteShellCommand('echo MANGOHUD=1 | pkexec tee -a /etc/environment');
-         SendNotification('VULKAN Global Enable Activated', 'Every Vulkan application will have Mangohud Enabled now', GetIconFile);
-         showmessage ('Restart your system to take effect');
+    if MangoHudLineExists then
+    begin
+      // Remove the MANGOHUD line
+      for i := FileLines.Count - 1 downto 0 do
+      begin
+        if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
+        begin
+          FileLines.Delete(i);
+          Break;  // Only delete first occurrence
+        end;
+      end;
+      geSpeedButton.ImageIndex := 0;  // OFF
+      WriteLn('[FGMOD] Removed export MANGOHUD=1 from fgmod');
+      SendNotification('MangoHud', 'MangoHud deactivated in fgmod', GetIconFile);
+    end
+    else
+    begin
+      // Add the MANGOHUD line after SteamDeck line
+      if SteamDeckLineIndex >= 0 then
+      begin
+        FileLines.Insert(SteamDeckLineIndex + 1, '  export MANGOHUD=1');
+        geSpeedButton.ImageIndex := 1;  // ON
+        WriteLn('[FGMOD] Added export MANGOHUD=1 to fgmod');
+        SendNotification('MangoHud', 'MangoHud will be activated in every application using fgmod', GetIconFile);
+      end
+      else
+      begin
+        ShowMessage('Could not find "export SteamDeck=0" line in fgmod file');
+        Exit;
+      end;
     end;
 
-     1: begin
-       geSpeedButton.ImageIndex:=0; ////switch button position to OFF
-       ExecuteShellCommand('pkexec sed -i -e "/MANGOHUD=1/d" /etc/environment');
-       SendNotification('Deactivated', '', GetIconFile);
-       showmessage ('Restart your system to take effect');
-    end;
+    // Save the modified file
+    FileLines.SaveToFile(FGModFilePath);
+
+    // Make sure it's still executable
+    fpChmod(FGModFilePath, &755);
+
+  finally
+    FileLines.Free;
+  end;
 end;
 
+procedure Tgoverlayform.UpdateGeSpeedButtonState;
+var
+  FGModFilePath: string;
+  FileLines: TStringList;
+  i: Integer;
+  MangoHudEnabled: Boolean;
+begin
+  // Get fgmod file path
+  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
+  // Check if fgmod file exists
+  if not FileExists(FGModFilePath) then
+  begin
+    geSpeedButton.ImageIndex := 0;  // Default to OFF
+    Exit;
+  end;
+
+  FileLines := TStringList.Create;
+  try
+    FileLines.LoadFromFile(FGModFilePath);
+
+    // Check if MANGOHUD line exists
+    MangoHudEnabled := False;
+    for i := 0 to FileLines.Count - 1 do
+    begin
+      if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
+      begin
+        MangoHudEnabled := True;
+        Break;
+      end;
+    end;
+
+    if MangoHudEnabled then
+      geSpeedButton.ImageIndex := 1  // ON
+    else
+      geSpeedButton.ImageIndex := 0; // OFF
+
+  finally
+    FileLines.Free;
+  end;
 end;
 
 procedure Tgoverlayform.mangocolorBitBtnClick(Sender: TObject);
@@ -4141,12 +4238,10 @@ notificationLabel.Visible:=false;
 commandLabel.Visible:=false;
 copyBitbtn.Visible:=false;
 
-//Show Global Enable controls (unless in Flatpak mode)
-if not IsRunningInFlatpak then
-begin
-  geSpeedButton.Visible:=true;
-  geLabel.Visible:=true;
-end;
+//Show Global Enable controls for MangoHud tabs (fgmod integration)
+geSpeedButton.Visible:=true;
+geLabel.Visible:=true;
+UpdateGeSpeedButtonState;
 
 end;
 

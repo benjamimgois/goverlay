@@ -621,6 +621,8 @@ begin
 end;
 
 // Initialize the fgmod directory with all embedded scripts
+// Only creates files if the fgmod directory doesn't exist
+// This preserves user modifications to the scripts
 procedure InitializeFGModDirectory;
 var
   FGModPath: string;
@@ -629,25 +631,29 @@ begin
   FGModPath := GetFGModPath;
   IsFlatpak := IsRunningInFlatpak;
   
-  WriteLn('[FGMOD] Initializing fgmod directory at: ', FGModPath);
+  WriteLn('[FGMOD] Checking fgmod directory at: ', FGModPath);
   WriteLn('[FGMOD] Running in Flatpak: ', IsFlatpak);
   
-  // Create the fgmod directory if it doesn't exist
+  // Only create files if the directory doesn't exist
+  // This preserves any user modifications to the scripts
   if not DirectoryExists(FGModPath) then
   begin
-    WriteLn('[FGMOD] Creating fgmod directory...');
+    WriteLn('[FGMOD] Creating fgmod directory and scripts...');
     ForceDirectories(FGModPath);
+    
+    // Write all embedded script files
+    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod', GetFGModScript(IsFlatpak));
+    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript(IsFlatpak));
+    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-remover.sh', GetFGModRemoverScript(IsFlatpak));
+    WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'LICENSE', GetFGModLicense);
+    WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'README.md', GetFGModReadme);
+    
+    WriteLn('[FGMOD] Initialization complete');
+  end
+  else
+  begin
+    WriteLn('[FGMOD] Directory already exists, preserving user modifications');
   end;
-  
-  // Always write/update the script files to ensure they're current
-  // This also handles updates when goverlay is upgraded
-  WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod', GetFGModScript(IsFlatpak));
-  WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript(IsFlatpak));
-  WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-remover.sh', GetFGModRemoverScript(IsFlatpak));
-  WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'LICENSE', GetFGModLicense);
-  WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'README.md', GetFGModReadme);
-  
-  WriteLn('[FGMOD] Initialization complete');
 end;
 
 end.
