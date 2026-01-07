@@ -3742,7 +3742,7 @@ begin
 
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
-    Process.Parameters.Add('lspci | grep -i "VGA\|video" | wc -l'); //Count the number of lines
+    Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | wc -l'); //Count the number of lines
     Process.Options := [poUsePipes];
     Process.Execute;
     Process.WaitOnExit;
