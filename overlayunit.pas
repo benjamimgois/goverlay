@@ -295,6 +295,7 @@ type
     deckpreset3MenuItem: TMenuItem;
     deckpreset4MenuItem: TMenuItem;
     Separator1: TMenuItem;
+    commandShape: TShape;
     shortcutImage: TImage;
     shortcutkeyComboBox: TComboBox;
     shortcutkeyLabel: TLabel;
@@ -1667,11 +1668,11 @@ begin
   //Hide notification messages
   notificationLabel.Visible:=false;
   commandLabel.Visible:=false;
+  commandShape.Visible:=false;
   copyBitbtn.Visible:=false;
 
-  //Hide Global Enable controls (temporary fix, will remove in future release)
-  geSpeedButton.Visible:=false;
-  geLabel.Visible:=false;
+  //Update geSpeedButton state for vkBasalt
+  UpdateGeSpeedButtonState;
 
 end;
 
@@ -4066,18 +4067,47 @@ var
   FGModFilePath: string;
   FileLines: TStringList;
   i, SteamDeckLineIndex: Integer;
-  MangoHudLineExists: Boolean;
-  IsMangoHudTab: Boolean;
+  TargetLineExists: Boolean;
+  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab: Boolean;
+  ExportLine, SearchPattern, NotifyTitle, NotifyMsgOn, NotifyMsgOff: string;
 begin
-  // Check if current tab is a MangoHud-related tab
+  // Determine which tab is active
   IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
                    (goverlayPageControl.ActivePage = visualTabSheet) or
                    (goverlayPageControl.ActivePage = performanceTabSheet) or
                    (goverlayPageControl.ActivePage = metricsTabSheet) or
                    (goverlayPageControl.ActivePage = extrasTabSheet);
 
-  if not IsMangoHudTab then
-    Exit;
+  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
+  IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
+
+  // Set the appropriate export line and messages based on active tab
+  if IsMangoHudTab then
+  begin
+    ExportLine := '  export MANGOHUD=1';
+    SearchPattern := 'export MANGOHUD=1';
+    NotifyTitle := 'MangoHud';
+    NotifyMsgOn := 'MangoHud will be activated in every application using fgmod';
+    NotifyMsgOff := 'MangoHud deactivated in fgmod';
+  end
+  else if IsVkBasaltTab then
+  begin
+    ExportLine := '  export ENABLE_VKBASALT=1';
+    SearchPattern := 'export ENABLE_VKBASALT=1';
+    NotifyTitle := 'vkBasalt';
+    NotifyMsgOn := 'vkBasalt will be activated in every application using fgmod';
+    NotifyMsgOff := 'vkBasalt deactivated in fgmod';
+  end
+  else if IsOptiScalerTab then
+  begin
+    ExportLine := '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
+    SearchPattern := 'export WINEDLLOVERRIDES=';
+    NotifyTitle := 'OptiScaler';
+    NotifyMsgOn := 'OptiScaler will be activated in every application using fgmod';
+    NotifyMsgOff := 'OptiScaler deactivated from fgmod';
+  end
+  else
+    Exit;  // Not a supported tab
 
   // Get fgmod file path
   FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
@@ -4093,42 +4123,42 @@ begin
   try
     FileLines.LoadFromFile(FGModFilePath);
 
-    // Find the SteamDeck line and check if MANGOHUD line exists
+    // Find the SteamDeck line and check if target line exists
     SteamDeckLineIndex := -1;
-    MangoHudLineExists := False;
+    TargetLineExists := False;
 
     for i := 0 to FileLines.Count - 1 do
     begin
       if Pos('export SteamDeck=0', FileLines[i]) > 0 then
         SteamDeckLineIndex := i;
-      if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
-        MangoHudLineExists := True;
+      if Pos(SearchPattern, FileLines[i]) > 0 then
+        TargetLineExists := True;
     end;
 
-    if MangoHudLineExists then
+    if TargetLineExists then
     begin
-      // Remove the MANGOHUD line
+      // Remove the target line
       for i := FileLines.Count - 1 downto 0 do
       begin
-        if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
+        if Pos(SearchPattern, FileLines[i]) > 0 then
         begin
           FileLines.Delete(i);
           Break;  // Only delete first occurrence
         end;
       end;
       geSpeedButton.ImageIndex := 0;  // OFF
-      WriteLn('[FGMOD] Removed export MANGOHUD=1 from fgmod');
-      SendNotification('MangoHud', 'MangoHud deactivated in fgmod', GetIconFile);
+      WriteLn('[FGMOD] Removed ', SearchPattern, ' from fgmod');
+      SendNotification(NotifyTitle, NotifyMsgOff, GetIconFile);
     end
     else
     begin
-      // Add the MANGOHUD line after SteamDeck line
+      // Add the line after SteamDeck line
       if SteamDeckLineIndex >= 0 then
       begin
-        FileLines.Insert(SteamDeckLineIndex + 1, '  export MANGOHUD=1');
+        FileLines.Insert(SteamDeckLineIndex + 1, ExportLine);
         geSpeedButton.ImageIndex := 1;  // ON
-        WriteLn('[FGMOD] Added export MANGOHUD=1 to fgmod');
-        SendNotification('MangoHud', 'MangoHud will be activated in every application using fgmod', GetIconFile);
+        WriteLn('[FGMOD] Added ', SearchPattern, ' to fgmod');
+        SendNotification(NotifyTitle, NotifyMsgOn, GetIconFile);
       end
       else
       begin
@@ -4153,7 +4183,9 @@ var
   FGModFilePath: string;
   FileLines: TStringList;
   i: Integer;
-  MangoHudEnabled: Boolean;
+  TargetEnabled: Boolean;
+  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab: Boolean;
+  SearchPattern: string;
 begin
   // Get fgmod file path
   FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
@@ -4165,22 +4197,45 @@ begin
     Exit;
   end;
 
+  // Determine which tab is active
+  IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
+                   (goverlayPageControl.ActivePage = visualTabSheet) or
+                   (goverlayPageControl.ActivePage = performanceTabSheet) or
+                   (goverlayPageControl.ActivePage = metricsTabSheet) or
+                   (goverlayPageControl.ActivePage = extrasTabSheet);
+
+  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
+  IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
+
+  // Set the search pattern based on active tab
+  if IsMangoHudTab then
+    SearchPattern := 'export MANGOHUD=1'
+  else if IsVkBasaltTab then
+    SearchPattern := 'export ENABLE_VKBASALT=1'
+  else if IsOptiScalerTab then
+    SearchPattern := 'export WINEDLLOVERRIDES='
+  else
+  begin
+    geSpeedButton.ImageIndex := 0;  // Default to OFF for other tabs
+    Exit;
+  end;
+
   FileLines := TStringList.Create;
   try
     FileLines.LoadFromFile(FGModFilePath);
 
-    // Check if MANGOHUD line exists
-    MangoHudEnabled := False;
+    // Check if target line exists
+    TargetEnabled := False;
     for i := 0 to FileLines.Count - 1 do
     begin
-      if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
+      if Pos(SearchPattern, FileLines[i]) > 0 then
       begin
-        MangoHudEnabled := True;
+        TargetEnabled := True;
         Break;
       end;
     end;
 
-    if MangoHudEnabled then
+    if TargetEnabled then
       geSpeedButton.ImageIndex := 1  // ON
     else
       geSpeedButton.ImageIndex := 0; // OFF
@@ -4236,6 +4291,7 @@ goverlayPageControl.ActivePage:=presetTabsheet;
 //Hide notification messages
 notificationLabel.Visible:=false;
 commandLabel.Visible:=false;
+commandShape.Visible:=false;
 copyBitbtn.Visible:=false;
 
 //Show Global Enable controls for MangoHud tabs (fgmod integration)
@@ -4298,11 +4354,11 @@ begin
   //Hide notification messages
   notificationLabel.Visible:=false;
   commandLabel.Visible:=false;
+  commandShape.Visible:=false;
   copyBitbtn.Visible:=false;
 
-  //Hide Global Enable controls (temporary fix, will remove in 1.6.1)
-  geSpeedButton.Visible:=false;
-  geLabel.Visible:=false;
+  //Update geSpeedButton state for OptiScaler
+  UpdateGeSpeedButtonState;
 end;
 
 procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
@@ -5830,6 +5886,8 @@ EnableTraceLogsFound: Boolean;
             commandLabel.AutoSize:=true;
            // commandlabel.Font.Style := [fsBold];
             commandLabel.Visible := True;
+            commandShape.Width := commandLabel.Width + 10;
+            commandShape.Visible := True;
             copyBitbtn.Visible:=true;
           end
           else
@@ -5853,9 +5911,6 @@ EnableTraceLogsFound: Boolean;
     end;
 
   // ################### SAVE MANGOHUD
-
-  // Hide howtoBitBtn when not on OptiScaler tab
-  howtoBitBtn.Visible := False;
 
    if goverlayPageControl.ActivePage <> vkbasaltTabSheet then
    begin
@@ -5886,7 +5941,10 @@ EnableTraceLogsFound: Boolean;
       commandLabel.Caption := LaunchCommand;
       commandLabel.AutoSize := True;
       commandLabel.Visible := True;
+      commandShape.Width := commandLabel.Width + 10;
+      commandShape.Visible := True;
       copyBitbtn.Visible := True;
+      howtoBitBtn.Visible := True;
     end;
 
     //########################################### SAVE BLACKLIST
@@ -6054,6 +6112,32 @@ end;  //  ################### END - SAVE MANGOHUD
        DeleteFile(VKBASALTCFGFILE);
      Lines.SaveToFile(VKBASALTCFGFILE);
      SendNotification('vkBasalt', 'configuration saved', GetIconFile);
+
+     // If geSpeedButton is active (vkBasalt enabled in fgmod), show the fgmod command
+     if geSpeedButton.ImageIndex = 1 then
+     begin
+       // Build launch command with full absolute path
+       if IsRunningInFlatpak then
+         LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+       else
+         LaunchCommand := GetFGModPath + '/fgmod %command%';
+
+       // Update notificationLabel
+       notificationLabel.Caption := 'Launch command:';
+       notificationLabel.Font.Color := clOlive;
+       notificationLabel.Font.Style := [fsBold];
+       notificationLabel.Visible := True;
+
+       // Update commandLabel with launch command
+       commandLabel.Caption := LaunchCommand;
+       commandLabel.AutoSize := True;
+       commandLabel.Visible := True;
+       commandShape.Width := commandLabel.Width + 10;
+       commandShape.Visible := True;
+       copyBitbtn.Visible := True;
+       howtoBitBtn.Visible := True;
+     end;
+
    except
      on E: Exception do
        ShowMessage('Fail to save vkbasalt.conf: ' + E.Message);
