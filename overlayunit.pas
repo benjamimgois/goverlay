@@ -51,6 +51,13 @@ type
     casLabel: TLabel;
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
+    CheckGroup1: TCheckGroup;
+    CheckGroup2: TCheckGroup;
+    generalCheckGroup: TCheckGroup;
+    graphicsGroupBox: TGroupBox;
+    tweaksLabel: TLabel;
+    tweaksShape: TShape;
+    performanceCheckGroup: TCheckGroup;
     checkupdBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     columsGroupBox: TGroupBox;
@@ -190,6 +197,7 @@ type
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
+    protonGroupBox: TGroupBox;
     imgmenuGroupBox: TGroupBox;
     gupdateBitBtn: TBitBtn;
     donateMenuItem: TMenuItem;
@@ -312,6 +320,7 @@ type
     sysinfoImage: TImage;
     systemGroupBox: TGroupBox;
     systemLabel: TLabel;
+    tweaksTabSheet: TTabSheet;
     themeToggleSpeedButton: TSpeedButton;
     timeCheckBox: TCheckBox;
     toggleImage: TImage;
@@ -439,6 +448,7 @@ type
     procedure SetAllCheckBoxesToFalse;
     procedure SetAllCheckBoxesToTrue;
     procedure checkupdBitBtnClick(Sender: TObject);
+    procedure tweaksLabelClick(Sender: TObject);
     procedure updateBitBtnClick(Sender: TObject);
     procedure usercustomBitBtnClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
@@ -1379,6 +1389,41 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.tweaksLabelClick(Sender: TObject);
+begin
+//Enable goverlay tabs
+goverlayPageControl.ShowTabs:=false; //disable mangohud tab
+vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+tweakstabsheet.TabVisible:=true;
+
+//unselect vkbasalt , optiscaler
+mangohudLabel.Font.Color:=clgray;
+mangohudShape.Brush.Color:= DarkerBackgroundColor;
+vkbasaltLabel.Font.Color:=clgray;
+vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
+optiscalerLabel.Font.Color:=clgray;
+optiscalerShape.Brush.Color:= DarkerBackgroundColor;
+
+
+// select mangohud
+tweaksLabel.Font.Color:=clwhite;
+tweaksShape.Brush.Color:= DarkBackgroundColor;
+goverlayPageControl.ActivePage:=tweaksTabsheet;
+
+//Hide notification messages
+notificationLabel.Visible:=false;
+commandLabel.Visible:=false;
+commandShape.Visible:=false;
+copyBitbtn.Visible:=false;
+
+//Show Global Enable controls for tweaks tabs (fgmod integration)
+geSpeedButton.Visible:=true;
+geLabel.Visible:=true;
+UpdateGeSpeedButtonState;
+
+end;
+
 procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
 begin
  updateProgressBar.Visible:=true;
@@ -1618,13 +1663,15 @@ begin
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
-
+  tweakstabsheet.TabVisible:=false;
 
   //unselecte mangohud
   mangohudLabel.Font.Color:=clgray;
   mangohudShape.Brush.Color:= DarkerBackgroundColor;
   optiscalerLabel.Font.Color:=clgray;
   optiscalerShape.Brush.Color:= DarkerBackgroundColor;
+  tweaksLabel.Font.Color:=clgray;
+  tweaksShape.Brush.Color:= DarkerBackgroundColor;
 
   // select vkbasalt
   vkbasaltLabel.Font.Color:=clwhite;
@@ -4207,13 +4254,22 @@ begin
   IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
   IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
 
-  // Set the search pattern based on active tab
+  // Set the search pattern and hint based on active tab
   if IsMangoHudTab then
-    SearchPattern := 'export MANGOHUD=1'
+  begin
+    SearchPattern := 'export MANGOHUD=1';
+    geSpeedButton.Hint := 'MangoHUD will be automatically enabled for applications running the launch command with FGMOD';
+  end
   else if IsVkBasaltTab then
-    SearchPattern := 'export ENABLE_VKBASALT=1'
+  begin
+    SearchPattern := 'export ENABLE_VKBASALT=1';
+    geSpeedButton.Hint := 'vkBasalt will be automatically enabled for applications running the launch command with FGMOD';
+  end
   else if IsOptiScalerTab then
-    SearchPattern := 'export WINEDLLOVERRIDES='
+  begin
+    SearchPattern := 'export WINEDLLOVERRIDES=';
+    geSpeedButton.Hint := 'Optiscaler will be automatically enabled for applications running the launch command with FGMOD';
+  end
   else
   begin
     geSpeedButton.ImageIndex := 0;  // Default to OFF for other tabs
@@ -4276,12 +4332,15 @@ begin
 goverlayPageControl.ShowTabs:=true;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+tweakstabsheet.TabVisible:=false;  //disable tweaks tab
 
 //unselect vkbasalt , optiscaler
 vkbasaltLabel.Font.Color:=clgray;
 vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
 optiscalerLabel.Font.Color:=clgray;
 optiscalerShape.Brush.Color:= DarkerBackgroundColor;
+tweaksLabel.Font.Color:=clgray;
+tweaksShape.Brush.Color:= DarkerBackgroundColor;
 
 // select mangohud
 mangohudLabel.Font.Color:=clwhite;
@@ -4335,14 +4394,16 @@ begin
 //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   vkbasalttabsheet.TabVisible:=false;
+  tweakstabsheet.TabVisible:=false;
 
 
-
-  //unselecte mangohud
+  //unselect mangohud
   mangohudLabel.Font.Color:=clgray;
   mangohudShape.Brush.Color:= DarkerBackgroundColor;
   vkbasaltLabel.Font.Color:=clgray;
   vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
+  tweaksLabel.Font.Color:=clgray;
+  tweaksShape.Brush.Color:= DarkerBackgroundColor;
 
 
   // select optscaler
