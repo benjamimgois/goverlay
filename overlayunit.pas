@@ -4377,6 +4377,49 @@ begin
           graphicsCheckGroup.Checked[3] := True;
           TweakFound := True;
         end;
+
+        // performanceCheckGroup items
+        // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
+        if Pos('export PROTON_PRIORITY_HIGH=1', FileLines[i]) > 0 then
+        begin
+          performanceCheckGroup.Checked[0] := True;
+          TweakFound := True;
+        end;
+
+        // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
+        if Pos('export PROTON_USE_WOW64=1', FileLines[i]) > 0 then
+        begin
+          performanceCheckGroup.Checked[1] := True;
+          TweakFound := True;
+        end;
+
+        // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
+        if Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FileLines[i]) > 0 then
+        begin
+          performanceCheckGroup.Checked[2] := True;
+          TweakFound := True;
+        end;
+
+        // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
+        if Pos('export STAGING_SHARED_MEMORY=1', FileLines[i]) > 0 then
+        begin
+          performanceCheckGroup.Checked[3] := True;
+          TweakFound := True;
+        end;
+
+        // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
+        if Pos('export PROTON_NO_NTSYNC=1', FileLines[i]) > 0 then
+        begin
+          performanceCheckGroup.Checked[4] := True;
+          TweakFound := True;
+        end;
+
+        // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
+        if Pos('export PROTON_HEAP_DELAY_FREE=1', FileLines[i]) > 0 then
+        begin
+          performanceCheckGroup.Checked[5] := True;
+          TweakFound := True;
+        end;
       end;
 
       // Set geSpeedButton state based on whether any tweak was found
@@ -4454,6 +4497,14 @@ begin
     graphicsCheckGroup.Checked[2] := False;
     graphicsCheckGroup.Checked[3] := False;
 
+    // Reset performanceCheckGroup checkboxes
+    performanceCheckGroup.Checked[0] := False;
+    performanceCheckGroup.Checked[1] := False;
+    performanceCheckGroup.Checked[2] := False;
+    performanceCheckGroup.Checked[3] := False;
+    performanceCheckGroup.Checked[4] := False;
+    performanceCheckGroup.Checked[5] := False;
+
     // Check each tweak and set checkbox accordingly
     for i := 0 to FileLines.Count - 1 do
     begin
@@ -4525,6 +4576,49 @@ begin
       if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
       begin
         graphicsCheckGroup.Checked[3] := True;
+        TweakFound := True;
+      end;
+
+      // performanceCheckGroup items
+      // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
+      if Pos('export PROTON_PRIORITY_HIGH=1', FileLines[i]) > 0 then
+      begin
+        performanceCheckGroup.Checked[0] := True;
+        TweakFound := True;
+      end;
+
+      // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
+      if Pos('export PROTON_USE_WOW64=1', FileLines[i]) > 0 then
+      begin
+        performanceCheckGroup.Checked[1] := True;
+        TweakFound := True;
+      end;
+
+      // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
+      if Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FileLines[i]) > 0 then
+      begin
+        performanceCheckGroup.Checked[2] := True;
+        TweakFound := True;
+      end;
+
+      // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
+      if Pos('export STAGING_SHARED_MEMORY=1', FileLines[i]) > 0 then
+      begin
+        performanceCheckGroup.Checked[3] := True;
+        TweakFound := True;
+      end;
+
+      // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
+      if Pos('export PROTON_NO_NTSYNC=1', FileLines[i]) > 0 then
+      begin
+        performanceCheckGroup.Checked[4] := True;
+        TweakFound := True;
+      end;
+
+      // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
+      if Pos('export PROTON_HEAP_DELAY_FREE=1', FileLines[i]) > 0 then
+      begin
+        performanceCheckGroup.Checked[5] := True;
         TweakFound := True;
       end;
     end;
@@ -5804,7 +5898,14 @@ EnableTraceLogsFound: Boolean;
                  (Pos('export RADV_PERFTEST=rt,emulate_rt', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_HIDE_NVIDIA_GPU=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_ENABLE_NVAPI=1', FGModLines[LineIndex]) > 0) or
-                 (Pos('export PROTON_USE_WINED3D=1', FGModLines[LineIndex]) > 0) then
+                 (Pos('export PROTON_USE_WINED3D=1', FGModLines[LineIndex]) > 0) or
+                 // performanceCheckGroup exports
+                 (Pos('export PROTON_PRIORITY_HIGH=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_USE_WOW64=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export STAGING_SHARED_MEMORY=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_NO_NTSYNC=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_HEAP_DELAY_FREE=1', FGModLines[LineIndex]) > 0) then
               begin
                 FGModLines.Delete(LineIndex);
               end;
@@ -5852,6 +5953,31 @@ EnableTraceLogsFound: Boolean;
                 // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
                 if graphicsCheckGroup.Checked[0] then
                   FGModLines.Insert(LineIndex + 1, '  export RADV_PERFTEST=rt,emulate_rt');
+
+                // performanceCheckGroup items (insert in reverse order)
+                // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
+                if performanceCheckGroup.Checked[5] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_HEAP_DELAY_FREE=1');
+
+                // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
+                if performanceCheckGroup.Checked[4] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_NO_NTSYNC=1');
+
+                // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
+                if performanceCheckGroup.Checked[3] then
+                  FGModLines.Insert(LineIndex + 1, '  export STAGING_SHARED_MEMORY=1');
+
+                // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
+                if performanceCheckGroup.Checked[2] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_FORCE_LARGE_ADDRESS_AWARE=1');
+
+                // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
+                if performanceCheckGroup.Checked[1] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_WOW64=1');
+
+                // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
+                if performanceCheckGroup.Checked[0] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_PRIORITY_HIGH=1');
 
                 Break;
               end;
