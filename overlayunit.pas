@@ -51,10 +51,12 @@ type
     casLabel: TLabel;
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
-    CheckGroup1: TCheckGroup;
+    graphicsCheckGroup: TCheckGroup;
     generalCheckGroup: TCheckGroup;
     advancedGroupBox: TGroupBox;
+    Image5: TImage;
     performanceCheckGroup: TCheckGroup;
+    StaticText1: TStaticText;
     tweaksLabel: TLabel;
     tweaksShape: TShape;
     checkupdBitBtn: TBitBtn;
@@ -467,6 +469,7 @@ type
     FReshadePhaseLabel: TLabel;
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
     procedure UpdateGeSpeedButtonState;
+    procedure LoadTweaksFromFGMod;
   public
 
 
@@ -3516,6 +3519,9 @@ begin
   // Update geSpeedButton state from fgmod file
   UpdateGeSpeedButtonState;
 
+  // Load tweaks tab state from fgmod file
+  LoadTweaksFromFGMod;
+
   //Turbulence animation start
   FStartTick := GetTickCount;
   Timer.Interval := 50; // 20 fps aprox
@@ -4114,7 +4120,7 @@ var
   FileLines: TStringList;
   i, SteamDeckLineIndex: Integer;
   TargetLineExists: Boolean;
-  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab: Boolean;
+  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab, IsTweaksTab: Boolean;
   ExportLine, SearchPattern, NotifyTitle, NotifyMsgOn, NotifyMsgOff: string;
 begin
   // Determine which tab is active
@@ -4126,6 +4132,7 @@ begin
 
   IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
   IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
+  IsTweaksTab := (goverlayPageControl.ActivePage = tweaksTabSheet);
 
   // Set the appropriate export line and messages based on active tab
   if IsMangoHudTab then
@@ -4151,6 +4158,22 @@ begin
     NotifyTitle := 'OptiScaler';
     NotifyMsgOn := 'OptiScaler will be activated in every application using fgmod';
     NotifyMsgOff := 'OptiScaler deactivated from fgmod';
+  end
+  else if IsTweaksTab then
+  begin
+    // Tweaks tab: just toggle the button state, no specific export line
+    // The actual tweaks are added when saving via saveBitBtnClick
+    if geSpeedButton.ImageIndex = 0 then
+    begin
+      geSpeedButton.ImageIndex := 1;  // ON
+      SendNotification('Tweaks', 'Tweaks will be saved to fgmod when you click Save', GetIconFile);
+    end
+    else
+    begin
+      geSpeedButton.ImageIndex := 0;  // OFF
+      SendNotification('Tweaks', 'Tweaks mode disabled - commands will be shown for manual use', GetIconFile);
+    end;
+    Exit;  // Exit early for tweaks tab
   end
   else
     Exit;  // Not a supported tab
@@ -4230,8 +4253,9 @@ var
   FileLines: TStringList;
   i: Integer;
   TargetEnabled: Boolean;
-  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab: Boolean;
+  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab, IsTweaksTab: Boolean;
   SearchPattern: string;
+  TweakFound: Boolean;
 begin
   // Get fgmod file path
   FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
@@ -4252,6 +4276,7 @@ begin
 
   IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
   IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
+  IsTweaksTab := (goverlayPageControl.ActivePage = tweaksTabSheet);
 
   // Set the search pattern and hint based on active tab
   if IsMangoHudTab then
@@ -4268,6 +4293,102 @@ begin
   begin
     SearchPattern := 'export WINEDLLOVERRIDES=';
     geSpeedButton.Hint := 'Optiscaler will be automatically enabled for applications running the launch command with FGMOD';
+  end
+  else if IsTweaksTab then
+  begin
+    geSpeedButton.Hint := 'Tweaks will be saved to fgmod file when enabled';
+
+    // For tweaks tab, load the checkbox states from fgmod file
+    FileLines := TStringList.Create;
+    try
+      FileLines.LoadFromFile(FGModFilePath);
+      TweakFound := False;
+
+      // Check each tweak and set checkbox accordingly
+      for i := 0 to FileLines.Count - 1 do
+      begin
+        // Index 0: "Simulate Steam Deck" -> export SteamDeck=1
+        if Pos('export SteamDeck=1', FileLines[i]) > 0 then
+        begin
+          generalCheckGroup.Checked[0] := True;
+          TweakFound := True;
+        end;
+
+        // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
+        if Pos('export PROTON_ENABLE_HDR=1', FileLines[i]) > 0 then
+        begin
+          generalCheckGroup.Checked[2] := True;
+          TweakFound := True;
+        end;
+
+        // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
+        if Pos('export PROTON_ENABLE_WAYLAND=1', FileLines[i]) > 0 then
+        begin
+          generalCheckGroup.Checked[3] := True;
+          TweakFound := True;
+        end;
+
+        // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
+        if Pos('export PROTON_LOG=1', FileLines[i]) > 0 then
+        begin
+          generalCheckGroup.Checked[4] := True;
+          TweakFound := True;
+        end;
+
+        // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
+        if Pos('export PROTON_USE_SDL=1', FileLines[i]) > 0 then
+        begin
+          generalCheckGroup.Checked[5] := True;
+          TweakFound := True;
+        end;
+
+        // Index 1: "Always use GameMode" -> #gamemode comment
+        if Pos('#gamemode', FileLines[i]) > 0 then
+        begin
+          generalCheckGroup.Checked[1] := True;
+          TweakFound := True;
+        end;
+
+        // graphicsCheckGroup items
+        // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
+        if Pos('export RADV_PERFTEST=rt,emulate_rt', FileLines[i]) > 0 then
+        begin
+          graphicsCheckGroup.Checked[0] := True;
+          TweakFound := True;
+        end;
+
+        // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
+        if Pos('export PROTON_HIDE_NVIDIA_GPU=1', FileLines[i]) > 0 then
+        begin
+          graphicsCheckGroup.Checked[1] := True;
+          TweakFound := True;
+        end;
+
+        // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
+        if Pos('export PROTON_ENABLE_NVAPI=1', FileLines[i]) > 0 then
+        begin
+          graphicsCheckGroup.Checked[2] := True;
+          TweakFound := True;
+        end;
+
+        // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
+        if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
+        begin
+          graphicsCheckGroup.Checked[3] := True;
+          TweakFound := True;
+        end;
+      end;
+
+      // Set geSpeedButton state based on whether any tweak was found
+      if TweakFound then
+        geSpeedButton.ImageIndex := 1  // ON
+      else
+        geSpeedButton.ImageIndex := 0; // OFF
+
+    finally
+      FileLines.Free;
+    end;
+    Exit;  // Exit early for tweaks tab
   end
   else
   begin
@@ -4294,6 +4415,119 @@ begin
       geSpeedButton.ImageIndex := 1  // ON
     else
       geSpeedButton.ImageIndex := 0; // OFF
+
+  finally
+    FileLines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.LoadTweaksFromFGMod;
+var
+  FGModFilePath: string;
+  FileLines: TStringList;
+  i: Integer;
+  TweakFound: Boolean;
+begin
+  // Get fgmod file path
+  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
+  // Check if fgmod file exists
+  if not FileExists(FGModFilePath) then
+    Exit;
+
+  FileLines := TStringList.Create;
+  try
+    FileLines.LoadFromFile(FGModFilePath);
+    TweakFound := False;
+
+    // Reset all tweaks checkboxes first
+    generalCheckGroup.Checked[0] := False;
+    generalCheckGroup.Checked[1] := False;
+    generalCheckGroup.Checked[2] := False;
+    generalCheckGroup.Checked[3] := False;
+    generalCheckGroup.Checked[4] := False;
+    generalCheckGroup.Checked[5] := False;
+
+    // Reset graphicsCheckGroup checkboxes
+    graphicsCheckGroup.Checked[0] := False;
+    graphicsCheckGroup.Checked[1] := False;
+    graphicsCheckGroup.Checked[2] := False;
+    graphicsCheckGroup.Checked[3] := False;
+
+    // Check each tweak and set checkbox accordingly
+    for i := 0 to FileLines.Count - 1 do
+    begin
+      // Index 0: "Simulate Steam Deck" -> export SteamDeck=1
+      if Pos('export SteamDeck=1', FileLines[i]) > 0 then
+      begin
+        generalCheckGroup.Checked[0] := True;
+        TweakFound := True;
+      end;
+
+      // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
+      if Pos('export PROTON_ENABLE_HDR=1', FileLines[i]) > 0 then
+      begin
+        generalCheckGroup.Checked[2] := True;
+        TweakFound := True;
+      end;
+
+      // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
+      if Pos('export PROTON_ENABLE_WAYLAND=1', FileLines[i]) > 0 then
+      begin
+        generalCheckGroup.Checked[3] := True;
+        TweakFound := True;
+      end;
+
+      // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
+      if Pos('export PROTON_LOG=1', FileLines[i]) > 0 then
+      begin
+        generalCheckGroup.Checked[4] := True;
+        TweakFound := True;
+      end;
+
+      // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
+      if Pos('export PROTON_USE_SDL=1', FileLines[i]) > 0 then
+      begin
+        generalCheckGroup.Checked[5] := True;
+        TweakFound := True;
+      end;
+
+      // Index 1: "Always use GameMode" -> #gamemode comment
+      if Pos('#gamemode', FileLines[i]) > 0 then
+      begin
+        generalCheckGroup.Checked[1] := True;
+        TweakFound := True;
+      end;
+
+      // graphicsCheckGroup items
+      // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
+      if Pos('export RADV_PERFTEST=rt,emulate_rt', FileLines[i]) > 0 then
+      begin
+        graphicsCheckGroup.Checked[0] := True;
+        TweakFound := True;
+      end;
+
+      // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
+      if Pos('export PROTON_HIDE_NVIDIA_GPU=1', FileLines[i]) > 0 then
+      begin
+        graphicsCheckGroup.Checked[1] := True;
+        TweakFound := True;
+      end;
+
+      // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
+      if Pos('export PROTON_ENABLE_NVAPI=1', FileLines[i]) > 0 then
+      begin
+        graphicsCheckGroup.Checked[2] := True;
+        TweakFound := True;
+      end;
+
+      // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
+      if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
+      begin
+        graphicsCheckGroup.Checked[3] := True;
+        TweakFound := True;
+      end;
+    end;
 
   finally
     FileLines.Free;
@@ -5538,6 +5772,10 @@ EnableTraceLogsFound: Boolean;
       if generalCheckGroup.Checked[5] then
         LaunchCommand := LaunchCommand + 'PROTON_USE_SDL=1 ';
 
+      // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
+      if generalCheckGroup.Checked[1] then
+        LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+
       // Always end with %command%
       LaunchCommand := LaunchCommand + '%command%';
 
@@ -5560,7 +5798,13 @@ EnableTraceLogsFound: Boolean;
               if (Pos('export PROTON_ENABLE_HDR=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_ENABLE_WAYLAND=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_LOG=1', FGModLines[LineIndex]) > 0) or
-                 (Pos('export PROTON_USE_SDL=1', FGModLines[LineIndex]) > 0) then
+                 (Pos('export PROTON_USE_SDL=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('#gamemode', FGModLines[LineIndex]) > 0) or
+                 // graphicsCheckGroup exports
+                 (Pos('export RADV_PERFTEST=rt,emulate_rt', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_HIDE_NVIDIA_GPU=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_ENABLE_NVAPI=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_USE_WINED3D=1', FGModLines[LineIndex]) > 0) then
               begin
                 FGModLines.Delete(LineIndex);
               end;
@@ -5572,6 +5816,10 @@ EnableTraceLogsFound: Boolean;
               if Pos('# Execute the original command', FGModLines[LineIndex]) > 0 then
               begin
                 // Insert lines in reverse order so they appear in correct order after insertion
+                // Index 1: "Always use GameMode" -> #gamemode (comment marker)
+                if generalCheckGroup.Checked[1] then
+                  FGModLines.Insert(LineIndex + 1, '  #gamemode');
+
                 // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
                 if generalCheckGroup.Checked[5] then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_SDL=1');
@@ -5587,6 +5835,23 @@ EnableTraceLogsFound: Boolean;
                 // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
                 if generalCheckGroup.Checked[2] then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_HDR=1');
+
+                // graphicsCheckGroup items (insert in reverse order)
+                // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
+                if graphicsCheckGroup.Checked[3] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_WINED3D=1');
+
+                // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
+                if graphicsCheckGroup.Checked[2] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_NVAPI=1');
+
+                // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
+                if graphicsCheckGroup.Checked[1] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_HIDE_NVIDIA_GPU=1');
+
+                // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
+                if graphicsCheckGroup.Checked[0] then
+                  FGModLines.Insert(LineIndex + 1, '  export RADV_PERFTEST=rt,emulate_rt');
 
                 Break;
               end;
@@ -5616,9 +5881,16 @@ EnableTraceLogsFound: Boolean;
 
             // Build launch command with full absolute path for fgmod
             if IsRunningInFlatpak then
-              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
             else
-              LaunchCommand := GetFGModPath + '/fgmod %command%';
+              LaunchCommand := GetFGModPath + '/fgmod ';
+
+            // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
+            if generalCheckGroup.Checked[1] then
+              LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+
+            // Always end with %command%
+            LaunchCommand := LaunchCommand + '%command%';
 
           finally
             FGModLines.Free;
