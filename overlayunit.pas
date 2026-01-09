@@ -4153,7 +4153,13 @@ begin
   end
   else if IsOptiScalerTab then
   begin
-    ExportLine := '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
+    // Show warning when user tries to deactivate on OptiScaler tab
+    if geSpeedButton.ImageIndex = 1 then
+    begin
+      ShowMessage('Warning: "Auto Enable" (fgmod) must be active for OptiScaler to work.' + LineEnding + LineEnding +
+                  'Deactivating this option will completely disable OptiScaler.');
+    end;
+    ExportLine := '  export WINEDLLOVERRIDES=\"$WINEDLLOVERRIDES,dxgi=n,b\"';
     SearchPattern := 'export WINEDLLOVERRIDES=';
     NotifyTitle := 'OptiScaler';
     NotifyMsgOn := 'OptiScaler will be activated in every application using fgmod';
@@ -6053,9 +6059,15 @@ EnableTraceLogsFound: Boolean;
 
   // ################### SAVE OPTISCALER SETTINGS
 
-    // Check if we're on the OptiScaler tab
-    if goverlayPageControl.ActivePage = optiscalerTabSheet then
+    // Check if we're on the OptiScaler tab\n    if goverlayPageControl.ActivePage = optiscalerTabSheet then
     begin
+      // If geSpeedButton is OFF, just show notification and exit - no fgmod modification needed
+      if geSpeedButton.ImageIndex = 0 then
+      begin
+        SendNotification('OptiScaler', 'Configuration saved (Auto Enable disabled)', GetIconFile);
+        Exit;
+      end;
+
       // Get the fgmod file path
       FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
 
@@ -6096,7 +6108,7 @@ EnableTraceLogsFound: Boolean;
             end;
           end;
 
-          // Search for the WINEDLLOVERRIDES line and update it
+          // Search for the WINEDLLOVERRIDES line and update it, or add it if not found
           WineOverrideFound := False;
           if LineFound then
           begin
@@ -6108,6 +6120,20 @@ EnableTraceLogsFound: Boolean;
                 FGModLines[LineIndex] := 'export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,' + DllNameWithoutExt + '=n,b"';
                 WineOverrideFound := True;
                 Break;
+              end;
+            end;
+
+            // If WINEDLLOVERRIDES line not found, add it after "# Execute the original command"
+            if not WineOverrideFound then
+            begin
+              for LineIndex := 0 to FGModLines.Count - 1 do
+              begin
+                if Pos('# Execute the original command', FGModLines[LineIndex]) > 0 then
+                begin
+                  FGModLines.Insert(LineIndex + 1, '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,' + DllNameWithoutExt + '=n,b"');
+                  WineOverrideFound := True;
+                  Break;
+                end;
               end;
             end;
           end;
@@ -6546,6 +6572,31 @@ EnableTraceLogsFound: Boolean;
       commandShape.Visible := True;
       copyBitbtn.Visible := True;
       howtoBitBtn.Visible := True;
+    end
+    else
+    begin
+      // geSpeedButton is OFF - show environment variable command
+      LaunchCommand := 'MANGOHUD=1 ';
+
+      // Check if gamemode should be added
+      if generalCheckGroup.Checked[1] then
+        LaunchCommand := LaunchCommand + 'gamemoderun ';
+
+      LaunchCommand := LaunchCommand + '%command%';
+
+      // Update notificationLabel
+      notificationLabel.Caption := 'Launch command:';
+      notificationLabel.Font.Color := clOlive;
+      notificationLabel.Font.Style := [fsBold];
+      notificationLabel.Visible := True;
+
+      // Update commandLabel with launch command
+      commandLabel.Caption := LaunchCommand;
+      commandLabel.AutoSize := True;
+      commandLabel.Visible := True;
+      commandShape.Width := commandLabel.Width + 10;
+      commandShape.Visible := True;
+      copyBitbtn.Visible := True;
     end;
 
     //########################################### SAVE BLACKLIST
@@ -6743,6 +6794,31 @@ end;  //  ################### END - SAVE MANGOHUD
        commandShape.Visible := True;
        copyBitbtn.Visible := True;
        howtoBitBtn.Visible := True;
+     end
+     else
+     begin
+       // geSpeedButton is OFF - show environment variable command
+       LaunchCommand := 'ENABLE_VKBASALT=1 ';
+
+       // Check if gamemode should be added
+       if generalCheckGroup.Checked[1] then
+         LaunchCommand := LaunchCommand + 'gamemoderun ';
+
+       LaunchCommand := LaunchCommand + '%command%';
+
+       // Update notificationLabel
+       notificationLabel.Caption := 'Launch command:';
+       notificationLabel.Font.Color := clOlive;
+       notificationLabel.Font.Style := [fsBold];
+       notificationLabel.Visible := True;
+
+       // Update commandLabel with launch command
+       commandLabel.Caption := LaunchCommand;
+       commandLabel.AutoSize := True;
+       commandLabel.Visible := True;
+       commandShape.Width := commandLabel.Width + 10;
+       commandShape.Visible := True;
+       copyBitbtn.Visible := True;
      end;
 
    except
