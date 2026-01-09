@@ -6460,9 +6460,15 @@ EnableTraceLogsFound: Boolean;
             // Using absolute path ensures compatibility with all game launchers
             // In Flatpak mode, use the actual persist path for display
             if IsRunningInFlatpak then
-              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
             else
-              LaunchCommand := FGModPath + '/fgmod %command%';
+              LaunchCommand := FGModPath + '/fgmod ';
+
+            // Check if gamemode should be added (check fgmod file for #gamemode or generalCheckGroup)
+            if generalCheckGroup.Checked[1] then
+              LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+
+            LaunchCommand := LaunchCommand + '%command%';
 
             // Update notificationLabel
             notificationLabel.Caption := 'Launch command:';
@@ -6516,9 +6522,15 @@ EnableTraceLogsFound: Boolean;
     begin
       // Build launch command with full absolute path
       if IsRunningInFlatpak then
-        LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+        LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
       else
-        LaunchCommand := GetFGModPath + '/fgmod %command%';
+        LaunchCommand := GetFGModPath + '/fgmod ';
+
+      // Check if gamemode should be added (check generalCheckGroup)
+      if generalCheckGroup.Checked[1] then
+        LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+
+      LaunchCommand := LaunchCommand + '%command%';
 
       // Update notificationLabel
       notificationLabel.Caption := 'Launch command:';
@@ -6707,9 +6719,15 @@ end;  //  ################### END - SAVE MANGOHUD
      begin
        // Build launch command with full absolute path
        if IsRunningInFlatpak then
-         LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+         LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
        else
-         LaunchCommand := GetFGModPath + '/fgmod %command%';
+         LaunchCommand := GetFGModPath + '/fgmod ';
+
+       // Check if gamemode should be added (check generalCheckGroup)
+       if generalCheckGroup.Checked[1] then
+         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+
+       LaunchCommand := LaunchCommand + '%command%';
 
        // Update notificationLabel
        notificationLabel.Caption := 'Launch command:';
