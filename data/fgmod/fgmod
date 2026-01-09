@@ -15,7 +15,7 @@ error_exit() {
 }
 
 # === CONFIG ===
-fgmod_path="$HOME/fgmod"
+fgmod_path="$(dirname "$0")"
 dll_name="${DLL:-dxgi.dll}"
 preserve_ini="${PRESERVE_INI:-true}"
 
