@@ -52,12 +52,11 @@ type
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
     CheckGroup1: TCheckGroup;
-    CheckGroup2: TCheckGroup;
     generalCheckGroup: TCheckGroup;
-    graphicsGroupBox: TGroupBox;
+    advancedGroupBox: TGroupBox;
+    performanceCheckGroup: TCheckGroup;
     tweaksLabel: TLabel;
     tweaksShape: TShape;
-    performanceCheckGroup: TCheckGroup;
     checkupdBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
     columsGroupBox: TGroupBox;
@@ -197,7 +196,7 @@ type
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
-    protonGroupBox: TGroupBox;
+    basicGroupBox: TGroupBox;
     imgmenuGroupBox: TGroupBox;
     gupdateBitBtn: TBitBtn;
     donateMenuItem: TMenuItem;
@@ -4170,13 +4169,13 @@ begin
   try
     FileLines.LoadFromFile(FGModFilePath);
 
-    // Find the SteamDeck line and check if target line exists
+    // Find the anchor line (# Execute the original command) and check if target line exists
     SteamDeckLineIndex := -1;
     TargetLineExists := False;
 
     for i := 0 to FileLines.Count - 1 do
     begin
-      if Pos('export SteamDeck=0', FileLines[i]) > 0 then
+      if Pos('# Execute the original command', FileLines[i]) > 0 then
         SteamDeckLineIndex := i;
       if Pos(SearchPattern, FileLines[i]) > 0 then
         TargetLineExists := True;
@@ -4199,7 +4198,7 @@ begin
     end
     else
     begin
-      // Add the line after SteamDeck line
+      // Add the line after the anchor line
       if SteamDeckLineIndex >= 0 then
       begin
         FileLines.Insert(SteamDeckLineIndex + 1, ExportLine);
@@ -4209,7 +4208,7 @@ begin
       end
       else
       begin
-        ShowMessage('Could not find "export SteamDeck=0" line in fgmod file');
+        ShowMessage('Could not find "# Execute the original command" line in fgmod file');
         Exit;
       end;
     end;
@@ -5031,22 +5030,12 @@ begin
 end;
 
 procedure Tgoverlayform.copyBitBtnClick(Sender: TObject);
-var
-  FGModPath: string;
-  LaunchCommand: string;
 begin
-  // Get the correct fgmod path (Flatpak-aware)
-  FGModPath := GetOptiScalerInstallPath;
-
-  // Build launch command with full absolute path
-  // Using absolute path ensures compatibility with all game launchers
-  LaunchCommand := FGModPath + '/fgmod %command%';
-
-  // Copy the command to clipboard
-  Clipboard.AsText := LaunchCommand;
+  // Copy the command label content to clipboard
+  Clipboard.AsText := commandLabel.Caption;
 
   // Show notification
-  SendNotification('OptiScaler', 'Command copied to clipboard', GetIconFile);
+  SendNotification('GOverlay', 'Command copied to clipboard', GetIconFile);
 end;
 
 
@@ -5521,7 +5510,148 @@ EnableTraceLogsFound: Boolean;
 
   begin
 
+  // ################### SAVE TWEAKS TAB SETTINGS
 
+    // Check if we're on the Tweaks tab
+    if goverlayPageControl.ActivePage = tweaksTabSheet then
+    begin
+      // Build the command line from checked items
+      LaunchCommand := '';
+
+      // Index 0: "Simulate Steam Deck" -> SteamDeck=1
+      if generalCheckGroup.Checked[0] then
+        LaunchCommand := LaunchCommand + 'SteamDeck=1 ';
+
+      // Index 2: "Enable HDR" -> PROTON_ENABLE_HDR=1
+      if generalCheckGroup.Checked[2] then
+        LaunchCommand := LaunchCommand + 'PROTON_ENABLE_HDR=1 ';
+
+      // Index 3: "Enable Wayland" -> PROTON_ENABLE_WAYLAND=1
+      if generalCheckGroup.Checked[3] then
+        LaunchCommand := LaunchCommand + 'PROTON_ENABLE_WAYLAND=1 ';
+
+      // Index 4: "Active Proton Logs" -> PROTON_LOG=1
+      if generalCheckGroup.Checked[4] then
+        LaunchCommand := LaunchCommand + 'PROTON_LOG=1 ';
+
+      // Index 5: "Use SDL Input" -> PROTON_USE_SDL=1
+      if generalCheckGroup.Checked[5] then
+        LaunchCommand := LaunchCommand + 'PROTON_USE_SDL=1 ';
+
+      // Always end with %command%
+      LaunchCommand := LaunchCommand + '%command%';
+
+      // Check if geSpeedButton is active (ImageIndex = 1)
+      if geSpeedButton.ImageIndex = 1 then
+      begin
+        // geSpeedButton is ON - modify the fgmod file
+        FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
+        if FileExists(FGModFilePath) then
+        begin
+          FGModLines := TStringList.Create;
+          try
+            // Load the fgmod file
+            FGModLines.LoadFromFile(FGModFilePath);
+
+            // First, remove any existing tweak export lines to avoid duplicates
+            for LineIndex := FGModLines.Count - 1 downto 0 do
+            begin
+              if (Pos('export PROTON_ENABLE_HDR=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_ENABLE_WAYLAND=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_LOG=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export PROTON_USE_SDL=1', FGModLines[LineIndex]) > 0) then
+              begin
+                FGModLines.Delete(LineIndex);
+              end;
+            end;
+
+            // Find the "# Execute the original command" line and add enabled tweaks after it
+            for LineIndex := 0 to FGModLines.Count - 1 do
+            begin
+              if Pos('# Execute the original command', FGModLines[LineIndex]) > 0 then
+              begin
+                // Insert lines in reverse order so they appear in correct order after insertion
+                // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
+                if generalCheckGroup.Checked[5] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_SDL=1');
+
+                // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
+                if generalCheckGroup.Checked[4] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_LOG=1');
+
+                // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
+                if generalCheckGroup.Checked[3] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_WAYLAND=1');
+
+                // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
+                if generalCheckGroup.Checked[2] then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_HDR=1');
+
+                Break;
+              end;
+            end;
+
+            // Handle "Simulate Steam Deck" (index 0) - modifies existing SteamDeck line
+            for LineIndex := 0 to FGModLines.Count - 1 do
+            begin
+              if Pos('export SteamDeck=', FGModLines[LineIndex]) > 0 then
+              begin
+                if generalCheckGroup.Checked[0] then
+                  FGModLines[LineIndex] := '  export SteamDeck=1'
+                else
+                  FGModLines[LineIndex] := '  export SteamDeck=0';
+                Break;
+              end;
+            end;
+
+            // Save the modified file
+            FGModLines.SaveToFile(FGModFilePath);
+
+            // Show notification
+            SendNotification('Tweaks', 'Configuration saved', GetIconFile);
+
+            // Show the howto button after saving Tweaks configuration
+            howtoBitBtn.Visible := True;
+
+            // Build launch command with full absolute path for fgmod
+            if IsRunningInFlatpak then
+              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod %command%'
+            else
+              LaunchCommand := GetFGModPath + '/fgmod %command%';
+
+          finally
+            FGModLines.Free;
+          end;
+        end
+        else
+        begin
+          ShowMessage('Error: fgmod file not found at: ' + FGModFilePath);
+          Exit;
+        end;
+      end
+      else
+      begin
+        // geSpeedButton is OFF - just show the command line without modifying fgmod
+        SendNotification('Tweaks', 'Launch command generated', GetIconFile);
+      end;
+
+      // Update notificationLabel
+      notificationLabel.Caption := 'Launch command:';
+      notificationLabel.Font.Color := clOlive;
+      notificationLabel.Font.Style := [fsBold];
+      notificationLabel.Visible := True;
+
+      // Update commandLabel with launch command
+      commandLabel.Caption := LaunchCommand;
+      commandLabel.AutoSize := True;
+      commandLabel.Visible := True;
+      commandShape.Width := commandLabel.Width + 10;
+      commandShape.Visible := True;
+      copyBitBtn.Visible := True;
+
+      Exit; // Exit after saving Tweaks settings
+    end;
 
   // ################### SAVE OPTISCALER SETTINGS
 
