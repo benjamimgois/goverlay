@@ -59,16 +59,42 @@
     </screenshots>
 
     <releases>
-        <release version="1.6.10" date="2026-01-2">
-            <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.10</url>
+        <release version="1.7.0" date="2026-01-10">
+            <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.7.0</url>
             <description>
+                <p>New Proton Tweaks Tab</p>
                 <ul>
-                    <li>Fixed: MangoHud and vkBasalt config files now correctly saved to ~/.config/ instead of Flatpak sandbox</li>
-                    <li>Fixed: Desktop notifications now work in Flatpak mode</li>
-                    <li>Improved: Flatpak dependency detection via .so files instead of runtime checks</li>
-                    <li>Added: "None" option for log toggle key to disable logging hotkey</li>
-                    <li>Changed: Log folder path uses Flatpak-specific location when running in Flatpak</li>
-                    <li>Added: "Use both GPUs" option for multi-GPU systems</li>
+                    <li>Added Proton environment variable configuration (HDR, Wayland, Proton Logs, SDL Input)</li>
+                    <li>Added custom environment variables support</li>
+                    <li>Added GameMode integration for MangoHud, vkBasalt, and OptiScaler launch commands</li>
+                </ul>
+                <p>FGMod Improvements</p>
+                <ul>
+                    <li>Embedded fgmod scripts directly into GOverlay binary</li>
+                    <li>Added launch command display when saving configurations</li>
+                    <li>Added dynamic path detection for native and Flatpak environments</li>
+                    <li>Added Dune Awakening executable path resolution support</li>
+                    <li>Preserve fgmod, fgmod-remover.sh, and fgmod-uninstaller.sh during OptiScaler updates</li>
+                </ul>
+                <p>OptiScaler Enhancements</p>
+                <ul>
+                    <li>Added support for patched version tags (e.g., 0.7.9-2, edge-0.9.8.0106-2)</li>
+                    <li>Added DXIL_SPIRV_CONFIG workaround option for RDNA3 GPUs</li>
+                    <li>Disable emufp8 option automatically when using FSR 4.0.2 (INT8)</li>
+                    <li>Properly disable controls when OptiScaler is not installed</li>
+                </ul>
+                <p>Bug Fixes</p>
+                <ul>
+                    <li>Fixed vkBasalt toggleKey not saving selected combobox value</li>
+                    <li>Improved GPU detection to include Display controllers</li>
+                    <li>Fixed Flatpak sandbox path and fgmod script existence checks</li>
+                    <li>Fixed OptiScaler tab check bug and enabled commands display without fgmod</li>
+                    <li>Removed pci_dev from MangoHud config (only gpu_list is used now)</li>
+                </ul>
+                <p>UI Improvements</p>
+                <ul>
+                    <li>Replaced commandLabel with commandEdit and excluded from theming</li>
+                    <li>UI cleanup: reset active tab and removed hardcoded color properties</li>
                 </ul>
             </description>
         </release>

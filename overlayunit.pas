@@ -1545,6 +1545,10 @@ begin
   if not IsCommandAvailable('git') then
     Missing.Add('git');
 
+  //check if gamemoderun is available (required for GameMode feature in Tweaks tab)
+  if not IsCommandAvailable('gamemoderun') then
+    Missing.Add('gamemode');
+
    //check if zenergy module is available
   //if not IsKernelModuleAvailable('zenergy') then
   //  Missing.Add('- zenergy kernel module');
