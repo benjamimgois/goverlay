@@ -54,15 +54,8 @@ end;
 // ============================================================================
 // EMBEDDED SCRIPT: fgmod (main installer script)
 // ============================================================================
-function GetFGModScript(IsFlatpak: Boolean): string;
-var
-  FGModPathLine: string;
+function GetFGModScript: string;
 begin
-  // Set the correct fgmod_path based on environment
-  if IsFlatpak then
-    FGModPathLine := 'fgmod_path="$HOME/.var/app/io.github.benjamimgois.goverlay/fgmod"'
-  else
-    FGModPathLine := 'fgmod_path="$HOME/fgmod"';
 
   Result :=
     '#!/usr/bin/env bash' + LineEnding +
@@ -82,7 +75,7 @@ begin
     '}' + LineEnding +
     '' + LineEnding +
     '# === CONFIG ===' + LineEnding +
-    FGModPathLine + LineEnding +
+    'fgmod_path="$(dirname "$0")"' + LineEnding +
     'dll_name="${DLL:-dxgi.dll}"' + LineEnding +
     'preserve_ini="${PRESERVE_INI:-true}"' + LineEnding +
     '' + LineEnding +
@@ -108,6 +101,7 @@ begin
     '      [[ "$arg" == *"Warhammer Vermintide 2"* ]]    && arg=${arg//launcher\/Launcher.exe/binaries_dx12/vermintide2_dx12.exe}' + LineEnding +
     '      [[ "$arg" == *"Satisfactory"* ]]   && arg=${arg//FactoryGameSteam.exe/Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe}' + LineEnding +
     '      [[ "$arg" == *"FINAL FANTASY XIV Online"* ]] && arg=${arg//boot\/ffxivboot.exe/game/ffxiv_dx11.exe}' + LineEnding +
+    '      [[ "$arg" == *"DuneAwakening"* ]]    && arg=${arg//Launcher\/FuncomLauncher.exe/DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe}' + LineEnding +
     '      exe_folder_path=$(dirname "$arg")' + LineEnding +
     '      break' + LineEnding +
     '    fi' + LineEnding +
@@ -281,15 +275,8 @@ end;
 // ============================================================================
 // EMBEDDED SCRIPT: fgmod-uninstaller.sh
 // ============================================================================
-function GetFGModUninstallerScript(IsFlatpak: Boolean): string;
-var
-  FGModPathLine: string;
+function GetFGModUninstallerScript: string;
 begin
-  // Set the correct fgmod_path based on environment
-  if IsFlatpak then
-    FGModPathLine := 'fgmod_path="$HOME/.var/app/io.github.benjamimgois.goverlay/fgmod"'
-  else
-    FGModPathLine := 'fgmod_path="$HOME/fgmod"';
 
   Result :=
     '#!/usr/bin/env bash' + LineEnding +
@@ -332,6 +319,7 @@ begin
     '      [[ "$arg" == *"Warhammer Vermintide 2"* ]]    && arg=${arg//launcher\/Launcher.exe/binaries_dx12/vermintide2_dx12.exe}' + LineEnding +
     '      [[ "$arg" == *"Satisfactory"* ]]   && arg=${arg//FactoryGameSteam.exe/Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe}' + LineEnding +
     '      [[ "$arg" == *"FINAL FANTASY XIV Online"* ]] && arg=${arg//boot\/ffxivboot.exe/game/ffxiv_dx11.exe}' + LineEnding +
+    '      [[ "$arg" == *"DuneAwakening"* ]]    && arg=${arg//Launcher\/FuncomLauncher.exe/DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe}' + LineEnding +
     '      exe_folder_path=$(dirname "$arg")' + LineEnding +
     '      break' + LineEnding +
     '    fi' + LineEnding +
@@ -642,8 +630,8 @@ begin
     ForceDirectories(FGModPath);
     
     // Write all embedded script files
-    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod', GetFGModScript(IsFlatpak));
-    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript(IsFlatpak));
+    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod', GetFGModScript);
+    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript);
     WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-remover.sh', GetFGModRemoverScript(IsFlatpak));
     WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'LICENSE', GetFGModLicense);
     WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'README.md', GetFGModReadme);

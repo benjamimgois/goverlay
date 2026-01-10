@@ -41,7 +41,7 @@ type
     procedure UpdateStatus(const AStatus: string);
     function ExtractOptiScalerVersion(const AFileName: string): string;
     procedure CheckForUpdates;
-    procedure FixFgmodPathInScript(const ScriptPath: string);
+
   public
 
     procedure LoadVersionsFromFile;
@@ -750,57 +750,6 @@ begin
   end;
 end;
 
-procedure TOptiscalerTab.FixFgmodPathInScript(const ScriptPath: string);
-var
-  Lines: TStringList;
-  i: Integer;
-  Line: string;
-  CorrectPath: string;
-begin
-  WriteLn('[DEBUG] FixFgmodPathInScript: Processing ', ScriptPath);
-
-  if not FileExists(ScriptPath) then
-  begin
-    WriteLn('[WARN] FixFgmodPathInScript: Script file not found: ', ScriptPath);
-    Exit;
-  end;
-
-  // Use appropriate path based on environment
-  if IsRunningInFlatpak then
-    CorrectPath := 'fgmod_path="$HOME/.var/app/io.github.benjamimgois.goverlay/fgmod"'
-  else
-    CorrectPath := 'fgmod_path="$HOME/fgmod"';
-  Lines := TStringList.Create;
-  try
-    // Read the entire fgmod script
-    Lines.LoadFromFile(ScriptPath);
-    WriteLn('[DEBUG] FixFgmodPathInScript: Loaded ', Lines.Count, ' lines from script');
-
-    // Find and replace fgmod_path line
-    for i := 0 to Lines.Count - 1 do
-    begin
-      Line := Lines[i];
-      if Pos('fgmod_path=', Line) > 0 then
-      begin
-        WriteLn('[DEBUG] FixFgmodPathInScript: Found fgmod_path at line ', i + 1, ': ', Line);
-        Lines[i] := CorrectPath;
-        WriteLn('[DEBUG] FixFgmodPathInScript: Replaced with: ', CorrectPath);
-      end;
-    end;
-
-    // Save the modified script
-    Lines.SaveToFile(ScriptPath);
-    WriteLn('[DEBUG] FixFgmodPathInScript: Script saved successfully');
-
-    // Ensure it remains executable
-    fpChmod(ScriptPath, &755);
-    WriteLn('[DEBUG] FixFgmodPathInScript: Executable permissions restored');
-  except
-    on E: Exception do
-      WriteLn('[ERROR] FixFgmodPathInScript: ', E.Message);
-  end;
-  Lines.Free;
-end;
 
 procedure TOptiscalerTab.LoadVersionsFromFile;
 var
@@ -1366,10 +1315,6 @@ begin
       // Make fgmod executable (chmod 755)
       fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod', &755);
       WriteLn('[DEBUG] UpdateButtonClick: fgmod is now executable');
-
-      // Fix fgmod_path to always use ~/fgmod regardless of channel
-      WriteLn('[DEBUG] UpdateButtonClick: Fixing fgmod_path in fgmod script...');
-      FixFgmodPathInScript(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod');
     end
     else
       WriteLn('[WARN] UpdateButtonClick: fgmod.sh not found');
