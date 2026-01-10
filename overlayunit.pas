@@ -454,6 +454,14 @@ type
     procedure updateBitBtnClick(Sender: TObject);
     procedure usercustomBitBtnClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
+    procedure mangohudLabelMouseEnter(Sender: TObject);
+    procedure mangohudLabelMouseLeave(Sender: TObject);
+    procedure vkbasaltLabelMouseEnter(Sender: TObject);
+    procedure vkbasaltLabelMouseLeave(Sender: TObject);
+    procedure optiscalerLabelMouseEnter(Sender: TObject);
+    procedure optiscalerLabelMouseLeave(Sender: TObject);
+    procedure tweaksLabelMouseEnter(Sender: TObject);
+    procedure tweaksLabelMouseLeave(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
     procedure LoadMangoHudConfig;
@@ -1725,6 +1733,70 @@ begin
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
 
+end;
+
+// Helper function to lighten a color by blending with white
+function LightenColor(AColor: TColor; Amount: Byte): TColor;
+var
+  R, G, B: Byte;
+begin
+  R := Red(AColor);
+  G := Green(AColor);
+  B := Blue(AColor);
+  R := R + (255 - R) * Amount div 255;
+  G := G + (255 - G) * Amount div 255;
+  B := B + (255 - B) * Amount div 255;
+  Result := RGBToColor(R, G, B);
+end;
+
+procedure Tgoverlayform.mangohudLabelMouseEnter(Sender: TObject);
+begin
+  // Only lighten if not already selected (white)
+  if mangohudLabel.Font.Color <> clWhite then
+    mangohudLabel.Font.Color := LightenColor(mangohudLabel.Font.Color, 80);
+end;
+
+procedure Tgoverlayform.mangohudLabelMouseLeave(Sender: TObject);
+begin
+  // Restore to gray if not selected
+  if mangohudLabel.Font.Color <> clWhite then
+    mangohudLabel.Font.Color := clGray;
+end;
+
+procedure Tgoverlayform.vkbasaltLabelMouseEnter(Sender: TObject);
+begin
+  if vkbasaltLabel.Font.Color <> clWhite then
+    vkbasaltLabel.Font.Color := LightenColor(vkbasaltLabel.Font.Color, 80);
+end;
+
+procedure Tgoverlayform.vkbasaltLabelMouseLeave(Sender: TObject);
+begin
+  if vkbasaltLabel.Font.Color <> clWhite then
+    vkbasaltLabel.Font.Color := clGray;
+end;
+
+procedure Tgoverlayform.optiscalerLabelMouseEnter(Sender: TObject);
+begin
+  if optiscalerLabel.Font.Color <> clWhite then
+    optiscalerLabel.Font.Color := LightenColor(optiscalerLabel.Font.Color, 80);
+end;
+
+procedure Tgoverlayform.optiscalerLabelMouseLeave(Sender: TObject);
+begin
+  if optiscalerLabel.Font.Color <> clWhite then
+    optiscalerLabel.Font.Color := clGray;
+end;
+
+procedure Tgoverlayform.tweaksLabelMouseEnter(Sender: TObject);
+begin
+  if tweaksLabel.Font.Color <> clWhite then
+    tweaksLabel.Font.Color := LightenColor(tweaksLabel.Font.Color, 80);
+end;
+
+procedure Tgoverlayform.tweaksLabelMouseLeave(Sender: TObject);
+begin
+  if tweaksLabel.Font.Color <> clWhite then
+    tweaksLabel.Font.Color := clGray;
 end;
 
 procedure Tgoverlayform.whitecolorBitBtnClick(Sender: TObject);
