@@ -52,12 +52,13 @@ type
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
     commandEdit: TEdit;
+    customenvEdit: TEdit;
     graphicsCheckGroup: TCheckGroup;
     generalCheckGroup: TCheckGroup;
     advancedGroupBox: TGroupBox;
-    Image5: TImage;
+    tweaksImage: TImage;
     performanceCheckGroup: TCheckGroup;
-    StaticText1: TStaticText;
+    tweaksText: TStaticText;
     tweaksLabel: TLabel;
     tweaksShape: TShape;
     checkupdBitBtn: TBitBtn;
@@ -347,6 +348,7 @@ type
     tracelogCheckBox: TCheckBox;
     transparencyLabel: TLabel;
     transpTrackBar: TTrackBar;
+    tweaksText2: TStaticText;
     updateBitBtn: TBitBtn;
     updateProgressBar: TProgressBar;
     updatestatusLabel: TLabel;
@@ -4508,6 +4510,8 @@ var
   FileLines: TStringList;
   i: Integer;
   TweakFound: Boolean;
+  CustomEnvValue, Line: string;
+  StartPos, EndPos: Integer;
 begin
   // Get fgmod file path
   FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
@@ -4542,6 +4546,9 @@ begin
     performanceCheckGroup.Checked[3] := False;
     performanceCheckGroup.Checked[4] := False;
     performanceCheckGroup.Checked[5] := False;
+
+    // Reset customenvEdit
+    customenvEdit.Text := '';
 
     // Check each tweak and set checkbox accordingly
     for i := 0 to FileLines.Count - 1 do
@@ -4658,6 +4665,22 @@ begin
       begin
         performanceCheckGroup.Checked[5] := True;
         TweakFound := True;
+      end;
+
+      // Check for custom environment variable marker #customenv
+      if Pos('#customenv', FileLines[i]) > 0 then
+      begin
+        Line := FileLines[i];
+        // Extract value between 'export ' and ' #customenv'
+        StartPos := Pos('export ', Line);
+        EndPos := Pos(' #customenv', Line);
+        if (StartPos > 0) and (EndPos > StartPos) then
+        begin
+          // Extract the custom env value (skip 'export ' prefix)
+          CustomEnvValue := Copy(Line, StartPos + 7, EndPos - StartPos - 7);
+          customenvEdit.Text := Trim(CustomEnvValue);
+          TweakFound := True;
+        end;
       end;
     end;
 
@@ -5906,6 +5929,10 @@ EnableTraceLogsFound: Boolean;
       if generalCheckGroup.Checked[1] then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
+      // Add custom environment variables from customenvEdit if not empty
+      if Trim(customenvEdit.Text) <> '' then
+        LaunchCommand := LaunchCommand + Trim(customenvEdit.Text) + ' ';
+
       // Always end with %command%
       LaunchCommand := LaunchCommand + '%command%';
 
@@ -5941,7 +5968,9 @@ EnableTraceLogsFound: Boolean;
                  (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export STAGING_SHARED_MEMORY=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_NO_NTSYNC=1', FGModLines[LineIndex]) > 0) or
-                 (Pos('export PROTON_HEAP_DELAY_FREE=1', FGModLines[LineIndex]) > 0) then
+                 (Pos('export PROTON_HEAP_DELAY_FREE=1', FGModLines[LineIndex]) > 0) or
+                 // Custom environment variable marker
+                 (Pos('#customenv', FGModLines[LineIndex]) > 0) then
               begin
                 FGModLines.Delete(LineIndex);
               end;
@@ -6014,6 +6043,10 @@ EnableTraceLogsFound: Boolean;
                 // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
                 if performanceCheckGroup.Checked[0] then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_PRIORITY_HIGH=1');
+
+                // Custom environment variables from customenvEdit
+                if Trim(customenvEdit.Text) <> '' then
+                  FGModLines.Insert(LineIndex + 1, '  export ' + Trim(customenvEdit.Text) + ' #customenv');
 
                 Break;
               end;
