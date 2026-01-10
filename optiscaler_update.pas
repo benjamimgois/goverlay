@@ -311,27 +311,49 @@ begin
             begin
               WriteLn('[DEBUG] GetOptiScalerStableTag: Array has ', JSONArray.Count, ' tags');
 
-              // Regex pattern to match semantic versioning (e.g., 0.7.9, 1.2.3)
-              // Only digits and dots, must start with digit
-              RegEx.Expression := '^\d+\.\d+\.\d+$';
+              // First pass: Look for patched versions with -N suffix (e.g., 0.7.9-2)
+              // These should take priority over non-patched versions
+              RegEx.Expression := '^\d+\.\d+\.\d+-\d+$';
 
-              // Iterate through tags to find the first one that matches semantic versioning
               for i := 0 to JSONArray.Count - 1 do
               begin
                 JSONObject := TJSONObject(JSONArray[i]);
                 TagName := JSONObject.Get('name', '');
 
-                WriteLn('[DEBUG] GetOptiScalerStableTag: Checking tag[', i, '] = "', TagName, '"');
+                WriteLn('[DEBUG] GetOptiScalerStableTag: Checking tag[', i, '] = "', TagName, '" (looking for patched version)');
 
-                // Check if tag matches semantic version pattern (stable release)
+                // Check if tag matches patched semantic version pattern
                 if RegEx.Exec(TagName) then
                 begin
                   Result := TagName;
-                  WriteLn('[DEBUG] GetOptiScalerStableTag: Found stable version tag = "', Result, '"');
+                  WriteLn('[DEBUG] GetOptiScalerStableTag: Found patched stable version tag = "', Result, '"');
                   Break;
-                end
-                else
-                  WriteLn('[DEBUG] GetOptiScalerStableTag: Tag "', TagName, '" is not a stable version (pre-release), skipping');
+                end;
+              end;
+
+              // Second pass: If no patched version found, look for regular semantic versions
+              if Result = '' then
+              begin
+                WriteLn('[DEBUG] GetOptiScalerStableTag: No patched version found, looking for regular semantic version...');
+                RegEx.Expression := '^\d+\.\d+\.\d+$';
+
+                for i := 0 to JSONArray.Count - 1 do
+                begin
+                  JSONObject := TJSONObject(JSONArray[i]);
+                  TagName := JSONObject.Get('name', '');
+
+                  WriteLn('[DEBUG] GetOptiScalerStableTag: Checking tag[', i, '] = "', TagName, '"');
+
+                  // Check if tag matches semantic version pattern (stable release)
+                  if RegEx.Exec(TagName) then
+                  begin
+                    Result := TagName;
+                    WriteLn('[DEBUG] GetOptiScalerStableTag: Found stable version tag = "', Result, '"');
+                    Break;
+                  end
+                  else
+                    WriteLn('[DEBUG] GetOptiScalerStableTag: Tag "', TagName, '" is not a stable version (pre-release), skipping');
+                end;
               end;
 
               if Result = '' then
@@ -431,27 +453,49 @@ begin
             begin
               WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Array has ', JSONArray.Count, ' tags');
 
-              // Regex pattern to match pre-release tags starting with "edge-"
-              // Example: edge-0.9.7.1215
-              RegEx.Expression := '^edge-';
-
-              // Iterate through tags to find the first pre-release tag
+              // First pass: Look for patched versions with -N suffix (e.g., edge-0.9.8.0106-2)
+              // These should take priority over non-patched versions
+              RegEx.Expression := '^edge-.*-\d+$';
+              
               for i := 0 to JSONArray.Count - 1 do
               begin
                 JSONObject := TJSONObject(JSONArray[i]);
                 TagName := JSONObject.Get('name', '');
 
-                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '"');
+                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '" (looking for patched version)');
 
-                // Check if tag starts with "edge-"
+                // Check if tag matches patched edge version pattern
                 if RegEx.Exec(TagName) then
                 begin
                   Result := TagName;
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found pre-release tag = "', Result, '"');
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found patched pre-release tag = "', Result, '"');
                   Break;
-                end
-                else
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Tag "', TagName, '" does not start with "edge-", skipping');
+                end;
+              end;
+
+              // Second pass: If no patched version found, look for regular edge versions
+              if Result = '' then
+              begin
+                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: No patched version found, looking for regular edge version...');
+                RegEx.Expression := '^edge-';
+
+                for i := 0 to JSONArray.Count - 1 do
+                begin
+                  JSONObject := TJSONObject(JSONArray[i]);
+                  TagName := JSONObject.Get('name', '');
+
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '"');
+
+                  // Check if tag starts with "edge-"
+                  if RegEx.Exec(TagName) then
+                  begin
+                    Result := TagName;
+                    WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found pre-release tag = "', Result, '"');
+                    Break;
+                  end
+                  else
+                    WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Tag "', TagName, '" does not start with "edge-", skipping');
+                end;
               end;
 
               if Result = '' then
@@ -639,6 +683,20 @@ begin
       Process.Parameters.Add('x');
       Process.Parameters.Add('-y');  // Yes to all questions
       Process.Parameters.Add('-o' + ADestPath);
+      
+      // Exclude fgmod files if they already exist (to preserve user's configuration)
+      // Future versions of OptiScaler won't include fgmod files in the 7z archive
+      if FileExists(IncludeTrailingPathDelimiter(ADestPath) + 'fgmod') then
+      begin
+        Process.Parameters.Add('-xr!fgmod');
+        WriteLn('[DEBUG] Extract7z: Excluding fgmod from extraction (file already exists)');
+      end;
+      if FileExists(IncludeTrailingPathDelimiter(ADestPath) + 'fgmod.sh') then
+      begin
+        Process.Parameters.Add('-xr!fgmod.sh');
+        WriteLn('[DEBUG] Extract7z: Excluding fgmod.sh from extraction (file already exists)');
+      end;
+      
       Process.Parameters.Add(A7zFile);
       Process.Options := [poWaitOnExit, poUsePipes];
 
@@ -1160,6 +1218,9 @@ var
   Key, Value: string;
   SepPos: Integer;
   IsStableChannel: Boolean;
+  FGModFilePath: string;
+  FGModBackupPath: string;
+  FGModBackupExists: Boolean;
 begin
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -1211,6 +1272,46 @@ begin
     FFGModPath := GetOptiScalerInstallPath;
     WriteLn('[DEBUG] UpdateButtonClick: fgmod path = ', FFGModPath);
 
+    // Backup fgmod files before cleaning directory (to preserve user's configuration)
+    // We backup: fgmod, fgmod-remover.sh, fgmod-uninstaller.sh
+    FGModFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod';
+    FGModBackupPath := IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod.backup';
+    FGModBackupExists := False;
+    
+    // Backup main fgmod script
+    if FileExists(FGModFilePath) then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Backing up fgmod file to preserve user configuration...');
+      try
+        if CopyFile(FGModFilePath, FGModBackupPath) then
+        begin
+          FGModBackupExists := True;
+          WriteLn('[DEBUG] UpdateButtonClick: fgmod file backed up to: ', FGModBackupPath);
+        end
+        else
+          WriteLn('[WARN] UpdateButtonClick: Failed to backup fgmod file');
+      except
+        on E: Exception do
+          WriteLn('[WARN] UpdateButtonClick: Exception backing up fgmod: ', E.Message);
+      end;
+    end;
+    
+    // Backup fgmod-remover.sh
+    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Backing up fgmod-remover.sh...');
+      CopyFile(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh',
+               IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup');
+    end;
+    
+    // Backup fgmod-uninstaller.sh
+    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Backing up fgmod-uninstaller.sh...');
+      CopyFile(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh',
+               IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup');
+    end;
+
     // If directory exists, delete all contents to ensure clean installation
     if DirectoryExists(FFGModPath) then
     begin
@@ -1231,6 +1332,47 @@ begin
     // Create fresh directory
     WriteLn('[DEBUG] UpdateButtonClick: Creating fresh fgmod directory...');
     ForceDirectories(FFGModPath);
+
+    // Restore fgmod files if they were backed up
+    if FGModBackupExists then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Restoring fgmod file from backup...');
+      try
+        if CopyFile(FGModBackupPath, FGModFilePath) then
+        begin
+          // Make fgmod executable
+          fpChmod(FGModFilePath, &755);
+          WriteLn('[DEBUG] UpdateButtonClick: fgmod file restored and made executable');
+        end
+        else
+          WriteLn('[WARN] UpdateButtonClick: Failed to restore fgmod file');
+        // Delete backup file
+        DeleteFile(FGModBackupPath);
+      except
+        on E: Exception do
+          WriteLn('[WARN] UpdateButtonClick: Exception restoring fgmod: ', E.Message);
+      end;
+    end;
+    
+    // Restore fgmod-remover.sh if it was backed up
+    if FileExists(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Restoring fgmod-remover.sh from backup...');
+      CopyFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup',
+               IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh');
+      fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh', &755);
+      DeleteFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup');
+    end;
+    
+    // Restore fgmod-uninstaller.sh if it was backed up
+    if FileExists(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Restoring fgmod-uninstaller.sh from backup...');
+      CopyFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup',
+               IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh');
+      fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh', &755);
+      DeleteFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup');
+    end;
 
     UpdateProgress(10);
 
