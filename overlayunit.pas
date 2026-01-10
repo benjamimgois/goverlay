@@ -6094,7 +6094,8 @@ EnableTraceLogsFound: Boolean;
 
   // ################### SAVE OPTISCALER SETTINGS
 
-    // Check if we're on the OptiScaler tab\n    if goverlayPageControl.ActivePage = optiscalerTabSheet then
+    // Check if we're on the OptiScaler tab
+    if goverlayPageControl.ActivePage = optiscalerTabSheet then
     begin
       // If geSpeedButton is OFF, just show notification and exit - no fgmod modification needed
       if geSpeedButton.ImageIndex = 0 then
@@ -6571,6 +6572,7 @@ EnableTraceLogsFound: Boolean;
     SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
   // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
+    // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
     if geSpeedButton.ImageIndex = 1 then
     begin
       // Build launch command with full absolute path
@@ -6621,6 +6623,7 @@ EnableTraceLogsFound: Boolean;
       commandLabel.Caption := LaunchCommand;
       commandLabel.AutoSize := True;
       commandLabel.Visible := True;
+      
       commandShape.Width := commandLabel.Width + 10;
       commandShape.Visible := True;
       copyBitbtn.Visible := True;
