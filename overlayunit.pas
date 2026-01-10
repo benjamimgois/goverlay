@@ -51,6 +51,7 @@ type
     casLabel: TLabel;
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
+    commandEdit: TEdit;
     graphicsCheckGroup: TCheckGroup;
     generalCheckGroup: TCheckGroup;
     advancedGroupBox: TGroupBox;
@@ -69,7 +70,6 @@ type
     columShape4: TShape;
     columShape5: TShape;
     columvalueLabel: TLabel;
-    commandLabel: TLabel;
     copyBitBtn: TBitBtn;
     coreloadtypeBitBtn: TBitBtn;
     cpuavgloadCheckBox: TCheckBox;
@@ -304,7 +304,6 @@ type
     deckpreset3MenuItem: TMenuItem;
     deckpreset4MenuItem: TMenuItem;
     Separator1: TMenuItem;
-    commandShape: TShape;
     shortcutImage: TImage;
     shortcutkeyComboBox: TComboBox;
     shortcutkeyLabel: TLabel;
@@ -1416,8 +1415,7 @@ goverlayPageControl.ActivePage:=tweaksTabsheet;
 
 //Hide notification messages
 notificationLabel.Visible:=false;
-commandLabel.Visible:=false;
-commandShape.Visible:=false;
+commandEdit.Visible:=false;
 copyBitbtn.Visible:=false;
 
 //Show Global Enable controls for tweaks tabs (fgmod integration)
@@ -1719,8 +1717,7 @@ begin
 
   //Hide notification messages
   notificationLabel.Visible:=false;
-  commandLabel.Visible:=false;
-  commandShape.Visible:=false;
+  commandEdit.Visible:=false;
   copyBitbtn.Visible:=false;
 
   //Update geSpeedButton state for vkBasalt
@@ -4717,8 +4714,7 @@ goverlayPageControl.ActivePage:=presetTabsheet;
 
 //Hide notification messages
 notificationLabel.Visible:=false;
-commandLabel.Visible:=false;
-commandShape.Visible:=false;
+commandEdit.Visible:=false;
 copyBitbtn.Visible:=false;
 
 //Show Global Enable controls for MangoHud tabs (fgmod integration)
@@ -4782,8 +4778,7 @@ begin
 
   //Hide notification messages
   notificationLabel.Visible:=false;
-  commandLabel.Visible:=false;
-  commandShape.Visible:=false;
+  commandEdit.Visible:=false;
   copyBitbtn.Visible:=false;
 
   //Update geSpeedButton state for OptiScaler
@@ -5401,7 +5396,7 @@ end;
 procedure Tgoverlayform.copyBitBtnClick(Sender: TObject);
 begin
   // Copy the command label content to clipboard
-  Clipboard.AsText := commandLabel.Caption;
+  Clipboard.AsText := commandEdit.Text;
 
   // Show notification
   SendNotification('GOverlay', 'Command copied to clipboard', GetIconFile);
@@ -6082,11 +6077,10 @@ EnableTraceLogsFound: Boolean;
       notificationLabel.Visible := True;
 
       // Update commandLabel with launch command
-      commandLabel.Caption := LaunchCommand;
-      commandLabel.AutoSize := True;
-      commandLabel.Visible := True;
-      commandShape.Width := commandLabel.Width + 10;
-      commandShape.Visible := True;
+      commandEdit.Text := LaunchCommand;
+      
+      commandEdit.Visible := True;
+      
       copyBitBtn.Visible := True;
 
       Exit; // Exit after saving Tweaks settings
@@ -6531,12 +6525,10 @@ EnableTraceLogsFound: Boolean;
             notificationLabel.Visible := True;
 
             // Update commandLabel with launch command
-            commandLabel.caption := LaunchCommand;
-            commandLabel.AutoSize:=true;
+            commandEdit.Text := LaunchCommand;
            // commandlabel.Font.Style := [fsBold];
-            commandLabel.Visible := True;
-            commandShape.Width := commandLabel.Width + 10;
-            commandShape.Visible := True;
+            commandEdit.Visible := True;
+            
             copyBitbtn.Visible:=true;
           end
           else
@@ -6594,11 +6586,10 @@ EnableTraceLogsFound: Boolean;
       notificationLabel.Visible := True;
 
       // Update commandLabel with launch command
-      commandLabel.Caption := LaunchCommand;
-      commandLabel.AutoSize := True;
-      commandLabel.Visible := True;
-      commandShape.Width := commandLabel.Width + 10;
-      commandShape.Visible := True;
+      commandEdit.Text := LaunchCommand;
+      
+      commandEdit.Visible := True;
+      
       copyBitbtn.Visible := True;
       howtoBitBtn.Visible := True;
     end
@@ -6619,13 +6610,10 @@ EnableTraceLogsFound: Boolean;
       notificationLabel.Font.Style := [fsBold];
       notificationLabel.Visible := True;
 
-      // Update commandLabel with launch command
-      commandLabel.Caption := LaunchCommand;
-      commandLabel.AutoSize := True;
-      commandLabel.Visible := True;
+      // Update commandEdit with launch command
+      commandEdit.Text := LaunchCommand;
+      commandEdit.Visible := True;
       
-      commandShape.Width := commandLabel.Width + 10;
-      commandShape.Visible := True;
       copyBitbtn.Visible := True;
     end;
 
@@ -6817,11 +6805,10 @@ end;  //  ################### END - SAVE MANGOHUD
        notificationLabel.Visible := True;
 
        // Update commandLabel with launch command
-       commandLabel.Caption := LaunchCommand;
-       commandLabel.AutoSize := True;
-       commandLabel.Visible := True;
-       commandShape.Width := commandLabel.Width + 10;
-       commandShape.Visible := True;
+       commandEdit.Text := LaunchCommand;
+       
+       commandEdit.Visible := True;
+       
        copyBitbtn.Visible := True;
        howtoBitBtn.Visible := True;
      end
@@ -6843,11 +6830,10 @@ end;  //  ################### END - SAVE MANGOHUD
        notificationLabel.Visible := True;
 
        // Update commandLabel with launch command
-       commandLabel.Caption := LaunchCommand;
-       commandLabel.AutoSize := True;
-       commandLabel.Visible := True;
-       commandShape.Width := commandLabel.Width + 10;
-       commandShape.Visible := True;
+       commandEdit.Text := LaunchCommand;
+       
+       commandEdit.Visible := True;
+       
        copyBitbtn.Visible := True;
      end;
 

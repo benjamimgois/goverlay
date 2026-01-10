@@ -129,8 +129,8 @@ begin
 
     // Skip color exceptions - components that should maintain their custom colors
     if (ctrl.Name = 'saveBitBtn') or
+       (ctrl.Name = 'commandEdit') or
        (ctrl.Name = 'notificationLabel') or
-       (ctrl.Name = 'commandLabel') or
        (ctrl.Name = 'vkbasaltLabel') or
        (ctrl.Name = 'deckyLabel1') or
        (ctrl.Name = 'deckyLabel2') or
@@ -271,8 +271,8 @@ begin
 
     // Skip color exceptions - components that should maintain their custom colors
     if (ctrl.Name = 'saveBitBtn') or
+       (ctrl.Name = 'commandEdit') or
        (ctrl.Name = 'notificationLabel') or
-       (ctrl.Name = 'commandLabel') or
        (ctrl.Name = 'dependenciesLabel') or
        (ctrl.Name = 'deckyLabel1') or
        (ctrl.Name = 'deckyLabel2') or
