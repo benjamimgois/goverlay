@@ -59,7 +59,7 @@
     </screenshots>
 
     <releases>
-        <release version="1.6.10" date="2026-01-02">
+        <release version="1.6.10" date="2026-01-2">
             <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.10</url>
             <description>
                 <ul>
@@ -69,36 +69,6 @@
                     <li>Added: "None" option for log toggle key to disable logging hotkey</li>
                     <li>Changed: Log folder path uses Flatpak-specific location when running in Flatpak</li>
                     <li>Added: "Use both GPUs" option for multi-GPU systems</li>
-                </ul>
-            </description>
-        </release>
-        <release version="1.6.9" date="2025-12-31">
-            <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.9</url>
-            <description>
-                <ul>
-
-                    <li>Improved: GPU detection and gpu_list configuration</li>
-                    <li>Fixed: Flatpak runtime detection for MangoHud and vkBasalt</li>
-                    <li>Fixed: PasCube/vkCube fallback logic with Wayland support</li>
-                    <li>Fixed: fgmod path for Flatpak persist directory</li>
-                    <li>Fixed: Spelling errors in UI</li>
-                    <li>Improved: System detection and configuration paths</li>
-                    <li>Prioritized: PasCube execution on startup</li>
-                </ul>
-            </description>
-        </release>
-        <release version="1.6.7" date="2025-12-23">
-            <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.6.7</url>
-            <description>
-                <ul>
-                    <li>OptiScaler channel selection (stable or bleeding-edge versions)</li>
-                    <li>Sync versions with OptiScaler (now we don't use decky-framegen builds anymore)</li>
-                    <li>OptiScaler builds repo workflow for OptiScaler builds by @xXJSONDeruloXx</li>
-                    <li>GNOME fixes: tab text visibility on GNOME with dark themes</li>
-                    <li>Debug logging: 50+ debug checkpoints throughout OptiScaler operations</li>
-                    <li>Flatpak support: MangoHud configuration for Flatpak Steam</li>
-                    <li>As a Christmas gift, Goverlay is in final phases of approval in Flathub. This was only possible due to @Twig6943 hard work — thanks!</li>
-                    <li>Wish you all great holidays and keep gaming on Linux</li>
                 </ul>
             </description>
         </release>
