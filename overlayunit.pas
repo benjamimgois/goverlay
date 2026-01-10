@@ -2939,10 +2939,7 @@ begin
       end
       else
       begin
-        // Write pci_dev for specific GPU
-        ConfigLines.Add('pci_dev=0:' + pcidevComboBox.Items[pcidevComboBox.ItemIndex]);
-
-        // Write gpu_list based on index
+        // Write gpu_list based on index (pci_dev is no longer needed)
         if pcidevComboBox.ItemIndex = 0 then
              ConfigLines.Add('gpu_list=0')
         else if pcidevComboBox.ItemIndex = 1 then
