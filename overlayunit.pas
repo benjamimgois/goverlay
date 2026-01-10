@@ -6104,7 +6104,7 @@ EnableTraceLogsFound: Boolean;
       end;
 
       // Update notificationLabel
-      notificationLabel.Caption := 'Launch command:';
+      notificationLabel.Caption := 'Command :';
       notificationLabel.Font.Color := clOlive;
       notificationLabel.Font.Style := [fsBold];
       notificationLabel.Visible := True;
@@ -6552,7 +6552,7 @@ EnableTraceLogsFound: Boolean;
             LaunchCommand := LaunchCommand + '%command%';
 
             // Update notificationLabel
-            notificationLabel.Caption := 'Launch command:';
+            notificationLabel.Caption := 'Command :';
             notificationLabel.Font.Color := clOlive;
             notificationLabel.Font.Style := [fsBold];
             notificationLabel.Visible := True;
@@ -6613,7 +6613,7 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := LaunchCommand + '%command%';
 
       // Update notificationLabel
-      notificationLabel.Caption := 'Launch command:';
+      notificationLabel.Caption := 'Command :';
       notificationLabel.Font.Color := clOlive;
       notificationLabel.Font.Style := [fsBold];
       notificationLabel.Visible := True;
@@ -6638,7 +6638,7 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := LaunchCommand + '%command%';
 
       // Update notificationLabel
-      notificationLabel.Caption := 'Launch command:';
+      notificationLabel.Caption := 'Command :';
       notificationLabel.Font.Color := clOlive;
       notificationLabel.Font.Style := [fsBold];
       notificationLabel.Visible := True;
@@ -6832,7 +6832,7 @@ end;  //  ################### END - SAVE MANGOHUD
        LaunchCommand := LaunchCommand + '%command%';
 
        // Update notificationLabel
-       notificationLabel.Caption := 'Launch command:';
+       notificationLabel.Caption := 'Command :';
        notificationLabel.Font.Color := clOlive;
        notificationLabel.Font.Style := [fsBold];
        notificationLabel.Visible := True;
@@ -6857,7 +6857,7 @@ end;  //  ################### END - SAVE MANGOHUD
        LaunchCommand := LaunchCommand + '%command%';
 
        // Update notificationLabel
-       notificationLabel.Caption := 'Launch command:';
+       notificationLabel.Caption := 'Command :';
        notificationLabel.Font.Color := clOlive;
        notificationLabel.Font.Style := [fsBold];
        notificationLabel.Visible := True;
