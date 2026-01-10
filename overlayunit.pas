@@ -470,6 +470,7 @@ type
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
     procedure UpdateGeSpeedButtonState;
     procedure LoadTweaksFromFGMod;
+    function IsOptiScalerInstalled: Boolean;
   public
 
 
@@ -1433,6 +1434,8 @@ begin
  FOptiscalerUpdate.UpdateButtonClick(Sender);
  updateProgressBar.Visible:=false;
  updatestatusLabel.Visible:=false;
+ // Re-enable controls after installation completes
+ UpdateGeSpeedButtonState;
 end;
 
 
@@ -4253,6 +4256,15 @@ begin
   end;
 end;
 
+// Check if OptiScaler is installed by looking for goverlay.vars file
+function Tgoverlayform.IsOptiScalerInstalled: Boolean;
+var
+  VarsFilePath: string;
+begin
+  VarsFilePath := GetOptiScalerInstallPath + PathDelim + 'goverlay.vars';
+  Result := FileExists(VarsFilePath);
+end;
+
 procedure Tgoverlayform.UpdateGeSpeedButtonState;
 var
   FGModFilePath: string;
@@ -4289,20 +4301,43 @@ begin
   begin
     SearchPattern := 'export MANGOHUD=1';
     geSpeedButton.Hint := 'MangoHUD will be automatically enabled for applications running the launch command with FGMOD';
+    // Ensure controls are enabled for non-OptiScaler tabs
+    geSpeedButton.Enabled := True;
+    saveBitBtn.Enabled := True;
   end
   else if IsVkBasaltTab then
   begin
     SearchPattern := 'export ENABLE_VKBASALT=1';
     geSpeedButton.Hint := 'vkBasalt will be automatically enabled for applications running the launch command with FGMOD';
+    // Ensure controls are enabled for non-OptiScaler tabs
+    geSpeedButton.Enabled := True;
+    saveBitBtn.Enabled := True;
   end
   else if IsOptiScalerTab then
   begin
     SearchPattern := 'export WINEDLLOVERRIDES=';
     geSpeedButton.Hint := 'Optiscaler will be automatically enabled for applications running the launch command with FGMOD';
+    
+    // Disable controls if OptiScaler is not installed
+    if not IsOptiScalerInstalled then
+    begin
+      geSpeedButton.Enabled := False;
+      saveBitBtn.Enabled := False;
+      geSpeedButton.ImageIndex := 0;  // OFF
+      Exit;
+    end
+    else
+    begin
+      geSpeedButton.Enabled := True;
+      saveBitBtn.Enabled := True;
+    end;
   end
   else if IsTweaksTab then
   begin
     geSpeedButton.Hint := 'Tweaks will be saved to fgmod file when enabled';
+    // Ensure controls are enabled for non-OptiScaler tabs
+    geSpeedButton.Enabled := True;
+    saveBitBtn.Enabled := True;
 
     // For tweaks tab, load the checkbox states from fgmod file
     FileLines := TStringList.Create;
@@ -6262,11 +6297,8 @@ EnableTraceLogsFound: Boolean;
             finally
               OptiScalerIniLines.Free;
             end;
-          end
-          else
-          begin
-            ShowMessage('Warning: OptiScaler.ini file not found at: ' + OptiScalerIniPath);
           end;
+          // Silently skip if OptiScaler.ini doesn't exist (OptiScaler not installed yet)
 
           // ##### Now modify fakenvapi.ini file #####
 
@@ -6382,11 +6414,8 @@ EnableTraceLogsFound: Boolean;
               finally
                 FakeNvapiIniLines.Free;
               end;
-            end
-            else
-            begin
-              ShowMessage('Warning: fakenvapi.ini file not found at: ' + FakeNvapiIniPath);
             end;
+            // Silently skip if fakenvapi.ini doesn't exist (OptiScaler not installed yet)
           end;
 
             // ##### Copy FSR4 DLL based on fsrversionCombobox selection #####
@@ -6426,9 +6455,8 @@ EnableTraceLogsFound: Boolean;
                           Lines.Free;
                         end;
                       end;
-                    end
-                    else
-                      ShowMessage('Warning: FSR4_LATEST version not found. Please update OptiScaler first.');
+                    end;
+                    // Silently skip if FSR4_LATEST doesn't exist (OptiScaler not installed yet)
                   end;
 
                 1: // 4.0.2 (INT8)
@@ -6463,9 +6491,8 @@ EnableTraceLogsFound: Boolean;
                           Lines.Free;
                         end;
                       end;
-                    end
-                    else
-                      ShowMessage('Warning: FSR4_INT8 version not found. Please update OptiScaler first.');
+                    end;
+                    // Silently skip if FSR4_INT8 doesn't exist (OptiScaler not installed yet)
                   end;
               end;
             except
