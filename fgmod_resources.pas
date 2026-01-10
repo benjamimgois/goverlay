@@ -615,6 +615,8 @@ procedure InitializeFGModDirectory;
 var
   FGModPath: string;
   IsFlatpak: Boolean;
+  ParentDir: string;
+  FGModScript: string;
 begin
   FGModPath := GetFGModPath;
   IsFlatpak := IsRunningInFlatpak;
@@ -622,12 +624,44 @@ begin
   WriteLn('[FGMOD] Checking fgmod directory at: ', FGModPath);
   WriteLn('[FGMOD] Running in Flatpak: ', IsFlatpak);
   
-  // Only create files if the directory doesn't exist
-  // This preserves any user modifications to the scripts
-  if not DirectoryExists(FGModPath) then
+  // Check if parent directory exists (especially important for Flatpak)
+  ParentDir := ExtractFilePath(ExcludeTrailingPathDelimiter(FGModPath));
+  WriteLn('[FGMOD] Parent directory: ', ParentDir);
+  WriteLn('[FGMOD] Parent exists: ', DirectoryExists(ParentDir));
+  
+  // Check if fgmod SCRIPT exists (not just directory)
+  // This handles the case where directory exists but is empty
+  FGModScript := IncludeTrailingPathDelimiter(FGModPath) + 'fgmod';
+  WriteLn('[FGMOD] Checking for fgmod script at: ', FGModScript);
+  
+  if not FileExists(FGModScript) then
   begin
-    WriteLn('[FGMOD] Creating fgmod directory and scripts...');
-    ForceDirectories(FGModPath);
+    WriteLn('[FGMOD] fgmod script not found, creating fgmod directory and scripts...');
+    
+    // Try to create the directory
+    if not ForceDirectories(FGModPath) then
+    begin
+      WriteLn('[FGMOD] ERROR: Failed to create directory: ', FGModPath);
+      WriteLn('[FGMOD] Trying to create parent directories first...');
+      
+      // Try to create parent directory first
+      if not DirectoryExists(ParentDir) then
+      begin
+        if ForceDirectories(ParentDir) then
+          WriteLn('[FGMOD] Created parent directory: ', ParentDir)
+        else
+          WriteLn('[FGMOD] ERROR: Failed to create parent directory: ', ParentDir);
+      end;
+      
+      // Try again to create fgmod directory
+      if not ForceDirectories(FGModPath) then
+      begin
+        WriteLn('[FGMOD] ERROR: Still cannot create directory. Aborting initialization.');
+        Exit;
+      end;
+    end;
+    
+    WriteLn('[FGMOD] Directory created successfully');
     
     // Write all embedded script files
     WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod', GetFGModScript);
@@ -640,7 +674,7 @@ begin
   end
   else
   begin
-    WriteLn('[FGMOD] Directory already exists, preserving user modifications');
+    WriteLn('[FGMOD] fgmod script already exists, preserving user modifications');
   end;
 end;
 

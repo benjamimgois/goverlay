@@ -91,17 +91,15 @@ begin
     UserName := GetEnvironmentVariable('USER');
     if UserName <> '' then
     begin
-      // Construct path using standard /home/ structure
-      // This avoids the ~/.var/app/... sandbox path returned by GetUserDir
-      Result := '/home/' + UserName + '/fgmod';
+      // Use the Flatpak sandbox path for fgmod (security compliant)
+      Result := '/home/' + UserName + '/.var/app/io.github.benjamimgois.goverlay/fgmod';
       Exit;
     end;
   end;
 
   UserDir := GetUserDir;
 
-  // Always use ~/fgmod regardless of Flatpak or native installation
-  // Flatpak has --filesystem=home permission, so it can access user's home directory
+  // Native installation uses ~/fgmod
   Result := IncludeTrailingPathDelimiter(UserDir) + 'fgmod';
 end;
 
