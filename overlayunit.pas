@@ -4406,7 +4406,7 @@ begin
   end
   else if IsTweaksTab then
   begin
-    geSpeedButton.Hint := 'Tweaks will be saved to fgmod file when enabled';
+    geSpeedButton.Hint := 'Tweaks will be activated in every application using fgmod';
     // Ensure controls are enabled for non-OptiScaler tabs
     geSpeedButton.Enabled := True;
     saveBitBtn.Enabled := True;
