@@ -7,7 +7,6 @@ ARCH="$(uname -m)"
 VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
 export VERSION
 SHARUN="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/quick-sharun.sh"
-URUNTIME="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/uruntime2appimage.sh"
 
 export DESKTOP=/usr/share/applications/io.github.benjamimgois.goverlay.desktop
 export ICON=/usr/share/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
@@ -30,6 +29,4 @@ chmod +x ./quick-sharun
 cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./AppDir/share/vulkan/implicit_layer.d
 
 # make appimage with uruntime
-wget --retry-connrefused --tries=30 "$URUNTIME" -O ./uruntime2appimage
-chmod +x ./uruntime2appimage
-./uruntime2appimage
+./quick-sharun --make-appimage
