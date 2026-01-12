@@ -112,6 +112,9 @@ You can download it from [**`Flathub`**](https://flathub.org/en/apps/io.github.b
 
 
 ```bash
+#Add Flathub repositorie
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
 # Install Goverlay
 flatpak install flathub io.github.benjamimgois.goverlay
 
