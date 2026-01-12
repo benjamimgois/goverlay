@@ -5,6 +5,7 @@ set -eu
 # make appimage
 ARCH="$(uname -m)"
 VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
+export VERSION
 SHARUN="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/quick-sharun.sh"
 URUNTIME="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/uruntime2appimage.sh"
 
@@ -16,10 +17,6 @@ export UPINFO="gh-releases-zsync|$(echo "$GITHUB_REPOSITORY" | tr '/' '|')|lates
 export OUTNAME=GOverlay-"$VERSION"-anylinux-"$ARCH".AppImage
 
 # ADD LIBRARIES
-# Workaround: Create missing license file to prevent quick-sharun from failing
-mkdir -p /usr/share/licenses/python-numpy
-touch /usr/share/licenses/python-numpy/LICENSE.txt
-
 wget --retry-connrefused --tries=30 "$SHARUN" -O ./quick-sharun
 chmod +x ./quick-sharun
 ./quick-sharun \
