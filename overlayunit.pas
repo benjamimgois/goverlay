@@ -2253,8 +2253,10 @@ begin
           filenameComboBox.ItemIndex := 4
         else if SameText(DllName, 'winhttp.dll') then
           filenameComboBox.ItemIndex := 5
-        else if SameText(DllName, 'OptiScaler.asi') then
+        else if SameText(DllName, 'winmm.dll') then
           filenameComboBox.ItemIndex := 6
+        else if SameText(DllName, 'OptiScaler.asi') then
+          filenameComboBox.ItemIndex := 7
         else
           filenameComboBox.ItemIndex := 0; // Default: dxgi.dll
       end;
@@ -3894,7 +3896,7 @@ begin
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
@@ -3911,7 +3913,7 @@ begin
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
@@ -4069,17 +4071,17 @@ begin
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i "VGA\|video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
 
       saida.LoadFromStream(Process.output);
       LSPCI0 := Trim(saida.text); // store output um variable
-      GPU0 :=  pcidevCombobox.Items[0]; //store first value in variable
-
       Writeln ('LSPCI0: ', LSPCI0);
+      GPU0 :=  pcidevCombobox.Items[0]; //store first value in variable
       Writeln ('GPU0: ', GPU0);
+
 
       if LSPCI0 = GPU0 then
        begin
@@ -6239,7 +6241,8 @@ EnableTraceLogsFound: Boolean;
             3: SelectedDllName := 'd3d12.dll';
             4: SelectedDllName := 'wininet.dll';
             5: SelectedDllName := 'winhttp.dll';
-            6: SelectedDllName := 'OptiScaler.asi';
+            6: SelectedDllName := 'winmm.dll';
+            7: SelectedDllName := 'OptiScaler.asi';
           else
             SelectedDllName := 'dxgi.dll'; // Default
           end;
