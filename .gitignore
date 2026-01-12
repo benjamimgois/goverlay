@@ -5,6 +5,7 @@ lib/
 backup/
 goverlay.lps
 goverlay_*.tar.xz
+*.tar.gz
 *.flatpak
 docs/Changelogs/
 
