@@ -5967,6 +5967,8 @@ var
   ScaleFloat: Double;
   OverrideNvapiDllValue: string;
   OverrideNvapiDllFound: Boolean;
+  DxgiValue: string;
+  DxgiFound: Boolean;
 
   // fakenvapi.ini vars
 FakeNvapiIniPath: string;
@@ -6354,6 +6356,12 @@ EnableTraceLogsFound: Boolean;
           else
             OverrideNvapiDllValue := 'auto'; // Checkbox is not checked, set to auto
 
+          // Get Dxgi value from spoofCheckBox (Spoof DLSS inputs)
+          if spoofCheckBox.Checked then
+            DxgiValue := 'auto' // Checkbox is checked, set to auto
+          else
+            DxgiValue := 'false'; // Checkbox is not checked, set to false
+
           // Check if OptiScaler.ini exists
               if FileExists(OptiScalerIniPath) then
               begin
@@ -6366,6 +6374,7 @@ EnableTraceLogsFound: Boolean;
                   OverrideNvapiDllFound := False;
                   ShortcutKeyFound := False;
                   ScaleFound := False;
+                  DxgiFound := False;
 
                   for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
                   begin
@@ -6393,9 +6402,16 @@ EnableTraceLogsFound: Boolean;
                       OverrideNvapiDllFound := True;
                     end;
 
+                    // Check for Dxgi line (Spoof DLSS inputs)
+                    if Pos('Dxgi=', OptiScalerIniLines[LineIndex]) > 0 then
+                    begin
+                      // Replace the line with the new Dxgi value
+                      OptiScalerIniLines[LineIndex] := 'Dxgi=' + DxgiValue;
+                      DxgiFound := True;
+                    end;
 
                     // Exit loop if all found
-                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound then
+                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound and DxgiFound then
                        Break;
                   end;
 
@@ -6412,6 +6428,8 @@ EnableTraceLogsFound: Boolean;
                       ShowMessage('Warning: Could not find Scale line in OptiScaler.ini file');
                     if not OverrideNvapiDllFound then
                       ShowMessage('Warning: Could not find OverrideNvapiDll line in OptiScaler.ini file');
+                    if not DxgiFound then
+                      ShowMessage('Warning: Could not find Dxgi line in OptiScaler.ini file');
                   end;
 
             finally
