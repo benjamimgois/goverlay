@@ -453,49 +453,26 @@ begin
             begin
               WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Array has ', JSONArray.Count, ' tags');
 
-              // First pass: Look for patched versions with -N suffix (e.g., edge-0.9.8.0106-2)
-              // These should take priority over non-patched versions
-              RegEx.Expression := '^edge-.*-\d+$';
-              
+              // Look for tags starting with "edge-" (GitHub API returns them in reverse chronological order)
+              // The first edge- tag we find will be the most recent
+              RegEx.Expression := '^edge-';
+
               for i := 0 to JSONArray.Count - 1 do
               begin
                 JSONObject := TJSONObject(JSONArray[i]);
                 TagName := JSONObject.Get('name', '');
 
-                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '" (looking for patched version)');
+                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '"');
 
-                // Check if tag matches patched edge version pattern
+                // Check if tag starts with "edge-"
                 if RegEx.Exec(TagName) then
                 begin
                   Result := TagName;
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found patched pre-release tag = "', Result, '"');
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found pre-release tag = "', Result, '"');
                   Break;
-                end;
-              end;
-
-              // Second pass: If no patched version found, look for regular edge versions
-              if Result = '' then
-              begin
-                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: No patched version found, looking for regular edge version...');
-                RegEx.Expression := '^edge-';
-
-                for i := 0 to JSONArray.Count - 1 do
-                begin
-                  JSONObject := TJSONObject(JSONArray[i]);
-                  TagName := JSONObject.Get('name', '');
-
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '"');
-
-                  // Check if tag starts with "edge-"
-                  if RegEx.Exec(TagName) then
-                  begin
-                    Result := TagName;
-                    WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found pre-release tag = "', Result, '"');
-                    Break;
-                  end
-                  else
-                    WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Tag "', TagName, '" does not start with "edge-", skipping');
-                end;
+                end
+                else
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Tag "', TagName, '" does not start with "edge-", skipping');
               end;
 
               if Result = '' then
