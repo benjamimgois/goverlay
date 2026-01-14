@@ -20,8 +20,7 @@ wget --retry-connrefused --tries=30 "$SHARUN" -O ./quick-sharun
 chmod +x ./quick-sharun
 ./quick-sharun \
 	/usr/lib/goverlay        \
-	/usr/bin/pascube         \
-	/usr/share/pascube       \
+	/usr/lib/pascube/pascube \
 	/usr/lib/mangohud/*      \
 	/usr/lib/libvkbasalt.so* \
 	/usr/bin/vkcube          \
