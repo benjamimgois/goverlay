@@ -52,6 +52,8 @@ type
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
     commandEdit: TEdit;
+    fexstatsCheckBox: TCheckBox;
+    ramtempCheckBox: TCheckBox;
     customenvEdit: TEdit;
     graphicsCheckGroup: TCheckGroup;
     generalCheckGroup: TCheckGroup;
@@ -2407,6 +2409,8 @@ begin
           procvramCheckBox.Checked := True
         else if SameText(TrimmedLine, 'swap') then
           swapusageCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'ram_temp') then
+          ramtempCheckBox.Checked := True
         else if SameText(TrimmedLine, 'arch') then
           archCheckBox.Checked := True
         else if SameText(TrimmedLine, 'resolution') then
@@ -2423,6 +2427,8 @@ begin
           vkbasaltstatusCheckBox.Checked := True
         else if SameText(TrimmedLine, 'fcat') then
           fcatCheckBox.Checked := True
+        else if SameText(TrimmedLine, 'fex_stats') then
+          fexstatsCheckBox.Checked := True
         else if SameText(TrimmedLine, 'fsr') then
           fsrCheckBox.Checked := True
         else if SameText(TrimmedLine, 'hdr') then
@@ -2459,6 +2465,8 @@ begin
         else if SameText(TrimmedLine, 'display_server') then
           displayserverCheckBox.Checked := True
         // Special flags with # suffix (disabled in config but should be detected)
+        else if SameText(TrimmedLine, 'time') then
+          timeCheckBox.Checked := True
         else if SameText(TrimmedLine, 'time#') then
           timeCheckBox.Checked := True
         else if SameText(TrimmedLine, 'version#') then
@@ -3093,6 +3101,9 @@ begin
       ConfigLines.Add('ram_color=' + ColorToHTMLColor(ramColorButton.ButtonColor));
     end;
 
+    // RAM temperature
+    AddIfChecked(ramtempCheckBox, 'ram_temp');
+
     // Process memory
     AddIfChecked(procmemCheckBox, 'procmem');
 
@@ -3219,6 +3230,9 @@ begin
     // FCAT
     AddIfChecked(fcatCheckBox, 'fcat');
 
+    // FEX Stats
+    AddIfChecked(fexstatsCheckBox, 'fex_stats');
+
     // FSR
     AddIfChecked(fsrCheckBox, 'fsr');
 
@@ -3295,7 +3309,11 @@ begin
     AddIfChecked(displayserverCheckBox, 'display_server');
 
     // Time
-    AddIfChecked(timeCheckBox, 'time#');
+    if timeCheckBox.Checked then
+    begin
+      ConfigLines.Add('time');
+      ConfigLines.Add('time_no_label');
+    end;
 
     // HUD version
     AddIfChecked(hudversionCheckBox, 'version#');
@@ -5577,21 +5595,23 @@ begin
 end;
 
 procedure Tgoverlayform.fpsonlyBitBtnClick(Sender: TObject);
+var
+  ConfigLines: TStringList;
 begin
 
   //Set all checkboxes to false
   SetAllCheckBoxesToFalse;
 
-  //Set vertical orientation
-  verticalRadioButton.Checked:=true;
+  ConfigLines := TStringList.Create;
+  try
+    ConfigLines.Add('fps_only');
+    ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+  finally
+    ConfigLines.Free;
+  end;
 
-  //Check FPS  only
-  fpsCheckbox.Checked:=true;
-  fpscolorCheckbox.Checked:=true;
-
-
-  //Save button
-  saveBitbtn.Click;
+  // Popup a notification
+  SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
 end;
 
