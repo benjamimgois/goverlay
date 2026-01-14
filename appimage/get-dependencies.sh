@@ -46,7 +46,7 @@ pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring
 pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 echo '[chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist' >> /etc/pacman.conf
-pacman -Syu --noconfirm pascube vkbasalt
+pacman -Syu --noconfirm vkbasalt
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
@@ -54,12 +54,14 @@ wget --retry-connrefused --tries=30 "$EXTRA_PACKAGES" -O ./get-debloated-pkgs.sh
 chmod +x ./get-debloated-pkgs.sh
 ./get-debloated-pkgs.sh --add-common --prefer-nano mangohud-mini
 
-#echo "Building pascube..."
-#echo "---------------------------------------------------------------"
-#sed -i 's|EUID == 0|EUID == 69|g' /usr/bin/makepkg
-#git clone --depth 1 https://github.com/benjamimgois/pascube ./pascube && (
-#	cd ./pascube
-#	makepkg -fs --noconfirm
-#	ls -la .
-#	pacman --noconfirm -U ./*.pkg.tar.*
-#)
+echo "Getting pascube..."
+echo "---------------------------------------------------------------"
+tarball=$(wget --retry-connrefused --tries=30 https://api.github.com/repos/benjamimgois/pascube/releases -O - \
+		| sed 's/[()",{} ]/\n/g' | grep -oi "https.*/pascube_.*.tar.gz$" | head -1
+)
+wget --retry-connrefused --tries=30 "$tarball" -O /tmp/pascube.tar.gz
+tar xvf /tmp/pascube.tar.gz
+chmod +x ./pascube
+mv -v ./pascube /usr/bin
+mkdir -p /usr/share/pascube 
+mv -v ./assets /usr/share/pascube
