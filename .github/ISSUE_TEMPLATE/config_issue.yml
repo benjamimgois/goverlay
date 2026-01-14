@@ -1,0 +1,167 @@
+name: Configuration Issue
+description: Report issues with MangoHud, vkBasalt, or OptiScaler configuration
+title: "[Config]: "
+labels: ["configuration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report issues related to configuration file generation, loading, or saving for MangoHud, vkBasalt, or OptiScaler.
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Affected Tool
+      description: Which tool's configuration is having issues?
+      options:
+        - MangoHud
+        - vkBasalt
+        - OptiScaler
+        - FGMOD
+        - Multiple tools
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: Issue Description
+      description: Describe the configuration issue you're experiencing
+      placeholder: What's wrong with the configuration?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What type of configuration issue are you experiencing?
+      options:
+        - Configuration not saving
+        - Configuration not loading
+        - Incorrect values in config file
+        - Missing configuration options
+        - Configuration file not found
+        - Settings not applying in game/application
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this configuration issue?
+      placeholder: |
+        1. Open GOverlay
+        2. Go to [tab name]
+        3. Change [setting]
+        4. Click Save
+        5. Check config file / restart application
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation Method
+      description: How did you install GOverlay?
+      options:
+        - Flatpak (Flathub)
+        - Native (pacman/zypper/eopkg)
+        - AUR (goverlay-git)
+        - AppImage
+        - Tarball
+        - Built from source
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-config
+    attributes:
+      label: Expected Configuration
+      description: What should the configuration file contain?
+      placeholder: |
+        # Expected in config file
+        setting=value
+        option=enabled
+      render: shell
+
+  - type: textarea
+    id: actual-config
+    attributes:
+      label: Actual Configuration
+      description: What does the configuration file actually contain?
+      placeholder: |
+        # What's actually in the config file
+        setting=wrong_value
+      render: shell
+
+  - type: input
+    id: config-path
+    attributes:
+      label: Configuration File Path
+      description: Where is the configuration file located?
+      placeholder: "e.g., ~/.config/MangoHud/MangoHud.conf"
+
+  - type: input
+    id: goverlay-version
+    attributes:
+      label: GOverlay Version
+      placeholder: "e.g., 1.7.0"
+    validations:
+      required: true
+
+  - type: input
+    id: tool-version
+    attributes:
+      label: Tool Version
+      description: Version of the affected tool (MangoHud/vkBasalt/OptiScaler)
+      placeholder: "e.g., MangoHud 0.7.2"
+
+  - type: input
+    id: distro
+    attributes:
+      label: Linux Distribution
+      placeholder: "e.g., Arch Linux, Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Additional environment information
+      placeholder: |
+        - Desktop Environment: KDE Plasma 6
+        - Display Server: Wayland
+        - GPU: AMD RX 7900 XTX
+        - Driver: Mesa 24.0.0
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Include any error messages or logs
+      placeholder: Paste logs here
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: Additional details
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have checked that the configuration file path exists
+          required: false
+        - label: I have verified file permissions are correct
+          required: false
+        - label: I have searched for existing issues before creating this one
+          required: true

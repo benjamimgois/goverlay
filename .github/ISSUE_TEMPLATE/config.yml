@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/benjamimgois/goverlay/discussions
+    about: Ask questions, share ideas, or discuss GOverlay with the community
+  - name: 📖 Documentation
+    url: https://github.com/benjamimgois/goverlay/blob/main/README.md
+    about: Read the documentation before reporting an issue
+  - name: 🤝 Contributing Guide
+    url: https://github.com/benjamimgois/goverlay/blob/main/CONTRIBUTING.md
+    about: Learn how to contribute to GOverlay
