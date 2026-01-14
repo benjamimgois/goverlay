@@ -61,6 +61,7 @@ tarball=$(wget --retry-connrefused --tries=30 https://api.github.com/repos/benja
 )
 wget --retry-connrefused --tries=30 "$tarball" -O /tmp/pascube.tar.gz
 tar xvf /tmp/pascube.tar.gz
+chmod +x ./pascube
 mv -v ./pascube /usr/bin
 mkdir -p /usr/share/pascube 
 mv -v ./assets /usr/share/pascube
