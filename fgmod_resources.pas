@@ -29,26 +29,36 @@ begin
 end;
 
 // Get the correct fgmod installation path based on environment
+// For Flatpak, this uses HOST_XDG_DATA_HOME to access the real host location
+// For native, this uses XDG_DATA_HOME to follow XDG Base Directory specification
+// Returns: ~/.local/share/goverlay/fgmod for both Flatpak and native installations
 function GetFGModPath: string;
 var
-  UserDir, UserName: string;
+  DataHome: string;
+  UserName: string;
 begin
-  // Check if running in Flatpak
-  if IsRunningInFlatpak then
+  // For Flatpak, try HOST_XDG_DATA_HOME first to access the real host location
+  DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  
+  // If in Flatpak and HOST_XDG_DATA_HOME is not available, construct the host path manually
+  if (DataHome = '') and IsRunningInFlatpak then
   begin
-    // Try to get the real user name
     UserName := GetEnvironmentVariable('USER');
     if UserName <> '' then
-    begin
-      // Use the Flatpak sandbox path for fgmod
-      Result := '/home/' + UserName + '/.var/app/io.github.benjamimgois.goverlay/fgmod';
-      Exit;
-    end;
+      DataHome := '/home/' + UserName + '/.local/share'
+    else
+      DataHome := GetUserDir + '.local/share';
   end;
-
-  // Native installation uses ~/fgmod
-  UserDir := GetUserDir;
-  Result := IncludeTrailingPathDelimiter(UserDir) + 'fgmod';
+  
+  // Fall back to standard XDG_DATA_HOME for native installations
+  if DataHome = '' then
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  
+  // Final fallback to ~/.local/share
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'fgmod';
 end;
 
 // ============================================================================
@@ -452,24 +462,28 @@ end;
 // EMBEDDED SCRIPT: fgmod-remover.sh
 // ============================================================================
 function GetFGModRemoverScript(IsFlatpak: Boolean): string;
-var
-  FGModPath: string;
 begin
-  // Set the correct path based on environment
-  if IsFlatpak then
-    FGModPath := '$HOME/.var/app/io.github.benjamimgois.goverlay/fgmod'
-  else
-    FGModPath := '$HOME/fgmod';
-
+  // Use XDG-compliant path for both Flatpak and native
+  // The path resolution uses HOST_XDG_DATA_HOME for Flatpak and XDG_DATA_HOME for native
   Result :=
     '#!/usr/bin/env bash' + LineEnding +
     '' + LineEnding +
-    '# Remove fgmod directory if it exists' + LineEnding +
-    'if [[ -d "' + FGModPath + '" ]]; then' + LineEnding +
-    '    rm -rf "' + FGModPath + '"' + LineEnding +
+    '# Determine the correct fgmod path using XDG directories' + LineEnding +
+    'if [ -n \"$HOST_XDG_DATA_HOME\" ]; then' + LineEnding +
+    '    FGMOD_PATH=\"$HOST_XDG_DATA_HOME/goverlay/fgmod\"' + LineEnding +
+    'elif [ -n \"$XDG_DATA_HOME\" ]; then' + LineEnding +
+    '    FGMOD_PATH=\"$XDG_DATA_HOME/goverlay/fgmod\"' + LineEnding +
+    'else' + LineEnding +
+    '    FGMOD_PATH=\"$HOME/.local/share/goverlay/fgmod\"' + LineEnding +
     'fi' + LineEnding +
     '' + LineEnding +
-    'echo "FGmod removed"' + LineEnding;
+    '# Remove fgmod directory if it exists' + LineEnding +
+    'if [[ -d \"$FGMOD_PATH\" ]]; then' + LineEnding +
+    '    rm -rf \"$FGMOD_PATH\"' + LineEnding +
+    '    echo \"FGmod removed from $FGMOD_PATH\"' + LineEnding +
+    'else' + LineEnding +
+    '    echo \"FGmod directory not found at $FGMOD_PATH\"' + LineEnding +
+    'fi' + LineEnding;
 end;
 
 // ============================================================================

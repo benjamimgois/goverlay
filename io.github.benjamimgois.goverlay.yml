@@ -15,8 +15,8 @@ finish-args:
   # File access - use :create to allow creating directories if they don't exist
   - --filesystem=xdg-config/MangoHud:create
   - --filesystem=xdg-config/vkBasalt:create
+  - --filesystem=xdg-data/goverlay:create
   - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
-  - --persist=fgmod
   
   # Network access for downloads (OptiScaler, ReShade shaders, updates)
   - --share=network

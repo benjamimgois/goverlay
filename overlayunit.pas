@@ -6247,10 +6247,7 @@ EnableTraceLogsFound: Boolean;
             howtoBitBtn.Visible := True;
 
             // Build launch command with full absolute path for fgmod
-            if IsRunningInFlatpak then
-              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
-            else
-              LaunchCommand := GetFGModPath + '/fgmod ';
+            LaunchCommand := GetFGModPath + '/fgmod ';
 
             // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
             if generalCheckGroup.Checked[1] then
@@ -6728,11 +6725,7 @@ EnableTraceLogsFound: Boolean;
 
             // Build launch command with full absolute path
             // Using absolute path ensures compatibility with all game launchers
-            // In Flatpak mode, use the actual persist path for display
-            if IsRunningInFlatpak then
-              LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
-            else
-              LaunchCommand := FGModPath + '/fgmod ';
+            LaunchCommand := GetFGModPath + '/fgmod ';
 
             // Check if gamemode should be added (check fgmod file for #gamemode or generalCheckGroup)
             if generalCheckGroup.Checked[1] then
@@ -6790,10 +6783,7 @@ EnableTraceLogsFound: Boolean;
     if geSpeedButton.ImageIndex = 1 then
     begin
       // Build launch command with full absolute path
-      if IsRunningInFlatpak then
-        LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
-      else
-        LaunchCommand := GetFGModPath + '/fgmod ';
+      LaunchCommand := GetFGModPath + '/fgmod ';
 
       // Check if gamemode should be added (check generalCheckGroup)
       if generalCheckGroup.Checked[1] then
@@ -7009,10 +6999,7 @@ end;  //  ################### END - SAVE MANGOHUD
      if geSpeedButton.ImageIndex = 1 then
      begin
        // Build launch command with full absolute path
-       if IsRunningInFlatpak then
-         LaunchCommand := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod/fgmod '
-       else
-         LaunchCommand := GetFGModPath + '/fgmod ';
+       LaunchCommand := GetFGModPath + '/fgmod ';
 
        // Check if gamemode should be added (check generalCheckGroup)
        if generalCheckGroup.Checked[1] then
