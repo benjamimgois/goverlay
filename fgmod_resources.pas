@@ -17,6 +17,10 @@ function IsFGModInitialized: Boolean;
 // Get the fgmod installation path (Flatpak-aware)
 function GetFGModPath: string;
 
+// Migrate FGMOD from old location to new XDG-compliant location
+// Returns True if migration was performed, False if skipped
+function MigrateFGModToXDG: Boolean;
+
 implementation
 
 uses
@@ -59,6 +63,119 @@ begin
     DataHome := GetUserDir + '.local/share';
   
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'fgmod';
+end;
+
+// Migrate FGMOD from old location to new XDG-compliant location
+// Returns True if migration was performed, False if skipped
+function MigrateFGModToXDG: Boolean;
+var
+  OldPath, NewPath: string;
+  SearchRec: TSearchRec;
+  SourceFile, DestFile: string;
+  MigratedCount: Integer;
+begin
+  Result := False;
+  MigratedCount := 0;
+  
+  // Determine old path based on environment
+  if IsRunningInFlatpak then
+    OldPath := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/fgmod'
+  else
+    OldPath := GetUserDir + 'fgmod';
+  
+  NewPath := GetFGModPath;
+  
+  WriteLn('[FGMOD] Checking for auto-migration...');
+  WriteLn('[FGMOD] Old path: ', OldPath);
+  WriteLn('[FGMOD] New path: ', NewPath);
+  
+  // Check if old path exists
+  if not DirectoryExists(OldPath) then
+  begin
+    WriteLn('[FGMOD] Old path does not exist, no migration needed');
+    Exit;
+  end;
+  
+  // Check if new path already exists and has the main fgmod script
+  if DirectoryExists(NewPath) then
+  begin
+    if FileExists(IncludeTrailingPathDelimiter(NewPath) + 'fgmod') then
+    begin
+      WriteLn('[FGMOD] New path already exists with fgmod script, skipping migration');
+      Exit;
+    end;
+  end;
+  
+  // Create new directory structure
+  WriteLn('[FGMOD] ===========================================');
+  WriteLn('[FGMOD] Starting automatic migration...');
+  WriteLn('[FGMOD] ===========================================');
+  
+  if not ForceDirectories(NewPath) then
+  begin
+    WriteLn('[ERROR] Failed to create new directory: ', NewPath);
+    Exit;
+  end;
+  
+  // Copy all files from old to new location
+  if FindFirst(IncludeTrailingPathDelimiter(OldPath) + '*', faAnyFile, SearchRec) = 0 then
+  begin
+    try
+      repeat
+        if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') then
+        begin
+          // Only process files, not subdirectories
+          if (SearchRec.Attr and faDirectory) = 0 then
+          begin
+            SourceFile := IncludeTrailingPathDelimiter(OldPath) + SearchRec.Name;
+            DestFile := IncludeTrailingPathDelimiter(NewPath) + SearchRec.Name;
+            
+            try
+              if CopyFile(SourceFile, DestFile) then
+              begin
+                WriteLn('[FGMOD]   ✓ Migrated: ', SearchRec.Name);
+                Inc(MigratedCount);
+                
+                // Preserve executable permission for scripts
+                if (LowerCase(ExtractFileExt(SearchRec.Name)) = '.sh') or 
+                   (SearchRec.Name = 'fgmod') then
+                begin
+                  fpChmod(DestFile, &755);  // rwxr-xr-x
+                  WriteLn('[FGMOD]     → Preserved executable permission');
+                end;
+              end
+              else
+                WriteLn('[WARN]   ✗ Failed to copy: ', SearchRec.Name);
+            except
+              on E: Exception do
+                WriteLn('[ERROR]   ✗ Exception copying ', SearchRec.Name, ': ', E.Message);
+            end;
+          end;
+        end;
+      until FindNext(SearchRec) <> 0;
+    finally
+      FindClose(SearchRec);
+    end;
+  end;
+  
+  // Verify migration success
+  if FileExists(IncludeTrailingPathDelimiter(NewPath) + 'fgmod') then
+  begin
+    WriteLn('[FGMOD] ===========================================');
+    WriteLn('[FGMOD] Migration completed successfully!');
+    WriteLn('[FGMOD] Files migrated: ', MigratedCount);
+    WriteLn('[FGMOD] ===========================================');
+    WriteLn('[FGMOD] Old location: ', OldPath);
+    WriteLn('[FGMOD] New location: ', NewPath);
+    WriteLn('[FGMOD] You can safely delete the old directory manually');
+    WriteLn('[FGMOD] ===========================================');
+    Result := True;
+  end
+  else
+  begin
+    WriteLn('[ERROR] Migration verification failed - fgmod script not found in new location');
+    WriteLn('[ERROR] Old directory kept at: ', OldPath);
+  end;
 end;
 
 // ============================================================================
@@ -632,6 +749,9 @@ var
   ParentDir: string;
   FGModScript: string;
 begin
+  // Try to migrate from old location first (before any initialization)
+  MigrateFGModToXDG;
+  
   FGModPath := GetFGModPath;
   IsFlatpak := IsRunningInFlatpak;
   
