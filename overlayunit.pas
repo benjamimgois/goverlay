@@ -1034,6 +1034,26 @@ begin;
   Result := UserConfig;
 end;
 
+// Function to get MangoHud config directory with proper XDG support
+// For Flatpak, this uses HOST_XDG_CONFIG_HOME to access the real host location
+function GetMangoHudConfigDir(): String;
+var
+  ConfigHome: String;
+begin
+  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  
+  // Fall back to standard XDG_CONFIG_HOME
+  if ConfigHome = '' then
+    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  
+  // Final fallback to ~/.config
+  if ConfigHome = '' then
+    ConfigHome := GetUserDir + '.config';
+  
+  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'MangoHud';
+end;
+
 // Function to create directory ensuring it exists
 // For Flatpak, the manifest must have :create permission on the parent directory
 procedure CreateHostDirectory(const DirPath: String);
@@ -1651,9 +1671,9 @@ end;
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
 begin
 
-  // Update the config files path (always use ~/.config/MangoHud/ for Flatpak compatibility)
-   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/custom.conf';
-   MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/MangoHud.conf';
+  // Update the config files path with proper XDG and Flatpak support
+   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
+   MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
 
 
 
@@ -2840,8 +2860,8 @@ var
   end;
 
 begin
-  // Always use ~/.config/MangoHud/ for Flatpak compatibility
-  ConfigDir := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud';
+  // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
+  ConfigDir := GetMangoHudConfigDir();
 
   // Create directory if it doesn't exist (use CreateHostDirectory for Flatpak compatibility)
   if not DirectoryExists(ConfigDir) then
@@ -3563,8 +3583,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.7.1';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.7.2';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
@@ -3646,12 +3666,12 @@ begin
 
   // Define important file paths
   GOVERLAYFOLDER := GetUserConfigDir + '/goverlay/';
-  // Always use ~/.config/MangoHud/ for both Flatpak and native installations
-  // Games don't run in sandbox, so MangoHud needs configs in ~/.config/MangoHud/
-  MANGOHUDFOLDER := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/';
-  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/MangoHud.conf';
+  // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
+  // Games don't run in sandbox, so MangoHud needs configs in the real host location
+  MANGOHUDFOLDER := IncludeTrailingPathDelimiter(GetMangoHudConfigDir());
+  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-  CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/custom.conf';
+  CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
   // Always use ~/.config/vkBasalt/ for both Flatpak and native installations
   // This ensures ReShade shader paths are consistent across installation methods
@@ -6783,7 +6803,7 @@ EnableTraceLogsFound: Boolean;
     //########################################### SAVE BLACKLIST
 
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud/MangoHud.conf';
+  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
 
   FileLines := TStringList.Create;
   ConfigLines := TStringList.Create;
@@ -7173,8 +7193,8 @@ var
   InPresetSection: Boolean;
   PresetAlreadyExists: Boolean;
 begin
-  // Always use ~/.config/MangoHud/ for Flatpak compatibility
-  ConfigDir := IncludeTrailingPathDelimiter(GetUserDir) + '.config/MangoHud';
+  // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
+  ConfigDir := GetMangoHudConfigDir();
   PresetsFilePath := ConfigDir + '/presets.conf';
 
   // Create directory if it doesn't exist (use CreateHostDirectory for Flatpak compatibility)
