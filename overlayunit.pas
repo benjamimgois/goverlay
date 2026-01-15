@@ -1054,6 +1054,46 @@ begin
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'MangoHud';
 end;
 
+// Function to get vkBasalt config directory with proper XDG support
+// For Flatpak, this uses HOST_XDG_CONFIG_HOME to access the real host location
+function GetVkBasaltConfigDir(): String;
+var
+  ConfigHome: String;
+begin
+  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  
+  // Fall back to standard XDG_CONFIG_HOME
+  if ConfigHome = '' then
+    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  
+  // Final fallback to ~/.config
+  if ConfigHome = '' then
+    ConfigHome := GetUserDir + '.config';
+  
+  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'vkBasalt';
+end;
+
+// Function to get GOverlay config directory with proper XDG support
+// For Flatpak, this uses HOST_XDG_CONFIG_HOME to access the real host location
+function GetGOverlayConfigDir(): String;
+var
+  ConfigHome: String;
+begin
+  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  
+  // Fall back to standard XDG_CONFIG_HOME
+  if ConfigHome = '' then
+    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  
+  // Final fallback to ~/.config
+  if ConfigHome = '' then
+    ConfigHome := GetUserDir + '.config';
+  
+  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'goverlay';
+end;
+
 // Function to create directory ensuring it exists
 // For Flatpak, the manifest must have :create permission on the parent directory
 procedure CreateHostDirectory(const DirPath: String);
@@ -3664,19 +3704,19 @@ begin
  // middlerightRadiobutton.Color:=clDefault;
 
 
-  // Define important file paths
-  GOVERLAYFOLDER := GetUserConfigDir + '/goverlay/';
+  // Define important file paths with proper XDG and Flatpak support
+  GOVERLAYFOLDER := IncludeTrailingPathDelimiter(GetGOverlayConfigDir());
   // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
   // Games don't run in sandbox, so MangoHud needs configs in the real host location
   MANGOHUDFOLDER := IncludeTrailingPathDelimiter(GetMangoHudConfigDir());
   MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
-  BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
+  BLACKLISTFILE := IncludeTrailingPathDelimiter(GetGOverlayConfigDir()) + 'blacklist.conf';
   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
-  // Always use ~/.config/vkBasalt/ for both Flatpak and native installations
+  // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
   // This ensures ReShade shader paths are consistent across installation methods
-  VKBASALTFOLDER := IncludeTrailingPathDelimiter(GetUserDir) + '.config/vkBasalt/';
-  VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/vkBasalt/vkBasalt.conf';
+  VKBASALTFOLDER := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir());
+  VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
   RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
 
 
@@ -3825,9 +3865,8 @@ begin
     end;
   end;
 
-  // Check vkbasalt directory
-  // Always use ~/.config/vkBasalt/ for Flatpak compatibility
-  VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetUserDir) + '.config/vkBasalt/vkBasalt.conf';
+  // Check vkbasalt directory with proper XDG and Flatpak support
+  VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
 
   // make sure directory exists - VKBASALT (use CreateHostDirectory for Flatpak compatibility)
   CreateHostDirectory(ExtractFilePath(VKBASALTCFGFILE));
