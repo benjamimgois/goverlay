@@ -3663,6 +3663,18 @@ begin
   // This ensures fgmod scripts are always available without downloading
   InitializeFGModDirectory;
 
+  // Auto-install OptiScaler if not present in FGMOD directory
+  // This prevents FGMOD from failing due to missing dependencies
+  if IsFGModInitialized then
+  begin
+    if not IsFGModOptiScalerInstalled(GetFGModPath) then
+    begin
+      WriteLn('[GOVERLAY] OptiScaler not detected in FGMOD, starting automatic installation...');
+      SendNotification('GOverlay', 'Installing OptiScaler', GetIconFile);
+      CheckAndInstallOptiScaler(GetFGModPath);
+    end;
+  end;
+
   //Set Window caption
   if GCHANNEL = 'stable' then
   begin

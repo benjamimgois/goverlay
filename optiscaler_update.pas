@@ -10,6 +10,10 @@ uses
 // Function to get the correct OptiScaler installation path (Flatpak-aware)
 function GetOptiScalerInstallPath: string;
 
+// Check and automatically install OptiScaler if not present
+// Returns True if OptiScaler is installed (or was successfully installed)
+function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -1570,6 +1574,147 @@ begin
       FUpdateBtn.Enabled := True;
     UpdateProgress(0);
     UpdateStatus('');
+  end;
+end;
+
+// Check and automatically install OptiScaler if not present
+// Returns True if OptiScaler is installed (or was successfully installed)
+function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
+var
+  OptiScalerTag: string;
+  DownloadURL: string;
+  SevenZFilePath: string;
+  UserDir: string;
+  Process: TProcess;
+  ExitCode: Integer;
+  OptiscalerTabTemp: TOptiscalerTab;
+begin
+  Result := False;
+  
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Checking OptiScaler installation...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+  
+  // Check if OptiScaler.dll already exists
+  if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'OptiScaler.dll') then
+  begin
+    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists, no installation needed');
+    Result := True;
+    Exit;
+  end;
+  
+  WriteLn('[AUTO-INSTALL] OptiScaler.dll not found, starting automatic installation...');
+  
+  try
+    // Get user directory
+    UserDir := GetUserDir;
+    
+    // Get stable version tag using the existing working method
+    WriteLn('[AUTO-INSTALL] Getting OptiScaler Stable tag...');
+    OptiScalerTag := '';
+    
+    // Use the existing TOptiscalerTab method that already works
+    OptiscalerTabTemp := TOptiscalerTab.Create;
+    try
+      OptiScalerTag := OptiscalerTabTemp.GetOptiScalerStableTag;
+      if OptiScalerTag <> '' then
+        WriteLn('[AUTO-INSTALL] Found stable tag: ', OptiScalerTag)
+      else
+        WriteLn('[AUTO-INSTALL] No stable tag found');
+    finally
+      OptiscalerTabTemp.Free;
+    end;
+    
+    // Verify we have a tag
+    if OptiScalerTag = '' then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Could not get OptiScaler tag, aborting');
+      Exit;
+    end;
+    
+    // Build download URL
+    DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
+    SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-stable-auto.7z';
+    
+    WriteLn('[AUTO-INSTALL] Download URL: ', DownloadURL);
+    WriteLn('[AUTO-INSTALL] Downloading...');
+    
+    // Download file using curl
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(SevenZFilePath);
+      Process.Parameters.Add(DownloadURL);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      ExitCode := Process.ExitStatus;
+    finally
+      Process.Free;
+    end;
+    
+    if (ExitCode <> 0) or not FileExists(SevenZFilePath) then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Download failed');
+      Exit;
+    end;
+    
+    WriteLn('[AUTO-INSTALL] Download completed, extracting...');
+    
+    // Extract using 7z
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := '7z';
+      Process.Parameters.Add('x');
+      Process.Parameters.Add('-y');
+      Process.Parameters.Add('-o' + AFGModPath);
+      Process.Parameters.Add(SevenZFilePath);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      ExitCode := Process.ExitStatus;
+    finally
+      Process.Free;
+    end;
+    
+    if ExitCode <> 0 then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Extraction failed');
+      DeleteFile(SevenZFilePath);
+      Exit;
+    end;
+    
+    WriteLn('[AUTO-INSTALL] Extraction completed');
+    
+    // Rename fgmod.sh to fgmod if it exists
+    if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod.sh') then
+    begin
+      RenameFile(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod.sh',
+                 IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod');
+      fpChmod(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod', &755);
+    end;
+    
+    // Clean up download file
+    DeleteFile(SevenZFilePath);
+    
+    // Verify installation
+    if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'OptiScaler.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] ========================================');
+      WriteLn('[AUTO-INSTALL] OptiScaler installation completed!');
+      WriteLn('[AUTO-INSTALL] ========================================');
+      Result := True;
+    end
+    else
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Installation verification failed');
+    end;
+    
+  except
+    on E: Exception do
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Exception during installation - ', E.Message);
+    end;
   end;
 end;
 

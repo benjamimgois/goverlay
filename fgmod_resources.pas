@@ -17,6 +17,9 @@ function IsFGModInitialized: Boolean;
 // Get the fgmod installation path (Flatpak-aware)
 function GetFGModPath: string;
 
+// Check if OptiScaler is installed in FGMOD directory
+function IsFGModOptiScalerInstalled(const AFGModPath: string): Boolean;
+
 // Migrate FGMOD from old location to new XDG-compliant location
 // Returns True if migration was performed, False if skipped
 function MigrateFGModToXDG: Boolean;
@@ -737,6 +740,20 @@ begin
   Result := DirectoryExists(FGModPath) and
             FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod') and
             FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh');
+end;
+
+// Check if OptiScaler is installed in FGMOD directory
+function IsFGModOptiScalerInstalled(const AFGModPath: string): Boolean;
+var
+  OptiScalerDLL: string;
+begin
+  OptiScalerDLL := IncludeTrailingPathDelimiter(AFGModPath) + 'OptiScaler.dll';
+  Result := FileExists(OptiScalerDLL);
+  
+  if Result then
+    WriteLn('[FGMOD] OptiScaler.dll found at: ', OptiScalerDLL)
+  else
+    WriteLn('[FGMOD] OptiScaler.dll not found at: ', OptiScalerDLL);
 end;
 
 // Initialize the fgmod directory with all embedded scripts
