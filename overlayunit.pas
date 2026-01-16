@@ -1094,6 +1094,39 @@ begin
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'goverlay';
 end;
 
+// Function to get GOverlay data directory with proper XDG support
+// For Flatpak, this uses HOST_XDG_DATA_HOME to access the real host location
+// For native, this uses XDG_DATA_HOME to follow XDG Base Directory specification
+function GetGOverlayDataDir(): String;
+var
+  DataHome: String;
+  UserName: String;
+begin
+  // For Flatpak, try HOST_XDG_DATA_HOME first to access the real host location
+  DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  
+  // If in Flatpak and HOST_XDG_DATA_HOME is not available, construct the host path manually
+  if (DataHome = '') and IsRunningInFlatpak then
+  begin
+    UserName := GetEnvironmentVariable('USER');
+    if UserName <> '' then
+      DataHome := '/home/' + UserName + '/.local/share'
+    else
+      DataHome := GetUserDir + '.local/share';
+  end;
+  
+  // Fall back to standard XDG_DATA_HOME for native installations
+  if DataHome = '' then
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  
+  // Final fallback to ~/.local/share
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
+end;
+
+
 // Function to create directory ensuring it exists
 // For Flatpak, the manifest must have :create permission on the parent directory
 procedure CreateHostDirectory(const DirPath: String);
@@ -3389,7 +3422,7 @@ begin
     if networkCheckBox.Checked and (networkComboBox.ItemIndex <> -1) then
       ConfigLines.Add('network=' + networkComboBox.Items[networkComboBox.ItemIndex]);
 
-    // Log folder
+    // Log folder (XDG-compliant data directory)
     if logfolderEdit.Text <> '' then
       ConfigLines.Add('output_folder=' + logfolderEdit.Text);
 
@@ -4052,11 +4085,8 @@ begin
      fontcombobox.ItemIndex:=0;
      afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
      mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
-     // Set log folder path - use Flatpak-specific path when running in Flatpak
-     if IsRunningInFlatpak then
-       logfolderEdit.text := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/'
-     else
-       logfolderEdit.text := GetUserDir;
+     // Set log folder path - use XDG-compliant data directory
+     logfolderEdit.text := GetGOverlayDataDir();
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
      delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
      intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
@@ -5500,7 +5530,6 @@ begin
     //fps
     fpsCheckbox.Checked:=true;
     frametimegraphCheckbox.Checked:=true;
-    engineversionCheckbox.Checked:=true;
     fpscolorCheckbox.Checked:=true;
     //gpu
     gpuavgloadCheckbox.Checked:=true;
