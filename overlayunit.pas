@@ -1464,12 +1464,44 @@ end;
 //Procedure to check all checkboxes
 procedure Tgoverlayform.SetAllCheckBoxesToTrue;
 var
-  i: Integer;
+  i, j: Integer;
+  ParentControl: TWinControl;
 begin
+  // List of MangoHud-related TabSheets where we want to select all checkboxes
+  // Exclude optiscalertabsheet, vkbasalttabsheet, and tweakstabsheet
   for i := 0 to ComponentCount - 1 do
   begin
     if Components[i] is TCheckBox then
-      (Components[i] as TCheckBox).Checked := True;
+    begin
+      // Get the parent control hierarchy to check if this checkbox is in a MangoHud tab
+      ParentControl := (Components[i] as TCheckBox).Parent;
+      
+      // Walk up the parent chain to find if it's in a TabSheet
+      while Assigned(ParentControl) do
+      begin
+        // If we find one of the excluded tabs, skip this checkbox
+        if (ParentControl = optiscalertabsheet) or 
+           (ParentControl = vkbasalttabsheet) or 
+           (ParentControl = tweakstabsheet) then
+        begin
+          Break; // Don't set this checkbox
+        end;
+        
+        // If we're in one of the MangoHud tabs or reached the form, set the checkbox
+        if (ParentControl = presetTabSheet) or
+           (ParentControl = visualTabSheet) or
+           (ParentControl = performanceTabSheet) or
+           (ParentControl = metricsTabSheet) or
+           (ParentControl = extrasTabSheet) then
+        begin
+          (Components[i] as TCheckBox).Checked := True;
+          Break;
+        end;
+        
+        // Move up the parent chain
+        ParentControl := ParentControl.Parent;
+      end;
+    end;
   end;
 end;
 
