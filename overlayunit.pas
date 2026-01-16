@@ -6166,6 +6166,7 @@ EnableTraceLogsFound: Boolean;
             for LineIndex := FGModLines.Count - 1 downto 0 do
             begin
               if (Pos('export PROTON_ENABLE_HDR=1', FGModLines[LineIndex]) > 0) or
+                 (Pos('export ENABLE_HDR_WSI=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_ENABLE_WAYLAND=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_LOG=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_USE_SDL=1', FGModLines[LineIndex]) > 0) or
@@ -6211,9 +6212,12 @@ EnableTraceLogsFound: Boolean;
                 if generalCheckGroup.Checked[3] then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_WAYLAND=1');
 
-                // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
+                // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1 and ENABLE_HDR_WSI=1
                 if generalCheckGroup.Checked[2] then
+                begin
+                  FGModLines.Insert(LineIndex + 1, '  export ENABLE_HDR_WSI=1');
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_HDR=1');
+                end;
 
                 // graphicsCheckGroup items (insert in reverse order)
                 // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
