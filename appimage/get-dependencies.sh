@@ -32,6 +32,7 @@ pacman -Syu --noconfirm \
 	python-numpy \
 	qt6ct \
 	qt6pas \
+	sdl2 \
 	vulkan-tools \
 	wayland \
 	wget \
