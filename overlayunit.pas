@@ -984,20 +984,64 @@ begin
   end;
 end;
 
-
+// Function to get GOverlay log directory with proper XDG support
+// For Flatpak, this uses HOST_XDG_DATA_HOME to access the real host location
+// For native, this uses XDG_DATA_HOME to follow XDG Base Directory specification
+// Returns: ~/.local/share/goverlay/logs for both Flatpak and native installations
+function GetGOverlayLogPath(): String;
+var
+  DataHome: String;
+  UserName: String;
+begin
+  // For Flatpak, try HOST_XDG_DATA_HOME first to access the real host location
+  DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  
+  // If in Flatpak and HOST_XDG_DATA_HOME is not available, construct the host path manually
+  if (DataHome = '') and IsRunningInFlatpak then
+  begin
+    UserName := GetEnvironmentVariable('USER');
+    if UserName <> '' then
+      DataHome := '/home/' + UserName + '/.local/share'
+    else
+      DataHome := GetUserDir + '.local/share';
+  end;
+  
+  // Fall back to standard XDG_DATA_HOME for native installations
+  if DataHome = '' then
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  
+  // Final fallback to ~/.local/share
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'logs';
+end;
 
 //Procedure to execute external GUI aps
 procedure ExecuteGUICommand(const Command: string);
 var
   Process: TProcess;
+  LogPath: string;
+  NohupLogFile: string;
 begin
   Process := TProcess.Create(nil);
   try
+    // Get XDG-compliant log directory path
+    LogPath := GetGOverlayLogPath;
+    
+    // Create log directory if it doesn't exist
+    if not DirectoryExists(LogPath) then
+      ForceDirectories(LogPath);
+    
+    // Set nohup output file path
+    NohupLogFile := IncludeTrailingPathDelimiter(LogPath) + 'nohup.out';
+    
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
     // Use nohup with sh -c to handle environment variables and detachment properly
     // We wrap the command in single quotes for the inner sh
-    Process.Parameters.Add('nohup sh -c ''' + Command + ''' &');
+    // Redirect both stdout and stderr to XDG-compliant log file
+    Process.Parameters.Add('nohup sh -c ''' + Command + ''' >> "' + NohupLogFile + '" 2>&1 &');
     // Don't use poUsePipes - we're not reading the output and it causes
     // the child process to block when pipes fill up after multiple executions
     Process.Options := [];
