@@ -169,8 +169,7 @@ The `libqt6pas` package is not available in some distributions official reposito
 You can get it from [David Bannon’s repository](https://github.com/davidbannon/libqt6pas/releases):
 
 Ubuntu example:
-```
-bash
+```bash
 sudo apt-get update
 wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.8/libqt6pas6_6.2.8-1_amd64.deb
 sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
