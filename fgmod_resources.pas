@@ -190,6 +190,15 @@ begin
   Result :=
     '#!/usr/bin/env bash' + LineEnding +
     '' + LineEnding +
+    '# _______   _______ .___  ___.   ______    _______' + LineEnding +
+    '#|   ____| /  _____||   \/   |  /  __  \  |       \' + LineEnding +
+    '#|  |__   |  |  __  |  \  /  | |  |  |  | |  .--.  |' + LineEnding +
+    '#|   __|  |  | |_ | |  |\/|  | |  |  |  | |  |  |  |' + LineEnding +
+    '#|  |     |  |__| | |  |  |  | |  `--''  | |  ''--''  |' + LineEnding +
+    '#|__|      \______| |__|  |__|  \______/  |_______/' + LineEnding +
+    '#' + LineEnding +
+    '# ver 1.7.2' + LineEnding +
+    '' + LineEnding +
     'set -x' + LineEnding +
     'exec > >(tee -i /tmp/fgmod-install.log) 2>&1' + LineEnding +
     '' + LineEnding +
@@ -378,7 +387,7 @@ begin
     '  # Execute the original command' + LineEnding +
     '  export SteamDeck=0' + LineEnding +
     '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
-    '  exec "$@"' + LineEnding +
+    '  "$@"' + LineEnding +
     'else' + LineEnding +
     '  echo "Done!"' + LineEnding +
     '  echo "----------------------------------------"' + LineEnding +
@@ -766,8 +775,9 @@ var
   ParentDir: string;
   FGModScript: string;
 begin
-  // Try to migrate from old location first (before any initialization)
-  MigrateFGModToXDG;
+  // Migration disabled: old fgmod versions should not override new ones
+  // If migration is needed, users should manually remove old directory first
+  // MigrateFGModToXDG;
   
   FGModPath := GetFGModPath;
   IsFlatpak := IsRunningInFlatpak;
