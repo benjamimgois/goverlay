@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+# _______   _______ .___  ___.   ______    _______
+#|   ____| /  _____||   \/   |  /  __  \  |       \
+#|  |__   |  |  __  |  \  /  | |  |  |  | |  .--.  |
+#|   __|  |  | |_ | |  |\/|  | |  |  |  | |  |  |  |
+#|  |     |  |__| | |  |  |  | |  `--'  | |  '--'  |
+#|__|      \______| |__|  |__|  \______/  |_______/
+#
+# ver 1.7.2
+
 set -x
 exec > >(tee -i /tmp/fgmod-install.log) 2>&1
 
@@ -188,7 +197,7 @@ if [[ $# -gt 1 ]]; then
   # Execute the original command
   export SteamDeck=0
   export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"
-  exec "$@"
+  "$@"
 else
   echo "Done!"
   echo "----------------------------------------"
