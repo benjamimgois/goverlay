@@ -20,6 +20,7 @@ type
   Tgoverlayform = class(TForm)
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
+    actprotonlogsCheckBox: TCheckBox;
     addBitBtn: TBitBtn;
     afLabel: TLabel;
     afterburnercolorBitBtn1: TBitBtn;
@@ -52,12 +53,21 @@ type
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
     commandEdit: TEdit;
+    emurtCheckBox: TCheckBox;
+    enhdrCheckBox: TCheckBox;
+    enwaylandCheckBox: TCheckBox;
     fexstatsCheckBox: TCheckBox;
+    forcenvapiCheckBox: TCheckBox;
+    forcezinkCheckBox: TCheckBox;
+    gamemodeCheckBox: TCheckBox;
+    generalGroupBox: TGroupBox;
+    graphicsGroupBox: TGroupBox;
+    hidenvidiaCheckBox: TCheckBox;
+    mesagitCheckBox: TCheckBox;
     ramtempCheckBox: TCheckBox;
     customenvEdit: TEdit;
-    graphicsCheckGroup: TCheckGroup;
-    generalCheckGroup: TCheckGroup;
     advancedGroupBox: TGroupBox;
+    simdeckCheckBox: TCheckBox;
     tweaksImage: TImage;
     performanceCheckGroup: TCheckGroup;
     tweaksText: TStaticText;
@@ -355,6 +365,7 @@ type
     updateProgressBar: TProgressBar;
     updatestatusLabel: TLabel;
     usercustomBitBtn: TBitBtn;
+    usesdlCheckBox: TCheckBox;
     versioningCheckBox: TCheckBox;
     verticalRadioButton: TRadioButton;
     vImage: TImage;
@@ -380,6 +391,7 @@ type
     whitecolorLabel: TLabel;
     wineCheckBox: TCheckBox;
     wineColorButton: TColorButton;
+    wined3dCheckBox: TCheckBox;
     wineLabel: TLabel;
     winesyncCheckBox: TCheckBox;
     xessLabel: TLabel;
@@ -480,6 +492,8 @@ type
     FOptiscalerUpdate: TOptiscalerTab;
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
+    function GetGeneralCheckBox(Index: Integer): TCheckBox;
+    function GetGraphicsCheckBox(Index: Integer): TCheckBox;
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
     procedure UpdateGeSpeedButtonState;
     procedure LoadTweaksFromFGMod;
@@ -4368,7 +4382,33 @@ begin
 
 end; // form create
 
+// Helper function to access generalGroupBox checkboxes by index (replaces generalCheckGroup)
+function Tgoverlayform.GetGeneralCheckBox(Index: Integer): TCheckBox;
+begin
+  case Index of
+    0: Result := simdeckCheckBox;        // Simulate Steam Deck
+    1: Result := gamemodeCheckBox;       // Always use GameMode
+    2: Result := enhdrCheckBox;          // Enable HDR
+    3: Result := enwaylandCheckBox;      // Enable Wayland
+    4: Result := actprotonlogsCheckBox;  // Active Proton Logs
+    5: Result := usesdlCheckBox;         // Use SDL Input
+  else
+    raise Exception.Create('Invalid general checkbox index: ' + IntToStr(Index));
+  end;
+end;
 
+// Helper function to access graphicsGroupBox checkboxes by index (replaces graphicsCheckGroup)
+function Tgoverlayform.GetGraphicsCheckBox(Index: Integer): TCheckBox;
+begin
+  case Index of
+    0: Result := emurtCheckBox;        // Emulate RT (old AMD)
+    1: Result := hidenvidiaCheckBox;   // Hide Nvidia GPU
+    2: Result := forcenvapiCheckBox;   // Force enable NVAPI
+    3: Result := wined3dCheckBox;      // Use old WINED3D
+  else
+    raise Exception.Create('Invalid graphics checkbox index: ' + IntToStr(Index));
+  end;
+end;
 
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -4622,42 +4662,42 @@ begin
         // Index 0: "Simulate Steam Deck" -> export SteamDeck=1
         if Pos('export SteamDeck=1', FileLines[i]) > 0 then
         begin
-          generalCheckGroup.Checked[0] := True;
+          GetGeneralCheckBox(0).Checked := True;
           TweakFound := True;
         end;
 
         // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
         if Pos('export PROTON_ENABLE_HDR=1', FileLines[i]) > 0 then
         begin
-          generalCheckGroup.Checked[2] := True;
+          GetGeneralCheckBox(2).Checked := True;
           TweakFound := True;
         end;
 
         // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
         if Pos('export PROTON_ENABLE_WAYLAND=1', FileLines[i]) > 0 then
         begin
-          generalCheckGroup.Checked[3] := True;
+          GetGeneralCheckBox(3).Checked := True;
           TweakFound := True;
         end;
 
         // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
         if Pos('export PROTON_LOG=1', FileLines[i]) > 0 then
         begin
-          generalCheckGroup.Checked[4] := True;
+          GetGeneralCheckBox(4).Checked := True;
           TweakFound := True;
         end;
 
         // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
         if Pos('export PROTON_USE_SDL=1', FileLines[i]) > 0 then
         begin
-          generalCheckGroup.Checked[5] := True;
+          GetGeneralCheckBox(5).Checked := True;
           TweakFound := True;
         end;
 
         // Index 1: "Always use GameMode" -> #gamemode comment
         if Pos('#gamemode', FileLines[i]) > 0 then
         begin
-          generalCheckGroup.Checked[1] := True;
+          GetGeneralCheckBox(1).Checked := True;
           TweakFound := True;
         end;
 
@@ -4665,28 +4705,28 @@ begin
         // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
         if Pos('export RADV_PERFTEST=rt,emulate_rt', FileLines[i]) > 0 then
         begin
-          graphicsCheckGroup.Checked[0] := True;
+          GetGraphicsCheckBox(0).Checked := True;
           TweakFound := True;
         end;
 
         // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
         if Pos('export PROTON_HIDE_NVIDIA_GPU=1', FileLines[i]) > 0 then
         begin
-          graphicsCheckGroup.Checked[1] := True;
+          GetGraphicsCheckBox(1).Checked := True;
           TweakFound := True;
         end;
 
         // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
         if Pos('export PROTON_ENABLE_NVAPI=1', FileLines[i]) > 0 then
         begin
-          graphicsCheckGroup.Checked[2] := True;
+          GetGraphicsCheckBox(2).Checked := True;
           TweakFound := True;
         end;
 
         // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
         if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
         begin
-          graphicsCheckGroup.Checked[3] := True;
+          GetGraphicsCheckBox(3).Checked := True;
           TweakFound := True;
         end;
 
@@ -4798,18 +4838,18 @@ begin
     TweakFound := False;
 
     // Reset all tweaks checkboxes first
-    generalCheckGroup.Checked[0] := False;
-    generalCheckGroup.Checked[1] := False;
-    generalCheckGroup.Checked[2] := False;
-    generalCheckGroup.Checked[3] := False;
-    generalCheckGroup.Checked[4] := False;
-    generalCheckGroup.Checked[5] := False;
+    GetGeneralCheckBox(0).Checked := False;
+    GetGeneralCheckBox(1).Checked := False;
+    GetGeneralCheckBox(2).Checked := False;
+    GetGeneralCheckBox(3).Checked := False;
+    GetGeneralCheckBox(4).Checked := False;
+    GetGeneralCheckBox(5).Checked := False;
 
     // Reset graphicsCheckGroup checkboxes
-    graphicsCheckGroup.Checked[0] := False;
-    graphicsCheckGroup.Checked[1] := False;
-    graphicsCheckGroup.Checked[2] := False;
-    graphicsCheckGroup.Checked[3] := False;
+    GetGraphicsCheckBox(0).Checked := False;
+    GetGraphicsCheckBox(1).Checked := False;
+    GetGraphicsCheckBox(2).Checked := False;
+    GetGraphicsCheckBox(3).Checked := False;
 
     // Reset performanceCheckGroup checkboxes
     performanceCheckGroup.Checked[0] := False;
@@ -4828,42 +4868,42 @@ begin
       // Index 0: "Simulate Steam Deck" -> export SteamDeck=1
       if Pos('export SteamDeck=1', FileLines[i]) > 0 then
       begin
-        generalCheckGroup.Checked[0] := True;
+        GetGeneralCheckBox(0).Checked := True;
         TweakFound := True;
       end;
 
       // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
       if Pos('export PROTON_ENABLE_HDR=1', FileLines[i]) > 0 then
       begin
-        generalCheckGroup.Checked[2] := True;
+        GetGeneralCheckBox(2).Checked := True;
         TweakFound := True;
       end;
 
       // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
       if Pos('export PROTON_ENABLE_WAYLAND=1', FileLines[i]) > 0 then
       begin
-        generalCheckGroup.Checked[3] := True;
+        GetGeneralCheckBox(3).Checked := True;
         TweakFound := True;
       end;
 
       // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
       if Pos('export PROTON_LOG=1', FileLines[i]) > 0 then
       begin
-        generalCheckGroup.Checked[4] := True;
+        GetGeneralCheckBox(4).Checked := True;
         TweakFound := True;
       end;
 
       // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
       if Pos('export PROTON_USE_SDL=1', FileLines[i]) > 0 then
       begin
-        generalCheckGroup.Checked[5] := True;
+        GetGeneralCheckBox(5).Checked := True;
         TweakFound := True;
       end;
 
       // Index 1: "Always use GameMode" -> #gamemode comment
       if Pos('#gamemode', FileLines[i]) > 0 then
       begin
-        generalCheckGroup.Checked[1] := True;
+        GetGeneralCheckBox(1).Checked := True;
         TweakFound := True;
       end;
 
@@ -4871,28 +4911,28 @@ begin
       // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
       if Pos('export RADV_PERFTEST=rt,emulate_rt', FileLines[i]) > 0 then
       begin
-        graphicsCheckGroup.Checked[0] := True;
+        GetGraphicsCheckBox(0).Checked := True;
         TweakFound := True;
       end;
 
       // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
       if Pos('export PROTON_HIDE_NVIDIA_GPU=1', FileLines[i]) > 0 then
       begin
-        graphicsCheckGroup.Checked[1] := True;
+        GetGraphicsCheckBox(1).Checked := True;
         TweakFound := True;
       end;
 
       // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
       if Pos('export PROTON_ENABLE_NVAPI=1', FileLines[i]) > 0 then
       begin
-        graphicsCheckGroup.Checked[2] := True;
+        GetGraphicsCheckBox(2).Checked := True;
         TweakFound := True;
       end;
 
       // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
       if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
       begin
-        graphicsCheckGroup.Checked[3] := True;
+        GetGraphicsCheckBox(3).Checked := True;
         TweakFound := True;
       end;
 
@@ -6195,27 +6235,27 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := '';
 
       // Index 0: "Simulate Steam Deck" -> SteamDeck=1
-      if generalCheckGroup.Checked[0] then
+      if GetGeneralCheckBox(0).Checked then
         LaunchCommand := LaunchCommand + 'SteamDeck=1 ';
 
       // Index 2: "Enable HDR" -> PROTON_ENABLE_HDR=1
-      if generalCheckGroup.Checked[2] then
+      if GetGeneralCheckBox(2).Checked then
         LaunchCommand := LaunchCommand + 'PROTON_ENABLE_HDR=1 ';
 
       // Index 3: "Enable Wayland" -> PROTON_ENABLE_WAYLAND=1
-      if generalCheckGroup.Checked[3] then
+      if GetGeneralCheckBox(3).Checked then
         LaunchCommand := LaunchCommand + 'PROTON_ENABLE_WAYLAND=1 ';
 
       // Index 4: "Active Proton Logs" -> PROTON_LOG=1
-      if generalCheckGroup.Checked[4] then
+      if GetGeneralCheckBox(4).Checked then
         LaunchCommand := LaunchCommand + 'PROTON_LOG=1 ';
 
       // Index 5: "Use SDL Input" -> PROTON_USE_SDL=1
-      if generalCheckGroup.Checked[5] then
+      if GetGeneralCheckBox(5).Checked then
         LaunchCommand := LaunchCommand + 'PROTON_USE_SDL=1 ';
 
       // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
-      if generalCheckGroup.Checked[1] then
+      if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
       // Add custom environment variables from customenvEdit if not empty
@@ -6273,23 +6313,23 @@ EnableTraceLogsFound: Boolean;
               begin
                 // Insert lines in reverse order so they appear in correct order after insertion
                 // Index 1: "Always use GameMode" -> #gamemode (comment marker)
-                if generalCheckGroup.Checked[1] then
+                if GetGeneralCheckBox(1).Checked then
                   FGModLines.Insert(LineIndex + 1, '  #gamemode');
 
                 // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
-                if generalCheckGroup.Checked[5] then
+                if GetGeneralCheckBox(5).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_SDL=1');
 
                 // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
-                if generalCheckGroup.Checked[4] then
+                if GetGeneralCheckBox(4).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_LOG=1');
 
                 // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
-                if generalCheckGroup.Checked[3] then
+                if GetGeneralCheckBox(3).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_WAYLAND=1');
 
                 // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1 and ENABLE_HDR_WSI=1
-                if generalCheckGroup.Checked[2] then
+                if GetGeneralCheckBox(2).Checked then
                 begin
                   FGModLines.Insert(LineIndex + 1, '  export ENABLE_HDR_WSI=1');
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_HDR=1');
@@ -6297,19 +6337,19 @@ EnableTraceLogsFound: Boolean;
 
                 // graphicsCheckGroup items (insert in reverse order)
                 // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
-                if graphicsCheckGroup.Checked[3] then
+                if GetGraphicsCheckBox(3).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_WINED3D=1');
 
                 // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
-                if graphicsCheckGroup.Checked[2] then
+                if GetGraphicsCheckBox(2).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_NVAPI=1');
 
                 // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
-                if graphicsCheckGroup.Checked[1] then
+                if GetGraphicsCheckBox(1).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_HIDE_NVIDIA_GPU=1');
 
                 // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
-                if graphicsCheckGroup.Checked[0] then
+                if GetGraphicsCheckBox(0).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export RADV_PERFTEST=rt,emulate_rt');
 
                 // performanceCheckGroup items (insert in reverse order)
@@ -6350,7 +6390,7 @@ EnableTraceLogsFound: Boolean;
             begin
               if Pos('export SteamDeck=', FGModLines[LineIndex]) > 0 then
               begin
-                if generalCheckGroup.Checked[0] then
+                if GetGeneralCheckBox(0).Checked then
                   FGModLines[LineIndex] := '  export SteamDeck=1'
                 else
                   FGModLines[LineIndex] := '  export SteamDeck=0';
@@ -6371,7 +6411,7 @@ EnableTraceLogsFound: Boolean;
             LaunchCommand := GetFGModPath + '/fgmod ';
 
             // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
-            if generalCheckGroup.Checked[1] then
+            if GetGeneralCheckBox(1).Checked then
               LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
             // Always end with %command%
@@ -6849,7 +6889,7 @@ EnableTraceLogsFound: Boolean;
             LaunchCommand := GetFGModPath + '/fgmod ';
 
             // Check if gamemode should be added (check fgmod file for #gamemode or generalCheckGroup)
-            if generalCheckGroup.Checked[1] then
+            if GetGeneralCheckBox(1).Checked then
               LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
             LaunchCommand := LaunchCommand + '%command%';
@@ -6907,7 +6947,7 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := GetFGModPath + '/fgmod ';
 
       // Check if gamemode should be added (check generalCheckGroup)
-      if generalCheckGroup.Checked[1] then
+      if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
       LaunchCommand := LaunchCommand + '%command%';
@@ -6932,7 +6972,7 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := 'MANGOHUD=1 ';
 
       // Check if gamemode should be added
-      if generalCheckGroup.Checked[1] then
+      if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + 'gamemoderun ';
 
       LaunchCommand := LaunchCommand + '%command%';
@@ -7123,7 +7163,7 @@ end;  //  ################### END - SAVE MANGOHUD
        LaunchCommand := GetFGModPath + '/fgmod ';
 
        // Check if gamemode should be added (check generalCheckGroup)
-       if generalCheckGroup.Checked[1] then
+       if GetGeneralCheckBox(1).Checked then
          LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
        LaunchCommand := LaunchCommand + '%command%';
@@ -7148,7 +7188,7 @@ end;  //  ################### END - SAVE MANGOHUD
        LaunchCommand := 'ENABLE_VKBASALT=1 ';
 
        // Check if gamemode should be added
-       if generalCheckGroup.Checked[1] then
+       if GetGeneralCheckBox(1).Checked then
          LaunchCommand := LaunchCommand + 'gamemoderun ';
 
        LaunchCommand := LaunchCommand + '%command%';
