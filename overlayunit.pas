@@ -3900,6 +3900,14 @@ begin
   begin
     dependencieSpeedbutton.ImageIndex := 1 ;  //red icon
     dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
+    
+    // Disable gamemodeCheckBox if gamemode is missing
+    if Missing.IndexOf('gamemode') >= 0 then
+    begin
+      gamemodeCheckBox.Enabled := False;
+      gamemodeCheckBox.Hint := 'GameMode is not installed - install gamemode package to enable this feature';
+      gamemodeCheckBox.ShowHint := True;
+    end;
   end;
   Missing.Free;
 
@@ -4412,6 +4420,7 @@ begin
     1: Result := hidenvidiaCheckBox;   // Hide Nvidia GPU
     2: Result := forcenvapiCheckBox;   // Force enable NVAPI
     3: Result := wined3dCheckBox;      // Use old WINED3D
+    4: Result := forcezinkCheckBox;    // Force Zink
   else
     raise Exception.Create('Invalid graphics checkbox index: ' + IntToStr(Index));
   end;
@@ -4872,6 +4881,7 @@ begin
     GetGraphicsCheckBox(1).Checked := False;
     GetGraphicsCheckBox(2).Checked := False;
     GetGraphicsCheckBox(3).Checked := False;
+    GetGraphicsCheckBox(4).Checked := False;
 
     // Reset performanceCheckGroup checkboxes
     GetPerformanceCheckBox(0).Checked := False;
@@ -4955,6 +4965,13 @@ begin
       if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
       begin
         GetGraphicsCheckBox(3).Checked := True;
+        TweakFound := True;
+      end;
+
+      // Index 4: "Force Zink" -> export MESA_LOADER_DRIVER_OVERRIDE=zink
+      if Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FileLines[i]) > 0 then
+      begin
+        GetGraphicsCheckBox(4).Checked := True;
         TweakFound := True;
       end;
 
@@ -6276,6 +6293,57 @@ EnableTraceLogsFound: Boolean;
       if GetGeneralCheckBox(5).Checked then
         LaunchCommand := LaunchCommand + 'PROTON_USE_SDL=1 ';
 
+      // graphicsCheckGroup items
+      // Index 0: "Emulate RT (old AMD)" -> RADV_PERFTEST=rt,emulate_rt
+      if GetGraphicsCheckBox(0).Checked then
+        LaunchCommand := LaunchCommand + 'RADV_PERFTEST=rt,emulate_rt ';
+
+      // Index 1: "Hide Nvidia GPU" -> PROTON_HIDE_NVIDIA_GPU=1
+      if GetGraphicsCheckBox(1).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_HIDE_NVIDIA_GPU=1 ';
+
+      // Index 2: "Force enable NVAPI" -> PROTON_ENABLE_NVAPI=1
+      if GetGraphicsCheckBox(2).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_ENABLE_NVAPI=1 ';
+
+      // Index 3: "Use old WINED3D" -> PROTON_USE_WINED3D=1
+      if GetGraphicsCheckBox(3).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_USE_WINED3D=1 ';
+
+      // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
+      if GetGraphicsCheckBox(4).Checked then
+      begin
+        if IsNvidiaModuleLoaded then
+          LaunchCommand := LaunchCommand + '__GLX_VENDOR_LIBRARY_NAME=mesa MESA_LOADER_DRIVER_OVERRIDE=zink '
+        else
+          LaunchCommand := LaunchCommand + 'MESA_LOADER_DRIVER_OVERRIDE=zink ';
+      end;
+
+      // performanceCheckGroup items
+      // Index 0: "Higher priority for games" -> PROTON_PRIORITY_HIGH=1
+      if GetPerformanceCheckBox(0).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_PRIORITY_HIGH=1 ';
+
+      // Index 1: "Use WOW64" -> PROTON_USE_WOW64=1
+      if GetPerformanceCheckBox(1).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_USE_WOW64=1 ';
+
+      // Index 2: "Large Address Aware" -> PROTON_FORCE_LARGE_ADDRESS_AWARE=1
+      if GetPerformanceCheckBox(2).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1 ';
+
+      // Index 3: "Staging shared memory" -> STAGING_SHARED_MEMORY=1
+      if GetPerformanceCheckBox(3).Checked then
+        LaunchCommand := LaunchCommand + 'STAGING_SHARED_MEMORY=1 ';
+
+      // Index 4: "Disable NTSYNC" -> PROTON_NO_NTSYNC=1
+      if GetPerformanceCheckBox(4).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_NO_NTSYNC=1 ';
+
+      // Index 5: "Heap Delay Free" -> PROTON_HEAP_DELAY_FREE=1
+      if GetPerformanceCheckBox(5).Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_HEAP_DELAY_FREE=1 ';
+
       // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
       if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
@@ -6314,6 +6382,9 @@ EnableTraceLogsFound: Boolean;
                  (Pos('export PROTON_HIDE_NVIDIA_GPU=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_ENABLE_NVAPI=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_USE_WINED3D=1', FGModLines[LineIndex]) > 0) or
+                 // Zink exports
+                 (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FGModLines[LineIndex]) > 0) or
+                 (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa', FGModLines[LineIndex]) > 0) or
                  // performanceCheckGroup exports
                  (Pos('export PROTON_PRIORITY_HIGH=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_USE_WOW64=1', FGModLines[LineIndex]) > 0) or
@@ -6373,6 +6444,20 @@ EnableTraceLogsFound: Boolean;
                 // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
                 if GetGraphicsCheckBox(0).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export RADV_PERFTEST=rt,emulate_rt');
+
+                // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
+                if GetGraphicsCheckBox(4).Checked then
+                begin
+                  if IsNvidiaModuleLoaded then
+                  begin
+                    FGModLines.Insert(LineIndex + 1, '  export MESA_LOADER_DRIVER_OVERRIDE=zink');
+                    FGModLines.Insert(LineIndex + 1, '  export __GLX_VENDOR_LIBRARY_NAME=mesa');
+                  end
+                  else
+                  begin
+                    FGModLines.Insert(LineIndex + 1, '  export MESA_LOADER_DRIVER_OVERRIDE=zink');
+                  end;
+                end;
 
                 // performanceCheckGroup items (insert in reverse order)
                 // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
