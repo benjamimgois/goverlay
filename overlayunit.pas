@@ -21,6 +21,7 @@ type
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
+    saveasMenuItem: TMenuItem;
     stagememCheckBox: TCheckBox;
     addBitBtn: TBitBtn;
     afLabel: TLabel;
@@ -343,10 +344,10 @@ type
     timeCheckBox: TCheckBox;
     toggleImage: TImage;
     ToggleSpeedButton: TSpeedButton;
-    runvkbasaltItem: TMenuItem;
+    runpascubetItem: TMenuItem;
     runvkcubeItem: TMenuItem;
     Timer: TTimer;
-    saveasItem: TMenuItem;
+    saveoptionsItem: TMenuItem;
     layoutImageList: TImageList;
     popsaveMenu: TPopupMenu;
     C: TComboBox;
@@ -447,8 +448,8 @@ type
     procedure nvidiaRadioButtonChange(Sender: TObject);
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
-    procedure runvkbasaltItemClick(Sender: TObject);
-    procedure saveasItemClick(Sender: TObject);
+    procedure runpascubetItemClick(Sender: TObject);
+    procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
     procedure deckpreset2MenuItemClick(Sender: TObject);
     procedure deckpreset3MenuItemClick(Sender: TObject);
@@ -463,6 +464,7 @@ type
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure savecustomMenuItemClick(Sender: TObject);
+    procedure saveasMenuItemClick(Sender: TObject);
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
     procedure ToggleSpeedButtonClick(Sender: TObject);
@@ -5414,7 +5416,7 @@ begin
   reshaderefreshBitbtn.Enabled:=true;
 end;
 
-procedure Tgoverlayform.runvkbasaltItemClick(Sender: TObject);
+procedure Tgoverlayform.runpascubetItemClick(Sender: TObject);
 begin
 
 
@@ -5447,7 +5449,7 @@ begin
 
 end;
 
-procedure Tgoverlayform.saveasItemClick(Sender: TObject);
+procedure Tgoverlayform.saveoptionsItemClick(Sender: TObject);
 begin
 
 end;
@@ -6186,18 +6188,55 @@ end;
 
 procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
 begin
-  // Hide "Save As" and "Blacklist" options when on vkBasalt or OptiScaler tabs
-  // These features only apply to MangoHud configurations
-  if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
-     (goverlayPageControl.ActivePage = optiscalerTabSheet) then
+  // Control menu item visibility based on active tab
+  if goverlayPageControl.ActivePage = vkbasaltTabSheet then
   begin
-    saveasItem.Visible := False;
+    // vkBasalt tab: show save options and save as, hide MangoHud-specific items
+    saveoptionsItem.Visible := True;
+    saveasMenuItem.Visible := True;
+    savecustomMenuItem.Visible := False;
+    deckpreset1MenuItem.Visible := False;
+    deckpreset2MenuItem.Visible := False;
+    deckpreset3MenuItem.Visible := False;
+    deckpreset4MenuItem.Visible := False;
     blacklistMenuItem.Visible := False;
+    runvkcubeItem.Visible := True;
+    runpascubetItem.Visible := True;
+    donateMenuItem.Visible := True;
+    aboutMenuItem.Visible := True;
+  end
+  else if (goverlayPageControl.ActivePage = optiscalerTabSheet) or
+          (goverlayPageControl.ActivePage = tweaksTabSheet) then
+  begin
+    // OptiScaler and Tweaks tabs: show only donate and about options
+    saveoptionsItem.Visible := False;
+    saveasMenuItem.Visible := False;
+    savecustomMenuItem.Visible := False;
+    deckpreset1MenuItem.Visible := False;
+    deckpreset2MenuItem.Visible := False;
+    deckpreset3MenuItem.Visible := False;
+    deckpreset4MenuItem.Visible := False;
+    blacklistMenuItem.Visible := False;
+    runvkcubeItem.Visible := False;
+    runpascubetItem.Visible := False;
+    donateMenuItem.Visible := True;
+    aboutMenuItem.Visible := True;
   end
   else
   begin
-    saveasItem.Visible := True;
+    // MangoHud tab: show all options
+    saveoptionsItem.Visible := True;
+    saveasMenuItem.Visible := True;
+    savecustomMenuItem.Visible := True;
+    deckpreset1MenuItem.Visible := True;
+    deckpreset2MenuItem.Visible := True;
+    deckpreset3MenuItem.Visible := True;
+    deckpreset4MenuItem.Visible := True;
     blacklistMenuItem.Visible := True;
+    runvkcubeItem.Visible := True;
+    runpascubetItem.Visible := True;
+    donateMenuItem.Visible := True;
+    aboutMenuItem.Visible := True;
   end;
 
   popsaveMenu.PopUp;
@@ -7371,6 +7410,186 @@ begin
 
     //Notification
     SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
+end;
+
+procedure Tgoverlayform.saveasMenuItemClick(Sender: TObject);
+var
+  SelectedDirectory: string;
+  DestinationFile: string;
+  ConfigLines: TStringList;
+  i: Integer;
+  FS: TFormatSettings;
+begin
+  // Show directory selection dialog
+  with TSelectDirectoryDialog.Create(Self) do
+  begin
+    try
+      Title := 'Select directory to save configuration file';
+      
+      if Execute then
+      begin
+        SelectedDirectory := FileName;
+        
+        // Check if we're on MangoHud tab or vkBasalt tab
+        if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+        begin
+          // Export vkBasalt.conf
+          DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'vkBasalt.conf';
+          
+          // Generate vkBasalt configuration
+          ConfigLines := TStringList.Create;
+          FS := DefaultFormatSettings;
+          FS.DecimalSeparator := '.';
+          
+          try
+            ConfigLines.Add('#effects is a colon separated list of effect to use');
+            ConfigLines.Add('#e.g.: effects = fxaa:cas');
+            ConfigLines.Add('#effects will be run in order from left to right');
+            ConfigLines.Add('#one effect can be run multiple times e.g. smaa:smaa:cas');
+            ConfigLines.Add('#cas    - Contrast Adaptive Sharpening');
+            ConfigLines.Add('#dls    - Denoised Luma Sharpening');
+            ConfigLines.Add('#fxaa   - Fast Approximate Anti-Aliasing');
+            ConfigLines.Add('#smaa   - Enhanced Subpixel Morphological Anti-Aliasing');
+            ConfigLines.Add('#');
+            ConfigLines.Add('#reshade shaders should be defined like:');
+            ConfigLines.Add('#effects = <shadername>:<shadername>:....');
+            ConfigLines.Add('');
+            
+            // Build effects list
+            if acteffectsListBox.Items.Count > 0 then
+            begin
+              ConfigLines.Add('effects = ' + acteffectsListBox.Items[0]);
+              for i := 1 to acteffectsListBox.Items.Count - 1 do
+                ConfigLines[ConfigLines.Count - 1] := ConfigLines[ConfigLines.Count - 1] + ':' + acteffectsListBox.Items[i];
+            end
+            else
+              ConfigLines.Add('effects = ');
+            
+            ConfigLines.Add('');
+            
+            // Toggle key
+            case vkbtogglekeyCombobox.ItemIndex of
+              0: ConfigLines.Add('toggleKey = Home');
+              1: ConfigLines.Add('toggleKey = End');
+              2: ConfigLines.Add('toggleKey = Insert');
+              3: ConfigLines.Add('toggleKey = Delete');
+            end;
+            
+            ConfigLines.Add('');
+            ConfigLines.Add('#casSharpness specifies the amount of sharpening in the CAS filter.');
+            ConfigLines.Add('#0.0 less sharp, less artefacts, but not off');
+            ConfigLines.Add('#1.0 maximum sharp, more artefacts');
+            ConfigLines.Add('#Everything in between is possible');
+            ConfigLines.Add('#negative values sharpen even less, up to -1.0');
+            ConfigLines.Add('casSharpness = ' + StringReplace(Format('%.2f', [casTrackbar.Position / 10], FS), ',', '.', [rfReplaceAll]));
+            ConfigLines.Add('');
+            
+            ConfigLines.Add('#dlsSharpness specified the amount of sharpening in the Denoised Luma Sharpening filter.');
+            ConfigLines.Add('#0.0 less sharp');
+            ConfigLines.Add('#1.0 maximum sharp');
+            ConfigLines.Add('dlsSharpness = ' + StringReplace(Format('%.2f', [dlsTrackbar.Position / 10], FS), ',', '.', [rfReplaceAll]));
+            ConfigLines.Add('');
+            ConfigLines.Add('#dlsDenoise specifies the amount of denoising in the Denoised Luma Sharpening filter.');
+            ConfigLines.Add('#0.0 less denoising');
+            ConfigLines.Add('#1.0 maximum denoising');
+            ConfigLines.Add('dlsDenoise = 0.17');
+            ConfigLines.Add('');
+            
+            ConfigLines.Add('#fxaaQualitySubpix can effect sharpness.');
+            ConfigLines.Add('#1.00 - upper limit (softer)');
+            ConfigLines.Add('#0.75 - default amount of filtering');
+            ConfigLines.Add('#0.50 - lower limit (sharper, less sub-pixel aliasing removal)');
+            ConfigLines.Add('#0.25 - almost off');
+            ConfigLines.Add('#0.00 - completely off');
+            ConfigLines.Add('fxaaQualitySubpix = ' + StringReplace(Format('%.2f', [fxaaTrackbar.Position / 100], FS), ',', '.', [rfReplaceAll]));
+            ConfigLines.Add('');
+            
+            ConfigLines.Add('#smaaEdgeDetection changes the type of edge detection');
+            ConfigLines.Add('#luma  - default and faster');
+            ConfigLines.Add('#color - might catch more edges but is slower');
+            case filterRadioGroup.ItemIndex of
+              0: ConfigLines.Add('smaaEdgeDetection = luma');
+              1: ConfigLines.Add('smaaEdgeDetection = color');
+            end;
+            
+            ConfigLines.Add('');
+            ConfigLines.Add('#smaaThreshold specifies the threshold for edge detection');
+            ConfigLines.Add('#0.05 - lower threshold (more edges, slower)');
+            ConfigLines.Add('#0.10 - default');
+            ConfigLines.Add('#0.15 - upper threshold (less edges but faster)');
+            ConfigLines.Add('smaaThreshold = ' + StringReplace(Format('%.2f', [smaaTrackbar.Position / 100], FS), ',', '.', [rfReplaceAll]));
+            ConfigLines.Add('');
+            ConfigLines.Add('#smaaMaxSearchSteps specifies the maximum steps in edge pattern search');
+            ConfigLines.Add('#For a bit better quality: 16');
+            ConfigLines.Add('#Default good quality: 32');
+            ConfigLines.Add('smaaMaxSearchSteps = 32');
+            ConfigLines.Add('');
+            ConfigLines.Add('#smaaMaxSearchStepsDiag specifies the maximum steps in diagonal pattern search');
+            ConfigLines.Add('#Default value: 16');
+            ConfigLines.Add('smaaMaxSearchStepsDiag = 16');
+            ConfigLines.Add('');
+            ConfigLines.Add('#smaaCornerRounding specifies how much to round sharp corners');
+            ConfigLines.Add('#0   - no rounding');
+            ConfigLines.Add('#100 - maximum rounding');
+            ConfigLines.Add('smaaCornerRounding = 25');
+            ConfigLines.Add('');
+            
+            ConfigLines.Add('#AF Anisotropic filtering');
+            ConfigLines.Add('#0  - game choice');  
+            ConfigLines.Add('#1  - off');
+            ConfigLines.Add('#2  - 2x');
+            ConfigLines.Add('#4  - 4x');
+            ConfigLines.Add('#8  - 8x');
+            ConfigLines.Add('#16 - 16x');
+            case afTrackbar.Position of
+              0: ConfigLines.Add('anisotropicFiltering = 0');
+              1: ConfigLines.Add('anisotropicFiltering = 1');
+              2: ConfigLines.Add('anisotropicFiltering = 2');
+              3: ConfigLines.Add('anisotropicFiltering = 4');
+              4: ConfigLines.Add('anisotropicFiltering = 8');
+              5: ConfigLines.Add('anisotropicFiltering = 16');
+            end;
+            ConfigLines.Add('');
+            
+            ConfigLines.Add('#trilinearFiltering = true');
+            ConfigLines.Add('');
+            ConfigLines.Add('#forceBorderlessFullscreen = true');
+            
+            // Save to destination file
+            ConfigLines.SaveToFile(DestinationFile);
+            
+            // Show notification
+            SendNotification('vkBasalt', 'Configuration exported to: ' + DestinationFile, GetIconFile);
+          finally
+            ConfigLines.Free;
+          end;
+        end
+        else
+        begin
+          // Export MangoHud.conf
+          DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'MangoHud.conf';
+          
+          // First generate the current MangoHud config
+          SaveMangoHudConfig;
+          
+          // Copy the generated config to destination
+          if FileExists(MANGOHUDCFGFILE) then
+          begin
+            ExecuteShellCommand('cp ' + MANGOHUDCFGFILE + ' ' + DestinationFile);
+            
+            // Show notification
+            SendNotification('MangoHud', 'Configuration exported to: ' + DestinationFile, GetIconFile);
+          end
+          else
+          begin
+            ShowMessage('Error: Could not find MangoHud configuration file.');
+          end;
+        end;
+      end;
+    finally
+      Free;
+    end;
+  end;
 end;
 
 procedure Tgoverlayform.smaaTrackBarChange(Sender: TObject);
