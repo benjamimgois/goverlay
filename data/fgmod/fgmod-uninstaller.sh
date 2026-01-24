@@ -7,7 +7,7 @@ error_exit() {
   echo "❌ $1"
   if [[ -n $STEAM_ZENITY ]]; then
     $STEAM_ZENITY --error --text "$1"
-  else 
+  else
     zenity --error --text "$1" || echo "Zenity failed to display error"
   fi
   logger -t fgmod-uninstaller "❌ ERROR: $1"
@@ -38,6 +38,7 @@ else
       [[ "$arg" == *"Warhammer Vermintide 2"* ]]    && arg=${arg//launcher\/Launcher.exe/binaries_dx12/vermintide2_dx12.exe}
       [[ "$arg" == *"Satisfactory"* ]]   && arg=${arg//FactoryGameSteam.exe/Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe}
       [[ "$arg" == *"FINAL FANTASY XIV Online"* ]] && arg=${arg//boot\/ffxivboot.exe/game/ffxiv_dx11.exe}
+      [[ "$arg" == *"DuneAwakening"* ]]    && arg=${arg//Launcher\/FuncomLauncher.exe/DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe}
       exe_folder_path=$(dirname "$arg")
       break
     fi
@@ -65,7 +66,7 @@ for arg in "$@"; do
     fi
 
     # Extract executable path from YAML
-    exe_path=$(grep -E '^\s*exe:' "$config_file" | sed 's/.*exe:[[:space:]]*//')
+    exe_path=$(grep -E '^\s*exe:' "$config_file" | sed 's/.*exe:[[:space:]]*//' )
 
     if [[ -n "$exe_path" ]]; then
       exe_folder_path=$(dirname "$exe_path")
@@ -160,7 +161,7 @@ if [[ $# -gt 1 ]]; then
   echo "🚀 Launching the game..."
   export SteamDeck=0
   export WINEDLLOVERRIDES="${WINEDLLOVERRIDES},dxgi=n,b"
-  exec "$@"
+  "$@"
 else
   echo "✅ Uninstallation complete. No game specified to run."
 fi

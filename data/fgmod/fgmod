@@ -16,7 +16,7 @@ error_exit() {
   echo "❌ $1"
   if [[ -n $STEAM_ZENITY ]]; then
     $STEAM_ZENITY --error --text "$1"
-  else 
+  else
     zenity --error --text "$1" || echo "Zenity failed to display error"
   fi
   logger -t fgmod "❌ ERROR: $1"
@@ -78,7 +78,7 @@ for arg in "$@"; do
     fi
 
     # Extract executable path from YAML
-    exe_path=$(grep -E '^\s*exe:' "$config_file" | sed 's/.*exe:[[:space:]]*//')
+    exe_path=$(grep -E '^\s*exe:' "$config_file" | sed 's/.*exe:[[:space:]]*//' )
 
     if [[ -n "$exe_path" ]]; then
       exe_folder_path=$(dirname "$exe_path")
@@ -167,7 +167,7 @@ cp -f "$fgmod_path/dlssg_to_fsr3_amd_is_better.dll" "$exe_folder_path/" || true
 # rm -f "$exe_folder_path/nvapi64.dll"
 # echo "🧹 Removed legacy nvapi64.dll"
 
-# Copy fakenvapi.dll with original name (v1.3.8.1) 
+# Copy fakenvapi.dll with original name (v1.3.8.1)
 cp -f "$fgmod_path/fakenvapi.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true
 echo "📦 Installed fakenvapi.dll and fakenvapi.ini"
@@ -193,10 +193,16 @@ if [[ $# -gt 1 ]]; then
   done
   logger -t fgmod "Final executable path: $exe_folder_path"
   logger -t fgmod "=================="
-  
+
   # Execute the original command
   export SteamDeck=0
   export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"
+
+  # Filter out leading -- separators (from Steam launch options)
+  while [[ $# -gt 0 && "$1" == "--" ]]; do
+    shift
+  done
+
   "$@"
 else
   echo "Done!"
@@ -208,7 +214,7 @@ else
   done
   echo "Final executable path: $exe_folder_path"
   echo "----------------------------------------"
-  
+
   # Also log standalone mode to journal
   logger -t fgmod "=================="
   logger -t fgmod "Debug Info (Standalone Mode):"

@@ -393,7 +393,7 @@ begin
     '    shift' + LineEnding +
     '  done' + LineEnding +
     '  ' + LineEnding +
-    '  exec "$@"' + LineEnding +
+    '  "$@"' + LineEnding +
     'else' + LineEnding +
     '  echo "Done!"' + LineEnding +
     '  echo "----------------------------------------"' + LineEnding +
@@ -587,7 +587,7 @@ begin
     '  echo "🚀 Launching the game..."' + LineEnding +
     '  export SteamDeck=0' + LineEnding +
     '  export WINEDLLOVERRIDES="${WINEDLLOVERRIDES},dxgi=n,b"' + LineEnding +
-    '  exec "$@"' + LineEnding +
+    '  "$@"' + LineEnding +
     'else' + LineEnding +
     '  echo "✅ Uninstallation complete. No game specified to run."' + LineEnding +
     'fi' + LineEnding;
