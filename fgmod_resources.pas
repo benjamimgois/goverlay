@@ -387,7 +387,13 @@ begin
     '  # Execute the original command' + LineEnding +
     '  export SteamDeck=0' + LineEnding +
     '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
-    '  "$@"' + LineEnding +
+    '  ' + LineEnding +
+    '  # Filter out leading -- separators (from Steam launch options)' + LineEnding +
+    '  while [[ $# -gt 0 && "$1" == "--" ]]; do' + LineEnding +
+    '    shift' + LineEnding +
+    '  done' + LineEnding +
+    '  ' + LineEnding +
+    '  exec "$@"' + LineEnding +
     'else' + LineEnding +
     '  echo "Done!"' + LineEnding +
     '  echo "----------------------------------------"' + LineEnding +
