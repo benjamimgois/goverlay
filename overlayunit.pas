@@ -223,6 +223,7 @@ type
     donateMenuItem: TMenuItem;
     aboutMenuItem: TMenuItem;
     blacklistMenuItem: TMenuItem;
+    globalenableMenuItem: TMenuItem;
     hdrCheckBox: TCheckBox;
     hidehudCheckBox: TCheckBox;
     hImage: TImage;
@@ -426,6 +427,7 @@ type
     procedure fpsonlyBitBtnClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
     procedure fxaaTrackBarChange(Sender: TObject);
+    procedure globalenableMenuItemClick(Sender: TObject);
     procedure goverlayBitBtnClick(Sender: TObject);
     procedure gpuframesjouleBitBtnClick(Sender: TObject);
     procedure gupdateBitBtnClick(Sender: TObject);
@@ -505,6 +507,8 @@ type
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
     procedure UpdateGeSpeedButtonState;
+    procedure UpdateGlobalEnableMenuItemVisibility;
+    procedure RemoveMangoHudFromFGMod;
     procedure LoadTweaksFromFGMod;
     function IsOptiScalerInstalled: Boolean;
   public
@@ -1193,6 +1197,158 @@ begin
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
 end;
 
+// Function to get environment.d config directory with proper XDG support
+// For Flatpak, this uses HOST_XDG_CONFIG_HOME to access the real host location
+// For native, this uses XDG_CONFIG_HOME to follow XDG Base Directory specification
+// Returns: ~/.config/environment.d for both Flatpak and native installations
+function GetEnvironmentDConfigDir(): String;
+var
+  ConfigHome: String;
+begin
+  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  
+  // Fall back to standard XDG_CONFIG_HOME for native installations
+  if ConfigHome = '' then
+    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  
+  // Final fallback to ~/.config
+  if ConfigHome = '' then
+    ConfigHome := GetUserDir + '.config';
+  
+  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'environment.d';
+end;
+
+// Function to check if MangoHud is globally enabled
+function IsMangoHudGloballyEnabled(): Boolean;
+var
+  ConfigFile: String;
+  FileContent: TStringList;
+  i: Integer;
+begin
+  Result := False;
+  ConfigFile := IncludeTrailingPathDelimiter(GetEnvironmentDConfigDir()) + 'mangohud.conf';
+  
+  if not FileExists(ConfigFile) then
+    Exit;
+  
+  FileContent := TStringList.Create;
+  try
+    try
+      FileContent.LoadFromFile(ConfigFile);
+      // Check if the file contains MANGOHUD=1
+      for i := 0 to FileContent.Count - 1 do
+      begin
+        if Trim(FileContent[i]) = 'MANGOHUD=1' then
+        begin
+          Result := True;
+          Break;
+        end;
+      end;
+    except
+      Result := False;
+    end;
+  finally
+    FileContent.Free;
+  end;
+end;
+
+// Procedure to enable MangoHud globally
+// Creates ~/.config/environment.d/mangohud.conf with MANGOHUD=1
+procedure EnableMangoHudGlobally();
+var
+  ConfigDir, ConfigFile: String;
+  FileContent: TStringList;
+begin
+  ConfigDir := GetEnvironmentDConfigDir();
+  ConfigFile := IncludeTrailingPathDelimiter(ConfigDir) + 'mangohud.conf';
+  
+  // Create directory if it doesn't exist
+  if not DirectoryExists(ConfigDir) then
+    ForceDirectories(ConfigDir);
+  
+  // Create/overwrite file with MANGOHUD=1
+  FileContent := TStringList.Create;
+  try
+    FileContent.Add('MANGOHUD=1');
+    FileContent.SaveToFile(ConfigFile);
+  finally
+    FileContent.Free;
+  end;
+end;
+
+// Procedure to disable MangoHud globally
+// Deletes ~/.config/environment.d/mangohud.conf
+procedure DisableMangoHudGlobally();
+var
+  ConfigFile: String;
+begin
+  ConfigFile := IncludeTrailingPathDelimiter(GetEnvironmentDConfigDir()) + 'mangohud.conf';
+  
+  if FileExists(ConfigFile) then
+    DeleteFile(ConfigFile);
+end;
+
+
+// Procedure to execute session logout based on desktop environment
+procedure ExecuteSessionLogout();
+var
+  DesktopEnv: String;
+  UserName: String;
+  LogoutCommand: String;
+begin
+  // Get current desktop environment from XDG_CURRENT_DESKTOP
+  DesktopEnv := UpperCase(GetEnvironmentVariable('XDG_CURRENT_DESKTOP'));
+  
+  // If XDG_CURRENT_DESKTOP is empty, try DESKTOP_SESSION
+  if DesktopEnv = '' then
+    DesktopEnv := UpperCase(GetEnvironmentVariable('DESKTOP_SESSION'));
+  
+  // Determine logout command based on desktop environment
+  if Pos('GNOME', DesktopEnv) > 0 then
+  begin
+    // GNOME desktop
+    LogoutCommand := 'gnome-session-quit --logout --no-prompt';
+  end
+  else if Pos('KDE', DesktopEnv) > 0 then
+  begin
+    // KDE Plasma desktop
+    // KDE Plasma 6 uses org.kde.Shutdown, older versions use org.kde.ksmserver
+    if IsCommandAvailable('qdbus6') then
+      LogoutCommand := 'qdbus6 org.kde.Shutdown /Shutdown logout'
+    else if IsCommandAvailable('qdbus') then
+      LogoutCommand := 'qdbus org.kde.ksmserver /KSMServer logout 0 0 0'
+    else
+    begin
+      UserName := GetEnvironmentVariable('USER');
+      LogoutCommand := 'loginctl terminate-user ' + UserName;
+    end;
+  end
+  else if Pos('XFCE', DesktopEnv) > 0 then
+  begin
+    // XFCE desktop
+    LogoutCommand := 'xfce4-session-logout --logout';
+  end
+  else if Pos('MATE', DesktopEnv) > 0 then
+  begin
+    // MATE desktop
+    LogoutCommand := 'mate-session-save --logout';
+  end
+  else if Pos('CINNAMON', DesktopEnv) > 0 then
+  begin
+    // Cinnamon desktop
+    LogoutCommand := 'cinnamon-session-quit --logout --no-prompt';
+  end
+  else
+  begin
+    // Generic fallback using loginctl (systemd)
+    UserName := GetEnvironmentVariable('USER');
+    LogoutCommand := 'loginctl terminate-user ' + UserName;
+  end;
+  
+  // Execute the logout command
+  ExecuteShellCommand(LogoutCommand);
+end;
 
 // Function to create directory ensuring it exists
 // For Flatpak, the manifest must have :create permission on the parent directory
@@ -1628,6 +1784,7 @@ copyBitbtn.Visible:=false;
 geSpeedButton.Visible:=true;
 geLabel.Visible:=true;
 UpdateGeSpeedButtonState;
+UpdateGlobalEnableMenuItemVisibility;
 
 end;
 
@@ -1932,6 +2089,7 @@ begin
 
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
+  UpdateGlobalEnableMenuItemVisibility;
 
 end;
 
@@ -4395,7 +4553,11 @@ begin
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
 
-
+    // Initialize global enable menu item checked state
+    globalenableMenuItem.Checked := IsMangoHudGloballyEnabled();
+    
+    // Initialize globalenableMenuItem visibility based on active tab
+    UpdateGlobalEnableMenuItemVisibility;
 
 end; // form create
 
@@ -4849,6 +5011,40 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.UpdateGlobalEnableMenuItemVisibility;
+var
+  IsMangoHudTab: Boolean;
+  IsGlobalEnableActive: Boolean;
+begin
+  // Determine if we are on a MangoHud tab
+  IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
+                   (goverlayPageControl.ActivePage = visualTabSheet) or
+                   (goverlayPageControl.ActivePage = performanceTabSheet) or
+                   (goverlayPageControl.ActivePage = metricsTabSheet) or
+                   (goverlayPageControl.ActivePage = extrasTabSheet);
+  
+  // Show the menu item only on MangoHud tabs
+  globalenableMenuItem.Visible := IsMangoHudTab;
+  
+  // Get global enable status
+  IsGlobalEnableActive := IsMangoHudGloballyEnabled();
+  
+  // Hide gespeedbutton and geLabel ONLY on MangoHud tabs when global enable is active
+  // to prevent loading MangoHud twice (once globally, once via fgmod)
+  if IsMangoHudTab then
+  begin
+    geSpeedButton.Visible := not IsGlobalEnableActive;
+    geLabel.Visible := not IsGlobalEnableActive;
+  end
+  else
+  begin
+    // On other tabs (vkBasalt, OptiScaler, Tweaks), always show these controls
+    geSpeedButton.Visible := true;
+    geLabel.Visible := true;
+  end;
+end;
+
+
 procedure Tgoverlayform.LoadTweaksFromFGMod;
 var
   FGModFilePath: string;
@@ -5097,6 +5293,7 @@ copyBitbtn.Visible:=false;
 geSpeedButton.Visible:=true;
 geLabel.Visible:=true;
 UpdateGeSpeedButtonState;
+UpdateGlobalEnableMenuItemVisibility;
 
 end;
 
@@ -5159,6 +5356,7 @@ begin
 
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
+  UpdateGlobalEnableMenuItemVisibility;
 end;
 
 procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
@@ -7839,6 +8037,146 @@ end;
 procedure Tgoverlayform.deckpreset4MenuItemClick(Sender: TObject);
 begin
   SaveMangoHudPreset(4);
+end;
+
+// Remove MANGOHUD=1 from fgmod file
+procedure Tgoverlayform.RemoveMangoHudFromFGMod;
+var
+  FGModFilePath: string;
+  FileLines: TStringList;
+  i: Integer;
+  LineRemoved: Boolean;
+begin
+  // Get fgmod file path
+  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+  
+  // Check if fgmod file exists
+  if not FileExists(FGModFilePath) then
+    Exit;
+  
+  FileLines := TStringList.Create;
+  try
+    FileLines.LoadFromFile(FGModFilePath);
+    LineRemoved := False;
+    
+    // Find and remove lines containing MANGOHUD=1
+    for i := FileLines.Count - 1 downto 0 do
+    begin
+      if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
+      begin
+        FileLines.Delete(i);
+        LineRemoved := True;
+      end;
+    end;
+    
+    // Save the modified file only if a line was removed
+    if LineRemoved then
+    begin
+      FileLines.SaveToFile(FGModFilePath);
+      // Make sure it's still executable
+      fpChmod(FGModFilePath, &755);
+      WriteLn('[FGMOD] Removed MANGOHUD=1 from fgmod (global enable is active)');
+    end;
+    
+  finally
+    FileLines.Free;
+  end;
+end;
+
+// Event handler for Global Enable MangoHud menu item
+procedure Tgoverlayform.globalenableMenuItemClick(Sender: TObject);
+var
+  DialogResult: Integer;
+  IsCurrentlyEnabled: Boolean;
+begin
+  try
+    // Check current state
+    IsCurrentlyEnabled := IsMangoHudGloballyEnabled();
+    
+    if not IsCurrentlyEnabled then
+    begin
+      // Show warning dialog before enabling
+      DialogResult := MessageDlg(
+        'Enable MangoHud Globally',
+        'Enabling MangoHud globally may cause unexpected issues in some applications and desktop environments. ' +
+        'Make sure you know what you are doing.' + LineEnding + LineEnding +
+        'Do you want to continue?',
+        mtWarning,
+        [mbYes, mbNo],
+        0
+      );
+      
+      // If user clicked No, abort
+      if DialogResult = mrNo then
+      begin
+        globalenableMenuItem.Checked := False;
+        Exit;
+      end;
+      
+      // User clicked Yes, enable MangoHud globally
+      EnableMangoHudGlobally();
+      globalenableMenuItem.Checked := True;
+      
+      // Remove MANGOHUD=1 from fgmod to prevent double HUD loading
+      RemoveMangoHudFromFGMod();
+      
+      // Update UI visibility
+      UpdateGlobalEnableMenuItemVisibility();
+      
+      // Ask if user wants to restart session now
+      DialogResult := MessageDlg(
+        'Restart Session',
+        'MangoHud has been enabled globally. A session restart is required for changes to take effect.' + LineEnding + LineEnding +
+        'Do you want to restart your session now?',
+        mtInformation,
+        [mbYes, mbNo],
+        0
+      );
+      
+      if DialogResult = mrYes then
+      begin
+        // Execute logout command based on desktop environment
+        ExecuteSessionLogout();
+      end;
+    end
+    else
+    begin
+      // Disable MangoHud globally (no warning needed)
+      DisableMangoHudGlobally();
+      globalenableMenuItem.Checked := False;
+      
+      // Update UI visibility
+      UpdateGlobalEnableMenuItemVisibility();
+      
+      // Ask if user wants to restart session now
+      DialogResult := MessageDlg(
+        'Restart Session',
+        'MangoHud has been disabled globally. A session restart is required for changes to take effect.' + LineEnding + LineEnding +
+        'Do you want to restart your session now?',
+        mtInformation,
+        [mbYes, mbNo],
+        0
+      );
+      
+      if DialogResult = mrYes then
+      begin
+        // Execute logout command based on desktop environment
+        ExecuteSessionLogout();
+      end;
+    end;
+  except
+    on E: Exception do
+    begin
+      MessageDlg(
+        'Error',
+        'Failed to toggle MangoHud global enable: ' + E.Message,
+        mtError,
+        [mbOK],
+        0
+      );
+      globalenableMenuItem.Checked := IsMangoHudGloballyEnabled();
+    end;
+  end;
 end;
 
 end.
