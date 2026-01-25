@@ -88,6 +88,7 @@
   - Fixed issue where `geSpeedButton` and `geLabel` were hidden on all tabs when Global Enable was active
   - Controls are now correctly hidden only on MangoHud tabs (to prevent double loading)
   - Controls remain visible and functional on vkBasalt, OptiScaler, and Tweaks tabs
+  - Displays clear "MangoHud will be displayed in every vulkan application" message instead of launch command when active in MangoHud tab
 
 
 - **Refactored:** UI component migration from TCheckGroup to TGroupBox

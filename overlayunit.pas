@@ -4807,9 +4807,13 @@ begin
   begin
     SearchPattern := 'export MANGOHUD=1';
     geSpeedButton.Hint := 'MangoHUD will be automatically enabled for applications running the launch command with FGMOD';
-    // Ensure controls are enabled for non-OptiScaler tabs
-    geSpeedButton.Enabled := True;
-    saveBitBtn.Enabled := True;
+    // Only enable controls if global enable is not active
+    // When global enable is active, UpdateGlobalEnableMenuItemVisibility will handle it
+    if not IsMangoHudGloballyEnabled() then
+    begin
+      geSpeedButton.Enabled := True;
+      saveBitBtn.Enabled := True;
+    end;
   end
   else if IsVkBasaltTab then
   begin
@@ -5030,18 +5034,35 @@ begin
   // Get global enable status
   IsGlobalEnableActive := IsMangoHudGloballyEnabled();
   
-  // Hide gespeedbutton and geLabel ONLY on MangoHud tabs when global enable is active
-  // to prevent loading MangoHud twice (once globally, once via fgmod)
+  // On MangoHud tabs: when global enable is active, disable geSpeedButton, 
+  // set it to ON state, and change geLabel caption to indicate global enable
   if IsMangoHudTab then
   begin
-    geSpeedButton.Visible := not IsGlobalEnableActive;
-    geLabel.Visible := not IsGlobalEnableActive;
+    if IsGlobalEnableActive then
+    begin
+      // Show controls but indicate global enable is active
+      geSpeedButton.Visible := true;
+      geSpeedButton.Enabled := false;
+      geSpeedButton.ImageIndex := 1;  // ON state
+      geLabel.Visible := true;
+      geLabel.Caption := 'Global enable';
+    end
+    else
+    begin
+      // Normal state: enabled and restore default caption
+      geSpeedButton.Visible := true;
+      geSpeedButton.Enabled := true;
+      geLabel.Visible := true;
+      geLabel.Caption := 'Auto Enable';
+    end;
   end
   else
   begin
-    // On other tabs (vkBasalt, OptiScaler, Tweaks), always show these controls
+    // On other tabs (vkBasalt, OptiScaler, Tweaks), always show and enable these controls
     geSpeedButton.Visible := true;
+    geSpeedButton.Enabled := true;
     geLabel.Visible := true;
+    geLabel.Caption := 'Auto Enable';
   end;
 end;
 
@@ -7285,8 +7306,16 @@ EnableTraceLogsFound: Boolean;
     SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
   // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
-    // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
-    if geSpeedButton.ImageIndex = 1 then
+    // If global enable is active, show message instead of command
+    if globalenableMenuItem.Checked then
+    begin
+      notificationLabel.Visible := False;
+      copyBitBtn.Visible := False;
+      howtoBitBtn.Visible := False;
+      commandEdit.Visible := True;
+      commandEdit.Text := 'MangoHud will be displayed in every vulkan application';
+    end
+    else if geSpeedButton.ImageIndex = 1 then
     begin
       // Build launch command with full absolute path
       LaunchCommand := GetFGModPath + '/fgmod ';

@@ -55,6 +55,9 @@ This release brings **full XDG Base Directory specification compliance**, ensuri
 
 - **Fixed:** "Auto Enable" visibility logic
   - Controls now remain visible on non-MangoHud tabs even when Global Enable is active
+- **Improved:** Global Enable feedback
+  - Displays "MangoHud will be displayed in every vulkan application" message instead of launch command in MangoHud tab
+
 
   
 - **UI refactor:** Migrated from TCheckGroup to TGroupBox
