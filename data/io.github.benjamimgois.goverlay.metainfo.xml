@@ -60,42 +60,32 @@
     </screenshots>
 
     <releases>
-        <release version="1.7.0" date="2026-01-10">
+        <release version="1.7.2" date="2026-01-25">
             <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.7.0</url>
             <description>
                 <p>New Proton Tweaks Tab</p>
                 <ul>
-                    <li>Added Proton environment variable configuration (HDR, Wayland, Proton Logs, SDL Input)</li>
-                    <li>Added custom environment variables support</li>
-                    <li>Added GameMode integration for MangoHud, vkBasalt, and OptiScaler launch commands</li>
+                    <li>Implemented "Save as" funcionality for MangoHud and vkBasalt, now you can create different configs for each game.</li>
+                    <li>Fixed games that keep running on steam after quiting. Thanks @8Vinso8 for the help diagnosing the problem inside FGMOD !</li>
                 </ul>
-                <p>FGMod Improvements</p>
+                <p>Save As Functionality</p>
                 <ul>
-                    <li>Embedded fgmod scripts directly into GOverlay binary</li>
-                    <li>Added launch command display when saving configurations</li>
-                    <li>Added dynamic path detection for native and Flatpak environments</li>
-                    <li>Added Dune Awakening executable path resolution support</li>
-                    <li>Preserve fgmod, fgmod-remover.sh, and fgmod-uninstaller.sh during OptiScaler updates</li>
+                    <li>Easy folder selection dialog</li>
+                    <li>Export configs to any directory you choose</li>
                 </ul>
-                <p>OptiScaler Enhancements</p>
+                <p>OptiScaler Auto-Installation</p>
                 <ul>
-                    <li>Added support for patched version tags (e.g., 0.7.9-2, edge-0.9.8.0106-2)</li>
-                    <li>Added DXIL_SPIRV_CONFIG workaround option for RDNA3 GPUs</li>
-                    <li>Disable emufp8 option automatically when using FSR 4.0.2 (INT8)</li>
-                    <li>Properly disable controls when OptiScaler is not installed</li>
+                    <li>Zero hassle setup! OptiScaler now installs automatically for FGMOD</li>
                 </ul>
-                <p>Bug Fixes</p>
+                <p>Complete XDG Compliance</p>
                 <ul>
-                    <li>Fixed vkBasalt toggleKey not saving selected combobox value</li>
-                    <li>Improved GPU detection to include Display controllers</li>
-                    <li>Fixed Flatpak sandbox path and fgmod script existence checks</li>
-                    <li>Fixed OptiScaler tab check bug and enabled commands display without fgmod</li>
-                    <li>Removed pci_dev from MangoHud config (only gpu_list is used now)</li>
+                    <li>This release brings full XDG Base Directory specification compliance, ensuring GOverlay follows Linux standards for configuration and data storage.
+                    </li>
                 </ul>
-                <p>UI Improvements</p>
+                <p>FGMOD updated</p>
                 <ul>
-                    <li>Replaced commandLabel with commandEdit and excluded from theming</li>
-                    <li>UI cleanup: reset active tab and removed hardcoded color properties</li>
+                    <li>Fixed process tracking for Steam integration</li>
+                    <li>Properly handles argument separator</li>
                 </ul>
             </description>
         </release>
