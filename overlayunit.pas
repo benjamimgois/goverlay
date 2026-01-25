@@ -5024,7 +5024,8 @@ begin
                    (goverlayPageControl.ActivePage = extrasTabSheet);
   
   // Show the menu item only on MangoHud tabs
-  globalenableMenuItem.Visible := IsMangoHudTab;
+  // Also hide it if running in Flatpak as per user request (might change in future)
+  globalenableMenuItem.Visible := IsMangoHudTab and (not IsRunningInFlatpak);
   
   // Get global enable status
   IsGlobalEnableActive := IsMangoHudGloballyEnabled();
