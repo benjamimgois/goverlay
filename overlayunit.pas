@@ -3896,7 +3896,7 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.7.2';
+  GVERSION := '1.7.3';
   GCHANNEL := 'stable'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts

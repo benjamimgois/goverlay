@@ -180,7 +180,7 @@ begin
     '#|  |     |  |__| | |  |  |  | |  `--''  | |  ''--''  |' + LineEnding +
     '#|__|      \______| |__|  |__|  \______/  |_______/' + LineEnding +
     '#' + LineEnding +
-    '# ver 1.7.2' + LineEnding +
+    '# ver 1.7.3' + LineEnding +
     '' + LineEnding +
     'set -x' + LineEnding +
     'exec > >(tee -i /tmp/fgmod-install.log) 2>&1' + LineEnding +

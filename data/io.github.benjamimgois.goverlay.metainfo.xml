@@ -60,6 +60,14 @@
     </screenshots>
 
     <releases>
+        <release version="1.7.3" date="2026-01-27">
+            <description>
+                <ul>
+                    <li>Fixed OptiScaler path issue in Flatpak</li>
+                    <li>Reverted Flatpak paths for fgmod/nohup to standard sandbox paths</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.7.2" date="2026-01-25">
             <url type="details">https://github.com/benjamimgois/goverlay/releases/tag/1.7.0</url>
             <description>
