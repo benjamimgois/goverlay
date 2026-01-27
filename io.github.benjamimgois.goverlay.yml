@@ -13,8 +13,8 @@ finish-args:
   - --device=dri
 
   # File access - use :create to allow creating directories if they don't exist
-  - --filesystem=xdg-config/MangoHud
-  - --filesystem=xdg-config/vkBasalt
+  - --filesystem=xdg-config/MangoHud:rw
+  - --filesystem=xdg-config/vkBasalt:rw
   - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
   
   # Network access for downloads (OptiScaler, ReShade shaders, updates)

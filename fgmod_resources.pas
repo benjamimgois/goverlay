@@ -36,32 +36,15 @@ begin
 end;
 
 // Get the correct fgmod installation path based on environment
-// For Flatpak, this uses HOST_XDG_DATA_HOME to access the real host location
-// For native, this uses XDG_DATA_HOME to follow XDG Base Directory specification
-// Returns: ~/.local/share/goverlay/fgmod for both Flatpak and native installations
+// Usage: ~/.local/share/goverlay/fgmod (Sandboxed in Flatpak)
 function GetFGModPath: string;
 var
   DataHome: string;
-  UserName: string;
 begin
-  // For Flatpak, try HOST_XDG_DATA_HOME first to access the real host location
-  DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  // Standard XDG_DATA_HOME (maps to sandbox in Flatpak: ~/.var/app/.../data)
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
   
-  // If in Flatpak and HOST_XDG_DATA_HOME is not available, construct the host path manually
-  if (DataHome = '') and IsRunningInFlatpak then
-  begin
-    UserName := GetEnvironmentVariable('USER');
-    if UserName <> '' then
-      DataHome := '/home/' + UserName + '/.local/share'
-    else
-      DataHome := GetUserDir + '.local/share';
-  end;
-  
-  // Fall back to standard XDG_DATA_HOME for native installations
-  if DataHome = '' then
-    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  
-  // Final fallback to ~/.local/share
+  // Fallback to ~/.local/share
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
   
@@ -604,9 +587,7 @@ begin
     '#!/usr/bin/env bash' + LineEnding +
     '' + LineEnding +
     '# Determine the correct fgmod path using XDG directories' + LineEnding +
-    'if [ -n \"$HOST_XDG_DATA_HOME\" ]; then' + LineEnding +
-    '    FGMOD_PATH=\"$HOST_XDG_DATA_HOME/goverlay/fgmod\"' + LineEnding +
-    'elif [ -n \"$XDG_DATA_HOME\" ]; then' + LineEnding +
+    'if [ -n \"$XDG_DATA_HOME\" ]; then' + LineEnding +
     '    FGMOD_PATH=\"$XDG_DATA_HOME/goverlay/fgmod\"' + LineEnding +
     'else' + LineEnding +
     '    FGMOD_PATH=\"$HOME/.local/share/goverlay/fgmod\"' + LineEnding +

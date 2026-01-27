@@ -73,7 +73,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix;
+  FileUtil, LazFileUtils, BaseUnix, fgmod_resources;
 
 // Function to detect if running in Flatpak environment
 function IsRunningInFlatpak: Boolean;
@@ -82,36 +82,11 @@ begin
 end;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
-// For Flatpak, this uses HOST_XDG_DATA_HOME to access the real host location
-// For native, this uses XDG_DATA_HOME to follow XDG Base Directory specification
-// Returns: ~/.local/share/goverlay/fgmod for both Flatpak and native installations
+// Returns: ~/.local/share/goverlay/fgmod (Sandboxed in Flatpak)
 function GetOptiScalerInstallPath: string;
-var
-  DataHome: string;
-  UserName: string;
 begin
-  // For Flatpak, try HOST_XDG_DATA_HOME first to access the real host location
-  DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
-  
-  // If in Flatpak and HOST_XDG_DATA_HOME is not available, construct the host path manually
-  if (DataHome = '') and IsRunningInFlatpak then
-  begin
-    UserName := GetEnvironmentVariable('USER');
-    if UserName <> '' then
-      DataHome := '/home/' + UserName + '/.local/share'
-    else
-      DataHome := GetUserDir + '.local/share';
-  end;
-  
-  // Fall back to standard XDG_DATA_HOME for native installations
-  if DataHome = '' then
-    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  
-  // Final fallback to ~/.local/share
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  
-  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'fgmod';
+  // Use the central function from fgmod_resources to ensure consistency
+  Result := GetFGModPath;
 end;
 
 { TOptiscalerTab }
