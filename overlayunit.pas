@@ -69,7 +69,7 @@ type
     performanceGroupBox: TGroupBox;
     graphicsGroupBox: TGroupBox;
     hidenvidiaCheckBox: TCheckBox;
-    mesagitCheckBox: TCheckBox;
+    nofastclearsCheckBox: TCheckBox;
     ramtempCheckBox: TCheckBox;
     customenvEdit: TEdit;
     advancedGroupBox: TGroupBox;
@@ -3896,8 +3896,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.7.3';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.7.4';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
@@ -5218,6 +5218,13 @@ begin
       if Pos('export PROTON_HEAP_DELAY_FREE=1', FileLines[i]) > 0 then
       begin
         GetPerformanceCheckBox(5).Checked := True;
+        TweakFound := True;
+      end;
+
+      // "No Fast Clears" -> export RADV_DEBUG=nofastclears
+      if Pos('export RADV_DEBUG=nofastclears', FileLines[i]) > 0 then
+      begin
+        nofastclearsCheckBox.Checked := True;
         TweakFound := True;
       end;
 
@@ -6561,6 +6568,10 @@ EnableTraceLogsFound: Boolean;
           LaunchCommand := LaunchCommand + 'MESA_LOADER_DRIVER_OVERRIDE=zink ';
       end;
 
+      // "No Fast Clears" -> RADV_DEBUG=nofastclears
+      if nofastclearsCheckBox.Checked then
+        LaunchCommand := LaunchCommand + 'RADV_DEBUG=nofastclears ';
+
       // performanceCheckGroup items
       // Index 0: "Higher priority for games" -> PROTON_PRIORITY_HIGH=1
       if GetPerformanceCheckBox(0).Checked then
@@ -6627,6 +6638,7 @@ EnableTraceLogsFound: Boolean;
                  // Zink exports
                  (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FGModLines[LineIndex]) > 0) or
                  (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa', FGModLines[LineIndex]) > 0) or
+                 (Pos('export RADV_DEBUG=nofastclears', FGModLines[LineIndex]) > 0) or
                  // performanceCheckGroup exports
                  (Pos('export PROTON_PRIORITY_HIGH=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_USE_WOW64=1', FGModLines[LineIndex]) > 0) or
@@ -6683,9 +6695,12 @@ EnableTraceLogsFound: Boolean;
                 if GetGraphicsCheckBox(1).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_HIDE_NVIDIA_GPU=1');
 
-                // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
                 if GetGraphicsCheckBox(0).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export RADV_PERFTEST=rt,emulate_rt');
+
+                // "No Fast Clears" -> export RADV_DEBUG=nofastclears
+                if nofastclearsCheckBox.Checked then
+                  FGModLines.Insert(LineIndex + 1, '  export RADV_DEBUG=nofastclears');
 
                 // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
                 if GetGraphicsCheckBox(4).Checked then
