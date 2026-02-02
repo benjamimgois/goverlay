@@ -424,6 +424,7 @@ type
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
     procedure donateMenuItemClick(Sender: TObject);
+    procedure patcherlistLabelClick(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure forcelatencyflexCheckBoxChange(Sender: TObject);
     procedure forcereflexCheckBoxChange(Sender: TObject);
@@ -6013,6 +6014,17 @@ procedure Tgoverlayform.donateMenuItemClick(Sender: TObject);
 begin
   try
     if not OpenURL(URL_KOFI) then
+      ShowMessage('Unable to open the link in the default web browser.');
+  except
+    on E: Exception do
+      ShowMessage('Error opening the link: ' + E.Message);
+  end;
+end;
+
+procedure Tgoverlayform.patcherlistLabelClick(Sender: TObject);
+begin
+  try
+    if not OpenURL('https://github.com/optiscaler/OptiPatcher/blob/main/GameSupport.md') then
       ShowMessage('Unable to open the link in the default web browser.');
   except
     on E: Exception do
