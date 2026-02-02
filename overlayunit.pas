@@ -21,6 +21,7 @@ type
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
+    patcherlistLabel: TLabel;
     optipatcherLabel: TLabel;
     optipatcherLabel1: TLabel;
     saveasMenuItem: TMenuItem;
@@ -4531,6 +4532,7 @@ begin
     FOptiscalerUpdate.FsrVersionComboBox := fsrversionComboBox;
     FOptiscalerUpdate.OptVersionComboBox := optversionComboBox;
     FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
+    FOptiscalerUpdate.OptiPatcherLabel := optipatcherLabel1;
     FOptiscalerUpdate.NotificationLabel := notificationLabel;
 
     // Connect OnChange event for OptiScaler channel selection

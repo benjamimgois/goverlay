@@ -32,6 +32,7 @@ type
     FNotificationLabel: TLabel; // Label for general notifications
     FFsrVersionComboBox: TComboBox; // ComboBox for FSR version selection
     FOptVersionComboBox: TComboBox; // ComboBox for OptiScaler channel selection
+    FOptiPatcherLabel: TLabel; // Label for OptiPatcher version
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
@@ -68,6 +69,7 @@ type
     property NotificationLabel: TLabel read FNotificationLabel write FNotificationLabel;
     property FsrVersionComboBox: TComboBox read FFsrVersionComboBox write FFsrVersionComboBox;
     property OptVersionComboBox: TComboBox read FOptVersionComboBox write FOptVersionComboBox;
+    property OptiPatcherLabel: TLabel read FOptiPatcherLabel write FOptiPatcherLabel;
   end;
 
 implementation
@@ -777,7 +779,7 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer: string;
+  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer: string;
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
@@ -792,6 +794,7 @@ begin
   FakeNvapiVer := '';
   FsrVer := '';
   XessVer := '';
+  OptiPatcherVer := '';
 
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -820,7 +823,9 @@ begin
           else if SameText(Key, 'fsrversion') then
             FsrVer := Value
           else if SameText(Key, 'xessversion') then
-            XessVer := Value;
+            XessVer := Value
+          else if SameText(Key, 'optipatcher') then
+            OptiPatcherVer := Value;
         end;
       end;
     finally
@@ -894,6 +899,18 @@ begin
         else
           FFsrLabel.Caption := 'built in';
         FFsrLabel.Font.Color := clOlive;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    // Update OptiPatcher label
+    if Assigned(FOptiPatcherLabel) and (OptiPatcherVer <> '') then
+    begin
+      try
+        FOptiPatcherLabel.Caption := OptiPatcherVer;
+        FOptiPatcherLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
         // Ignore errors
