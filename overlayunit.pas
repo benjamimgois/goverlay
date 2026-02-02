@@ -21,7 +21,10 @@ type
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
+    optipatcherLabel: TLabel;
+    optipatcherLabel1: TLabel;
     saveasMenuItem: TMenuItem;
+    optipatcherCheckBox: TCheckBox;
     stagememCheckBox: TCheckBox;
     addBitBtn: TBitBtn;
     afLabel: TLabel;
@@ -2451,6 +2454,10 @@ begin
       else if SameText(Key, 'OverrideNvapiDll') then
       begin
         overrideCheckBox.Checked := SameText(Value, 'true');
+      end
+      else if SameText(Key, 'LoadAsiPlugins') then
+      begin
+        optipatcherCheckBox.Checked := SameText(Value, 'true');
       end;
     end;
 
@@ -6493,6 +6500,8 @@ var
   OverrideNvapiDllFound: Boolean;
   DxgiValue: string;
   DxgiFound: Boolean;
+  LoadAsiPluginsValue: string;
+  LoadAsiPluginsFound: Boolean;
 
   // fakenvapi.ini vars
 FakeNvapiIniPath: string;
@@ -6963,6 +6972,12 @@ EnableTraceLogsFound: Boolean;
           else
             DxgiValue := 'false'; // Checkbox is not checked, set to false
 
+          // Get LoadAsiPlugins value from optipatcherCheckBox
+          if optipatcherCheckBox.Checked then
+            LoadAsiPluginsValue := 'true'
+          else
+            LoadAsiPluginsValue := 'auto';
+
           // Check if OptiScaler.ini exists
               if FileExists(OptiScalerIniPath) then
               begin
@@ -6976,6 +6991,7 @@ EnableTraceLogsFound: Boolean;
                   ShortcutKeyFound := False;
                   ScaleFound := False;
                   DxgiFound := False;
+                  LoadAsiPluginsFound := False;
 
                   for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
                   begin
@@ -7011,10 +7027,21 @@ EnableTraceLogsFound: Boolean;
                       DxgiFound := True;
                     end;
 
+                    // Check for LoadAsiPlugins line
+                    if Pos('LoadAsiPlugins=', OptiScalerIniLines[LineIndex]) > 0 then
+                    begin
+                      // Replace the line with the new LoadAsiPlugins value
+                      OptiScalerIniLines[LineIndex] := 'LoadAsiPlugins=' + LoadAsiPluginsValue;
+                      LoadAsiPluginsFound := True;
+                    end;
+
                     // Exit loop if all found
-                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound and DxgiFound then
+                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound and DxgiFound and LoadAsiPluginsFound then
                        Break;
                   end;
+
+                  if not LoadAsiPluginsFound then
+                    OptiScalerIniLines.Add('LoadAsiPlugins=' + LoadAsiPluginsValue);
 
                   if ShortcutKeyFound and ScaleFound then
                   begin
