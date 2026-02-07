@@ -1119,16 +1119,23 @@ function GetVkBasaltConfigDir(): String;
 var
   ConfigHome: String;
 begin
-  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
-  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-  
-  // Fall back to standard XDG_CONFIG_HOME
-  if ConfigHome = '' then
-    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-  
-  // Final fallback to ~/.config
-  if ConfigHome = '' then
+  // When running in Flatpak, games run outside the sandbox and need to access
+  // the host vkBasalt configuration. Always use the host .config directory.
+  if IsRunningInFlatpak then
+  begin
+    // In Flatpak, always use the host's .config directory
+    // because games run outside the sandbox and vkBasalt needs host paths
     ConfigHome := GetUserDir + '.config';
+  end
+  else
+  begin
+    // For native installations, use standard XDG paths
+    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+    
+    // Final fallback to ~/.config
+    if ConfigHome = '' then
+      ConfigHome := GetUserDir + '.config';
+  end;
   
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'vkBasalt';
 end;
