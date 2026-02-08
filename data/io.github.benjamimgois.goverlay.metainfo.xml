@@ -60,6 +60,27 @@
     </screenshots>
 
     <releases>
+        <release version="1.7.4" date="2026-02-07">
+            <description>
+                <p>OptiScaler &amp; vkBasalt Enhancements</p>
+                <ul>
+                    <li>OptiPatcher support with automatic version detection</li>
+                    <li>vkBasalt "Games supported" label added</li>
+                    <li>Fixed vkBasalt shader path for Flatpak</li>
+                </ul>
+                <p>Tweaks Tab Additions</p>
+                <ul>
+                    <li>RADV_DEBUG=nofastclears option for AMD GPU debugging</li>
+                    <li>Force Zink checkbox with smart GPU detection</li>
+                    <li>Helpful tooltips on all FGMOD Tweaks checkboxes</li>
+                </ul>
+                <p>Flatpak Improvements</p>
+                <ul>
+                    <li>GameMode warning dialog for Flatpak users</li>
+                    <li>Improved path handling and manifest cleanup</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.7.3" date="2026-01-27">
             <description>
                 <ul>
