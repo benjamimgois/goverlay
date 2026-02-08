@@ -32,6 +32,14 @@ function IsRunningInFlatpak: Boolean;
 function IsCommandAvailable(const CommandName: string): Boolean;
 
 /// <summary>
+/// Checks if a command is available on the host system (for Flatpak)
+/// This is used for commands that are never inside the Flatpak sandbox
+/// </summary>
+/// <param name="CommandName">Name of the command to check</param>
+/// <returns>True if command exists on host, False otherwise</returns>
+function IsHostCommandAvailable(const CommandName: string): Boolean;
+
+/// <summary>
 /// Detects GPU vendor by reading /sys/bus/pci/devices (Flatpak-compatible)
 /// </summary>
 /// <returns>GPU vendor type</returns>
@@ -149,6 +157,43 @@ var
 begin
   // We use 'which' to check if command exists
   Result := RunCommand('which', [CommandName], Output);
+end;
+
+function IsHostCommandAvailable(const CommandName: string): Boolean;
+const
+  // Common binary paths on Linux systems
+  HostPaths: array[0..5] of string = (
+    '/usr/bin/',
+    '/usr/local/bin/',
+    '/bin/',
+    '/usr/games/',
+    '/usr/local/games/',
+    '/opt/bin/'
+  );
+var
+  i: Integer;
+  HostPath: string;
+begin
+  Result := False;
+  
+  // If not in Flatpak, use regular command check
+  if not IsRunningInFlatpak then
+  begin
+    Result := IsCommandAvailable(CommandName);
+    Exit;
+  end;
+  
+  // In Flatpak: check common host paths directly via filesystem
+  // The host /usr is typically mounted at /run/host/usr in Flatpak
+  for i := Low(HostPaths) to High(HostPaths) do
+  begin
+    HostPath := '/run/host' + HostPaths[i] + CommandName;
+    if FileExists(HostPath) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
 end;
 
 function DetectGPUVendorFromSys: TGPUVendor;

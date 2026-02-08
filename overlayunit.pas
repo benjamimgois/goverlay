@@ -433,6 +433,7 @@ type
     procedure fullBitBtnClick(Sender: TObject);
     procedure fxaaTrackBarChange(Sender: TObject);
     procedure globalenableMenuItemClick(Sender: TObject);
+    procedure gamemodeCheckBoxClick(Sender: TObject);
     procedure goverlayBitBtnClick(Sender: TObject);
     procedure gpuframesjouleBitBtnClick(Sender: TObject);
     procedure gupdateBitBtnClick(Sender: TObject);
@@ -1894,8 +1895,12 @@ begin
     Missing.Add('git');
 
   //check if gamemoderun is available (required for GameMode feature in Tweaks tab)
-  if not IsCommandAvailable('gamemoderun') then
-    Missing.Add('gamemode');
+  // Skip check in Flatpak since gamemoderun is on the host and we can't reliably detect it
+  if not IsRunningInFlatpak then
+  begin
+    if not IsCommandAvailable('gamemoderun') then
+      Missing.Add('gamemode');
+  end;
 
    //check if zenergy module is available
   //if not IsKernelModuleAvailable('zenergy') then
@@ -4069,6 +4074,10 @@ begin
     end;
   end;
   Missing.Free;
+
+  // Connect GameMode checkbox click event
+  gamemodeCheckBox.OnClick := @gamemodeCheckBoxClick;
+
 
 
    //Check if mangohud file exists
@@ -8252,6 +8261,29 @@ begin
       );
       globalenableMenuItem.Checked := IsMangoHudGloballyEnabled();
     end;
+  end;
+end;
+
+procedure Tgoverlayform.gamemodeCheckBoxClick(Sender: TObject);
+var
+  DialogResult: Integer;
+begin
+  // Only show warning in Flatpak when checkbox is being checked (enabled)
+  if IsRunningInFlatpak and gamemodeCheckBox.Checked then
+  begin
+    DialogResult := MessageDlg(
+      'GameMode Warning',
+      'You are running GOverlay in Flatpak. GameMode must be installed on your host system for this feature to work.' + LineEnding + LineEnding +
+      'If GameMode is not installed, games may fail to launch.' + LineEnding + LineEnding +
+      'Do you want to continue?',
+      mtWarning,
+      [mbYes, mbNo],
+      0
+    );
+    
+    // If user clicked No, uncheck the checkbox
+    if DialogResult = mrNo then
+      gamemodeCheckBox.Checked := False;
   end;
 end;
 
