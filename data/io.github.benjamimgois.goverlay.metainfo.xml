@@ -65,10 +65,10 @@
                 <p>OptiScaler &amp; vkBasalt Enhancements</p>
                 <ul>
                     <li>OptiPatcher support with automatic version detection</li>
-                    <li>vkBasalt "Games supported" label added</li>
+                    <li>OptiPatcher "Games supported" label added</li>
                     <li>Fixed vkBasalt shader path for Flatpak</li>
                 </ul>
-                <p>Tweaks Tab Additions</p>
+                <p>Proton Tweaks Tab Additions</p>
                 <ul>
                     <li>RADV_DEBUG=nofastclears option for AMD GPU debugging</li>
                     <li>Force Zink checkbox with smart GPU detection</li>

@@ -5,7 +5,7 @@ interface
 uses
   Classes, SysUtils, Forms, ComCtrls, Buttons, Process,
   RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils,
-  constants;
+  constants, notificationunit;
 
 // Function to get the correct OptiScaler installation path (Flatpak-aware)
 function GetOptiScalerInstallPath: string;
@@ -1372,8 +1372,7 @@ begin
     if OptiScalerTag = '' then
     begin
       WriteLn('[ERROR] UpdateButtonClick: No OptiScaler tag available, aborting');
-      ShowMessage('Could not get OptiScaler version for download.' + sLineBreak +
-                 'Operation cancelled.');
+      ShowToast(ntWarning, 'Não foi possível obter versão do OptiScaler. Operação cancelada.', 5000);
       Exit;
     end;
 
@@ -1404,7 +1403,7 @@ begin
     if not DownloadFile(DownloadURL, SevenZFilePath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: Download failed, aborting');
-      ShowMessage('Failed to download OptiScaler file.');
+      ShowToast(ntError, 'Falha ao baixar arquivo do OptiScaler', 5000);
       Exit;
     end;
 
@@ -1417,7 +1416,7 @@ begin
     if not Extract7z(SevenZFilePath, FFGModPath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
-      ShowMessage('Failed to extract .7z file.');
+      ShowToast(ntError, 'Falha ao extrair arquivo .7z', 5000);
       Exit;
     end;
 
@@ -1558,7 +1557,7 @@ begin
       WriteLn('[DEBUG] UpdateButtonClick: optLabel2 hidden after installation');
     end;
 
-    ShowMessage('OptiScaler installation completed successfully!');
+    ShowToast(ntSuccess, 'OptiScaler instalado com sucesso!', 4000);
 
   finally
     // Re-enable button

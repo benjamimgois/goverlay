@@ -171,7 +171,8 @@ begin
        (ctrl.Name = 'bottomcenterRadioButton') or
        (ctrl.Name = 'middleleftRadioButton') or
        (ctrl.Name = 'middlerightRadioButton') or
-       (ctrl.Name = 'patcherlistLabel') then
+       (ctrl.Name = 'patcherlistLabel') or
+       (ctrl.Name = 'searchEdit') then  // Exclude search field
       Continue;
 
     if ctrl is TMemo then
@@ -315,7 +316,8 @@ begin
        (ctrl.Name = 'bottomcenterRadioButton') or
        (ctrl.Name = 'middleleftRadioButton') or
        (ctrl.Name = 'middlerightRadioButton') or
-       (ctrl.Name = 'patcherlistLabel') then
+       (ctrl.Name = 'patcherlistLabel') or
+       (ctrl.Name = 'searchEdit') then  // Exclude search field
       Continue;
 
     if ctrl is TMemo then

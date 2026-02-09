@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources;
+  fgmod_resources, hintsunit;
 
 
 
@@ -68,6 +68,7 @@ type
     forcenvapiCheckBox: TCheckBox;
     forcezinkCheckBox: TCheckBox;
     gamemodeCheckBox: TCheckBox;
+    statusBar: TStatusBar;
     wow64CheckBox: TCheckBox;
     generalGroupBox: TGroupBox;
     performanceGroupBox: TGroupBox;
@@ -322,6 +323,7 @@ type
     roundImage: TImage;
     roundRadioButton: TRadioButton;
     saveBitBtn: TBitBtn;
+    searchEdit: TEdit;
     savecustomMenuItem: TMenuItem;
     deckpreset1MenuItem: TMenuItem;
     deckpreset2MenuItem: TMenuItem;
@@ -494,6 +496,7 @@ type
     procedure optiscalerLabelMouseLeave(Sender: TObject);
     procedure tweaksLabelMouseEnter(Sender: TObject);
     procedure tweaksLabelMouseLeave(Sender: TObject);
+    procedure SearchEditChange(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
     procedure LoadMangoHudConfig;
@@ -508,6 +511,8 @@ type
     FOptiscalerUpdate: TOptiscalerTab;
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
+    FStatusTimer: TTimer;
+    
     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
@@ -517,6 +522,14 @@ type
     procedure RemoveMangoHudFromFGMod;
     procedure LoadTweaksFromFGMod;
     function IsOptiScalerInstalled: Boolean;
+    
+    // Keyboard shortcuts
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    
+    // Status bar and search
+    procedure ShowStatusMessage(const AMessage: string; ADuration: Integer = 3000);
+    procedure StatusTimerTick(Sender: TObject);
+    procedure ClearSearchHighlights;
   public
 
 
@@ -524,9 +537,32 @@ type
 
 
 
+
+
 var
   goverlayform: Tgoverlayform;
 
+  // ============================================================================
+  // DESIGN SYSTEM CONSTANTS
+  // ============================================================================
+const
+  // Spacing
+  PADDING_SMALL = 8;
+  PADDING_MEDIUM = 12;
+  PADDING_LARGE = 16;
+  MARGIN_SMALL = 4;
+  MARGIN_MEDIUM = 8;
+  MARGIN_LARGE = 12;
+  
+  // Typography
+  FONT_SIZE_TITLE = 12;
+  FONT_SIZE_BODY = 10;
+  FONT_SIZE_SMALL = 9;
+  FONT_SIZE_HINT = 8;
+  FONT_NAME_PRIMARY = 'Ubuntu';         // Primary font (Linux)
+  FONT_NAME_FALLBACK = 'Segoe UI';      // Fallback font (Windows)
+
+var
   // ============================================================================
   // APPLICATION STATE AND VERSION
   // ============================================================================
@@ -3894,6 +3930,359 @@ begin
   end;
 end;
 
+// ============================================================================
+// MODERN DESIGN SYSTEM HELPERS
+// ============================================================================
+
+procedure ApplyModernTypography(AControl: TWinControl);
+var
+  i: Integer;
+begin
+  // Set base font with antialiasing
+  AControl.Font.Name := FONT_NAME_PRIMARY;
+  AControl.Font.Size := FONT_SIZE_BODY;
+  AControl.Font.Quality := fqAntialiased;
+  
+  // Apply to all child components
+  for i := 0 to AControl.ControlCount - 1 do
+  begin
+    // GroupBox titles get larger, bold font
+    if AControl.Controls[i] is TGroupBox then
+    begin
+      TGroupBox(AControl.Controls[i]).Font.Size := FONT_SIZE_TITLE;
+      TGroupBox(AControl.Controls[i]).Font.Style := [fsBold];
+      TGroupBox(AControl.Controls[i]).Font.Quality := fqAntialiased;
+    end;
+    
+    // Buttons get medium font
+    if AControl.Controls[i] is TButton then
+    begin
+      TButton(AControl.Controls[i]).Font.Size := FONT_SIZE_BODY;
+      TButton(AControl.Controls[i]).Font.Quality := fqAntialiased;
+    end;
+    
+    // Labels get body font
+    if AControl.Controls[i] is TLabel then
+    begin
+      TLabel(AControl.Controls[i]).Font.Size := FONT_SIZE_BODY;
+      TLabel(AControl.Controls[i]).Font.Quality := fqAntialiased;
+    end;
+    
+    // Recursively apply to child controls
+    if AControl.Controls[i] is TWinControl then
+      ApplyModernTypography(TWinControl(AControl.Controls[i]));
+  end;
+end;
+
+procedure ApplyModernSpacing(AControl: TWinControl);
+var
+  i: Integer;
+  Checkbox: TCheckBox;
+  PrevCheckbox: TCheckBox;
+begin
+  for i := 0 to AControl.ControlCount - 1 do
+  begin
+    // Add padding to GroupBoxes
+    if AControl.Controls[i] is TGroupBox then
+    begin
+      with TGroupBox(AControl.Controls[i]) do
+      begin
+        BorderSpacing.Left := MARGIN_MEDIUM;
+        BorderSpacing.Top := MARGIN_MEDIUM;
+        BorderSpacing.Right := MARGIN_MEDIUM;
+        BorderSpacing.Bottom := MARGIN_MEDIUM;
+      end;
+    end;
+    
+    // Increase spacing between checkboxes
+    if AControl.Controls[i] is TCheckBox then
+    begin
+      Checkbox := TCheckBox(AControl.Controls[i]);
+      
+      // Find previous checkbox and add margin
+      if i > 0 then
+      begin
+        if AControl.Controls[i-1] is TCheckBox then
+        begin
+          PrevCheckbox := TCheckBox(AControl.Controls[i-1]);
+          // Increase vertical spacing
+          if Checkbox.Top - (PrevCheckbox.Top + PrevCheckbox.Height) < MARGIN_MEDIUM then
+            Checkbox.Top := PrevCheckbox.Top + PrevCheckbox.Height + MARGIN_MEDIUM;
+        end;
+      end;
+    end;
+    
+    // Add spacing to buttons
+    if AControl.Controls[i] is TButton then
+    begin
+      with TButton(AControl.Controls[i]) do
+      begin
+        BorderSpacing.Around := MARGIN_SMALL;
+      end;
+    end;
+    
+    // Recursively apply to child controls
+    if AControl.Controls[i] is TWinControl then
+      ApplyModernSpacing(TWinControl(AControl.Controls[i]));
+  end;
+end;
+
+procedure ApplyIconsToButtons(AForm: TForm);
+begin
+  // Add Unicode icons to main action buttons
+  // Note: This requires Unicode support in the font
+  
+  // Find and update common buttons by name
+  if Assigned(AForm.FindComponent('saveBitBtn')) then
+    TBitBtn(AForm.FindComponent('saveBitBtn')).Caption := '💾 ' + 'Salvar';
+    
+  if Assigned(AForm.FindComponent('copyBitBtn')) then
+    TBitBtn(AForm.FindComponent('copyBitBtn')).Caption := '📋 ' + 'Copiar';
+    
+  if Assigned(AForm.FindComponent('howtoBitBtn')) then
+    TBitBtn(AForm.FindComponent('howtoBitBtn')).Caption := '❓ ' + 'Como Usar';
+    
+  if Assigned(AForm.FindComponent('gupdateBitBtn')) then
+    TBitBtn(AForm.FindComponent('gupdateBitBtn')).Caption := '🔄 ' + 'Atualizar';
+end;
+
+// ============================================================================
+// KEYBOARD SHORTCUTS HANDLER
+// ============================================================================
+
+procedure Tgoverlayform.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  // Ctrl+S = Save configuration
+  if (Shift = [ssCtrl]) and (Key = Ord('S')) then
+  begin
+    saveBitBtnClick(nil);
+    ShowStatusMessage('⚙️ Configuração salva com sucesso!');
+    Key := 0;  // Mark as handled
+  end
+  // Ctrl+C = Copy command
+  else if (Shift = [ssCtrl]) and (Key = Ord('C')) then
+  begin
+    copyBitBtnClick(nil);
+    ShowStatusMessage('📋 Comando copiado para área de transferência!');
+    Key := 0;
+  end
+  // Ctrl+F = Focus search field
+  else if (Shift = [ssCtrl]) and (Key = Ord('F')) then
+  begin
+    if Assigned(searchEdit) then
+    begin
+      searchEdit.SetFocus;
+      searchEdit.SelectAll;
+      ShowStatusMessage('🔍 Digite para buscar configurações...');
+    end;
+    Key := 0;
+  end
+  // F1 = Help/How to use
+  else if Key = VK_F1 then
+  begin
+    howtoBitBtnClick(nil);
+    Key := 0;
+  end;
+end;
+
+// ============================================================================
+// STATUS BAR AND SEARCH HELPERS
+// ============================================================================
+
+procedure Tgoverlayform.ShowStatusMessage(const AMessage: string; ADuration: Integer = 3000);
+begin
+  if not Assigned(statusBar) then Exit;
+  
+  statusBar.SimpleText := AMessage;
+  
+  // Reset and start timer for auto-clear
+  if Assigned(FStatusTimer) then
+  begin
+    FStatusTimer.Enabled := False;
+    FStatusTimer.Interval := ADuration;
+    FStatusTimer.Enabled := True;
+  end;
+end;
+
+procedure Tgoverlayform.StatusTimerTick(Sender: TObject);
+begin
+  if Assigned(statusBar) then
+    statusBar.SimpleText := 'Pronto';
+  
+  if Assigned(FStatusTimer) then
+    FStatusTimer.Enabled := False;
+end;
+
+procedure Tgoverlayform.ClearSearchHighlights;
+var
+  i, j, k: Integer;
+  TabSheet: TTabSheet;
+  Container: TWinControl;
+begin
+  // Reset all checkbox fonts to normal
+  for i := 0 to goverlayPageControl.PageCount - 1 do
+  begin
+    TabSheet := goverlayPageControl.Pages[i];
+    
+    // Check direct controls
+    for j := 0 to TabSheet.ControlCount - 1 do
+    begin
+      if TabSheet.Controls[j] is TCheckBox then
+      begin
+        TCheckBox(TabSheet.Controls[j]).Font.Style := [];
+        TCheckBox(TabSheet.Controls[j]).Font.Color := clDefault;
+        TCheckBox(TabSheet.Controls[j]).Color := clDefault;
+      end
+      else if TabSheet.Controls[j] is TGroupBox then
+      begin
+        TGroupBox(TabSheet.Controls[j]).Font.Style := [];
+        TGroupBox(TabSheet.Controls[j]).Font.Color := clDefault;
+      end
+      else if TabSheet.Controls[j] is TLabel then
+      begin
+        TLabel(TabSheet.Controls[j]).Font.Style := [];
+        TLabel(TabSheet.Controls[j]).Font.Color := clDefault;
+        TLabel(TabSheet.Controls[j]).Transparent := True;
+      end;
+      
+      // Check nested controls inside GroupBox/Panel
+      if TabSheet.Controls[j] is TWinControl then
+      begin
+        Container := TWinControl(TabSheet.Controls[j]);
+        for k := 0 to Container.ControlCount - 1 do
+        begin
+          if Container.Controls[k] is TCheckBox then
+          begin
+            TCheckBox(Container.Controls[k]).Font.Style := [];
+            TCheckBox(Container.Controls[k]).Font.Color := clDefault;
+            TCheckBox(Container.Controls[k]).Color := clDefault;
+          end
+          else if Container.Controls[k] is TGroupBox then
+          begin
+            TGroupBox(Container.Controls[k]).Font.Style := [];
+            TGroupBox(Container.Controls[k]).Font.Color := clDefault;
+          end
+          else if Container.Controls[k] is TLabel then
+          begin
+            TLabel(Container.Controls[k]).Font.Style := [];
+            TLabel(Container.Controls[k]).Font.Color := clDefault;
+            TLabel(Container.Controls[k]).Transparent := True;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure Tgoverlayform.SearchEditChange(Sender: TObject);
+var
+  i, j, k: Integer;
+  TabSheet: TTabSheet;
+  Container: TWinControl;
+  Query: string;
+  FoundAny: Boolean;
+  MatchCount: Integer;
+  
+  procedure CheckControl(AControl: TControl);
+  begin
+    if AControl is TCheckBox then
+    begin
+      if Pos(Query, LowerCase(TCheckBox(AControl).Caption)) > 0 then
+      begin
+        TCheckBox(AControl).Font.Style := [fsBold];
+        TCheckBox(AControl).Font.Color := clBlack;
+        TCheckBox(AControl).Color := $00FFFF80;  // Light yellow background
+        Inc(MatchCount);
+        WriteLn('[SEARCH] Match (CheckBox): ', TCheckBox(AControl).Caption);
+        if not FoundAny then
+        begin
+          goverlayPageControl.ActivePage := TabSheet;
+          FoundAny := True;
+        end;
+      end;
+    end
+    else if AControl is TGroupBox then
+    begin
+      if Pos(Query, LowerCase(TGroupBox(AControl).Caption)) > 0 then
+      begin
+        TGroupBox(AControl).Font.Style := [fsBold];
+        TGroupBox(AControl).Font.Color := $0000CCFF;  // Orange text (no background)
+        Inc(MatchCount);
+        WriteLn('[SEARCH] Match (GroupBox): ', TGroupBox(AControl).Caption);
+        if not FoundAny then
+        begin
+          goverlayPageControl.ActivePage := TabSheet;
+          FoundAny := True;
+        end;
+      end;
+    end
+    else if AControl is TLabel then
+    begin
+      if Pos(Query, LowerCase(TLabel(AControl).Caption)) > 0 then
+      begin
+        TLabel(AControl).Font.Style := [fsBold];
+        TLabel(AControl).Font.Color := clBlack;
+        TLabel(AControl).Color := $00FFFF80;  // Light yellow background
+        TLabel(AControl).Transparent := False;
+        Inc(MatchCount);
+        if not FoundAny then
+        begin
+          goverlayPageControl.ActivePage := TabSheet;
+          FoundAny := True;
+        end;
+      end;
+    end;
+  end;
+  
+begin
+  Query := LowerCase(Trim(searchEdit.Text));
+  
+  // Clear if query is too short
+  if Length(Query) < 2 then
+  begin
+    ClearSearchHighlights;
+    if Length(Query) > 0 then
+      ShowStatusMessage('Digite pelo menos 2 caracteres para buscar');
+    Exit;
+  end;
+  
+  ClearSearchHighlights;
+  FoundAny := False;
+  MatchCount := 0;
+  
+  WriteLn('[SEARCH] Buscando por: "', Query, '"');
+  
+  // Search in all tabs
+  for i := 0 to goverlayPageControl.PageCount - 1 do
+  begin
+    TabSheet := goverlayPageControl.Pages[i];
+    WriteLn('[SEARCH] Aba: ', TabSheet.Caption, ' - Controles: ', TabSheet.ControlCount);
+    
+    // Check direct controls
+    for j := 0 to TabSheet.ControlCount - 1 do
+    begin
+      CheckControl(TabSheet.Controls[j]);
+      
+      // Also search inside containers (GroupBox, Panel, etc)
+      if TabSheet.Controls[j] is TWinControl then
+      begin
+        Container := TWinControl(TabSheet.Controls[j]);
+        for k := 0 to Container.ControlCount - 1 do
+        begin
+          CheckControl(Container.Controls[k]);
+        end;
+      end;
+    end;
+  end;
+  
+  WriteLn('[SEARCH] Total encontrado: ', MatchCount);
+  
+  if FoundAny then
+    ShowStatusMessage(Format('✓ %d resultado(s) para: "%s"', [MatchCount, searchEdit.Text]))
+  else
+    ShowStatusMessage(Format('✗ Nenhum resultado para: "%s"', [searchEdit.Text]));
+end;
+
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 
 var
@@ -3917,8 +4306,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.7.4';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.7.5';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
@@ -3958,6 +4347,47 @@ begin
    // Initialize menu selections
   mangohudsel := true;
   goverlayPanel.Visible:=true;
+  
+  // Apply comprehensive tooltips to all components
+  ApplyAllHints(Self);
+  
+  // Apply modern design system
+  //ApplyModernTypography(Self);  // Disabled - user preference
+  //ApplyModernSpacing(Self);  // Disabled - user preference
+  ApplyIconsToButtons(Self);
+  
+  // Create components dynamically for now
+  searchEdit := TEdit.Create(Self);
+  searchEdit.Parent := Self;
+  searchEdit.Top := 72;
+  searchEdit.Left := 10;
+  searchEdit.Width := 191;
+  searchEdit.Height := 28;
+  searchEdit.TextHint := '🔍 Buscar... (Ctrl+F)';
+  searchEdit.OnChange := @SearchEditChange;
+
+  statusBar := TStatusBar.Create(Self);
+  statusBar.Parent := Self;
+  // Disable alignment so we can position it manually
+  statusBar.Align := alNone; 
+  statusBar.Top := 105;
+  statusBar.Left := 10;
+  statusBar.Width := 191; // Same width as searchEdit
+  statusBar.Height := 20;
+  statusBar.SimplePanel := True;
+  statusBar.SimpleText := 'Pronto';
+  
+  // Create status timer
+  FStatusTimer := TTimer.Create(Self);
+  FStatusTimer.Enabled := False;
+  FStatusTimer.OnTimer := @StatusTimerTick;
+  
+  // searchEdit is now defined in LFM file - no need to create dynamically
+  
+  // Enable keyboard shortcuts
+  Self.KeyPreview := True;
+  Self.OnKeyDown := @FormKeyDown;
+  
   vkbasaltsel := false;
 
 
