@@ -4698,7 +4698,7 @@ begin
 
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
-    Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | wc -l'); //Count the number of lines
+    Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | wc -l'); //Count the number of lines
     Process.Options := [poUsePipes];
     Process.Execute;
     Process.WaitOnExit;
@@ -4721,7 +4721,7 @@ begin
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
@@ -4738,7 +4738,7 @@ begin
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
@@ -4893,7 +4893,7 @@ begin
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
