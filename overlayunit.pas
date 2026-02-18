@@ -4070,7 +4070,7 @@ begin
     begin
       searchEdit.SetFocus;
       searchEdit.SelectAll;
-      ShowStatusMessage('🔍 Digite para buscar configurações...');
+      ShowStatusMessage('Type to search...');
     end;
     Key := 0;
   end
@@ -4239,7 +4239,7 @@ begin
   begin
     ClearSearchHighlights;
     if Length(Query) > 0 then
-      ShowStatusMessage('Digite pelo menos 2 caracteres para buscar');
+      ShowStatusMessage('Type at least 2 characters to search');
     Exit;
   end;
   
@@ -4247,14 +4247,10 @@ begin
   FoundAny := False;
   MatchCount := 0;
   
-  WriteLn('[SEARCH] Buscando por: "', Query, '"');
-  
   // Search in all tabs
   for i := 0 to goverlayPageControl.PageCount - 1 do
   begin
     TabSheet := goverlayPageControl.Pages[i];
-    WriteLn('[SEARCH] Aba: ', TabSheet.Caption, ' - Controles: ', TabSheet.ControlCount);
-    
     // Check direct controls
     for j := 0 to TabSheet.ControlCount - 1 do
     begin
@@ -4272,12 +4268,10 @@ begin
     end;
   end;
   
-  WriteLn('[SEARCH] Total encontrado: ', MatchCount);
-  
   if FoundAny then
-    ShowStatusMessage(Format('✓ %d resultado(s) para: "%s"', [MatchCount, searchEdit.Text]))
+    ShowStatusMessage(Format('%d result(s) for: "%s"', [MatchCount, searchEdit.Text]))
   else
-    ShowStatusMessage(Format('✗ Nenhum resultado para: "%s"', [searchEdit.Text]));
+    ShowStatusMessage(Format('No results for: "%s"', [searchEdit.Text]));
 end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -4359,20 +4353,21 @@ begin
   searchEdit.Top := 72;
   searchEdit.Left := 10;
   searchEdit.Width := 191;
-  searchEdit.Height := 28;
-  searchEdit.TextHint := '🔍 Buscar... (Ctrl+F)';
+  searchEdit.Height := 20;
+  searchEdit.Font.Size := 8;
+  searchEdit.TextHint := 'Search... (Ctrl+F)';
   searchEdit.OnChange := @SearchEditChange;
 
   statusBar := TStatusBar.Create(Self);
   statusBar.Parent := Self;
-  // Disable alignment so we can position it manually
-  statusBar.Align := alNone; 
-  statusBar.Top := 105;
+  statusBar.Align := alNone;
+  statusBar.Top := 95;
   statusBar.Left := 10;
-  statusBar.Width := 191; // Same width as searchEdit
-  statusBar.Height := 20;
+  statusBar.Width := 191;
+  statusBar.Height := 16;
   statusBar.SimplePanel := True;
   statusBar.SimpleText := 'Pronto';
+  statusBar.Font.Size := 7;
   
   // Create status timer
   FStatusTimer := TTimer.Create(Self);
