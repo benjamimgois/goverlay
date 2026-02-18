@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit;
+  fgmod_resources, hintsunit, qtwidgets;
 
 
 
@@ -4104,7 +4104,7 @@ end;
 procedure Tgoverlayform.StatusTimerTick(Sender: TObject);
 begin
   if Assigned(statusBar) then
-    statusBar.SimpleText := 'Pronto';
+    statusBar.SimpleText := '';
   
   if Assigned(FStatusTimer) then
     FStatusTimer.Enabled := False;
@@ -4353,21 +4353,40 @@ begin
   searchEdit.Top := 72;
   searchEdit.Left := 10;
   searchEdit.Width := 191;
-  searchEdit.Height := 20;
-  searchEdit.Font.Size := 8;
-  searchEdit.TextHint := 'Search... (Ctrl+F)';
+  searchEdit.Height := 22;
+  searchEdit.Font.Size := 9;
+  searchEdit.TextHint := '🔍 Search... (Ctrl+F)';
   searchEdit.OnChange := @SearchEditChange;
+  TQtWidget(searchEdit.Handle).StyleSheet :=
+    'QLineEdit {' +
+    '  background-color: rgba(255,255,255,25);' +
+    '  border: 1px solid rgba(255,255,255,55);' +
+    '  border-radius: 6px;' +
+    '  color: rgba(255,255,255,210);' +
+    '  padding: 1px 5px;' +
+    '  selection-background-color: rgba(255,255,255,80);' +
+    '}' +
+    'QLineEdit:focus {' +
+    '  border: 1px solid rgba(255,255,255,100);' +
+    '  background-color: rgba(255,255,255,40);' +
+    '}';
 
   statusBar := TStatusBar.Create(Self);
   statusBar.Parent := Self;
   statusBar.Align := alNone;
-  statusBar.Top := 95;
+  statusBar.Top := 97;
   statusBar.Left := 10;
   statusBar.Width := 191;
-  statusBar.Height := 16;
+  statusBar.Height := 14;
   statusBar.SimplePanel := True;
-  statusBar.SimpleText := 'Pronto';
+  statusBar.SimpleText := '';
   statusBar.Font.Size := 7;
+  TQtWidget(statusBar.Handle).StyleSheet :=
+    'QStatusBar {' +
+    '  background: transparent;' +
+    '  border: none;' +
+    '  color: rgba(255,255,255,140);' +
+    '}';
   
   // Create status timer
   FStatusTimer := TTimer.Create(Self);
