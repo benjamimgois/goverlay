@@ -172,7 +172,8 @@ begin
        (ctrl.Name = 'middleleftRadioButton') or
        (ctrl.Name = 'middlerightRadioButton') or
        (ctrl.Name = 'patcherlistLabel') or
-       (ctrl.Name = 'searchEdit') then  // Exclude search field
+       (ctrl.Name = 'searchEdit') or    // Exclude search field
+       (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
       Continue;
 
     if ctrl is TMemo then
@@ -317,7 +318,8 @@ begin
        (ctrl.Name = 'middleleftRadioButton') or
        (ctrl.Name = 'middlerightRadioButton') or
        (ctrl.Name = 'patcherlistLabel') or
-       (ctrl.Name = 'searchEdit') then  // Exclude search field
+       (ctrl.Name = 'searchEdit') or    // Exclude search field
+       (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
       Continue;
 
     if ctrl is TMemo then

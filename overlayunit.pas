@@ -410,6 +410,8 @@ type
     winesyncCheckBox: TCheckBox;
     xessLabel: TLabel;
     xessLabel1: TLabel;
+    dlssLabel: TLabel;
+    dlssLabel1: TLabel;
 
 
     procedure aboutBitBtnClick(Sender: TObject);
@@ -3803,7 +3805,7 @@ begin
       Line := ConfigLines[i];
       TrimmedLine := Trim(Line);
 
-      // Ignora comentários e linhas vazias
+      // Ignore comments and empty lines
       if (TrimmedLine = '') or (TrimmedLine[1] = '#') then
         Continue;
 
@@ -4034,13 +4036,13 @@ begin
   
   // Find and update common buttons by name
   if Assigned(AForm.FindComponent('copyBitBtn')) then
-    TBitBtn(AForm.FindComponent('copyBitBtn')).Caption := '📋 ' + 'Copiar';
+    TBitBtn(AForm.FindComponent('copyBitBtn')).Caption := '📋 ' + 'Copy';
     
   if Assigned(AForm.FindComponent('howtoBitBtn')) then
-    TBitBtn(AForm.FindComponent('howtoBitBtn')).Caption := '❓ ' + 'Como Usar';
+    TBitBtn(AForm.FindComponent('howtoBitBtn')).Caption := '❓ ' + 'How to Use';
     
   if Assigned(AForm.FindComponent('gupdateBitBtn')) then
-    TBitBtn(AForm.FindComponent('gupdateBitBtn')).Caption := '🔄 ' + 'Atualizar';
+    TBitBtn(AForm.FindComponent('gupdateBitBtn')).Caption := '🔄 ' + 'Update';
 end;
 
 // ============================================================================
@@ -4053,14 +4055,14 @@ begin
   if (Shift = [ssCtrl]) and (Key = Ord('S')) then
   begin
     saveBitBtnClick(nil);
-    ShowStatusMessage('⚙️ Configuração salva com sucesso!');
+    ShowStatusMessage('⚙️ Configuration saved successfully!');
     Key := 0;  // Mark as handled
   end
   // Ctrl+C = Copy command
   else if (Shift = [ssCtrl]) and (Key = Ord('C')) then
   begin
     copyBitBtnClick(nil);
-    ShowStatusMessage('📋 Comando copiado para área de transferência!');
+    ShowStatusMessage('📋 Command copied to clipboard!');
     Key := 0;
   end
   // Ctrl+F = Focus search field
@@ -4992,6 +4994,7 @@ begin
     FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
     FOptiscalerUpdate.OptiPatcherLabel := optipatcherLabel1;
     FOptiscalerUpdate.NotificationLabel := notificationLabel;
+    FOptiscalerUpdate.DlssLabel := dlssLabel1;
 
     // Connect OnChange event for OptiScaler channel selection
     optversionComboBox.OnChange := @optversionComboBoxChange;

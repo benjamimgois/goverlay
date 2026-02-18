@@ -44,6 +44,9 @@ const
   URL_FAKENVAPI_API = 'https://api.github.com/repos/optiscaler/fakenvapi/releases/latest';
   URL_FAKENVAPI_REPO = 'https://github.com/optiscaler/fakenvapi/releases/download/';
 
+  // NVIDIA DLSS DLLs (official NVIDIA repository)
+  URL_NVIDIA_DLSS_BASE = 'https://raw.githubusercontent.com/NVIDIA/DLSS/main/lib/Windows_x86_64/rel/';
+
   // ============================================================================
   // SOCIAL MEDIA URLS
   // ============================================================================

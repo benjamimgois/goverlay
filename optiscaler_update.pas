@@ -33,6 +33,7 @@ type
     FFsrVersionComboBox: TComboBox; // ComboBox for FSR version selection
     FOptVersionComboBox: TComboBox; // ComboBox for OptiScaler channel selection
     FOptiPatcherLabel: TLabel; // Label for OptiPatcher version
+    FDlssLabel: TLabel;        // Label for DLSS download date
     FFGModPath: string;
 
     function GetLatestReleaseTag: string;
@@ -70,6 +71,7 @@ type
     property FsrVersionComboBox: TComboBox read FFsrVersionComboBox write FFsrVersionComboBox;
     property OptVersionComboBox: TComboBox read FOptVersionComboBox write FOptVersionComboBox;
     property OptiPatcherLabel: TLabel read FOptiPatcherLabel write FOptiPatcherLabel;
+    property DlssLabel: TLabel read FDlssLabel write FDlssLabel;
   end;
 
 implementation
@@ -779,7 +781,7 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer: string;
+  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer, DlssVer: string;
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
@@ -795,6 +797,7 @@ begin
   FsrVer := '';
   XessVer := '';
   OptiPatcherVer := '';
+  DlssVer := '';
 
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -825,7 +828,9 @@ begin
           else if SameText(Key, 'xessversion') then
             XessVer := Value
           else if SameText(Key, 'optipatcher') then
-            OptiPatcherVer := Value;
+            OptiPatcherVer := Value
+          else if SameText(Key, 'dlssversion') then
+            DlssVer := Value;
         end;
       end;
     finally
@@ -911,6 +916,17 @@ begin
       try
         FOptiPatcherLabel.Caption := OptiPatcherVer;
         FOptiPatcherLabel.Font.Color := clOlive;
+        Application.ProcessMessages;
+      except
+        // Ignore errors
+      end;
+    end;
+
+    // Update DLSS label (date only, no color change — preserved from LFM)
+    if Assigned(FDlssLabel) and (DlssVer <> '') then
+    begin
+      try
+        FDlssLabel.Caption := DlssVer;
         Application.ProcessMessages;
       except
         // Ignore errors
@@ -1201,6 +1217,9 @@ var
   FGModFilePath: string;
   FGModBackupPath: string;
   FGModBackupExists: Boolean;
+  VarsList: TStringList;
+  VarsIdx: Integer;
+  DlssLineFound: Boolean;
 begin
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -1372,7 +1391,7 @@ begin
     if OptiScalerTag = '' then
     begin
       WriteLn('[ERROR] UpdateButtonClick: No OptiScaler tag available, aborting');
-      ShowToast(ntWarning, 'Não foi possível obter versão do OptiScaler. Operação cancelada.', 5000);
+      ShowToast(ntWarning, 'Could not retrieve OptiScaler version. Operation cancelled.', 5000);
       Exit;
     end;
 
@@ -1403,7 +1422,7 @@ begin
     if not DownloadFile(DownloadURL, SevenZFilePath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: Download failed, aborting');
-      ShowToast(ntError, 'Falha ao baixar arquivo do OptiScaler', 5000);
+      ShowToast(ntError, 'Failed to download OptiScaler file', 5000);
       Exit;
     end;
 
@@ -1416,7 +1435,7 @@ begin
     if not Extract7z(SevenZFilePath, FFGModPath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
-      ShowToast(ntError, 'Falha ao extrair arquivo .7z', 5000);
+      ShowToast(ntError, 'Failed to extract .7z file', 5000);
       Exit;
     end;
 
@@ -1438,10 +1457,50 @@ begin
     else
       WriteLn('[WARN] UpdateButtonClick: fgmod.sh not found');
 
-    UpdateProgress(80);
+    UpdateProgress(75);
 
-    // STEP 5: Read goverlay.vars and update all labels
-    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Reading goverlay.vars file...');
+    // STEP 5: Download NVIDIA DLSS DLLs
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs...');
+    UpdateStatus('Downloading NVIDIA DLSS');
+    if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll',
+                        IncludeTrailingPathDelimiter(FFGModPath) + 'nvngx_dlss.dll') then
+      WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlss.dll, continuing...');
+    UpdateProgress(80);
+    if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll',
+                        IncludeTrailingPathDelimiter(FFGModPath) + 'nvngx_dlssd.dll') then
+      WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssd.dll, continuing...');
+    UpdateProgress(84);
+    if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll',
+                        IncludeTrailingPathDelimiter(FFGModPath) + 'nvngx_dlssg.dll') then
+      WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssg.dll, continuing...');
+    UpdateProgress(88);
+
+    // Write/update DLSS download date in goverlay.vars
+    VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+    VarsList := TStringList.Create;
+    try
+      if FileExists(VarsFilePath) then
+        VarsList.LoadFromFile(VarsFilePath);
+      DlssLineFound := False;
+      for VarsIdx := 0 to VarsList.Count - 1 do
+        if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
+        begin
+          VarsList[VarsIdx] := 'dlssversion=' + FormatDateTime('ddmmyy', Now);
+          DlssLineFound := True;
+          Break;
+        end;
+      if not DlssLineFound then
+        VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
+      VarsList.SaveToFile(VarsFilePath);
+      WriteLn('[DEBUG] UpdateButtonClick: dlssversion written to goverlay.vars');
+    except
+      on E: Exception do
+        WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
+    end;
+    VarsList.Free;
+
+    // STEP 6: Read goverlay.vars and update all labels
+    WriteLn('[DEBUG] UpdateButtonClick: Step 6 - Reading goverlay.vars file...');
     VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
 
     if FileExists(VarsFilePath) then
@@ -1503,6 +1562,14 @@ begin
                     FXessLabel.Font.Color := clOlive;
                     WriteLn('[DEBUG] UpdateButtonClick: Updated XessLabel to "', Value, '"');
                   end;
+                end
+                else if SameText(Key, 'dlssversion') then
+                begin
+                  if Assigned(FDlssLabel) then
+                  begin
+                    FDlssLabel.Caption := Value;
+                    WriteLn('[DEBUG] UpdateButtonClick: Updated DlssLabel to "', Value, '"');
+                  end;
                 end;
               end;
             end;
@@ -1557,7 +1624,7 @@ begin
       WriteLn('[DEBUG] UpdateButtonClick: optLabel2 hidden after installation');
     end;
 
-    ShowToast(ntSuccess, 'OptiScaler instalado com sucesso!', 4000);
+    ShowToast(ntSuccess, 'OptiScaler installed successfully!', 4000);
 
   finally
     // Re-enable button
@@ -1579,9 +1646,14 @@ var
   Process: TProcess;
   ExitCode: Integer;
   OptiscalerTabTemp: TOptiscalerTab;
+  VarsFile: TextFile;
+  VarsFilePath: string;
+  VarsList: TStringList;
+  VarsIdx: Integer;
+  DlssLineFound: Boolean;
 begin
   Result := False;
-  
+
   WriteLn('[AUTO-INSTALL] ========================================');
   WriteLn('[AUTO-INSTALL] Checking OptiScaler installation...');
   WriteLn('[AUTO-INSTALL] ========================================');
@@ -1685,9 +1757,84 @@ begin
       fpChmod(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod', &755);
     end;
     
+    // Download NVIDIA DLSS DLLs
+    WriteLn('[AUTO-INSTALL] Downloading NVIDIA DLSS DLLs...');
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(AFGModPath) + 'nvngx_dlss.dll');
+      Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      if Process.ExitStatus = 0 then
+        WriteLn('[AUTO-INSTALL] nvngx_dlss.dll downloaded')
+      else
+        WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlss.dll');
+    finally
+      Process.Free;
+    end;
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(AFGModPath) + 'nvngx_dlssd.dll');
+      Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      if Process.ExitStatus = 0 then
+        WriteLn('[AUTO-INSTALL] nvngx_dlssd.dll downloaded')
+      else
+        WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlssd.dll');
+    finally
+      Process.Free;
+    end;
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(AFGModPath) + 'nvngx_dlssg.dll');
+      Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      if Process.ExitStatus = 0 then
+        WriteLn('[AUTO-INSTALL] nvngx_dlssg.dll downloaded')
+      else
+        WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlssg.dll');
+    finally
+      Process.Free;
+    end;
+
+    // Write/update DLSS download date in goverlay.vars
+    VarsFilePath := IncludeTrailingPathDelimiter(AFGModPath) + 'goverlay.vars';
+    VarsList := TStringList.Create;
+    try
+      if FileExists(VarsFilePath) then
+        VarsList.LoadFromFile(VarsFilePath);
+      DlssLineFound := False;
+      for VarsIdx := 0 to VarsList.Count - 1 do
+        if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
+        begin
+          VarsList[VarsIdx] := 'dlssversion=' + FormatDateTime('ddmmyy', Now);
+          DlssLineFound := True;
+          Break;
+        end;
+      if not DlssLineFound then
+        VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
+      VarsList.SaveToFile(VarsFilePath);
+      WriteLn('[AUTO-INSTALL] dlssversion written to goverlay.vars');
+    except
+      on E: Exception do
+        WriteLn('[AUTO-INSTALL] WARN: Could not write dlssversion - ', E.Message);
+    end;
+    VarsList.Free;
+
     // Clean up download file
     DeleteFile(SevenZFilePath);
-    
+
     // Verify installation
     if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'OptiScaler.dll') then
     begin
