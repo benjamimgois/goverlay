@@ -4119,34 +4119,45 @@ var
   i, j, k: Integer;
   TabSheet: TTabSheet;
   Container: TWinControl;
+  ThemeTextColor: TColor;
+  ThemeBgColor: TColor;
 begin
-  // Reset all checkbox fonts to normal
+  // Use the current theme colors to restore controls properly
+  if CurrentTheme = tmDark then
+  begin
+    ThemeTextColor := DarkTextColor;
+    ThemeBgColor   := DarkBackgroundColor;
+  end
+  else
+  begin
+    ThemeTextColor := LightTextColor;
+    ThemeBgColor   := LightBackgroundColor;
+  end;
+
   for i := 0 to goverlayPageControl.PageCount - 1 do
   begin
     TabSheet := goverlayPageControl.Pages[i];
-    
-    // Check direct controls
+
     for j := 0 to TabSheet.ControlCount - 1 do
     begin
       if TabSheet.Controls[j] is TCheckBox then
       begin
         TCheckBox(TabSheet.Controls[j]).Font.Style := [];
-        TCheckBox(TabSheet.Controls[j]).Font.Color := clDefault;
-        TCheckBox(TabSheet.Controls[j]).Color := clDefault;
+        TCheckBox(TabSheet.Controls[j]).Font.Color := ThemeTextColor;
+        TCheckBox(TabSheet.Controls[j]).Color := ThemeBgColor;
       end
       else if TabSheet.Controls[j] is TGroupBox then
       begin
         TGroupBox(TabSheet.Controls[j]).Font.Style := [];
-        TGroupBox(TabSheet.Controls[j]).Font.Color := clDefault;
+        TGroupBox(TabSheet.Controls[j]).Font.Color := ThemeTextColor;
       end
       else if TabSheet.Controls[j] is TLabel then
       begin
         TLabel(TabSheet.Controls[j]).Font.Style := [];
-        TLabel(TabSheet.Controls[j]).Font.Color := clDefault;
+        TLabel(TabSheet.Controls[j]).Font.Color := ThemeTextColor;
         TLabel(TabSheet.Controls[j]).Transparent := True;
       end;
-      
-      // Check nested controls inside GroupBox/Panel
+
       if TabSheet.Controls[j] is TWinControl then
       begin
         Container := TWinControl(TabSheet.Controls[j]);
@@ -4155,18 +4166,18 @@ begin
           if Container.Controls[k] is TCheckBox then
           begin
             TCheckBox(Container.Controls[k]).Font.Style := [];
-            TCheckBox(Container.Controls[k]).Font.Color := clDefault;
-            TCheckBox(Container.Controls[k]).Color := clDefault;
+            TCheckBox(Container.Controls[k]).Font.Color := ThemeTextColor;
+            TCheckBox(Container.Controls[k]).Color := ThemeBgColor;
           end
           else if Container.Controls[k] is TGroupBox then
           begin
             TGroupBox(Container.Controls[k]).Font.Style := [];
-            TGroupBox(Container.Controls[k]).Font.Color := clDefault;
+            TGroupBox(Container.Controls[k]).Font.Color := ThemeTextColor;
           end
           else if Container.Controls[k] is TLabel then
           begin
             TLabel(Container.Controls[k]).Font.Style := [];
-            TLabel(Container.Controls[k]).Font.Color := clDefault;
+            TLabel(Container.Controls[k]).Font.Color := ThemeTextColor;
             TLabel(Container.Controls[k]).Transparent := True;
           end;
         end;
