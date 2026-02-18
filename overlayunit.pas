@@ -2935,6 +2935,16 @@ begin
         else if SameText(Value, 'bottom-right') then
           bottomrightRadioButton.Checked := True;
       end
+      else if SameText(Key, 'offset_x') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+          offsetxSpinEdit.Value := IntValue;
+      end
+      else if SameText(Key, 'offset_y') then
+      begin
+        if TryStrToInt(Value, IntValue) then
+          offsetySpinEdit.Value := IntValue;
+      end
       else if SameText(Key, 'toggle_hud') then
       begin
         if SameText(Value, 'Shift_R+F12') then
@@ -3322,6 +3332,12 @@ begin
       ConfigLines.Add('position=bottom-center')
     else if bottomrightRadioButton.Checked then
       ConfigLines.Add('position=bottom-right');
+
+    // Offset X / Y
+    if offsetxSpinEdit.Value <> 0 then
+      ConfigLines.Add('offset_x=' + IntToStr(offsetxSpinEdit.Value));
+    if offsetySpinEdit.Value <> 0 then
+      ConfigLines.Add('offset_y=' + IntToStr(offsetySpinEdit.Value));
 
     // Toggle HUD
     case hudonoffComboBox.ItemIndex of
