@@ -21,11 +21,13 @@ type
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
+    offsetySpinEdit: TSpinEdit;
     patcherlistLabel: TLabel;
     optipatcherLabel: TLabel;
     optipatcherLabel1: TLabel;
     saveasMenuItem: TMenuItem;
     optipatcherCheckBox: TCheckBox;
+    offsetxSpinEdit: TSpinEdit;
     stagememCheckBox: TCheckBox;
     addBitBtn: TBitBtn;
     afLabel: TLabel;
