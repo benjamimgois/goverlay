@@ -4033,9 +4033,6 @@ begin
   // Note: This requires Unicode support in the font
   
   // Find and update common buttons by name
-  if Assigned(AForm.FindComponent('saveBitBtn')) then
-    TBitBtn(AForm.FindComponent('saveBitBtn')).Caption := '💾 ' + 'Salvar';
-    
   if Assigned(AForm.FindComponent('copyBitBtn')) then
     TBitBtn(AForm.FindComponent('copyBitBtn')).Caption := '📋 ' + 'Copiar';
     

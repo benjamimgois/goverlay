@@ -15,7 +15,7 @@ implementation
 procedure ApplyAllHints(AForm: TComponent);
 var
   Component: TComponent;
-  
+
   procedure SetHint(const ComponentName, HintText: string);
   begin
     Component := AForm.FindComponent(ComponentName);
@@ -28,373 +28,373 @@ var
 
 begin
   // ============================================================================
-  // MANGOHUD - ABA PRESET
+  // MANGOHUD - PRESET TAB
   // ============================================================================
-  
+
   // Layouts
-  SetHint('basicBitBtn', 'Layout básico' + LineEnding +
-    'Exibe FPS, frametime e informações essenciais');
-  SetHint('fullBitBtn', 'Layout completo' + LineEnding +
-    'Mostra todas as métricas disponíveis');
-  SetHint('fpsonlyBitBtn', 'Apenas FPS' + LineEnding +
-    'Exibe somente o contador de FPS');
-  SetHint('basichorizontalBitBtn', 'Layout horizontal básico' + LineEnding +
-    'Layout básico em orientação horizontal');
-    
+  SetHint('basicBitBtn', 'Basic layout' + LineEnding +
+    'Displays FPS, frametime and essential information');
+  SetHint('fullBitBtn', 'Full layout' + LineEnding +
+    'Shows all available metrics');
+  SetHint('fpsonlyBitBtn', 'FPS only' + LineEnding +
+    'Displays only the FPS counter');
+  SetHint('basichorizontalBitBtn', 'Basic horizontal layout' + LineEnding +
+    'Basic layout in horizontal orientation');
+
   // Position
-  SetHint('topleftRadioButton', 'Posição: Canto superior esquerdo');
-  SetHint('topcenterRadioButton', 'Posição: Centro superior');
-  SetHint('toprightRadioButton', 'Posição: Canto superior direito');
-  SetHint('middleleftRadioButton', 'Posição: Centro esquerdo');
-  SetHint('middlerightRadioButton', 'Posição: Centro direito');
-  SetHint('bottomleftRadioButton', 'Posição: Canto inferior esquerdo');
-  SetHint('bottomcenterRadioButton', 'Posição: Centro inferior');
-  SetHint('bottomrightRadioButton', 'Posição: Canto inferior direito');
-  
+  SetHint('topleftRadioButton',     'Position: Top left corner');
+  SetHint('topcenterRadioButton',   'Position: Top center');
+  SetHint('toprightRadioButton',    'Position: Top right corner');
+  SetHint('middleleftRadioButton',  'Position: Middle left');
+  SetHint('middlerightRadioButton', 'Position: Middle right');
+  SetHint('bottomleftRadioButton',  'Position: Bottom left corner');
+  SetHint('bottomcenterRadioButton','Position: Bottom center');
+  SetHint('bottomrightRadioButton', 'Position: Bottom right corner');
+
   // ============================================================================
-  // MANGOHUD - ABA PERFORMANCE
+  // MANGOHUD - PERFORMANCE TAB
   // ============================================================================
-  
+
   // FPS
-  SetHint('fpsCheckBox', 'Exibir FPS' + LineEnding +
-    'Mostra a taxa de quadros por segundo');
-  SetHint('fpsavgCheckBox', 'FPS médio' + LineEnding +
-    'Exibe a média de FPS calculada');
-  SetHint('framecountCheckBox', 'Contador de frames' + LineEnding +
-    'Mostra o número total de frames renderizados');
-  SetHint('frametimegraphCheckBox', 'Gráfico de frametime' + LineEnding +
-    'Exibe gráfico do tempo de renderização');
-  SetHint('showfpslimCheckBox', 'Mostrar limite de FPS' + LineEnding +
-    'Exibe o valor do limitador de FPS quando ativo');
-    
+  SetHint('fpsCheckBox', 'Display FPS' + LineEnding +
+    'Shows frames per second rate');
+  SetHint('fpsavgCheckBox', 'Average FPS' + LineEnding +
+    'Displays calculated average FPS');
+  SetHint('framecountCheckBox', 'Frame counter' + LineEnding +
+    'Shows total number of rendered frames');
+  SetHint('frametimegraphCheckBox', 'Frametime graph' + LineEnding +
+    'Displays rendering time graph');
+  SetHint('showfpslimCheckBox', 'Show FPS limit' + LineEnding +
+    'Displays FPS limiter value when active');
+
   // CPU
-  SetHint('cputempCheckBox', 'Temperatura da CPU' + LineEnding +
-    'Mostra a temperatura atual do processador');
-  SetHint('cpupowerCheckBox', 'Consumo da CPU' + LineEnding +
-    'Exibe o consumo de energia do processador em Watts');
-  SetHint('cpufreqCheckBox', 'Frequência da CPU' + LineEnding +
-    'Mostra a frequência de clock atual');
-  SetHint('cpuavgloadCheckBox', 'Carga média da CPU' + LineEnding +
-    'Exibe a carga média de todos os núcleos');
-  SetHint('cpuloadcoreCheckBox', 'Carga por núcleo' + LineEnding +
-    'Mostra a carga individual de cada núcleo');
-    
+  SetHint('cputempCheckBox', 'CPU temperature' + LineEnding +
+    'Shows current processor temperature');
+  SetHint('cpupowerCheckBox', 'CPU power consumption' + LineEnding +
+    'Displays processor power consumption in Watts');
+  SetHint('cpufreqCheckBox', 'CPU frequency' + LineEnding +
+    'Shows current clock frequency');
+  SetHint('cpuavgloadCheckBox', 'Average CPU load' + LineEnding +
+    'Displays average load of all cores');
+  SetHint('cpuloadcoreCheckBox', 'Load per core' + LineEnding +
+    'Shows individual load of each core');
+
   // GPU
-  SetHint('gputempCheckBox', 'Temperatura da GPU' + LineEnding +
-    'Mostra a temperatura atual da placa de vídeo');
-  SetHint('gpupowerCheckBox', 'Consumo da GPU' + LineEnding +
-    'Exibe o consumo de energia da GPU em Watts');
-  SetHint('gpufreqCheckBox', 'Frequência da GPU' + LineEnding +
-    'Mostra a frequência de clock atual da GPU');
-  SetHint('gpufanCheckBox', 'Velocidade do cooler' + LineEnding +
-    'Exibe a velocidade da ventoinha em RPM ou %');
-  SetHint('gpumemfreqCheckBox', 'Frequência da VRAM' + LineEnding +
-    'Mostra a frequência da memória de vídeo');
-  SetHint('gpujunctempCheckBox', 'Temperatura de junção' + LineEnding +
-    'Temperatura interna do chip da GPU (hotspot)');
-  SetHint('gputhrottlingCheckBox', 'Throttling da GPU' + LineEnding +
-    'Indica quando a GPU está reduzindo desempenho');
-  SetHint('gpuvoltageCheckBox', 'Voltagem da GPU' + LineEnding +
-    'Exibe a voltagem atual da placa de vídeo');
-    
+  SetHint('gputempCheckBox', 'GPU temperature' + LineEnding +
+    'Shows current graphics card temperature');
+  SetHint('gpupowerCheckBox', 'GPU power consumption' + LineEnding +
+    'Displays GPU power consumption in Watts');
+  SetHint('gpufreqCheckBox', 'GPU frequency' + LineEnding +
+    'Shows current GPU clock frequency');
+  SetHint('gpufanCheckBox', 'Cooler speed' + LineEnding +
+    'Displays fan speed in RPM or %');
+  SetHint('gpumemfreqCheckBox', 'VRAM frequency' + LineEnding +
+    'Shows video memory frequency');
+  SetHint('gpujunctempCheckBox', 'Junction temperature' + LineEnding +
+    'Internal GPU chip temperature (hotspot)');
+  SetHint('gputhrottlingCheckBox', 'GPU throttling' + LineEnding +
+    'Indicates when GPU is reducing performance');
+  SetHint('gpuvoltageCheckBox', 'GPU voltage' + LineEnding +
+    'Displays current graphics card voltage');
+
   // Memory
-  SetHint('ramusageCheckBox', 'Uso de RAM' + LineEnding +
-    'Mostra a memória RAM utilizada/total');
-  SetHint('vramusageCheckBox', 'Uso de VRAM' + LineEnding +
-    'Exibe a memória de vídeo utilizada/total');
-  SetHint('swapusageCheckBox', 'Uso de SWAP' + LineEnding +
-    'Mostra o uso da memória swap');
-  SetHint('procmemCheckBox', 'Memória do processo' + LineEnding +
-    'Exibe a RAM usada pelo jogo/aplicativo');
-  SetHint('procvramCheckBox', 'VRAM do processo' + LineEnding +
-    'Mostra a VRAM usada pelo jogo/aplicativo');
-    
+  SetHint('ramusageCheckBox', 'RAM usage' + LineEnding +
+    'Shows used/total RAM memory');
+  SetHint('vramusageCheckBox', 'VRAM usage' + LineEnding +
+    'Displays used/total video memory');
+  SetHint('swapusageCheckBox', 'SWAP usage' + LineEnding +
+    'Shows swap memory usage');
+  SetHint('procmemCheckBox', 'Process memory' + LineEnding +
+    'Displays RAM used by game/application');
+  SetHint('procvramCheckBox', 'Process VRAM' + LineEnding +
+    'Shows VRAM used by game/application');
+
   // Disk I/O
-  SetHint('diskioCheckBox', 'I/O de disco' + LineEnding +
-    'Exibe leitura e escrita em disco');
-    
+  SetHint('diskioCheckBox', 'Disk I/O' + LineEnding +
+    'Displays disk read and write');
+
   // ============================================================================
-  // MANGOHUD - ABA VISUAL
+  // MANGOHUD - VISUAL TAB
   // ============================================================================
-  
-  SetHint('hudcompactCheckBox', 'Modo compacto' + LineEnding +
-    'Reduz o espaçamento entre elementos');
-  SetHint('fahrenheitCheckBox', 'Usar Fahrenheit' + LineEnding +
-    'Exibe temperaturas em °F ao invés de °C');
-  SetHint('fpscolorCheckBox', 'Colorir FPS' + LineEnding +
-    'Muda a cor do FPS baseado em limites definidos');
-  SetHint('cpuloadcolorCheckBox', 'Colorir carga da CPU' + LineEnding +
-    'Muda a cor baseado na carga do processador');
-  SetHint('gpuloadcolorCheckBox', 'Colorir carga da GPU' + LineEnding +
-    'Muda a cor baseado na carga da GPU');
-    
+
+  SetHint('hudcompactCheckBox', 'Compact mode' + LineEnding +
+    'Reduces spacing between elements');
+  SetHint('fahrenheitCheckBox', 'Use Fahrenheit' + LineEnding +
+    'Displays temperatures in °F instead of °C');
+  SetHint('fpscolorCheckBox', 'Color FPS' + LineEnding +
+    'Changes FPS color based on defined limits');
+  SetHint('cpuloadcolorCheckBox', 'Color CPU load' + LineEnding +
+    'Changes color based on processor load');
+  SetHint('gpuloadcolorCheckBox', 'Color GPU load' + LineEnding +
+    'Changes color based on GPU load');
+
   // ============================================================================
-  // MANGOHUD - ABA METRICS
+  // MANGOHUD - METRICS TAB
   // ============================================================================
-  
-  SetHint('archCheckBox', 'Arquitetura do sistema' + LineEnding +
-    'Exibe x86_64, ARM, etc.');
-  SetHint('distroinfoCheckBox', 'Informações da distribuição' + LineEnding +
-    'Mostra nome e versão do Linux');
-  SetHint('resolutionCheckBox', 'Resolução' + LineEnding +
-    'Exibe a resolução atual da tela');
-  SetHint('refreshrateCheckBox', 'Taxa de atualização' + LineEnding +
-    'Mostra a taxa de atualização do monitor em Hz');
-  SetHint('displayserverCheckBox', 'Servidor de display' + LineEnding +
-    'Exibe X11, Wayland, etc.');
-  SetHint('timeCheckBox', 'Hora atual' + LineEnding +
-    'Mostra a hora do sistema');
-  SetHint('wineCheckBox', 'Versão do Wine' + LineEnding +
-    'Exibe a versão do Wine/Proton em uso');
-  SetHint('engineversionCheckBox', 'Versão do engine' + LineEnding +
-    'Mostra a versão do Vulkan/OpenGL');
-  SetHint('engineshortCheckBox', 'Nome curto do engine' + LineEnding +
-    'Usa abreviações (VK, GL, DX)');
-  SetHint('vulkandriverCheckBox', 'Driver Vulkan' + LineEnding +
-    'Exibe o driver Vulkan em uso');
-  SetHint('gpumodelCheckBox', 'Modelo da GPU' + LineEnding +
-    'Mostra o nome completo da placa de vídeo');
-  SetHint('hudversionCheckBox', 'Versão do MangoHud' + LineEnding +
-    'Exibe a versão do MangoHud');
-  SetHint('gamemodestatusCheckBox', 'Status do GameMode' + LineEnding +
-    'Indica se o GameMode está ativo');
-  SetHint('vkbasaltstatusCheckBox', 'Status do vkBasalt' + LineEnding +
-    'Indica se o vkBasalt está ativo');
-  SetHint('batteryCheckBox', 'Bateria' + LineEnding +
-    'Mostra o nível de carga da bateria');
-  SetHint('batterywattCheckBox', 'Consumo da bateria' + LineEnding +
-    'Exibe o consumo em Watts');
-  SetHint('batterytimeCheckBox', 'Tempo de bateria' + LineEnding +
-    'Mostra o tempo restante estimado');
-  SetHint('deviceCheckBox', 'Nome do dispositivo' + LineEnding +
-    'Exibe o hostname do sistema');
-  SetHint('mediaCheckBox', 'Player de mídia' + LineEnding +
-    'Mostra música/vídeo em reprodução');
-  SetHint('networkCheckBox', 'Rede' + LineEnding +
-    'Exibe tráfego de rede da interface selecionada');
-    
+
+  SetHint('archCheckBox', 'System architecture' + LineEnding +
+    'Displays x86_64, ARM, etc.');
+  SetHint('distroinfoCheckBox', 'Distribution information' + LineEnding +
+    'Shows Linux name and version');
+  SetHint('resolutionCheckBox', 'Resolution' + LineEnding +
+    'Displays current screen resolution');
+  SetHint('refreshrateCheckBox', 'Refresh rate' + LineEnding +
+    'Shows monitor refresh rate in Hz');
+  SetHint('displayserverCheckBox', 'Display server' + LineEnding +
+    'Displays X11, Wayland, etc.');
+  SetHint('timeCheckBox', 'Current time' + LineEnding +
+    'Shows system time');
+  SetHint('wineCheckBox', 'Wine version' + LineEnding +
+    'Displays Wine/Proton version in use');
+  SetHint('engineversionCheckBox', 'Engine version' + LineEnding +
+    'Shows Vulkan/OpenGL version');
+  SetHint('engineshortCheckBox', 'Short engine name' + LineEnding +
+    'Uses abbreviations (VK, GL, DX)');
+  SetHint('vulkandriverCheckBox', 'Vulkan driver' + LineEnding +
+    'Displays Vulkan driver in use');
+  SetHint('gpumodelCheckBox', 'GPU model' + LineEnding +
+    'Shows full graphics card name');
+  SetHint('hudversionCheckBox', 'MangoHud version' + LineEnding +
+    'Displays MangoHud version');
+  SetHint('gamemodestatusCheckBox', 'GameMode status' + LineEnding +
+    'Indicates if GameMode is active');
+  SetHint('vkbasaltstatusCheckBox', 'vkBasalt status' + LineEnding +
+    'Indicates if vkBasalt is active');
+  SetHint('batteryCheckBox', 'Battery' + LineEnding +
+    'Shows battery charge level');
+  SetHint('batterywattCheckBox', 'Battery consumption' + LineEnding +
+    'Displays consumption in Watts');
+  SetHint('batterytimeCheckBox', 'Battery time' + LineEnding +
+    'Shows estimated remaining time');
+  SetHint('deviceCheckBox', 'Device name' + LineEnding +
+    'Displays system hostname');
+  SetHint('mediaCheckBox', 'Media player' + LineEnding +
+    'Shows music/video being played');
+  SetHint('networkCheckBox', 'Network' + LineEnding +
+    'Displays network traffic of selected interface');
+
   // ============================================================================
-  // MANGOHUD - ABA EXTRAS
+  // MANGOHUD - EXTRAS TAB
   // ============================================================================
-  
-  SetHint('fsrCheckBox', 'Indicador FSR' + LineEnding +
-    'Mostra quando FidelityFX Super Resolution está ativo');
-  SetHint('hdrCheckBox', 'Indicador HDR' + LineEnding +
-    'Exibe quando HDR está habilitado');
+
+  SetHint('fsrCheckBox', 'FSR indicator' + LineEnding +
+    'Shows when FidelityFX Super Resolution is active');
+  SetHint('hdrCheckBox', 'HDR indicator' + LineEnding +
+    'Displays when HDR is enabled');
   SetHint('fcatCheckBox', 'FCAT' + LineEnding +
-    'Frame Capture Analysis Tool - análise de frames');
+    'Frame Capture Analysis Tool - frame analysis');
   SetHint('ftraceCheckBox', 'Ftrace' + LineEnding +
-    'Rastreamento de funções do kernel');
+    'Kernel function tracing');
   SetHint('dxapiCheckBox', 'DirectX API' + LineEnding +
-    'Mostra a versão do DirectX em uso');
+    'Shows DirectX version in use');
   SetHint('winesyncCheckBox', 'Wine Sync' + LineEnding +
-    'Exibe o método de sincronização (fsync, esync)');
+    'Displays synchronization method (fsync, esync)');
   SetHint('vpsCheckBox', 'VPS' + LineEnding +
-    'Variable Pre-scaled - informações de escalonamento');
-  SetHint('hidehudCheckBox', 'Ocultar HUD ao iniciar' + LineEnding +
-    'Inicia com o overlay oculto (use o atalho para mostrar)');
-  SetHint('autouploadCheckBox', 'Upload automático de logs' + LineEnding +
-    'Envia logs automaticamente para flightlessmango.com');
-    
+    'Variable Pre-scaled - scaling information');
+  SetHint('hidehudCheckBox', 'Hide HUD on start' + LineEnding +
+    'Starts with overlay hidden (use shortcut to show)');
+  SetHint('autouploadCheckBox', 'Auto upload logs' + LineEnding +
+    'Automatically sends logs to flightlessmango.com');
+
   // ============================================================================
   // OPTISCALER
   // ============================================================================
-  
+
   SetHint('spoofCheckBox', 'Spoof DLSS' + LineEnding +
-    'Simula entradas DLSS sem spoofing' + LineEnding +
-    'em jogos compatíveis');
-  SetHint('fsrversionComboBox', 'Versão do FSR' + LineEnding +
-    'Selecione a versão do FidelityFX Super Resolution');
-  SetHint('optversionComboBox', 'Canal do OptiScaler' + LineEnding +
-    'Stable: Versão estável' + LineEnding +
-    'Pre-release: Versão de desenvolvimento');
-  SetHint('updateBitBtn', 'Atualizar OptiScaler' + LineEnding +
-    'Baixa e instala a versão mais recente');
+    'Simulates DLSS inputs without spoofing' + LineEnding +
+    'in compatible games');
+  SetHint('fsrversionComboBox', 'FSR version' + LineEnding +
+    'Select FidelityFX Super Resolution version');
+  SetHint('optversionComboBox', 'OptiScaler channel' + LineEnding +
+    'Stable: Stable version' + LineEnding +
+    'Pre-release: Development version');
+  SetHint('updateBitBtn', 'Update OptiScaler' + LineEnding +
+    'Downloads and installs latest version');
   SetHint('optipatcherCheckBox', 'OptiPatcher' + LineEnding +
-    'Aplica patches de compatibilidade' + LineEnding +
-    'para jogos específicos');
-    
+    'Applies compatibility patches' + LineEnding +
+    'for specific games');
+
   // FakeNVAPI
-  SetHint('forcenvapiCheckBox', 'Forçar NVAPI' + LineEnding +
-    'Força o uso da implementação NVAPI fake');
-  SetHint('hidenvidiaCheckBox', 'Ocultar NVIDIA' + LineEnding +
-    'Esconde a GPU NVIDIA do sistema');
-  SetHint('forcelatencyflexCheckBox', 'Forçar Latency Flex' + LineEnding +
-    'Habilita Latency Flex forçadamente');
-  SetHint('forcereflexCheckBox', 'Forçar Reflex' + LineEnding +
-    'Habilita NVIDIA Reflex forçadamente');
-    
+  SetHint('forcenvapiCheckBox', 'Force NVAPI' + LineEnding +
+    'Forces use of fake NVAPI implementation');
+  SetHint('hidenvidiaCheckBox', 'Hide NVIDIA' + LineEnding +
+    'Hides NVIDIA GPU from system');
+  SetHint('forcelatencyflexCheckBox', 'Force Latency Flex' + LineEnding +
+    'Forces Latency Flex enable');
+  SetHint('forcereflexCheckBox', 'Force Reflex' + LineEnding +
+    'Forces NVIDIA Reflex enable');
+
   // ============================================================================
   // VKBASALT
   // ============================================================================
-  
+
   SetHint('casTrackBar', 'Contrast Adaptive Sharpening' + LineEnding +
-    'Nitidez adaptativa baseada em contraste' + LineEnding +
-    '0.0 = Desligado, 1.0 = Máximo');
+    'Contrast-based adaptive sharpening' + LineEnding +
+    '0.0 = Off, 1.0 = Maximum');
   SetHint('dlsTrackBar', 'Denoised Luma Sharpening' + LineEnding +
-    'Nitidez de luminância com redução de ruído' + LineEnding +
-    '0.0 = Desligado, 1.0 = Máximo');
+    'Luminance sharpening with noise reduction' + LineEnding +
+    '0.0 = Off, 1.0 = Maximum');
   SetHint('fxaaTrackBar', 'Fast Approximate Anti-Aliasing' + LineEnding +
-    'Anti-aliasing rápido' + LineEnding +
-    '0.0 = Desligado, 1.0 = Máximo');
+    'Fast anti-aliasing' + LineEnding +
+    '0.0 = Off, 1.0 = Maximum');
   SetHint('smaaTrackBar', 'Subpixel Morphological Anti-Aliasing' + LineEnding +
-    'Anti-aliasing morfológico de alta qualidade' + LineEnding +
-    '0.0 = Desligado, 1.0 = Máximo');
-  SetHint('reshaderefreshBitBtn', 'Atualizar shaders ReShade' + LineEnding +
-    'Baixa os shaders mais recentes do repositório');
-    
+    'High quality morphological anti-aliasing' + LineEnding +
+    '0.0 = Off, 1.0 = Maximum');
+  SetHint('reshaderefreshBitBtn', 'Update ReShade shaders' + LineEnding +
+    'Downloads latest shaders from repository');
+
   // ============================================================================
   // TWEAKS
   // ============================================================================
-  
+
   SetHint('gamemodeCheckBox', 'GameMode' + LineEnding +
-    'Otimizações de desempenho do Feral GameMode' + LineEnding +
-    'Requer o pacote gamemode instalado');
-  SetHint('forcezinkCheckBox', 'Forçar Zink' + LineEnding +
-    'Usa Zink (OpenGL sobre Vulkan)');
-  SetHint('enwaylandCheckBox', 'Habilitar Wayland' + LineEnding +
-    'Força o uso do Wayland ao invés de XWayland');
-  SetHint('disablentsyncCheckBox', 'Desabilitar NTDLL Sync' + LineEnding +
-    'Desativa sincronização NTDLL no Wine');
-  SetHint('nofastclearsCheckBox', 'Desabilitar Fast Clears' + LineEnding +
+    'Feral GameMode performance optimizations' + LineEnding +
+    'Requires gamemode package installed');
+  SetHint('forcezinkCheckBox', 'Force Zink' + LineEnding +
+    'Uses Zink (OpenGL over Vulkan)');
+  SetHint('enwaylandCheckBox', 'Enable Wayland' + LineEnding +
+    'Forces Wayland use instead of XWayland');
+  SetHint('disablentsyncCheckBox', 'Disable NTDLL Sync' + LineEnding +
+    'Disables NTDLL synchronization in Wine');
+  SetHint('nofastclearsCheckBox', 'Disable Fast Clears' + LineEnding +
     'RADV_DEBUG=nofastclears' + LineEnding +
-    'Desativa otimização de limpeza rápida (AMD)');
-  SetHint('highpriCheckBox', 'Alta prioridade' + LineEnding +
-    'Executa o jogo com prioridade alta no sistema');
+    'Disables fast clear optimization (AMD)');
+  SetHint('highpriCheckBox', 'High priority' + LineEnding +
+    'Runs game with high system priority');
   SetHint('largeaddressCheckBox', 'Large Address Aware' + LineEnding +
-    'Permite jogos 32-bit usarem mais de 2GB de RAM');
-  SetHint('emurtCheckBox', 'Emular RT' + LineEnding +
-    'Emula Ray Tracing em GPUs sem suporte nativo');
-  SetHint('enhdrCheckBox', 'Habilitar HDR' + LineEnding +
-    'Ativa High Dynamic Range quando disponível');
+    'Allows 32-bit games to use more than 2GB RAM');
+  SetHint('emurtCheckBox', 'Emulate RT' + LineEnding +
+    'Emulates Ray Tracing on GPUs without native support');
+  SetHint('enhdrCheckBox', 'Enable HDR' + LineEnding +
+    'Activates High Dynamic Range when available');
   SetHint('stagememCheckBox', 'Stage Memory' + LineEnding +
-    'Otimização de memória para GPUs AMD');
-  SetHint('simdeckCheckBox', 'Simular Steam Deck' + LineEnding +
-    'Faz o jogo detectar o sistema como Steam Deck');
+    'Memory optimization for AMD GPUs');
+  SetHint('simdeckCheckBox', 'Simulate Steam Deck' + LineEnding +
+    'Makes game detect system as Steam Deck');
   SetHint('wow64CheckBox', 'WOW64' + LineEnding +
-    'Modo de compatibilidade Windows 64-bit');
+    'Windows 64-bit compatibility mode');
   SetHint('fexstatsCheckBox', 'FEX Stats' + LineEnding +
-    'Estatísticas do emulador FEX-Emu (ARM)');
-  SetHint('emufp8CheckBox', 'Emular FP8' + LineEnding +
-    'Emula precisão de ponto flutuante FP8');
-  SetHint('actprotonlogsCheckBox', 'Logs do Proton' + LineEnding +
-    'Ativa logs detalhados do Proton');
+    'FEX-Emu emulator statistics (ARM)');
+  SetHint('emufp8CheckBox', 'Emulate FP8' + LineEnding +
+    'Emulates FP8 floating point precision');
+  SetHint('actprotonlogsCheckBox', 'Proton Logs' + LineEnding +
+    'Activates detailed Proton logs');
   SetHint('heapdelayCheckBox', 'Heap Delay' + LineEnding +
-    'Atraso na alocação de heap (Wine)');
-  SetHint('ramtempCheckBox', 'Temperatura da RAM' + LineEnding +
-    'Exibe temperatura dos módulos de memória');
-    
+    'Delay in heap allocation (Wine)');
+  SetHint('ramtempCheckBox', 'RAM temperature' + LineEnding +
+    'Displays memory module temperature');
+
   // ============================================================================
-  // BOTÕES PRINCIPAIS
+  // MAIN BUTTONS
   // ============================================================================
-  
-  SetHint('saveBitBtn', 'Salvar configurações' + LineEnding +
-    'Aplica e salva todas as alterações');
-  SetHint('copyBitBtn', 'Copiar comando' + LineEnding +
-    'Copia o comando de lançamento para a área de transferência');
-  SetHint('gupdateBitBtn', 'Verificar atualizações' + LineEnding +
-    'Verifica se há uma nova versão do GOverlay');
-  SetHint('checkupdBitBtn', 'Verificar atualizações do MangoHud' + LineEnding +
-    'Verifica a versão mais recente do MangoHud');
-  SetHint('howtoBitBtn', 'Como usar' + LineEnding +
-    'Instruções para Steam, Heroic e outros launchers');
-  SetHint('themeToggleSpeedButton', 'Alternar tema' + LineEnding +
-    'Alterna entre tema claro e escuro');
+
+  SetHint('saveBitBtn', 'Save configurations' + LineEnding +
+    'Applies and saves all changes');
+  SetHint('copyBitBtn', 'Copy command' + LineEnding +
+    'Copies launch command to clipboard');
+  SetHint('gupdateBitBtn', 'Check for updates' + LineEnding +
+    'Checks if there is a new GOverlay version');
+  SetHint('checkupdBitBtn', 'Check MangoHud updates' + LineEnding +
+    'Checks latest MangoHud version');
+  SetHint('howtoBitBtn', 'How to use' + LineEnding +
+    'Instructions for Steam, Heroic and other launchers');
+  SetHint('themeToggleSpeedButton', 'Toggle theme' + LineEnding +
+    'Switches between light and dark theme');
   SetHint('geSpeedButton', 'Global Enable' + LineEnding +
-    'Ativa automaticamente para todos os jogos usando FGMOD');
-    
+    'Automatically enables for all games using FGMOD');
+
   // ============================================================================
   // LOGGING
   // ============================================================================
-  
-  SetHint('logfolderBitBtn', 'Selecionar pasta de logs' + LineEnding +
-    'Escolha onde os logs serão salvos');
-  SetHint('delayTrackBar', 'Atraso inicial' + LineEnding +
-    'Tempo de espera antes de iniciar o log (segundos)');
-  SetHint('durationTrackBar', 'Duração do log' + LineEnding +
-    'Tempo total de gravação do log (segundos)');
-  SetHint('intervalTrackBar', 'Intervalo de amostragem' + LineEnding +
-    'Frequência de coleta de dados (milissegundos)');
-  SetHint('versioningCheckBox', 'Versionamento de logs' + LineEnding +
-    'Adiciona timestamp aos nomes dos arquivos de log');
-    
+
+  SetHint('logfolderBitBtn', 'Select log folder' + LineEnding +
+    'Choose where logs will be saved');
+  SetHint('delayTrackBar', 'Initial delay' + LineEnding +
+    'Wait time before starting log (seconds)');
+  SetHint('durationTrackBar', 'Log duration' + LineEnding +
+    'Total log recording time (seconds)');
+  SetHint('intervalTrackBar', 'Sampling interval' + LineEnding +
+    'Data collection frequency (milliseconds)');
+  SetHint('versioningCheckBox', 'Log versioning' + LineEnding +
+    'Adds timestamp to log file names');
+
   // ============================================================================
   // FPS LIMITER
   // ============================================================================
-  
-  SetHint('fpslimmetComboBox', 'Método do limitador' + LineEnding +
-    'early: Menor latência' + LineEnding +
-    'late: Mais estável');
-  SetHint('fpslimtoggleComboBox', 'Atalho do limitador' + LineEnding +
-    'Tecla para ativar/desativar o limite de FPS');
-  SetHint('hudonoffComboBox', 'Atalho do HUD' + LineEnding +
-    'Tecla para mostrar/ocultar o overlay');
-  SetHint('logtoggleComboBox', 'Atalho de log' + LineEnding +
-    'Tecla para iniciar/parar gravação de log');
-  SetHint('vkbtogglekeyCombobox', 'Atalho do vkBasalt' + LineEnding +
-    'Tecla para ativar/desativar efeitos');
-    
+
+  SetHint('fpslimmetComboBox', 'Limiter method' + LineEnding +
+    'early: Lower latency' + LineEnding +
+    'late: More stable');
+  SetHint('fpslimtoggleComboBox', 'Limiter shortcut' + LineEnding +
+    'Key to enable/disable FPS limit');
+  SetHint('hudonoffComboBox', 'HUD shortcut' + LineEnding +
+    'Key to show/hide overlay');
+  SetHint('logtoggleComboBox', 'Log shortcut' + LineEnding +
+    'Key to start/stop log recording');
+  SetHint('vkbtogglekeyCombobox', 'vkBasalt shortcut' + LineEnding +
+    'Key to enable/disable effects');
+
   // ============================================================================
   // VSYNC
   // ============================================================================
-  
+
   SetHint('vsyncComboBox', 'VSync (Vulkan)' + LineEnding +
-    '0 = Desligado' + LineEnding +
-    '1 = Ligado' + LineEnding +
+    '0 = Off' + LineEnding +
+    '1 = On' + LineEnding +
     '2 = Mailbox mode' + LineEnding +
     '3 = Adaptive');
   SetHint('glvsyncComboBox', 'VSync (OpenGL)' + LineEnding +
     '-1 = Adaptive' + LineEnding +
-    '0 = Desligado' + LineEnding +
-    '1 = Ligado');
-    
+    '0 = Off' + LineEnding +
+    '1 = On');
+
   // ============================================================================
   // FILTERS
   // ============================================================================
-  
-  SetHint('afTrackBar', 'Filtragem anisotrópica' + LineEnding +
-    'Melhora qualidade de texturas em ângulos' + LineEnding +
-    '0 = Desligado, 16 = Máximo');
-  SetHint('mipmapTrackBar', 'Bias de Mipmap' + LineEnding +
-    'Ajusta nitidez de texturas distantes' + LineEnding +
-    'Negativo = Mais nítido, Positivo = Mais suave');
-    
+
+  SetHint('afTrackBar', 'Anisotropic filtering' + LineEnding +
+    'Improves texture quality at angles' + LineEnding +
+    '0 = Off, 16 = Maximum');
+  SetHint('mipmapTrackBar', 'Mipmap bias' + LineEnding +
+    'Adjusts distant texture sharpness' + LineEnding +
+    'Negative = Sharper, Positive = Softer');
+
   // ============================================================================
   // APPEARANCE
   // ============================================================================
-  
-  SetHint('fontsizeTrackBar', 'Tamanho da fonte' + LineEnding +
-    'Ajusta o tamanho do texto no overlay');
-  SetHint('transpTrackBar', 'Transparência' + LineEnding +
-    'Opacidade do fundo do overlay' + LineEnding +
-    '0 = Transparente, 100 = Opaco');
-  SetHint('menuscaleTrackBar', 'Escala do menu' + LineEnding +
-    'Tamanho geral do overlay' + LineEnding +
+
+  SetHint('fontsizeTrackBar', 'Font size' + LineEnding +
+    'Adjusts overlay text size');
+  SetHint('transpTrackBar', 'Transparency' + LineEnding +
+    'Overlay background opacity' + LineEnding +
+    '0 = Transparent, 100 = Opaque');
+  SetHint('menuscaleTrackBar', 'Menu scale' + LineEnding +
+    'Overall overlay size' + LineEnding +
     '0.5 = 50%, 1.0 = 100%, 2.0 = 200%');
-  SetHint('offsetSpinEdit', 'Deslocamento' + LineEnding +
-    'Distância da borda da tela em pixels');
-    
+  SetHint('offsetSpinEdit', 'Offset' + LineEnding +
+    'Distance from screen edge in pixels');
+
   // Color buttons
-  SetHint('FontcolorButton', 'Cor da fonte' + LineEnding +
-    'Cor padrão do texto');
-  SetHint('hudbackgroundColorButton', 'Cor de fundo' + LineEnding +
-    'Cor do fundo do overlay');
-  SetHint('cpuColorButton', 'Cor da CPU' + LineEnding +
-    'Cor do texto de métricas da CPU');
-  SetHint('gpuColorButton', 'Cor da GPU' + LineEnding +
-    'Cor do texto de métricas da GPU');
-  SetHint('ramColorButton', 'Cor da RAM' + LineEnding +
-    'Cor do texto de uso de memória');
-  SetHint('vramColorButton', 'Cor da VRAM' + LineEnding +
-    'Cor do texto de memória de vídeo');
-  SetHint('engineColorButton', 'Cor do engine' + LineEnding +
-    'Cor do texto de informações do engine');
-  SetHint('wineColorButton', 'Cor do Wine' + LineEnding +
-    'Cor do texto de informações do Wine');
-  SetHint('batteryColorButton', 'Cor da bateria' + LineEnding +
-    'Cor do texto de informações de bateria');
-  SetHint('mediaColorButton', 'Cor do media player' + LineEnding +
-    'Cor do texto de informações de mídia');
+  SetHint('FontcolorButton', 'Font color' + LineEnding +
+    'Default text color');
+  SetHint('hudbackgroundColorButton', 'Background color' + LineEnding +
+    'Overlay background color');
+  SetHint('cpuColorButton', 'CPU color' + LineEnding +
+    'CPU metrics text color');
+  SetHint('gpuColorButton', 'GPU color' + LineEnding +
+    'GPU metrics text color');
+  SetHint('ramColorButton', 'RAM color' + LineEnding +
+    'Memory usage text color');
+  SetHint('vramColorButton', 'VRAM color' + LineEnding +
+    'Video memory text color');
+  SetHint('engineColorButton', 'Engine color' + LineEnding +
+    'Engine information text color');
+  SetHint('wineColorButton', 'Wine color' + LineEnding +
+    'Wine information text color');
+  SetHint('batteryColorButton', 'Battery color' + LineEnding +
+    'Battery information text color');
+  SetHint('mediaColorButton', 'Media player color' + LineEnding +
+    'Media information text color');
 end;
 
 end.
