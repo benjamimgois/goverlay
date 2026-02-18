@@ -8416,6 +8416,14 @@ begin
 
   // Theme notifications removed to prevent duplicate notifications
   // The theme change is visually obvious from the UI update
+
+  // Re-apply transparent Qt stylesheet to status bar (theme change overrides it)
+  TQtWidget(statusBar.Handle).StyleSheet :=
+    'QStatusBar {' +
+    '  background: transparent;' +
+    '  border: none;' +
+    '  color: rgba(255,255,255,140);' +
+    '}';
 end;
 
 procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);

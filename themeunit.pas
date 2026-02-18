@@ -173,6 +173,7 @@ begin
        (ctrl.Name = 'middlerightRadioButton') or
        (ctrl.Name = 'patcherlistLabel') or
        (ctrl.Name = 'searchEdit') or    // Exclude search field
+       (ctrl.Name = 'statusBar') or    // Exclude status bar
        (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
       Continue;
 
@@ -319,6 +320,7 @@ begin
        (ctrl.Name = 'middlerightRadioButton') or
        (ctrl.Name = 'patcherlistLabel') or
        (ctrl.Name = 'searchEdit') or    // Exclude search field
+       (ctrl.Name = 'statusBar') or    // Exclude status bar
        (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
       Continue;
 
