@@ -449,6 +449,7 @@ type
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
     procedure fontsizeTrackBarChange(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure fsrversionComboBoxChange(Sender: TObject);
@@ -4303,6 +4304,12 @@ begin
     ShowStatusMessage(Format('%d result(s) for: "%s"', [MatchCount, searchEdit.Text]))
   else
     ShowStatusMessage(Format('No results for: "%s"', [searchEdit.Text]));
+end;
+
+procedure Tgoverlayform.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  ExecuteGUICommand('killall pascube');
+  ExecuteGUICommand('killall vkcube');
 end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
