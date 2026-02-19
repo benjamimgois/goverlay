@@ -451,6 +451,7 @@ type
     procedure fontsizeTrackBarChange(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure fsrversionComboBoxChange(Sender: TObject);
     procedure gputempCheckBoxChange(Sender: TObject);
@@ -4688,53 +4689,6 @@ begin
 
 
 
-  // Start pascube or vkcube (vulkan demo)
-  
-  // Check if running in Flatpak
-  if IsRunningInFlatpak then
-  begin
-      // FLATPAK MODE
-      if IsCommandAvailable('pascube') then
-      begin
-         ExecuteGUICommand('MANGOHUD=1 pascube &');
-      end
-      else if IsCommandAvailable('vkcube') then
-      begin
-         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
-         // In Flatpak, vkcube auto-detects or doesn't support --wsi flag
-         if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-            ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
-         else
-            ExecuteGUICommand('MANGOHUD=1 vkcube &');
-       end
-       else
-       begin
-         // None found
-          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
-       end;
-  end
-  else
-  begin
-      // NATIVE MODE
-      if IsCommandAvailable('pascube') then
-      begin
-         ExecuteGUICommand('MANGOHUD=1 pascube &');
-      end
-      else if IsCommandAvailable('vkcube') then
-      begin
-        SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
-        if USERSESSION = 'wayland' then
-        ExecuteGUICommand('MANGOHUD=1 vkcube --wsi wayland &')
-        else
-        ExecuteGUICommand('mangohud vkcube &');
-      end
-      else
-      begin
-         SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
-      end;
-  end;
-
-
   //Load available text fonts
    ListarFontesNoDiretorio(fontComboBox);
 
@@ -5094,6 +5048,43 @@ begin
   end;
 end;
 
+
+procedure Tgoverlayform.FormShow(Sender: TObject);
+begin
+  // Start pascube or vkcube (vulkan demo) only after the form is fully loaded
+  if IsRunningInFlatpak then
+  begin
+      // FLATPAK MODE
+      if IsCommandAvailable('pascube') then
+         ExecuteGUICommand('MANGOHUD=1 pascube &')
+      else if IsCommandAvailable('vkcube') then
+      begin
+         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
+         if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
+            ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
+         else
+            ExecuteGUICommand('MANGOHUD=1 vkcube &');
+      end
+      else
+         SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
+  end
+  else
+  begin
+      // NATIVE MODE
+      if IsCommandAvailable('pascube') then
+         ExecuteGUICommand('MANGOHUD=1 pascube &')
+      else if IsCommandAvailable('vkcube') then
+      begin
+        SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
+        if USERSESSION = 'wayland' then
+          ExecuteGUICommand('MANGOHUD=1 vkcube --wsi wayland &')
+        else
+          ExecuteGUICommand('mangohud vkcube &');
+      end
+      else
+         SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
+  end;
+end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
 begin
