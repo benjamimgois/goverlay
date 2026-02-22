@@ -21,6 +21,15 @@ flatpak-repo/
 nohup.out
 .claude/
 
+# Editor swap and temporary files
+*.swp
+*.swo
+*~
+.#*
+\#*\#
+*.kate-swp
+*.orig
+
 # GNU Global tags
 GTAGS
 GRTAGS
