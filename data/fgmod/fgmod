@@ -156,7 +156,9 @@ cp -f "$fgmod_path/amd_fidelityfx_dx12.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/amd_fidelityfx_framegeneration_dx12.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/amd_fidelityfx_upscaler_dx12.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/amd_fidelityfx_vk.dll" "$exe_folder_path/" || true
-cp -f "$fgmod_path/nvngx.dll" "$exe_folder_path/" || true
+cp -f "$fgmod_path/nvngx_dlss.dll" "$exe_folder_path/" || true
+cp -f "$fgmod_path/nvngx_dlssd.dll" "$exe_folder_path/" || true
+cp -f "$fgmod_path/nvngx_dlssg.dll" "$exe_folder_path/" || true
 
 # === Nukem FG Mod Files (now in fgmod directory) ===
 cp -f "$fgmod_path/dlssg_to_fsr3_amd_is_better.dll" "$exe_folder_path/" || true
