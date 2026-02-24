@@ -142,7 +142,6 @@ begin
 
     // Skip color exceptions - components that should maintain their custom colors
     if (ctrl.Name = 'saveBitBtn') or
-       (ctrl.Name = 'commandEdit') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'vkbasaltLabel') or
        (ctrl.Name = 'deckyLabel1') or
@@ -155,7 +154,6 @@ begin
        (ctrl.Name = 'xessLabel1') or
        (ctrl.Name = 'gupdateBitBtn') or
        (ctrl.Name = 'updateBitBtn') or
-       (ctrl.Name = 'customcommandEdit') or
        (ctrl.Name = 'mangohudLabel') or
        (ctrl.Name = 'optiscalerLabel') or
        (ctrl.Name = 'mangohudShape') or
@@ -190,7 +188,10 @@ begin
     else if ctrl is TEdit then
     begin
       TEdit(ctrl).Font.Color := DarkTextColor;
-      TEdit(ctrl).Color := DarkerBackgroundColor;
+      if (ctrl.Name = 'commandEdit') or (ctrl.Name = 'customcommandEdit') then
+        TEdit(ctrl).Color := clBlack
+      else
+        TEdit(ctrl).Color := DarkerBackgroundColor;
     end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := DarkTextColor
@@ -288,7 +289,6 @@ begin
 
     // Skip color exceptions - components that should maintain their custom colors
     if (ctrl.Name = 'saveBitBtn') or
-       (ctrl.Name = 'commandEdit') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'dependenciesLabel') or
        (ctrl.Name = 'deckyLabel1') or
@@ -301,7 +301,6 @@ begin
        (ctrl.Name = 'xessLabel1') or
        (ctrl.Name = 'gupdateBitBtn') or
        (ctrl.Name = 'updateBitBtn') or
-       (ctrl.Name = 'customcommandEdit') or
        (ctrl.Name = 'mangohudLabel') or
        (ctrl.Name = 'vkbasaltLabel') or
        (ctrl.Name = 'optiscalerLabel') or
@@ -336,8 +335,16 @@ begin
     end
     else if ctrl is TEdit then
     begin
-      TEdit(ctrl).Font.Color := LightTextColor;
-      TEdit(ctrl).Color := LightBackgroundColor;
+      if (ctrl.Name = 'commandEdit') or (ctrl.Name = 'customcommandEdit') then
+      begin
+        TEdit(ctrl).Font.Color := clWhite;
+        TEdit(ctrl).Color := clBlack;
+      end
+      else
+      begin
+        TEdit(ctrl).Font.Color := LightTextColor;
+        TEdit(ctrl).Color := LightBackgroundColor;
+      end;
     end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := LightTextColor

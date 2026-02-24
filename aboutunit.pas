@@ -93,15 +93,13 @@ begin
   //Centralize window
   CenterFormOnScreen(Self);
 
-  // Force dark theme
-  abouttabsheet.Color:= DarkBackgroundColor;
-  ApplyDarkTheme(Self); //set all elements to dark tones
+  // Apply current theme pattern
+  if CurrentTheme = tmDark then
+    abouttabsheet.Color := DarkBackgroundColor
+  else
+    abouttabsheet.Color := LightBackgroundColor;
 
-  // Adjust tab text color
-  for i := 0 to aboutPageControl.PageCount - 1 do
-  begin
-    aboutPageControl.Pages[i].Font.Color := clBtnText;
-  end;
+  ApplyTheme(Self, CurrentTheme);
 end;
 
 procedure TaboutForm.donateImageClick(Sender: TObject);
