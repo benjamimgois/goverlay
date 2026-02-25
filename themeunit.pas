@@ -159,6 +159,8 @@ begin
        (ctrl.Name = 'mangohudShape') or
        (ctrl.Name = 'vkbasaltShape') or
        (ctrl.Name = 'optiscalerShape') or
+       (ctrl.Name = 'tweaksLabel') or
+       (ctrl.Name = 'tweaksShape') or
        (ctrl.Name = 'autodetectnvLabel') or
        (ctrl.Name = 'autodetectmesaLabel') or
        (ctrl.Name = 'topleftRadioButton') or
@@ -170,6 +172,7 @@ begin
        (ctrl.Name = 'middleleftRadioButton') or
        (ctrl.Name = 'middlerightRadioButton') or
        (ctrl.Name = 'patcherlistLabel') or
+       (ctrl.Name = 'optipatcherLabel1') or
        (ctrl.Name = 'searchEdit') or    // Exclude search field
        (ctrl.Name = 'statusBar') or    // Exclude status bar
        (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
@@ -307,6 +310,8 @@ begin
        (ctrl.Name = 'mangohudShape') or
        (ctrl.Name = 'vkbasaltShape') or
        (ctrl.Name = 'optiscalerShape') or
+       (ctrl.Name = 'tweaksLabel') or
+       (ctrl.Name = 'tweaksShape') or
        (ctrl.Name = 'autodetectnvLabel') or
        (ctrl.Name = 'autodetectmesaLabel') or
        (ctrl.Name = 'topleftRadioButton') or
@@ -318,6 +323,7 @@ begin
        (ctrl.Name = 'middleleftRadioButton') or
        (ctrl.Name = 'middlerightRadioButton') or
        (ctrl.Name = 'patcherlistLabel') or
+       (ctrl.Name = 'optipatcherLabel1') or
        (ctrl.Name = 'searchEdit') or    // Exclude search field
        (ctrl.Name = 'statusBar') or    // Exclude status bar
        (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
