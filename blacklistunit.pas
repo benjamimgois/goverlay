@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons,
-  ExtCtrls;
+  ExtCtrls, themeunit, constants;
 
 type
 
@@ -127,6 +127,9 @@ end;
 procedure TblacklistForm.FormShow(Sender: TObject);
 
 begin
+  // Apply current theme
+  ApplyTheme(Self, CurrentTheme);
+
   BlacklistFile := GetUserConfig + '/goverlay/blacklist.conf';
   FileLines := TStringList.Create;
   try
