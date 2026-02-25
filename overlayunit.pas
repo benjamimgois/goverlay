@@ -6992,10 +6992,10 @@ var
   LineIndex: Integer;
   LineFound, WineOverrideFound: Boolean;
 
-  // Optiscaler.ini vars
+  // OptiScaler.ini vars
   OptiScalerIniPath, SelectedShortcutKey, ScaleValue: string;
   OptiScalerIniLines: TStringList;
-  ShortcutKeyFound, ScaleFound: Boolean;
+  ShortcutKeyFound, ScaleFound, InMenuSection: Boolean;
   ScaleFloat: Double;
   OverrideNvapiDllValue: string;
   OverrideNvapiDllFound: Boolean;
@@ -7493,11 +7493,17 @@ EnableTraceLogsFound: Boolean;
                   ScaleFound := False;
                   DxgiFound := False;
                   LoadAsiPluginsFound := False;
+                  InMenuSection := False;
 
                   for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
                   begin
+                    if Trim(OptiScalerIniLines[LineIndex]) = '[Menu]' then
+                      InMenuSection := True
+                    else if (Length(Trim(OptiScalerIniLines[LineIndex])) > 0) and (Trim(OptiScalerIniLines[LineIndex])[1] = '[') then
+                      InMenuSection := False;
+
                     // Check for ShortcutKey line
-                    if Pos('ShortcutKey=', OptiScalerIniLines[LineIndex]) > 0 then
+                    if (Pos('ShortcutKey=', OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ShortcutKeyFound then
                     begin
                       // Replace the line with the new ShortcutKey value
                       OptiScalerIniLines[LineIndex] := 'ShortcutKey=' + SelectedShortcutKey;
@@ -7505,7 +7511,7 @@ EnableTraceLogsFound: Boolean;
                     end;
 
                     // Check for Scale line
-                    if Pos('Scale=', OptiScalerIniLines[LineIndex]) > 0 then
+                    if (Pos('Scale=', OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ScaleFound then
                     begin
                       // Replace the line with the new Scale value
                       OptiScalerIniLines[LineIndex] := 'Scale=' + ScaleValue;
