@@ -21,9 +21,10 @@ type
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
+    osversionLabel: TLabel;
     offsetySpinEdit: TSpinEdit;
     patcherlistLabel: TLabel;
-    protontricksManagerButton: TButton;
+    protontricksManagerButton: TBitBtn;
     optipatcherLabel: TLabel;
     optipatcherLabel1: TLabel;
     saveasMenuItem: TMenuItem;

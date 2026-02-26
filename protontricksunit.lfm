@@ -3,7 +3,7 @@ object protontricksform: Tprotontricksform
   Height = 400
   Top = 250
   Width = 600
-  Caption = 'Protontricks Windows Version Manager'
+  Caption = 'Wine prefix manager'
   ClientHeight = 400
   ClientWidth = 600
   OnCreate = FormCreate
