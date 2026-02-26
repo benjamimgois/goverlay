@@ -1,0 +1,76 @@
+object protontricksform: Tprotontricksform
+  Left = 400
+  Height = 400
+  Top = 250
+  Width = 600
+  Caption = 'Protontricks Windows Version Manager'
+  ClientHeight = 400
+  ClientWidth = 600
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '4.4.0.0'
+  object gamesListView: TListView
+    Left = 10
+    Height = 330
+    Top = 10
+    Width = 580
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Columns = <    
+      item
+        Caption = 'Game'
+        Width = 350
+      end    
+      item
+        Caption = 'AppID'
+        Width = 100
+      end    
+      item
+        Caption = 'Windows Version'
+        Width = 100
+      end>
+    ReadOnly = True
+    RowSelect = True
+    TabOrder = 0
+    ViewStyle = vsReport
+    OnSelectItem = gamesListViewSelectItem
+  end
+  object winVerComboBox: TComboBox
+    Left = 10
+    Height = 33
+    Top = 355
+    Width = 150
+    Anchors = [akLeft, akBottom]
+    ItemHeight = 0
+    Items.Strings = (
+      'win11'
+      'win10'
+      'win81'
+      'win8'
+      'win7'
+      'winvista'
+      'winxp'
+    )
+    Style = csDropDownList
+    TabOrder = 1
+  end
+  object applyButton: TButton
+    Left = 170
+    Height = 33
+    Top = 355
+    Width = 100
+    Anchors = [akLeft, akBottom]
+    Caption = 'Apply'
+    OnClick = applyButtonClick
+    TabOrder = 2
+  end
+  object closeButton: TButton
+    Left = 490
+    Height = 33
+    Top = 355
+    Width = 100
+    Anchors = [akRight, akBottom]
+    Caption = 'Close'
+    OnClick = closeButtonClick
+    TabOrder = 3
+  end
+end

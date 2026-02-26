@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
-  unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update,
+  unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   fgmod_resources, hintsunit, qtwidgets;
@@ -23,6 +23,7 @@ type
     actprotonlogsCheckBox: TCheckBox;
     offsetySpinEdit: TSpinEdit;
     patcherlistLabel: TLabel;
+    protontricksManagerButton: TButton;
     optipatcherLabel: TLabel;
     optipatcherLabel1: TLabel;
     saveasMenuItem: TMenuItem;
@@ -431,6 +432,7 @@ type
     procedure dlsTrackBarChange(Sender: TObject);
     procedure donateMenuItemClick(Sender: TObject);
     procedure patcherlistLabelClick(Sender: TObject);
+    procedure protontricksManagerButtonClick(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
     procedure forcelatencyflexCheckBoxChange(Sender: TObject);
     procedure forcereflexCheckBoxChange(Sender: TObject);
@@ -739,6 +741,12 @@ var
   clRADEON = TColor($241CED); // ou RGB(237,28,36)
 implementation
 
+procedure Tgoverlayform.protontricksManagerButtonClick(Sender: TObject);
+begin
+  if not Assigned(protontricksform) then
+    Application.CreateForm(Tprotontricksform, protontricksform);
+  protontricksform.ShowModal;
+end;
 
 //Function to compare version strings (e.g., "1.5.3" vs "1.6.0")
 function CompareVersions(const Version1, Version2: string): Integer;
