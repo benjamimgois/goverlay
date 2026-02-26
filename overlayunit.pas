@@ -7012,6 +7012,8 @@ var
   DxgiFound: Boolean;
   LoadAsiPluginsValue: string;
   LoadAsiPluginsFound: Boolean;
+  Fsr4UpdateValue: string;
+  Fsr4UpdateFound: Boolean;
 
   // fakenvapi.ini vars
 FakeNvapiIniPath: string;
@@ -7482,6 +7484,12 @@ EnableTraceLogsFound: Boolean;
           else
             DxgiValue := 'false'; // Checkbox is not checked, set to false
 
+          // Get Fsr4Update value from fsrversionComboBox
+          if fsrversionComboBox.ItemIndex = 0 then
+            Fsr4UpdateValue := 'true'
+          else
+            Fsr4UpdateValue := 'auto';
+
           // Get LoadAsiPlugins value from optipatcherCheckBox
           if optipatcherCheckBox.Checked then
             LoadAsiPluginsValue := 'true'
@@ -7502,6 +7510,7 @@ EnableTraceLogsFound: Boolean;
                   ScaleFound := False;
                   DxgiFound := False;
                   LoadAsiPluginsFound := False;
+                  Fsr4UpdateFound := False;
                   InMenuSection := False;
 
                   for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
@@ -7551,13 +7560,24 @@ EnableTraceLogsFound: Boolean;
                       LoadAsiPluginsFound := True;
                     end;
 
+                    // Check for Fsr4Update line
+                    if Pos('Fsr4Update=', OptiScalerIniLines[LineIndex]) > 0 then
+                    begin
+                      // Replace the line with the new Fsr4Update value
+                      OptiScalerIniLines[LineIndex] := 'Fsr4Update=' + Fsr4UpdateValue;
+                      Fsr4UpdateFound := True;
+                    end;
+
                     // Exit loop if all found
-                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound and DxgiFound and LoadAsiPluginsFound then
+                     if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound and DxgiFound and LoadAsiPluginsFound and Fsr4UpdateFound then
                        Break;
                   end;
 
                   if not LoadAsiPluginsFound then
                     OptiScalerIniLines.Add('LoadAsiPlugins=' + LoadAsiPluginsValue);
+
+                  if not Fsr4UpdateFound then
+                    OptiScalerIniLines.Add('Fsr4Update=' + Fsr4UpdateValue);
 
                   if ShortcutKeyFound and ScaleFound then
                   begin
