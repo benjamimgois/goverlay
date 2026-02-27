@@ -4945,8 +4945,6 @@ begin
     //Load OptiScaler configuration
     LoadOptiScalerConfig;
 
-    //Load FakeNvapi configuration
-    LoadFakeNvapiConfig;
 
     // Check NVIDIA module and configure controls
     if IsNvidiaModuleLoaded then
@@ -4973,6 +4971,9 @@ begin
       forcereflexCheckBox.Enabled := true;
       reflexComboBox.Enabled:= true;
   end;
+
+    //Load FakeNvapi configuration (Needs to run after nvidia/mesa checks because they overwrite reflex default values)
+    LoadFakeNvapiConfig;
 
     //Initiate optiscaler
 
