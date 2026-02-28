@@ -1945,6 +1945,14 @@ begin
   if not IsCommandAvailable('git') then
     Missing.Add('git');
 
+  //check if protontricks is available
+  // Skip check in Flatpak since we fallback to com.github.Matoking.protontricks Flatpak
+  if not IsRunningInFlatpak then
+  begin
+    if not IsCommandAvailable('protontricks') then
+      Missing.Add('protontricks');
+  end;
+
   //check if gamemoderun is available (required for GameMode feature in Tweaks tab)
   // Skip check in Flatpak since gamemoderun is on the host and we can't reliably detect it
   if not IsRunningInFlatpak then

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Process, themeunit, constants, strutils;
+  ExtCtrls, Process, themeunit, constants, strutils, systemdetector;
 
 type
 
@@ -26,6 +26,7 @@ type
     procedure LoadGames;
     function GetPrefixWindowsVersion(AppID: String): String;
     function FindSteamappsPaths: TStringList;
+    procedure SetupProtontricksProcess(AProcess: TProcess);
   public
 
   end;
@@ -38,6 +39,36 @@ implementation
 {$R *.lfm}
 
 { Tprotontricksform }
+
+// Helper procedure to configure TProcess for protontricks execution.
+// Strategy: native binary first, then Flatpak version as fallback.
+// In Flatpak mode, uses flatpak-spawn --host to reach the host system.
+procedure Tprotontricksform.SetupProtontricksProcess(AProcess: TProcess);
+begin
+  if not IsRunningInFlatpak then
+  begin
+    // Native mode: just use protontricks directly
+    AProcess.Executable := 'protontricks';
+  end
+  else
+  begin
+    // Flatpak mode: try native protontricks on host first,
+    // fallback to Flatpak version of protontricks
+    AProcess.Executable := 'flatpak-spawn';
+    AProcess.Parameters.Add('--host');
+
+    if IsCommandAvailable('protontricks') then
+      AProcess.Parameters.Add('protontricks')
+    else
+    begin
+      // Fallback: invoke the Flatpak version of protontricks
+      AProcess.Parameters.Add('flatpak');
+      AProcess.Parameters.Add('run');
+      AProcess.Parameters.Add('--command=protontricks');
+      AProcess.Parameters.Add('com.github.Matoking.protontricks');
+    end;
+  end;
+end;
 
 procedure Tprotontricksform.FormCreate(Sender: TObject);
 begin
@@ -65,7 +96,7 @@ begin
   try
     AProcess := TProcess.Create(nil);
     try
-      AProcess.Executable := 'protontricks';
+      SetupProtontricksProcess(AProcess);
       AProcess.Parameters.Add(AppID);
       AProcess.Parameters.Add(WinVer);
       AProcess.Options := [poWaitOnExit, poUsePipes];
@@ -234,7 +265,7 @@ begin
   AProcess := TProcess.Create(nil);
   OutputLines := TStringList.Create;
   try
-    AProcess.Executable := 'protontricks';
+    SetupProtontricksProcess(AProcess);
     AProcess.Parameters.Add('-l');
     AProcess.Options := [poWaitOnExit, poUsePipes];
     try

@@ -60,6 +60,24 @@
     </screenshots>
 
     <releases>
+        <release version="1.7.5" date="2026-02-27">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Protontricks Windows Version Manager</li>
+                    <li>NVIDIA DLSS Downloader</li>
+                    <li>OptiScaler FSR4 Upgrade support</li>
+                    <li>Custom X and Y offset configurations for overlay placement</li>
+                    <li>Modern Design System with toast notifications and status bar</li>
+                    <li>Dynamic Theming applied to About and Blacklist forms</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>FakeNVAPI Reflex configuration persistence</li>
+                    <li>OptiScaler Menu section modifications</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.7.4" date="2026-02-07">
             <description>
                 <p>OptiScaler &amp; vkBasalt Enhancements</p>
