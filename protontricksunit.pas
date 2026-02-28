@@ -295,78 +295,32 @@ end;
 procedure Tprotontricksform.LoadGames;
 var
   AProcess: TProcess;
-  OutputLines, SteamPaths, DbgPaths: TStringList;
-  Line, GameName, AppIDStr, RegPath, WinVer: String;
-  i, j, k, p1, p2: Integer;
+  OutputLines: TStringList;
+  Line, GameName, AppIDStr, WinVer: String;
+  i, k, p1, p2: Integer;
   ListItem: TListItem;
   HasUnknown: Boolean;
-  // Debug
-  LogFile: TextFile;
-  LogPath: String;
   GamesFound: Integer;
 begin
   gamesListView.Items.Clear;
-
-  // Write to the Flatpak app data dir - always writable by the sandbox
-  LogPath := '/home/benjamim/.var/app/io.github.benjamimgois.goverlay/data/goverlay/logs/protontricks_debug.log';
-  ForceDirectories(ExtractFilePath(LogPath));
-  AssignFile(LogFile, LogPath);
-  Rewrite(LogFile);
-
-  WriteLn(LogFile, '=== GOverlay Protontricks Debug ===');
-  WriteLn(LogFile, 'Time: ' + DateTimeToStr(Now));
-  WriteLn(LogFile, '--- Environment ---');
-  WriteLn(LogFile, 'FLATPAK_ID    = ' + GetEnvironmentVariable('FLATPAK_ID'));
-  WriteLn(LogFile, 'HOME          = ' + GetEnvironmentVariable('HOME'));
-  WriteLn(LogFile, 'XDG_DATA_HOME = ' + GetEnvironmentVariable('XDG_DATA_HOME'));
-  WriteLn(LogFile, 'XDG_CONFIG_HOME = ' + GetEnvironmentVariable('XDG_CONFIG_HOME'));
-  WriteLn(LogFile, 'STEAM_DIR     = ' + GetEnvironmentVariable('STEAM_DIR'));
-  WriteLn(LogFile, 'IsRunningInFlatpak = ' + BoolToStr(IsRunningInFlatpak, True));
+  GamesFound := 0;
 
   AProcess := TProcess.Create(nil);
   OutputLines := TStringList.Create;
   try
     SetupProtontricksProcess(AProcess);
     AProcess.Parameters.Add('-l');
+    // Merge stderr into stdout: protontricks sends game list to stderr
     AProcess.Options := [poWaitOnExit, poUsePipes, poStderrToOutPut];
-
-    WriteLn(LogFile, '--- Command ---');
-    WriteLn(LogFile, 'Executable: ' + AProcess.Executable);
-    WriteLn(LogFile, 'Parameters:');
-    for i := 0 to AProcess.Parameters.Count - 1 do
-      WriteLn(LogFile, '  [' + IntToStr(i) + '] ' + AProcess.Parameters[i]);
-
     try
       AProcess.Execute;
       OutputLines.LoadFromStream(AProcess.Output);
     except
       on E: Exception do
       begin
-        WriteLn(LogFile, '--- EXCEPTION ---');
-        WriteLn(LogFile, E.ClassName + ': ' + E.Message);
-        CloseFile(LogFile);
-        ShowMessage('Error executing protontricks: ' + E.Message + sLineBreak +
-                    'See ' + LogPath + ' for details.');
+        ShowMessage('Error executing protontricks: ' + E.Message);
         Exit;
       end;
-    end;
-
-    WriteLn(LogFile, '--- Output (exit code: ' + IntToStr(AProcess.ExitCode) + ') ---');
-    WriteLn(LogFile, 'Total lines: ' + IntToStr(OutputLines.Count));
-    for i := 0 to OutputLines.Count - 1 do
-      WriteLn(LogFile, OutputLines[i]);
-
-    GamesFound := 0;
-
-    // Debug: log what Steam paths FindSteamappsPaths finds
-    WriteLn(LogFile, '--- Steam library paths ---');
-    SteamPaths := FindSteamappsPaths;
-    try
-      WriteLn(LogFile, 'Paths found: ' + IntToStr(SteamPaths.Count));
-      for i := 0 to SteamPaths.Count - 1 do
-        WriteLn(LogFile, '  ' + SteamPaths[i] + '  [exists=' + BoolToStr(DirectoryExists(SteamPaths[i]), True) + ']');
-    finally
-      SteamPaths.Free;
     end;
 
     for i := 0 to OutputLines.Count - 1 do
@@ -385,26 +339,7 @@ begin
 
           if StrToIntDef(AppIDStr, -1) <> -1 then
           begin
-            // Debug: log system.reg lookup for first game only
-            if GamesFound = 0 then
-            begin
-              WriteLn(LogFile, '--- system.reg lookup for first game: ' + GameName + ' (' + AppIDStr + ') ---');
-              DbgPaths := FindSteamappsPaths;
-              try
-                for j := 0 to DbgPaths.Count - 1 do
-                begin
-                  RegPath := DbgPaths[j] + '/compatdata/' + AppIDStr + '/pfx/system.reg';
-                  WriteLn(LogFile, '  Checking: ' + RegPath);
-                  WriteLn(LogFile, '  Exists: ' + BoolToStr(FileExists(RegPath), True));
-                end;
-              finally
-                DbgPaths.Free;
-              end;
-            end;
-
             WinVer := GetPrefixWindowsVersion(AppIDStr);
-            WriteLn(LogFile, '  Version result for ' + AppIDStr + ': ' + WinVer);
-
             ListItem := gamesListView.Items.Add;
             ListItem.Caption := GameName;
             ListItem.SubItems.Add(AppIDStr);
@@ -415,17 +350,13 @@ begin
       end;
     end;
 
-    WriteLn(LogFile, '--- Result ---');
-    WriteLn(LogFile, 'Games added to list: ' + IntToStr(GamesFound));
-
   finally
-    CloseFile(LogFile);
     AProcess.Free;
     OutputLines.Free;
   end;
 
-  // Show Flatseal hint if running in Flatpak and some versions are unknown
-  // (user may have Steam libraries on external drives not accessible to the sandbox)
+  // In Flatpak mode, show a hint when games on external drives show 'unknown'.
+  // The sandbox cannot access drives outside ~/. Users can grant access via Flatseal.
   if IsRunningInFlatpak and (GamesFound > 0) then
   begin
     HasUnknown := False;
@@ -436,8 +367,9 @@ begin
         Break;
       end;
     if HasUnknown then
-      statusLabel.Caption := '⚠ Games on external drives show "unknown". Use Flatseal → Filesystem to grant read access to your Steam library path.';
+      statusLabel.Caption := '⚠ Games on external drives show "unknown". Grant access via Flatseal → Filesystem.';
   end;
 end;
 
 end.
+
