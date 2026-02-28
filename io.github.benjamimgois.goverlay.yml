@@ -16,6 +16,9 @@ finish-args:
   - --filesystem=xdg-config/MangoHud:rw
   - --filesystem=xdg-config/vkBasalt:rw
   - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
+  # Read-only access to Steam paths for Windows version detection in protontricks
+  - --filesystem=~/.steam:ro
+  - --filesystem=~/.local/share/Steam:ro
   
   # Network access for downloads (OptiScaler, ReShade shaders, updates)
   - --share=network

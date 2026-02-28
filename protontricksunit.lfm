@@ -6,9 +6,9 @@ object protontricksform: Tprotontricksform
   Caption = 'Wine prefix manager'
   ClientHeight = 430
   ClientWidth = 600
-  OnCreate = FormCreate
   Position = poScreenCenter
   LCLVersion = '4.4.0.0'
+  OnCreate = FormCreate
   object gamesListView: TListView
     Left = 10
     Height = 310
@@ -36,11 +36,10 @@ object protontricksform: Tprotontricksform
   end
   object statusLabel: TLabel
     Left = 10
-    Height = 18
-    Top = 328
+    Height = 1
+    Top = 345
     Width = 580
     Anchors = [akLeft, akRight, akBottom]
-    Caption = ''
     Font.Color = clSilver
     ParentFont = False
   end
@@ -50,18 +49,17 @@ object protontricksform: Tprotontricksform
     Top = 350
     Width = 580
     Anchors = [akLeft, akRight, akBottom]
-    Max = 100
     Style = pbstMarquee
     TabOrder = 4
     Visible = False
   end
   object winVerComboBox: TComboBox
     Left = 10
-    Height = 33
-    Top = 380
+    Height = 32
+    Top = 381
     Width = 150
     Anchors = [akLeft, akBottom]
-    ItemHeight = 0
+    ItemHeight = 24
     Items.Strings = (
       'win11'
       'win10'
@@ -71,8 +69,11 @@ object protontricksform: Tprotontricksform
       'winvista'
       'winxp'
     )
+    ParentShowHint = False
+    ShowHint = True
     Style = csDropDownList
     TabOrder = 1
+    TextHint = 'Windows Version'
   end
   object applyButton: TButton
     Left = 170
@@ -81,8 +82,8 @@ object protontricksform: Tprotontricksform
     Width = 100
     Anchors = [akLeft, akBottom]
     Caption = 'Apply'
-    OnClick = applyButtonClick
     TabOrder = 2
+    OnClick = applyButtonClick
   end
   object closeButton: TButton
     Left = 490
@@ -91,7 +92,7 @@ object protontricksform: Tprotontricksform
     Width = 100
     Anchors = [akRight, akBottom]
     Caption = 'Close'
-    OnClick = closeButtonClick
     TabOrder = 3
+    OnClick = closeButtonClick
   end
 end
