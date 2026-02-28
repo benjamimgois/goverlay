@@ -60,21 +60,28 @@
     </screenshots>
 
     <releases>
-        <release version="1.7.5" date="2026-02-27">
+        <release version="1.7.5" date="2026-02-28">
             <description>
                 <p>New Features</p>
                 <ul>
-                    <li>Protontricks Windows Version Manager</li>
-                    <li>NVIDIA DLSS Downloader</li>
-                    <li>OptiScaler FSR4 Upgrade support</li>
+                    <li>Protontricks Windows version manager with Flatpak support</li>
+                    <li>NVIDIA DLSS file downloader</li>
                     <li>Custom X and Y offset configurations for overlay placement</li>
-                    <li>Modern Design System with toast notifications and status bar</li>
-                    <li>Dynamic Theming applied to About and Blacklist forms</li>
+                    <li>FSR4 Update configuration for OptiScaler</li>
+                    <li>Modern Design System with toast notifications, search functionality, and status bar</li>
+                    <li>Dynamic Theme application to multiple forms and controls</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Redesigned OptiScaler UI layout with Wine prefix icon</li>
+                    <li>Adjusted default active tab for quicker access</li>
                 </ul>
                 <p>Fixes</p>
                 <ul>
                     <li>FakeNVAPI Reflex configuration persistence</li>
-                    <li>OptiScaler Menu section modifications</li>
+                    <li>OptiScaler settings correctly scoped to [Menu] section</li>
+                    <li>Accurate identification of GPUs in graphics device detection</li>
+                    <li>Improved FGMod copy logic for nvngx files</li>
                 </ul>
             </description>
         </release>
