@@ -871,16 +871,11 @@ begin
       end;
     end;
 
-    // Update XESS label
-    if Assigned(FXessLabel) then
+    // Update XESS label — only when value was found in goverlay.vars
+    if Assigned(FXessLabel) and (XessVer <> '') then
     begin
       try
-        // If xessversion was found in goverlay.vars, use that value
-        // Otherwise, use the default 'built in'
-        if XessVer <> '' then
-          FXessLabel.Caption := XessVer
-        else
-          FXessLabel.Caption := 'built in';
+        FXessLabel.Caption := XessVer;
         FXessLabel.Font.Color := clOlive;
         Application.ProcessMessages;
       except
@@ -888,22 +883,19 @@ begin
       end;
     end;
 
-    if Assigned(FFsrLabel) then
+    // Update FSR label — only when value was found in goverlay.vars
+    if Assigned(FFsrLabel) and (FsrVer <> '') then
     begin
       try
-        // If fsrversion was found in goverlay.vars, use that value
-        // Otherwise, use the default 'built in'
-        if FsrVer <> '' then
-        begin
-          FFsrLabel.Caption := FsrVer;
-
-          // If the version is '4.0.2 (INT8)', set combobox to index 1
-          if Assigned(FFsrVersionComboBox) and (FsrVer = '4.0.2 (INT8)') then
-            FFsrVersionComboBox.ItemIndex := 1;
-        end
-        else
-          FFsrLabel.Caption := 'built in';
+        FFsrLabel.Caption := FsrVer;
         FFsrLabel.Font.Color := clOlive;
+
+        // If the version is '4.0.2 (INT8)', set combobox to index 1
+        if Assigned(FFsrVersionComboBox) and (FsrVer = '4.0.2 (INT8)') then
+          FFsrVersionComboBox.ItemIndex := 1
+        else if Assigned(FFsrVersionComboBox) and (FsrVer = 'built in') then
+          FFsrVersionComboBox.ItemIndex := 0;
+
         Application.ProcessMessages;
       except
         // Ignore errors
