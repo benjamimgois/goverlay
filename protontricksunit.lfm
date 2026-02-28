@@ -1,17 +1,17 @@
 object protontricksform: Tprotontricksform
   Left = 400
-  Height = 400
+  Height = 430
   Top = 250
   Width = 600
   Caption = 'Wine prefix manager'
-  ClientHeight = 400
+  ClientHeight = 430
   ClientWidth = 600
   OnCreate = FormCreate
   Position = poScreenCenter
   LCLVersion = '4.4.0.0'
   object gamesListView: TListView
     Left = 10
-    Height = 330
+    Height = 310
     Top = 10
     Width = 580
     Anchors = [akTop, akLeft, akRight, akBottom]
@@ -34,10 +34,31 @@ object protontricksform: Tprotontricksform
     ViewStyle = vsReport
     OnSelectItem = gamesListViewSelectItem
   end
+  object statusLabel: TLabel
+    Left = 10
+    Height = 18
+    Top = 328
+    Width = 580
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = ''
+    Font.Color = clSilver
+    ParentFont = False
+  end
+  object applyProgressBar: TProgressBar
+    Left = 10
+    Height = 14
+    Top = 350
+    Width = 580
+    Anchors = [akLeft, akRight, akBottom]
+    Max = 100
+    Style = pbstMarquee
+    TabOrder = 4
+    Visible = False
+  end
   object winVerComboBox: TComboBox
     Left = 10
     Height = 33
-    Top = 355
+    Top = 380
     Width = 150
     Anchors = [akLeft, akBottom]
     ItemHeight = 0
@@ -56,7 +77,7 @@ object protontricksform: Tprotontricksform
   object applyButton: TButton
     Left = 170
     Height = 33
-    Top = 355
+    Top = 380
     Width = 100
     Anchors = [akLeft, akBottom]
     Caption = 'Apply'
@@ -66,7 +87,7 @@ object protontricksform: Tprotontricksform
   object closeButton: TButton
     Left = 490
     Height = 33
-    Top = 355
+    Top = 380
     Width = 100
     Anchors = [akRight, akBottom]
     Caption = 'Close'

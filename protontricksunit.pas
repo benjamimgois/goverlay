@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Process, themeunit, constants, strutils, systemdetector;
+  ExtCtrls, Process, themeunit, constants, strutils, systemdetector, LCLType;
 
 type
 
@@ -17,6 +17,8 @@ type
     closeButton: TButton;
     winVerComboBox: TComboBox;
     gamesListView: TListView;
+    applyProgressBar: TProgressBar;
+    statusLabel: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure closeButtonClick(Sender: TObject);
     procedure applyButtonClick(Sender: TObject);
@@ -85,6 +87,7 @@ procedure Tprotontricksform.applyButtonClick(Sender: TObject);
 var
   AppID, WinVer: String;
   AProcess: TProcess;
+  ExitCode: Integer;
 begin
   if gamesListView.Selected = nil then exit;
   if winVerComboBox.ItemIndex = -1 then exit;
@@ -92,22 +95,57 @@ begin
   AppID := gamesListView.Selected.SubItems[0];
   WinVer := winVerComboBox.Text;
 
+  // Show progress UI
   applyButton.Enabled := False;
+  closeButton.Enabled := False;
+  winVerComboBox.Enabled := False;
+  gamesListView.Enabled := False;
+  statusLabel.Caption := 'Applying Windows version ' + WinVer + ' to ' +
+    gamesListView.Selected.Caption + '...';
+  applyProgressBar.Visible := True;
+  Application.ProcessMessages;
+
+  ExitCode := 0;
   try
     AProcess := TProcess.Create(nil);
     try
       SetupProtontricksProcess(AProcess);
       AProcess.Parameters.Add(AppID);
       AProcess.Parameters.Add(WinVer);
-      AProcess.Options := [poWaitOnExit, poUsePipes];
+      // Run without blocking: poNoConsole allows polling Process.Running
+      AProcess.Options := [poUsePipes, poNoConsole];
       AProcess.Execute;
+
+      // Poll until done, keeping the UI alive
+      while AProcess.Running do
+      begin
+        Application.ProcessMessages;
+        Sleep(100);
+      end;
+
+      ExitCode := AProcess.ExitCode;
     finally
       AProcess.Free;
     end;
-    ShowMessage('Applied Windows version ' + WinVer + ' to AppID ' + AppID + '!');
-    LoadGames;
   finally
+    // Hide progress UI
+    applyProgressBar.Visible := False;
     applyButton.Enabled := True;
+    closeButton.Enabled := True;
+    winVerComboBox.Enabled := True;
+    gamesListView.Enabled := True;
+  end;
+
+  if ExitCode = 0 then
+  begin
+    statusLabel.Caption := '✓ Applied ' + WinVer + ' successfully!';
+    LoadGames;
+  end
+  else
+  begin
+    statusLabel.Caption := '✗ protontricks exited with code ' + IntToStr(ExitCode) + '.';
+    ShowMessage('Error: protontricks exited with code ' + IntToStr(ExitCode) +
+      '. Make sure protontricks is installed.');
   end;
 end;
 
