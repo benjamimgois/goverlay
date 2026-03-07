@@ -4476,6 +4476,13 @@ begin
   //Hide howto button until OptiScaler configuration is saved
   howtoBitBtn.Visible := False;
 
+  // Disable Protontricks button in Flatpak (requires permissions not approved by Flathub)
+  if IsRunningInFlatpak then
+  begin
+    protontricksManagerButton.Enabled := False;
+    protontricksManagerButton.Hint := 'Protontricks integration is not available in the Flatpak version.';
+  end;
+
   // Update geSpeedButton state from fgmod file
   UpdateGeSpeedButtonState;
 
