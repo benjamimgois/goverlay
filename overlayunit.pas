@@ -4353,8 +4353,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.7.5';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.7.6';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
@@ -6854,14 +6854,14 @@ end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
-  // Disable emufp8CheckBox when "4.0.2 (INT8)" is selected (ItemIndex = 1)
+  // Disable emufp8CheckBox when "4.0.2b (INT8)" is selected (ItemIndex = 1)
   // Enable emufp8CheckBox when "Latest (FP8)" is selected (ItemIndex = 0)
   case fsrversionComboBox.ItemIndex of
     0: // Latest (FP8)
       begin
         emufp8CheckBox.Enabled := True;
       end;
-    1: // 4.0.2 (INT8)
+    1: // 4.0.2b (INT8)
       begin
         emufp8CheckBox.Enabled := False;
         emufp8CheckBox.Checked := False;  // Also uncheck when disabled
@@ -7777,7 +7777,7 @@ EnableTraceLogsFound: Boolean;
                     // Silently skip if FSR4_LATEST doesn't exist (OptiScaler not installed yet)
                   end;
 
-                1: // 4.0.2 (INT8)
+                1: // 4.0.2b (INT8)
                   begin
                     // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_INT8 to fgmod root
                     if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
@@ -7801,7 +7801,7 @@ EnableTraceLogsFound: Boolean;
                           end;
 
                           // Add fsrversion line at the end
-                          Lines.Add('fsrversion=4.0.2 (INT8)');
+                          Lines.Add('fsrversion=4.0.2b (INT8)');
 
                           // Save the file
                           Lines.SaveToFile(VarsFilePath);
