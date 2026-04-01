@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qtwidgets;
+  fgmod_resources, hintsunit, qtwidgets, fpreadjpeg;
 
 
 
@@ -73,6 +73,7 @@ type
     forcezinkCheckBox: TCheckBox;
     gamemodeCheckBox: TCheckBox;
     statusBar: TStatusBar;
+    gamesTabSheet: TTabSheet;
     wow64CheckBox: TCheckBox;
     generalGroupBox: TGroupBox;
     performanceGroupBox: TGroupBox;
@@ -521,7 +522,18 @@ type
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
     FStatusTimer: TTimer;
-    
+    FGamesScrollBox: TScrollBox;
+    FGamesPanel: TPanel;
+    FGamesLoaded: Boolean;
+    FCoverThread: TThread;
+
+    procedure InitGamesTab;
+    procedure LoadSteamGames;
+    procedure ReflowGamesGrid;
+    procedure GamesScrollBoxResize(Sender: TObject);
+    function ParseAcfValue(const AContent, AKey: string): string;
+    procedure GetSteamLibraries(Libraries: TStringList);
+
     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
@@ -741,6 +753,120 @@ var
   DarkTextColor = clwhite;  // set light color
   clRADEON = TColor($241CED); // ou RGB(237,28,36)
 implementation
+
+// ============================================================================
+// Background thread: downloads missing Steam cover images via Steam CDN
+// ============================================================================
+type
+  TCoverDownloadThread = class(TThread)
+  private
+    FAppIDs:   TStringList;
+    FImages:   TList;
+    FCacheDir: string;
+    FCurrentImage: TImage;
+    FCurrentPath:  string;
+    procedure DoUpdateImage;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AAppIDs: TStringList; AImages: TList;
+                       const ACacheDir: string);
+    destructor Destroy; override;
+  end;
+
+constructor TCoverDownloadThread.Create(AAppIDs: TStringList; AImages: TList;
+  const ACacheDir: string);
+begin
+  inherited Create(True);
+  FAppIDs   := AAppIDs;
+  FImages   := AImages;
+  FCacheDir := ACacheDir;
+  FreeOnTerminate := False;
+end;
+
+destructor TCoverDownloadThread.Destroy;
+begin
+  FAppIDs.Free;
+  FImages.Free;
+  inherited;
+end;
+
+procedure TCoverDownloadThread.DoUpdateImage;
+begin
+  if Assigned(FCurrentImage) and FileExists(FCurrentPath) then
+  begin
+    try
+      FCurrentImage.Picture.LoadFromFile(FCurrentPath);
+    except
+    end;
+  end;
+end;
+
+procedure TCoverDownloadThread.Execute;
+var
+  i: Integer;
+  AppID, OutPath, Url: string;
+  Proc: TProcess;
+begin
+  ForceDirectories(FCacheDir);
+  for i := 0 to FAppIDs.Count - 1 do
+  begin
+    if Terminated then Break;
+
+    AppID   := FAppIDs[i];
+    OutPath := FCacheDir + AppID + '.jpg';
+
+    if FileExists(OutPath) then
+    begin
+      FCurrentImage := TImage(FImages[i]);
+      FCurrentPath  := OutPath;
+      Synchronize(@DoUpdateImage);
+      Continue;
+    end;
+
+    // Try portrait cover first, then header
+    Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/library_600x900.jpg';
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'curl';
+      Proc.Parameters.Add('-s');
+      Proc.Parameters.Add('-L');
+      Proc.Parameters.Add('--max-time');
+      Proc.Parameters.Add('15');
+      Proc.Parameters.Add('--fail');
+      Proc.Parameters.Add('-o');
+      Proc.Parameters.Add(OutPath);
+      Proc.Parameters.Add(Url);
+      Proc.Options := [poWaitOnExit, poNoConsole];
+      Proc.Execute;
+      if not FileExists(OutPath) or (Proc.ExitCode <> 0) then
+      begin
+        // Fallback to header image
+        DeleteFile(OutPath);
+        Proc.Parameters.Clear;
+        Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/header.jpg';
+        Proc.Parameters.Add('-s');
+        Proc.Parameters.Add('-L');
+        Proc.Parameters.Add('--max-time');
+        Proc.Parameters.Add('15');
+        Proc.Parameters.Add('--fail');
+        Proc.Parameters.Add('-o');
+        Proc.Parameters.Add(OutPath);
+        Proc.Parameters.Add(Url);
+        Proc.Execute;
+      end;
+    finally
+      Proc.Free;
+    end;
+
+    if FileExists(OutPath) and (FileSize(OutPath) > 0) then
+    begin
+      FCurrentImage := TImage(FImages[i]);
+      FCurrentPath  := OutPath;
+      Synchronize(@DoUpdateImage);
+    end;
+  end;
+end;
 
 procedure Tgoverlayform.protontricksManagerButtonClick(Sender: TObject);
 begin
@@ -4331,6 +4457,12 @@ end;
 
 procedure Tgoverlayform.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
+  if Assigned(FCoverThread) then
+  begin
+    FCoverThread.Terminate;
+    FCoverThread.WaitFor;
+    FreeAndNil(FCoverThread);
+  end;
   ExecuteGUICommand('killall pascube');
   ExecuteGUICommand('killall vkcube');
 end;
@@ -4394,7 +4526,7 @@ begin
   CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
 
   //Set initial TAB
-  goverlayPageControl.ActivePage:=presetTabsheet;
+  goverlayPageControl.ActivePage:=gamesTabsheet;
 
    // Initialize menu selections
   mangohudsel := true;
@@ -4418,6 +4550,7 @@ begin
   searchEdit.Font.Size := 9;
   searchEdit.TextHint := '🔍 Search... (Ctrl+F)';
   searchEdit.OnChange := @SearchEditChange;
+  searchEdit.Visible := False;
   TQtWidget(searchEdit.Handle).StyleSheet :=
     'QLineEdit {' +
     '  background-color: rgba(255,255,255,25);' +
@@ -4442,20 +4575,23 @@ begin
   statusBar.SimplePanel := True;
   statusBar.SimpleText := '';
   statusBar.Font.Size := 7;
+  statusBar.Visible := False;
   TQtWidget(statusBar.Handle).StyleSheet :=
     'QStatusBar {' +
     '  background: transparent;' +
     '  border: none;' +
     '  color: rgba(255,255,255,140);' +
     '}';
-  
+
   // Create status timer
   FStatusTimer := TTimer.Create(Self);
   FStatusTimer.Enabled := False;
   FStatusTimer.OnTimer := @StatusTimerTick;
-  
-  // searchEdit is now defined in LFM file - no need to create dynamically
-  
+
+  // Initialize Games tab container (games are loaded on FormShow)
+  InitGamesTab;
+  FGamesLoaded := False;
+
   // Enable keyboard shortcuts
   Self.KeyPreview := True;
   Self.OnKeyDown := @FormKeyDown;
@@ -5081,6 +5217,13 @@ end;
 
 procedure Tgoverlayform.FormShow(Sender: TObject);
 begin
+  // Load Steam games grid once, after the form has its final dimensions
+  if not FGamesLoaded then
+  begin
+    FGamesLoaded := True;
+    LoadSteamGames;
+  end;
+
   // Start pascube or vkcube (vulkan demo) only after the form is fully loaded
   if IsRunningInFlatpak then
   begin
@@ -8815,11 +8958,342 @@ begin
       [mbYes, mbNo],
       0
     );
-    
+
     // If user clicked No, uncheck the checkbox
     if DialogResult = mrNo then
       gamemodeCheckBox.Checked := False;
   end;
+end;
+
+// ============================================================================
+// GAMES TAB — Steam installed games grid
+// ============================================================================
+
+procedure Tgoverlayform.InitGamesTab;
+begin
+  FGamesScrollBox := TScrollBox.Create(Self);
+  FGamesScrollBox.Parent := gamesTabSheet;
+  FGamesScrollBox.Align := alClient;
+  FGamesScrollBox.AutoScroll := True;
+  FGamesScrollBox.BorderStyle := bsNone;
+  FGamesScrollBox.Color := $1A1A1A;
+  FGamesScrollBox.OnResize := @GamesScrollBoxResize;
+
+  FGamesPanel := TPanel.Create(Self);
+  FGamesPanel.Parent := FGamesScrollBox;
+  FGamesPanel.Caption := '';
+  FGamesPanel.BevelOuter := bvNone;
+  FGamesPanel.Color := $1A1A1A;
+  FGamesPanel.Left := 0;
+  FGamesPanel.Top := 0;
+  FGamesPanel.Width := 800;
+  FGamesPanel.Height := 100;
+end;
+
+procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
+var
+  HomeDir, VdfPath, LibPath, Line: string;
+  VdfFile: TStringList;
+  i, p1, p2, p3, p4: Integer;
+begin
+  HomeDir := GetEnvironmentVariable('HOME');
+
+  LibPath := HomeDir + '/.local/share/Steam/steamapps';
+  if DirectoryExists(LibPath) then
+    Libraries.Add(LibPath);
+
+  // Flatpak Steam
+  LibPath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps';
+  if DirectoryExists(LibPath) and (Libraries.IndexOf(LibPath) < 0) then
+    Libraries.Add(LibPath);
+
+  // Parse libraryfolders.vdf for additional library paths
+  VdfPath := HomeDir + '/.local/share/Steam/steamapps/libraryfolders.vdf';
+  if not FileExists(VdfPath) then
+    VdfPath := HomeDir + '/.steam/steam/steamapps/libraryfolders.vdf';
+  if not FileExists(VdfPath) then
+    Exit;
+
+  VdfFile := TStringList.Create;
+  try
+    VdfFile.LoadFromFile(VdfPath);
+    for i := 0 to VdfFile.Count - 1 do
+    begin
+      Line := Trim(VdfFile[i]);
+      if Copy(LowerCase(Line), 1, 6) = '"path"' then
+      begin
+        // Format: "path"    "/some/path"
+        p1 := Pos('"', Line);
+        p2 := PosEx('"', Line, p1 + 1);
+        p3 := PosEx('"', Line, p2 + 1);
+        p4 := PosEx('"', Line, p3 + 1);
+        if (p3 > 0) and (p4 > p3) then
+        begin
+          LibPath := Copy(Line, p3 + 1, p4 - p3 - 1) + '/steamapps';
+          if DirectoryExists(LibPath) and (Libraries.IndexOf(LibPath) < 0) then
+            Libraries.Add(LibPath);
+        end;
+      end;
+    end;
+  finally
+    VdfFile.Free;
+  end;
+end;
+
+function Tgoverlayform.ParseAcfValue(const AContent, AKey: string): string;
+var
+  Lines: TStringList;
+  Line, Pattern: string;
+  i, p1, p2: Integer;
+begin
+  Result := '';
+  Pattern := LowerCase('"' + AKey + '"');
+  Lines := TStringList.Create;
+  try
+    Lines.Text := AContent;
+    for i := 0 to Lines.Count - 1 do
+    begin
+      Line := Trim(Lines[i]);
+      if Copy(LowerCase(Line), 1, Length(Pattern)) = Pattern then
+      begin
+        // Extract the second quoted value on this line
+        p1 := Pos('"', Line);
+        p2 := PosEx('"', Line, p1 + 1);
+        p1 := PosEx('"', Line, p2 + 1);
+        p2 := PosEx('"', Line, p1 + 1);
+        if (p1 > 0) and (p2 > p1) then
+        begin
+          Result := Copy(Line, p1 + 1, p2 - p1 - 1);
+          Exit;
+        end;
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.LoadSteamGames;
+const
+  CARD_W      = 150;
+  CARD_H      = 235;
+  CARD_IMG_H  = 210;
+  CARD_MARGIN = 8;
+var
+  Libraries: TStringList;
+  PendingIDs: TStringList;
+  PendingImages: TList;
+  CacheDir: string;
+  i, j, CardX, CardY, CardsPerRow, TotalRows: Integer;
+  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir: string;
+  SR: TSearchRec;
+  AcfFile: TStringList;
+  CardPanel: TPanel;
+  CardImage: TImage;
+  CardLabel: TLabel;
+  NoGamesLabel: TLabel;
+  LowerName: string;
+begin
+  if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
+    Exit;
+
+  HomeDir  := GetEnvironmentVariable('HOME');
+  CacheDir := HomeDir + '/.cache/goverlay/covers/';
+  ForceDirectories(CacheDir);
+
+  Libraries     := TStringList.Create;
+  PendingIDs    := TStringList.Create;
+  PendingImages := TList.Create;
+  try
+    GetSteamLibraries(Libraries);
+
+    if Libraries.Count = 0 then
+    begin
+      NoGamesLabel := TLabel.Create(Self);
+      NoGamesLabel.Parent := FGamesPanel;
+      NoGamesLabel.Caption := 'Steam not found or no libraries detected.';
+      NoGamesLabel.Font.Color := clSilver;
+      NoGamesLabel.Font.Size := 10;
+      NoGamesLabel.Left := 16;
+      NoGamesLabel.Top := 16;
+      Exit;
+    end;
+
+    CardsPerRow := Max(1, (FGamesScrollBox.ClientWidth - CARD_MARGIN) div (CARD_W + CARD_MARGIN));
+    j := 0;
+
+    for i := 0 to Libraries.Count - 1 do
+    begin
+      LibPath := Libraries[i];
+      if FindFirst(LibPath + '/appmanifest_*.acf', faAnyFile, SR) = 0 then
+      begin
+        repeat
+          AcfFile := TStringList.Create;
+          try
+            AcfFile.LoadFromFile(LibPath + '/' + SR.Name);
+            AcfContent := AcfFile.Text;
+          finally
+            AcfFile.Free;
+          end;
+
+          AppID    := ParseAcfValue(AcfContent, 'appid');
+          GameName := ParseAcfValue(AcfContent, 'name');
+          if (AppID = '') or (GameName = '') then
+            Continue;
+
+          // Skip non-game Steam entries (runtimes, tools, redistributables)
+          LowerName := LowerCase(GameName);
+          if (Pos('proton', LowerName) > 0) or
+             (Pos('steamworks', LowerName) > 0) or
+             (Pos('steam linux runtime', LowerName) > 0) or
+             (Pos('redistributable', LowerName) > 0) or
+             (Pos('steam sdk', LowerName) > 0) then
+            Continue;
+
+          // Look for local cover; if absent, queue for CDN download
+          ImagePath := HomeDir + '/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+          // Also check the persistent cache from previous downloads
+          if not FileExists(ImagePath) then
+            ImagePath := CacheDir + AppID + '.jpg';
+
+          // Card position
+          CardX := CARD_MARGIN + (j mod CardsPerRow) * (CARD_W + CARD_MARGIN);
+          CardY := CARD_MARGIN + (j div CardsPerRow) * (CARD_H + CARD_MARGIN);
+
+          CardPanel := TPanel.Create(Self);
+          CardPanel.Parent := FGamesPanel;
+          CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
+          CardPanel.BevelOuter := bvNone;
+          CardPanel.Caption := '';
+          CardPanel.Color := $2A2A2A;
+
+          CardImage := TImage.Create(Self);
+          CardImage.Parent := CardPanel;
+          CardImage.SetBounds(0, 0, CARD_W, CARD_IMG_H);
+          CardImage.Stretch := True;
+          CardImage.Proportional := False;
+          CardImage.Center := False;
+
+          // Load local image or queue for CDN download
+          if FileExists(ImagePath) then
+          begin
+            try
+              CardImage.Picture.LoadFromFile(ImagePath);
+            except
+            end;
+          end
+          else
+          begin
+            // No local image — will be downloaded by background thread
+            PendingIDs.Add(AppID);
+            PendingImages.Add(CardImage);
+          end;
+
+          CardLabel := TLabel.Create(Self);
+          CardLabel.Parent := CardPanel;
+          CardLabel.SetBounds(2, CARD_IMG_H + 4, CARD_W - 4, CARD_H - CARD_IMG_H - 6);
+          CardLabel.Caption := GameName;
+          CardLabel.Font.Color := clWhite;
+          CardLabel.Font.Size := 7;
+          CardLabel.Alignment := taCenter;
+          CardLabel.WordWrap := False;
+          CardLabel.Hint := GameName;
+          CardLabel.ShowHint := True;
+
+          Inc(j);
+        until FindNext(SR) <> 0;
+        FindClose(SR);
+      end;
+    end;
+
+    // Resize inner panel to fit all cards
+    if j > 0 then
+    begin
+      TotalRows := (j + CardsPerRow - 1) div CardsPerRow;
+      FGamesPanel.Width := Max(FGamesScrollBox.ClientWidth,
+        CardsPerRow * (CARD_W + CARD_MARGIN) + CARD_MARGIN);
+      FGamesPanel.Height := CARD_MARGIN + TotalRows * (CARD_H + CARD_MARGIN);
+    end
+    else
+    begin
+      NoGamesLabel := TLabel.Create(Self);
+      NoGamesLabel.Parent := FGamesPanel;
+      NoGamesLabel.Caption := 'No installed Steam games found.';
+      NoGamesLabel.Font.Color := clSilver;
+      NoGamesLabel.Font.Size := 10;
+      NoGamesLabel.Left := 16;
+      NoGamesLabel.Top := 16;
+    end;
+
+    // Launch background thread to download missing covers from Steam CDN
+    if PendingIDs.Count > 0 then
+    begin
+      if Assigned(FCoverThread) then
+      begin
+        FCoverThread.Terminate;
+        FCoverThread.WaitFor;
+        FreeAndNil(FCoverThread);
+      end;
+      // Thread takes ownership of PendingIDs and PendingImages
+      FCoverThread := TCoverDownloadThread.Create(
+        PendingIDs, PendingImages, CacheDir);
+      PendingIDs    := nil;
+      PendingImages := nil;
+      FCoverThread.Start;
+    end;
+
+  finally
+    Libraries.Free;
+    PendingIDs.Free;
+    PendingImages.Free;
+  end;
+end;
+
+procedure Tgoverlayform.ReflowGamesGrid;
+const
+  CARD_W      = 150;
+  CARD_H      = 235;
+  CARD_MARGIN = 8;
+var
+  CardCount, CardsPerRow, TotalRows, i, CardX, CardY: Integer;
+  Ctrl: TControl;
+begin
+  if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
+    Exit;
+
+  CardsPerRow := Max(1, (FGamesScrollBox.ClientWidth - CARD_MARGIN) div (CARD_W + CARD_MARGIN));
+  CardCount   := 0;
+
+  for i := 0 to FGamesPanel.ControlCount - 1 do
+  begin
+    Ctrl := FGamesPanel.Controls[i];
+    if not (Ctrl is TPanel) then
+      Continue;
+    CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
+    CardY := CARD_MARGIN + (CardCount div CardsPerRow) * (CARD_H + CARD_MARGIN);
+    Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
+    Inc(CardCount);
+  end;
+
+  if CardCount > 0 then
+  begin
+    TotalRows := (CardCount + CardsPerRow - 1) div CardsPerRow;
+    FGamesPanel.Width  := Max(FGamesScrollBox.ClientWidth,
+      CardsPerRow * (CARD_W + CARD_MARGIN) + CARD_MARGIN);
+    FGamesPanel.Height := CARD_MARGIN + TotalRows * (CARD_H + CARD_MARGIN);
+  end;
+end;
+
+procedure Tgoverlayform.GamesScrollBoxResize(Sender: TObject);
+begin
+  if FGamesLoaded then
+    ReflowGamesGrid;
 end;
 
 end.
