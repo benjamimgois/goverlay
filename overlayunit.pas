@@ -552,6 +552,9 @@ type
     procedure ApplyNavWidth(AWidth: Integer);
     procedure ApplyNavCollapsed;
     procedure FormResize(Sender: TObject);
+    procedure ReflowPresetTab;
+    procedure ReflowVisualTab;
+    procedure ReflowPerformanceTab;
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
@@ -4560,6 +4563,12 @@ begin
   ApplyIconsToButtons(Self);
   BuildNavRail;
 
+  // Strip akRight anchors from controls we reflow manually,
+  // preventing the LCL anchor system from overriding SetBounds
+  backgroundGroupBox.Anchors := [akTop, akLeft];
+  vsyncGroupBox.Anchors      := [akTop, akLeft];
+  filtersGroupBox.Anchors    := [akTop, akLeft];
+
   // Create components dynamically for now
   searchEdit := TEdit.Create(Self);
   searchEdit.Parent := Self;
@@ -5244,6 +5253,11 @@ begin
     FGamesLoaded := True;
     LoadSteamGames;
   end;
+
+  // Initial reflow now that the form has real dimensions
+  ReflowPresetTab;
+  ReflowVisualTab;
+  ReflowPerformanceTab;
 
   // Start pascube or vkcube (vulkan demo) only after the form is fully loaded
   if IsRunningInFlatpak then
@@ -9248,17 +9262,131 @@ procedure Tgoverlayform.FormResize(Sender: TObject);
 var
   NavW: Integer;
 begin
-  // Keep sidebar at its current width and resize content panel to fill the rest
   NavW := goverlayPaintBox.Width;
   goverlayPanel.Left  := NavW;
   goverlayPanel.Width := Max(1, Self.ClientWidth - NavW);
 
-  // Keep nav items at current sidebar width
   if Length(FNavItems) > 0 then
-    ApplyNavWidth(goverlayPaintBox.Width);
+    ApplyNavWidth(NavW);
+
+  ReflowPresetTab;
+  ReflowVisualTab;
+  ReflowPerformanceTab;
 
   if FGamesLoaded then
     ReflowGamesGrid;
+end;
+
+// ============================================================================
+// TAB REFLOW — redistribute controls when the window is resized
+// ============================================================================
+
+procedure Tgoverlayform.ReflowPresetTab;
+const
+  MARGIN    = 20;
+  MIN_GAP   = 8;
+  BTN_MIN_W = 90;
+  BTN_MAX_W = 200;
+var
+  W, BtnW, BtnH, Gap5, Gap4, X, i: Integer;
+  BtnTop, LblTop, ColorTop, ColorLblTop: Integer;
+  LayoutBtns:   array[0..4] of TBitBtn;
+  LayoutLabels: array[0..4] of TLabel;
+  ColorBtns:    array[0..3] of TBitBtn;
+  ColorLabels:  array[0..3] of TLabel;
+begin
+  W := goverlayPanel.ClientWidth;
+
+  // Scale button size to fill available width
+  BtnW := Max(BTN_MIN_W, Min(BTN_MAX_W, (W - 2 * MARGIN - 4 * MIN_GAP) div 5));
+  BtnH := Round(BtnW * 0.74);  // maintain original 91/123 aspect ratio
+
+  BtnTop       := 107;
+  LblTop       := BtnTop + BtnH + 8;
+  ColorTop     := LblTop + 28;
+  ColorLblTop  := ColorTop + BtnH + 8;
+
+  // Update section label positions
+  layoutsLabel.Left    := MARGIN;
+  colorthemeLabel.Left := MARGIN;
+  colorthemeLabel.Top  := ColorTop - 22;
+
+  LayoutBtns[0] := fullBitBtn;            LayoutLabels[0] := fullLabel;
+  LayoutBtns[1] := basicBitBtn;           LayoutLabels[1] := basicLabel;
+  LayoutBtns[2] := basichorizontalBitBtn; LayoutLabels[2] := basichorizontalLabel;
+  LayoutBtns[3] := fpsonlyBitBtn;         LayoutLabels[3] := fpsonlyLabel;
+  LayoutBtns[4] := usercustomBitBtn;      LayoutLabels[4] := customLabel;
+
+  ColorBtns[0] := mangocolorBitBtn;         ColorLabels[0] := mangocolorLabel;
+  ColorBtns[1] := goverlayBitBtn;           ColorLabels[1] := customolorLabel;
+  ColorBtns[2] := whitecolorBitBtn;         ColorLabels[2] := whitecolorLabel;
+  ColorBtns[3] := afterburnercolorBitBtn1;  ColorLabels[3] := afterburnercolorLabel;
+
+  Gap5 := Max(MIN_GAP, (W - 2 * MARGIN - 5 * BtnW) div 4);
+  for i := 0 to 4 do
+  begin
+    X := MARGIN + i * (BtnW + Gap5);
+    LayoutBtns[i].SetBounds(X, BtnTop, BtnW, BtnH);
+    LayoutLabels[i].Left := X + (BtnW - LayoutLabels[i].Width) div 2;
+    LayoutLabels[i].Top  := LblTop;
+  end;
+
+  Gap4 := Max(MIN_GAP, (W - 2 * MARGIN - 4 * BtnW) div 3);
+  for i := 0 to 3 do
+  begin
+    X := MARGIN + i * (BtnW + Gap4);
+    ColorBtns[i].SetBounds(X, ColorTop, BtnW, BtnH);
+    ColorLabels[i].Left := X + (BtnW - ColorLabels[i].Width) div 2;
+    ColorLabels[i].Top  := ColorLblTop;
+  end;
+end;
+
+procedure Tgoverlayform.ReflowVisualTab;
+const
+  MARGIN  = 8;
+  ROW1_T  = 135;
+  ROW2_T  = 306;
+  GAP     = 6;
+var
+  W, ColW, H1, H2, C1, C2, C3: Integer;
+begin
+  W := goverlayPageControl.ClientWidth;
+  ColW := Max(160, (W - 2 * MARGIN - 2 * GAP) div 3);
+  H1 := orientationGroupBox.Height;  // 131
+  H2 := fontsGroupBox.Height;        // 189
+
+  C1 := MARGIN;
+  C2 := MARGIN + ColW + GAP;
+  C3 := MARGIN + 2 * (ColW + GAP);
+
+  // Row 1
+  orientationGroupBox.SetBounds(C1, ROW1_T, ColW, H1);
+  borderGroupBox.SetBounds(C2, ROW1_T, ColW, H1);
+  backgroundGroupBox.SetBounds(C3, ROW1_T, ColW, H1);
+
+  // Row 2
+  fontsGroupBox.SetBounds(C1, ROW2_T, ColW, H2);
+  positionGroupBox.SetBounds(C2, ROW2_T, ColW, H2);
+  columsGroupBox.SetBounds(C3, ROW2_T, ColW, H2);
+end;
+
+procedure Tgoverlayform.ReflowPerformanceTab;
+const
+  MARGIN = 2;
+  GAP    = 8;
+var
+  W, ColW: Integer;
+begin
+  W    := goverlayPageControl.ClientWidth;
+  ColW := Max(280, (W - 2 * MARGIN - GAP) div 2);
+
+  // Left column
+  fpsGroupBox.SetBounds(MARGIN, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
+  fpslimiterGroupBox.SetBounds(MARGIN, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
+
+  // Right column
+  vsyncGroupBox.SetBounds(MARGIN + ColW + GAP, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
+  filtersGroupBox.SetBounds(MARGIN + ColW + GAP, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
 end;
 
 // ============================================================================
