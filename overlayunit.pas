@@ -462,6 +462,7 @@ type
     procedure cputempCheckBoxChange(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
+    procedure gamesLabelClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
     procedure menuscaleTrackBarChange(Sender: TObject);
     procedure mesaRadioButtonChange(Sender: TObject);
@@ -537,6 +538,8 @@ type
     FNavCollapsed:   Boolean;            // sidebar collapsed state
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
     FNavSmallIcon:   TImage;             // small app icon shown when collapsed
+    FOptiScalerImg:  TImage;             // custom image for optiscaler icon
+    FMangoHudImg:    TImage;             // custom image for mangohud icon
     FNavAnimTimer:   TTimer;             // sidebar animation timer
     FNavAnimTarget:  Integer;            // animation target width
     FNavAnimCurrent: Integer;            // animation current width (fixed-point *10)
@@ -562,6 +565,8 @@ type
     procedure LoadSteamGames;
     procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
+    procedure GameCardMouseEnter(Sender: TObject);
+    procedure GameCardMouseLeave(Sender: TObject);
     function ParseAcfValue(const AContent, AKey: string): string;
     procedure GetSteamLibraries(Libraries: TStringList);
 
@@ -1977,6 +1982,7 @@ begin
 goverlayPageControl.ShowTabs:=false; //disable mangohud tab
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+gamesTabSheet.TabVisible:=false; //disable games tab
 tweakstabsheet.TabVisible:=true;
 
 goverlayPageControl.ActivePage:=tweaksTabsheet;
@@ -2254,6 +2260,7 @@ begin
   goverlayPageControl.ShowTabs:=false;
   optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
   tweakstabsheet.TabVisible:=false;
+  gamesTabSheet.TabVisible:=false; //disable games tab
 
   vkbasalttabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
@@ -5057,8 +5064,8 @@ begin
 
 
 
-     //Select mangohud as initial option
-     mangohudLabelClick(mangohudLabel);
+     //Select games as initial option
+     gamesLabelClick(nil);
 
      // Initial MANGOHUD STOCK values
 
@@ -6052,6 +6059,29 @@ mediaColorButton.ButtonColor:= clYellow;
 saveBitbtn.Click;
 end;
 
+procedure Tgoverlayform.gamesLabelClick(Sender: TObject);
+begin
+  SetNavActive(-1);
+
+  //Disable tabs
+  goverlayPageControl.ShowTabs:=false;
+  vkbasalttabsheet.TabVisible:=false;
+  optiscalertabsheet.TabVisible:=false;
+  tweakstabsheet.TabVisible:=false;
+
+  gamesTabSheet.TabVisible:=true;
+  goverlayPageControl.ActivePage:=gamesTabSheet;
+
+  //Hide notification messages
+  notificationLabel.Visible:=false;
+  commandEdit.Visible:=false;
+  copyBitbtn.Visible:=false;
+
+  //Hide Global Enable controls for games tab
+  geSpeedButton.Visible:=false;
+  geLabel.Visible:=false;
+end;
+
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
   SetNavActive(0);
@@ -6061,6 +6091,7 @@ goverlayPageControl.ShowTabs:=true;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 tweakstabsheet.TabVisible:=false;  //disable tweaks tab
+gamesTabSheet.TabVisible:=false; //disable games tab
 
 goverlayPageControl.ActivePage:=presetTabsheet;
 
@@ -6114,6 +6145,7 @@ begin
   goverlayPageControl.ShowTabs:=false;
   vkbasalttabsheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
+  gamesTabSheet.TabVisible:=false; //disable games tab
 
   optiscalertabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:= optiscalerTabsheet;
@@ -9061,9 +9093,9 @@ const
   // Item definitions: (unicode icon, caption, top offset)
   ITEMS: array[0..3] of record Icon, Caption: string; end = (
     (Icon: '󱁥'; Caption: 'MangoHud'),
-    (Icon: '󰤊'; Caption: 'vkBasalt'),
-    (Icon: '󰹢'; Caption: 'OptiScaler'),
-    (Icon: '󰌬'; Caption: 'Proton Tweaks')
+    (Icon: '󰏘'; Caption: 'vkBasalt'),
+    (Icon: '󰋮'; Caption: 'OptiScaler'),
+    (Icon: '󰒓'; Caption: 'Proton Tweaks')
   );
   TOP_START = 108;
 var
@@ -9138,6 +9170,8 @@ begin
   FNavSmallIcon.Stretch      := True;
   FNavSmallIcon.Proportional := True;
   FNavSmallIcon.Center       := True;
+  FNavSmallIcon.Cursor       := crHandPoint;
+  FNavSmallIcon.OnClick      := @gamesLabelClick;
   FNavSmallIcon.Visible      := False;
   // Load icon — try installed path first, then local data dir
   IconPath := GetIconFile();
@@ -9145,6 +9179,10 @@ begin
     IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/128x128/goverlay.png';
   if FileExists(IconPath) then
     try FNavSmallIcon.Picture.LoadFromFile(IconPath); except end;
+
+  // Make the large logo clickable too
+  goverlayimage.Cursor       := crHandPoint;
+  goverlayimage.OnClick      := @gamesLabelClick;
 
   for i := 0 to High(ITEMS) do
   begin
@@ -9176,7 +9214,51 @@ begin
     IconLbl := TLabel.Create(Self);
     IconLbl.Parent := Item;
     IconLbl.SetBounds(16, 10, NAV_ICON_SIZE, NAV_ICON_SIZE);
-    IconLbl.Caption   := ITEMS[i].Icon;
+
+    if i = 2 then
+    begin
+      IconLbl.Caption := ''; // Clear text
+      
+      FOptiScalerImg := TImage.Create(Self);
+      FOptiScalerImg.Parent := Item;
+      FOptiScalerImg.SetBounds(18, 12, 24, 24);
+      FOptiScalerImg.Stretch := True;
+      FOptiScalerImg.Proportional := True;
+      FOptiScalerImg.Center := True;
+      FOptiScalerImg.Cursor := crHandPoint;
+      FOptiScalerImg.Tag := i;
+      FOptiScalerImg.OnClick      := @NavItemClick;
+      FOptiScalerImg.OnMouseEnter := @NavItemMouseEnter;
+      FOptiScalerImg.OnMouseLeave := @NavItemMouseLeave;
+      
+      IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
+      if FileExists(IconPath) then
+        try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
+    end
+    else if i = 0 then
+    begin
+      IconLbl.Caption := ''; // Clear text
+      
+      FMangoHudImg := TImage.Create(Self);
+      FMangoHudImg.Parent := Item;
+      FMangoHudImg.SetBounds(18, 12, 24, 24);
+      FMangoHudImg.Stretch := True;
+      FMangoHudImg.Proportional := True;
+      FMangoHudImg.Center := True;
+      FMangoHudImg.Cursor := crHandPoint;
+      FMangoHudImg.Tag := i;
+      FMangoHudImg.OnClick      := @NavItemClick;
+      FMangoHudImg.OnMouseEnter := @NavItemMouseEnter;
+      FMangoHudImg.OnMouseLeave := @NavItemMouseLeave;
+      
+      IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-inactive.png';
+      if FileExists(IconPath) then
+        try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
+    end
+    else
+    begin
+      IconLbl.Caption   := ITEMS[i].Icon;
+    end;
     IconLbl.Font.Size := 18;
     IconLbl.Font.Color := $00AAAAAA;
     IconLbl.Font.Name  := 'Noto Sans';
@@ -9217,6 +9299,7 @@ end;
 procedure Tgoverlayform.SetNavActive(AIndex: Integer);
 var
   i: Integer;
+  IconPath: string;
 begin
   for i := 0 to High(FNavItems) do
   begin
@@ -9226,6 +9309,19 @@ begin
       FNavIndicators[i].Visible := True;
       FNavIcons[i].Font.Color   := clWhite;
       FNavLabels[i].Font.Color  := clWhite;
+      
+      if (i = 2) and Assigned(FOptiScalerImg) then
+      begin
+        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+        if FileExists(IconPath) then
+          try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
+      end;
+      if (i = 0) and Assigned(FMangoHudImg) then
+      begin
+        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+        if FileExists(IconPath) then
+          try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
+      end;
     end
     else
     begin
@@ -9233,6 +9329,19 @@ begin
       FNavIndicators[i].Visible := False;
       FNavIcons[i].Font.Color   := $00AAAAAA;
       FNavLabels[i].Font.Color  := $00AAAAAA;
+      
+      if (i = 2) and Assigned(FOptiScalerImg) then
+      begin
+        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
+        if FileExists(IconPath) then
+          try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
+      end;
+      if (i = 0) and Assigned(FMangoHudImg) then
+      begin
+        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-inactive.png';
+        if FileExists(IconPath) then
+          try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
+      end;
     end;
   end;
   FNavActive := AIndex;
@@ -9350,6 +9459,11 @@ begin
     FNavIcons[i].Left    := IfThen(ShowLabels, 16, (AWidth - NAV_ICON_SIZE) div 2);
     FNavLabels[i].Visible := ShowLabels;
   end;
+
+  if Assigned(FMangoHudImg) then
+    FMangoHudImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
+  if Assigned(FOptiScalerImg) then
+    FOptiScalerImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
 
   FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 28, AWidth - 26);
 
@@ -9812,6 +9926,8 @@ begin
           CardPanel.BevelOuter := bvNone;
           CardPanel.Caption := '';
           CardPanel.Color := $2A2A2A;
+          CardPanel.OnMouseEnter := @GameCardMouseEnter;
+          CardPanel.OnMouseLeave := @GameCardMouseLeave;
 
           CardImage := TImage.Create(Self);
           CardImage.Parent := CardPanel;
@@ -9819,6 +9935,8 @@ begin
           CardImage.Stretch := True;
           CardImage.Proportional := False;
           CardImage.Center := False;
+          CardImage.OnMouseEnter := @GameCardMouseEnter;
+          CardImage.OnMouseLeave := @GameCardMouseLeave;
 
           // Load local image or queue for CDN download
           if FileExists(ImagePath) then
@@ -9845,6 +9963,8 @@ begin
           CardLabel.WordWrap := False;
           CardLabel.Hint := GameName;
           CardLabel.ShowHint := True;
+          CardLabel.OnMouseEnter := @GameCardMouseEnter;
+          CardLabel.OnMouseLeave := @GameCardMouseLeave;
 
           Inc(j);
         until FindNext(SR) <> 0;
@@ -9934,6 +10054,41 @@ procedure Tgoverlayform.GamesScrollBoxResize(Sender: TObject);
 begin
   if FGamesLoaded then
     ReflowGamesGrid;
+end;
+
+procedure Tgoverlayform.GameCardMouseEnter(Sender: TObject);
+var
+  Panel: TPanel;
+begin
+  if Sender is TPanel then
+    Panel := TPanel(Sender)
+  else if (Sender is TImage) then
+    Panel := TPanel(TImage(Sender).Parent)
+  else if (Sender is TLabel) then
+    Panel := TPanel(TLabel(Sender).Parent)
+  else
+    Exit;
+
+  Panel.Color := $3A3A3A;
+  if Sender is TControl then
+    TControl(Sender).Cursor := crHandPoint;
+end;
+
+procedure Tgoverlayform.GameCardMouseLeave(Sender: TObject);
+var
+  Panel: TPanel;
+begin
+  if Sender is TPanel then
+    Panel := TPanel(Sender)
+  else if (Sender is TImage) then
+    Panel := TPanel(TImage(Sender).Parent)
+  else if (Sender is TLabel) then
+    Panel := TPanel(TLabel(Sender).Parent)
+  else
+    Exit;
+
+  // Restore original panel color
+  Panel.Color := $2A2A2A;
 end;
 
 end.
