@@ -9321,13 +9321,14 @@ end;
 
 procedure Tgoverlayform.ReflowPresetTab(AContentW: Integer);
 const
-  MARGIN    = 20;
-  MIN_GAP   = 8;
-  BTN_MIN_W = 90;
-  BTN_MAX_W = 200;
+  MARGIN  = 20;
+  MIN_GAP = 8;
+  BTN_W   = 123;  // original button width (fixed)
+  BTN_H   = 91;   // original button height (fixed)
+  BTN_TOP = 107;
 var
-  W, BtnW, BtnH, Gap5, Gap4, X, i: Integer;
-  BtnTop, LblTop, ColorTop, ColorLblTop: Integer;
+  W, Gap5, Gap4, X, i: Integer;
+  LblTop, ColorTop, ColorLblTop: Integer;
   LayoutBtns:   array[0..4] of TBitBtn;
   LayoutLabels: array[0..4] of TLabel;
   ColorBtns:    array[0..3] of TBitBtn;
@@ -9335,14 +9336,9 @@ var
 begin
   W := AContentW;
 
-  // Scale button size to fill available width
-  BtnW := Max(BTN_MIN_W, Min(BTN_MAX_W, (W - 2 * MARGIN - 4 * MIN_GAP) div 5));
-  BtnH := Round(BtnW * 0.74);  // maintain original 91/123 aspect ratio
-
-  BtnTop       := 107;
-  LblTop       := BtnTop + BtnH + 8;
-  ColorTop     := LblTop + 28;
-  ColorLblTop  := ColorTop + BtnH + 8;
+  LblTop      := BTN_TOP + BTN_H + 8;
+  ColorTop    := LblTop + 28;
+  ColorLblTop := ColorTop + BTN_H + 8;
 
   // Update section label positions
   layoutsLabel.Left    := MARGIN;
@@ -9360,43 +9356,45 @@ begin
   ColorBtns[2] := whitecolorBitBtn;         ColorLabels[2] := whitecolorLabel;
   ColorBtns[3] := afterburnercolorBitBtn1;  ColorLabels[3] := afterburnercolorLabel;
 
-  Gap5 := Max(MIN_GAP, (W - 2 * MARGIN - 5 * BtnW) div 4);
+  Gap5 := Max(MIN_GAP, (W - 2 * MARGIN - 5 * BTN_W) div 4);
   for i := 0 to 4 do
   begin
-    X := MARGIN + i * (BtnW + Gap5);
-    LayoutBtns[i].SetBounds(X, BtnTop, BtnW, BtnH);
-    LayoutLabels[i].Left := X + (BtnW - LayoutLabels[i].Width) div 2;
+    X := MARGIN + i * (BTN_W + Gap5);
+    LayoutBtns[i].SetBounds(X, BTN_TOP, BTN_W, BTN_H);
+    LayoutLabels[i].Left := X + (BTN_W - LayoutLabels[i].Width) div 2;
     LayoutLabels[i].Top  := LblTop;
   end;
 
-  Gap4 := Max(MIN_GAP, (W - 2 * MARGIN - 4 * BtnW) div 3);
+  Gap4 := Max(MIN_GAP, (W - 2 * MARGIN - 4 * BTN_W) div 3);
   for i := 0 to 3 do
   begin
-    X := MARGIN + i * (BtnW + Gap4);
-    ColorBtns[i].SetBounds(X, ColorTop, BtnW, BtnH);
-    ColorLabels[i].Left := X + (BtnW - ColorLabels[i].Width) div 2;
+    X := MARGIN + i * (BTN_W + Gap4);
+    ColorBtns[i].SetBounds(X, ColorTop, BTN_W, BTN_H);
+    ColorLabels[i].Left := X + (BTN_W - ColorLabels[i].Width) div 2;
     ColorLabels[i].Top  := ColorLblTop;
   end;
 end;
 
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
 const
-  MARGIN    = 8;
-  ROW_GAP   = 8;   // vertical gap between row 1 and row 2
-  COL_GAP   = 8;   // horizontal gap between columns
-  H1        = 131; // original orientationGroupBox height
-  H2        = 189; // original fontsGroupBox height
-  ROW1_T    = 135; // top of row 1 (fixed — aligns with GPU controls above)
+  // Original layout at default content width of 829px (from LFM)
+  BASE_W    = 829;
+  BASE_C1   = 11;   // orientationGroupBox.Left
+  BASE_COLW = 216;  // column width
+  BASE_GAP  = 76;   // horizontal gap between columns
+  ROW1_T    = 135;  // top of row 1 (fixed)
+  H1        = 131;  // row 1 height
+  H2        = 189;  // row 2 height
+  ROW_GAP   = 40;   // vertical gap between rows (306 - 135 - 131)
 var
-  W, ColW, C1, C2, C3, Row2T: Integer;
+  ColW, Gap, C1, C2, C3, Row2T: Integer;
 begin
-  W := AContentW;
-
-  ColW := Max(160, (W - 2 * MARGIN - 2 * COL_GAP) div 3);
-
-  C1    := MARGIN;
-  C2    := MARGIN + ColW + COL_GAP;
-  C3    := MARGIN + 2 * (ColW + COL_GAP);
+  // Scale each dimension proportionally from the original 829px baseline
+  ColW  := Max(160, AContentW * BASE_COLW div BASE_W);
+  Gap   := Max(4,   AContentW * BASE_GAP  div BASE_W);
+  C1    := Max(4,   AContentW * BASE_C1   div BASE_W);
+  C2    := C1 + ColW + Gap;
+  C3    := C2 + ColW + Gap;
   Row2T := ROW1_T + H1 + ROW_GAP;
 
   // Row 1
@@ -9412,22 +9410,26 @@ end;
 
 procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
 const
-  MARGIN = 2;
-  GAP    = 8;
+  // Original layout at default content width of 829px (from LFM)
+  BASE_W    = 829;
+  BASE_COLW = 386;  // column width
+  BASE_GAP  = 47;   // gap between left and right column (435 - 2 - 386)
+  BASE_C1   = 2;    // left column left margin
 var
-  W, ColW: Integer;
+  ColW, Gap, C2: Integer;
 begin
-  W := AContentW;
-
-  ColW := Max(280, (W - 2 * MARGIN - GAP) div 2);
+  // Scale proportionally from original baseline
+  ColW := Max(280, AContentW * BASE_COLW div BASE_W);
+  Gap  := Max(4,   AContentW * BASE_GAP  div BASE_W);
+  C2   := BASE_C1 + ColW + Gap;
 
   // Left column
-  fpsGroupBox.SetBounds(MARGIN, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
-  fpslimiterGroupBox.SetBounds(MARGIN, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
+  fpsGroupBox.SetBounds(BASE_C1, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
+  fpslimiterGroupBox.SetBounds(BASE_C1, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
 
   // Right column
-  vsyncGroupBox.SetBounds(MARGIN + ColW + GAP, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
-  filtersGroupBox.SetBounds(MARGIN + ColW + GAP, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
+  vsyncGroupBox.SetBounds(C2, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
+  filtersGroupBox.SetBounds(C2, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
 end;
 
 // ============================================================================
