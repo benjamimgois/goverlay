@@ -527,6 +527,21 @@ type
     FGamesLoaded: Boolean;
     FCoverThread: TThread;
 
+    // Nav rail
+    FNavItems:       array of TPanel;    // item panels
+    FNavIndicators:  array of TShape;    // left indicator bars
+    FNavIcons:       array of TLabel;    // unicode icon labels
+    FNavLabels:      array of TLabel;    // caption labels
+    FNavActive:      Integer;            // index of active item (-1 = none)
+    FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
+
+    procedure BuildNavRail;
+    procedure NavItemClick(Sender: TObject);
+    procedure NavItemMouseEnter(Sender: TObject);
+    procedure NavItemMouseLeave(Sender: TObject);
+    procedure NavItemPaint(Sender: TObject);
+    procedure SetNavActive(AIndex: Integer);
+
     procedure InitGamesTab;
     procedure LoadSteamGames;
     procedure ReflowGamesGrid;
@@ -752,6 +767,16 @@ var
   DarkerBackgroundColor = $00232323;  // darker panel color BGR for unselected item
   DarkTextColor = clwhite;  // set light color
   clRADEON = TColor($241CED); // ou RGB(237,28,36)
+
+  // Nav rail
+  NAV_ITEM_H      = 64;   // height of each nav item
+  NAV_ITEM_W      = 211;  // width (same as sidebar)
+  NAV_INDICATOR_W = 3;    // active indicator bar width
+  NAV_ICON_SIZE   = 28;   // icon area size
+  NAV_COLOR_BG        = $00221F1E; // item normal background
+  NAV_COLOR_HOVER     = $00332E2C; // item hover background
+  NAV_COLOR_ACTIVE    = $00443E3A; // item active background
+  NAV_COLOR_INDICATOR = $0000C8FF; // active indicator (amber/gold)
 implementation
 
 // ============================================================================
@@ -1928,24 +1953,14 @@ end;
 
 procedure Tgoverlayform.tweaksLabelClick(Sender: TObject);
 begin
+  SetNavActive(3);
+
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=false; //disable mangohud tab
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 tweakstabsheet.TabVisible:=true;
 
-//unselect vkbasalt , optiscaler
-mangohudLabel.Font.Color:=clgray;
-mangohudShape.Brush.Color:= DarkerBackgroundColor;
-vkbasaltLabel.Font.Color:=clgray;
-vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
-optiscalerLabel.Font.Color:=clgray;
-optiscalerShape.Brush.Color:= DarkerBackgroundColor;
-
-
-// select mangohud
-tweaksLabel.Font.Color:=clwhite;
-tweaksShape.Brush.Color:= DarkBackgroundColor;
 goverlayPageControl.ActivePage:=tweaksTabsheet;
 
 //Hide notification messages
@@ -2215,22 +2230,13 @@ end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 begin
+  SetNavActive(1);
+
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
   tweakstabsheet.TabVisible:=false;
 
-  //unselecte mangohud
-  mangohudLabel.Font.Color:=clgray;
-  mangohudShape.Brush.Color:= DarkerBackgroundColor;
-  optiscalerLabel.Font.Color:=clgray;
-  optiscalerShape.Brush.Color:= DarkerBackgroundColor;
-  tweaksLabel.Font.Color:=clgray;
-  tweaksShape.Brush.Color:= DarkerBackgroundColor;
-
-  // select vkbasalt
-  vkbasaltLabel.Font.Color:=clwhite;
-  vkbasaltShape.Brush.Color:= DarkBackgroundColor;
   vkbasalttabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 
@@ -4539,7 +4545,8 @@ begin
   //ApplyModernTypography(Self);  // Disabled - user preference
   //ApplyModernSpacing(Self);  // Disabled - user preference
   ApplyIconsToButtons(Self);
-  
+  BuildNavRail;
+
   // Create components dynamically for now
   searchEdit := TEdit.Create(Self);
   searchEdit.Parent := Self;
@@ -5947,23 +5954,14 @@ end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
+  SetNavActive(0);
+
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=true;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 tweakstabsheet.TabVisible:=false;  //disable tweaks tab
 
-//unselect vkbasalt , optiscaler
-vkbasaltLabel.Font.Color:=clgray;
-vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
-optiscalerLabel.Font.Color:=clgray;
-optiscalerShape.Brush.Color:= DarkerBackgroundColor;
-tweaksLabel.Font.Color:=clgray;
-tweaksShape.Brush.Color:= DarkerBackgroundColor;
-
-// select mangohud
-mangohudLabel.Font.Color:=clwhite;
-mangohudShape.Brush.Color:= DarkBackgroundColor;
 goverlayPageControl.ActivePage:=presetTabsheet;
 
 //Hide notification messages
@@ -6010,24 +6008,13 @@ end;
 
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
 begin
+  SetNavActive(2);
+
 //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   vkbasalttabsheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
 
-
-  //unselect mangohud
-  mangohudLabel.Font.Color:=clgray;
-  mangohudShape.Brush.Color:= DarkerBackgroundColor;
-  vkbasaltLabel.Font.Color:=clgray;
-  vkbasaltShape.Brush.Color:= DarkerBackgroundColor;
-  tweaksLabel.Font.Color:=clgray;
-  tweaksShape.Brush.Color:= DarkerBackgroundColor;
-
-
-  // select optscaler
-  optiscalerLabel.Font.Color:=clwhite;
-  optiscalerShape.Brush.Color:= DarkBackgroundColor;
   optiscalertabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:= optiscalerTabsheet;
 
@@ -8963,6 +8950,168 @@ begin
     if DialogResult = mrNo then
       gamemodeCheckBox.Checked := False;
   end;
+end;
+
+// ============================================================================
+// NAV RAIL — modern sidebar navigation
+// ============================================================================
+
+procedure Tgoverlayform.BuildNavRail;
+const
+  // Item definitions: (unicode icon, caption, top offset)
+  ITEMS: array[0..3] of record Icon, Caption: string; end = (
+    (Icon: '󱁥'; Caption: 'MangoHud'),
+    (Icon: '󰤊'; Caption: 'vkBasalt'),
+    (Icon: '󰹢'; Caption: 'OptiScaler'),
+    (Icon: '󰌬'; Caption: 'Proton Tweaks')
+  );
+  TOP_START = 120;
+var
+  i: Integer;
+  Item: TPanel;
+  Indicator: TShape;
+  IconLbl: TLabel;
+  CaptionLbl: TLabel;
+  TopY: Integer;
+begin
+  // Hide legacy shape+label widgets
+  mangohudShape.Visible  := False;  mangohudLabel.Visible  := False;
+  vkbasaltShape.Visible  := False;  vkbasaltLabel.Visible  := False;
+  optiscalerShape.Visible := False; optiscalerLabel.Visible := False;
+  tweaksShape.Visible    := False;  tweaksLabel.Visible    := False;
+
+  SetLength(FNavItems,      Length(ITEMS));
+  SetLength(FNavIndicators, Length(ITEMS));
+  SetLength(FNavIcons,      Length(ITEMS));
+  SetLength(FNavLabels,     Length(ITEMS));
+  SetLength(FNavClickCBs,   Length(ITEMS));
+
+  FNavClickCBs[0] := @mangohudLabelClick;
+  FNavClickCBs[1] := @vkbasaltLabelClick;
+  FNavClickCBs[2] := @optiscalerLabelClick;
+  FNavClickCBs[3] := @tweaksLabelClick;
+
+  FNavActive := -1;
+
+  for i := 0 to High(ITEMS) do
+  begin
+    TopY := TOP_START + i * (NAV_ITEM_H + 4);
+
+    // --- Item panel ---
+    Item := TPanel.Create(Self);
+    Item.Parent  := Self;
+    Item.SetBounds(goverlayPaintBox.Left, goverlayPaintBox.Top + TopY, NAV_ITEM_W, NAV_ITEM_H);
+    Item.BevelOuter := bvNone;
+    Item.Caption := '';
+    Item.Color   := NAV_COLOR_BG;
+    Item.Cursor  := crHandPoint;
+    Item.Tag     := i;
+    Item.OnClick      := @NavItemClick;
+    Item.OnMouseEnter := @NavItemMouseEnter;
+    Item.OnMouseLeave := @NavItemMouseLeave;
+
+    // --- Active indicator bar (left edge) ---
+    Indicator := TShape.Create(Self);
+    Indicator.Parent := Item;
+    Indicator.SetBounds(0, 12, NAV_INDICATOR_W, NAV_ITEM_H - 24);
+    Indicator.Brush.Color := NAV_COLOR_INDICATOR;
+    Indicator.Pen.Color   := NAV_COLOR_INDICATOR;
+    Indicator.Shape   := stRoundRect;
+    Indicator.Visible := False;
+
+    // --- Icon label (Nerd Font / Unicode) ---
+    IconLbl := TLabel.Create(Self);
+    IconLbl.Parent := Item;
+    IconLbl.SetBounds(16, 10, NAV_ICON_SIZE, NAV_ICON_SIZE);
+    IconLbl.Caption   := ITEMS[i].Icon;
+    IconLbl.Font.Size := 18;
+    IconLbl.Font.Color := $00AAAAAA;
+    IconLbl.Font.Name  := 'Noto Sans';
+    IconLbl.Transparent := True;
+    IconLbl.Cursor := crHandPoint;
+    IconLbl.Tag    := i;
+    IconLbl.OnClick      := @NavItemClick;
+    IconLbl.OnMouseEnter := @NavItemMouseEnter;
+    IconLbl.OnMouseLeave := @NavItemMouseLeave;
+
+    // --- Caption label ---
+    CaptionLbl := TLabel.Create(Self);
+    CaptionLbl.Parent := Item;
+    CaptionLbl.SetBounds(52, (NAV_ITEM_H - 16) div 2, NAV_ITEM_W - 60, 20);
+    CaptionLbl.Caption   := ITEMS[i].Caption;
+    CaptionLbl.Font.Size := 9;
+    CaptionLbl.Font.Color := $00AAAAAA;
+    CaptionLbl.Font.Name  := 'Noto Sans';
+    CaptionLbl.Font.Style := [fsBold];
+    CaptionLbl.Transparent := True;
+    CaptionLbl.Cursor := crHandPoint;
+    CaptionLbl.Tag    := i;
+    CaptionLbl.OnClick      := @NavItemClick;
+    CaptionLbl.OnMouseEnter := @NavItemMouseEnter;
+    CaptionLbl.OnMouseLeave := @NavItemMouseLeave;
+
+    FNavItems[i]      := Item;
+    FNavIndicators[i] := Indicator;
+    FNavIcons[i]      := IconLbl;
+    FNavLabels[i]     := CaptionLbl;
+  end;
+end;
+
+procedure Tgoverlayform.SetNavActive(AIndex: Integer);
+var
+  i: Integer;
+begin
+  for i := 0 to High(FNavItems) do
+  begin
+    if i = AIndex then
+    begin
+      FNavItems[i].Color        := NAV_COLOR_ACTIVE;
+      FNavIndicators[i].Visible := True;
+      FNavIcons[i].Font.Color   := clWhite;
+      FNavLabels[i].Font.Color  := clWhite;
+    end
+    else
+    begin
+      FNavItems[i].Color        := NAV_COLOR_BG;
+      FNavIndicators[i].Visible := False;
+      FNavIcons[i].Font.Color   := $00AAAAAA;
+      FNavLabels[i].Font.Color  := $00AAAAAA;
+    end;
+  end;
+  FNavActive := AIndex;
+end;
+
+procedure Tgoverlayform.NavItemClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  Idx := (Sender as TControl).Tag;
+  SetNavActive(Idx);
+  if Assigned(FNavClickCBs[Idx]) then
+    FNavClickCBs[Idx](FNavItems[Idx]);
+end;
+
+procedure Tgoverlayform.NavItemMouseEnter(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  Idx := (Sender as TControl).Tag;
+  if Idx <> FNavActive then
+    FNavItems[Idx].Color := NAV_COLOR_HOVER;
+end;
+
+procedure Tgoverlayform.NavItemMouseLeave(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  Idx := (Sender as TControl).Tag;
+  if Idx <> FNavActive then
+    FNavItems[Idx].Color := NAV_COLOR_BG;
+end;
+
+procedure Tgoverlayform.NavItemPaint(Sender: TObject);
+begin
+  // reserved for future custom painting
 end;
 
 // ============================================================================
