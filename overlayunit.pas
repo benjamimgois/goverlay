@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qtwidgets, fpreadjpeg;
+  fgmod_resources, hintsunit, qtwidgets, fpreadjpeg, configmanager;
 
 
 
@@ -555,6 +555,8 @@ type
     procedure ReflowPresetTab(AContentW: Integer);
     procedure ReflowVisualTab(AContentW: Integer);
     procedure ReflowPerformanceTab(AContentW: Integer);
+    procedure ReflowOptiScalerTab(AContentW: Integer);
+    procedure ReflowTweaksTab(AContentW: Integer);
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
@@ -4601,6 +4603,40 @@ begin
   filtersGroupBox.AnchorSideBottom.Control    := nil;
   filtersGroupBox.AnchorSideTop.Control       := nil;
   filtersGroupBox.Anchors                     := [akTop, akLeft];
+
+  // Detach anchor-side control references for Tweaks tab inner groupboxes
+  generalGroupBox.AnchorSideLeft.Control      := nil;
+  generalGroupBox.AnchorSideTop.Control       := nil;
+  generalGroupBox.Anchors                     := [akTop, akLeft];
+
+  graphicsGroupBox.AnchorSideLeft.Control     := nil;
+  graphicsGroupBox.AnchorSideTop.Control      := nil;
+  graphicsGroupBox.Anchors                    := [akTop, akLeft];
+
+  performanceGroupBox.AnchorSideLeft.Control  := nil;
+  performanceGroupBox.AnchorSideTop.Control   := nil;
+  performanceGroupBox.Anchors                 := [akTop, akLeft];
+
+  customenvEdit.Anchors                       := [akTop, akLeft];
+
+  // Detach anchor-side control references for OptiScaler tab inner groupboxes
+  optiscalerGroupBox.AnchorSideLeft.Control   := nil;
+  optiscalerGroupBox.AnchorSideRight.Control  := nil;
+  optiscalerGroupBox.AnchorSideTop.Control    := nil;
+  optiscalerGroupBox.AnchorSideBottom.Control := nil;
+  optiscalerGroupBox.Anchors                  := [akTop, akLeft];
+
+  imgmenuGroupBox.AnchorSideLeft.Control      := nil;
+  imgmenuGroupBox.AnchorSideRight.Control     := nil;
+  imgmenuGroupBox.AnchorSideTop.Control       := nil;
+  imgmenuGroupBox.AnchorSideBottom.Control    := nil;
+  imgmenuGroupBox.Anchors                     := [akTop, akLeft];
+
+  fakenvapiGroupBox.AnchorSideLeft.Control    := nil;
+  fakenvapiGroupBox.AnchorSideRight.Control   := nil;
+  fakenvapiGroupBox.AnchorSideTop.Control     := nil;
+  fakenvapiGroupBox.AnchorSideBottom.Control  := nil;
+  fakenvapiGroupBox.Anchors                   := [akTop, akLeft];
 
   // Create components dynamically for now
   searchEdit := TEdit.Create(Self);
@@ -9038,6 +9074,8 @@ var
   IconLbl: TLabel;
   CaptionLbl: TLabel;
   TopY: Integer;
+  UIStateFile: string;
+  SL: TStringList;
 begin
   // Hide legacy shape+label widgets
   mangohudShape.Visible  := False;  mangohudLabel.Visible  := False;
@@ -9056,10 +9094,25 @@ begin
   FNavClickCBs[2] := @optiscalerLabelClick;
   FNavClickCBs[3] := @tweaksLabelClick;
 
-  FNavActive      := -1;
-  FNavCollapsed   := False;
-  FNavAnimCurrent := NAV_W_EXPANDED * 10;
-  FNavAnimTarget  := NAV_W_EXPANDED;
+  FNavActive    := -1;
+  FNavCollapsed := False;
+
+  // Restore sidebar collapsed state from previous session
+  UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
+  if FileExists(UIStateFile) then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile(UIStateFile);
+      if (SL.Count > 0) and (SL[0] = '1') then
+        FNavCollapsed := True;
+    finally
+      SL.Free;
+    end;
+  end;
+
+  FNavAnimCurrent := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED) * 10;
+  FNavAnimTarget  := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
 
   FNavAnimTimer := TTimer.Create(Self);
   FNavAnimTimer.Interval := 12;  // ~80fps
@@ -9069,9 +9122,9 @@ begin
   // Toggle button — small discrete arrow, bottom-right of logo area
   FNavToggleBtn := TSpeedButton.Create(Self);
   FNavToggleBtn.Parent  := Self;
-  FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 22, 56, 18, 18);
+  FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 28, 53, 24, 24);
   FNavToggleBtn.Caption    := '«';
-  FNavToggleBtn.Font.Size  := 8;
+  FNavToggleBtn.Font.Size  := 11;
   FNavToggleBtn.Font.Color := $00666666;
   FNavToggleBtn.Flat    := True;
   FNavToggleBtn.Cursor  := crHandPoint;
@@ -9155,6 +9208,10 @@ begin
     FNavIcons[i]      := IconLbl;
     FNavLabels[i]     := CaptionLbl;
   end;
+
+  // Apply persisted collapsed state (no animation on startup)
+  if FNavCollapsed then
+    ApplyNavCollapsed;
 end;
 
 procedure Tgoverlayform.SetNavActive(AIndex: Integer);
@@ -9229,10 +9286,23 @@ begin
 end;
 
 procedure Tgoverlayform.NavToggleClick(Sender: TObject);
+var
+  UIStateFile: string;
+  SL: TStringList;
 begin
   FNavCollapsed  := not FNavCollapsed;
   FNavAnimTarget := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
   FNavAnimTimer.Enabled := True;
+
+  // Persist state for next session
+  UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
+  SL := TStringList.Create;
+  try
+    SL.Add(IfThen(FNavCollapsed, '1', '0'));
+    SL.SaveToFile(UIStateFile);
+  finally
+    SL.Free;
+  end;
 end;
 
 procedure Tgoverlayform.NavAnimTick(Sender: TObject);
@@ -9264,7 +9334,7 @@ end;
 
 procedure Tgoverlayform.ApplyNavWidth(AWidth: Integer);
 var
-  i, PanelLeft: Integer;
+  i, PanelLeft, ContentW: Integer;
   ShowLabels: Boolean;
 begin
   PanelLeft  := AWidth;
@@ -9281,7 +9351,7 @@ begin
     FNavLabels[i].Visible := ShowLabels;
   end;
 
-  FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 22, AWidth - 20);
+  FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 28, AWidth - 26);
 
   goverlayimage.Visible  := ShowLabels;
   FNavSmallIcon.Visible  := not ShowLabels;
@@ -9290,6 +9360,13 @@ begin
   dependenciesLabel.Visible      := ShowLabels;
   dependencieSpeedButton.Visible := ShowLabels;
 
+  // Reflow all content tabs whenever the sidebar width changes
+  ContentW := Max(1, Self.ClientWidth - AWidth);
+  ReflowPresetTab(ContentW);
+  ReflowVisualTab(ContentW);
+  ReflowPerformanceTab(ContentW);
+  ReflowOptiScalerTab(ContentW);
+  ReflowTweaksTab(ContentW);
   if FGamesLoaded then
     ReflowGamesGrid;
 end;
@@ -9310,6 +9387,8 @@ begin
   ReflowPresetTab(ContentW);
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
+  ReflowOptiScalerTab(ContentW);
+  ReflowTweaksTab(ContentW);
 
   if FGamesLoaded then
     ReflowGamesGrid;
@@ -9321,13 +9400,12 @@ end;
 
 procedure Tgoverlayform.ReflowPresetTab(AContentW: Integer);
 const
-  MARGIN  = 20;
   MIN_GAP = 8;
-  BTN_W   = 123;  // original button width (fixed)
-  BTN_H   = 91;   // original button height (fixed)
+  BTN_W   = 123;
+  BTN_H   = 91;
   BTN_TOP = 107;
 var
-  W, Gap5, Gap4, X, i: Integer;
+  W, Gap5, Gap4, StartX5, StartX4, X, i: Integer;
   LblTop, ColorTop, ColorLblTop: Integer;
   LayoutBtns:   array[0..4] of TBitBtn;
   LayoutLabels: array[0..4] of TLabel;
@@ -9340,11 +9418,6 @@ begin
   ColorTop    := LblTop + 28;
   ColorLblTop := ColorTop + BTN_H + 8;
 
-  // Update section label positions
-  layoutsLabel.Left    := MARGIN;
-  colorthemeLabel.Left := MARGIN;
-  colorthemeLabel.Top  := ColorTop - 22;
-
   LayoutBtns[0] := fullBitBtn;            LayoutLabels[0] := fullLabel;
   LayoutBtns[1] := basicBitBtn;           LayoutLabels[1] := basicLabel;
   LayoutBtns[2] := basichorizontalBitBtn; LayoutLabels[2] := basichorizontalLabel;
@@ -9356,19 +9429,27 @@ begin
   ColorBtns[2] := whitecolorBitBtn;         ColorLabels[2] := whitecolorLabel;
   ColorBtns[3] := afterburnercolorBitBtn1;  ColorLabels[3] := afterburnercolorLabel;
 
-  Gap5 := Max(MIN_GAP, (W - 2 * MARGIN - 5 * BTN_W) div 4);
+  // Row 1: 5 buttons centered on the content area
+  Gap5    := Max(MIN_GAP, (W - 5 * BTN_W) div 6);
+  StartX5 := (W - 5 * BTN_W - 4 * Gap5) div 2;
+  // Section labels keep their own proportional position relative to center
+  layoutsLabel.Left := Max(8, W * 20 div 829);
   for i := 0 to 4 do
   begin
-    X := MARGIN + i * (BTN_W + Gap5);
+    X := StartX5 + i * (BTN_W + Gap5);
     LayoutBtns[i].SetBounds(X, BTN_TOP, BTN_W, BTN_H);
     LayoutLabels[i].Left := X + (BTN_W - LayoutLabels[i].Width) div 2;
     LayoutLabels[i].Top  := LblTop;
   end;
 
-  Gap4 := Max(MIN_GAP, (W - 2 * MARGIN - 4 * BTN_W) div 3);
+  // Row 2: 4 buttons centered on the content area
+  Gap4    := Max(MIN_GAP, (W - 4 * BTN_W) div 5);
+  StartX4 := (W - 4 * BTN_W - 3 * Gap4) div 2;
+  colorthemeLabel.Left := Max(8, W * 20 div 829);
+  colorthemeLabel.Top  := ColorTop - 22;
   for i := 0 to 3 do
   begin
-    X := MARGIN + i * (BTN_W + Gap4);
+    X := StartX4 + i * (BTN_W + Gap4);
     ColorBtns[i].SetBounds(X, ColorTop, BTN_W, BTN_H);
     ColorLabels[i].Left := X + (BTN_W - ColorLabels[i].Width) div 2;
     ColorLabels[i].Top  := ColorLblTop;
@@ -9377,24 +9458,33 @@ end;
 
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
 const
-  // Original layout at default content width of 829px (from LFM)
+  // Original layout at base AContentW=829
   BASE_W    = 829;
-  BASE_C1   = 11;   // orientationGroupBox.Left
-  BASE_COLW = 216;  // column width
-  BASE_GAP  = 76;   // horizontal gap between columns
-  ROW1_T    = 135;  // top of row 1 (fixed)
-  H1        = 131;  // row 1 height
-  H2        = 189;  // row 2 height
-  ROW_GAP   = 40;   // vertical gap between rows (306 - 135 - 131)
+  BASE_COLW = 216;
+  BASE_GAP  = 76;
+  ROW1_T    = 135;
+  H1        = 131;
+  H2        = 189;
+  ROW_GAP   = 40;
+  MIN_COLW  = 160;
+  MIN_GAP   = 8;
 var
-  ColW, Gap, C1, C2, C3, Row2T: Integer;
+  ColW, Gap, Center, C1, C2, C3, Row2T: Integer;
 begin
-  // Scale each dimension proportionally from the original 829px baseline
-  ColW  := Max(160, AContentW * BASE_COLW div BASE_W);
-  Gap   := Max(4,   AContentW * BASE_GAP  div BASE_W);
-  C1    := Max(4,   AContentW * BASE_C1   div BASE_W);
-  C2    := C1 + ColW + Gap;
-  C3    := C2 + ColW + Gap;
+  ColW   := Max(MIN_COLW, AContentW * BASE_COLW div BASE_W);
+  Gap    := Max(MIN_GAP,  AContentW * BASE_GAP  div BASE_W);
+  // Middle column centered on the content area; C1 and C3 are symmetric
+  Center := AContentW div 2;
+  C2     := Center - ColW div 2;
+  C1     := C2 - Gap - ColW;
+  C3     := C2 + ColW + Gap;
+  // Guard: if C1 clips off the left edge, fall back to left-flush
+  if C1 < 4 then
+  begin
+    C1 := 4;
+    C2 := C1 + ColW + Gap;
+    C3 := C2 + ColW + Gap;
+  end;
   Row2T := ROW1_T + H1 + ROW_GAP;
 
   // Row 1
@@ -9410,26 +9500,109 @@ end;
 
 procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
 const
-  // Original layout at default content width of 829px (from LFM)
-  BASE_W    = 829;
-  BASE_COLW = 386;  // column width
-  BASE_GAP  = 47;   // gap between left and right column (435 - 2 - 386)
-  BASE_C1   = 2;    // left column left margin
+  // Two equal columns symmetric around the content center.
+  // At base AContentW=829: C1=2, ColW=386, Gap=47, C2=435
+  BASE_GAP = 47;   // fixed gap between columns
+  BASE_C1  = 2;    // left margin (also used as right margin for symmetry)
+  MIN_COLW = 200;
 var
-  ColW, Gap, C2: Integer;
+  Center, ColW, C1, C2: Integer;
 begin
-  // Scale proportionally from original baseline
-  ColW := Max(280, AContentW * BASE_COLW div BASE_W);
-  Gap  := Max(4,   AContentW * BASE_GAP  div BASE_W);
-  C2   := BASE_C1 + ColW + Gap;
+  Center := AContentW div 2;
+  // Each column spans from its margin to half the gap from center
+  ColW := Max(MIN_COLW, Center - BASE_C1 - BASE_GAP div 2);
+  C1   := BASE_C1;
+  C2   := AContentW - BASE_C1 - ColW;  // right-anchored, mirror of C1
 
   // Left column
-  fpsGroupBox.SetBounds(BASE_C1, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
-  fpslimiterGroupBox.SetBounds(BASE_C1, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
+  fpsGroupBox.SetBounds(C1, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
+  fpslimiterGroupBox.SetBounds(C1, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
 
   // Right column
   vsyncGroupBox.SetBounds(C2, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
   filtersGroupBox.SetBounds(C2, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
+end;
+
+procedure Tgoverlayform.ReflowOptiScalerTab(AContentW: Integer);
+const
+  // Lateral boxes have fixed widths; ImGUI Menu fills the center.
+  // At base AContentW=828 the ImGUI center (410px) coincides with the
+  // optionsGroupBox center (820/2=410), so we use that as the anchor.
+  W1      = 252;   // optiscalerGroupBox — fixed width, left-anchored
+  W3      = 252;   // fakenvapiGroupBox  — fixed width, right-anchored
+  W2_BASE = 300;   // imgmenuGroupBox    — grows with available space
+  BOX_H   = 251;
+  BOX_TOP = 6;
+  MARGIN  = 4;
+  GAP     = 4;
+  MIN_W2  = 180;
+var
+  InnerW, Center, W2, X1, X2, X3: Integer;
+begin
+  // optionsGroupBox ClientWidth ≈ AContentW - 8
+  InnerW := AContentW - 8;
+  Center := InnerW div 2;
+
+  // Position imgmenu centered on the content area; expand symmetrically outward
+  W2 := Max(MIN_W2, InnerW - MARGIN - W1 - GAP - W3 - MARGIN - GAP);
+  X2 := Center - W2 div 2;
+
+  // If centering would clip the left box, fall back to left-flush layout
+  if X2 - GAP - W1 < MARGIN then
+    X2 := MARGIN + W1 + GAP;
+
+  X1 := X2 - GAP - W1;
+  X3 := X2 + W2 + GAP;
+
+  optiscalerGroupBox.SetBounds(X1, BOX_TOP, W1, BOX_H);
+  imgmenuGroupBox.SetBounds(X2, BOX_TOP, W2, BOX_H);
+  fakenvapiGroupBox.SetBounds(X3, BOX_TOP, W3, BOX_H);
+end;
+
+procedure Tgoverlayform.ReflowTweaksTab(AContentW: Integer);
+const
+  // At base AContentW=828:
+  //   basicGroupBox:   Left=2,  Width=824, Client=820
+  //   advancedGroupBox: Left=5, Width=818, Client=814
+  // Each contains 2 inner sections; inner boxes use center anchor (left/right symmetric).
+  MARGIN_B   = 5;    // inner margin inside basicGroupBox
+  GAP_B      = 10;   // gap between generalGroupBox and graphicsGroupBox
+  MIN_COLW_B = 140;
+
+  MARGIN_A   = 5;    // inner margin inside advancedGroupBox
+  GAP_A      = 25;   // gap between performanceGroupBox and customenvEdit
+  MIN_COLW_A = 140;
+  MIN_EDIT_W = 150;
+
+  BOX_H      = 137;  // inner groupbox height (fixed)
+  BOX_TOP    = 5;
+var
+  InnB, CenterB, ColWB, C1B, C2B: Integer;
+  InnA, CenterA, ColWA, C1A, EditLeft, EditW: Integer;
+begin
+  // --- basicGroupBox inner: generalGroupBox (left) + graphicsGroupBox (right) ---
+  // basicGroupBox: Left=2, Border=4 → Client ≈ AContentW - 8
+  InnB    := AContentW - 8;
+  CenterB := InnB div 2;
+  ColWB   := Max(MIN_COLW_B, CenterB - MARGIN_B - GAP_B div 2);
+  C1B     := MARGIN_B;
+  C2B     := InnB - MARGIN_B - ColWB;   // right-anchored mirror of C1B
+
+  generalGroupBox.SetBounds(C1B, BOX_TOP, ColWB, BOX_H);
+  graphicsGroupBox.SetBounds(C2B, BOX_TOP, ColWB, BOX_H);
+
+  // --- advancedGroupBox inner: performanceGroupBox (left) + customenvEdit (right) ---
+  // advancedGroupBox: Left=5, Border=4 → Client ≈ AContentW - 14
+  InnA    := AContentW - 14;
+  CenterA := InnA div 2;
+  ColWA   := Max(MIN_COLW_A, CenterA - MARGIN_A - GAP_A div 2);
+  C1A     := MARGIN_A;
+  EditLeft := C1A + ColWA + GAP_A;
+  EditW    := Max(MIN_EDIT_W, InnA - MARGIN_A - EditLeft);
+
+  performanceGroupBox.SetBounds(C1A, BOX_TOP, ColWA, BOX_H);
+  customenvEdit.Left  := EditLeft;
+  customenvEdit.Width := EditW;
 end;
 
 // ============================================================================
