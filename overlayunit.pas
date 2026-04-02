@@ -527,6 +527,8 @@ type
     FGamesPanel: TPanel;
     FGamesLoaded: Boolean;
     FCoverThread: TThread;
+    FSelectedCard: TPanel;
+    FActionBtns: array[0..3] of TPanel;
 
     // Nav rail
     FNavItems:       array of TPanel;    // item panels
@@ -561,12 +563,20 @@ type
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowTweaksTab(AContentW: Integer);
 
+    procedure StartCube;
+    procedure StopCube;
+
     procedure InitGamesTab;
     procedure LoadSteamGames;
     procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
     procedure GameCardMouseEnter(Sender: TObject);
     procedure GameCardMouseLeave(Sender: TObject);
+    procedure GameCardClick(Sender: TObject);
+    procedure ShowGameActionPanel(ACard: TPanel);
+    procedure HideGameActionPanel;
+    procedure GameActionBtnMouseEnter(Sender: TObject);
+    procedure GameActionBtnMouseLeave(Sender: TObject);
     function ParseAcfValue(const AContent, AKey: string): string;
     procedure GetSteamLibraries(Libraries: TStringList);
 
@@ -801,6 +811,21 @@ var
   NAV_W_EXPANDED  = 211;
   NAV_W_COLLAPSED = 60;
 implementation
+
+// ============================================================================
+// Debug logger — writes timestamped lines to stderr
+// ============================================================================
+var
+  GDbgT0: QWord = 0;
+
+procedure DbgLog(const Msg: string);
+var
+  T: QWord;
+begin
+  T := GetTickCount64;
+  if GDbgT0 = 0 then GDbgT0 := T;
+  WriteLn(StdErr, Format('[%6d ms] %s', [T - GDbgT0, Msg]));
+end;
 
 // ============================================================================
 // Background thread: downloads missing Steam cover images via Steam CDN
@@ -1976,6 +2001,7 @@ end;
 
 procedure Tgoverlayform.tweaksLabelClick(Sender: TObject);
 begin
+  DbgLog('>> tweaksLabelClick BEGIN');
   SetNavActive(3);
 
 //Enable goverlay tabs
@@ -2254,6 +2280,7 @@ end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 begin
+  DbgLog('>> vkbasaltLabelClick BEGIN');
   SetNavActive(1);
 
   //Disable tabs
@@ -4521,7 +4548,7 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.7.6';
+  GVERSION := '1.8.0';
   GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
@@ -5321,24 +5348,10 @@ begin
 end;
 
 
-procedure Tgoverlayform.FormShow(Sender: TObject);
-var
-  InitW: Integer;
+procedure Tgoverlayform.StartCube;
 begin
-  // Load Steam games grid once, after the form has its final dimensions
-  if not FGamesLoaded then
-  begin
-    FGamesLoaded := True;
-    LoadSteamGames;
-  end;
+  StopCube; // Prevent duplicates
 
-  // Initial reflow now that the form has real dimensions
-  InitW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
-  ReflowPresetTab(InitW);
-  ReflowVisualTab(InitW);
-  ReflowPerformanceTab(InitW);
-
-  // Start pascube or vkcube (vulkan demo) only after the form is fully loaded
   if IsRunningInFlatpak then
   begin
       // FLATPAK MODE
@@ -5371,6 +5384,44 @@ begin
       else
          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
   end;
+end;
+
+procedure Tgoverlayform.StopCube;
+var
+  Proc: TProcess;
+begin
+  // Run killall without the 200ms GUI-wait sleep used by ExecuteGUICommand
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindDefaultExecutablePath('sh');
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add('killall pascube vkcube vkcube-wayland 2>/dev/null; true');
+    Proc.Options := [poNoConsole];
+    Proc.Execute;
+  finally
+    Proc.Free;
+  end;
+end;
+
+
+procedure Tgoverlayform.FormShow(Sender: TObject);
+var
+  InitW: Integer;
+begin
+  // Load Steam games grid once, after the form has its final dimensions
+  if not FGamesLoaded then
+  begin
+    FGamesLoaded := True;
+    LoadSteamGames;
+  end;
+
+  // Initial reflow now that the form has real dimensions
+  InitW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
+  ReflowPresetTab(InitW);
+  ReflowVisualTab(InitW);
+  ReflowPerformanceTab(InitW);
+
+  // Start pascube or vkcube (vulkan demo) is now moved to SetNavActive (MangoHud tab)
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -6084,6 +6135,7 @@ end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 begin
+  DbgLog('>> mangohudLabelClick BEGIN');
   SetNavActive(0);
 
 //Enable goverlay tabs
@@ -6105,7 +6157,7 @@ geSpeedButton.Visible:=true;
 geLabel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
-
+DbgLog('<< mangohudLabelClick END');
 end;
 
 procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
@@ -6139,6 +6191,7 @@ end;
 
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
 begin
+  DbgLog('>> optiscalerLabelClick BEGIN');
   SetNavActive(2);
 
 //Disable tabs
@@ -6158,6 +6211,7 @@ begin
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
+  DbgLog('<< optiscalerLabelClick END');
 end;
 
 procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
@@ -9200,6 +9254,7 @@ begin
     Item.OnClick      := @NavItemClick;
     Item.OnMouseEnter := @NavItemMouseEnter;
     Item.OnMouseLeave := @NavItemMouseLeave;
+    Item.OnPaint      := @NavItemPaint;
 
     // --- Active indicator bar (left edge) ---
     Indicator := TShape.Create(Self);
@@ -9213,7 +9268,7 @@ begin
     // --- Icon label (Nerd Font / Unicode) ---
     IconLbl := TLabel.Create(Self);
     IconLbl.Parent := Item;
-    IconLbl.SetBounds(16, 10, NAV_ICON_SIZE, NAV_ICON_SIZE);
+    IconLbl.SetBounds(16, (NAV_ITEM_H - NAV_ICON_SIZE) div 2, NAV_ICON_SIZE, NAV_ICON_SIZE);
 
     if i = 2 then
     begin
@@ -9221,7 +9276,7 @@ begin
       
       FOptiScalerImg := TImage.Create(Self);
       FOptiScalerImg.Parent := Item;
-      FOptiScalerImg.SetBounds(18, 12, 24, 24);
+      FOptiScalerImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
       FOptiScalerImg.Stretch := True;
       FOptiScalerImg.Proportional := True;
       FOptiScalerImg.Center := True;
@@ -9241,7 +9296,7 @@ begin
       
       FMangoHudImg := TImage.Create(Self);
       FMangoHudImg.Parent := Item;
-      FMangoHudImg.SetBounds(18, 12, 24, 24);
+      FMangoHudImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
       FMangoHudImg.Stretch := True;
       FMangoHudImg.Proportional := True;
       FMangoHudImg.Center := True;
@@ -9262,7 +9317,8 @@ begin
     IconLbl.Font.Size := 18;
     IconLbl.Font.Color := $00AAAAAA;
     IconLbl.Font.Name  := 'Noto Sans';
-    IconLbl.Transparent := True;
+    IconLbl.Transparent  := False;
+    IconLbl.ParentColor  := True;
     IconLbl.Cursor := crHandPoint;
     IconLbl.Tag    := i;
     IconLbl.OnClick      := @NavItemClick;
@@ -9278,7 +9334,8 @@ begin
     CaptionLbl.Font.Color := $00AAAAAA;
     CaptionLbl.Font.Name  := 'Noto Sans';
     CaptionLbl.Font.Style := [fsBold];
-    CaptionLbl.Transparent := True;
+    CaptionLbl.Transparent  := False;
+    CaptionLbl.ParentColor  := True;
     CaptionLbl.Cursor := crHandPoint;
     CaptionLbl.Tag    := i;
     CaptionLbl.OnClick      := @NavItemClick;
@@ -9301,6 +9358,7 @@ var
   i: Integer;
   IconPath: string;
 begin
+  DbgLog(Format('  SetNavActive(%d) BEGIN', [AIndex]));
   for i := 0 to High(FNavItems) do
   begin
     if i = AIndex then
@@ -9345,6 +9403,12 @@ begin
     end;
   end;
   FNavActive := AIndex;
+
+  if FNavActive = 0 then
+    StartCube
+  else
+    StopCube;
+  DbgLog(Format('  SetNavActive(%d) END', [AIndex]));
 end;
 
 procedure Tgoverlayform.NavItemClick(Sender: TObject);
@@ -9352,7 +9416,6 @@ var
   Idx: Integer;
 begin
   Idx := (Sender as TControl).Tag;
-  SetNavActive(Idx);
   if Assigned(FNavClickCBs[Idx]) then
     FNavClickCBs[Idx](FNavItems[Idx]);
 end;
@@ -9376,8 +9439,14 @@ begin
 end;
 
 procedure Tgoverlayform.NavItemPaint(Sender: TObject);
+var
+  P: TPanel;
 begin
-  // reserved for future custom painting
+  P := TPanel(Sender);
+  DbgLog(Format('  NavItemPaint tag=%d Color=$%06X', [P.Tag, P.Color]));
+  P.Canvas.Brush.Color := P.Color;
+  P.Canvas.Brush.Style := bsSolid;
+  P.Canvas.FillRect(P.ClientRect);
 end;
 
 procedure Tgoverlayform.ApplyNavCollapsed;
@@ -9489,6 +9558,7 @@ procedure Tgoverlayform.FormResize(Sender: TObject);
 var
   NavW, ContentW: Integer;
 begin
+  DbgLog('  FormResize BEGIN');
   NavW     := goverlayPaintBox.Width;
   ContentW := Max(1, Self.ClientWidth - NavW);
 
@@ -9724,6 +9794,10 @@ end;
 // ============================================================================
 
 procedure Tgoverlayform.InitGamesTab;
+const
+  BTN_CAPTIONS: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'Tweaks');
+var
+  k: Integer;
 begin
   FGamesScrollBox := TScrollBox.Create(Self);
   FGamesScrollBox.Parent := gamesTabSheet;
@@ -9742,6 +9816,25 @@ begin
   FGamesPanel.Top := 0;
   FGamesPanel.Width := 800;
   FGamesPanel.Height := 100;
+
+  // 4 shared action buttons — children of FGamesPanel, repositioned on card select
+  for k := 0 to 3 do
+  begin
+    FActionBtns[k] := TPanel.Create(Self);
+    FActionBtns[k].Parent     := FGamesPanel;
+    FActionBtns[k].BevelOuter := bvNone;
+    FActionBtns[k].Caption    := BTN_CAPTIONS[k];
+    FActionBtns[k].Color      := $2D2D2D;
+    FActionBtns[k].Font.Color := $AAAAAA;
+    FActionBtns[k].Font.Size  := 8;
+    FActionBtns[k].Cursor     := crHandPoint;
+    FActionBtns[k].Tag        := k;
+    FActionBtns[k].Visible    := False;
+    FActionBtns[k].SetBounds(0, 0, 134, 32);
+    FActionBtns[k].OnMouseEnter := @GameActionBtnMouseEnter;
+    FActionBtns[k].OnMouseLeave := @GameActionBtnMouseLeave;
+  end;
+
 end;
 
 procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
@@ -9839,7 +9932,7 @@ var
   PendingImages: TList;
   CacheDir: string;
   i, j, CardX, CardY, CardsPerRow, TotalRows: Integer;
-  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir: string;
+  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir, InstallDir: string;
   SR: TSearchRec;
   AcfFile: TStringList;
   CardPanel: TPanel;
@@ -9890,8 +9983,9 @@ begin
             AcfFile.Free;
           end;
 
-          AppID    := ParseAcfValue(AcfContent, 'appid');
-          GameName := ParseAcfValue(AcfContent, 'name');
+          AppID      := ParseAcfValue(AcfContent, 'appid');
+          GameName   := ParseAcfValue(AcfContent, 'name');
+          InstallDir := ParseAcfValue(AcfContent, 'installdir');
           if (AppID = '') or (GameName = '') then
             Continue;
 
@@ -9926,8 +10020,11 @@ begin
           CardPanel.BevelOuter := bvNone;
           CardPanel.Caption := '';
           CardPanel.Color := $2A2A2A;
+          CardPanel.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
+          CardPanel.ShowHint := True;
           CardPanel.OnMouseEnter := @GameCardMouseEnter;
           CardPanel.OnMouseLeave := @GameCardMouseLeave;
+          CardPanel.OnClick := @GameCardClick;
 
           CardImage := TImage.Create(Self);
           CardImage.Parent := CardPanel;
@@ -9935,8 +10032,11 @@ begin
           CardImage.Stretch := True;
           CardImage.Proportional := False;
           CardImage.Center := False;
+          CardImage.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
+          CardImage.ShowHint := True;
           CardImage.OnMouseEnter := @GameCardMouseEnter;
           CardImage.OnMouseLeave := @GameCardMouseLeave;
+          CardImage.OnClick := @GameCardClick;
 
           // Load local image or queue for CDN download
           if FileExists(ImagePath) then
@@ -9961,10 +10061,11 @@ begin
           CardLabel.Font.Size := 7;
           CardLabel.Alignment := taCenter;
           CardLabel.WordWrap := False;
-          CardLabel.Hint := GameName;
+          CardLabel.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardLabel.ShowHint := True;
           CardLabel.OnMouseEnter := @GameCardMouseEnter;
           CardLabel.OnMouseLeave := @GameCardMouseLeave;
+          CardLabel.OnClick := @GameCardClick;
 
           Inc(j);
         until FindNext(SR) <> 0;
@@ -10026,6 +10127,13 @@ var
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
+  // Skip reflow while games tab is not visible — avoids N×SetBounds on every tab switch
+  if not gamesTabSheet.TabVisible then
+  begin
+    DbgLog('  ReflowGamesGrid SKIPPED (tab not visible)');
+    Exit;
+  end;
+  DbgLog('  ReflowGamesGrid BEGIN (tab visible)');
 
   CardsPerRow := Max(1, (FGamesScrollBox.ClientWidth - CARD_MARGIN) div (CARD_W + CARD_MARGIN));
   CardCount   := 0;
@@ -10034,6 +10142,10 @@ begin
   begin
     Ctrl := FGamesPanel.Controls[i];
     if not (Ctrl is TPanel) then
+      Continue;
+    // Skip the shared action buttons
+    if (TPanel(Ctrl) = FActionBtns[0]) or (TPanel(Ctrl) = FActionBtns[1]) or
+       (TPanel(Ctrl) = FActionBtns[2]) or (TPanel(Ctrl) = FActionBtns[3]) then
       Continue;
     CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
     CardY := CARD_MARGIN + (CardCount div CardsPerRow) * (CARD_H + CARD_MARGIN);
@@ -10047,6 +10159,15 @@ begin
     FGamesPanel.Width  := Max(FGamesScrollBox.ClientWidth,
       CardsPerRow * (CARD_W + CARD_MARGIN) + CARD_MARGIN);
     FGamesPanel.Height := CARD_MARGIN + TotalRows * (CARD_H + CARD_MARGIN);
+  end;
+
+  // Keep action buttons in sync with selected card after reflow
+  if FSelectedCard <> nil then
+  begin
+    FActionBtns[0].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top +  31, FSelectedCard.Width - 16, 32);
+    FActionBtns[1].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top +  70, FSelectedCard.Width - 16, 32);
+    FActionBtns[2].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top + 109, FSelectedCard.Width - 16, 32);
+    FActionBtns[3].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top + 148, FSelectedCard.Width - 16, 32);
   end;
 end;
 
@@ -10069,7 +10190,8 @@ begin
   else
     Exit;
 
-  Panel.Color := $3A3A3A;
+  if Panel <> FSelectedCard then
+    Panel.Color := $3A3A3A;
   if Sender is TControl then
     TControl(Sender).Cursor := crHandPoint;
 end;
@@ -10087,8 +10209,81 @@ begin
   else
     Exit;
 
-  // Restore original panel color
-  Panel.Color := $2A2A2A;
+  // Restore original panel color (only if not selected)
+  if Panel <> FSelectedCard then
+    Panel.Color := $2A2A2A;
+end;
+
+procedure Tgoverlayform.GameCardClick(Sender: TObject);
+var
+  Panel: TPanel;
+begin
+  if Sender is TPanel then
+    Panel := TPanel(Sender)
+  else if Sender is TImage then
+    Panel := TPanel(TImage(Sender).Parent)
+  else if Sender is TLabel then
+    Panel := TPanel(TLabel(Sender).Parent)
+  else
+    Exit;
+
+  if Panel = FSelectedCard then
+  begin
+    HideGameActionPanel;
+    Exit;
+  end;
+
+  ShowGameActionPanel(Panel);
+end;
+
+procedure Tgoverlayform.ShowGameActionPanel(ACard: TPanel);
+const
+  BTN_OFFSETS: array[0..3] of Integer = (31, 70, 109, 148);
+var
+  k: Integer;
+begin
+  if FSelectedCard <> nil then
+    HideGameActionPanel;
+
+  FSelectedCard       := ACard;
+  FSelectedCard.Color := clHighlight;
+
+  for k := 0 to 3 do
+  begin
+    FActionBtns[k].SetBounds(
+      ACard.Left + 8,
+      ACard.Top  + BTN_OFFSETS[k],
+      ACard.Width - 16,
+      32);
+    FActionBtns[k].Visible := True;
+    FActionBtns[k].BringToFront;
+  end;
+end;
+
+procedure Tgoverlayform.HideGameActionPanel;
+var
+  k: Integer;
+begin
+  if FSelectedCard = nil then
+    Exit;
+
+  for k := 0 to 3 do
+    FActionBtns[k].Visible := False;
+
+  FSelectedCard.Color := $2A2A2A;
+  FSelectedCard := nil;
+end;
+
+procedure Tgoverlayform.GameActionBtnMouseEnter(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $404040;
+end;
+
+procedure Tgoverlayform.GameActionBtnMouseLeave(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $2D2D2D;
 end;
 
 end.
