@@ -9385,9 +9385,7 @@ const
 var
   W, ColW, C1, C2, C3, Row2T: Integer;
 begin
-  // Use the tab sheet itself as the width reference
-  W := visualTabSheet.ClientWidth;
-  if W < 10 then W := goverlayPanel.ClientWidth;  // fallback before layout
+  W := goverlayPanel.ClientWidth;
 
   ColW := Max(160, (W - 2 * MARGIN - 2 * COL_GAP) div 3);
 
@@ -9414,9 +9412,7 @@ const
 var
   W, ColW: Integer;
 begin
-  // Use the tab sheet itself as the width reference
-  W := performanceTabSheet.ClientWidth;
-  if W < 10 then W := goverlayPanel.ClientWidth;  // fallback before layout
+  W := goverlayPanel.ClientWidth;
 
   ColW := Max(280, (W - 2 * MARGIN - GAP) div 2);
 
