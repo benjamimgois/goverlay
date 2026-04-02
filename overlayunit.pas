@@ -4563,11 +4563,44 @@ begin
   ApplyIconsToButtons(Self);
   BuildNavRail;
 
-  // Strip akRight anchors from controls we reflow manually,
-  // preventing the LCL anchor system from overriding SetBounds
-  backgroundGroupBox.Anchors := [akTop, akLeft];
-  vsyncGroupBox.Anchors      := [akTop, akLeft];
-  filtersGroupBox.Anchors    := [akTop, akLeft];
+  // Detach all anchor-side control references for every groupbox we reflow
+  // manually (Visual + Performance tabs). Without this the LCL anchor engine
+  // keeps repositioning them even when Anchors = [akTop, akLeft].
+  orientationGroupBox.AnchorSideLeft.Control  := nil;
+  orientationGroupBox.AnchorSideRight.Control := nil;
+  orientationGroupBox.AnchorSideTop.Control   := nil;
+  orientationGroupBox.Anchors                 := [akTop, akLeft];
+
+  borderGroupBox.AnchorSideLeft.Control       := nil;
+  borderGroupBox.AnchorSideRight.Control      := nil;
+  borderGroupBox.AnchorSideTop.Control        := nil;
+  borderGroupBox.Anchors                      := [akTop, akLeft];
+
+  backgroundGroupBox.AnchorSideLeft.Control   := nil;
+  backgroundGroupBox.AnchorSideRight.Control  := nil;
+  backgroundGroupBox.AnchorSideTop.Control    := nil;
+  backgroundGroupBox.Anchors                  := [akTop, akLeft];
+
+  fontsGroupBox.AnchorSideLeft.Control        := nil;
+  fontsGroupBox.AnchorSideTop.Control         := nil;
+  fontsGroupBox.Anchors                       := [akTop, akLeft];
+
+  positionGroupBox.AnchorSideLeft.Control     := nil;
+  positionGroupBox.AnchorSideTop.Control      := nil;
+  positionGroupBox.Anchors                    := [akTop, akLeft];
+
+  columsGroupBox.AnchorSideLeft.Control       := nil;
+  columsGroupBox.AnchorSideTop.Control        := nil;
+  columsGroupBox.Anchors                      := [akTop, akLeft];
+
+  vsyncGroupBox.AnchorSideRight.Control       := nil;
+  vsyncGroupBox.AnchorSideTop.Control         := nil;
+  vsyncGroupBox.Anchors                       := [akTop, akLeft];
+
+  filtersGroupBox.AnchorSideRight.Control     := nil;
+  filtersGroupBox.AnchorSideBottom.Control    := nil;
+  filtersGroupBox.AnchorSideTop.Control       := nil;
+  filtersGroupBox.Anchors                     := [akTop, akLeft];
 
   // Create components dynamically for now
   searchEdit := TEdit.Create(Self);
