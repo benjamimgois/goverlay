@@ -537,6 +537,9 @@ type
     FNavCollapsed:   Boolean;            // sidebar collapsed state
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
     FNavSmallIcon:   TImage;             // small app icon shown when collapsed
+    FNavAnimTimer:   TTimer;             // sidebar animation timer
+    FNavAnimTarget:  Integer;            // animation target width
+    FNavAnimCurrent: Integer;            // animation current width (fixed-point *10)
 
     procedure BuildNavRail;
     procedure NavItemClick(Sender: TObject);
@@ -545,7 +548,10 @@ type
     procedure NavItemPaint(Sender: TObject);
     procedure SetNavActive(AIndex: Integer);
     procedure NavToggleClick(Sender: TObject);
+    procedure NavAnimTick(Sender: TObject);
+    procedure ApplyNavWidth(AWidth: Integer);
     procedure ApplyNavCollapsed;
+    procedure FormResize(Sender: TObject);
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
@@ -4608,7 +4614,8 @@ begin
 
   // Enable keyboard shortcuts
   Self.KeyPreview := True;
-  Self.OnKeyDown := @FormKeyDown;
+  Self.OnKeyDown  := @FormKeyDown;
+  Self.OnResize   := @FormResize;
   
   vkbasaltsel := false;
 
@@ -8999,8 +9006,15 @@ begin
   FNavClickCBs[2] := @optiscalerLabelClick;
   FNavClickCBs[3] := @tweaksLabelClick;
 
-  FNavActive    := -1;
-  FNavCollapsed := False;
+  FNavActive      := -1;
+  FNavCollapsed   := False;
+  FNavAnimCurrent := NAV_W_EXPANDED * 10;
+  FNavAnimTarget  := NAV_W_EXPANDED;
+
+  FNavAnimTimer := TTimer.Create(Self);
+  FNavAnimTimer.Interval := 12;  // ~80fps
+  FNavAnimTimer.Enabled  := False;
+  FNavAnimTimer.OnTimer  := @NavAnimTick;
 
   // Toggle button — small discrete arrow, bottom-right of logo area
   FNavToggleBtn := TSpeedButton.Create(Self);
@@ -9152,66 +9166,99 @@ end;
 
 procedure Tgoverlayform.ApplyNavCollapsed;
 var
-  i, NavW, PanelLeft: Integer;
+  NavW: Integer;
 begin
-  NavW      := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
-  PanelLeft := NavW;
+  NavW := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
+  FNavAnimCurrent := NavW * 10;
+  ApplyNavWidth(NavW);
 
-  // Resize the sidebar paintbox
-  goverlayPaintBox.Width := NavW;
-
-  // Move + resize the main content panel
-  goverlayPanel.Left  := PanelLeft;
-  goverlayPanel.Width := Self.ClientWidth - PanelLeft;
-
-  // Reposition nav items and their sub-controls
-  for i := 0 to High(FNavItems) do
-  begin
-    FNavItems[i].SetBounds(0, FNavItems[i].Top, NavW, NAV_ITEM_H);
-
-    // In collapsed mode: center icon, hide label; restore in expanded
-    if FNavCollapsed then
-    begin
-      FNavIcons[i].Left  := (NavW - NAV_ICON_SIZE) div 2;
-      FNavLabels[i].Visible := False;
-    end
-    else
-    begin
-      FNavIcons[i].Left  := 16;
-      FNavLabels[i].Visible := True;
-    end;
-  end;
-
-  // Toggle button — small arrow, bottom-right of logo/icon area
   if FNavCollapsed then
-  begin
-    FNavToggleBtn.SetBounds(NavW - 22, 46, 18, 18);
-    FNavToggleBtn.Caption := '»';
-  end
+    FNavToggleBtn.Caption := '»'
   else
-  begin
-    FNavToggleBtn.SetBounds(NavW - 22, 56, 18, 18);
     FNavToggleBtn.Caption := '«';
-  end;
-
-  // Swap full logo <-> small icon
-  goverlayimage.Visible  := not FNavCollapsed;
-  FNavSmallIcon.Visible  := FNavCollapsed;
-  FNavSmallIcon.Left     := (NAV_W_COLLAPSED - 40) div 2;
-
-  // Hide dependencies label and icon when collapsed; keep only theme toggle
-  dependenciesLabel.Visible    := not FNavCollapsed;
-  dependencieSpeedButton.Visible := not FNavCollapsed;
-
-  // Reflow games grid if it's loaded
-  if FGamesLoaded then
-    ReflowGamesGrid;
 end;
 
 procedure Tgoverlayform.NavToggleClick(Sender: TObject);
 begin
-  FNavCollapsed := not FNavCollapsed;
-  ApplyNavCollapsed;
+  FNavCollapsed  := not FNavCollapsed;
+  FNavAnimTarget := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
+  FNavAnimTimer.Enabled := True;
+end;
+
+procedure Tgoverlayform.NavAnimTick(Sender: TObject);
+const
+  EASE = 0.22; // fraction of remaining distance per tick (ease-out)
+var
+  PrevW, NextW: Integer;
+begin
+  PrevW := FNavAnimCurrent div 10;
+
+  // Ease-out: move a fraction of remaining distance each tick
+  FNavAnimCurrent := FNavAnimCurrent +
+    Round((FNavAnimTarget * 10 - FNavAnimCurrent) * EASE);
+
+  NextW := FNavAnimCurrent div 10;
+
+  // Snap to target when close enough
+  if Abs(NextW - FNavAnimTarget) <= 1 then
+  begin
+    FNavAnimCurrent := FNavAnimTarget * 10;
+    FNavAnimTimer.Enabled := False;
+    ApplyNavCollapsed;  // final state: show/hide labels etc.
+    Exit;
+  end;
+
+  if NextW <> PrevW then
+    ApplyNavWidth(NextW);
+end;
+
+procedure Tgoverlayform.ApplyNavWidth(AWidth: Integer);
+var
+  i, PanelLeft: Integer;
+  ShowLabels: Boolean;
+begin
+  PanelLeft  := AWidth;
+  ShowLabels := AWidth > (NAV_W_COLLAPSED + NAV_W_EXPANDED) div 2;
+
+  goverlayPaintBox.Width := AWidth;
+  goverlayPanel.Left     := PanelLeft;
+  goverlayPanel.Width    := Max(1, Self.ClientWidth - PanelLeft);
+
+  for i := 0 to High(FNavItems) do
+  begin
+    FNavItems[i].Width   := AWidth;
+    FNavIcons[i].Left    := IfThen(ShowLabels, 16, (AWidth - NAV_ICON_SIZE) div 2);
+    FNavLabels[i].Visible := ShowLabels;
+  end;
+
+  FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 22, AWidth - 20);
+
+  goverlayimage.Visible  := ShowLabels;
+  FNavSmallIcon.Visible  := not ShowLabels;
+  FNavSmallIcon.Left     := (AWidth - 40) div 2;
+
+  dependenciesLabel.Visible      := ShowLabels;
+  dependencieSpeedButton.Visible := ShowLabels;
+
+  if FGamesLoaded then
+    ReflowGamesGrid;
+end;
+
+procedure Tgoverlayform.FormResize(Sender: TObject);
+var
+  NavW: Integer;
+begin
+  // Keep sidebar at its current width and resize content panel to fill the rest
+  NavW := goverlayPaintBox.Width;
+  goverlayPanel.Left  := NavW;
+  goverlayPanel.Width := Max(1, Self.ClientWidth - NavW);
+
+  // Keep nav items at current sidebar width
+  if Length(FNavItems) > 0 then
+    ApplyNavWidth(goverlayPaintBox.Width);
+
+  if FGamesLoaded then
+    ReflowGamesGrid;
 end;
 
 // ============================================================================
