@@ -9376,21 +9376,25 @@ end;
 
 procedure Tgoverlayform.ReflowVisualTab;
 const
-  MARGIN  = 8;
-  ROW1_T  = 135;
-  ROW2_T  = 306;
-  GAP     = 6;
+  MARGIN    = 8;
+  ROW_GAP   = 8;   // vertical gap between row 1 and row 2
+  COL_GAP   = 8;   // horizontal gap between columns
+  H1        = 131; // original orientationGroupBox height
+  H2        = 189; // original fontsGroupBox height
+  ROW1_T    = 135; // top of row 1 (fixed — aligns with GPU controls above)
 var
-  W, ColW, H1, H2, C1, C2, C3: Integer;
+  W, ColW, C1, C2, C3, Row2T: Integer;
 begin
-  W := goverlayPageControl.ClientWidth;
-  ColW := Max(160, (W - 2 * MARGIN - 2 * GAP) div 3);
-  H1 := orientationGroupBox.Height;  // 131
-  H2 := fontsGroupBox.Height;        // 189
+  // Use the tab sheet itself as the width reference
+  W := visualTabSheet.ClientWidth;
+  if W < 10 then W := goverlayPanel.ClientWidth;  // fallback before layout
 
-  C1 := MARGIN;
-  C2 := MARGIN + ColW + GAP;
-  C3 := MARGIN + 2 * (ColW + GAP);
+  ColW := Max(160, (W - 2 * MARGIN - 2 * COL_GAP) div 3);
+
+  C1    := MARGIN;
+  C2    := MARGIN + ColW + COL_GAP;
+  C3    := MARGIN + 2 * (ColW + COL_GAP);
+  Row2T := ROW1_T + H1 + ROW_GAP;
 
   // Row 1
   orientationGroupBox.SetBounds(C1, ROW1_T, ColW, H1);
@@ -9398,9 +9402,9 @@ begin
   backgroundGroupBox.SetBounds(C3, ROW1_T, ColW, H1);
 
   // Row 2
-  fontsGroupBox.SetBounds(C1, ROW2_T, ColW, H2);
-  positionGroupBox.SetBounds(C2, ROW2_T, ColW, H2);
-  columsGroupBox.SetBounds(C3, ROW2_T, ColW, H2);
+  fontsGroupBox.SetBounds(C1, Row2T, ColW, H2);
+  positionGroupBox.SetBounds(C2, Row2T, ColW, H2);
+  columsGroupBox.SetBounds(C3, Row2T, ColW, H2);
 end;
 
 procedure Tgoverlayform.ReflowPerformanceTab;
@@ -9410,7 +9414,10 @@ const
 var
   W, ColW: Integer;
 begin
-  W    := goverlayPageControl.ClientWidth;
+  // Use the tab sheet itself as the width reference
+  W := performanceTabSheet.ClientWidth;
+  if W < 10 then W := goverlayPanel.ClientWidth;  // fallback before layout
+
   ColW := Max(280, (W - 2 * MARGIN - GAP) div 2);
 
   // Left column
