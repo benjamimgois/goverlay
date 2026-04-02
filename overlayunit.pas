@@ -534,6 +534,9 @@ type
     FNavLabels:      array of TLabel;    // caption labels
     FNavActive:      Integer;            // index of active item (-1 = none)
     FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
+    FNavCollapsed:   Boolean;            // sidebar collapsed state
+    FNavToggleBtn:   TSpeedButton;       // collapse/expand button
+    FNavSmallIcon:   TImage;             // small app icon shown when collapsed
 
     procedure BuildNavRail;
     procedure NavItemClick(Sender: TObject);
@@ -541,6 +544,8 @@ type
     procedure NavItemMouseLeave(Sender: TObject);
     procedure NavItemPaint(Sender: TObject);
     procedure SetNavActive(AIndex: Integer);
+    procedure NavToggleClick(Sender: TObject);
+    procedure ApplyNavCollapsed;
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
@@ -777,6 +782,8 @@ var
   NAV_COLOR_HOVER     = $00332E2C; // item hover background
   NAV_COLOR_ACTIVE    = $00443E3A; // item active background
   NAV_COLOR_INDICATOR = $0000C8FF; // active indicator (amber/gold)
+  NAV_W_EXPANDED  = 211;
+  NAV_W_COLLAPSED = 60;
 implementation
 
 // ============================================================================
@@ -8965,11 +8972,12 @@ const
     (Icon: '󰹢'; Caption: 'OptiScaler'),
     (Icon: '󰌬'; Caption: 'Proton Tweaks')
   );
-  TOP_START = 120;
+  TOP_START = 108;
 var
   i: Integer;
   Item: TPanel;
   Indicator: TShape;
+  IconPath: string;
   IconLbl: TLabel;
   CaptionLbl: TLabel;
   TopY: Integer;
@@ -8991,7 +8999,35 @@ begin
   FNavClickCBs[2] := @optiscalerLabelClick;
   FNavClickCBs[3] := @tweaksLabelClick;
 
-  FNavActive := -1;
+  FNavActive    := -1;
+  FNavCollapsed := False;
+
+  // Toggle button — small discrete arrow, bottom-right of logo area
+  FNavToggleBtn := TSpeedButton.Create(Self);
+  FNavToggleBtn.Parent  := Self;
+  FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 22, 56, 18, 18);
+  FNavToggleBtn.Caption    := '«';
+  FNavToggleBtn.Font.Size  := 8;
+  FNavToggleBtn.Font.Color := $00666666;
+  FNavToggleBtn.Flat    := True;
+  FNavToggleBtn.Cursor  := crHandPoint;
+  FNavToggleBtn.Color   := $00221F1E;
+  FNavToggleBtn.OnClick := @NavToggleClick;
+
+  // Small app icon shown in collapsed state instead of the full logo
+  FNavSmallIcon := TImage.Create(Self);
+  FNavSmallIcon.Parent  := Self;
+  FNavSmallIcon.SetBounds((NAV_W_COLLAPSED - 40) div 2, 8, 40, 40);
+  FNavSmallIcon.Stretch      := True;
+  FNavSmallIcon.Proportional := True;
+  FNavSmallIcon.Center       := True;
+  FNavSmallIcon.Visible      := False;
+  // Load icon — try installed path first, then local data dir
+  IconPath := GetIconFile();
+  if not FileExists(IconPath) then
+    IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/128x128/goverlay.png';
+  if FileExists(IconPath) then
+    try FNavSmallIcon.Picture.LoadFromFile(IconPath); except end;
 
   for i := 0 to High(ITEMS) do
   begin
@@ -9112,6 +9148,70 @@ end;
 procedure Tgoverlayform.NavItemPaint(Sender: TObject);
 begin
   // reserved for future custom painting
+end;
+
+procedure Tgoverlayform.ApplyNavCollapsed;
+var
+  i, NavW, PanelLeft: Integer;
+begin
+  NavW      := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
+  PanelLeft := NavW;
+
+  // Resize the sidebar paintbox
+  goverlayPaintBox.Width := NavW;
+
+  // Move + resize the main content panel
+  goverlayPanel.Left  := PanelLeft;
+  goverlayPanel.Width := Self.ClientWidth - PanelLeft;
+
+  // Reposition nav items and their sub-controls
+  for i := 0 to High(FNavItems) do
+  begin
+    FNavItems[i].SetBounds(0, FNavItems[i].Top, NavW, NAV_ITEM_H);
+
+    // In collapsed mode: center icon, hide label; restore in expanded
+    if FNavCollapsed then
+    begin
+      FNavIcons[i].Left  := (NavW - NAV_ICON_SIZE) div 2;
+      FNavLabels[i].Visible := False;
+    end
+    else
+    begin
+      FNavIcons[i].Left  := 16;
+      FNavLabels[i].Visible := True;
+    end;
+  end;
+
+  // Toggle button — small arrow, bottom-right of logo/icon area
+  if FNavCollapsed then
+  begin
+    FNavToggleBtn.SetBounds(NavW - 22, 46, 18, 18);
+    FNavToggleBtn.Caption := '»';
+  end
+  else
+  begin
+    FNavToggleBtn.SetBounds(NavW - 22, 56, 18, 18);
+    FNavToggleBtn.Caption := '«';
+  end;
+
+  // Swap full logo <-> small icon
+  goverlayimage.Visible  := not FNavCollapsed;
+  FNavSmallIcon.Visible  := FNavCollapsed;
+  FNavSmallIcon.Left     := (NAV_W_COLLAPSED - 40) div 2;
+
+  // Hide dependencies label and icon when collapsed; keep only theme toggle
+  dependenciesLabel.Visible    := not FNavCollapsed;
+  dependencieSpeedButton.Visible := not FNavCollapsed;
+
+  // Reflow games grid if it's loaded
+  if FGamesLoaded then
+    ReflowGamesGrid;
+end;
+
+procedure Tgoverlayform.NavToggleClick(Sender: TObject);
+begin
+  FNavCollapsed := not FNavCollapsed;
+  ApplyNavCollapsed;
 end;
 
 // ============================================================================
