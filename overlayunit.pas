@@ -552,9 +552,9 @@ type
     procedure ApplyNavWidth(AWidth: Integer);
     procedure ApplyNavCollapsed;
     procedure FormResize(Sender: TObject);
-    procedure ReflowPresetTab;
-    procedure ReflowVisualTab;
-    procedure ReflowPerformanceTab;
+    procedure ReflowPresetTab(AContentW: Integer);
+    procedure ReflowVisualTab(AContentW: Integer);
+    procedure ReflowPerformanceTab(AContentW: Integer);
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
@@ -5279,6 +5279,8 @@ end;
 
 
 procedure Tgoverlayform.FormShow(Sender: TObject);
+var
+  InitW: Integer;
 begin
   // Load Steam games grid once, after the form has its final dimensions
   if not FGamesLoaded then
@@ -5288,9 +5290,10 @@ begin
   end;
 
   // Initial reflow now that the form has real dimensions
-  ReflowPresetTab;
-  ReflowVisualTab;
-  ReflowPerformanceTab;
+  InitW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
+  ReflowPresetTab(InitW);
+  ReflowVisualTab(InitW);
+  ReflowPerformanceTab(InitW);
 
   // Start pascube or vkcube (vulkan demo) only after the form is fully loaded
   if IsRunningInFlatpak then
@@ -9293,18 +9296,20 @@ end;
 
 procedure Tgoverlayform.FormResize(Sender: TObject);
 var
-  NavW: Integer;
+  NavW, ContentW: Integer;
 begin
-  NavW := goverlayPaintBox.Width;
+  NavW     := goverlayPaintBox.Width;
+  ContentW := Max(1, Self.ClientWidth - NavW);
+
   goverlayPanel.Left  := NavW;
-  goverlayPanel.Width := Max(1, Self.ClientWidth - NavW);
+  goverlayPanel.Width := ContentW;
 
   if Length(FNavItems) > 0 then
     ApplyNavWidth(NavW);
 
-  ReflowPresetTab;
-  ReflowVisualTab;
-  ReflowPerformanceTab;
+  ReflowPresetTab(ContentW);
+  ReflowVisualTab(ContentW);
+  ReflowPerformanceTab(ContentW);
 
   if FGamesLoaded then
     ReflowGamesGrid;
@@ -9314,7 +9319,7 @@ end;
 // TAB REFLOW — redistribute controls when the window is resized
 // ============================================================================
 
-procedure Tgoverlayform.ReflowPresetTab;
+procedure Tgoverlayform.ReflowPresetTab(AContentW: Integer);
 const
   MARGIN    = 20;
   MIN_GAP   = 8;
@@ -9328,7 +9333,7 @@ var
   ColorBtns:    array[0..3] of TBitBtn;
   ColorLabels:  array[0..3] of TLabel;
 begin
-  W := goverlayPanel.ClientWidth;
+  W := AContentW;
 
   // Scale button size to fill available width
   BtnW := Max(BTN_MIN_W, Min(BTN_MAX_W, (W - 2 * MARGIN - 4 * MIN_GAP) div 5));
@@ -9374,7 +9379,7 @@ begin
   end;
 end;
 
-procedure Tgoverlayform.ReflowVisualTab;
+procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
 const
   MARGIN    = 8;
   ROW_GAP   = 8;   // vertical gap between row 1 and row 2
@@ -9385,7 +9390,7 @@ const
 var
   W, ColW, C1, C2, C3, Row2T: Integer;
 begin
-  W := goverlayPanel.ClientWidth;
+  W := AContentW;
 
   ColW := Max(160, (W - 2 * MARGIN - 2 * COL_GAP) div 3);
 
@@ -9405,14 +9410,14 @@ begin
   columsGroupBox.SetBounds(C3, Row2T, ColW, H2);
 end;
 
-procedure Tgoverlayform.ReflowPerformanceTab;
+procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
 const
   MARGIN = 2;
   GAP    = 8;
 var
   W, ColW: Integer;
 begin
-  W := goverlayPanel.ClientWidth;
+  W := AContentW;
 
   ColW := Max(280, (W - 2 * MARGIN - GAP) div 2);
 
