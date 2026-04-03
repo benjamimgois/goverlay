@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qtwidgets, fpreadjpeg, configmanager;
+  fgmod_resources, hintsunit, qtwidgets, fpreadjpeg, configmanager, IntfGraphics;
 
 
 
@@ -529,6 +529,11 @@ type
     FCoverThread: TThread;
     FSelectedCard: TPanel;
     FActionBtns: array[0..3] of TPanel;
+    FDimTimer:    TTimer;   // animates card dimming on selection
+    FDimProgress: Integer;  // 0 = undimmed, 100 = fully dimmed
+    FDimDir:      Integer;  // +1 dimming, -1 undimming
+    FCardPanels:  TList;    // ordered list of game card TPanels
+    FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
 
     // Nav rail
     FNavItems:       array of TPanel;    // item panels
@@ -578,6 +583,11 @@ type
     procedure HideGameActionPanel;
     procedure GameActionBtnMouseEnter(Sender: TObject);
     procedure GameActionBtnMouseLeave(Sender: TObject);
+    function  DimmedCardColor: TColor;
+    procedure ApplyDimToCards;
+    procedure StartDimAnimation(ADimming: Boolean);
+    procedure DimTimerTick(Sender: TObject);
+    procedure RestoreCardImageFromOriginal(ACard: TPanel);
     function ParseAcfValue(const AContent, AKey: string): string;
     procedure GetSteamLibraries(Libraries: TStringList);
 
@@ -2019,9 +2029,10 @@ notificationLabel.Visible:=false;
 commandEdit.Visible:=false;
 copyBitbtn.Visible:=false;
 
-//Show Global Enable controls for tweaks tabs (fgmod integration)
+//Show Global Enable controls and bottom bar for tweaks tabs
 geSpeedButton.Visible:=true;
 geLabel.Visible:=true;
+goverlaybarPanel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
@@ -2331,6 +2342,8 @@ begin
   commandEdit.Visible:=false;
   copyBitbtn.Visible:=false;
 
+  //Restore bottom bar
+  goverlaybarPanel.Visible:=true;
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -4515,6 +4528,8 @@ begin
 end;
 
 procedure Tgoverlayform.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+var
+  k: Integer;
 begin
   if Assigned(FCoverThread) then
   begin
@@ -4522,6 +4537,14 @@ begin
     FCoverThread.WaitFor;
     FreeAndNil(FCoverThread);
   end;
+  if Assigned(FOrigCovers) then
+  begin
+    for k := 0 to FOrigCovers.Count - 1 do
+      if FOrigCovers[k] <> nil then
+        TLazIntfImage(FOrigCovers[k]).Free;
+    FreeAndNil(FOrigCovers);
+  end;
+  FreeAndNil(FCardPanels);
   ExecuteGUICommand('killall pascube');
   ExecuteGUICommand('killall vkcube');
 end;
@@ -6129,9 +6152,10 @@ begin
   commandEdit.Visible:=false;
   copyBitbtn.Visible:=false;
 
-  //Hide Global Enable controls for games tab
+  //Hide Global Enable controls and bottom bar for games tab
   geSpeedButton.Visible:=false;
   geLabel.Visible:=false;
+  goverlaybarPanel.Visible:=false;
 end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
@@ -6153,9 +6177,10 @@ notificationLabel.Visible:=false;
 commandEdit.Visible:=false;
 copyBitbtn.Visible:=false;
 
-//Show Global Enable controls for MangoHud tabs (fgmod integration)
+//Show Global Enable controls and bottom bar for MangoHud tabs
 geSpeedButton.Visible:=true;
 geLabel.Visible:=true;
+goverlaybarPanel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 DbgLog('<< mangohudLabelClick END');
@@ -6209,6 +6234,8 @@ begin
   commandEdit.Visible:=false;
   copyBitbtn.Visible:=false;
 
+  //Restore bottom bar
+  goverlaybarPanel.Visible:=true;
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -9804,6 +9831,9 @@ const
 var
   k: Integer;
 begin
+  FCardPanels := TList.Create;
+  FOrigCovers := TList.Create;
+
   FGamesScrollBox := TScrollBox.Create(Self);
   FGamesScrollBox.Parent := gamesTabSheet;
   FGamesScrollBox.Align := alClient;
@@ -9945,6 +9975,7 @@ var
   CardLabel: TLabel;
   NoGamesLabel: TLabel;
   LowerName: string;
+  ScaledBmp: TBitmap;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
@@ -10071,6 +10102,24 @@ begin
           CardLabel.OnMouseEnter := @GameCardMouseEnter;
           CardLabel.OnMouseLeave := @GameCardMouseLeave;
           CardLabel.OnClick := @GameCardClick;
+
+          // Store card and original image for dim animation
+          FCardPanels.Add(CardPanel);
+          if (CardImage.Picture.Graphic <> nil) and
+             (CardImage.Picture.Graphic.Width > 0) then
+          begin
+            ScaledBmp := TBitmap.Create;
+            try
+              ScaledBmp.SetSize(CARD_W, CARD_IMG_H);
+              ScaledBmp.Canvas.StretchDraw(
+                Rect(0, 0, CARD_W, CARD_IMG_H), CardImage.Picture.Graphic);
+              FOrigCovers.Add(ScaledBmp.CreateIntfImage);
+            finally
+              ScaledBmp.Free;
+            end;
+          end
+          else
+            FOrigCovers.Add(nil);  // pending download — skip pixel dim
 
           Inc(j);
         until FindNext(SR) <> 0;
@@ -10214,9 +10263,9 @@ begin
   else
     Exit;
 
-  // Restore original panel color (only if not selected)
+  // Restore original panel color (respects current dim state)
   if Panel <> FSelectedCard then
-    Panel.Color := $2A2A2A;
+    Panel.Color := DimmedCardColor;
 end;
 
 procedure Tgoverlayform.GameCardClick(Sender: TObject);
@@ -10246,12 +10295,28 @@ const
   BTN_OFFSETS: array[0..3] of Integer = (31, 70, 109, 148);
 var
   k: Integer;
+  Switching: Boolean;
 begin
-  if FSelectedCard <> nil then
-    HideGameActionPanel;
+  Switching := FSelectedCard <> nil;
+
+  if Switching then
+  begin
+    // Switching between cards: hide buttons and deselect without triggering undim
+    for k := 0 to 3 do
+      FActionBtns[k].Visible := False;
+    FSelectedCard.Color := DimmedCardColor;
+    FSelectedCard := nil;
+  end;
 
   FSelectedCard       := ACard;
   FSelectedCard.Color := clHighlight;
+
+  // Restore the newly selected card's image to original brightness
+  RestoreCardImageFromOriginal(ACard);
+
+  // Dim all other cards to current level (snaps old selected card instantly)
+  if Switching then
+    ApplyDimToCards;
 
   for k := 0 to 3 do
   begin
@@ -10263,6 +10328,8 @@ begin
     FActionBtns[k].Visible := True;
     FActionBtns[k].BringToFront;
   end;
+
+  StartDimAnimation(True);
 end;
 
 procedure Tgoverlayform.HideGameActionPanel;
@@ -10277,6 +10344,8 @@ begin
 
   FSelectedCard.Color := $2A2A2A;
   FSelectedCard := nil;
+
+  StartDimAnimation(False);
 end;
 
 procedure Tgoverlayform.GameActionBtnMouseEnter(Sender: TObject);
@@ -10289,6 +10358,143 @@ procedure Tgoverlayform.GameActionBtnMouseLeave(Sender: TObject);
 begin
   if Sender is TPanel then
     TPanel(Sender).Color := $2D2D2D;
+end;
+
+// ============================================================================
+// Card dim animation
+// ============================================================================
+
+function Tgoverlayform.DimmedCardColor: TColor;
+const
+  BRIGHT = $2A;
+  DIM    = $12;  // 35% of $2A — matches image dim floor
+var
+  V: Integer;
+begin
+  V := BRIGHT + (DIM - BRIGHT) * FDimProgress div 100;
+  Result := V or (V shl 8) or (V shl 16);
+end;
+
+procedure Tgoverlayform.ApplyDimToCards;
+var
+  i, x, y: Integer;
+  BrightFactor: Integer;
+  Panel: TPanel;
+  Img: TImage;
+  OrigIntf, DimIntf: TLazIntfImage;
+  DimBmp: TBitmap;
+  SrcRow, DstRow: PByte;
+  W, H, Stride, BPP, px: Integer;
+begin
+  if not Assigned(FCardPanels) then Exit;
+  // Dim to 35% brightness at max — visible but not fully black
+  BrightFactor := 35 + 65 * (100 - FDimProgress) div 100;
+
+  for i := 0 to FCardPanels.Count - 1 do
+  begin
+    Panel := TPanel(FCardPanels[i]);
+    if Panel = FSelectedCard then Continue;
+
+    // Dim the label strip background
+    Panel.Color := DimmedCardColor;
+
+    // Pixel-blend the cover image
+    if i >= FOrigCovers.Count then Continue;
+    OrigIntf := TLazIntfImage(FOrigCovers[i]);
+    if OrigIntf = nil then Continue;
+    if (Panel.ControlCount = 0) or not (Panel.Controls[0] is TImage) then Continue;
+    Img := TImage(Panel.Controls[0]);
+
+    W      := OrigIntf.Width;
+    H      := OrigIntf.Height;
+    Stride := OrigIntf.DataDescription.BytesPerLine;
+    BPP    := OrigIntf.DataDescription.BitsPerPixel div 8;
+
+    DimIntf := TLazIntfImage.Create(W, H);
+    DimIntf.DataDescription := OrigIntf.DataDescription;
+    DimIntf.CreateData;
+    try
+      for y := 0 to H - 1 do
+      begin
+        SrcRow := OrigIntf.PixelData + PtrUInt(y * Stride);
+        DstRow := DimIntf.PixelData  + PtrUInt(y * Stride);
+        for x := 0 to W - 1 do
+        begin
+          px := x * BPP;
+          DstRow[px]   := Byte(Integer(SrcRow[px])   * BrightFactor div 100);
+          DstRow[px+1] := Byte(Integer(SrcRow[px+1]) * BrightFactor div 100);
+          DstRow[px+2] := Byte(Integer(SrcRow[px+2]) * BrightFactor div 100);
+          if BPP >= 4 then
+            DstRow[px+3] := SrcRow[px+3];  // preserve alpha
+        end;
+      end;
+
+      DimBmp := TBitmap.Create;
+      try
+        DimBmp.LoadFromIntfImage(DimIntf);
+        Img.Picture.Bitmap.Assign(DimBmp);
+        Img.Invalidate;
+      finally
+        DimBmp.Free;
+      end;
+    finally
+      DimIntf.Free;
+    end;
+  end;
+end;
+
+procedure Tgoverlayform.StartDimAnimation(ADimming: Boolean);
+begin
+  FDimDir := IfThen(ADimming, 1, -1);
+  if not Assigned(FDimTimer) then
+  begin
+    FDimTimer          := TTimer.Create(Self);
+    FDimTimer.Interval := 16;
+    FDimTimer.OnTimer  := @DimTimerTick;
+  end;
+  FDimTimer.Enabled := True;
+end;
+
+procedure Tgoverlayform.RestoreCardImageFromOriginal(ACard: TPanel);
+var
+  CardIdx: Integer;
+  OrigIntf: TLazIntfImage;
+  Bmp: TBitmap;
+  Img: TImage;
+begin
+  if not Assigned(FCardPanels) or not Assigned(FOrigCovers) then Exit;
+  CardIdx := FCardPanels.IndexOf(ACard);
+  if (CardIdx < 0) or (CardIdx >= FOrigCovers.Count) then Exit;
+  OrigIntf := TLazIntfImage(FOrigCovers[CardIdx]);
+  if OrigIntf = nil then Exit;
+  if (ACard.ControlCount = 0) or not (ACard.Controls[0] is TImage) then Exit;
+  Img := TImage(ACard.Controls[0]);
+  Bmp := TBitmap.Create;
+  try
+    Bmp.LoadFromIntfImage(OrigIntf);
+    Img.Picture.Bitmap.Assign(Bmp);
+    Img.Invalidate;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+procedure Tgoverlayform.DimTimerTick(Sender: TObject);
+const
+  STEP = 7;
+begin
+  FDimProgress := FDimProgress + FDimDir * STEP;
+  if FDimProgress <= 0 then
+  begin
+    FDimProgress := 0;
+    FDimTimer.Enabled := False;
+  end
+  else if FDimProgress >= 100 then
+  begin
+    FDimProgress := 100;
+    FDimTimer.Enabled := False;
+  end;
+  ApplyDimToCards;
 end;
 
 end.
