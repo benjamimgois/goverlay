@@ -536,6 +536,7 @@ type
     FNavIcons:       array of TLabel;    // unicode icon labels
     FNavLabels:      array of TLabel;    // caption labels
     FNavActive:      Integer;            // index of active item (-1 = none)
+    FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
     FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
     FNavCollapsed:   Boolean;            // sidebar collapsed state
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
@@ -9180,8 +9181,9 @@ begin
   FNavClickCBs[2] := @optiscalerLabelClick;
   FNavClickCBs[3] := @tweaksLabelClick;
 
-  FNavActive    := -1;
-  FNavCollapsed := False;
+  FNavActive     := -1;
+  FNavHoveredIdx := -1;
+  FNavCollapsed  := False;
 
   // Restore sidebar collapsed state from previous session
   UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
@@ -9317,8 +9319,7 @@ begin
     IconLbl.Font.Size := 18;
     IconLbl.Font.Color := $00AAAAAA;
     IconLbl.Font.Name  := 'Noto Sans';
-    IconLbl.Transparent  := False;
-    IconLbl.ParentColor  := True;
+    IconLbl.Transparent := True;
     IconLbl.Cursor := crHandPoint;
     IconLbl.Tag    := i;
     IconLbl.OnClick      := @NavItemClick;
@@ -9334,8 +9335,7 @@ begin
     CaptionLbl.Font.Color := $00AAAAAA;
     CaptionLbl.Font.Name  := 'Noto Sans';
     CaptionLbl.Font.Style := [fsBold];
-    CaptionLbl.Transparent  := False;
-    CaptionLbl.ParentColor  := True;
+    CaptionLbl.Transparent := True;
     CaptionLbl.Cursor := crHandPoint;
     CaptionLbl.Tag    := i;
     CaptionLbl.OnClick      := @NavItemClick;
@@ -9359,15 +9359,14 @@ var
   IconPath: string;
 begin
   DbgLog(Format('  SetNavActive(%d) BEGIN', [AIndex]));
+  FNavActive := AIndex;
   for i := 0 to High(FNavItems) do
   begin
     if i = AIndex then
     begin
-      FNavItems[i].Color        := NAV_COLOR_ACTIVE;
       FNavIndicators[i].Visible := True;
       FNavIcons[i].Font.Color   := clWhite;
       FNavLabels[i].Font.Color  := clWhite;
-      
       if (i = 2) and Assigned(FOptiScalerImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
@@ -9383,11 +9382,9 @@ begin
     end
     else
     begin
-      FNavItems[i].Color        := NAV_COLOR_BG;
       FNavIndicators[i].Visible := False;
       FNavIcons[i].Font.Color   := $00AAAAAA;
       FNavLabels[i].Font.Color  := $00AAAAAA;
-      
       if (i = 2) and Assigned(FOptiScalerImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
@@ -9401,8 +9398,8 @@ begin
           try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
       end;
     end;
+    FNavItems[i].Invalidate;
   end;
-  FNavActive := AIndex;
 
   if FNavActive = 0 then
     StartCube
@@ -9425,8 +9422,8 @@ var
   Idx: Integer;
 begin
   Idx := (Sender as TControl).Tag;
-  if Idx <> FNavActive then
-    FNavItems[Idx].Color := NAV_COLOR_HOVER;
+  FNavHoveredIdx := Idx;
+  FNavItems[Idx].Invalidate;
 end;
 
 procedure Tgoverlayform.NavItemMouseLeave(Sender: TObject);
@@ -9434,17 +9431,25 @@ var
   Idx: Integer;
 begin
   Idx := (Sender as TControl).Tag;
-  if Idx <> FNavActive then
-    FNavItems[Idx].Color := NAV_COLOR_BG;
+  FNavHoveredIdx := -1;
+  FNavItems[Idx].Invalidate;
 end;
 
 procedure Tgoverlayform.NavItemPaint(Sender: TObject);
 var
   P: TPanel;
+  Idx: Integer;
+  BgColor: TColor;
 begin
-  P := TPanel(Sender);
-  DbgLog(Format('  NavItemPaint tag=%d Color=$%06X', [P.Tag, P.Color]));
-  P.Canvas.Brush.Color := P.Color;
+  P   := TPanel(Sender);
+  Idx := P.Tag;
+  if Idx = FNavActive then
+    BgColor := NAV_COLOR_ACTIVE
+  else if Idx = FNavHoveredIdx then
+    BgColor := NAV_COLOR_HOVER
+  else
+    BgColor := NAV_COLOR_BG;
+  P.Canvas.Brush.Color := BgColor;
   P.Canvas.Brush.Style := bsSolid;
   P.Canvas.FillRect(P.ClientRect);
 end;
