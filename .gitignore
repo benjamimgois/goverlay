@@ -30,6 +30,17 @@ nohup.out
 *.kate-swp
 *.orig
 
+# VSCode temporary/scratch files
+.vscode/G*.pas
+.vscode/*.pas
+
+# One-off scripts
+replace_button.py
+*.patch
+
+# Test/debug programs (compiled binaries and sources)
+test_parse*
+
 # GNU Global tags
 GTAGS
 GRTAGS
