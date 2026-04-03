@@ -534,6 +534,8 @@ type
     FDimDir:      Integer;  // +1 dimming, -1 undimming
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
+    FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
+    FRightClickedCard: TPanel;      // card that triggered the context menu
 
     // Nav rail
     FNavItems:       array of TPanel;    // item panels
@@ -579,6 +581,8 @@ type
     procedure GameCardMouseEnter(Sender: TObject);
     procedure GameCardMouseLeave(Sender: TObject);
     procedure GameCardClick(Sender: TObject);
+    procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure GameCardOpenFolderClick(Sender: TObject);
     procedure ShowGameActionPanel(ACard: TPanel);
     procedure HideGameActionPanel;
     procedure GameActionBtnMouseEnter(Sender: TObject);
@@ -9830,9 +9834,17 @@ const
   BTN_CAPTIONS: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'Tweaks');
 var
   k: Integer;
+  OpenFolderItem: TMenuItem;
 begin
   FCardPanels := TList.Create;
   FOrigCovers := TList.Create;
+
+  // Right-click context menu for game cards
+  FGameCardMenu := TPopupMenu.Create(Self);
+  OpenFolderItem := TMenuItem.Create(FGameCardMenu);
+  OpenFolderItem.Caption := 'Open install folder';
+  OpenFolderItem.OnClick := @GameCardOpenFolderClick;
+  FGameCardMenu.Items.Add(OpenFolderItem);
 
   FGamesScrollBox := TScrollBox.Create(Self);
   FGamesScrollBox.Parent := gamesTabSheet;
@@ -10061,6 +10073,7 @@ begin
           CardPanel.OnMouseEnter := @GameCardMouseEnter;
           CardPanel.OnMouseLeave := @GameCardMouseLeave;
           CardPanel.OnClick := @GameCardClick;
+          CardPanel.OnMouseUp := @GameCardMouseUp;
 
           CardImage := TImage.Create(Self);
           CardImage.Parent := CardPanel;
@@ -10073,6 +10086,7 @@ begin
           CardImage.OnMouseEnter := @GameCardMouseEnter;
           CardImage.OnMouseLeave := @GameCardMouseLeave;
           CardImage.OnClick := @GameCardClick;
+          CardImage.OnMouseUp := @GameCardMouseUp;
 
           // Load local image or queue for CDN download
           if FileExists(ImagePath) then
@@ -10102,6 +10116,7 @@ begin
           CardLabel.OnMouseEnter := @GameCardMouseEnter;
           CardLabel.OnMouseLeave := @GameCardMouseLeave;
           CardLabel.OnClick := @GameCardClick;
+          CardLabel.OnMouseUp := @GameCardMouseUp;
 
           // Store card and original image for dim animation
           FCardPanels.Add(CardPanel);
@@ -10288,6 +10303,53 @@ begin
   end;
 
   ShowGameActionPanel(Panel);
+end;
+
+procedure Tgoverlayform.GameCardMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  Panel: TPanel;
+  Pt: TPoint;
+begin
+  if Button <> mbRight then Exit;
+
+  if Sender is TPanel then
+    Panel := TPanel(Sender)
+  else if Sender is TImage then
+    Panel := TPanel(TImage(Sender).Parent)
+  else if Sender is TLabel then
+    Panel := TPanel(TLabel(Sender).Parent)
+  else
+    Exit;
+
+  FRightClickedCard := Panel;
+
+  Pt := TControl(Sender).ClientToScreen(Point(X, Y));
+  FGameCardMenu.PopUp(Pt.X, Pt.Y);
+end;
+
+procedure Tgoverlayform.GameCardOpenFolderClick(Sender: TObject);
+var
+  Panel: TPanel;
+  GamePath: string;
+  Lines: TStringList;
+begin
+  Panel := FRightClickedCard;
+  if Panel = nil then Exit;
+
+  Lines := TStringList.Create;
+  try
+    Lines.Text := Panel.Hint;
+    if Lines.Count >= 2 then
+      GamePath := Lines[1]
+    else
+      Exit;
+  finally
+    Lines.Free;
+  end;
+
+  if DirectoryExists(GamePath) then
+    ExecuteShellCommand('xdg-open ' + QuotedStr(GamePath));
 end;
 
 procedure Tgoverlayform.ShowGameActionPanel(ACard: TPanel);
