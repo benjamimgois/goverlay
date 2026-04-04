@@ -230,8 +230,6 @@ type
     basicGroupBox: TGroupBox;
     imgmenuGroupBox: TGroupBox;
     gupdateBitBtn: TBitBtn;
-    donateMenuItem: TMenuItem;
-    aboutMenuItem: TMenuItem;
     blacklistMenuItem: TMenuItem;
     globalenableMenuItem: TMenuItem;
     hdrCheckBox: TCheckBox;
@@ -334,7 +332,6 @@ type
     deckpreset2MenuItem: TMenuItem;
     deckpreset3MenuItem: TMenuItem;
     deckpreset4MenuItem: TMenuItem;
-    Separator1: TMenuItem;
     shortcutImage: TImage;
     shortcutkeyComboBox: TComboBox;
     shortcutkeyLabel: TLabel;
@@ -352,7 +349,11 @@ type
     systemGroupBox: TGroupBox;
     systemLabel: TLabel;
     tweaksTabSheet: TTabSheet;
-    themeToggleSpeedButton: TSpeedButton;
+    settingsSpeedButton: TSpeedButton;
+    settingsMenu: TPopupMenu;
+    themeMenuItem: TMenuItem;
+    settingsDonateMenuItem: TMenuItem;
+    settingsAboutMenuItem: TMenuItem;
     timeCheckBox: TCheckBox;
     toggleImage: TImage;
     ToggleSpeedButton: TSpeedButton;
@@ -489,7 +490,8 @@ type
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
     procedure ToggleSpeedButtonClick(Sender: TObject);
-    procedure themeToggleSpeedButtonClick(Sender: TObject);
+    procedure settingsSpeedButtonClick(Sender: TObject);
+    procedure themeMenuItemClick(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
     procedure transpTrackBarChange(Sender: TObject);
     procedure SetAllCheckBoxesToFalse;
@@ -554,7 +556,15 @@ type
     FNavAnimTarget:  Integer;            // animation target width
     FNavAnimCurrent: Integer;            // animation current width (fixed-point *10)
 
+    // Settings button (bottom of sidebar)
+    FSettingsIconLbl: TLabel;
+
     procedure BuildNavRail;
+    procedure BuildSettingsButton;
+    procedure RestoreNavRailColors;
+    procedure SettingsBtnMouseEnter(Sender: TObject);
+    procedure SettingsBtnMouseLeave(Sender: TObject);
+    procedure SettingsBtnClick(Sender: TObject);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -4626,6 +4636,7 @@ begin
   //ApplyModernSpacing(Self);  // Disabled - user preference
   ApplyIconsToButtons(Self);
   BuildNavRail;
+  BuildSettingsButton;
 
   // Detach all anchor-side control references for every groupbox we reflow
   // manually (Visual + Performance tabs). Without this the LCL anchor engine
@@ -4764,14 +4775,17 @@ begin
   SavedTheme := LoadThemePreference;
   ApplyTheme(Self, SavedTheme);
 
-  // Update theme toggle button icon based on loaded theme
-  if SavedTheme = tmLight then
-    themeToggleSpeedButton.ImageIndex := 29   // sun icon (light theme)
-  else
-    themeToggleSpeedButton.ImageIndex := 28; // moon icon (dark theme)
+  // Restore nav rail dark colors (theme engine overwrites the dynamic panels)
+  RestoreNavRailColors;
 
-  // Bring theme toggle button to front to ensure it's visible
-  themeToggleSpeedButton.BringToFront;
+  // Update settings menu theme item caption based on loaded theme
+  if SavedTheme = tmLight then
+    themeMenuItem.Caption := 'Switch to Dark theme'
+  else
+    themeMenuItem.Caption := 'Switch to Light theme';
+
+  // Bring settings button to front to ensure it's visible
+  settingsSpeedButton.BringToFront;
 
 
 
@@ -7298,13 +7312,11 @@ begin
     blacklistMenuItem.Visible := False;
     runvkcubeItem.Visible := True;
     runpascubetItem.Visible := True;
-    donateMenuItem.Visible := True;
-    aboutMenuItem.Visible := True;
   end
   else if (goverlayPageControl.ActivePage = optiscalerTabSheet) or
           (goverlayPageControl.ActivePage = tweaksTabSheet) then
   begin
-    // OptiScaler and Tweaks tabs: show only donate and about options
+    // OptiScaler and Tweaks tabs: show only global enable
     saveoptionsItem.Visible := False;
     saveasMenuItem.Visible := False;
     savecustomMenuItem.Visible := False;
@@ -7315,8 +7327,6 @@ begin
     blacklistMenuItem.Visible := False;
     runvkcubeItem.Visible := False;
     runpascubetItem.Visible := False;
-    donateMenuItem.Visible := True;
-    aboutMenuItem.Visible := True;
   end
   else
   begin
@@ -7331,8 +7341,6 @@ begin
     blacklistMenuItem.Visible := True;
     runvkcubeItem.Visible := True;
     runpascubetItem.Visible := True;
-    donateMenuItem.Visible := True;
-    aboutMenuItem.Visible := True;
   end;
 
   popsaveMenu.PopUp;
@@ -8830,21 +8838,26 @@ begin
   // Original ToggleSpeedButton code (if any)
 end;
 
-procedure Tgoverlayform.themeToggleSpeedButtonClick(Sender: TObject);
+procedure Tgoverlayform.settingsSpeedButtonClick(Sender: TObject);
+begin
+  settingsMenu.PopUp;
+end;
+
+procedure Tgoverlayform.themeMenuItemClick(Sender: TObject);
 var
   NewTheme: TThemeMode;
 begin
   // Toggle between themes
   NewTheme := ToggleTheme(Self);
 
-  // Update button icon
+  // Update settings menu theme item caption
   if NewTheme = tmLight then
-    themeToggleSpeedButton.ImageIndex := 29   // sun icon (light theme)
+    themeMenuItem.Caption := 'Switch to Dark theme'
   else
-    themeToggleSpeedButton.ImageIndex := 28; // moon icon (dark theme)
+    themeMenuItem.Caption := 'Switch to Light theme';
 
-  // Theme notifications removed to prevent duplicate notifications
-  // The theme change is visually obvious from the UI update
+  // Restore nav rail colors (theme engine overwrites the dynamic panels)
+  RestoreNavRailColors;
 
   // Re-apply transparent Qt stylesheet to status bar (theme change overrides it)
   TQtWidget(statusBar.Handle).StyleSheet :=
@@ -9382,6 +9395,80 @@ begin
   // Apply persisted collapsed state (no animation on startup)
   if FNavCollapsed then
     ApplyNavCollapsed;
+end;
+
+procedure Tgoverlayform.BuildSettingsButton;
+const
+  BTN_SIZE       = 40;
+  BTN_BOTTOM_PAD = 12;
+begin
+  // Transparent label — no background, just the gear icon over the sidebar gradient
+  FSettingsIconLbl := TLabel.Create(Self);
+  FSettingsIconLbl.Parent       := Self;
+  FSettingsIconLbl.Caption      := '⚙';
+  FSettingsIconLbl.Font.Color   := $00AAAAAA;  // dimmed like inactive nav items
+  FSettingsIconLbl.Font.Height  := -24;
+  FSettingsIconLbl.Font.Quality := fqAntialiased;
+  FSettingsIconLbl.Transparent  := True;
+  FSettingsIconLbl.Cursor       := crHandPoint;
+  FSettingsIconLbl.AutoSize     := False;
+  FSettingsIconLbl.Width        := BTN_SIZE;
+  FSettingsIconLbl.Height       := BTN_SIZE;
+  FSettingsIconLbl.Alignment    := taCenter;
+
+  // Center horizontally inside the sidebar, fixed distance from bottom
+  FSettingsIconLbl.AnchorSideLeft.Control := goverlayPaintBox;
+  FSettingsIconLbl.AnchorSideLeft.Side    := asrCenter;
+  FSettingsIconLbl.AnchorSideBottom.Control := Self;
+  FSettingsIconLbl.AnchorSideBottom.Side    := asrBottom;
+  FSettingsIconLbl.BorderSpacing.Bottom     := BTN_BOTTOM_PAD;
+  FSettingsIconLbl.Anchors := [akLeft, akBottom];
+
+  FSettingsIconLbl.OnMouseEnter := @SettingsBtnMouseEnter;
+  FSettingsIconLbl.OnMouseLeave := @SettingsBtnMouseLeave;
+  FSettingsIconLbl.OnClick      := @SettingsBtnClick;
+end;
+
+procedure Tgoverlayform.SettingsBtnMouseEnter(Sender: TObject);
+begin
+  if Assigned(FSettingsIconLbl) then
+    FSettingsIconLbl.Font.Color := clWhite;
+end;
+
+procedure Tgoverlayform.SettingsBtnMouseLeave(Sender: TObject);
+begin
+  if Assigned(FSettingsIconLbl) then
+    FSettingsIconLbl.Font.Color := $00AAAAAA;
+end;
+
+procedure Tgoverlayform.SettingsBtnClick(Sender: TObject);
+begin
+  settingsMenu.PopUp;
+end;
+
+procedure Tgoverlayform.RestoreNavRailColors;
+var
+  i: Integer;
+begin
+  if Length(FNavItems) = 0 then Exit;
+  for i := 0 to High(FNavItems) do
+  begin
+    if i = FNavActive then
+    begin
+      FNavItems[i].Color       := NAV_COLOR_ACTIVE;
+      FNavIcons[i].Font.Color  := clWhite;
+      FNavLabels[i].Font.Color := clWhite;
+    end
+    else
+    begin
+      FNavItems[i].Color       := NAV_COLOR_BG;
+      FNavIcons[i].Font.Color  := $00AAAAAA;
+      FNavLabels[i].Font.Color := $00AAAAAA;
+    end;
+    FNavItems[i].Invalidate;
+  end;
+  if Assigned(FNavToggleBtn) then
+    FNavToggleBtn.Color := $00221F1E;
 end;
 
 procedure Tgoverlayform.SetNavActive(AIndex: Integer);
