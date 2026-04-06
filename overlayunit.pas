@@ -536,6 +536,9 @@ type
     FDimDir:      Integer;  // +1 dimming, -1 undimming
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
+    FActiveGameName:    string;   // non-empty when editing a game-specific config
+    FGameContextLabel:  TLabel;   // bottom-bar label showing the active game name
+    FGameThumbBmp:      TBitmap;  // game cover drawn directly on the sidebar paintbox
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
     FRightClickedCard: TPanel;      // card that triggered the context menu
 
@@ -558,6 +561,7 @@ type
 
     // Settings button (bottom of sidebar)
     FSettingsIconLbl: TLabel;
+    FDepsMenuItem:    TMenuItem;  // dependency status item inside settingsMenu
 
     procedure BuildNavRail;
     procedure BuildSettingsButton;
@@ -597,6 +601,12 @@ type
     procedure HideGameActionPanel;
     procedure GameActionBtnMouseEnter(Sender: TObject);
     procedure GameActionBtnMouseLeave(Sender: TObject);
+    procedure GameActionBtnClick(Sender: TObject);
+    function  GetGameConfigDir(const AGameName: string): string;
+    function  SanitizeFileName(const AName: string): string;
+    procedure UpdateGameContextLabel;
+    procedure ShowGameThumb(ACard: TPanel);
+    procedure HideGameThumb;
     function  DimmedCardColor: TColor;
     procedure ApplyDimToCards;
     procedure StartDimAnimation(ADimming: Boolean);
@@ -2044,8 +2054,8 @@ commandEdit.Visible:=false;
 copyBitbtn.Visible:=false;
 
 //Show Global Enable controls and bottom bar for tweaks tabs
-geSpeedButton.Visible:=true;
-geLabel.Visible:=true;
+
+
 goverlaybarPanel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
@@ -2307,6 +2317,16 @@ end;
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 begin
   DbgLog('>> vkbasaltLabelClick BEGIN');
+
+  // Sender <> nil means the call came from the sidebar nav — always global config
+  if (Sender <> nil) and (FActiveGameName <> '') then
+  begin
+    FActiveGameName := '';
+    VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
+    UpdateGameContextLabel;
+    HideGameThumb;
+  end;
+
   SetNavActive(1);
 
   //Disable tabs
@@ -2536,13 +2556,17 @@ end;
 
 procedure Tgoverlayform.goverlayPaintBoxPaint(Sender: TObject);
 const
-  BlockSize = 4; // block size in pixels
+  BlockSize    = 4;   // block size in pixels
+  THUMB_MARGIN = 8;
+  THUMB_GAP    = 12;
 var
   X, Y, TWidth, THeight: Integer;
   BaseR, BaseG, BaseB: Byte;
   Factor, OffsetX, OffsetY: Single;
   R, G, B: Byte;
   TimeElapsed: Single;
+  ThumbY, ThumbW, ThumbH: Integer;
+  ThumbDst: TRect;
   RectRight, RectBottom: Integer;
 begin
 //Blueish
@@ -2590,6 +2614,37 @@ BaseB := 70;  // 0x46
       Inc(X, BlockSize);
     end;
     Inc(Y, BlockSize);
+  end;
+
+  // Draw game thumbnail in the gap between the last nav item and the settings button.
+  if Assigned(FGameThumbBmp) and (Length(FNavItems) > 0) then
+  begin
+    // Top boundary: just below the last nav item (in paintbox coordinates)
+    ThumbY := (FNavItems[High(FNavItems)].Top - goverlayPaintBox.Top)
+              + FNavItems[High(FNavItems)].Height + THUMB_GAP;
+
+    // Bottom boundary: settings button area ≈ 52px from paintbox bottom
+    // Available height between the two boundaries
+    ThumbH := (THeight - 52) - ThumbY - THUMB_GAP;
+    if ThumbH < 4 then ThumbH := 4;
+
+    // Width fills the sidebar minus margins; cap to preserve portrait ratio
+    ThumbW := TWidth - THUMB_MARGIN * 2;
+    if ThumbW < 4 then ThumbW := 4;
+
+    // If ideal width would make the image taller than the available slot, scale down
+    if ThumbW * 7 div 5 > ThumbH then
+      ThumbW := ThumbH * 5 div 7;
+
+    // Center horizontally
+    ThumbDst := Rect(
+      (TWidth - ThumbW) div 2,
+      ThumbY,
+      (TWidth - ThumbW) div 2 + ThumbW,
+      ThumbY + ThumbH
+    );
+
+    goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGameThumbBmp);
   end;
 end;
 
@@ -3475,12 +3530,21 @@ var
   end;
 
 begin
-  // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
-  ConfigDir := GetMangoHudConfigDir();
+  // When in game-specific mode, MANGOHUDCFGFILE already points to the game
+  // config path; otherwise use the global XDG-compliant MangoHud directory.
+  if FActiveGameName <> '' then
+    ConfigDir := ExtractFilePath(MANGOHUDCFGFILE)
+  else
+    ConfigDir := GetMangoHudConfigDir();
 
   // Create directory if it doesn't exist (use CreateHostDirectory for Flatpak compatibility)
   if not DirectoryExists(ConfigDir) then
-    CreateHostDirectory(ConfigDir);
+  begin
+    if FActiveGameName <> '' then
+      ForceDirectories(ConfigDir)
+    else
+      CreateHostDirectory(ConfigDir);
+  end;
 
   ConfigLines := TStringList.Create;
   try
@@ -4001,11 +4065,13 @@ begin
     // Auto upload
     AddIfChecked(autouploadCheckBox, 'upload_logs');
 
-    // Save to native MangoHud config file
+    // Save to active config file (game-specific or global)
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
 
-    // Also save to Steam Flatpak MangoHud config location
-    // This ensures MangoHud works for both native and Flatpak Steam games
+    // Also save to Steam Flatpak MangoHud config location — global mode only.
+    // Game-specific configs are applied via the launch command, not this path.
+    if FActiveGameName <> '' then Exit;
+
     try
       FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
       FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
@@ -4799,7 +4865,11 @@ begin
     protontricksManagerButton.Hint := 'Protontricks integration is not available in the Flatpak version.';
   end;
 
-  // Update geSpeedButton state from fgmod file
+  // Global Enable button and label are hidden — FGMOD is always used
+  geSpeedButton.Visible := False;
+  geLabel.Visible       := False;
+
+  // Update geSpeedButton state from fgmod file (kept for internal state tracking)
   UpdateGeSpeedButtonState;
 
   // Load tweaks tab state from fgmod file
@@ -4874,16 +4944,24 @@ begin
   SaveDistroInfo;
 
 
+  // Dependencies are shown in the settings menu; hide sidebar widgets
+  dependencieSpeedButton.Visible := False;
+  dependenciesLabel.Visible      := False;
+
   //Check for dependencies
    if CheckDependencies(Missing) then
    begin
     dependencieSpeedbutton.ImageIndex := 0 ; //green icon
     dependenciesLabel.Caption := 'All dependencies OK' ;
+    if Assigned(FDepsMenuItem) then
+      FDepsMenuItem.Caption := '✓  All dependencies OK';
    end
   else
   begin
     dependencieSpeedbutton.ImageIndex := 1 ;  //red icon
     dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
+    if Assigned(FDepsMenuItem) then
+      FDepsMenuItem.Caption := '⚠  Missing: ' + Missing.CommaText;
     
     // Disable gamemodeCheckBox if gamemode is missing
     if Missing.IndexOf('gamemode') >= 0 then
@@ -5901,27 +5979,27 @@ begin
     if IsGlobalEnableActive then
     begin
       // Show controls but indicate global enable is active
-      geSpeedButton.Visible := true;
+      
       geSpeedButton.Enabled := false;
       geSpeedButton.ImageIndex := 1;  // ON state
-      geLabel.Visible := true;
+      
       geLabel.Caption := 'Global enable';
     end
     else
     begin
       // Normal state: enabled and restore default caption
-      geSpeedButton.Visible := true;
+      
       geSpeedButton.Enabled := true;
-      geLabel.Visible := true;
+      
       geLabel.Caption := 'Auto Enable';
     end;
   end
   else
   begin
     // On other tabs (vkBasalt, OptiScaler, Tweaks), always show and enable these controls
-    geSpeedButton.Visible := true;
+    
     geSpeedButton.Enabled := true;
-    geLabel.Visible := true;
+    
     geLabel.Caption := 'Auto Enable';
   end;
 end;
@@ -6177,8 +6255,21 @@ begin
 end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
+var
+  WasGameMode: Boolean;
 begin
   DbgLog('>> mangohudLabelClick BEGIN');
+
+  // Sender <> nil means the call came from the sidebar nav — always global config
+  WasGameMode := (Sender <> nil) and (FActiveGameName <> '');
+  if WasGameMode then
+  begin
+    FActiveGameName := '';
+    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    UpdateGameContextLabel;
+    HideGameThumb;
+  end;
+
   SetNavActive(0);
 
 //Enable goverlay tabs
@@ -6196,11 +6287,16 @@ commandEdit.Visible:=false;
 copyBitbtn.Visible:=false;
 
 //Show Global Enable controls and bottom bar for MangoHud tabs
-geSpeedButton.Visible:=true;
-geLabel.Visible:=true;
+
+
 goverlaybarPanel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
+
+// Reload config after switching from game-specific back to global
+if WasGameMode then
+  LoadMangoHudConfig;
+
 DbgLog('<< mangohudLabelClick END');
 end;
 
@@ -9395,12 +9491,16 @@ begin
   // Apply persisted collapsed state (no animation on startup)
   if FNavCollapsed then
     ApplyNavCollapsed;
+
+  FGameThumbBmp := nil;  // created on demand in ShowGameThumb
 end;
 
 procedure Tgoverlayform.BuildSettingsButton;
 const
   BTN_SIZE       = 40;
   BTN_BOTTOM_PAD = 12;
+var
+  Sep: TMenuItem;
 begin
   // Transparent label — no background, just the gear icon over the sidebar gradient
   FSettingsIconLbl := TLabel.Create(Self);
@@ -9427,6 +9527,17 @@ begin
   FSettingsIconLbl.OnMouseEnter := @SettingsBtnMouseEnter;
   FSettingsIconLbl.OnMouseLeave := @SettingsBtnMouseLeave;
   FSettingsIconLbl.OnClick      := @SettingsBtnClick;
+
+  // Dependencies status item at the top of the settings menu
+  FDepsMenuItem := TMenuItem.Create(settingsMenu);
+  FDepsMenuItem.Caption := '● Checking dependencies…';
+  FDepsMenuItem.Enabled := False;  // informational only
+  settingsMenu.Items.Insert(0, FDepsMenuItem);
+
+  // Separator after deps item
+  Sep := TMenuItem.Create(settingsMenu);
+  Sep.Caption := '-';
+  settingsMenu.Items.Insert(1, Sep);
 end;
 
 procedure Tgoverlayform.SettingsBtnMouseEnter(Sender: TObject);
@@ -9663,8 +9774,8 @@ begin
   FNavSmallIcon.Visible  := not ShowLabels;
   FNavSmallIcon.Left     := (AWidth - 40) div 2;
 
-  dependenciesLabel.Visible      := ShowLabels;
-  dependencieSpeedButton.Visible := ShowLabels;
+  // dependenciesLabel and dependencieSpeedButton are permanently hidden;
+  // dependency status is shown in the settings menu instead.
 
   // Reflow all content tabs whenever the sidebar width changes
   ContentW := Max(1, Self.ClientWidth - AWidth);
@@ -9675,6 +9786,10 @@ begin
   ReflowTweaksTab(ContentW);
   if FGamesLoaded then
     ReflowGamesGrid;
+
+  // Repaint sidebar so the thumbnail scales with the nav width
+  if Assigned(FGameThumbBmp) then
+    goverlayPaintBox.Invalidate;
 end;
 
 procedure Tgoverlayform.FormResize(Sender: TObject);
@@ -9967,7 +10082,20 @@ begin
     FActionBtns[k].SetBounds(0, 0, 134, 32);
     FActionBtns[k].OnMouseEnter := @GameActionBtnMouseEnter;
     FActionBtns[k].OnMouseLeave := @GameActionBtnMouseLeave;
+    FActionBtns[k].OnClick      := @GameActionBtnClick;
   end;
+
+  // Game context label — shown in the bottom bar when editing a game-specific config
+  FGameContextLabel := TLabel.Create(Self);
+  FGameContextLabel.Parent     := goverlaybarPanel;
+  FGameContextLabel.Align      := alLeft;
+  FGameContextLabel.AutoSize   := True;
+  FGameContextLabel.Layout     := tlCenter;
+  FGameContextLabel.Caption    := '';
+  FGameContextLabel.Font.Color := $88AAFF;
+  FGameContextLabel.Font.Size  := 8;
+  FGameContextLabel.Font.Style := [fsBold];
+  FGameContextLabel.Visible    := False;
 
 end;
 
@@ -10507,6 +10635,160 @@ procedure Tgoverlayform.GameActionBtnMouseLeave(Sender: TObject);
 begin
   if Sender is TPanel then
     TPanel(Sender).Color := $2D2D2D;
+end;
+
+// ============================================================================
+// Game-specific config helpers
+// ============================================================================
+
+function Tgoverlayform.SanitizeFileName(const AName: string): string;
+var
+  i: Integer;
+begin
+  Result := AName;
+  for i := 1 to Length(Result) do
+    if Result[i] in ['/', '\', ':', '*', '?', '"', '<', '>', '|'] then
+      Result[i] := '_';
+end;
+
+function Tgoverlayform.GetGameConfigDir(const AGameName: string): string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  Result := IncludeTrailingPathDelimiter(DataHome) +
+            'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
+end;
+
+procedure Tgoverlayform.UpdateGameContextLabel;
+begin
+  if not Assigned(FGameContextLabel) then Exit;
+  if FActiveGameName <> '' then
+  begin
+    FGameContextLabel.Caption := 'Jogo: ' + FActiveGameName;
+    FGameContextLabel.Visible := True;
+  end
+  else
+  begin
+    FGameContextLabel.Caption := '';
+    FGameContextLabel.Visible := False;
+  end;
+end;
+
+procedure Tgoverlayform.ShowGameThumb(ACard: TPanel);
+var
+  i: Integer;
+  Img: TImage;
+  Bmp: TBitmap;
+begin
+  if ACard = nil then Exit;
+
+  // Find the TImage child of the selected game card
+  Img := nil;
+  for i := 0 to ACard.ControlCount - 1 do
+    if ACard.Controls[i] is TImage then
+    begin
+      Img := TImage(ACard.Controls[i]);
+      Break;
+    end;
+
+  FreeAndNil(FGameThumbBmp);
+
+  if Assigned(Img) and Assigned(Img.Picture.Graphic) and
+     (Img.Picture.Graphic.Width > 0) then
+  begin
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(Img.Picture.Graphic.Width, Img.Picture.Graphic.Height);
+      Bmp.Canvas.Draw(0, 0, Img.Picture.Graphic);
+      FGameThumbBmp := Bmp;
+    except
+      Bmp.Free;
+    end;
+  end;
+
+  goverlayPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.HideGameThumb;
+begin
+  FreeAndNil(FGameThumbBmp);
+  goverlayPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.GameActionBtnClick(Sender: TObject);
+var
+  BtnIndex: Integer;
+  GameName: string;
+  Lines: TStringList;
+  GameCfgDir: string;
+begin
+  if not (Sender is TPanel) then Exit;
+  if FSelectedCard = nil then Exit;
+
+  BtnIndex := TPanel(Sender).Tag;
+
+  // Extract game name from card hint (format: "GameName\nInstallPath")
+  Lines := TStringList.Create;
+  try
+    Lines.Text := FSelectedCard.Hint;
+    if Lines.Count < 1 then Exit;
+    GameName := Lines[0];
+  finally
+    Lines.Free;
+  end;
+
+  FActiveGameName := GameName;
+  ShowGameThumb(FSelectedCard);
+
+  case BtnIndex of
+    0: // MangoHud — navigate directly (do NOT call mangohudLabelClick to avoid
+       // triggering the game-mode reset that sidebar navigation applies)
+    begin
+      GameCfgDir := GetGameConfigDir(GameName);
+      ForceDirectories(GameCfgDir);
+      MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
+      UpdateGameContextLabel;
+      SetNavActive(0);
+      goverlayPageControl.ShowTabs := True;
+      vkbasalttabsheet.TabVisible  := False;
+      optiscalertabsheet.TabVisible := False;
+      tweakstabsheet.TabVisible    := False;
+      gamesTabSheet.TabVisible     := False;
+      goverlayPageControl.ActivePage := presetTabsheet;
+      notificationLabel.Visible := False;
+      commandEdit.Visible       := False;
+      copyBitbtn.Visible        := False;
+      
+      
+      goverlaybarPanel.Visible  := True;
+      UpdateGeSpeedButtonState;
+      UpdateGlobalEnableMenuItemVisibility;
+      LoadMangoHudConfig;
+    end;
+    1: // vkBasalt
+    begin
+      GameCfgDir := GetGameConfigDir(GameName);
+      ForceDirectories(GameCfgDir);
+      VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
+      UpdateGameContextLabel;
+      vkbasaltLabelClick(nil);
+    end;
+    2: // OptiScaler
+    begin
+      UpdateGameContextLabel;
+      optiscalerLabelClick(nil);
+    end;
+    3: // Tweaks
+    begin
+      UpdateGameContextLabel;
+      tweaksLabelClick(nil);
+    end;
+  end;
+
+  HideGameActionPanel;
 end;
 
 // ============================================================================
