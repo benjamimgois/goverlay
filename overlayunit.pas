@@ -592,6 +592,7 @@ type
     procedure LoadSteamGames;
     procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
+    procedure GamesEmptySpaceClick(Sender: TObject);
     procedure GameCardMouseEnter(Sender: TObject);
     procedure GameCardMouseLeave(Sender: TObject);
     procedure GameCardClick(Sender: TObject);
@@ -2315,16 +2316,18 @@ end;
   end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
+var
+  GameCfgDir: string;
 begin
   DbgLog('>> vkbasaltLabelClick BEGIN');
 
-  // Sender <> nil means the call came from the sidebar nav — always global config
-  if (Sender <> nil) and (FActiveGameName <> '') then
+  // In game mode, point vkBasalt config to the game-specific folder
+  if FActiveGameName <> '' then
   begin
-    FActiveGameName := '';
-    VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
-    UpdateGameContextLabel;
-    HideGameThumb;
+    GameCfgDir := GetGameConfigDir(FActiveGameName);
+    if not DirectoryExists(GameCfgDir) then
+      ForceDirectories(GameCfgDir);
+    VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
   end;
 
   SetNavActive(1);
@@ -2628,13 +2631,19 @@ BaseB := 70;  // 0x46
     ThumbH := (THeight - 52) - ThumbY - THUMB_GAP;
     if ThumbH < 4 then ThumbH := 4;
 
-    // Width fills the sidebar minus margins; cap to preserve portrait ratio
+    // Width fills the sidebar minus margins; scale proportionally using real image ratio
     ThumbW := TWidth - THUMB_MARGIN * 2;
     if ThumbW < 4 then ThumbW := 4;
 
-    // If ideal width would make the image taller than the available slot, scale down
-    if ThumbW * 7 div 5 > ThumbH then
-      ThumbW := ThumbH * 5 div 7;
+    // Scale down if the proportional height exceeds the available slot
+    if FGameThumbBmp.Width > 0 then
+    begin
+      // Ideal height given the available width
+      if ThumbW * FGameThumbBmp.Height div FGameThumbBmp.Width > ThumbH then
+        ThumbW := ThumbH * FGameThumbBmp.Width div FGameThumbBmp.Height;
+      // Actual height preserving aspect ratio
+      ThumbH := ThumbW * FGameThumbBmp.Height div FGameThumbBmp.Width;
+    end;
 
     // Center horizontally
     ThumbDst := Rect(
@@ -6232,6 +6241,17 @@ end;
 
 procedure Tgoverlayform.gamesLabelClick(Sender: TObject);
 begin
+  // Clicking the logo always returns to global config mode
+  if FActiveGameName <> '' then
+  begin
+    FActiveGameName := '';
+    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
+    UpdateGameContextLabel;
+    HideGameThumb;
+    HideGameActionPanel;
+  end;
+
   SetNavActive(-1);
 
   //Disable tabs
@@ -6256,18 +6276,17 @@ end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
 var
-  WasGameMode: Boolean;
+  GameCfgDir: string;
 begin
   DbgLog('>> mangohudLabelClick BEGIN');
 
-  // Sender <> nil means the call came from the sidebar nav — always global config
-  WasGameMode := (Sender <> nil) and (FActiveGameName <> '');
-  if WasGameMode then
+  // In game mode, point MangoHud config to the game-specific folder
+  if FActiveGameName <> '' then
   begin
-    FActiveGameName := '';
-    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
-    UpdateGameContextLabel;
-    HideGameThumb;
+    GameCfgDir := GetGameConfigDir(FActiveGameName);
+    if not DirectoryExists(GameCfgDir) then
+      ForceDirectories(GameCfgDir);
+    MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
   end;
 
   SetNavActive(0);
@@ -6293,8 +6312,8 @@ goverlaybarPanel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
-// Reload config after switching from game-specific back to global
-if WasGameMode then
+// Reload config when entering the MangoHud tab (global or game-specific)
+if FActiveGameName <> '' then
   LoadMangoHudConfig;
 
 DbgLog('<< mangohudLabelClick END');
@@ -7766,14 +7785,7 @@ EnableTraceLogsFound: Boolean;
             howtoBitBtn.Visible := True;
 
             // Build launch command with full absolute path for fgmod
-            LaunchCommand := GetFGModPath + '/fgmod ';
-
-            // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
-            if GetGeneralCheckBox(1).Checked then
-              LaunchCommand := LaunchCommand + '-- env gamemoderun ';
-
-            // Always end with %command%
-            LaunchCommand := LaunchCommand + '%command%';
+            // (Done globally below)
 
           finally
             FGModLines.Free;
@@ -7790,6 +7802,14 @@ EnableTraceLogsFound: Boolean;
         // geSpeedButton is OFF - just show the command line without modifying fgmod
         SendNotification('Tweaks', 'Launch command generated', GetIconFile);
       end;
+
+      // Always build launch command with full absolute path for fgmod
+      LaunchCommand := GetFGModPath + '/fgmod ';
+      // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
+      if GetGeneralCheckBox(1).Checked then
+        LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+      // Always end with %command%
+      LaunchCommand := LaunchCommand + '%command%';
 
       // Update notificationLabel
       notificationLabel.Caption := 'Command :';
@@ -8349,7 +8369,7 @@ EnableTraceLogsFound: Boolean;
       commandEdit.Visible := True;
       commandEdit.Text := 'MangoHud will be displayed in every vulkan application';
     end
-    else if geSpeedButton.ImageIndex = 1 then
+    else
     begin
       // Build launch command with full absolute path
       LaunchCommand := GetFGModPath + '/fgmod ';
@@ -8373,29 +8393,6 @@ EnableTraceLogsFound: Boolean;
       
       copyBitbtn.Visible := True;
       howtoBitBtn.Visible := True;
-    end
-    else
-    begin
-      // geSpeedButton is OFF - show environment variable command
-      LaunchCommand := 'MANGOHUD=1 ';
-
-      // Check if gamemode should be added
-      if GetGeneralCheckBox(1).Checked then
-        LaunchCommand := LaunchCommand + 'gamemoderun ';
-
-      LaunchCommand := LaunchCommand + '%command%';
-
-      // Update notificationLabel
-      notificationLabel.Caption := 'Command :';
-      notificationLabel.Font.Color := clOlive;
-      notificationLabel.Font.Style := [fsBold];
-      notificationLabel.Visible := True;
-
-      // Update commandEdit with launch command
-      commandEdit.Text := LaunchCommand;
-      commandEdit.Visible := True;
-      
-      copyBitbtn.Visible := True;
     end;
 
     //########################################### SAVE BLACKLIST
@@ -8564,56 +8561,29 @@ end;  //  ################### END - SAVE MANGOHUD
      Lines.SaveToFile(VKBASALTCFGFILE);
      SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
-     // If geSpeedButton is active (vkBasalt enabled in fgmod), show the fgmod command
-     if geSpeedButton.ImageIndex = 1 then
-     begin
-       // Build launch command with full absolute path
-       LaunchCommand := GetFGModPath + '/fgmod ';
+     // Always show the fgmod command
+     // Build launch command with full absolute path
+     LaunchCommand := GetFGModPath + '/fgmod ';
 
-       // Check if gamemode should be added (check generalCheckGroup)
-       if GetGeneralCheckBox(1).Checked then
-         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+     // Check if gamemode should be added (check generalCheckGroup)
+     if GetGeneralCheckBox(1).Checked then
+       LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
-       LaunchCommand := LaunchCommand + '%command%';
+     LaunchCommand := LaunchCommand + '%command%';
 
-       // Update notificationLabel
-       notificationLabel.Caption := 'Command :';
-       notificationLabel.Font.Color := clOlive;
-       notificationLabel.Font.Style := [fsBold];
-       notificationLabel.Visible := True;
+     // Update notificationLabel
+     notificationLabel.Caption := 'Command :';
+     notificationLabel.Font.Color := clOlive;
+     notificationLabel.Font.Style := [fsBold];
+     notificationLabel.Visible := True;
 
-       // Update commandLabel with launch command
-       commandEdit.Text := LaunchCommand;
-       
-       commandEdit.Visible := True;
-       
-       copyBitbtn.Visible := True;
-       howtoBitBtn.Visible := True;
-     end
-     else
-     begin
-       // geSpeedButton is OFF - show environment variable command
-       LaunchCommand := 'ENABLE_VKBASALT=1 ';
-
-       // Check if gamemode should be added
-       if GetGeneralCheckBox(1).Checked then
-         LaunchCommand := LaunchCommand + 'gamemoderun ';
-
-       LaunchCommand := LaunchCommand + '%command%';
-
-       // Update notificationLabel
-       notificationLabel.Caption := 'Command :';
-       notificationLabel.Font.Color := clOlive;
-       notificationLabel.Font.Style := [fsBold];
-       notificationLabel.Visible := True;
-
-       // Update commandLabel with launch command
-       commandEdit.Text := LaunchCommand;
-       
-       commandEdit.Visible := True;
-       
-       copyBitbtn.Visible := True;
-     end;
+     // Update commandLabel with launch command
+     commandEdit.Text := LaunchCommand;
+     
+     commandEdit.Visible := True;
+     
+     copyBitbtn.Visible := True;
+     howtoBitBtn.Visible := True;
 
    except
      on E: Exception do
@@ -10065,6 +10035,8 @@ begin
   FGamesPanel.Top := 0;
   FGamesPanel.Width := 800;
   FGamesPanel.Height := 100;
+  FGamesPanel.OnClick := @GamesEmptySpaceClick;
+  FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
 
   // 4 shared action buttons — children of FGamesPanel, repositioned on card select
   for k := 0 to 3 do
@@ -10461,6 +10433,20 @@ begin
     ReflowGamesGrid;
 end;
 
+procedure Tgoverlayform.GamesEmptySpaceClick(Sender: TObject);
+begin
+  // Clicking empty space in the games grid: deselect cards and return to global config
+  HideGameActionPanel;
+  if FActiveGameName <> '' then
+  begin
+    FActiveGameName := '';
+    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
+    UpdateGameContextLabel;
+    HideGameThumb;
+  end;
+end;
+
 procedure Tgoverlayform.GameCardMouseEnter(Sender: TObject);
 var
   Panel: TPanel;
@@ -10778,7 +10764,9 @@ begin
        // triggering the game-mode reset that sidebar navigation applies)
     begin
       GameCfgDir := GetGameConfigDir(GameName);
-      ForceDirectories(GameCfgDir);
+      if not DirectoryExists(GameCfgDir) then
+        ForceDirectories(GameCfgDir);
+      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
       MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
       UpdateGameContextLabel;
       SetNavActive(0);
@@ -10801,7 +10789,9 @@ begin
     1: // vkBasalt
     begin
       GameCfgDir := GetGameConfigDir(GameName);
-      ForceDirectories(GameCfgDir);
+      if not DirectoryExists(GameCfgDir) then
+        ForceDirectories(GameCfgDir);
+      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
       VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
       UpdateGameContextLabel;
       vkbasaltLabelClick(nil);

@@ -350,6 +350,9 @@ begin
     '' + LineEnding +
     '# Note: d3dcompiler_47.dll is not included in v0.9.0-pre4 archive' + LineEnding +
     '' + LineEnding +
+    'cp -f "$fgmod_path/MangoHud.conf" "$exe_folder_path/" || true' + LineEnding +
+    'cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true' + LineEnding +
+    '' + LineEnding +
     'echo "✅ Installation completed successfully!"' + LineEnding +
     'echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"' + LineEnding +
     'echo "📄 For Heroic, add this as a new wrapper: \"$fgmod_path/fgmod\""' + LineEnding +
