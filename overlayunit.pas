@@ -10570,9 +10570,20 @@ end;
 procedure Tgoverlayform.ShowGameActionPanel(ACard: TPanel);
 const
   BTN_OFFSETS: array[0..3] of Integer = (31, 70, 109, 148);
+  // Config files to check for each button index (empty = not implemented yet)
+  CFG_FILES: array[0..3] of string = (
+    'MangoHud.conf',
+    'vkBasalt.conf',
+    '',
+    ''
+  );
+  COLOR_CONFIGURED = $0066DD66;  // green — game has a saved config
+  COLOR_DEFAULT    = $00AAAAAA;  // gray  — no config yet
 var
   k: Integer;
   Switching: Boolean;
+  GameName, GameCfgDir: string;
+  HintLines: TStringList;
 begin
   Switching := FSelectedCard <> nil;
 
@@ -10595,6 +10606,18 @@ begin
   if Switching then
     ApplyDimToCards;
 
+  // Extract game name to check for existing per-game configs
+  GameName := '';
+  HintLines := TStringList.Create;
+  try
+    HintLines.Text := ACard.Hint;
+    if HintLines.Count > 0 then
+      GameName := HintLines[0];
+  finally
+    HintLines.Free;
+  end;
+  GameCfgDir := GetGameConfigDir(GameName);
+
   for k := 0 to 3 do
   begin
     FActionBtns[k].SetBounds(
@@ -10602,6 +10625,13 @@ begin
       ACard.Top  + BTN_OFFSETS[k],
       ACard.Width - 16,
       32);
+
+    // Color the button text green if a game-specific config already exists
+    if (CFG_FILES[k] <> '') and FileExists(GameCfgDir + CFG_FILES[k]) then
+      FActionBtns[k].Font.Color := COLOR_CONFIGURED
+    else
+      FActionBtns[k].Font.Color := COLOR_DEFAULT;
+
     FActionBtns[k].Visible := True;
     FActionBtns[k].BringToFront;
   end;
