@@ -561,7 +561,9 @@ type
 
     // Settings button (bottom of sidebar)
     FSettingsIconLbl: TLabel;
-    FDepsMenuItem:    TMenuItem;  // dependency status item inside settingsMenu
+    FDepsMenuItem:       TMenuItem;  // dependency status item inside settingsMenu
+    FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
+    FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
     procedure BuildNavRail;
     procedure BuildSettingsButton;
@@ -569,6 +571,7 @@ type
     procedure SettingsBtnMouseEnter(Sender: TObject);
     procedure SettingsBtnMouseLeave(Sender: TObject);
     procedure SettingsBtnClick(Sender: TObject);
+    procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -5479,6 +5482,7 @@ end;
 
 procedure Tgoverlayform.StartCube;
 begin
+  if not FCubeAutoLaunch then Exit;
   StopCube; // Prevent duplicates
 
   if IsRunningInFlatpak then
@@ -5519,7 +5523,7 @@ procedure Tgoverlayform.StopCube;
 var
   Proc: TProcess;
 begin
-  // Run killall without the 200ms GUI-wait sleep used by ExecuteGUICommand
+  // Kill cube processes without the 200ms GUI-wait sleep used by ExecuteGUICommand
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := FindDefaultExecutablePath('sh');
@@ -6639,26 +6643,16 @@ begin
     begin
         // FLATPAK MODE
         if IsCommandAvailable('pascube') then
-        begin
-           ExecuteGUICommand('MANGOHUD=1 pascube &');
-        end
+           ExecuteGUICommand('MANGOHUD=1 pascube &')
         else
-         begin
-           // None found
-            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
-         end;
+           SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
     end
     else
     begin
-        // NATIVE MODE
         if IsCommandAvailable('pascube') then
-        begin
-           ExecuteGUICommand('MANGOHUD=1 pascube &');
-        end
+           ExecuteGUICommand('MANGOHUD=1 pascube &')
         else
-        begin
            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
-        end;
     end;
 
 end;
@@ -6692,7 +6686,6 @@ begin
   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
   if IsRunningInFlatpak then
   begin
-      // In Flatpak, vkcube auto-detects WSI
       if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
          ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
       else
@@ -6701,7 +6694,9 @@ begin
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand('MANGOHUD=1 vkcube &');
+      ExecuteGUICommand('MANGOHUD=1 vkcube &')
+    else
+      ExecuteGUICommand('mangohud vkcube &');
   end;
 end;
 
@@ -9293,7 +9288,8 @@ begin
 
   FNavActive     := -1;
   FNavHoveredIdx := -1;
-  FNavCollapsed  := False;
+  FNavCollapsed    := False;
+  FCubeAutoLaunch  := True;  // enabled by default
 
   // Restore sidebar collapsed state from previous session
   UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
@@ -9304,6 +9300,8 @@ begin
       SL.LoadFromFile(UIStateFile);
       if (SL.Count > 0) and (SL[0] = '1') then
         FNavCollapsed := True;
+      if (SL.Count > 1) and (SL[1] = '0') then
+        FCubeAutoLaunch := False;
     finally
       SL.Free;
     end;
@@ -9508,6 +9506,17 @@ begin
   Sep := TMenuItem.Create(settingsMenu);
   Sep.Caption := '-';
   settingsMenu.Items.Insert(1, Sep);
+
+  // Auto-launch cube toggle
+  FCubeAutoLaunchItem := TMenuItem.Create(settingsMenu);
+  FCubeAutoLaunchItem.Caption := 'Auto-launch PasCube/VkCube';
+  FCubeAutoLaunchItem.Checked := FCubeAutoLaunch;
+  FCubeAutoLaunchItem.OnClick := @CubeAutoLaunchMenuItemClick;
+  settingsMenu.Items.Insert(2, FCubeAutoLaunchItem);
+
+  Sep := TMenuItem.Create(settingsMenu);
+  Sep.Caption := '-';
+  settingsMenu.Items.Insert(3, Sep);
 end;
 
 procedure Tgoverlayform.SettingsBtnMouseEnter(Sender: TObject);
@@ -9525,6 +9534,25 @@ end;
 procedure Tgoverlayform.SettingsBtnClick(Sender: TObject);
 begin
   settingsMenu.PopUp;
+end;
+
+procedure Tgoverlayform.CubeAutoLaunchMenuItemClick(Sender: TObject);
+var
+  UIStateFile: string;
+  SL: TStringList;
+begin
+  FCubeAutoLaunch := not FCubeAutoLaunch;
+  FCubeAutoLaunchItem.Checked := FCubeAutoLaunch;
+
+  UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
+  SL := TStringList.Create;
+  try
+    SL.Add(IfThen(FNavCollapsed, '1', '0'));
+    SL.Add(IfThen(FCubeAutoLaunch, '1', '0'));
+    SL.SaveToFile(UIStateFile);
+  finally
+    SL.Free;
+  end;
 end;
 
 procedure Tgoverlayform.RestoreNavRailColors;
@@ -9681,6 +9709,7 @@ begin
   SL := TStringList.Create;
   try
     SL.Add(IfThen(FNavCollapsed, '1', '0'));
+    SL.Add(IfThen(FCubeAutoLaunch, '1', '0'));
     SL.SaveToFile(UIStateFile);
   finally
     SL.Free;
