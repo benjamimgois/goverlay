@@ -10195,15 +10195,17 @@ var
   PendingImages: TList;
   CacheDir: string;
   i, j, CardX, CardY, CardsPerRow, TotalRows: Integer;
-  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir, InstallDir: string;
+  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir, InstallDir, IconPath: string;
   SR: TSearchRec;
   AcfFile: TStringList;
   CardPanel: TPanel;
   CardImage: TImage;
   CardLabel: TLabel;
+  CardBadge: TLabel;
   NoGamesLabel: TLabel;
-  LowerName: string;
+  LowerName, GameCfgDir: string;
   ScaledBmp: TBitmap;
+  HasMango, HasVkBasalt: Boolean;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
@@ -10333,6 +10335,34 @@ begin
           CardLabel.OnMouseLeave := @GameCardMouseLeave;
           CardLabel.OnClick := @GameCardClick;
           CardLabel.OnMouseUp := @GameCardMouseUp;
+
+          // Config badges: green icons top-left if per-game configs exist
+          GameCfgDir := GetGameConfigDir(GameName);
+          HasMango    := FileExists(GameCfgDir + 'MangoHud.conf');
+          HasVkBasalt := FileExists(GameCfgDir + 'vkBasalt.conf');
+          if HasMango or HasVkBasalt then
+          begin
+            // Build badge caption from the same unicode chars used in the sidebar
+            CardBadge := TLabel.Create(Self);
+            CardBadge.Parent     := CardPanel;
+            CardBadge.AutoSize   := False;
+            CardBadge.SetBounds(0, 0, CARD_W, 22);
+            CardBadge.Caption    := '';
+            if HasMango    then CardBadge.Caption := CardBadge.Caption + '󱁥 ';
+            if HasVkBasalt then CardBadge.Caption := CardBadge.Caption + '󰏘';
+            CardBadge.Caption    := Trim(CardBadge.Caption);
+            CardBadge.Color      := $1A1A1A;
+            CardBadge.Font.Name  := 'Noto Sans';
+            CardBadge.Font.Size  := 12;
+            CardBadge.Font.Color := $0044EE44;
+            CardBadge.Alignment  := taLeftJustify;
+            CardBadge.Layout     := tlCenter;
+            CardBadge.BorderSpacing.Left := 4;
+            CardBadge.OnMouseEnter := @GameCardMouseEnter;
+            CardBadge.OnMouseLeave := @GameCardMouseLeave;
+            CardBadge.OnClick      := @GameCardClick;
+            CardBadge.OnMouseUp    := @GameCardMouseUp;
+          end;
 
           // Store card and original image for dim animation
           FCardPanels.Add(CardPanel);
