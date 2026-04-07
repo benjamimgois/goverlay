@@ -7629,7 +7629,9 @@ EnableTraceLogsFound: Boolean;
             // Load the fgmod file
             FGModLines.LoadFromFile(FGModFilePath);
 
-            // First, remove any existing tweak export lines to avoid duplicates
+            // First, remove any existing tweak export lines to avoid duplicates.
+            // NOTE: Do NOT remove 'export WINEDLLOVERRIDES=' here - that line belongs
+            // to the OptiScaler section and must never be touched by the Tweaks code.
             for LineIndex := FGModLines.Count - 1 downto 0 do
             begin
               if (Pos('export PROTON_ENABLE_HDR=1', FGModLines[LineIndex]) > 0) or
@@ -7666,7 +7668,7 @@ EnableTraceLogsFound: Boolean;
             begin
               if Pos('# Execute the original command', FGModLines[LineIndex]) > 0 then
               begin
-                // Insert lines in reverse order so they appear in correct order after insertion
+                // Insert lines in reverse order so they appear in correct order after insertion.
                 // Index 1: "Always use GameMode" -> #gamemode (comment marker)
                 if GetGeneralCheckBox(1).Checked then
                   FGModLines.Insert(LineIndex + 1, '  #gamemode');
@@ -7757,7 +7759,9 @@ EnableTraceLogsFound: Boolean;
               end;
             end;
 
-            // Handle "Simulate Steam Deck" (index 0) - modifies existing SteamDeck line
+            // Handle "Simulate Steam Deck" (index 0).
+            // Try to modify existing SteamDeck line first; if not found, leave as-is
+            // (the embedded fgmod template already contains 'export SteamDeck=0' after the anchor).
             for LineIndex := 0 to FGModLines.Count - 1 do
             begin
               if Pos('export SteamDeck=', FGModLines[LineIndex]) > 0 then
@@ -7794,8 +7798,31 @@ EnableTraceLogsFound: Boolean;
       end
       else
       begin
-        // geSpeedButton is OFF - just show the command line without modifying fgmod
-        SendNotification('Tweaks', 'Launch command generated', GetIconFile);
+        // geSpeedButton is OFF - check if there are any tweaks selected.
+        // If the user has checked tweaks, auto-enable Auto Enable and save to fgmod.
+        // This avoids the confusing case where tweaks are selected but never saved.
+        if GetGeneralCheckBox(0).Checked or GetGeneralCheckBox(1).Checked or
+           GetGeneralCheckBox(2).Checked or GetGeneralCheckBox(3).Checked or
+           GetGeneralCheckBox(4).Checked or GetGeneralCheckBox(5).Checked or
+           GetGraphicsCheckBox(0).Checked or GetGraphicsCheckBox(1).Checked or
+           GetGraphicsCheckBox(2).Checked or GetGraphicsCheckBox(3).Checked or
+           GetGraphicsCheckBox(4).Checked or
+           nofastclearsCheckBox.Checked or
+           GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
+           GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
+           GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
+           (Trim(customenvEdit.Text) <> '') then
+        begin
+          // Auto-enable Auto Enable and save
+          geSpeedButton.ImageIndex := 1;
+          saveBitBtnClick(Sender);
+          Exit;
+        end
+        else
+        begin
+          // No tweaks selected and Auto Enable is OFF - just show notification
+          SendNotification('Tweaks', 'Nenhuma tweak selecionada para guardar', GetIconFile);
+        end;
       end;
 
       // Always build launch command with full absolute path for fgmod
