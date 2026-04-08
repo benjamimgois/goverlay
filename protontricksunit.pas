@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Process, themeunit, constants, strutils, systemdetector, LCLType;
+  ExtCtrls, Process, themeunit, constants, strutils, systemdetector, LCLType, Grids;
 
 type
 
@@ -20,11 +20,14 @@ type
     applyProgressBar: TProgressBar;
     statusLabel: TLabel;
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure closeButtonClick(Sender: TObject);
     procedure applyButtonClick(Sender: TObject);
     procedure gamesListViewSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);
   private
+    FGameGrid: TStringGrid;
+    procedure GridSelectCell(Sender: TObject; ACol, ARow: Integer; var CanSelect: Boolean);
     procedure LoadGames;
     function GetPrefixWindowsVersion(AppID: String): String;
     function FindSteamappsPaths: TStringList;
@@ -84,7 +87,68 @@ end;
 procedure Tprotontricksform.FormCreate(Sender: TObject);
 begin
   ApplyTheme(Self, CurrentTheme);
+  OnShow := @FormShow;
+
+  // Hide the lfm TListView and replace with a TStringGrid for full color control
+  gamesListView.Visible := False;
+
+  FGameGrid := TStringGrid.Create(Self);
+  FGameGrid.Parent := Self;
+  FGameGrid.SetBounds(gamesListView.Left, gamesListView.Top,
+                      gamesListView.Width, gamesListView.Height);
+  FGameGrid.Anchors   := [akTop, akLeft, akRight, akBottom];
+  FGameGrid.ColCount  := 3;
+  FGameGrid.RowCount  := 2;   // 1 header + 1 data placeholder
+  FGameGrid.FixedRows := 1;
+  FGameGrid.FixedCols := 0;
+  FGameGrid.ColWidths[0] := 340;
+  FGameGrid.ColWidths[1] := 100;
+  FGameGrid.ColWidths[2] := 120;
+  FGameGrid.Options   := FGameGrid.Options + [goRowSelect] - [goEditing];
+  FGameGrid.Cells[0, 0] := 'Game';
+  FGameGrid.Cells[1, 0] := 'AppID';
+  FGameGrid.Cells[2, 0] := 'Windows Version';
+  FGameGrid.OnSelectCell := @GridSelectCell;
+
+  if CurrentTheme = tmLight then
+  begin
+    FGameGrid.Color      := clWhite;
+    FGameGrid.FixedColor := $00D0D0D0;
+    FGameGrid.Font.Color := clBlack;
+    FGameGrid.FixedHotColor := $00D0D0D0;
+    winVerComboBox.Color      := $00F0F0F0;
+    winVerComboBox.Font.Color := clBlack;
+  end
+  else
+  begin
+    FGameGrid.Color      := $00232323;
+    FGameGrid.FixedColor := $00332E2C;
+    FGameGrid.Font.Color := clWhite;
+    FGameGrid.FixedHotColor := $00332E2C;
+    winVerComboBox.Color      := $00332E2C;
+    winVerComboBox.Font.Color := clWhite;
+  end;
+
   LoadGames;
+end;
+
+procedure Tprotontricksform.FormShow(Sender: TObject);
+begin
+  // Re-apply combobox colors after Qt widget realization
+  if CurrentTheme = tmLight then
+  begin
+    winVerComboBox.Color      := $00F0F0F0;
+    winVerComboBox.Font.Color := clBlack;
+    applyButton.Color         := $00E0E0E0;
+    applyButton.Font.Color    := clBlack;
+    closeButton.Color         := $00E0E0E0;
+    closeButton.Font.Color    := clBlack;
+  end
+  else
+  begin
+    winVerComboBox.Color      := $00332E2C;
+    winVerComboBox.Font.Color := clWhite;
+  end;
 end;
 
 procedure Tprotontricksform.closeButtonClick(Sender: TObject);
@@ -98,19 +162,19 @@ var
   AProcess: TProcess;
   ExitCode: Integer;
 begin
-  if gamesListView.Selected = nil then exit;
+  if (FGameGrid.Row < 1) or (FGameGrid.Cells[1, FGameGrid.Row] = '') then exit;
   if winVerComboBox.ItemIndex = -1 then exit;
 
-  AppID := gamesListView.Selected.SubItems[0];
+  AppID := FGameGrid.Cells[1, FGameGrid.Row];
   WinVer := winVerComboBox.Text;
 
   // Show progress UI
   applyButton.Enabled := False;
   closeButton.Enabled := False;
   winVerComboBox.Enabled := False;
-  gamesListView.Enabled := False;
+  FGameGrid.Enabled := False;
   statusLabel.Caption := 'Applying Windows version ' + WinVer + ' to ' +
-    gamesListView.Selected.Caption + '...';
+    FGameGrid.Cells[0, FGameGrid.Row] + '...';
   applyProgressBar.Visible := True;
   Application.ProcessMessages;
 
@@ -142,7 +206,7 @@ begin
     applyButton.Enabled := True;
     closeButton.Enabled := True;
     winVerComboBox.Enabled := True;
-    gamesListView.Enabled := True;
+    FGameGrid.Enabled := True;
   end;
 
   if ExitCode = 0 then
@@ -168,6 +232,17 @@ begin
     if VerIndex >= 0 then
       winVerComboBox.ItemIndex := VerIndex;
   end;
+end;
+
+procedure Tprotontricksform.GridSelectCell(Sender: TObject; ACol, ARow: Integer; var CanSelect: Boolean);
+var
+  VerIndex: Integer;
+begin
+  CanSelect := True;
+  if ARow < 1 then Exit;
+  VerIndex := winVerComboBox.Items.IndexOf(FGameGrid.Cells[2, ARow]);
+  if VerIndex >= 0 then
+    winVerComboBox.ItemIndex := VerIndex;
 end;
 
 function Tprotontricksform.FindSteamappsPaths: TStringList;
@@ -298,11 +373,10 @@ var
   OutputLines: TStringList;
   Line, GameName, AppIDStr, WinVer: String;
   i, k, p1, p2: Integer;
-  ListItem: TListItem;
   HasUnknown: Boolean;
   GamesFound: Integer;
 begin
-  gamesListView.Items.Clear;
+  FGameGrid.RowCount := 1;  // keep only header
   GamesFound := 0;
 
   AProcess := TProcess.Create(nil);
@@ -340,10 +414,11 @@ begin
           if StrToIntDef(AppIDStr, -1) <> -1 then
           begin
             WinVer := GetPrefixWindowsVersion(AppIDStr);
-            ListItem := gamesListView.Items.Add;
-            ListItem.Caption := GameName;
-            ListItem.SubItems.Add(AppIDStr);
-            ListItem.SubItems.Add(WinVer);
+            FGameGrid.RowCount := FGameGrid.RowCount + 1;
+            k := FGameGrid.RowCount - 1;
+            FGameGrid.Cells[0, k] := GameName;
+            FGameGrid.Cells[1, k] := AppIDStr;
+            FGameGrid.Cells[2, k] := WinVer;
             Inc(GamesFound);
           end;
         end;

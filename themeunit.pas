@@ -241,6 +241,16 @@ begin
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := DarkBackgroundColor
+    else if ctrl is TListView then
+    begin
+      TListView(ctrl).Color      := DarkerBackgroundColor;
+      TListView(ctrl).Font.Color := DarkTextColor;
+    end
+    else if ctrl is TButton then
+    begin
+      TButton(ctrl).Color      := DarkBackgroundColor;
+      TButton(ctrl).Font.Color := DarkTextColor;
+    end
     else if ctrl is TPageControl then
     begin
       // Apply dark theme to all tab pages
@@ -346,6 +356,11 @@ begin
         TEdit(ctrl).Font.Color := clWhite;
         TEdit(ctrl).Color := clBlack;
       end
+      else if ctrl.Name = 'logfolderEdit' then
+      begin
+        TEdit(ctrl).Font.Color := LightTextColor;
+        TEdit(ctrl).Color := LighterBackgroundColor;  // gray for contrast on log folder path
+      end
       else
       begin
         TEdit(ctrl).Font.Color := LightTextColor;
@@ -397,6 +412,16 @@ begin
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := LightBackgroundColor
+    else if ctrl is TListView then
+    begin
+      TListView(ctrl).Color      := LightBackgroundColor;
+      TListView(ctrl).Font.Color := LightTextColor;
+    end
+    else if ctrl is TButton then
+    begin
+      TButton(ctrl).Color      := LighterBackgroundColor;
+      TButton(ctrl).Font.Color := LightTextColor;
+    end
     else if ctrl is TPageControl then
     begin
       // Apply light theme to all tab pages

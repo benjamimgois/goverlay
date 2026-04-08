@@ -847,10 +847,14 @@ var
   NAV_ITEM_W      = 211;  // width (same as sidebar)
   NAV_INDICATOR_W = 3;    // active indicator bar width
   NAV_ICON_SIZE   = 28;   // icon area size
-  NAV_COLOR_BG        = $00221F1E; // item normal background
-  NAV_COLOR_HOVER     = $00332E2C; // item hover background
-  NAV_COLOR_ACTIVE    = $00443E3A; // item active background
+  NAV_COLOR_BG        = $00221F1E; // item normal background (dark)
+  NAV_COLOR_HOVER     = $00332E2C; // item hover background (dark)
+  NAV_COLOR_ACTIVE    = $00443E3A; // item active background (dark)
   NAV_COLOR_INDICATOR = $0000C8FF; // active indicator (amber/gold)
+  // Light theme nav colors
+  NAV_LIGHT_BG        = $00E8E8E8;
+  NAV_LIGHT_HOVER     = $00D0D0D0;
+  NAV_LIGHT_ACTIVE    = $00C0C0C0;
   NAV_W_EXPANDED  = 211;
   NAV_W_COLLAPSED = 60;
 implementation
@@ -4753,6 +4757,9 @@ begin
   // Apply comprehensive tooltips to all components
   ApplyAllHints(Self);
   
+  // Prevent maximizing — layout is fixed-width and doesn't benefit from it
+  BorderIcons := BorderIcons - [biMaximize];
+
   // Apply modern design system
   //ApplyModernTypography(Self);  // Disabled - user preference
   //ApplyModernSpacing(Self);  // Disabled - user preference
@@ -9626,13 +9633,13 @@ end;
 procedure Tgoverlayform.SettingsBtnMouseEnter(Sender: TObject);
 begin
   if Assigned(FSettingsIconLbl) then
-    FSettingsIconLbl.Font.Color := clWhite;
+    FSettingsIconLbl.Font.Color := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
 end;
 
 procedure Tgoverlayform.SettingsBtnMouseLeave(Sender: TObject);
 begin
   if Assigned(FSettingsIconLbl) then
-    FSettingsIconLbl.Font.Color := $00AAAAAA;
+    FSettingsIconLbl.Font.Color := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
 end;
 
 procedure Tgoverlayform.SettingsBtnClick(Sender: TObject);
@@ -9662,26 +9669,48 @@ end;
 procedure Tgoverlayform.RestoreNavRailColors;
 var
   i: Integer;
+  IsLight: Boolean;
+  BgActive, BgNormal, TextActive, TextInactive, ToggleColor: TColor;
 begin
   if Length(FNavItems) = 0 then Exit;
+  IsLight := CurrentTheme = tmLight;
+  if IsLight then
+  begin
+    BgActive    := NAV_LIGHT_ACTIVE;
+    BgNormal    := NAV_LIGHT_BG;
+    TextActive  := clBlack;
+    TextInactive := $00555555;
+    ToggleColor := NAV_LIGHT_BG;
+  end
+  else
+  begin
+    BgActive    := NAV_COLOR_ACTIVE;
+    BgNormal    := NAV_COLOR_BG;
+    TextActive  := clWhite;
+    TextInactive := $00AAAAAA;
+    ToggleColor := $00221F1E;
+  end;
+
   for i := 0 to High(FNavItems) do
   begin
     if i = FNavActive then
     begin
-      FNavItems[i].Color       := NAV_COLOR_ACTIVE;
-      FNavIcons[i].Font.Color  := clWhite;
-      FNavLabels[i].Font.Color := clWhite;
+      FNavItems[i].Color       := BgActive;
+      FNavIcons[i].Font.Color  := TextActive;
+      FNavLabels[i].Font.Color := TextActive;
     end
     else
     begin
-      FNavItems[i].Color       := NAV_COLOR_BG;
-      FNavIcons[i].Font.Color  := $00AAAAAA;
-      FNavLabels[i].Font.Color := $00AAAAAA;
+      FNavItems[i].Color       := BgNormal;
+      FNavIcons[i].Font.Color  := TextInactive;
+      FNavLabels[i].Font.Color := TextInactive;
     end;
     FNavItems[i].Invalidate;
   end;
   if Assigned(FNavToggleBtn) then
-    FNavToggleBtn.Color := $00221F1E;
+    FNavToggleBtn.Color := ToggleColor;
+  if Assigned(FSettingsIconLbl) then
+    FSettingsIconLbl.Font.Color := TextInactive;
 end;
 
 procedure Tgoverlayform.SetNavActive(AIndex: Integer);
@@ -9696,8 +9725,8 @@ begin
     if i = AIndex then
     begin
       FNavIndicators[i].Visible := True;
-      FNavIcons[i].Font.Color   := clWhite;
-      FNavLabels[i].Font.Color  := clWhite;
+      FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
+      FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
       if (i = 2) and Assigned(FOptiScalerImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
@@ -9714,8 +9743,8 @@ begin
     else
     begin
       FNavIndicators[i].Visible := False;
-      FNavIcons[i].Font.Color   := $00AAAAAA;
-      FNavLabels[i].Font.Color  := $00AAAAAA;
+      FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
+      FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
       if (i = 2) and Assigned(FOptiScalerImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
@@ -9774,12 +9803,18 @@ var
 begin
   P   := TPanel(Sender);
   Idx := P.Tag;
-  if Idx = FNavActive then
-    BgColor := NAV_COLOR_ACTIVE
-  else if Idx = FNavHoveredIdx then
-    BgColor := NAV_COLOR_HOVER
+  if CurrentTheme = tmLight then
+  begin
+    if Idx = FNavActive then      BgColor := NAV_LIGHT_ACTIVE
+    else if Idx = FNavHoveredIdx then BgColor := NAV_LIGHT_HOVER
+    else                              BgColor := NAV_LIGHT_BG;
+  end
   else
-    BgColor := NAV_COLOR_BG;
+  begin
+    if Idx = FNavActive then      BgColor := NAV_COLOR_ACTIVE
+    else if Idx = FNavHoveredIdx then BgColor := NAV_COLOR_HOVER
+    else                              BgColor := NAV_COLOR_BG;
+  end;
   P.Canvas.Brush.Color := BgColor;
   P.Canvas.Brush.Style := bsSolid;
   P.Canvas.FillRect(P.ClientRect);
@@ -9986,6 +10021,24 @@ begin
     ColorLabels[i].Left := X + (BTN_W - ColorLabels[i].Width) div 2;
     ColorLabels[i].Top  := ColorLblTop;
   end;
+
+  // Ensure section + card labels use the correct theme text color.
+  // presetTabSheet has Font.Color=clWhite in the .lfm, which can bleed into
+  // labels when light theme is active.
+  if CurrentTheme = tmLight then
+  begin
+    layoutsLabel.Font.Color    := LightTextColor;
+    colorthemeLabel.Font.Color := LightTextColor;
+    for i := 0 to 4 do LayoutLabels[i].Font.Color := LightTextColor;
+    for i := 0 to 3 do ColorLabels[i].Font.Color  := LightTextColor;
+  end
+  else
+  begin
+    layoutsLabel.Font.Color    := DarkTextColor;
+    colorthemeLabel.Font.Color := DarkTextColor;
+    for i := 0 to 4 do LayoutLabels[i].Font.Color := DarkTextColor;
+    for i := 0 to 3 do ColorLabels[i].Font.Color  := DarkTextColor;
+  end;
 end;
 
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
@@ -10163,6 +10216,7 @@ begin
   FGamesScrollBox.Align := alClient;
   FGamesScrollBox.AutoScroll := True;
   FGamesScrollBox.BorderStyle := bsNone;
+  FGamesScrollBox.HorzScrollBar.Visible := False;
   FGamesScrollBox.Color := $1A1A1A;
   FGamesScrollBox.OnResize := @GamesScrollBoxResize;
 
