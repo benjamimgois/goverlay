@@ -552,6 +552,7 @@ type
     FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
     FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
     FNavCollapsed:   Boolean;            // sidebar collapsed state
+    FPresetsWrapper: TPanel;             // centered wrapper for the Presets tab content
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
     FNavSmallIcon:   TImage;             // small app icon shown when collapsed
     FOptiScalerImg:  TImage;             // custom image for optiscaler icon
@@ -567,6 +568,7 @@ type
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
     procedure BuildNavRail;
+    procedure BuildPresetsWrapper;
     procedure BuildSettingsButton;
     procedure RestoreNavRailColors;
     procedure SettingsBtnMouseEnter(Sender: TObject);
@@ -2655,14 +2657,24 @@ BaseB := 70;  // 0x46
     else if Assigned(FGlobalThumbPng) and (FGlobalThumbPng.Width > 0)
          and (FNavActive >= 0) then
     begin
-      // Global icon: 50% of available slot, vertically centered, label below
+      // Collapsed: icon at 75%, font 7, short label; expanded: 50%, font 9, full label
       if ThumbW > ThumbH then ThumbW := ThumbH
       else ThumbH := ThumbW;
-      ThumbW := ThumbW div 2;
-      ThumbH := ThumbH div 2;
+      if FNavCollapsed then
+      begin
+        ThumbW := ThumbW * 3 div 4;
+        ThumbH := ThumbH * 3 div 4;
+        goverlayPaintBox.Canvas.Font.Size := 7;
+      end
+      else
+      begin
+        ThumbW := ThumbW div 2;
+        ThumbH := ThumbH div 2;
+        goverlayPaintBox.Canvas.Font.Size := 9;
+      end;
+      goverlayPaintBox.Canvas.Font.Style := [];
 
       // Vertically center icon+gap+label within the available slot
-      // (label ≈ 16px tall, 6px gap between icon and label)
       AvailH := (THeight - 52) - ThumbY - THUMB_GAP;
       IconTop := ThumbY + (AvailH - ThumbH - 6 - 16) div 2;
       if IconTop < ThumbY then IconTop := ThumbY;
@@ -2672,15 +2684,21 @@ BaseB := 70;  // 0x46
         (TWidth - ThumbW) div 2 + ThumbW, IconTop + ThumbH);
       goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGlobalThumbPng);
 
-      // Draw "Global config" label below the icon
+      // Label: "Global" when collapsed, "Global config" when expanded
       goverlayPaintBox.Canvas.Font.Color  := clWhite;
-      goverlayPaintBox.Canvas.Font.Size   := 9;
-      goverlayPaintBox.Canvas.Font.Style  := [];
       goverlayPaintBox.Canvas.Brush.Style := bsClear;
-      goverlayPaintBox.Canvas.TextOut(
-        (TWidth - goverlayPaintBox.Canvas.TextWidth('Global config')) div 2,
-        IconTop + ThumbH + 6,
-        'Global config');
+      if FNavCollapsed then
+      begin
+        goverlayPaintBox.Canvas.TextOut(
+          (TWidth - goverlayPaintBox.Canvas.TextWidth('Global')) div 2,
+          IconTop + ThumbH + 6, 'Global');
+      end
+      else
+      begin
+        goverlayPaintBox.Canvas.TextOut(
+          (TWidth - goverlayPaintBox.Canvas.TextWidth('Global config')) div 2,
+          IconTop + ThumbH + 6, 'Global config');
+      end;
     end;
   end;
 end;
@@ -4740,6 +4758,7 @@ begin
   //ApplyModernSpacing(Self);  // Disabled - user preference
   ApplyIconsToButtons(Self);
   BuildNavRail;
+  BuildPresetsWrapper;
   BuildSettingsButton;
 
   // Detach all anchor-side control references for every groupbox we reflow
@@ -9298,6 +9317,38 @@ begin
 end;
 
 // ============================================================================
+// PRESETS WRAPPER — centered fixed-width panel for the Presets tab
+// ============================================================================
+
+procedure Tgoverlayform.BuildPresetsWrapper;
+const
+  WRAPPER_W = 829;
+var
+  i: Integer;
+  CtrlsToMove: array of TControl;
+begin
+  // Snapshot existing children of presetTabSheet before adding the wrapper
+  SetLength(CtrlsToMove, presetTabSheet.ControlCount);
+  for i := 0 to presetTabSheet.ControlCount - 1 do
+    CtrlsToMove[i] := presetTabSheet.Controls[i];
+
+  FPresetsWrapper := TPanel.Create(Self);
+  FPresetsWrapper.Parent      := presetTabSheet;
+  FPresetsWrapper.BevelOuter  := bvNone;
+  FPresetsWrapper.BorderStyle := bsNone;
+  FPresetsWrapper.Caption     := '';
+  FPresetsWrapper.ParentColor := True;
+  FPresetsWrapper.Top         := 0;
+  FPresetsWrapper.Left        := 0;
+  FPresetsWrapper.Width       := WRAPPER_W;
+  FPresetsWrapper.Anchors     := [akTop, akBottom];
+  FPresetsWrapper.Height      := presetTabSheet.ClientHeight;
+
+  // Re-parent all existing controls into the wrapper
+  for i := 0 to High(CtrlsToMove) do
+    CtrlsToMove[i].Parent := FPresetsWrapper;
+end;
+
 // NAV RAIL — modern sidebar navigation
 // ============================================================================
 
@@ -9874,10 +9925,11 @@ end;
 
 procedure Tgoverlayform.ReflowPresetTab(AContentW: Integer);
 const
-  MIN_GAP = 8;
-  BTN_W   = 123;
-  BTN_H   = 91;
-  BTN_TOP = 107;
+  MIN_GAP   = 8;
+  BTN_W     = 123;
+  BTN_H     = 91;
+  BTN_TOP   = 107;
+  WRAPPER_W = 829;
 var
   W, Gap5, Gap4, StartX5, StartX4, X, i: Integer;
   LblTop, ColorTop, ColorLblTop: Integer;
@@ -9886,7 +9938,13 @@ var
   ColorBtns:    array[0..3] of TBitBtn;
   ColorLabels:  array[0..3] of TLabel;
 begin
-  W := AContentW;
+  // Center the fixed-width wrapper; icons inside never reflow on sidebar toggle
+  if Assigned(FPresetsWrapper) then
+  begin
+    FPresetsWrapper.Left   := Max(0, (AContentW - WRAPPER_W) div 2);
+    FPresetsWrapper.Height := presetTabSheet.ClientHeight;
+  end;
+  W := WRAPPER_W;
 
   LblTop      := BTN_TOP + BTN_H + 8;
   ColorTop    := LblTop + 28;
