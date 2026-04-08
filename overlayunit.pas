@@ -538,7 +538,8 @@ type
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FActiveGameName:    string;   // non-empty when editing a game-specific config
     FGameContextLabel:  TLabel;   // bottom-bar label showing the active game name
-    FGameThumbBmp:      TBitmap;  // game cover drawn directly on the sidebar paintbox
+    FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
+    FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
     FRightClickedCard: TPanel;      // card that triggered the context menu
 
@@ -609,6 +610,7 @@ type
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     procedure UpdateGameContextLabel;
+    procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
     procedure HideGameThumb;
     function  DimmedCardColor: TColor;
@@ -2573,6 +2575,7 @@ var
   TimeElapsed: Single;
   ThumbY, ThumbW, ThumbH: Integer;
   ThumbDst: TRect;
+  AvailH, IconTop: Integer;
   RectRight, RectBottom: Integer;
 begin
 //Blueish
@@ -2622,41 +2625,63 @@ BaseB := 70;  // 0x46
     Inc(Y, BlockSize);
   end;
 
-  // Draw game thumbnail in the gap between the last nav item and the settings button.
-  if Assigned(FGameThumbBmp) and (Length(FNavItems) > 0) then
+  // Draw thumbnail/icon in the gap between the last nav item and the settings button.
+  if (Length(FNavItems) > 0) and
+     (Assigned(FGameThumbBmp) or Assigned(FGlobalThumbPng)) then
   begin
     // Top boundary: just below the last nav item (in paintbox coordinates)
     ThumbY := (FNavItems[High(FNavItems)].Top - goverlayPaintBox.Top)
               + FNavItems[High(FNavItems)].Height + THUMB_GAP;
 
     // Bottom boundary: settings button area ≈ 52px from paintbox bottom
-    // Available height between the two boundaries
     ThumbH := (THeight - 52) - ThumbY - THUMB_GAP;
     if ThumbH < 4 then ThumbH := 4;
 
-    // Width fills the sidebar minus margins; scale proportionally using real image ratio
+    // Width fills the sidebar minus margins
     ThumbW := TWidth - THUMB_MARGIN * 2;
     if ThumbW < 4 then ThumbW := 4;
 
-    // Scale down if the proportional height exceeds the available slot
-    if FGameThumbBmp.Width > 0 then
+    if Assigned(FGameThumbBmp) and (FGameThumbBmp.Width > 0) then
     begin
-      // Ideal height given the available width
+      // Game cover: preserve aspect ratio, scale down if needed
       if ThumbW * FGameThumbBmp.Height div FGameThumbBmp.Width > ThumbH then
         ThumbW := ThumbH * FGameThumbBmp.Width div FGameThumbBmp.Height;
-      // Actual height preserving aspect ratio
       ThumbH := ThumbW * FGameThumbBmp.Height div FGameThumbBmp.Width;
+      ThumbDst := Rect(
+        (TWidth - ThumbW) div 2, ThumbY,
+        (TWidth - ThumbW) div 2 + ThumbW, ThumbY + ThumbH);
+      goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGameThumbBmp);
+    end
+    else if Assigned(FGlobalThumbPng) and (FGlobalThumbPng.Width > 0)
+         and (FNavActive >= 0) then
+    begin
+      // Global icon: 50% of available slot, vertically centered, label below
+      if ThumbW > ThumbH then ThumbW := ThumbH
+      else ThumbH := ThumbW;
+      ThumbW := ThumbW div 2;
+      ThumbH := ThumbH div 2;
+
+      // Vertically center icon+gap+label within the available slot
+      // (label ≈ 16px tall, 6px gap between icon and label)
+      AvailH := (THeight - 52) - ThumbY - THUMB_GAP;
+      IconTop := ThumbY + (AvailH - ThumbH - 6 - 16) div 2;
+      if IconTop < ThumbY then IconTop := ThumbY;
+
+      ThumbDst := Rect(
+        (TWidth - ThumbW) div 2, IconTop,
+        (TWidth - ThumbW) div 2 + ThumbW, IconTop + ThumbH);
+      goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGlobalThumbPng);
+
+      // Draw "Global config" label below the icon
+      goverlayPaintBox.Canvas.Font.Color  := clWhite;
+      goverlayPaintBox.Canvas.Font.Size   := 9;
+      goverlayPaintBox.Canvas.Font.Style  := [];
+      goverlayPaintBox.Canvas.Brush.Style := bsClear;
+      goverlayPaintBox.Canvas.TextOut(
+        (TWidth - goverlayPaintBox.Canvas.TextWidth('Global config')) div 2,
+        IconTop + ThumbH + 6,
+        'Global config');
     end;
-
-    // Center horizontally
-    ThumbDst := Rect(
-      (TWidth - ThumbW) div 2,
-      ThumbY,
-      (TWidth - ThumbW) div 2 + ThumbW,
-      ThumbY + ThumbH
-    );
-
-    goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGameThumbBmp);
   end;
 end;
 
@@ -4637,6 +4662,7 @@ begin
     FreeAndNil(FOrigCovers);
   end;
   FreeAndNil(FCardPanels);
+  FreeAndNil(FGlobalThumbPng);
   ExecuteGUICommand('killall pascube');
   ExecuteGUICommand('killall vkcube');
 end;
@@ -9487,7 +9513,7 @@ begin
   if FNavCollapsed then
     ApplyNavCollapsed;
 
-  FGameThumbBmp := nil;  // created on demand in ShowGameThumb
+  LoadGlobalThumb;
 end;
 
 procedure Tgoverlayform.BuildSettingsButton;
@@ -10228,7 +10254,10 @@ var
   CardPanel: TPanel;
   CardImage: TImage;
   CardLabel: TLabel;
-  CardBadge: TLabel;
+  BadgeCircle: TShape;
+  BadgeMangoImg: TImage;
+  BadgeVkLabel: TLabel;
+  BadgeX: Integer;
   NoGamesLabel: TLabel;
   LowerName, GameCfgDir: string;
   ScaledBmp: TBitmap;
@@ -10367,28 +10396,68 @@ begin
           GameCfgDir := GetGameConfigDir(GameName);
           HasMango    := FileExists(GameCfgDir + 'MangoHud.conf');
           HasVkBasalt := FileExists(GameCfgDir + 'vkBasalt.conf');
-          if HasMango or HasVkBasalt then
+          BadgeX := 4;
+          if HasMango then
           begin
-            // Build badge caption from the same unicode chars used in the sidebar
-            CardBadge := TLabel.Create(Self);
-            CardBadge.Parent     := CardPanel;
-            CardBadge.AutoSize   := False;
-            CardBadge.SetBounds(0, 0, CARD_W, 22);
-            CardBadge.Caption    := '';
-            if HasMango    then CardBadge.Caption := CardBadge.Caption + '󱁥 ';
-            if HasVkBasalt then CardBadge.Caption := CardBadge.Caption + '󰏘';
-            CardBadge.Caption    := Trim(CardBadge.Caption);
-            CardBadge.Color      := $1A1A1A;
-            CardBadge.Font.Name  := 'Noto Sans';
-            CardBadge.Font.Size  := 12;
-            CardBadge.Font.Color := $0044EE44;
-            CardBadge.Alignment  := taLeftJustify;
-            CardBadge.Layout     := tlCenter;
-            CardBadge.BorderSpacing.Left := 4;
-            CardBadge.OnMouseEnter := @GameCardMouseEnter;
-            CardBadge.OnMouseLeave := @GameCardMouseLeave;
-            CardBadge.OnClick      := @GameCardClick;
-            CardBadge.OnMouseUp    := @GameCardMouseUp;
+            // Dark circle with green border
+            BadgeCircle := TShape.Create(Self);
+            BadgeCircle.Parent      := CardPanel;
+            BadgeCircle.Shape       := stEllipse;
+            BadgeCircle.Brush.Color := $00780DC8;
+            BadgeCircle.Pen.Style   := psClear;
+            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
+            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
+            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
+            BadgeCircle.OnClick      := @GameCardClick;
+            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
+            // MangoHud icon on top
+            BadgeMangoImg := TImage.Create(Self);
+            BadgeMangoImg.Parent   := CardPanel;
+            BadgeMangoImg.AutoSize := False;
+            BadgeMangoImg.SetBounds(BadgeX + 3, 7, 18, 18);
+            BadgeMangoImg.Stretch  := True;
+            BadgeMangoImg.Center   := True;
+            BadgeMangoImg.Transparent := True;
+            IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+            if FileExists(IconPath) then
+              BadgeMangoImg.Picture.LoadFromFile(IconPath);
+            BadgeMangoImg.BringToFront;
+            BadgeMangoImg.OnMouseEnter := @GameCardMouseEnter;
+            BadgeMangoImg.OnMouseLeave := @GameCardMouseLeave;
+            BadgeMangoImg.OnClick      := @GameCardClick;
+            BadgeMangoImg.OnMouseUp    := @GameCardMouseUp;
+            BadgeX := BadgeX + 28;
+          end;
+
+          if HasVkBasalt then
+          begin
+            // Dark circle with green border
+            BadgeCircle := TShape.Create(Self);
+            BadgeCircle.Parent      := CardPanel;
+            BadgeCircle.Shape       := stEllipse;
+            BadgeCircle.Brush.Color := $00780DC8;
+            BadgeCircle.Pen.Style   := psClear;
+            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
+            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
+            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
+            BadgeCircle.OnClick      := @GameCardClick;
+            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
+            // vkBasalt label on top
+            BadgeVkLabel := TLabel.Create(Self);
+            BadgeVkLabel.Parent     := CardPanel;
+            BadgeVkLabel.AutoSize   := False;
+            BadgeVkLabel.SetBounds(BadgeX, 4, 24, 24);
+            BadgeVkLabel.Caption    := '󰏘';
+            BadgeVkLabel.Font.Name  := 'Noto Sans';
+            BadgeVkLabel.Font.Size  := 12;
+            BadgeVkLabel.Font.Color := clWhite;
+            BadgeVkLabel.Alignment  := taCenter;
+            BadgeVkLabel.Layout     := tlCenter;
+            BadgeVkLabel.BringToFront;
+            BadgeVkLabel.OnMouseEnter := @GameCardMouseEnter;
+            BadgeVkLabel.OnMouseLeave := @GameCardMouseLeave;
+            BadgeVkLabel.OnClick      := @GameCardClick;
+            BadgeVkLabel.OnMouseUp    := @GameCardMouseUp;
           end;
 
           // Store card and original image for dim animation
@@ -10814,10 +10883,31 @@ begin
   goverlayPaintBox.Invalidate;
 end;
 
-procedure Tgoverlayform.HideGameThumb;
+procedure Tgoverlayform.LoadGlobalThumb;
+var
+  ImgPath: string;
 begin
   FreeAndNil(FGameThumbBmp);
+  // Load global icon only once
+  if not Assigned(FGlobalThumbPng) then
+  begin
+    ImgPath := ExtractFilePath(Application.ExeName) + 'assets/icons/global-white.png';
+    if FileExists(ImgPath) then
+    begin
+      FGlobalThumbPng := TPortableNetworkGraphic.Create;
+      try
+        FGlobalThumbPng.LoadFromFile(ImgPath);
+      except
+        FreeAndNil(FGlobalThumbPng);
+      end;
+    end;
+  end;
   goverlayPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.HideGameThumb;
+begin
+  LoadGlobalThumb;
 end;
 
 procedure Tgoverlayform.GameActionBtnClick(Sender: TObject);
