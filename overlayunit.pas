@@ -2649,13 +2649,17 @@ BaseB := 70;  // 0x46
 
     if Assigned(FGameThumbBmp) and (FGameThumbBmp.Width > 0) then
     begin
-      // Game cover: preserve aspect ratio, scale down if needed
+      // Game cover: preserve aspect ratio, scale to fit
       if ThumbW * FGameThumbBmp.Height div FGameThumbBmp.Width > ThumbH then
         ThumbW := ThumbH * FGameThumbBmp.Width div FGameThumbBmp.Height;
       ThumbH := ThumbW * FGameThumbBmp.Height div FGameThumbBmp.Width;
+      // Vertically center within available slot
+      AvailH := (THeight - 52) - ThumbY - THUMB_GAP;
+      IconTop := ThumbY + (AvailH - ThumbH) div 2;
+      if IconTop < ThumbY then IconTop := ThumbY;
       ThumbDst := Rect(
-        (TWidth - ThumbW) div 2, ThumbY,
-        (TWidth - ThumbW) div 2 + ThumbW, ThumbY + ThumbH);
+        (TWidth - ThumbW) div 2, IconTop,
+        (TWidth - ThumbW) div 2 + ThumbW, IconTop + ThumbH);
       goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGameThumbBmp);
     end
     else if Assigned(FGlobalThumbPng) and (FGlobalThumbPng.Width > 0)
@@ -9963,11 +9967,9 @@ const
   MIN_GAP   = 8;
   BTN_W     = 123;
   BTN_H     = 91;
-  BTN_TOP   = 107;
   WRAPPER_W = 829;
 var
   W, Gap5, Gap4, StartX5, StartX4, X, i: Integer;
-  LblTop, ColorTop, ColorLblTop: Integer;
   LayoutBtns:   array[0..4] of TBitBtn;
   LayoutLabels: array[0..4] of TLabel;
   ColorBtns:    array[0..3] of TBitBtn;
@@ -9981,10 +9983,6 @@ begin
   end;
   W := WRAPPER_W;
 
-  LblTop      := BTN_TOP + BTN_H + 8;
-  ColorTop    := LblTop + 28;
-  ColorLblTop := ColorTop + BTN_H + 8;
-
   LayoutBtns[0] := fullBitBtn;            LayoutLabels[0] := fullLabel;
   LayoutBtns[1] := basicBitBtn;           LayoutLabels[1] := basicLabel;
   LayoutBtns[2] := basichorizontalBitBtn; LayoutLabels[2] := basichorizontalLabel;
@@ -9996,30 +9994,26 @@ begin
   ColorBtns[2] := whitecolorBitBtn;         ColorLabels[2] := whitecolorLabel;
   ColorBtns[3] := afterburnercolorBitBtn1;  ColorLabels[3] := afterburnercolorLabel;
 
-  // Row 1: 5 buttons centered on the content area
+  // Row 1: 5 buttons — only update Left; Top comes from .lfm
   Gap5    := Max(MIN_GAP, (W - 5 * BTN_W) div 6);
   StartX5 := (W - 5 * BTN_W - 4 * Gap5) div 2;
-  // Section labels keep their own proportional position relative to center
   layoutsLabel.Left := Max(8, W * 20 div 829);
   for i := 0 to 4 do
   begin
     X := StartX5 + i * (BTN_W + Gap5);
-    LayoutBtns[i].SetBounds(X, BTN_TOP, BTN_W, BTN_H);
+    LayoutBtns[i].SetBounds(X, LayoutBtns[i].Top, BTN_W, BTN_H);
     LayoutLabels[i].Left := X + (BTN_W - LayoutLabels[i].Width) div 2;
-    LayoutLabels[i].Top  := LblTop;
   end;
 
-  // Row 2: 4 buttons centered on the content area
+  // Row 2: 4 buttons — only update Left; Top comes from .lfm
   Gap4    := Max(MIN_GAP, (W - 4 * BTN_W) div 5);
   StartX4 := (W - 4 * BTN_W - 3 * Gap4) div 2;
   colorthemeLabel.Left := Max(8, W * 20 div 829);
-  colorthemeLabel.Top  := ColorTop - 22;
   for i := 0 to 3 do
   begin
     X := StartX4 + i * (BTN_W + Gap4);
-    ColorBtns[i].SetBounds(X, ColorTop, BTN_W, BTN_H);
+    ColorBtns[i].SetBounds(X, ColorBtns[i].Top, BTN_W, BTN_H);
     ColorLabels[i].Left := X + (BTN_W - ColorLabels[i].Width) div 2;
-    ColorLabels[i].Top  := ColorLblTop;
   end;
 
   // Ensure section + card labels use the correct theme text color.
@@ -10453,7 +10447,8 @@ begin
           CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
           CardPanel.BevelOuter := bvNone;
           CardPanel.Caption := '';
-          CardPanel.Color := $2A2A2A;
+          CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
+          CardPanel.Color := IfThen(CurrentTheme = tmLight, $00F0F0F0, $2A2A2A);
           CardPanel.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardPanel.ShowHint := True;
           CardPanel.OnMouseEnter := @GameCardMouseEnter;
@@ -10493,10 +10488,11 @@ begin
           CardLabel.Parent := CardPanel;
           CardLabel.SetBounds(2, CARD_IMG_H + 4, CARD_W - 4, CARD_H - CARD_IMG_H - 6);
           CardLabel.Caption := GameName;
-          CardLabel.Font.Color := clWhite;
+          CardLabel.Font.Color := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
           CardLabel.Font.Size := 7;
           CardLabel.Alignment := taCenter;
           CardLabel.WordWrap := False;
+          CardLabel.ParentColor := True;
           CardLabel.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardLabel.ShowHint := True;
           CardLabel.OnMouseEnter := @GameCardMouseEnter;
@@ -10728,7 +10724,7 @@ begin
     Exit;
 
   if Panel <> FSelectedCard then
-    Panel.Color := $3A3A3A;
+    Panel.Color := IfThen(CurrentTheme = tmLight, $00D8D8D8, $3A3A3A);
   if Sender is TControl then
     TControl(Sender).Cursor := crHandPoint;
 end;
@@ -11106,12 +11102,17 @@ end;
 function Tgoverlayform.DimmedCardColor: TColor;
 const
   BRIGHT = $2A;
-  DIM    = $12;  // 35% of $2A — matches image dim floor
+  DIM    = $12;
 var
   V: Integer;
 begin
-  V := BRIGHT + (DIM - BRIGHT) * FDimProgress div 100;
-  Result := V or (V shl 8) or (V shl 16);
+  if CurrentTheme = tmLight then
+    Result := $00F0F0F0
+  else
+  begin
+    V := BRIGHT + (DIM - BRIGHT) * FDimProgress div 100;
+    Result := V or (V shl 8) or (V shl 16);
+  end;
 end;
 
 procedure Tgoverlayform.ApplyDimToCards;
