@@ -850,7 +850,7 @@ var
   NAV_COLOR_BG        = $00221F1E; // item normal background (dark)
   NAV_COLOR_HOVER     = $00332E2C; // item hover background (dark)
   NAV_COLOR_ACTIVE    = $00443E3A; // item active background (dark)
-  NAV_COLOR_INDICATOR = $0000C8FF; // active indicator (amber/gold)
+  NAV_COLOR_INDICATOR = clHighlight; // active indicator — system accent/selection color
   // Light theme nav colors
   NAV_LIGHT_BG        = $00E8E8E8;
   NAV_LIGHT_HOVER     = $00D0D0D0;
