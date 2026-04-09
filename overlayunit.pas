@@ -9994,7 +9994,8 @@ begin
   ColorBtns[2] := whitecolorBitBtn;         ColorLabels[2] := whitecolorLabel;
   ColorBtns[3] := afterburnercolorBitBtn1;  ColorLabels[3] := afterburnercolorLabel;
 
-  // Row 1: 5 buttons — only update Left; Top comes from .lfm
+  // Row 1: 5 buttons — Left is centered in code; Top comes from .lfm button position.
+  // Labels are placed 8px below their button bottom so they follow .lfm vertical layout.
   Gap5    := Max(MIN_GAP, (W - 5 * BTN_W) div 6);
   StartX5 := (W - 5 * BTN_W - 4 * Gap5) div 2;
   layoutsLabel.Left := Max(8, W * 20 div 829);
@@ -10003,9 +10004,10 @@ begin
     X := StartX5 + i * (BTN_W + Gap5);
     LayoutBtns[i].SetBounds(X, LayoutBtns[i].Top, BTN_W, BTN_H);
     LayoutLabels[i].Left := X + (BTN_W - LayoutLabels[i].Width) div 2;
+    LayoutLabels[i].Top  := LayoutBtns[i].Top + BTN_H + 8;
   end;
 
-  // Row 2: 4 buttons — only update Left; Top comes from .lfm
+  // Row 2: 4 buttons — same approach; Top derives from button's .lfm Top.
   Gap4    := Max(MIN_GAP, (W - 4 * BTN_W) div 5);
   StartX4 := (W - 4 * BTN_W - 3 * Gap4) div 2;
   colorthemeLabel.Left := Max(8, W * 20 div 829);
@@ -10014,6 +10016,7 @@ begin
     X := StartX4 + i * (BTN_W + Gap4);
     ColorBtns[i].SetBounds(X, ColorBtns[i].Top, BTN_W, BTN_H);
     ColorLabels[i].Left := X + (BTN_W - ColorLabels[i].Width) div 2;
+    ColorLabels[i].Top  := ColorBtns[i].Top + BTN_H + 8;
   end;
 
   // Ensure section + card labels use the correct theme text color.
