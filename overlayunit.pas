@@ -2583,52 +2583,59 @@ var
   ThumbDst: TRect;
   AvailH, IconTop: Integer;
   RectRight, RectBottom: Integer;
+  OffBmp: TBitmap;
 begin
-//Blueish
-BaseR := 36;  // 0x24
-BaseG := 50;  // 0x32
-BaseB := 70;  // 0x46
+  BaseR := 36;  // 0x24
+  BaseG := 50;  // 0x32
+  BaseB := 70;  // 0x46
 
-
-  TWidth := goverlayPaintBox.Width;
+  TWidth  := goverlayPaintBox.Width;
   THeight := goverlayPaintBox.Height;
 
   TimeElapsed := (GetTickCount - FStartTick) / 1000;
 
-  Y := 0;
-  while Y < Height do
-  begin
-    X := 0;
-    while X < Width do
+  // Render the animated background to an off-screen bitmap first, then blit
+  // it to the paintbox in a single Draw call. This avoids tens of thousands
+  // of individual FillRect calls hitting the Qt widget per frame, which was
+  // the primary source of CPU overhead.
+  OffBmp := TBitmap.Create;
+  try
+    OffBmp.SetSize(TWidth, THeight);
+
+    Y := 0;
+    while Y < THeight do   // THeight: paintbox height (was form Height — bug fix)
     begin
-      // Smaller coeeficients in X and Y gets bigger effects
-      // Smaller timeelapsed get slower speeds
-      OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
-      OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
+      X := 0;
+      while X < TWidth do  // TWidth:  paintbox width  (was form Width  — bug fix)
+      begin
+        OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
+        OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
 
-      Factor := 0.3 + 0.35 * (OffsetX + 1) + 0.35 * (OffsetY + 1);
-      if Factor > 1.0 then Factor := 1.0;
-      if Factor < 0.3 then Factor := 0.3;
+        Factor := 0.3 + 0.35 * (OffsetX + 1) + 0.35 * (OffsetY + 1);
+        if Factor > 1.0 then Factor := 1.0;
+        if Factor < 0.3 then Factor := 0.3;
 
-      R := Round(BaseR * Factor);
-      G := Round(BaseG * Factor);
-      B := Round(BaseB * Factor);
+        R := Round(BaseR * Factor);
+        G := Round(BaseG * Factor);
+        B := Round(BaseB * Factor);
 
-      // Define block rectangle, taking care not to exceed limits
-      RectRight := X + BlockSize - 1;
-      if RectRight >= Width then
-        RectRight := Width - 1;
+        RectRight  := X + BlockSize;
+        if RectRight  > TWidth  then RectRight  := TWidth;
+        RectBottom := Y + BlockSize;
+        if RectBottom > THeight then RectBottom := THeight;
 
-      RectBottom := Y + BlockSize - 1;
-      if RectBottom >= Height then
-        RectBottom := Height - 1;
+        OffBmp.Canvas.Brush.Color := RGBToColor(R, G, B);
+        OffBmp.Canvas.FillRect(Rect(X, Y, RectRight, RectBottom));
 
-      goverlayPaintBox.Canvas.Brush.Color := RGBToColor(R, G, B);
-      goverlayPaintBox.Canvas.FillRect(Rect(X, Y, RectRight + 1, RectBottom + 1));
-
-      Inc(X, BlockSize);
+        Inc(X, BlockSize);
+      end;
+      Inc(Y, BlockSize);
     end;
-    Inc(Y, BlockSize);
+
+    // Single blit: replaces thousands of per-block Qt canvas round-trips
+    goverlayPaintBox.Canvas.Draw(0, 0, OffBmp);
+  finally
+    OffBmp.Free;
   end;
 
   // Draw thumbnail/icon in the gap between the last nav item and the settings button.
