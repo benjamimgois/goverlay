@@ -223,8 +223,12 @@ begin
     end
     else if ctrl is TPanel then
     begin
-      TPanel(ctrl).Color := DarkBackgroundColor;
-      TPanel(ctrl).Font.Color := DarkTextColor;
+      // Game card panels (Tag=9999) keep their own color
+      if ctrl.Tag <> 9999 then
+      begin
+        TPanel(ctrl).Color := DarkBackgroundColor;
+        TPanel(ctrl).Font.Color := DarkTextColor;
+      end;
       if (ctrl.Name = 'mangobarPanel') or (ctrl.Name = 'goverlaybarPanel') then
         TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
@@ -394,8 +398,12 @@ begin
     end
     else if ctrl is TPanel then
     begin
-      TPanel(ctrl).Color := LighterBackgroundColor;
-      TPanel(ctrl).Font.Color := LightTextColor;
+      // Game card panels (Tag=9999) keep their own dark color for the title area
+      if ctrl.Tag <> 9999 then
+      begin
+        TPanel(ctrl).Color := LighterBackgroundColor;
+        TPanel(ctrl).Font.Color := LightTextColor;
+      end;
       if (ctrl.Name = 'mangobarPanel') or (ctrl.Name = 'goverlaybarPanel') then
         TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
