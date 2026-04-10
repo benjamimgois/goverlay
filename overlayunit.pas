@@ -6717,14 +6717,14 @@ begin
     begin
         // FLATPAK MODE
         if IsCommandAvailable('pascube') then
-           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
+           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 pascube &')
         else
            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
     end
     else
     begin
         if IsCommandAvailable('pascube') then
-           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
+           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 pascube &')
         else
            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
     end;
@@ -6761,16 +6761,16 @@ begin
   if IsRunningInFlatpak then
   begin
       if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube-wayland &')
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
       else
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube &');
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
   end
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube &')
+      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &')
     else
-      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'mangohud vkcube &');
+      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 mangohud vkcube &');
   end;
 end;
 
@@ -8691,40 +8691,6 @@ end;  //  ################### END - SAVE MANGOHUD
        ShowMessage('Fail to save vkbasalt.conf: ' + E.Message);
    end;
    Lines.Free;
-   //Restart VKcube with effects
-
-   ExecuteGUICommand('killall vkcube');
-   // Small delay to ensure vkcube is fully terminated before restarting
-   Sleep(100);
-   SendNotification('Goverlay', 'Trying vkbasalt effects', GetIconFile);
-
-   // In Flatpak, MangoHud works via environment variable, not as a wrapper command
-   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
-
-   if IsCommandAvailable('pascube') then
-   begin
-      ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 pascube &');
-   end
-   else
-   begin
-     SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
-
-     if IsRunningInFlatpak then
-     begin
-       // In Flatpak, vkcube auto-detects WSI
-       if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-          ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
-       else
-          ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
-     end
-     else
-     begin
-       if USERSESSION = 'wayland' then
-         ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
-       else
-         ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
-     end;
-   end;
 
 
 
