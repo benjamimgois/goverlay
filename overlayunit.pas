@@ -4189,8 +4189,17 @@ begin
   try
     ConfigLines.LoadFromFile(VKBASALTCFGFILE);
 
-    // Clear active effects list
+    // Reset all controls before loading so stale values from a previous config
+    // do not bleed into the newly loaded one.
     acteffectsListBox.Items.Clear;
+    casTrackBar.Position  := 0;
+    fxaaTrackBar.Position := 0;
+    smaaTrackBar.Position := 0;
+    dlsTrackBar.Position  := 0;
+    casvalueLabel.Caption  := '0';
+    fxaavalueLabel.Caption := '0';
+    smaavalueLabel.Caption := '0';
+    dlsvalueLabel.Caption  := '0';
 
     for i := 0 to ConfigLines.Count - 1 do
     begin
@@ -4227,7 +4236,7 @@ begin
           if SameText(EffectsList[j], 'cas') then
           begin
             if casTrackBar.Position = 0 then
-              casTrackBar.Position := 0; // default value
+              casTrackBar.Position := 5; // default value
           end
           else if SameText(EffectsList[j], 'fxaa') then
           begin
@@ -8583,13 +8592,8 @@ end;  //  ################### END - SAVE MANGOHUD
        EffectName := ChangeFileExt(ExtractFileName(RelPath), '');   // "LUT"
        AddEffectToLine(EffectName);
      end;
-     // nothing to save ?
-     if EffectsLine = '' then
-     begin
-       ShowMessage('No active effects');
-       Exit;
-     end;
-     Lines.Add('effects = ' + EffectsLine);
+     if EffectsLine <> '' then
+       Lines.Add('effects = ' + EffectsLine);
      Lines.Add('');
      // --- CAS ajustment if active ---
      if casTrackBar.Position >= 1 then
