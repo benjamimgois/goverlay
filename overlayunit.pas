@@ -611,6 +611,8 @@ type
     procedure GameActionBtnClick(Sender: TObject);
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
+    function  GetMangoHudConfigEnvPrefix: string;
+    function  GetVkBasaltConfigEnvPrefix: string;
     procedure UpdateGameContextLabel;
     procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
@@ -2361,7 +2363,7 @@ begin
   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
   if IsCommandAvailable('pascube') then
   begin
-     ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 pascube &');
+     ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 pascube &');
   end
   else
   begin
@@ -2371,16 +2373,16 @@ begin
       begin
          // In Flatpak, use vkcube-wayland binary if available and on Wayland
          if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-            ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
+            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
          else
-            ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
+            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
       end
     else
     begin
       if USERSESSION = 'wayland' then
-        ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
+        ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
       else
-        ExecuteGUICommand('VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
+        ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
     end;
   end;
 
@@ -5552,14 +5554,14 @@ begin
   begin
       // FLATPAK MODE
       if IsCommandAvailable('pascube') then
-         ExecuteGUICommand('MANGOHUD=1 pascube &')
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
       else if IsCommandAvailable('vkcube') then
       begin
          SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
          if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-            ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
+            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube-wayland &')
          else
-            ExecuteGUICommand('MANGOHUD=1 vkcube &');
+            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube &');
       end
       else
          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
@@ -5568,14 +5570,14 @@ begin
   begin
       // NATIVE MODE
       if IsCommandAvailable('pascube') then
-         ExecuteGUICommand('MANGOHUD=1 pascube &')
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
       else if IsCommandAvailable('vkcube') then
       begin
         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
         if USERSESSION = 'wayland' then
-          ExecuteGUICommand('MANGOHUD=1 vkcube --wsi wayland &')
+          ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube --wsi wayland &')
         else
-          ExecuteGUICommand('mangohud vkcube &');
+          ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'mangohud vkcube &');
       end
       else
          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
@@ -6706,14 +6708,14 @@ begin
     begin
         // FLATPAK MODE
         if IsCommandAvailable('pascube') then
-           ExecuteGUICommand('MANGOHUD=1 pascube &')
+           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
         else
            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
     end
     else
     begin
         if IsCommandAvailable('pascube') then
-           ExecuteGUICommand('MANGOHUD=1 pascube &')
+           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
         else
            SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
     end;
@@ -6750,16 +6752,16 @@ begin
   if IsRunningInFlatpak then
   begin
       if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-         ExecuteGUICommand('MANGOHUD=1 vkcube-wayland &')
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube-wayland &')
       else
-         ExecuteGUICommand('MANGOHUD=1 vkcube &');
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube &');
   end
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand('MANGOHUD=1 vkcube &')
+      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube &')
     else
-      ExecuteGUICommand('mangohud vkcube &');
+      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'mangohud vkcube &');
   end;
 end;
 
@@ -7533,6 +7535,7 @@ var
   SelectedValues: TStringList;
   FONTDIR, TempFile: String;
   TempFiles: TStringList;
+  GlobalMangoHudFile: string;  // Global MangoHud config path (for blacklist — never game-specific)
 
   //vkbasalt vars
   RepoDir, RelPath, EffectName, EffectKey, FullPath, EffectsLine: string;
@@ -8456,8 +8459,12 @@ EnableTraceLogsFound: Boolean;
     end
     else
     begin
-      // Build launch command with full absolute path
-      LaunchCommand := GetFGModPath + '/fgmod ';
+      // Build launch command — use the game-specific fgmod copy when in game
+      // mode so that MangoHud.conf is picked up from the game config directory.
+      if FActiveGameName <> '' then
+        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+      else
+        LaunchCommand := GetFGModPath + '/fgmod ';
 
       // Check if gamemode should be added (check generalCheckGroup)
       if GetGeneralCheckBox(1).Checked then
@@ -8473,17 +8480,20 @@ EnableTraceLogsFound: Boolean;
 
       // Update commandLabel with launch command
       commandEdit.Text := LaunchCommand;
-      
+
       commandEdit.Visible := True;
-      
+
       copyBitbtn.Visible := True;
       howtoBitBtn.Visible := True;
     end;
 
     //########################################### SAVE BLACKLIST
+    // The blacklist is always applied to the global MangoHud.conf (it filters
+    // process names system-wide). Use a local variable so that MANGOHUDCFGFILE
+    // continues to point to the game-specific path when in game mode.
 
   BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
 
   FileLines := TStringList.Create;
   ConfigLines := TStringList.Create;
@@ -8510,8 +8520,8 @@ EnableTraceLogsFound: Boolean;
       blacklistVAR := blacklistVAR + ',' + FileLines[i];
 
     // load mangohud config file
-    if FileExists(MANGOHUDCFGFILE) then
-      ConfigLines.LoadFromFile(MANGOHUDCFGFILE);
+    if FileExists(GlobalMangoHudFile) then
+      ConfigLines.LoadFromFile(GlobalMangoHudFile);
 
 
     // if there's no blacklist, add it to the end of file
@@ -8521,10 +8531,10 @@ EnableTraceLogsFound: Boolean;
     end;
 
     // make sure mangohud directory exists (use CreateHostDirectory for Flatpak compatibility)
-    CreateHostDirectory(ExtractFilePath(MANGOHUDCFGFILE));
+    CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
 
     // Save changes to mangohud file
-    ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+    ConfigLines.SaveToFile(GlobalMangoHudFile);
 
 
   finally
@@ -8646,9 +8656,11 @@ end;  //  ################### END - SAVE MANGOHUD
      Lines.SaveToFile(VKBASALTCFGFILE);
      SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
-     // Always show the fgmod command
-     // Build launch command with full absolute path
-     LaunchCommand := GetFGModPath + '/fgmod ';
+     // Always show the fgmod command — use game-specific fgmod copy when in game mode
+     if FActiveGameName <> '' then
+       LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+     else
+       LaunchCommand := GetFGModPath + '/fgmod ';
 
      // Check if gamemode should be added (check generalCheckGroup)
      if GetGeneralCheckBox(1).Checked then
@@ -10949,6 +10961,25 @@ begin
     DataHome := GetUserDir + '.local/share';
   Result := IncludeTrailingPathDelimiter(DataHome) +
             'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
+end;
+
+// Returns 'MANGOHUD_CONFIGFILE=<game_config>/MangoHud.conf ' when a game is
+// selected so that vkcube/pascube previews use the game-specific config.
+// Returns an empty string in global mode.
+function Tgoverlayform.GetMangoHudConfigEnvPrefix: string;
+begin
+  if FActiveGameName <> '' then
+    Result := 'MANGOHUD_CONFIGFILE="' + GetGameConfigDir(FActiveGameName) + 'MangoHud.conf" '
+  else
+    Result := '';
+end;
+
+function Tgoverlayform.GetVkBasaltConfigEnvPrefix: string;
+begin
+  if FActiveGameName <> '' then
+    Result := 'VKBASALT_CONFIG_FILE="' + GetGameConfigDir(FActiveGameName) + 'vkBasalt.conf" '
+  else
+    Result := '';
 end;
 
 procedure Tgoverlayform.UpdateGameContextLabel;
