@@ -118,10 +118,7 @@ rm -f "nvapi64.dll" "fakenvapi.ini" "fakenvapi.log"
 echo "🧹 Removing supporting libraries..."
 rm -f "libxess.dll" "libxess_dx11.dll" "libxess_fg.dll" "libxell.dll" "nvngx.dll" "nvngx.ini"
 rm -f "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll"
-
-# === Remove FG Mod Files ===
-echo "🧹 Removing frame generation mod files..."
-rm -f "dlssg_to_fsr3_amd_is_better.dll" "dlssg_to_fsr3.ini"
+rm -f "nvngx_dlss.dll" "nvngx_dlssd.dll" "nvngx_dlssg.dll"
 
 # === Remove NVAPI Files (Current and Legacy) ===
 echo "🧹 Removing NVAPI files..."
@@ -137,6 +134,10 @@ echo "🧹 Removing legacy files..."
 rm -f "dlss-enabler.dll" "dlss-enabler-upscaler.dll" "dlss-enabler.log"
 rm -f "nvngx-wrapper.dll" "_nvngx.dll"
 rm -f "dlssg_to_fsr3_amd_is_better-3.0.dll"
+
+# === Remove Config Files Installed by fgmod ===
+echo "🧹 Removing config files installed by fgmod..."
+rm -f "MangoHud.conf" "vkBasalt.conf"
 
 # === Restore Original DLLs ===
 echo "🔄 Restoring original DLLs..."
