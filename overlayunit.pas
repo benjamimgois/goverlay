@@ -2354,37 +2354,8 @@ begin
   vkbasalttabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 
-  //Run vkcube with effects
-  ExecuteGUICommand('killall vkcube');
-  ExecuteGUICommand('killall pascube');
-  SendNotification('Goverlay', 'Trying vkbasalt effects', GetIconFile);
-
-  // In Flatpak, MangoHud works via environment variable, not as a wrapper command
-  // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
-  if IsCommandAvailable('pascube') then
-  begin
-     ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 pascube &');
-  end
-  else
-  begin
-    SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
-
-      if IsRunningInFlatpak then
-      begin
-         // In Flatpak, use vkcube-wayland binary if available and on Wayland
-         if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
-         else
-            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
-      end
-    else
-    begin
-      if USERSESSION = 'wayland' then
-        ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube --wsi wayland &')
-      else
-        ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'VKBASALT_LOG_FILE=' + VKBASALTFOLDER + '/' + 'vkBasalt.log ENABLE_VKBASALT=1 mangohud vkcube &');
-    end;
-  end;
+  // Stop any running cube instances when entering vkBasalt tab
+  ExecuteGUICommand('killall vkcube 2>/dev/null; killall pascube 2>/dev/null; true');
 
 
   //Hide notification messages
