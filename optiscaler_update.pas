@@ -1212,6 +1212,7 @@ var
   VarsList: TStringList;
   VarsIdx: Integer;
   DlssLineFound: Boolean;
+  SyncProc: TProcess;
 begin
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -1388,21 +1389,18 @@ begin
     WriteLn('[DEBUG] UpdateButtonClick: Syncing DLLs from .fgmod_original to fgmod...');
     UpdateStatus('Updating global fgmod');
     ForceDirectories(FFGModPath);
-    begin
-      var SyncProc: TProcess;
-      SyncProc := TProcess.Create(nil);
-      try
-        SyncProc.Executable := 'sh';
-        SyncProc.Parameters.Add('-c');
-        SyncProc.Parameters.Add(
-          'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetFGModOriginalPath)) + '*.dll; do ' +
-          '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(IncludeTrailingPathDelimiter(FFGModPath)) + '; ' +
-          'done 2>/dev/null');
-        SyncProc.Options := [poWaitOnExit];
-        SyncProc.Execute;
-      finally
-        SyncProc.Free;
-      end;
+    SyncProc := TProcess.Create(nil);
+    try
+      SyncProc.Executable := 'sh';
+      SyncProc.Parameters.Add('-c');
+      SyncProc.Parameters.Add(
+        'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetFGModOriginalPath)) + '*.dll; do ' +
+        '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(IncludeTrailingPathDelimiter(FFGModPath)) + '; ' +
+        'done 2>/dev/null');
+      SyncProc.Options := [poWaitOnExit];
+      SyncProc.Execute;
+    finally
+      SyncProc.Free;
     end;
     // Also sync goverlay.vars so version labels are consistent in fgmod
     if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
