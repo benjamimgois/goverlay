@@ -1258,112 +1258,30 @@ begin
       Exit;
     end;
 
-    // STEP 1: Always use ~/fgmod/ directory
-    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing fgmod directory...');
+    // STEP 1: Prepare .fgmod_original for a clean extraction.
+    // The global fgmod working copy is NOT touched here — user modifications
+    // (MangoHud.conf, OptiScaler.ini, etc.) are preserved automatically.
+    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing .fgmod_original directory...');
     FFGModPath := GetOptiScalerInstallPath;
-    WriteLn('[DEBUG] UpdateButtonClick: fgmod path = ', FFGModPath);
+    WriteLn('[DEBUG] UpdateButtonClick: global fgmod path       = ', FFGModPath);
+    WriteLn('[DEBUG] UpdateButtonClick: .fgmod_original path    = ', GetFGModOriginalPath);
 
-    // Backup fgmod files before cleaning directory (to preserve user's configuration)
-    // We backup: fgmod, fgmod-remover.sh, fgmod-uninstaller.sh
-    FGModFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod';
-    FGModBackupPath := IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod.backup';
-    FGModBackupExists := False;
-    
-    // Backup main fgmod script
-    if FileExists(FGModFilePath) then
+    // Wipe .fgmod_original so the new release is extracted clean.
+    if DirectoryExists(GetFGModOriginalPath) then
     begin
-      WriteLn('[DEBUG] UpdateButtonClick: Backing up fgmod file to preserve user configuration...');
+      WriteLn('[DEBUG] UpdateButtonClick: Cleaning .fgmod_original for fresh extraction...');
       try
-        if CopyFile(FGModFilePath, FGModBackupPath) then
-        begin
-          FGModBackupExists := True;
-          WriteLn('[DEBUG] UpdateButtonClick: fgmod file backed up to: ', FGModBackupPath);
-        end
-        else
-          WriteLn('[WARN] UpdateButtonClick: Failed to backup fgmod file');
-      except
-        on E: Exception do
-          WriteLn('[WARN] UpdateButtonClick: Exception backing up fgmod: ', E.Message);
-      end;
-    end;
-    
-    // Backup fgmod-remover.sh
-    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh') then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Backing up fgmod-remover.sh...');
-      CopyFile(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh',
-               IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup');
-    end;
-    
-    // Backup fgmod-uninstaller.sh
-    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh') then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Backing up fgmod-uninstaller.sh...');
-      CopyFile(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh',
-               IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup');
-    end;
-
-    // If directory exists, delete all contents to ensure clean installation
-    if DirectoryExists(FFGModPath) then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: fgmod directory exists, deleting contents for clean install...');
-      try
-        DeleteDirectory(FFGModPath, False);
-        WriteLn('[DEBUG] UpdateButtonClick: Directory contents deleted successfully');
+        DeleteDirectory(GetFGModOriginalPath, False);
       except
         on E: Exception do
         begin
-          WriteLn('[ERROR] UpdateButtonClick: Failed to delete directory contents: ', E.Message);
-          ShowMessage('Error: Could not clean fgmod directory.' + sLineBreak + E.Message);
+          WriteLn('[ERROR] UpdateButtonClick: Failed to clean .fgmod_original: ', E.Message);
+          ShowMessage('Error: Could not clean .fgmod_original directory.' + sLineBreak + E.Message);
           Exit;
         end;
       end;
     end;
-
-    // Create fresh directory
-    WriteLn('[DEBUG] UpdateButtonClick: Creating fresh fgmod directory...');
-    ForceDirectories(FFGModPath);
-
-    // Restore fgmod files if they were backed up
-    if FGModBackupExists then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Restoring fgmod file from backup...');
-      try
-        if CopyFile(FGModBackupPath, FGModFilePath) then
-        begin
-          // Make fgmod executable
-          fpChmod(FGModFilePath, &755);
-          WriteLn('[DEBUG] UpdateButtonClick: fgmod file restored and made executable');
-        end
-        else
-          WriteLn('[WARN] UpdateButtonClick: Failed to restore fgmod file');
-        // Delete backup file
-        DeleteFile(FGModBackupPath);
-      except
-        on E: Exception do
-          WriteLn('[WARN] UpdateButtonClick: Exception restoring fgmod: ', E.Message);
-      end;
-    end;
-    
-    // Restore fgmod-remover.sh if it was backed up
-    if FileExists(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup') then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Restoring fgmod-remover.sh from backup...');
-      CopyFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup',
-               IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh');
-      fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-remover.sh', &755);
-      DeleteFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-remover.sh.backup');
-    end;
-    
-    // Restore fgmod-uninstaller.sh if it was backed up
-    if FileExists(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup') then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Restoring fgmod-uninstaller.sh from backup...');
-      CopyFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup',
-               IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh');
-      fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod-uninstaller.sh', &755);
-      DeleteFile(IncludeTrailingPathDelimiter(GetTempDir) + 'fgmod-uninstaller.sh.backup');
-    end;
+    ForceDirectories(GetFGModOriginalPath);
 
     UpdateProgress(10);
 
@@ -1422,53 +1340,77 @@ begin
     UpdateProgress(50);
     UpdateStatus('Installing');
 
-    // STEP 3: Extract .7z file directly to fgmod folder
-    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to fgmod...');
-    if not Extract7z(SevenZFilePath, FFGModPath) then
+    // STEP 3: Extract .7z file to .fgmod_original (pristine store)
+    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to .fgmod_original...');
+    if not Extract7z(SevenZFilePath, GetFGModOriginalPath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
       ShowToast(ntError, 'Failed to extract .7z file', 5000);
       Exit;
     end;
 
-    WriteLn('[DEBUG] UpdateButtonClick: Extraction completed successfully');
+    WriteLn('[DEBUG] UpdateButtonClick: Extraction to .fgmod_original completed successfully');
     UpdateProgress(70);
 
-    // STEP 4: Make fgmod.sh executable
-    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making fgmod.sh executable...');
-    if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod.sh') then
+    // STEP 4: Make fgmod.sh executable in .fgmod_original
+    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making fgmod.sh executable in .fgmod_original...');
+    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh') then
     begin
-      // Rename fgmod.sh to fgmod
-      RenameFile(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod.sh',
-                 IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod');
-
-      // Make fgmod executable (chmod 755)
-      fpChmod(IncludeTrailingPathDelimiter(FFGModPath) + 'fgmod', &755);
-      WriteLn('[DEBUG] UpdateButtonClick: fgmod is now executable');
+      RenameFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh',
+                 IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod');
+      fpChmod(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod', &755);
+      WriteLn('[DEBUG] UpdateButtonClick: fgmod is now executable in .fgmod_original');
     end
     else
-      WriteLn('[WARN] UpdateButtonClick: fgmod.sh not found');
+      WriteLn('[WARN] UpdateButtonClick: fgmod.sh not found in .fgmod_original');
 
     UpdateProgress(75);
 
-    // STEP 5: Download NVIDIA DLSS DLLs
-    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs...');
+    // STEP 5: Download NVIDIA DLSS DLLs into .fgmod_original
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs into .fgmod_original...');
     UpdateStatus('Downloading NVIDIA DLSS');
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll',
-                        IncludeTrailingPathDelimiter(FFGModPath) + 'nvngx_dlss.dll') then
+                        IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlss.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlss.dll, continuing...');
     UpdateProgress(80);
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll',
-                        IncludeTrailingPathDelimiter(FFGModPath) + 'nvngx_dlssd.dll') then
+                        IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssd.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssd.dll, continuing...');
     UpdateProgress(84);
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll',
-                        IncludeTrailingPathDelimiter(FFGModPath) + 'nvngx_dlssg.dll') then
+                        IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssg.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssg.dll, continuing...');
     UpdateProgress(88);
 
-    // Write/update DLSS download date in goverlay.vars
-    VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+    // Sync DLLs from .fgmod_original to the global fgmod working copy.
+    // Only DLL files are force-copied so user configs (MangoHud.conf,
+    // OptiScaler.ini, etc.) in fgmod are never overwritten.
+    WriteLn('[DEBUG] UpdateButtonClick: Syncing DLLs from .fgmod_original to fgmod...');
+    UpdateStatus('Updating global fgmod');
+    ForceDirectories(FFGModPath);
+    begin
+      var SyncProc: TProcess;
+      SyncProc := TProcess.Create(nil);
+      try
+        SyncProc.Executable := 'sh';
+        SyncProc.Parameters.Add('-c');
+        SyncProc.Parameters.Add(
+          'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetFGModOriginalPath)) + '*.dll; do ' +
+          '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(IncludeTrailingPathDelimiter(FFGModPath)) + '; ' +
+          'done 2>/dev/null');
+        SyncProc.Options := [poWaitOnExit];
+        SyncProc.Execute;
+      finally
+        SyncProc.Free;
+      end;
+    end;
+    // Also sync goverlay.vars so version labels are consistent in fgmod
+    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
+      CopyFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars',
+               IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
+
+    // Write/update DLSS download date in goverlay.vars inside .fgmod_original
+    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
     VarsList := TStringList.Create;
     try
       if FileExists(VarsFilePath) then
@@ -1491,9 +1433,9 @@ begin
     end;
     VarsList.Free;
 
-    // STEP 6: Read goverlay.vars and update all labels
+    // STEP 6: Read goverlay.vars from .fgmod_original and update all labels
     WriteLn('[DEBUG] UpdateButtonClick: Step 6 - Reading goverlay.vars file...');
-    VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
 
     if FileExists(VarsFilePath) then
     begin
@@ -1715,15 +1657,16 @@ begin
       Exit;
     end;
     
-    WriteLn('[AUTO-INSTALL] Download completed, extracting...');
-    
-    // Extract using 7z
+    WriteLn('[AUTO-INSTALL] Download completed, extracting to .fgmod_original...');
+
+    // Extract to the pristine .fgmod_original directory (not the global fgmod).
+    // This keeps the original free of any user config changes.
     Process := TProcess.Create(nil);
     try
       Process.Executable := '7z';
       Process.Parameters.Add('x');
       Process.Parameters.Add('-y');
-      Process.Parameters.Add('-o' + AFGModPath);
+      Process.Parameters.Add('-o' + GetFGModOriginalPath);
       Process.Parameters.Add(SevenZFilePath);
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1731,32 +1674,32 @@ begin
     finally
       Process.Free;
     end;
-    
+
     if ExitCode <> 0 then
     begin
       WriteLn('[AUTO-INSTALL] ERROR: Extraction failed');
       DeleteFile(SevenZFilePath);
       Exit;
     end;
-    
-    WriteLn('[AUTO-INSTALL] Extraction completed');
-    
-    // Rename fgmod.sh to fgmod if it exists
-    if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod.sh') then
+
+    WriteLn('[AUTO-INSTALL] Extraction to .fgmod_original completed');
+
+    // Rename fgmod.sh to fgmod in .fgmod_original if it exists
+    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh') then
     begin
-      RenameFile(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod.sh',
-                 IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod');
-      fpChmod(IncludeTrailingPathDelimiter(AFGModPath) + 'fgmod', &755);
+      RenameFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh',
+                 IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod');
+      fpChmod(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod', &755);
     end;
-    
-    // Download NVIDIA DLSS DLLs
+
+    // Download NVIDIA DLSS DLLs to .fgmod_original
     WriteLn('[AUTO-INSTALL] Downloading NVIDIA DLSS DLLs...');
     Process := TProcess.Create(nil);
     try
       Process.Executable := 'curl';
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(AFGModPath) + 'nvngx_dlss.dll');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlss.dll');
       Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll');
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1772,7 +1715,7 @@ begin
       Process.Executable := 'curl';
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(AFGModPath) + 'nvngx_dlssd.dll');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssd.dll');
       Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll');
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1788,7 +1731,7 @@ begin
       Process.Executable := 'curl';
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(AFGModPath) + 'nvngx_dlssg.dll');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssg.dll');
       Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll');
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1800,8 +1743,24 @@ begin
       Process.Free;
     end;
 
-    // Write/update DLSS download date in goverlay.vars
-    VarsFilePath := IncludeTrailingPathDelimiter(AFGModPath) + 'goverlay.vars';
+    // Seed the global fgmod working copy from .fgmod_original without overwriting
+    // any files the user may have already customised (cp -rn = no clobber).
+    WriteLn('[AUTO-INSTALL] Seeding global fgmod from .fgmod_original...');
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'sh';
+      Process.Parameters.Add('-c');
+      Process.Parameters.Add('cp -rn ' +
+        QuotedStr(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + '.') +
+        ' ' + QuotedStr(AFGModPath) + ' 2>/dev/null');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+
+    // Write/update DLSS download date in goverlay.vars (kept in .fgmod_original)
+    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
     VarsList := TStringList.Create;
     try
       if FileExists(VarsFilePath) then

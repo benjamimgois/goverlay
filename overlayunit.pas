@@ -11095,7 +11095,7 @@ begin
       GameCfgDir := GetGameConfigDir(GameName);
       if not DirectoryExists(GameCfgDir) then
         ForceDirectories(GameCfgDir);
-      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
+      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
       MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
       UpdateGameContextLabel;
       SetNavActive(0);
@@ -11120,7 +11120,7 @@ begin
       GameCfgDir := GetGameConfigDir(GameName);
       if not DirectoryExists(GameCfgDir) then
         ForceDirectories(GameCfgDir);
-      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
+      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
       VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
       UpdateGameContextLabel;
       vkbasaltLabelClick(nil);

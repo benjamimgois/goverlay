@@ -5,7 +5,7 @@ unit fgmod_resources;
 interface
 
 uses
-  Classes, SysUtils, BaseUnix;
+  Classes, SysUtils, BaseUnix, Process;
 
 // Initialize the fgmod directory with all embedded scripts
 // This should be called at application startup
@@ -15,7 +15,14 @@ procedure InitializeFGModDirectory;
 function IsFGModInitialized: Boolean;
 
 // Get the fgmod installation path (Flatpak-aware)
+// This is the global working copy — may contain user-modified configs.
 function GetFGModPath: string;
+
+// Get the pristine fgmod original path (Flatpak-aware).
+// This directory is always a clean copy of the latest OptiScaler release and
+// embedded scripts. It is never modified by user configuration changes and
+// serves as the source when creating per-game config directories.
+function GetFGModOriginalPath: string;
 
 // Check if OptiScaler is installed in FGMOD directory
 function IsFGModOptiScalerInstalled(const AFGModPath: string): Boolean;
@@ -43,12 +50,24 @@ var
 begin
   // Standard XDG_DATA_HOME (maps to sandbox in Flatpak: ~/.var/app/.../data)
   DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  
+
   // Fallback to ~/.local/share
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
-  
+
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'fgmod';
+end;
+
+// Pristine fgmod copy — always reflects the latest OptiScaler release.
+// Never contains user-modified files; used as the source for per-game configs.
+function GetFGModOriginalPath: string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + '.fgmod_original';
 end;
 
 // Migrate FGMOD from old location to new XDG-compliant location
@@ -755,78 +774,69 @@ begin
     WriteLn('[FGMOD] OptiScaler.dll not found at: ', OptiScalerDLL);
 end;
 
-// Initialize the fgmod directory with all embedded scripts
-// Only creates files if the fgmod directory doesn't exist
-// This preserves user modifications to the scripts
+// Initialize the fgmod directory structure.
+//
+// Layout after initialization:
+//   .fgmod_original/  — pristine embedded scripts; populated here; DLLs are
+//                       added later by CheckAndInstallOptiScaler / UpdateButtonClick.
+//   fgmod/            — global working copy; seeded from .fgmod_original on first
+//                       run; subsequent runs leave it untouched so user edits persist.
+//
+// Per-game config dirs are always seeded from .fgmod_original (not fgmod) so
+// that global config changes never pollute newly created game configs.
 procedure InitializeFGModDirectory;
 var
-  FGModPath: string;
+  OriginalPath, FGModPath: string;
   IsFlatpak: Boolean;
-  ParentDir: string;
-  FGModScript: string;
+  Proc: TProcess;
 begin
-  // Migration disabled: old fgmod versions should not override new ones
-  // If migration is needed, users should manually remove old directory first
-  // MigrateFGModToXDG;
-  
-  FGModPath := GetFGModPath;
-  IsFlatpak := IsRunningInFlatpak;
-  
-  WriteLn('[FGMOD] Checking fgmod directory at: ', FGModPath);
-  WriteLn('[FGMOD] Running in Flatpak: ', IsFlatpak);
-  
-  // Check if parent directory exists (especially important for Flatpak)
-  ParentDir := ExtractFilePath(ExcludeTrailingPathDelimiter(FGModPath));
-  WriteLn('[FGMOD] Parent directory: ', ParentDir);
-  WriteLn('[FGMOD] Parent exists: ', DirectoryExists(ParentDir));
-  
-  // Check if fgmod SCRIPT exists (not just directory)
-  // This handles the case where directory exists but is empty
-  FGModScript := IncludeTrailingPathDelimiter(FGModPath) + 'fgmod';
-  WriteLn('[FGMOD] Checking for fgmod script at: ', FGModScript);
-  
-  if not FileExists(FGModScript) then
+  OriginalPath := GetFGModOriginalPath;
+  FGModPath    := GetFGModPath;
+  IsFlatpak    := IsRunningInFlatpak;
+
+  WriteLn('[FGMOD] .fgmod_original path : ', OriginalPath);
+  WriteLn('[FGMOD] fgmod (global) path  : ', FGModPath);
+  WriteLn('[FGMOD] Running in Flatpak   : ', IsFlatpak);
+
+  // --- Step 1: ensure .fgmod_original has the embedded scripts ---
+  if not FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod') then
   begin
-    WriteLn('[FGMOD] fgmod script not found, creating fgmod directory and scripts...');
-    
-    // Try to create the directory
-    if not ForceDirectories(FGModPath) then
+    WriteLn('[FGMOD] Populating .fgmod_original with embedded scripts...');
+    if not ForceDirectories(OriginalPath) then
     begin
-      WriteLn('[FGMOD] ERROR: Failed to create directory: ', FGModPath);
-      WriteLn('[FGMOD] Trying to create parent directories first...');
-      
-      // Try to create parent directory first
-      if not DirectoryExists(ParentDir) then
-      begin
-        if ForceDirectories(ParentDir) then
-          WriteLn('[FGMOD] Created parent directory: ', ParentDir)
-        else
-          WriteLn('[FGMOD] ERROR: Failed to create parent directory: ', ParentDir);
-      end;
-      
-      // Try again to create fgmod directory
-      if not ForceDirectories(FGModPath) then
-      begin
-        WriteLn('[FGMOD] ERROR: Still cannot create directory. Aborting initialization.');
-        Exit;
-      end;
+      WriteLn('[FGMOD] ERROR: cannot create .fgmod_original directory, aborting.');
+      Exit;
     end;
-    
-    WriteLn('[FGMOD] Directory created successfully');
-    
-    // Write all embedded script files
-    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod', GetFGModScript);
-    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript);
-    WriteScriptFile(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-remover.sh', GetFGModRemoverScript(IsFlatpak));
-    WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'LICENSE', GetFGModLicense);
-    WriteTextFile(IncludeTrailingPathDelimiter(FGModPath) + 'README.md', GetFGModReadme);
-    
-    WriteLn('[FGMOD] Initialization complete');
+    WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod',                GetFGModScript);
+    WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript);
+    WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-remover.sh',     GetFGModRemoverScript(IsFlatpak));
+    WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'LICENSE',              GetFGModLicense);
+    WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'README.md',            GetFGModReadme);
+    WriteLn('[FGMOD] .fgmod_original scripts written.');
   end
   else
+    WriteLn('[FGMOD] .fgmod_original already initialised, skipping script write.');
+
+  // --- Step 2: seed fgmod (global working copy) from .fgmod_original if empty ---
+  if not FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod') then
   begin
-    WriteLn('[FGMOD] fgmod script already exists, preserving user modifications');
-  end;
+    WriteLn('[FGMOD] fgmod not found — seeding global copy from .fgmod_original...');
+    ForceDirectories(FGModPath);
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -rn ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + '.') +
+                          ' ' + QuotedStr(FGModPath) + ' 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+    WriteLn('[FGMOD] Global fgmod copy seeded.');
+  end
+  else
+    WriteLn('[FGMOD] fgmod already exists, preserving user modifications.');
 end;
 
 end.
