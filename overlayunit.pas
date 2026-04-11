@@ -11438,8 +11438,8 @@ begin
   if VkVer = '' then VkVer := IfThen(VkOK, 'installed', 'not found');
   FHomeModVerLbls[1].Caption := VkVer;
 
-  if OptiOK and Assigned(FHomeOptiLbls[0]) and (FHomeOptiLbls[0].Caption <> '') then
-    FHomeModVerLbls[2].Caption := FHomeOptiLbls[0].Caption
+  if OptiOK and Assigned(optlabel1) and (optlabel1.Caption <> '') then
+    FHomeModVerLbls[2].Caption := optlabel1.Caption
   else if OptiOK then
     FHomeModVerLbls[2].Caption := 'installed'
   else
@@ -11448,20 +11448,10 @@ end;
 
 procedure Tgoverlayform.RefreshHomeOptiStatus;
 begin
-  if not Assigned(FHomeOptiLbls[0]) then Exit;
-  // Mirror OptiScaler tab version labels
-  if Assigned(optlabel1)        then FHomeOptiLbls[0].Caption := optlabel1.Caption;
-  if Assigned(fakenvapi1)       then FHomeOptiLbls[1].Caption := fakenvapi1.Caption;
-  if Assigned(fsrlabel1)        then FHomeOptiLbls[2].Caption := fsrlabel1.Caption;
-  if Assigned(xessLabel1)       then FHomeOptiLbls[3].Caption := xessLabel1.Caption;
-  if Assigned(dlssLabel1)       then FHomeOptiLbls[4].Caption := dlssLabel1.Caption;
-  if Assigned(optipatcherLabel1) then FHomeOptiLbls[5].Caption := optipatcherLabel1.Caption;
-  // Sync channel combo
-  if Assigned(FHomeChannelCombo) and Assigned(optversionComboBox) then
-    FHomeChannelCombo.ItemIndex := optversionComboBox.ItemIndex;
-  // Update OptiScaler version in module status
-  if Assigned(FHomeModVerLbls[2]) and (FHomeOptiLbls[0].Caption <> '') then
-    FHomeModVerLbls[2].Caption := FHomeOptiLbls[0].Caption;
+  // Update OptiScaler version in module status from the OptiScaler tab label
+  if not Assigned(FHomeModVerLbls[2]) then Exit;
+  if Assigned(optlabel1) and (optlabel1.Caption <> '') then
+    FHomeModVerLbls[2].Caption := optlabel1.Caption;
 end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
@@ -11508,66 +11498,59 @@ procedure Tgoverlayform.InitHomeTab;
 const
   BG       = $001A1A1A;
   CARD_BG  = $00252525;
-  CARD_M   = 16;   // margin around cards
-  CARD_P   = 14;   // padding inside card
-  ROW_H    = 32;   // standard row height
-  DOT_SZ   = 14;   // status dot size
-  SEC_GAP  = 12;   // vertical gap between cards
+  CARD_M   = 16;
+  CARD_P   = 14;
+  ROW_H    = 32;
+  DOT_SZ   = 14;
+  SEC_GAP  = 12;
+  COL_W    = 200;  // fixed column width for dep grid
 
   DEP_NAMES: array[0..8] of string = (
     'PasCube', 'MangoHud', 'MangoHud rt.', 'vkBasalt', 'vkBasalt rt.',
     'vkcube', '7z', 'curl', 'git');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
-  OPTI_LBLS: array[0..5] of string = (
-    'OptiScaler:', 'FakeNvAPI:', 'FSR:', 'XeSS:', 'DLSS:', 'Optipacher:');
 
 var
   ScrollBox: TScrollBox;
   Content:   TPanel;
   Card:      TPanel;
+  BtnRow:    TPanel;
+  Spacer:    TPanel;
   Lbl:       TLabel;
   Sep:       TBevel;
-  Combo:     TComboBox;
-  Btn:       TPanel;
-  IconLbl:   TLabel;
-  CaptLbl:   TLabel;
-  i, Row, Y, CW, Col1X, Col2X, ColW: Integer;
-  Dot: TShape;
+  i, Row, Y, ColX: Integer;
+  Dot:       TShape;
 
-  // Helper: creates a styled section card panel
   function MkCard(AY, AH: Integer): TPanel;
   begin
     Result := TPanel.Create(Self);
-    Result.Parent  := Content;
+    Result.Parent     := Content;
     Result.BevelOuter := bvNone;
-    Result.Color   := CARD_BG;
-    Result.Caption := '';
-    Result.Tag     := 9998;
-    Result.Left    := CARD_M;
-    Result.Top     := AY;
-    Result.Width   := Content.Width - CARD_M * 2;
-    Result.Height  := AH;
-    Result.Anchors := [akLeft, akTop, akRight];
+    Result.Color      := CARD_BG;
+    Result.Caption    := '';
+    Result.Tag        := 9998;
+    Result.Left       := CARD_M;
+    Result.Top        := AY;
+    Result.Height     := AH;
+    Result.Anchors    := [akLeft, akTop, akRight];
     Result.AnchorSideRight.Control := Content;
     Result.AnchorSideRight.Side    := asrRight;
     Result.BorderSpacing.Right     := CARD_M;
   end;
 
-  // Helper: creates a section title label
   function MkTitle(AParent: TWinControl; const AText: string; AY: Integer): TLabel;
   begin
     Result := TLabel.Create(Self);
-    Result.Parent  := AParent;
-    Result.Caption := AText;
+    Result.Parent   := AParent;
+    Result.Caption  := AText;
     Result.Font.Bold  := True;
     Result.Font.Color := clWhite;
     Result.Font.Size  := 10;
-    Result.Left  := CARD_P;
-    Result.Top   := AY;
+    Result.Left     := CARD_P;
+    Result.Top      := AY;
     Result.AutoSize := True;
   end;
 
-  // Helper: separator line
   procedure MkSep(AParent: TWinControl; AY: Integer);
   begin
     Sep := TBevel.Create(Self);
@@ -11576,7 +11559,6 @@ var
     Sep.Shape   := bsTopLine;
     Sep.Left    := CARD_P;
     Sep.Top     := AY;
-    Sep.Width   := AParent.Width - CARD_P * 2;
     Sep.Height  := 2;
     Sep.Anchors := [akLeft, akTop, akRight];
     Sep.AnchorSideRight.Control := AParent;
@@ -11584,26 +11566,41 @@ var
     Sep.BorderSpacing.Right     := CARD_P;
   end;
 
-  // Helper: status dot
   function MkDot(AParent: TWinControl; AX, AY: Integer): TShape;
   begin
     Result := TShape.Create(Self);
-    Result.Parent     := AParent;
-    Result.Shape      := stEllipse;
+    Result.Parent      := AParent;
+    Result.Shape       := stEllipse;
     Result.Brush.Color := $00888888;
-    Result.Pen.Style  := psClear;
+    Result.Pen.Style   := psClear;
     Result.SetBounds(AX, AY, DOT_SZ, DOT_SZ);
   end;
 
+  // Creates a centered label inside a button panel using Align
+  function MkBtnLabel(AParent: TWinControl; const ACaption: string;
+    AFontSize: Integer; AColor: TColor; AFontName: string = ''): TLabel;
+  begin
+    Result := TLabel.Create(Self);
+    Result.Parent    := AParent;
+    Result.Caption   := ACaption;
+    Result.Alignment := taCenter;
+    Result.Layout    := tlCenter;
+    Result.Align     := alTop;
+    Result.Font.Size  := AFontSize;
+    Result.Font.Color := AColor;
+    if AFontName <> '' then Result.Font.Name := AFontName;
+    Result.Cursor    := crHandPoint;
+  end;
+
 begin
-  // Create tab sheet
+  // ── Tab sheet ────────────────────────────────────────────────────────────
   FHomeTabSheet := TTabSheet.Create(goverlayPageControl);
   FHomeTabSheet.PageControl := goverlayPageControl;
   FHomeTabSheet.Caption     := 'Home';
   FHomeTabSheet.TabVisible  := False;
   FHomeTabSheet.Color       := BG;
 
-  // Scroll box fills the tab
+  // ── Scroll box ───────────────────────────────────────────────────────────
   ScrollBox := TScrollBox.Create(Self);
   ScrollBox.Parent      := FHomeTabSheet;
   ScrollBox.Align       := alClient;
@@ -11612,7 +11609,8 @@ begin
   ScrollBox.HorzScrollBar.Visible := False;
   ScrollBox.Color := BG;
 
-  // Content panel (auto-resized to hold all cards)
+  // ── Content panel ────────────────────────────────────────────────────────
+  // Use a fixed base width (anchors handle resize at runtime)
   Content := TPanel.Create(Self);
   Content.Parent    := ScrollBox;
   Content.BevelOuter := bvNone;
@@ -11620,14 +11618,9 @@ begin
   Content.Caption   := '';
   Content.Left      := 0;
   Content.Top       := 0;
-  Content.Width     := ScrollBox.ClientWidth;
-  Content.Height    := 900;
+  Content.Width     := 700;
+  Content.Height    := 600;
   Content.Anchors   := [akLeft, akTop, akRight];
-
-  CW    := Content.Width - CARD_M * 2;
-  Col1X := CARD_P;
-  Col2X := CARD_P + CW div 2 + 8;
-  ColW  := CW div 2 - CARD_P * 2 - 8;
 
   // ── Card 1: Module Status ─────────────────────────────────────────────────
   Y    := CARD_M;
@@ -11642,241 +11635,122 @@ begin
     FHomeModDots[i] := Dot;
 
     Lbl := TLabel.Create(Self);
-    Lbl.Parent  := Card;
-    Lbl.Caption := MOD_NAMES[i];
+    Lbl.Parent     := Card;
+    Lbl.Caption    := MOD_NAMES[i];
     Lbl.Font.Color := clSilver;
     Lbl.Font.Size  := 9;
-    Lbl.Left  := CARD_P + DOT_SZ + 8;
-    Lbl.Top   := Row + (ROW_H - 16) div 2;
-    Lbl.Width := 100;
-    Lbl.AutoSize := True;
+    Lbl.Left       := CARD_P + DOT_SZ + 8;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
 
     Lbl := TLabel.Create(Self);
-    Lbl.Parent  := Card;
-    Lbl.Caption := '—';
+    Lbl.Parent     := Card;
+    Lbl.Caption    := '—';
     Lbl.Font.Color := $00AAAAAA;
     Lbl.Font.Size  := 9;
-    Lbl.Left  := CARD_P + DOT_SZ + 8 + 110;
-    Lbl.Top   := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize := True;
+    Lbl.Left       := CARD_P + DOT_SZ + 8 + 110;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
     FHomeModVerLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
-  // ── Card 2: OptiScaler Components ────────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 220 + 8);
-  MkTitle(Card, 'OptiScaler', CARD_P);
-  MkSep(Card, CARD_P + 22);
-
-  // Channel row
-  Row := CARD_P + 32;
-  Lbl := TLabel.Create(Self);
-  Lbl.Parent   := Card;
-  Lbl.Caption  := 'Channel:';
-  Lbl.Font.Color := clSilver;
-  Lbl.Font.Size := 9;
-  Lbl.Left := Col1X;
-  Lbl.Top  := Row + (ROW_H - 16) div 2;
-  Lbl.AutoSize := True;
-
-  Combo := TComboBox.Create(Self);
-  Combo.Parent := Card;
-  Combo.Left   := Col1X + 70;
-  Combo.Top    := Row + 2;
-  Combo.Width  := 160;
-  Combo.Height := 26;
-  Combo.Style  := csDropDownList;
-  Combo.Font.Color := clWhite;
-  Combo.Items.Add('Stable Channel');
-  Combo.Items.Add('Pre-Release Channel');
-  Combo.ItemIndex := 0;
-  Combo.OnChange  := @HomeChannelComboChange;
-  FHomeChannelCombo := Combo;
-
-  // Check Updates button (small panel)
-  Btn := TPanel.Create(Self);
-  Btn.Parent    := Card;
-  Btn.Caption   := '↻  Check Updates';
-  Btn.Font.Color := clSilver;
-  Btn.Font.Size  := 9;
-  Btn.Color     := $00333333;
-  Btn.BevelOuter := bvNone;
-  Btn.Cursor    := crHandPoint;
-  Btn.Left  := Col1X + 240;
-  Btn.Top   := Row + 2;
-  Btn.Width := 130;
-  Btn.Height := 26;
-  Btn.Tag := 99;
-  Btn.OnClick := @optversionComboBoxChange;  // reuse existing handler
-
-  // Version grid (2 columns: label + value side by side)
-  // Left column: OptiScaler, FSR, DLSS  / Right column: FakeNvAPI, XeSS, Optipacher
-  for i := 0 to 5 do
-  begin
-    Row := CARD_P + 32 + ROW_H + (i div 2) * ROW_H + 4;
-
-    if i mod 2 = 0 then
-    begin
-      Lbl := TLabel.Create(Self);
-      Lbl.Parent  := Card;
-      Lbl.Caption := OPTI_LBLS[i];
-      Lbl.Font.Color := clSilver;
-      Lbl.Font.Size  := 9;
-      Lbl.Left := Col1X;
-      Lbl.Top  := Row + (ROW_H - 16) div 2;
-      Lbl.AutoSize := True;
-
-      Lbl := TLabel.Create(Self);
-      Lbl.Parent  := Card;
-      Lbl.Caption := '—';
-      Lbl.Font.Color := $00DDAA44;
-      Lbl.Font.Size  := 9;
-      Lbl.Left := Col1X + 90;
-      Lbl.Top  := Row + (ROW_H - 16) div 2;
-      Lbl.AutoSize := True;
-      FHomeOptiLbls[i] := Lbl;
-    end
-    else
-    begin
-      Lbl := TLabel.Create(Self);
-      Lbl.Parent  := Card;
-      Lbl.Caption := OPTI_LBLS[i];
-      Lbl.Font.Color := clSilver;
-      Lbl.Font.Size  := 9;
-      Lbl.Left := Col2X;
-      Lbl.Top  := Row + (ROW_H - 16) div 2;
-      Lbl.AutoSize := True;
-
-      Lbl := TLabel.Create(Self);
-      Lbl.Parent  := Card;
-      Lbl.Caption := '—';
-      Lbl.Font.Color := $00DDAA44;
-      Lbl.Font.Size  := 9;
-      Lbl.Left := Col2X + 90;
-      Lbl.Top  := Row + (ROW_H - 16) div 2;
-      Lbl.AutoSize := True;
-      FHomeOptiLbls[i] := Lbl;
-    end;
-  end;
-
-  // Compatibility diagram (TPaintBox centred below versions)
-  Row := CARD_P + 32 + ROW_H + 3 * ROW_H + 12;
-  FHomeDiagramBox := TPaintBox.Create(Self);
-  FHomeDiagramBox.Parent  := Card;
-  FHomeDiagramBox.Left    := (Card.Width - 280) div 2;
-  FHomeDiagramBox.Top     := Row;
-  FHomeDiagramBox.Width   := 280;
-  FHomeDiagramBox.Height  := 200;
-  FHomeDiagramBox.OnPaint := @HomeDiagramPaint;
-
-  Inc(Y, Card.Height + SEC_GAP);
-
-  // ── Card 3: Dependencies ──────────────────────────────────────────────────
+  // ── Card 2: Dependencies (3×3 grid, fixed column width) ──────────────────
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
   MkTitle(Card, 'Dependencies', CARD_P);
   MkSep(Card, CARD_P + 22);
 
   for i := 0 to 8 do
   begin
-    Row := CARD_P + 30 + (i div 3) * ROW_H;
-    Col1X := CARD_P + (i mod 3) * (CW div 3);
+    Row  := CARD_P + 30 + (i div 3) * ROW_H;
+    ColX := CARD_P + (i mod 3) * COL_W;
 
-    Dot := MkDot(Card, Col1X, Row + (ROW_H - DOT_SZ) div 2);
+    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
     FHomeDepDots[i] := Dot;
 
     Lbl := TLabel.Create(Self);
-    Lbl.Parent  := Card;
-    Lbl.Caption := DEP_NAMES[i];
+    Lbl.Parent     := Card;
+    Lbl.Caption    := DEP_NAMES[i];
     Lbl.Font.Color := $00AAAAAA;
     Lbl.Font.Size  := 9;
-    Lbl.Left  := Col1X + DOT_SZ + 6;
-    Lbl.Top   := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize := True;
+    Lbl.Left       := ColX + DOT_SZ + 6;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.Width      := COL_W - DOT_SZ - 10;  // clip to column width
+    Lbl.AutoSize   := False;
     FHomeDepLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
   // ── Action Buttons ────────────────────────────────────────────────────────
-  // Global Config button
+  // BtnRow anchors left+right to Content so it always fills the width
+  BtnRow := TPanel.Create(Self);
+  BtnRow.Parent     := Content;
+  BtnRow.BevelOuter := bvNone;
+  BtnRow.Color      := BG;
+  BtnRow.Caption    := '';
+  BtnRow.Left       := CARD_M;
+  BtnRow.Top        := Y;
+  BtnRow.Height     := 90;
+  BtnRow.Anchors    := [akLeft, akTop, akRight];
+  BtnRow.AnchorSideRight.Control := Content;
+  BtnRow.AnchorSideRight.Side    := asrRight;
+  BtnRow.BorderSpacing.Right     := CARD_M;
+
+  // Global Config button — left half via alLeft
   FHomeGlobalBtn := TPanel.Create(Self);
-  FHomeGlobalBtn.Parent     := Content;
+  FHomeGlobalBtn.Parent     := BtnRow;
   FHomeGlobalBtn.BevelOuter := bvNone;
   FHomeGlobalBtn.Color      := $00252540;
   FHomeGlobalBtn.Caption    := '';
   FHomeGlobalBtn.Cursor     := crHandPoint;
-  FHomeGlobalBtn.Tag        := 9998;
-  FHomeGlobalBtn.SetBounds(CARD_M, Y, (Content.Width - CARD_M * 3) div 2, 90);
-  FHomeGlobalBtn.AnchorSideRight.Control := Content;
-  FHomeGlobalBtn.AnchorSideRight.Side    := asrCenter;
-  FHomeGlobalBtn.Anchors := [akLeft, akTop];
+  FHomeGlobalBtn.Align      := alLeft;
+  FHomeGlobalBtn.Width      := (BtnRow.Width - CARD_M) div 2;
   FHomeGlobalBtn.OnClick      := @HomeGlobalBtnClick;
   FHomeGlobalBtn.OnMouseEnter := @HomeGlobalBtnEnter;
   FHomeGlobalBtn.OnMouseLeave := @HomeGlobalBtnLeave;
 
-  IconLbl := TLabel.Create(Self);
-  IconLbl.Parent    := FHomeGlobalBtn;
-  IconLbl.Caption   := '󰋊';
-  IconLbl.Font.Name := 'Noto Sans';
-  IconLbl.Font.Size := 28;
-  IconLbl.Font.Color := $00AAAADD;
-  IconLbl.Left := (FHomeGlobalBtn.Width - 40) div 2;
-  IconLbl.Top  := 6;
-  IconLbl.AutoSize := True;
-  IconLbl.Cursor   := crHandPoint;
-  IconLbl.OnClick  := @HomeGlobalBtnClick;
+  // Spacer between buttons
+  Spacer := TPanel.Create(Self);
+  Spacer.Parent     := BtnRow;
+  Spacer.BevelOuter := bvNone;
+  Spacer.Color      := BG;
+  Spacer.Caption    := '';
+  Spacer.Align      := alLeft;
+  Spacer.Width      := CARD_M;
 
-  CaptLbl := TLabel.Create(Self);
-  CaptLbl.Parent    := FHomeGlobalBtn;
-  CaptLbl.Caption   := 'Global Config';
-  CaptLbl.Font.Size := 10;
-  CaptLbl.Font.Bold := True;
-  CaptLbl.Font.Color := clSilver;
-  CaptLbl.Left    := (FHomeGlobalBtn.Width - 90) div 2;
-  CaptLbl.Top     := 54;
-  CaptLbl.AutoSize := True;
-  CaptLbl.Cursor  := crHandPoint;
-  CaptLbl.OnClick := @HomeGlobalBtnClick;
-
-  // Game Config button
+  // Game Config button — takes remaining space via alClient
   FHomeGameBtn := TPanel.Create(Self);
-  FHomeGameBtn.Parent     := Content;
+  FHomeGameBtn.Parent     := BtnRow;
   FHomeGameBtn.BevelOuter := bvNone;
   FHomeGameBtn.Color      := $00253025;
   FHomeGameBtn.Caption    := '';
   FHomeGameBtn.Cursor     := crHandPoint;
-  FHomeGameBtn.Tag        := 9998;
-  FHomeGameBtn.SetBounds(CARD_M * 2 + (Content.Width - CARD_M * 3) div 2, Y,
-                         (Content.Width - CARD_M * 3) div 2, 90);
-  FHomeGameBtn.Anchors := [akLeft, akTop];
+  FHomeGameBtn.Align      := alClient;
   FHomeGameBtn.OnClick      := @HomeGameBtnClick;
   FHomeGameBtn.OnMouseEnter := @HomeGameBtnEnter;
   FHomeGameBtn.OnMouseLeave := @HomeGameBtnLeave;
 
-  IconLbl := TLabel.Create(Self);
-  IconLbl.Parent    := FHomeGameBtn;
-  IconLbl.Caption   := '󰊴';
-  IconLbl.Font.Name := 'Noto Sans';
-  IconLbl.Font.Size := 28;
-  IconLbl.Font.Color := $00AADDAA;
-  IconLbl.Left := (FHomeGameBtn.Width - 40) div 2;
-  IconLbl.Top  := 6;
-  IconLbl.AutoSize := True;
-  IconLbl.Cursor   := crHandPoint;
-  IconLbl.OnClick  := @HomeGameBtnClick;
+  // Icon + caption for Global Config (centered via Alignment=taCenter + Align=alTop)
+  Lbl := MkBtnLabel(FHomeGlobalBtn, '󰋊', 28, $00AAAADD, 'Noto Sans');
+  Lbl.Height := 56;
+  Lbl.OnClick := @HomeGlobalBtnClick;
 
-  CaptLbl := TLabel.Create(Self);
-  CaptLbl.Parent    := FHomeGameBtn;
-  CaptLbl.Caption   := 'Game Config';
-  CaptLbl.Font.Size := 10;
-  CaptLbl.Font.Bold := True;
-  CaptLbl.Font.Color := clSilver;
-  CaptLbl.Left    := (FHomeGameBtn.Width - 85) div 2;
-  CaptLbl.Top     := 54;
-  CaptLbl.AutoSize := True;
-  CaptLbl.Cursor  := crHandPoint;
-  CaptLbl.OnClick := @HomeGameBtnClick;
+  Lbl := MkBtnLabel(FHomeGlobalBtn, 'Global Config', 10, clSilver);
+  Lbl.Font.Bold := True;
+  Lbl.Height := 26;
+  Lbl.OnClick := @HomeGlobalBtnClick;
 
-  // Resize content to fit everything
+  // Icon + caption for Game Config
+  Lbl := MkBtnLabel(FHomeGameBtn, '󰊴', 28, $00AADDAA, 'Noto Sans');
+  Lbl.Height := 56;
+  Lbl.OnClick := @HomeGameBtnClick;
+
+  Lbl := MkBtnLabel(FHomeGameBtn, 'Game Config', 10, clSilver);
+  Lbl.Font.Bold := True;
+  Lbl.Height := 26;
+  Lbl.OnClick := @HomeGameBtnClick;
+
+  // Resize content to fit
   Content.Height := Y + 90 + CARD_M;
 end;
 
@@ -11903,8 +11777,6 @@ begin
   RefreshHomeOptiStatus;
   RefreshHomeModuleStatus;
   RefreshHomeDeps;
-  if Assigned(FHomeDiagramBox) then
-    FHomeDiagramBox.Invalidate;
 end;
 
 procedure Tgoverlayform.ReflowGamesGrid;
