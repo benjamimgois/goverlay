@@ -581,6 +581,7 @@ type
     FHomeDepLbls:      array[0..8] of TLabel;
     FHomeGlobalBtn:    TPanel;
     FHomeGameBtn:      TPanel;
+    FHomeBtnRow:       TPanel;
 
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
@@ -673,6 +674,7 @@ type
     procedure RefreshHomeOptiStatus;
     procedure RefreshHomeDeps;
     procedure HomeDiagramPaint(Sender: TObject);
+    procedure HomeBtnRowResize(Sender: TObject);
     procedure HomeGlobalBtnClick(Sender: TObject);
     procedure HomeGameBtnClick(Sender: TObject);
     procedure HomeGlobalBtnEnter(Sender: TObject);
@@ -11354,6 +11356,12 @@ begin
   DrawCircle(PBR.X,  PBR.Y,  $002266BB, 'intel.', 'XeSS');
 end;
 
+procedure Tgoverlayform.HomeBtnRowResize(Sender: TObject);
+begin
+  if Assigned(FHomeGlobalBtn) and Assigned(FHomeBtnRow) then
+    FHomeGlobalBtn.Width := (FHomeBtnRow.ClientWidth - 16) div 2;
+end;
+
 procedure Tgoverlayform.HomeGlobalBtnClick(Sender: TObject);
 begin
   mangohudLabelClick(nil);
@@ -11525,13 +11533,12 @@ const
   LIB_COL2  = 3;  // first index in LIB_NAMES for right column
 
 var
-  ScrollBox: TScrollBox;
   Content:   TPanel;
   Card:      TPanel;
-  BtnRow:    TPanel;
+  BtnRow:    TPanel;  // used as spacer panel
   Lbl:       TLabel;
   Sep:       TBevel;
-  i, Row, Y, ColX, HalfW, Col2X: Integer;
+  i, Row, Y, ColX, Col2X: Integer;
   Dot:       TShape;
 
   function MkCard(AY, AH: Integer): TPanel;
@@ -11613,27 +11620,13 @@ begin
   FHomeTabSheet.TabVisible  := False;
   FHomeTabSheet.Color       := BG;
 
-  // ── Scroll box ───────────────────────────────────────────────────────────
-  ScrollBox := TScrollBox.Create(Self);
-  ScrollBox.Parent      := FHomeTabSheet;
-  ScrollBox.Align       := alClient;
-  ScrollBox.AutoScroll  := True;
-  ScrollBox.BorderStyle := bsNone;
-  ScrollBox.HorzScrollBar.Visible := False;
-  ScrollBox.Color := BG;
-
-  // ── Content panel ────────────────────────────────────────────────────────
-  // Use a fixed base width (anchors handle resize at runtime)
+  // ── Content panel fills the tab — no ScrollBox needed ────────────────────
   Content := TPanel.Create(Self);
-  Content.Parent    := ScrollBox;
+  Content.Parent    := FHomeTabSheet;
   Content.BevelOuter := bvNone;
   Content.Color     := BG;
   Content.Caption   := '';
-  Content.Left      := 0;
-  Content.Top       := 0;
-  Content.Width     := 700;
-  Content.Height    := 600;
-  Content.Anchors   := [akLeft, akTop, akRight];
+  Content.Align     := alClient;
 
   // ── Card 1: Module Status + Libraries (indented sub-rows for OptiScaler libs)
   // Layout: 3 module rows, thin separator, 3 library rows (2-col: left=[0,2,4], right=[1,3])
@@ -11678,7 +11671,7 @@ begin
   Col2X := 330;
   for i := 0 to 4 do
   begin
-    if i mod 2 = 0 then ColX := CARD_P + 20
+    if i mod 2 = 0 then ColX := CARD_P
     else                 ColX := Col2X;
     Row := CARD_P + 30 + 3 * ROW_H + 10 + (i div 2) * ROW_H;
 
@@ -11690,7 +11683,7 @@ begin
     Lbl.Caption    := LIB_NAMES[i];
     Lbl.Font.Color := $00888888;
     Lbl.Font.Size  := 8;
-    Lbl.Left       := ColX + DOT_SZ + 6;
+    Lbl.Left       := ColX + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
 
@@ -11699,7 +11692,7 @@ begin
     Lbl.Caption    := '—';
     Lbl.Font.Color := $00DDAA44;
     Lbl.Font.Size  := 8;
-    Lbl.Left       := ColX + DOT_SZ + 6 + 86;
+    Lbl.Left       := ColX + DOT_SZ + 8 + 110;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
     FHomeOptiLbls[i] := Lbl;
@@ -11733,65 +11726,51 @@ begin
   Inc(Y, Card.Height + SEC_GAP);
 
 
-  // ── Action Buttons ────────────────────────────────────────────────────────
-  // BtnRow anchors left+right so it always fills the available width
-  BtnRow := TPanel.Create(Self);
-  BtnRow.Parent     := Content;
-  BtnRow.BevelOuter := bvNone;
-  BtnRow.Color      := BG;
-  BtnRow.Caption    := '';
-  BtnRow.Left       := CARD_M;
-  BtnRow.Top        := Y;
-  BtnRow.Width      := Content.Width - CARD_M * 2;
-  BtnRow.Height     := 90;
-  BtnRow.Anchors    := [akLeft, akTop, akRight];
-  BtnRow.AnchorSideRight.Control := Content;
-  BtnRow.AnchorSideRight.Side    := asrRight;
-  BtnRow.BorderSpacing.Right     := CARD_M;
+  // ── Action Buttons (pinned to bottom of content) ─────────────────────────
+  FHomeBtnRow := TPanel.Create(Self);
+  FHomeBtnRow.Parent     := Content;
+  FHomeBtnRow.BevelOuter := bvNone;
+  FHomeBtnRow.Color      := BG;
+  FHomeBtnRow.Caption    := '';
+  FHomeBtnRow.Align      := alBottom;
+  FHomeBtnRow.Height     := 90;
+  FHomeBtnRow.OnResize   := @HomeBtnRowResize;
 
-  HalfW := (BtnRow.Width - CARD_M) div 2;
-
-  // Global Config — left half, right edge anchored to center of BtnRow
+  // Global Config — left half (OnResize keeps width = 50%)
   FHomeGlobalBtn := TPanel.Create(Self);
-  FHomeGlobalBtn.Parent     := BtnRow;
+  FHomeGlobalBtn.Parent     := FHomeBtnRow;
   FHomeGlobalBtn.BevelOuter := bvNone;
   FHomeGlobalBtn.Color      := $00252540;
   FHomeGlobalBtn.Caption    := '';
   FHomeGlobalBtn.Cursor     := crHandPoint;
-  FHomeGlobalBtn.Left       := 0;
-  FHomeGlobalBtn.Top        := 0;
-  FHomeGlobalBtn.Width      := HalfW;
-  FHomeGlobalBtn.Height     := BtnRow.Height;
-  FHomeGlobalBtn.Anchors    := [akLeft, akTop, akRight];
-  FHomeGlobalBtn.AnchorSideRight.Control := BtnRow;
-  FHomeGlobalBtn.AnchorSideRight.Side    := asrCenter;
-  FHomeGlobalBtn.BorderSpacing.Right     := CARD_M div 2;
+  FHomeGlobalBtn.Align      := alLeft;
+  FHomeGlobalBtn.Width      := 300;   // updated immediately by HomeBtnRowResize
   FHomeGlobalBtn.OnClick      := @HomeGlobalBtnClick;
   FHomeGlobalBtn.OnMouseEnter := @HomeGlobalBtnEnter;
   FHomeGlobalBtn.OnMouseLeave := @HomeGlobalBtnLeave;
 
-  // Game Config — right half, left edge anchored to center of BtnRow
+  // Spacer
+  BtnRow := TPanel.Create(Self);
+  BtnRow.Parent := FHomeBtnRow;
+  BtnRow.BevelOuter := bvNone;
+  BtnRow.Color := BG;
+  BtnRow.Caption := '';
+  BtnRow.Align := alLeft;
+  BtnRow.Width := CARD_M;
+
+  // Game Config — takes remaining space
   FHomeGameBtn := TPanel.Create(Self);
-  FHomeGameBtn.Parent     := BtnRow;
+  FHomeGameBtn.Parent     := FHomeBtnRow;
   FHomeGameBtn.BevelOuter := bvNone;
   FHomeGameBtn.Color      := $00253025;
   FHomeGameBtn.Caption    := '';
   FHomeGameBtn.Cursor     := crHandPoint;
-  FHomeGameBtn.Left       := HalfW + CARD_M;
-  FHomeGameBtn.Top        := 0;
-  FHomeGameBtn.Width      := HalfW;
-  FHomeGameBtn.Height     := BtnRow.Height;
-  FHomeGameBtn.Anchors    := [akLeft, akTop, akRight];
-  FHomeGameBtn.AnchorSideLeft.Control  := BtnRow;
-  FHomeGameBtn.AnchorSideLeft.Side     := asrCenter;
-  FHomeGameBtn.BorderSpacing.Left      := CARD_M div 2;
-  FHomeGameBtn.AnchorSideRight.Control := BtnRow;
-  FHomeGameBtn.AnchorSideRight.Side    := asrRight;
+  FHomeGameBtn.Align      := alClient;
   FHomeGameBtn.OnClick      := @HomeGameBtnClick;
   FHomeGameBtn.OnMouseEnter := @HomeGameBtnEnter;
   FHomeGameBtn.OnMouseLeave := @HomeGameBtnLeave;
 
-  // Icon + caption (taCenter + Align=alTop → always centered regardless of button width)
+  // Icons + captions (taCenter + Align=alTop → centered in any width)
   Lbl := MkBtnLabel(FHomeGlobalBtn, '󰋊', 28, $00AAAADD, 'Noto Sans');
   Lbl.Height := 56;
   Lbl.OnClick := @HomeGlobalBtnClick;
@@ -11807,9 +11786,6 @@ begin
   Lbl.Font.Bold := True;
   Lbl.Height := 26;
   Lbl.OnClick := @HomeGameBtnClick;
-
-  // Resize content to fit everything
-  Content.Height := Y + 90 + CARD_M;
 end;
 
 procedure Tgoverlayform.ShowHomeTab(Sender: TObject);
@@ -11830,6 +11806,9 @@ begin
   geSpeedButton.Visible     := False;
   geLabel.Visible           := False;
   goverlaybarPanel.Visible  := False;
+
+  // Ensure button row is correctly sized (needed on first show)
+  HomeBtnRowResize(nil);
 
   // Refresh all home tab sections
   RefreshHomeOptiStatus;
