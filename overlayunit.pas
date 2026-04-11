@@ -2103,7 +2103,7 @@ end;
 procedure Tgoverlayform.tweaksLabelClick(Sender: TObject);
 begin
   DbgLog('>> tweaksLabelClick BEGIN');
-  SetNavActive(3);
+  SetNavActive(4);
 
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=false; //disable mangohud tab
@@ -2401,7 +2401,7 @@ begin
     VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
   end;
 
-  SetNavActive(1);
+  SetNavActive(2);
 
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
@@ -6377,7 +6377,7 @@ begin
     SetSaveBtnEnabled(True);
   end;
 
-  SetNavActive(-1);
+  SetNavActive(0);
 
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
@@ -6420,7 +6420,7 @@ begin
     MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
   end;
 
-  SetNavActive(0);
+  SetNavActive(1);
 
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=true;
@@ -6488,7 +6488,7 @@ end;
 procedure Tgoverlayform.optiscalerLabelClick(Sender: TObject);
 begin
   DbgLog('>> optiscalerLabelClick BEGIN');
-  SetNavActive(2);
+  SetNavActive(3);
 
 //Disable tabs
   goverlayPageControl.ShowTabs:=false;
@@ -9414,7 +9414,8 @@ end;
 procedure Tgoverlayform.BuildNavRail;
 const
   // Item definitions: (unicode icon, caption, top offset)
-  ITEMS: array[0..3] of record Icon, Caption: string; end = (
+  ITEMS: array[0..4] of record Icon, Caption: string; end = (
+    (Icon: '󰊴'; Caption: 'Games'),
     (Icon: '󱁥'; Caption: 'MangoHud'),
     (Icon: '󰏘'; Caption: 'vkBasalt'),
     (Icon: '󰋮'; Caption: 'OptiScaler'),
@@ -9444,10 +9445,11 @@ begin
   SetLength(FNavLabels,     Length(ITEMS));
   SetLength(FNavClickCBs,   Length(ITEMS));
 
-  FNavClickCBs[0] := @mangohudLabelClick;
-  FNavClickCBs[1] := @vkbasaltLabelClick;
-  FNavClickCBs[2] := @optiscalerLabelClick;
-  FNavClickCBs[3] := @tweaksLabelClick;
+  FNavClickCBs[0] := @gamesLabelClick;
+  FNavClickCBs[1] := @mangohudLabelClick;
+  FNavClickCBs[2] := @vkbasaltLabelClick;
+  FNavClickCBs[3] := @optiscalerLabelClick;
+  FNavClickCBs[4] := @tweaksLabelClick;
 
   FNavActive     := -1;
   FNavHoveredIdx := -1;
@@ -9543,10 +9545,10 @@ begin
     IconLbl.Parent := Item;
     IconLbl.SetBounds(16, (NAV_ITEM_H - NAV_ICON_SIZE) div 2, NAV_ICON_SIZE, NAV_ICON_SIZE);
 
-    if i = 2 then
+    if i = 3 then
     begin
       IconLbl.Caption := ''; // Clear text
-      
+
       FOptiScalerImg := TImage.Create(Self);
       FOptiScalerImg.Parent := Item;
       FOptiScalerImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
@@ -9558,15 +9560,15 @@ begin
       FOptiScalerImg.OnClick      := @NavItemClick;
       FOptiScalerImg.OnMouseEnter := @NavItemMouseEnter;
       FOptiScalerImg.OnMouseLeave := @NavItemMouseLeave;
-      
+
       IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
       if FileExists(IconPath) then
         try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
     end
-    else if i = 0 then
+    else if i = 1 then
     begin
       IconLbl.Caption := ''; // Clear text
-      
+
       FMangoHudImg := TImage.Create(Self);
       FMangoHudImg.Parent := Item;
       FMangoHudImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
@@ -9578,7 +9580,7 @@ begin
       FMangoHudImg.OnClick      := @NavItemClick;
       FMangoHudImg.OnMouseEnter := @NavItemMouseEnter;
       FMangoHudImg.OnMouseLeave := @NavItemMouseLeave;
-      
+
       IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-inactive.png';
       if FileExists(IconPath) then
         try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
@@ -9736,7 +9738,7 @@ begin
   begin
     FNavToolEnabled[i] := True;
     Btn := TSpeedButton.Create(Self);
-    Btn.Parent    := FNavItems[i];
+    Btn.Parent    := FNavItems[i + 1];  // offset by 1: Games is at index 0
     Btn.SetBounds(NAV_ITEM_W - BTN_SIZE - 6, (NAV_ITEM_H - BTN_SIZE) div 2, BTN_SIZE, BTN_SIZE);
     Btn.Flat      := True;
     Btn.Caption   := '';
@@ -10190,13 +10192,13 @@ begin
       FNavIndicators[i].Visible := True;
       FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
       FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
-      if (i = 2) and Assigned(FOptiScalerImg) then
+      if (i = 3) and Assigned(FOptiScalerImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
         if FileExists(IconPath) then
           try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
       end;
-      if (i = 0) and Assigned(FMangoHudImg) then
+      if (i = 1) and Assigned(FMangoHudImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
         if FileExists(IconPath) then
@@ -10208,13 +10210,13 @@ begin
       FNavIndicators[i].Visible := False;
       FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
       FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
-      if (i = 2) and Assigned(FOptiScalerImg) then
+      if (i = 3) and Assigned(FOptiScalerImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
         if FileExists(IconPath) then
           try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
       end;
-      if (i = 0) and Assigned(FMangoHudImg) then
+      if (i = 1) and Assigned(FMangoHudImg) then
       begin
         IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-inactive.png';
         if FileExists(IconPath) then
@@ -10224,7 +10226,7 @@ begin
     FNavItems[i].Invalidate;
   end;
 
-  if FNavActive = 0 then
+  if FNavActive = 1 then
     StartCube
   else
     StopCube;
@@ -11803,84 +11805,6 @@ begin
     FHomeDepLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
-
-
-  // ── Action Buttons (pinned to bottom of content) ─────────────────────────
-  FHomeBtnRow := TPanel.Create(Self);
-  FHomeBtnRow.Parent     := Content;
-  FHomeBtnRow.BevelOuter := bvNone;
-  FHomeBtnRow.Color      := BG;
-  FHomeBtnRow.Caption    := '';
-  FHomeBtnRow.Align      := alBottom;
-  FHomeBtnRow.Height     := 104;
-  FHomeBtnRow.OnResize   := @HomeBtnRowResize;
-
-  // Thin top separator line
-  AccBar := TShape.Create(Self);
-  AccBar.Parent      := FHomeBtnRow;
-  AccBar.Shape       := stRectangle;
-  AccBar.Brush.Color := $00333333;
-  AccBar.Pen.Style   := psClear;
-  AccBar.Left        := 0;
-  AccBar.Top         := 0;
-  AccBar.Height      := 1;
-  AccBar.Anchors     := [akLeft, akTop, akRight];
-  AccBar.AnchorSideRight.Control := FHomeBtnRow;
-  AccBar.AnchorSideRight.Side    := asrRight;
-
-  // Global Config — left half (OnResize keeps width = 50%)
-  FHomeGlobalBtn := TPanel.Create(Self);
-  FHomeGlobalBtn.Parent     := FHomeBtnRow;
-  FHomeGlobalBtn.BevelOuter := bvNone;
-  FHomeGlobalBtn.Color      := $00202040;
-  FHomeGlobalBtn.Caption    := '';
-  FHomeGlobalBtn.Cursor     := crHandPoint;
-  FHomeGlobalBtn.Align      := alLeft;
-  FHomeGlobalBtn.Width      := 300;
-  FHomeGlobalBtn.BorderSpacing.Top := 1;
-  FHomeGlobalBtn.OnClick      := @HomeGlobalBtnClick;
-  FHomeGlobalBtn.OnMouseEnter := @HomeGlobalBtnEnter;
-  FHomeGlobalBtn.OnMouseLeave := @HomeGlobalBtnLeave;
-
-  // Spacer between buttons
-  BtnRow := TPanel.Create(Self);
-  BtnRow.Parent     := FHomeBtnRow;
-  BtnRow.BevelOuter := bvNone;
-  BtnRow.Color      := BG;
-  BtnRow.Caption    := '';
-  BtnRow.Align      := alLeft;
-  BtnRow.Width      := 2;
-  BtnRow.BorderSpacing.Top := 1;
-
-  // Game Config — takes remaining space
-  FHomeGameBtn := TPanel.Create(Self);
-  FHomeGameBtn.Parent     := FHomeBtnRow;
-  FHomeGameBtn.BevelOuter := bvNone;
-  FHomeGameBtn.Color      := $00203020;
-  FHomeGameBtn.Caption    := '';
-  FHomeGameBtn.Cursor     := crHandPoint;
-  FHomeGameBtn.Align      := alClient;
-  FHomeGameBtn.BorderSpacing.Top := 1;
-  FHomeGameBtn.OnClick      := @HomeGameBtnClick;
-  FHomeGameBtn.OnMouseEnter := @HomeGameBtnEnter;
-  FHomeGameBtn.OnMouseLeave := @HomeGameBtnLeave;
-
-  // Icons + captions
-  Lbl := MkBtnLabel(FHomeGlobalBtn, '󰋊', 28, $006699EE, 'Noto Sans');
-  Lbl.Height := 62;
-  Lbl.OnClick := @HomeGlobalBtnClick;
-  Lbl := MkBtnLabel(FHomeGlobalBtn, 'Global Config', 11, clWhite);
-  Lbl.Font.Bold := True;
-  Lbl.Height := 28;
-  Lbl.OnClick := @HomeGlobalBtnClick;
-
-  Lbl := MkBtnLabel(FHomeGameBtn, '󰊴', 28, $0055CC77, 'Noto Sans');
-  Lbl.Height := 62;
-  Lbl.OnClick := @HomeGameBtnClick;
-  Lbl := MkBtnLabel(FHomeGameBtn, 'Game Config', 11, clWhite);
-  Lbl.Font.Bold := True;
-  Lbl.Height := 28;
-  Lbl.OnClick := @HomeGameBtnClick;
 end;
 
 procedure Tgoverlayform.ShowHomeTab(Sender: TObject);
@@ -11901,9 +11825,6 @@ begin
   geSpeedButton.Visible     := False;
   geLabel.Visible           := False;
   goverlaybarPanel.Visible  := False;
-
-  // Ensure button row is correctly sized (needed on first show)
-  HomeBtnRowResize(nil);
 
   // Refresh all home tab sections
   RefreshHomeOptiStatus;
@@ -12405,7 +12326,7 @@ begin
       ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
       MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
       UpdateGameContextLabel;
-      SetNavActive(0);
+      SetNavActive(1);
       goverlayPageControl.ShowTabs := True;
       vkbasalttabsheet.TabVisible  := False;
       optiscalertabsheet.TabVisible := False;
