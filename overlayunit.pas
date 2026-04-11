@@ -567,9 +567,9 @@ type
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
-    // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler
-    FNavToolBtns:    array[0..2] of TSpeedButton;
-    FNavToolEnabled: array[0..2] of Boolean;
+    // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
+    FNavToolBtns:    array[0..3] of TSpeedButton;
+    FNavToolEnabled: array[0..3] of Boolean;
 
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
@@ -590,6 +590,7 @@ type
     procedure SetSaveBtnEnabled(AEnabled: Boolean);
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
+    procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -2090,6 +2091,12 @@ copyBitbtn.Visible:=false;
 goverlaybarPanel.Visible:=true;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
+// Re-apply per-game tool enabled state for Tweaks
+if FActiveGameName <> '' then
+begin
+  ApplyToolEnabledState(3, FNavToolEnabled[3]);
+  SetSaveBtnEnabled(FNavToolEnabled[3]);
+end;
 
 end;
 
@@ -9670,7 +9677,7 @@ var
   i: Integer;
   Btn: TSpeedButton;
 begin
-  for i := 0 to 2 do
+  for i := 0 to 3 do
   begin
     FNavToolEnabled[i] := True;
     Btn := TSpeedButton.Create(Self);
@@ -9704,14 +9711,17 @@ begin
   begin
     SetGameToolEnabled(FActiveGameName, Idx, NewEnabled);
     GameCfgDir := GetGameConfigDir(FActiveGameName);
-    // When disabling, delete the tool's config file from the game folder
     if not NewEnabled then
     begin
+      // Delete the tool's config file when disabling (indices 0-2 only)
       ConfigFiles[0] := GameCfgDir + 'MangoHud.conf';
       ConfigFiles[1] := GameCfgDir + 'vkBasalt.conf';
       ConfigFiles[2] := GameCfgDir + 'OptiScaler.ini';
-      if FileExists(ConfigFiles[Idx]) then
+      if (Idx <= 2) and FileExists(ConfigFiles[Idx]) then
         DeleteFile(ConfigFiles[Idx]);
+      // Tweaks: remove all tweak export lines from the game's fgmod
+      if Idx = 3 then
+        RemoveTweaksFromGameFGMod(GameCfgDir + 'fgmod');
     end;
     // OptiScaler toggle also controls the WINEDLLOVERRIDES line in the game's fgmod
     if Idx = 2 then
@@ -9726,7 +9736,7 @@ var
   ShouldShow: Boolean;
 begin
   ShouldShow := AShowLabels and (FActiveGameName <> '');
-  for i := 0 to 2 do
+  for i := 0 to 3 do
     if Assigned(FNavToolBtns[i]) then
       FNavToolBtns[i].Visible := ShouldShow;
 end;
@@ -9739,7 +9749,7 @@ begin
   if FActiveGameName = '' then
   begin
     // Global mode: all tools enabled, hide toggles
-    for i := 0 to 2 do
+    for i := 0 to 3 do
     begin
       FNavToolEnabled[i] := True;
       if Assigned(FNavToolBtns[i]) then
@@ -9751,7 +9761,7 @@ begin
     end;
     Exit;
   end;
-  for i := 0 to 2 do
+  for i := 0 to 3 do
   begin
     ToolOn := GetGameToolEnabled(FActiveGameName, i);
     FNavToolEnabled[i] := ToolOn;
@@ -9765,7 +9775,7 @@ end;
 
 function Tgoverlayform.GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
 const
-  FLAGS: array[0..2] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER');
+  FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
 var
   FGModFile: string;
   Lines: TStringList;
@@ -9794,7 +9804,7 @@ end;
 
 procedure Tgoverlayform.SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
 const
-  FLAGS: array[0..2] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER');
+  FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
 var
   FGModFile: string;
   Lines: TStringList;
@@ -9853,6 +9863,7 @@ begin
     end;
     1: SetControlTreeEnabled(vkbasaltTabsheet,    AEnabled);
     2: SetControlTreeEnabled(optiscalertabsheet,  AEnabled);
+    3: SetControlTreeEnabled(tweaksTabSheet,      AEnabled);
   end;
   // Disable Save when the toggled tool owns the currently visible tab
   if ActiveToolIndex = AToolIdx then
@@ -9873,6 +9884,8 @@ begin
     Result := 1
   else if P = optiscalertabsheet then
     Result := 2
+  else if P = tweaksTabSheet then
+    Result := 3
   else
     Result := -1;
 end;
@@ -9898,6 +9911,47 @@ begin
     Child.Enabled := AEnabled;
     if Child is TWinControl then
       SetControlTreeEnabled(TWinControl(Child), AEnabled);
+  end;
+end;
+
+procedure Tgoverlayform.RemoveTweaksFromGameFGMod(const AFGModFile: string);
+var
+  Lines: TStringList;
+  i: Integer;
+begin
+  if not FileExists(AFGModFile) then Exit;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AFGModFile);
+    for i := Lines.Count - 1 downto 0 do
+    begin
+      if (Pos('export PROTON_ENABLE_HDR=1',              Lines[i]) > 0) or
+         (Pos('export ENABLE_HDR_WSI=1',                 Lines[i]) > 0) or
+         (Pos('export PROTON_ENABLE_WAYLAND=1',          Lines[i]) > 0) or
+         (Pos('export PROTON_LOG=1',                     Lines[i]) > 0) or
+         (Pos('export PROTON_USE_SDL=1',                 Lines[i]) > 0) or
+         (Pos('#gamemode',                               Lines[i]) > 0) or
+         (Pos('export RADV_PERFTEST=rt,emulate_rt',      Lines[i]) > 0) or
+         (Pos('export PROTON_HIDE_NVIDIA_GPU=1',         Lines[i]) > 0) or
+         (Pos('export PROTON_ENABLE_NVAPI=1',            Lines[i]) > 0) or
+         (Pos('export PROTON_USE_WINED3D=1',             Lines[i]) > 0) or
+         (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', Lines[i]) > 0) or
+         (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa',   Lines[i]) > 0) or
+         (Pos('export RADV_DEBUG=nofastclears',          Lines[i]) > 0) or
+         (Pos('export PROTON_PRIORITY_HIGH=1',           Lines[i]) > 0) or
+         (Pos('export PROTON_USE_WOW64=1',               Lines[i]) > 0) or
+         (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', Lines[i]) > 0) or
+         (Pos('export STAGING_SHARED_MEMORY=1',          Lines[i]) > 0) or
+         (Pos('export PROTON_NO_NTSYNC=1',               Lines[i]) > 0) or
+         (Pos('export PROTON_HEAP_DELAY_FREE=1',         Lines[i]) > 0) or
+         (Pos('#customenv',                              Lines[i]) > 0) or
+         (Pos('export SteamDeck=1',                     Lines[i]) > 0) then
+        Lines.Delete(i);
+    end;
+    Lines.SaveToFile(AFGModFile);
+    fpChmod(AFGModFile, &755);
+  finally
+    Lines.Free;
   end;
 end;
 
