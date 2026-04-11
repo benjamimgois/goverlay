@@ -575,9 +575,8 @@ type
     FHomeTabSheet:     TTabSheet;
     FHomeModDots:      array[0..2] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler
     FHomeModVerLbls:   array[0..2] of TLabel;   // version text
-    FHomeOptiLbls:     array[0..5] of TLabel;   // OptiScaler, FakeNvAPI, FSR, XeSS, DLSS, Optipacher
-    FHomeChannelCombo: TComboBox;
-    FHomeDiagramBox:   TPaintBox;
+    FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
+    FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..8] of TShape;
     FHomeDepLbls:      array[0..8] of TLabel;
     FHomeGlobalBtn:    TPanel;
@@ -11391,17 +11390,7 @@ end;
 
 procedure Tgoverlayform.HomeChannelComboChange(Sender: TObject);
 begin
-  // Mirror selection to the OptiScaler tab combo and trigger the same action
-  if (Sender = FHomeChannelCombo) and Assigned(optversionComboBox) then
-  begin
-    if optversionComboBox.ItemIndex <> FHomeChannelCombo.ItemIndex then
-      optversionComboBox.ItemIndex := FHomeChannelCombo.ItemIndex;
-  end;
-  if (Sender = optversionComboBox) and Assigned(FHomeChannelCombo) then
-  begin
-    if FHomeChannelCombo.ItemIndex <> optversionComboBox.ItemIndex then
-      FHomeChannelCombo.ItemIndex := optversionComboBox.ItemIndex;
-  end;
+  // No longer used (channel combo removed from Home tab)
 end;
 
 procedure Tgoverlayform.RefreshHomeModuleStatus;
@@ -11447,21 +11436,32 @@ begin
 end;
 
 procedure Tgoverlayform.RefreshHomeOptiStatus;
+const
+  CLR_OK   = $0044BB44;
+  CLR_NONE = $00666666;
+
+  procedure SetLib(Idx: Integer; SrcLbl: TLabel);
+  var Ver: string;
+  begin
+    if not Assigned(FHomeOptiLbls[Idx]) then Exit;
+    Ver := '';
+    if Assigned(SrcLbl) then Ver := SrcLbl.Caption;
+    FHomeOptiLbls[Idx].Caption := IfThen(Ver <> '', Ver, '—');
+    if Assigned(FHomeLibDots[Idx]) then
+      FHomeLibDots[Idx].Brush.Color := IfThen((Ver <> '') and (Ver <> '--'), CLR_OK, CLR_NONE);
+  end;
+
 begin
   // Update OptiScaler version in module status
   if Assigned(FHomeModVerLbls[2]) and Assigned(optlabel1) and (optlabel1.Caption <> '') then
     FHomeModVerLbls[2].Caption := optlabel1.Caption;
 
-  // Populate Libraries card labels
-  // FHomeOptiLbls[0]=FakeNvAPI, [1]=Optipatcher, [2]=FSR, [3]=XeSS, [4]=DLSS
-  if Assigned(FHomeOptiLbls[0]) then
-  begin
-    if Assigned(fakenvapi1)        then FHomeOptiLbls[0].Caption := fakenvapi1.Caption;
-    if Assigned(optipatcherLabel1) then FHomeOptiLbls[1].Caption := optipatcherLabel1.Caption;
-    if Assigned(fsrlabel1)         then FHomeOptiLbls[2].Caption := fsrlabel1.Caption;
-    if Assigned(xessLabel1)        then FHomeOptiLbls[3].Caption := xessLabel1.Caption;
-    if Assigned(dlssLabel1)        then FHomeOptiLbls[4].Caption := dlssLabel1.Caption;
-  end;
+  // Library sub-rows: FakeNvAPI[0], Optipatcher[1], FSR[2], XeSS[3], DLSS[4]
+  SetLib(0, fakenvapi1);
+  SetLib(1, optipatcherLabel1);
+  SetLib(2, fsrlabel1);
+  SetLib(3, xessLabel1);
+  SetLib(4, dlssLabel1);
 end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
@@ -11635,12 +11635,14 @@ begin
   Content.Height    := 600;
   Content.Anchors   := [akLeft, akTop, akRight];
 
-  // ── Card 1: Module Status ─────────────────────────────────────────────────
+  // ── Card 1: Module Status + Libraries (indented sub-rows for OptiScaler libs)
+  // Layout: 3 module rows, thin separator, 3 library rows (2-col: left=[0,2,4], right=[1,3])
   Y    := CARD_M;
-  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 4);
+  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 10 + 3 * ROW_H + 4);
   MkTitle(Card, 'Module Status', CARD_P);
   MkSep(Card, CARD_P + 22);
 
+  // Module rows (MangoHud, vkBasalt, OptiScaler)
   for i := 0 to 2 do
   begin
     Row := CARD_P + 30 + i * ROW_H;
@@ -11665,6 +11667,42 @@ begin
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
     FHomeModVerLbls[i] := Lbl;
+  end;
+
+  // Thin divider between module rows and library sub-rows
+  MkSep(Card, CARD_P + 30 + 3 * ROW_H + 2);
+
+  // Library sub-rows (indented) — 2 columns, 3 rows
+  // i=0 FakeNvAPI, i=1 Optipatcher, i=2 FSR, i=3 XeSS, i=4 DLSS
+  // Left col: i=0,2,4  Right col: i=1,3
+  Col2X := 330;
+  for i := 0 to 4 do
+  begin
+    if i mod 2 = 0 then ColX := CARD_P + 20
+    else                 ColX := Col2X;
+    Row := CARD_P + 30 + 3 * ROW_H + 10 + (i div 2) * ROW_H;
+
+    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
+    FHomeLibDots[i] := Dot;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent     := Card;
+    Lbl.Caption    := LIB_NAMES[i];
+    Lbl.Font.Color := $00888888;
+    Lbl.Font.Size  := 8;
+    Lbl.Left       := ColX + DOT_SZ + 6;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent     := Card;
+    Lbl.Caption    := '—';
+    Lbl.Font.Color := $00DDAA44;
+    Lbl.Font.Size  := 8;
+    Lbl.Left       := ColX + DOT_SZ + 6 + 86;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
+    FHomeOptiLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
@@ -11694,48 +11732,6 @@ begin
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
-  // ── Card 3: Libraries ─────────────────────────────────────────────────────
-  // 5 items in 2 columns: [FakeNvAPI, FSR, DLSS] left | [Optipatcher, XeSS] right
-  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 4);
-  MkTitle(Card, 'Libraries', CARD_P);
-  MkSep(Card, CARD_P + 22);
-
-  Col2X := 330;  // right column start (works for cards ~668px+)
-  for i := 0 to 4 do
-  begin
-    // Layout: i=0,2,4 go in left col; i=1,3 go in right col
-    // Row within column: left col rows 0,1,2; right col rows 0,1
-    if i mod 2 = 0 then
-    begin
-      ColX := CARD_P;
-      Row  := CARD_P + 30 + (i div 2) * ROW_H;
-    end
-    else
-    begin
-      ColX := Col2X;
-      Row  := CARD_P + 30 + (i div 2) * ROW_H;
-    end;
-
-    Lbl := TLabel.Create(Self);
-    Lbl.Parent     := Card;
-    Lbl.Caption    := LIB_NAMES[i];
-    Lbl.Font.Color := clSilver;
-    Lbl.Font.Size  := 9;
-    Lbl.Left       := ColX;
-    Lbl.Top        := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize   := True;
-
-    Lbl := TLabel.Create(Self);
-    Lbl.Parent     := Card;
-    Lbl.Caption    := '—';
-    Lbl.Font.Color := $00DDAA44;
-    Lbl.Font.Size  := 9;
-    Lbl.Left       := ColX + 96;
-    Lbl.Top        := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize   := True;
-    FHomeOptiLbls[i] := Lbl;
-  end;
-  Inc(Y, Card.Height + SEC_GAP);
 
   // ── Action Buttons ────────────────────────────────────────────────────────
   // BtnRow anchors left+right so it always fills the available width
