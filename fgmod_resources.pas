@@ -391,7 +391,9 @@ begin
     '  ' + LineEnding +
     '  # Execute the original command' + LineEnding +
     '  export SteamDeck=0' + LineEnding +
-    '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
+    '  [[ "$GOVERLAY_MANGOHUD" != "0" ]] && export MANGOHUD=1' + LineEnding +
+    '  [[ "$GOVERLAY_VKBASALT" != "0" ]] && export ENABLE_VKBASALT=1' + LineEnding +
+    '  [[ "$GOVERLAY_OPTISCALER" != "0" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
     '  ' + LineEnding +
     '  # Filter out leading -- separators (from Steam launch options)' + LineEnding +
     '  while [[ $# -gt 0 && "$1" == "--" ]]; do' + LineEnding +

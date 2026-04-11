@@ -590,6 +590,7 @@ type
     procedure SetSaveBtnEnabled(AEnabled: Boolean);
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
+    procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
@@ -9732,6 +9733,16 @@ begin
       if Idx = 3 then
         RemoveTweaksFromGameFGMod(GameCfgDir + 'fgmod');
     end;
+    // Ensure conditional export lines exist in the fgmod for tools that need them.
+    // The GOVERLAY_X flag (set above) controls whether each line actually runs.
+    if Idx = 0 then
+      PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
+        '[[ "$GOVERLAY_MANGOHUD" != "0" ]] && export MANGOHUD=1',
+        'MANGOHUD=1');
+    if Idx = 1 then
+      PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
+        '[[ "$GOVERLAY_VKBASALT" != "0" ]] && export ENABLE_VKBASALT=1',
+        'ENABLE_VKBASALT=1');
     // OptiScaler toggle also controls the WINEDLLOVERRIDES line in the game's fgmod
     if Idx = 2 then
     begin
@@ -10008,6 +10019,39 @@ begin
         end;
       end;
     end;
+    Lines.SaveToFile(AFGModFile);
+    fpChmod(AFGModFile, &755);
+  finally
+    Lines.Free;
+  end;
+end;
+
+// Ensures AConditionalLine is present in AFGModFile, inserting it before "$@"
+// in the execute block if absent. ASearchKey is a unique substring of the line
+// used to detect whether it already exists. The GOVERLAY_X flag value (written
+// by SetGameToolEnabled) already controls whether the line actually runs — this
+// function only guarantees the line is there in the first place.
+procedure Tgoverlayform.PatchGameFGModConditionalExport(
+  const AFGModFile, AConditionalLine, ASearchKey: string);
+var
+  Lines: TStringList;
+  i: Integer;
+begin
+  if not FileExists(AFGModFile) then Exit;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AFGModFile);
+    // Already present — nothing to do
+    for i := 0 to Lines.Count - 1 do
+      if Pos(ASearchKey, Lines[i]) > 0 then
+        Exit;
+    // Not found: insert before the "$@" call in the execute block
+    for i := 0 to Lines.Count - 1 do
+      if Trim(Lines[i]) = '"$@"' then
+      begin
+        Lines.Insert(i, '  ' + AConditionalLine);
+        Break;
+      end;
     Lines.SaveToFile(AFGModFile);
     fpChmod(AFGModFile, &755);
   finally
