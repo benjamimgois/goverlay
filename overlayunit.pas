@@ -571,6 +571,18 @@ type
     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
 
+    // Home tab
+    FHomeTabSheet:     TTabSheet;
+    FHomeModDots:      array[0..2] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler
+    FHomeModVerLbls:   array[0..2] of TLabel;   // version text
+    FHomeOptiLbls:     array[0..5] of TLabel;   // OptiScaler, FakeNvAPI, FSR, XeSS, DLSS, Optipacher
+    FHomeChannelCombo: TComboBox;
+    FHomeDiagramBox:   TPaintBox;
+    FHomeDepDots:      array[0..8] of TShape;
+    FHomeDepLbls:      array[0..8] of TLabel;
+    FHomeGlobalBtn:    TPanel;
+    FHomeGameBtn:      TPanel;
+
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure BuildSettingsButton;
@@ -655,6 +667,23 @@ type
     procedure LoadTweaksFromFGMod;
     function IsOptiScalerInstalled: Boolean;
     
+    // Home tab
+    procedure InitHomeTab;
+    procedure ShowHomeTab(Sender: TObject = nil);
+    procedure RefreshHomeModuleStatus;
+    procedure RefreshHomeOptiStatus;
+    procedure RefreshHomeDeps;
+    procedure HomeDiagramPaint(Sender: TObject);
+    procedure HomeGlobalBtnClick(Sender: TObject);
+    procedure HomeGameBtnClick(Sender: TObject);
+    procedure HomeGlobalBtnEnter(Sender: TObject);
+    procedure HomeGlobalBtnLeave(Sender: TObject);
+    procedure HomeGameBtnEnter(Sender: TObject);
+    procedure HomeGameBtnLeave(Sender: TObject);
+    procedure HomeChannelComboChange(Sender: TObject);
+    function  GetMangoHudVersion: string;
+    function  GetVkBasaltVersion: string;
+
     // Keyboard shortcuts
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     
@@ -4918,6 +4947,9 @@ begin
   InitGamesTab;
   FGamesLoaded := False;
 
+  // Initialize Home tab
+  InitHomeTab;
+
   // Enable keyboard shortcuts
   Self.KeyPreview := True;
   Self.OnKeyDown  := @FormKeyDown;
@@ -5300,8 +5332,8 @@ begin
 
 
 
-     //Select games as initial option
-     gamesLabelClick(nil);
+     //Select home as initial option
+     ShowHomeTab;
 
      // Initial MANGOHUD STOCK values
 
@@ -5503,6 +5535,9 @@ begin
     //Check for updates on startup
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
+
+    // Populate Home tab OptiScaler component labels after update check
+    RefreshHomeOptiStatus;
 
     // Initialize global enable menu item checked state
     globalenableMenuItem.Checked := IsMangoHudGloballyEnabled();
@@ -9460,7 +9495,7 @@ begin
   FNavSmallIcon.Proportional := True;
   FNavSmallIcon.Center       := True;
   FNavSmallIcon.Cursor       := crHandPoint;
-  FNavSmallIcon.OnClick      := @gamesLabelClick;
+  FNavSmallIcon.OnClick      := @ShowHomeTab;
   FNavSmallIcon.Visible      := False;
   // Load icon — try installed path first, then local data dir
   IconPath := GetIconFile();
@@ -9471,7 +9506,7 @@ begin
 
   // Make the large logo clickable too
   goverlayimage.Cursor       := crHandPoint;
-  goverlayimage.OnClick      := @gamesLabelClick;
+  goverlayimage.OnClick      := @ShowHomeTab;
 
   for i := 0 to High(ITEMS) do
   begin
@@ -11193,6 +11228,683 @@ begin
   end;
   // Rebuild the grid with up-to-date badge states
   LoadSteamGames;
+end;
+
+// ============================================================================
+// Home tab
+// ============================================================================
+
+function Tgoverlayform.GetMangoHudVersion: string;
+var
+  P: TProcess;
+  S: TStringList;
+begin
+  Result := '';
+  P := TProcess.Create(nil);
+  try
+    P.Executable := FindDefaultExecutablePath('sh');
+    P.Parameters.Add('-c');
+    P.Parameters.Add('mangohud --version 2>&1 | head -1');
+    P.Options := [poUsePipes, poWaitOnExit];
+    try
+      P.Execute;
+      S := TStringList.Create;
+      try
+        S.LoadFromStream(P.Output);
+        if S.Count > 0 then Result := Trim(S[0]);
+      finally S.Free; end;
+    except end;
+  finally P.Free; end;
+end;
+
+function Tgoverlayform.GetVkBasaltVersion: string;
+var
+  P: TProcess;
+  S: TStringList;
+begin
+  Result := '';
+  P := TProcess.Create(nil);
+  try
+    P.Executable := FindDefaultExecutablePath('sh');
+    P.Parameters.Add('-c');
+    P.Parameters.Add('pacman -Q vkbasalt 2>/dev/null | awk ''{print $2}'' || ' +
+                     'dpkg-query -W -f=''${Version}'' vkbasalt 2>/dev/null || ' +
+                     'rpm -q --qf ''%{VERSION}'' vkbasalt 2>/dev/null || echo ""');
+    P.Options := [poUsePipes, poWaitOnExit];
+    try
+      P.Execute;
+      S := TStringList.Create;
+      try
+        S.LoadFromStream(P.Output);
+        if S.Count > 0 then Result := Trim(S[0]);
+      finally S.Free; end;
+    except end;
+  finally P.Free; end;
+end;
+
+procedure Tgoverlayform.HomeDiagramPaint(Sender: TObject);
+const
+  R = 40;
+var
+  Box: TPaintBox;
+  Cv: TCanvas;
+  W, H, CX: Integer;
+  PTop, PBL, PBR: TPoint;
+
+  procedure DrawArrow(A, B: TPoint);
+  var
+    dx, dy, Len, nx, ny: Double;
+    A2, B2: TPoint;
+    px, py: Integer;
+  begin
+    dx := B.X - A.X; dy := B.Y - A.Y;
+    Len := Sqrt(dx * dx + dy * dy);
+    if Len < 1 then Exit;
+    nx := dx / Len; ny := dy / Len;
+    A2 := Point(A.X + Round(nx * R) + 2, A.Y + Round(ny * R) + 2);
+    B2 := Point(B.X - Round(nx * R) - 2, B.Y - Round(ny * R) - 2);
+    Cv.Pen.Color := $00888888;
+    Cv.Pen.Width := 1;
+    Cv.MoveTo(A2.X, A2.Y); Cv.LineTo(B2.X, B2.Y);
+    // Arrow head at B2
+    px := Round(nx * 8); py := Round(ny * 8);
+    Cv.MoveTo(B2.X, B2.Y);
+    Cv.LineTo(B2.X - px + Round(ny * 5), B2.Y - py - Round(nx * 5));
+    Cv.MoveTo(B2.X, B2.Y);
+    Cv.LineTo(B2.X - px - Round(ny * 5), B2.Y - py + Round(nx * 5));
+    // Arrow head at A2
+    Cv.MoveTo(A2.X, A2.Y);
+    Cv.LineTo(A2.X + px + Round(ny * 5), A2.Y + py - Round(nx * 5));
+    Cv.MoveTo(A2.X, A2.Y);
+    Cv.LineTo(A2.X + px - Round(ny * 5), A2.Y + py + Round(nx * 5));
+  end;
+
+  procedure DrawCircle(CCx, CCy: Integer; BgCol: TColor; const L1, L2: string);
+  var tw1, tw2: Integer;
+  begin
+    Cv.Brush.Color := BgCol;
+    Cv.Pen.Color   := BgCol;
+    Cv.Ellipse(CCx - R, CCy - R, CCx + R, CCy + R);
+    Cv.Brush.Style := bsClear;
+    Cv.Font.Color  := clWhite;
+    Cv.Font.Size   := 8;
+    Cv.Font.Style  := [fsBold];
+    tw1 := Cv.TextWidth(L1);
+    tw2 := Cv.TextWidth(L2);
+    Cv.TextOut(CCx - tw1 div 2, CCy - 12, L1);
+    Cv.TextOut(CCx - tw2 div 2, CCy + 2,  L2);
+    Cv.Brush.Style := bsSolid;
+  end;
+
+begin
+  Box := TPaintBox(Sender);
+  Cv  := Box.Canvas;
+  W   := Box.Width;
+  H   := Box.Height;
+  Cv.Brush.Color := $00252525;
+  Cv.FillRect(Rect(0, 0, W, H));
+  CX   := W div 2;
+  PTop := Point(CX,       R + 10);
+  PBL  := Point(CX - 80,  H - R - 10);
+  PBR  := Point(CX + 80,  H - R - 10);
+  DrawArrow(PTop, PBL);
+  DrawArrow(PTop, PBR);
+  DrawArrow(PBL,  PBR);
+  DrawCircle(PTop.X, PTop.Y, $003F8B3F, 'NVIDIA', 'DLSS');
+  DrawCircle(PBL.X,  PBL.Y,  $00882222, 'AMD',    'FSR');
+  DrawCircle(PBR.X,  PBR.Y,  $002266BB, 'intel.', 'XeSS');
+end;
+
+procedure Tgoverlayform.HomeGlobalBtnClick(Sender: TObject);
+begin
+  mangohudLabelClick(nil);
+end;
+
+procedure Tgoverlayform.HomeGameBtnClick(Sender: TObject);
+begin
+  gamesLabelClick(nil);
+end;
+
+procedure Tgoverlayform.HomeGlobalBtnEnter(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $00303860;
+end;
+
+procedure Tgoverlayform.HomeGlobalBtnLeave(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $00252540;
+end;
+
+procedure Tgoverlayform.HomeGameBtnEnter(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $00306030;
+end;
+
+procedure Tgoverlayform.HomeGameBtnLeave(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $00253025;
+end;
+
+procedure Tgoverlayform.HomeChannelComboChange(Sender: TObject);
+begin
+  // Mirror selection to the OptiScaler tab combo and trigger the same action
+  if (Sender = FHomeChannelCombo) and Assigned(optversionComboBox) then
+  begin
+    if optversionComboBox.ItemIndex <> FHomeChannelCombo.ItemIndex then
+      optversionComboBox.ItemIndex := FHomeChannelCombo.ItemIndex;
+  end;
+  if (Sender = optversionComboBox) and Assigned(FHomeChannelCombo) then
+  begin
+    if FHomeChannelCombo.ItemIndex <> optversionComboBox.ItemIndex then
+      FHomeChannelCombo.ItemIndex := optversionComboBox.ItemIndex;
+  end;
+end;
+
+procedure Tgoverlayform.RefreshHomeModuleStatus;
+const
+  CLR_OK      = $0044BB44;  // green
+  CLR_MISSING = $00BB4444;  // red
+var
+  Missing: TStringList;
+  MangoOK, VkOK, OptiOK: Boolean;
+  MangoVer, VkVer: string;
+begin
+  if not Assigned(FHomeModDots[0]) then Exit;
+
+  CheckDependencies(Missing);
+  try
+    MangoOK := (Missing.IndexOf('mangohud') < 0) and
+               (Missing.IndexOf('MangoHud runtime 25.08') < 0);
+    VkOK    := (Missing.IndexOf('vkbasalt') < 0) and
+               (Missing.IndexOf('vkBasalt runtime 25.08') < 0);
+    OptiOK  := IsOptiScalerInstalled;
+  finally
+    Missing.Free;
+  end;
+
+  FHomeModDots[0].Brush.Color := IfThen(MangoOK, CLR_OK, CLR_MISSING);
+  FHomeModDots[1].Brush.Color := IfThen(VkOK,    CLR_OK, CLR_MISSING);
+  FHomeModDots[2].Brush.Color := IfThen(OptiOK,  CLR_OK, CLR_MISSING);
+
+  MangoVer := GetMangoHudVersion;
+  if MangoVer = '' then MangoVer := IfThen(MangoOK, 'installed', 'not found');
+  FHomeModVerLbls[0].Caption := MangoVer;
+
+  VkVer := GetVkBasaltVersion;
+  if VkVer = '' then VkVer := IfThen(VkOK, 'installed', 'not found');
+  FHomeModVerLbls[1].Caption := VkVer;
+
+  if OptiOK and Assigned(FHomeOptiLbls[0]) and (FHomeOptiLbls[0].Caption <> '') then
+    FHomeModVerLbls[2].Caption := FHomeOptiLbls[0].Caption
+  else if OptiOK then
+    FHomeModVerLbls[2].Caption := 'installed'
+  else
+    FHomeModVerLbls[2].Caption := 'not found';
+end;
+
+procedure Tgoverlayform.RefreshHomeOptiStatus;
+begin
+  if not Assigned(FHomeOptiLbls[0]) then Exit;
+  // Mirror OptiScaler tab version labels
+  if Assigned(optlabel1)        then FHomeOptiLbls[0].Caption := optlabel1.Caption;
+  if Assigned(fakenvapi1)       then FHomeOptiLbls[1].Caption := fakenvapi1.Caption;
+  if Assigned(fsrlabel1)        then FHomeOptiLbls[2].Caption := fsrlabel1.Caption;
+  if Assigned(xessLabel1)       then FHomeOptiLbls[3].Caption := xessLabel1.Caption;
+  if Assigned(dlssLabel1)       then FHomeOptiLbls[4].Caption := dlssLabel1.Caption;
+  if Assigned(optipatcherLabel1) then FHomeOptiLbls[5].Caption := optipatcherLabel1.Caption;
+  // Sync channel combo
+  if Assigned(FHomeChannelCombo) and Assigned(optversionComboBox) then
+    FHomeChannelCombo.ItemIndex := optversionComboBox.ItemIndex;
+  // Update OptiScaler version in module status
+  if Assigned(FHomeModVerLbls[2]) and (FHomeOptiLbls[0].Caption <> '') then
+    FHomeModVerLbls[2].Caption := FHomeOptiLbls[0].Caption;
+end;
+
+procedure Tgoverlayform.RefreshHomeDeps;
+const
+  DEP_KEYS: array[0..8] of string = (
+    'pascube', 'mangohud', 'MangoHud runtime 25.08',
+    'vkbasalt', 'vkBasalt runtime 25.08',
+    'vkcube', 'p7zip', 'curl', 'git');
+  DEP_DISPLAY: array[0..8] of string = (
+    'PasCube', 'MangoHud', 'MangoHud runtime 25.08',
+    'vkBasalt', 'vkBasalt runtime 25.08',
+    'vkcube', '7z (p7zip)', 'curl', 'git');
+  CLR_OK      = $0044BB44;
+  CLR_MISSING = $00BB4444;
+var
+  Missing: TStringList;
+  i: Integer;
+begin
+  if not Assigned(FHomeDepDots[0]) then Exit;
+  CheckDependencies(Missing);
+  try
+    // First 9 fixed deps shown as dots
+    for i := 0 to 8 do
+    begin
+      if Missing.IndexOf(DEP_KEYS[i]) >= 0 then
+      begin
+        FHomeDepDots[i].Brush.Color := CLR_MISSING;
+        FHomeDepDots[i].Pen.Color   := CLR_MISSING;
+        FHomeDepLbls[i].Font.Color  := $00AA6666;
+      end
+      else
+      begin
+        FHomeDepDots[i].Brush.Color := CLR_OK;
+        FHomeDepDots[i].Pen.Color   := CLR_OK;
+        FHomeDepLbls[i].Font.Color  := $0088CC88;
+      end;
+    end;
+  finally
+    Missing.Free;
+  end;
+end;
+
+procedure Tgoverlayform.InitHomeTab;
+const
+  BG       = $001A1A1A;
+  CARD_BG  = $00252525;
+  CARD_M   = 16;   // margin around cards
+  CARD_P   = 14;   // padding inside card
+  ROW_H    = 32;   // standard row height
+  DOT_SZ   = 14;   // status dot size
+  SEC_GAP  = 12;   // vertical gap between cards
+
+  DEP_NAMES: array[0..8] of string = (
+    'PasCube', 'MangoHud', 'MangoHud rt.', 'vkBasalt', 'vkBasalt rt.',
+    'vkcube', '7z', 'curl', 'git');
+  MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
+  OPTI_LBLS: array[0..5] of string = (
+    'OptiScaler:', 'FakeNvAPI:', 'FSR:', 'XeSS:', 'DLSS:', 'Optipacher:');
+
+var
+  ScrollBox: TScrollBox;
+  Content:   TPanel;
+  Card:      TPanel;
+  Lbl:       TLabel;
+  Sep:       TBevel;
+  Combo:     TComboBox;
+  Btn:       TPanel;
+  IconLbl:   TLabel;
+  CaptLbl:   TLabel;
+  i, Row, Y, CW, Col1X, Col2X, ColW: Integer;
+  Dot: TShape;
+
+  // Helper: creates a styled section card panel
+  function MkCard(AY, AH: Integer): TPanel;
+  begin
+    Result := TPanel.Create(Self);
+    Result.Parent  := Content;
+    Result.BevelOuter := bvNone;
+    Result.Color   := CARD_BG;
+    Result.Caption := '';
+    Result.Tag     := 9998;
+    Result.Left    := CARD_M;
+    Result.Top     := AY;
+    Result.Width   := Content.Width - CARD_M * 2;
+    Result.Height  := AH;
+    Result.Anchors := [akLeft, akTop, akRight];
+    Result.AnchorSideRight.Control := Content;
+    Result.AnchorSideRight.Side    := asrRight;
+    Result.BorderSpacing.Right     := CARD_M;
+  end;
+
+  // Helper: creates a section title label
+  function MkTitle(AParent: TWinControl; const AText: string; AY: Integer): TLabel;
+  begin
+    Result := TLabel.Create(Self);
+    Result.Parent  := AParent;
+    Result.Caption := AText;
+    Result.Font.Bold  := True;
+    Result.Font.Color := clWhite;
+    Result.Font.Size  := 10;
+    Result.Left  := CARD_P;
+    Result.Top   := AY;
+    Result.AutoSize := True;
+  end;
+
+  // Helper: separator line
+  procedure MkSep(AParent: TWinControl; AY: Integer);
+  begin
+    Sep := TBevel.Create(Self);
+    Sep.Parent  := AParent;
+    Sep.Style   := bsLowered;
+    Sep.Shape   := bsTopLine;
+    Sep.Left    := CARD_P;
+    Sep.Top     := AY;
+    Sep.Width   := AParent.Width - CARD_P * 2;
+    Sep.Height  := 2;
+    Sep.Anchors := [akLeft, akTop, akRight];
+    Sep.AnchorSideRight.Control := AParent;
+    Sep.AnchorSideRight.Side    := asrRight;
+    Sep.BorderSpacing.Right     := CARD_P;
+  end;
+
+  // Helper: status dot
+  function MkDot(AParent: TWinControl; AX, AY: Integer): TShape;
+  begin
+    Result := TShape.Create(Self);
+    Result.Parent     := AParent;
+    Result.Shape      := stEllipse;
+    Result.Brush.Color := $00888888;
+    Result.Pen.Style  := psClear;
+    Result.SetBounds(AX, AY, DOT_SZ, DOT_SZ);
+  end;
+
+begin
+  // Create tab sheet
+  FHomeTabSheet := TTabSheet.Create(goverlayPageControl);
+  FHomeTabSheet.PageControl := goverlayPageControl;
+  FHomeTabSheet.Caption     := 'Home';
+  FHomeTabSheet.TabVisible  := False;
+  FHomeTabSheet.Color       := BG;
+
+  // Scroll box fills the tab
+  ScrollBox := TScrollBox.Create(Self);
+  ScrollBox.Parent      := FHomeTabSheet;
+  ScrollBox.Align       := alClient;
+  ScrollBox.AutoScroll  := True;
+  ScrollBox.BorderStyle := bsNone;
+  ScrollBox.HorzScrollBar.Visible := False;
+  ScrollBox.Color := BG;
+
+  // Content panel (auto-resized to hold all cards)
+  Content := TPanel.Create(Self);
+  Content.Parent    := ScrollBox;
+  Content.BevelOuter := bvNone;
+  Content.Color     := BG;
+  Content.Caption   := '';
+  Content.Left      := 0;
+  Content.Top       := 0;
+  Content.Width     := ScrollBox.ClientWidth;
+  Content.Height    := 900;
+  Content.Anchors   := [akLeft, akTop, akRight];
+
+  CW    := Content.Width - CARD_M * 2;
+  Col1X := CARD_P;
+  Col2X := CARD_P + CW div 2 + 8;
+  ColW  := CW div 2 - CARD_P * 2 - 8;
+
+  // ── Card 1: Module Status ─────────────────────────────────────────────────
+  Y    := CARD_M;
+  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 4);
+  MkTitle(Card, 'Module Status', CARD_P);
+  MkSep(Card, CARD_P + 22);
+
+  for i := 0 to 2 do
+  begin
+    Row := CARD_P + 30 + i * ROW_H;
+    Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
+    FHomeModDots[i] := Dot;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent  := Card;
+    Lbl.Caption := MOD_NAMES[i];
+    Lbl.Font.Color := clSilver;
+    Lbl.Font.Size  := 9;
+    Lbl.Left  := CARD_P + DOT_SZ + 8;
+    Lbl.Top   := Row + (ROW_H - 16) div 2;
+    Lbl.Width := 100;
+    Lbl.AutoSize := True;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent  := Card;
+    Lbl.Caption := '—';
+    Lbl.Font.Color := $00AAAAAA;
+    Lbl.Font.Size  := 9;
+    Lbl.Left  := CARD_P + DOT_SZ + 8 + 110;
+    Lbl.Top   := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize := True;
+    FHomeModVerLbls[i] := Lbl;
+  end;
+  Inc(Y, Card.Height + SEC_GAP);
+
+  // ── Card 2: OptiScaler Components ────────────────────────────────────────
+  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 220 + 8);
+  MkTitle(Card, 'OptiScaler', CARD_P);
+  MkSep(Card, CARD_P + 22);
+
+  // Channel row
+  Row := CARD_P + 32;
+  Lbl := TLabel.Create(Self);
+  Lbl.Parent   := Card;
+  Lbl.Caption  := 'Channel:';
+  Lbl.Font.Color := clSilver;
+  Lbl.Font.Size := 9;
+  Lbl.Left := Col1X;
+  Lbl.Top  := Row + (ROW_H - 16) div 2;
+  Lbl.AutoSize := True;
+
+  Combo := TComboBox.Create(Self);
+  Combo.Parent := Card;
+  Combo.Left   := Col1X + 70;
+  Combo.Top    := Row + 2;
+  Combo.Width  := 160;
+  Combo.Height := 26;
+  Combo.Style  := csDropDownList;
+  Combo.Font.Color := clWhite;
+  Combo.Items.Add('Stable Channel');
+  Combo.Items.Add('Pre-Release Channel');
+  Combo.ItemIndex := 0;
+  Combo.OnChange  := @HomeChannelComboChange;
+  FHomeChannelCombo := Combo;
+
+  // Check Updates button (small panel)
+  Btn := TPanel.Create(Self);
+  Btn.Parent    := Card;
+  Btn.Caption   := '↻  Check Updates';
+  Btn.Font.Color := clSilver;
+  Btn.Font.Size  := 9;
+  Btn.Color     := $00333333;
+  Btn.BevelOuter := bvNone;
+  Btn.Cursor    := crHandPoint;
+  Btn.Left  := Col1X + 240;
+  Btn.Top   := Row + 2;
+  Btn.Width := 130;
+  Btn.Height := 26;
+  Btn.Tag := 99;
+  Btn.OnClick := @optversionComboBoxChange;  // reuse existing handler
+
+  // Version grid (2 columns: label + value side by side)
+  // Left column: OptiScaler, FSR, DLSS  / Right column: FakeNvAPI, XeSS, Optipacher
+  for i := 0 to 5 do
+  begin
+    Row := CARD_P + 32 + ROW_H + (i div 2) * ROW_H + 4;
+
+    if i mod 2 = 0 then
+    begin
+      Lbl := TLabel.Create(Self);
+      Lbl.Parent  := Card;
+      Lbl.Caption := OPTI_LBLS[i];
+      Lbl.Font.Color := clSilver;
+      Lbl.Font.Size  := 9;
+      Lbl.Left := Col1X;
+      Lbl.Top  := Row + (ROW_H - 16) div 2;
+      Lbl.AutoSize := True;
+
+      Lbl := TLabel.Create(Self);
+      Lbl.Parent  := Card;
+      Lbl.Caption := '—';
+      Lbl.Font.Color := $00DDAA44;
+      Lbl.Font.Size  := 9;
+      Lbl.Left := Col1X + 90;
+      Lbl.Top  := Row + (ROW_H - 16) div 2;
+      Lbl.AutoSize := True;
+      FHomeOptiLbls[i] := Lbl;
+    end
+    else
+    begin
+      Lbl := TLabel.Create(Self);
+      Lbl.Parent  := Card;
+      Lbl.Caption := OPTI_LBLS[i];
+      Lbl.Font.Color := clSilver;
+      Lbl.Font.Size  := 9;
+      Lbl.Left := Col2X;
+      Lbl.Top  := Row + (ROW_H - 16) div 2;
+      Lbl.AutoSize := True;
+
+      Lbl := TLabel.Create(Self);
+      Lbl.Parent  := Card;
+      Lbl.Caption := '—';
+      Lbl.Font.Color := $00DDAA44;
+      Lbl.Font.Size  := 9;
+      Lbl.Left := Col2X + 90;
+      Lbl.Top  := Row + (ROW_H - 16) div 2;
+      Lbl.AutoSize := True;
+      FHomeOptiLbls[i] := Lbl;
+    end;
+  end;
+
+  // Compatibility diagram (TPaintBox centred below versions)
+  Row := CARD_P + 32 + ROW_H + 3 * ROW_H + 12;
+  FHomeDiagramBox := TPaintBox.Create(Self);
+  FHomeDiagramBox.Parent  := Card;
+  FHomeDiagramBox.Left    := (Card.Width - 280) div 2;
+  FHomeDiagramBox.Top     := Row;
+  FHomeDiagramBox.Width   := 280;
+  FHomeDiagramBox.Height  := 200;
+  FHomeDiagramBox.OnPaint := @HomeDiagramPaint;
+
+  Inc(Y, Card.Height + SEC_GAP);
+
+  // ── Card 3: Dependencies ──────────────────────────────────────────────────
+  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
+  MkTitle(Card, 'Dependencies', CARD_P);
+  MkSep(Card, CARD_P + 22);
+
+  for i := 0 to 8 do
+  begin
+    Row := CARD_P + 30 + (i div 3) * ROW_H;
+    Col1X := CARD_P + (i mod 3) * (CW div 3);
+
+    Dot := MkDot(Card, Col1X, Row + (ROW_H - DOT_SZ) div 2);
+    FHomeDepDots[i] := Dot;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent  := Card;
+    Lbl.Caption := DEP_NAMES[i];
+    Lbl.Font.Color := $00AAAAAA;
+    Lbl.Font.Size  := 9;
+    Lbl.Left  := Col1X + DOT_SZ + 6;
+    Lbl.Top   := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize := True;
+    FHomeDepLbls[i] := Lbl;
+  end;
+  Inc(Y, Card.Height + SEC_GAP);
+
+  // ── Action Buttons ────────────────────────────────────────────────────────
+  // Global Config button
+  FHomeGlobalBtn := TPanel.Create(Self);
+  FHomeGlobalBtn.Parent     := Content;
+  FHomeGlobalBtn.BevelOuter := bvNone;
+  FHomeGlobalBtn.Color      := $00252540;
+  FHomeGlobalBtn.Caption    := '';
+  FHomeGlobalBtn.Cursor     := crHandPoint;
+  FHomeGlobalBtn.Tag        := 9998;
+  FHomeGlobalBtn.SetBounds(CARD_M, Y, (Content.Width - CARD_M * 3) div 2, 90);
+  FHomeGlobalBtn.AnchorSideRight.Control := Content;
+  FHomeGlobalBtn.AnchorSideRight.Side    := asrCenter;
+  FHomeGlobalBtn.Anchors := [akLeft, akTop];
+  FHomeGlobalBtn.OnClick      := @HomeGlobalBtnClick;
+  FHomeGlobalBtn.OnMouseEnter := @HomeGlobalBtnEnter;
+  FHomeGlobalBtn.OnMouseLeave := @HomeGlobalBtnLeave;
+
+  IconLbl := TLabel.Create(Self);
+  IconLbl.Parent    := FHomeGlobalBtn;
+  IconLbl.Caption   := '󰋊';
+  IconLbl.Font.Name := 'Noto Sans';
+  IconLbl.Font.Size := 28;
+  IconLbl.Font.Color := $00AAAADD;
+  IconLbl.Left := (FHomeGlobalBtn.Width - 40) div 2;
+  IconLbl.Top  := 6;
+  IconLbl.AutoSize := True;
+  IconLbl.Cursor   := crHandPoint;
+  IconLbl.OnClick  := @HomeGlobalBtnClick;
+
+  CaptLbl := TLabel.Create(Self);
+  CaptLbl.Parent    := FHomeGlobalBtn;
+  CaptLbl.Caption   := 'Global Config';
+  CaptLbl.Font.Size := 10;
+  CaptLbl.Font.Bold := True;
+  CaptLbl.Font.Color := clSilver;
+  CaptLbl.Left    := (FHomeGlobalBtn.Width - 90) div 2;
+  CaptLbl.Top     := 54;
+  CaptLbl.AutoSize := True;
+  CaptLbl.Cursor  := crHandPoint;
+  CaptLbl.OnClick := @HomeGlobalBtnClick;
+
+  // Game Config button
+  FHomeGameBtn := TPanel.Create(Self);
+  FHomeGameBtn.Parent     := Content;
+  FHomeGameBtn.BevelOuter := bvNone;
+  FHomeGameBtn.Color      := $00253025;
+  FHomeGameBtn.Caption    := '';
+  FHomeGameBtn.Cursor     := crHandPoint;
+  FHomeGameBtn.Tag        := 9998;
+  FHomeGameBtn.SetBounds(CARD_M * 2 + (Content.Width - CARD_M * 3) div 2, Y,
+                         (Content.Width - CARD_M * 3) div 2, 90);
+  FHomeGameBtn.Anchors := [akLeft, akTop];
+  FHomeGameBtn.OnClick      := @HomeGameBtnClick;
+  FHomeGameBtn.OnMouseEnter := @HomeGameBtnEnter;
+  FHomeGameBtn.OnMouseLeave := @HomeGameBtnLeave;
+
+  IconLbl := TLabel.Create(Self);
+  IconLbl.Parent    := FHomeGameBtn;
+  IconLbl.Caption   := '󰊴';
+  IconLbl.Font.Name := 'Noto Sans';
+  IconLbl.Font.Size := 28;
+  IconLbl.Font.Color := $00AADDAA;
+  IconLbl.Left := (FHomeGameBtn.Width - 40) div 2;
+  IconLbl.Top  := 6;
+  IconLbl.AutoSize := True;
+  IconLbl.Cursor   := crHandPoint;
+  IconLbl.OnClick  := @HomeGameBtnClick;
+
+  CaptLbl := TLabel.Create(Self);
+  CaptLbl.Parent    := FHomeGameBtn;
+  CaptLbl.Caption   := 'Game Config';
+  CaptLbl.Font.Size := 10;
+  CaptLbl.Font.Bold := True;
+  CaptLbl.Font.Color := clSilver;
+  CaptLbl.Left    := (FHomeGameBtn.Width - 85) div 2;
+  CaptLbl.Top     := 54;
+  CaptLbl.AutoSize := True;
+  CaptLbl.Cursor  := crHandPoint;
+  CaptLbl.OnClick := @HomeGameBtnClick;
+
+  // Resize content to fit everything
+  Content.Height := Y + 90 + CARD_M;
+end;
+
+procedure Tgoverlayform.ShowHomeTab(Sender: TObject);
+begin
+  SetNavActive(-1);
+
+  goverlayPageControl.ShowTabs := False;
+  vkbasalttabsheet.TabVisible  := False;
+  optiscalertabsheet.TabVisible := False;
+  tweakstabsheet.TabVisible    := False;
+  gamesTabSheet.TabVisible     := False;
+  FHomeTabSheet.TabVisible     := True;
+  goverlayPageControl.ActivePage := FHomeTabSheet;
+
+  notificationLabel.Visible := False;
+  commandEdit.Visible       := False;
+  copyBitbtn.Visible        := False;
+  geSpeedButton.Visible     := False;
+  geLabel.Visible           := False;
+  goverlaybarPanel.Visible  := False;
+
+  // Refresh all home tab sections
+  RefreshHomeOptiStatus;
+  RefreshHomeModuleStatus;
+  RefreshHomeDeps;
+  if Assigned(FHomeDiagramBox) then
+    FHomeDiagramBox.Invalidate;
 end;
 
 procedure Tgoverlayform.ReflowGamesGrid;
