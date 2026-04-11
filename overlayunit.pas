@@ -612,6 +612,7 @@ type
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
+    procedure RefreshGameCards;
     procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
     procedure GamesEmptySpaceClick(Sender: TObject);
@@ -6344,6 +6345,9 @@ begin
   gamesTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=gamesTabSheet;
 
+  // Rebuild game cards so badges reflect any config changes made since last visit
+  RefreshGameCards;
+
   //Hide notification messages
   notificationLabel.Visible:=false;
   commandEdit.Visible:=false;
@@ -10705,7 +10709,10 @@ var
   NoGamesLabel: TLabel;
   LowerName, GameCfgDir: string;
   ScaledBmp: TBitmap;
-  HasMango, HasVkBasalt: Boolean;
+  HasMango, HasVkBasalt, HasTweaks: Boolean;
+  BadgeTweaksLabel: TLabel;
+  TweakLines: TStringList;
+  k: Integer;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
@@ -10794,7 +10801,7 @@ begin
           CardPanel.OnClick := @GameCardClick;
           CardPanel.OnMouseUp := @GameCardMouseUp;
 
-          CardImage := TImage.Create(Self);
+          CardImage := TImage.Create(CardPanel);
           CardImage.Parent := CardPanel;
           CardImage.SetBounds(0, 0, CARD_W, CARD_IMG_H);
           CardImage.Stretch := True;
@@ -10822,7 +10829,7 @@ begin
             PendingImages.Add(CardImage);
           end;
 
-          CardLabel := TLabel.Create(Self);
+          CardLabel := TLabel.Create(CardPanel);
           CardLabel.Parent := CardPanel;
           CardLabel.SetBounds(2, CARD_IMG_H + 4, CARD_W - 4, CARD_H - CARD_IMG_H - 6);
           CardLabel.Caption := GameName;
@@ -10843,10 +10850,33 @@ begin
           HasMango    := FileExists(GameCfgDir + 'MangoHud.conf');
           HasVkBasalt := FileExists(GameCfgDir + 'vkBasalt.conf');
           BadgeX := 4;
+          // Check for Tweaks content in fgmod
+          HasTweaks := False;
+          if FileExists(GameCfgDir + 'fgmod') then
+          begin
+            TweakLines := TStringList.Create;
+            try
+              TweakLines.LoadFromFile(GameCfgDir + 'fgmod');
+              for k := 0 to TweakLines.Count - 1 do
+                if (Pos('#gamemode', TweakLines[k]) > 0) or
+                   (Pos('export PROTON_', TweakLines[k]) > 0) or
+                   (Pos('export RADV_', TweakLines[k]) > 0) or
+                   (Pos('export MESA_', TweakLines[k]) > 0) or
+                   (Pos('#customenv', TweakLines[k]) > 0) or
+                   (Pos('export SteamDeck=1', TweakLines[k]) > 0) then
+                begin
+                  HasTweaks := True;
+                  Break;
+                end;
+            finally
+              TweakLines.Free;
+            end;
+          end;
+
           if HasMango then
           begin
-            // Dark circle with green border
-            BadgeCircle := TShape.Create(Self);
+            // Dark circle background
+            BadgeCircle := TShape.Create(CardPanel);
             BadgeCircle.Parent      := CardPanel;
             BadgeCircle.Shape       := stEllipse;
             BadgeCircle.Brush.Color := $00780DC8;
@@ -10857,7 +10887,7 @@ begin
             BadgeCircle.OnClick      := @GameCardClick;
             BadgeCircle.OnMouseUp    := @GameCardMouseUp;
             // MangoHud icon on top
-            BadgeMangoImg := TImage.Create(Self);
+            BadgeMangoImg := TImage.Create(CardPanel);
             BadgeMangoImg.Parent   := CardPanel;
             BadgeMangoImg.AutoSize := False;
             BadgeMangoImg.SetBounds(BadgeX + 3, 7, 18, 18);
@@ -10877,8 +10907,8 @@ begin
 
           if HasVkBasalt then
           begin
-            // Dark circle with green border
-            BadgeCircle := TShape.Create(Self);
+            // Dark circle background
+            BadgeCircle := TShape.Create(CardPanel);
             BadgeCircle.Parent      := CardPanel;
             BadgeCircle.Shape       := stEllipse;
             BadgeCircle.Brush.Color := $00780DC8;
@@ -10889,7 +10919,7 @@ begin
             BadgeCircle.OnClick      := @GameCardClick;
             BadgeCircle.OnMouseUp    := @GameCardMouseUp;
             // vkBasalt label on top
-            BadgeVkLabel := TLabel.Create(Self);
+            BadgeVkLabel := TLabel.Create(CardPanel);
             BadgeVkLabel.Parent     := CardPanel;
             BadgeVkLabel.AutoSize   := False;
             BadgeVkLabel.SetBounds(BadgeX, 4, 24, 24);
@@ -10904,6 +10934,39 @@ begin
             BadgeVkLabel.OnMouseLeave := @GameCardMouseLeave;
             BadgeVkLabel.OnClick      := @GameCardClick;
             BadgeVkLabel.OnMouseUp    := @GameCardMouseUp;
+            BadgeX := BadgeX + 28;
+          end;
+
+          if HasTweaks then
+          begin
+            // Dark circle background
+            BadgeCircle := TShape.Create(CardPanel);
+            BadgeCircle.Parent      := CardPanel;
+            BadgeCircle.Shape       := stEllipse;
+            BadgeCircle.Brush.Color := $00780DC8;
+            BadgeCircle.Pen.Style   := psClear;
+            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
+            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
+            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
+            BadgeCircle.OnClick      := @GameCardClick;
+            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
+            // Tweaks (gear) icon label on top
+            BadgeTweaksLabel := TLabel.Create(CardPanel);
+            BadgeTweaksLabel.Parent     := CardPanel;
+            BadgeTweaksLabel.AutoSize   := False;
+            BadgeTweaksLabel.SetBounds(BadgeX, 4, 24, 24);
+            BadgeTweaksLabel.Caption    := '󰒓';
+            BadgeTweaksLabel.Font.Name  := 'Noto Sans';
+            BadgeTweaksLabel.Font.Size  := 12;
+            BadgeTweaksLabel.Font.Color := clWhite;
+            BadgeTweaksLabel.Alignment  := taCenter;
+            BadgeTweaksLabel.Layout     := tlCenter;
+            BadgeTweaksLabel.BringToFront;
+            BadgeTweaksLabel.OnMouseEnter := @GameCardMouseEnter;
+            BadgeTweaksLabel.OnMouseLeave := @GameCardMouseLeave;
+            BadgeTweaksLabel.OnClick      := @GameCardClick;
+            BadgeTweaksLabel.OnMouseUp    := @GameCardMouseUp;
+            BadgeX := BadgeX + 28;
           end;
 
           // Store card and original image for dim animation
@@ -10971,6 +11034,37 @@ begin
     PendingIDs.Free;
     PendingImages.Free;
   end;
+end;
+
+procedure Tgoverlayform.RefreshGameCards;
+var
+  i: Integer;
+begin
+  // Stop any running cover download thread
+  if Assigned(FCoverThread) then
+  begin
+    FCoverThread.Terminate;
+    FCoverThread.WaitFor;
+    FreeAndNil(FCoverThread);
+  end;
+  // Free all card panels — they own their children (CardImage, CardLabel, badges)
+  // so a single Free call cleans up each card and all its sub-controls.
+  if Assigned(FCardPanels) then
+  begin
+    for i := 0 to FCardPanels.Count - 1 do
+      TPanel(FCardPanels[i]).Free;
+    FCardPanels.Clear;
+  end;
+  // Free cached cover bitmaps
+  if Assigned(FOrigCovers) then
+  begin
+    for i := 0 to FOrigCovers.Count - 1 do
+      if FOrigCovers[i] <> nil then
+        TLazIntfImage(FOrigCovers[i]).Free;
+    FOrigCovers.Clear;
+  end;
+  // Rebuild the grid with up-to-date badge states
+  LoadSteamGames;
 end;
 
 procedure Tgoverlayform.ReflowGamesGrid;
