@@ -9758,14 +9758,39 @@ begin
 end;
 
 procedure Tgoverlayform.UpdateNavToolToggleVisibility(AShowLabels: Boolean);
+const
+  BTN_FULL   = 32;  // button size in expanded mode
+  BTN_SMALL  = 20;  // button size in collapsed mode
+  ICON_TOP_C = 8;   // icon top offset in collapsed mode (shifted up to make room)
 var
   i: Integer;
   ShouldShow: Boolean;
+  BtnLeft, BtnTop, BtnW: Integer;
 begin
-  ShouldShow := AShowLabels and (FActiveGameName <> '');
+  ShouldShow := FActiveGameName <> '';
   for i := 0 to 3 do
     if Assigned(FNavToolBtns[i]) then
+    begin
+      if ShouldShow then
+      begin
+        if AShowLabels then
+        begin
+          // Expanded: full-size button on the right side of the nav item
+          BtnW    := BTN_FULL;
+          BtnLeft := NAV_ITEM_W - BtnW - 6;
+          BtnTop  := (NAV_ITEM_H - BtnW) div 2;
+        end
+        else
+        begin
+          // Collapsed: small button below the icon, horizontally centred
+          BtnW    := BTN_SMALL;
+          BtnLeft := (NAV_W_COLLAPSED - BtnW) div 2;
+          BtnTop  := ICON_TOP_C + NAV_ICON_SIZE + 4;
+        end;
+        FNavToolBtns[i].SetBounds(BtnLeft, BtnTop, BtnW, BtnW);
+      end;
       FNavToolBtns[i].Visible := ShouldShow;
+    end;
 end;
 
 procedure Tgoverlayform.LoadGameToggleStates;
@@ -9796,8 +9821,8 @@ begin
       FNavToolBtns[i].ImageIndex := IfThen(ToolOn, 1, 0);
     ApplyToolEnabledState(i, ToolOn);
   end;
-  // Visibility depends on whether labels are shown (nav expanded)
-  UpdateNavToolToggleVisibility(not FNavCollapsed);
+  // Update visibility, button size/position, and icon vertical position
+  ApplyNavWidth(IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED));
 end;
 
 function Tgoverlayform.GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
@@ -10291,14 +10316,25 @@ begin
   begin
     FNavItems[i].Width   := AWidth;
     FNavIcons[i].Left    := IfThen(ShowLabels, 16, (AWidth - NAV_ICON_SIZE) div 2);
+    // In collapsed+game mode the button sits below the icon, so shift icon up
+    FNavIcons[i].Top     := IfThen(ShowLabels or (FActiveGameName = ''),
+                              (NAV_ITEM_H - NAV_ICON_SIZE) div 2, 8);
     FNavLabels[i].Visible := ShowLabels;
   end;
   UpdateNavToolToggleVisibility(ShowLabels);
 
   if Assigned(FMangoHudImg) then
+  begin
     FMangoHudImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
+    FMangoHudImg.Top  := IfThen(ShowLabels or (FActiveGameName = ''),
+                           (NAV_ITEM_H - 24) div 2, 8);
+  end;
   if Assigned(FOptiScalerImg) then
+  begin
     FOptiScalerImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
+    FOptiScalerImg.Top  := IfThen(ShowLabels or (FActiveGameName = ''),
+                             (NAV_ITEM_H - 24) div 2, 8);
+  end;
 
   FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 28, AWidth - 26);
 
