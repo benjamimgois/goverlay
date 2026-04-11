@@ -9734,7 +9734,14 @@ begin
     end;
     // OptiScaler toggle also controls the WINEDLLOVERRIDES line in the game's fgmod
     if Idx = 2 then
+    begin
       PatchGameFGModWineDllOverrides(GameCfgDir + 'fgmod', NewEnabled);
+      // When re-enabling OptiScaler, restore OptiScaler.ini from the pristine
+      // fgmod original so the game gets a valid config on the next launch.
+      if NewEnabled and not FileExists(GameCfgDir + 'OptiScaler.ini') then
+        CopyFile(GetFGModOriginalPath + PathDelim + 'OptiScaler.ini',
+                 GameCfgDir + 'OptiScaler.ini', True);
+    end;
   end;
   ApplyToolEnabledState(Idx, NewEnabled);
 end;
@@ -10709,7 +10716,8 @@ var
   NoGamesLabel: TLabel;
   LowerName, GameCfgDir: string;
   ScaledBmp: TBitmap;
-  HasMango, HasVkBasalt, HasTweaks: Boolean;
+  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
+  BadgeOptiScalerLabel: TLabel;
   BadgeTweaksLabel: TLabel;
   TweakLines: TStringList;
   k: Integer;
@@ -10845,10 +10853,11 @@ begin
           CardLabel.OnClick := @GameCardClick;
           CardLabel.OnMouseUp := @GameCardMouseUp;
 
-          // Config badges: green icons top-left if per-game configs exist
+          // Config badges: coloured icons top-left if per-game configs exist
           GameCfgDir := GetGameConfigDir(GameName);
-          HasMango    := FileExists(GameCfgDir + 'MangoHud.conf');
-          HasVkBasalt := FileExists(GameCfgDir + 'vkBasalt.conf');
+          HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
+          HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf');
+          HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
           BadgeX := 4;
           // Check for Tweaks content in fgmod
           HasTweaks := False;
@@ -10934,6 +10943,38 @@ begin
             BadgeVkLabel.OnMouseLeave := @GameCardMouseLeave;
             BadgeVkLabel.OnClick      := @GameCardClick;
             BadgeVkLabel.OnMouseUp    := @GameCardMouseUp;
+            BadgeX := BadgeX + 28;
+          end;
+
+          if HasOptiScaler then
+          begin
+            // Dark circle background
+            BadgeCircle := TShape.Create(CardPanel);
+            BadgeCircle.Parent      := CardPanel;
+            BadgeCircle.Shape       := stEllipse;
+            BadgeCircle.Brush.Color := $00780DC8;
+            BadgeCircle.Pen.Style   := psClear;
+            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
+            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
+            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
+            BadgeCircle.OnClick      := @GameCardClick;
+            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
+            // OptiScaler icon label on top
+            BadgeOptiScalerLabel := TLabel.Create(CardPanel);
+            BadgeOptiScalerLabel.Parent     := CardPanel;
+            BadgeOptiScalerLabel.AutoSize   := False;
+            BadgeOptiScalerLabel.SetBounds(BadgeX, 4, 24, 24);
+            BadgeOptiScalerLabel.Caption    := '󰋮';
+            BadgeOptiScalerLabel.Font.Name  := 'Noto Sans';
+            BadgeOptiScalerLabel.Font.Size  := 12;
+            BadgeOptiScalerLabel.Font.Color := clWhite;
+            BadgeOptiScalerLabel.Alignment  := taCenter;
+            BadgeOptiScalerLabel.Layout     := tlCenter;
+            BadgeOptiScalerLabel.BringToFront;
+            BadgeOptiScalerLabel.OnMouseEnter := @GameCardMouseEnter;
+            BadgeOptiScalerLabel.OnMouseLeave := @GameCardMouseLeave;
+            BadgeOptiScalerLabel.OnClick      := @GameCardClick;
+            BadgeOptiScalerLabel.OnMouseUp    := @GameCardMouseUp;
             BadgeX := BadgeX + 28;
           end;
 
