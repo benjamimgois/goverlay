@@ -684,6 +684,8 @@ type
     procedure HomeChannelComboChange(Sender: TObject);
     function  GetMangoHudVersion: string;
     function  GetVkBasaltVersion: string;
+    function  FindBinPath(const BinName: string): string;
+    function  FindLibPath(const LibName: string): string;
 
     // Keyboard shortcuts
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -11283,6 +11285,60 @@ begin
   finally P.Free; end;
 end;
 
+function Tgoverlayform.FindBinPath(const BinName: string): string;
+var
+  P: TProcess;
+  S: TStringList;
+begin
+  Result := '';
+  P := TProcess.Create(nil);
+  try
+    P.Executable := 'which';
+    P.Parameters.Add(BinName);
+    P.Options := [poUsePipes, poWaitOnExit];
+    try
+      P.Execute;
+      S := TStringList.Create;
+      try
+        S.LoadFromStream(P.Output);
+        if S.Count > 0 then Result := Trim(S[0]);
+      finally S.Free; end;
+    except end;
+  finally P.Free; end;
+end;
+
+function Tgoverlayform.FindLibPath(const LibName: string): string;
+var
+  P: TProcess;
+  S: TStringList;
+  Line: string;
+  ArrowPos: Integer;
+begin
+  Result := '';
+  P := TProcess.Create(nil);
+  try
+    P.Executable := FindDefaultExecutablePath('sh');
+    P.Parameters.Add('-c');
+    P.Parameters.Add('ldconfig -p 2>/dev/null | grep "' + LibName + '" | head -1');
+    P.Options := [poUsePipes, poWaitOnExit];
+    try
+      P.Execute;
+      S := TStringList.Create;
+      try
+        S.LoadFromStream(P.Output);
+        if S.Count > 0 then
+        begin
+          Line := Trim(S[0]);
+          // Format: "  libFoo.so (libc6,x86-64) => /usr/lib/libFoo.so"
+          ArrowPos := Pos('=>', Line);
+          if ArrowPos > 0 then
+            Result := Trim(Copy(Line, ArrowPos + 2, MaxInt));
+        end;
+      finally S.Free; end;
+    except end;
+  finally P.Free; end;
+end;
+
 procedure Tgoverlayform.HomeDiagramPaint(Sender: TObject);
 const
   R = 40;
@@ -11409,6 +11465,8 @@ var
   Missing: TStringList;
   MangoOK, VkOK, OptiOK: Boolean;
   MangoVer, VkVer: string;
+  MangoPath, VkPath, OptiPath: string;
+  MangoHint, VkHint, OptiHint: string;
 begin
   if not Assigned(FHomeModDots[0]) then Exit;
 
@@ -11441,6 +11499,22 @@ begin
     FHomeModVerLbls[2].Caption := 'installed'
   else
     FHomeModVerLbls[2].Caption := 'not found';
+
+  // Set installation path tooltips for module rows
+  MangoPath := FindBinPath('mangohud');
+  MangoHint := IfThen(MangoPath <> '', MangoPath, 'not installed');
+  FHomeModDots[0].Hint    := MangoHint;
+  FHomeModVerLbls[0].Hint := MangoHint;
+
+  VkPath := FindLibPath('libvkbasalt.so');
+  VkHint := IfThen(VkPath <> '', VkPath, 'not installed');
+  FHomeModDots[1].Hint    := VkHint;
+  FHomeModVerLbls[1].Hint := VkHint;
+
+  OptiPath := GetOptiScalerInstallPath;
+  OptiHint := IfThen((OptiPath <> '') and OptiOK, OptiPath, 'not installed');
+  FHomeModDots[2].Hint    := OptiHint;
+  FHomeModVerLbls[2].Hint := OptiHint;
 end;
 
 procedure Tgoverlayform.RefreshHomeOptiStatus;
@@ -11459,6 +11533,9 @@ const
       FHomeLibDots[Idx].Brush.Color := IfThen((Ver <> '') and (Ver <> '--'), CLR_OK, CLR_NONE);
   end;
 
+var
+  OptiDir, LibHint: string;
+  i: Integer;
 begin
   // Update OptiScaler version in module status
   if Assigned(FHomeModVerLbls[2]) and Assigned(optlabel1) and (optlabel1.Caption <> '') then
@@ -11470,6 +11547,15 @@ begin
   SetLib(2, fsrlabel1);
   SetLib(3, xessLabel1);
   SetLib(4, dlssLabel1);
+
+  // Set tooltips: show OptiScaler install directory for all library items
+  OptiDir := GetOptiScalerInstallPath;
+  LibHint := IfThen(OptiDir <> '', OptiDir, 'not installed');
+  for i := 0 to 4 do
+  begin
+    if Assigned(FHomeLibDots[i])  then FHomeLibDots[i].Hint  := LibHint;
+    if Assigned(FHomeOptiLbls[i]) then FHomeOptiLbls[i].Hint := LibHint;
+  end;
 end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
@@ -11487,6 +11573,16 @@ const
 var
   Missing: TStringList;
   i: Integer;
+  HintPath: string;
+
+  procedure SetDepHint(Idx: Integer; const Path: string);
+  var H: string;
+  begin
+    H := IfThen(Path <> '', Path, 'not installed');
+    if Assigned(FHomeDepDots[Idx]) then FHomeDepDots[Idx].Hint := H;
+    if Assigned(FHomeDepLbls[Idx]) then FHomeDepLbls[Idx].Hint := H;
+  end;
+
 begin
   if not Assigned(FHomeDepDots[0]) then Exit;
   CheckDependencies(Missing);
@@ -11510,6 +11606,19 @@ begin
   finally
     Missing.Free;
   end;
+
+  // Set installation path tooltips
+  SetDepHint(0, FindBinPath('pascube'));
+  SetDepHint(1, FindBinPath('mangohud'));
+  SetDepHint(2, FindLibPath('libMangoHud.so'));
+  SetDepHint(3, FindBinPath('vkbasalt'));
+  SetDepHint(4, FindLibPath('libvkbasalt.so'));
+  SetDepHint(5, FindBinPath('vkcube'));
+  HintPath := FindBinPath('7z');
+  if HintPath = '' then HintPath := FindBinPath('7za');
+  SetDepHint(6, HintPath);
+  SetDepHint(7, FindBinPath('curl'));
+  SetDepHint(8, FindBinPath('git'));
 end;
 
 procedure Tgoverlayform.InitHomeTab;
@@ -11528,7 +11637,7 @@ const
   ACC_DEP    = $0033AA55;  // green — Dependencies
 
   DEP_NAMES: array[0..8] of string = (
-    'PasCube', 'MangoHud', 'MangoHud rt.', 'vkBasalt', 'vkBasalt rt.',
+    'PasCube', 'MangoHud', 'libMangoHud.so', 'vkBasalt', 'libvkbasalt.so',
     'vkcube', '7z', 'curl', 'git');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
   LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
@@ -11655,6 +11764,7 @@ begin
   begin
     Row := CARD_P + 30 + i * ROW_H;
     Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
+    Dot.ShowHint := True;
     FHomeModDots[i] := Dot;
 
     Lbl := TLabel.Create(Self);
@@ -11665,6 +11775,7 @@ begin
     Lbl.Left       := CARD_P + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
+    Lbl.ShowHint   := True;
 
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
@@ -11674,6 +11785,7 @@ begin
     Lbl.Left       := CARD_P + DOT_SZ + 8 + 110;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
+    Lbl.ShowHint   := True;
     FHomeModVerLbls[i] := Lbl;
   end;
 
@@ -11691,6 +11803,7 @@ begin
     Row := CARD_P + 30 + 3 * ROW_H + 10 + (i div 2) * ROW_H;
 
     Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
+    Dot.ShowHint := True;
     FHomeLibDots[i] := Dot;
 
     Lbl := TLabel.Create(Self);
@@ -11701,6 +11814,7 @@ begin
     Lbl.Left       := ColX + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
+    Lbl.ShowHint   := True;
 
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
@@ -11710,6 +11824,7 @@ begin
     Lbl.Left       := ColX + DOT_SZ + 8 + 110;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
+    Lbl.ShowHint   := True;
     FHomeOptiLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
@@ -11725,6 +11840,7 @@ begin
     ColX := CARD_P + (i mod 3) * COL_W;
 
     Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
+    Dot.ShowHint := True;
     FHomeDepDots[i] := Dot;
 
     Lbl := TLabel.Create(Self);
@@ -11736,6 +11852,7 @@ begin
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.Width      := COL_W - DOT_SZ - 10;
     Lbl.AutoSize   := False;
+    Lbl.ShowHint   := True;
     FHomeDepLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
