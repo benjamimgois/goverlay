@@ -11647,7 +11647,6 @@ begin
   // ── Card 1: Module Status + Libraries ────────────────────────────────────
   Y    := CARD_M;
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 10 + 3 * ROW_H + 4);
-  MkAccent(Card, ACC_MOD);
   MkTitle(Card, 'Module Status', CARD_P);
   MkSep(Card, CARD_P + 22);
 
@@ -11717,7 +11716,6 @@ begin
 
   // ── Card 2: Dependencies (3×3 grid) ──────────────────────────────────────
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
-  MkAccent(Card, ACC_DEP);
   MkTitle(Card, 'Dependencies', CARD_P);
   MkSep(Card, CARD_P + 22);
 
