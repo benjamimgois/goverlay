@@ -625,7 +625,9 @@ type
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     function  GetMangoHudConfigEnvPrefix: string;
+    function  GetMangoHudLaunchEnv: string;
     function  GetVkBasaltConfigEnvPrefix: string;
+    function  GetVkBasaltLaunchEnv: string;
     procedure UpdateGameContextLabel;
     procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
@@ -6706,22 +6708,10 @@ procedure Tgoverlayform.runpascubetItemClick(Sender: TObject);
 begin
 
 
-  // Check if running in Flatpak
-    if IsRunningInFlatpak then
-    begin
-        // FLATPAK MODE
-        if IsCommandAvailable('pascube') then
-           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 pascube &')
-        else
-           SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
-    end
-    else
-    begin
-        if IsCommandAvailable('pascube') then
-           ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 pascube &')
-        else
-           SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
-    end;
+  if IsCommandAvailable('pascube') then
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'pascube &')
+  else
+    SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
 
 end;
 
@@ -6754,17 +6744,17 @@ begin
   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
   if IsRunningInFlatpak then
   begin
-      if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 vkcube-wayland &')
-      else
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &');
+    if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube-wayland &')
+    else
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &');
   end
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 MANGOHUD=1 vkcube &')
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &')
     else
-      ExecuteGUICommand(GetMangoHudConfigEnvPrefix + GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 mangohud vkcube &');
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &');
   end;
 end;
 
@@ -11198,6 +11188,26 @@ begin
     Result := 'MANGOHUD_CONFIGFILE="' + GetGameConfigDir(FActiveGameName) + 'MangoHud.conf" '
   else
     Result := '';
+end;
+
+// Returns MANGOHUD_CONFIGFILE + MANGOHUD=1 only when MangoHud is enabled.
+// In global mode MangoHud is always considered active.
+// In game mode, returns empty when the MangoHud toggle is OFF.
+function Tgoverlayform.GetMangoHudLaunchEnv: string;
+begin
+  if (FActiveGameName <> '') and not FNavToolEnabled[0] then
+    Result := ''  // MangoHud disabled for this game
+  else
+    Result := GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ';
+end;
+
+// Returns VKBASALT_CONFIG_FILE + ENABLE_VKBASALT=1 only when vkBasalt is enabled.
+function Tgoverlayform.GetVkBasaltLaunchEnv: string;
+begin
+  if (FActiveGameName <> '') and not FNavToolEnabled[1] then
+    Result := ''  // vkBasalt disabled for this game
+  else
+    Result := GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 ';
 end;
 
 function Tgoverlayform.GetVkBasaltConfigEnvPrefix: string;
