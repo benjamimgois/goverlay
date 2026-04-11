@@ -6321,9 +6321,13 @@ saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.gamesLabelClick(Sender: TObject);
+var
+  WasInGameMode: Boolean;
 begin
+  WasInGameMode := FActiveGameName <> '';
+
   // Clicking the logo always returns to global config mode
-  if FActiveGameName <> '' then
+  if WasInGameMode then
   begin
     FActiveGameName := '';
     MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
@@ -6346,8 +6350,11 @@ begin
   gamesTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=gamesTabSheet;
 
-  // Rebuild game cards so badges reflect any config changes made since last visit
-  RefreshGameCards;
+  // Only rebuild cards when returning from game config — badges may have changed.
+  // Skipped on startup calls (FGamesLoaded=False) and when just re-entering the
+  // games tab from global mode (no per-game config was touched).
+  if WasInGameMode and FGamesLoaded then
+    RefreshGameCards;
 
   //Hide notification messages
   notificationLabel.Visible:=false;
