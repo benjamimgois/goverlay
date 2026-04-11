@@ -567,6 +567,10 @@ type
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
+    // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler
+    FNavToolBtns:    array[0..2] of TSpeedButton;
+    FNavToolEnabled: array[0..2] of Boolean;
+
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure BuildSettingsButton;
@@ -575,6 +579,14 @@ type
     procedure SettingsBtnMouseLeave(Sender: TObject);
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
+    procedure BuildNavToolToggles;
+    procedure NavToolToggleClick(Sender: TObject);
+    procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
+    procedure LoadGameToggleStates;
+    function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
+    procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
+    procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
+    procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -2368,6 +2380,9 @@ begin
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
+  // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
+  if FActiveGameName <> '' then
+    ApplyToolEnabledState(1, FNavToolEnabled[1]);
 
 end;
 
@@ -6299,6 +6314,7 @@ begin
     UpdateGameContextLabel;
     HideGameThumb;
     HideGameActionPanel;
+    LoadGameToggleStates;  // reset all tools to enabled, hide toggles
   end;
 
   SetNavActive(-1);
@@ -6364,6 +6380,9 @@ UpdateGlobalEnableMenuItemVisibility;
 // Reload config when entering the MangoHud tab (global or game-specific)
 if FActiveGameName <> '' then
   LoadMangoHudConfig;
+// Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
+if FActiveGameName <> '' then
+  ApplyToolEnabledState(0, FNavToolEnabled[0]);
 
 DbgLog('<< mangohudLabelClick END');
 end;
@@ -6421,6 +6440,9 @@ begin
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
+  // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
+  if FActiveGameName <> '' then
+    ApplyToolEnabledState(2, FNavToolEnabled[2]);
   DbgLog('<< optiscalerLabelClick END');
 end;
 
@@ -9531,6 +9553,9 @@ begin
     FNavLabels[i]     := CaptionLbl;
   end;
 
+  // Build per-tool toggle buttons (game mode only)
+  BuildNavToolToggles;
+
   // Apply persisted collapsed state (no animation on startup)
   if FNavCollapsed then
     ApplyNavCollapsed;
@@ -9627,6 +9652,219 @@ begin
     SL.SaveToFile(UIStateFile);
   finally
     SL.Free;
+  end;
+end;
+
+// ============================================================================
+// PER-TOOL TOGGLE BUTTONS (game mode only)
+// ============================================================================
+
+procedure Tgoverlayform.BuildNavToolToggles;
+const
+  BTN_W = 42;
+  BTN_H = 22;
+var
+  i: Integer;
+  Btn: TSpeedButton;
+begin
+  for i := 0 to 2 do
+  begin
+    FNavToolEnabled[i] := True;
+    Btn := TSpeedButton.Create(Self);
+    Btn.Parent  := FNavItems[i];
+    Btn.SetBounds(NAV_ITEM_W - BTN_W - 4, (NAV_ITEM_H - BTN_H) div 2, BTN_W, BTN_H);
+    Btn.Flat       := True;
+    Btn.Caption    := 'ON';
+    Btn.Font.Size  := 7;
+    Btn.Font.Style := [fsBold];
+    Btn.Font.Color := clWhite;
+    Btn.Color      := $0047A447;
+    Btn.Cursor     := crHandPoint;
+    Btn.Tag        := i;
+    Btn.OnClick    := @NavToolToggleClick;
+    Btn.Visible    := False;
+    FNavToolBtns[i] := Btn;
+  end;
+end;
+
+procedure Tgoverlayform.NavToolToggleClick(Sender: TObject);
+var
+  Idx: Integer;
+  NewEnabled: Boolean;
+begin
+  Idx        := (Sender as TSpeedButton).Tag;
+  NewEnabled := not FNavToolEnabled[Idx];
+  FNavToolEnabled[Idx] := NewEnabled;
+  if NewEnabled then
+  begin
+    FNavToolBtns[Idx].Caption := 'ON';
+    FNavToolBtns[Idx].Color   := $0047A447;
+  end
+  else
+  begin
+    FNavToolBtns[Idx].Caption := 'OFF';
+    FNavToolBtns[Idx].Color   := $00555555;
+  end;
+  if FActiveGameName <> '' then
+    SetGameToolEnabled(FActiveGameName, Idx, NewEnabled);
+  ApplyToolEnabledState(Idx, NewEnabled);
+end;
+
+procedure Tgoverlayform.UpdateNavToolToggleVisibility(AShowLabels: Boolean);
+var
+  i: Integer;
+  ShouldShow: Boolean;
+begin
+  ShouldShow := AShowLabels and (FActiveGameName <> '');
+  for i := 0 to 2 do
+    if Assigned(FNavToolBtns[i]) then
+      FNavToolBtns[i].Visible := ShouldShow;
+end;
+
+procedure Tgoverlayform.LoadGameToggleStates;
+var
+  i: Integer;
+  ToolOn: Boolean;
+begin
+  if FActiveGameName = '' then
+  begin
+    // Global mode: all tools enabled, hide toggles
+    for i := 0 to 2 do
+    begin
+      FNavToolEnabled[i] := True;
+      if Assigned(FNavToolBtns[i]) then
+      begin
+        FNavToolBtns[i].Visible := False;
+        FNavToolBtns[i].Caption := 'ON';
+        FNavToolBtns[i].Color   := $0047A447;
+      end;
+      ApplyToolEnabledState(i, True);
+    end;
+    Exit;
+  end;
+  for i := 0 to 2 do
+  begin
+    ToolOn := GetGameToolEnabled(FActiveGameName, i);
+    FNavToolEnabled[i] := ToolOn;
+    if Assigned(FNavToolBtns[i]) then
+    begin
+      FNavToolBtns[i].Caption := IfThen(ToolOn, 'ON', 'OFF');
+      if ToolOn then
+        FNavToolBtns[i].Color := $0047A447
+      else
+        FNavToolBtns[i].Color := $00555555;
+    end;
+    ApplyToolEnabledState(i, ToolOn);
+  end;
+  // Visibility depends on whether labels are shown (nav expanded)
+  UpdateNavToolToggleVisibility(not FNavCollapsed);
+end;
+
+function Tgoverlayform.GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
+const
+  FLAGS: array[0..2] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER');
+var
+  FGModFile: string;
+  Lines: TStringList;
+  i: Integer;
+  Flag: string;
+begin
+  Result := True;  // default: enabled
+  FGModFile := GetGameConfigDir(AGameName) + 'fgmod';
+  if not FileExists(FGModFile) then Exit;
+  Flag  := FLAGS[AToolIdx] + '=';
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(FGModFile);
+    for i := 0 to Lines.Count - 1 do
+    begin
+      if Pos(Flag, Trim(Lines[i])) = 1 then
+      begin
+        Result := Trim(Copy(Trim(Lines[i]), Length(Flag) + 1, MaxInt)) <> '0';
+        Break;
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
+const
+  FLAGS: array[0..2] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER');
+var
+  FGModFile: string;
+  Lines: TStringList;
+  i: Integer;
+  Flag, NewLine: string;
+  Found: Boolean;
+begin
+  FGModFile := GetGameConfigDir(AGameName) + 'fgmod';
+  if not FileExists(FGModFile) then Exit;
+  Flag    := FLAGS[AToolIdx] + '=';
+  NewLine := FLAGS[AToolIdx] + '=' + IfThen(AEnabled, '1', '0');
+  Lines   := TStringList.Create;
+  Found   := False;
+  try
+    Lines.LoadFromFile(FGModFile);
+    for i := 0 to Lines.Count - 1 do
+    begin
+      if Pos(Flag, Trim(Lines[i])) = 1 then
+      begin
+        Lines[i] := NewLine;
+        Found := True;
+        Break;
+      end;
+    end;
+    if not Found then
+    begin
+      // Find "=== CONFIG ===" and insert feature flag line after preserve_ini line
+      for i := 0 to Lines.Count - 1 do
+      begin
+        if Pos('# === CONFIG ===', Lines[i]) >= 1 then
+        begin
+          Lines.Insert(i + 1, NewLine);
+          Found := True;
+          Break;
+        end;
+      end;
+      if not Found then
+        Lines.Insert(0, NewLine);  // fallback
+    end;
+    Lines.SaveToFile(FGModFile);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure Tgoverlayform.ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
+begin
+  case AToolIdx of
+    0: // MangoHud spans several tab sheets
+    begin
+      SetControlTreeEnabled(presetTabSheet,       AEnabled);
+      SetControlTreeEnabled(visualTabSheet,        AEnabled);
+      SetControlTreeEnabled(performanceTabSheet,   AEnabled);
+      SetControlTreeEnabled(metricsTabSheet,       AEnabled);
+      SetControlTreeEnabled(extrasTabSheet,        AEnabled);
+    end;
+    1: SetControlTreeEnabled(vkbasaltTabsheet,    AEnabled);
+    2: SetControlTreeEnabled(optiscalertabsheet,  AEnabled);
+  end;
+end;
+
+procedure Tgoverlayform.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
+var
+  i: Integer;
+  Child: TControl;
+begin
+  ACtrl.Enabled := AEnabled;
+  for i := 0 to ACtrl.ControlCount - 1 do
+  begin
+    Child := ACtrl.Controls[i];
+    Child.Enabled := AEnabled;
+    if Child is TWinControl then
+      SetControlTreeEnabled(TWinControl(Child), AEnabled);
   end;
 end;
 
@@ -9864,6 +10102,7 @@ begin
     FNavIcons[i].Left    := IfThen(ShowLabels, 16, (AWidth - NAV_ICON_SIZE) div 2);
     FNavLabels[i].Visible := ShowLabels;
   end;
+  UpdateNavToolToggleVisibility(ShowLabels);
 
   if Assigned(FMangoHudImg) then
     FMangoHudImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
@@ -10670,6 +10909,7 @@ begin
     VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
     UpdateGameContextLabel;
     HideGameThumb;
+    LoadGameToggleStates;  // reset all tools to enabled, hide toggles
   end;
 end;
 
@@ -11024,6 +11264,7 @@ begin
 
   FActiveGameName := GameName;
   ShowGameThumb(FSelectedCard);
+  LoadGameToggleStates;
 
   case BtnIndex of
     0: // MangoHud — navigate directly (do NOT call mangohudLabelClick to avoid

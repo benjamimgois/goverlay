@@ -27,6 +27,9 @@ error_exit() {
 fgmod_path="$(dirname "$0")"
 dll_name="${DLL:-dxgi.dll}"
 preserve_ini="${PRESERVE_INI:-true}"
+GOVERLAY_MANGOHUD="${GOVERLAY_MANGOHUD:-1}"
+GOVERLAY_VKBASALT="${GOVERLAY_VKBASALT:-1}"
+GOVERLAY_OPTISCALER="${GOVERLAY_OPTISCALER:-1}"
 
 # === Resolve Game Path ===
 if [[ "$#" -lt 1 ]]; then
@@ -106,6 +109,8 @@ logger -t fgmod "🟢 Target directory: $exe_folder_path"
 logger -t fgmod "🧩 Using DLL name: $dll_name"
 logger -t fgmod "📄 Preserve INI: $preserve_ini"
 
+if [[ "$GOVERLAY_OPTISCALER" != "0" ]]; then
+
 # === Cleanup Old Injectors ===
 rm -f "$exe_folder_path"/{dxgi.dll,winmm.dll,nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}
 
@@ -165,22 +170,23 @@ cp -f "$fgmod_path/dlssg_to_fsr3_amd_is_better.dll" "$exe_folder_path/" || true
 # Note: dlssg_to_fsr3.ini is not included in v0.9.0-pre4 archive
 
 # === FakeNVAPI Files ===
-# Remove legacy nvapi64.dll to avoid conflicts
-# rm -f "$exe_folder_path/nvapi64.dll"
-# echo "🧹 Removed legacy nvapi64.dll"
-
 # Copy fakenvapi.dll with original name (v1.3.8.1)
 cp -f "$fgmod_path/fakenvapi.dll" "$exe_folder_path/" || true
 cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true
 echo "📦 Installed fakenvapi.dll and fakenvapi.ini"
+
+else
+  echo "⚙️ OptiScaler disabled for this game (GOVERLAY_OPTISCALER=0)"
+  logger -t fgmod "⚙️ OptiScaler skipped for $exe_folder_path"
+fi
 
 # === Additional Support Files ===
 # cp -f "$fgmod_path/d3dcompiler_47.dll" "$exe_folder_path/" || true
 
 # Note: d3dcompiler_47.dll is not included in v0.9.0-pre4 archive
 
-cp -f "$fgmod_path/MangoHud.conf" "$exe_folder_path/" || true
-cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true
+[[ "$GOVERLAY_MANGOHUD" != "0" ]] && cp -f "$fgmod_path/MangoHud.conf" "$exe_folder_path/" || true
+[[ "$GOVERLAY_VKBASALT" != "0" ]] && cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true
 
 echo "✅ Installation completed successfully!"
 echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"
