@@ -11448,10 +11448,20 @@ end;
 
 procedure Tgoverlayform.RefreshHomeOptiStatus;
 begin
-  // Update OptiScaler version in module status from the OptiScaler tab label
-  if not Assigned(FHomeModVerLbls[2]) then Exit;
-  if Assigned(optlabel1) and (optlabel1.Caption <> '') then
+  // Update OptiScaler version in module status
+  if Assigned(FHomeModVerLbls[2]) and Assigned(optlabel1) and (optlabel1.Caption <> '') then
     FHomeModVerLbls[2].Caption := optlabel1.Caption;
+
+  // Populate Libraries card labels
+  // FHomeOptiLbls[0]=FakeNvAPI, [1]=Optipatcher, [2]=FSR, [3]=XeSS, [4]=DLSS
+  if Assigned(FHomeOptiLbls[0]) then
+  begin
+    if Assigned(fakenvapi1)        then FHomeOptiLbls[0].Caption := fakenvapi1.Caption;
+    if Assigned(optipatcherLabel1) then FHomeOptiLbls[1].Caption := optipatcherLabel1.Caption;
+    if Assigned(fsrlabel1)         then FHomeOptiLbls[2].Caption := fsrlabel1.Caption;
+    if Assigned(xessLabel1)        then FHomeOptiLbls[3].Caption := xessLabel1.Caption;
+    if Assigned(dlssLabel1)        then FHomeOptiLbls[4].Caption := dlssLabel1.Caption;
+  end;
 end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
@@ -11510,15 +11520,18 @@ const
     'vkcube', '7z', 'curl', 'git');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
 
+const
+  LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
+  LIB_COL2  = 3;  // first index in LIB_NAMES for right column
+
 var
   ScrollBox: TScrollBox;
   Content:   TPanel;
   Card:      TPanel;
   BtnRow:    TPanel;
-  Spacer:    TPanel;
   Lbl:       TLabel;
   Sep:       TBevel;
-  i, Row, Y, ColX: Integer;
+  i, Row, Y, ColX, HalfW, Col2X: Integer;
   Dot:       TShape;
 
   function MkCard(AY, AH: Integer): TPanel;
@@ -11681,8 +11694,51 @@ begin
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
+  // ── Card 3: Libraries ─────────────────────────────────────────────────────
+  // 5 items in 2 columns: [FakeNvAPI, FSR, DLSS] left | [Optipatcher, XeSS] right
+  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 4);
+  MkTitle(Card, 'Libraries', CARD_P);
+  MkSep(Card, CARD_P + 22);
+
+  Col2X := 330;  // right column start (works for cards ~668px+)
+  for i := 0 to 4 do
+  begin
+    // Layout: i=0,2,4 go in left col; i=1,3 go in right col
+    // Row within column: left col rows 0,1,2; right col rows 0,1
+    if i mod 2 = 0 then
+    begin
+      ColX := CARD_P;
+      Row  := CARD_P + 30 + (i div 2) * ROW_H;
+    end
+    else
+    begin
+      ColX := Col2X;
+      Row  := CARD_P + 30 + (i div 2) * ROW_H;
+    end;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent     := Card;
+    Lbl.Caption    := LIB_NAMES[i];
+    Lbl.Font.Color := clSilver;
+    Lbl.Font.Size  := 9;
+    Lbl.Left       := ColX;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent     := Card;
+    Lbl.Caption    := '—';
+    Lbl.Font.Color := $00DDAA44;
+    Lbl.Font.Size  := 9;
+    Lbl.Left       := ColX + 96;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
+    FHomeOptiLbls[i] := Lbl;
+  end;
+  Inc(Y, Card.Height + SEC_GAP);
+
   // ── Action Buttons ────────────────────────────────────────────────────────
-  // BtnRow anchors left+right to Content so it always fills the width
+  // BtnRow anchors left+right so it always fills the available width
   BtnRow := TPanel.Create(Self);
   BtnRow.Parent     := Content;
   BtnRow.BevelOuter := bvNone;
@@ -11690,67 +11746,73 @@ begin
   BtnRow.Caption    := '';
   BtnRow.Left       := CARD_M;
   BtnRow.Top        := Y;
+  BtnRow.Width      := Content.Width - CARD_M * 2;
   BtnRow.Height     := 90;
   BtnRow.Anchors    := [akLeft, akTop, akRight];
   BtnRow.AnchorSideRight.Control := Content;
   BtnRow.AnchorSideRight.Side    := asrRight;
   BtnRow.BorderSpacing.Right     := CARD_M;
 
-  // Global Config button — left half via alLeft
+  HalfW := (BtnRow.Width - CARD_M) div 2;
+
+  // Global Config — left half, right edge anchored to center of BtnRow
   FHomeGlobalBtn := TPanel.Create(Self);
   FHomeGlobalBtn.Parent     := BtnRow;
   FHomeGlobalBtn.BevelOuter := bvNone;
   FHomeGlobalBtn.Color      := $00252540;
   FHomeGlobalBtn.Caption    := '';
   FHomeGlobalBtn.Cursor     := crHandPoint;
-  FHomeGlobalBtn.Align      := alLeft;
-  FHomeGlobalBtn.Width      := (BtnRow.Width - CARD_M) div 2;
+  FHomeGlobalBtn.Left       := 0;
+  FHomeGlobalBtn.Top        := 0;
+  FHomeGlobalBtn.Width      := HalfW;
+  FHomeGlobalBtn.Height     := BtnRow.Height;
+  FHomeGlobalBtn.Anchors    := [akLeft, akTop, akRight];
+  FHomeGlobalBtn.AnchorSideRight.Control := BtnRow;
+  FHomeGlobalBtn.AnchorSideRight.Side    := asrCenter;
+  FHomeGlobalBtn.BorderSpacing.Right     := CARD_M div 2;
   FHomeGlobalBtn.OnClick      := @HomeGlobalBtnClick;
   FHomeGlobalBtn.OnMouseEnter := @HomeGlobalBtnEnter;
   FHomeGlobalBtn.OnMouseLeave := @HomeGlobalBtnLeave;
 
-  // Spacer between buttons
-  Spacer := TPanel.Create(Self);
-  Spacer.Parent     := BtnRow;
-  Spacer.BevelOuter := bvNone;
-  Spacer.Color      := BG;
-  Spacer.Caption    := '';
-  Spacer.Align      := alLeft;
-  Spacer.Width      := CARD_M;
-
-  // Game Config button — takes remaining space via alClient
+  // Game Config — right half, left edge anchored to center of BtnRow
   FHomeGameBtn := TPanel.Create(Self);
   FHomeGameBtn.Parent     := BtnRow;
   FHomeGameBtn.BevelOuter := bvNone;
   FHomeGameBtn.Color      := $00253025;
   FHomeGameBtn.Caption    := '';
   FHomeGameBtn.Cursor     := crHandPoint;
-  FHomeGameBtn.Align      := alClient;
+  FHomeGameBtn.Left       := HalfW + CARD_M;
+  FHomeGameBtn.Top        := 0;
+  FHomeGameBtn.Width      := HalfW;
+  FHomeGameBtn.Height     := BtnRow.Height;
+  FHomeGameBtn.Anchors    := [akLeft, akTop, akRight];
+  FHomeGameBtn.AnchorSideLeft.Control  := BtnRow;
+  FHomeGameBtn.AnchorSideLeft.Side     := asrCenter;
+  FHomeGameBtn.BorderSpacing.Left      := CARD_M div 2;
+  FHomeGameBtn.AnchorSideRight.Control := BtnRow;
+  FHomeGameBtn.AnchorSideRight.Side    := asrRight;
   FHomeGameBtn.OnClick      := @HomeGameBtnClick;
   FHomeGameBtn.OnMouseEnter := @HomeGameBtnEnter;
   FHomeGameBtn.OnMouseLeave := @HomeGameBtnLeave;
 
-  // Icon + caption for Global Config (centered via Alignment=taCenter + Align=alTop)
+  // Icon + caption (taCenter + Align=alTop → always centered regardless of button width)
   Lbl := MkBtnLabel(FHomeGlobalBtn, '󰋊', 28, $00AAAADD, 'Noto Sans');
   Lbl.Height := 56;
   Lbl.OnClick := @HomeGlobalBtnClick;
-
   Lbl := MkBtnLabel(FHomeGlobalBtn, 'Global Config', 10, clSilver);
   Lbl.Font.Bold := True;
   Lbl.Height := 26;
   Lbl.OnClick := @HomeGlobalBtnClick;
 
-  // Icon + caption for Game Config
   Lbl := MkBtnLabel(FHomeGameBtn, '󰊴', 28, $00AADDAA, 'Noto Sans');
   Lbl.Height := 56;
   Lbl.OnClick := @HomeGameBtnClick;
-
   Lbl := MkBtnLabel(FHomeGameBtn, 'Game Config', 10, clSilver);
   Lbl.Font.Bold := True;
   Lbl.Height := 26;
   Lbl.OnClick := @HomeGameBtnClick;
 
-  // Resize content to fit
+  // Resize content to fit everything
   Content.Height := Y + 90 + CARD_M;
 end;
 
