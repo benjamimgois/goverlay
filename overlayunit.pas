@@ -587,6 +587,7 @@ type
     procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
     procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
+    procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -9700,16 +9701,19 @@ begin
   if FActiveGameName <> '' then
   begin
     SetGameToolEnabled(FActiveGameName, Idx, NewEnabled);
+    GameCfgDir := GetGameConfigDir(FActiveGameName);
     // When disabling, delete the tool's config file from the game folder
     if not NewEnabled then
     begin
-      GameCfgDir := GetGameConfigDir(FActiveGameName);
       ConfigFiles[0] := GameCfgDir + 'MangoHud.conf';
       ConfigFiles[1] := GameCfgDir + 'vkBasalt.conf';
       ConfigFiles[2] := GameCfgDir + 'OptiScaler.ini';
       if FileExists(ConfigFiles[Idx]) then
         DeleteFile(ConfigFiles[Idx]);
     end;
+    // OptiScaler toggle also controls the WINEDLLOVERRIDES line in the game's fgmod
+    if Idx = 2 then
+      PatchGameFGModWineDllOverrides(GameCfgDir + 'fgmod', NewEnabled);
   end;
   ApplyToolEnabledState(Idx, NewEnabled);
 end;
@@ -9862,6 +9866,50 @@ begin
     Child.Enabled := AEnabled;
     if Child is TWinControl then
       SetControlTreeEnabled(TWinControl(Child), AEnabled);
+  end;
+end;
+
+procedure Tgoverlayform.PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
+const
+  CONDITIONAL_LINE = '[[ "$GOVERLAY_OPTISCALER" != "0" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
+  LEGACY_LINE      = '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
+var
+  Lines: TStringList;
+  i: Integer;
+  Found: Boolean;
+begin
+  if not FileExists(AFGModFile) then Exit;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AFGModFile);
+    Found := False;
+    for i := 0 to Lines.Count - 1 do
+    begin
+      // Match both the conditional form (new template) and the legacy unconditional form
+      if (Pos('WINEDLLOVERRIDES', Lines[i]) > 0) and
+         (Pos('dxgi=n,b', Lines[i]) > 0) then
+      begin
+        Lines[i] := CONDITIONAL_LINE;
+        Found := True;
+        Break;
+      end;
+    end;
+    // If no WINEDLLOVERRIDES line found at all, insert before "$@" in the execute block
+    if not Found then
+    begin
+      for i := 0 to Lines.Count - 1 do
+      begin
+        if Trim(Lines[i]) = '"$@"' then
+        begin
+          Lines.Insert(i, '  ' + CONDITIONAL_LINE);
+          Break;
+        end;
+      end;
+    end;
+    Lines.SaveToFile(AFGModFile);
+    fpChmod(AFGModFile, &755);
+  finally
+    Lines.Free;
   end;
 end;
 

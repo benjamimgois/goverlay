@@ -207,7 +207,7 @@ if [[ $# -gt 1 ]]; then
 
   # Execute the original command
   export SteamDeck=0
-  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"
+  [[ "$GOVERLAY_OPTISCALER" != "0" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"
 
   # Filter out leading -- separators (from Steam launch options)
   while [[ $# -gt 0 && "$1" == "--" ]]; do
