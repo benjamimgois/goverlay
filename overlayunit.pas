@@ -11498,13 +11498,13 @@ begin
       begin
         FHomeDepDots[i].Brush.Color := CLR_MISSING;
         FHomeDepDots[i].Pen.Color   := CLR_MISSING;
-        FHomeDepLbls[i].Font.Color  := $00AA6666;
+        FHomeDepLbls[i].Font.Color  := $00888888;
       end
       else
       begin
         FHomeDepDots[i].Brush.Color := CLR_OK;
         FHomeDepDots[i].Pen.Color   := CLR_OK;
-        FHomeDepLbls[i].Font.Color  := $0088CC88;
+        FHomeDepLbls[i].Font.Color  := clWhite;
       end;
     end;
   finally
