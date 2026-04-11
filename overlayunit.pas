@@ -586,6 +586,7 @@ type
     function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
     procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
     procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
+    function  ActiveToolIndex: Integer;
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
     procedure NavItemClick(Sender: TObject);
@@ -2385,7 +2386,10 @@ begin
   UpdateGlobalEnableMenuItemVisibility;
   // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
   if FActiveGameName <> '' then
+  begin
     ApplyToolEnabledState(1, FNavToolEnabled[1]);
+    saveBitBtn.Enabled := FNavToolEnabled[1];
+  end;
 
 end;
 
@@ -6318,6 +6322,7 @@ begin
     HideGameThumb;
     HideGameActionPanel;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
+    saveBitBtn.Enabled := True;
   end;
 
   SetNavActive(-1);
@@ -6385,7 +6390,10 @@ if FActiveGameName <> '' then
   LoadMangoHudConfig;
 // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
 if FActiveGameName <> '' then
+begin
   ApplyToolEnabledState(0, FNavToolEnabled[0]);
+  saveBitBtn.Enabled := FNavToolEnabled[0];
+end;
 
 DbgLog('<< mangohudLabelClick END');
 end;
@@ -6445,7 +6453,10 @@ begin
   UpdateGlobalEnableMenuItemVisibility;
   // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
   if FActiveGameName <> '' then
+  begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
+    saveBitBtn.Enabled := FNavToolEnabled[2];
+  end;
   DbgLog('<< optiscalerLabelClick END');
 end;
 
@@ -9842,6 +9853,27 @@ begin
     1: SetControlTreeEnabled(vkbasaltTabsheet,    AEnabled);
     2: SetControlTreeEnabled(optiscalertabsheet,  AEnabled);
   end;
+  // Disable Save when the toggled tool owns the currently visible tab
+  if ActiveToolIndex = AToolIdx then
+    saveBitBtn.Enabled := AEnabled;
+end;
+
+// Returns the tool index (0=MangoHud, 1=vkBasalt, 2=OptiScaler, -1=other)
+// for the currently active page control tab.
+function Tgoverlayform.ActiveToolIndex: Integer;
+var
+  P: TTabSheet;
+begin
+  P := goverlayPageControl.ActivePage;
+  if (P = presetTabSheet) or (P = visualTabSheet) or
+     (P = performanceTabSheet) or (P = metricsTabSheet) or (P = extrasTabSheet) then
+    Result := 0
+  else if P = vkbasaltTabsheet then
+    Result := 1
+  else if P = optiscalertabsheet then
+    Result := 2
+  else
+    Result := -1;
 end;
 
 procedure Tgoverlayform.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
