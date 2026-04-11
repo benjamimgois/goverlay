@@ -587,6 +587,7 @@ type
     procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
     procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
     function  ActiveToolIndex: Integer;
+    procedure SetSaveBtnEnabled(AEnabled: Boolean);
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
     procedure NavItemClick(Sender: TObject);
@@ -2388,7 +2389,7 @@ begin
   if FActiveGameName <> '' then
   begin
     ApplyToolEnabledState(1, FNavToolEnabled[1]);
-    saveBitBtn.Enabled := FNavToolEnabled[1];
+    SetSaveBtnEnabled(FNavToolEnabled[1]);
   end;
 
 end;
@@ -6322,7 +6323,7 @@ begin
     HideGameThumb;
     HideGameActionPanel;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
-    saveBitBtn.Enabled := True;
+    SetSaveBtnEnabled(True);
   end;
 
   SetNavActive(-1);
@@ -6392,7 +6393,7 @@ if FActiveGameName <> '' then
 if FActiveGameName <> '' then
 begin
   ApplyToolEnabledState(0, FNavToolEnabled[0]);
-  saveBitBtn.Enabled := FNavToolEnabled[0];
+  SetSaveBtnEnabled(FNavToolEnabled[0]);
 end;
 
 DbgLog('<< mangohudLabelClick END');
@@ -6455,7 +6456,7 @@ begin
   if FActiveGameName <> '' then
   begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
-    saveBitBtn.Enabled := FNavToolEnabled[2];
+    SetSaveBtnEnabled(FNavToolEnabled[2]);
   end;
   DbgLog('<< optiscalerLabelClick END');
 end;
@@ -9855,7 +9856,7 @@ begin
   end;
   // Disable Save when the toggled tool owns the currently visible tab
   if ActiveToolIndex = AToolIdx then
-    saveBitBtn.Enabled := AEnabled;
+    SetSaveBtnEnabled(AEnabled);
 end;
 
 // Returns the tool index (0=MangoHud, 1=vkBasalt, 2=OptiScaler, -1=other)
@@ -9874,6 +9875,15 @@ begin
     Result := 2
   else
     Result := -1;
+end;
+
+procedure Tgoverlayform.SetSaveBtnEnabled(AEnabled: Boolean);
+begin
+  saveBitBtn.Enabled := AEnabled;
+  if AEnabled then
+    saveBitBtn.Color := $008300   // original green
+  else
+    saveBitBtn.Color := $00666666; // grey when disabled
 end;
 
 procedure Tgoverlayform.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
