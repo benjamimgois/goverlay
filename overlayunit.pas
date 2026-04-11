@@ -11294,19 +11294,21 @@ procedure Tgoverlayform.ShowGameActionPanel(ACard: TPanel);
 const
   BTN_OFFSETS: array[0..3] of Integer = (31, 70, 109, 148);
   // Config files to check for each button index (empty = not implemented yet)
-  CFG_FILES: array[0..3] of string = (
+  CFG_FILES: array[0..2] of string = (
     'MangoHud.conf',
     'vkBasalt.conf',
-    '',
-    ''
+    'OptiScaler.ini'
   );
   COLOR_CONFIGURED = $0066DD66;  // green — game has a saved config
   COLOR_DEFAULT    = $00AAAAAA;  // gray  — no config yet
 var
   k: Integer;
+  i: Integer;
   Switching: Boolean;
   GameName, GameCfgDir: string;
   HintLines: TStringList;
+  HasTweaks: Boolean;
+  TweakLines: TStringList;
 begin
   Switching := FSelectedCard <> nil;
 
@@ -11341,6 +11343,29 @@ begin
   end;
   GameCfgDir := GetGameConfigDir(GameName);
 
+  // Check Tweaks: fgmod must contain at least one tweak-specific line
+  HasTweaks := False;
+  if FileExists(GameCfgDir + 'fgmod') then
+  begin
+    TweakLines := TStringList.Create;
+    try
+      TweakLines.LoadFromFile(GameCfgDir + 'fgmod');
+      for i := 0 to TweakLines.Count - 1 do
+        if (Pos('#gamemode', TweakLines[i]) > 0) or
+           (Pos('export PROTON_', TweakLines[i]) > 0) or
+           (Pos('export RADV_', TweakLines[i]) > 0) or
+           (Pos('export MESA_', TweakLines[i]) > 0) or
+           (Pos('#customenv', TweakLines[i]) > 0) or
+           (Pos('export SteamDeck=1', TweakLines[i]) > 0) then
+        begin
+          HasTweaks := True;
+          Break;
+        end;
+    finally
+      TweakLines.Free;
+    end;
+  end;
+
   for k := 0 to 3 do
   begin
     FActionBtns[k].SetBounds(
@@ -11350,10 +11375,20 @@ begin
       32);
 
     // Color the button text green if a game-specific config already exists
-    if (CFG_FILES[k] <> '') and FileExists(GameCfgDir + CFG_FILES[k]) then
-      FActionBtns[k].Font.Color := COLOR_CONFIGURED
-    else
-      FActionBtns[k].Font.Color := COLOR_DEFAULT;
+    if k <= 2 then
+    begin
+      if FileExists(GameCfgDir + CFG_FILES[k]) then
+        FActionBtns[k].Font.Color := COLOR_CONFIGURED
+      else
+        FActionBtns[k].Font.Color := COLOR_DEFAULT;
+    end
+    else  // Tweaks (k = 3)
+    begin
+      if HasTweaks then
+        FActionBtns[k].Font.Color := COLOR_CONFIGURED
+      else
+        FActionBtns[k].Font.Color := COLOR_DEFAULT;
+    end;
 
     FActionBtns[k].Visible := True;
     FActionBtns[k].BringToFront;
