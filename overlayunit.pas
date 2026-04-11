@@ -7893,8 +7893,8 @@ EnableTraceLogsFound: Boolean;
         end;
       end;
 
-      // Always build launch command with full absolute path for fgmod
-      LaunchCommand := GetFGModPath + '/fgmod ';
+      // Always build launch command with full absolute path for fgmod (quoted for spaces)
+      LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
       // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
       if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
@@ -8394,9 +8394,8 @@ EnableTraceLogsFound: Boolean;
             // Always use ~/fgmod path (simplified architecture)
             FGModPath := GetOptiScalerInstallPath;
 
-            // Build launch command with full absolute path
-            // Using absolute path ensures compatibility with all game launchers
-            LaunchCommand := GetFGModPath + '/fgmod ';
+            // Build launch command with full absolute path (quoted for spaces)
+            LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
             // Check if gamemode should be added (check fgmod file for #gamemode or generalCheckGroup)
             if GetGeneralCheckBox(1).Checked then
@@ -8463,10 +8462,11 @@ EnableTraceLogsFound: Boolean;
     begin
       // Build launch command — use the game-specific fgmod copy when in game
       // mode so that MangoHud.conf is picked up from the game config directory.
+      // Quoted to handle spaces in game names / paths.
       if FActiveGameName <> '' then
-        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
       else
-        LaunchCommand := GetFGModPath + '/fgmod ';
+        LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
       // Check if gamemode should be added (check generalCheckGroup)
       if GetGeneralCheckBox(1).Checked then
@@ -8654,10 +8654,11 @@ end;  //  ################### END - SAVE MANGOHUD
      SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
      // Always show the fgmod command — use game-specific fgmod copy when in game mode
+     // Quoted to handle spaces in game names / paths.
      if FActiveGameName <> '' then
-       LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+       LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
      else
-       LaunchCommand := GetFGModPath + '/fgmod ';
+       LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
      // Check if gamemode should be added (check generalCheckGroup)
      if GetGeneralCheckBox(1).Checked then
