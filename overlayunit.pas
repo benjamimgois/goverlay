@@ -11375,25 +11375,25 @@ end;
 procedure Tgoverlayform.HomeGlobalBtnEnter(Sender: TObject);
 begin
   if Sender is TPanel then
-    TPanel(Sender).Color := $00303860;
+    TPanel(Sender).Color := $00283060;
 end;
 
 procedure Tgoverlayform.HomeGlobalBtnLeave(Sender: TObject);
 begin
   if Sender is TPanel then
-    TPanel(Sender).Color := $00252540;
+    TPanel(Sender).Color := $00202040;
 end;
 
 procedure Tgoverlayform.HomeGameBtnEnter(Sender: TObject);
 begin
   if Sender is TPanel then
-    TPanel(Sender).Color := $00306030;
+    TPanel(Sender).Color := $00284028;
 end;
 
 procedure Tgoverlayform.HomeGameBtnLeave(Sender: TObject);
 begin
   if Sender is TPanel then
-    TPanel(Sender).Color := $00253025;
+    TPanel(Sender).Color := $00203020;
 end;
 
 procedure Tgoverlayform.HomeChannelComboChange(Sender: TObject);
@@ -11514,28 +11514,30 @@ end;
 
 procedure Tgoverlayform.InitHomeTab;
 const
-  BG       = $001A1A1A;
-  CARD_BG  = $00252525;
-  CARD_M   = 16;
-  CARD_P   = 14;
-  ROW_H    = 32;
-  DOT_SZ   = 14;
-  SEC_GAP  = 12;
-  COL_W    = 200;  // fixed column width for dep grid
+  BG         = $001A1A1A;
+  CARD_BG    = $00222222;
+  CARD_M     = 16;
+  CARD_P     = 18;   // padding inside card (left content margin)
+  ROW_H      = 32;
+  DOT_SZ     = 14;
+  SEC_GAP    = 14;
+  COL_W      = 200;
+  ACCENT_W   = 4;    // left accent bar width
+  // accent colors per section
+  ACC_MOD    = $004488CC;  // blue  — Module Status
+  ACC_DEP    = $0033AA55;  // green — Dependencies
 
   DEP_NAMES: array[0..8] of string = (
     'PasCube', 'MangoHud', 'MangoHud rt.', 'vkBasalt', 'vkBasalt rt.',
     'vkcube', '7z', 'curl', 'git');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
-
-const
   LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
-  LIB_COL2  = 3;  // first index in LIB_NAMES for right column
 
 var
   Content:   TPanel;
   Card:      TPanel;
-  BtnRow:    TPanel;  // used as spacer panel
+  BtnRow:    TPanel;
+  AccBar:    TShape;
   Lbl:       TLabel;
   Sep:       TBevel;
   i, Row, Y, ColX, Col2X: Integer;
@@ -11558,17 +11560,32 @@ var
     Result.BorderSpacing.Right     := CARD_M;
   end;
 
+  // Colored left accent bar spanning the full card height
+  procedure MkAccent(ACard: TPanel; AColor: TColor);
+  begin
+    AccBar := TShape.Create(Self);
+    AccBar.Parent      := ACard;
+    AccBar.Shape       := stRectangle;
+    AccBar.Brush.Color := AColor;
+    AccBar.Pen.Style   := psClear;
+    AccBar.Left        := 0;
+    AccBar.Top         := 0;
+    AccBar.Width       := ACCENT_W;
+    AccBar.Height      := ACard.Height;
+    AccBar.Anchors     := [akLeft, akTop, akBottom];
+  end;
+
   function MkTitle(AParent: TWinControl; const AText: string; AY: Integer): TLabel;
   begin
     Result := TLabel.Create(Self);
-    Result.Parent   := AParent;
-    Result.Caption  := AText;
+    Result.Parent     := AParent;
+    Result.Caption    := AText;
     Result.Font.Bold  := True;
     Result.Font.Color := clWhite;
     Result.Font.Size  := 10;
-    Result.Left     := CARD_P;
-    Result.Top      := AY;
-    Result.AutoSize := True;
+    Result.Left       := CARD_P;
+    Result.Top        := AY;
+    Result.AutoSize   := True;
   end;
 
   procedure MkSep(AParent: TWinControl; AY: Integer);
@@ -11596,20 +11613,19 @@ var
     Result.SetBounds(AX, AY, DOT_SZ, DOT_SZ);
   end;
 
-  // Creates a centered label inside a button panel using Align
   function MkBtnLabel(AParent: TWinControl; const ACaption: string;
     AFontSize: Integer; AColor: TColor; AFontName: string = ''): TLabel;
   begin
     Result := TLabel.Create(Self);
-    Result.Parent    := AParent;
-    Result.Caption   := ACaption;
-    Result.Alignment := taCenter;
-    Result.Layout    := tlCenter;
-    Result.Align     := alTop;
+    Result.Parent     := AParent;
+    Result.Caption    := ACaption;
+    Result.Alignment  := taCenter;
+    Result.Layout     := tlCenter;
+    Result.Align      := alTop;
     Result.Font.Size  := AFontSize;
     Result.Font.Color := AColor;
     if AFontName <> '' then Result.Font.Name := AFontName;
-    Result.Cursor    := crHandPoint;
+    Result.Cursor     := crHandPoint;
   end;
 
 begin
@@ -11628,10 +11644,10 @@ begin
   Content.Caption   := '';
   Content.Align     := alClient;
 
-  // ── Card 1: Module Status + Libraries (indented sub-rows for OptiScaler libs)
-  // Layout: 3 module rows, thin separator, 3 library rows (2-col: left=[0,2,4], right=[1,3])
+  // ── Card 1: Module Status + Libraries ────────────────────────────────────
   Y    := CARD_M;
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 10 + 3 * ROW_H + 4);
+  MkAccent(Card, ACC_MOD);
   MkTitle(Card, 'Module Status', CARD_P);
   MkSep(Card, CARD_P + 22);
 
@@ -11645,7 +11661,7 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := MOD_NAMES[i];
-    Lbl.Font.Color := clSilver;
+    Lbl.Font.Color := clWhite;
     Lbl.Font.Size  := 9;
     Lbl.Left       := CARD_P + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
@@ -11654,7 +11670,7 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := '—';
-    Lbl.Font.Color := $00AAAAAA;
+    Lbl.Font.Color := clSilver;
     Lbl.Font.Size  := 9;
     Lbl.Left       := CARD_P + DOT_SZ + 8 + 110;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
@@ -11681,8 +11697,8 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := LIB_NAMES[i];
-    Lbl.Font.Color := $00888888;
-    Lbl.Font.Size  := 8;
+    Lbl.Font.Color := clSilver;
+    Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
@@ -11690,8 +11706,8 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := '—';
-    Lbl.Font.Color := $00DDAA44;
-    Lbl.Font.Size  := 8;
+    Lbl.Font.Color := $004499FF;
+    Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 8 + 110;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
@@ -11699,8 +11715,9 @@ begin
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
-  // ── Card 2: Dependencies (3×3 grid, fixed column width) ──────────────────
+  // ── Card 2: Dependencies (3×3 grid) ──────────────────────────────────────
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
+  MkAccent(Card, ACC_DEP);
   MkTitle(Card, 'Dependencies', CARD_P);
   MkSep(Card, CARD_P + 22);
 
@@ -11715,11 +11732,11 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := DEP_NAMES[i];
-    Lbl.Font.Color := $00AAAAAA;
+    Lbl.Font.Color := clWhite;
     Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 6;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
-    Lbl.Width      := COL_W - DOT_SZ - 10;  // clip to column width
+    Lbl.Width      := COL_W - DOT_SZ - 10;
     Lbl.AutoSize   := False;
     FHomeDepLbls[i] := Lbl;
   end;
@@ -11733,58 +11750,74 @@ begin
   FHomeBtnRow.Color      := BG;
   FHomeBtnRow.Caption    := '';
   FHomeBtnRow.Align      := alBottom;
-  FHomeBtnRow.Height     := 90;
+  FHomeBtnRow.Height     := 104;
   FHomeBtnRow.OnResize   := @HomeBtnRowResize;
+
+  // Thin top separator line
+  AccBar := TShape.Create(Self);
+  AccBar.Parent      := FHomeBtnRow;
+  AccBar.Shape       := stRectangle;
+  AccBar.Brush.Color := $00333333;
+  AccBar.Pen.Style   := psClear;
+  AccBar.Left        := 0;
+  AccBar.Top         := 0;
+  AccBar.Height      := 1;
+  AccBar.Anchors     := [akLeft, akTop, akRight];
+  AccBar.AnchorSideRight.Control := FHomeBtnRow;
+  AccBar.AnchorSideRight.Side    := asrRight;
 
   // Global Config — left half (OnResize keeps width = 50%)
   FHomeGlobalBtn := TPanel.Create(Self);
   FHomeGlobalBtn.Parent     := FHomeBtnRow;
   FHomeGlobalBtn.BevelOuter := bvNone;
-  FHomeGlobalBtn.Color      := $00252540;
+  FHomeGlobalBtn.Color      := $00202040;
   FHomeGlobalBtn.Caption    := '';
   FHomeGlobalBtn.Cursor     := crHandPoint;
   FHomeGlobalBtn.Align      := alLeft;
-  FHomeGlobalBtn.Width      := 300;   // updated immediately by HomeBtnRowResize
+  FHomeGlobalBtn.Width      := 300;
+  FHomeGlobalBtn.BorderSpacing.Top := 1;
   FHomeGlobalBtn.OnClick      := @HomeGlobalBtnClick;
   FHomeGlobalBtn.OnMouseEnter := @HomeGlobalBtnEnter;
   FHomeGlobalBtn.OnMouseLeave := @HomeGlobalBtnLeave;
 
-  // Spacer
+  // Spacer between buttons
   BtnRow := TPanel.Create(Self);
-  BtnRow.Parent := FHomeBtnRow;
+  BtnRow.Parent     := FHomeBtnRow;
   BtnRow.BevelOuter := bvNone;
-  BtnRow.Color := BG;
-  BtnRow.Caption := '';
-  BtnRow.Align := alLeft;
-  BtnRow.Width := CARD_M;
+  BtnRow.Color      := BG;
+  BtnRow.Caption    := '';
+  BtnRow.Align      := alLeft;
+  BtnRow.Width      := 2;
+  BtnRow.BorderSpacing.Top := 1;
 
   // Game Config — takes remaining space
   FHomeGameBtn := TPanel.Create(Self);
   FHomeGameBtn.Parent     := FHomeBtnRow;
   FHomeGameBtn.BevelOuter := bvNone;
-  FHomeGameBtn.Color      := $00253025;
+  FHomeGameBtn.Color      := $00203020;
   FHomeGameBtn.Caption    := '';
   FHomeGameBtn.Cursor     := crHandPoint;
   FHomeGameBtn.Align      := alClient;
+  FHomeGameBtn.BorderSpacing.Top := 1;
   FHomeGameBtn.OnClick      := @HomeGameBtnClick;
   FHomeGameBtn.OnMouseEnter := @HomeGameBtnEnter;
   FHomeGameBtn.OnMouseLeave := @HomeGameBtnLeave;
 
-  // Icons + captions (taCenter + Align=alTop → centered in any width)
-  Lbl := MkBtnLabel(FHomeGlobalBtn, '󰋊', 28, $00AAAADD, 'Noto Sans');
-  Lbl.Height := 56;
+  // Icons + captions
+  Lbl := MkBtnLabel(FHomeGlobalBtn, '󰋊', 28, $006699EE, 'Noto Sans');
+  Lbl.Height := 62;
   Lbl.OnClick := @HomeGlobalBtnClick;
-  Lbl := MkBtnLabel(FHomeGlobalBtn, 'Global Config', 10, clSilver);
+  Lbl := MkBtnLabel(FHomeGlobalBtn, 'Global Config', 11, clWhite);
   Lbl.Font.Bold := True;
-  Lbl.Height := 26;
+  Lbl.Height := 28;
   Lbl.OnClick := @HomeGlobalBtnClick;
 
-  Lbl := MkBtnLabel(FHomeGameBtn, '󰊴', 28, $00AADDAA, 'Noto Sans');
-  Lbl.Height := 56;
+  Lbl := MkBtnLabel(FHomeGameBtn, '󰊴', 28, $0055CC77, 'Noto Sans');
+  Lbl.Height := 62;
   Lbl.OnClick := @HomeGameBtnClick;
-  Lbl := MkBtnLabel(FHomeGameBtn, 'Game Config', 10, clSilver);
+  Lbl := MkBtnLabel(FHomeGameBtn, 'Game Config', 11, clWhite);
   Lbl.Font.Bold := True;
-  Lbl.Height := 26;
+  Lbl.Height := 28;
   Lbl.OnClick := @HomeGameBtnClick;
 end;
 
