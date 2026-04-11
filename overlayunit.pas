@@ -7694,11 +7694,15 @@ EnableTraceLogsFound: Boolean;
       // Always end with %command%
       LaunchCommand := LaunchCommand + '%command%';
 
-      // Check if geSpeedButton is active (ImageIndex = 1)
-      if geSpeedButton.ImageIndex = 1 then
+      // In game mode, always write tweaks to the game-specific fgmod (toggle already
+      // blocks this path when FNavToolEnabled[3] = False via disabled Save button).
+      // In global mode, only write when geSpeedButton (Auto Enable) is ON.
+      if (FActiveGameName <> '') or (geSpeedButton.ImageIndex = 1) then
       begin
-        // geSpeedButton is ON - modify the fgmod file
-        FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+        if FActiveGameName <> '' then
+          FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+        else
+          FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
 
         if FileExists(FGModFilePath) then
         begin
@@ -7876,9 +7880,10 @@ EnableTraceLogsFound: Boolean;
       end
       else
       begin
-        // geSpeedButton is OFF - check if there are any tweaks selected.
+        // geSpeedButton is OFF (global mode only) - check if there are any tweaks selected.
         // If the user has checked tweaks, auto-enable Auto Enable and save to fgmod.
         // This avoids the confusing case where tweaks are selected but never saved.
+        // In game mode this branch is never reached (condition above is always true).
         if GetGeneralCheckBox(0).Checked or GetGeneralCheckBox(1).Checked or
            GetGeneralCheckBox(2).Checked or GetGeneralCheckBox(3).Checked or
            GetGeneralCheckBox(4).Checked or GetGeneralCheckBox(5).Checked or
