@@ -9661,8 +9661,7 @@ end;
 
 procedure Tgoverlayform.BuildNavToolToggles;
 const
-  BTN_W = 42;
-  BTN_H = 22;
+  BTN_SIZE = 32;
 var
   i: Integer;
   Btn: TSpeedButton;
@@ -9671,18 +9670,16 @@ begin
   begin
     FNavToolEnabled[i] := True;
     Btn := TSpeedButton.Create(Self);
-    Btn.Parent  := FNavItems[i];
-    Btn.SetBounds(NAV_ITEM_W - BTN_W - 4, (NAV_ITEM_H - BTN_H) div 2, BTN_W, BTN_H);
-    Btn.Flat       := True;
-    Btn.Caption    := 'ON';
-    Btn.Font.Size  := 7;
-    Btn.Font.Style := [fsBold];
-    Btn.Font.Color := clWhite;
-    Btn.Color      := $0047A447;
-    Btn.Cursor     := crHandPoint;
-    Btn.Tag        := i;
-    Btn.OnClick    := @NavToolToggleClick;
-    Btn.Visible    := False;
+    Btn.Parent    := FNavItems[i];
+    Btn.SetBounds(NAV_ITEM_W - BTN_SIZE - 6, (NAV_ITEM_H - BTN_SIZE) div 2, BTN_SIZE, BTN_SIZE);
+    Btn.Flat      := True;
+    Btn.Caption   := '';
+    Btn.Images    := globalbuttonImageList;
+    Btn.ImageIndex := 1;  // 1 = ON
+    Btn.Cursor    := crHandPoint;
+    Btn.Tag       := i;
+    Btn.OnClick   := @NavToolToggleClick;
+    Btn.Visible   := False;
     FNavToolBtns[i] := Btn;
   end;
 end;
@@ -9691,22 +9688,28 @@ procedure Tgoverlayform.NavToolToggleClick(Sender: TObject);
 var
   Idx: Integer;
   NewEnabled: Boolean;
+  GameCfgDir: string;
+  ConfigFiles: array[0..2] of string;
 begin
   Idx        := (Sender as TSpeedButton).Tag;
   NewEnabled := not FNavToolEnabled[Idx];
   FNavToolEnabled[Idx] := NewEnabled;
-  if NewEnabled then
-  begin
-    FNavToolBtns[Idx].Caption := 'ON';
-    FNavToolBtns[Idx].Color   := $0047A447;
-  end
-  else
-  begin
-    FNavToolBtns[Idx].Caption := 'OFF';
-    FNavToolBtns[Idx].Color   := $00555555;
-  end;
+  // ImageIndex 1 = ON (green), 0 = OFF (red)
+  FNavToolBtns[Idx].ImageIndex := IfThen(NewEnabled, 1, 0);
   if FActiveGameName <> '' then
+  begin
     SetGameToolEnabled(FActiveGameName, Idx, NewEnabled);
+    // When disabling, delete the tool's config file from the game folder
+    if not NewEnabled then
+    begin
+      GameCfgDir := GetGameConfigDir(FActiveGameName);
+      ConfigFiles[0] := GameCfgDir + 'MangoHud.conf';
+      ConfigFiles[1] := GameCfgDir + 'vkBasalt.conf';
+      ConfigFiles[2] := GameCfgDir + 'OptiScaler.ini';
+      if FileExists(ConfigFiles[Idx]) then
+        DeleteFile(ConfigFiles[Idx]);
+    end;
+  end;
   ApplyToolEnabledState(Idx, NewEnabled);
 end;
 
@@ -9734,9 +9737,8 @@ begin
       FNavToolEnabled[i] := True;
       if Assigned(FNavToolBtns[i]) then
       begin
-        FNavToolBtns[i].Visible := False;
-        FNavToolBtns[i].Caption := 'ON';
-        FNavToolBtns[i].Color   := $0047A447;
+        FNavToolBtns[i].Visible    := False;
+        FNavToolBtns[i].ImageIndex := 1;  // ON
       end;
       ApplyToolEnabledState(i, True);
     end;
@@ -9747,13 +9749,7 @@ begin
     ToolOn := GetGameToolEnabled(FActiveGameName, i);
     FNavToolEnabled[i] := ToolOn;
     if Assigned(FNavToolBtns[i]) then
-    begin
-      FNavToolBtns[i].Caption := IfThen(ToolOn, 'ON', 'OFF');
-      if ToolOn then
-        FNavToolBtns[i].Color := $0047A447
-      else
-        FNavToolBtns[i].Color := $00555555;
-    end;
+      FNavToolBtns[i].ImageIndex := IfThen(ToolOn, 1, 0);
     ApplyToolEnabledState(i, ToolOn);
   end;
   // Visibility depends on whether labels are shown (nav expanded)
