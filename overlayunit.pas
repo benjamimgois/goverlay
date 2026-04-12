@@ -602,6 +602,7 @@ type
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
     procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
+    procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
@@ -4167,9 +4168,16 @@ begin
     // Save to active config file (game-specific or global)
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
 
-    // Also save to Steam Flatpak MangoHud config location — global mode only.
-    // Game-specific configs are applied via the launch command, not this path.
-    if FActiveGameName <> '' then Exit;
+    // In game-specific mode: inject MANGOHUD_CONFIGFILE into the game fgmod
+    // so Steam picks up the per-game config at launch.
+    if FActiveGameName <> '' then
+    begin
+      PatchGameFGModConfigPath(
+        GetGameConfigDir(FActiveGameName) + 'fgmod',
+        'MANGOHUD_CONFIGFILE',
+        MANGOHUDCFGFILE);
+      Exit;
+    end;
 
     try
       FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
@@ -8707,6 +8715,14 @@ end;  //  ################### END - SAVE MANGOHUD
      if FileExists(VKBASALTCFGFILE) then
        DeleteFile(VKBASALTCFGFILE);
      Lines.SaveToFile(VKBASALTCFGFILE);
+
+     // In game-specific mode: inject VKBASALT_CONFIG_FILE into the game fgmod
+     if FActiveGameName <> '' then
+       PatchGameFGModConfigPath(
+         GetGameConfigDir(FActiveGameName) + 'fgmod',
+         'VKBASALT_CONFIG_FILE',
+         VKBASALTCFGFILE);
+
      SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
      // Always show the fgmod command — use game-specific fgmod copy when in game mode
@@ -10113,6 +10129,44 @@ begin
       if Trim(Lines[i]) = '"$@"' then
       begin
         Lines.Insert(i, '  ' + AConditionalLine);
+        Break;
+      end;
+    Lines.SaveToFile(AFGModFile);
+    fpChmod(AFGModFile, &755);
+  finally
+    Lines.Free;
+  end;
+end;
+
+// Adds or updates `export AEnvVar="AConfigPath"` in the game fgmod file.
+// Inserts before the "$@" execute line when not yet present; replaces in-place
+// when already present (handles path changes after re-saving the config).
+procedure Tgoverlayform.PatchGameFGModConfigPath(
+  const AFGModFile, AEnvVar, AConfigPath: string);
+var
+  Lines: TStringList;
+  ExportLine: string;
+  i: Integer;
+begin
+  if not FileExists(AFGModFile) then Exit;
+  ExportLine := 'export ' + AEnvVar + '="' + AConfigPath + '"';
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AFGModFile);
+    // Update if already present (path may have changed)
+    for i := 0 to Lines.Count - 1 do
+      if Pos('export ' + AEnvVar + '=', Lines[i]) > 0 then
+      begin
+        Lines[i] := '  ' + ExportLine;
+        Lines.SaveToFile(AFGModFile);
+        fpChmod(AFGModFile, &755);
+        Exit;
+      end;
+    // Not found: insert before the "$@" execute call
+    for i := 0 to Lines.Count - 1 do
+      if Trim(Lines[i]) = '"$@"' then
+      begin
+        Lines.Insert(i, '  ' + ExportLine);
         Break;
       end;
     Lines.SaveToFile(AFGModFile);
