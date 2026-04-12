@@ -7966,18 +7966,9 @@ EnableTraceLogsFound: Boolean;
       // Always end with %command%
       LaunchCommand := LaunchCommand + '%command%';
 
-      // Update notificationLabel
-      notificationLabel.Caption := 'Command :';
-      notificationLabel.Font.Color := clOlive;
-      notificationLabel.Font.Style := [fsBold];
-      notificationLabel.Visible := True;
-
-      // Update commandLabel with launch command
-      commandEdit.Text := LaunchCommand;
-      
+      notificationLabel.Visible := False;
+      commandEdit.Text    := LaunchCommand;
       commandEdit.Visible := True;
-      
-      copyBitBtn.Visible := True;
 
       Exit; // Exit after saving Tweaks settings
     end;
@@ -8468,18 +8459,9 @@ EnableTraceLogsFound: Boolean;
 
             LaunchCommand := LaunchCommand + '%command%';
 
-            // Update notificationLabel
-            notificationLabel.Caption := 'Command :';
-            notificationLabel.Font.Color := clOlive;
-            notificationLabel.Font.Style := [fsBold];
-            notificationLabel.Visible := True;
-
-            // Update commandLabel with launch command
-            commandEdit.Text := LaunchCommand;
-           // commandlabel.Font.Style := [fsBold];
+            notificationLabel.Visible := False;
+            commandEdit.Text    := LaunchCommand;
             commandEdit.Visible := True;
-            
-            copyBitbtn.Visible:=true;
           end
           else
           begin
@@ -8539,18 +8521,9 @@ EnableTraceLogsFound: Boolean;
 
       LaunchCommand := LaunchCommand + '%command%';
 
-      // Update notificationLabel
-      notificationLabel.Caption := 'Command :';
-      notificationLabel.Font.Color := clOlive;
-      notificationLabel.Font.Style := [fsBold];
-      notificationLabel.Visible := True;
-
-      // Update commandLabel with launch command
-      commandEdit.Text := LaunchCommand;
-
+      notificationLabel.Visible := False;
+      commandEdit.Text    := LaunchCommand;
       commandEdit.Visible := True;
-
-      copyBitbtn.Visible := True;
       howtoBitBtn.Visible := True;
     end;
 
@@ -8739,18 +8712,9 @@ end;  //  ################### END - SAVE MANGOHUD
 
      LaunchCommand := LaunchCommand + '%command%';
 
-     // Update notificationLabel
-     notificationLabel.Caption := 'Command :';
-     notificationLabel.Font.Color := clOlive;
-     notificationLabel.Font.Style := [fsBold];
-     notificationLabel.Visible := True;
-
-     // Update commandLabel with launch command
-     commandEdit.Text := LaunchCommand;
-     
+     notificationLabel.Visible := False;
+     commandEdit.Text    := LaunchCommand;
      commandEdit.Visible := True;
-     
-     copyBitbtn.Visible := True;
      howtoBitBtn.Visible := True;
 
    except
@@ -10759,6 +10723,13 @@ begin
   FPreviewBtn.Hint        := 'Launch a quick preview cube (pascube / vkcube)';
   FPreviewBtn.ShowHint    := True;
   FPreviewBtn.OnClick     := @PreviewBtnClick;
+
+  // Anchor commandEdit right side to FPreviewBtn so it doesn't overlap
+  commandEdit.AnchorSideRight.Control := FPreviewBtn;
+  commandEdit.AnchorSideRight.Side    := asrLeft;
+
+  // copyBitBtn is superseded by the Preview button layout — hide permanently
+  copyBitBtn.Visible := False;
 
 end;
 
