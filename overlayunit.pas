@@ -10737,6 +10737,12 @@ begin
   FPreviewBtn.ShowHint    := True;
   FPreviewBtn.OnClick     := @PreviewBtnClick;
 
+  // Re-anchor copyBitBtn so it sits immediately left of FPreviewBtn.
+  // commandEdit already anchors its right edge to copyBitBtn (via LFM), so
+  // commandEdit will shrink automatically to keep everything in order.
+  copyBitBtn.AnchorSideRight.Control := FPreviewBtn;
+  copyBitBtn.AnchorSideRight.Side    := asrLeft;
+
 end;
 
 procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
