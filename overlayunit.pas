@@ -11003,41 +11003,37 @@ begin
   subBitBtn.SetBounds(BtnX, HDR_Y + ListH div 2 + 4,  28, 28);
 
   // ── Card 2: Built-in Effects ───────────────────────────────────────────
-  // Layout: label on its own line above the [trackbar][value] row
-  //   Row0_lbl   CAS / FXAA labels
-  //   Row0_trk   CAS / FXAA trackbars + values
-  //   Row1_lbl   SMAA / DLS labels
-  //   Row1_trk   SMAA / DLS trackbars + values
+  // Layout per column:
+  //   [Name label .............. value]   ← header row
+  //   [==========trackbar===========]    ← slider full-width
   FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
 
   ColW  := (CW - 3 * PAD) div 2;
-  TrkW  := ColW - VAL_W - PAD;
   Col0  := PAD;
   Col1  := PAD + ColW + PAD;
-  Row0  := HDR_Y;           // label row 0
-  Row1  := Row0 + 18 + 4;  // trackbar row 0  (label 18px + 4px gap)
-  // row-group height = 18 + 4 + 28 = 50;  inter-group gap = 14
-  Col0  := PAD;
-  Col1  := PAD + ColW + PAD;
+  Row0  := HDR_Y;           // label/value header row
+  Row1  := Row0 + 20 + 4;  // trackbar row
 
-  casLabel.SetBounds(Col0, Row0, ColW, 18);
-  casTrackBar.SetBounds(Col0, Row1, TrkW, 28);
-  casvalueLabel.SetBounds(Col0 + TrkW + 4, Row1 + 4, VAL_W, 20);
+  // CAS / FXAA (row 0)
+  casLabel.SetBounds(Col0, Row0, ColW - VAL_W - 4, 20);
+  casvalueLabel.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
+  casTrackBar.SetBounds(Col0, Row1, ColW, 28);
 
-  fxaaLabel.SetBounds(Col1, Row0, ColW, 18);
-  fxaaTrackBar.SetBounds(Col1, Row1, TrkW, 28);
-  fxaavalueLabel.SetBounds(Col1 + TrkW + 4, Row1 + 4, VAL_W, 20);
+  fxaaLabel.SetBounds(Col1, Row0, ColW - VAL_W - 4, 20);
+  fxaavalueLabel.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
+  fxaaTrackBar.SetBounds(Col1, Row1, ColW, 28);
 
-  Row0 := Row1 + 28 + 14;  // label row 1
-  Row1 := Row0 + 18 + 4;   // trackbar row 1
+  // SMAA / DLS (row 1)
+  Row0 := Row1 + 28 + 14;
+  Row1 := Row0 + 20 + 4;
 
-  smaaLabel.SetBounds(Col0, Row0, ColW, 18);
-  smaaTrackBar.SetBounds(Col0, Row1, TrkW, 28);
-  smaavalueLabel.SetBounds(Col0 + TrkW + 4, Row1 + 4, VAL_W, 20);
+  smaaLabel.SetBounds(Col0, Row0, ColW - VAL_W - 4, 20);
+  smaavalueLabel.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
+  smaaTrackBar.SetBounds(Col0, Row1, ColW, 28);
 
-  dlsLabel.SetBounds(Col1, Row0, ColW, 18);
-  dlsTrackBar.SetBounds(Col1, Row1, TrkW, 28);
-  dlsvalueLabel.SetBounds(Col1 + TrkW + 4, Row1 + 4, VAL_W, 20);
+  dlsLabel.SetBounds(Col1, Row0, ColW - VAL_W - 4, 20);
+  dlsvalueLabel.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
+  dlsTrackBar.SetBounds(Col1, Row1, ColW, 28);
 
   // ── Card 3: Toggle Key ─────────────────────────────────────────────────
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, 260, TOGL_H);
