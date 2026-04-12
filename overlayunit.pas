@@ -10827,64 +10827,72 @@ begin
   TitleLbl.Transparent := True;
 
   // CAS
-  casLabel.Parent      := FVkBuiltinCard;
-  casLabel.Anchors     := [akLeft, akTop];
-  casLabel.Font.Color  := $BB99FF;
-  casLabel.Font.Style  := [fsBold];
-  casLabel.Font.Size   := 9;
-  casLabel.Transparent := True;
   casTrackBar.Parent   := FVkBuiltinCard;
   casTrackBar.Anchors  := [akLeft, akTop];
   casvalueLabel.Parent      := FVkBuiltinCard;
   casvalueLabel.Anchors     := [akLeft, akTop];
   casvalueLabel.Font.Color  := CLR_WHITE;
   casvalueLabel.Font.Size   := 9;
-  casvalueLabel.Transparent := True;
+  casvalueLabel.Color       := BG;
+  casvalueLabel.BringToFront;
+  casLabel.Parent      := FVkBuiltinCard;
+  casLabel.Anchors     := [akLeft, akTop];
+  casLabel.Font.Color  := $BB99FF;
+  casLabel.Font.Style  := [fsBold];
+  casLabel.Font.Size   := 9;
+  casLabel.Color       := BG;
+  casLabel.BringToFront;
 
   // FXAA
-  fxaaLabel.Parent     := FVkBuiltinCard;
-  fxaaLabel.Anchors    := [akLeft, akTop];
-  fxaaLabel.Font.Color := $BB99FF;
-  fxaaLabel.Font.Style := [fsBold];
-  fxaaLabel.Font.Size  := 9;
-  fxaaLabel.Transparent := True;
   fxaaTrackBar.Parent  := FVkBuiltinCard;
   fxaaTrackBar.Anchors := [akLeft, akTop];
   fxaavalueLabel.Parent      := FVkBuiltinCard;
   fxaavalueLabel.Anchors     := [akLeft, akTop];
   fxaavalueLabel.Font.Color  := CLR_WHITE;
   fxaavalueLabel.Font.Size   := 9;
-  fxaavalueLabel.Transparent := True;
+  fxaavalueLabel.Color       := BG;
+  fxaavalueLabel.BringToFront;
+  fxaaLabel.Parent     := FVkBuiltinCard;
+  fxaaLabel.Anchors    := [akLeft, akTop];
+  fxaaLabel.Font.Color := $BB99FF;
+  fxaaLabel.Font.Style := [fsBold];
+  fxaaLabel.Font.Size  := 9;
+  fxaaLabel.Color      := BG;
+  fxaaLabel.BringToFront;
 
   // SMAA
-  smaaLabel.Parent     := FVkBuiltinCard;
-  smaaLabel.Anchors    := [akLeft, akTop];
-  smaaLabel.Font.Color := $BB99FF;
-  smaaLabel.Font.Style := [fsBold];
-  smaaLabel.Font.Size  := 9;
-  smaaLabel.Transparent := True;
   smaaTrackBar.Parent  := FVkBuiltinCard;
   smaaTrackBar.Anchors := [akLeft, akTop];
   smaavalueLabel.Parent      := FVkBuiltinCard;
   smaavalueLabel.Anchors     := [akLeft, akTop];
   smaavalueLabel.Font.Color  := CLR_WHITE;
   smaavalueLabel.Font.Size   := 9;
-  smaavalueLabel.Transparent := True;
+  smaavalueLabel.Color       := BG;
+  smaavalueLabel.BringToFront;
+  smaaLabel.Parent     := FVkBuiltinCard;
+  smaaLabel.Anchors    := [akLeft, akTop];
+  smaaLabel.Font.Color := $BB99FF;
+  smaaLabel.Font.Style := [fsBold];
+  smaaLabel.Font.Size  := 9;
+  smaaLabel.Color      := BG;
+  smaaLabel.BringToFront;
 
   // DLS
-  dlsLabel.Parent      := FVkBuiltinCard;
-  dlsLabel.Anchors     := [akLeft, akTop];
-  dlsLabel.Font.Color  := $BB99FF;
-  dlsLabel.Font.Style  := [fsBold];
-  dlsLabel.Font.Size   := 9;
-  dlsLabel.Transparent := True;
   dlsTrackBar.Parent   := FVkBuiltinCard;
   dlsTrackBar.Anchors  := [akLeft, akTop];
   dlsvalueLabel.Parent      := FVkBuiltinCard;
   dlsvalueLabel.Anchors     := [akLeft, akTop];
   dlsvalueLabel.Font.Color  := CLR_WHITE;
   dlsvalueLabel.Font.Size   := 9;
-  dlsvalueLabel.Transparent := True;
+  dlsvalueLabel.Color       := BG;
+  dlsvalueLabel.BringToFront;
+  dlsLabel.Parent      := FVkBuiltinCard;
+  dlsLabel.Anchors     := [akLeft, akTop];
+  dlsLabel.Font.Color  := $BB99FF;
+  dlsLabel.Font.Style  := [fsBold];
+  dlsLabel.Font.Size   := 9;
+  dlsLabel.Color       := BG;
+  dlsLabel.BringToFront;
 
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 3 — Toggle Key
