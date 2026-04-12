@@ -536,7 +536,7 @@ type
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FActiveGameName:    string;   // non-empty when editing a game-specific config
-    FGameContextLabel:  TLabel;   // bottom-bar label showing the active game name
+    FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
@@ -641,6 +641,7 @@ type
     function  GetVkBasaltConfigEnvPrefix: string;
     function  GetVkBasaltLaunchEnv: string;
     procedure UpdateGameContextLabel;
+    procedure PreviewBtnClick(Sender: TObject);
     procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
     procedure HideGameThumb;
@@ -10744,17 +10745,20 @@ begin
   FGamesPanel.OnClick := @GamesEmptySpaceClick;
   FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
 
-  // Game context label — shown in the bottom bar when editing a game-specific config
-  FGameContextLabel := TLabel.Create(Self);
-  FGameContextLabel.Parent     := goverlaybarPanel;
-  FGameContextLabel.Align      := alLeft;
-  FGameContextLabel.AutoSize   := True;
-  FGameContextLabel.Layout     := tlCenter;
-  FGameContextLabel.Caption    := '';
-  FGameContextLabel.Font.Color := $88AAFF;
-  FGameContextLabel.Font.Size  := 8;
-  FGameContextLabel.Font.Style := [fsBold];
-  FGameContextLabel.Visible    := False;
+  // Quick preview button — launches pascube or vkcube for a live preview
+  FPreviewBtn := TBitBtn.Create(Self);
+  FPreviewBtn.Parent      := goverlaybarPanel;
+  FPreviewBtn.SetBounds(649, 6, 90, 30);
+  FPreviewBtn.Anchors     := [akRight, akBottom];
+  FPreviewBtn.Caption     := '▶  Preview';
+  FPreviewBtn.Color       := $00445566;
+  FPreviewBtn.Font.Color  := clWhite;
+  FPreviewBtn.Font.Size   := 9;
+  FPreviewBtn.Font.Style  := [fsBold];
+  FPreviewBtn.Font.Name   := 'Noto Sans';
+  FPreviewBtn.Hint        := 'Launch a quick preview cube (pascube / vkcube)';
+  FPreviewBtn.ShowHint    := True;
+  FPreviewBtn.OnClick     := @PreviewBtnClick;
 
 end;
 
@@ -12138,17 +12142,17 @@ end;
 
 procedure Tgoverlayform.UpdateGameContextLabel;
 begin
-  if not Assigned(FGameContextLabel) then Exit;
-  if FActiveGameName <> '' then
-  begin
-    FGameContextLabel.Caption := 'Jogo: ' + FActiveGameName;
-    FGameContextLabel.Visible := True;
-  end
+  // Game context label removed — active game is shown in the sidebar thumb instead
+end;
+
+procedure Tgoverlayform.PreviewBtnClick(Sender: TObject);
+begin
+  if IsCommandAvailable('pascube') then
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'pascube &')
+  else if IsCommandAvailable('vkcube') then
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &')
   else
-  begin
-    FGameContextLabel.Caption := '';
-    FGameContextLabel.Visible := False;
-  end;
+    SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);
 end;
 
 procedure Tgoverlayform.ShowGameThumb(ACard: TPanel);
