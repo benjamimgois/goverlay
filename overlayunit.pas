@@ -564,6 +564,7 @@ type
     FSettingsIconLbl: TLabel;
     FDepsMenuItem:       TMenuItem;  // dependency status item inside settingsMenu
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
+    FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
@@ -7912,8 +7913,7 @@ EnableTraceLogsFound: Boolean;
             // Show notification
             SendNotification('Tweaks', 'Configuration saved', GetIconFile);
 
-            // Show the howto button after saving Tweaks configuration
-            howtoBitBtn.Visible := True;
+            howtoBitBtn.Visible := False;
 
             // Build launch command with full absolute path for fgmod
             // (Done globally below)
@@ -7969,6 +7969,7 @@ EnableTraceLogsFound: Boolean;
       notificationLabel.Visible := False;
       commandEdit.Text    := LaunchCommand;
       commandEdit.Visible := True;
+      copyBitbtn.Visible  := True;
 
       Exit; // Exit after saving Tweaks settings
     end;
@@ -8444,8 +8445,7 @@ EnableTraceLogsFound: Boolean;
             // Show notification
             SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
 
-            // Show the howto button after saving OptiScaler configuration
-            howtoBitBtn.Visible := True;
+            howtoBitBtn.Visible := False;
 
             // Always use ~/fgmod path (simplified architecture)
             FGModPath := GetOptiScalerInstallPath;
@@ -8462,6 +8462,7 @@ EnableTraceLogsFound: Boolean;
             notificationLabel.Visible := False;
             commandEdit.Text    := LaunchCommand;
             commandEdit.Visible := True;
+            copyBitbtn.Visible  := True;
           end
           else
           begin
@@ -8524,7 +8525,8 @@ EnableTraceLogsFound: Boolean;
       notificationLabel.Visible := False;
       commandEdit.Text    := LaunchCommand;
       commandEdit.Visible := True;
-      howtoBitBtn.Visible := True;
+      copyBitbtn.Visible  := True;
+      howtoBitBtn.Visible := False;
     end;
 
     //########################################### SAVE BLACKLIST
@@ -8715,7 +8717,8 @@ end;  //  ################### END - SAVE MANGOHUD
      notificationLabel.Visible := False;
      commandEdit.Text    := LaunchCommand;
      commandEdit.Visible := True;
-     howtoBitBtn.Visible := True;
+     copyBitbtn.Visible  := True;
+     howtoBitBtn.Visible := False;
 
    except
      on E: Exception do
@@ -9657,6 +9660,16 @@ begin
   Sep := TMenuItem.Create(settingsMenu);
   Sep.Caption := '-';
   settingsMenu.Items.Insert(3, Sep);
+
+  // How to Use — replaces the howtoBitBtn that was removed from the bottom bar
+  FHowToMenuItem := TMenuItem.Create(settingsMenu);
+  FHowToMenuItem.Caption := '❓  How to Use';
+  FHowToMenuItem.OnClick := @howtoBitBtnClick;
+  settingsMenu.Items.Insert(4, FHowToMenuItem);
+
+  Sep := TMenuItem.Create(settingsMenu);
+  Sep.Caption := '-';
+  settingsMenu.Items.Insert(5, Sep);
 end;
 
 procedure Tgoverlayform.SettingsBtnMouseEnter(Sender: TObject);
@@ -10709,27 +10722,20 @@ begin
   FGamesPanel.OnClick := @GamesEmptySpaceClick;
   FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
 
-  // Quick preview button — launches pascube or vkcube for a live preview
+  // Quick preview button — icon-only, fits between copyBitBtn and popupBitBtn
   FPreviewBtn := TBitBtn.Create(Self);
   FPreviewBtn.Parent      := goverlaybarPanel;
-  FPreviewBtn.SetBounds(649, 6, 90, 30);
+  FPreviewBtn.SetBounds(683, 7, 28, 28);
   FPreviewBtn.Anchors     := [akRight, akBottom];
-  FPreviewBtn.Caption     := '▶  Preview';
+  FPreviewBtn.Caption     := '▶';
   FPreviewBtn.Color       := $00445566;
   FPreviewBtn.Font.Color  := clWhite;
-  FPreviewBtn.Font.Size   := 9;
+  FPreviewBtn.Font.Size   := 10;
   FPreviewBtn.Font.Style  := [fsBold];
   FPreviewBtn.Font.Name   := 'Noto Sans';
   FPreviewBtn.Hint        := 'Launch a quick preview cube (pascube / vkcube)';
   FPreviewBtn.ShowHint    := True;
   FPreviewBtn.OnClick     := @PreviewBtnClick;
-
-  // Anchor commandEdit right side to FPreviewBtn so it doesn't overlap
-  commandEdit.AnchorSideRight.Control := FPreviewBtn;
-  commandEdit.AnchorSideRight.Side    := asrLeft;
-
-  // copyBitBtn is superseded by the Preview button layout — hide permanently
-  copyBitBtn.Visible := False;
 
 end;
 
