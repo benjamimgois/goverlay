@@ -529,11 +529,10 @@ type
     FGamesPanel: TPanel;
     FGamesLoaded: Boolean;
     FCoverThread: TThread;
-    FSelectedCard: TPanel;
-    FActionBtns: array[0..3] of TPanel;
-    FDimTimer:    TTimer;   // animates card dimming on selection
-    FDimProgress: Integer;  // 0 = undimmed, 100 = fully dimmed
-    FDimDir:      Integer;  // +1 dimming, -1 undimming
+    FHoveredCard:    TPanel;    // card currently under mouse
+    FHoverBrightness: Integer; // 0..100 (0=35% dim, 100=full bright)
+    FHoverDir:       Integer;  // +1 brightening, -1 dimming
+    FHoverTimer:     TTimer;   // drives hover brightness animation
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FActiveGameName:    string;   // non-empty when editing a game-specific config
@@ -634,11 +633,6 @@ type
     procedure GameCardClick(Sender: TObject);
     procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GameCardOpenFolderClick(Sender: TObject);
-    procedure ShowGameActionPanel(ACard: TPanel);
-    procedure HideGameActionPanel;
-    procedure GameActionBtnMouseEnter(Sender: TObject);
-    procedure GameActionBtnMouseLeave(Sender: TObject);
-    procedure GameActionBtnClick(Sender: TObject);
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     function  GetMangoHudConfigEnvPrefix: string;
@@ -649,11 +643,9 @@ type
     procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
     procedure HideGameThumb;
-    function  DimmedCardColor: TColor;
-    procedure ApplyDimToCards;
-    procedure StartDimAnimation(ADimming: Boolean);
-    procedure DimTimerTick(Sender: TObject);
-    procedure RestoreCardImageFromOriginal(ACard: TPanel);
+    procedure ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
+    procedure ApplyAllCardsDim;
+    procedure HoverTimerTick(Sender: TObject);
     function ParseAcfValue(const AContent, AKey: string): string;
     procedure GetSteamLibraries(Libraries: TStringList);
 
@@ -5335,8 +5327,8 @@ begin
 
 
 
-     //Select home as initial option
-     ShowHomeTab;
+     //Select games as initial option
+     gamesLabelClick(nil);
 
      // Initial MANGOHUD STOCK values
 
@@ -6372,7 +6364,6 @@ begin
     VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
     UpdateGameContextLabel;
     HideGameThumb;
-    HideGameActionPanel;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
     SetSaveBtnEnabled(True);
   end;
@@ -10665,10 +10656,7 @@ end;
 // ============================================================================
 
 procedure Tgoverlayform.InitGamesTab;
-const
-  BTN_CAPTIONS: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'Tweaks');
 var
-  k: Integer;
   OpenFolderItem: TMenuItem;
 begin
   FCardPanels := TList.Create;
@@ -10701,25 +10689,6 @@ begin
   FGamesPanel.Height := 100;
   FGamesPanel.OnClick := @GamesEmptySpaceClick;
   FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
-
-  // 4 shared action buttons — children of FGamesPanel, repositioned on card select
-  for k := 0 to 3 do
-  begin
-    FActionBtns[k] := TPanel.Create(Self);
-    FActionBtns[k].Parent     := FGamesPanel;
-    FActionBtns[k].BevelOuter := bvNone;
-    FActionBtns[k].Caption    := BTN_CAPTIONS[k];
-    FActionBtns[k].Color      := $2D2D2D;
-    FActionBtns[k].Font.Color := $AAAAAA;
-    FActionBtns[k].Font.Size  := 8;
-    FActionBtns[k].Cursor     := crHandPoint;
-    FActionBtns[k].Tag        := k;
-    FActionBtns[k].Visible    := False;
-    FActionBtns[k].SetBounds(0, 0, 134, 32);
-    FActionBtns[k].OnMouseEnter := @GameActionBtnMouseEnter;
-    FActionBtns[k].OnMouseLeave := @GameActionBtnMouseLeave;
-    FActionBtns[k].OnClick      := @GameActionBtnClick;
-  end;
 
   // Game context label — shown in the bottom bar when editing a game-specific config
   FGameContextLabel := TLabel.Create(Self);
@@ -11137,7 +11106,7 @@ begin
             BadgeX := BadgeX + 28;
           end;
 
-          // Store card and original image for dim animation
+          // Store card and original image; immediately apply 35% dim
           FCardPanels.Add(CardPanel);
           if (CardImage.Picture.Graphic <> nil) and
              (CardImage.Picture.Graphic.Width > 0) then
@@ -11151,6 +11120,8 @@ begin
             finally
               ScaledBmp.Free;
             end;
+            // Dim cover image to 35% brightness by default
+            ApplyCardBrightness(CardPanel, 35);
           end
           else
             FOrigCovers.Add(nil);  // pending download — skip pixel dim
@@ -11859,10 +11830,6 @@ begin
     Ctrl := FGamesPanel.Controls[i];
     if not (Ctrl is TPanel) then
       Continue;
-    // Skip the shared action buttons
-    if (TPanel(Ctrl) = FActionBtns[0]) or (TPanel(Ctrl) = FActionBtns[1]) or
-       (TPanel(Ctrl) = FActionBtns[2]) or (TPanel(Ctrl) = FActionBtns[3]) then
-      Continue;
     CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
     CardY := CARD_MARGIN + (CardCount div CardsPerRow) * (CARD_H + CARD_MARGIN);
     Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
@@ -11877,14 +11844,6 @@ begin
     FGamesPanel.Height := CARD_MARGIN + TotalRows * (CARD_H + CARD_MARGIN);
   end;
 
-  // Keep action buttons in sync with selected card after reflow
-  if FSelectedCard <> nil then
-  begin
-    FActionBtns[0].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top +  31, FSelectedCard.Width - 16, 32);
-    FActionBtns[1].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top +  70, FSelectedCard.Width - 16, 32);
-    FActionBtns[2].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top + 109, FSelectedCard.Width - 16, 32);
-    FActionBtns[3].SetBounds(FSelectedCard.Left + 8, FSelectedCard.Top + 148, FSelectedCard.Width - 16, 32);
-  end;
 end;
 
 procedure Tgoverlayform.GamesScrollBoxResize(Sender: TObject);
@@ -11895,8 +11854,7 @@ end;
 
 procedure Tgoverlayform.GamesEmptySpaceClick(Sender: TObject);
 begin
-  // Clicking empty space in the games grid: deselect cards and return to global config
-  HideGameActionPanel;
+  // Clicking empty space in the games grid
   if FActiveGameName <> '' then
   begin
     FActiveGameName := '';
@@ -11912,59 +11870,102 @@ procedure Tgoverlayform.GameCardMouseEnter(Sender: TObject);
 var
   Panel: TPanel;
 begin
-  if Sender is TPanel then
-    Panel := TPanel(Sender)
-  else if (Sender is TImage) then
-    Panel := TPanel(TImage(Sender).Parent)
-  else if (Sender is TLabel) then
-    Panel := TPanel(TLabel(Sender).Parent)
-  else
-    Exit;
+  if Sender is TPanel then Panel := TPanel(Sender)
+  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
+  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
+  else Exit;
 
-  if Panel <> FSelectedCard then
-    Panel.Color := IfThen(CurrentTheme = tmLight, $00D8D8D8, $3A3A3A);
   if Sender is TControl then
     TControl(Sender).Cursor := crHandPoint;
+
+  if Panel = FHoveredCard then
+  begin
+    // Re-entering same card (e.g. from child control): ensure brightening
+    FHoverDir := 1;
+    if Assigned(FHoverTimer) and not FHoverTimer.Enabled then
+      FHoverTimer.Enabled := True;
+    Exit;
+  end;
+
+  // Snap previous hovered card back to dim immediately
+  if Assigned(FHoveredCard) then
+    ApplyCardBrightness(FHoveredCard, 35);
+
+  FHoveredCard     := Panel;
+  FHoverBrightness := 0;
+  FHoverDir        := 1;
+
+  if not Assigned(FHoverTimer) then
+  begin
+    FHoverTimer          := TTimer.Create(Self);
+    FHoverTimer.Interval := 16;
+    FHoverTimer.OnTimer  := @HoverTimerTick;
+  end;
+  FHoverTimer.Enabled := True;
 end;
 
 procedure Tgoverlayform.GameCardMouseLeave(Sender: TObject);
 var
   Panel: TPanel;
 begin
-  if Sender is TPanel then
-    Panel := TPanel(Sender)
-  else if (Sender is TImage) then
-    Panel := TPanel(TImage(Sender).Parent)
-  else if (Sender is TLabel) then
-    Panel := TPanel(TLabel(Sender).Parent)
-  else
-    Exit;
+  if Sender is TPanel then Panel := TPanel(Sender)
+  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
+  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
+  else Exit;
 
-  // Restore original panel color (respects current dim state)
-  if Panel <> FSelectedCard then
-    Panel.Color := DimmedCardColor;
+  if Panel <> FHoveredCard then Exit;
+
+  FHoverDir := -1;
+  if Assigned(FHoverTimer) then
+    FHoverTimer.Enabled := True;
 end;
 
 procedure Tgoverlayform.GameCardClick(Sender: TObject);
 var
   Panel: TPanel;
+  GameName, GameCfgDir: string;
+  Lines: TStringList;
 begin
-  if Sender is TPanel then
-    Panel := TPanel(Sender)
-  else if Sender is TImage then
-    Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then
-    Panel := TPanel(TLabel(Sender).Parent)
-  else
-    Exit;
+  if Sender is TPanel then Panel := TPanel(Sender)
+  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
+  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
+  else Exit;
 
-  if Panel = FSelectedCard then
-  begin
-    HideGameActionPanel;
-    Exit;
+  // Extract game name from card hint
+  Lines := TStringList.Create;
+  try
+    Lines.Text := Panel.Hint;
+    if Lines.Count < 1 then Exit;
+    GameName := Lines[0];
+  finally
+    Lines.Free;
   end;
 
-  ShowGameActionPanel(Panel);
+  FActiveGameName := GameName;
+  ShowGameThumb(Panel);
+  LoadGameToggleStates;
+
+  // Navigate directly to MangoHud game config
+  GameCfgDir := GetGameConfigDir(GameName);
+  if not DirectoryExists(GameCfgDir) then
+    ForceDirectories(GameCfgDir);
+  ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
+  MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
+  UpdateGameContextLabel;
+  SetNavActive(1);
+  goverlayPageControl.ShowTabs := True;
+  vkbasalttabsheet.TabVisible  := False;
+  optiscalertabsheet.TabVisible := False;
+  tweakstabsheet.TabVisible    := False;
+  gamesTabSheet.TabVisible     := False;
+  goverlayPageControl.ActivePage := presetTabsheet;
+  notificationLabel.Visible := False;
+  commandEdit.Visible       := False;
+  copyBitbtn.Visible        := False;
+  goverlaybarPanel.Visible  := True;
+  UpdateGeSpeedButtonState;
+  UpdateGlobalEnableMenuItemVisibility;
+  LoadMangoHudConfig;
 end;
 
 procedure Tgoverlayform.GameCardMouseUp(Sender: TObject; Button: TMouseButton;
@@ -12014,140 +12015,6 @@ begin
     ExecuteShellCommand('xdg-open ' + QuotedStr(GamePath));
 end;
 
-procedure Tgoverlayform.ShowGameActionPanel(ACard: TPanel);
-const
-  BTN_OFFSETS: array[0..3] of Integer = (31, 70, 109, 148);
-  // Config files to check for each button index (empty = not implemented yet)
-  CFG_FILES: array[0..2] of string = (
-    'MangoHud.conf',
-    'vkBasalt.conf',
-    'OptiScaler.ini'
-  );
-  COLOR_CONFIGURED = $0066DD66;  // green — game has a saved config
-  COLOR_DEFAULT    = $00AAAAAA;  // gray  — no config yet
-var
-  k: Integer;
-  i: Integer;
-  Switching: Boolean;
-  GameName, GameCfgDir: string;
-  HintLines: TStringList;
-  HasTweaks: Boolean;
-  TweakLines: TStringList;
-begin
-  Switching := FSelectedCard <> nil;
-
-  if Switching then
-  begin
-    // Switching between cards: hide buttons and deselect without triggering undim
-    for k := 0 to 3 do
-      FActionBtns[k].Visible := False;
-    FSelectedCard.Color := DimmedCardColor;
-    FSelectedCard := nil;
-  end;
-
-  FSelectedCard       := ACard;
-  FSelectedCard.Color := clHighlight;
-
-  // Restore the newly selected card's image to original brightness
-  RestoreCardImageFromOriginal(ACard);
-
-  // Dim all other cards to current level (snaps old selected card instantly)
-  if Switching then
-    ApplyDimToCards;
-
-  // Extract game name to check for existing per-game configs
-  GameName := '';
-  HintLines := TStringList.Create;
-  try
-    HintLines.Text := ACard.Hint;
-    if HintLines.Count > 0 then
-      GameName := HintLines[0];
-  finally
-    HintLines.Free;
-  end;
-  GameCfgDir := GetGameConfigDir(GameName);
-
-  // Check Tweaks: fgmod must contain at least one tweak-specific line
-  HasTweaks := False;
-  if FileExists(GameCfgDir + 'fgmod') then
-  begin
-    TweakLines := TStringList.Create;
-    try
-      TweakLines.LoadFromFile(GameCfgDir + 'fgmod');
-      for i := 0 to TweakLines.Count - 1 do
-        if (Pos('#gamemode', TweakLines[i]) > 0) or
-           (Pos('export PROTON_', TweakLines[i]) > 0) or
-           (Pos('export RADV_', TweakLines[i]) > 0) or
-           (Pos('export MESA_', TweakLines[i]) > 0) or
-           (Pos('#customenv', TweakLines[i]) > 0) or
-           (Pos('export SteamDeck=1', TweakLines[i]) > 0) then
-        begin
-          HasTweaks := True;
-          Break;
-        end;
-    finally
-      TweakLines.Free;
-    end;
-  end;
-
-  for k := 0 to 3 do
-  begin
-    FActionBtns[k].SetBounds(
-      ACard.Left + 8,
-      ACard.Top  + BTN_OFFSETS[k],
-      ACard.Width - 16,
-      32);
-
-    // Color the button text green if a game-specific config already exists
-    if k <= 2 then
-    begin
-      if FileExists(GameCfgDir + CFG_FILES[k]) then
-        FActionBtns[k].Font.Color := COLOR_CONFIGURED
-      else
-        FActionBtns[k].Font.Color := COLOR_DEFAULT;
-    end
-    else  // Tweaks (k = 3)
-    begin
-      if HasTweaks then
-        FActionBtns[k].Font.Color := COLOR_CONFIGURED
-      else
-        FActionBtns[k].Font.Color := COLOR_DEFAULT;
-    end;
-
-    FActionBtns[k].Visible := True;
-    FActionBtns[k].BringToFront;
-  end;
-
-  StartDimAnimation(True);
-end;
-
-procedure Tgoverlayform.HideGameActionPanel;
-var
-  k: Integer;
-begin
-  if FSelectedCard = nil then
-    Exit;
-
-  for k := 0 to 3 do
-    FActionBtns[k].Visible := False;
-
-  FSelectedCard.Color := $2A2A2A;
-  FSelectedCard := nil;
-
-  StartDimAnimation(False);
-end;
-
-procedure Tgoverlayform.GameActionBtnMouseEnter(Sender: TObject);
-begin
-  if Sender is TPanel then
-    TPanel(Sender).Color := $404040;
-end;
-
-procedure Tgoverlayform.GameActionBtnMouseLeave(Sender: TObject);
-begin
-  if Sender is TPanel then
-    TPanel(Sender).Color := $2D2D2D;
-end;
 
 // ============================================================================
 // Game-specific config helpers
@@ -12290,190 +12157,18 @@ begin
   LoadGlobalThumb;
 end;
 
-procedure Tgoverlayform.GameActionBtnClick(Sender: TObject);
-var
-  BtnIndex: Integer;
-  GameName: string;
-  Lines: TStringList;
-  GameCfgDir: string;
-begin
-  if not (Sender is TPanel) then Exit;
-  if FSelectedCard = nil then Exit;
-
-  BtnIndex := TPanel(Sender).Tag;
-
-  // Extract game name from card hint (format: "GameName\nInstallPath")
-  Lines := TStringList.Create;
-  try
-    Lines.Text := FSelectedCard.Hint;
-    if Lines.Count < 1 then Exit;
-    GameName := Lines[0];
-  finally
-    Lines.Free;
-  end;
-
-  FActiveGameName := GameName;
-  ShowGameThumb(FSelectedCard);
-  LoadGameToggleStates;
-
-  case BtnIndex of
-    0: // MangoHud — navigate directly (do NOT call mangohudLabelClick to avoid
-       // triggering the game-mode reset that sidebar navigation applies)
-    begin
-      GameCfgDir := GetGameConfigDir(GameName);
-      if not DirectoryExists(GameCfgDir) then
-        ForceDirectories(GameCfgDir);
-      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
-      MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
-      UpdateGameContextLabel;
-      SetNavActive(1);
-      goverlayPageControl.ShowTabs := True;
-      vkbasalttabsheet.TabVisible  := False;
-      optiscalertabsheet.TabVisible := False;
-      tweakstabsheet.TabVisible    := False;
-      gamesTabSheet.TabVisible     := False;
-      goverlayPageControl.ActivePage := presetTabsheet;
-      notificationLabel.Visible := False;
-      commandEdit.Visible       := False;
-      copyBitbtn.Visible        := False;
-      
-      
-      goverlaybarPanel.Visible  := True;
-      UpdateGeSpeedButtonState;
-      UpdateGlobalEnableMenuItemVisibility;
-      LoadMangoHudConfig;
-    end;
-    1: // vkBasalt
-    begin
-      GameCfgDir := GetGameConfigDir(GameName);
-      if not DirectoryExists(GameCfgDir) then
-        ForceDirectories(GameCfgDir);
-      ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
-      VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
-      UpdateGameContextLabel;
-      vkbasaltLabelClick(nil);
-    end;
-    2: // OptiScaler
-    begin
-      UpdateGameContextLabel;
-      optiscalerLabelClick(nil);
-    end;
-    3: // Tweaks
-    begin
-      UpdateGameContextLabel;
-      tweaksLabelClick(nil);
-    end;
-  end;
-
-  HideGameActionPanel;
-end;
-
 // ============================================================================
-// Card dim animation
+// Card hover brightness animation
 // ============================================================================
 
-function Tgoverlayform.DimmedCardColor: TColor;
-const
-  BRIGHT = $2A;
-  DIM    = $12;
-var
-  V: Integer;
-begin
-  if CurrentTheme = tmLight then
-    Result := $00F0F0F0
-  else
-  begin
-    V := BRIGHT + (DIM - BRIGHT) * FDimProgress div 100;
-    Result := V or (V shl 8) or (V shl 16);
-  end;
-end;
-
-procedure Tgoverlayform.ApplyDimToCards;
-var
-  i, x, y: Integer;
-  BrightFactor: Integer;
-  Panel: TPanel;
-  Img: TImage;
-  OrigIntf, DimIntf: TLazIntfImage;
-  DimBmp: TBitmap;
-  SrcRow, DstRow: PByte;
-  W, H, Stride, BPP, px: Integer;
-begin
-  if not Assigned(FCardPanels) then Exit;
-  // Dim to 35% brightness at max — visible but not fully black
-  BrightFactor := 35 + 65 * (100 - FDimProgress) div 100;
-
-  for i := 0 to FCardPanels.Count - 1 do
-  begin
-    Panel := TPanel(FCardPanels[i]);
-    if Panel = FSelectedCard then Continue;
-
-    // Dim the label strip background
-    Panel.Color := DimmedCardColor;
-
-    // Pixel-blend the cover image
-    if i >= FOrigCovers.Count then Continue;
-    OrigIntf := TLazIntfImage(FOrigCovers[i]);
-    if OrigIntf = nil then Continue;
-    if (Panel.ControlCount = 0) or not (Panel.Controls[0] is TImage) then Continue;
-    Img := TImage(Panel.Controls[0]);
-
-    W      := OrigIntf.Width;
-    H      := OrigIntf.Height;
-    Stride := OrigIntf.DataDescription.BytesPerLine;
-    BPP    := OrigIntf.DataDescription.BitsPerPixel div 8;
-
-    DimIntf := TLazIntfImage.Create(W, H);
-    DimIntf.DataDescription := OrigIntf.DataDescription;
-    DimIntf.CreateData;
-    try
-      for y := 0 to H - 1 do
-      begin
-        SrcRow := OrigIntf.PixelData + PtrUInt(y * Stride);
-        DstRow := DimIntf.PixelData  + PtrUInt(y * Stride);
-        for x := 0 to W - 1 do
-        begin
-          px := x * BPP;
-          DstRow[px]   := Byte(Integer(SrcRow[px])   * BrightFactor div 100);
-          DstRow[px+1] := Byte(Integer(SrcRow[px+1]) * BrightFactor div 100);
-          DstRow[px+2] := Byte(Integer(SrcRow[px+2]) * BrightFactor div 100);
-          if BPP >= 4 then
-            DstRow[px+3] := SrcRow[px+3];  // preserve alpha
-        end;
-      end;
-
-      DimBmp := TBitmap.Create;
-      try
-        DimBmp.LoadFromIntfImage(DimIntf);
-        Img.Picture.Bitmap.Assign(DimBmp);
-        Img.Invalidate;
-      finally
-        DimBmp.Free;
-      end;
-    finally
-      DimIntf.Free;
-    end;
-  end;
-end;
-
-procedure Tgoverlayform.StartDimAnimation(ADimming: Boolean);
-begin
-  FDimDir := IfThen(ADimming, 1, -1);
-  if not Assigned(FDimTimer) then
-  begin
-    FDimTimer          := TTimer.Create(Self);
-    FDimTimer.Interval := 16;
-    FDimTimer.OnTimer  := @DimTimerTick;
-  end;
-  FDimTimer.Enabled := True;
-end;
-
-procedure Tgoverlayform.RestoreCardImageFromOriginal(ACard: TPanel);
+procedure Tgoverlayform.ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
 var
   CardIdx: Integer;
-  OrigIntf: TLazIntfImage;
-  Bmp: TBitmap;
+  OrigIntf, DimIntf: TLazIntfImage;
   Img: TImage;
+  DimBmp: TBitmap;
+  SrcRow, DstRow: PByte;
+  W, H, Stride, BPP, x, y, px: Integer;
 begin
   if not Assigned(FCardPanels) or not Assigned(FOrigCovers) then Exit;
   CardIdx := FCardPanels.IndexOf(ACard);
@@ -12482,32 +12177,86 @@ begin
   if OrigIntf = nil then Exit;
   if (ACard.ControlCount = 0) or not (ACard.Controls[0] is TImage) then Exit;
   Img := TImage(ACard.Controls[0]);
-  Bmp := TBitmap.Create;
+
+  W      := OrigIntf.Width;
+  H      := OrigIntf.Height;
+  Stride := OrigIntf.DataDescription.BytesPerLine;
+  BPP    := OrigIntf.DataDescription.BitsPerPixel div 8;
+
+  DimIntf := TLazIntfImage.Create(W, H);
+  DimIntf.DataDescription := OrigIntf.DataDescription;
+  DimIntf.CreateData;
   try
-    Bmp.LoadFromIntfImage(OrigIntf);
-    Img.Picture.Bitmap.Assign(Bmp);
-    Img.Invalidate;
+    for y := 0 to H - 1 do
+    begin
+      SrcRow := OrigIntf.PixelData + PtrUInt(y * Stride);
+      DstRow := DimIntf.PixelData  + PtrUInt(y * Stride);
+      for x := 0 to W - 1 do
+      begin
+        px := x * BPP;
+        DstRow[px]   := Byte(Integer(SrcRow[px])   * BrightFactor div 100);
+        DstRow[px+1] := Byte(Integer(SrcRow[px+1]) * BrightFactor div 100);
+        DstRow[px+2] := Byte(Integer(SrcRow[px+2]) * BrightFactor div 100);
+        if BPP >= 4 then
+          DstRow[px+3] := SrcRow[px+3];
+      end;
+    end;
+    DimBmp := TBitmap.Create;
+    try
+      DimBmp.LoadFromIntfImage(DimIntf);
+      Img.Picture.Bitmap.Assign(DimBmp);
+      Img.Invalidate;
+    finally
+      DimBmp.Free;
+    end;
   finally
-    Bmp.Free;
+    DimIntf.Free;
   end;
 end;
 
-procedure Tgoverlayform.DimTimerTick(Sender: TObject);
-const
-  STEP = 7;
+procedure Tgoverlayform.ApplyAllCardsDim;
+var
+  i: Integer;
 begin
-  FDimProgress := FDimProgress + FDimDir * STEP;
-  if FDimProgress <= 0 then
+  if not Assigned(FCardPanels) then Exit;
+  for i := 0 to FCardPanels.Count - 1 do
+    ApplyCardBrightness(TPanel(FCardPanels[i]), 35);
+  FHoveredCard     := nil;
+  FHoverBrightness := 0;
+end;
+
+procedure Tgoverlayform.HoverTimerTick(Sender: TObject);
+const
+  STEP = 10;  // ~10 steps × 16 ms ≈ 160 ms full transition
+var
+  Brightness: Integer;
+begin
+  if not Assigned(FHoveredCard) then
   begin
-    FDimProgress := 0;
-    FDimTimer.Enabled := False;
-  end
-  else if FDimProgress >= 100 then
-  begin
-    FDimProgress := 100;
-    FDimTimer.Enabled := False;
+    FHoverTimer.Enabled := False;
+    Exit;
   end;
-  ApplyDimToCards;
+
+  FHoverBrightness := FHoverBrightness + FHoverDir * STEP;
+
+  if FHoverBrightness <= 0 then
+  begin
+    FHoverBrightness := 0;
+    FHoverTimer.Enabled := False;
+    ApplyCardBrightness(FHoveredCard, 35);
+    FHoveredCard := nil;
+  end
+  else if FHoverBrightness >= 100 then
+  begin
+    FHoverBrightness := 100;
+    FHoverTimer.Enabled := False;
+    ApplyCardBrightness(FHoveredCard, 100);
+  end
+  else
+  begin
+    Brightness := 35 + 65 * FHoverBrightness div 100;
+    ApplyCardBrightness(FHoveredCard, Brightness);
+  end;
 end;
 
 end.
