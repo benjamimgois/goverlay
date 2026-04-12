@@ -573,6 +573,11 @@ type
     FVkToggleCard:   TPanel;
     FVkAvHdrLbl:     TLabel;
     FVkActHdrLbl:    TLabel;
+    // Fresh value labels (avoid LFM reparenting issues)
+    FVkCasValLbl:    TLabel;
+    FVkFxaaValLbl:   TLabel;
+    FVkSmaaValLbl:   TLabel;
+    FVkDlsValLbl:    TLabel;
 
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
@@ -4330,36 +4335,36 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Convert 0.1..1.0 -> 1..10
           casTrackBar.Position := Round(FloatValue * 10);
           casvalueLabel.Caption := IntToStr(casTrackBar.Position);
+          if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
         end;
       end
       else if SameText(Key, 'fxaaQualitySubpix') then
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Convert 0.1..1.0 -> 1..10
           fxaaTrackBar.Position := Round(FloatValue * 10);
           fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
+          if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
         end;
       end
       else if SameText(Key, 'smaaCornerRounding') then
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Convert 0.0..1.0 -> 1..10
           smaaTrackBar.Position := Round(FloatValue * 9) + 1;
           smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
+          if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
         end;
       end
       else if SameText(Key, 'dlsSharpness') then
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          // Convert 0.0..1.0 -> 1..10
           dlsTrackBar.Position := Round(FloatValue * 9) + 1;
           dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
+          if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
         end;
       end
       else if SameText(Key, 'toggleKey') then
@@ -7123,6 +7128,7 @@ end;
 procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
 begin
   casvaluelabel.Caption := inttostr(casTrackbar.Position);
+  if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvaluelabel.Caption;
 end;
 
 procedure Tgoverlayform.copyBitBtnClick(Sender: TObject);
@@ -7144,7 +7150,8 @@ end;
 
 procedure Tgoverlayform.dlsTrackBarChange(Sender: TObject);
 begin
-   dlsvaluelabel.Caption := inttostr(dlsTrackbar.Position);
+  dlsvaluelabel.Caption := inttostr(dlsTrackbar.Position);
+  if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvaluelabel.Caption;
 end;
 
 procedure Tgoverlayform.donateMenuItemClick(Sender: TObject);
@@ -7266,6 +7273,7 @@ end;
 procedure Tgoverlayform.fxaaTrackBarChange(Sender: TObject);
 begin
   fxaavaluelabel.Caption := inttostr(fxaaTrackbar.Position);
+  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavaluelabel.Caption;
 end;
 
 procedure Tgoverlayform.goverlayBitBtnClick(Sender: TObject);
@@ -8947,7 +8955,8 @@ end;
 
 procedure Tgoverlayform.smaaTrackBarChange(Sender: TObject);
 begin
-   smaavaluelabel.Caption := inttostr(smaaTrackbar.Position);
+  smaavaluelabel.Caption := inttostr(smaaTrackbar.Position);
+  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavaluelabel.Caption;
 end;
 
 
@@ -10831,85 +10840,52 @@ begin
   TitleLbl.SetBounds(12, 12, 200, 22);
   TitleLbl.Transparent := True;
 
-  // CAS
-  casTrackBar.Parent   := FVkBuiltinCard;
-  casTrackBar.Anchors  := [akLeft, akTop];
-  casTrackBar.Visible  := True;
-  casvalueLabel.Parent      := FVkBuiltinCard;
-  casvalueLabel.Anchors     := [akLeft, akTop];
-  casvalueLabel.Font.Color  := CLR_WHITE;
-  casvalueLabel.Font.Size   := 9;
-  casvalueLabel.Color       := BG;
-  casvalueLabel.Visible     := True;
-  casvalueLabel.BringToFront;
-  casLabel.Parent      := FVkBuiltinCard;
-  casLabel.Anchors     := [akLeft, akTop];
-  casLabel.Font.Color  := $BB99FF;
-  casLabel.Font.Style  := [fsBold];
-  casLabel.Font.Size   := 9;
-  casLabel.Color       := BG;
-  casLabel.Visible     := True;
-  casLabel.BringToFront;
+  // Reparent trackbars + name labels; hide old value labels (replaced below)
+  casTrackBar.Parent  := FVkBuiltinCard; casTrackBar.Anchors := [akLeft, akTop]; casTrackBar.Visible := True;
+  fxaaTrackBar.Parent := FVkBuiltinCard; fxaaTrackBar.Anchors := [akLeft, akTop]; fxaaTrackBar.Visible := True;
+  smaaTrackBar.Parent := FVkBuiltinCard; smaaTrackBar.Anchors := [akLeft, akTop]; smaaTrackBar.Visible := True;
+  dlsTrackBar.Parent  := FVkBuiltinCard; dlsTrackBar.Anchors  := [akLeft, akTop]; dlsTrackBar.Visible  := True;
 
-  // FXAA
-  fxaaTrackBar.Parent  := FVkBuiltinCard;
-  fxaaTrackBar.Anchors := [akLeft, akTop];
-  fxaaTrackBar.Visible := True;
-  fxaavalueLabel.Parent      := FVkBuiltinCard;
-  fxaavalueLabel.Anchors     := [akLeft, akTop];
-  fxaavalueLabel.Font.Color  := CLR_WHITE;
-  fxaavalueLabel.Font.Size   := 9;
-  fxaavalueLabel.Color       := BG;
-  fxaavalueLabel.Visible     := True;
-  fxaavalueLabel.BringToFront;
-  fxaaLabel.Parent     := FVkBuiltinCard;
-  fxaaLabel.Anchors    := [akLeft, akTop];
-  fxaaLabel.Font.Color := $BB99FF;
-  fxaaLabel.Font.Style := [fsBold];
-  fxaaLabel.Font.Size  := 9;
-  fxaaLabel.Color      := BG;
-  fxaaLabel.Visible    := True;
-  fxaaLabel.BringToFront;
+  casLabel.Parent  := FVkBuiltinCard; casLabel.Anchors  := [akLeft, akTop];
+  casLabel.Font.Color := $BB99FF; casLabel.Font.Style := [fsBold]; casLabel.Font.Size := 9;
+  casLabel.Color := BG; casLabel.Visible := True;
 
-  // SMAA
-  smaaTrackBar.Parent  := FVkBuiltinCard;
-  smaaTrackBar.Anchors := [akLeft, akTop];
-  smaaTrackBar.Visible := True;
-  smaavalueLabel.Parent      := FVkBuiltinCard;
-  smaavalueLabel.Anchors     := [akLeft, akTop];
-  smaavalueLabel.Font.Color  := CLR_WHITE;
-  smaavalueLabel.Font.Size   := 9;
-  smaavalueLabel.Color       := BG;
-  smaavalueLabel.Visible     := True;
-  smaavalueLabel.BringToFront;
-  smaaLabel.Parent     := FVkBuiltinCard;
-  smaaLabel.Anchors    := [akLeft, akTop];
-  smaaLabel.Font.Color := $BB99FF;
-  smaaLabel.Font.Style := [fsBold];
-  smaaLabel.Font.Size  := 9;
-  smaaLabel.Color      := BG;
-  smaaLabel.Visible    := True;
-  smaaLabel.BringToFront;
+  fxaaLabel.Parent := FVkBuiltinCard; fxaaLabel.Anchors := [akLeft, akTop];
+  fxaaLabel.Font.Color := $BB99FF; fxaaLabel.Font.Style := [fsBold]; fxaaLabel.Font.Size := 9;
+  fxaaLabel.Color := BG; fxaaLabel.Visible := True;
 
-  // DLS
-  dlsTrackBar.Parent   := FVkBuiltinCard;
-  dlsTrackBar.Anchors  := [akLeft, akTop];
-  dlsTrackBar.Visible  := True;
-  dlsvalueLabel.Parent      := FVkBuiltinCard;
-  dlsvalueLabel.Anchors     := [akLeft, akTop];
-  dlsvalueLabel.Font.Color  := CLR_WHITE;
-  dlsvalueLabel.Font.Size   := 9;
-  dlsvalueLabel.Color       := BG;
-  dlsvalueLabel.Visible     := True;
-  dlsvalueLabel.BringToFront;
-  dlsLabel.Parent      := FVkBuiltinCard;
-  dlsLabel.Anchors     := [akLeft, akTop];
-  dlsLabel.Font.Color  := $BB99FF;
-  dlsLabel.Font.Style  := [fsBold];
-  dlsLabel.Font.Size   := 9;
-  dlsLabel.Color       := BG;
-  dlsLabel.Visible     := True;
-  dlsLabel.BringToFront;
+  smaaLabel.Parent := FVkBuiltinCard; smaaLabel.Anchors := [akLeft, akTop];
+  smaaLabel.Font.Color := $BB99FF; smaaLabel.Font.Style := [fsBold]; smaaLabel.Font.Size := 9;
+  smaaLabel.Color := BG; smaaLabel.Visible := True;
+
+  dlsLabel.Parent  := FVkBuiltinCard; dlsLabel.Anchors  := [akLeft, akTop];
+  dlsLabel.Font.Color := $BB99FF; dlsLabel.Font.Style := [fsBold]; dlsLabel.Font.Size := 9;
+  dlsLabel.Color := BG; dlsLabel.Visible := True;
+
+  // Fresh value labels — created here to avoid any LFM inheritance issues
+  FVkCasValLbl := TLabel.Create(Self);
+  FVkCasValLbl.Parent := FVkBuiltinCard;
+  FVkCasValLbl.Caption := casvalueLabel.Caption;
+  FVkCasValLbl.Font.Color := CLR_WHITE; FVkCasValLbl.Font.Size := 9;
+  FVkCasValLbl.Color := BG; FVkCasValLbl.Anchors := [akLeft, akTop];
+
+  FVkFxaaValLbl := TLabel.Create(Self);
+  FVkFxaaValLbl.Parent := FVkBuiltinCard;
+  FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
+  FVkFxaaValLbl.Font.Color := CLR_WHITE; FVkFxaaValLbl.Font.Size := 9;
+  FVkFxaaValLbl.Color := BG; FVkFxaaValLbl.Anchors := [akLeft, akTop];
+
+  FVkSmaaValLbl := TLabel.Create(Self);
+  FVkSmaaValLbl.Parent := FVkBuiltinCard;
+  FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
+  FVkSmaaValLbl.Font.Color := CLR_WHITE; FVkSmaaValLbl.Font.Size := 9;
+  FVkSmaaValLbl.Color := BG; FVkSmaaValLbl.Anchors := [akLeft, akTop];
+
+  FVkDlsValLbl := TLabel.Create(Self);
+  FVkDlsValLbl.Parent := FVkBuiltinCard;
+  FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
+  FVkDlsValLbl.Font.Color := CLR_WHITE; FVkDlsValLbl.Font.Size := 9;
+  FVkDlsValLbl.Color := BG; FVkDlsValLbl.Anchors := [akLeft, akTop];
 
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 3 — Toggle Key
@@ -11016,11 +10992,11 @@ begin
 
   // CAS / FXAA (row 0)
   casLabel.SetBounds(Col0, Row0, ColW - VAL_W - 4, 20);
-  casvalueLabel.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
+  if Assigned(FVkCasValLbl)  then FVkCasValLbl.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
   casTrackBar.SetBounds(Col0, Row1, ColW, 28);
 
   fxaaLabel.SetBounds(Col1, Row0, ColW - VAL_W - 4, 20);
-  fxaavalueLabel.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
+  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
   fxaaTrackBar.SetBounds(Col1, Row1, ColW, 28);
 
   // SMAA / DLS (row 1)
@@ -11028,11 +11004,11 @@ begin
   Row1 := Row0 + 20 + 4;
 
   smaaLabel.SetBounds(Col0, Row0, ColW - VAL_W - 4, 20);
-  smaavalueLabel.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
+  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
   smaaTrackBar.SetBounds(Col0, Row1, ColW, 28);
 
   dlsLabel.SetBounds(Col1, Row0, ColW - VAL_W - 4, 20);
-  dlsvalueLabel.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
+  if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
   dlsTrackBar.SetBounds(Col1, Row1, ColW, 28);
 
   // ── Card 3: Toggle Key ─────────────────────────────────────────────────
