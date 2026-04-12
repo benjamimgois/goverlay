@@ -10780,6 +10780,7 @@ begin
   aveffectsListBox.Color       := $12121E;
   aveffectsListBox.Font.Color  := CLR_WHITE;
   aveffectsListBox.Font.Size   := 9;
+  aveffectsListBox.Visible     := True;
 
   // Reparent + style Active listbox
   acteffectsListBox.Parent     := FVkReshadeCard;
@@ -10787,16 +10788,20 @@ begin
   acteffectsListBox.Color      := $12121E;
   acteffectsListBox.Font.Color := $FFCC66;
   acteffectsListBox.Font.Size  := 9;
+  acteffectsListBox.Visible    := True;
 
   // Reparent +/- buttons
   addBitBtn.Parent  := FVkReshadeCard;
   addBitBtn.Anchors := [akLeft, akTop];
+  addBitBtn.Visible := True;
   subBitBtn.Parent  := FVkReshadeCard;
   subBitBtn.Anchors := [akLeft, akTop];
+  subBitBtn.Visible := True;
 
   // Reparent Update button
   reshaderefreshBitBtn.Parent  := FVkReshadeCard;
   reshaderefreshBitBtn.Anchors := [akLeft, akTop];
+  reshaderefreshBitBtn.Visible := True;
 
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 2 — Built-in Effects
@@ -10829,11 +10834,13 @@ begin
   // CAS
   casTrackBar.Parent   := FVkBuiltinCard;
   casTrackBar.Anchors  := [akLeft, akTop];
+  casTrackBar.Visible  := True;
   casvalueLabel.Parent      := FVkBuiltinCard;
   casvalueLabel.Anchors     := [akLeft, akTop];
   casvalueLabel.Font.Color  := CLR_WHITE;
   casvalueLabel.Font.Size   := 9;
   casvalueLabel.Color       := BG;
+  casvalueLabel.Visible     := True;
   casvalueLabel.BringToFront;
   casLabel.Parent      := FVkBuiltinCard;
   casLabel.Anchors     := [akLeft, akTop];
@@ -10841,16 +10848,19 @@ begin
   casLabel.Font.Style  := [fsBold];
   casLabel.Font.Size   := 9;
   casLabel.Color       := BG;
+  casLabel.Visible     := True;
   casLabel.BringToFront;
 
   // FXAA
   fxaaTrackBar.Parent  := FVkBuiltinCard;
   fxaaTrackBar.Anchors := [akLeft, akTop];
+  fxaaTrackBar.Visible := True;
   fxaavalueLabel.Parent      := FVkBuiltinCard;
   fxaavalueLabel.Anchors     := [akLeft, akTop];
   fxaavalueLabel.Font.Color  := CLR_WHITE;
   fxaavalueLabel.Font.Size   := 9;
   fxaavalueLabel.Color       := BG;
+  fxaavalueLabel.Visible     := True;
   fxaavalueLabel.BringToFront;
   fxaaLabel.Parent     := FVkBuiltinCard;
   fxaaLabel.Anchors    := [akLeft, akTop];
@@ -10858,16 +10868,19 @@ begin
   fxaaLabel.Font.Style := [fsBold];
   fxaaLabel.Font.Size  := 9;
   fxaaLabel.Color      := BG;
+  fxaaLabel.Visible    := True;
   fxaaLabel.BringToFront;
 
   // SMAA
   smaaTrackBar.Parent  := FVkBuiltinCard;
   smaaTrackBar.Anchors := [akLeft, akTop];
+  smaaTrackBar.Visible := True;
   smaavalueLabel.Parent      := FVkBuiltinCard;
   smaavalueLabel.Anchors     := [akLeft, akTop];
   smaavalueLabel.Font.Color  := CLR_WHITE;
   smaavalueLabel.Font.Size   := 9;
   smaavalueLabel.Color       := BG;
+  smaavalueLabel.Visible     := True;
   smaavalueLabel.BringToFront;
   smaaLabel.Parent     := FVkBuiltinCard;
   smaaLabel.Anchors    := [akLeft, akTop];
@@ -10875,16 +10888,19 @@ begin
   smaaLabel.Font.Style := [fsBold];
   smaaLabel.Font.Size  := 9;
   smaaLabel.Color      := BG;
+  smaaLabel.Visible    := True;
   smaaLabel.BringToFront;
 
   // DLS
   dlsTrackBar.Parent   := FVkBuiltinCard;
   dlsTrackBar.Anchors  := [akLeft, akTop];
+  dlsTrackBar.Visible  := True;
   dlsvalueLabel.Parent      := FVkBuiltinCard;
   dlsvalueLabel.Anchors     := [akLeft, akTop];
   dlsvalueLabel.Font.Color  := CLR_WHITE;
   dlsvalueLabel.Font.Size   := 9;
   dlsvalueLabel.Color       := BG;
+  dlsvalueLabel.Visible     := True;
   dlsvalueLabel.BringToFront;
   dlsLabel.Parent      := FVkBuiltinCard;
   dlsLabel.Anchors     := [akLeft, akTop];
@@ -10892,6 +10908,7 @@ begin
   dlsLabel.Font.Style  := [fsBold];
   dlsLabel.Font.Size   := 9;
   dlsLabel.Color       := BG;
+  dlsLabel.Visible     := True;
   dlsLabel.BringToFront;
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -10926,6 +10943,7 @@ begin
   vkbtogglekeyCombobox.Anchors    := [akLeft, akTop];
   vkbtogglekeyCombobox.Color      := $2A2A40;
   vkbtogglekeyCombobox.Font.Color := CLR_WHITE;
+  vkbtogglekeyCombobox.Visible    := True;
 end;
 
 procedure Tgoverlayform.ReflowVkBasaltTab(AContentW: Integer);
