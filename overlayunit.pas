@@ -2119,6 +2119,7 @@ copyBitbtn.Visible:=false;
 
 goverlaybarPanel.Visible:=true;
 popupBitBtn.Visible := False;
+FPreviewBtn.Visible  := False;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 // Re-apply per-game tool enabled state for Tweaks
@@ -2420,6 +2421,7 @@ begin
   //Restore bottom bar
   goverlaybarPanel.Visible:=true;
   popupBitBtn.Visible := True;
+  FPreviewBtn.Visible  := True;
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -6444,6 +6446,7 @@ copyBitbtn.Visible:=false;
 
 goverlaybarPanel.Visible:=true;
 popupBitBtn.Visible := True;
+FPreviewBtn.Visible  := True;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
@@ -6511,6 +6514,7 @@ begin
   //Restore bottom bar
   goverlaybarPanel.Visible:=true;
   popupBitBtn.Visible := False;
+  FPreviewBtn.Visible  := False;
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
