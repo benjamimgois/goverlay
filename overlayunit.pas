@@ -10749,10 +10749,8 @@ var
     Card.Color      := BG;
     Card.Caption    := '';
     AccentBar := TPanel.Create(Card);
-    AccentBar.Parent     := Card;
-    AccentBar.BevelOuter := bvNone;
-    AccentBar.Color      := ACCENT;
-    AccentBar.Caption    := '';
+    AccentBar.Parent := Card; AccentBar.BevelOuter := bvNone;
+    AccentBar.Color  := ACCENT; AccentBar.Caption  := '';
     AccentBar.SetBounds(0, 0, 200, 3);
     AccentBar.Anchors := [akLeft, akRight, akTop];
   end;
@@ -10760,18 +10758,21 @@ var
   procedure MakeTitle(ACard: TPanel; const AText: string);
   begin
     TitleLbl := TLabel.Create(ACard);
-    TitleLbl.Parent     := ACard;
-    TitleLbl.Caption    := AText;
-    TitleLbl.Font.Name  := 'Noto Sans';
-    TitleLbl.Font.Size  := 10;
-    TitleLbl.Font.Style := [fsBold];
-    TitleLbl.Font.Color := CLR_WHITE;
-    TitleLbl.AutoSize   := True;
-    TitleLbl.SetBounds(12, 10, 300, 22);
+    TitleLbl.Parent := ACard; TitleLbl.Caption := AText;
+    TitleLbl.Font.Name := 'Noto Sans'; TitleLbl.Font.Size := 10;
+    TitleLbl.Font.Style := [fsBold]; TitleLbl.Font.Color := CLR_WHITE;
+    TitleLbl.AutoSize := True; TitleLbl.SetBounds(12, 10, 300, 22);
     TitleLbl.Transparent := True;
   end;
 
-  procedure Reparent(ACtrl: TControl; ACard: TPanel);
+  // Reparent without forcing Visible — let the existing logic control it
+  procedure RP(ACtrl: TControl; ACard: TPanel);
+  begin
+    ACtrl.Parent  := ACard;
+    ACtrl.Anchors := [akLeft, akTop];
+  end;
+
+  procedure RPShow(ACtrl: TControl; ACard: TPanel);
   begin
     ACtrl.Parent  := ACard;
     ACtrl.Anchors := [akLeft, akTop];
@@ -10780,126 +10781,103 @@ var
 
   procedure StyleCheck(ACheck: TCheckBox);
   begin
-    ACheck.Color      := BG;
-    ACheck.Font.Color := CLR_WHITE;
-    ACheck.Font.Size  := 9;
-  end;
-
-  procedure StyleCombo(ACombo: TComboBox);
-  begin
-    ACombo.Color      := $2A2A40;
-    ACombo.Font.Color := CLR_WHITE;
-    ACombo.Font.Size  := 9;
-  end;
-
-  procedure StyleLbl(ALbl: TLabel; AColor: TColor; ABold: Boolean);
-  begin
-    ALbl.Font.Color  := AColor;
-    ALbl.Font.Size   := 9;
-    if ABold then ALbl.Font.Style := [fsBold]
-    else          ALbl.Font.Style := [];
-    ALbl.Color       := BG;
-    ALbl.AutoSize    := False;
+    ACheck.Color := BG; ACheck.Font.Color := CLR_WHITE; ACheck.Font.Size := 9;
   end;
 
   procedure StyleRadio(ARadio: TRadioButton);
   begin
-    ARadio.Color      := BG;
-    ARadio.Font.Color := CLR_WHITE;
-    ARadio.Font.Size  := 9;
+    ARadio.Color := BG; ARadio.Font.Color := CLR_WHITE; ARadio.Font.Size := 9;
+  end;
+
+  procedure StyleCombo(ACombo: TComboBox);
+  begin
+    ACombo.Color := $2A2A40; ACombo.Font.Color := CLR_WHITE; ACombo.Font.Size := 9;
+  end;
+
+  procedure StyleLbl(ALbl: TLabel; AColor: TColor; ABold: Boolean);
+  begin
+    ALbl.Font.Color := AColor; ALbl.Font.Size := 9;
+    if ABold then ALbl.Font.Style := [fsBold] else ALbl.Font.Style := [];
+    ALbl.Color := BG; ALbl.AutoSize := False;
   end;
 
 begin
-  // ── Hide old LFM containers ───────────────────────────────────────────
   gpudriverGroupBox.Visible := False;
   optionsGroupBox.Visible   := False;
   statusGroupBox.Visible    := False;
 
-  // ══════════════════════════════════════════════════════════════════════
-  // CARD 0 — GPU Driver
-  // ══════════════════════════════════════════════════════════════════════
+  // ── Card 0: GPU Driver ───────────────────────────────────────────────
   MakeCard(FOsGpuCard, optiscalerTabSheet);
   MakeTitle(FOsGpuCard, '  GPU Driver');
+  // Images: keep in place, just reparent
+  RPShow(nvidiaImage,       FOsGpuCard);
+  RPShow(nvidiaRadioButton, FOsGpuCard); StyleRadio(nvidiaRadioButton);
+  RPShow(mesaImage,         FOsGpuCard);
+  RPShow(mesaRadioButton,   FOsGpuCard); StyleRadio(mesaRadioButton);
+  RPShow(activegpuLabel,    FOsGpuCard); StyleLbl(activegpuLabel, $AAAAAA, False);
+  RPShow(hidenvidiaCheckBox, FOsGpuCard); StyleCheck(hidenvidiaCheckBox);
+  // autodetect labels: reparent but don't force visible — detection code controls them
+  RP(autodetectnvLabel,   FOsGpuCard); StyleLbl(autodetectnvLabel,   $66CC44, False);
+  RP(autodetectmesaLabel, FOsGpuCard); StyleLbl(autodetectmesaLabel, $66CC44, False);
 
-  Reparent(nvidiaRadioButton, FOsGpuCard); StyleRadio(nvidiaRadioButton);
-  Reparent(mesaRadioButton,   FOsGpuCard); StyleRadio(mesaRadioButton);
-  Reparent(activegpuLabel,    FOsGpuCard); StyleLbl(activegpuLabel, $888888, False);
-  Reparent(autodetectnvLabel,   FOsGpuCard); StyleLbl(autodetectnvLabel,   $66AA44, False);
-  Reparent(autodetectmesaLabel, FOsGpuCard); StyleLbl(autodetectmesaLabel, $66AA44, False);
-  Reparent(hidenvidiaCheckBox,  FOsGpuCard); StyleCheck(hidenvidiaCheckBox);
-
-  // ══════════════════════════════════════════════════════════════════════
-  // CARD 1 — DLL & Options
-  // ══════════════════════════════════════════════════════════════════════
+  // ── Card 1: DLL & Options ────────────────────────────────────────────
   MakeCard(FOsDllCard, optiscalerTabSheet);
   MakeTitle(FOsDllCard, '  DLL & Options');
+  RPShow(filenameLabel,    FOsDllCard); StyleLbl(filenameLabel, $BB99FF, True);
+  RPShow(filenameComboBox, FOsDllCard); StyleCombo(filenameComboBox);
+  RPShow(spoofCheckBox,       FOsDllCard); StyleCheck(spoofCheckBox);
+  RPShow(emufp8CheckBox,      FOsDllCard); StyleCheck(emufp8CheckBox);
+  RPShow(optipatcherCheckBox, FOsDllCard); StyleCheck(optipatcherCheckBox);
+  RPShow(fsrversionLabel,    FOsDllCard); StyleLbl(fsrversionLabel, $BB99FF, True);
+  RPShow(fsrversionComboBox, FOsDllCard); StyleCombo(fsrversionComboBox);
+  RPShow(osversionLabel,     FOsDllCard); StyleLbl(osversionLabel, $AAAAAA, False);
+  RPShow(protontricksManagerButton, FOsDllCard);
+  RPShow(patcherlistLabel,   FOsDllCard); StyleLbl(patcherlistLabel, $4499FF, False);
 
-  Reparent(filenameLabel,    FOsDllCard); StyleLbl(filenameLabel,    $BB99FF, True);
-  Reparent(filenameComboBox, FOsDllCard); StyleCombo(filenameComboBox);
-  Reparent(spoofCheckBox,       FOsDllCard); StyleCheck(spoofCheckBox);
-  Reparent(emufp8CheckBox,      FOsDllCard); StyleCheck(emufp8CheckBox);
-  Reparent(optipatcherCheckBox, FOsDllCard); StyleCheck(optipatcherCheckBox);
-  Reparent(fsrversionLabel,    FOsDllCard); StyleLbl(fsrversionLabel, $BB99FF, True);
-  Reparent(fsrversionComboBox, FOsDllCard); StyleCombo(fsrversionComboBox);
-  Reparent(osversionLabel,  FOsDllCard); StyleLbl(osversionLabel,  $888888, False);
-  Reparent(protontricksManagerButton, FOsDllCard);
-  Reparent(patcherlistLabel,  FOsDllCard); StyleLbl(patcherlistLabel, $4499FF, False);
-
-  // ══════════════════════════════════════════════════════════════════════
-  // CARD 2 — In-Game Menu
-  // ══════════════════════════════════════════════════════════════════════
+  // ── Card 2: In-Game Menu ─────────────────────────────────────────────
   MakeCard(FOsMenuCard, optiscalerTabSheet);
   MakeTitle(FOsMenuCard, '  In-Game Menu');
-
-  Reparent(menuLabel,          FOsMenuCard); StyleLbl(menuLabel, $BB99FF, True);
-  Reparent(menuscaleTrackBar,  FOsMenuCard);
-  Reparent(mark1Label, FOsMenuCard); StyleLbl(mark1Label, $888888, False);
-  Reparent(mark2Label, FOsMenuCard); StyleLbl(mark2Label, $888888, False);
-  Reparent(mark3Label, FOsMenuCard); StyleLbl(mark3Label, $888888, False);
-  Reparent(shortcutkeyLabel,   FOsMenuCard); StyleLbl(shortcutkeyLabel, $BB99FF, True);
-  Reparent(shortcutkeyComboBox, FOsMenuCard); StyleCombo(shortcutkeyComboBox);
-
+  RPShow(menuLabel,         FOsMenuCard); StyleLbl(menuLabel, $BB99FF, True);
+  RPShow(menuscaleTrackBar, FOsMenuCard);
+  RPShow(mark1Label, FOsMenuCard); StyleLbl(mark1Label, $888888, False);
+  RPShow(mark2Label, FOsMenuCard); StyleLbl(mark2Label, $888888, False);
+  RPShow(mark3Label, FOsMenuCard); StyleLbl(mark3Label, $888888, False);
+  RPShow(shortcutkeyLabel,   FOsMenuCard); StyleLbl(shortcutkeyLabel, $BB99FF, True);
+  RPShow(shortcutkeyComboBox, FOsMenuCard); StyleCombo(shortcutkeyComboBox);
+  // Fresh value label
   FOsMenuValLbl := TLabel.Create(Self);
-  FOsMenuValLbl.Parent     := FOsMenuCard;
-  FOsMenuValLbl.Caption    := menuscalevalueLabel.Caption;
-  FOsMenuValLbl.Font.Color := CLR_WHITE;
-  FOsMenuValLbl.Font.Size  := 9;
-  FOsMenuValLbl.Color      := BG;
-  FOsMenuValLbl.Anchors    := [akLeft, akTop];
+  FOsMenuValLbl.Parent := FOsMenuCard; FOsMenuValLbl.Caption := menuscalevalueLabel.Caption;
+  FOsMenuValLbl.Font.Color := CLR_WHITE; FOsMenuValLbl.Font.Size := 9;
+  FOsMenuValLbl.Color := BG; FOsMenuValLbl.Anchors := [akLeft, akTop];
 
-  // ══════════════════════════════════════════════════════════════════════
-  // CARD 3 — FakeNVAPI
-  // ══════════════════════════════════════════════════════════════════════
+  // ── Card 3: FakeNVAPI ────────────────────────────────────────────────
   MakeCard(FOsFakenvapiCard, optiscalerTabSheet);
   MakeTitle(FOsFakenvapiCard, '  FakeNVAPI');
+  RPShow(forcereflexCheckBox,      FOsFakenvapiCard); StyleCheck(forcereflexCheckBox);
+  RPShow(overrideCheckBox,         FOsFakenvapiCard); StyleCheck(overrideCheckBox);
+  RPShow(forcelatencyflexCheckBox, FOsFakenvapiCard); StyleCheck(forcelatencyflexCheckBox);
+  RPShow(tracelogCheckBox,         FOsFakenvapiCard); StyleCheck(tracelogCheckBox);
+  RPShow(vulkandriverCheckBox,     FOsFakenvapiCard); StyleCheck(vulkandriverCheckBox);
+  RPShow(reflexComboBox,      FOsFakenvapiCard); StyleCombo(reflexComboBox);
+  RPShow(latencyflexComboBox, FOsFakenvapiCard); StyleCombo(latencyflexComboBox);
 
-  Reparent(forcereflexCheckBox,      FOsFakenvapiCard); StyleCheck(forcereflexCheckBox);
-  Reparent(overrideCheckBox,         FOsFakenvapiCard); StyleCheck(overrideCheckBox);
-  Reparent(forcelatencyflexCheckBox, FOsFakenvapiCard); StyleCheck(forcelatencyflexCheckBox);
-  Reparent(tracelogCheckBox,         FOsFakenvapiCard); StyleCheck(tracelogCheckBox);
-  Reparent(vulkandriverCheckBox,     FOsFakenvapiCard); StyleCheck(vulkandriverCheckBox);
-  Reparent(reflexComboBox,      FOsFakenvapiCard); StyleCombo(reflexComboBox);
-  Reparent(latencyflexComboBox, FOsFakenvapiCard); StyleCombo(latencyflexComboBox);
-
-  // ══════════════════════════════════════════════════════════════════════
-  // CARD 4 — Software Status
-  // ══════════════════════════════════════════════════════════════════════
+  // ── Card 4: Software Status ──────────────────────────────────────────
   MakeCard(FOsStatusCard, optiscalerTabSheet);
   MakeTitle(FOsStatusCard, '  Software Status');
-
-  Reparent(optLabel,       FOsStatusCard); StyleLbl(optLabel,       $BB99FF,   True);
-  Reparent(optLabel1,      FOsStatusCard); StyleLbl(optLabel1,      CLR_WHITE, False);
-  Reparent(optLabel2,      FOsStatusCard); StyleLbl(optLabel2,      $888888,   False);
-  Reparent(fakenvapiLabel, FOsStatusCard); StyleLbl(fakenvapiLabel, $BB99FF,   True);
-  Reparent(fakenvapi1,     FOsStatusCard); StyleLbl(fakenvapi1,     CLR_WHITE, False);
-  Reparent(fakenvapi2,     FOsStatusCard); StyleLbl(fakenvapi2,     $888888,   False);
-  Reparent(fsrLabel,       FOsStatusCard); StyleLbl(fsrLabel,       $BB99FF,   True);
-  Reparent(fsrLabel1,      FOsStatusCard); StyleLbl(fsrLabel1,      CLR_WHITE, False);
-  Reparent(xessLabel,      FOsStatusCard); StyleLbl(xessLabel,      $BB99FF,   True);
-  Reparent(xessLabel1,     FOsStatusCard); StyleLbl(xessLabel1,     CLR_WHITE, False);
-  Reparent(dlssLabel,      FOsStatusCard); StyleLbl(dlssLabel,      $BB99FF,   True);
-  Reparent(dlssLabel1,     FOsStatusCard); StyleLbl(dlssLabel1,     CLR_WHITE, False);
-  Reparent(optversionComboBox, FOsStatusCard); StyleCombo(optversionComboBox);
+  // Name labels (purple, bold) + value labels (white)
+  RPShow(optLabel,       FOsStatusCard); StyleLbl(optLabel,       $BB99FF, True);
+  RPShow(optLabel1,      FOsStatusCard); StyleLbl(optLabel1,      CLR_WHITE, False);
+  RPShow(optLabel2,      FOsStatusCard); StyleLbl(optLabel2,      $888888,  False);
+  RPShow(fakenvapiLabel, FOsStatusCard); StyleLbl(fakenvapiLabel, $BB99FF, True);
+  RPShow(fakenvapi1,     FOsStatusCard); StyleLbl(fakenvapi1,     CLR_WHITE, False);
+  RPShow(fakenvapi2,     FOsStatusCard); StyleLbl(fakenvapi2,     $888888,  False);
+  RPShow(fsrLabel,       FOsStatusCard); StyleLbl(fsrLabel,       $BB99FF, True);
+  RPShow(fsrLabel1,      FOsStatusCard); StyleLbl(fsrLabel1,      CLR_WHITE, False);
+  RPShow(xessLabel,      FOsStatusCard); StyleLbl(xessLabel,      $BB99FF, True);
+  RPShow(xessLabel1,     FOsStatusCard); StyleLbl(xessLabel1,     CLR_WHITE, False);
+  RPShow(dlssLabel,      FOsStatusCard); StyleLbl(dlssLabel,      $BB99FF, True);
+  RPShow(dlssLabel1,     FOsStatusCard); StyleLbl(dlssLabel1,     CLR_WHITE, False);
+  RPShow(optversionComboBox, FOsStatusCard); StyleCombo(optversionComboBox);
 end;
 
 procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
@@ -10907,72 +10885,81 @@ const
   MARGIN = 10;
   GAP    = 8;
   PAD    = 12;
-  HDR_Y  = 38;
   CB_H   = 22;
   CK_H   = 22;
   LBL_H  = 18;
   TRK_H  = 28;
   VAL_W  = 32;
+  IMG_SZ = 28;   // GPU brand image size
   // Card heights
-  GPU_H  = 60;
-  DLL_H  = 160;
-  MID_H  = 145;   // In-Game Menu and FakeNVAPI share this height
-  STAT_H = 110;
+  GPU_H  = 68;
+  DLL_H  = 158;
+  MID_H  = 142;
+  STAT_H = 100;
 var
   CW, HalfW, Y, Col0, Col1, ColW, CardTop: Integer;
+  NvX, MesaX, StatColW: Integer;
 begin
   if not Assigned(FOsGpuCard) then Exit;
 
   CW    := AContentW - 2 * MARGIN;
   HalfW := (CW - GAP) div 2;
 
-  // ── Card 0: GPU Driver (full width, compact) ─────────────────────────
+  // ── Card 0: GPU Driver ───────────────────────────────────────────────
+  // Layout: [nvidia img][NVIDIA radio]  [mesa img][Mesa radio]  |  [active GPU]  [hide nvidia]
   FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
-  // [NVIDIA radio]  [Mesa radio]  |  [active GPU label]  [hide nvidia]
-  nvidiaRadioButton.SetBounds(PAD,          HDR_Y - 18, 90, CK_H);
-  mesaRadioButton.SetBounds(PAD + 96,       HDR_Y - 18, 80, CK_H);
-  activegpuLabel.SetBounds(PAD + 185, HDR_Y - 14, CW - PAD - 185 - 130 - PAD, LBL_H);
-  hidenvidiaCheckBox.SetBounds(CW - 130 - PAD, HDR_Y - 18, 128, CK_H);
-  autodetectnvLabel.SetBounds(PAD,        HDR_Y + 6, 180, LBL_H);
-  autodetectmesaLabel.SetBounds(PAD + 96, HDR_Y + 6, 180, LBL_H);
+  Y    := 22;
+  NvX  := PAD;
+  MesaX := PAD + IMG_SZ + 6 + 90 + 16;
 
-  // ── Card 1: DLL & Options (full width) ───────────────────────────────
+  nvidiaImage.SetBounds(NvX,         Y, IMG_SZ, IMG_SZ);
+  nvidiaRadioButton.SetBounds(NvX + IMG_SZ + 6, Y + 4, 88, CK_H);
+  autodetectnvLabel.SetBounds(NvX,   Y + IMG_SZ + 2, MesaX - NvX, LBL_H);
+
+  mesaImage.SetBounds(MesaX,         Y, IMG_SZ, IMG_SZ);
+  mesaRadioButton.SetBounds(MesaX + IMG_SZ + 6, Y + 4, 88, CK_H);
+  autodetectmesaLabel.SetBounds(MesaX, Y + IMG_SZ + 2, 140, LBL_H);
+
+  activegpuLabel.SetBounds(MesaX + 140 + 16, Y + 6, CW - (MesaX + 140 + 16) - 140 - PAD, LBL_H);
+  hidenvidiaCheckBox.SetBounds(CW - 136 - PAD, Y + 4, 136, CK_H);
+
+  // ── Card 1: DLL & Options ────────────────────────────────────────────
   CardTop := MARGIN + GPU_H + GAP;
   FOsDllCard.SetBounds(MARGIN, CardTop, CW, DLL_H);
 
-  Y := HDR_Y;
-  filenameLabel.SetBounds(PAD, Y + 2, 80, LBL_H);
-  filenameComboBox.SetBounds(PAD + 84, Y - 1, CW - PAD - 84 - PAD, CB_H);
-
-  Y := Y + CB_H + 6;
-  ColW := (CW - 2 * PAD) div 3;
-  spoofCheckBox.SetBounds(PAD,             Y, ColW, CK_H);
-  emufp8CheckBox.SetBounds(PAD + ColW,     Y, ColW, CK_H);
-  optipatcherCheckBox.SetBounds(PAD + 2*ColW, Y, ColW, CK_H);
-
-  Y := Y + CK_H + 6;
-  fsrversionLabel.SetBounds(PAD, Y + 2, 80, LBL_H);
-  fsrversionComboBox.SetBounds(PAD + 84, Y - 1, 155, CB_H);
-  osversionLabel.SetBounds(PAD + 84 + 160, Y + 2, CW - PAD - 84 - 160 - PAD, LBL_H);
+  Y := 36;
+  filenameLabel.SetBounds(PAD, Y + 2, 78, LBL_H);
+  filenameComboBox.SetBounds(PAD + 82, Y - 1, CW - PAD - 82 - PAD, CB_H);
 
   Y := Y + CB_H + 8;
-  protontricksManagerButton.SetBounds(PAD, Y, 110, 26);
-  patcherlistLabel.SetBounds(PAD + 116, Y + 4, 160, LBL_H);
+  ColW := (CW - 2 * PAD) div 3;
+  spoofCheckBox.SetBounds(PAD,              Y, ColW, CK_H);
+  emufp8CheckBox.SetBounds(PAD + ColW,      Y, ColW, CK_H);
+  optipatcherCheckBox.SetBounds(PAD + 2*ColW, Y, ColW, CK_H);
+
+  Y := Y + CK_H + 8;
+  fsrversionLabel.SetBounds(PAD, Y + 2, 78, LBL_H);
+  fsrversionComboBox.SetBounds(PAD + 82, Y - 1, 155, CB_H);
+  osversionLabel.SetBounds(PAD + 82 + 160, Y + 2, CW - PAD - 82 - 160 - PAD, LBL_H);
+
+  Y := Y + CB_H + 8;
+  protontricksManagerButton.SetBounds(PAD, Y, 108, 26);
+  patcherlistLabel.SetBounds(PAD + 114, Y + 4, 180, LBL_H);
 
   // ── Card 2: In-Game Menu (left half) ─────────────────────────────────
   CardTop := MARGIN + GPU_H + GAP + DLL_H + GAP;
   FOsMenuCard.SetBounds(MARGIN, CardTop, HalfW, MID_H);
 
-  Y := HDR_Y;
+  Y := 36;
   menuLabel.SetBounds(PAD, Y, HalfW - PAD - VAL_W - 4, LBL_H);
   if Assigned(FOsMenuValLbl) then
     FOsMenuValLbl.SetBounds(HalfW - VAL_W - PAD, Y, VAL_W, LBL_H);
   Y := Y + LBL_H + 2;
-  menuscaleTrackBar.SetBounds(PAD, Y, HalfW - 2 * PAD, TRK_H);
+  menuscaleTrackBar.SetBounds(PAD, Y, HalfW - 2*PAD, TRK_H);
   Y := Y + TRK_H;
-  mark1Label.SetBounds(PAD, Y, 38, LBL_H);
-  mark2Label.SetBounds(PAD + (HalfW - 2*PAD) div 2 - 16, Y, 38, LBL_H);
-  mark3Label.SetBounds(HalfW - PAD - 24, Y, 24, LBL_H);
+  mark1Label.SetBounds(PAD, Y, 40, LBL_H);
+  mark2Label.SetBounds(PAD + (HalfW - 2*PAD) div 2 - 18, Y, 40, LBL_H);
+  mark3Label.SetBounds(HalfW - PAD - 22, Y, 22, LBL_H);
   Y := Y + LBL_H + 10;
   shortcutkeyLabel.SetBounds(PAD, Y + 2, 85, LBL_H);
   shortcutkeyComboBox.SetBounds(PAD + 89, Y - 1, HalfW - PAD - 89 - PAD, CB_H);
@@ -10980,7 +10967,7 @@ begin
   // ── Card 3: FakeNVAPI (right half) ───────────────────────────────────
   FOsFakenvapiCard.SetBounds(MARGIN + HalfW + GAP, CardTop, HalfW, MID_H);
 
-  Y := HDR_Y;
+  Y    := 36;
   Col0 := PAD;
   Col1 := HalfW div 2;
   ColW := HalfW div 2 - PAD;
@@ -10996,33 +10983,37 @@ begin
   latencyflexComboBox.SetBounds(Col1, Y, ColW, CB_H);
 
   // ── Card 4: Software Status (full width) ─────────────────────────────
+  // Grid: row 0: OptiScaler | FakeNVAPI | FSR
+  //       row 1: XeSS       | DLSS      | [branch combobox]
   CardTop := MARGIN + GPU_H + GAP + DLL_H + GAP + MID_H + GAP;
   FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
 
-  // 5 libraries in one row, branch combobox on the right
-  // OptiScaler | FakeNVAPI | FSR | XeSS | DLSS | [branch combobox]
-  ColW := (CW - 2*PAD - 4*GAP - 140) div 5;
+  StatColW := (CW - 2*PAD - 2*GAP) div 3;
   Col0 := PAD;
-  Y    := HDR_Y - 4;
+  Col1 := PAD + StatColW + GAP;
+  Y    := 34;
 
-  optLabel.SetBounds(Col0,                 Y, ColW - 36, LBL_H);
-  optLabel1.SetBounds(Col0 + ColW - 34,    Y, 34, LBL_H);
-  optLabel2.SetBounds(Col0,                Y + LBL_H, ColW, LBL_H);
+  // Row 0
+  optLabel.SetBounds(Col0,         Y, 72, LBL_H);
+  optLabel1.SetBounds(Col0 + 74,   Y, StatColW - 76, LBL_H);
+  optLabel2.SetBounds(Col0,        Y + LBL_H, StatColW, LBL_H);
 
-  fakenvapiLabel.SetBounds(Col0 + ColW + GAP,              Y, ColW - 36, LBL_H);
-  fakenvapi1.SetBounds(Col0 + 2*ColW + GAP - 34,           Y, 34, LBL_H);
-  fakenvapi2.SetBounds(Col0 + ColW + GAP,                  Y + LBL_H, ColW, LBL_H);
+  fakenvapiLabel.SetBounds(Col1,       Y, 72, LBL_H);
+  fakenvapi1.SetBounds(Col1 + 74,      Y, StatColW - 76, LBL_H);
+  fakenvapi2.SetBounds(Col1,           Y + LBL_H, StatColW, LBL_H);
 
-  fsrLabel.SetBounds(Col0 + 2*(ColW+GAP),  Y, 28, LBL_H);
-  fsrLabel1.SetBounds(Col0 + 2*(ColW+GAP) + 30, Y, 40, LBL_H);
+  fsrLabel.SetBounds(Col1 + StatColW + GAP,      Y, 32, LBL_H);
+  fsrLabel1.SetBounds(Col1 + StatColW + GAP + 34, Y, StatColW - 36, LBL_H);
 
-  xessLabel.SetBounds(Col0 + 3*(ColW+GAP), Y, 36, LBL_H);
-  xessLabel1.SetBounds(Col0 + 3*(ColW+GAP) + 38, Y, 40, LBL_H);
+  // Row 1
+  Y := Y + LBL_H * 2 + 6;
+  xessLabel.SetBounds(Col0,       Y, 36, LBL_H);
+  xessLabel1.SetBounds(Col0 + 38, Y, StatColW - 40, LBL_H);
 
-  dlssLabel.SetBounds(Col0 + 4*(ColW+GAP), Y, 36, LBL_H);
-  dlssLabel1.SetBounds(Col0 + 4*(ColW+GAP) + 38, Y, 40, LBL_H);
+  dlssLabel.SetBounds(Col1,       Y, 36, LBL_H);
+  dlssLabel1.SetBounds(Col1 + 38, Y, StatColW - 40, LBL_H);
 
-  optversionComboBox.SetBounds(CW - 140 - PAD, Y + LBL_H + 4, 140, CB_H);
+  optversionComboBox.SetBounds(Col1 + StatColW + GAP, Y - 2, StatColW, CB_H);
 end;
 
 // ============================================================================
