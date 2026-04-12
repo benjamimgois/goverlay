@@ -567,6 +567,13 @@ type
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
+    // vkBasalt tab redesign
+    FVkReshadeCard:  TPanel;
+    FVkBuiltinCard:  TPanel;
+    FVkToggleCard:   TPanel;
+    FVkAvHdrLbl:     TLabel;
+    FVkActHdrLbl:    TLabel;
+
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
@@ -620,6 +627,8 @@ type
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowTweaksTab(AContentW: Integer);
+    procedure InitVkBasaltTab;
+    procedure ReflowVkBasaltTab(AContentW: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -4955,6 +4964,9 @@ begin
   // Initialize Games tab container (games are loaded on FormShow)
   InitGamesTab;
   FGamesLoaded := False;
+
+  // Initialize vkBasalt tab modern UI
+  InitVkBasaltTab;
 
   // Initialize Home tab
   InitHomeTab;
@@ -10430,6 +10442,7 @@ begin
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowTweaksTab(ContentW);
+  ReflowVkBasaltTab(ContentW);
   if FGamesLoaded then
     ReflowGamesGrid;
 
@@ -10457,6 +10470,7 @@ begin
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowTweaksTab(ContentW);
+  ReflowVkBasaltTab(ContentW);
 
   if FGamesLoaded then
     ReflowGamesGrid;
@@ -10689,6 +10703,309 @@ begin
   performanceGroupBox.SetBounds(C1A, BOX_TOP, ColWA, BOX_H);
   customenvEdit.Left  := EditLeft;
   customenvEdit.Width := EditW;
+end;
+
+// ============================================================================
+// VKBASALT TAB — modern redesign
+// ============================================================================
+
+procedure Tgoverlayform.InitVkBasaltTab;
+const
+  BG        = $1E1E2E;   // card background
+  ACCENT    = $AA55FF;   // purple accent bar
+  CLR_WHITE = clWhite;
+var
+  AccentBar: TPanel;
+  TitleLbl:  TLabel;
+begin
+  // ── Hide the old LFM group boxes (functional children are reparented below)
+  reshadeGroupBox.Visible        := False;
+  builtineffectsGroupBox.Visible := False;
+  vktoggleLabel.Visible          := False;
+  toggleImage.Visible            := False;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 1 — Reshade Effects
+  // ══════════════════════════════════════════════════════════════════════════
+  FVkReshadeCard := TPanel.Create(Self);
+  FVkReshadeCard.Parent     := vkbasaltTabSheet;
+  FVkReshadeCard.BevelOuter := bvNone;
+  FVkReshadeCard.Color      := BG;
+  FVkReshadeCard.Caption    := '';
+
+  AccentBar := TPanel.Create(FVkReshadeCard);
+  AccentBar.Parent     := FVkReshadeCard;
+  AccentBar.BevelOuter := bvNone;
+  AccentBar.Color      := ACCENT;
+  AccentBar.Caption    := '';
+  AccentBar.SetBounds(0, 0, 200, 3);
+  AccentBar.Anchors := [akLeft, akRight, akTop];
+
+  TitleLbl := TLabel.Create(FVkReshadeCard);
+  TitleLbl.Parent      := FVkReshadeCard;
+  TitleLbl.Caption     := '  Reshade Effects';
+  TitleLbl.Font.Name   := 'Noto Sans';
+  TitleLbl.Font.Size   := 10;
+  TitleLbl.Font.Style  := [fsBold];
+  TitleLbl.Font.Color  := CLR_WHITE;
+  TitleLbl.AutoSize    := True;
+  TitleLbl.SetBounds(12, 12, 200, 22);
+  TitleLbl.Transparent := True;
+
+  FVkAvHdrLbl := TLabel.Create(FVkReshadeCard);
+  FVkAvHdrLbl.Parent      := FVkReshadeCard;
+  FVkAvHdrLbl.Caption     := 'Available Effects';
+  FVkAvHdrLbl.Font.Name   := 'Noto Sans';
+  FVkAvHdrLbl.Font.Size   := 8;
+  FVkAvHdrLbl.Font.Style  := [fsBold];
+  FVkAvHdrLbl.Font.Color  := $BB99FF;
+  FVkAvHdrLbl.AutoSize    := True;
+  FVkAvHdrLbl.SetBounds(12, 40, 120, 16);
+  FVkAvHdrLbl.Transparent := True;
+
+  FVkActHdrLbl := TLabel.Create(FVkReshadeCard);
+  FVkActHdrLbl.Parent      := FVkReshadeCard;
+  FVkActHdrLbl.Caption     := 'Active Effects';
+  FVkActHdrLbl.Font.Name   := 'Noto Sans';
+  FVkActHdrLbl.Font.Size   := 8;
+  FVkActHdrLbl.Font.Style  := [fsBold];
+  FVkActHdrLbl.Font.Color  := $FFCC66;
+  FVkActHdrLbl.AutoSize    := True;
+  FVkActHdrLbl.SetBounds(12, 40, 100, 16);
+  FVkActHdrLbl.Transparent := True;
+
+  // Reparent + style Available listbox
+  aveffectsListBox.Parent      := FVkReshadeCard;
+  aveffectsListBox.Anchors     := [akLeft, akTop];
+  aveffectsListBox.Color       := $12121E;
+  aveffectsListBox.Font.Color  := CLR_WHITE;
+  aveffectsListBox.Font.Size   := 9;
+
+  // Reparent + style Active listbox
+  acteffectsListBox.Parent     := FVkReshadeCard;
+  acteffectsListBox.Anchors    := [akLeft, akTop];
+  acteffectsListBox.Color      := $12121E;
+  acteffectsListBox.Font.Color := $FFCC66;
+  acteffectsListBox.Font.Size  := 9;
+
+  // Reparent +/- buttons
+  addBitBtn.Parent  := FVkReshadeCard;
+  addBitBtn.Anchors := [akLeft, akTop];
+  subBitBtn.Parent  := FVkReshadeCard;
+  subBitBtn.Anchors := [akLeft, akTop];
+
+  // Reparent Update button
+  reshaderefreshBitBtn.Parent  := FVkReshadeCard;
+  reshaderefreshBitBtn.Anchors := [akLeft, akTop];
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 2 — Built-in Effects
+  // ══════════════════════════════════════════════════════════════════════════
+  FVkBuiltinCard := TPanel.Create(Self);
+  FVkBuiltinCard.Parent     := vkbasaltTabSheet;
+  FVkBuiltinCard.BevelOuter := bvNone;
+  FVkBuiltinCard.Color      := BG;
+  FVkBuiltinCard.Caption    := '';
+
+  AccentBar := TPanel.Create(FVkBuiltinCard);
+  AccentBar.Parent     := FVkBuiltinCard;
+  AccentBar.BevelOuter := bvNone;
+  AccentBar.Color      := ACCENT;
+  AccentBar.Caption    := '';
+  AccentBar.SetBounds(0, 0, 200, 3);
+  AccentBar.Anchors := [akLeft, akRight, akTop];
+
+  TitleLbl := TLabel.Create(FVkBuiltinCard);
+  TitleLbl.Parent      := FVkBuiltinCard;
+  TitleLbl.Caption     := '  Built-in Effects';
+  TitleLbl.Font.Name   := 'Noto Sans';
+  TitleLbl.Font.Size   := 10;
+  TitleLbl.Font.Style  := [fsBold];
+  TitleLbl.Font.Color  := CLR_WHITE;
+  TitleLbl.AutoSize    := True;
+  TitleLbl.SetBounds(12, 12, 200, 22);
+  TitleLbl.Transparent := True;
+
+  // CAS
+  casLabel.Parent      := FVkBuiltinCard;
+  casLabel.Anchors     := [akLeft, akTop];
+  casLabel.Font.Color  := $BB99FF;
+  casLabel.Font.Style  := [fsBold];
+  casLabel.Font.Size   := 9;
+  casLabel.Transparent := True;
+  casTrackBar.Parent   := FVkBuiltinCard;
+  casTrackBar.Anchors  := [akLeft, akTop];
+  casvalueLabel.Parent      := FVkBuiltinCard;
+  casvalueLabel.Anchors     := [akLeft, akTop];
+  casvalueLabel.Font.Color  := CLR_WHITE;
+  casvalueLabel.Font.Size   := 9;
+  casvalueLabel.Transparent := True;
+
+  // FXAA
+  fxaaLabel.Parent     := FVkBuiltinCard;
+  fxaaLabel.Anchors    := [akLeft, akTop];
+  fxaaLabel.Font.Color := $BB99FF;
+  fxaaLabel.Font.Style := [fsBold];
+  fxaaLabel.Font.Size  := 9;
+  fxaaLabel.Transparent := True;
+  fxaaTrackBar.Parent  := FVkBuiltinCard;
+  fxaaTrackBar.Anchors := [akLeft, akTop];
+  fxaavalueLabel.Parent      := FVkBuiltinCard;
+  fxaavalueLabel.Anchors     := [akLeft, akTop];
+  fxaavalueLabel.Font.Color  := CLR_WHITE;
+  fxaavalueLabel.Font.Size   := 9;
+  fxaavalueLabel.Transparent := True;
+
+  // SMAA
+  smaaLabel.Parent     := FVkBuiltinCard;
+  smaaLabel.Anchors    := [akLeft, akTop];
+  smaaLabel.Font.Color := $BB99FF;
+  smaaLabel.Font.Style := [fsBold];
+  smaaLabel.Font.Size  := 9;
+  smaaLabel.Transparent := True;
+  smaaTrackBar.Parent  := FVkBuiltinCard;
+  smaaTrackBar.Anchors := [akLeft, akTop];
+  smaavalueLabel.Parent      := FVkBuiltinCard;
+  smaavalueLabel.Anchors     := [akLeft, akTop];
+  smaavalueLabel.Font.Color  := CLR_WHITE;
+  smaavalueLabel.Font.Size   := 9;
+  smaavalueLabel.Transparent := True;
+
+  // DLS
+  dlsLabel.Parent      := FVkBuiltinCard;
+  dlsLabel.Anchors     := [akLeft, akTop];
+  dlsLabel.Font.Color  := $BB99FF;
+  dlsLabel.Font.Style  := [fsBold];
+  dlsLabel.Font.Size   := 9;
+  dlsLabel.Transparent := True;
+  dlsTrackBar.Parent   := FVkBuiltinCard;
+  dlsTrackBar.Anchors  := [akLeft, akTop];
+  dlsvalueLabel.Parent      := FVkBuiltinCard;
+  dlsvalueLabel.Anchors     := [akLeft, akTop];
+  dlsvalueLabel.Font.Color  := CLR_WHITE;
+  dlsvalueLabel.Font.Size   := 9;
+  dlsvalueLabel.Transparent := True;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 3 — Toggle Key
+  // ══════════════════════════════════════════════════════════════════════════
+  FVkToggleCard := TPanel.Create(Self);
+  FVkToggleCard.Parent     := vkbasaltTabSheet;
+  FVkToggleCard.BevelOuter := bvNone;
+  FVkToggleCard.Color      := BG;
+  FVkToggleCard.Caption    := '';
+
+  AccentBar := TPanel.Create(FVkToggleCard);
+  AccentBar.Parent     := FVkToggleCard;
+  AccentBar.BevelOuter := bvNone;
+  AccentBar.Color      := ACCENT;
+  AccentBar.Caption    := '';
+  AccentBar.SetBounds(0, 0, 200, 3);
+  AccentBar.Anchors := [akLeft, akRight, akTop];
+
+  TitleLbl := TLabel.Create(FVkToggleCard);
+  TitleLbl.Parent      := FVkToggleCard;
+  TitleLbl.Caption     := '  Toggle Key';
+  TitleLbl.Font.Name   := 'Noto Sans';
+  TitleLbl.Font.Size   := 10;
+  TitleLbl.Font.Style  := [fsBold];
+  TitleLbl.Font.Color  := CLR_WHITE;
+  TitleLbl.AutoSize    := True;
+  TitleLbl.SetBounds(12, 14, 120, 22);
+  TitleLbl.Transparent := True;
+
+  vkbtogglekeyCombobox.Parent     := FVkToggleCard;
+  vkbtogglekeyCombobox.Anchors    := [akLeft, akTop];
+  vkbtogglekeyCombobox.Color      := $2A2A40;
+  vkbtogglekeyCombobox.Font.Color := CLR_WHITE;
+end;
+
+procedure Tgoverlayform.ReflowVkBasaltTab(AContentW: Integer);
+const
+  MARGIN   = 10;   // outer margin each side
+  GAP      = 8;    // gap between cards
+  RSHD_H   = 308;  // reshade card height
+  BTIN_H   = 150;  // built-in effects card height
+  TOGL_H   = 60;   // toggle key card height
+  HDR_Y    = 42;   // Y where list/content starts inside card
+  PAD      = 12;   // inner horizontal padding
+  BTN_COL  = 36;   // width of +/- button column
+  UPD_W    = 90;   // Update button width
+  NAME_W   = 52;   // effect name label width
+  VAL_W    = 32;   // value label width
+var
+  CW:      Integer;
+  ListW:   Integer;
+  ListH:   Integer;
+  BtnX:    Integer;
+  AvX:     Integer;
+  ActX:    Integer;
+  InnerW:  Integer;
+  ColW:    Integer;
+  TrkW:    Integer;
+  Col0:    Integer;
+  Col1:    Integer;
+  Row0:    Integer;
+  Row1:    Integer;
+begin
+  if not Assigned(FVkReshadeCard) then Exit;
+
+  CW := AContentW - 2 * MARGIN;
+
+  // ── Card 1: Reshade ────────────────────────────────────────────────────
+  FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
+
+  // Update button on the left, below title
+  reshaderefreshBitBtn.SetBounds(PAD, HDR_Y, UPD_W, 56);
+
+  // Listbox layout: [UpdateBtn gap] [AvList] [+/-] [ActList] [pad]
+  AvX   := PAD + UPD_W + PAD;
+  ListH := RSHD_H - HDR_Y - PAD;
+  // Split remaining width evenly around the +/- column
+  InnerW := CW - AvX - PAD;
+  ListW  := (InnerW - BTN_COL - PAD) div 2;
+  BtnX   := AvX + ListW + PAD div 2;
+  ActX   := BtnX + BTN_COL;
+
+  FVkAvHdrLbl.Left  := AvX;
+  FVkActHdrLbl.Left := ActX;
+
+  aveffectsListBox.SetBounds(AvX,  HDR_Y, ListW, ListH);
+  acteffectsListBox.SetBounds(ActX, HDR_Y, CW - ActX - PAD, ListH);
+
+  addBitBtn.SetBounds(BtnX, HDR_Y + ListH div 2 - 34, 28, 28);
+  subBitBtn.SetBounds(BtnX, HDR_Y + ListH div 2 + 4,  28, 28);
+
+  // ── Card 2: Built-in Effects ───────────────────────────────────────────
+  FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
+
+  ColW  := (CW - 3 * PAD) div 2;
+  TrkW  := ColW - NAME_W - VAL_W - 8;
+  Col0  := PAD;
+  Col1  := PAD + ColW + PAD;
+  Row0  := HDR_Y - 2;
+  Row1  := Row0 + 52;
+
+  casLabel.SetBounds(Col0, Row0 + 5, NAME_W, 20);
+  casTrackBar.SetBounds(Col0 + NAME_W + 4, Row0, TrkW, 28);
+  casvalueLabel.SetBounds(Col0 + NAME_W + 4 + TrkW + 4, Row0 + 5, VAL_W, 20);
+
+  fxaaLabel.SetBounds(Col1, Row0 + 5, NAME_W, 20);
+  fxaaTrackBar.SetBounds(Col1 + NAME_W + 4, Row0, TrkW, 28);
+  fxaavalueLabel.SetBounds(Col1 + NAME_W + 4 + TrkW + 4, Row0 + 5, VAL_W, 20);
+
+  smaaLabel.SetBounds(Col0, Row1 + 5, NAME_W, 20);
+  smaaTrackBar.SetBounds(Col0 + NAME_W + 4, Row1, TrkW, 28);
+  smaavalueLabel.SetBounds(Col0 + NAME_W + 4 + TrkW + 4, Row1 + 5, VAL_W, 20);
+
+  dlsLabel.SetBounds(Col1, Row1 + 5, NAME_W, 20);
+  dlsTrackBar.SetBounds(Col1 + NAME_W + 4, Row1, TrkW, 28);
+  dlsvalueLabel.SetBounds(Col1 + NAME_W + 4 + TrkW + 4, Row1 + 5, VAL_W, 20);
+
+  // ── Card 3: Toggle Key ─────────────────────────────────────────────────
+  FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, 260, TOGL_H);
+
+  vkbtogglekeyCombobox.SetBounds(140, 18, 110, 30);
 end;
 
 // ============================================================================
