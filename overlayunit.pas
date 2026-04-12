@@ -2699,7 +2699,7 @@ begin
       goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGameThumbBmp);
     end
     else if Assigned(FGlobalThumbPng) and (FGlobalThumbPng.Width > 0)
-         and (FNavActive >= 0) then
+         and (FNavActive > 0) then
     begin
       // Collapsed: icon at 75%, font 7, short label; expanded: 50%, font 9, full label
       if ThumbW > ThumbH then ThumbW := ThumbH
