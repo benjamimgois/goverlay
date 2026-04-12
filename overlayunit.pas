@@ -634,6 +634,7 @@ type
     procedure ReflowTweaksTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
+    procedure StyleOptiScalerTab;
 
     procedure StartCube;
     procedure StopCube;
@@ -4969,6 +4970,9 @@ begin
   // Initialize Games tab container (games are loaded on FormShow)
   InitGamesTab;
   FGamesLoaded := False;
+
+  // Apply dark theme to OptiScaler tab controls
+  StyleOptiScalerTab;
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
@@ -10712,6 +10716,121 @@ begin
   performanceGroupBox.SetBounds(C1A, BOX_TOP, ColWA, BOX_H);
   customenvEdit.Left  := EditLeft;
   customenvEdit.Width := EditW;
+end;
+
+// ============================================================================
+// OPTISCALER TAB — dark theme (no structural changes)
+// ============================================================================
+
+procedure Tgoverlayform.StyleOptiScalerTab;
+const
+  BG        = $1E1E2E;   // card / groupbox background
+  BG_LIGHT  = $252538;   // slightly lighter for inner groupboxes
+  COMBO_BG  = $2A2A40;   // combobox background
+  CLR_WHITE = clWhite;
+  CLR_GRAY  = $AAAAAA;
+  CLR_PURPL = $BB99FF;   // label accent colour (section headers)
+  CLR_GREEN = $66CC44;   // autodetect label
+
+  procedure DarkGroupBox(GB: TGroupBox; ABG: TColor);
+  begin
+    GB.Color      := ABG;
+    GB.Font.Color := CLR_WHITE;
+    GB.Font.Size  := 9;
+  end;
+
+  procedure DarkLbl(L: TLabel; AColor: TColor);
+  begin
+    L.Color      := BG;
+    L.Font.Color := AColor;
+    L.Font.Size  := 9;
+    L.Transparent := False;
+  end;
+
+  procedure DarkCheck(C: TCheckBox);
+  begin
+    C.Color      := BG_LIGHT;
+    C.Font.Color := CLR_WHITE;
+    C.Font.Size  := 9;
+  end;
+
+  procedure DarkRadio(R: TRadioButton);
+  begin
+    R.Color      := BG;
+    R.Font.Color := CLR_WHITE;
+    R.Font.Size  := 9;
+  end;
+
+  procedure DarkCombo(C: TComboBox);
+  begin
+    C.Color      := COMBO_BG;
+    C.Font.Color := CLR_WHITE;
+    C.Font.Size  := 9;
+  end;
+
+begin
+  // ── Tab background ──────────────────────────────────────────────────
+  optiscalerTabSheet.Color := $121220;
+
+  // ── GPU Driver GroupBox ─────────────────────────────────────────────
+  DarkGroupBox(gpudriverGroupBox, BG);
+  DarkRadio(nvidiaRadioButton);
+  DarkRadio(mesaRadioButton);
+  DarkLbl(activegpuLabel,     CLR_GRAY);
+  DarkLbl(autodetectnvLabel,  CLR_GREEN);
+  DarkLbl(autodetectmesaLabel, CLR_GREEN);
+  DarkCheck(hidenvidiaCheckBox);
+
+  // ── Options GroupBox (outer) ────────────────────────────────────────
+  DarkGroupBox(optionsGroupBox, $121220);  // transparent-looking outer wrapper
+
+  // optiscalerGroupBox — DLL & FSR section
+  DarkGroupBox(optiscalerGroupBox, BG);
+  DarkLbl(filenameLabel,    CLR_PURPL);
+  DarkCombo(filenameComboBox);
+  DarkCheck(spoofCheckBox);
+  DarkCheck(emufp8CheckBox);
+  DarkCheck(optipatcherCheckBox);
+  DarkLbl(fsrversionLabel,  CLR_PURPL);
+  DarkCombo(fsrversionComboBox);
+  DarkLbl(osversionLabel,   CLR_GRAY);
+  DarkLbl(patcherlistLabel, $4499FF);
+
+  // imgmenuGroupBox — In-Game Menu section
+  DarkGroupBox(imgmenuGroupBox, BG);
+  DarkLbl(menuLabel,            CLR_PURPL);
+  DarkLbl(menuscalevalueLabel,  CLR_WHITE);
+  DarkLbl(mark1Label,           CLR_GRAY);
+  DarkLbl(mark2Label,           CLR_GRAY);
+  DarkLbl(mark3Label,           CLR_GRAY);
+  DarkLbl(shortcutkeyLabel,     CLR_PURPL);
+  DarkCombo(shortcutkeyComboBox);
+
+  // fakenvapiGroupBox — FakeNVAPI section
+  DarkGroupBox(fakenvapiGroupBox, BG);
+  DarkCheck(forcereflexCheckBox);
+  DarkCheck(overrideCheckBox);
+  DarkCheck(forcelatencyflexCheckBox);
+  DarkCheck(tracelogCheckBox);
+  DarkCheck(vulkandriverCheckBox);
+  DarkCombo(reflexComboBox);
+  DarkCombo(latencyflexComboBox);
+
+  // ── Status GroupBox ─────────────────────────────────────────────────
+  DarkGroupBox(statusGroupBox, BG);
+  DarkLbl(optLabel,       CLR_PURPL);
+  DarkLbl(optLabel1,      CLR_WHITE);
+  DarkLbl(optLabel2,      CLR_GRAY);
+  DarkLbl(fakenvapiLabel, CLR_PURPL);
+  DarkLbl(fakenvapi1,     CLR_WHITE);
+  DarkLbl(fakenvapi2,     CLR_GRAY);
+  DarkLbl(fsrLabel,       CLR_PURPL);
+  DarkLbl(fsrLabel1,      CLR_WHITE);
+  DarkLbl(xessLabel,      CLR_PURPL);
+  DarkLbl(xessLabel1,     CLR_WHITE);
+  DarkLbl(dlssLabel,      CLR_PURPL);
+  DarkLbl(dlssLabel1,     CLR_WHITE);
+  DarkCombo(optversionComboBox);
 end;
 
 // ============================================================================
