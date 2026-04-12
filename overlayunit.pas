@@ -11144,15 +11144,16 @@ begin
             BadgeCircle.OnMouseUp    := @GameCardMouseUp;
             // Tweaks (gear) icon label on top
             BadgeTweaksLabel := TLabel.Create(CardPanel);
-            BadgeTweaksLabel.Parent     := CardPanel;
-            BadgeTweaksLabel.AutoSize   := False;
-            BadgeTweaksLabel.SetBounds(BadgeX, 4, 24, 24);
-            BadgeTweaksLabel.Caption    := '󰒓';
-            BadgeTweaksLabel.Font.Name  := 'Noto Sans';
-            BadgeTweaksLabel.Font.Size  := 12;
-            BadgeTweaksLabel.Font.Color := clWhite;
-            BadgeTweaksLabel.Alignment  := taCenter;
-            BadgeTweaksLabel.Layout     := tlCenter;
+            BadgeTweaksLabel.Parent      := CardPanel;
+            BadgeTweaksLabel.AutoSize    := False;
+            BadgeTweaksLabel.SetBounds(BadgeX - 1, 3, 26, 26);
+            BadgeTweaksLabel.Caption     := '󰒓';
+            BadgeTweaksLabel.Font.Name   := 'Noto Sans';
+            BadgeTweaksLabel.Font.Size   := 11;
+            BadgeTweaksLabel.Font.Color  := clWhite;
+            BadgeTweaksLabel.Alignment   := taCenter;
+            BadgeTweaksLabel.Layout      := tlCenter;
+            BadgeTweaksLabel.Transparent := True;
             BadgeTweaksLabel.BringToFront;
             BadgeTweaksLabel.OnMouseEnter := @GameCardMouseEnter;
             BadgeTweaksLabel.OnMouseLeave := @GameCardMouseLeave;
