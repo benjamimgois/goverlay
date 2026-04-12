@@ -10868,6 +10868,7 @@ var
   ScaledBmp: TBitmap;
   HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
   BadgeOptiScalerLabel: TLabel;
+  BadgeOptiImg: TImage;
   BadgeTweaksLabel: TLabel;
   TweakLines: TStringList;
   k: Integer;
@@ -11109,22 +11110,22 @@ begin
             BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
             BadgeCircle.OnClick      := @GameCardClick;
             BadgeCircle.OnMouseUp    := @GameCardMouseUp;
-            // OptiScaler icon label on top
-            BadgeOptiScalerLabel := TLabel.Create(CardPanel);
-            BadgeOptiScalerLabel.Parent     := CardPanel;
-            BadgeOptiScalerLabel.AutoSize   := False;
-            BadgeOptiScalerLabel.SetBounds(BadgeX, 4, 24, 24);
-            BadgeOptiScalerLabel.Caption    := '󰋮';
-            BadgeOptiScalerLabel.Font.Name  := 'Noto Sans';
-            BadgeOptiScalerLabel.Font.Size  := 12;
-            BadgeOptiScalerLabel.Font.Color := clWhite;
-            BadgeOptiScalerLabel.Alignment  := taCenter;
-            BadgeOptiScalerLabel.Layout     := tlCenter;
-            BadgeOptiScalerLabel.BringToFront;
-            BadgeOptiScalerLabel.OnMouseEnter := @GameCardMouseEnter;
-            BadgeOptiScalerLabel.OnMouseLeave := @GameCardMouseLeave;
-            BadgeOptiScalerLabel.OnClick      := @GameCardClick;
-            BadgeOptiScalerLabel.OnMouseUp    := @GameCardMouseUp;
+            // OptiScaler icon (same PNG as sidebar nav)
+            BadgeOptiImg := TImage.Create(CardPanel);
+            BadgeOptiImg.Parent      := CardPanel;
+            BadgeOptiImg.AutoSize    := False;
+            BadgeOptiImg.SetBounds(BadgeX + 3, 7, 18, 18);
+            BadgeOptiImg.Stretch     := True;
+            BadgeOptiImg.Center      := True;
+            BadgeOptiImg.Transparent := True;
+            IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+            if FileExists(IconPath) then
+              BadgeOptiImg.Picture.LoadFromFile(IconPath);
+            BadgeOptiImg.BringToFront;
+            BadgeOptiImg.OnMouseEnter := @GameCardMouseEnter;
+            BadgeOptiImg.OnMouseLeave := @GameCardMouseLeave;
+            BadgeOptiImg.OnClick      := @GameCardClick;
+            BadgeOptiImg.OnMouseUp    := @GameCardMouseUp;
             BadgeX := BadgeX + 28;
           end;
 
