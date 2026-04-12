@@ -578,14 +578,6 @@ type
     FVkFxaaValLbl:   TLabel;
     FVkSmaaValLbl:   TLabel;
     FVkDlsValLbl:    TLabel;
-    // OptiScaler tab redesign
-    FOsScrollBox:     TScrollBox; // scroll container for all cards
-    FOsGpuCard:      TPanel;   // Card 0 — GPU Driver
-    FOsDllCard:      TPanel;   // Card 1 — DLL & Options
-    FOsMenuCard:     TPanel;   // Card 2 — In-Game Menu
-    FOsFakenvapiCard:TPanel;   // Card 3 — FakeNVAPI
-    FOsStatusCard:   TPanel;   // Card 4 — Status
-    FOsMenuValLbl:   TLabel;   // fresh value label for scale trackbar
 
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
@@ -642,8 +634,6 @@ type
     procedure ReflowTweaksTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
-    procedure InitOptiScalerTab;
-    procedure ReflowOptiScalerTabNew(AContentW: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -4983,9 +4973,6 @@ begin
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
 
-  // Initialize OptiScaler tab modern UI
-  InitOptiScalerTab;
-
   // Initialize Home tab
   InitHomeTab;
 
@@ -6495,8 +6482,8 @@ end;
 
 procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
 begin
+  //Display new values and trackbar changes (divide by 10)
   menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
-  if Assigned(FOsMenuValLbl) then FOsMenuValLbl.Caption := menuscalevalueLabel.Caption;
 end;
 
 procedure Tgoverlayform.mesaRadioButtonChange(Sender: TObject);
@@ -10463,7 +10450,6 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
-  ReflowOptiScalerTabNew(ContentW);
   ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
   if FGamesLoaded then
@@ -10492,7 +10478,6 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
-  ReflowOptiScalerTabNew(ContentW);
   ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
 
@@ -10727,353 +10712,6 @@ begin
   performanceGroupBox.SetBounds(C1A, BOX_TOP, ColWA, BOX_H);
   customenvEdit.Left  := EditLeft;
   customenvEdit.Width := EditW;
-end;
-
-// ============================================================================
-// OPTISCALER TAB — modern redesign
-// ============================================================================
-
-procedure Tgoverlayform.InitOptiScalerTab;
-const
-  BG        = $1E1E2E;
-  ACCENT    = $4488FF;
-  CLR_WHITE = clWhite;
-var
-  AccentBar: TPanel;
-  TitleLbl:  TLabel;
-
-  procedure MakeCard(out Card: TPanel; const ATitle: string);
-  var SB: TScrollBox;
-  begin
-    SB := FOsScrollBox;
-    Card := TPanel.Create(Self);
-    Card.Parent     := SB;
-    Card.BevelOuter := bvNone;
-    Card.Color      := BG;
-    Card.Caption    := '';
-    AccentBar := TPanel.Create(Card);
-    AccentBar.Parent  := Card;  AccentBar.BevelOuter := bvNone;
-    AccentBar.Color   := ACCENT; AccentBar.Caption  := '';
-    AccentBar.SetBounds(0, 0, 400, 3);
-    AccentBar.Anchors := [akLeft, akRight, akTop];
-    TitleLbl := TLabel.Create(Card);
-    TitleLbl.Parent      := Card;
-    TitleLbl.Caption     := '  ' + ATitle;
-    TitleLbl.Font.Name   := 'Noto Sans';
-    TitleLbl.Font.Size   := 10;
-    TitleLbl.Font.Style  := [fsBold];
-    TitleLbl.Font.Color  := CLR_WHITE;
-    TitleLbl.AutoSize    := True;
-    TitleLbl.SetBounds(12, 8, 300, 22);
-    TitleLbl.Transparent := True;
-  end;
-
-  // Reparent — do NOT force Visible; let existing logic decide
-  procedure RP(ACtrl: TControl; ACard: TPanel);
-  begin
-    ACtrl.Parent  := ACard;
-    ACtrl.Anchors := [akLeft, akTop];
-  end;
-
-  // Reparent and force visible
-  procedure RPShow(ACtrl: TControl; ACard: TPanel);
-  begin
-    ACtrl.Parent  := ACard;
-    ACtrl.Anchors := [akLeft, akTop];
-    ACtrl.Visible := True;
-  end;
-
-  procedure StyleCheck(ACheck: TCheckBox);
-  begin
-    ACheck.Color := BG; ACheck.Font.Color := CLR_WHITE; ACheck.Font.Size := 9;
-  end;
-
-  procedure StyleRadio(ARadio: TRadioButton);
-  begin
-    ARadio.Color := BG; ARadio.Font.Color := CLR_WHITE; ARadio.Font.Size := 9;
-  end;
-
-  procedure StyleCombo(ACombo: TComboBox);
-  begin
-    ACombo.Color := $2A2A40; ACombo.Font.Color := CLR_WHITE; ACombo.Font.Size := 9;
-  end;
-
-  procedure StyleLbl(ALbl: TLabel; AColor: TColor; ABold: Boolean);
-  begin
-    ALbl.Font.Color := AColor;
-    ALbl.Font.Size  := 9;
-    if ABold then ALbl.Font.Style := [fsBold] else ALbl.Font.Style := [];
-    ALbl.Color    := BG;
-    ALbl.AutoSize := False;
-  end;
-
-begin
-  // Hide original group boxes (controls are reparented below)
-  gpudriverGroupBox.Visible := False;
-  optionsGroupBox.Visible   := False;
-  statusGroupBox.Visible    := False;
-
-  // Scroll container fills the tab
-  FOsScrollBox := TScrollBox.Create(Self);
-  FOsScrollBox.Parent      := optiscalerTabSheet;
-  FOsScrollBox.Align       := alClient;
-  FOsScrollBox.AutoScroll  := True;
-  FOsScrollBox.BorderStyle := bsNone;
-  FOsScrollBox.HorzScrollBar.Visible := False;
-  FOsScrollBox.Color       := $121220;
-
-  // ── Card 0: GPU Driver ───────────────────────────────────────────────
-  MakeCard(FOsGpuCard, 'GPU Driver');
-  // Images and radio buttons
-  RPShow(nvidiaImage,        FOsGpuCard);
-  RPShow(nvidiaRadioButton,  FOsGpuCard); StyleRadio(nvidiaRadioButton);
-  RPShow(mesaImage,          FOsGpuCard);
-  RPShow(mesaRadioButton,    FOsGpuCard); StyleRadio(mesaRadioButton);
-  RPShow(activegpuLabel,     FOsGpuCard); StyleLbl(activegpuLabel,  $AAAAAA, False);
-  RPShow(hidenvidiaCheckBox, FOsGpuCard); StyleCheck(hidenvidiaCheckBox);
-  // Autodetect labels: detection code controls visibility — do not force it
-  RP(autodetectnvLabel,   FOsGpuCard); StyleLbl(autodetectnvLabel,   $66CC44, False);
-  RP(autodetectmesaLabel, FOsGpuCard); StyleLbl(autodetectmesaLabel, $66CC44, False);
-
-  // ── Card 1: DLL & Options ────────────────────────────────────────────
-  MakeCard(FOsDllCard, 'DLL && Options');
-  RPShow(filenameLabel,             FOsDllCard); StyleLbl(filenameLabel, $BB99FF, True);
-  RPShow(filenameComboBox,          FOsDllCard); StyleCombo(filenameComboBox);
-  RPShow(spoofCheckBox,             FOsDllCard); StyleCheck(spoofCheckBox);
-  RPShow(emufp8CheckBox,            FOsDllCard); StyleCheck(emufp8CheckBox);
-  RPShow(optipatcherCheckBox,       FOsDllCard); StyleCheck(optipatcherCheckBox);
-  RPShow(fsrversionLabel,           FOsDllCard); StyleLbl(fsrversionLabel, $BB99FF, True);
-  RPShow(fsrversionComboBox,        FOsDllCard); StyleCombo(fsrversionComboBox);
-  RPShow(osversionLabel,            FOsDllCard); StyleLbl(osversionLabel, $AAAAAA, False);
-  RPShow(protontricksManagerButton, FOsDllCard);
-  RPShow(patcherlistLabel,          FOsDllCard); StyleLbl(patcherlistLabel, $4499FF, False);
-
-  // ── Card 2: In-Game Menu ─────────────────────────────────────────────
-  MakeCard(FOsMenuCard, 'In-Game Menu');
-  RPShow(menuLabel,           FOsMenuCard); StyleLbl(menuLabel, $BB99FF, True);
-  RPShow(menuscaleTrackBar,   FOsMenuCard);
-  RPShow(mark1Label,          FOsMenuCard); StyleLbl(mark1Label, $888888, False);
-  RPShow(mark2Label,          FOsMenuCard); StyleLbl(mark2Label, $888888, False);
-  RPShow(mark3Label,          FOsMenuCard); StyleLbl(mark3Label, $888888, False);
-  RPShow(shortcutkeyLabel,    FOsMenuCard); StyleLbl(shortcutkeyLabel, $BB99FF, True);
-  RPShow(shortcutkeyComboBox, FOsMenuCard); StyleCombo(shortcutkeyComboBox);
-  // Fresh value label (avoids LFM inheritance issues with menuscalevalueLabel)
-  FOsMenuValLbl               := TLabel.Create(Self);
-  FOsMenuValLbl.Parent        := FOsMenuCard;
-  FOsMenuValLbl.Caption       := menuscalevalueLabel.Caption;
-  FOsMenuValLbl.Font.Color    := CLR_WHITE;
-  FOsMenuValLbl.Font.Size     := 9;
-  FOsMenuValLbl.Color         := BG;
-  FOsMenuValLbl.AutoSize      := False;
-  FOsMenuValLbl.Anchors       := [akLeft, akTop];
-
-  // ── Card 3: FakeNVAPI ────────────────────────────────────────────────
-  MakeCard(FOsFakenvapiCard, 'FakeNVAPI');
-  RPShow(forcereflexCheckBox,      FOsFakenvapiCard); StyleCheck(forcereflexCheckBox);
-  RPShow(overrideCheckBox,         FOsFakenvapiCard); StyleCheck(overrideCheckBox);
-  RPShow(forcelatencyflexCheckBox, FOsFakenvapiCard); StyleCheck(forcelatencyflexCheckBox);
-  RPShow(tracelogCheckBox,         FOsFakenvapiCard); StyleCheck(tracelogCheckBox);
-  RPShow(vulkandriverCheckBox,     FOsFakenvapiCard); StyleCheck(vulkandriverCheckBox);
-  RPShow(reflexComboBox,           FOsFakenvapiCard); StyleCombo(reflexComboBox);
-  RPShow(latencyflexComboBox,      FOsFakenvapiCard); StyleCombo(latencyflexComboBox);
-
-  // ── Card 4: Software Status ──────────────────────────────────────────
-  MakeCard(FOsStatusCard, 'Software Status');
-  // Row 0 — OptiScaler
-  RPShow(optLabel,       FOsStatusCard); StyleLbl(optLabel,       $BB99FF, True);
-  RPShow(optLabel1,      FOsStatusCard); StyleLbl(optLabel1,      CLR_WHITE, False);
-  RPShow(optLabel2,      FOsStatusCard); StyleLbl(optLabel2,      $888888,  False);
-  // Row 0 — FakeNVAPI
-  RPShow(fakenvapiLabel, FOsStatusCard); StyleLbl(fakenvapiLabel, $BB99FF, True);
-  RPShow(fakenvapi1,     FOsStatusCard); StyleLbl(fakenvapi1,     CLR_WHITE, False);
-  RPShow(fakenvapi2,     FOsStatusCard); StyleLbl(fakenvapi2,     $888888,  False);
-  // Row 0 — FSR
-  RPShow(fsrLabel,       FOsStatusCard); StyleLbl(fsrLabel,       $BB99FF, True);
-  RPShow(fsrLabel1,      FOsStatusCard); StyleLbl(fsrLabel1,      CLR_WHITE, False);
-  // Row 1 — XeSS
-  RPShow(xessLabel,      FOsStatusCard); StyleLbl(xessLabel,      $BB99FF, True);
-  RPShow(xessLabel1,     FOsStatusCard); StyleLbl(xessLabel1,     CLR_WHITE, False);
-  // Row 1 — DLSS
-  RPShow(dlssLabel,      FOsStatusCard); StyleLbl(dlssLabel,      $BB99FF, True);
-  RPShow(dlssLabel1,     FOsStatusCard); StyleLbl(dlssLabel1,     CLR_WHITE, False);
-  // Branch selector combo
-  RPShow(optversionComboBox, FOsStatusCard); StyleCombo(optversionComboBox);
-end;
-
-procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
-const
-  MARGIN  = 10;   // outer margin
-  GAP     = 10;   // gap between cards
-  PAD     = 14;   // inner horizontal padding
-  VPAD    = 6;    // vertical gap between rows inside a card
-  CB_H    = 24;   // combobox height
-  CK_H    = 22;   // checkbox height
-  LBL_H   = 18;   // label height
-  TRK_H   = 28;   // trackbar height
-  IMG_SZ  = 32;   // GPU brand image size
-  VAL_W   = 36;   // scale value label width
-  // Content top (below accent bar + title)
-  CONT_Y  = 34;
-  // Fixed card heights
-  GPU_H    = 96;   // GPU Driver
-  DLL_H    = 172;  // DLL & Options
-  MENU_H   = 144;  // In-Game Menu
-  FNVAPI_H = 144;  // FakeNVAPI
-  STAT_H   = 144;  // Software Status
-var
-  CW, Y, CardTop, Col0, Col1, Col2, ColW: Integer;
-  NvX, MesaX, StatColW: Integer;
-begin
-  if not Assigned(FOsScrollBox) then Exit;
-  if not Assigned(FOsGpuCard)   then Exit;
-
-  // Card width = scroll box client width minus outer margins
-  CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
-  if CW < 100 then Exit;
-
-  // ── Card 0: GPU Driver ───────────────────────────────────────────────
-  // Row 1 (y=CONT_Y):  [nv img] [nv radio]   [mesa img] [mesa radio]   [active gpu]   [hide nvidia]
-  // Row 2 (y=CONT_Y+IMG_SZ+4):  [autodetect label under nv]  [autodetect label under mesa]
-  FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
-
-  Y     := CONT_Y;
-  NvX   := PAD;
-  MesaX := NvX + IMG_SZ + 6 + 96 + 20;  // after nv img + radio + gap
-
-  nvidiaImage.SetBounds(NvX, Y, IMG_SZ, IMG_SZ);
-  nvidiaRadioButton.SetBounds(NvX + IMG_SZ + 6, Y + 5, 96, CK_H);
-  autodetectnvLabel.SetBounds(NvX, Y + IMG_SZ + 4, MesaX - NvX - 4, LBL_H);
-
-  mesaImage.SetBounds(MesaX, Y, IMG_SZ, IMG_SZ);
-  mesaRadioButton.SetBounds(MesaX + IMG_SZ + 6, Y + 5, 96, CK_H);
-  autodetectmesaLabel.SetBounds(MesaX, Y + IMG_SZ + 4, 150, LBL_H);
-
-  // Active GPU label and Hide Nvidia checkbox on the right
-  activegpuLabel.SetBounds(MesaX + IMG_SZ + 6 + 100, Y + 6,
-    CW - (MesaX + IMG_SZ + 6 + 100) - 150 - PAD, LBL_H);
-  hidenvidiaCheckBox.SetBounds(CW - 148 - PAD, Y + 5, 148, CK_H);
-
-  // ── Card 1: DLL & Options ────────────────────────────────────────────
-  CardTop := MARGIN + GPU_H + GAP;
-  FOsDllCard.SetBounds(MARGIN, CardTop, CW, DLL_H);
-
-  Y := CONT_Y;
-  // Row: DLL label + combo (full width)
-  filenameLabel.SetBounds(PAD, Y + 3, 68, LBL_H);
-  filenameComboBox.SetBounds(PAD + 72, Y, CW - PAD - 72 - PAD, CB_H);
-
-  Y := Y + CB_H + VPAD;
-  // Row: Spoof | Emulate FP8 | OptiPatcher
-  ColW := (CW - 2 * PAD) div 3;
-  spoofCheckBox.SetBounds(PAD,              Y, ColW, CK_H);
-  emufp8CheckBox.SetBounds(PAD + ColW,      Y, ColW, CK_H);
-  optipatcherCheckBox.SetBounds(PAD + 2*ColW, Y, ColW, CK_H);
-
-  Y := Y + CK_H + VPAD;
-  // Row: FSR Version label + combo | OS version label
-  fsrversionLabel.SetBounds(PAD, Y + 3, 80, LBL_H);
-  fsrversionComboBox.SetBounds(PAD + 84, Y, 160, CB_H);
-  osversionLabel.SetBounds(PAD + 84 + 166, Y + 3,
-    CW - PAD - 84 - 166 - PAD, LBL_H);
-
-  Y := Y + CB_H + VPAD;
-  // Row: Wine Prefix button | patcher list label
-  protontricksManagerButton.SetBounds(PAD, Y, 120, 28);
-  patcherlistLabel.SetBounds(PAD + 126, Y + 6, CW - PAD - 126 - PAD, LBL_H);
-
-  // ── Card 2: In-Game Menu ─────────────────────────────────────────────
-  CardTop := MARGIN + GPU_H + GAP + DLL_H + GAP;
-  FOsMenuCard.SetBounds(MARGIN, CardTop, CW, MENU_H);
-
-  Y := CONT_Y;
-  // Row: "Scale" label (left) + value label (right)
-  menuLabel.SetBounds(PAD, Y, CW - 2*PAD - VAL_W - 4, LBL_H);
-  if Assigned(FOsMenuValLbl) then
-    FOsMenuValLbl.SetBounds(CW - PAD - VAL_W, Y, VAL_W, LBL_H);
-
-  Y := Y + LBL_H + 2;
-  // Trackbar (full width)
-  menuscaleTrackBar.SetBounds(PAD, Y, CW - 2*PAD, TRK_H);
-
-  Y := Y + TRK_H;
-  // Scale marks row
-  mark1Label.SetBounds(PAD, Y, 44, LBL_H);
-  mark2Label.SetBounds(PAD + (CW - 2*PAD) div 2 - 14, Y, 32, LBL_H);
-  mark3Label.SetBounds(CW - PAD - 28, Y, 28, LBL_H);
-
-  Y := Y + LBL_H + VPAD + 4;
-  // Row: Shortcut key label + combo
-  shortcutkeyLabel.SetBounds(PAD, Y + 3, 90, LBL_H);
-  shortcutkeyComboBox.SetBounds(PAD + 94, Y, CW - PAD - 94 - PAD, CB_H);
-
-  // ── Card 3: FakeNVAPI ────────────────────────────────────────────────
-  CardTop := MARGIN + GPU_H + GAP + DLL_H + GAP + MENU_H + GAP;
-  FOsFakenvapiCard.SetBounds(MARGIN, CardTop, CW, FNVAPI_H);
-
-  Y    := CONT_Y;
-  Col0 := PAD;
-  Col1 := CW div 2;
-  ColW := CW div 2 - PAD;
-
-  // Row: Force Reflex | Override Nvapi Dll
-  forcereflexCheckBox.SetBounds(Col0, Y, ColW, CK_H);
-  overrideCheckBox.SetBounds(Col1,    Y, ColW, CK_H);
-  Y := Y + CK_H;
-
-  // Row: Force LatencyFlex | Enable trace logs
-  forcelatencyflexCheckBox.SetBounds(Col0, Y, ColW, CK_H);
-  tracelogCheckBox.SetBounds(Col1,         Y, ColW, CK_H);
-  Y := Y + CK_H;
-
-  // Row: Vulkan Driver (full width)
-  vulkandriverCheckBox.SetBounds(Col0, Y, CW - 2*PAD, CK_H);
-  Y := Y + CK_H + VPAD;
-
-  // Row: Force enable combo | Choose mode combo
-  reflexComboBox.SetBounds(Col0, Y, ColW, CB_H);
-  latencyflexComboBox.SetBounds(Col1, Y, ColW, CB_H);
-
-  // ── Card 4: Software Status ──────────────────────────────────────────
-  // 3-column grid:
-  //   Col 0: OptiScaler  | Col 1: FakeNVAPI | Col 2: FSR
-  //          [ver]       |        [ver]     |        [ver]
-  //          [path]      |        [path]    |
-  //   Col 0: XeSS        | Col 1: DLSS      | Col 2: [branch combo]
-  //          [ver]       |        [ver]     |
-  CardTop := MARGIN + GPU_H + GAP + DLL_H + GAP + MENU_H + GAP + FNVAPI_H + GAP;
-  FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
-
-  StatColW := (CW - 2*PAD - 2*VPAD) div 3;
-  Col0 := PAD;
-  Col1 := PAD + StatColW + VPAD;
-  Col2 := PAD + 2 * (StatColW + VPAD);
-  Y    := CONT_Y;
-
-  // Group 0: name labels (bold purple)
-  optLabel.SetBounds(Col0, Y, StatColW, LBL_H);
-  fakenvapiLabel.SetBounds(Col1, Y, StatColW, LBL_H);
-  fsrLabel.SetBounds(Col2, Y, StatColW, LBL_H);
-
-  Y := Y + LBL_H + 2;
-  // Group 0: version labels
-  optLabel1.SetBounds(Col0, Y, StatColW, LBL_H);
-  fakenvapi1.SetBounds(Col1, Y, StatColW, LBL_H);
-  fsrLabel1.SetBounds(Col2, Y, StatColW, LBL_H);
-
-  Y := Y + LBL_H + 2;
-  // Group 0: path / secondary labels (gray, smaller text)
-  optLabel2.SetBounds(Col0, Y, StatColW, LBL_H);
-  fakenvapi2.SetBounds(Col1, Y, StatColW, LBL_H);
-
-  Y := Y + LBL_H + VPAD + 4;
-  // Group 1: XeSS | DLSS | branch combo
-  xessLabel.SetBounds(Col0, Y, StatColW, LBL_H);
-  dlssLabel.SetBounds(Col1, Y, StatColW, LBL_H);
-  optversionComboBox.SetBounds(Col2, Y - 2, StatColW, CB_H);
-
-  Y := Y + LBL_H + 2;
-  xessLabel1.SetBounds(Col0, Y, StatColW, LBL_H);
-  dlssLabel1.SetBounds(Col1, Y, StatColW, LBL_H);
 end;
 
 // ============================================================================
