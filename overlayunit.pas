@@ -578,6 +578,12 @@ type
     FVkFxaaValLbl:   TLabel;
     FVkSmaaValLbl:   TLabel;
     FVkDlsValLbl:    TLabel;
+    // OptiScaler tab redesign
+    FOsDllCard:      TPanel;   // Card 1 — DLL & Options
+    FOsMenuCard:     TPanel;   // Card 2 — In-Game Menu
+    FOsFakenvapiCard:TPanel;   // Card 3 — FakeNVAPI
+    FOsStatusCard:   TPanel;   // Card 4 — Status
+    FOsMenuValLbl:   TLabel;   // fresh value label for scale trackbar
 
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
@@ -634,6 +640,8 @@ type
     procedure ReflowTweaksTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
+    procedure InitOptiScalerTab;
+    procedure ReflowOptiScalerTabNew(AContentW: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -4973,6 +4981,9 @@ begin
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
 
+  // Initialize OptiScaler tab modern UI
+  InitOptiScalerTab;
+
   // Initialize Home tab
   InitHomeTab;
 
@@ -6482,8 +6493,8 @@ end;
 
 procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
 begin
-  //Display new values and trackbar changes (divide by 10)
   menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
+  if Assigned(FOsMenuValLbl) then FOsMenuValLbl.Caption := menuscalevalueLabel.Caption;
 end;
 
 procedure Tgoverlayform.mesaRadioButtonChange(Sender: TObject);
@@ -10450,6 +10461,7 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
+  ReflowOptiScalerTabNew(ContentW);
   ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
   if FGamesLoaded then
@@ -10478,6 +10490,7 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
+  ReflowOptiScalerTabNew(ContentW);
   ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
 
@@ -10712,6 +10725,324 @@ begin
   performanceGroupBox.SetBounds(C1A, BOX_TOP, ColWA, BOX_H);
   customenvEdit.Left  := EditLeft;
   customenvEdit.Width := EditW;
+end;
+
+// ============================================================================
+// OPTISCALER TAB — modern redesign
+// ============================================================================
+
+procedure Tgoverlayform.InitOptiScalerTab;
+const
+  BG        = $1E1E2E;
+  ACCENT    = $4488FF;   // blue — distinct from vkBasalt purple
+  CLR_WHITE = clWhite;
+var
+  AccentBar: TPanel;
+  TitleLbl:  TLabel;
+  SepLbl:    TLabel;
+
+  procedure MakeCard(out Card: TPanel; AParent: TWinControl);
+  begin
+    Card := TPanel.Create(Self);
+    Card.Parent     := AParent;
+    Card.BevelOuter := bvNone;
+    Card.Color      := BG;
+    Card.Caption    := '';
+    AccentBar := TPanel.Create(Card);
+    AccentBar.Parent     := Card;
+    AccentBar.BevelOuter := bvNone;
+    AccentBar.Color      := ACCENT;
+    AccentBar.Caption    := '';
+    AccentBar.SetBounds(0, 0, 200, 3);
+    AccentBar.Anchors := [akLeft, akRight, akTop];
+  end;
+
+  procedure MakeTitle(ACard: TPanel; const AText: string);
+  begin
+    TitleLbl := TLabel.Create(ACard);
+    TitleLbl.Parent     := ACard;
+    TitleLbl.Caption    := AText;
+    TitleLbl.Font.Name  := 'Noto Sans';
+    TitleLbl.Font.Size  := 10;
+    TitleLbl.Font.Style := [fsBold];
+    TitleLbl.Font.Color := CLR_WHITE;
+    TitleLbl.AutoSize   := True;
+    TitleLbl.SetBounds(12, 10, 200, 22);
+    TitleLbl.Transparent := True;
+  end;
+
+  procedure StyleCheck(ACheck: TCheckBox);
+  begin
+    ACheck.Color      := BG;
+    ACheck.Font.Color := CLR_WHITE;
+    ACheck.Font.Size  := 9;
+    ACheck.Anchors    := [akLeft, akTop];
+    ACheck.Visible    := True;
+  end;
+
+  procedure StyleCombo(ACombo: TComboBox; AColor: TColor);
+  begin
+    ACombo.Color      := AColor;
+    ACombo.Font.Color := CLR_WHITE;
+    ACombo.Font.Size  := 9;
+    ACombo.Anchors    := [akLeft, akTop];
+    ACombo.Visible    := True;
+  end;
+
+  procedure StyleLabel(ALbl: TLabel; AColor: TColor; ABold: Boolean);
+  begin
+    ALbl.Font.Color := AColor;
+    ALbl.Font.Size  := 9;
+    if ABold then ALbl.Font.Style := [fsBold]
+    else          ALbl.Font.Style := [];
+    ALbl.Color      := BG;
+    ALbl.Anchors    := [akLeft, akTop];
+    ALbl.Visible    := True;
+  end;
+
+begin
+  // ── Hide old LFM containers ───────────────────────────────────────────────
+  gpudriverGroupBox.Visible  := False;
+  optionsGroupBox.Visible    := False;
+  statusGroupBox.Visible     := False;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 1 — DLL & Options
+  // ══════════════════════════════════════════════════════════════════════════
+  MakeCard(FOsDllCard, optiscalerTabSheet);
+  MakeTitle(FOsDllCard, '  DLL & Options');
+
+  // DLL filename
+  filenameLabel.Parent := FOsDllCard;
+  StyleLabel(filenameLabel, $BB99FF, True);
+  filenameComboBox.Parent := FOsDllCard;
+  StyleCombo(filenameComboBox, $2A2A40);
+
+  // Checkboxes row
+  spoofCheckBox.Parent    := FOsDllCard; StyleCheck(spoofCheckBox);
+  emufp8CheckBox.Parent   := FOsDllCard; StyleCheck(emufp8CheckBox);
+  optipatcherCheckBox.Parent := FOsDllCard; StyleCheck(optipatcherCheckBox);
+
+  // FSR version
+  fsrversionLabel.Parent := FOsDllCard;
+  StyleLabel(fsrversionLabel, $BB99FF, True);
+  fsrversionComboBox.Parent := FOsDllCard;
+  StyleCombo(fsrversionComboBox, $2A2A40);
+
+  // OS version label (value only — caption set at runtime)
+  osversionLabel.Parent := FOsDllCard;
+  StyleLabel(osversionLabel, $888888, False);
+
+  // Wine Prefix button
+  protontricksManagerButton.Parent  := FOsDllCard;
+  protontricksManagerButton.Anchors := [akLeft, akTop];
+  protontricksManagerButton.Visible := True;
+
+  // Games Supported link
+  patcherlistLabel.Parent := FOsDllCard;
+  StyleLabel(patcherlistLabel, $4499FF, False);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 2 — In-Game Menu
+  // ══════════════════════════════════════════════════════════════════════════
+  MakeCard(FOsMenuCard, optiscalerTabSheet);
+  MakeTitle(FOsMenuCard, '  In-Game Menu');
+
+  // Scale trackbar
+  menuLabel.Parent := FOsMenuCard;
+  StyleLabel(menuLabel, $BB99FF, True);
+
+  // Fresh value label (avoid reparenting issues)
+  FOsMenuValLbl := TLabel.Create(Self);
+  FOsMenuValLbl.Parent     := FOsMenuCard;
+  FOsMenuValLbl.Caption    := menuscalevalueLabel.Caption;
+  FOsMenuValLbl.Font.Color := CLR_WHITE;
+  FOsMenuValLbl.Font.Size  := 9;
+  FOsMenuValLbl.Color      := BG;
+  FOsMenuValLbl.Anchors    := [akLeft, akTop];
+
+  menuscaleTrackBar.Parent  := FOsMenuCard;
+  menuscaleTrackBar.Anchors := [akLeft, akTop];
+  menuscaleTrackBar.Visible := True;
+
+  // Scale markers
+  mark1Label.Parent := FOsMenuCard; StyleLabel(mark1Label, $888888, False);
+  mark2Label.Parent := FOsMenuCard; StyleLabel(mark2Label, $888888, False);
+  mark3Label.Parent := FOsMenuCard; StyleLabel(mark3Label, $888888, False);
+
+  // Shortcut key
+  shortcutkeyLabel.Parent := FOsMenuCard;
+  StyleLabel(shortcutkeyLabel, $BB99FF, True);
+  shortcutkeyComboBox.Parent := FOsMenuCard;
+  StyleCombo(shortcutkeyComboBox, $2A2A40);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 3 — FakeNVAPI
+  // ══════════════════════════════════════════════════════════════════════════
+  MakeCard(FOsFakenvapiCard, optiscalerTabSheet);
+  MakeTitle(FOsFakenvapiCard, '  FakeNVAPI');
+
+  forcereflexCheckBox.Parent       := FOsFakenvapiCard; StyleCheck(forcereflexCheckBox);
+  forcelatencyflexCheckBox.Parent  := FOsFakenvapiCard; StyleCheck(forcelatencyflexCheckBox);
+  overrideCheckBox.Parent          := FOsFakenvapiCard; StyleCheck(overrideCheckBox);
+  tracelogCheckBox.Parent          := FOsFakenvapiCard; StyleCheck(tracelogCheckBox);
+  vulkandriverCheckBox.Parent      := FOsFakenvapiCard; StyleCheck(vulkandriverCheckBox);
+
+  reflexComboBox.Parent       := FOsFakenvapiCard; StyleCombo(reflexComboBox, $2A2A40);
+  latencyflexComboBox.Parent  := FOsFakenvapiCard; StyleCombo(latencyflexComboBox, $2A2A40);
+
+  // Separator label for Reflex / LatencyFlex sub-sections
+  SepLbl := TLabel.Create(FOsFakenvapiCard);
+  SepLbl.Parent     := FOsFakenvapiCard;
+  SepLbl.Caption    := 'Reflex mode';
+  SepLbl.Font.Color := $888888;
+  SepLbl.Font.Size  := 8;
+  SepLbl.Color      := BG;
+  SepLbl.Anchors    := [akLeft, akTop];
+  SepLbl.SetBounds(12, 130, 100, 16);
+  SepLbl.Transparent := True;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 4 — Software Status
+  // ══════════════════════════════════════════════════════════════════════════
+  MakeCard(FOsStatusCard, optiscalerTabSheet);
+  MakeTitle(FOsStatusCard, '  Software Status');
+
+  // Version labels
+  optLabel.Parent  := FOsStatusCard; StyleLabel(optLabel,  $BB99FF, True);
+  optLabel1.Parent := FOsStatusCard; StyleLabel(optLabel1, CLR_WHITE, False);
+  optLabel2.Parent := FOsStatusCard; StyleLabel(optLabel2, $888888,  False);
+
+  fakenvapiLabel.Parent := FOsStatusCard; StyleLabel(fakenvapiLabel, $BB99FF, True);
+  fakenvapi1.Parent     := FOsStatusCard; StyleLabel(fakenvapi1,      CLR_WHITE, False);
+  fakenvapi2.Parent     := FOsStatusCard; StyleLabel(fakenvapi2,      $888888,  False);
+
+  fsrLabel.Parent  := FOsStatusCard; StyleLabel(fsrLabel,  $BB99FF, True);
+  fsrLabel1.Parent := FOsStatusCard; StyleLabel(fsrLabel1, CLR_WHITE, False);
+
+  xessLabel.Parent  := FOsStatusCard; StyleLabel(xessLabel,  $BB99FF, True);
+  xessLabel1.Parent := FOsStatusCard; StyleLabel(xessLabel1, CLR_WHITE, False);
+
+  dlssLabel.Parent  := FOsStatusCard; StyleLabel(dlssLabel,  $BB99FF, True);
+  dlssLabel1.Parent := FOsStatusCard; StyleLabel(dlssLabel1, CLR_WHITE, False);
+
+  // Branch selector
+  optversionComboBox.Parent := FOsStatusCard;
+  StyleCombo(optversionComboBox, $2A2A40);
+end;
+
+procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
+const
+  MARGIN  = 10;
+  GAP     = 8;
+  PAD     = 12;
+  DLL_H   = 175;   // Card 1 — DLL & Options
+  MENU_H  = 150;   // Card 2 — In-Game Menu
+  FAKE_H  = 210;   // Card 3 — FakeNVAPI
+  STAT_H  = 130;   // Card 4 — Software Status
+  HDR_Y   = 38;    // content start Y inside card (below title+accentbar)
+  CB_H    = 22;    // combobox height
+  CK_H    = 22;    // checkbox height
+  LBL_H   = 18;    // label height
+  TRK_H   = 28;    // trackbar height
+  VAL_W   = 30;    // value label width
+var
+  CW:    Integer;   // usable card width
+  HalfW: Integer;   // half-width for cards 2+3
+  Y:     Integer;
+  Col0, Col1, ColW: Integer;
+begin
+  if not Assigned(FOsDllCard) then Exit;
+
+  CW    := AContentW - 2 * MARGIN;
+  HalfW := (CW - GAP) div 2;
+
+  // ── Card 1: DLL & Options (full width) ────────────────────────────────
+  FOsDllCard.SetBounds(MARGIN, MARGIN, CW, DLL_H);
+
+  Y := HDR_Y;
+  filenameLabel.SetBounds(PAD, Y, 90, LBL_H);
+  filenameComboBox.SetBounds(PAD + 94, Y - 2, CW - PAD - 94 - PAD, CB_H);
+
+  Y := Y + LBL_H + 6;
+  // Checkboxes: Spoof DLSS | Emulate FP8 | OptiPatcher — evenly spaced
+  ColW := (CW - 2 * PAD) div 3;
+  spoofCheckBox.SetBounds(PAD,                 Y, ColW, CK_H);
+  emufp8CheckBox.SetBounds(PAD + ColW,         Y, ColW, CK_H);
+  optipatcherCheckBox.SetBounds(PAD + 2*ColW,  Y, ColW, CK_H);
+
+  Y := Y + CK_H + 8;
+  fsrversionLabel.SetBounds(PAD, Y, 90, LBL_H);
+  fsrversionComboBox.SetBounds(PAD + 94, Y - 2, 160, CB_H);
+  osversionLabel.SetBounds(PAD + 94 + 168, Y, CW - PAD - 94 - 168 - PAD, LBL_H);
+
+  Y := Y + LBL_H + 10;
+  protontricksManagerButton.SetBounds(PAD, Y, 110, 28);
+  patcherlistLabel.SetBounds(PAD + 118, Y + 5, 160, LBL_H);
+
+  // ── Card 2: In-Game Menu (left half) ──────────────────────────────────
+  FOsMenuCard.SetBounds(MARGIN, MARGIN + DLL_H + GAP, HalfW, MENU_H);
+
+  Y := HDR_Y;
+  menuLabel.SetBounds(PAD, Y, HalfW - PAD - VAL_W - 4, LBL_H);
+  if Assigned(FOsMenuValLbl) then
+    FOsMenuValLbl.SetBounds(HalfW - VAL_W - PAD, Y, VAL_W, LBL_H);
+  Y := Y + LBL_H + 4;
+  menuscaleTrackBar.SetBounds(PAD, Y, HalfW - 2 * PAD, TRK_H);
+  Y := Y + TRK_H + 2;
+  // Markers below trackbar: 1080p | 1440p | 4K
+  mark1Label.SetBounds(PAD,                               Y, 40, LBL_H);
+  mark2Label.SetBounds((HalfW - 2 * PAD) div 2 + PAD - 16, Y, 40, LBL_H);
+  mark3Label.SetBounds(HalfW - PAD - 28,                  Y, 28, LBL_H);
+  Y := Y + LBL_H + 12;
+  shortcutkeyLabel.SetBounds(PAD, Y, 90, LBL_H);
+  shortcutkeyComboBox.SetBounds(PAD + 94, Y - 2, HalfW - PAD - 94 - PAD, CB_H);
+
+  // ── Card 3: FakeNVAPI (right half) ────────────────────────────────────
+  FOsFakenvapiCard.SetBounds(MARGIN + HalfW + GAP, MARGIN + DLL_H + GAP, HalfW, FAKE_H);
+
+  Y := HDR_Y;
+  forcereflexCheckBox.SetBounds(PAD,       Y, HalfW div 2 - PAD, CK_H);
+  overrideCheckBox.SetBounds(HalfW div 2,  Y, HalfW div 2 - PAD, CK_H);
+  Y := Y + CK_H;
+  forcelatencyflexCheckBox.SetBounds(PAD,      Y, HalfW div 2 - PAD, CK_H);
+  tracelogCheckBox.SetBounds(HalfW div 2,      Y, HalfW div 2 - PAD, CK_H);
+  Y := Y + CK_H;
+  vulkandriverCheckBox.SetBounds(PAD, Y, HalfW - 2 * PAD, CK_H);
+  Y := Y + CK_H + 10;
+  // Reflex combobox
+  Col0 := PAD; Col1 := HalfW div 2;
+  ColW := HalfW div 2 - PAD;
+  reflexComboBox.SetBounds(Col0, Y, ColW, CB_H);
+  latencyflexComboBox.SetBounds(Col1, Y, ColW, CB_H);
+
+  // ── Card 4: Software Status (full width) ──────────────────────────────
+  FOsStatusCard.SetBounds(MARGIN, MARGIN + DLL_H + GAP + FAKE_H + GAP, CW, STAT_H);
+
+  // Two rows × 3 columns:  OptiScaler | FakeNVAPI | FSR       (row 0)
+  //                        XeSS       | DLSS      | [combobox] (row 1)
+  ColW := (CW - 2 * PAD - 2 * GAP) div 3;
+  Col0 := PAD;
+  Col1 := PAD + ColW + GAP;
+  Y    := HDR_Y - 6;
+
+  optLabel.SetBounds(Col0, Y, ColW - 60, LBL_H);
+  optLabel1.SetBounds(Col0 + ColW - 58, Y, 56, LBL_H);
+  optLabel2.SetBounds(Col0, Y + LBL_H, ColW, LBL_H);
+
+  fakenvapiLabel.SetBounds(Col1, Y, ColW - 60, LBL_H);
+  fakenvapi1.SetBounds(Col1 + ColW - 58, Y, 56, LBL_H);
+  fakenvapi2.SetBounds(Col1, Y + LBL_H, ColW, LBL_H);
+
+  fsrLabel.SetBounds(Col1 + ColW + GAP, Y, 36, LBL_H);
+  fsrLabel1.SetBounds(Col1 + ColW + GAP + 38, Y, 56, LBL_H);
+
+  Y := Y + 2 * LBL_H + 8;
+  xessLabel.SetBounds(Col0, Y, 40, LBL_H);
+  xessLabel1.SetBounds(Col0 + 42, Y, 56, LBL_H);
+  dlssLabel.SetBounds(Col1, Y, 40, LBL_H);
+  dlssLabel1.SetBounds(Col1 + 42, Y, 56, LBL_H);
+  optversionComboBox.SetBounds(Col1 + ColW + GAP, Y - 2, ColW, CB_H);
 end;
 
 // ============================================================================
