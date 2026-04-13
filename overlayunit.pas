@@ -12421,6 +12421,7 @@ var
   BtnRow:    TPanel;
   AccBar:    TShape;
   Lbl:       TLabel;
+  Ico:       TLabel;
   Sep:       TBevel;
   i, Row, Y, ColX, Col2X: Integer;
   Dot:       TShape;
@@ -12529,36 +12530,38 @@ begin
   Y    := CARD_M;
 
   // ── System (List) ────────────────────────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 5 * ROW_H + 8);
+  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
   MkTitle(Card, 'System', CARD_P);
   MkSep(Card, CARD_P + 22);
 
-  for i := 0 to 4 do
+  for i := 0 to 3 do
   begin
     Row  := CARD_P + 30 + i * ROW_H;
     ColX := CARD_P;
 
-    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
-    Dot.Brush.Color := ACC_SYS;
-    Dot.Pen.Color   := ACC_SYS;
-    Dot.ShowHint := True;
+    Ico := TLabel.Create(Self);
+    Ico.Parent := Card;
+    Ico.Font.Size := 14; 
+    Ico.Left := ColX;
+    Ico.Top := Row + (ROW_H - 24) div 2;
+    Ico.AutoSize := True;
 
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     case i of
-      0: begin Lbl.Caption := GetSysLinuxDistribution; Dot.Hint := 'OS'; end;
-      1: begin Lbl.Caption := GetKernelVersion; Dot.Hint := 'Kernel'; end;
-      2: begin Lbl.Caption := GetSysCPUModel; Dot.Hint := 'CPU'; end;
-      3: begin Lbl.Caption := GetSysGPUModel; Dot.Hint := 'GPU'; end;
-      4: begin Lbl.Caption := GetSysGPUDriver; Dot.Hint := 'Driver'; end;
+      0: begin Ico.Caption := '🐧'; Lbl.Caption := GetSysLinuxDistribution + ' (' + GetKernelVersion + ')'; Ico.Hint := 'OS / Kernel'; end;
+      1: begin Ico.Caption := '🖥️'; Lbl.Caption := GetSysCPUModel; Ico.Hint := 'CPU'; end;
+      2: begin Ico.Caption := '🎮'; Lbl.Caption := GetSysGPUModel; Ico.Hint := 'GPU'; end;
+      3: begin Ico.Caption := '⚙️'; Lbl.Caption := GetSysGPUDriver; Ico.Hint := 'Driver'; end;
     end;
     Lbl.Font.Color := clWhite;
     Lbl.Font.Size  := 9;
-    Lbl.Left       := ColX + DOT_SZ + 8;
+    Lbl.Left       := ColX + DOT_SZ + 16;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
     Lbl.AutoSize   := True;
     Lbl.ShowHint   := True;
     Lbl.Hint       := Lbl.Caption;
+    Ico.ShowHint   := True;
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
