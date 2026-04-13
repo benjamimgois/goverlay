@@ -584,6 +584,10 @@ type
     FOsGpuCard:      TPanel;
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
+    // Software Status visual indicators (fresh controls; source labels stay hidden)
+    FOsStatDots:     array[0..4] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS
+    FOsStatNameLbls: array[0..4] of TLabel;
+    FOsStatVerLbls:  array[0..4] of TLabel;
 
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
@@ -640,6 +644,7 @@ type
     procedure ReflowTweaksTab(AContentW: Integer);
     procedure InitOptiScalerTab;
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
+    procedure RefreshOsStatusDots;
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
 
@@ -5573,8 +5578,9 @@ begin
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
 
-    // Populate Home tab OptiScaler component labels after update check
+    // Populate Home tab and OptiScaler status card after update check
     RefreshHomeOptiStatus;
+    RefreshOsStatusDots;
 
     // Initialize global enable menu item checked state
     globalenableMenuItem.Checked := IsMangoHudGloballyEnabled();
@@ -10816,6 +10822,13 @@ const
     L.Transparent := False;
   end;
 
+const
+  STAT_NAMES: array[0..4] of string = (
+    'OptiScaler', 'FakeNVAPI', 'FSR', 'XeSS', 'DLSS');
+var
+  i: Integer;
+  Dot: TShape;
+  NLbl, VLbl: TLabel;
 begin
   // Scroll container fills the tab
   FOsScrollBox := TScrollBox.Create(Self);
@@ -10868,22 +10881,84 @@ begin
   DarkCombo(reflexComboBox);
   DarkCombo(latencyflexComboBox);
 
-  // ── Card 2: Software Status ──────────────────────────────────────────
+  // ── Card 2: Software Status — fresh indicator rows ──────────────────
+  // statusGroupBox stays hidden; FOptiscalerUpdate writes version text to its
+  // labels (optlabel1, fakenvapi1, etc.) which serve as invisible data sinks.
+  // FOsStatDots/FOsStatVerLbls are fresh controls that we sync via RefreshOsStatusDots.
   MakeCard(FOsStatusCard, 'Software Status');
-  ReparentGB(statusGroupBox, FOsStatusCard);
-  DarkLbl(optLabel,       PURPLE);
-  DarkLbl(optLabel1,      WHITE);
-  DarkLbl(optLabel2,      GRAY);
-  DarkLbl(fakenvapiLabel, PURPLE);
-  DarkLbl(fakenvapi1,     WHITE);
-  DarkLbl(fakenvapi2,     GRAY);
-  DarkLbl(fsrLabel,       PURPLE);
-  DarkLbl(fsrLabel1,      WHITE);
-  DarkLbl(xessLabel,      PURPLE);
-  DarkLbl(xessLabel1,     WHITE);
-  DarkLbl(dlssLabel,      PURPLE);
-  DarkLbl(dlssLabel1,     WHITE);
+  statusGroupBox.Visible := False;
+
+  // Reparent the branch selector combo (single control, safe to move)
+  optversionComboBox.Parent  := FOsStatusCard;
+  optversionComboBox.Anchors := [akLeft, akTop];
+  optversionComboBox.Visible := True;
   DarkCombo(optversionComboBox);
+
+  // Build dot + name + version rows for each library
+  // Index: 0=OptiScaler  1=FakeNVAPI  2=FSR  3=XeSS  4=DLSS
+  for i := 0 to 4 do
+  begin
+    Dot := TShape.Create(Self);
+    Dot.Parent      := FOsStatusCard;
+    Dot.Shape       := stEllipse;
+    Dot.Brush.Color := $00888888;
+    Dot.Pen.Style   := psClear;
+    FOsStatDots[i]  := Dot;
+
+    NLbl := TLabel.Create(Self);
+    NLbl.Parent      := FOsStatusCard;
+    NLbl.Caption     := STAT_NAMES[i];
+    NLbl.Font.Color  := $AAAAAA;
+    NLbl.Font.Size   := 9;
+    NLbl.AutoSize    := True;
+    NLbl.Transparent := True;
+    FOsStatNameLbls[i] := NLbl;
+
+    VLbl := TLabel.Create(Self);
+    VLbl.Parent      := FOsStatusCard;
+    VLbl.Caption     := '—';
+    VLbl.Font.Color  := $BB99FF;
+    VLbl.Font.Size   := 9;
+    VLbl.AutoSize    := True;
+    VLbl.Transparent := True;
+    FOsStatVerLbls[i] := VLbl;
+  end;
+
+  // Populate initial version text from whatever FOptiscalerUpdate already loaded
+  RefreshOsStatusDots;
+end;
+
+procedure Tgoverlayform.RefreshOsStatusDots;
+// Syncs version text from the hidden source labels (written by FOptiscalerUpdate)
+// into the visible FOsStatVerLbls, and colours FOsStatDots accordingly.
+const
+  CLR_OK   = $0044BB44;   // green — library found
+  CLR_NONE = $00666666;   // gray  — not installed
+  PURPLE   = $BB99FF;
+var
+  i: Integer;
+  Ver: string;
+  // Source labels in the same order as FOsStatDots: OptiScaler, FakeNVAPI, FSR, XeSS, DLSS
+  SrcLbls: array[0..4] of TLabel;
+begin
+  if not Assigned(FOsStatDots[0]) then Exit;
+
+  SrcLbls[0] := optlabel1;
+  SrcLbls[1] := fakenvapi1;
+  SrcLbls[2] := fsrLabel1;
+  SrcLbls[3] := xessLabel1;
+  SrcLbls[4] := dlssLabel1;
+
+  for i := 0 to 4 do
+  begin
+    Ver := SrcLbls[i].Caption;
+    FOsStatVerLbls[i].Caption    := IfThen(Ver <> '', Ver, '—');
+    FOsStatVerLbls[i].Font.Color := PURPLE;
+    if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+      FOsStatDots[i].Brush.Color := CLR_OK
+    else
+      FOsStatDots[i].Brush.Color := CLR_NONE;
+  end;
 end;
 
 procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
@@ -10891,14 +10966,19 @@ const
   MARGIN  = 10;   // outer margin inside scroll box
   GAP     = 10;   // gap between cards
   HDR     = 34;   // accent bar (3) + title area (31)
+  PAD     = 14;   // inner horizontal padding
   // GroupBox heights from LFM
   GPU_GH  = 130;
   OPT_GH  = 292;
-  STAT_GH = 171;
-  // Card heights = HDR + GroupBox height
+  // Card heights
   GPU_H   = HDR + GPU_GH;    // 164
   OPT_H   = HDR + OPT_GH;    // 326
-  STAT_H  = HDR + STAT_GH;   // 205
+  // Status card — fresh indicator rows
+  DOT_SZ  = 10;
+  ROW_H   = 26;
+  STAT_ROWS = 3;   // 3 rows × 2 columns = 5 items + combo
+  CB_H    = 26;
+  STAT_H  = HDR + 6 + STAT_ROWS * ROW_H + 8 + CB_H + 8;  // 34+6+78+8+26+8 = 160
   // Inner 3-col layout constants (mirrors ReflowOptiScalerTab)
   W1      = 252;
   W3      = 252;
@@ -10908,7 +10988,9 @@ const
   IMARGIN = 4;
   IGAP    = 4;
 var
-  CW, CardTop: Integer;
+  CW, CardTop, Y, Row, DotY: Integer;
+  ColX: array[0..1] of Integer;
+  ColW, i, Col, RowIdx: Integer;
   InnerW, Center, W2, X1, X2, X3: Integer;
 begin
   if not Assigned(FOsScrollBox) then Exit;
@@ -10925,8 +11007,7 @@ begin
   optionsGroupBox.SetBounds(0, HDR, CW, OPT_GH);
 
   // Position the 3 inner GroupBoxes within optionsGroupBox
-  // (same logic as ReflowOptiScalerTab, using optionsGroupBox.ClientWidth)
-  InnerW := CW - 8;   // optionsGroupBox ClientWidth ≈ CW - 8
+  InnerW := CW - 8;
   Center := InnerW div 2;
   W2     := Max(MIN_W2, InnerW - IMARGIN - W1 - IGAP - W3 - IMARGIN - IGAP);
   X2     := Center - W2 div 2;
@@ -10938,10 +11019,40 @@ begin
   imgmenuGroupBox.SetBounds(X2,    BOX_TOP, W2, BOX_H);
   fakenvapiGroupBox.SetBounds(X3,  BOX_TOP, W3, BOX_H);
 
-  // ── Card 2: Software Status ──────────────────────────────────────────
+  // ── Card 2: Software Status — indicator rows ─────────────────────────
+  // 2-column grid, 3 rows:
+  //   Row 0: OptiScaler(L)  | FakeNVAPI(R)
+  //   Row 1: FSR(L)         | XeSS(R)
+  //   Row 2: DLSS(L)        | (empty)
+  // Below grid: branch selector combo (full width)
   CardTop := MARGIN + GPU_H + GAP + OPT_H + GAP;
   FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
-  statusGroupBox.SetBounds(0, HDR, CW, STAT_GH);
+
+  ColW     := (CW - 2 * PAD) div 2;
+  ColX[0]  := PAD;
+  ColX[1]  := PAD + ColW;
+  Y        := HDR + 6;   // first row top
+
+  // Items 0..4 — lay out in 2 columns, 3 rows (item 4 = DLSS goes left col row 2)
+  for i := 0 to 4 do
+  begin
+    Col    := i mod 2;       // 0=left, 1=right
+    RowIdx := i div 2;       // 0,1,2
+    Row    := Y + RowIdx * ROW_H;
+    DotY   := Row + (ROW_H - DOT_SZ) div 2;
+
+    FOsStatDots[i].SetBounds(ColX[Col], DotY, DOT_SZ, DOT_SZ);
+
+    FOsStatNameLbls[i].Left := ColX[Col] + DOT_SZ + 6;
+    FOsStatNameLbls[i].Top  := Row + (ROW_H - 16) div 2;
+
+    FOsStatVerLbls[i].Left  := ColX[Col] + DOT_SZ + 6 + 80;
+    FOsStatVerLbls[i].Top   := Row + (ROW_H - 16) div 2;
+  end;
+
+  // Branch selector combo below the grid
+  optversionComboBox.SetBounds(PAD, Y + STAT_ROWS * ROW_H + 8,
+    CW - 2 * PAD, CB_H);
 end;
 
 // ============================================================================
