@@ -12421,7 +12421,8 @@ var
   BtnRow:    TPanel;
   AccBar:    TShape;
   Lbl:       TLabel;
-  Ico:       TLabel;
+  Ico:       TImage;
+  IconFile:  string;
   Sep:       TBevel;
   i, Row, Y, ColX, Col2X: Integer;
   Dot:       TShape;
@@ -12539,21 +12540,47 @@ begin
     Row  := CARD_P + 30 + i * ROW_H;
     ColX := CARD_P;
 
-    Ico := TLabel.Create(Self);
+    Ico := TImage.Create(Self);
     Ico.Parent := Card;
-    Ico.Font.Size := 14; 
-    Ico.Left := ColX;
-    Ico.Top := Row + (ROW_H - 24) div 2;
-    Ico.AutoSize := True;
+    Ico.Width  := 22;
+    Ico.Height := 22;
+    Ico.Left   := ColX;
+    Ico.Top    := Row + (ROW_H - 22) div 2;
+    Ico.Proportional := True;
+    Ico.Center := True;
+    Ico.Transparent := True;
 
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     case i of
-      0: begin Ico.Caption := '🐧'; Lbl.Caption := GetSysLinuxDistribution + ' (' + GetKernelVersion + ')'; Ico.Hint := 'OS / Kernel'; end;
-      1: begin Ico.Caption := '🖥️'; Lbl.Caption := GetSysCPUModel; Ico.Hint := 'CPU'; end;
-      2: begin Ico.Caption := '🎮'; Lbl.Caption := GetSysGPUModel; Ico.Hint := 'GPU'; end;
-      3: begin Ico.Caption := '⚙️'; Lbl.Caption := GetSysGPUDriver; Ico.Hint := 'Driver'; end;
+      0: 
+      begin 
+        IconFile := 'data/icons/system/os.png'; 
+        Lbl.Caption := GetSysLinuxDistribution + ' (' + GetKernelVersion + ')'; 
+        Ico.Hint := 'OS / Kernel'; 
+      end;
+      1: 
+      begin 
+        IconFile := 'data/icons/system/cpu.png'; 
+        Lbl.Caption := GetSysCPUModel; 
+        Ico.Hint := 'CPU'; 
+      end;
+      2: 
+      begin 
+        IconFile := 'data/icons/system/gpu.png'; 
+        Lbl.Caption := GetSysGPUModel; 
+        Ico.Hint := 'GPU'; 
+      end;
+      3: 
+      begin 
+        IconFile := 'data/icons/system/driver.png'; 
+        Lbl.Caption := GetSysGPUDriver; 
+        Ico.Hint := 'Driver'; 
+      end;
     end;
+    if FileExists(ExtractFilePath(Application.ExeName) + IconFile) then
+      Ico.Picture.LoadFromFile(ExtractFilePath(Application.ExeName) + IconFile);
+
     Lbl.Font.Color := clWhite;
     Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 16;
