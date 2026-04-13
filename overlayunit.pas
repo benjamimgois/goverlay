@@ -581,13 +581,14 @@ type
 
     // OptiScaler tab card redesign (GroupBox-level reparenting)
     FOsScrollBox:    TScrollBox;
+    FOsBgPanel:      TPanel;     // inner panel — paints BG color reliably in Qt6
     FOsGpuCard:      TPanel;
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
     // Software Status visual indicators (fresh controls; source labels stay hidden)
-    FOsStatDots:     array[0..4] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS
-    FOsStatNameLbls: array[0..4] of TLabel;
-    FOsStatVerLbls:  array[0..4] of TLabel;
+    FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
+    FOsStatNameLbls: array[0..5] of TLabel;
+    FOsStatVerLbls:  array[0..5] of TLabel;
 
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
@@ -2119,6 +2120,9 @@ begin
     // Show notification if no updates available
     if not HasUpdates then
       SendNotification('Goverlay', 'No updates for OptiScaler available', GetIconFile);
+
+    // Refresh status dots so the new version tag appears next to the installed version
+    RefreshOsStatusDots;
   end;
 end;
 
@@ -2160,13 +2164,17 @@ end;
 
 procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
 begin
- updateProgressBar.Visible:=true;
- updatestatusLabel.Visible:=true;
- FOptiscalerUpdate.UpdateButtonClick(Sender);
- updateProgressBar.Visible:=false;
- updatestatusLabel.Visible:=false;
- // Re-enable controls after installation completes
- UpdateGeSpeedButtonState;
+  updateProgressBar.Visible := True;
+  updatestatusLabel.Visible := True;
+  FOptiscalerUpdate.UpdateButtonClick(Sender);
+  updateProgressBar.Visible := False;
+  updatestatusLabel.Visible := False;
+  // Re-enable controls after installation completes
+  UpdateGeSpeedButtonState;
+  // Reload installed versions and refresh the Software Status card immediately
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.LoadVersionsFromFile;
+  RefreshOsStatusDots;
 end;
 
 
@@ -7498,8 +7506,12 @@ end;
 procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);
 begin
   // When user changes the OptiScaler channel, automatically check for updates
+  // and refresh the status dots so any new version tag is shown immediately.
   if Assigned(FOptiscalerUpdate) then
+  begin
     FOptiscalerUpdate.CheckForUpdatesOnClick;
+    RefreshOsStatusDots;
+  end;
 end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
@@ -10761,7 +10773,7 @@ const
     Lbl: TLabel;
   begin
     Card := TPanel.Create(Self);
-    Card.Parent     := FOsScrollBox;
+    Card.Parent     := FOsBgPanel;
     Card.BevelOuter := bvNone;
     Card.Color      := BG;
     Card.Caption    := '';
@@ -10823,21 +10835,36 @@ const
   end;
 
 const
-  STAT_NAMES: array[0..4] of string = (
-    'OptiScaler', 'FakeNVAPI', 'FSR', 'XeSS', 'DLSS');
+  STAT_NAMES: array[0..5] of string = (
+    'OptiScaler', 'FakeNVAPI', 'FSR', 'XeSS', 'DLSS', 'OptiPatcher');
 var
   i: Integer;
   Dot: TShape;
   NLbl, VLbl: TLabel;
+  Png: TPortableNetworkGraphic;
+  IconPath: string;
 begin
   // Scroll container fills the tab
   FOsScrollBox := TScrollBox.Create(Self);
-  FOsScrollBox.Parent     := optiscalerTabSheet;
-  FOsScrollBox.Align      := alClient;
-  FOsScrollBox.AutoScroll := True;
+  FOsScrollBox.Parent      := optiscalerTabSheet;
+  FOsScrollBox.Align       := alClient;
+  FOsScrollBox.AutoScroll  := True;
   FOsScrollBox.BorderStyle := bsNone;
   FOsScrollBox.HorzScrollBar.Visible := False;
-  FOsScrollBox.Color      := $1E1E2E;   // same as card bg — no harsh gap between cards
+  FOsScrollBox.Color       := $1E1E2E;
+  FOsScrollBox.ParentColor := False;
+
+  // FOsBgPanel fills the scroll box and reliably paints the dark background
+  // in the Qt6 backend (TScrollBox.Color is ignored by the Qt viewport).
+  FOsBgPanel := TPanel.Create(Self);
+  FOsBgPanel.Parent     := FOsScrollBox;
+  FOsBgPanel.BevelOuter := bvNone;
+  FOsBgPanel.Color      := $1E1E2E;
+  FOsBgPanel.Caption    := '';
+  FOsBgPanel.Left       := 0;
+  FOsBgPanel.Top        := 0;
+  FOsBgPanel.Width      := FOsScrollBox.ClientWidth;
+  FOsBgPanel.Height     := 600;  // provisional; updated by ReflowOptiScalerTabNew
 
   // ── Card 0: GPU Driver ──────────────────────────────────────────────
   MakeCard(FOsGpuCard, 'GPU Driver');
@@ -10846,6 +10873,8 @@ begin
   DarkRadio(mesaRadioButton);
   DarkLbl(autodetectnvLabel,   GREEN);
   DarkLbl(autodetectmesaLabel, GREEN);
+  autodetectnvLabel.Transparent   := True;
+  autodetectmesaLabel.Transparent := True;
   DarkCheck(hidenvidiaCheckBox);
 
   // ── Card 1: Options (3-column inner layout kept intact) ─────────────
@@ -10868,6 +10897,8 @@ begin
   // In-Game Menu section
   DarkLbl(menuLabel,           PURPLE);
   DarkLbl(menuscalevalueLabel, WHITE);
+  menuLabel.Transparent          := True;
+  menuscalevalueLabel.Transparent := True;
   DarkLbl(mark1Label,          GRAY);
   DarkLbl(mark2Label,          GRAY);
   DarkLbl(mark3Label,          GRAY);
@@ -10895,13 +10926,37 @@ begin
   DarkCombo(optversionComboBox);
 
   // Reparent update buttons (were inside hidden statusGroupBox)
-  updateBitBtn.Parent  := FOsStatusCard;
-  updateBitBtn.Anchors := [akLeft, akTop];
-  updateBitBtn.Visible := True;
-  checkupdBitBtn.Parent  := FOsStatusCard;
-  checkupdBitBtn.Anchors := [akLeft, akTop];
-  checkupdBitBtn.Visible := True;
+  updateBitBtn.Parent      := FOsStatusCard;
+  updateBitBtn.Anchors     := [akLeft, akTop];
+  updateBitBtn.Visible     := True;
+  updateBitBtn.Caption     := 'Update';
+  updateBitBtn.Font.Color  := clWhite;
+  updateBitBtn.Font.Size   := 9;
+  updateBitBtn.Font.Style  := [fsBold];
+  updateBitBtn.Glyph.Clear;
+  updateBitBtn.Images      := nil;
+  // Load the download icon (left of text)
+  IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/buttons/24x24/download.png';
+  if FileExists(IconPath) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(IconPath);
+      updateBitBtn.Glyph.Assign(Png);
+    finally
+      Png.Free;
+    end;
+  end;
+  updateBitBtn.Layout  := blGlyphLeft;
+  updateBitBtn.Spacing := 6;
+
+  checkupdBitBtn.Parent    := FOsStatusCard;
+  checkupdBitBtn.Anchors   := [akLeft, akTop];
+  checkupdBitBtn.Visible   := True;
   checkupdBitBtn.Font.Color := clWhite;
+  checkupdBitBtn.Font.Size := 9;
+  checkupdBitBtn.Layout    := blGlyphLeft;
+  checkupdBitBtn.Spacing   := 6;
 
   // Reparent progress bar and status label (were direct children of optiscalerTabSheet)
   updateProgressBar.Parent  := FOsStatusCard;
@@ -10911,10 +10966,11 @@ begin
   updatestatusLabel.Anchors := [akLeft, akTop];
   updatestatusLabel.Visible := False;   // shown only during update
   DarkLbl(updatestatusLabel, $AAAAAA);
+  updatestatusLabel.Transparent := True;
 
   // Build dot + name + version rows for each library
-  // Index: 0=OptiScaler  1=FakeNVAPI  2=FSR  3=XeSS  4=DLSS
-  for i := 0 to 4 do
+  // Index: 0=OptiScaler  1=FakeNVAPI  2=FSR  3=XeSS  4=DLSS  5=OptiPatcher
+  for i := 0 to 5 do
   begin
     Dot := TShape.Create(Self);
     Dot.Parent      := FOsStatusCard;
@@ -10949,15 +11005,18 @@ end;
 procedure Tgoverlayform.RefreshOsStatusDots;
 // Syncs version text from the hidden source labels (written by FOptiscalerUpdate)
 // into the visible FOsStatVerLbls, and colours FOsStatDots accordingly.
+// For OptiScaler (i=0), also shows the new version tag from optLabel2 when
+// an update was found (e.g. "0.9.0.0 → v0.9.5.0").
 const
-  CLR_OK   = $0044BB44;   // green — library found
-  CLR_NONE = $00666666;   // gray  — not installed
-  PURPLE   = $BB99FF;
+  CLR_OK     = $0044BB44;   // green — library found
+  CLR_NONE   = $00666666;   // gray  — not installed
+  PURPLE     = $BB99FF;
+  CLR_UPDATE = $0044AAFF;   // blue highlight — update available
+  PREFIX_LEN = Length('Update Available ');
 var
   i: Integer;
-  Ver: string;
-  // Source labels in the same order as FOsStatDots: OptiScaler, FakeNVAPI, FSR, XeSS, DLSS
-  SrcLbls: array[0..4] of TLabel;
+  Ver, NewTag, VerCaption: string;
+  SrcLbls: array[0..5] of TLabel;
 begin
   if not Assigned(FOsStatDots[0]) then Exit;
 
@@ -10966,11 +11025,30 @@ begin
   SrcLbls[2] := fsrLabel1;
   SrcLbls[3] := xessLabel1;
   SrcLbls[4] := dlssLabel1;
+  SrcLbls[5] := optipatcherLabel1;
 
-  for i := 0 to 4 do
+  for i := 0 to 5 do
   begin
     Ver := SrcLbls[i].Caption;
-    FOsStatVerLbls[i].Caption    := IfThen(Ver <> '', Ver, '—');
+    VerCaption := IfThen(Ver <> '', Ver, '—');
+
+    // For OptiScaler: if optLabel2 holds an update notification, append the new tag
+    if (i = 0) and optLabel2.Visible and (optLabel2.Caption <> '') then
+    begin
+      NewTag := optLabel2.Caption;
+      if Pos('Update Available ', NewTag) = 1 then
+        NewTag := Copy(NewTag, PREFIX_LEN + 1, MaxInt);
+      if NewTag <> '' then
+      begin
+        VerCaption := VerCaption + ' → ' + NewTag;
+        FOsStatVerLbls[i].Caption    := VerCaption;
+        FOsStatVerLbls[i].Font.Color := CLR_UPDATE;
+        FOsStatDots[i].Brush.Color   := CLR_OK;
+        Continue;
+      end;
+    end;
+
+    FOsStatVerLbls[i].Caption    := VerCaption;
     FOsStatVerLbls[i].Font.Color := PURPLE;
     if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
       FOsStatDots[i].Brush.Color := CLR_OK
@@ -10981,25 +11059,25 @@ end;
 
 procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
 const
-  MARGIN  = 10;   // outer margin inside scroll box
-  GAP     = 10;   // gap between cards
+  MARGIN  = 8;    // outer margin inside scroll box
+  GAP     = 6;    // gap between cards
   HDR     = 34;   // accent bar (3) + title area (31)
   PAD     = 14;   // inner horizontal padding
-  // GroupBox heights from LFM
+  // GroupBox heights
   GPU_GH  = 130;
-  OPT_GH  = 292;
+  OPT_GH  = 265;  // trimmed: BOX_TOP(6)+BOX_H(251)+pad(8) — removes blank bottom area
   // Card heights
   GPU_H   = HDR + GPU_GH;    // 164
-  OPT_H   = HDR + OPT_GH;    // 326
+  OPT_H   = HDR + OPT_GH;    // 299
   // Status card — fresh indicator rows + update controls
   DOT_SZ    = 10;
-  ROW_H     = 26;
-  STAT_ROWS = 3;    // 3 rows × 2 columns = 5 items
+  ROW_H     = 22;   // compact rows — saves 3×4=12px vs 26
+  STAT_ROWS = 3;    // 3 rows × 2 columns = 6 items (OptiScaler/FakeNVAPI/FSR/XeSS/DLSS/OptiPatcher)
   CB_H      = 26;   // combo height
   BTN_H     = 32;   // update buttons height
-  PB_H      = 16;   // progress bar height
-  // Layout: HDR + gap + grid + gap + (combo|buttons) row + gap + progress row + pad
-  STAT_H    = HDR + 6 + STAT_ROWS * ROW_H + 8 + BTN_H + 6 + PB_H + 8;
+  PB_H      = 16;   // progress bar height (overlaid on button row — only visible during update)
+  // Layout: HDR + 6 + (button row / progress bar overlay) + 8 + dot grid + 8
+  STAT_H    = HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 8;
   // Inner 3-col layout constants (mirrors ReflowOptiScalerTab)
   W1      = 252;
   W3      = 252;
@@ -11009,15 +11087,23 @@ const
   IMARGIN = 4;
   IGAP    = 4;
 var
-  CW, CardTop, Y, Row, DotY: Integer;
+  CW, CardTop, Y, Row, DotY, TotalH: Integer;
   ColX: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, Center, W2, X1, X2, X3: Integer;
-  ComboW, BtnW, CheckW: Integer;
+  ComboW, CheckW: Integer;
 begin
   if not Assigned(FOsScrollBox) then Exit;
   CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
   if CW < 100 then Exit;
+
+  // Size the background panel to cover the full virtual content area,
+  // but at least the full visible height of the scrollbox so the Qt6
+  // viewport never shows through with the default palette colour.
+  TotalH := MARGIN + GPU_H + GAP + OPT_H + GAP + STAT_H + MARGIN;
+  if FOsScrollBox.ClientHeight > TotalH then
+    TotalH := FOsScrollBox.ClientHeight;
+  FOsBgPanel.SetBounds(0, 0, FOsScrollBox.ClientWidth, TotalH);
 
   // ── Card 0: GPU Driver ──────────────────────────────────────────────
   FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
@@ -11041,52 +11127,49 @@ begin
   imgmenuGroupBox.SetBounds(X2,    BOX_TOP, W2, BOX_H);
   fakenvapiGroupBox.SetBounds(X3,  BOX_TOP, W3, BOX_H);
 
-  // ── Card 2: Software Status — indicator rows ─────────────────────────
-  // 2-column grid, 3 rows:
-  //   Row 0: OptiScaler(L)  | FakeNVAPI(R)
-  //   Row 1: FSR(L)         | XeSS(R)
-  //   Row 2: DLSS(L)        | (empty)
-  // Below grid: branch selector combo (full width)
+  // ── Card 2: Software Status ──────────────────────────────────────────
+  // Layout order:
+  //   1. Channel selector + buttons (top)
+  //      Progress bar overlays the button row — only visible during update
+  //   2. 2-column dot grid (OptiScaler/FakeNVAPI/FSR/XeSS/DLSS)
   CardTop := MARGIN + GPU_H + GAP + OPT_H + GAP;
   FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
 
-  ColW     := (CW - 2 * PAD) div 2;
-  ColX[0]  := PAD;
-  ColX[1]  := PAD + ColW;
-  Y        := HDR + 6;   // first row top
+  // ── 1. Channel selector + button row ───────────────────────────────
+  // Both checkupdBitBtn and updateBitBtn share the same slot (130px right-side).
+  // They are mutually exclusive: one is hidden when the other is shown.
+  CheckW := 130;
+  ComboW := CW - 2 * PAD - 8 - CheckW;
+  if ComboW < 80 then ComboW := 80;
+  Y := HDR + 6;
+  optversionComboBox.SetBounds(PAD, Y + (BTN_H - CB_H) div 2, ComboW, CB_H);
+  checkupdBitBtn.SetBounds(PAD + ComboW + 8, Y, CheckW, BTN_H);
+  updateBitBtn.SetBounds(PAD + ComboW + 8, Y, CheckW, BTN_H);   // same slot
 
-  // Items 0..4 — lay out in 2 columns, 3 rows (item 4 = DLSS goes left col row 2)
-  for i := 0 to 4 do
+  // Progress bar + status label overlay the button row (only shown during update)
+  updateProgressBar.SetBounds(PAD, Y + (BTN_H - PB_H) div 2, ComboW, PB_H);
+  updatestatusLabel.SetBounds(PAD + ComboW + 4, Y + (BTN_H - PB_H) div 2, CheckW + 4, PB_H);
+
+  // ── 2. Dot indicator grid ────────────────────────────────────────────
+  // 2-column, 3 rows:  OptiScaler/FakeNVAPI | FSR/XeSS | DLSS/(empty)
+  Y := Y + BTN_H + 8;
+  ColW    := (CW - 2 * PAD) div 2;
+  ColX[0] := PAD;
+  ColX[1] := PAD + ColW;
+
+  for i := 0 to 5 do
   begin
-    Col    := i mod 2;       // 0=left, 1=right
-    RowIdx := i div 2;       // 0,1,2
+    Col    := i mod 2;
+    RowIdx := i div 2;
     Row    := Y + RowIdx * ROW_H;
     DotY   := Row + (ROW_H - DOT_SZ) div 2;
 
     FOsStatDots[i].SetBounds(ColX[Col], DotY, DOT_SZ, DOT_SZ);
-
     FOsStatNameLbls[i].Left := ColX[Col] + DOT_SZ + 6;
     FOsStatNameLbls[i].Top  := Row + (ROW_H - 16) div 2;
-
     FOsStatVerLbls[i].Left  := ColX[Col] + DOT_SZ + 6 + 80;
     FOsStatVerLbls[i].Top   := Row + (ROW_H - 16) div 2;
   end;
-
-  // ── Update controls row ──────────────────────────────────────────────
-  // [Branch combo (left)]  [Check updates btn (center)]  [Update btn (right)]
-  Y := HDR + 6 + STAT_ROWS * ROW_H + 8;
-  BtnW   := 80;
-  CheckW := 130;
-  ComboW := CW - 2 * PAD - 8 - CheckW - 8 - BtnW;
-  if ComboW < 80 then ComboW := 80;
-  optversionComboBox.SetBounds(PAD, Y + (BTN_H - CB_H) div 2, ComboW, CB_H);
-  checkupdBitBtn.SetBounds(PAD + ComboW + 8, Y, CheckW, BTN_H);
-  updateBitBtn.SetBounds(CW - PAD - BtnW, Y, BtnW, BTN_H);
-
-  // ── Progress bar + status label ──────────────────────────────────────
-  Y := Y + BTN_H + 6;
-  updateProgressBar.SetBounds(PAD, Y, CW - 2 * PAD - 130, PB_H);
-  updatestatusLabel.SetBounds(CW - PAD - 128, Y, 128, PB_H);
 end;
 
 // ============================================================================
