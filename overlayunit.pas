@@ -10837,7 +10837,7 @@ begin
   FOsScrollBox.AutoScroll := True;
   FOsScrollBox.BorderStyle := bsNone;
   FOsScrollBox.HorzScrollBar.Visible := False;
-  FOsScrollBox.Color      := $121220;
+  FOsScrollBox.Color      := $1E1E2E;   // same as card bg — no harsh gap between cards
 
   // ── Card 0: GPU Driver ──────────────────────────────────────────────
   MakeCard(FOsGpuCard, 'GPU Driver');
@@ -10888,11 +10888,29 @@ begin
   MakeCard(FOsStatusCard, 'Software Status');
   statusGroupBox.Visible := False;
 
-  // Reparent the branch selector combo (single control, safe to move)
+  // Reparent the branch selector combo
   optversionComboBox.Parent  := FOsStatusCard;
   optversionComboBox.Anchors := [akLeft, akTop];
   optversionComboBox.Visible := True;
   DarkCombo(optversionComboBox);
+
+  // Reparent update buttons (were inside hidden statusGroupBox)
+  updateBitBtn.Parent  := FOsStatusCard;
+  updateBitBtn.Anchors := [akLeft, akTop];
+  updateBitBtn.Visible := True;
+  checkupdBitBtn.Parent  := FOsStatusCard;
+  checkupdBitBtn.Anchors := [akLeft, akTop];
+  checkupdBitBtn.Visible := True;
+  checkupdBitBtn.Font.Color := clWhite;
+
+  // Reparent progress bar and status label (were direct children of optiscalerTabSheet)
+  updateProgressBar.Parent  := FOsStatusCard;
+  updateProgressBar.Anchors := [akLeft, akTop];
+  updateProgressBar.Visible := False;   // shown only during update
+  updatestatusLabel.Parent  := FOsStatusCard;
+  updatestatusLabel.Anchors := [akLeft, akTop];
+  updatestatusLabel.Visible := False;   // shown only during update
+  DarkLbl(updatestatusLabel, $AAAAAA);
 
   // Build dot + name + version rows for each library
   // Index: 0=OptiScaler  1=FakeNVAPI  2=FSR  3=XeSS  4=DLSS
@@ -10973,12 +10991,15 @@ const
   // Card heights
   GPU_H   = HDR + GPU_GH;    // 164
   OPT_H   = HDR + OPT_GH;    // 326
-  // Status card — fresh indicator rows
-  DOT_SZ  = 10;
-  ROW_H   = 26;
-  STAT_ROWS = 3;   // 3 rows × 2 columns = 5 items + combo
-  CB_H    = 26;
-  STAT_H  = HDR + 6 + STAT_ROWS * ROW_H + 8 + CB_H + 8;  // 34+6+78+8+26+8 = 160
+  // Status card — fresh indicator rows + update controls
+  DOT_SZ    = 10;
+  ROW_H     = 26;
+  STAT_ROWS = 3;    // 3 rows × 2 columns = 5 items
+  CB_H      = 26;   // combo height
+  BTN_H     = 32;   // update buttons height
+  PB_H      = 16;   // progress bar height
+  // Layout: HDR + gap + grid + gap + (combo|buttons) row + gap + progress row + pad
+  STAT_H    = HDR + 6 + STAT_ROWS * ROW_H + 8 + BTN_H + 6 + PB_H + 8;
   // Inner 3-col layout constants (mirrors ReflowOptiScalerTab)
   W1      = 252;
   W3      = 252;
@@ -10992,6 +11013,7 @@ var
   ColX: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, Center, W2, X1, X2, X3: Integer;
+  ComboW, BtnW, CheckW: Integer;
 begin
   if not Assigned(FOsScrollBox) then Exit;
   CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
@@ -11050,9 +11072,21 @@ begin
     FOsStatVerLbls[i].Top   := Row + (ROW_H - 16) div 2;
   end;
 
-  // Branch selector combo below the grid
-  optversionComboBox.SetBounds(PAD, Y + STAT_ROWS * ROW_H + 8,
-    CW - 2 * PAD, CB_H);
+  // ── Update controls row ──────────────────────────────────────────────
+  // [Branch combo (left)]  [Check updates btn (center)]  [Update btn (right)]
+  Y := HDR + 6 + STAT_ROWS * ROW_H + 8;
+  BtnW   := 80;
+  CheckW := 130;
+  ComboW := CW - 2 * PAD - 8 - CheckW - 8 - BtnW;
+  if ComboW < 80 then ComboW := 80;
+  optversionComboBox.SetBounds(PAD, Y + (BTN_H - CB_H) div 2, ComboW, CB_H);
+  checkupdBitBtn.SetBounds(PAD + ComboW + 8, Y, CheckW, BTN_H);
+  updateBitBtn.SetBounds(CW - PAD - BtnW, Y, BtnW, BTN_H);
+
+  // ── Progress bar + status label ──────────────────────────────────────
+  Y := Y + BTN_H + 6;
+  updateProgressBar.SetBounds(PAD, Y, CW - 2 * PAD - 130, PB_H);
+  updatestatusLabel.SetBounds(CW - PAD - 128, Y, 128, PB_H);
 end;
 
 // ============================================================================
