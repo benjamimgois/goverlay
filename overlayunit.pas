@@ -579,6 +579,12 @@ type
     FVkSmaaValLbl:   TLabel;
     FVkDlsValLbl:    TLabel;
 
+    // OptiScaler tab card redesign (GroupBox-level reparenting)
+    FOsScrollBox:    TScrollBox;
+    FOsGpuCard:      TPanel;
+    FOsOptionsCard:  TPanel;
+    FOsStatusCard:   TPanel;
+
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
@@ -632,6 +638,8 @@ type
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowTweaksTab(AContentW: Integer);
+    procedure InitOptiScalerTab;
+    procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
 
@@ -4969,6 +4977,9 @@ begin
   // Initialize Games tab container (games are loaded on FormShow)
   InitGamesTab;
   FGamesLoaded := False;
+
+  // Initialize OptiScaler tab card layout
+  InitOptiScalerTab;
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
@@ -10450,6 +10461,7 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
+  ReflowOptiScalerTabNew(ContentW);
   ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
   if FGamesLoaded then
@@ -10478,6 +10490,7 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
+  ReflowOptiScalerTabNew(ContentW);
   ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
 
@@ -10638,6 +10651,9 @@ const
   // At base AContentW=828 the ImGUI center (410px) coincides with the
   // optionsGroupBox center (820/2=410), so we use that as the anchor.
   W1      = 252;   // optiscalerGroupBox — fixed width, left-anchored
+  // Note: when the card redesign is active (FOsScrollBox assigned) this
+  // procedure is called from ReflowOptiScalerTabNew with the card's inner
+  // width, so the guard below is not needed — it's a no-op safety net.
   W3      = 252;   // fakenvapiGroupBox  — fixed width, right-anchored
   W2_BASE = 300;   // imgmenuGroupBox    — grows with available space
   BOX_H   = 251;
@@ -10648,6 +10664,10 @@ const
 var
   InnerW, Center, W2, X1, X2, X3: Integer;
 begin
+  // When card redesign is active, ReflowOptiScalerTabNew drives the
+  // inner layout directly — skip this call to avoid double-positioning.
+  if Assigned(FOsScrollBox) then Exit;
+
   // optionsGroupBox ClientWidth ≈ AContentW - 8
   InnerW := AContentW - 8;
   Center := InnerW div 2;
@@ -10712,6 +10732,216 @@ begin
   performanceGroupBox.SetBounds(C1A, BOX_TOP, ColWA, BOX_H);
   customenvEdit.Left  := EditLeft;
   customenvEdit.Width := EditW;
+end;
+
+// ============================================================================
+// OPTISCALER TAB — card redesign (GroupBox-level reparenting)
+// ============================================================================
+
+procedure Tgoverlayform.InitOptiScalerTab;
+const
+  BG      = $1E1E2E;
+  ACCENT  = $4488FF;
+  WHITE   = clWhite;
+  PURPLE  = $BB99FF;
+  GRAY    = $AAAAAA;
+  GREEN   = $66CC44;
+  BLUELK  = $4499FF;
+  COMBOBG = $2A2A40;
+
+  procedure MakeCard(out Card: TPanel; const ATitle: string);
+  var
+    Bar: TPanel;
+    Lbl: TLabel;
+  begin
+    Card := TPanel.Create(Self);
+    Card.Parent     := FOsScrollBox;
+    Card.BevelOuter := bvNone;
+    Card.Color      := BG;
+    Card.Caption    := '';
+    Bar := TPanel.Create(Card);
+    Bar.Parent     := Card;
+    Bar.BevelOuter := bvNone;
+    Bar.Color      := ACCENT;
+    Bar.Caption    := '';
+    Bar.SetBounds(0, 0, 400, 3);
+    Bar.Anchors    := [akLeft, akRight, akTop];
+    Lbl := TLabel.Create(Card);
+    Lbl.Parent      := Card;
+    Lbl.Caption     := ATitle;
+    Lbl.Font.Color  := WHITE;
+    Lbl.Font.Size   := 10;
+    Lbl.Font.Style  := [fsBold];
+    Lbl.AutoSize    := True;
+    Lbl.SetBounds(12, 8, 200, 22);
+    Lbl.Transparent := True;
+  end;
+
+  // Reparent a GroupBox into a card, clearing its own anchor references
+  // and replacing its built-in title+border with the card header.
+  procedure ReparentGB(GB: TGroupBox; Card: TPanel);
+  begin
+    GB.Parent   := Card;
+    GB.Visible  := True;
+    GB.Caption  := '';        // remove built-in border title
+    GB.Color    := BG;
+    GB.Font.Color := WHITE;
+    GB.AnchorSideLeft.Control   := nil;
+    GB.AnchorSideTop.Control    := nil;
+    GB.AnchorSideRight.Control  := nil;
+    GB.AnchorSideBottom.Control := nil;
+    GB.Anchors := [akLeft, akTop];
+  end;
+
+  procedure DarkCheck(C: TCheckBox);
+  begin
+    C.Color := BG; C.Font.Color := WHITE; C.Font.Size := 9;
+  end;
+
+  procedure DarkRadio(R: TRadioButton);
+  begin
+    R.Color := BG; R.Font.Color := WHITE; R.Font.Size := 9;
+  end;
+
+  procedure DarkCombo(C: TComboBox);
+  begin
+    C.Color := COMBOBG; C.Font.Color := WHITE; C.Font.Size := 9;
+  end;
+
+  procedure DarkLbl(L: TLabel; AColor: TColor);
+  begin
+    L.Color      := BG;
+    L.Font.Color := AColor;
+    L.Font.Size  := 9;
+    L.Transparent := False;
+  end;
+
+begin
+  // Scroll container fills the tab
+  FOsScrollBox := TScrollBox.Create(Self);
+  FOsScrollBox.Parent     := optiscalerTabSheet;
+  FOsScrollBox.Align      := alClient;
+  FOsScrollBox.AutoScroll := True;
+  FOsScrollBox.BorderStyle := bsNone;
+  FOsScrollBox.HorzScrollBar.Visible := False;
+  FOsScrollBox.Color      := $121220;
+
+  // ── Card 0: GPU Driver ──────────────────────────────────────────────
+  MakeCard(FOsGpuCard, 'GPU Driver');
+  ReparentGB(gpudriverGroupBox, FOsGpuCard);
+  DarkRadio(nvidiaRadioButton);
+  DarkRadio(mesaRadioButton);
+  DarkLbl(autodetectnvLabel,   GREEN);
+  DarkLbl(autodetectmesaLabel, GREEN);
+  DarkCheck(hidenvidiaCheckBox);
+
+  // ── Card 1: Options (3-column inner layout kept intact) ─────────────
+  MakeCard(FOsOptionsCard, 'Options');
+  ReparentGB(optionsGroupBox, FOsOptionsCard);
+  // Style inner GroupBoxes
+  optiscalerGroupBox.Color := BG; optiscalerGroupBox.Font.Color := WHITE;
+  imgmenuGroupBox.Color    := BG; imgmenuGroupBox.Font.Color    := WHITE;
+  fakenvapiGroupBox.Color  := BG; fakenvapiGroupBox.Font.Color  := WHITE;
+  // DLL & Options section
+  DarkLbl(filenameLabel,    PURPLE);
+  DarkCombo(filenameComboBox);
+  DarkCheck(spoofCheckBox);
+  DarkCheck(emufp8CheckBox);
+  DarkCheck(optipatcherCheckBox);
+  DarkLbl(fsrversionLabel,  PURPLE);
+  DarkCombo(fsrversionComboBox);
+  DarkLbl(osversionLabel,   GRAY);
+  DarkLbl(patcherlistLabel, BLUELK);
+  // In-Game Menu section
+  DarkLbl(menuLabel,           PURPLE);
+  DarkLbl(menuscalevalueLabel, WHITE);
+  DarkLbl(mark1Label,          GRAY);
+  DarkLbl(mark2Label,          GRAY);
+  DarkLbl(mark3Label,          GRAY);
+  DarkLbl(shortcutkeyLabel,    PURPLE);
+  DarkCombo(shortcutkeyComboBox);
+  // FakeNVAPI section
+  DarkCheck(forcereflexCheckBox);
+  DarkCheck(overrideCheckBox);
+  DarkCheck(forcelatencyflexCheckBox);
+  DarkCheck(tracelogCheckBox);
+  DarkCombo(reflexComboBox);
+  DarkCombo(latencyflexComboBox);
+
+  // ── Card 2: Software Status ──────────────────────────────────────────
+  MakeCard(FOsStatusCard, 'Software Status');
+  ReparentGB(statusGroupBox, FOsStatusCard);
+  DarkLbl(optLabel,       PURPLE);
+  DarkLbl(optLabel1,      WHITE);
+  DarkLbl(optLabel2,      GRAY);
+  DarkLbl(fakenvapiLabel, PURPLE);
+  DarkLbl(fakenvapi1,     WHITE);
+  DarkLbl(fakenvapi2,     GRAY);
+  DarkLbl(fsrLabel,       PURPLE);
+  DarkLbl(fsrLabel1,      WHITE);
+  DarkLbl(xessLabel,      PURPLE);
+  DarkLbl(xessLabel1,     WHITE);
+  DarkLbl(dlssLabel,      PURPLE);
+  DarkLbl(dlssLabel1,     WHITE);
+  DarkCombo(optversionComboBox);
+end;
+
+procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
+const
+  MARGIN  = 10;   // outer margin inside scroll box
+  GAP     = 10;   // gap between cards
+  HDR     = 34;   // accent bar (3) + title area (31)
+  // GroupBox heights from LFM
+  GPU_GH  = 130;
+  OPT_GH  = 292;
+  STAT_GH = 171;
+  // Card heights = HDR + GroupBox height
+  GPU_H   = HDR + GPU_GH;    // 164
+  OPT_H   = HDR + OPT_GH;    // 326
+  STAT_H  = HDR + STAT_GH;   // 205
+  // Inner 3-col layout constants (mirrors ReflowOptiScalerTab)
+  W1      = 252;
+  W3      = 252;
+  MIN_W2  = 180;
+  BOX_H   = 251;
+  BOX_TOP = 6;
+  IMARGIN = 4;
+  IGAP    = 4;
+var
+  CW, CardTop: Integer;
+  InnerW, Center, W2, X1, X2, X3: Integer;
+begin
+  if not Assigned(FOsScrollBox) then Exit;
+  CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
+  if CW < 100 then Exit;
+
+  // ── Card 0: GPU Driver ──────────────────────────────────────────────
+  FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
+  gpudriverGroupBox.SetBounds(0, HDR, CW, GPU_GH);
+
+  // ── Card 1: Options ─────────────────────────────────────────────────
+  CardTop := MARGIN + GPU_H + GAP;
+  FOsOptionsCard.SetBounds(MARGIN, CardTop, CW, OPT_H);
+  optionsGroupBox.SetBounds(0, HDR, CW, OPT_GH);
+
+  // Position the 3 inner GroupBoxes within optionsGroupBox
+  // (same logic as ReflowOptiScalerTab, using optionsGroupBox.ClientWidth)
+  InnerW := CW - 8;   // optionsGroupBox ClientWidth ≈ CW - 8
+  Center := InnerW div 2;
+  W2     := Max(MIN_W2, InnerW - IMARGIN - W1 - IGAP - W3 - IMARGIN - IGAP);
+  X2     := Center - W2 div 2;
+  if X2 - IGAP - W1 < IMARGIN then
+    X2 := IMARGIN + W1 + IGAP;
+  X1 := X2 - IGAP - W1;
+  X3 := X2 + W2 + IGAP;
+  optiscalerGroupBox.SetBounds(X1, BOX_TOP, W1, BOX_H);
+  imgmenuGroupBox.SetBounds(X2,    BOX_TOP, W2, BOX_H);
+  fakenvapiGroupBox.SetBounds(X3,  BOX_TOP, W3, BOX_H);
+
+  // ── Card 2: Software Status ──────────────────────────────────────────
+  CardTop := MARGIN + GPU_H + GAP + OPT_H + GAP;
+  FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
+  statusGroupBox.SetBounds(0, HDR, CW, STAT_GH);
 end;
 
 // ============================================================================
