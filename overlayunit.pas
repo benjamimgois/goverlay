@@ -3034,8 +3034,8 @@ end;
 procedure Tgoverlayform.LoadFgmodConfig;
 var
   ConfigLines: TStringList;
-  Line, TrimmedLine, DllName: string;
-  i: Integer;
+  Line, TrimmedLine, DllName, Key, Value, VarsPath, FsrVer: string;
+  i, SepPos: Integer;
   FgmodPath: string;
   DxilSpirvFound: Boolean;
 begin
@@ -3095,6 +3095,42 @@ begin
 
   finally
     ConfigLines.Free;
+  end;
+
+  // Restore fsrversionComboBox from goverlay.vars (game-specific or global)
+  if FActiveGameName <> '' then
+    VarsPath := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'goverlay.vars'
+  else
+    VarsPath := IncludeTrailingPathDelimiter(GetOptiScalerInstallPath) + 'goverlay.vars';
+
+  if FileExists(VarsPath) then
+  begin
+    ConfigLines := TStringList.Create;
+    try
+      ConfigLines.LoadFromFile(VarsPath);
+      FsrVer := '';
+      for i := 0 to ConfigLines.Count - 1 do
+      begin
+        TrimmedLine := Trim(ConfigLines[i]);
+        SepPos := Pos('=', TrimmedLine);
+        if SepPos > 0 then
+        begin
+          Key   := Copy(TrimmedLine, 1, SepPos - 1);
+          Value := Copy(TrimmedLine, SepPos + 1, Length(TrimmedLine));
+          if SameText(Key, 'fsrversion') then
+          begin
+            FsrVer := Value;
+            Break;
+          end;
+        end;
+      end;
+      if FsrVer = '4.0.2c (INT8)' then
+        fsrversionComboBox.ItemIndex := 1
+      else
+        fsrversionComboBox.ItemIndex := 0; // Latest (FP8) is the default
+    finally
+      ConfigLines.Free;
+    end;
   end;
 end;
 
@@ -6567,6 +6603,9 @@ begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
     SetSaveBtnEnabled(FNavToolEnabled[2]);
   end;
+  // In game mode, reload fgmod config so fsrversionComboBox reflects the game's goverlay.vars
+  if FActiveGameName <> '' then
+    LoadFgmodConfig;
   // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
   fsrversionComboBoxChange(nil);
   DbgLog('<< optiscalerLabelClick END');
@@ -8442,7 +8481,7 @@ EnableTraceLogsFound: Boolean;
                       CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
                                IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
 
-                      // Add fsrversion=built in to goverlay.vars
+                      // Add fsrversion=Latest (FP8) to goverlay.vars
                       VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
                       if FileExists(VarsFilePath) then
                       begin
@@ -8458,7 +8497,7 @@ EnableTraceLogsFound: Boolean;
                           end;
 
                           // Add fsrversion line at the end
-                          Lines.Add('fsrversion=built in');
+                          Lines.Add('fsrversion=Latest (FP8)');
 
                           // Save the file
                           Lines.SaveToFile(VarsFilePath);
@@ -9935,7 +9974,7 @@ var
   i: Integer;
   Flag: string;
 begin
-  Result := True;  // default: enabled
+  Result := False;  // default: disabled until explicitly saved
   FGModFile := GetGameConfigDir(AGameName) + 'fgmod';
   if not FileExists(FGModFile) then Exit;
   Flag  := FLAGS[AToolIdx] + '=';
@@ -12594,7 +12633,7 @@ begin
 
   // ── Module Status + Libraries ────────────────────────────────────────────
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 10 + 3 * ROW_H + 4);
-  MkTitle(Card, 'Module Status', CARD_P);
+  MkTitle(Card, 'Libraries', CARD_P);
   MkSep(Card, CARD_P + 22);
 
   // Module rows (MangoHud, vkBasalt, OptiScaler)
