@@ -9544,8 +9544,6 @@ begin
   FNavSmallIcon.Stretch      := True;
   FNavSmallIcon.Proportional := True;
   FNavSmallIcon.Center       := True;
-  FNavSmallIcon.Cursor       := crHandPoint;
-  FNavSmallIcon.OnClick      := @ShowHomeTab;
   FNavSmallIcon.Visible      := False;
   // Load icon — try installed path first, then local data dir
   IconPath := GetIconFile();
@@ -9554,9 +9552,6 @@ begin
   if FileExists(IconPath) then
     try FNavSmallIcon.Picture.LoadFromFile(IconPath); except end;
 
-  // Make the large logo clickable too
-  goverlayimage.Cursor       := crHandPoint;
-  goverlayimage.OnClick      := @ShowHomeTab;
 
   for i := 0 to High(ITEMS) do
   begin
@@ -9713,7 +9708,8 @@ begin
   FDepsMenuItem := TMenuItem.Create(settingsMenu);
   FDepsMenuItem.Caption := 'Application status';
   FDepsMenuItem.ImageIndex := 0;
-  FDepsMenuItem.Enabled := False;  // informational only
+  FDepsMenuItem.Enabled := True;
+  FDepsMenuItem.OnClick := @ShowHomeTab;
   settingsMenu.Items.Insert(0, FDepsMenuItem);
 
   // Separator after deps item
