@@ -663,6 +663,7 @@ type
     procedure GameCardClick(Sender: TObject);
     procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GameCardOpenFolderClick(Sender: TObject);
+    procedure GameCardOpenPrefixClick(Sender: TObject);
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     function  GetMangoHudConfigEnvPrefix: string;
@@ -11493,6 +11494,7 @@ end;
 procedure Tgoverlayform.InitGamesTab;
 var
   OpenFolderItem: TMenuItem;
+  OpenPrefixItem: TMenuItem;
 begin
   FCardPanels := TList.Create;
   FOrigCovers := TList.Create;
@@ -11503,6 +11505,11 @@ begin
   OpenFolderItem.Caption := 'Open install folder';
   OpenFolderItem.OnClick := @GameCardOpenFolderClick;
   FGameCardMenu.Items.Add(OpenFolderItem);
+
+  OpenPrefixItem := TMenuItem.Create(FGameCardMenu);
+  OpenPrefixItem.Caption := 'Open prefix folder';
+  OpenPrefixItem.OnClick := @GameCardOpenPrefixClick;
+  FGameCardMenu.Items.Add(OpenPrefixItem);
 
   FGamesScrollBox := TScrollBox.Create(Self);
   FGamesScrollBox.Parent := gamesTabSheet;
@@ -11743,7 +11750,7 @@ begin
           CardPanel.Caption := '';
           CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
           CardPanel.Color := IfThen(CurrentTheme = tmLight, $00F0F0F0, $2A2A2A);
-          CardPanel.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
+          CardPanel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardPanel.ShowHint := True;
           CardPanel.OnMouseEnter := @GameCardMouseEnter;
           CardPanel.OnMouseLeave := @GameCardMouseLeave;
@@ -11756,7 +11763,7 @@ begin
           CardImage.Stretch := True;
           CardImage.Proportional := False;
           CardImage.Center := False;
-          CardImage.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
+          CardImage.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardImage.ShowHint := True;
           CardImage.OnMouseEnter := @GameCardMouseEnter;
           CardImage.OnMouseLeave := @GameCardMouseLeave;
@@ -11787,7 +11794,7 @@ begin
           CardLabel.Alignment := taCenter;
           CardLabel.WordWrap := False;
           CardLabel.ParentColor := True;
-          CardLabel.Hint := GameName + LineEnding + LibPath + '/common/' + InstallDir;
+          CardLabel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardLabel.ShowHint := True;
           CardLabel.OnMouseEnter := @GameCardMouseEnter;
           CardLabel.OnMouseLeave := @GameCardMouseLeave;
@@ -12771,6 +12778,7 @@ var
   Panel: TPanel;
   GameName, GameCfgDir: string;
   Lines: TStringList;
+  p: Integer;
 begin
   if Sender is TPanel then Panel := TPanel(Sender)
   else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
@@ -12785,6 +12793,13 @@ begin
     GameName := Lines[0];
   finally
     Lines.Free;
+  end;
+
+  if (Length(GameName) > 0) and (GameName[1] = '(') then
+  begin
+    p := Pos(') ', GameName);
+    if p > 0 then
+      GameName := Copy(GameName, p + 2, Length(GameName));
   end;
 
   FActiveGameName := GameName;
@@ -12859,6 +12874,51 @@ begin
 
   if DirectoryExists(GamePath) then
     ExecuteShellCommand('xdg-open ' + QuotedStr(GamePath));
+end;
+
+procedure Tgoverlayform.GameCardOpenPrefixClick(Sender: TObject);
+var
+  Panel: TPanel;
+  GamePath: string;
+  PrefixPath: string;
+  Lines: TStringList;
+  AppID: string;
+  p: Integer;
+begin
+  Panel := FRightClickedCard;
+  if Panel = nil then Exit;
+
+  Lines := TStringList.Create;
+  try
+    Lines.Text := Panel.Hint;
+    if Lines.Count >= 2 then
+    begin
+      AppID := '';
+      if (Length(Lines[0]) > 0) and (Lines[0][1] = '(') then
+      begin
+        p := Pos(') ', Lines[0]);
+        if p > 0 then
+          AppID := Copy(Lines[0], 2, p - 2);
+      end;
+      
+      GamePath := Lines[1];
+    end
+    else
+      Exit;
+  finally
+    Lines.Free;
+  end;
+
+  if AppID <> '' then
+  begin
+    p := Pos('/common/', GamePath);
+    if p > 0 then
+    begin
+      PrefixPath := Copy(GamePath, 1, p - 1) + '/compatdata/' + AppID + '/pfx';
+      if DirectoryExists(PrefixPath) then
+        ExecuteShellCommand('xdg-open ' + QuotedStr(PrefixPath));
+    end;
+  end;
 end;
 
 
