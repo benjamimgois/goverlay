@@ -12407,6 +12407,7 @@ const
   // accent colors per section
   ACC_MOD    = $004488CC;  // blue  — Module Status
   ACC_DEP    = $0033AA55;  // green — Dependencies
+  ACC_SYS    = $00CC8844;  // orange — System Info
 
   DEP_NAMES: array[0..9] of string = (
     'PasCube', 'MangoHud', 'libMangoHud.so', 'vkBasalt', 'libvkbasalt.so',
@@ -12626,6 +12627,39 @@ begin
     Lbl.AutoSize   := False;
     Lbl.ShowHint   := True;
     FHomeDepLbls[i] := Lbl;
+  end;
+  Inc(Y, Card.Height + SEC_GAP);
+
+  // ── Card 3: System (List) ──────────────────────────────────────
+  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
+  MkTitle(Card, 'System', CARD_P);
+  MkSep(Card, CARD_P + 22);
+
+  for i := 0 to 3 do
+  begin
+    Row  := CARD_P + 30 + i * ROW_H;
+    ColX := CARD_P;
+
+    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
+    Dot.Brush.Color := ACC_SYS;
+    Dot.Pen.Color   := ACC_SYS;
+    Dot.ShowHint := True;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent     := Card;
+    case i of
+      0: begin Lbl.Caption := 'Linux distribution: ' + GetSysLinuxDistribution; Dot.Hint := 'OS'; end;
+      1: begin Lbl.Caption := 'CPU model: ' + GetSysCPUModel; Dot.Hint := 'CPU'; end;
+      2: begin Lbl.Caption := 'GPU model: ' + GetSysGPUModel; Dot.Hint := 'GPU'; end;
+      3: begin Lbl.Caption := 'GPU Driver: ' + GetSysGPUDriver; Dot.Hint := 'Driver'; end;
+    end;
+    Lbl.Font.Color := clWhite;
+    Lbl.Font.Size  := 9;
+    Lbl.Left       := ColX + DOT_SZ + 8;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
+    Lbl.ShowHint   := True;
+    Lbl.Hint       := Lbl.Caption;
   end;
   Inc(Y, Card.Height + SEC_GAP);
 end;

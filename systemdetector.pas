@@ -114,6 +114,26 @@ function SessionTypeToString(Session: TSessionType): string;
 /// <returns>Full path to executable, or just the name if not found</returns>
 function FindDefaultExecutablePath(const ExecutableName: string): string;
 
+/// <summary>
+/// Gets Linux distribution name
+/// </summary>
+function GetSysLinuxDistribution: string;
+
+/// <summary>
+/// Gets CPU model name
+/// </summary>
+function GetSysCPUModel: string;
+
+/// <summary>
+/// Gets GPU model name
+/// </summary>
+function GetSysGPUModel: string;
+
+/// <summary>
+/// Gets GPU Driver info
+/// </summary>
+function GetSysGPUDriver: string;
+
 implementation
 
 
@@ -478,6 +498,116 @@ begin
   begin
     if Output <> '' then
       Result := Output;
+  end;
+end;
+
+function GetSysLinuxDistribution: string;
+var
+  SL: TStringList;
+  Line: string;
+begin
+  Result := 'Unknown Linux';
+  if FileExists('/etc/os-release') then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile('/etc/os-release');
+      for Line in SL do
+      begin
+        if Pos('PRETTY_NAME=', Line) = 1 then
+        begin
+          Result := StringReplace(Line, 'PRETTY_NAME=', '', []);
+          Result := StringReplace(Result, '"', '', [rfReplaceAll]);
+          Break;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+end;
+
+function GetSysCPUModel: string;
+var
+  SL: TStringList;
+  Line: string;
+begin
+  Result := 'Unknown CPU';
+  if FileExists('/proc/cpuinfo') then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile('/proc/cpuinfo');
+      for Line in SL do
+      begin
+        if Pos('model name', Line) = 1 then
+        begin
+          Result := Trim(Copy(Line, Pos(':', Line) + 1, Length(Line)));
+          Break;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+end;
+
+function GetSysGPUModel: string;
+var
+  Output, Line, CleanName: string;
+  SL: TStringList;
+begin
+  Result := 'Unknown GPU';
+  if RunCommand('glxinfo', ['-B'], Output) then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.Text := Output;
+      for Line in SL do
+      begin
+        if Pos('OpenGL renderer string:', Trim(Line)) = 1 then
+        begin
+          CleanName := Trim(Copy(Trim(Line), 24, Length(Line)));
+          if Pos('(', CleanName) > 0 then
+            CleanName := Trim(Copy(CleanName, 1, Pos('(', CleanName) - 1));
+          Result := CleanName;
+          Break;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+end;
+
+function GetSysGPUDriver: string;
+var
+  Output, Line, CleanStr: string;
+  SL: TStringList;
+begin
+  Result := 'Unknown Driver';
+  if RunCommand('glxinfo', ['-B'], Output) then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.Text := Output;
+      for Line in SL do
+      begin
+        if Pos('OpenGL core profile version string:', Trim(Line)) = 1 then
+        begin
+          CleanStr := Trim(Copy(Trim(Line), Length('OpenGL core profile version string:') + 1, Length(Line)));
+          if Pos('Mesa', CleanStr) > 0 then
+            Result := Trim(Copy(CleanStr, Pos('Mesa', CleanStr), Length(CleanStr)))
+          else if Pos('NVIDIA', CleanStr) > 0 then
+            Result := Trim(Copy(CleanStr, Pos('NVIDIA', CleanStr), Length(CleanStr)))
+          else
+            Result := CleanStr;
+          Break;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
   end;
 end;
 
