@@ -600,8 +600,8 @@ type
     FHomeModVerLbls:   array[0..2] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
-    FHomeDepDots:      array[0..8] of TShape;
-    FHomeDepLbls:      array[0..8] of TLabel;
+    FHomeDepDots:      array[0..9] of TShape;
+    FHomeDepLbls:      array[0..9] of TLabel;
     FHomeGlobalBtn:    TPanel;
     FHomeGameBtn:      TPanel;
     FHomeBtnRow:       TPanel;
@@ -5124,16 +5124,16 @@ begin
    if CheckDependencies(Missing) then
    begin
     dependencieSpeedbutton.ImageIndex := 0 ; //green icon
-    dependenciesLabel.Caption := 'All dependencies OK' ;
+    dependenciesLabel.Caption := 'Application status' ;
     if Assigned(FDepsMenuItem) then
-      FDepsMenuItem.Caption := '✓  All dependencies OK';
+      FDepsMenuItem.Caption := 'Application status';
    end
   else
   begin
     dependencieSpeedbutton.ImageIndex := 1 ;  //red icon
     dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
     if Assigned(FDepsMenuItem) then
-      FDepsMenuItem.Caption := '⚠  Missing: ' + Missing.CommaText;
+      FDepsMenuItem.Caption := 'Missing: ' + Missing.CommaText;
     
     // Disable gamemodeCheckBox if gamemode is missing
     if Missing.IndexOf('gamemode') >= 0 then
@@ -9711,7 +9711,8 @@ begin
 
   // Dependencies status item at the top of the settings menu
   FDepsMenuItem := TMenuItem.Create(settingsMenu);
-  FDepsMenuItem.Caption := '● Checking dependencies…';
+  FDepsMenuItem.Caption := 'Application status';
+  FDepsMenuItem.ImageIndex := 0;
   FDepsMenuItem.Enabled := False;  // informational only
   settingsMenu.Items.Insert(0, FDepsMenuItem);
 
@@ -9722,7 +9723,8 @@ begin
 
   // Auto-launch cube toggle
   FCubeAutoLaunchItem := TMenuItem.Create(settingsMenu);
-  FCubeAutoLaunchItem.Caption := 'Auto-launch PasCube/VkCube';
+  FCubeAutoLaunchItem.Caption := 'Auto launch PasCube';
+  FCubeAutoLaunchItem.ImageIndex := 4;
   FCubeAutoLaunchItem.Checked := FCubeAutoLaunch;
   FCubeAutoLaunchItem.OnClick := @CubeAutoLaunchMenuItemClick;
   settingsMenu.Items.Insert(2, FCubeAutoLaunchItem);
@@ -9733,7 +9735,8 @@ begin
 
   // How to Use — replaces the howtoBitBtn that was removed from the bottom bar
   FHowToMenuItem := TMenuItem.Create(settingsMenu);
-  FHowToMenuItem.Caption := '❓  How to Use';
+  FHowToMenuItem.Caption := 'How to use FGMOD';
+  FHowToMenuItem.ImageIndex := 18;
   FHowToMenuItem.OnClick := @howtoBitBtnClick;
   settingsMenu.Items.Insert(4, FHowToMenuItem);
 
@@ -12356,14 +12359,14 @@ end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
 const
-  DEP_KEYS: array[0..8] of string = (
+  DEP_KEYS: array[0..9] of string = (
     'pascube', 'mangohud', 'MangoHud runtime 25.08',
     'vkbasalt', 'vkBasalt runtime 25.08',
-    'vkcube', 'p7zip', 'curl', 'git');
-  DEP_DISPLAY: array[0..8] of string = (
+    'vkcube', 'p7zip', 'curl', 'git', 'gamemode');
+  DEP_DISPLAY: array[0..9] of string = (
     'PasCube', 'MangoHud', 'MangoHud runtime 25.08',
     'vkBasalt', 'vkBasalt runtime 25.08',
-    'vkcube', '7z (p7zip)', 'curl', 'git');
+    'vkcube', '7z (p7zip)', 'curl', 'git', 'gamemode');
   CLR_OK      = $0044BB44;
   CLR_MISSING = $00BB4444;
 var
@@ -12373,8 +12376,8 @@ begin
   if not Assigned(FHomeDepDots[0]) then Exit;
   CheckDependencies(Missing);
   try
-    // First 9 fixed deps shown as dots
-    for i := 0 to 8 do
+    // First 10 fixed deps shown as dots
+    for i := 0 to 9 do
     begin
       if Missing.IndexOf(DEP_KEYS[i]) >= 0 then
       begin
@@ -12409,9 +12412,9 @@ const
   ACC_MOD    = $004488CC;  // blue  — Module Status
   ACC_DEP    = $0033AA55;  // green — Dependencies
 
-  DEP_NAMES: array[0..8] of string = (
+  DEP_NAMES: array[0..9] of string = (
     'PasCube', 'MangoHud', 'libMangoHud.so', 'vkBasalt', 'libvkbasalt.so',
-    'vkcube', '7z', 'curl', 'git');
+    'vkcube', '7z', 'curl', 'git', 'gamemode');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
   LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
 
@@ -12603,11 +12606,11 @@ begin
   Inc(Y, Card.Height + SEC_GAP);
 
   // ── Card 2: Dependencies (3×3 grid) ──────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
+  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
   MkTitle(Card, 'Dependencies', CARD_P);
   MkSep(Card, CARD_P + 22);
 
-  for i := 0 to 8 do
+  for i := 0 to 9 do
   begin
     Row  := CARD_P + 30 + (i div 3) * ROW_H;
     ColX := CARD_P + (i mod 3) * COL_W;
