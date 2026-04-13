@@ -12421,6 +12421,7 @@ var
   BtnRow:    TPanel;
   AccBar:    TShape;
   Lbl:       TLabel;
+  LogoLbl:   TLabel;
   Sep:       TBevel;
   i, Row, Y, ColX, Col2X: Integer;
   Dot:       TShape;
@@ -12526,8 +12527,59 @@ begin
   Content.Caption   := '';
   Content.Align     := alClient;
 
-  // ── Card 1: Module Status + Libraries ────────────────────────────────────
   Y    := CARD_M;
+
+  // ── System (List) ────────────────────────────────────────────────────────
+  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
+  MkTitle(Card, 'System', CARD_P);
+  MkSep(Card, CARD_P + 22);
+
+  LogoLbl := TLabel.Create(Self);
+  LogoLbl.Parent := Card;
+  case DetectGPUVendor of
+    gpuAMD:    begin LogoLbl.Caption := 'RADEON'; LogoLbl.Font.Color := $004444EE; end;
+    gpuNVIDIA: begin LogoLbl.Caption := 'NVIDIA'; LogoLbl.Font.Color := $0033CC33; end;
+    gpuIntel:  begin LogoLbl.Caption := 'INTEL ARC'; LogoLbl.Font.Color := $00EE8833; end;
+    else LogoLbl.Caption := '';
+  end;
+  LogoLbl.Font.Size := 16;
+  LogoLbl.Font.Bold := True;
+  LogoLbl.AutoSize := True;
+  LogoLbl.Top := 16;
+  LogoLbl.Anchors := [akTop, akRight];
+  LogoLbl.AnchorSideRight.Control := Card;
+  LogoLbl.AnchorSideRight.Side := asrRight;
+  LogoLbl.BorderSpacing.Right := 32;
+
+  for i := 0 to 3 do
+  begin
+    Row  := CARD_P + 30 + i * ROW_H;
+    ColX := CARD_P;
+
+    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
+    Dot.Brush.Color := ACC_SYS;
+    Dot.Pen.Color   := ACC_SYS;
+    Dot.ShowHint := True;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent     := Card;
+    case i of
+      0: begin Lbl.Caption := 'Linux distribution: ' + GetSysLinuxDistribution; Dot.Hint := 'OS'; end;
+      1: begin Lbl.Caption := 'CPU model: ' + GetSysCPUModel; Dot.Hint := 'CPU'; end;
+      2: begin Lbl.Caption := 'GPU model: ' + GetSysGPUModel; Dot.Hint := 'GPU'; end;
+      3: begin Lbl.Caption := 'GPU Driver: ' + GetSysGPUDriver; Dot.Hint := 'Driver'; end;
+    end;
+    Lbl.Font.Color := clWhite;
+    Lbl.Font.Size  := 9;
+    Lbl.Left       := ColX + DOT_SZ + 8;
+    Lbl.Top        := Row + (ROW_H - 16) div 2;
+    Lbl.AutoSize   := True;
+    Lbl.ShowHint   := True;
+    Lbl.Hint       := Lbl.Caption;
+  end;
+  Inc(Y, Card.Height + SEC_GAP);
+
+  // ── Module Status + Libraries ────────────────────────────────────────────
   Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 10 + 3 * ROW_H + 4);
   MkTitle(Card, 'Module Status', CARD_P);
   MkSep(Card, CARD_P + 22);
@@ -12630,38 +12682,7 @@ begin
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
-  // ── Card 3: System (List) ──────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
-  MkTitle(Card, 'System', CARD_P);
-  MkSep(Card, CARD_P + 22);
 
-  for i := 0 to 3 do
-  begin
-    Row  := CARD_P + 30 + i * ROW_H;
-    ColX := CARD_P;
-
-    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
-    Dot.Brush.Color := ACC_SYS;
-    Dot.Pen.Color   := ACC_SYS;
-    Dot.ShowHint := True;
-
-    Lbl := TLabel.Create(Self);
-    Lbl.Parent     := Card;
-    case i of
-      0: begin Lbl.Caption := 'Linux distribution: ' + GetSysLinuxDistribution; Dot.Hint := 'OS'; end;
-      1: begin Lbl.Caption := 'CPU model: ' + GetSysCPUModel; Dot.Hint := 'CPU'; end;
-      2: begin Lbl.Caption := 'GPU model: ' + GetSysGPUModel; Dot.Hint := 'GPU'; end;
-      3: begin Lbl.Caption := 'GPU Driver: ' + GetSysGPUDriver; Dot.Hint := 'Driver'; end;
-    end;
-    Lbl.Font.Color := clWhite;
-    Lbl.Font.Size  := 9;
-    Lbl.Left       := ColX + DOT_SZ + 8;
-    Lbl.Top        := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize   := True;
-    Lbl.ShowHint   := True;
-    Lbl.Hint       := Lbl.Caption;
-  end;
-  Inc(Y, Card.Height + SEC_GAP);
 end;
 
 procedure Tgoverlayform.ShowHomeTab(Sender: TObject);
