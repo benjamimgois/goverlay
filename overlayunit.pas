@@ -6566,6 +6566,8 @@ begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
     SetSaveBtnEnabled(FNavToolEnabled[2]);
   end;
+  // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
+  fsrversionComboBoxChange(nil);
   DbgLog('<< optiscalerLabelClick END');
 end;
 
@@ -7516,14 +7518,14 @@ end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
-  // Disable emufp8CheckBox when "4.0.2b (INT8)" is selected (ItemIndex = 1)
+  // Disable emufp8CheckBox when "4.0.2c (INT8)" is selected (ItemIndex = 1)
   // Enable emufp8CheckBox when "Latest (FP8)" is selected (ItemIndex = 0)
   case fsrversionComboBox.ItemIndex of
     0: // Latest (FP8)
       begin
         emufp8CheckBox.Enabled := True;
       end;
-    1: // 4.0.2b (INT8)
+    1: // 4.0.2c (INT8)
       begin
         emufp8CheckBox.Enabled := False;
         emufp8CheckBox.Checked := False;  // Also uncheck when disabled
@@ -7669,7 +7671,7 @@ var
 
   //OptiScaler vars
   FGModFilePath, SelectedDllName, DllNameWithoutExt: string;
-  FGModPath, LaunchCommand, VarsFilePath: string;
+  FGModPath, FGModDestPath, LaunchCommand, VarsFilePath: string;
   FGModLines: TStringList;
   LineIndex: Integer;
   LineFound, WineOverrideFound: Boolean;
@@ -8015,8 +8017,11 @@ EnableTraceLogsFound: Boolean;
         end;
       end;
 
-      // Always build launch command with full absolute path for fgmod (quoted for spaces)
-      LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
+      // Build launch command — use game-specific fgmod copy when in game mode
+      if FActiveGameName <> '' then
+        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
+      else
+        LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
       // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
       if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
@@ -8419,19 +8424,25 @@ EnableTraceLogsFound: Boolean;
 
             // ##### Copy FSR4 DLL based on fsrversionCombobox selection #####
             try
+              // FSR4 sub-folders (FSR4_LATEST, FSR4_INT8) always live in the global install path
               FGModPath := GetOptiScalerInstallPath;
+              // Destination: game config dir in game mode, global install path in global mode
+              if FActiveGameName <> '' then
+                FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName))
+              else
+                FGModDestPath := FGModPath;
 
               case fsrversionComboBox.ItemIndex of
                 0: // Latest (FP8)
                   begin
-                    // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_LATEST to fgmod root
+                    // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_LATEST to destination root
                     if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
                     begin
                       CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                               IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+                               IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
 
                       // Add fsrversion=built in to goverlay.vars
-                      VarsFilePath := IncludeTrailingPathDelimiter(FGModPath) + 'goverlay.vars';
+                      VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
                       if FileExists(VarsFilePath) then
                       begin
                         Lines := TStringList.Create;
@@ -8458,16 +8469,16 @@ EnableTraceLogsFound: Boolean;
                     // Silently skip if FSR4_LATEST doesn't exist (OptiScaler not installed yet)
                   end;
 
-                1: // 4.0.2b (INT8)
+                1: // 4.0.2c (INT8)
                   begin
-                    // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_INT8 to fgmod root
+                    // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_INT8 to destination root
                     if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
                     begin
                       CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                               IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+                               IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
 
                       // Add fsrversion line to goverlay.vars
-                      VarsFilePath := IncludeTrailingPathDelimiter(FGModPath) + 'goverlay.vars';
+                      VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
                       if FileExists(VarsFilePath) then
                       begin
                         Lines := TStringList.Create;
@@ -8482,7 +8493,7 @@ EnableTraceLogsFound: Boolean;
                           end;
 
                           // Add fsrversion line at the end
-                          Lines.Add('fsrversion=4.0.2b (INT8)');
+                          Lines.Add('fsrversion=4.0.2c (INT8)');
 
                           // Save the file
                           Lines.SaveToFile(VarsFilePath);
@@ -8504,13 +8515,13 @@ EnableTraceLogsFound: Boolean;
 
             howtoBitBtn.Visible := False;
 
-            // Always use ~/fgmod path (simplified architecture)
-            FGModPath := GetOptiScalerInstallPath;
+            // Build launch command — use game-specific fgmod copy when in game mode
+            if FActiveGameName <> '' then
+              LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
+            else
+              LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
-            // Build launch command with full absolute path (quoted for spaces)
-            LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
-
-            // Check if gamemode should be added (check fgmod file for #gamemode or generalCheckGroup)
+            // Check if gamemode should be added
             if GetGeneralCheckBox(1).Checked then
               LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 

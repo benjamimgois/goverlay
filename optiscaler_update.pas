@@ -890,8 +890,8 @@ begin
         FFsrLabel.Caption := FsrVer;
         FFsrLabel.Font.Color := clOlive;
 
-        // If the version is '4.0.2b (INT8)', set combobox to index 1
-        if Assigned(FFsrVersionComboBox) and (FsrVer = '4.0.2b (INT8)') then
+        // If the version is '4.0.2c (INT8)', set combobox to index 1
+        if Assigned(FFsrVersionComboBox) and (FsrVer = '4.0.2c (INT8)') then
           FFsrVersionComboBox.ItemIndex := 1
         else if Assigned(FFsrVersionComboBox) and (FsrVer = 'built in') then
           FFsrVersionComboBox.ItemIndex := 0;
