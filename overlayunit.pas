@@ -12421,7 +12421,6 @@ var
   BtnRow:    TPanel;
   AccBar:    TShape;
   Lbl:       TLabel;
-  LogoLbl:   TLabel;
   Sep:       TBevel;
   i, Row, Y, ColX, Col2X: Integer;
   Dot:       TShape;
@@ -12530,28 +12529,11 @@ begin
   Y    := CARD_M;
 
   // ── System (List) ────────────────────────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
+  Card := MkCard(Y, CARD_P * 2 + 24 + 5 * ROW_H + 8);
   MkTitle(Card, 'System', CARD_P);
   MkSep(Card, CARD_P + 22);
 
-  LogoLbl := TLabel.Create(Self);
-  LogoLbl.Parent := Card;
-  case DetectGPUVendor of
-    gpuAMD:    begin LogoLbl.Caption := 'RADEON'; LogoLbl.Font.Color := $004444EE; end;
-    gpuNVIDIA: begin LogoLbl.Caption := 'NVIDIA'; LogoLbl.Font.Color := $0033CC33; end;
-    gpuIntel:  begin LogoLbl.Caption := 'INTEL ARC'; LogoLbl.Font.Color := $00EE8833; end;
-    else LogoLbl.Caption := '';
-  end;
-  LogoLbl.Font.Size := 16;
-  LogoLbl.Font.Bold := True;
-  LogoLbl.AutoSize := True;
-  LogoLbl.Top := 16;
-  LogoLbl.Anchors := [akTop, akRight];
-  LogoLbl.AnchorSideRight.Control := Card;
-  LogoLbl.AnchorSideRight.Side := asrRight;
-  LogoLbl.BorderSpacing.Right := 32;
-
-  for i := 0 to 3 do
+  for i := 0 to 4 do
   begin
     Row  := CARD_P + 30 + i * ROW_H;
     ColX := CARD_P;
@@ -12564,10 +12546,11 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     case i of
-      0: begin Lbl.Caption := 'Linux distribution: ' + GetSysLinuxDistribution; Dot.Hint := 'OS'; end;
-      1: begin Lbl.Caption := 'CPU model: ' + GetSysCPUModel; Dot.Hint := 'CPU'; end;
-      2: begin Lbl.Caption := 'GPU model: ' + GetSysGPUModel; Dot.Hint := 'GPU'; end;
-      3: begin Lbl.Caption := 'GPU Driver: ' + GetSysGPUDriver; Dot.Hint := 'Driver'; end;
+      0: begin Lbl.Caption := GetSysLinuxDistribution; Dot.Hint := 'OS'; end;
+      1: begin Lbl.Caption := GetKernelVersion; Dot.Hint := 'Kernel'; end;
+      2: begin Lbl.Caption := GetSysCPUModel; Dot.Hint := 'CPU'; end;
+      3: begin Lbl.Caption := GetSysGPUModel; Dot.Hint := 'GPU'; end;
+      4: begin Lbl.Caption := GetSysGPUDriver; Dot.Hint := 'Driver'; end;
     end;
     Lbl.Font.Color := clWhite;
     Lbl.Font.Size  := 9;
