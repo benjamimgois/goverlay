@@ -586,13 +586,12 @@ type
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
 
-    // Tweaks tab card redesign
-    FTwScrollBox:      TScrollBox;
-    FTwBgPanel:        TPanel;
-    FTwGeneralCard:    TPanel;
-    FTwGraphicsCard:   TPanel;
-    FTwPerfCard:       TPanel;
-    FTwCustomEnvCard:  TPanel;
+    // Custom env groupbox (Tweaks tab)
+    FCustomGroupBox:  TGroupBox;
+    FCustomListBox:   TListBox;
+    FCustomAddBtn:    TButton;
+    FCustomRemoveBtn: TButton;
+
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
     FOsStatNameLbls: array[0..5] of TLabel;
@@ -650,13 +649,11 @@ type
     procedure ReflowVisualTab(AContentW: Integer);
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
-    procedure ReflowTweaksTab(AContentW: Integer);
     procedure InitOptiScalerTab;
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure RefreshOsStatusDots;
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
-    procedure InitTweaksTab;
 
     procedure StartCube;
     procedure StopCube;
@@ -698,6 +695,10 @@ type
     procedure UpdateGlobalEnableMenuItemVisibility;
     procedure RemoveMangoHudFromFGMod;
     procedure LoadTweaksFromFGMod;
+    procedure InitCustomEnvGroupBox;
+    procedure ApplyCustomEnvTheme;
+    procedure CustomEnvAddClick(Sender: TObject);
+    procedure CustomEnvRemoveClick(Sender: TObject);
     function IsOptiScalerInstalled: Boolean;
     
     // Home tab
@@ -2169,9 +2170,6 @@ begin
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
   SetSaveBtnEnabled(FNavToolEnabled[3]);
 end;
-
-// Reflow tweaks tab now that it is visible and has its final dimensions
-ReflowTweaksTab(Max(1, goverlayPanel.Width));
 
 end;
 
@@ -4969,6 +4967,8 @@ begin
 
   customenvEdit.Anchors                       := [akTop, akLeft];
 
+  InitCustomEnvGroupBox;
+
   // Detach anchor-side control references for OptiScaler tab inner groupboxes
   optiscalerGroupBox.AnchorSideLeft.Control   := nil;
   optiscalerGroupBox.AnchorSideRight.Control  := nil;
@@ -5042,12 +5042,12 @@ begin
 
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
+  // DarkCheck inside InitOptiScalerTab sets an explicit Color; override it so the
+  // checkbox inherits the parent background when shown on the Tweaks tab.
+  hidenvidiaCheckBox.ParentColor := True;
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
-
-  // Initialize Tweaks tab modern UI
-  InitTweaksTab;
 
   // Initialize Home tab
   InitHomeTab;
@@ -5066,6 +5066,9 @@ begin
 
   // Restore nav rail dark colors (theme engine overwrites the dynamic panels)
   RestoreNavRailColors;
+
+  // Apply per-control theme overrides for dynamically created controls
+  ApplyCustomEnvTheme;
 
   // Update settings menu theme item caption based on loaded theme
   if SavedTheme = tmLight then
@@ -6233,6 +6236,95 @@ begin
 end;
 
 
+procedure Tgoverlayform.ApplyCustomEnvTheme;
+begin
+  if not Assigned(FCustomListBox) then Exit;
+  if CurrentTheme = tmLight then
+    FCustomListBox.Color := $00D8D8D8   // light gray for light theme
+  else
+    FCustomListBox.Color := clDefault;  // revert to system default for dark theme
+end;
+
+procedure Tgoverlayform.InitCustomEnvGroupBox;
+const
+  BTN_W   = 26;
+  BTN_H   = 24;
+  PAD     = 8;   // inner margin
+  ROW_GAP = 6;   // vertical gap between edit row and listbox row
+begin
+  // Create "Custom" groupbox to the right of performanceGroupBox inside advancedGroupBox
+  FCustomGroupBox := TGroupBox.Create(Self);
+  FCustomGroupBox.Parent   := advancedGroupBox;
+  FCustomGroupBox.Caption  := 'Custom';
+  FCustomGroupBox.Left     := 390;
+  FCustomGroupBox.Top      := 5;
+  FCustomGroupBox.Width    := 419;
+  FCustomGroupBox.Height   := 145;
+  FCustomGroupBox.ParentBackground := False;
+
+  // Edit + "+" share the top row: edit fills the row, "+" sits to its right
+  customenvEdit.Parent     := FCustomGroupBox;
+  customenvEdit.AnchorSideLeft.Control   := nil;
+  customenvEdit.AnchorSideBottom.Control := nil;
+  customenvEdit.Left    := PAD;
+  customenvEdit.Top     := PAD;
+  customenvEdit.Width   := FCustomGroupBox.ClientWidth - PAD - BTN_W - PAD;
+  customenvEdit.Height  := BTN_H;
+  customenvEdit.Anchors := [akLeft, akTop, akRight];
+
+  FCustomAddBtn := TButton.Create(Self);
+  FCustomAddBtn.Parent   := FCustomGroupBox;
+  FCustomAddBtn.Caption  := '+';
+  FCustomAddBtn.Left     := FCustomGroupBox.ClientWidth - BTN_W - PAD;
+  FCustomAddBtn.Top      := PAD;
+  FCustomAddBtn.Width    := BTN_W;
+  FCustomAddBtn.Height   := BTN_H;
+  FCustomAddBtn.Anchors  := [akTop, akRight];
+  FCustomAddBtn.ShowHint := True;
+  FCustomAddBtn.Hint     := 'Save custom env';
+  FCustomAddBtn.OnClick  := @CustomEnvAddClick;
+
+  // Listbox fills the remaining height; same width as the edit field
+  FCustomListBox := TListBox.Create(Self);
+  FCustomListBox.Parent   := FCustomGroupBox;
+  FCustomListBox.Left     := PAD;
+  FCustomListBox.Top      := PAD + BTN_H + ROW_GAP;
+  FCustomListBox.Width    := FCustomGroupBox.ClientWidth - PAD - BTN_W - PAD;
+  FCustomListBox.Height   := FCustomGroupBox.ClientHeight - (PAD + BTN_H + ROW_GAP) - PAD;
+  FCustomListBox.Anchors  := [akLeft, akTop, akRight, akBottom];
+
+  // "-" is vertically centered relative to the listbox
+  FCustomRemoveBtn := TButton.Create(Self);
+  FCustomRemoveBtn.Parent   := FCustomGroupBox;
+  FCustomRemoveBtn.Caption  := '-';
+  FCustomRemoveBtn.Left     := FCustomGroupBox.ClientWidth - BTN_W - PAD;
+  FCustomRemoveBtn.Top      := FCustomListBox.Top + (FCustomListBox.Height - BTN_H) div 2;
+  FCustomRemoveBtn.Width    := BTN_W;
+  FCustomRemoveBtn.Height   := BTN_H;
+  FCustomRemoveBtn.Anchors  := [akTop, akRight];
+  FCustomRemoveBtn.ShowHint := True;
+  FCustomRemoveBtn.Hint     := 'Remove custom env';
+  FCustomRemoveBtn.OnClick  := @CustomEnvRemoveClick;
+end;
+
+procedure Tgoverlayform.CustomEnvAddClick(Sender: TObject);
+var
+  Val: string;
+begin
+  Val := Trim(customenvEdit.Text);
+  if Val = '' then Exit;
+  if FCustomListBox.Items.IndexOf(Val) < 0 then
+    FCustomListBox.Items.Add(Val);
+  customenvEdit.Text := '';
+  customenvEdit.SetFocus;
+end;
+
+procedure Tgoverlayform.CustomEnvRemoveClick(Sender: TObject);
+begin
+  if FCustomListBox.ItemIndex >= 0 then
+    FCustomListBox.Items.Delete(FCustomListBox.ItemIndex);
+end;
+
 procedure Tgoverlayform.LoadTweaksFromFGMod;
 var
   FGModFilePath: string;
@@ -6277,8 +6369,9 @@ begin
     GetPerformanceCheckBox(4).Checked := False;
     GetPerformanceCheckBox(5).Checked := False;
 
-    // Reset customenvEdit
+    // Reset custom env list
     customenvEdit.Text := '';
+    FCustomListBox.Items.Clear;
 
     // Check each tweak and set checkbox accordingly
     for i := 0 to FileLines.Count - 1 do
@@ -6422,7 +6515,7 @@ begin
         begin
           // Extract the custom env value (skip 'export ' prefix)
           CustomEnvValue := Copy(Line, StartPos + 7, EndPos - StartPos - 7);
-          customenvEdit.Text := Trim(CustomEnvValue);
+          FCustomListBox.Items.Add(Trim(CustomEnvValue));
           TweakFound := True;
         end;
       end;
@@ -7852,9 +7945,10 @@ EnableTraceLogsFound: Boolean;
       if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
-      // Add custom environment variables from customenvEdit if not empty
-      if Trim(customenvEdit.Text) <> '' then
-        LaunchCommand := LaunchCommand + Trim(customenvEdit.Text) + ' ';
+      // Add custom environment variables from listbox
+      for i := 0 to FCustomListBox.Items.Count - 1 do
+        if Trim(FCustomListBox.Items[i]) <> '' then
+          LaunchCommand := LaunchCommand + Trim(FCustomListBox.Items[i]) + ' ';
 
       // Always end with %command%
       LaunchCommand := LaunchCommand + '%command%';
@@ -7998,9 +8092,10 @@ EnableTraceLogsFound: Boolean;
                 if GetPerformanceCheckBox(0).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_PRIORITY_HIGH=1');
 
-                // Custom environment variables from customenvEdit
-                if Trim(customenvEdit.Text) <> '' then
-                  FGModLines.Insert(LineIndex + 1, '  export ' + Trim(customenvEdit.Text) + ' #customenv');
+                // Custom environment variables from listbox (insert in reverse so order is preserved)
+                for i := FCustomListBox.Items.Count - 1 downto 0 do
+                  if Trim(FCustomListBox.Items[i]) <> '' then
+                    FGModLines.Insert(LineIndex + 1, '  export ' + Trim(FCustomListBox.Items[i]) + ' #customenv');
 
                 Break;
               end;
@@ -8058,7 +8153,7 @@ EnableTraceLogsFound: Boolean;
            GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
            GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
            GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
-           (Trim(customenvEdit.Text) <> '') then
+           (FCustomListBox.Items.Count > 0) then
         begin
           // Auto-enable Auto Enable and save
           geSpeedButton.ImageIndex := 1;
@@ -9149,6 +9244,9 @@ begin
 
   // Restore nav rail colors (theme engine overwrites the dynamic panels)
   RestoreNavRailColors;
+
+  // Apply per-control theme overrides for dynamically created controls
+  ApplyCustomEnvTheme;
 
   // Re-apply transparent Qt stylesheet to status bar (theme change overrides it)
   TQtWidget(statusBar.Handle).StyleSheet :=
@@ -10545,7 +10643,6 @@ begin
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
-  ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
   if FGamesLoaded then
     ReflowGamesGrid;
@@ -10574,7 +10671,6 @@ begin
   ReflowPerformanceTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
-  ReflowTweaksTab(ContentW);
   ReflowVkBasaltTab(ContentW);
 
   if FGamesLoaded then
@@ -10769,255 +10865,6 @@ begin
   optiscalerGroupBox.SetBounds(X1, BOX_TOP, W1, BOX_H);
   imgmenuGroupBox.SetBounds(X2, BOX_TOP, W2, BOX_H);
   fakenvapiGroupBox.SetBounds(X3, BOX_TOP, W3, BOX_H);
-end;
-
-// ============================================================================
-// TWEAKS TAB — card redesign
-// ============================================================================
-
-procedure Tgoverlayform.InitTweaksTab;
-const
-  BG      = $1E1E2E;
-  ACCENT  = $44BBAA;  // teal
-  WHITE   = clWhite;
-  GRAY    = $AAAAAA;
-  EDITBG  = $2A2A40;
-
-  procedure MakeCard(out Card: TPanel; const ATitle: string);
-  var
-    Bar: TPanel;
-    Lbl: TLabel;
-  begin
-    Card := TPanel.Create(Self);
-    Card.Parent     := FTwBgPanel;
-    Card.BevelOuter := bvNone;
-    Card.Color      := BG;
-    Card.Caption    := '';
-    Bar := TPanel.Create(Card);
-    Bar.Parent     := Card;
-    Bar.BevelOuter := bvNone;
-    Bar.Color      := ACCENT;
-    Bar.Caption    := '';
-    Bar.SetBounds(0, 0, 400, 3);
-    Bar.Anchors    := [akLeft, akRight, akTop];
-    Lbl := TLabel.Create(Card);
-    Lbl.Parent      := Card;
-    Lbl.Caption     := ATitle;
-    Lbl.Font.Color  := WHITE;
-    Lbl.Font.Size   := 10;
-    Lbl.Font.Style  := [fsBold];
-    Lbl.AutoSize    := True;
-    Lbl.SetBounds(12, 8, 200, 22);
-    Lbl.Transparent := True;
-  end;
-
-  procedure ReparentGB(GB: TGroupBox; Card: TPanel);
-  begin
-    GB.Parent      := Card;
-    GB.Visible     := True;
-    GB.Caption     := '';
-    GB.Color       := BG;
-    GB.Font.Color  := WHITE;
-    GB.AnchorSideLeft.Control   := nil;
-    GB.AnchorSideTop.Control    := nil;
-    GB.AnchorSideRight.Control  := nil;
-    GB.AnchorSideBottom.Control := nil;
-    GB.Anchors := [akLeft, akTop];
-  end;
-
-  procedure DarkCheck(C: TCheckBox);
-  begin
-    C.Color := BG; C.Font.Color := WHITE; C.Font.Size := 9;
-    // Clear LFM anchor-side references so ReflowTweaksTab bounds aren't overridden
-    C.AnchorSideLeft.Control   := nil;
-    C.AnchorSideTop.Control    := nil;
-    C.AnchorSideRight.Control  := nil;
-    C.AnchorSideBottom.Control := nil;
-    C.Anchors := [akLeft, akTop];
-  end;
-
-var
-  HintLbl: TLabel;
-begin
-  // Scroll container fills the tab
-  FTwScrollBox := TScrollBox.Create(Self);
-  FTwScrollBox.Parent      := tweakstabsheet;
-  FTwScrollBox.Align       := alClient;
-  FTwScrollBox.AutoScroll  := True;
-  FTwScrollBox.BorderStyle := bsNone;
-  FTwScrollBox.HorzScrollBar.Visible := False;
-  FTwScrollBox.Color       := BG;
-  FTwScrollBox.ParentColor := False;
-
-  FTwBgPanel := TPanel.Create(Self);
-  FTwBgPanel.Parent     := FTwScrollBox;
-  FTwBgPanel.BevelOuter := bvNone;
-  FTwBgPanel.Color      := BG;
-  FTwBgPanel.Caption    := '';
-  FTwBgPanel.Left       := 0;
-  FTwBgPanel.Top        := 0;
-  FTwBgPanel.Width      := FTwScrollBox.ClientWidth;
-  FTwBgPanel.Height     := 600;
-
-  // Hide old parent containers
-  basicGroupBox.Visible    := False;
-  advancedGroupBox.Visible := False;
-
-  // ── Card 1: General ──────────────────────────────────────────────────
-  MakeCard(FTwGeneralCard, 'General');
-  ReparentGB(generalGroupBox, FTwGeneralCard);
-  DarkCheck(simdeckCheckBox);
-  DarkCheck(gamemodeCheckBox);
-  DarkCheck(enhdrCheckBox);
-  DarkCheck(enwaylandCheckBox);
-  DarkCheck(actprotonlogsCheckBox);
-  DarkCheck(usesdlCheckBox);
-
-  // ── Card 2: Graphics ─────────────────────────────────────────────────
-  MakeCard(FTwGraphicsCard, 'Graphics');
-  ReparentGB(graphicsGroupBox, FTwGraphicsCard);
-  DarkCheck(emurtCheckBox);
-  DarkCheck(hidenvidiaCheckBox);
-  hidenvidiaCheckBox.ParentColor := True;
-  DarkCheck(forcenvapiCheckBox);
-  DarkCheck(wined3dCheckBox);
-  DarkCheck(forcezinkCheckBox);
-  DarkCheck(nofastclearsCheckBox);
-
-  // ── Card 3: Performance ──────────────────────────────────────────────
-  MakeCard(FTwPerfCard, 'Performance');
-  ReparentGB(performanceGroupBox, FTwPerfCard);
-  DarkCheck(highpriCheckBox);
-  DarkCheck(wow64CheckBox);
-  DarkCheck(largeaddressCheckBox);
-  DarkCheck(stagememCheckBox);
-  DarkCheck(disablentsyncCheckBox);
-  DarkCheck(heapdelayCheckBox);
-
-  // ── Card 4: Custom Environment ───────────────────────────────────────
-  MakeCard(FTwCustomEnvCard, 'Custom Environment');
-  customenvEdit.Parent     := FTwCustomEnvCard;
-  customenvEdit.Anchors    := [akLeft, akTop, akRight];
-  customenvEdit.Color      := EDITBG;
-  customenvEdit.Font.Color := WHITE;
-  customenvEdit.Font.Size  := 9;
-
-  HintLbl := TLabel.Create(FTwCustomEnvCard);
-  HintLbl.Parent      := FTwCustomEnvCard;
-  HintLbl.Caption     := 'Additional environment variables (e.g. PROTON_NO_D3D11=1)';
-  HintLbl.Font.Color  := GRAY;
-  HintLbl.Font.Size   := 8;
-  HintLbl.AutoSize    := True;
-  HintLbl.Transparent := True;
-  HintLbl.SetBounds(12, 37, 400, 16);
-  HintLbl.Anchors     := [akLeft, akTop, akRight];
-
-  // ── Footer: restore original branding image + text ───────────────────
-  tweaksImage.Parent  := FTwBgPanel;
-  tweaksImage.Anchors := [akLeft, akTop];
-  tweaksImage.Stretch := False;
-
-  tweaksText.Parent          := FTwBgPanel;
-  tweaksText.Font.Color      := $888888;
-  tweaksText.Anchors         := [akLeft, akTop];
-  tweaksText.AutoSize        := True;
-
-  tweaksText2.Parent         := FTwBgPanel;
-  tweaksText2.Font.Color     := $666666;
-  tweaksText2.Anchors        := [akLeft, akTop];
-  tweaksText2.AutoSize       := True;
-end;
-
-procedure Tgoverlayform.ReflowTweaksTab(AContentW: Integer);
-const
-  MARGIN   = 8;    // outer margin
-  GAP      = 8;    // gap between cards
-  HDR      = 34;   // accent bar (3) + title row (31)
-  PAD      = 16;   // inner horizontal padding
-  COL_GAP  = 12;   // gap between checkbox columns
-  CB_H     = 24;   // checkbox height
-  ROW_H    = 36;   // row pitch — breathing room
-  TOP_PAD  = 12;   // padding above first row inside GroupBox
-  BOT_PAD  = 12;   // padding below last row
-  COLS     = 3;    // 3 columns × 2 rows = 6 checkboxes per card
-  // 6 checkboxes × 3 columns = 2 rows
-  GRP_GH   = TOP_PAD + 2 * ROW_H + BOT_PAD;  // GroupBox content height = 96
-  CARD_H   = HDR + GRP_GH;                    // card height = 130
-  ENV_H    = HDR + 18 + 8 + 28 + 12;          // custom env card = 100
-  // Footer branding
-  FOOTER_H = 20 + 96 + 20;                    // = 136
-var
-  CW, CardTop, TotalH: Integer;
-  ColW, Y, k: Integer;
-  ColX: array[0..2] of Integer;
-  ImgX, TxtX, TxtY: Integer;
-  i: Integer;
-  CB: TCheckBox;
-begin
-  if not Assigned(FTwScrollBox) then Exit;
-  CW := AContentW - 2 * MARGIN;
-  if CW < 100 then Exit;
-
-  TotalH := MARGIN + 3 * (CARD_H + GAP) + ENV_H + GAP + FOOTER_H + MARGIN;
-  if FTwScrollBox.ClientHeight > TotalH then
-    TotalH := FTwScrollBox.ClientHeight;
-  FTwBgPanel.SetBounds(0, 0, AContentW, TotalH);
-
-  // Divide card width into 3 equal columns spanning the full card width
-  ColW := (CW - 2 * PAD - 2 * COL_GAP) div COLS;
-  for k := 0 to 2 do
-    ColX[k] := PAD + k * (ColW + COL_GAP);
-
-  // Local helper: position one checkbox by its linear index (0..5) in a 3×2 grid
-  // Row = i div 3,  Col = i mod 3
-  // ── Card 1: General ──────────────────────────────────────────────────
-  FTwGeneralCard.SetBounds(MARGIN, MARGIN, CW, CARD_H);
-  generalGroupBox.SetBounds(0, HDR, CW, GRP_GH);
-  for i := 0 to 5 do
-  begin
-    CB := GetGeneralCheckBox(i);
-    Y  := TOP_PAD + (i div COLS) * ROW_H;
-    CB.SetBounds(ColX[i mod COLS], Y, ColW, CB_H);
-  end;
-
-  // ── Card 2: Graphics ─────────────────────────────────────────────────
-  CardTop := MARGIN + CARD_H + GAP;
-  FTwGraphicsCard.SetBounds(MARGIN, CardTop, CW, CARD_H);
-  graphicsGroupBox.SetBounds(0, HDR, CW, GRP_GH);
-  for i := 0 to 4 do
-  begin
-    CB := GetGraphicsCheckBox(i);
-    Y  := TOP_PAD + (i div COLS) * ROW_H;
-    CB.SetBounds(ColX[i mod COLS], Y, ColW, CB_H);
-  end;
-  // 6th graphics item (index 5): row 1, col 2
-  nofastclearsCheckBox.SetBounds(ColX[2], TOP_PAD + ROW_H, ColW, CB_H);
-
-  // ── Card 3: Performance ──────────────────────────────────────────────
-  CardTop := MARGIN + 2 * (CARD_H + GAP);
-  FTwPerfCard.SetBounds(MARGIN, CardTop, CW, CARD_H);
-  performanceGroupBox.SetBounds(0, HDR, CW, GRP_GH);
-  for i := 0 to 5 do
-  begin
-    CB := GetPerformanceCheckBox(i);
-    Y  := TOP_PAD + (i div COLS) * ROW_H;
-    CB.SetBounds(ColX[i mod COLS], Y, ColW, CB_H);
-  end;
-
-  // ── Card 4: Custom Environment ───────────────────────────────────────
-  CardTop := MARGIN + 3 * (CARD_H + GAP);
-  FTwCustomEnvCard.SetBounds(MARGIN, CardTop, CW, ENV_H);
-  customenvEdit.SetBounds(PAD, HDR + 18 + 8, CW - 2 * PAD, 28);
-
-  // ── Footer branding (tweaksImage + title + subtitle) ─────────────────
-  CardTop := MARGIN + 3 * (CARD_H + GAP) + ENV_H + GAP;
-  ImgX := (AContentW - 96 - 12 - 220) div 2;
-  if ImgX < 16 then ImgX := 16;
-  TxtX := ImgX + 96 + 12;
-  tweaksImage.SetBounds(ImgX, CardTop + 20, 96, 96);
-  TxtY := CardTop + 20 + (96 - 54) div 2;
-  tweaksText.SetBounds(TxtX, TxtY, 220, 38);
-  tweaksText2.SetBounds(TxtX, TxtY + 40, 260, 18);
 end;
 
 // ============================================================================
