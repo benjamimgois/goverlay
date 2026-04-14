@@ -947,6 +947,18 @@ var
   NAV_W_COLLAPSED = 60;
 implementation
 
+// Shared constants for game card dimensions — used by LoadSteamGames,
+// ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
+const
+  CARD_W      = 150;
+  CARD_H      = 215;
+  CARD_IMG_H  = 215;
+  GRAD_H      = 55;
+  CARD_MARGIN = 8;
+
+// Forward declaration — defined later in the file
+procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer); forward;
+
 // ============================================================================
 // Debug logger — writes timestamped lines to stderr
 // ============================================================================
@@ -971,6 +983,7 @@ type
     FAppIDs:   TStringList;
     FImages:   TList;
     FCacheDir: string;
+    FForm:     Tgoverlayform;
     FCurrentImage: TImage;
     FCurrentPath:  string;
     procedure DoUpdateImage;
@@ -978,17 +991,18 @@ type
     procedure Execute; override;
   public
     constructor Create(AAppIDs: TStringList; AImages: TList;
-                       const ACacheDir: string);
+                       const ACacheDir: string; AForm: Tgoverlayform);
     destructor Destroy; override;
   end;
 
 constructor TCoverDownloadThread.Create(AAppIDs: TStringList; AImages: TList;
-  const ACacheDir: string);
+  const ACacheDir: string; AForm: Tgoverlayform);
 begin
   inherited Create(True);
   FAppIDs   := AAppIDs;
   FImages   := AImages;
   FCacheDir := ACacheDir;
+  FForm     := AForm;
   FreeOnTerminate := False;
 end;
 
@@ -1000,13 +1014,43 @@ begin
 end;
 
 procedure TCoverDownloadThread.DoUpdateImage;
+var
+  ScaledBmp: TBitmap;
+  CardPanel: TPanel;
+  CardIdx: Integer;
 begin
-  if Assigned(FCurrentImage) and FileExists(FCurrentPath) then
-  begin
+  if not Assigned(FCurrentImage) or not FileExists(FCurrentPath) then Exit;
+  try
+    FCurrentImage.Picture.LoadFromFile(FCurrentPath);
+    if (FCurrentImage.Picture.Graphic = nil) or
+       (FCurrentImage.Picture.Graphic.Width = 0) then Exit;
+    ScaledBmp := TBitmap.Create;
     try
-      FCurrentImage.Picture.LoadFromFile(FCurrentPath);
-    except
+      ScaledBmp.SetSize(CARD_W, CARD_H);
+      ScaledBmp.Canvas.StretchDraw(
+        Rect(0, 0, CARD_W, CARD_H), FCurrentImage.Picture.Graphic);
+      ProcessCoverBitmap(ScaledBmp, GRAD_H);
+      FCurrentImage.Picture.Bitmap.Assign(ScaledBmp);
+      // Update FOrigCovers so hover brightness uses the processed image
+      if Assigned(FForm) and Assigned(FForm.FCardPanels) and
+         Assigned(FForm.FOrigCovers) and (FCurrentImage.Parent is TPanel) then
+      begin
+        CardPanel := TPanel(FCurrentImage.Parent);
+        CardIdx := FForm.FCardPanels.IndexOf(CardPanel);
+        if (CardIdx >= 0) and (CardIdx < FForm.FOrigCovers.Count) then
+        begin
+          if FForm.FOrigCovers[CardIdx] <> nil then
+            TLazIntfImage(FForm.FOrigCovers[CardIdx]).Free;
+          FForm.FOrigCovers[CardIdx] := ScaledBmp.CreateIntfImage;
+        end;
+      end;
+    finally
+      ScaledBmp.Free;
     end;
+    // Dim cover to match the default un-hovered state
+    if Assigned(FForm) and (FCurrentImage.Parent is TPanel) then
+      FForm.ApplyCardBrightness(TPanel(FCurrentImage.Parent), 35);
+  except
   end;
 end;
 
@@ -11741,12 +11785,53 @@ begin
   end;
 end;
 
+// Applies the bottom gradient to a cover bitmap (raw byte access for speed).
+procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
+var
+  IntfImg: TLazIntfImage;
+  ResultBmp: TBitmap;
+  Stride, BPP, W, H: Integer;
+  Row: PByte;
+  x, y, px, DimPct: Integer;
+begin
+  W := Bmp.Width;
+  H := Bmp.Height;
+  if (W = 0) or (H = 0) then Exit;
+  IntfImg := TLazIntfImage.Create(W, H);
+  try
+    IntfImg.LoadFromBitmap(Bmp.Handle, 0);
+    Stride := IntfImg.DataDescription.BytesPerLine;
+    BPP    := IntfImg.DataDescription.BitsPerPixel div 8;
+    if BPP < 3 then Exit;
+
+    for y := 0 to H - 1 do
+    begin
+      if y < H - GradH then Continue;  // no gradient above the band
+      DimPct := Round((y - (H - GradH)) / GradH * 88);
+      if DimPct <= 0 then Continue;
+      Row := IntfImg.PixelData + PtrUInt(y * Stride);
+      for x := 0 to W - 1 do
+      begin
+        px := x * BPP;
+        Row[px]   := Byte(Integer(Row[px])   * (100 - DimPct) div 100);
+        Row[px+1] := Byte(Integer(Row[px+1]) * (100 - DimPct) div 100);
+        Row[px+2] := Byte(Integer(Row[px+2]) * (100 - DimPct) div 100);
+      end;
+    end;
+
+    ResultBmp := TBitmap.Create;
+    try
+      ResultBmp.LoadFromIntfImage(IntfImg);
+      Bmp.Assign(ResultBmp);
+    finally
+      ResultBmp.Free;
+    end;
+  finally
+    IntfImg.Free;
+  end;
+end;
+
 procedure Tgoverlayform.LoadSteamGames;
-const
-  CARD_W      = 150;
-  CARD_H      = 235;
-  CARD_IMG_H  = 210;
-  CARD_MARGIN = 8;
 var
   Libraries: TStringList;
   PendingIDs: TStringList;
@@ -11771,7 +11856,7 @@ var
   BadgeOptiImg: TImage;
   BadgeTweaksLabel: TLabel;
   TweakLines: TStringList;
-  k: Integer;
+  k, BadgeCount: Integer;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
@@ -11852,7 +11937,7 @@ begin
           CardPanel.BevelOuter := bvNone;
           CardPanel.Caption := '';
           CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
-          CardPanel.Color := IfThen(CurrentTheme = tmLight, $00F0F0F0, $2A2A2A);
+          CardPanel.Color := $1A1A1A;  // matches grid background for seamless corner masking
           CardPanel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardPanel.ShowHint := True;
           CardPanel.OnMouseEnter := @GameCardMouseEnter;
@@ -11862,7 +11947,7 @@ begin
 
           CardImage := TImage.Create(CardPanel);
           CardImage.Parent := CardPanel;
-          CardImage.SetBounds(0, 0, CARD_W, CARD_IMG_H);
+          CardImage.SetBounds(0, 0, CARD_W, CARD_H);
           CardImage.Stretch := True;
           CardImage.Proportional := False;
           CardImage.Center := False;
@@ -11888,28 +11973,32 @@ begin
             PendingImages.Add(CardImage);
           end;
 
+          // Title label overlaid on the gradient band at the bottom of the image
           CardLabel := TLabel.Create(CardPanel);
           CardLabel.Parent := CardPanel;
-          CardLabel.SetBounds(2, CARD_IMG_H + 4, CARD_W - 4, CARD_H - CARD_IMG_H - 6);
+          CardLabel.SetBounds(6, CARD_H - GRAD_H + 8, CARD_W - 12, GRAD_H - 10);
           CardLabel.Caption := GameName;
-          CardLabel.Font.Color := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
-          CardLabel.Font.Size := 7;
+          CardLabel.Font.Color := clWhite;
+          CardLabel.Font.Size := 8;
+          CardLabel.Font.Style := [fsBold];
           CardLabel.Alignment := taCenter;
-          CardLabel.WordWrap := False;
-          CardLabel.ParentColor := True;
+          CardLabel.Layout := tlBottom;
+          CardLabel.WordWrap := True;
+          CardLabel.Transparent := True;
+          CardLabel.ParentColor := False;
           CardLabel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardLabel.ShowHint := True;
           CardLabel.OnMouseEnter := @GameCardMouseEnter;
           CardLabel.OnMouseLeave := @GameCardMouseLeave;
           CardLabel.OnClick := @GameCardClick;
           CardLabel.OnMouseUp := @GameCardMouseUp;
+          CardLabel.BringToFront;
 
           // Config badges: coloured icons top-left if per-game configs exist
           GameCfgDir := GetGameConfigDir(GameName);
           HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
           HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf');
           HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
-          BadgeX := 4;
           // Check for Tweaks content in fgmod
           HasTweaks := False;
           if FileExists(GameCfgDir + 'fgmod') then
@@ -11932,6 +12021,14 @@ begin
               TweakLines.Free;
             end;
           end;
+
+          // Count active badges and compute right-aligned start X
+          BadgeCount := 0;
+          if HasMango      then Inc(BadgeCount);
+          if HasVkBasalt   then Inc(BadgeCount);
+          if HasOptiScaler then Inc(BadgeCount);
+          if HasTweaks     then Inc(BadgeCount);
+          BadgeX := CARD_W - BadgeCount * 28;  // right-aligned, 28 px per badge
 
           if HasMango then
           begin
@@ -12062,16 +12159,21 @@ begin
             BadgeX := BadgeX + 28;
           end;
 
-          // Store card and original image; immediately apply 35% dim
+          // Store card and original image; apply gradient + rounding, then dim
           FCardPanels.Add(CardPanel);
           if (CardImage.Picture.Graphic <> nil) and
              (CardImage.Picture.Graphic.Width > 0) then
           begin
             ScaledBmp := TBitmap.Create;
             try
-              ScaledBmp.SetSize(CARD_W, CARD_IMG_H);
+              ScaledBmp.SetSize(CARD_W, CARD_H);
               ScaledBmp.Canvas.StretchDraw(
-                Rect(0, 0, CARD_W, CARD_IMG_H), CardImage.Picture.Graphic);
+                Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+              // Bake gradient overlay + rounded corners into the bitmap
+              ProcessCoverBitmap(ScaledBmp, GRAD_H);
+              // Update CardImage with the processed bitmap
+              CardImage.Picture.Bitmap.Assign(ScaledBmp);
+              // Store processed version as "original" for brightness animation
               FOrigCovers.Add(ScaledBmp.CreateIntfImage);
             finally
               ScaledBmp.Free;
@@ -12118,7 +12220,7 @@ begin
       end;
       // Thread takes ownership of PendingIDs and PendingImages
       FCoverThread := TCoverDownloadThread.Create(
-        PendingIDs, PendingImages, CacheDir);
+        PendingIDs, PendingImages, CacheDir, Self);
       PendingIDs    := nil;
       PendingImages := nil;
       FCoverThread.Start;
@@ -12828,10 +12930,6 @@ begin
 end;
 
 procedure Tgoverlayform.ReflowGamesGrid;
-const
-  CARD_W      = 150;
-  CARD_H      = 235;
-  CARD_MARGIN = 8;
 var
   CardCount, CardsPerRow, TotalRows, i, CardX, CardY: Integer;
   Ctrl: TControl;
