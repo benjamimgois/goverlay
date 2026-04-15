@@ -613,8 +613,23 @@ type
     FHomeGameBtn:      TPanel;
     FHomeBtnRow:       TPanel;
 
+    // Preset tab code-generated cards
+    FPresetLayoutCards:   array[0..4] of TPanel;
+    FPresetColorCards:    array[0..3] of TPanel;
+    FPresetLayoutSelBars: array[0..4] of TPanel;
+    FPresetColorSelBars:  array[0..3] of TPanel;
+    FActiveLayoutCard:    Integer;   // -1 = none selected
+    FActiveColorCard:     Integer;   // -1 = none selected
+    FHoveredPresetCard:   TPanel;    // nil = none hovered
+
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
+    procedure PresetCardPaint(Sender: TObject);
+    procedure PresetCardClick(Sender: TObject);
+    procedure PresetCardMouseEnter(Sender: TObject);
+    procedure PresetCardMouseLeave(Sender: TObject);
+    function  FindPresetCard(ASender: TObject): TPanel;
+    procedure UpdatePresetCardVisuals;
     procedure BuildSettingsButton;
     procedure RestoreNavRailColors;
     procedure SettingsBtnMouseEnter(Sender: TObject);
@@ -9625,17 +9640,98 @@ begin
 end;
 
 // ============================================================================
-// PRESETS WRAPPER — centered fixed-width panel for the Presets tab
+// PRESETS — modern card-grid UI
 // ============================================================================
 
 procedure Tgoverlayform.BuildPresetsWrapper;
 const
-  WRAPPER_W = 829;
+  WRAPPER_W  = 829;
+  PC_W       = 130;   // card outer width
+  PC_H       = 140;   // card outer height (18 top + 70 img + 8 gap + 18 label + 23 bottom + 3 sel)
+  PC_IMG_SZ  = 70;    // native layoutImageList size — no scaling, no quality loss
+  PC_IMG_T   = 18;    // image top padding inside card
+  PC_SEL_H   = 3;     // selection indicator bar height
+const
+  LAYOUT_TITLES: array[0..4] of string = (
+    'Full', 'Basic', 'Basic Horizontal', 'FPS only', 'Custom');
+  LAYOUT_IMG: array[0..4] of Integer = (0, 1, 2, 3, 4);
+  COLOR_TITLES: array[0..3] of string = (
+    'MangoHud Stock', 'Goverlay', 'Simple White', 'Old Afterburner');
+  COLOR_IMG: array[0..3] of Integer = (5, 8, 6, 7);
 var
   i: Integer;
+  Bmp: TBitmap;
+  CardImg: TImage;
+  CardLbl: TLabel;
   CtrlsToMove: array of TControl;
+
+  procedure MakeCard(var ACard: TPanel; var ASelBar: TPanel;
+                     ImgIdx: Integer; const Title: string; ATag: Integer);
+  begin
+    ACard := TPanel.Create(Self);
+    ACard.Parent       := FPresetsWrapper;
+    ACard.BevelOuter   := bvNone;
+    ACard.Caption      := '';
+    ACard.Tag          := ATag;
+    ACard.Cursor       := crHandPoint;
+    ACard.OnPaint      := @PresetCardPaint;
+    ACard.OnClick      := @PresetCardClick;
+    ACard.OnMouseEnter := @PresetCardMouseEnter;
+    ACard.OnMouseLeave := @PresetCardMouseLeave;
+    ACard.SetBounds(0, 0, PC_W, PC_H);
+
+    // Image centred horizontally at native 70×70 — no stretch, pixel-perfect
+    CardImg := TImage.Create(ACard);
+    CardImg.Parent       := ACard;
+    CardImg.Stretch      := False;
+    CardImg.Proportional := False;
+    CardImg.Center       := False;
+    CardImg.Transparent  := True;
+    CardImg.SetBounds((PC_W - PC_IMG_SZ) div 2, PC_IMG_T, PC_IMG_SZ, PC_IMG_SZ);
+    CardImg.Tag          := ATag;
+    CardImg.OnClick      := @PresetCardClick;
+    CardImg.OnMouseEnter := @PresetCardMouseEnter;
+    CardImg.OnMouseLeave := @PresetCardMouseLeave;
+    Bmp := TBitmap.Create;
+    try
+      layoutImageList.GetBitmap(ImgIdx, Bmp);
+      CardImg.Picture.Assign(Bmp);
+    finally Bmp.Free; end;
+
+    // Title label centred in card width
+    CardLbl := TLabel.Create(ACard);
+    CardLbl.Parent      := ACard;
+    CardLbl.Caption     := Title;
+    CardLbl.AutoSize    := False;
+    CardLbl.Alignment   := taCenter;
+    CardLbl.Width       := PC_W;
+    CardLbl.Left        := 0;
+    CardLbl.Top         := PC_IMG_T + PC_IMG_SZ + 8;
+    CardLbl.Height      := 18;
+    CardLbl.Font.Size   := 8;
+    CardLbl.Transparent := True;
+    CardLbl.Tag         := ATag;
+    CardLbl.OnClick     := @PresetCardClick;
+    CardLbl.OnMouseEnter := @PresetCardMouseEnter;
+    CardLbl.OnMouseLeave := @PresetCardMouseLeave;
+
+    // Selection indicator bar (bottom edge, hidden until active)
+    ASelBar := TPanel.Create(ACard);
+    ASelBar.Parent     := ACard;
+    ASelBar.BevelOuter := bvNone;
+    ASelBar.Caption    := '';
+    ASelBar.Color      := clHighlight;
+    ASelBar.SetBounds(0, PC_H - PC_SEL_H, PC_W, PC_SEL_H);
+    ASelBar.Visible    := False;
+  end;
+
 begin
-  // Snapshot existing children of presetTabSheet before adding the wrapper
+  FActiveLayoutCard  := -1;
+  FActiveColorCard   := -1;
+  FHoveredPresetCard := nil;
+
+  // Move all existing .lfm children into the wrapper so they share the
+  // coordinate space; we then hide the legacy BitBtn/Label controls.
   SetLength(CtrlsToMove, presetTabSheet.ControlCount);
   for i := 0 to presetTabSheet.ControlCount - 1 do
     CtrlsToMove[i] := presetTabSheet.Controls[i];
@@ -9652,9 +9748,237 @@ begin
   FPresetsWrapper.Anchors     := [akTop, akBottom];
   FPresetsWrapper.Height      := presetTabSheet.ClientHeight;
 
-  // Re-parent all existing controls into the wrapper
   for i := 0 to High(CtrlsToMove) do
     CtrlsToMove[i].Parent := FPresetsWrapper;
+
+  // Hide all legacy .lfm BitBtn controls and their labels
+  fullBitBtn.Visible              := False;
+  basicBitBtn.Visible             := False;
+  basichorizontalBitBtn.Visible   := False;
+  fpsonlyBitBtn.Visible           := False;
+  usercustomBitBtn.Visible        := False;
+  mangocolorBitBtn.Visible        := False;
+  goverlayBitBtn.Visible          := False;
+  whitecolorBitBtn.Visible        := False;
+  afterburnercolorBitBtn1.Visible := False;
+  fullLabel.Visible               := False;
+  basicLabel.Visible              := False;
+  basichorizontalLabel.Visible    := False;
+  fpsonlyLabel.Visible            := False;
+  customLabel.Visible             := False;
+  mangocolorLabel.Visible         := False;
+  customolorLabel.Visible         := False;
+  whitecolorLabel.Visible         := False;
+  afterburnercolorLabel.Visible   := False;
+
+  // Style the section header labels (already inside FPresetsWrapper)
+  layoutsLabel.Font.Size   := 10;
+  layoutsLabel.Font.Style  := [fsBold];
+  layoutsLabel.Transparent := True;
+  layoutsLabel.AutoSize    := True;
+
+  colorthemeLabel.Font.Size   := 10;
+  colorthemeLabel.Font.Style  := [fsBold];
+  colorthemeLabel.Transparent := True;
+  colorthemeLabel.AutoSize    := True;
+
+  // Build layout preset cards — Tags 100-104
+  for i := 0 to 4 do
+    MakeCard(FPresetLayoutCards[i], FPresetLayoutSelBars[i],
+             LAYOUT_IMG[i], LAYOUT_TITLES[i], 100 + i);
+
+  // Build color preset cards — Tags 200-203
+  for i := 0 to 3 do
+    MakeCard(FPresetColorCards[i], FPresetColorSelBars[i],
+             COLOR_IMG[i], COLOR_TITLES[i], 200 + i);
+end;
+
+// ---------------------------------------------------------------------------
+// Preset card helpers
+// ---------------------------------------------------------------------------
+
+function Tgoverlayform.FindPresetCard(ASender: TObject): TPanel;
+var
+  SenderTag: PtrInt;
+  i: Integer;
+begin
+  Result := nil;
+  if not (ASender is TControl) then Exit;
+  SenderTag := TControl(ASender).Tag;
+  for i := 0 to 4 do
+    if Assigned(FPresetLayoutCards[i]) and (FPresetLayoutCards[i].Tag = SenderTag) then
+    begin Result := FPresetLayoutCards[i]; Exit; end;
+  for i := 0 to 3 do
+    if Assigned(FPresetColorCards[i]) and (FPresetColorCards[i].Tag = SenderTag) then
+    begin Result := FPresetColorCards[i]; Exit; end;
+end;
+
+procedure Tgoverlayform.UpdatePresetCardVisuals;
+var
+  i, j: Integer;
+  LblColor: TColor;
+begin
+  // Card label text colour depends on the painted background — always light on
+  // dark cards, always dark on light cards, regardless of the global theme.
+  if CurrentTheme = tmLight then
+    LblColor := LightTextColor
+  else
+    LblColor := DarkTextColor;
+
+  // Selection bar is drawn directly in PresetCardPaint — no TPanel visibility needed.
+  // We only Invalidate each card so OnPaint runs with the updated FActiveLayoutCard/
+  // FActiveColorCard state.
+  for i := 0 to 4 do
+  begin
+    FPresetLayoutCards[i].Invalidate;
+    for j := 0 to FPresetLayoutCards[i].ControlCount - 1 do
+      if FPresetLayoutCards[i].Controls[j] is TLabel then
+        TLabel(FPresetLayoutCards[i].Controls[j]).Font.Color := LblColor;
+  end;
+  for i := 0 to 3 do
+  begin
+    FPresetColorCards[i].Invalidate;
+    for j := 0 to FPresetColorCards[i].ControlCount - 1 do
+      if FPresetColorCards[i].Controls[j] is TLabel then
+        TLabel(FPresetColorCards[i].Controls[j]).Font.Color := LblColor;
+  end;
+end;
+
+procedure Tgoverlayform.PresetCardPaint(Sender: TObject);
+const
+  // Dark theme — Lazarus TColor = $00BBGGRR (Blue, Green, Red byte order)
+  DARK_BG     = $003E2E2E;   // RGB( 46, 46, 62) dark blue-gray
+  DARK_HOVER  = $004E3A3A;   // RGB( 58, 58, 78) slightly lighter
+  DARK_SEL    = $0050321E;   // RGB( 30, 50, 80) blue-tinted selection
+  DARK_BRD    = $00645050;   // RGB( 80, 80,100) subtle border
+  DARK_H_BRD  = $00998888;   // RGB(136,136,153) hover border
+  // Light theme
+  LIGHT_BG    = $00F2F2F2;   // RGB(242,242,242) near-white
+  LIGHT_HOVER = $00EEE4E4;   // RGB(228,228,238) faint blue tint
+  LIGHT_SEL   = $00FFE8DC;   // RGB(220,232,255) light blue selection
+  LIGHT_BRD   = $00C8C0C0;   // RGB(192,192,200) light border
+  LIGHT_H_BRD = $00A09090;   // RGB(144,144,160) hover border
+var
+  Card: TPanel;
+  BgColor, BorderColor: TColor;
+  IsHovered, IsSelected: Boolean;
+  i: Integer;
+begin
+  Card      := TPanel(Sender);
+  IsHovered := Card = FHoveredPresetCard;
+  IsSelected := False;
+  for i := 0 to 4 do
+    if (Card = FPresetLayoutCards[i]) and (i = FActiveLayoutCard) then
+    begin IsSelected := True; Break; end;
+  if not IsSelected then
+    for i := 0 to 3 do
+      if (Card = FPresetColorCards[i]) and (i = FActiveColorCard) then
+      begin IsSelected := True; Break; end;
+
+  if CurrentTheme = tmLight then
+  begin
+    if IsSelected      then BgColor := LIGHT_SEL
+    else if IsHovered  then BgColor := LIGHT_HOVER
+    else                    BgColor := LIGHT_BG;
+    if IsSelected      then BorderColor := clHighlight
+    else if IsHovered  then BorderColor := LIGHT_H_BRD
+    else                    BorderColor := LIGHT_BRD;
+  end
+  else
+  begin
+    if IsSelected      then BgColor := DARK_SEL
+    else if IsHovered  then BgColor := DARK_HOVER
+    else                    BgColor := DARK_BG;
+    if IsSelected      then BorderColor := clHighlight
+    else if IsHovered  then BorderColor := DARK_H_BRD
+    else                    BorderColor := DARK_BRD;
+  end;
+
+  // 1. Background fill
+  Card.Canvas.Brush.Color := BgColor;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.FillRect(Card.ClientRect);
+
+  // 2. Selection accent bar — 4 px, inset 2 px from sides, flush with the 1px border.
+  //    Drawn on canvas (not a child TPanel) so z-order is never an issue.
+  if IsSelected then
+  begin
+    Card.Canvas.Brush.Color := clHighlight;
+    Card.Canvas.Brush.Style := bsSolid;
+    Card.Canvas.FillRect(Rect(2, Card.Height - 3, Card.Width - 2, Card.Height - 1));
+  end;
+
+  // 3. 1px border rectangle on top of everything
+  Card.Canvas.Brush.Style := bsClear;
+  Card.Canvas.Pen.Color   := BorderColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.Rectangle(0, 0, Card.Width, Card.Height);
+end;
+
+procedure Tgoverlayform.PresetCardClick(Sender: TObject);
+var
+  Card: TPanel;
+  i: Integer;
+begin
+  Card := FindPresetCard(Sender);
+  if Card = nil then Exit;
+  for i := 0 to 4 do
+    if Card = FPresetLayoutCards[i] then
+    begin
+      FActiveLayoutCard := i;
+      UpdatePresetCardVisuals;
+      case i of
+        0: fullBitBtnClick(fullBitBtn);
+        1: basicBitBtnClick(basicBitBtn);
+        2: basichorizontalBitBtnClick(basichorizontalBitBtn);
+        3: fpsonlyBitBtnClick(fpsonlyBitBtn);
+        4: usercustomBitBtnClick(usercustomBitBtn);
+      end;
+      Exit;
+    end;
+  for i := 0 to 3 do
+    if Card = FPresetColorCards[i] then
+    begin
+      FActiveColorCard := i;
+      UpdatePresetCardVisuals;
+      case i of
+        0: mangocolorBitBtnClick(mangocolorBitBtn);
+        1: goverlayBitBtnClick(goverlayBitBtn);
+        2: whitecolorBitBtnClick(whitecolorBitBtn);
+        3: afterburnercolorBitBtn1Click(afterburnercolorBitBtn1);
+      end;
+      Exit;
+    end;
+end;
+
+procedure Tgoverlayform.PresetCardMouseEnter(Sender: TObject);
+var
+  Card, Prev: TPanel;
+begin
+  Card := FindPresetCard(Sender);
+  if (Card = nil) or (Card = FHoveredPresetCard) then Exit;
+  Prev := FHoveredPresetCard;
+  FHoveredPresetCard := Card;
+  if Assigned(Prev) then Prev.Invalidate;
+  Card.Invalidate;
+end;
+
+procedure Tgoverlayform.PresetCardMouseLeave(Sender: TObject);
+var
+  Card: TPanel;
+  Pos: TPoint;
+begin
+  Card := FindPresetCard(Sender);
+  if (Card = nil) or (FHoveredPresetCard <> Card) then Exit;
+  // Guard: only clear hover when cursor truly leaves the card bounding box.
+  // This prevents spurious clears when moving between child controls
+  // (TImage → TLabel within the same card).
+  Pos := Card.ScreenToClient(Mouse.CursorPos);
+  if not PtInRect(Rect(0, 0, Card.Width, Card.Height), Pos) then
+  begin
+    FHoveredPresetCard := nil;
+    Card.Invalidate;
+  end;
 end;
 
 // NAV RAIL — modern sidebar navigation
@@ -10740,78 +11064,77 @@ end;
 
 procedure Tgoverlayform.ReflowPresetTab(AContentW: Integer);
 const
-  MIN_GAP   = 8;
-  BTN_W     = 123;
-  BTN_H     = 91;
-  WRAPPER_W = 829;
+  WRAPPER_W  = 829;
+  PC_W       = 130;
+  PC_H       = 140;
+  PC_MIN_GAP = 8;
+  HDR_H      = 24;    // approximate section header height
+  CARD_PAD_T = 16;    // gap between header bottom and card row
+  SEC_GAP    = 32;    // gap between card row bottom and next header
+  CONTENT_H  = HDR_H + CARD_PAD_T + PC_H + SEC_GAP + HDR_H + CARD_PAD_T + PC_H; // 392
+  MIN_TOP_PAD = 20;
 var
-  W, Gap5, Gap4, StartX5, StartX4, X, i: Integer;
-  LayoutBtns:   array[0..4] of TBitBtn;
-  LayoutLabels: array[0..4] of TLabel;
-  ColorBtns:    array[0..3] of TBitBtn;
-  ColorLabels:  array[0..3] of TLabel;
+  W, Gap5, StartX5, Gap4, StartX4, X, i: Integer;
+  LayoutTop, ColorHdrTop, ColorTop, TopPad: Integer;
 begin
-  // Center the fixed-width wrapper; icons inside never reflow on sidebar toggle
+  // Centre the fixed-width wrapper
   if Assigned(FPresetsWrapper) then
   begin
     FPresetsWrapper.Left   := Max(0, (AContentW - WRAPPER_W) div 2);
     FPresetsWrapper.Height := presetTabSheet.ClientHeight;
   end;
+
+  if not Assigned(FPresetLayoutCards[0]) then Exit;
+
   W := WRAPPER_W;
 
-  LayoutBtns[0] := fullBitBtn;            LayoutLabels[0] := fullLabel;
-  LayoutBtns[1] := basicBitBtn;           LayoutLabels[1] := basicLabel;
-  LayoutBtns[2] := basichorizontalBitBtn; LayoutLabels[2] := basichorizontalLabel;
-  LayoutBtns[3] := fpsonlyBitBtn;         LayoutLabels[3] := fpsonlyLabel;
-  LayoutBtns[4] := usercustomBitBtn;      LayoutLabels[4] := customLabel;
+  // Vertically centre the content block in the tab
+  TopPad := Max(MIN_TOP_PAD, (presetTabSheet.ClientHeight - CONTENT_H) div 2 - 40);
 
-  ColorBtns[0] := mangocolorBitBtn;         ColorLabels[0] := mangocolorLabel;
-  ColorBtns[1] := goverlayBitBtn;           ColorLabels[1] := customolorLabel;
-  ColorBtns[2] := whitecolorBitBtn;         ColorLabels[2] := whitecolorLabel;
-  ColorBtns[3] := afterburnercolorBitBtn1;  ColorLabels[3] := afterburnercolorLabel;
+  // ── Section 1: Layouts ───────────────────────────────────────────────────
+  layoutsLabel.Left := 20;
+  layoutsLabel.Top  := TopPad;
+  LayoutTop         := TopPad + HDR_H + CARD_PAD_T;
 
-  // Row 1: 5 buttons — Left is centered in code; Top comes from .lfm button position.
-  // Labels are placed 8px below their button bottom so they follow .lfm vertical layout.
-  Gap5    := Max(MIN_GAP, (W - 5 * BTN_W) div 6);
-  StartX5 := (W - 5 * BTN_W - 4 * Gap5) div 2;
-  layoutsLabel.Left := Max(8, W * 20 div 829);
+  Gap5    := Max(PC_MIN_GAP, (W - 5 * PC_W) div 6);
+  StartX5 := (W - 5 * PC_W - 4 * Gap5) div 2;
   for i := 0 to 4 do
   begin
-    X := StartX5 + i * (BTN_W + Gap5);
-    LayoutBtns[i].SetBounds(X, LayoutBtns[i].Top, BTN_W, BTN_H);
-    LayoutLabels[i].Left := X + (BTN_W - LayoutLabels[i].Width) div 2;
-    LayoutLabels[i].Top  := LayoutBtns[i].Top + BTN_H + 8;
+    X := StartX5 + i * (PC_W + Gap5);
+    FPresetLayoutCards[i].SetBounds(X, LayoutTop, PC_W, PC_H);
+    FPresetLayoutSelBars[i].SetBounds(0, PC_H - 3, PC_W, 3);
   end;
 
-  // Row 2: 4 buttons — same approach; Top derives from button's .lfm Top.
-  Gap4    := Max(MIN_GAP, (W - 4 * BTN_W) div 5);
-  StartX4 := (W - 4 * BTN_W - 3 * Gap4) div 2;
-  colorthemeLabel.Left := Max(8, W * 20 div 829);
+  // ── Section 2: Color Theme ───────────────────────────────────────────────
+  ColorHdrTop := LayoutTop + PC_H + SEC_GAP;
+  colorthemeLabel.Left := 20;
+  colorthemeLabel.Top  := ColorHdrTop;
+  ColorTop := ColorHdrTop + HDR_H + CARD_PAD_T;
+
+  Gap4    := Max(PC_MIN_GAP, (W - 4 * PC_W) div 5);
+  StartX4 := (W - 4 * PC_W - 3 * Gap4) div 2;
   for i := 0 to 3 do
   begin
-    X := StartX4 + i * (BTN_W + Gap4);
-    ColorBtns[i].SetBounds(X, ColorBtns[i].Top, BTN_W, BTN_H);
-    ColorLabels[i].Left := X + (BTN_W - ColorLabels[i].Width) div 2;
-    ColorLabels[i].Top  := ColorBtns[i].Top + BTN_H + 8;
+    X := StartX4 + i * (PC_W + Gap4);
+    FPresetColorCards[i].SetBounds(X, ColorTop, PC_W, PC_H);
+    FPresetColorSelBars[i].SetBounds(0, PC_H - 3, PC_W, 3);
   end;
 
-  // Ensure section + card labels use the correct theme text color.
-  // presetTabSheet has Font.Color=clWhite in the .lfm, which can bleed into
-  // labels when light theme is active.
+  // Section headers adapt to the active theme; card label colors are fixed
+  // inside PresetCardPaint since cards have their own painted background.
   if CurrentTheme = tmLight then
   begin
     layoutsLabel.Font.Color    := LightTextColor;
     colorthemeLabel.Font.Color := LightTextColor;
-    for i := 0 to 4 do LayoutLabels[i].Font.Color := LightTextColor;
-    for i := 0 to 3 do ColorLabels[i].Font.Color  := LightTextColor;
   end
   else
   begin
     layoutsLabel.Font.Color    := DarkTextColor;
     colorthemeLabel.Font.Color := DarkTextColor;
-    for i := 0 to 4 do LayoutLabels[i].Font.Color := DarkTextColor;
-    for i := 0 to 3 do ColorLabels[i].Font.Color  := DarkTextColor;
   end;
+
+  // Refresh card visuals (colours + selection bars) for the current theme
+  UpdatePresetCardVisuals;
 end;
 
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
