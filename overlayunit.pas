@@ -955,6 +955,7 @@ const
   CARD_IMG_H  = 215;
   GRAD_H      = 55;
   CARD_MARGIN = 8;
+  SEL_EXPAND  = 3;  // px expansion per side for hover scale-up (~1.03×)
 
 // Forward declaration — defined later in the file
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer); forward;
@@ -12954,7 +12955,11 @@ begin
       Continue;
     CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
     CardY := CARD_MARGIN + (CardCount div CardsPerRow) * (CARD_H + CARD_MARGIN);
-    Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
+    if TPanel(Ctrl) = FHoveredCard then
+      Ctrl.SetBounds(CardX - SEL_EXPAND, CardY - SEL_EXPAND,
+                     CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND)
+    else
+      Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
     Inc(CardCount);
   end;
 
@@ -13009,13 +13014,35 @@ begin
     Exit;
   end;
 
-  // Snap previous hovered card back to dim immediately
+  // Snap previous hovered card back to dim and restore its size.
+  // Guard with Width check to avoid double-restore when MouseLeave fires first.
   if Assigned(FHoveredCard) then
+  begin
     ApplyCardBrightness(FHoveredCard, 35);
+    if FHoveredCard.Width = CARD_W + 2 * SEL_EXPAND then
+    begin
+      FHoveredCard.SetBounds(
+        FHoveredCard.Left + SEL_EXPAND,
+        FHoveredCard.Top  + SEL_EXPAND,
+        CARD_W, CARD_H);
+      if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
+        TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
+    end;
+  end;
 
   FHoveredCard     := Panel;
   FHoverBrightness := 0;
   FHoverDir        := 1;
+
+  // Scale up the newly hovered card (~1.03×)
+  Panel.SetBounds(
+    Panel.Left - SEL_EXPAND,
+    Panel.Top  - SEL_EXPAND,
+    CARD_W + 2 * SEL_EXPAND,
+    CARD_H + 2 * SEL_EXPAND);
+  if (Panel.ControlCount > 0) and (Panel.Controls[0] is TImage) then
+    TImage(Panel.Controls[0]).SetBounds(0, 0, CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND);
+  Panel.BringToFront;
 
   if not Assigned(FHoverTimer) then
   begin
@@ -13036,6 +13063,17 @@ begin
   else Exit;
 
   if Panel <> FHoveredCard then Exit;
+
+  // Restore card size on leave — guard avoids double-restore if MouseEnter already did it
+  if Panel.Width = CARD_W + 2 * SEL_EXPAND then
+  begin
+    Panel.SetBounds(
+      Panel.Left + SEL_EXPAND,
+      Panel.Top  + SEL_EXPAND,
+      CARD_W, CARD_H);
+    if (Panel.ControlCount > 0) and (Panel.Controls[0] is TImage) then
+      TImage(Panel.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
+  end;
 
   FHoverDir := -1;
   if Assigned(FHoverTimer) then
