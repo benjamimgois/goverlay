@@ -627,6 +627,10 @@ type
     FVisualGpuBar: TPanel;
     FVisualHudBar: TPanel;
 
+    // Performance tab code-generated cards
+    FPerfCards:   array[0..3] of TPanel;
+    FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
+
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure PresetCardPaint(Sender: TObject);
@@ -670,6 +674,8 @@ type
     procedure InitVisualTab;
     procedure VisualCardPaint(Sender: TObject);
     procedure UpdateVisualCardTheme;
+    procedure InitPerformanceTab;
+    procedure UpdatePerfCardTheme;
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure InitOptiScalerTab;
@@ -5118,6 +5124,9 @@ begin
   // Initialize Visual tab card layout
   InitVisualTab;
 
+  // Initialize Performance tab card layout
+  InitPerformanceTab;
+
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
   // DarkCheck inside InitOptiScalerTab sets an explicit Color; override it so the
@@ -6324,6 +6333,9 @@ begin
 
   // Update Visual tab card colors for the new theme
   UpdateVisualCardTheme;
+
+  // Update Performance tab card colors for the new theme
+  UpdatePerfCardTheme;
 end;
 
 procedure Tgoverlayform.InitCustomEnvGroupBox;
@@ -11561,29 +11573,263 @@ begin
   end;
 end;
 
+// ============================================================================
+// PERFORMANCE TAB — card redesign
+// ============================================================================
+
+procedure Tgoverlayform.InitPerformanceTab;
+const
+  ACCENT_H  = 3;
+  TITLE_T   = 6;
+  TITLE_H   = 22;
+  GB_OFFSET = ACCENT_H + TITLE_T + TITLE_H + 4;  // 35px
+
+  // Original vertical layout from .lfm
+  ROW1_TOP = 0;
+  ROW1_H   = 180;
+  ROW2_TOP = 185;
+  ROW2_H   = 389;
+
+  CARD_TITLES: array[0..3] of string = (
+    'Information', 'Limiters', 'VSYNC', 'Filters');
+
+  procedure MakeCard(AIndex: Integer; ATitle: string; ATop, AHeight: Integer);
+  var
+    Card: TPanel;
+    Bar:  TPanel;
+    Lbl:  TLabel;
+    GB:   TGroupBox;
+    IsLight: Boolean;
+    BgColor, TextColor: TColor;
+  begin
+    IsLight   := CurrentTheme = tmLight;
+    BgColor   := IfThen(IsLight, clWhite, $00362E2E);
+    TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+    Card := TPanel.Create(Self);
+    Card.Parent      := performanceTabSheet;
+    Card.BevelOuter  := bvNone;
+    Card.BorderStyle := bsNone;
+    Card.Caption     := '';
+    Card.Color       := BgColor;
+    Card.ParentColor := False;
+    Card.OnPaint     := @VisualCardPaint;   // reuse same painter
+    Card.SetBounds(0, ATop, 386, AHeight);  // provisional; corrected by Reflow
+    FPerfCards[AIndex] := Card;
+
+    Bar := TPanel.Create(Card);
+    Bar.Parent     := Card;
+    Bar.BevelOuter := bvNone;
+    Bar.Caption    := '';
+    Bar.Color      := clHighlight;
+    Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
+    Bar.Anchors    := [akLeft, akRight, akTop];
+
+    Lbl := TLabel.Create(Card);
+    Lbl.Parent      := Card;
+    Lbl.Caption     := ATitle;
+    Lbl.Font.Style  := [fsBold];
+    Lbl.Font.Size   := 9;
+    Lbl.Font.Color  := TextColor;
+    Lbl.Color       := BgColor;
+    Lbl.Transparent := False;
+    Lbl.AutoSize    := True;
+    Lbl.Left        := 10;
+    Lbl.Top         := TITLE_T + ACCENT_H;
+
+    case AIndex of
+      0: GB := fpsGroupBox;
+      1: GB := fpslimiterGroupBox;
+      2: GB := vsyncGroupBox;
+      3: GB := filtersGroupBox;
+    else GB := nil;
+    end;
+    if not Assigned(GB) then Exit;
+
+    GB.Parent   := Card;
+    GB.Caption  := '';
+    GB.Color    := BgColor;
+    GB.Font.Color := TextColor;
+    GB.AnchorSideLeft.Control   := nil;
+    GB.AnchorSideTop.Control    := nil;
+    GB.AnchorSideRight.Control  := nil;
+    GB.AnchorSideBottom.Control := nil;
+    GB.Anchors := [akLeft, akTop, akRight, akBottom];
+    GB.Left    := -1;
+    GB.Top     := GB_OFFSET - 1;
+    GB.Width   := Card.Width + 2;
+    GB.Height  := Card.Height - GB_OFFSET + 2;
+  end;
+
+  procedure MakeVsyncRow(AIndex: Integer; ARow, AHeight: Integer;
+                         Logo: TImage; Combo: TComboBox);
+  var
+    Row: TPanel;
+  begin
+    // Transparent container — inherits GroupBox background, no fill color
+    Row := TPanel.Create(vsyncGroupBox);
+    Row.Parent      := vsyncGroupBox;
+    Row.BevelOuter  := bvNone;
+    Row.Caption     := '';
+    Row.ParentColor := True;
+    Row.SetBounds(8, ARow, vsyncGroupBox.ClientWidth - 16, AHeight);
+    Row.Anchors     := [akLeft, akTop, akRight];
+    FVsyncRows[AIndex] := Row;
+
+    // Logo — transparent, left-aligned, vertically centered
+    Logo.Parent      := Row;
+    Logo.Transparent := True;
+    Logo.AnchorSideLeft.Control  := nil;
+    Logo.AnchorSideTop.Control   := nil;
+    Logo.AnchorSideRight.Control := nil;
+    Logo.Anchors := [akLeft, akTop];
+    Logo.Left    := 8;
+    Logo.Top     := (AHeight - Logo.Height) div 2;
+
+    // Combo — right-aligned, vertically centered
+    Combo.Parent := Row;
+    Combo.AnchorSideLeft.Control   := nil;
+    Combo.AnchorSideTop.Control    := nil;
+    Combo.AnchorSideRight.Control  := nil;
+    Combo.AnchorSideBottom.Control := nil;
+    Combo.Anchors := [akRight, akTop];
+    Combo.Top     := (AHeight - Combo.Height) div 2;
+    Combo.Left    := Row.Width - Combo.Width - 8;
+  end;
+
+  procedure AddVsyncSeparator;
+  var
+    Sep: TPanel;
+    IsLight: Boolean;
+  begin
+    IsLight := CurrentTheme = tmLight;
+    Sep := TPanel.Create(vsyncGroupBox);
+    Sep.Parent      := vsyncGroupBox;
+    Sep.BevelOuter  := bvNone;
+    Sep.Caption     := '';
+    Sep.Color       := IfThen(IsLight, $00C8C0C0, $005A5050);
+    Sep.ParentColor := False;
+    Sep.SetBounds(8, 56, vsyncGroupBox.ClientWidth - 16, 1);
+    Sep.Anchors     := [akLeft, akTop, akRight];
+  end;
+
+begin
+  MakeCard(0, CARD_TITLES[0], ROW1_TOP, ROW1_H);
+  MakeCard(1, CARD_TITLES[1], ROW2_TOP, ROW2_H);
+  MakeCard(2, CARD_TITLES[2], ROW1_TOP, ROW1_H);
+  MakeCard(3, CARD_TITLES[3], ROW2_TOP, ROW2_H);
+
+  // VSYNC card — layout rows for Vulkan and OpenGL with a separator
+  MakeVsyncRow(0, 4,  50, vulkanImage, vsyncComboBox);
+  MakeVsyncRow(1, 58, 58, openglImage, glvsyncComboBox);
+  AddVsyncSeparator;
+end;
+
+procedure Tgoverlayform.UpdatePerfCardTheme;
+const
+  DARK_BG  = $00362E2E;
+  LIGHT_BG = $00FFFFFF;
+var
+  i, j: Integer;
+  CardBg, TextColor: TColor;
+  Card: TPanel;
+begin
+  if not Assigned(FPerfCards[0]) then Exit;
+
+  if CurrentTheme = tmLight then
+  begin
+    CardBg    := LIGHT_BG;
+    TextColor := LightTextColor;
+  end
+  else
+  begin
+    CardBg    := DARK_BG;
+    TextColor := DarkTextColor;
+  end;
+
+  for i := 0 to 3 do
+  begin
+    Card := FPerfCards[i];
+    Card.Color := CardBg;
+    Card.Invalidate;
+    for j := 0 to Card.ControlCount - 1 do
+    begin
+      if Card.Controls[j] is TLabel then
+      begin
+        TLabel(Card.Controls[j]).Font.Color := TextColor;
+        TLabel(Card.Controls[j]).Color      := CardBg;
+      end;
+      if Card.Controls[j] is TGroupBox then
+      begin
+        TGroupBox(Card.Controls[j]).Color      := CardBg;
+        TGroupBox(Card.Controls[j]).Font.Color := TextColor;
+      end;
+    end;
+  end;
+
+  // VSYNC row labels: update font color for theme change
+  if Assigned(FVsyncRows[0]) or Assigned(FVsyncRows[1]) then
+  begin
+    for i := 0 to 1 do
+    begin
+      if not Assigned(FVsyncRows[i]) then Continue;
+      for j := 0 to FVsyncRows[i].ControlCount - 1 do
+        if FVsyncRows[i].Controls[j] is TLabel then
+          TLabel(FVsyncRows[i].Controls[j]).Font.Color := TextColor;
+    end;
+  end;
+end;
+
 procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
 const
-  // Two equal columns symmetric around the content center.
-  // At base AContentW=829: C1=2, ColW=386, Gap=47, C2=435
-  BASE_GAP = 47;   // fixed gap between columns
-  BASE_C1  = 2;    // left margin (also used as right margin for symmetry)
+  BASE_GAP = 47;
+  BASE_C1  = 2;
   MIN_COLW = 200;
+  ROW1_TOP = 0;
+  ROW1_H   = 180;
+  ROW2_TOP = 185;
+  ROW2_H   = 389;
+  GB_OFF   = 34;   // GB_OFFSET - 1 (for the -1px overflow trick)
 var
   Center, ColW, C1, C2: Integer;
 begin
   Center := AContentW div 2;
-  // Each column spans from its margin to half the gap from center
-  ColW := Max(MIN_COLW, Center - BASE_C1 - BASE_GAP div 2);
-  C1   := BASE_C1;
-  C2   := AContentW - BASE_C1 - ColW;  // right-anchored, mirror of C1
+  ColW   := Max(MIN_COLW, Center - BASE_C1 - BASE_GAP div 2);
+  C1     := BASE_C1;
+  C2     := AContentW - BASE_C1 - ColW;
 
-  // Left column
-  fpsGroupBox.SetBounds(C1, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
-  fpslimiterGroupBox.SetBounds(C1, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
-
-  // Right column
-  vsyncGroupBox.SetBounds(C2, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
-  filtersGroupBox.SetBounds(C2, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
+  if Assigned(FPerfCards[0]) then
+  begin
+    // Left column
+    FPerfCards[0].SetBounds(C1, ROW1_TOP, ColW, ROW1_H);
+    FPerfCards[1].SetBounds(C1, ROW2_TOP, ColW, ROW2_H);
+    // Right column
+    FPerfCards[2].SetBounds(C2, ROW1_TOP, ColW, ROW1_H);
+    FPerfCards[3].SetBounds(C2, ROW2_TOP, ColW, ROW2_H);
+    // Resize GroupBoxes to overflow card by 1px (hides native frame)
+    fpsGroupBox.Width        := ColW + 2;  fpsGroupBox.Height        := ROW1_H - GB_OFF;
+    fpslimiterGroupBox.Width := ColW + 2;  fpslimiterGroupBox.Height := ROW2_H - GB_OFF;
+    vsyncGroupBox.Width      := ColW + 2;  vsyncGroupBox.Height      := ROW1_H - GB_OFF;
+    filtersGroupBox.Width    := ColW + 2;  filtersGroupBox.Height    := ROW2_H - GB_OFF;
+    // Resize VSYNC row chips to fill the GroupBox width
+    if Assigned(FVsyncRows[0]) then
+    begin
+      FVsyncRows[0].Width    := vsyncGroupBox.ClientWidth - 16;
+      vsyncComboBox.Left     := FVsyncRows[0].Width - vsyncComboBox.Width - 8;
+    end;
+    if Assigned(FVsyncRows[1]) then
+    begin
+      FVsyncRows[1].Width    := vsyncGroupBox.ClientWidth - 16;
+      glvsyncComboBox.Left   := FVsyncRows[1].Width - glvsyncComboBox.Width - 8;
+    end;
+  end
+  else
+  begin
+    fpsGroupBox.SetBounds(C1, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
+    fpslimiterGroupBox.SetBounds(C1, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
+    vsyncGroupBox.SetBounds(C2, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
+    filtersGroupBox.SetBounds(C2, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
+  end;
 end;
 
 procedure Tgoverlayform.ReflowOptiScalerTab(AContentW: Integer);
