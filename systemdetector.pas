@@ -134,6 +134,15 @@ function GetSysGPUModel: string;
 /// </summary>
 function GetSysGPUDriver: string;
 
+/// <summary>
+/// Checks whether a shared library (e.g. 'libqt6pas') is available on the
+/// current system. Works across Ubuntu, Debian, Fedora, OpenSUSE, Arch and
+/// NixOS by first querying ldconfig and then scanning the standard lib dirs.
+/// </summary>
+/// <param name="LibName">Library base name without extension (e.g. 'libqt6pas')</param>
+/// <returns>True if any matching .so file is found</returns>
+function IsLibraryAvailable(const LibName: string): Boolean;
+
 implementation
 
 
@@ -608,6 +617,67 @@ begin
     finally
       SL.Free;
     end;
+  end;
+end;
+
+
+function IsLibraryAvailable(const LibName: string): Boolean;
+// Standard lib directories to scan when ldconfig is unavailable or incomplete.
+// Covers: Arch/Manjaro/CachyOS, Ubuntu/Debian (x86_64 + i386 + arm64),
+//         Fedora/RHEL/CentOS, OpenSUSE, NixOS (system + default profile).
+const
+  LibDirs: array[0..14] of string = (
+    '/usr/lib',
+    '/usr/lib64',
+    '/usr/lib/x86_64-linux-gnu',
+    '/usr/lib/i386-linux-gnu',
+    '/usr/lib/aarch64-linux-gnu',
+    '/usr/local/lib',
+    '/usr/local/lib64',
+    '/lib',
+    '/lib64',
+    '/lib/x86_64-linux-gnu',
+    '/lib/aarch64-linux-gnu',
+    '/run/current-system/sw/lib',          // NixOS system profile
+    '/nix/var/nix/profiles/default/lib',   // NixOS default profile
+    '/run/host/usr/lib',                   // Flatpak host overlay
+    '/run/host/usr/lib64'                  // Flatpak host overlay (64-bit)
+  );
+var
+  LdOutput: string;
+  Dir, Pattern: string;
+  SR: TSearchRec;
+  // Some distros use mixed-case filenames (e.g. Arch: libQt6Pas.so).
+  // Build a lowercase variant for case-insensitive fallback scanning.
+  LibNameLower: string;
+begin
+  LibNameLower := LowerCase(LibName);
+
+  // Primary: query the runtime linker cache with case-insensitive grep.
+  // Works on Ubuntu, Debian, Fedora, OpenSUSE, Arch and most others.
+  if RunCommand('sh', ['-c', 'ldconfig -p 2>/dev/null | grep -qi ' + LibNameLower], LdOutput) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // Fallback: scan known library directories.
+  // Linux filesystems are case-sensitive, so try both the name as given
+  // and a title-case variant that covers Arch's libQt6Pas.so convention.
+  Result := False;
+  for Dir in LibDirs do
+  begin
+    for Pattern in [LibName, LibNameLower] do
+    begin
+      if FindFirst(Dir + '/' + Pattern + '*.so*', faAnyFile, SR) = 0 then
+      begin
+        Result := True;
+        FindClose(SR);
+        Exit;
+      end;
+      FindClose(SR);
+    end;
+    FindClose(SR);
   end;
 end;
 

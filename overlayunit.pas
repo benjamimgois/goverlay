@@ -607,8 +607,8 @@ type
     FHomeModVerLbls:   array[0..2] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
-    FHomeDepDots:      array[0..9] of TShape;
-    FHomeDepLbls:      array[0..9] of TLabel;
+    FHomeDepDots:      array[0..6] of TShape;
+    FHomeDepLbls:      array[0..6] of TLabel;
     FHomeGlobalBtn:    TPanel;
     FHomeGameBtn:      TPanel;
     FHomeBtnRow:       TPanel;
@@ -939,6 +939,8 @@ var
   NAV_COLOR_HOVER     = $00332E2C; // item hover background (dark)
   NAV_COLOR_ACTIVE    = $00443E3A; // item active background (dark)
   NAV_COLOR_INDICATOR = clHighlight; // active indicator — system accent/selection color
+  NAV_IND_GAMES = $0000A5FF;  // amber (R=255,G=165,B=0)  — Games category accent
+  NAV_IND_TOOLS = clHighlight; // tools keep the system accent colour
   // Light theme nav colors
   NAV_LIGHT_BG        = $00E8E8E8;
   NAV_LIGHT_HOVER     = $00D0D0D0;
@@ -2304,15 +2306,14 @@ begin
   end
   else
   begin
-    // Native mode: check for binaries normally
+    // Native: mangohud binary (all distros install it to PATH)
     if not IsCommandAvailable('mangohud') then
       Missing.Add('mangohud');
 
-    // Traditional distros: check for libvkbasalt.so
+    // vkBasalt: check Vulkan layer JSON (distro-agnostic) then fall back to library scan
     if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
-       not FileExists('/usr/lib/libvkbasalt.so') and
-       not FileExists('/usr/lib64/libvkbasalt.so') and
-       not FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so') then
+       not FileExists('/etc/vulkan/implicit_layer.d/vkBasalt.json') and
+       not IsLibraryAvailable('libvkbasalt') then
       Missing.Add('vkbasalt');
   end;
 
@@ -2347,6 +2348,12 @@ begin
     if not IsCommandAvailable('gamemoderun') then
       Missing.Add('gamemode');
   end;
+
+  // Check for libqt6pas (Qt6 Pascal bindings — required for Goverlay GUI).
+  // Arch installs it as libQt6Pas.so; other distros use libqt6pas.so.
+  // IsLibraryAvailable checks both via case-insensitive ldconfig + path scan.
+  if not IsLibraryAvailable('libQt6Pas') then
+    Missing.Add('libqt6pas');
 
    //check if zenergy module is available
   //if not IsKernelModuleAvailable('zenergy') then
@@ -10478,7 +10485,9 @@ begin
   begin
     if i = AIndex then
     begin
-      FNavIndicators[i].Visible := True;
+      FNavIndicators[i].Visible     := True;
+      FNavIndicators[i].Brush.Color := IfThen(i = 0, NAV_IND_GAMES, NAV_IND_TOOLS);
+      FNavIndicators[i].Pen.Color   := IfThen(i = 0, NAV_IND_GAMES, NAV_IND_TOOLS);
       FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
       FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
       if (i = 3) and Assigned(FOptiScalerImg) then
@@ -10657,6 +10666,9 @@ begin
                               (NAV_ITEM_H - NAV_ICON_SIZE) div 2, 8);
     FNavLabels[i].Visible := ShowLabels;
   end;
+
+  // Show/hide the Games↔Tools separator section
+
   UpdateNavToolToggleVisibility(ShowLabels);
 
   if Assigned(FMangoHudImg) then
@@ -12562,16 +12574,20 @@ end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
 const
-  DEP_KEYS: array[0..9] of string = (
-    'pascube', 'mangohud', 'MangoHud runtime 25.08',
-    'vkbasalt', 'vkBasalt runtime 25.08',
-    'vkcube', 'p7zip', 'curl', 'git', 'gamemode');
-  DEP_DISPLAY: array[0..9] of string = (
-    'PasCube', 'MangoHud', 'MangoHud runtime 25.08',
-    'vkBasalt', 'vkBasalt runtime 25.08',
-    'vkcube', '7z (p7zip)', 'curl', 'git', 'gamemode');
+  DEP_KEYS: array[0..6] of string = (
+    'pascube', 'vkcube', 'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas');
+  DEP_DISPLAY: array[0..6] of string = (
+    'PasCube', 'vkcube', '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas');
+  DEP_HINTS: array[0..6] of string = (
+    'OpenGL preview cube for testing the MangoHud overlay',
+    'Vulkan cube for testing Vulkan layer injection',
+    'Archive tool required for OptiScaler extraction',
+    'HTTP client used to download OptiScaler updates and covers',
+    'Version control used to fetch fgmod scripts',
+    'Feral GameMode daemon for CPU/GPU optimisation',
+    'Qt6 Pascal bindings — required for the Goverlay GUI');
   CLR_OK      = $0044BB44;
-  CLR_MISSING = $00BB4444;
+  CLR_MISSING = $004444BB;  // RGB(187,68,68) — red in Lazarus BGR format
 var
   Missing: TStringList;
   i: Integer;
@@ -12579,9 +12595,10 @@ begin
   if not Assigned(FHomeDepDots[0]) then Exit;
   CheckDependencies(Missing);
   try
-    // First 10 fixed deps shown as dots
-    for i := 0 to 9 do
+    for i := 0 to 6 do
     begin
+      FHomeDepDots[i].Hint := DEP_HINTS[i];
+      FHomeDepLbls[i].Hint := DEP_HINTS[i];
       if Missing.IndexOf(DEP_KEYS[i]) >= 0 then
       begin
         FHomeDepDots[i].Brush.Color := CLR_MISSING;
@@ -12616,9 +12633,8 @@ const
   ACC_DEP    = $0033AA55;  // green — Dependencies
   ACC_SYS    = $00CC8844;  // orange — System Info
 
-  DEP_NAMES: array[0..9] of string = (
-    'PasCube', 'MangoHud', 'libMangoHud.so', 'vkBasalt', 'libvkbasalt.so',
-    'vkcube', '7z', 'curl', 'git', 'gamemode');
+  DEP_NAMES: array[0..6] of string = (
+    'PasCube', 'vkcube', '7z', 'curl', 'git', 'gamemode', 'qt6pas');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
   LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
 
@@ -12875,11 +12891,11 @@ begin
   Inc(Y, Card.Height + SEC_GAP);
 
   // ── Card 2: Dependencies (3×3 grid) ──────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
+  Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
   MkTitle(Card, 'Dependencies', CARD_P);
   MkSep(Card, CARD_P + 22);
 
-  for i := 0 to 9 do
+  for i := 0 to 6 do
   begin
     Row  := CARD_P + 30 + (i div 3) * ROW_H;
     ColX := CARD_P + (i mod 3) * COL_W;
