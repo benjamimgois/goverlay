@@ -622,6 +622,11 @@ type
     FActiveColorCard:     Integer;   // -1 = none selected
     FHoveredPresetCard:   TPanel;    // nil = none hovered
 
+    // Visual tab code-generated cards
+    FVisualCards:  array[0..5] of TPanel;
+    FVisualGpuBar: TPanel;
+    FVisualHudBar: TPanel;
+
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure PresetCardPaint(Sender: TObject);
@@ -662,6 +667,9 @@ type
     procedure FormResize(Sender: TObject);
     procedure ReflowPresetTab(AContentW: Integer);
     procedure ReflowVisualTab(AContentW: Integer);
+    procedure InitVisualTab;
+    procedure VisualCardPaint(Sender: TObject);
+    procedure UpdateVisualCardTheme;
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure InitOptiScalerTab;
@@ -5107,6 +5115,9 @@ begin
   InitGamesTab;
   FGamesLoaded := False;
 
+  // Initialize Visual tab card layout
+  InitVisualTab;
+
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
   // DarkCheck inside InitOptiScalerTab sets an explicit Color; override it so the
@@ -6310,6 +6321,9 @@ begin
     FCustomListBox.Color := $00D8D8D8   // light gray for light theme
   else
     FCustomListBox.Color := clDefault;  // revert to system default for dark theme
+
+  // Update Visual tab card colors for the new theme
+  UpdateVisualCardTheme;
 end;
 
 procedure Tgoverlayform.InitCustomEnvGroupBox;
@@ -11137,6 +11151,337 @@ begin
   UpdatePresetCardVisuals;
 end;
 
+// ============================================================================
+// VISUAL TAB — card redesign
+// ============================================================================
+
+procedure Tgoverlayform.VisualCardPaint(Sender: TObject);
+const
+  // Dark theme
+  DARK_BG     = $00362E2E;   // RGB( 46, 46, 54) dark panel
+  DARK_BRD    = $005A5050;   // RGB( 80, 80, 90)
+  // Light theme
+  LIGHT_BG    = $00FFFFFF;   // pure white
+  LIGHT_BRD   = $00C8C0C0;   // RGB(192,192,200)
+var
+  Card: TPanel;
+  BgColor, BorderColor: TColor;
+begin
+  if not (Sender is TPanel) then Exit;
+  Card := TPanel(Sender);
+
+  if CurrentTheme = tmLight then
+  begin
+    BgColor     := LIGHT_BG;
+    BorderColor := LIGHT_BRD;
+  end
+  else
+  begin
+    BgColor     := DARK_BG;
+    BorderColor := DARK_BRD;
+  end;
+
+  Card.Canvas.Brush.Color := BgColor;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.FillRect(Card.ClientRect);
+
+  Card.Canvas.Brush.Style := bsClear;
+  Card.Canvas.Pen.Color   := BorderColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.Rectangle(0, 0, Card.Width, Card.Height);
+end;
+
+procedure Tgoverlayform.UpdateVisualCardTheme;
+const
+  DARK_BG   = $00362E2E;
+  LIGHT_BG  = $00FFFFFF;
+var
+  i: Integer;
+  CardBg, GbBg, TextColor: TColor;
+  Card: TPanel;
+  j: Integer;
+begin
+  if not Assigned(FVisualCards[0]) then Exit;
+
+  if CurrentTheme = tmLight then
+  begin
+    CardBg    := LIGHT_BG;
+    GbBg      := LIGHT_BG;
+    TextColor := LightTextColor;
+  end
+  else
+  begin
+    CardBg    := DARK_BG;
+    GbBg      := DARK_BG;
+    TextColor := DarkTextColor;
+  end;
+
+  for i := 0 to 5 do
+  begin
+    Card := FVisualCards[i];
+    Card.Color := CardBg;
+    Card.Invalidate;
+    for j := 0 to Card.ControlCount - 1 do
+    begin
+      if Card.Controls[j] is TLabel then
+      begin
+        TLabel(Card.Controls[j]).Font.Color := TextColor;
+        TLabel(Card.Controls[j]).Color      := CardBg;
+      end;
+      if Card.Controls[j] is TGroupBox then
+      begin
+        TGroupBox(Card.Controls[j]).Color      := GbBg;
+        TGroupBox(Card.Controls[j]).Font.Color := TextColor;
+      end;
+    end;
+  end;
+
+  // Update GPU info bar
+  if Assigned(FVisualGpuBar) then
+  begin
+    FVisualGpuBar.Color := CardBg;
+    FVisualGpuBar.Invalidate;
+    for j := 0 to FVisualGpuBar.ControlCount - 1 do
+    begin
+      if FVisualGpuBar.Controls[j] is TLabel then
+      begin
+        TLabel(FVisualGpuBar.Controls[j]).Font.Color := TextColor;
+        TLabel(FVisualGpuBar.Controls[j]).Color      := CardBg;
+      end;
+    end;
+    gpudescEdit.Color       := CardBg;
+    gpudescEdit.Font.Color  := TextColor;
+    hudtitleEdit.Color      := CardBg;
+    hudtitleEdit.Font.Color := TextColor;
+  end;
+
+  // Update HUD settings bar
+  if Assigned(FVisualHudBar) then
+  begin
+    FVisualHudBar.Color := CardBg;
+    FVisualHudBar.Invalidate;
+    hudtoggleLabel.Font.Color    := TextColor;
+    hudcompactCheckBox.Color     := CardBg;
+    hudcompactCheckBox.Font.Color := TextColor;
+    hidehudCheckBox.Color        := CardBg;
+    hidehudCheckBox.Font.Color   := TextColor;
+  end;
+end;
+
+procedure Tgoverlayform.InitVisualTab;
+const
+  ACCENT_H  = 3;    // accent bar height at card top
+  TITLE_T   = 6;    // title label top margin (below accent bar)
+  TITLE_H   = 22;   // title label height
+  GB_OFFSET = ACCENT_H + TITLE_T + TITLE_H + 4;  // GroupBox top inside card
+
+  CARD_TITLES: array[0..5] of string = (
+    'Orientation', 'Borders', 'Background', 'Fonts', 'Position', 'Columns');
+
+  procedure MakeCard(AIndex: Integer; ATitle: string);
+  var
+    Card: TPanel;
+    Bar: TPanel;
+    Lbl: TLabel;
+    GB: TGroupBox;
+    IsLight: Boolean;
+    BgColor, TextColor: TColor;
+  begin
+    IsLight   := CurrentTheme = tmLight;
+    BgColor   := IfThen(IsLight, clWhite, $00362E2E);
+    TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+    Card := TPanel.Create(Self);
+    Card.Parent      := visualTabSheet;
+    Card.BevelOuter  := bvNone;
+    Card.BorderStyle := bsNone;
+    Card.Caption     := '';
+    Card.Color       := BgColor;
+    Card.ParentColor := False;
+    Card.OnPaint     := @VisualCardPaint;
+    FVisualCards[AIndex] := Card;
+
+    // Accent bar across the top
+    Bar := TPanel.Create(Card);
+    Bar.Parent      := Card;
+    Bar.BevelOuter  := bvNone;
+    Bar.Caption     := '';
+    Bar.Color       := clHighlight;
+    Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
+    Bar.Anchors     := [akLeft, akRight, akTop];
+
+    // Section title
+    Lbl := TLabel.Create(Card);
+    Lbl.Parent       := Card;
+    Lbl.Caption      := ATitle;
+    Lbl.Font.Style   := [fsBold];
+    Lbl.Font.Size    := 9;
+    Lbl.Font.Color   := TextColor;
+    Lbl.Color        := BgColor;
+    Lbl.Transparent  := False;
+    Lbl.AutoSize     := True;
+    Lbl.Left         := 10;
+    Lbl.Top          := TITLE_T + ACCENT_H;
+
+    // GroupBox inside the card: clear built-in caption/border
+    case AIndex of
+      0: GB := orientationGroupBox;
+      1: GB := borderGroupBox;
+      2: GB := backgroundGroupBox;
+      3: GB := fontsGroupBox;
+      4: GB := positionGroupBox;
+      5: GB := columsGroupBox;
+    else GB := nil;
+    end;
+    if not Assigned(GB) then Exit;
+
+    GB.Parent   := Card;
+    GB.Caption  := '';
+    GB.Color    := BgColor;
+    GB.Font.Color := TextColor;
+    GB.AnchorSideLeft.Control   := nil;
+    GB.AnchorSideTop.Control    := nil;
+    GB.AnchorSideRight.Control  := nil;
+    GB.AnchorSideBottom.Control := nil;
+    GB.Anchors := [akLeft, akTop, akRight, akBottom];
+    // Extend 1px beyond each card edge so the GroupBox native frame is
+    // clipped outside the card boundary and becomes invisible
+    GB.Left    := -1;
+    GB.Top     := GB_OFFSET - 1;
+    GB.Width   := Card.Width + 2;
+    GB.Height  := Card.Height - GB_OFFSET + 2;
+  end;
+
+var
+  i: Integer;
+  IsLight: Boolean;
+  BarBg, TextColor: TColor;
+  Lbl: TLabel;
+begin
+  for i := 0 to 5 do
+    MakeCard(i, CARD_TITLES[i]);
+
+  // ── GPU info bar ─────────────────────────────────────────────────────────
+  IsLight   := CurrentTheme = tmLight;
+  BarBg     := IfThen(IsLight, $00F2F2F2, $00362E2E);
+  TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+  FVisualGpuBar := TPanel.Create(Self);
+  FVisualGpuBar.Parent      := visualTabSheet;
+  FVisualGpuBar.BevelOuter  := bvNone;
+  FVisualGpuBar.BorderStyle := bsNone;
+  FVisualGpuBar.Caption     := '';
+  FVisualGpuBar.Color       := BarBg;
+  FVisualGpuBar.ParentColor := False;
+  FVisualGpuBar.OnPaint     := @VisualCardPaint;
+
+  // "Active GPU" section label
+  Lbl := TLabel.Create(FVisualGpuBar);
+  Lbl.Parent      := FVisualGpuBar;
+  Lbl.Caption     := 'Active GPU';
+  Lbl.Font.Style  := [fsBold];
+  Lbl.Font.Size   := 9;
+  Lbl.Font.Color  := TextColor;
+  Lbl.Color       := BarBg;
+  Lbl.Transparent := False;
+  Lbl.AutoSize    := True;
+  Lbl.Left        := 11;
+  Lbl.Top         := 6;
+
+  activegpuLabel.Visible := False;
+
+  pcidevComboBox.Parent := FVisualGpuBar;
+  pcidevComboBox.AnchorSideLeft.Control  := nil;
+  pcidevComboBox.AnchorSideTop.Control   := nil;
+  pcidevComboBox.AnchorSideRight.Control := nil;
+  pcidevComboBox.Anchors := [akLeft, akTop];
+  pcidevComboBox.Left    := 11;
+  pcidevComboBox.Top     := 26;
+
+  gpudescEdit.Parent := FVisualGpuBar;
+  gpudescEdit.AnchorSideLeft.Control  := nil;
+  gpudescEdit.AnchorSideTop.Control   := nil;
+  gpudescEdit.AnchorSideRight.Control := nil;
+  gpudescEdit.Anchors     := [akLeft, akTop, akRight];
+  gpudescEdit.Left        := pcidevComboBox.Left + pcidevComboBox.Width + 4;
+  gpudescEdit.Top         := pcidevComboBox.Top + (pcidevComboBox.Height - gpudescEdit.Height) div 2;
+  gpudescEdit.Color       := BarBg;
+  gpudescEdit.Font.Color  := TextColor;
+  gpudescEdit.BorderStyle := bsNone;
+
+  // ── HUD Title field — option C: style in place ───────────────────────────
+  hudtitleEdit.Color       := BarBg;
+  hudtitleEdit.Font.Color  := TextColor;
+  hudtitleEdit.BorderStyle := bsSingle;
+
+  // ── HUD settings bar ─────────────────────────────────────────────────────
+  // Wrap the bottom row (HUD Toggle Key + Compact HUD + Hide by default)
+  FVisualHudBar := TPanel.Create(Self);
+  FVisualHudBar.Parent      := visualTabSheet;
+  FVisualHudBar.BevelOuter  := bvNone;
+  FVisualHudBar.BorderStyle := bsNone;
+  FVisualHudBar.Caption     := '';
+  FVisualHudBar.Color       := BarBg;
+  FVisualHudBar.ParentColor := False;
+  FVisualHudBar.OnPaint     := @VisualCardPaint;
+
+  // Reparent HUD toggle label
+  hudtoggleLabel.Parent := FVisualHudBar;
+  hudtoggleLabel.AnchorSideLeft.Control   := nil;
+  hudtoggleLabel.AnchorSideTop.Control    := nil;
+  hudtoggleLabel.AnchorSideRight.Control  := nil;
+  hudtoggleLabel.AnchorSideBottom.Control := nil;
+  hudtoggleLabel.Anchors    := [akLeft, akTop];
+  hudtoggleLabel.Font.Color := TextColor;
+  hudtoggleLabel.Left := 11;
+  hudtoggleLabel.Top  := 6;
+
+  // Reparent keyboard icon
+  hudtoggleImage.Parent := FVisualHudBar;
+  hudtoggleImage.AnchorSideLeft.Control   := nil;
+  hudtoggleImage.AnchorSideTop.Control    := nil;
+  hudtoggleImage.AnchorSideRight.Control  := nil;
+  hudtoggleImage.AnchorSideBottom.Control := nil;
+  hudtoggleImage.Anchors := [akLeft, akTop];
+  hudtoggleImage.Left := 11;
+  hudtoggleImage.Top  := 26;
+
+  // Reparent key selector combobox — reduce height to match label spacing
+  hudonoffComboBox.Parent := FVisualHudBar;
+  hudonoffComboBox.AnchorSideLeft.Control   := nil;
+  hudonoffComboBox.AnchorSideTop.Control    := nil;
+  hudonoffComboBox.AnchorSideRight.Control  := nil;
+  hudonoffComboBox.AnchorSideBottom.Control := nil;
+  hudonoffComboBox.Anchors := [akLeft, akTop];
+  hudonoffComboBox.Left   := hudtoggleImage.Left + hudtoggleImage.Width + 4;
+  hudonoffComboBox.Top    := 24;
+  hudonoffComboBox.Height := 26;
+
+  // Reparent Compact HUD checkbox (Left set in Reflow)
+  hudcompactCheckBox.Parent := FVisualHudBar;
+  hudcompactCheckBox.AnchorSideLeft.Control   := nil;
+  hudcompactCheckBox.AnchorSideTop.Control    := nil;
+  hudcompactCheckBox.AnchorSideRight.Control  := nil;
+  hudcompactCheckBox.AnchorSideBottom.Control := nil;
+  hudcompactCheckBox.Anchors     := [akLeft, akTop];
+  hudcompactCheckBox.Font.Color  := TextColor;
+  hudcompactCheckBox.Color       := BarBg;
+  hudcompactCheckBox.ParentColor := False;
+  hudcompactCheckBox.Top := 17;
+
+  // Reparent Hide by default checkbox (Left set in Reflow)
+  hidehudCheckBox.Parent := FVisualHudBar;
+  hidehudCheckBox.AnchorSideLeft.Control   := nil;
+  hidehudCheckBox.AnchorSideTop.Control    := nil;
+  hidehudCheckBox.AnchorSideRight.Control  := nil;
+  hidehudCheckBox.AnchorSideBottom.Control := nil;
+  hidehudCheckBox.Anchors     := [akLeft, akTop];
+  hidehudCheckBox.Font.Color  := TextColor;
+  hidehudCheckBox.Color       := BarBg;
+  hidehudCheckBox.ParentColor := False;
+  hidehudCheckBox.Top := 17;
+end;
+
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
 const
   // Original layout at base AContentW=829
@@ -11168,15 +11513,52 @@ begin
   end;
   Row2T := ROW1_T + H1 + ROW_GAP;
 
-  // Row 1
-  orientationGroupBox.SetBounds(C1, ROW1_T, ColW, H1);
-  borderGroupBox.SetBounds(C2, ROW1_T, ColW, H1);
-  backgroundGroupBox.SetBounds(C3, ROW1_T, ColW, H1);
+  // If card redesign is active, position the card panels (GroupBoxes fill them)
+  if Assigned(FVisualCards[0]) then
+  begin
+    // GPU info bar: below hudtitleEdit, above the card rows
+    if Assigned(FVisualGpuBar) then
+    begin
+      FVisualGpuBar.SetBounds(4, 52, AContentW - 8, ROW1_T - 60);
+      gpudescEdit.Width := FVisualGpuBar.ClientWidth - gpudescEdit.Left - 5;
+    end;
 
-  // Row 2
-  fontsGroupBox.SetBounds(C1, Row2T, ColW, H2);
-  positionGroupBox.SetBounds(C2, Row2T, ColW, H2);
-  columsGroupBox.SetBounds(C3, Row2T, ColW, H2);
+    // Row 1
+    FVisualCards[0].SetBounds(C1, ROW1_T, ColW, H1);
+    FVisualCards[1].SetBounds(C2, ROW1_T, ColW, H1);
+    FVisualCards[2].SetBounds(C3, ROW1_T, ColW, H1);
+    // Row 2
+    FVisualCards[3].SetBounds(C1, Row2T, ColW, H2);
+    FVisualCards[4].SetBounds(C2, Row2T, ColW, H2);
+    FVisualCards[5].SetBounds(C3, Row2T, ColW, H2);
+    // Resize GroupBoxes to overflow card by 1px on each side (hides native frame)
+    orientationGroupBox.Width  := ColW + 2;   orientationGroupBox.Height := H1 - orientationGroupBox.Top + 2;
+    borderGroupBox.Width       := ColW + 2;   borderGroupBox.Height      := H1 - borderGroupBox.Top + 2;
+    backgroundGroupBox.Width   := ColW + 2;   backgroundGroupBox.Height  := H1 - backgroundGroupBox.Top + 2;
+    fontsGroupBox.Width        := ColW + 2;   fontsGroupBox.Height       := H2 - fontsGroupBox.Top + 2;
+    positionGroupBox.Width     := ColW + 2;   positionGroupBox.Height    := H2 - positionGroupBox.Top + 2;
+    columsGroupBox.Width       := ColW + 2;   columsGroupBox.Height      := H2 - columsGroupBox.Top + 2;
+
+    // HUD settings bar: fills the space from card rows bottom to tab bottom
+    if Assigned(FVisualHudBar) then
+    begin
+      // Centre the bar vertically in the remaining space below the cards
+      FVisualHudBar.SetBounds(4, Row2T + H2 + Max(12, (presetTabSheet.ClientHeight - (Row2T + H2)) div 2 - 40), AContentW - 8, 56);
+      // Distribute checkboxes: Compact HUD centered, Hide by default right-aligned
+      hudcompactCheckBox.Left := (FVisualHudBar.ClientWidth - hudcompactCheckBox.Width) div 2;
+      hidehudCheckBox.Left    := FVisualHudBar.ClientWidth - hidehudCheckBox.Width - 16;
+    end;
+  end
+  else
+  begin
+    // Fallback: position GroupBoxes directly (no card redesign)
+    orientationGroupBox.SetBounds(C1, ROW1_T, ColW, H1);
+    borderGroupBox.SetBounds(C2, ROW1_T, ColW, H1);
+    backgroundGroupBox.SetBounds(C3, ROW1_T, ColW, H1);
+    fontsGroupBox.SetBounds(C1, Row2T, ColW, H2);
+    positionGroupBox.SetBounds(C2, Row2T, ColW, H2);
+    columsGroupBox.SetBounds(C3, Row2T, ColW, H2);
+  end;
 end;
 
 procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
