@@ -11505,6 +11505,65 @@ begin
   hidehudCheckBox.Color       := BarBg;
   hidehudCheckBox.ParentColor := False;
   hidehudCheckBox.Top := 17;
+
+  // Position card — background image: stretch to fill card, auto-resize with card
+  Image1.Stretch      := True;
+  Image1.Proportional := False;
+  Image1.AnchorSideLeft.Control   := positionGroupBox;
+  Image1.AnchorSideLeft.Side      := asrLeft;
+  Image1.AnchorSideTop.Control    := positionGroupBox;
+  Image1.AnchorSideTop.Side       := asrTop;
+  Image1.AnchorSideRight.Control  := positionGroupBox;
+  Image1.AnchorSideRight.Side     := asrRight;
+  Image1.AnchorSideBottom.Control := positionGroupBox;
+  Image1.AnchorSideBottom.Side    := asrBottom;
+  Image1.Anchors := [akLeft, akTop, akRight, akBottom];
+  Image1.BorderSpacing.Left   := 0;
+  Image1.BorderSpacing.Right  := 0;
+  Image1.BorderSpacing.Top    := 0;
+  Image1.BorderSpacing.Bottom := 0;
+
+  // Position card: release LFM anchor references from all 8 radio buttons so
+  // ReflowVisualTab can place them proportionally within the monitor blue screen.
+  // offsetxSpinEdit (anchors to middleleft) and offsetySpinEdit (anchors to
+  // topcenter) are intentionally kept — they will follow the radio buttons.
+  topleftRadioButton.AnchorSideLeft.Control   := nil;
+  topleftRadioButton.AnchorSideTop.Control    := nil;
+  topleftRadioButton.Anchors := [akLeft, akTop];
+
+  topcenterRadioButton.AnchorSideLeft.Control := nil;
+  topcenterRadioButton.AnchorSideTop.Control  := nil;
+  topcenterRadioButton.Anchors := [akLeft, akTop];
+
+  toprightRadioButton.AnchorSideLeft.Control  := nil;
+  toprightRadioButton.AnchorSideTop.Control   := nil;
+  toprightRadioButton.AnchorSideRight.Control := nil;
+  toprightRadioButton.Anchors := [akLeft, akTop];
+
+  middleleftRadioButton.AnchorSideLeft.Control := nil;
+  middleleftRadioButton.AnchorSideTop.Control  := nil;
+  middleleftRadioButton.Anchors := [akLeft, akTop];
+
+  middlerightRadioButton.AnchorSideLeft.Control  := nil;
+  middlerightRadioButton.AnchorSideTop.Control   := nil;
+  middlerightRadioButton.AnchorSideRight.Control := nil;
+  middlerightRadioButton.Anchors := [akLeft, akTop];
+
+  bottomleftRadioButton.AnchorSideLeft.Control   := nil;
+  bottomleftRadioButton.AnchorSideTop.Control    := nil;
+  bottomleftRadioButton.AnchorSideBottom.Control := nil;
+  bottomleftRadioButton.Anchors := [akLeft, akTop];
+
+  bottomcenterRadioButton.AnchorSideLeft.Control   := nil;
+  bottomcenterRadioButton.AnchorSideTop.Control    := nil;
+  bottomcenterRadioButton.AnchorSideBottom.Control := nil;
+  bottomcenterRadioButton.Anchors := [akLeft, akTop];
+
+  bottomrightRadioButton.AnchorSideLeft.Control   := nil;
+  bottomrightRadioButton.AnchorSideTop.Control    := nil;
+  bottomrightRadioButton.AnchorSideRight.Control  := nil;
+  bottomrightRadioButton.AnchorSideBottom.Control := nil;
+  bottomrightRadioButton.Anchors := [akLeft, akTop];
 end;
 
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
@@ -11521,6 +11580,8 @@ const
   MIN_GAP   = 8;
 var
   ColW, Gap, Center, C1, C2, C3, Row2T: Integer;
+  GBW, GBH, RW, RH: Integer;
+  CL, CC, CR, RT, RM, RB: Integer;
 begin
   ColW   := Max(MIN_COLW, AContentW * BASE_COLW div BASE_W);
   Gap    := Max(MIN_GAP,  AContentW * BASE_GAP  div BASE_W);
@@ -11563,6 +11624,31 @@ begin
     fontsGroupBox.Width        := ColW + 2;   fontsGroupBox.Height       := H2 - fontsGroupBox.Top + 2;
     positionGroupBox.Width     := ColW + 2;   positionGroupBox.Height    := H2 - positionGroupBox.Top + 2;
     columsGroupBox.Width       := ColW + 2;   columsGroupBox.Height      := H2 - columsGroupBox.Top + 2;
+
+    // Reposition Position card radio buttons proportionally within the monitor
+    // blue-screen area. Proportions come from the original monitor image:
+    //   horizontal: ~9% to ~91% of GroupBox client width
+    //   vertical  : ~13% to ~74% of GroupBox client height
+    // offsetxSpinEdit and offsetySpinEdit anchor to middleleft/topcenter
+    // respectively and will reposition automatically after SetBounds.
+    GBW := positionGroupBox.ClientWidth;
+    GBH := positionGroupBox.ClientHeight;
+    RW  := topleftRadioButton.Width;
+    RH  := topleftRadioButton.Height;
+    CL  := Round(GBW * 0.094) - RW div 2;  // left column
+    CC  := GBW div 2 - RW div 2;           // center column
+    CR  := Round(GBW * 0.906) - RW div 2;  // right column
+    RT  := Round(GBH * 0.131) - RH div 2;  // top row
+    RM  := Round(GBH * 0.434) - RH div 2;  // middle row
+    RB  := Round(GBH * 0.737) - RH div 2;  // bottom row
+    topleftRadioButton.SetBounds(CL, RT, RW, RH);
+    topcenterRadioButton.SetBounds(CC, RT, RW, RH);
+    toprightRadioButton.SetBounds(CR, RT, RW, RH);
+    middleleftRadioButton.SetBounds(CL, RM, RW, RH);
+    middlerightRadioButton.SetBounds(CR, RM, RW, RH);
+    bottomleftRadioButton.SetBounds(CL, RB, RW, RH);
+    bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
+    bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
 
     // HUD settings bar: fills the space from card rows bottom to tab bottom
     if Assigned(FVisualHudBar) then
@@ -11696,57 +11782,86 @@ var
 begin
   IsLight := CurrentTheme = tmLight;
 
-  // Grid total size
+  // ── Step 1: Release every LFM anchor that points to fpslimCheckGroup ────────
+  // Each control keeps its LCL-computed position after nil. Explicit SetBounds
+  // is used where both AnchorSideLeft+Right referenced the same edge (ambiguous
+  // width), to restore the LFM-designed values.
+  fpscolorCheckBox.AnchorSideLeft.Control   := nil;
+  fpscolorCheckBox.AnchorSideTop.Control    := nil;
+  fpscolorCheckBox.AnchorSideBottom.Control := nil;
+  fpscolorCheckBox.Anchors := [akLeft, akTop];
+
+  fpscolor1ColorButton.AnchorSideLeft.Control   := nil;
+  fpscolor1ColorButton.AnchorSideTop.Control    := nil;
+  fpscolor1ColorButton.AnchorSideBottom.Control := nil;
+  fpscolor1ColorButton.Anchors := [akLeft, akTop];
+
+  fpscolor2ColorButton.AnchorSideLeft.Control   := nil;
+  fpscolor2ColorButton.AnchorSideTop.Control    := nil;
+  fpscolor2ColorButton.AnchorSideBottom.Control := nil;
+  fpscolor2ColorButton.Anchors := [akLeft, akTop];
+
+  fpscolor3ColorButton.AnchorSideLeft.Control   := nil;
+  fpscolor3ColorButton.AnchorSideRight.Control  := nil;
+  fpscolor3ColorButton.AnchorSideTop.Control    := nil;
+  fpscolor3ColorButton.AnchorSideBottom.Control := nil;
+  fpscolor3ColorButton.Anchors := [akLeft, akTop];
+  fpscolor3ColorButton.SetBounds(227, 233, 80, fpscolor3ColorButton.Height);
+
+  offsetSpinEdit.AnchorSideLeft.Control  := nil;
+  offsetSpinEdit.AnchorSideTop.Control   := nil;
+  offsetSpinEdit.AnchorSideRight.Control := nil;
+  offsetSpinEdit.Anchors := [akLeft, akTop];
+  offsetSpinEdit.SetBounds(318, 95, 45, offsetSpinEdit.Height);
+
+  fpslimLabel.AnchorSideLeft.Control   := nil;
+  fpslimLabel.AnchorSideBottom.Control := nil;
+  fpslimLabel.Anchors := [akLeft, akTop];
+
+  // ── Step 2: Hide the TCheckGroup — all dependencies freed, no other ─────────
+  // control will move. The GTK native border disappears completely.
+  fpslimCheckGroup.Visible := False;
+
+  // ── Step 3: Create chip container in the same area ──────────────────────────
   ContW := COLS * CHIP_W + (COLS - 1) * GAP_X;   // 218px
   ContH := ROWS * CHIP_H + (ROWS - 1) * GAP_Y;   // 130px
 
-  // Container is positioned exactly over fpslimCheckGroup and brought to front,
-  // so it covers it visually without breaking any anchor-based controls that
-  // depend on fpslimCheckGroup for positioning (fpscolorCheckBox, color buttons…).
-  // Container covers fpslimCheckGroup exactly, +2px on left/top to also hide
-  // the native GTK border that appears on those edges.
   Container := TPanel.Create(Self);
   Container.Parent      := fpslimiterGroupBox;
   Container.BevelOuter  := bvNone;
   Container.Caption     := '';
   Container.ParentColor := False;
-  Container.Color       := IfThen(IsLight, $00FFFFFF, $00362E2E); // card bg
+  Container.Color       := IfThen(IsLight, $00FFFFFF, $00362E2E);
   Container.Anchors     := [akLeft, akTop];
   Container.SetBounds(
-    fpslimCheckGroup.Left - 2,
-    fpslimCheckGroup.Top  - 2,
-    fpslimCheckGroup.Width  + 12,
-    fpslimCheckGroup.Height + 4
+    fpslimCheckGroup.Left,
+    fpslimCheckGroup.Top,
+    fpslimCheckGroup.Width,
+    fpslimCheckGroup.Height
   );
-  Container.BringToFront;
   FFpsChipPanel := Container;
 
-  // Also paint the checkgroup with card bg so any pixel that leaks is invisible
-  fpslimCheckGroup.Color      := IfThen(IsLight, $00FFFFFF, $00362E2E);
-  fpslimCheckGroup.ParentBackground := False;
+  // Center chip grid inside the container
+  OffX := (fpslimCheckGroup.Width  - ContW) div 2;
+  OffY := (fpslimCheckGroup.Height - ContH) div 2;
 
-  // Center chip grid inside the container (accounting for the 2px expansion)
-  OffX := (fpslimCheckGroup.Width  - ContW) div 2 + 2;
-  OffY := (fpslimCheckGroup.Height - ContH) div 2 + 2;
-
-  // Build individual chips
+  // ── Step 4: Build individual chips ─────────────────────────────────────────
   for i := 0 to 15 do
   begin
     Col := i mod COLS;
     Row := i div COLS;
 
     Chip := TPanel.Create(Self);
-    Chip.Parent      := Container;
-    Chip.BevelOuter  := bvNone;
-    Chip.BorderStyle := bsNone;
-    Chip.Caption     := FPS_VALUES[i];
-    Chip.Tag         := i;
-    Chip.Cursor      := crHandPoint;
-    Chip.Font.Name   := 'Noto Sans';
-    Chip.Font.Size   := 8;
+    Chip.Parent       := Container;
+    Chip.BevelOuter   := bvNone;
+    Chip.BorderStyle  := bsNone;
+    Chip.Caption      := FPS_VALUES[i];
+    Chip.Tag          := i;
+    Chip.Cursor       := crHandPoint;
+    Chip.Font.Name    := 'Noto Sans';
+    Chip.Font.Size    := 8;
     Chip.Font.Quality := fqAntialiased;
 
-    // Initial state: restore from TCheckGroup (loaded from config)
     if fpslimCheckGroup.Checked[i] then
     begin
       Chip.Color      := clHighlight;
