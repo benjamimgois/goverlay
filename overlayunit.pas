@@ -631,6 +631,10 @@ type
     FPerfCards:   array[0..3] of TPanel;
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
 
+    // FPS Limit chip grid
+    FFpsChips:     array[0..15] of TPanel; // One chip per fps value
+    FFpsChipPanel: TPanel;                 // Container panel for all chips
+
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure PresetCardPaint(Sender: TObject);
@@ -675,6 +679,10 @@ type
     procedure VisualCardPaint(Sender: TObject);
     procedure UpdateVisualCardTheme;
     procedure InitPerformanceTab;
+    procedure BuildFpsChips;
+    procedure FpsChipClick(Sender: TObject);
+    procedure FpsChipMouseEnter(Sender: TObject);
+    procedure FpsChipMouseLeave(Sender: TObject);
     procedure UpdatePerfCardTheme;
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
@@ -3771,7 +3779,11 @@ begin
   finally
     ConfigLines.Free;
   end;
+
+  // Sync FPS chip visuals with the newly loaded checkgroup state
+  UpdatePerfCardTheme;
 end;
+
 
 procedure Tgoverlayform.SaveMangoHudConfig;
 var
@@ -3780,6 +3792,7 @@ var
   FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
   SelectedValues: TStringList;
   i,TempFPS, MaxFPS: Integer;
+
   TempFiles, FontDirs: TStringList;
   TempFile: string;
   FS: TFormatSettings;
@@ -11574,6 +11587,197 @@ begin
 end;
 
 // ============================================================================
+// FPS LIMIT CHIPS — visual tag-style chip grid
+// ============================================================================
+
+const
+  FPS_VALUES: array[0..15] of string = (
+    '500','360','280','240','175','165','144','120','90','75','60','48','45','40','30','0');
+
+procedure Tgoverlayform.FpsChipClick(Sender: TObject);
+var
+  Chip: TPanel;
+  Idx, i, MaxFPS, FpsVal: Integer;
+  IsChecked: Boolean;
+  IsLight: Boolean;
+  ChipBg, ChipText, AccentColor: TColor;
+begin
+  Chip := TPanel(Sender);
+  Idx  := Chip.Tag;
+  if (Idx < 0) or (Idx > 15) then Exit;
+
+  // Toggle state on the backing TCheckGroup
+  IsChecked := not fpslimCheckGroup.Checked[Idx];
+  fpslimCheckGroup.Checked[Idx] := IsChecked;
+
+  // Update chip visual
+  IsLight     := CurrentTheme = tmLight;
+  AccentColor := clHighlight;  // system highlight = blue accent
+  if IsChecked then
+  begin
+    Chip.Color      := AccentColor;
+    Chip.Font.Color := clWhite;
+    Chip.Font.Style := [fsBold];
+  end
+  else
+  begin
+    ChipBg     := IfThen(IsLight, $00F0EEEE, $003E3636);
+    ChipText   := IfThen(IsLight, $00444040, $00CCCCCC);
+    Chip.Color      := ChipBg;
+    Chip.Font.Color := ChipText;
+    Chip.Font.Style := [];
+  end;
+  Chip.Invalidate;
+
+  // Recalculate FPS color spinedits: find the highest checked FPS value
+  MaxFPS := 0;
+  for i := 0 to fpslimCheckGroup.Items.Count - 1 do
+  begin
+    if fpslimCheckGroup.Checked[i] then
+    begin
+      FpsVal := StrToIntDef(fpslimCheckGroup.Items[i], 0);
+      if FpsVal > MaxFPS then
+        MaxFPS := FpsVal;
+    end;
+  end;
+  if MaxFPS = 0 then
+    MaxFPS := 60;  // fallback when nothing or only 0 is selected
+  fpscolor3SpinEdit.Value := MaxFPS;
+  fpscolor2SpinEdit.Value := Round(MaxFPS / 2);
+end;
+
+procedure Tgoverlayform.FpsChipMouseEnter(Sender: TObject);
+var
+  Chip: TPanel;
+  Idx: Integer;
+  IsLight: Boolean;
+begin
+  Chip := TPanel(Sender);
+  Idx  := Chip.Tag;
+  if (Idx < 0) or (Idx > 15) then Exit;
+  if fpslimCheckGroup.Checked[Idx] then Exit; // already selected, no hover effect
+  IsLight := CurrentTheme = tmLight;
+  Chip.Color := IfThen(IsLight, $00DDD8D8, $00504848);
+  Chip.Invalidate;
+end;
+
+procedure Tgoverlayform.FpsChipMouseLeave(Sender: TObject);
+var
+  Chip: TPanel;
+  Idx: Integer;
+  IsLight: Boolean;
+  ChipBg: TColor;
+begin
+  Chip := TPanel(Sender);
+  Idx  := Chip.Tag;
+  if (Idx < 0) or (Idx > 15) then Exit;
+  if fpslimCheckGroup.Checked[Idx] then Exit; // already selected
+  IsLight := CurrentTheme = tmLight;
+  ChipBg  := IfThen(IsLight, $00F0EEEE, $003E3636);
+  Chip.Color := ChipBg;
+  Chip.Invalidate;
+end;
+
+procedure Tgoverlayform.BuildFpsChips;
+const
+  CHIP_W  = 50;
+  CHIP_H  = 28;
+  GAP_X   = 6;
+  GAP_Y   = 6;
+  COLS    = 4;
+  ROWS    = 4;
+var
+  i, Col, Row: Integer;
+  Chip: TPanel;
+  Container: TPanel;
+  IsLight: Boolean;
+  ChipBg, ChipText: TColor;
+  ContW, ContH, OffX, OffY: Integer;
+begin
+  IsLight := CurrentTheme = tmLight;
+
+  // Grid total size
+  ContW := COLS * CHIP_W + (COLS - 1) * GAP_X;   // 218px
+  ContH := ROWS * CHIP_H + (ROWS - 1) * GAP_Y;   // 130px
+
+  // Container is positioned exactly over fpslimCheckGroup and brought to front,
+  // so it covers it visually without breaking any anchor-based controls that
+  // depend on fpslimCheckGroup for positioning (fpscolorCheckBox, color buttons…).
+  // Container covers fpslimCheckGroup exactly, +2px on left/top to also hide
+  // the native GTK border that appears on those edges.
+  Container := TPanel.Create(Self);
+  Container.Parent      := fpslimiterGroupBox;
+  Container.BevelOuter  := bvNone;
+  Container.Caption     := '';
+  Container.ParentColor := False;
+  Container.Color       := IfThen(IsLight, $00FFFFFF, $00362E2E); // card bg
+  Container.Anchors     := [akLeft, akTop];
+  Container.SetBounds(
+    fpslimCheckGroup.Left - 2,
+    fpslimCheckGroup.Top  - 2,
+    fpslimCheckGroup.Width  + 12,
+    fpslimCheckGroup.Height + 4
+  );
+  Container.BringToFront;
+  FFpsChipPanel := Container;
+
+  // Also paint the checkgroup with card bg so any pixel that leaks is invisible
+  fpslimCheckGroup.Color      := IfThen(IsLight, $00FFFFFF, $00362E2E);
+  fpslimCheckGroup.ParentBackground := False;
+
+  // Center chip grid inside the container (accounting for the 2px expansion)
+  OffX := (fpslimCheckGroup.Width  - ContW) div 2 + 2;
+  OffY := (fpslimCheckGroup.Height - ContH) div 2 + 2;
+
+  // Build individual chips
+  for i := 0 to 15 do
+  begin
+    Col := i mod COLS;
+    Row := i div COLS;
+
+    Chip := TPanel.Create(Self);
+    Chip.Parent      := Container;
+    Chip.BevelOuter  := bvNone;
+    Chip.BorderStyle := bsNone;
+    Chip.Caption     := FPS_VALUES[i];
+    Chip.Tag         := i;
+    Chip.Cursor      := crHandPoint;
+    Chip.Font.Name   := 'Noto Sans';
+    Chip.Font.Size   := 8;
+    Chip.Font.Quality := fqAntialiased;
+
+    // Initial state: restore from TCheckGroup (loaded from config)
+    if fpslimCheckGroup.Checked[i] then
+    begin
+      Chip.Color      := clHighlight;
+      Chip.Font.Color := clWhite;
+      Chip.Font.Style := [fsBold];
+    end
+    else
+    begin
+      ChipBg   := IfThen(IsLight, $00F0EEEE, $003E3636);
+      ChipText := IfThen(IsLight, $00444040, $00CCCCCC);
+      Chip.Color      := ChipBg;
+      Chip.Font.Color := ChipText;
+      Chip.Font.Style := [];
+    end;
+
+    Chip.SetBounds(
+      OffX + Col * (CHIP_W + GAP_X),
+      OffY + Row * (CHIP_H + GAP_Y),
+      CHIP_W,
+      CHIP_H
+    );
+
+    Chip.OnClick      := @FpsChipClick;
+    Chip.OnMouseEnter := @FpsChipMouseEnter;
+    Chip.OnMouseLeave := @FpsChipMouseLeave;
+
+    FFpsChips[i] := Chip;
+  end;
+end;
+
+// ============================================================================
 // PERFORMANCE TAB — card redesign
 // ============================================================================
 
@@ -11719,10 +11923,17 @@ begin
   MakeCard(2, CARD_TITLES[2], ROW1_TOP, ROW1_H);
   MakeCard(3, CARD_TITLES[3], ROW2_TOP, ROW2_H);
 
-  // VSYNC card — layout rows for Vulkan and OpenGL with a separator
-  MakeVsyncRow(0, 4,  50, vulkanImage, vsyncComboBox);
-  MakeVsyncRow(1, 58, 58, openglImage, glvsyncComboBox);
-  AddVsyncSeparator;
+  // VSYNC card — Vulkan in top half, OpenGL in bottom half, no separator
+  MakeVsyncRow(0, 0,
+    vsyncGroupBox.ClientHeight div 2,
+    vulkanImage, vsyncComboBox);
+  MakeVsyncRow(1,
+    vsyncGroupBox.ClientHeight div 2,
+    vsyncGroupBox.ClientHeight - vsyncGroupBox.ClientHeight div 2,
+    openglImage, glvsyncComboBox);
+
+  // FPS Limit chips — visual tag grid replacing TCheckGroup
+  BuildFpsChips;
 end;
 
 procedure Tgoverlayform.UpdatePerfCardTheme;
@@ -11776,6 +11987,29 @@ begin
       for j := 0 to FVsyncRows[i].ControlCount - 1 do
         if FVsyncRows[i].Controls[j] is TLabel then
           TLabel(FVsyncRows[i].Controls[j]).Font.Color := TextColor;
+    end;
+  end;
+
+  // FPS Limit chips: update colors for all chips based on theme + checked state
+  if Assigned(FFpsChipPanel) then
+  begin
+    FFpsChipPanel.Color := CardBg;
+    for i := 0 to 15 do
+    begin
+      if not Assigned(FFpsChips[i]) then Continue;
+      if fpslimCheckGroup.Checked[i] then
+      begin
+        FFpsChips[i].Color      := clHighlight;
+        FFpsChips[i].Font.Color := clWhite;
+        FFpsChips[i].Font.Style := [fsBold];
+      end
+      else
+      begin
+        FFpsChips[i].Color      := IfThen(CurrentTheme = tmLight, $00F0EEEE, $003E3636);
+        FFpsChips[i].Font.Color := TextColor;
+        FFpsChips[i].Font.Style := [];
+      end;
+      FFpsChips[i].Invalidate;
     end;
   end;
 end;
