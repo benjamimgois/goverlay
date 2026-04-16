@@ -11779,6 +11779,7 @@ var
   IsLight: Boolean;
   ChipBg, ChipText: TColor;
   ContW, ContH, OffX, OffY: Integer;
+  TitleLbl: TLabel;
 begin
   IsLight := CurrentTheme = tmLight;
 
@@ -11817,6 +11818,7 @@ begin
   fpslimLabel.AnchorSideLeft.Control   := nil;
   fpslimLabel.AnchorSideBottom.Control := nil;
   fpslimLabel.Anchors := [akLeft, akTop];
+  fpslimLabel.Visible := False;
 
   // ── Step 2: Hide the TCheckGroup — all dependencies freed, no other ─────────
   // control will move. The GTK native border disappears completely.
@@ -11840,6 +11842,16 @@ begin
     fpslimCheckGroup.Height
   );
   FFpsChipPanel := Container;
+
+  TitleLbl := TLabel.Create(Self);
+  TitleLbl.Parent := fpslimiterGroupBox;
+  TitleLbl.Caption := 'FPS Limit';
+  TitleLbl.Font.Name := 'Noto Sans';
+  TitleLbl.Font.Color := IfThen(IsLight, $00444040, clWhite);
+  TitleLbl.Font.Style := [fsBold];
+  TitleLbl.Transparent := True;
+  TitleLbl.SetBounds(fpslimCheckGroup.Left + 6, fpslimCheckGroup.Top - 18, 100, 20);
+  TitleLbl.Anchors := [akLeft, akTop];
 
   // Center chip grid inside the container
   OffX := (fpslimCheckGroup.Width  - ContW) div 2;
