@@ -628,7 +628,9 @@ type
     FVisualHudBar: TPanel;
     
     // Key capture references
-    FCaptureTarget: TEdit;   // read-only edit that shows the active keybind
+    FCaptureTarget: TEdit;   // current active target during capture
+    FVisualCaptureTarget: TEdit;
+    FLimitCaptureTarget: TEdit;
     FCaptureForm:   TForm;
 
     // Performance tab code-generated cards
@@ -3517,11 +3519,11 @@ begin
       else if SameText(Key, 'toggle_hud') then
       begin
         hudonoffComboBox.Text := Value;
-        if Assigned(FCaptureTarget) then
+        if Assigned(FVisualCaptureTarget) then
         begin
-          FCaptureTarget.ReadOnly := False;
-          FCaptureTarget.Text := Value;
-          FCaptureTarget.ReadOnly := True;
+          FVisualCaptureTarget.ReadOnly := False;
+          FVisualCaptureTarget.Text := Value;
+          FVisualCaptureTarget.ReadOnly := True;
         end;
       end
       else if SameText(Key, 'table_columns') then
@@ -3622,16 +3624,13 @@ begin
       end
       else if SameText(Key, 'toggle_fps_limit') then
       begin
-        if SameText(Value, 'Shift_L+F1') then
-          fpslimtoggleComboBox.ItemIndex := 0
-        else if SameText(Value, 'Shift_L+F2') then
-          fpslimtoggleComboBox.ItemIndex := 1
-        else if SameText(Value, 'Shift_L+F3') then
-          fpslimtoggleComboBox.ItemIndex := 2
-        else if SameText(Value, 'Shift_L+F4') then
-          fpslimtoggleComboBox.ItemIndex := 3
-        else
-          fpslimtoggleComboBox.ItemIndex := 4;
+        fpslimtoggleComboBox.Text := Value;
+        if Assigned(FLimitCaptureTarget) then
+        begin
+          FLimitCaptureTarget.ReadOnly := False;
+          FLimitCaptureTarget.Text := Value;
+          FLimitCaptureTarget.ReadOnly := True;
+        end;
       end
       else if SameText(Key, 'vsync') then
       begin
@@ -3918,8 +3917,8 @@ begin
       ConfigLines.Add('offset_y=' + IntToStr(offsetySpinEdit.Value));
 
     // Toggle HUD — use the visible TEdit when available, fallback to hidden ComboBox
-    if Assigned(FCaptureTarget) and (Trim(FCaptureTarget.Text) <> '') then
-      ConfigLines.Add('toggle_hud=' + FCaptureTarget.Text)
+    if Assigned(FVisualCaptureTarget) and (Trim(FVisualCaptureTarget.Text) <> '') then
+      ConfigLines.Add('toggle_hud=' + FVisualCaptureTarget.Text)
     else if Trim(hudonoffComboBox.Text) <> '' then
       ConfigLines.Add('toggle_hud=' + hudonoffComboBox.Text);
 
@@ -4171,12 +4170,10 @@ begin
     end;
 
     // FPS limit toggle
-    case fpslimtoggleComboBox.ItemIndex of
-      0: ConfigLines.Add('toggle_fps_limit=Shift_L+F1');
-      1: ConfigLines.Add('toggle_fps_limit=Shift_L+F2');
-      2: ConfigLines.Add('toggle_fps_limit=Shift_L+F3');
-      3: ConfigLines.Add('toggle_fps_limit=Shift_L+F4');
-    end;
+    if Assigned(FLimitCaptureTarget) and (Trim(FLimitCaptureTarget.Text) <> '') then
+      ConfigLines.Add('toggle_fps_limit=' + FLimitCaptureTarget.Text)
+    else if Trim(fpslimtoggleComboBox.Text) <> '' then
+      ConfigLines.Add('toggle_fps_limit=' + fpslimtoggleComboBox.Text);
 
     // FPS limits (from checkgroup)
     SelectedValues := TStringList.Create;
@@ -11373,7 +11370,13 @@ var
 begin
   if not Assigned(Sender) then Exit;
   
-  // Guard: FCaptureTarget should already be set up in InitVisualTab
+  // Set the capture target based on the button's Tag
+  // 1 = Visual Tab, 2 = Performance Tab
+  if TBitBtn(Sender).Tag = 1 then
+    FCaptureTarget := FVisualCaptureTarget
+  else if TBitBtn(Sender).Tag = 2 then
+    FCaptureTarget := FLimitCaptureTarget;
+
   if not Assigned(FCaptureTarget) then Exit;
 
   FCaptureForm := TForm.Create(Self);
@@ -11591,26 +11594,27 @@ begin
   begin
     Parent := FVisualHudBar;
     Caption := '⌨ Capture';
+    Tag := 1; // Visual Tab
     SetBounds(11, 24, 85, 28);
     OnClick := @CaptureBtnClick;
     Cursor := crHandPoint;
   end;
 
-  // Styled read-only TEdit — sits to the right of the Capture button
-  FCaptureTarget := TEdit.Create(Self);
-  FCaptureTarget.Parent    := FVisualHudBar;
-  FCaptureTarget.ReadOnly  := True;
-  FCaptureTarget.Text      := hudonoffComboBox.Text;
-  FCaptureTarget.Font.Name := 'Noto Mono';
-  FCaptureTarget.Font.Size := 9;
-  FCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
-  FCaptureTarget.Color      := IfThen(IsLight, $00EBEBEB, $00282020);
-  FCaptureTarget.BorderStyle := bsSingle;
-  FCaptureTarget.Anchors   := [akLeft, akTop];
-  FCaptureTarget.Left      := 11 + 85 + 6;   // button left + button width + gap
-  FCaptureTarget.Top       := 24;
-  FCaptureTarget.Width     := 120;
-  FCaptureTarget.Height    := 28;
+  // Create a styled read-only TEdit to display the captured shortcut
+  FVisualCaptureTarget := TEdit.Create(Self);
+  FVisualCaptureTarget.Parent    := FVisualHudBar;
+  FVisualCaptureTarget.ReadOnly  := True;
+  FVisualCaptureTarget.Text      := hudonoffComboBox.Text;
+  FVisualCaptureTarget.Font.Name := 'Noto Mono';
+  FVisualCaptureTarget.Font.Size := 9;
+  FVisualCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
+  FVisualCaptureTarget.Color      := IfThen(IsLight, $00EBEBEB, $00282020);
+  FVisualCaptureTarget.BorderStyle := bsSingle;
+  FVisualCaptureTarget.Anchors   := [akLeft, akTop];
+  FVisualCaptureTarget.Left      := 11 + 85 + 6;   // button left + button width + gap
+  FVisualCaptureTarget.Top       := 24;
+  FVisualCaptureTarget.Width     := 120;
+  FVisualCaptureTarget.Height    := 28;
 
   // Reparent Compact HUD checkbox (Left set in Reflow)
   hudcompactCheckBox.Parent := FVisualHudBar;
@@ -12120,6 +12124,47 @@ const
     GB.Top     := GB_OFFSET - 1;
     GB.Width   := Card.Width + 2;
     GB.Height  := Card.Height - GB_OFFSET + 2;
+
+    // Custom UI for FPS Limit Toggle in Limiters card (AIndex = 1)
+    if AIndex = 1 then
+    begin
+      fpslimtoggleComboBox.Visible := False;
+      fpstoggleImage.Visible := False;
+
+      // Reposition and theme the existing label
+      limtoggleLabel.AnchorSideLeft.Control   := nil;
+      limtoggleLabel.AnchorSideTop.Control    := nil;
+      limtoggleLabel.AnchorSideRight.Control  := nil;
+      limtoggleLabel.AnchorSideBottom.Control := nil;
+      limtoggleLabel.Anchors := [akLeft, akTop];
+      limtoggleLabel.Left    := GB.ClientWidth - 211 - 11;
+      limtoggleLabel.Top     := 321 - 22;
+      limtoggleLabel.Font.Color := TextColor;
+      limtoggleLabel.ParentColor := True;
+
+      // Capture Button
+      with TBitBtn.Create(GB) do
+      begin
+        Parent := GB;
+        Caption := '⌨ Capture';
+        Tag := 2; // Performance Tab
+        SetBounds(limtoggleLabel.Left, 321, 85, 28);
+        OnClick := @CaptureBtnClick;
+        Cursor := crHandPoint;
+      end;
+
+      // Styled TEdit
+      FLimitCaptureTarget := TEdit.Create(GB);
+      FLimitCaptureTarget.Parent := GB;
+      FLimitCaptureTarget.ReadOnly := True;
+      FLimitCaptureTarget.Text := fpslimtoggleComboBox.Text;
+      FLimitCaptureTarget.Font.Name := 'Noto Mono';
+      FLimitCaptureTarget.Font.Size := 9;
+      FLimitCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
+      FLimitCaptureTarget.Color := IfThen(IsLight, $00EBEBEB, $00282020);
+      FLimitCaptureTarget.BorderStyle := bsSingle;
+      FLimitCaptureTarget.SetBounds(limtoggleLabel.Left + 85 + 6, 321, 120, 28);
+    end;
   end;
 
   procedure MakeVsyncRow(AIndex: Integer; ARow, AHeight: Integer;
