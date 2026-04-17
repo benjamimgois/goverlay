@@ -626,6 +626,10 @@ type
     FVisualCards:  array[0..5] of TPanel;
     FVisualGpuBar: TPanel;
     FVisualHudBar: TPanel;
+    
+    // Key capture references
+    FCaptureTarget: TEdit;   // read-only edit that shows the active keybind
+    FCaptureForm:   TForm;
 
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
@@ -678,6 +682,8 @@ type
     procedure InitVisualTab;
     procedure VisualCardPaint(Sender: TObject);
     procedure UpdateVisualCardTheme;
+    procedure CaptureBtnClick(Sender: TObject);
+    procedure CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure InitPerformanceTab;
     procedure BuildFpsChips;
     procedure FpsChipClick(Sender: TObject);
@@ -3510,18 +3516,13 @@ begin
       end
       else if SameText(Key, 'toggle_hud') then
       begin
-        if SameText(Value, 'Shift_R+F12') then
-          hudonoffComboBox.ItemIndex := 0
-        else if SameText(Value, 'Shift_R+F1') then
-          hudonoffComboBox.ItemIndex := 1
-        else if SameText(Value, 'Shift_R+F2') then
-          hudonoffComboBox.ItemIndex := 2
-        else if SameText(Value, 'Shift_R+F3') then
-          hudonoffComboBox.ItemIndex := 3
-        else if SameText(Value, 'Shift_R+F4') then
-          hudonoffComboBox.ItemIndex := 4
-        else
-          hudonoffComboBox.ItemIndex := 5;
+        hudonoffComboBox.Text := Value;
+        if Assigned(FCaptureTarget) then
+        begin
+          FCaptureTarget.ReadOnly := False;
+          FCaptureTarget.Text := Value;
+          FCaptureTarget.ReadOnly := True;
+        end;
       end
       else if SameText(Key, 'table_columns') then
       begin
@@ -3916,15 +3917,11 @@ begin
     if offsetySpinEdit.Value <> 0 then
       ConfigLines.Add('offset_y=' + IntToStr(offsetySpinEdit.Value));
 
-    // Toggle HUD
-    case hudonoffComboBox.ItemIndex of
-      0: ConfigLines.Add('toggle_hud=Shift_R+F12');
-      1: ConfigLines.Add('toggle_hud=Shift_R+F1');
-      2: ConfigLines.Add('toggle_hud=Shift_R+F2');
-      3: ConfigLines.Add('toggle_hud=Shift_R+F3');
-      4: ConfigLines.Add('toggle_hud=Shift_R+F4');
-      5: ConfigLines.Add('toggle_hud=none');
-    end;
+    // Toggle HUD — use the visible TEdit when available, fallback to hidden ComboBox
+    if Assigned(FCaptureTarget) and (Trim(FCaptureTarget.Text) <> '') then
+      ConfigLines.Add('toggle_hud=' + FCaptureTarget.Text)
+    else if Trim(hudonoffComboBox.Text) <> '' then
+      ConfigLines.Add('toggle_hud=' + hudonoffComboBox.Text);
 
     // Hide HUD
     AddIfChecked(hidehudCheckBox, 'no_display');
@@ -11293,6 +11290,123 @@ begin
   end;
 end;
 
+// ============================================================================
+// KEYBIND CAPTURE
+// ============================================================================
+
+procedure Tgoverlayform.CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  KeyStr, ModStr, FinalStr: string;
+begin
+  KeyStr := '';
+  ModStr := '';
+
+  if Key = VK_ESCAPE then
+  begin
+    if Assigned(FCaptureForm) then
+      FCaptureForm.ModalResult := mrCancel;
+    Key := 0;
+    Exit;
+  end;
+
+  // Ignore pure modifier presses until a real key is pressed
+  if (Key = VK_SHIFT) or (Key = VK_CONTROL) or (Key = VK_MENU) or (Key = VK_LWIN) or (Key = VK_RWIN) then
+    Exit;
+
+  // Modifiers formatting for MangoHud X11 Keysyms
+  if ssShift in Shift then ModStr := ModStr + 'Shift_L+';
+  if ssCtrl  in Shift then ModStr := ModStr + 'Control_L+';
+  if ssAlt   in Shift then ModStr := ModStr + 'Alt_L+';
+  if ssSuper in Shift then ModStr := ModStr + 'Super_L+';
+
+  if (Key >= VK_A) and (Key <= VK_Z) then
+    KeyStr := Chr(Key)
+  else if (Key >= VK_0) and (Key <= VK_9) then
+    KeyStr := Chr(Key)
+  else if (Key >= VK_NUMPAD0) and (Key <= VK_NUMPAD9) then
+    KeyStr := 'KP_' + IntToStr(Key - VK_NUMPAD0)
+  else if (Key >= VK_F1) and (Key <= VK_F24) then
+    KeyStr := 'F' + IntToStr(Key - VK_F1 + 1)
+  else
+  begin
+    case Key of
+      VK_SPACE:  KeyStr := 'space';
+      VK_RETURN: KeyStr := 'Return';
+      VK_TAB:    KeyStr := 'Tab';
+      VK_INSERT: KeyStr := 'Insert';
+      VK_DELETE: KeyStr := 'Delete';
+      VK_HOME:   KeyStr := 'Home';
+      VK_END:    KeyStr := 'End';
+      VK_PRIOR:  KeyStr := 'Page_Up';
+      VK_NEXT:   KeyStr := 'Page_Down';
+      VK_UP:     KeyStr := 'Up';
+      VK_DOWN:   KeyStr := 'Down';
+      VK_LEFT:   KeyStr := 'Left';
+      VK_RIGHT:  KeyStr := 'Right';
+      186:       KeyStr := 'semicolon'; // Roughly LCL virtual key mapping
+      188:       KeyStr := 'comma';
+      190:       KeyStr := 'period';
+    else
+      // Just ignore this pressed key if we don't know it
+      Exit;
+    end;
+  end;
+
+  FinalStr := ModStr + KeyStr;
+
+  if Assigned(FCaptureTarget) then
+  begin
+    FCaptureTarget.ReadOnly := False;
+    FCaptureTarget.Text := FinalStr;
+    FCaptureTarget.ReadOnly := True;
+  end;
+
+  if Assigned(FCaptureForm) then
+    FCaptureForm.ModalResult := mrOk;
+  
+  Key := 0; // Mark as handled
+end;
+
+procedure Tgoverlayform.CaptureBtnClick(Sender: TObject);
+var
+  Lbl: TLabel;
+begin
+  if not Assigned(Sender) then Exit;
+  
+  // Guard: FCaptureTarget should already be set up in InitVisualTab
+  if not Assigned(FCaptureTarget) then Exit;
+
+  FCaptureForm := TForm.Create(Self);
+  try
+    FCaptureForm.Position := poMainFormCenter;
+    FCaptureForm.Width := 340;
+    FCaptureForm.Height := 100;
+    FCaptureForm.BorderStyle := bsSingle;
+    FCaptureForm.BorderIcons := [biSystemMenu];
+    FCaptureForm.Caption := 'Capture Key';
+    FCaptureForm.Color := IfThen(CurrentTheme = tmLight, clWhite, $00362E2E);
+    FCaptureForm.KeyPreview := True;
+    FCaptureForm.OnKeyDown := @CaptureFormKeyDown;
+
+    Lbl := TLabel.Create(FCaptureForm);
+    Lbl.Parent := FCaptureForm;
+    Lbl.AutoSize := False;
+    Lbl.Align := alClient;
+    Lbl.Alignment := taCenter;
+    Lbl.Layout := tlCenter;
+    Lbl.WordWrap := True;
+    Lbl.Font.Name := 'Noto Sans';
+    Lbl.Font.Size := 10;
+    Lbl.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
+    Lbl.Caption := 'Press the key combination you want to use as shortcut.' + sLineBreak + '(Press ESC to cancel)';
+
+    FCaptureForm.ShowModal;
+  finally
+    FCaptureForm.Free;
+    FCaptureForm := nil;
+  end;
+end;
+
 procedure Tgoverlayform.InitVisualTab;
 const
   ACCENT_H  = 3;    // accent bar height at card top
@@ -11461,26 +11575,42 @@ begin
   hudtoggleLabel.Left := 11;
   hudtoggleLabel.Top  := 6;
 
-  // Reparent keyboard icon
+  // Hide the keyboard icon — Capture button takes its place
   hudtoggleImage.Parent := FVisualHudBar;
   hudtoggleImage.AnchorSideLeft.Control   := nil;
   hudtoggleImage.AnchorSideTop.Control    := nil;
   hudtoggleImage.AnchorSideRight.Control  := nil;
   hudtoggleImage.AnchorSideBottom.Control := nil;
-  hudtoggleImage.Anchors := [akLeft, akTop];
-  hudtoggleImage.Left := 11;
-  hudtoggleImage.Top  := 26;
+  hudtoggleImage.Visible := False;
 
-  // Reparent key selector combobox — reduce height to match label spacing
-  hudonoffComboBox.Parent := FVisualHudBar;
-  hudonoffComboBox.AnchorSideLeft.Control   := nil;
-  hudonoffComboBox.AnchorSideTop.Control    := nil;
-  hudonoffComboBox.AnchorSideRight.Control  := nil;
-  hudonoffComboBox.AnchorSideBottom.Control := nil;
-  hudonoffComboBox.Anchors := [akLeft, akTop];
-  hudonoffComboBox.Left   := hudtoggleImage.Left + hudtoggleImage.Width + 4;
-  hudonoffComboBox.Top    := 24;
-  hudonoffComboBox.Height := 26;
+  // Hide the original combobox — now replaced by a styled TEdit
+  hudonoffComboBox.Visible := False;
+
+  // Capture button — now on the LEFT
+  with TBitBtn.Create(FVisualHudBar) do
+  begin
+    Parent := FVisualHudBar;
+    Caption := '⌨ Capture';
+    SetBounds(11, 24, 85, 28);
+    OnClick := @CaptureBtnClick;
+    Cursor := crHandPoint;
+  end;
+
+  // Styled read-only TEdit — sits to the right of the Capture button
+  FCaptureTarget := TEdit.Create(Self);
+  FCaptureTarget.Parent    := FVisualHudBar;
+  FCaptureTarget.ReadOnly  := True;
+  FCaptureTarget.Text      := hudonoffComboBox.Text;
+  FCaptureTarget.Font.Name := 'Noto Mono';
+  FCaptureTarget.Font.Size := 9;
+  FCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
+  FCaptureTarget.Color      := IfThen(IsLight, $00EBEBEB, $00282020);
+  FCaptureTarget.BorderStyle := bsSingle;
+  FCaptureTarget.Anchors   := [akLeft, akTop];
+  FCaptureTarget.Left      := 11 + 85 + 6;   // button left + button width + gap
+  FCaptureTarget.Top       := 24;
+  FCaptureTarget.Width     := 120;
+  FCaptureTarget.Height    := 28;
 
   // Reparent Compact HUD checkbox (Left set in Reflow)
   hudcompactCheckBox.Parent := FVisualHudBar;
