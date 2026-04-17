@@ -631,6 +631,7 @@ type
     FCaptureTarget: TEdit;   // current active target during capture
     FVisualCaptureTarget: TEdit;
     FLimitCaptureTarget: TEdit;
+    FLoggingCaptureTarget: TEdit;
     FCaptureForm:   TForm;
 
     // Performance tab code-generated cards
@@ -687,6 +688,8 @@ type
     procedure CaptureBtnClick(Sender: TObject);
     procedure CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure InitPerformanceTab;
+    procedure InitExtrasTab;
+    procedure InitOptiScalerTab;
     procedure BuildFpsChips;
     procedure FpsChipClick(Sender: TObject);
     procedure FpsChipMouseEnter(Sender: TObject);
@@ -694,7 +697,6 @@ type
     procedure UpdatePerfCardTheme;
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
-    procedure InitOptiScalerTab;
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure RefreshOsStatusDots;
     procedure InitVkBasaltTab;
@@ -3715,16 +3717,13 @@ begin
       end
       else if SameText(Key, 'toggle_logging') then
       begin
-        if SameText(Value, 'Shift_L+F2') then
-          logtoggleComboBox.ItemIndex := 0
-        else if SameText(Value, 'Shift_L+F3') then
-          logtoggleComboBox.ItemIndex := 1
-        else if SameText(Value, 'Shift_L+F4') then
-          logtoggleComboBox.ItemIndex := 2
-        else if SameText(Value, 'Shift_L+F5') then
-          logtoggleComboBox.ItemIndex := 3
-        else
-          logtoggleComboBox.ItemIndex := 4;
+        logtoggleComboBox.Text := Value;
+        if Assigned(FLoggingCaptureTarget) then
+        begin
+          FLoggingCaptureTarget.ReadOnly := False;
+          FLoggingCaptureTarget.Text := Value;
+          FLoggingCaptureTarget.ReadOnly := True;
+        end;
       end
       else if SameText(Key, 'fps_metrics') then
       begin
@@ -4327,13 +4326,10 @@ begin
       ConfigLines.Add('log_interval=' + IntToStr(intervalTrackBar.Position));
 
     // Log toggle
-    case logtoggleComboBox.ItemIndex of
-      0: ConfigLines.Add('toggle_logging=Shift_L+F2');
-      1: ConfigLines.Add('toggle_logging=Shift_L+F3');
-      2: ConfigLines.Add('toggle_logging=Shift_L+F4');
-      3: ConfigLines.Add('toggle_logging=Shift_L+F5');
-      4: ConfigLines.Add('toggle_logging=');  // None - disable toggle key
-    end;
+    if Assigned(FLoggingCaptureTarget) and (Trim(FLoggingCaptureTarget.Text) <> '') then
+      ConfigLines.Add('toggle_logging=' + FLoggingCaptureTarget.Text)
+    else if Trim(logtoggleComboBox.Text) <> '' then
+      ConfigLines.Add('toggle_logging=' + logtoggleComboBox.Text);
 
     // Log versioning
     AddIfChecked(versioningCheckBox, 'log_versioning');
@@ -5142,6 +5138,9 @@ begin
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
+
+  // Initialize Extras tab
+  InitExtrasTab;
 
   // Initialize Home tab
   InitHomeTab;
@@ -11371,11 +11370,13 @@ begin
   if not Assigned(Sender) then Exit;
   
   // Set the capture target based on the button's Tag
-  // 1 = Visual Tab, 2 = Performance Tab
+  // 1 = Visual Tab, 2 = Performance Tab, 3 = Extras Tab
   if TBitBtn(Sender).Tag = 1 then
     FCaptureTarget := FVisualCaptureTarget
   else if TBitBtn(Sender).Tag = 2 then
-    FCaptureTarget := FLimitCaptureTarget;
+    FCaptureTarget := FLimitCaptureTarget
+  else if TBitBtn(Sender).Tag = 3 then
+    FCaptureTarget := FLoggingCaptureTarget;
 
   if not Assigned(FCaptureTarget) then Exit;
 
@@ -12236,6 +12237,76 @@ begin
 
   // FPS Limit chips — visual tag grid replacing TCheckGroup
   BuildFpsChips;
+end;
+
+procedure Tgoverlayform.InitExtrasTab;
+var
+  IsLight: Boolean;
+  BgColor, TextColor: TColor;
+begin
+  IsLight   := CurrentTheme = tmLight;
+  BgColor   := IfThen(IsLight, clWhite, $00362E2E);
+  TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+  // Apply dark/light theme to loggingGroupBox
+  loggingGroupBox.Color := BgColor;
+  loggingGroupBox.Font.Color := TextColor;
+  loggingGroupBox.ParentColor := False;
+
+  // Hide legacy components
+  logtoggleComboBox.Visible := False;
+  logtoggleImage.Visible := False;
+
+  // Reposition the label
+  logtoggleLabel.AnchorSideLeft.Control   := nil;
+  logtoggleLabel.AnchorSideTop.Control    := nil;
+  logtoggleLabel.AnchorSideRight.Control  := nil;
+  logtoggleLabel.AnchorSideBottom.Control := nil;
+  logtoggleLabel.Anchors := [akLeft, akTop];
+  logtoggleLabel.Left := (loggingGroupBox.ClientWidth - 211) div 2;
+  logtoggleLabel.Top := 61 - 22;
+  logtoggleLabel.Font.Color := TextColor;
+  logtoggleLabel.ParentColor := True;
+
+  // Capture Button
+  with TBitBtn.Create(loggingGroupBox) do
+  begin
+    Parent := loggingGroupBox;
+    Caption := '⌨ Capture';
+    Tag := 3; // Extras Tab
+    SetBounds(logtoggleLabel.Left, 61, 85, 28);
+    OnClick := @CaptureBtnClick;
+    Cursor := crHandPoint;
+  end;
+
+  // Styled TEdit
+  FLoggingCaptureTarget := TEdit.Create(loggingGroupBox);
+  FLoggingCaptureTarget.Parent := loggingGroupBox;
+  FLoggingCaptureTarget.ReadOnly := True;
+  FLoggingCaptureTarget.Text := logtoggleComboBox.Text;
+  FLoggingCaptureTarget.Font.Name := 'Noto Mono';
+  FLoggingCaptureTarget.Font.Size := 9;
+  FLoggingCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
+  FLoggingCaptureTarget.Color := IfThen(IsLight, $00EBEBEB, $00282020);
+  FLoggingCaptureTarget.BorderStyle := bsSingle;
+  FLoggingCaptureTarget.SetBounds(logtoggleLabel.Left + 85 + 6, 61, 120, 28);
+
+  // Reposition checkboxes to the right of the new key capture
+  autouploadCheckBox.AnchorSideLeft.Control   := nil;
+  autouploadCheckBox.AnchorSideTop.Control    := nil;
+  autouploadCheckBox.AnchorSideRight.Control  := nil;
+  autouploadCheckBox.AnchorSideBottom.Control := nil;
+  autouploadCheckBox.Anchors := [akLeft, akTop];
+  autouploadCheckBox.Left := FLoggingCaptureTarget.Left + FLoggingCaptureTarget.Width + 16;
+  autouploadCheckBox.Top  := 61 + (FLoggingCaptureTarget.Height - autouploadCheckBox.Height) div 2;
+
+  versioningCheckBox.AnchorSideLeft.Control   := nil;
+  versioningCheckBox.AnchorSideTop.Control    := nil;
+  versioningCheckBox.AnchorSideRight.Control  := nil;
+  versioningCheckBox.AnchorSideBottom.Control := nil;
+  versioningCheckBox.Anchors := [akLeft, akTop];
+  versioningCheckBox.Left := autouploadCheckBox.Left + autouploadCheckBox.Width + 16;
+  versioningCheckBox.Top  := autouploadCheckBox.Top;
 end;
 
 procedure Tgoverlayform.UpdatePerfCardTheme;
