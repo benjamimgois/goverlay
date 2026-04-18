@@ -2264,7 +2264,6 @@ copyBitbtn.Visible:=false;
 
 //Show Global Enable controls and bottom bar for tweaks tabs
 
-
 goverlaybarPanel.Visible:=true;
 popupBitBtn.Visible := False;
 FPreviewBtn.Visible  := False;
@@ -2276,6 +2275,11 @@ begin
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
   SetSaveBtnEnabled(FNavToolEnabled[3]);
 end;
+
+// Reload tweak checkboxes from the correct fgmod (game-specific or global)
+// depending on the current context. Without this, the UI always shows the
+// global state loaded at startup, even when a game is selected.
+LoadTweaksFromFGMod;
 
 end;
 
@@ -2554,6 +2558,9 @@ begin
       ForceDirectories(GameCfgDir);
     VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
   end;
+
+  // Reload UI from the correct config file (VKBASALTCFGFILE was just updated above)
+  LoadVkBasaltConfig;
 
   SetNavActive(2);
 
@@ -3003,7 +3010,11 @@ var
   OptiScalerIniPath: string;
 begin
   // Get OptiScaler.ini file path
-  OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+  if FActiveGameName <> '' then
+    OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
+  else
+    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+
 
   if not FileExists(OptiScalerIniPath) then
     Exit;
@@ -3061,7 +3072,19 @@ begin
       else if SameText(Key, 'LoadAsiPlugins') then
       begin
         optipatcherCheckBox.Checked := SameText(Value, 'true');
+      end
+      else if SameText(Key, 'Fsr4Update') then
+      begin
+        if SameText(Value, 'true') then
+          fsrversionComboBox.ItemIndex := 0
+        else
+          fsrversionComboBox.ItemIndex := 1;
+      end
+      else if SameText(Key, 'Dxgi') then
+      begin
+        spoofCheckBox.Checked := SameText(Value, 'auto');
       end;
+
     end;
 
   finally
@@ -3077,7 +3100,11 @@ var
   FakeNvapiIniPath: string;
 begin
   // Get fakenvapi.ini file path
-  FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+  if FActiveGameName <> '' then
+    FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
+  else
+    FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+
 
   if not FileExists(FakeNvapiIniPath) then
     Exit;
@@ -3161,7 +3188,11 @@ var
   DxilSpirvFound: Boolean;
 begin
   // Get fgmod file path
-  FgmodPath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
+  if FActiveGameName <> '' then
+    FgmodPath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+  else
+    FgmodPath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
+
 
   if not FileExists(FgmodPath) then
     Exit;
@@ -5950,7 +5981,11 @@ begin
     Exit;  // Not a supported tab
 
   // Get fgmod file path
-  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+  if FActiveGameName <> '' then
+    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+  else
+    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
 
   // Check if fgmod file exists
   if not FileExists(FGModFilePath) then
@@ -6038,7 +6073,11 @@ var
   TweakFound: Boolean;
 begin
   // Get fgmod file path
-  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+  if FActiveGameName <> '' then
+    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+  else
+    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
 
   // Check if fgmod file exists
   if not FileExists(FGModFilePath) then
@@ -6428,7 +6467,11 @@ var
   StartPos, EndPos: Integer;
 begin
   // Get fgmod file path
-  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+  if FActiveGameName <> '' then
+    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+  else
+    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
 
   // Check if fgmod file exists
   if not FileExists(FGModFilePath) then
@@ -6804,7 +6847,10 @@ begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
     SetSaveBtnEnabled(FNavToolEnabled[2]);
   end;
-  // In game mode, reload fgmod config so fsrversionComboBox reflects the game's goverlay.vars
+  // Reload OptiScaler and FakeNVAPI configs from the correct path (game or global)
+  LoadOptiScalerConfig;
+  LoadFakeNvapiConfig;
+  // In game mode, also reload fgmod config so fsrversionComboBox reflects goverlay.vars
   if FActiveGameName <> '' then
     LoadFgmodConfig;
   // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
@@ -8292,7 +8338,11 @@ EnableTraceLogsFound: Boolean;
       end;
 
       // Get the fgmod file path
-      FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
+      if FActiveGameName <> '' then
+        FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+      else
+        FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
+
 
       // Check if fgmod file exists
       if FileExists(FGModFilePath) then
@@ -8395,8 +8445,12 @@ EnableTraceLogsFound: Boolean;
             // Save the modified file
             FGModLines.SaveToFile(FGModFilePath);
 
-                   // Get OptiScaler.ini file path
-          OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+          // Get OptiScaler.ini file path
+          if FActiveGameName <> '' then
+            OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
+          else
+            OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+
 
           // Get selected ShortcutKey from shortcutkeyComboBox
           case shortcutkeyComboBox.ItemIndex of
@@ -8431,7 +8485,8 @@ EnableTraceLogsFound: Boolean;
 
           // Get Fsr4Update value from fsrversionComboBox
           if fsrversionComboBox.ItemIndex = 0 then
-            Fsr4UpdateValue := 'true'
+            Fsr4UpdateValue := 'True'
+
           else
             Fsr4UpdateValue := 'auto';
 
@@ -8524,11 +8579,12 @@ EnableTraceLogsFound: Boolean;
                   if not Fsr4UpdateFound then
                     OptiScalerIniLines.Add('Fsr4Update=' + Fsr4UpdateValue);
 
-                  if ShortcutKeyFound and ScaleFound then
+                  if True then
                   begin
                     // Save the modified OptiScaler.ini file
                     OptiScalerIniLines.SaveToFile(OptiScalerIniPath);
                   end
+
                   else
                   begin
                     if not ShortcutKeyFound then
@@ -8552,7 +8608,11 @@ EnableTraceLogsFound: Boolean;
           // Always modify fakenvapi.ini file (set to 0 if checkbox not checked)
           begin
             // Get fakenvapi.ini file path
-            FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+            if FActiveGameName <> '' then
+              FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
+            else
+              FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+
 
             // Initialize found flags
             ForceReflexFound := False;
@@ -9511,7 +9571,11 @@ var
   LineRemoved: Boolean;
 begin
   // Get fgmod file path
-  FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+  if FActiveGameName <> '' then
+    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+  else
+    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
   
   // Check if fgmod file exists
   if not FileExists(FGModFilePath) then
@@ -11767,10 +11831,10 @@ const
   R1_TOP   = HDR + 4;
   R1_H     = 118;
   R2_TOP   = HDR + 130;
-  R2H      = 216;                   // fixed height for row-2 section panels
-  HUD_SEP  = R2_TOP + R2H + 4;     // y of horizontal separator before HUD row = 384
-  HUD_TOP  = HUD_SEP + 6;          // y where HUD panel starts within card = 390
-  CARD_H   = HUD_TOP + HUD_H + 4;  // total card height = 450
+  R2H      = 216;
+  HUD_SEP  = R2_TOP + R2H + 4;
+  HUD_TOP  = HUD_SEP + 6;
+  CARD_H   = HUD_TOP + HUD_H + 4;
 var
   W, S1, S2, SW: Integer;
   SecW1, SecW2, SecW3: Integer;
@@ -11788,14 +11852,14 @@ begin
   SecW2 := S2 - S1 - 8;
   SecW3 := W - S2 - 8;
 
-  // GPU info bar
+  // GPU info bar — separate card above Visual Settings
   if Assigned(FVisualGpuBar) then
   begin
     FVisualGpuBar.SetBounds(MARGIN, GPU_TOP, W, GPU_H);
     gpudescEdit.Width := FVisualGpuBar.ClientWidth - gpudescEdit.Left - 5;
   end;
 
-  // Single card — full width
+  // Visual Settings card — full width
   FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, CARD_H);
 
   // ── Row 1 section panels ──────────────────────────────────────────────────
@@ -11871,8 +11935,8 @@ begin
   CC  := 4 + (ImgW div 2) - RW div 2;
   CR  := 4 + Round(ImgW * 0.906) - RW div 2;
   RT  := 22 + Round(ImgH * 0.131) - RH div 2;
-  RM  := 22 + Round(ImgH * 0.434) - RH div 2;
-  RB  := 22 + Round(ImgH * 0.737) - RH div 2;
+  RB  := 22 + Round(ImgH * 0.620) - RH div 2;
+  RM  := (RT + RB) div 2;
   topleftRadioButton.SetBounds(CL, RT, RW, RH);
   topcenterRadioButton.SetBounds(CC, RT, RW, RH);
   toprightRadioButton.SetBounds(CR, RT, RW, RH);
