@@ -633,12 +633,12 @@ type
     FVisualGpuBar: TPanel;
     FVisualHudBar: TPanel;
     
-    // Key capture references
-    FCaptureTarget: TEdit;   // current active target during capture
-    FVisualCaptureTarget: TEdit;
-    FLimitCaptureTarget: TEdit;
-    FLoggingCaptureTarget: TEdit;
-    FCaptureForm:   TForm;
+    // Key capture references — each button shows the captured shortcut in its caption
+    FCaptureBtn:        TBitBtn;  // button currently being captured
+    FVisualCaptureBtn:  TBitBtn;
+    FLimitCaptureBtn:   TBitBtn;
+    FLoggingCaptureBtn: TBitBtn;
+    FCaptureForm:       TForm;
 
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
@@ -3529,12 +3529,8 @@ begin
       else if SameText(Key, 'toggle_hud') then
       begin
         hudonoffComboBox.Text := Value;
-        if Assigned(FVisualCaptureTarget) then
-        begin
-          FVisualCaptureTarget.ReadOnly := False;
-          FVisualCaptureTarget.Text := Value;
-          FVisualCaptureTarget.ReadOnly := True;
-        end;
+        if Assigned(FVisualCaptureBtn) and (Trim(Value) <> '') then
+          FVisualCaptureBtn.Caption := '⌨ ' + Value;
       end
       else if SameText(Key, 'table_columns') then
       begin
@@ -3635,12 +3631,8 @@ begin
       else if SameText(Key, 'toggle_fps_limit') then
       begin
         fpslimtoggleComboBox.Text := Value;
-        if Assigned(FLimitCaptureTarget) then
-        begin
-          FLimitCaptureTarget.ReadOnly := False;
-          FLimitCaptureTarget.Text := Value;
-          FLimitCaptureTarget.ReadOnly := True;
-        end;
+        if Assigned(FLimitCaptureBtn) and (Trim(Value) <> '') then
+          FLimitCaptureBtn.Caption := '⌨ ' + Value;
       end
       else if SameText(Key, 'vsync') then
       begin
@@ -3726,12 +3718,8 @@ begin
       else if SameText(Key, 'toggle_logging') then
       begin
         logtoggleComboBox.Text := Value;
-        if Assigned(FLoggingCaptureTarget) then
-        begin
-          FLoggingCaptureTarget.ReadOnly := False;
-          FLoggingCaptureTarget.Text := Value;
-          FLoggingCaptureTarget.ReadOnly := True;
-        end;
+        if Assigned(FLoggingCaptureBtn) and (Trim(Value) <> '') then
+          FLoggingCaptureBtn.Caption := '⌨ ' + Value;
       end
       else if SameText(Key, 'fps_metrics') then
       begin
@@ -3923,10 +3911,7 @@ begin
     if offsetySpinEdit.Value <> 0 then
       ConfigLines.Add('offset_y=' + IntToStr(offsetySpinEdit.Value));
 
-    // Toggle HUD — use the visible TEdit when available, fallback to hidden ComboBox
-    if Assigned(FVisualCaptureTarget) and (Trim(FVisualCaptureTarget.Text) <> '') then
-      ConfigLines.Add('toggle_hud=' + FVisualCaptureTarget.Text)
-    else if Trim(hudonoffComboBox.Text) <> '' then
+    if Trim(hudonoffComboBox.Text) <> '' then
       ConfigLines.Add('toggle_hud=' + hudonoffComboBox.Text);
 
     // Hide HUD
@@ -4176,10 +4161,7 @@ begin
       1: ConfigLines.Add('fps_limit_method=early');
     end;
 
-    // FPS limit toggle
-    if Assigned(FLimitCaptureTarget) and (Trim(FLimitCaptureTarget.Text) <> '') then
-      ConfigLines.Add('toggle_fps_limit=' + FLimitCaptureTarget.Text)
-    else if Trim(fpslimtoggleComboBox.Text) <> '' then
+    if Trim(fpslimtoggleComboBox.Text) <> '' then
       ConfigLines.Add('toggle_fps_limit=' + fpslimtoggleComboBox.Text);
 
     // FPS limits (from checkgroup)
@@ -4333,10 +4315,7 @@ begin
     if intervalTrackBar.Position > 0 then
       ConfigLines.Add('log_interval=' + IntToStr(intervalTrackBar.Position));
 
-    // Log toggle
-    if Assigned(FLoggingCaptureTarget) and (Trim(FLoggingCaptureTarget.Text) <> '') then
-      ConfigLines.Add('toggle_logging=' + FLoggingCaptureTarget.Text)
-    else if Trim(logtoggleComboBox.Text) <> '' then
+    if Trim(logtoggleComboBox.Text) <> '' then
       ConfigLines.Add('toggle_logging=' + logtoggleComboBox.Text);
 
     // Log versioning
@@ -11363,11 +11342,13 @@ begin
 
   FinalStr := ModStr + KeyStr;
 
-  if Assigned(FCaptureTarget) then
+  if Assigned(FCaptureBtn) then
   begin
-    FCaptureTarget.ReadOnly := False;
-    FCaptureTarget.Text := FinalStr;
-    FCaptureTarget.ReadOnly := True;
+    FCaptureBtn.Caption := '⌨ ' + FinalStr;
+    // Keep the hidden ComboBox in sync — it is the config save source of truth
+    if FCaptureBtn.Tag = 1 then hudonoffComboBox.Text      := FinalStr
+    else if FCaptureBtn.Tag = 2 then fpslimtoggleComboBox.Text := FinalStr
+    else if FCaptureBtn.Tag = 3 then logtoggleComboBox.Text    := FinalStr;
   end;
 
   if Assigned(FCaptureForm) then
@@ -11382,16 +11363,8 @@ var
 begin
   if not Assigned(Sender) then Exit;
   
-  // Set the capture target based on the button's Tag
-  // 1 = Visual Tab, 2 = Performance Tab, 3 = Extras Tab
-  if TBitBtn(Sender).Tag = 1 then
-    FCaptureTarget := FVisualCaptureTarget
-  else if TBitBtn(Sender).Tag = 2 then
-    FCaptureTarget := FLimitCaptureTarget
-  else if TBitBtn(Sender).Tag = 3 then
-    FCaptureTarget := FLoggingCaptureTarget;
-
-  if not Assigned(FCaptureTarget) then Exit;
+  // The clicked button is both the trigger and the display target
+  FCaptureBtn := TBitBtn(Sender);
 
   FCaptureForm := TForm.Create(Self);
   try
@@ -11603,32 +11576,17 @@ begin
   // Hide the original combobox — now replaced by a styled TEdit
   hudonoffComboBox.Visible := False;
 
-  // Capture button — now on the LEFT
-  with TBitBtn.Create(FVisualHudBar) do
-  begin
-    Parent := FVisualHudBar;
-    Caption := '⌨ Capture';
-    Tag := 1; // Visual Tab
-    SetBounds(11, 24, 85, 28);
-    OnClick := @CaptureBtnClick;
-    Cursor := crHandPoint;
-  end;
-
-  // Create a styled read-only TEdit to display the captured shortcut
-  FVisualCaptureTarget := TEdit.Create(Self);
-  FVisualCaptureTarget.Parent    := FVisualHudBar;
-  FVisualCaptureTarget.ReadOnly  := True;
-  FVisualCaptureTarget.Text      := hudonoffComboBox.Text;
-  FVisualCaptureTarget.Font.Name := 'Noto Mono';
-  FVisualCaptureTarget.Font.Size := 9;
-  FVisualCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
-  FVisualCaptureTarget.Color      := IfThen(IsLight, $00EBEBEB, $00282020);
-  FVisualCaptureTarget.BorderStyle := bsSingle;
-  FVisualCaptureTarget.Anchors   := [akLeft, akTop];
-  FVisualCaptureTarget.Left      := 11 + 85 + 6;   // button left + button width + gap
-  FVisualCaptureTarget.Top       := 24;
-  FVisualCaptureTarget.Width     := 120;
-  FVisualCaptureTarget.Height    := 28;
+  // Capture button — shows "⌨ Capture" or "⌨ <shortcut>" after capture
+  FVisualCaptureBtn := TBitBtn.Create(FVisualHudBar);
+  FVisualCaptureBtn.Parent  := FVisualHudBar;
+  FVisualCaptureBtn.Tag     := 1; // Visual Tab
+  FVisualCaptureBtn.SetBounds(11, 24, 160, 28);
+  FVisualCaptureBtn.OnClick := @CaptureBtnClick;
+  FVisualCaptureBtn.Cursor  := crHandPoint;
+  if Trim(hudonoffComboBox.Text) <> '' then
+    FVisualCaptureBtn.Caption := '⌨ ' + hudonoffComboBox.Text
+  else
+    FVisualCaptureBtn.Caption := '⌨ Capture';
 
   // Reparent Compact HUD checkbox (Left set in Reflow)
   hudcompactCheckBox.Parent := FVisualHudBar;
@@ -12156,28 +12114,17 @@ const
       limtoggleLabel.Font.Color := TextColor;
       limtoggleLabel.ParentColor := True;
 
-      // Capture Button
-      with TBitBtn.Create(GB) do
-      begin
-        Parent := GB;
-        Caption := '⌨ Capture';
-        Tag := 2; // Performance Tab
-        SetBounds(limtoggleLabel.Left, 321, 85, 28);
-        OnClick := @CaptureBtnClick;
-        Cursor := crHandPoint;
-      end;
-
-      // Styled TEdit
-      FLimitCaptureTarget := TEdit.Create(GB);
-      FLimitCaptureTarget.Parent := GB;
-      FLimitCaptureTarget.ReadOnly := True;
-      FLimitCaptureTarget.Text := fpslimtoggleComboBox.Text;
-      FLimitCaptureTarget.Font.Name := 'Noto Mono';
-      FLimitCaptureTarget.Font.Size := 9;
-      FLimitCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
-      FLimitCaptureTarget.Color := IfThen(IsLight, $00EBEBEB, $00282020);
-      FLimitCaptureTarget.BorderStyle := bsSingle;
-      FLimitCaptureTarget.SetBounds(limtoggleLabel.Left + 85 + 6, 321, 120, 28);
+      // Capture Button — shows "⌨ Capture" or "⌨ <shortcut>" after capture
+      FLimitCaptureBtn := TBitBtn.Create(GB);
+      FLimitCaptureBtn.Parent  := GB;
+      FLimitCaptureBtn.Tag     := 2; // Performance Tab
+      FLimitCaptureBtn.SetBounds(limtoggleLabel.Left, 321, 160, 28);
+      FLimitCaptureBtn.OnClick := @CaptureBtnClick;
+      FLimitCaptureBtn.Cursor  := crHandPoint;
+      if Trim(fpslimtoggleComboBox.Text) <> '' then
+        FLimitCaptureBtn.Caption := '⌨ ' + fpslimtoggleComboBox.Text
+      else
+        FLimitCaptureBtn.Caption := '⌨ Capture';
     end;
   end;
 
@@ -12281,37 +12228,26 @@ begin
   logtoggleLabel.Font.Color := TextColor;
   logtoggleLabel.ParentColor := True;
 
-  // Capture Button
-  with TBitBtn.Create(loggingGroupBox) do
-  begin
-    Parent := loggingGroupBox;
-    Caption := '⌨ Capture';
-    Tag := 3; // Extras Tab
-    SetBounds(logtoggleLabel.Left, 61, 85, 28);
-    OnClick := @CaptureBtnClick;
-    Cursor := crHandPoint;
-  end;
+  // Capture Button — shows "⌨ Capture" or "⌨ <shortcut>" after capture
+  FLoggingCaptureBtn := TBitBtn.Create(loggingGroupBox);
+  FLoggingCaptureBtn.Parent  := loggingGroupBox;
+  FLoggingCaptureBtn.Tag     := 3; // Extras Tab
+  FLoggingCaptureBtn.SetBounds(logtoggleLabel.Left, 61, 160, 28);
+  FLoggingCaptureBtn.OnClick := @CaptureBtnClick;
+  FLoggingCaptureBtn.Cursor  := crHandPoint;
+  if Trim(logtoggleComboBox.Text) <> '' then
+    FLoggingCaptureBtn.Caption := '⌨ ' + logtoggleComboBox.Text
+  else
+    FLoggingCaptureBtn.Caption := '⌨ Capture';
 
-  // Styled TEdit
-  FLoggingCaptureTarget := TEdit.Create(loggingGroupBox);
-  FLoggingCaptureTarget.Parent := loggingGroupBox;
-  FLoggingCaptureTarget.ReadOnly := True;
-  FLoggingCaptureTarget.Text := logtoggleComboBox.Text;
-  FLoggingCaptureTarget.Font.Name := 'Noto Mono';
-  FLoggingCaptureTarget.Font.Size := 9;
-  FLoggingCaptureTarget.Font.Color := IfThen(IsLight, $00444040, $00DDDDDD);
-  FLoggingCaptureTarget.Color := IfThen(IsLight, $00EBEBEB, $00282020);
-  FLoggingCaptureTarget.BorderStyle := bsSingle;
-  FLoggingCaptureTarget.SetBounds(logtoggleLabel.Left + 85 + 6, 61, 120, 28);
-
-  // Reposition checkboxes to the right of the new key capture
+  // Reposition checkboxes to the right of the capture button
   autouploadCheckBox.AnchorSideLeft.Control   := nil;
   autouploadCheckBox.AnchorSideTop.Control    := nil;
   autouploadCheckBox.AnchorSideRight.Control  := nil;
   autouploadCheckBox.AnchorSideBottom.Control := nil;
   autouploadCheckBox.Anchors := [akLeft, akTop];
-  autouploadCheckBox.Left := FLoggingCaptureTarget.Left + FLoggingCaptureTarget.Width + 16;
-  autouploadCheckBox.Top  := 61 + (FLoggingCaptureTarget.Height - autouploadCheckBox.Height) div 2;
+  autouploadCheckBox.Left := FLoggingCaptureBtn.Left + FLoggingCaptureBtn.Width + 16;
+  autouploadCheckBox.Top  := 61 + (FLoggingCaptureBtn.Height - autouploadCheckBox.Height) div 2;
 
   versioningCheckBox.AnchorSideLeft.Control   := nil;
   versioningCheckBox.AnchorSideTop.Control    := nil;
