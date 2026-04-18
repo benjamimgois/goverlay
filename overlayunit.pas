@@ -632,14 +632,10 @@ type
     FVisualCards:   array[0..5] of TPanel;
     FVisualGpuBar:  TPanel;
     FVisualHudBar:  TPanel;
-    // Sub-section separators and labels for Visual tab 2-card layout
-    FVisualAppSep1: TPanel;   // vertical divider between Orientation and Borders
-    FVisualAppSep2: TPanel;   // vertical divider between Borders and Background
-    FVisualLaySep1: TPanel;   // vertical divider between Fonts and Position
-    FVisualLaySep2: TPanel;   // vertical divider between Position and Columns
-    FVisualBordersLbl: TLabel;
-    FVisualBgLbl:      TLabel;
-    FVisualColsLbl:    TLabel;
+    // Visual tab inner section panels (GroupBox-style) within FVisualCards[0]
+    // [0]=Orientation [1]=Borders [2]=Background [3]=Fonts [4]=Position [5]=Columns
+    FVisualSections: array[0..5] of TPanel;
+    FVisualHudSep:   TPanel;  // horizontal separator above HUD row within main card
     
     // Key capture references — each button shows the captured shortcut in its caption
     FCaptureBtn:        TBitBtn;  // button currently being captured
@@ -11250,6 +11246,16 @@ begin
     end;
   end;
 
+  // Invalidate inner section panels (section title labels keep their muted color)
+  for i := 0 to 5 do
+  begin
+    if Assigned(FVisualSections[i]) then
+    begin
+      FVisualSections[i].Color := CardBg;
+      FVisualSections[i].Invalidate;
+    end;
+  end;
+
   // Update GPU info bar
   if Assigned(FVisualGpuBar) then
   begin
@@ -11408,7 +11414,7 @@ const
   TITLE_H  = 22;
   HDR      = ACCENT_H + TITLE_T + TITLE_H + 3;  // = 34, content starts here
 
-  CARD_TITLES: array[0..1] of string = ('Appearance', 'Layout');
+  CARD_TITLES: array[0..0] of string = ('Visual Settings');
 
   procedure MakeCard(AIndex: Integer; ATitle: string);
   var
@@ -11465,23 +11471,47 @@ const
     C.Top     := ATop;
   end;
 
+  procedure MakeSection(AIndex: Integer; ATitle: string);
+  var
+    Sec: TPanel;
+    Lbl: TLabel;
+  begin
+    Sec := TPanel.Create(FVisualCards[0]);
+    Sec.Parent      := FVisualCards[0];
+    Sec.BevelOuter  := bvNone;
+    Sec.BorderStyle := bsNone;
+    Sec.Caption     := '';
+    Sec.Color       := IfThen(CurrentTheme = tmLight, $00FFFFFF, $00362E2E);
+    Sec.ParentColor := False;
+    Sec.OnPaint     := @VisualCardPaint;
+    FVisualSections[AIndex] := Sec;
+    Lbl := TLabel.Create(Sec);
+    Lbl.Parent     := Sec;
+    Lbl.Caption    := ATitle;
+    Lbl.Font.Color := $00AAAACC;
+    Lbl.Font.Style := [fsBold];
+    Lbl.Font.Size  := 8;
+    Lbl.Transparent := True;
+    Lbl.AutoSize    := True;
+    Lbl.Left := 6;
+    Lbl.Top  := 4;
+  end;
+
 var
   i: Integer;
   IsLight: Boolean;
   BarBg, TextColor: TColor;
   Lbl: TLabel;
 begin
-  for i := 0 to 1 do
-    MakeCard(i, CARD_TITLES[i]);
-  // FVisualCards[2..5] unused in 2-card layout
-  FVisualCards[2] := nil; FVisualCards[3] := nil;
-  FVisualCards[4] := nil; FVisualCards[5] := nil;
+  MakeCard(0, CARD_TITLES[0]);
+  FVisualCards[1] := nil; FVisualCards[2] := nil;
+  FVisualCards[3] := nil; FVisualCards[4] := nil; FVisualCards[5] := nil;
 
   IsLight   := CurrentTheme = tmLight;
   BarBg     := IfThen(IsLight, $00F2F2F2, $00362E2E);
   TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
-  // Hide the LFM GroupBoxes — controls reparented directly to cards below.
+  // Hide the LFM GroupBoxes — controls reparented directly to section panels.
   orientationGroupBox.Visible := False;
   borderGroupBox.Visible      := False;
   backgroundGroupBox.Visible  := False;
@@ -11489,85 +11519,65 @@ begin
   positionGroupBox.Visible    := False;
   columsGroupBox.Visible      := False;
 
-  // ── Card 0: Appearance ───────────────────────────────────────────────────
-  // Section 0 — Orientation (left third, X fixed at 0)
-  with TLabel.Create(FVisualCards[0]) do begin
-    Parent := FVisualCards[0]; Caption := 'Orientation';
-    Font.Color := $00AAAACC; Font.Style := [fsBold]; Font.Size := 8;
-    Transparent := True; AutoSize := True; Left := 8; Top := HDR + 6;
-  end;
-  Place(verticalRadioButton,   FVisualCards[0], 15,  HDR + 42);
-  Place(vImage,                FVisualCards[0], 37,  HDR + 32);
-  Place(horizontalRadioButton, FVisualCards[0], 105, HDR + 42);
-  Place(hImage,                FVisualCards[0], 127, HDR + 30);
+  // ── Single card — Visual Settings with 6 inner section panels ───────────
+  // Row 1: [0]Orientation | [1]Borders | [2]Background
+  // Row 2: [3]Fonts       | [4]Position | [5]Columns
+  // Section bounds are set by ReflowVisualTab; controls use relative coords.
+  MakeSection(0, 'Orientation');
+  MakeSection(1, 'Borders');
+  MakeSection(2, 'Background');
+  MakeSection(3, 'Fonts');
+  MakeSection(4, 'Position');
+  MakeSection(5, 'Columns');
+
+  // ·· [0] Orientation — positions set by Reflow ···························
+  Place(verticalRadioButton,   FVisualSections[0], 6,  50);
+  Place(vImage,                FVisualSections[0], 30, 28);
+  Place(horizontalRadioButton, FVisualSections[0], 6,  50);
+  Place(hImage,                FVisualSections[0], 30, 40);
   verticalRadioButton.Color   := BarBg; verticalRadioButton.ParentColor   := False;
   horizontalRadioButton.Color := BarBg; horizontalRadioButton.ParentColor := False;
   vImage.Transparent := True; hImage.Transparent := True;
+  vImage.Width := 30;  vImage.Height := 56;   // portrait — Reflow positions these
+  hImage.Width := 56;  hImage.Height := 30;   // landscape
 
-  // Section 1 — Borders (mid third, X = S1; positioned by Reflow)
-  FVisualAppSep1 := TPanel.Create(FVisualCards[0]);
-  FVisualAppSep1.Parent := FVisualCards[0]; FVisualAppSep1.BevelOuter := bvNone;
-  FVisualAppSep1.Color := $005A5050; FVisualAppSep1.Caption := '';
-  FVisualAppSep1.SetBounds(280, HDR + 5, 1, 125);  // provisional X; Reflow adjusts
-  FVisualBordersLbl := TLabel.Create(FVisualCards[0]);
-  FVisualBordersLbl.Parent := FVisualCards[0]; FVisualBordersLbl.Caption := 'Borders';
-  FVisualBordersLbl.Font.Color := $00AAAACC; FVisualBordersLbl.Font.Style := [fsBold];
-  FVisualBordersLbl.Font.Size := 8; FVisualBordersLbl.Transparent := True;
-  FVisualBordersLbl.AutoSize := True; FVisualBordersLbl.Left := 288; FVisualBordersLbl.Top := HDR + 6;
-  Place(squareRadioButton, FVisualCards[0], 295, HDR + 42);
-  Place(squareImage,       FVisualCards[0], 317, HDR + 35);
-  Place(roundRadioButton,  FVisualCards[0], 385, HDR + 42);
-  Place(roundImage,        FVisualCards[0], 407, HDR + 35);
+  // ·· [1] Borders — positions set by Reflow ································
+  Place(squareRadioButton, FVisualSections[1], 6,  50);
+  Place(squareImage,       FVisualSections[1], 30, 30);
+  Place(roundRadioButton,  FVisualSections[1], 6,  50);
+  Place(roundImage,        FVisualSections[1], 30, 30);
   squareRadioButton.Color := BarBg; squareRadioButton.ParentColor := False;
   roundRadioButton.Color  := BarBg; roundRadioButton.ParentColor  := False;
   squareImage.Transparent := True; roundImage.Transparent := True;
+  squareImage.Width := 48; squareImage.Height := 42;
+  roundImage.Width  := 48; roundImage.Height  := 42;
 
-  // Section 2 — Background (right third, X = S2; positioned by Reflow)
-  FVisualAppSep2 := TPanel.Create(FVisualCards[0]);
-  FVisualAppSep2.Parent := FVisualCards[0]; FVisualAppSep2.BevelOuter := bvNone;
-  FVisualAppSep2.Color := $005A5050; FVisualAppSep2.Caption := '';
-  FVisualAppSep2.SetBounds(560, HDR + 5, 1, 125);  // provisional X; Reflow adjusts
-  FVisualBgLbl := TLabel.Create(FVisualCards[0]);
-  FVisualBgLbl.Parent := FVisualCards[0]; FVisualBgLbl.Caption := 'Background';
-  FVisualBgLbl.Font.Color := $00AAAACC; FVisualBgLbl.Font.Style := [fsBold];
-  FVisualBgLbl.Font.Size := 8; FVisualBgLbl.Transparent := True;
-  FVisualBgLbl.AutoSize := True; FVisualBgLbl.Left := 568; FVisualBgLbl.Top := HDR + 6;
-  Place(backgroundLabel,          FVisualCards[0], 568, HDR + 30);
-  Place(hudbackgroundColorButton, FVisualCards[0], 614, HDR + 28);
-  Place(transparencyLabel,        FVisualCards[0], 568, HDR + 68);
-  Place(transpTrackBar,           FVisualCards[0], 614, HDR + 66);
-  Place(alphavalueLabel,          FVisualCards[0], 614, HDR + 88);
+  // ·· [2] Background ·······················································
+  Place(backgroundLabel,          FVisualSections[2], 6,  32);
+  Place(hudbackgroundColorButton, FVisualSections[2], 52, 28);
+  Place(transparencyLabel,        FVisualSections[2], 6,  72);
+  Place(transpTrackBar,           FVisualSections[2], 52, 70);
+  Place(alphavalueLabel,          FVisualSections[2], 52, 92);
   backgroundLabel.Font.Color   := TextColor; backgroundLabel.Transparent   := True;
   transparencyLabel.Font.Color := TextColor; transparencyLabel.Transparent := True;
   alphavalueLabel.Font.Color   := TextColor; alphavalueLabel.Transparent   := True;
   hudbackgroundColorButton.Color := BarBg;
   transpTrackBar.Color := BarBg; transpTrackBar.ParentColor := False;
 
-  // ── Card 1: Layout ────────────────────────────────────────────────────────
-  // Section 0 — Fonts (left third)
-  with TLabel.Create(FVisualCards[1]) do begin
-    Parent := FVisualCards[1]; Caption := 'Fonts';
-    Font.Color := $00AAAACC; Font.Style := [fsBold]; Font.Size := 8;
-    Transparent := True; AutoSize := True; Left := 8; Top := HDR + 6;
-  end;
-  Place(fontComboBox,       FVisualCards[1], 8,  HDR + 26);
-  Place(fontcolorLabel,     FVisualCards[1], 8,  HDR + 74);
-  Place(FontcolorButton,    FVisualCards[1], 53, HDR + 72);
-  Place(fontLabel,          FVisualCards[1], 8,  HDR + 112);
-  Place(fontsizeTrackBar,   FVisualCards[1], 48, HDR + 110);
-  Place(fontsizevalueLabel, FVisualCards[1], 48, HDR + 132);
+  // ·· [3] Fonts ····························································
+  Place(fontComboBox,       FVisualSections[3], 6,  22);
+  Place(fontcolorLabel,     FVisualSections[3], 6,  84);
+  Place(FontcolorButton,    FVisualSections[3], 52, 82);
+  Place(fontLabel,          FVisualSections[3], 6,  142);
+  Place(fontsizeTrackBar,   FVisualSections[3], 40, 140);
+  Place(fontsizevalueLabel, FVisualSections[3], 40, 164);
   fontcolorLabel.Font.Color     := TextColor; fontcolorLabel.Transparent     := True;
   fontLabel.Font.Color          := TextColor; fontLabel.Transparent          := True;
   fontsizevalueLabel.Font.Color := TextColor; fontsizevalueLabel.Transparent := True;
   FontcolorButton.Color  := BarBg;
   fontsizeTrackBar.Color := BarBg; fontsizeTrackBar.ParentColor := False;
-  // Width of elastic controls set by Reflow
 
-  // Section 1 — Position (mid third: Image1 fills section, radio buttons overlaid)
-  FVisualLaySep1 := TPanel.Create(FVisualCards[1]);
-  FVisualLaySep1.Parent := FVisualCards[1]; FVisualLaySep1.BevelOuter := bvNone;
-  FVisualLaySep1.Color := $005A5050; FVisualLaySep1.Caption := '';
-  FVisualLaySep1.SetBounds(280, HDR + 5, 1, 195);  // provisional; Reflow adjusts
+  // ·· [4] Position ·························································
   Image1.Stretch      := True;
   Image1.Proportional := False;
   Image1.AnchorSideLeft.Control   := nil; Image1.AnchorSideTop.Control    := nil;
@@ -11575,44 +11585,45 @@ begin
   Image1.Anchors := [akLeft, akTop];
   Image1.BorderSpacing.Left   := 0; Image1.BorderSpacing.Right  := 0;
   Image1.BorderSpacing.Top    := 0; Image1.BorderSpacing.Bottom := 0;
-  Image1.Parent := FVisualCards[1];
-  // Radio buttons and SpinEdits — placed provisionally, final pos set by Reflow
-  Place(topleftRadioButton,     FVisualCards[1], 280, HDR + 10);
-  Place(topcenterRadioButton,   FVisualCards[1], 360, HDR + 10);
-  Place(toprightRadioButton,    FVisualCards[1], 440, HDR + 10);
-  Place(middleleftRadioButton,  FVisualCards[1], 280, HDR + 100);
-  Place(middlerightRadioButton, FVisualCards[1], 440, HDR + 100);
-  Place(bottomleftRadioButton,  FVisualCards[1], 280, HDR + 175);
-  Place(bottomcenterRadioButton,FVisualCards[1], 360, HDR + 175);
-  Place(bottomrightRadioButton, FVisualCards[1], 440, HDR + 175);
-  offsetxSpinEdit.Parent := FVisualCards[1];
-  offsetySpinEdit.Parent := FVisualCards[1];
-  offsetxSpinEdit.Color  := BarBg;
-  offsetySpinEdit.Color  := BarBg;
+  Image1.Parent := FVisualSections[4];
+  Image1.SetBounds(4, 22, 100, 80);  // Reflow sets actual size
+  Place(topleftRadioButton,      FVisualSections[4], 10, 30);
+  Place(topcenterRadioButton,    FVisualSections[4], 50, 30);
+  Place(toprightRadioButton,     FVisualSections[4], 90, 30);
+  Place(middleleftRadioButton,   FVisualSections[4], 10, 80);
+  Place(middlerightRadioButton,  FVisualSections[4], 90, 80);
+  Place(bottomleftRadioButton,   FVisualSections[4], 10, 130);
+  Place(bottomcenterRadioButton, FVisualSections[4], 50, 130);
+  Place(bottomrightRadioButton,  FVisualSections[4], 90, 130);
+  // SpinEdits use the monitor-screen blue so they blend into the position image
+  offsetxSpinEdit.Parent := FVisualSections[4];
+  offsetxSpinEdit.AnchorSideLeft.Control := nil; offsetxSpinEdit.AnchorSideTop.Control := nil;
+  offsetxSpinEdit.Anchors     := [akLeft, akTop];
+  offsetxSpinEdit.Color       := $00D9904A;   // monitor-screen blue (BGR)
+  offsetxSpinEdit.Font.Color  := clWhite;
+  offsetxSpinEdit.ParentColor := False;
+  offsetxSpinEdit.Left := 10; offsetxSpinEdit.Top := 60;
+  offsetySpinEdit.Parent := FVisualSections[4];
+  offsetySpinEdit.AnchorSideLeft.Control := nil; offsetySpinEdit.AnchorSideTop.Control := nil;
+  offsetySpinEdit.Anchors     := [akLeft, akTop];
+  offsetySpinEdit.Color       := $00D9904A;
+  offsetySpinEdit.Font.Color  := clWhite;
+  offsetySpinEdit.ParentColor := False;
+  offsetySpinEdit.Left := 10; offsetySpinEdit.Top := 90;
 
-  // Section 2 — Columns (right third)
-  FVisualLaySep2 := TPanel.Create(FVisualCards[1]);
-  FVisualLaySep2.Parent := FVisualCards[1]; FVisualLaySep2.BevelOuter := bvNone;
-  FVisualLaySep2.Color := $005A5050; FVisualLaySep2.Caption := '';
-  FVisualLaySep2.SetBounds(560, HDR + 5, 1, 195);  // provisional; Reflow adjusts
-  FVisualColsLbl := TLabel.Create(FVisualCards[1]);
-  FVisualColsLbl.Parent := FVisualCards[1]; FVisualColsLbl.Caption := 'Columns';
-  FVisualColsLbl.Font.Color := $00AAAACC; FVisualColsLbl.Font.Style := [fsBold];
-  FVisualColsLbl.Font.Size := 8; FVisualColsLbl.Transparent := True;
-  FVisualColsLbl.AutoSize := True; FVisualColsLbl.Left := 568; FVisualColsLbl.Top := HDR + 6;
-  Place(columShape,      FVisualCards[1], 568, HDR + 30);
-  Place(columShape1,     FVisualCards[1], 595, HDR + 30);
-  Place(columShape2,     FVisualCards[1], 622, HDR + 30);
-  Place(columShape3,     FVisualCards[1], 649, HDR + 30);
-  Place(columShape4,     FVisualCards[1], 676, HDR + 30);
-  Place(columShape5,     FVisualCards[1], 703, HDR + 30);
-  Place(minusButton,     FVisualCards[1], 622, HDR + 148);
-  Place(plusSpeedButton, FVisualCards[1], 649, HDR + 148);
-  Place(columvalueLabel, FVisualCards[1], 682, HDR + 150);
+  // ·· [5] Columns ··························································
+  Place(columShape,      FVisualSections[5], 10, 50);
+  Place(columShape1,     FVisualSections[5], 37, 50);
+  Place(columShape2,     FVisualSections[5], 64, 50);
+  Place(columShape3,     FVisualSections[5], 91, 50);
+  Place(columShape4,     FVisualSections[5], 118, 50);
+  Place(columShape5,     FVisualSections[5], 145, 50);
+  Place(minusButton,     FVisualSections[5], 64,  162);
+  Place(plusSpeedButton, FVisualSections[5], 91,  162);
+  Place(columvalueLabel, FVisualSections[5], 124, 164);
   columvalueLabel.Font.Color := TextColor; columvalueLabel.Transparent := True;
   columShape.Height  := 100; columShape1.Height := 100; columShape2.Height := 100;
   columShape3.Height := 100; columShape4.Height := 100; columShape5.Height := 100;
-  // Columns section controls' Left updated by Reflow
 
   // ── GPU info bar ─────────────────────────────────────────────────────────
   IsLight   := CurrentTheme = tmLight;
@@ -11667,16 +11678,23 @@ begin
   hudtitleEdit.Font.Color  := TextColor;
   hudtitleEdit.BorderStyle := bsSingle;
 
-  // ── HUD settings bar ─────────────────────────────────────────────────────
-  // Wrap the bottom row (HUD Toggle Key + Compact HUD + Hide by default)
-  FVisualHudBar := TPanel.Create(Self);
-  FVisualHudBar.Parent      := visualTabSheet;
+  // ── HUD settings — integrated into Visual Settings card ──────────────────
+  // Horizontal separator between section panels and HUD row (width set in Reflow)
+  FVisualHudSep := TPanel.Create(FVisualCards[0]);
+  FVisualHudSep.Parent      := FVisualCards[0];
+  FVisualHudSep.BevelOuter  := bvNone;
+  FVisualHudSep.Caption     := '';
+  FVisualHudSep.Color       := $005A5050;
+  FVisualHudSep.SetBounds(8, 382, 800, 1);
+  FVisualHudSep.Anchors := [akLeft, akTop, akRight];
+
+  FVisualHudBar := TPanel.Create(FVisualCards[0]);
+  FVisualHudBar.Parent      := FVisualCards[0];  // child of main card, not tabsheet
   FVisualHudBar.BevelOuter  := bvNone;
   FVisualHudBar.BorderStyle := bsNone;
   FVisualHudBar.Caption     := '';
   FVisualHudBar.Color       := BarBg;
   FVisualHudBar.ParentColor := False;
-  FVisualHudBar.OnPaint     := @VisualCardPaint;
 
   // Reparent HUD toggle label
   hudtoggleLabel.Parent := FVisualHudBar;
@@ -11742,26 +11760,33 @@ procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
 const
   MARGIN   = 4;
   GPU_TOP  = 52;
-  GPU_H    = 67;    // GPU bar height
+  GPU_H    = 67;
   CARD_TOP = GPU_TOP + GPU_H + 10;  // = 129
-  H_APP    = 160;   // Appearance card height
-  H_LAY    = 235;   // Layout card height
-  GAP      = 10;    // gap between the two main cards
   HUD_H    = 56;
   HDR      = 34;
+  R1_TOP   = HDR + 4;
+  R1_H     = 118;
+  R2_TOP   = HDR + 130;
+  R2H      = 216;                   // fixed height for row-2 section panels
+  HUD_SEP  = R2_TOP + R2H + 4;     // y of horizontal separator before HUD row = 384
+  HUD_TOP  = HUD_SEP + 6;          // y where HUD panel starts within card = 390
+  CARD_H   = HUD_TOP + HUD_H + 4;  // total card height = 450
 var
   W, S1, S2, SW: Integer;
-  GBH, RW, RH: Integer;
-  CL, CC, CR, RT, RM, RB: Integer;
-  LayTop, HudTop: Integer;
-  CenterS2: Integer;
+  SecW1, SecW2, SecW3: Integer;
+  RW, RH, CL, CC, CR, RT, RM, RB: Integer;
+  ImgW, ImgH: Integer;
+  HalfW, GrpW, GrpX, CY: Integer;
 begin
   if not Assigned(FVisualCards[0]) then Exit;
 
-  W  := AContentW - 2 * MARGIN;   // card width (full-width minus margins)
-  S1 := W div 3;                  // Borders / Position section start X
-  S2 := (W * 2) div 3;            // Background / Columns section start X
-  SW := W - S2;                   // right section width
+  W  := AContentW - 2 * MARGIN;
+  S1 := W div 3;
+  S2 := (W * 2) div 3;
+  SW := W - S2;
+  SecW1 := S1 - 8;
+  SecW2 := S2 - S1 - 8;
+  SecW3 := W - S2 - 8;
 
   // GPU info bar
   if Assigned(FVisualGpuBar) then
@@ -11770,54 +11795,84 @@ begin
     gpudescEdit.Width := FVisualGpuBar.ClientWidth - gpudescEdit.Left - 5;
   end;
 
-  LayTop := CARD_TOP + H_APP + GAP;
+  // Single card — full width
+  FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, CARD_H);
 
-  // ── Card 0: Appearance (full width) ──────────────────────────────────────
-  FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, H_APP);
+  // ── Row 1 section panels ──────────────────────────────────────────────────
+  if Assigned(FVisualSections[0]) then
+    FVisualSections[0].SetBounds(4,      R1_TOP, SecW1, R1_H);
+  if Assigned(FVisualSections[1]) then
+    FVisualSections[1].SetBounds(S1 + 4, R1_TOP, SecW2, R1_H);
+  if Assigned(FVisualSections[2]) then
+    FVisualSections[2].SetBounds(S2 + 4, R1_TOP, SecW3, R1_H);
 
-  // Update separator and section label X positions for Borders and Background
-  if Assigned(FVisualAppSep1) then FVisualAppSep1.SetBounds(S1, HDR + 5, 1, H_APP - HDR - 10);
-  if Assigned(FVisualBordersLbl) then FVisualBordersLbl.Left := S1 + 8;
-  squareRadioButton.Left := S1 + 15;
-  squareImage.Left       := S1 + 37;
-  roundRadioButton.Left  := S1 + 105;
-  roundImage.Left        := S1 + 127;
+  // ── Orientation section: 2 pairs (RB + image) centered in each half ──────
+  CY    := 22 + (R1_H - 22) div 2;  // vertical center of content area = 70
+  HalfW := SecW1 div 2;
+  // Left half: verticalRB (20×20) + vImage (30×56)
+  GrpW := 20 + 6 + 30;
+  GrpX := HalfW div 2 - GrpW div 2;
+  if GrpX < 4 then GrpX := 4;
+  verticalRadioButton.Left := GrpX;
+  verticalRadioButton.Top  := CY - 10;
+  vImage.Left := GrpX + 26;
+  vImage.Top  := CY - 28;
+  // Right half: horizontalRB (20×20) + hImage (56×30)
+  GrpW := 20 + 6 + 56;
+  GrpX := HalfW + HalfW div 2 - GrpW div 2;
+  if GrpX + GrpW > SecW1 - 4 then GrpX := SecW1 - 4 - GrpW;
+  horizontalRadioButton.Left := GrpX;
+  horizontalRadioButton.Top  := CY - 10;
+  hImage.Left := GrpX + 26;
+  hImage.Top  := CY - 15;
 
-  if Assigned(FVisualAppSep2) then FVisualAppSep2.SetBounds(S2, HDR + 5, 1, H_APP - HDR - 10);
-  if Assigned(FVisualBgLbl) then FVisualBgLbl.Left := S2 + 8;
-  backgroundLabel.Left          := S2 + 11;
-  hudbackgroundColorButton.Left := S2 + 57;
-  transparencyLabel.Left        := S2 + 11;
-  transpTrackBar.Left           := S2 + 57;
-  transpTrackBar.Width          := W - S2 - 65;
-  alphavalueLabel.Left          := S2 + 57 + (transpTrackBar.Width div 2) - 8;
+  // ── Borders section: 2 pairs (RB + image) centered in each half ───────────
+  HalfW := SecW2 div 2;
+  // Left half: squareRB (20×20) + squareImage (48×42)
+  GrpW := 20 + 6 + 48;
+  GrpX := HalfW div 2 - GrpW div 2;
+  if GrpX < 4 then GrpX := 4;
+  squareRadioButton.Left := GrpX;
+  squareRadioButton.Top  := CY - 10;
+  squareImage.Left := GrpX + 26;
+  squareImage.Top  := CY - 21;
+  // Right half: roundRB + roundImage (48×42)
+  GrpX := HalfW + HalfW div 2 - GrpW div 2;
+  if GrpX + GrpW > SecW2 - 4 then GrpX := SecW2 - 4 - GrpW;
+  roundRadioButton.Left := GrpX;
+  roundRadioButton.Top  := CY - 10;
+  roundImage.Left := GrpX + 26;
+  roundImage.Top  := CY - 21;
 
-  // ── Card 1: Layout (full width) ──────────────────────────────────────────
-  FVisualCards[1].SetBounds(MARGIN, LayTop, W, H_LAY);
+  // Background section: transpTrackBar stretches to fill panel
+  transpTrackBar.Width := SecW3 - 60;
+  alphavalueLabel.Left := 52 + (transpTrackBar.Width div 2) - 8;
 
-  // Fonts section: elastic widths
-  fontComboBox.Width    := S1 - 20;
-  fontsizeTrackBar.Width := S1 - 60;
-  CenterS2 := (S1 div 2);
-  fontsizevalueLabel.Left := CenterS2 - 5;
+  // ── Row 2 section panels ──────────────────────────────────────────────────
+  if Assigned(FVisualSections[3]) then
+    FVisualSections[3].SetBounds(4,      R2_TOP, SecW1, R2H);
+  if Assigned(FVisualSections[4]) then
+    FVisualSections[4].SetBounds(S1 + 4, R2_TOP, SecW2, R2H);
+  if Assigned(FVisualSections[5]) then
+    FVisualSections[5].SetBounds(S2 + 4, R2_TOP, SecW3, R2H);
 
-  // Position section separators
-  if Assigned(FVisualLaySep1) then FVisualLaySep1.SetBounds(S1, HDR + 5, 1, H_LAY - HDR - 10);
-  if Assigned(FVisualLaySep2) then FVisualLaySep2.SetBounds(S2, HDR + 5, 1, H_LAY - HDR - 10);
+  // Fonts section: elastic widths (controls are relative to section panel)
+  fontComboBox.Width     := SecW1 - 12;
+  fontsizeTrackBar.Width := SecW1 - 46;
+  fontsizevalueLabel.Left := (SecW1 div 2) - 5;
 
-  // Image1 fills the middle section (S1 to S2)
-  Image1.SetBounds(S1, HDR, S2 - S1, H_LAY - HDR);
-
-  // Radio buttons proportionally over Image1
-  GBH := H_LAY - HDR;
+  // Position section: Image fills panel, radio buttons proportional within it
+  ImgW := SecW2 - 8;
+  ImgH := R2H - 26;
+  Image1.SetBounds(4, 22, ImgW, ImgH);
   RW  := topleftRadioButton.Width;
   RH  := topleftRadioButton.Height;
-  CL  := S1 + Round((S2 - S1) * 0.094) - RW div 2;
-  CC  := S1 + (S2 - S1) div 2 - RW div 2;
-  CR  := S1 + Round((S2 - S1) * 0.906) - RW div 2;
-  RT  := HDR + Round(GBH * 0.131) - RH div 2;
-  RM  := HDR + Round(GBH * 0.434) - RH div 2;
-  RB  := HDR + Round(GBH * 0.737) - RH div 2;
+  CL  := 4 + Round(ImgW * 0.094) - RW div 2;
+  CC  := 4 + (ImgW div 2) - RW div 2;
+  CR  := 4 + Round(ImgW * 0.906) - RW div 2;
+  RT  := 22 + Round(ImgH * 0.131) - RH div 2;
+  RM  := 22 + Round(ImgH * 0.434) - RH div 2;
+  RB  := 22 + Round(ImgH * 0.737) - RH div 2;
   topleftRadioButton.SetBounds(CL, RT, RW, RH);
   topcenterRadioButton.SetBounds(CC, RT, RW, RH);
   toprightRadioButton.SetBounds(CR, RT, RW, RH);
@@ -11826,30 +11881,31 @@ begin
   bottomleftRadioButton.SetBounds(CL, RB, RW, RH);
   bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
   bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
+  // offsetxSpinEdit: right of middleleftRadioButton
+  offsetxSpinEdit.Left := CL + RW + 4;
+  offsetxSpinEdit.Top  := RM + (RH - offsetxSpinEdit.Height) div 2;
+  // offsetySpinEdit: below topcenterRadioButton
+  offsetySpinEdit.Left := CC + (RW - offsetySpinEdit.Width) div 2;
+  offsetySpinEdit.Top  := RT + RH + 4;
 
-  // Columns section: center the 6 shapes within the right third
-  if Assigned(FVisualLaySep2) then
-  begin
-    if Assigned(FVisualColsLbl) then FVisualColsLbl.Left := S2 + 8;
-    // Center the 6 shapes (each 24px, 3px gap → total 159px) in the section
-    CL := S2 + (SW - 159) div 2;
-    if CL < S2 + 8 then CL := S2 + 8;
-    columShape.Left  := CL;       columShape1.Left := CL + 27;
-    columShape2.Left := CL + 54;  columShape3.Left := CL + 81;
-    columShape4.Left := CL + 108; columShape5.Left := CL + 135;
-    // Buttons centered below shapes 2 and 3
-    minusButton.Left     := CL + 54;
-    plusSpeedButton.Left := CL + 81;
-    columvalueLabel.Left := CL + 120;
-  end;
+  // Columns section: center 6 shapes (each 24px, 3px gap = 159px total) in panel
+  CL := (SecW3 - 159) div 2;
+  if CL < 6 then CL := 6;
+  columShape.Left  := CL;       columShape1.Left := CL + 27;
+  columShape2.Left := CL + 54;  columShape3.Left := CL + 81;
+  columShape4.Left := CL + 108; columShape5.Left := CL + 135;
+  minusButton.Left     := CL + 54;
+  plusSpeedButton.Left := CL + 81;
+  columvalueLabel.Left := CL + 110;
 
-  // HUD bar: sits below both cards
-  HudTop := LayTop + H_LAY + GAP;
+  // HUD separator and bar — integrated at the bottom of the main card
+  if Assigned(FVisualHudSep) then
+    FVisualHudSep.SetBounds(8, HUD_SEP, W - 16, 1);
   if Assigned(FVisualHudBar) then
   begin
-    FVisualHudBar.SetBounds(MARGIN, HudTop, W, HUD_H);
-    hudcompactCheckBox.Left := (FVisualHudBar.ClientWidth - hudcompactCheckBox.Width) div 2;
-    hidehudCheckBox.Left    := FVisualHudBar.ClientWidth - hidehudCheckBox.Width - 16;
+    FVisualHudBar.SetBounds(0, HUD_TOP, W, HUD_H);
+    hudcompactCheckBox.Left := (W - hudcompactCheckBox.Width) div 2;
+    hidehudCheckBox.Left    := W - hidehudCheckBox.Width - 16;
   end;
 end;
 
