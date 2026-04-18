@@ -644,6 +644,12 @@ type
     FLoggingCaptureBtn: TBitBtn;
     FCaptureForm:       TForm;
 
+    // Extras tab code-generated layout
+    FExtScrollBox:  TScrollBox;
+    FExtBgPanel:    TPanel;
+    FExtSysCard:    TPanel;   // wrapper card for systemGroupBox
+    FExtLogCard:    TPanel;   // wrapper card for loggingGroupBox
+
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
@@ -711,6 +717,7 @@ type
     procedure RefreshOsStatusDots;
     procedure InitMetricsTab;
     procedure ReflowMetricsTab(AContentW: Integer);
+    procedure ReflowExtrasTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
 
@@ -5889,6 +5896,8 @@ begin
   ReflowPresetTab(InitW);
   ReflowVisualTab(InitW);
   ReflowPerformanceTab(InitW);
+  ReflowMetricsTab(InitW);
+  ReflowExtrasTab(InitW);
 
   // Start pascube or vkcube (vulkan demo) is now moved to SetNavActive (MangoHud tab)
 end;
@@ -11113,6 +11122,7 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowMetricsTab(ContentW);
+  ReflowExtrasTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowVkBasaltTab(ContentW);
@@ -11142,6 +11152,7 @@ begin
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
   ReflowMetricsTab(ContentW);
+  ReflowExtrasTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowVkBasaltTab(ContentW);
@@ -12395,39 +12406,159 @@ begin
 end;
 
 procedure Tgoverlayform.InitExtrasTab;
-var
-  IsLight: Boolean;
-  BgColor, TextColor: TColor;
+// Fully code-driven layout matching the Metrics tab pattern.
+const
+  CARD_BG  = $00362E2E;
+  OUTER_BG = $00201818;
+  WHITE    = clWhite;
+  HDR      = 34;
+
+  procedure MakeCard(out Card: TPanel; const ATitle: string);
+  var
+    Bar: TPanel;
+    Lbl: TLabel;
+  begin
+    Card := TPanel.Create(Self);
+    Card.Parent      := FExtBgPanel;
+    Card.BevelOuter  := bvNone;
+    Card.BorderStyle := bsNone;
+    Card.Color       := CARD_BG;
+    Card.Caption     := '';
+    Card.OnPaint     := @VisualCardPaint;
+    Bar := TPanel.Create(Card);
+    Bar.Parent     := Card;
+    Bar.BevelOuter := bvNone;
+    Bar.Color      := clHighlight;
+    Bar.Caption    := '';
+    Bar.SetBounds(0, 0, 800, 3);
+    Bar.Anchors    := [akLeft, akRight, akTop];
+    Lbl := TLabel.Create(Card);
+    Lbl.Parent      := Card;
+    Lbl.Caption     := ATitle;
+    Lbl.Font.Color  := WHITE;
+    Lbl.Font.Size   := 10;
+    Lbl.Font.Style  := [fsBold];
+    Lbl.AutoSize    := True;
+    Lbl.SetBounds(12, 8, 200, 22);
+    Lbl.Transparent := True;
+  end;
+
+  procedure Place(C: TControl; Card: TPanel; ALeft, ATop: Integer);
+  begin
+    C.AnchorSideLeft.Control   := nil;
+    C.AnchorSideTop.Control    := nil;
+    C.AnchorSideRight.Control  := nil;
+    C.AnchorSideBottom.Control := nil;
+    C.Anchors := [akLeft, akTop];
+    C.Parent  := Card;
+    C.Left    := ALeft;
+    C.Top     := ATop;
+  end;
+
+  procedure DarkCheck(C: TCheckBox);
+  begin
+    C.ParentColor := False;
+    C.Color       := CARD_BG;
+    C.Font.Color  := WHITE;
+    C.Font.Size   := 9;
+  end;
+
+  procedure DarkLabel(L: TLabel);
+  begin
+    L.Font.Color  := WHITE;
+    L.Transparent := True;
+    L.ParentColor := False;
+  end;
+
 begin
-  IsLight   := CurrentTheme = tmLight;
-  BgColor   := IfThen(IsLight, clWhite, $00362E2E);
-  TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+  FExtScrollBox := TScrollBox.Create(Self);
+  FExtScrollBox.Parent      := extrasTabSheet;
+  FExtScrollBox.Align       := alClient;
+  FExtScrollBox.AutoScroll  := True;
+  FExtScrollBox.BorderStyle := bsNone;
+  FExtScrollBox.Color       := OUTER_BG;
 
-  // Apply dark/light theme to loggingGroupBox
-  loggingGroupBox.Color := BgColor;
-  loggingGroupBox.Font.Color := TextColor;
-  loggingGroupBox.ParentColor := False;
+  FExtBgPanel := TPanel.Create(Self);
+  FExtBgPanel.Parent      := FExtScrollBox;
+  FExtBgPanel.BevelOuter  := bvNone;
+  FExtBgPanel.BorderStyle := bsNone;
+  FExtBgPanel.Color       := OUTER_BG;
+  FExtBgPanel.Caption     := '';
 
-  // Hide legacy components
+  // ── Card 1: System info ─────────────────────────────────────────────────
+  MakeCard(FExtSysCard, 'System info');
+
+  Place(systemLabel,           FExtSysCard, 11,  11 + HDR);  DarkLabel(systemLabel);
+  Place(distroinfoCheckBox,    FExtSysCard, 11,  32 + HDR);  DarkCheck(distroinfoCheckBox);
+  Place(refreshrateCheckBox,   FExtSysCard, 128, 32 + HDR);  DarkCheck(refreshrateCheckBox);
+  Place(resolutionCheckBox,    FExtSysCard, 254, 32 + HDR);  DarkCheck(resolutionCheckBox);
+  Place(displayserverCheckBox, FExtSysCard, 372, 32 + HDR);  DarkCheck(displayserverCheckBox);
+  Place(timeCheckBox,          FExtSysCard, 513, 32 + HDR);  DarkCheck(timeCheckBox);
+  Place(archCheckBox,          FExtSysCard, 597, 32 + HDR);  DarkCheck(archCheckBox);
+
+  Place(wineLabel,             FExtSysCard, 11,  68 + HDR);  DarkLabel(wineLabel);
+  Place(wineCheckBox,          FExtSysCard, 11,  89 + HDR);  DarkCheck(wineCheckBox);
+  Place(engineversionCheckBox, FExtSysCard, 128, 89 + HDR);  DarkCheck(engineversionCheckBox);
+  Place(engineshortCheckBox,   FExtSysCard, 254, 89 + HDR);  DarkCheck(engineshortCheckBox);
+  Place(winesyncCheckBox,      FExtSysCard, 372, 89 + HDR);  DarkCheck(winesyncCheckBox);
+  Place(dxapiCheckBox,         FExtSysCard, 513, 89 + HDR);  DarkCheck(dxapiCheckBox);
+  Place(fexstatsCheckBox,      FExtSysCard, 597, 89 + HDR);  DarkCheck(fexstatsCheckBox);
+  Place(wineColorButton,       FExtSysCard, 7,   111 + HDR);
+  Place(engineColorButton,     FExtSysCard, 122, 111 + HDR);
+
+  Place(optionsLabel,           FExtSysCard, 11,  131 + HDR); DarkLabel(optionsLabel);
+  Place(hudversionCheckBox,     FExtSysCard, 11,  152 + HDR); DarkCheck(hudversionCheckBox);
+  Place(gamemodestatusCheckBox, FExtSysCard, 128, 152 + HDR); DarkCheck(gamemodestatusCheckBox);
+  Place(vkbasaltstatusCheckBox, FExtSysCard, 254, 152 + HDR); DarkCheck(vkbasaltstatusCheckBox);
+  Place(fcatCheckBox,           FExtSysCard, 372, 152 + HDR); DarkCheck(fcatCheckBox);
+  Place(fsrCheckBox,            FExtSysCard, 513, 152 + HDR); DarkCheck(fsrCheckBox);
+  Place(hdrCheckBox,            FExtSysCard, 597, 152 + HDR); DarkCheck(hdrCheckBox);
+
+  Place(batteryLabel,        FExtSysCard, 8,   190 + HDR); DarkLabel(batteryLabel);
+  Place(batteryCheckBox,     FExtSysCard, 11,  211 + HDR); DarkCheck(batteryCheckBox);
+  Place(batterywattCheckBox, FExtSysCard, 128, 211 + HDR); DarkCheck(batterywattCheckBox);
+  Place(batterytimeCheckBox, FExtSysCard, 254, 211 + HDR); DarkCheck(batterytimeCheckBox);
+  Place(deviceCheckBox,      FExtSysCard, 372, 211 + HDR); DarkCheck(deviceCheckBox);
+  Place(batteryColorButton,  FExtSysCard, 6,   233 + HDR);
+
+  Place(othersLabel,         FExtSysCard, 11,  262 + HDR); DarkLabel(othersLabel);
+  Place(mediaCheckBox,       FExtSysCard, 11,  283 + HDR); DarkCheck(mediaCheckBox);
+  Place(networkCheckBox,     FExtSysCard, 128, 283 + HDR); DarkCheck(networkCheckBox);
+  Place(fahrenheitCheckBox,  FExtSysCard, 254, 283 + HDR); DarkCheck(fahrenheitCheckBox);
+  Place(customcommandEdit,   FExtSysCard, 372, 283 + HDR); // keeps black/lime colors
+  Place(mediaColorButton,    FExtSysCard, 6,   305 + HDR);
+  Place(networkComboBox,     FExtSysCard, 128, 305 + HDR);
+  networkComboBox.Color      := OUTER_BG;
+  networkComboBox.Font.Color := WHITE;
+
+  // Icon in card header — positioned in ReflowExtrasTab
+  Place(sysinfoImage, FExtSysCard, 4, 5);
+  systemGroupBox.Visible := False;
+
+  // ── Card 2: Logging ─────────────────────────────────────────────────────
+  MakeCard(FExtLogCard, 'Logging');
+
+  Place(logdurationLabel,  FExtLogCard, 11,  11 + HDR);  DarkLabel(logdurationLabel);
+  Place(logdelayLabel,     FExtLogCard, 105, 11 + HDR);  DarkLabel(logdelayLabel);
+  Place(logintervalLabel,  FExtLogCard, 206, 11 + HDR);  DarkLabel(logintervalLabel);
+  Place(durationTrackBar,  FExtLogCard, 26,  40 + HDR);
+  Place(delayTrackBar,     FExtLogCard, 123, 40 + HDR);
+  Place(intervalTrackBar,  FExtLogCard, 218, 40 + HDR);
+  Place(durationvalueLabel,FExtLogCard, 54,  96 + HDR);  DarkLabel(durationvalueLabel);
+  Place(delayvalueLabel,   FExtLogCard, 151, 96 + HDR);  DarkLabel(delayvalueLabel);
+  Place(intervalvalueLabel,FExtLogCard, 246, 96 + HDR);  DarkLabel(intervalvalueLabel);
+
+  Place(logtoggleLabel, FExtLogCard, 356, 40 + HDR);
+  logtoggleLabel.Font.Color  := WHITE;
+  logtoggleLabel.Transparent := True;
+
+  Place(logtoggleComboBox, FExtLogCard, 356, 61 + HDR);
   logtoggleComboBox.Visible := False;
-  logtoggleImage.Visible := False;
 
-  // Reposition the label
-  logtoggleLabel.AnchorSideLeft.Control   := nil;
-  logtoggleLabel.AnchorSideTop.Control    := nil;
-  logtoggleLabel.AnchorSideRight.Control  := nil;
-  logtoggleLabel.AnchorSideBottom.Control := nil;
-  logtoggleLabel.Anchors := [akLeft, akTop];
-  logtoggleLabel.Left := (loggingGroupBox.ClientWidth - 211) div 2;
-  logtoggleLabel.Top := 61 - 22;
-  logtoggleLabel.Font.Color := TextColor;
-  logtoggleLabel.ParentColor := True;
-
-  // Capture Button — shows "⌨ Capture" or "⌨ <shortcut>" after capture
-  FLoggingCaptureBtn := TBitBtn.Create(loggingGroupBox);
-  FLoggingCaptureBtn.Parent  := loggingGroupBox;
-  FLoggingCaptureBtn.Tag     := 3; // Extras Tab
-  FLoggingCaptureBtn.SetBounds(logtoggleLabel.Left, 61, 160, 28);
+  FLoggingCaptureBtn := TBitBtn.Create(FExtLogCard);
+  FLoggingCaptureBtn.Parent  := FExtLogCard;
+  FLoggingCaptureBtn.Tag     := 3;
+  FLoggingCaptureBtn.SetBounds(356, 61 + HDR, 160, 28);
   FLoggingCaptureBtn.OnClick := @CaptureBtnClick;
   FLoggingCaptureBtn.Cursor  := crHandPoint;
   if Trim(logtoggleComboBox.Text) <> '' then
@@ -12435,22 +12566,22 @@ begin
   else
     FLoggingCaptureBtn.Caption := '⌨ Capture';
 
-  // Reposition checkboxes to the right of the capture button
-  autouploadCheckBox.AnchorSideLeft.Control   := nil;
-  autouploadCheckBox.AnchorSideTop.Control    := nil;
-  autouploadCheckBox.AnchorSideRight.Control  := nil;
-  autouploadCheckBox.AnchorSideBottom.Control := nil;
-  autouploadCheckBox.Anchors := [akLeft, akTop];
-  autouploadCheckBox.Left := FLoggingCaptureBtn.Left + FLoggingCaptureBtn.Width + 16;
-  autouploadCheckBox.Top  := 61 + (FLoggingCaptureBtn.Height - autouploadCheckBox.Height) div 2;
+  Place(autouploadCheckBox, FExtLogCard, 530, 67 + HDR); DarkCheck(autouploadCheckBox);
+  Place(versioningCheckBox, FExtLogCard, 665, 67 + HDR); DarkCheck(versioningCheckBox);
 
-  versioningCheckBox.AnchorSideLeft.Control   := nil;
-  versioningCheckBox.AnchorSideTop.Control    := nil;
-  versioningCheckBox.AnchorSideRight.Control  := nil;
-  versioningCheckBox.AnchorSideBottom.Control := nil;
-  versioningCheckBox.Anchors := [akLeft, akTop];
-  versioningCheckBox.Left := autouploadCheckBox.Left + autouploadCheckBox.Width + 16;
-  versioningCheckBox.Top  := autouploadCheckBox.Top;
+  Place(logfolderLabel,  FExtLogCard, 527, 122 + HDR); DarkLabel(logfolderLabel);
+  Place(logfolderEdit,   FExtLogCard, 335, 143 + HDR);
+  logfolderEdit.Color      := OUTER_BG;
+  logfolderEdit.Font.Color := WHITE;
+  Place(logfolderBitBtn, FExtLogCard, 783, 143 + HDR);
+
+  Place(logtoggleImage, FExtLogCard, 325, 63 + HDR);
+  logtoggleImage.Visible := False;
+  // Log icon in card header — right-anchored
+  Place(Image2, FExtLogCard, 764, 5);
+  Image2.Anchors := [akRight, akTop];
+
+  loggingGroupBox.Visible := False;
 end;
 
 procedure Tgoverlayform.UpdatePerfCardTheme;
@@ -13345,6 +13476,32 @@ begin
   FMtCpuCard.SetBounds(MARGIN, CardTop, CW, CPU_H);
   // CPU image: right-aligned
   cpuImage.Left := CW - cpuImage.Width - 5;
+end;
+
+procedure Tgoverlayform.ReflowExtrasTab(AContentW: Integer);
+const
+  MARGIN = 8;
+  GAP    = 6;
+  HDR    = 34;
+  // Card height = HDR + LFM ClientHeight + bottom padding
+  SYS_H  = HDR + 335 + 8;  // 377  (systemGroupBox ClientHeight=335)
+  LOG_H  = HDR + 179 + 8;  // 221  (loggingGroupBox ClientHeight=179)
+var
+  CW, TotalH: Integer;
+begin
+  if not Assigned(FExtScrollBox) then Exit;
+  CW := AContentW - 2 * MARGIN;
+  if CW < 100 then Exit;
+
+  FExtScrollBox.HorzScrollBar.Range := 0;
+
+  TotalH := MARGIN + SYS_H + GAP + LOG_H + MARGIN;
+  if FExtScrollBox.ClientHeight > TotalH then
+    TotalH := FExtScrollBox.ClientHeight;
+  FExtBgPanel.SetBounds(0, 0, AContentW, TotalH);
+
+  FExtSysCard.SetBounds(MARGIN, MARGIN, CW, SYS_H);
+  FExtLogCard.SetBounds(MARGIN, MARGIN + SYS_H + GAP, CW, LOG_H);
 end;
 
 // ============================================================================
