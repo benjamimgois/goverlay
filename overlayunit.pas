@@ -586,6 +586,12 @@ type
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
 
+    // Metrics tab card redesign
+    FMtScrollBox:    TScrollBox;
+    FMtBgPanel:      TPanel;
+    FMtGpuCard:      TPanel;
+    FMtCpuCard:      TPanel;
+
     // Custom env groupbox (Tweaks tab)
     FCustomGroupBox:  TGroupBox;
     FCustomListBox:   TListBox;
@@ -699,6 +705,8 @@ type
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure RefreshOsStatusDots;
+    procedure InitMetricsTab;
+    procedure ReflowMetricsTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
 
@@ -5129,6 +5137,9 @@ begin
 
   // Initialize Performance tab card layout
   InitPerformanceTab;
+
+  // Initialize Metrics tab card layout
+  InitMetricsTab;
 
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
@@ -11054,6 +11065,7 @@ begin
   ReflowPresetTab(ContentW);
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
+  ReflowMetricsTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowVkBasaltTab(ContentW);
@@ -11082,6 +11094,7 @@ begin
   ReflowPresetTab(ContentW);
   ReflowVisualTab(ContentW);
   ReflowPerformanceTab(ContentW);
+  ReflowMetricsTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowVkBasaltTab(ContentW);
@@ -12900,6 +12913,307 @@ begin
     FOsStatVerLbls[i].Left  := ColX[Col] + DOT_SZ + 6 + 80;
     FOsStatVerLbls[i].Top   := Row + (ROW_H - 16) div 2;
   end;
+end;
+
+// ============================================================================
+// METRICS TAB — modern card redesign
+// ============================================================================
+
+procedure Tgoverlayform.InitMetricsTab;
+// Fully code-driven layout: every control is reparented directly to its card
+// TPanel (no TGroupBox involved).  The card's VisualCardPaint reliably fills
+// CARD_BG everywhere, solving the Qt6 GroupBox background rendering issue.
+const
+  CARD_BG  = $00362E2E;
+  OUTER_BG = $00201818;
+  WHITE    = clWhite;
+  SECT_GPU = $66AAFF;
+  SECT_CPU = $FFAA55;
+  HDR      = 34;   // accent bar (3px) + title label area
+
+  procedure MakeCard(out Card: TPanel; const ATitle: string);
+  var
+    Bar: TPanel;
+    Lbl: TLabel;
+  begin
+    Card := TPanel.Create(Self);
+    Card.Parent      := FMtBgPanel;
+    Card.BevelOuter  := bvNone;
+    Card.BorderStyle := bsNone;
+    Card.Color       := CARD_BG;
+    Card.Caption     := '';
+    Card.OnPaint     := @VisualCardPaint;
+    Bar := TPanel.Create(Card);
+    Bar.Parent     := Card;
+    Bar.BevelOuter := bvNone;
+    Bar.Color      := clHighlight;
+    Bar.Caption    := '';
+    Bar.SetBounds(0, 0, 400, 3);
+    Bar.Anchors    := [akLeft, akRight, akTop];
+    Lbl := TLabel.Create(Card);
+    Lbl.Parent      := Card;
+    Lbl.Caption     := ATitle;
+    Lbl.Font.Color  := WHITE;
+    Lbl.Font.Size   := 10;
+    Lbl.Font.Style  := [fsBold];
+    Lbl.AutoSize    := True;
+    Lbl.SetBounds(12, 8, 200, 22);
+    Lbl.Transparent := True;
+  end;
+
+  // Reparent a control directly to a card, clearing all anchor dependencies and
+  // placing it at (ALeft, ATop) relative to the card.  All controls land directly
+  // on the TPanel — no GroupBox in the hierarchy.
+  procedure Place(C: TControl; Card: TPanel; ALeft, ATop: Integer);
+  begin
+    C.AnchorSideLeft.Control   := nil;
+    C.AnchorSideTop.Control    := nil;
+    C.AnchorSideRight.Control  := nil;
+    C.AnchorSideBottom.Control := nil;
+    C.Anchors  := [akLeft, akTop];
+    C.Parent   := Card;
+    C.Left     := ALeft;
+    C.Top      := ATop;
+  end;
+
+  procedure DarkCheck(C: TCheckBox);
+  begin
+    C.ParentColor := False;
+    C.Color       := CARD_BG;
+    C.Font.Color  := WHITE;
+    C.Font.Size   := 9;
+  end;
+
+  procedure DarkSectLbl(L: TLabel; AColor: TColor);
+  begin
+    L.Font.Color  := AColor;
+    L.Font.Size   := 9;
+    L.Font.Style  := [fsBold];
+    L.Transparent := True;
+  end;
+
+begin
+  // ── Scroll container fills the tab ──────────────────────────────────────
+  FMtScrollBox := TScrollBox.Create(Self);
+  FMtScrollBox.Parent      := metricsTabSheet;
+  FMtScrollBox.Align       := alClient;
+  FMtScrollBox.AutoScroll  := True;
+  FMtScrollBox.BorderStyle := bsNone;
+  FMtScrollBox.HorzScrollBar.Visible := False;
+  FMtScrollBox.HorzScrollBar.Range   := 0;
+  FMtScrollBox.Color       := OUTER_BG;
+  FMtScrollBox.ParentColor := False;
+
+  FMtBgPanel := TPanel.Create(Self);
+  FMtBgPanel.Parent     := FMtScrollBox;
+  FMtBgPanel.BevelOuter := bvNone;
+  FMtBgPanel.Color      := OUTER_BG;
+  FMtBgPanel.Caption    := '';
+  FMtBgPanel.Left       := 0;
+  FMtBgPanel.Top        := 0;
+  FMtBgPanel.Width      := FMtScrollBox.ClientWidth;
+  FMtBgPanel.Height     := 600;
+
+  // Hide the original GroupBoxes — they are no longer needed as containers.
+  gpuGroupBox.Visible := False;
+  cpuGroupBox.Visible := False;
+
+  // ── Card 0: GPU Metrics ─────────────────────────────────────────────────
+  // All Y values = LFM position + HDR (34) to offset below the card header.
+  MakeCard(FMtGpuCard, 'GPU Metrics');
+
+  // Name edit (centered in LFM at Left=285, Top=3)
+  Place(gpunameEdit, FMtGpuCard, 285, 3 + HDR);
+  gpunameEdit.Color      := CARD_BG;
+  gpunameEdit.Font.Color := WHITE;
+  gpunameEdit.Font.Size  := 9;
+
+  // Main color bar (Left=281, Top=35)
+  Place(gpuColorButton, FMtGpuCard, 281, 35 + HDR);
+  gpuColorButton.Color := CARD_BG;
+
+  // Section: Main metrics (label Top=56, controls Top=77/99)
+  Place(mainmetricLabel,    FMtGpuCard, 11,  56 + HDR);
+  Place(gpuavgloadCheckBox, FMtGpuCard, 11,  77 + HDR);
+  Place(gpuloadcolorCheckBox,FMtGpuCard,120, 77 + HDR);
+  Place(gpuload1ColorButton, FMtGpuCard,120, 99 + HDR);
+  Place(gpuload2ColorButton, FMtGpuCard,150, 99 + HDR);
+  Place(gpuload3ColorButton, FMtGpuCard,181, 99 + HDR);
+  Place(vramusageCheckBox,  FMtGpuCard, 266, 77 + HDR);
+  Place(vramColorButton,    FMtGpuCard, 264, 99 + HDR);
+  Place(gpufreqCheckBox,    FMtGpuCard, 381, 77 + HDR);
+  Place(gpumemfreqCheckBox, FMtGpuCard, 519, 77 + HDR);
+  DarkSectLbl(mainmetricLabel, SECT_GPU);
+  DarkCheck(gpuavgloadCheckBox);
+  DarkCheck(gpuloadcolorCheckBox);
+  DarkCheck(vramusageCheckBox);
+  DarkCheck(gpufreqCheckBox);
+  DarkCheck(gpumemfreqCheckBox);
+  gpuload1ColorButton.Color := CARD_BG;
+  gpuload2ColorButton.Color := CARD_BG;
+  gpuload3ColorButton.Color := CARD_BG;
+  vramColorButton.Color := CARD_BG;
+
+  // Section: Temperature (label Top=113, controls Top=134)
+  Place(gputempLabel,        FMtGpuCard, 11,  113 + HDR);
+  Place(gputempCheckBox,     FMtGpuCard, 11,  134 + HDR);
+  Place(gpumemtempCheckBox,  FMtGpuCard, 120, 134 + HDR);
+  Place(gpujunctempCheckBox, FMtGpuCard, 266, 134 + HDR);
+  Place(gpufanCheckBox,      FMtGpuCard, 381, 134 + HDR);
+  DarkSectLbl(gputempLabel, SECT_GPU);
+  DarkCheck(gputempCheckBox);
+  DarkCheck(gpumemtempCheckBox);
+  DarkCheck(gpujunctempCheckBox);
+  DarkCheck(gpufanCheckBox);
+
+  // Section: Power (label Top=170, controls Top=191/213)
+  Place(gpupowerLabel,           FMtGpuCard, 11,  170 + HDR);
+  Place(gpupowerCheckBox,        FMtGpuCard, 11,  191 + HDR);
+  Place(gpuvoltageCheckBox,      FMtGpuCard, 120, 191 + HDR);
+  Place(gputhrottlingCheckBox,   FMtGpuCard, 266, 191 + HDR);
+  Place(gputhrottlinggraphCheckBox,FMtGpuCard,381,191 + HDR);
+  Place(gpuefficiencyCheckBox,   FMtGpuCard, 519, 191 + HDR);
+  Place(gpupowerlimitCheckBox,   FMtGpuCard, 611, 191 + HDR);
+  Place(gpuframesjouleBitBtn,    FMtGpuCard, 516, 213 + HDR);
+  DarkSectLbl(gpupowerLabel, SECT_GPU);
+  DarkCheck(gpupowerCheckBox);
+  DarkCheck(gpuvoltageCheckBox);
+  DarkCheck(gputhrottlingCheckBox);
+  DarkCheck(gputhrottlinggraphCheckBox);
+  DarkCheck(gpuefficiencyCheckBox);
+  DarkCheck(gpupowerlimitCheckBox);
+  gpuframesjouleBitBtn.Font.Color := WHITE;
+
+  // Section: Information (label Top=227, controls Top=248)
+  Place(gpuinfoLabel,      FMtGpuCard, 11,  227 + HDR);
+  Place(gpumodelCheckBox,  FMtGpuCard, 11,  248 + HDR);
+  Place(vulkandriverCheckBox,FMtGpuCard,120, 248 + HDR);
+  Place(procvramCheckBox,  FMtGpuCard, 266, 248 + HDR);
+  DarkSectLbl(gpuinfoLabel, SECT_GPU);
+  DarkCheck(gpumodelCheckBox);
+  DarkCheck(vulkandriverCheckBox);
+  DarkCheck(procvramCheckBox);
+
+  // GPU image — right-anchored, positioned in ReflowMetricsTab
+  gpuImage.AnchorSideLeft.Control   := nil;
+  gpuImage.AnchorSideTop.Control    := nil;
+  gpuImage.AnchorSideRight.Control  := nil;
+  gpuImage.AnchorSideBottom.Control := nil;
+  gpuImage.Anchors := [akLeft, akTop];
+  gpuImage.Parent  := FMtGpuCard;
+  gpuImage.Top     := 5 + HDR;
+
+  // ── Card 1: CPU / Memory Metrics ────────────────────────────────────────
+  MakeCard(FMtCpuCard, 'CPU / Memory Metrics');
+
+  // Name edit (Left=285, Top=3)
+  Place(cpunameEdit, FMtCpuCard, 285, 3 + HDR);
+  cpunameEdit.Color      := CARD_BG;
+  cpunameEdit.Font.Color := WHITE;
+  cpunameEdit.Font.Size  := 9;
+
+  // Main color bar (Left=281, Top=35)
+  Place(cpuColorButton, FMtCpuCard, 281, 35 + HDR);
+  cpuColorButton.Color := CARD_BG;
+
+  // Section: Main metrics (label Top=45, controls Top=66/88)
+  Place(cpumainmetricsLabel, FMtCpuCard, 11,  45 + HDR);
+  Place(cpuavgloadCheckBox,  FMtCpuCard, 11,  66 + HDR);
+  Place(cpuloadcolorCheckBox,FMtCpuCard, 120, 66 + HDR);
+  Place(cpuload1ColorButton, FMtCpuCard, 120, 88 + HDR);
+  Place(cpuload2ColorButton, FMtCpuCard, 150, 88 + HDR);
+  Place(cpuload3ColorButton, FMtCpuCard, 181, 88 + HDR);
+  Place(cpuloadcoreCheckBox, FMtCpuCard, 266, 66 + HDR);
+  Place(coreloadtypeBitBtn,  FMtCpuCard, 264, 88 + HDR);
+  Place(cpufreqCheckBox,     FMtCpuCard, 382, 66 + HDR);
+  Place(cpucoretypeCheckBox, FMtCpuCard, 516, 66 + HDR);
+  DarkSectLbl(cpumainmetricsLabel, SECT_CPU);
+  DarkCheck(cpuavgloadCheckBox);
+  DarkCheck(cpuloadcolorCheckBox);
+  DarkCheck(cpuloadcoreCheckBox);
+  DarkCheck(cpufreqCheckBox);
+  DarkCheck(cpucoretypeCheckBox);
+  cpuload1ColorButton.Color := CARD_BG;
+  cpuload2ColorButton.Color := CARD_BG;
+  cpuload3ColorButton.Color := CARD_BG;
+  coreloadtypeBitBtn.Font.Color := WHITE;
+
+  // Section: Temperature / Power (label Top=113, controls Top=134/156)
+  Place(cputempLabel,      FMtCpuCard, 11,  113 + HDR);
+  Place(cputempCheckBox,   FMtCpuCard, 11,  134 + HDR);
+  Place(cpupowerCheckBox,  FMtCpuCard, 120, 134 + HDR);
+  Place(intelpowerfixBitBtn,FMtCpuCard,213, 135 + HDR);
+  Place(cpuefficiencyCheckBox,FMtCpuCard,266,134 + HDR);
+  Place(ramtempCheckBox,   FMtCpuCard, 382, 134 + HDR);
+  Place(cpuframesjouleBitBtn,FMtCpuCard,263,156 + HDR);
+  DarkSectLbl(cputempLabel, SECT_CPU);
+  DarkCheck(cputempCheckBox);
+  DarkCheck(cpupowerCheckBox);
+  DarkCheck(cpuefficiencyCheckBox);
+  DarkCheck(ramtempCheckBox);
+  cpuframesjouleBitBtn.Font.Color := WHITE;
+  intelpowerfixBitBtn.Font.Color  := WHITE;
+
+  // Section: Memory / IO (label Top=181, controls Top=202/224)
+  Place(memLabel,          FMtCpuCard, 11,  181 + HDR);
+  Place(ramusageCheckBox,  FMtCpuCard, 11,  202 + HDR);
+  Place(diskioCheckBox,    FMtCpuCard, 120, 202 + HDR);
+  Place(procmemCheckBox,   FMtCpuCard, 266, 202 + HDR);
+  Place(swapusageCheckBox, FMtCpuCard, 382, 202 + HDR);
+  Place(ramColorButton,    FMtCpuCard, 5,   224 + HDR);
+  Place(iordrwColorButton, FMtCpuCard, 114, 224 + HDR);
+  DarkSectLbl(memLabel, SECT_CPU);
+  DarkCheck(ramusageCheckBox);
+  DarkCheck(diskioCheckBox);
+  DarkCheck(procmemCheckBox);
+  DarkCheck(swapusageCheckBox);
+  ramColorButton.Color    := CARD_BG;
+  iordrwColorButton.Color := CARD_BG;
+
+  // CPU image — right-anchored, positioned in ReflowMetricsTab
+  cpuImage.AnchorSideLeft.Control   := nil;
+  cpuImage.AnchorSideTop.Control    := nil;
+  cpuImage.AnchorSideRight.Control  := nil;
+  cpuImage.AnchorSideBottom.Control := nil;
+  cpuImage.Anchors := [akLeft, akTop];
+  cpuImage.Parent  := FMtCpuCard;
+  cpuImage.Top     := 5 + HDR;
+end;
+
+procedure Tgoverlayform.ReflowMetricsTab(AContentW: Integer);
+const
+  MARGIN = 8;
+  GAP    = 6;
+  HDR    = 34;
+  // Card heights: HDR + (LFM deepest control bottom + bottom padding)
+  // GPU: procvramCheckBox bottom = 248+22=270 → +8 = 278 → GPU_H = 34+278 = 312
+  // CPU: iordrwColorButton bottom = 224+15=239 → +8 = 247 → CPU_H = 34+247 = 281
+  GPU_H = 312;
+  CPU_H = 281;
+var
+  CW, TotalH, CardTop: Integer;
+begin
+  if not Assigned(FMtScrollBox) then Exit;
+  CW := FMtScrollBox.ClientWidth - 2 * MARGIN;
+  if CW < 100 then Exit;
+
+  FMtScrollBox.HorzScrollBar.Range := 0;
+
+  TotalH := MARGIN + GPU_H + GAP + CPU_H + MARGIN;
+  if FMtScrollBox.ClientHeight > TotalH then
+    TotalH := FMtScrollBox.ClientHeight;
+  FMtBgPanel.SetBounds(0, 0, FMtScrollBox.ClientWidth, TotalH);
+
+  // GPU card
+  FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
+  // GPU image: right-aligned, 5px from right edge, same top as LFM (5+HDR)
+  gpuImage.Left := CW - gpuImage.Width - 5;
+
+  // CPU card
+  CardTop := MARGIN + GPU_H + GAP;
+  FMtCpuCard.SetBounds(MARGIN, CardTop, CW, CPU_H);
+  // CPU image: right-aligned
+  cpuImage.Left := CW - cpuImage.Width - 5;
 end;
 
 // ============================================================================
