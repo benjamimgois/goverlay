@@ -11399,10 +11399,10 @@ end;
 
 procedure Tgoverlayform.InitVisualTab;
 const
-  ACCENT_H  = 3;    // accent bar height at card top
-  TITLE_T   = 6;    // title label top margin (below accent bar)
-  TITLE_H   = 22;   // title label height
-  GB_OFFSET = ACCENT_H + TITLE_T + TITLE_H + 4;  // GroupBox top inside card
+  ACCENT_H = 3;
+  TITLE_T  = 6;
+  TITLE_H  = 22;
+  HDR      = ACCENT_H + TITLE_T + TITLE_H + 3;  // = 34, content starts here
 
   CARD_TITLES: array[0..5] of string = (
     'Orientation', 'Borders', 'Background', 'Fonts', 'Position', 'Columns');
@@ -11412,7 +11412,6 @@ const
     Card: TPanel;
     Bar: TPanel;
     Lbl: TLabel;
-    GB: TGroupBox;
     IsLight: Boolean;
     BgColor, TextColor: TColor;
   begin
@@ -11430,7 +11429,6 @@ const
     Card.OnPaint     := @VisualCardPaint;
     FVisualCards[AIndex] := Card;
 
-    // Accent bar across the top
     Bar := TPanel.Create(Card);
     Bar.Parent      := Card;
     Bar.BevelOuter  := bvNone;
@@ -11439,46 +11437,29 @@ const
     Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
     Bar.Anchors     := [akLeft, akRight, akTop];
 
-    // Section title
     Lbl := TLabel.Create(Card);
     Lbl.Parent       := Card;
     Lbl.Caption      := ATitle;
     Lbl.Font.Style   := [fsBold];
     Lbl.Font.Size    := 9;
     Lbl.Font.Color   := TextColor;
-    Lbl.Color        := BgColor;
-    Lbl.Transparent  := False;
+    Lbl.Transparent  := True;
     Lbl.AutoSize     := True;
     Lbl.Left         := 10;
     Lbl.Top          := TITLE_T + ACCENT_H;
+  end;
 
-    // GroupBox inside the card: clear built-in caption/border
-    case AIndex of
-      0: GB := orientationGroupBox;
-      1: GB := borderGroupBox;
-      2: GB := backgroundGroupBox;
-      3: GB := fontsGroupBox;
-      4: GB := positionGroupBox;
-      5: GB := columsGroupBox;
-    else GB := nil;
-    end;
-    if not Assigned(GB) then Exit;
-
-    GB.Parent   := Card;
-    GB.Caption  := '';
-    GB.Color    := BgColor;
-    GB.Font.Color := TextColor;
-    GB.AnchorSideLeft.Control   := nil;
-    GB.AnchorSideTop.Control    := nil;
-    GB.AnchorSideRight.Control  := nil;
-    GB.AnchorSideBottom.Control := nil;
-    GB.Anchors := [akLeft, akTop, akRight, akBottom];
-    // Extend 1px beyond each card edge so the GroupBox native frame is
-    // clipped outside the card boundary and becomes invisible
-    GB.Left    := -1;
-    GB.Top     := GB_OFFSET - 1;
-    GB.Width   := Card.Width + 2;
-    GB.Height  := Card.Height - GB_OFFSET + 2;
+  // Reparent a control directly onto a card, clearing all anchor dependencies.
+  procedure Place(C: TControl; Card: TPanel; ALeft, ATop: Integer);
+  begin
+    C.AnchorSideLeft.Control   := nil;
+    C.AnchorSideTop.Control    := nil;
+    C.AnchorSideRight.Control  := nil;
+    C.AnchorSideBottom.Control := nil;
+    C.Anchors := [akLeft, akTop];
+    C.Parent  := Card;
+    C.Left    := ALeft;
+    C.Top     := ATop;
   end;
 
 var
@@ -11489,6 +11470,106 @@ var
 begin
   for i := 0 to 5 do
     MakeCard(i, CARD_TITLES[i]);
+
+  IsLight   := CurrentTheme = tmLight;
+  BarBg     := IfThen(IsLight, $00F2F2F2, $00362E2E);
+  TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+  // Hide the LFM GroupBoxes — controls are reparented directly to cards below.
+  orientationGroupBox.Visible := False;
+  borderGroupBox.Visible      := False;
+  backgroundGroupBox.Visible  := False;
+  fontsGroupBox.Visible       := False;
+  positionGroupBox.Visible    := False;
+  columsGroupBox.Visible      := False;
+
+  // ── Card 0: Orientation ──────────────────────────────────────────────────
+  Place(verticalRadioButton,   FVisualCards[0], 11,  75);
+  Place(vImage,                FVisualCards[0], 31,  64);
+  Place(horizontalRadioButton, FVisualCards[0], 106, 75);
+  Place(hImage,                FVisualCards[0], 126, 73);
+  verticalRadioButton.Color   := IfThen(IsLight, clWhite, $00362E2E); verticalRadioButton.ParentColor   := False;
+  horizontalRadioButton.Color := IfThen(IsLight, clWhite, $00362E2E); horizontalRadioButton.ParentColor := False;
+  vImage.Transparent := True;
+  hImage.Transparent := True;
+
+  // ── Card 1: Borders ──────────────────────────────────────────────────────
+  Place(squareRadioButton, FVisualCards[1], 11,  75);
+  Place(squareImage,       FVisualCards[1], 31,  68);
+  Place(roundRadioButton,  FVisualCards[1], 122, 75);
+  Place(roundImage,        FVisualCards[1], 142, 68);
+  squareRadioButton.Color := IfThen(IsLight, clWhite, $00362E2E); squareRadioButton.ParentColor := False;
+  roundRadioButton.Color  := IfThen(IsLight, clWhite, $00362E2E); roundRadioButton.ParentColor  := False;
+  squareImage.Transparent := True;
+  roundImage.Transparent  := True;
+
+  // ── Card 2: Background ───────────────────────────────────────────────────
+  Place(backgroundLabel,          FVisualCards[2], 11,  53);
+  Place(hudbackgroundColorButton, FVisualCards[2], 56,  51);
+  Place(transparencyLabel,        FVisualCards[2], 11,  91);
+  Place(transpTrackBar,           FVisualCards[2], 57,  90);
+  Place(alphavalueLabel,          FVisualCards[2], 126, 110);
+  backgroundLabel.Font.Color   := TextColor; backgroundLabel.Transparent   := True;
+  transparencyLabel.Font.Color := TextColor; transparencyLabel.Transparent := True;
+  alphavalueLabel.Font.Color   := TextColor; alphavalueLabel.Transparent   := True;
+  hudbackgroundColorButton.Color := IfThen(IsLight, clWhite, $00362E2E);
+  transpTrackBar.Color := IfThen(IsLight, clWhite, $00362E2E); transpTrackBar.ParentColor := False;
+
+  // ── Card 3: Fonts ────────────────────────────────────────────────────────
+  Place(fontComboBox,        FVisualCards[3], 8,   45);
+  Place(fontcolorLabel,      FVisualCards[3], 8,   105);
+  Place(FontcolorButton,     FVisualCards[3], 53,  103);
+  Place(fontLabel,           FVisualCards[3], 8,   148);
+  Place(fontsizeTrackBar,    FVisualCards[3], 43,  147);
+  Place(fontsizevalueLabel,  FVisualCards[3], 117, 167);
+  fontcolorLabel.Font.Color     := TextColor; fontcolorLabel.Transparent     := True;
+  fontLabel.Font.Color          := TextColor; fontLabel.Transparent          := True;
+  fontsizevalueLabel.Font.Color := TextColor; fontsizevalueLabel.Transparent := True;
+  FontcolorButton.Color   := IfThen(IsLight, clWhite, $00362E2E);
+  fontsizeTrackBar.Color  := IfThen(IsLight, clWhite, $00362E2E); fontsizeTrackBar.ParentColor  := False;
+
+  // ── Card 4: Position ─────────────────────────────────────────────────────
+  // Background image fills the card below the header (sized by Reflow).
+  Image1.Stretch      := True;
+  Image1.Proportional := False;
+  Image1.AnchorSideLeft.Control   := nil;
+  Image1.AnchorSideTop.Control    := nil;
+  Image1.AnchorSideRight.Control  := nil;
+  Image1.AnchorSideBottom.Control := nil;
+  Image1.Anchors := [akLeft, akTop, akRight, akBottom];
+  Image1.BorderSpacing.Left   := 0;
+  Image1.BorderSpacing.Right  := 0;
+  Image1.BorderSpacing.Top    := 0;
+  Image1.BorderSpacing.Bottom := 0;
+  Image1.Parent := FVisualCards[4];
+  // All 8 radio buttons — anchors released, positioned proportionally by Reflow.
+  Place(topleftRadioButton,     FVisualCards[4], 10, HDR + 11);
+  Place(topcenterRadioButton,   FVisualCards[4], 96, HDR + 11);
+  Place(toprightRadioButton,    FVisualCards[4], 182, HDR + 11);
+  Place(middleleftRadioButton,  FVisualCards[4], 10, HDR + 60);
+  Place(middlerightRadioButton, FVisualCards[4], 182, HDR + 60);
+  Place(bottomleftRadioButton,  FVisualCards[4], 10, HDR + 108);
+  Place(bottomcenterRadioButton,FVisualCards[4], 96, HDR + 108);
+  Place(bottomrightRadioButton, FVisualCards[4], 182, HDR + 108);
+  // SpinEdits keep their anchor references to the radio buttons — they follow them.
+  offsetxSpinEdit.Parent := FVisualCards[4];
+  offsetySpinEdit.Parent := FVisualCards[4];
+  offsetxSpinEdit.Color  := IfThen(IsLight, clWhite, $00362E2E);
+  offsetySpinEdit.Color  := IfThen(IsLight, clWhite, $00362E2E);
+
+  // ── Card 5: Columns ──────────────────────────────────────────────────────
+  Place(columShape,       FVisualCards[5], 29,  59);
+  Place(columShape1,      FVisualCards[5], 56,  59);
+  Place(columShape2,      FVisualCards[5], 83,  59);
+  Place(columShape3,      FVisualCards[5], 110, 59);
+  Place(columShape4,      FVisualCards[5], 137, 59);
+  Place(columShape5,      FVisualCards[5], 164, 59);
+  Place(plusSpeedButton,  FVisualCards[5], 111, 168);
+  Place(minusButton,      FVisualCards[5], 84,  168);
+  Place(columvalueLabel,  FVisualCards[5], 146, 170);
+  columvalueLabel.Font.Color  := TextColor; columvalueLabel.Transparent := True;
+  columShape.Height  := 100; columShape1.Height := 100; columShape2.Height := 100;
+  columShape3.Height := 100; columShape4.Height := 100; columShape5.Height := 100;
 
   // ── GPU info bar ─────────────────────────────────────────────────────────
   IsLight   := CurrentTheme = tmLight;
@@ -11612,69 +11693,10 @@ begin
   hidehudCheckBox.ParentColor := False;
   hidehudCheckBox.Top := 17;
 
-  // Position card — background image: stretch to fill card, auto-resize with card
-  Image1.Stretch      := True;
-  Image1.Proportional := False;
-  Image1.AnchorSideLeft.Control   := positionGroupBox;
-  Image1.AnchorSideLeft.Side      := asrLeft;
-  Image1.AnchorSideTop.Control    := positionGroupBox;
-  Image1.AnchorSideTop.Side       := asrTop;
-  Image1.AnchorSideRight.Control  := positionGroupBox;
-  Image1.AnchorSideRight.Side     := asrRight;
-  Image1.AnchorSideBottom.Control := positionGroupBox;
-  Image1.AnchorSideBottom.Side    := asrBottom;
-  Image1.Anchors := [akLeft, akTop, akRight, akBottom];
-  Image1.BorderSpacing.Left   := 0;
-  Image1.BorderSpacing.Right  := 0;
-  Image1.BorderSpacing.Top    := 0;
-  Image1.BorderSpacing.Bottom := 0;
-
-  // Position card: release LFM anchor references from all 8 radio buttons so
-  // ReflowVisualTab can place them proportionally within the monitor blue screen.
-  // offsetxSpinEdit (anchors to middleleft) and offsetySpinEdit (anchors to
-  // topcenter) are intentionally kept — they will follow the radio buttons.
-  topleftRadioButton.AnchorSideLeft.Control   := nil;
-  topleftRadioButton.AnchorSideTop.Control    := nil;
-  topleftRadioButton.Anchors := [akLeft, akTop];
-
-  topcenterRadioButton.AnchorSideLeft.Control := nil;
-  topcenterRadioButton.AnchorSideTop.Control  := nil;
-  topcenterRadioButton.Anchors := [akLeft, akTop];
-
-  toprightRadioButton.AnchorSideLeft.Control  := nil;
-  toprightRadioButton.AnchorSideTop.Control   := nil;
-  toprightRadioButton.AnchorSideRight.Control := nil;
-  toprightRadioButton.Anchors := [akLeft, akTop];
-
-  middleleftRadioButton.AnchorSideLeft.Control := nil;
-  middleleftRadioButton.AnchorSideTop.Control  := nil;
-  middleleftRadioButton.Anchors := [akLeft, akTop];
-
-  middlerightRadioButton.AnchorSideLeft.Control  := nil;
-  middlerightRadioButton.AnchorSideTop.Control   := nil;
-  middlerightRadioButton.AnchorSideRight.Control := nil;
-  middlerightRadioButton.Anchors := [akLeft, akTop];
-
-  bottomleftRadioButton.AnchorSideLeft.Control   := nil;
-  bottomleftRadioButton.AnchorSideTop.Control    := nil;
-  bottomleftRadioButton.AnchorSideBottom.Control := nil;
-  bottomleftRadioButton.Anchors := [akLeft, akTop];
-
-  bottomcenterRadioButton.AnchorSideLeft.Control   := nil;
-  bottomcenterRadioButton.AnchorSideTop.Control    := nil;
-  bottomcenterRadioButton.AnchorSideBottom.Control := nil;
-  bottomcenterRadioButton.Anchors := [akLeft, akTop];
-
-  bottomrightRadioButton.AnchorSideLeft.Control   := nil;
-  bottomrightRadioButton.AnchorSideTop.Control    := nil;
-  bottomrightRadioButton.AnchorSideRight.Control  := nil;
-  bottomrightRadioButton.AnchorSideBottom.Control := nil;
-  bottomrightRadioButton.Anchors := [akLeft, akTop];
 end;
 
 procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
 const
-  // Original layout at base AContentW=829
   BASE_W    = 829;
   BASE_COLW = 216;
   BASE_GAP  = 76;
@@ -11684,6 +11706,7 @@ const
   ROW_GAP   = 40;
   MIN_COLW  = 160;
   MIN_GAP   = 8;
+  HDR       = 34;
 var
   ColW, Gap, Center, C1, C2, C3, Row2T: Integer;
   GBW, GBH, RW, RH: Integer;
@@ -11705,7 +11728,6 @@ begin
   end;
   Row2T := ROW1_T + H1 + ROW_GAP;
 
-  // If card redesign is active, position the card panels (GroupBoxes fill them)
   if Assigned(FVisualCards[0]) then
   begin
     // GPU info bar: below hudtitleEdit, above the card rows
@@ -11723,30 +11745,24 @@ begin
     FVisualCards[3].SetBounds(C1, Row2T, ColW, H2);
     FVisualCards[4].SetBounds(C2, Row2T, ColW, H2);
     FVisualCards[5].SetBounds(C3, Row2T, ColW, H2);
-    // Resize GroupBoxes to overflow card by 1px on each side (hides native frame)
-    orientationGroupBox.Width  := ColW + 2;   orientationGroupBox.Height := H1 - orientationGroupBox.Top + 2;
-    borderGroupBox.Width       := ColW + 2;   borderGroupBox.Height      := H1 - borderGroupBox.Top + 2;
-    backgroundGroupBox.Width   := ColW + 2;   backgroundGroupBox.Height  := H1 - backgroundGroupBox.Top + 2;
-    fontsGroupBox.Width        := ColW + 2;   fontsGroupBox.Height       := H2 - fontsGroupBox.Top + 2;
-    positionGroupBox.Width     := ColW + 2;   positionGroupBox.Height    := H2 - positionGroupBox.Top + 2;
-    columsGroupBox.Width       := ColW + 2;   columsGroupBox.Height      := H2 - columsGroupBox.Top + 2;
+
+    // Position card: Image1 fills the card below the header.
+    Image1.SetBounds(0, HDR, FVisualCards[4].ClientWidth, FVisualCards[4].ClientHeight - HDR);
 
     // Reposition Position card radio buttons proportionally within the monitor
-    // blue-screen area. Proportions come from the original monitor image:
-    //   horizontal: ~9% to ~91% of GroupBox client width
-    //   vertical  : ~13% to ~74% of GroupBox client height
-    // offsetxSpinEdit and offsetySpinEdit anchor to middleleft/topcenter
-    // respectively and will reposition automatically after SetBounds.
-    GBW := positionGroupBox.ClientWidth;
-    GBH := positionGroupBox.ClientHeight;
+    // image area (card below HDR). Proportions from the original monitor image:
+    //   horizontal: ~9% to ~91% of card width
+    //   vertical  : ~13% to ~74% of card content height
+    GBW := FVisualCards[4].ClientWidth;
+    GBH := FVisualCards[4].ClientHeight - HDR;
     RW  := topleftRadioButton.Width;
     RH  := topleftRadioButton.Height;
-    CL  := Round(GBW * 0.094) - RW div 2;  // left column
-    CC  := GBW div 2 - RW div 2;           // center column
-    CR  := Round(GBW * 0.906) - RW div 2;  // right column
-    RT  := Round(GBH * 0.131) - RH div 2;  // top row
-    RM  := Round(GBH * 0.434) - RH div 2;  // middle row
-    RB  := Round(GBH * 0.737) - RH div 2;  // bottom row
+    CL  := Round(GBW * 0.094) - RW div 2;
+    CC  := GBW div 2 - RW div 2;
+    CR  := Round(GBW * 0.906) - RW div 2;
+    RT  := HDR + Round(GBH * 0.131) - RH div 2;
+    RM  := HDR + Round(GBH * 0.434) - RH div 2;
+    RB  := HDR + Round(GBH * 0.737) - RH div 2;
     topleftRadioButton.SetBounds(CL, RT, RW, RH);
     topcenterRadioButton.SetBounds(CC, RT, RW, RH);
     toprightRadioButton.SetBounds(CR, RT, RW, RH);
