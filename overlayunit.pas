@@ -727,6 +727,7 @@ type
     procedure ReflowMetricsTab(AContentW: Integer);
     procedure ReflowExtrasTab(AContentW: Integer);
     procedure InitVkBasaltTab;
+    procedure InitTweaksCards;
     procedure ReflowVkBasaltTab(AContentW: Integer);
 
     procedure StartCube;
@@ -5039,7 +5040,7 @@ begin
   // Games tab handled separately via FGamesScrollBox/FGamesPanel
   AddNavyBgToTab(vkbasaltTabSheet);
   AddNavyBgToTab(optiscalerTabSheet);
-  AddNavyBgToTab(tweaksTabSheet);
+  InitTweaksCards;
 
   // Detach all anchor-side control references for every groupbox we reflow
   // manually (Visual + Performance tabs). Without this the LCL anchor engine
@@ -12532,6 +12533,18 @@ begin
   FPerfCards[2] := nil;
   FPerfCards[3] := nil;
 
+  // Free all Information grid controls from anchor chains — Reflow will center them
+  fpsCheckBox.AnchorSideLeft.Control           := nil; fpsCheckBox.AnchorSideTop.Control           := nil; fpsCheckBox.AnchorSideRight.Control           := nil; fpsCheckBox.AnchorSideBottom.Control           := nil; fpsCheckBox.Anchors           := [akLeft, akTop];
+  frametimegraphCheckBox.AnchorSideLeft.Control := nil; frametimegraphCheckBox.AnchorSideTop.Control := nil; frametimegraphCheckBox.AnchorSideRight.Control := nil; frametimegraphCheckBox.AnchorSideBottom.Control := nil; frametimegraphCheckBox.Anchors := [akLeft, akTop];
+  frametimegraphColorButton.AnchorSideLeft.Control := nil; frametimegraphColorButton.AnchorSideTop.Control := nil; frametimegraphColorButton.AnchorSideRight.Control := nil; frametimegraphColorButton.AnchorSideBottom.Control := nil; frametimegraphColorButton.Anchors := [akLeft, akTop];
+  frametimetypeBitBtn.AnchorSideLeft.Control    := nil; frametimetypeBitBtn.AnchorSideTop.Control    := nil; frametimetypeBitBtn.AnchorSideRight.Control    := nil; frametimetypeBitBtn.AnchorSideBottom.Control    := nil; frametimetypeBitBtn.Anchors    := [akLeft, akTop];
+  fpsavgCheckBox.AnchorSideLeft.Control         := nil; fpsavgCheckBox.AnchorSideTop.Control         := nil; fpsavgCheckBox.AnchorSideRight.Control         := nil; fpsavgCheckBox.AnchorSideBottom.Control         := nil; fpsavgCheckBox.Anchors         := [akLeft, akTop];
+  fpsavgBitBtn.AnchorSideLeft.Control           := nil; fpsavgBitBtn.AnchorSideTop.Control           := nil; fpsavgBitBtn.AnchorSideRight.Control           := nil; fpsavgBitBtn.AnchorSideBottom.Control           := nil; fpsavgBitBtn.Anchors           := [akLeft, akTop];
+  framecountCheckBox.AnchorSideLeft.Control     := nil; framecountCheckBox.AnchorSideTop.Control     := nil; framecountCheckBox.AnchorSideRight.Control     := nil; framecountCheckBox.AnchorSideBottom.Control     := nil; framecountCheckBox.Anchors     := [akLeft, akTop];
+  ftraceCheckBox.AnchorSideLeft.Control         := nil; ftraceCheckBox.AnchorSideTop.Control         := nil; ftraceCheckBox.AnchorSideRight.Control         := nil; ftraceCheckBox.AnchorSideBottom.Control         := nil; ftraceCheckBox.Anchors         := [akLeft, akTop];
+  showfpslimCheckBox.AnchorSideLeft.Control     := nil; showfpslimCheckBox.AnchorSideTop.Control     := nil; showfpslimCheckBox.AnchorSideRight.Control     := nil; showfpslimCheckBox.AnchorSideBottom.Control     := nil; showfpslimCheckBox.Anchors     := [akLeft, akTop];
+  vpsCheckBox.AnchorSideLeft.Control            := nil; vpsCheckBox.AnchorSideTop.Control            := nil; vpsCheckBox.AnchorSideRight.Control            := nil; vpsCheckBox.AnchorSideBottom.Control            := nil; vpsCheckBox.Anchors            := [akLeft, akTop];
+
   // VSYNC card — Vulkan in top half, OpenGL in bottom half, no separator
   MakeVsyncRow(0, 0,
     vsyncGroupBox.ClientHeight div 2,
@@ -12814,7 +12827,7 @@ const
   ROW2_H   = 389;
   GB_OFF   = 34;
 var
-  CardW, HalfW, i: Integer;
+  CardW, HalfW, i, InfoMargin: Integer;
 begin
   CardW := AContentW - MARGIN * 2;
   HalfW := CardW div 2;
@@ -12835,6 +12848,21 @@ begin
     for i := 0 to 1 do
       if Assigned(FPerfRightLbl[i]) then
         FPerfRightLbl[i].Left := HalfW + 10;
+
+    // Center Information grid columns within fpsGroupBox
+    // Block: col1(offset 0, w=100) + gap + col2(offset 110, w=107) + gap + col3(offset 225, w=76) = 301px total
+    InfoMargin := (HalfW - 301) div 2;
+    if InfoMargin < 4 then InfoMargin := 4;
+    fpsCheckBox.Left                := InfoMargin;
+    frametimegraphCheckBox.Left     := InfoMargin;
+    frametimegraphColorButton.Left  := InfoMargin;
+    frametimetypeBitBtn.Left        := InfoMargin;
+    fpsavgCheckBox.Left             := InfoMargin + 110;
+    fpsavgBitBtn.Left               := InfoMargin + 110;
+    framecountCheckBox.Left         := InfoMargin + 110;
+    ftraceCheckBox.Left             := InfoMargin + 110;
+    showfpslimCheckBox.Left         := InfoMargin + 225;
+    vpsCheckBox.Left                := InfoMargin + 225;
 
     // Resize VSYNC row chips to fill the half-width GroupBox
     if Assigned(FVsyncRows[0]) then
@@ -13652,10 +13680,100 @@ end;
 // VKBASALT TAB — modern redesign
 // ============================================================================
 
+procedure Tgoverlayform.InitTweaksCards;
+const
+  BG       = $002E1E1A;
+  CYAN     = $00F0BE30;
+  HDR      = 35;   // accent(3) + title(6+22+4)
+  GAP      = 7;
+var
+  BgBox: TPaintBox;
+  BasicCard, AdvCard: TPanel;
+  Bar: TPanel;
+  Lbl: TLabel;
+  GbSS: WideString;
+  procedure MakeBar(ACard: TPanel);
+  begin
+    Bar := TPanel.Create(ACard);
+    Bar.Parent     := ACard;
+    Bar.BevelOuter := bvNone;
+    Bar.Caption    := '';
+    Bar.Color      := RGBToColor(48, 190, 240);
+    Bar.SetBounds(0, 0, ACard.Width, 3);
+    Bar.Anchors    := [akLeft, akRight, akTop];
+  end;
+  procedure MakeLbl(ACard: TPanel; const ACaption: string);
+  begin
+    Lbl := TLabel.Create(ACard);
+    Lbl.Parent      := ACard;
+    Lbl.Caption     := ACaption;
+    Lbl.Font.Color  := clWhite;
+    Lbl.Font.Size   := 10;
+    Lbl.Font.Style  := [fsBold];
+    Lbl.AutoSize    := True;
+    Lbl.SetBounds(12, 8, 250, 22);
+    Lbl.Transparent := True;
+  end;
+begin
+  // Navy background behind cards
+  BgBox := TPaintBox.Create(Self);
+  BgBox.Parent  := tweaksTabSheet;
+  BgBox.Align   := alClient;
+  BgBox.OnPaint := @PresetsBgBoxPaint;
+
+  // ── Basic Tweaks card ──
+  BasicCard := TPanel.Create(Self);
+  BasicCard.Parent     := tweaksTabSheet;
+  BasicCard.BevelOuter := bvNone;
+  BasicCard.Caption    := '';
+  BasicCard.Color      := BG;
+  BasicCard.OnPaint    := @PerfCardPaint;
+  BasicCard.SetBounds(2, 2, tweaksTabSheet.ClientWidth - 4, 182);
+  BasicCard.Anchors    := [akLeft, akTop, akRight];
+  MakeBar(BasicCard);
+  MakeLbl(BasicCard, 'Basic Tweaks');
+
+  basicGroupBox.AnchorSideLeft.Control  := nil;
+  basicGroupBox.AnchorSideTop.Control   := nil;
+  basicGroupBox.AnchorSideRight.Control := nil;
+  basicGroupBox.Anchors := [akLeft, akTop, akRight];
+  basicGroupBox.Parent  := BasicCard;
+  basicGroupBox.Caption := '';
+  basicGroupBox.SetBounds(-1, HDR - 1, BasicCard.Width + 2, 182 - HDR + 2);
+
+  GbSS := 'QGroupBox { border: none; background: transparent; }';
+  QWidget_setStyleSheet(TQtWidget(basicGroupBox.Handle).Widget,   @GbSS);
+  QWidget_setStyleSheet(TQtWidget(generalGroupBox.Handle).Widget,  @GbSS);
+  QWidget_setStyleSheet(TQtWidget(graphicsGroupBox.Handle).Widget, @GbSS);
+
+  // ── Advanced Tweaks card ──
+  AdvCard := TPanel.Create(Self);
+  AdvCard.Parent     := tweaksTabSheet;
+  AdvCard.BevelOuter := bvNone;
+  AdvCard.Caption    := '';
+  AdvCard.Color      := BG;
+  AdvCard.OnPaint    := @PerfCardPaint;
+  AdvCard.SetBounds(2, 189, tweaksTabSheet.ClientWidth - 4, 184);
+  AdvCard.Anchors    := [akLeft, akTop, akRight];
+  MakeBar(AdvCard);
+  MakeLbl(AdvCard, 'Advanced Tweaks');
+
+  advancedGroupBox.AnchorSideLeft.Control  := nil;
+  advancedGroupBox.AnchorSideTop.Control   := nil;
+  advancedGroupBox.AnchorSideRight.Control := nil;
+  advancedGroupBox.Anchors := [akLeft, akTop, akRight];
+  advancedGroupBox.Parent  := AdvCard;
+  advancedGroupBox.Caption := '';
+  advancedGroupBox.SetBounds(-1, HDR - 1, AdvCard.Width + 2, 184 - HDR + 2);
+
+  QWidget_setStyleSheet(TQtWidget(advancedGroupBox.Handle).Widget,    @GbSS);
+  QWidget_setStyleSheet(TQtWidget(performanceGroupBox.Handle).Widget,  @GbSS);
+end;
+
 procedure Tgoverlayform.InitVkBasaltTab;
 const
-  BG        = $1E1E2E;   // card background
-  ACCENT    = $AA55FF;   // purple accent bar
+  BG        = $002E1E1A;  // rgb(26,30,46) — matches other tabs
+  ACCENT    = $00F0BE30;  // rgb(48,190,240) — cyan accent
   CLR_WHITE = clWhite;
 var
   AccentBar: TPanel;
@@ -13675,6 +13793,7 @@ begin
   FVkReshadeCard.BevelOuter := bvNone;
   FVkReshadeCard.Color      := BG;
   FVkReshadeCard.Caption    := '';
+  FVkReshadeCard.OnPaint    := @PerfCardPaint;
 
   AccentBar := TPanel.Create(FVkReshadeCard);
   AccentBar.Parent     := FVkReshadeCard;
@@ -13754,6 +13873,7 @@ begin
   FVkBuiltinCard.BevelOuter := bvNone;
   FVkBuiltinCard.Color      := BG;
   FVkBuiltinCard.Caption    := '';
+  FVkBuiltinCard.OnPaint    := @PerfCardPaint;
 
   AccentBar := TPanel.Create(FVkBuiltinCard);
   AccentBar.Parent     := FVkBuiltinCard;
@@ -13829,6 +13949,7 @@ begin
   FVkToggleCard.BevelOuter := bvNone;
   FVkToggleCard.Color      := BG;
   FVkToggleCard.Caption    := '';
+  FVkToggleCard.OnPaint    := @PerfCardPaint;
 
   AccentBar := TPanel.Create(FVkToggleCard);
   AccentBar.Parent     := FVkToggleCard;
