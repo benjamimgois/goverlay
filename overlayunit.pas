@@ -551,7 +551,7 @@ type
     FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
     FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
     FNavCollapsed:   Boolean;            // sidebar collapsed state
-    FPresetsBgPanel: TPanel;             // full-width navy background for Presets tab
+    FPresetsBgBox:   TPaintBox;          // full-width navy paintbox background for Presets tab
     FPresetsWrapper: TPanel;             // centered wrapper for the Presets tab content
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
     FNavSmallIcon:   TImage;             // small app icon shown when collapsed
@@ -661,6 +661,8 @@ type
 
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
+    procedure PresetsBgBoxPaint(Sender: TObject);
+    procedure PresetsWrapperPaint(Sender: TObject);
     procedure PresetCardPaint(Sender: TObject);
     procedure PresetCardClick(Sender: TObject);
     procedure PresetCardMouseEnter(Sender: TObject);
@@ -2774,6 +2776,24 @@ end;
 procedure Tgoverlayform.TimerTimer(Sender: TObject);
 begin
   goverlayPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.PresetsBgBoxPaint(Sender: TObject);
+var
+  PB: TPaintBox;
+begin
+  PB := TPaintBox(Sender);
+  PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.FillRect(Rect(0, 0, PB.Width, PB.Height));
+end;
+
+procedure Tgoverlayform.PresetsWrapperPaint(Sender: TObject);
+var
+  P: TPanel;
+begin
+  P := TPanel(Sender);
+  P.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  P.Canvas.FillRect(Rect(0, 0, P.Width, P.Height));
 end;
 
 procedure Tgoverlayform.goverlayPaintBoxPaint(Sender: TObject);
@@ -9802,13 +9822,20 @@ begin
   for i := 0 to presetTabSheet.ControlCount - 1 do
     CtrlsToMove[i] := presetTabSheet.Controls[i];
 
-  // Build wrapper first (parent = tabsheet temporarily), migrate controls into it
+  // TPaintBox as background — drawn first (lowest z-order), fills the entire tab
+  FPresetsBgBox := TPaintBox.Create(Self);
+  FPresetsBgBox.Parent  := presetTabSheet;
+  FPresetsBgBox.Align   := alClient;
+  FPresetsBgBox.OnPaint := @PresetsBgBoxPaint;
+
+  // Wrapper: child of tabsheet, sits above the paintbox
+  // OnPaint fills with the same navy — Qt6 ignores Color on TPanel without it
   FPresetsWrapper := TPanel.Create(Self);
   FPresetsWrapper.Parent      := presetTabSheet;
   FPresetsWrapper.BevelOuter  := bvNone;
   FPresetsWrapper.BorderStyle := bsNone;
   FPresetsWrapper.Caption     := '';
-  FPresetsWrapper.ParentColor := True;
+  FPresetsWrapper.OnPaint     := @PresetsWrapperPaint;
   FPresetsWrapper.Top         := 0;
   FPresetsWrapper.Left        := 0;
   FPresetsWrapper.Width       := WRAPPER_W;
@@ -9817,18 +9844,6 @@ begin
 
   for i := 0 to High(CtrlsToMove) do
     CtrlsToMove[i].Parent := FPresetsWrapper;
-
-  // Now create the full-width navy background and reparent the wrapper into it
-  FPresetsBgPanel := TPanel.Create(Self);
-  FPresetsBgPanel.Parent      := presetTabSheet;
-  FPresetsBgPanel.Align       := alClient;
-  FPresetsBgPanel.BevelOuter  := bvNone;
-  FPresetsBgPanel.BorderStyle := bsNone;
-  FPresetsBgPanel.Caption     := '';
-  FPresetsBgPanel.ParentColor := False;
-  FPresetsBgPanel.Color       := RGBToColor(22, 26, 40);
-
-  FPresetsWrapper.Parent := FPresetsBgPanel;
 
   // Hide all legacy .lfm BitBtn controls and their labels
   fullBitBtn.Visible              := False;
@@ -11163,7 +11178,7 @@ begin
   if Assigned(FPresetsWrapper) then
   begin
     FPresetsWrapper.Left   := Max(0, (AContentW - WRAPPER_W) div 2);
-    FPresetsWrapper.Height := FPresetsBgPanel.ClientHeight;
+    FPresetsWrapper.Height := presetTabSheet.ClientHeight;
   end;
 
   if not Assigned(FPresetLayoutCards[0]) then Exit;
@@ -11556,7 +11571,14 @@ var
   IsLight: Boolean;
   BarBg, TextColor: TColor;
   Lbl: TLabel;
+var
+  BgBox: TPaintBox;
 begin
+  BgBox := TPaintBox.Create(Self);
+  BgBox.Parent  := visualTabSheet;
+  BgBox.Align   := alClient;
+  BgBox.OnPaint := @PresetsBgBoxPaint;
+
   MakeCard(0, CARD_TITLES[0]);
   FVisualCards[1] := nil; FVisualCards[2] := nil;
   FVisualCards[3] := nil; FVisualCards[4] := nil; FVisualCards[5] := nil;
@@ -12365,7 +12387,14 @@ const
     Sep.Anchors     := [akLeft, akTop, akRight];
   end;
 
+var
+  BgBox: TPaintBox;
 begin
+  BgBox := TPaintBox.Create(Self);
+  BgBox.Parent  := performanceTabSheet;
+  BgBox.Align   := alClient;
+  BgBox.OnPaint := @PresetsBgBoxPaint;
+
   MakeCard(0, CARD_TITLES[0], ROW1_TOP, ROW1_H);
   MakeCard(1, CARD_TITLES[1], ROW2_TOP, ROW2_H);
   MakeCard(2, CARD_TITLES[2], ROW1_TOP, ROW1_H);
@@ -12455,13 +12484,14 @@ begin
   FExtScrollBox.Align       := alClient;
   FExtScrollBox.AutoScroll  := True;
   FExtScrollBox.BorderStyle := bsNone;
-  FExtScrollBox.Color       := OUTER_BG;
+  FExtScrollBox.Color       := RGBToColor(22, 26, 40);
 
   FExtBgPanel := TPanel.Create(Self);
   FExtBgPanel.Parent      := FExtScrollBox;
   FExtBgPanel.BevelOuter  := bvNone;
   FExtBgPanel.BorderStyle := bsNone;
-  FExtBgPanel.Color       := OUTER_BG;
+  FExtBgPanel.Color       := RGBToColor(22, 26, 40);
+  FExtBgPanel.OnPaint     := @PresetsWrapperPaint;
   FExtBgPanel.Caption     := '';
 
   // ── Card 1: System info ─────────────────────────────────────────────────
@@ -13242,13 +13272,14 @@ begin
   FMtScrollBox.BorderStyle := bsNone;
   FMtScrollBox.HorzScrollBar.Visible := False;
   FMtScrollBox.HorzScrollBar.Range   := 0;
-  FMtScrollBox.Color       := OUTER_BG;
+  FMtScrollBox.Color       := RGBToColor(22, 26, 40);
   FMtScrollBox.ParentColor := False;
 
   FMtBgPanel := TPanel.Create(Self);
   FMtBgPanel.Parent     := FMtScrollBox;
   FMtBgPanel.BevelOuter := bvNone;
-  FMtBgPanel.Color      := OUTER_BG;
+  FMtBgPanel.Color      := RGBToColor(22, 26, 40);
+  FMtBgPanel.OnPaint    := @PresetsWrapperPaint;
   FMtBgPanel.Caption    := '';
   FMtBgPanel.Left       := 0;
   FMtBgPanel.Top        := 0;
@@ -13835,6 +13866,9 @@ begin
   FGamesPanel.Height := 100;
   FGamesPanel.OnClick := @GamesEmptySpaceClick;
   FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
+
+  // Navy background for the bottom bar
+  goverlaybarPanel.OnPaint := @PresetsWrapperPaint;
 
   // Quick preview button — icon-only, fits between copyBitBtn and popupBitBtn
   FPreviewBtn := TBitBtn.Create(Self);
