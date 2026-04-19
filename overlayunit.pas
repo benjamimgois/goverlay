@@ -551,6 +551,7 @@ type
     FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
     FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
     FNavCollapsed:   Boolean;            // sidebar collapsed state
+    FPresetsBgPanel: TPanel;             // full-width navy background for Presets tab
     FPresetsWrapper: TPanel;             // centered wrapper for the Presets tab content
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
     FNavSmallIcon:   TImage;             // small app icon shown when collapsed
@@ -1001,9 +1002,9 @@ var
   NAV_ITEM_W      = 211;  // width (same as sidebar)
   NAV_INDICATOR_W = 3;    // active indicator bar width
   NAV_ICON_SIZE   = 28;   // icon area size
-  NAV_COLOR_BG        = $00221F1E; // item normal background (dark)
-  NAV_COLOR_HOVER     = $00332E2C; // item hover background (dark)
-  NAV_COLOR_ACTIVE    = $00443E3A; // item active background (dark)
+  NAV_COLOR_BG        = $00281A16; // item bg — matches sidebar body (R=22,G=26,B=40)
+  NAV_COLOR_HOVER     = $003A2820; // item hover (R=32,G=40,B=58)
+  NAV_COLOR_ACTIVE    = $004C3830; // item active (R=48,G=56,B=76)
   NAV_COLOR_INDICATOR = clHighlight; // active indicator — system accent/selection color
   NAV_IND_GAMES = $0000A5FF;  // amber (R=255,G=165,B=0)  — Games category accent
   NAV_IND_TOOLS = clHighlight; // tools keep the system accent colour
@@ -2777,69 +2778,39 @@ end;
 
 procedure Tgoverlayform.goverlayPaintBoxPaint(Sender: TObject);
 const
-  BlockSize    = 4;   // block size in pixels
   THUMB_MARGIN = 8;
   THUMB_GAP    = 12;
 var
-  X, Y, TWidth, THeight: Integer;
-  BaseR, BaseG, BaseB: Byte;
-  Factor, OffsetX, OffsetY: Single;
-  R, G, B: Byte;
-  TimeElapsed: Single;
+  TWidth, THeight: Integer;
+  OffBmp: TBitmap;
   ThumbY, ThumbW, ThumbH: Integer;
   ThumbDst: TRect;
   AvailH, IconTop: Integer;
-  RectRight, RectBottom: Integer;
-  OffBmp: TBitmap;
 begin
-  BaseR := 36;  // 0x24
-  BaseG := 50;  // 0x32
-  BaseB := 70;  // 0x46
-
   TWidth  := goverlayPaintBox.Width;
   THeight := goverlayPaintBox.Height;
 
-  TimeElapsed := (GetTickCount - FStartTick) / 1000;
-
-  // Render the animated background to an off-screen bitmap first, then blit
-  // it to the paintbox in a single Draw call. This avoids tens of thousands
-  // of individual FillRect calls hitting the Qt widget per frame, which was
-  // the primary source of CPU overhead.
+  // --- Glassmorphism simulation: single solid deep-navy fill + subtle borders ---
   OffBmp := TBitmap.Create;
   try
     OffBmp.SetSize(TWidth, THeight);
 
-    Y := 0;
-    while Y < THeight do   // THeight: paintbox height (was form Height — bug fix)
-    begin
-      X := 0;
-      while X < TWidth do  // TWidth:  paintbox width  (was form Width  — bug fix)
-      begin
-        OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
-        OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
+    // Body: R=22, G=26, B=40 — cool dark navy, like reference images
+    OffBmp.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+    OffBmp.Canvas.FillRect(Rect(0, 0, TWidth, THeight));
 
-        Factor := 0.3 + 0.35 * (OffsetX + 1) + 0.35 * (OffsetY + 1);
-        if Factor > 1.0 then Factor := 1.0;
-        if Factor < 0.3 then Factor := 0.3;
+    // Very faint top-specular band (first 3px lighter — light from above)
+    OffBmp.Canvas.Brush.Color := RGBToColor(36, 42, 64);
+    OffBmp.Canvas.FillRect(Rect(0, 0, TWidth, 3));
 
-        R := Round(BaseR * Factor);
-        G := Round(BaseG * Factor);
-        B := Round(BaseB * Factor);
+    // Left specular — 1px white-ish (frosted-glass edge)
+    OffBmp.Canvas.Pen.Color := RGBToColor(55, 64, 95);
+    OffBmp.Canvas.Line(0, 0, 0, THeight);
 
-        RectRight  := X + BlockSize;
-        if RectRight  > TWidth  then RectRight  := TWidth;
-        RectBottom := Y + BlockSize;
-        if RectBottom > THeight then RectBottom := THeight;
+    // Right separator — 1px soft white (clean glass border, NOT colored)
+    OffBmp.Canvas.Pen.Color := RGBToColor(60, 70, 100);
+    OffBmp.Canvas.Line(TWidth - 1, 0, TWidth - 1, THeight);
 
-        OffBmp.Canvas.Brush.Color := RGBToColor(R, G, B);
-        OffBmp.Canvas.FillRect(Rect(X, Y, RectRight, RectBottom));
-
-        Inc(X, BlockSize);
-      end;
-      Inc(Y, BlockSize);
-    end;
-
-    // Single blit: replaces thousands of per-block Qt canvas round-trips
     goverlayPaintBox.Canvas.Draw(0, 0, OffBmp);
   finally
     OffBmp.Free;
@@ -5226,11 +5197,7 @@ begin
   // Load tweaks tab state from fgmod file
   LoadTweaksFromFGMod;
 
-  //Turbulence animation start
-  FStartTick := GetTickCount;
-  Timer.Interval := 50; // 20 fps aprox
-  Timer.Enabled := True;
-  Timer.OnTimer := @TimerTimer;
+  Timer.Enabled := False;  // no animated repaint — static glassmorphism
   goverlayPaintBox.OnPaint := @goverlayPaintBoxPaint;
 
 
@@ -9835,6 +9802,7 @@ begin
   for i := 0 to presetTabSheet.ControlCount - 1 do
     CtrlsToMove[i] := presetTabSheet.Controls[i];
 
+  // Build wrapper first (parent = tabsheet temporarily), migrate controls into it
   FPresetsWrapper := TPanel.Create(Self);
   FPresetsWrapper.Parent      := presetTabSheet;
   FPresetsWrapper.BevelOuter  := bvNone;
@@ -9849,6 +9817,18 @@ begin
 
   for i := 0 to High(CtrlsToMove) do
     CtrlsToMove[i].Parent := FPresetsWrapper;
+
+  // Now create the full-width navy background and reparent the wrapper into it
+  FPresetsBgPanel := TPanel.Create(Self);
+  FPresetsBgPanel.Parent      := presetTabSheet;
+  FPresetsBgPanel.Align       := alClient;
+  FPresetsBgPanel.BevelOuter  := bvNone;
+  FPresetsBgPanel.BorderStyle := bsNone;
+  FPresetsBgPanel.Caption     := '';
+  FPresetsBgPanel.ParentColor := False;
+  FPresetsBgPanel.Color       := RGBToColor(22, 26, 40);
+
+  FPresetsWrapper.Parent := FPresetsBgPanel;
 
   // Hide all legacy .lfm BitBtn controls and their labels
   fullBitBtn.Visible              := False;
@@ -11130,8 +11110,7 @@ begin
     ReflowGamesGrid;
 
   // Repaint sidebar so the thumbnail scales with the nav width
-  if Assigned(FGameThumbBmp) then
-    goverlayPaintBox.Invalidate;
+  goverlayPaintBox.Invalidate;
 end;
 
 procedure Tgoverlayform.FormResize(Sender: TObject);
@@ -11184,7 +11163,7 @@ begin
   if Assigned(FPresetsWrapper) then
   begin
     FPresetsWrapper.Left   := Max(0, (AContentW - WRAPPER_W) div 2);
-    FPresetsWrapper.Height := presetTabSheet.ClientHeight;
+    FPresetsWrapper.Height := FPresetsBgPanel.ClientHeight;
   end;
 
   if not Assigned(FPresetLayoutCards[0]) then Exit;
@@ -12578,8 +12557,8 @@ begin
   Place(logtoggleImage, FExtLogCard, 325, 63 + HDR);
   logtoggleImage.Visible := False;
   // Log icon in card header — right-anchored
-  Place(Image2, FExtLogCard, 764, 5);
-  Image2.Anchors := [akRight, akTop];
+  // Icon in card header — positioned in ReflowExtrasTab
+  Place(Image2, FExtLogCard, 4, 5);
 
   loggingGroupBox.Visible := False;
 end;
@@ -13501,7 +13480,12 @@ begin
   FExtBgPanel.SetBounds(0, 0, AContentW, TotalH);
 
   FExtSysCard.SetBounds(MARGIN, MARGIN, CW, SYS_H);
+  sysinfoImage.Left := CW - sysinfoImage.Width - 4;
+  sysinfoImage.Top  := 5;
+
   FExtLogCard.SetBounds(MARGIN, MARGIN + SYS_H + GAP, CW, LOG_H);
+  Image2.Left := CW - Image2.Width - 4;
+  Image2.Top  := 5;
 end;
 
 // ============================================================================

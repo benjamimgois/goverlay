@@ -63,9 +63,9 @@ begin
   //Set initial page
   howtoPageControl.ActivePage:=steamSheet;
 
-  //Turbulence animation start
+  //Turbulence animation start - Refined for Dynamic Glassmorphism
   FStartTick := GetTickCount;
-  Timer1.Interval := 50; // 20 fps aprox
+  Timer1.Interval := 60; // Slower for subtle frosted effect
   Timer1.Enabled := True;
   Timer1.OnTimer := @Timer1Timer;
   steamPaintBox.OnPaint := @steamPaintBoxPaint;
@@ -78,120 +78,81 @@ begin
 end;
 
 procedure ThowtoForm.steamPaintBoxPaint(Sender: TObject);
-  const
-  BlockSize = 4; // block size in pixels
+const
+  BlockSize = 8;
+  BaseR = 18; BaseG = 22; BaseB = 28;
 var
   X, Y, TWidth, THeight: Integer;
-  BaseR, BaseG, BaseB: Byte;
   Factor, OffsetX, OffsetY: Single;
   R, G, B: Byte;
   TimeElapsed: Single;
   RectRight, RectBottom: Integer;
 begin
-//Blueish
-BaseR := 36;  // 0x24
-BaseG := 50;  // 0x32
-BaseB := 70;  // 0x46
-
-
   TWidth := steamPaintBox.Width;
   THeight := steamPaintBox.Height;
-
   TimeElapsed := (GetTickCount - FStartTick) / 1000;
 
-  Y := 0;
-  while Y < THeight do
+  for Y := 0 to (THeight div BlockSize) do
   begin
-    X := 0;
-    while X < TWidth do
+    for X := 0 to (TWidth div BlockSize) do
     begin
-      // Smaller coeeficients in X and Y gets bigger effects
-      // Smaller timeelapsed get slower speeds
-      OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
-      OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
+      OffsetX := Sin((X * 8 * 0.008) + TimeElapsed * 0.2) + Sin((Y * 8 * 0.01) + TimeElapsed * 0.25);
+      OffsetY := Cos((X * 8 * 0.01) - TimeElapsed * 0.15) + Cos((Y * 8 * 0.008) - TimeElapsed * 0.2);
+      Factor := 1.0 + 0.15 * (OffsetX + OffsetY) * 0.5;
 
-      Factor := 0.3 + 0.35 * (OffsetX + 1) + 0.35 * (OffsetY + 1);
-      if Factor > 1.0 then Factor := 1.0;
-      if Factor < 0.3 then Factor := 0.3;
-
-      R := Round(BaseR * Factor);
-      G := Round(BaseG * Factor);
-      B := Round(BaseB * Factor);
-
-      // Define block rectangle, taking care not to exceed limits
-      RectRight := X + BlockSize - 1;
-      if RectRight >= TWidth then
-        RectRight := TWidth - 1;
-
-      RectBottom := Y + BlockSize - 1;
-      if RectBottom >= THeight then
-        RectBottom := THeight - 1;
+      R := Round(BaseR * Factor); G := Round(BaseG * Factor); B := Round(BaseB * Factor);
+      RectRight := (X + 1) * BlockSize; if RectRight > TWidth then RectRight := TWidth;
+      RectBottom := (Y + 1) * BlockSize; if RectBottom > THeight then RectBottom := THeight;
 
       steamPaintBox.Canvas.Brush.Color := RGBToColor(R, G, B);
-      steamPaintBox.Canvas.FillRect(Rect(X, Y, RectRight + 1, RectBottom + 1));
-
-      Inc(X, BlockSize);
+      steamPaintBox.Canvas.FillRect(Rect(X * BlockSize, Y * BlockSize, RectRight, RectBottom));
     end;
-    Inc(Y, BlockSize);
   end;
+
+  // Glass Details
+  steamPaintBox.Canvas.Pen.Color := $282828;
+  steamPaintBox.Canvas.Line(0, 0, 0, THeight);
+  steamPaintBox.Canvas.Pen.Color := $FFF200;
+  steamPaintBox.Canvas.Line(TWidth - 1, 0, TWidth - 1, THeight);
 end;
 
 procedure ThowtoForm.heroicPaintBoxPaint(Sender: TObject);
-  const
-  BlockSize = 4; // block size in pixels
+const
+  BlockSize = 8;
+  BaseR = 18; BaseG = 22; BaseB = 28;
 var
   X, Y, TWidth, THeight: Integer;
-  BaseR, BaseG, BaseB: Byte;
   Factor, OffsetX, OffsetY: Single;
   R, G, B: Byte;
   TimeElapsed: Single;
   RectRight, RectBottom: Integer;
 begin
-//Blueish (same as Steam theme)
-BaseR := 36;  // 0x24
-BaseG := 50;  // 0x32
-BaseB := 70;  // 0x46
-
   TWidth := heroicPaintBox.Width;
   THeight := heroicPaintBox.Height;
-
   TimeElapsed := (GetTickCount - FStartTick) / 1000;
 
-  Y := 0;
-  while Y < THeight do
+  for Y := 0 to (THeight div BlockSize) do
   begin
-    X := 0;
-    while X < TWidth do
+    for X := 0 to (TWidth div BlockSize) do
     begin
-      // Smaller coeeficients in X and Y gets bigger effects
-      // Smaller timeelapsed get slower speeds
-      OffsetX := Sin((X * 0.01) + TimeElapsed * 0.5) + Sin((Y * 0.015) + TimeElapsed * 0.6);
-      OffsetY := Cos((X * 0.015) - TimeElapsed * 0.4) + Cos((Y * 0.01) - TimeElapsed * 0.45);
+      OffsetX := Sin((X * 8 * 0.008) + TimeElapsed * 0.2) + Sin((Y * 8 * 0.01) + TimeElapsed * 0.25);
+      OffsetY := Cos((X * 8 * 0.01) - TimeElapsed * 0.15) + Cos((Y * 8 * 0.008) - TimeElapsed * 0.2);
+      Factor := 1.0 + 0.15 * (OffsetX + OffsetY) * 0.5;
 
-      Factor := 0.3 + 0.35 * (OffsetX + 1) + 0.35 * (OffsetY + 1);
-      if Factor > 1.0 then Factor := 1.0;
-      if Factor < 0.3 then Factor := 0.3;
-
-      R := Round(BaseR * Factor);
-      G := Round(BaseG * Factor);
-      B := Round(BaseB * Factor);
-
-      // Define block rectangle, taking care not to exceed limits
-      RectRight := X + BlockSize - 1;
-      if RectRight >= TWidth then
-        RectRight := TWidth - 1;
-
-      RectBottom := Y + BlockSize - 1;
-      if RectBottom >= THeight then
-        RectBottom := THeight - 1;
+      R := Round(BaseR * Factor); G := Round(BaseG * Factor); B := Round(BaseB * Factor);
+      RectRight := (X + 1) * BlockSize; if RectRight > TWidth then RectRight := TWidth;
+      RectBottom := (Y + 1) * BlockSize; if RectBottom > THeight then RectBottom := THeight;
 
       heroicPaintBox.Canvas.Brush.Color := RGBToColor(R, G, B);
-      heroicPaintBox.Canvas.FillRect(Rect(X, Y, RectRight + 1, RectBottom + 1));
-
-      Inc(X, BlockSize);
+      heroicPaintBox.Canvas.FillRect(Rect(X * BlockSize, Y * BlockSize, RectRight, RectBottom));
     end;
-    Inc(Y, BlockSize);
   end;
+
+  // Glass Details
+  heroicPaintBox.Canvas.Pen.Color := $282828;
+  heroicPaintBox.Canvas.Line(0, 0, 0, THeight);
+  heroicPaintBox.Canvas.Pen.Color := $FFF200;
+  heroicPaintBox.Canvas.Line(TWidth - 1, 0, TWidth - 1, THeight);
 end;
 
 procedure ThowtoForm.nextBitBtnClick(Sender: TObject);
