@@ -653,6 +653,8 @@ type
 
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
+    FPerfVertSep: array[0..1] of TPanel;  // vertical mid-card separators
+    FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
 
     // FPS Limit chip grid
@@ -704,6 +706,8 @@ type
     procedure ReflowVisualTab(AContentW: Integer);
     procedure InitVisualTab;
     procedure VisualCardPaint(Sender: TObject);
+    procedure PerfCardPaint(Sender: TObject);
+    procedure SubCardPaint(Sender: TObject);
     procedure UpdateVisualCardTheme;
     procedure CaptureBtnClick(Sender: TObject);
     procedure CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -11318,6 +11322,58 @@ begin
   Card.Canvas.Rectangle(0, 0, Card.Width, Card.Height);
 end;
 
+procedure Tgoverlayform.PerfCardPaint(Sender: TObject);
+// Option B card style: elevated blue-gray fill + subtle blue border + cyan top accent
+const
+  CARD_BG  = $002E1E1A;  // rgb(26, 30, 46)  — subtly lighter than navy bg
+  CARD_BRD = $003E2824;  // rgb(36, 40, 62)  — subtle blue border
+  CYAN_H   = 2;          // cyan top accent height (px)
+  CYAN_CLR = $00F0BE30;  // rgb(48, 190, 240) — same cyan as active tab indicator
+var
+  Card: TPanel;
+begin
+  if not (Sender is TPanel) then Exit;
+  Card := TPanel(Sender);
+
+  // Fill background
+  Card.Canvas.Brush.Color := CARD_BG;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.FillRect(Card.ClientRect);
+
+  // Border (all four sides)
+  Card.Canvas.Brush.Style := bsClear;
+  Card.Canvas.Pen.Color   := CARD_BRD;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.Rectangle(0, 0, Card.Width, Card.Height);
+
+  // Cyan top accent stripe
+  Card.Canvas.Brush.Color := CYAN_CLR;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Style   := psClear;
+  Card.Canvas.FillRect(Rect(0, 0, Card.Width, CYAN_H));
+  Card.Canvas.Pen.Style   := psSolid;
+end;
+
+procedure Tgoverlayform.SubCardPaint(Sender: TObject);
+// Sub-section style: same blue-gray fill + very subtle border, no cyan accent.
+// Used for nested panels inside cards (Visual sections, GroupBox replacements).
+const
+  BG  = $002E1E1A;  // rgb(26, 30, 46)
+  BRD = $00342620;  // rgb(32, 38, 52) — barely visible divider
+var
+  P: TPanel;
+begin
+  if not (Sender is TPanel) then Exit;
+  P := TPanel(Sender);
+  P.Canvas.Brush.Color := BG;
+  P.Canvas.Brush.Style := bsSolid;
+  P.Canvas.FillRect(P.ClientRect);
+  P.Canvas.Brush.Style := bsClear;
+  P.Canvas.Pen.Color   := BRD;
+  P.Canvas.Pen.Width   := 1;
+  P.Canvas.Rectangle(0, 0, P.Width, P.Height);
+end;
+
 procedure Tgoverlayform.UpdateVisualCardTheme;
 const
   DARK_BG   = $00362E2E;
@@ -11538,7 +11594,7 @@ const
     BgColor, TextColor: TColor;
   begin
     IsLight   := CurrentTheme = tmLight;
-    BgColor   := IfThen(IsLight, clWhite, $00362E2E);
+    BgColor   := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
     TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
     Card := TPanel.Create(Self);
@@ -11548,14 +11604,14 @@ const
     Card.Caption     := '';
     Card.Color       := BgColor;
     Card.ParentColor := False;
-    Card.OnPaint     := @VisualCardPaint;
+    Card.OnPaint     := @PerfCardPaint;
     FVisualCards[AIndex] := Card;
 
     Bar := TPanel.Create(Card);
     Bar.Parent      := Card;
     Bar.BevelOuter  := bvNone;
     Bar.Caption     := '';
-    Bar.Color       := clHighlight;
+    Bar.Color       := RGBToColor(48, 190, 240);
     Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
     Bar.Anchors     := [akLeft, akRight, akTop];
 
@@ -11594,9 +11650,9 @@ const
     Sec.BevelOuter  := bvNone;
     Sec.BorderStyle := bsNone;
     Sec.Caption     := '';
-    Sec.Color       := IfThen(CurrentTheme = tmLight, $00FFFFFF, $00362E2E);
+    Sec.Color       := IfThen(CurrentTheme = tmLight, $00FFFFFF, RGBToColor(26, 30, 46));
     Sec.ParentColor := False;
-    Sec.OnPaint     := @VisualCardPaint;
+    Sec.OnPaint     := @SubCardPaint;
     FVisualSections[AIndex] := Sec;
     Lbl := TLabel.Create(Sec);
     Lbl.Parent     := Sec;
@@ -11747,7 +11803,7 @@ begin
 
   // ── GPU info bar ─────────────────────────────────────────────────────────
   IsLight   := CurrentTheme = tmLight;
-  BarBg     := IfThen(IsLight, $00F2F2F2, $00362E2E);
+  BarBg     := IfThen(IsLight, $00F2F2F2, RGBToColor(26, 30, 46));
   TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
   FVisualGpuBar := TPanel.Create(Self);
@@ -11757,7 +11813,7 @@ begin
   FVisualGpuBar.Caption     := '';
   FVisualGpuBar.Color       := BarBg;
   FVisualGpuBar.ParentColor := False;
-  FVisualGpuBar.OnPaint     := @VisualCardPaint;
+  FVisualGpuBar.OnPaint     := @SubCardPaint;
 
   // "Active GPU" section label
   Lbl := TLabel.Create(FVisualGpuBar);
@@ -11815,6 +11871,7 @@ begin
   FVisualHudBar.Caption     := '';
   FVisualHudBar.Color       := BarBg;
   FVisualHudBar.ParentColor := False;
+  FVisualHudBar.OnPaint     := @SubCardPaint;
 
   // Reparent HUD toggle label
   hudtoggleLabel.Parent := FVisualHudBar;
@@ -12272,26 +12329,29 @@ const
   TITLE_H   = 22;
   GB_OFFSET = ACCENT_H + TITLE_T + TITLE_H + 4;  // 35px
 
-  // Original vertical layout from .lfm
+  // Vertical layout: 2 full-width cards
   ROW1_TOP = 0;
   ROW1_H   = 180;
   ROW2_TOP = 185;
   ROW2_H   = 389;
 
-  CARD_TITLES: array[0..3] of string = (
-    'Information', 'Limiters', 'VSYNC', 'Filters');
-
-  procedure MakeCard(AIndex: Integer; ATitle: string; ATop, AHeight: Integer);
+  // Each card holds two side-by-side sections
+  procedure MakeCard(AIndex: Integer;
+                     ATitle1: string; AGB1: TGroupBox;
+                     ATitle2: string; AGB2: TGroupBox;
+                     ATop, AHeight: Integer);
   var
     Card: TPanel;
-    Bar:  TPanel;
-    Lbl:  TLabel;
-    GB:   TGroupBox;
+    Bar: TPanel;
+    Lbl1, Lbl2: TLabel;
     IsLight: Boolean;
     BgColor, TextColor: TColor;
+    HalfW: Integer;
+    GbSS: WideString;
+    GbW: QWidgetH;
   begin
     IsLight   := CurrentTheme = tmLight;
-    BgColor   := IfThen(IsLight, clWhite, $00362E2E);
+    BgColor   := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
     TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
     Card := TPanel.Create(Self);
@@ -12301,74 +12361,95 @@ const
     Card.Caption     := '';
     Card.Color       := BgColor;
     Card.ParentColor := False;
-    Card.OnPaint     := @VisualCardPaint;   // reuse same painter
-    Card.SetBounds(0, ATop, 386, AHeight);  // provisional; corrected by Reflow
+    Card.OnPaint     := @PerfCardPaint;
+    Card.SetBounds(2, ATop, 800, AHeight);  // provisional; corrected by Reflow
     FPerfCards[AIndex] := Card;
 
+    // Cyan accent bar
     Bar := TPanel.Create(Card);
     Bar.Parent     := Card;
     Bar.BevelOuter := bvNone;
     Bar.Caption    := '';
-    Bar.Color      := clHighlight;
+    Bar.Color      := RGBToColor(48, 190, 240);
     Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
     Bar.Anchors    := [akLeft, akRight, akTop];
 
-    Lbl := TLabel.Create(Card);
-    Lbl.Parent      := Card;
-    Lbl.Caption     := ATitle;
-    Lbl.Font.Style  := [fsBold];
-    Lbl.Font.Size   := 9;
-    Lbl.Font.Color  := TextColor;
-    Lbl.Color       := BgColor;
-    Lbl.Transparent := False;
-    Lbl.AutoSize    := True;
-    Lbl.Left        := 10;
-    Lbl.Top         := TITLE_T + ACCENT_H;
+    HalfW := Card.Width div 2;
 
-    case AIndex of
-      0: GB := fpsGroupBox;
-      1: GB := fpslimiterGroupBox;
-      2: GB := vsyncGroupBox;
-      3: GB := filtersGroupBox;
-    else GB := nil;
-    end;
-    if not Assigned(GB) then Exit;
+    // Left section title
+    Lbl1 := TLabel.Create(Card);
+    Lbl1.Parent      := Card;
+    Lbl1.Caption     := ATitle1;
+    Lbl1.Font.Style  := [fsBold];
+    Lbl1.Font.Size   := 9;
+    Lbl1.Font.Color  := TextColor;
+    Lbl1.Transparent := True;
+    Lbl1.AutoSize    := True;
+    Lbl1.Left        := 10;
+    Lbl1.Top         := TITLE_T + ACCENT_H;
 
-    GB.Parent   := Card;
-    GB.Caption  := '';
-    GB.Color    := BgColor;
-    GB.Font.Color := TextColor;
-    GB.AnchorSideLeft.Control   := nil;
-    GB.AnchorSideTop.Control    := nil;
-    GB.AnchorSideRight.Control  := nil;
-    GB.AnchorSideBottom.Control := nil;
-    GB.Anchors := [akLeft, akTop, akRight, akBottom];
-    GB.Left    := -1;
-    GB.Top     := GB_OFFSET - 1;
-    GB.Width   := Card.Width + 2;
-    GB.Height  := Card.Height - GB_OFFSET + 2;
+    // Right section title
+    Lbl2 := TLabel.Create(Card);
+    Lbl2.Parent      := Card;
+    Lbl2.Caption     := ATitle2;
+    Lbl2.Font.Style  := [fsBold];
+    Lbl2.Font.Size   := 9;
+    Lbl2.Font.Color  := TextColor;
+    Lbl2.Transparent := True;
+    Lbl2.AutoSize    := True;
+    Lbl2.Left        := HalfW + 10;
+    Lbl2.Top         := TITLE_T + ACCENT_H;
+    FPerfRightLbl[AIndex] := Lbl2;
 
-    // Custom UI for FPS Limit Toggle in Limiters card (AIndex = 1)
+    // Left GroupBox
+    AGB1.Parent   := Card;
+    AGB1.Caption  := '';
+    AGB1.Color    := BgColor;
+    AGB1.Font.Color := TextColor;
+    AGB1.AnchorSideLeft.Control   := nil;
+    AGB1.AnchorSideTop.Control    := nil;
+    AGB1.AnchorSideRight.Control  := nil;
+    AGB1.AnchorSideBottom.Control := nil;
+    AGB1.Anchors := [akLeft, akTop, akBottom];
+    AGB1.Left    := -1;
+    AGB1.Top     := GB_OFFSET - 1;
+    AGB1.Width   := HalfW + 2;
+    AGB1.Height  := AHeight - GB_OFFSET + 2;
+
+    // Right GroupBox
+    AGB2.Parent   := Card;
+    AGB2.Caption  := '';
+    AGB2.Color    := BgColor;
+    AGB2.Font.Color := TextColor;
+    AGB2.AnchorSideLeft.Control   := nil;
+    AGB2.AnchorSideTop.Control    := nil;
+    AGB2.AnchorSideRight.Control  := nil;
+    AGB2.AnchorSideBottom.Control := nil;
+    AGB2.Anchors := [akLeft, akTop, akBottom];
+    AGB2.Left    := HalfW - 1;
+    AGB2.Top     := GB_OFFSET - 1;
+    AGB2.Width   := HalfW + 2;
+    AGB2.Height  := AHeight - GB_OFFSET + 2;
+
+    // Custom UI for FPS Limit Toggle in Limiters card (AIndex = 1, AGB1 = fpslimiterGroupBox)
     if AIndex = 1 then
     begin
       fpslimtoggleComboBox.Visible := False;
       fpstoggleImage.Visible := False;
 
-      // Reposition and theme the existing label
       limtoggleLabel.AnchorSideLeft.Control   := nil;
       limtoggleLabel.AnchorSideTop.Control    := nil;
       limtoggleLabel.AnchorSideRight.Control  := nil;
       limtoggleLabel.AnchorSideBottom.Control := nil;
       limtoggleLabel.Anchors := [akLeft, akTop];
-      limtoggleLabel.Left    := GB.ClientWidth - 211 - 11;
+      limtoggleLabel.Left    := AGB1.ClientWidth - 211 - 11;
       limtoggleLabel.Top     := 321 - 22;
       limtoggleLabel.Font.Color := TextColor;
       limtoggleLabel.ParentColor := True;
 
-      // Capture Button — shows "⌨ Capture" or "⌨ <shortcut>" after capture
-      FLimitCaptureBtn := TBitBtn.Create(GB);
-      FLimitCaptureBtn.Parent  := GB;
-      FLimitCaptureBtn.Tag     := 2; // Performance Tab
+      FLimitCaptureBtn := TBitBtn.Create(AGB1);
+      FLimitCaptureBtn.Parent  := AGB1;
+      FLimitCaptureBtn.Tag     := 2;
       FLimitCaptureBtn.SetBounds(limtoggleLabel.Left, 321, 160, 28);
       FLimitCaptureBtn.OnClick := @CaptureBtnClick;
       FLimitCaptureBtn.Cursor  := crHandPoint;
@@ -12377,6 +12458,13 @@ const
       else
         FLimitCaptureBtn.Caption := '⌨ Capture';
     end;
+
+    // Remove GroupBox border/line (Qt6 default frame)
+    GbSS := 'QGroupBox { border: none; }';
+    GbW  := TQtWidget(AGB1.Handle).Widget;
+    QWidget_setStyleSheet(GbW, @GbSS);
+    GbW  := TQtWidget(AGB2.Handle).Widget;
+    QWidget_setStyleSheet(GbW, @GbSS);
   end;
 
   procedure MakeVsyncRow(AIndex: Integer; ARow, AHeight: Integer;
@@ -12439,10 +12527,10 @@ begin
   BgBox.Align   := alClient;
   BgBox.OnPaint := @PresetsBgBoxPaint;
 
-  MakeCard(0, CARD_TITLES[0], ROW1_TOP, ROW1_H);
-  MakeCard(1, CARD_TITLES[1], ROW2_TOP, ROW2_H);
-  MakeCard(2, CARD_TITLES[2], ROW1_TOP, ROW1_H);
-  MakeCard(3, CARD_TITLES[3], ROW2_TOP, ROW2_H);
+  MakeCard(0, 'Information', fpsGroupBox,         'VSYNC',    vsyncGroupBox,      ROW1_TOP, ROW1_H);
+  MakeCard(1, 'Limiters',   fpslimiterGroupBox,   'Filters',  filtersGroupBox,    ROW2_TOP, ROW2_H);
+  FPerfCards[2] := nil;
+  FPerfCards[3] := nil;
 
   // VSYNC card — Vulkan in top half, OpenGL in bottom half, no separator
   MakeVsyncRow(0, 0,
@@ -12460,8 +12548,8 @@ end;
 procedure Tgoverlayform.InitExtrasTab;
 // Fully code-driven layout matching the Metrics tab pattern.
 const
-  CARD_BG  = $00362E2E;
-  OUTER_BG = $00201818;
+  CARD_BG  = $002E1E1A;  // rgb(28, 33, 52) — Option B
+  OUTER_BG = $00281A16;
   WHITE    = clWhite;
   HDR      = 34;
 
@@ -12476,11 +12564,11 @@ const
     Card.BorderStyle := bsNone;
     Card.Color       := CARD_BG;
     Card.Caption     := '';
-    Card.OnPaint     := @VisualCardPaint;
+    Card.OnPaint     := @PerfCardPaint;
     Bar := TPanel.Create(Card);
     Bar.Parent     := Card;
     Bar.BevelOuter := bvNone;
-    Bar.Color      := clHighlight;
+    Bar.Color      := RGBToColor(48, 190, 240);
     Bar.Caption    := '';
     Bar.SetBounds(0, 0, 800, 3);
     Bar.Anchors    := [akLeft, akRight, akTop];
@@ -12639,7 +12727,7 @@ end;
 
 procedure Tgoverlayform.UpdatePerfCardTheme;
 const
-  DARK_BG  = $00362E2E;
+  DARK_BG  = $002E1E1A;  // rgb(28, 33, 52) — Option B
   LIGHT_BG = $00FFFFFF;
 var
   i, j: Integer;
@@ -12662,6 +12750,7 @@ begin
   for i := 0 to 3 do
   begin
     Card := FPerfCards[i];
+    if not Assigned(Card) then Continue;
     Card.Color := CardBg;
     Card.Invalidate;
     for j := 0 to Card.ControlCount - 1 do
@@ -12717,53 +12806,47 @@ end;
 
 procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
 const
-  BASE_GAP = 47;
-  BASE_C1  = 2;
-  MIN_COLW = 200;
+  MARGIN   = 2;
+  GAP      = 5;   // gap between cards
   ROW1_TOP = 0;
   ROW1_H   = 180;
   ROW2_TOP = 185;
   ROW2_H   = 389;
-  GB_OFF   = 34;   // GB_OFFSET - 1 (for the -1px overflow trick)
+  GB_OFF   = 34;
 var
-  Center, ColW, C1, C2: Integer;
+  CardW, HalfW, i: Integer;
 begin
-  Center := AContentW div 2;
-  ColW   := Max(MIN_COLW, Center - BASE_C1 - BASE_GAP div 2);
-  C1     := BASE_C1;
-  C2     := AContentW - BASE_C1 - ColW;
+  CardW := AContentW - MARGIN * 2;
+  HalfW := CardW div 2;
 
   if Assigned(FPerfCards[0]) then
   begin
-    // Left column
-    FPerfCards[0].SetBounds(C1, ROW1_TOP, ColW, ROW1_H);
-    FPerfCards[1].SetBounds(C1, ROW2_TOP, ColW, ROW2_H);
-    // Right column
-    FPerfCards[2].SetBounds(C2, ROW1_TOP, ColW, ROW1_H);
-    FPerfCards[3].SetBounds(C2, ROW2_TOP, ColW, ROW2_H);
-    // Resize GroupBoxes to overflow card by 1px (hides native frame)
-    fpsGroupBox.Width        := ColW + 2;  fpsGroupBox.Height        := ROW1_H - GB_OFF;
-    fpslimiterGroupBox.Width := ColW + 2;  fpslimiterGroupBox.Height := ROW2_H - GB_OFF;
-    vsyncGroupBox.Width      := ColW + 2;  vsyncGroupBox.Height      := ROW1_H - GB_OFF;
-    filtersGroupBox.Width    := ColW + 2;  filtersGroupBox.Height    := ROW2_H - GB_OFF;
-    // Resize VSYNC row chips to fill the GroupBox width
+    FPerfCards[0].SetBounds(MARGIN, ROW1_TOP, CardW, ROW1_H);
+    FPerfCards[1].SetBounds(MARGIN, ROW2_TOP, CardW, ROW2_H);
+
+    // Left GroupBoxes
+    fpsGroupBox.SetBounds(-1, GB_OFF - 1, HalfW + 2, ROW1_H - GB_OFF + 2);
+    fpslimiterGroupBox.SetBounds(-1, GB_OFF - 1, HalfW + 2, ROW2_H - GB_OFF + 2);
+    // Right GroupBoxes
+    vsyncGroupBox.SetBounds(HalfW - 1, GB_OFF - 1, HalfW + 2, ROW1_H - GB_OFF + 2);
+    filtersGroupBox.SetBounds(HalfW - 1, GB_OFF - 1, HalfW + 2, ROW2_H - GB_OFF + 2);
+
+    // Update right labels
+    for i := 0 to 1 do
+      if Assigned(FPerfRightLbl[i]) then
+        FPerfRightLbl[i].Left := HalfW + 10;
+
+    // Resize VSYNC row chips to fill the half-width GroupBox
     if Assigned(FVsyncRows[0]) then
     begin
-      FVsyncRows[0].Width    := vsyncGroupBox.ClientWidth - 16;
-      vsyncComboBox.Left     := FVsyncRows[0].Width - vsyncComboBox.Width - 8;
+      FVsyncRows[0].Width := vsyncGroupBox.ClientWidth - 16;
+      vsyncComboBox.Left  := FVsyncRows[0].Width - vsyncComboBox.Width - 8;
     end;
     if Assigned(FVsyncRows[1]) then
     begin
-      FVsyncRows[1].Width    := vsyncGroupBox.ClientWidth - 16;
-      glvsyncComboBox.Left   := FVsyncRows[1].Width - glvsyncComboBox.Width - 8;
+      FVsyncRows[1].Width := vsyncGroupBox.ClientWidth - 16;
+      glvsyncComboBox.Left := FVsyncRows[1].Width - glvsyncComboBox.Width - 8;
     end;
-  end
-  else
-  begin
-    fpsGroupBox.SetBounds(C1, fpsGroupBox.Top, ColW, fpsGroupBox.Height);
-    fpslimiterGroupBox.SetBounds(C1, fpslimiterGroupBox.Top, ColW, fpslimiterGroupBox.Height);
-    vsyncGroupBox.SetBounds(C2, vsyncGroupBox.Top, ColW, vsyncGroupBox.Height);
-    filtersGroupBox.SetBounds(C2, filtersGroupBox.Top, ColW, filtersGroupBox.Height);
   end;
 end;
 
@@ -12816,8 +12899,8 @@ end;
 
 procedure Tgoverlayform.InitOptiScalerTab;
 const
-  BG      = $1E1E2E;
-  ACCENT  = $4488FF;
+  BG      = $002E1E1A;  // rgb(28, 33, 52) — Option B
+  ACCENT  = $00F0BE30;  // rgb(48, 190, 240) — cyan
   WHITE   = clWhite;
   PURPLE  = $BB99FF;
   GRAY    = $AAAAAA;
@@ -12833,8 +12916,10 @@ const
     Card := TPanel.Create(Self);
     Card.Parent     := FOsBgPanel;
     Card.BevelOuter := bvNone;
+    Card.BorderStyle := bsNone;
     Card.Color      := BG;
     Card.Caption    := '';
+    Card.OnPaint    := @PerfCardPaint;
     Bar := TPanel.Create(Card);
     Bar.Parent     := Card;
     Bar.BevelOuter := bvNone;
@@ -13236,11 +13321,11 @@ end;
 
 procedure Tgoverlayform.InitMetricsTab;
 // Fully code-driven layout: every control is reparented directly to its card
-// TPanel (no TGroupBox involved).  The card's VisualCardPaint reliably fills
+// TPanel (no TGroupBox involved).  The card's PerfCardPaint reliably fills
 // CARD_BG everywhere, solving the Qt6 GroupBox background rendering issue.
 const
-  CARD_BG  = $00362E2E;
-  OUTER_BG = $00201818;
+  CARD_BG  = $002E1E1A;  // rgb(28, 33, 52) — Option B blue-gray
+  OUTER_BG = $00281A16;  // navy bg
   WHITE    = clWhite;
   SECT_GPU = $66AAFF;
   SECT_CPU = $FFAA55;
@@ -13257,11 +13342,11 @@ const
     Card.BorderStyle := bsNone;
     Card.Color       := CARD_BG;
     Card.Caption     := '';
-    Card.OnPaint     := @VisualCardPaint;
+    Card.OnPaint     := @PerfCardPaint;
     Bar := TPanel.Create(Card);
     Bar.Parent     := Card;
     Bar.BevelOuter := bvNone;
-    Bar.Color      := clHighlight;
+    Bar.Color      := RGBToColor(48, 190, 240);
     Bar.Caption    := '';
     Bar.SetBounds(0, 0, 400, 3);
     Bar.Anchors    := [akLeft, akRight, akTop];
