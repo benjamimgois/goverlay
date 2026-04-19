@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qtwidgets, fpreadjpeg, configmanager, IntfGraphics;
+  fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics;
 
 
 
@@ -2827,9 +2827,7 @@ begin
     OffBmp.Canvas.Pen.Color := RGBToColor(55, 64, 95);
     OffBmp.Canvas.Line(0, 0, 0, THeight);
 
-    // Right separator — 1px soft white (clean glass border, NOT colored)
-    OffBmp.Canvas.Pen.Color := RGBToColor(60, 70, 100);
-    OffBmp.Canvas.Line(TWidth - 1, 0, TWidth - 1, THeight);
+    // No right separator — content area uses same navy background, seamless join
 
     goverlayPaintBox.Canvas.Draw(0, 0, OffBmp);
   finally
@@ -5002,6 +5000,11 @@ begin
    // Initialize menu selections
   mangohudsel := true;
   goverlayPanel.Visible:=true;
+  goverlayPanel.BorderStyle := bsNone;
+  goverlayPanel.Color := RGBToColor(22, 26, 40);
+  goverlayPanel.ParentColor := False;
+  goverlayPanel.OnPaint := @PresetsWrapperPaint;
+  goverlayPageControl.Style := tsTabs;
   
   // Apply comprehensive tooltips to all components
   ApplyAllHints(Self);
@@ -5870,6 +5873,10 @@ end;
 procedure Tgoverlayform.FormShow(Sender: TObject);
 var
   InitW: Integer;
+  TabSS: WideString;
+  TabWidget: QWidgetH;
+  TabBar: QTabBarH;
+  PanelWidget: QWidgetH;
 begin
   // Load Steam games grid once, after the form has its final dimensions
   if not FGamesLoaded then
@@ -5885,6 +5892,26 @@ begin
   ReflowPerformanceTab(InitW);
   ReflowMetricsTab(InitW);
   ReflowExtrasTab(InitW);
+
+  // Remove goverlayPanel QFrame border (Qt6 ignores LCL BorderStyle := bsNone at runtime)
+  PanelWidget := TQtWidget(goverlayPanel.Handle).Widget;
+  QFrame_setFrameStyle(QFrameH(PanelWidget), 0);  // QFrame::NoFrame = 0
+
+  // Style tab bar to match navy UI
+  TabWidget := TQtWidget(goverlayPageControl.Handle).Widget;
+  TabSS := 'QTabBar { background: rgb(22,26,40); } ' +
+            'QTabBar::tab { background: rgb(22,26,40); color: rgb(130,140,165); ' +
+            'padding: 8px 16px; border: none; ' +
+            'border-bottom: 2px solid transparent; ' +
+            'font-size: 12px; font-weight: bold; } ' +
+            'QTabBar::tab:selected { color: rgb(220,230,255); border-bottom: 2px solid rgb(48,190,240); } ' +
+            'QTabBar::tab:hover:!selected { background: rgb(30,36,58); color: rgb(180,192,215); } ' +
+            'QTabWidget::pane { border: none; background: rgb(22,26,40); }';
+  QWidget_setStyleSheet(TabWidget, @TabSS);
+
+  // Make tabs stretch to fill the full tab bar width (eliminates gray strip to the right)
+  TabBar := QTabWidget_tabBar(QTabWidgetH(TabWidget));
+  QTabBar_setExpanding(TabBar, True);
 
   // Start pascube or vkcube (vulkan demo) is now moved to SetNavActive (MangoHud tab)
 end;
