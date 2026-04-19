@@ -661,6 +661,7 @@ type
 
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
+    procedure AddNavyBgToTab(ATab: TTabSheet);
     procedure PresetsBgBoxPaint(Sender: TObject);
     procedure PresetsWrapperPaint(Sender: TObject);
     procedure PresetCardPaint(Sender: TObject);
@@ -2776,6 +2777,16 @@ end;
 procedure Tgoverlayform.TimerTimer(Sender: TObject);
 begin
   goverlayPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.AddNavyBgToTab(ATab: TTabSheet);
+var
+  BgBox: TPaintBox;
+begin
+  BgBox := TPaintBox.Create(Self);
+  BgBox.Parent  := ATab;
+  BgBox.Align   := alClient;
+  BgBox.OnPaint := @PresetsBgBoxPaint;
 end;
 
 procedure Tgoverlayform.PresetsBgBoxPaint(Sender: TObject);
@@ -5019,6 +5030,12 @@ begin
   BuildNavRail;
   BuildPresetsWrapper;
   BuildSettingsButton;
+
+  // Apply navy background to remaining tabs (vkBasalt, OptiScaler, Tweaks)
+  // Games tab handled separately via FGamesScrollBox/FGamesPanel
+  AddNavyBgToTab(vkbasaltTabSheet);
+  AddNavyBgToTab(optiscalerTabSheet);
+  AddNavyBgToTab(tweaksTabSheet);
 
   // Detach all anchor-side control references for every groupbox we reflow
   // manually (Visual + Performance tabs). Without this the LCL anchor engine
@@ -13857,6 +13874,7 @@ procedure Tgoverlayform.InitGamesTab;
 var
   OpenFolderItem: TMenuItem;
   OpenPrefixItem: TMenuItem;
+  GamesBgPB: TPaintBox;
 begin
   FCardPanels := TList.Create;
   FOrigCovers := TList.Create;
@@ -13879,14 +13897,21 @@ begin
   FGamesScrollBox.AutoScroll := True;
   FGamesScrollBox.BorderStyle := bsNone;
   FGamesScrollBox.HorzScrollBar.Visible := False;
-  FGamesScrollBox.Color := $1A1A1A;
+  FGamesScrollBox.Color := RGBToColor(22, 26, 40);
+  FGamesScrollBox.ParentColor := False;
   FGamesScrollBox.OnResize := @GamesScrollBoxResize;
+
+  // Navy background paintbox — created before FGamesPanel so it sits behind the cards
+  GamesBgPB := TPaintBox.Create(Self);
+  GamesBgPB.Parent  := FGamesScrollBox;
+  GamesBgPB.Align   := alClient;
+  GamesBgPB.OnPaint := @PresetsBgBoxPaint;
 
   FGamesPanel := TPanel.Create(Self);
   FGamesPanel.Parent := FGamesScrollBox;
   FGamesPanel.Caption := '';
   FGamesPanel.BevelOuter := bvNone;
-  FGamesPanel.Color := $1A1A1A;
+  FGamesPanel.Color := RGBToColor(22, 26, 40);
   FGamesPanel.Left := 0;
   FGamesPanel.Top := 0;
   FGamesPanel.Width := 800;
@@ -15169,9 +15194,9 @@ begin
   CardsPerRow := Max(1, (FGamesScrollBox.ClientWidth - CARD_MARGIN) div (CARD_W + CARD_MARGIN));
   CardCount   := 0;
 
-  for i := 0 to FGamesPanel.ControlCount - 1 do
+  for i := 0 to FCardPanels.Count - 1 do
   begin
-    Ctrl := FGamesPanel.Controls[i];
+    Ctrl := TControl(FCardPanels[i]);
     if not (Ctrl is TPanel) then
       Continue;
     CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
