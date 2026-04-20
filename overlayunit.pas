@@ -12496,15 +12496,15 @@ const
     Logo.Left    := 8;
     Logo.Top     := (AHeight - Logo.Height) div 2;
 
-    // Combo — right-aligned, vertically centered
+    // Combo — placed immediately after the logo
     Combo.Parent := Row;
     Combo.AnchorSideLeft.Control   := nil;
     Combo.AnchorSideTop.Control    := nil;
     Combo.AnchorSideRight.Control  := nil;
     Combo.AnchorSideBottom.Control := nil;
-    Combo.Anchors := [akRight, akTop];
+    Combo.Anchors := [akLeft, akTop];
     Combo.Top     := (AHeight - Combo.Height) div 2;
-    Combo.Left    := Row.Width - Combo.Width - 8;
+    Combo.Left    := Logo.Left + Logo.Width + 8;
   end;
 
   procedure AddVsyncSeparator;
@@ -12867,16 +12867,18 @@ begin
     showfpslimCheckBox.Left         := InfoMargin + 225;
     vpsCheckBox.Left                := InfoMargin + 225;
 
-    // Resize VSYNC row chips to fill the half-width GroupBox
+    // Center logo+combo block (101+8+109=218px) within each VSYNC row
     if Assigned(FVsyncRows[0]) then
     begin
       FVsyncRows[0].Width := vsyncGroupBox.ClientWidth - 16;
-      vsyncComboBox.Left  := FVsyncRows[0].Width - vsyncComboBox.Width - 8;
+      vulkanImage.Left    := (FVsyncRows[0].Width - 218) div 2;
+      vsyncComboBox.Left  := vulkanImage.Left + vulkanImage.Width + 8;
     end;
     if Assigned(FVsyncRows[1]) then
     begin
       FVsyncRows[1].Width := vsyncGroupBox.ClientWidth - 16;
-      glvsyncComboBox.Left := FVsyncRows[1].Width - glvsyncComboBox.Width - 8;
+      openglImage.Left    := (FVsyncRows[1].Width - 218) div 2;
+      glvsyncComboBox.Left := openglImage.Left + openglImage.Width + 8;
     end;
   end;
 end;
