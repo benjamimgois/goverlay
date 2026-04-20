@@ -604,6 +604,9 @@ type
     FCustomListBox:   TListBox;
     FCustomAddBtn:    TButton;
     FCustomRemoveBtn: TButton;
+    FTweaksVarListBox: TListBox;
+    FTweaksEnvPanel:   TPanel;
+    FTweaksRemoveBtn:  TButton;
 
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -782,6 +785,9 @@ type
     procedure ApplyCustomEnvTheme;
     procedure CustomEnvAddClick(Sender: TObject);
     procedure CustomEnvRemoveClick(Sender: TObject);
+    procedure TweaksCheckChange(Sender: TObject);
+    procedure UpdateTweaksVarListBox;
+    procedure TweaksVarRemoveClick(Sender: TObject);
     function IsOptiScalerInstalled: Boolean;
     
     // Home tab
@@ -5198,9 +5204,6 @@ begin
 
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
-  // DarkCheck inside InitOptiScalerTab sets an explicit Color; override it so the
-  // checkbox inherits the parent background when shown on the Tweaks tab.
-  hidenvidiaCheckBox.ParentColor := True;
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
@@ -5853,6 +5856,76 @@ begin
 end;
 
 
+procedure Tgoverlayform.TweaksCheckChange(Sender: TObject);
+begin
+  UpdateTweaksVarListBox;
+end;
+
+procedure Tgoverlayform.UpdateTweaksVarListBox;
+var
+  i: Integer;
+begin
+  if not Assigned(FTweaksVarListBox) then Exit;
+  FTweaksVarListBox.Items.BeginUpdate;
+  try
+    FTweaksVarListBox.Items.Clear;
+    // General
+    if simdeckCheckBox.Checked       then FTweaksVarListBox.Items.Add('export SteamDeck=1');
+    if gamemodeCheckBox.Checked      then FTweaksVarListBox.Items.Add('#gamemode');
+    if enhdrCheckBox.Checked         then
+    begin
+      FTweaksVarListBox.Items.Add('export PROTON_ENABLE_HDR=1');
+      FTweaksVarListBox.Items.Add('export ENABLE_HDR_WSI=1');
+    end;
+    if enwaylandCheckBox.Checked     then FTweaksVarListBox.Items.Add('export PROTON_ENABLE_WAYLAND=1');
+    if actprotonlogsCheckBox.Checked then FTweaksVarListBox.Items.Add('export PROTON_LOG=1');
+    if usesdlCheckBox.Checked        then FTweaksVarListBox.Items.Add('export PROTON_USE_SDL=1');
+    // Graphics
+    if emurtCheckBox.Checked         then FTweaksVarListBox.Items.Add('export RADV_PERFTEST=rt,emulate_rt');
+    if hidenvidiaCheckBox.Checked    then FTweaksVarListBox.Items.Add('export PROTON_HIDE_NVIDIA_GPU=1');
+    if forcenvapiCheckBox.Checked    then FTweaksVarListBox.Items.Add('export PROTON_ENABLE_NVAPI=1');
+    if wined3dCheckBox.Checked       then FTweaksVarListBox.Items.Add('export PROTON_USE_WINED3D=1');
+    if forcezinkCheckBox.Checked     then FTweaksVarListBox.Items.Add('export MESA_LOADER_DRIVER_OVERRIDE=zink');
+    if nofastclearsCheckBox.Checked  then FTweaksVarListBox.Items.Add('export RADV_DEBUG=nofastclears');
+    // Performance
+    if highpriCheckBox.Checked       then FTweaksVarListBox.Items.Add('export PROTON_PRIORITY_HIGH=1');
+    if wow64CheckBox.Checked         then FTweaksVarListBox.Items.Add('export PROTON_USE_WOW64=1');
+    if largeaddressCheckBox.Checked  then FTweaksVarListBox.Items.Add('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1');
+    if stagememCheckBox.Checked      then FTweaksVarListBox.Items.Add('export STAGING_SHARED_MEMORY=1');
+    if disablentsyncCheckBox.Checked then FTweaksVarListBox.Items.Add('export PROTON_NO_NTSYNC=1');
+    if heapdelayCheckBox.Checked     then FTweaksVarListBox.Items.Add('export PROTON_HEAP_DELAY_FREE=1');
+    // Custom env vars
+    if Assigned(FCustomListBox) then
+      for i := 0 to FCustomListBox.Items.Count - 1 do
+        if Trim(FCustomListBox.Items[i]) <> '' then
+          FTweaksVarListBox.Items.Add('export ' + Trim(FCustomListBox.Items[i]));
+  finally
+    FTweaksVarListBox.Items.EndUpdate;
+  end;
+end;
+
+procedure Tgoverlayform.TweaksVarRemoveClick(Sender: TObject);
+var
+  Selected, CustomVal: string;
+  Idx: Integer;
+begin
+  if not Assigned(FTweaksVarListBox) then Exit;
+  if FTweaksVarListBox.ItemIndex < 0 then Exit;
+  Selected := FTweaksVarListBox.Items[FTweaksVarListBox.ItemIndex];
+  // Only custom env vars (not checkbox-driven) can be removed
+  if Copy(Selected, 1, 7) = 'export ' then
+    CustomVal := Copy(Selected, 8, MaxInt)
+  else
+    Exit;
+  if not Assigned(FCustomListBox) then Exit;
+  Idx := FCustomListBox.Items.IndexOf(CustomVal);
+  if Idx >= 0 then
+  begin
+    FCustomListBox.Items.Delete(Idx);
+    UpdateTweaksVarListBox;
+  end;
+end;
+
 procedure Tgoverlayform.StartCube;
 begin
   if not FCubeAutoLaunch then Exit;
@@ -6471,25 +6544,10 @@ begin
   FCustomAddBtn.Hint     := 'Save custom env';
   FCustomAddBtn.OnClick  := @CustomEnvAddClick;
 
+  // Hidden data store — items appear in FTweaksVarListBox (the visible terminal panel)
   FCustomListBox := TListBox.Create(Self);
-  FCustomListBox.Parent   := FCustomSec;
-  FCustomListBox.Left     := PAD;
-  FCustomListBox.Top      := PAD + BTN_H + ROW_GAP;
-  FCustomListBox.Width    := FCustomSec.ClientWidth - PAD - BTN_W - PAD;
-  FCustomListBox.Height   := FCustomSec.ClientHeight - (PAD + BTN_H + ROW_GAP) - PAD;
-  FCustomListBox.Anchors  := [akLeft, akTop, akRight, akBottom];
-
-  FCustomRemoveBtn := TButton.Create(Self);
-  FCustomRemoveBtn.Parent   := FCustomSec;
-  FCustomRemoveBtn.Caption  := '-';
-  FCustomRemoveBtn.Left     := FCustomSec.ClientWidth - BTN_W - PAD;
-  FCustomRemoveBtn.Top      := FCustomListBox.Top + (FCustomListBox.Height - BTN_H) div 2;
-  FCustomRemoveBtn.Width    := BTN_W;
-  FCustomRemoveBtn.Height   := BTN_H;
-  FCustomRemoveBtn.Anchors  := [akTop, akRight];
-  FCustomRemoveBtn.ShowHint := True;
-  FCustomRemoveBtn.Hint     := 'Remove custom env';
-  FCustomRemoveBtn.OnClick  := @CustomEnvRemoveClick;
+  FCustomListBox.Parent  := Self;
+  FCustomListBox.Visible := False;
 end;
 
 procedure Tgoverlayform.CustomEnvAddClick(Sender: TObject);
@@ -6502,6 +6560,7 @@ begin
     FCustomListBox.Items.Add(Val);
   customenvEdit.Text := '';
   customenvEdit.SetFocus;
+  UpdateTweaksVarListBox;
 end;
 
 procedure Tgoverlayform.CustomEnvRemoveClick(Sender: TObject);
@@ -6713,6 +6772,7 @@ begin
   finally
     FileLines.Free;
   end;
+  UpdateTweaksVarListBox;
 end;
 
 procedure Tgoverlayform.mangocolorBitBtnClick(Sender: TObject);
@@ -14023,20 +14083,20 @@ begin
   GfxSec := MakeSec(BasicCard, 'Graphics', 4 + HalfW + 4, HDR + GAP, HalfW, 182 - HDR - GAP - 4);
 
   // General controls → GenSec
-  ReparentTo(simdeckCheckBox,       GenSec); DarkChk(simdeckCheckBox);
-  ReparentTo(enhdrCheckBox,         GenSec); DarkChk(enhdrCheckBox);
-  ReparentTo(actprotonlogsCheckBox, GenSec); DarkChk(actprotonlogsCheckBox);
-  ReparentTo(gamemodeCheckBox,      GenSec); DarkChk(gamemodeCheckBox);
-  ReparentTo(enwaylandCheckBox,     GenSec); DarkChk(enwaylandCheckBox);
-  ReparentTo(usesdlCheckBox,        GenSec); DarkChk(usesdlCheckBox);
+  ReparentTo(simdeckCheckBox,       GenSec); DarkChk(simdeckCheckBox);       simdeckCheckBox.OnChange       := @TweaksCheckChange;
+  ReparentTo(enhdrCheckBox,         GenSec); DarkChk(enhdrCheckBox);         enhdrCheckBox.OnChange         := @TweaksCheckChange;
+  ReparentTo(actprotonlogsCheckBox, GenSec); DarkChk(actprotonlogsCheckBox); actprotonlogsCheckBox.OnChange := @TweaksCheckChange;
+  ReparentTo(gamemodeCheckBox,      GenSec); DarkChk(gamemodeCheckBox);      gamemodeCheckBox.OnChange      := @TweaksCheckChange;
+  ReparentTo(enwaylandCheckBox,     GenSec); DarkChk(enwaylandCheckBox);     enwaylandCheckBox.OnChange     := @TweaksCheckChange;
+  ReparentTo(usesdlCheckBox,        GenSec); DarkChk(usesdlCheckBox);        usesdlCheckBox.OnChange        := @TweaksCheckChange;
 
   // Graphics controls → GfxSec
-  ReparentTo(emurtCheckBox,         GfxSec); DarkChk(emurtCheckBox);
-  ReparentTo(forcenvapiCheckBox,    GfxSec); DarkChk(forcenvapiCheckBox);
-  ReparentTo(forcezinkCheckBox,     GfxSec); DarkChk(forcezinkCheckBox);
-  ReparentTo(hidenvidiaCheckBox,    GfxSec); DarkChk(hidenvidiaCheckBox);
-  ReparentTo(wined3dCheckBox,       GfxSec); DarkChk(wined3dCheckBox);
-  ReparentTo(nofastclearsCheckBox,  GfxSec); DarkChk(nofastclearsCheckBox);
+  ReparentTo(emurtCheckBox,         GfxSec); DarkChk(emurtCheckBox);         emurtCheckBox.OnChange         := @TweaksCheckChange;
+  ReparentTo(forcenvapiCheckBox,    GfxSec); DarkChk(forcenvapiCheckBox);    forcenvapiCheckBox.OnChange    := @TweaksCheckChange;
+  ReparentTo(forcezinkCheckBox,     GfxSec); DarkChk(forcezinkCheckBox);     forcezinkCheckBox.OnChange     := @TweaksCheckChange;
+  ReparentTo(hidenvidiaCheckBox,    GfxSec); DarkChk(hidenvidiaCheckBox);    hidenvidiaCheckBox.OnChange    := @TweaksCheckChange;
+  ReparentTo(wined3dCheckBox,       GfxSec); DarkChk(wined3dCheckBox);       wined3dCheckBox.OnChange       := @TweaksCheckChange;
+  ReparentTo(nofastclearsCheckBox,  GfxSec); DarkChk(nofastclearsCheckBox);  nofastclearsCheckBox.OnChange  := @TweaksCheckChange;
 
   basicGroupBox.Visible := False;
 
@@ -14058,14 +14118,50 @@ begin
                          AdvCard.Width - HalfW - 16, 184 - HDR - GAP - 4);
 
   // Performance controls → PerfSec
-  ReparentTo(highpriCheckBox,       PerfSec); DarkChk(highpriCheckBox);
-  ReparentTo(largeaddressCheckBox,  PerfSec); DarkChk(largeaddressCheckBox);
-  ReparentTo(stagememCheckBox,      PerfSec); DarkChk(stagememCheckBox);
-  ReparentTo(wow64CheckBox,         PerfSec); DarkChk(wow64CheckBox);
-  ReparentTo(disablentsyncCheckBox, PerfSec); DarkChk(disablentsyncCheckBox);
-  ReparentTo(heapdelayCheckBox,     PerfSec); DarkChk(heapdelayCheckBox);
+  ReparentTo(highpriCheckBox,       PerfSec); DarkChk(highpriCheckBox);       highpriCheckBox.OnChange       := @TweaksCheckChange;
+  ReparentTo(largeaddressCheckBox,  PerfSec); DarkChk(largeaddressCheckBox);  largeaddressCheckBox.OnChange  := @TweaksCheckChange;
+  ReparentTo(stagememCheckBox,      PerfSec); DarkChk(stagememCheckBox);       stagememCheckBox.OnChange      := @TweaksCheckChange;
+  ReparentTo(wow64CheckBox,         PerfSec); DarkChk(wow64CheckBox);          wow64CheckBox.OnChange         := @TweaksCheckChange;
+  ReparentTo(disablentsyncCheckBox, PerfSec); DarkChk(disablentsyncCheckBox);  disablentsyncCheckBox.OnChange := @TweaksCheckChange;
+  ReparentTo(heapdelayCheckBox,     PerfSec); DarkChk(heapdelayCheckBox);      heapdelayCheckBox.OnChange     := @TweaksCheckChange;
 
   advancedGroupBox.Visible := False;
+
+  // ── Environment variables panel (fills remaining vertical space) ──
+  FTweaksEnvPanel := TPanel.Create(Self);
+  FTweaksEnvPanel.Parent     := tweaksTabSheet;
+  FTweaksEnvPanel.BevelOuter := bvNone;
+  FTweaksEnvPanel.Caption    := '';
+  FTweaksEnvPanel.Color      := BG;
+  FTweaksEnvPanel.OnPaint    := @PerfCardPaint;
+  FTweaksEnvPanel.SetBounds(2, 377, tweaksTabSheet.ClientWidth - 4,
+                             tweaksTabSheet.ClientHeight - 379);
+  FTweaksEnvPanel.Anchors    := [akLeft, akTop, akRight, akBottom];
+  MakeBar(FTweaksEnvPanel);
+  MakeLbl(FTweaksEnvPanel, 'Environment variables');
+
+  FTweaksRemoveBtn := TButton.Create(FTweaksEnvPanel);
+  FTweaksRemoveBtn.Parent   := FTweaksEnvPanel;
+  FTweaksRemoveBtn.Caption  := '−';
+  FTweaksRemoveBtn.Width    := 26;
+  FTweaksRemoveBtn.Height   := 22;
+  FTweaksRemoveBtn.Left     := FTweaksEnvPanel.Width - FTweaksRemoveBtn.Width - 6;
+  FTweaksRemoveBtn.Top      := 6;
+  FTweaksRemoveBtn.Anchors  := [akTop, akRight];
+  FTweaksRemoveBtn.ShowHint := True;
+  FTweaksRemoveBtn.Hint     := 'Remove selected custom variable';
+  FTweaksRemoveBtn.OnClick  := @TweaksVarRemoveClick;
+
+  FTweaksVarListBox := TListBox.Create(FTweaksEnvPanel);
+  FTweaksVarListBox.Parent      := FTweaksEnvPanel;
+  FTweaksVarListBox.Color       := $00201208;
+  FTweaksVarListBox.Font.Color  := $0060E060;
+  FTweaksVarListBox.Font.Name   := 'Monospace';
+  FTweaksVarListBox.Font.Size   := 9;
+  FTweaksVarListBox.BorderStyle := bsNone;
+  FTweaksVarListBox.SetBounds(0, HDR, FTweaksEnvPanel.Width,
+                               FTweaksEnvPanel.Height - HDR);
+  FTweaksVarListBox.Anchors     := [akLeft, akTop, akRight, akBottom];
 end;
 
 procedure Tgoverlayform.InitVkBasaltTab;
