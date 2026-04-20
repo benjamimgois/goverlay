@@ -14415,6 +14415,7 @@ begin
   FGamesPanel.Top := 0;
   FGamesPanel.Width := 800;
   FGamesPanel.Height := 100;
+  FGamesPanel.OnPaint := @PresetsWrapperPaint;
   FGamesPanel.OnClick := @GamesEmptySpaceClick;
   FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
 
@@ -14528,13 +14529,52 @@ begin
 end;
 
 // Applies the bottom gradient to a cover bitmap (raw byte access for speed).
+function BreakGameName(const Name: string): string;
+const
+  MAX_CH = 19;
+var
+  Words: TStringList;
+  Line, W: string;
+  i: Integer;
+begin
+  Words := TStringList.Create;
+  try
+    Words.Delimiter := ' ';
+    Words.StrictDelimiter := True;
+    Words.DelimitedText := Name;
+    Result := '';
+    Line   := '';
+    for i := 0 to Words.Count - 1 do
+    begin
+      W := Words[i];
+      if Line = '' then
+        Line := W
+      else if Length(Line) + 1 + Length(W) <= MAX_CH then
+        Line := Line + ' ' + W
+      else
+      begin
+        if Result <> '' then Result := Result + LineEnding;
+        Result := Result + Line;
+        Line := W;
+      end;
+    end;
+    if Line <> '' then
+    begin
+      if Result <> '' then Result := Result + LineEnding;
+      Result := Result + Line;
+    end;
+  finally
+    Words.Free;
+  end;
+end;
+
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
 var
   IntfImg: TLazIntfImage;
   ResultBmp: TBitmap;
   Stride, BPP, W, H: Integer;
   Row: PByte;
-  x, y, px, DimPct: Integer;
+  x, y, px, DimPct, Bright: Integer;
 begin
   W := Bmp.Width;
   H := Bmp.Height;
@@ -14548,10 +14588,19 @@ begin
 
     for y := 0 to H - 1 do
     begin
-      if y < H - GradH then Continue;  // no gradient above the band
+      Row := IntfImg.PixelData + PtrUInt(y * Stride);
+      // uniform brightness boost (+25%) across the whole image
+      for x := 0 to W - 1 do
+      begin
+        px := x * BPP;
+        Bright := Min(255, Integer(Row[px])   * 125 div 100); Row[px]   := Byte(Bright);
+        Bright := Min(255, Integer(Row[px+1]) * 125 div 100); Row[px+1] := Byte(Bright);
+        Bright := Min(255, Integer(Row[px+2]) * 125 div 100); Row[px+2] := Byte(Bright);
+      end;
+      // gradient darkening at the bottom band
+      if y < H - GradH then Continue;
       DimPct := Round((y - (H - GradH)) / GradH * 88);
       if DimPct <= 0 then Continue;
-      Row := IntfImg.PixelData + PtrUInt(y * Stride);
       for x := 0 to W - 1 do
       begin
         px := x * BPP;
@@ -14679,7 +14728,7 @@ begin
           CardPanel.BevelOuter := bvNone;
           CardPanel.Caption := '';
           CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
-          CardPanel.Color := $1A1A1A;  // matches grid background for seamless corner masking
+          CardPanel.Color := $303030;  // slightly lighter than the navy bg for contrast
           CardPanel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
           CardPanel.ShowHint := True;
           CardPanel.OnMouseEnter := @GameCardMouseEnter;
@@ -14718,14 +14767,15 @@ begin
           // Title label overlaid on the gradient band at the bottom of the image
           CardLabel := TLabel.Create(CardPanel);
           CardLabel.Parent := CardPanel;
-          CardLabel.SetBounds(6, CARD_H - GRAD_H + 8, CARD_W - 12, GRAD_H - 10);
-          CardLabel.Caption := GameName;
+          CardLabel.SetBounds(4, CARD_H - GRAD_H, CARD_W - 8, GRAD_H);
+          CardLabel.Caption := BreakGameName(GameName);
           CardLabel.Font.Color := clWhite;
           CardLabel.Font.Size := 8;
           CardLabel.Font.Style := [fsBold];
           CardLabel.Alignment := taCenter;
-          CardLabel.Layout := tlBottom;
-          CardLabel.WordWrap := True;
+          CardLabel.Layout := tlCenter;
+          CardLabel.WordWrap := False;
+          CardLabel.AutoSize := False;
           CardLabel.Transparent := True;
           CardLabel.ParentColor := False;
           CardLabel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
