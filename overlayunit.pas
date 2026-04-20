@@ -541,6 +541,8 @@ type
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
     FRightClickedCard: TPanel;      // card that triggered the context menu
+    FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
+    FOptiIconGfx:  TPortableNetworkGraphic;  // cached badge icon for OptiScaler
 
     // Nav rail
     FNavItems:       array of TPanel;    // item panels
@@ -750,6 +752,7 @@ type
     procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GameCardOpenFolderClick(Sender: TObject);
     procedure GameCardOpenPrefixClick(Sender: TObject);
+    procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     function  GetMangoHudConfigEnvPrefix: string;
@@ -1132,7 +1135,7 @@ begin
     end;
     // Dim cover to match the default un-hovered state
     if Assigned(FForm) and (FCurrentImage.Parent is TPanel) then
-      FForm.ApplyCardBrightness(TPanel(FCurrentImage.Parent), 35);
+      FForm.ApplyCardBrightness(TPanel(FCurrentImage.Parent), 100);
   except
   end;
 end;
@@ -4961,6 +4964,8 @@ begin
   end;
   FreeAndNil(FCardPanels);
   FreeAndNil(FGlobalThumbPng);
+  FreeAndNil(FMangoIconGfx);
+  FreeAndNil(FOptiIconGfx);
   ExecuteGUICommand('killall pascube');
   ExecuteGUICommand('killall vkcube');
 end;
@@ -14374,6 +14379,7 @@ var
   OpenFolderItem: TMenuItem;
   OpenPrefixItem: TMenuItem;
   GamesBgPB: TPaintBox;
+  IconPath: string;
 begin
   FCardPanels := TList.Create;
   FOrigCovers := TList.Create;
@@ -14418,6 +14424,15 @@ begin
   FGamesPanel.OnPaint := @PresetsWrapperPaint;
   FGamesPanel.OnClick := @GamesEmptySpaceClick;
   FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
+
+  // Cache badge icons for corner ribbon (loaded once, reused per card)
+  FMangoIconGfx := TPortableNetworkGraphic.Create;
+  IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+  if FileExists(IconPath) then try FMangoIconGfx.LoadFromFile(IconPath); except end;
+
+  FOptiIconGfx := TPortableNetworkGraphic.Create;
+  IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+  if FileExists(IconPath) then try FOptiIconGfx.LoadFromFile(IconPath); except end;
 
   // Navy background for the bottom bar
   goverlaybarPanel.OnPaint := @PresetsWrapperPaint;
@@ -14588,19 +14603,10 @@ begin
 
     for y := 0 to H - 1 do
     begin
-      Row := IntfImg.PixelData + PtrUInt(y * Stride);
-      // uniform brightness boost (+25%) across the whole image
-      for x := 0 to W - 1 do
-      begin
-        px := x * BPP;
-        Bright := Min(255, Integer(Row[px])   * 125 div 100); Row[px]   := Byte(Bright);
-        Bright := Min(255, Integer(Row[px+1]) * 125 div 100); Row[px+1] := Byte(Bright);
-        Bright := Min(255, Integer(Row[px+2]) * 125 div 100); Row[px+2] := Byte(Bright);
-      end;
-      // gradient darkening at the bottom band
       if y < H - GradH then Continue;
       DimPct := Round((y - (H - GradH)) / GradH * 88);
       if DimPct <= 0 then Continue;
+      Row := IntfImg.PixelData + PtrUInt(y * Stride);
       for x := 0 to W - 1 do
       begin
         px := x * BPP;
@@ -14622,7 +14628,62 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
+const
+  // Nerd Font glyphs — same as nav rail (rendered via 'Noto Sans' on this system)
+  GLYPHS: array[0..3] of string = ('󱁥', '󰏘', '󰋮', '⚙');
+  ICN_SZ  = 16;  // icon cell size
+  ICN_GAP = 6;   // vertical gap between icons
+  PAD_R   = 6;   // right margin from card edge
+  PAD_T   = 5;   // top margin from card edge
+  FONT_SZ = 13;  // glyph font size
+var
+  BC: TCanvas;
+  BitIdx, Slot, IcoX, IcoY, DX, DY: Integer;
+  G: string;
+begin
+  BC := Bmp.Canvas;
+  BC.Font.Name  := 'Noto Sans';
+  BC.Font.Size  := FONT_SZ;
+  BC.Font.Style := [];
+  BC.Brush.Style := bsClear;
+
+  IcoX := CARD_W - ICN_SZ - PAD_R;
+
+  Slot := 0;
+  for BitIdx := 0 to 3 do
+  begin
+    if (BadgeMask and (1 shl BitIdx)) = 0 then Continue;
+    G    := GLYPHS[BitIdx];
+    IcoY := PAD_T + Slot * (ICN_SZ + ICN_GAP);
+
+    // Drop shadow (+2 offset, black)
+    BC.Font.Color := clBlack;
+    BC.TextOut(IcoX + 2, IcoY + 2, G);
+
+    // 1px black outline — 8 directions
+    for DX := -1 to 1 do
+      for DY := -1 to 1 do
+        if (DX <> 0) or (DY <> 0) then
+          BC.TextOut(IcoX + DX, IcoY + DY, G);
+
+    // White icon on top
+    BC.Font.Color := clWhite;
+    BC.TextOut(IcoX, IcoY, G);
+
+    Inc(Slot);
+  end;
+end;
+
 procedure Tgoverlayform.LoadSteamGames;
+const
+  // bit0=Mango(PNG), bit1=vkBasalt(glyph), bit2=OptiScaler(PNG), bit3=Tweaks(glyph)
+  BADGE_GLYPHS: array[0..3] of string = ('', '󰏘', '', '󰒓');
+  BDG_SZ    = 18;   // icon cell size
+  BDG_GAP   = 5;    // vertical gap between icons
+  BDG_PAD_V = 6;    // top/bottom padding inside strip
+  BDG_FONT  = 13;   // glyph font size
+  BDG_W     = 26;   // strip width (right edge)
 var
   Libraries: TStringList;
   PendingIDs: TStringList;
@@ -14634,20 +14695,15 @@ var
   AcfFile: TStringList;
   CardPanel: TPanel;
   CardImage: TImage;
-  CardLabel: TLabel;
-  BadgeCircle: TShape;
-  BadgeMangoImg: TImage;
-  BadgeVkLabel: TLabel;
-  BadgeX: Integer;
+  BdgLbl: TLabel;
+  BdgImg: TImage;
+  BdgBg:  TShape;
   NoGamesLabel: TLabel;
   LowerName, GameCfgDir: string;
   ScaledBmp: TBitmap;
   HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
-  BadgeOptiScalerLabel: TLabel;
-  BadgeOptiImg: TImage;
-  BadgeTweaksLabel: TLabel;
   TweakLines: TStringList;
-  k, BadgeCount: Integer;
+  k, BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
@@ -14764,34 +14820,11 @@ begin
             PendingImages.Add(CardImage);
           end;
 
-          // Title label overlaid on the gradient band at the bottom of the image
-          CardLabel := TLabel.Create(CardPanel);
-          CardLabel.Parent := CardPanel;
-          CardLabel.SetBounds(4, CARD_H - GRAD_H, CARD_W - 8, GRAD_H);
-          CardLabel.Caption := BreakGameName(GameName);
-          CardLabel.Font.Color := clWhite;
-          CardLabel.Font.Size := 8;
-          CardLabel.Font.Style := [fsBold];
-          CardLabel.Alignment := taCenter;
-          CardLabel.Layout := tlCenter;
-          CardLabel.WordWrap := False;
-          CardLabel.AutoSize := False;
-          CardLabel.Transparent := True;
-          CardLabel.ParentColor := False;
-          CardLabel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
-          CardLabel.ShowHint := True;
-          CardLabel.OnMouseEnter := @GameCardMouseEnter;
-          CardLabel.OnMouseLeave := @GameCardMouseLeave;
-          CardLabel.OnClick := @GameCardClick;
-          CardLabel.OnMouseUp := @GameCardMouseUp;
-          CardLabel.BringToFront;
-
-          // Config badges: coloured icons top-left if per-game configs exist
+          // Compute badge bitmask and store in Tag for use by download thread
           GameCfgDir := GetGameConfigDir(GameName);
           HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
           HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf');
           HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
-          // Check for Tweaks content in fgmod
           HasTweaks := False;
           if FileExists(GameCfgDir + 'fgmod') then
           begin
@@ -14813,145 +14846,114 @@ begin
               TweakLines.Free;
             end;
           end;
-
-          // Count active badges and compute right-aligned start X
+          // Badges — PNG for MangoHud/OptiScaler (matches nav rail), glyph for vkBasalt/Tweaks
           BadgeCount := 0;
-          if HasMango      then Inc(BadgeCount);
-          if HasVkBasalt   then Inc(BadgeCount);
-          if HasOptiScaler then Inc(BadgeCount);
-          if HasTweaks     then Inc(BadgeCount);
-          BadgeX := CARD_W - BadgeCount * 28;  // right-aligned, 28 px per badge
+          if HasMango      then Inc(BadgeCount, 1);
+          if HasVkBasalt   then Inc(BadgeCount, 2);
+          if HasOptiScaler then Inc(BadgeCount, 4);
+          if HasTweaks     then Inc(BadgeCount, 8);
+          CardPanel.Tag := BadgeCount;
 
-          if HasMango then
+          if BadgeCount > 0 then
           begin
-            // Dark circle background
-            BadgeCircle := TShape.Create(CardPanel);
-            BadgeCircle.Parent      := CardPanel;
-            BadgeCircle.Shape       := stEllipse;
-            BadgeCircle.Brush.Color := $00780DC8;
-            BadgeCircle.Pen.Style   := psClear;
-            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
-            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
-            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
-            BadgeCircle.OnClick      := @GameCardClick;
-            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
-            // MangoHud icon on top
-            BadgeMangoImg := TImage.Create(CardPanel);
-            BadgeMangoImg.Parent   := CardPanel;
-            BadgeMangoImg.AutoSize := False;
-            BadgeMangoImg.SetBounds(BadgeX + 3, 7, 18, 18);
-            BadgeMangoImg.Stretch  := True;
-            BadgeMangoImg.Center   := True;
-            BadgeMangoImg.Transparent := True;
-            IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
-            if FileExists(IconPath) then
-              BadgeMangoImg.Picture.LoadFromFile(IconPath);
-            BadgeMangoImg.BringToFront;
-            BadgeMangoImg.OnMouseEnter := @GameCardMouseEnter;
-            BadgeMangoImg.OnMouseLeave := @GameCardMouseLeave;
-            BadgeMangoImg.OnClick      := @GameCardClick;
-            BadgeMangoImg.OnMouseUp    := @GameCardMouseUp;
-            BadgeX := BadgeX + 28;
+            // Graphite background strip (right edge, auto-height)
+            BdgY := 2 * BDG_PAD_V + PopCnt(DWord(BadgeCount)) * BDG_SZ
+                    + (PopCnt(DWord(BadgeCount)) - 1) * BDG_GAP;
+            BdgBg := TShape.Create(CardPanel);
+            BdgBg.Parent      := CardPanel;
+            BdgBg.Shape       := stRectangle;
+            BdgBg.Brush.Color := RGBToColor(28, 52, 96);
+            BdgBg.Pen.Style   := psClear;
+            BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
+            BdgBg.OnMouseEnter := @GameCardMouseEnter;
+            BdgBg.OnMouseLeave := @GameCardMouseLeave;
+            BdgBg.OnClick      := @GameCardClick;
+            BdgBg.OnMouseUp    := @GameCardMouseUp;
+
+            BdgSlot := 0;
+            for BdgBit := 0 to 3 do
+            begin
+              if (BadgeCount and (1 shl BdgBit)) = 0 then Continue;
+              BdgX := CARD_W - BDG_W + (BDG_W - BDG_SZ) div 2;
+              BdgY := BDG_PAD_V + BdgSlot * (BDG_SZ + BDG_GAP);
+
+              if BdgBit = 0 then  // MangoHud — PNG icon
+              begin
+                BdgImg := TImage.Create(CardPanel);
+                BdgImg.Parent      := CardPanel;
+                BdgImg.AutoSize    := False;
+                BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
+                BdgImg.Stretch     := True;
+                BdgImg.Proportional := True;
+                BdgImg.Center      := True;
+                BdgImg.Transparent := True;
+                IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+                if FileExists(IconPath) then
+                  try BdgImg.Picture.LoadFromFile(IconPath); except end;
+                BdgImg.BringToFront;
+                BdgImg.OnMouseEnter := @GameCardMouseEnter;
+                BdgImg.OnMouseLeave := @GameCardMouseLeave;
+                BdgImg.OnClick      := @GameCardClick;
+                BdgImg.OnMouseUp    := @GameCardMouseUp;
+              end
+              else if BdgBit = 2 then  // OptiScaler — PNG icon
+              begin
+                BdgImg := TImage.Create(CardPanel);
+                BdgImg.Parent      := CardPanel;
+                BdgImg.AutoSize    := False;
+                BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
+                BdgImg.Stretch     := True;
+                BdgImg.Proportional := True;
+                BdgImg.Center      := True;
+                BdgImg.Transparent := True;
+                IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+                if FileExists(IconPath) then
+                  try BdgImg.Picture.LoadFromFile(IconPath); except end;
+                BdgImg.BringToFront;
+                BdgImg.OnMouseEnter := @GameCardMouseEnter;
+                BdgImg.OnMouseLeave := @GameCardMouseLeave;
+                BdgImg.OnClick      := @GameCardClick;
+                BdgImg.OnMouseUp    := @GameCardMouseUp;
+              end
+              else  // vkBasalt ('󰏘') or Tweaks ('󰒓') — TLabel glyph
+              begin
+                // Shadow
+                BdgLbl := TLabel.Create(CardPanel);
+                BdgLbl.Parent     := CardPanel;
+                BdgLbl.AutoSize   := False;
+                BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
+                BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
+                BdgLbl.Font.Name  := 'Noto Sans';
+                BdgLbl.Font.Size  := BDG_FONT;
+                BdgLbl.Font.Color := clBlack;
+                BdgLbl.Font.Style := [];
+                BdgLbl.Transparent := True;
+                BdgLbl.OnMouseEnter := @GameCardMouseEnter;
+                BdgLbl.OnMouseLeave := @GameCardMouseLeave;
+                BdgLbl.OnClick      := @GameCardClick;
+                BdgLbl.OnMouseUp    := @GameCardMouseUp;
+                // White icon
+                BdgLbl := TLabel.Create(CardPanel);
+                BdgLbl.Parent     := CardPanel;
+                BdgLbl.AutoSize   := False;
+                BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
+                BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
+                BdgLbl.Font.Name  := 'Noto Sans';
+                BdgLbl.Font.Size  := BDG_FONT;
+                BdgLbl.Font.Color := clWhite;
+                BdgLbl.Font.Style := [];
+                BdgLbl.Transparent := True;
+                BdgLbl.BringToFront;
+                BdgLbl.OnMouseEnter := @GameCardMouseEnter;
+                BdgLbl.OnMouseLeave := @GameCardMouseLeave;
+                BdgLbl.OnClick      := @GameCardClick;
+                BdgLbl.OnMouseUp    := @GameCardMouseUp;
+              end;
+              Inc(BdgSlot);
+            end;
           end;
 
-          if HasVkBasalt then
-          begin
-            // Dark circle background
-            BadgeCircle := TShape.Create(CardPanel);
-            BadgeCircle.Parent      := CardPanel;
-            BadgeCircle.Shape       := stEllipse;
-            BadgeCircle.Brush.Color := $00780DC8;
-            BadgeCircle.Pen.Style   := psClear;
-            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
-            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
-            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
-            BadgeCircle.OnClick      := @GameCardClick;
-            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
-            // vkBasalt label on top
-            BadgeVkLabel := TLabel.Create(CardPanel);
-            BadgeVkLabel.Parent     := CardPanel;
-            BadgeVkLabel.AutoSize   := False;
-            BadgeVkLabel.SetBounds(BadgeX, 4, 24, 24);
-            BadgeVkLabel.Caption    := '󰏘';
-            BadgeVkLabel.Font.Name  := 'Noto Sans';
-            BadgeVkLabel.Font.Size  := 12;
-            BadgeVkLabel.Font.Color := clWhite;
-            BadgeVkLabel.Alignment  := taCenter;
-            BadgeVkLabel.Layout     := tlCenter;
-            BadgeVkLabel.BringToFront;
-            BadgeVkLabel.OnMouseEnter := @GameCardMouseEnter;
-            BadgeVkLabel.OnMouseLeave := @GameCardMouseLeave;
-            BadgeVkLabel.OnClick      := @GameCardClick;
-            BadgeVkLabel.OnMouseUp    := @GameCardMouseUp;
-            BadgeX := BadgeX + 28;
-          end;
-
-          if HasOptiScaler then
-          begin
-            // Dark circle background
-            BadgeCircle := TShape.Create(CardPanel);
-            BadgeCircle.Parent      := CardPanel;
-            BadgeCircle.Shape       := stEllipse;
-            BadgeCircle.Brush.Color := $00780DC8;
-            BadgeCircle.Pen.Style   := psClear;
-            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
-            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
-            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
-            BadgeCircle.OnClick      := @GameCardClick;
-            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
-            // OptiScaler icon (same PNG as sidebar nav)
-            BadgeOptiImg := TImage.Create(CardPanel);
-            BadgeOptiImg.Parent      := CardPanel;
-            BadgeOptiImg.AutoSize    := False;
-            BadgeOptiImg.SetBounds(BadgeX + 3, 7, 18, 18);
-            BadgeOptiImg.Stretch     := True;
-            BadgeOptiImg.Center      := True;
-            BadgeOptiImg.Transparent := True;
-            IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
-            if FileExists(IconPath) then
-              BadgeOptiImg.Picture.LoadFromFile(IconPath);
-            BadgeOptiImg.BringToFront;
-            BadgeOptiImg.OnMouseEnter := @GameCardMouseEnter;
-            BadgeOptiImg.OnMouseLeave := @GameCardMouseLeave;
-            BadgeOptiImg.OnClick      := @GameCardClick;
-            BadgeOptiImg.OnMouseUp    := @GameCardMouseUp;
-            BadgeX := BadgeX + 28;
-          end;
-
-          if HasTweaks then
-          begin
-            // Dark circle background
-            BadgeCircle := TShape.Create(CardPanel);
-            BadgeCircle.Parent      := CardPanel;
-            BadgeCircle.Shape       := stEllipse;
-            BadgeCircle.Brush.Color := $00780DC8;
-            BadgeCircle.Pen.Style   := psClear;
-            BadgeCircle.SetBounds(BadgeX, 4, 24, 24);
-            BadgeCircle.OnMouseEnter := @GameCardMouseEnter;
-            BadgeCircle.OnMouseLeave := @GameCardMouseLeave;
-            BadgeCircle.OnClick      := @GameCardClick;
-            BadgeCircle.OnMouseUp    := @GameCardMouseUp;
-            // Tweaks (gear) icon label on top
-            BadgeTweaksLabel := TLabel.Create(CardPanel);
-            BadgeTweaksLabel.Parent      := CardPanel;
-            BadgeTweaksLabel.AutoSize    := False;
-            BadgeTweaksLabel.SetBounds(BadgeX - 1, 3, 26, 26);
-            BadgeTweaksLabel.Caption     := '󰒓';
-            BadgeTweaksLabel.Font.Name   := 'Noto Sans';
-            BadgeTweaksLabel.Font.Size   := 11;
-            BadgeTweaksLabel.Font.Color  := clWhite;
-            BadgeTweaksLabel.Alignment   := taCenter;
-            BadgeTweaksLabel.Layout      := tlCenter;
-            BadgeTweaksLabel.Transparent := True;
-            BadgeTweaksLabel.BringToFront;
-            BadgeTweaksLabel.OnMouseEnter := @GameCardMouseEnter;
-            BadgeTweaksLabel.OnMouseLeave := @GameCardMouseLeave;
-            BadgeTweaksLabel.OnClick      := @GameCardClick;
-            BadgeTweaksLabel.OnMouseUp    := @GameCardMouseUp;
-            BadgeX := BadgeX + 28;
-          end;
-
-          // Store card and original image; apply gradient + rounding, then dim
+          // Store card and original image; apply gradient
           FCardPanels.Add(CardPanel);
           if (CardImage.Picture.Graphic <> nil) and
              (CardImage.Picture.Graphic.Width > 0) then
@@ -14961,20 +14963,16 @@ begin
               ScaledBmp.SetSize(CARD_W, CARD_H);
               ScaledBmp.Canvas.StretchDraw(
                 Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-              // Bake gradient overlay + rounded corners into the bitmap
               ProcessCoverBitmap(ScaledBmp, GRAD_H);
-              // Update CardImage with the processed bitmap
               CardImage.Picture.Bitmap.Assign(ScaledBmp);
-              // Store processed version as "original" for brightness animation
               FOrigCovers.Add(ScaledBmp.CreateIntfImage);
             finally
               ScaledBmp.Free;
             end;
-            // Dim cover image to 35% brightness by default
-            ApplyCardBrightness(CardPanel, 35);
+            ApplyCardBrightness(CardPanel, 100);
           end
           else
-            FOrigCovers.Add(nil);  // pending download — skip pixel dim
+            FOrigCovers.Add(nil);
 
           Inc(j);
         until FindNext(SR) <> 0;
@@ -15813,7 +15811,7 @@ begin
   // Guard with Width check to avoid double-restore when MouseLeave fires first.
   if Assigned(FHoveredCard) then
   begin
-    ApplyCardBrightness(FHoveredCard, 35);
+    ApplyCardBrightness(FHoveredCard, 100);
     if FHoveredCard.Width = CARD_W + 2 * SEL_EXPAND then
     begin
       FHoveredCard.SetBounds(
@@ -16228,7 +16226,7 @@ var
 begin
   if not Assigned(FCardPanels) then Exit;
   for i := 0 to FCardPanels.Count - 1 do
-    ApplyCardBrightness(TPanel(FCardPanels[i]), 35);
+    ApplyCardBrightness(TPanel(FCardPanels[i]), 100);
   FHoveredCard     := nil;
   FHoverBrightness := 0;
 end;
@@ -16251,7 +16249,7 @@ begin
   begin
     FHoverBrightness := 0;
     FHoverTimer.Enabled := False;
-    ApplyCardBrightness(FHoveredCard, 35);
+    ApplyCardBrightness(FHoveredCard, 100);
     FHoveredCard := nil;
   end
   else if FHoverBrightness >= 100 then
@@ -16262,7 +16260,7 @@ begin
   end
   else
   begin
-    Brightness := 35 + 65 * FHoverBrightness div 100;
+    Brightness := 100;
     ApplyCardBrightness(FHoveredCard, Brightness);
   end;
 end;
