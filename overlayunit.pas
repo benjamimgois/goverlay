@@ -13288,7 +13288,7 @@ begin
   tracelogCheckBox.Parent  := FOsFakeSec;
 
   // DLL & Options section
-  DarkLbl(filenameLabel,    PURPLE);
+  DarkLbl(filenameLabel,    PURPLE); filenameLabel.Transparent    := True;
   DarkCombo(filenameComboBox);
   DarkCheck(spoofCheckBox);
   DarkCheck(emufp8CheckBox);
@@ -13296,7 +13296,7 @@ begin
   DarkLbl(fsrversionLabel,  PURPLE);
   DarkCombo(fsrversionComboBox);
   DarkLbl(osversionLabel,   GRAY);
-  DarkLbl(patcherlistLabel, BLUELK);
+  DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
   // In-Game Menu section
   DarkLbl(menuLabel,           PURPLE);
   DarkLbl(menuscalevalueLabel, WHITE);
@@ -13305,7 +13305,7 @@ begin
   DarkLbl(mark1Label,          GRAY);
   DarkLbl(mark2Label,          GRAY);
   DarkLbl(mark3Label,          GRAY);
-  DarkLbl(shortcutkeyLabel,    PURPLE);
+  DarkLbl(shortcutkeyLabel,    PURPLE); shortcutkeyLabel.Transparent := True;
   DarkCombo(shortcutkeyComboBox);
   // FakeNVAPI section
   DarkCheck(forcereflexCheckBox);
@@ -13467,10 +13467,10 @@ const
   HDR     = 34;   // accent bar (3) + title area (31)
   PAD     = 14;   // inner horizontal padding
   // GroupBox heights
-  GPU_GH  = 130;
+  GPU_GH  = 96;   // reduced from 130; controls centered within content area
   OPT_GH  = 265;  // trimmed: BOX_TOP(6)+BOX_H(251)+pad(8) — removes blank bottom area
   // Card heights
-  GPU_H   = HDR + GPU_GH;    // 164
+  GPU_H   = HDR + GPU_GH;    // 130
   OPT_H   = HDR + OPT_GH;    // 299
   // Status card — fresh indicator rows + update controls
   DOT_SZ    = 10;
@@ -13510,7 +13510,15 @@ begin
 
   // ── Card 0: GPU Driver ──────────────────────────────────────────────
   FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
-  // Controls are reparented directly to FOsGpuCard — no GroupBox to reflow.
+  // Center controls vertically: mesaImage (62px) is tallest; block = 62+4+17 = 83px.
+  // IMG_TOP = HDR + (GPU_GH - 83) / 2
+  Y := HDR + (GPU_GH - 83) div 2;
+  mesaImage.Top          := Y;
+  nvidiaImage.Top        := Y + (62 - 43) div 2;
+  mesaRadioButton.Top    := Y + (62 - 20) div 2;
+  nvidiaRadioButton.Top  := Y + (62 - 20) div 2;
+  autodetectmesaLabel.Top := Y + 62 + 4;
+  autodetectnvLabel.Top   := Y + 62 + 4;
 
   // ── Card 1: Options ─────────────────────────────────────────────────
   CardTop := MARGIN + GPU_H + GAP;
