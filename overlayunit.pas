@@ -586,6 +586,9 @@ type
     FOsGpuCard:      TPanel;
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
+    FOsOptiSec:      TPanel;   // replaces optiscalerGroupBox as visual container
+    FOsImgSec:       TPanel;   // replaces imgmenuGroupBox
+    FOsFakeSec:      TPanel;   // replaces fakenvapiGroupBox
 
     // Metrics tab card redesign
     FMtScrollBox:    TScrollBox;
@@ -595,6 +598,7 @@ type
 
     // Custom env groupbox (Tweaks tab)
     FCustomGroupBox:  TGroupBox;
+    FCustomSec:       TPanel;   // TPanel replacing FCustomGroupBox as visual parent
     FCustomListBox:   TListBox;
     FCustomAddBtn:    TButton;
     FCustomRemoveBtn: TButton;
@@ -664,6 +668,7 @@ type
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure AddNavyBgToTab(ATab: TTabSheet);
+    procedure StyleGroupBoxNavy(GB: TGroupBox);
     procedure PresetsBgBoxPaint(Sender: TObject);
     procedure PresetsWrapperPaint(Sender: TObject);
     procedure PresetCardPaint(Sender: TObject);
@@ -2792,6 +2797,14 @@ begin
   BgBox.Parent  := ATab;
   BgBox.Align   := alClient;
   BgBox.OnPaint := @PresetsBgBoxPaint;
+end;
+
+procedure Tgoverlayform.StyleGroupBoxNavy(GB: TGroupBox);
+var
+  SS: WideString;
+begin
+  SS := 'background-color: rgb(26,30,46); border: 1px solid rgb(36,40,62); color: white;';
+  QWidget_setStyleSheet(TQtWidget(GB.Handle).Widget, @SS);
 end;
 
 procedure Tgoverlayform.PresetsBgBoxPaint(Sender: TObject);
@@ -6426,33 +6439,25 @@ procedure Tgoverlayform.InitCustomEnvGroupBox;
 const
   BTN_W   = 26;
   BTN_H   = 24;
-  PAD     = 8;   // inner margin
-  ROW_GAP = 6;   // vertical gap between edit row and listbox row
+  PAD     = 8;
+  ROW_GAP = 6;
 begin
-  // Create "Custom" groupbox to the right of performanceGroupBox inside advancedGroupBox
-  FCustomGroupBox := TGroupBox.Create(Self);
-  FCustomGroupBox.Parent   := advancedGroupBox;
-  FCustomGroupBox.Caption  := 'Custom';
-  FCustomGroupBox.Left     := 390;
-  FCustomGroupBox.Top      := 5;
-  FCustomGroupBox.Width    := 419;
-  FCustomGroupBox.Height   := 145;
-  FCustomGroupBox.ParentBackground := False;
+  // FCustomSec is a TPanel created by InitTweaksCards (runs before this procedure).
+  // Place all "Custom" controls directly into FCustomSec — no TGroupBox needed.
 
-  // Edit + "+" share the top row: edit fills the row, "+" sits to its right
-  customenvEdit.Parent     := FCustomGroupBox;
+  customenvEdit.Parent     := FCustomSec;
   customenvEdit.AnchorSideLeft.Control   := nil;
   customenvEdit.AnchorSideBottom.Control := nil;
   customenvEdit.Left    := PAD;
   customenvEdit.Top     := PAD;
-  customenvEdit.Width   := FCustomGroupBox.ClientWidth - PAD - BTN_W - PAD;
+  customenvEdit.Width   := FCustomSec.ClientWidth - PAD - BTN_W - PAD;
   customenvEdit.Height  := BTN_H;
   customenvEdit.Anchors := [akLeft, akTop, akRight];
 
   FCustomAddBtn := TButton.Create(Self);
-  FCustomAddBtn.Parent   := FCustomGroupBox;
+  FCustomAddBtn.Parent   := FCustomSec;
   FCustomAddBtn.Caption  := '+';
-  FCustomAddBtn.Left     := FCustomGroupBox.ClientWidth - BTN_W - PAD;
+  FCustomAddBtn.Left     := FCustomSec.ClientWidth - BTN_W - PAD;
   FCustomAddBtn.Top      := PAD;
   FCustomAddBtn.Width    := BTN_W;
   FCustomAddBtn.Height   := BTN_H;
@@ -6461,20 +6466,18 @@ begin
   FCustomAddBtn.Hint     := 'Save custom env';
   FCustomAddBtn.OnClick  := @CustomEnvAddClick;
 
-  // Listbox fills the remaining height; same width as the edit field
   FCustomListBox := TListBox.Create(Self);
-  FCustomListBox.Parent   := FCustomGroupBox;
+  FCustomListBox.Parent   := FCustomSec;
   FCustomListBox.Left     := PAD;
   FCustomListBox.Top      := PAD + BTN_H + ROW_GAP;
-  FCustomListBox.Width    := FCustomGroupBox.ClientWidth - PAD - BTN_W - PAD;
-  FCustomListBox.Height   := FCustomGroupBox.ClientHeight - (PAD + BTN_H + ROW_GAP) - PAD;
+  FCustomListBox.Width    := FCustomSec.ClientWidth - PAD - BTN_W - PAD;
+  FCustomListBox.Height   := FCustomSec.ClientHeight - (PAD + BTN_H + ROW_GAP) - PAD;
   FCustomListBox.Anchors  := [akLeft, akTop, akRight, akBottom];
 
-  // "-" is vertically centered relative to the listbox
   FCustomRemoveBtn := TButton.Create(Self);
-  FCustomRemoveBtn.Parent   := FCustomGroupBox;
+  FCustomRemoveBtn.Parent   := FCustomSec;
   FCustomRemoveBtn.Caption  := '-';
-  FCustomRemoveBtn.Left     := FCustomGroupBox.ClientWidth - BTN_W - PAD;
+  FCustomRemoveBtn.Left     := FCustomSec.ClientWidth - BTN_W - PAD;
   FCustomRemoveBtn.Top      := FCustomListBox.Top + (FCustomListBox.Height - BTN_H) div 2;
   FCustomRemoveBtn.Width    := BTN_W;
   FCustomRemoveBtn.Height   := BTN_H;
@@ -12461,7 +12464,7 @@ const
     end;
 
     // Remove GroupBox border/line (Qt6 default frame)
-    GbSS := 'QGroupBox { border: none; }';
+    GbSS := 'border: none;';
     GbW  := TQtWidget(AGB1.Handle).Widget;
     QWidget_setStyleSheet(GbW, @GbSS);
     GbW  := TQtWidget(AGB2.Handle).Widget;
@@ -12969,10 +12972,11 @@ const
   // Reparent a GroupBox into a card, clearing its own anchor references
   // and replacing its built-in title+border with the card header.
   procedure ReparentGB(GB: TGroupBox; Card: TPanel);
+  var SS: WideString;
   begin
     GB.Parent   := Card;
     GB.Visible  := True;
-    GB.Caption  := '';        // remove built-in border title
+    GB.Caption  := '';
     GB.Color    := BG;
     GB.Font.Color := WHITE;
     GB.AnchorSideLeft.Control   := nil;
@@ -12980,16 +12984,18 @@ const
     GB.AnchorSideRight.Control  := nil;
     GB.AnchorSideBottom.Control := nil;
     GB.Anchors := [akLeft, akTop];
+    SS := 'border: none;';
+    QWidget_setStyleSheet(TQtWidget(GB.Handle).Widget, @SS);
   end;
 
   procedure DarkCheck(C: TCheckBox);
   begin
-    C.Color := BG; C.Font.Color := WHITE; C.Font.Size := 9;
+    C.ParentColor := False; C.Color := BG; C.Font.Color := WHITE; C.Font.Size := 9;
   end;
 
   procedure DarkRadio(R: TRadioButton);
   begin
-    R.Color := BG; R.Font.Color := WHITE; R.Font.Size := 9;
+    R.ParentColor := False; R.Color := BG; R.Font.Color := WHITE; R.Font.Size := 9;
   end;
 
   procedure DarkCombo(C: TComboBox);
@@ -13014,6 +13020,7 @@ var
   NLbl, VLbl: TLabel;
   Png: TPortableNetworkGraphic;
   IconPath: string;
+  GbSS: WideString;
 begin
   // Scroll container fills the tab
   FOsScrollBox := TScrollBox.Create(Self);
@@ -13030,31 +13037,256 @@ begin
   FOsBgPanel := TPanel.Create(Self);
   FOsBgPanel.Parent     := FOsScrollBox;
   FOsBgPanel.BevelOuter := bvNone;
-  FOsBgPanel.Color      := $1E1E2E;
+  FOsBgPanel.Color      := RGBToColor(22, 26, 40);
   FOsBgPanel.Caption    := '';
+  FOsBgPanel.OnPaint    := @PresetsWrapperPaint;
   FOsBgPanel.Left       := 0;
   FOsBgPanel.Top        := 0;
   FOsBgPanel.Width      := FOsScrollBox.ClientWidth;
   FOsBgPanel.Height     := 600;  // provisional; updated by ReflowOptiScalerTabNew
 
   // ── Card 0: GPU Driver ──────────────────────────────────────────────
+  // Migrate all controls directly into the card panel — no TGroupBox used.
+  // Offset = HDR(34) - 1 + GroupBox_title(29) = 62 to preserve the original
+  // absolute positions that were in the GroupBox client area.
   MakeCard(FOsGpuCard, 'GPU Driver');
-  ReparentGB(gpudriverGroupBox, FOsGpuCard);
-  DarkRadio(nvidiaRadioButton);
-  DarkRadio(mesaRadioButton);
-  DarkLbl(autodetectnvLabel,   GREEN);
-  DarkLbl(autodetectmesaLabel, GREEN);
-  autodetectnvLabel.Transparent   := True;
-  autodetectmesaLabel.Transparent := True;
-  DarkCheck(hidenvidiaCheckBox);
+  GbSS := 'QRadioButton::indicator { width:14px; height:14px; background-color:rgb(26,30,46); border:1px solid rgb(130,140,170); border-radius:7px; }'
+        + 'QRadioButton::indicator:checked { background-color:rgb(48,190,240); border-color:rgb(48,190,240); }';
+  QWidget_setStyleSheet(TQtWidget(FOsGpuCard.Handle).Widget, @GbSS);
 
-  // ── Card 1: Options (3-column inner layout kept intact) ─────────────
+  nvidiaRadioButton.AnchorSideLeft.Control   := nil;
+  nvidiaRadioButton.AnchorSideTop.Control    := nil;
+  nvidiaRadioButton.AnchorSideRight.Control  := nil;
+  nvidiaRadioButton.AnchorSideBottom.Control := nil;
+  nvidiaRadioButton.Anchors := [akLeft, akTop];
+  nvidiaRadioButton.Top     := nvidiaRadioButton.Top + 62;
+  nvidiaRadioButton.Parent  := FOsGpuCard;
+  DarkRadio(nvidiaRadioButton);
+
+  mesaRadioButton.AnchorSideLeft.Control   := nil;
+  mesaRadioButton.AnchorSideTop.Control    := nil;
+  mesaRadioButton.AnchorSideRight.Control  := nil;
+  mesaRadioButton.AnchorSideBottom.Control := nil;
+  mesaRadioButton.Anchors := [akLeft, akTop];
+  mesaRadioButton.Top     := mesaRadioButton.Top + 62;
+  mesaRadioButton.Parent  := FOsGpuCard;
+  DarkRadio(mesaRadioButton);
+
+  nvidiaImage.AnchorSideLeft.Control   := nil;
+  nvidiaImage.AnchorSideTop.Control    := nil;
+  nvidiaImage.AnchorSideRight.Control  := nil;
+  nvidiaImage.AnchorSideBottom.Control := nil;
+  nvidiaImage.Anchors     := [akLeft, akTop];
+  nvidiaImage.Top         := nvidiaImage.Top + 62;
+  nvidiaImage.Transparent := True;
+  nvidiaImage.Parent      := FOsGpuCard;
+
+  mesaImage.AnchorSideLeft.Control   := nil;
+  mesaImage.AnchorSideTop.Control    := nil;
+  mesaImage.AnchorSideRight.Control  := nil;
+  mesaImage.AnchorSideBottom.Control := nil;
+  mesaImage.Anchors     := [akLeft, akTop];
+  mesaImage.Top         := mesaImage.Top + 62;
+  mesaImage.Transparent := True;
+  mesaImage.Parent      := FOsGpuCard;
+
+  autodetectnvLabel.AnchorSideLeft.Control   := nil;
+  autodetectnvLabel.AnchorSideTop.Control    := nil;
+  autodetectnvLabel.AnchorSideRight.Control  := nil;
+  autodetectnvLabel.AnchorSideBottom.Control := nil;
+  autodetectnvLabel.Anchors     := [akLeft, akTop];
+  autodetectnvLabel.Top         := autodetectnvLabel.Top + 62;
+  autodetectnvLabel.Transparent := True;
+  autodetectnvLabel.Font.Color  := GREEN;
+  autodetectnvLabel.Parent      := FOsGpuCard;
+
+  autodetectmesaLabel.AnchorSideLeft.Control   := nil;
+  autodetectmesaLabel.AnchorSideTop.Control    := nil;
+  autodetectmesaLabel.AnchorSideRight.Control  := nil;
+  autodetectmesaLabel.AnchorSideBottom.Control := nil;
+  autodetectmesaLabel.Anchors     := [akLeft, akTop];
+  autodetectmesaLabel.Top         := autodetectmesaLabel.Top + 62;
+  autodetectmesaLabel.Transparent := True;
+  autodetectmesaLabel.Font.Color  := GREEN;
+  autodetectmesaLabel.Parent      := FOsGpuCard;
+
+  gpudriverGroupBox.Visible := False;
+
+  // ── Card 1: Options (3-column inner layout) ─────────────────────────
+  // No GroupBox in the hierarchy — section TPanels parent directly to the card.
   MakeCard(FOsOptionsCard, 'Options');
-  ReparentGB(optionsGroupBox, FOsOptionsCard);
-  // Style inner GroupBoxes
-  optiscalerGroupBox.Color := BG; optiscalerGroupBox.Font.Color := WHITE;
-  imgmenuGroupBox.Color    := BG; imgmenuGroupBox.Font.Color    := WHITE;
-  fakenvapiGroupBox.Color  := BG; fakenvapiGroupBox.Font.Color  := WHITE;
+  optionsGroupBox.Visible    := False;
+  optiscalerGroupBox.Visible := False;
+  imgmenuGroupBox.Visible    := False;
+  fakenvapiGroupBox.Visible  := False;
+
+  FOsOptiSec := TPanel.Create(Self);
+  FOsOptiSec.Parent      := FOsOptionsCard;
+  FOsOptiSec.BevelOuter  := bvNone;
+  FOsOptiSec.BorderStyle := bsNone;
+  FOsOptiSec.Caption     := '';
+  FOsOptiSec.Color       := BG;
+  FOsOptiSec.OnPaint     := @SubCardPaint;
+  with TLabel.Create(FOsOptiSec) do begin
+    Parent := FOsOptiSec; Caption := 'OptiScaler';
+    Font.Color := $00CCAAAA; Font.Style := [fsBold]; Font.Size := 8;
+    Left := 6; Top := 4; Transparent := True; AutoSize := True;
+  end;
+
+  FOsImgSec := TPanel.Create(Self);
+  FOsImgSec.Parent      := FOsOptionsCard;
+  FOsImgSec.BevelOuter  := bvNone;
+  FOsImgSec.BorderStyle := bsNone;
+  FOsImgSec.Caption     := '';
+  FOsImgSec.Color       := BG;
+  FOsImgSec.OnPaint     := @SubCardPaint;
+  with TLabel.Create(FOsImgSec) do begin
+    Parent := FOsImgSec; Caption := 'ImGUI Menu';
+    Font.Color := $00CCAAAA; Font.Style := [fsBold]; Font.Size := 8;
+    Left := 6; Top := 4; Transparent := True; AutoSize := True;
+  end;
+
+  FOsFakeSec := TPanel.Create(Self);
+  FOsFakeSec.Parent      := FOsOptionsCard;
+  FOsFakeSec.BevelOuter  := bvNone;
+  FOsFakeSec.BorderStyle := bsNone;
+  FOsFakeSec.Caption     := '';
+  FOsFakeSec.Color       := BG;
+  FOsFakeSec.OnPaint     := @SubCardPaint;
+  with TLabel.Create(FOsFakeSec) do begin
+    Parent := FOsFakeSec; Caption := 'FakeNVAPI';
+    Font.Color := $00CCAAAA; Font.Style := [fsBold]; Font.Size := 8;
+    Left := 6; Top := 4; Transparent := True; AutoSize := True;
+  end;
+
+  // Reparent OptiScaler controls → FOsOptiSec (top += 22 past section title)
+  filenameLabel.AnchorSideLeft.Control   := nil; filenameLabel.AnchorSideTop.Control    := nil;
+  filenameLabel.AnchorSideRight.Control  := nil; filenameLabel.AnchorSideBottom.Control := nil;
+  filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := filenameLabel.Top + 22;
+  filenameLabel.Parent  := FOsOptiSec;
+
+  filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
+  filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
+  filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := filenameComboBox.Top + 22;
+  filenameComboBox.Parent  := FOsOptiSec;
+
+  spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
+  spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
+  spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := spoofCheckBox.Top + 22;
+  spoofCheckBox.Parent  := FOsOptiSec;
+
+  fsrversionLabel.AnchorSideLeft.Control   := nil; fsrversionLabel.AnchorSideTop.Control    := nil;
+  fsrversionLabel.AnchorSideRight.Control  := nil; fsrversionLabel.AnchorSideBottom.Control := nil;
+  fsrversionLabel.Anchors := [akLeft, akTop]; fsrversionLabel.Top := fsrversionLabel.Top + 22;
+  fsrversionLabel.Parent  := FOsOptiSec;
+
+  fsrversionComboBox.AnchorSideLeft.Control   := nil; fsrversionComboBox.AnchorSideTop.Control    := nil;
+  fsrversionComboBox.AnchorSideRight.Control  := nil; fsrversionComboBox.AnchorSideBottom.Control := nil;
+  fsrversionComboBox.Anchors := [akLeft, akTop]; fsrversionComboBox.Top := fsrversionComboBox.Top + 22;
+  fsrversionComboBox.Parent  := FOsOptiSec;
+
+  emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
+  emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
+  emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := emufp8CheckBox.Top + 22;
+  emufp8CheckBox.Parent  := FOsOptiSec;
+
+  osversionLabel.AnchorSideLeft.Control   := nil; osversionLabel.AnchorSideTop.Control    := nil;
+  osversionLabel.AnchorSideRight.Control  := nil; osversionLabel.AnchorSideBottom.Control := nil;
+  osversionLabel.Anchors := [akLeft, akTop]; osversionLabel.Top := osversionLabel.Top + 22;
+  osversionLabel.Parent  := FOsOptiSec;
+
+  protontricksManagerButton.AnchorSideLeft.Control   := nil; protontricksManagerButton.AnchorSideTop.Control    := nil;
+  protontricksManagerButton.AnchorSideRight.Control  := nil; protontricksManagerButton.AnchorSideBottom.Control := nil;
+  protontricksManagerButton.Anchors := [akLeft, akTop]; protontricksManagerButton.Top := protontricksManagerButton.Top + 22;
+  protontricksManagerButton.Parent  := FOsOptiSec;
+
+  optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
+  optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
+  optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := optipatcherCheckBox.Top + 22;
+  optipatcherCheckBox.Parent  := FOsOptiSec;
+
+  patcherlistLabel.AnchorSideLeft.Control   := nil; patcherlistLabel.AnchorSideTop.Control    := nil;
+  patcherlistLabel.AnchorSideRight.Control  := nil; patcherlistLabel.AnchorSideBottom.Control := nil;
+  patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := patcherlistLabel.Top + 22;
+  patcherlistLabel.Parent  := FOsOptiSec;
+
+  // Reparent ImGUI Menu controls → FOsImgSec
+  menuLabel.AnchorSideLeft.Control   := nil; menuLabel.AnchorSideTop.Control    := nil;
+  menuLabel.AnchorSideRight.Control  := nil; menuLabel.AnchorSideBottom.Control := nil;
+  menuLabel.Anchors := [akLeft, akTop]; menuLabel.Top := menuLabel.Top + 22;
+  menuLabel.Parent  := FOsImgSec;
+
+  menuscalevalueLabel.AnchorSideLeft.Control   := nil; menuscalevalueLabel.AnchorSideTop.Control    := nil;
+  menuscalevalueLabel.AnchorSideRight.Control  := nil; menuscalevalueLabel.AnchorSideBottom.Control := nil;
+  menuscalevalueLabel.Anchors := [akLeft, akTop]; menuscalevalueLabel.Top := menuscalevalueLabel.Top + 22;
+  menuscalevalueLabel.Parent  := FOsImgSec;
+
+  menuscaleTrackBar.AnchorSideLeft.Control   := nil; menuscaleTrackBar.AnchorSideTop.Control    := nil;
+  menuscaleTrackBar.AnchorSideRight.Control  := nil; menuscaleTrackBar.AnchorSideBottom.Control := nil;
+  menuscaleTrackBar.Anchors := [akLeft, akTop]; menuscaleTrackBar.Top := menuscaleTrackBar.Top + 22;
+  menuscaleTrackBar.Parent  := FOsImgSec;
+
+  mark1Label.AnchorSideLeft.Control   := nil; mark1Label.AnchorSideTop.Control    := nil;
+  mark1Label.AnchorSideRight.Control  := nil; mark1Label.AnchorSideBottom.Control := nil;
+  mark1Label.Anchors := [akLeft, akTop]; mark1Label.Top := mark1Label.Top + 22;
+  mark1Label.Parent  := FOsImgSec;
+
+  mark2Label.AnchorSideLeft.Control   := nil; mark2Label.AnchorSideTop.Control    := nil;
+  mark2Label.AnchorSideRight.Control  := nil; mark2Label.AnchorSideBottom.Control := nil;
+  mark2Label.Anchors := [akLeft, akTop]; mark2Label.Top := mark2Label.Top + 22;
+  mark2Label.Parent  := FOsImgSec;
+
+  mark3Label.AnchorSideLeft.Control   := nil; mark3Label.AnchorSideTop.Control    := nil;
+  mark3Label.AnchorSideRight.Control  := nil; mark3Label.AnchorSideBottom.Control := nil;
+  mark3Label.Anchors := [akLeft, akTop]; mark3Label.Top := mark3Label.Top + 22;
+  mark3Label.Parent  := FOsImgSec;
+
+  shortcutkeyLabel.AnchorSideLeft.Control   := nil; shortcutkeyLabel.AnchorSideTop.Control    := nil;
+  shortcutkeyLabel.AnchorSideRight.Control  := nil; shortcutkeyLabel.AnchorSideBottom.Control := nil;
+  shortcutkeyLabel.Anchors := [akLeft, akTop]; shortcutkeyLabel.Top := shortcutkeyLabel.Top + 22;
+  shortcutkeyLabel.Parent  := FOsImgSec;
+
+  shortcutkeyComboBox.AnchorSideLeft.Control   := nil; shortcutkeyComboBox.AnchorSideTop.Control    := nil;
+  shortcutkeyComboBox.AnchorSideRight.Control  := nil; shortcutkeyComboBox.AnchorSideBottom.Control := nil;
+  shortcutkeyComboBox.Anchors := [akLeft, akTop]; shortcutkeyComboBox.Top := shortcutkeyComboBox.Top + 22;
+  shortcutkeyComboBox.Parent  := FOsImgSec;
+
+  shortcutImage.AnchorSideLeft.Control   := nil; shortcutImage.AnchorSideTop.Control    := nil;
+  shortcutImage.AnchorSideRight.Control  := nil; shortcutImage.AnchorSideBottom.Control := nil;
+  shortcutImage.Anchors := [akLeft, akTop]; shortcutImage.Top := shortcutImage.Top + 22;
+  shortcutImage.Parent  := FOsImgSec;
+
+  // Reparent FakeNVAPI controls → FOsFakeSec
+  forcereflexCheckBox.AnchorSideLeft.Control   := nil; forcereflexCheckBox.AnchorSideTop.Control    := nil;
+  forcereflexCheckBox.AnchorSideRight.Control  := nil; forcereflexCheckBox.AnchorSideBottom.Control := nil;
+  forcereflexCheckBox.Anchors := [akLeft, akTop]; forcereflexCheckBox.Top := forcereflexCheckBox.Top + 22;
+  forcereflexCheckBox.Parent  := FOsFakeSec;
+
+  reflexComboBox.AnchorSideLeft.Control   := nil; reflexComboBox.AnchorSideTop.Control    := nil;
+  reflexComboBox.AnchorSideRight.Control  := nil; reflexComboBox.AnchorSideBottom.Control := nil;
+  reflexComboBox.Anchors := [akLeft, akTop]; reflexComboBox.Top := reflexComboBox.Top + 22;
+  reflexComboBox.Parent  := FOsFakeSec;
+
+  forcelatencyflexCheckBox.AnchorSideLeft.Control   := nil; forcelatencyflexCheckBox.AnchorSideTop.Control    := nil;
+  forcelatencyflexCheckBox.AnchorSideRight.Control  := nil; forcelatencyflexCheckBox.AnchorSideBottom.Control := nil;
+  forcelatencyflexCheckBox.Anchors := [akLeft, akTop]; forcelatencyflexCheckBox.Top := forcelatencyflexCheckBox.Top + 22;
+  forcelatencyflexCheckBox.Parent  := FOsFakeSec;
+
+  latencyflexComboBox.AnchorSideLeft.Control   := nil; latencyflexComboBox.AnchorSideTop.Control    := nil;
+  latencyflexComboBox.AnchorSideRight.Control  := nil; latencyflexComboBox.AnchorSideBottom.Control := nil;
+  latencyflexComboBox.Anchors := [akLeft, akTop]; latencyflexComboBox.Top := latencyflexComboBox.Top + 22;
+  latencyflexComboBox.Parent  := FOsFakeSec;
+
+  overrideCheckBox.AnchorSideLeft.Control   := nil; overrideCheckBox.AnchorSideTop.Control    := nil;
+  overrideCheckBox.AnchorSideRight.Control  := nil; overrideCheckBox.AnchorSideBottom.Control := nil;
+  overrideCheckBox.Anchors := [akLeft, akTop]; overrideCheckBox.Top := overrideCheckBox.Top + 22;
+  overrideCheckBox.Parent  := FOsFakeSec;
+
+  tracelogCheckBox.AnchorSideLeft.Control   := nil; tracelogCheckBox.AnchorSideTop.Control    := nil;
+  tracelogCheckBox.AnchorSideRight.Control  := nil; tracelogCheckBox.AnchorSideBottom.Control := nil;
+  tracelogCheckBox.Anchors := [akLeft, akTop]; tracelogCheckBox.Top := tracelogCheckBox.Top + 22;
+  tracelogCheckBox.Parent  := FOsFakeSec;
+
   // DLL & Options section
   DarkLbl(filenameLabel,    PURPLE);
   DarkCombo(filenameComboBox);
@@ -13278,14 +13510,14 @@ begin
 
   // ── Card 0: GPU Driver ──────────────────────────────────────────────
   FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
-  gpudriverGroupBox.SetBounds(0, HDR, CW, GPU_GH);
+  // Controls are reparented directly to FOsGpuCard — no GroupBox to reflow.
 
   // ── Card 1: Options ─────────────────────────────────────────────────
   CardTop := MARGIN + GPU_H + GAP;
   FOsOptionsCard.SetBounds(MARGIN, CardTop, CW, OPT_H);
-  optionsGroupBox.SetBounds(0, HDR, CW, OPT_GH);
 
-  // Position the 3 inner GroupBoxes within optionsGroupBox
+  // Section panels are direct children of FOsOptionsCard (no GroupBox).
+  // Y position = HDR (card header) + BOX_TOP (inner padding).
   InnerW := CW - 8;
   Center := InnerW div 2;
   W2     := Max(MIN_W2, InnerW - IMARGIN - W1 - IGAP - W3 - IMARGIN - IGAP);
@@ -13294,9 +13526,9 @@ begin
     X2 := IMARGIN + W1 + IGAP;
   X1 := X2 - IGAP - W1;
   X3 := X2 + W2 + IGAP;
-  optiscalerGroupBox.SetBounds(X1, BOX_TOP, W1, BOX_H);
-  imgmenuGroupBox.SetBounds(X2,    BOX_TOP, W2, BOX_H);
-  fakenvapiGroupBox.SetBounds(X3,  BOX_TOP, W3, BOX_H);
+  if Assigned(FOsOptiSec)  then FOsOptiSec.SetBounds(X1, HDR + BOX_TOP, W1, BOX_H);
+  if Assigned(FOsImgSec)   then FOsImgSec.SetBounds(X2,  HDR + BOX_TOP, W2, BOX_H);
+  if Assigned(FOsFakeSec)  then FOsFakeSec.SetBounds(X3, HDR + BOX_TOP, W3, BOX_H);
 
   // ── Card 2: Software Status ──────────────────────────────────────────
   // Layout order:
@@ -13682,16 +13914,17 @@ end;
 
 procedure Tgoverlayform.InitTweaksCards;
 const
-  BG       = $002E1E1A;
-  CYAN     = $00F0BE30;
-  HDR      = 35;   // accent(3) + title(6+22+4)
-  GAP      = 7;
+  BG   = $002E1E1A;
+  HDR  = 35;   // accent bar (3) + title area
+  SHDR = 22;   // section-title height offset added to each reparented control
+  GAP  = 4;
 var
   BgBox: TPaintBox;
   BasicCard, AdvCard: TPanel;
+  GenSec, GfxSec, PerfSec: TPanel;
   Bar: TPanel;
   Lbl: TLabel;
-  GbSS: WideString;
+  HalfW: Integer;
   procedure MakeBar(ACard: TPanel);
   begin
     Bar := TPanel.Create(ACard);
@@ -13714,8 +13947,45 @@ var
     Lbl.SetBounds(12, 8, 250, 22);
     Lbl.Transparent := True;
   end;
+  function MakeSec(ACard: TPanel; const ATitle: string;
+                   ALeft, ATop, AWidth, AHeight: Integer): TPanel;
+  var SLbl: TLabel;
+  begin
+    Result := TPanel.Create(ACard);
+    Result.Parent      := ACard;
+    Result.BevelOuter  := bvNone;
+    Result.BorderStyle := bsNone;
+    Result.Caption     := '';
+    Result.Color       := BG;
+    Result.OnPaint     := @SubCardPaint;
+    Result.SetBounds(ALeft, ATop, AWidth, AHeight);
+    Result.Anchors     := [akLeft, akTop, akRight, akBottom];
+    SLbl := TLabel.Create(Result);
+    SLbl.Parent      := Result;
+    SLbl.Caption     := ATitle;
+    SLbl.Font.Color  := $00CCAAAA;
+    SLbl.Font.Style  := [fsBold];
+    SLbl.Font.Size   := 8;
+    SLbl.Left        := 6;
+    SLbl.Top         := 4;
+    SLbl.Transparent := True;
+    SLbl.AutoSize    := True;
+  end;
+  procedure ReparentTo(C: TControl; APanel: TPanel);
+  begin
+    C.AnchorSideLeft.Control   := nil;
+    C.AnchorSideTop.Control    := nil;
+    C.AnchorSideRight.Control  := nil;
+    C.AnchorSideBottom.Control := nil;
+    C.Anchors := [akLeft, akTop];
+    C.Top     := C.Top + SHDR;
+    C.Parent  := APanel;
+  end;
+  procedure DarkChk(C: TCheckBox);
+  begin
+    C.ParentColor := False; C.Color := BG; C.Font.Color := clWhite; C.Font.Size := 9;
+  end;
 begin
-  // Navy background behind cards
   BgBox := TPaintBox.Create(Self);
   BgBox.Parent  := tweaksTabSheet;
   BgBox.Align   := alClient;
@@ -13733,18 +14003,27 @@ begin
   MakeBar(BasicCard);
   MakeLbl(BasicCard, 'Basic Tweaks');
 
-  basicGroupBox.AnchorSideLeft.Control  := nil;
-  basicGroupBox.AnchorSideTop.Control   := nil;
-  basicGroupBox.AnchorSideRight.Control := nil;
-  basicGroupBox.Anchors := [akLeft, akTop, akRight];
-  basicGroupBox.Parent  := BasicCard;
-  basicGroupBox.Caption := '';
-  basicGroupBox.SetBounds(-1, HDR - 1, BasicCard.Width + 2, 182 - HDR + 2);
+  HalfW  := (BasicCard.Width - 12) div 2;
+  GenSec := MakeSec(BasicCard, 'General',  4,            HDR + GAP, HalfW, 182 - HDR - GAP - 4);
+  GfxSec := MakeSec(BasicCard, 'Graphics', 4 + HalfW + 4, HDR + GAP, HalfW, 182 - HDR - GAP - 4);
 
-  GbSS := 'QGroupBox { border: none; background: transparent; }';
-  QWidget_setStyleSheet(TQtWidget(basicGroupBox.Handle).Widget,   @GbSS);
-  QWidget_setStyleSheet(TQtWidget(generalGroupBox.Handle).Widget,  @GbSS);
-  QWidget_setStyleSheet(TQtWidget(graphicsGroupBox.Handle).Widget, @GbSS);
+  // General controls → GenSec
+  ReparentTo(simdeckCheckBox,       GenSec); DarkChk(simdeckCheckBox);
+  ReparentTo(enhdrCheckBox,         GenSec); DarkChk(enhdrCheckBox);
+  ReparentTo(actprotonlogsCheckBox, GenSec); DarkChk(actprotonlogsCheckBox);
+  ReparentTo(gamemodeCheckBox,      GenSec); DarkChk(gamemodeCheckBox);
+  ReparentTo(enwaylandCheckBox,     GenSec); DarkChk(enwaylandCheckBox);
+  ReparentTo(usesdlCheckBox,        GenSec); DarkChk(usesdlCheckBox);
+
+  // Graphics controls → GfxSec
+  ReparentTo(emurtCheckBox,         GfxSec); DarkChk(emurtCheckBox);
+  ReparentTo(forcenvapiCheckBox,    GfxSec); DarkChk(forcenvapiCheckBox);
+  ReparentTo(forcezinkCheckBox,     GfxSec); DarkChk(forcezinkCheckBox);
+  ReparentTo(hidenvidiaCheckBox,    GfxSec); DarkChk(hidenvidiaCheckBox);
+  ReparentTo(wined3dCheckBox,       GfxSec); DarkChk(wined3dCheckBox);
+  ReparentTo(nofastclearsCheckBox,  GfxSec); DarkChk(nofastclearsCheckBox);
+
+  basicGroupBox.Visible := False;
 
   // ── Advanced Tweaks card ──
   AdvCard := TPanel.Create(Self);
@@ -13758,16 +14037,20 @@ begin
   MakeBar(AdvCard);
   MakeLbl(AdvCard, 'Advanced Tweaks');
 
-  advancedGroupBox.AnchorSideLeft.Control  := nil;
-  advancedGroupBox.AnchorSideTop.Control   := nil;
-  advancedGroupBox.AnchorSideRight.Control := nil;
-  advancedGroupBox.Anchors := [akLeft, akTop, akRight];
-  advancedGroupBox.Parent  := AdvCard;
-  advancedGroupBox.Caption := '';
-  advancedGroupBox.SetBounds(-1, HDR - 1, AdvCard.Width + 2, 184 - HDR + 2);
+  HalfW   := (AdvCard.Width - 12) div 2;
+  PerfSec := MakeSec(AdvCard, 'Performance', 4,             HDR + GAP, HalfW, 184 - HDR - GAP - 4);
+  FCustomSec := MakeSec(AdvCard, 'Custom',   4 + HalfW + 4, HDR + GAP,
+                         AdvCard.Width - HalfW - 16, 184 - HDR - GAP - 4);
 
-  QWidget_setStyleSheet(TQtWidget(advancedGroupBox.Handle).Widget,    @GbSS);
-  QWidget_setStyleSheet(TQtWidget(performanceGroupBox.Handle).Widget,  @GbSS);
+  // Performance controls → PerfSec
+  ReparentTo(highpriCheckBox,       PerfSec); DarkChk(highpriCheckBox);
+  ReparentTo(largeaddressCheckBox,  PerfSec); DarkChk(largeaddressCheckBox);
+  ReparentTo(stagememCheckBox,      PerfSec); DarkChk(stagememCheckBox);
+  ReparentTo(wow64CheckBox,         PerfSec); DarkChk(wow64CheckBox);
+  ReparentTo(disablentsyncCheckBox, PerfSec); DarkChk(disablentsyncCheckBox);
+  ReparentTo(heapdelayCheckBox,     PerfSec); DarkChk(heapdelayCheckBox);
+
+  advancedGroupBox.Visible := False;
 end;
 
 procedure Tgoverlayform.InitVkBasaltTab;
