@@ -652,6 +652,8 @@ type
     FVisualCaptureBtn:  TBitBtn;
     FLimitCaptureBtn:   TBitBtn;
     FLoggingCaptureBtn: TBitBtn;
+    FVkToggleCaptureBtn:    TBitBtn;
+    FOsShortcutCaptureBtn:  TBitBtn;
     FCaptureForm:       TForm;
 
     // Extras tab code-generated layout
@@ -776,6 +778,7 @@ type
     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
+    function OsHexToKeyStr(const HexStr: string): string;
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
     procedure UpdateGeSpeedButtonState;
     procedure UpdateGlobalEnableMenuItemVisibility;
@@ -3079,16 +3082,12 @@ begin
       // Process each key
       if SameText(Key, 'ShortcutKey') then
       begin
-        if SameText(Value, 'auto') then
-          shortcutkeyComboBox.ItemIndex := 0
-        else if SameText(Value, '0x70') then
-          shortcutkeyComboBox.ItemIndex := 1
-        else if SameText(Value, '0x71') then
-          shortcutkeyComboBox.ItemIndex := 2
-        else if SameText(Value, '0x72') then
-          shortcutkeyComboBox.ItemIndex := 3
-        else if SameText(Value, '0x73') then
-          shortcutkeyComboBox.ItemIndex := 4;
+        if SameText(Value, 'auto') or (Value = '') then
+          shortcutkeyComboBox.Text := '0x2d'
+        else
+          shortcutkeyComboBox.Text := Value;
+        if Assigned(FOsShortcutCaptureBtn) then
+          FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
       end
       else if SameText(Key, 'Scale') then
       begin
@@ -3110,9 +3109,8 @@ begin
       else if SameText(Key, 'Fsr4Update') then
       begin
         if SameText(Value, 'true') then
-          fsrversionComboBox.ItemIndex := 0
-        else
-          fsrversionComboBox.ItemIndex := 1;
+          fsrversionComboBox.ItemIndex := 0;
+        // false = OptiScaler default; don't override the user's explicit choice in goverlay.vars
       end
       else if SameText(Key, 'Dxgi') then
       begin
@@ -4577,17 +4575,9 @@ begin
       end
       else if SameText(Key, 'toggleKey') then
       begin
-        // Update toggle key combobox if it exists
-        if Assigned(vkbtogglekeyCombobox) then
-        begin
-          case LowerCase(Value) of
-            'home': vkbtogglekeyCombobox.ItemIndex := 0;
-            'f1': vkbtogglekeyCombobox.ItemIndex := 1;
-            'f2': vkbtogglekeyCombobox.ItemIndex := 2;
-            'f3': vkbtogglekeyCombobox.ItemIndex := 3;
-            'f4': vkbtogglekeyCombobox.ItemIndex := 4;
-          end;
-        end;
+        vkbtogglekeyCombobox.Text := Value;
+        if Assigned(FVkToggleCaptureBtn) then
+          FVkToggleCaptureBtn.Caption := '⌨ ' + Value;
       end;
     end;
 
@@ -5855,6 +5845,90 @@ begin
   end;
 end;
 
+
+function Tgoverlayform.OsHexToKeyStr(const HexStr: string): string;
+var
+  VkCode: Integer;
+begin
+  if SameText(HexStr, 'auto') or (HexStr = '') then
+  begin
+    Result := 'auto';
+    Exit;
+  end;
+  try
+    if (Length(HexStr) > 2) and (Copy(HexStr, 1, 2) = '0x') then
+      VkCode := StrToInt('$' + Copy(HexStr, 3, MaxInt))
+    else
+      VkCode := StrToInt(HexStr);
+  except
+    Result := HexStr;
+    Exit;
+  end;
+  // F1–F24
+  if (VkCode >= $70) and (VkCode <= $87) then
+  begin
+    Result := 'F' + IntToStr(VkCode - $70 + 1);
+    Exit;
+  end;
+  // Numpad 0–9
+  if (VkCode >= $60) and (VkCode <= $69) then
+  begin
+    Result := 'Numpad' + IntToStr(VkCode - $60);
+    Exit;
+  end;
+  // Digits 0–9
+  if (VkCode >= $30) and (VkCode <= $39) then
+  begin
+    Result := Chr(VkCode);
+    Exit;
+  end;
+  // Letters A–Z
+  if (VkCode >= $41) and (VkCode <= $5A) then
+  begin
+    Result := Chr(VkCode);
+    Exit;
+  end;
+  case VkCode of
+    $08: Result := 'Backspace';
+    $09: Result := 'Tab';
+    $0D: Result := 'Enter';
+    $13: Result := 'Pause';
+    $14: Result := 'CapsLock';
+    $1B: Result := 'Escape';
+    $20: Result := 'Space';
+    $21: Result := 'PageUp';
+    $22: Result := 'PageDown';
+    $23: Result := 'End';
+    $24: Result := 'Home';
+    $25: Result := 'Left';
+    $26: Result := 'Up';
+    $27: Result := 'Right';
+    $28: Result := 'Down';
+    $2C: Result := 'PrintScreen';
+    $2D: Result := 'Insert';
+    $2E: Result := 'Delete';
+    $6A: Result := 'Numpad*';
+    $6B: Result := 'Numpad+';
+    $6D: Result := 'Numpad-';
+    $6E: Result := 'Numpad.';
+    $6F: Result := 'Numpad/';
+    $90: Result := 'NumLock';
+    $91: Result := 'ScrollLock';
+    $BA: Result := 'Semicolon';
+    $BB: Result := 'Plus';
+    $BC: Result := 'Comma';
+    $BD: Result := 'Minus';
+    $BE: Result := 'Period';
+    $BF: Result := 'Slash';
+    $C0: Result := 'Tilde';
+    $DB: Result := '[';
+    $DC: Result := '\';
+    $DD: Result := ']';
+    $DE: Result := 'Quote';
+  else
+    Result := Format('0x%.2x', [VkCode]);
+  end;
+end;
 
 procedure Tgoverlayform.TweaksCheckChange(Sender: TObject);
 begin
@@ -8565,16 +8639,10 @@ EnableTraceLogsFound: Boolean;
             OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
 
-          // Get selected ShortcutKey from shortcutkeyComboBox
-          case shortcutkeyComboBox.ItemIndex of
-            0: SelectedShortcutKey := 'auto';
-            1: SelectedShortcutKey := '0x70';
-            2: SelectedShortcutKey := '0x71';
-            3: SelectedShortcutKey := '0x72';
-            4: SelectedShortcutKey := '0x73';
-          else
-            SelectedShortcutKey := 'auto'; // Default
-          end;
+          // Get ShortcutKey from hidden combobox (stores hex VK code or 'auto')
+          SelectedShortcutKey := Trim(shortcutkeyComboBox.Text);
+          if SelectedShortcutKey = '' then
+            SelectedShortcutKey := 'auto';
 
 
           // Calculate Scale value from menuscaleTrackBar (divide by 10)
@@ -9285,12 +9353,8 @@ begin
             ConfigLines.Add('');
             
             // Toggle key
-            case vkbtogglekeyCombobox.ItemIndex of
-              0: ConfigLines.Add('toggleKey = Home');
-              1: ConfigLines.Add('toggleKey = End');
-              2: ConfigLines.Add('toggleKey = Insert');
-              3: ConfigLines.Add('toggleKey = Delete');
-            end;
+            if Trim(vkbtogglekeyCombobox.Text) <> '' then
+              ConfigLines.Add('toggleKey = ' + Trim(vkbtogglekeyCombobox.Text));
             
             ConfigLines.Add('');
             ConfigLines.Add('#casSharpness specifies the amount of sharpening in the CAS filter.');
@@ -11549,7 +11613,18 @@ begin
   if (Key = VK_SHIFT) or (Key = VK_CONTROL) or (Key = VK_MENU) or (Key = VK_LWIN) or (Key = VK_RWIN) then
     Exit;
 
-  // Modifiers formatting for MangoHud X11 Keysyms
+  // ── OptiScaler path (tag=5): store Windows VK hex directly, bypass X11 naming
+  if Assigned(FCaptureBtn) and (FCaptureBtn.Tag = 5) then
+  begin
+    shortcutkeyComboBox.Text  := Format('0x%.2x', [Key]);
+    FCaptureBtn.Caption       := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
+    if Assigned(FCaptureForm) then
+      FCaptureForm.ModalResult := mrOk;
+    Key := 0;
+    Exit;
+  end;
+
+  // ── MangoHud / vkBasalt path: X11 Keysym format with optional modifiers
   if ssShift in Shift then ModStr := ModStr + 'Shift_L+';
   if ssCtrl  in Shift then ModStr := ModStr + 'Control_L+';
   if ssAlt   in Shift then ModStr := ModStr + 'Alt_L+';
@@ -11579,11 +11654,10 @@ begin
       VK_DOWN:   KeyStr := 'Down';
       VK_LEFT:   KeyStr := 'Left';
       VK_RIGHT:  KeyStr := 'Right';
-      186:       KeyStr := 'semicolon'; // Roughly LCL virtual key mapping
+      186:       KeyStr := 'semicolon';
       188:       KeyStr := 'comma';
       190:       KeyStr := 'period';
     else
-      // Just ignore this pressed key if we don't know it
       Exit;
     end;
   end;
@@ -11593,10 +11667,10 @@ begin
   if Assigned(FCaptureBtn) then
   begin
     FCaptureBtn.Caption := '⌨ ' + FinalStr;
-    // Keep the hidden ComboBox in sync — it is the config save source of truth
     if FCaptureBtn.Tag = 1 then hudonoffComboBox.Text      := FinalStr
     else if FCaptureBtn.Tag = 2 then fpslimtoggleComboBox.Text := FinalStr
-    else if FCaptureBtn.Tag = 3 then logtoggleComboBox.Text    := FinalStr;
+    else if FCaptureBtn.Tag = 3 then logtoggleComboBox.Text    := FinalStr
+    else if FCaptureBtn.Tag = 4 then vkbtogglekeyCombobox.Text := FinalStr;
   end;
 
   if Assigned(FCaptureForm) then
@@ -11740,6 +11814,7 @@ var
   IsLight: Boolean;
   BarBg, TextColor: TColor;
   Lbl: TLabel;
+  SS: WideString;
 var
   BgBox: TPaintBox;
 begin
@@ -11780,22 +11855,25 @@ begin
   Place(vImage,                FVisualSections[0], 30, 28);
   Place(horizontalRadioButton, FVisualSections[0], 6,  50);
   Place(hImage,                FVisualSections[0], 30, 40);
-  verticalRadioButton.Color   := BarBg; verticalRadioButton.ParentColor   := False;
-  horizontalRadioButton.Color := BarBg; horizontalRadioButton.ParentColor := False;
+  verticalRadioButton.Color   := $002E1E1A; verticalRadioButton.ParentColor   := False;
+  horizontalRadioButton.Color := $002E1E1A; horizontalRadioButton.ParentColor := False;
   vImage.Transparent := True; hImage.Transparent := True;
   vImage.Width := 30;  vImage.Height := 56;   // portrait — Reflow positions these
   hImage.Width := 56;  hImage.Height := 30;   // landscape
+  SS := 'background-color: rgb(26,30,46);';
+  QWidget_setStyleSheet(TQtWidget(FVisualSections[0].Handle).Widget, @SS);
 
   // ·· [1] Borders — positions set by Reflow ································
   Place(squareRadioButton, FVisualSections[1], 6,  50);
   Place(squareImage,       FVisualSections[1], 30, 30);
   Place(roundRadioButton,  FVisualSections[1], 6,  50);
   Place(roundImage,        FVisualSections[1], 30, 30);
-  squareRadioButton.Color := BarBg; squareRadioButton.ParentColor := False;
-  roundRadioButton.Color  := BarBg; roundRadioButton.ParentColor  := False;
+  squareRadioButton.Color := $002E1E1A; squareRadioButton.ParentColor := False;
+  roundRadioButton.Color  := $002E1E1A; roundRadioButton.ParentColor  := False;
   squareImage.Transparent := True; roundImage.Transparent := True;
   squareImage.Width := 48; squareImage.Height := 42;
   roundImage.Width  := 48; roundImage.Height  := 42;
+  QWidget_setStyleSheet(TQtWidget(FVisualSections[1].Handle).Widget, @SS);
 
   // ·· [2] Background ·······················································
   Place(backgroundLabel,          FVisualSections[2], 6,  32);
@@ -11984,7 +12062,7 @@ begin
   hudcompactCheckBox.AnchorSideBottom.Control := nil;
   hudcompactCheckBox.Anchors     := [akLeft, akTop];
   hudcompactCheckBox.Font.Color  := TextColor;
-  hudcompactCheckBox.Color       := BarBg;
+  hudcompactCheckBox.Color       := $002E1E1A;
   hudcompactCheckBox.ParentColor := False;
   hudcompactCheckBox.Top := 17;
 
@@ -11996,9 +12074,12 @@ begin
   hidehudCheckBox.AnchorSideBottom.Control := nil;
   hidehudCheckBox.Anchors     := [akLeft, akTop];
   hidehudCheckBox.Font.Color  := TextColor;
-  hidehudCheckBox.Color       := BarBg;
+  hidehudCheckBox.Color       := $002E1E1A;
   hidehudCheckBox.ParentColor := False;
   hidehudCheckBox.Top := 17;
+
+  SS := 'background-color: rgb(26,30,46);';
+  QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
 
 end;
 
@@ -13286,6 +13367,7 @@ begin
   menuscalevalueLabel.AnchorSideLeft.Control   := nil; menuscalevalueLabel.AnchorSideTop.Control    := nil;
   menuscalevalueLabel.AnchorSideRight.Control  := nil; menuscalevalueLabel.AnchorSideBottom.Control := nil;
   menuscalevalueLabel.Anchors := [akLeft, akTop]; menuscalevalueLabel.Top := menuscalevalueLabel.Top + 22;
+  menuscalevalueLabel.Left    := 252;
   menuscalevalueLabel.Parent  := FOsImgSec;
 
   menuscaleTrackBar.AnchorSideLeft.Control   := nil; menuscaleTrackBar.AnchorSideTop.Control    := nil;
@@ -13310,18 +13392,31 @@ begin
 
   shortcutkeyLabel.AnchorSideLeft.Control   := nil; shortcutkeyLabel.AnchorSideTop.Control    := nil;
   shortcutkeyLabel.AnchorSideRight.Control  := nil; shortcutkeyLabel.AnchorSideBottom.Control := nil;
-  shortcutkeyLabel.Anchors := [akLeft, akTop]; shortcutkeyLabel.Top := shortcutkeyLabel.Top + 22;
-  shortcutkeyLabel.Parent  := FOsImgSec;
+  shortcutkeyLabel.Anchors  := [akLeft, akTop];
+  shortcutkeyLabel.Top      := shortcutkeyLabel.Top + 22;
+  shortcutkeyLabel.Caption  := 'Menu Toggle Key';
+  shortcutkeyLabel.Parent   := FOsImgSec;
 
-  shortcutkeyComboBox.AnchorSideLeft.Control   := nil; shortcutkeyComboBox.AnchorSideTop.Control    := nil;
-  shortcutkeyComboBox.AnchorSideRight.Control  := nil; shortcutkeyComboBox.AnchorSideBottom.Control := nil;
-  shortcutkeyComboBox.Anchors := [akLeft, akTop]; shortcutkeyComboBox.Top := shortcutkeyComboBox.Top + 22;
+  // shortcutImage removed from UI — just hide it
+  shortcutImage.Visible := False;
+
+  // Keep combobox as hidden data store (hex VK code); button is the visible UI
+  shortcutkeyComboBox.Visible := False;
   shortcutkeyComboBox.Parent  := FOsImgSec;
+  if (shortcutkeyComboBox.Text = '') or SameText(shortcutkeyComboBox.Text, 'auto') then
+    shortcutkeyComboBox.Text := '0x2d';  // INSERT = default ShortcutKey
 
-  shortcutImage.AnchorSideLeft.Control   := nil; shortcutImage.AnchorSideTop.Control    := nil;
-  shortcutImage.AnchorSideRight.Control  := nil; shortcutImage.AnchorSideBottom.Control := nil;
-  shortcutImage.Anchors := [akLeft, akTop]; shortcutImage.Top := shortcutImage.Top + 22;
-  shortcutImage.Parent  := FOsImgSec;
+  FOsShortcutCaptureBtn := TBitBtn.Create(FOsImgSec);
+  FOsShortcutCaptureBtn.Parent   := FOsImgSec;
+  FOsShortcutCaptureBtn.Tag      := 5;
+  FOsShortcutCaptureBtn.Anchors  := [akLeft, akTop];
+  FOsShortcutCaptureBtn.Cursor   := crHandPoint;
+  FOsShortcutCaptureBtn.OnClick  := @CaptureBtnClick;
+  FOsShortcutCaptureBtn.Left     := shortcutkeyLabel.Left;
+  FOsShortcutCaptureBtn.Top      := shortcutkeyLabel.Top + shortcutkeyLabel.Height + 4;
+  FOsShortcutCaptureBtn.Width    := 100;
+  FOsShortcutCaptureBtn.Height   := 28;
+  FOsShortcutCaptureBtn.Caption  := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
 
   // Reparent FakeNVAPI controls → FOsFakeSec
   forcereflexCheckBox.AnchorSideLeft.Control   := nil; forcereflexCheckBox.AnchorSideTop.Control    := nil;
@@ -13360,9 +13455,9 @@ begin
   DarkCheck(spoofCheckBox);
   DarkCheck(emufp8CheckBox);
   DarkCheck(optipatcherCheckBox);
-  DarkLbl(fsrversionLabel,  PURPLE);
+  DarkLbl(fsrversionLabel,  PURPLE); fsrversionLabel.Transparent := True;
   DarkCombo(fsrversionComboBox);
-  DarkLbl(osversionLabel,   GRAY);
+  DarkLbl(osversionLabel,   GRAY); osversionLabel.Transparent := True;
   DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
   // In-Game Menu section
   DarkLbl(menuLabel,           PURPLE);
@@ -14355,20 +14450,28 @@ begin
 
   TitleLbl := TLabel.Create(FVkToggleCard);
   TitleLbl.Parent      := FVkToggleCard;
-  TitleLbl.Caption     := '  Toggle Key';
+  TitleLbl.Caption     := '  vkBasalt Toggle Key';
   TitleLbl.Font.Name   := 'Noto Sans';
   TitleLbl.Font.Size   := 10;
   TitleLbl.Font.Style  := [fsBold];
   TitleLbl.Font.Color  := CLR_WHITE;
   TitleLbl.AutoSize    := True;
-  TitleLbl.SetBounds(12, 14, 120, 22);
+  TitleLbl.SetBounds(12, 14, 200, 22);
   TitleLbl.Transparent := True;
 
-  vkbtogglekeyCombobox.Parent     := FVkToggleCard;
-  vkbtogglekeyCombobox.Anchors    := [akLeft, akTop];
-  vkbtogglekeyCombobox.Color      := $2A2A40;
-  vkbtogglekeyCombobox.Font.Color := CLR_WHITE;
-  vkbtogglekeyCombobox.Visible    := True;
+  // Reparent combobox off the vkbasalt tab (hidden data store)
+  vkbtogglekeyCombobox.Visible := False;
+  vkbtogglekeyCombobox.Parent  := Self;
+  if vkbtogglekeyCombobox.Text = '' then
+    vkbtogglekeyCombobox.Text := 'Home';
+
+  FVkToggleCaptureBtn := TBitBtn.Create(FVkToggleCard);
+  FVkToggleCaptureBtn.Parent   := FVkToggleCard;
+  FVkToggleCaptureBtn.Tag      := 4;
+  FVkToggleCaptureBtn.Anchors  := [akLeft, akTop];
+  FVkToggleCaptureBtn.Cursor   := crHandPoint;
+  FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
+  FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
 end;
 
 procedure Tgoverlayform.ReflowVkBasaltTab(AContentW: Integer);
@@ -14461,9 +14564,10 @@ begin
   dlsTrackBar.SetBounds(Col1, Row1, ColW, 28);
 
   // ── Card 3: Toggle Key ─────────────────────────────────────────────────
-  FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, 260, TOGL_H);
+  FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
 
-  vkbtogglekeyCombobox.SetBounds(140, 18, 110, 30);
+  if Assigned(FVkToggleCaptureBtn) then
+    FVkToggleCaptureBtn.SetBounds(CW - PAD - 130, 16, 130, 28);
 end;
 
 // ============================================================================
