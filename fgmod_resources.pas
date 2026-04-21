@@ -298,84 +298,83 @@ begin
     'logger -t fgmod "🧩 Using DLL name: $dll_name"' + LineEnding +
     'logger -t fgmod "📄 Preserve INI: $preserve_ini"' + LineEnding +
     '' + LineEnding +
-    '# === Cleanup Old Injectors ===' + LineEnding +
-    'rm -f "$exe_folder_path"/{dxgi.dll,winmm.dll,nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}' + LineEnding +
+    '# === OptiScaler: install files only when explicitly enabled ===' + LineEnding +
+    'if [[ "$GOVERLAY_OPTISCALER" == "1" ]]; then' + LineEnding +
     '' + LineEnding +
-    '# === Optional: Backup Original DLLs ===' + LineEnding +
-    'original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll")' + LineEnding +
-    'for dll in "${original_dlls[@]}"; do' + LineEnding +
-    '  [[ -f "$exe_folder_path/$dll" && ! -f "$exe_folder_path/$dll.b" ]] && mv -f "$exe_folder_path/$dll" "$exe_folder_path/$dll.b"' + LineEnding +
-    'done' + LineEnding +
+    '  # === Cleanup Old Injectors ===' + LineEnding +
+    '  rm -f "$exe_folder_path"/{dxgi.dll,winmm.dll,nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}' + LineEnding +
     '' + LineEnding +
-    '# === Remove nvapi64.dll and its backup (conflicts from previous fakenvapi versions) ===' + LineEnding +
-    'rm -f "$exe_folder_path/nvapi64.dll" "$exe_folder_path/nvapi64.dll.b"' + LineEnding +
-    'echo "🧹 Cleaned up nvapi64.dll and backup (legacy fakenvapi conflicts)"' + LineEnding +
+    '  # === Optional: Backup Original DLLs ===' + LineEnding +
+    '  original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll")' + LineEnding +
+    '  for dll in "${original_dlls[@]}"; do' + LineEnding +
+    '    [[ -f "$exe_folder_path/$dll" && ! -f "$exe_folder_path/$dll.b" ]] && mv -f "$exe_folder_path/$dll" "$exe_folder_path/$dll.b"' + LineEnding +
+    '  done' + LineEnding +
     '' + LineEnding +
-    '# === Core Install ===' + LineEnding +
-    'if [[ -f "$fgmod_path/renames/$dll_name" ]]; then' + LineEnding +
-    '  echo "✅ Using pre-renamed $dll_name"' + LineEnding +
-    '  cp "$fgmod_path/renames/$dll_name" "$exe_folder_path/$dll_name" || error_exit "❌ Failed to copy $dll_name"' + LineEnding +
+    '  # === Remove nvapi64.dll and its backup (conflicts from previous fakenvapi versions) ===' + LineEnding +
+    '  rm -f "$exe_folder_path/nvapi64.dll" "$exe_folder_path/nvapi64.dll.b"' + LineEnding +
+    '  echo "🧹 Cleaned up nvapi64.dll and backup (legacy fakenvapi conflicts)"' + LineEnding +
+    '' + LineEnding +
+    '  # === Core Install ===' + LineEnding +
+    '  if [[ -f "$fgmod_path/renames/$dll_name" ]]; then' + LineEnding +
+    '    echo "✅ Using pre-renamed $dll_name"' + LineEnding +
+    '    cp "$fgmod_path/renames/$dll_name" "$exe_folder_path/$dll_name" || error_exit "❌ Failed to copy $dll_name"' + LineEnding +
+    '  else' + LineEnding +
+    '    echo "⚠️ Pre-renamed $dll_name not found, falling back to OptiScaler.dll"' + LineEnding +
+    '    cp "$fgmod_path/OptiScaler.dll" "$exe_folder_path/$dll_name" || error_exit "❌ Failed to copy OptiScaler.dll as $dll_name"' + LineEnding +
+    '  fi' + LineEnding +
+    '' + LineEnding +
+    '  # === OptiScaler.ini Handling ===' + LineEnding +
+    '  if [[ "$preserve_ini" == "true" && -f "$exe_folder_path/OptiScaler.ini" ]]; then' + LineEnding +
+    '    echo "📄 Preserving existing OptiScaler.ini (user settings retained)"' + LineEnding +
+    '    logger -t fgmod "📄 Existing OptiScaler.ini preserved in $exe_folder_path"' + LineEnding +
+    '  else' + LineEnding +
+    '    echo "📄 Installing OptiScaler.ini from plugin defaults"' + LineEnding +
+    '    cp "$fgmod_path/OptiScaler.ini" "$exe_folder_path/OptiScaler.ini" || error_exit "❌ Failed to copy OptiScaler.ini"' + LineEnding +
+    '    logger -t fgmod "📄 OptiScaler.ini installed to $exe_folder_path"' + LineEnding +
+    '  fi' + LineEnding +
+    '' + LineEnding +
+    '  # === ASI Plugins Directory ===' + LineEnding +
+    '  if [[ -d "$fgmod_path/plugins" ]]; then' + LineEnding +
+    '    echo "🔌 Installing ASI plugins directory"' + LineEnding +
+    '    cp -r "$fgmod_path/plugins" "$exe_folder_path/" || true' + LineEnding +
+    '    logger -t fgmod "🔌 ASI plugins directory installed to $exe_folder_path"' + LineEnding +
+    '  else' + LineEnding +
+    '    echo "⚠️ No plugins directory found in fgmod"' + LineEnding +
+    '  fi' + LineEnding +
+    '' + LineEnding +
+    '  # === Supporting Libraries ===' + LineEnding +
+    '  cp -f "$fgmod_path/libxess.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/libxess_dx11.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/libxess_fg.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/libxell.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/amd_fidelityfx_dx12.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/amd_fidelityfx_framegeneration_dx12.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/amd_fidelityfx_upscaler_dx12.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/amd_fidelityfx_vk.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/nvngx.dll" "$exe_folder_path/" || true' + LineEnding +
+    '' + LineEnding +
+    '  # === Nukem FG Mod Files ===' + LineEnding +
+    '  cp -f "$fgmod_path/dlssg_to_fsr3_amd_is_better.dll" "$exe_folder_path/" || true' + LineEnding +
+    '' + LineEnding +
+    '  # === FakeNVAPI Files ===' + LineEnding +
+    '  cp -f "$fgmod_path/fakenvapi.dll" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true' + LineEnding +
+    '  echo "📦 Installed fakenvapi.dll and fakenvapi.ini"' + LineEnding +
+    '' + LineEnding +
+    '  echo "✅ OptiScaler installation completed successfully!"' + LineEnding +
+    '  logger -t fgmod "🟢 OptiScaler installed to $exe_folder_path"' + LineEnding +
+    '' + LineEnding +
     'else' + LineEnding +
-    '  echo "⚠️ Pre-renamed $dll_name not found, falling back to OptiScaler.dll"' + LineEnding +
-    '  cp "$fgmod_path/OptiScaler.dll" "$exe_folder_path/$dll_name" || error_exit "❌ Failed to copy OptiScaler.dll as $dll_name"' + LineEnding +
+    '  echo "ℹ️ OptiScaler disabled (GOVERLAY_OPTISCALER != 1), skipping DLL install"' + LineEnding +
     'fi' + LineEnding +
-    '' + LineEnding +
-    '# === OptiScaler.ini Handling ===' + LineEnding +
-    'if [[ "$preserve_ini" == "true" && -f "$exe_folder_path/OptiScaler.ini" ]]; then' + LineEnding +
-    '  echo "📄 Preserving existing OptiScaler.ini (user settings retained)"' + LineEnding +
-    '  logger -t fgmod "📄 Existing OptiScaler.ini preserved in $exe_folder_path"' + LineEnding +
-    'else' + LineEnding +
-    '  echo "📄 Installing OptiScaler.ini from plugin defaults"' + LineEnding +
-    '  cp "$fgmod_path/OptiScaler.ini" "$exe_folder_path/OptiScaler.ini" || error_exit "❌ Failed to copy OptiScaler.ini"' + LineEnding +
-    '  logger -t fgmod "📄 OptiScaler.ini installed to $exe_folder_path"' + LineEnding +
-    'fi' + LineEnding +
-    '' + LineEnding +
-    '# === ASI Plugins Directory ===' + LineEnding +
-    'if [[ -d "$fgmod_path/plugins" ]]; then' + LineEnding +
-    '  echo "🔌 Installing ASI plugins directory"' + LineEnding +
-    '  cp -r "$fgmod_path/plugins" "$exe_folder_path/" || true' + LineEnding +
-    '  logger -t fgmod "🔌 ASI plugins directory installed to $exe_folder_path"' + LineEnding +
-    'else' + LineEnding +
-    '  echo "⚠️ No plugins directory found in fgmod"' + LineEnding +
-    'fi' + LineEnding +
-    '' + LineEnding +
-    '# === Supporting Libraries ===' + LineEnding +
-    'cp -f "$fgmod_path/libxess.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/libxess_dx11.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/libxess_fg.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/libxell.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/amd_fidelityfx_dx12.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/amd_fidelityfx_framegeneration_dx12.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/amd_fidelityfx_upscaler_dx12.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/amd_fidelityfx_vk.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/nvngx.dll" "$exe_folder_path/" || true' + LineEnding +
-    '' + LineEnding +
-    '# === Nukem FG Mod Files (now in fgmod directory) ===' + LineEnding +
-    'cp -f "$fgmod_path/dlssg_to_fsr3_amd_is_better.dll" "$exe_folder_path/" || true' + LineEnding +
-    '# Note: dlssg_to_fsr3.ini is not included in v0.9.0-pre4 archive' + LineEnding +
-    '' + LineEnding +
-    '# === FakeNVAPI Files ===' + LineEnding +
-    '# Remove legacy nvapi64.dll to avoid conflicts' + LineEnding +
-    '# rm -f "$exe_folder_path/nvapi64.dll"' + LineEnding +
-    '# echo "🧹 Removed legacy nvapi64.dll"' + LineEnding +
-    '' + LineEnding +
-    '# Copy fakenvapi.dll with original name (v1.3.8.1) ' + LineEnding +
-    'cp -f "$fgmod_path/fakenvapi.dll" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true' + LineEnding +
-    'echo "📦 Installed fakenvapi.dll and fakenvapi.ini"' + LineEnding +
-    '' + LineEnding +
-    '# === Additional Support Files ===' + LineEnding +
-    '# cp -f "$fgmod_path/d3dcompiler_47.dll" "$exe_folder_path/" || true' + LineEnding +
-    '' + LineEnding +
-    '# Note: d3dcompiler_47.dll is not included in v0.9.0-pre4 archive' + LineEnding +
     '' + LineEnding +
     'cp -f "$fgmod_path/MangoHud.conf" "$exe_folder_path/" || true' + LineEnding +
     'cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true' + LineEnding +
     '' + LineEnding +
-    'echo "✅ Installation completed successfully!"' + LineEnding +
+    'echo "✅ fgmod completed successfully!"' + LineEnding +
     'echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"' + LineEnding +
     'echo "📄 For Heroic, add this as a new wrapper: \"$fgmod_path/fgmod\""' + LineEnding +
-    'logger -t fgmod "🟢 Installation completed successfully for $exe_folder_path"' + LineEnding +
+    'logger -t fgmod "🟢 fgmod completed for $exe_folder_path"' + LineEnding +
     '' + LineEnding +
     '# === Execute original command ===' + LineEnding +
     'if [[ $# -gt 1 ]]; then' + LineEnding +
@@ -391,9 +390,9 @@ begin
     '  ' + LineEnding +
     '  # Execute the original command' + LineEnding +
     '  export SteamDeck=0' + LineEnding +
-    '  [[ "$GOVERLAY_MANGOHUD" != "0" ]] && export MANGOHUD=1' + LineEnding +
-    '  [[ "$GOVERLAY_VKBASALT" != "0" ]] && export ENABLE_VKBASALT=1' + LineEnding +
-    '  [[ "$GOVERLAY_OPTISCALER" != "0" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
+    '  [[ "$GOVERLAY_MANGOHUD" == "1" ]] && export MANGOHUD=1' + LineEnding +
+    '  [[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKBASALT=1' + LineEnding +
+    '  [[ "$GOVERLAY_OPTISCALER" == "1" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
     '  ' + LineEnding +
     '  # Filter out leading -- separators (from Steam launch options)' + LineEnding +
     '  while [[ $# -gt 0 && "$1" == "--" ]]; do' + LineEnding +
@@ -800,24 +799,20 @@ begin
   WriteLn('[FGMOD] fgmod (global) path  : ', FGModPath);
   WriteLn('[FGMOD] Running in Flatpak   : ', IsFlatpak);
 
-  // --- Step 1: ensure .fgmod_original has the embedded scripts ---
-  if not FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod') then
+  // --- Step 1: always rewrite .fgmod_original scripts from embedded source ---
+  // This ensures game config dirs always get the latest fgmod script on next click.
+  WriteLn('[FGMOD] Writing embedded scripts to .fgmod_original...');
+  if not ForceDirectories(OriginalPath) then
   begin
-    WriteLn('[FGMOD] Populating .fgmod_original with embedded scripts...');
-    if not ForceDirectories(OriginalPath) then
-    begin
-      WriteLn('[FGMOD] ERROR: cannot create .fgmod_original directory, aborting.');
-      Exit;
-    end;
-    WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod',                GetFGModScript);
-    WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript);
-    WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-remover.sh',     GetFGModRemoverScript(IsFlatpak));
-    WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'LICENSE',              GetFGModLicense);
-    WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'README.md',            GetFGModReadme);
-    WriteLn('[FGMOD] .fgmod_original scripts written.');
-  end
-  else
-    WriteLn('[FGMOD] .fgmod_original already initialised, skipping script write.');
+    WriteLn('[FGMOD] ERROR: cannot create .fgmod_original directory, aborting.');
+    Exit;
+  end;
+  WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod',                GetFGModScript);
+  WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-uninstaller.sh', GetFGModUninstallerScript);
+  WriteScriptFile(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-remover.sh',     GetFGModRemoverScript(IsFlatpak));
+  WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'LICENSE',              GetFGModLicense);
+  WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'README.md',            GetFGModReadme);
+  WriteLn('[FGMOD] .fgmod_original scripts written.');
 
   // --- Step 2: seed fgmod (global working copy) from .fgmod_original if empty ---
   if not FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod') then

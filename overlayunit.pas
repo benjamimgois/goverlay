@@ -704,6 +704,8 @@ type
     procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
     procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
+    procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
+    procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -10670,15 +10672,14 @@ begin
       PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
         '[[ "$GOVERLAY_VKBASALT" != "0" ]] && export ENABLE_VKBASALT=1',
         'ENABLE_VKBASALT=1');
-    // OptiScaler toggle also controls the WINEDLLOVERRIDES line in the game's fgmod
+    // OptiScaler toggle copies/removes all OptiScaler files and patches fgmod
     if Idx = 2 then
     begin
       PatchGameFGModWineDllOverrides(GameCfgDir + 'fgmod', NewEnabled);
-      // When re-enabling OptiScaler, restore OptiScaler.ini from the pristine
-      // fgmod original so the game gets a valid config on the next launch.
-      if NewEnabled and not FileExists(GameCfgDir + 'OptiScaler.ini') then
-        CopyFile(GetFGModOriginalPath + PathDelim + 'OptiScaler.ini',
-                 GameCfgDir + 'OptiScaler.ini', True);
+      if NewEnabled then
+        CopyOptiScalerGameFiles(GameCfgDir)
+      else
+        RemoveOptiScalerGameFiles(GameCfgDir);
     end;
   end;
   ApplyToolEnabledState(Idx, NewEnabled);
@@ -10934,9 +10935,50 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.RemoveOptiScalerGameFiles(const AGameCfgDir: string);
+var
+  Dir: string;
+begin
+  Dir := IncludeTrailingPathDelimiter(AGameCfgDir);
+  ExecuteShellCommand(
+    'rm -f ' +
+    QuotedStr(Dir + 'OptiScaler.dll') + ' ' +
+    QuotedStr(Dir + 'OptiScaler.ini') + ' ' +
+    QuotedStr(Dir + 'fakenvapi.dll') + ' ' +
+    QuotedStr(Dir + 'fakenvapi.ini') + ' ' +
+    QuotedStr(Dir + 'amd_fidelityfx_framegeneration_dx12.dll') + ' ' +
+    QuotedStr(Dir + 'amd_fidelityfx_upscaler_dx12.dll') + ' ' +
+    QuotedStr(Dir + 'amd_fidelityfx_vk.dll') + ' ' +
+    QuotedStr(Dir + 'amd_fidelityfx_dx12.dll') + ' ' +
+    QuotedStr(Dir + 'dlssg_to_fsr3_amd_is_better.dll') + ' ' +
+    QuotedStr(Dir + 'libxess.dll') + ' ' +
+    QuotedStr(Dir + 'libxess_dx11.dll') + ' ' +
+    QuotedStr(Dir + 'libxess_fg.dll') + ' ' +
+    QuotedStr(Dir + 'libxell.dll') + ' ' +
+    QuotedStr(Dir + 'nvngx.dll') + ' ' +
+    QuotedStr(Dir + 'nvngx_dlss.dll') + ' ' +
+    QuotedStr(Dir + 'nvngx_dlssd.dll') + ' ' +
+    QuotedStr(Dir + 'nvngx_dlssg.dll') + ' ' +
+    QuotedStr(Dir + 'setup_linux.sh') + ' ' +
+    QuotedStr(Dir + 'setup_windows.bat') + ' ' +
+    QuotedStr(Dir + '!! README_EXTRACT ALL FILES TO GAME FOLDER !!.txt') + ' 2>/dev/null');
+  ExecuteShellCommand(
+    'rm -rf ' +
+    QuotedStr(Dir + 'D3D12_OptiScaler') + ' ' +
+    QuotedStr(Dir + 'Licenses') + ' ' +
+    QuotedStr(Dir + 'plugins') + ' 2>/dev/null');
+end;
+
+procedure Tgoverlayform.CopyOptiScalerGameFiles(const AGameCfgDir: string);
+begin
+  // Copy all files from .fgmod_original (no-clobber for scripts already present)
+  ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' +
+    QuotedStr(AGameCfgDir) + ' 2>/dev/null');
+end;
+
 procedure Tgoverlayform.PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
 const
-  CONDITIONAL_LINE = '[[ "$GOVERLAY_OPTISCALER" != "0" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
+  CONDITIONAL_LINE = '[[ "$GOVERLAY_OPTISCALER" == "1" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
   LEGACY_LINE      = '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
 var
   Lines: TStringList;
@@ -16102,7 +16144,7 @@ end;
 procedure Tgoverlayform.GameCardClick(Sender: TObject);
 var
   Panel: TPanel;
-  GameName, GameCfgDir: string;
+  GameName, GameCfgDir, FGOrig: string;
   Lines: TStringList;
   p: Integer;
 begin
@@ -16136,7 +16178,20 @@ begin
   GameCfgDir := GetGameConfigDir(GameName);
   if not DirectoryExists(GameCfgDir) then
     ForceDirectories(GameCfgDir);
-  ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' + QuotedStr(GameCfgDir) + ' 2>/dev/null');
+  // Copy only the launch scripts — OptiScaler files are copied only when the
+  // OptiScaler toggle is explicitly enabled for this game.
+  // Always overwrite fgmod scripts to pick up the latest embedded version.
+  // OptiScaler DLLs are copied separately only when the toggle is ON.
+  FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'fgmod') + ' ' +
+    QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'fgmod'));
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'fgmod-uninstaller.sh') + ' ' +
+    QuotedStr(GameCfgDir + 'fgmod-uninstaller.sh') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'fgmod-uninstaller.sh'));
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'fgmod-remover.sh') + ' ' +
+    QuotedStr(GameCfgDir + 'fgmod-remover.sh') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'fgmod-remover.sh'));
   MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
   UpdateGameContextLabel;
   SetNavActive(1);
