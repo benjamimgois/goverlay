@@ -706,6 +706,7 @@ type
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
     procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
+    procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
@@ -10935,6 +10936,49 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
+var
+  Lines: TStringList;
+  i, StartIdx, EndIdx: Integer;
+begin
+  if not FileExists(AFGModFile) then Exit;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AFGModFile);
+    // Already has the new conditional — nothing to do
+    for i := 0 to Lines.Count - 1 do
+      if Pos('GOVERLAY_OPTISCALER" == "1"', Lines[i]) > 0 then
+        Exit;
+    // Find start of OptiScaler install section
+    StartIdx := -1;
+    for i := 0 to Lines.Count - 1 do
+      if Pos('Cleanup Old Injectors', Lines[i]) > 0 then
+      begin
+        StartIdx := i;
+        Break;
+      end;
+    // Find end: first "cp -f ... MangoHud.conf" line after start
+    EndIdx := -1;
+    for i := StartIdx + 1 to Lines.Count - 1 do
+      if (Pos('MangoHud.conf', Lines[i]) > 0) and (Pos('cp -f', Lines[i]) > 0) then
+      begin
+        EndIdx := i;
+        Break;
+      end;
+    if (StartIdx < 0) or (EndIdx <= StartIdx) then Exit;
+    // Insert 'fi' + blank line before the MangoHud.conf line
+    Lines.Insert(EndIdx, '');
+    Lines.Insert(EndIdx, 'fi');
+    // Insert the 'if' check + blank line before the start of the OptiScaler section
+    Lines.Insert(StartIdx, '');
+    Lines.Insert(StartIdx, 'if [[ "$GOVERLAY_OPTISCALER" == "1" ]]; then');
+    Lines.SaveToFile(AFGModFile);
+    fpChmod(AFGModFile, &755);
+  finally
+    Lines.Free;
+  end;
+end;
+
 procedure Tgoverlayform.RemoveOptiScalerGameFiles(const AGameCfgDir: string);
 var
   Dir: string;
@@ -16180,18 +16224,19 @@ begin
     ForceDirectories(GameCfgDir);
   // Copy only the launch scripts — OptiScaler files are copied only when the
   // OptiScaler toggle is explicitly enabled for this game.
-  // Always overwrite fgmod scripts to pick up the latest embedded version.
-  // OptiScaler DLLs are copied separately only when the toggle is ON.
+  // Copy scripts without overwriting — user config lives inside fgmod.
+  // Then patch the script body for OptiScaler conditional if needed.
   FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'fgmod') + ' ' +
+  ExecuteShellCommand('cp -n ' + QuotedStr(FGOrig + 'fgmod') + ' ' +
     QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null && chmod 755 ' +
     QuotedStr(GameCfgDir + 'fgmod'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'fgmod-uninstaller.sh') + ' ' +
+  ExecuteShellCommand('cp -n ' + QuotedStr(FGOrig + 'fgmod-uninstaller.sh') + ' ' +
     QuotedStr(GameCfgDir + 'fgmod-uninstaller.sh') + ' 2>/dev/null && chmod 755 ' +
     QuotedStr(GameCfgDir + 'fgmod-uninstaller.sh'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'fgmod-remover.sh') + ' ' +
+  ExecuteShellCommand('cp -n ' + QuotedStr(FGOrig + 'fgmod-remover.sh') + ' ' +
     QuotedStr(GameCfgDir + 'fgmod-remover.sh') + ' 2>/dev/null && chmod 755 ' +
     QuotedStr(GameCfgDir + 'fgmod-remover.sh'));
+  EnsureGameFGModOptiScalerConditional(GameCfgDir + 'fgmod');
   MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
   UpdateGameContextLabel;
   SetNavActive(1);
