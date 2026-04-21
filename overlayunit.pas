@@ -791,6 +791,7 @@ type
     procedure TweaksCheckChange(Sender: TObject);
     procedure UpdateTweaksVarListBox;
     procedure TweaksVarRemoveClick(Sender: TObject);
+    procedure ApplyImageAntialiasing;
     function IsOptiScalerInstalled: Boolean;
     
     // Home tab
@@ -6000,6 +6001,28 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.ApplyImageAntialiasing;
+  procedure ScanImages(AParent: TWinControl);
+  var
+    i: Integer;
+    C: TControl;
+  begin
+    for i := 0 to AParent.ControlCount - 1 do
+    begin
+      C := AParent.Controls[i];
+      if C is TImage then
+      begin
+        TImage(C).AntialiasingMode := amOn;
+        TImage(C).Invalidate;
+      end
+      else if C is TWinControl then
+        ScanImages(TWinControl(C));
+    end;
+  end;
+begin
+  ScanImages(Self);
+end;
+
 procedure Tgoverlayform.StartCube;
 begin
   if not FCubeAutoLaunch then Exit;
@@ -6079,6 +6102,9 @@ begin
   ReflowPerformanceTab(InitW);
   ReflowMetricsTab(InitW);
   ReflowExtrasTab(InitW);
+
+  // Enable smooth rendering for all TImage controls
+  ApplyImageAntialiasing;
 
   // Remove goverlayPanel QFrame border (Qt6 ignores LCL BorderStyle := bsNone at runtime)
   PanelWidget := TQtWidget(goverlayPanel.Handle).Widget;
