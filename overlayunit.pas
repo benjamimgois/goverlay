@@ -11886,7 +11886,7 @@ begin
   vImage.Transparent := True; hImage.Transparent := True;
   vImage.Width := 30;  vImage.Height := 56;   // portrait — Reflow positions these
   hImage.Width := 56;  hImage.Height := 30;   // landscape
-  SS := 'background-color: rgb(26,30,46);';
+  SS := 'QRadioButton { background-color: rgb(26,30,46); }';
   QWidget_setStyleSheet(TQtWidget(FVisualSections[0].Handle).Widget, @SS);
 
   // ·· [1] Borders — positions set by Reflow ································
@@ -11899,6 +11899,7 @@ begin
   squareImage.Transparent := True; roundImage.Transparent := True;
   squareImage.Width := 48; squareImage.Height := 42;
   roundImage.Width  := 48; roundImage.Height  := 42;
+  SS := 'QRadioButton { background-color: rgb(26,30,46); }';
   QWidget_setStyleSheet(TQtWidget(FVisualSections[1].Handle).Widget, @SS);
 
   // ·· [2] Background ·······················································
@@ -12021,6 +12022,8 @@ begin
   gpudescEdit.Color       := BarBg;
   gpudescEdit.Font.Color  := TextColor;
   gpudescEdit.BorderStyle := bsNone;
+  SS := 'background-color: rgb(26,30,46); border: none; color: white;';
+  QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
 
   // ── HUD Title field — option C: style in place ───────────────────────────
   hudtitleEdit.Color       := BarBg;
@@ -12104,7 +12107,7 @@ begin
   hidehudCheckBox.ParentColor := False;
   hidehudCheckBox.Top := 17;
 
-  SS := 'background-color: rgb(26,30,46);';
+  SS := 'QCheckBox { background-color: rgb(26,30,46); }';
   QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
 
 end;
@@ -12635,8 +12638,8 @@ const
         FLimitCaptureBtn.Caption := '⌨ Capture';
     end;
 
-    // Remove GroupBox border/line (Qt6 default frame)
-    GbSS := 'border: none;';
+    // Remove GroupBox border — scoped to QGroupBox only, not child buttons
+    GbSS := 'QGroupBox { border: none; }';
     GbW  := TQtWidget(AGB1.Handle).Widget;
     QWidget_setStyleSheet(GbW, @GbSS);
     GbW  := TQtWidget(AGB2.Handle).Widget;
@@ -13158,7 +13161,7 @@ const
     GB.AnchorSideRight.Control  := nil;
     GB.AnchorSideBottom.Control := nil;
     GB.Anchors := [akLeft, akTop];
-    SS := 'border: none;';
+    SS := 'QGroupBox { border: none; }';
     QWidget_setStyleSheet(TQtWidget(GB.Handle).Widget, @SS);
   end;
 
@@ -14482,7 +14485,7 @@ begin
   TitleLbl.Font.Style  := [fsBold];
   TitleLbl.Font.Color  := CLR_WHITE;
   TitleLbl.AutoSize    := True;
-  TitleLbl.SetBounds(12, 14, 200, 22);
+  TitleLbl.SetBounds(12, 8, 200, 22);
   TitleLbl.Transparent := True;
 
   // Reparent combobox off the vkbasalt tab (hidden data store)
@@ -14506,7 +14509,7 @@ const
   GAP      = 8;    // gap between cards
   RSHD_H   = 308;  // reshade card height
   BTIN_H   = 170;  // built-in effects card height
-  TOGL_H   = 60;   // toggle key card height
+  TOGL_H   = 70;   // toggle key card height
   HDR_Y    = 42;   // Y where list/content starts inside card
   PAD      = 12;   // inner horizontal padding
   BTN_COL  = 36;   // width of +/- button column
@@ -14593,7 +14596,7 @@ begin
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
 
   if Assigned(FVkToggleCaptureBtn) then
-    FVkToggleCaptureBtn.SetBounds(CW - PAD - 130, 16, 130, 28);
+    FVkToggleCaptureBtn.SetBounds(PAD, 36, 130, 28);
 end;
 
 // ============================================================================
