@@ -5929,47 +5929,45 @@ end;
 
 procedure Tgoverlayform.TweaksCheckChange(Sender: TObject);
 begin
-  UpdateTweaksVarListBox;
+  // Listbox reflects the saved fgmod file; updated after Save
 end;
 
 procedure Tgoverlayform.UpdateTweaksVarListBox;
 var
+  FGModFilePath: string;
+  FileLines: TStringList;
   i: Integer;
+  Line, DisplayLine: string;
+  MarkerPos: Integer;
 begin
   if not Assigned(FTweaksVarListBox) then Exit;
   FTweaksVarListBox.Items.BeginUpdate;
   try
     FTweaksVarListBox.Items.Clear;
-    // General
-    if simdeckCheckBox.Checked       then FTweaksVarListBox.Items.Add('export SteamDeck=1');
-    if gamemodeCheckBox.Checked      then FTweaksVarListBox.Items.Add('#gamemode');
-    if enhdrCheckBox.Checked         then
-    begin
-      FTweaksVarListBox.Items.Add('export PROTON_ENABLE_HDR=1');
-      FTweaksVarListBox.Items.Add('export ENABLE_HDR_WSI=1');
+    if FActiveGameName <> '' then
+      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+    else
+      FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+    if not FileExists(FGModFilePath) then Exit;
+    FileLines := TStringList.Create;
+    try
+      FileLines.LoadFromFile(FGModFilePath);
+      for i := 0 to FileLines.Count - 1 do
+      begin
+        Line := Trim(FileLines[i]);
+        if (Copy(Line, 1, 7) = 'export ') or (Line = '#gamemode') then
+        begin
+          MarkerPos := Pos(' #customenv', Line);
+          if MarkerPos > 0 then
+            DisplayLine := Copy(Line, 1, MarkerPos - 1)
+          else
+            DisplayLine := Line;
+          FTweaksVarListBox.Items.Add(DisplayLine);
+        end;
+      end;
+    finally
+      FileLines.Free;
     end;
-    if enwaylandCheckBox.Checked     then FTweaksVarListBox.Items.Add('export PROTON_ENABLE_WAYLAND=1');
-    if actprotonlogsCheckBox.Checked then FTweaksVarListBox.Items.Add('export PROTON_LOG=1');
-    if usesdlCheckBox.Checked        then FTweaksVarListBox.Items.Add('export PROTON_USE_SDL=1');
-    // Graphics
-    if emurtCheckBox.Checked         then FTweaksVarListBox.Items.Add('export RADV_PERFTEST=rt,emulate_rt');
-    if hidenvidiaCheckBox.Checked    then FTweaksVarListBox.Items.Add('export PROTON_HIDE_NVIDIA_GPU=1');
-    if forcenvapiCheckBox.Checked    then FTweaksVarListBox.Items.Add('export PROTON_ENABLE_NVAPI=1');
-    if wined3dCheckBox.Checked       then FTweaksVarListBox.Items.Add('export PROTON_USE_WINED3D=1');
-    if forcezinkCheckBox.Checked     then FTweaksVarListBox.Items.Add('export MESA_LOADER_DRIVER_OVERRIDE=zink');
-    if nofastclearsCheckBox.Checked  then FTweaksVarListBox.Items.Add('export RADV_DEBUG=nofastclears');
-    // Performance
-    if highpriCheckBox.Checked       then FTweaksVarListBox.Items.Add('export PROTON_PRIORITY_HIGH=1');
-    if wow64CheckBox.Checked         then FTweaksVarListBox.Items.Add('export PROTON_USE_WOW64=1');
-    if largeaddressCheckBox.Checked  then FTweaksVarListBox.Items.Add('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1');
-    if stagememCheckBox.Checked      then FTweaksVarListBox.Items.Add('export STAGING_SHARED_MEMORY=1');
-    if disablentsyncCheckBox.Checked then FTweaksVarListBox.Items.Add('export PROTON_NO_NTSYNC=1');
-    if heapdelayCheckBox.Checked     then FTweaksVarListBox.Items.Add('export PROTON_HEAP_DELAY_FREE=1');
-    // Custom env vars
-    if Assigned(FCustomListBox) then
-      for i := 0 to FCustomListBox.Items.Count - 1 do
-        if Trim(FCustomListBox.Items[i]) <> '' then
-          FTweaksVarListBox.Items.Add('export ' + Trim(FCustomListBox.Items[i]));
   finally
     FTweaksVarListBox.Items.EndUpdate;
   end;
@@ -5983,7 +5981,6 @@ begin
   if not Assigned(FTweaksVarListBox) then Exit;
   if FTweaksVarListBox.ItemIndex < 0 then Exit;
   Selected := FTweaksVarListBox.Items[FTweaksVarListBox.ItemIndex];
-  // Only custom env vars (not checkbox-driven) can be removed
   if Copy(Selected, 1, 7) = 'export ' then
     CustomVal := Copy(Selected, 8, MaxInt)
   else
@@ -5993,7 +5990,8 @@ begin
   if Idx >= 0 then
   begin
     FCustomListBox.Items.Delete(Idx);
-    UpdateTweaksVarListBox;
+    // Remove directly from listbox (file not saved yet, can't re-read from it)
+    FTweaksVarListBox.Items.Delete(FTweaksVarListBox.ItemIndex);
   end;
 end;
 
@@ -6656,7 +6654,6 @@ begin
     FCustomListBox.Items.Add(Val);
   customenvEdit.Text := '';
   customenvEdit.SetFocus;
-  UpdateTweaksVarListBox;
 end;
 
 procedure Tgoverlayform.CustomEnvRemoveClick(Sender: TObject);
@@ -8467,6 +8464,9 @@ EnableTraceLogsFound: Boolean;
 
             // Save the modified file
             FGModLines.SaveToFile(FGModFilePath);
+
+            // Refresh listbox to reflect what was just written to the file
+            UpdateTweaksVarListBox;
 
             // Show notification
             SendNotification('Tweaks', 'Configuration saved', GetIconFile);
