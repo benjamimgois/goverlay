@@ -125,10 +125,22 @@ begin
 end;
 
 procedure TblacklistForm.FormShow(Sender: TObject);
-
+const
+  NewDarkBg = $002E1E1A;
 begin
   // Apply current theme
   ApplyTheme(Self, CurrentTheme);
+
+  if CurrentTheme = tmDark then
+  begin
+    Self.Color := NewDarkBg;
+    blackListBox.Color := NewDarkBg;
+    blackListBox.Font.Color := clWhite;
+    blacklistEdit.Color := NewDarkBg;
+    blacklistEdit.Font.Color := clWhite;
+    blacklistLabel.Font.Color := clWhite;
+    blacklistLabel.Transparent := True;
+  end;
 
   BlacklistFile := GetUserConfig + '/goverlay/blacklist.conf';
   FileLines := TStringList.Create;

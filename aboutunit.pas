@@ -84,6 +84,8 @@ begin
 end;
 
 procedure TaboutForm.FormCreate(Sender: TObject);
+const
+  NewDarkBg = $002E1E1A;
 var
   i: Integer;
 begin
@@ -93,13 +95,25 @@ begin
   //Centralize window
   CenterFormOnScreen(Self);
 
-  // Apply current theme pattern
-  if CurrentTheme = tmDark then
-    abouttabsheet.Color := DarkBackgroundColor
-  else
-    abouttabsheet.Color := LightBackgroundColor;
-
   ApplyTheme(Self, CurrentTheme);
+
+  if CurrentTheme = tmDark then
+  begin
+    Self.Color := NewDarkBg;
+    aboutPageControl.Color := NewDarkBg;
+    aboutTabSheet.Color := NewDarkBg;
+    licenseTabSheet.Color := NewDarkBg;
+    titleLabel.Font.Color := clWhite;
+    titleLabel.Transparent := True;
+    meLabel.Font.Color := clWhite;
+    meLabel.Transparent := True;
+    descLabel.Font.Color := clWhite;
+    descLabel.Transparent := True;
+    creditsLabel.Font.Color := clWhite;
+    creditsLabel.Transparent := True;
+    gplMemo.Color := NewDarkBg;
+    gplMemo.Font.Color := clWhite;
+  end;
 end;
 
 procedure TaboutForm.donateImageClick(Sender: TObject);

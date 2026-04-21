@@ -5223,11 +5223,7 @@ begin
   // Apply per-control theme overrides for dynamically created controls
   ApplyCustomEnvTheme;
 
-  // Update settings menu theme item caption based on loaded theme
-  if SavedTheme = tmLight then
-    themeMenuItem.Caption := 'Switch to Dark theme'
-  else
-    themeMenuItem.Caption := 'Switch to Light theme';
+  themeMenuItem.Visible := False;
 
   // Bring settings button to front to ensure it's visible
   settingsSpeedButton.BringToFront;
@@ -6969,6 +6965,7 @@ vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 tweakstabsheet.TabVisible:=false;  //disable tweaks tab
 gamesTabSheet.TabVisible:=false; //disable games tab
+FHomeTabSheet.TabVisible:=false; //hide home tab when switching to mangohud
 
 goverlayPageControl.ActivePage:=presetTabsheet;
 
