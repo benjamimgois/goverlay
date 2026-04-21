@@ -368,8 +368,13 @@ begin
     '  echo "ℹ️ OptiScaler disabled (GOVERLAY_OPTISCALER != 1), skipping DLL install"' + LineEnding +
     'fi' + LineEnding +
     '' + LineEnding +
-    'cp -f "$fgmod_path/MangoHud.conf" "$exe_folder_path/" || true' + LineEnding +
-    'cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true' + LineEnding +
+    'if [[ "$GOVERLAY_MANGOHUD" == "1" ]]; then' + LineEnding +
+    '  cp -f "$fgmod_path/MangoHud.conf" "$exe_folder_path/" || true' + LineEnding +
+    'fi' + LineEnding +
+    '' + LineEnding +
+    'if [[ "$GOVERLAY_VKBASALT" == "1" ]]; then' + LineEnding +
+    '  cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true' + LineEnding +
+    'fi' + LineEnding +
     '' + LineEnding +
     'echo "✅ fgmod completed successfully!"' + LineEnding +
     'echo "📄 For Steam, add this to the launch options: \"$fgmod_path/fgmod\" %COMMAND%"' + LineEnding +

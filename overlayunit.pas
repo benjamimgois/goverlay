@@ -10667,11 +10667,11 @@ begin
     // The GOVERLAY_X flag (set above) controls whether each line actually runs.
     if Idx = 0 then
       PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
-        '[[ "$GOVERLAY_MANGOHUD" != "0" ]] && export MANGOHUD=1',
+        '[[ "$GOVERLAY_MANGOHUD" == "1" ]] && export MANGOHUD=1',
         'MANGOHUD=1');
     if Idx = 1 then
       PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
-        '[[ "$GOVERLAY_VKBASALT" != "0" ]] && export ENABLE_VKBASALT=1',
+        '[[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKBASALT=1',
         'ENABLE_VKBASALT=1');
     // OptiScaler toggle copies/removes all OptiScaler files and patches fgmod
     if Idx = 2 then
