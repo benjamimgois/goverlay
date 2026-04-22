@@ -3864,7 +3864,8 @@ var
   ConfigDir, FontPath, FontDir, DistroFile: string;
   FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
   SelectedValues: TStringList;
-  i,TempFPS, MaxFPS: Integer;
+  i, TempFPS, MaxFPS, FPS: Integer;
+  FPSNumbers: TStringList;
 
   TempFiles, FontDirs: TStringList;
   TempFile: string;
@@ -4247,6 +4248,29 @@ begin
       ConfigLines.Add('fps_limit=' + Trim(FFpsLimitEdit.Text))
     else
       ConfigLines.Add('fps_limit=0');
+
+    // Update FPS colour thresholds from the entered limit values
+    if Assigned(FFpsLimitEdit) then
+    begin
+      FPSNumbers := TStringList.Create;
+      try
+        FPSNumbers.Delimiter := ',';
+        FPSNumbers.DelimitedText := Trim(FFpsLimitEdit.Text);
+        MaxFPS := 0;
+        for i := 0 to FPSNumbers.Count - 1 do
+        begin
+          FPS := StrToIntDef(FPSNumbers[i], 0);
+          if FPS > MaxFPS then
+            MaxFPS := FPS;
+        end;
+        if MaxFPS = 0 then
+          MaxFPS := 60;
+        fpscolor3SpinEdit.Value := MaxFPS;
+        fpscolor2SpinEdit.Value := Round(MaxFPS / 2);
+      finally
+        FPSNumbers.Free;
+      end;
+    end;
 
     // Resolution
     AddIfChecked(resolutionCheckBox, 'resolution');
@@ -8097,8 +8121,8 @@ var
   FoundIndex,i: integer;
   NOITEMCHECK: boolean;
   Output,FileLines, ConfigLines: TStringList;
-  MaxFPS, SelectedFPS: Integer;
-  SelectedValues: TStringList;
+  MaxFPS, SelectedFPS, FPS: Integer;
+  SelectedValues, FPSNumbers: TStringList;
   FONTDIR, TempFile: String;
   TempFiles: TStringList;
   GlobalMangoHudFile: string;  // Global MangoHud config path (for blacklist — never game-specific)
@@ -12395,30 +12419,18 @@ begin
   Lbl.SetBounds(ContL + 6, ContT - 18, 100, 20);
   Lbl.Anchors := [akLeft, akTop];
 
-  // Hint label
-  Lbl := TLabel.Create(Self);
-  Lbl.Parent := fpslimiterGroupBox;
-  Lbl.Caption := 'Type FPS values separated by commas (e.g. 30,60,120)';
-  Lbl.Font.Name := 'Noto Sans';
-  Lbl.Font.Color := IfThen(IsLight, $00888888, $00888888);
-  Lbl.Font.Size := 8;
-  Lbl.Transparent := True;
-  Lbl.SetBounds(ContL + 6, ContT + 4, ContW - 12, 16);
-  Lbl.Anchors := [akLeft, akTop];
-
-  // Create the edit
+  // Create the edit — large font, text hint replaces separate label
   FFpsLimitEdit := TEdit.Create(Self);
   FFpsLimitEdit.Parent := fpslimiterGroupBox;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 22, ContW - 12, 28);
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 8, ContW - 12, 36);
   FFpsLimitEdit.Anchors := [akLeft, akTop, akRight];
   FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
-  FFpsLimitEdit.Font.Size := 10;
+  FFpsLimitEdit.Font.Size := 14;
   FFpsLimitEdit.Font.Color := TextColor;
   FFpsLimitEdit.Color := EditBg;
   FFpsLimitEdit.BorderStyle := bsNone;
   FFpsLimitEdit.Text := '0';
-  FFpsLimitEdit.Hint := 'Enter comma-separated FPS limits. Use 0 to disable.';
-  FFpsLimitEdit.ShowHint := True;
+  FFpsLimitEdit.TextHint := 'Type FPS values separated by commas (e.g. 30,60,120)';
 end;
 
 // ============================================================================
