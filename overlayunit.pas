@@ -619,6 +619,7 @@ type
     // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
+    FNavToolImgListSmall: TImageList;  // smaller ON/OFF icons for collapsed nav
 
     // Home tab
     FHomeTabSheet:     TTabSheet;
@@ -694,6 +695,7 @@ type
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
     procedure BuildNavToolToggles;
+    procedure BuildSmallToggleImages;
     procedure NavToolToggleClick(Sender: TObject);
     procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
     procedure LoadGameToggleStates;
@@ -10475,6 +10477,7 @@ begin
 
   // Build per-tool toggle buttons (game mode only)
   BuildNavToolToggles;
+  BuildSmallToggleImages;
 
   // Apply persisted collapsed state (no animation on startup)
   if FNavCollapsed then
@@ -10618,6 +10621,45 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.BuildSmallToggleImages;
+var
+  SrcBmp, DstBmp: TBitmap;
+  i: Integer;
+begin
+  if Assigned(FNavToolImgListSmall) then
+    FreeAndNil(FNavToolImgListSmall);
+
+  FNavToolImgListSmall := TImageList.Create(Self);
+  FNavToolImgListSmall.Width  := 20;
+  FNavToolImgListSmall.Height := 9;
+
+  for i := 0 to 1 do
+  begin
+    SrcBmp := TBitmap.Create;
+    try
+      SrcBmp.Width  := globalbuttonImageList.Width;
+      SrcBmp.Height := globalbuttonImageList.Height;
+      SrcBmp.Canvas.Brush.Color := clFuchsia;
+      SrcBmp.Canvas.FillRect(0, 0, SrcBmp.Width, SrcBmp.Height);
+      globalbuttonImageList.Draw(SrcBmp.Canvas, 0, 0, i);
+
+      DstBmp := TBitmap.Create;
+      try
+        DstBmp.Width  := 20;
+        DstBmp.Height := 9;
+        DstBmp.Canvas.Brush.Color := clFuchsia;
+        DstBmp.Canvas.FillRect(0, 0, DstBmp.Width, DstBmp.Height);
+        DstBmp.Canvas.StretchDraw(Rect(0, 0, 20, 9), SrcBmp);
+        FNavToolImgListSmall.AddMasked(DstBmp, clFuchsia);
+      finally
+        DstBmp.Free;
+      end;
+    finally
+      SrcBmp.Free;
+    end;
+  end;
+end;
+
 procedure Tgoverlayform.NavToolToggleClick(Sender: TObject);
 var
   Idx: Integer;
@@ -10691,6 +10733,7 @@ begin
           BtnW    := BTN_FULL;
           BtnLeft := NAV_ITEM_W - BtnW - 6;
           BtnTop  := (NAV_ITEM_H - BtnW) div 2;
+          FNavToolBtns[i].Images := globalbuttonImageList;
         end
         else
         begin
@@ -10698,6 +10741,8 @@ begin
           BtnW    := BTN_SMALL;
           BtnLeft := (NAV_W_COLLAPSED - BtnW) div 2;
           BtnTop  := ICON_TOP_C + NAV_ICON_SIZE + 4;
+          if Assigned(FNavToolImgListSmall) then
+            FNavToolBtns[i].Images := FNavToolImgListSmall;
         end;
         FNavToolBtns[i].SetBounds(BtnLeft, BtnTop, BtnW, BtnW);
       end;
