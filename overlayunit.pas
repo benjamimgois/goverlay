@@ -12393,7 +12393,33 @@ begin
   fpscolor3ColorButton.AnchorSideTop.Control    := nil;
   fpscolor3ColorButton.AnchorSideBottom.Control := nil;
   fpscolor3ColorButton.Anchors := [akLeft, akTop];
-  fpscolor3ColorButton.SetBounds(227, 233, 80, fpscolor3ColorButton.Height);
+
+  fpscolor2SpinEdit.AnchorSideLeft.Control   := nil;
+  fpscolor2SpinEdit.AnchorSideTop.Control    := nil;
+  fpscolor2SpinEdit.AnchorSideBottom.Control := nil;
+  fpscolor2SpinEdit.Anchors := [akLeft, akTop];
+
+  fpscolor3SpinEdit.AnchorSideLeft.Control   := nil;
+  fpscolor3SpinEdit.AnchorSideTop.Control    := nil;
+  fpscolor3SpinEdit.AnchorSideRight.Control  := nil;
+  fpscolor3SpinEdit.AnchorSideBottom.Control := nil;
+  fpscolor3SpinEdit.Anchors := [akLeft, akTop];
+
+  methodLabel.AnchorSideLeft.Control   := nil;
+  methodLabel.AnchorSideTop.Control    := nil;
+  methodLabel.AnchorSideBottom.Control := nil;
+  methodLabel.Anchors := [akLeft, akTop];
+
+  fpslimmetComboBox.AnchorSideLeft.Control   := nil;
+  fpslimmetComboBox.AnchorSideTop.Control    := nil;
+  fpslimmetComboBox.AnchorSideBottom.Control := nil;
+  fpslimmetComboBox.Anchors := [akLeft, akTop];
+
+  limtoggleLabel.AnchorSideLeft.Control   := nil;
+  limtoggleLabel.AnchorSideTop.Control    := nil;
+  limtoggleLabel.AnchorSideRight.Control  := nil;
+  limtoggleLabel.AnchorSideBottom.Control := nil;
+  limtoggleLabel.Anchors := [akLeft, akTop];
 
   // Hide legacy controls
   fpslimCheckGroup.Visible := False;
@@ -12405,32 +12431,59 @@ begin
   ContL := fpslimCheckGroup.Left;
   ContT := fpslimCheckGroup.Top;
   ContW := fpslimCheckGroup.Width;
-  ContH := fpslimCheckGroup.Height;
+  ContH := fpslimiterGroupBox.Height - ContT;  // usable height to bottom of groupbox
 
-  // Title label
+  // Title label with lightning icon
   Lbl := TLabel.Create(Self);
   Lbl.Parent := fpslimiterGroupBox;
-  Lbl.Caption := 'FPS Limit';
+  Lbl.Caption := '⚡ FPS Limit';
   Lbl.Font.Name := 'Noto Sans';
   Lbl.Font.Color := TextColor;
   Lbl.Font.Style := [fsBold];
   Lbl.Font.Size := 9;
   Lbl.Transparent := True;
-  Lbl.SetBounds(ContL + 6, ContT - 18, 100, 20);
+  Lbl.SetBounds(ContL + 6, ContT - 18, 140, 20);
   Lbl.Anchors := [akLeft, akTop];
 
-  // Create the edit — large font, text hint replaces separate label
+  // Create the edit — very large font for readability
   FFpsLimitEdit := TEdit.Create(Self);
   FFpsLimitEdit.Parent := fpslimiterGroupBox;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 8, ContW - 12, 36);
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 8, ContW - 12, 44);
   FFpsLimitEdit.Anchors := [akLeft, akTop, akRight];
   FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
-  FFpsLimitEdit.Font.Size := 14;
+  FFpsLimitEdit.Font.Size := 24;
   FFpsLimitEdit.Font.Color := TextColor;
   FFpsLimitEdit.Color := EditBg;
   FFpsLimitEdit.BorderStyle := bsNone;
   FFpsLimitEdit.Text := '0';
-  FFpsLimitEdit.TextHint := 'Type FPS values separated by commas (e.g. 30,60,120)';
+
+  // Small hint label below the edit
+  Lbl := TLabel.Create(Self);
+  Lbl.Parent := fpslimiterGroupBox;
+  Lbl.Caption := 'e.g. 30,60,120,0 — 0 to unlimited';
+  Lbl.Font.Name := 'Noto Sans';
+  Lbl.Font.Color := IfThen(IsLight, $00999999, $00666666);
+  Lbl.Font.Size := 7;
+  Lbl.Transparent := True;
+  Lbl.SetBounds(ContL + 6, ContT + 54, ContW - 12, 14);
+  Lbl.Anchors := [akLeft, akTop];
+
+  // ── Spread controls vertically: edit top, colours middle, method bottom ───
+  fpscolorCheckBox.SetBounds(ContL + (ContW - 150) div 2, ContT + 115, 150, 21);
+  fpscolorCheckBox.Font.Color := TextColor;
+
+  fpscolor1ColorButton.SetBounds(ContL + 6,        ContT + 140, 80, 18);
+  fpscolor2ColorButton.SetBounds(ContL + ContW div 2 - 40, ContT + 140, 80, 18);
+  fpscolor3ColorButton.SetBounds(ContL + ContW - 86,      ContT + 140, 80, 18);
+
+  fpscolor2SpinEdit.SetBounds(ContL + ContW div 2 - 35, ContT + 165, 70, 26);
+  fpscolor3SpinEdit.SetBounds(ContL + ContW - 81,      ContT + 165, 70, 26);
+
+  // ── Method / Limit toggle key pinned to the bottom of the groupbox ────────
+  methodLabel.SetBounds(ContL + 6, ContT + ContH - 70, 60, 18);
+  methodLabel.Font.Color := TextColor;
+
+  fpslimmetComboBox.SetBounds(ContL + 6, ContT + ContH - 48, 110, 32);
 end;
 
 // ============================================================================
@@ -12557,15 +12610,16 @@ const
       limtoggleLabel.AnchorSideRight.Control  := nil;
       limtoggleLabel.AnchorSideBottom.Control := nil;
       limtoggleLabel.Anchors := [akLeft, akTop];
-      limtoggleLabel.Left    := AGB1.ClientWidth - 211 - 11;
-      limtoggleLabel.Top     := 321 - 22;
+      // Align with the repositioned bottom row from BuildFpsLimitEdit
+      limtoggleLabel.Left    := AGB1.ClientWidth - 150;
+      limtoggleLabel.Top     := AGB1.Height - 70;
       limtoggleLabel.Font.Color := TextColor;
       limtoggleLabel.ParentColor := True;
 
       FLimitCaptureBtn := TBitBtn.Create(AGB1);
       FLimitCaptureBtn.Parent  := AGB1;
       FLimitCaptureBtn.Tag     := 2;
-      FLimitCaptureBtn.SetBounds(limtoggleLabel.Left, 321, 160, 28);
+      FLimitCaptureBtn.SetBounds(limtoggleLabel.Left, AGB1.Height - 48, 130, 32);
       FLimitCaptureBtn.OnClick := @CaptureBtnClick;
       FLimitCaptureBtn.Cursor  := crHandPoint;
       if Trim(fpslimtoggleComboBox.Text) <> '' then
