@@ -621,6 +621,9 @@ type
     FNavToolEnabled: array[0..3] of Boolean;
     FNavToolImgListSmall: TImageList;  // smaller ON/OFF icons for collapsed nav
 
+    // FPS Limit custom input (replaces chip grid)
+    FFpsLimitEdit:   TEdit;              // comma-separated FPS values
+
     // Home tab
     FHomeTabSheet:     TTabSheet;
     FHomeModDots:      array[0..2] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler
@@ -672,9 +675,7 @@ type
     FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
 
-    // FPS Limit chip grid
-    FFpsChips:     array[0..15] of TPanel; // One chip per fps value
-    FFpsChipPanel: TPanel;                 // Container panel for all chips
+
 
     procedure BuildNavRail;
     procedure BuildPresetsWrapper;
@@ -734,10 +735,7 @@ type
     procedure InitPerformanceTab;
     procedure InitExtrasTab;
     procedure InitOptiScalerTab;
-    procedure BuildFpsChips;
-    procedure FpsChipClick(Sender: TObject);
-    procedure FpsChipMouseEnter(Sender: TObject);
-    procedure FpsChipMouseLeave(Sender: TObject);
+    procedure BuildFpsLimitEdit;
     procedure UpdatePerfCardTheme;
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
@@ -4244,32 +4242,11 @@ begin
     if Trim(fpslimtoggleComboBox.Text) <> '' then
       ConfigLines.Add('toggle_fps_limit=' + fpslimtoggleComboBox.Text);
 
-    // FPS limits (from checkgroup)
-    SelectedValues := TStringList.Create;
-    try
-      MaxFPS := 0;
-      for i := 0 to fpslimcheckgroup.Items.Count - 1 do
-      begin
-        if fpslimcheckgroup.Checked[i] then
-        begin
-          TempFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
-          if TempFPS <> 0 then
-            TempFPS := TempFPS + offsetSpinedit.Value;
-          SelectedValues.Add(IntToStr(TempFPS));
-          if StrToIntDef(fpslimcheckgroup.Items[i], 0) > MaxFPS then
-            MaxFPS := StrToIntDef(fpslimcheckgroup.Items[i], 0);
-        end;
-      end;
-      if SelectedValues.Count > 0 then
-        ConfigLines.Add('fps_limit=' + SelectedValues.CommaText)
-      else
-        ConfigLines.Add('fps_limit=0');
-    finally
-      SelectedValues.Free;
-    end;
-
-    // Offset
-    ConfigLines.Add('#offset=' + IntToStr(offsetSpinedit.Value));
+    // FPS limits (from edit field)
+    if Assigned(FFpsLimitEdit) and (Trim(FFpsLimitEdit.Text) <> '') then
+      ConfigLines.Add('fps_limit=' + Trim(FFpsLimitEdit.Text))
+    else
+      ConfigLines.Add('fps_limit=0');
 
     // Resolution
     AddIfChecked(resolutionCheckBox, 'resolution');
@@ -5610,75 +5587,54 @@ begin
 
      //#################################################    Checkgroups
 
-    //FPS limits
+     // FPS limits — read raw comma-separated value into the edit
+     MaxFPS := 0;
+     FoundFPSLimit := False;
+     FPSValues := '';
 
-    FPSList := TStringList.Create;
-      ConfigFile := TStringList.Create;
-      FPSNumbers := TStringList.Create;
-      try
-        MaxFPS := 0;
-        FoundFPSLimit := False;
+     if FileExists(MANGOHUDCFGFILE) then
+     begin
+       ConfigFile := TStringList.Create;
+       try
+         ConfigFile.LoadFromFile(MANGOHUDCFGFILE);
+         for Line in ConfigFile do
+           if StartsText('fps_limit=', Line) then
+           begin
+             FPSValues := Copy(Line, Pos('=', Line) + 1, Length(Line));
+             FoundFPSLimit := True;
+             Break;
+           end;
+       finally
+         ConfigFile.Free;
+       end;
+     end;
 
-        if FileExists(MANGOHUDCFGFILE) then
-        begin
-          ConfigFile.LoadFromFile(MANGOHUDCFGFILE);
+     if FoundFPSLimit then
+     begin
+       if Assigned(FFpsLimitEdit) then
+         FFpsLimitEdit.Text := FPSValues;
+       // Derive max FPS for colour thresholds
+       FPSNumbers := TStringList.Create;
+       try
+         FPSNumbers.Delimiter := ',';
+         FPSNumbers.DelimitedText := FPSValues;
+         for i := 0 to FPSNumbers.Count - 1 do
+         begin
+           FPS := StrToIntDef(FPSNumbers[i], 0);
+           if FPS > MaxFPS then
+             MaxFPS := FPS;
+         end;
+       finally
+         FPSNumbers.Free;
+       end;
+     end
+     else if Assigned(FFpsLimitEdit) then
+       FFpsLimitEdit.Text := '0';
 
-          // Searching for fps_limit and offset lines
-          FPSValues := '';
-          OffsetValue := '0';
-          for Line in ConfigFile do
-          begin
-            if StartsText('fps_limit=', Line) then
-            begin
-              FPSValues := Copy(Line, Pos('=', Line) + 1, Length(Line));
-              FoundFPSLimit := True;
-            end;
-            if StartsText('#offset=', Line) then
-              OffsetValue := Copy(Line, Pos('=', Line) + 1, Length(Line));
-          end;
-
-          // Converting offset to an integer
-          Offset := Abs(StrToIntDef(OffsetValue, 0));
-
-          if FoundFPSLimit and (Trim(FPSValues) <> '0') then
-          begin
-            // Processing FPS values
-            FPSNumbers.DelimitedText := FPSValues;
-            FPSNumbers.Delimiter := ',';
-
-            for i := 0 to FPSNumbers.Count - 1 do
-            begin
-              FPS := StrToIntDef(FPSNumbers[i], 0);
-              if FPS <> 0 then
-                FPS := FPS + Offset;
-              FPSList.Add(IntToStr(FPS));
-              if FPS > MaxFPS then
-                MaxFPS := FPS;
-            end;
-
-            // Marking values in the CheckGroup
-            for i := 0 to fpslimcheckgroup.Items.Count - 1 do
-            begin
-              if FPSList.IndexOf(fpslimcheckgroup.Items[i]) <> -1 then
-                fpslimcheckgroup.Checked[i] := True
-              else
-                fpslimcheckgroup.Checked[i] := False;
-            end;
-          end;
-        end;
-
-        // Setting values for the SpinEdits
-        if (MaxFPS = 0) or (not FoundFPSLimit) then
-          MaxFPS := 60;
-
-        fpscolor3spinedit.Value := MaxFPS;
-        fpscolor2spinedit.Value := Round(MaxFPS / 2);
-
-      finally
-        FPSList.Free;
-        ConfigFile.Free;
-        FPSNumbers.Free;
-      end;
+     if MaxFPS = 0 then
+       MaxFPS := 60;
+     fpscolor3spinedit.Value := MaxFPS;
+     fpscolor2spinedit.Value := Round(MaxFPS / 2);
 
 
 
@@ -12380,117 +12336,19 @@ end;
 // FPS LIMIT CHIPS — visual tag-style chip grid
 // ============================================================================
 
-const
-  FPS_VALUES: array[0..15] of string = (
-    '500','360','280','240','175','165','144','120','90','75','60','48','45','40','30','0');
-
-procedure Tgoverlayform.FpsChipClick(Sender: TObject);
+procedure Tgoverlayform.BuildFpsLimitEdit;
 var
-  Chip: TPanel;
-  Idx, i, MaxFPS, FpsVal: Integer;
-  IsChecked: Boolean;
   IsLight: Boolean;
-  ChipBg, ChipText, AccentColor: TColor;
+  Bg, TextColor, EditBg: TColor;
+  Lbl: TLabel;
+  ContL, ContT, ContW, ContH: Integer;
 begin
-  Chip := TPanel(Sender);
-  Idx  := Chip.Tag;
-  if (Idx < 0) or (Idx > 15) then Exit;
+  IsLight   := CurrentTheme = tmLight;
+  Bg        := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
+  TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+  EditBg    := IfThen(IsLight, $00F5F5F5, $002E2E2E);
 
-  // Toggle state on the backing TCheckGroup
-  IsChecked := not fpslimCheckGroup.Checked[Idx];
-  fpslimCheckGroup.Checked[Idx] := IsChecked;
-
-  // Update chip visual
-  IsLight     := CurrentTheme = tmLight;
-  AccentColor := clHighlight;  // system highlight = blue accent
-  if IsChecked then
-  begin
-    Chip.Color      := AccentColor;
-    Chip.Font.Color := clWhite;
-    Chip.Font.Style := [fsBold];
-  end
-  else
-  begin
-    ChipBg     := IfThen(IsLight, $00F0EEEE, $003E3636);
-    ChipText   := IfThen(IsLight, $00444040, $00CCCCCC);
-    Chip.Color      := ChipBg;
-    Chip.Font.Color := ChipText;
-    Chip.Font.Style := [];
-  end;
-  Chip.Invalidate;
-
-  // Recalculate FPS color spinedits: find the highest checked FPS value
-  MaxFPS := 0;
-  for i := 0 to fpslimCheckGroup.Items.Count - 1 do
-  begin
-    if fpslimCheckGroup.Checked[i] then
-    begin
-      FpsVal := StrToIntDef(fpslimCheckGroup.Items[i], 0);
-      if FpsVal > MaxFPS then
-        MaxFPS := FpsVal;
-    end;
-  end;
-  if MaxFPS = 0 then
-    MaxFPS := 60;  // fallback when nothing or only 0 is selected
-  fpscolor3SpinEdit.Value := MaxFPS;
-  fpscolor2SpinEdit.Value := Round(MaxFPS / 2);
-end;
-
-procedure Tgoverlayform.FpsChipMouseEnter(Sender: TObject);
-var
-  Chip: TPanel;
-  Idx: Integer;
-  IsLight: Boolean;
-begin
-  Chip := TPanel(Sender);
-  Idx  := Chip.Tag;
-  if (Idx < 0) or (Idx > 15) then Exit;
-  if fpslimCheckGroup.Checked[Idx] then Exit; // already selected, no hover effect
-  IsLight := CurrentTheme = tmLight;
-  Chip.Color := IfThen(IsLight, $00DDD8D8, $00504848);
-  Chip.Invalidate;
-end;
-
-procedure Tgoverlayform.FpsChipMouseLeave(Sender: TObject);
-var
-  Chip: TPanel;
-  Idx: Integer;
-  IsLight: Boolean;
-  ChipBg: TColor;
-begin
-  Chip := TPanel(Sender);
-  Idx  := Chip.Tag;
-  if (Idx < 0) or (Idx > 15) then Exit;
-  if fpslimCheckGroup.Checked[Idx] then Exit; // already selected
-  IsLight := CurrentTheme = tmLight;
-  ChipBg  := IfThen(IsLight, $00F0EEEE, $003E3636);
-  Chip.Color := ChipBg;
-  Chip.Invalidate;
-end;
-
-procedure Tgoverlayform.BuildFpsChips;
-const
-  CHIP_W  = 50;
-  CHIP_H  = 28;
-  GAP_X   = 6;
-  GAP_Y   = 6;
-  COLS    = 4;
-  ROWS    = 4;
-var
-  i, Col, Row: Integer;
-  Chip: TPanel;
-  Container: TPanel;
-  IsLight: Boolean;
-  ChipBg, ChipText: TColor;
-  ContW, ContH, OffX, OffY: Integer;
-  TitleLbl: TLabel;
-begin
-  IsLight := CurrentTheme = tmLight;
-
-  // ── Step 1: Release every LFM anchor that points to fpslimCheckGroup ────────
-  // Each control keeps its LCL-computed position after nil. Explicit SetBounds
-  // is used where both AnchorSideLeft+Right referenced the same edge (ambiguous
-  // width), to restore the LFM-designed values.
+  // ── Free anchors that pointed to fpslimCheckGroup ─────────────────────────
   fpscolorCheckBox.AnchorSideLeft.Control   := nil;
   fpscolorCheckBox.AnchorSideTop.Control    := nil;
   fpscolorCheckBox.AnchorSideBottom.Control := nil;
@@ -12513,99 +12371,54 @@ begin
   fpscolor3ColorButton.Anchors := [akLeft, akTop];
   fpscolor3ColorButton.SetBounds(227, 233, 80, fpscolor3ColorButton.Height);
 
-  offsetSpinEdit.AnchorSideLeft.Control  := nil;
-  offsetSpinEdit.AnchorSideTop.Control   := nil;
-  offsetSpinEdit.AnchorSideRight.Control := nil;
-  offsetSpinEdit.Anchors := [akLeft, akTop];
-  offsetSpinEdit.SetBounds(318, 95, 45, offsetSpinEdit.Height);
-
-  fpslimLabel.AnchorSideLeft.Control   := nil;
-  fpslimLabel.AnchorSideBottom.Control := nil;
-  fpslimLabel.Anchors := [akLeft, akTop];
-  fpslimLabel.Visible := False;
-
-  // ── Step 2: Hide the TCheckGroup — all dependencies freed, no other ─────────
-  // control will move. The GTK native border disappears completely.
+  // Hide legacy controls
   fpslimCheckGroup.Visible := False;
+  offsetSpinEdit.Visible   := False;
+  offsetLabel.Visible      := False;
+  fpslimLabel.Visible      := False;
 
-  // ── Step 3: Create chip container in the same area ──────────────────────────
-  ContW := COLS * CHIP_W + (COLS - 1) * GAP_X;   // 218px
-  ContH := ROWS * CHIP_H + (ROWS - 1) * GAP_Y;   // 130px
+  // Container rect based on where fpslimCheckGroup was
+  ContL := fpslimCheckGroup.Left;
+  ContT := fpslimCheckGroup.Top;
+  ContW := fpslimCheckGroup.Width;
+  ContH := fpslimCheckGroup.Height;
 
-  Container := TPanel.Create(Self);
-  Container.Parent      := fpslimiterGroupBox;
-  Container.BevelOuter  := bvNone;
-  Container.Caption     := '';
-  Container.ParentColor := False;
-  Container.Color       := IfThen(IsLight, $00FFFFFF, $00362E2E);
-  Container.Anchors     := [akLeft, akTop];
-  Container.SetBounds(
-    fpslimCheckGroup.Left,
-    fpslimCheckGroup.Top,
-    fpslimCheckGroup.Width,
-    fpslimCheckGroup.Height
-  );
-  FFpsChipPanel := Container;
+  // Title label
+  Lbl := TLabel.Create(Self);
+  Lbl.Parent := fpslimiterGroupBox;
+  Lbl.Caption := 'FPS Limit';
+  Lbl.Font.Name := 'Noto Sans';
+  Lbl.Font.Color := TextColor;
+  Lbl.Font.Style := [fsBold];
+  Lbl.Font.Size := 9;
+  Lbl.Transparent := True;
+  Lbl.SetBounds(ContL + 6, ContT - 18, 100, 20);
+  Lbl.Anchors := [akLeft, akTop];
 
-  TitleLbl := TLabel.Create(Self);
-  TitleLbl.Parent := fpslimiterGroupBox;
-  TitleLbl.Caption := 'FPS Limit';
-  TitleLbl.Font.Name := 'Noto Sans';
-  TitleLbl.Font.Color := IfThen(IsLight, $00444040, clWhite);
-  TitleLbl.Font.Style := [fsBold];
-  TitleLbl.Transparent := True;
-  TitleLbl.SetBounds(fpslimCheckGroup.Left + 6, fpslimCheckGroup.Top - 18, 100, 20);
-  TitleLbl.Anchors := [akLeft, akTop];
+  // Hint label
+  Lbl := TLabel.Create(Self);
+  Lbl.Parent := fpslimiterGroupBox;
+  Lbl.Caption := 'Type FPS values separated by commas (e.g. 30,60,120)';
+  Lbl.Font.Name := 'Noto Sans';
+  Lbl.Font.Color := IfThen(IsLight, $00888888, $00888888);
+  Lbl.Font.Size := 8;
+  Lbl.Transparent := True;
+  Lbl.SetBounds(ContL + 6, ContT + 4, ContW - 12, 16);
+  Lbl.Anchors := [akLeft, akTop];
 
-  // Center chip grid inside the container
-  OffX := (fpslimCheckGroup.Width  - ContW) div 2;
-  OffY := (fpslimCheckGroup.Height - ContH) div 2;
-
-  // ── Step 4: Build individual chips ─────────────────────────────────────────
-  for i := 0 to 15 do
-  begin
-    Col := i mod COLS;
-    Row := i div COLS;
-
-    Chip := TPanel.Create(Self);
-    Chip.Parent       := Container;
-    Chip.BevelOuter   := bvNone;
-    Chip.BorderStyle  := bsNone;
-    Chip.Caption      := FPS_VALUES[i];
-    Chip.Tag          := i;
-    Chip.Cursor       := crHandPoint;
-    Chip.Font.Name    := 'Noto Sans';
-    Chip.Font.Size    := 8;
-    Chip.Font.Quality := fqAntialiased;
-
-    if fpslimCheckGroup.Checked[i] then
-    begin
-      Chip.Color      := clHighlight;
-      Chip.Font.Color := clWhite;
-      Chip.Font.Style := [fsBold];
-    end
-    else
-    begin
-      ChipBg   := IfThen(IsLight, $00F0EEEE, $003E3636);
-      ChipText := IfThen(IsLight, $00444040, $00CCCCCC);
-      Chip.Color      := ChipBg;
-      Chip.Font.Color := ChipText;
-      Chip.Font.Style := [];
-    end;
-
-    Chip.SetBounds(
-      OffX + Col * (CHIP_W + GAP_X),
-      OffY + Row * (CHIP_H + GAP_Y),
-      CHIP_W,
-      CHIP_H
-    );
-
-    Chip.OnClick      := @FpsChipClick;
-    Chip.OnMouseEnter := @FpsChipMouseEnter;
-    Chip.OnMouseLeave := @FpsChipMouseLeave;
-
-    FFpsChips[i] := Chip;
-  end;
+  // Create the edit
+  FFpsLimitEdit := TEdit.Create(Self);
+  FFpsLimitEdit.Parent := fpslimiterGroupBox;
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 22, ContW - 12, 28);
+  FFpsLimitEdit.Anchors := [akLeft, akTop, akRight];
+  FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
+  FFpsLimitEdit.Font.Size := 10;
+  FFpsLimitEdit.Font.Color := TextColor;
+  FFpsLimitEdit.Color := EditBg;
+  FFpsLimitEdit.BorderStyle := bsNone;
+  FFpsLimitEdit.Text := '0';
+  FFpsLimitEdit.Hint := 'Enter comma-separated FPS limits. Use 0 to disable.';
+  FFpsLimitEdit.ShowHint := True;
 end;
 
 // ============================================================================
@@ -12843,8 +12656,8 @@ begin
     vsyncGroupBox.ClientHeight - vsyncGroupBox.ClientHeight div 2,
     openglImage, glvsyncComboBox);
 
-  // FPS Limit chips — visual tag grid replacing TCheckGroup
-  BuildFpsChips;
+  // FPS Limit — single comma-separated input field
+  BuildFpsLimitEdit;
 end;
 
 procedure Tgoverlayform.InitExtrasTab;
@@ -13082,27 +12895,11 @@ begin
     end;
   end;
 
-  // FPS Limit chips: update colors for all chips based on theme + checked state
-  if Assigned(FFpsChipPanel) then
+  // FPS Limit edit: update colors for theme
+  if Assigned(FFpsLimitEdit) then
   begin
-    FFpsChipPanel.Color := CardBg;
-    for i := 0 to 15 do
-    begin
-      if not Assigned(FFpsChips[i]) then Continue;
-      if fpslimCheckGroup.Checked[i] then
-      begin
-        FFpsChips[i].Color      := clHighlight;
-        FFpsChips[i].Font.Color := clWhite;
-        FFpsChips[i].Font.Style := [fsBold];
-      end
-      else
-      begin
-        FFpsChips[i].Color      := IfThen(CurrentTheme = tmLight, $00F0EEEE, $003E3636);
-        FFpsChips[i].Font.Color := TextColor;
-        FFpsChips[i].Font.Style := [];
-      end;
-      FFpsChips[i].Invalidate;
-    end;
+    FFpsLimitEdit.Color     := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
+    FFpsLimitEdit.Font.Color := TextColor;
   end;
 end;
 
