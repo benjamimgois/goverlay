@@ -118,178 +118,27 @@ begin
   end;
 end;
 
-procedure ApplyDarkTheme(AControl: TWinControl);
+procedure DoApplyTheme(AControl: TWinControl; ATheme: TThemeMode);
 var
   i, j: Integer;
   ctrl: TControl;
+  BgColor, TextColor, BtnColor: TColor;
 begin
-  // Set form background
-  if AControl is TForm then
-    TForm(AControl).Color := DarkBackgroundColor;
-
-  for i := 0 to AControl.ControlCount - 1 do
+  if ATheme = tmDark then
   begin
-    ctrl := AControl.Controls[i];
-
-    // Skip color exceptions - components that should maintain their custom colors
-    if (ctrl.Name = 'saveBitBtn') or
-       (ctrl.Name = 'notificationLabel') or
-       (ctrl.Name = 'vkbasaltLabel') or
-       (ctrl.Name = 'deckyLabel1') or
-       (ctrl.Name = 'deckyLabel2') or
-       (ctrl.Name = 'optLabel1') or
-       (ctrl.Name = 'optLabel2') or
-       (ctrl.Name = 'fakenvapi1') or
-       (ctrl.Name = 'fakenvapi2') or
-       (ctrl.Name = 'fsrLabel1') or
-       (ctrl.Name = 'xessLabel1') or
-       (ctrl.Name = 'gupdateBitBtn') or
-       (ctrl.Name = 'updateBitBtn') or
-       (ctrl.Name = 'mangohudLabel') or
-       (ctrl.Name = 'optiscalerLabel') or
-       (ctrl.Name = 'mangohudShape') or
-       (ctrl.Name = 'vkbasaltShape') or
-       (ctrl.Name = 'optiscalerShape') or
-       (ctrl.Name = 'tweaksLabel') or
-       (ctrl.Name = 'tweaksShape') or
-       (ctrl.Name = 'autodetectnvLabel') or
-       (ctrl.Name = 'autodetectmesaLabel') or
-       (ctrl.Name = 'topleftRadioButton') or
-       (ctrl.Name = 'topcenterRadioButton') or
-       (ctrl.Name = 'toprightRadioButton') or
-       (ctrl.Name = 'bottomleftRadioButton') or
-       (ctrl.Name = 'bottomrightRadioButton') or
-       (ctrl.Name = 'bottomcenterRadioButton') or
-       (ctrl.Name = 'middleleftRadioButton') or
-       (ctrl.Name = 'middlerightRadioButton') or
-       (ctrl.Name = 'patcherlistLabel') or
-       (ctrl.Name = 'optipatcherLabel1') or
-       (ctrl.Name = 'searchEdit') or    // Exclude search field
-       (ctrl.Name = 'statusBar') or    // Exclude status bar
-       (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
-      Continue;
-
-    if ctrl is TMemo then
-    begin
-      TMemo(ctrl).Font.Color := DarkTextColor;
-      TMemo(ctrl).Color := DarkerBackgroundColor;
-    end
-    else if ctrl is TComboBox then
-    begin
-      TComboBox(ctrl).Font.Color := DarkTextColor;
-      TComboBox(ctrl).Color := DarkerBackgroundColor;
-    end
-    else if ctrl is TEdit then
-    begin
-      TEdit(ctrl).Font.Color := DarkTextColor;
-      if (ctrl.Name = 'commandEdit') or (ctrl.Name = 'customcommandEdit') then
-        TEdit(ctrl).Color := clBlack
-      else
-        TEdit(ctrl).Color := DarkerBackgroundColor;
-    end
-    else if ctrl is TLabel then
-      TLabel(ctrl).Font.Color := DarkTextColor
-    else if ctrl is TCheckBox then
-      TCheckBox(ctrl).Font.Color := DarkTextColor
-    else if ctrl is TRadioButton then
-      TRadioButton(ctrl).Font.Color := DarkTextColor
-    else if ctrl is TGroupBox then
-    begin
-      TGroupBox(ctrl).Font.Color := DarkTextColor;
-      TGroupBox(ctrl).Color := DarkBackgroundColor;
-      if TGroupBox(ctrl) is TWinControl then
-        ApplyDarkTheme(TWinControl(ctrl));
-    end
-    else if ctrl is TCheckGroup then
-    begin
-      TCheckGroup(ctrl).Font.Color := DarkTextColor;
-      TCheckGroup(ctrl).Color := DarkBackgroundColor;
-      if TCheckGroup(ctrl) is TWinControl then
-        ApplyDarkTheme(TWinControl(ctrl));
-    end
-    else if ctrl is TRadioGroup then
-    begin
-      TRadioGroup(ctrl).Font.Color := DarkTextColor;
-      TRadioGroup(ctrl).Color := DarkBackgroundColor;
-    end
-    else if ctrl is TPanel then
-    begin
-      // Game card panels (Tag=9999) keep their own color
-      if ctrl.Tag <> 9999 then
-      begin
-        TPanel(ctrl).Color := DarkBackgroundColor;
-        TPanel(ctrl).Font.Color := DarkTextColor;
-      end;
-      if (ctrl.Name = 'mangobarPanel') or (ctrl.Name = 'goverlaybarPanel') then
-        TPanel(ctrl).BevelOuter := bvNone;
-      if TPanel(ctrl) is TWinControl then
-        ApplyDarkTheme(TWinControl(ctrl));
-    end
-    else if ctrl is TBitBtn then
-    begin
-      if (ctrl.Name = 'saveBitBtn') or
-         (ctrl.Name = 'gupdateBitBtn') or
-         (ctrl.Name = 'updateBitBtn') then
-        Continue;
-      TBitBtn(ctrl).Color := DarkBackgroundColor;
-      TBitBtn(ctrl).Font.Color := DarkTextColor;
-    end
-    else if ctrl is TColorButton then
-      TColorButton(ctrl).Color := DarkBackgroundColor
-    else if ctrl is TListView then
-    begin
-      TListView(ctrl).Color      := DarkerBackgroundColor;
-      TListView(ctrl).Font.Color := DarkTextColor;
-    end
-    else if ctrl is TButton then
-    begin
-      TButton(ctrl).Color      := DarkBackgroundColor;
-      TButton(ctrl).Font.Color := DarkTextColor;
-    end
-    else if ctrl is TPageControl then
-    begin
-      // Apply dark theme to all tab pages
-      for j := 0 to TPageControl(ctrl).PageCount - 1 do
-      begin
-        // Use system default colors on GNOME for GTK compatibility
-        // Use explicit colors on other DEs (KDE/Plasma) for consistency
-        if IsGNOMEDesktop then
-        begin
-          TPageControl(ctrl).Pages[j].Font.Color := clDefault;
-          TPageControl(ctrl).Pages[j].ParentFont := False;
-        end
-        else
-          TPageControl(ctrl).Pages[j].Font.Color := DarkTextColor;
-      end;
-      ApplyDarkTheme(TWinControl(ctrl));
-    end
-    else if ctrl is TTabSheet then
-    begin
-      // Use system default colors on GNOME for GTK compatibility
-      // Use explicit colors on other DEs (KDE/Plasma) for consistency
-      if IsGNOMEDesktop then
-      begin
-        TTabSheet(ctrl).Font.Color := clDefault;
-        TTabSheet(ctrl).ParentFont := False;
-      end
-      else
-        TTabSheet(ctrl).Font.Color := DarkTextColor;
-      if TTabSheet(ctrl) is TWinControl then
-        ApplyDarkTheme(TWinControl(ctrl));
-    end
-    else if ctrl is TWinControl then
-      ApplyDarkTheme(TWinControl(ctrl));
+    BgColor := DarkBackgroundColor;
+    TextColor := DarkTextColor;
+    BtnColor := DarkBackgroundColor;
+  end
+  else
+  begin
+    BgColor := LightBackgroundColor;
+    TextColor := LightTextColor;
+    BtnColor := LightButtonColor;
   end;
-end;
 
-procedure ApplyLightTheme(AControl: TWinControl);
-var
-  i, j: Integer;
-  ctrl: TControl;
-begin
-  // Set form background
   if AControl is TForm then
-    TForm(AControl).Color := LightBackgroundColor;
+    TForm(AControl).Color := BgColor;
 
   for i := 0 to AControl.ControlCount - 1 do
   begin
@@ -299,6 +148,7 @@ begin
     if (ctrl.Name = 'saveBitBtn') or
        (ctrl.Name = 'notificationLabel') or
        (ctrl.Name = 'dependenciesLabel') or
+       (ctrl.Name = 'vkbasaltLabel') or
        (ctrl.Name = 'deckyLabel1') or
        (ctrl.Name = 'deckyLabel2') or
        (ctrl.Name = 'optLabel1') or
@@ -310,7 +160,6 @@ begin
        (ctrl.Name = 'gupdateBitBtn') or
        (ctrl.Name = 'updateBitBtn') or
        (ctrl.Name = 'mangohudLabel') or
-       (ctrl.Name = 'vkbasaltLabel') or
        (ctrl.Name = 'optiscalerLabel') or
        (ctrl.Name = 'mangohudShape') or
        (ctrl.Name = 'vkbasaltShape') or
@@ -336,13 +185,19 @@ begin
 
     if ctrl is TMemo then
     begin
-      TMemo(ctrl).Font.Color := LightTextColor;
-      TMemo(ctrl).Color := LightBackgroundColor;
+      TMemo(ctrl).Font.Color := TextColor;
+      if ATheme = tmDark then
+        TMemo(ctrl).Color := DarkerBackgroundColor
+      else
+        TMemo(ctrl).Color := LightBackgroundColor;
     end
     else if ctrl is TComboBox then
     begin
-      TComboBox(ctrl).Font.Color := LightTextColor;
-      TComboBox(ctrl).Color := LightBackgroundColor;
+      TComboBox(ctrl).Font.Color := TextColor;
+      if ATheme = tmDark then
+        TComboBox(ctrl).Color := DarkerBackgroundColor
+      else
+        TComboBox(ctrl).Color := LightBackgroundColor;
     end
     else if ctrl is TEdit then
     begin
@@ -351,54 +206,64 @@ begin
         TEdit(ctrl).Font.Color := clWhite;
         TEdit(ctrl).Color := clBlack;
       end
-      else if ctrl.Name = 'logfolderEdit' then
+      else if (ATheme = tmLight) and (ctrl.Name = 'logfolderEdit') then
       begin
         TEdit(ctrl).Font.Color := LightTextColor;
-        TEdit(ctrl).Color := LighterBackgroundColor;  // gray for contrast on log folder path
+        TEdit(ctrl).Color := LighterBackgroundColor;
       end
       else
       begin
-        TEdit(ctrl).Font.Color := LightTextColor;
-        TEdit(ctrl).Color := LightBackgroundColor;
+        TEdit(ctrl).Font.Color := TextColor;
+        if ATheme = tmDark then
+          TEdit(ctrl).Color := DarkerBackgroundColor
+        else
+          TEdit(ctrl).Color := LightBackgroundColor;
       end;
     end
     else if ctrl is TLabel then
-      TLabel(ctrl).Font.Color := LightTextColor
+      TLabel(ctrl).Font.Color := TextColor
     else if ctrl is TCheckBox then
-      TCheckBox(ctrl).Font.Color := LightTextColor
+      TCheckBox(ctrl).Font.Color := TextColor
     else if ctrl is TRadioButton then
-      TRadioButton(ctrl).Font.Color := LightTextColor
+      TRadioButton(ctrl).Font.Color := TextColor
     else if ctrl is TGroupBox then
     begin
-      TGroupBox(ctrl).Font.Color := LightTextColor;
-      TGroupBox(ctrl).Color := LightBackgroundColor;
+      TGroupBox(ctrl).Font.Color := TextColor;
+      TGroupBox(ctrl).Color := BgColor;
       if TGroupBox(ctrl) is TWinControl then
-        ApplyLightTheme(TWinControl(ctrl));
+        DoApplyTheme(TWinControl(ctrl), ATheme);
     end
     else if ctrl is TCheckGroup then
     begin
-      TCheckGroup(ctrl).Font.Color := LightTextColor;
-      TCheckGroup(ctrl).Color := LightBackgroundColor;
+      TCheckGroup(ctrl).Font.Color := TextColor;
+      TCheckGroup(ctrl).Color := BgColor;
       if TCheckGroup(ctrl) is TWinControl then
-        ApplyLightTheme(TWinControl(ctrl));
+        DoApplyTheme(TWinControl(ctrl), ATheme);
     end
     else if ctrl is TRadioGroup then
     begin
-      TRadioGroup(ctrl).Font.Color := LightTextColor;
-      TRadioGroup(ctrl).Color := LightBackgroundColor;
+      TRadioGroup(ctrl).Font.Color := TextColor;
+      TRadioGroup(ctrl).Color := BgColor;
     end
     else if ctrl is TPanel then
     begin
-      // Game card panels (Tag=9999) keep their own dark color for the title area
       if ctrl.Tag <> 9999 then
       begin
-        TPanel(ctrl).Color := LighterBackgroundColor;
-        TPanel(ctrl).Font.Color := LightTextColor;
+        if ATheme = tmDark then
+        begin
+          TPanel(ctrl).Color := BgColor;
+          TPanel(ctrl).Font.Color := TextColor;
+        end
+        else
+        begin
+          TPanel(ctrl).Color := LighterBackgroundColor;
+          TPanel(ctrl).Font.Color := TextColor;
+        end;
       end;
       if (ctrl.Name = 'mangobarPanel') or (ctrl.Name = 'goverlaybarPanel') then
         TPanel(ctrl).BevelOuter := bvNone;
       if TPanel(ctrl) is TWinControl then
-        ApplyLightTheme(TWinControl(ctrl));
+        DoApplyTheme(TWinControl(ctrl), ATheme);
     end
     else if ctrl is TBitBtn then
     begin
@@ -406,55 +271,66 @@ begin
          (ctrl.Name = 'gupdateBitBtn') or
          (ctrl.Name = 'updateBitBtn') then
         Continue;
-      TBitBtn(ctrl).Color := LightButtonColor;
-      TBitBtn(ctrl).Font.Color := LightTextColor;
+      TBitBtn(ctrl).Color := BtnColor;
+      TBitBtn(ctrl).Font.Color := TextColor;
     end
     else if ctrl is TColorButton then
-      TColorButton(ctrl).Color := LightBackgroundColor
+      TColorButton(ctrl).Color := BgColor
     else if ctrl is TListView then
     begin
-      TListView(ctrl).Color      := LightBackgroundColor;
-      TListView(ctrl).Font.Color := LightTextColor;
+      if ATheme = tmDark then
+        TListView(ctrl).Color := DarkerBackgroundColor
+      else
+        TListView(ctrl).Color := LightBackgroundColor;
+      TListView(ctrl).Font.Color := TextColor;
     end
     else if ctrl is TButton then
     begin
-      TButton(ctrl).Color      := LighterBackgroundColor;
-      TButton(ctrl).Font.Color := LightTextColor;
+      if ATheme = tmDark then
+        TButton(ctrl).Color := BgColor
+      else
+        TButton(ctrl).Color := LighterBackgroundColor;
+      TButton(ctrl).Font.Color := TextColor;
     end
     else if ctrl is TPageControl then
     begin
-      // Apply light theme to all tab pages
       for j := 0 to TPageControl(ctrl).PageCount - 1 do
       begin
-        // Use system default colors on GNOME for GTK compatibility
-        // Use explicit colors on other DEs (KDE/Plasma) for consistency
         if IsGNOMEDesktop then
         begin
           TPageControl(ctrl).Pages[j].Font.Color := clDefault;
           TPageControl(ctrl).Pages[j].ParentFont := False;
         end
         else
-          TPageControl(ctrl).Pages[j].Font.Color := LightTextColor;
+          TPageControl(ctrl).Pages[j].Font.Color := TextColor;
       end;
-      ApplyLightTheme(TWinControl(ctrl));
+      DoApplyTheme(TWinControl(ctrl), ATheme);
     end
     else if ctrl is TTabSheet then
     begin
-      // Use system default colors on GNOME for GTK compatibility
-      // Use explicit colors on other DEs (KDE/Plasma) for consistency
       if IsGNOMEDesktop then
       begin
         TTabSheet(ctrl).Font.Color := clDefault;
         TTabSheet(ctrl).ParentFont := False;
       end
       else
-        TTabSheet(ctrl).Font.Color := LightTextColor;
+        TTabSheet(ctrl).Font.Color := TextColor;
       if TTabSheet(ctrl) is TWinControl then
-        ApplyLightTheme(TWinControl(ctrl));
+        DoApplyTheme(TWinControl(ctrl), ATheme);
     end
     else if ctrl is TWinControl then
-      ApplyLightTheme(TWinControl(ctrl));
+      DoApplyTheme(TWinControl(ctrl), ATheme);
   end;
+end;
+
+procedure ApplyDarkTheme(AControl: TWinControl);
+begin
+  DoApplyTheme(AControl, tmDark);
+end;
+
+procedure ApplyLightTheme(AControl: TWinControl);
+begin
+  DoApplyTheme(AControl, tmLight);
 end;
 
 procedure ApplyTheme(AControl: TWinControl; ATheme: TThemeMode);

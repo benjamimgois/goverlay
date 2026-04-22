@@ -14753,6 +14753,10 @@ begin
   commandPanel.AnchorSideRight.Control := FPreviewBtn;
   commandPanel.AnchorSideRight.Side    := asrLeft;
 
+  // Informative hint for the launch-command box
+  commandPanel.Hint := 'Copy this command and paste it into the game''s Launch Options in Steam.';
+  commandPanel.ShowHint := True;
+
 end;
 
 procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
@@ -16596,6 +16600,15 @@ begin
 end;
 
 procedure Tgoverlayform.commandPaintBoxPaint(Sender: TObject);
+const
+  // GitHub Dark inspired palette
+  CLR_BG         = $22161B;  // #161b22
+  CLR_BORDER     = $FFA658;  // #58a6ff
+  CLR_PATH       = $87E77E;  // #7ee787
+  CLR_COMMAND    = $727BFF;  // #ff7b72
+  CLR_ENVVAR     = $FFC079;  // #79c0ff
+  CLR_KEYWORD    = $FFA8D2;  // #d2a8ff
+  CLR_DEFAULT    = $D9D1C9;  // #c9d1d9
 var
   PB: TPaintBox;
   R: TRect;
@@ -16606,23 +16619,23 @@ var
 begin
   PB := TPaintBox(Sender);
   R := PB.ClientRect;
-  
+
   // Background
-  PB.Canvas.Brush.Color := $17110D; // #0D1117 in BGR
+  PB.Canvas.Brush.Color := CLR_BG;
   PB.Canvas.FillRect(R);
-  
+
   // Border
-  PB.Canvas.Pen.Color := $505050;
+  PB.Canvas.Pen.Color := CLR_BORDER;
   PB.Canvas.Rectangle(R);
-  
-  // Syntax Highlighting Text
-  PB.Canvas.Font.Name := 'Monospace';
-  PB.Canvas.Font.Size := 10;
-  PB.Canvas.Brush.Style := bsClear;
-  
+
+  // Command text uses the full available height, vertically centered
+  PB.Canvas.Font.Name  := 'Monospace';
+  PB.Canvas.Font.Size  := 9;
+  PB.Canvas.Font.Style := [];
+
   S := FLaunchCommand;
   if S = '' then S := 'envvars %command%';
-  
+
   X := 10;
   Y := (PB.Height - PB.Canvas.TextHeight('A')) div 2;
   i := 1;
@@ -16634,7 +16647,7 @@ begin
       Inc(i);
     end;
     if i > Length(S) then Break;
-    
+
     Token := '';
     if S[i] = '"' then
     begin
@@ -16650,7 +16663,7 @@ begin
         Token := Token + '"';
         Inc(i);
       end;
-      CColor := $00D0E050; // Yellow-green
+      CColor := CLR_PATH; // green for quoted paths
     end
     else
     begin
@@ -16659,25 +16672,25 @@ begin
         Token := Token + S[i];
         Inc(i);
       end;
-      
+
       if Token = '%command%' then
-        CColor := clAqua
+        CColor := CLR_COMMAND          // coral for %command%
       else if Pos('=', Token) > 0 then
-        CColor := $0080FF // Orange in BGR
+        CColor := CLR_ENVVAR           // blue for env vars
       else if (Token = '--') or (Token = 'env') or (Token = 'gamemoderun') then
-        CColor := clSkyBlue
+        CColor := CLR_KEYWORD          // purple for keywords
       else
-        CColor := clWhite;
+        CColor := CLR_DEFAULT;         // light gray for the rest
     end;
-    
+
     PB.Canvas.Font.Color := CColor;
     PB.Canvas.TextOut(X, Y, Token);
     X := X + PB.Canvas.TextWidth(Token);
   end;
-  
+
   // Copy feedback
   IsCommandCopied := (GetTickCount64 - FCommandCopiedTime) < 2000;
-  
+
   if IsCommandCopied then
   begin
     PB.Canvas.Font.Color := clLime;
