@@ -87,6 +87,9 @@ end;
 procedure Tprotontricksform.FormCreate(Sender: TObject);
 begin
   ApplyTheme(Self, CurrentTheme);
+  // Match the blue-gray background used in the main tabs
+  if CurrentTheme = tmDark then
+    Self.Color := $002E1E1A;
   OnShow := @FormShow;
 
   // Hide the lfm TListView and replace with a TStringGrid for full color control
