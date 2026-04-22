@@ -5,7 +5,8 @@ unit themeunit;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles, Buttons, ComCtrls;
+  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles, Buttons, ComCtrls,
+  configmanager;
 
 type
   TThemeMode = (tmLight, tmDark);
@@ -84,21 +85,11 @@ procedure CenterFormOnScreen(AForm: TForm);
 implementation
 
 function GetConfigFilePath: string;
-var
-  ConfigHome: string;
 begin
-  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
-  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-  
-  // Fall back to standard XDG_CONFIG_HOME
-  if ConfigHome = '' then
-    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-  
-  // Final fallback to ~/.config
-  if ConfigHome = '' then
-    ConfigHome := GetEnvironmentVariable('HOME') + '/.config';
-  
-  Result := ConfigHome + '/goverlay/goverlay.conf';
+  // Use the centralized Flatpak-aware helper so all XDG paths are resolved
+  // consistently across the application.
+  Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostConfigDir) +
+            'goverlay/goverlay.conf';
 end;
 
 function IsGNOMEDesktop: Boolean;

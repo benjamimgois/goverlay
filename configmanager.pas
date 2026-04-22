@@ -118,6 +118,22 @@ type
     class function GetGoverlayVarsFile: string;
 
     // ============================================================================
+    // XDG / FLATPAW-AWARE PATH HELPERS
+    // ============================================================================
+
+    /// <summary>
+    /// Gets the host config directory (Flatpak-aware).
+    /// Checks HOST_XDG_CONFIG_HOME first, then XDG_CONFIG_HOME, then ~/.config.
+    /// </summary>
+    class function GetHostConfigDir: string;
+
+    /// <summary>
+    /// Gets the host data directory (Flatpak-aware).
+    /// Checks HOST_XDG_DATA_HOME first, then XDG_DATA_HOME, then ~/.local/share.
+    /// </summary>
+    class function GetHostDataDir: string;
+
+    // ============================================================================
     // DIRECTORY OPERATIONS
     // ============================================================================
 
@@ -272,6 +288,33 @@ end;
 class function TConfigManager.GetGoverlayVarsFile: string;
 begin
   Result := IncludeTrailingPathDelimiter(GetFgmodFolder) + GOVERLAY_VARS_FILE;
+end;
+
+// ============================================================================
+// XDG / Flatpak-Aware Path Helpers
+// ============================================================================
+
+class function TConfigManager.GetHostConfigDir: string;
+begin
+  // When running inside Flatpak, HOST_XDG_CONFIG_HOME points to the real
+  // host config directory so we can read/write configs that are visible to
+  // native (non-Flatpak) applications.
+  Result := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  if Result = '' then
+    Result := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if Result = '' then
+    Result := GetUserDir + '.config';
+end;
+
+class function TConfigManager.GetHostDataDir: string;
+begin
+  // When running inside Flatpak, HOST_XDG_DATA_HOME points to the real
+  // host data directory.
+  Result := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  if Result = '' then
+    Result := GetEnvironmentVariable('XDG_DATA_HOME');
+  if Result = '' then
+    Result := GetUserDir + '.local/share';
 end;
 
 // ============================================================================

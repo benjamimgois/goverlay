@@ -77,13 +77,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, fgmod_resources;
-
-// Function to detect if running in Flatpak environment
-function IsRunningInFlatpak: Boolean;
-begin
-  Result := GetEnvironmentVariable('FLATPAK_ID') <> '';
-end;
+  FileUtil, LazFileUtils, BaseUnix, fgmod_resources, systemdetector;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
 // Returns: ~/.local/share/goverlay/fgmod (Sandboxed in Flatpak)

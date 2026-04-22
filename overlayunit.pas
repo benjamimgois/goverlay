@@ -62,7 +62,8 @@ type
     casLabel: TLabel;
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
-    commandEdit: TEdit;
+    commandPanel: TPanel;
+    commandPaintBox: TPaintBox;
     emurtCheckBox: TCheckBox;
     enhdrCheckBox: TCheckBox;
     largeaddressCheckBox: TCheckBox;
@@ -99,7 +100,6 @@ type
     columShape4: TShape;
     columShape5: TShape;
     columvalueLabel: TLabel;
-    copyBitBtn: TBitBtn;
     coreloadtypeBitBtn: TBitBtn;
     cpuavgloadCheckBox: TCheckBox;
     cpuColorButton: TColorButton;
@@ -236,7 +236,6 @@ type
     hidehudCheckBox: TCheckBox;
     hImage: TImage;
     horizontalRadioButton: TRadioButton;
-    howtoBitBtn: TBitBtn;
     hudbackgroundColorButton: TColorButton;
     hudcompactCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
@@ -430,7 +429,9 @@ type
     procedure blacklistBitBtnClick(Sender: TObject);
     procedure blacklistMenuItemClick(Sender: TObject);
     procedure casTrackBarChange(Sender: TObject);
-    procedure copyBitBtnClick(Sender: TObject);
+    procedure commandPaintBoxClick(Sender: TObject);
+    procedure commandPaintBoxPaint(Sender: TObject);
+    procedure ResetCopyFeedback(Sender: TObject);
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
     procedure donateMenuItemClick(Sender: TObject);
@@ -520,6 +521,8 @@ type
     procedure LoadFgmodConfig;
 
   private
+    FLaunchCommand: string;
+    FCommandCopiedTime: QWord;
     FStartTick: Cardinal;
     FOptiscalerUpdate: TOptiscalerTab;
     FReshadeProgressBar: TProgressBar;
@@ -1473,7 +1476,9 @@ var
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
       Process.Parameters.Add(Command);
-      Process.Options := [poUsePipes];
+      // No poUsePipes: we don't read stdout/stderr, and a full pipe buffer
+      // would deadlock the child process forever.
+      Process.Options := [poNoConsole];
       Process.Execute;
     finally
       Process.Free;
@@ -1511,37 +1516,39 @@ begin
     DBusCommand := DBusCommand + '"' + Title + '" "' + Message + '" ' +
                    '[] {} 5000';
 
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := FindDefaultExecutablePath('sh');
-      Process.Parameters.Add('-c');
-      Process.Parameters.Add(DBusCommand);
-      // Don't wait for notification to complete - send asynchronously for instant response
-      Process.Options := [poUsePipes, poNoConsole];
-      Process.Execute;
-    finally
-      Process.Free;
-    end;
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := FindDefaultExecutablePath('sh');
+        Process.Parameters.Add('-c');
+        Process.Parameters.Add(DBusCommand);
+        // Don't wait for notification to complete - send asynchronously for instant response
+        // No poUsePipes: we don't read stdout/stderr.
+        Process.Options := [poNoConsole];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
   end;
 
   // Fallback to notify-send if D-Bus is not available
   if not UseDBus then
   begin
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := FindDefaultExecutablePath('sh');
-      Process.Parameters.Add('-c');
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := FindDefaultExecutablePath('sh');
+        Process.Parameters.Add('-c');
 
-      if IconPath <> '' then
-        Process.Parameters.Add('notify-send -e -i "' + IconPath + '" "' + Title + '" "' + Message + '"')
-      else
-        Process.Parameters.Add('notify-send -e "' + Title + '" "' + Message + '"');
+        if IconPath <> '' then
+          Process.Parameters.Add('notify-send -e -i "' + IconPath + '" "' + Title + '" "' + Message + '"')
+        else
+          Process.Parameters.Add('notify-send -e "' + Title + '" "' + Message + '"');
 
-      Process.Options := [poUsePipes, poNoConsole];
-      Process.Execute;
-    finally
-      Process.Free;
-    end;
+        // No poUsePipes: we don't read stdout/stderr.
+        Process.Options := [poNoConsole];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
   end;
 end;
 
@@ -2296,8 +2303,8 @@ goverlayPageControl.ActivePage:=tweaksTabsheet;
 
 //Hide notification messages
 notificationLabel.Visible:=false;
-commandEdit.Visible:=false;
-copyBitbtn.Visible:=false;
+commandPanel.Visible:=false;
+
 
 //Show Global Enable controls and bottom bar for tweaks tabs
 
@@ -2616,8 +2623,8 @@ begin
 
   //Hide notification messages
   notificationLabel.Visible:=false;
-  commandEdit.Visible:=false;
-  copyBitbtn.Visible:=false;
+  commandPanel.Visible:=false;
+
 
   //Restore bottom bar
   goverlaybarPanel.Visible:=true;
@@ -4693,12 +4700,6 @@ begin
   // Note: This requires Unicode support in the font
   
   // Find and update common buttons by name
-  if Assigned(AForm.FindComponent('copyBitBtn')) then
-    TBitBtn(AForm.FindComponent('copyBitBtn')).Caption := '📋 ' + 'Copy';
-    
-  if Assigned(AForm.FindComponent('howtoBitBtn')) then
-    TBitBtn(AForm.FindComponent('howtoBitBtn')).Caption := '❓ ' + 'How to Use';
-    
   if Assigned(AForm.FindComponent('gupdateBitBtn')) then
     TBitBtn(AForm.FindComponent('gupdateBitBtn')).Caption := '🔄 ' + 'Update';
 end;
@@ -4719,7 +4720,7 @@ begin
   // Ctrl+C = Copy command
   else if (Shift = [ssCtrl]) and (Key = Ord('C')) then
   begin
-    copyBitBtnClick(nil);
+    commandPaintBoxClick(nil);
     ShowStatusMessage('📋 Command copied to clipboard!');
     Key := 0;
   end
@@ -5232,9 +5233,6 @@ begin
   settingsSpeedButton.BringToFront;
 
 
-
-  //Hide howto button until OptiScaler configuration is saved
-  howtoBitBtn.Visible := False;
 
   // Disable Protontricks button in Flatpak (requires permissions not approved by Flathub)
   if IsRunningInFlatpak then
@@ -6933,8 +6931,8 @@ begin
 
   //Hide notification messages
   notificationLabel.Visible:=false;
-  commandEdit.Visible:=false;
-  copyBitbtn.Visible:=false;
+  commandPanel.Visible:=false;
+
 
   //Hide Global Enable controls and bottom bar for games tab
   geSpeedButton.Visible:=false;
@@ -6971,8 +6969,8 @@ goverlayPageControl.ActivePage:=presetTabsheet;
 
 //Hide notification messages
 notificationLabel.Visible:=false;
-commandEdit.Visible:=false;
-copyBitbtn.Visible:=false;
+commandPanel.Visible:=false;
+
 
 //Show Global Enable controls and bottom bar for MangoHud tabs
 
@@ -7041,8 +7039,8 @@ begin
 
   //Hide notification messages
   notificationLabel.Visible:=false;
-  commandEdit.Visible:=false;
-  copyBitbtn.Visible:=false;
+  commandPanel.Visible:=false;
+
 
   //Restore bottom bar
   goverlaybarPanel.Visible:=true;
@@ -7342,14 +7340,16 @@ end;
 procedure Tgoverlayform.runvkcubeItemClick(Sender: TObject);
 begin
   // check if vkcube is running
-  Process := TProcess.Create(nil);
-  try
-    Process.CommandLine := 'pgrep -x vkcube';
-    Process.Options := Process.Options + [poWaitOnExit, poUsePipes];
-    Process.Execute;
+    Process := TProcess.Create(nil);
+    try
+      Process.CommandLine := 'pgrep -x vkcube';
+      // No poUsePipes: we only need ExitStatus, and unread stdout/stderr
+      // can deadlock the child if the pipe buffer fills up.
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
 
-    // if output is 0, process is running, show message and stop
-    if Process.ExitStatus = 0 then
+      // if output is 0, process is running, show message and stop
+      if Process.ExitStatus = 0 then
     begin
       ShowMessage('vkcube is running!');
       Exit;
@@ -7654,17 +7654,6 @@ begin
   casvaluelabel.Caption := inttostr(casTrackbar.Position);
   if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvaluelabel.Caption;
 end;
-
-procedure Tgoverlayform.copyBitBtnClick(Sender: TObject);
-begin
-  // Copy the command label content to clipboard
-  Clipboard.AsText := commandEdit.Text;
-
-  // Show notification
-  SendNotification('GOverlay', 'Command copied to clipboard', GetIconFile);
-end;
-
-
 
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
 begin
@@ -8474,8 +8463,6 @@ EnableTraceLogsFound: Boolean;
             // Show notification
             SendNotification('Tweaks', 'Configuration saved', GetIconFile);
 
-            howtoBitBtn.Visible := False;
-
             // Build launch command with full absolute path for fgmod
             // (Done globally below)
 
@@ -8531,9 +8518,10 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := LaunchCommand + '%command%';
 
       notificationLabel.Visible := False;
-      commandEdit.Text    := LaunchCommand;
-      commandEdit.Visible := True;
-      copyBitbtn.Visible  := True;
+      FLaunchCommand := LaunchCommand;
+      commandPaintBox.Invalidate;
+      commandPanel.Visible := True;
+
 
       Exit; // Exit after saving Tweaks settings
     end;
@@ -9023,8 +9011,6 @@ EnableTraceLogsFound: Boolean;
             // Show notification
             SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
 
-            howtoBitBtn.Visible := False;
-
             // Build launch command — use game-specific fgmod copy when in game mode
             if FActiveGameName <> '' then
               LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
@@ -9038,9 +9024,10 @@ EnableTraceLogsFound: Boolean;
             LaunchCommand := LaunchCommand + '%command%';
 
             notificationLabel.Visible := False;
-            commandEdit.Text    := LaunchCommand;
-            commandEdit.Visible := True;
-            copyBitbtn.Visible  := True;
+            FLaunchCommand := LaunchCommand;
+            commandPaintBox.Invalidate;
+            commandPanel.Visible := True;
+
           end
           else
           begin
@@ -9079,10 +9066,9 @@ EnableTraceLogsFound: Boolean;
     if globalenableMenuItem.Checked then
     begin
       notificationLabel.Visible := False;
-      copyBitBtn.Visible := False;
-      howtoBitBtn.Visible := False;
-      commandEdit.Visible := True;
-      commandEdit.Text := 'MangoHud will be displayed in every vulkan application';
+      commandPanel.Visible := True;
+      FLaunchCommand := 'MangoHud will be displayed in every vulkan application';
+      commandPaintBox.Invalidate;
     end
     else
     begin
@@ -9101,10 +9087,9 @@ EnableTraceLogsFound: Boolean;
       LaunchCommand := LaunchCommand + '%command%';
 
       notificationLabel.Visible := False;
-      commandEdit.Text    := LaunchCommand;
-      commandEdit.Visible := True;
-      copyBitbtn.Visible  := True;
-      howtoBitBtn.Visible := False;
+      FLaunchCommand := LaunchCommand;
+      commandPaintBox.Invalidate;
+      commandPanel.Visible := True;
     end;
 
     //########################################### SAVE BLACKLIST
@@ -9293,11 +9278,9 @@ end;  //  ################### END - SAVE MANGOHUD
      LaunchCommand := LaunchCommand + '%command%';
 
      notificationLabel.Visible := False;
-     commandEdit.Text    := LaunchCommand;
-     commandEdit.Visible := True;
-     copyBitbtn.Visible  := True;
-     howtoBitBtn.Visible := False;
-
+     FLaunchCommand := LaunchCommand;
+     commandPaintBox.Invalidate;
+     commandPanel.Visible := True;
    except
      on E: Exception do
        ShowMessage('Fail to save vkbasalt.conf: ' + E.Message);
@@ -10558,7 +10541,7 @@ begin
   Sep.Caption := '-';
   settingsMenu.Items.Insert(3, Sep);
 
-  // How to Use — replaces the howtoBitBtn that was removed from the bottom bar
+  // How to Use — now available via popup menu only
   FHowToMenuItem := TMenuItem.Create(settingsMenu);
   FHowToMenuItem.Caption := 'How to use FGMOD';
   FHowToMenuItem.ImageIndex := 18;
@@ -14749,10 +14732,11 @@ begin
   // Navy background for the bottom bar
   goverlaybarPanel.OnPaint := @PresetsWrapperPaint;
 
-  // Quick preview button — icon-only, fits between copyBitBtn and popupBitBtn
+  // Quick preview button — icon-only, sits immediately left of popupBitBtn.
   FPreviewBtn := TBitBtn.Create(Self);
   FPreviewBtn.Parent      := goverlaybarPanel;
-  FPreviewBtn.SetBounds(683, 7, 28, 28);
+  // Align height (30) and vertical position (5) with the rest of the bar
+  FPreviewBtn.SetBounds(684, 5, 28, 30);
   FPreviewBtn.Anchors     := [akRight, akBottom];
   FPreviewBtn.Caption     := '▶';
   FPreviewBtn.Color       := $00445566;
@@ -14764,11 +14748,10 @@ begin
   FPreviewBtn.ShowHint    := True;
   FPreviewBtn.OnClick     := @PreviewBtnClick;
 
-  // Re-anchor copyBitBtn so it sits immediately left of FPreviewBtn.
-  // commandEdit already anchors its right edge to copyBitBtn (via LFM), so
-  // commandEdit will shrink automatically to keep everything in order.
-  copyBitBtn.AnchorSideRight.Control := FPreviewBtn;
-  copyBitBtn.AnchorSideRight.Side    := asrLeft;
+  // Re-anchor commandPanel so it stops at the left edge of FPreviewBtn,
+  // preventing the panel from drawing over the preview button.
+  commandPanel.AnchorSideRight.Control := FPreviewBtn;
+  commandPanel.AnchorSideRight.Side    := asrLeft;
 
 end;
 
@@ -16023,8 +16006,8 @@ begin
   goverlayPageControl.ActivePage := FHomeTabSheet;
 
   notificationLabel.Visible := False;
-  commandEdit.Visible       := False;
-  copyBitbtn.Visible        := False;
+  commandPanel.Visible       := False;
+
   geSpeedButton.Visible     := False;
   geLabel.Visible           := False;
   goverlaybarPanel.Visible  := False;
@@ -16247,8 +16230,8 @@ begin
   gamesTabSheet.TabVisible     := False;
   goverlayPageControl.ActivePage := presetTabsheet;
   notificationLabel.Visible := False;
-  commandEdit.Visible       := False;
-  copyBitbtn.Visible        := False;
+  commandPanel.Visible       := False;
+
   goverlaybarPanel.Visible  := True;
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -16363,13 +16346,10 @@ begin
 end;
 
 function Tgoverlayform.GetGameConfigDir(const AGameName: string): string;
-var
-  DataHome: string;
 begin
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  Result := IncludeTrailingPathDelimiter(DataHome) +
+  // Use the centralized Flatpak-aware helper so game configs are stored in
+  // the same location whether GOverlay is running natively or as Flatpak.
+  Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
 end;
 
@@ -16588,6 +16568,127 @@ begin
   begin
     Brightness := 100;
     ApplyCardBrightness(FHoveredCard, Brightness);
+  end;
+end;
+procedure Tgoverlayform.ResetCopyFeedback(Sender: TObject);
+begin
+  if Sender is TTimer then
+  begin
+    TTimer(Sender).Enabled := False;
+    TTimer(Sender).Free;
+  end;
+  if Assigned(commandPaintBox) then
+    commandPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.commandPaintBoxClick(Sender: TObject);
+var
+  T: TTimer;
+begin
+  Clipboard.AsText := FLaunchCommand;
+  FCommandCopiedTime := GetTickCount64;
+  commandPaintBox.Invalidate;
+  
+  T := TTimer.Create(Self);
+  T.Interval := 2000;
+  T.OnTimer := @ResetCopyFeedback;
+  T.Enabled := True;
+end;
+
+procedure Tgoverlayform.commandPaintBoxPaint(Sender: TObject);
+var
+  PB: TPaintBox;
+  R: TRect;
+  S, Token: string;
+  X, Y, i: Integer;
+  IsCommandCopied: Boolean;
+  CColor: TColor;
+begin
+  PB := TPaintBox(Sender);
+  R := PB.ClientRect;
+  
+  // Background
+  PB.Canvas.Brush.Color := $17110D; // #0D1117 in BGR
+  PB.Canvas.FillRect(R);
+  
+  // Border
+  PB.Canvas.Pen.Color := $505050;
+  PB.Canvas.Rectangle(R);
+  
+  // Syntax Highlighting Text
+  PB.Canvas.Font.Name := 'Monospace';
+  PB.Canvas.Font.Size := 10;
+  PB.Canvas.Brush.Style := bsClear;
+  
+  S := FLaunchCommand;
+  if S = '' then S := 'envvars %command%';
+  
+  X := 10;
+  Y := (PB.Height - PB.Canvas.TextHeight('A')) div 2;
+  i := 1;
+  while i <= Length(S) do
+  begin
+    while (i <= Length(S)) and (S[i] = ' ') do
+    begin
+      X := X + PB.Canvas.TextWidth(' ');
+      Inc(i);
+    end;
+    if i > Length(S) then Break;
+    
+    Token := '';
+    if S[i] = '"' then
+    begin
+      Token := '"';
+      Inc(i);
+      while (i <= Length(S)) and (S[i] <> '"') do
+      begin
+        Token := Token + S[i];
+        Inc(i);
+      end;
+      if (i <= Length(S)) and (S[i] = '"') then
+      begin
+        Token := Token + '"';
+        Inc(i);
+      end;
+      CColor := $00D0E050; // Yellow-green
+    end
+    else
+    begin
+      while (i <= Length(S)) and (S[i] <> ' ') do
+      begin
+        Token := Token + S[i];
+        Inc(i);
+      end;
+      
+      if Token = '%command%' then
+        CColor := clAqua
+      else if Pos('=', Token) > 0 then
+        CColor := $0080FF // Orange in BGR
+      else if (Token = '--') or (Token = 'env') or (Token = 'gamemoderun') then
+        CColor := clSkyBlue
+      else
+        CColor := clWhite;
+    end;
+    
+    PB.Canvas.Font.Color := CColor;
+    PB.Canvas.TextOut(X, Y, Token);
+    X := X + PB.Canvas.TextWidth(Token);
+  end;
+  
+  // Copy feedback
+  IsCommandCopied := (GetTickCount64 - FCommandCopiedTime) < 2000;
+  
+  if IsCommandCopied then
+  begin
+    PB.Canvas.Font.Color := clLime;
+    PB.Canvas.Font.Style := [fsBold];
+    PB.Canvas.TextOut(R.Right - PB.Canvas.TextWidth('Copied! ✓') - 10, Y, 'Copied! ✓');
+    PB.Canvas.Font.Style := [];
+  end
+  else
+  begin
+    if Assigned(iconsImageList) then
+      iconsImageList.Draw(PB.Canvas, R.Right - 24, (PB.Height - 16) div 2, 22);
   end;
 end;
 

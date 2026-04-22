@@ -290,14 +290,10 @@ begin
 
   SetHint('saveBitBtn', 'Save configurations' + LineEnding +
     'Applies and saves all changes');
-  SetHint('copyBitBtn', 'Copy command' + LineEnding +
-    'Copies launch command to clipboard');
   SetHint('gupdateBitBtn', 'Check for updates' + LineEnding +
     'Checks if there is a new GOverlay version');
   SetHint('checkupdBitBtn', 'Check MangoHud updates' + LineEnding +
     'Checks latest MangoHud version');
-  SetHint('howtoBitBtn', 'How to use' + LineEnding +
-    'Instructions for Steam, Heroic and other launchers');
   SetHint('themeToggleSpeedButton', 'Toggle theme' + LineEnding +
     'Switches between light and dark theme');
   SetHint('geSpeedButton', 'Global Enable' + LineEnding +
