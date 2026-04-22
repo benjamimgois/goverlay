@@ -16636,6 +16636,10 @@ begin
   S := FLaunchCommand;
   if S = '' then S := 'envvars %command%';
 
+  // Shrink font until the command fits (reserve 40 px for copy icon + margins)
+  while (PB.Canvas.Font.Size > 7) and (PB.Canvas.TextWidth(S) > (R.Right - 40)) do
+    PB.Canvas.Font.Size := PB.Canvas.Font.Size - 1;
+
   X := 10;
   Y := (PB.Height - PB.Canvas.TextHeight('A')) div 2;
   i := 1;
