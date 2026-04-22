@@ -16674,7 +16674,7 @@ begin
   PB.Canvas.Rectangle(R);
 
   // Command text uses the full available height, vertically centered
-  PB.Canvas.Font.Name  := 'Monospace';
+  PB.Canvas.Font.Name  := 'DejaVu Sans Mono';
   PB.Canvas.Font.Size  := 9;
   PB.Canvas.Font.Style := [];
 
