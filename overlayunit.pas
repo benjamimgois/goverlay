@@ -535,6 +535,8 @@ type
     FHoverBrightness: Integer; // 0..100 (0=35% dim, 100=full bright)
     FHoverDir:       Integer;  // +1 brightening, -1 dimming
     FHoverTimer:     TTimer;   // drives hover brightness animation
+    FHoverBaseLeft:  Integer;  // original Left of hovered card before expansion
+    FHoverBaseTop:   Integer;  // original Top of hovered card before expansion
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FActiveGameName:    string;   // non-empty when editing a game-specific config
@@ -16871,8 +16873,14 @@ begin
     CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
     CardY := CARD_MARGIN + (CardCount div CardsPerRow) * (CARD_H + CARD_MARGIN);
     if TPanel(Ctrl) = FHoveredCard then
-      Ctrl.SetBounds(CardX - SEL_EXPAND, CardY - SEL_EXPAND,
-                     CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND)
+    begin
+      // Update base position so the smooth animation continues from the new slot
+      FHoverBaseLeft := CardX;
+      FHoverBaseTop  := CardY;
+      // Let HoverTimerTick apply the current interpolated bounds immediately
+      if Assigned(FHoverTimer) then
+        HoverTimerTick(nil);
+    end
     else
       Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
     Inc(CardCount);
@@ -16929,34 +16937,25 @@ begin
     Exit;
   end;
 
-  // Snap previous hovered card back to dim and restore its size.
-  // Guard with Width check to avoid double-restore when MouseLeave fires first.
+  // Snap previous hovered card back to dim and restore its size instantly.
   if Assigned(FHoveredCard) then
   begin
     ApplyCardBrightness(FHoveredCard, 100);
-    if FHoveredCard.Width = CARD_W + 2 * SEL_EXPAND then
-    begin
-      FHoveredCard.SetBounds(
-        FHoveredCard.Left + SEL_EXPAND,
-        FHoveredCard.Top  + SEL_EXPAND,
-        CARD_W, CARD_H);
-      if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
-        TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
-    end;
+    FHoveredCard.SetBounds(
+      FHoveredCard.Left + (FHoveredCard.Width - CARD_W) div 2,
+      FHoveredCard.Top  + (FHoveredCard.Height - CARD_H) div 2,
+      CARD_W, CARD_H);
+    if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
+      TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
   end;
 
   FHoveredCard     := Panel;
   FHoverBrightness := 0;
   FHoverDir        := 1;
+  FHoverBaseLeft   := Panel.Left;
+  FHoverBaseTop    := Panel.Top;
 
-  // Scale up the newly hovered card (~1.03×)
-  Panel.SetBounds(
-    Panel.Left - SEL_EXPAND,
-    Panel.Top  - SEL_EXPAND,
-    CARD_W + 2 * SEL_EXPAND,
-    CARD_H + 2 * SEL_EXPAND);
-  if (Panel.ControlCount > 0) and (Panel.Controls[0] is TImage) then
-    TImage(Panel.Controls[0]).SetBounds(0, 0, CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND);
+  // Smooth scale-up is driven by HoverTimerTick; just bring to front now
   Panel.BringToFront;
 
   if not Assigned(FHoverTimer) then
@@ -16979,17 +16978,7 @@ begin
 
   if Panel <> FHoveredCard then Exit;
 
-  // Restore card size on leave — guard avoids double-restore if MouseEnter already did it
-  if Panel.Width = CARD_W + 2 * SEL_EXPAND then
-  begin
-    Panel.SetBounds(
-      Panel.Left + SEL_EXPAND,
-      Panel.Top  + SEL_EXPAND,
-      CARD_W, CARD_H);
-    if (Panel.ControlCount > 0) and (Panel.Controls[0] is TImage) then
-      TImage(Panel.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
-  end;
-
+  // Smooth shrink-back is driven by HoverTimerTick
   FHoverDir := -1;
   if Assigned(FHoverTimer) then
     FHoverTimer.Enabled := True;
@@ -17371,6 +17360,7 @@ const
   STEP = 10;  // ~10 steps × 16 ms ≈ 160 ms full transition
 var
   Brightness: Integer;
+  Expand: Integer;
 begin
   if not Assigned(FHoveredCard) then
   begin
@@ -17379,6 +17369,16 @@ begin
   end;
 
   FHoverBrightness := FHoverBrightness + FHoverDir * STEP;
+
+  // Interpolate card size smoothly using brightness as a 0..1 factor
+  Expand := Round(SEL_EXPAND * FHoverBrightness / 100.0);
+  FHoveredCard.SetBounds(
+    FHoverBaseLeft - Expand,
+    FHoverBaseTop  - Expand,
+    CARD_W + 2 * Expand,
+    CARD_H + 2 * Expand);
+  if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
+    TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W + 2 * Expand, CARD_H + 2 * Expand);
 
   if FHoverBrightness <= 0 then
   begin
