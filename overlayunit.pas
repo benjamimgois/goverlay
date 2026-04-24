@@ -2871,10 +2871,6 @@ begin
     OffBmp.Canvas.Brush.Color := RGBToColor(22, 26, 40);
     OffBmp.Canvas.FillRect(Rect(0, 0, TWidth, THeight));
 
-    // Very faint top-specular band (first 3px lighter — light from above)
-    OffBmp.Canvas.Brush.Color := RGBToColor(36, 42, 64);
-    OffBmp.Canvas.FillRect(Rect(0, 0, TWidth, 3));
-
     // Left specular — 1px white-ish (frosted-glass edge)
     OffBmp.Canvas.Pen.Color := RGBToColor(55, 64, 95);
     OffBmp.Canvas.Line(0, 0, 0, THeight);
@@ -13465,9 +13461,9 @@ begin
   DarkLbl(menuscalevalueLabel, WHITE);
   menuLabel.Transparent          := True;
   menuscalevalueLabel.Transparent := True;
-  DarkLbl(mark1Label,          GRAY);
-  DarkLbl(mark2Label,          GRAY);
-  DarkLbl(mark3Label,          GRAY);
+  DarkLbl(mark1Label,          GRAY); mark1Label.Transparent := True;
+  DarkLbl(mark2Label,          GRAY); mark2Label.Transparent := True;
+  DarkLbl(mark3Label,          GRAY); mark3Label.Transparent := True;
   DarkLbl(shortcutkeyLabel,    PURPLE); shortcutkeyLabel.Transparent := True;
   DarkCombo(shortcutkeyComboBox);
   // FakeNVAPI section
