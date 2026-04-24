@@ -21,6 +21,10 @@ flatpak-repo/
 nohup.out
 .claude/
 
+# Agent context files (AI assistant instructions)
+AGENTS.md
+CLAUDE.md
+
 # Editor swap and temporary files
 *.swp
 *.swo
