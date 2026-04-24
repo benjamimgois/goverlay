@@ -613,6 +613,10 @@ type
     FTweaksHoverIdx:   Integer;
     FTweaksFABBtn:     TSpeedButton;
     FTweaksCatExpanded: array[0..2] of Boolean; // General, Graphics, Performance
+    FAntilagCheckBox:  TCheckBox;  // ENABLE_LAYER_MESA_ANTI_LAG=1
+    FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
+    FDLSSUpgradeCheckBox: TCheckBox;   // PROTON_DLSS_UPGRADE=1
+    FXeSSUpgradeCheckBox: TCheckBox;   // PROTON_XESS_UPGRADE=1
 
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -5810,7 +5814,7 @@ type
   end;
 
 const
-  TWEAK_ROW_COUNT = 18;
+  TWEAK_ROW_COUNT = 22;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck'),
     (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Always use GameMode'),
@@ -5824,12 +5828,16 @@ const
     (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: 'Force Zink'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_DEBUG=nofastclears';          Description: 'No fast clears'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_PRIORITY_HIGH=1';           Description: 'Higher priority for games'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_USE_WOW64=1';               Description: 'Use WOW64'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Large Address Aware'),
     (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Staging shared memory'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Heap Delay Free')
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Heap Delay Free'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: 'Enable AMD Anti-Lag 2')
   );
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
@@ -5853,6 +5861,10 @@ begin
     15: Result := Form.stagememCheckBox;
     16: Result := Form.disablentsyncCheckBox;
     17: Result := Form.heapdelayCheckBox;
+    18: Result := Form.FAntilagCheckBox;
+    19: Result := Form.FFSR4UpgradeCheckBox;
+    20: Result := Form.FDLSSUpgradeCheckBox;
+    21: Result := Form.FXeSSUpgradeCheckBox;
   else
     Result := nil;
   end;
@@ -6302,6 +6314,32 @@ begin
   FTweaksFABBtn.Hint         := 'Add custom environment variable';
   FTweaksFABBtn.OnClick      := @TweaksMD3FABClick;
   FTweaksFABBtn.OnPaint      := @TweaksMD3FABPaint;
+
+  // Hidden checkbox for AMD Anti-Lag 2 (not in LFM — created dynamically)
+  FAntilagCheckBox := TCheckBox.Create(Self);
+  FAntilagCheckBox.Parent      := Self;
+  FAntilagCheckBox.Visible     := False;
+  FAntilagCheckBox.Name        := 'antilagCheckBox';
+  FAntilagCheckBox.Caption     := 'Enable AMD Anti-Lag 2';
+
+  // Hidden checkboxes for upgrade tweaks (not in LFM — created dynamically)
+  FFSR4UpgradeCheckBox := TCheckBox.Create(Self);
+  FFSR4UpgradeCheckBox.Parent  := Self;
+  FFSR4UpgradeCheckBox.Visible := False;
+  FFSR4UpgradeCheckBox.Name    := 'fsr4upgradeCheckBox';
+  FFSR4UpgradeCheckBox.Caption := 'Automatically upgrade FSR to the latest version';
+
+  FDLSSUpgradeCheckBox := TCheckBox.Create(Self);
+  FDLSSUpgradeCheckBox.Parent  := Self;
+  FDLSSUpgradeCheckBox.Visible := False;
+  FDLSSUpgradeCheckBox.Name    := 'dlssupgradeCheckBox';
+  FDLSSUpgradeCheckBox.Caption := 'Automatically upgrade DLSS to the latest version';
+
+  FXeSSUpgradeCheckBox := TCheckBox.Create(Self);
+  FXeSSUpgradeCheckBox.Parent  := Self;
+  FXeSSUpgradeCheckBox.Visible := False;
+  FXeSSUpgradeCheckBox.Name    := 'xessupgradeCheckBox';
+  FXeSSUpgradeCheckBox.Caption := 'Automatically upgrade XeSS to the latest version';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FTweaksGrid := TStringGrid.Create(Self);
@@ -7291,6 +7329,13 @@ begin
           GetPerformanceCheckBox(5).Checked := True;
           TweakFound := True;
         end;
+
+        // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
+        if Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1', FileLines[i]) > 0 then
+        begin
+          FAntilagCheckBox.Checked := True;
+          TweakFound := True;
+        end;
       end;
 
       // Set geSpeedButton state based on whether any tweak was found
@@ -7497,6 +7542,10 @@ begin
     GetPerformanceCheckBox(3).Checked := False;
     GetPerformanceCheckBox(4).Checked := False;
     GetPerformanceCheckBox(5).Checked := False;
+    FAntilagCheckBox.Checked := False;
+    FFSR4UpgradeCheckBox.Checked := False;
+    FDLSSUpgradeCheckBox.Checked := False;
+    FXeSSUpgradeCheckBox.Checked := False;
 
     // Reset custom env list
     customenvEdit.Text := '';
@@ -7587,6 +7636,27 @@ begin
         TweakFound := True;
       end;
 
+      // Index 5: "Automatically upgrade FSR" -> export PROTON_FSR4_UPGRADE=1
+      if Pos('export PROTON_FSR4_UPGRADE=1', FileLines[i]) > 0 then
+      begin
+        FFSR4UpgradeCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+
+      // Index 6: "Automatically upgrade DLSS" -> export PROTON_DLSS_UPGRADE=1
+      if Pos('export PROTON_DLSS_UPGRADE=1', FileLines[i]) > 0 then
+      begin
+        FDLSSUpgradeCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+
+      // Index 7: "Automatically upgrade XeSS" -> export PROTON_XESS_UPGRADE=1
+      if Pos('export PROTON_XESS_UPGRADE=1', FileLines[i]) > 0 then
+      begin
+        FXeSSUpgradeCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+
       // performanceCheckGroup items
       // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
       if Pos('export PROTON_PRIORITY_HIGH=1', FileLines[i]) > 0 then
@@ -7627,6 +7697,13 @@ begin
       if Pos('export PROTON_HEAP_DELAY_FREE=1', FileLines[i]) > 0 then
       begin
         GetPerformanceCheckBox(5).Checked := True;
+        TweakFound := True;
+      end;
+
+      // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
+      if Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1', FileLines[i]) > 0 then
+      begin
+        FAntilagCheckBox.Checked := True;
         TweakFound := True;
       end;
 
@@ -9056,6 +9133,19 @@ EnableTraceLogsFound: Boolean;
       if nofastclearsCheckBox.Checked then
         LaunchCommand := LaunchCommand + 'RADV_DEBUG=nofastclears ';
 
+      // graphicsCheckGroup upgrade items
+      // Index 5: "Automatically upgrade FSR" -> PROTON_FSR4_UPGRADE=1
+      if FFSR4UpgradeCheckBox.Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_FSR4_UPGRADE=1 ';
+
+      // Index 6: "Automatically upgrade DLSS" -> PROTON_DLSS_UPGRADE=1
+      if FDLSSUpgradeCheckBox.Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_DLSS_UPGRADE=1 ';
+
+      // Index 7: "Automatically upgrade XeSS" -> PROTON_XESS_UPGRADE=1
+      if FXeSSUpgradeCheckBox.Checked then
+        LaunchCommand := LaunchCommand + 'PROTON_XESS_UPGRADE=1 ';
+
       // performanceCheckGroup items
       // Index 0: "Higher priority for games" -> PROTON_PRIORITY_HIGH=1
       if GetPerformanceCheckBox(0).Checked then
@@ -9080,6 +9170,10 @@ EnableTraceLogsFound: Boolean;
       // Index 5: "Heap Delay Free" -> PROTON_HEAP_DELAY_FREE=1
       if GetPerformanceCheckBox(5).Checked then
         LaunchCommand := LaunchCommand + 'PROTON_HEAP_DELAY_FREE=1 ';
+
+      // Index 6: "Enable AMD Anti-Lag 2" -> ENABLE_LAYER_MESA_ANTI_LAG=1
+      if FAntilagCheckBox.Checked then
+        LaunchCommand := LaunchCommand + 'ENABLE_LAYER_MESA_ANTI_LAG=1 ';
 
       // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
       if GetGeneralCheckBox(1).Checked then
@@ -9128,18 +9222,22 @@ EnableTraceLogsFound: Boolean;
                  (Pos('export PROTON_ENABLE_NVAPI=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_USE_WINED3D=1', FGModLines[LineIndex]) > 0) or
                  // Zink exports
-                 (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FGModLines[LineIndex]) > 0) or
-                 (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa', FGModLines[LineIndex]) > 0) or
-                 (Pos('export RADV_DEBUG=nofastclears', FGModLines[LineIndex]) > 0) or
-                 // performanceCheckGroup exports
+                  (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FGModLines[LineIndex]) > 0) or
+                  (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa', FGModLines[LineIndex]) > 0) or
+                  (Pos('export RADV_DEBUG=nofastclears', FGModLines[LineIndex]) > 0) or
+                  (Pos('export PROTON_FSR4_UPGRADE=1', FGModLines[LineIndex]) > 0) or
+                  (Pos('export PROTON_DLSS_UPGRADE=1', FGModLines[LineIndex]) > 0) or
+                  (Pos('export PROTON_XESS_UPGRADE=1', FGModLines[LineIndex]) > 0) or
+                  // performanceCheckGroup exports
                  (Pos('export PROTON_PRIORITY_HIGH=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_USE_WOW64=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FGModLines[LineIndex]) > 0) or
                  (Pos('export STAGING_SHARED_MEMORY=1', FGModLines[LineIndex]) > 0) or
-                 (Pos('export PROTON_NO_NTSYNC=1', FGModLines[LineIndex]) > 0) or
-                 (Pos('export PROTON_HEAP_DELAY_FREE=1', FGModLines[LineIndex]) > 0) or
-                 // Custom environment variable marker
-                 (Pos('#customenv', FGModLines[LineIndex]) > 0) then
+                  (Pos('export PROTON_NO_NTSYNC=1', FGModLines[LineIndex]) > 0) or
+                  (Pos('export PROTON_HEAP_DELAY_FREE=1', FGModLines[LineIndex]) > 0) or
+                  (Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1', FGModLines[LineIndex]) > 0) or
+                  // Custom environment variable marker
+                  (Pos('#customenv', FGModLines[LineIndex]) > 0) then
               begin
                 FGModLines.Delete(LineIndex);
               end;
@@ -9209,9 +9307,26 @@ EnableTraceLogsFound: Boolean;
                 end;
 
                 // performanceCheckGroup items (insert in reverse order)
+                // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
+                if FAntilagCheckBox.Checked then
+                  FGModLines.Insert(LineIndex + 1, '  export ENABLE_LAYER_MESA_ANTI_LAG=1');
+
                 // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
                 if GetPerformanceCheckBox(5).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_HEAP_DELAY_FREE=1');
+
+                // graphicsCheckGroup upgrade items (insert in reverse order)
+                // Index 7: "Automatically upgrade XeSS" -> export PROTON_XESS_UPGRADE=1
+                if FXeSSUpgradeCheckBox.Checked then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_XESS_UPGRADE=1');
+
+                // Index 6: "Automatically upgrade DLSS" -> export PROTON_DLSS_UPGRADE=1
+                if FDLSSUpgradeCheckBox.Checked then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_DLSS_UPGRADE=1');
+
+                // Index 5: "Automatically upgrade FSR" -> export PROTON_FSR4_UPGRADE=1
+                if FFSR4UpgradeCheckBox.Checked then
+                  FGModLines.Insert(LineIndex + 1, '  export PROTON_FSR4_UPGRADE=1');
 
                 // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
                 if GetPerformanceCheckBox(4).Checked then
@@ -9292,11 +9407,15 @@ EnableTraceLogsFound: Boolean;
            GetGraphicsCheckBox(0).Checked or GetGraphicsCheckBox(1).Checked or
            GetGraphicsCheckBox(2).Checked or GetGraphicsCheckBox(3).Checked or
            GetGraphicsCheckBox(4).Checked or
-           nofastclearsCheckBox.Checked or
-           GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
-            GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
-            GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
-            (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
+            nofastclearsCheckBox.Checked or
+            GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
+             GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
+             GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
+             FAntilagCheckBox.Checked or
+             FFSR4UpgradeCheckBox.Checked or
+             FDLSSUpgradeCheckBox.Checked or
+             FXeSSUpgradeCheckBox.Checked or
+             (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
         begin
           // Auto-enable Auto Enable and save
           geSpeedButton.ImageIndex := 1;
@@ -11750,10 +11869,14 @@ begin
          (Pos('export PROTON_USE_WOW64=1',               Lines[i]) > 0) or
          (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', Lines[i]) > 0) or
          (Pos('export STAGING_SHARED_MEMORY=1',          Lines[i]) > 0) or
-         (Pos('export PROTON_NO_NTSYNC=1',               Lines[i]) > 0) or
-         (Pos('export PROTON_HEAP_DELAY_FREE=1',         Lines[i]) > 0) or
-         (Pos('#customenv',                              Lines[i]) > 0) or
-         (Pos('export SteamDeck=1',                     Lines[i]) > 0) then
+           (Pos('export PROTON_NO_NTSYNC=1',               Lines[i]) > 0) or
+           (Pos('export PROTON_HEAP_DELAY_FREE=1',         Lines[i]) > 0) or
+           (Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1',     Lines[i]) > 0) or
+           (Pos('export PROTON_FSR4_UPGRADE=1',            Lines[i]) > 0) or
+           (Pos('export PROTON_DLSS_UPGRADE=1',            Lines[i]) > 0) or
+           (Pos('export PROTON_XESS_UPGRADE=1',            Lines[i]) > 0) or
+           (Pos('#customenv',                              Lines[i]) > 0) or
+           (Pos('export SteamDeck=1',                     Lines[i]) > 0) then
         Lines.Delete(i);
     end;
     Lines.SaveToFile(AFGModFile);
