@@ -4573,7 +4573,8 @@ begin
       begin
         if TryStrToFloat(Value, FloatValue, FS) then
         begin
-          smaaTrackBar.Position := Round(FloatValue * 9) + 1;
+          // map 0..25 -> 1..10
+          smaaTrackBar.Position := Round(FloatValue / 25 * 9) + 1;
           smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
           if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
         end;
@@ -9193,19 +9194,20 @@ end;  //  ################### END - SAVE MANGOHUD
        FS.DecimalSeparator := '.';
        Lines.Add('fxaaQualitySubpix = ' + FloatToStrF(FxaaQuality, ffFixed, 3, 1, FS));
      end;
-     // --- SMAA adjustment if active ---
-     if smaatrackbar.Position >= 1 then
-     begin
-       // map 1..10 -> 0.0..1.0
-       SmaaCorner := (smaatrackbar.Position - 1) / 9.0;  // (1-1)/9=0, (10-1)/9=1
-       // use dot for decimal value
-       FS := DefaultFormatSettings;
-       FS.DecimalSeparator := '.';
-       Lines.Add('smaaCornerRounding = ' + FloatToStrF(SmaaCorner, ffFixed, 3, 1, FS));
-       Lines.Add('smaaThreshold = 0.1');
-       Lines.Add('smaaMaxSearchSteps = 16');
-       Lines.Add('smaaMaxSearchStepsDiag = 8');
-     end;
+      // --- SMAA adjustment if active ---
+      if smaatrackbar.Position >= 1 then
+      begin
+        // map 1..10 -> interpolated SMAA values
+        FS := DefaultFormatSettings;
+        FS.DecimalSeparator := '.';
+        // Position 1: corner=0,   threshold=0.1, steps=16, diag=8
+        // Position 10: corner=25, threshold=0.05, steps=32, diag=16
+        SmaaCorner := 25.0 * (smaatrackbar.Position - 1) / 9.0;
+        Lines.Add('smaaCornerRounding = ' + FloatToStrF(SmaaCorner, ffFixed, 3, 1, FS));
+        Lines.Add('smaaThreshold = ' + FloatToStrF(0.1 - 0.05 * (smaatrackbar.Position - 1) / 9.0, ffFixed, 3, 2, FS));
+        Lines.Add('smaaMaxSearchSteps = ' + IntToStr(Round(16 + 16 * (smaatrackbar.Position - 1) / 9.0)));
+        Lines.Add('smaaMaxSearchStepsDiag = ' + IntToStr(Round(8 + 8 * (smaatrackbar.Position - 1) / 9.0)));
+      end;
      // --- DLS adjustment if active ---
      if dlstrackbar.Position >= 1 then
      begin
@@ -9384,27 +9386,23 @@ begin
               1: ConfigLines.Add('smaaEdgeDetection = color');
             end;
             
-            ConfigLines.Add('');
-            ConfigLines.Add('#smaaThreshold specifies the threshold for edge detection');
-            ConfigLines.Add('#0.05 - lower threshold (more edges, slower)');
-            ConfigLines.Add('#0.10 - default');
-            ConfigLines.Add('#0.15 - upper threshold (less edges but faster)');
-            ConfigLines.Add('smaaThreshold = ' + StringReplace(Format('%.2f', [smaaTrackbar.Position / 100], FS), ',', '.', [rfReplaceAll]));
-            ConfigLines.Add('');
-            ConfigLines.Add('#smaaMaxSearchSteps specifies the maximum steps in edge pattern search');
-            ConfigLines.Add('#For a bit better quality: 16');
-            ConfigLines.Add('#Default good quality: 32');
-            ConfigLines.Add('smaaMaxSearchSteps = 32');
-            ConfigLines.Add('');
-            ConfigLines.Add('#smaaMaxSearchStepsDiag specifies the maximum steps in diagonal pattern search');
-            ConfigLines.Add('#Default value: 16');
-            ConfigLines.Add('smaaMaxSearchStepsDiag = 16');
-            ConfigLines.Add('');
-            ConfigLines.Add('#smaaCornerRounding specifies how much to round sharp corners');
-            ConfigLines.Add('#0   - no rounding');
-            ConfigLines.Add('#100 - maximum rounding');
-            ConfigLines.Add('smaaCornerRounding = 25');
-            ConfigLines.Add('');
+            // SMAA parameters — only written when trackbar > 0
+            if smaaTrackBar.Position >= 1 then
+            begin
+              ConfigLines.Add('');
+              ConfigLines.Add('#smaaThreshold specifies the threshold for edge detection');
+              ConfigLines.Add('smaaThreshold = ' + StringReplace(Format('%.2f', [0.1 - 0.05 * (smaaTrackbar.Position - 1) / 9.0], FS), ',', '.', [rfReplaceAll]));
+              ConfigLines.Add('');
+              ConfigLines.Add('#smaaMaxSearchSteps specifies the maximum steps in edge pattern search');
+              ConfigLines.Add('smaaMaxSearchSteps = ' + IntToStr(Round(16 + 16 * (smaaTrackbar.Position - 1) / 9.0)));
+              ConfigLines.Add('');
+              ConfigLines.Add('#smaaMaxSearchStepsDiag specifies the maximum steps in diagonal pattern search');
+              ConfigLines.Add('smaaMaxSearchStepsDiag = ' + IntToStr(Round(8 + 8 * (smaaTrackbar.Position - 1) / 9.0)));
+              ConfigLines.Add('');
+              ConfigLines.Add('#smaaCornerRounding specifies how much to round sharp corners');
+              ConfigLines.Add('smaaCornerRounding = ' + StringReplace(Format('%.1f', [25.0 * (smaaTrackbar.Position - 1) / 9.0], FS), ',', '.', [rfReplaceAll]));
+              ConfigLines.Add('');
+            end;
             
             ConfigLines.Add('#AF Anisotropic filtering');
             ConfigLines.Add('#0  - game choice');  
