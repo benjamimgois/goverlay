@@ -15813,7 +15813,7 @@ var
   PendingIDs: TStringList;
   PendingImages: TList;
   CacheDir: string;
-  i, j, CardX, CardY, CardsPerRow, TotalRows: Integer;
+  i, j, CardX, CardY, CardsPerRow, TotalRows, RowMargin: Integer;
   LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir, InstallDir, IconPath: string;
   SR: TSearchRec;
   AcfFile: TStringList;
@@ -15854,7 +15854,9 @@ begin
       Exit;
     end;
 
-    CardsPerRow := Max(1, (FGamesScrollBox.ClientWidth - CARD_MARGIN) div (CARD_W + CARD_MARGIN));
+    CardsPerRow := Max(1, FGamesScrollBox.ClientWidth div (CARD_W + CARD_MARGIN));
+    RowMargin := (FGamesScrollBox.ClientWidth - CardsPerRow * CARD_W) div (CardsPerRow + 1);
+    if RowMargin < 4 then RowMargin := 4;
     j := 0;
 
     for i := 0 to Libraries.Count - 1 do
@@ -15898,9 +15900,9 @@ begin
           if not FileExists(ImagePath) then
             ImagePath := CacheDir + AppID + '.jpg';
 
-          // Card position
-          CardX := CARD_MARGIN + (j mod CardsPerRow) * (CARD_W + CARD_MARGIN);
-          CardY := CARD_MARGIN + (j div CardsPerRow) * (CARD_H + CARD_MARGIN);
+          // Card position (dynamic margin distributes leftover space evenly)
+          CardX := RowMargin + (j mod CardsPerRow) * (CARD_W + RowMargin);
+          CardY := RowMargin + (j div CardsPerRow) * (CARD_H + RowMargin);
 
           CardPanel := TPanel.Create(Self);
           CardPanel.Parent := FGamesPanel;
@@ -16109,8 +16111,8 @@ begin
     begin
       TotalRows := (j + CardsPerRow - 1) div CardsPerRow;
       FGamesPanel.Width := Max(FGamesScrollBox.ClientWidth,
-        CardsPerRow * (CARD_W + CARD_MARGIN) + CARD_MARGIN);
-      FGamesPanel.Height := CARD_MARGIN + TotalRows * (CARD_H + CARD_MARGIN);
+        CardsPerRow * (CARD_W + RowMargin) + RowMargin);
+      FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
     end
     else
     begin
@@ -16849,7 +16851,7 @@ end;
 
 procedure Tgoverlayform.ReflowGamesGrid;
 var
-  CardCount, CardsPerRow, TotalRows, i, CardX, CardY: Integer;
+  CardCount, CardsPerRow, TotalRows, i, CardX, CardY, RowMargin: Integer;
   Ctrl: TControl;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
@@ -16862,7 +16864,9 @@ begin
   end;
   DbgLog('  ReflowGamesGrid BEGIN (tab visible)');
 
-  CardsPerRow := Max(1, (FGamesScrollBox.ClientWidth - CARD_MARGIN) div (CARD_W + CARD_MARGIN));
+  CardsPerRow := Max(1, FGamesScrollBox.ClientWidth div (CARD_W + CARD_MARGIN));
+  RowMargin := (FGamesScrollBox.ClientWidth - CardsPerRow * CARD_W) div (CardsPerRow + 1);
+  if RowMargin < 4 then RowMargin := 4;
   CardCount   := 0;
 
   for i := 0 to FCardPanels.Count - 1 do
@@ -16870,8 +16874,8 @@ begin
     Ctrl := TControl(FCardPanels[i]);
     if not (Ctrl is TPanel) then
       Continue;
-    CardX := CARD_MARGIN + (CardCount mod CardsPerRow) * (CARD_W + CARD_MARGIN);
-    CardY := CARD_MARGIN + (CardCount div CardsPerRow) * (CARD_H + CARD_MARGIN);
+    CardX := RowMargin + (CardCount mod CardsPerRow) * (CARD_W + RowMargin);
+    CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
     if TPanel(Ctrl) = FHoveredCard then
     begin
       // Update base position so the smooth animation continues from the new slot
@@ -16890,8 +16894,8 @@ begin
   begin
     TotalRows := (CardCount + CardsPerRow - 1) div CardsPerRow;
     FGamesPanel.Width  := Max(FGamesScrollBox.ClientWidth,
-      CardsPerRow * (CARD_W + CARD_MARGIN) + CARD_MARGIN);
-    FGamesPanel.Height := CARD_MARGIN + TotalRows * (CARD_H + CARD_MARGIN);
+      CardsPerRow * (CARD_W + RowMargin) + RowMargin);
+    FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
   end;
 
 end;
