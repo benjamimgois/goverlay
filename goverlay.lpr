@@ -7,7 +7,7 @@ uses
   cthreads, // <--- Agora será sempre incluído no Linux
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, overlayunit, aboutunit, blacklistUnit, howto, themeunit, urlutils;
+  Forms, overlayunit, aboutunit, blacklistUnit, howto;
 
 
 

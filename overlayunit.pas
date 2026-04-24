@@ -6,9 +6,9 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
-  unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
-  ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
-  FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
+  unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
+  blacklistUnit, LCLtype, Clipbrd, LCLIntf,
+  FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids;
 
 
@@ -523,7 +523,6 @@ type
   private
     FLaunchCommand: string;
     FCommandCopiedTime: QWord;
-    FStartTick: Cardinal;
     FOptiscalerUpdate: TOptiscalerTab;
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
@@ -602,14 +601,9 @@ type
     FMtCpuCard:      TPanel;
 
     // Custom env groupbox (Tweaks tab)
-    FCustomGroupBox:  TGroupBox;
-    FCustomSec:       TPanel;   // TPanel replacing FCustomGroupBox as visual parent
+    FCustomSec:       TPanel;
     FCustomListBox:   TListBox;
-    FCustomAddBtn:    TButton;
-    FCustomRemoveBtn: TButton;
     FTweaksVarListBox: TListBox;
-    FTweaksEnvPanel:   TPanel;
-    FTweaksRemoveBtn:  TButton;
     FTweaksGrid:       TStringGrid;
 
     // Tweaks tab MD3-style custom list (replaces TStringGrid)
@@ -642,7 +636,6 @@ type
     FHomeDepDots:      array[0..6] of TShape;
     FHomeDepLbls:      array[0..6] of TLabel;
     FHomeGlobalBtn:    TPanel;
-    FHomeGameBtn:      TPanel;
     FHomeBtnRow:       TPanel;
 
     // Preset tab code-generated cards
@@ -680,7 +673,6 @@ type
 
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
-    FPerfVertSep: array[0..1] of TPanel;  // vertical mid-card separators
     FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
 

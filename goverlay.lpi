@@ -106,47 +106,40 @@
         <UnitName Value="ATStringProc_HtmlColor"/>
       </Unit2>
       <Unit3>
-        <Filename Value="crosshairunit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="crosshairsizeForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="crosshairUnit"/>
-      </Unit3>
-      <Unit4>
         <Filename Value="logpathunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="logpathForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="logpathUnit"/>
-      </Unit4>
-      <Unit5>
+      </Unit3>
+      <Unit4>
         <Filename Value="customeffectsunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="customeffectsForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit5>
-      <Unit6>
+        <UnitName Value="customeffectsunit"/>
+      </Unit4>
+      <Unit5>
         <Filename Value="blacklistunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="blacklistForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="blacklistUnit"/>
-      </Unit6>
-      <Unit7>
+      </Unit5>
+      <Unit6>
         <Filename Value="howto.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="howtoForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit7>
-      <Unit8>
+      </Unit6>
+      <Unit7>
         <Filename Value="fgmod_resources.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit8>
+      </Unit7>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -5,7 +5,7 @@ unit themeunit;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, CheckLst, Dialogs, IniFiles, Buttons, ComCtrls,
+  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, Dialogs, IniFiles, Buttons, ComCtrls,
   configmanager;
 
 type

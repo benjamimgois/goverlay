@@ -77,7 +77,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, fgmod_resources, systemdetector;
+  FileUtil, LazFileUtils, BaseUnix, fgmod_resources;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
 // Returns: ~/.local/share/goverlay/fgmod (Sandboxed in Flatpak)

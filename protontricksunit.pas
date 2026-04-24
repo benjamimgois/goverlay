@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Process, themeunit, constants, strutils, systemdetector, LCLType, Grids;
+  ExtCtrls, Process, themeunit, strutils, systemdetector, LCLType, Grids;
 
 type
 
