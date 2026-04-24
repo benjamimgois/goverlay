@@ -16937,6 +16937,8 @@ begin
   commandPanel.Visible       := False;
 
   goverlaybarPanel.Visible  := True;
+  popupBitBtn.Visible := True;
+  FPreviewBtn.Visible  := True;
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
   LoadMangoHudConfig;
