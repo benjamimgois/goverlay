@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ColorBox, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   ATStringProc_HtmlColor, blacklistUnit, customeffectsunit, LCLtype, CheckLst,Clipbrd, LCLIntf,
   FileUtil, StrUtils, gfxlaunch, Types,fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics;
+  fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids;
 
 
 
@@ -610,6 +610,15 @@ type
     FTweaksVarListBox: TListBox;
     FTweaksEnvPanel:   TPanel;
     FTweaksRemoveBtn:  TButton;
+    FTweaksGrid:       TStringGrid;
+
+    // Tweaks tab MD3-style custom list (replaces TStringGrid)
+    FTweaksPaintBox:   TPaintBox;
+    FTweaksScrollBar:  TScrollBar;
+    FTweaksScrollPos:  Integer;
+    FTweaksHoverIdx:   Integer;
+    FTweaksFABBtn:     TSpeedButton;
+    FTweaksCatExpanded: array[0..2] of Boolean; // General, Graphics, Performance
 
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -797,6 +806,25 @@ type
     procedure TweaksCheckChange(Sender: TObject);
     procedure UpdateTweaksVarListBox;
     procedure TweaksVarRemoveClick(Sender: TObject);
+    procedure TweaksGridPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
+    procedure TweaksGridDrawCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState: TGridDrawState);
+    procedure TweaksGridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure TweaksGridResize(Sender: TObject);
+    procedure SyncTweaksGridFromCheckBoxes;
+
+    // MD3-style tweaks list (replaces grid)
+    procedure InitTweaksMD3;
+    procedure TweaksMD3Paint(Sender: TObject);
+    procedure TweaksMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure TweaksMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure TweaksMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure TweaksMD3ScrollChange(Sender: TObject);
+    procedure TweaksMD3BuildItems;
+    procedure TweaksMD3ToggleItem(Index: Integer);
+    procedure TweaksMD3FABClick(Sender: TObject);
+    procedure TweaksMD3FABPaint(Sender: TObject);
+    function TweaksMD3ItemHeight: Integer;
+    function TweaksMD3HeaderHeight: Integer;
     procedure ApplyImageAntialiasing;
     function IsOptiScalerInstalled: Boolean;
     
@@ -5778,6 +5806,66 @@ begin
 
 end; // form create
 
+// ---------------------------------------------------------------------------
+// Tweaks grid mapping
+// ---------------------------------------------------------------------------
+type
+  TTweakRow = record
+    CheckBox: TCheckBox;
+    Category: string;
+    VarName: string;
+    Description: string;
+  end;
+
+const
+  TWEAK_ROW_COUNT = 18;
+  TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
+    (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck'),
+    (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Always use GameMode'),
+    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
+    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
+    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
+    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL Input'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulate RT (old AMD)'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: 'Force Zink'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_DEBUG=nofastclears';          Description: 'No fast clears'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_PRIORITY_HIGH=1';           Description: 'Higher priority for games'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_USE_WOW64=1';               Description: 'Use WOW64'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Large Address Aware'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Staging shared memory'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Heap Delay Free')
+  );
+
+function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
+begin
+  case Index of
+    0: Result := Form.simdeckCheckBox;
+    1: Result := Form.gamemodeCheckBox;
+    2: Result := Form.enhdrCheckBox;
+    3: Result := Form.enwaylandCheckBox;
+    4: Result := Form.actprotonlogsCheckBox;
+    5: Result := Form.usesdlCheckBox;
+    6: Result := Form.emurtCheckBox;
+    7: Result := Form.hidenvidiaCheckBox;
+    8: Result := Form.forcenvapiCheckBox;
+    9: Result := Form.wined3dCheckBox;
+    10: Result := Form.forcezinkCheckBox;
+    11: Result := Form.nofastclearsCheckBox;
+    12: Result := Form.highpriCheckBox;
+    13: Result := Form.wow64CheckBox;
+    14: Result := Form.largeaddressCheckBox;
+    15: Result := Form.stagememCheckBox;
+    16: Result := Form.disablentsyncCheckBox;
+    17: Result := Form.heapdelayCheckBox;
+  else
+    Result := nil;
+  end;
+end;
+
 // Helper function to access generalGroupBox checkboxes by index (replaces generalCheckGroup)
 function Tgoverlayform.GetGeneralCheckBox(Index: Integer): TCheckBox;
 begin
@@ -5973,6 +6061,741 @@ begin
     // Remove directly from listbox (file not saved yet, can't re-read from it)
     FTweaksVarListBox.Items.Delete(FTweaksVarListBox.ItemIndex);
   end;
+end;
+
+// ---------------------------------------------------------------------------
+// Tweaks grid event handlers
+// ---------------------------------------------------------------------------
+
+procedure Tgoverlayform.TweaksGridPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
+var
+  Grid: TStringGrid;
+  Cat: string;
+begin
+  Grid := Sender as TStringGrid;
+
+  // Header styling
+  if aRow < Grid.FixedRows then
+  begin
+    Grid.Canvas.Brush.Color := $00303040;
+    Grid.Canvas.Font.Color  := $00CCAAAA;
+    Grid.Canvas.Font.Style  := [fsBold];
+    Exit;
+  end;
+
+  // Zebra + checked-row styling
+  if Grid.Cells[0, aRow] = '1' then
+  begin
+    Grid.Canvas.Brush.Color := $00384858;
+    Grid.Canvas.Font.Color  := clWhite;
+  end
+  else if (aRow - Grid.FixedRows) mod 2 = 1 then
+  begin
+    Grid.Canvas.Brush.Color := $00282838;
+    Grid.Canvas.Font.Color  := $00CCCCCC;
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color := $002E1E1A;
+    Grid.Canvas.Font.Color  := $00AAAAAA;
+  end;
+
+  // Category colour
+  if aCol = 1 then
+  begin
+    Cat := Grid.Cells[1, aRow];
+    if Cat = 'General'    then Grid.Canvas.Font.Color := $00E8E8E8;
+    if Cat = 'Graphics'   then Grid.Canvas.Font.Color := $00F0A860;
+    if Cat = 'Performance'then Grid.Canvas.Font.Color := $0040D8F0;
+    if Cat = 'Custom'     then Grid.Canvas.Font.Color := $00B0B0B0;
+  end;
+
+  // Monospace for variable column
+  if aCol = 2 then
+    Grid.Canvas.Font.Name := 'DejaVu Sans Mono';
+end;
+
+procedure Tgoverlayform.TweaksGridDrawCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState: TGridDrawState);
+var
+  Grid: TStringGrid;
+  BoxRect: TRect;
+  TxtRect: TRect;
+  Txt: string;
+const
+  BOX_SIZE = 14;
+  PAD = 8;
+begin
+  Grid := Sender as TStringGrid;
+
+  // Checkbox column (0)
+  if (aCol = 0) and (aRow >= Grid.FixedRows) then
+  begin
+    Grid.Canvas.FillRect(aRect);
+
+    BoxRect.Left   := aRect.Left + (Grid.ColWidths[0] - BOX_SIZE) div 2;
+    BoxRect.Top    := aRect.Top + (aRect.Height - BOX_SIZE) div 2;
+    BoxRect.Right  := BoxRect.Left + BOX_SIZE;
+    BoxRect.Bottom := BoxRect.Top + BOX_SIZE;
+
+    Grid.Canvas.Brush.Color := $002E1E1A;
+    Grid.Canvas.Pen.Color   := $00AAAAAA;
+    Grid.Canvas.Rectangle(BoxRect);
+
+    if Grid.Cells[0, aRow] = '1' then
+    begin
+      Grid.Canvas.Brush.Color := $00F0BE30; // accent cyan
+      Grid.Canvas.Pen.Color   := $00F0BE30;
+      InflateRect(BoxRect, -3, -3);
+      Grid.Canvas.FillRect(BoxRect);
+      // White checkmark
+      Grid.Canvas.Font.Name  := 'DejaVu Sans';
+      Grid.Canvas.Font.Size  := 8;
+      Grid.Canvas.Font.Style := [fsBold];
+      Grid.Canvas.Font.Color := clWhite;
+      Grid.Canvas.TextOut(BoxRect.Left - 1, BoxRect.Top - 3, '✓');
+    end;
+    Exit;
+  end;
+
+  // Text columns — draw with horizontal padding
+  if (aCol > 0) and (aRow >= Grid.FixedRows) then
+  begin
+    Txt := Grid.Cells[aCol, aRow];
+    TxtRect := aRect;
+    InflateRect(TxtRect, -PAD, 0);
+    Grid.Canvas.FillRect(aRect);
+    Grid.Canvas.TextRect(TxtRect, TxtRect.Left, TxtRect.Top + (TxtRect.Height - Grid.Canvas.TextHeight(Txt)) div 2, Txt);
+  end;
+end;
+
+procedure Tgoverlayform.TweaksGridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Grid: TStringGrid;
+  Col, Row: Integer;
+  Chk: TCheckBox;
+begin
+  Grid := Sender as TStringGrid;
+  Grid.MouseToCell(X, Y, Col, Row);
+  if (Button <> mbLeft) or (Col <> 0) or (Row < Grid.FixedRows) then Exit;
+
+  // Toggle cell value
+  if Grid.Cells[Col, Row] = '1' then
+    Grid.Cells[Col, Row] := '0'
+  else
+    Grid.Cells[Col, Row] := '1';
+
+  // Sync hidden checkbox for predefined rows
+  if Row - Grid.FixedRows < TWEAK_ROW_COUNT then
+  begin
+    Chk := GetTweakRowCheckBox(Self, Row - Grid.FixedRows);
+    if Assigned(Chk) then
+      Chk.Checked := Grid.Cells[0, Row] = '1';
+  end;
+
+  Grid.InvalidateCell(Col, Row);
+end;
+
+procedure Tgoverlayform.TweaksGridResize(Sender: TObject);
+var
+  Grid: TStringGrid;
+  UsedW: Integer;
+const
+  SCROLLBAR_PAD = 4;
+begin
+  Grid := Sender as TStringGrid;
+  UsedW := Grid.ColWidths[0] + Grid.ColWidths[1] + Grid.ColWidths[2] + SCROLLBAR_PAD;
+  if Grid.ClientWidth > UsedW then
+    Grid.ColWidths[3] := Grid.ClientWidth - UsedW
+  else
+    Grid.ColWidths[3] := 120; // minimum fallback
+end;
+
+procedure Tgoverlayform.SyncTweaksGridFromCheckBoxes;
+var
+  i: Integer;
+  Chk: TCheckBox;
+begin
+  if Assigned(FTweaksGrid) then
+  begin
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
+    begin
+      Chk := GetTweakRowCheckBox(Self, i);
+      if Assigned(Chk) then
+      begin
+        if Chk.Checked then
+          FTweaksGrid.Cells[0, i + 1] := '1'
+        else
+          FTweaksGrid.Cells[0, i + 1] := '0';
+        FTweaksGrid.Cells[1, i + 1] := TWEAK_ROWS[i].Category;
+        FTweaksGrid.Cells[2, i + 1] := TWEAK_ROWS[i].VarName;
+        FTweaksGrid.Cells[3, i + 1] := TWEAK_ROWS[i].Description;
+      end;
+    end;
+  end;
+  // Also refresh MD3 view if active
+  if Assigned(FTweaksPaintBox) then
+    FTweaksPaintBox.Invalidate;
+end;
+
+// ============================================================================
+// TWEAKS TAB — MD3-style custom painted list
+// ============================================================================
+
+function Tgoverlayform.TweaksMD3ItemHeight: Integer;
+begin
+  Result := 44;
+end;
+
+function Tgoverlayform.TweaksMD3HeaderHeight: Integer;
+begin
+  Result := 36;
+end;
+
+procedure Tgoverlayform.InitTweaksMD3;
+var
+  i: Integer;
+const
+  BG = $001A192E; // RGB(22, 25, 37) — dark blue-grey background
+begin
+  // Default all categories expanded
+  FTweaksCatExpanded[0] := True;
+  FTweaksCatExpanded[1] := True;
+  FTweaksCatExpanded[2] := True;
+  FTweaksScrollPos := 0;
+  FTweaksHoverIdx := -1;
+
+  // Hide old LFM visual elements from the Tweaks tab
+  tweaksImage.Visible := False;
+  tweaksText.Visible  := False;
+  tweaksText2.Visible := False;
+  tweaksLabel.Visible := False;
+  tweaksShape.Visible := False;
+
+  // PaintBox fills the tab but leaves room for the bottom bar (40px + padding)
+  FTweaksPaintBox := TPaintBox.Create(Self);
+  FTweaksPaintBox.Parent      := tweaksTabSheet;
+  FTweaksPaintBox.Align       := alNone;
+  FTweaksPaintBox.Anchors     := [akLeft, akTop, akRight, akBottom];
+  FTweaksPaintBox.SetBounds(0, 0, tweaksTabSheet.ClientWidth,
+                            tweaksTabSheet.ClientHeight - 50);
+  FTweaksPaintBox.Color       := BG;
+  FTweaksPaintBox.OnPaint     := @TweaksMD3Paint;
+  FTweaksPaintBox.OnMouseMove := @TweaksMD3MouseMove;
+  FTweaksPaintBox.OnMouseDown := @TweaksMD3MouseDown;
+  FTweaksPaintBox.OnMouseWheel:= @TweaksMD3MouseWheel;
+
+  // Vertical scrollbar (right edge)
+  FTweaksScrollBar := TScrollBar.Create(Self);
+  FTweaksScrollBar.Parent      := tweaksTabSheet;
+  FTweaksScrollBar.Kind        := sbVertical;
+  FTweaksScrollBar.Align       := alRight;
+  FTweaksScrollBar.Width       := 14;
+  FTweaksScrollBar.Visible     := False;
+  FTweaksScrollBar.OnChange    := @TweaksMD3ScrollChange;
+
+  // Floating Action Button — circular "+"
+  FTweaksFABBtn := TSpeedButton.Create(Self);
+  FTweaksFABBtn.Parent       := tweaksTabSheet;
+  FTweaksFABBtn.Width        := 48;
+  FTweaksFABBtn.Height       := 48;
+  FTweaksFABBtn.Left         := tweaksTabSheet.ClientWidth - 64;
+  FTweaksFABBtn.Top          := tweaksTabSheet.ClientHeight - 96; // above Save button
+  FTweaksFABBtn.Anchors      := [akRight, akBottom];
+  FTweaksFABBtn.Caption      := '+';
+  FTweaksFABBtn.Font.Size    := 24;
+  FTweaksFABBtn.Font.Style   := [fsBold];
+  FTweaksFABBtn.Font.Color   := clWhite;
+  FTweaksFABBtn.Flat         := True;
+  FTweaksFABBtn.ShowHint     := True;
+  FTweaksFABBtn.Hint         := 'Add custom environment variable';
+  FTweaksFABBtn.OnClick      := @TweaksMD3FABClick;
+  FTweaksFABBtn.OnPaint      := @TweaksMD3FABPaint;
+
+  // Hidden grid used as data store for custom variables (visual is PaintBox)
+  FTweaksGrid := TStringGrid.Create(Self);
+  FTweaksGrid.Parent      := Self;
+  FTweaksGrid.Visible     := False;
+  FTweaksGrid.ColCount    := 4;
+  FTweaksGrid.RowCount    := 1 + TWEAK_ROW_COUNT;
+  FTweaksGrid.FixedRows   := 1;
+  for i := 0 to TWEAK_ROW_COUNT - 1 do
+  begin
+    FTweaksGrid.Cells[0, i + 1] := '0';
+    FTweaksGrid.Cells[1, i + 1] := TWEAK_ROWS[i].Category;
+    FTweaksGrid.Cells[2, i + 1] := TWEAK_ROWS[i].VarName;
+    FTweaksGrid.Cells[3, i + 1] := TWEAK_ROWS[i].Description;
+  end;
+end;
+
+procedure Tgoverlayform.TweaksMD3FABPaint(Sender: TObject);
+var
+  Btn: TSpeedButton;
+  R: TRect;
+  PlusW, PlusH: Integer;
+begin
+  Btn := Sender as TSpeedButton;
+  R := Rect(0, 0, Btn.Width, Btn.Height);
+
+  // Circle background
+  Btn.Canvas.Brush.Color := RGBToColor(48, 190, 240); // accent cyan
+  Btn.Canvas.Pen.Color   := RGBToColor(48, 190, 240);
+  Btn.Canvas.Ellipse(R);
+
+  // Shadow ring
+  Btn.Canvas.Pen.Color := RGBToColor(38, 160, 210);
+  Btn.Canvas.Ellipse(R.Left + 1, R.Top + 1, R.Right - 1, R.Bottom - 1);
+
+  // Draw "+" manually in the centre
+  Btn.Canvas.Font.Name  := 'DejaVu Sans';
+  Btn.Canvas.Font.Size  := 22;
+  Btn.Canvas.Font.Style := [fsBold];
+  Btn.Canvas.Font.Color := clWhite;
+  PlusW := Btn.Canvas.TextWidth('+');
+  PlusH := Btn.Canvas.TextHeight('+');
+  Btn.Canvas.TextOut((Btn.Width - PlusW) div 2, (Btn.Height - PlusH) div 2 - 1, '+');
+end;
+
+procedure Tgoverlayform.TweaksMD3BuildItems;
+// Virtual — items are rendered on-the-fly in paint event using checkboxes + custom list
+begin
+  // No persistent list needed; paint event reads directly from checkboxes + grid custom rows
+end;
+
+procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
+
+  procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
+  var
+    ThumbR: TRect;
+    CX, CY, ThumbD, Pad: Integer;
+    TrackColor: TColor;
+  const
+    TRACK_W = 44;
+    TRACK_H = 24;
+    THUMB_D = 18;
+    RADIUS  = 12; // rounded-cap radius
+  begin
+    Pad := 2;
+    CX  := AX + TRACK_W div 2;
+    CY  := AY + TRACK_H div 2;
+
+    // Track colour
+    if AOn then
+      TrackColor := RGBToColor(60, 180, 80)   // green
+    else
+      TrackColor := RGBToColor(70, 70, 70);   // grey
+
+    // --- Draw pill-shaped track using central rect + two end caps ---
+    ACanvas.Brush.Color := TrackColor;
+    ACanvas.Pen.Color   := TrackColor;
+
+    // Central rectangle (rounded ends are handled by the caps)
+    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
+
+    // Left cap (semi-circle)
+    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
+
+    // Right cap (semi-circle)
+    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
+
+    // --- Thumb ---
+    ThumbD := THUMB_D;
+    if AOn then
+      ThumbR.Left := AX + TRACK_W - ThumbD - Pad
+    else
+      ThumbR.Left := AX + Pad;
+    ThumbR.Top    := CY - ThumbD div 2;
+    ThumbR.Right  := ThumbR.Left + ThumbD;
+    ThumbR.Bottom := ThumbR.Top + ThumbD;
+
+    // Subtle shadow
+    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
+    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
+    ACanvas.Ellipse(ThumbR);
+
+    // White thumb body
+    InflateRect(ThumbR, -2, -2);
+    ACanvas.Brush.Color := clWhite;
+    ACanvas.Pen.Color   := clWhite;
+    ACanvas.Ellipse(ThumbR);
+  end;
+
+  procedure DrawHeader(ACanvas: TCanvas; const ARect: TRect; const ACat: string; const AIcon: string; AExpanded: Boolean; AHover: Boolean);
+  var
+    TxtH: Integer;
+    Arrow: string;
+    IconX, TextX: Integer;
+  begin
+    if AHover then
+      ACanvas.Brush.Color := RGBToColor(55, 95, 150)   // bright blue
+    else
+      ACanvas.Brush.Color := RGBToColor(40, 70, 115);  // dark blue
+    ACanvas.FillRect(ARect);
+
+    // Arrow (expand/collapse indicator)
+    if AExpanded then
+      Arrow := '▼'
+    else
+      Arrow := '▶';
+    ACanvas.Font.Color  := RGBToColor(200, 200, 200);
+    ACanvas.Font.Size   := 9;
+    ACanvas.Font.Style  := [];
+    ACanvas.Font.Name   := 'DejaVu Sans';
+    ACanvas.TextOut(ARect.Left + 12, ARect.Top + (ARect.Height - ACanvas.TextHeight(Arrow)) div 2, Arrow);
+
+    // Icon
+    IconX := ARect.Left + 32;
+    ACanvas.Font.Name   := 'Noto Color Emoji';
+    ACanvas.Font.Size   := 14;
+    ACanvas.Font.Style  := [];
+    ACanvas.TextOut(IconX, ARect.Top + (ARect.Height - ACanvas.TextHeight(AIcon)) div 2, AIcon);
+
+    // Category name
+    TextX := IconX + 22;
+    ACanvas.Font.Name  := 'DejaVu Sans';
+    ACanvas.Font.Color := clWhite;
+    ACanvas.Font.Style := [fsBold];
+    ACanvas.Font.Size  := 9;
+    TxtH := ACanvas.TextHeight(ACat);
+    ACanvas.TextOut(TextX, ARect.Top + (ARect.Height - TxtH) div 2, ACat);
+  end;
+
+  procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
+                     AChecked, AHover: Boolean; AIsCustom: Boolean);
+  var
+    ToggleX, ToggleY: Integer;
+    VarRect, DescRect: TRect;
+  const
+    PAD = 16;
+  begin
+    // Background
+    if AChecked then
+      ACanvas.Brush.Color := RGBToColor(30, 50, 80)   // blue tint
+    else if AHover then
+      ACanvas.Brush.Color := RGBToColor(50, 55, 70)   // grey-blue
+    else
+      ACanvas.Brush.Color := RGBToColor(22, 25, 37);  // dark background
+    ACanvas.FillRect(ARect);
+
+    // Bottom hairline separator
+    ACanvas.Pen.Color := RGBToColor(40, 45, 60);
+    ACanvas.Line(ARect.Left, ARect.Bottom - 1, ARect.Right, ARect.Bottom - 1);
+
+    // Toggle switch (right side)
+    ToggleX := ARect.Right - 60;
+    ToggleY := ARect.Top + (ARect.Height - 24) div 2;
+    DrawToggle(ACanvas, ToggleX, ToggleY, AChecked);
+
+    // Variable name (left, monospace)
+    VarRect := ARect;
+    VarRect.Left := ARect.Left + PAD;
+    VarRect.Right := ToggleX - PAD;
+    VarRect.Bottom := VarRect.Top + VarRect.Height div 2 + 2;
+    ACanvas.Font.Name  := 'DejaVu Sans Mono';
+    ACanvas.Font.Size  := 9;
+    ACanvas.Font.Style := [];
+    if AIsCustom then
+      ACanvas.Font.Color := RGBToColor(160, 160, 160)
+    else
+      ACanvas.Font.Color := clWhite;
+    ACanvas.TextRect(VarRect, VarRect.Left, VarRect.Top + 2, AVar);
+
+    // Description (below variable, sans-serif, dimmed)
+    DescRect := ARect;
+    DescRect.Left := ARect.Left + PAD;
+    DescRect.Right := ToggleX - PAD;
+    DescRect.Top := VarRect.Bottom;
+    ACanvas.Font.Name  := 'DejaVu Sans';
+    ACanvas.Font.Size  := 8;
+    ACanvas.Font.Color := RGBToColor(150, 150, 150);
+    ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top, ADesc);
+  end;
+
+var
+  PB: TPaintBox;
+  Y, ItemH, HeadH: Integer;
+  i, CatIdx: Integer;
+  CatNames: array[0..2] of string;
+  CatExpanded: array[0..2] of Boolean;
+  HoverIdx, RowIdx: Integer;
+  R: TRect;
+  Chk: TCheckBox;
+begin
+  PB := Sender as TPaintBox;
+  PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
+  PB.Canvas.FillRect(PB.ClientRect);
+
+  ItemH := TweaksMD3ItemHeight;
+  HeadH := TweaksMD3HeaderHeight;
+  CatNames[0] := 'General';
+  CatNames[1] := 'Graphics';
+  CatNames[2] := 'Performance';
+  CatExpanded := FTweaksCatExpanded;
+
+  Y := -FTweaksScrollPos;
+  RowIdx := 0;
+  HoverIdx := FTweaksHoverIdx;
+
+  for CatIdx := 0 to 2 do
+  begin
+    // Category header with icon
+    R := Rect(0, Y, PB.Width, Y + HeadH);
+    case CatIdx of
+      0: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚙', CatExpanded[CatIdx], HoverIdx = RowIdx);
+      1: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '🎮', CatExpanded[CatIdx], HoverIdx = RowIdx);
+      2: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚡', CatExpanded[CatIdx], HoverIdx = RowIdx);
+    end;
+    Inc(Y, HeadH);
+    Inc(RowIdx);
+
+    if CatExpanded[CatIdx] then
+    begin
+      for i := 0 to TWEAK_ROW_COUNT - 1 do
+      begin
+        if TWEAK_ROWS[i].Category <> CatNames[CatIdx] then Continue;
+        Chk := GetTweakRowCheckBox(Self, i);
+        R := Rect(0, Y, PB.Width, Y + ItemH);
+        DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
+                 Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
+        Inc(Y, ItemH);
+        Inc(RowIdx);
+      end;
+    end;
+  end;
+
+  // Custom variables header
+  R := Rect(0, Y, PB.Width, Y + HeadH);
+  DrawHeader(PB.Canvas, R, 'Custom', '✎', True, HoverIdx = RowIdx);
+  Inc(Y, HeadH);
+  Inc(RowIdx);
+
+  // Custom rows from legacy grid (if any) or hidden listbox
+  if Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+  begin
+    for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
+    begin
+      R := Rect(0, Y, PB.Width, Y + ItemH);
+      DrawItem(PB.Canvas, R, FTweaksGrid.Cells[2, i], FTweaksGrid.Cells[3, i],
+               FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
+      Inc(Y, ItemH);
+      Inc(RowIdx);
+    end;
+  end;
+
+  // Update scrollbar
+  if Y + FTweaksScrollPos > PB.Height then
+  begin
+    FTweaksScrollBar.Max := Y + FTweaksScrollPos - PB.Height + 20;
+    FTweaksScrollBar.PageSize := PB.Height;
+    FTweaksScrollBar.Visible := True;
+  end
+  else
+    FTweaksScrollBar.Visible := False;
+end;
+
+procedure Tgoverlayform.TweaksMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  PB: TPaintBox;
+  OldHover, ItemH, HeadH, RowIdx, i, CatIdx: Integer;
+  YPos: Integer;
+  CatName: string;
+  InHeader: Boolean;
+begin
+  PB := Sender as TPaintBox;
+  OldHover := FTweaksHoverIdx;
+  FTweaksHoverIdx := -1;
+
+  ItemH := TweaksMD3ItemHeight;
+  HeadH := TweaksMD3HeaderHeight;
+  YPos := -FTweaksScrollPos;
+  RowIdx := 0;
+
+  for CatIdx := 0 to 2 do
+  begin
+    case CatIdx of
+      0: CatName := 'General';
+      1: CatName := 'Graphics';
+      2: CatName := 'Performance';
+    end;
+
+    // Header
+    if (Y >= YPos) and (Y < YPos + HeadH) then
+    begin
+      FTweaksHoverIdx := RowIdx;
+      Break;
+    end;
+    Inc(YPos, HeadH);
+    Inc(RowIdx);
+
+    if FTweaksCatExpanded[CatIdx] then
+    begin
+      for i := 0 to TWEAK_ROW_COUNT - 1 do
+      begin
+        if TWEAK_ROWS[i].Category <> CatName then Continue;
+        if (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          FTweaksHoverIdx := RowIdx;
+          Break;
+        end;
+        Inc(YPos, ItemH);
+        Inc(RowIdx);
+      end;
+      if FTweaksHoverIdx >= 0 then Break;
+    end;
+  end;
+
+  // Custom section
+  if FTweaksHoverIdx < 0 then
+  begin
+    if (Y >= YPos) and (Y < YPos + HeadH) then
+      FTweaksHoverIdx := RowIdx;
+    Inc(YPos, HeadH);
+    Inc(RowIdx);
+
+    if Assigned(FTweaksGrid) then
+      for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
+      begin
+        if (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          FTweaksHoverIdx := RowIdx;
+          Break;
+        end;
+        Inc(YPos, ItemH);
+        Inc(RowIdx);
+      end;
+  end;
+
+  if OldHover <> FTweaksHoverIdx then
+    PB.Invalidate;
+end;
+
+procedure Tgoverlayform.TweaksMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  PB: TPaintBox;
+  ItemH, HeadH, RowIdx, i, CatIdx: Integer;
+  YPos: Integer;
+  CatName: string;
+  ToggleX: Integer;
+  Chk: TCheckBox;
+begin
+  if Button <> mbLeft then Exit;
+  PB := Sender as TPaintBox;
+  ItemH := TweaksMD3ItemHeight;
+  HeadH := TweaksMD3HeaderHeight;
+  YPos := -FTweaksScrollPos;
+  RowIdx := 0;
+
+  for CatIdx := 0 to 2 do
+  begin
+    case CatIdx of
+      0: CatName := 'General';
+      1: CatName := 'Graphics';
+      2: CatName := 'Performance';
+    end;
+
+    // Header click = toggle expand
+    if (Y >= YPos) and (Y < YPos + HeadH) then
+    begin
+      FTweaksCatExpanded[CatIdx] := not FTweaksCatExpanded[CatIdx];
+      PB.Invalidate;
+      Exit;
+    end;
+    Inc(YPos, HeadH);
+    Inc(RowIdx);
+
+    if FTweaksCatExpanded[CatIdx] then
+    begin
+      for i := 0 to TWEAK_ROW_COUNT - 1 do
+      begin
+        if TWEAK_ROWS[i].Category <> CatName then Continue;
+        if (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          // Check if click is on toggle (right side)
+          ToggleX := PB.Width - 66;
+          if X >= ToggleX then
+          begin
+            Chk := GetTweakRowCheckBox(Self, i);
+            if Assigned(Chk) then
+            begin
+              Chk.Checked := not Chk.Checked;
+              PB.Invalidate;
+            end;
+          end;
+          Exit;
+        end;
+        Inc(YPos, ItemH);
+        Inc(RowIdx);
+      end;
+    end;
+  end;
+
+  // Custom section header (no toggle)
+  if (Y >= YPos) and (Y < YPos + HeadH) then
+  begin
+    Inc(YPos, HeadH);
+    Inc(RowIdx);
+  end
+  else
+    Inc(YPos, HeadH);
+
+  // Custom rows
+  if Assigned(FTweaksGrid) then
+    for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
+    begin
+      if (Y >= YPos) and (Y < YPos + ItemH) then
+      begin
+        ToggleX := PB.Width - 66;
+        if X >= ToggleX then
+        begin
+          if FTweaksGrid.Cells[0, i] = '1' then
+            FTweaksGrid.Cells[0, i] := '0'
+          else
+            FTweaksGrid.Cells[0, i] := '1';
+          PB.Invalidate;
+        end;
+        Exit;
+      end;
+      Inc(YPos, ItemH);
+    end;
+end;
+
+procedure Tgoverlayform.TweaksMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  FTweaksScrollPos := FTweaksScrollPos - WheelDelta div 4;
+  if FTweaksScrollPos < 0 then FTweaksScrollPos := 0;
+  if FTweaksScrollPos > FTweaksScrollBar.Max then FTweaksScrollPos := FTweaksScrollBar.Max;
+  FTweaksScrollBar.Position := FTweaksScrollPos;
+  FTweaksPaintBox.Invalidate;
+  Handled := True;
+end;
+
+procedure Tgoverlayform.TweaksMD3ScrollChange(Sender: TObject);
+begin
+  FTweaksScrollPos := FTweaksScrollBar.Position;
+  FTweaksPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.TweaksMD3ToggleItem(Index: Integer);
+begin
+  // Not used directly — mouse down handles toggling via checkbox
+end;
+
+procedure Tgoverlayform.TweaksMD3FABClick(Sender: TObject);
+var
+  Val: string;
+  Row: Integer;
+begin
+  Val := Trim(InputBox('Custom Environment Variable',
+                       'Enter the variable (e.g. MY_VAR=1):', ''));
+  if Val = '' then Exit;
+
+  if not Assigned(FTweaksGrid) then Exit;
+  Row := FTweaksGrid.RowCount;
+  FTweaksGrid.RowCount := Row + 1;
+  FTweaksGrid.Cells[0, Row] := '1';
+  FTweaksGrid.Cells[1, Row] := 'Custom';
+  FTweaksGrid.Cells[2, Row] := Val;
+  FTweaksGrid.Cells[3, Row] := '';
+  FTweaksPaintBox.Invalidate;
 end;
 
 procedure Tgoverlayform.ApplyImageAntialiasing;
@@ -6487,6 +7310,7 @@ begin
     finally
       FileLines.Free;
     end;
+    SyncTweaksGridFromCheckBoxes;
     Exit;  // Exit early for tweaks tab
   end
   else
@@ -6588,37 +7412,10 @@ begin
 end;
 
 procedure Tgoverlayform.InitCustomEnvGroupBox;
-const
-  BTN_W   = 26;
-  BTN_H   = 24;
-  PAD     = 8;
-  ROW_GAP = 6;
 begin
-  // FCustomSec is a TPanel created by InitTweaksCards (runs before this procedure).
-  // Place all "Custom" controls directly into FCustomSec — no TGroupBox needed.
-
-  customenvEdit.Parent     := FCustomSec;
-  customenvEdit.AnchorSideLeft.Control   := nil;
-  customenvEdit.AnchorSideBottom.Control := nil;
-  customenvEdit.Left    := PAD;
-  customenvEdit.Top     := PAD;
-  customenvEdit.Width   := FCustomSec.ClientWidth - PAD - BTN_W - PAD;
-  customenvEdit.Height  := BTN_H;
-  customenvEdit.Anchors := [akLeft, akTop, akRight];
-
-  FCustomAddBtn := TButton.Create(Self);
-  FCustomAddBtn.Parent   := FCustomSec;
-  FCustomAddBtn.Caption  := '+';
-  FCustomAddBtn.Left     := FCustomSec.ClientWidth - BTN_W - PAD;
-  FCustomAddBtn.Top      := PAD;
-  FCustomAddBtn.Width    := BTN_W;
-  FCustomAddBtn.Height   := BTN_H;
-  FCustomAddBtn.Anchors  := [akTop, akRight];
-  FCustomAddBtn.ShowHint := True;
-  FCustomAddBtn.Hint     := 'Save custom env';
-  FCustomAddBtn.OnClick  := @CustomEnvAddClick;
-
-  // Hidden data store — items appear in FTweaksVarListBox (the visible terminal panel)
+  // Bottom bar and its child controls are no longer visible —
+  // custom vars are managed inside the grid via a floating "+" button.
+  // Only create the hidden legacy listbox for minimal compatibility.
   FCustomListBox := TListBox.Create(Self);
   FCustomListBox.Parent  := Self;
   FCustomListBox.Visible := False;
@@ -6627,26 +7424,45 @@ end;
 procedure Tgoverlayform.CustomEnvAddClick(Sender: TObject);
 var
   Val: string;
+  Row: Integer;
 begin
-  Val := Trim(customenvEdit.Text);
+  Val := Trim(InputBox('Custom Environment Variable',
+                       'Enter the variable (e.g. MY_VAR=1):', ''));
   if Val = '' then Exit;
-  if FCustomListBox.Items.IndexOf(Val) < 0 then
-    FCustomListBox.Items.Add(Val);
-  customenvEdit.Text := '';
-  customenvEdit.SetFocus;
+
+  // Add as a new row in the grid (after predefined rows)
+  if Assigned(FTweaksGrid) then
+  begin
+    Row := FTweaksGrid.RowCount;
+    FTweaksGrid.RowCount := Row + 1;
+    FTweaksGrid.Cells[0, Row] := '1';         // checked by default
+    FTweaksGrid.Cells[1, Row] := 'Custom';
+    FTweaksGrid.Cells[2, Row] := Val;
+    FTweaksGrid.Cells[3, Row] := '';
+  end;
 end;
 
 procedure Tgoverlayform.CustomEnvRemoveClick(Sender: TObject);
+var
+  Row: Integer;
 begin
-  if FCustomListBox.ItemIndex >= 0 then
-    FCustomListBox.Items.Delete(FCustomListBox.ItemIndex);
+  if not Assigned(FTweaksGrid) then Exit;
+  Row := FTweaksGrid.Row;
+  // Only allow deleting custom rows (below predefined)
+  if Row > TWEAK_ROW_COUNT then
+  begin
+    FTweaksGrid.DeleteRow(Row);
+    // Keep row selection valid
+    if FTweaksGrid.RowCount > 1 then
+      FTweaksGrid.Row := FTweaksGrid.RowCount - 1;
+  end;
 end;
 
 procedure Tgoverlayform.LoadTweaksFromFGMod;
 var
   FGModFilePath: string;
   FileLines: TStringList;
-  i: Integer;
+  i, Row: Integer;
   TweakFound: Boolean;
   CustomEnvValue, Line: string;
   StartPos, EndPos: Integer;
@@ -6693,6 +7509,10 @@ begin
     // Reset custom env list
     customenvEdit.Text := '';
     FCustomListBox.Items.Clear;
+
+    // Reset grid to predefined rows only (discard previous custom rows)
+    if Assigned(FTweaksGrid) then
+      FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
 
     // Check each tweak and set checkbox accordingly
     for i := 0 to FileLines.Count - 1 do
@@ -6838,6 +7658,17 @@ begin
           CustomEnvValue := Copy(Line, StartPos + 7, EndPos - StartPos - 7);
           FCustomListBox.Items.Add(Trim(CustomEnvValue));
           TweakFound := True;
+
+          // Add as a custom row in the grid
+          if Assigned(FTweaksGrid) then
+          begin
+            Row := FTweaksGrid.RowCount;
+            FTweaksGrid.RowCount := Row + 1;
+            FTweaksGrid.Cells[0, Row] := '1';
+            FTweaksGrid.Cells[1, Row] := 'Custom';
+            FTweaksGrid.Cells[2, Row] := Trim(CustomEnvValue);
+            FTweaksGrid.Cells[3, Row] := '';
+          end;
         end;
       end;
     end;
@@ -6845,7 +7676,7 @@ begin
   finally
     FileLines.Free;
   end;
-  UpdateTweaksVarListBox;
+  SyncTweaksGridFromCheckBoxes;
 end;
 
 procedure Tgoverlayform.mangocolorBitBtnClick(Sender: TObject);
@@ -8262,10 +9093,11 @@ EnableTraceLogsFound: Boolean;
       if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + '-- env gamemoderun ';
 
-      // Add custom environment variables from listbox
-      for i := 0 to FCustomListBox.Items.Count - 1 do
-        if Trim(FCustomListBox.Items[i]) <> '' then
-          LaunchCommand := LaunchCommand + Trim(FCustomListBox.Items[i]) + ' ';
+      // Add custom environment variables from grid custom rows
+      if Assigned(FTweaksGrid) then
+        for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
+          if (FTweaksGrid.Cells[0, i] = '1') and (Trim(FTweaksGrid.Cells[2, i]) <> '') then
+            LaunchCommand := LaunchCommand + Trim(FTweaksGrid.Cells[2, i]) + ' ';
 
       // Always end with %command%
       LaunchCommand := LaunchCommand + '%command%';
@@ -8409,10 +9241,11 @@ EnableTraceLogsFound: Boolean;
                 if GetPerformanceCheckBox(0).Checked then
                   FGModLines.Insert(LineIndex + 1, '  export PROTON_PRIORITY_HIGH=1');
 
-                // Custom environment variables from listbox (insert in reverse so order is preserved)
-                for i := FCustomListBox.Items.Count - 1 downto 0 do
-                  if Trim(FCustomListBox.Items[i]) <> '' then
-                    FGModLines.Insert(LineIndex + 1, '  export ' + Trim(FCustomListBox.Items[i]) + ' #customenv');
+                // Custom environment variables from grid (insert in reverse so order is preserved)
+                if Assigned(FTweaksGrid) then
+                  for i := FTweaksGrid.RowCount - 1 downto 1 + TWEAK_ROW_COUNT do
+                    if (FTweaksGrid.Cells[0, i] = '1') and (Trim(FTweaksGrid.Cells[2, i]) <> '') then
+                      FGModLines.Insert(LineIndex + 1, '  export ' + Trim(FTweaksGrid.Cells[2, i]) + ' #customenv');
 
                 Break;
               end;
@@ -8436,8 +9269,8 @@ EnableTraceLogsFound: Boolean;
             // Save the modified file
             FGModLines.SaveToFile(FGModFilePath);
 
-            // Refresh listbox to reflect what was just written to the file
-            UpdateTweaksVarListBox;
+            // Refresh grid to reflect saved state
+            SyncTweaksGridFromCheckBoxes;
 
             // Show notification
             SendNotification('Tweaks', 'Configuration saved', GetIconFile);
@@ -8469,9 +9302,9 @@ EnableTraceLogsFound: Boolean;
            GetGraphicsCheckBox(4).Checked or
            nofastclearsCheckBox.Checked or
            GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
-           GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
-           GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
-           (FCustomListBox.Items.Count > 0) then
+            GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
+            GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
+            (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
         begin
           // Auto-enable Auto Enable and save
           geSpeedButton.ImageIndex := 1;
@@ -14092,6 +14925,7 @@ var
   Bar: TPanel;
   Lbl: TLabel;
   HalfW: Integer;
+  i: Integer;
   procedure MakeBar(ACard: TPanel);
   begin
     Bar := TPanel.Create(ACard);
@@ -14219,41 +15053,13 @@ begin
 
   advancedGroupBox.Visible := False;
 
-  // ── Environment variables panel (fills remaining vertical space) ──
-  FTweaksEnvPanel := TPanel.Create(Self);
-  FTweaksEnvPanel.Parent     := tweaksTabSheet;
-  FTweaksEnvPanel.BevelOuter := bvNone;
-  FTweaksEnvPanel.Caption    := '';
-  FTweaksEnvPanel.Color      := BG;
-  FTweaksEnvPanel.OnPaint    := @PerfCardPaint;
-  FTweaksEnvPanel.SetBounds(2, 377, tweaksTabSheet.ClientWidth - 4,
-                             tweaksTabSheet.ClientHeight - 379);
-  FTweaksEnvPanel.Anchors    := [akLeft, akTop, akRight, akBottom];
-  MakeBar(FTweaksEnvPanel);
-  MakeLbl(FTweaksEnvPanel, 'Environment variables');
+  // Hide old cards — grid will replace them
+  BasicCard.Visible := False;
+  AdvCard.Visible   := False;
+  FCustomSec.Visible := False;
 
-  FTweaksRemoveBtn := TButton.Create(FTweaksEnvPanel);
-  FTweaksRemoveBtn.Parent   := FTweaksEnvPanel;
-  FTweaksRemoveBtn.Caption  := '−';
-  FTweaksRemoveBtn.Width    := 26;
-  FTweaksRemoveBtn.Height   := 22;
-  FTweaksRemoveBtn.Left     := FTweaksEnvPanel.Width - FTweaksRemoveBtn.Width - 6;
-  FTweaksRemoveBtn.Top      := 6;
-  FTweaksRemoveBtn.Anchors  := [akTop, akRight];
-  FTweaksRemoveBtn.ShowHint := True;
-  FTweaksRemoveBtn.Hint     := 'Remove selected custom variable';
-  FTweaksRemoveBtn.OnClick  := @TweaksVarRemoveClick;
-
-  FTweaksVarListBox := TListBox.Create(FTweaksEnvPanel);
-  FTweaksVarListBox.Parent      := FTweaksEnvPanel;
-  FTweaksVarListBox.Color       := $00201208;
-  FTweaksVarListBox.Font.Color  := $0060E060;
-  FTweaksVarListBox.Font.Name   := 'Monospace';
-  FTweaksVarListBox.Font.Size   := 9;
-  FTweaksVarListBox.BorderStyle := bsNone;
-  FTweaksVarListBox.SetBounds(0, HDR, FTweaksEnvPanel.Width,
-                               FTweaksEnvPanel.Height - HDR);
-  FTweaksVarListBox.Anchors     := [akLeft, akTop, akRight, akBottom];
+  // ── MD3-style custom tweaks list ──
+  InitTweaksMD3;
 end;
 
 procedure Tgoverlayform.InitVkBasaltTab;
