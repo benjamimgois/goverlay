@@ -537,6 +537,7 @@ type
     FHoverTimer:     TTimer;   // drives hover brightness animation
     FHoverBaseLeft:  Integer;  // original Left of hovered card before expansion
     FHoverBaseTop:   Integer;  // original Top of hovered card before expansion
+    FInReflow:       Boolean;  // true while ReflowGamesGrid is running
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FActiveGameName:    string;   // non-empty when editing a game-specific config
@@ -16870,6 +16871,7 @@ begin
   CardCount   := 0;
 
   // Prevent LCL alignment loops while manually repositioning every card
+  FInReflow := True;
   FGamesPanel.DisableAlign;
   // Pause hover timer so it does not race with this reflow
   if Assigned(FHoverTimer) then
@@ -16907,6 +16909,7 @@ begin
       FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
     end;
   finally
+    FInReflow := False;
     FGamesPanel.EnableAlign;
     // Resume hover animation if a card is still hovered
     if Assigned(FHoverTimer) and Assigned(FHoveredCard) then
@@ -17386,6 +17389,9 @@ begin
     FHoverTimer.Enabled := False;
     Exit;
   end;
+
+  // Skip animation tick if a reflow is currently running (avoids ChangeBounds loops)
+  if FInReflow then Exit;
 
   FHoverBrightness := FHoverBrightness + FHoverDir * STEP;
 
