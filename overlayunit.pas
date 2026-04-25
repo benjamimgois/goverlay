@@ -16886,18 +16886,14 @@ begin
       CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
       if TPanel(Ctrl) = FHoveredCard then
       begin
-        // Update base position and apply expanded bounds directly
+        // Update base position for the hover animation
         FHoverBaseLeft := CardX;
         FHoverBaseTop  := CardY;
-        TPanel(Ctrl).SetBounds(
-          CardX - SEL_EXPAND, CardY - SEL_EXPAND,
-          CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND);
-        if (TPanel(Ctrl).ControlCount > 0) and (TPanel(Ctrl).Controls[0] is TImage) then
-          TImage(TPanel(Ctrl).Controls[0]).SetBounds(
-            0, 0, CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND);
-      end
-      else
-        Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
+      end;
+      // Set ALL cards to normal size during reflow (prevents ChangeBounds loops)
+      Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
+      if (TPanel(Ctrl).ControlCount > 0) and (TPanel(Ctrl).Controls[0] is TImage) then
+        TImage(TPanel(Ctrl).Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
       Inc(CardCount);
     end;
 
@@ -16911,9 +16907,25 @@ begin
   finally
     FInReflow := False;
     FGamesPanel.EnableAlign;
-    // Resume hover animation if a card is still hovered
-    if Assigned(FHoverTimer) and Assigned(FHoveredCard) then
-      FHoverTimer.Enabled := True;
+    // If a card was hovered, check if mouse is still over it after reflow;
+    // if so restart the smooth expansion, otherwise clear the hover state.
+    if Assigned(FHoveredCard) then
+    begin
+      if FHoveredCard.BoundsRect.Contains(
+           FHoveredCard.ScreenToClient(Mouse.CursorPos)) then
+      begin
+        FHoverBrightness := 0;
+        FHoverDir := 1;
+        if Assigned(FHoverTimer) then
+          FHoverTimer.Enabled := True;
+      end
+      else
+      begin
+        ApplyCardBrightness(FHoveredCard, 100);
+        FHoveredCard := nil;
+        FHoverBrightness := 0;
+      end;
+    end;
   end;
 
 end;
