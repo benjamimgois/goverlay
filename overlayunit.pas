@@ -16871,6 +16871,9 @@ begin
 
   // Prevent LCL alignment loops while manually repositioning every card
   FGamesPanel.DisableAlign;
+  // Pause hover timer so it does not race with this reflow
+  if Assigned(FHoverTimer) then
+    FHoverTimer.Enabled := False;
   try
     for i := 0 to FCardPanels.Count - 1 do
     begin
@@ -16881,12 +16884,15 @@ begin
       CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
       if TPanel(Ctrl) = FHoveredCard then
       begin
-        // Update base position so the smooth animation continues from the new slot
+        // Update base position and apply expanded bounds directly
         FHoverBaseLeft := CardX;
         FHoverBaseTop  := CardY;
-        // Let HoverTimerTick apply the current interpolated bounds immediately
-        if Assigned(FHoverTimer) then
-          HoverTimerTick(nil);
+        TPanel(Ctrl).SetBounds(
+          CardX - SEL_EXPAND, CardY - SEL_EXPAND,
+          CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND);
+        if (TPanel(Ctrl).ControlCount > 0) and (TPanel(Ctrl).Controls[0] is TImage) then
+          TImage(TPanel(Ctrl).Controls[0]).SetBounds(
+            0, 0, CARD_W + 2 * SEL_EXPAND, CARD_H + 2 * SEL_EXPAND);
       end
       else
         Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
@@ -16902,6 +16908,9 @@ begin
     end;
   finally
     FGamesPanel.EnableAlign;
+    // Resume hover animation if a card is still hovered
+    if Assigned(FHoverTimer) and Assigned(FHoveredCard) then
+      FHoverTimer.Enabled := True;
   end;
 
 end;
