@@ -16869,33 +16869,39 @@ begin
   if RowMargin < 4 then RowMargin := 4;
   CardCount   := 0;
 
-  for i := 0 to FCardPanels.Count - 1 do
-  begin
-    Ctrl := TControl(FCardPanels[i]);
-    if not (Ctrl is TPanel) then
-      Continue;
-    CardX := RowMargin + (CardCount mod CardsPerRow) * (CARD_W + RowMargin);
-    CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
-    if TPanel(Ctrl) = FHoveredCard then
+  // Prevent LCL alignment loops while manually repositioning every card
+  FGamesPanel.DisableAlign;
+  try
+    for i := 0 to FCardPanels.Count - 1 do
     begin
-      // Update base position so the smooth animation continues from the new slot
-      FHoverBaseLeft := CardX;
-      FHoverBaseTop  := CardY;
-      // Let HoverTimerTick apply the current interpolated bounds immediately
-      if Assigned(FHoverTimer) then
-        HoverTimerTick(nil);
-    end
-    else
-      Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
-    Inc(CardCount);
-  end;
+      Ctrl := TControl(FCardPanels[i]);
+      if not (Ctrl is TPanel) then
+        Continue;
+      CardX := RowMargin + (CardCount mod CardsPerRow) * (CARD_W + RowMargin);
+      CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
+      if TPanel(Ctrl) = FHoveredCard then
+      begin
+        // Update base position so the smooth animation continues from the new slot
+        FHoverBaseLeft := CardX;
+        FHoverBaseTop  := CardY;
+        // Let HoverTimerTick apply the current interpolated bounds immediately
+        if Assigned(FHoverTimer) then
+          HoverTimerTick(nil);
+      end
+      else
+        Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
+      Inc(CardCount);
+    end;
 
-  if CardCount > 0 then
-  begin
-    TotalRows := (CardCount + CardsPerRow - 1) div CardsPerRow;
-    FGamesPanel.Width  := Max(FGamesScrollBox.ClientWidth,
-      CardsPerRow * (CARD_W + RowMargin) + RowMargin);
-    FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
+    if CardCount > 0 then
+    begin
+      TotalRows := (CardCount + CardsPerRow - 1) div CardsPerRow;
+      FGamesPanel.Width  := Max(FGamesScrollBox.ClientWidth,
+        CardsPerRow * (CARD_W + RowMargin) + RowMargin);
+      FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
+    end;
+  finally
+    FGamesPanel.EnableAlign;
   end;
 
 end;
