@@ -3,6 +3,10 @@ name: Flatpak CI
 on:
   workflow_dispatch:
 
+# Opt into Node.js 24 early to avoid deprecation warnings for actions still on Node.js 20
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-flatpak:
     name: Build Flatpak Bundle (${{ matrix.arch }})
