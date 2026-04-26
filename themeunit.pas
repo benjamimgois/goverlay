@@ -144,43 +144,8 @@ begin
   begin
     ctrl := AControl.Controls[i];
 
-    // Skip color exceptions - components that should maintain their custom colors
-    if (ctrl.Name = 'saveBitBtn') or
-       (ctrl.Name = 'notificationLabel') or
-       (ctrl.Name = 'dependenciesLabel') or
-       (ctrl.Name = 'vkbasaltLabel') or
-       (ctrl.Name = 'deckyLabel1') or
-       (ctrl.Name = 'deckyLabel2') or
-       (ctrl.Name = 'optLabel1') or
-       (ctrl.Name = 'optLabel2') or
-       (ctrl.Name = 'fakenvapi1') or
-       (ctrl.Name = 'fakenvapi2') or
-       (ctrl.Name = 'fsrLabel1') or
-       (ctrl.Name = 'xessLabel1') or
-       (ctrl.Name = 'gupdateBitBtn') or
-       (ctrl.Name = 'updateBitBtn') or
-       (ctrl.Name = 'mangohudLabel') or
-       (ctrl.Name = 'optiscalerLabel') or
-       (ctrl.Name = 'mangohudShape') or
-       (ctrl.Name = 'vkbasaltShape') or
-       (ctrl.Name = 'optiscalerShape') or
-       (ctrl.Name = 'tweaksLabel') or
-       (ctrl.Name = 'tweaksShape') or
-       (ctrl.Name = 'autodetectnvLabel') or
-       (ctrl.Name = 'autodetectmesaLabel') or
-       (ctrl.Name = 'topleftRadioButton') or
-       (ctrl.Name = 'topcenterRadioButton') or
-       (ctrl.Name = 'toprightRadioButton') or
-       (ctrl.Name = 'bottomleftRadioButton') or
-       (ctrl.Name = 'bottomrightRadioButton') or
-       (ctrl.Name = 'bottomcenterRadioButton') or
-       (ctrl.Name = 'middleleftRadioButton') or
-       (ctrl.Name = 'middlerightRadioButton') or
-       (ctrl.Name = 'patcherlistLabel') or
-       (ctrl.Name = 'optipatcherLabel1') or
-       (ctrl.Name = 'searchEdit') or    // Exclude search field
-       (ctrl.Name = 'statusBar') or    // Exclude status bar
-       (ctrl.Name = 'dlssLabel1') then  // Exclude DLSS date label
+    // Skip controls marked to preserve their custom colors / styling
+    if ctrl.Tag = 9999 then
       Continue;
 
     if ctrl is TMemo then
