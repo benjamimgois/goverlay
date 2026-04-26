@@ -538,6 +538,7 @@ type
     FHoverBaseLeft:  Integer;  // original Left of hovered card before expansion
     FHoverBaseTop:   Integer;  // original Top of hovered card before expansion
     FInReflow:       Boolean;  // true while ReflowGamesGrid is running
+    FReflowCount:    Integer;  // debug: how many reflows in a row
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FActiveGameName:    string;   // non-empty when editing a game-specific config
@@ -6495,10 +6496,11 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
                      AChecked, AHover: Boolean; AIsCustom: Boolean);
   var
-    ToggleX, ToggleY: Integer;
+    ToggleX, ToggleY, DelX: Integer;
     VarRect, DescRect: TRect;
   const
     PAD = 16;
+    DEL_W = 24;
   begin
     // Background
     if AChecked then
@@ -6513,6 +6515,17 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
     ACanvas.Pen.Color := RGBToColor(40, 45, 60);
     ACanvas.Line(ARect.Left, ARect.Bottom - 1, ARect.Right, ARect.Bottom - 1);
 
+    // Delete "×" button for custom rows (left side)
+    if AIsCustom then
+    begin
+      DelX := ARect.Left + PAD;
+      ACanvas.Font.Name  := 'DejaVu Sans';
+      ACanvas.Font.Size  := 12;
+      ACanvas.Font.Style := [fsBold];
+      ACanvas.Font.Color := RGBToColor(220, 80, 80);  // red
+      ACanvas.TextOut(DelX, ARect.Top + (ARect.Height - ACanvas.TextHeight('×')) div 2, '×');
+    end;
+
     // Toggle switch (right side)
     ToggleX := ARect.Right - 60;
     ToggleY := ARect.Top + (ARect.Height - 24) div 2;
@@ -6520,7 +6533,10 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
 
     // Variable name (left, monospace)
     VarRect := ARect;
-    VarRect.Left := ARect.Left + PAD;
+    if AIsCustom then
+      VarRect.Left := ARect.Left + PAD + DEL_W + 4
+    else
+      VarRect.Left := ARect.Left + PAD;
     VarRect.Right := ToggleX - PAD;
     VarRect.Bottom := VarRect.Top + VarRect.Height div 2 + 2;
     ACanvas.Font.Name  := 'DejaVu Sans Mono';
@@ -6534,7 +6550,10 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
 
     // Description (below variable, sans-serif, dimmed)
     DescRect := ARect;
-    DescRect.Left := ARect.Left + PAD;
+    if AIsCustom then
+      DescRect.Left := ARect.Left + PAD + DEL_W + 4
+    else
+      DescRect.Left := ARect.Left + PAD;
     DescRect.Right := ToggleX - PAD;
     DescRect.Top := VarRect.Bottom;
     ACanvas.Font.Name  := 'DejaVu Sans';
@@ -6776,6 +6795,14 @@ begin
     begin
       if (Y >= YPos) and (Y < YPos + ItemH) then
       begin
+        // Delete button hit area (left side, ~24x24 px)
+        if (X >= 16) and (X < 40) then
+        begin
+          // Remove custom row from grid
+          FTweaksGrid.DeleteRow(i);
+          PB.Invalidate;
+          Exit;
+        end;
         ToggleX := PB.Width - 66;
         if X >= ToggleX then
         begin
@@ -12303,7 +12330,10 @@ begin
   end;
 
   if NextW <> PrevW then
+  begin
+    DbgLog(Format('NavAnimTick: width %d -> %d', [PrevW, NextW]));
     ApplyNavWidth(NextW);
+  end;
 end;
 
 procedure Tgoverlayform.ApplyNavWidth(AWidth: Integer);
@@ -12311,6 +12341,7 @@ var
   i, PanelLeft, ContentW: Integer;
   ShowLabels: Boolean;
 begin
+  DbgLog(Format('ApplyNavWidth(%d)', [AWidth]));
   PanelLeft  := AWidth;
   ShowLabels := AWidth > (NAV_W_COLLAPSED + NAV_W_EXPANDED) div 2;
 
@@ -15855,8 +15886,8 @@ begin
       Exit;
     end;
 
-    CardsPerRow := Max(1, FGamesScrollBox.ClientWidth div (CARD_W + CARD_MARGIN));
-    RowMargin := (FGamesScrollBox.ClientWidth - CardsPerRow * CARD_W) div (CardsPerRow + 1);
+    CardsPerRow := Max(1, FGamesScrollBox.Width div (CARD_W + CARD_MARGIN));
+    RowMargin := (FGamesScrollBox.Width - CardsPerRow * CARD_W) div (CardsPerRow + 1);
     if RowMargin < 4 then RowMargin := 4;
     j := 0;
 
@@ -16111,8 +16142,7 @@ begin
     if j > 0 then
     begin
       TotalRows := (j + CardsPerRow - 1) div CardsPerRow;
-      FGamesPanel.Width := Max(FGamesScrollBox.ClientWidth,
-        CardsPerRow * (CARD_W + RowMargin) + RowMargin);
+      FGamesPanel.Width := FGamesScrollBox.Width;
       FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
     end
     else
@@ -16854,6 +16884,7 @@ procedure Tgoverlayform.ReflowGamesGrid;
 var
   CardCount, CardsPerRow, TotalRows, i, CardX, CardY, RowMargin: Integer;
   Ctrl: TControl;
+  WasHovered: TPanel;
 begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
@@ -16863,19 +16894,26 @@ begin
     DbgLog('  ReflowGamesGrid SKIPPED (tab not visible)');
     Exit;
   end;
-  DbgLog('  ReflowGamesGrid BEGIN (tab visible)');
 
-  CardsPerRow := Max(1, FGamesScrollBox.ClientWidth div (CARD_W + CARD_MARGIN));
-  RowMargin := (FGamesScrollBox.ClientWidth - CardsPerRow * CARD_W) div (CardsPerRow + 1);
+  Inc(FReflowCount);
+  DbgLog(Format('  ReflowGamesGrid BEGIN #%d scrollW=%d', [FReflowCount, FGamesScrollBox.Width]));
+
+  CardsPerRow := Max(1, FGamesScrollBox.Width div (CARD_W + CARD_MARGIN));
+  RowMargin := (FGamesScrollBox.Width - CardsPerRow * CARD_W) div (CardsPerRow + 1);
   if RowMargin < 4 then RowMargin := 4;
   CardCount   := 0;
+
+  // Completely clear hover state before reflow — prevents ChangeBounds loops
+  WasHovered := FHoveredCard;
+  FHoveredCard := nil;
+  FHoverBrightness := 0;
+  FHoverDir := 0;
+  if Assigned(FHoverTimer) then
+    FHoverTimer.Enabled := False;
 
   // Prevent LCL alignment loops while manually repositioning every card
   FInReflow := True;
   FGamesPanel.DisableAlign;
-  // Pause hover timer so it does not race with this reflow
-  if Assigned(FHoverTimer) then
-    FHoverTimer.Enabled := False;
   try
     for i := 0 to FCardPanels.Count - 1 do
     begin
@@ -16884,48 +16922,28 @@ begin
         Continue;
       CardX := RowMargin + (CardCount mod CardsPerRow) * (CARD_W + RowMargin);
       CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
-      if TPanel(Ctrl) = FHoveredCard then
+      // Only SetBounds if position actually changed (reduces LCL churn)
+      if (Ctrl.Left <> CardX) or (Ctrl.Top <> CardY) or
+         (Ctrl.Width <> CARD_W) or (Ctrl.Height <> CARD_H) then
       begin
-        // Update base position for the hover animation
-        FHoverBaseLeft := CardX;
-        FHoverBaseTop  := CardY;
+        Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
+        if (TPanel(Ctrl).ControlCount > 0) and (TPanel(Ctrl).Controls[0] is TImage) then
+          TImage(TPanel(Ctrl).Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
       end;
-      // Set ALL cards to normal size during reflow (prevents ChangeBounds loops)
-      Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
-      if (TPanel(Ctrl).ControlCount > 0) and (TPanel(Ctrl).Controls[0] is TImage) then
-        TImage(TPanel(Ctrl).Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
       Inc(CardCount);
     end;
 
     if CardCount > 0 then
     begin
       TotalRows := (CardCount + CardsPerRow - 1) div CardsPerRow;
-      FGamesPanel.Width  := Max(FGamesScrollBox.ClientWidth,
-        CardsPerRow * (CARD_W + RowMargin) + RowMargin);
+      // Use Width (not ClientWidth) so scrollbar appearance doesn't trigger a loop
+      FGamesPanel.Width  := FGamesScrollBox.Width;
       FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
     end;
   finally
     FInReflow := False;
     FGamesPanel.EnableAlign;
-    // If a card was hovered, check if mouse is still over it after reflow;
-    // if so restart the smooth expansion, otherwise clear the hover state.
-    if Assigned(FHoveredCard) then
-    begin
-      if FHoveredCard.BoundsRect.Contains(
-           FHoveredCard.ScreenToClient(Mouse.CursorPos)) then
-      begin
-        FHoverBrightness := 0;
-        FHoverDir := 1;
-        if Assigned(FHoverTimer) then
-          FHoverTimer.Enabled := True;
-      end
-      else
-      begin
-        ApplyCardBrightness(FHoveredCard, 100);
-        FHoveredCard := nil;
-        FHoverBrightness := 0;
-      end;
-    end;
+    DbgLog(Format('  ReflowGamesGrid END   #%d', [FReflowCount]));
   end;
 
 end;
@@ -16954,6 +16972,7 @@ procedure Tgoverlayform.GameCardMouseEnter(Sender: TObject);
 var
   Panel: TPanel;
 begin
+  DbgLog('GameCardMouseEnter: ' + TControl(Sender).Name);
   if Sender is TPanel then Panel := TPanel(Sender)
   else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
   else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
@@ -17005,12 +17024,17 @@ procedure Tgoverlayform.GameCardMouseLeave(Sender: TObject);
 var
   Panel: TPanel;
 begin
+  DbgLog('GameCardMouseLeave: ' + TControl(Sender).Name);
   if Sender is TPanel then Panel := TPanel(Sender)
   else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
   else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
   else Exit;
 
-  if Panel <> FHoveredCard then Exit;
+  if Panel <> FHoveredCard then
+  begin
+    DbgLog('GameCardMouseLeave: not hovered card, ignoring');
+    Exit;
+  end;
 
   // Smooth shrink-back is driven by HoverTimerTick
   FHoverDir := -1;
@@ -17398,12 +17422,17 @@ var
 begin
   if not Assigned(FHoveredCard) then
   begin
+    DbgLog('HoverTimerTick: no hovered card, stopping timer');
     FHoverTimer.Enabled := False;
     Exit;
   end;
 
   // Skip animation tick if a reflow is currently running (avoids ChangeBounds loops)
-  if FInReflow then Exit;
+  if FInReflow then
+  begin
+    DbgLog('HoverTimerTick: reflow active, skipping');
+    Exit;
+  end;
 
   FHoverBrightness := FHoverBrightness + FHoverDir * STEP;
 
