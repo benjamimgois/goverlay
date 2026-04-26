@@ -10,7 +10,7 @@ uses
   blacklistUnit, LCLtype, Clipbrd, LCLIntf,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
-  configkeys;
+  configkeys, configfile;
 
 
 
@@ -913,7 +913,6 @@ var
   GCHANNEL: string;                     // Release channel (stable/git)
   mangohudsel: boolean;                 // MangoHud tab selected
   vkbasaltsel: boolean;                 // vkBasalt tab selected
-  Found: Boolean;                       // General search/find result flag
 
   // ============================================================================
   // CONFIGURATION FILE PATHS AND FOLDERS
@@ -3093,175 +3092,108 @@ end;
 
 procedure Tgoverlayform.LoadOptiScalerConfig;
 var
-  ConfigLines: TStringList;
-  Line, TrimmedLine, Key, Value: string;
-  i, ColonPos: Integer;
+  OptiCfg: TConfigFile;
+  OptiScalerIniPath: string;
+  Value: string;
   FloatValue: Double;
   FS: TFormatSettings;
-  OptiScalerIniPath: string;
 begin
-  // Get OptiScaler.ini file path
   if FActiveGameName <> '' then
     OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
   else
     OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
-
   if not FileExists(OptiScalerIniPath) then
     Exit;
 
-  ConfigLines := TStringList.Create;
+  OptiCfg := TConfigFile.Create;
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
-
   try
-    ConfigLines.LoadFromFile(OptiScalerIniPath);
+    if not OptiCfg.Load(OptiScalerIniPath) then
+      Exit;
 
-    for i := 0 to ConfigLines.Count - 1 do
+    Value := OptiCfg.GetValue(OPTI_KEY_SHORTCUT, '');
+    if SameText(Value, 'auto') or (Value = '') then
+      shortcutkeyComboBox.Text := '0x2d'
+    else
+      shortcutkeyComboBox.Text := Value;
+    if Assigned(FOsShortcutCaptureBtn) then
+      FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
+
+    Value := OptiCfg.GetValue(OPTI_KEY_SCALE, '');
+    if TryStrToFloat(Value, FloatValue, FS) then
     begin
-      Line := ConfigLines[i];
-      TrimmedLine := Trim(Line);
-
-      // Ignore comments and empty lines
-      if (TrimmedLine = '') or (TrimmedLine[1] = '#') or (TrimmedLine[1] = ';') then
-        Continue;
-
-      ColonPos := Pos('=', TrimmedLine);
-      if ColonPos = 0 then
-        Continue;
-
-      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
-      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
-
-      // Process each key
-      if SameText(Key, 'ShortcutKey') then
-      begin
-        if SameText(Value, 'auto') or (Value = '') then
-          shortcutkeyComboBox.Text := '0x2d'
-        else
-          shortcutkeyComboBox.Text := Value;
-        if Assigned(FOsShortcutCaptureBtn) then
-          FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
-      end
-      else if SameText(Key, 'Scale') then
-      begin
-        if TryStrToFloat(Value, FloatValue, FS) then
-        begin
-          // Convert 0.5..2.0 -> 5..20
-          menuscaleTrackBar.Position := Round(FloatValue * 10);
-          menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
-        end;
-      end
-      else if SameText(Key, 'OverrideNvapiDll') then
-      begin
-        overrideCheckBox.Checked := SameText(Value, 'true');
-      end
-      else if SameText(Key, 'LoadAsiPlugins') then
-      begin
-        optipatcherCheckBox.Checked := SameText(Value, 'true');
-      end
-      else if SameText(Key, 'Fsr4Update') then
-      begin
-        if SameText(Value, 'true') then
-          fsrversionComboBox.ItemIndex := 0;
-        // false = OptiScaler default; don't override the user's explicit choice in goverlay.vars
-      end
-      else if SameText(Key, 'Dxgi') then
-      begin
-        spoofCheckBox.Checked := SameText(Value, 'auto');
-      end;
-
+      menuscaleTrackBar.Position := Round(FloatValue * 10);
+      menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
     end;
 
+    overrideCheckBox.Checked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
+    optipatcherCheckBox.Checked := SameText(OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, ''), 'true');
+
+    if SameText(OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, ''), 'true') then
+      fsrversionComboBox.ItemIndex := 0;
+
+    spoofCheckBox.Checked := SameText(OptiCfg.GetValue(OPTI_KEY_DXGI, ''), 'auto');
   finally
-    ConfigLines.Free;
+    OptiCfg.Free;
   end;
 end;
 
 procedure Tgoverlayform.LoadFakeNvapiConfig;
 var
-  ConfigLines: TStringList;
-  Line, TrimmedLine, Key, Value: string;
-  i, ColonPos: Integer;
+  FakeCfg: TConfigFile;
   FakeNvapiIniPath: string;
+  Value: string;
 begin
-  // Get fakenvapi.ini file path
   if FActiveGameName <> '' then
     FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
   else
     FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
 
-
   if not FileExists(FakeNvapiIniPath) then
     Exit;
 
-  ConfigLines := TStringList.Create;
-
+  FakeCfg := TConfigFile.Create;
   try
-    ConfigLines.LoadFromFile(FakeNvapiIniPath);
+    if not FakeCfg.Load(FakeNvapiIniPath) then
+      Exit;
 
-    for i := 0 to ConfigLines.Count - 1 do
+    Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
+    if Value = '0' then
     begin
-      Line := ConfigLines[i];
-      TrimmedLine := Trim(Line);
+      forcereflexCheckBox.Checked := False;
+      reflexComboBox.ItemIndex := 0;
+    end
+    else
+    begin
+      forcereflexCheckBox.Checked := True;
+      case Value of
+        '1': reflexComboBox.ItemIndex := 1;
+        '2': reflexComboBox.ItemIndex := 2;
+      else
+        reflexComboBox.ItemIndex := 0;
+      end;
+    end;
+    reflexComboBox.Enabled := forcereflexCheckBox.Checked;
 
-      // Ignore comments and empty lines
-      if (TrimmedLine = '') or (TrimmedLine[1] = '#') or (TrimmedLine[1] = ';') then
-        Continue;
+    forcelatencyflexCheckBox.Checked := (FakeCfg.GetValue(FAKE_KEY_FORCE_LATENCY, '0') = '1');
+    latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
 
-      ColonPos := Pos('=', TrimmedLine);
-      if ColonPos = 0 then
-        Continue;
-
-      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
-      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
-
-      // Process each key
-      if SameText(Key, 'force_reflex') then
-      begin
-        if Value = '0' then
-        begin
-          forcereflexCheckBox.Checked := False;
-          reflexComboBox.ItemIndex := 0; // Follow game setting
-        end
-        else
-        begin
-          forcereflexCheckBox.Checked := True;
-          case Value of
-            '1': reflexComboBox.ItemIndex := 1; // Force disable
-            '2': reflexComboBox.ItemIndex := 2; // Force enable
-          else
-            reflexComboBox.ItemIndex := 0;
-          end;
-        end;
-        reflexComboBox.Enabled := forcereflexCheckBox.Checked;
-      end
-      else if SameText(Key, 'force_latencyflex') then
-      begin
-        forcelatencyflexCheckBox.Checked := (Value = '1');
-        latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
-      end
-      else if SameText(Key, 'latencyflex_mode') then
-      begin
-        if forcelatencyflexCheckBox.Checked then
-        begin
-          case Value of
-            '0': latencyflexComboBox.ItemIndex := 0; // Conservative
-            '1': latencyflexComboBox.ItemIndex := 1; // Agressive
-            '2': latencyflexComboBox.ItemIndex := 2; // Use reflex ids
-          else
-            latencyflexComboBox.ItemIndex := 0;
-          end;
-        end;
-      end
-      else if SameText(Key, 'enable_trace_logs') then
-      begin
-        tracelogCheckBox.Checked := (Value = '1');
+    if forcelatencyflexCheckBox.Checked then
+    begin
+      case FakeCfg.GetValue(FAKE_KEY_LATENCY_MODE, '0') of
+        '0': latencyflexComboBox.ItemIndex := 0;
+        '1': latencyflexComboBox.ItemIndex := 1;
+        '2': latencyflexComboBox.ItemIndex := 2;
+      else
+        latencyflexComboBox.ItemIndex := 0;
       end;
     end;
 
+    tracelogCheckBox.Checked := (FakeCfg.GetValue(FAKE_KEY_TRACE_LOGS, '0') = '1');
   finally
-    ConfigLines.Free;
+    FakeCfg.Free;
   end;
 end;
 
@@ -4440,157 +4372,123 @@ end;
 
 procedure Tgoverlayform.LoadVkBasaltConfig;
 var
-  ConfigLines: TStringList;
-  Line, TrimmedLine, Key, Value, EffectsStr, FullEffectPath: string;
+  Value, EffectsStr, FullEffectPath: string;
   EffectsList: TStringArray;
-  i, j, k, ColonPos: Integer;
+  j, k: Integer;
   FloatValue: Double;
   FS: TFormatSettings;
+  Cfg: TConfigFile;
 begin
   if not FileExists(VKBASALTCFGFILE) then
     Exit;
 
-  ConfigLines := TStringList.Create;
+  // Reset all controls before loading so stale values from a previous config
+  // do not bleed into the newly loaded one.
+  acteffectsListBox.Items.Clear;
+  casTrackBar.Position  := 0;
+  fxaaTrackBar.Position := 0;
+  smaaTrackBar.Position := 0;
+  dlsTrackBar.Position  := 0;
+  casvalueLabel.Caption  := '0';
+  fxaavalueLabel.Caption := '0';
+  smaavalueLabel.Caption := '0';
+  dlsvalueLabel.Caption  := '0';
+
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
 
+  Cfg := TConfigFile.Create;
   try
-    ConfigLines.LoadFromFile(VKBASALTCFGFILE);
+    if not Cfg.Load(VKBASALTCFGFILE) then Exit;
 
-    // Reset all controls before loading so stale values from a previous config
-    // do not bleed into the newly loaded one.
-    acteffectsListBox.Items.Clear;
-    casTrackBar.Position  := 0;
-    fxaaTrackBar.Position := 0;
-    smaaTrackBar.Position := 0;
-    dlsTrackBar.Position  := 0;
-    casvalueLabel.Caption  := '0';
-    fxaavalueLabel.Caption := '0';
-    smaavalueLabel.Caption := '0';
-    dlsvalueLabel.Caption  := '0';
-
-    for i := 0 to ConfigLines.Count - 1 do
+    // Process effects list (custom colon-separated value)
+    EffectsStr := Cfg.GetValue('effects=', '');
+    if EffectsStr <> '' then
     begin
-      Line := ConfigLines[i];
-      TrimmedLine := Trim(Line);
-
-      // Ignore comments and empty lines
-      if (TrimmedLine = '') or (TrimmedLine[1] = '#') then
-        Continue;
-
-      ColonPos := Pos('=', TrimmedLine);
-      if ColonPos = 0 then
-        Continue;
-
-      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
-      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
-
-      // Remove quotes if present
-      if (Length(Value) > 0) and (Value[1] = '"') then
-        Value := StringReplace(Value, '"', '', [rfReplaceAll]);
-
-      // Process each key
-      if SameText(Key, 'effects') then
+      EffectsList := SplitString(EffectsStr, ':');
+      for j := Low(EffectsList) to High(EffectsList) do
       begin
-        // Parse effects list (separated by :)
-        EffectsStr := Value;
-        EffectsList := SplitString(EffectsStr, ':');
-
-        for j := Low(EffectsList) to High(EffectsList) do  // <-- Use j instead of i
+        EffectsList[j] := Trim(EffectsList[j]);
+        if SameText(EffectsList[j], 'cas') then
         begin
-          EffectsList[j] := Trim(EffectsList[j]);
-
-          // CAS, FXAA, SMAA and DLS are handled by trackbars, not by the list
-          if SameText(EffectsList[j], 'cas') then
+          if casTrackBar.Position = 0 then
+            casTrackBar.Position := 5;
+        end
+        else if SameText(EffectsList[j], 'fxaa') then
+        begin
+          if fxaaTrackBar.Position = 0 then
+            fxaaTrackBar.Position := 5;
+        end
+        else if SameText(EffectsList[j], 'smaa') then
+        begin
+          if smaaTrackBar.Position = 0 then
+            smaaTrackBar.Position := 5;
+        end
+        else if SameText(EffectsList[j], 'dls') then
+        begin
+          if dlsTrackBar.Position = 0 then
+            dlsTrackBar.Position := 5;
+        end
+        else if EffectsList[j] <> '' then
+        begin
+          FullEffectPath := '';
+          for k := 0 to aveffectsListbox.Items.Count - 1 do
           begin
-            if casTrackBar.Position = 0 then
-              casTrackBar.Position := 5; // default value
-          end
-          else if SameText(EffectsList[j], 'fxaa') then
-          begin
-            if fxaaTrackBar.Position = 0 then
-              fxaaTrackBar.Position := 5; // default value
-          end
-          else if SameText(EffectsList[j], 'smaa') then
-          begin
-            if smaaTrackBar.Position = 0 then
-              smaaTrackBar.Position := 5; // default value
-          end
-          else if SameText(EffectsList[j], 'dls') then
-          begin
-            if dlsTrackBar.Position = 0 then
-              dlsTrackBar.Position := 5; // default value
-          end
-          else if EffectsList[j] <> '' then
-          begin
-            // It's a custom reshade effect
-            // Find full path in aveffectsListbox (e.g., "ASCII" -> "Shaders/ASCII.fx")
-            FullEffectPath := '';
-            for k := 0 to aveffectsListbox.Items.Count - 1 do
+            if SameText(ChangeFileExt(ExtractFileName(aveffectsListbox.Items[k]), ''), EffectsList[j]) then
             begin
-              // Extract effect name from path (e.g., "Shaders/ASCII.fx" -> "ASCII")
-              if SameText(ChangeFileExt(ExtractFileName(aveffectsListbox.Items[k]), ''), EffectsList[j]) then
-              begin
-                FullEffectPath := aveffectsListbox.Items[k];
-                Break;
-              end;
+              FullEffectPath := aveffectsListbox.Items[k];
+              Break;
             end;
-            // If found, use full path; otherwise use original name
-            if FullEffectPath = '' then
-              FullEffectPath := EffectsList[j];
-            // Don't add duplicates
-            if acteffectsListBox.Items.IndexOf(FullEffectPath) = -1 then
-              acteffectsListBox.Items.Add(FullEffectPath);
           end;
+          if FullEffectPath = '' then
+            FullEffectPath := EffectsList[j];
+          if acteffectsListBox.Items.IndexOf(FullEffectPath) = -1 then
+            acteffectsListBox.Items.Add(FullEffectPath);
         end;
-      end
-      else if SameText(Key, 'casSharpness') then
-      begin
-        if TryStrToFloat(Value, FloatValue, FS) then
-        begin
-          casTrackBar.Position := Round(FloatValue * 10);
-          casvalueLabel.Caption := IntToStr(casTrackBar.Position);
-          if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
-        end;
-      end
-      else if SameText(Key, 'fxaaQualitySubpix') then
-      begin
-        if TryStrToFloat(Value, FloatValue, FS) then
-        begin
-          fxaaTrackBar.Position := Round(FloatValue * 10);
-          fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
-          if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
-        end;
-      end
-      else if SameText(Key, 'smaaCornerRounding') then
-      begin
-        if TryStrToFloat(Value, FloatValue, FS) then
-        begin
-          // map 0..25 -> 1..10
-          smaaTrackBar.Position := Round(FloatValue / 25 * 9) + 1;
-          smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
-          if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
-        end;
-      end
-      else if SameText(Key, 'dlsSharpness') then
-      begin
-        if TryStrToFloat(Value, FloatValue, FS) then
-        begin
-          dlsTrackBar.Position := Round(FloatValue * 9) + 1;
-          dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
-          if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
-        end;
-      end
-      else if SameText(Key, 'toggleKey') then
-      begin
-        vkbtogglekeyCombobox.Text := Value;
-        if Assigned(FVkToggleCaptureBtn) then
-          FVkToggleCaptureBtn.Caption := '⌨ ' + Value;
       end;
     end;
 
+    Value := Cfg.GetValue('casSharpness=', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+    begin
+      casTrackBar.Position := Round(FloatValue * 10);
+      casvalueLabel.Caption := IntToStr(casTrackBar.Position);
+      if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
+    end;
+
+    Value := Cfg.GetValue('fxaaQualitySubpix=', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+    begin
+      fxaaTrackBar.Position := Round(FloatValue * 10);
+      fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
+      if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
+    end;
+
+    Value := Cfg.GetValue('smaaCornerRounding=', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+    begin
+      smaaTrackBar.Position := Round(FloatValue / 25 * 9) + 1;
+      smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
+      if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
+    end;
+
+    Value := Cfg.GetValue('dlsSharpness=', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+    begin
+      dlsTrackBar.Position := Round(FloatValue * 9) + 1;
+      dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
+      if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
+    end;
+
+    Value := Cfg.GetValue('toggleKey=', '');
+    if Value <> '' then
+    begin
+      vkbtogglekeyCombobox.Text := Value;
+      if Assigned(FVkToggleCaptureBtn) then
+        FVkToggleCaptureBtn.Caption := '⌨ ' + Value;
+    end;
   finally
-    ConfigLines.Free;
+    Cfg.Free;
   end;
 end;
 
@@ -9390,27 +9288,19 @@ var
   LineFound, WineOverrideFound: Boolean;
   SelectedDllName, DllNameWithoutExt: string;
   OptiScalerIniPath: string;
-  OptiScalerIniLines: TStringList;
+  OptiCfg: TConfigFile;
   SelectedShortcutKey, ScaleValue: string;
-  ShortcutKeyFound, ScaleFound, InMenuSection: Boolean;
   ScaleFloat: Double;
   FS: TFormatSettings;
   OverrideNvapiDllValue: string;
-  OverrideNvapiDllFound: Boolean;
   DxgiValue: string;
-  DxgiFound: Boolean;
   LoadAsiPluginsValue: string;
-  LoadAsiPluginsFound: Boolean;
   Fsr4UpdateValue: string;
-  Fsr4UpdateFound: Boolean;
   FakeNvapiIniPath: string;
-  FakeNvapiIniLines: TStringList;
+  FakeCfg: TConfigFile;
   ForceReflexValue: string;
-  ForceReflexFound: Boolean;
   ForceLatencyFlexValue, LatencyFlexModeValue: string;
-  ForceLatencyFlexFound, LatencyFlexModeFound: Boolean;
   EnableTraceLogsValue: string;
-  EnableTraceLogsFound: Boolean;
   LaunchCommand: string;
   FGModPath, FGModDestPath, VarsFilePath: string;
   Lines: TStringList;
@@ -9573,88 +9463,21 @@ begin
           LoadAsiPluginsValue := 'auto';
 
         // Check if OptiScaler.ini exists
-        if FileExists(OptiScalerIniPath) then
-        begin
-          OptiScalerIniLines := TStringList.Create;
-          try
-            // Load the OptiScaler.ini file
-            OptiScalerIniLines.LoadFromFile(OptiScalerIniPath);
-
-            // Search for the line containing ShortcutKey=
-            OverrideNvapiDllFound := False;
-            ShortcutKeyFound := False;
-            ScaleFound := False;
-            DxgiFound := False;
-            LoadAsiPluginsFound := False;
-            Fsr4UpdateFound := False;
-            InMenuSection := False;
-
-            for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
-            begin
-              if Trim(OptiScalerIniLines[LineIndex]) = OPTI_INI_SECTION_MENU then
-                InMenuSection := True
-              else if (Length(Trim(OptiScalerIniLines[LineIndex])) > 0) and (Trim(OptiScalerIniLines[LineIndex])[1] = '[') then
-                InMenuSection := False;
-
-              // Check for ShortcutKey line
-              if (Pos(OPTI_KEY_SHORTCUT, OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ShortcutKeyFound then
-              begin
-                OptiScalerIniLines[LineIndex] := OPTI_KEY_SHORTCUT + SelectedShortcutKey;
-                ShortcutKeyFound := True;
-              end;
-
-              // Check for Scale line
-              if (Pos(OPTI_KEY_SCALE, OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ScaleFound then
-              begin
-                OptiScalerIniLines[LineIndex] := OPTI_KEY_SCALE + ScaleValue;
-                ScaleFound := True;
-              end;
-
-              // Check for OverrideNvapiDll line
-              if Pos(OPTI_KEY_OVERRIDE_NVAPI, OptiScalerIniLines[LineIndex]) > 0 then
-              begin
-                OptiScalerIniLines[LineIndex] := OPTI_KEY_OVERRIDE_NVAPI + OverrideNvapiDllValue;
-                OverrideNvapiDllFound := True;
-              end;
-
-              // Check for Dxgi line (Spoof DLSS inputs)
-              if Pos(OPTI_KEY_DXGI, OptiScalerIniLines[LineIndex]) > 0 then
-              begin
-                OptiScalerIniLines[LineIndex] := OPTI_KEY_DXGI + DxgiValue;
-                DxgiFound := True;
-              end;
-
-              // Check for LoadAsiPlugins line
-              if Pos(OPTI_KEY_LOAD_ASI, OptiScalerIniLines[LineIndex]) > 0 then
-              begin
-                OptiScalerIniLines[LineIndex] := OPTI_KEY_LOAD_ASI + LoadAsiPluginsValue;
-                LoadAsiPluginsFound := True;
-              end;
-
-              // Check for Fsr4Update line
-              if Pos(OPTI_KEY_FSR4_UPDATE, OptiScalerIniLines[LineIndex]) > 0 then
-              begin
-                OptiScalerIniLines[LineIndex] := OPTI_KEY_FSR4_UPDATE + Fsr4UpdateValue;
-                Fsr4UpdateFound := True;
-              end;
-
-              // Exit loop if all found
-              if ShortcutKeyFound and ScaleFound and OverrideNvapiDllFound and DxgiFound and LoadAsiPluginsFound and Fsr4UpdateFound then
-                Break;
-            end;
-
-            if not LoadAsiPluginsFound then
-              OptiScalerIniLines.Add(OPTI_KEY_LOAD_ASI + LoadAsiPluginsValue);
-
-            if not Fsr4UpdateFound then
-              OptiScalerIniLines.Add(OPTI_KEY_FSR4_UPDATE + Fsr4UpdateValue);
-
-            // Save the modified OptiScaler.ini file
-            OptiScalerIniLines.SaveToFile(OptiScalerIniPath);
-
-          finally
-            OptiScalerIniLines.Free;
+        // Update OptiScaler.ini using TConfigFile wrapper
+        OptiCfg := TConfigFile.Create;
+        try
+          if OptiCfg.Load(OptiScalerIniPath) then
+          begin
+            OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
+            OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
+            OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
+            OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
+            OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
+            OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
+            OptiCfg.Save;
           end;
+        finally
+          OptiCfg.Free;
         end;
         // Silently skip if OptiScaler.ini doesn't exist (OptiScaler not installed yet)
 
@@ -9665,12 +9488,6 @@ begin
             FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
           else
             FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
-
-          // Initialize found flags
-          ForceReflexFound := False;
-          ForceLatencyFlexFound := False;
-          LatencyFlexModeFound := False;
-          EnableTraceLogsFound := False;
 
           // Get selected force_reflex value from reflexComboBox
           if forcereflexCheckBox.Checked then
@@ -9708,66 +9525,30 @@ begin
           else
             EnableTraceLogsValue := '0';
 
-          // Check if fakenvapi.ini exists
-          if FileExists(FakeNvapiIniPath) then
-          begin
-            FakeNvapiIniLines := TStringList.Create;
-            try
-              // Load the fakenvapi.ini file
-              FakeNvapiIniLines.LoadFromFile(FakeNvapiIniPath);
-
-              // Search and modify all relevant lines
-              for LineIndex := 0 to FakeNvapiIniLines.Count - 1 do
-              begin
-                // Check for force_reflex line (always modify)
-                if Pos(FAKE_KEY_FORCE_REFLEX, FakeNvapiIniLines[LineIndex]) > 0 then
-                begin
-                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_FORCE_REFLEX + ForceReflexValue;
-                  ForceReflexFound := True;
-                end;
-
-                // Check for force_latencyflex line (always modify)
-                if Pos(FAKE_KEY_FORCE_LATENCY, FakeNvapiIniLines[LineIndex]) > 0 then
-                begin
-                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_FORCE_LATENCY + ForceLatencyFlexValue;
-                  ForceLatencyFlexFound := True;
-                end;
-
-                // Check for latencyflex_mode line (always modify)
-                if Pos(FAKE_KEY_LATENCY_MODE, FakeNvapiIniLines[LineIndex]) > 0 then
-                begin
-                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_LATENCY_MODE + LatencyFlexModeValue;
-                  LatencyFlexModeFound := True;
-                end;
-
-                // Check for enable_trace_logs line (always modify)
-                if Pos(FAKE_KEY_TRACE_LOGS, FakeNvapiIniLines[LineIndex]) > 0 then
-                begin
-                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_TRACE_LOGS + EnableTraceLogsValue;
-                  EnableTraceLogsFound := True;
-                end;
-              end;
-
-              // Check if all expected lines were found and modified
-              if (not forcereflexCheckBox.Checked or ForceReflexFound) and
-                 (not forcelatencyflexCheckBox.Checked or (ForceLatencyFlexFound and LatencyFlexModeFound)) then
-              begin
-                // Save the modified fakenvapi.ini file
-                FakeNvapiIniLines.SaveToFile(FakeNvapiIniPath);
-              end
+          // Update fakenvapi.ini using TConfigFile wrapper
+          FakeCfg := TConfigFile.Create;
+          try
+            if FakeCfg.Load(FakeNvapiIniPath) then
+            begin
+              FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue);
+              FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
+              FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
+              FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
+              if (not forcereflexCheckBox.Checked or FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX)) and
+                 (not forcelatencyflexCheckBox.Checked or (FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) and FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE))) then
+                FakeCfg.Save
               else
               begin
-                if forcereflexCheckBox.Checked and not ForceReflexFound then
+                if forcereflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then
                   ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
-                if forcelatencyflexCheckBox.Checked and not ForceLatencyFlexFound then
+                if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) then
                   ShowMessage('Warning: Could not find force_latencyflex line in fakenvapi.ini file');
-                if forcelatencyflexCheckBox.Checked and not LatencyFlexModeFound then
+                if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE) then
                   ShowMessage('Warning: Could not find latencyflex_mode line in fakenvapi.ini file');
               end;
-
-            finally
-              FakeNvapiIniLines.Free;
             end;
+          finally
+            FakeCfg.Free;
           end;
           // Silently skip if fakenvapi.ini doesn't exist (OptiScaler not installed yet)
         end;
@@ -10054,9 +9835,10 @@ end;
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
   LaunchCommand: string;
-  FileLines, ConfigLines: TStringList;
+  FileLines: TStringList;
   i: Integer;
   GlobalMangoHudFile: string;  // Global MangoHud config path (for blacklist — never game-specific)
+  BlacklistCfg: TConfigFile;
 begin
 
   // ################### SAVE TWEAKS TAB SETTINGS
@@ -10121,55 +9903,51 @@ begin
     // process names system-wide). Use a local variable so that MANGOHUDCFGFILE
     // continues to point to the game-specific path when in game mode.
 
-  BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-  GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
+    GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
 
-  FileLines := TStringList.Create;
-  ConfigLines := TStringList.Create;
-  try
-    // if blacklist.conf dont exist, create a stock one
-    if not FileExists(BLACKLISTFILE) then
-    begin
-      FileLines.Add('pamac-manager');
-      FileLines.Add('lact');
-      FileLines.Add('ghb');
-      FileLines.Add('bitwig-studio');
-      FileLines.Add('ptyxis');
-      FileLines.Add('yumex');
-      ForceDirectories(ExtractFilePath(BLACKLISTFILE)); // create directory
-      FileLines.SaveToFile(BLACKLISTFILE);
-    end
-    else
-      FileLines.LoadFromFile(BLACKLISTFILE);  // load file
+    FileLines := TStringList.Create;
+    try
+      // if blacklist.conf dont exist, create a stock one
+      if not FileExists(BLACKLISTFILE) then
+      begin
+        FileLines.Add('pamac-manager');
+        FileLines.Add('lact');
+        FileLines.Add('ghb');
+        FileLines.Add('bitwig-studio');
+        FileLines.Add('ptyxis');
+        FileLines.Add('yumex');
+        ForceDirectories(ExtractFilePath(BLACKLISTFILE)); // create directory
+        FileLines.SaveToFile(BLACKLISTFILE);
+      end
+      else
+        FileLines.LoadFromFile(BLACKLISTFILE);  // load file
 
-
-    // create string blacklistVAR with correct format
-    blacklistVAR := 'blacklist=' + FileLines[0];
-    for i := 1 to FileLines.Count - 1 do
-      blacklistVAR := blacklistVAR + ',' + FileLines[i];
-
-    // load mangohud config file
-    if FileExists(GlobalMangoHudFile) then
-      ConfigLines.LoadFromFile(GlobalMangoHudFile);
-
-
-    // if there's no blacklist, add it to the end of file
-    if not Found then
-    begin
-      ConfigLines.Add(blacklistVAR);
+      // Build blacklist=... string
+      blacklistVAR := 'blacklist=' + FileLines[0];
+      for i := 1 to FileLines.Count - 1 do
+        blacklistVAR := blacklistVAR + ',' + FileLines[i];
+    finally
+      FileLines.Free;
     end;
 
-    // make sure mangohud directory exists (use CreateHostDirectory for Flatpak compatibility)
-    CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
-
-    // Save changes to mangohud file
-    ConfigLines.SaveToFile(GlobalMangoHudFile);
-
-
-  finally
-    FileLines.Free;
-    ConfigLines.Free;
-  end;
+    // Ensure global MangoHud.conf has the blacklist line (idempotent)
+    BlacklistCfg := TConfigFile.Create;
+    try
+      if BlacklistCfg.Load(GlobalMangoHudFile) then
+      begin
+        if not BlacklistCfg.HasKey('blacklist=') then
+          BlacklistCfg.AddRaw(blacklistVAR);
+      end
+      else
+      begin
+        BlacklistCfg.AddRaw(blacklistVAR);
+      end;
+      CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
+      BlacklistCfg.Save;
+    finally
+      BlacklistCfg.Free;
+    end;
 
 end;  //  ################### END - SAVE MANGOHUD
 
