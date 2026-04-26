@@ -10,7 +10,7 @@ uses
   blacklistUnit, LCLtype, Clipbrd, LCLIntf,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
-  configkeys, configfile, uihelpers;
+  configkeys, configfile, uihelpers, apputils;
 
 
 
@@ -1472,144 +1472,7 @@ end;
 
 
 //radeon theme
-//Procedure to execute external shell commands
-procedure ExecuteShellCommand(const Command: string);
-var
-  Process: TProcess;
-  Output: TStringList;
-  begin
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := FindDefaultExecutablePath('sh');
-      Process.Parameters.Add('-c');
-      Process.Parameters.Add(Command);
-      // No poUsePipes: we don't read stdout/stderr, and a full pipe buffer
-      // would deadlock the child process forever.
-      Process.Options := [poNoConsole];
-      Process.Execute;
-    finally
-      Process.Free;
-    end;
-  end;
-
 // Send desktop notification - works in both Flatpak and normal environments
-// Uses D-Bus (modern and sandbox-compatible) with notify-send fallback
-procedure SendNotification(const Title, Message: string; const IconPath: string = '');
-var
-  Process: TProcess;
-  DBusCommand: string;
-  UseDBus: Boolean;
-begin
-  // Try to use D-Bus notifications (works in both Flatpak and modern Linux)
-  // D-Bus is preferred because:
-  // - Works inside Flatpak sandbox
-  // - More reliable and modern
-  // - Direct communication with notification daemon
-  UseDBus := True;
-
-  if UseDBus then
-  begin
-    // Build D-Bus command for org.freedesktop.Notifications
-    DBusCommand := 'gdbus call --session --dest org.freedesktop.Notifications ' +
-                   '--object-path /org/freedesktop/Notifications ' +
-                   '--method org.freedesktop.Notifications.Notify ' +
-                   '"' + Title + '" 0 ';
-
-    if IconPath <> '' then
-      DBusCommand := DBusCommand + '"' + IconPath + '" '
-    else
-      DBusCommand := DBusCommand + '"" ';
-
-    DBusCommand := DBusCommand + '"' + Title + '" "' + Message + '" ' +
-                   '[] {} 5000';
-
-      Process := TProcess.Create(nil);
-      try
-        Process.Executable := FindDefaultExecutablePath('sh');
-        Process.Parameters.Add('-c');
-        Process.Parameters.Add(DBusCommand);
-        // Don't wait for notification to complete - send asynchronously for instant response
-        // No poUsePipes: we don't read stdout/stderr.
-        Process.Options := [poNoConsole];
-        Process.Execute;
-      finally
-        Process.Free;
-      end;
-  end;
-
-  // Fallback to notify-send if D-Bus is not available
-  if not UseDBus then
-  begin
-      Process := TProcess.Create(nil);
-      try
-        Process.Executable := FindDefaultExecutablePath('sh');
-        Process.Parameters.Add('-c');
-
-        if IconPath <> '' then
-          Process.Parameters.Add('notify-send -e -i "' + IconPath + '" "' + Title + '" "' + Message + '"')
-        else
-          Process.Parameters.Add('notify-send -e "' + Title + '" "' + Message + '"');
-
-        // No poUsePipes: we don't read stdout/stderr.
-        Process.Options := [poNoConsole];
-        Process.Execute;
-      finally
-        Process.Free;
-      end;
-  end;
-end;
-
-// Function to get GOverlay log directory with proper XDG support
-// Usage: ~/.local/share/goverlay/logs (Sandboxed in Flatpak)
-function GetGOverlayLogPath(): String;
-var
-  DataHome: String;
-begin
-  // Standard XDG_DATA_HOME (maps to sandbox in Flatpak: ~/.var/app/.../data)
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  
-  // Fallback to ~/.local/share
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  
-  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'logs';
-end;
-
-//Procedure to execute external GUI aps
-procedure ExecuteGUICommand(const Command: string);
-var
-  Process: TProcess;
-  LogPath: string;
-  NohupLogFile: string;
-begin
-  Process := TProcess.Create(nil);
-  try
-    // Get XDG-compliant log directory path
-    LogPath := GetGOverlayLogPath;
-    
-    // Create log directory if it doesn't exist
-    if not DirectoryExists(LogPath) then
-      ForceDirectories(LogPath);
-    
-    // Set nohup output file path
-    NohupLogFile := IncludeTrailingPathDelimiter(LogPath) + 'nohup.out';
-    
-    Process.Executable := FindDefaultExecutablePath('sh');
-    Process.Parameters.Add('-c');
-    // Use nohup with sh -c to handle environment variables and detachment properly
-    // We wrap the command in single quotes for the inner sh
-    // Redirect both stdout and stderr to XDG-compliant log file
-    Process.Parameters.Add('nohup sh -c ''' + Command + ''' >> "' + NohupLogFile + '" 2>&1 &');
-    // Don't use poUsePipes - we're not reading the output and it causes
-    // the child process to block when pipes fill up after multiple executions
-    Process.Options := [];
-    Process.Execute;
-    sleep(200); //wait 0.2sec for GUI to initiate
-  finally
-    Process.Free;
-  end;
-end;
-
 //Function to convert color codes to #RRGGBB format
 function ColorToHTMLColor(const AColor: TColor): string;
 var
