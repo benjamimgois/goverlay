@@ -9,7 +9,8 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   blacklistUnit, LCLtype, Clipbrd, LCLIntf,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids;
+  fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
+  configkeys;
 
 
 
@@ -3396,7 +3397,7 @@ begin
         Continue;
 
       // Handle special commented line #offset=
-      if (Length(TrimmedLine) > 8) and (Copy(TrimmedLine, 1, 8) = '#offset=') then
+      if (Length(TrimmedLine) > 8) and (Copy(TrimmedLine, 1, 8) = MANGO_COMMENT_OFFSET) then
       begin
         if TryStrToInt(Copy(TrimmedLine, 9, Length(TrimmedLine)), IntValue) then
           offsetSpinedit.Value := IntValue;
@@ -3439,156 +3440,156 @@ end;
 
 procedure Tgoverlayform.LoadMangoHudBoolFlag(const ATrimmedLine: string);
 begin
-  if SameText(ATrimmedLine, 'horizontal') then
+  if SameText(ATrimmedLine, MANGO_FLAG_HORIZONTAL) then
     horizontalRadioButton.Checked := True
-  else if SameText(ATrimmedLine, 'no_display') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_NO_DISPLAY) then
     hidehudCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'hud_compact') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_HUD_COMPACT) then
     hudcompactCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'fps') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FPS) then
     fpsCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'frame_timing') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FRAME_TIMING) then
     frametimegraphCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'show_fps_limit') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_SHOW_FPS_LIMIT) then
     showfpslimCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'frame_count') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FRAME_COUNT) then
     framecountCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'histogram') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_HISTOGRAM) then
   begin
     frametimetypeBitBtn.ImageIndex := 7;
     frametimetypeBitBtn.Caption := 'Histogram';
   end
-  else if SameText(ATrimmedLine, 'gpu_stats') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_STATS) then
     gpuavgloadCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_load_change') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_LOAD_CHANGE) then
     gpuloadcolorCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'vram') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_VRAM) then
     vramusageCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_core_clock') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_CORE_CLOCK) then
     gpufreqCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_mem_clock') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_MEM_CLOCK) then
     gpumemfreqCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_temp') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_TEMP) then
     gputempCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_mem_temp') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_MEM_TEMP) then
     gpumemtempCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_junction_temp') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_JUNCTION_TEMP) then
     gpujunctempCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_fan') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_FAN) then
     gpufanCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_power') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_POWER) then
     gpupowerCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_power_limit') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_POWER_LIMIT) then
     gpupowerlimitCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_efficiency') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_EFFICIENCY) then
     gpuefficiencyCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'flip_efficiency') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FLIP_EFFICIENCY) then
   begin
     gpuframesjouleBitBtn.Caption := 'Joules / Frame';
     cpuframesjouleBitBtn.Caption := 'Joules / Frame';
   end
-  else if SameText(ATrimmedLine, 'gpu_voltage') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_VOLTAGE) then
     gpuvoltageCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'throttling_status') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_THROTTLING) then
     gputhrottlingCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'throttling_status_graph') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_THROTTLING_GRAPH) then
     gputhrottlinggraphCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gpu_name') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GPU_NAME) then
     gpumodelCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'vulkan_driver') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_VULKAN_DRIVER) then
     vulkandriverCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'cpu_stats') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CPU_STATS) then
     cpuavgloadCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'cpu_load_change') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CPU_LOAD_CHANGE) then
     cpuloadcolorCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'core_load') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CORE_LOAD) then
     cpuloadcoreCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'core_bars') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CORE_BARS) then
   begin
     coreloadtypeBitBtn.ImageIndex := 7;
     coreloadtypeBitBtn.Caption := 'Graph';
   end
-  else if SameText(ATrimmedLine, 'cpu_mhz') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CPU_MHZ) then
     cpufreqCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'cpu_temp') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CPU_TEMP) then
     cputempCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'cpu_power') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CPU_POWER) then
     cpupowerCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'cpu_efficiency') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CPU_EFFICIENCY) then
     cpuefficiencyCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'core_type') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_CORE_TYPE) then
     cpucoretypeCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'ram') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_RAM) then
     ramusageCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'io_read') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_IO_READ) then
     diskioCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'io_write') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_IO_WRITE) then
     diskioCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'procmem') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_PROCMEM) then
     procmemCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'proc_vram') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_PROC_VRAM) then
     procvramCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'swap') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_SWAP) then
     swapusageCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'ram_temp') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_RAM_TEMP) then
     ramtempCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'arch') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_ARCH) then
     archCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'resolution') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_RESOLUTION) then
     resolutionCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'wine') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_WINE) then
     wineCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'engine_version') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_ENGINE_VERSION) then
     engineversionCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'engine_short_names') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_ENGINE_SHORT) then
     engineshortCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'gamemode') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_GAMEMODE) then
     gamemodestatusCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'vkbasalt') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_VKBASALT) then
     vkbasaltstatusCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'fcat') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FCAT) then
     fcatCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'fex_stats') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FEX_STATS) then
     fexstatsCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'fsr') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FSR) then
     fsrCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'hdr') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_HDR) then
     hdrCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'refresh_rate') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_REFRESH_RATE) then
     refreshrateCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'battery') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_BATTERY) then
     batteryCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'battery_watt') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_BATTERY_WATT) then
     batterywattCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'battery_time') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_BATTERY_TIME) then
     batterytimeCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'media_player') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_MEDIA_PLAYER) then
     mediaCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'temp_fahrenheit') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_TEMP_FAHRENHEIT) then
     fahrenheitCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'winesync') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_WINESYNC) then
     winesyncCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'present_mode') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_PRESENT_MODE) then
     vpsCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'log_versioning') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_LOG_VERSIONING) then
     versioningCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'upload_logs') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_UPLOAD_LOGS) then
     autouploadCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'fps_color_change') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_FPS_COLOR_CHANGE) then
     fpscolorCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'bicubic') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_BICUBIC) then
     filterRadioGroup.ItemIndex := 1
-  else if SameText(ATrimmedLine, 'trilinear') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_TRILINEAR) then
     filterRadioGroup.ItemIndex := 2
-  else if SameText(ATrimmedLine, 'retro') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_RETRO) then
     filterRadioGroup.ItemIndex := 3
-  else if SameText(ATrimmedLine, 'display_server') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_DISPLAY_SERVER) then
     displayserverCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'time') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_TIME) then
     timeCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'time#') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_TIME + '#') then
     timeCheckBox.Checked := True
-  else if SameText(ATrimmedLine, 'version#') then
+  else if SameText(ATrimmedLine, MANGO_FLAG_VERSION + '#') then
     hudversionCheckBox.Checked := True;
 end;
 
@@ -3599,9 +3600,9 @@ var
   j: Integer;
 begin
   // ============= VISUAL TAB =============
-  if SameText(AKey, 'custom_text_center') then
+  if SameText(AKey, MANGO_KEY_CUSTOM_TEXT) then
     hudtitleEdit.Text := AValue
-  else if SameText(AKey, 'background_alpha') then
+  else if SameText(AKey, MANGO_KEY_BG_ALPHA) then
   begin
     if TryStrToFloat(AValue, FloatValue) then
     begin
@@ -3609,7 +3610,7 @@ begin
       alphavalueLabel.Caption := FormatFloat('#0.0', FloatValue);
     end;
   end
-  else if SameText(AKey, 'round_corners') then
+  else if SameText(AKey, MANGO_KEY_ROUND_CORNERS) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3619,9 +3620,9 @@ begin
         roundRadioButton.Checked := True;
     end;
   end
-  else if SameText(AKey, 'background_color') then
+  else if SameText(AKey, MANGO_KEY_BG_COLOR) then
     hudbackgroundColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'font_size') then
+  else if SameText(AKey, MANGO_KEY_FONT_SIZE) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3629,46 +3630,46 @@ begin
       fontsizevalueLabel.Caption := IntToStr(IntValue);
     end;
   end
-  else if SameText(AKey, 'text_color') then
+  else if SameText(AKey, MANGO_KEY_TEXT_COLOR) then
     fontColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'font_file') then
+  else if SameText(AKey, MANGO_KEY_FONT_FILE) then
     fontComboBox.Text := ExtractFileName(AValue)
-  else if SameText(AKey, 'position') then
+  else if SameText(AKey, MANGO_KEY_POSITION) then
   begin
-    if SameText(AValue, 'top-left') then
+    if SameText(AValue, MANGO_POS_TOP_LEFT) then
       topleftRadioButton.Checked := True
-    else if SameText(AValue, 'top-center') then
+    else if SameText(AValue, MANGO_POS_TOP_CENTER) then
       topcenterRadioButton.Checked := True
-    else if SameText(AValue, 'top-right') then
+    else if SameText(AValue, MANGO_POS_TOP_RIGHT) then
       toprightRadioButton.Checked := True
-    else if SameText(AValue, 'middle-left') then
+    else if SameText(AValue, MANGO_POS_MIDDLE_LEFT) then
       middleleftRadioButton.Checked := True
-    else if SameText(AValue, 'middle-right') then
+    else if SameText(AValue, MANGO_POS_MIDDLE_RIGHT) then
       middlerightRadioButton.Checked := True
-    else if SameText(AValue, 'bottom-left') then
+    else if SameText(AValue, MANGO_POS_BOTTOM_LEFT) then
       bottomleftRadioButton.Checked := True
-    else if SameText(AValue, 'bottom-center') then
+    else if SameText(AValue, MANGO_POS_BOTTOM_CENTER) then
       bottomcenterRadioButton.Checked := True
-    else if SameText(AValue, 'bottom-right') then
+    else if SameText(AValue, MANGO_POS_BOTTOM_RIGHT) then
       bottomrightRadioButton.Checked := True;
   end
-  else if SameText(AKey, 'offset_x') then
+  else if SameText(AKey, MANGO_KEY_OFFSET_X) then
   begin
     if TryStrToInt(AValue, IntValue) then
       offsetxSpinEdit.Value := IntValue;
   end
-  else if SameText(AKey, 'offset_y') then
+  else if SameText(AKey, MANGO_KEY_OFFSET_Y) then
   begin
     if TryStrToInt(AValue, IntValue) then
       offsetySpinEdit.Value := IntValue;
   end
-  else if SameText(AKey, 'toggle_hud') then
+  else if SameText(AKey, MANGO_KEY_TOGGLE_HUD) then
   begin
     hudonoffComboBox.Text := AValue;
     if Assigned(FVisualCaptureBtn) and (Trim(AValue) <> '') then
       FVisualCaptureBtn.Caption := '⌨ ' + AValue;
   end
-  else if SameText(AKey, 'table_columns') then
+  else if SameText(AKey, MANGO_KEY_TABLE_COLS) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3702,53 +3703,53 @@ begin
     end;
   end
   // ============= METRICS TAB =============
-  else if SameText(AKey, 'gpu_text') then
+  else if SameText(AKey, MANGO_KEY_GPU_TEXT) then
     gpunameEdit.Text := AValue
-  else if SameText(AKey, 'gpu_color') then
+  else if SameText(AKey, MANGO_KEY_GPU_COLOR) then
     gpuColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'cpu_text') then
+  else if SameText(AKey, MANGO_KEY_CPU_TEXT) then
     cpunameEdit.Text := AValue
-  else if SameText(AKey, 'cpu_color') then
+  else if SameText(AKey, MANGO_KEY_CPU_COLOR) then
     cpuColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'vram_color') then
+  else if SameText(AKey, MANGO_KEY_VRAM_COLOR) then
     vramColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'ram_color') then
+  else if SameText(AKey, MANGO_KEY_RAM_COLOR) then
     ramColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'io_color') then
+  else if SameText(AKey, MANGO_KEY_IO_COLOR) then
     iordrwColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'frametime_color') then
+  else if SameText(AKey, MANGO_KEY_FRAMETIME_COLOR) then
     frametimegraphColorButton.ButtonColor := HexToColor(AValue)
   // ============= PERFORMANCE TAB =============
-  else if SameText(AKey, 'fps_limit_method') then
+  else if SameText(AKey, MANGO_KEY_FPS_LIMIT_METHOD) then
   begin
-    if SameText(AValue, 'late') then
+    if SameText(AValue, MANGO_FPS_LATE) then
       fpslimmetComboBox.ItemIndex := 0
-    else if SameText(AValue, 'early') then
+    else if SameText(AValue, MANGO_FPS_EARLY) then
       fpslimmetComboBox.ItemIndex := 1;
   end
-  else if SameText(AKey, 'toggle_fps_limit') then
+  else if SameText(AKey, MANGO_KEY_TOGGLE_FPS_LIMIT) then
   begin
     fpslimtoggleComboBox.Text := AValue;
     if Assigned(FLimitCaptureBtn) and (Trim(AValue) <> '') then
       FLimitCaptureBtn.Caption := '⌨ ' + AValue;
   end
-  else if SameText(AKey, 'vsync') then
+  else if SameText(AKey, MANGO_KEY_VSYNC) then
   begin
     if TryStrToInt(AValue, IntValue) then
       vsyncComboBox.ItemIndex := IntValue;
   end
-  else if SameText(AKey, 'gl_vsync') then
+  else if SameText(AKey, MANGO_KEY_GL_VSYNC) then
   begin
-    if SameText(AValue, '-1') then
+    if SameText(AValue, MANGO_GL_VSYNC_MINUS1) then
       glvsyncComboBox.ItemIndex := 0
-    else if SameText(AValue, '0') then
+    else if SameText(AValue, MANGO_GL_VSYNC_0) then
       glvsyncComboBox.ItemIndex := 1
-    else if SameText(AValue, '1') then
+    else if SameText(AValue, MANGO_GL_VSYNC_1) then
       glvsyncComboBox.ItemIndex := 2
-    else if SameText(AValue, 'n') then
+    else if SameText(AValue, MANGO_GL_VSYNC_N) then
       glvsyncComboBox.ItemIndex := 3;
   end
-  else if SameText(AKey, 'af') then
+  else if SameText(AKey, MANGO_KEY_AF) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3756,7 +3757,7 @@ begin
       afvalueLabel.Caption := IntToStr(IntValue);
     end;
   end
-  else if SameText(AKey, 'picmip') then
+  else if SameText(AKey, MANGO_KEY_PICMIP) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3765,19 +3766,19 @@ begin
     end;
   end
   // ============= EXTRAS TAB =============
-  else if SameText(AKey, 'wine_color') then
+  else if SameText(AKey, MANGO_KEY_WINE_COLOR) then
     wineColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'engine_color') then
+  else if SameText(AKey, MANGO_KEY_ENGINE_COLOR) then
     engineColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'battery_color') then
+  else if SameText(AKey, MANGO_KEY_BATTERY_COLOR) then
     batteryColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'media_player_color') then
+  else if SameText(AKey, MANGO_KEY_MEDIA_COLOR) then
     mediaColorButton.ButtonColor := HexToColor(AValue)
-  else if SameText(AKey, 'device_battery') then
+  else if SameText(AKey, MANGO_KEY_DEVICE_BATTERY) then
     deviceCheckBox.Checked := True
-  else if SameText(AKey, 'output_folder') then
+  else if SameText(AKey, MANGO_KEY_OUTPUT_FOLDER) then
     logfolderEdit.Text := AValue
-  else if SameText(AKey, 'log_duration') then
+  else if SameText(AKey, MANGO_KEY_LOG_DURATION) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3785,7 +3786,7 @@ begin
       durationvalueLabel.Caption := IntToStr(IntValue) + 's';
     end;
   end
-  else if SameText(AKey, 'autostart_log') then
+  else if SameText(AKey, MANGO_KEY_AUTOSTART_LOG) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3793,7 +3794,7 @@ begin
       delayvalueLabel.Caption := IntToStr(IntValue) + 's';
     end;
   end
-  else if SameText(AKey, 'log_interval') then
+  else if SameText(AKey, MANGO_KEY_LOG_INTERVAL) then
   begin
     if TryStrToInt(AValue, IntValue) then
     begin
@@ -3801,28 +3802,28 @@ begin
       intervalvalueLabel.Caption := IntToStr(IntValue) + 'ms';
     end;
   end
-  else if SameText(AKey, 'toggle_logging') then
+  else if SameText(AKey, MANGO_KEY_TOGGLE_LOGGING) then
   begin
     logtoggleComboBox.Text := AValue;
     if Assigned(FLoggingCaptureBtn) and (Trim(AValue) <> '') then
       FLoggingCaptureBtn.Caption := '⌨ ' + AValue;
   end
-  else if SameText(AKey, 'fps_metrics') then
+  else if SameText(AKey, MANGO_KEY_FPS_METRICS) then
   begin
-    if Pos('0.01', AValue) > 0 then
+    if Pos(MANGO_FPS_METRICS_1PCT, AValue) > 0 then
     begin
       fpsavgCheckBox.Checked := True;
       fpsavgBitBtn.ImageIndex := 9;
       fpsavgBitBtn.Caption := '1% low';
     end
-    else if Pos('0.001', AValue) > 0 then
+    else if Pos(MANGO_FPS_METRICS_01PCT, AValue) > 0 then
     begin
       fpsavgCheckBox.Checked := True;
       fpsavgBitBtn.ImageIndex := 10;
       fpsavgBitBtn.Caption := '0.1% low';
     end;
   end
-  else if SameText(AKey, 'network') then
+  else if SameText(AKey, MANGO_KEY_NETWORK) then
   begin
     networkCheckBox.Checked := True;
     if AValue <> '' then
@@ -3843,7 +3844,7 @@ begin
       end;
     end;
   end
-  else if SameText(AKey, 'exec') then
+  else if SameText(AKey, MANGO_KEY_EXEC) then
   begin
     if (Pos('uname -r', AValue) > 0) or (Pos('goverlay/distro', AValue) > 0) then
       distroinfoCheckBox.Checked := True;
@@ -9020,99 +9021,99 @@ begin
 
   // Index 0: "Simulate Steam Deck" -> SteamDeck=1
   if GetGeneralCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + 'SteamDeck=1 ';
+    LaunchCommand := LaunchCommand + ENV_STEAMDECK + ' ';
 
   // Index 2: "Enable HDR" -> PROTON_ENABLE_HDR=1
   if GetGeneralCheckBox(2).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_ENABLE_HDR=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_ENABLE_HDR + ' ';
 
   // Index 3: "Enable Wayland" -> PROTON_ENABLE_WAYLAND=1
   if GetGeneralCheckBox(3).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_ENABLE_WAYLAND=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_ENABLE_WAYLAND + ' ';
 
   // Index 4: "Active Proton Logs" -> PROTON_LOG=1
   if GetGeneralCheckBox(4).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_LOG=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_LOG + ' ';
 
   // Index 5: "Use SDL Input" -> PROTON_USE_SDL=1
   if GetGeneralCheckBox(5).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_USE_SDL=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_USE_SDL + ' ';
 
   // graphicsCheckGroup items
   // Index 0: "Emulate RT (old AMD)" -> RADV_PERFTEST=rt,emulate_rt
   if GetGraphicsCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + 'RADV_PERFTEST=rt,emulate_rt ';
+    LaunchCommand := LaunchCommand + ENV_RADV_PERFTEST_RT + ' ';
 
   // Index 1: "Hide Nvidia GPU" -> PROTON_HIDE_NVIDIA_GPU=1
   if GetGraphicsCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_HIDE_NVIDIA_GPU=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_HIDE_NVIDIA_GPU + ' ';
 
   // Index 2: "Force enable NVAPI" -> PROTON_ENABLE_NVAPI=1
   if GetGraphicsCheckBox(2).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_ENABLE_NVAPI=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_ENABLE_NVAPI + ' ';
 
   // Index 3: "Use old WINED3D" -> PROTON_USE_WINED3D=1
   if GetGraphicsCheckBox(3).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_USE_WINED3D=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_USE_WINED3D + ' ';
 
   // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
   if GetGraphicsCheckBox(4).Checked then
   begin
     if IsNvidiaModuleLoaded then
-      LaunchCommand := LaunchCommand + '__GLX_VENDOR_LIBRARY_NAME=mesa MESA_LOADER_DRIVER_OVERRIDE=zink '
+      LaunchCommand := LaunchCommand + ENV_GLX_VENDOR_MESA + ' ' + ENV_MESA_LOADER_OVERRIDE + ' '
     else
-      LaunchCommand := LaunchCommand + 'MESA_LOADER_DRIVER_OVERRIDE=zink ';
+      LaunchCommand := LaunchCommand + ENV_MESA_LOADER_OVERRIDE + ' ';
   end;
 
   // "No Fast Clears" -> RADV_DEBUG=nofastclears
   if nofastclearsCheckBox.Checked then
-    LaunchCommand := LaunchCommand + 'RADV_DEBUG=nofastclears ';
+    LaunchCommand := LaunchCommand + ENV_RADV_DEBUG_NOFASTCLEARS + ' ';
 
   // graphicsCheckGroup upgrade items
   // Index 5: "Automatically upgrade FSR" -> PROTON_FSR4_UPGRADE=1
   if FFSR4UpgradeCheckBox.Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_FSR4_UPGRADE=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_FSR4_UPGRADE + ' ';
 
   // Index 6: "Automatically upgrade DLSS" -> PROTON_DLSS_UPGRADE=1
   if FDLSSUpgradeCheckBox.Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_DLSS_UPGRADE=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_DLSS_UPGRADE + ' ';
 
   // Index 7: "Automatically upgrade XeSS" -> PROTON_XESS_UPGRADE=1
   if FXeSSUpgradeCheckBox.Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_XESS_UPGRADE=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_XESS_UPGRADE + ' ';
 
   // performanceCheckGroup items
   // Index 0: "Higher priority for games" -> PROTON_PRIORITY_HIGH=1
   if GetPerformanceCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_PRIORITY_HIGH=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_PRIORITY_HIGH + ' ';
 
   // Index 1: "Use WOW64" -> PROTON_USE_WOW64=1
   if GetPerformanceCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_USE_WOW64=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_USE_WOW64 + ' ';
 
   // Index 2: "Large Address Aware" -> PROTON_FORCE_LARGE_ADDRESS_AWARE=1
   if GetPerformanceCheckBox(2).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_FORCE_LARGE_ADDR + ' ';
 
   // Index 3: "Staging shared memory" -> STAGING_SHARED_MEMORY=1
   if GetPerformanceCheckBox(3).Checked then
-    LaunchCommand := LaunchCommand + 'STAGING_SHARED_MEMORY=1 ';
+    LaunchCommand := LaunchCommand + ENV_STAGING_SHARED_MEMORY + ' ';
 
   // Index 4: "Disable NTSYNC" -> PROTON_NO_NTSYNC=1
   if GetPerformanceCheckBox(4).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_NO_NTSYNC=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_NO_NTSYNC + ' ';
 
   // Index 5: "Heap Delay Free" -> PROTON_HEAP_DELAY_FREE=1
   if GetPerformanceCheckBox(5).Checked then
-    LaunchCommand := LaunchCommand + 'PROTON_HEAP_DELAY_FREE=1 ';
+    LaunchCommand := LaunchCommand + ENV_PROTON_HEAP_DELAY_FREE + ' ';
 
   // Index 6: "Enable AMD Anti-Lag 2" -> ENABLE_LAYER_MESA_ANTI_LAG=1
   if FAntilagCheckBox.Checked then
-    LaunchCommand := LaunchCommand + 'ENABLE_LAYER_MESA_ANTI_LAG=1 ';
+    LaunchCommand := LaunchCommand + ENV_ENABLE_MESA_ANTILAG + ' ';
 
   // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
   if GetGeneralCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
   // Add custom environment variables from grid custom rows
   if Assigned(FTweaksGrid) then
@@ -9121,7 +9122,7 @@ begin
         LaunchCommand := LaunchCommand + Trim(FTweaksGrid.Cells[2, i]) + ' ';
 
   // Always end with %command%
-  LaunchCommand := LaunchCommand + '%command%';
+  LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
   // In game mode, always write tweaks to the game-specific fgmod (toggle already
   // blocks this path when FNavToolEnabled[3] = False via disabled Save button).
@@ -9145,34 +9146,34 @@ begin
         // to the OptiScaler section and must never be touched by the Tweaks code.
         for LineIndex := FGModLines.Count - 1 downto 0 do
         begin
-          if (Pos('export PROTON_ENABLE_HDR=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export ENABLE_HDR_WSI=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_ENABLE_WAYLAND=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_LOG=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_USE_SDL=1', FGModLines[LineIndex]) > 0) or
-             (Pos('#gamemode', FGModLines[LineIndex]) > 0) or
+          if (Pos(FGMOD_PREFIX_EXPORT_HDR, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_HDR_WSI, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_WAYLAND, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_LOG, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_SDL, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_MARKER_GAMEMODE, FGModLines[LineIndex]) > 0) or
              // graphicsCheckGroup exports
-             (Pos('export RADV_PERFTEST=rt,emulate_rt', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_HIDE_NVIDIA_GPU=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_ENABLE_NVAPI=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_USE_WINED3D=1', FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_RADV_RT, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_HIDE_NV, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_NVAPI, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_WINED3D, FGModLines[LineIndex]) > 0) or
              // Zink exports
-             (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FGModLines[LineIndex]) > 0) or
-             (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa', FGModLines[LineIndex]) > 0) or
-             (Pos('export RADV_DEBUG=nofastclears', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_FSR4_UPGRADE=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_DLSS_UPGRADE=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_XESS_UPGRADE=1', FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_ZINK, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_GLX, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_NOFAST, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_FSR, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_DLSS, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_XESS, FGModLines[LineIndex]) > 0) or
              // performanceCheckGroup exports
-             (Pos('export PROTON_PRIORITY_HIGH=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_USE_WOW64=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export STAGING_SHARED_MEMORY=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_NO_NTSYNC=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export PROTON_HEAP_DELAY_FREE=1', FGModLines[LineIndex]) > 0) or
-             (Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1', FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_PRIORITY, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_WOW64, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_LARGE, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_SHMEM, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_NTSYNC, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_HEAP, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_ANTILAG, FGModLines[LineIndex]) > 0) or
              // Custom environment variable marker
-             (Pos('#customenv', FGModLines[LineIndex]) > 0) then
+             (Pos(FGMOD_MARKER_CUSTOMENV, FGModLines[LineIndex]) > 0) then
           begin
             FGModLines.Delete(LineIndex);
           end;
@@ -9181,107 +9182,107 @@ begin
         // Find the "# Execute the original command" line and add enabled tweaks after it
         for LineIndex := 0 to FGModLines.Count - 1 do
         begin
-          if Pos('# Execute the original command', FGModLines[LineIndex]) > 0 then
+          if Pos(FGMOD_ANCHOR_EXEC, FGModLines[LineIndex]) > 0 then
           begin
             // Insert lines in reverse order so they appear in correct order after insertion.
             // Index 1: "Always use GameMode" -> #gamemode (comment marker)
             if GetGeneralCheckBox(1).Checked then
-              FGModLines.Insert(LineIndex + 1, '  #gamemode');
+              FGModLines.Insert(LineIndex + 1, FGMOD_MARKER_GAMEMODE);
 
             // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
             if GetGeneralCheckBox(5).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_SDL=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_SDL);
 
             // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
             if GetGeneralCheckBox(4).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_LOG=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOG);
 
             // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
             if GetGeneralCheckBox(3).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_WAYLAND=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_WAYLAND);
 
             // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1 and ENABLE_HDR_WSI=1
             if GetGeneralCheckBox(2).Checked then
             begin
-              FGModLines.Insert(LineIndex + 1, '  export ENABLE_HDR_WSI=1');
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_HDR=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HDR_WSI);
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HDR);
             end;
 
             // graphicsCheckGroup items (insert in reverse order)
             // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
             if GetGraphicsCheckBox(3).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_WINED3D=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_WINED3D);
 
             // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
             if GetGraphicsCheckBox(2).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_ENABLE_NVAPI=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_NVAPI);
 
             // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
             if GetGraphicsCheckBox(1).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_HIDE_NVIDIA_GPU=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HIDE_NV);
 
             if GetGraphicsCheckBox(0).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export RADV_PERFTEST=rt,emulate_rt');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_RADV_RT);
 
             // "No Fast Clears" -> export RADV_DEBUG=nofastclears
             if nofastclearsCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, '  export RADV_DEBUG=nofastclears');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_NOFAST);
 
             // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
             if GetGraphicsCheckBox(4).Checked then
             begin
               if IsNvidiaModuleLoaded then
               begin
-                FGModLines.Insert(LineIndex + 1, '  export MESA_LOADER_DRIVER_OVERRIDE=zink');
-                FGModLines.Insert(LineIndex + 1, '  export __GLX_VENDOR_LIBRARY_NAME=mesa');
+                FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ZINK);
+                FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_GLX);
               end
               else
               begin
-                FGModLines.Insert(LineIndex + 1, '  export MESA_LOADER_DRIVER_OVERRIDE=zink');
+                FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ZINK);
               end;
             end;
 
             // performanceCheckGroup items (insert in reverse order)
             // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
             if FAntilagCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, '  export ENABLE_LAYER_MESA_ANTI_LAG=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ANTILAG);
 
             // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
             if GetPerformanceCheckBox(5).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_HEAP_DELAY_FREE=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HEAP);
 
             // graphicsCheckGroup upgrade items (insert in reverse order)
             // Index 7: "Automatically upgrade XeSS" -> export PROTON_XESS_UPGRADE=1
             if FXeSSUpgradeCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_XESS_UPGRADE=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_XESS);
 
             // Index 6: "Automatically upgrade DLSS" -> export PROTON_DLSS_UPGRADE=1
             if FDLSSUpgradeCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_DLSS_UPGRADE=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_DLSS);
 
             // Index 5: "Automatically upgrade FSR" -> export PROTON_FSR4_UPGRADE=1
             if FFSR4UpgradeCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_FSR4_UPGRADE=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_FSR);
 
             // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
             if GetPerformanceCheckBox(4).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_NO_NTSYNC=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_NTSYNC);
 
             // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
             if GetPerformanceCheckBox(3).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export STAGING_SHARED_MEMORY=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_SHMEM);
 
             // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
             if GetPerformanceCheckBox(2).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_FORCE_LARGE_ADDRESS_AWARE=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LARGE);
 
             // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
             if GetPerformanceCheckBox(1).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_USE_WOW64=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_WOW64);
 
             // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
             if GetPerformanceCheckBox(0).Checked then
-              FGModLines.Insert(LineIndex + 1, '  export PROTON_PRIORITY_HIGH=1');
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_PRIORITY);
 
             // Custom environment variables from grid (insert in reverse so order is preserved)
             if Assigned(FTweaksGrid) then
@@ -9298,12 +9299,12 @@ begin
         // (the embedded fgmod template already contains 'export SteamDeck=0' after the anchor).
         for LineIndex := 0 to FGModLines.Count - 1 do
         begin
-          if Pos('export SteamDeck=', FGModLines[LineIndex]) > 0 then
+          if Pos(FGMOD_PREFIX_STEAMDECK, FGModLines[LineIndex]) > 0 then
           begin
             if GetGeneralCheckBox(0).Checked then
-              FGModLines[LineIndex] := '  export SteamDeck=1'
+              FGModLines[LineIndex] := FGMOD_PREFIX_STEAMDECK + '1'
             else
-              FGModLines[LineIndex] := '  export SteamDeck=0';
+              FGModLines[LineIndex] := FGMOD_PREFIX_STEAMDECK + '0';
             Break;
           end;
         end;
@@ -9371,9 +9372,9 @@ begin
     LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
   // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
   if GetGeneralCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
   // Always end with %command%
-  LaunchCommand := LaunchCommand + '%command%';
+  LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
   notificationLabel.Visible := False;
   FLaunchCommand := LaunchCommand;
@@ -9438,16 +9439,16 @@ begin
 
       // Get selected DLL name from combobox
       case filenameComboBox.ItemIndex of
-        0: SelectedDllName := 'dxgi.dll';
-        1: SelectedDllName := 'version.dll';
-        2: SelectedDllName := 'dbghelp.dll';
-        3: SelectedDllName := 'd3d12.dll';
-        4: SelectedDllName := 'wininet.dll';
-        5: SelectedDllName := 'winhttp.dll';
-        6: SelectedDllName := 'winmm.dll';
-        7: SelectedDllName := 'OptiScaler.asi';
+        0: SelectedDllName := OPTI_DLL_DXGI;
+        1: SelectedDllName := OPTI_DLL_VERSION;
+        2: SelectedDllName := OPTI_DLL_DBGHELP;
+        3: SelectedDllName := OPTI_DLL_D3D12;
+        4: SelectedDllName := OPTI_DLL_WININET;
+        5: SelectedDllName := OPTI_DLL_WINHTTP;
+        6: SelectedDllName := OPTI_DLL_WINMM;
+        7: SelectedDllName := OPTI_DLL_ASI;
       else
-        SelectedDllName := 'dxgi.dll'; // Default
+        SelectedDllName := OPTI_DLL_DXGI; // Default
       end;
 
       // Extract DLL name without extension
@@ -9457,10 +9458,10 @@ begin
       LineFound := False;
       for LineIndex := 0 to FGModLines.Count - 1 do
       begin
-        if Pos('dll_name="${DLL:-', FGModLines[LineIndex]) > 0 then
+        if Pos(OPTI_DLL_NAME_ANCHOR, FGModLines[LineIndex]) > 0 then
         begin
           // Replace the line with the new DLL name
-          FGModLines[LineIndex] := 'dll_name="${DLL:-' + SelectedDllName + '}"';
+          FGModLines[LineIndex] := OPTI_DLL_NAME_ANCHOR + SelectedDllName + '}"';
           LineFound := True;
           Break;
         end;
@@ -9472,10 +9473,10 @@ begin
       begin
         for LineIndex := 0 to FGModLines.Count - 1 do
         begin
-          if Pos('export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,', FGModLines[LineIndex]) > 0 then
+          if Pos(OPTI_WINEOVERRIDES_PREFIX, FGModLines[LineIndex]) > 0 then
           begin
             // Replace the line with the new DLL name (without extension)
-            FGModLines[LineIndex] := 'export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,' + DllNameWithoutExt + '=n,b"';
+            FGModLines[LineIndex] := OPTI_WINEOVERRIDES_PREFIX + DllNameWithoutExt + OPTI_WINEOVERRIDES_SUFFIX;
             WineOverrideFound := True;
             Break;
           end;
@@ -9486,9 +9487,9 @@ begin
         begin
           for LineIndex := 0 to FGModLines.Count - 1 do
           begin
-            if Pos('# Execute the original command', FGModLines[LineIndex]) > 0 then
+            if Pos(FGMOD_ANCHOR_EXEC, FGModLines[LineIndex]) > 0 then
             begin
-              FGModLines.Insert(LineIndex + 1, '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,' + DllNameWithoutExt + '=n,b"');
+              FGModLines.Insert(LineIndex + 1, '  ' + OPTI_WINEOVERRIDES_PREFIX + DllNameWithoutExt + OPTI_WINEOVERRIDES_SUFFIX);
               WineOverrideFound := True;
               Break;
             end;
@@ -9502,7 +9503,7 @@ begin
         // First, find and remove any existing DXIL_SPIRV_CONFIG line
         for LineIndex := FGModLines.Count - 1 downto 0 do
         begin
-          if Pos('export DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"', FGModLines[LineIndex]) > 0 then
+          if Pos(OPTI_EMUFP8_LINE, FGModLines[LineIndex]) > 0 then
           begin
             FGModLines.Delete(LineIndex);
             Break; // Only one such line should exist
@@ -9514,10 +9515,10 @@ begin
         begin
           for LineIndex := 0 to FGModLines.Count - 1 do
           begin
-            if Pos('export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,', FGModLines[LineIndex]) > 0 then
+            if Pos(OPTI_WINEOVERRIDES_PREFIX, FGModLines[LineIndex]) > 0 then
             begin
               // Insert the DXIL_SPIRV_CONFIG line right after WINEDLLOVERRIDES
-              FGModLines.Insert(LineIndex + 1, '  export DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"');
+              FGModLines.Insert(LineIndex + 1, '  ' + OPTI_EMUFP8_LINE);
               Break;
             end;
           end;
@@ -9590,50 +9591,50 @@ begin
 
             for LineIndex := 0 to OptiScalerIniLines.Count - 1 do
             begin
-              if Trim(OptiScalerIniLines[LineIndex]) = '[Menu]' then
+              if Trim(OptiScalerIniLines[LineIndex]) = OPTI_INI_SECTION_MENU then
                 InMenuSection := True
               else if (Length(Trim(OptiScalerIniLines[LineIndex])) > 0) and (Trim(OptiScalerIniLines[LineIndex])[1] = '[') then
                 InMenuSection := False;
 
               // Check for ShortcutKey line
-              if (Pos('ShortcutKey=', OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ShortcutKeyFound then
+              if (Pos(OPTI_KEY_SHORTCUT, OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ShortcutKeyFound then
               begin
-                OptiScalerIniLines[LineIndex] := 'ShortcutKey=' + SelectedShortcutKey;
+                OptiScalerIniLines[LineIndex] := OPTI_KEY_SHORTCUT + SelectedShortcutKey;
                 ShortcutKeyFound := True;
               end;
 
               // Check for Scale line
-              if (Pos('Scale=', OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ScaleFound then
+              if (Pos(OPTI_KEY_SCALE, OptiScalerIniLines[LineIndex]) > 0) and InMenuSection and not ScaleFound then
               begin
-                OptiScalerIniLines[LineIndex] := 'Scale=' + ScaleValue;
+                OptiScalerIniLines[LineIndex] := OPTI_KEY_SCALE + ScaleValue;
                 ScaleFound := True;
               end;
 
               // Check for OverrideNvapiDll line
-              if Pos('OverrideNvapiDll=', OptiScalerIniLines[LineIndex]) > 0 then
+              if Pos(OPTI_KEY_OVERRIDE_NVAPI, OptiScalerIniLines[LineIndex]) > 0 then
               begin
-                OptiScalerIniLines[LineIndex] := 'OverrideNvapiDll=' + OverrideNvapiDllValue;
+                OptiScalerIniLines[LineIndex] := OPTI_KEY_OVERRIDE_NVAPI + OverrideNvapiDllValue;
                 OverrideNvapiDllFound := True;
               end;
 
               // Check for Dxgi line (Spoof DLSS inputs)
-              if Pos('Dxgi=', OptiScalerIniLines[LineIndex]) > 0 then
+              if Pos(OPTI_KEY_DXGI, OptiScalerIniLines[LineIndex]) > 0 then
               begin
-                OptiScalerIniLines[LineIndex] := 'Dxgi=' + DxgiValue;
+                OptiScalerIniLines[LineIndex] := OPTI_KEY_DXGI + DxgiValue;
                 DxgiFound := True;
               end;
 
               // Check for LoadAsiPlugins line
-              if Pos('LoadAsiPlugins=', OptiScalerIniLines[LineIndex]) > 0 then
+              if Pos(OPTI_KEY_LOAD_ASI, OptiScalerIniLines[LineIndex]) > 0 then
               begin
-                OptiScalerIniLines[LineIndex] := 'LoadAsiPlugins=' + LoadAsiPluginsValue;
+                OptiScalerIniLines[LineIndex] := OPTI_KEY_LOAD_ASI + LoadAsiPluginsValue;
                 LoadAsiPluginsFound := True;
               end;
 
               // Check for Fsr4Update line
-              if Pos('Fsr4Update=', OptiScalerIniLines[LineIndex]) > 0 then
+              if Pos(OPTI_KEY_FSR4_UPDATE, OptiScalerIniLines[LineIndex]) > 0 then
               begin
-                OptiScalerIniLines[LineIndex] := 'Fsr4Update=' + Fsr4UpdateValue;
+                OptiScalerIniLines[LineIndex] := OPTI_KEY_FSR4_UPDATE + Fsr4UpdateValue;
                 Fsr4UpdateFound := True;
               end;
 
@@ -9643,10 +9644,10 @@ begin
             end;
 
             if not LoadAsiPluginsFound then
-              OptiScalerIniLines.Add('LoadAsiPlugins=' + LoadAsiPluginsValue);
+              OptiScalerIniLines.Add(OPTI_KEY_LOAD_ASI + LoadAsiPluginsValue);
 
             if not Fsr4UpdateFound then
-              OptiScalerIniLines.Add('Fsr4Update=' + Fsr4UpdateValue);
+              OptiScalerIniLines.Add(OPTI_KEY_FSR4_UPDATE + Fsr4UpdateValue);
 
             // Save the modified OptiScaler.ini file
             OptiScalerIniLines.SaveToFile(OptiScalerIniPath);
@@ -9719,30 +9720,30 @@ begin
               for LineIndex := 0 to FakeNvapiIniLines.Count - 1 do
               begin
                 // Check for force_reflex line (always modify)
-                if Pos('force_reflex=', FakeNvapiIniLines[LineIndex]) > 0 then
+                if Pos(FAKE_KEY_FORCE_REFLEX, FakeNvapiIniLines[LineIndex]) > 0 then
                 begin
-                  FakeNvapiIniLines[LineIndex] := 'force_reflex=' + ForceReflexValue;
+                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_FORCE_REFLEX + ForceReflexValue;
                   ForceReflexFound := True;
                 end;
 
                 // Check for force_latencyflex line (always modify)
-                if Pos('force_latencyflex=', FakeNvapiIniLines[LineIndex]) > 0 then
+                if Pos(FAKE_KEY_FORCE_LATENCY, FakeNvapiIniLines[LineIndex]) > 0 then
                 begin
-                  FakeNvapiIniLines[LineIndex] := 'force_latencyflex=' + ForceLatencyFlexValue;
+                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_FORCE_LATENCY + ForceLatencyFlexValue;
                   ForceLatencyFlexFound := True;
                 end;
 
                 // Check for latencyflex_mode line (always modify)
-                if Pos('latencyflex_mode=', FakeNvapiIniLines[LineIndex]) > 0 then
+                if Pos(FAKE_KEY_LATENCY_MODE, FakeNvapiIniLines[LineIndex]) > 0 then
                 begin
-                  FakeNvapiIniLines[LineIndex] := 'latencyflex_mode=' + LatencyFlexModeValue;
+                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_LATENCY_MODE + LatencyFlexModeValue;
                   LatencyFlexModeFound := True;
                 end;
 
                 // Check for enable_trace_logs line (always modify)
-                if Pos('enable_trace_logs=', FakeNvapiIniLines[LineIndex]) > 0 then
+                if Pos(FAKE_KEY_TRACE_LOGS, FakeNvapiIniLines[LineIndex]) > 0 then
                 begin
-                  FakeNvapiIniLines[LineIndex] := 'enable_trace_logs=' + EnableTraceLogsValue;
+                  FakeNvapiIniLines[LineIndex] := FAKE_KEY_TRACE_LOGS + EnableTraceLogsValue;
                   EnableTraceLogsFound := True;
                 end;
               end;
@@ -9870,9 +9871,9 @@ begin
 
         // Check if gamemode should be added
         if GetGeneralCheckBox(1).Checked then
-          LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+          LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-        LaunchCommand := LaunchCommand + '%command%';
+        LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
         notificationLabel.Visible := False;
         FLaunchCommand := LaunchCommand;
@@ -10035,9 +10036,9 @@ begin
 
     // Check if gamemode should be added (check generalCheckGroup)
     if GetGeneralCheckBox(1).Checked then
-      LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+      LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-    LaunchCommand := LaunchCommand + '%command%';
+    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
     notificationLabel.Visible := False;
     FLaunchCommand := LaunchCommand;
@@ -10105,9 +10106,9 @@ begin
 
       // Check if gamemode should be added (check generalCheckGroup)
       if GetGeneralCheckBox(1).Checked then
-        LaunchCommand := LaunchCommand + '-- env gamemoderun ';
+        LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-      LaunchCommand := LaunchCommand + '%command%';
+      LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
       notificationLabel.Visible := False;
       FLaunchCommand := LaunchCommand;
