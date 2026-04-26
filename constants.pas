@@ -4,6 +4,9 @@ unit constants;
 
 interface
 
+uses
+  Graphics;
+
 const
   // ============================================================================
   // APPLICATION INFORMATION
@@ -111,6 +114,27 @@ const
   // RESHADE SHADER FOLDER
   // ============================================================================
   RESHADE_SHADERS_FOLDER = 'reshade-shaders';
+
+  // ============================================================================
+  // DESIGN SYSTEM CONSTANTS
+  // ============================================================================
+  PADDING_SMALL  = 8;
+  PADDING_MEDIUM = 12;
+  PADDING_LARGE  = 16;
+  MARGIN_SMALL   = 4;
+  MARGIN_MEDIUM  = 8;
+  MARGIN_LARGE   = 12;
+
+  FONT_SIZE_TITLE = 12;
+  FONT_SIZE_BODY  = 10;
+  FONT_SIZE_SMALL = 9;
+  FONT_SIZE_HINT  = 8;
+
+  FONT_NAME_PRIMARY  = 'Ubuntu';
+  FONT_NAME_FALLBACK = 'Segoe UI';
+
+  // Radeon theme accent color (BGR)
+  clRADEON = TColor($241CED);
 
 implementation
 

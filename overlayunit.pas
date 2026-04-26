@@ -10,7 +10,7 @@ uses
   blacklistUnit, LCLtype, Clipbrd, LCLIntf,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
-  configkeys, configfile;
+  configkeys, configfile, uihelpers;
 
 
 
@@ -887,23 +887,6 @@ var
   // ============================================================================
   // DESIGN SYSTEM CONSTANTS
   // ============================================================================
-const
-  // Spacing
-  PADDING_SMALL = 8;
-  PADDING_MEDIUM = 12;
-  PADDING_LARGE = 16;
-  MARGIN_SMALL = 4;
-  MARGIN_MEDIUM = 8;
-  MARGIN_LARGE = 12;
-  
-  // Typography
-  FONT_SIZE_TITLE = 12;
-  FONT_SIZE_BODY = 10;
-  FONT_SIZE_SMALL = 9;
-  FONT_SIZE_HINT = 8;
-  FONT_NAME_PRIMARY = 'Ubuntu';         // Primary font (Linux)
-  FONT_NAME_FALLBACK = 'Segoe UI';      // Fallback font (Windows)
-
 var
   // ============================================================================
   // APPLICATION STATE AND VERSION
@@ -1071,7 +1054,6 @@ var
   DarkBackgroundColor = $0045403A; // dark panel color BGR
   DarkerBackgroundColor = $00232323;  // darker panel color BGR for unselected item
   DarkTextColor = clwhite;  // set light color
-  clRADEON = TColor($241CED); // ou RGB(237,28,36)
 
   // Nav rail
   NAV_ITEM_H      = 64;   // height of each nav item
@@ -1490,25 +1472,6 @@ end;
 
 
 //radeon theme
-procedure ApplyRadeonTheme(AForm: TForm);
-var
-  i: Integer;
-begin
-  AForm.Color := clRADEON;  // cor de fundo do formul�rio ativo
-  for i := 0 to AForm.ControlCount - 1 do
-  begin
-    if (AForm.Controls[i] is TButton) then
-    begin
-      (AForm.Controls[i] as TButton).Font.Color := clWhite;
-      (AForm.Controls[i] as TButton).Color := clRADEON;
-    end
-    else if (AForm.Controls[i] is TLabel) then
-      (AForm.Controls[i] as TLabel).Font.Color := clWhite;
-  end;
-end;
-
-
-
 //Procedure to execute external shell commands
 procedure ExecuteShellCommand(const Command: string);
 var
@@ -4495,110 +4458,6 @@ end;
 // ============================================================================
 // MODERN DESIGN SYSTEM HELPERS
 // ============================================================================
-
-procedure ApplyModernTypography(AControl: TWinControl);
-var
-  i: Integer;
-begin
-  // Set base font with antialiasing
-  AControl.Font.Name := FONT_NAME_PRIMARY;
-  AControl.Font.Size := FONT_SIZE_BODY;
-  AControl.Font.Quality := fqAntialiased;
-  
-  // Apply to all child components
-  for i := 0 to AControl.ControlCount - 1 do
-  begin
-    // GroupBox titles get larger, bold font
-    if AControl.Controls[i] is TGroupBox then
-    begin
-      TGroupBox(AControl.Controls[i]).Font.Size := FONT_SIZE_TITLE;
-      TGroupBox(AControl.Controls[i]).Font.Style := [fsBold];
-      TGroupBox(AControl.Controls[i]).Font.Quality := fqAntialiased;
-    end;
-    
-    // Buttons get medium font
-    if AControl.Controls[i] is TButton then
-    begin
-      TButton(AControl.Controls[i]).Font.Size := FONT_SIZE_BODY;
-      TButton(AControl.Controls[i]).Font.Quality := fqAntialiased;
-    end;
-    
-    // Labels get body font
-    if AControl.Controls[i] is TLabel then
-    begin
-      TLabel(AControl.Controls[i]).Font.Size := FONT_SIZE_BODY;
-      TLabel(AControl.Controls[i]).Font.Quality := fqAntialiased;
-    end;
-    
-    // Recursively apply to child controls
-    if AControl.Controls[i] is TWinControl then
-      ApplyModernTypography(TWinControl(AControl.Controls[i]));
-  end;
-end;
-
-procedure ApplyModernSpacing(AControl: TWinControl);
-var
-  i: Integer;
-  Checkbox: TCheckBox;
-  PrevCheckbox: TCheckBox;
-begin
-  for i := 0 to AControl.ControlCount - 1 do
-  begin
-    // Add padding to GroupBoxes
-    if AControl.Controls[i] is TGroupBox then
-    begin
-      with TGroupBox(AControl.Controls[i]) do
-      begin
-        BorderSpacing.Left := MARGIN_MEDIUM;
-        BorderSpacing.Top := MARGIN_MEDIUM;
-        BorderSpacing.Right := MARGIN_MEDIUM;
-        BorderSpacing.Bottom := MARGIN_MEDIUM;
-      end;
-    end;
-    
-    // Increase spacing between checkboxes
-    if AControl.Controls[i] is TCheckBox then
-    begin
-      Checkbox := TCheckBox(AControl.Controls[i]);
-      
-      // Find previous checkbox and add margin
-      if i > 0 then
-      begin
-        if AControl.Controls[i-1] is TCheckBox then
-        begin
-          PrevCheckbox := TCheckBox(AControl.Controls[i-1]);
-          // Increase vertical spacing
-          if Checkbox.Top - (PrevCheckbox.Top + PrevCheckbox.Height) < MARGIN_MEDIUM then
-            Checkbox.Top := PrevCheckbox.Top + PrevCheckbox.Height + MARGIN_MEDIUM;
-        end;
-      end;
-    end;
-    
-    // Add spacing to buttons
-    if AControl.Controls[i] is TButton then
-    begin
-      with TButton(AControl.Controls[i]) do
-      begin
-        BorderSpacing.Around := MARGIN_SMALL;
-      end;
-    end;
-    
-    // Recursively apply to child controls
-    if AControl.Controls[i] is TWinControl then
-      ApplyModernSpacing(TWinControl(AControl.Controls[i]));
-  end;
-end;
-
-procedure ApplyIconsToButtons(AForm: TForm);
-begin
-  // Add Unicode icons to main action buttons
-  // Note: This requires Unicode support in the font
-  
-  // Find and update common buttons by name
-  if Assigned(AForm.FindComponent('gupdateBitBtn')) then
-    TBitBtn(AForm.FindComponent('gupdateBitBtn')).Caption := '🔄 ' + 'Update';
-end;
-
 // ============================================================================
 // KEYBOARD SHORTCUTS HANDLER
 // ============================================================================
