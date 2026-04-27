@@ -6130,35 +6130,35 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
     ToggleY := ARect.Top + (ARect.Height - 24) div 2;
     DrawToggle(ACanvas, ToggleX, ToggleY, AChecked);
 
-    // Variable name (left, monospace)
-    VarRect := ARect;
-    if AIsCustom then
-      VarRect.Left := ARect.Left + PAD + DEL_W + 4
-    else
-      VarRect.Left := ARect.Left + PAD;
-    VarRect.Right := ToggleX - PAD;
-    VarRect.Bottom := VarRect.Top + VarRect.Height div 2 + 2;
-    ACanvas.Font.Name  := 'DejaVu Sans Mono';
-    ACanvas.Font.Size  := 9;
-    ACanvas.Font.Style := [];
-    if AIsCustom then
-      ACanvas.Font.Color := RGBToColor(160, 160, 160)
-    else
-      ACanvas.Font.Color := clWhite;
-    ACanvas.TextRect(VarRect, VarRect.Left, VarRect.Top + 2, AVar);
-
-    // Description (below variable, sans-serif, dimmed)
+    // Description (top line, prominent)
     DescRect := ARect;
     if AIsCustom then
       DescRect.Left := ARect.Left + PAD + DEL_W + 4
     else
       DescRect.Left := ARect.Left + PAD;
     DescRect.Right := ToggleX - PAD;
-    DescRect.Top := VarRect.Bottom;
+    DescRect.Bottom := DescRect.Top + DescRect.Height div 2 + 2;
     ACanvas.Font.Name  := 'DejaVu Sans';
+    ACanvas.Font.Size  := 9;
+    ACanvas.Font.Style := [];
+    if AIsCustom then
+      ACanvas.Font.Color := RGBToColor(160, 160, 160)
+    else
+      ACanvas.Font.Color := clWhite;
+    ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, ADesc);
+
+    // Variable name (below description, monospace, dimmed)
+    VarRect := ARect;
+    if AIsCustom then
+      VarRect.Left := ARect.Left + PAD + DEL_W + 4
+    else
+      VarRect.Left := ARect.Left + PAD;
+    VarRect.Right := ToggleX - PAD;
+    VarRect.Top := DescRect.Bottom;
+    ACanvas.Font.Name  := 'DejaVu Sans Mono';
     ACanvas.Font.Size  := 8;
     ACanvas.Font.Color := RGBToColor(150, 150, 150);
-    ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top, ADesc);
+    ACanvas.TextRect(VarRect, VarRect.Left, VarRect.Top, AVar);
   end;
 
 var
