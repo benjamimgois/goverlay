@@ -622,6 +622,7 @@ type
     FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
     FDLSSUpgradeCheckBox: TCheckBox;   // PROTON_DLSS_UPGRADE=1
     FXeSSUpgradeCheckBox: TCheckBox;   // PROTON_XESS_UPGRADE=1
+    FReEngineRTCheckBox: TCheckBox;    // RE Engine RT workaround
 
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -5408,7 +5409,7 @@ type
   end;
 
 const
-  TWEAK_ROW_COUNT = 22;
+  TWEAK_ROW_COUNT = 23;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck'),
     (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Always use GameMode'),
@@ -5431,7 +5432,8 @@ const
     (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Staging shared memory'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Heap Delay Free'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: 'Enable AMD Anti-Lag 2')
+    (CheckBox: nil; Category: 'Performance';VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: 'Enable AMD Anti-Lag 2'),
+    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable';             Description: 'Enable RE Engine Ray Tracing workaround')
   );
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
@@ -5459,6 +5461,7 @@ begin
     19: Result := Form.FFSR4UpgradeCheckBox;
     20: Result := Form.FDLSSUpgradeCheckBox;
     21: Result := Form.FXeSSUpgradeCheckBox;
+    22: Result := Form.FReEngineRTCheckBox;
   else
     Result := nil;
   end;
@@ -5934,6 +5937,12 @@ begin
   FXeSSUpgradeCheckBox.Visible := False;
   FXeSSUpgradeCheckBox.Name    := 'xessupgradeCheckBox';
   FXeSSUpgradeCheckBox.Caption := 'Automatically upgrade XeSS to the latest version';
+
+  FReEngineRTCheckBox := TCheckBox.Create(Self);
+  FReEngineRTCheckBox.Parent  := Self;
+  FReEngineRTCheckBox.Visible := False;
+  FReEngineRTCheckBox.Name    := 'reenginertCheckBox';
+  FReEngineRTCheckBox.Caption := 'Enable RE Engine Ray Tracing workaround';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FTweaksGrid := TStringGrid.Create(Self);
@@ -7166,6 +7175,7 @@ begin
     FFSR4UpgradeCheckBox.Checked := False;
     FDLSSUpgradeCheckBox.Checked := False;
     FXeSSUpgradeCheckBox.Checked := False;
+    FReEngineRTCheckBox.Checked := False;
 
     // Reset custom env list
     customenvEdit.Text := '';
@@ -7217,6 +7227,13 @@ begin
       if Pos('#gamemode', FileLines[i]) > 0 then
       begin
         GetGeneralCheckBox(1).Checked := True;
+        TweakFound := True;
+      end;
+
+      // RE Engine RT workaround marker
+      if Pos('#winedetectionenable', FileLines[i]) > 0 then
+      begin
+        FReEngineRTCheckBox.Checked := True;
         TweakFound := True;
       end;
 
@@ -8791,9 +8808,11 @@ begin
              (Pos(FGMOD_PREFIX_EXPORT_SHMEM, FGModLines[LineIndex]) > 0) or
              (Pos(FGMOD_PREFIX_EXPORT_NTSYNC, FGModLines[LineIndex]) > 0) or
              (Pos(FGMOD_PREFIX_EXPORT_HEAP, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_ANTILAG, FGModLines[LineIndex]) > 0) or
-             // Custom environment variable marker
-             (Pos(FGMOD_MARKER_CUSTOMENV, FGModLines[LineIndex]) > 0) then
+              (Pos(FGMOD_PREFIX_EXPORT_ANTILAG, FGModLines[LineIndex]) > 0) or
+              // RE Engine RT workaround marker
+              (Pos(FGMOD_MARKER_WINE_DETECTION, FGModLines[LineIndex]) > 0) or
+              // Custom environment variable marker
+              (Pos(FGMOD_MARKER_CUSTOMENV, FGModLines[LineIndex]) > 0) then
           begin
             FGModLines.Delete(LineIndex);
           end;
@@ -8808,6 +8827,10 @@ begin
             // Index 1: "Always use GameMode" -> #gamemode (comment marker)
             if GetGeneralCheckBox(1).Checked then
               FGModLines.Insert(LineIndex + 1, FGMOD_MARKER_GAMEMODE);
+
+            // RE Engine RT workaround marker
+            if FReEngineRTCheckBox.Checked then
+              FGModLines.Insert(LineIndex + 1, FGMOD_MARKER_WINE_DETECTION);
 
             // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
             if GetGeneralCheckBox(5).Checked then
@@ -8967,11 +8990,12 @@ begin
        GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
        GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
        GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
-       FAntilagCheckBox.Checked or
-       FFSR4UpgradeCheckBox.Checked or
-       FDLSSUpgradeCheckBox.Checked or
-       FXeSSUpgradeCheckBox.Checked or
-       (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
+        FAntilagCheckBox.Checked or
+        FFSR4UpgradeCheckBox.Checked or
+        FDLSSUpgradeCheckBox.Checked or
+        FXeSSUpgradeCheckBox.Checked or
+        FReEngineRTCheckBox.Checked or
+        (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
     begin
       // Auto-enable Auto Enable and save
       geSpeedButton.ImageIndex := 1;
@@ -8995,6 +9019,10 @@ begin
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
   // Always end with %command%
   LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+
+  // RE Engine RT workaround suffix (after %command%)
+  if FReEngineRTCheckBox.Checked then
+    LaunchCommand := LaunchCommand + LAUNCH_SUFFIX_WINE_DETECTION;
 
   notificationLabel.Visible := False;
   FLaunchCommand := LaunchCommand;
