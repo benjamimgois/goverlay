@@ -49,7 +49,7 @@ const
   FGMOD_ANCHOR_EXEC            = '# Execute the original command';
   FGMOD_MARKER_GAMEMODE        = '#gamemode';
   FGMOD_MARKER_CUSTOMENV       = '#customenv';
-  FGMOD_MARKER_WINE_DETECTION  = '#winedetectionenable';
+  FGMOD_MARKER_WINE_DETECTION  = '#winedetectionenable=false';
   LAUNCH_SUFFIX_WINE_DETECTION = ' /WineDetectionEnabled:False';
   FGMOD_PREFIX_EXPORT          = 'export ';
   FGMOD_PREFIX_EXPORT_SDL      = '  export PROTON_USE_SDL=1';

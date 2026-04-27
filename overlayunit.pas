@@ -5433,7 +5433,7 @@ const
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Heap Delay Free'),
     (CheckBox: nil; Category: 'Performance';VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: 'Enable AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable';             Description: 'Enable RE Engine Ray Tracing workaround')
+    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable=false';             Description: 'Enable RE Engine Ray Tracing workaround')
   );
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
@@ -7231,7 +7231,7 @@ begin
       end;
 
       // RE Engine RT workaround marker
-      if Pos('#winedetectionenable', FileLines[i]) > 0 then
+      if Pos('#winedetectionenable=false', FileLines[i]) > 0 then
       begin
         FReEngineRTCheckBox.Checked := True;
         TweakFound := True;
