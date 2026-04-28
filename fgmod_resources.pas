@@ -361,6 +361,10 @@ begin
     '  cp -f "$fgmod_path/fakenvapi.ini" "$exe_folder_path/" || true' + LineEnding +
     '  echo "📦 Installed fakenvapi.dll and fakenvapi.ini"' + LineEnding +
     '' + LineEnding +
+    '  # === Copy Uninstaller ===' + LineEnding +
+    '  cp -f "$fgmod_path/fgmod-uninstaller.sh" "$exe_folder_path/" || true' + LineEnding +
+    '  echo "🗑️ Installed fgmod-uninstaller.sh"' + LineEnding +
+    '' + LineEnding +
     '  echo "✅ OptiScaler installation completed successfully!"' + LineEnding +
     '  logger -t fgmod "🟢 OptiScaler installed to $exe_folder_path"' + LineEnding +
     '' + LineEnding +
