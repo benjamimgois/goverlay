@@ -778,6 +778,7 @@ type
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
+    function  FindFileInDir(const ADir, AFileName: string): string;
     function  GetMangoHudConfigEnvPrefix: string;
     function  GetMangoHudLaunchEnv: string;
     function  GetVkBasaltConfigEnvPrefix: string;
@@ -16686,7 +16687,7 @@ end;
 procedure Tgoverlayform.GameCardUninstallClick(Sender: TObject);
 var
   Panel: TPanel;
-  GameName, GameCfgDir, GamePath, ProxyDLL: string;
+  GameName, GameCfgDir, GamePath, UninstallerPath: string;
   Lines: TStringList;
   i: Integer;
 begin
@@ -16714,54 +16715,23 @@ begin
 
   GameCfgDir := GetGameConfigDir(GameName);
 
-  // Try to read the proxy DLL name from fgmod before we delete it
-  ProxyDLL := '';
-  if FileExists(GameCfgDir + 'fgmod') then
-  begin
-    Lines := TStringList.Create;
-    try
-      Lines.LoadFromFile(GameCfgDir + 'fgmod');
-      for i := 0 to Lines.Count - 1 do
-      begin
-        if Pos('dll_name="${DLL:-', Lines[i]) > 0 then
-        begin
-          ProxyDLL := Copy(Lines[i], Pos(':-', Lines[i]) + 2, MaxInt);
-          ProxyDLL := Copy(ProxyDLL, 1, Pos('}"', ProxyDLL) - 1);
-          Break;
-        end;
-      end;
-    finally
-      Lines.Free;
-    end;
-  end;
-
   // Recursively delete the GOverlay game config directory
   if DirectoryExists(GameCfgDir) then
     DeleteDirectory(GameCfgDir, False);
 
-  // Best-effort cleanup of known OptiScaler files from the game directory
+  // Run fgmod-uninstaller.sh if it exists in the game directory.
+  // The fgmod script copies it there on first launch; it knows exactly
+  // which files to remove (including backups and subdirectories).
   if (GamePath <> '') and DirectoryExists(GamePath) then
   begin
     GamePath := IncludeTrailingPathDelimiter(GamePath);
-
-    // Proxy DLL selected in OptiScaler
-    if ProxyDLL <> '' then
-      DeleteFile(GamePath + ProxyDLL);
-
-    // Common companion DLLs copied by GOverlay/OptiScaler
-    DeleteFile(GamePath + 'amd_fidelityfx_upscaler_dx12.dll');
-    DeleteFile(GamePath + 'amd_fidelityfx_framegeneration_dx12.dll');
-    DeleteFile(GamePath + 'amd_fidelityfx_vk.dll');
-    DeleteFile(GamePath + 'amd_fidelityfx_dx12.dll');
-    DeleteFile(GamePath + 'dlssg_to_fsr3_amd_is_better.dll');
-    DeleteFile(GamePath + 'nvngx.dll');
-    DeleteFile(GamePath + 'nvngx_dlss.dll');
-    DeleteFile(GamePath + 'nvngx_dlssd.dll');
-    DeleteFile(GamePath + 'nvngx_dlssg.dll');
-    DeleteFile(GamePath + 'fakenvapi.ini');
-    DeleteFile(GamePath + 'OptiScaler.ini');
-    DeleteFile(GamePath + 'OptiScaler.log');
-    DeleteFile(GamePath + 'goverlay.vars');
+    // Try to locate fgmod-uninstaller.sh anywhere under the install tree
+    UninstallerPath := FindFileInDir(GamePath, 'fgmod-uninstaller.sh');
+    if UninstallerPath <> '' then
+    begin
+      // Make executable and run it
+      ExecuteShellCommand('chmod +x ' + QuotedStr(UninstallerPath) + ' && ' + QuotedStr(UninstallerPath));
+    end;
   end;
 
   // Remove badge controls from the card panel.
@@ -16803,6 +16773,21 @@ begin
   // the same location whether GOverlay is running natively or as Flatpak.
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
+end;
+
+function Tgoverlayform.FindFileInDir(const ADir, AFileName: string): string;
+var
+  Files: TStringList;
+begin
+  Result := '';
+  if not DirectoryExists(ADir) then Exit;
+  Files := FindAllFiles(ADir, AFileName, True);
+  try
+    if Files.Count > 0 then
+      Result := Files[0];
+  finally
+    Files.Free;
+  end;
 end;
 
 // Returns 'MANGOHUD_CONFIGFILE=<game_config>/MangoHud.conf ' when a game is
