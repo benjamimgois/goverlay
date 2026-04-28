@@ -774,6 +774,7 @@ type
     procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GameCardOpenFolderClick(Sender: TObject);
     procedure GameCardOpenPrefixClick(Sender: TObject);
+    procedure GameCardUninstallClick(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
@@ -15000,6 +15001,7 @@ procedure Tgoverlayform.InitGamesTab;
 var
   OpenFolderItem: TMenuItem;
   OpenPrefixItem: TMenuItem;
+  UninstallItem: TMenuItem;
   GamesBgPB: TPaintBox;
   IconPath: string;
 begin
@@ -15017,6 +15019,11 @@ begin
   OpenPrefixItem.Caption := 'Open prefix folder';
   OpenPrefixItem.OnClick := @GameCardOpenPrefixClick;
   FGameCardMenu.Items.Add(OpenPrefixItem);
+
+  UninstallItem := TMenuItem.Create(FGameCardMenu);
+  UninstallItem.Caption := 'Uninstall changes';
+  UninstallItem.OnClick := @GameCardUninstallClick;
+  FGameCardMenu.Items.Add(UninstallItem);
 
   FGamesScrollBox := TScrollBox.Create(Self);
   FGamesScrollBox.Parent := gamesTabSheet;
@@ -16676,6 +16683,70 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.GameCardUninstallClick(Sender: TObject);
+var
+  Panel: TPanel;
+  GameName, GameCfgDir: string;
+  Lines: TStringList;
+  i: Integer;
+  SearchRec: TSearchRec;
+begin
+  Panel := FRightClickedCard;
+  if Panel = nil then Exit;
+
+  // Extract game name from Hint: '(AppID) GameName' + LineEnding + Path
+  Lines := TStringList.Create;
+  try
+    if Panel.Hint = '' then Exit;
+    Lines.Text := Panel.Hint;
+    if Lines.Count < 1 then Exit;
+    // Parse '(AppID) GameName' → extract GameName
+    i := Pos(') ', Lines[0]);
+    if i > 0 then
+      GameName := Copy(Lines[0], i + 2, MaxInt)
+    else
+      GameName := Lines[0];
+  finally
+    Lines.Free;
+  end;
+
+  if GameName = '' then Exit;
+
+  GameCfgDir := GetGameConfigDir(GameName);
+  if DirectoryExists(GameCfgDir) then
+  begin
+    // Delete all files in the game config directory
+    if FindFirst(GameCfgDir + '*', faAnyFile, SearchRec) = 0 then
+    begin
+      repeat
+        if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') then
+          DeleteFile(GameCfgDir + SearchRec.Name);
+      until FindNext(SearchRec) <> 0;
+      FindClose(SearchRec);
+    end;
+    // Remove the directory itself
+    RemoveDir(GameCfgDir);
+  end;
+
+  // Remove badge controls from the card panel
+  // The cover image is the only TImage that fills the entire card
+  for i := Panel.ControlCount - 1 downto 0 do
+  begin
+    if Panel.Controls[i] is TImage then
+    begin
+      // Keep the main cover image (full card size); remove badge images
+      if (Panel.Controls[i].Width <> CARD_W) or (Panel.Controls[i].Height <> CARD_H) then
+        Panel.Controls[i].Free;
+    end
+    else if (Panel.Controls[i] is TShape) or (Panel.Controls[i] is TLabel) then
+      Panel.Controls[i].Free;
+  end;
+
+  // Reset badge mask
+  Panel.Tag := 0;
+
+  SendNotification('Goverlay', 'Changes uninstalled for ' + GameName, GetIconFile);
+end;
 
 // ============================================================================
 // Game-specific config helpers
