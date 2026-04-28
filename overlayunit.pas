@@ -16686,26 +16686,26 @@ end;
 procedure Tgoverlayform.GameCardUninstallClick(Sender: TObject);
 var
   Panel: TPanel;
-  GameName, GameCfgDir: string;
+  GameName, GameCfgDir, GamePath, ProxyDLL: string;
   Lines: TStringList;
   i: Integer;
-  SearchRec: TSearchRec;
 begin
   Panel := FRightClickedCard;
   if Panel = nil then Exit;
 
-  // Extract game name from Hint: '(AppID) GameName' + LineEnding + Path
+  // Extract game name and install path from Hint:
+  // '(AppID) GameName' + LineEnding + 'LibPath/common/InstallDir'
   Lines := TStringList.Create;
   try
     if Panel.Hint = '' then Exit;
     Lines.Text := Panel.Hint;
-    if Lines.Count < 1 then Exit;
-    // Parse '(AppID) GameName' → extract GameName
+    if Lines.Count < 2 then Exit;
     i := Pos(') ', Lines[0]);
     if i > 0 then
       GameName := Copy(Lines[0], i + 2, MaxInt)
     else
       GameName := Lines[0];
+    GamePath := Lines[1];
   finally
     Lines.Free;
   end;
@@ -16713,29 +16713,64 @@ begin
   if GameName = '' then Exit;
 
   GameCfgDir := GetGameConfigDir(GameName);
-  if DirectoryExists(GameCfgDir) then
+
+  // Try to read the proxy DLL name from fgmod before we delete it
+  ProxyDLL := '';
+  if FileExists(GameCfgDir + 'fgmod') then
   begin
-    // Delete all files in the game config directory
-    if FindFirst(GameCfgDir + '*', faAnyFile, SearchRec) = 0 then
-    begin
-      repeat
-        if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') then
-          DeleteFile(GameCfgDir + SearchRec.Name);
-      until FindNext(SearchRec) <> 0;
-      FindClose(SearchRec);
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(GameCfgDir + 'fgmod');
+      for i := 0 to Lines.Count - 1 do
+      begin
+        if Pos('dll_name="${DLL:-', Lines[i]) > 0 then
+        begin
+          ProxyDLL := Copy(Lines[i], Pos(':-', Lines[i]) + 2, MaxInt);
+          ProxyDLL := Copy(ProxyDLL, 1, Pos('}"', ProxyDLL) - 1);
+          Break;
+        end;
+      end;
+    finally
+      Lines.Free;
     end;
-    // Remove the directory itself
-    RemoveDir(GameCfgDir);
   end;
 
-  // Remove badge controls from the card panel
-  // The cover image is the only TImage that fills the entire card
+  // Recursively delete the GOverlay game config directory
+  if DirectoryExists(GameCfgDir) then
+    DeleteDirectory(GameCfgDir, False);
+
+  // Best-effort cleanup of known OptiScaler files from the game directory
+  if (GamePath <> '') and DirectoryExists(GamePath) then
+  begin
+    GamePath := IncludeTrailingPathDelimiter(GamePath);
+
+    // Proxy DLL selected in OptiScaler
+    if ProxyDLL <> '' then
+      DeleteFile(GamePath + ProxyDLL);
+
+    // Common companion DLLs copied by GOverlay/OptiScaler
+    DeleteFile(GamePath + 'amd_fidelityfx_upscaler_dx12.dll');
+    DeleteFile(GamePath + 'amd_fidelityfx_framegeneration_dx12.dll');
+    DeleteFile(GamePath + 'amd_fidelityfx_vk.dll');
+    DeleteFile(GamePath + 'amd_fidelityfx_dx12.dll');
+    DeleteFile(GamePath + 'dlssg_to_fsr3_amd_is_better.dll');
+    DeleteFile(GamePath + 'nvngx.dll');
+    DeleteFile(GamePath + 'nvngx_dlss.dll');
+    DeleteFile(GamePath + 'nvngx_dlssd.dll');
+    DeleteFile(GamePath + 'nvngx_dlssg.dll');
+    DeleteFile(GamePath + 'fakenvapi.ini');
+    DeleteFile(GamePath + 'OptiScaler.ini');
+    DeleteFile(GamePath + 'OptiScaler.log');
+    DeleteFile(GamePath + 'goverlay.vars');
+  end;
+
+  // Remove badge controls from the card panel.
+  // Cover image has Proportional=False; badge images have Proportional=True.
   for i := Panel.ControlCount - 1 downto 0 do
   begin
     if Panel.Controls[i] is TImage then
     begin
-      // Keep the main cover image (full card size); remove badge images
-      if (Panel.Controls[i].Width <> CARD_W) or (Panel.Controls[i].Height <> CARD_H) then
+      if TImage(Panel.Controls[i]).Proportional then
         Panel.Controls[i].Free;
     end
     else if (Panel.Controls[i] is TShape) or (Panel.Controls[i] is TLabel) then
