@@ -779,6 +779,7 @@ type
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     function  FindFileInDir(const ADir, AFileName: string): string;
+    procedure RunFGModUninstallCommands(const ATargetDir: string);
     function  GetMangoHudConfigEnvPrefix: string;
     function  GetMangoHudLaunchEnv: string;
     function  GetVkBasaltConfigEnvPrefix: string;
@@ -16719,19 +16720,19 @@ begin
   if DirectoryExists(GameCfgDir) then
     DeleteDirectory(GameCfgDir, False);
 
-  // Run fgmod-uninstaller.sh if it exists in the game directory.
-  // The fgmod script copies it there on first launch; it knows exactly
-  // which files to remove (including backups and subdirectories).
+  // Remove all OptiScaler/FGMod files from the game's install directory.
+  // The fgmod-uninstaller.sh script is copied to the game's exe folder on first
+  // launch. We locate it to discover the correct target directory, then perform
+  // the same cleanup the script would do (but directly, since the script expects
+  // to be invoked by Steam with the game's exe as argument).
   if (GamePath <> '') and DirectoryExists(GamePath) then
   begin
     GamePath := IncludeTrailingPathDelimiter(GamePath);
-    // Try to locate fgmod-uninstaller.sh anywhere under the install tree
     UninstallerPath := FindFileInDir(GamePath, 'fgmod-uninstaller.sh');
     if UninstallerPath <> '' then
-    begin
-      // Make executable and run it
-      ExecuteShellCommand('chmod +x ' + QuotedStr(UninstallerPath) + ' && ' + QuotedStr(UninstallerPath));
-    end;
+      RunFGModUninstallCommands(ExtractFilePath(UninstallerPath))
+    else
+      RunFGModUninstallCommands(GamePath);
   end;
 
   // Remove badge controls from the card panel.
@@ -16765,6 +16766,70 @@ begin
   for i := 1 to Length(Result) do
     if Result[i] in ['/', '\', ':', '*', '?', '"', '<', '>', '|'] then
       Result[i] := '_';
+end;
+
+procedure Tgoverlayform.RunFGModUninstallCommands(const ATargetDir: string);
+const
+  RM_FILES: array[0..26] of string = (
+    'OptiScaler.dll', 'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'version.dll',
+    'wininet.dll', 'winhttp.dll', 'OptiScaler.asi', 'OptiScaler.ini', 'OptiScaler.log',
+    'dlssg_to_fsr3_amd_is_better.dll', 'dlssg_to_fsr3.ini', 'dlssg_to_fsr3.log',
+    'nvapi64.dll', 'fakenvapi.ini', 'fakenvapi.log', 'fakenvapi.dll',
+    'libxess.dll', 'libxess_dx11.dll', 'libxess_fg.dll', 'libxell.dll',
+    'nvngx.dll', 'nvngx.ini', 'amd_fidelityfx_dx12.dll',
+    'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll',
+    'amd_fidelityfx_vk.dll'
+  );
+  LEGACY_FILES: array[0..6] of string = (
+    'dlss-enabler.dll', 'dlss-enabler-upscaler.dll', 'dlss-enabler.log',
+    'nvngx-wrapper.dll', '_nvngx.dll', 'dlssg_to_fsr3_amd_is_better-3.0.dll',
+    'fgmod-uninstaller.sh'
+  );
+  RESTORE_DLLS: array[0..8] of string = (
+    'd3dcompiler_47.dll', 'amd_fidelityfx_dx12.dll',
+    'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll',
+    'amd_fidelityfx_vk.dll', 'libxess.dll', 'libxess_dx11.dll',
+    'libxess_fg.dll', 'libxell.dll'
+  );
+var
+  Dir, FilePath: string;
+  i: Integer;
+  RestoreFrom: string;
+begin
+  Dir := IncludeTrailingPathDelimiter(ATargetDir);
+
+  // Remove known OptiScaler / FGMod files
+  for i := Low(RM_FILES) to High(RM_FILES) do
+  begin
+    FilePath := Dir + RM_FILES[i];
+    if FileExists(FilePath) then
+      DeleteFile(FilePath);
+  end;
+
+  // Remove legacy files
+  for i := Low(LEGACY_FILES) to High(LEGACY_FILES) do
+  begin
+    FilePath := Dir + LEGACY_FILES[i];
+    if FileExists(FilePath) then
+      DeleteFile(FilePath);
+  end;
+
+  // Remove plugins directory
+  if DirectoryExists(Dir + 'plugins') then
+    DeleteDirectory(Dir + 'plugins', False);
+
+  // Restore original DLLs from .b backups
+  for i := Low(RESTORE_DLLS) to High(RESTORE_DLLS) do
+  begin
+    RestoreFrom := Dir + RESTORE_DLLS[i] + '.b';
+    FilePath    := Dir + RESTORE_DLLS[i];
+    if FileExists(RestoreFrom) then
+    begin
+      if FileExists(FilePath) then
+        DeleteFile(FilePath);
+      RenameFile(RestoreFrom, FilePath);
+    end;
+  end;
 end;
 
 function Tgoverlayform.GetGameConfigDir(const AGameName: string): string;
