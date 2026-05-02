@@ -29,13 +29,16 @@ chmod +x ./quick-sharun
 	/usr/bin/mangohud
 cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./AppDir/share/vulkan/implicit_layer.d
 
-# Copy bundled assets & data so icons load inside the AppImage
-# (code uses ExtractFilePath(Application.ExeName) as base path)
-if [ -d "../assets" ]; then
-  cp -r ../assets ./AppDir/bin/
+# Copy bundled assets & data so icons load inside the AppImage.
+# The script may be executed from any cwd (e.g. repo root in CI),
+# so resolve paths relative to the script's own directory.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+if [ -d "${PROJECT_ROOT}/assets" ]; then
+  cp -r "${PROJECT_ROOT}/assets" ./AppDir/bin/
 fi
-if [ -d "../data" ]; then
-  cp -r ../data ./AppDir/bin/
+if [ -d "${PROJECT_ROOT}/data" ]; then
+  cp -r "${PROJECT_ROOT}/data" ./AppDir/bin/
 fi
 
 # make appimage with uruntime
