@@ -4959,7 +4959,7 @@ begin
     dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
     if Assigned(FDepsMenuItem) then
     begin
-      FDepsMenuItem.Caption := 'Missing: ' + Missing.CommaText;
+      FDepsMenuItem.Caption := 'Status';
       FDepsMenuItem.ImageIndex := 1; // red icon
     end;
     
