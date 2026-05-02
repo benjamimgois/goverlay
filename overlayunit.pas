@@ -794,6 +794,7 @@ type
     procedure HoverTimerTick(Sender: TObject);
     function ParseAcfValue(const AContent, AKey: string): string;
     procedure GetSteamLibraries(Libraries: TStringList);
+    function GetAppBaseDir: string;
 
     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
@@ -10789,7 +10790,7 @@ begin
   // Load icon — try installed path first, then local data dir
   IconPath := GetIconFile();
   if not FileExists(IconPath) then
-    IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/128x128/goverlay.png';
+    IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
   if FileExists(IconPath) then
     try FNavSmallIcon.Picture.LoadFromFile(IconPath); except end;
 
@@ -10842,7 +10843,7 @@ begin
       FOptiScalerImg.OnMouseEnter := @NavItemMouseEnter;
       FOptiScalerImg.OnMouseLeave := @NavItemMouseLeave;
 
-      IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
+      IconPath := GetAppBaseDir + 'assets/icons/scale-up2.png';
       if FileExists(IconPath) then
         try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
     end
@@ -10862,7 +10863,7 @@ begin
       FMangoHudImg.OnMouseEnter := @NavItemMouseEnter;
       FMangoHudImg.OnMouseLeave := @NavItemMouseLeave;
 
-      IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-inactive.png';
+      IconPath := GetAppBaseDir + 'assets/icons/mango-inactive.png';
       if FileExists(IconPath) then
         try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
     end
@@ -11659,13 +11660,13 @@ begin
       FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
       if (i = 3) and Assigned(FOptiScalerImg) then
       begin
-        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+        IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
         if FileExists(IconPath) then
           try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
       end;
       if (i = 1) and Assigned(FMangoHudImg) then
       begin
-        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+        IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
         if FileExists(IconPath) then
           try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
       end;
@@ -11677,13 +11678,13 @@ begin
       FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
       if (i = 3) and Assigned(FOptiScalerImg) then
       begin
-        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2.png';
+        IconPath := GetAppBaseDir + 'assets/icons/scale-up2.png';
         if FileExists(IconPath) then
           try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
       end;
       if (i = 1) and Assigned(FMangoHudImg) then
       begin
-        IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-inactive.png';
+        IconPath := GetAppBaseDir + 'assets/icons/mango-inactive.png';
         if FileExists(IconPath) then
           try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
       end;
@@ -13959,7 +13960,7 @@ begin
   updateBitBtn.Glyph.Clear;
   updateBitBtn.Images      := nil;
   // Load the download icon (left of text)
-  IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/buttons/24x24/download.png';
+  IconPath := GetAppBaseDir + 'data/icons/buttons/24x24/download.png';
   if FileExists(IconPath) then
   begin
     Png := TPortableNetworkGraphic.Create;
@@ -15064,11 +15065,11 @@ begin
 
   // Cache badge icons for corner ribbon (loaded once, reused per card)
   FMangoIconGfx := TPortableNetworkGraphic.Create;
-  IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+  IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
   if FileExists(IconPath) then try FMangoIconGfx.LoadFromFile(IconPath); except end;
 
   FOptiIconGfx := TPortableNetworkGraphic.Create;
-  IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+  IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
   if FileExists(IconPath) then try FOptiIconGfx.LoadFromFile(IconPath); except end;
 
   // Navy background for the bottom bar
@@ -15099,6 +15100,17 @@ begin
   commandPanel.Hint := 'Copy this command and paste it into the game''s Launch Options in Steam.';
   commandPanel.ShowHint := True;
 
+end;
+
+function Tgoverlayform.GetAppBaseDir: string;
+var
+  AppDir: string;
+begin
+  AppDir := GetEnvironmentVariable('APPDIR');
+  if AppDir <> '' then
+    Result := IncludeTrailingPathDelimiter(AppDir) + 'bin/'
+  else
+    Result := ExtractFilePath(Application.ExeName);
 end;
 
 procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
@@ -15549,7 +15561,7 @@ begin
                 BdgImg.Proportional := True;
                 BdgImg.Center      := True;
                 BdgImg.Transparent := True;
-                IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/mango-active.png';
+                IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
                 if FileExists(IconPath) then
                   try BdgImg.Picture.LoadFromFile(IconPath); except end;
                 BdgImg.BringToFront;
@@ -15568,7 +15580,7 @@ begin
                 BdgImg.Proportional := True;
                 BdgImg.Center      := True;
                 BdgImg.Transparent := True;
-                IconPath := ExtractFilePath(Application.ExeName) + 'assets/icons/scale-up2-active.png';
+                IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
                 if FileExists(IconPath) then
                   try BdgImg.Picture.LoadFromFile(IconPath); except end;
                 BdgImg.BringToFront;
@@ -16239,8 +16251,8 @@ begin
         Ico.Hint := 'Driver'; 
       end;
     end;
-    if FileExists(ExtractFilePath(Application.ExeName) + IconFile) then
-      Ico.Picture.LoadFromFile(ExtractFilePath(Application.ExeName) + IconFile);
+    if FileExists(GetAppBaseDir + IconFile) then
+      Ico.Picture.LoadFromFile(GetAppBaseDir + IconFile);
 
     Lbl.Font.Color := clWhite;
     Lbl.Font.Size  := 9;
@@ -16977,7 +16989,7 @@ begin
   // Load global icon only once
   if not Assigned(FGlobalThumbPng) then
   begin
-    ImgPath := ExtractFilePath(Application.ExeName) + 'assets/icons/global-white.png';
+    ImgPath := GetAppBaseDir + 'assets/icons/global-white.png';
     if FileExists(ImgPath) then
     begin
       FGlobalThumbPng := TPortableNetworkGraphic.Create;
