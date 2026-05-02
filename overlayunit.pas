@@ -10844,8 +10844,9 @@ begin
       FOptiScalerImg.OnMouseLeave := @NavItemMouseLeave;
 
       IconPath := GetAppBaseDir + 'assets/icons/scale-up2.png';
+      WriteLn(StdErr, '[NavIcon] scale-up2 path="', IconPath, '" exists=', FileExists(IconPath));
       if FileExists(IconPath) then
-        try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
+        try FOptiScalerImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] scale-up2 load error: ', E.Message); end;
     end
     else if i = 1 then
     begin
@@ -10864,8 +10865,9 @@ begin
       FMangoHudImg.OnMouseLeave := @NavItemMouseLeave;
 
       IconPath := GetAppBaseDir + 'assets/icons/mango-inactive.png';
+      WriteLn(StdErr, '[NavIcon] mango-inactive path="', IconPath, '" exists=', FileExists(IconPath));
       if FileExists(IconPath) then
-        try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
+        try FMangoHudImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] mango-inactive load error: ', E.Message); end;
     end
     else
     begin
@@ -15111,6 +15113,7 @@ begin
     Result := IncludeTrailingPathDelimiter(AppDir) + 'bin/'
   else
     Result := ExtractFilePath(Application.ExeName);
+  WriteLn(StdErr, '[GetAppBaseDir] APPDIR="', AppDir, '" Result="', Result, '"');
 end;
 
 procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
@@ -15562,8 +15565,9 @@ begin
                 BdgImg.Center      := True;
                 BdgImg.Transparent := True;
                 IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
+                WriteLn(StdErr, '[Badge] mango-active path="', IconPath, '" exists=', FileExists(IconPath));
                 if FileExists(IconPath) then
-                  try BdgImg.Picture.LoadFromFile(IconPath); except end;
+                  try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[Badge] mango-active load error: ', E.Message); end;
                 BdgImg.BringToFront;
                 BdgImg.OnMouseEnter := @GameCardMouseEnter;
                 BdgImg.OnMouseLeave := @GameCardMouseLeave;
@@ -15581,8 +15585,9 @@ begin
                 BdgImg.Center      := True;
                 BdgImg.Transparent := True;
                 IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
+                WriteLn(StdErr, '[Badge] scale-up2-active path="', IconPath, '" exists=', FileExists(IconPath));
                 if FileExists(IconPath) then
-                  try BdgImg.Picture.LoadFromFile(IconPath); except end;
+                  try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[Badge] scale-up2-active load error: ', E.Message); end;
                 BdgImg.BringToFront;
                 BdgImg.OnMouseEnter := @GameCardMouseEnter;
                 BdgImg.OnMouseLeave := @GameCardMouseLeave;
@@ -16251,6 +16256,7 @@ begin
         Ico.Hint := 'Driver'; 
       end;
     end;
+    WriteLn(StdErr, '[HomeIcon] system icon="', IconFile, '" full="', GetAppBaseDir + IconFile, '" exists=', FileExists(GetAppBaseDir + IconFile));
     if FileExists(GetAppBaseDir + IconFile) then
       Ico.Picture.LoadFromFile(GetAppBaseDir + IconFile);
 
