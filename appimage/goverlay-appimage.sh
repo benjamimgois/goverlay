@@ -34,12 +34,24 @@ cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./AppDir/share/vulkan/imp
 # so resolve paths relative to the script's own directory.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+echo "[AppImageBuild] SCRIPT_DIR=$SCRIPT_DIR"
+echo "[AppImageBuild] PROJECT_ROOT=$PROJECT_ROOT"
+echo "[AppImageBuild] ls PROJECT_ROOT:"
+ls -la "$PROJECT_ROOT"
 if [ -d "${PROJECT_ROOT}/assets" ]; then
-  cp -r "${PROJECT_ROOT}/assets" ./AppDir/bin/
+  echo "[AppImageBuild] Copying assets from ${PROJECT_ROOT}/assets to ./AppDir/bin/"
+  cp -rv "${PROJECT_ROOT}/assets" ./AppDir/bin/
+else
+  echo "[AppImageBuild] WARNING: ${PROJECT_ROOT}/assets does not exist!"
 fi
 if [ -d "${PROJECT_ROOT}/data" ]; then
-  cp -r "${PROJECT_ROOT}/data" ./AppDir/bin/
+  echo "[AppImageBuild] Copying data from ${PROJECT_ROOT}/data to ./AppDir/bin/"
+  cp -rv "${PROJECT_ROOT}/data" ./AppDir/bin/
+else
+  echo "[AppImageBuild] WARNING: ${PROJECT_ROOT}/data does not exist!"
 fi
+echo "[AppImageBuild] ls AppDir/bin:"
+ls -la ./AppDir/bin/
 
 # make appimage with uruntime
 ./quick-sharun --make-appimage
