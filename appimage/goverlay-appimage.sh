@@ -36,8 +36,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 echo "[AppImageBuild] SCRIPT_DIR=$SCRIPT_DIR"
 echo "[AppImageBuild] PROJECT_ROOT=$PROJECT_ROOT"
-echo "[AppImageBuild] ls PROJECT_ROOT:"
-ls -la "$PROJECT_ROOT"
+
+# Workaround: in some CI containers actions/checkout drops the assets/
+# directory even though it is tracked. Restore it from git if missing.
+if [ ! -d "${PROJECT_ROOT}/assets" ]; then
+  echo "[AppImageBuild] assets/ missing — attempting git restore..."
+  (cd "$PROJECT_ROOT" && git checkout HEAD -- assets/)
+fi
+
 if [ -d "${PROJECT_ROOT}/assets" ]; then
   echo "[AppImageBuild] Copying assets from ${PROJECT_ROOT}/assets to ./AppDir/bin/"
   cp -rv "${PROJECT_ROOT}/assets" ./AppDir/bin/
