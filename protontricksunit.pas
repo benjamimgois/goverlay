@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Process, themeunit, strutils, systemdetector, LCLType, Grids;
+  ExtCtrls, Process, themeunit, strutils, systemdetector, LCLType, Grids,
+  BaseUnix;
 
 type
 
@@ -254,6 +255,27 @@ var
   F: TextFile;
   p1, p2: Integer;
 
+  procedure AddPath(const APath: string);
+  var
+    Info, ExistingInfo: BaseUnix.Stat;
+    j: Integer;
+    ExistingPath: string;
+  begin
+    if not DirectoryExists(APath) then
+      Exit;
+    if BaseUnix.fpStat(APath, Info) <> 0 then
+      Exit;
+    for j := 0 to Result.Count - 1 do
+    begin
+      ExistingPath := Result[j];
+      if (BaseUnix.fpStat(ExistingPath, ExistingInfo) = 0) and
+         (Info.st_dev = ExistingInfo.st_dev) and
+         (Info.st_ino = ExistingInfo.st_ino) then
+        Exit;
+    end;
+    Result.Add(APath);
+  end;
+
   procedure ParseLibraryFolders(const ConfigPath: String);
   begin
     if not FileExists(ConfigPath) then Exit;
@@ -271,8 +293,7 @@ var
           if p2 > p1 then
           begin
             Path := Copy(Line, p1 + 1, p2 - p1 - 1) + '/steamapps';
-            if Result.IndexOf(Path) = -1 then
-              Result.Add(Path);
+            AddPath(Path);
           end;
         end;
       end;

@@ -15100,17 +15100,37 @@ var
   HomeDir, VdfPath, LibPath, Line: string;
   VdfFile: TStringList;
   i, p1, p2, p3, p4: Integer;
+
+  procedure AddLibrary(const APath: string);
+  var
+    Info, ExistingInfo: BaseUnix.Stat;
+    j: Integer;
+    ExistingPath: string;
+  begin
+    if not DirectoryExists(APath) then
+      Exit;
+    if BaseUnix.fpStat(APath, Info) <> 0 then
+      Exit;
+    // Check against already-added libraries using (st_dev, st_ino)
+    for j := 0 to Libraries.Count - 1 do
+    begin
+      ExistingPath := Libraries[j];
+      if (BaseUnix.fpStat(ExistingPath, ExistingInfo) = 0) and
+         (Info.st_dev = ExistingInfo.st_dev) and
+         (Info.st_ino = ExistingInfo.st_ino) then
+        Exit; // same physical directory
+    end;
+    Libraries.Add(APath);
+  end;
+
 begin
   HomeDir := GetEnvironmentVariable('HOME');
 
-  LibPath := HomeDir + '/.local/share/Steam/steamapps';
-  if DirectoryExists(LibPath) then
-    Libraries.Add(LibPath);
+  // Native Steam
+  AddLibrary(HomeDir + '/.local/share/Steam/steamapps');
 
   // Flatpak Steam
-  LibPath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps';
-  if DirectoryExists(LibPath) and (Libraries.IndexOf(LibPath) < 0) then
-    Libraries.Add(LibPath);
+  AddLibrary(HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
 
   // Parse libraryfolders.vdf for additional library paths
   VdfPath := HomeDir + '/.local/share/Steam/steamapps/libraryfolders.vdf';
@@ -15135,8 +15155,7 @@ begin
         if (p3 > 0) and (p4 > p3) then
         begin
           LibPath := Copy(Line, p3 + 1, p4 - p3 - 1) + '/steamapps';
-          if DirectoryExists(LibPath) and (Libraries.IndexOf(LibPath) < 0) then
-            Libraries.Add(LibPath);
+          AddLibrary(LibPath);
         end;
       end;
     end;
