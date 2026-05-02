@@ -38,10 +38,15 @@ echo "[AppImageBuild] SCRIPT_DIR=$SCRIPT_DIR"
 echo "[AppImageBuild] PROJECT_ROOT=$PROJECT_ROOT"
 
 # Workaround: in some CI containers actions/checkout drops the assets/
-# directory even though it is tracked. Restore it from git if missing.
+# directory even though it is tracked. Download the PNGs directly from
+# GitHub raw when the local folder is missing.
 if [ ! -d "${PROJECT_ROOT}/assets" ]; then
-  echo "[AppImageBuild] assets/ missing — attempting git restore..."
-  (cd "$PROJECT_ROOT" && git checkout HEAD -- assets/)
+  echo "[AppImageBuild] assets/ missing — downloading from GitHub raw..."
+  RAW="https://raw.githubusercontent.com/benjamimgois/goverlay/main/assets/icons"
+  mkdir -p ./AppDir/bin/assets/icons
+  for f in mango-inactive.png mango-active.png scale-up2.png scale-up2-active.png global-white.png; do
+    wget --retry-connrefused --tries=10 -q "${RAW}/${f}" -O "./AppDir/bin/assets/icons/${f}" && echo "[AppImageBuild] Downloaded ${f}" || echo "[AppImageBuild] FAILED to download ${f}"
+  done
 fi
 
 if [ -d "${PROJECT_ROOT}/assets" ]; then
