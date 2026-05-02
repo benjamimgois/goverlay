@@ -29,5 +29,14 @@ chmod +x ./quick-sharun
 	/usr/bin/mangohud
 cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./AppDir/share/vulkan/implicit_layer.d
 
+# Copy bundled assets & data so icons load inside the AppImage
+# (code uses ExtractFilePath(Application.ExeName) as base path)
+if [ -d "../assets" ]; then
+  cp -r ../assets ./AppDir/bin/
+fi
+if [ -d "../data" ]; then
+  cp -r ../data ./AppDir/bin/
+fi
+
 # make appimage with uruntime
 ./quick-sharun --make-appimage
