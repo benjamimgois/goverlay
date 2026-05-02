@@ -4946,16 +4946,22 @@ begin
    if CheckDependencies(Missing) then
    begin
     dependencieSpeedbutton.ImageIndex := 0 ; //green icon
-    dependenciesLabel.Caption := 'Application status' ;
+    dependenciesLabel.Caption := 'Status' ;
     if Assigned(FDepsMenuItem) then
-      FDepsMenuItem.Caption := 'Application status';
+    begin
+      FDepsMenuItem.Caption := 'Status';
+      FDepsMenuItem.ImageIndex := 0; // green icon
+    end;
    end
   else
   begin
     dependencieSpeedbutton.ImageIndex := 1 ;  //red icon
     dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
     if Assigned(FDepsMenuItem) then
+    begin
       FDepsMenuItem.Caption := 'Missing: ' + Missing.CommaText;
+      FDepsMenuItem.ImageIndex := 1; // red icon
+    end;
     
     // Disable gamemodeCheckBox if gamemode is missing
     if Missing.IndexOf('gamemode') >= 0 then
@@ -10942,7 +10948,7 @@ begin
 
   // Dependencies status item at the top of the settings menu
   FDepsMenuItem := TMenuItem.Create(settingsMenu);
-  FDepsMenuItem.Caption := 'Application status';
+  FDepsMenuItem.Caption := 'Status';
   FDepsMenuItem.ImageIndex := 0;
   FDepsMenuItem.Enabled := True;
   FDepsMenuItem.OnClick := @ShowHomeTab;
