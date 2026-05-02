@@ -8,11 +8,6 @@ on:
     paths-ignore: ["**/README.md"]
   workflow_dispatch: {}
 
-# Opt into Node.js 24 early to avoid deprecation warnings for actions still on Node.js 20
-# (see https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/)
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
