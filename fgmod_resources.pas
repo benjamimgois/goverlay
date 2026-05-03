@@ -302,11 +302,22 @@ begin
     'if [[ "$GOVERLAY_OPTISCALER" == "1" ]]; then' + LineEnding +
     '' + LineEnding +
     '  # === Cleanup Old Injectors ===' + LineEnding +
-    '  rm -f "$exe_folder_path"/{dxgi.dll,winmm.dll,nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}' + LineEnding +
+    '  # Only remove files that are exclusive to OptiScaler/FGMod.  Proxy names' + LineEnding +
+    '  # like dxgi.dll / winmm.dll may belong to other mods (ReShade, etc.) and' + LineEnding +
+    '  # are handled via backup below.' + LineEnding +
+    '  rm -f "$exe_folder_path"/{nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}' + LineEnding +
     '' + LineEnding +
-    '  # === Optional: Backup Original DLLs ===' + LineEnding +
+    '  # === Backup Original DLLs ===' + LineEnding +
+    '  # These are game-native DLLs that OptiScaler overrides.' + LineEnding +
     '  original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll")' + LineEnding +
     '  for dll in "${original_dlls[@]}"; do' + LineEnding +
+    '    [[ -f "$exe_folder_path/$dll" && ! -f "$exe_folder_path/$dll.b" ]] && mv -f "$exe_folder_path/$dll" "$exe_folder_path/$dll.b"' + LineEnding +
+    '  done' + LineEnding +
+    '' + LineEnding +
+    '  # === Backup Proxy DLLs (may belong to other mods) ===' + LineEnding +
+    '  # If a proxy name already exists, preserve it so it can be restored later.' + LineEnding +
+    '  proxy_dlls=("dxgi.dll" "winmm.dll" "dbghelp.dll" "version.dll" "wininet.dll" "winhttp.dll")' + LineEnding +
+    '  for dll in "${proxy_dlls[@]}"; do' + LineEnding +
     '    [[ -f "$exe_folder_path/$dll" && ! -f "$exe_folder_path/$dll.b" ]] && mv -f "$exe_folder_path/$dll" "$exe_folder_path/$dll.b"' + LineEnding +
     '  done' + LineEnding +
     '' + LineEnding +
@@ -547,7 +558,7 @@ begin
     '' + LineEnding +
     '# === Remove OptiScaler Files ===' + LineEnding +
     'echo "🧹 Removing OptiScaler files..."' + LineEnding +
-    'rm -f "OptiScaler.dll" "dxgi.dll" "winmm.dll" "dbghelp.dll" "version.dll" "wininet.dll" "winhttp.dll" "OptiScaler.asi"' + LineEnding +
+    'rm -f "OptiScaler.dll" "OptiScaler.asi"' + LineEnding +
     'rm -f "OptiScaler.ini" "OptiScaler.log"' + LineEnding +
     '' + LineEnding +
     '# === Remove Nukem FG Mod Files ===' + LineEnding +
@@ -582,7 +593,8 @@ begin
     '# === Restore Original DLLs ===' + LineEnding +
     'echo "🔄 Restoring original DLLs..."' + LineEnding +
     'original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll" "libxess.dll" "libxess_dx11.dll" "libxess_fg.dll" "libxell.dll")' + LineEnding +
-    'for dll in "${original_dlls[@]}"; do' + LineEnding +
+    'proxy_dlls=("dxgi.dll" "winmm.dll" "dbghelp.dll" "version.dll" "wininet.dll" "winhttp.dll")' + LineEnding +
+    'for dll in "${original_dlls[@]}" "${proxy_dlls[@]}"; do' + LineEnding +
     '  if [[ -f "${dll}.b" ]]; then' + LineEnding +
     '    mv "${dll}.b" "$dll"' + LineEnding +
     '    echo "✅ Restored original $dll"' + LineEnding +

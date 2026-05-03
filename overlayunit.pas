@@ -16909,9 +16909,8 @@ end;
 
 procedure Tgoverlayform.RunFGModUninstallCommands(const ATargetDir: string);
 const
-  RM_FILES: array[0..26] of string = (
-    'OptiScaler.dll', 'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'version.dll',
-    'wininet.dll', 'winhttp.dll', 'OptiScaler.asi', 'OptiScaler.ini', 'OptiScaler.log',
+  RM_FILES: array[0..20] of string = (
+    'OptiScaler.dll', 'OptiScaler.asi', 'OptiScaler.ini', 'OptiScaler.log',
     'dlssg_to_fsr3_amd_is_better.dll', 'dlssg_to_fsr3.ini', 'dlssg_to_fsr3.log',
     'nvapi64.dll', 'fakenvapi.ini', 'fakenvapi.log', 'fakenvapi.dll',
     'libxess.dll', 'libxess_dx11.dll', 'libxess_fg.dll', 'libxell.dll',
@@ -16924,11 +16923,13 @@ const
     'nvngx-wrapper.dll', '_nvngx.dll', 'dlssg_to_fsr3_amd_is_better-3.0.dll',
     'fgmod-uninstaller.sh'
   );
-  RESTORE_DLLS: array[0..8] of string = (
+  RESTORE_DLLS: array[0..14] of string = (
     'd3dcompiler_47.dll', 'amd_fidelityfx_dx12.dll',
     'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll',
     'amd_fidelityfx_vk.dll', 'libxess.dll', 'libxess_dx11.dll',
-    'libxess_fg.dll', 'libxell.dll'
+    'libxess_fg.dll', 'libxell.dll',
+    'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'version.dll',
+    'wininet.dll', 'winhttp.dll'
   );
 var
   Dir, FilePath: string;
