@@ -548,6 +548,7 @@ type
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
     FRightClickedCard: TPanel;      // card that triggered the context menu
+    FGameMenuImgList: TImageList;   // icons for the game card context menu
     FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
     FOptiIconGfx:  TPortableNetworkGraphic;  // cached badge icon for OptiScaler
 
@@ -15015,24 +15016,119 @@ var
   UninstallItem: TMenuItem;
   GamesBgPB: TPaintBox;
   IconPath: string;
+  Bmp: TBitmap;
+  IconColor: TColor;
+  x, y: Integer;
+  Clr: TColor;
+  Gray: Byte;
 begin
   FCardPanels := TList.Create;
   FOrigCovers := TList.Create;
 
   // Right-click context menu for game cards
   FGameCardMenu := TPopupMenu.Create(Self);
+
+  // Dedicated 16x16 image list for the menu — drawn in greyscale
+  FGameMenuImgList := TImageList.Create(Self);
+  FGameMenuImgList.Width := 16;
+  FGameMenuImgList.Height := 16;
+
+  IconColor := RGBToColor(180, 180, 180);
+
+  // --- Icon 0: Folder (greyscale) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := IconColor;
+    Bmp.Canvas.Rectangle(2, 3, 8, 6);   // tab
+    Bmp.Canvas.Rectangle(2, 5, 14, 13); // body
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
+  // --- Icon 1: Wine prefix (greyscale copy of iconsImageList[37]) ---
+  if Assigned(iconsImageList) and (iconsImageList.Count > 37) then
+  begin
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(16, 16);
+      Bmp.Canvas.Brush.Color := clFuchsia;
+      Bmp.Canvas.FillRect(0, 0, 16, 16);
+      iconsImageList.Draw(Bmp.Canvas, 0, 0, 37);
+      // Convert every non-mask pixel to greyscale
+      for y := 0 to 15 do
+        for x := 0 to 15 do
+        begin
+          Clr := Bmp.Canvas.Pixels[x, y];
+          if Clr <> clFuchsia then
+          begin
+            Gray := (Red(Clr) + Green(Clr) + Blue(Clr)) div 3;
+            Bmp.Canvas.Pixels[x, y] := RGBToColor(Gray, Gray, Gray);
+          end;
+        end;
+      FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+    finally
+      Bmp.Free;
+    end;
+  end
+  else
+  begin
+    // Fallback: simple wine-glass silhouette
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(16, 16);
+      Bmp.Canvas.Brush.Color := clFuchsia;
+      Bmp.Canvas.FillRect(0, 0, 16, 16);
+      Bmp.Canvas.Pen.Color := IconColor;
+      Bmp.Canvas.Brush.Color := IconColor;
+      Bmp.Canvas.RoundRect(4, 2, 12, 7, 6, 6); // bowl
+      Bmp.Canvas.Rectangle(7, 7, 9, 12);       // stem
+      Bmp.Canvas.Rectangle(4, 12, 12, 14);     // base
+      FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+    finally
+      Bmp.Free;
+    end;
+  end;
+
+  // --- Icon 2: Trash / Uninstall (greyscale) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := IconColor;
+    Bmp.Canvas.Rectangle(3, 2, 13, 4);  // lid
+    Bmp.Canvas.Rectangle(4, 4, 12, 14); // body
+    Bmp.Canvas.Pen.Color := clFuchsia;
+    Bmp.Canvas.MoveTo(6, 6); Bmp.Canvas.LineTo(6, 12);
+    Bmp.Canvas.MoveTo(9, 6); Bmp.Canvas.LineTo(9, 12);
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
+  FGameCardMenu.Images := FGameMenuImgList;
+
   OpenFolderItem := TMenuItem.Create(FGameCardMenu);
   OpenFolderItem.Caption := 'Open install folder';
+  OpenFolderItem.ImageIndex := 0;
   OpenFolderItem.OnClick := @GameCardOpenFolderClick;
   FGameCardMenu.Items.Add(OpenFolderItem);
 
   OpenPrefixItem := TMenuItem.Create(FGameCardMenu);
   OpenPrefixItem.Caption := 'Open prefix folder';
+  OpenPrefixItem.ImageIndex := 1;
   OpenPrefixItem.OnClick := @GameCardOpenPrefixClick;
   FGameCardMenu.Items.Add(OpenPrefixItem);
 
   UninstallItem := TMenuItem.Create(FGameCardMenu);
   UninstallItem.Caption := 'Uninstall changes';
+  UninstallItem.ImageIndex := 2;
   UninstallItem.OnClick := @GameCardUninstallClick;
   FGameCardMenu.Items.Add(UninstallItem);
 
