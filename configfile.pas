@@ -165,13 +165,21 @@ begin
     ASectionName := Trimmed;
 end;
 
+function IsCommentLine(const ALine: string): Boolean;
+var
+  Trimmed: string;
+begin
+  Trimmed := TrimLeft(ALine);
+  Result := (Length(Trimmed) > 0) and ((Trimmed[1] = ';') or (Trimmed[1] = '#'));
+end;
+
 function TConfigFile.FindLineIndex(const AKeyPrefix: string; AStartIndex: Integer = 0): Integer;
 var
   i: Integer;
 begin
   Result := -1;
   for i := AStartIndex to FLines.Count - 1 do
-    if Pos(AKeyPrefix, FLines[i]) > 0 then
+    if not IsCommentLine(FLines[i]) and (Pos(AKeyPrefix, FLines[i]) > 0) then
     begin
       Result := i;
       Exit;
@@ -200,7 +208,7 @@ begin
       Continue;
     end;
 
-    if InSection and (Pos(AKeyPrefix, FLines[i]) > 0) then
+    if InSection and not IsCommentLine(FLines[i]) and (Pos(AKeyPrefix, FLines[i]) > 0) then
     begin
       Result := i;
       Exit;
