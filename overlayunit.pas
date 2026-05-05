@@ -5339,19 +5339,13 @@ begin
 
     // Check NVIDIA module and configure controls
     // On first run auto-detect; afterwards restore the user's last choice.
+    autodetectnvLabel.Visible := False;
+    autodetectmesaLabel.Visible := False;
     SavedDriver := LoadOptiScalerDriverPreference;
     if SameText(SavedDriver, 'nvidia') then
-    begin
-      nvidiaRadioButton.Checked := True;
-      autodetectnvLabel.Visible := True;
-      autodetectnvLabel.Font.Color := clOlive;
-    end
+      nvidiaRadioButton.Checked := True
     else if SameText(SavedDriver, 'mesa') then
-    begin
-      mesaRadioButton.Checked := True;
-      autodetectmesaLabel.Visible := True;
-      autodetectmesaLabel.Font.Color := clOlive;
-    end
+      mesaRadioButton.Checked := True
     else
     begin
       // First launch (no preference saved yet): run auto-detection
