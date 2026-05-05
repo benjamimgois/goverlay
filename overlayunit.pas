@@ -5423,12 +5423,12 @@ type
 const
   TWEAK_ROW_COUNT = 23;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
-    (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck'),
-    (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Always use GameMode'),
+    (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
+    (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL Input'),
+    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates Ray Tracing on GPUs without native support'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
@@ -5443,7 +5443,7 @@ const
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
     (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation'),
+    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
     (CheckBox: nil; Category: 'Performance';VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: 'Enable AMD Anti-Lag 2'),
     (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable=false';             Description: 'Enable RE Engine Ray Tracing workaround')
   );
