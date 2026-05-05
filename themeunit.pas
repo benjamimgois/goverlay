@@ -66,6 +66,18 @@ procedure SaveThemePreference(ATheme: TThemeMode);
 function LoadThemePreference: TThemeMode;
 
 /// <summary>
+/// Saves the last selected OptiScaler GPU driver preference
+/// </summary>
+/// <param name="ADriver">'nvidia' or 'mesa'</param>
+procedure SaveOptiScalerDriverPreference(const ADriver: string);
+
+/// <summary>
+/// Loads the last selected OptiScaler GPU driver preference
+/// </summary>
+/// <returns>'nvidia', 'mesa', or empty string if not set</returns>
+function LoadOptiScalerDriverPreference: string;
+
+/// <summary>
 /// Gets the config file path
 /// </summary>
 function GetConfigFilePath: string;
@@ -391,6 +403,52 @@ procedure CenterFormOnScreen(AForm: TForm);
 begin
   AForm.Left := (Screen.Width - AForm.Width) div 2;
   AForm.Top := (Screen.Height - AForm.Height) div 2;
+end;
+
+procedure SaveOptiScalerDriverPreference(const ADriver: string);
+var
+  IniFile: TIniFile;
+  ConfigPath: string;
+  ConfigDir: string;
+begin
+  try
+    ConfigPath := GetConfigFilePath;
+    ConfigDir := ExtractFilePath(ConfigPath);
+
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+
+    IniFile := TIniFile.Create(ConfigPath);
+    try
+      IniFile.WriteString('OptiScaler', 'GpuDriver', LowerCase(ADriver));
+    finally
+      IniFile.Free;
+    end;
+  except
+    // Silently fail if we can't save the preference
+  end;
+end;
+
+function LoadOptiScalerDriverPreference: string;
+var
+  IniFile: TIniFile;
+  ConfigPath: string;
+begin
+  Result := '';
+  try
+    ConfigPath := GetConfigFilePath;
+    if FileExists(ConfigPath) then
+    begin
+      IniFile := TIniFile.Create(ConfigPath);
+      try
+        Result := LowerCase(Trim(IniFile.ReadString('OptiScaler', 'GpuDriver', '')));
+      finally
+        IniFile.Free;
+      end;
+    end;
+  except
+    Result := '';
+  end;
 end;
 
 end.

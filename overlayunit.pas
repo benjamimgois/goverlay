@@ -4610,21 +4610,22 @@ procedure Tgoverlayform.FormCreate(Sender: TObject);
 
 var
  // Process: TProcess;
-  AppHandle: THandle;
-  saida, Output, FileLines, DefaultConfigContent: TStringList;
-  i: Integer;
-  ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir: string;
+   AppHandle: THandle;
+   saida, Output, FileLines, DefaultConfigContent: TStringList;
+   i: Integer;
+   ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir: string;
 
-  FPSList: TStringList;
-  ConfigFile: TStringList;
-  Line, FPSValues, OffsetValue: string;
-  Offset, FPS, MaxFPS: Integer;
-  FPSNumbers: TStringList;
-  FoundFPSLimit: Boolean;
-  Missing: TStringList;
-  OSFile: TextFile;
+   FPSList: TStringList;
+   ConfigFile: TStringList;
+   Line, FPSValues, OffsetValue: string;
+   Offset, FPS, MaxFPS: Integer;
+   FPSNumbers: TStringList;
+   FoundFPSLimit: Boolean;
+   Missing: TStringList;
+   OSFile: TextFile;
 
-  SavedTheme: TThemeMode;
+   SavedTheme: TThemeMode;
+   SavedDriver: string;
 
 begin
 
@@ -5337,30 +5338,36 @@ begin
 
 
     // Check NVIDIA module and configure controls
-    if IsNvidiaModuleLoaded then
+    // On first run auto-detect; afterwards restore the user's last choice.
+    SavedDriver := LoadOptiScalerDriverPreference;
+    if SameText(SavedDriver, 'nvidia') then
     begin
-      // NVIDIA driver is loaded
       nvidiaRadioButton.Checked := True;
-      spoofCheckBox.Checked := False;
-      spoofCheckBox.Enabled := False;
-      autodetectnvLabel.Visible:=true;
-      autodetectnvLabel.Font.color:=clOlive;
-      forcereflexCheckBox.Checked := false;
-      forcereflexCheckBox.Enabled := false;
-      reflexComboBox.Enabled:= false;
+      autodetectnvLabel.Visible := True;
+      autodetectnvLabel.Font.Color := clOlive;
+    end
+    else if SameText(SavedDriver, 'mesa') then
+    begin
+      mesaRadioButton.Checked := True;
+      autodetectmesaLabel.Visible := True;
+      autodetectmesaLabel.Font.Color := clOlive;
     end
     else
     begin
-      // NVIDIA driver is NOT loaded (using Mesa/AMD/Intel)
-      mesaRadioButton.Checked := True;
-      spoofCheckBox.Checked := True;
-      spoofCheckBox.Enabled := True;
-      autodetectmesaLabel.Visible:=true;
-      autodetectmesaLabel.Font.color:=clOlive;
-//    forcereflexCheckBox.Checked := false;
-      forcereflexCheckBox.Enabled := true;
-      reflexComboBox.Enabled:= true;
-  end;
+      // First launch (no preference saved yet): run auto-detection
+      if IsNvidiaModuleLoaded then
+      begin
+        nvidiaRadioButton.Checked := True;
+        autodetectnvLabel.Visible := True;
+        autodetectnvLabel.Font.Color := clOlive;
+      end
+      else
+      begin
+        mesaRadioButton.Checked := True;
+        autodetectmesaLabel.Visible := True;
+        autodetectmesaLabel.Font.Color := clOlive;
+      end;
+    end;
 
     //Load FakeNvapi configuration (Needs to run after nvidia/mesa checks because they overwrite reflex default values)
     LoadFakeNvapiConfig;
@@ -7536,6 +7543,7 @@ begin
       reflexCombobox.ItemIndex:=2;
       spoofCheckBox.Enabled:=true;
       spoofCheckBox.Checked:=true;
+      SaveOptiScalerDriverPreference('mesa');
 end;
 
 procedure Tgoverlayform.nvidiaRadioButtonChange(Sender: TObject);
@@ -7547,6 +7555,7 @@ begin
       reflexCombobox.ItemIndex:=0;
       spoofCheckBox.Enabled:=false;
       spoofCheckBox.Checked:=false;
+      SaveOptiScalerDriverPreference('nvidia');
 end;
 
 
