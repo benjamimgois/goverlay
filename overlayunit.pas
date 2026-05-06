@@ -4632,7 +4632,7 @@ begin
 
   //Program Version
   GVERSION := '1.8.0';
-  GCHANNEL := 'git'; //stable ou git
+  GCHANNEL := 'stable'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
