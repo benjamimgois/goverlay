@@ -103,9 +103,16 @@ begin
 end;
 
 procedure ApplyIconsToButtons(AForm: TForm);
+var
+  Btn: TBitBtn;
 begin
   if Assigned(AForm.FindComponent('gupdateBitBtn')) then
-    TBitBtn(AForm.FindComponent('gupdateBitBtn')).Caption := '🔄 ' + 'Update';
+  begin
+    Btn := TBitBtn(AForm.FindComponent('gupdateBitBtn'));
+    // Only set the default caption if the update check hasn't already shown the button
+    if not Btn.Visible then
+      Btn.Caption := 'Update';
+  end;
 end;
 
 procedure ApplyRadeonTheme(AForm: TForm);

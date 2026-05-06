@@ -1420,6 +1420,7 @@ begin
       if Assigned(UpdateButton) then
       begin
         UpdateButton.Caption := 'New Version ' + LatestVersion + ' available';
+        UpdateButton.BorderSpacing.Bottom := 60;
         UpdateButton.Visible := True;
       end;
     end
