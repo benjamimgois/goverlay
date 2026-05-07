@@ -514,6 +514,7 @@ type
     procedure SearchEditChange(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
+    procedure vkbasaltTabSheetShow(Sender: TObject);
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
@@ -4235,7 +4236,9 @@ begin
     if not Cfg.Load(VKBASALTCFGFILE) then Exit;
 
     // Process effects list (custom colon-separated value)
-    EffectsStr := Cfg.GetValue('effects=', '');
+    // NOTE: keys include a space before '=' because SaveVkBasaltConfig writes
+    //       "key = value" (space-surrounded). Pos() substring search must match.
+    EffectsStr := Cfg.GetValue('effects =', '');
     if EffectsStr <> '' then
     begin
       EffectsList := SplitString(EffectsStr, ':');
@@ -4281,7 +4284,7 @@ begin
       end;
     end;
 
-    Value := Cfg.GetValue('casSharpness=', '');
+    Value := Cfg.GetValue('casSharpness =', '');
     if TryStrToFloat(Value, FloatValue, FS) then
     begin
       casTrackBar.Position := Round(FloatValue * 10);
@@ -4289,7 +4292,7 @@ begin
       if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
     end;
 
-    Value := Cfg.GetValue('fxaaQualitySubpix=', '');
+    Value := Cfg.GetValue('fxaaQualitySubpix =', '');
     if TryStrToFloat(Value, FloatValue, FS) then
     begin
       fxaaTrackBar.Position := Round(FloatValue * 10);
@@ -4297,7 +4300,7 @@ begin
       if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
     end;
 
-    Value := Cfg.GetValue('smaaCornerRounding=', '');
+    Value := Cfg.GetValue('smaaCornerRounding =', '');
     if TryStrToFloat(Value, FloatValue, FS) then
     begin
       smaaTrackBar.Position := Round(FloatValue / 25 * 9) + 1;
@@ -4305,7 +4308,7 @@ begin
       if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
     end;
 
-    Value := Cfg.GetValue('dlsSharpness=', '');
+    Value := Cfg.GetValue('dlsSharpness =', '');
     if TryStrToFloat(Value, FloatValue, FS) then
     begin
       dlsTrackBar.Position := Round(FloatValue * 9) + 1;
@@ -4313,7 +4316,7 @@ begin
       if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
     end;
 
-    Value := Cfg.GetValue('toggleKey=', '');
+    Value := Cfg.GetValue('toggleKey =', '');
     if Value <> '' then
     begin
       vkbtogglekeyCombobox.Text := Value;
@@ -4323,6 +4326,15 @@ begin
   finally
     Cfg.Free;
   end;
+end;
+
+procedure Tgoverlayform.vkbasaltTabSheetShow(Sender: TObject);
+begin
+  // Reload vkBasalt config whenever the tab becomes visible so that
+  // changes saved from another context (or another tab switch) are reflected
+  // in the UI. This fixes the issue where switching away and back to vkBasalt
+  // would show stale/reset values even though the file was saved correctly.
+  LoadVkBasaltConfig;
 end;
 
 // ============================================================================
@@ -4631,8 +4643,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.8.0';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.1';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
@@ -4828,6 +4840,7 @@ begin
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
+  vkbasaltTabSheet.OnShow := @vkbasaltTabSheetShow;
 
   // Initialize Extras tab
   InitExtrasTab;
