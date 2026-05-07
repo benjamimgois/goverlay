@@ -15206,14 +15206,19 @@ end;
 
 function Tgoverlayform.GetAppBaseDir: string;
 var
-  AppDir: string;
+  AppDir, BinaryDir: string;
 begin
   AppDir := GetEnvironmentVariable('APPDIR');
   if AppDir <> '' then
     Result := IncludeTrailingPathDelimiter(AppDir) + 'bin/'
   else
-    Result := ExtractFilePath(Application.ExeName);
-  WriteLn(StdErr, '[GetAppBaseDir] APPDIR="', AppDir, '" Result="', Result, '"');
+  begin
+    BinaryDir := ExtractFilePath(Application.ExeName);
+    if DirectoryExists(BinaryDir + 'assets') then
+      Result := BinaryDir
+    else
+      Result := ExtractFilePath(ExtractFileDir(Application.ExeName)) + 'share/goverlay/';
+  end;
 end;
 
 procedure Tgoverlayform.GetSteamLibraries(Libraries: TStringList);
@@ -15245,18 +15250,21 @@ var
   end;
 
 begin
-  HomeDir := GetEnvironmentVariable('HOME');
+  if IsRunningInFlatpak then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)  // real user home via getpwuid
+  else
+    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
 
   // Native Steam
-  AddLibrary(HomeDir + '/.local/share/Steam/steamapps');
+  AddLibrary(HomeDir + '.local/share/Steam/steamapps');
 
   // Flatpak Steam
-  AddLibrary(HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
+  AddLibrary(HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
 
   // Parse libraryfolders.vdf for additional library paths
-  VdfPath := HomeDir + '/.local/share/Steam/steamapps/libraryfolders.vdf';
+  VdfPath := HomeDir + '.local/share/Steam/steamapps/libraryfolders.vdf';
   if not FileExists(VdfPath) then
-    VdfPath := HomeDir + '/.steam/steam/steamapps/libraryfolders.vdf';
+    VdfPath := HomeDir + '.steam/steam/steamapps/libraryfolders.vdf';
   if not FileExists(VdfPath) then
     Exit;
 
@@ -15483,8 +15491,11 @@ begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
 
-  HomeDir  := GetEnvironmentVariable('HOME');
-  CacheDir := HomeDir + '/.cache/goverlay/covers/';
+  if IsRunningInFlatpak then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
+  else
+    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
+  CacheDir := HomeDir + '.cache/goverlay/covers/';
   ForceDirectories(CacheDir);
 
   Libraries     := TStringList.Create;
@@ -15540,13 +15551,13 @@ begin
             Continue;
 
           // Look for local cover; if absent, queue for CDN download
-          ImagePath := HomeDir + '/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
           if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
           if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
           if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
           // Also check the persistent cache from previous downloads
           if not FileExists(ImagePath) then
             ImagePath := CacheDir + AppID + '.jpg';
