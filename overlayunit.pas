@@ -15206,19 +15206,13 @@ end;
 
 function Tgoverlayform.GetAppBaseDir: string;
 var
-  AppDir, BinaryDir: string;
+  AppDir: string;
 begin
   AppDir := GetEnvironmentVariable('APPDIR');
   if AppDir <> '' then
     Result := IncludeTrailingPathDelimiter(AppDir) + 'bin/'
   else
-  begin
-    BinaryDir := ExtractFilePath(Application.ExeName);
-    if DirectoryExists(BinaryDir + 'assets') then
-      Result := BinaryDir
-    else
-      Result := ExtractFilePath(ExtractFileDir(Application.ExeName)) + 'share/goverlay/';
-  end;
+    Result := ExtractFilePath(Application.ExeName);
   WriteLn(StdErr, '[GetAppBaseDir] APPDIR="', AppDir, '" Result="', Result, '"');
 end;
 
@@ -15234,14 +15228,10 @@ var
     j: Integer;
     ExistingPath: string;
   begin
-    WriteLn(StdErr, '[AddLibrary] Checking: ', APath, ' exists=', DirectoryExists(APath));
     if not DirectoryExists(APath) then
       Exit;
     if BaseUnix.fpStat(APath, Info) <> 0 then
-    begin
-      WriteLn(StdErr, '[AddLibrary] fpStat failed for: ', APath);
       Exit;
-    end;
     // Check against already-added libraries using (st_dev, st_ino)
     for j := 0 to Libraries.Count - 1 do
     begin
@@ -15249,52 +15239,29 @@ var
       if (BaseUnix.fpStat(ExistingPath, ExistingInfo) = 0) and
          (Info.st_dev = ExistingInfo.st_dev) and
          (Info.st_ino = ExistingInfo.st_ino) then
-      begin
-        WriteLn(StdErr, '[AddLibrary] Duplicate (same inode): ', APath);
         Exit; // same physical directory
-      end;
     end;
-    WriteLn(StdErr, '[AddLibrary] Added: ', APath);
     Libraries.Add(APath);
   end;
 
 begin
-  if IsRunningInFlatpak then
-    HomeDir := GetUserDir  // resolves to real user home via getpwuid
-  else
-    HomeDir := GetEnvironmentVariable('HOME');
-
-  WriteLn(StdErr, '[GetSteamLibraries] IsRunningInFlatpak=', IsRunningInFlatpak,
-          ' HomeDir="', HomeDir, '"');
+  HomeDir := GetEnvironmentVariable('HOME');
 
   // Native Steam
-  AddLibrary(HomeDir + '.local/share/Steam/steamapps');
+  AddLibrary(HomeDir + '/.local/share/Steam/steamapps');
 
   // Flatpak Steam
-  AddLibrary(HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
+  AddLibrary(HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
 
   // Parse libraryfolders.vdf for additional library paths
-  VdfPath := HomeDir + '.local/share/Steam/steamapps/libraryfolders.vdf';
-  WriteLn(StdErr, '[GetSteamLibraries] Trying VDF: ', VdfPath, ' exists=', FileExists(VdfPath));
+  VdfPath := HomeDir + '/.local/share/Steam/steamapps/libraryfolders.vdf';
   if not FileExists(VdfPath) then
-  begin
-    VdfPath := HomeDir + '.steam/steam/steamapps/libraryfolders.vdf';
-    WriteLn(StdErr, '[GetSteamLibraries] Trying VDF: ', VdfPath, ' exists=', FileExists(VdfPath));
-  end;
+    VdfPath := HomeDir + '/.steam/steam/steamapps/libraryfolders.vdf';
   if not FileExists(VdfPath) then
-  begin
-    VdfPath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf';
-    WriteLn(StdErr, '[GetSteamLibraries] Trying VDF: ', VdfPath, ' exists=', FileExists(VdfPath));
-  end;
-  if not FileExists(VdfPath) then
-  begin
-    WriteLn(StdErr, '[GetSteamLibraries] No libraryfolders.vdf found');
     Exit;
-  end;
 
   VdfFile := TStringList.Create;
   try
-    WriteLn(StdErr, '[GetSteamLibraries] Loading VDF: ', VdfPath);
     VdfFile.LoadFromFile(VdfPath);
     for i := 0 to VdfFile.Count - 1 do
     begin
@@ -15309,7 +15276,6 @@ begin
         if (p3 > 0) and (p4 > p3) then
         begin
           LibPath := Copy(Line, p3 + 1, p4 - p3 - 1) + '/steamapps';
-          WriteLn(StdErr, '[GetSteamLibraries] VDF path entry: ', LibPath);
           AddLibrary(LibPath);
         end;
       end;
@@ -15317,7 +15283,6 @@ begin
   finally
     VdfFile.Free;
   end;
-  WriteLn(StdErr, '[GetSteamLibraries] Total libraries: ', Libraries.Count);
 end;
 
 function Tgoverlayform.ParseAcfValue(const AContent, AKey: string): string;
@@ -15518,11 +15483,8 @@ begin
   if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
     Exit;
 
-  if IsRunningInFlatpak then
-    HomeDir := GetUserDir  // resolves to real user home via getpwuid
-  else
-    HomeDir := GetEnvironmentVariable('HOME');
-  CacheDir := HomeDir + '.cache/goverlay/covers/';
+  HomeDir  := GetEnvironmentVariable('HOME');
+  CacheDir := HomeDir + '/.cache/goverlay/covers/';
   ForceDirectories(CacheDir);
 
   Libraries     := TStringList.Create;
@@ -15530,11 +15492,9 @@ begin
   PendingImages := TList.Create;
   try
     GetSteamLibraries(Libraries);
-    WriteLn(StdErr, '[BuildGamesTab] Libraries returned: ', Libraries.Count);
 
     if Libraries.Count = 0 then
     begin
-      WriteLn(StdErr, '[BuildGamesTab] No libraries — showing empty message');
       NoGamesLabel := TLabel.Create(Self);
       NoGamesLabel.Parent := FGamesPanel;
       NoGamesLabel.Caption := 'Steam not found or no libraries detected.';
@@ -15553,10 +15513,8 @@ begin
     for i := 0 to Libraries.Count - 1 do
     begin
       LibPath := Libraries[i];
-      WriteLn(StdErr, '[BuildGamesTab] Scanning library: ', LibPath);
       if FindFirst(LibPath + '/appmanifest_*.acf', faAnyFile, SR) = 0 then
       begin
-        WriteLn(StdErr, '[BuildGamesTab] Found ACF files in: ', LibPath);
         repeat
           AcfFile := TStringList.Create;
           try
@@ -15569,7 +15527,6 @@ begin
           AppID      := ParseAcfValue(AcfContent, 'appid');
           GameName   := ParseAcfValue(AcfContent, 'name');
           InstallDir := ParseAcfValue(AcfContent, 'installdir');
-          WriteLn(StdErr, '[BuildGamesTab] ACF appid=', AppID, ' name=', GameName);
           if (AppID = '') or (GameName = '') then
             Continue;
 
@@ -15580,19 +15537,16 @@ begin
              (Pos('steam linux runtime', LowerName) > 0) or
              (Pos('redistributable', LowerName) > 0) or
              (Pos('steam sdk', LowerName) > 0) then
-          begin
-            WriteLn(StdErr, '[BuildGamesTab] Skipping non-game: ', GameName);
             Continue;
-          end;
 
           // Look for local cover; if absent, queue for CDN download
-          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          ImagePath := HomeDir + '/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
           if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+            ImagePath := HomeDir + '/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
           if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+            ImagePath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
           if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+            ImagePath := HomeDir + '/.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
           // Also check the persistent cache from previous downloads
           if not FileExists(ImagePath) then
             ImagePath := CacheDir + AppID + '.jpg';

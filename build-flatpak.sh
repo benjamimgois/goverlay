@@ -1,169 +1,144 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# Script to build and test Goverlay Flatpak package
 
-# =============================================================================
-# GOverlay Flatpak Bundle Builder
-# =============================================================================
-# This script builds a self-contained .flatpak bundle from the current source
-# tree using io.github.benjamimgois.goverlay.local.yml.
-#
-# Usage:
-#   ./build-flatpak.sh [OPTIONS]
-#
-# Options:
-#   --clean           Force clean build (remove previous build dirs)
-#   --skip-deps       Skip checking/installing Flatpak dependencies
-#   --version VER     Override auto-detected version
-#   --output PATH     Custom output path for the .flatpak file
-# =============================================================================
+set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOCAL_MANIFEST="${SCRIPT_DIR}/io.github.benjamimgois.goverlay.local.yml"
-BUILD_DIR="${SCRIPT_DIR}/flatpak-build"
-REPO_DIR="${SCRIPT_DIR}/flatpak-repo"
-STATE_DIR="${SCRIPT_DIR}/.flatpak-builder"
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-CLEAN=0
-SKIP_DEPS=0
-OVERRIDE_VERSION=""
-OUTPUT_PATH=""
+echo -e "${GREEN}=== Goverlay Flatpak Build Script ===${NC}\n"
 
-# -----------------------------------------------------------------------------
-# Parse arguments
-# -----------------------------------------------------------------------------
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --clean) CLEAN=1; shift ;;
-    --skip-deps) SKIP_DEPS=1; shift ;;
-    --version) OVERRIDE_VERSION="$2"; shift 2 ;;
-    --output) OUTPUT_PATH="$2"; shift 2 ;;
-    *) echo "Unknown option: $1"; exit 1 ;;
-  esac
-done
+# Check dependencies
+echo -e "${YELLOW}Checking dependencies...${NC}"
 
-# -----------------------------------------------------------------------------
-# Detect version from source
-# -----------------------------------------------------------------------------
-if [[ -n "$OVERRIDE_VERSION" ]]; then
-  VERSION="$OVERRIDE_VERSION"
-else
-  VERSION="$(grep -oP "GVERSION\s*:=\s*'\K[^']+" "${SCRIPT_DIR}/overlayunit.pas" 2>/dev/null || true)"
-  if [[ -z "$VERSION" ]]; then
-    VERSION="$(git -C "$SCRIPT_DIR" describe --tags --always 2>/dev/null || echo 'dev')"
-  fi
-fi
-
-echo "========================================"
-echo "  GOverlay Flatpak Bundle Builder"
-echo "  Version: ${VERSION}"
-echo "========================================"
-
-# -----------------------------------------------------------------------------
-# Verify manifest exists
-# -----------------------------------------------------------------------------
-if [[ ! -f "$LOCAL_MANIFEST" ]]; then
-  echo "ERROR: Local manifest not found: $LOCAL_MANIFEST"
-  exit 1
-fi
-
-# -----------------------------------------------------------------------------
-# Dependency checks
-# -----------------------------------------------------------------------------
-if [[ "$SKIP_DEPS" -eq 0 ]]; then
-  echo "[1/5] Checking dependencies..."
-
-  if ! command -v flatpak &>/dev/null; then
-    echo "ERROR: flatpak is not installed."
-    echo "Install it with: sudo apt install flatpak  (Debian/Ubuntu)"
-    echo "                 sudo pacman -S flatpak     (Arch)"
+if ! command -v flatpak &> /dev/null; then
+    echo -e "${RED}Error: Flatpak is not installed${NC}"
+    echo "Install with: sudo pacman -S flatpak"
     exit 1
-  fi
+fi
 
-  if ! command -v flatpak-builder &>/dev/null; then
-    echo "ERROR: flatpak-builder is not installed."
-    echo "Install it with: sudo apt install flatpak-builder"
+if ! command -v flatpak-builder &> /dev/null; then
+    echo -e "${RED}Error: flatpak-builder is not installed${NC}"
+    echo "Install with: sudo pacman -S flatpak-builder"
     exit 1
-  fi
-
-  # Ensure flathub remote exists
-  if ! flatpak remote-list --user | grep -q flathub; then
-    if ! flatpak remote-list | grep -q flathub; then
-      echo "[INFO] Adding Flathub remote..."
-      sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    fi
-  fi
-
-  # Required runtimes/SDKs
-  REQUIRED_SDKS=(
-    "org.kde.Platform/x86_64/6.10"
-    "org.kde.Sdk/x86_64/6.10"
-    "io.qt.qtwebengine.BaseApp/x86_64/6.10"
-    "org.freedesktop.Sdk.Extension.freepascal/x86_64/25.08"
-  )
-
-  for sdk in "${REQUIRED_SDKS[@]}"; do
-    if ! flatpak list --runtime | grep -qF "$sdk"; then
-      echo "[INFO] Installing missing SDK/Runtime: $sdk"
-      # Try user install first (no sudo needed), fallback to system
-      flatpak install --user -y flathub "$sdk" 2>/dev/null || \
-        sudo flatpak install -y flathub "$sdk" 2>/dev/null || {
-          echo "ERROR: Failed to install $sdk"
-          exit 1
-        }
-    else
-      echo "[OK] $sdk is installed"
-    fi
-  done
-else
-  echo "[1/5] Skipping dependency checks (--skip-deps)"
 fi
 
-# -----------------------------------------------------------------------------
-# Clean previous build if requested
-# -----------------------------------------------------------------------------
-if [[ "$CLEAN" -eq 1 ]]; then
-  echo "[2/5] Cleaning previous build directories..."
-  rm -rf "$BUILD_DIR" "$REPO_DIR" "$STATE_DIR"
+echo -e "${GREEN}✓ Flatpak installed: $(flatpak --version)${NC}"
+
+# Check runtime
+echo -e "\n${YELLOW}Checking Flatpak runtime...${NC}"
+if ! flatpak list --runtime | grep -q "org.kde.Platform.*6.10"; then
+    echo -e "${YELLOW}Runtime org.kde.Platform 6.10 not found${NC}"
+    echo "Installing runtime..."
+    flatpak install -y flathub org.kde.Platform//6.10 org.kde.Sdk//6.10
 else
-  echo "[2/5] Using existing build state (use --clean to wipe)"
+    echo -e "${GREEN}✓ Runtime org.kde.Platform 6.10 already installed${NC}"
 fi
 
-# -----------------------------------------------------------------------------
-# Build with flatpak-builder
-# -----------------------------------------------------------------------------
-echo "[3/5] Building Flatpak..."
+# Check FreePascal extension
+# Note: KDE SDK 6.10 is based on Freedesktop SDK 24.08, so we need freepascal//24.08
+echo -e "\n${YELLOW}Checking FreePascal extension...${NC}"
+if ! flatpak list --runtime | grep -q "org.freedesktop.Sdk.Extension.freepascal.*24.08"; then
+    echo -e "${YELLOW}Extension org.freedesktop.Sdk.Extension.freepascal 24.08 not found${NC}"
+    echo "Installing FreePascal extension (compatible with KDE SDK 6.10)..."
+    flatpak install -y flathub org.freedesktop.Sdk.Extension.freepascal//24.08
+else
+    echo -e "${GREEN}✓ Extension org.freedesktop.Sdk.Extension.freepascal 24.08 already installed${NC}"
+fi
+
+# Check Qt WebEngine base
+echo -e "\n${YELLOW}Checking Qt WebEngine base...${NC}"
+if ! flatpak list --runtime | grep -q "io.qt.qtwebengine.BaseApp.*6.10"; then
+    echo -e "${YELLOW}Base io.qt.qtwebengine.BaseApp 6.10 not found${NC}"
+    echo "Installing Qt WebEngine base..."
+    flatpak install -y flathub io.qt.qtwebengine.BaseApp//6.10
+else
+    echo -e "${GREEN}✓ Base io.qt.qtwebengine.BaseApp 6.10 already installed${NC}"
+fi
+
+# Create build directory
+BUILD_DIR="flatpak-build"
+REPO_DIR="flatpak-repo"
+
+echo -e "\n${YELLOW}Preparing build directories...${NC}"
+rm -rf "$BUILD_DIR" "$REPO_DIR"
+mkdir -p "$BUILD_DIR" "$REPO_DIR"
+
+# Build the Flatpak
+echo -e "\n${GREEN}=== Starting Flatpak build ===${NC}\n"
+
+# Note: Some checksums in the manifest may be incorrect and will need to be updated
+# For quick testing, we can use --disable-download-validation but this is not recommended for production
+
 flatpak-builder \
-  --force-clean \
-  --repo="$REPO_DIR" \
-  --disable-rofiles-fuse \
-  --ccache \
-  --state-dir="$STATE_DIR" \
-  "$BUILD_DIR" \
-  "$LOCAL_MANIFEST"
+    --force-clean \
+    --repo="$REPO_DIR" \
+    --disable-rofiles-fuse \
+    --ccache \
+    --state-dir=".flatpak-builder" \
+    "$BUILD_DIR" \
+    io.github.benjamimgois.goverlay.yml \
+    || {
+        echo -e "\n${RED}Flatpak build error${NC}"
+        echo -e "${YELLOW}If the error is related to checksums, you will need to update them in the manifest${NC}"
+        echo -e "${YELLOW}To calculate checksums: sha256sum <file>${NC}"
+        exit 1
+    }
 
-# -----------------------------------------------------------------------------
-# Create bundle
-# -----------------------------------------------------------------------------
-echo "[4/5] Creating Flatpak bundle..."
+echo -e "\n${GREEN}✓ Build completed successfully!${NC}"
 
-if [[ -z "$OUTPUT_PATH" ]]; then
-  OUTPUT_PATH="${SCRIPT_DIR}/goverlay-${VERSION}-x86_64.flatpak"
+# Extract GVERSION and GCHANNEL from overlayunit.pas
+echo -e "\n${YELLOW}Detecting version and channel...${NC}"
+GVERSION=$(grep "GVERSION := " overlayunit.pas | head -1 | sed "s/.*GVERSION := '\(.*\)';.*/\1/")
+GCHANNEL=$(grep "GCHANNEL := " overlayunit.pas | head -1 | sed "s/.*GCHANNEL := '\(.*\)';.*/\1/")
+
+if [ -z "$GVERSION" ] || [ -z "$GCHANNEL" ]; then
+    echo -e "${RED}Error: Could not detect GVERSION or GCHANNEL${NC}"
+    exit 1
 fi
 
-flatpak build-bundle \
-  "$REPO_DIR" \
-  "$OUTPUT_PATH" \
-  io.github.benjamimgois.goverlay
+echo -e "${GREEN}✓ Version detected: ${GVERSION}${NC}"
+echo -e "${GREEN}✓ Channel detected: ${GCHANNEL}${NC}"
 
-# -----------------------------------------------------------------------------
-# Summary
-# -----------------------------------------------------------------------------
-echo "[5/5] Done!"
-echo ""
-echo "  Bundle: $OUTPUT_PATH"
-echo "  Size:   $(du -h "$OUTPUT_PATH" | cut -f1)"
-echo ""
-echo "Install with:"
-echo "  flatpak install --user \"$OUTPUT_PATH\""
-echo ""
-echo "Or distribute via GitHub Releases by attaching this file."
+# Create filename in format goverlay_VERSION_CHANNEL.flatpak
+FLATPAK_FILE="goverlay_${GVERSION}_${GCHANNEL}.flatpak"
+
+# Create the .flatpak bundle
+echo -e "\n${YELLOW}Creating file ${FLATPAK_FILE}...${NC}"
+flatpak build-bundle "$REPO_DIR" "$FLATPAK_FILE" io.github.benjamimgois.goverlay || {
+    echo -e "\n${RED}Error creating Flatpak bundle${NC}"
+    exit 1
+}
+
+if [ -f "$FLATPAK_FILE" ]; then
+    FILESIZE=$(ls -lh "$FLATPAK_FILE" | awk '{print $5}')
+    echo -e "${GREEN}✓ File ${FLATPAK_FILE} created successfully! (${FILESIZE})${NC}"
+else
+    echo -e "${RED}Error: File ${FLATPAK_FILE} was not created${NC}"
+    exit 1
+fi
+
+# Install locally
+echo -e "\n${YELLOW}Do you want to install the Flatpak locally? (y/N)${NC}"
+read -r -n 1 INSTALL
+echo
+
+if [[ $INSTALL =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Installing Goverlay...${NC}"
+
+    # Install from bundle file
+    flatpak --user install -y "$FLATPAK_FILE"
+
+    echo -e "\n${GREEN}✓ Goverlay installed successfully!${NC}"
+    echo -e "${GREEN}Run with: flatpak run io.github.benjamimgois.goverlay${NC}"
+fi
+
+echo -e "\n${GREEN}=== Process completed ===${NC}"
+echo -e "\nFile created: ${GREEN}${FLATPAK_FILE}${NC}"
+echo -e "\nTo install manually:"
+echo -e "  flatpak install ${FLATPAK_FILE}"
+echo -e "\nTo uninstall:"
+echo -e "  flatpak uninstall io.github.benjamimgois.goverlay"

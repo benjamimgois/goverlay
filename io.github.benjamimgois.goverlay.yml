@@ -15,12 +15,7 @@ finish-args:
   # File access - use :create to allow creating directories if they don't exist
   - --filesystem=xdg-config/MangoHud:rw
   - --filesystem=xdg-config/vkBasalt:rw
-  - --filesystem=~/.local/share/Steam:ro
-  - --filesystem=~/.steam:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
-  # Additional Steam libraries on secondary drives
-  - --filesystem=/mnt:ro
-  - --filesystem=/media:ro
   
   # Network access for downloads (OptiScaler, ReShade shaders, updates)
   - --share=network
