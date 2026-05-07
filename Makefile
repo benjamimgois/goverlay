@@ -33,6 +33,10 @@ install: goverlay data/goverlay.sh
 	install -D -m=644 data/icons/128x128/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png
 	install -D -m=644 data/icons/256x256/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
 	install -D -m=644 data/icons/512x512/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/io.github.benjamimgois.goverlay.png
+	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/assets
+	cp -r assets/* $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/
+	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons
+	cp -r data/icons/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons/
 
 uninstall:
 	rm -f $(DESTDIR)$(prefix)$(libexecdir)/goverlay
@@ -43,6 +47,7 @@ uninstall:
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/io.github.benjamimgois.goverlay.png
+	rm -rf $(DESTDIR)$(prefix)$(datadir)/goverlay
 
 tests:
 	appstreamcli validate --pedantic data/io.github.benjamimgois.goverlay.metainfo.xml

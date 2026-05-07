@@ -41,6 +41,8 @@ CLAUDE.md
 # One-off scripts
 replace_button.py
 *.patch
+# CRITICAL: keep this patch — required by Flatpak Qt6Pas build
+!path_fix.patch
 
 # Test/debug programs (compiled binaries and sources)
 test_parse*
