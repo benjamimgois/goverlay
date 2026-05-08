@@ -590,6 +590,11 @@ type
     FVkFxaaValLbl:   TLabel;
     FVkSmaaValLbl:   TLabel;
     FVkDlsValLbl:    TLabel;
+    // vkBasalt Reshade effects MD3 list (replaces dual listboxes)
+    FVkReshadePB:    TPaintBox;
+    FVkReshadeSB:    TScrollBar;
+    FVkReshadeScrollPos: Integer;
+    FVkReshadeHoverIdx:  Integer;
 
     // OptiScaler tab card redesign (GroupBox-level reparenting)
     FOsScrollBox:    TScrollBox;
@@ -831,6 +836,13 @@ type
     procedure TweaksMD3ToggleItem(Index: Integer);
     procedure TweaksMD3FABClick(Sender: TObject);
     procedure TweaksMD3FABPaint(Sender: TObject);
+
+    // MD3-style reshade effects list (vkBasalt tab)
+    procedure VkReshadeMD3Paint(Sender: TObject);
+    procedure VkReshadeMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure VkReshadeMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure VkReshadeMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure VkReshadeMD3ScrollChange(Sender: TObject);
     function TweaksMD3ItemHeight: Integer;
     function TweaksMD3HeaderHeight: Integer;
     procedure ApplyImageAntialiasing;
@@ -4326,6 +4338,7 @@ begin
   finally
     Cfg.Free;
   end;
+  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 end;
 
 procedure Tgoverlayform.vkbasaltTabSheetShow(Sender: TObject);
@@ -4932,6 +4945,7 @@ begin
   begin
    //ShowMessage('diretorio existe".');
   ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
   //Enable elements
    aveffectsListbox.Enabled:=true;
@@ -7851,6 +7865,7 @@ begin
 
   // List ALL repository files:
   ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
   //Enable elements
    aveffectsListbox.Enabled:=true;
@@ -7863,6 +7878,7 @@ begin
 
   //Enable update button
   reshaderefreshBitbtn.Enabled:=true;
+  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 end;
 
 procedure Tgoverlayform.runpascubetItemClick(Sender: TObject);
@@ -14755,56 +14771,31 @@ begin
   TitleLbl.SetBounds(12, 12, 200, 22);
   TitleLbl.Transparent := True;
 
-  FVkAvHdrLbl := TLabel.Create(FVkReshadeCard);
-  FVkAvHdrLbl.Parent      := FVkReshadeCard;
-  FVkAvHdrLbl.Caption     := 'Available Effects';
-  FVkAvHdrLbl.Font.Name   := 'Noto Sans';
-  FVkAvHdrLbl.Font.Size   := 8;
-  FVkAvHdrLbl.Font.Style  := [fsBold];
-  FVkAvHdrLbl.Font.Color  := $BB99FF;
-  FVkAvHdrLbl.AutoSize    := True;
-  FVkAvHdrLbl.SetBounds(12, 40, 120, 16);
-  FVkAvHdrLbl.Transparent := True;
+  // Hide old dual-listbox UI (data still kept in hidden listboxes for save/load)
+  if Assigned(FVkAvHdrLbl) then FVkAvHdrLbl.Visible := False;
+  if Assigned(FVkActHdrLbl) then FVkActHdrLbl.Visible := False;
+  aveffectsListBox.Visible     := False;
+  aveffectsListBox.Parent      := Self;   // move off-card so it doesn't clip
+  acteffectsListBox.Visible    := False;
+  acteffectsListBox.Parent     := Self;
+  addBitBtn.Visible            := False;
+  subBitBtn.Visible            := False;
+  reshaderefreshBitBtn.Visible := False;
 
-  FVkActHdrLbl := TLabel.Create(FVkReshadeCard);
-  FVkActHdrLbl.Parent      := FVkReshadeCard;
-  FVkActHdrLbl.Caption     := 'Active Effects';
-  FVkActHdrLbl.Font.Name   := 'Noto Sans';
-  FVkActHdrLbl.Font.Size   := 8;
-  FVkActHdrLbl.Font.Style  := [fsBold];
-  FVkActHdrLbl.Font.Color  := $FFCC66;
-  FVkActHdrLbl.AutoSize    := True;
-  FVkActHdrLbl.SetBounds(12, 40, 100, 16);
-  FVkActHdrLbl.Transparent := True;
+  // ── MD3-style reshade effects list ──
+  FVkReshadePB := TPaintBox.Create(Self);
+  FVkReshadePB.Parent      := FVkReshadeCard;
+  FVkReshadePB.Color       := BG;
+  FVkReshadePB.OnPaint     := @VkReshadeMD3Paint;
+  FVkReshadePB.OnMouseMove := @VkReshadeMD3MouseMove;
+  FVkReshadePB.OnMouseDown := @VkReshadeMD3MouseDown;
+  FVkReshadePB.OnMouseWheel:= @VkReshadeMD3MouseWheel;
 
-  // Reparent + style Available listbox
-  aveffectsListBox.Parent      := FVkReshadeCard;
-  aveffectsListBox.Anchors     := [akLeft, akTop];
-  aveffectsListBox.Color       := $12121E;
-  aveffectsListBox.Font.Color  := CLR_WHITE;
-  aveffectsListBox.Font.Size   := 9;
-  aveffectsListBox.Visible     := True;
-
-  // Reparent + style Active listbox
-  acteffectsListBox.Parent     := FVkReshadeCard;
-  acteffectsListBox.Anchors    := [akLeft, akTop];
-  acteffectsListBox.Color      := $12121E;
-  acteffectsListBox.Font.Color := $FFCC66;
-  acteffectsListBox.Font.Size  := 9;
-  acteffectsListBox.Visible    := True;
-
-  // Reparent +/- buttons
-  addBitBtn.Parent  := FVkReshadeCard;
-  addBitBtn.Anchors := [akLeft, akTop];
-  addBitBtn.Visible := True;
-  subBitBtn.Parent  := FVkReshadeCard;
-  subBitBtn.Anchors := [akLeft, akTop];
-  subBitBtn.Visible := True;
-
-  // Reparent Update button
-  reshaderefreshBitBtn.Parent  := FVkReshadeCard;
-  reshaderefreshBitBtn.Anchors := [akLeft, akTop];
-  reshaderefreshBitBtn.Visible := True;
+  FVkReshadeSB := TScrollBar.Create(Self);
+  FVkReshadeSB.Parent      := FVkReshadeCard;
+  FVkReshadeSB.Kind        := sbVertical;
+  FVkReshadeSB.Visible     := False;
+  FVkReshadeSB.OnChange    := @VkReshadeMD3ScrollChange;
 
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 2 — Built-in Effects
@@ -14930,25 +14921,17 @@ procedure Tgoverlayform.ReflowVkBasaltTab(AContentW: Integer);
 const
   MARGIN   = 10;   // outer margin each side
   GAP      = 8;    // gap between cards
-  RSHD_H   = 308;  // reshade card height
   BTIN_H   = 170;  // built-in effects card height
   TOGL_H   = 70;   // toggle key card height
-  HDR_Y    = 42;   // Y where list/content starts inside card
   PAD      = 12;   // inner horizontal padding
-  BTN_COL  = 36;   // width of +/- button column
-  UPD_W    = 90;   // Update button width
   NAME_W   = 52;   // effect name label width
   VAL_W    = 32;   // value label width
+  SB_W     = 14;   // scrollbar width
 var
   CW:      Integer;
-  ListW:   Integer;
-  ListH:   Integer;
-  BtnX:    Integer;
-  AvX:     Integer;
-  ActX:    Integer;
-  InnerW:  Integer;
+  TabH:    Integer;
+  RSHD_H:  Integer;
   ColW:    Integer;
-  TrkW:    Integer;
   Col0:    Integer;
   Col1:    Integer;
   Row0:    Integer;
@@ -14956,42 +14939,26 @@ var
 begin
   if not Assigned(FVkReshadeCard) then Exit;
 
-  CW := AContentW - 2 * MARGIN;
+  CW   := AContentW - 2 * MARGIN;
+  TabH := vkbasaltTabSheet.ClientHeight;
 
-  // ── Card 1: Reshade ────────────────────────────────────────────────────
+  // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
+  RSHD_H := TabH - 2 * MARGIN - BTIN_H - TOGL_H - 2 * GAP;
+  if RSHD_H < 180 then RSHD_H := 180;  // minimum sensible height
   FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
 
-  // Update button on the left, below title
-  reshaderefreshBitBtn.SetBounds(PAD, HDR_Y, UPD_W, 56);
+  if Assigned(FVkReshadePB) then
+    FVkReshadePB.SetBounds(PAD, 40, CW - 2 * PAD - SB_W, RSHD_H - 40 - PAD);
+  if Assigned(FVkReshadeSB) then
+    FVkReshadeSB.SetBounds(CW - PAD - SB_W, 40, SB_W, RSHD_H - 40 - PAD);
 
-  // Listbox layout: [UpdateBtn gap] [AvList] [+/-] [ActList] [pad]
-  AvX   := PAD + UPD_W + PAD;
-  ListH := RSHD_H - HDR_Y - PAD;
-  // Split remaining width evenly around the +/- column
-  InnerW := CW - AvX - PAD;
-  ListW  := (InnerW - BTN_COL - PAD) div 2;
-  BtnX   := AvX + ListW + PAD div 2;
-  ActX   := BtnX + BTN_COL;
-
-  FVkAvHdrLbl.Left  := AvX;
-  FVkActHdrLbl.Left := ActX;
-
-  aveffectsListBox.SetBounds(AvX,  HDR_Y, ListW, ListH);
-  acteffectsListBox.SetBounds(ActX, HDR_Y, CW - ActX - PAD, ListH);
-
-  addBitBtn.SetBounds(BtnX, HDR_Y + ListH div 2 - 34, 28, 28);
-  subBitBtn.SetBounds(BtnX, HDR_Y + ListH div 2 + 4,  28, 28);
-
-  // ── Card 2: Built-in Effects ───────────────────────────────────────────
-  // Layout per column:
-  //   [Name label .............. value]   ← header row
-  //   [==========trackbar===========]    ← slider full-width
+  // ── Card 2: Built-in Effects (bottom area, left) ───────────────────────
   FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
 
   ColW  := (CW - 3 * PAD) div 2;
   Col0  := PAD;
   Col1  := PAD + ColW + PAD;
-  Row0  := HDR_Y;           // label/value header row
+  Row0  := 42;              // label/value header row
   Row1  := Row0 + 20 + 4;  // trackbar row
 
   // CAS / FXAA (row 0)
@@ -15015,7 +14982,7 @@ begin
   if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
   dlsTrackBar.SetBounds(Col1, Row1, ColW, 28);
 
-  // ── Card 3: Toggle Key ─────────────────────────────────────────────────
+  // ── Card 3: Toggle Key (bottom area, right) ────────────────────────────
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
 
   if Assigned(FVkToggleCaptureBtn) then
@@ -15024,6 +14991,193 @@ end;
 
 // ============================================================================
 // GAMES TAB — Steam installed games grid
+// ============================================================================
+// VKBASALT RESHADE EFFECTS — MD3-style owner-drawn list with toggles
+// ============================================================================
+
+procedure Tgoverlayform.VkReshadeMD3Paint(Sender: TObject);
+
+  procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
+  var
+    ThumbR: TRect;
+    CX, CY, ThumbD, Pad: Integer;
+    TrackColor: TColor;
+  const
+    TRACK_W = 44;
+    TRACK_H = 24;
+    THUMB_D = 18;
+    RADIUS  = 12;
+  begin
+    Pad := 2;
+    CX  := AX + TRACK_W div 2;
+    CY  := AY + TRACK_H div 2;
+
+    if AOn then
+      TrackColor := RGBToColor(60, 180, 80)
+    else
+      TrackColor := RGBToColor(70, 70, 70);
+
+    ACanvas.Brush.Color := TrackColor;
+    ACanvas.Pen.Color   := TrackColor;
+    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
+    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
+    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
+
+    ThumbD := THUMB_D;
+    if AOn then
+      ThumbR.Left := AX + TRACK_W - ThumbD - Pad
+    else
+      ThumbR.Left := AX + Pad;
+    ThumbR.Top    := CY - ThumbD div 2;
+    ThumbR.Right  := ThumbR.Left + ThumbD;
+    ThumbR.Bottom := ThumbR.Top + ThumbD;
+
+    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
+    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
+    ACanvas.Ellipse(ThumbR);
+
+    InflateRect(ThumbR, -2, -2);
+    ACanvas.Brush.Color := clWhite;
+    ACanvas.Pen.Color   := clWhite;
+    ACanvas.Ellipse(ThumbR);
+  end;
+
+var
+  PB: TPaintBox;
+  Y, ItemH, i: Integer;
+  R: TRect;
+  EffectName: string;
+  IsActive: Boolean;
+begin
+  PB := Sender as TPaintBox;
+  PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
+  PB.Canvas.FillRect(PB.ClientRect);
+
+  ItemH := 44;
+  Y := -FVkReshadeScrollPos;
+
+  for i := 0 to aveffectsListBox.Items.Count - 1 do
+  begin
+    R := Rect(0, Y, PB.Width, Y + ItemH);
+
+    // Determine if this effect is active
+    IsActive := acteffectsListBox.Items.IndexOf(aveffectsListBox.Items[i]) >= 0;
+
+    // Background
+    if IsActive then
+      PB.Canvas.Brush.Color := RGBToColor(30, 50, 80)
+    else if FVkReshadeHoverIdx = i then
+      PB.Canvas.Brush.Color := RGBToColor(50, 55, 70)
+    else
+      PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
+    PB.Canvas.FillRect(R);
+
+    // Bottom separator
+    PB.Canvas.Pen.Color := RGBToColor(40, 45, 60);
+    PB.Canvas.Line(R.Left, R.Bottom - 1, R.Right, R.Bottom - 1);
+
+    // Toggle (right side)
+    DrawToggle(PB.Canvas, R.Right - 60, R.Top + (R.Height - 24) div 2, IsActive);
+
+    // Effect name (friendly basename without extension)
+    EffectName := ChangeFileExt(ExtractFileName(aveffectsListBox.Items[i]), '');
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 9;
+    PB.Canvas.Font.Style := [];
+    PB.Canvas.Font.Color := clWhite;
+    PB.Canvas.TextOut(R.Left + 16, R.Top + (R.Height - PB.Canvas.TextHeight(EffectName)) div 2, EffectName);
+
+    Inc(Y, ItemH);
+  end;
+
+  // Update scrollbar
+  if Y + FVkReshadeScrollPos > PB.Height then
+  begin
+    FVkReshadeSB.Max := Y + FVkReshadeScrollPos - PB.Height + 20;
+    FVkReshadeSB.PageSize := PB.Height;
+    FVkReshadeSB.Visible := True;
+  end
+  else
+    FVkReshadeSB.Visible := False;
+end;
+
+procedure Tgoverlayform.VkReshadeMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  PB: TPaintBox;
+  OldHover, ItemH, i: Integer;
+  YPos: Integer;
+begin
+  PB := Sender as TPaintBox;
+  OldHover := FVkReshadeHoverIdx;
+  FVkReshadeHoverIdx := -1;
+
+  ItemH := 44;
+  YPos := -FVkReshadeScrollPos;
+
+  for i := 0 to aveffectsListBox.Items.Count - 1 do
+  begin
+    if (Y >= YPos) and (Y < YPos + ItemH) then
+    begin
+      FVkReshadeHoverIdx := i;
+      Break;
+    end;
+    Inc(YPos, ItemH);
+  end;
+
+  if OldHover <> FVkReshadeHoverIdx then
+    PB.Invalidate;
+end;
+
+procedure Tgoverlayform.VkReshadeMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  PB: TPaintBox;
+  ItemH, i: Integer;
+  YPos: Integer;
+  ToggleX: Integer;
+  EffectPath: string;
+begin
+  if Button <> mbLeft then Exit;
+  PB := Sender as TPaintBox;
+  ItemH := 44;
+  YPos := -FVkReshadeScrollPos;
+
+  for i := 0 to aveffectsListBox.Items.Count - 1 do
+  begin
+    if (Y >= YPos) and (Y < YPos + ItemH) then
+    begin
+      // Check if click is on toggle (right side)
+      ToggleX := PB.Width - 60;
+      if X >= ToggleX then
+      begin
+        EffectPath := aveffectsListBox.Items[i];
+        if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
+          acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath))
+        else
+          acteffectsListBox.Items.Add(EffectPath);
+        PB.Invalidate;
+      end;
+      Exit;
+    end;
+    Inc(YPos, ItemH);
+  end;
+end;
+
+procedure Tgoverlayform.VkReshadeMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  FVkReshadeScrollPos := FVkReshadeScrollPos - WheelDelta div 4;
+  if FVkReshadeScrollPos < 0 then FVkReshadeScrollPos := 0;
+  if FVkReshadeScrollPos > FVkReshadeSB.Max then FVkReshadeScrollPos := FVkReshadeSB.Max;
+  FVkReshadeSB.Position := FVkReshadeScrollPos;
+  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+  Handled := True;
+end;
+
+procedure Tgoverlayform.VkReshadeMD3ScrollChange(Sender: TObject);
+begin
+  FVkReshadeScrollPos := FVkReshadeSB.Position;
+  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+end;
+
 // ============================================================================
 
 procedure Tgoverlayform.InitGamesTab;
