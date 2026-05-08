@@ -15666,6 +15666,7 @@ begin
             BdgBg.Brush.Color := RGBToColor(28, 52, 96);
             BdgBg.Pen.Style   := psClear;
             BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
+            BdgBg.Anchors     := [akTop, akRight];
             BdgBg.OnMouseEnter := @GameCardMouseEnter;
             BdgBg.OnMouseLeave := @GameCardMouseLeave;
             BdgBg.OnClick      := @GameCardClick;
@@ -15684,6 +15685,7 @@ begin
                 BdgImg.Parent      := CardPanel;
                 BdgImg.AutoSize    := False;
                 BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
+                BdgImg.Anchors     := [akTop, akRight];
                 BdgImg.Stretch     := True;
                 BdgImg.Proportional := True;
                 BdgImg.Center      := True;
@@ -15704,6 +15706,7 @@ begin
                 BdgImg.Parent      := CardPanel;
                 BdgImg.AutoSize    := False;
                 BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
+                BdgImg.Anchors     := [akTop, akRight];
                 BdgImg.Stretch     := True;
                 BdgImg.Proportional := True;
                 BdgImg.Center      := True;
@@ -15725,6 +15728,7 @@ begin
                 BdgLbl.Parent     := CardPanel;
                 BdgLbl.AutoSize   := False;
                 BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
+                BdgLbl.Anchors    := [akTop, akRight];
                 BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
                 BdgLbl.Font.Name  := 'Noto Sans';
                 BdgLbl.Font.Size  := BDG_FONT;
@@ -15740,6 +15744,7 @@ begin
                 BdgLbl.Parent     := CardPanel;
                 BdgLbl.AutoSize   := False;
                 BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
+                BdgLbl.Anchors    := [akTop, akRight];
                 BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
                 BdgLbl.Font.Name  := 'Noto Sans';
                 BdgLbl.Font.Size  := BDG_FONT;
