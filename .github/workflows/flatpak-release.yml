@@ -50,7 +50,7 @@ jobs:
             --ccache \
             --state-dir=.flatpak-builder \
             flatpak-build \
-            io.github.benjamimgois.goverlay.yml
+            flatpak/io.github.benjamimgois.goverlay.yml
 
       - name: Create Flatpak bundle
         run: |

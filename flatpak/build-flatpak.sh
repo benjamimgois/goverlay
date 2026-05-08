@@ -47,7 +47,7 @@ done
 if [[ -n "$OVERRIDE_VERSION" ]]; then
   VERSION="$OVERRIDE_VERSION"
 else
-  VERSION="$(grep -oP "GVERSION\s*:=\s*'\K[^']+" "${SCRIPT_DIR}/overlayunit.pas" 2>/dev/null || true)"
+  VERSION="$(grep -oP "GVERSION\s*:=\s*'\K[^']+" "${SCRIPT_DIR}/../overlayunit.pas" 2>/dev/null || true)"
   if [[ -z "$VERSION" ]]; then
     VERSION="$(git -C "$SCRIPT_DIR" describe --tags --always 2>/dev/null || echo 'dev')"
   fi

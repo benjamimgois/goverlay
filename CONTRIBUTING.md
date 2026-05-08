@@ -341,7 +341,7 @@ sudo make uninstall
 
 ```bash
 # Build Flatpak locally
-./build-flatpak.sh
+./flatpak/build-flatpak.sh
 
 # Install the local build
 flatpak install --user flatpak-repo io.github.benjamimgois.goverlay
