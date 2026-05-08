@@ -678,7 +678,7 @@ type
     FVisualCaptureBtn:  TBitBtn;
     FLimitCaptureBtn:   TBitBtn;
     FLoggingCaptureBtn: TBitBtn;
-    FVkToggleCaptureBtn:    TBitBtn;
+    FVkToggleCaptureBtn:    TPanel;    // styled as a clickable button (TPanel is more reliable than TBitBtn in Qt6)
     FOsShortcutCaptureBtn:  TBitBtn;
     FCaptureForm:       TForm;
 
@@ -14893,13 +14893,13 @@ begin
 
   TitleLbl := TLabel.Create(FVkToggleCard);
   TitleLbl.Parent      := FVkToggleCard;
-  TitleLbl.Caption     := '  vkBasalt Toggle Key';
+  TitleLbl.Caption     := 'Toggle key';
   TitleLbl.Font.Name   := 'Noto Sans';
   TitleLbl.Font.Size   := 10;
   TitleLbl.Font.Style  := [fsBold];
   TitleLbl.Font.Color  := CLR_WHITE;
   TitleLbl.AutoSize    := True;
-  TitleLbl.SetBounds(12, 8, 200, 22);
+  TitleLbl.SetBounds(12, 12, 200, 22);
   TitleLbl.Transparent := True;
 
   // Reparent combobox off the vkbasalt tab (hidden data store)
@@ -14908,14 +14908,21 @@ begin
   if vkbtogglekeyCombobox.Text = '' then
     vkbtogglekeyCombobox.Text := 'Home';
 
-  FVkToggleCaptureBtn := TBitBtn.Create(FVkToggleCard);
-  FVkToggleCaptureBtn.Parent   := FVkToggleCard;
-  FVkToggleCaptureBtn.Visible  := True;
-  FVkToggleCaptureBtn.Tag      := 4;
-  FVkToggleCaptureBtn.Anchors  := [akLeft, akTop];
-  FVkToggleCaptureBtn.Cursor   := crHandPoint;
-  FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
-  FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
+  // Use a TPanel styled as a button — TBitBtn is unreliable in Qt6 dark mode
+  FVkToggleCaptureBtn := TPanel.Create(FVkToggleCard);
+  FVkToggleCaptureBtn.Parent      := FVkToggleCard;
+  FVkToggleCaptureBtn.Visible     := True;
+  FVkToggleCaptureBtn.Tag         := 4;
+  FVkToggleCaptureBtn.BevelOuter  := bvNone;
+  FVkToggleCaptureBtn.BevelInner  := bvNone;
+  FVkToggleCaptureBtn.Color       := RGBToColor(48, 52, 70);
+  FVkToggleCaptureBtn.Caption     := '⌨ ' + vkbtogglekeyCombobox.Text;
+  FVkToggleCaptureBtn.Font.Name   := 'Noto Sans';
+  FVkToggleCaptureBtn.Font.Size   := 9;
+  FVkToggleCaptureBtn.Font.Color  := clWhite;
+  FVkToggleCaptureBtn.Alignment   := taCenter;
+  FVkToggleCaptureBtn.Cursor      := crHandPoint;
+  FVkToggleCaptureBtn.OnClick     := @CaptureBtnClick;
 end;
 
 procedure Tgoverlayform.ReflowVkBasaltTab(AContentW: Integer);
@@ -14987,7 +14994,7 @@ begin
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
 
   if Assigned(FVkToggleCaptureBtn) then
-    FVkToggleCaptureBtn.SetBounds(PAD, 36, 130, 28);
+    FVkToggleCaptureBtn.SetBounds(CW - 142 - PAD, 8, 142, 32);
 end;
 
 // ============================================================================
