@@ -14910,6 +14910,7 @@ begin
 
   FVkToggleCaptureBtn := TBitBtn.Create(FVkToggleCard);
   FVkToggleCaptureBtn.Parent   := FVkToggleCard;
+  FVkToggleCaptureBtn.Visible  := True;
   FVkToggleCaptureBtn.Tag      := 4;
   FVkToggleCaptureBtn.Anchors  := [akLeft, akTop];
   FVkToggleCaptureBtn.Cursor   := crHandPoint;
@@ -15081,6 +15082,7 @@ begin
 
     // Effect name (friendly basename without extension)
     EffectName := ChangeFileExt(ExtractFileName(aveffectsListBox.Items[i]), '');
+    PB.Canvas.Brush.Style := bsClear;  // prevent TextOut from filling background
     PB.Canvas.Font.Name  := 'DejaVu Sans';
     PB.Canvas.Font.Size  := 9;
     PB.Canvas.Font.Style := [];
