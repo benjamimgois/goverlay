@@ -678,7 +678,8 @@ type
     FVisualCaptureBtn:  TBitBtn;
     FLimitCaptureBtn:   TBitBtn;
     FLoggingCaptureBtn: TBitBtn;
-    FVkToggleCaptureBtn:    TPanel;    // styled as a clickable button (TPanel is more reliable than TBitBtn in Qt6)
+    FVkToggleCaptureBtn:    TBitBtn;
+    FVkToggleTitleLbl:      TLabel;
     FOsShortcutCaptureBtn:  TBitBtn;
     FCaptureForm:       TForm;
 
@@ -14891,16 +14892,16 @@ begin
   AccentBar.SetBounds(0, 0, 200, 3);
   AccentBar.Anchors := [akLeft, akRight, akTop];
 
-  TitleLbl := TLabel.Create(FVkToggleCard);
-  TitleLbl.Parent      := FVkToggleCard;
-  TitleLbl.Caption     := 'Toggle key';
-  TitleLbl.Font.Name   := 'Noto Sans';
-  TitleLbl.Font.Size   := 10;
-  TitleLbl.Font.Style  := [fsBold];
-  TitleLbl.Font.Color  := CLR_WHITE;
-  TitleLbl.AutoSize    := True;
-  TitleLbl.SetBounds(12, 12, 200, 22);
-  TitleLbl.Transparent := True;
+  FVkToggleTitleLbl := TLabel.Create(FVkToggleCard);
+  FVkToggleTitleLbl.Parent      := FVkToggleCard;
+  FVkToggleTitleLbl.Caption     := 'Toggle key';
+  FVkToggleTitleLbl.Font.Name   := 'Noto Sans';
+  FVkToggleTitleLbl.Font.Size   := 10;
+  FVkToggleTitleLbl.Font.Style  := [fsBold];
+  FVkToggleTitleLbl.Font.Color  := CLR_WHITE;
+  FVkToggleTitleLbl.AutoSize    := True;
+  FVkToggleTitleLbl.SetBounds(12, 12, 200, 22);
+  FVkToggleTitleLbl.Transparent := True;
 
   // Reparent combobox off the vkbasalt tab (hidden data store)
   vkbtogglekeyCombobox.Visible := False;
@@ -14908,21 +14909,13 @@ begin
   if vkbtogglekeyCombobox.Text = '' then
     vkbtogglekeyCombobox.Text := 'Home';
 
-  // Use a TPanel styled as a button — TBitBtn is unreliable in Qt6 dark mode
-  FVkToggleCaptureBtn := TPanel.Create(FVkToggleCard);
-  FVkToggleCaptureBtn.Parent      := FVkToggleCard;
-  FVkToggleCaptureBtn.Visible     := True;
-  FVkToggleCaptureBtn.Tag         := 4;
-  FVkToggleCaptureBtn.BevelOuter  := bvNone;
-  FVkToggleCaptureBtn.BevelInner  := bvNone;
-  FVkToggleCaptureBtn.Color       := RGBToColor(48, 52, 70);
-  FVkToggleCaptureBtn.Caption     := '⌨ ' + vkbtogglekeyCombobox.Text;
-  FVkToggleCaptureBtn.Font.Name   := 'Noto Sans';
-  FVkToggleCaptureBtn.Font.Size   := 9;
-  FVkToggleCaptureBtn.Font.Color  := clWhite;
-  FVkToggleCaptureBtn.Alignment   := taCenter;
-  FVkToggleCaptureBtn.Cursor      := crHandPoint;
-  FVkToggleCaptureBtn.OnClick     := @CaptureBtnClick;
+  FVkToggleCaptureBtn := TBitBtn.Create(FVkToggleCard);
+  FVkToggleCaptureBtn.Parent   := FVkToggleCard;
+  FVkToggleCaptureBtn.Tag      := 4;
+  FVkToggleCaptureBtn.Anchors  := [akLeft, akTop];
+  FVkToggleCaptureBtn.Cursor   := crHandPoint;
+  FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
+  FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
 end;
 
 procedure Tgoverlayform.ReflowVkBasaltTab(AContentW: Integer);
@@ -14930,7 +14923,7 @@ const
   MARGIN   = 10;   // outer margin each side
   GAP      = 8;    // gap between cards
   BTIN_H   = 170;  // built-in effects card height
-  TOGL_H   = 70;   // toggle key card height
+  TOGL_H   = 85;   // toggle key card height (increased for button breathing room)
   PAD      = 12;   // inner horizontal padding
   NAME_W   = 52;   // effect name label width
   VAL_W    = 32;   // value label width
@@ -14993,8 +14986,9 @@ begin
   // ── Card 3: Toggle Key (bottom area, right) ────────────────────────────
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
 
-  if Assigned(FVkToggleCaptureBtn) then
-    FVkToggleCaptureBtn.SetBounds(CW - 142 - PAD, 8, 142, 32);
+  if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
+    FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left + FVkToggleTitleLbl.Width + 2 - 125,
+                                   FVkToggleTitleLbl.Top, 120, 28);
 end;
 
 // ============================================================================
