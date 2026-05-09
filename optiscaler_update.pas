@@ -1398,10 +1398,18 @@ begin
     end;
     // Write/update DLSS download date in goverlay.vars inside .fgmod_original
     VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
+    WriteLn('[DEBUG] UpdateButtonClick: DLSS vars file path = ', VarsFilePath);
+    WriteLn('[DEBUG] UpdateButtonClick: DLSS vars file exists BEFORE write = ', FileExists(VarsFilePath));
     VarsList := TStringList.Create;
     try
       if FileExists(VarsFilePath) then
+      begin
         VarsList.LoadFromFile(VarsFilePath);
+        WriteLn('[DEBUG] UpdateButtonClick: Loaded existing goverlay.vars, lines = ', VarsList.Count);
+      end
+      else
+        WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars does not exist yet, will create new');
+
       DlssLineFound := False;
       for VarsIdx := 0 to VarsList.Count - 1 do
         if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
@@ -1411,9 +1419,16 @@ begin
           Break;
         end;
       if not DlssLineFound then
+      begin
         VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
+        WriteLn('[DEBUG] UpdateButtonClick: Added new dlssversion line');
+      end
+      else
+        WriteLn('[DEBUG] UpdateButtonClick: Updated existing dlssversion line');
+
       VarsList.SaveToFile(VarsFilePath);
       WriteLn('[DEBUG] UpdateButtonClick: dlssversion written to goverlay.vars');
+      WriteLn('[DEBUG] UpdateButtonClick: DLSS vars file exists AFTER write = ', FileExists(VarsFilePath));
     except
       on E: Exception do
         WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
