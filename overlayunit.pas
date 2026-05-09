@@ -16294,7 +16294,7 @@ begin
   if Sender is TPanel then
   begin
     TPanel(Sender).ParentColor := False;
-    TPanel(Sender).Color := $002020FF;  // red on hover
+    TPanel(Sender).Color := $001A1A88;  // dark red on hover
   end;
 end;
 

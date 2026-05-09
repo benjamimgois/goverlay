@@ -1396,11 +1396,6 @@ begin
     finally
       SyncProc.Free;
     end;
-    // Also sync goverlay.vars so version labels are consistent in fgmod
-    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
-      CopyFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars',
-               IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
-
     // Write/update DLSS download date in goverlay.vars inside .fgmod_original
     VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
     VarsList := TStringList.Create;
@@ -1424,6 +1419,11 @@ begin
         WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
     end;
     VarsList.Free;
+
+    // Also sync goverlay.vars so version labels are consistent in fgmod
+    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
+      CopyFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars',
+               IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
 
     // STEP 6: Read goverlay.vars from .fgmod_original and update all labels
     WriteLn('[DEBUG] UpdateButtonClick: Step 6 - Reading goverlay.vars file...');
