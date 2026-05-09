@@ -1396,49 +1396,58 @@ begin
     finally
       SyncProc.Free;
     end;
-    // Write/update DLSS download date in goverlay.vars inside .fgmod_original
-    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
-    WriteLn('[DEBUG] UpdateButtonClick: DLSS vars file path = ', VarsFilePath);
-    WriteLn('[DEBUG] UpdateButtonClick: DLSS vars file exists BEFORE write = ', FileExists(VarsFilePath));
+    // Write/update DLSS download date in goverlay.vars
+    // We keep both .fgmod_original and global fgmod in sync so version labels
+    // are consistent after a restart.
     VarsList := TStringList.Create;
     try
-      if FileExists(VarsFilePath) then
-      begin
-        VarsList.LoadFromFile(VarsFilePath);
-        WriteLn('[DEBUG] UpdateButtonClick: Loaded existing goverlay.vars, lines = ', VarsList.Count);
-      end
-      else
-        WriteLn('[DEBUG] UpdateButtonClick: goverlay.vars does not exist yet, will create new');
-
-      DlssLineFound := False;
-      for VarsIdx := 0 to VarsList.Count - 1 do
-        if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
+      try
+        // Prefer the freshly-extracted .fgmod_original vars file; fall back to
+        // the global copy so existing keys (optiScalerVersion, etc.) are preserved.
+        if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
         begin
-          VarsList[VarsIdx] := 'dlssversion=' + FormatDateTime('ddmmyy', Now);
-          DlssLineFound := True;
-          Break;
-        end;
-      if not DlssLineFound then
-      begin
-        VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
-        WriteLn('[DEBUG] UpdateButtonClick: Added new dlssversion line');
-      end
-      else
-        WriteLn('[DEBUG] UpdateButtonClick: Updated existing dlssversion line');
+          VarsList.LoadFromFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars');
+          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from .fgmod_original, lines = ', VarsList.Count);
+        end
+        else if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars') then
+        begin
+          VarsList.LoadFromFile(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
+          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from global fgmod, lines = ', VarsList.Count);
+        end
+        else
+          WriteLn('[DEBUG] UpdateButtonClick: No existing goverlay.vars found, will create new');
 
-      VarsList.SaveToFile(VarsFilePath);
-      WriteLn('[DEBUG] UpdateButtonClick: dlssversion written to goverlay.vars');
-      WriteLn('[DEBUG] UpdateButtonClick: DLSS vars file exists AFTER write = ', FileExists(VarsFilePath));
-    except
-      on E: Exception do
-        WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
+        DlssLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
+          begin
+            VarsList[VarsIdx] := 'dlssversion=' + FormatDateTime('ddmmyy', Now);
+            DlssLineFound := True;
+            Break;
+          end;
+        if not DlssLineFound then
+        begin
+          VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
+          WriteLn('[DEBUG] UpdateButtonClick: Added new dlssversion line');
+        end
+        else
+          WriteLn('[DEBUG] UpdateButtonClick: Updated existing dlssversion line');
+
+        // Save to .fgmod_original (pristine store)
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars');
+        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to .fgmod_original');
+
+        // Save directly to global fgmod so it is never lost on copy failure
+        ForceDirectories(FFGModPath);
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
+        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to global fgmod');
+      except
+        on E: Exception do
+          WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
+      end;
+    finally
+      VarsList.Free;
     end;
-    VarsList.Free;
-
-    // Also sync goverlay.vars so version labels are consistent in fgmod
-    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
-      CopyFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars',
-               IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
 
     // STEP 6: Read goverlay.vars from .fgmod_original and update all labels
     WriteLn('[DEBUG] UpdateButtonClick: Step 6 - Reading goverlay.vars file...');
@@ -1750,6 +1759,41 @@ begin
       Process.Free;
     end;
 
+    // Write/update DLSS download date in goverlay.vars
+    // Do this BEFORE seeding so the global copy also receives the version stamp.
+    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
+    VarsList := TStringList.Create;
+    try
+      try
+        if FileExists(VarsFilePath) then
+          VarsList.LoadFromFile(VarsFilePath);
+        DlssLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
+          begin
+            VarsList[VarsIdx] := 'dlssversion=' + FormatDateTime('ddmmyy', Now);
+            DlssLineFound := True;
+            Break;
+          end;
+        if not DlssLineFound then
+          VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
+
+        // Save to pristine store
+        VarsList.SaveToFile(VarsFilePath);
+        WriteLn('[AUTO-INSTALL] dlssversion saved to .fgmod_original');
+
+        // Also save directly to global so the seeded copy is up-to-date
+        ForceDirectories(AFGModPath);
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(AFGModPath) + 'goverlay.vars');
+        WriteLn('[AUTO-INSTALL] dlssversion saved to global fgmod');
+      except
+        on E: Exception do
+          WriteLn('[AUTO-INSTALL] WARN: Could not write dlssversion - ', E.Message);
+      end;
+    finally
+      VarsList.Free;
+    end;
+
     // Seed the global fgmod working copy from .fgmod_original without overwriting
     // any files the user may have already customised (cp -rn = no clobber).
     WriteLn('[AUTO-INSTALL] Seeding global fgmod from .fgmod_original...');
@@ -1765,30 +1809,6 @@ begin
     finally
       Process.Free;
     end;
-
-    // Write/update DLSS download date in goverlay.vars (kept in .fgmod_original)
-    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
-    VarsList := TStringList.Create;
-    try
-      if FileExists(VarsFilePath) then
-        VarsList.LoadFromFile(VarsFilePath);
-      DlssLineFound := False;
-      for VarsIdx := 0 to VarsList.Count - 1 do
-        if Copy(VarsList[VarsIdx], 1, 12) = 'dlssversion=' then
-        begin
-          VarsList[VarsIdx] := 'dlssversion=' + FormatDateTime('ddmmyy', Now);
-          DlssLineFound := True;
-          Break;
-        end;
-      if not DlssLineFound then
-        VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
-      VarsList.SaveToFile(VarsFilePath);
-      WriteLn('[AUTO-INSTALL] dlssversion written to goverlay.vars');
-    except
-      on E: Exception do
-        WriteLn('[AUTO-INSTALL] WARN: Could not write dlssversion - ', E.Message);
-    end;
-    VarsList.Free;
 
     // Clean up download file
     DeleteFile(SevenZFilePath);
