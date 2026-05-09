@@ -61,8 +61,9 @@ tarball=$(wget --retry-connrefused --tries=30 https://api.github.com/repos/benja
 		| sed 's/[()",{} ]/\n/g' | grep -oi "https.*/pascube_.*.tar.gz$" | head -1
 )
 wget --retry-connrefused --tries=30 "$tarball" -O /tmp/pascube.tar.gz
-tar xvf /tmp/pascube.tar.gz
-chmod +x ./pascube
-mv -v ./pascube /usr/bin
-mkdir -p /usr/share/pascube 
-mv -v ./assets /usr/share/pascube
+mkdir -p /tmp/pascube
+tar xvf /tmp/pascube.tar.gz -C /tmp/pascube
+chmod +x /tmp/pascube/pascube
+mv -v /tmp/pascube/pascube /usr/bin
+mkdir -p /usr/share/pascube
+mv -v /tmp/pascube/assets /usr/share/pascube
