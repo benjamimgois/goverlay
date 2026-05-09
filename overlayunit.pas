@@ -16292,13 +16292,16 @@ end;
 procedure Tgoverlayform.ClearConfigBtnEnter(Sender: TObject);
 begin
   if Sender is TPanel then
-    TPanel(Sender).Color := $00283060;
+  begin
+    TPanel(Sender).ParentColor := False;
+    TPanel(Sender).Color := $002020FF;  // red on hover
+  end;
 end;
 
 procedure Tgoverlayform.ClearConfigBtnLeave(Sender: TObject);
 begin
   if Sender is TPanel then
-    TPanel(Sender).Color := $00202040;
+    TPanel(Sender).ParentColor := True;  // transparent (back to card background)
 end;
 
 procedure Tgoverlayform.HomeChannelComboChange(Sender: TObject);
@@ -16567,7 +16570,7 @@ begin
   FClearConfigBtn.Parent      := Card;
   FClearConfigBtn.BevelOuter  := bvNone;
   FClearConfigBtn.BevelInner  := bvNone;
-  FClearConfigBtn.Color       := $00202040;
+  FClearConfigBtn.ParentColor := True;     // transparent (matches card background)
   FClearConfigBtn.Caption     := 'Clear configuration';
   FClearConfigBtn.Font.Name   := 'Noto Sans';
   FClearConfigBtn.Font.Size   := 8;
