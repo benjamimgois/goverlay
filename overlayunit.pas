@@ -654,6 +654,7 @@ type
     FHomeDepLbls:      array[0..6] of TLabel;
     FHomeGlobalBtn:    TPanel;
     FHomeBtnRow:       TPanel;
+    FClearConfigBtn:   TPanel;    // Clear configuration button in Home/System card
 
     // Preset tab code-generated cards
     FPresetLayoutCards:   array[0..4] of TPanel;
@@ -863,6 +864,9 @@ type
     procedure HomeGlobalBtnLeave(Sender: TObject);
     procedure HomeGameBtnEnter(Sender: TObject);
     procedure HomeGameBtnLeave(Sender: TObject);
+    procedure ClearConfigBtnClick(Sender: TObject);
+    procedure ClearConfigBtnEnter(Sender: TObject);
+    procedure ClearConfigBtnLeave(Sender: TObject);
     procedure HomeChannelComboChange(Sender: TObject);
     function  GetMangoHudVersion: string;
     function  GetVkBasaltVersion: string;
@@ -16237,6 +16241,66 @@ begin
     TPanel(Sender).Color := $00203020;
 end;
 
+procedure Tgoverlayform.ClearConfigBtnClick(Sender: TObject);
+var
+  UserDir: string;
+  Paths: array of string;
+  i: Integer;
+  AllDeleted: Boolean;
+begin
+  if MessageDlg('Clear Configuration',
+    'All files and settings will be removed and GOverlay will return to its initial configuration.' + sLineBreak + sLineBreak +
+    'Do you want to continue?',
+    mtWarning, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+
+  UserDir := IncludeTrailingPathDelimiter(GetUserDir);
+  AllDeleted := True;
+
+  // Build list of paths to delete (regular + Flatpak)
+  SetLength(Paths, 4);
+  Paths[0] := UserDir + '.local/share/goverlay';
+  Paths[1] := UserDir + '.config/goverlay';
+  Paths[2] := UserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay';
+  Paths[3] := UserDir + '.var/app/io.github.benjamimgois.goverlay/config/goverlay';
+
+  for i := 0 to High(Paths) do
+  begin
+    if DirectoryExists(Paths[i]) then
+    begin
+      try
+        DeleteDirectory(Paths[i], False);
+        WriteLn('[ClearConfig] Deleted: ', Paths[i]);
+      except
+        on E: Exception do
+        begin
+          WriteLn('[ClearConfig] ERROR deleting ', Paths[i], ': ', E.Message);
+          AllDeleted := False;
+        end;
+      end;
+    end;
+  end;
+
+  if AllDeleted then
+    ShowMessage('Configuration cleared successfully.' + sLineBreak +
+                'Please restart GOverlay.')
+  else
+    ShowMessage('Some configuration folders could not be removed.' + sLineBreak +
+                'Please check file permissions and restart GOverlay.');
+end;
+
+procedure Tgoverlayform.ClearConfigBtnEnter(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $00283060;
+end;
+
+procedure Tgoverlayform.ClearConfigBtnLeave(Sender: TObject);
+begin
+  if Sender is TPanel then
+    TPanel(Sender).Color := $00202040;
+end;
+
 procedure Tgoverlayform.HomeChannelComboChange(Sender: TObject);
 begin
   // No longer used (channel combo removed from Home tab)
@@ -16497,6 +16561,25 @@ begin
   // ── System (List) ────────────────────────────────────────────────────────
   Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
   MkTitle(Card, 'System', CARD_P);
+
+  // Clear Configuration button (right side of System card)
+  FClearConfigBtn := TPanel.Create(Self);
+  FClearConfigBtn.Parent      := Card;
+  FClearConfigBtn.BevelOuter  := bvNone;
+  FClearConfigBtn.BevelInner  := bvNone;
+  FClearConfigBtn.Color       := $00202040;
+  FClearConfigBtn.Caption     := 'Clear configuration';
+  FClearConfigBtn.Font.Name   := 'Noto Sans';
+  FClearConfigBtn.Font.Size   := 8;
+  FClearConfigBtn.Font.Color  := clWhite;
+  FClearConfigBtn.Alignment   := taCenter;
+  FClearConfigBtn.Cursor      := crHandPoint;
+  FClearConfigBtn.Anchors     := [akTop, akRight];
+  FClearConfigBtn.SetBounds(Card.Width - 140 - CARD_P, CARD_P, 140, 22);
+  FClearConfigBtn.OnClick     := @ClearConfigBtnClick;
+  FClearConfigBtn.OnMouseEnter:= @ClearConfigBtnEnter;
+  FClearConfigBtn.OnMouseLeave:= @ClearConfigBtnLeave;
+
   MkSep(Card, CARD_P + 22);
 
   for i := 0 to 3 do
