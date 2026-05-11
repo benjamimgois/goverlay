@@ -4661,8 +4661,8 @@ var
 begin
 
   //Program Version
-  GVERSION := '1.8.1';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.2';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize fgmod directory with embedded scripts
   // This ensures fgmod scripts are always available without downloading
@@ -15766,6 +15766,24 @@ begin
           CardImage.OnMouseLeave := @GameCardMouseLeave;
           CardImage.OnClick := @GameCardClick;
           CardImage.OnMouseUp := @GameCardMouseUp;
+
+          // Steam icon badge (top-left corner, light gray)
+          BdgImg := TImage.Create(CardPanel);
+          BdgImg.Parent      := CardPanel;
+          BdgImg.AutoSize    := False;
+          BdgImg.SetBounds(4, 4, 16, 16);
+          BdgImg.Stretch     := True;
+          BdgImg.Proportional := True;
+          BdgImg.Center      := True;
+          BdgImg.Transparent := True;
+          IconPath := GetAppBaseDir + 'assets/icons/steam-icon.png';
+          if FileExists(IconPath) then
+            try BdgImg.Picture.LoadFromFile(IconPath); except end;
+          BdgImg.BringToFront;
+          BdgImg.OnMouseEnter := @GameCardMouseEnter;
+          BdgImg.OnMouseLeave := @GameCardMouseLeave;
+          BdgImg.OnClick      := @GameCardClick;
+          BdgImg.OnMouseUp    := @GameCardMouseUp;
 
           // Load local image or queue for CDN download
           if FileExists(ImagePath) then

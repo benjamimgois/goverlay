@@ -192,15 +192,6 @@ begin
   Result :=
     '#!/usr/bin/env bash' + LineEnding +
     '' + LineEnding +
-    '# _______   _______ .___  ___.   ______    _______' + LineEnding +
-    '#|   ____| /  _____||   \/   |  /  __  \  |       \' + LineEnding +
-    '#|  |__   |  |  __  |  \  /  | |  |  |  | |  .--.  |' + LineEnding +
-    '#|   __|  |  | |_ | |  |\/|  | |  |  |  | |  |  |  |' + LineEnding +
-    '#|  |     |  |__| | |  |  |  | |  `--''  | |  ''--''  |' + LineEnding +
-    '#|__|      \______| |__|  |__|  \______/  |_______/' + LineEnding +
-    '#' + LineEnding +
-    '# ver 1.7.3' + LineEnding +
-    '' + LineEnding +
     'set -x' + LineEnding +
     'exec > >(tee -i /tmp/fgmod-install.log) 2>&1' + LineEnding +
     '' + LineEnding +
@@ -219,6 +210,10 @@ begin
     'fgmod_path="$(dirname "$0")"' + LineEnding +
     'dll_name="${DLL:-dxgi.dll}"' + LineEnding +
     'preserve_ini="${PRESERVE_INI:-true}"' + LineEnding +
+    'GOVERLAY_MANGOHUD="${GOVERLAY_MANGOHUD:-1}"' + LineEnding +
+    'GOVERLAY_VKBASALT="${GOVERLAY_VKBASALT:-1}"' + LineEnding +
+    'GOVERLAY_OPTISCALER="${GOVERLAY_OPTISCALER:-1}"' + LineEnding +
+    'GOVERLAY_TWEAKS="${GOVERLAY_TWEAKS:-1}"' + LineEnding +
     '' + LineEnding +
     '# === Resolve Game Path ===' + LineEnding +
     'if [[ "$#" -lt 1 ]]; then' + LineEnding +
@@ -835,11 +830,11 @@ begin
   WriteTextFile  (IncludeTrailingPathDelimiter(OriginalPath) + 'README.md',            GetFGModReadme);
   WriteLn('[FGMOD] .fgmod_original scripts written.');
 
-  // --- Step 2: seed fgmod (global working copy) from .fgmod_original if empty ---
+  // --- Step 2: ensure fgmod (global working copy) exists and scripts are up-to-date ---
+  ForceDirectories(FGModPath);
   if not FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod') then
   begin
     WriteLn('[FGMOD] fgmod not found — seeding global copy from .fgmod_original...');
-    ForceDirectories(FGModPath);
     Proc := TProcess.Create(nil);
     try
       Proc.Executable := 'sh';
@@ -854,7 +849,27 @@ begin
     WriteLn('[FGMOD] Global fgmod copy seeded.');
   end
   else
-    WriteLn('[FGMOD] fgmod already exists, preserving user modifications.');
+  begin
+    WriteLn('[FGMOD] fgmod exists — refreshing scripts from .fgmod_original...');
+    // Always overwrite launcher scripts so users get template fixes automatically.
+    // Config files and DLLs in the global copy are left untouched.
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod') +
+                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod') + ' 2>/dev/null && ' +
+                          'cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-uninstaller.sh') +
+                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh') + ' 2>/dev/null && ' +
+                          'cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-remover.sh') +
+                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-remover.sh') + ' 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+    WriteLn('[FGMOD] Scripts refreshed.');
+  end;
 end;
 
 end.
