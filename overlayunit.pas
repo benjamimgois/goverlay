@@ -788,6 +788,7 @@ type
     procedure GameCardUninstallClick(Sender: TObject);
     procedure AddNonSteamFolderClick(Sender: TObject);
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
+    procedure CoverThreadTerminated(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
     function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
     function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
@@ -1188,6 +1189,7 @@ begin
   FCacheDir := ACacheDir;
   FForm     := AForm;
   FreeOnTerminate := True;
+  OnTerminate := @FForm.CoverThreadTerminated;
 end;
 
 destructor TCoverDownloadThread.Destroy;
@@ -1323,6 +1325,15 @@ begin
     FItems[i] := AItems[i];
   FForm := AForm;
   FreeOnTerminate := True;
+  OnTerminate := @FForm.CoverThreadTerminated;
+end;
+
+procedure Tgoverlayform.CoverThreadTerminated(Sender: TObject);
+begin
+  if Sender = FCoverThread then
+    FCoverThread := nil;
+  if Sender = FNonSteamCoverThread then
+    FNonSteamCoverThread := nil;
 end;
 
 procedure TNonSteamCoverThread.DoUpdateImage;
@@ -17466,6 +17477,7 @@ const
   BADGE_GLYPHS: array[0..3] of string = ('', '󰏘', '', '󰒓');
   SKIP_NAMES: array[0..6] of string = ('prefixes', 'common', 'compatdata', 'shadercache', 'downloads', 'tmp', 'temp');
 begin
+  PendingCount := 0;
   NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
   if not FileExists(NonSteamFile) then Exit;
 
