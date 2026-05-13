@@ -210,10 +210,10 @@ begin
     'fgmod_path="$(dirname "$0")"' + LineEnding +
     'dll_name="${DLL:-dxgi.dll}"' + LineEnding +
     'preserve_ini="${PRESERVE_INI:-true}"' + LineEnding +
-    'GOVERLAY_MANGOHUD="${GOVERLAY_MANGOHUD:-1}"' + LineEnding +
-    'GOVERLAY_VKBASALT="${GOVERLAY_VKBASALT:-1}"' + LineEnding +
-    'GOVERLAY_OPTISCALER="${GOVERLAY_OPTISCALER:-1}"' + LineEnding +
-    'GOVERLAY_TWEAKS="${GOVERLAY_TWEAKS:-1}"' + LineEnding +
+    'GOVERLAY_MANGOHUD="${GOVERLAY_MANGOHUD:-0}"' + LineEnding +
+    'GOVERLAY_VKBASALT="${GOVERLAY_VKBASALT:-0}"' + LineEnding +
+    'GOVERLAY_OPTISCALER="${GOVERLAY_OPTISCALER:-0}"' + LineEnding +
+    'GOVERLAY_TWEAKS="${GOVERLAY_TWEAKS:-0}"' + LineEnding +
     '' + LineEnding +
     '# === Resolve Game Path ===' + LineEnding +
     'if [[ "$#" -lt 1 ]]; then' + LineEnding +

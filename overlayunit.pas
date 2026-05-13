@@ -11448,7 +11448,7 @@ begin
     begin
       if Pos(Flag, Trim(Lines[i])) = 1 then
       begin
-        Result := Trim(Copy(Trim(Lines[i]), Length(Flag) + 1, MaxInt)) <> '0';
+        Result := Trim(Copy(Trim(Lines[i]), Length(Flag) + 1, MaxInt)) = '1';
         Break;
       end;
     end;
