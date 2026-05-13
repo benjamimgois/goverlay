@@ -17935,7 +17935,7 @@ var
 begin
   Result := AName;
   for i := 1 to Length(Result) do
-    if Result[i] in ['/', '\', ':', '*', '?', '"', '<', '>', '|'] then
+    if Result[i] in ['/', '\', ':', '*', '?', '"', '<', '>', '|', ''''] then
       Result[i] := '_';
 end;
 
