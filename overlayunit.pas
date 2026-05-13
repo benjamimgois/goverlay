@@ -546,7 +546,9 @@ type
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FNonSteamCoverThread: TThread;  // background thread for non-Steam cover downloads
     FCoverCheckTimer: TTimer;       // polls for newly downloaded covers
+    FLoadedCovers: TStringList;     // game names whose covers are already displayed
     FActiveGameName:    string;   // non-empty when editing a game-specific config
+    FActiveGameIsNonSteam: Boolean; // true when editing a non-steam game config
     FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
@@ -9211,14 +9213,20 @@ begin
 
   // Build launch command — use game-specific fgmod copy when in game mode
   if FActiveGameName <> '' then
-    LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
+  begin
+    if FActiveGameIsNonSteam then
+      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+    else
+      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+  end
   else
     LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
   // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
   if GetGeneralCheckBox(1).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
   // Always end with %command%
-  LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
   // RE Engine RT workaround suffix (after %command%)
   if FReEngineRTCheckBox.Checked then
@@ -9596,7 +9604,12 @@ begin
 
         // Build launch command — use game-specific fgmod copy when in game mode
         if FActiveGameName <> '' then
-          LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
+        begin
+          if FActiveGameIsNonSteam then
+            LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+          else
+            LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+        end
         else
           LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
@@ -9604,7 +9617,8 @@ begin
         if GetGeneralCheckBox(1).Checked then
           LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-        LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+        if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+          LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
         notificationLabel.Visible := False;
         FLaunchCommand := LaunchCommand;
@@ -9761,7 +9775,12 @@ begin
 
     // Always show the fgmod command — use game-specific fgmod copy when in game mode
     if FActiveGameName <> '' then
-      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
+    begin
+      if FActiveGameIsNonSteam then
+        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+      else
+        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+    end
     else
       LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
@@ -9769,7 +9788,8 @@ begin
     if GetGeneralCheckBox(1).Checked then
       LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+    if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+      LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
     notificationLabel.Visible := False;
     FLaunchCommand := LaunchCommand;
@@ -9832,7 +9852,12 @@ begin
       // mode so that MangoHud.conf is picked up from the game config directory.
       // Quoted to handle spaces in game names / paths.
       if FActiveGameName <> '' then
-        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" '
+      begin
+        if FActiveGameIsNonSteam then
+          LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+        else
+          LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+      end
       else
         LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
 
@@ -9840,7 +9865,8 @@ begin
       if GetGeneralCheckBox(1).Checked then
         LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-      LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+      if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+        LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
       notificationLabel.Visible := False;
       FLaunchCommand := LaunchCommand;
@@ -17262,12 +17288,15 @@ begin
     Lines.Free;
   end;
 
+  FActiveGameIsNonSteam := False;
   if (Length(GameName) > 0) and (GameName[1] = '(') then
   begin
     p := Pos(') ', GameName);
     if p > 0 then
       GameName := Copy(GameName, p + 2, Length(GameName));
-  end;
+  end
+  else
+    FActiveGameIsNonSteam := True;
 
   FActiveGameName := GameName;
   ShowGameThumb(Panel);
