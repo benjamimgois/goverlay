@@ -16160,6 +16160,9 @@ begin
     CardPanel.Color := RGBToColor(40, 44, 52);
     CardPanel.Hint := 'Click to add a non-Steam game folder';
     CardPanel.ShowHint := True;
+    CardPanel.Cursor := crHandPoint;
+    CardPanel.OnMouseEnter := @GameCardMouseEnter;
+    CardPanel.OnMouseLeave := @GameCardMouseLeave;
     CardPanel.OnClick := @AddNonSteamFolderClick;
 
     CardImage := TImage.Create(CardPanel);
@@ -16168,6 +16171,9 @@ begin
     CardImage.Stretch := True;
     CardImage.Proportional := False;
     CardImage.Center := False;
+    CardImage.Cursor := crHandPoint;
+    CardImage.OnMouseEnter := @GameCardMouseEnter;
+    CardImage.OnMouseLeave := @GameCardMouseLeave;
     CardImage.OnClick := @AddNonSteamFolderClick;
 
     // Big "+" sign in centre
@@ -16182,6 +16188,9 @@ begin
     BdgLbl.Alignment := taCenter;
     BdgLbl.Layout := tlCenter;
     BdgLbl.Transparent := True;
+    BdgLbl.Cursor := crHandPoint;
+    BdgLbl.OnMouseEnter := @GameCardMouseEnter;
+    BdgLbl.OnMouseLeave := @GameCardMouseLeave;
     BdgLbl.OnClick := @AddNonSteamFolderClick;
 
     // Label below icon
@@ -16197,6 +16206,9 @@ begin
     BdgLbl.Layout := tlCenter;
     BdgLbl.WordWrap := True;
     BdgLbl.Transparent := True;
+    BdgLbl.Cursor := crHandPoint;
+    BdgLbl.OnMouseEnter := @GameCardMouseEnter;
+    BdgLbl.OnMouseLeave := @GameCardMouseLeave;
     BdgLbl.OnClick := @AddNonSteamFolderClick;
 
     FCardPanels.Add(CardPanel);
