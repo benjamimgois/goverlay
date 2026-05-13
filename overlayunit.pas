@@ -655,8 +655,8 @@ type
     FHomeModVerLbls:   array[0..2] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
-    FHomeDepDots:      array[0..6] of TShape;
-    FHomeDepLbls:      array[0..6] of TLabel;
+    FHomeDepDots:      array[0..7] of TShape;
+    FHomeDepLbls:      array[0..7] of TLabel;
     FHomeGlobalBtn:    TPanel;
     FHomeBtnRow:       TPanel;
     FClearConfigBtn:   TPanel;    // Clear configuration button in Home/System card
@@ -2480,6 +2480,10 @@ begin
     //check if git is available
   if not IsCommandAvailable('git') then
     Missing.Add('git');
+
+  //check if Nerd Font is available
+  if not IsNerdFontInstalled then
+    Missing.Add('nerdfonts');
 
   //check if protontricks is available
   // Skip check in Flatpak since we fallback to com.github.Matoking.protontricks Flatpak
@@ -16724,18 +16728,19 @@ end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
 const
-  DEP_KEYS: array[0..6] of string = (
-    'pascube', 'vkcube', 'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas');
-  DEP_DISPLAY: array[0..6] of string = (
-    'PasCube', 'vkcube', '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas');
-  DEP_HINTS: array[0..6] of string = (
+  DEP_KEYS: array[0..7] of string = (
+    'pascube', 'vkcube', 'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas', 'nerdfonts');
+  DEP_DISPLAY: array[0..7] of string = (
+    'PasCube', 'vkcube', '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
+  DEP_HINTS: array[0..7] of string = (
     'OpenGL preview cube for testing the MangoHud overlay',
     'Vulkan cube for testing Vulkan layer injection',
     'Archive tool required for OptiScaler extraction',
     'HTTP client used to download OptiScaler updates and covers',
     'Version control used to fetch fgmod scripts',
     'Feral GameMode daemon for CPU/GPU optimisation',
-    'Qt6 Pascal bindings — required for the Goverlay GUI');
+    'Qt6 Pascal bindings — required for the Goverlay GUI',
+    'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons');
   CLR_OK      = $0044BB44;
   CLR_MISSING = $004444BB;  // RGB(187,68,68) — red in Lazarus BGR format
 var
@@ -16745,7 +16750,7 @@ begin
   if not Assigned(FHomeDepDots[0]) then Exit;
   CheckDependencies(Missing);
   try
-    for i := 0 to 6 do
+    for i := 0 to 7 do
     begin
       FHomeDepDots[i].Hint := DEP_HINTS[i];
       FHomeDepLbls[i].Hint := DEP_HINTS[i];
@@ -16783,8 +16788,8 @@ const
   ACC_DEP    = $0033AA55;  // green — Dependencies
   ACC_SYS    = $00CC8844;  // orange — System Info
 
-  DEP_NAMES: array[0..6] of string = (
-    'PasCube', 'vkcube', '7z', 'curl', 'git', 'gamemode', 'qt6pas');
+  DEP_NAMES: array[0..7] of string = (
+    'PasCube', 'vkcube', '7z', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
   MOD_NAMES: array[0..2] of string = ('MangoHud', 'vkBasalt', 'OptiScaler');
   LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
 
@@ -17065,7 +17070,7 @@ begin
   MkTitle(Card, 'Dependencies', CARD_P);
   MkSep(Card, CARD_P + 22);
 
-  for i := 0 to 6 do
+  for i := 0 to 7 do
   begin
     Row  := CARD_P + 30 + (i div 3) * ROW_H;
     ColX := CARD_P + (i mod 3) * COL_W;

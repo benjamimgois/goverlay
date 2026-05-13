@@ -337,6 +337,9 @@ begin
   if not IsLibraryAvailable('libQt6Pas') then
     Missing.Add('libqt6pas');
 
+  if not IsNerdFontInstalled then
+    Missing.Add('nerdfonts');
+
   Result := Missing.Count = 0;
 end;
 

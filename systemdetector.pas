@@ -143,6 +143,12 @@ function GetSysGPUDriver: string;
 /// <returns>True if any matching .so file is found</returns>
 function IsLibraryAvailable(const LibName: string): Boolean;
 
+/// <summary>
+/// Checks if a Nerd Font is installed in the system using fc-list
+/// </summary>
+/// <returns>True if at least one Nerd Font is found</returns>
+function IsNerdFontInstalled: Boolean;
+
 implementation
 
 
@@ -679,6 +685,15 @@ begin
     end;
     FindClose(SR);
   end;
+end;
+
+function IsNerdFontInstalled: Boolean;
+var
+  Output: string;
+begin
+  // fc-list returns 0 even if grep finds nothing, so we use RunCommand with grep -qi
+  // grep -qi will exit with 0 if it finds a match, so RunCommand returns True
+  Result := RunCommand('sh', ['-c', 'fc-list | grep -qi "Nerd Font\|Symbols Nerd Font\|NerdFont"'], Output);
 end;
 
 end.
