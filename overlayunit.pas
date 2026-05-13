@@ -545,6 +545,7 @@ type
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FNonSteamCoverThread: TThread;  // background thread for non-Steam cover downloads
+    FCoverCheckTimer: TTimer;       // polls for newly downloaded covers
     FActiveGameName:    string;   // non-empty when editing a game-specific config
     FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
@@ -789,10 +790,12 @@ type
     procedure AddNonSteamFolderClick(Sender: TObject);
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
     procedure CoverThreadTerminated(Sender: TObject);
+    procedure CoverCheckTimerTick(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
     function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
     function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
     function  CleanGameNameForSearch(const AName: string): string;
+    function  InsertSpacesInUppercase(const AName: string): string;
     function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
@@ -1328,6 +1331,10 @@ begin
   OnTerminate := @FForm.CoverThreadTerminated;
 end;
 
+// ============================================================================
+// Cover check timer: polls for downloaded covers and updates UI from main thread
+// ============================================================================
+
 procedure Tgoverlayform.CoverThreadTerminated(Sender: TObject);
 begin
   if Sender = FCoverThread then
@@ -1392,31 +1399,20 @@ begin
 
     // Already cached?
     if FileExists(FItems[i].CachePath) then
-    begin
-      FCurrentCardIdx := FItems[i].CardIndex;
-      FCurrentPath    := FItems[i].CachePath;
-      Synchronize(@DoUpdateImage);
       Continue;
-    end;
 
     GotCover := False;
 
     // 1st attempt: Steam Store API
-    if Assigned(FForm) and FForm.SearchSteamStoreGame(FItems[i].GameName, AppId) then
-      if FForm.DownloadSteamCover(AppId, FItems[i].CachePath) then
-        GotCover := True;
+    if Assigned(FForm) and not FForm.FClosing then
+      if FForm.SearchSteamStoreGame(FItems[i].GameName, AppId) then
+        if FForm.DownloadSteamCover(AppId, FItems[i].CachePath) then
+          GotCover := True;
 
     // 2nd attempt: Web image search
-    if not GotCover and Assigned(FForm) then
+    if not GotCover and Assigned(FForm) and not FForm.FClosing then
       if FForm.SearchWebCover(FItems[i].GameName, FItems[i].CachePath) then
         GotCover := True;
-
-    if GotCover then
-    begin
-      FCurrentCardIdx := FItems[i].CardIndex;
-      FCurrentPath    := FItems[i].CachePath;
-      Synchronize(@DoUpdateImage);
-    end;
   end;
 end;
 
@@ -4763,6 +4759,8 @@ begin
     FNonSteamCoverThread.Terminate;
     FNonSteamCoverThread := nil; // thread frees itself (FreeOnTerminate = True)
   end;
+  if Assigned(FCoverCheckTimer) then
+    FreeAndNil(FCoverCheckTimer);
   if Assigned(FOrigCovers) then
   begin
     for k := 0 to FOrigCovers.Count - 1 do
@@ -16226,6 +16224,9 @@ begin
   end;
   // Flush any pending Synchronize calls before freeing panels
   CheckSynchronize;
+  // Stop cover check timer
+  if Assigned(FCoverCheckTimer) then
+    FCoverCheckTimer.Enabled := False;
   // Free all card panels — they own their children (CardImage, CardLabel, badges)
   // so a single Free call cleans up each card and all its sub-controls.
   if Assigned(FCardPanels) then
@@ -16244,6 +16245,85 @@ begin
   end;
   // Rebuild the grid with up-to-date badge states
   LoadSteamGames;
+end;
+
+// ============================================================================
+// Cover check timer: polls for downloaded covers and updates UI from main thread
+// ============================================================================
+
+procedure Tgoverlayform.CoverCheckTimerTick(Sender: TObject);
+var
+  i, j: Integer;
+  CardPanel: TPanel;
+  CardImage: TImage;
+  CacheDir, CachePath, GameName: string;
+  ScaledBmp: TBitmap;
+  Lines: TStringList;
+begin
+  if not Assigned(FCardPanels) or not Assigned(FOrigCovers) then Exit;
+
+  CacheDir := GetUserDir + '.cache/goverlay/nonsteam_covers/';
+
+  for i := 0 to FCardPanels.Count - 1 do
+  begin
+    CardPanel := TPanel(FCardPanels[i]);
+    // Only check non-Steam cards (Tag = 9997)
+    if CardPanel.Tag <> 9997 then Continue;
+
+    // Find the TImage child
+    CardImage := nil;
+    for j := 0 to CardPanel.ControlCount - 1 do
+      if CardPanel.Controls[j] is TImage then
+      begin
+        CardImage := TImage(CardPanel.Controls[j]);
+        Break;
+      end;
+    if not Assigned(CardImage) then Continue;
+
+    // Extract game name from Hint (first line)
+    GameName := '';
+    if CardPanel.Hint <> '' then
+    begin
+      Lines := TStringList.Create;
+      try
+        Lines.Text := CardPanel.Hint;
+        if Lines.Count > 0 then
+          GameName := Lines[0];
+      finally
+        Lines.Free;
+      end;
+    end;
+    if GameName = '' then Continue;
+
+    CachePath := CacheDir + SanitizeFileName(GameName) + '.jpg';
+    if not FileExists(CachePath) then Continue;
+
+    // Try loading the cover
+    try
+      CardImage.Picture.LoadFromFile(CachePath);
+      ScaledBmp := TBitmap.Create;
+      try
+        ScaledBmp.SetSize(CARD_W, CARD_H);
+        ScaledBmp.Canvas.StretchDraw(
+          Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+        ProcessCoverBitmap(ScaledBmp, GRAD_H);
+        CardImage.Picture.Bitmap.Assign(ScaledBmp);
+        if (i >= 0) and (i < FOrigCovers.Count) then
+        begin
+          if FOrigCovers[i] <> nil then
+            TLazIntfImage(FOrigCovers[i]).Free;
+          FOrigCovers[i] := ScaledBmp.CreateIntfImage;
+        end;
+      finally
+        ScaledBmp.Free;
+      end;
+    except
+    end;
+  end;
+
+  // Stop timer if no thread is running
+  if not Assigned(FNonSteamCoverThread) then
+    FCoverCheckTimer.Enabled := False;
 end;
 
 // ============================================================================
@@ -17785,6 +17865,14 @@ begin
       end;
       FNonSteamCoverThread := TNonSteamCoverThread.Create(PendingItems, Self);
       FNonSteamCoverThread.Start;
+      // Start timer to poll for downloaded covers and update UI from main thread
+      if not Assigned(FCoverCheckTimer) then
+      begin
+        FCoverCheckTimer := TTimer.Create(Self);
+        FCoverCheckTimer.Interval := 1000;
+        FCoverCheckTimer.OnTimer := @CoverCheckTimerTick;
+      end;
+      FCoverCheckTimer.Enabled := True;
     end;
   finally
     Lines.Free;
@@ -17886,12 +17974,12 @@ begin
 
   // Insert spaces in CamelCase / PascalCase
   // e.g. "HorizonChaseTurbo" -> "Horizon Chase Turbo"
-  // e.g. "HOTWHEELSUNLEASHED" -> "HOT WHEELS UNLEASHED"
   i := 2;
   while i <= Length(Result) do
   begin
     if (Result[i] in ['A'..'Z']) and (Result[i-1] in ['a'..'z']) then
     begin
+      // Lowercase followed by uppercase: e.g. "HorizonC" -> "Horizon C"
       Insert(' ', Result, i);
       Inc(i, 2);
     end
@@ -17908,10 +17996,76 @@ begin
       Inc(i);
   end;
 
+  // All-uppercase long names: try common game-title words
+  // e.g. "HOTWHEELSUNLEASHED" -> "HOT WHEELS UNLEASHED"
+  if (Length(Result) > 8) and (Result = UpperCase(Result)) then
+  begin
+    Result := InsertSpacesInUppercase(Result);
+  end;
+
+  // Expand common abbreviations (longer matches must come first)
+  Result := StringReplace(Result, 'GTAV', 'Grand Theft Auto V', [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, 'GTA', 'Grand Theft Auto', [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, 'RDR2', 'Red Dead Redemption 2', [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, 'RDR', 'Red Dead Redemption', [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, 'COD', 'Call of Duty', [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, 'NFS', 'Need for Speed', [rfReplaceAll, rfIgnoreCase]);
+
   // Clean up multiple spaces
   while Pos('  ', Result) > 0 do
     Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
 
+  Result := Trim(Result);
+end;
+
+function Tgoverlayform.InsertSpacesInUppercase(const AName: string): string;
+const
+  COMMON_WORDS: array[0..88] of string = (
+    'HOT','WHEELS','UNLEASHED','WHEEL','GRAND','THEFT','AUTO',
+    'ENHANCED','DEFINITIVE','EDITION','REMASTERED','REMAKE','DELUXE',
+    'ULTIMATE','COMPLETE','COLLECTION','GAME','YEAR','STANDARD',
+    'SPECIAL','LEGENDARY','BATTLE','FIELD','MODERN','WARFARE',
+    'KNIGHT','ARKHAM','CITY','ASYLUM','ORIGINS','ORIGIN',
+    'REVENGE','REVOLUTION','EVOLUTION','INFAMOUS','SECOND',
+    'SON','INFINITE','ADVANCED','BLACK','GATE','FRONTIER',
+    'DEVELOPER','STUDIO','INTERACTIVE','SOFTWARE','DARK',
+    'SOULS','BLOOD','BORNE','SEKIRO','ELDEN','RING',
+    'HORIZON','CHASE','TURBO','ZERO','DAWN','FORBIDDEN',
+    'WEST','GHOST','RUNNER','LOOP','HERO','CONTROL',
+    'RETURNAL','SPIDER','MAN','MILES','MORALES','RATCHET',
+    'CLANK','DEMON','SLAYER','DOOM','ETERNAL','WOLFENSTEIN',
+    'YOUNG','BLOOD','NEW','ORDER','COLOSSUS','SHADOW',
+    'TOMB','RAIDER','LAST','US','PART','UNCHARTED'
+  );
+var
+  i, w, WordLen: Integer;
+  Found: Boolean;
+begin
+  Result := AName;
+  i := 1;
+  while i <= Length(Result) do
+  begin
+    Found := False;
+    // Try longest words first
+    for w := Low(COMMON_WORDS) to High(COMMON_WORDS) do
+    begin
+      WordLen := Length(COMMON_WORDS[w]);
+      if (i + WordLen - 1 <= Length(Result)) and
+         (Copy(Result, i, WordLen) = COMMON_WORDS[w]) then
+      begin
+        if (i > 1) and (Result[i-1] <> ' ') then
+        begin
+          Insert(' ', Result, i);
+          Inc(i);
+        end;
+        Inc(i, WordLen);
+        Found := True;
+        Break;
+      end;
+    end;
+    if not Found then
+      Inc(i);
+  end;
   Result := Trim(Result);
 end;
 
@@ -17927,6 +18081,7 @@ var
   i, j, k: Integer;
   Candidates: TStringList;
   SearchRec: TSearchRec;
+  TmpFile: string;
 begin
   Result := False;
 
@@ -17937,8 +18092,9 @@ begin
   Url := 'https://www.bing.com/images/search?q=' + SearchName +
          '+video+game+cover+art+600x900+jpg&form=HDRSC2&first=1';
 
+  TmpFile := GetTempDir + 'goverlay_bing_' + IntToStr(GetProcessID) + '.html';
+
   P := TProcess.Create(nil);
-  S := TStringList.Create;
   try
     P.Executable := 'curl';
     P.Parameters.Add('-s');
@@ -17949,18 +18105,28 @@ begin
     P.Parameters.Add('10');
     P.Parameters.Add('-H');
     P.Parameters.Add('User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36');
+    P.Parameters.Add('-o');
+    P.Parameters.Add(TmpFile);
     P.Parameters.Add(Url);
-    P.Options := [poUsePipes, poWaitOnExit];
+    P.Options := [poWaitOnExit, poNoConsole];
     try
       P.Execute;
-      S.LoadFromStream(P.Output);
-      Html := S.Text;
     except
       Exit;
     end;
   finally
     P.Free;
+  end;
+
+  if not FileExists(TmpFile) then Exit;
+
+  S := TStringList.Create;
+  try
+    S.LoadFromFile(TmpFile);
+    Html := S.Text;
+  finally
     S.Free;
+    DeleteFile(TmpFile);
   end;
 
   if Html = '' then Exit;
