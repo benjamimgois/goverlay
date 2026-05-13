@@ -10957,7 +10957,7 @@ begin
   FNavActive     := -1;
   FNavHoveredIdx := -1;
   FNavCollapsed    := False;
-  FCubeAutoLaunch  := True;  // enabled by default
+  FCubeAutoLaunch  := False;  // disabled by default
 
   // Restore sidebar collapsed state from previous session
   UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
@@ -10968,8 +10968,8 @@ begin
       SL.LoadFromFile(UIStateFile);
       if (SL.Count > 0) and (SL[0] = '1') then
         FNavCollapsed := True;
-      if (SL.Count > 1) and (SL[1] = '0') then
-        FCubeAutoLaunch := False;
+      if (SL.Count > 1) and (SL[1] = '1') then
+        FCubeAutoLaunch := True;
     finally
       SL.Free;
     end;
