@@ -552,6 +552,7 @@ type
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
+    FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
     FRightClickedCard: TPanel;      // card that triggered the context menu
     FGameMenuImgList: TImageList;   // icons for the game card context menu
     FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
@@ -15386,7 +15387,6 @@ end;
 procedure Tgoverlayform.InitGamesTab;
 var
   OpenFolderItem: TMenuItem;
-  OpenPrefixItem: TMenuItem;
   UninstallItem: TMenuItem;
   GamesBgPB: TPaintBox;
   IconPath: string;
@@ -15494,11 +15494,11 @@ begin
   OpenFolderItem.OnClick := @GameCardOpenFolderClick;
   FGameCardMenu.Items.Add(OpenFolderItem);
 
-  OpenPrefixItem := TMenuItem.Create(FGameCardMenu);
-  OpenPrefixItem.Caption := 'Open prefix folder';
-  OpenPrefixItem.ImageIndex := 1;
-  OpenPrefixItem.OnClick := @GameCardOpenPrefixClick;
-  FGameCardMenu.Items.Add(OpenPrefixItem);
+  FOpenPrefixMenuItem := TMenuItem.Create(FGameCardMenu);
+  FOpenPrefixMenuItem.Caption := 'Open prefix folder';
+  FOpenPrefixMenuItem.ImageIndex := 1;
+  FOpenPrefixMenuItem.OnClick := @GameCardOpenPrefixClick;
+  FGameCardMenu.Items.Add(FOpenPrefixMenuItem);
 
   UninstallItem := TMenuItem.Create(FGameCardMenu);
   UninstallItem.Caption := 'Uninstall changes';
@@ -17315,6 +17315,11 @@ begin
     Exit;
 
   FRightClickedCard := Panel;
+
+  // Show "Open prefix folder" only for Steam games (hint first line starts with '(')
+  if Assigned(FOpenPrefixMenuItem) then
+    FOpenPrefixMenuItem.Visible :=
+      (Panel.Hint <> '') and (Panel.Hint[1] = '(');
 
   Pt := TControl(Sender).ClientToScreen(Point(X, Y));
   FGameCardMenu.PopUp(Pt.X, Pt.Y);
