@@ -762,6 +762,8 @@ type
     procedure InitOptiScalerTab;
     procedure BuildFpsLimitEdit;
     procedure UpdatePerfCardTheme;
+    procedure UpdateGenericCardTheme(Card: TPanel);
+    procedure UpdateExtrasCardTheme;
     procedure ReflowPerformanceTab(AContentW: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
@@ -7293,6 +7295,23 @@ begin
 
   // Update Performance tab card colors for the new theme
   UpdatePerfCardTheme;
+
+  // Update Extras tab card colors
+  UpdateExtrasCardTheme;
+
+  // Update Metrics tab cards
+  UpdateGenericCardTheme(FMtGpuCard);
+  UpdateGenericCardTheme(FMtCpuCard);
+
+  // Update OptiScaler tab cards
+  UpdateGenericCardTheme(FOsGpuCard);
+  UpdateGenericCardTheme(FOsOptionsCard);
+  UpdateGenericCardTheme(FOsStatusCard);
+
+  // Update vkBasalt tab cards
+  UpdateGenericCardTheme(FVkReshadeCard);
+  UpdateGenericCardTheme(FVkBuiltinCard);
+  UpdateGenericCardTheme(FVkToggleCard);
 end;
 
 procedure Tgoverlayform.InitCustomEnvGroupBox;
@@ -13660,6 +13679,99 @@ begin
   begin
     FFpsLimitEdit.Color     := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
     FFpsLimitEdit.Font.Color := TextColor;
+  end;
+end;
+
+procedure Tgoverlayform.UpdateGenericCardTheme(Card: TPanel);
+const
+  DARK_BG   = $00362E2E;
+  LIGHT_BG  = $00FFFFFF;
+var
+  j: Integer;
+  CardBg, TextColor: TColor;
+begin
+  if not Assigned(Card) then Exit;
+
+  if CurrentTheme = tmLight then
+  begin
+    CardBg    := LIGHT_BG;
+    TextColor := LightTextColor;
+  end
+  else
+  begin
+    CardBg    := DARK_BG;
+    TextColor := DarkTextColor;
+  end;
+
+  Card.Color := CardBg;
+  Card.Invalidate;
+  for j := 0 to Card.ControlCount - 1 do
+  begin
+    if Card.Controls[j] is TLabel then
+    begin
+      TLabel(Card.Controls[j]).Font.Color := TextColor;
+    end
+    else if Card.Controls[j] is TCheckBox then
+    begin
+      TCheckBox(Card.Controls[j]).Font.Color := TextColor;
+      TCheckBox(Card.Controls[j]).Color      := CardBg;
+    end
+    else if Card.Controls[j] is TRadioButton then
+    begin
+      TRadioButton(Card.Controls[j]).Font.Color := TextColor;
+      TRadioButton(Card.Controls[j]).Color      := CardBg;
+    end
+    else if Card.Controls[j] is TComboBox then
+    begin
+      TComboBox(Card.Controls[j]).Font.Color := TextColor;
+      if CurrentTheme = tmLight then
+        TComboBox(Card.Controls[j]).Color := LighterBackgroundColor
+      else
+        TComboBox(Card.Controls[j]).Color := RGBToColor(34, 38, 52); // COMBOBG default
+    end;
+  end;
+end;
+
+procedure Tgoverlayform.UpdateExtrasCardTheme;
+const
+  DARK_BG   = $00362E2E;
+  LIGHT_BG  = $00FFFFFF;
+var
+  CardBg, TextColor: TColor;
+begin
+  if CurrentTheme = tmLight then
+  begin
+    CardBg    := LIGHT_BG;
+    TextColor := LightTextColor;
+  end
+  else
+  begin
+    CardBg    := DARK_BG;
+    TextColor := DarkTextColor;
+  end;
+
+  UpdateGenericCardTheme(FExtSysCard);
+  UpdateGenericCardTheme(FExtLogCard);
+
+  if Assigned(logtoggleLabel) then
+    logtoggleLabel.Font.Color := TextColor;
+    
+  if Assigned(logfolderEdit) then
+  begin
+    logfolderEdit.Font.Color := TextColor;
+    if CurrentTheme = tmLight then
+      logfolderEdit.Color := LighterBackgroundColor
+    else
+      logfolderEdit.Color := RGBToColor(22, 26, 40); // OUTER_BG default
+  end;
+
+  if Assigned(networkComboBox) then
+  begin
+    networkComboBox.Font.Color := TextColor;
+    if CurrentTheme = tmLight then
+      networkComboBox.Color := LighterBackgroundColor
+    else
+      networkComboBox.Color := RGBToColor(22, 26, 40); // OUTER_BG default
   end;
 end;
 
