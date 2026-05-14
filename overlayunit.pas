@@ -545,7 +545,6 @@ type
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FNonSteamCoverThread: TThread;  // background thread for non-Steam cover downloads
-    FLoadedCovers: TStringList;     // game names whose covers are already displayed
     FActiveGameName:    string;   // non-empty when editing a game-specific config
     FActiveGameIsNonSteam: Boolean; // true when editing a non-steam game config
     FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
@@ -2890,7 +2889,10 @@ procedure Tgoverlayform.StyleGroupBoxNavy(GB: TGroupBox);
 var
   SS: WideString;
 begin
-  SS := 'background-color: rgb(26,30,46); border: 1px solid rgb(36,40,62); color: white;';
+  if CurrentTheme = tmLight then
+    SS := 'background-color: rgb(240,240,240); border: 1px solid rgb(200,200,200); color: black;'
+  else
+    SS := 'background-color: rgb(26,30,46); border: 1px solid rgb(36,40,62); color: white;';
   QWidget_setStyleSheet(TQtWidget(GB.Handle).Widget, @SS);
 end;
 
@@ -2899,7 +2901,10 @@ var
   PB: TPaintBox;
 begin
   PB := TPaintBox(Sender);
-  PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  if CurrentTheme = tmLight then
+    PB.Canvas.Brush.Color := LighterBackgroundColor
+  else
+    PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
   PB.Canvas.FillRect(Rect(0, 0, PB.Width, PB.Height));
 end;
 
@@ -2908,7 +2913,10 @@ var
   P: TPanel;
 begin
   P := TPanel(Sender);
-  P.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  if CurrentTheme = tmLight then
+    P.Canvas.Brush.Color := LighterBackgroundColor
+  else
+    P.Canvas.Brush.Color := RGBToColor(22, 26, 40);
   P.Canvas.FillRect(Rect(0, 0, P.Width, P.Height));
 end;
 
@@ -2931,12 +2939,18 @@ begin
   try
     OffBmp.SetSize(TWidth, THeight);
 
-    // Body: R=22, G=26, B=40 — cool dark navy, like reference images
-    OffBmp.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+    // Body — theme-aware background
+    if CurrentTheme = tmLight then
+      OffBmp.Canvas.Brush.Color := RGBToColor(238, 238, 238)
+    else
+      OffBmp.Canvas.Brush.Color := RGBToColor(22, 26, 40);
     OffBmp.Canvas.FillRect(Rect(0, 0, TWidth, THeight));
 
-    // Left specular — 1px white-ish (frosted-glass edge)
-    OffBmp.Canvas.Pen.Color := RGBToColor(55, 64, 95);
+    // Left specular — subtle edge highlight
+    if CurrentTheme = tmLight then
+      OffBmp.Canvas.Pen.Color := RGBToColor(200, 200, 200)
+    else
+      OffBmp.Canvas.Pen.Color := RGBToColor(55, 64, 95);
     OffBmp.Canvas.Line(0, 0, 0, THeight);
 
     // No right separator — content area uses same navy background, seamless join
@@ -3008,7 +3022,10 @@ begin
       goverlayPaintBox.Canvas.StretchDraw(ThumbDst, FGlobalThumbPng);
 
       // Label: "Global" when collapsed, "Global config" when expanded
-      goverlayPaintBox.Canvas.Font.Color  := clWhite;
+      if CurrentTheme = tmLight then
+        goverlayPaintBox.Canvas.Font.Color := clBlack
+      else
+        goverlayPaintBox.Canvas.Font.Color  := clWhite;
       goverlayPaintBox.Canvas.Brush.Style := bsClear;
       if FNavCollapsed then
       begin
@@ -7283,6 +7300,8 @@ end;
 
 
 procedure Tgoverlayform.ApplyCustomEnvTheme;
+var
+  i: Integer;
 begin
   if not Assigned(FCustomListBox) then Exit;
   if CurrentTheme = tmLight then
@@ -7312,6 +7331,20 @@ begin
   UpdateGenericCardTheme(FVkReshadeCard);
   UpdateGenericCardTheme(FVkBuiltinCard);
   UpdateGenericCardTheme(FVkToggleCard);
+
+  // Invalidate painted backgrounds so custom paint handlers repaint with new theme
+  if Assigned(FPresetsBgBox)      then FPresetsBgBox.Invalidate;
+  if Assigned(FPresetsWrapper)    then FPresetsWrapper.Invalidate;
+  if Assigned(FExtBgPanel)        then FExtBgPanel.Invalidate;
+  if Assigned(FOsBgPanel)         then FOsBgPanel.Invalidate;
+  if Assigned(FMtBgPanel)         then FMtBgPanel.Invalidate;
+  if Assigned(FGamesPanel)        then FGamesPanel.Invalidate;
+  if Assigned(goverlayPaintBox)   then goverlayPaintBox.Invalidate;
+  if Assigned(goverlayPanel)      then goverlayPanel.Invalidate;
+  if Assigned(goverlaybarPanel)   then goverlaybarPanel.Invalidate;
+  // Invalidate all TTabSheets to repaint BgBox children
+  for i := 0 to goverlayPageControl.PageCount - 1 do
+    goverlayPageControl.Pages[i].Invalidate;
 end;
 
 procedure Tgoverlayform.InitCustomEnvGroupBox;
@@ -12288,24 +12321,37 @@ end;
 procedure Tgoverlayform.PerfCardPaint(Sender: TObject);
 // Option B card style: elevated blue-gray fill + subtle blue border + cyan top accent
 const
-  CARD_BG  = $002E1E1A;  // rgb(26, 30, 46)  — subtly lighter than navy bg
-  CARD_BRD = $003E2824;  // rgb(36, 40, 62)  — subtle blue border
-  CYAN_H   = 2;          // cyan top accent height (px)
-  CYAN_CLR = $00F0BE30;  // rgb(48, 190, 240) — same cyan as active tab indicator
+  DARK_BG   = $002E1E1A;  // rgb(26, 30, 46)
+  DARK_BRD  = $003E2824;  // rgb(36, 40, 62)
+  LIGHT_BG  = $00F0F0F0;  // rgb(240, 240, 240)
+  LIGHT_BRD = $00D0D0D0;  // rgb(208, 208, 208)
+  CYAN_H    = 2;
+  CYAN_CLR  = $00F0BE30;  // rgb(48, 190, 240)
 var
   Card: TPanel;
+  CardBg, CardBrd: TColor;
 begin
   if not (Sender is TPanel) then Exit;
   Card := TPanel(Sender);
+  if CurrentTheme = tmLight then
+  begin
+    CardBg  := LIGHT_BG;
+    CardBrd := LIGHT_BRD;
+  end
+  else
+  begin
+    CardBg  := DARK_BG;
+    CardBrd := DARK_BRD;
+  end;
 
   // Fill background
-  Card.Canvas.Brush.Color := CARD_BG;
+  Card.Canvas.Brush.Color := CardBg;
   Card.Canvas.Brush.Style := bsSolid;
   Card.Canvas.FillRect(Card.ClientRect);
 
   // Border (all four sides)
   Card.Canvas.Brush.Style := bsClear;
-  Card.Canvas.Pen.Color   := CARD_BRD;
+  Card.Canvas.Pen.Color   := CardBrd;
   Card.Canvas.Pen.Width   := 1;
   Card.Canvas.Rectangle(0, 0, Card.Width, Card.Height);
 
@@ -12319,20 +12365,32 @@ end;
 
 procedure Tgoverlayform.SubCardPaint(Sender: TObject);
 // Sub-section style: same blue-gray fill + very subtle border, no cyan accent.
-// Used for nested panels inside cards (Visual sections, GroupBox replacements).
 const
-  BG  = $002E1E1A;  // rgb(26, 30, 46)
-  BRD = $00342620;  // rgb(32, 38, 52) — barely visible divider
+  DARK_BG   = $002E1E1A;  // rgb(26, 30, 46)
+  DARK_BRD  = $00342620;  // rgb(32, 38, 52)
+  LIGHT_BG  = $00F0F0F0;  // rgb(240, 240, 240)
+  LIGHT_BRD = $00E0E0E0;  // rgb(224, 224, 224)
 var
   P: TPanel;
+  Bg, Brd: TColor;
 begin
   if not (Sender is TPanel) then Exit;
   P := TPanel(Sender);
-  P.Canvas.Brush.Color := BG;
+  if CurrentTheme = tmLight then
+  begin
+    Bg  := LIGHT_BG;
+    Brd := LIGHT_BRD;
+  end
+  else
+  begin
+    Bg  := DARK_BG;
+    Brd := DARK_BRD;
+  end;
+  P.Canvas.Brush.Color := Bg;
   P.Canvas.Brush.Style := bsSolid;
   P.Canvas.FillRect(P.ClientRect);
   P.Canvas.Brush.Style := bsClear;
-  P.Canvas.Pen.Color   := BRD;
+  P.Canvas.Pen.Color   := Brd;
   P.Canvas.Pen.Width   := 1;
   P.Canvas.Rectangle(0, 0, P.Width, P.Height);
 end;
@@ -12346,6 +12404,7 @@ var
   CardBg, GbBg, TextColor: TColor;
   Card: TPanel;
   j: Integer;
+  SS: WideString;
 begin
   if not Assigned(FVisualCards[0]) then Exit;
 
@@ -12401,10 +12460,24 @@ begin
         TLabel(FVisualGpuBar.Controls[j]).Color      := CardBg;
       end;
     end;
-    gpudescEdit.Color       := CardBg;
-    gpudescEdit.Font.Color  := TextColor;
-    hudtitleEdit.Color      := CardBg;
-    hudtitleEdit.Font.Color := TextColor;
+    pcidevComboBox.Color     := CardBg;
+    pcidevComboBox.Font.Color := TextColor;
+    gpudescEdit.Color        := CardBg;
+    gpudescEdit.Font.Color   := TextColor;
+    hudtitleEdit.Color       := CardBg;
+    hudtitleEdit.Font.Color  := TextColor;
+
+    // Force Qt stylesheets — KDE/Breeze ignores LCL Color/Font.Color
+    if CurrentTheme = tmLight then
+      SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); }'
+    else
+      SS := 'QComboBox { background-color: rgb(46,46,54); color: rgb(255,255,255); }';
+    QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
+    if CurrentTheme = tmLight then
+      SS := 'QLineEdit { background-color: rgb(242,242,242); color: rgb(0,0,0); border: none; }'
+    else
+      SS := 'QLineEdit { background-color: rgb(46,46,54); color: rgb(255,255,255); border: none; }';
+    QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
   end;
 
   // Update HUD settings bar
@@ -12417,6 +12490,13 @@ begin
     hudcompactCheckBox.Font.Color := TextColor;
     hidehudCheckBox.Color        := CardBg;
     hidehudCheckBox.Font.Color   := TextColor;
+
+    // Force QCheckBox stylesheet — KDE/Breeze ignores LCL properties
+    if CurrentTheme = tmLight then
+      SS := 'QCheckBox { color: rgb(0,0,0); background-color: rgb(242,242,242); }'
+    else
+      SS := 'QCheckBox { color: rgb(255,255,255); background-color: rgb(46,46,54); }';
+    QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
   end;
 end;
 
@@ -12815,6 +12895,13 @@ begin
   pcidevComboBox.Anchors := [akLeft, akTop];
   pcidevComboBox.Left    := 11;
   pcidevComboBox.Top     := 26;
+  pcidevComboBox.Color       := BarBg;
+  pcidevComboBox.Font.Color  := TextColor;
+  if CurrentTheme = tmLight then
+    SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); }'
+  else
+    SS := 'QComboBox { background-color: rgb(46,46,54); color: rgb(255,255,255); }';
+  QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
   gpudescEdit.Parent := FVisualGpuBar;
   gpudescEdit.AnchorSideLeft.Control  := nil;
@@ -12826,7 +12913,10 @@ begin
   gpudescEdit.Color       := BarBg;
   gpudescEdit.Font.Color  := TextColor;
   gpudescEdit.BorderStyle := bsNone;
-  SS := 'background-color: rgb(26,30,46); border: none; color: white;';
+  if CurrentTheme = tmLight then
+    SS := 'background-color: rgb(245,245,245); border: none; color: black;'
+  else
+    SS := 'background-color: rgb(26,30,46); border: none; color: white;';
   QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
 
   // ── HUD Title field — option C: style in place ───────────────────────────
@@ -12895,7 +12985,7 @@ begin
   hudcompactCheckBox.AnchorSideBottom.Control := nil;
   hudcompactCheckBox.Anchors     := [akLeft, akTop];
   hudcompactCheckBox.Font.Color  := TextColor;
-  hudcompactCheckBox.Color       := $002E1E1A;
+  hudcompactCheckBox.Color       := BarBg;
   hudcompactCheckBox.ParentColor := False;
   hudcompactCheckBox.Top := 17;
 
@@ -12907,11 +12997,14 @@ begin
   hidehudCheckBox.AnchorSideBottom.Control := nil;
   hidehudCheckBox.Anchors     := [akLeft, akTop];
   hidehudCheckBox.Font.Color  := TextColor;
-  hidehudCheckBox.Color       := $002E1E1A;
+  hidehudCheckBox.Color       := BarBg;
   hidehudCheckBox.ParentColor := False;
   hidehudCheckBox.Top := 17;
 
-  SS := 'QCheckBox { background-color: rgb(26,30,46); }';
+  if CurrentTheme = tmLight then
+    SS := 'QCheckBox { background-color: rgb(242,242,242); }'
+  else
+    SS := 'QCheckBox { background-color: rgb(26,30,46); }';
   QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
 
 end;
@@ -13079,6 +13172,7 @@ var
   Bg, TextColor, EditBg: TColor;
   Lbl: TLabel;
   ContL, ContT, ContW, ContH: Integer;
+  SS: WideString;
 begin
   IsLight   := CurrentTheme = tmLight;
   Bg        := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
@@ -13169,6 +13263,12 @@ begin
   FFpsLimitEdit.Color := EditBg;
   FFpsLimitEdit.BorderStyle := bsNone;
   FFpsLimitEdit.Text := '0';
+  // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
+  if CurrentTheme = tmLight then
+    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
+  else
+    SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: none; }';
+  QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
 
   // Small hint label below the edit
   Lbl := TLabel.Create(Self);
@@ -13619,6 +13719,9 @@ begin
   loggingGroupBox.Visible := False;
 end;
 
+
+
+
 procedure Tgoverlayform.UpdatePerfCardTheme;
 const
   DARK_BG  = $002E1E1A;  // rgb(28, 33, 52) — Option B
@@ -13627,6 +13730,7 @@ var
   i, j: Integer;
   CardBg, TextColor: TColor;
   Card: TPanel;
+  SS: WideString;
 begin
   if not Assigned(FPerfCards[0]) then Exit;
 
@@ -13677,8 +13781,14 @@ begin
   // FPS Limit edit: update colors for theme
   if Assigned(FFpsLimitEdit) then
   begin
-    FFpsLimitEdit.Color     := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
+    FFpsLimitEdit.Color      := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
     FFpsLimitEdit.Font.Color := TextColor;
+    // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
+    if CurrentTheme = tmLight then
+      SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
+    else
+      SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: none; }';
+    QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
   end;
 end;
 
@@ -16815,7 +16925,10 @@ begin
       begin
         FHomeDepDots[i].Brush.Color := CLR_OK;
         FHomeDepDots[i].Pen.Color   := CLR_OK;
-        FHomeDepLbls[i].Font.Color  := clWhite;
+        if CurrentTheme = tmLight then
+          FHomeDepLbls[i].Font.Color := LightTextColor
+        else
+          FHomeDepLbls[i].Font.Color := clWhite;
       end;
     end;
   finally
@@ -16825,8 +16938,6 @@ end;
 
 procedure Tgoverlayform.InitHomeTab;
 const
-  BG         = $001A1A1A;
-  CARD_BG    = $00222222;
   CARD_M     = 16;
   CARD_P     = 18;   // padding inside card (left content margin)
   ROW_H      = 32;
@@ -16838,6 +16949,8 @@ const
   ACC_MOD    = $004488CC;  // blue  — Module Status
   ACC_DEP    = $0033AA55;  // green — Dependencies
   ACC_SYS    = $00CC8844;  // orange — System Info
+var
+  BG, CARD_BG, TXT_CLR, MUTED_CLR: TColor;
 
   DEP_NAMES: array[0..7] of string = (
     'PasCube', 'vkcube', '7z', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
@@ -16894,7 +17007,7 @@ var
     Result.Parent     := AParent;
     Result.Caption    := AText;
     Result.Font.Bold  := True;
-    Result.Font.Color := clWhite;
+    Result.Font.Color := TXT_CLR;
     Result.Font.Size  := 10;
     Result.Left       := CARD_P;
     Result.Top        := AY;
@@ -16942,6 +17055,22 @@ var
   end;
 
 begin
+  // ── Theme-aware colors ──────────────────────────────────────────────────
+  if CurrentTheme = tmLight then
+  begin
+    BG       := LighterBackgroundColor;  // $F5F5F5
+    CARD_BG  := LightBackgroundColor;    // clWhite
+    TXT_CLR  := LightTextColor;          // clBlack
+    MUTED_CLR := $00606060;              // grey
+  end
+  else
+  begin
+    BG       := $001A1A1A;
+    CARD_BG  := $00222222;
+    TXT_CLR  := clWhite;
+    MUTED_CLR := clSilver;
+  end;
+
   // ── Tab sheet ────────────────────────────────────────────────────────────
   FHomeTabSheet := TTabSheet.Create(goverlayPageControl);
   FHomeTabSheet.PageControl := goverlayPageControl;
@@ -16972,7 +17101,7 @@ begin
   FClearConfigBtn.Caption     := 'Clear configuration';
   FClearConfigBtn.Font.Name   := 'Noto Sans';
   FClearConfigBtn.Font.Size   := 8;
-  FClearConfigBtn.Font.Color  := clWhite;
+  FClearConfigBtn.Font.Color  := TXT_CLR;
   FClearConfigBtn.Alignment   := taCenter;
   FClearConfigBtn.Cursor      := crHandPoint;
   FClearConfigBtn.Anchors     := [akTop, akRight];
@@ -17030,7 +17159,7 @@ begin
     if FileExists(GetAppBaseDir + IconFile) then
       Ico.Picture.LoadFromFile(GetAppBaseDir + IconFile);
 
-    Lbl.Font.Color := clWhite;
+    Lbl.Font.Color := TXT_CLR;
     Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 16;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
@@ -17057,7 +17186,7 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := MOD_NAMES[i];
-    Lbl.Font.Color := clWhite;
+    Lbl.Font.Color := TXT_CLR;
     Lbl.Font.Size  := 9;
     Lbl.Left       := CARD_P + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
@@ -17067,7 +17196,7 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := '—';
-    Lbl.Font.Color := clSilver;
+    Lbl.Font.Color := MUTED_CLR;
     Lbl.Font.Size  := 9;
     Lbl.Left       := CARD_P + DOT_SZ + 8 + 110;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
@@ -17096,7 +17225,7 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := LIB_NAMES[i];
-    Lbl.Font.Color := clSilver;
+    Lbl.Font.Color := MUTED_CLR;
     Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 8;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
@@ -17133,7 +17262,7 @@ begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
     Lbl.Caption    := DEP_NAMES[i];
-    Lbl.Font.Color := clWhite;
+    Lbl.Font.Color := TXT_CLR;
     Lbl.Font.Size  := 9;
     Lbl.Left       := ColX + DOT_SZ + 6;
     Lbl.Top        := Row + (ROW_H - 16) div 2;
