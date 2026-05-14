@@ -545,7 +545,6 @@ type
     FCardPanels:  TList;    // ordered list of game card TPanels
     FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
     FNonSteamCoverThread: TThread;  // background thread for non-Steam cover downloads
-    FCoverCheckTimer: TTimer;       // polls for newly downloaded covers
     FLoadedCovers: TStringList;     // game names whose covers are already displayed
     FActiveGameName:    string;   // non-empty when editing a game-specific config
     FActiveGameIsNonSteam: Boolean; // true when editing a non-steam game config
@@ -792,7 +791,6 @@ type
     procedure AddNonSteamFolderClick(Sender: TObject);
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
     procedure CoverThreadTerminated(Sender: TObject);
-    procedure CoverCheckTimerTick(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
     function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
     function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
@@ -804,6 +802,7 @@ type
     function  FindFileInDir(const ADir, AFileName: string): string;
     procedure RunFGModUninstallCommands(const ATargetDir: string);
     procedure CheckAndUpdateConfigVersion;
+    procedure RefreshGameCardsAsync(Data: PtrInt);
     function  GetMangoHudConfigEnvPrefix: string;
     function  GetMangoHudLaunchEnv: string;
     function  GetVkBasaltConfigEnvPrefix: string;
@@ -1211,6 +1210,7 @@ var
   CardPanel: TPanel;
   CardIdx: Integer;
 begin
+  if not Assigned(FForm) or (FForm.FCoverThread <> Self) then Exit;
   if not Assigned(FCurrentImage) or not FileExists(FCurrentPath) then Exit;
   // Safety: verify the image's parent panel is still in the active card list
   if not Assigned(FCurrentImage.Parent) or not (FCurrentImage.Parent is TPanel) then Exit;
@@ -1353,7 +1353,8 @@ var
   CardImage: TImage;
   j: Integer;
 begin
-  if not Assigned(FForm) or not Assigned(FForm.FCardPanels) or not Assigned(FForm.FOrigCovers) then Exit;
+  if not Assigned(FForm) or (FForm.FNonSteamCoverThread <> Self) then Exit;
+  if not Assigned(FForm.FCardPanels) or not Assigned(FForm.FOrigCovers) then Exit;
   if not FileExists(FCurrentPath) then Exit;
   if (FCurrentCardIdx < 0) or (FCurrentCardIdx >= FForm.FCardPanels.Count) then Exit;
 
@@ -1402,7 +1403,12 @@ begin
 
     // Already cached?
     if FileExists(FItems[i].CachePath) then
+    begin
+      FCurrentCardIdx := FItems[i].CardIndex;
+      FCurrentPath := FItems[i].CachePath;
+      Synchronize(@DoUpdateImage);
       Continue;
+    end;
 
     GotCover := False;
 
@@ -1416,6 +1422,13 @@ begin
     if not GotCover and Assigned(FForm) and not FForm.FClosing then
       if FForm.SearchWebCover(FItems[i].GameName, FItems[i].CachePath) then
         GotCover := True;
+
+    if GotCover or FileExists(FItems[i].CachePath) then
+    begin
+      FCurrentCardIdx := FItems[i].CardIndex;
+      FCurrentPath := FItems[i].CachePath;
+      Synchronize(@DoUpdateImage);
+    end;
   end;
 end;
 
@@ -4766,8 +4779,6 @@ begin
     FNonSteamCoverThread.Terminate;
     FNonSteamCoverThread := nil; // thread frees itself (FreeOnTerminate = True)
   end;
-  if Assigned(FCoverCheckTimer) then
-    FreeAndNil(FCoverCheckTimer);
   if Assigned(FOrigCovers) then
   begin
     for k := 0 to FOrigCovers.Count - 1 do
@@ -16234,8 +16245,7 @@ begin
       if Assigned(FCoverThread) then
       begin
         FCoverThread.Terminate;
-        FCoverThread.WaitFor;
-        FreeAndNil(FCoverThread);
+        FCoverThread := nil;
       end;
       // Thread takes ownership of PendingIDs and PendingImages
       FCoverThread := TCoverDownloadThread.Create(
@@ -16268,11 +16278,15 @@ begin
     FNonSteamCoverThread.Terminate;
     FNonSteamCoverThread := nil;
   end;
+  // Kill hover animation — FHoveredCard will point to a destroyed panel after
+  // we free the card list, so we must clear it first to prevent a dangling-ptr crash.
+  if Assigned(FHoverTimer) then
+    FHoverTimer.Enabled := False;
+  FHoveredCard     := nil;
+  FHoverBrightness := 0;
+  FHoverDir        := 0;
   // Flush any pending Synchronize calls before freeing panels
   CheckSynchronize;
-  // Stop cover check timer
-  if Assigned(FCoverCheckTimer) then
-    FCoverCheckTimer.Enabled := False;
   // Free all card panels — they own their children (CardImage, CardLabel, badges)
   // so a single Free call cleans up each card and all its sub-controls.
   if Assigned(FCardPanels) then
@@ -16291,85 +16305,6 @@ begin
   end;
   // Rebuild the grid with up-to-date badge states
   LoadSteamGames;
-end;
-
-// ============================================================================
-// Cover check timer: polls for downloaded covers and updates UI from main thread
-// ============================================================================
-
-procedure Tgoverlayform.CoverCheckTimerTick(Sender: TObject);
-var
-  i, j: Integer;
-  CardPanel: TPanel;
-  CardImage: TImage;
-  CacheDir, CachePath, GameName: string;
-  ScaledBmp: TBitmap;
-  Lines: TStringList;
-begin
-  if not Assigned(FCardPanels) or not Assigned(FOrigCovers) then Exit;
-
-  CacheDir := GetUserDir + '.cache/goverlay/nonsteam_covers/';
-
-  for i := 0 to FCardPanels.Count - 1 do
-  begin
-    CardPanel := TPanel(FCardPanels[i]);
-    // Only check non-Steam cards (Tag = 9997)
-    if CardPanel.Tag <> 9997 then Continue;
-
-    // Find the TImage child
-    CardImage := nil;
-    for j := 0 to CardPanel.ControlCount - 1 do
-      if CardPanel.Controls[j] is TImage then
-      begin
-        CardImage := TImage(CardPanel.Controls[j]);
-        Break;
-      end;
-    if not Assigned(CardImage) then Continue;
-
-    // Extract game name from Hint (first line)
-    GameName := '';
-    if CardPanel.Hint <> '' then
-    begin
-      Lines := TStringList.Create;
-      try
-        Lines.Text := CardPanel.Hint;
-        if Lines.Count > 0 then
-          GameName := Lines[0];
-      finally
-        Lines.Free;
-      end;
-    end;
-    if GameName = '' then Continue;
-
-    CachePath := CacheDir + SanitizeFileName(GameName) + '.jpg';
-    if not FileExists(CachePath) then Continue;
-
-    // Try loading the cover
-    try
-      CardImage.Picture.LoadFromFile(CachePath);
-      ScaledBmp := TBitmap.Create;
-      try
-        ScaledBmp.SetSize(CARD_W, CARD_H);
-        ScaledBmp.Canvas.StretchDraw(
-          Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-        ProcessCoverBitmap(ScaledBmp, GRAD_H);
-        CardImage.Picture.Bitmap.Assign(ScaledBmp);
-        if (i >= 0) and (i < FOrigCovers.Count) then
-        begin
-          if FOrigCovers[i] <> nil then
-            TLazIntfImage(FOrigCovers[i]).Free;
-          FOrigCovers[i] := ScaledBmp.CreateIntfImage;
-        end;
-      finally
-        ScaledBmp.Free;
-      end;
-    except
-    end;
-  end;
-
-  // Stop timer if no thread is running
-  if not Assigned(FNonSteamCoverThread) then
-    FCoverCheckTimer.Enabled := False;
 end;
 
 // ============================================================================
@@ -17570,7 +17505,7 @@ begin
     Lines.Free;
   end;
 
-  RefreshGameCards;
+  Application.QueueAsyncCall(@RefreshGameCardsAsync, 0);
 end;
 
 procedure Tgoverlayform.LoadNonSteamFolders(var ACardIndex: Integer;
@@ -17910,19 +17845,10 @@ begin
       if Assigned(FNonSteamCoverThread) then
       begin
         FNonSteamCoverThread.Terminate;
-        FNonSteamCoverThread.WaitFor;
-        FreeAndNil(FNonSteamCoverThread);
+        FNonSteamCoverThread := nil;
       end;
       FNonSteamCoverThread := TNonSteamCoverThread.Create(PendingItems, Self);
       FNonSteamCoverThread.Start;
-      // Start timer to poll for downloaded covers and update UI from main thread
-      if not Assigned(FCoverCheckTimer) then
-      begin
-        FCoverCheckTimer := TTimer.Create(Self);
-        FCoverCheckTimer.Interval := 1000;
-        FCoverCheckTimer.OnTimer := @CoverCheckTimerTick;
-      end;
-      FCoverCheckTimer.Enabled := True;
     end;
   finally
     Lines.Free;
@@ -18898,6 +18824,11 @@ begin
   except
     // Fail silently so startup isn't aborted
   end;
+end;
+
+procedure Tgoverlayform.RefreshGameCardsAsync(Data: PtrInt);
+begin
+  RefreshGameCards;
 end;
 
 end.
