@@ -12397,8 +12397,8 @@ end;
 
 procedure Tgoverlayform.UpdateVisualCardTheme;
 const
-  DARK_BG   = $00362E2E;
-  LIGHT_BG  = $00FFFFFF;
+  DARK_BG   = $002E1E1A;  // matches PerfCardPaint / SubCardPaint dark fill
+  LIGHT_BG  = $00F0F0F0;  // matches PerfCardPaint / SubCardPaint light fill
 var
   i: Integer;
   CardBg, GbBg, TextColor: TColor;
@@ -12469,14 +12469,14 @@ begin
 
     // Force Qt stylesheets — KDE/Breeze ignores LCL Color/Font.Color
     if CurrentTheme = tmLight then
-      SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); }'
+      SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); }'
     else
-      SS := 'QComboBox { background-color: rgb(46,46,54); color: rgb(255,255,255); }';
+      SS := 'QComboBox { background-color: rgb(26,30,46); color: rgb(255,255,255); }';
     QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
     if CurrentTheme = tmLight then
-      SS := 'QLineEdit { background-color: rgb(242,242,242); color: rgb(0,0,0); border: none; }'
+      SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: none; }'
     else
-      SS := 'QLineEdit { background-color: rgb(46,46,54); color: rgb(255,255,255); border: none; }';
+      SS := 'QLineEdit { background-color: rgb(26,30,46); color: rgb(255,255,255); border: none; }';
     QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
   end;
 
@@ -12486,16 +12486,16 @@ begin
     FVisualHudBar.Color := CardBg;
     FVisualHudBar.Invalidate;
     hudtoggleLabel.Font.Color    := TextColor;
-    hudcompactCheckBox.Color     := CardBg;
+    hudcompactCheckBox.ParentColor := True;
     hudcompactCheckBox.Font.Color := TextColor;
-    hidehudCheckBox.Color        := CardBg;
+    hidehudCheckBox.ParentColor := True;
     hidehudCheckBox.Font.Color   := TextColor;
 
-    // Force QCheckBox stylesheet — KDE/Breeze ignores LCL properties
+    // Force QCheckBox text color via stylesheet (background transparent)
     if CurrentTheme = tmLight then
-      SS := 'QCheckBox { color: rgb(0,0,0); background-color: rgb(242,242,242); }'
+      SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
     else
-      SS := 'QCheckBox { color: rgb(255,255,255); background-color: rgb(46,46,54); }';
+      SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
     QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
   end;
 end;
@@ -12898,9 +12898,9 @@ begin
   pcidevComboBox.Color       := BarBg;
   pcidevComboBox.Font.Color  := TextColor;
   if CurrentTheme = tmLight then
-    SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); }'
+    SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); }'
   else
-    SS := 'QComboBox { background-color: rgb(46,46,54); color: rgb(255,255,255); }';
+    SS := 'QComboBox { background-color: rgb(26,30,46); color: rgb(255,255,255); }';
   QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
   gpudescEdit.Parent := FVisualGpuBar;
@@ -12914,7 +12914,7 @@ begin
   gpudescEdit.Font.Color  := TextColor;
   gpudescEdit.BorderStyle := bsNone;
   if CurrentTheme = tmLight then
-    SS := 'background-color: rgb(245,245,245); border: none; color: black;'
+    SS := 'background-color: rgb(240,240,240); border: none; color: black;'
   else
     SS := 'background-color: rgb(26,30,46); border: none; color: white;';
   QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
@@ -12985,8 +12985,7 @@ begin
   hudcompactCheckBox.AnchorSideBottom.Control := nil;
   hudcompactCheckBox.Anchors     := [akLeft, akTop];
   hudcompactCheckBox.Font.Color  := TextColor;
-  hudcompactCheckBox.Color       := BarBg;
-  hudcompactCheckBox.ParentColor := False;
+  hudcompactCheckBox.ParentColor := True;
   hudcompactCheckBox.Top := 17;
 
   // Reparent Hide by default checkbox (Left set in Reflow)
@@ -12997,14 +12996,13 @@ begin
   hidehudCheckBox.AnchorSideBottom.Control := nil;
   hidehudCheckBox.Anchors     := [akLeft, akTop];
   hidehudCheckBox.Font.Color  := TextColor;
-  hidehudCheckBox.Color       := BarBg;
-  hidehudCheckBox.ParentColor := False;
+  hidehudCheckBox.ParentColor := True;
   hidehudCheckBox.Top := 17;
 
   if CurrentTheme = tmLight then
-    SS := 'QCheckBox { background-color: rgb(242,242,242); }'
+    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
   else
-    SS := 'QCheckBox { background-color: rgb(26,30,46); }';
+    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
   QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
 
 end;
@@ -13591,8 +13589,7 @@ const
 
   procedure DarkCheck(C: TCheckBox);
   begin
-    C.ParentColor := False;
-    C.Color       := CARD_BG;
+    C.ParentColor := True;
     C.Font.Color  := WHITE;
     C.Font.Size   := 9;
   end;
@@ -13794,11 +13791,12 @@ end;
 
 procedure Tgoverlayform.UpdateGenericCardTheme(Card: TPanel);
 const
-  DARK_BG   = $00362E2E;
-  LIGHT_BG  = $00FFFFFF;
+  DARK_BG   = $002E1E1A;  // matches SubCardPaint / PerfCardPaint dark fill
+  LIGHT_BG  = $00F0F0F0;  // matches SubCardPaint / PerfCardPaint light fill
 var
   j: Integer;
   CardBg, TextColor: TColor;
+  SS: WideString;
 begin
   if not Assigned(Card) then Exit;
 
@@ -13823,13 +13821,13 @@ begin
     end
     else if Card.Controls[j] is TCheckBox then
     begin
+      TCheckBox(Card.Controls[j]).ParentColor := True;
       TCheckBox(Card.Controls[j]).Font.Color := TextColor;
-      TCheckBox(Card.Controls[j]).Color      := CardBg;
     end
     else if Card.Controls[j] is TRadioButton then
     begin
+      TRadioButton(Card.Controls[j]).ParentColor := True;
       TRadioButton(Card.Controls[j]).Font.Color := TextColor;
-      TRadioButton(Card.Controls[j]).Color      := CardBg;
     end
     else if Card.Controls[j] is TComboBox then
     begin
@@ -13837,9 +13835,21 @@ begin
       if CurrentTheme = tmLight then
         TComboBox(Card.Controls[j]).Color := LighterBackgroundColor
       else
-        TComboBox(Card.Controls[j]).Color := RGBToColor(34, 38, 52); // COMBOBG default
+        TComboBox(Card.Controls[j]).Color := RGBToColor(34, 38, 52);
+    end
+    else if Card.Controls[j] is TGroupBox then
+    begin
+      TGroupBox(Card.Controls[j]).Color      := CardBg;
+      TGroupBox(Card.Controls[j]).Font.Color := TextColor;
     end;
   end;
+
+  // Force QCheckBox background transparent via Qt stylesheet
+  if CurrentTheme = tmLight then
+    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
+  else
+    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
+  QWidget_setStyleSheet(TQtWidget(Card.Handle).Widget, @SS);
 end;
 
 procedure Tgoverlayform.UpdateExtrasCardTheme;
@@ -14057,7 +14067,7 @@ const
 
   procedure DarkCheck(C: TCheckBox);
   begin
-    C.ParentColor := False; C.Color := BG; C.Font.Color := WHITE; C.Font.Size := 9;
+    C.ParentColor := True; C.Font.Color := WHITE; C.Font.Size := 9;
   end;
 
   procedure DarkRadio(R: TRadioButton);
@@ -14727,8 +14737,7 @@ const
 
   procedure DarkCheck(C: TCheckBox);
   begin
-    C.ParentColor := False;
-    C.Color       := CARD_BG;
+    C.ParentColor := True;
     C.Font.Color  := WHITE;
     C.Font.Size   := 9;
   end;
