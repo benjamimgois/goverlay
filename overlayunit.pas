@@ -237,6 +237,7 @@ type
     hidehudCheckBox: TCheckBox;
     hImage: TImage;
     horizontalRadioButton: TRadioButton;
+    horizontalstrechCheckBox: TCheckBox;
     hudbackgroundColorButton: TColorButton;
     hudcompactCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
@@ -3630,6 +3631,8 @@ begin
     if TryStrToInt(AValue, IntValue) then
       offsetySpinEdit.Value := IntValue;
   end
+  else if SameText(AKey, MANGO_KEY_HORIZONTAL_STRETCH) then
+    horizontalstrechCheckBox.Checked := True
   else if SameText(AKey, MANGO_KEY_TOGGLE_HUD) then
   begin
     hudonoffComboBox.Text := AValue;
@@ -3958,6 +3961,10 @@ begin
 
     // HUD compact
     AddIfChecked(hudcompactCheckBox, 'hud_compact');
+
+    // Horizontal Stretch
+    if horizontalstrechCheckBox.Checked then
+      ConfigLines.Add(MANGO_KEY_HORIZONTAL_STRETCH + '=0');
 
     // PCI device and GPU List logic
     if pcidevComboBox.ItemIndex <> -1 then
@@ -12488,6 +12495,8 @@ begin
     hudtoggleLabel.Font.Color    := TextColor;
     hudcompactCheckBox.ParentColor := True;
     hudcompactCheckBox.Font.Color := TextColor;
+    horizontalstrechCheckBox.ParentColor := True;
+    horizontalstrechCheckBox.Font.Color := TextColor;
     hidehudCheckBox.ParentColor := True;
     hidehudCheckBox.Font.Color   := TextColor;
 
@@ -12988,6 +12997,19 @@ begin
   hudcompactCheckBox.ParentColor := True;
   hudcompactCheckBox.Top := 17;
 
+  // Create and reparent Horizontal Strech checkbox (Left set in Reflow)
+  horizontalstrechCheckBox := TCheckBox.Create(FVisualHudBar);
+  horizontalstrechCheckBox.Parent := FVisualHudBar;
+  horizontalstrechCheckBox.Caption := 'Horizontal Strech';
+  horizontalstrechCheckBox.AnchorSideLeft.Control   := nil;
+  horizontalstrechCheckBox.AnchorSideTop.Control    := nil;
+  horizontalstrechCheckBox.AnchorSideRight.Control  := nil;
+  horizontalstrechCheckBox.AnchorSideBottom.Control := nil;
+  horizontalstrechCheckBox.Anchors     := [akLeft, akTop];
+  horizontalstrechCheckBox.Font.Color  := TextColor;
+  horizontalstrechCheckBox.ParentColor := True;
+  horizontalstrechCheckBox.Top := 17;
+
   // Reparent Hide by default checkbox (Left set in Reflow)
   hidehudCheckBox.Parent := FVisualHudBar;
   hidehudCheckBox.AnchorSideLeft.Control   := nil;
@@ -13027,7 +13049,7 @@ var
   SecW1, SecW2, SecW3: Integer;
   RW, RH, CL, CC, CR, RT, RM, RB: Integer;
   ImgW, ImgH: Integer;
-  HalfW, GrpW, GrpX, CY: Integer;
+  HalfW, GrpW, GrpX, CY, ToggleRight, AvailW, ThirdW: Integer;
 begin
   if not Assigned(FVisualCards[0]) then Exit;
 
@@ -13155,8 +13177,12 @@ begin
   if Assigned(FVisualHudBar) then
   begin
     FVisualHudBar.SetBounds(0, HUD_TOP, W, HUD_H);
-    hudcompactCheckBox.Left := (W - hudcompactCheckBox.Width) div 2;
-    hidehudCheckBox.Left    := W - hidehudCheckBox.Width - 16;
+    ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 8;
+    AvailW := W - ToggleRight - 8;
+    ThirdW := AvailW div 3;
+    hudcompactCheckBox.Left := ToggleRight + (ThirdW - hudcompactCheckBox.Width) div 2;
+    horizontalstrechCheckBox.Left := ToggleRight + ThirdW + (ThirdW - horizontalstrechCheckBox.Width) div 2;
+    hidehudCheckBox.Left    := ToggleRight + 2 * ThirdW + (ThirdW - hidehudCheckBox.Width) div 2;
   end;
 end;
 

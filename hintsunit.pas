@@ -119,6 +119,7 @@ begin
 
   SetHint('hudcompactCheckBox', 'Compact mode' + LineEnding +
     'Reduces spacing between elements');
+  SetHint('horizontalstrechCheckBox', 'Stretches the background to the screens width in horizontal mode');
   SetHint('fahrenheitCheckBox', 'Use Fahrenheit' + LineEnding +
     'Displays temperatures in °F instead of °C');
   SetHint('fpscolorCheckBox', 'Color FPS' + LineEnding +

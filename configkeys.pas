@@ -127,6 +127,7 @@ const
   MANGO_KEY_OFFSET_X           = 'offset_x';
   MANGO_KEY_OFFSET_Y           = 'offset_y';
   MANGO_KEY_TOGGLE_HUD         = 'toggle_hud';
+  MANGO_KEY_HORIZONTAL_STRETCH = 'horizontal_stretch';
   MANGO_KEY_TABLE_COLS         = 'table_columns';
   MANGO_KEY_GPU_TEXT           = 'gpu_text';
   MANGO_KEY_GPU_COLOR          = 'gpu_color';
