@@ -703,6 +703,8 @@ type
     FVsTrackbars:   array[0..14] of TTrackBar;
     FVsValLabels:   array[0..14] of TLabel;
     FVsNameLabels:  array[0..14] of TLabel;
+    FVsScrollBox:   TScrollBox;
+    FVsBgPanel:     TPanel;
 
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
@@ -785,6 +787,7 @@ type
     procedure InitVkBasaltTab;
     procedure InitTweaksCards;
     procedure ReflowVkBasaltTab(AContentW: Integer);
+    procedure ReflowVkSumiTab(AContentW: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -2365,6 +2368,7 @@ begin
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=false; //disable mangohud tab
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 gamesTabSheet.TabVisible:=false; //disable games tab
 tweakstabsheet.TabVisible:=true;
@@ -7373,6 +7377,32 @@ begin
   for i := 0 to 4 do
     UpdateGenericCardTheme(FVsCards[i]);
 
+  // Update vkSumi tab background and scrollbox colors
+  if Assigned(vksumiTabSheet) then
+  begin
+    if CurrentTheme = tmLight then
+      vksumiTabSheet.Color := $00F0F0F0
+    else
+      vksumiTabSheet.Color := RGBToColor(22, 25, 37);
+  end;
+
+  if Assigned(FVsScrollBox) then
+  begin
+    if CurrentTheme = tmLight then
+      FVsScrollBox.Color := $00F0F0F0
+    else
+      FVsScrollBox.Color := RGBToColor(22, 25, 37);
+  end;
+
+  if Assigned(FVsBgPanel) then
+  begin
+    if CurrentTheme = tmLight then
+      FVsBgPanel.Color := $00F0F0F0
+    else
+      FVsBgPanel.Color := RGBToColor(22, 25, 37);
+    FVsBgPanel.Invalidate;
+  end;
+
   // Invalidate painted backgrounds so custom paint handlers repaint with new theme
   if Assigned(FPresetsBgBox)      then FPresetsBgBox.Invalidate;
   if Assigned(FPresetsWrapper)    then FPresetsWrapper.Invalidate;
@@ -7744,6 +7774,7 @@ begin
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   vkbasalttabsheet.TabVisible:=false;
+  vksumiTabSheet.TabVisible:=false;
   optiscalertabsheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
 
@@ -7786,7 +7817,14 @@ begin
 
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=true;
+presetTabSheet.TabVisible:=true;
+visualTabSheet.TabVisible:=true;
+performanceTabSheet.TabVisible:=true;
+metricsTabSheet.TabVisible:=true;
+extrasTabSheet.TabVisible:=true;
+
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 tweakstabsheet.TabVisible:=false;  //disable tweaks tab
 gamesTabSheet.TabVisible:=false; //disable games tab
@@ -7860,6 +7898,7 @@ begin
 //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   vkbasalttabsheet.TabVisible:=false;
+  vksumiTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
   gamesTabSheet.TabVisible:=false; //disable games tab
 
@@ -12304,6 +12343,7 @@ begin
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowVkBasaltTab(ContentW);
+  ReflowVkSumiTab(ContentW);
   if FGamesLoaded then
     ReflowGamesGrid;
 
@@ -12333,6 +12373,7 @@ begin
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowVkBasaltTab(ContentW);
+  ReflowVkSumiTab(ContentW);
 
   if FGamesLoaded then
     ReflowGamesGrid;
@@ -15581,6 +15622,125 @@ begin
                                    FVkToggleTitleLbl.Top, 120, 28);
 end;
 
+procedure Tgoverlayform.ReflowVkSumiTab(AContentW: Integer);
+const
+  MARGIN   = 16;
+  GAP      = 12;
+  CARD_P   = 14;
+  LBL_W    = 100;
+  ROW_H    = 32;
+var
+  CW, CardWidth, Y, i, TotalH: Integer;
+  R0_H, R1_H: Integer;
+  Col0_X, Col1_X: Integer;
+begin
+  if not Assigned(FVsCards[1]) then Exit;
+
+  if Assigned(FVsScrollBox) then
+    CW := FVsScrollBox.ClientWidth
+  else
+    CW := AContentW;
+
+  if CW < 350 then CW := 350; // ensure enough width for two columns
+  CardWidth := (CW - 2 * MARGIN - GAP) div 2;
+  Col0_X    := MARGIN;
+  Col1_X    := MARGIN + CardWidth + GAP;
+
+  // Make sure Settings Card 0 is completely hidden and out of the layout flow
+  if Assigned(FVsCards[0]) then
+  begin
+    FVsCards[0].Visible := False;
+    FVsCards[0].SetBounds(0, 0, 0, 0);
+  end;
+
+  // Row heights:
+  // Tone is CARD_P*2 + 4*ROW_H + 24 = 180
+  // Color is CARD_P*2 + 5*ROW_H + 24 = 212
+  // Per-channel Gain is CARD_P*2 + 3*ROW_H + 24 = 148
+  // 3-Band is CARD_P*2 + 3*ROW_H + 24 = 148
+  R0_H := 212; // Max(180, 212)
+  R1_H := 148; // Max(148, 148)
+
+  // Row 0
+  // Left: Tone (Index 1)
+  FVsCards[1].SetBounds(Col0_X, MARGIN, CardWidth, 180);
+  // Right: Color (Index 2)
+  FVsCards[2].SetBounds(Col1_X, MARGIN, CardWidth, 212);
+
+  // Row 1
+  Y := MARGIN + R0_H + GAP;
+  // Left: Per-channel Gain (Index 3)
+  FVsCards[3].SetBounds(Col0_X, Y, CardWidth, 148);
+  // Right: 3-Band (Index 4)
+  FVsCards[4].SetBounds(Col1_X, Y, CardWidth, 148);
+
+  // Reflow trackbars and labels inside each card (1 to 4)
+  // Card 1: Tone (AParam index 0 to 3)
+  for i := 0 to 3 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+    begin
+      FVsTrackbars[i].Left  := CARD_P + LBL_W;
+      if Assigned(FVsValLabels[i]) then
+      begin
+        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
+        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
+      end;
+    end;
+  end;
+
+  // Card 2: Color (AParam index 4 to 8)
+  for i := 4 to 8 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+    begin
+      FVsTrackbars[i].Left  := CARD_P + LBL_W;
+      if Assigned(FVsValLabels[i]) then
+      begin
+        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
+        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
+      end;
+    end;
+  end;
+
+  // Card 3: Per-channel Gain (AParam index 9 to 11)
+  for i := 9 to 11 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+    begin
+      FVsTrackbars[i].Left  := CARD_P + LBL_W;
+      if Assigned(FVsValLabels[i]) then
+      begin
+        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
+        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
+      end;
+    end;
+  end;
+
+  // Card 4: 3-Band (AParam index 12 to 14)
+  for i := 12 to 14 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+    begin
+      FVsTrackbars[i].Left  := CARD_P + LBL_W;
+      if Assigned(FVsValLabels[i]) then
+      begin
+        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
+        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
+      end;
+    end;
+  end;
+
+  // Update background panel height to hold all rows cleanly
+  if Assigned(FVsBgPanel) and Assigned(FVsScrollBox) then
+  begin
+    TotalH := Y + R1_H + MARGIN;
+    if FVsScrollBox.ClientHeight > TotalH then
+      TotalH := FVsScrollBox.ClientHeight;
+    FVsBgPanel.SetBounds(0, 0, FVsScrollBox.ClientWidth, TotalH);
+  end;
+end;
+
 // ============================================================================
 // GAMES TAB — Steam installed games grid
 // ============================================================================
@@ -17144,7 +17304,7 @@ var
   function MkCard(AY, AH: Integer): TPanel;
   begin
     Result := TPanel.Create(Self);
-    Result.Parent       := vksumiTabSheet;
+    Result.Parent       := FVsBgPanel;
     Result.BevelOuter   := bvNone;
     Result.BorderStyle  := bsNone;
     Result.Caption      := '';
@@ -17189,12 +17349,35 @@ var
     Lbl.AutoSize   := False;
   end;
 
+  function GetIconForParam(AIndex: Integer): string;
+  begin
+    case AIndex of
+      0:  Result := '';   // Brightness
+      1:  Result := '◑';   // Contrast
+      2:  Result := '💧';  // Saturation
+      3:  Result := '󰃠';   // Exposure
+      4:  Result := '';   // Temperature
+      5:  Result := '';   // Tint
+      6:  Result := '✨';   // Vibrance
+      7:  Result := '🎨';   // Hue
+      8:  Result := '💧';  // Saturation
+      9:  Result := '🔴';   // Red Gain
+      10: Result := '🟢';  // Green Gain
+      11: Result := '🔵';  // Blue Gain
+      12: Result := '';   // Shadows
+      13: Result := '󰃟';   // Midtones
+      14: Result := '󰖨';   // Highlights
+    else
+      Result := '';
+    end;
+  end;
+
   procedure AddSliderLine(AParent: TPanel; const AParam: TParamDef;
     AIndex: Integer; var AY: Integer);
   begin
     FVsNameLabels[AIndex] := TLabel.Create(Self);
     FVsNameLabels[AIndex].Parent     := AParent;
-    FVsNameLabels[AIndex].Caption    := AParam.Name;
+    FVsNameLabels[AIndex].Caption    := GetIconForParam(AIndex) + '  ' + AParam.Name;
     FVsNameLabels[AIndex].Font.Color := TxtClr;
     FVsNameLabels[AIndex].Font.Size  := 9;
     FVsNameLabels[AIndex].Left       := CARD_P;
@@ -17237,13 +17420,35 @@ begin
 
   vksumiTabSheet.Color := BgClr;
 
-  CW      := vksumiTabSheet.ClientWidth;
+  // Create ScrollBox for dynamic height / scrollability
+  FVsScrollBox := TScrollBox.Create(Self);
+  FVsScrollBox.Parent      := vksumiTabSheet;
+  FVsScrollBox.Align       := alClient;
+  FVsScrollBox.AutoScroll  := True;
+  FVsScrollBox.BorderStyle := bsNone;
+  FVsScrollBox.HorzScrollBar.Visible := False;
+  FVsScrollBox.Color       := BgClr;
+  FVsScrollBox.ParentColor := False;
+
+  // Background panel filling the scroll box
+  FVsBgPanel := TPanel.Create(Self);
+  FVsBgPanel.Parent     := FVsScrollBox;
+  FVsBgPanel.BevelOuter := bvNone;
+  FVsBgPanel.Color      := BgClr;
+  FVsBgPanel.Caption    := '';
+  FVsBgPanel.Left       := 0;
+  FVsBgPanel.Top        := 0;
+  FVsBgPanel.Width      := FVsScrollBox.ClientWidth;
+  FVsBgPanel.Height     := 692;
+
+  CW      := FVsScrollBox.ClientWidth;
   if CW < 200 then CW := 200;
 
-  // ── Settings card ──────────────────────────────────────────────────────
+  // ── Settings card (Hidden but kept for functional compatibility) ──────────────────────
   Y := CARD_M;
   Card := MkCard(Y, CARD_P + 54);
   FVsCards[0] := Card;
+  Card.Visible := False;
   AddAccent(Card, $00555555);
   AddTitle(Card, 'Settings', CARD_P + 2);
 
@@ -17270,7 +17475,7 @@ begin
 
   // ── Tone card ──────────────────────────────────────────────────────────
   Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 4 * ROW_H);
+  Card := MkCard(Y, CARD_P * 2 + 4 * ROW_H + 24);
   FVsCards[1] := Card;
   AddAccent(Card, $0033AA55);
   AddTitle(Card, 'Tone', CARD_P + 2);
@@ -17279,7 +17484,7 @@ begin
 
   // ── Color card ─────────────────────────────────────────────────────────
   Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 5 * ROW_H);
+  Card := MkCard(Y, CARD_P * 2 + 5 * ROW_H + 24);
   FVsCards[2] := Card;
   AddAccent(Card, $00CC8844);
   AddTitle(Card, 'Color', CARD_P + 2);
@@ -17288,7 +17493,7 @@ begin
 
   // ── Per-channel Gain card ──────────────────────────────────────────────
   Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H);
+  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H + 24);
   FVsCards[3] := Card;
   AddAccent(Card, $004488CC);
   AddTitle(Card, 'Per-channel Gain', CARD_P + 2);
@@ -17297,7 +17502,7 @@ begin
 
   // ── 3-Band card ────────────────────────────────────────────────────────
   Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H);
+  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H + 24);
   FVsCards[4] := Card;
   AddAccent(Card, $00AA55CC);
   AddTitle(Card, '3-Band', CARD_P + 2);
@@ -17308,6 +17513,9 @@ begin
   for i := 0 to 14 do
     if Assigned(FVsTrackbars[i]) then
       VkSumiSliderChange(FVsTrackbars[i]);
+
+  // Reflow to fit sizes
+  ReflowVkSumiTab(vksumiTabSheet.ClientWidth);
 end;
 
 procedure Tgoverlayform.VkSumiSliderChange(Sender: TObject);
@@ -17675,6 +17883,7 @@ begin
 
   goverlayPageControl.ShowTabs := False;
   vkbasalttabsheet.TabVisible  := False;
+  vksumiTabSheet.TabVisible    := False;
   optiscalertabsheet.TabVisible := False;
   tweakstabsheet.TabVisible    := False;
   gamesTabSheet.TabVisible     := False;
