@@ -399,6 +399,7 @@ type
     optiscalerShape: TShape;
     vkbasaltstatusCheckBox: TCheckBox;
     vkbasaltTabSheet: TTabSheet;
+    vksumiTabSheet: TTabSheet;
     vkbtogglekeyCombobox: TComboBox;
     vktoggleLabel: TLabel;
     vpsCheckBox: TCheckBox;
@@ -695,6 +696,14 @@ type
     FExtSysCard:    TPanel;   // wrapper card for systemGroupBox
     FExtLogCard:    TPanel;   // wrapper card for loggingGroupBox
 
+    // vkSumi tab controls
+    FVsCards:       array[0..4] of TPanel;
+    FVsEnabledCB:   TCheckBox;
+    FVsToggleEdit:  TEdit;
+    FVsTrackbars:   array[0..14] of TTrackBar;
+    FVsValLabels:   array[0..14] of TLabel;
+    FVsNameLabels:  array[0..14] of TLabel;
+
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
     FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
@@ -733,6 +742,8 @@ type
     procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
     procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
     procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
+    procedure BuildVkSumiTab;
+    procedure VkSumiSliderChange(Sender: TObject);
     procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
@@ -909,6 +920,7 @@ type
     procedure SaveTweaksConfig;
     procedure SaveOptiScalerConfig;
     procedure SaveVkBasaltConfig;
+    procedure SaveVkSumiConfig;
 
     // MangoHud config loading helpers
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
@@ -2670,13 +2682,20 @@ begin
 
   SetNavActive(2);
 
-  //Disable tabs
-  goverlayPageControl.ShowTabs:=false;
-  optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+  //Show only vkBasalt and vkSumi tabs
+  goverlayPageControl.ShowTabs:=true;
+  presetTabSheet.TabVisible:=false;
+  visualTabSheet.TabVisible:=false;
+  performanceTabSheet.TabVisible:=false;
+  metricsTabSheet.TabVisible:=false;
+  extrasTabSheet.TabVisible:=false;
+  optiscalertabsheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
-  gamesTabSheet.TabVisible:=false; //disable games tab
+  gamesTabSheet.TabVisible:=false;
+  FHomeTabSheet.TabVisible:=false;
 
   vkbasalttabsheet.TabVisible:=true;
+  vksumiTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 
   // Stop any running cube instances when entering vkBasalt tab
@@ -4925,6 +4944,15 @@ begin
   // Games tab handled separately via FGamesScrollBox/FGamesPanel
   AddNavyBgToTab(vkbasaltTabSheet);
   AddNavyBgToTab(optiscalerTabSheet);
+
+  // Create vkSumi tab sheet (must exist before BuildVkSumiTab)
+  vksumiTabSheet := TTabSheet.Create(goverlayPageControl);
+  vksumiTabSheet.PageControl := goverlayPageControl;
+  vksumiTabSheet.Caption     := 'vkSumi';
+  vksumiTabSheet.TabVisible  := False;
+  vksumiTabSheet.PageIndex   := vkbasaltTabSheet.PageIndex + 1;
+
+  BuildVkSumiTab;
   InitTweaksCards;
 
   // Detach all anchor-side control references for every groupbox we reflow
@@ -6862,7 +6890,8 @@ begin
                    (goverlayPageControl.ActivePage = metricsTabSheet) or
                    (goverlayPageControl.ActivePage = extrasTabSheet);
 
-  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
+  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+                   (goverlayPageControl.ActivePage = vksumiTabSheet);
   IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
   IsTweaksTab := (goverlayPageControl.ActivePage = tweaksTabSheet);
 
@@ -7029,7 +7058,8 @@ begin
                    (goverlayPageControl.ActivePage = metricsTabSheet) or
                    (goverlayPageControl.ActivePage = extrasTabSheet);
 
-  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet);
+  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+                   (goverlayPageControl.ActivePage = vksumiTabSheet);
   IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
   IsTweaksTab := (goverlayPageControl.ActivePage = tweaksTabSheet);
 
@@ -7040,14 +7070,14 @@ begin
     geSpeedButton.Hint := 'MangoHUD will be automatically enabled for applications running the launch command with FGMOD';
     // Only enable controls if global enable is not active
     // When global enable is active, UpdateGlobalEnableMenuItemVisibility will handle it
+  end
+  else if IsVkBasaltTab then
+  begin
     if not IsMangoHudGloballyEnabled() then
     begin
       geSpeedButton.Enabled := True;
       saveBitBtn.Enabled := True;
     end;
-  end
-  else if IsVkBasaltTab then
-  begin
     SearchPattern := 'export ENABLE_VKBASALT=1';
     geSpeedButton.Hint := 'vkBasalt will be automatically enabled for applications running the launch command with FGMOD';
     // Ensure controls are enabled for non-OptiScaler tabs
@@ -7338,6 +7368,10 @@ begin
   UpdateGenericCardTheme(FVkReshadeCard);
   UpdateGenericCardTheme(FVkBuiltinCard);
   UpdateGenericCardTheme(FVkToggleCard);
+
+  // Update vkSumi tab cards
+  for i := 0 to 4 do
+    UpdateGenericCardTheme(FVsCards[i]);
 
   // Invalidate painted backgrounds so custom paint handlers repaint with new theme
   if Assigned(FPresetsBgBox)      then FPresetsBgBox.Invalidate;
@@ -8879,7 +8913,8 @@ end;
 procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
 begin
   // Control menu item visibility based on active tab
-  if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+  if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+     (goverlayPageControl.ActivePage = vksumiTabSheet) then
   begin
     // vkBasalt tab: show save options and save as, hide MangoHud-specific items
     saveoptionsItem.Visible := True;
@@ -9722,6 +9757,94 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.SaveVkSumiConfig;
+const
+  KEYS: array[0..14] of string = (
+    'brightness', 'contrast', 'exposure', 'gamma',
+    'saturation', 'vibrance', 'hue_deg', 'temperature', 'tint',
+    'red_gain', 'green_gain', 'blue_gain',
+    'shadows', 'midtones', 'highlights'
+  );
+var
+  ConfigDir, ConfigFile: string;
+  Lines: TStringList;
+  FS: TFormatSettings;
+  Val: Double;
+  i: Integer;
+begin
+  ConfigDir := GetUserDir + '.config/vkSumi';
+  ConfigFile := ConfigDir + '/vkSumi.conf';
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('# vkSumi color grading');
+    Lines.Add('#');
+    Lines.Add('# Lives at:');
+    Lines.Add('#   ~/.config/vkSumi/vkSumi.conf              global default');
+    Lines.Add('#   ~/.config/vkSumi/games/<exe>.conf         per-game overrides (auto-created)');
+    Lines.Add('#');
+    Lines.Add('# Per-game files merge on top of the global one, only set what you wanna change.');
+    Lines.Add('# Save and the layer reloads via inotify, no game restart needed.');
+    Lines.Add('#');
+    Lines.Add('# 0 = no change for every knob.');
+    Lines.Add('# + = more / brighter.');
+    Lines.Add('# - = less / darker.');
+    Lines.Add('');
+    if Assigned(FVsEnabledCB) then
+      Lines.Add('enabled     = ' + LowerCase(BoolToStr(FVsEnabledCB.Checked, True)))
+    else
+      Lines.Add('enabled     = true');
+    if Assigned(FVsToggleEdit) and (Trim(FVsToggleEdit.Text) <> '') then
+      Lines.Add('toggle_keys = ' + FVsToggleEdit.Text + '    # in-game hotkey, X11 + XWayland (Wine/Proton)')
+    else
+      Lines.Add('toggle_keys = Shift_R+F9    # in-game hotkey, X11 + XWayland (Wine/Proton)');
+    Lines.Add('');
+    Lines.Add('# tone');
+    for i := 0 to 3 do
+    begin
+      if i = 2 then // exposure — -3..3
+        Val := (FVsTrackbars[i].Position - 300) / 100
+      else
+        Val := (FVsTrackbars[i].Position - 100) / 100;
+      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
+    end;
+    Lines.Add('');
+    Lines.Add('# color');
+    for i := 4 to 8 do
+    begin
+      if i = 6 then // hue_deg — -180..180
+        Val := FVsTrackbars[i].Position - 180
+      else
+        Val := (FVsTrackbars[i].Position - 100) / 100;
+      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
+    end;
+    Lines.Add('');
+    Lines.Add('# per-channel gain');
+    for i := 9 to 11 do
+    begin
+      Val := (FVsTrackbars[i].Position - 100) / 100;
+      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
+    end;
+    Lines.Add('');
+    Lines.Add('# 3-band');
+    for i := 12 to 14 do
+    begin
+      Val := (FVsTrackbars[i].Position - 100) / 100;
+      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
+    end;
+
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+    Lines.SaveToFile(ConfigFile);
+
+    SendNotification('vkSumi', 'Configuration saved to ' + ConfigFile, GetIconFile);
+  finally
+    Lines.Free;
+  end;
+end;
+
 procedure Tgoverlayform.SaveVkBasaltConfig;
 var
   RepoDir, RelPath, EffectName, EffectKey, FullPath, EffectsLine: string;
@@ -9906,7 +10029,8 @@ begin
 
   // ################### SAVE MANGOHUD
 
-   if goverlayPageControl.ActivePage <> vkbasaltTabSheet then
+   if (goverlayPageControl.ActivePage <> vkbasaltTabSheet) and
+      (goverlayPageControl.ActivePage <> vksumiTabSheet) then
    begin
 
 
@@ -10016,6 +10140,13 @@ end;  //  ################### END - SAVE MANGOHUD
       Exit;
     end;
 
+    // ################### START - SAVE VKSUMI
+    if goverlayPageControl.ActivePage = vksumiTabSheet then
+    begin
+      SaveVkSumiConfig;
+      Exit;
+    end;
+
 
 
 
@@ -10054,7 +10185,8 @@ begin
         SelectedDirectory := FileName;
         
         // Check if we're on MangoHud tab or vkBasalt tab
-        if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+        if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+           (goverlayPageControl.ActivePage = vksumiTabSheet) then
         begin
           // Export vkBasalt.conf
           DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'vkBasalt.conf';
@@ -10999,7 +11131,7 @@ const
   ITEMS: array[0..4] of record Icon, Caption: string; end = (
     (Icon: '󰊴'; Caption: 'Games'),
     (Icon: '󱁥'; Caption: 'MangoHud'),
-    (Icon: '󰏘'; Caption: 'vkBasalt'),
+    (Icon: '󰏘'; Caption: 'Image filter'),
     (Icon: '󰋮'; Caption: 'OptiScaler'),
     (Icon: '󰒓'; Caption: 'Proton Tweaks')
   );
@@ -16969,6 +17101,232 @@ begin
   finally
     Missing.Free;
   end;
+end;
+
+procedure Tgoverlayform.BuildVkSumiTab;
+const
+  CARD_M   = 0;
+  CARD_P   = 14;
+  ROW_H    = 32;
+  LBL_W    = 100;
+  SLD_W    = 200;
+  ACCENT_W = 4;
+type
+  TParamDef = record
+    Name: string;
+    Min, Max, Default: Integer;
+    IsDeg: Boolean;
+  end;
+const
+  PARAMS: array[0..14] of TParamDef = (
+    (Name: 'Brightness';  Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Contrast';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Exposure';    Min: 0; Max: 600; Default: 300; IsDeg: False),
+    (Name: 'Gamma';       Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Saturation';  Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Vibrance';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Hue';         Min: 0; Max: 360; Default: 180; IsDeg: True),
+    (Name: 'Temperature'; Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Tint';        Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Red Gain';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Green Gain';  Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Blue Gain';   Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Shadows';     Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Midtones';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Highlights';  Min: 0; Max: 200; Default: 100; IsDeg: False)
+  );
+var
+  IsLight: Boolean;
+  BgClr, CardBg, TxtClr: TColor;
+  Card, Bar, Lbl, AccBar: TPanel;
+  Y, i, RowY, CW: Integer;
+
+  function MkCard(AY, AH: Integer): TPanel;
+  begin
+    Result := TPanel.Create(Self);
+    Result.Parent       := vksumiTabSheet;
+    Result.BevelOuter   := bvNone;
+    Result.BorderStyle  := bsNone;
+    Result.Caption      := '';
+    Result.Color        := CardBg;
+    Result.ParentColor  := False;
+    Result.Left         := CARD_M;
+    Result.Top          := AY;
+    Result.Width        := CW - 2 * CARD_M;
+    Result.Height       := AH;
+    Result.Anchors      := [akLeft, akTop, akRight];
+    Result.OnPaint      := @SubCardPaint;
+  end;
+
+  procedure AddAccent(ACard: TPanel; AColor: TColor);
+  begin
+    AccBar := TPanel.Create(Self);
+    AccBar.Parent     := ACard;
+    AccBar.BevelOuter := bvNone;
+    AccBar.Caption    := '';
+    AccBar.Color      := AColor;
+    AccBar.Left       := 0;
+    AccBar.Top        := 0;
+    AccBar.Width      := ACCENT_W;
+    AccBar.Height     := ACard.Height;
+    AccBar.Anchors    := [akLeft, akTop, akBottom];
+  end;
+
+  procedure AddTitle(AParent: TWinControl; const AText: string; AY: Integer);
+  begin
+    Lbl := TPanel.Create(Self);
+    Lbl.Parent     := AParent;
+    Lbl.BevelOuter := bvNone;
+    Lbl.Caption    := AText;
+    Lbl.Color      := CardBg;
+    Lbl.Font.Color := TxtClr;
+    Lbl.Font.Bold  := True;
+    Lbl.Font.Size  := 10;
+    Lbl.Left       := CARD_P;
+    Lbl.Top        := AY;
+    Lbl.Width      := 200;
+    Lbl.Height     := 20;
+    Lbl.AutoSize   := False;
+  end;
+
+  procedure AddSliderLine(AParent: TPanel; const AParam: TParamDef;
+    AIndex: Integer; var AY: Integer);
+  begin
+    FVsNameLabels[AIndex] := TLabel.Create(Self);
+    FVsNameLabels[AIndex].Parent     := AParent;
+    FVsNameLabels[AIndex].Caption    := AParam.Name;
+    FVsNameLabels[AIndex].Font.Color := TxtClr;
+    FVsNameLabels[AIndex].Font.Size  := 9;
+    FVsNameLabels[AIndex].Left       := CARD_P;
+    FVsNameLabels[AIndex].Top        := AY + 5;
+    FVsNameLabels[AIndex].AutoSize   := True;
+
+    FVsTrackbars[AIndex] := TTrackBar.Create(Self);
+    FVsTrackbars[AIndex].Parent      := AParent;
+    FVsTrackbars[AIndex].Min         := AParam.Min;
+    FVsTrackbars[AIndex].Max         := AParam.Max;
+    FVsTrackbars[AIndex].Position    := AParam.Default;
+    FVsTrackbars[AIndex].TickStyle   := tsNone;
+    FVsTrackbars[AIndex].Height      := 26;
+    FVsTrackbars[AIndex].Left        := CARD_P + LBL_W;
+    FVsTrackbars[AIndex].Top         := AY;
+    FVsTrackbars[AIndex].Anchors     := [akLeft, akTop, akRight];
+    FVsTrackbars[AIndex].Width       := SLD_W;
+    FVsTrackbars[AIndex].Tag         := AIndex;
+    FVsTrackbars[AIndex].OnChange    := @VkSumiSliderChange;
+
+    FVsValLabels[AIndex] := TLabel.Create(Self);
+    FVsValLabels[AIndex].Parent      := AParent;
+    FVsValLabels[AIndex].Font.Color  := RGBToColor(48, 190, 240);
+    FVsValLabels[AIndex].Font.Size   := 9;
+    FVsValLabels[AIndex].Font.Style  := [fsBold];
+    FVsValLabels[AIndex].Left        := CARD_P + LBL_W + SLD_W + 8;
+    FVsValLabels[AIndex].Top         := AY + 5;
+    FVsValLabels[AIndex].Anchors     := [akTop, akRight];
+    FVsValLabels[AIndex].AutoSize    := True;
+    FVsValLabels[AIndex].Caption     := '0.0';
+
+    AY := AY + ROW_H;
+  end;
+
+begin
+  IsLight := CurrentTheme = tmLight;
+  BgClr   := IfThen(IsLight, $00F0F0F0, RGBToColor(22, 25, 37));
+  CardBg  := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
+  TxtClr  := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+  vksumiTabSheet.Color := BgClr;
+
+  CW      := vksumiTabSheet.ClientWidth;
+  if CW < 200 then CW := 200;
+
+  // ── Settings card ──────────────────────────────────────────────────────
+  Y := CARD_M;
+  Card := MkCard(Y, CARD_P + 54);
+  FVsCards[0] := Card;
+  AddAccent(Card, $00555555);
+  AddTitle(Card, 'Settings', CARD_P + 2);
+
+  FVsEnabledCB := TCheckBox.Create(Self);
+  FVsEnabledCB.Parent      := Card;
+  FVsEnabledCB.Caption     := 'Enabled';
+  FVsEnabledCB.Checked     := True;
+  FVsEnabledCB.Font.Color  := TxtClr;
+  FVsEnabledCB.Font.Size   := 9;
+  FVsEnabledCB.Left        := CARD_P;
+  FVsEnabledCB.Top         := CARD_P + 24;
+  FVsEnabledCB.AutoSize    := True;
+  FVsEnabledCB.ParentColor := True;
+
+  FVsToggleEdit := TEdit.Create(Self);
+  FVsToggleEdit.Parent      := Card;
+  FVsToggleEdit.Text        := 'Shift_R+F9';
+  FVsToggleEdit.Font.Name   := 'DejaVu Sans Mono';
+  FVsToggleEdit.Font.Size   := 9;
+  FVsToggleEdit.Left        := CARD_P + 100;
+  FVsToggleEdit.Top         := CARD_P + 22;
+  FVsToggleEdit.Width       := 200;
+  FVsToggleEdit.Height      := 24;
+
+  // ── Tone card ──────────────────────────────────────────────────────────
+  Y := Card.Top + Card.Height + 8;
+  Card := MkCard(Y, CARD_P * 2 + 4 * ROW_H);
+  FVsCards[1] := Card;
+  AddAccent(Card, $0033AA55);
+  AddTitle(Card, 'Tone', CARD_P + 2);
+  RowY := CARD_P + 24;
+  for i := 0 to 3 do AddSliderLine(Card, PARAMS[i], i, RowY);
+
+  // ── Color card ─────────────────────────────────────────────────────────
+  Y := Card.Top + Card.Height + 8;
+  Card := MkCard(Y, CARD_P * 2 + 5 * ROW_H);
+  FVsCards[2] := Card;
+  AddAccent(Card, $00CC8844);
+  AddTitle(Card, 'Color', CARD_P + 2);
+  RowY := CARD_P + 24;
+  for i := 4 to 8 do AddSliderLine(Card, PARAMS[i], i, RowY);
+
+  // ── Per-channel Gain card ──────────────────────────────────────────────
+  Y := Card.Top + Card.Height + 8;
+  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H);
+  FVsCards[3] := Card;
+  AddAccent(Card, $004488CC);
+  AddTitle(Card, 'Per-channel Gain', CARD_P + 2);
+  RowY := CARD_P + 24;
+  for i := 9 to 11 do AddSliderLine(Card, PARAMS[i], i, RowY);
+
+  // ── 3-Band card ────────────────────────────────────────────────────────
+  Y := Card.Top + Card.Height + 8;
+  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H);
+  FVsCards[4] := Card;
+  AddAccent(Card, $00AA55CC);
+  AddTitle(Card, '3-Band', CARD_P + 2);
+  RowY := CARD_P + 24;
+  for i := 12 to 14 do AddSliderLine(Card, PARAMS[i], i, RowY);
+
+  // ── Show value labels ─────────────────────────────────────────────────
+  for i := 0 to 14 do
+    if Assigned(FVsTrackbars[i]) then
+      VkSumiSliderChange(FVsTrackbars[i]);
+end;
+
+procedure Tgoverlayform.VkSumiSliderChange(Sender: TObject);
+var
+  Idx: Integer;
+  TB: TTrackBar;
+  Val: Double;
+begin
+  TB := Sender as TTrackBar;
+  Idx := TB.Tag;
+  case Idx of
+    6: // Hue — degrees, -180..180
+      Val := TB.Position - 180;
+    2: // Exposure — -3..3
+      Val := (TB.Position - 300) / 100;
+    else // -1..1
+      Val := (TB.Position - 100) / 100;
+  end;
+  FVsValLabels[Idx].Caption := FormatFloat('0.0', Val);
 end;
 
 procedure Tgoverlayform.InitHomeTab;
