@@ -517,6 +517,7 @@ type
     procedure whitecolorBitBtnClick(Sender: TObject);
     procedure LoadVkBasaltConfig;
     procedure vkbasaltTabSheetShow(Sender: TObject);
+    procedure vkSumiTabSheetShow(Sender: TObject);
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
@@ -697,7 +698,7 @@ type
     FExtLogCard:    TPanel;   // wrapper card for loggingGroupBox
 
     // vkSumi tab controls
-    FVsCards:       array[0..4] of TPanel;
+    FVsCards:       array[0..2] of TPanel;
     FVsEnabledCB:   TCheckBox;
     FVsToggleEdit:  TEdit;
     FVsTrackbars:   array[0..14] of TTrackBar;
@@ -788,6 +789,7 @@ type
     procedure InitTweaksCards;
     procedure ReflowVkBasaltTab(AContentW: Integer);
     procedure ReflowVkSumiTab(AContentW: Integer);
+    procedure ReflowSliderInGB(AGB: TGroupBox; AIndex: Integer; ACardWidth: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -4569,6 +4571,19 @@ begin
   LoadVkBasaltConfig;
 end;
 
+procedure Tgoverlayform.vkSumiTabSheetShow(Sender: TObject);
+var
+  ContentW: Integer;
+begin
+  // Reflow vkSumi tab with correct width when tab becomes visible
+  if Assigned(FVsScrollBox) then
+    ContentW := FVsScrollBox.ClientWidth
+  else
+    ContentW := vksumiTabSheet.ClientWidth;
+  if ContentW < 400 then ContentW := 400;
+  ReflowVkSumiTab(ContentW);
+end;
+
 // ============================================================================
 // MODERN DESIGN SYSTEM HELPERS
 // ============================================================================
@@ -5090,6 +5105,9 @@ begin
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
   vkbasaltTabSheet.OnShow := @vkbasaltTabSheetShow;
+
+  // Initialize vkSumi tab
+  vksumiTabSheet.OnShow := @vkSumiTabSheetShow;
 
   // Initialize Extras tab
   InitExtrasTab;
@@ -7374,7 +7392,7 @@ begin
   UpdateGenericCardTheme(FVkToggleCard);
 
   // Update vkSumi tab cards
-  for i := 0 to 4 do
+  for i := 0 to 2 do
     UpdateGenericCardTheme(FVsCards[i]);
 
   // Update vkSumi tab background and scrollbox colors
@@ -15627,26 +15645,33 @@ const
   MARGIN   = 16;
   GAP      = 12;
   CARD_P   = 14;
+  GB_PAD   = 8;
   LBL_W    = 100;
   ROW_H    = 32;
 var
-  CW, CardWidth, Y, i, TotalH: Integer;
+  CW, CardWidth, i: Integer;
   R0_H, R1_H: Integer;
   Col0_X, Col1_X: Integer;
+  Card: TPanel;
+  GB: TGroupBox;
+  CtrlIdx: Integer;
 begin
   if not Assigned(FVsCards[1]) then Exit;
 
-  if Assigned(FVsScrollBox) then
+  // Use AContentW (from FormResize) as primary source; fall back to scrollbox
+  if AContentW > 0 then
+    CW := AContentW
+  else if Assigned(FVsScrollBox) then
     CW := FVsScrollBox.ClientWidth
   else
-    CW := AContentW;
+    CW := 800;
 
-  if CW < 350 then CW := 350; // ensure enough width for two columns
+  if CW < 400 then CW := 400;
   CardWidth := (CW - 2 * MARGIN - GAP) div 2;
   Col0_X    := MARGIN;
   Col1_X    := MARGIN + CardWidth + GAP;
 
-  // Make sure Settings Card 0 is completely hidden and out of the layout flow
+  // Settings card hidden
   if Assigned(FVsCards[0]) then
   begin
     FVsCards[0].Visible := False;
@@ -15654,90 +15679,98 @@ begin
   end;
 
   // Row heights:
-  // Tone is CARD_P*2 + 4*ROW_H + 24 = 180
-  // Color is CARD_P*2 + 5*ROW_H + 24 = 212
-  // Per-channel Gain is CARD_P*2 + 3*ROW_H + 24 = 148
-  // 3-Band is CARD_P*2 + 3*ROW_H + 24 = 148
-  R0_H := 212; // Max(180, 212)
-  R1_H := 148; // Max(148, 148)
+  // Left card (Tone + 3-Band): Tone=4*32+24=152, gap=8, 3-Band=3*32+24=120, padding=14+14
+  //   Total = 14 + 152 + 8 + 120 + 14 = 308
+  // Right card (Color + Per-channel Gain): Color=5*32+24=184, gap=8, Gain=3*32+24=120, padding=14+14
+  //   Total = 14 + 184 + 8 + 120 + 14 = 340
+  R0_H := 308;
+  R1_H := 340;
 
-  // Row 0
-  // Left: Tone (Index 1)
-  FVsCards[1].SetBounds(Col0_X, MARGIN, CardWidth, 180);
-  // Right: Color (Index 2)
-  FVsCards[2].SetBounds(Col1_X, MARGIN, CardWidth, 212);
-
-  // Row 1
-  Y := MARGIN + R0_H + GAP;
-  // Left: Per-channel Gain (Index 3)
-  FVsCards[3].SetBounds(Col0_X, Y, CardWidth, 148);
-  // Right: 3-Band (Index 4)
-  FVsCards[4].SetBounds(Col1_X, Y, CardWidth, 148);
-
-  // Reflow trackbars and labels inside each card (1 to 4)
-  // Card 1: Tone (AParam index 0 to 3)
-  for i := 0 to 3 do
-  begin
-    if Assigned(FVsTrackbars[i]) then
+  // Left card: Tone + 3-Band
+  Card := FVsCards[1];
+  Card.SetBounds(Col0_X, MARGIN, CardWidth, R0_H);
+  // Resize groupboxes to card width
+  for i := 0 to Card.ControlCount - 1 do
+    if Card.Controls[i] is TGroupBox then
     begin
-      FVsTrackbars[i].Left  := CARD_P + LBL_W;
-      if Assigned(FVsValLabels[i]) then
+      GB := TGroupBox(Card.Controls[i]);
+      GB.Width := CardWidth - 2 * CARD_P;
+    end;
+
+  // Right card: Color + Per-channel Gain
+  Card := FVsCards[2];
+  Card.SetBounds(Col1_X, MARGIN, CardWidth, R1_H);
+  for i := 0 to Card.ControlCount - 1 do
+    if Card.Controls[i] is TGroupBox then
+    begin
+      GB := TGroupBox(Card.Controls[i]);
+      GB.Width := CardWidth - 2 * CARD_P;
+    end;
+
+  // Reflow sliders inside groupboxes
+  // Card 1 (Left): Tone GB (indices 0-3), 3-Band GB (indices 12-14)
+  Card := FVsCards[1];
+  for i := 0 to Card.ControlCount - 1 do
+  begin
+    if Card.Controls[i] is TGroupBox then
+    begin
+      GB := TGroupBox(Card.Controls[i]);
+      if GB.Caption = 'Tone' then
       begin
-        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
-        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
+        for CtrlIdx := 0 to 3 do
+          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
+      end
+      else if GB.Caption = '3-Band' then
+      begin
+        for CtrlIdx := 12 to 14 do
+          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
       end;
     end;
   end;
 
-  // Card 2: Color (AParam index 4 to 8)
-  for i := 4 to 8 do
+  // Card 2 (Right): Color GB (indices 4-8), Per-channel Gain GB (indices 9-11)
+  Card := FVsCards[2];
+  for i := 0 to Card.ControlCount - 1 do
   begin
-    if Assigned(FVsTrackbars[i]) then
+    if Card.Controls[i] is TGroupBox then
     begin
-      FVsTrackbars[i].Left  := CARD_P + LBL_W;
-      if Assigned(FVsValLabels[i]) then
+      GB := TGroupBox(Card.Controls[i]);
+      if GB.Caption = 'Color' then
       begin
-        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
-        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
+        for CtrlIdx := 4 to 8 do
+          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
+      end
+      else if GB.Caption = 'Per-channel Gain' then
+      begin
+        for CtrlIdx := 9 to 11 do
+          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
       end;
     end;
   end;
 
-  // Card 3: Per-channel Gain (AParam index 9 to 11)
-  for i := 9 to 11 do
+  // Update scrollbox content dimensions
+  if Assigned(FVsBgPanel) then
   begin
-    if Assigned(FVsTrackbars[i]) then
-    begin
-      FVsTrackbars[i].Left  := CARD_P + LBL_W;
-      if Assigned(FVsValLabels[i]) then
-      begin
-        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
-        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
-      end;
-    end;
+    FVsBgPanel.Width  := CW;
+    FVsBgPanel.Height := Max(R0_H, R1_H) + 2 * MARGIN;
   end;
+end;
 
-  // Card 4: 3-Band (AParam index 12 to 14)
-  for i := 12 to 14 do
+procedure Tgoverlayform.ReflowSliderInGB(AGB: TGroupBox; AIndex: Integer;
+  ACardWidth: Integer);
+const
+  GB_PAD = 8;
+  LBL_W  = 100;
+var
+  AvailW: Integer;
+begin
+  if not Assigned(FVsTrackbars[AIndex]) then Exit;
+  AvailW := ACardWidth - 2 * 14 - 2 * GB_PAD; // card padding + groupbox padding
+  FVsTrackbars[AIndex].Left  := GB_PAD + LBL_W;
+  if Assigned(FVsValLabels[AIndex]) then
   begin
-    if Assigned(FVsTrackbars[i]) then
-    begin
-      FVsTrackbars[i].Left  := CARD_P + LBL_W;
-      if Assigned(FVsValLabels[i]) then
-      begin
-        FVsValLabels[i].Left  := CardWidth - CARD_P - 40;
-        FVsTrackbars[i].Width := FVsValLabels[i].Left - FVsTrackbars[i].Left - 8;
-      end;
-    end;
-  end;
-
-  // Update background panel height to hold all rows cleanly
-  if Assigned(FVsBgPanel) and Assigned(FVsScrollBox) then
-  begin
-    TotalH := Y + R1_H + MARGIN;
-    if FVsScrollBox.ClientHeight > TotalH then
-      TotalH := FVsScrollBox.ClientHeight;
-    FVsBgPanel.SetBounds(0, 0, FVsScrollBox.ClientWidth, TotalH);
+    FVsValLabels[AIndex].Left  := AvailW - 40;
+    FVsTrackbars[AIndex].Width := FVsValLabels[AIndex].Left - FVsTrackbars[AIndex].Left - 8;
   end;
 end;
 
@@ -17270,7 +17303,7 @@ const
   ROW_H    = 32;
   LBL_W    = 100;
   SLD_W    = 200;
-  ACCENT_W = 4;
+  GB_PAD   = 8;
 type
   TParamDef = record
     Name: string;
@@ -17298,8 +17331,10 @@ const
 var
   IsLight: Boolean;
   BgClr, CardBg, TxtClr: TColor;
-  Card, Bar, Lbl, AccBar: TPanel;
+  Card: TPanel;
+  ToneGB, BandGB, ColorGB, GainGB: TGroupBox;
   Y, i, RowY, CW: Integer;
+  SS: WideString;
 
   function MkCard(AY, AH: Integer): TPanel;
   begin
@@ -17314,65 +17349,54 @@ var
     Result.Top          := AY;
     Result.Width        := CW - 2 * CARD_M;
     Result.Height       := AH;
-    Result.Anchors      := [akLeft, akTop, akRight];
+    Result.Anchors      := [akLeft, akTop];
     Result.OnPaint      := @SubCardPaint;
   end;
 
-  procedure AddAccent(ACard: TPanel; AColor: TColor);
+  function MkGB(AParent: TWinControl; const ATitle: string;
+    AY, AH: Integer): TGroupBox;
   begin
-    AccBar := TPanel.Create(Self);
-    AccBar.Parent     := ACard;
-    AccBar.BevelOuter := bvNone;
-    AccBar.Caption    := '';
-    AccBar.Color      := AColor;
-    AccBar.Left       := 0;
-    AccBar.Top        := 0;
-    AccBar.Width      := ACCENT_W;
-    AccBar.Height     := ACard.Height;
-    AccBar.Anchors    := [akLeft, akTop, akBottom];
-  end;
-
-  procedure AddTitle(AParent: TWinControl; const AText: string; AY: Integer);
-  begin
-    Lbl := TPanel.Create(Self);
-    Lbl.Parent     := AParent;
-    Lbl.BevelOuter := bvNone;
-    Lbl.Caption    := AText;
-    Lbl.Color      := CardBg;
-    Lbl.Font.Color := TxtClr;
-    Lbl.Font.Bold  := True;
-    Lbl.Font.Size  := 10;
-    Lbl.Left       := CARD_P;
-    Lbl.Top        := AY;
-    Lbl.Width      := 200;
-    Lbl.Height     := 20;
-    Lbl.AutoSize   := False;
+    Result := TGroupBox.Create(Self);
+    Result.Parent      := AParent;
+    Result.Caption     := ATitle;
+    Result.Font.Color  := TxtClr;
+    Result.Font.Bold   := True;
+    Result.Font.Size   := 10;
+    Result.Left        := CARD_P;
+    Result.Top         := AY;
+    Result.Width       := AParent.Width - 2 * CARD_P;
+    Result.Height      := AH;
+    Result.Color       := CardBg;
+    Result.ParentColor := False;
+    // Remove Qt border
+    SS := 'QGroupBox { border: none; }';
+    QWidget_setStyleSheet(TQtWidget(Result.Handle).Widget, @SS);
   end;
 
   function GetIconForParam(AIndex: Integer): string;
   begin
     case AIndex of
-      0:  Result := '';   // Brightness
-      1:  Result := '◑';   // Contrast
-      2:  Result := '💧';  // Saturation
-      3:  Result := '󰃠';   // Exposure
-      4:  Result := '';   // Temperature
-      5:  Result := '';   // Tint
-      6:  Result := '✨';   // Vibrance
-      7:  Result := '🎨';   // Hue
-      8:  Result := '💧';  // Saturation
-      9:  Result := '🔴';   // Red Gain
-      10: Result := '🟢';  // Green Gain
-      11: Result := '🔵';  // Blue Gain
-      12: Result := '';   // Shadows
-      13: Result := '󰃟';   // Midtones
-      14: Result := '󰖨';   // Highlights
+      0:  Result := '';
+      1:  Result := '◑';
+      2:  Result := '󰃠';
+      3:  Result := '󰃠';
+      4:  Result := '';
+      5:  Result := '';
+      6:  Result := '✨';
+      7:  Result := '🎨';
+      8:  Result := '💧';
+      9:  Result := '🔴';
+      10: Result := '🟢';
+      11: Result := '🔵';
+      12: Result := '';
+      13: Result := '󰃟';
+      14: Result := '';
     else
       Result := '';
     end;
   end;
 
-  procedure AddSliderLine(AParent: TPanel; const AParam: TParamDef;
+  procedure AddSliderLine(AParent: TWinControl; const AParam: TParamDef;
     AIndex: Integer; var AY: Integer);
   begin
     FVsNameLabels[AIndex] := TLabel.Create(Self);
@@ -17380,7 +17404,7 @@ var
     FVsNameLabels[AIndex].Caption    := GetIconForParam(AIndex) + '  ' + AParam.Name;
     FVsNameLabels[AIndex].Font.Color := TxtClr;
     FVsNameLabels[AIndex].Font.Size  := 9;
-    FVsNameLabels[AIndex].Left       := CARD_P;
+    FVsNameLabels[AIndex].Left       := GB_PAD;
     FVsNameLabels[AIndex].Top        := AY + 5;
     FVsNameLabels[AIndex].AutoSize   := True;
 
@@ -17391,7 +17415,7 @@ var
     FVsTrackbars[AIndex].Position    := AParam.Default;
     FVsTrackbars[AIndex].TickStyle   := tsNone;
     FVsTrackbars[AIndex].Height      := 26;
-    FVsTrackbars[AIndex].Left        := CARD_P + LBL_W;
+    FVsTrackbars[AIndex].Left        := GB_PAD + LBL_W;
     FVsTrackbars[AIndex].Top         := AY;
     FVsTrackbars[AIndex].Anchors     := [akLeft, akTop, akRight];
     FVsTrackbars[AIndex].Width       := SLD_W;
@@ -17403,7 +17427,7 @@ var
     FVsValLabels[AIndex].Font.Color  := RGBToColor(48, 190, 240);
     FVsValLabels[AIndex].Font.Size   := 9;
     FVsValLabels[AIndex].Font.Style  := [fsBold];
-    FVsValLabels[AIndex].Left        := CARD_P + LBL_W + SLD_W + 8;
+    FVsValLabels[AIndex].Left        := GB_PAD + LBL_W + SLD_W + 8;
     FVsValLabels[AIndex].Top         := AY + 5;
     FVsValLabels[AIndex].Anchors     := [akTop, akRight];
     FVsValLabels[AIndex].AutoSize    := True;
@@ -17444,13 +17468,11 @@ begin
   CW      := FVsScrollBox.ClientWidth;
   if CW < 200 then CW := 200;
 
-  // ── Settings card (Hidden but kept for functional compatibility) ──────────────────────
+  // ── Settings card (Hidden, functional compatibility) ──────────────────
   Y := CARD_M;
   Card := MkCard(Y, CARD_P + 54);
   FVsCards[0] := Card;
   Card.Visible := False;
-  AddAccent(Card, $00555555);
-  AddTitle(Card, 'Settings', CARD_P + 2);
 
   FVsEnabledCB := TCheckBox.Create(Self);
   FVsEnabledCB.Parent      := Card;
@@ -17473,49 +17495,41 @@ begin
   FVsToggleEdit.Width       := 200;
   FVsToggleEdit.Height      := 24;
 
-  // ── Tone card ──────────────────────────────────────────────────────────
-  Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 4 * ROW_H + 24);
+  // ── Left Card: Tone + 3-Band ──────────────────────────────────────────
+  Card := MkCard(0, 400);
   FVsCards[1] := Card;
-  AddAccent(Card, $0033AA55);
-  AddTitle(Card, 'Tone', CARD_P + 2);
-  RowY := CARD_P + 24;
-  for i := 0 to 3 do AddSliderLine(Card, PARAMS[i], i, RowY);
 
-  // ── Color card ─────────────────────────────────────────────────────────
-  Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 5 * ROW_H + 24);
+  ToneGB := MkGB(Card, 'Tone', CARD_P, 4 * ROW_H + 24);
+  RowY := 24;
+  for i := 0 to 3 do AddSliderLine(ToneGB, PARAMS[i], i, RowY);
+
+  BandGB := MkGB(Card, '3-Band', ToneGB.Top + ToneGB.Height + 8, 3 * ROW_H + 24);
+  RowY := 24;
+  for i := 12 to 14 do AddSliderLine(BandGB, PARAMS[i], i, RowY);
+
+  Card.Height := BandGB.Top + BandGB.Height + CARD_P;
+
+  // ── Right Card: Color + Per-channel Gain ──────────────────────────────
+  Card := MkCard(0, 400);
   FVsCards[2] := Card;
-  AddAccent(Card, $00CC8844);
-  AddTitle(Card, 'Color', CARD_P + 2);
-  RowY := CARD_P + 24;
-  for i := 4 to 8 do AddSliderLine(Card, PARAMS[i], i, RowY);
 
-  // ── Per-channel Gain card ──────────────────────────────────────────────
-  Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H + 24);
-  FVsCards[3] := Card;
-  AddAccent(Card, $004488CC);
-  AddTitle(Card, 'Per-channel Gain', CARD_P + 2);
-  RowY := CARD_P + 24;
-  for i := 9 to 11 do AddSliderLine(Card, PARAMS[i], i, RowY);
+  ColorGB := MkGB(Card, 'Color', CARD_P, 5 * ROW_H + 24);
+  RowY := 24;
+  for i := 4 to 8 do AddSliderLine(ColorGB, PARAMS[i], i, RowY);
 
-  // ── 3-Band card ────────────────────────────────────────────────────────
-  Y := Card.Top + Card.Height + 8;
-  Card := MkCard(Y, CARD_P * 2 + 3 * ROW_H + 24);
-  FVsCards[4] := Card;
-  AddAccent(Card, $00AA55CC);
-  AddTitle(Card, '3-Band', CARD_P + 2);
-  RowY := CARD_P + 24;
-  for i := 12 to 14 do AddSliderLine(Card, PARAMS[i], i, RowY);
+  GainGB := MkGB(Card, 'Per-channel Gain', ColorGB.Top + ColorGB.Height + 8, 3 * ROW_H + 24);
+  RowY := 24;
+  for i := 9 to 11 do AddSliderLine(GainGB, PARAMS[i], i, RowY);
 
-  // ── Show value labels ─────────────────────────────────────────────────
+  Card.Height := GainGB.Top + GainGB.Height + CARD_P;
+
+  // ── Show value labels ────────────────────────────────────────────────
   for i := 0 to 14 do
     if Assigned(FVsTrackbars[i]) then
       VkSumiSliderChange(FVsTrackbars[i]);
 
-  // Reflow to fit sizes
-  ReflowVkSumiTab(vksumiTabSheet.ClientWidth);
+  // Reflow cards to proper 2-column layout
+  ReflowVkSumiTab(Max(800, vksumiTabSheet.ClientWidth));
 end;
 
 procedure Tgoverlayform.VkSumiSliderChange(Sender: TObject);
