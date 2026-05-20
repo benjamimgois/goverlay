@@ -789,7 +789,7 @@ type
     procedure InitTweaksCards;
     procedure ReflowVkBasaltTab(AContentW: Integer);
     procedure ReflowVkSumiTab(AContentW: Integer);
-    procedure ReflowSliderInGB(AGB: TGroupBox; AIndex: Integer; ACardWidth: Integer);
+    procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer; ACardWidth: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -4574,6 +4574,9 @@ end;
 procedure Tgoverlayform.vkSumiTabSheetShow(Sender: TObject);
 var
   ContentW: Integer;
+  Card: TPanel;
+  ci, gi: Integer;
+  Sec: TPanel;
 begin
   // Reflow vkSumi tab with correct width when tab becomes visible
   if Assigned(FVsScrollBox) then
@@ -4582,6 +4585,16 @@ begin
     ContentW := vksumiTabSheet.ClientWidth;
   if ContentW < 400 then ContentW := 400;
   ReflowVkSumiTab(ContentW);
+
+  // Force section repaint
+  for ci := 1 to 2 do
+  begin
+    Card := FVsCards[ci];
+    if Assigned(Card) then
+      for gi := 0 to Card.ControlCount - 1 do
+        if Card.Controls[gi] is TPanel then
+          TPanel(Card.Controls[gi]).Invalidate;
+  end;
 end;
 
 // ============================================================================
@@ -15653,7 +15666,7 @@ var
   R0_H, R1_H: Integer;
   Col0_X, Col1_X: Integer;
   Card: TPanel;
-  GB: TGroupBox;
+  Sec: TPanel;
   CtrlIdx: Integer;
 begin
   if not Assigned(FVsCards[1]) then Exit;
@@ -15678,72 +15691,99 @@ begin
     FVsCards[0].SetBounds(0, 0, 0, 0);
   end;
 
-  // Row heights:
-  // Left card (Tone + 3-Band): Tone=4*32+24=152, gap=8, 3-Band=3*32+24=120, padding=14+14
-  //   Total = 14 + 152 + 8 + 120 + 14 = 308
-  // Right card (Color + Per-channel Gain): Color=5*32+24=184, gap=8, Gain=3*32+24=120, padding=14+14
-  //   Total = 14 + 184 + 8 + 120 + 14 = 340
-  R0_H := 308;
-  R1_H := 340;
+  // Left card (Tone + 3-Band): Tone=4*32+32=160, gap=8, 3-Band=3*32+32=128, padding=14+14
+  //   Total = 14 + 160 + 8 + 128 + 14 = 324
+  // Right card (Color + Per-channel Gain): Color=5*32+32=192, gap=8, Gain=3*32+32=128, padding=14+14
+  //   Total = 14 + 192 + 8 + 128 + 14 = 356
+  // Use same height for both cards (taller one)
+  R0_H := 356;
+  R1_H := 356;
 
   // Left card: Tone + 3-Band
   Card := FVsCards[1];
   Card.SetBounds(Col0_X, MARGIN, CardWidth, R0_H);
-  // Resize groupboxes to card width
+  // Resize sections to card width
   for i := 0 to Card.ControlCount - 1 do
-    if Card.Controls[i] is TGroupBox then
+    if Card.Controls[i] is TPanel then
     begin
-      GB := TGroupBox(Card.Controls[i]);
-      GB.Width := CardWidth - 2 * CARD_P;
+      Sec := TPanel(Card.Controls[i]);
+      Sec.Width := CardWidth - 2 * CARD_P;
+      Sec.Invalidate;
     end;
 
   // Right card: Color + Per-channel Gain
   Card := FVsCards[2];
   Card.SetBounds(Col1_X, MARGIN, CardWidth, R1_H);
   for i := 0 to Card.ControlCount - 1 do
-    if Card.Controls[i] is TGroupBox then
+    if Card.Controls[i] is TPanel then
     begin
-      GB := TGroupBox(Card.Controls[i]);
-      GB.Width := CardWidth - 2 * CARD_P;
+      Sec := TPanel(Card.Controls[i]);
+      Sec.Width := CardWidth - 2 * CARD_P;
+      Sec.Invalidate;
     end;
 
-  // Reflow sliders inside groupboxes
-  // Card 1 (Left): Tone GB (indices 0-3), 3-Band GB (indices 12-14)
+  // Reflow sliders inside sections
+  // Card 1 (Left): Tone section (indices 0-3), 3-Band section (indices 12-14)
   Card := FVsCards[1];
   for i := 0 to Card.ControlCount - 1 do
   begin
-    if Card.Controls[i] is TGroupBox then
+    if Card.Controls[i] is TPanel then
     begin
-      GB := TGroupBox(Card.Controls[i]);
-      if GB.Caption = 'Tone' then
+      Sec := TPanel(Card.Controls[i]);
+      // Check if this is a section (has trackbar children)
+      if (Sec.ControlCount > 0) and ((Sec.Controls[0] is TTrackBar) or (Sec.Controls[0] is TLabel)) then
       begin
-        for CtrlIdx := 0 to 3 do
-          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
-      end
-      else if GB.Caption = '3-Band' then
-      begin
-        for CtrlIdx := 12 to 14 do
-          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
+        // Find which section by checking first trackbar tag
+        for CtrlIdx := 0 to Sec.ControlCount - 1 do
+          if Sec.Controls[CtrlIdx] is TTrackBar then
+          begin
+            if TTrackBar(Sec.Controls[CtrlIdx]).Tag <= 3 then
+            begin
+              ReflowSliderInSection(Sec, 0, CardWidth);
+              ReflowSliderInSection(Sec, 1, CardWidth);
+              ReflowSliderInSection(Sec, 2, CardWidth);
+              ReflowSliderInSection(Sec, 3, CardWidth);
+            end
+            else
+            begin
+              ReflowSliderInSection(Sec, 12, CardWidth);
+              ReflowSliderInSection(Sec, 13, CardWidth);
+              ReflowSliderInSection(Sec, 14, CardWidth);
+            end;
+            Break;
+          end;
       end;
     end;
   end;
 
-  // Card 2 (Right): Color GB (indices 4-8), Per-channel Gain GB (indices 9-11)
+  // Card 2 (Right): Color section (indices 4-8), Per-channel Gain section (indices 9-11)
   Card := FVsCards[2];
   for i := 0 to Card.ControlCount - 1 do
   begin
-    if Card.Controls[i] is TGroupBox then
+    if Card.Controls[i] is TPanel then
     begin
-      GB := TGroupBox(Card.Controls[i]);
-      if GB.Caption = 'Color' then
+      Sec := TPanel(Card.Controls[i]);
+      if (Sec.ControlCount > 0) and ((Sec.Controls[0] is TTrackBar) or (Sec.Controls[0] is TLabel)) then
       begin
-        for CtrlIdx := 4 to 8 do
-          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
-      end
-      else if GB.Caption = 'Per-channel Gain' then
-      begin
-        for CtrlIdx := 9 to 11 do
-          ReflowSliderInGB(GB, CtrlIdx, CardWidth);
+        for CtrlIdx := 0 to Sec.ControlCount - 1 do
+          if Sec.Controls[CtrlIdx] is TTrackBar then
+          begin
+            if TTrackBar(Sec.Controls[CtrlIdx]).Tag <= 8 then
+            begin
+              ReflowSliderInSection(Sec, 4, CardWidth);
+              ReflowSliderInSection(Sec, 5, CardWidth);
+              ReflowSliderInSection(Sec, 6, CardWidth);
+              ReflowSliderInSection(Sec, 7, CardWidth);
+              ReflowSliderInSection(Sec, 8, CardWidth);
+            end
+            else
+            begin
+              ReflowSliderInSection(Sec, 9, CardWidth);
+              ReflowSliderInSection(Sec, 10, CardWidth);
+              ReflowSliderInSection(Sec, 11, CardWidth);
+            end;
+            Break;
+          end;
       end;
     end;
   end;
@@ -15756,17 +15796,17 @@ begin
   end;
 end;
 
-procedure Tgoverlayform.ReflowSliderInGB(AGB: TGroupBox; AIndex: Integer;
+procedure Tgoverlayform.ReflowSliderInSection(ASec: TPanel; AIndex: Integer;
   ACardWidth: Integer);
 const
-  GB_PAD = 8;
-  LBL_W  = 100;
+  SEC_PAD = 8;
+  LBL_W   = 100;
 var
   AvailW: Integer;
 begin
   if not Assigned(FVsTrackbars[AIndex]) then Exit;
-  AvailW := ACardWidth - 2 * 14 - 2 * GB_PAD; // card padding + groupbox padding
-  FVsTrackbars[AIndex].Left  := GB_PAD + LBL_W;
+  AvailW := ACardWidth - 2 * 14 - 2 * SEC_PAD;
+  FVsTrackbars[AIndex].Left  := SEC_PAD + LBL_W;
   if Assigned(FVsValLabels[AIndex]) then
   begin
     FVsValLabels[AIndex].Left  := AvailW - 40;
@@ -17332,9 +17372,8 @@ var
   IsLight: Boolean;
   BgClr, CardBg, TxtClr: TColor;
   Card: TPanel;
-  ToneGB, BandGB, ColorGB, GainGB: TGroupBox;
+  ToneSec, BandSec, ColorSec, GainSec: TPanel;
   Y, i, RowY, CW: Integer;
-  SS: WideString;
 
   function MkCard(AY, AH: Integer): TPanel;
   begin
@@ -17353,24 +17392,40 @@ var
     Result.OnPaint      := @SubCardPaint;
   end;
 
-  function MkGB(AParent: TWinControl; const ATitle: string;
-    AY, AH: Integer): TGroupBox;
+  function MkSection(AParent: TPanel; const ATitle: string;
+    AY, AH: Integer): TPanel;
+  var
+    TitleLbl: TLabel;
   begin
-    Result := TGroupBox.Create(Self);
-    Result.Parent      := AParent;
-    Result.Caption     := ATitle;
-    Result.Font.Color  := TxtClr;
-    Result.Font.Bold   := True;
-    Result.Font.Size   := 10;
-    Result.Left        := CARD_P;
-    Result.Top         := AY;
-    Result.Width       := AParent.Width - 2 * CARD_P;
-    Result.Height      := AH;
-    Result.Color       := CardBg;
-    Result.ParentColor := False;
-    // Remove Qt border
-    SS := 'QGroupBox { border: none; }';
-    QWidget_setStyleSheet(TQtWidget(Result.Handle).Widget, @SS);
+    // Outer panel (card-like section)
+    Result := TPanel.Create(Self);
+    Result.Parent       := AParent;
+    Result.BevelOuter   := bvNone;
+    Result.BorderStyle  := bsNone;
+    Result.Caption      := '';
+    Result.Color        := CardBg;
+    Result.ParentColor  := False;
+    Result.Left         := CARD_P;
+    Result.Top          := AY;
+    Result.Width        := AParent.Width - 2 * CARD_P;
+    Result.Height       := AH;
+    Result.Anchors      := [akLeft, akTop, akRight];
+    Result.OnPaint      := @SubCardPaint;
+
+    // Title label (left-aligned, soft color/bold to match OptiScaler groupboxes)
+    TitleLbl := TLabel.Create(Self);
+    TitleLbl.Parent      := Result;
+    TitleLbl.Caption     := ATitle;
+    TitleLbl.Font.Bold   := True;
+    TitleLbl.Font.Size   := 8;
+    if IsLight then
+      TitleLbl.Font.Color := LightTextColor
+    else
+      TitleLbl.Font.Color := RGBToColor(170, 170, 204); // matches OptiScaler's soft text $00CCAAAA
+    TitleLbl.Left        := 6;
+    TitleLbl.Top         := 4;
+    TitleLbl.Transparent := True;
+    TitleLbl.AutoSize    := True;
   end;
 
   function GetIconForParam(AIndex: Integer): string;
@@ -17396,7 +17451,7 @@ var
     end;
   end;
 
-  procedure AddSliderLine(AParent: TWinControl; const AParam: TParamDef;
+  procedure AddSliderLine(AParent: TPanel; const AParam: TParamDef;
     AIndex: Integer; var AY: Integer);
   begin
     FVsNameLabels[AIndex] := TLabel.Create(Self);
@@ -17499,29 +17554,29 @@ begin
   Card := MkCard(0, 400);
   FVsCards[1] := Card;
 
-  ToneGB := MkGB(Card, 'Tone', CARD_P, 4 * ROW_H + 24);
+  ToneSec := MkSection(Card, 'Tone', CARD_P, 4 * ROW_H + 32);
   RowY := 24;
-  for i := 0 to 3 do AddSliderLine(ToneGB, PARAMS[i], i, RowY);
+  for i := 0 to 3 do AddSliderLine(ToneSec, PARAMS[i], i, RowY);
 
-  BandGB := MkGB(Card, '3-Band', ToneGB.Top + ToneGB.Height + 8, 3 * ROW_H + 24);
+  BandSec := MkSection(Card, '3-Band', ToneSec.Top + ToneSec.Height + 8, 3 * ROW_H + 32);
   RowY := 24;
-  for i := 12 to 14 do AddSliderLine(BandGB, PARAMS[i], i, RowY);
+  for i := 12 to 14 do AddSliderLine(BandSec, PARAMS[i], i, RowY);
 
-  Card.Height := BandGB.Top + BandGB.Height + CARD_P;
+  Card.Height := BandSec.Top + BandSec.Height + CARD_P;
 
-  // ── Right Card: Color + Per-channel Gain ──────────────────────────────
+  // ── Right Card: Color + Per-channel Gain ─────────────────────────────
   Card := MkCard(0, 400);
   FVsCards[2] := Card;
 
-  ColorGB := MkGB(Card, 'Color', CARD_P, 5 * ROW_H + 24);
+  ColorSec := MkSection(Card, 'Color', CARD_P, 5 * ROW_H + 32);
   RowY := 24;
-  for i := 4 to 8 do AddSliderLine(ColorGB, PARAMS[i], i, RowY);
+  for i := 4 to 8 do AddSliderLine(ColorSec, PARAMS[i], i, RowY);
 
-  GainGB := MkGB(Card, 'Per-channel Gain', ColorGB.Top + ColorGB.Height + 8, 3 * ROW_H + 24);
+  GainSec := MkSection(Card, 'Per-channel Gain', ColorSec.Top + ColorSec.Height + 8, 3 * ROW_H + 32);
   RowY := 24;
-  for i := 9 to 11 do AddSliderLine(GainGB, PARAMS[i], i, RowY);
+  for i := 9 to 11 do AddSliderLine(GainSec, PARAMS[i], i, RowY);
 
-  Card.Height := GainGB.Top + GainGB.Height + CARD_P;
+  Card.Height := GainSec.Top + GainSec.Height + CARD_P;
 
   // ── Show value labels ────────────────────────────────────────────────
   for i := 0 to 14 do
