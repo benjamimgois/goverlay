@@ -701,6 +701,9 @@ type
     FVsCards:       array[0..2] of TPanel;
     FVsEnabledCB:   TCheckBox;
     FVsToggleEdit:  TEdit;
+    FVsRestoreBtn:      TBitBtn;
+    FVsToggleCaptureBtn: TBitBtn;
+    FVsToggleTitleLbl:  TLabel;
     FVsTrackbars:   array[0..14] of TTrackBar;
     FVsValLabels:   array[0..14] of TLabel;
     FVsNameLabels:  array[0..14] of TLabel;
@@ -747,6 +750,8 @@ type
     procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
     procedure BuildVkSumiTab;
     procedure VkSumiSliderChange(Sender: TObject);
+    procedure LoadVkSumiConfig;
+    procedure VsRestoreBtnClick(Sender: TObject);
     procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
@@ -789,7 +794,7 @@ type
     procedure InitTweaksCards;
     procedure ReflowVkBasaltTab(AContentW: Integer);
     procedure ReflowVkSumiTab(AContentW: Integer);
-    procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer; ACardWidth: Integer);
+    procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
 
     procedure StartCube;
     procedure StopCube;
@@ -1131,6 +1136,32 @@ var
   NAV_W_EXPANDED  = 211;
   NAV_W_COLLAPSED = 60;
 implementation
+
+type
+  TParamDef = record
+    Name: string;
+    Min, Max, Default: Integer;
+    IsDeg: Boolean;
+  end;
+
+const
+  PARAMS: array[0..14] of TParamDef = (
+    (Name: 'Brightness';  Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Contrast';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Exposure';    Min: 0; Max: 600; Default: 300; IsDeg: False),
+    (Name: 'Gamma';       Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Saturation';  Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Vibrance';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Hue';         Min: 0; Max: 360; Default: 180; IsDeg: True),
+    (Name: 'Temperature'; Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Tint';        Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Red Gain';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Green Gain';  Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Blue Gain';   Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Shadows';     Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Midtones';    Min: 0; Max: 200; Default: 100; IsDeg: False),
+    (Name: 'Highlights';  Min: 0; Max: 200; Default: 100; IsDeg: False)
+  );
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -2685,6 +2716,7 @@ begin
 
   // Reload UI from the correct config file (VKBASALTCFGFILE was just updated above)
   LoadVkBasaltConfig;
+  LoadVkSumiConfig;
 
   SetNavActive(2);
 
@@ -4578,6 +4610,7 @@ var
   ci, gi: Integer;
   Sec: TPanel;
 begin
+  LoadVkSumiConfig;
   // Reflow vkSumi tab with correct width when tab becomes visible
   if Assigned(FVsScrollBox) then
     ContentW := FVsScrollBox.ClientWidth
@@ -5624,6 +5657,7 @@ begin
 
     //Load vkbasalt configuration
     LoadVkBasaltConfig;
+    LoadVkSumiConfig;
 
     //Load fgmod configuration
     LoadFgmodConfig;
@@ -9841,6 +9875,11 @@ var
   FS: TFormatSettings;
   Val: Double;
   i: Integer;
+  FGModFilePath: string;
+  FileLines: TStringList;
+  TargetLineExists: Boolean;
+  SteamDeckLineIndex: Integer;
+  SumiEnabled: Boolean;
 begin
   ConfigDir := GetUserDir + '.config/vkSumi';
   ConfigFile := ConfigDir + '/vkSumi.conf';
@@ -9909,10 +9948,183 @@ begin
       ForceDirectories(ConfigDir);
     Lines.SaveToFile(ConfigFile);
 
+    // Patch fgmod file (global or game-specific) to add/remove export ENABLE_VKSUMI=1
+    if FActiveGameName <> '' then
+      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+    else
+      FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+
+    if FileExists(FGModFilePath) then
+    begin
+      FileLines := TStringList.Create;
+      try
+        FileLines.LoadFromFile(FGModFilePath);
+
+        TargetLineExists := False;
+        SteamDeckLineIndex := -1;
+        for i := 0 to FileLines.Count - 1 do
+        begin
+          if Pos('# Execute the original command', FileLines[i]) > 0 then
+            SteamDeckLineIndex := i;
+          if Pos('export ENABLE_VKSUMI=1', FileLines[i]) > 0 then
+            TargetLineExists := True;
+        end;
+
+        SumiEnabled := True;
+        if Assigned(FVsEnabledCB) then
+          SumiEnabled := FVsEnabledCB.Checked;
+
+        if SumiEnabled then
+        begin
+          if not TargetLineExists then
+          begin
+            if SteamDeckLineIndex >= 0 then
+              FileLines.Insert(SteamDeckLineIndex + 1, '  export ENABLE_VKSUMI=1')
+            else
+            begin
+              // Fallback: search for "$@" and insert before it
+              for i := 0 to FileLines.Count - 1 do
+                if Trim(FileLines[i]) = '"$@"' then
+                begin
+                  FileLines.Insert(i, '  export ENABLE_VKSUMI=1');
+                  Break;
+                end;
+            end;
+            FileLines.SaveToFile(FGModFilePath);
+            fpChmod(FGModFilePath, &755);
+            WriteLn('[FGMOD] Added export ENABLE_VKSUMI=1 to fgmod');
+          end;
+        end
+        else
+        begin
+          if TargetLineExists then
+          begin
+            for i := FileLines.Count - 1 downto 0 do
+              if Pos('export ENABLE_VKSUMI=1', FileLines[i]) > 0 then
+              begin
+                FileLines.Delete(i);
+                Break;
+              end;
+            FileLines.SaveToFile(FGModFilePath);
+            fpChmod(FGModFilePath, &755);
+            WriteLn('[FGMOD] Removed export ENABLE_VKSUMI=1 from fgmod');
+          end;
+        end;
+      finally
+        FileLines.Free;
+      end;
+    end;
+
     SendNotification('vkSumi', 'Configuration saved to ' + ConfigFile, GetIconFile);
   finally
     Lines.Free;
   end;
+end;
+
+procedure Tgoverlayform.LoadVkSumiConfig;
+const
+  KEYS: array[0..14] of string = (
+    'brightness', 'contrast', 'exposure', 'gamma',
+    'saturation', 'vibrance', 'hue_deg', 'temperature', 'tint',
+    'red_gain', 'green_gain', 'blue_gain',
+    'shadows', 'midtones', 'highlights'
+  );
+var
+  ConfigFile: string;
+  Cfg: TConfigFile;
+  i: Integer;
+  FS: TFormatSettings;
+  ValStr: string;
+  Val: Double;
+  PosVal: Integer;
+begin
+  // Set default values first
+  if Assigned(FVsEnabledCB) then
+    FVsEnabledCB.Checked := True;
+  if Assigned(FVsToggleEdit) then
+    FVsToggleEdit.Text := 'Shift_R+F9';
+
+  for i := 0 to 14 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+      FVsTrackbars[i].Position := PARAMS[i].Default;
+  end;
+
+  ConfigFile := GetUserDir + '.config/vkSumi/vkSumi.conf';
+  if not FileExists(ConfigFile) then
+  begin
+    if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
+      FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
+    Exit;
+  end;
+
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  Cfg := TConfigFile.Create;
+  try
+    if Cfg.Load(ConfigFile) then
+    begin
+      if Assigned(FVsEnabledCB) then
+        FVsEnabledCB.Checked := Cfg.GetBool('enabled =', True);
+
+      if Assigned(FVsToggleEdit) then
+      begin
+        ValStr := Cfg.GetValue('toggle_keys =', 'Shift_R+F9');
+        i := Pos('#', ValStr);
+        if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
+        i := Pos(';', ValStr);
+        if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
+        FVsToggleEdit.Text := Trim(ValStr);
+      end;
+
+      if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
+        FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
+
+      for i := 0 to 14 do
+      begin
+        if Assigned(FVsTrackbars[i]) then
+        begin
+          ValStr := Cfg.GetValue(KEYS[i] + ' =', '');
+          if ValStr <> '' then
+          begin
+            if TryStrToFloat(ValStr, Val, FS) then
+            begin
+              if i = 2 then
+                PosVal := Round(Val * 100) + 300
+              else if i = 6 then
+                PosVal := Round(Val) + 180
+              else
+                PosVal := Round(Val * 100) + 100;
+
+              // Clamp to Min/Max
+              if PosVal < FVsTrackbars[i].Min then PosVal := FVsTrackbars[i].Min;
+              if PosVal > FVsTrackbars[i].Max then PosVal := FVsTrackbars[i].Max;
+
+              FVsTrackbars[i].Position := PosVal;
+            end;
+          end;
+        end;
+      end;
+    end;
+  finally
+    Cfg.Free;
+  end;
+end;
+
+procedure Tgoverlayform.VsRestoreBtnClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  for i := 0 to 14 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+    begin
+      FVsTrackbars[i].Position := PARAMS[i].Default;
+      VkSumiSliderChange(FVsTrackbars[i]);
+    end;
+  end;
+  SaveVkSumiConfig;
 end;
 
 procedure Tgoverlayform.SaveVkBasaltConfig;
@@ -11201,7 +11413,7 @@ const
   ITEMS: array[0..4] of record Icon, Caption: string; end = (
     (Icon: '󰊴'; Caption: 'Games'),
     (Icon: '󱁥'; Caption: 'MangoHud'),
-    (Icon: '󰏘'; Caption: 'Image filter'),
+    (Icon: '󰏘'; Caption: 'Post processing'),
     (Icon: '󰋮'; Caption: 'OptiScaler'),
     (Icon: '󰒓'; Caption: 'Proton Tweaks')
   );
@@ -12793,7 +13005,8 @@ begin
     if FCaptureBtn.Tag = 1 then hudonoffComboBox.Text      := FinalStr
     else if FCaptureBtn.Tag = 2 then fpslimtoggleComboBox.Text := FinalStr
     else if FCaptureBtn.Tag = 3 then logtoggleComboBox.Text    := FinalStr
-    else if FCaptureBtn.Tag = 4 then vkbtogglekeyCombobox.Text := FinalStr;
+    else if FCaptureBtn.Tag = 4 then vkbtogglekeyCombobox.Text := FinalStr
+    else if FCaptureBtn.Tag = 6 then FVsToggleEdit.Text        := FinalStr;
   end;
 
   if Assigned(FCaptureForm) then
@@ -15664,10 +15877,12 @@ const
 var
   CW, CardWidth, i: Integer;
   R0_H, R1_H: Integer;
-  Col0_X, Col1_X: Integer;
+  Col0_X: Integer;
   Card: TPanel;
   Sec: TPanel;
   CtrlIdx: Integer;
+  ToneSec, BandSec, ColorSec, GainSec: TPanel;
+  HalfW: Integer;
 begin
   if not Assigned(FVsCards[1]) then Exit;
 
@@ -15680,124 +15895,120 @@ begin
     CW := 800;
 
   if CW < 400 then CW := 400;
-  CardWidth := (CW - 2 * MARGIN - GAP) div 2;
+
+  // Find the sections dynamically by checking child trackbar tags
+  ToneSec := nil;
+  BandSec := nil;
+  Card := FVsCards[1];
+  for i := 0 to Card.ControlCount - 1 do
+    if Card.Controls[i] is TPanel then
+    begin
+      Sec := TPanel(Card.Controls[i]);
+      for CtrlIdx := 0 to Sec.ControlCount - 1 do
+        if Sec.Controls[CtrlIdx] is TTrackBar then
+        begin
+          if TTrackBar(Sec.Controls[CtrlIdx]).Tag <= 3 then
+            ToneSec := Sec
+          else
+            BandSec := Sec;
+          Break;
+        end;
+    end;
+
+  ColorSec := nil;
+  GainSec := nil;
+  Card := FVsCards[2];
+  for i := 0 to Card.ControlCount - 1 do
+    if Card.Controls[i] is TPanel then
+    begin
+      Sec := TPanel(Card.Controls[i]);
+      for CtrlIdx := 0 to Sec.ControlCount - 1 do
+        if Sec.Controls[CtrlIdx] is TTrackBar then
+        begin
+          if TTrackBar(Sec.Controls[CtrlIdx]).Tag <= 8 then
+            ColorSec := Sec
+          else
+            GainSec := Sec;
+          Break;
+        end;
+    end;
+
+  // CardWidth is the full width of the tab sheet
+  CardWidth := CW - 2 * MARGIN;
   Col0_X    := MARGIN;
-  Col1_X    := MARGIN + CardWidth + GAP;
+  HalfW     := (CardWidth - 2 * CARD_P - GAP) div 2;
 
-  // Settings card hidden
-  if Assigned(FVsCards[0]) then
-  begin
-    FVsCards[0].Visible := False;
-    FVsCards[0].SetBounds(0, 0, 0, 0);
-  end;
+  // Set R0_H and R1_H based on the layout side-by-side
+  R0_H := CARD_P + 160 + CARD_P; // 188
+  R1_H := CARD_P + 192 + CARD_P; // 220
 
-  // Left card (Tone + 3-Band): Tone=4*32+32=160, gap=8, 3-Band=3*32+32=128, padding=14+14
-  //   Total = 14 + 160 + 8 + 128 + 14 = 324
-  // Right card (Color + Per-channel Gain): Color=5*32+32=192, gap=8, Gain=3*32+32=128, padding=14+14
-  //   Total = 14 + 192 + 8 + 128 + 14 = 356
-  // Use same height for both cards (taller one)
-  R0_H := 356;
-  R1_H := 356;
-
-  // Left card: Tone + 3-Band
+  // Position Card 1 and its sections side-by-side
   Card := FVsCards[1];
   Card.SetBounds(Col0_X, MARGIN, CardWidth, R0_H);
-  // Resize sections to card width
-  for i := 0 to Card.ControlCount - 1 do
-    if Card.Controls[i] is TPanel then
-    begin
-      Sec := TPanel(Card.Controls[i]);
-      Sec.Width := CardWidth - 2 * CARD_P;
-      Sec.Invalidate;
-    end;
+  if Assigned(ToneSec) then
+    ToneSec.SetBounds(CARD_P, CARD_P, HalfW, 160);
+  if Assigned(BandSec) then
+    BandSec.SetBounds(CARD_P + HalfW + GAP, CARD_P, HalfW, 128);
 
-  // Right card: Color + Per-channel Gain
+  // Position Card 2 and its sections side-by-side
   Card := FVsCards[2];
-  Card.SetBounds(Col1_X, MARGIN, CardWidth, R1_H);
-  for i := 0 to Card.ControlCount - 1 do
-    if Card.Controls[i] is TPanel then
-    begin
-      Sec := TPanel(Card.Controls[i]);
-      Sec.Width := CardWidth - 2 * CARD_P;
-      Sec.Invalidate;
-    end;
+  Card.SetBounds(Col0_X, MARGIN + R0_H + GAP, CardWidth, R1_H);
+  if Assigned(ColorSec) then
+    ColorSec.SetBounds(CARD_P, CARD_P, HalfW, 192);
+  if Assigned(GainSec) then
+    GainSec.SetBounds(CARD_P + HalfW + GAP, CARD_P, HalfW, 128);
 
-  // Reflow sliders inside sections
-  // Card 1 (Left): Tone section (indices 0-3), 3-Band section (indices 12-14)
-  Card := FVsCards[1];
-  for i := 0 to Card.ControlCount - 1 do
+  // Position Card 0 (Settings/Toggle card)
+  if Assigned(FVsCards[0]) then
   begin
-    if Card.Controls[i] is TPanel then
-    begin
-      Sec := TPanel(Card.Controls[i]);
-      // Check if this is a section (has trackbar children)
-      if (Sec.ControlCount > 0) and ((Sec.Controls[0] is TTrackBar) or (Sec.Controls[0] is TLabel)) then
-      begin
-        // Find which section by checking first trackbar tag
-        for CtrlIdx := 0 to Sec.ControlCount - 1 do
-          if Sec.Controls[CtrlIdx] is TTrackBar then
-          begin
-            if TTrackBar(Sec.Controls[CtrlIdx]).Tag <= 3 then
-            begin
-              ReflowSliderInSection(Sec, 0, CardWidth);
-              ReflowSliderInSection(Sec, 1, CardWidth);
-              ReflowSliderInSection(Sec, 2, CardWidth);
-              ReflowSliderInSection(Sec, 3, CardWidth);
-            end
-            else
-            begin
-              ReflowSliderInSection(Sec, 12, CardWidth);
-              ReflowSliderInSection(Sec, 13, CardWidth);
-              ReflowSliderInSection(Sec, 14, CardWidth);
-            end;
-            Break;
-          end;
-      end;
-    end;
+    FVsCards[0].Visible := True;
+    FVsCards[0].SetBounds(Col0_X, MARGIN + R0_H + GAP + R1_H + GAP, CardWidth, 85);
+    if Assigned(FVsRestoreBtn) then
+      FVsRestoreBtn.Left := CardWidth - CARD_P - FVsRestoreBtn.Width;
   end;
 
-  // Card 2 (Right): Color section (indices 4-8), Per-channel Gain section (indices 9-11)
-  Card := FVsCards[2];
-  for i := 0 to Card.ControlCount - 1 do
+  // Reflow sliders inside sections
+  if Assigned(ToneSec) then
   begin
-    if Card.Controls[i] is TPanel then
-    begin
-      Sec := TPanel(Card.Controls[i]);
-      if (Sec.ControlCount > 0) and ((Sec.Controls[0] is TTrackBar) or (Sec.Controls[0] is TLabel)) then
-      begin
-        for CtrlIdx := 0 to Sec.ControlCount - 1 do
-          if Sec.Controls[CtrlIdx] is TTrackBar then
-          begin
-            if TTrackBar(Sec.Controls[CtrlIdx]).Tag <= 8 then
-            begin
-              ReflowSliderInSection(Sec, 4, CardWidth);
-              ReflowSliderInSection(Sec, 5, CardWidth);
-              ReflowSliderInSection(Sec, 6, CardWidth);
-              ReflowSliderInSection(Sec, 7, CardWidth);
-              ReflowSliderInSection(Sec, 8, CardWidth);
-            end
-            else
-            begin
-              ReflowSliderInSection(Sec, 9, CardWidth);
-              ReflowSliderInSection(Sec, 10, CardWidth);
-              ReflowSliderInSection(Sec, 11, CardWidth);
-            end;
-            Break;
-          end;
-      end;
-    end;
+    ReflowSliderInSection(ToneSec, 0);
+    ReflowSliderInSection(ToneSec, 1);
+    ReflowSliderInSection(ToneSec, 2);
+    ReflowSliderInSection(ToneSec, 3);
+    ToneSec.Invalidate;
+  end;
+  if Assigned(BandSec) then
+  begin
+    ReflowSliderInSection(BandSec, 12);
+    ReflowSliderInSection(BandSec, 13);
+    ReflowSliderInSection(BandSec, 14);
+    BandSec.Invalidate;
+  end;
+  if Assigned(ColorSec) then
+  begin
+    ReflowSliderInSection(ColorSec, 4);
+    ReflowSliderInSection(ColorSec, 5);
+    ReflowSliderInSection(ColorSec, 6);
+    ReflowSliderInSection(ColorSec, 7);
+    ReflowSliderInSection(ColorSec, 8);
+    ColorSec.Invalidate;
+  end;
+  if Assigned(GainSec) then
+  begin
+    ReflowSliderInSection(GainSec, 9);
+    ReflowSliderInSection(GainSec, 10);
+    ReflowSliderInSection(GainSec, 11);
+    GainSec.Invalidate;
   end;
 
   // Update scrollbox content dimensions
   if Assigned(FVsBgPanel) then
   begin
     FVsBgPanel.Width  := CW;
-    FVsBgPanel.Height := Max(R0_H, R1_H) + 2 * MARGIN;
+    FVsBgPanel.Height := MARGIN + R0_H + GAP + R1_H + GAP + 85 + MARGIN;
   end;
 end;
 
-procedure Tgoverlayform.ReflowSliderInSection(ASec: TPanel; AIndex: Integer;
-  ACardWidth: Integer);
+procedure Tgoverlayform.ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
 const
   SEC_PAD = 8;
   LBL_W   = 100;
@@ -15805,7 +16016,7 @@ var
   AvailW: Integer;
 begin
   if not Assigned(FVsTrackbars[AIndex]) then Exit;
-  AvailW := ACardWidth - 2 * 14 - 2 * SEC_PAD;
+  AvailW := ASec.Width - 2 * SEC_PAD;
   FVsTrackbars[AIndex].Left  := SEC_PAD + LBL_W;
   if Assigned(FVsValLabels[AIndex]) then
   begin
@@ -17344,30 +17555,6 @@ const
   LBL_W    = 100;
   SLD_W    = 200;
   GB_PAD   = 8;
-type
-  TParamDef = record
-    Name: string;
-    Min, Max, Default: Integer;
-    IsDeg: Boolean;
-  end;
-const
-  PARAMS: array[0..14] of TParamDef = (
-    (Name: 'Brightness';  Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Contrast';    Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Exposure';    Min: 0; Max: 600; Default: 300; IsDeg: False),
-    (Name: 'Gamma';       Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Saturation';  Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Vibrance';    Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Hue';         Min: 0; Max: 360; Default: 180; IsDeg: True),
-    (Name: 'Temperature'; Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Tint';        Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Red Gain';    Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Green Gain';  Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Blue Gain';   Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Shadows';     Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Midtones';    Min: 0; Max: 200; Default: 100; IsDeg: False),
-    (Name: 'Highlights';  Min: 0; Max: 200; Default: 100; IsDeg: False)
-  );
 var
   IsLight: Boolean;
   BgClr, CardBg, TxtClr: TColor;
@@ -17445,7 +17632,7 @@ var
       11: Result := '🔵';
       12: Result := '';
       13: Result := '󰃟';
-      14: Result := '';
+      14: Result := '󰃠';
     else
       Result := '';
     end;
@@ -17523,32 +17710,45 @@ begin
   CW      := FVsScrollBox.ClientWidth;
   if CW < 200 then CW := 200;
 
-  // ── Settings card (Hidden, functional compatibility) ──────────────────
-  Y := CARD_M;
-  Card := MkCard(Y, CARD_P + 54);
+  // ── Settings card (Visible, containing Restore default + Toggle key) ──────
+  Card := MkCard(0, 85);
   FVsCards[0] := Card;
-  Card.Visible := False;
 
   FVsEnabledCB := TCheckBox.Create(Self);
-  FVsEnabledCB.Parent      := Card;
-  FVsEnabledCB.Caption     := 'Enabled';
+  FVsEnabledCB.Parent      := Self;
+  FVsEnabledCB.Visible     := False;
   FVsEnabledCB.Checked     := True;
-  FVsEnabledCB.Font.Color  := TxtClr;
-  FVsEnabledCB.Font.Size   := 9;
-  FVsEnabledCB.Left        := CARD_P;
-  FVsEnabledCB.Top         := CARD_P + 24;
-  FVsEnabledCB.AutoSize    := True;
-  FVsEnabledCB.ParentColor := True;
 
   FVsToggleEdit := TEdit.Create(Self);
-  FVsToggleEdit.Parent      := Card;
+  FVsToggleEdit.Parent      := Self;
+  FVsToggleEdit.Visible     := False;
   FVsToggleEdit.Text        := 'Shift_R+F9';
-  FVsToggleEdit.Font.Name   := 'DejaVu Sans Mono';
-  FVsToggleEdit.Font.Size   := 9;
-  FVsToggleEdit.Left        := CARD_P + 100;
-  FVsToggleEdit.Top         := CARD_P + 22;
-  FVsToggleEdit.Width       := 200;
-  FVsToggleEdit.Height      := 24;
+
+  FVsToggleTitleLbl := TLabel.Create(Card);
+  FVsToggleTitleLbl.Parent      := Card;
+  FVsToggleTitleLbl.Caption     := 'Toggle key';
+  FVsToggleTitleLbl.Font.Name   := 'Noto Sans';
+  FVsToggleTitleLbl.Font.Size   := 10;
+  FVsToggleTitleLbl.Font.Style  := [fsBold];
+  FVsToggleTitleLbl.AutoSize    := True;
+  FVsToggleTitleLbl.SetBounds(CARD_P, CARD_P, 200, 22);
+
+  FVsToggleCaptureBtn := TBitBtn.Create(Card);
+  FVsToggleCaptureBtn.Parent   := Card;
+  FVsToggleCaptureBtn.Tag      := 6;
+  FVsToggleCaptureBtn.Anchors  := [akLeft, akTop];
+  FVsToggleCaptureBtn.Cursor   := crHandPoint;
+  FVsToggleCaptureBtn.OnClick  := @CaptureBtnClick;
+  FVsToggleCaptureBtn.Caption  := '⌨ ' + FVsToggleEdit.Text;
+  FVsToggleCaptureBtn.SetBounds(CARD_P, CARD_P + 26, 150, 30);
+
+  FVsRestoreBtn := TBitBtn.Create(Card);
+  FVsRestoreBtn.Parent      := Card;
+  FVsRestoreBtn.Caption     := 'Restore default';
+  FVsRestoreBtn.Anchors     := [akLeft, akTop];
+  FVsRestoreBtn.Cursor      := crHandPoint;
+  FVsRestoreBtn.OnClick     := @VsRestoreBtnClick;
+  FVsRestoreBtn.SetBounds(CARD_P + 180, CARD_P + 26, 150, 30);
 
   // ── Left Card: Tone + 3-Band ──────────────────────────────────────────
   Card := MkCard(0, 400);
@@ -19361,7 +19561,7 @@ begin
   if (FActiveGameName <> '') and not FNavToolEnabled[1] then
     Result := ''  // vkBasalt disabled for this game
   else
-    Result := GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 ';
+    Result := GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 ENABLE_VKSUMI=1 ';
 end;
 
 function Tgoverlayform.GetVkBasaltConfigEnvPrefix: string;
