@@ -210,7 +210,7 @@ end;
 
 class function TConfigManager.GetMangoHudFolder: string;
 begin
-  Result := IncludeTrailingPathDelimiter(GetUserConfigDir) + MANGOHUD_FOLDER_NAME;
+  Result := IncludeTrailingPathDelimiter(GetHostConfigDir) + MANGOHUD_FOLDER_NAME;
 end;
 
 class function TConfigManager.GetMangoHudConfigFile: string;
@@ -229,7 +229,7 @@ end;
 
 class function TConfigManager.GetVkBasaltFolder: string;
 begin
-  Result := IncludeTrailingPathDelimiter(GetUserConfigDir) + VKBASALT_FOLDER_NAME;
+  Result := IncludeTrailingPathDelimiter(GetHostConfigDir) + VKBASALT_FOLDER_NAME;
 end;
 
 class function TConfigManager.GetVkBasaltConfigFile: string;
@@ -296,14 +296,21 @@ end;
 
 class function TConfigManager.GetHostConfigDir: string;
 begin
-  // When running inside Flatpak, HOST_XDG_CONFIG_HOME points to the real
-  // host config directory so we can read/write configs that are visible to
-  // native (non-Flatpak) applications.
-  Result := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-  if Result = '' then
-    Result := GetEnvironmentVariable('XDG_CONFIG_HOME');
-  if Result = '' then
+  if GetEnvironmentVariable('FLATPAK_ID') <> '' then
+  begin
     Result := GetUserDir + '.config';
+  end
+  else
+  begin
+    // When running inside Flatpak, HOST_XDG_CONFIG_HOME points to the real
+    // host config directory so we can read/write configs that are visible to
+    // native (non-Flatpak) applications.
+    Result := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+    if Result = '' then
+      Result := GetEnvironmentVariable('XDG_CONFIG_HOME');
+    if Result = '' then
+      Result := GetUserDir + '.config';
+  end;
 end;
 
 class function TConfigManager.GetHostDataDir: string;

@@ -1740,22 +1740,29 @@ begin;
   Result := UserConfig;
 end;
 
-// Function to get MangoHud config directory with proper XDG support
-// For Flatpak, this uses HOST_XDG_CONFIG_HOME to access the real host location
 function GetMangoHudConfigDir(): String;
 var
   ConfigHome: String;
 begin
-  // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
-  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-  
-  // Fall back to standard XDG_CONFIG_HOME
-  if ConfigHome = '' then
-    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-  
-  // Final fallback to ~/.config
-  if ConfigHome = '' then
+  // When running in Flatpak, games run outside the sandbox and need to access
+  // the host MangoHud configuration. Always use the host .config directory.
+  if IsRunningInFlatpak then
+  begin
     ConfigHome := GetUserDir + '.config';
+  end
+  else
+  begin
+    // For Flatpak, try HOST_XDG_CONFIG_HOME first to access the real host location
+    ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+    
+    // Fall back to standard XDG_CONFIG_HOME
+    if ConfigHome = '' then
+      ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+    
+    // Final fallback to ~/.config
+    if ConfigHome = '' then
+      ConfigHome := GetUserDir + '.config';
+  end;
   
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'MangoHud';
 end;

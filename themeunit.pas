@@ -98,10 +98,8 @@ implementation
 
 function GetConfigFilePath: string;
 begin
-  // Use the centralized Flatpak-aware helper so all XDG paths are resolved
-  // consistently across the application.
-  Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostConfigDir) +
-            'goverlay/goverlay.conf';
+  Result := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) +
+            'goverlay.conf';
 end;
 
 function IsGNOMEDesktop: Boolean;
