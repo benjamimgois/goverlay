@@ -1137,6 +1137,9 @@ var
   NAV_W_COLLAPSED = 60;
 implementation
 
+uses
+  xlib, x;
+
 type
   TParamDef = record
     Name: string;
@@ -6899,6 +6902,10 @@ begin
   ReflowPerformanceTab(InitW);
   ReflowMetricsTab(InitW);
   ReflowExtrasTab(InitW);
+  ReflowOptiScalerTab(InitW);
+  ReflowOptiScalerTabNew(InitW);
+  ReflowVkBasaltTab(InitW);
+  ReflowVkSumiTab(InitW);
 
   // Enable smooth rendering for all TImage controls
   ApplyImageAntialiasing;
@@ -12925,6 +12932,27 @@ begin
   end;
 end;
 
+function IsX11ModifierPressed(Keysym: LongWord): Boolean;
+var
+  d: PDisplay;
+  keys: array[0..31] of Char;
+  keycode: Byte;
+begin
+  Result := False;
+  FillChar(keys, SizeOf(keys), 0);
+  d := XOpenDisplay(nil);
+  if d <> nil then
+  begin
+    keycode := XKeysymToKeycode(d, Keysym);
+    if keycode <> 0 then
+    begin
+      XQueryKeymap(d, keys);
+      Result := (Byte(keys[keycode div 8]) and (1 shl (keycode mod 8))) <> 0;
+    end;
+    XCloseDisplay(d);
+  end;
+end;
+
 // ============================================================================
 // KEYBIND CAPTURE
 // ============================================================================
@@ -12960,10 +12988,34 @@ begin
   end;
 
   // ── MangoHud / vkBasalt path: X11 Keysym format with optional modifiers
-  if ssShift in Shift then ModStr := ModStr + 'Shift_L+';
-  if ssCtrl  in Shift then ModStr := ModStr + 'Control_L+';
-  if ssAlt   in Shift then ModStr := ModStr + 'Alt_L+';
-  if ssSuper in Shift then ModStr := ModStr + 'Super_L+';
+  if ssShift in Shift then
+  begin
+    if IsX11ModifierPressed($FFE2) then
+      ModStr := ModStr + 'Shift_R+'
+    else
+      ModStr := ModStr + 'Shift_L+';
+  end;
+  if ssCtrl  in Shift then
+  begin
+    if IsX11ModifierPressed($FFE4) then
+      ModStr := ModStr + 'Control_R+'
+    else
+      ModStr := ModStr + 'Control_L+';
+  end;
+  if ssAlt   in Shift then
+  begin
+    if IsX11ModifierPressed($FFEa) or IsX11ModifierPressed($FE03) then
+      ModStr := ModStr + 'Alt_R+'
+    else
+      ModStr := ModStr + 'Alt_L+';
+  end;
+  if ssSuper in Shift then
+  begin
+    if IsX11ModifierPressed($FFEC) then
+      ModStr := ModStr + 'Super_R+'
+    else
+      ModStr := ModStr + 'Super_L+';
+  end;
 
   if (Key >= VK_A) and (Key <= VK_Z) then
     KeyStr := Chr(Key)
@@ -15774,8 +15826,8 @@ begin
   FVkToggleTitleLbl.Font.Size   := 10;
   FVkToggleTitleLbl.Font.Style  := [fsBold];
   FVkToggleTitleLbl.Font.Color  := CLR_WHITE;
-  FVkToggleTitleLbl.AutoSize    := True;
-  FVkToggleTitleLbl.SetBounds(12, 12, 200, 22);
+  FVkToggleTitleLbl.AutoSize    := False;
+  FVkToggleTitleLbl.SetBounds(12, 12, 100, 22);
   FVkToggleTitleLbl.Transparent := True;
 
   // Reparent combobox off the vkbasalt tab (hidden data store)
@@ -15817,10 +15869,12 @@ begin
 
   CW   := AContentW - 2 * MARGIN;
   TabH := vkbasaltTabSheet.ClientHeight;
+  if TabH < 150 then
+    TabH := Self.ClientHeight - 130;
 
   // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
   RSHD_H := TabH - 2 * MARGIN - BTIN_H - TOGL_H - 2 * GAP;
-  if RSHD_H < 180 then RSHD_H := 180;  // minimum sensible height
+  if RSHD_H < 120 then RSHD_H := 120;  // minimum sensible height
   FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
 
   if Assigned(FVkReshadePB) then
@@ -15862,8 +15916,8 @@ begin
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
 
   if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
-    FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left + FVkToggleTitleLbl.Width + 2 - 125,
-                                   FVkToggleTitleLbl.Top, 120, 28);
+    FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left + FVkToggleTitleLbl.Width + 12,
+                                   FVkToggleTitleLbl.Top - 3, 120, 28);
 end;
 
 procedure Tgoverlayform.ReflowVkSumiTab(AContentW: Integer);
@@ -17730,8 +17784,8 @@ begin
   FVsToggleTitleLbl.Font.Name   := 'Noto Sans';
   FVsToggleTitleLbl.Font.Size   := 10;
   FVsToggleTitleLbl.Font.Style  := [fsBold];
-  FVsToggleTitleLbl.AutoSize    := True;
-  FVsToggleTitleLbl.SetBounds(CARD_P, CARD_P, 200, 22);
+  FVsToggleTitleLbl.AutoSize    := False;
+  FVsToggleTitleLbl.SetBounds(CARD_P, CARD_P, 100, 22);
 
   FVsToggleCaptureBtn := TBitBtn.Create(Card);
   FVsToggleCaptureBtn.Parent   := Card;
