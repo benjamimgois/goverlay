@@ -704,6 +704,8 @@ type
     FVsRestoreBtn:      TBitBtn;
     FVsToggleCaptureBtn: TBitBtn;
     FVsToggleTitleLbl:  TLabel;
+    FVsLuminanceTitleLbl: TLabel;
+    FVsChrominanceTitleLbl: TLabel;
     FVsTrackbars:   array[0..14] of TTrackBar;
     FVsValLabels:   array[0..14] of TLabel;
     FVsNameLabels:  array[0..14] of TLabel;
@@ -15993,25 +15995,25 @@ begin
   Col0_X    := MARGIN;
   HalfW     := (CardWidth - 2 * CARD_P - GAP) div 2;
 
-  // Set R0_H and R1_H based on the layout side-by-side
-  R0_H := CARD_P + 160 + CARD_P; // 188
-  R1_H := CARD_P + 192 + CARD_P; // 220
+  // Set R0_H and R1_H based on the layout side-by-side (with card titles)
+  R0_H := CARD_P + 30 + 160 + CARD_P; // 218
+  R1_H := CARD_P + 30 + 192 + CARD_P; // 250
 
   // Position Card 1 and its sections side-by-side
   Card := FVsCards[1];
   Card.SetBounds(Col0_X, MARGIN, CardWidth, R0_H);
   if Assigned(ToneSec) then
-    ToneSec.SetBounds(CARD_P, CARD_P, HalfW, 160);
+    ToneSec.SetBounds(CARD_P, CARD_P + 30, HalfW, 160);
   if Assigned(BandSec) then
-    BandSec.SetBounds(CARD_P + HalfW + GAP, CARD_P, HalfW, 128);
+    BandSec.SetBounds(CARD_P + HalfW + GAP, CARD_P + 30, HalfW, 128);
 
   // Position Card 2 and its sections side-by-side
   Card := FVsCards[2];
   Card.SetBounds(Col0_X, MARGIN + R0_H + GAP, CardWidth, R1_H);
   if Assigned(ColorSec) then
-    ColorSec.SetBounds(CARD_P, CARD_P, HalfW, 192);
+    ColorSec.SetBounds(CARD_P, CARD_P + 30, HalfW, 192);
   if Assigned(GainSec) then
-    GainSec.SetBounds(CARD_P + HalfW + GAP, CARD_P, HalfW, 128);
+    GainSec.SetBounds(CARD_P + HalfW + GAP, CARD_P + 30, HalfW, 128);
 
   // Position Card 0 (Settings/Toggle card)
   if Assigned(FVsCards[0]) then
@@ -17809,7 +17811,16 @@ begin
   Card := MkCard(0, 400);
   FVsCards[1] := Card;
 
-  ToneSec := MkSection(Card, 'Tone', CARD_P, 4 * ROW_H + 32);
+  FVsLuminanceTitleLbl := TLabel.Create(Card);
+  FVsLuminanceTitleLbl.Parent      := Card;
+  FVsLuminanceTitleLbl.Caption     := 'Luminance';
+  FVsLuminanceTitleLbl.Font.Name   := 'Noto Sans';
+  FVsLuminanceTitleLbl.Font.Size   := 10;
+  FVsLuminanceTitleLbl.Font.Style  := [fsBold];
+  FVsLuminanceTitleLbl.AutoSize    := False;
+  FVsLuminanceTitleLbl.SetBounds(CARD_P, CARD_P, 150, 22);
+
+  ToneSec := MkSection(Card, 'Tone', CARD_P + 30, 4 * ROW_H + 32);
   RowY := 24;
   for i := 0 to 3 do AddSliderLine(ToneSec, PARAMS[i], i, RowY);
 
@@ -17823,7 +17834,16 @@ begin
   Card := MkCard(0, 400);
   FVsCards[2] := Card;
 
-  ColorSec := MkSection(Card, 'Color', CARD_P, 5 * ROW_H + 32);
+  FVsChrominanceTitleLbl := TLabel.Create(Card);
+  FVsChrominanceTitleLbl.Parent      := Card;
+  FVsChrominanceTitleLbl.Caption     := 'Chrominance';
+  FVsChrominanceTitleLbl.Font.Name   := 'Noto Sans';
+  FVsChrominanceTitleLbl.Font.Size   := 10;
+  FVsChrominanceTitleLbl.Font.Style  := [fsBold];
+  FVsChrominanceTitleLbl.AutoSize    := False;
+  FVsChrominanceTitleLbl.SetBounds(CARD_P, CARD_P, 150, 22);
+
+  ColorSec := MkSection(Card, 'Color', CARD_P + 30, 5 * ROW_H + 32);
   RowY := 24;
   for i := 4 to 8 do AddSliderLine(ColorSec, PARAMS[i], i, RowY);
 
