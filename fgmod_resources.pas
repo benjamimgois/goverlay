@@ -384,6 +384,7 @@ begin
     '' + LineEnding +
     'if [[ "$GOVERLAY_VKBASALT" == "1" ]]; then' + LineEnding +
     '  cp -f "$fgmod_path/vkBasalt.conf" "$exe_folder_path/" || true' + LineEnding +
+    '  cp -f "$fgmod_path/vkSumi.conf" "$exe_folder_path/" || true' + LineEnding +
     'fi' + LineEnding +
     '' + LineEnding +
     'echo "✅ fgmod completed successfully!"' + LineEnding +
@@ -407,6 +408,7 @@ begin
     '  export SteamDeck=0' + LineEnding +
     '  [[ "$GOVERLAY_MANGOHUD" == "1" ]] && export MANGOHUD=1' + LineEnding +
     '  [[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKBASALT=1' + LineEnding +
+    '  [[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKSUMI=1' + LineEnding +
     '  [[ "$GOVERLAY_OPTISCALER" == "1" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"' + LineEnding +
     '  ' + LineEnding +
     '  # Filter out leading -- separators (from Steam launch options)' + LineEnding +
@@ -584,6 +586,10 @@ begin
     'rm -f "dlss-enabler.dll" "dlss-enabler-upscaler.dll" "dlss-enabler.log"' + LineEnding +
     'rm -f "nvngx-wrapper.dll" "_nvngx.dll"' + LineEnding +
     'rm -f "dlssg_to_fsr3_amd_is_better-3.0.dll"' + LineEnding +
+    '' + LineEnding +
+    '# === Remove Config Files Installed by fgmod ===' + LineEnding +
+    'echo "🧹 Removing config files installed by fgmod..."' + LineEnding +
+    'rm -f "MangoHud.conf" "vkBasalt.conf" "vkSumi.conf"' + LineEnding +
     '' + LineEnding +
     '# === Restore Original DLLs ===' + LineEnding +
     'echo "🔄 Restoring original DLLs..."' + LineEnding +

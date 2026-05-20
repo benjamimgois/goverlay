@@ -137,7 +137,7 @@ rm -f "dlssg_to_fsr3_amd_is_better-3.0.dll"
 
 # === Remove Config Files Installed by fgmod ===
 echo "🧹 Removing config files installed by fgmod..."
-rm -f "MangoHud.conf" "vkBasalt.conf"
+rm -f "MangoHud.conf" "vkBasalt.conf" "vkSumi.conf"
 
 # === Restore Original DLLs ===
 echo "🔄 Restoring original DLLs..."
