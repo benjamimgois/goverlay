@@ -13272,7 +13272,6 @@ const
   procedure MakeCard(AIndex: Integer; ATitle: string);
   var
     Card: TPanel;
-    Bar: TPanel;
     Lbl: TLabel;
     IsLight: Boolean;
     BgColor, TextColor: TColor;
@@ -13288,16 +13287,8 @@ const
     Card.Caption     := '';
     Card.Color       := BgColor;
     Card.ParentColor := False;
-    Card.OnPaint     := @PerfCardPaint;
+    Card.OnPaint     := @SubCardPaint;
     FVisualCards[AIndex] := Card;
-
-    Bar := TPanel.Create(Card);
-    Bar.Parent      := Card;
-    Bar.BevelOuter  := bvNone;
-    Bar.Caption     := '';
-    Bar.Color       := RGBToColor(48, 190, 240);
-    Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
-    Bar.Anchors     := [akLeft, akRight, akTop];
 
     Lbl := TLabel.Create(Card);
     Lbl.Parent       := Card;
@@ -13308,7 +13299,7 @@ const
     Lbl.Transparent  := True;
     Lbl.AutoSize     := True;
     Lbl.Left         := 10;
-    Lbl.Top          := TITLE_T + ACCENT_H;
+    Lbl.Top          := TITLE_T;
   end;
 
   // Reparent a control directly onto a card, clearing all anchor dependencies.
@@ -13969,7 +13960,6 @@ const
                      ATop, AHeight: Integer);
   var
     Card: TPanel;
-    Bar: TPanel;
     Lbl1, Lbl2: TLabel;
     IsLight: Boolean;
     BgColor, TextColor: TColor;
@@ -13988,18 +13978,9 @@ const
     Card.Caption     := '';
     Card.Color       := BgColor;
     Card.ParentColor := False;
-    Card.OnPaint     := @PerfCardPaint;
+    Card.OnPaint     := @SubCardPaint;
     Card.SetBounds(2, ATop, 800, AHeight);  // provisional; corrected by Reflow
     FPerfCards[AIndex] := Card;
-
-    // Cyan accent bar
-    Bar := TPanel.Create(Card);
-    Bar.Parent     := Card;
-    Bar.BevelOuter := bvNone;
-    Bar.Caption    := '';
-    Bar.Color      := RGBToColor(48, 190, 240);
-    Bar.SetBounds(0, 0, Card.Width, ACCENT_H);
-    Bar.Anchors    := [akLeft, akRight, akTop];
 
     HalfW := Card.Width div 2;
 
@@ -14013,7 +13994,7 @@ const
     Lbl1.Transparent := True;
     Lbl1.AutoSize    := True;
     Lbl1.Left        := 10;
-    Lbl1.Top         := TITLE_T + ACCENT_H;
+    Lbl1.Top         := TITLE_T;
 
     // Right section title
     Lbl2 := TLabel.Create(Card);
@@ -14025,7 +14006,7 @@ const
     Lbl2.Transparent := True;
     Lbl2.AutoSize    := True;
     Lbl2.Left        := HalfW + 10;
-    Lbl2.Top         := TITLE_T + ACCENT_H;
+    Lbl2.Top         := TITLE_T;
     FPerfRightLbl[AIndex] := Lbl2;
 
     // Left GroupBox
@@ -14195,7 +14176,6 @@ const
 
   procedure MakeCard(out Card: TPanel; const ATitle: string);
   var
-    Bar: TPanel;
     Lbl: TLabel;
   begin
     Card := TPanel.Create(Self);
@@ -14204,14 +14184,7 @@ const
     Card.BorderStyle := bsNone;
     Card.Color       := CARD_BG;
     Card.Caption     := '';
-    Card.OnPaint     := @PerfCardPaint;
-    Bar := TPanel.Create(Card);
-    Bar.Parent     := Card;
-    Bar.BevelOuter := bvNone;
-    Bar.Color      := RGBToColor(48, 190, 240);
-    Bar.Caption    := '';
-    Bar.SetBounds(0, 0, 800, 3);
-    Bar.Anchors    := [akLeft, akRight, akTop];
+    Card.OnPaint     := @SubCardPaint;
     Lbl := TLabel.Create(Card);
     Lbl.Parent      := Card;
     Lbl.Caption     := ATitle;
@@ -14666,7 +14639,6 @@ const
 
   procedure MakeCard(out Card: TPanel; const ATitle: string);
   var
-    Bar: TPanel;
     Lbl: TLabel;
   begin
     Card := TPanel.Create(Self);
@@ -14675,14 +14647,7 @@ const
     Card.BorderStyle := bsNone;
     Card.Color      := BG;
     Card.Caption    := '';
-    Card.OnPaint    := @PerfCardPaint;
-    Bar := TPanel.Create(Card);
-    Bar.Parent     := Card;
-    Bar.BevelOuter := bvNone;
-    Bar.Color      := ACCENT;
-    Bar.Caption    := '';
-    Bar.SetBounds(0, 0, 400, 3);
-    Bar.Anchors    := [akLeft, akRight, akTop];
+    Card.OnPaint    := @SubCardPaint;
     Lbl := TLabel.Create(Card);
     Lbl.Parent      := Card;
     Lbl.Caption     := ATitle;
@@ -15340,7 +15305,6 @@ const
 
   procedure MakeCard(out Card: TPanel; const ATitle: string);
   var
-    Bar: TPanel;
     Lbl: TLabel;
   begin
     Card := TPanel.Create(Self);
@@ -15349,14 +15313,7 @@ const
     Card.BorderStyle := bsNone;
     Card.Color       := CARD_BG;
     Card.Caption     := '';
-    Card.OnPaint     := @PerfCardPaint;
-    Bar := TPanel.Create(Card);
-    Bar.Parent     := Card;
-    Bar.BevelOuter := bvNone;
-    Bar.Color      := RGBToColor(48, 190, 240);
-    Bar.Caption    := '';
-    Bar.SetBounds(0, 0, 400, 3);
-    Bar.Anchors    := [akLeft, akRight, akTop];
+    Card.OnPaint     := @SubCardPaint;
     Lbl := TLabel.Create(Card);
     Lbl.Parent      := Card;
     Lbl.Caption     := ATitle;
