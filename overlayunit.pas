@@ -519,6 +519,8 @@ type
     procedure vkbasaltTabSheetShow(Sender: TObject);
     procedure vkSumiTabSheetShow(Sender: TObject);
     procedure performanceTabSheetShow(Sender: TObject);
+    procedure visualTabSheetShow(Sender: TObject);
+    procedure metricsTabSheetShow(Sender: TObject);
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
@@ -4706,6 +4708,18 @@ var
 begin
   ContentW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
   ReflowPerformanceTab(ContentW);
+  UpdatePerfCardTheme;
+end;
+
+procedure Tgoverlayform.visualTabSheetShow(Sender: TObject);
+begin
+  UpdateVisualCardTheme;
+end;
+
+procedure Tgoverlayform.metricsTabSheetShow(Sender: TObject);
+begin
+  UpdateGenericCardTheme(FMtGpuCard);
+  UpdateGenericCardTheme(FMtCpuCard);
 end;
 
 // ============================================================================
@@ -5233,6 +5247,8 @@ begin
   // Initialize vkSumi tab
   vksumiTabSheet.OnShow := @vkSumiTabSheetShow;
   performanceTabSheet.OnShow := @performanceTabSheetShow;
+  visualTabSheet.OnShow := @visualTabSheetShow;
+  metricsTabSheet.OnShow := @metricsTabSheetShow;
 
   // Initialize Extras tab
   InitExtrasTab;
@@ -13075,6 +13091,11 @@ begin
     else
       SS := 'QLineEdit { background-color: rgb(26,30,46); color: rgb(255,255,255); border: none; }';
     QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
+    if CurrentTheme = tmLight then
+      SS := 'QLineEdit { background-color: rgb(242,242,242); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
+    else
+      SS := 'QLineEdit { background-color: rgb(54,46,54); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+    QWidget_setStyleSheet(TQtWidget(hudtitleEdit.Handle).Widget, @SS);
   end;
 
   // Update HUD settings bar
@@ -14515,6 +14536,21 @@ begin
         TComboBox(Card.Controls[j]).Color := LighterBackgroundColor
       else
         TComboBox(Card.Controls[j]).Color := RGBToColor(34, 38, 52);
+    end
+    else if Card.Controls[j] is TEdit then
+    begin
+      TEdit(Card.Controls[j]).Font.Color := TextColor;
+      if CurrentTheme = tmLight then
+      begin
+        TEdit(Card.Controls[j]).Color := LighterBackgroundColor;
+        SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }';
+      end
+      else
+      begin
+        TEdit(Card.Controls[j]).Color := RGBToColor(46, 46, 46);
+        SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+      end;
+      QWidget_setStyleSheet(TQtWidget(TEdit(Card.Controls[j]).Handle).Widget, @SS);
     end
     else if Card.Controls[j] is TGroupBox then
     begin

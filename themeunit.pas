@@ -96,6 +96,17 @@ procedure CenterFormOnScreen(AForm: TForm);
 
 implementation
 
+uses
+  qt6, qtwidgets;
+
+function ColorToRGBString(AColor: TColor): string;
+var
+  RGBVal: Longint;
+begin
+  RGBVal := ColorToRGB(AColor);
+  Result := Format('rgb(%d,%d,%d)', [Red(RGBVal), Green(RGBVal), Blue(RGBVal)]);
+end;
+
 function GetConfigFilePath: string;
 begin
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) +
@@ -133,6 +144,7 @@ var
   i, j: Integer;
   ctrl: TControl;
   BgColor, TextColor, BtnColor: TColor;
+  SS: WideString;
 begin
   if ATheme = tmDark then
   begin
@@ -194,6 +206,12 @@ begin
         else
           TEdit(ctrl).Color := LightBackgroundColor;
       end;
+      if TEdit(ctrl).HandleAllocated then
+      begin
+        SS := 'QLineEdit { background-color: ' + ColorToRGBString(TEdit(ctrl).Color) +
+              '; color: ' + ColorToRGBString(TEdit(ctrl).Font.Color) + '; }';
+        QWidget_setStyleSheet(TQtWidget(TEdit(ctrl).Handle).Widget, @SS);
+      end;
     end
     else if ctrl is TLabel then
       TLabel(ctrl).Font.Color := TextColor
@@ -248,6 +266,12 @@ begin
         Continue;
       TBitBtn(ctrl).Color := BtnColor;
       TBitBtn(ctrl).Font.Color := TextColor;
+      if TBitBtn(ctrl).HandleAllocated then
+      begin
+        SS := 'QPushButton, QToolButton { background-color: ' + ColorToRGBString(TBitBtn(ctrl).Color) +
+              '; color: ' + ColorToRGBString(TBitBtn(ctrl).Font.Color) + '; }';
+        QWidget_setStyleSheet(TQtWidget(TBitBtn(ctrl).Handle).Widget, @SS);
+      end;
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := BgColor
