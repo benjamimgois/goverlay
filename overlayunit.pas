@@ -835,6 +835,7 @@ type
     function  GetVkBasaltConfigEnvPrefix: string;
     function  GetVkSumiConfigEnvPrefix: string;
     function  GetVkBasaltLaunchEnv: string;
+    function  GetVkSumiLaunchEnv: string;
     procedure UpdateGameContextLabel;
     procedure PreviewBtnClick(Sender: TObject);
     procedure LoadGlobalThumb;
@@ -8356,7 +8357,7 @@ begin
 
 
   if IsCommandAvailable('pascube') then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'pascube &')
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'pascube &')
   else
     SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
 
@@ -8394,16 +8395,16 @@ begin
   if IsRunningInFlatpak then
   begin
     if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube-wayland &')
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube-wayland &')
     else
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &');
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &');
   end
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &')
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &')
     else
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &');
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &');
   end;
 end;
 
@@ -10046,12 +10047,12 @@ begin
       ForceDirectories(ConfigDir);
     Lines.SaveToFile(ConfigFile);
 
-    // In game-specific mode: inject VKSUMI_CONFIG_FILE into the game fgmod
+    // In game-specific mode: inject VKSUMI_CONFIG into the game fgmod
     // so the launcher can locate the per-game config at runtime.
     if FActiveGameName <> '' then
       PatchGameFGModConfigPath(
         GetGameConfigDir(FActiveGameName) + 'fgmod',
-        'VKSUMI_CONFIG_FILE',
+        'VKSUMI_CONFIG',
         VKSUMICFGFILE);
 
     // Patch fgmod file (global or game-specific) to add/remove export ENABLE_VKSUMI=1
@@ -17011,7 +17012,7 @@ begin
           // Compute badge bitmask and store in Tag for use by download thread
           GameCfgDir := GetGameConfigDir(GameName);
           HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
-          HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf');
+          HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
           HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
           HasTweaks := False;
           if FileExists(GameCfgDir + 'fgmod') then
@@ -18995,7 +18996,7 @@ begin
       // Compute badges from game-specific config dir (if user configured it)
       GameCfgDir := GetGameConfigDir(GameName);
       HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
-      HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf');
+      HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
       HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
       HasTweaks := False;
       if FileExists(GameCfgDir + 'fgmod') then
@@ -19791,7 +19792,13 @@ begin
   if (FActiveGameName <> '') and not FNavToolEnabled[1] then
     Result := ''  // vkBasalt disabled for this game
   else
-    Result := GetVkBasaltConfigEnvPrefix + GetVkSumiConfigEnvPrefix + 'ENABLE_VKBASALT=1 ENABLE_VKSUMI=1 ';
+    Result := GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 ';
+end;
+
+// Returns VKSUMI_CONFIG + ENABLE_VKSUMI=1 (always, independent of vkBasalt state).
+function Tgoverlayform.GetVkSumiLaunchEnv: string;
+begin
+  Result := GetVkSumiConfigEnvPrefix + 'ENABLE_VKSUMI=1 ';
 end;
 
 function Tgoverlayform.GetVkBasaltConfigEnvPrefix: string;
@@ -19805,7 +19812,7 @@ end;
 function Tgoverlayform.GetVkSumiConfigEnvPrefix: string;
 begin
   if FActiveGameName <> '' then
-    Result := 'VKSUMI_CONFIG_FILE="' + GetGameConfigDir(FActiveGameName) + 'vkSumi.conf" '
+    Result := 'VKSUMI_CONFIG="' + GetGameConfigDir(FActiveGameName) + 'vkSumi.conf" '
   else
     Result := '';
 end;
@@ -19818,9 +19825,9 @@ end;
 procedure Tgoverlayform.PreviewBtnClick(Sender: TObject);
 begin
   if IsCommandAvailable('pascube') then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'pascube &')
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'pascube &')
   else if IsCommandAvailable('vkcube') then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + 'vkcube &')
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &')
   else
     SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);
 end;
