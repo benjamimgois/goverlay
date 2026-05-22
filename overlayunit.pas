@@ -650,6 +650,8 @@ type
 
     // FPS Limit custom input (replaces chip grid)
     FFpsLimitEdit:   TEdit;              // comma-separated FPS values
+    FFpsLimitTitleLbl: TLabel;
+    FFpsLimitHintLbl:  TLabel;
 
     // Home tab
     FHomeTabSheet:     TTabSheet;
@@ -715,8 +717,13 @@ type
 
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
+    FPerfLeftLbl: array[0..1] of TLabel;  // left-section title labels
     FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
+    FPerfInfoSec: TPanel;
+    FPerfVsyncSec: TPanel;
+    FPerfLimitSec: TPanel;
+    FPerfFiltersSec: TPanel;
 
 
 
@@ -13871,29 +13878,40 @@ begin
   offsetLabel.Visible      := False;
   fpslimLabel.Visible      := False;
 
-  // Container rect based on where fpslimCheckGroup was
-  ContL := fpslimCheckGroup.Left;
-  ContT := fpslimCheckGroup.Top;
-  ContW := fpslimCheckGroup.Width;
-  ContH := fpslimiterGroupBox.Height - ContT;  // usable height to bottom of groupbox
+  // Reparent controls to FPerfLimitSec
+  fpscolorCheckBox.Parent          := FPerfLimitSec;
+  fpscolor1ColorButton.Parent      := FPerfLimitSec;
+  fpscolor2ColorButton.Parent      := FPerfLimitSec;
+  fpscolor3ColorButton.Parent      := FPerfLimitSec;
+  fpscolor2SpinEdit.Parent         := FPerfLimitSec;
+  fpscolor3SpinEdit.Parent         := FPerfLimitSec;
+  methodLabel.Parent               := FPerfLimitSec;
+  fpslimmetComboBox.Parent         := FPerfLimitSec;
+
+  ContL := 12;
+  ContT := 32;
+  ContW := FPerfLimitSec.Width - 24;
+  ContH := FPerfLimitSec.Height - ContT;
 
   // Title label with lightning icon
-  Lbl := TLabel.Create(Self);
-  Lbl.Parent := fpslimiterGroupBox;
-  Lbl.Caption := '⚡ FPS Limit';
-  Lbl.Font.Name := 'Noto Sans';
-  Lbl.Font.Color := TextColor;
-  Lbl.Font.Style := [fsBold];
-  Lbl.Font.Size := 9;
-  Lbl.Transparent := True;
-  Lbl.SetBounds(ContL + 6, ContT - 18, 140, 20);
-  Lbl.Anchors := [akLeft, akTop];
+  FFpsLimitTitleLbl := TLabel.Create(Self);
+  FFpsLimitTitleLbl.Parent := FPerfLimitSec;
+  FFpsLimitTitleLbl.Caption := '⚡ FPS Limit';
+  FFpsLimitTitleLbl.Font.Name := 'Noto Sans';
+  FFpsLimitTitleLbl.Font.Color := TextColor;
+  FFpsLimitTitleLbl.Font.Style := [fsBold];
+  FFpsLimitTitleLbl.Font.Size := 9;
+  FFpsLimitTitleLbl.Transparent := True;
+  FFpsLimitTitleLbl.SetBounds(ContL + 6, ContT + 8, 140, 20);
+  FFpsLimitTitleLbl.Anchors := [akLeft, akTop];
 
   // Create the edit — very large font for readability
   FFpsLimitEdit := TEdit.Create(Self);
-  FFpsLimitEdit.Parent := fpslimiterGroupBox;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 8, ContW - 12, 44);
-  FFpsLimitEdit.Anchors := [akLeft, akTop, akRight];
+  FFpsLimitEdit.Parent := FPerfLimitSec;
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 34, 100, 44);
+  FFpsLimitEdit.Constraints.MinWidth := 100;
+  FFpsLimitEdit.Constraints.MaxWidth := 100;
+  FFpsLimitEdit.Anchors := [akLeft, akTop];
   FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
   FFpsLimitEdit.Font.Size := 24;
   FFpsLimitEdit.Font.Color := TextColor;
@@ -13908,15 +13926,15 @@ begin
   QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
 
   // Small hint label below the edit
-  Lbl := TLabel.Create(Self);
-  Lbl.Parent := fpslimiterGroupBox;
-  Lbl.Caption := 'e.g. 30,60,120,0 — 0 to unlimited';
-  Lbl.Font.Name := 'Noto Sans';
-  Lbl.Font.Color := IfThen(IsLight, $00999999, $00666666);
-  Lbl.Font.Size := 7;
-  Lbl.Transparent := True;
-  Lbl.SetBounds(ContL + 6, ContT + 54, ContW - 12, 14);
-  Lbl.Anchors := [akLeft, akTop];
+  FFpsLimitHintLbl := TLabel.Create(Self);
+  FFpsLimitHintLbl.Parent := FPerfLimitSec;
+  FFpsLimitHintLbl.Caption := 'e.g. 30,60,120,0 — 0 to unlimited';
+  FFpsLimitHintLbl.Font.Name := 'Noto Sans';
+  FFpsLimitHintLbl.Font.Color := IfThen(IsLight, $00999999, $00666666);
+  FFpsLimitHintLbl.Font.Size := 7;
+  FFpsLimitHintLbl.Transparent := True;
+  FFpsLimitHintLbl.SetBounds(ContL + 6, ContT + 80, ContW - 12, 14);
+  FFpsLimitHintLbl.Anchors := [akLeft, akTop];
 
   // ── Spread controls vertically: edit top, colours middle, method bottom ───
   fpscolorCheckBox.SetBounds(ContL + (ContW - 150) div 2, ContT + 115, 150, 21);
@@ -13934,6 +13952,10 @@ begin
   methodLabel.Font.Color := TextColor;
 
   fpslimmetComboBox.SetBounds(ContL + 6, ContT + ContH - 48, 110, 32);
+
+  limtoggleLabel.SetBounds(ContL + 140, ContT + ContH - 70, 120, 18);
+  if Assigned(FLimitCaptureBtn) then
+    FLimitCaptureBtn.SetBounds(ContL + 140, ContT + ContH - 48, 160, 28);
 end;
 
 // ============================================================================
@@ -13942,10 +13964,7 @@ end;
 
 procedure Tgoverlayform.InitPerformanceTab;
 const
-  ACCENT_H  = 3;
-  TITLE_T   = 6;
-  TITLE_H   = 22;
-  GB_OFFSET = ACCENT_H + TITLE_T + TITLE_H + 4;  // 35px
+  GB_OFFSET = 24;
 
   // Vertical layout: 2 full-width cards
   ROW1_TOP = 0;
@@ -13964,8 +13983,7 @@ const
     IsLight: Boolean;
     BgColor, TextColor: TColor;
     HalfW: Integer;
-    GbSS: WideString;
-    GbW: QWidgetH;
+    Sec1, Sec2: TPanel;
   begin
     IsLight   := CurrentTheme = tmLight;
     BgColor   := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
@@ -13984,6 +14002,36 @@ const
 
     HalfW := Card.Width div 2;
 
+    // Create the two sub-panels
+    Sec1 := TPanel.Create(Self);
+    Sec1.Parent      := Card;
+    Sec1.BevelOuter  := bvNone;
+    Sec1.BorderStyle := bsNone;
+    Sec1.Caption     := '';
+    Sec1.Color       := BgColor;
+    Sec1.OnPaint     := @SubCardPaint;
+    Sec1.SetBounds(6, GB_OFFSET, HalfW - 10, AHeight - GB_OFFSET - 6);
+
+    Sec2 := TPanel.Create(Self);
+    Sec2.Parent      := Card;
+    Sec2.BevelOuter  := bvNone;
+    Sec2.BorderStyle := bsNone;
+    Sec2.Caption     := '';
+    Sec2.Color       := BgColor;
+    Sec2.OnPaint     := @SubCardPaint;
+    Sec2.SetBounds(HalfW + 4, GB_OFFSET, HalfW - 10, AHeight - GB_OFFSET - 6);
+
+    if AIndex = 0 then
+    begin
+      FPerfInfoSec  := Sec1;
+      FPerfVsyncSec := Sec2;
+    end
+    else
+    begin
+      FPerfLimitSec   := Sec1;
+      FPerfFiltersSec := Sec2;
+    end;
+
     // Left section title
     Lbl1 := TLabel.Create(Card);
     Lbl1.Parent      := Card;
@@ -13993,8 +14041,9 @@ const
     Lbl1.Font.Color  := TextColor;
     Lbl1.Transparent := True;
     Lbl1.AutoSize    := True;
-    Lbl1.Left        := 10;
-    Lbl1.Top         := TITLE_T;
+    Lbl1.Left        := 18;
+    Lbl1.Top         := 5;
+    FPerfLeftLbl[AIndex] := Lbl1;
 
     // Right section title
     Lbl2 := TLabel.Create(Card);
@@ -14005,39 +14054,13 @@ const
     Lbl2.Font.Color  := TextColor;
     Lbl2.Transparent := True;
     Lbl2.AutoSize    := True;
-    Lbl2.Left        := HalfW + 10;
-    Lbl2.Top         := TITLE_T;
+    Lbl2.Left        := HalfW + 16;
+    Lbl2.Top         := 5;
     FPerfRightLbl[AIndex] := Lbl2;
 
-    // Left GroupBox
-    AGB1.Parent   := Card;
-    AGB1.Caption  := '';
-    AGB1.Color    := BgColor;
-    AGB1.Font.Color := TextColor;
-    AGB1.AnchorSideLeft.Control   := nil;
-    AGB1.AnchorSideTop.Control    := nil;
-    AGB1.AnchorSideRight.Control  := nil;
-    AGB1.AnchorSideBottom.Control := nil;
-    AGB1.Anchors := [akLeft, akTop, akBottom];
-    AGB1.Left    := -1;
-    AGB1.Top     := GB_OFFSET - 1;
-    AGB1.Width   := HalfW + 2;
-    AGB1.Height  := AHeight - GB_OFFSET + 2;
-
-    // Right GroupBox
-    AGB2.Parent   := Card;
-    AGB2.Caption  := '';
-    AGB2.Color    := BgColor;
-    AGB2.Font.Color := TextColor;
-    AGB2.AnchorSideLeft.Control   := nil;
-    AGB2.AnchorSideTop.Control    := nil;
-    AGB2.AnchorSideRight.Control  := nil;
-    AGB2.AnchorSideBottom.Control := nil;
-    AGB2.Anchors := [akLeft, akTop, akBottom];
-    AGB2.Left    := HalfW - 1;
-    AGB2.Top     := GB_OFFSET - 1;
-    AGB2.Width   := HalfW + 2;
-    AGB2.Height  := AHeight - GB_OFFSET + 2;
+    // Hide original LFM groupboxes
+    AGB1.Visible := False;
+    AGB2.Visible := False;
 
     // Custom UI for FPS Limit Toggle in Limiters card (AIndex = 1, AGB1 = fpslimiterGroupBox)
     if AIndex = 1 then
@@ -14050,16 +14073,13 @@ const
       limtoggleLabel.AnchorSideRight.Control  := nil;
       limtoggleLabel.AnchorSideBottom.Control := nil;
       limtoggleLabel.Anchors := [akLeft, akTop];
-      // Align with the repositioned bottom row from BuildFpsLimitEdit
-      limtoggleLabel.Left    := AGB1.ClientWidth - 150;
-      limtoggleLabel.Top     := AGB1.Height - 70;
+      limtoggleLabel.Parent  := Sec1;
       limtoggleLabel.Font.Color := TextColor;
       limtoggleLabel.ParentColor := True;
 
-      FLimitCaptureBtn := TBitBtn.Create(AGB1);
-      FLimitCaptureBtn.Parent  := AGB1;
+      FLimitCaptureBtn := TBitBtn.Create(Sec1);
+      FLimitCaptureBtn.Parent  := Sec1;
       FLimitCaptureBtn.Tag     := 2;
-      FLimitCaptureBtn.SetBounds(limtoggleLabel.Left, AGB1.Height - 48, 130, 32);
       FLimitCaptureBtn.OnClick := @CaptureBtnClick;
       FLimitCaptureBtn.Cursor  := crHandPoint;
       if Trim(fpslimtoggleComboBox.Text) <> '' then
@@ -14067,13 +14087,6 @@ const
       else
         FLimitCaptureBtn.Caption := '⌨ Capture';
     end;
-
-    // Remove GroupBox border — scoped to QGroupBox only, not child buttons
-    GbSS := 'QGroupBox { border: none; }';
-    GbW  := TQtWidget(AGB1.Handle).Widget;
-    QWidget_setStyleSheet(GbW, @GbSS);
-    GbW  := TQtWidget(AGB2.Handle).Widget;
-    QWidget_setStyleSheet(GbW, @GbSS);
   end;
 
   procedure MakeVsyncRow(AIndex: Integer; ARow, AHeight: Integer;
@@ -14081,13 +14094,13 @@ const
   var
     Row: TPanel;
   begin
-    // Transparent container — inherits GroupBox background, no fill color
-    Row := TPanel.Create(vsyncGroupBox);
-    Row.Parent      := vsyncGroupBox;
+    // Transparent container — inherits sub-panel background, no fill color
+    Row := TPanel.Create(FPerfVsyncSec);
+    Row.Parent      := FPerfVsyncSec;
     Row.BevelOuter  := bvNone;
     Row.Caption     := '';
     Row.ParentColor := True;
-    Row.SetBounds(8, ARow, vsyncGroupBox.ClientWidth - 16, AHeight);
+    Row.SetBounds(8, ARow, FPerfVsyncSec.ClientWidth - 16, AHeight);
     Row.Anchors     := [akLeft, akTop, akRight];
     FVsyncRows[AIndex] := Row;
 
@@ -14118,18 +14131,19 @@ const
     IsLight: Boolean;
   begin
     IsLight := CurrentTheme = tmLight;
-    Sep := TPanel.Create(vsyncGroupBox);
-    Sep.Parent      := vsyncGroupBox;
+    Sep := TPanel.Create(FPerfVsyncSec);
+    Sep.Parent      := FPerfVsyncSec;
     Sep.BevelOuter  := bvNone;
     Sep.Caption     := '';
     Sep.Color       := IfThen(IsLight, $00C8C0C0, $005A5050);
     Sep.ParentColor := False;
-    Sep.SetBounds(8, 56, vsyncGroupBox.ClientWidth - 16, 1);
+    Sep.SetBounds(8, 56, FPerfVsyncSec.ClientWidth - 16, 1);
     Sep.Anchors     := [akLeft, akTop, akRight];
   end;
 
 var
   BgBox: TPaintBox;
+  SS: WideString;
 begin
   BgBox := TPaintBox.Create(Self);
   BgBox.Parent  := performanceTabSheet;
@@ -14140,6 +14154,18 @@ begin
   MakeCard(1, 'Limiters',   fpslimiterGroupBox,   'Filters',  filtersGroupBox,    ROW2_TOP, ROW2_H);
   FPerfCards[2] := nil;
   FPerfCards[3] := nil;
+
+  // Reparent Information controls to FPerfInfoSec
+  fpsCheckBox.Parent                := FPerfInfoSec;
+  frametimegraphCheckBox.Parent     := FPerfInfoSec;
+  frametimegraphColorButton.Parent  := FPerfInfoSec;
+  frametimetypeBitBtn.Parent        := FPerfInfoSec;
+  fpsavgCheckBox.Parent             := FPerfInfoSec;
+  fpsavgBitBtn.Parent               := FPerfInfoSec;
+  framecountCheckBox.Parent         := FPerfInfoSec;
+  ftraceCheckBox.Parent             := FPerfInfoSec;
+  showfpslimCheckBox.Parent         := FPerfInfoSec;
+  vpsCheckBox.Parent                := FPerfInfoSec;
 
   // Free all Information grid controls from anchor chains — Reflow will center them
   fpsCheckBox.AnchorSideLeft.Control           := nil; fpsCheckBox.AnchorSideTop.Control           := nil; fpsCheckBox.AnchorSideRight.Control           := nil; fpsCheckBox.AnchorSideBottom.Control           := nil; fpsCheckBox.Anchors           := [akLeft, akTop];
@@ -14153,14 +14179,27 @@ begin
   showfpslimCheckBox.AnchorSideLeft.Control     := nil; showfpslimCheckBox.AnchorSideTop.Control     := nil; showfpslimCheckBox.AnchorSideRight.Control     := nil; showfpslimCheckBox.AnchorSideBottom.Control     := nil; showfpslimCheckBox.Anchors     := [akLeft, akTop];
   vpsCheckBox.AnchorSideLeft.Control            := nil; vpsCheckBox.AnchorSideTop.Control            := nil; vpsCheckBox.AnchorSideRight.Control            := nil; vpsCheckBox.AnchorSideBottom.Control            := nil; vpsCheckBox.Anchors            := [akLeft, akTop];
 
+  // Reparent Filters controls to FPerfFiltersSec
+  filterRadioGroup.Parent   := FPerfFiltersSec;
+  afLabel.Parent            := FPerfFiltersSec;
+  afTrackBar.Parent         := FPerfFiltersSec;
+  afvalueLabel.Parent       := FPerfFiltersSec;
+  mipmapLabel.Parent        := FPerfFiltersSec;
+  mipmapTrackBar.Parent     := FPerfFiltersSec;
+  mipmapvalueLabel.Parent   := FPerfFiltersSec;
+
+  // Redirect filterRadioGroup anchors to point to FPerfFiltersSec
+  filterRadioGroup.AnchorSideLeft.Control := FPerfFiltersSec;
+  filterRadioGroup.AnchorSideTop.Control  := FPerfFiltersSec;
+  filterRadioGroup.BorderSpacing.Top      := 32;
+  filterRadioGroup.BorderSpacing.Left     := 12;
+
+  SS := 'QGroupBox { border: none; }';
+  QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
+
   // VSYNC card — Vulkan in top half, OpenGL in bottom half, no separator
-  MakeVsyncRow(0, 0,
-    vsyncGroupBox.ClientHeight div 2,
-    vulkanImage, vsyncComboBox);
-  MakeVsyncRow(1,
-    vsyncGroupBox.ClientHeight div 2,
-    vsyncGroupBox.ClientHeight - vsyncGroupBox.ClientHeight div 2,
-    openglImage, glvsyncComboBox);
+  MakeVsyncRow(0, 4, 44, vulkanImage, vsyncComboBox);
+  MakeVsyncRow(1, 50, 44, openglImage, glvsyncComboBox);
 
   // FPS Limit — single comma-separated input field
   BuildFpsLimitEdit;
@@ -14524,57 +14563,110 @@ const
   ROW1_H   = 180;
   ROW2_TOP = 185;
   ROW2_H   = 389;
-  GB_OFF   = 34;
+  GB_OFF   = 24;
+  IMARGIN  = 6;
+  IGAP     = 8;
 var
-  CardW, HalfW, i, InfoMargin: Integer;
+  CardW, SecW, InfoMargin, ContW, ContH, i: Integer;
 begin
   CardW := AContentW - MARGIN * 2;
-  HalfW := CardW div 2;
 
   if Assigned(FPerfCards[0]) then
   begin
     FPerfCards[0].SetBounds(MARGIN, ROW1_TOP, CardW, ROW1_H);
     FPerfCards[1].SetBounds(MARGIN, ROW2_TOP, CardW, ROW2_H);
 
-    // Left GroupBoxes
-    fpsGroupBox.SetBounds(-1, GB_OFF - 1, HalfW + 2, ROW1_H - GB_OFF + 2);
-    fpslimiterGroupBox.SetBounds(-1, GB_OFF - 1, HalfW + 2, ROW2_H - GB_OFF + 2);
-    // Right GroupBoxes
-    vsyncGroupBox.SetBounds(HalfW - 1, GB_OFF - 1, HalfW + 2, ROW1_H - GB_OFF + 2);
-    filtersGroupBox.SetBounds(HalfW - 1, GB_OFF - 1, HalfW + 2, ROW2_H - GB_OFF + 2);
+    SecW := (CardW - 2 * IMARGIN - IGAP) div 2;
 
-    // Update right labels
+    // Position sub-section panels
+    if Assigned(FPerfInfoSec) then
+      FPerfInfoSec.SetBounds(IMARGIN, GB_OFF, SecW, ROW1_H - GB_OFF - IMARGIN);
+    if Assigned(FPerfVsyncSec) then
+      FPerfVsyncSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, ROW1_H - GB_OFF - IMARGIN);
+
+    if Assigned(FPerfLimitSec) then
+      FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, ROW2_H - GB_OFF - IMARGIN);
+    if Assigned(FPerfFiltersSec) then
+      FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, ROW2_H - GB_OFF - IMARGIN);
+
+    // Position section title labels
     for i := 0 to 1 do
+    begin
+      if Assigned(FPerfLeftLbl[i]) then
+        FPerfLeftLbl[i].Left := IMARGIN + 12;
       if Assigned(FPerfRightLbl[i]) then
-        FPerfRightLbl[i].Left := HalfW + 10;
+        FPerfRightLbl[i].Left := IMARGIN + SecW + IGAP + 12;
+    end;
 
-    // Center Information grid columns within fpsGroupBox
+    // Center Information grid columns within FPerfInfoSec
     // Block: col1(offset 0, w=100) + gap + col2(offset 110, w=107) + gap + col3(offset 225, w=76) = 301px total
-    InfoMargin := (HalfW - 301) div 2;
-    if InfoMargin < 4 then InfoMargin := 4;
-    fpsCheckBox.Left                := InfoMargin;
-    frametimegraphCheckBox.Left     := InfoMargin;
-    frametimegraphColorButton.Left  := InfoMargin;
-    frametimetypeBitBtn.Left        := InfoMargin;
-    fpsavgCheckBox.Left             := InfoMargin + 110;
-    fpsavgBitBtn.Left               := InfoMargin + 110;
-    framecountCheckBox.Left         := InfoMargin + 110;
-    ftraceCheckBox.Left             := InfoMargin + 110;
-    showfpslimCheckBox.Left         := InfoMargin + 225;
-    vpsCheckBox.Left                := InfoMargin + 225;
+    if Assigned(FPerfInfoSec) then
+    begin
+      InfoMargin := (FPerfInfoSec.Width - 301) div 2;
+      if InfoMargin < 8 then InfoMargin := 8;
+      fpsCheckBox.Left                := InfoMargin;
+      fpsCheckBox.Top                 := 4;
+      frametimegraphCheckBox.Left     := InfoMargin;
+      frametimegraphCheckBox.Top      := 50;
+      frametimegraphColorButton.Left  := InfoMargin;
+      frametimegraphColorButton.Top   := 72;
+      frametimetypeBitBtn.Left        := InfoMargin;
+      frametimetypeBitBtn.Top         := 90;
+      fpsavgCheckBox.Left             := InfoMargin + 110;
+      fpsavgCheckBox.Top              := 4;
+      fpsavgBitBtn.Left               := InfoMargin + 110;
+      fpsavgBitBtn.Top                := 26;
+      framecountCheckBox.Left         := InfoMargin + 110;
+      framecountCheckBox.Top          := 50;
+      ftraceCheckBox.Left             := InfoMargin + 110;
+      ftraceCheckBox.Top              := 90;
+      showfpslimCheckBox.Left         := InfoMargin + 225;
+      showfpslimCheckBox.Top          := 4;
+      vpsCheckBox.Left                := InfoMargin + 225;
+      vpsCheckBox.Top                 := 50;
+    end;
 
     // Center logo+combo block (101+8+109=218px) within each VSYNC row
-    if Assigned(FVsyncRows[0]) then
+    if Assigned(FPerfVsyncSec) then
     begin
-      FVsyncRows[0].Width := vsyncGroupBox.ClientWidth - 16;
-      vulkanImage.Left    := (FVsyncRows[0].Width - 218) div 2;
-      vsyncComboBox.Left  := vulkanImage.Left + vulkanImage.Width + 8;
+      if Assigned(FVsyncRows[0]) then
+      begin
+        FVsyncRows[0].Width := FPerfVsyncSec.ClientWidth - 16;
+        vulkanImage.Left    := (FVsyncRows[0].Width - 218) div 2;
+        vsyncComboBox.Left  := vulkanImage.Left + vulkanImage.Width + 8;
+      end;
+      if Assigned(FVsyncRows[1]) then
+      begin
+        FVsyncRows[1].Width := FPerfVsyncSec.ClientWidth - 16;
+        openglImage.Left    := (FVsyncRows[1].Width - 218) div 2;
+        glvsyncComboBox.Left := openglImage.Left + openglImage.Width + 8;
+      end;
     end;
-    if Assigned(FVsyncRows[1]) then
+
+    // Reposition dynamic elements in FPS Limit card based on final width/height of FPerfLimitSec
+    if Assigned(FPerfLimitSec) then
     begin
-      FVsyncRows[1].Width := vsyncGroupBox.ClientWidth - 16;
-      openglImage.Left    := (FVsyncRows[1].Width - 218) div 2;
-      glvsyncComboBox.Left := openglImage.Left + openglImage.Width + 8;
+      ContW := FPerfLimitSec.Width - 24;
+      ContH := FPerfLimitSec.Height - 32;
+
+      fpscolorCheckBox.Left := 12 + (ContW - 150) div 2;
+      fpscolor1ColorButton.Left := 18;
+      fpscolor2ColorButton.Left := 12 + ContW div 2 - 40;
+      fpscolor3ColorButton.Left := 12 + ContW - 86;
+
+      fpscolor2SpinEdit.Left := 12 + ContW div 2 - 35;
+      fpscolor3SpinEdit.Left := 12 + ContW - 81;
+
+      methodLabel.Top := FPerfLimitSec.Height - 70;
+      fpslimmetComboBox.Top := FPerfLimitSec.Height - 48;
+
+      limtoggleLabel.Left := 152;
+      limtoggleLabel.Top := FPerfLimitSec.Height - 70;
+      if Assigned(FLimitCaptureBtn) then
+      begin
+        FLimitCaptureBtn.Left := 152;
+        FLimitCaptureBtn.Top := FPerfLimitSec.Height - 48;
+      end;
     end;
   end;
 end;
@@ -15928,9 +16020,9 @@ begin
   FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
   FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
 
-  // ── Reshade sync button (restores the old "Update" button, placed inside Reshade effects card)
-  FVkReshadeSyncBtn := TBitBtn.Create(FVkReshadeCard);
-  FVkReshadeSyncBtn.Parent   := FVkReshadeCard;
+  // ── Reshade sync button (restores the old "Update" button, placed inside Toggle Key card)
+  FVkReshadeSyncBtn := TBitBtn.Create(FVkToggleCard);
+  FVkReshadeSyncBtn.Parent   := FVkToggleCard;
   FVkReshadeSyncBtn.Anchors  := [akRight, akTop];
   FVkReshadeSyncBtn.Cursor   := crHandPoint;
   FVkReshadeSyncBtn.Caption  := '↻ Sync Shaders';
@@ -15977,8 +16069,6 @@ begin
     FVkReshadePB.SetBounds(PAD, 40, CW - 2 * PAD - SB_W, RSHD_H - 40 - PAD);
   if Assigned(FVkReshadeSB) then
     FVkReshadeSB.SetBounds(CW - PAD - SB_W, 40, SB_W, RSHD_H - 40 - PAD);
-  if Assigned(FVkReshadeSyncBtn) then
-    FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, 8, 130, 28);
 
   // ── Card 2: Built-in Effects (bottom area, left) ───────────────────────
   FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
@@ -16016,6 +16106,9 @@ begin
   if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
     FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
                                    FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 6, 120, 28);
+
+  if Assigned(FVkReshadeSyncBtn) then
+    FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, 9, 130, 28);
 end;
 
 procedure Tgoverlayform.ReflowVkSumiTab(AContentW: Integer);
