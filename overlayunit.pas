@@ -1174,6 +1174,24 @@ const
     (Name: 'Highlights';  Min: 0; Max: 200; Default: 100; IsDeg: False)
   );
 
+  PARAM_HINTS: array[0..14] of string = (
+    'Adjusts the overall lightness or darkness of the image.',
+    'Adjusts the difference between the brightest and darkest areas.',
+    'Adjusts the amount of light in the image.',
+    'Adjusts the luminance of the mid-tones.',
+    'Adjusts the overall intensity and richness of all colors.',
+    'Intelligently boosts the saturation of muted colors.',
+    'Shifts the overall color spectrum (hue) of the image.',
+    'Adjusts the color warmth (cool blue to warm orange).',
+    'Adjusts the balance between green and magenta.',
+    'Adjusts the intensity of the red color channel.',
+    'Adjusts the intensity of the green color channel.',
+    'Adjusts the intensity of the blue color channel.',
+    'Adjusts the brightness of the darkest areas (shadows).',
+    'Adjusts the brightness of the middle gray tones.',
+    'Adjusts the brightness of the brightest areas (highlights).'
+  );
+
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
 const
@@ -9976,6 +9994,7 @@ var
   TargetLineExists: Boolean;
   SteamDeckLineIndex: Integer;
   SumiEnabled: Boolean;
+  LaunchCommand: string;
 begin
   ConfigDir := VKSUMIFOLDER;
   ConfigFile := VKSUMICFGFILE;
@@ -10123,6 +10142,29 @@ begin
     end;
 
     SendNotification('vkSumi', 'Configuration saved to ' + ConfigFile, GetIconFile);
+
+    // Always show the fgmod command — use game-specific fgmod copy when in game mode
+    if FActiveGameName <> '' then
+    begin
+      if FActiveGameIsNonSteam then
+        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+      else
+        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+    end
+    else
+      LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
+
+    // Check if gamemode should be added (check generalCheckGroup)
+    if GetGeneralCheckBox(1).Checked then
+      LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
+
+    if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+      LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+
+    notificationLabel.Visible := False;
+    FLaunchCommand := LaunchCommand;
+    commandPaintBox.Invalidate;
+    commandPanel.Visible := True;
   finally
     Lines.Free;
   end;
@@ -15769,10 +15811,8 @@ end;
 procedure Tgoverlayform.InitVkBasaltTab;
 const
   BG        = $002E1E1A;  // rgb(26,30,46) — matches other tabs
-  ACCENT    = $00F0BE30;  // rgb(48,190,240) — cyan accent
   CLR_WHITE = clWhite;
 var
-  AccentBar: TPanel;
   TitleLbl:  TLabel;
 begin
   // ── Hide the old LFM group boxes (functional children are reparented below)
@@ -15789,15 +15829,7 @@ begin
   FVkReshadeCard.BevelOuter := bvNone;
   FVkReshadeCard.Color      := BG;
   FVkReshadeCard.Caption    := '';
-  FVkReshadeCard.OnPaint    := @PerfCardPaint;
-
-  AccentBar := TPanel.Create(FVkReshadeCard);
-  AccentBar.Parent     := FVkReshadeCard;
-  AccentBar.BevelOuter := bvNone;
-  AccentBar.Color      := ACCENT;
-  AccentBar.Caption    := '';
-  AccentBar.SetBounds(0, 0, 200, 3);
-  AccentBar.Anchors := [akLeft, akRight, akTop];
+  FVkReshadeCard.OnPaint    := @SubCardPaint;
 
   TitleLbl := TLabel.Create(FVkReshadeCard);
   TitleLbl.Parent      := FVkReshadeCard;
@@ -15844,15 +15876,7 @@ begin
   FVkBuiltinCard.BevelOuter := bvNone;
   FVkBuiltinCard.Color      := BG;
   FVkBuiltinCard.Caption    := '';
-  FVkBuiltinCard.OnPaint    := @PerfCardPaint;
-
-  AccentBar := TPanel.Create(FVkBuiltinCard);
-  AccentBar.Parent     := FVkBuiltinCard;
-  AccentBar.BevelOuter := bvNone;
-  AccentBar.Color      := ACCENT;
-  AccentBar.Caption    := '';
-  AccentBar.SetBounds(0, 0, 200, 3);
-  AccentBar.Anchors := [akLeft, akRight, akTop];
+  FVkBuiltinCard.OnPaint    := @SubCardPaint;
 
   TitleLbl := TLabel.Create(FVkBuiltinCard);
   TitleLbl.Parent      := FVkBuiltinCard;
@@ -15920,15 +15944,7 @@ begin
   FVkToggleCard.BevelOuter := bvNone;
   FVkToggleCard.Color      := BG;
   FVkToggleCard.Caption    := '';
-  FVkToggleCard.OnPaint    := @PerfCardPaint;
-
-  AccentBar := TPanel.Create(FVkToggleCard);
-  AccentBar.Parent     := FVkToggleCard;
-  AccentBar.BevelOuter := bvNone;
-  AccentBar.Color      := ACCENT;
-  AccentBar.Caption    := '';
-  AccentBar.SetBounds(0, 0, 200, 3);
-  AccentBar.Anchors := [akLeft, akRight, akTop];
+  FVkToggleCard.OnPaint    := @SubCardPaint;
 
   FVkToggleTitleLbl := TLabel.Create(FVkToggleCard);
   FVkToggleTitleLbl.Parent      := FVkToggleCard;
@@ -15955,10 +15971,10 @@ begin
   FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
   FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
 
-  // ── Reshade sync button (restores the old "Update" button, placed right of capture btn)
-  FVkReshadeSyncBtn := TBitBtn.Create(FVkToggleCard);
-  FVkReshadeSyncBtn.Parent   := FVkToggleCard;
-  FVkReshadeSyncBtn.Anchors  := [akLeft, akTop];
+  // ── Reshade sync button (restores the old "Update" button, placed inside Reshade effects card)
+  FVkReshadeSyncBtn := TBitBtn.Create(FVkReshadeCard);
+  FVkReshadeSyncBtn.Parent   := FVkReshadeCard;
+  FVkReshadeSyncBtn.Anchors  := [akRight, akTop];
   FVkReshadeSyncBtn.Cursor   := crHandPoint;
   FVkReshadeSyncBtn.Caption  := '↻ Sync Shaders';
   FVkReshadeSyncBtn.Font.Name  := 'Noto Sans';
@@ -16004,6 +16020,8 @@ begin
     FVkReshadePB.SetBounds(PAD, 40, CW - 2 * PAD - SB_W, RSHD_H - 40 - PAD);
   if Assigned(FVkReshadeSB) then
     FVkReshadeSB.SetBounds(CW - PAD - SB_W, 40, SB_W, RSHD_H - 40 - PAD);
+  if Assigned(FVkReshadeSyncBtn) then
+    FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, 8, 130, 28);
 
   // ── Card 2: Built-in Effects (bottom area, left) ───────────────────────
   FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
@@ -16041,9 +16059,6 @@ begin
   if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
     FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
                                    FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 6, 120, 28);
-  if Assigned(FVkReshadeSyncBtn) and Assigned(FVkToggleCaptureBtn) then
-    FVkReshadeSyncBtn.SetBounds(FVkToggleCaptureBtn.Left + FVkToggleCaptureBtn.Width + 10,
-                                 FVkToggleCaptureBtn.Top, 130, 28);
 end;
 
 procedure Tgoverlayform.ReflowVkSumiTab(AContentW: Integer);
@@ -17875,6 +17890,11 @@ var
     FVsTrackbars[AIndex].Width       := SLD_W;
     FVsTrackbars[AIndex].Tag         := AIndex;
     FVsTrackbars[AIndex].OnChange    := @VkSumiSliderChange;
+    FVsTrackbars[AIndex].Hint        := PARAM_HINTS[AIndex];
+    FVsTrackbars[AIndex].ShowHint    := True;
+
+    FVsNameLabels[AIndex].Hint       := PARAM_HINTS[AIndex];
+    FVsNameLabels[AIndex].ShowHint   := True;
 
     FVsValLabels[AIndex] := TLabel.Create(Self);
     FVsValLabels[AIndex].Parent      := AParent;
