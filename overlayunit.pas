@@ -518,6 +518,7 @@ type
     procedure LoadVkBasaltConfig;
     procedure vkbasaltTabSheetShow(Sender: TObject);
     procedure vkSumiTabSheetShow(Sender: TObject);
+    procedure performanceTabSheetShow(Sender: TObject);
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
@@ -4699,6 +4700,14 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.performanceTabSheetShow(Sender: TObject);
+var
+  ContentW: Integer;
+begin
+  ContentW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
+  ReflowPerformanceTab(ContentW);
+end;
+
 // ============================================================================
 // MODERN DESIGN SYSTEM HELPERS
 // ============================================================================
@@ -5223,6 +5232,7 @@ begin
 
   // Initialize vkSumi tab
   vksumiTabSheet.OnShow := @vkSumiTabSheetShow;
+  performanceTabSheet.OnShow := @performanceTabSheetShow;
 
   // Initialize Extras tab
   InitExtrasTab;
@@ -5650,12 +5660,9 @@ begin
        geSpeedbutton.ImageIndex := 1
      else
        geSpeedbutton.ImageIndex := 0;
-
      Process.Free;
      saida.Free;
-
-
-
+     
      //Select games as initial option
      gamesLabelClick(nil);
 
@@ -13888,6 +13895,13 @@ begin
   methodLabel.Parent               := FPerfLimitSec;
   fpslimmetComboBox.Parent         := FPerfLimitSec;
 
+  fpscolor1ColorButton.BorderWidth := 0;
+  fpscolor1ColorButton.ButtonColorSize := 80;
+  fpscolor2ColorButton.BorderWidth := 0;
+  fpscolor2ColorButton.ButtonColorSize := 80;
+  fpscolor3ColorButton.BorderWidth := 0;
+  fpscolor3ColorButton.ButtonColorSize := 80;
+
   ContL := 12;
   ContT := 32;
   ContW := FPerfLimitSec.Width - 24;
@@ -13902,21 +13916,24 @@ begin
   FFpsLimitTitleLbl.Font.Style := [fsBold];
   FFpsLimitTitleLbl.Font.Size := 9;
   FFpsLimitTitleLbl.Transparent := True;
+  FFpsLimitTitleLbl.Alignment := taCenter;
+  FFpsLimitTitleLbl.AutoSize := False;
   FFpsLimitTitleLbl.SetBounds(ContL + 6, ContT + 8, 140, 20);
   FFpsLimitTitleLbl.Anchors := [akLeft, akTop];
 
   // Create the edit — very large font for readability
   FFpsLimitEdit := TEdit.Create(Self);
   FFpsLimitEdit.Parent := FPerfLimitSec;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 34, 100, 44);
-  FFpsLimitEdit.Constraints.MinWidth := 100;
-  FFpsLimitEdit.Constraints.MaxWidth := 100;
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 34, 280, 44);
+  FFpsLimitEdit.Constraints.MinWidth := 280;
+  FFpsLimitEdit.Constraints.MaxWidth := 280;
   FFpsLimitEdit.Anchors := [akLeft, akTop];
   FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
   FFpsLimitEdit.Font.Size := 24;
   FFpsLimitEdit.Font.Color := TextColor;
   FFpsLimitEdit.Color := EditBg;
   FFpsLimitEdit.BorderStyle := bsNone;
+  FFpsLimitEdit.Alignment := taCenter;
   FFpsLimitEdit.Text := '0';
   // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
   if CurrentTheme = tmLight then
@@ -13933,6 +13950,8 @@ begin
   FFpsLimitHintLbl.Font.Color := IfThen(IsLight, $00999999, $00666666);
   FFpsLimitHintLbl.Font.Size := 7;
   FFpsLimitHintLbl.Transparent := True;
+  FFpsLimitHintLbl.Alignment := taCenter;
+  FFpsLimitHintLbl.AutoSize := False;
   FFpsLimitHintLbl.SetBounds(ContL + 6, ContT + 80, ContW - 12, 14);
   FFpsLimitHintLbl.Anchors := [akLeft, akTop];
 
@@ -14568,6 +14587,10 @@ const
   IGAP     = 8;
 var
   CardW, SecW, InfoMargin, ContW, ContH, i: Integer;
+  LeftM, Col1W, Col2W, InnerGap: Integer;
+  ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
+  GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
+  ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
 begin
   CardW := AContentW - MARGIN * 2;
 
@@ -14587,7 +14610,16 @@ begin
     if Assigned(FPerfLimitSec) then
       FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, ROW2_H - GB_OFF - IMARGIN);
     if Assigned(FPerfFiltersSec) then
+    begin
       FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, ROW2_H - GB_OFF - IMARGIN);
+      filterRadioGroup.BorderSpacing.Top := 6;
+      afLabel.BorderSpacing.Top := 4;
+      mipmapLabel.BorderSpacing.Top := 4;
+      afTrackBar.BorderSpacing.Top := 4;
+      mipmapTrackBar.BorderSpacing.Top := 4;
+      afTrackBar.Height := 180;
+      mipmapTrackBar.Height := 180;
+    end;
 
     // Position section title labels
     for i := 0 to 1 do
@@ -14598,32 +14630,37 @@ begin
         FPerfRightLbl[i].Left := IMARGIN + SecW + IGAP + 12;
     end;
 
-    // Center Information grid columns within FPerfInfoSec
-    // Block: col1(offset 0, w=100) + gap + col2(offset 110, w=107) + gap + col3(offset 225, w=76) = 301px total
+    // Center Information grid columns within FPerfInfoSec dynamically
     if Assigned(FPerfInfoSec) then
     begin
-      InfoMargin := (FPerfInfoSec.Width - 301) div 2;
-      if InfoMargin < 8 then InfoMargin := 8;
-      fpsCheckBox.Left                := InfoMargin;
-      fpsCheckBox.Top                 := 4;
-      frametimegraphCheckBox.Left     := InfoMargin;
-      frametimegraphCheckBox.Top      := 50;
-      frametimegraphColorButton.Left  := InfoMargin;
+      LeftM := 16;
+      Col1W := 105;
+      Col2W := 115;
+      InnerGap := (FPerfInfoSec.ClientWidth - 2 * LeftM - (Col1W + Col2W + 95)) div 2;
+      if InnerGap < 8 then InnerGap := 8;
+
+      fpsCheckBox.Left                := LeftM;
+      fpsCheckBox.Top                 := 6;
+      frametimegraphCheckBox.Left     := LeftM;
+      frametimegraphCheckBox.Top      := 56;
+      frametimegraphColorButton.Left  := LeftM;
       frametimegraphColorButton.Top   := 72;
-      frametimetypeBitBtn.Left        := InfoMargin;
-      frametimetypeBitBtn.Top         := 90;
-      fpsavgCheckBox.Left             := InfoMargin + 110;
-      fpsavgCheckBox.Top              := 4;
-      fpsavgBitBtn.Left               := InfoMargin + 110;
-      fpsavgBitBtn.Top                := 26;
-      framecountCheckBox.Left         := InfoMargin + 110;
-      framecountCheckBox.Top          := 50;
-      ftraceCheckBox.Left             := InfoMargin + 110;
-      ftraceCheckBox.Top              := 90;
-      showfpslimCheckBox.Left         := InfoMargin + 225;
-      showfpslimCheckBox.Top          := 4;
-      vpsCheckBox.Left                := InfoMargin + 225;
-      vpsCheckBox.Top                 := 50;
+      frametimetypeBitBtn.Left        := LeftM;
+      frametimetypeBitBtn.Top         := 86;
+
+      fpsavgCheckBox.Left             := LeftM + Col1W + InnerGap;
+      fpsavgCheckBox.Top              := 6;
+      fpsavgBitBtn.Left               := fpsavgCheckBox.Left;
+      fpsavgBitBtn.Top                := 28;
+      framecountCheckBox.Left         := fpsavgCheckBox.Left;
+      framecountCheckBox.Top          := 56;
+      ftraceCheckBox.Left             := fpsavgCheckBox.Left;
+      ftraceCheckBox.Top              := 106;
+
+      showfpslimCheckBox.Left         := fpsavgCheckBox.Left + Col2W + InnerGap;
+      showfpslimCheckBox.Top          := 6;
+      vpsCheckBox.Left                := showfpslimCheckBox.Left;
+      vpsCheckBox.Top                 := 56;
     end;
 
     // Center logo+combo block (101+8+109=218px) within each VSYNC row
@@ -14631,14 +14668,16 @@ begin
     begin
       if Assigned(FVsyncRows[0]) then
       begin
-        FVsyncRows[0].Width := FPerfVsyncSec.ClientWidth - 16;
-        vulkanImage.Left    := (FVsyncRows[0].Width - 218) div 2;
-        vsyncComboBox.Left  := vulkanImage.Left + vulkanImage.Width + 8;
+        FVsyncRows[0].Top    := 20;
+        FVsyncRows[0].Width  := FPerfVsyncSec.ClientWidth - 16;
+        vulkanImage.Left     := (FVsyncRows[0].Width - 218) div 2;
+        vsyncComboBox.Left   := vulkanImage.Left + vulkanImage.Width + 8;
       end;
       if Assigned(FVsyncRows[1]) then
       begin
-        FVsyncRows[1].Width := FPerfVsyncSec.ClientWidth - 16;
-        openglImage.Left    := (FVsyncRows[1].Width - 218) div 2;
+        FVsyncRows[1].Top    := 84;
+        FVsyncRows[1].Width  := FPerfVsyncSec.ClientWidth - 16;
+        openglImage.Left     := (FVsyncRows[1].Width - 218) div 2;
         glvsyncComboBox.Left := openglImage.Left + openglImage.Width + 8;
       end;
     end;
@@ -14649,23 +14688,88 @@ begin
       ContW := FPerfLimitSec.Width - 24;
       ContH := FPerfLimitSec.Height - 32;
 
-      fpscolorCheckBox.Left := 12 + (ContW - 150) div 2;
-      fpscolor1ColorButton.Left := 18;
-      fpscolor2ColorButton.Left := 12 + ContW div 2 - 40;
-      fpscolor3ColorButton.Left := 12 + ContW - 86;
+      // Center the FPS limit edit box and its titles/hints, raising them slightly
+      if Assigned(FFpsLimitTitleLbl) then
+      begin
+        FFpsLimitTitleLbl.Left := 0;
+        FFpsLimitTitleLbl.Width := FPerfLimitSec.ClientWidth;
+        FFpsLimitTitleLbl.Top := 4; // Raised further
+      end;
+      if Assigned(FFpsLimitEdit) then
+      begin
+        FFpsLimitEdit.Left := (FPerfLimitSec.ClientWidth - FFpsLimitEdit.Width) div 2;
+        FFpsLimitEdit.Top := 24; // Raised further
+      end;
+      if Assigned(FFpsLimitHintLbl) then
+      begin
+        FFpsLimitHintLbl.Left := 0;
+        FFpsLimitHintLbl.Width := FPerfLimitSec.ClientWidth;
+        FFpsLimitHintLbl.Top := 68; // Raised further
+      end;
 
-      fpscolor2SpinEdit.Left := 12 + ContW div 2 - 35;
-      fpscolor3SpinEdit.Left := 12 + ContW - 81;
+      // Center the change colors checkbox and the colors/spin edits group
+      fpscolorCheckBox.Left := (FPerfLimitSec.ClientWidth - fpscolorCheckBox.Width) div 2;
 
+      ColW := 80;
+      SpinW := 70;
+      ColorGap := -4; // Grudados um ao outro (visual original: overlap de -4px)
+      ColorGroupW := 3 * ColW + 2 * ColorGap;
+      ColorStart := (FPerfLimitSec.ClientWidth - ColorGroupW) div 2;
+
+      fpscolor1ColorButton.Left := ColorStart;
+      fpscolor2ColorButton.Left := ColorStart + ColW + ColorGap;
+      fpscolor3ColorButton.Left := ColorStart + 2 * (ColW + ColorGap);
+
+      fpscolor2SpinEdit.Left := fpscolor2ColorButton.Left + (ColW - SpinW) div 2;
+      fpscolor3SpinEdit.Left := fpscolor3ColorButton.Left + (ColW - SpinW) div 2;
+
+      WriteLn(Format('DEBUG: FPerfLimitSec.ClientWidth = %d', [FPerfLimitSec.ClientWidth]));
+      WriteLn(Format('DEBUG: ColorStart = %d, ColW = %d, ColorGap = %d', [ColorStart, ColW, ColorGap]));
+      WriteLn(Format('DEBUG: Button1: Left=%d, Width=%d', [fpscolor1ColorButton.Left, fpscolor1ColorButton.Width]));
+      WriteLn(Format('DEBUG: Button2: Left=%d, Width=%d', [fpscolor2ColorButton.Left, fpscolor2ColorButton.Width]));
+      WriteLn(Format('DEBUG: Button3: Left=%d, Width=%d', [fpscolor3ColorButton.Left, fpscolor3ColorButton.Width]));
+      flush(stdout);
+
+      // Center vertically within available space [MiddleStart, MiddleEnd]
+      // Middle group vertical height:
+      // Checkbox height is 21 (starts at GroupTop)
+      // Space between Checkbox and Buttons: 8
+      // Buttons height: 18
+      // Space between Buttons and SpinEdits: 8
+      // SpinEdits height: 26
+      // Total height = 21 + 8 + 18 + 8 + 26 = 81
+      GroupH := 81;
+      MiddleStart := FFpsLimitHintLbl.Top + 14 + 10; // Hint label top (68) + height (14) + gap (10) = 92
+      MiddleEnd := FPerfLimitSec.Height - 70; // MethodLabel.Top
+      GroupTop := MiddleStart + (MiddleEnd - MiddleStart - GroupH) div 2;
+
+      fpscolorCheckBox.Top := GroupTop;
+      fpscolor1ColorButton.Top := GroupTop + 21 + 8;
+      fpscolor2ColorButton.Top := fpscolor1ColorButton.Top;
+      fpscolor3ColorButton.Top := fpscolor1ColorButton.Top;
+
+      fpscolor2SpinEdit.Top := fpscolor1ColorButton.Top + 18 + 8;
+      fpscolor3SpinEdit.Top := fpscolor2SpinEdit.Top;
+
+      // Center "Method" and "Limit toggle key" side by side
+      ComboW := 110;
+      BtnW := 100;
+      MiddleGap := 24;
+      TotalRowW := ComboW + MiddleGap + BtnW;
+      RowStart := (FPerfLimitSec.ClientWidth - TotalRowW) div 2;
+
+      methodLabel.Left := RowStart;
       methodLabel.Top := FPerfLimitSec.Height - 70;
+      fpslimmetComboBox.Left := RowStart;
       fpslimmetComboBox.Top := FPerfLimitSec.Height - 48;
 
-      limtoggleLabel.Left := 152;
+      limtoggleLabel.Left := RowStart + ComboW + MiddleGap;
       limtoggleLabel.Top := FPerfLimitSec.Height - 70;
       if Assigned(FLimitCaptureBtn) then
       begin
-        FLimitCaptureBtn.Left := 152;
+        FLimitCaptureBtn.Left := RowStart + ComboW + MiddleGap;
         FLimitCaptureBtn.Top := FPerfLimitSec.Height - 48;
+        FLimitCaptureBtn.Width := BtnW;
       end;
     end;
   end;
