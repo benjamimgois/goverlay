@@ -26,8 +26,15 @@ chmod +x ./quick-sharun
 	/usr/lib/libvkbasalt.so* \
 	/usr/bin/vkcube          \
 	/usr/bin/lspci           \
-	/usr/bin/mangohud
+	/usr/bin/mangohud        \
+	/usr/lib/libVkLayer_vksumi.so \
+	/usr/bin/vksumi-toggle   \
+	/usr/share/fonts/TTF/SymbolsNerdFont-Regular.ttf
+mkdir -p ./AppDir/share/vulkan/implicit_layer.d
 cp -v /usr/share/vulkan/implicit_layer.d/vkBasalt.json ./AppDir/share/vulkan/implicit_layer.d
+cp -v /usr/share/vulkan/implicit_layer.d/vksumi.json ./AppDir/share/vulkan/implicit_layer.d
+# Patch vksumi.json to use relative library path so it loads from the AppImage lib directory
+sed -i 's|/usr/lib/libVkLayer_vksumi.so|libVkLayer_vksumi.so|' ./AppDir/share/vulkan/implicit_layer.d/vksumi.json
 
 # Copy bundled assets & data so icons load inside the AppImage.
 # The script may be executed from any cwd (e.g. repo root in CI),

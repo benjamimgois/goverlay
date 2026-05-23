@@ -33,6 +33,7 @@ pacman -Syu --noconfirm \
 	qt6ct \
 	qt6pas \
 	sdl2 \
+	ttf-nerd-fonts-symbols \
 	vulkan-tools \
 	wayland \
 	wget \
@@ -47,7 +48,7 @@ pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring
 pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 echo '[chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist' >> /etc/pacman.conf
-pacman -Syu --noconfirm vkbasalt
+pacman -Syu --noconfirm vkbasalt vksumi
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"

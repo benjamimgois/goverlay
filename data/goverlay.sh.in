@@ -7,4 +7,23 @@
 
 #export QT_QPA_PLATFORM=xcb
 #mangohud --dlsym @libexecdir@/goverlay $@
+
+# Check if a Nerd Font is installed in the system/user directories
+if ! fc-list | grep -qi "Nerd Font\|Symbols Nerd Font\|NerdFont"; then
+    FONT_SRC=""
+    if [ -f "/usr/share/fonts/TTF/SymbolsNerdFont-Regular.ttf" ]; then
+        FONT_SRC="/usr/share/fonts/TTF/SymbolsNerdFont-Regular.ttf"
+    elif [ -f "$(dirname "$0")/../share/fonts/TTF/SymbolsNerdFont-Regular.ttf" ]; then
+        FONT_SRC="$(dirname "$0")/../share/fonts/TTF/SymbolsNerdFont-Regular.ttf"
+    fi
+
+    if [ -n "$FONT_SRC" ]; then
+        FONT_DST="$HOME/.local/share/fonts"
+        mkdir -p "$FONT_DST"
+        cp "$FONT_SRC" "$FONT_DST/"
+        # Rebuild font cache in the background so it doesn't block startup
+        fc-cache -f "$FONT_DST" >/dev/null 2>&1 &
+    fi
+fi
+
 mangohud @libexecdir@/goverlay $@
