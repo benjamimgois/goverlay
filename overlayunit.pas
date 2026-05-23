@@ -13945,9 +13945,9 @@ begin
   // Create the edit — very large font for readability
   FFpsLimitEdit := TEdit.Create(Self);
   FFpsLimitEdit.Parent := FPerfLimitSec;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 34, 280, 44);
-  FFpsLimitEdit.Constraints.MinWidth := 280;
-  FFpsLimitEdit.Constraints.MaxWidth := 280;
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 34, 232, 44);
+  FFpsLimitEdit.Constraints.MinWidth := 232;
+  FFpsLimitEdit.Constraints.MaxWidth := 232;
   FFpsLimitEdit.Anchors := [akLeft, akTop];
   FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
   FFpsLimitEdit.Font.Size := 24;
@@ -14487,6 +14487,29 @@ begin
       SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: none; }';
     QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
   end;
+
+  // SpinEdits: update background, text color, borders, and buttons
+  if Assigned(fpscolor2SpinEdit) then
+  begin
+    fpscolor2SpinEdit.Font.Color := TextColor;
+    fpscolor2SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
+    if CurrentTheme = tmLight then
+      SS := 'QSpinBox { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
+    else
+      SS := 'QSpinBox { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+    QWidget_setStyleSheet(TQtWidget(fpscolor2SpinEdit.Handle).Widget, @SS);
+  end;
+
+  if Assigned(fpscolor3SpinEdit) then
+  begin
+    fpscolor3SpinEdit.Font.Color := TextColor;
+    fpscolor3SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
+    if CurrentTheme = tmLight then
+      SS := 'QSpinBox { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
+    else
+      SS := 'QSpinBox { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+    QWidget_setStyleSheet(TQtWidget(fpscolor3SpinEdit.Handle).Widget, @SS);
+  end;
 end;
 
 procedure Tgoverlayform.UpdateGenericCardTheme(Card: TPanel);
@@ -14653,8 +14676,8 @@ begin
       mipmapLabel.BorderSpacing.Top := 4;
       afTrackBar.BorderSpacing.Top := 4;
       mipmapTrackBar.BorderSpacing.Top := 4;
-      afTrackBar.Height := 180;
-      mipmapTrackBar.Height := 180;
+      afTrackBar.Height := 250;
+      mipmapTrackBar.Height := 250;
     end;
 
     // Position section title labels
@@ -14733,6 +14756,9 @@ begin
       end;
       if Assigned(FFpsLimitEdit) then
       begin
+        FFpsLimitEdit.Width := 232;
+        FFpsLimitEdit.Constraints.MinWidth := 232;
+        FFpsLimitEdit.Constraints.MaxWidth := 232;
         FFpsLimitEdit.Left := (FPerfLimitSec.ClientWidth - FFpsLimitEdit.Width) div 2;
         FFpsLimitEdit.Top := 24; // Raised further
       end;
@@ -16248,7 +16274,12 @@ begin
                                    FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 6, 120, 28);
 
   if Assigned(FVkReshadeSyncBtn) then
-    FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, 9, 130, 28);
+  begin
+    if Assigned(FVkToggleCaptureBtn) then
+      FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, FVkToggleCaptureBtn.Top, 130, 28)
+    else
+      FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, 40, 130, 28);
+  end;
 end;
 
 procedure Tgoverlayform.ReflowVkSumiTab(AContentW: Integer);
