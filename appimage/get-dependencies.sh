@@ -33,6 +33,7 @@ pacman -Syu --noconfirm \
 	qt6ct \
 	qt6pas \
 	sdl2 \
+	sudo \
 	ttf-nerd-fonts-symbols \
 	vulkan-tools \
 	wayland \
@@ -48,7 +49,15 @@ pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring
 pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 echo '[chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist' >> /etc/pacman.conf
-pacman -Syu --noconfirm vkbasalt vksumi
+pacman -Syu --noconfirm vkbasalt
+
+echo "Building and installing vksumi from AUR..."
+echo "---------------------------------------------------------------"
+useradd -m builder || true
+echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' >> /etc/sudoers
+git clone https://aur.archlinux.org/vksumi.git /tmp/vksumi
+chown -R builder:builder /tmp/vksumi
+(cd /tmp/vksumi && su builder -c "makepkg -si --noconfirm")
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
