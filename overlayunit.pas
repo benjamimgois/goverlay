@@ -557,6 +557,7 @@ type
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
+    FRemoveFoldersMenu: TPopupMenu;  // right-click context menu for Add Non-Steam Folder card
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
     FRightClickedCard: TPanel;      // card that triggered the context menu
     FGameMenuImgList: TImageList;   // icons for the game card context menu
@@ -826,6 +827,8 @@ type
     procedure GameCardOpenPrefixClick(Sender: TObject);
     procedure GameCardUninstallClick(Sender: TObject);
     procedure AddNonSteamFolderClick(Sender: TObject);
+    procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
+    procedure RemoveFolderMenuItemClick(Sender: TObject);
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
     procedure CoverThreadTerminated(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
@@ -17189,6 +17192,8 @@ begin
           CardPanel.Parent := FGamesPanel;
           CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
           CardPanel.BevelOuter := bvNone;
+          CardPanel.BevelInner := bvNone;
+          CardPanel.BorderWidth := 0;
           CardPanel.Caption := '';
           CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
           CardPanel.Color := $303030;  // slightly lighter than the navy bg for contrast
@@ -17290,7 +17295,11 @@ begin
             BdgBg.Brush.Color := RGBToColor(28, 52, 96);
             BdgBg.Pen.Style   := psClear;
             BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
-            BdgBg.Anchors     := [akTop, akRight];
+            BdgBg.AnchorSide[akRight].Control := CardPanel;
+            BdgBg.AnchorSide[akRight].Side    := asrBottom;
+            BdgBg.AnchorSide[akTop].Control   := CardPanel;
+            BdgBg.AnchorSide[akTop].Side      := asrTop;
+            BdgBg.Anchors                     := [akTop, akRight];
             BdgBg.OnMouseEnter := @GameCardMouseEnter;
             BdgBg.OnMouseLeave := @GameCardMouseLeave;
             BdgBg.OnClick      := @GameCardClick;
@@ -17309,7 +17318,13 @@ begin
                 BdgImg.Parent      := CardPanel;
                 BdgImg.AutoSize    := False;
                 BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-                BdgImg.Anchors     := [akTop, akRight];
+                BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
+                BdgImg.BorderSpacing.Top   := BdgY;
+                BdgImg.AnchorSide[akRight].Control := CardPanel;
+                BdgImg.AnchorSide[akRight].Side    := asrBottom;
+                BdgImg.AnchorSide[akTop].Control   := CardPanel;
+                BdgImg.AnchorSide[akTop].Side      := asrTop;
+                BdgImg.Anchors                     := [akTop, akRight];
                 BdgImg.Stretch     := True;
                 BdgImg.Proportional := True;
                 BdgImg.Center      := True;
@@ -17330,7 +17345,13 @@ begin
                 BdgImg.Parent      := CardPanel;
                 BdgImg.AutoSize    := False;
                 BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-                BdgImg.Anchors     := [akTop, akRight];
+                BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
+                BdgImg.BorderSpacing.Top   := BdgY;
+                BdgImg.AnchorSide[akRight].Control := CardPanel;
+                BdgImg.AnchorSide[akRight].Side    := asrBottom;
+                BdgImg.AnchorSide[akTop].Control   := CardPanel;
+                BdgImg.AnchorSide[akTop].Side      := asrTop;
+                BdgImg.Anchors                     := [akTop, akRight];
                 BdgImg.Stretch     := True;
                 BdgImg.Proportional := True;
                 BdgImg.Center      := True;
@@ -17352,7 +17373,13 @@ begin
                 BdgLbl.Parent     := CardPanel;
                 BdgLbl.AutoSize   := False;
                 BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
-                BdgLbl.Anchors    := [akTop, akRight];
+                BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 3;
+                BdgLbl.BorderSpacing.Top   := BdgY + 1;
+                BdgLbl.AnchorSide[akRight].Control := CardPanel;
+                BdgLbl.AnchorSide[akRight].Side    := asrBottom;
+                BdgLbl.AnchorSide[akTop].Control   := CardPanel;
+                BdgLbl.AnchorSide[akTop].Side      := asrTop;
+                BdgLbl.Anchors                     := [akTop, akRight];
                 BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
                 BdgLbl.Font.Name  := 'Noto Sans';
                 BdgLbl.Font.Size  := BDG_FONT;
@@ -17368,7 +17395,13 @@ begin
                 BdgLbl.Parent     := CardPanel;
                 BdgLbl.AutoSize   := False;
                 BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
-                BdgLbl.Anchors    := [akTop, akRight];
+                BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 2;
+                BdgLbl.BorderSpacing.Top   := BdgY;
+                BdgLbl.AnchorSide[akRight].Control := CardPanel;
+                BdgLbl.AnchorSide[akRight].Side    := asrBottom;
+                BdgLbl.AnchorSide[akTop].Control   := CardPanel;
+                BdgLbl.AnchorSide[akTop].Side      := asrTop;
+                BdgLbl.Anchors                     := [akTop, akRight];
                 BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
                 BdgLbl.Font.Name  := 'Noto Sans';
                 BdgLbl.Font.Size  := BDG_FONT;
@@ -17432,6 +17465,7 @@ begin
     CardPanel.OnMouseEnter := @GameCardMouseEnter;
     CardPanel.OnMouseLeave := @GameCardMouseLeave;
     CardPanel.OnClick := @AddNonSteamFolderClick;
+    CardPanel.OnMouseUp := @GameCardMouseUp;
 
     CardImage := TImage.Create(CardPanel);
     CardImage.Parent := CardPanel;
@@ -17443,6 +17477,7 @@ begin
     CardImage.OnMouseEnter := @GameCardMouseEnter;
     CardImage.OnMouseLeave := @GameCardMouseLeave;
     CardImage.OnClick := @AddNonSteamFolderClick;
+    CardImage.OnMouseUp := @GameCardMouseUp;
 
     // Big "+" sign in centre
     BdgLbl := TLabel.Create(CardPanel);
@@ -17460,6 +17495,7 @@ begin
     BdgLbl.OnMouseEnter := @GameCardMouseEnter;
     BdgLbl.OnMouseLeave := @GameCardMouseLeave;
     BdgLbl.OnClick := @AddNonSteamFolderClick;
+    BdgLbl.OnMouseUp := @GameCardMouseUp;
 
     // Label below icon
     BdgLbl := TLabel.Create(CardPanel);
@@ -17478,6 +17514,7 @@ begin
     BdgLbl.OnMouseEnter := @GameCardMouseEnter;
     BdgLbl.OnMouseLeave := @GameCardMouseLeave;
     BdgLbl.OnClick := @AddNonSteamFolderClick;
+    BdgLbl.OnMouseUp := @GameCardMouseUp;
 
     FCardPanels.Add(CardPanel);
     FOrigCovers.Add(nil);
@@ -18899,6 +18936,12 @@ begin
 
   FRightClickedCard := Panel;
 
+  if Panel.Tag = 9998 then
+  begin
+    ShowRemoveFoldersMenu(Sender, X, Y);
+    Exit;
+  end;
+
   // Show "Open prefix folder" only for Steam games (hint first line starts with '(')
   if Assigned(FOpenPrefixMenuItem) then
     FOpenPrefixMenuItem.Visible :=
@@ -19096,6 +19139,99 @@ begin
   Application.QueueAsyncCall(@RefreshGameCardsAsync, 0);
 end;
 
+procedure Tgoverlayform.ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
+var
+  Pt: TPoint;
+  NonSteamFile: string;
+  Lines: TStringList;
+  I: Integer;
+  RemoveParent: TMenuItem;
+  SubItem: TMenuItem;
+  FolderPath: string;
+begin
+  if not Assigned(FRemoveFoldersMenu) then
+    FRemoveFoldersMenu := TPopupMenu.Create(Self)
+  else
+    FRemoveFoldersMenu.Items.Clear;
+
+  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
+  Lines := TStringList.Create;
+  try
+    if FileExists(NonSteamFile) then
+      Lines.LoadFromFile(NonSteamFile);
+
+    // Parent item: "Remove nonsteam folders"
+    RemoveParent := TMenuItem.Create(FRemoveFoldersMenu);
+    RemoveParent.Caption := 'Remove nonsteam folders';
+    FRemoveFoldersMenu.Items.Add(RemoveParent);
+
+    // Check if there are any folders to remove
+    if Lines.Count = 0 then
+    begin
+      SubItem := TMenuItem.Create(FRemoveFoldersMenu);
+      SubItem.Caption := '(No folders found)';
+      SubItem.Enabled := False;
+      RemoveParent.Add(SubItem);
+    end
+    else
+    begin
+      for I := 0 to Lines.Count - 1 do
+      begin
+        FolderPath := Trim(Lines[I]);
+        if FolderPath = '' then Continue;
+        
+        SubItem := TMenuItem.Create(FRemoveFoldersMenu);
+        SubItem.Caption := FolderPath;
+        SubItem.OnClick := @RemoveFolderMenuItemClick;
+        RemoveParent.Add(SubItem);
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
+
+  Pt := TControl(Sender).ClientToScreen(Point(X, Y));
+  FRemoveFoldersMenu.PopUp(Pt.X, Pt.Y);
+end;
+
+procedure Tgoverlayform.RemoveFolderMenuItemClick(Sender: TObject);
+var
+  FolderPath: string;
+  NonSteamFile: string;
+  Lines: TStringList;
+  I: Integer;
+begin
+  if not (Sender is TMenuItem) then Exit;
+  FolderPath := TMenuItem(Sender).Caption;
+  if FolderPath = '' then Exit;
+
+  // Ask user if they want to remove that folder
+  if MessageDlg('Remove non-Steam folder', 
+                'Are you sure you want to remove the folder "' + FolderPath + '" from Goverlay?', 
+                mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+    NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
+    Lines := TStringList.Create;
+    try
+      if FileExists(NonSteamFile) then
+      begin
+        Lines.LoadFromFile(NonSteamFile);
+        for I := Lines.Count - 1 downto 0 do
+        begin
+          if Trim(Lines[I]) = FolderPath then
+            Lines.Delete(I);
+        end;
+        Lines.SaveToFile(NonSteamFile);
+      end;
+    finally
+      Lines.Free;
+    end;
+
+    // Refresh the game cards grid immediately!
+    RefreshGameCards;
+  end;
+end;
+
 procedure Tgoverlayform.LoadNonSteamFolders(var ACardIndex: Integer;
   const ACardsPerRow, ARowMargin: Integer);
 var
@@ -19173,6 +19309,8 @@ begin
       CardPanel.Parent := FGamesPanel;
       CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
       CardPanel.BevelOuter := bvNone;
+      CardPanel.BevelInner := bvNone;
+      CardPanel.BorderWidth := 0;
       CardPanel.Caption := '';
       CardPanel.Tag := 9997;  // marker: non-Steam card
       CardPanel.Color := $303030;
@@ -19276,7 +19414,11 @@ begin
         BdgBg.Brush.Color := RGBToColor(28, 52, 96);
         BdgBg.Pen.Style   := psClear;
         BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
-        BdgBg.Anchors     := [akTop, akRight];
+        BdgBg.AnchorSide[akRight].Control := CardPanel;
+        BdgBg.AnchorSide[akRight].Side    := asrBottom;
+        BdgBg.AnchorSide[akTop].Control   := CardPanel;
+        BdgBg.AnchorSide[akTop].Side      := asrTop;
+        BdgBg.Anchors                     := [akTop, akRight];
         BdgBg.OnMouseEnter := @GameCardMouseEnter;
         BdgBg.OnMouseLeave := @GameCardMouseLeave;
         BdgBg.OnClick      := @GameCardClick;
@@ -19295,7 +19437,13 @@ begin
             BdgImg.Parent      := CardPanel;
             BdgImg.AutoSize    := False;
             BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-            BdgImg.Anchors     := [akTop, akRight];
+            BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
+            BdgImg.BorderSpacing.Top   := BdgY;
+            BdgImg.AnchorSide[akRight].Control := CardPanel;
+            BdgImg.AnchorSide[akRight].Side    := asrBottom;
+            BdgImg.AnchorSide[akTop].Control   := CardPanel;
+            BdgImg.AnchorSide[akTop].Side      := asrTop;
+            BdgImg.Anchors                     := [akTop, akRight];
             BdgImg.Stretch     := True;
             BdgImg.Proportional := True;
             BdgImg.Center      := True;
@@ -19314,7 +19462,13 @@ begin
             BdgImg.Parent      := CardPanel;
             BdgImg.AutoSize    := False;
             BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-            BdgImg.Anchors     := [akTop, akRight];
+            BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
+            BdgImg.BorderSpacing.Top   := BdgY;
+            BdgImg.AnchorSide[akRight].Control := CardPanel;
+            BdgImg.AnchorSide[akRight].Side    := asrBottom;
+            BdgImg.AnchorSide[akTop].Control   := CardPanel;
+            BdgImg.AnchorSide[akTop].Side      := asrTop;
+            BdgImg.Anchors                     := [akTop, akRight];
             BdgImg.Stretch     := True;
             BdgImg.Proportional := True;
             BdgImg.Center      := True;
@@ -19333,7 +19487,13 @@ begin
             BdgLbl.Parent     := CardPanel;
             BdgLbl.AutoSize   := False;
             BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
-            BdgLbl.Anchors    := [akTop, akRight];
+            BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 3;
+            BdgLbl.BorderSpacing.Top   := BdgY + 1;
+            BdgLbl.AnchorSide[akRight].Control := CardPanel;
+            BdgLbl.AnchorSide[akRight].Side    := asrBottom;
+            BdgLbl.AnchorSide[akTop].Control   := CardPanel;
+            BdgLbl.AnchorSide[akTop].Side      := asrTop;
+            BdgLbl.Anchors                     := [akTop, akRight];
             BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
             BdgLbl.Font.Name  := 'Noto Sans';
             BdgLbl.Font.Size  := BDG_FONT;
@@ -19349,7 +19509,13 @@ begin
             BdgLbl.Parent     := CardPanel;
             BdgLbl.AutoSize   := False;
             BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
-            BdgLbl.Anchors    := [akTop, akRight];
+            BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 2;
+            BdgLbl.BorderSpacing.Top   := BdgY;
+            BdgLbl.AnchorSide[akRight].Control := CardPanel;
+            BdgLbl.AnchorSide[akRight].Side    := asrBottom;
+            BdgLbl.AnchorSide[akTop].Control   := CardPanel;
+            BdgLbl.AnchorSide[akTop].Side      := asrTop;
+            BdgLbl.Anchors                     := [akTop, akRight];
             BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
             BdgLbl.Font.Name  := 'Noto Sans';
             BdgLbl.Font.Size  := BDG_FONT;
