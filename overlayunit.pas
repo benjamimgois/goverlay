@@ -15113,90 +15113,92 @@ begin
   // Reparent OptiScaler controls → FOsOptiSec (top += 22 past section title)
   filenameLabel.AnchorSideLeft.Control   := nil; filenameLabel.AnchorSideTop.Control    := nil;
   filenameLabel.AnchorSideRight.Control  := nil; filenameLabel.AnchorSideBottom.Control := nil;
-  filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := filenameLabel.Top + 22;
+  filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := 20;
   filenameLabel.Parent  := FOsOptiSec;
 
   filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
   filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
-  filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := filenameComboBox.Top + 22;
+  filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := 41;
   filenameComboBox.Parent  := FOsOptiSec;
 
   spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
   spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
-  spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := spoofCheckBox.Top + 22;
+  spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := 47;
   spoofCheckBox.Parent  := FOsOptiSec;
 
   fsrversionLabel.AnchorSideLeft.Control   := nil; fsrversionLabel.AnchorSideTop.Control    := nil;
   fsrversionLabel.AnchorSideRight.Control  := nil; fsrversionLabel.AnchorSideBottom.Control := nil;
-  fsrversionLabel.Anchors := [akLeft, akTop]; fsrversionLabel.Top := fsrversionLabel.Top + 22;
+  fsrversionLabel.Anchors := [akLeft, akTop]; fsrversionLabel.Top := 105;
   fsrversionLabel.Parent  := FOsOptiSec;
 
   fsrversionComboBox.AnchorSideLeft.Control   := nil; fsrversionComboBox.AnchorSideTop.Control    := nil;
   fsrversionComboBox.AnchorSideRight.Control  := nil; fsrversionComboBox.AnchorSideBottom.Control := nil;
-  fsrversionComboBox.Anchors := [akLeft, akTop]; fsrversionComboBox.Top := fsrversionComboBox.Top + 22;
+  fsrversionComboBox.Anchors := [akLeft, akTop]; fsrversionComboBox.Top := 126;
   fsrversionComboBox.Parent  := FOsOptiSec;
 
   emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
   emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
-  emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := emufp8CheckBox.Top + 22;
+  emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 132;
   emufp8CheckBox.Parent  := FOsOptiSec;
 
   osversionLabel.AnchorSideLeft.Control   := nil; osversionLabel.AnchorSideTop.Control    := nil;
   osversionLabel.AnchorSideRight.Control  := nil; osversionLabel.AnchorSideBottom.Control := nil;
-  osversionLabel.Anchors := [akLeft, akTop]; osversionLabel.Top := osversionLabel.Top + 22;
+  osversionLabel.Anchors := [akLeft, akTop]; osversionLabel.Top := 190;
   osversionLabel.Parent  := FOsOptiSec;
 
   protontricksManagerButton.AnchorSideLeft.Control   := nil; protontricksManagerButton.AnchorSideTop.Control    := nil;
   protontricksManagerButton.AnchorSideRight.Control  := nil; protontricksManagerButton.AnchorSideBottom.Control := nil;
-  protontricksManagerButton.Anchors := [akLeft, akTop]; protontricksManagerButton.Top := protontricksManagerButton.Top + 22;
+  protontricksManagerButton.Anchors := [akLeft, akTop]; protontricksManagerButton.Top := 211;
   protontricksManagerButton.Parent  := FOsOptiSec;
 
   optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
   optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
-  optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := optipatcherCheckBox.Top + 22;
+  optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := 216;
+  optipatcherCheckBox.Left    := 134;
   optipatcherCheckBox.Parent  := FOsOptiSec;
 
   patcherlistLabel.AnchorSideLeft.Control   := nil; patcherlistLabel.AnchorSideTop.Control    := nil;
   patcherlistLabel.AnchorSideRight.Control  := nil; patcherlistLabel.AnchorSideBottom.Control := nil;
-  patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := patcherlistLabel.Top + 22;
+  patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := 238;
+  patcherlistLabel.Left    := 142;
   patcherlistLabel.Parent  := FOsOptiSec;
 
   // Reparent ImGUI Menu controls → FOsImgSec
   menuLabel.AnchorSideLeft.Control   := nil; menuLabel.AnchorSideTop.Control    := nil;
   menuLabel.AnchorSideRight.Control  := nil; menuLabel.AnchorSideBottom.Control := nil;
-  menuLabel.Anchors := [akLeft, akTop]; menuLabel.Top := menuLabel.Top + 22;
+  menuLabel.Anchors := [akLeft, akTop]; menuLabel.Top := 45;
   menuLabel.Parent  := FOsImgSec;
 
   menuscalevalueLabel.AnchorSideLeft.Control   := nil; menuscalevalueLabel.AnchorSideTop.Control    := nil;
   menuscalevalueLabel.AnchorSideRight.Control  := nil; menuscalevalueLabel.AnchorSideBottom.Control := nil;
-  menuscalevalueLabel.Anchors := [akLeft, akTop]; menuscalevalueLabel.Top := menuscalevalueLabel.Top + 22;
+  menuscalevalueLabel.Anchors := [akLeft, akTop]; menuscalevalueLabel.Top := 70;
   menuscalevalueLabel.Left    := 252;
   menuscalevalueLabel.Parent  := FOsImgSec;
 
   menuscaleTrackBar.AnchorSideLeft.Control   := nil; menuscaleTrackBar.AnchorSideTop.Control    := nil;
   menuscaleTrackBar.AnchorSideRight.Control  := nil; menuscaleTrackBar.AnchorSideBottom.Control := nil;
-  menuscaleTrackBar.Anchors := [akLeft, akTop]; menuscaleTrackBar.Top := menuscaleTrackBar.Top + 22;
+  menuscaleTrackBar.Anchors := [akLeft, akTop]; menuscaleTrackBar.Top := 70;
   menuscaleTrackBar.Parent  := FOsImgSec;
 
   mark1Label.AnchorSideLeft.Control   := nil; mark1Label.AnchorSideTop.Control    := nil;
   mark1Label.AnchorSideRight.Control  := nil; mark1Label.AnchorSideBottom.Control := nil;
-  mark1Label.Anchors := [akLeft, akTop]; mark1Label.Top := mark1Label.Top + 22;
+  mark1Label.Anchors := [akLeft, akTop]; mark1Label.Top := 95;
   mark1Label.Parent  := FOsImgSec;
 
   mark2Label.AnchorSideLeft.Control   := nil; mark2Label.AnchorSideTop.Control    := nil;
   mark2Label.AnchorSideRight.Control  := nil; mark2Label.AnchorSideBottom.Control := nil;
-  mark2Label.Anchors := [akLeft, akTop]; mark2Label.Top := mark2Label.Top + 22;
+  mark2Label.Anchors := [akLeft, akTop]; mark2Label.Top := 95;
   mark2Label.Parent  := FOsImgSec;
 
   mark3Label.AnchorSideLeft.Control   := nil; mark3Label.AnchorSideTop.Control    := nil;
   mark3Label.AnchorSideRight.Control  := nil; mark3Label.AnchorSideBottom.Control := nil;
-  mark3Label.Anchors := [akLeft, akTop]; mark3Label.Top := mark3Label.Top + 22;
+  mark3Label.Anchors := [akLeft, akTop]; mark3Label.Top := 95;
   mark3Label.Parent  := FOsImgSec;
 
   shortcutkeyLabel.AnchorSideLeft.Control   := nil; shortcutkeyLabel.AnchorSideTop.Control    := nil;
   shortcutkeyLabel.AnchorSideRight.Control  := nil; shortcutkeyLabel.AnchorSideBottom.Control := nil;
   shortcutkeyLabel.Anchors  := [akLeft, akTop];
-  shortcutkeyLabel.Top      := shortcutkeyLabel.Top + 22;
+  shortcutkeyLabel.Top      := 185;
   shortcutkeyLabel.Caption  := 'Menu Toggle Key';
   shortcutkeyLabel.Parent   := FOsImgSec;
 
@@ -15224,32 +15226,32 @@ begin
   // Reparent FakeNVAPI controls → FOsFakeSec
   forcereflexCheckBox.AnchorSideLeft.Control   := nil; forcereflexCheckBox.AnchorSideTop.Control    := nil;
   forcereflexCheckBox.AnchorSideRight.Control  := nil; forcereflexCheckBox.AnchorSideBottom.Control := nil;
-  forcereflexCheckBox.Anchors := [akLeft, akTop]; forcereflexCheckBox.Top := forcereflexCheckBox.Top + 22;
+  forcereflexCheckBox.Anchors := [akLeft, akTop]; forcereflexCheckBox.Top := 25;
   forcereflexCheckBox.Parent  := FOsFakeSec;
 
   reflexComboBox.AnchorSideLeft.Control   := nil; reflexComboBox.AnchorSideTop.Control    := nil;
   reflexComboBox.AnchorSideRight.Control  := nil; reflexComboBox.AnchorSideBottom.Control := nil;
-  reflexComboBox.Anchors := [akLeft, akTop]; reflexComboBox.Top := reflexComboBox.Top + 22;
+  reflexComboBox.Anchors := [akLeft, akTop]; reflexComboBox.Top := 50;
   reflexComboBox.Parent  := FOsFakeSec;
 
   forcelatencyflexCheckBox.AnchorSideLeft.Control   := nil; forcelatencyflexCheckBox.AnchorSideTop.Control    := nil;
   forcelatencyflexCheckBox.AnchorSideRight.Control  := nil; forcelatencyflexCheckBox.AnchorSideBottom.Control := nil;
-  forcelatencyflexCheckBox.Anchors := [akLeft, akTop]; forcelatencyflexCheckBox.Top := forcelatencyflexCheckBox.Top + 22;
+  forcelatencyflexCheckBox.Anchors := [akLeft, akTop]; forcelatencyflexCheckBox.Top := 105;
   forcelatencyflexCheckBox.Parent  := FOsFakeSec;
 
   latencyflexComboBox.AnchorSideLeft.Control   := nil; latencyflexComboBox.AnchorSideTop.Control    := nil;
   latencyflexComboBox.AnchorSideRight.Control  := nil; latencyflexComboBox.AnchorSideBottom.Control := nil;
-  latencyflexComboBox.Anchors := [akLeft, akTop]; latencyflexComboBox.Top := latencyflexComboBox.Top + 22;
+  latencyflexComboBox.Anchors := [akLeft, akTop]; latencyflexComboBox.Top := 130;
   latencyflexComboBox.Parent  := FOsFakeSec;
 
   overrideCheckBox.AnchorSideLeft.Control   := nil; overrideCheckBox.AnchorSideTop.Control    := nil;
   overrideCheckBox.AnchorSideRight.Control  := nil; overrideCheckBox.AnchorSideBottom.Control := nil;
-  overrideCheckBox.Anchors := [akLeft, akTop]; overrideCheckBox.Top := overrideCheckBox.Top + 22;
+  overrideCheckBox.Anchors := [akLeft, akTop]; overrideCheckBox.Top := 185;
   overrideCheckBox.Parent  := FOsFakeSec;
 
   tracelogCheckBox.AnchorSideLeft.Control   := nil; tracelogCheckBox.AnchorSideTop.Control    := nil;
   tracelogCheckBox.AnchorSideRight.Control  := nil; tracelogCheckBox.AnchorSideBottom.Control := nil;
-  tracelogCheckBox.Anchors := [akLeft, akTop]; tracelogCheckBox.Top := tracelogCheckBox.Top + 22;
+  tracelogCheckBox.Anchors := [akLeft, akTop]; tracelogCheckBox.Top := 235;
   tracelogCheckBox.Parent  := FOsFakeSec;
 
   // DLL & Options section
@@ -15433,24 +15435,24 @@ const
   PAD     = 14;   // inner horizontal padding
   // GroupBox heights
   GPU_GH  = 96;   // reduced from 130; controls centered within content area
-  OPT_GH  = 265;  // trimmed: BOX_TOP(6)+BOX_H(251)+pad(8) — removes blank bottom area
+  OPT_GH  = 290;  // reduced from 335 to 290
   // Card heights
   GPU_H   = HDR + GPU_GH;    // 130
-  OPT_H   = HDR + OPT_GH;    // 299
+  OPT_H   = HDR + OPT_GH;    // 324
   // Status card — fresh indicator rows + update controls
   DOT_SZ    = 10;
-  ROW_H     = 22;   // compact rows — saves 3×4=12px vs 26
+  ROW_H     = 26;   // standard row height
   STAT_ROWS = 3;    // 3 rows × 2 columns = 6 items (OptiScaler/FakeNVAPI/FSR/XeSS/DLSS/OptiPatcher)
   CB_H      = 26;   // combo height
   BTN_H     = 32;   // update buttons height
   PB_H      = 16;   // progress bar height (overlaid on button row — only visible during update)
-  // Layout: HDR + 6 + (button row / progress bar overlay) + 8 + dot grid + 8
-  STAT_H    = HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 8;
+  // Layout: HDR + 6 + (button row / progress bar overlay) + 8 + dot grid + 12
+  STAT_H    = HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
   // Inner 3-col layout constants (mirrors ReflowOptiScalerTab)
   W1      = 252;
   W3      = 252;
   MIN_W2  = 180;
-  BOX_H   = 251;
+  BOX_H   = 280;  // reduced from 321 to 280
   BOX_TOP = 6;
   IMARGIN = 4;
   IGAP    = 4;
@@ -15460,6 +15462,8 @@ var
   ColW, i, Col, RowIdx: Integer;
   InnerW, Center, W2, X1, X2, X3: Integer;
   ComboW, CheckW: Integer;
+  SliderW, TotalW, StartX: Integer;
+  TBarMargin, TrackL: Integer;
 begin
   if not Assigned(FOsScrollBox) then Exit;
   CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
@@ -15500,7 +15504,36 @@ begin
   X1 := X2 - IGAP - W1;
   X3 := X2 + W2 + IGAP;
   if Assigned(FOsOptiSec)  then FOsOptiSec.SetBounds(X1, HDR + BOX_TOP, W1, BOX_H);
-  if Assigned(FOsImgSec)   then FOsImgSec.SetBounds(X2,  HDR + BOX_TOP, W2, BOX_H);
+  if Assigned(FOsImgSec) then
+  begin
+    FOsImgSec.SetBounds(X2, HDR + BOX_TOP, W2, BOX_H);
+    menuLabel.Left := (W2 - menuLabel.Width) div 2;
+
+    SliderW := Min(200, W2 - 24);
+    if SliderW < 120 then SliderW := 120;
+    TotalW := SliderW + 6 + menuscalevalueLabel.Width;
+    StartX := (W2 - TotalW) div 2;
+
+    menuscaleTrackBar.SetBounds(StartX, 70, SliderW, menuscaleTrackBar.Height);
+    menuscalevalueLabel.SetBounds(StartX + SliderW + 6, 70, menuscalevalueLabel.Width, menuscalevalueLabel.Height);
+
+    TBarMargin := 10;
+    TrackL := SliderW - 2 * TBarMargin;
+
+    // 1080p aligns with scale 1.0 (1/3 of track from left)
+    mark1Label.Left := StartX + TBarMargin + TrackL div 3 - mark1Label.Width div 2;
+    // 1440p aligns with scale 1.5 (2/3 of track from left)
+    mark2Label.Left := StartX + TBarMargin + (2 * TrackL) div 3 - mark2Label.Width div 2;
+    // 4K aligns with scale 2.0 (maximum value/end of track)
+    mark3Label.Left := StartX + SliderW - TBarMargin - mark3Label.Width div 2;
+
+    shortcutkeyLabel.Left := (W2 - shortcutkeyLabel.Width) div 2;
+    if Assigned(FOsShortcutCaptureBtn) then
+    begin
+      FOsShortcutCaptureBtn.Left := (W2 - FOsShortcutCaptureBtn.Width) div 2;
+      FOsShortcutCaptureBtn.Top  := shortcutkeyLabel.Top + shortcutkeyLabel.Height + 4;
+    end;
+  end;
   if Assigned(FOsFakeSec)  then FOsFakeSec.SetBounds(X3, HDR + BOX_TOP, W3, BOX_H);
 
   // ── Card 2: Software Status ──────────────────────────────────────────
