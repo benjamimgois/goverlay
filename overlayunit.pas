@@ -15113,32 +15113,32 @@ begin
   // Reparent OptiScaler controls → FOsOptiSec (top += 22 past section title)
   filenameLabel.AnchorSideLeft.Control   := nil; filenameLabel.AnchorSideTop.Control    := nil;
   filenameLabel.AnchorSideRight.Control  := nil; filenameLabel.AnchorSideBottom.Control := nil;
-  filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := 20;
+  filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := 45;
   filenameLabel.Parent  := FOsOptiSec;
 
   filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
   filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
-  filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := 41;
+  filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := 66;
   filenameComboBox.Parent  := FOsOptiSec;
 
   spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
   spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
-  spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := 47;
+  spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := 72;
   spoofCheckBox.Parent  := FOsOptiSec;
 
   fsrversionLabel.AnchorSideLeft.Control   := nil; fsrversionLabel.AnchorSideTop.Control    := nil;
   fsrversionLabel.AnchorSideRight.Control  := nil; fsrversionLabel.AnchorSideBottom.Control := nil;
-  fsrversionLabel.Anchors := [akLeft, akTop]; fsrversionLabel.Top := 105;
+  fsrversionLabel.Anchors := [akLeft, akTop]; fsrversionLabel.Top := 115;
   fsrversionLabel.Parent  := FOsOptiSec;
 
   fsrversionComboBox.AnchorSideLeft.Control   := nil; fsrversionComboBox.AnchorSideTop.Control    := nil;
   fsrversionComboBox.AnchorSideRight.Control  := nil; fsrversionComboBox.AnchorSideBottom.Control := nil;
-  fsrversionComboBox.Anchors := [akLeft, akTop]; fsrversionComboBox.Top := 126;
+  fsrversionComboBox.Anchors := [akLeft, akTop]; fsrversionComboBox.Top := 136;
   fsrversionComboBox.Parent  := FOsOptiSec;
 
   emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
   emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
-  emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 132;
+  emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 142;
   emufp8CheckBox.Parent  := FOsOptiSec;
 
   osversionLabel.AnchorSideLeft.Control   := nil; osversionLabel.AnchorSideTop.Control    := nil;
@@ -15226,27 +15226,27 @@ begin
   // Reparent FakeNVAPI controls → FOsFakeSec
   forcereflexCheckBox.AnchorSideLeft.Control   := nil; forcereflexCheckBox.AnchorSideTop.Control    := nil;
   forcereflexCheckBox.AnchorSideRight.Control  := nil; forcereflexCheckBox.AnchorSideBottom.Control := nil;
-  forcereflexCheckBox.Anchors := [akLeft, akTop]; forcereflexCheckBox.Top := 25;
+  forcereflexCheckBox.Anchors := [akLeft, akTop]; forcereflexCheckBox.Top := 45;
   forcereflexCheckBox.Parent  := FOsFakeSec;
 
   reflexComboBox.AnchorSideLeft.Control   := nil; reflexComboBox.AnchorSideTop.Control    := nil;
   reflexComboBox.AnchorSideRight.Control  := nil; reflexComboBox.AnchorSideBottom.Control := nil;
-  reflexComboBox.Anchors := [akLeft, akTop]; reflexComboBox.Top := 50;
+  reflexComboBox.Anchors := [akLeft, akTop]; reflexComboBox.Top := 70;
   reflexComboBox.Parent  := FOsFakeSec;
 
   forcelatencyflexCheckBox.AnchorSideLeft.Control   := nil; forcelatencyflexCheckBox.AnchorSideTop.Control    := nil;
   forcelatencyflexCheckBox.AnchorSideRight.Control  := nil; forcelatencyflexCheckBox.AnchorSideBottom.Control := nil;
-  forcelatencyflexCheckBox.Anchors := [akLeft, akTop]; forcelatencyflexCheckBox.Top := 105;
+  forcelatencyflexCheckBox.Anchors := [akLeft, akTop]; forcelatencyflexCheckBox.Top := 115;
   forcelatencyflexCheckBox.Parent  := FOsFakeSec;
 
   latencyflexComboBox.AnchorSideLeft.Control   := nil; latencyflexComboBox.AnchorSideTop.Control    := nil;
   latencyflexComboBox.AnchorSideRight.Control  := nil; latencyflexComboBox.AnchorSideBottom.Control := nil;
-  latencyflexComboBox.Anchors := [akLeft, akTop]; latencyflexComboBox.Top := 130;
+  latencyflexComboBox.Anchors := [akLeft, akTop]; latencyflexComboBox.Top := 140;
   latencyflexComboBox.Parent  := FOsFakeSec;
 
   overrideCheckBox.AnchorSideLeft.Control   := nil; overrideCheckBox.AnchorSideTop.Control    := nil;
   overrideCheckBox.AnchorSideRight.Control  := nil; overrideCheckBox.AnchorSideBottom.Control := nil;
-  overrideCheckBox.Anchors := [akLeft, akTop]; overrideCheckBox.Top := 185;
+  overrideCheckBox.Anchors := [akLeft, akTop]; overrideCheckBox.Top := 190;
   overrideCheckBox.Parent  := FOsFakeSec;
 
   tracelogCheckBox.AnchorSideLeft.Control   := nil; tracelogCheckBox.AnchorSideTop.Control    := nil;
