@@ -601,6 +601,11 @@ type
     FVkFxaaValLbl:   TLabel;
     FVkSmaaValLbl:   TLabel;
     FVkDlsValLbl:    TLabel;
+    // Custom icons for built-in effects
+    FVkCasIcon:      TImage;
+    FVkFxaaIcon:     TImage;
+    FVkSmaaIcon:     TImage;
+    FVkDlsIcon:      TImage;
     // vkBasalt Reshade effects MD3 list (replaces dual listboxes)
     FVkReshadePB:    TPaintBox;
     FVkReshadeSB:    TScrollBar;
@@ -6479,58 +6484,70 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
 
   procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
   var
+    Bmp: TBitmap;
     ThumbR: TRect;
-    CX, CY, ThumbD, Pad: Integer;
     TrackColor: TColor;
   const
-    TRACK_W = 44;
-    TRACK_H = 24;
-    THUMB_D = 18;
-    RADIUS  = 12; // rounded-cap radius
+    TRACK_W = 176;
+    TRACK_H = 96;
+    THUMB_D = 72;
+    RADIUS  = 48;
+    Pad     = 8;
   begin
-    Pad := 2;
-    CX  := AX + TRACK_W div 2;
-    CY  := AY + TRACK_H div 2;
-
     // Track colour
     if AOn then
       TrackColor := RGBToColor(60, 180, 80)   // green
     else
       TrackColor := RGBToColor(70, 70, 70);   // grey
 
-    // --- Draw pill-shaped track using central rect + two end caps ---
-    ACanvas.Brush.Color := TrackColor;
-    ACanvas.Pen.Color   := TrackColor;
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(TRACK_W, TRACK_H);
 
-    // Central rectangle (rounded ends are handled by the caps)
-    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
+      // Fill background with canvas current brush color (item background)
+      Bmp.Canvas.Brush.Color := ACanvas.Brush.Color;
+      Bmp.Canvas.FillRect(0, 0, TRACK_W, TRACK_H);
 
-    // Left cap (semi-circle)
-    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
+      // --- Draw pill-shaped track using central rect + two end caps ---
+      Bmp.Canvas.Brush.Color := TrackColor;
+      Bmp.Canvas.Pen.Color   := TrackColor;
 
-    // Right cap (semi-circle)
-    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
+      // Central rectangle (rounded ends are handled by the caps)
+      Bmp.Canvas.FillRect(RADIUS, 0, TRACK_W - RADIUS, TRACK_H);
 
-    // --- Thumb ---
-    ThumbD := THUMB_D;
-    if AOn then
-      ThumbR.Left := AX + TRACK_W - ThumbD - Pad
-    else
-      ThumbR.Left := AX + Pad;
-    ThumbR.Top    := CY - ThumbD div 2;
-    ThumbR.Right  := ThumbR.Left + ThumbD;
-    ThumbR.Bottom := ThumbR.Top + ThumbD;
+      // Left cap (semi-circle)
+      Bmp.Canvas.Ellipse(0, 0, RADIUS * 2, TRACK_H);
 
-    // Subtle shadow
-    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
-    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
-    ACanvas.Ellipse(ThumbR);
+      // Right cap (semi-circle)
+      Bmp.Canvas.Ellipse(TRACK_W - RADIUS * 2, 0, TRACK_W, TRACK_H);
 
-    // White thumb body
-    InflateRect(ThumbR, -2, -2);
-    ACanvas.Brush.Color := clWhite;
-    ACanvas.Pen.Color   := clWhite;
-    ACanvas.Ellipse(ThumbR);
+      // --- Thumb ---
+      if AOn then
+        ThumbR.Left := TRACK_W - THUMB_D - Pad
+      else
+        ThumbR.Left := Pad;
+      ThumbR.Top    := (TRACK_H - THUMB_D) div 2;
+      ThumbR.Right  := ThumbR.Left + THUMB_D;
+      ThumbR.Bottom := ThumbR.Top + THUMB_D;
+
+      // Subtle shadow
+      Bmp.Canvas.Brush.Color := RGBToColor(200, 200, 200);
+      Bmp.Canvas.Pen.Color   := RGBToColor(160, 160, 160);
+      Bmp.Canvas.Pen.Width   := 4;
+      Bmp.Canvas.Ellipse(ThumbR);
+
+      // White thumb body
+      InflateRect(ThumbR, -8, -8);
+      Bmp.Canvas.Brush.Color := clWhite;
+      Bmp.Canvas.Pen.Color   := clWhite;
+      Bmp.Canvas.Pen.Width   := 1;
+      Bmp.Canvas.Ellipse(ThumbR);
+
+      // Draw high-resolution bitmap to the target rectangle
+      ACanvas.StretchDraw(Rect(AX, AY, AX + 44, AY + 24), Bmp);
+    finally
+      Bmp.Free;
+    end;
   end;
 
   procedure DrawHeader(ACanvas: TCanvas; const ARect: TRect; const ACat: string; const AIcon: string; AExpanded: Boolean; AHover: Boolean);
@@ -16140,6 +16157,17 @@ begin
   TitleLbl.SetBounds(12, 12, 200, 22);
   TitleLbl.Transparent := True;
 
+  // Clear LFM anchors to prevent conflicting alignment
+  casTrackBar.AnchorSideLeft.Control := nil; casTrackBar.AnchorSideTop.Control := nil; casTrackBar.AnchorSideRight.Control := nil; casTrackBar.AnchorSideBottom.Control := nil;
+  fxaaTrackBar.AnchorSideLeft.Control := nil; fxaaTrackBar.AnchorSideTop.Control := nil; fxaaTrackBar.AnchorSideRight.Control := nil; fxaaTrackBar.AnchorSideBottom.Control := nil;
+  smaaTrackBar.AnchorSideLeft.Control := nil; smaaTrackBar.AnchorSideTop.Control := nil; smaaTrackBar.AnchorSideRight.Control := nil; smaaTrackBar.AnchorSideBottom.Control := nil;
+  dlsTrackBar.AnchorSideLeft.Control := nil; dlsTrackBar.AnchorSideTop.Control := nil; dlsTrackBar.AnchorSideRight.Control := nil; dlsTrackBar.AnchorSideBottom.Control := nil;
+
+  casLabel.AnchorSideLeft.Control := nil; casLabel.AnchorSideTop.Control := nil; casLabel.AnchorSideRight.Control := nil; casLabel.AnchorSideBottom.Control := nil;
+  fxaaLabel.AnchorSideLeft.Control := nil; fxaaLabel.AnchorSideTop.Control := nil; fxaaLabel.AnchorSideRight.Control := nil; fxaaLabel.AnchorSideBottom.Control := nil;
+  smaaLabel.AnchorSideLeft.Control := nil; smaaLabel.AnchorSideTop.Control := nil; smaaLabel.AnchorSideRight.Control := nil; smaaLabel.AnchorSideBottom.Control := nil;
+  dlsLabel.AnchorSideLeft.Control := nil; dlsLabel.AnchorSideTop.Control := nil; dlsLabel.AnchorSideRight.Control := nil; dlsLabel.AnchorSideBottom.Control := nil;
+
   // Reparent trackbars + name labels; hide old value labels (replaced below)
   casTrackBar.Parent  := FVkBuiltinCard; casTrackBar.Anchors := [akLeft, akTop]; casTrackBar.Visible := True;
   fxaaTrackBar.Parent := FVkBuiltinCard; fxaaTrackBar.Anchors := [akLeft, akTop]; fxaaTrackBar.Visible := True;
@@ -16186,6 +16214,39 @@ begin
   FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
   FVkDlsValLbl.Font.Color := CLR_WHITE; FVkDlsValLbl.Font.Size := 9;
   FVkDlsValLbl.Color := BG; FVkDlsValLbl.Anchors := [akLeft, akTop];
+
+  // Load custom icons for Built-in Effects card
+  FVkCasIcon := TImage.Create(Self);
+  FVkCasIcon.Parent := FVkBuiltinCard;
+  FVkCasIcon.AntialiasingMode := amOn;
+  FVkCasIcon.Proportional := True;
+  FVkCasIcon.Stretch := True;
+  if FileExists(GetAppBaseDir + 'assets/icons/vk_cas.png') then
+    FVkCasIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_cas.png');
+
+  FVkFxaaIcon := TImage.Create(Self);
+  FVkFxaaIcon.Parent := FVkBuiltinCard;
+  FVkFxaaIcon.AntialiasingMode := amOn;
+  FVkFxaaIcon.Proportional := True;
+  FVkFxaaIcon.Stretch := True;
+  if FileExists(GetAppBaseDir + 'assets/icons/vk_fxaa.png') then
+    FVkFxaaIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_fxaa.png');
+
+  FVkSmaaIcon := TImage.Create(Self);
+  FVkSmaaIcon.Parent := FVkBuiltinCard;
+  FVkSmaaIcon.AntialiasingMode := amOn;
+  FVkSmaaIcon.Proportional := True;
+  FVkSmaaIcon.Stretch := True;
+  if FileExists(GetAppBaseDir + 'assets/icons/vk_smaa.png') then
+    FVkSmaaIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_smaa.png');
+
+  FVkDlsIcon := TImage.Create(Self);
+  FVkDlsIcon.Parent := FVkBuiltinCard;
+  FVkDlsIcon.AntialiasingMode := amOn;
+  FVkDlsIcon.Proportional := True;
+  FVkDlsIcon.Stretch := True;
+  if FileExists(GetAppBaseDir + 'assets/icons/vk_dls.png') then
+    FVkDlsIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_dls.png');
 
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 3 — Toggle Key
@@ -16278,29 +16339,33 @@ begin
   ColW  := (CW - 3 * PAD) div 2;
   Col0  := PAD;
   Col1  := PAD + ColW + PAD;
-  Row0  := 42;              // label/value header row
-  Row1  := Row0 + 20 + 4;  // trackbar row
+  Row0  := 52;              // Row 0 Y-coordinate (CAS / FXAA)
 
-  // CAS / FXAA (row 0)
-  casLabel.SetBounds(Col0, Row0, ColW - VAL_W - 4, 20);
-  if Assigned(FVkCasValLbl)  then FVkCasValLbl.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
-  casTrackBar.SetBounds(Col0, Row1, ColW, 28);
+  // CAS (Column 0, Row 0)
+  if Assigned(FVkCasIcon) then FVkCasIcon.SetBounds(Col0, Row0 + 6, 16, 16);
+  casLabel.SetBounds(Col0 + 22, Row0 + 5, 45, 18);
+  casTrackBar.SetBounds(Col0 + 72, Row0, ColW - 72 - VAL_W - 8, 28);
+  if Assigned(FVkCasValLbl)  then FVkCasValLbl.SetBounds(Col0 + ColW - VAL_W, Row0 + 5, VAL_W, 18);
 
-  fxaaLabel.SetBounds(Col1, Row0, ColW - VAL_W - 4, 20);
-  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
-  fxaaTrackBar.SetBounds(Col1, Row1, ColW, 28);
+  // FXAA (Column 1, Row 0)
+  if Assigned(FVkFxaaIcon) then FVkFxaaIcon.SetBounds(Col1, Row0 + 6, 16, 16);
+  fxaaLabel.SetBounds(Col1 + 22, Row0 + 5, 45, 18);
+  fxaaTrackBar.SetBounds(Col1 + 72, Row0, ColW - 72 - VAL_W - 8, 28);
+  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.SetBounds(Col1 + ColW - VAL_W, Row0 + 5, VAL_W, 18);
 
-  // SMAA / DLS (row 1)
-  Row0 := Row1 + 28 + 14;
-  Row1 := Row0 + 20 + 4;
+  Row1  := Row0 + 28 + 20;  // Row 1 Y-coordinate (SMAA / DLS)
 
-  smaaLabel.SetBounds(Col0, Row0, ColW - VAL_W - 4, 20);
-  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.SetBounds(Col0 + ColW - VAL_W, Row0, VAL_W, 20);
-  smaaTrackBar.SetBounds(Col0, Row1, ColW, 28);
+  // SMAA (Column 0, Row 1)
+  if Assigned(FVkSmaaIcon) then FVkSmaaIcon.SetBounds(Col0, Row1 + 6, 16, 16);
+  smaaLabel.SetBounds(Col0 + 22, Row1 + 5, 45, 18);
+  smaaTrackBar.SetBounds(Col0 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
+  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.SetBounds(Col0 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
 
-  dlsLabel.SetBounds(Col1, Row0, ColW - VAL_W - 4, 20);
-  if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row0, VAL_W, 20);
-  dlsTrackBar.SetBounds(Col1, Row1, ColW, 28);
+  // DLS (Column 1, Row 1)
+  if Assigned(FVkDlsIcon) then FVkDlsIcon.SetBounds(Col1, Row1 + 6, 16, 16);
+  dlsLabel.SetBounds(Col1 + 22, Row1 + 5, 45, 18);
+  dlsTrackBar.SetBounds(Col1 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
+  if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
 
   // ── Card 3: Toggle Key (bottom area, right) ────────────────────────────
   FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
@@ -16487,47 +16552,70 @@ procedure Tgoverlayform.VkReshadeMD3Paint(Sender: TObject);
 
   procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
   var
+    Bmp: TBitmap;
     ThumbR: TRect;
-    CX, CY, ThumbD, Pad: Integer;
     TrackColor: TColor;
   const
-    TRACK_W = 44;
-    TRACK_H = 24;
-    THUMB_D = 18;
-    RADIUS  = 12;
+    TRACK_W = 176;
+    TRACK_H = 96;
+    THUMB_D = 72;
+    RADIUS  = 48;
+    Pad     = 8;
   begin
-    Pad := 2;
-    CX  := AX + TRACK_W div 2;
-    CY  := AY + TRACK_H div 2;
-
+    // Track colour
     if AOn then
-      TrackColor := RGBToColor(60, 180, 80)
+      TrackColor := RGBToColor(60, 180, 80)   // green
     else
-      TrackColor := RGBToColor(70, 70, 70);
+      TrackColor := RGBToColor(70, 70, 70);   // grey
 
-    ACanvas.Brush.Color := TrackColor;
-    ACanvas.Pen.Color   := TrackColor;
-    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
-    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
-    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(TRACK_W, TRACK_H);
 
-    ThumbD := THUMB_D;
-    if AOn then
-      ThumbR.Left := AX + TRACK_W - ThumbD - Pad
-    else
-      ThumbR.Left := AX + Pad;
-    ThumbR.Top    := CY - ThumbD div 2;
-    ThumbR.Right  := ThumbR.Left + ThumbD;
-    ThumbR.Bottom := ThumbR.Top + ThumbD;
+      // Fill background with canvas current brush color (item background)
+      Bmp.Canvas.Brush.Color := ACanvas.Brush.Color;
+      Bmp.Canvas.FillRect(0, 0, TRACK_W, TRACK_H);
 
-    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
-    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
-    ACanvas.Ellipse(ThumbR);
+      // --- Draw pill-shaped track using central rect + two end caps ---
+      Bmp.Canvas.Brush.Color := TrackColor;
+      Bmp.Canvas.Pen.Color   := TrackColor;
 
-    InflateRect(ThumbR, -2, -2);
-    ACanvas.Brush.Color := clWhite;
-    ACanvas.Pen.Color   := clWhite;
-    ACanvas.Ellipse(ThumbR);
+      // Central rectangle (rounded ends are handled by the caps)
+      Bmp.Canvas.FillRect(RADIUS, 0, TRACK_W - RADIUS, TRACK_H);
+
+      // Left cap (semi-circle)
+      Bmp.Canvas.Ellipse(0, 0, RADIUS * 2, TRACK_H);
+
+      // Right cap (semi-circle)
+      Bmp.Canvas.Ellipse(TRACK_W - RADIUS * 2, 0, TRACK_W, TRACK_H);
+
+      // --- Thumb ---
+      if AOn then
+        ThumbR.Left := TRACK_W - THUMB_D - Pad
+      else
+        ThumbR.Left := Pad;
+      ThumbR.Top    := (TRACK_H - THUMB_D) div 2;
+      ThumbR.Right  := ThumbR.Left + THUMB_D;
+      ThumbR.Bottom := ThumbR.Top + THUMB_D;
+
+      // Subtle shadow
+      Bmp.Canvas.Brush.Color := RGBToColor(200, 200, 200);
+      Bmp.Canvas.Pen.Color   := RGBToColor(160, 160, 160);
+      Bmp.Canvas.Pen.Width   := 4;
+      Bmp.Canvas.Ellipse(ThumbR);
+
+      // White thumb body
+      InflateRect(ThumbR, -8, -8);
+      Bmp.Canvas.Brush.Color := clWhite;
+      Bmp.Canvas.Pen.Color   := clWhite;
+      Bmp.Canvas.Pen.Width   := 1;
+      Bmp.Canvas.Ellipse(ThumbR);
+
+      // Draw high-resolution bitmap to the target rectangle
+      ACanvas.StretchDraw(Rect(AX, AY, AX + 44, AY + 24), Bmp);
+    finally
+      Bmp.Free;
+    end;
   end;
 
 var
@@ -18135,15 +18223,15 @@ var
   function GetIconForParam(AIndex: Integer): string;
   begin
     case AIndex of
-      0:  Result := '';
-      1:  Result := '◑';
-      2:  Result := '󰃠';
-      3:  Result := '󰃠';
-      4:  Result := '';
-      5:  Result := '';
-      6:  Result := '✨';
-      7:  Result := '🎨';
-      8:  Result := '💧';
+      0:  Result := '';  // Brightness
+      1:  Result := '◑';  // Contrast
+      2:  Result := '󰃠';  // Exposure
+      3:  Result := '󰃠';  // Gamma
+      4:  Result := '';  // Saturation (originally thermometer, monochromatic)
+      5:  Result := '';  // Vibrance (originally paintbrush, monochromatic)
+      6:  Result := '';  // Hue (originally sparkles, now monochromatic magic wand/sparkles)
+      7:  Result := '';  // Temperature (originally palette, now monochromatic fire/temp)
+      8:  Result := '';  // Tint (originally droplet, now monochromatic droplet/tint)
       9:  Result := '🔴';
       10: Result := '🟢';
       11: Result := '🔵';
