@@ -60,6 +60,56 @@
     </screenshots>
 
     <releases>
+        <release version="1.8.2" date="2026-05-24">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>vkSumi integration with automated configuration generation and environment management</li>
+                    <li>Add right-click context menu on Games tab to remove non-Steam folders</li>
+                    <li>Support for adding custom non-Steam game cards with cover art</li>
+                    <li>Bundle vkSumi and nerd fonts dependencies in GOverlay AppImage</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>UI/UX modernization using custom card-based layouts for vkBasalt, OptiScaler, vkSumi, and MangoHud tabs</li>
+                    <li>Align GOverlay description and developer credits dynamically in the About window</li>
+                    <li>Standardized Flatpak host configuration path resolution for MangoHud and GOverlay</li>
+                    <li>X11 right-modifier detection and layout reflow logic improvements</li>
+                    <li>Cleaned up Home tab libraries list to keep only main modules</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.8.1" date="2026-05-08">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Add "Clear configuration" button to the System card</li>
+                    <li>Migrate vkBasalt ReShade effects to MD3-style toggle list</li>
+                </ul>
+                <p>Improvements &amp; Fixes</p>
+                <ul>
+                    <li>Ensure DLSS version persistence in global configuration</li>
+                    <li>Resolve Steam games and icon loading for Flatpak/system installs</li>
+                    <li>Relocated Flatpak build scripts and clean up unused code</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.8.0" date="2026-05-06">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Modernized sidebar with clean nav rail design and collapsable animation</li>
+                    <li>Brand new resizable main window and Steam games tab with cover art and search</li>
+                    <li>Fully per-game configuration support with environment variables and covers</li>
+                    <li>Added new System information card to the Home tab</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Redesigned vkBasalt, OptiScaler, Presets, and MangoHud tabs with modern dark card layouts</li>
+                    <li>Improved Flatpak pathing and Steam prefix detection</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.7.5" date="2026-02-28">
             <description>
                 <p>New Features</p>
