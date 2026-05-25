@@ -95,6 +95,18 @@ begin
   //Centralize window
   CenterFormOnScreen(Self);
 
+  // Update description and credits captions dynamically at runtime
+  descLabel.Caption := 'Open-source tool providing a unified interface to configure different gaming tools';
+  creditsLabel.Caption := 
+    #10'Credits:'#10#10 +
+    'FlightlessMango – MangoHud'#10 +
+    'DadSchoorse – vkBasalt'#10 +
+    'reakjra – vkSumi'#10 +
+    'OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler'#10#10 +
+    'Project links:'#10 +
+    'github.com/benjamimgois/goverlay'#10 +
+    'github.com/benjamimgois/pascube';
+
   ApplyTheme(Self, CurrentTheme);
 
   if CurrentTheme = tmDark then

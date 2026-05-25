@@ -18365,7 +18365,6 @@ var
   DEP_NAMES: array[0..7] of string = (
     'PasCube', 'vkcube', '7z', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
   MOD_NAMES: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'vkSumi');
-  LIB_NAMES: array[0..4] of string = ('FakeNvAPI:', 'Optipatcher:', 'FSR:', 'XeSS:', 'DLSS:');
 
 var
   Content:   TPanel;
@@ -18376,7 +18375,7 @@ var
   Ico:       TImage;
   IconFile:  string;
   Sep:       TBevel;
-  i, Row, Y, ColX, Col2X: Integer;
+  i, Row, Y, ColX: Integer;
   Dot:       TShape;
 
   function MkCard(AY, AH: Integer): TPanel;
@@ -18580,8 +18579,8 @@ begin
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
-  // ── Module Status + Libraries ────────────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 10 + 3 * ROW_H + 4);
+  // ── Libraries ────────────────────────────────────────────────────────────
+  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 4);
   MkTitle(Card, 'Libraries', CARD_P);
   MkSep(Card, CARD_P + 22);
 
@@ -18613,45 +18612,6 @@ begin
     Lbl.AutoSize   := True;
     Lbl.ShowHint   := True;
     FHomeModVerLbls[i] := Lbl;
-  end;
-
-  // Thin divider between module rows and library sub-rows
-  MkSep(Card, CARD_P + 30 + 4 * ROW_H + 2);
-
-  // Library sub-rows (indented) — 2 columns, 3 rows
-  // i=0 FakeNvAPI, i=1 Optipatcher, i=2 FSR, i=3 XeSS, i=4 DLSS
-  // Left col: i=0,2,4  Right col: i=1,3
-  Col2X := 330;
-  for i := 0 to 4 do
-  begin
-    if i mod 2 = 0 then ColX := CARD_P
-    else                 ColX := Col2X;
-    Row := CARD_P + 30 + 4 * ROW_H + 10 + (i div 2) * ROW_H;
-
-    Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
-    Dot.ShowHint := True;
-    FHomeLibDots[i] := Dot;
-
-    Lbl := TLabel.Create(Self);
-    Lbl.Parent     := Card;
-    Lbl.Caption    := LIB_NAMES[i];
-    Lbl.Font.Color := MUTED_CLR;
-    Lbl.Font.Size  := 9;
-    Lbl.Left       := ColX + DOT_SZ + 8;
-    Lbl.Top        := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize   := True;
-    Lbl.ShowHint   := True;
-
-    Lbl := TLabel.Create(Self);
-    Lbl.Parent     := Card;
-    Lbl.Caption    := '—';
-    Lbl.Font.Color := $004499FF;
-    Lbl.Font.Size  := 9;
-    Lbl.Left       := ColX + DOT_SZ + 8 + 110;
-    Lbl.Top        := Row + (ROW_H - 16) div 2;
-    Lbl.AutoSize   := True;
-    Lbl.ShowHint   := True;
-    FHomeOptiLbls[i] := Lbl;
   end;
   Inc(Y, Card.Height + SEC_GAP);
 
