@@ -856,25 +856,7 @@ begin
   end
   else
   begin
-    WriteLn('[FGMOD] fgmod exists — refreshing scripts from .fgmod_original...');
-    // Always overwrite launcher scripts so users get template fixes automatically.
-    // Config files and DLLs in the global copy are left untouched.
-    Proc := TProcess.Create(nil);
-    try
-      Proc.Executable := 'sh';
-      Proc.Parameters.Add('-c');
-      Proc.Parameters.Add('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod') +
-                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod') + ' 2>/dev/null && ' +
-                          'cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-uninstaller.sh') +
-                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-uninstaller.sh') + ' 2>/dev/null && ' +
-                          'cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod-remover.sh') +
-                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(FGModPath) + 'fgmod-remover.sh') + ' 2>/dev/null');
-      Proc.Options := [poWaitOnExit];
-      Proc.Execute;
-    finally
-      Proc.Free;
-    end;
-    WriteLn('[FGMOD] Scripts refreshed.');
+    WriteLn('[FGMOD] fgmod exists — keeping existing user scripts.');
   end;
 end;
 
