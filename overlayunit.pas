@@ -5937,16 +5937,16 @@ begin
     9: Result := Form.wined3dCheckBox;
     10: Result := Form.forcezinkCheckBox;
     11: Result := Form.nofastclearsCheckBox;
-    12: Result := Form.highpriCheckBox;
-    13: Result := Form.wow64CheckBox;
-    14: Result := Form.largeaddressCheckBox;
-    15: Result := Form.stagememCheckBox;
-    16: Result := Form.disablentsyncCheckBox;
-    17: Result := Form.heapdelayCheckBox;
-    18: Result := Form.FAntilagCheckBox;
-    19: Result := Form.FFSR4UpgradeCheckBox;
-    20: Result := Form.FDLSSUpgradeCheckBox;
-    21: Result := Form.FXeSSUpgradeCheckBox;
+    12: Result := Form.FFSR4UpgradeCheckBox;
+    13: Result := Form.FDLSSUpgradeCheckBox;
+    14: Result := Form.FXeSSUpgradeCheckBox;
+    15: Result := Form.highpriCheckBox;
+    16: Result := Form.wow64CheckBox;
+    17: Result := Form.largeaddressCheckBox;
+    18: Result := Form.stagememCheckBox;
+    19: Result := Form.disablentsyncCheckBox;
+    20: Result := Form.heapdelayCheckBox;
+    21: Result := Form.FAntilagCheckBox;
     22: Result := Form.FReEngineRTCheckBox;
   else
     Result := nil;
@@ -7340,147 +7340,32 @@ begin
     geSpeedButton.Enabled := True;
     saveBitBtn.Enabled := True;
 
-    // For tweaks tab, load the checkbox states from fgmod file
-    FileLines := TStringList.Create;
-    try
-      FileLines.LoadFromFile(FGModFilePath);
-      TweakFound := False;
+    // Load checkbox states and custom variables from fgmod file using the standard procedure
+    LoadTweaksFromFGMod;
 
-      // Check each tweak and set checkbox accordingly
-      for i := 0 to FileLines.Count - 1 do
-      begin
-        // Index 0: "Simulate Steam Deck" -> export SteamDeck=1
-        if Pos('export SteamDeck=1', FileLines[i]) > 0 then
-        begin
-          GetGeneralCheckBox(0).Checked := True;
-          TweakFound := True;
-        end;
+    // Determine if any tweak is active to set geSpeedButton (ON/OFF state)
+    TweakFound := False;
+    for i := 0 to 5 do
+      if GetGeneralCheckBox(i).Checked then TweakFound := True;
+    for i := 0 to 4 do
+      if GetGraphicsCheckBox(i).Checked then TweakFound := True;
+    for i := 0 to 5 do
+      if GetPerformanceCheckBox(i).Checked then TweakFound := True;
 
-        // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
-        if Pos('export PROTON_ENABLE_HDR=1', FileLines[i]) > 0 then
-        begin
-          GetGeneralCheckBox(2).Checked := True;
-          TweakFound := True;
-        end;
+    if FAntilagCheckBox.Checked or
+       FFSR4UpgradeCheckBox.Checked or
+       FDLSSUpgradeCheckBox.Checked or
+       FXeSSUpgradeCheckBox.Checked or
+       FReEngineRTCheckBox.Checked or
+       nofastclearsCheckBox.Checked or
+       (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
+      TweakFound := True;
 
-        // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
-        if Pos('export PROTON_ENABLE_WAYLAND=1', FileLines[i]) > 0 then
-        begin
-          GetGeneralCheckBox(3).Checked := True;
-          TweakFound := True;
-        end;
+    if TweakFound then
+      geSpeedButton.ImageIndex := 1  // ON
+    else
+      geSpeedButton.ImageIndex := 0; // OFF
 
-        // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
-        if Pos('export PROTON_LOG=1', FileLines[i]) > 0 then
-        begin
-          GetGeneralCheckBox(4).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
-        if Pos('export PROTON_USE_SDL=1', FileLines[i]) > 0 then
-        begin
-          GetGeneralCheckBox(5).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 1: "Always use GameMode" -> #gamemode comment
-        if Pos('#gamemode', FileLines[i]) > 0 then
-        begin
-          GetGeneralCheckBox(1).Checked := True;
-          TweakFound := True;
-        end;
-
-        // graphicsCheckGroup items
-        // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
-        if Pos('export RADV_PERFTEST=rt,emulate_rt', FileLines[i]) > 0 then
-        begin
-          GetGraphicsCheckBox(0).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
-        if Pos('export PROTON_HIDE_NVIDIA_GPU=1', FileLines[i]) > 0 then
-        begin
-          GetGraphicsCheckBox(1).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
-        if Pos('export PROTON_ENABLE_NVAPI=1', FileLines[i]) > 0 then
-        begin
-          GetGraphicsCheckBox(2).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
-        if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
-        begin
-          GetGraphicsCheckBox(3).Checked := True;
-          TweakFound := True;
-        end;
-
-        // performanceCheckGroup items
-        // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
-        if Pos('export PROTON_PRIORITY_HIGH=1', FileLines[i]) > 0 then
-        begin
-          GetPerformanceCheckBox(0).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
-        if Pos('export PROTON_USE_WOW64=1', FileLines[i]) > 0 then
-        begin
-          GetPerformanceCheckBox(1).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
-        if Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FileLines[i]) > 0 then
-        begin
-          GetPerformanceCheckBox(2).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
-        if Pos('export STAGING_SHARED_MEMORY=1', FileLines[i]) > 0 then
-        begin
-          GetPerformanceCheckBox(3).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
-        if Pos('export PROTON_NO_NTSYNC=1', FileLines[i]) > 0 then
-        begin
-          GetPerformanceCheckBox(4).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
-        if Pos('export PROTON_HEAP_DELAY_FREE=1', FileLines[i]) > 0 then
-        begin
-          GetPerformanceCheckBox(5).Checked := True;
-          TweakFound := True;
-        end;
-
-        // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
-        if Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1', FileLines[i]) > 0 then
-        begin
-          FAntilagCheckBox.Checked := True;
-          TweakFound := True;
-        end;
-      end;
-
-      // Set geSpeedButton state based on whether any tweak was found
-      if TweakFound then
-        geSpeedButton.ImageIndex := 1  // ON
-      else
-        geSpeedButton.ImageIndex := 0; // OFF
-
-    finally
-      FileLines.Free;
-    end;
-    SyncTweaksGridFromCheckBoxes;
     Exit;  // Exit early for tweaks tab
   end
   else
