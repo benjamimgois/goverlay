@@ -41,6 +41,12 @@ const
   ENV_PROTON_HEAP_DELAY_FREE   = 'PROTON_HEAP_DELAY_FREE=1';
   ENV_ENABLE_MESA_ANTILAG      = 'ENABLE_LAYER_MESA_ANTI_LAG=1';
 
+  // Latency reduction tweaks
+  ENV_LOW_LATENCY              = 'LOW_LATENCY_LAYER=1';
+  ENV_LOW_LATENCY_REFLEX       = 'LOW_LATENCY_LAYER_REFLEX=1';
+  ENV_LOW_LATENCY_SPOOF_NVIDIA = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';
+  ENV_LOW_LATENCY_HIDE_AMD     = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"';
+
 // ============================================================================
 // FGMOD SCRIPT ANCHORS AND MARKERS
 // ============================================================================
@@ -74,6 +80,10 @@ const
   FGMOD_PREFIX_EXPORT_LARGE    = '  export PROTON_FORCE_LARGE_ADDRESS_AWARE=1';
   FGMOD_PREFIX_EXPORT_WOW64    = '  export PROTON_USE_WOW64=1';
   FGMOD_PREFIX_EXPORT_PRIORITY = '  export PROTON_PRIORITY_HIGH=1';
+  FGMOD_PREFIX_EXPORT_LOW_LATENCY          = '  export LOW_LATENCY_LAYER=1';
+  FGMOD_PREFIX_EXPORT_LOW_LATENCY_REFLEX   = '  export LOW_LATENCY_LAYER_REFLEX=1';
+  FGMOD_PREFIX_EXPORT_LOW_LATENCY_SPOOF    = '  export LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';
+  FGMOD_PREFIX_EXPORT_HIDE_AMD             = '  export DXVK_CONFIG="dxgi.hideAmdGpu = True"';
   FGMOD_PREFIX_STEAMDECK       = '  export SteamDeck=';
   FGMOD_PREFIX_CUSTOMENV       = '  export ';
 

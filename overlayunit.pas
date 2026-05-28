@@ -640,12 +640,16 @@ type
     FTweaksScrollPos:  Integer;
     FTweaksHoverIdx:   Integer;
     FTweaksFABBtn:     TSpeedButton;
-    FTweaksCatExpanded: array[0..2] of Boolean; // General, Graphics, Performance
+    FTweaksCatExpanded: array[0..3] of Boolean; // General, Graphics, Performance, Latency reduction
     FAntilagCheckBox:  TCheckBox;  // ENABLE_LAYER_MESA_ANTI_LAG=1
     FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
     FDLSSUpgradeCheckBox: TCheckBox;   // PROTON_DLSS_UPGRADE=1
     FXeSSUpgradeCheckBox: TCheckBox;   // PROTON_XESS_UPGRADE=1
     FReEngineRTCheckBox: TCheckBox;    // RE Engine RT workaround
+    FLowLatencyCheckBox: TCheckBox;
+    FLowLatencyReflexCheckBox: TCheckBox;
+    FLowLatencySpoofNvidiaCheckBox: TCheckBox;
+    FLowLatencyHideAmdGpuCheckBox: TCheckBox;
 
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -5895,7 +5899,7 @@ type
   end;
 
 const
-  TWEAK_ROW_COUNT = 23;
+  TWEAK_ROW_COUNT = 27;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
     (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
@@ -5918,8 +5922,12 @@ const
     (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
     (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: 'Enable AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable=false';             Description: 'Enable RE Engine Ray Tracing workaround')
+    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable=false';             Description: 'Enable RE Engine Ray Tracing workaround'),
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER=1'; Description: '[low_latency_layer] Expose to enable the layer'),
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'),
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU (breaks FSR4 upgrade path)'),
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2')
   );
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
@@ -5946,8 +5954,12 @@ begin
     18: Result := Form.stagememCheckBox;
     19: Result := Form.disablentsyncCheckBox;
     20: Result := Form.heapdelayCheckBox;
-    21: Result := Form.FAntilagCheckBox;
-    22: Result := Form.FReEngineRTCheckBox;
+    21: Result := Form.FReEngineRTCheckBox;
+    22: Result := Form.FLowLatencyCheckBox;
+    23: Result := Form.FLowLatencyReflexCheckBox;
+    24: Result := Form.FLowLatencySpoofNvidiaCheckBox;
+    25: Result := Form.FLowLatencyHideAmdGpuCheckBox;
+    26: Result := Form.FAntilagCheckBox;
   else
     Result := nil;
   end;
@@ -6348,6 +6360,7 @@ begin
   FTweaksCatExpanded[0] := True;
   FTweaksCatExpanded[1] := True;
   FTweaksCatExpanded[2] := True;
+  FTweaksCatExpanded[3] := True;
   FTweaksScrollPos := 0;
   FTweaksHoverIdx := -1;
 
@@ -6430,6 +6443,30 @@ begin
   FReEngineRTCheckBox.Name    := 'reenginertCheckBox';
   FReEngineRTCheckBox.Caption := 'Enable RE Engine Ray Tracing workaround';
 
+  FLowLatencyCheckBox := TCheckBox.Create(Self);
+  FLowLatencyCheckBox.Parent  := Self;
+  FLowLatencyCheckBox.Visible := False;
+  FLowLatencyCheckBox.Name    := 'lowLatencyCheckBox';
+  FLowLatencyCheckBox.Caption := 'Expose to enable the layer';
+
+  FLowLatencyReflexCheckBox := TCheckBox.Create(Self);
+  FLowLatencyReflexCheckBox.Parent  := Self;
+  FLowLatencyReflexCheckBox.Visible := False;
+  FLowLatencyReflexCheckBox.Name    := 'lowLatencyReflexCheckBox';
+  FLowLatencyReflexCheckBox.Caption := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2';
+
+  FLowLatencySpoofNvidiaCheckBox := TCheckBox.Create(Self);
+  FLowLatencySpoofNvidiaCheckBox.Parent  := Self;
+  FLowLatencySpoofNvidiaCheckBox.Visible := False;
+  FLowLatencySpoofNvidiaCheckBox.Name    := 'lowLatencySpoofNvidiaCheckBox';
+  FLowLatencySpoofNvidiaCheckBox.Caption := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)';
+
+  FLowLatencyHideAmdGpuCheckBox := TCheckBox.Create(Self);
+  FLowLatencyHideAmdGpuCheckBox.Parent  := Self;
+  FLowLatencyHideAmdGpuCheckBox.Visible := False;
+  FLowLatencyHideAmdGpuCheckBox.Name    := 'lowLatencyHideAmdGpuCheckBox';
+  FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA';
+
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FTweaksGrid := TStringGrid.Create(Self);
   FTweaksGrid.Parent      := Self;
@@ -6484,15 +6521,14 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
 
   procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
   var
-    Bmp: TBitmap;
-    ThumbR: TRect;
     TrackColor: TColor;
+    ThumbLeft, ThumbTop, ThumbRight, ThumbBottom: Integer;
   const
-    TRACK_W = 176;
-    TRACK_H = 96;
-    THUMB_D = 72;
-    RADIUS  = 48;
-    Pad     = 8;
+    TRACK_W = 44;
+    TRACK_H = 24;
+    THUMB_D = 18;
+    RADIUS  = 12;
+    Pad     = 3;
   begin
     // Track colour
     if AOn then
@@ -6500,54 +6536,39 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
     else
       TrackColor := RGBToColor(70, 70, 70);   // grey
 
-    Bmp := TBitmap.Create;
-    try
-      Bmp.SetSize(TRACK_W, TRACK_H);
+    ACanvas.Brush.Color := TrackColor;
+    ACanvas.Pen.Color   := TrackColor;
+    ACanvas.Pen.Width   := 1;
 
-      // Fill background with canvas current brush color (item background)
-      Bmp.Canvas.Brush.Color := ACanvas.Brush.Color;
-      Bmp.Canvas.FillRect(0, 0, TRACK_W, TRACK_H);
+    // Central rectangle
+    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
 
-      // --- Draw pill-shaped track using central rect + two end caps ---
-      Bmp.Canvas.Brush.Color := TrackColor;
-      Bmp.Canvas.Pen.Color   := TrackColor;
+    // Left cap (semi-circle)
+    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
 
-      // Central rectangle (rounded ends are handled by the caps)
-      Bmp.Canvas.FillRect(RADIUS, 0, TRACK_W - RADIUS, TRACK_H);
+    // Right cap (semi-circle)
+    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
 
-      // Left cap (semi-circle)
-      Bmp.Canvas.Ellipse(0, 0, RADIUS * 2, TRACK_H);
+    // Thumb
+    if AOn then
+      ThumbLeft := AX + TRACK_W - THUMB_D - Pad
+    else
+      ThumbLeft := AX + Pad;
+    ThumbTop    := AY + (TRACK_H - THUMB_D) div 2;
+    ThumbRight  := ThumbLeft + THUMB_D;
+    ThumbBottom := ThumbTop + THUMB_D;
 
-      // Right cap (semi-circle)
-      Bmp.Canvas.Ellipse(TRACK_W - RADIUS * 2, 0, TRACK_W, TRACK_H);
+    // Subtle outer ring/shadow
+    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
+    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
+    ACanvas.Pen.Width   := 1;
+    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
 
-      // --- Thumb ---
-      if AOn then
-        ThumbR.Left := TRACK_W - THUMB_D - Pad
-      else
-        ThumbR.Left := Pad;
-      ThumbR.Top    := (TRACK_H - THUMB_D) div 2;
-      ThumbR.Right  := ThumbR.Left + THUMB_D;
-      ThumbR.Bottom := ThumbR.Top + THUMB_D;
-
-      // Subtle shadow
-      Bmp.Canvas.Brush.Color := RGBToColor(200, 200, 200);
-      Bmp.Canvas.Pen.Color   := RGBToColor(160, 160, 160);
-      Bmp.Canvas.Pen.Width   := 4;
-      Bmp.Canvas.Ellipse(ThumbR);
-
-      // White thumb body
-      InflateRect(ThumbR, -8, -8);
-      Bmp.Canvas.Brush.Color := clWhite;
-      Bmp.Canvas.Pen.Color   := clWhite;
-      Bmp.Canvas.Pen.Width   := 1;
-      Bmp.Canvas.Ellipse(ThumbR);
-
-      // Draw high-resolution bitmap to the target rectangle
-      ACanvas.StretchDraw(Rect(AX, AY, AX + 44, AY + 24), Bmp);
-    finally
-      Bmp.Free;
-    end;
+    // White thumb body
+    ACanvas.Brush.Color := clWhite;
+    ACanvas.Pen.Color   := clWhite;
+    ACanvas.Pen.Width   := 1;
+    ACanvas.Ellipse(ThumbLeft + 2, ThumbTop + 2, ThumbRight - 2, ThumbBottom - 2);
   end;
 
   procedure DrawHeader(ACanvas: TCanvas; const ARect: TRect; const ACat: string; const AIcon: string; AExpanded: Boolean; AHover: Boolean);
@@ -6595,13 +6616,21 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
   var
     ToggleX, ToggleY, DelX: Integer;
     VarRect, DescRect: TRect;
+    Prefix, PrefixMesa, RestDesc: string;
+    OldColor: TColor;
+    PrefixW: Integer;
   const
     PAD = 16;
     DEL_W = 24;
   begin
     // Background
     if AChecked then
-      ACanvas.Brush.Color := RGBToColor(30, 50, 80)   // blue tint
+    begin
+      if AHover then
+        ACanvas.Brush.Color := RGBToColor(32, 44, 65)   // slightly lighter active slate-blue
+      else
+        ACanvas.Brush.Color := RGBToColor(25, 33, 48);  // subtle active slate-blue
+    end
     else if AHover then
       ACanvas.Brush.Color := RGBToColor(50, 55, 70)   // grey-blue
     else
@@ -6643,7 +6672,33 @@ procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
       ACanvas.Font.Color := RGBToColor(160, 160, 160)
     else
       ACanvas.Font.Color := clWhite;
-    ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, ADesc);
+
+    Prefix := '[low_latency_layer]';
+    PrefixMesa := '[MESA]';
+    if (Pos(Prefix, ADesc) = 1) then
+    begin
+      OldColor := ACanvas.Font.Color;
+      ACanvas.Font.Color := RGBToColor(240, 180, 50); // golden yellow/orange
+      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, Prefix);
+      PrefixW := ACanvas.TextWidth(Prefix);
+      ACanvas.Font.Color := OldColor;
+      RestDesc := Copy(ADesc, Length(Prefix) + 1, MaxInt);
+      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
+    end
+    else if (Pos(PrefixMesa, ADesc) = 1) then
+    begin
+      OldColor := ACanvas.Font.Color;
+      ACanvas.Font.Color := RGBToColor(48, 190, 240); // Cyan
+      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, PrefixMesa);
+      PrefixW := ACanvas.TextWidth(PrefixMesa);
+      ACanvas.Font.Color := OldColor;
+      RestDesc := Copy(ADesc, Length(PrefixMesa) + 1, MaxInt);
+      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
+    end
+    else
+    begin
+      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, ADesc);
+    end;
 
     // Variable name (below description, monospace, dimmed)
     VarRect := ARect;
@@ -6663,8 +6718,8 @@ var
   PB: TPaintBox;
   Y, ItemH, HeadH: Integer;
   i, CatIdx: Integer;
-  CatNames: array[0..2] of string;
-  CatExpanded: array[0..2] of Boolean;
+  CatNames: array[0..3] of string;
+  CatExpanded: array[0..3] of Boolean;
   HoverIdx, RowIdx: Integer;
   R: TRect;
   Chk: TCheckBox;
@@ -6678,13 +6733,14 @@ begin
   CatNames[0] := 'General';
   CatNames[1] := 'Graphics';
   CatNames[2] := 'Performance';
+  CatNames[3] := 'Latency reduction';
   CatExpanded := FTweaksCatExpanded;
 
   Y := -FTweaksScrollPos;
   RowIdx := 0;
   HoverIdx := FTweaksHoverIdx;
 
-  for CatIdx := 0 to 2 do
+  for CatIdx := 0 to 3 do
   begin
     // Category header with icon
     R := Rect(0, Y, PB.Width, Y + HeadH);
@@ -6692,6 +6748,7 @@ begin
       0: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚙', CatExpanded[CatIdx], HoverIdx = RowIdx);
       1: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '🎮', CatExpanded[CatIdx], HoverIdx = RowIdx);
       2: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚡', CatExpanded[CatIdx], HoverIdx = RowIdx);
+      3: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⏱', CatExpanded[CatIdx], HoverIdx = RowIdx);
     end;
     Inc(Y, HeadH);
     Inc(RowIdx);
@@ -6748,22 +6805,25 @@ var
   YPos: Integer;
   CatName: string;
   InHeader: Boolean;
+  IsLatencyTweak: Boolean;
 begin
   PB := Sender as TPaintBox;
   OldHover := FTweaksHoverIdx;
   FTweaksHoverIdx := -1;
+  IsLatencyTweak := False;
 
   ItemH := TweaksMD3ItemHeight;
   HeadH := TweaksMD3HeaderHeight;
   YPos := -FTweaksScrollPos;
   RowIdx := 0;
 
-  for CatIdx := 0 to 2 do
+  for CatIdx := 0 to 3 do
   begin
     case CatIdx of
       0: CatName := 'General';
       1: CatName := 'Graphics';
       2: CatName := 'Performance';
+      3: CatName := 'Latency reduction';
     end;
 
     // Header
@@ -6783,6 +6843,8 @@ begin
         if (Y >= YPos) and (Y < YPos + ItemH) then
         begin
           FTweaksHoverIdx := RowIdx;
+          if CatName = 'Latency reduction' then
+            IsLatencyTweak := True;
           Break;
         end;
         Inc(YPos, ItemH);
@@ -6813,6 +6875,24 @@ begin
       end;
   end;
 
+  if IsLatencyTweak then
+  begin
+    if PB.Hint <> 'Needs Korthos low latency layer installed' then
+    begin
+      PB.Hint := 'Needs Korthos low latency layer installed';
+      PB.ShowHint := True;
+    end;
+  end
+  else
+  begin
+    if PB.Hint <> '' then
+    begin
+      PB.Hint := '';
+      PB.ShowHint := False;
+      Application.CancelHint;
+    end;
+  end;
+
   if OldHover <> FTweaksHoverIdx then
     PB.Invalidate;
 end;
@@ -6833,12 +6913,13 @@ begin
   YPos := -FTweaksScrollPos;
   RowIdx := 0;
 
-  for CatIdx := 0 to 2 do
+  for CatIdx := 0 to 3 do
   begin
     case CatIdx of
       0: CatName := 'General';
       1: CatName := 'Graphics';
       2: CatName := 'Performance';
+      3: CatName := 'Latency reduction';
     end;
 
     // Header click = toggle expand
@@ -6865,8 +6946,27 @@ begin
             Chk := GetTweakRowCheckBox(Self, i);
             if Assigned(Chk) then
             begin
-              Chk.Checked := not Chk.Checked;
-              PB.Invalidate;
+              if (Chk = FAntilagCheckBox) and (not Chk.Checked) and
+                 (FLowLatencyCheckBox.Checked or FLowLatencyReflexCheckBox.Checked or
+                  FLowLatencySpoofNvidiaCheckBox.Checked or FLowLatencyHideAmdGpuCheckBox.Checked) then
+              begin
+                ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
+              end
+              else if ((Chk = FLowLatencyCheckBox) or (Chk = FLowLatencyReflexCheckBox) or
+                       (Chk = FLowLatencySpoofNvidiaCheckBox) or (Chk = FLowLatencyHideAmdGpuCheckBox)) and
+                      (not Chk.Checked) and FAntilagCheckBox.Checked then
+              begin
+                ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
+              end
+              else if (Chk = FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FLowLatencyHideAmdGpuCheckBox.Checked then
+                ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+              else if (Chk = FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FLowLatencySpoofNvidiaCheckBox.Checked then
+                ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+              else
+              begin
+                Chk.Checked := not Chk.Checked;
+                PB.Invalidate;
+              end;
             end;
           end;
           Exit;
@@ -7358,6 +7458,10 @@ begin
        FXeSSUpgradeCheckBox.Checked or
        FReEngineRTCheckBox.Checked or
        nofastclearsCheckBox.Checked or
+       FLowLatencyCheckBox.Checked or
+       FLowLatencyReflexCheckBox.Checked or
+       FLowLatencySpoofNvidiaCheckBox.Checked or
+       FLowLatencyHideAmdGpuCheckBox.Checked or
        (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
       TweakFound := True;
 
@@ -7628,6 +7732,10 @@ begin
     FDLSSUpgradeCheckBox.Checked := False;
     FXeSSUpgradeCheckBox.Checked := False;
     FReEngineRTCheckBox.Checked := False;
+    FLowLatencyCheckBox.Checked := False;
+    FLowLatencyReflexCheckBox.Checked := False;
+    FLowLatencySpoofNvidiaCheckBox.Checked := False;
+    FLowLatencyHideAmdGpuCheckBox.Checked := False;
 
     // Reset custom env list
     customenvEdit.Text := '';
@@ -7800,6 +7908,28 @@ begin
       if Pos('export RADV_DEBUG=nofastclears', FileLines[i]) > 0 then
       begin
         nofastclearsCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+
+      // Latency reduction tweaks
+      if Pos('export LOW_LATENCY_LAYER=1', FileLines[i]) > 0 then
+      begin
+        FLowLatencyCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+      if Pos('export LOW_LATENCY_LAYER_REFLEX=1', FileLines[i]) > 0 then
+      begin
+        FLowLatencyReflexCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+      if Pos('export LOW_LATENCY_LAYER_SPOOF_NVIDIA=1', FileLines[i]) > 0 then
+      begin
+        FLowLatencySpoofNvidiaCheckBox.Checked := True;
+        TweakFound := True;
+      end;
+      if Pos('export DXVK_CONFIG="dxgi.hideAmdGpu = True"', FileLines[i]) > 0 then
+      begin
+        FLowLatencyHideAmdGpuCheckBox.Checked := True;
         TweakFound := True;
       end;
 
@@ -9217,6 +9347,16 @@ begin
   if FAntilagCheckBox.Checked then
     LaunchCommand := LaunchCommand + ENV_ENABLE_MESA_ANTILAG + ' ';
 
+  // Latency reduction tweaks
+  if FLowLatencyCheckBox.Checked then
+    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY + ' ';
+  if FLowLatencyReflexCheckBox.Checked then
+    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY_REFLEX + ' ';
+  if FLowLatencySpoofNvidiaCheckBox.Checked then
+    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY_SPOOF_NVIDIA + ' ';
+  if FLowLatencyHideAmdGpuCheckBox.Checked then
+    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY_HIDE_AMD + ' ';
+
   // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
   if GetGeneralCheckBox(1).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
@@ -9277,7 +9417,11 @@ begin
              (Pos(FGMOD_PREFIX_EXPORT_SHMEM, FGModLines[LineIndex]) > 0) or
              (Pos(FGMOD_PREFIX_EXPORT_NTSYNC, FGModLines[LineIndex]) > 0) or
              (Pos(FGMOD_PREFIX_EXPORT_HEAP, FGModLines[LineIndex]) > 0) or
-              (Pos(FGMOD_PREFIX_EXPORT_ANTILAG, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_ANTILAG, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_LOW_LATENCY, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_LOW_LATENCY_REFLEX, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_LOW_LATENCY_SPOOF, FGModLines[LineIndex]) > 0) or
+             (Pos(FGMOD_PREFIX_EXPORT_HIDE_AMD, FGModLines[LineIndex]) > 0) or
               // RE Engine RT workaround marker
               (Pos(FGMOD_MARKER_WINE_DETECTION, FGModLines[LineIndex]) > 0) or
               // Custom environment variable marker
@@ -9358,6 +9502,16 @@ begin
             // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
             if FAntilagCheckBox.Checked then
               FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ANTILAG);
+
+            // Latency reduction tweaks (insert in reverse order)
+            if FLowLatencyHideAmdGpuCheckBox.Checked then
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HIDE_AMD);
+            if FLowLatencySpoofNvidiaCheckBox.Checked then
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOW_LATENCY_SPOOF);
+            if FLowLatencyReflexCheckBox.Checked then
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOW_LATENCY_REFLEX);
+            if FLowLatencyCheckBox.Checked then
+              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOW_LATENCY);
 
             // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
             if GetPerformanceCheckBox(5).Checked then
@@ -9460,6 +9614,10 @@ begin
        GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
        GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
         FAntilagCheckBox.Checked or
+        FLowLatencyCheckBox.Checked or
+        FLowLatencyReflexCheckBox.Checked or
+        FLowLatencySpoofNvidiaCheckBox.Checked or
+        FLowLatencyHideAmdGpuCheckBox.Checked or
         FFSR4UpgradeCheckBox.Checked or
         FDLSSUpgradeCheckBox.Checked or
         FXeSSUpgradeCheckBox.Checked or
@@ -11499,7 +11657,7 @@ const
     (Icon: '󱁥'; Caption: 'MangoHud'),
     (Icon: '󰏘'; Caption: 'Post processing'),
     (Icon: '󰋮'; Caption: 'OptiScaler'),
-    (Icon: '󰒓'; Caption: 'Proton Tweaks')
+    (Icon: '󰒓'; Caption: 'EnvVars')
   );
   TOP_START = 108;
 var
