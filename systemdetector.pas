@@ -149,6 +149,13 @@ function IsLibraryAvailable(const LibName: string): Boolean;
 /// <returns>True if at least one Nerd Font is found</returns>
 function IsNerdFontInstalled: Boolean;
 
+/// <summary>
+/// Gets GOverlay installation type (Flatpak, AppImage, or Native)
+/// </summary>
+/// <returns>String indicating installation type</returns>
+function GetGOverlayInstallationType: string;
+
+
 implementation
 
 
@@ -694,6 +701,16 @@ begin
   // fc-list returns 0 even if grep finds nothing, so we use RunCommand with grep -qi
   // grep -qi will exit with 0 if it finds a match, so RunCommand returns True
   Result := RunCommand('sh', ['-c', 'fc-list | grep -qi "Nerd Font\|Symbols Nerd Font\|NerdFont"'], Output);
+end;
+
+function GetGOverlayInstallationType: string;
+begin
+  if IsRunningInFlatpak then
+    Result := 'Flatpak'
+  else if GetEnvironmentVariable('APPIMAGE') <> '' then
+    Result := 'Appimage'
+  else
+    Result := 'Native package';
 end;
 
 end.

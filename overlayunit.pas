@@ -534,6 +534,8 @@ type
     FOptiscalerUpdate: TOptiscalerTab;
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
+    FReshadeDownloadedOnFirstShow: Boolean;
+    FAutoDownloadingReshade: Boolean;
     FStatusTimer: TTimer;
     FGamesScrollBox: TScrollBox;
     FGamesPanel: TPanel;
@@ -4679,12 +4681,29 @@ begin
 end;
 
 procedure Tgoverlayform.vkbasaltTabSheetShow(Sender: TObject);
+var
+  RepoDir: string;
 begin
   // Reload vkBasalt config whenever the tab becomes visible so that
   // changes saved from another context (or another tab switch) are reflected
   // in the UI. This fixes the issue where switching away and back to vkBasalt
   // would show stale/reset values even though the file was saved correctly.
   LoadVkBasaltConfig;
+
+  if not FReshadeDownloadedOnFirstShow then
+  begin
+    FReshadeDownloadedOnFirstShow := True;
+    RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
+    if not DirectoryExists(RepoDir) then
+    begin
+      FAutoDownloadingReshade := True;
+      try
+        reshaderefreshBitBtnClick(nil);
+      finally
+        FAutoDownloadingReshade := False;
+      end;
+    end;
+  end;
 end;
 
 procedure Tgoverlayform.vkSumiTabSheetShow(Sender: TObject);
@@ -5043,6 +5062,8 @@ var
    SavedDriver: string;
 
 begin
+  FReshadeDownloadedOnFirstShow := False;
+  FAutoDownloadingReshade := False;
 
   //Program Version
   GVERSION := '1.8.2';
@@ -8187,7 +8208,9 @@ begin
 
   if Assigned(FReshadePhaseLabel) then
   begin
-    if APhase <> '' then
+    if FAutoDownloadingReshade then
+      FReshadePhaseLabel.Caption := Format('Downloading reshade shaders: %d%%', [APercent])
+    else if APhase <> '' then
       FReshadePhaseLabel.Caption := Format('%s: %d%%', [APhase, APercent])
     else
       FReshadePhaseLabel.Caption := Format('%d%%', [APercent]);
@@ -8206,6 +8229,11 @@ var
   Phase: string;
   GitHelper: TGit2Helper;
   Success: Boolean;
+  OrigProgressBarParent, OrigLabelParent: TWinControl;
+  OrigPBLeft, OrigPBTop, OrigPBWidth, OrigPBHeight: Integer;
+  OrigPBAnchors: TAnchors;
+  OrigLblLeft, OrigLblTop, OrigLblWidth, OrigLblHeight: Integer;
+  OrigLblAnchors: TAnchors;
 
 
 
@@ -8243,7 +8271,9 @@ var
     if updateProgressBar.Min <> 0 then updateProgressBar.Min := 0;
     if updateProgressBar.Max <> 100 then updateProgressBar.Max := 100;
     updateProgressBar.Position := Pct;
-    if Phase <> '' then
+    if FAutoDownloadingReshade then
+      pbarLabel.Caption := Format('Downloading reshade shaders: %d%%', [Pct])
+    else if Phase <> '' then
       pbarLabel.Caption := Format('%s: %d%%', [Phase, Pct])
     else
       pbarLabel.Caption := Format('%d%%', [Pct]);
@@ -8329,110 +8359,166 @@ begin
 
   RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
 
-  // Show progress bar
-  updateProgressBar.Visible := True;
-  updateProgressBar.Min := 0;
-  updateProgressBar.Max := 100;
-  updateProgressBar.Position := 0;
-  pbarLabel.Caption := 'Starting...';
-  Phase := '';
-  Chunk := '';
+  // Backup original parent and bounds
+  OrigProgressBarParent := updateProgressBar.Parent;
+  OrigLabelParent := pbarLabel.Parent;
+  OrigPBLeft := updateProgressBar.Left;
+  OrigPBTop := updateProgressBar.Top;
+  OrigPBWidth := updateProgressBar.Width;
+  OrigPBHeight := updateProgressBar.Height;
+  OrigPBAnchors := updateProgressBar.Anchors;
+  
+  OrigLblLeft := pbarLabel.Left;
+  OrigLblTop := pbarLabel.Top;
+  OrigLblWidth := pbarLabel.Width;
+  OrigLblHeight := pbarLabel.Height;
+  OrigLblAnchors := pbarLabel.Anchors;
 
-  // Setup progress bar and label references for callback
-  FReshadeProgressBar := updateProgressBar;
-  FReshadePhaseLabel := pbarLabel;
+  try
+    if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+    begin
+      if Assigned(FVkToggleCaptureBtn) then FVkToggleCaptureBtn.Visible := False;
+      if Assigned(FVkReshadeSyncBtn) then FVkReshadeSyncBtn.Visible := False;
 
-  // Try libgit2 first (Flatpak-compatible), fallback to git command
-  Success := False;
-  if TGit2Helper.IsLibGit2Available then
-  begin
-    // Use libgit2 for git operations (no external dependencies)
-    try
-      GitHelper := TGit2Helper.Create;
+      updateProgressBar.Parent := FVkToggleCard;
+      updateProgressBar.Anchors := [akLeft, akTop, akRight];
+      updateProgressBar.SetBounds(12, 40, FVkToggleCard.Width - 24, 20);
+
+      pbarLabel.Parent := FVkToggleCard;
+      pbarLabel.Anchors := [akLeft, akTop, akRight];
+      pbarLabel.SetBounds(12, 12, FVkToggleCard.Width - 24, 20);
+      pbarLabel.Font.Color := clWhite;
+      pbarLabel.Visible := True;
+    end;
+
+    // Show progress bar
+    updateProgressBar.Visible := True;
+    updateProgressBar.Min := 0;
+    updateProgressBar.Max := 100;
+    updateProgressBar.Position := 0;
+    
+    if FAutoDownloadingReshade then
+      pbarLabel.Caption := 'Downloading reshade shaders...'
+    else
+      pbarLabel.Caption := 'Starting...';
+      
+    Phase := '';
+    Chunk := '';
+
+    // Setup progress bar and label references for callback
+    FReshadeProgressBar := updateProgressBar;
+    FReshadePhaseLabel := pbarLabel;
+
+    // Try libgit2 first (Flatpak-compatible), fallback to git command
+    Success := False;
+    if TGit2Helper.IsLibGit2Available then
+    begin
+      // Use libgit2 for git operations (no external dependencies)
       try
-        // Setup progress callback
-        GitHelper.OnProgress := @ReshadeGitProgress;
+        GitHelper := TGit2Helper.Create;
+        try
+          // Setup progress callback
+          GitHelper.OnProgress := @ReshadeGitProgress;
 
-        // Clone or pull repository
+          // Clone or pull repository
+          if DirectoryExists(RepoDir) then
+          begin
+            pbarLabel.Caption := 'Updating repository...';
+            Success := GitHelper.Pull(RepoDir);
+          end
+          else
+          begin
+            pbarLabel.Caption := 'Cloning repository...';
+            Success := GitHelper.Clone(URL_RESHADE_SHADERS_REPO, RepoDir);
+          end;
+
+          if Success then
+          begin
+            ApplyPercent(100);
+            pbarLabel.Caption := 'Completed';
+            SendNotification('Goverlay', 'Reshade shaders are ready', GetIconFile);
+          end;
+
+        finally
+          GitHelper.Free;
+        end;
+      except
+        on E: Exception do
+        begin
+          // libgit2 failed, will fallback to external git
+          Success := False;
+        end;
+      end;
+    end;
+
+    // Fallback to external git command if libgit2 failed or unavailable
+    if not Success then
+    begin
+      // Fallback to external git command
+      try
         if DirectoryExists(RepoDir) then
-        begin
-          pbarLabel.Caption := 'Updating repository...';
-          Success := GitHelper.Pull(RepoDir);
-        end
+          StartGit(['-C', 'reshade-shaders', 'pull', '--progress'], VKBASALTFOLDER)
         else
+          StartGit(['clone', '--progress', URL_RESHADE_SHADERS_REPO], VKBASALTFOLDER);
+        while P.Running do
         begin
-          pbarLabel.Caption := 'Cloning repository...';
-          Success := GitHelper.Clone(URL_RESHADE_SHADERS_REPO, RepoDir);
+          PumpOutput;
+          Application.ProcessMessages; // keep UI alive and repaint the bar
         end;
 
-        if Success then
+        // drain remaining output after exit
+        PumpOutput;
+
+        if P.ExitStatus = 0 then
         begin
           ApplyPercent(100);
           pbarLabel.Caption := 'Completed';
           SendNotification('Goverlay', 'Reshade shaders are ready', GetIconFile);
-        end;
-
+        end
+        else
+          ShowMessage('Error while synchronizing reshade repo. Code: ' + IntToStr(P.ExitStatus));
       finally
-        GitHelper.Free;
-      end;
-    except
-      on E: Exception do
-      begin
-        // libgit2 failed, will fallback to external git
-        Success := False;
+        if Assigned(P) then P.Free;
       end;
     end;
-  end;
 
-  // Fallback to external git command if libgit2 failed or unavailable
-  if not Success then
-  begin
-    // Fallback to external git command
-    try
-      if DirectoryExists(RepoDir) then
-        StartGit(['-C', 'reshade-shaders', 'pull', '--progress'], VKBASALTFOLDER)
-      else
-        //StartGit(['clone', '--progress', URL_RESHADE_SHADERS_CROSIRE], VKBASALTFOLDER);
-        StartGit(['clone', '--progress', URL_RESHADE_SHADERS_REPO], VKBASALTFOLDER);
-      while P.Running do
-      begin
-        PumpOutput;
-        Application.ProcessMessages; // keep UI alive and repaint the bar
-      end;
+    // List ALL repository files:
+    ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
-      // drain remaining output after exit
-      PumpOutput;
+    //Enable elements
+    aveffectsListbox.Enabled:=true;
+    acteffectsListbox.Enabled:=true;
+    addBitbtn.Enabled:=true;
+    subBitbtn.Enabled:=true;
 
-      if P.ExitStatus = 0 then
-      begin
-        ApplyPercent(100);
-        pbarLabel.Caption := 'Completed';
-        SendNotification('Goverlay', 'Reshade shaders are ready', GetIconFile);
-      end
-      else
-        ShowMessage('Error while synchronizing reshade repo. Code: ' + IntToStr(P.ExitStatus));
-    finally
-      if Assigned(P) then P.Free;
+    // Hide progress bar
+    updateProgressBar.Visible := False;
+
+  finally
+    // Restore parent and visibility
+    updateProgressBar.Parent := OrigProgressBarParent;
+    pbarLabel.Parent := OrigLabelParent;
+    
+    updateProgressBar.Anchors := OrigPBAnchors;
+    updateProgressBar.SetBounds(OrigPBLeft, OrigPBTop, OrigPBWidth, OrigPBHeight);
+    
+    pbarLabel.Anchors := OrigLblAnchors;
+    pbarLabel.SetBounds(OrigLblLeft, OrigLblTop, OrigLblWidth, OrigLblHeight);
+    pbarLabel.Visible := False;
+
+    // Enable update button
+    reshaderefreshBitbtn.Enabled := True;
+    if Assigned(FVkReshadeSyncBtn) then
+    begin
+      FVkReshadeSyncBtn.Enabled := True;
+      FVkReshadeSyncBtn.Visible := True;
     end;
+    if Assigned(FVkToggleCaptureBtn) then
+      FVkToggleCaptureBtn.Visible := True;
+      
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
   end;
-
-  // List ALL repository files:
-  ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
-  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
-
-  //Enable elements
-   aveffectsListbox.Enabled:=true;
-   acteffectsListbox.Enabled:=true;
-   addBitbtn.Enabled:=true;
-   subBitbtn.Enabled:=true;
-
-  // Hide progress bar
-  updateProgressBar.Visible := False;
-
-  //Enable update button
-  reshaderefreshBitbtn.Enabled := True;
-  if Assigned(FVkReshadeSyncBtn) then FVkReshadeSyncBtn.Enabled := True;
-  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 end;
 
 procedure Tgoverlayform.runpascubetItemClick(Sender: TObject);
@@ -18629,7 +18715,7 @@ begin
   Y    := CARD_M;
 
   // ── System (List) ────────────────────────────────────────────────────────
-  Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
+  Card := MkCard(Y, CARD_P * 2 + 24 + 5 * ROW_H + 8);
   MkTitle(Card, 'System', CARD_P);
 
   // Clear Configuration button (right side of System card)
@@ -18652,7 +18738,7 @@ begin
 
   MkSep(Card, CARD_P + 22);
 
-  for i := 0 to 3 do
+  for i := 0 to 4 do
   begin
     Row  := CARD_P + 30 + i * ROW_H;
     ColX := CARD_P;
@@ -18669,6 +18755,7 @@ begin
 
     Lbl := TLabel.Create(Self);
     Lbl.Parent     := Card;
+    IconFile := '';
     case i of
       0: 
       begin 
@@ -18693,6 +18780,12 @@ begin
         IconFile := 'data/icons/system/driver.png'; 
         Lbl.Caption := GetSysGPUDriver; 
         Ico.Hint := 'Driver'; 
+      end;
+      4: 
+      begin 
+        IconFile := 'data/icons/system/package.png'; 
+        Lbl.Caption := GetGOverlayInstallationType; 
+        Ico.Hint := 'Installation'; 
       end;
     end;
     WriteLn(StdErr, '[HomeIcon] system icon="', IconFile, '" full="', GetAppBaseDir + IconFile, '" exists=', FileExists(GetAppBaseDir + IconFile));
