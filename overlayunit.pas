@@ -3292,7 +3292,7 @@ begin
     if not OptiCfg.Load(OptiScalerIniPath) then
       Exit;
 
-    Value := OptiCfg.GetValue(OPTI_KEY_SHORTCUT, '');
+    Value := OptiCfg.GetValue(OPTI_KEY_SHORTCUT, '', OPTI_INI_SECTION_MENU);
     if SameText(Value, 'auto') or (Value = '') then
       shortcutkeyComboBox.Text := '0x2d'
     else
@@ -3300,7 +3300,7 @@ begin
     if Assigned(FOsShortcutCaptureBtn) then
       FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
 
-    Value := OptiCfg.GetValue(OPTI_KEY_SCALE, '');
+    Value := OptiCfg.GetValue(OPTI_KEY_SCALE, '', OPTI_INI_SECTION_MENU);
     if TryStrToFloat(Value, FloatValue, FS) then
     begin
       menuscaleTrackBar.Position := Round(FloatValue * 10);

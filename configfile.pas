@@ -49,7 +49,7 @@ type
     /// Get the value for a key. Returns Default if key not found.
     /// KeyPrefix should include the trailing '=' (e.g. 'ShortcutKey=').
     /// </summary>
-    function GetValue(const AKeyPrefix, ADefault: string): string;
+    function GetValue(const AKeyPrefix, ADefault: string; const ASection: string = ''): string;
 
     /// <summary>
     /// Set a key=value line. Creates or updates the line.
@@ -216,12 +216,16 @@ begin
   end;
 end;
 
-function TConfigFile.GetValue(const AKeyPrefix, ADefault: string): string;
+function TConfigFile.GetValue(const AKeyPrefix, ADefault: string; const ASection: string = ''): string;
 var
   idx: Integer;
   s: string;
 begin
-  idx := FindLineIndex(AKeyPrefix);
+  if ASection <> '' then
+    idx := FindLineIndexInSection(AKeyPrefix, ASection)
+  else
+    idx := FindLineIndex(AKeyPrefix);
+
   if idx < 0 then
   begin
     Result := ADefault;
