@@ -60,22 +60,28 @@
     </screenshots>
 
     <releases>
-        <release version="1.8.2" date="2026-05-24">
+        <release version="1.8.2" date="2026-05-29">
             <description>
                 <p>New Features</p>
                 <ul>
                     <li>vkSumi integration with automated configuration generation and environment management</li>
-                    <li>Add right-click context menu on Games tab to remove non-Steam folders</li>
-                    <li>Support for adding custom non-Steam game cards with cover art</li>
-                    <li>Bundle vkSumi and nerd fonts dependencies in GOverlay AppImage</li>
+                    <li>Renamed "Proton Tweaks" tab to "EnvVars" and added latency reduction tweaks</li>
+                    <li>Added support for custom non-Steam games with asynchronous cover art downloading and right-click removal</li>
+                    <li>Bundle vkSumi and Nerd Fonts dependencies in GOverlay AppImage</li>
                 </ul>
                 <p>Improvements</p>
                 <ul>
-                    <li>UI/UX modernization using custom card-based layouts for vkBasalt, OptiScaler, vkSumi, and MangoHud tabs</li>
-                    <li>Align GOverlay description and developer credits dynamically in the About window</li>
+                    <li>UI/UX modernization using theme-aware layouts for light themes and custom cards for vkBasalt, OptiScaler, vkSumi, and MangoHud</li>
                     <li>Standardized Flatpak host configuration path resolution for MangoHud and GOverlay</li>
                     <li>X11 right-modifier detection and layout reflow logic improvements</li>
-                    <li>Cleaned up Home tab libraries list to keep only main modules</li>
+                    <li>Added configuration version check and automated migration prompt on startup</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Corrected OptiScaler shortcut and scale values loading from the correct section</li>
+                    <li>Fixed Tweaks tab checkbox mappings and simplified loading logic</li>
+                    <li>Preserve existing global fgmod script on startup and fixed default environment variables state</li>
+                    <li>Prevented cover download thread deadlocks and fixed path quoting for non-Steam games</li>
                 </ul>
             </description>
         </release>
