@@ -82,6 +82,7 @@
                     <li>Fixed Tweaks tab checkbox mappings and simplified loading logic</li>
                     <li>Preserve existing global fgmod script on startup and fixed default environment variables state</li>
                     <li>Prevented cover download thread deadlocks and fixed path quoting for non-Steam games</li>
+                    <li>Renamed the vkSumi configuration environment variable to VKSUMI_CONFIG_FILE</li>
                 </ul>
             </description>
         </release>

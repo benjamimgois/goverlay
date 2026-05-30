@@ -10245,12 +10245,12 @@ begin
       ForceDirectories(ConfigDir);
     Lines.SaveToFile(ConfigFile);
 
-    // In game-specific mode: inject VKSUMI_CONFIG into the game fgmod
+    // In game-specific mode: inject VKSUMI_CONFIG_FILE into the game fgmod
     // so the launcher can locate the per-game config at runtime.
     if FActiveGameName <> '' then
       PatchGameFGModConfigPath(
         GetGameConfigDir(FActiveGameName) + 'fgmod',
-        'VKSUMI_CONFIG',
+        'VKSUMI_CONFIG_FILE',
         VKSUMICFGFILE);
 
     // Patch fgmod file (global or game-specific) to add/remove export ENABLE_VKSUMI=1
@@ -20418,7 +20418,7 @@ begin
     Result := GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 ';
 end;
 
-// Returns VKSUMI_CONFIG + ENABLE_VKSUMI=1 (always, independent of vkBasalt state).
+// Returns VKSUMI_CONFIG_FILE + ENABLE_VKSUMI=1 (always, independent of vkBasalt state).
 function Tgoverlayform.GetVkSumiLaunchEnv: string;
 begin
   Result := GetVkSumiConfigEnvPrefix + 'ENABLE_VKSUMI=1 ';
@@ -20435,7 +20435,7 @@ end;
 function Tgoverlayform.GetVkSumiConfigEnvPrefix: string;
 begin
   if FActiveGameName <> '' then
-    Result := 'VKSUMI_CONFIG="' + GetGameConfigDir(FActiveGameName) + 'vkSumi.conf" '
+    Result := 'VKSUMI_CONFIG_FILE="' + GetGameConfigDir(FActiveGameName) + 'vkSumi.conf" '
   else
     Result := '';
 end;
