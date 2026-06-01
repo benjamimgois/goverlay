@@ -535,34 +535,7 @@ type
     FReshadeDownloadedOnFirstShow: Boolean;
     FAutoDownloadingReshade: Boolean;
     FStatusTimer: TTimer;
-    FGamesScrollBox: TScrollBox;
-    FGamesPanel: TPanel;
-    FGamesLoaded: Boolean;
-    FCoverThread: TThread;
-  FClosing: Boolean;  // true when form is closing — threads check this
-    FHoveredCard:    TPanel;    // card currently under mouse
-    FHoverBrightness: Integer; // 0..100 (0=35% dim, 100=full bright)
-    FHoverDir:       Integer;  // +1 brightening, -1 dimming
-    FHoverTimer:     TTimer;   // drives hover brightness animation
-    FHoverBaseLeft:  Integer;  // original Left of hovered card before expansion
-    FHoverBaseTop:   Integer;  // original Top of hovered card before expansion
-    FInReflow:       Boolean;  // true while ReflowGamesGrid is running
-    FReflowCount:    Integer;  // debug: how many reflows in a row
-    FCardPanels:  TList;    // ordered list of game card TPanels
-    FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
-    FNonSteamCoverThread: TThread;  // background thread for non-Steam cover downloads
-    FActiveGameName:    string;   // non-empty when editing a game-specific config
-    FActiveGameIsNonSteam: Boolean; // true when editing a non-steam game config
-    FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
-    FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
-    FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
-    FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
-    FRemoveFoldersMenu: TPopupMenu;  // right-click context menu for Add Non-Steam Folder card
-    FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
-    FRightClickedCard: TPanel;      // card that triggered the context menu
-    FGameMenuImgList: TImageList;   // icons for the game card context menu
-    FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
-    FOptiIconGfx:  TPortableNetworkGraphic;  // cached badge icon for OptiScaler
+    FGamesHelper:     TObject;  // cached badge icon for OptiScaler
 
     // Nav rail
     FNavItems:       array of TPanel;    // item panels
@@ -629,27 +602,7 @@ type
     FMtCpuCard:      TPanel;
 
     // Custom env groupbox (Tweaks tab)
-    FCustomSec:       TPanel;
-    FCustomListBox:   TListBox;
-    FTweaksVarListBox: TListBox;
-    FTweaksGrid:       TStringGrid;
-
-    // Tweaks tab MD3-style custom list (replaces TStringGrid)
-    FTweaksPaintBox:   TPaintBox;
-    FTweaksScrollBar:  TScrollBar;
-    FTweaksScrollPos:  Integer;
-    FTweaksHoverIdx:   Integer;
-    FTweaksFABBtn:     TSpeedButton;
-    FTweaksCatExpanded: array[0..3] of Boolean; // General, Graphics, Performance, Latency reduction
-    FAntilagCheckBox:  TCheckBox;  // ENABLE_LAYER_MESA_ANTI_LAG=1
-    FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
-    FDLSSUpgradeCheckBox: TCheckBox;   // PROTON_DLSS_UPGRADE=1
-    FXeSSUpgradeCheckBox: TCheckBox;   // PROTON_XESS_UPGRADE=1
-    FReEngineRTCheckBox: TCheckBox;    // RE Engine RT workaround
-    FLowLatencyCheckBox: TCheckBox;
-    FLowLatencyReflexCheckBox: TCheckBox;
-    FLowLatencySpoofNvidiaCheckBox: TCheckBox;
-    FLowLatencyHideAmdGpuCheckBox: TCheckBox;
+    FTweaksHelper:    TObject;
 
     // Software Status visual indicators (fresh controls; source labels stay hidden)
     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -744,8 +697,8 @@ type
     procedure BuildPresetsWrapper;
     procedure AddNavyBgToTab(ATab: TTabSheet);
     procedure StyleGroupBoxNavy(GB: TGroupBox);
-    procedure PresetsBgBoxPaint(Sender: TObject);
-    procedure PresetsWrapperPaint(Sender: TObject);
+    // Exposed: procedure PresetsBgBoxPaint(Sender: TObject);
+    // Exposed: procedure PresetsWrapperPaint(Sender: TObject);
     procedure PresetCardPaint(Sender: TObject);
     procedure PresetCardClick(Sender: TObject);
     procedure PresetCardMouseEnter(Sender: TObject);
@@ -762,7 +715,7 @@ type
     procedure BuildSmallToggleImages;
     procedure NavToolToggleClick(Sender: TObject);
     procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
-    procedure LoadGameToggleStates;
+    // Exposed: procedure LoadGameToggleStates;
     function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
     procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
     procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
@@ -779,12 +732,12 @@ type
     procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
     procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
-    procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
+    // Exposed: procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
     procedure NavItemClick(Sender: TObject);
     procedure NavItemMouseEnter(Sender: TObject);
     procedure NavItemMouseLeave(Sender: TObject);
     procedure NavItemPaint(Sender: TObject);
-    procedure SetNavActive(AIndex: Integer);
+    // Exposed: procedure SetNavActive(AIndex: Integer);
     procedure NavToggleClick(Sender: TObject);
     procedure NavAnimTick(Sender: TObject);
     procedure ApplyNavWidth(AWidth: Integer);
@@ -836,19 +789,19 @@ type
     procedure GameCardOpenPrefixClick(Sender: TObject);
     procedure GameCardUninstallClick(Sender: TObject);
     procedure AddNonSteamFolderClick(Sender: TObject);
-    procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
+    // Exposed: procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
     procedure RemoveFolderMenuItemClick(Sender: TObject);
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
-    procedure CoverThreadTerminated(Sender: TObject);
+    // Exposed: procedure CoverThreadTerminated(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
-    function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
-    function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
-    function  CleanGameNameForSearch(const AName: string): string;
+    // Exposed: function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
+    // Exposed: function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
+    // Exposed: function  CleanGameNameForSearch(const AName: string): string;
     function  InsertSpacesInUppercase(const AName: string): string;
-    function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
+    // Exposed: function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
-    function  FindFileInDir(const ADir, AFileName: string): string;
+    // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
     procedure RunFGModUninstallCommands(const ATargetDir: string);
     procedure CheckAndUpdateConfigVersion;
     procedure RefreshGameCardsAsync(Data: PtrInt);
@@ -858,25 +811,25 @@ type
     function  GetVkSumiConfigEnvPrefix: string;
     function  GetVkBasaltLaunchEnv: string;
     function  GetVkSumiLaunchEnv: string;
-    procedure UpdateGameContextLabel;
-    procedure PreviewBtnClick(Sender: TObject);
+    // Exposed: procedure UpdateGameContextLabel;
+    // Exposed: procedure PreviewBtnClick(Sender: TObject);
     procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
-    procedure HideGameThumb;
-    procedure ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
+    // Exposed: procedure HideGameThumb;
+    // Exposed: procedure ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
     procedure ApplyAllCardsDim;
-    procedure HoverTimerTick(Sender: TObject);
-    function ParseAcfValue(const AContent, AKey: string): string;
-    procedure GetSteamLibraries(Libraries: TStringList);
-    function GetAppBaseDir: string;
+    // Exposed: procedure HoverTimerTick(Sender: TObject);
+    // Exposed: function ParseAcfValue(const AContent, AKey: string): string;
+    // Exposed: procedure GetSteamLibraries(Libraries: TStringList);
+    // Exposed: function GetAppBaseDir: string;
 
     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
     function OsHexToKeyStr(const HexStr: string): string;
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
-    procedure UpdateGeSpeedButtonState;
-    procedure UpdateGlobalEnableMenuItemVisibility;
+    // Exposed: procedure UpdateGeSpeedButtonState;
+    // Exposed: procedure UpdateGlobalEnableMenuItemVisibility;
     procedure RemoveMangoHudFromFGMod;
     procedure LoadTweaksFromFGMod;
     procedure InitCustomEnvGroupBox;
@@ -964,13 +917,89 @@ type
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
   public
+    FCustomSec:       TPanel;
+    FCustomListBox:   TListBox;
+    FTweaksVarListBox: TListBox;
+    FTweaksGrid:       TStringGrid;
 
+    // Tweaks tab MD3-style custom list (replaces TStringGrid)
+    FTweaksPaintBox:   TPaintBox;
+    FTweaksScrollBar:  TScrollBar;
+    FTweaksScrollPos:  Integer;
+    FTweaksHoverIdx:   Integer;
+    FTweaksFABBtn:     TSpeedButton;
+    FTweaksCatExpanded: array[0..3] of Boolean; // General, Graphics, Performance, Latency reduction
+    FAntilagCheckBox:  TCheckBox;  // ENABLE_LAYER_MESA_ANTI_LAG=1
+    FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
+    FDLSSUpgradeCheckBox: TCheckBox;   // PROTON_DLSS_UPGRADE=1
+    FXeSSUpgradeCheckBox: TCheckBox;   // PROTON_XESS_UPGRADE=1
+    FReEngineRTCheckBox: TCheckBox;    // RE Engine RT workaround
+    FLowLatencyCheckBox: TCheckBox;
+    FLowLatencyReflexCheckBox: TCheckBox;
+    FLowLatencySpoofNvidiaCheckBox: TCheckBox;
+    FLowLatencyHideAmdGpuCheckBox: TCheckBox;
+
+    FGamesScrollBox: TScrollBox;
+    FGamesPanel: TPanel;
+    FGamesLoaded: Boolean;
+    FCoverThread: TThread;
+  FClosing: Boolean;  // true when form is closing — threads check this
+    FHoveredCard:    TPanel;    // card currently under mouse
+    FHoverBrightness: Integer; // 0..100 (0=35% dim, 100=full bright)
+    FHoverDir:       Integer;  // +1 brightening, -1 dimming
+    FHoverTimer:     TTimer;   // drives hover brightness animation
+    FHoverBaseLeft:  Integer;  // original Left of hovered card before expansion
+    FHoverBaseTop:   Integer;  // original Top of hovered card before expansion
+    FInReflow:       Boolean;  // true while ReflowGamesGrid is running
+    FReflowCount:    Integer;  // debug: how many reflows in a row
+    FCardPanels:  TList;    // ordered list of game card TPanels
+    FOrigCovers:  TList;    // parallel list of TLazIntfImage originals (owned)
+    FNonSteamCoverThread: TThread;  // background thread for non-Steam cover downloads
+    FActiveGameName:    string;   // non-empty when editing a game-specific config
+    FActiveGameIsNonSteam: Boolean; // true when editing a non-steam game config
+    FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
+    FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
+    FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
+    FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
+    FRemoveFoldersMenu: TPopupMenu;  // right-click context menu for Add Non-Steam Folder card
+    FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
+    FRightClickedCard: TPanel;      // card that triggered the context menu
+    FGameMenuImgList: TImageList;   // icons for the game card context menu
+    FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
+    FOptiIconGfx:  TPortableNetworkGraphic;
+  public
+    procedure PresetsBgBoxPaint(Sender: TObject);
+    procedure PresetsWrapperPaint(Sender: TObject);
+    procedure LoadGameToggleStates;
+    procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
+    procedure SetNavActive(AIndex: Integer);
+    procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
+    procedure CoverThreadTerminated(Sender: TObject);
+    function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
+    function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
+    function  CleanGameNameForSearch(const AName: string): string;
+    function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
+    function  FindFileInDir(const ADir, AFileName: string): string;
+    procedure UpdateGameContextLabel;
+    procedure PreviewBtnClick(Sender: TObject);
+    procedure HideGameThumb;
+    procedure ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
+    procedure HoverTimerTick(Sender: TObject);
+    function ParseAcfValue(const AContent, AKey: string): string;
+    procedure GetSteamLibraries(Libraries: TStringList);
+    function GetAppBaseDir: string;
+    procedure UpdateGeSpeedButtonState;
+    procedure UpdateGlobalEnableMenuItemVisibility;
 
   end;
 
 
 
 
+
+function GetMangoHudConfigDir(): String;
+function GetVkBasaltConfigDir(): String;
+function GetVkSumiConfigDir(): String;
 
 var
   goverlayform: Tgoverlayform;
@@ -1168,7 +1197,7 @@ var
 implementation
 
 uses
-  xlib, x;
+  xlib, x, tweaks_md3, games_tab;
 
 type
   TParamDef = record
@@ -1225,7 +1254,7 @@ const
   SEL_EXPAND  = 3;  // px expansion per side for hover scale-up (~1.03×)
 
 // Forward declaration — defined later in the file
-procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer); forward;
+
 
 // ============================================================================
 // Debug logger — writes timestamped lines to stderr
@@ -1245,295 +1274,17 @@ end;
 // ============================================================================
 // Background thread: downloads missing Steam cover images via Steam CDN
 // ============================================================================
-type
-  TCoverDownloadThread = class(TThread)
-  private
-    FAppIDs:   TStringList;
-    FImages:   TList;
-    FCacheDir: string;
-    FForm:     Tgoverlayform;
-    FCurrentImage: TImage;
-    FCurrentPath:  string;
-    procedure DoUpdateImage;
-  protected
-    procedure Execute; override;
-  public
-    constructor Create(AAppIDs: TStringList; AImages: TList;
-                       const ACacheDir: string; AForm: Tgoverlayform);
-    destructor Destroy; override;
-  end;
+
 
 // ============================================================================
 // Background thread: downloads non-Steam cover images (Steam Store + web search)
 // ============================================================================
-type
-  TNonSteamCoverItem = record
-    GameName:  string;
-    CachePath: string;
-    CardIndex: Integer;
-  end;
 
-  TNonSteamCoverThread = class(TThread)
-  private
-    FItems:     array of TNonSteamCoverItem;
-    FForm:      Tgoverlayform;
-    FCurrentCardIdx: Integer;
-    FCurrentPath:    string;
-    procedure DoUpdateImage;
-  protected
-    procedure Execute; override;
-  public
-    constructor Create(const AItems: array of TNonSteamCoverItem;
-                       AForm: Tgoverlayform);
-  end;
-
-constructor TCoverDownloadThread.Create(AAppIDs: TStringList; AImages: TList;
-  const ACacheDir: string; AForm: Tgoverlayform);
-begin
-  inherited Create(True);
-  FAppIDs   := AAppIDs;
-  FImages   := AImages;
-  FCacheDir := ACacheDir;
-  FForm     := AForm;
-  FreeOnTerminate := True;
-  OnTerminate := @FForm.CoverThreadTerminated;
-end;
-
-destructor TCoverDownloadThread.Destroy;
-begin
-  FAppIDs.Free;
-  FImages.Free;
-  inherited;
-end;
-
-procedure TCoverDownloadThread.DoUpdateImage;
-var
-  ScaledBmp: TBitmap;
-  CardPanel: TPanel;
-  CardIdx: Integer;
-begin
-  if not Assigned(FForm) or (FForm.FCoverThread <> Self) then Exit;
-  if not Assigned(FCurrentImage) or not FileExists(FCurrentPath) then Exit;
-  // Safety: verify the image's parent panel is still in the active card list
-  if not Assigned(FCurrentImage.Parent) or not (FCurrentImage.Parent is TPanel) then Exit;
-  if Assigned(FForm) and Assigned(FForm.FCardPanels) and
-     (FForm.FCardPanels.IndexOf(FCurrentImage.Parent) < 0) then Exit;
-  try
-    FCurrentImage.Picture.LoadFromFile(FCurrentPath);
-    if (FCurrentImage.Picture.Graphic = nil) or
-       (FCurrentImage.Picture.Graphic.Width = 0) then Exit;
-    ScaledBmp := TBitmap.Create;
-    try
-      ScaledBmp.SetSize(CARD_W, CARD_H);
-      ScaledBmp.Canvas.StretchDraw(
-        Rect(0, 0, CARD_W, CARD_H), FCurrentImage.Picture.Graphic);
-      ProcessCoverBitmap(ScaledBmp, GRAD_H);
-      FCurrentImage.Picture.Bitmap.Assign(ScaledBmp);
-      // Update FOrigCovers so hover brightness uses the processed image
-      if Assigned(FForm) and Assigned(FForm.FCardPanels) and
-         Assigned(FForm.FOrigCovers) and (FCurrentImage.Parent is TPanel) then
-      begin
-        CardPanel := TPanel(FCurrentImage.Parent);
-        CardIdx := FForm.FCardPanels.IndexOf(CardPanel);
-        if (CardIdx >= 0) and (CardIdx < FForm.FOrigCovers.Count) then
-        begin
-          if FForm.FOrigCovers[CardIdx] <> nil then
-            TLazIntfImage(FForm.FOrigCovers[CardIdx]).Free;
-          FForm.FOrigCovers[CardIdx] := ScaledBmp.CreateIntfImage;
-        end;
-      end;
-    finally
-      ScaledBmp.Free;
-    end;
-    // Dim cover to match the default un-hovered state
-    if Assigned(FForm) and (FCurrentImage.Parent is TPanel) then
-      FForm.ApplyCardBrightness(TPanel(FCurrentImage.Parent), 100);
-  except
-  end;
-end;
-
-procedure TCoverDownloadThread.Execute;
-var
-  i: Integer;
-  AppID, OutPath, Url: string;
-  Proc: TProcess;
-begin
-  ForceDirectories(FCacheDir);
-  for i := 0 to FAppIDs.Count - 1 do
-  begin
-    if Terminated then Break;
-
-    AppID   := FAppIDs[i];
-    OutPath := FCacheDir + AppID + '.jpg';
-
-    if FileExists(OutPath) then
-    begin
-      FCurrentImage := TImage(FImages[i]);
-      FCurrentPath  := OutPath;
-      Synchronize(@DoUpdateImage);
-      Continue;
-    end;
-
-    // Try portrait cover first, then header
-    Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/library_600x900.jpg';
-    Proc := TProcess.Create(nil);
-    try
-      Proc.Executable := 'curl';
-      Proc.Parameters.Add('-s');
-      Proc.Parameters.Add('-L');
-      Proc.Parameters.Add('--max-time');
-      Proc.Parameters.Add('15');
-      Proc.Parameters.Add('--fail');
-      Proc.Parameters.Add('-o');
-      Proc.Parameters.Add(OutPath);
-      Proc.Parameters.Add(Url);
-      Proc.Options := [poWaitOnExit, poNoConsole];
-      Proc.Execute;
-      if not FileExists(OutPath) or (Proc.ExitCode <> 0) then
-      begin
-        // Fallback to header image
-        DeleteFile(OutPath);
-        Proc.Parameters.Clear;
-        Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/header.jpg';
-        Proc.Parameters.Add('-s');
-        Proc.Parameters.Add('-L');
-        Proc.Parameters.Add('--max-time');
-        Proc.Parameters.Add('15');
-        Proc.Parameters.Add('--fail');
-        Proc.Parameters.Add('-o');
-        Proc.Parameters.Add(OutPath);
-        Proc.Parameters.Add(Url);
-        Proc.Execute;
-      end;
-    finally
-      Proc.Free;
-    end;
-
-    if FileExists(OutPath) and (FileSize(OutPath) > 0) then
-    begin
-      FCurrentImage := TImage(FImages[i]);
-      FCurrentPath  := OutPath;
-      Synchronize(@DoUpdateImage);
-    end;
-  end;
-end;
-
-// ============================================================================
-// TNonSteamCoverThread implementation
-// ============================================================================
-
-constructor TNonSteamCoverThread.Create(
-  const AItems: array of TNonSteamCoverItem; AForm: Tgoverlayform);
-var
-  i: Integer;
-begin
-  inherited Create(True);
-  SetLength(FItems, Length(AItems));
-  for i := 0 to High(AItems) do
-    FItems[i] := AItems[i];
-  FForm := AForm;
-  FreeOnTerminate := True;
-  OnTerminate := @FForm.CoverThreadTerminated;
-end;
-
-// ============================================================================
-// Cover check timer: polls for downloaded covers and updates UI from main thread
-// ============================================================================
 
 procedure Tgoverlayform.CoverThreadTerminated(Sender: TObject);
 begin
-  if Sender = FCoverThread then
-    FCoverThread := nil;
-  if Sender = FNonSteamCoverThread then
-    FNonSteamCoverThread := nil;
+  TGamesTabHelper(FGamesHelper).CoverThreadTerminated(Sender);
 end;
-
-procedure TNonSteamCoverThread.DoUpdateImage;
-var
-  ScaledBmp: TBitmap;
-  CardPanel: TPanel;
-  CardImage: TImage;
-  j: Integer;
-begin
-  if not Assigned(FForm) or (FForm.FNonSteamCoverThread <> Self) then Exit;
-  if not Assigned(FForm.FCardPanels) or not Assigned(FForm.FOrigCovers) then Exit;
-  if not FileExists(FCurrentPath) then Exit;
-  if (FCurrentCardIdx < 0) or (FCurrentCardIdx >= FForm.FCardPanels.Count) then Exit;
-
-  CardPanel := TPanel(FForm.FCardPanels[FCurrentCardIdx]);
-  CardImage := nil;
-  for j := 0 to CardPanel.ControlCount - 1 do
-    if CardPanel.Controls[j] is TImage then
-    begin
-      CardImage := TImage(CardPanel.Controls[j]);
-      Break;
-    end;
-  if not Assigned(CardImage) then Exit;
-
-  try
-    CardImage.Picture.LoadFromFile(FCurrentPath);
-    ScaledBmp := TBitmap.Create;
-    try
-      ScaledBmp.SetSize(CARD_W, CARD_H);
-      ScaledBmp.Canvas.StretchDraw(
-        Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-      ProcessCoverBitmap(ScaledBmp, GRAD_H);
-      CardImage.Picture.Bitmap.Assign(ScaledBmp);
-      if (FCurrentCardIdx >= 0) and (FCurrentCardIdx < FForm.FOrigCovers.Count) then
-      begin
-        if FForm.FOrigCovers[FCurrentCardIdx] <> nil then
-          TLazIntfImage(FForm.FOrigCovers[FCurrentCardIdx]).Free;
-        FForm.FOrigCovers[FCurrentCardIdx] := ScaledBmp.CreateIntfImage;
-      end;
-    finally
-      ScaledBmp.Free;
-    end;
-    FForm.ApplyCardBrightness(CardPanel, 100);
-  except
-  end;
-end;
-
-procedure TNonSteamCoverThread.Execute;
-var
-  i: Integer;
-  AppId: string;
-  GotCover: Boolean;
-begin
-  for i := 0 to High(FItems) do
-  begin
-    if Terminated then Break;
-
-    // Already cached?
-    if FileExists(FItems[i].CachePath) then
-    begin
-      FCurrentCardIdx := FItems[i].CardIndex;
-      FCurrentPath := FItems[i].CachePath;
-      Synchronize(@DoUpdateImage);
-      Continue;
-    end;
-
-    GotCover := False;
-
-    // 1st attempt: Steam Store API
-    if Assigned(FForm) and not FForm.FClosing then
-      if FForm.SearchSteamStoreGame(FItems[i].GameName, AppId) then
-        if FForm.DownloadSteamCover(AppId, FItems[i].CachePath) then
-          GotCover := True;
-
-    // 2nd attempt: Web image search
-    if not GotCover and Assigned(FForm) and not FForm.FClosing then
-      if FForm.SearchWebCover(FItems[i].GameName, FItems[i].CachePath) then
-        GotCover := True;
-
-    if GotCover or FileExists(FItems[i].CachePath) then
-    begin
-      FCurrentCardIdx := FItems[i].CardIndex;
-      FCurrentPath := FItems[i].CachePath;
-      Synchronize(@DoUpdateImage);
-    end;
-  end;
-end;
-
 procedure Tgoverlayform.protontricksManagerButtonClick(Sender: TObject);
 begin
   if not Assigned(protontricksform) then
@@ -4391,6 +4142,8 @@ begin
   FreeAndNil(FGlobalThumbPng);
   FreeAndNil(FMangoIconGfx);
   FreeAndNil(FOptiIconGfx);
+  FreeAndNil(FTweaksHelper);
+  FreeAndNil(FGamesHelper);
   ExecuteGUICommand('killall pascube');
   ExecuteGUICommand('killall vkcube');
 end;
@@ -4429,6 +4182,8 @@ var
    SavedDriver: string;
 
 begin
+  FGamesHelper := TGamesTabHelper.Create(Self);
+  FTweaksHelper := TTweaksMD3Helper.Create(Self);
   FReshadeDownloadedOnFirstShow := False;
   FAutoDownloadingReshade := False;
 
@@ -5270,82 +5025,6 @@ end; // form create
 // ---------------------------------------------------------------------------
 // Tweaks grid mapping
 // ---------------------------------------------------------------------------
-type
-  TTweakRow = record
-    CheckBox: TCheckBox;
-    Category: string;
-    VarName: string;
-    Description: string;
-  end;
-
-const
-  TWEAK_ROW_COUNT = 27;
-  TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
-    (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
-    (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates Ray Tracing on GPUs without native support'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: 'Uses OpenGL over Vulkan translation (ZINK)'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_DEBUG=nofastclears';          Description: 'Disables fast clear optimization (AMD)'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_PRIORITY_HIGH=1';           Description: 'Higher priority for games'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable=false';             Description: 'Enable RE Engine Ray Tracing workaround'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER=1'; Description: '[low_latency_layer] Expose to enable the layer'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU (breaks FSR4 upgrade path)'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2')
-  );
-
-function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
-begin
-  case Index of
-    0: Result := Form.simdeckCheckBox;
-    1: Result := Form.gamemodeCheckBox;
-    2: Result := Form.enhdrCheckBox;
-    3: Result := Form.enwaylandCheckBox;
-    4: Result := Form.actprotonlogsCheckBox;
-    5: Result := Form.usesdlCheckBox;
-    6: Result := Form.emurtCheckBox;
-    7: Result := Form.hidenvidiaCheckBox;
-    8: Result := Form.forcenvapiCheckBox;
-    9: Result := Form.wined3dCheckBox;
-    10: Result := Form.forcezinkCheckBox;
-    11: Result := Form.nofastclearsCheckBox;
-    12: Result := Form.FFSR4UpgradeCheckBox;
-    13: Result := Form.FDLSSUpgradeCheckBox;
-    14: Result := Form.FXeSSUpgradeCheckBox;
-    15: Result := Form.highpriCheckBox;
-    16: Result := Form.wow64CheckBox;
-    17: Result := Form.largeaddressCheckBox;
-    18: Result := Form.stagememCheckBox;
-    19: Result := Form.disablentsyncCheckBox;
-    20: Result := Form.heapdelayCheckBox;
-    21: Result := Form.FReEngineRTCheckBox;
-    22: Result := Form.FLowLatencyCheckBox;
-    23: Result := Form.FLowLatencyReflexCheckBox;
-    24: Result := Form.FLowLatencySpoofNvidiaCheckBox;
-    25: Result := Form.FLowLatencyHideAmdGpuCheckBox;
-    26: Result := Form.FAntilagCheckBox;
-  else
-    Result := nil;
-  end;
-end;
-
-// Helper function to access generalGroupBox checkboxes by index (replaces generalCheckGroup)
 function Tgoverlayform.GetGeneralCheckBox(Index: Integer): TCheckBox;
 begin
   case Index of
@@ -5731,166 +5410,13 @@ begin
 end;
 
 procedure Tgoverlayform.InitTweaksMD3;
-var
-  i: Integer;
-const
-  BG = $001A192E; // RGB(22, 25, 37) — dark blue-grey background
 begin
-  // Default all categories expanded
-  FTweaksCatExpanded[0] := True;
-  FTweaksCatExpanded[1] := True;
-  FTweaksCatExpanded[2] := True;
-  FTweaksCatExpanded[3] := True;
-  FTweaksScrollPos := 0;
-  FTweaksHoverIdx := -1;
-
-  // Hide old LFM visual elements from the Tweaks tab
-  tweaksImage.Visible := False;
-  tweaksText.Visible  := False;
-  tweaksText2.Visible := False;
-  tweaksLabel.Visible := False;
-  tweaksShape.Visible := False;
-
-  // PaintBox fills the tab but leaves room for the bottom bar (40px + padding)
-  FTweaksPaintBox := TPaintBox.Create(Self);
-  FTweaksPaintBox.Parent      := tweaksTabSheet;
-  FTweaksPaintBox.Align       := alNone;
-  FTweaksPaintBox.Anchors     := [akLeft, akTop, akRight, akBottom];
-  FTweaksPaintBox.SetBounds(0, 0, tweaksTabSheet.ClientWidth,
-                            tweaksTabSheet.ClientHeight - 50);
-  FTweaksPaintBox.Color       := BG;
-  FTweaksPaintBox.OnPaint     := @TweaksMD3Paint;
-  FTweaksPaintBox.OnMouseMove := @TweaksMD3MouseMove;
-  FTweaksPaintBox.OnMouseDown := @TweaksMD3MouseDown;
-  FTweaksPaintBox.OnMouseWheel:= @TweaksMD3MouseWheel;
-
-  // Vertical scrollbar (right edge)
-  FTweaksScrollBar := TScrollBar.Create(Self);
-  FTweaksScrollBar.Parent      := tweaksTabSheet;
-  FTweaksScrollBar.Kind        := sbVertical;
-  FTweaksScrollBar.Align       := alRight;
-  FTweaksScrollBar.Width       := 14;
-  FTweaksScrollBar.Visible     := False;
-  FTweaksScrollBar.OnChange    := @TweaksMD3ScrollChange;
-
-  // Floating Action Button — circular "+"
-  FTweaksFABBtn := TSpeedButton.Create(Self);
-  FTweaksFABBtn.Parent       := tweaksTabSheet;
-  FTweaksFABBtn.Width        := 48;
-  FTweaksFABBtn.Height       := 48;
-  FTweaksFABBtn.Left         := tweaksTabSheet.ClientWidth - 64;
-  FTweaksFABBtn.Top          := tweaksTabSheet.ClientHeight - 96; // above Save button
-  FTweaksFABBtn.Anchors      := [akRight, akBottom];
-  FTweaksFABBtn.Caption      := '+';
-  FTweaksFABBtn.Font.Size    := 24;
-  FTweaksFABBtn.Font.Style   := [fsBold];
-  FTweaksFABBtn.Font.Color   := clWhite;
-  FTweaksFABBtn.Flat         := True;
-  FTweaksFABBtn.ShowHint     := True;
-  FTweaksFABBtn.Hint         := 'Add custom environment variable';
-  FTweaksFABBtn.OnClick      := @TweaksMD3FABClick;
-  FTweaksFABBtn.OnPaint      := @TweaksMD3FABPaint;
-
-  // Hidden checkbox for AMD Anti-Lag 2 (not in LFM — created dynamically)
-  FAntilagCheckBox := TCheckBox.Create(Self);
-  FAntilagCheckBox.Parent      := Self;
-  FAntilagCheckBox.Visible     := False;
-  FAntilagCheckBox.Name        := 'antilagCheckBox';
-  FAntilagCheckBox.Caption     := 'Enable AMD Anti-Lag 2';
-
-  // Hidden checkboxes for upgrade tweaks (not in LFM — created dynamically)
-  FFSR4UpgradeCheckBox := TCheckBox.Create(Self);
-  FFSR4UpgradeCheckBox.Parent  := Self;
-  FFSR4UpgradeCheckBox.Visible := False;
-  FFSR4UpgradeCheckBox.Name    := 'fsr4upgradeCheckBox';
-  FFSR4UpgradeCheckBox.Caption := 'Automatically upgrade FSR to the latest version';
-
-  FDLSSUpgradeCheckBox := TCheckBox.Create(Self);
-  FDLSSUpgradeCheckBox.Parent  := Self;
-  FDLSSUpgradeCheckBox.Visible := False;
-  FDLSSUpgradeCheckBox.Name    := 'dlssupgradeCheckBox';
-  FDLSSUpgradeCheckBox.Caption := 'Automatically upgrade DLSS to the latest version';
-
-  FXeSSUpgradeCheckBox := TCheckBox.Create(Self);
-  FXeSSUpgradeCheckBox.Parent  := Self;
-  FXeSSUpgradeCheckBox.Visible := False;
-  FXeSSUpgradeCheckBox.Name    := 'xessupgradeCheckBox';
-  FXeSSUpgradeCheckBox.Caption := 'Automatically upgrade XeSS to the latest version';
-
-  FReEngineRTCheckBox := TCheckBox.Create(Self);
-  FReEngineRTCheckBox.Parent  := Self;
-  FReEngineRTCheckBox.Visible := False;
-  FReEngineRTCheckBox.Name    := 'reenginertCheckBox';
-  FReEngineRTCheckBox.Caption := 'Enable RE Engine Ray Tracing workaround';
-
-  FLowLatencyCheckBox := TCheckBox.Create(Self);
-  FLowLatencyCheckBox.Parent  := Self;
-  FLowLatencyCheckBox.Visible := False;
-  FLowLatencyCheckBox.Name    := 'lowLatencyCheckBox';
-  FLowLatencyCheckBox.Caption := 'Expose to enable the layer';
-
-  FLowLatencyReflexCheckBox := TCheckBox.Create(Self);
-  FLowLatencyReflexCheckBox.Parent  := Self;
-  FLowLatencyReflexCheckBox.Visible := False;
-  FLowLatencyReflexCheckBox.Name    := 'lowLatencyReflexCheckBox';
-  FLowLatencyReflexCheckBox.Caption := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2';
-
-  FLowLatencySpoofNvidiaCheckBox := TCheckBox.Create(Self);
-  FLowLatencySpoofNvidiaCheckBox.Parent  := Self;
-  FLowLatencySpoofNvidiaCheckBox.Visible := False;
-  FLowLatencySpoofNvidiaCheckBox.Name    := 'lowLatencySpoofNvidiaCheckBox';
-  FLowLatencySpoofNvidiaCheckBox.Caption := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)';
-
-  FLowLatencyHideAmdGpuCheckBox := TCheckBox.Create(Self);
-  FLowLatencyHideAmdGpuCheckBox.Parent  := Self;
-  FLowLatencyHideAmdGpuCheckBox.Visible := False;
-  FLowLatencyHideAmdGpuCheckBox.Name    := 'lowLatencyHideAmdGpuCheckBox';
-  FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA';
-
-  // Hidden grid used as data store for custom variables (visual is PaintBox)
-  FTweaksGrid := TStringGrid.Create(Self);
-  FTweaksGrid.Parent      := Self;
-  FTweaksGrid.Visible     := False;
-  FTweaksGrid.ColCount    := 4;
-  FTweaksGrid.RowCount    := 1 + TWEAK_ROW_COUNT;
-  FTweaksGrid.FixedRows   := 1;
-  for i := 0 to TWEAK_ROW_COUNT - 1 do
-  begin
-    FTweaksGrid.Cells[0, i + 1] := '0';
-    FTweaksGrid.Cells[1, i + 1] := TWEAK_ROWS[i].Category;
-    FTweaksGrid.Cells[2, i + 1] := TWEAK_ROWS[i].VarName;
-    FTweaksGrid.Cells[3, i + 1] := TWEAK_ROWS[i].Description;
-  end;
+  TTweaksMD3Helper(FTweaksHelper).InitTweaksMD3;
 end;
-
 procedure Tgoverlayform.TweaksMD3FABPaint(Sender: TObject);
-var
-  Btn: TSpeedButton;
-  R: TRect;
-  PlusW, PlusH: Integer;
 begin
-  Btn := Sender as TSpeedButton;
-  R := Rect(0, 0, Btn.Width, Btn.Height);
-
-  // Circle background
-  Btn.Canvas.Brush.Color := RGBToColor(48, 190, 240); // accent cyan
-  Btn.Canvas.Pen.Color   := RGBToColor(48, 190, 240);
-  Btn.Canvas.Ellipse(R);
-
-  // Shadow ring
-  Btn.Canvas.Pen.Color := RGBToColor(38, 160, 210);
-  Btn.Canvas.Ellipse(R.Left + 1, R.Top + 1, R.Right - 1, R.Bottom - 1);
-
-  // Draw "+" manually in the centre
-  Btn.Canvas.Font.Name  := 'DejaVu Sans';
-  Btn.Canvas.Font.Size  := 22;
-  Btn.Canvas.Font.Style := [fsBold];
-  Btn.Canvas.Font.Color := clWhite;
-  PlusW := Btn.Canvas.TextWidth('+');
-  PlusH := Btn.Canvas.TextHeight('+');
-  Btn.Canvas.TextOut((Btn.Width - PlusW) div 2, (Btn.Height - PlusH) div 2 - 1, '+');
+  TTweaksMD3Helper(FTweaksHelper).FABPaint(Sender);
 end;
-
 procedure Tgoverlayform.TweaksMD3BuildItems;
 // Virtual — items are rendered on-the-fly in paint event using checkboxes + custom list
 begin
@@ -5898,543 +5424,34 @@ begin
 end;
 
 procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
-
-  procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
-  var
-    TrackColor: TColor;
-    ThumbLeft, ThumbTop, ThumbRight, ThumbBottom: Integer;
-  const
-    TRACK_W = 44;
-    TRACK_H = 24;
-    THUMB_D = 18;
-    RADIUS  = 12;
-    Pad     = 3;
-  begin
-    // Track colour
-    if AOn then
-      TrackColor := RGBToColor(60, 180, 80)   // green
-    else
-      TrackColor := RGBToColor(70, 70, 70);   // grey
-
-    ACanvas.Brush.Color := TrackColor;
-    ACanvas.Pen.Color   := TrackColor;
-    ACanvas.Pen.Width   := 1;
-
-    // Central rectangle
-    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
-
-    // Left cap (semi-circle)
-    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
-
-    // Right cap (semi-circle)
-    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
-
-    // Thumb
-    if AOn then
-      ThumbLeft := AX + TRACK_W - THUMB_D - Pad
-    else
-      ThumbLeft := AX + Pad;
-    ThumbTop    := AY + (TRACK_H - THUMB_D) div 2;
-    ThumbRight  := ThumbLeft + THUMB_D;
-    ThumbBottom := ThumbTop + THUMB_D;
-
-    // Subtle outer ring/shadow
-    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
-    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
-    ACanvas.Pen.Width   := 1;
-    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
-
-    // White thumb body
-    ACanvas.Brush.Color := clWhite;
-    ACanvas.Pen.Color   := clWhite;
-    ACanvas.Pen.Width   := 1;
-    ACanvas.Ellipse(ThumbLeft + 2, ThumbTop + 2, ThumbRight - 2, ThumbBottom - 2);
-  end;
-
-  procedure DrawHeader(ACanvas: TCanvas; const ARect: TRect; const ACat: string; const AIcon: string; AExpanded: Boolean; AHover: Boolean);
-  var
-    TxtH: Integer;
-    Arrow: string;
-    IconX, TextX: Integer;
-  begin
-    if AHover then
-      ACanvas.Brush.Color := RGBToColor(55, 95, 150)   // bright blue
-    else
-      ACanvas.Brush.Color := RGBToColor(40, 70, 115);  // dark blue
-    ACanvas.FillRect(ARect);
-
-    // Arrow (expand/collapse indicator)
-    if AExpanded then
-      Arrow := '▼'
-    else
-      Arrow := '▶';
-    ACanvas.Font.Color  := RGBToColor(200, 200, 200);
-    ACanvas.Font.Size   := 9;
-    ACanvas.Font.Style  := [];
-    ACanvas.Font.Name   := 'DejaVu Sans';
-    ACanvas.TextOut(ARect.Left + 12, ARect.Top + (ARect.Height - ACanvas.TextHeight(Arrow)) div 2, Arrow);
-
-    // Icon
-    IconX := ARect.Left + 32;
-    ACanvas.Font.Name   := 'Noto Color Emoji';
-    ACanvas.Font.Size   := 14;
-    ACanvas.Font.Style  := [];
-    ACanvas.TextOut(IconX, ARect.Top + (ARect.Height - ACanvas.TextHeight(AIcon)) div 2, AIcon);
-
-    // Category name
-    TextX := IconX + 22;
-    ACanvas.Font.Name  := 'DejaVu Sans';
-    ACanvas.Font.Color := clWhite;
-    ACanvas.Font.Style := [fsBold];
-    ACanvas.Font.Size  := 9;
-    TxtH := ACanvas.TextHeight(ACat);
-    ACanvas.TextOut(TextX, ARect.Top + (ARect.Height - TxtH) div 2, ACat);
-  end;
-
-  procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
-                     AChecked, AHover: Boolean; AIsCustom: Boolean);
-  var
-    ToggleX, ToggleY, DelX: Integer;
-    VarRect, DescRect: TRect;
-    Prefix, PrefixMesa, RestDesc: string;
-    OldColor: TColor;
-    PrefixW: Integer;
-  const
-    PAD = 16;
-    DEL_W = 24;
-  begin
-    // Background
-    if AChecked then
-    begin
-      if AHover then
-        ACanvas.Brush.Color := RGBToColor(32, 44, 65)   // slightly lighter active slate-blue
-      else
-        ACanvas.Brush.Color := RGBToColor(25, 33, 48);  // subtle active slate-blue
-    end
-    else if AHover then
-      ACanvas.Brush.Color := RGBToColor(50, 55, 70)   // grey-blue
-    else
-      ACanvas.Brush.Color := RGBToColor(22, 25, 37);  // dark background
-    ACanvas.FillRect(ARect);
-
-    // Bottom hairline separator
-    ACanvas.Pen.Color := RGBToColor(40, 45, 60);
-    ACanvas.Line(ARect.Left, ARect.Bottom - 1, ARect.Right, ARect.Bottom - 1);
-
-    // Delete "×" button for custom rows (left side)
-    if AIsCustom then
-    begin
-      DelX := ARect.Left + PAD;
-      ACanvas.Font.Name  := 'DejaVu Sans';
-      ACanvas.Font.Size  := 12;
-      ACanvas.Font.Style := [fsBold];
-      ACanvas.Font.Color := RGBToColor(220, 80, 80);  // red
-      ACanvas.TextOut(DelX, ARect.Top + (ARect.Height - ACanvas.TextHeight('×')) div 2, '×');
-    end;
-
-    // Toggle switch (right side)
-    ToggleX := ARect.Right - 60;
-    ToggleY := ARect.Top + (ARect.Height - 24) div 2;
-    DrawToggle(ACanvas, ToggleX, ToggleY, AChecked);
-
-    // Description (top line, prominent)
-    DescRect := ARect;
-    if AIsCustom then
-      DescRect.Left := ARect.Left + PAD + DEL_W + 4
-    else
-      DescRect.Left := ARect.Left + PAD;
-    DescRect.Right := ToggleX - PAD;
-    DescRect.Bottom := DescRect.Top + DescRect.Height div 2 + 2;
-    ACanvas.Font.Name  := 'DejaVu Sans';
-    ACanvas.Font.Size  := 9;
-    ACanvas.Font.Style := [];
-    if AIsCustom then
-      ACanvas.Font.Color := RGBToColor(160, 160, 160)
-    else
-      ACanvas.Font.Color := clWhite;
-
-    Prefix := '[low_latency_layer]';
-    PrefixMesa := '[MESA]';
-    if (Pos(Prefix, ADesc) = 1) then
-    begin
-      OldColor := ACanvas.Font.Color;
-      ACanvas.Font.Color := RGBToColor(240, 180, 50); // golden yellow/orange
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, Prefix);
-      PrefixW := ACanvas.TextWidth(Prefix);
-      ACanvas.Font.Color := OldColor;
-      RestDesc := Copy(ADesc, Length(Prefix) + 1, MaxInt);
-      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
-    end
-    else if (Pos(PrefixMesa, ADesc) = 1) then
-    begin
-      OldColor := ACanvas.Font.Color;
-      ACanvas.Font.Color := RGBToColor(48, 190, 240); // Cyan
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, PrefixMesa);
-      PrefixW := ACanvas.TextWidth(PrefixMesa);
-      ACanvas.Font.Color := OldColor;
-      RestDesc := Copy(ADesc, Length(PrefixMesa) + 1, MaxInt);
-      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
-    end
-    else
-    begin
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, ADesc);
-    end;
-
-    // Variable name (below description, monospace, dimmed)
-    VarRect := ARect;
-    if AIsCustom then
-      VarRect.Left := ARect.Left + PAD + DEL_W + 4
-    else
-      VarRect.Left := ARect.Left + PAD;
-    VarRect.Right := ToggleX - PAD;
-    VarRect.Top := DescRect.Bottom;
-    ACanvas.Font.Name  := 'DejaVu Sans Mono';
-    ACanvas.Font.Size  := 8;
-    ACanvas.Font.Color := RGBToColor(150, 150, 150);
-    ACanvas.TextRect(VarRect, VarRect.Left, VarRect.Top, AVar);
-  end;
-
-var
-  PB: TPaintBox;
-  Y, ItemH, HeadH: Integer;
-  i, CatIdx: Integer;
-  CatNames: array[0..3] of string;
-  CatExpanded: array[0..3] of Boolean;
-  HoverIdx, RowIdx: Integer;
-  R: TRect;
-  Chk: TCheckBox;
 begin
-  PB := Sender as TPaintBox;
-  PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
-  PB.Canvas.FillRect(PB.ClientRect);
-
-  ItemH := TweaksMD3ItemHeight;
-  HeadH := TweaksMD3HeaderHeight;
-  CatNames[0] := 'General';
-  CatNames[1] := 'Graphics';
-  CatNames[2] := 'Performance';
-  CatNames[3] := 'Latency reduction';
-  CatExpanded := FTweaksCatExpanded;
-
-  Y := -FTweaksScrollPos;
-  RowIdx := 0;
-  HoverIdx := FTweaksHoverIdx;
-
-  for CatIdx := 0 to 3 do
-  begin
-    // Category header with icon
-    R := Rect(0, Y, PB.Width, Y + HeadH);
-    case CatIdx of
-      0: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚙', CatExpanded[CatIdx], HoverIdx = RowIdx);
-      1: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '🎮', CatExpanded[CatIdx], HoverIdx = RowIdx);
-      2: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚡', CatExpanded[CatIdx], HoverIdx = RowIdx);
-      3: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⏱', CatExpanded[CatIdx], HoverIdx = RowIdx);
-    end;
-    Inc(Y, HeadH);
-    Inc(RowIdx);
-
-    if CatExpanded[CatIdx] then
-    begin
-      for i := 0 to TWEAK_ROW_COUNT - 1 do
-      begin
-        if TWEAK_ROWS[i].Category <> CatNames[CatIdx] then Continue;
-        Chk := GetTweakRowCheckBox(Self, i);
-        R := Rect(0, Y, PB.Width, Y + ItemH);
-        DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
-                 Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
-        Inc(Y, ItemH);
-        Inc(RowIdx);
-      end;
-    end;
-  end;
-
-  // Custom variables header
-  R := Rect(0, Y, PB.Width, Y + HeadH);
-  DrawHeader(PB.Canvas, R, 'Custom', '✎', True, HoverIdx = RowIdx);
-  Inc(Y, HeadH);
-  Inc(RowIdx);
-
-  // Custom rows from legacy grid (if any) or hidden listbox
-  if Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
-  begin
-    for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
-    begin
-      R := Rect(0, Y, PB.Width, Y + ItemH);
-      DrawItem(PB.Canvas, R, FTweaksGrid.Cells[2, i], FTweaksGrid.Cells[3, i],
-               FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
-      Inc(Y, ItemH);
-      Inc(RowIdx);
-    end;
-  end;
-
-  // Update scrollbar
-  if Y + FTweaksScrollPos > PB.Height then
-  begin
-    FTweaksScrollBar.Max := Y + FTweaksScrollPos - PB.Height + 20;
-    FTweaksScrollBar.PageSize := PB.Height;
-    FTweaksScrollBar.Visible := True;
-  end
-  else
-    FTweaksScrollBar.Visible := False;
+  TTweaksMD3Helper(FTweaksHelper).Paint(Sender);
 end;
-
 procedure Tgoverlayform.TweaksMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-var
-  PB: TPaintBox;
-  OldHover, ItemH, HeadH, RowIdx, i, CatIdx: Integer;
-  YPos: Integer;
-  CatName: string;
-  InHeader: Boolean;
-  IsLatencyTweak: Boolean;
 begin
-  PB := Sender as TPaintBox;
-  OldHover := FTweaksHoverIdx;
-  FTweaksHoverIdx := -1;
-  IsLatencyTweak := False;
-
-  ItemH := TweaksMD3ItemHeight;
-  HeadH := TweaksMD3HeaderHeight;
-  YPos := -FTweaksScrollPos;
-  RowIdx := 0;
-
-  for CatIdx := 0 to 3 do
-  begin
-    case CatIdx of
-      0: CatName := 'General';
-      1: CatName := 'Graphics';
-      2: CatName := 'Performance';
-      3: CatName := 'Latency reduction';
-    end;
-
-    // Header
-    if (Y >= YPos) and (Y < YPos + HeadH) then
-    begin
-      FTweaksHoverIdx := RowIdx;
-      Break;
-    end;
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
-
-    if FTweaksCatExpanded[CatIdx] then
-    begin
-      for i := 0 to TWEAK_ROW_COUNT - 1 do
-      begin
-        if TWEAK_ROWS[i].Category <> CatName then Continue;
-        if (Y >= YPos) and (Y < YPos + ItemH) then
-        begin
-          FTweaksHoverIdx := RowIdx;
-          if CatName = 'Latency reduction' then
-            IsLatencyTweak := True;
-          Break;
-        end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
-      end;
-      if FTweaksHoverIdx >= 0 then Break;
-    end;
-  end;
-
-  // Custom section
-  if FTweaksHoverIdx < 0 then
-  begin
-    if (Y >= YPos) and (Y < YPos + HeadH) then
-      FTweaksHoverIdx := RowIdx;
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
-
-    if Assigned(FTweaksGrid) then
-      for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
-      begin
-        if (Y >= YPos) and (Y < YPos + ItemH) then
-        begin
-          FTweaksHoverIdx := RowIdx;
-          Break;
-        end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
-      end;
-  end;
-
-  if IsLatencyTweak then
-  begin
-    if PB.Hint <> 'Needs Korthos low latency layer installed' then
-    begin
-      PB.Hint := 'Needs Korthos low latency layer installed';
-      PB.ShowHint := True;
-    end;
-  end
-  else
-  begin
-    if PB.Hint <> '' then
-    begin
-      PB.Hint := '';
-      PB.ShowHint := False;
-      Application.CancelHint;
-    end;
-  end;
-
-  if OldHover <> FTweaksHoverIdx then
-    PB.Invalidate;
+  TTweaksMD3Helper(FTweaksHelper).MouseMove(Sender, Shift, X, Y);
 end;
-
 procedure Tgoverlayform.TweaksMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  PB: TPaintBox;
-  ItemH, HeadH, RowIdx, i, CatIdx: Integer;
-  YPos: Integer;
-  CatName: string;
-  ToggleX: Integer;
-  Chk: TCheckBox;
 begin
-  if Button <> mbLeft then Exit;
-  PB := Sender as TPaintBox;
-  ItemH := TweaksMD3ItemHeight;
-  HeadH := TweaksMD3HeaderHeight;
-  YPos := -FTweaksScrollPos;
-  RowIdx := 0;
-
-  for CatIdx := 0 to 3 do
-  begin
-    case CatIdx of
-      0: CatName := 'General';
-      1: CatName := 'Graphics';
-      2: CatName := 'Performance';
-      3: CatName := 'Latency reduction';
-    end;
-
-    // Header click = toggle expand
-    if (Y >= YPos) and (Y < YPos + HeadH) then
-    begin
-      FTweaksCatExpanded[CatIdx] := not FTweaksCatExpanded[CatIdx];
-      PB.Invalidate;
-      Exit;
-    end;
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
-
-    if FTweaksCatExpanded[CatIdx] then
-    begin
-      for i := 0 to TWEAK_ROW_COUNT - 1 do
-      begin
-        if TWEAK_ROWS[i].Category <> CatName then Continue;
-        if (Y >= YPos) and (Y < YPos + ItemH) then
-        begin
-          // Check if click is on toggle (right side)
-          ToggleX := PB.Width - 66;
-          if X >= ToggleX then
-          begin
-            Chk := GetTweakRowCheckBox(Self, i);
-            if Assigned(Chk) then
-            begin
-              if (Chk = FAntilagCheckBox) and (not Chk.Checked) and
-                 (FLowLatencyCheckBox.Checked or FLowLatencyReflexCheckBox.Checked or
-                  FLowLatencySpoofNvidiaCheckBox.Checked or FLowLatencyHideAmdGpuCheckBox.Checked) then
-              begin
-                ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
-              end
-              else if ((Chk = FLowLatencyCheckBox) or (Chk = FLowLatencyReflexCheckBox) or
-                       (Chk = FLowLatencySpoofNvidiaCheckBox) or (Chk = FLowLatencyHideAmdGpuCheckBox)) and
-                      (not Chk.Checked) and FAntilagCheckBox.Checked then
-              begin
-                ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
-              end
-              else if (Chk = FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FLowLatencyHideAmdGpuCheckBox.Checked then
-                ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
-              else if (Chk = FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FLowLatencySpoofNvidiaCheckBox.Checked then
-                ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
-              else
-              begin
-                Chk.Checked := not Chk.Checked;
-                PB.Invalidate;
-              end;
-            end;
-          end;
-          Exit;
-        end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
-      end;
-    end;
-  end;
-
-  // Custom section header (no toggle)
-  if (Y >= YPos) and (Y < YPos + HeadH) then
-  begin
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
-  end
-  else
-    Inc(YPos, HeadH);
-
-  // Custom rows
-  if Assigned(FTweaksGrid) then
-    for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
-    begin
-      if (Y >= YPos) and (Y < YPos + ItemH) then
-      begin
-        // Delete button hit area (left side, ~24x24 px)
-        if (X >= 16) and (X < 40) then
-        begin
-          // Remove custom row from grid
-          FTweaksGrid.DeleteRow(i);
-          PB.Invalidate;
-          Exit;
-        end;
-        ToggleX := PB.Width - 66;
-        if X >= ToggleX then
-        begin
-          if FTweaksGrid.Cells[0, i] = '1' then
-            FTweaksGrid.Cells[0, i] := '0'
-          else
-            FTweaksGrid.Cells[0, i] := '1';
-          PB.Invalidate;
-        end;
-        Exit;
-      end;
-      Inc(YPos, ItemH);
-    end;
+  TTweaksMD3Helper(FTweaksHelper).MouseDown(Sender, Button, Shift, X, Y);
 end;
-
 procedure Tgoverlayform.TweaksMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 begin
-  FTweaksScrollPos := FTweaksScrollPos - WheelDelta div 4;
-  if FTweaksScrollPos < 0 then FTweaksScrollPos := 0;
-  if FTweaksScrollPos > FTweaksScrollBar.Max then FTweaksScrollPos := FTweaksScrollBar.Max;
-  FTweaksScrollBar.Position := FTweaksScrollPos;
-  FTweaksPaintBox.Invalidate;
-  Handled := True;
+  TTweaksMD3Helper(FTweaksHelper).MouseWheel(Sender, Shift, WheelDelta, MousePos, Handled);
 end;
-
 procedure Tgoverlayform.TweaksMD3ScrollChange(Sender: TObject);
 begin
-  FTweaksScrollPos := FTweaksScrollBar.Position;
-  FTweaksPaintBox.Invalidate;
+  TTweaksMD3Helper(FTweaksHelper).ScrollChange(Sender);
 end;
-
 procedure Tgoverlayform.TweaksMD3ToggleItem(Index: Integer);
 begin
   // Not used directly — mouse down handles toggling via checkbox
 end;
 
 procedure Tgoverlayform.TweaksMD3FABClick(Sender: TObject);
-var
-  Val: string;
-  Row: Integer;
 begin
-  Val := Trim(InputBox('Custom Environment Variable',
-                       'Enter the variable (e.g. MY_VAR=1):', ''));
-  if Val = '' then Exit;
-
-  if not Assigned(FTweaksGrid) then Exit;
-  Row := FTweaksGrid.RowCount;
-  FTweaksGrid.RowCount := Row + 1;
-  FTweaksGrid.Cells[0, Row] := '1';
-  FTweaksGrid.Cells[1, Row] := 'Custom';
-  FTweaksGrid.Cells[2, Row] := Val;
-  FTweaksGrid.Cells[3, Row] := '';
-  FTweaksPaintBox.Invalidate;
+  TTweaksMD3Helper(FTweaksHelper).FABClick(Sender);
 end;
-
 procedure Tgoverlayform.ApplyImageAntialiasing;
   procedure ScanImages(AParent: TWinControl);
   var
@@ -14706,195 +13723,9 @@ end;
 // ============================================================================
 
 procedure Tgoverlayform.InitGamesTab;
-var
-  OpenFolderItem: TMenuItem;
-  UninstallItem: TMenuItem;
-  GamesBgPB: TPaintBox;
-  IconPath: string;
-  Bmp: TBitmap;
-  IconColor: TColor;
-  x, y: Integer;
-  Clr: TColor;
-  Gray: Byte;
 begin
-  FCardPanels := TList.Create;
-  FOrigCovers := TList.Create;
-
-  // Right-click context menu for game cards
-  FGameCardMenu := TPopupMenu.Create(Self);
-
-  // Dedicated 16x16 image list for the menu — drawn in greyscale
-  FGameMenuImgList := TImageList.Create(Self);
-  FGameMenuImgList.Width := 16;
-  FGameMenuImgList.Height := 16;
-
-  IconColor := RGBToColor(180, 180, 180);
-
-  // --- Icon 0: Folder (greyscale) ---
-  Bmp := TBitmap.Create;
-  try
-    Bmp.SetSize(16, 16);
-    Bmp.Canvas.Brush.Color := clFuchsia;
-    Bmp.Canvas.FillRect(0, 0, 16, 16);
-    Bmp.Canvas.Pen.Color := IconColor;
-    Bmp.Canvas.Brush.Color := IconColor;
-    Bmp.Canvas.Rectangle(2, 3, 8, 6);   // tab
-    Bmp.Canvas.Rectangle(2, 5, 14, 13); // body
-    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
-  finally
-    Bmp.Free;
-  end;
-
-  // --- Icon 1: Wine prefix (greyscale copy of iconsImageList[37]) ---
-  if Assigned(iconsImageList) and (iconsImageList.Count > 37) then
-  begin
-    Bmp := TBitmap.Create;
-    try
-      Bmp.SetSize(16, 16);
-      Bmp.Canvas.Brush.Color := clFuchsia;
-      Bmp.Canvas.FillRect(0, 0, 16, 16);
-      iconsImageList.Draw(Bmp.Canvas, 0, 0, 37);
-      // Convert every non-mask pixel to greyscale
-      for y := 0 to 15 do
-        for x := 0 to 15 do
-        begin
-          Clr := Bmp.Canvas.Pixels[x, y];
-          if Clr <> clFuchsia then
-          begin
-            Gray := (Red(Clr) + Green(Clr) + Blue(Clr)) div 3;
-            Bmp.Canvas.Pixels[x, y] := RGBToColor(Gray, Gray, Gray);
-          end;
-        end;
-      FGameMenuImgList.AddMasked(Bmp, clFuchsia);
-    finally
-      Bmp.Free;
-    end;
-  end
-  else
-  begin
-    // Fallback: simple wine-glass silhouette
-    Bmp := TBitmap.Create;
-    try
-      Bmp.SetSize(16, 16);
-      Bmp.Canvas.Brush.Color := clFuchsia;
-      Bmp.Canvas.FillRect(0, 0, 16, 16);
-      Bmp.Canvas.Pen.Color := IconColor;
-      Bmp.Canvas.Brush.Color := IconColor;
-      Bmp.Canvas.RoundRect(4, 2, 12, 7, 6, 6); // bowl
-      Bmp.Canvas.Rectangle(7, 7, 9, 12);       // stem
-      Bmp.Canvas.Rectangle(4, 12, 12, 14);     // base
-      FGameMenuImgList.AddMasked(Bmp, clFuchsia);
-    finally
-      Bmp.Free;
-    end;
-  end;
-
-  // --- Icon 2: Trash / Uninstall (greyscale) ---
-  Bmp := TBitmap.Create;
-  try
-    Bmp.SetSize(16, 16);
-    Bmp.Canvas.Brush.Color := clFuchsia;
-    Bmp.Canvas.FillRect(0, 0, 16, 16);
-    Bmp.Canvas.Pen.Color := IconColor;
-    Bmp.Canvas.Brush.Color := IconColor;
-    Bmp.Canvas.Rectangle(3, 2, 13, 4);  // lid
-    Bmp.Canvas.Rectangle(4, 4, 12, 14); // body
-    Bmp.Canvas.Pen.Color := clFuchsia;
-    Bmp.Canvas.MoveTo(6, 6); Bmp.Canvas.LineTo(6, 12);
-    Bmp.Canvas.MoveTo(9, 6); Bmp.Canvas.LineTo(9, 12);
-    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
-  finally
-    Bmp.Free;
-  end;
-
-  FGameCardMenu.Images := FGameMenuImgList;
-
-  OpenFolderItem := TMenuItem.Create(FGameCardMenu);
-  OpenFolderItem.Caption := 'Open install folder';
-  OpenFolderItem.ImageIndex := 0;
-  OpenFolderItem.OnClick := @GameCardOpenFolderClick;
-  FGameCardMenu.Items.Add(OpenFolderItem);
-
-  FOpenPrefixMenuItem := TMenuItem.Create(FGameCardMenu);
-  FOpenPrefixMenuItem.Caption := 'Open prefix folder';
-  FOpenPrefixMenuItem.ImageIndex := 1;
-  FOpenPrefixMenuItem.OnClick := @GameCardOpenPrefixClick;
-  FGameCardMenu.Items.Add(FOpenPrefixMenuItem);
-
-  UninstallItem := TMenuItem.Create(FGameCardMenu);
-  UninstallItem.Caption := 'Uninstall changes';
-  UninstallItem.ImageIndex := 2;
-  UninstallItem.OnClick := @GameCardUninstallClick;
-  FGameCardMenu.Items.Add(UninstallItem);
-
-  FGamesScrollBox := TScrollBox.Create(Self);
-  FGamesScrollBox.Parent := gamesTabSheet;
-  FGamesScrollBox.Align := alClient;
-  FGamesScrollBox.AutoScroll := True;
-  FGamesScrollBox.BorderStyle := bsNone;
-  FGamesScrollBox.HorzScrollBar.Visible := False;
-  FGamesScrollBox.Color := RGBToColor(22, 26, 40);
-  FGamesScrollBox.ParentColor := False;
-  FGamesScrollBox.OnResize := @GamesScrollBoxResize;
-
-  // Navy background paintbox — created before FGamesPanel so it sits behind the cards
-  GamesBgPB := TPaintBox.Create(Self);
-  GamesBgPB.Parent  := FGamesScrollBox;
-  GamesBgPB.Align   := alClient;
-  GamesBgPB.OnPaint := @PresetsBgBoxPaint;
-
-  FGamesPanel := TPanel.Create(Self);
-  FGamesPanel.Parent := FGamesScrollBox;
-  FGamesPanel.Caption := '';
-  FGamesPanel.BevelOuter := bvNone;
-  FGamesPanel.Color := RGBToColor(22, 26, 40);
-  FGamesPanel.Left := 0;
-  FGamesPanel.Top := 0;
-  FGamesPanel.Width := 800;
-  FGamesPanel.Height := 100;
-  FGamesPanel.OnPaint := @PresetsWrapperPaint;
-  FGamesPanel.OnClick := @GamesEmptySpaceClick;
-  FGamesScrollBox.OnClick := @GamesEmptySpaceClick;
-
-  // Cache badge icons for corner ribbon (loaded once, reused per card)
-  FMangoIconGfx := TPortableNetworkGraphic.Create;
-  IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
-  if FileExists(IconPath) then try FMangoIconGfx.LoadFromFile(IconPath); except end;
-
-  FOptiIconGfx := TPortableNetworkGraphic.Create;
-  IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
-  if FileExists(IconPath) then try FOptiIconGfx.LoadFromFile(IconPath); except end;
-
-  // Navy background for the bottom bar
-  goverlaybarPanel.OnPaint := @PresetsWrapperPaint;
-
-  // Quick preview button — icon-only, sits immediately left of popupBitBtn.
-  FPreviewBtn := TBitBtn.Create(Self);
-  FPreviewBtn.Parent      := goverlaybarPanel;
-  // Align height (30) and vertical position (5) with the rest of the bar
-  FPreviewBtn.SetBounds(684, 5, 28, 30);
-  FPreviewBtn.Anchors     := [akRight, akBottom];
-  FPreviewBtn.Caption     := '▶';
-  FPreviewBtn.Color       := $00445566;
-  FPreviewBtn.Font.Color  := clWhite;
-  FPreviewBtn.Font.Size   := 10;
-  FPreviewBtn.Font.Style  := [fsBold];
-  FPreviewBtn.Font.Name   := 'Noto Sans';
-  FPreviewBtn.Hint        := 'Launch a quick preview cube (pascube / vkcube)';
-  FPreviewBtn.ShowHint    := True;
-  FPreviewBtn.OnClick     := @PreviewBtnClick;
-
-  // Re-anchor commandPanel so it stops at the left edge of FPreviewBtn,
-  // preventing the panel from drawing over the preview button.
-  commandPanel.AnchorSideRight.Control := FPreviewBtn;
-  commandPanel.AnchorSideRight.Side    := asrLeft;
-
-  // Informative hint for the launch-command box
-  commandPanel.Hint := 'Copy this command and paste it into the game''s Launch Options in Steam.';
-  commandPanel.ShowHint := True;
-
+  TGamesTabHelper(FGamesHelper).InitGamesTab;
 end;
-
 function Tgoverlayform.GetAppBaseDir: string;
 var
   AppDir, BinaryDir: string;
@@ -15057,610 +13888,18 @@ begin
   end;
 end;
 
-procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
-var
-  IntfImg: TLazIntfImage;
-  ResultBmp: TBitmap;
-  Stride, BPP, W, H: Integer;
-  Row: PByte;
-  x, y, px, DimPct, Bright: Integer;
-begin
-  W := Bmp.Width;
-  H := Bmp.Height;
-  if (W = 0) or (H = 0) then Exit;
-  IntfImg := TLazIntfImage.Create(W, H);
-  try
-    IntfImg.LoadFromBitmap(Bmp.Handle, 0);
-    Stride := IntfImg.DataDescription.BytesPerLine;
-    BPP    := IntfImg.DataDescription.BitsPerPixel div 8;
-    if BPP < 3 then Exit;
-
-    for y := 0 to H - 1 do
-    begin
-      if y < H - GradH then Continue;
-      DimPct := Round((y - (H - GradH)) / GradH * 88);
-      if DimPct <= 0 then Continue;
-      Row := IntfImg.PixelData + PtrUInt(y * Stride);
-      for x := 0 to W - 1 do
-      begin
-        px := x * BPP;
-        Row[px]   := Byte(Integer(Row[px])   * (100 - DimPct) div 100);
-        Row[px+1] := Byte(Integer(Row[px+1]) * (100 - DimPct) div 100);
-        Row[px+2] := Byte(Integer(Row[px+2]) * (100 - DimPct) div 100);
-      end;
-    end;
-
-    ResultBmp := TBitmap.Create;
-    try
-      ResultBmp.LoadFromIntfImage(IntfImg);
-      Bmp.Assign(ResultBmp);
-    finally
-      ResultBmp.Free;
-    end;
-  finally
-    IntfImg.Free;
-  end;
-end;
-
 procedure Tgoverlayform.DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
-const
-  // Nerd Font glyphs — same as nav rail (rendered via 'Noto Sans' on this system)
-  GLYPHS: array[0..3] of string = ('󱁥', '󰏘', '󰋮', '⚙');
-  ICN_SZ  = 16;  // icon cell size
-  ICN_GAP = 6;   // vertical gap between icons
-  PAD_R   = 6;   // right margin from card edge
-  PAD_T   = 5;   // top margin from card edge
-  FONT_SZ = 13;  // glyph font size
-var
-  BC: TCanvas;
-  BitIdx, Slot, IcoX, IcoY, DX, DY: Integer;
-  G: string;
 begin
-  BC := Bmp.Canvas;
-  BC.Font.Name  := 'Noto Sans';
-  BC.Font.Size  := FONT_SZ;
-  BC.Font.Style := [];
-  BC.Brush.Style := bsClear;
-
-  IcoX := CARD_W - ICN_SZ - PAD_R;
-
-  Slot := 0;
-  for BitIdx := 0 to 3 do
-  begin
-    if (BadgeMask and (1 shl BitIdx)) = 0 then Continue;
-    G    := GLYPHS[BitIdx];
-    IcoY := PAD_T + Slot * (ICN_SZ + ICN_GAP);
-
-    // Drop shadow (+2 offset, black)
-    BC.Font.Color := clBlack;
-    BC.TextOut(IcoX + 2, IcoY + 2, G);
-
-    // 1px black outline — 8 directions
-    for DX := -1 to 1 do
-      for DY := -1 to 1 do
-        if (DX <> 0) or (DY <> 0) then
-          BC.TextOut(IcoX + DX, IcoY + DY, G);
-
-    // White icon on top
-    BC.Font.Color := clWhite;
-    BC.TextOut(IcoX, IcoY, G);
-
-    Inc(Slot);
-  end;
+  TGamesTabHelper(FGamesHelper).DrawCardRibbon(Bmp, BadgeMask);
 end;
-
 procedure Tgoverlayform.LoadSteamGames;
-const
-  // bit0=Mango(PNG), bit1=vkBasalt(glyph), bit2=OptiScaler(PNG), bit3=Tweaks(glyph)
-  BADGE_GLYPHS: array[0..3] of string = ('', '󰏘', '', '󰒓');
-  BDG_SZ    = 18;   // icon cell size
-  BDG_GAP   = 5;    // vertical gap between icons
-  BDG_PAD_V = 6;    // top/bottom padding inside strip
-  BDG_FONT  = 13;   // glyph font size
-  BDG_W     = 26;   // strip width (right edge)
-var
-  Libraries: TStringList;
-  PendingIDs: TStringList;
-  PendingImages: TList;
-  CacheDir: string;
-  i, j, CardX, CardY, CardsPerRow, TotalRows, RowMargin: Integer;
-  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir, InstallDir, IconPath: string;
-  SR: TSearchRec;
-  AcfFile: TStringList;
-  CardPanel: TPanel;
-  CardImage: TImage;
-  BdgLbl: TLabel;
-  BdgImg: TImage;
-  BdgBg:  TShape;
-  NoGamesLabel: TLabel;
-  LowerName, GameCfgDir: string;
-  ScaledBmp: TBitmap;
-  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
-  TweakLines: TStringList;
-  k, BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
 begin
-  if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
-    Exit;
-
-  if IsRunningInFlatpak then
-    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
-  else
-    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
-  CacheDir := HomeDir + '.cache/goverlay/covers/';
-  ForceDirectories(CacheDir);
-
-  Libraries     := TStringList.Create;
-  PendingIDs    := TStringList.Create;
-  PendingImages := TList.Create;
-  try
-    GetSteamLibraries(Libraries);
-
-    if Libraries.Count = 0 then
-    begin
-      NoGamesLabel := TLabel.Create(Self);
-      NoGamesLabel.Parent := FGamesPanel;
-      NoGamesLabel.Caption := 'Steam not found or no libraries detected.';
-      NoGamesLabel.Font.Color := clSilver;
-      NoGamesLabel.Font.Size := 10;
-      NoGamesLabel.Left := 16;
-      NoGamesLabel.Top := 16;
-      Exit;
-    end;
-
-    CardsPerRow := Max(1, FGamesScrollBox.Width div (CARD_W + CARD_MARGIN));
-    RowMargin := (FGamesScrollBox.Width - CardsPerRow * CARD_W) div (CardsPerRow + 1);
-    if RowMargin < 4 then RowMargin := 4;
-    j := 0;
-
-    for i := 0 to Libraries.Count - 1 do
-    begin
-      LibPath := Libraries[i];
-      if FindFirst(LibPath + '/appmanifest_*.acf', faAnyFile, SR) = 0 then
-      begin
-        repeat
-          AcfFile := TStringList.Create;
-          try
-            AcfFile.LoadFromFile(LibPath + '/' + SR.Name);
-            AcfContent := AcfFile.Text;
-          finally
-            AcfFile.Free;
-          end;
-
-          AppID      := ParseAcfValue(AcfContent, 'appid');
-          GameName   := ParseAcfValue(AcfContent, 'name');
-          InstallDir := ParseAcfValue(AcfContent, 'installdir');
-          if (AppID = '') or (GameName = '') then
-            Continue;
-
-          // Skip non-game Steam entries (runtimes, tools, redistributables)
-          LowerName := LowerCase(GameName);
-          if (Pos('proton', LowerName) > 0) or
-             (Pos('steamworks', LowerName) > 0) or
-             (Pos('steam linux runtime', LowerName) > 0) or
-             (Pos('redistributable', LowerName) > 0) or
-             (Pos('steam sdk', LowerName) > 0) then
-            Continue;
-
-          // Look for local cover; if absent, queue for CDN download
-          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-          // Also check the persistent cache from previous downloads
-          if not FileExists(ImagePath) then
-            ImagePath := CacheDir + AppID + '.jpg';
-
-          // Card position (dynamic margin distributes leftover space evenly)
-          CardX := RowMargin + (j mod CardsPerRow) * (CARD_W + RowMargin);
-          CardY := RowMargin + (j div CardsPerRow) * (CARD_H + RowMargin);
-
-          CardPanel := TPanel.Create(Self);
-          CardPanel.Parent := FGamesPanel;
-          CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
-          CardPanel.BevelOuter := bvNone;
-          CardPanel.BevelInner := bvNone;
-          CardPanel.BorderWidth := 0;
-          CardPanel.Caption := '';
-          CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
-          CardPanel.Color := $303030;  // slightly lighter than the navy bg for contrast
-          CardPanel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
-          CardPanel.ShowHint := True;
-          CardPanel.OnMouseEnter := @GameCardMouseEnter;
-          CardPanel.OnMouseLeave := @GameCardMouseLeave;
-          CardPanel.OnClick := @GameCardClick;
-          CardPanel.OnMouseUp := @GameCardMouseUp;
-
-          CardImage := TImage.Create(CardPanel);
-          CardImage.Parent := CardPanel;
-          CardImage.SetBounds(0, 0, CARD_W, CARD_H);
-          CardImage.Stretch := True;
-          CardImage.Proportional := False;
-          CardImage.Center := False;
-          CardImage.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
-          CardImage.ShowHint := True;
-          CardImage.OnMouseEnter := @GameCardMouseEnter;
-          CardImage.OnMouseLeave := @GameCardMouseLeave;
-          CardImage.OnClick := @GameCardClick;
-          CardImage.OnMouseUp := @GameCardMouseUp;
-
-          // Steam icon badge (top-left corner, light gray)
-          BdgImg := TImage.Create(CardPanel);
-          BdgImg.Parent      := CardPanel;
-          BdgImg.AutoSize    := False;
-          BdgImg.SetBounds(4, 4, 16, 16);
-          BdgImg.Stretch     := True;
-          BdgImg.Proportional := True;
-          BdgImg.Center      := True;
-          BdgImg.Transparent := True;
-          IconPath := GetAppBaseDir + 'assets/icons/steam-icon.png';
-          if FileExists(IconPath) then
-            try BdgImg.Picture.LoadFromFile(IconPath); except end;
-          BdgImg.BringToFront;
-          BdgImg.OnMouseEnter := @GameCardMouseEnter;
-          BdgImg.OnMouseLeave := @GameCardMouseLeave;
-          BdgImg.OnClick      := @GameCardClick;
-          BdgImg.OnMouseUp    := @GameCardMouseUp;
-
-          // Load local image or queue for CDN download
-          if FileExists(ImagePath) then
-          begin
-            try
-              CardImage.Picture.LoadFromFile(ImagePath);
-            except
-            end;
-          end
-          else
-          begin
-            // No local image — will be downloaded by background thread
-            PendingIDs.Add(AppID);
-            PendingImages.Add(CardImage);
-          end;
-
-          // Compute badge bitmask and store in Tag for use by download thread
-          GameCfgDir := GetGameConfigDir(GameName);
-          HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
-          HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
-          HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
-          HasTweaks := False;
-          if FileExists(GameCfgDir + 'bgmod.conf') then
-          begin
-            TweakLines := TStringList.Create;
-            try
-              TweakLines.LoadFromFile(GameCfgDir + 'bgmod.conf');
-              for k := 0 to TweakLines.Count - 1 do
-                if Pos('GOVERLAY_TWEAKS=1', StringReplace(TweakLines[k], ' ', '', [rfReplaceAll])) > 0 then
-                begin
-                  HasTweaks := True;
-                  Break;
-                end;
-            finally
-              TweakLines.Free;
-            end;
-          end;
-          // Badges — PNG for MangoHud/OptiScaler (matches nav rail), glyph for vkBasalt/Tweaks
-          BadgeCount := 0;
-          if HasMango      then Inc(BadgeCount, 1);
-          if HasVkBasalt   then Inc(BadgeCount, 2);
-          if HasOptiScaler then Inc(BadgeCount, 4);
-          if HasTweaks     then Inc(BadgeCount, 8);
-          CardPanel.Tag := BadgeCount;
-
-          if BadgeCount > 0 then
-          begin
-            // Graphite background strip (right edge, auto-height)
-            BdgY := 2 * BDG_PAD_V + PopCnt(DWord(BadgeCount)) * BDG_SZ
-                    + (PopCnt(DWord(BadgeCount)) - 1) * BDG_GAP;
-            BdgBg := TShape.Create(CardPanel);
-            BdgBg.Parent      := CardPanel;
-            BdgBg.Shape       := stRectangle;
-            BdgBg.Brush.Color := RGBToColor(28, 52, 96);
-            BdgBg.Pen.Style   := psClear;
-            BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
-            BdgBg.AnchorSide[akRight].Control := CardPanel;
-            BdgBg.AnchorSide[akRight].Side    := asrBottom;
-            BdgBg.AnchorSide[akTop].Control   := CardPanel;
-            BdgBg.AnchorSide[akTop].Side      := asrTop;
-            BdgBg.Anchors                     := [akTop, akRight];
-            BdgBg.OnMouseEnter := @GameCardMouseEnter;
-            BdgBg.OnMouseLeave := @GameCardMouseLeave;
-            BdgBg.OnClick      := @GameCardClick;
-            BdgBg.OnMouseUp    := @GameCardMouseUp;
-
-            BdgSlot := 0;
-            for BdgBit := 0 to 3 do
-            begin
-              if (BadgeCount and (1 shl BdgBit)) = 0 then Continue;
-              BdgX := CARD_W - BDG_W + (BDG_W - BDG_SZ) div 2;
-              BdgY := BDG_PAD_V + BdgSlot * (BDG_SZ + BDG_GAP);
-
-              if BdgBit = 0 then  // MangoHud — PNG icon
-              begin
-                BdgImg := TImage.Create(CardPanel);
-                BdgImg.Parent      := CardPanel;
-                BdgImg.AutoSize    := False;
-                BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-                BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-                BdgImg.BorderSpacing.Top   := BdgY;
-                BdgImg.AnchorSide[akRight].Control := CardPanel;
-                BdgImg.AnchorSide[akRight].Side    := asrBottom;
-                BdgImg.AnchorSide[akTop].Control   := CardPanel;
-                BdgImg.AnchorSide[akTop].Side      := asrTop;
-                BdgImg.Anchors                     := [akTop, akRight];
-                BdgImg.Stretch     := True;
-                BdgImg.Proportional := True;
-                BdgImg.Center      := True;
-                BdgImg.Transparent := True;
-                IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
-                WriteLn(StdErr, '[Badge] mango-active path="', IconPath, '" exists=', FileExists(IconPath));
-                if FileExists(IconPath) then
-                  try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[Badge] mango-active load error: ', E.Message); end;
-                BdgImg.BringToFront;
-                BdgImg.OnMouseEnter := @GameCardMouseEnter;
-                BdgImg.OnMouseLeave := @GameCardMouseLeave;
-                BdgImg.OnClick      := @GameCardClick;
-                BdgImg.OnMouseUp    := @GameCardMouseUp;
-              end
-              else if BdgBit = 2 then  // OptiScaler — PNG icon
-              begin
-                BdgImg := TImage.Create(CardPanel);
-                BdgImg.Parent      := CardPanel;
-                BdgImg.AutoSize    := False;
-                BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-                BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-                BdgImg.BorderSpacing.Top   := BdgY;
-                BdgImg.AnchorSide[akRight].Control := CardPanel;
-                BdgImg.AnchorSide[akRight].Side    := asrBottom;
-                BdgImg.AnchorSide[akTop].Control   := CardPanel;
-                BdgImg.AnchorSide[akTop].Side      := asrTop;
-                BdgImg.Anchors                     := [akTop, akRight];
-                BdgImg.Stretch     := True;
-                BdgImg.Proportional := True;
-                BdgImg.Center      := True;
-                BdgImg.Transparent := True;
-                IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
-                WriteLn(StdErr, '[Badge] scale-up2-active path="', IconPath, '" exists=', FileExists(IconPath));
-                if FileExists(IconPath) then
-                  try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[Badge] scale-up2-active load error: ', E.Message); end;
-                BdgImg.BringToFront;
-                BdgImg.OnMouseEnter := @GameCardMouseEnter;
-                BdgImg.OnMouseLeave := @GameCardMouseLeave;
-                BdgImg.OnClick      := @GameCardClick;
-                BdgImg.OnMouseUp    := @GameCardMouseUp;
-              end
-              else  // vkBasalt ('󰏘') or Tweaks ('󰒓') — TLabel glyph
-              begin
-                // Shadow
-                BdgLbl := TLabel.Create(CardPanel);
-                BdgLbl.Parent     := CardPanel;
-                BdgLbl.AutoSize   := False;
-                BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
-                BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 3;
-                BdgLbl.BorderSpacing.Top   := BdgY + 1;
-                BdgLbl.AnchorSide[akRight].Control := CardPanel;
-                BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-                BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-                BdgLbl.AnchorSide[akTop].Side      := asrTop;
-                BdgLbl.Anchors                     := [akTop, akRight];
-                BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-                BdgLbl.Font.Name  := 'Noto Sans';
-                BdgLbl.Font.Size  := BDG_FONT;
-                BdgLbl.Font.Color := clBlack;
-                BdgLbl.Font.Style := [];
-                BdgLbl.Transparent := True;
-                BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-                BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-                BdgLbl.OnClick      := @GameCardClick;
-                BdgLbl.OnMouseUp    := @GameCardMouseUp;
-                // White icon
-                BdgLbl := TLabel.Create(CardPanel);
-                BdgLbl.Parent     := CardPanel;
-                BdgLbl.AutoSize   := False;
-                BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
-                BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 2;
-                BdgLbl.BorderSpacing.Top   := BdgY;
-                BdgLbl.AnchorSide[akRight].Control := CardPanel;
-                BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-                BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-                BdgLbl.AnchorSide[akTop].Side      := asrTop;
-                BdgLbl.Anchors                     := [akTop, akRight];
-                BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-                BdgLbl.Font.Name  := 'Noto Sans';
-                BdgLbl.Font.Size  := BDG_FONT;
-                BdgLbl.Font.Color := clWhite;
-                BdgLbl.Font.Style := [];
-                BdgLbl.Transparent := True;
-                BdgLbl.BringToFront;
-                BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-                BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-                BdgLbl.OnClick      := @GameCardClick;
-                BdgLbl.OnMouseUp    := @GameCardMouseUp;
-              end;
-              Inc(BdgSlot);
-            end;
-          end;
-
-          // Store card and original image; apply gradient
-          FCardPanels.Add(CardPanel);
-          if (CardImage.Picture.Graphic <> nil) and
-             (CardImage.Picture.Graphic.Width > 0) then
-          begin
-            ScaledBmp := TBitmap.Create;
-            try
-              ScaledBmp.SetSize(CARD_W, CARD_H);
-              ScaledBmp.Canvas.StretchDraw(
-                Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-              ProcessCoverBitmap(ScaledBmp, GRAD_H);
-              CardImage.Picture.Bitmap.Assign(ScaledBmp);
-              FOrigCovers.Add(ScaledBmp.CreateIntfImage);
-            finally
-              ScaledBmp.Free;
-            end;
-            ApplyCardBrightness(CardPanel, 100);
-          end
-          else
-            FOrigCovers.Add(nil);
-
-          Inc(j);
-        until FindNext(SR) <> 0;
-        FindClose(SR);
-      end;
-    end;
-
-    // Load non-Steam game folders and append their cards
-    LoadNonSteamFolders(j, CardsPerRow, RowMargin);
-
-    // ── "Add non-Steam folder" card (always last) ──
-    CardX := RowMargin + (j mod CardsPerRow) * (CARD_W + RowMargin);
-    CardY := RowMargin + (j div CardsPerRow) * (CARD_H + RowMargin);
-
-    CardPanel := TPanel.Create(Self);
-    CardPanel.Parent := FGamesPanel;
-    CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
-    CardPanel.BevelOuter := bvNone;
-    CardPanel.Caption := '';
-    CardPanel.Tag := 9998;  // marker: add-folder card
-    CardPanel.Color := RGBToColor(40, 44, 52);
-    CardPanel.Hint := 'Click to add a non-Steam game folder';
-    CardPanel.ShowHint := True;
-    CardPanel.Cursor := crHandPoint;
-    CardPanel.OnMouseEnter := @GameCardMouseEnter;
-    CardPanel.OnMouseLeave := @GameCardMouseLeave;
-    CardPanel.OnClick := @AddNonSteamFolderClick;
-    CardPanel.OnMouseUp := @GameCardMouseUp;
-
-    CardImage := TImage.Create(CardPanel);
-    CardImage.Parent := CardPanel;
-    CardImage.SetBounds(0, 0, CARD_W, CARD_H);
-    CardImage.Stretch := True;
-    CardImage.Proportional := False;
-    CardImage.Center := False;
-    CardImage.Cursor := crHandPoint;
-    CardImage.OnMouseEnter := @GameCardMouseEnter;
-    CardImage.OnMouseLeave := @GameCardMouseLeave;
-    CardImage.OnClick := @AddNonSteamFolderClick;
-    CardImage.OnMouseUp := @GameCardMouseUp;
-
-    // Big "+" sign in centre
-    BdgLbl := TLabel.Create(CardPanel);
-    BdgLbl.Parent := CardPanel;
-    BdgLbl.AutoSize := False;
-    BdgLbl.SetBounds((CARD_W - 64) div 2, (CARD_H - 100) div 2, 64, 64);
-    BdgLbl.Caption := '+';
-    BdgLbl.Font.Color := clSilver;
-    BdgLbl.Font.Size := 48;
-    BdgLbl.Font.Style := [];
-    BdgLbl.Alignment := taCenter;
-    BdgLbl.Layout := tlCenter;
-    BdgLbl.Transparent := True;
-    BdgLbl.Cursor := crHandPoint;
-    BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-    BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-    BdgLbl.OnClick := @AddNonSteamFolderClick;
-    BdgLbl.OnMouseUp := @GameCardMouseUp;
-
-    // Label below icon
-    BdgLbl := TLabel.Create(CardPanel);
-    BdgLbl.Parent := CardPanel;
-    BdgLbl.AutoSize := False;
-    BdgLbl.SetBounds(8, CARD_H - 56, CARD_W - 16, 40);
-    BdgLbl.Caption := 'Add nonsteam folder';
-    BdgLbl.Font.Color := clSilver;
-    BdgLbl.Font.Size := 9;
-    BdgLbl.Font.Style := [fsBold];
-    BdgLbl.Alignment := taCenter;
-    BdgLbl.Layout := tlCenter;
-    BdgLbl.WordWrap := True;
-    BdgLbl.Transparent := True;
-    BdgLbl.Cursor := crHandPoint;
-    BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-    BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-    BdgLbl.OnClick := @AddNonSteamFolderClick;
-    BdgLbl.OnMouseUp := @GameCardMouseUp;
-
-    FCardPanels.Add(CardPanel);
-    FOrigCovers.Add(nil);
-    Inc(j);
-
-    // Recalculate panel size including non-Steam and add-folder cards
-    TotalRows := (j + CardsPerRow - 1) div CardsPerRow;
-    FGamesPanel.Width := FGamesScrollBox.Width;
-    FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
-
-    // Launch background thread to download missing covers from Steam CDN
-    if PendingIDs.Count > 0 then
-    begin
-      if Assigned(FCoverThread) then
-      begin
-        FCoverThread.Terminate;
-        FCoverThread := nil;
-      end;
-      // Thread takes ownership of PendingIDs and PendingImages
-      FCoverThread := TCoverDownloadThread.Create(
-        PendingIDs, PendingImages, CacheDir, Self);
-      PendingIDs    := nil;
-      PendingImages := nil;
-      FCoverThread.Start;
-    end;
-
-  finally
-    Libraries.Free;
-    PendingIDs.Free;
-    PendingImages.Free;
-  end;
+  TGamesTabHelper(FGamesHelper).LoadSteamGames;
 end;
-
 procedure Tgoverlayform.RefreshGameCards;
-var
-  i: Integer;
 begin
-  // Stop any running cover download thread (don't WaitFor — blocks UI)
-  if Assigned(FCoverThread) then
-  begin
-    FCoverThread.Terminate;
-    FCoverThread := nil;
-  end;
-  // Stop non-Steam cover download thread (don't WaitFor — blocks UI)
-  if Assigned(FNonSteamCoverThread) then
-  begin
-    FNonSteamCoverThread.Terminate;
-    FNonSteamCoverThread := nil;
-  end;
-  // Kill hover animation — FHoveredCard will point to a destroyed panel after
-  // we free the card list, so we must clear it first to prevent a dangling-ptr crash.
-  if Assigned(FHoverTimer) then
-    FHoverTimer.Enabled := False;
-  FHoveredCard     := nil;
-  FHoverBrightness := 0;
-  FHoverDir        := 0;
-  // Flush any pending Synchronize calls before freeing panels
-  CheckSynchronize;
-  // Free all card panels — they own their children (CardImage, CardLabel, badges)
-  // so a single Free call cleans up each card and all its sub-controls.
-  if Assigned(FCardPanels) then
-  begin
-    for i := 0 to FCardPanels.Count - 1 do
-      TPanel(FCardPanels[i]).Free;
-    FCardPanels.Clear;
-  end;
-  // Free cached cover bitmaps
-  if Assigned(FOrigCovers) then
-  begin
-    for i := 0 to FOrigCovers.Count - 1 do
-      if FOrigCovers[i] <> nil then
-        TLazIntfImage(FOrigCovers[i]).Free;
-    FOrigCovers.Clear;
-  end;
-  // Rebuild the grid with up-to-date badge states
-  LoadSteamGames;
+  TGamesTabHelper(FGamesHelper).RefreshGameCards;
 end;
-
-// ============================================================================
-// Home tab
-// ============================================================================
-
 function Tgoverlayform.GetMangoHudVersion: string;
 var
   P: TProcess;
@@ -16711,936 +14950,63 @@ begin
 end;
 
 procedure Tgoverlayform.ReflowGamesGrid;
-var
-  CardCount, CardsPerRow, TotalRows, i, CardX, CardY, RowMargin: Integer;
-  Ctrl: TControl;
-  WasHovered: TPanel;
 begin
-  if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
-    Exit;
-  // Skip reflow while games tab is not visible — avoids N×SetBounds on every tab switch
-  if not gamesTabSheet.TabVisible then
-  begin
-    DbgLog('  ReflowGamesGrid SKIPPED (tab not visible)');
-    Exit;
-  end;
-
-  Inc(FReflowCount);
-  DbgLog(Format('  ReflowGamesGrid BEGIN #%d scrollW=%d', [FReflowCount, FGamesScrollBox.Width]));
-
-  CardsPerRow := Max(1, FGamesScrollBox.Width div (CARD_W + CARD_MARGIN));
-  RowMargin := (FGamesScrollBox.Width - CardsPerRow * CARD_W) div (CardsPerRow + 1);
-  if RowMargin < 4 then RowMargin := 4;
-  CardCount   := 0;
-
-  // Completely clear hover state before reflow — prevents ChangeBounds loops
-  WasHovered := FHoveredCard;
-  FHoveredCard := nil;
-  FHoverBrightness := 0;
-  FHoverDir := 0;
-  if Assigned(FHoverTimer) then
-    FHoverTimer.Enabled := False;
-
-  // Prevent LCL alignment loops while manually repositioning every card
-  FInReflow := True;
-  FGamesPanel.DisableAlign;
-  try
-    for i := 0 to FCardPanels.Count - 1 do
-    begin
-      Ctrl := TControl(FCardPanels[i]);
-      if not (Ctrl is TPanel) then
-        Continue;
-      CardX := RowMargin + (CardCount mod CardsPerRow) * (CARD_W + RowMargin);
-      CardY := RowMargin + (CardCount div CardsPerRow) * (CARD_H + RowMargin);
-      // Only SetBounds if position actually changed (reduces LCL churn)
-      if (Ctrl.Left <> CardX) or (Ctrl.Top <> CardY) or
-         (Ctrl.Width <> CARD_W) or (Ctrl.Height <> CARD_H) then
-      begin
-        Ctrl.SetBounds(CardX, CardY, CARD_W, CARD_H);
-        if (TPanel(Ctrl).ControlCount > 0) and (TPanel(Ctrl).Controls[0] is TImage) then
-          TImage(TPanel(Ctrl).Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
-      end;
-      Inc(CardCount);
-    end;
-
-    if CardCount > 0 then
-    begin
-      TotalRows := (CardCount + CardsPerRow - 1) div CardsPerRow;
-      // Use Width (not ClientWidth) so scrollbar appearance doesn't trigger a loop
-      FGamesPanel.Width  := FGamesScrollBox.Width;
-      FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
-    end;
-  finally
-    FInReflow := False;
-    FGamesPanel.EnableAlign;
-    DbgLog(Format('  ReflowGamesGrid END   #%d', [FReflowCount]));
-  end;
-
+  TGamesTabHelper(FGamesHelper).ReflowGamesGrid;
 end;
-
 procedure Tgoverlayform.GamesScrollBoxResize(Sender: TObject);
 begin
-  if FGamesLoaded then
-    ReflowGamesGrid;
+  TGamesTabHelper(FGamesHelper).GamesScrollBoxResize(Sender);
 end;
-
 procedure Tgoverlayform.GamesEmptySpaceClick(Sender: TObject);
 begin
-  // Clicking empty space in the games grid
-  if FActiveGameName <> '' then
-  begin
-    FActiveGameName := '';
-    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
-    VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
-    VKSUMICFGFILE := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';
-    UpdateGameContextLabel;
-    HideGameThumb;
-    LoadGameToggleStates;  // reset all tools to enabled, hide toggles
-  end;
+  TGamesTabHelper(FGamesHelper).GamesEmptySpaceClick(Sender);
 end;
-
 procedure Tgoverlayform.GameCardMouseEnter(Sender: TObject);
-var
-  Panel: TPanel;
 begin
-  DbgLog('GameCardMouseEnter: ' + TControl(Sender).Name);
-  if Sender is TPanel then Panel := TPanel(Sender)
-  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
-  else Exit;
-
-  if Sender is TControl then
-    TControl(Sender).Cursor := crHandPoint;
-
-  if Panel = FHoveredCard then
-  begin
-    // Re-entering same card (e.g. from child control): ensure brightening
-    FHoverDir := 1;
-    if Assigned(FHoverTimer) and not FHoverTimer.Enabled then
-      FHoverTimer.Enabled := True;
-    Exit;
-  end;
-
-  // Snap previous hovered card back to dim and restore its size instantly.
-  if Assigned(FHoveredCard) then
-  begin
-    ApplyCardBrightness(FHoveredCard, 100);
-    FHoveredCard.SetBounds(
-      FHoveredCard.Left + (FHoveredCard.Width - CARD_W) div 2,
-      FHoveredCard.Top  + (FHoveredCard.Height - CARD_H) div 2,
-      CARD_W, CARD_H);
-    if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
-      TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
-  end;
-
-  FHoveredCard     := Panel;
-  FHoverBrightness := 0;
-  FHoverDir        := 1;
-  FHoverBaseLeft   := Panel.Left;
-  FHoverBaseTop    := Panel.Top;
-
-  // Smooth scale-up is driven by HoverTimerTick; just bring to front now
-  Panel.BringToFront;
-
-  if not Assigned(FHoverTimer) then
-  begin
-    FHoverTimer          := TTimer.Create(Self);
-    FHoverTimer.Interval := 16;
-    FHoverTimer.OnTimer  := @HoverTimerTick;
-  end;
-  FHoverTimer.Enabled := True;
+  TGamesTabHelper(FGamesHelper).GameCardMouseEnter(Sender);
 end;
-
 procedure Tgoverlayform.GameCardMouseLeave(Sender: TObject);
-var
-  Panel: TPanel;
 begin
-  DbgLog('GameCardMouseLeave: ' + TControl(Sender).Name);
-  if Sender is TPanel then Panel := TPanel(Sender)
-  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
-  else Exit;
-
-  if Panel <> FHoveredCard then
-  begin
-    DbgLog('GameCardMouseLeave: not hovered card, ignoring');
-    Exit;
-  end;
-
-  // Smooth shrink-back is driven by HoverTimerTick
-  FHoverDir := -1;
-  if Assigned(FHoverTimer) then
-    FHoverTimer.Enabled := True;
+  TGamesTabHelper(FGamesHelper).GameCardMouseLeave(Sender);
 end;
-
 procedure Tgoverlayform.GameCardClick(Sender: TObject);
-var
-  Panel: TPanel;
-  GameName, GameCfgDir, FGOrig: string;
-  Lines: TStringList;
-  p: Integer;
 begin
-  if Sender is TPanel then Panel := TPanel(Sender)
-  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
-  else Exit;
-
-  // Extract game name from card hint
-  Lines := TStringList.Create;
-  try
-    Lines.Text := Panel.Hint;
-    if Lines.Count < 1 then Exit;
-    GameName := Lines[0];
-  finally
-    Lines.Free;
-  end;
-
-  FActiveGameIsNonSteam := False;
-  if (Length(GameName) > 0) and (GameName[1] = '(') then
-  begin
-    p := Pos(') ', GameName);
-    if p > 0 then
-      GameName := Copy(GameName, p + 2, Length(GameName));
-  end
-  else
-    FActiveGameIsNonSteam := True;
-
-  FActiveGameName := GameName;
-  ShowGameThumb(Panel);
-  LoadGameToggleStates;
-
-  // Navigate directly to MangoHud game config
-  GameCfgDir := GetGameConfigDir(GameName);
-  if not DirectoryExists(GameCfgDir) then
-    ForceDirectories(GameCfgDir);
-  // Copy only the launch scripts — OptiScaler files are copied only when the
-  // OptiScaler toggle is explicitly enabled for this game.
-  // Copy scripts without overwriting — user config lives inside fgmod.
-  // Then patch the script body for OptiScaler conditional if needed.
-  FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-uninstaller') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
-  ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
-  EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
-  MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
-  UpdateGameContextLabel;
-  SetNavActive(1);
-  goverlayPageControl.ShowTabs := True;
-  vkbasalttabsheet.TabVisible  := False;
-  optiscalertabsheet.TabVisible := False;
-  tweakstabsheet.TabVisible    := False;
-  gamesTabSheet.TabVisible     := False;
-  goverlayPageControl.ActivePage := presetTabsheet;
-  notificationLabel.Visible := False;
-  commandPanel.Visible       := False;
-
-  goverlaybarPanel.Visible  := True;
-  popupBitBtn.Visible := True;
-  FPreviewBtn.Visible  := True;
-  UpdateGeSpeedButtonState;
-  UpdateGlobalEnableMenuItemVisibility;
-  LoadMangoHudConfig;
+  TGamesTabHelper(FGamesHelper).GameCardClick(Sender);
 end;
-
 procedure Tgoverlayform.GameCardMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var
-  Panel: TPanel;
-  Pt: TPoint;
 begin
-  if Button <> mbRight then Exit;
-
-  if Sender is TPanel then
-    Panel := TPanel(Sender)
-  else if Sender is TImage then
-    Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then
-    Panel := TPanel(TLabel(Sender).Parent)
-  else
-    Exit;
-
-  FRightClickedCard := Panel;
-
-  if Panel.Tag = 9998 then
-  begin
-    ShowRemoveFoldersMenu(Sender, X, Y);
-    Exit;
-  end;
-
-  // Show "Open prefix folder" only for Steam games (hint first line starts with '(')
-  if Assigned(FOpenPrefixMenuItem) then
-    FOpenPrefixMenuItem.Visible :=
-      (Panel.Hint <> '') and (Panel.Hint[1] = '(');
-
-  Pt := TControl(Sender).ClientToScreen(Point(X, Y));
-  FGameCardMenu.PopUp(Pt.X, Pt.Y);
+  TGamesTabHelper(FGamesHelper).GameCardMouseUp(Sender, Button, Shift, X, Y);
 end;
-
 procedure Tgoverlayform.GameCardOpenFolderClick(Sender: TObject);
-var
-  Panel: TPanel;
-  GamePath: string;
-  Lines: TStringList;
 begin
-  Panel := FRightClickedCard;
-  if Panel = nil then Exit;
-
-  Lines := TStringList.Create;
-  try
-    Lines.Text := Panel.Hint;
-    if Lines.Count >= 2 then
-      GamePath := Lines[1]
-    else
-      Exit;
-  finally
-    Lines.Free;
-  end;
-
-  if DirectoryExists(GamePath) then
-    ExecuteShellCommand('xdg-open ' + QuotedStr(GamePath));
+  TGamesTabHelper(FGamesHelper).GameCardOpenFolderClick(Sender);
 end;
-
 procedure Tgoverlayform.GameCardOpenPrefixClick(Sender: TObject);
-var
-  Panel: TPanel;
-  GamePath: string;
-  PrefixPath: string;
-  Lines: TStringList;
-  AppID: string;
-  p: Integer;
 begin
-  Panel := FRightClickedCard;
-  if Panel = nil then Exit;
-
-  Lines := TStringList.Create;
-  try
-    Lines.Text := Panel.Hint;
-    if Lines.Count >= 2 then
-    begin
-      AppID := '';
-      if (Length(Lines[0]) > 0) and (Lines[0][1] = '(') then
-      begin
-        p := Pos(') ', Lines[0]);
-        if p > 0 then
-          AppID := Copy(Lines[0], 2, p - 2);
-      end;
-      
-      GamePath := Lines[1];
-    end
-    else
-      Exit;
-  finally
-    Lines.Free;
-  end;
-
-  if AppID <> '' then
-  begin
-    p := Pos('/common/', GamePath);
-    if p > 0 then
-    begin
-      PrefixPath := Copy(GamePath, 1, p - 1) + '/compatdata/' + AppID + '/pfx';
-      if DirectoryExists(PrefixPath) then
-        ExecuteShellCommand('xdg-open ' + QuotedStr(PrefixPath));
-    end;
-  end;
+  TGamesTabHelper(FGamesHelper).GameCardOpenPrefixClick(Sender);
 end;
-
 procedure Tgoverlayform.GameCardUninstallClick(Sender: TObject);
-var
-  Panel: TPanel;
-  GameName, GameCfgDir, GamePath, UninstallerPath: string;
-  Lines: TStringList;
-  i: Integer;
 begin
-  Panel := FRightClickedCard;
-  if Panel = nil then Exit;
-
-  // Extract game name and install path from Hint:
-  // '(AppID) GameName' + LineEnding + 'LibPath/common/InstallDir'
-  Lines := TStringList.Create;
-  try
-    if Panel.Hint = '' then Exit;
-    Lines.Text := Panel.Hint;
-    if Lines.Count < 2 then Exit;
-    i := Pos(') ', Lines[0]);
-    if i > 0 then
-      GameName := Copy(Lines[0], i + 2, MaxInt)
-    else
-      GameName := Lines[0];
-    GamePath := Lines[1];
-  finally
-    Lines.Free;
-  end;
-
-  if GameName = '' then Exit;
-
-  GameCfgDir := GetGameConfigDir(GameName);
-
-  // Recursively delete the GOverlay game config directory
-  if DirectoryExists(GameCfgDir) then
-    DeleteDirectory(GameCfgDir, False);
-
-  // Remove all OptiScaler/FGMod files from the game's install directory.
-  // The fgmod-uninstaller.sh script is copied to the game's exe folder on first
-  // launch. We locate it to discover the correct target directory, then perform
-  // the same cleanup the script would do (but directly, since the script expects
-  // to be invoked by Steam with the game's exe as argument).
-  if (GamePath <> '') and DirectoryExists(GamePath) then
-  begin
-    GamePath := IncludeTrailingPathDelimiter(GamePath);
-    UninstallerPath := FindFileInDir(GamePath, 'bgmod-uninstaller');
-    if UninstallerPath = '' then
-      UninstallerPath := FindFileInDir(GamePath, 'bgmod-uninstaller.sh');
-    if UninstallerPath = '' then
-      UninstallerPath := FindFileInDir(GamePath, 'fgmod-uninstaller.sh');
-    if UninstallerPath <> '' then
-      RunFGModUninstallCommands(ExtractFilePath(UninstallerPath))
-    else
-      RunFGModUninstallCommands(GamePath);
-  end;
-
-  // Remove badge controls from the card panel.
-  // Cover image has Proportional=False; badge images have Proportional=True.
-  for i := Panel.ControlCount - 1 downto 0 do
-  begin
-    if Panel.Controls[i] is TImage then
-    begin
-      if TImage(Panel.Controls[i]).Proportional then
-        Panel.Controls[i].Free;
-    end
-    else if (Panel.Controls[i] is TShape) or (Panel.Controls[i] is TLabel) then
-      Panel.Controls[i].Free;
-  end;
-
-  // Reset badge mask
-  Panel.Tag := 0;
-
-  SendNotification('Goverlay', 'Changes uninstalled for ' + GameName, GetIconFile);
+  TGamesTabHelper(FGamesHelper).GameCardUninstallClick(Sender);
 end;
-
 procedure Tgoverlayform.AddNonSteamFolderClick(Sender: TObject);
-var
-  FolderDlg: TSelectDirectoryDialog;
-  NonSteamFile, SelectedDir: string;
-  Lines: TStringList;
-  I: Integer;
 begin
-  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
-
-  FolderDlg := TSelectDirectoryDialog.Create(Self);
-  try
-    FolderDlg.Title := 'Select a non-Steam game folder';
-    if not FolderDlg.Execute then Exit;
-    SelectedDir := FolderDlg.FileName;
-  finally
-    FolderDlg.Free;
-  end;
-
-  // Prevent duplicates
-  if FileExists(NonSteamFile) then
-  begin
-    Lines := TStringList.Create;
-    try
-      Lines.LoadFromFile(NonSteamFile);
-      for I := 0 to Lines.Count - 1 do
-        if Trim(Lines[I]) = SelectedDir then
-        begin
-          ShowMessage('This folder has already been added.');
-          Exit;
-        end;
-    finally
-      Lines.Free;
-    end;
-  end;
-
-  // Append to list
-  ForceDirectories(ExtractFilePath(NonSteamFile));
-  Lines := TStringList.Create;
-  try
-    if FileExists(NonSteamFile) then
-      Lines.LoadFromFile(NonSteamFile);
-    Lines.Add(SelectedDir);
-    Lines.SaveToFile(NonSteamFile);
-  finally
-    Lines.Free;
-  end;
-
-  Application.QueueAsyncCall(@RefreshGameCardsAsync, 0);
+  TGamesTabHelper(FGamesHelper).AddNonSteamFolderClick(Sender);
 end;
-
 procedure Tgoverlayform.ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
-var
-  Pt: TPoint;
-  NonSteamFile: string;
-  Lines: TStringList;
-  I: Integer;
-  RemoveParent: TMenuItem;
-  SubItem: TMenuItem;
-  FolderPath: string;
 begin
-  if not Assigned(FRemoveFoldersMenu) then
-    FRemoveFoldersMenu := TPopupMenu.Create(Self)
-  else
-    FRemoveFoldersMenu.Items.Clear;
-
-  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
-  Lines := TStringList.Create;
-  try
-    if FileExists(NonSteamFile) then
-      Lines.LoadFromFile(NonSteamFile);
-
-    // Parent item: "Remove nonsteam folders"
-    RemoveParent := TMenuItem.Create(FRemoveFoldersMenu);
-    RemoveParent.Caption := 'Remove nonsteam folders';
-    FRemoveFoldersMenu.Items.Add(RemoveParent);
-
-    // Check if there are any folders to remove
-    if Lines.Count = 0 then
-    begin
-      SubItem := TMenuItem.Create(FRemoveFoldersMenu);
-      SubItem.Caption := '(No folders found)';
-      SubItem.Enabled := False;
-      RemoveParent.Add(SubItem);
-    end
-    else
-    begin
-      for I := 0 to Lines.Count - 1 do
-      begin
-        FolderPath := Trim(Lines[I]);
-        if FolderPath = '' then Continue;
-        
-        SubItem := TMenuItem.Create(FRemoveFoldersMenu);
-        SubItem.Caption := FolderPath;
-        SubItem.OnClick := @RemoveFolderMenuItemClick;
-        RemoveParent.Add(SubItem);
-      end;
-    end;
-  finally
-    Lines.Free;
-  end;
-
-  Pt := TControl(Sender).ClientToScreen(Point(X, Y));
-  FRemoveFoldersMenu.PopUp(Pt.X, Pt.Y);
+  TGamesTabHelper(FGamesHelper).ShowRemoveFoldersMenu(Sender, X, Y);
 end;
-
 procedure Tgoverlayform.RemoveFolderMenuItemClick(Sender: TObject);
-var
-  FolderPath: string;
-  NonSteamFile: string;
-  Lines: TStringList;
-  I: Integer;
 begin
-  if not (Sender is TMenuItem) then Exit;
-  FolderPath := TMenuItem(Sender).Caption;
-  if FolderPath = '' then Exit;
-
-  // Ask user if they want to remove that folder
-  if MessageDlg('Remove non-Steam folder', 
-                'Are you sure you want to remove the folder "' + FolderPath + '" from Goverlay?', 
-                mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-  begin
-    NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
-    Lines := TStringList.Create;
-    try
-      if FileExists(NonSteamFile) then
-      begin
-        Lines.LoadFromFile(NonSteamFile);
-        for I := Lines.Count - 1 downto 0 do
-        begin
-          if Trim(Lines[I]) = FolderPath then
-            Lines.Delete(I);
-        end;
-        Lines.SaveToFile(NonSteamFile);
-      end;
-    finally
-      Lines.Free;
-    end;
-
-    // Refresh the game cards grid immediately!
-    RefreshGameCards;
-  end;
+  TGamesTabHelper(FGamesHelper).RemoveFolderMenuItemClick(Sender);
 end;
-
 procedure Tgoverlayform.LoadNonSteamFolders(var ACardIndex: Integer;
   const ACardsPerRow, ARowMargin: Integer);
-var
-  NonSteamFile: string;
-  Lines: TStringList;
-  I, CardX, CardY: Integer;
-  FolderPath, GameName, SubPath: string;
-  CardPanel: TPanel;
-  CardImage: TImage;
-  BdgImg: TImage;
-  BdgLbl: TLabel;
-  ScaledBmp: TBitmap;
-  GameCfgDir: string;
-  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
-  BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
-  BdgBg: TShape;
-  TweakLines: TStringList;
-  k: Integer;
-  SubSR: TSearchRec;
-  LowerSubName: string;
-  ShouldSkip: Boolean;
-  CacheDir, CachePath: string;
-  HasCover: Boolean;
-  PendingItems: array of TNonSteamCoverItem;
-  PendingCount: Integer;
-const
-  BDG_SZ    = 18;
-  BDG_GAP   = 5;
-  BDG_PAD_V = 6;
-  BDG_FONT  = 13;
-  BDG_W     = 26;
-  BADGE_GLYPHS: array[0..3] of string = ('', '󰏘', '', '󰒓');
-  SKIP_NAMES: array[0..6] of string = ('prefixes', 'common', 'compatdata', 'shadercache', 'downloads', 'tmp', 'temp');
 begin
-  PendingCount := 0;
-  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
-  if not FileExists(NonSteamFile) then Exit;
-
-  Lines := TStringList.Create;
-  try
-    Lines.LoadFromFile(NonSteamFile);
-    for I := 0 to Lines.Count - 1 do
-    begin
-      FolderPath := Trim(Lines[I]);
-      if (FolderPath = '') or not DirectoryExists(FolderPath) then
-        Continue;
-
-      // Scan sub-folders inside the selected directory — each one is a game
-      if FindFirst(IncludeTrailingPathDelimiter(FolderPath) + '*', faDirectory, SubSR) = 0 then
-      begin
-        try
-          repeat
-            if (SubSR.Name = '.') or (SubSR.Name = '..') then Continue;
-            if (SubSR.Attr and faDirectory) = 0 then Continue;
-
-            LowerSubName := LowerCase(SubSR.Name);
-            // Skip known non-game directories
-            ShouldSkip := False;
-            for k := Low(SKIP_NAMES) to High(SKIP_NAMES) do
-              if LowerSubName = SKIP_NAMES[k] then
-              begin
-                ShouldSkip := True;
-                Break;
-              end;
-            if ShouldSkip then Continue;
-
-            SubPath := IncludeTrailingPathDelimiter(FolderPath) + SubSR.Name;
-            GameName := SubSR.Name;
-            if GameName = '' then Continue;
-
-      CardX := ARowMargin + (ACardIndex mod ACardsPerRow) * (CARD_W + ARowMargin);
-      CardY := ARowMargin + (ACardIndex div ACardsPerRow) * (CARD_H + ARowMargin);
-
-      CardPanel := TPanel.Create(Self);
-      CardPanel.Parent := FGamesPanel;
-      CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
-      CardPanel.BevelOuter := bvNone;
-      CardPanel.BevelInner := bvNone;
-      CardPanel.BorderWidth := 0;
-      CardPanel.Caption := '';
-      CardPanel.Tag := 9997;  // marker: non-Steam card
-      CardPanel.Color := $303030;
-      CardPanel.Hint := GameName + LineEnding + SubPath;
-      CardPanel.ShowHint := True;
-      CardPanel.OnMouseEnter := @GameCardMouseEnter;
-      CardPanel.OnMouseLeave := @GameCardMouseLeave;
-      CardPanel.OnClick := @GameCardClick;
-      CardPanel.OnMouseUp := @GameCardMouseUp;
-
-      CardImage := TImage.Create(CardPanel);
-      CardImage.Parent := CardPanel;
-      CardImage.SetBounds(0, 0, CARD_W, CARD_H);
-      CardImage.Stretch := True;
-      CardImage.Proportional := False;
-      CardImage.Center := False;
-      CardImage.Hint := CardPanel.Hint;
-      CardImage.ShowHint := True;
-      CardImage.OnMouseEnter := @GameCardMouseEnter;
-      CardImage.OnMouseLeave := @GameCardMouseLeave;
-      CardImage.OnClick := @GameCardClick;
-      CardImage.OnMouseUp := @GameCardMouseUp;
-
-      // Wine icon badge (top-left corner)
-      if Assigned(iconsImageList) then
-      begin
-        BdgImg := TImage.Create(CardPanel);
-        BdgImg.Parent      := CardPanel;
-        BdgImg.AutoSize    := False;
-        BdgImg.SetBounds(4, 4, 16, 16);
-        BdgImg.Stretch     := True;
-        BdgImg.Proportional := True;
-        BdgImg.Center      := True;
-        BdgImg.Transparent := True;
-        iconsImageList.GetBitmap(37, BdgImg.Picture.Bitmap);
-        BdgImg.BringToFront;
-        BdgImg.OnMouseEnter := @GameCardMouseEnter;
-        BdgImg.OnMouseLeave := @GameCardMouseLeave;
-        BdgImg.OnClick      := @GameCardClick;
-        BdgImg.OnMouseUp    := @GameCardMouseUp;
-      end;
-
-      // Game name label at bottom
-      BdgLbl := TLabel.Create(CardPanel);
-      BdgLbl.Parent := CardPanel;
-      BdgLbl.AutoSize := False;
-      BdgLbl.SetBounds(4, CARD_H - 40, CARD_W - 8, 36);
-      BdgLbl.Caption := GameName;
-      BdgLbl.Font.Color := clWhite;
-      BdgLbl.Font.Size := 9;
-      BdgLbl.Font.Style := [fsBold];
-      BdgLbl.Alignment := taCenter;
-      BdgLbl.Layout := tlCenter;
-      BdgLbl.WordWrap := True;
-      BdgLbl.Transparent := True;
-      BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-      BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-      BdgLbl.OnClick := @GameCardClick;
-      BdgLbl.OnMouseUp := @GameCardMouseUp;
-
-      // Compute badges from game-specific config dir (if user configured it)
-      GameCfgDir := GetGameConfigDir(GameName);
-      HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
-      HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
-      HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
-      HasTweaks := False;
-      if FileExists(GameCfgDir + 'bgmod.conf') then
-      begin
-        TweakLines := TStringList.Create;
-        try
-          TweakLines.LoadFromFile(GameCfgDir + 'bgmod.conf');
-          for k := 0 to TweakLines.Count - 1 do
-            if Pos('GOVERLAY_TWEAKS=1', StringReplace(TweakLines[k], ' ', '', [rfReplaceAll])) > 0 then
-            begin
-              HasTweaks := True;
-              Break;
-            end;
-        finally
-          TweakLines.Free;
-        end;
-      end;
-      BadgeCount := 0;
-      if HasMango      then Inc(BadgeCount, 1);
-      if HasVkBasalt   then Inc(BadgeCount, 2);
-      if HasOptiScaler then Inc(BadgeCount, 4);
-      if HasTweaks     then Inc(BadgeCount, 8);
-      CardPanel.Tag := BadgeCount;
-
-      if BadgeCount > 0 then
-      begin
-        BdgY := 2 * BDG_PAD_V + PopCnt(DWord(BadgeCount)) * BDG_SZ
-                + (PopCnt(DWord(BadgeCount)) - 1) * BDG_GAP;
-        BdgBg := TShape.Create(CardPanel);
-        BdgBg.Parent      := CardPanel;
-        BdgBg.Shape       := stRectangle;
-        BdgBg.Brush.Color := RGBToColor(28, 52, 96);
-        BdgBg.Pen.Style   := psClear;
-        BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
-        BdgBg.AnchorSide[akRight].Control := CardPanel;
-        BdgBg.AnchorSide[akRight].Side    := asrBottom;
-        BdgBg.AnchorSide[akTop].Control   := CardPanel;
-        BdgBg.AnchorSide[akTop].Side      := asrTop;
-        BdgBg.Anchors                     := [akTop, akRight];
-        BdgBg.OnMouseEnter := @GameCardMouseEnter;
-        BdgBg.OnMouseLeave := @GameCardMouseLeave;
-        BdgBg.OnClick      := @GameCardClick;
-        BdgBg.OnMouseUp    := @GameCardMouseUp;
-
-        BdgSlot := 0;
-        for BdgBit := 0 to 3 do
-        begin
-          if (BadgeCount and (1 shl BdgBit)) = 0 then Continue;
-          BdgX := CARD_W - BDG_W + (BDG_W - BDG_SZ) div 2;
-          BdgY := BDG_PAD_V + BdgSlot * (BDG_SZ + BDG_GAP);
-
-          if BdgBit = 0 then  // MangoHud — PNG icon
-          begin
-            BdgImg := TImage.Create(CardPanel);
-            BdgImg.Parent      := CardPanel;
-            BdgImg.AutoSize    := False;
-            BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-            BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-            BdgImg.BorderSpacing.Top   := BdgY;
-            BdgImg.AnchorSide[akRight].Control := CardPanel;
-            BdgImg.AnchorSide[akRight].Side    := asrBottom;
-            BdgImg.AnchorSide[akTop].Control   := CardPanel;
-            BdgImg.AnchorSide[akTop].Side      := asrTop;
-            BdgImg.Anchors                     := [akTop, akRight];
-            BdgImg.Stretch     := True;
-            BdgImg.Proportional := True;
-            BdgImg.Center      := True;
-            BdgImg.Transparent := True;
-            if FileExists(GetAppBaseDir + 'assets/icons/mango-active.png') then
-              try BdgImg.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/mango-active.png'); except end;
-            BdgImg.BringToFront;
-            BdgImg.OnMouseEnter := @GameCardMouseEnter;
-            BdgImg.OnMouseLeave := @GameCardMouseLeave;
-            BdgImg.OnClick      := @GameCardClick;
-            BdgImg.OnMouseUp    := @GameCardMouseUp;
-          end
-          else if BdgBit = 2 then  // OptiScaler — PNG icon
-          begin
-            BdgImg := TImage.Create(CardPanel);
-            BdgImg.Parent      := CardPanel;
-            BdgImg.AutoSize    := False;
-            BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-            BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-            BdgImg.BorderSpacing.Top   := BdgY;
-            BdgImg.AnchorSide[akRight].Control := CardPanel;
-            BdgImg.AnchorSide[akRight].Side    := asrBottom;
-            BdgImg.AnchorSide[akTop].Control   := CardPanel;
-            BdgImg.AnchorSide[akTop].Side      := asrTop;
-            BdgImg.Anchors                     := [akTop, akRight];
-            BdgImg.Stretch     := True;
-            BdgImg.Proportional := True;
-            BdgImg.Center      := True;
-            BdgImg.Transparent := True;
-            if FileExists(GetAppBaseDir + 'assets/icons/scale-up2-active.png') then
-              try BdgImg.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/scale-up2-active.png'); except end;
-            BdgImg.BringToFront;
-            BdgImg.OnMouseEnter := @GameCardMouseEnter;
-            BdgImg.OnMouseLeave := @GameCardMouseLeave;
-            BdgImg.OnClick      := @GameCardClick;
-            BdgImg.OnMouseUp    := @GameCardMouseUp;
-          end
-          else  // vkBasalt or Tweaks — TLabel glyph
-          begin
-            BdgLbl := TLabel.Create(CardPanel);
-            BdgLbl.Parent     := CardPanel;
-            BdgLbl.AutoSize   := False;
-            BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
-            BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 3;
-            BdgLbl.BorderSpacing.Top   := BdgY + 1;
-            BdgLbl.AnchorSide[akRight].Control := CardPanel;
-            BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-            BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-            BdgLbl.AnchorSide[akTop].Side      := asrTop;
-            BdgLbl.Anchors                     := [akTop, akRight];
-            BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-            BdgLbl.Font.Name  := 'Noto Sans';
-            BdgLbl.Font.Size  := BDG_FONT;
-            BdgLbl.Font.Color := clBlack;
-            BdgLbl.Font.Style := [];
-            BdgLbl.Transparent := True;
-            BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-            BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-            BdgLbl.OnClick      := @GameCardClick;
-            BdgLbl.OnMouseUp    := @GameCardMouseUp;
-
-            BdgLbl := TLabel.Create(CardPanel);
-            BdgLbl.Parent     := CardPanel;
-            BdgLbl.AutoSize   := False;
-            BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
-            BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 2;
-            BdgLbl.BorderSpacing.Top   := BdgY;
-            BdgLbl.AnchorSide[akRight].Control := CardPanel;
-            BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-            BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-            BdgLbl.AnchorSide[akTop].Side      := asrTop;
-            BdgLbl.Anchors                     := [akTop, akRight];
-            BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-            BdgLbl.Font.Name  := 'Noto Sans';
-            BdgLbl.Font.Size  := BDG_FONT;
-            BdgLbl.Font.Color := clWhite;
-            BdgLbl.Font.Style := [];
-            BdgLbl.Transparent := True;
-            BdgLbl.BringToFront;
-            BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-            BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-            BdgLbl.OnClick      := @GameCardClick;
-            BdgLbl.OnMouseUp    := @GameCardMouseUp;
-          end;
-          Inc(BdgSlot);
-        end;
-      end;
-
-            // Try to load cached cover; if missing queue async download
-            CacheDir := GetUserDir + '.cache/goverlay/nonsteam_covers/';
-            ForceDirectories(CacheDir);
-            CachePath := CacheDir + SanitizeFileName(GameName) + '.jpg';
-            HasCover := False;
-
-            if FileExists(CachePath) then
-            begin
-              try
-                CardImage.Picture.LoadFromFile(CachePath);
-                HasCover := True;
-              except
-                HasCover := False;
-              end;
-            end;
-
-            FCardPanels.Add(CardPanel);
-            if HasCover then
-            begin
-              ScaledBmp := TBitmap.Create;
-              try
-                ScaledBmp.SetSize(CARD_W, CARD_H);
-                ScaledBmp.Canvas.StretchDraw(Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-                ProcessCoverBitmap(ScaledBmp, GRAD_H);
-                CardImage.Picture.Bitmap.Assign(ScaledBmp);
-                FOrigCovers.Add(ScaledBmp.CreateIntfImage);
-              finally
-                ScaledBmp.Free;
-              end;
-            end
-            else
-            begin
-              // Solid-colour fallback immediately so UI stays responsive
-              ScaledBmp := TBitmap.Create;
-              try
-                ScaledBmp.SetSize(CARD_W, CARD_H);
-                ScaledBmp.Canvas.Brush.Color := $303030;
-                ScaledBmp.Canvas.FillRect(Rect(0, 0, CARD_W, CARD_H));
-                ProcessCoverBitmap(ScaledBmp, GRAD_H);
-                CardImage.Picture.Bitmap.Assign(ScaledBmp);
-                FOrigCovers.Add(ScaledBmp.CreateIntfImage);
-              finally
-                ScaledBmp.Free;
-              end;
-              // Queue for background cover download thread
-              SetLength(PendingItems, PendingCount + 1);
-              PendingItems[PendingCount].GameName  := GameName;
-              PendingItems[PendingCount].CachePath := CachePath;
-              PendingItems[PendingCount].CardIndex := FCardPanels.Count - 1;
-              Inc(PendingCount);
-            end;
-            ApplyCardBrightness(CardPanel, 100);
-
-            Inc(ACardIndex);
-          until FindNext(SubSR) <> 0;
-        finally
-          FindClose(SubSR);
-        end;
-      end;
-    end;
-
-    // Launch background thread to download missing non-Steam covers
-    if PendingCount > 0 then
-    begin
-      if Assigned(FNonSteamCoverThread) then
-      begin
-        FNonSteamCoverThread.Terminate;
-        FNonSteamCoverThread := nil;
-      end;
-      FNonSteamCoverThread := TNonSteamCoverThread.Create(PendingItems, Self);
-      FNonSteamCoverThread.Start;
-    end;
-  finally
-    Lines.Free;
-  end;
+  TGamesTabHelper(FGamesHelper).LoadNonSteamFolders(ACardIndex, ACardsPerRow, ARowMargin);
 end;
-
-// ============================================================================
-// Game-specific config helpers
-// ============================================================================
-
 function Tgoverlayform.SanitizeFileName(const AName: string): string;
 var
   i: Integer;
@@ -17652,76 +15018,9 @@ begin
 end;
 
 procedure Tgoverlayform.RunFGModUninstallCommands(const ATargetDir: string);
-const
-  RM_FILES: array[0..20] of string = (
-    'OptiScaler.dll', 'OptiScaler.asi', 'OptiScaler.ini', 'OptiScaler.log',
-    'dlssg_to_fsr3_amd_is_better.dll', 'dlssg_to_fsr3.ini', 'dlssg_to_fsr3.log',
-    'nvapi64.dll', 'fakenvapi.ini', 'fakenvapi.log', 'fakenvapi.dll',
-    'libxess.dll', 'libxess_dx11.dll', 'libxess_fg.dll', 'libxell.dll',
-    'nvngx.dll', 'nvngx.ini', 'amd_fidelityfx_dx12.dll',
-    'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll',
-    'amd_fidelityfx_vk.dll'
-  );
-  LEGACY_FILES: array[0..17] of string = (
-    'dlss-enabler.dll', 'dlss-enabler-upscaler.dll', 'dlss-enabler.log',
-    'nvngx-wrapper.dll', '_nvngx.dll', 'dlssg_to_fsr3_amd_is_better-3.0.dll',
-    'fgmod-uninstaller.sh', 'bgmod-uninstaller.sh', 'bgmod-remover.sh',
-    'fgmod', 'bgmod', 'bgmod.conf', 'bgmod.log', 'bgmod-uninstaller',
-    'bgmod-uninstaller.log', 'MangoHud.conf', 'vkBasalt.conf', 'vkSumi.conf'
-  );
-  RESTORE_DLLS: array[0..14] of string = (
-    'd3dcompiler_47.dll', 'amd_fidelityfx_dx12.dll',
-    'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll',
-    'amd_fidelityfx_vk.dll', 'libxess.dll', 'libxess_dx11.dll',
-    'libxess_fg.dll', 'libxell.dll',
-    'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'version.dll',
-    'wininet.dll', 'winhttp.dll'
-  );
-var
-  Dir, FilePath: string;
-  i: Integer;
-  RestoreFrom: string;
 begin
-  Dir := IncludeTrailingPathDelimiter(ATargetDir);
-
-  // Remove known OptiScaler / FGMod files
-  for i := Low(RM_FILES) to High(RM_FILES) do
-  begin
-    FilePath := Dir + RM_FILES[i];
-    if FileExists(FilePath) then
-      DeleteFile(FilePath);
-  end;
-
-  // Remove legacy files
-  for i := Low(LEGACY_FILES) to High(LEGACY_FILES) do
-  begin
-    FilePath := Dir + LEGACY_FILES[i];
-    if FileExists(FilePath) then
-      DeleteFile(FilePath);
-  end;
-
-  // Remove plugins directory
-  if DirectoryExists(Dir + 'plugins') then
-    DeleteDirectory(Dir + 'plugins', False);
-
-  // Restore original DLLs from .b backups
-  for i := Low(RESTORE_DLLS) to High(RESTORE_DLLS) do
-  begin
-    RestoreFrom := Dir + RESTORE_DLLS[i] + '.b';
-    FilePath    := Dir + RESTORE_DLLS[i];
-    if FileExists(RestoreFrom) then
-    begin
-      if FileExists(FilePath) then
-        DeleteFile(FilePath);
-      RenameFile(RestoreFrom, FilePath);
-    end;
-  end;
+  TGamesTabHelper(FGamesHelper).RunFGModUninstallCommands(ATargetDir);
 end;
-
-// ============================================================================
-// Game name cleaning for better store search matches
-// ============================================================================
-
 function Tgoverlayform.CleanGameNameForSearch(const AName: string): string;
 var
   i: Integer;
@@ -17834,349 +15133,17 @@ end;
 // ============================================================================
 
 function Tgoverlayform.SearchWebCover(const AGameName, ACachePath: string): Boolean;
-var
-  SearchName, Url, Html, ImgUrl: string;
-  P: TProcess;
-  S: TStringList;
-  i, j, k: Integer;
-  Candidates: TStringList;
-  SearchRec: TSearchRec;
-  TmpFile: string;
 begin
-  Result := False;
-
-  SearchName := StringReplace(AGameName, ' ', '+', [rfReplaceAll]);
-  SearchName := StringReplace(SearchName, '&', '%26', [rfReplaceAll]);
-
-  // Bing image search for game cover art
-  Url := 'https://www.bing.com/images/search?q=' + SearchName +
-         '+video+game+cover+art+600x900+jpg&form=HDRSC2&first=1';
-
-  TmpFile := GetTempDir + 'goverlay_bing_' + IntToStr(GetProcessID) + '.html';
-
-  P := TProcess.Create(nil);
-  try
-    P.Executable := 'curl';
-    P.Parameters.Add('-s');
-    P.Parameters.Add('-L');
-    P.Parameters.Add('--connect-timeout');
-    P.Parameters.Add('5');
-    P.Parameters.Add('--max-time');
-    P.Parameters.Add('10');
-    P.Parameters.Add('-H');
-    P.Parameters.Add('User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36');
-    P.Parameters.Add('-o');
-    P.Parameters.Add(TmpFile);
-    P.Parameters.Add(Url);
-    P.Options := [poWaitOnExit, poNoConsole];
-    try
-      P.Execute;
-    except
-      Exit;
-    end;
-  finally
-    P.Free;
-  end;
-
-  if not FileExists(TmpFile) then Exit;
-
-  S := TStringList.Create;
-  try
-    S.LoadFromFile(TmpFile);
-    Html := S.Text;
-  finally
-    S.Free;
-    DeleteFile(TmpFile);
-  end;
-
-  if Html = '' then Exit;
-
-  // Parse HTML for image URLs
-  // Bing embeds image data in "murl":"..." patterns
-  Candidates := TStringList.Create;
-  try
-    // Look for "murl":"https://..." pattern
-    i := Pos('"murl":"', Html);
-    while i > 0 do
-    begin
-      j := i + Length('"murl":"');
-      k := j;
-      while (k <= Length(Html)) and (Html[k] <> '"') do
-        Inc(k);
-      ImgUrl := Copy(Html, j, k - j);
-      // Unescape common sequences
-      ImgUrl := StringReplace(ImgUrl, '\/', '/', [rfReplaceAll]);
-      ImgUrl := StringReplace(ImgUrl, '\u0026', '&', [rfReplaceAll]);
-      if (Pos('http', ImgUrl) = 1) and (Candidates.IndexOf(ImgUrl) < 0) then
-        Candidates.Add(ImgUrl);
-      if Candidates.Count >= 5 then Break;
-      i := PosEx('"murl":"', Html, k);
-    end;
-
-    // Also try &murl= pattern as fallback
-    if Candidates.Count = 0 then
-    begin
-      i := Pos('murl=http', Html);
-      while i > 0 do
-      begin
-        j := i + Length('murl=');
-        k := j;
-        while (k <= Length(Html)) and not (Html[k] in ['&', '"', '''', ' ']) do
-          Inc(k);
-        ImgUrl := Copy(Html, j, k - j);
-        // Basic URL decode
-        ImgUrl := StringReplace(ImgUrl, '%3A', ':', [rfReplaceAll]);
-        ImgUrl := StringReplace(ImgUrl, '%2F', '/', [rfReplaceAll]);
-        ImgUrl := StringReplace(ImgUrl, '%3F', '?', [rfReplaceAll]);
-        ImgUrl := StringReplace(ImgUrl, '%3D', '=', [rfReplaceAll]);
-        ImgUrl := StringReplace(ImgUrl, '%26', '&', [rfReplaceAll]);
-        if (Pos('http', ImgUrl) = 1) and (Candidates.IndexOf(ImgUrl) < 0) then
-          Candidates.Add(ImgUrl);
-        if Candidates.Count >= 5 then Break;
-        i := PosEx('murl=http', Html, k);
-      end;
-    end;
-
-    // Try downloading each candidate until one works
-    for i := 0 to Candidates.Count - 1 do
-    begin
-      ImgUrl := Candidates[i];
-
-      // Skip obviously wrong formats
-      if (Pos('.svg', LowerCase(ImgUrl)) > 0) or
-         (Pos('.gif', LowerCase(ImgUrl)) > 0) then
-        Continue;
-
-      P := TProcess.Create(nil);
-      try
-        P.Executable := 'curl';
-        P.Parameters.Add('-s');
-        P.Parameters.Add('-L');
-        P.Parameters.Add('--connect-timeout');
-        P.Parameters.Add('5');
-        P.Parameters.Add('--max-time');
-        P.Parameters.Add('10');
-        P.Parameters.Add('-o');
-        P.Parameters.Add(ACachePath);
-        P.Parameters.Add(ImgUrl);
-        P.Options := [poWaitOnExit];
-        try
-          P.Execute;
-          if (P.ExitStatus = 0) and FileExists(ACachePath) then
-          begin
-            // Verify it's a real image by checking file size (> 2KB)
-            if FindFirst(ACachePath, faAnyFile, SearchRec) = 0 then
-            begin
-              if SearchRec.Size > 2048 then
-              begin
-                Result := True;
-                FindClose(SearchRec);
-                Break;
-              end;
-              FindClose(SearchRec);
-            end;
-          end;
-        except
-        end;
-      finally
-        P.Free;
-      end;
-    end;
-  finally
-    Candidates.Free;
-  end;
+  Result := TGamesTabHelper(FGamesHelper).SearchWebCover(AGameName, ACachePath);
 end;
-
-// ============================================================================
-// Steam Store API cover lookup (no authentication required)
-// ============================================================================
-
 function Tgoverlayform.SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
-
-  function TrySingleSearch(const Term: string; out FoundId: string): Boolean;
-  var
-    Url, JsonStr: string;
-    P: TProcess;
-    S: TStringList;
-    JData: TJSONData;
-    JArray: TJSONArray;
-    i: Integer;
-    ItemObj: TJSONObject;
-  begin
-    Result := False;
-    FoundId := '';
-
-    Url := 'https://store.steampowered.com/api/storesearch/?term=' +
-           StringReplace(Term, ' ', '%20', [rfReplaceAll]) +
-           '&l=english&cc=US';
-
-    P := TProcess.Create(nil);
-    S := TStringList.Create;
-    try
-      P.Executable := 'curl';
-      P.Parameters.Add('-s');
-      P.Parameters.Add('-L');
-      P.Parameters.Add('--connect-timeout');
-      P.Parameters.Add('5');
-      P.Parameters.Add('--max-time');
-      P.Parameters.Add('10');
-      P.Parameters.Add('-H');
-      P.Parameters.Add('Accept: application/json');
-      P.Parameters.Add(Url);
-      P.Options := [poUsePipes, poWaitOnExit];
-      try
-        P.Execute;
-        S.LoadFromStream(P.Output);
-        JsonStr := S.Text;
-      except
-        Exit;
-      end;
-    finally
-      P.Free;
-      S.Free;
-    end;
-
-    if JsonStr = '' then Exit;
-
-    try
-      JData := GetJSON(JsonStr);
-      try
-        if not (JData is TJSONObject) then Exit;
-        JArray := TJSONArray(JData.FindPath('items'));
-        if not Assigned(JArray) or (JArray.Count = 0) then Exit;
-
-        for i := 0 to JArray.Count - 1 do
-        begin
-          if JArray.Items[i] is TJSONObject then
-          begin
-            ItemObj := TJSONObject(JArray.Items[i]);
-            FoundId := IntToStr(ItemObj.Get('id', 0));
-            if FoundId <> '0' then
-            begin
-              Result := True;
-              Break;
-            end;
-          end;
-        end;
-      finally
-        JData.Free;
-      end;
-    except
-      Exit;
-    end;
-  end;
-
-var
-  CleanName, TryName: string;
-  Names: TStringList;
-  i, p: Integer;
 begin
-  Result := False;
-  AAppId := '';
-
-  Names := TStringList.Create;
-  try
-    // 1. Original name (exact folder name)
-    Names.Add(AGameName);
-
-    // 2. Cleaned name (CamelCase -> spaces, etc.)
-    CleanName := CleanGameNameForSearch(AGameName);
-    if Names.IndexOf(CleanName) < 0 then
-      Names.Add(CleanName);
-
-    // 3. Without common edition/suffix markers
-    TryName := CleanName;
-    TryName := StringReplace(TryName, 'Enhanced', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Definitive Edition', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Remastered', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Remake', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'GOTY', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Game of the Year', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Deluxe', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Standard', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Complete', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := StringReplace(TryName, 'Ultimate', '', [rfReplaceAll, rfIgnoreCase]);
-    TryName := Trim(TryName);
-    if (TryName <> '') and (TryName <> CleanName) and (Names.IndexOf(TryName) < 0) then
-      Names.Add(TryName);
-
-    // 4. Without subtitle (after " - " or ": ")
-    p := Pos(' - ', CleanName);
-    if p > 0 then
-    begin
-      TryName := Trim(Copy(CleanName, 1, p - 1));
-      if (TryName <> '') and (Names.IndexOf(TryName) < 0) then
-        Names.Add(TryName);
-    end;
-    p := Pos(': ', CleanName);
-    if p > 0 then
-    begin
-      TryName := Trim(Copy(CleanName, 1, p - 1));
-      if (TryName <> '') and (Names.IndexOf(TryName) < 0) then
-        Names.Add(TryName);
-    end;
-
-    // 5. First significant word (for very long concatenated names)
-    if Length(CleanName) > 20 then
-    begin
-      p := Pos(' ', CleanName);
-      if (p > 3) and (p < 15) then
-      begin
-        TryName := Trim(Copy(CleanName, 1, p - 1));
-        if (TryName <> '') and (Names.IndexOf(TryName) < 0) then
-          Names.Add(TryName);
-      end;
-    end;
-
-    // Try each variant until one succeeds
-    for i := 0 to Names.Count - 1 do
-    begin
-      if TrySingleSearch(Names[i], AAppId) then
-      begin
-        Result := True;
-        Exit;
-      end;
-    end;
-  finally
-    Names.Free;
-  end;
+  Result := TGamesTabHelper(FGamesHelper).SearchSteamStoreGame(AGameName, AAppId);
 end;
-
 function Tgoverlayform.DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
-var
-  ImgUrl: string;
-  P: TProcess;
 begin
-  Result := False;
-  if AAppId = '' then Exit;
-
-  ImgUrl := 'https://steamcdn-a.akamaihd.net/steam/apps/' + AAppId + '/library_600x900.jpg';
-
-  ForceDirectories(ExtractFilePath(ACachePath));
-  P := TProcess.Create(nil);
-  try
-    P.Executable := 'curl';
-    P.Parameters.Add('-s');
-    P.Parameters.Add('-L');
-    P.Parameters.Add('--connect-timeout');
-    P.Parameters.Add('5');
-    P.Parameters.Add('--max-time');
-    P.Parameters.Add('10');
-    P.Parameters.Add('-o');
-    P.Parameters.Add(ACachePath);
-    P.Parameters.Add(ImgUrl);
-    P.Options := [poWaitOnExit];
-    try
-      P.Execute;
-      Result := (P.ExitStatus = 0) and FileExists(ACachePath);
-    except
-      Result := False;
-    end;
-  finally
-    P.Free;
-  end;
+  Result := TGamesTabHelper(FGamesHelper).DownloadSteamCover(AAppId, ACachePath);
 end;
-
 function Tgoverlayform.GetGameConfigDir(const AGameName: string): string;
 begin
   // Use the centralized Flatpak-aware helper so game configs are stored in
@@ -18269,62 +15236,13 @@ begin
 end;
 
 procedure Tgoverlayform.ShowGameThumb(ACard: TPanel);
-var
-  i: Integer;
-  Img: TImage;
-  Bmp: TBitmap;
 begin
-  if ACard = nil then Exit;
-
-  // Find the TImage child of the selected game card
-  Img := nil;
-  for i := 0 to ACard.ControlCount - 1 do
-    if ACard.Controls[i] is TImage then
-    begin
-      Img := TImage(ACard.Controls[i]);
-      Break;
-    end;
-
-  FreeAndNil(FGameThumbBmp);
-
-  if Assigned(Img) and Assigned(Img.Picture.Graphic) and
-     (Img.Picture.Graphic.Width > 0) then
-  begin
-    Bmp := TBitmap.Create;
-    try
-      Bmp.SetSize(Img.Picture.Graphic.Width, Img.Picture.Graphic.Height);
-      Bmp.Canvas.Draw(0, 0, Img.Picture.Graphic);
-      FGameThumbBmp := Bmp;
-    except
-      Bmp.Free;
-    end;
-  end;
-
-  goverlayPaintBox.Invalidate;
+  TGamesTabHelper(FGamesHelper).ShowGameThumb(ACard);
 end;
-
 procedure Tgoverlayform.LoadGlobalThumb;
-var
-  ImgPath: string;
 begin
-  FreeAndNil(FGameThumbBmp);
-  // Load global icon only once
-  if not Assigned(FGlobalThumbPng) then
-  begin
-    ImgPath := GetAppBaseDir + 'assets/icons/global-white.png';
-    if FileExists(ImgPath) then
-    begin
-      FGlobalThumbPng := TPortableNetworkGraphic.Create;
-      try
-        FGlobalThumbPng.LoadFromFile(ImgPath);
-      except
-        FreeAndNil(FGlobalThumbPng);
-      end;
-    end;
-  end;
-  goverlayPaintBox.Invalidate;
+  TGamesTabHelper(FGamesHelper).LoadGlobalThumb;
 end;
-
 procedure Tgoverlayform.HideGameThumb;
 begin
   LoadGlobalThumb;
@@ -18335,69 +15253,13 @@ end;
 // ============================================================================
 
 procedure Tgoverlayform.ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
-var
-  CardIdx: Integer;
-  OrigIntf, DimIntf: TLazIntfImage;
-  Img: TImage;
-  DimBmp: TBitmap;
-  SrcRow, DstRow: PByte;
-  W, H, Stride, BPP, x, y, px: Integer;
 begin
-  if not Assigned(FCardPanels) or not Assigned(FOrigCovers) then Exit;
-  CardIdx := FCardPanels.IndexOf(ACard);
-  if (CardIdx < 0) or (CardIdx >= FOrigCovers.Count) then Exit;
-  OrigIntf := TLazIntfImage(FOrigCovers[CardIdx]);
-  if OrigIntf = nil then Exit;
-  if (ACard.ControlCount = 0) or not (ACard.Controls[0] is TImage) then Exit;
-  Img := TImage(ACard.Controls[0]);
-
-  W      := OrigIntf.Width;
-  H      := OrigIntf.Height;
-  Stride := OrigIntf.DataDescription.BytesPerLine;
-  BPP    := OrigIntf.DataDescription.BitsPerPixel div 8;
-
-  DimIntf := TLazIntfImage.Create(W, H);
-  DimIntf.DataDescription := OrigIntf.DataDescription;
-  DimIntf.CreateData;
-  try
-    for y := 0 to H - 1 do
-    begin
-      SrcRow := OrigIntf.PixelData + PtrUInt(y * Stride);
-      DstRow := DimIntf.PixelData  + PtrUInt(y * Stride);
-      for x := 0 to W - 1 do
-      begin
-        px := x * BPP;
-        DstRow[px]   := Byte(Integer(SrcRow[px])   * BrightFactor div 100);
-        DstRow[px+1] := Byte(Integer(SrcRow[px+1]) * BrightFactor div 100);
-        DstRow[px+2] := Byte(Integer(SrcRow[px+2]) * BrightFactor div 100);
-        if BPP >= 4 then
-          DstRow[px+3] := SrcRow[px+3];
-      end;
-    end;
-    DimBmp := TBitmap.Create;
-    try
-      DimBmp.LoadFromIntfImage(DimIntf);
-      Img.Picture.Bitmap.Assign(DimBmp);
-      Img.Invalidate;
-    finally
-      DimBmp.Free;
-    end;
-  finally
-    DimIntf.Free;
-  end;
+  TGamesTabHelper(FGamesHelper).ApplyCardBrightness(ACard, BrightFactor);
 end;
-
 procedure Tgoverlayform.ApplyAllCardsDim;
-var
-  i: Integer;
 begin
-  if not Assigned(FCardPanels) then Exit;
-  for i := 0 to FCardPanels.Count - 1 do
-    ApplyCardBrightness(TPanel(FCardPanels[i]), 100);
-  FHoveredCard     := nil;
-  FHoverBrightness := 0;
+  TGamesTabHelper(FGamesHelper).ApplyAllCardsDim;
 end;
-
 procedure Tgoverlayform.HoverTimerTick(Sender: TObject);
 const
   STEP = 10;  // ~10 steps × 16 ms ≈ 160 ms full transition
@@ -18626,7 +15488,8 @@ end;
 
 procedure Tgoverlayform.RefreshGameCardsAsync(Data: PtrInt);
 begin
-  RefreshGameCards;
+  TGamesTabHelper(FGamesHelper).RefreshGameCardsAsync(Data);
 end;
+
 
 end.
