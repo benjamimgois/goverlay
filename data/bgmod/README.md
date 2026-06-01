@@ -1,33 +1,67 @@
-## Credit
-This mod is an installation script for Artur's [DLSS Enabler](https://github.com/artur-graniszewski/DLSS-Enabler) which itself is a combination of multiple other projects.
+# bgmod — Agent Context & Architecture
 
-## Installation
-Run this command in the terminal
-```sh
-curl https://raw.githubusercontent.com/FakeMichau/fgmod/main/prepare.sh | bash --
+`bgmod` is a native compiled Free Pascal wrapper (`bgmod.lpr`) designed to replace the legacy `fgmod` bash script inside GOverlay. It intercepts game execution arguments, configures environment variables, handles Wine DLL overrides, manages upscale plugins, and executes the target game.
+
+## Architecture & Workflow
+
+1. **Resolution**: On startup, it resolves the target game directory from execution arguments, Lutris game IDs, or `STEAM_COMPAT_INSTALL_PATH`.
+2. **Configuration**: It parses configuration values and environment variables from `bgmod.conf`.
+3. **Upscaler Setup**: If OptiScaler is toggled, it backs up original system/game DLLs, copies dynamic link libraries (`OptiScaler.dll`, XeSS, FidelityFX, fake-nvapi), and sets up the plugins directory.
+4. **Execution**: Exports active environment variables and launches the target game subprocess using `execvp`.
+
+---
+
+## Key Files & Structure
+
+| File | Type | Purpose |
+|---|---|---|
+| `bgmod` | Binary | Main compiled wrapper executable. |
+| `bgmod-uninstaller` | Binary | Native uninstaller. Restores backed up files and cleans game folders. |
+| `bgmod.conf` | INI Config | Configuration file containing `[Config]`, `[Env]`, and `[Launchers]` sections. |
+
+---
+
+## Configuration Format (`bgmod.conf`)
+
+`bgmod.conf` is stored next to the wrapper binary (either globally or inside game-specific config directories).
+
+### `[Config]` Section
+- `GOVERLAY_MANGOHUD` (0/1): Toggles MangoHud overlay.
+- `GOVERLAY_VKBASALT` (0/1): Toggles vkBasalt overlay.
+- `GOVERLAY_OPTISCALER` (0/1): Toggles OptiScaler.
+- `GOVERLAY_TWEAKS` (0/1): Toggles Proton tweaks and env vars.
+- `DLL` (string): Target DLL name to load (default: `dxgi.dll`).
+- `PRESERVE_INI` (true/false): Toggles persistence of `OptiScaler.ini`.
+
+### `[Env]` Section
+Standard environment variables to export before running the game (e.g. `PROTON_ENABLE_HDR=1`).
+
+### `[Launchers]` Section
+Dynamic rules to match launcher EXEs and redirect them to target game EXEs.
+Format: `GameSubstring = LauncherEXE|ActualGameEXE`
+Example:
+```ini
+[Launchers]
+Cyberpunk 2077 = REDprelauncher.exe|bin/x64/Cyberpunk2077.exe
+Witcher 3 = REDprelauncher.exe|bin/x64_dx12/witcher3.exe
 ```
-This will create a folder called ``fgmod`` in your home directory with a wrapper ``fgmod`` inside of it.
+If the launchers section or file is missing, the binary falls back to its built-in default launchers list.
 
-Before running it, at least take a look at prepare.sh and fgmod.sh, piping stuff blindly into sh is not wise.
+---
 
-## Usage
-After running the script, you will be given the exact command. In case you missed it, look below.
+## Uninstallation Model
 
-Replace USERNAME with your own.  
-For Steam, add this to the launch options ``/home/USERNAME/fgmod/fgmod %COMMAND%``  
-For Heroic, add this as a new wrapper ``/home/USERNAME/fgmod/fgmod``  
-For Bottles, add this this as pre-run script in the launch options ``/home/USERNAME/fgmod/fgmod``  
-For Lutris, go to system options then add this to command prefix  ``/home/USERNAME/fgmod/fgmod``  
+The uninstaller `bgmod-uninstaller` resolves the game directory, and:
+1. Deletes copied upscaler and overlay DLLs and configuration files.
+2. Removes the `plugins/` directory recursively.
+3. Restores original game files from `.b` backups.
+4. Deletes the wrapper symlinks, wrapper logs, and itself.
+5. Supports the `-g` / `--global` flag to clean up the central GOverlay config directory.
 
-### AUR package
-There is PKGBUILD, download that and fgmod.sh, you know what to do with it - ``makepkg``. Usage is simpler, just add ``fgmod`` as a wrapper.
+---
 
-## Uninstallation
-### 1. For a single game
-- Remove ``/home/USERNAME/fgmod/fgmod`` from the launch options
-- Run ``fgmod-uninstaller.sh`` found in the game folder, it will not always be the main folder
-
-
-### 2. The whole fgmod
-- Remove the ``/home/USERNAME/fgmod`` folder
-- Do the steps for a single game for every game you've used fgmod with 
+## Logging
+Execution logs are written to:
+1. `/tmp/bgmod.log` (wrapper) and `/tmp/bgmod-uninstaller.log` (uninstaller).
+2. `bgmod.log` and `bgmod-uninstaller.log` inside the game directory.
+3. Central GOverlay logs directory: `~/.local/share/goverlay/logs/[Game Name]/bgmod.log`.
