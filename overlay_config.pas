@@ -5,7 +5,7 @@ unit overlay_config;
 interface
 
 uses
-  Classes, SysUtils, IniFiles, FileUtil, StrUtils, Types, configfile, configmanager, configkeys, bgmod_resources, optiscaler_update;
+  Classes, SysUtils, IniFiles, FileUtil, StrUtils, Types, Graphics, configfile, configmanager, configkeys, bgmod_resources, optiscaler_update, systemdetector, apputils;
 
 type
   TVkBasaltSettings = record
@@ -54,6 +54,145 @@ type
     TraceLogChecked: Boolean;
   end;
 
+  TMangoHudSettings = record
+    MangoHudCfgFile: string;
+    Version: string;
+    Channel: string;
+    ActiveGameName: string;
+
+    // Visual Tab
+    HudTitle: string;
+    Horizontal: Boolean;
+    TranspPosition: Integer;
+    RoundCorners: Boolean;
+    HudBackgroundColor: TColor;
+    FontText: string;
+    FontSize: Integer;
+    FontColor: TColor;
+    Position: string;
+    OffsetX: Integer;
+    OffsetY: Integer;
+    ToggleHudKey: string;
+    HideHud: Boolean;
+    HudCompact: Boolean;
+    HorizontalStretch: Boolean;
+    PciDevIndex: Integer;
+    PciDevCount: Integer;
+    PciDevText: string;
+    TableColumns: string;
+
+    // Metrics Tab - GPU
+    GpuText: string;
+    GpuAvgLoad: Boolean;
+    GpuLoadColorChecked: Boolean;
+    GpuLoadColors: array[0..2] of TColor;
+    VramUsage: Boolean;
+    VramColor: TColor;
+    GpuFreq: Boolean;
+    GpuMemFreq: Boolean;
+    GpuTemp: Boolean;
+    GpuMemTemp: Boolean;
+    GpuJuncTemp: Boolean;
+    GpuFan: Boolean;
+    GpuPower: Boolean;
+    GpuPowerLimit: Boolean;
+    GpuEfficiency: Boolean;
+    GpuFramesJouleCaption: string;
+    GpuVoltage: Boolean;
+    GpuThrottling: Boolean;
+    GpuThrottlingGraph: Boolean;
+    GpuModel: Boolean;
+    VulkanDriver: Boolean;
+    GpuColor: TColor;
+
+    // Metrics Tab - CPU
+    CpuText: string;
+    CpuAvgLoad: Boolean;
+    CpuLoadCore: Boolean;
+    CoreLoadTypeCaption: string;
+    CpuLoadColorChecked: Boolean;
+    CpuLoadColors: array[0..2] of TColor;
+    CpuFreq: Boolean;
+    CpuTemp: Boolean;
+    CpuPower: Boolean;
+    CpuEfficiency: Boolean;
+    CpuCoreType: Boolean;
+    CpuColor: TColor;
+
+    // Metrics Tab - Memory/IO
+    DiskIo: Boolean;
+    IoColor: TColor;
+    SwapUsage: Boolean;
+    RamUsage: Boolean;
+    RamColor: TColor;
+    RamTemp: Boolean;
+    ProcMem: Boolean;
+    ProcVram: Boolean;
+
+    // Metrics Tab - Other
+    Battery: Boolean;
+    BatteryColor: TColor;
+    BatteryWatt: Boolean;
+    BatteryTime: Boolean;
+    Device: Boolean;
+    Fps: Boolean;
+    FpsAvg: Boolean;
+    FpsAvgCaption: string;
+    FrametimeGraph: Boolean;
+    FrametimeGraphColor: TColor;
+    FrametimeTypeCaption: string;
+    FrameCount: Boolean;
+    EngineVersion: Boolean;
+    EngineColor: TColor;
+    EngineShort: Boolean;
+    Arch: Boolean;
+    Wine: Boolean;
+    WineColor: TColor;
+    Winesync: Boolean;
+
+    // Performance Tab
+    ShowFpsLim: Boolean;
+    FpsLimMetItemIndex: Integer;
+    FpsLimToggleText: string;
+    FpsLimitText: string;
+    Resolution: Boolean;
+    RefreshRate: Boolean;
+    Fcat: Boolean;
+    FexStats: Boolean;
+    Fsr: Boolean;
+    Hdr: Boolean;
+    Vps: Boolean;
+    Fahrenheit: Boolean;
+    GamemodeStatus: Boolean;
+    VkbasaltStatus: Boolean;
+    VsyncItemIndex: Integer;
+    GlvsyncItemIndex: Integer;
+    FilterItemIndex: Integer;
+    AfPosition: Integer;
+    MipmapPosition: Integer;
+    FpsColorChecked: Boolean;
+    FpsColors: array[0..2] of TColor;
+    FpsColorValues: array[0..1] of Integer;
+
+    // Extras Tab
+    DistroInfo: Boolean;
+    DisplayServer: Boolean;
+    Time: Boolean;
+    HudVersion: Boolean;
+    Media: Boolean;
+    MediaColor: TColor;
+    Network: Boolean;
+    NetworkItemIndex: Integer;
+    NetworkInterfaceText: string;
+    LogFolder: string;
+    Duration: Integer;
+    Delay: Integer;
+    Interval: Integer;
+    LogToggleText: string;
+    Versioning: Boolean;
+    AutoUpload: Boolean;
+  end;
+
 function SanitizeFileName(const AName: string): string;
 function GetGameConfigDir(const AGameName: string): string;
 
@@ -64,6 +203,8 @@ function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const Env
 function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings): Boolean;
 function LoadVkSumiConfig(const CfgFile: string; out Settings: TVkSumiSettings): Boolean;
 function LoadOptiScalerConfig(const ActiveGameName: string; out Settings: TOptiScalerSettings): Boolean;
+
+function SaveMangoHudConfigCore(const Settings: TMangoHudSettings; const AvFonts: TStrings; out ErrMsg: string): Boolean;
 
 implementation
 
@@ -1010,6 +1151,576 @@ begin
   end;
 
   Result := True;
+end;
+
+function ColorToHTMLColor(const AColor: TColor): string;
+var
+  Red, Green, Blue: Byte;
+begin
+  Red := Byte(AColor); // Red component
+  Green := Byte(AColor shr 8); // green component
+  Blue := Byte(AColor shr 16); // blue component
+
+  Result := Format('%.2x%.2x%.2x', [Red, Green, Blue]); // Formata a string no formato HTML (#RRGGBB)
+end;
+
+function SaveMangoHudConfigCore(const Settings: TMangoHudSettings; const AvFonts: TStrings; out ErrMsg: string): Boolean;
+var
+  ConfigLines: TStringList;
+  ConfigDir, FontPath, FontDir: string;
+  FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
+  i: Integer;
+  TempFiles, FontDirs: TStringList;
+  Ini, Ini2: TIniFile;
+  FGModFilePath, FGModConfPath: string;
+
+  procedure AddIfTrue(ABool: Boolean; const ALine: string);
+  begin
+    if ABool then
+      ConfigLines.Add(ALine);
+  end;
+
+begin
+  Result := False;
+  ErrMsg := '';
+
+  if Settings.ActiveGameName <> '' then
+    ConfigDir := ExtractFilePath(Settings.MangoHudCfgFile)
+  else
+    ConfigDir := TConfigManager.GetMangoHudFolder();
+
+  // Create directory if it doesn't exist
+  if not DirectoryExists(ConfigDir) then
+  begin
+    if Settings.ActiveGameName <> '' then
+      ForceDirectories(ConfigDir)
+    else
+      CreateHostDirectory(ConfigDir);
+  end;
+
+  ConfigLines := TStringList.Create;
+  try
+    ConfigLines.Add('################### File Generated by Goverlay ' + Settings.Version + ' ' + Settings.Channel + ' ###################');
+    ConfigLines.Add('legacy_layout=0');
+    ConfigLines.Add('');
+
+    // ============= VISUAL TAB =============
+
+    // HUD Title
+    if Settings.HudTitle <> '' then
+      ConfigLines.Add('custom_text_center=' + Settings.HudTitle);
+
+    // Orientation
+    if Settings.Horizontal then
+      ConfigLines.Add('horizontal');
+
+    // Background alpha
+    ConfigLines.Add('background_alpha=' + FormatFloat('0.0', Settings.TranspPosition / 10));
+
+    // Border type (round corners)
+    if Settings.RoundCorners then
+      ConfigLines.Add('round_corners=10')
+    else
+      ConfigLines.Add('round_corners=0');
+
+    // Background color
+    ConfigLines.Add('background_color=' + ColorToHTMLColor(Settings.HudBackgroundColor));
+
+    // Font file
+    if Settings.FontText <> '' then
+    begin
+      // Search in all standard font directories (including Flatpak)
+      FontDirs := GetStandardFontDirectories;
+      try
+        for FontDir in FontDirs do
+        begin
+          if DirectoryExists(FontDir) then
+          begin
+            TempFiles := FindAllFiles(FontDir, Settings.FontText, True);
+            try
+              if TempFiles.Count > 0 then
+              begin
+                FontPath := TempFiles[0];
+                ConfigLines.Add('font_file=' + FontPath);
+                Break; // Found the font, stop searching
+              end;
+            finally
+              TempFiles.Free;
+            end;
+          end;
+        end;
+      finally
+        FontDirs.Free;
+      end;
+    end;
+
+    // Font size
+    ConfigLines.Add('font_size=' + IntToStr(Settings.FontSize));
+
+    // Font color
+    ConfigLines.Add('text_color=' + ColorToHTMLColor(Settings.FontColor));
+
+    // Position
+    if Settings.Position <> '' then
+      ConfigLines.Add('position=' + Settings.Position);
+
+    // Offset X / Y
+    if Settings.OffsetX <> 0 then
+      ConfigLines.Add('offset_x=' + IntToStr(Settings.OffsetX));
+    if Settings.OffsetY <> 0 then
+      ConfigLines.Add('offset_y=' + IntToStr(Settings.OffsetY));
+
+    if Settings.ToggleHudKey <> '' then
+      ConfigLines.Add('toggle_hud=' + Settings.ToggleHudKey);
+
+    // Hide HUD
+    AddIfTrue(Settings.HideHud, 'no_display');
+
+    // HUD compact
+    AddIfTrue(Settings.HudCompact, 'hud_compact');
+
+    // Horizontal Stretch
+    if Settings.HorizontalStretch then
+      ConfigLines.Add(MANGO_KEY_HORIZONTAL_STRETCH + '=0');
+
+    // PCI device and GPU List logic
+    if Settings.PciDevIndex <> -1 then
+    begin
+      if Settings.PciDevText = 'Use both GPUs' then
+      begin
+        ConfigLines.Add('gpu_list=0,1');
+      end
+      else
+      begin
+        if Settings.PciDevIndex = 0 then
+             ConfigLines.Add('gpu_list=0')
+        else if Settings.PciDevIndex = 1 then
+             ConfigLines.Add('gpu_list=1')
+        else
+             ConfigLines.Add('gpu_list=' + IntToStr(Settings.PciDevIndex));
+      end;
+    end;
+
+    // Table columns
+    ConfigLines.Add('table_columns=' + Settings.TableColumns);
+
+    // ============= METRICS TAB - GPU =============
+
+    // GPU text
+    if Settings.GpuText <> '' then
+      ConfigLines.Add('gpu_text=' + Settings.GpuText);
+
+    // GPU stats
+    AddIfTrue(Settings.GpuAvgLoad, 'gpu_stats');
+
+    // GPU load color change
+    if Settings.GpuLoadColorChecked then
+    begin
+      ConfigLines.Add('gpu_load_change');
+      ConfigLines.Add('gpu_load_value=50,90');
+      ConfigLines.Add('gpu_load_color=' + ColorToHTMLColor(Settings.GpuLoadColors[0]) + ',' +
+                      ColorToHTMLColor(Settings.GpuLoadColors[1]) + ',' +
+                      ColorToHTMLColor(Settings.GpuLoadColors[2]));
+    end;
+
+    // VRAM
+    AddIfTrue(Settings.VramUsage, 'vram');
+    if Settings.VramUsage then
+      ConfigLines.Add('vram_color=' + ColorToHTMLColor(Settings.VramColor));
+
+    // GPU frequency
+    AddIfTrue(Settings.GpuFreq, 'gpu_core_clock');
+
+    // GPU memory frequency
+    AddIfTrue(Settings.GpuMemFreq, 'gpu_mem_clock');
+
+    // GPU temperatures
+    AddIfTrue(Settings.GpuTemp, 'gpu_temp');
+    AddIfTrue(Settings.GpuMemTemp, 'gpu_mem_temp');
+    AddIfTrue(Settings.GpuJuncTemp, 'gpu_junction_temp');
+
+    // GPU fan
+    AddIfTrue(Settings.GpuFan, 'gpu_fan');
+
+    // GPU power
+    AddIfTrue(Settings.GpuPower, 'gpu_power');
+
+    // GPU power limit
+    AddIfTrue(Settings.GpuPowerLimit, 'gpu_power_limit');
+
+    // GPU efficiency
+    AddIfTrue(Settings.GpuEfficiency, 'gpu_efficiency');
+
+    // Flip efficiency (Joules / Frame mode)
+    if Settings.GpuFramesJouleCaption = 'Joules / Frame' then
+      ConfigLines.Add('flip_efficiency');
+
+    // GPU voltage
+    AddIfTrue(Settings.GpuVoltage, 'gpu_voltage');
+
+    // GPU throttling
+    AddIfTrue(Settings.GpuThrottling, 'throttling_status');
+    AddIfTrue(Settings.GpuThrottlingGraph, 'throttling_status_graph');
+
+    // GPU model
+    AddIfTrue(Settings.GpuModel, 'gpu_name');
+
+    // Vulkan driver
+    AddIfTrue(Settings.VulkanDriver, 'vulkan_driver');
+
+    // GPU color
+    if Settings.GpuAvgLoad then
+      ConfigLines.Add('gpu_color=' + ColorToHTMLColor(Settings.GpuColor));
+
+    // ============= METRICS TAB - CPU =============
+
+    // CPU text
+    if Settings.CpuText <> '' then
+      ConfigLines.Add('cpu_text=' + Settings.CpuText);
+
+    // CPU stats
+    AddIfTrue(Settings.CpuAvgLoad, 'cpu_stats');
+
+    // CPU core load
+    AddIfTrue(Settings.CpuLoadCore, 'core_load');
+
+    // Core load type (bars)
+    if Settings.CoreLoadTypeCaption = 'Graph' then
+      ConfigLines.Add('core_bars');
+
+    // CPU load color change
+    if Settings.CpuLoadColorChecked then
+    begin
+      ConfigLines.Add('cpu_load_change');
+      ConfigLines.Add('cpu_load_value=50,90');
+      ConfigLines.Add('cpu_load_color=' + ColorToHTMLColor(Settings.CpuLoadColors[0]) + ',' +
+                      ColorToHTMLColor(Settings.CpuLoadColors[1]) + ',' +
+                      ColorToHTMLColor(Settings.CpuLoadColors[2]));
+    end;
+
+    // CPU frequency
+    AddIfTrue(Settings.CpuFreq, 'cpu_mhz');
+
+    // CPU temperature
+    AddIfTrue(Settings.CpuTemp, 'cpu_temp');
+
+    // CPU power
+    AddIfTrue(Settings.CpuPower, 'cpu_power');
+
+    // CPU efficiency
+    AddIfTrue(Settings.CpuEfficiency, 'cpu_efficiency');
+
+    // CPU core type
+    AddIfTrue(Settings.CpuCoreType, 'core_type');
+
+    // CPU color
+    if Settings.CpuAvgLoad then
+      ConfigLines.Add('cpu_color=' + ColorToHTMLColor(Settings.CpuColor));
+
+    // ============= METRICS TAB - MEMORY/IO =============
+
+    // I/O stats
+    if Settings.DiskIo then
+    begin
+      ConfigLines.Add('io_read');
+      ConfigLines.Add('io_write');
+      ConfigLines.Add('io_color=' + ColorToHTMLColor(Settings.IoColor));
+    end;
+
+    // Swap
+    AddIfTrue(Settings.SwapUsage, 'swap');
+
+    // RAM
+    if Settings.RamUsage then
+    begin
+      ConfigLines.Add('ram');
+      ConfigLines.Add('ram_color=' + ColorToHTMLColor(Settings.RamColor));
+    end;
+
+    // RAM temperature
+    AddIfTrue(Settings.RamTemp, 'ram_temp');
+
+    // Process memory
+    AddIfTrue(Settings.ProcMem, 'procmem');
+
+    // Process VRAM
+    AddIfTrue(Settings.ProcVram, 'proc_vram');
+
+    // ============= METRICS TAB - OTHER =============
+
+    // Battery
+    if Settings.Battery then
+    begin
+      ConfigLines.Add('battery');
+      ConfigLines.Add('battery_color=' + ColorToHTMLColor(Settings.BatteryColor));
+    end;
+    AddIfTrue(Settings.BatteryWatt, 'battery_watt');
+    AddIfTrue(Settings.BatteryTime, 'battery_time');
+
+    // Device battery
+    if Settings.Device then
+    begin
+      ConfigLines.Add('device_battery=gamepad');
+      ConfigLines.Add('device_battery_icon');
+    end;
+
+    // FPS
+    AddIfTrue(Settings.Fps, 'fps');
+
+    // FPS metrics (avg)
+    if Settings.FpsAvg then
+    begin
+      if Settings.FpsAvgCaption = '1% low' then
+        ConfigLines.Add('fps_metrics=avg,0.01')
+      else
+        ConfigLines.Add('fps_metrics=avg,0.001');
+    end;
+
+    // Frame timing
+    if Settings.FrametimeGraph then
+    begin
+      ConfigLines.Add('frame_timing');
+      ConfigLines.Add('frametime_color=' + ColorToHTMLColor(Settings.FrametimeGraphColor));
+    end;
+
+    // Histogram
+    if Settings.FrametimeTypeCaption = 'Histogram' then
+      ConfigLines.Add('histogram');
+
+    // Frame count
+    AddIfTrue(Settings.FrameCount, 'frame_count');
+
+    // Engine
+    if Settings.EngineVersion then
+    begin
+      ConfigLines.Add('engine_version');
+      ConfigLines.Add('engine_color=' + ColorToHTMLColor(Settings.EngineColor));
+    end;
+    AddIfTrue(Settings.EngineShort, 'engine_short_names');
+
+    // Arch
+    AddIfTrue(Settings.Arch, 'arch');
+
+    // Wine
+    if Settings.Wine then
+    begin
+      ConfigLines.Add('wine');
+      ConfigLines.Add('wine_color=' + ColorToHTMLColor(Settings.WineColor));
+    end;
+
+    // Winesync
+    AddIfTrue(Settings.Winesync, 'winesync');
+
+    // ============= PERFORMANCE TAB =============
+
+    // Show FPS limit
+    AddIfTrue(Settings.ShowFpsLim, 'show_fps_limit');
+
+    // FPS limit method
+    case Settings.FpsLimMetItemIndex of
+      0: ConfigLines.Add('fps_limit_method=late');
+      1: ConfigLines.Add('fps_limit_method=early');
+    end;
+
+    if Settings.FpsLimToggleText <> '' then
+      ConfigLines.Add('toggle_fps_limit=' + Settings.FpsLimToggleText);
+
+    // FPS limits (from edit field)
+    if Settings.FpsLimitText <> '' then
+      ConfigLines.Add('fps_limit=' + Settings.FpsLimitText)
+    else
+      ConfigLines.Add('fps_limit=0');
+
+    // Resolution
+    AddIfTrue(Settings.Resolution, 'resolution');
+
+    // Refresh rate
+    AddIfTrue(Settings.RefreshRate, 'refresh_rate');
+
+    // FCAT
+    AddIfTrue(Settings.Fcat, 'fcat');
+
+    // FEX Stats
+    AddIfTrue(Settings.FexStats, 'fex_stats');
+
+    // FSR
+    AddIfTrue(Settings.Fsr, 'fsr');
+
+    // HDR
+    AddIfTrue(Settings.Hdr, 'hdr');
+
+    // VPS (present mode)
+    AddIfTrue(Settings.Vps, 'present_mode');
+
+    // Fahrenheit
+    AddIfTrue(Settings.Fahrenheit, 'temp_fahrenheit');
+
+    // Gamemode
+    AddIfTrue(Settings.GamemodeStatus, 'gamemode');
+
+    // vkBasalt status
+    AddIfTrue(Settings.VkbasaltStatus, 'vkbasalt');
+
+    // VSync
+    case Settings.VsyncItemIndex of
+      0: ConfigLines.Add('vsync=0');
+      1: ConfigLines.Add('vsync=1');
+      2: ConfigLines.Add('vsync=2');
+      3: ConfigLines.Add('vsync=3');
+      4: ConfigLines.Add('vsync=4');
+    end;
+
+    // GL VSync
+    case Settings.GlvsyncItemIndex of
+      0: ConfigLines.Add('gl_vsync=-1');
+      1: ConfigLines.Add('gl_vsync=0');
+      2: ConfigLines.Add('gl_vsync=1');
+      3: ConfigLines.Add('gl_vsync=n');
+    end;
+
+    // Filters
+    case Settings.FilterItemIndex of
+      1: ConfigLines.Add('bicubic');
+      2: ConfigLines.Add('trilinear');
+      3: ConfigLines.Add('retro');
+    end;
+
+    // AF filter
+    if Settings.AfPosition > 0 then
+      ConfigLines.Add('af=' + IntToStr(Settings.AfPosition));
+
+    // Mipmap filter
+    if Settings.MipmapPosition > 0 then
+      ConfigLines.Add('picmip=' + IntToStr(Settings.MipmapPosition));
+
+    // FPS color change
+    if Settings.FpsColorChecked then
+    begin
+      ConfigLines.Add('fps_color_change');
+      ConfigLines.Add('fps_color=' + ColorToHTMLColor(Settings.FpsColors[0]) + ',' +
+                      ColorToHTMLColor(Settings.FpsColors[1]) + ',' +
+                      ColorToHTMLColor(Settings.FpsColors[2]));
+      ConfigLines.Add('fps_value=' + IntToStr(Settings.FpsColorValues[0]) + ',' + IntToStr(Settings.FpsColorValues[1]));
+    end;
+
+    // ============= EXTRAS TAB =============
+
+    // Distro info
+    if Settings.DistroInfo then
+    begin
+      ConfigLines.Add('custom_text=-');
+      ConfigLines.Add('exec=cat ' + TConfigManager.GetDistroFile);
+      ConfigLines.Add('custom_text=-');
+      ConfigLines.Add('exec=uname -r');
+    end;
+
+    // Display server
+    AddIfTrue(Settings.DisplayServer, 'display_server');
+
+    // Time
+    if Settings.Time then
+    begin
+      ConfigLines.Add('time');
+      ConfigLines.Add('time_no_label');
+    end;
+
+    // HUD version
+    AddIfTrue(Settings.HudVersion, 'version#');
+
+    // Media player
+    if Settings.Media then
+    begin
+      ConfigLines.Add('media_player');
+      ConfigLines.Add('media_player_color=' + ColorToHTMLColor(Settings.MediaColor));
+    end;
+
+    // Network
+    if Settings.Network and (Settings.NetworkInterfaceText <> '') then
+      ConfigLines.Add('network=' + Settings.NetworkInterfaceText);
+
+    // Log folder (XDG-compliant data directory)
+    if Settings.LogFolder <> '' then
+      ConfigLines.Add('output_folder=' + Settings.LogFolder);
+
+    // Log duration
+    if Settings.Duration > 0 then
+      ConfigLines.Add('log_duration=' + IntToStr(Settings.Duration));
+
+    // Log delay (autostart)
+    if Settings.Delay > 0 then
+      ConfigLines.Add('autostart_log=' + IntToStr(Settings.Delay));
+
+    // Log interval
+    if Settings.Interval > 0 then
+      ConfigLines.Add('log_interval=' + IntToStr(Settings.Interval));
+
+    if Settings.LogToggleText <> '' then
+      ConfigLines.Add('toggle_logging=' + Settings.LogToggleText);
+
+    // Log versioning
+    AddIfTrue(Settings.Versioning, 'log_versioning');
+
+    // Auto upload
+    AddIfTrue(Settings.AutoUpload, 'upload_logs');
+
+    // Save to active config file (game-specific or global)
+    ConfigLines.SaveToFile(Settings.MangoHudCfgFile);
+
+    // Update bgmod.conf with GOVERLAY_MANGOHUD=1
+    if Settings.ActiveGameName <> '' then
+      FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'
+    else
+      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
+
+    ForceDirectories(ExtractFilePath(FGModFilePath));
+    Ini := TIniFile.Create(FGModFilePath);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_MANGOHUD', '1');
+    finally
+      Ini.Free;
+    end;
+
+    // In game-specific mode: inject MANGOHUD_CONFIGFILE into the game bgmod
+    // so Steam picks up the per-game config at launch.
+    if Settings.ActiveGameName <> '' then
+    begin
+      FGModConfPath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
+      ForceDirectories(ExtractFilePath(FGModConfPath));
+      Ini2 := TIniFile.Create(FGModConfPath);
+      try
+        Ini2.WriteString('Env', 'MANGOHUD_CONFIGFILE', Settings.MangoHudCfgFile);
+      finally
+        Ini2.Free;
+      end;
+      Result := True;
+      Exit;
+    end;
+
+    try
+      FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+      FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
+
+      // Create Flatpak directory if it doesn't exist
+      if not DirectoryExists(FlatpakSteamConfigDir) and DirectoryExists(GetUserDir + '.var') then
+        ForceDirectories(FlatpakSteamConfigDir)
+      else
+        WriteLn('[WARN] SaveMangoHudConfigCore: ~/.var does not exist, skipping saving config for Steam Flatpak');
+
+      if DirectoryExists(FlatpakSteamConfigDir) then
+      begin
+        // Save the same configuration to Flatpak location
+        ConfigLines.SaveToFile(FlatpakMangoHudFile);
+        WriteLn('[DEBUG] SaveMangoHudConfigCore: Configuration also saved to Steam Flatpak location: ', FlatpakMangoHudFile);
+      end
+    except
+      on E: Exception do
+        WriteLn('[WARN] SaveMangoHudConfigCore: Could not save to Steam Flatpak location: ', E.Message);
+    end;
+
+    Result := True;
+  finally
+    ConfigLines.Free;
+  end;
 end;
 
 end.
