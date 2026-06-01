@@ -3956,6 +3956,8 @@ var
   TempFiles, FontDirs: TStringList;
   TempFile: string;
   FS: TFormatSettings;
+  Ini: TIniFile;
+  FGModFilePath: string;
 
   // Helper procedure to add a line if checkbox is checked
   procedure AddIfChecked(ACheckBox: TCheckBox; const ALine: string);
@@ -4497,6 +4499,20 @@ begin
 
     // Save to active config file (game-specific or global)
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+
+    // Update bgmod.conf with GOVERLAY_MANGOHUD=1
+    if FActiveGameName <> '' then
+      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
+    else
+      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
+
+    ForceDirectories(ExtractFilePath(FGModFilePath));
+    Ini := TIniFile.Create(FGModFilePath);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_MANGOHUD', '1');
+    finally
+      Ini.Free;
+    end;
 
     // In game-specific mode: inject MANGOHUD_CONFIGFILE into the game bgmod
     // so Steam picks up the per-game config at launch.
@@ -9610,6 +9626,8 @@ var
   FS: TFormatSettings;
   LaunchCommand: string;
   i: Integer;
+  Ini: TIniFile;
+  FGModFilePath: string;
 begin
   if VKBASALTFOLDER = '' then
   begin
@@ -9718,6 +9736,20 @@ begin
     if FileExists(VKBASALTCFGFILE) then
       DeleteFile(VKBASALTCFGFILE);
     Lines.SaveToFile(VKBASALTCFGFILE);
+
+    // Update bgmod.conf with GOVERLAY_VKBASALT=1
+    if FActiveGameName <> '' then
+      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
+    else
+      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
+
+    ForceDirectories(ExtractFilePath(FGModFilePath));
+    Ini := TIniFile.Create(FGModFilePath);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
+    finally
+      Ini.Free;
+    end;
 
     // In game-specific mode: inject VKBASALT_CONFIG_FILE into the game bgmod
     if FActiveGameName <> '' then
