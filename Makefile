@@ -3,7 +3,7 @@ bindir = /bin
 libexecdir = /libexec
 datadir = /share
 
-all: goverlay start_goverlay.sh bgmod
+all: goverlay start_goverlay.sh bgmod bgmod-uninstaller
 
 goverlay: *.pas *.lfm goverlay.lpi goverlay.lpr goverlay.ico
 	lazbuild -B goverlay.lpi --bm=Release $(LAZBUILDOPTS)
@@ -12,6 +12,11 @@ bgmod: bgmod.lpr
 	fpc -O3 bgmod.lpr
 	mkdir -p data/bgmod
 	cp bgmod data/bgmod/bgmod
+
+bgmod-uninstaller: bgmod-uninstaller.lpr
+	fpc -O3 bgmod-uninstaller.lpr
+	mkdir -p data/bgmod
+	cp bgmod-uninstaller data/bgmod/bgmod-uninstaller
 
 data/goverlay.sh: data/goverlay.sh.in
 	sed s%@libexecdir@%$(prefix)$(libexecdir)%g data/goverlay.sh.in > data/goverlay.sh
@@ -23,7 +28,9 @@ start_goverlay.sh: data/goverlay.sh.in
 clean:
 	rm -f goverlay
 	rm -f bgmod
+	rm -f bgmod-uninstaller
 	rm -f data/bgmod/bgmod
+	rm -f data/bgmod/bgmod-uninstaller
 	rm -f start_goverlay.sh
 	rm -f data/goverlay.sh
 	rm -rf lib/
@@ -31,7 +38,7 @@ clean:
 	rm -f goverlay.lps
 	rm -f goverlay_*.tar.xz
 
-install: goverlay data/goverlay.sh bgmod
+install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay
 	install -D -m=755 data/goverlay.sh $(DESTDIR)$(prefix)$(bindir)/goverlay
 	install -D -m=644 data/io.github.benjamimgois.goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/io.github.benjamimgois.goverlay.desktop

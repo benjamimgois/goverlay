@@ -218,10 +218,8 @@ begin
   // Make sure binaries are executable
   if FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod') then
     fpChmod(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod', &755);
-  if FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-uninstaller.sh') then
-    fpChmod(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-uninstaller.sh', &755);
-  if FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-remover.sh') then
-    fpChmod(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-remover.sh', &755);
+  if FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-uninstaller') then
+    fpChmod(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-uninstaller', &755);
 
   // Create backward compatibility symlink for fgmod in original path
   Proc := TProcess.Create(nil);
@@ -255,10 +253,8 @@ begin
   // Make sure binaries are executable in active config path
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') then
     fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod', &755);
-  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller.sh') then
-    fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller.sh', &755);
-  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-remover.sh') then
-    fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-remover.sh', &755);
+  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') then
+    fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller', &755);
 
   // Create backward compatibility symlink for fgmod in active path
   Proc := TProcess.Create(nil);
@@ -280,7 +276,7 @@ begin
   BGModPath := GetBGModPath;
   Result := DirectoryExists(BGModPath) and
             FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') and
-            FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller.sh');
+            FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller');
 end;
 
 function IsBGModOptiScalerInstalled(const ABGModPath: string): Boolean;

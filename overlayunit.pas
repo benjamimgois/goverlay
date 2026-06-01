@@ -18061,12 +18061,9 @@ begin
   ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod') + ' ' +
     QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
     QuotedStr(GameCfgDir + 'bgmod'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-uninstaller.sh') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller.sh') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller.sh'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-remover.sh') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod-remover.sh') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod-remover.sh'));
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-uninstaller') + ' ' +
+    QuotedStr(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
   ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
   EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
   MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
@@ -18235,7 +18232,11 @@ begin
   if (GamePath <> '') and DirectoryExists(GamePath) then
   begin
     GamePath := IncludeTrailingPathDelimiter(GamePath);
-    UninstallerPath := FindFileInDir(GamePath, 'fgmod-uninstaller.sh');
+    UninstallerPath := FindFileInDir(GamePath, 'bgmod-uninstaller');
+    if UninstallerPath = '' then
+      UninstallerPath := FindFileInDir(GamePath, 'bgmod-uninstaller.sh');
+    if UninstallerPath = '' then
+      UninstallerPath := FindFileInDir(GamePath, 'fgmod-uninstaller.sh');
     if UninstallerPath <> '' then
       RunFGModUninstallCommands(ExtractFilePath(UninstallerPath))
     else
@@ -18801,10 +18802,12 @@ const
     'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll',
     'amd_fidelityfx_vk.dll'
   );
-  LEGACY_FILES: array[0..6] of string = (
+  LEGACY_FILES: array[0..17] of string = (
     'dlss-enabler.dll', 'dlss-enabler-upscaler.dll', 'dlss-enabler.log',
     'nvngx-wrapper.dll', '_nvngx.dll', 'dlssg_to_fsr3_amd_is_better-3.0.dll',
-    'fgmod-uninstaller.sh'
+    'fgmod-uninstaller.sh', 'bgmod-uninstaller.sh', 'bgmod-remover.sh',
+    'fgmod', 'bgmod', 'bgmod.conf', 'bgmod.log', 'bgmod-uninstaller',
+    'bgmod-uninstaller.log', 'MangoHud.conf', 'vkBasalt.conf', 'vkSumi.conf'
   );
   RESTORE_DLLS: array[0..14] of string = (
     'd3dcompiler_47.dll', 'amd_fidelityfx_dx12.dll',

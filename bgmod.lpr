@@ -533,7 +533,7 @@ begin
         SafeCopyFile(BgmodPath + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
         
         // 11. Copy uninstaller
-        SafeCopyFile(BgmodPath + 'bgmod-uninstaller.sh', IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.sh');
+        SafeCopyFile(BgmodPath + 'bgmod-uninstaller', IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller');
       end;
       
       // --- MangoHud Configuration Copy ---
