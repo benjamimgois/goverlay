@@ -525,8 +525,6 @@ type
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
     procedure LoadOptiScalerConfig;
-    procedure LoadFakeNvapiConfig;
-    procedure LoadFgmodConfig;
 
   private
     FLaunchCommand: string;
@@ -3271,196 +3269,37 @@ end;
 
 procedure Tgoverlayform.LoadOptiScalerConfig;
 var
-  OptiCfg: TConfigFile;
-  OptiScalerIniPath: string;
-  Value: string;
-  FloatValue: Double;
-  FS: TFormatSettings;
+  Settings: TOptiScalerSettings;
 begin
-  if FActiveGameName <> '' then
-    OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
-  else
-    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
-
-  if not FileExists(OptiScalerIniPath) then
+  if not overlay_config.LoadOptiScalerConfig(FActiveGameName, Settings) then
     Exit;
 
-  OptiCfg := TConfigFile.Create;
-  FS := DefaultFormatSettings;
-  FS.DecimalSeparator := '.';
-  try
-    if not OptiCfg.Load(OptiScalerIniPath) then
-      Exit;
+  // 1. OptiScaler UI mapping
+  filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
+  emufp8CheckBox.Checked := Settings.EmuFp8Checked;
+  shortcutkeyComboBox.Text := Settings.ShortcutKey;
+  if Assigned(FOsShortcutCaptureBtn) then
+    FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
 
-    Value := OptiCfg.GetValue(OPTI_KEY_SHORTCUT, '', OPTI_INI_SECTION_MENU);
-    if SameText(Value, 'auto') or (Value = '') then
-      shortcutkeyComboBox.Text := '0x2d'
-    else
-      shortcutkeyComboBox.Text := Value;
-    if Assigned(FOsShortcutCaptureBtn) then
-      FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
+  menuscaleTrackBar.Position := Settings.MenuScalePosition;
+  menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
 
-    Value := OptiCfg.GetValue(OPTI_KEY_SCALE, '', OPTI_INI_SECTION_MENU);
-    if TryStrToFloat(Value, FloatValue, FS) then
-    begin
-      menuscaleTrackBar.Position := Round(FloatValue * 10);
-      menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
-    end;
+  overrideCheckBox.Checked := Settings.OverrideChecked;
+  optipatcherCheckBox.Checked := Settings.OptipatcherChecked;
 
-    overrideCheckBox.Checked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
-    optipatcherCheckBox.Checked := SameText(OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, ''), 'true');
+  fsrversionComboBox.ItemIndex := Settings.FsrversionItemIndex;
+  spoofCheckBox.Checked := Settings.SpoofChecked;
 
-    if SameText(OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, ''), 'true') then
-      fsrversionComboBox.ItemIndex := 0;
+  // 2. FakeNvapi UI mapping
+  forcereflexCheckBox.Checked := Settings.ForceReflexChecked;
+  reflexComboBox.ItemIndex := Settings.ReflexItemIndex;
+  reflexComboBox.Enabled := forcereflexCheckBox.Checked;
 
-    spoofCheckBox.Checked := SameText(OptiCfg.GetValue(OPTI_KEY_DXGI, ''), 'auto');
-  finally
-    OptiCfg.Free;
-  end;
-end;
+  forcelatencyflexCheckBox.Checked := Settings.ForceLatencyFlexChecked;
+  latencyflexComboBox.ItemIndex := Settings.LatencyFlexItemIndex;
+  latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
 
-procedure Tgoverlayform.LoadFakeNvapiConfig;
-var
-  FakeCfg: TConfigFile;
-  FakeNvapiIniPath: string;
-  Value: string;
-begin
-  if FActiveGameName <> '' then
-    FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
-  else
-    FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
-
-  if not FileExists(FakeNvapiIniPath) then
-    Exit;
-
-  FakeCfg := TConfigFile.Create;
-  try
-    if not FakeCfg.Load(FakeNvapiIniPath) then
-      Exit;
-
-    Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
-    if Value = '0' then
-    begin
-      forcereflexCheckBox.Checked := False;
-      reflexComboBox.ItemIndex := 0;
-    end
-    else
-    begin
-      forcereflexCheckBox.Checked := True;
-      case Value of
-        '1': reflexComboBox.ItemIndex := 1;
-        '2': reflexComboBox.ItemIndex := 2;
-      else
-        reflexComboBox.ItemIndex := 0;
-      end;
-    end;
-    reflexComboBox.Enabled := forcereflexCheckBox.Checked;
-
-    forcelatencyflexCheckBox.Checked := (FakeCfg.GetValue(FAKE_KEY_FORCE_LATENCY, '0') = '1');
-    latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
-
-    if forcelatencyflexCheckBox.Checked then
-    begin
-      case FakeCfg.GetValue(FAKE_KEY_LATENCY_MODE, '0') of
-        '0': latencyflexComboBox.ItemIndex := 0;
-        '1': latencyflexComboBox.ItemIndex := 1;
-        '2': latencyflexComboBox.ItemIndex := 2;
-      else
-        latencyflexComboBox.ItemIndex := 0;
-      end;
-    end;
-
-    tracelogCheckBox.Checked := (FakeCfg.GetValue(FAKE_KEY_TRACE_LOGS, '0') = '1');
-  finally
-    FakeCfg.Free;
-  end;
-end;
-
-procedure Tgoverlayform.LoadFgmodConfig;
-var
-  ConfigPath, DllName: string;
-  Ini: TIniFile;
-  VarsPath, FsrVer, TrimmedLine, Key, Value: string;
-  i, SepPos: Integer;
-  ConfigLines: TStringList;
-begin
-  // Get bgmod config path
-  if FActiveGameName <> '' then
-    ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
-  else
-    ConfigPath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
-
-  if not FileExists(ConfigPath) then
-  begin
-    filenameComboBox.ItemIndex := 0;
-    emufp8CheckBox.Checked := False;
-  end
-  else
-  begin
-    Ini := TIniFile.Create(ConfigPath);
-    try
-      DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
-      // Set combobox index based on DLL name
-      if SameText(DllName, 'dxgi.dll') then
-        filenameComboBox.ItemIndex := 0
-      else if SameText(DllName, 'version.dll') then
-        filenameComboBox.ItemIndex := 1
-      else if SameText(DllName, 'dbghelp.dll') then
-        filenameComboBox.ItemIndex := 2
-      else if SameText(DllName, 'd3d12.dll') then
-        filenameComboBox.ItemIndex := 3
-      else if SameText(DllName, 'wininet.dll') then
-        filenameComboBox.ItemIndex := 4
-      else if SameText(DllName, 'winhttp.dll') then
-        filenameComboBox.ItemIndex := 5
-      else if SameText(DllName, 'winmm.dll') then
-        filenameComboBox.ItemIndex := 6
-      else if SameText(DllName, 'OptiScaler.asi') then
-        filenameComboBox.ItemIndex := 7
-      else
-        filenameComboBox.ItemIndex := 0; // Default
-
-      emufp8CheckBox.Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
-    finally
-      Ini.Free;
-    end;
-  end;
-
-  // Restore fsrversionComboBox from goverlay.vars (game-specific or global)
-  if FActiveGameName <> '' then
-    VarsPath := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'goverlay.vars'
-  else
-    VarsPath := IncludeTrailingPathDelimiter(GetOptiScalerInstallPath) + 'goverlay.vars';
-
-  if FileExists(VarsPath) then
-  begin
-    ConfigLines := TStringList.Create;
-    try
-      ConfigLines.LoadFromFile(VarsPath);
-      FsrVer := '';
-      for i := 0 to ConfigLines.Count - 1 do
-      begin
-        TrimmedLine := Trim(ConfigLines[i]);
-        SepPos := Pos('=', TrimmedLine);
-        if SepPos > 0 then
-        begin
-          Key   := Copy(TrimmedLine, 1, SepPos - 1);
-          Value := Copy(TrimmedLine, SepPos + 1, Length(TrimmedLine));
-          if SameText(Key, 'fsrversion') then
-          begin
-            FsrVer := Value;
-            Break;
-          end;
-        end;
-      end;
-      if FsrVer = '4.0.2c (INT8)' then
-        fsrversionComboBox.ItemIndex := 1
-      else
-        fsrversionComboBox.ItemIndex := 0; // Latest (FP8) is the default
-    finally
-      ConfigLines.Free;
-    end;
-  end;
+  tracelogCheckBox.Checked := Settings.TraceLogChecked;
 end;
 
 procedure Tgoverlayform.LoadMangoHudConfig;
@@ -4553,12 +4392,7 @@ end;
 
 procedure Tgoverlayform.LoadVkBasaltConfig;
 var
-  Value, EffectsStr, FullEffectPath: string;
-  EffectsList: TStringArray;
-  j, k: Integer;
-  FloatValue: Double;
-  FS: TFormatSettings;
-  Cfg: TConfigFile;
+  Settings: TVkBasaltSettings;
 begin
   if not FileExists(VKBASALTCFGFILE) then
     Exit;
@@ -4575,104 +4409,33 @@ begin
   smaavalueLabel.Caption := '0';
   dlsvalueLabel.Caption  := '0';
 
-  FS := DefaultFormatSettings;
-  FS.DecimalSeparator := '.';
+  if not overlay_config.LoadVkBasaltConfig(VKBASALTCFGFILE, aveffectsListbox.Items, acteffectsListBox.Items, Settings) then
+    Exit;
 
-  Cfg := TConfigFile.Create;
-  try
-    if not Cfg.Load(VKBASALTCFGFILE) then Exit;
+  // Map settings back to controls
+  casTrackBar.Position := Settings.CasPosition;
+  casvalueLabel.Caption := IntToStr(casTrackBar.Position);
+  if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
 
-    // Process effects list (custom colon-separated value)
-    // NOTE: keys include a space before '=' because SaveVkBasaltConfig writes
-    //       "key = value" (space-surrounded). Pos() substring search must match.
-    EffectsStr := Cfg.GetValue('effects =', '');
-    if EffectsStr <> '' then
-    begin
-      EffectsList := SplitString(EffectsStr, ':');
-      for j := Low(EffectsList) to High(EffectsList) do
-      begin
-        EffectsList[j] := Trim(EffectsList[j]);
-        if SameText(EffectsList[j], 'cas') then
-        begin
-          if casTrackBar.Position = 0 then
-            casTrackBar.Position := 5;
-        end
-        else if SameText(EffectsList[j], 'fxaa') then
-        begin
-          if fxaaTrackBar.Position = 0 then
-            fxaaTrackBar.Position := 5;
-        end
-        else if SameText(EffectsList[j], 'smaa') then
-        begin
-          if smaaTrackBar.Position = 0 then
-            smaaTrackBar.Position := 5;
-        end
-        else if SameText(EffectsList[j], 'dls') then
-        begin
-          if dlsTrackBar.Position = 0 then
-            dlsTrackBar.Position := 5;
-        end
-        else if EffectsList[j] <> '' then
-        begin
-          FullEffectPath := '';
-          for k := 0 to aveffectsListbox.Items.Count - 1 do
-          begin
-            if SameText(ChangeFileExt(ExtractFileName(aveffectsListbox.Items[k]), ''), EffectsList[j]) then
-            begin
-              FullEffectPath := aveffectsListbox.Items[k];
-              Break;
-            end;
-          end;
-          if FullEffectPath = '' then
-            FullEffectPath := EffectsList[j];
-          if acteffectsListBox.Items.IndexOf(FullEffectPath) = -1 then
-            acteffectsListBox.Items.Add(FullEffectPath);
-        end;
-      end;
-    end;
+  fxaaTrackBar.Position := Settings.FxaaPosition;
+  fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
+  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
 
-    Value := Cfg.GetValue('casSharpness =', '');
-    if TryStrToFloat(Value, FloatValue, FS) then
-    begin
-      casTrackBar.Position := Round(FloatValue * 10);
-      casvalueLabel.Caption := IntToStr(casTrackBar.Position);
-      if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
-    end;
+  smaaTrackBar.Position := Settings.SmaaPosition;
+  smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
+  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
 
-    Value := Cfg.GetValue('fxaaQualitySubpix =', '');
-    if TryStrToFloat(Value, FloatValue, FS) then
-    begin
-      fxaaTrackBar.Position := Round(FloatValue * 10);
-      fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
-      if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
-    end;
+  dlsTrackBar.Position := Settings.DlsPosition;
+  dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
+  if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
 
-    Value := Cfg.GetValue('smaaCornerRounding =', '');
-    if TryStrToFloat(Value, FloatValue, FS) then
-    begin
-      smaaTrackBar.Position := Round(FloatValue / 25 * 9) + 1;
-      smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
-      if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
-    end;
-
-    Value := Cfg.GetValue('dlsSharpness =', '');
-    if TryStrToFloat(Value, FloatValue, FS) then
-    begin
-      dlsTrackBar.Position := Round(FloatValue * 9) + 1;
-      dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
-      if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
-    end;
-
-    Value := Cfg.GetValue('toggleKey =', '');
-    if Value <> '' then
-    begin
-      vkbtogglekeyCombobox.Text := Value;
-      if Assigned(FVkToggleCaptureBtn) then
-        FVkToggleCaptureBtn.Caption := '⌨ ' + Value;
-    end;
-  finally
-    Cfg.Free;
+  if Settings.ToggleKey <> '' then
+  begin
+    vkbtogglekeyCombobox.Text := Settings.ToggleKey;
+    if Assigned(FVkToggleCaptureBtn) then
+      FVkToggleCaptureBtn.Caption := '⌨ ' + Settings.ToggleKey;
   end;
+
   if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 end;
 
@@ -5823,12 +5586,6 @@ begin
     LoadVkBasaltConfig;
     LoadVkSumiConfig;
 
-    //Load fgmod configuration
-    LoadFgmodConfig;
-
-    //Load OptiScaler configuration
-    LoadOptiScalerConfig;
-
 
     // Check NVIDIA module and configure controls
     // On first run auto-detect; afterwards restore the user's last choice.
@@ -5856,8 +5613,8 @@ begin
       end;
     end;
 
-    //Load FakeNvapi configuration (Needs to run after nvidia/mesa checks because they overwrite reflex default values)
-    LoadFakeNvapiConfig;
+    // Load all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
+    LoadOptiScalerConfig;
 
     //Initiate optiscaler
 
@@ -7723,12 +7480,8 @@ begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
     SetSaveBtnEnabled(FNavToolEnabled[2]);
   end;
-  // Reload OptiScaler and FakeNVAPI configs from the correct path (game or global)
+  // Reload all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
   LoadOptiScalerConfig;
-  LoadFakeNvapiConfig;
-  // In game mode, also reload fgmod config so fsrversionComboBox reflects goverlay.vars
-  if FActiveGameName <> '' then
-    LoadFgmodConfig;
   // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
   fsrversionComboBoxChange(nil);
   DbgLog('<< optiscalerLabelClick END');
@@ -9186,93 +8939,26 @@ begin
 end;
 
 procedure Tgoverlayform.LoadVkSumiConfig;
-const
-  KEYS: array[0..14] of string = (
-    'brightness', 'contrast', 'exposure', 'gamma',
-    'saturation', 'vibrance', 'hue_deg', 'temperature', 'tint',
-    'red_gain', 'green_gain', 'blue_gain',
-    'shadows', 'midtones', 'highlights'
-  );
 var
-  ConfigFile: string;
-  Cfg: TConfigFile;
+  Settings: TVkSumiSettings;
   i: Integer;
-  FS: TFormatSettings;
-  ValStr: string;
-  Val: Double;
-  PosVal: Integer;
 begin
-  // Set default values first
+  if not overlay_config.LoadVkSumiConfig(VKSUMICFGFILE, Settings) then
+    Exit;
+
   if Assigned(FVsEnabledCB) then
-    FVsEnabledCB.Checked := True;
+    FVsEnabledCB.Checked := Settings.Enabled;
+
   if Assigned(FVsToggleEdit) then
-    FVsToggleEdit.Text := 'Shift_R+F9';
+    FVsToggleEdit.Text := Settings.ToggleKeys;
+
+  if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
+    FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
 
   for i := 0 to 14 do
   begin
     if Assigned(FVsTrackbars[i]) then
-      FVsTrackbars[i].Position := PARAMS[i].Default;
-  end;
-
-  ConfigFile := VKSUMICFGFILE;
-  if not FileExists(ConfigFile) then
-  begin
-    if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
-      FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
-    Exit;
-  end;
-
-  FS := DefaultFormatSettings;
-  FS.DecimalSeparator := '.';
-
-  Cfg := TConfigFile.Create;
-  try
-    if Cfg.Load(ConfigFile) then
-    begin
-      if Assigned(FVsEnabledCB) then
-        FVsEnabledCB.Checked := Cfg.GetBool('enabled =', True);
-
-      if Assigned(FVsToggleEdit) then
-      begin
-        ValStr := Cfg.GetValue('toggle_keys =', 'Shift_R+F9');
-        i := Pos('#', ValStr);
-        if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
-        i := Pos(';', ValStr);
-        if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
-        FVsToggleEdit.Text := Trim(ValStr);
-      end;
-
-      if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
-        FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
-
-      for i := 0 to 14 do
-      begin
-        if Assigned(FVsTrackbars[i]) then
-        begin
-          ValStr := Cfg.GetValue(KEYS[i] + ' =', '');
-          if ValStr <> '' then
-          begin
-            if TryStrToFloat(ValStr, Val, FS) then
-            begin
-              if i = 2 then
-                PosVal := Round(Val * 100) + 300
-              else if i = 6 then
-                PosVal := Round(Val) + 180
-              else
-                PosVal := Round(Val * 100) + 100;
-
-              // Clamp to Min/Max
-              if PosVal < FVsTrackbars[i].Min then PosVal := FVsTrackbars[i].Min;
-              if PosVal > FVsTrackbars[i].Max then PosVal := FVsTrackbars[i].Max;
-
-              FVsTrackbars[i].Position := PosVal;
-            end;
-          end;
-        end;
-      end;
-    end;
-  finally
-    Cfg.Free;
+      FVsTrackbars[i].Position := Settings.TrackbarPositions[i];
   end;
 end;
 

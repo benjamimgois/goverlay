@@ -5,7 +5,7 @@ unit overlay_config;
 interface
 
 uses
-  Classes, SysUtils, IniFiles, FileUtil, configfile, configmanager, configkeys, bgmod_resources, optiscaler_update;
+  Classes, SysUtils, IniFiles, FileUtil, StrUtils, Types, configfile, configmanager, configkeys, bgmod_resources, optiscaler_update;
 
 type
   TVkBasaltSettings = record
@@ -60,6 +60,10 @@ function GetGameConfigDir(const AGameName: string): string;
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
 function SaveVkSumiConfig(const Settings: TVkSumiSettings; out ErrMsg: string): Boolean;
 function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
+
+function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings): Boolean;
+function LoadVkSumiConfig(const CfgFile: string; out Settings: TVkSumiSettings): Boolean;
+function LoadOptiScalerConfig(const ActiveGameName: string; out Settings: TOptiScalerSettings): Boolean;
 
 implementation
 
@@ -616,6 +620,394 @@ begin
 
   if not ( (Settings.ActiveGameName <> '') and ActiveGameIsNonSteamLocal ) then
     LaunchCommand := LaunchCommand + LaunchCommandSuffix;
+
+  Result := True;
+end;
+
+function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings): Boolean;
+var
+  Value, EffectsStr, FullEffectPath: string;
+  EffectsList: TStringArray;
+  j, k: Integer;
+  FloatValue: Double;
+  FS: TFormatSettings;
+  Cfg: TConfigFile;
+begin
+  Result := False;
+  FillChar(Settings, SizeOf(Settings), 0);
+  
+  if not FileExists(CfgFile) then
+    Exit;
+
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  Cfg := TConfigFile.Create;
+  try
+    if not Cfg.Load(CfgFile) then Exit;
+
+    Settings.BasaltCfgFile := CfgFile;
+    ActEffectsList.Clear;
+
+    EffectsStr := Cfg.GetValue('effects =', '');
+    if EffectsStr <> '' then
+    begin
+      EffectsList := SplitString(EffectsStr, ':');
+      for j := Low(EffectsList) to High(EffectsList) do
+      begin
+        EffectsList[j] := Trim(EffectsList[j]);
+        if SameText(EffectsList[j], 'cas') then
+        begin
+          if Settings.CasPosition = 0 then
+            Settings.CasPosition := 5;
+        end
+        else if SameText(EffectsList[j], 'fxaa') then
+        begin
+          if Settings.FxaaPosition = 0 then
+            Settings.FxaaPosition := 5;
+        end
+        else if SameText(EffectsList[j], 'smaa') then
+        begin
+          if Settings.SmaaPosition = 0 then
+            Settings.SmaaPosition := 5;
+        end
+        else if SameText(EffectsList[j], 'dls') then
+        begin
+          if Settings.DlsPosition = 0 then
+            Settings.DlsPosition := 5;
+        end
+        else if EffectsList[j] <> '' then
+        begin
+          FullEffectPath := '';
+          for k := 0 to AvEffectsList.Count - 1 do
+          begin
+            if SameText(ChangeFileExt(ExtractFileName(AvEffectsList[k]), ''), EffectsList[j]) then
+            begin
+              FullEffectPath := AvEffectsList[k];
+              Break;
+            end;
+          end;
+          if FullEffectPath = '' then
+            FullEffectPath := EffectsList[j];
+          if ActEffectsList.IndexOf(FullEffectPath) = -1 then
+            ActEffectsList.Add(FullEffectPath);
+        end;
+      end;
+    end;
+
+    Value := Cfg.GetValue('casSharpness =', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+      Settings.CasPosition := Round(FloatValue * 10);
+
+    Value := Cfg.GetValue('fxaaQualitySubpix =', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+      Settings.FxaaPosition := Round(FloatValue * 10);
+
+    Value := Cfg.GetValue('smaaCornerRounding =', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+      Settings.SmaaPosition := Round(FloatValue / 25 * 9) + 1;
+
+    Value := Cfg.GetValue('dlsSharpness =', '');
+    if TryStrToFloat(Value, FloatValue, FS) then
+      Settings.DlsPosition := Round(FloatValue * 9) + 1;
+
+    Value := Cfg.GetValue('toggleKey =', '');
+    if Value <> '' then
+      Settings.ToggleKey := Value;
+
+    Result := True;
+  finally
+    Cfg.Free;
+  end;
+end;
+
+function LoadVkSumiConfig(const CfgFile: string; out Settings: TVkSumiSettings): Boolean;
+const
+  KEYS: array[0..14] of string = (
+    'brightness', 'contrast', 'exposure', 'gamma',
+    'saturation', 'vibrance', 'hue_deg', 'temperature', 'tint',
+    'red_gain', 'green_gain', 'blue_gain',
+    'shadows', 'midtones', 'highlights'
+  );
+  DEFAULTS: array[0..14] of Integer = (
+    100, 100, 300, 100,
+    100, 100, 180, 100, 100,
+    100, 100, 100,
+    100, 100, 100
+  );
+var
+  Cfg: TConfigFile;
+  i: Integer;
+  FS: TFormatSettings;
+  ValStr: string;
+  Val: Double;
+  PosVal: Integer;
+begin
+  Result := False;
+  FillChar(Settings, SizeOf(Settings), 0);
+  Settings.SumiCfgFile := CfgFile;
+  
+  // Set default values first
+  Settings.Enabled := True;
+  Settings.ToggleKeys := 'Shift_R+F9';
+  for i := 0 to 14 do
+    Settings.TrackbarPositions[i] := DEFAULTS[i];
+
+  if not FileExists(CfgFile) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  Cfg := TConfigFile.Create;
+  try
+    if Cfg.Load(CfgFile) then
+    begin
+      Settings.Enabled := Cfg.GetBool('enabled =', True);
+      
+      ValStr := Cfg.GetValue('toggle_keys =', 'Shift_R+F9');
+      i := Pos('#', ValStr);
+      if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
+      i := Pos(';', ValStr);
+      if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
+      Settings.ToggleKeys := Trim(ValStr);
+
+      for i := 0 to 14 do
+      begin
+        ValStr := Cfg.GetValue(KEYS[i] + ' =', '');
+        if ValStr <> '' then
+        begin
+          if TryStrToFloat(ValStr, Val, FS) then
+          begin
+            if i = 2 then
+              PosVal := Round(Val * 100) + 300
+            else if i = 6 then
+              PosVal := Round(Val) + 180
+            else
+              PosVal := Round(Val * 100) + 100;
+
+            // Clamp to Min/Max
+            if i = 2 then // Exposure: 0..600
+            begin
+              if PosVal < 0 then PosVal := 0;
+              if PosVal > 600 then PosVal := 600;
+            end
+            else if i = 6 then // Hue: 0..360
+            begin
+              if PosVal < 0 then PosVal := 0;
+              if PosVal > 360 then PosVal := 360;
+            end
+            else // Others: 0..200
+            begin
+              if PosVal < 0 then PosVal := 0;
+              if PosVal > 200 then PosVal := 200;
+            end;
+
+            Settings.TrackbarPositions[i] := PosVal;
+          end;
+        end;
+      end;
+      Result := True;
+    end;
+  finally
+    Cfg.Free;
+  end;
+end;
+
+function LoadOptiScalerConfig(const ActiveGameName: string; out Settings: TOptiScalerSettings): Boolean;
+var
+  OptiCfg, FakeCfg: TConfigFile;
+  OptiScalerIniPath, FakeNvapiIniPath, ConfigPath, VarsPath: string;
+  Value, DllName, FsrVer, TrimmedLine, Key, ValStr: string;
+  FloatValue: Double;
+  FS: TFormatSettings;
+  Ini: TIniFile;
+  i, SepPos: Integer;
+  ConfigLines: TStringList;
+begin
+  Result := False;
+  FillChar(Settings, SizeOf(Settings), 0);
+  Settings.ActiveGameName := ActiveGameName;
+
+  // Defaults
+  Settings.FilenameItemIndex := 0;
+  Settings.EmuFp8Checked := False;
+  Settings.ShortcutKey := '0x2d';
+  Settings.MenuScalePosition := 10;
+  Settings.OverrideChecked := False;
+  Settings.SpoofChecked := False;
+  Settings.FsrversionItemIndex := 0;
+  Settings.OptipatcherChecked := False;
+  Settings.ForceReflexChecked := False;
+  Settings.ReflexItemIndex := 0;
+  Settings.ForceLatencyFlexChecked := False;
+  Settings.LatencyFlexItemIndex := 0;
+  Settings.TraceLogChecked := False;
+
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
+  // 1. Load OptiScaler.ini
+  if ActiveGameName <> '' then
+    OptiScalerIniPath := GetGameConfigDir(ActiveGameName) + 'OptiScaler.ini'
+  else
+    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+
+  if FileExists(OptiScalerIniPath) then
+  begin
+    OptiCfg := TConfigFile.Create;
+    try
+      if OptiCfg.Load(OptiScalerIniPath) then
+      begin
+        Value := OptiCfg.GetValue(OPTI_KEY_SHORTCUT, '', OPTI_INI_SECTION_MENU);
+        if SameText(Value, 'auto') or (Value = '') then
+          Settings.ShortcutKey := '0x2d'
+        else
+          Settings.ShortcutKey := Value;
+
+        Value := OptiCfg.GetValue(OPTI_KEY_SCALE, '', OPTI_INI_SECTION_MENU);
+        if TryStrToFloat(Value, FloatValue, FS) then
+          Settings.MenuScalePosition := Round(FloatValue * 10);
+
+        Settings.OverrideChecked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
+        Settings.OptipatcherChecked := SameText(OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, ''), 'true');
+
+        if SameText(OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, ''), 'true') then
+          Settings.FsrversionItemIndex := 0;
+
+        Settings.SpoofChecked := SameText(OptiCfg.GetValue(OPTI_KEY_DXGI, ''), 'auto');
+      end;
+    finally
+      OptiCfg.Free;
+    end;
+  end;
+
+  // 2. Load fakenvapi.ini
+  if ActiveGameName <> '' then
+    FakeNvapiIniPath := GetGameConfigDir(ActiveGameName) + 'fakenvapi.ini'
+  else
+    FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+
+  if FileExists(FakeNvapiIniPath) then
+  begin
+    FakeCfg := TConfigFile.Create;
+    try
+      if FakeCfg.Load(FakeNvapiIniPath) then
+      begin
+        Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
+        if Value = '0' then
+        begin
+          Settings.ForceReflexChecked := False;
+          Settings.ReflexItemIndex := 0;
+        end
+        else
+        begin
+          Settings.ForceReflexChecked := True;
+          case Value of
+            '1': Settings.ReflexItemIndex := 1;
+            '2': Settings.ReflexItemIndex := 2;
+          else
+            Settings.ReflexItemIndex := 0;
+          end;
+        end;
+
+        Settings.ForceLatencyFlexChecked := (FakeCfg.GetValue(FAKE_KEY_FORCE_LATENCY, '0') = '1');
+        if Settings.ForceLatencyFlexChecked then
+        begin
+          case FakeCfg.GetValue(FAKE_KEY_LATENCY_MODE, '0') of
+            '0': Settings.LatencyFlexItemIndex := 0;
+            '1': Settings.LatencyFlexItemIndex := 1;
+            '2': Settings.LatencyFlexItemIndex := 2;
+          else
+            Settings.LatencyFlexItemIndex := 0;
+          end;
+        end;
+
+        Settings.TraceLogChecked := (FakeCfg.GetValue(FAKE_KEY_TRACE_LOGS, '0') = '1');
+      end;
+    finally
+      FakeCfg.Free;
+    end;
+  end;
+
+  // 3. Load bgmod.conf and goverlay.vars
+  if ActiveGameName <> '' then
+    ConfigPath := GetGameConfigDir(ActiveGameName) + 'bgmod.conf'
+  else
+    ConfigPath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
+
+  if not FileExists(ConfigPath) then
+  begin
+    Settings.FilenameItemIndex := 0;
+    Settings.EmuFp8Checked := False;
+  end
+  else
+  begin
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
+      if SameText(DllName, 'dxgi.dll') then
+        Settings.FilenameItemIndex := 0
+      else if SameText(DllName, 'version.dll') then
+        Settings.FilenameItemIndex := 1
+      else if SameText(DllName, 'dbghelp.dll') then
+        Settings.FilenameItemIndex := 2
+      else if SameText(DllName, 'd3d12.dll') then
+        Settings.FilenameItemIndex := 3
+      else if SameText(DllName, 'wininet.dll') then
+        Settings.FilenameItemIndex := 4
+      else if SameText(DllName, 'winhttp.dll') then
+        Settings.FilenameItemIndex := 5
+      else if SameText(DllName, 'winmm.dll') then
+        Settings.FilenameItemIndex := 6
+      else if SameText(DllName, 'OptiScaler.asi') then
+        Settings.FilenameItemIndex := 7
+      else
+        Settings.FilenameItemIndex := 0;
+
+      Settings.EmuFp8Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
+    finally
+      Ini.Free;
+    end;
+  end;
+
+  if ActiveGameName <> '' then
+    VarsPath := IncludeTrailingPathDelimiter(GetGameConfigDir(ActiveGameName)) + 'goverlay.vars'
+  else
+    VarsPath := IncludeTrailingPathDelimiter(GetOptiScalerInstallPath) + 'goverlay.vars';
+
+  if FileExists(VarsPath) then
+  begin
+    ConfigLines := TStringList.Create;
+    try
+      ConfigLines.LoadFromFile(VarsPath);
+      FsrVer := '';
+      for i := 0 to ConfigLines.Count - 1 do
+      begin
+        TrimmedLine := Trim(ConfigLines[i]);
+        SepPos := Pos('=', TrimmedLine);
+        if SepPos > 0 then
+        begin
+          Key   := Copy(TrimmedLine, 1, SepPos - 1);
+          Value := Copy(TrimmedLine, SepPos + 1, Length(TrimmedLine));
+          if SameText(Key, 'fsrversion') then
+          begin
+            FsrVer := Value;
+            Break;
+          end;
+        end;
+      end;
+      if FsrVer = '4.0.2c (INT8)' then
+        Settings.FsrversionItemIndex := 1
+      else
+        Settings.FsrversionItemIndex := 0;
+    finally
+      ConfigLines.Free;
+    end;
+  end;
 
   Result := True;
 end;
