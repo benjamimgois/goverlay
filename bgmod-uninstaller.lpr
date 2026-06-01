@@ -5,6 +5,8 @@ program bgmod_uninstaller;
 uses
   Classes, SysUtils, IniFiles, Process, BaseUnix, Unix;
 
+function GetBGModPath: string; forward;
+
 function CopyFile(const Src, Dst: string): Boolean;
 var
   SrcStream, DstStream: TFileStream;
@@ -176,7 +178,10 @@ end;
 procedure ResolveGameDirectory;
 var
   Arg, ExePath, LutrisId, Cmd: string;
-  i: Integer;
+  i, j, PosPipe: Integer;
+  LauncherIni: TIniFile;
+  LauncherList: TStringList;
+  KeyLine, KeyName, EntryVal, TargetSub, Repl, CleanKey, ConfPath: string;
 begin
   GameDir := '';
   
@@ -187,31 +192,70 @@ begin
     if LowerCase(ExtractFileExt(Arg)) = '.exe' then
     begin
       // Game launcher replacements
-      if (Pos('Cyberpunk 2077', Arg) > 0) and (Pos('REDprelauncher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'REDprelauncher.exe', 'bin/x64/Cyberpunk2077.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('Witcher 3', Arg) > 0) and (Pos('REDprelauncher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'REDprelauncher.exe', 'bin/x64_dx12/witcher3.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('Baldurs Gate 3', Arg) > 0) and (Pos('Launcher/LariLauncher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'Launcher/LariLauncher.exe', 'bin/bg3_dx11.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('Baldurs Gate 3', Arg) > 0) and (Pos('Launcher\LariLauncher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'Launcher\LariLauncher.exe', 'bin/bg3_dx11.exe', [rfReplaceAll, rfIgnoreCase])
-      else if ((Pos('HITMAN 3', Arg) > 0) or (Pos('HITMAN World of Assassination', Arg) > 0)) and (Pos('Launcher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'Launcher.exe', 'Retail/HITMAN3.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('SYNCED', Arg) > 0) and (Pos('Launcher/sop_launcher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'Launcher/sop_launcher.exe', 'SYNCED.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('2KLauncher', Arg) > 0) and (Pos('2KLauncher/LauncherPatcher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, '2KLauncher/LauncherPatcher.exe', 'DoesntMatter.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('Warhammer 40,000 DARKTIDE', Arg) > 0) and (Pos('launcher/Launcher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'launcher/Launcher.exe', 'binaries/Darktide.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('Warhammer Vermintide 2', Arg) > 0) and (Pos('launcher/Launcher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'launcher/Launcher.exe', 'binaries_dx12/vermintide2_dx12.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('Satisfactory', Arg) > 0) and (Pos('FactoryGameSteam.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'FactoryGameSteam.exe', 'Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('FINAL FANTASY XIV Online', Arg) > 0) and (Pos('boot/ffxivboot.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'boot/ffxivboot.exe', 'game/ffxiv_dx11.exe', [rfReplaceAll, rfIgnoreCase])
-      else if (Pos('DuneAwakening', Arg) > 0) and (Pos('Launcher/FuncomLauncher.exe', Arg) > 0) then
-        Arg := StringReplace(Arg, 'Launcher/FuncomLauncher.exe', 'DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe', [rfReplaceAll, rfIgnoreCase]);
+      LauncherList := TStringList.Create;
+      LauncherIni := nil;
+      try
+        ConfPath := ExtractFilePath(ParamStr(0)) + 'bgmod.conf';
+        if not FileExists(ConfPath) then
+          ConfPath := IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod.conf';
+          
+        if FileExists(ConfPath) then
+        begin
+          LauncherIni := TIniFile.Create(ConfPath);
+          LauncherIni.ReadSectionValues('Launchers', LauncherList);
+        end;
         
+        if LauncherList.Count = 0 then
+        begin
+          LauncherList.Add('Cyberpunk 2077=REDprelauncher.exe|bin/x64/Cyberpunk2077.exe');
+          LauncherList.Add('Witcher 3=REDprelauncher.exe|bin/x64_dx12/witcher3.exe');
+          LauncherList.Add('Baldurs Gate 3=Launcher/LariLauncher.exe|bin/bg3_dx11.exe');
+          LauncherList.Add('Baldurs Gate 3 Alt=Launcher\LariLauncher.exe|bin/bg3_dx11.exe');
+          LauncherList.Add('HITMAN 3=Launcher.exe|Retail/HITMAN3.exe');
+          LauncherList.Add('HITMAN World of Assassination=Launcher.exe|Retail/HITMAN3.exe');
+          LauncherList.Add('SYNCED=Launcher/sop_launcher.exe|SYNCED.exe');
+          LauncherList.Add('2KLauncher=2KLauncher/LauncherPatcher.exe|DoesntMatter.exe');
+          LauncherList.Add('Warhammer 40,000 DARKTIDE=launcher/Launcher.exe|binaries/Darktide.exe');
+          LauncherList.Add('Warhammer Vermintide 2=launcher/Launcher.exe|binaries_dx12/vermintide2_dx12.exe');
+          LauncherList.Add('Satisfactory=FactoryGameSteam.exe|Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe');
+          LauncherList.Add('FINAL FANTASY XIV Online=boot/ffxivboot.exe|game/ffxiv_dx11.exe');
+          LauncherList.Add('DuneAwakening=Launcher/FuncomLauncher.exe|DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe');
+        end;
+        
+        for j := 0 to LauncherList.Count - 1 do
+        begin
+          KeyLine := LauncherList[j];
+          PosPipe := Pos('=', KeyLine);
+          if PosPipe > 0 then
+          begin
+            KeyName := Trim(Copy(KeyLine, 1, PosPipe - 1));
+            CleanKey := KeyName;
+            if Pos(' Alt', CleanKey) > 0 then
+              CleanKey := Copy(CleanKey, 1, Pos(' Alt', CleanKey) - 1);
+            if Pos(' alt', CleanKey) > 0 then
+              CleanKey := Copy(CleanKey, 1, Pos(' alt', CleanKey) - 1);
+              
+            EntryVal := Trim(Copy(KeyLine, PosPipe + 1, MaxInt));
+            PosPipe := Pos('|', EntryVal);
+            if PosPipe > 0 then
+            begin
+              TargetSub := Trim(Copy(EntryVal, 1, PosPipe - 1));
+              Repl := Trim(Copy(EntryVal, PosPipe + 1, MaxInt));
+              
+              if (Pos(CleanKey, Arg) > 0) and (Pos(TargetSub, Arg) > 0) then
+              begin
+                Arg := StringReplace(Arg, TargetSub, Repl, [rfReplaceAll, rfIgnoreCase]);
+                Break;
+              end;
+            end;
+          end;
+        end;
+      finally
+        if Assigned(LauncherIni) then
+          LauncherIni.Free;
+        LauncherList.Free;
+      end;
+      
       GameDir := ExtractFilePath(Arg);
       Log('Resolved GameDir from argument: ' + GameDir);
       Break;

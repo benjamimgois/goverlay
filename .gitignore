@@ -11,9 +11,9 @@ docs/Changelogs/
 /bgmod
 data/bgmod/bgmod
 scratch/
-/bgmod.conf
 /bgmod-uninstaller
 data/bgmod/bgmod-uninstaller
+data/bgmod/bgmod.conf
 
 # Flatpak build artifacts
 .flatpak-builder/

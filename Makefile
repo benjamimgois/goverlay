@@ -12,6 +12,7 @@ bgmod: bgmod.lpr
 	fpc -O3 bgmod.lpr
 	mkdir -p data/bgmod
 	cp bgmod data/bgmod/bgmod
+	cp bgmod.conf data/bgmod/bgmod.conf
 
 bgmod-uninstaller: bgmod-uninstaller.lpr
 	fpc -O3 bgmod-uninstaller.lpr
@@ -31,6 +32,7 @@ clean:
 	rm -f bgmod-uninstaller
 	rm -f data/bgmod/bgmod
 	rm -f data/bgmod/bgmod-uninstaller
+	rm -f data/bgmod/bgmod.conf
 	rm -f start_goverlay.sh
 	rm -f data/goverlay.sh
 	rm -rf lib/
