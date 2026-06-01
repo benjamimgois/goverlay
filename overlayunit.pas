@@ -10,7 +10,7 @@ uses
   blacklistUnit, LCLtype, Clipbrd, LCLIntf, IniFiles,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
   bgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
-  configkeys, configfile, uihelpers, apputils;
+  configkeys, configfile, uihelpers, apputils, overlay_config;
 
 
 
@@ -9075,263 +9075,93 @@ end;
 
 procedure Tgoverlayform.SaveOptiScalerConfig;
 var
-  SelectedDllName, DllNameWithoutExt: string;
-  OptiScalerIniPath: string;
-  OptiCfg: TConfigFile;
-  SelectedShortcutKey, ScaleValue: string;
-  ScaleFloat: Double;
-  FS: TFormatSettings;
-  OverrideNvapiDllValue: string;
-  DxgiValue: string;
-  LoadAsiPluginsValue: string;
-  Fsr4UpdateValue: string;
-  FakeNvapiIniPath: string;
-  FakeCfg: TConfigFile;
-  ForceReflexValue: string;
-  ForceLatencyFlexValue, LatencyFlexModeValue: string;
-  EnableTraceLogsValue: string;
+  Settings: TOptiScalerSettings;
+  ErrMsg: string;
   LaunchCommand: string;
-  FGModPath, FGModDestPath, VarsFilePath: string;
-  Lines: TStringList;
-  i: Integer;
-  Ini: TIniFile;
-  FGModFilePath: string;
 begin
-  // Get the bgmod.conf path
-  if FActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
-  else
-    FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
+  Settings.ActiveGameName := FActiveGameName;
+  Settings.Version := GVERSION;
+  Settings.Channel := GCHANNEL;
+  Settings.FilenameItemIndex := filenameComboBox.ItemIndex;
+  Settings.EmuFp8Checked := emufp8CheckBox.Checked;
+  Settings.ShortcutKey := shortcutkeyComboBox.Text;
+  Settings.MenuScalePosition := menuscaleTrackBar.Position;
+  Settings.OverrideChecked := overrideCheckBox.Checked;
+  Settings.SpoofChecked := spoofCheckBox.Checked;
+  Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;
+  Settings.OptipatcherChecked := optipatcherCheckBox.Checked;
+  Settings.ForceReflexChecked := forcereflexCheckBox.Checked;
+  Settings.ReflexItemIndex := reflexComboBox.ItemIndex;
+  Settings.ForceLatencyFlexChecked := forcelatencyflexCheckBox.Checked;
+  Settings.LatencyFlexItemIndex := latencyflexComboBox.ItemIndex;
+  Settings.TraceLogChecked := tracelogCheckBox.Checked;
 
-  // Get selected DLL name from combobox
-  case filenameComboBox.ItemIndex of
-    0: SelectedDllName := OPTI_DLL_DXGI;
-    1: SelectedDllName := OPTI_DLL_VERSION;
-    2: SelectedDllName := OPTI_DLL_DBGHELP;
-    3: SelectedDllName := OPTI_DLL_D3D12;
-    4: SelectedDllName := OPTI_DLL_WININET;
-    5: SelectedDllName := OPTI_DLL_WINHTTP;
-    6: SelectedDllName := OPTI_DLL_WINMM;
-    7: SelectedDllName := OPTI_DLL_ASI;
-  else
-    SelectedDllName := OPTI_DLL_DXGI; // Default
-  end;
-
-  DllNameWithoutExt := ChangeFileExt(SelectedDllName, '');
-
-  ForceDirectories(ExtractFilePath(FGModFilePath));
-  Ini := TIniFile.Create(FGModFilePath);
-  try
-    Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
-    Ini.WriteString('Config', 'DLL', SelectedDllName);
-    Ini.WriteString('Config', 'PRESERVE_INI', 'true');
-
-    if emufp8CheckBox.Checked then
-      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
-    else
-      Ini.DeleteKey('Env', 'DXIL_SPIRV_CONFIG');
-  finally
-    Ini.Free;
-  end;
-
-  // Get OptiScaler.ini file path
-  if FActiveGameName <> '' then
-    OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
-  else
-    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
-
-  // Get ShortcutKey from hidden combobox (stores hex VK code or 'auto')
-  SelectedShortcutKey := Trim(shortcutkeyComboBox.Text);
-  if SelectedShortcutKey = '' then
-    SelectedShortcutKey := 'auto';
-
-  // Calculate Scale value from menuscaleTrackBar (divide by 10)
-  ScaleFloat := menuscaleTrackBar.Position / 10.0;
-  // Format with dot as decimal separator
-  FS := DefaultFormatSettings;
-  FS.DecimalSeparator := '.';
-  ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
-
-  // Get OverrideNvapiDll value from overrideCheckBox
-  if overrideCheckBox.Checked then
-    OverrideNvapiDllValue := 'true'
-  else
-    OverrideNvapiDllValue := 'auto';
-
-  // Get Dxgi value from spoofCheckBox (Spoof DLSS inputs)
-  if spoofCheckBox.Checked then
-    DxgiValue := 'auto'
-  else
-    DxgiValue := 'false';
-
-  // Get Fsr4Update value from fsrversionComboBox
-  if fsrversionComboBox.ItemIndex = 0 then
-    Fsr4UpdateValue := 'True'
-  else
-    Fsr4UpdateValue := 'auto';
-
-  // Get LoadAsiPlugins value from optipatcherCheckBox
-  if optipatcherCheckBox.Checked then
-    LoadAsiPluginsValue := 'true'
-  else
-    LoadAsiPluginsValue := 'auto';
-
-  // Update OptiScaler.ini using TConfigFile wrapper
-  OptiCfg := TConfigFile.Create;
-  try
-    if OptiCfg.Load(OptiScalerIniPath) then
-    begin
-      OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
-      OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
-      OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
-      OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
-      OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
-      OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
-      OptiCfg.Save;
-    end;
-  finally
-    OptiCfg.Free;
-  end;
-
-  // ##### Now modify fakenvapi.ini file #####
+  if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetGeneralCheckBox(1).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
   begin
-    // Get fakenvapi.ini file path
-    if FActiveGameName <> '' then
-      FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
-    else
-      FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
-
-    // Get selected force_reflex value from reflexComboBox
-    if forcereflexCheckBox.Checked then
-    begin
-      case reflexComboBox.ItemIndex of
-        0: ForceReflexValue := '0';
-        1: ForceReflexValue := '1';
-        2: ForceReflexValue := '2';
-      end;
-    end
-    else
-      ForceReflexValue := '0';
-
-    // Get force_latencyflex and latencyflex_mode values
-    if forcelatencyflexCheckBox.Checked then
-    begin
-      ForceLatencyFlexValue := '1';
-      case latencyflexComboBox.ItemIndex of
-        0: LatencyFlexModeValue := '0';
-        1: LatencyFlexModeValue := '1';
-        2: LatencyFlexModeValue := '2';
-      else
-        LatencyFlexModeValue := '0';
-      end;
-    end
-    else
-    begin
-      ForceLatencyFlexValue := '0';
-      LatencyFlexModeValue := '0';
-    end;
-
-    // Get enable_trace_logs value from tracelogCheckBox
-    if tracelogCheckBox.Checked then
-      EnableTraceLogsValue := '1'
-    else
-      EnableTraceLogsValue := '0';
-
-    // Update fakenvapi.ini using TConfigFile wrapper
-    FakeCfg := TConfigFile.Create;
-    try
-      if FakeCfg.Load(FakeNvapiIniPath) then
-      begin
-        FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue);
-        FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
-        FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
-        FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
-        if (not forcereflexCheckBox.Checked or FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX)) and
-           (not forcelatencyflexCheckBox.Checked or (FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) and FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE))) then
-          FakeCfg.Save
-        else
-        begin
-          if forcereflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then
-            ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
-          if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) then
-            ShowMessage('Warning: Could not find force_latencyflex line in fakenvapi.ini file');
-          if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE) then
-            ShowMessage('Warning: Could not find latencyflex_mode line in fakenvapi.ini file');
-        end;
-      end;
-    finally
-      FakeCfg.Free;
-    end;
+    if ErrMsg <> '' then
+      ShowMessage(ErrMsg);
+    Exit;
   end;
 
-  // ##### Copy FSR4 DLL based on fsrversionCombobox selection #####
-  try
-    FGModPath := GetOptiScalerInstallPath;
-    if FActiveGameName <> '' then
-      FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName))
-    else
-      FGModDestPath := FGModPath;
+  if ErrMsg <> '' then
+    ShowMessage(ErrMsg);
 
-    case fsrversionComboBox.ItemIndex of
-      0: // Latest (FP8)
-        begin
-          if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-          begin
-            CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                     IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-
-            VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
-            if FileExists(VarsFilePath) then
-            begin
-              Lines := TStringList.Create;
-              try
-                Lines.LoadFromFile(VarsFilePath);
-                for i := Lines.Count - 1 downto 0 do
-                  if Pos('fsrversion=', Lines[i]) > 0 then
-                    Lines.Delete(i);
-                Lines.Add('fsrversion=Latest (FP8)');
-                Lines.SaveToFile(VarsFilePath);
-              finally
-                Lines.Free;
-              end;
-            end;
-          end;
-        end;
-
-      1: // 4.0.2c (INT8)
-        begin
-          if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-          begin
-            CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                     IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-
-            VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
-            if FileExists(VarsFilePath) then
-            begin
-              Lines := TStringList.Create;
-              try
-                Lines.LoadFromFile(VarsFilePath);
-                for i := Lines.Count - 1 downto 0 do
-                  if Pos('fsrversion=', Lines[i]) > 0 then
-                    Lines.Delete(i);
-                Lines.Add('fsrversion=4.0.2c (INT8)');
-                Lines.SaveToFile(VarsFilePath);
-              finally
-                Lines.Free;
-              end;
-            end;
-          end;
-        end;
-    end;
-  except
-    on E: Exception do
-      ShowMessage('Warning: Could not copy FSR4 DLL: ' + E.Message);
-  end;
-
-  // Show notification
   SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
 
-  // Build launch command — use game-specific bgmod copy when in game mode
+  notificationLabel.Visible := False;
+  FLaunchCommand := LaunchCommand;
+  commandPaintBox.Invalidate;
+  commandPanel.Visible := True;
+end;
+
+procedure Tgoverlayform.SaveVkSumiConfig;
+var
+  Settings: TVkSumiSettings;
+  ErrMsg: string;
+  LaunchCommand: string;
+  i: Integer;
+begin
+  Settings.SumiFolder := VKSUMIFOLDER;
+  Settings.SumiCfgFile := VKSUMICFGFILE;
+  Settings.Version := GVERSION;
+  Settings.Channel := GCHANNEL;
+  if Assigned(FVsEnabledCB) then
+    Settings.Enabled := FVsEnabledCB.Checked
+  else
+    Settings.Enabled := True;
+
+  if Assigned(FVsToggleEdit) and (Trim(FVsToggleEdit.Text) <> '') then
+    Settings.ToggleKeys := FVsToggleEdit.Text
+  else
+    Settings.ToggleKeys := 'Shift_R+F9';
+
+  for i := 0 to 14 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+      Settings.TrackbarPositions[i] := FVsTrackbars[i].Position
+    else
+      Settings.TrackbarPositions[i] := 100;
+  end;
+  Settings.ActiveGameName := FActiveGameName;
+
+  if not overlay_config.SaveVkSumiConfig(Settings, ErrMsg) then
+  begin
+    if ErrMsg <> '' then
+      ShowMessage(ErrMsg);
+    Exit;
+  end;
+
+  // In game-specific mode: inject VKSUMI_CONFIG_FILE into the game bgmod
+  // so the launcher can locate the per-game config at runtime.
+  if FActiveGameName <> '' then
+    PatchGameFGModConfigPath(
+      GetGameConfigDir(FActiveGameName) + 'bgmod',
+      'VKSUMI_CONFIG_FILE',
+      VKSUMICFGFILE);
+
+  SendNotification('vkSumi', 'Configuration saved to ' + VKSUMICFGFILE, GetIconFile);
+
+  // Always show the bgmod command — use game-specific bgmod copy when in game mode
   if FActiveGameName <> '' then
   begin
     if FActiveGameIsNonSteam then
@@ -9342,7 +9172,7 @@ begin
   else
     LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
-  // Check if gamemode should be added
+  // Check if gamemode should be added (check generalCheckGroup)
   if GetGeneralCheckBox(1).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
@@ -9353,159 +9183,6 @@ begin
   FLaunchCommand := LaunchCommand;
   commandPaintBox.Invalidate;
   commandPanel.Visible := True;
-end;
-
-procedure Tgoverlayform.SaveVkSumiConfig;
-const
-  KEYS: array[0..14] of string = (
-    'brightness', 'contrast', 'exposure', 'gamma',
-    'saturation', 'vibrance', 'hue_deg', 'temperature', 'tint',
-    'red_gain', 'green_gain', 'blue_gain',
-    'shadows', 'midtones', 'highlights'
-  );
-var
-  ConfigDir, ConfigFile: string;
-  Lines: TStringList;
-  FS: TFormatSettings;
-  Val: Double;
-  i: Integer;
-  FGModFilePath: string;
-  SumiEnabled: Boolean;
-  LaunchCommand: string;
-  Ini: TIniFile;
-begin
-  ConfigDir := VKSUMIFOLDER;
-  ConfigFile := VKSUMICFGFILE;
-  FS := DefaultFormatSettings;
-  FS.DecimalSeparator := '.';
-
-  Lines := TStringList.Create;
-  try
-    Lines.Add('################### File Generated by Goverlay ' + GVERSION + ' ' + GCHANNEL + ' ###################');
-    Lines.Add('# vkSumi color grading');
-    Lines.Add('#');
-    Lines.Add('# Lives at:');
-    Lines.Add('#   ~/.config/vkSumi/vkSumi.conf              global default');
-    Lines.Add('#   ~/.config/vkSumi/games/<exe>.conf         per-game overrides (auto-created)');
-    Lines.Add('#');
-    Lines.Add('# Per-game files merge on top of the global one, only set what you wanna change.');
-    Lines.Add('# Save and the layer reloads via inotify, no game restart needed.');
-    Lines.Add('#');
-    Lines.Add('# 0 = no change for every knob.');
-    Lines.Add('# + = more / brighter.');
-    Lines.Add('# - = less / darker.');
-    Lines.Add('');
-    Lines.Add('PER_GAME_CONFIG_CREATION = false');
-    Lines.Add('');
-    if Assigned(FVsEnabledCB) then
-      Lines.Add('enabled     = ' + LowerCase(BoolToStr(FVsEnabledCB.Checked, True)))
-    else
-      Lines.Add('enabled     = true');
-    if Assigned(FVsToggleEdit) and (Trim(FVsToggleEdit.Text) <> '') then
-      Lines.Add('toggle_keys = ' + FVsToggleEdit.Text + '    # in-game hotkey, X11 + XWayland (Wine/Proton)')
-    else
-      Lines.Add('toggle_keys = Shift_R+F9    # in-game hotkey, X11 + XWayland (Wine/Proton)');
-    Lines.Add('');
-    Lines.Add('# tone');
-    for i := 0 to 3 do
-    begin
-      if i = 2 then // exposure — -3..3
-        Val := (FVsTrackbars[i].Position - 300) / 100
-      else
-        Val := (FVsTrackbars[i].Position - 100) / 100;
-      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
-    end;
-    Lines.Add('');
-    Lines.Add('# color');
-    for i := 4 to 8 do
-    begin
-      if i = 6 then // hue_deg — -180..180
-        Val := FVsTrackbars[i].Position - 180
-      else
-        Val := (FVsTrackbars[i].Position - 100) / 100;
-      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
-    end;
-    Lines.Add('');
-    Lines.Add('# per-channel gain');
-    for i := 9 to 11 do
-    begin
-      Val := (FVsTrackbars[i].Position - 100) / 100;
-      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
-    end;
-    Lines.Add('');
-    Lines.Add('# 3-band');
-    for i := 12 to 14 do
-    begin
-      Val := (FVsTrackbars[i].Position - 100) / 100;
-      Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
-    end;
-
-    if not DirectoryExists(ConfigDir) then
-      ForceDirectories(ConfigDir);
-    Lines.SaveToFile(ConfigFile);
-
-    // In game-specific mode: inject VKSUMI_CONFIG_FILE into the game bgmod
-    // so the launcher can locate the per-game config at runtime.
-    if FActiveGameName <> '' then
-      PatchGameFGModConfigPath(
-        GetGameConfigDir(FActiveGameName) + 'bgmod',
-        'VKSUMI_CONFIG_FILE',
-        VKSUMICFGFILE);
-
-    // Update bgmod.conf with ENABLE_VKSUMI setting
-    if FActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
-
-    ForceDirectories(ExtractFilePath(FGModFilePath));
-    Ini := TIniFile.Create(FGModFilePath);
-    try
-      SumiEnabled := True;
-      if Assigned(FVsEnabledCB) then
-        SumiEnabled := FVsEnabledCB.Checked;
-
-      if SumiEnabled then
-      begin
-        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
-        WriteLn('[BGMOD] Enabled vkBasalt/vkSumi in config');
-      end
-      else
-      begin
-        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '0');
-        WriteLn('[BGMOD] Disabled vkBasalt/vkSumi in config');
-      end;
-    finally
-      Ini.Free;
-    end;
-
-    SendNotification('vkSumi', 'Configuration saved to ' + ConfigFile, GetIconFile);
-
-    // Always show the bgmod command — use game-specific bgmod copy when in game mode
-    if FActiveGameName <> '' then
-    begin
-      if FActiveGameIsNonSteam then
-        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
-      else
-        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
-    end
-    else
-      LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
-
-    // Check if gamemode should be added (check generalCheckGroup)
-    if GetGeneralCheckBox(1).Checked then
-      LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-    if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-      LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
-    notificationLabel.Visible := False;
-    FLaunchCommand := LaunchCommand;
-    commandPaintBox.Invalidate;
-    commandPanel.Visible := True;
-  finally
-    Lines.Free;
-  end;
 end;
 
 procedure Tgoverlayform.LoadVkSumiConfig;
@@ -9616,18 +9293,9 @@ end;
 
 procedure Tgoverlayform.SaveVkBasaltConfig;
 var
-  RepoDir, RelPath, EffectName, EffectKey, FullPath, EffectsLine: string;
-  TexPath, IncPath: string;
-  Lines: TStringList;
-  Sharp: Double;
-  FxaaQuality: Double;
-  SmaaCorner: Double;
-  DlsSharp: Double;
-  FS: TFormatSettings;
+  Settings: TVkBasaltSettings;
+  ErrMsg: string;
   LaunchCommand: string;
-  i: Integer;
-  Ini: TIniFile;
-  FGModFilePath: string;
 begin
   if VKBASALTFOLDER = '' then
   begin
@@ -9635,158 +9303,56 @@ begin
     Exit;
   end;
 
-  RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
-  Lines := TStringList.Create;
-  try
-    Lines.Add('################### File Generated by Goverlay ' + GVERSION + ' ' + GCHANNEL + ' ###################');
-    Lines.Add('toggleKey = ' + vkbtogglekeyCombobox.Text);
-    Lines.Add('enableOnLaunch = True');
-    Lines.Add('');
-    // --- create effects list" ---
-    EffectsLine := '';
-    // 1) CAS (if active)
-    if casTrackBar.Position >= 1 then
-      EffectsLine := EffectsLine + 'cas';
-    // 2) FXAA (if active)
-    if fxaatrackbar.Position >= 1 then
-    begin
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + 'fxaa';
-    end;
-    // 3) SMAA (if active)
-    if smaatrackbar.Position >= 1 then
-    begin
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + 'smaa';
-    end;
-    // 4) DLS (if active)
-    if dlstrackbar.Position >= 1 then
-    begin
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + 'dls';
-    end;
-    // 5) reshade effects on the list
-    for i := 0 to acteffectsListbox.Items.Count - 1 do
-    begin
-      RelPath := acteffectsListbox.Items[i];
-      EffectName := ChangeFileExt(ExtractFileName(RelPath), '');
-      EffectKey := EffectName;
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + EffectName;
-    end;
-    if EffectsLine <> '' then
-      Lines.Add('effects = ' + EffectsLine);
-    Lines.Add('');
-    // --- CAS ajustment if active ---
-    if casTrackBar.Position >= 1 then
-    begin
-      Sharp := casTrackBar.Position / 10.0;
-      FS := DefaultFormatSettings;
-      FS.DecimalSeparator := '.';
-      Lines.Add('casSharpness = ' + FloatToStrF(Sharp, ffFixed, 3, 1, FS));
-    end;
-    // --- FXAA adjustment if active ---
-    if fxaatrackbar.Position >= 1 then
-    begin
-      FxaaQuality := fxaatrackbar.Position / 10.0;
-      FS := DefaultFormatSettings;
-      FS.DecimalSeparator := '.';
-      Lines.Add('fxaaQualitySubpix = ' + FloatToStrF(FxaaQuality, ffFixed, 3, 1, FS));
-    end;
-    // --- SMAA adjustment if active ---
-    if smaatrackbar.Position >= 1 then
-    begin
-      FS := DefaultFormatSettings;
-      FS.DecimalSeparator := '.';
-      SmaaCorner := 25.0 * (smaatrackbar.Position - 1) / 9.0;
-      Lines.Add('smaaCornerRounding = ' + FloatToStrF(SmaaCorner, ffFixed, 3, 1, FS));
-      Lines.Add('smaaThreshold = ' + FloatToStrF(0.1 - 0.05 * (smaatrackbar.Position - 1) / 9.0, ffFixed, 3, 2, FS));
-      Lines.Add('smaaMaxSearchSteps = ' + IntToStr(Round(16 + 16 * (smaatrackbar.Position - 1) / 9.0)));
-      Lines.Add('smaaMaxSearchStepsDiag = ' + IntToStr(Round(8 + 8 * (smaatrackbar.Position - 1) / 9.0)));
-    end;
-    // --- DLS adjustment if active ---
-    if dlstrackbar.Position >= 1 then
-    begin
-      DlsSharp := (dlstrackbar.Position - 1) / 9.0;
-      FS := DefaultFormatSettings;
-      FS.DecimalSeparator := '.';
-      Lines.Add('dlsSharpness = ' + FloatToStrF(DlsSharp, ffFixed, 3, 1, FS));
-    end;
-    // --- Map reshade effects ---
-    for i := 0 to acteffectsListbox.Items.Count - 1 do
-    begin
-      RelPath := acteffectsListbox.Items[i];
-      EffectName := ChangeFileExt(ExtractFileName(RelPath), '');
-      EffectKey := EffectName;
-      FullPath := IncludeTrailingPathDelimiter(RepoDir) + RelPath;
-      Lines.Add(EffectKey + ' = ' + FullPath);
-    end;
-    Lines.Add('');
-    TexPath := IncludeTrailingPathDelimiter(RepoDir) + 'Textures';
-    IncPath := IncludeTrailingPathDelimiter(RepoDir) + 'Shaders';
-    Lines.Add('reshadeTexturePath = ' + TexPath);
-    Lines.Add('reshadeIncludePath = ' + IncPath);
-    // --- Save ---
-    if not DirectoryExists(ExtractFileDir(VKBASALTCFGFILE)) then
-      ForceDirectories(ExtractFileDir(VKBASALTCFGFILE));
-    if FileExists(VKBASALTCFGFILE) then
-      DeleteFile(VKBASALTCFGFILE);
-    Lines.SaveToFile(VKBASALTCFGFILE);
+  Settings.BasaltFolder := VKBASALTFOLDER;
+  Settings.BasaltCfgFile := VKBASALTCFGFILE;
+  Settings.Version := GVERSION;
+  Settings.Channel := GCHANNEL;
+  Settings.ToggleKey := vkbtogglekeyCombobox.Text;
+  Settings.CasPosition := casTrackBar.Position;
+  Settings.FxaaPosition := fxaatrackbar.Position;
+  Settings.SmaaPosition := smaatrackbar.Position;
+  Settings.DlsPosition := dlstrackbar.Position;
+  Settings.ReshadeEffects := acteffectsListbox.Items;
+  Settings.ActiveGameName := FActiveGameName;
 
-    // Update bgmod.conf with GOVERLAY_VKBASALT=1
-    if FActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
-
-    ForceDirectories(ExtractFilePath(FGModFilePath));
-    Ini := TIniFile.Create(FGModFilePath);
-    try
-      Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
-    finally
-      Ini.Free;
-    end;
-
-    // In game-specific mode: inject VKBASALT_CONFIG_FILE into the game bgmod
-    if FActiveGameName <> '' then
-      PatchGameFGModConfigPath(
-        GetGameConfigDir(FActiveGameName) + 'bgmod',
-        'VKBASALT_CONFIG_FILE',
-        VKBASALTCFGFILE);
-
-    SendNotification('vkBasalt', 'configuration saved', GetIconFile);
-
-    // Always show the bgmod command — use game-specific bgmod copy when in game mode
-    if FActiveGameName <> '' then
-    begin
-      if FActiveGameIsNonSteam then
-        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
-      else
-        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
-    end
-    else
-      LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
-
-    // Check if gamemode should be added (check generalCheckGroup)
-    if GetGeneralCheckBox(1).Checked then
-      LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-    if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-      LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
-    notificationLabel.Visible := False;
-    FLaunchCommand := LaunchCommand;
-    commandPaintBox.Invalidate;
-    commandPanel.Visible := True;
-  except
-    on E: Exception do
-      ShowMessage('Fail to save vkbasalt.conf: ' + E.Message);
+  if not overlay_config.SaveVkBasaltConfig(Settings, ErrMsg) then
+  begin
+    if ErrMsg <> '' then
+      ShowMessage(ErrMsg);
+    Exit;
   end;
-  Lines.Free;
+
+  // In game-specific mode: inject VKBASALT_CONFIG_FILE into the game bgmod
+  if FActiveGameName <> '' then
+    PatchGameFGModConfigPath(
+      GetGameConfigDir(FActiveGameName) + 'bgmod',
+      'VKBASALT_CONFIG_FILE',
+      VKBASALTCFGFILE);
+
+  SendNotification('vkBasalt', 'configuration saved', GetIconFile);
+
+  // Always show the bgmod command — use game-specific bgmod copy when in game mode
+  if FActiveGameName <> '' then
+  begin
+    if FActiveGameIsNonSteam then
+      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
+    else
+      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
+  end
+  else
+    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+
+  // Check if gamemode should be added (check generalCheckGroup)
+  if GetGeneralCheckBox(1).Checked then
+    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
+
+  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+
+  notificationLabel.Visible := False;
+  FLaunchCommand := LaunchCommand;
+  commandPaintBox.Invalidate;
+  commandPanel.Visible := True;
 end;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
