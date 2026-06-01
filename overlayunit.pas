@@ -16433,18 +16433,13 @@ begin
           HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
           HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
           HasTweaks := False;
-          if FileExists(GameCfgDir + 'fgmod') then
+          if FileExists(GameCfgDir + 'bgmod.conf') then
           begin
             TweakLines := TStringList.Create;
             try
-              TweakLines.LoadFromFile(GameCfgDir + 'fgmod');
+              TweakLines.LoadFromFile(GameCfgDir + 'bgmod.conf');
               for k := 0 to TweakLines.Count - 1 do
-                if (Pos('#gamemode', TweakLines[k]) > 0) or
-                   (Pos('export PROTON_', TweakLines[k]) > 0) or
-                   (Pos('export RADV_', TweakLines[k]) > 0) or
-                   (Pos('export MESA_', TweakLines[k]) > 0) or
-                   (Pos('#customenv', TweakLines[k]) > 0) or
-                   (Pos('export SteamDeck=1', TweakLines[k]) > 0) then
+                if Pos('GOVERLAY_TWEAKS=1', StringReplace(TweakLines[k], ' ', '', [rfReplaceAll])) > 0 then
                 begin
                   HasTweaks := True;
                   Break;
@@ -18522,18 +18517,13 @@ begin
       HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
       HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
       HasTweaks := False;
-      if FileExists(GameCfgDir + 'fgmod') then
+      if FileExists(GameCfgDir + 'bgmod.conf') then
       begin
         TweakLines := TStringList.Create;
         try
-          TweakLines.LoadFromFile(GameCfgDir + 'fgmod');
+          TweakLines.LoadFromFile(GameCfgDir + 'bgmod.conf');
           for k := 0 to TweakLines.Count - 1 do
-            if (Pos('#gamemode', TweakLines[k]) > 0) or
-               (Pos('export PROTON_', TweakLines[k]) > 0) or
-               (Pos('export RADV_', TweakLines[k]) > 0) or
-               (Pos('export MESA_', TweakLines[k]) > 0) or
-               (Pos('#customenv', TweakLines[k]) > 0) or
-               (Pos('export SteamDeck=1', TweakLines[k]) > 0) then
+            if Pos('GOVERLAY_TWEAKS=1', StringReplace(TweakLines[k], ' ', '', [rfReplaceAll])) > 0 then
             begin
               HasTweaks := True;
               Break;
