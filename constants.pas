@@ -75,9 +75,9 @@ const
   GOVERLAY_BLACKLIST_FILE = 'blacklist.conf';
   GOVERLAY_DISTRO_FILE = 'distro';
 
-  // OptiScaler / fgmod
-  FGMOD_FOLDER_NAME = 'fgmod';
-  FGMOD_SCRIPT_NAME = 'fgmod';
+  // OptiScaler / bgmod
+  FGMOD_FOLDER_NAME = 'bgmod';
+  FGMOD_SCRIPT_NAME = 'bgmod';
   OPTISCALER_INI_FILE = 'OptiScaler.ini';
   FAKENVAPI_INI_FILE = 'fakenvapi.ini';
   GOVERLAY_VARS_FILE = 'goverlay.vars';

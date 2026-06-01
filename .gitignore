@@ -8,6 +8,10 @@ goverlay_*.tar.xz
 *.tar.gz
 *.flatpak
 docs/Changelogs/
+/bgmod
+data/bgmod/bgmod
+scratch/
+/bgmod.conf
 
 # Flatpak build artifacts
 .flatpak-builder/

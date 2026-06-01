@@ -148,11 +148,11 @@ modules:
         make LAZBUILDOPTS="--lazarusdir=$LAZARUSDIR --compiler=$FPC"
       - make install prefix=/app
       - |
-        # Install fgmod script as a Flatpak command
-        install -Dm755 data/fgmod/fgmod /app/bin/fgmod
-        # Install fgmod data files to shared data directory
-        mkdir -p /app/share/goverlay/fgmod
-        cp -r data/fgmod/* /app/share/goverlay/fgmod/
+        # Install bgmod binary as a Flatpak command
+        install -Dm755 data/bgmod/bgmod /app/bin/bgmod
+        # Install bgmod data files to shared data directory
+        mkdir -p /app/share/goverlay/bgmod
+        cp -r data/bgmod/* /app/share/goverlay/bgmod/
       - |
         # Create directories for Vulkan layer extensions
         mkdir -p /app/lib/extensions/vulkan/MangoHud

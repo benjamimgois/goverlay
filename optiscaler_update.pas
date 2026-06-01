@@ -77,14 +77,14 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, fgmod_resources;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
-// Returns: ~/.local/share/goverlay/fgmod (Sandboxed in Flatpak)
+// Returns: ~/.local/share/goverlay/bgmod (Sandboxed in Flatpak)
 function GetOptiScalerInstallPath: string;
 begin
-  // Use the central function from fgmod_resources to ensure consistency
-  Result := GetFGModPath;
+  // Use the central function from bgmod_resources to ensure consistency
+  Result := GetBGModPath;
 end;
 
 { TOptiscalerTab }
@@ -645,8 +645,17 @@ begin
       Process.Parameters.Add('-y');  // Yes to all questions
       Process.Parameters.Add('-o' + ADestPath);
       
-      // Exclude fgmod files if they already exist (to preserve user's configuration)
-      // Future versions of OptiScaler won't include fgmod files in the 7z archive
+      // Exclude bgmod / fgmod files if they already exist (to preserve user's configuration)
+      if FileExists(IncludeTrailingPathDelimiter(ADestPath) + 'bgmod') then
+      begin
+        Process.Parameters.Add('-xr!bgmod');
+        WriteLn('[DEBUG] Extract7z: Excluding bgmod from extraction (file already exists)');
+      end;
+      if FileExists(IncludeTrailingPathDelimiter(ADestPath) + 'bgmod.conf') then
+      begin
+        Process.Parameters.Add('-xr!bgmod.conf');
+        WriteLn('[DEBUG] Extract7z: Excluding bgmod.conf from extraction (file already exists)');
+      end;
       if FileExists(IncludeTrailingPathDelimiter(ADestPath) + 'fgmod') then
       begin
         Process.Parameters.Add('-xr!fgmod');
@@ -1253,30 +1262,30 @@ begin
       Exit;
     end;
 
-    // STEP 1: Prepare .fgmod_original for a clean extraction.
-    // The global fgmod working copy is NOT touched here — user modifications
+    // STEP 1: Prepare .bgmod_original for a clean extraction.
+    // The global bgmod working copy is NOT touched here — user modifications
     // (MangoHud.conf, OptiScaler.ini, etc.) are preserved automatically.
-    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing .fgmod_original directory...');
+    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing .bgmod_original directory...');
     FFGModPath := GetOptiScalerInstallPath;
-    WriteLn('[DEBUG] UpdateButtonClick: global fgmod path       = ', FFGModPath);
-    WriteLn('[DEBUG] UpdateButtonClick: .fgmod_original path    = ', GetFGModOriginalPath);
+    WriteLn('[DEBUG] UpdateButtonClick: global bgmod path       = ', FFGModPath);
+    WriteLn('[DEBUG] UpdateButtonClick: .bgmod_original path    = ', GetBGModOriginalPath);
 
-    // Wipe .fgmod_original so the new release is extracted clean.
-    if DirectoryExists(GetFGModOriginalPath) then
+    // Wipe .bgmod_original so the new release is extracted clean.
+    if DirectoryExists(GetBGModOriginalPath) then
     begin
-      WriteLn('[DEBUG] UpdateButtonClick: Cleaning .fgmod_original for fresh extraction...');
+      WriteLn('[DEBUG] UpdateButtonClick: Cleaning .bgmod_original for fresh extraction...');
       try
-        DeleteDirectory(GetFGModOriginalPath, False);
+        DeleteDirectory(GetBGModOriginalPath, False);
       except
         on E: Exception do
         begin
-          WriteLn('[ERROR] UpdateButtonClick: Failed to clean .fgmod_original: ', E.Message);
-          ShowMessage('Error: Could not clean .fgmod_original directory.' + sLineBreak + E.Message);
+          WriteLn('[ERROR] UpdateButtonClick: Failed to clean .bgmod_original: ', E.Message);
+          ShowMessage('Error: Could not clean .bgmod_original directory.' + sLineBreak + E.Message);
           Exit;
         end;
       end;
     end;
-    ForceDirectories(GetFGModOriginalPath);
+    ForceDirectories(GetBGModOriginalPath);
 
     UpdateProgress(10);
 
@@ -1335,60 +1344,60 @@ begin
     UpdateProgress(50);
     UpdateStatus('Installing');
 
-    // STEP 3: Extract .7z file to .fgmod_original (pristine store)
-    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to .fgmod_original...');
-    if not Extract7z(SevenZFilePath, GetFGModOriginalPath) then
+    // STEP 3: Extract .7z file to .bgmod_original (pristine store)
+    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to .bgmod_original...');
+    if not Extract7z(SevenZFilePath, GetBGModOriginalPath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
       ShowToast(ntError, 'Failed to extract .7z file', 5000);
       Exit;
     end;
 
-    WriteLn('[DEBUG] UpdateButtonClick: Extraction to .fgmod_original completed successfully');
+    WriteLn('[DEBUG] UpdateButtonClick: Extraction to .bgmod_original completed successfully');
     UpdateProgress(70);
 
-    // STEP 4: Make fgmod.sh executable in .fgmod_original
-    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making fgmod.sh executable in .fgmod_original...');
-    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh') then
+    // STEP 4: Make bgmod.sh executable in .bgmod_original
+    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making bgmod.sh executable in .bgmod_original...');
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh') then
     begin
-      RenameFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh',
-                 IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod');
-      fpChmod(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod', &755);
-      WriteLn('[DEBUG] UpdateButtonClick: fgmod is now executable in .fgmod_original');
+      RenameFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh',
+                 IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod');
+      fpChmod(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod', &755);
+      WriteLn('[DEBUG] UpdateButtonClick: bgmod is now executable in .bgmod_original');
     end
     else
-      WriteLn('[WARN] UpdateButtonClick: fgmod.sh not found in .fgmod_original');
+      WriteLn('[WARN] UpdateButtonClick: bgmod.sh not found in .bgmod_original');
 
     UpdateProgress(75);
 
-    // STEP 5: Download NVIDIA DLSS DLLs into .fgmod_original
-    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs into .fgmod_original...');
+    // STEP 5: Download NVIDIA DLSS DLLs into .bgmod_original
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs into .bgmod_original...');
     UpdateStatus('Downloading NVIDIA DLSS');
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll',
-                        IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlss.dll') then
+                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlss.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlss.dll, continuing...');
     UpdateProgress(80);
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll',
-                        IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssd.dll') then
+                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssd.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssd.dll, continuing...');
     UpdateProgress(84);
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll',
-                        IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssg.dll') then
+                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssg.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssg.dll, continuing...');
     UpdateProgress(88);
 
-    // Sync DLLs from .fgmod_original to the global fgmod working copy.
+    // Sync DLLs from .bgmod_original to the global bgmod working copy.
     // Only DLL files are force-copied so user configs (MangoHud.conf,
-    // OptiScaler.ini, etc.) in fgmod are never overwritten.
-    WriteLn('[DEBUG] UpdateButtonClick: Syncing DLLs from .fgmod_original to fgmod...');
-    UpdateStatus('Updating global fgmod');
+    // OptiScaler.ini, etc.) in bgmod are never overwritten.
+    WriteLn('[DEBUG] UpdateButtonClick: Syncing DLLs from .bgmod_original to bgmod...');
+    UpdateStatus('Updating global bgmod');
     ForceDirectories(FFGModPath);
     SyncProc := TProcess.Create(nil);
     try
       SyncProc.Executable := 'sh';
       SyncProc.Parameters.Add('-c');
       SyncProc.Parameters.Add(
-        'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetFGModOriginalPath)) + '*.dll; do ' +
+        'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath)) + '*.dll; do ' +
         '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(IncludeTrailingPathDelimiter(FFGModPath)) + '; ' +
         'done 2>/dev/null');
       SyncProc.Options := [poWaitOnExit];
@@ -1397,22 +1406,22 @@ begin
       SyncProc.Free;
     end;
     // Write/update DLSS download date in goverlay.vars
-    // We keep both .fgmod_original and global fgmod in sync so version labels
+    // We keep both .bgmod_original and global bgmod in sync so version labels
     // are consistent after a restart.
     VarsList := TStringList.Create;
     try
       try
-        // Prefer the freshly-extracted .fgmod_original vars file; fall back to
+        // Prefer the freshly-extracted .bgmod_original vars file; fall back to
         // the global copy so existing keys (optiScalerVersion, etc.) are preserved.
-        if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars') then
+        if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars') then
         begin
-          VarsList.LoadFromFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars');
-          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from .fgmod_original, lines = ', VarsList.Count);
+          VarsList.LoadFromFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
+          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from .bgmod_original, lines = ', VarsList.Count);
         end
         else if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars') then
         begin
           VarsList.LoadFromFile(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
-          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from global fgmod, lines = ', VarsList.Count);
+          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from global bgmod, lines = ', VarsList.Count);
         end
         else
           WriteLn('[DEBUG] UpdateButtonClick: No existing goverlay.vars found, will create new');
@@ -1433,14 +1442,14 @@ begin
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated existing dlssversion line');
 
-        // Save to .fgmod_original (pristine store)
-        VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars');
-        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to .fgmod_original');
+        // Save to .bgmod_original (pristine store)
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
+        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to .bgmod_original');
 
-        // Save directly to global fgmod so it is never lost on copy failure
+        // Save directly to global bgmod so it is never lost on copy failure
         ForceDirectories(FFGModPath);
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
-        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to global fgmod');
+        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to global bgmod');
       except
         on E: Exception do
           WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
@@ -1449,9 +1458,9 @@ begin
       VarsList.Free;
     end;
 
-    // STEP 6: Read goverlay.vars from .fgmod_original and update all labels
+    // STEP 6: Read goverlay.vars from .bgmod_original and update all labels
     WriteLn('[DEBUG] UpdateButtonClick: Step 6 - Reading goverlay.vars file...');
-    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
+    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
 
     if FileExists(VarsFilePath) then
     begin
@@ -1682,7 +1691,7 @@ begin
       Process.Executable := '7z';
       Process.Parameters.Add('x');
       Process.Parameters.Add('-y');
-      Process.Parameters.Add('-o' + GetFGModOriginalPath);
+      Process.Parameters.Add('-o' + GetBGModOriginalPath);
       Process.Parameters.Add(SevenZFilePath);
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1698,24 +1707,24 @@ begin
       Exit;
     end;
 
-    WriteLn('[AUTO-INSTALL] Extraction to .fgmod_original completed');
+    WriteLn('[AUTO-INSTALL] Extraction to .bgmod_original completed');
 
-    // Rename fgmod.sh to fgmod in .fgmod_original if it exists
-    if FileExists(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh') then
+    // Rename bgmod.sh to bgmod in .bgmod_original if it exists
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh') then
     begin
-      RenameFile(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod.sh',
-                 IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod');
-      fpChmod(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'fgmod', &755);
+      RenameFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh',
+                 IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod');
+      fpChmod(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod', &755);
     end;
 
-    // Download NVIDIA DLSS DLLs to .fgmod_original
+    // Download NVIDIA DLSS DLLs to .bgmod_original
     WriteLn('[AUTO-INSTALL] Downloading NVIDIA DLSS DLLs...');
     Process := TProcess.Create(nil);
     try
       Process.Executable := 'curl';
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlss.dll');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlss.dll');
       Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll');
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1731,7 +1740,7 @@ begin
       Process.Executable := 'curl';
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssd.dll');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssd.dll');
       Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll');
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1747,7 +1756,7 @@ begin
       Process.Executable := 'curl';
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'nvngx_dlssg.dll');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssg.dll');
       Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll');
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -1761,7 +1770,7 @@ begin
 
     // Write/update DLSS download date in goverlay.vars
     // Do this BEFORE seeding so the global copy also receives the version stamp.
-    VarsFilePath := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'goverlay.vars';
+    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
     VarsList := TStringList.Create;
     try
       try
@@ -1780,12 +1789,12 @@ begin
 
         // Save to pristine store
         VarsList.SaveToFile(VarsFilePath);
-        WriteLn('[AUTO-INSTALL] dlssversion saved to .fgmod_original');
+        WriteLn('[AUTO-INSTALL] dlssversion saved to .bgmod_original');
 
         // Also save directly to global so the seeded copy is up-to-date
         ForceDirectories(AFGModPath);
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(AFGModPath) + 'goverlay.vars');
-        WriteLn('[AUTO-INSTALL] dlssversion saved to global fgmod');
+        WriteLn('[AUTO-INSTALL] dlssversion saved to global bgmod');
       except
         on E: Exception do
           WriteLn('[AUTO-INSTALL] WARN: Could not write dlssversion - ', E.Message);
@@ -1794,15 +1803,15 @@ begin
       VarsList.Free;
     end;
 
-    // Seed the global fgmod working copy from .fgmod_original without overwriting
+    // Seed the global bgmod working copy from .bgmod_original without overwriting
     // any files the user may have already customised (cp -rn = no clobber).
-    WriteLn('[AUTO-INSTALL] Seeding global fgmod from .fgmod_original...');
+    WriteLn('[AUTO-INSTALL] Seeding global bgmod from .bgmod_original...');
     Process := TProcess.Create(nil);
     try
       Process.Executable := 'sh';
       Process.Parameters.Add('-c');
       Process.Parameters.Add('cp -rn ' +
-        QuotedStr(IncludeTrailingPathDelimiter(GetFGModOriginalPath) + '.') +
+        QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + '.') +
         ' ' + QuotedStr(AFGModPath) + ' 2>/dev/null');
       Process.Options := [poWaitOnExit];
       Process.Execute;

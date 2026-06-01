@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   blacklistUnit, LCLtype, Clipbrd, LCLIntf, IniFiles,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  fgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
+  bgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
   configkeys, configfile, uihelpers, apputils;
 
 
@@ -3378,72 +3378,52 @@ end;
 
 procedure Tgoverlayform.LoadFgmodConfig;
 var
-  ConfigLines: TStringList;
-  Line, TrimmedLine, DllName, Key, Value, VarsPath, FsrVer: string;
+  ConfigPath, DllName: string;
+  Ini: TIniFile;
+  VarsPath, FsrVer, TrimmedLine, Key, Value: string;
   i, SepPos: Integer;
-  FgmodPath: string;
-  DxilSpirvFound: Boolean;
+  ConfigLines: TStringList;
 begin
-  // Get fgmod file path
+  // Get bgmod config path
   if FActiveGameName <> '' then
-    FgmodPath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+    ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
   else
-    FgmodPath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
+    ConfigPath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
 
+  if not FileExists(ConfigPath) then
+  begin
+    filenameComboBox.ItemIndex := 0;
+    emufp8CheckBox.Checked := False;
+  end
+  else
+  begin
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
+      // Set combobox index based on DLL name
+      if SameText(DllName, 'dxgi.dll') then
+        filenameComboBox.ItemIndex := 0
+      else if SameText(DllName, 'version.dll') then
+        filenameComboBox.ItemIndex := 1
+      else if SameText(DllName, 'dbghelp.dll') then
+        filenameComboBox.ItemIndex := 2
+      else if SameText(DllName, 'd3d12.dll') then
+        filenameComboBox.ItemIndex := 3
+      else if SameText(DllName, 'wininet.dll') then
+        filenameComboBox.ItemIndex := 4
+      else if SameText(DllName, 'winhttp.dll') then
+        filenameComboBox.ItemIndex := 5
+      else if SameText(DllName, 'winmm.dll') then
+        filenameComboBox.ItemIndex := 6
+      else if SameText(DllName, 'OptiScaler.asi') then
+        filenameComboBox.ItemIndex := 7
+      else
+        filenameComboBox.ItemIndex := 0; // Default
 
-  if not FileExists(FgmodPath) then
-    Exit;
-
-  ConfigLines := TStringList.Create;
-  DxilSpirvFound := False;
-
-  try
-    ConfigLines.LoadFromFile(FgmodPath);
-
-    for i := 0 to ConfigLines.Count - 1 do
-    begin
-      Line := ConfigLines[i];
-      TrimmedLine := Trim(Line);
-
-      // Search for line dll_name="${DLL:-
-      if Pos('dll_name="${DLL:-', TrimmedLine) > 0 then
-      begin
-        // Extract DLL name
-        // Format: dll_name="${DLL:-dxgi.dll}"
-        DllName := Copy(TrimmedLine, Pos(':-', TrimmedLine) + 2, Length(TrimmedLine));
-        DllName := Copy(DllName, 1, Pos('}"', DllName) - 1);
-
-        // Set combobox index based on DLL name
-        if SameText(DllName, 'dxgi.dll') then
-          filenameComboBox.ItemIndex := 0
-        else if SameText(DllName, 'version.dll') then
-          filenameComboBox.ItemIndex := 1
-        else if SameText(DllName, 'dbghelp.dll') then
-          filenameComboBox.ItemIndex := 2
-        else if SameText(DllName, 'd3d12.dll') then
-          filenameComboBox.ItemIndex := 3
-        else if SameText(DllName, 'wininet.dll') then
-          filenameComboBox.ItemIndex := 4
-        else if SameText(DllName, 'winhttp.dll') then
-          filenameComboBox.ItemIndex := 5
-        else if SameText(DllName, 'winmm.dll') then
-          filenameComboBox.ItemIndex := 6
-        else if SameText(DllName, 'OptiScaler.asi') then
-          filenameComboBox.ItemIndex := 7
-        else
-          filenameComboBox.ItemIndex := 0; // Default: dxgi.dll
-      end;
-
-      // Check for DXIL_SPIRV_CONFIG line (emufp8 workaround)
-      if Pos('export DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"', TrimmedLine) > 0 then
-        DxilSpirvFound := True;
+      emufp8CheckBox.Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
+    finally
+      Ini.Free;
     end;
-
-    // Set emufp8CheckBox based on whether the line was found
-    emufp8CheckBox.Checked := DxilSpirvFound;
-
-  finally
-    ConfigLines.Free;
   end;
 
   // Restore fsrversionComboBox from goverlay.vars (game-specific or global)
@@ -4518,12 +4498,12 @@ begin
     // Save to active config file (game-specific or global)
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
 
-    // In game-specific mode: inject MANGOHUD_CONFIGFILE into the game fgmod
+    // In game-specific mode: inject MANGOHUD_CONFIGFILE into the game bgmod
     // so Steam picks up the per-game config at launch.
     if FActiveGameName <> '' then
     begin
       PatchGameFGModConfigPath(
-        GetGameConfigDir(FActiveGameName) + 'fgmod',
+        GetGameConfigDir(FActiveGameName) + 'bgmod',
         'MANGOHUD_CONFIGFILE',
         MANGOHUDCFGFILE);
       Exit;
@@ -5066,20 +5046,20 @@ begin
   FAutoDownloadingReshade := False;
 
   //Program Version
-  GVERSION := '1.8.2';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.3';
+  GCHANNEL := 'git'; //stable ou git
 
-  // Initialize fgmod directory with embedded scripts
-  // This ensures fgmod scripts are always available without downloading
-  InitializeFGModDirectory;
+  // Initialize bgmod directory with embedded scripts
+  // This ensures bgmod scripts are always available without downloading
+  InitializeBGModDirectory;
 
-  // Auto-install OptiScaler if not present in FGMOD directory
-  // This prevents FGMOD from failing due to missing dependencies
-  if IsFGModInitialized then
+  // Auto-install OptiScaler if not present in BGMOD directory
+  // This prevents BGMOD from failing due to missing dependencies
+  if IsBGModInitialized then
   begin
-    if not IsFGModOptiScalerInstalled(GetFGModPath) then
+    if not IsBGModOptiScalerInstalled(GetFGModPath) then
     begin
-      WriteLn('[GOVERLAY] OptiScaler not detected in FGMOD, starting automatic installation...');
+      WriteLn('[GOVERLAY] OptiScaler not detected in BGMOD, starting automatic installation...');
       SendNotification('GOverlay', 'Installing OptiScaler', GetIconFile);
       CheckAndInstallOptiScaler(GetFGModPath);
     end;
@@ -5706,9 +5686,7 @@ begin
 
 
      if saida.Count > 0 then    // Count will prevent the out of bound error, case the string doesn't exist
-       geSpeedbutton.ImageIndex := 1
      else
-       geSpeedbutton.ImageIndex := 0;
      Process.Free;
      saida.Free;
      
@@ -7226,147 +7204,8 @@ begin
 end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
-var
-  FGModFilePath: string;
-  FileLines: TStringList;
-  i, SteamDeckLineIndex: Integer;
-  TargetLineExists: Boolean;
-  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab, IsTweaksTab: Boolean;
-  ExportLine, SearchPattern, NotifyTitle, NotifyMsgOn, NotifyMsgOff: string;
 begin
-  // Determine which tab is active
-  IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
-                   (goverlayPageControl.ActivePage = visualTabSheet) or
-                   (goverlayPageControl.ActivePage = performanceTabSheet) or
-                   (goverlayPageControl.ActivePage = metricsTabSheet) or
-                   (goverlayPageControl.ActivePage = extrasTabSheet);
-
-  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
-                   (goverlayPageControl.ActivePage = vksumiTabSheet);
-  IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
-  IsTweaksTab := (goverlayPageControl.ActivePage = tweaksTabSheet);
-
-  // Set the appropriate export line and messages based on active tab
-  if IsMangoHudTab then
-  begin
-    ExportLine := '  export MANGOHUD=1';
-    SearchPattern := 'export MANGOHUD=1';
-    NotifyTitle := 'MangoHud';
-    NotifyMsgOn := 'MangoHud will be activated in every application using fgmod';
-    NotifyMsgOff := 'MangoHud deactivated in fgmod';
-  end
-  else if IsVkBasaltTab then
-  begin
-    ExportLine := '  export ENABLE_VKBASALT=1';
-    SearchPattern := 'export ENABLE_VKBASALT=1';
-    NotifyTitle := 'vkBasalt';
-    NotifyMsgOn := 'vkBasalt will be activated in every application using fgmod';
-    NotifyMsgOff := 'vkBasalt deactivated in fgmod';
-  end
-  else if IsOptiScalerTab then
-  begin
-    // Show warning when user tries to deactivate on OptiScaler tab
-    if geSpeedButton.ImageIndex = 1 then
-    begin
-      ShowMessage('Warning: "Auto Enable" (fgmod) must be active for OptiScaler to work.' + LineEnding + LineEnding +
-                  'Deactivating this option will completely disable OptiScaler.');
-    end;
-    ExportLine := '  export WINEDLLOVERRIDES=\"$WINEDLLOVERRIDES,dxgi=n,b\"';
-    SearchPattern := 'export WINEDLLOVERRIDES=';
-    NotifyTitle := 'OptiScaler';
-    NotifyMsgOn := 'OptiScaler will be activated in every application using fgmod';
-    NotifyMsgOff := 'OptiScaler deactivated from fgmod';
-  end
-  else if IsTweaksTab then
-  begin
-    // Tweaks tab: just toggle the button state, no specific export line
-    // The actual tweaks are added when saving via saveBitBtnClick
-    if geSpeedButton.ImageIndex = 0 then
-    begin
-      geSpeedButton.ImageIndex := 1;  // ON
-      SendNotification('Tweaks', 'Tweaks will be saved to fgmod when you click Save', GetIconFile);
-    end
-    else
-    begin
-      geSpeedButton.ImageIndex := 0;  // OFF
-      SendNotification('Tweaks', 'Tweaks mode disabled - commands will be shown for manual use', GetIconFile);
-    end;
-    Exit;  // Exit early for tweaks tab
-  end
-  else
-    Exit;  // Not a supported tab
-
-  // Get fgmod file path
-  if FActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
-  else
-    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
-
-
-  // Check if fgmod file exists
-  if not FileExists(FGModFilePath) then
-  begin
-    ShowMessage('fgmod file not found at: ' + FGModFilePath);
-    Exit;
-  end;
-
-  FileLines := TStringList.Create;
-  try
-    FileLines.LoadFromFile(FGModFilePath);
-
-    // Find the anchor line (# Execute the original command) and check if target line exists
-    SteamDeckLineIndex := -1;
-    TargetLineExists := False;
-
-    for i := 0 to FileLines.Count - 1 do
-    begin
-      if Pos('# Execute the original command', FileLines[i]) > 0 then
-        SteamDeckLineIndex := i;
-      if Pos(SearchPattern, FileLines[i]) > 0 then
-        TargetLineExists := True;
-    end;
-
-    if TargetLineExists then
-    begin
-      // Remove the target line
-      for i := FileLines.Count - 1 downto 0 do
-      begin
-        if Pos(SearchPattern, FileLines[i]) > 0 then
-        begin
-          FileLines.Delete(i);
-          Break;  // Only delete first occurrence
-        end;
-      end;
-      geSpeedButton.ImageIndex := 0;  // OFF
-      WriteLn('[FGMOD] Removed ', SearchPattern, ' from fgmod');
-      SendNotification(NotifyTitle, NotifyMsgOff, GetIconFile);
-    end
-    else
-    begin
-      // Add the line after the anchor line
-      if SteamDeckLineIndex >= 0 then
-      begin
-        FileLines.Insert(SteamDeckLineIndex + 1, ExportLine);
-        geSpeedButton.ImageIndex := 1;  // ON
-        WriteLn('[FGMOD] Added ', SearchPattern, ' to fgmod');
-        SendNotification(NotifyTitle, NotifyMsgOn, GetIconFile);
-      end
-      else
-      begin
-        ShowMessage('Could not find "# Execute the original command" line in fgmod file');
-        Exit;
-      end;
-    end;
-
-    // Save the modified file
-    FileLines.SaveToFile(FGModFilePath);
-
-    // Make sure it's still executable
-    fpChmod(FGModFilePath, &755);
-
-  finally
-    FileLines.Free;
-  end;
+  // Obsolete: global enable button is no longer used
 end;
 
 // Check if OptiScaler is installed by looking for goverlay.vars file
@@ -7379,155 +7218,13 @@ begin
 end;
 
 procedure Tgoverlayform.UpdateGeSpeedButtonState;
-var
-  FGModFilePath: string;
-  FileLines: TStringList;
-  i: Integer;
-  TargetEnabled: Boolean;
-  IsMangoHudTab, IsVkBasaltTab, IsOptiScalerTab, IsTweaksTab: Boolean;
-  SearchPattern: string;
-  TweakFound: Boolean;
 begin
-  // Get fgmod file path
-  if FActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
-  else
-    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
-
-
-  // Check if fgmod file exists
-  if not FileExists(FGModFilePath) then
-  begin
-    geSpeedButton.ImageIndex := 0;  // Default to OFF
-    Exit;
-  end;
-
-  // Determine which tab is active
-  IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
-                   (goverlayPageControl.ActivePage = visualTabSheet) or
-                   (goverlayPageControl.ActivePage = performanceTabSheet) or
-                   (goverlayPageControl.ActivePage = metricsTabSheet) or
-                   (goverlayPageControl.ActivePage = extrasTabSheet);
-
-  IsVkBasaltTab := (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
-                   (goverlayPageControl.ActivePage = vksumiTabSheet);
-  IsOptiScalerTab := (goverlayPageControl.ActivePage = optiscalerTabSheet);
-  IsTweaksTab := (goverlayPageControl.ActivePage = tweaksTabSheet);
-
-  // Set the search pattern and hint based on active tab
-  if IsMangoHudTab then
-  begin
-    SearchPattern := 'export MANGOHUD=1';
-    geSpeedButton.Hint := 'MangoHUD will be automatically enabled for applications running the launch command with FGMOD';
-    // Only enable controls if global enable is not active
-    // When global enable is active, UpdateGlobalEnableMenuItemVisibility will handle it
-  end
-  else if IsVkBasaltTab then
-  begin
-    if not IsMangoHudGloballyEnabled() then
-    begin
-      geSpeedButton.Enabled := True;
-      saveBitBtn.Enabled := True;
-    end;
-    SearchPattern := 'export ENABLE_VKBASALT=1';
-    geSpeedButton.Hint := 'vkBasalt will be automatically enabled for applications running the launch command with FGMOD';
-    // Ensure controls are enabled for non-OptiScaler tabs
-    geSpeedButton.Enabled := True;
-    saveBitBtn.Enabled := True;
-  end
-  else if IsOptiScalerTab then
-  begin
-    SearchPattern := 'export WINEDLLOVERRIDES=';
-    geSpeedButton.Hint := 'Optiscaler will be automatically enabled for applications running the launch command with FGMOD';
-    
-    // Disable controls if OptiScaler is not installed
-    if not IsOptiScalerInstalled then
-    begin
-      geSpeedButton.Enabled := False;
-      saveBitBtn.Enabled := False;
-      geSpeedButton.ImageIndex := 0;  // OFF
-      Exit;
-    end
-    else
-    begin
-      geSpeedButton.Enabled := True;
-      saveBitBtn.Enabled := True;
-    end;
-  end
-  else if IsTweaksTab then
-  begin
-    geSpeedButton.Hint := 'Tweaks will be activated in every application using fgmod';
-    // Ensure controls are enabled for non-OptiScaler tabs
-    geSpeedButton.Enabled := True;
-    saveBitBtn.Enabled := True;
-
-    // Load checkbox states and custom variables from fgmod file using the standard procedure
-    LoadTweaksFromFGMod;
-
-    // Determine if any tweak is active to set geSpeedButton (ON/OFF state)
-    TweakFound := False;
-    for i := 0 to 5 do
-      if GetGeneralCheckBox(i).Checked then TweakFound := True;
-    for i := 0 to 4 do
-      if GetGraphicsCheckBox(i).Checked then TweakFound := True;
-    for i := 0 to 5 do
-      if GetPerformanceCheckBox(i).Checked then TweakFound := True;
-
-    if FAntilagCheckBox.Checked or
-       FFSR4UpgradeCheckBox.Checked or
-       FDLSSUpgradeCheckBox.Checked or
-       FXeSSUpgradeCheckBox.Checked or
-       FReEngineRTCheckBox.Checked or
-       nofastclearsCheckBox.Checked or
-       FLowLatencyCheckBox.Checked or
-       FLowLatencyReflexCheckBox.Checked or
-       FLowLatencySpoofNvidiaCheckBox.Checked or
-       FLowLatencyHideAmdGpuCheckBox.Checked or
-       (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
-      TweakFound := True;
-
-    if TweakFound then
-      geSpeedButton.ImageIndex := 1  // ON
-    else
-      geSpeedButton.ImageIndex := 0; // OFF
-
-    Exit;  // Exit early for tweaks tab
-  end
-  else
-  begin
-    geSpeedButton.ImageIndex := 0;  // Default to OFF for other tabs
-    Exit;
-  end;
-
-  FileLines := TStringList.Create;
-  try
-    FileLines.LoadFromFile(FGModFilePath);
-
-    // Check if target line exists
-    TargetEnabled := False;
-    for i := 0 to FileLines.Count - 1 do
-    begin
-      if Pos(SearchPattern, FileLines[i]) > 0 then
-      begin
-        TargetEnabled := True;
-        Break;
-      end;
-    end;
-
-    if TargetEnabled then
-      geSpeedButton.ImageIndex := 1  // ON
-    else
-      geSpeedButton.ImageIndex := 0; // OFF
-
-  finally
-    FileLines.Free;
-  end;
+  // Obsolete: global enable button is no longer used
 end;
 
 procedure Tgoverlayform.UpdateGlobalEnableMenuItemVisibility;
 var
   IsMangoHudTab: Boolean;
-  IsGlobalEnableActive: Boolean;
 begin
   // Determine if we are on a MangoHud tab
   IsMangoHudTab := (goverlayPageControl.ActivePage = presetTabSheet) or
@@ -7539,40 +7236,6 @@ begin
   // Show the menu item only on MangoHud tabs
   // Also hide it if running in Flatpak as per user request (might change in future)
   globalenableMenuItem.Visible := IsMangoHudTab and (not IsRunningInFlatpak);
-  
-  // Get global enable status
-  IsGlobalEnableActive := IsMangoHudGloballyEnabled();
-  
-  // On MangoHud tabs: when global enable is active, disable geSpeedButton, 
-  // set it to ON state, and change geLabel caption to indicate global enable
-  if IsMangoHudTab then
-  begin
-    if IsGlobalEnableActive then
-    begin
-      // Show controls but indicate global enable is active
-      
-      geSpeedButton.Enabled := false;
-      geSpeedButton.ImageIndex := 1;  // ON state
-      
-      geLabel.Caption := 'Global enable';
-    end
-    else
-    begin
-      // Normal state: enabled and restore default caption
-      
-      geSpeedButton.Enabled := true;
-      
-      geLabel.Caption := 'Auto Enable';
-    end;
-  end
-  else
-  begin
-    // On other tabs (vkBasalt, OptiScaler, Tweaks), always show and enable these controls
-    
-    geSpeedButton.Enabled := true;
-    
-    geLabel.Caption := 'Auto Enable';
-  end;
 end;
 
 
@@ -7703,29 +7366,25 @@ end;
 
 procedure Tgoverlayform.LoadTweaksFromFGMod;
 var
-  FGModFilePath: string;
-  FileLines: TStringList;
+  ConfigPath: string;
+  Ini: TIniFile;
+  EnvList: TStringList;
   i, Row: Integer;
-  TweakFound: Boolean;
-  CustomEnvValue, Line: string;
-  StartPos, EndPos: Integer;
+  Key, Val: string;
 begin
-  // Get fgmod file path
+  // Get bgmod config path
   if FActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+    ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
   else
-    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
 
-
-  // Check if fgmod file exists
-  if not FileExists(FGModFilePath) then
+  // Check if bgmod.conf exists
+  if not FileExists(ConfigPath) then
     Exit;
 
-  FileLines := TStringList.Create;
+  Ini := TIniFile.Create(ConfigPath);
+  EnvList := TStringList.Create;
   try
-    FileLines.LoadFromFile(FGModFilePath);
-    TweakFound := False;
-
     // Reset all tweaks checkboxes first
     GetGeneralCheckBox(0).Checked := False;
     GetGeneralCheckBox(1).Checked := False;
@@ -7766,224 +7425,88 @@ begin
     if Assigned(FTweaksGrid) then
       FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
 
-    // Check each tweak and set checkbox accordingly
-    for i := 0 to FileLines.Count - 1 do
+    // Load gamemode state from Config
+    GetGeneralCheckBox(1).Checked := Ini.ReadString('Config', 'gamemode', '0') = '1';
+
+    // Load winedetectionenable state from Config
+    FReEngineRTCheckBox.Checked := Ini.ReadString('Config', 'winedetectionenable', '1') = '0';
+
+    // Load environment variables from Env section
+    Ini.ReadSectionValues('Env', EnvList);
+    for i := 0 to EnvList.Count - 1 do
     begin
-      // Index 0: "Simulate Steam Deck" -> export SteamDeck=1
-      if Pos('export SteamDeck=1', FileLines[i]) > 0 then
-      begin
-        GetGeneralCheckBox(0).Checked := True;
-        TweakFound := True;
-      end;
+      Key := EnvList.Names[i];
+      Val := EnvList.ValueFromIndex[i];
 
-      // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1
-      if Pos('export PROTON_ENABLE_HDR=1', FileLines[i]) > 0 then
+      // Handle predefined keys
+      if SameText(Key, 'SteamDeck') then
+        GetGeneralCheckBox(0).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_ENABLE_HDR') then
+        GetGeneralCheckBox(2).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_ENABLE_WAYLAND') then
+        GetGeneralCheckBox(3).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_LOG') then
+        GetGeneralCheckBox(4).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_USE_SDL') then
+        GetGeneralCheckBox(5).Checked := Val = '1'
+      else if SameText(Key, 'RADV_PERFTEST') and (Pos('rt', Val) > 0) then
+        GetGraphicsCheckBox(0).Checked := True
+      else if SameText(Key, 'PROTON_HIDE_NVIDIA_GPU') then
+        GetGraphicsCheckBox(1).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_ENABLE_NVAPI') then
+        GetGraphicsCheckBox(2).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_USE_WINED3D') then
+        GetGraphicsCheckBox(3).Checked := Val = '1'
+      else if SameText(Key, 'MESA_LOADER_DRIVER_OVERRIDE') and SameText(Val, 'zink') then
+        GetGraphicsCheckBox(4).Checked := True
+      else if SameText(Key, 'PROTON_FSR4_UPGRADE') then
+        FFSR4UpgradeCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_DLSS_UPGRADE') then
+        FDLSSUpgradeCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_XESS_UPGRADE') then
+        FXeSSUpgradeCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_PRIORITY_HIGH') then
+        GetPerformanceCheckBox(0).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_USE_WOW64') then
+        GetPerformanceCheckBox(1).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
+        GetPerformanceCheckBox(2).Checked := Val = '1'
+      else if SameText(Key, 'STAGING_SHARED_MEMORY') then
+        GetPerformanceCheckBox(3).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_NO_NTSYNC') then
+        GetPerformanceCheckBox(4).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_HEAP_DELAY_FREE') then
+        GetPerformanceCheckBox(5).Checked := Val = '1'
+      else if SameText(Key, 'ENABLE_LAYER_MESA_ANTI_LAG') then
+        FAntilagCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'RADV_DEBUG') and SameText(Val, 'nofastclears') then
+        nofastclearsCheckBox.Checked := True
+      else if SameText(Key, 'LOW_LATENCY_LAYER') then
+        FLowLatencyCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'LOW_LATENCY_LAYER_REFLEX') then
+        FLowLatencyReflexCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') then
+        FLowLatencySpoofNvidiaCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'DXVK_CONFIG') and (Pos('hideAmdGpu', Val) > 0) then
+        FLowLatencyHideAmdGpuCheckBox.Checked := True
+      else if not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
       begin
-        GetGeneralCheckBox(2).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
-      if Pos('export PROTON_ENABLE_WAYLAND=1', FileLines[i]) > 0 then
-      begin
-        GetGeneralCheckBox(3).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
-      if Pos('export PROTON_LOG=1', FileLines[i]) > 0 then
-      begin
-        GetGeneralCheckBox(4).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
-      if Pos('export PROTON_USE_SDL=1', FileLines[i]) > 0 then
-      begin
-        GetGeneralCheckBox(5).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 1: "Always use GameMode" -> #gamemode comment
-      if Pos('#gamemode', FileLines[i]) > 0 then
-      begin
-        GetGeneralCheckBox(1).Checked := True;
-        TweakFound := True;
-      end;
-
-      // RE Engine RT workaround marker
-      if Pos('#winedetectionenable=false', FileLines[i]) > 0 then
-      begin
-        FReEngineRTCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // graphicsCheckGroup items
-      // Index 0: "Emulate RT (old AMD)" -> export RADV_PERFTEST=rt,emulate_rt
-      if Pos('export RADV_PERFTEST=rt,emulate_rt', FileLines[i]) > 0 then
-      begin
-        GetGraphicsCheckBox(0).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
-      if Pos('export PROTON_HIDE_NVIDIA_GPU=1', FileLines[i]) > 0 then
-      begin
-        GetGraphicsCheckBox(1).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
-      if Pos('export PROTON_ENABLE_NVAPI=1', FileLines[i]) > 0 then
-      begin
-        GetGraphicsCheckBox(2).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
-      if Pos('export PROTON_USE_WINED3D=1', FileLines[i]) > 0 then
-      begin
-        GetGraphicsCheckBox(3).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 4: "Force Zink" -> export MESA_LOADER_DRIVER_OVERRIDE=zink
-      if Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', FileLines[i]) > 0 then
-      begin
-        GetGraphicsCheckBox(4).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 5: "Automatically upgrade FSR" -> export PROTON_FSR4_UPGRADE=1
-      if Pos('export PROTON_FSR4_UPGRADE=1', FileLines[i]) > 0 then
-      begin
-        FFSR4UpgradeCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 6: "Automatically upgrade DLSS" -> export PROTON_DLSS_UPGRADE=1
-      if Pos('export PROTON_DLSS_UPGRADE=1', FileLines[i]) > 0 then
-      begin
-        FDLSSUpgradeCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 7: "Automatically upgrade XeSS" -> export PROTON_XESS_UPGRADE=1
-      if Pos('export PROTON_XESS_UPGRADE=1', FileLines[i]) > 0 then
-      begin
-        FXeSSUpgradeCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // performanceCheckGroup items
-      // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
-      if Pos('export PROTON_PRIORITY_HIGH=1', FileLines[i]) > 0 then
-      begin
-        GetPerformanceCheckBox(0).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
-      if Pos('export PROTON_USE_WOW64=1', FileLines[i]) > 0 then
-      begin
-        GetPerformanceCheckBox(1).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
-      if Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', FileLines[i]) > 0 then
-      begin
-        GetPerformanceCheckBox(2).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
-      if Pos('export STAGING_SHARED_MEMORY=1', FileLines[i]) > 0 then
-      begin
-        GetPerformanceCheckBox(3).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
-      if Pos('export PROTON_NO_NTSYNC=1', FileLines[i]) > 0 then
-      begin
-        GetPerformanceCheckBox(4).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
-      if Pos('export PROTON_HEAP_DELAY_FREE=1', FileLines[i]) > 0 then
-      begin
-        GetPerformanceCheckBox(5).Checked := True;
-        TweakFound := True;
-      end;
-
-      // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
-      if Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1', FileLines[i]) > 0 then
-      begin
-        FAntilagCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // "No Fast Clears" -> export RADV_DEBUG=nofastclears
-      if Pos('export RADV_DEBUG=nofastclears', FileLines[i]) > 0 then
-      begin
-        nofastclearsCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // Latency reduction tweaks
-      if Pos('export LOW_LATENCY_LAYER=1', FileLines[i]) > 0 then
-      begin
-        FLowLatencyCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-      if Pos('export LOW_LATENCY_LAYER_REFLEX=1', FileLines[i]) > 0 then
-      begin
-        FLowLatencyReflexCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-      if Pos('export LOW_LATENCY_LAYER_SPOOF_NVIDIA=1', FileLines[i]) > 0 then
-      begin
-        FLowLatencySpoofNvidiaCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-      if Pos('export DXVK_CONFIG="dxgi.hideAmdGpu = True"', FileLines[i]) > 0 then
-      begin
-        FLowLatencyHideAmdGpuCheckBox.Checked := True;
-        TweakFound := True;
-      end;
-
-      // Check for custom environment variable marker #customenv
-      if Pos('#customenv', FileLines[i]) > 0 then
-      begin
-        Line := FileLines[i];
-        // Extract value between 'export ' and ' #customenv'
-        StartPos := Pos('export ', Line);
-        EndPos := Pos(' #customenv', Line);
-        if (StartPos > 0) and (EndPos > StartPos) then
+        // Treat as custom environment variable
+        FCustomListBox.Items.Add(Key + '=' + Val);
+        if Assigned(FTweaksGrid) then
         begin
-          // Extract the custom env value (skip 'export ' prefix)
-          CustomEnvValue := Copy(Line, StartPos + 7, EndPos - StartPos - 7);
-          FCustomListBox.Items.Add(Trim(CustomEnvValue));
-          TweakFound := True;
-
-          // Add as a custom row in the grid
-          if Assigned(FTweaksGrid) then
-          begin
-            Row := FTweaksGrid.RowCount;
-            FTweaksGrid.RowCount := Row + 1;
-            FTweaksGrid.Cells[0, Row] := '1';
-            FTweaksGrid.Cells[1, Row] := 'Custom';
-            FTweaksGrid.Cells[2, Row] := Trim(CustomEnvValue);
-            FTweaksGrid.Cells[3, Row] := '';
-          end;
+          Row := FTweaksGrid.RowCount;
+          FTweaksGrid.RowCount := Row + 1;
+          FTweaksGrid.Cells[0, Row] := '1';
+          FTweaksGrid.Cells[1, Row] := 'Custom';
+          FTweaksGrid.Cells[2, Row] := Key + '=' + Val;
+          FTweaksGrid.Cells[3, Row] := '';
         end;
       end;
     end;
-
   finally
-    FileLines.Free;
+    EnvList.Free;
+    Ini.Free;
   end;
   SyncTweaksGridFromCheckBoxes;
 end;
@@ -8056,8 +7579,6 @@ begin
 
 
   //Hide Global Enable controls and bottom bar for games tab
-  geSpeedButton.Visible:=false;
-  geLabel.Visible:=false;
   goverlaybarPanel.Visible:=false;
 end;
 
@@ -9068,8 +8589,8 @@ if Pos('AMD', GPUBrand) > 0 then
   else if Pos('GenuineIntel', CPUBrand) > 0 then
   begin
     cpuColorButton.ButtonColor := $00ff5500; // Example color for Intel
-    ramColorButton.ButtonColor := $00ff5500; // Example color for RAM button
-    frametimegraphColorButton.ButtonColor := $00ff5500; // Example color for Frame Time Graph
+    ramColorButton.ButtonColor := $00ff5500; // Change color for RAM button
+    frametimegraphColorButton.ButtonColor := $00ff5500; // Change color for Frame Time Graph
   end;
 
 
@@ -9334,407 +8855,194 @@ end;
 procedure Tgoverlayform.SaveTweaksConfig;
 var
   LaunchCommand: string;
-  FGModFilePath: string;
-  FGModLines: TStringList;
-  LineIndex, i: Integer;
+  ConfigPath: string;
+  Ini: TIniFile;
+  i: Integer;
+  HasTweaks: Boolean;
+  DSpirvVal: string;
+  CustomLine: string;
+  CustomKey, CustomVal: string;
+  p: Integer;
 begin
-  // Build the command line from checked items
-  LaunchCommand := '';
+  // Check if any tweaks are active
+  HasTweaks := GetGeneralCheckBox(0).Checked or GetGeneralCheckBox(1).Checked or
+               GetGeneralCheckBox(2).Checked or GetGeneralCheckBox(3).Checked or
+               GetGeneralCheckBox(4).Checked or GetGeneralCheckBox(5).Checked or
+               GetGraphicsCheckBox(0).Checked or GetGraphicsCheckBox(1).Checked or
+               GetGraphicsCheckBox(2).Checked or GetGraphicsCheckBox(3).Checked or
+               GetGraphicsCheckBox(4).Checked or
+               nofastclearsCheckBox.Checked or
+               GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
+               GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
+               GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
+               FAntilagCheckBox.Checked or
+               FLowLatencyCheckBox.Checked or
+               FLowLatencyReflexCheckBox.Checked or
+               FLowLatencySpoofNvidiaCheckBox.Checked or
+               FLowLatencyHideAmdGpuCheckBox.Checked or
+               FFSR4UpgradeCheckBox.Checked or
+               FDLSSUpgradeCheckBox.Checked or
+               FXeSSUpgradeCheckBox.Checked or
+               FReEngineRTCheckBox.Checked or
+               (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT));
 
-  // Index 0: "Simulate Steam Deck" -> SteamDeck=1
-  if GetGeneralCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_STEAMDECK + ' ';
-
-  // Index 2: "Enable HDR" -> PROTON_ENABLE_HDR=1
-  if GetGeneralCheckBox(2).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_ENABLE_HDR + ' ';
-
-  // Index 3: "Enable Wayland" -> PROTON_ENABLE_WAYLAND=1
-  if GetGeneralCheckBox(3).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_ENABLE_WAYLAND + ' ';
-
-  // Index 4: "Active Proton Logs" -> PROTON_LOG=1
-  if GetGeneralCheckBox(4).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_LOG + ' ';
-
-  // Index 5: "Use SDL Input" -> PROTON_USE_SDL=1
-  if GetGeneralCheckBox(5).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_USE_SDL + ' ';
-
-  // graphicsCheckGroup items
-  // Index 0: "Emulate RT (old AMD)" -> RADV_PERFTEST=rt,emulate_rt
-  if GetGraphicsCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_RADV_PERFTEST_RT + ' ';
-
-  // Index 1: "Hide Nvidia GPU" -> PROTON_HIDE_NVIDIA_GPU=1
-  if GetGraphicsCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_HIDE_NVIDIA_GPU + ' ';
-
-  // Index 2: "Force enable NVAPI" -> PROTON_ENABLE_NVAPI=1
-  if GetGraphicsCheckBox(2).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_ENABLE_NVAPI + ' ';
-
-  // Index 3: "Use old WINED3D" -> PROTON_USE_WINED3D=1
-  if GetGraphicsCheckBox(3).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_USE_WINED3D + ' ';
-
-  // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
-  if GetGraphicsCheckBox(4).Checked then
-  begin
-    if IsNvidiaModuleLoaded then
-      LaunchCommand := LaunchCommand + ENV_GLX_VENDOR_MESA + ' ' + ENV_MESA_LOADER_OVERRIDE + ' '
-    else
-      LaunchCommand := LaunchCommand + ENV_MESA_LOADER_OVERRIDE + ' ';
-  end;
-
-  // "No Fast Clears" -> RADV_DEBUG=nofastclears
-  if nofastclearsCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_RADV_DEBUG_NOFASTCLEARS + ' ';
-
-  // graphicsCheckGroup upgrade items
-  // Index 5: "Automatically upgrade FSR" -> PROTON_FSR4_UPGRADE=1
-  if FFSR4UpgradeCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_FSR4_UPGRADE + ' ';
-
-  // Index 6: "Automatically upgrade DLSS" -> PROTON_DLSS_UPGRADE=1
-  if FDLSSUpgradeCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_DLSS_UPGRADE + ' ';
-
-  // Index 7: "Automatically upgrade XeSS" -> PROTON_XESS_UPGRADE=1
-  if FXeSSUpgradeCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_XESS_UPGRADE + ' ';
-
-  // performanceCheckGroup items
-  // Index 0: "Higher priority for games" -> PROTON_PRIORITY_HIGH=1
-  if GetPerformanceCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_PRIORITY_HIGH + ' ';
-
-  // Index 1: "Use WOW64" -> PROTON_USE_WOW64=1
-  if GetPerformanceCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_USE_WOW64 + ' ';
-
-  // Index 2: "Large Address Aware" -> PROTON_FORCE_LARGE_ADDRESS_AWARE=1
-  if GetPerformanceCheckBox(2).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_FORCE_LARGE_ADDR + ' ';
-
-  // Index 3: "Staging shared memory" -> STAGING_SHARED_MEMORY=1
-  if GetPerformanceCheckBox(3).Checked then
-    LaunchCommand := LaunchCommand + ENV_STAGING_SHARED_MEMORY + ' ';
-
-  // Index 4: "Disable NTSYNC" -> PROTON_NO_NTSYNC=1
-  if GetPerformanceCheckBox(4).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_NO_NTSYNC + ' ';
-
-  // Index 5: "Heap Delay Free" -> PROTON_HEAP_DELAY_FREE=1
-  if GetPerformanceCheckBox(5).Checked then
-    LaunchCommand := LaunchCommand + ENV_PROTON_HEAP_DELAY_FREE + ' ';
-
-  // Index 6: "Enable AMD Anti-Lag 2" -> ENABLE_LAYER_MESA_ANTI_LAG=1
-  if FAntilagCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_ENABLE_MESA_ANTILAG + ' ';
-
-  // Latency reduction tweaks
-  if FLowLatencyCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY + ' ';
-  if FLowLatencyReflexCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY_REFLEX + ' ';
-  if FLowLatencySpoofNvidiaCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY_SPOOF_NVIDIA + ' ';
-  if FLowLatencyHideAmdGpuCheckBox.Checked then
-    LaunchCommand := LaunchCommand + ENV_LOW_LATENCY_HIDE_AMD + ' ';
-
-  // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
-  if GetGeneralCheckBox(1).Checked then
-    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-  // Add custom environment variables from grid custom rows
-  if Assigned(FTweaksGrid) then
-    for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
-      if (FTweaksGrid.Cells[0, i] = '1') and (Trim(FTweaksGrid.Cells[2, i]) <> '') then
-        LaunchCommand := LaunchCommand + Trim(FTweaksGrid.Cells[2, i]) + ' ';
-
-  // Always end with %command%
-  LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
-  // In game mode, always write tweaks to the game-specific fgmod (toggle already
-  // blocks this path when FNavToolEnabled[3] = False via disabled Save button).
-  // In global mode, only write when geSpeedButton (Auto Enable) is ON.
-  if (FActiveGameName <> '') or (geSpeedButton.ImageIndex = 1) then
-  begin
-    if FActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
-
-    if FileExists(FGModFilePath) then
-    begin
-      FGModLines := TStringList.Create;
-      try
-        // Load the fgmod file
-        FGModLines.LoadFromFile(FGModFilePath);
-
-        // First, remove any existing tweak export lines to avoid duplicates.
-        // NOTE: Do NOT remove 'export WINEDLLOVERRIDES=' here - that line belongs
-        // to the OptiScaler section and must never be touched by the Tweaks code.
-        for LineIndex := FGModLines.Count - 1 downto 0 do
-        begin
-          if (Pos(FGMOD_PREFIX_EXPORT_HDR, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_HDR_WSI, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_WAYLAND, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_LOG, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_SDL, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_MARKER_GAMEMODE, FGModLines[LineIndex]) > 0) or
-             // graphicsCheckGroup exports
-             (Pos(FGMOD_PREFIX_EXPORT_RADV_RT, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_HIDE_NV, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_NVAPI, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_WINED3D, FGModLines[LineIndex]) > 0) or
-             // Zink exports
-             (Pos(FGMOD_PREFIX_EXPORT_ZINK, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_GLX, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_NOFAST, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_FSR, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_DLSS, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_XESS, FGModLines[LineIndex]) > 0) or
-             // performanceCheckGroup exports
-             (Pos(FGMOD_PREFIX_EXPORT_PRIORITY, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_WOW64, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_LARGE, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_SHMEM, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_NTSYNC, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_HEAP, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_ANTILAG, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_LOW_LATENCY, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_LOW_LATENCY_REFLEX, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_LOW_LATENCY_SPOOF, FGModLines[LineIndex]) > 0) or
-             (Pos(FGMOD_PREFIX_EXPORT_HIDE_AMD, FGModLines[LineIndex]) > 0) or
-              // RE Engine RT workaround marker
-              (Pos(FGMOD_MARKER_WINE_DETECTION, FGModLines[LineIndex]) > 0) or
-              // Custom environment variable marker
-              (Pos(FGMOD_MARKER_CUSTOMENV, FGModLines[LineIndex]) > 0) then
-          begin
-            FGModLines.Delete(LineIndex);
-          end;
-        end;
-
-        // Find the "# Execute the original command" line and add enabled tweaks after it
-        for LineIndex := 0 to FGModLines.Count - 1 do
-        begin
-          if Pos(FGMOD_ANCHOR_EXEC, FGModLines[LineIndex]) > 0 then
-          begin
-            // Insert lines in reverse order so they appear in correct order after insertion.
-            // Index 1: "Always use GameMode" -> #gamemode (comment marker)
-            if GetGeneralCheckBox(1).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_MARKER_GAMEMODE);
-
-            // RE Engine RT workaround marker
-            if FReEngineRTCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_MARKER_WINE_DETECTION);
-
-            // Index 5: "Use SDL Input" -> export PROTON_USE_SDL=1
-            if GetGeneralCheckBox(5).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_SDL);
-
-            // Index 4: "Active Proton Logs" -> export PROTON_LOG=1
-            if GetGeneralCheckBox(4).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOG);
-
-            // Index 3: "Enable Wayland" -> export PROTON_ENABLE_WAYLAND=1
-            if GetGeneralCheckBox(3).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_WAYLAND);
-
-            // Index 2: "Enable HDR" -> export PROTON_ENABLE_HDR=1 and ENABLE_HDR_WSI=1
-            if GetGeneralCheckBox(2).Checked then
-            begin
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HDR_WSI);
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HDR);
-            end;
-
-            // graphicsCheckGroup items (insert in reverse order)
-            // Index 3: "Use old WINED3D" -> export PROTON_USE_WINED3D=1
-            if GetGraphicsCheckBox(3).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_WINED3D);
-
-            // Index 2: "Force enable NVAPI" -> export PROTON_ENABLE_NVAPI=1
-            if GetGraphicsCheckBox(2).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_NVAPI);
-
-            // Index 1: "Hide Nvidia GPU" -> export PROTON_HIDE_NVIDIA_GPU=1
-            if GetGraphicsCheckBox(1).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HIDE_NV);
-
-            if GetGraphicsCheckBox(0).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_RADV_RT);
-
-            // "No Fast Clears" -> export RADV_DEBUG=nofastclears
-            if nofastclearsCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_NOFAST);
-
-            // Index 4: "Force Zink" -> MESA_LOADER_DRIVER_OVERRIDE=zink (plus __GLX_VENDOR_LIBRARY_NAME for NVIDIA)
-            if GetGraphicsCheckBox(4).Checked then
-            begin
-              if IsNvidiaModuleLoaded then
-              begin
-                FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ZINK);
-                FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_GLX);
-              end
-              else
-              begin
-                FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ZINK);
-              end;
-            end;
-
-            // performanceCheckGroup items (insert in reverse order)
-            // Index 6: "Enable AMD Anti-Lag 2" -> export ENABLE_LAYER_MESA_ANTI_LAG=1
-            if FAntilagCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_ANTILAG);
-
-            // Latency reduction tweaks (insert in reverse order)
-            if FLowLatencyHideAmdGpuCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HIDE_AMD);
-            if FLowLatencySpoofNvidiaCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOW_LATENCY_SPOOF);
-            if FLowLatencyReflexCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOW_LATENCY_REFLEX);
-            if FLowLatencyCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LOW_LATENCY);
-
-            // Index 5: "Heap Delay Free" -> export PROTON_HEAP_DELAY_FREE=1
-            if GetPerformanceCheckBox(5).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_HEAP);
-
-            // graphicsCheckGroup upgrade items (insert in reverse order)
-            // Index 7: "Automatically upgrade XeSS" -> export PROTON_XESS_UPGRADE=1
-            if FXeSSUpgradeCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_XESS);
-
-            // Index 6: "Automatically upgrade DLSS" -> export PROTON_DLSS_UPGRADE=1
-            if FDLSSUpgradeCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_DLSS);
-
-            // Index 5: "Automatically upgrade FSR" -> export PROTON_FSR4_UPGRADE=1
-            if FFSR4UpgradeCheckBox.Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_FSR);
-
-            // Index 4: "Disable NTSYNC" -> export PROTON_NO_NTSYNC=1
-            if GetPerformanceCheckBox(4).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_NTSYNC);
-
-            // Index 3: "Staging shared memory" -> export STAGING_SHARED_MEMORY=1
-            if GetPerformanceCheckBox(3).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_SHMEM);
-
-            // Index 2: "Large Address Aware" -> export PROTON_FORCE_LARGE_ADDRESS_AWARE=1
-            if GetPerformanceCheckBox(2).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_LARGE);
-
-            // Index 1: "Use WOW64" -> export PROTON_USE_WOW64=1
-            if GetPerformanceCheckBox(1).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_WOW64);
-
-            // Index 0: "Higher priority for games" -> export PROTON_PRIORITY_HIGH=1
-            if GetPerformanceCheckBox(0).Checked then
-              FGModLines.Insert(LineIndex + 1, FGMOD_PREFIX_EXPORT_PRIORITY);
-
-            // Custom environment variables from grid (insert in reverse so order is preserved)
-            if Assigned(FTweaksGrid) then
-              for i := FTweaksGrid.RowCount - 1 downto 1 + TWEAK_ROW_COUNT do
-                if (FTweaksGrid.Cells[0, i] = '1') and (Trim(FTweaksGrid.Cells[2, i]) <> '') then
-                  FGModLines.Insert(LineIndex + 1, '  export ' + Trim(FTweaksGrid.Cells[2, i]) + ' #customenv');
-
-            Break;
-          end;
-        end;
-
-        // Handle "Simulate Steam Deck" (index 0).
-        // Try to modify existing SteamDeck line first; if not found, leave as-is
-        // (the embedded fgmod template already contains 'export SteamDeck=0' after the anchor).
-        for LineIndex := 0 to FGModLines.Count - 1 do
-        begin
-          if Pos(FGMOD_PREFIX_STEAMDECK, FGModLines[LineIndex]) > 0 then
-          begin
-            if GetGeneralCheckBox(0).Checked then
-              FGModLines[LineIndex] := FGMOD_PREFIX_STEAMDECK + '1'
-            else
-              FGModLines[LineIndex] := FGMOD_PREFIX_STEAMDECK + '0';
-            Break;
-          end;
-        end;
-
-        // Save the modified file
-        FGModLines.SaveToFile(FGModFilePath);
-
-        // Refresh grid to reflect saved state
-        SyncTweaksGridFromCheckBoxes;
-
-        // Show notification
-        SendNotification('Tweaks', 'Configuration saved', GetIconFile);
-
-        // Build launch command with full absolute path for fgmod
-        // (Done globally below)
-
-      finally
-        FGModLines.Free;
-      end;
-    end
-    else
-    begin
-      ShowMessage('Error: fgmod file not found at: ' + FGModFilePath);
-      Exit;
-    end;
-  end
+  // Determine the bgmod.conf path
+  if FActiveGameName <> '' then
+    ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
   else
-  begin
-    // geSpeedButton is OFF (global mode only) - check if there are any tweaks selected.
-    // If the user has checked tweaks, auto-enable Auto Enable and save to fgmod.
-    // This avoids the confusing case where tweaks are selected but never saved.
-    // In game mode this branch is never reached (condition above is always true).
-    if GetGeneralCheckBox(0).Checked or GetGeneralCheckBox(1).Checked or
-       GetGeneralCheckBox(2).Checked or GetGeneralCheckBox(3).Checked or
-       GetGeneralCheckBox(4).Checked or GetGeneralCheckBox(5).Checked or
-       GetGraphicsCheckBox(0).Checked or GetGraphicsCheckBox(1).Checked or
-       GetGraphicsCheckBox(2).Checked or GetGraphicsCheckBox(3).Checked or
-       GetGraphicsCheckBox(4).Checked or
-       nofastclearsCheckBox.Checked or
-       GetPerformanceCheckBox(0).Checked or GetPerformanceCheckBox(1).Checked or
-       GetPerformanceCheckBox(2).Checked or GetPerformanceCheckBox(3).Checked or
-       GetPerformanceCheckBox(4).Checked or GetPerformanceCheckBox(5).Checked or
-        FAntilagCheckBox.Checked or
-        FLowLatencyCheckBox.Checked or
-        FLowLatencyReflexCheckBox.Checked or
-        FLowLatencySpoofNvidiaCheckBox.Checked or
-        FLowLatencyHideAmdGpuCheckBox.Checked or
-        FFSR4UpgradeCheckBox.Checked or
-        FDLSSUpgradeCheckBox.Checked or
-        FXeSSUpgradeCheckBox.Checked or
-        FReEngineRTCheckBox.Checked or
-        (Assigned(FTweaksGrid) and (FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT)) then
-    begin
-      // Auto-enable Auto Enable and save
-      geSpeedButton.ImageIndex := 1;
-      SaveTweaksConfig;
-      Exit;
-    end
+    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
+
+  ForceDirectories(ExtractFilePath(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    // 1. Write Config section
+    Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '1');
+    if GetGeneralCheckBox(1).Checked then
+      Ini.WriteString('Config', 'gamemode', '1')
     else
+      Ini.WriteString('Config', 'gamemode', '0');
+
+    if FReEngineRTCheckBox.Checked then
+      Ini.WriteString('Config', 'winedetectionenable', '0')
+    else
+      Ini.WriteString('Config', 'winedetectionenable', '1');
+
+    // 2. Erase Env section but preserve DXIL_SPIRV_CONFIG
+    DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
+    Ini.EraseSection('Env');
+    if DSpirvVal <> '' then
+      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
+
+    // 3. Write active tweaks to Env
+    if GetGeneralCheckBox(0).Checked then
+      Ini.WriteString('Env', 'SteamDeck', '1');
+
+    if GetGeneralCheckBox(2).Checked then
     begin
-      // No tweaks selected and Auto Enable is OFF - just show notification
-      SendNotification('Tweaks', 'Nenhuma tweak selecionada para guardar', GetIconFile);
+      Ini.WriteString('Env', 'PROTON_ENABLE_HDR', '1');
+      Ini.WriteString('Env', 'ENABLE_HDR_WSI', '1');
     end;
+
+    if GetGeneralCheckBox(3).Checked then
+      Ini.WriteString('Env', 'PROTON_ENABLE_WAYLAND', '1');
+
+    if GetGeneralCheckBox(4).Checked then
+      Ini.WriteString('Env', 'PROTON_LOG', '1');
+
+    if GetGeneralCheckBox(5).Checked then
+      Ini.WriteString('Env', 'PROTON_USE_SDL', '1');
+
+    if GetGraphicsCheckBox(0).Checked then
+      Ini.WriteString('Env', 'RADV_PERFTEST', 'rt,emulate_rt');
+
+    if GetGraphicsCheckBox(1).Checked then
+      Ini.WriteString('Env', 'PROTON_HIDE_NVIDIA_GPU', '1');
+
+    if GetGraphicsCheckBox(2).Checked then
+      Ini.WriteString('Env', 'PROTON_ENABLE_NVAPI', '1');
+
+    if GetGraphicsCheckBox(3).Checked then
+      Ini.WriteString('Env', 'PROTON_USE_WINED3D', '1');
+
+    if GetGraphicsCheckBox(4).Checked then
+    begin
+      Ini.WriteString('Env', 'MESA_LOADER_DRIVER_OVERRIDE', 'zink');
+      if IsNvidiaModuleLoaded then
+        Ini.WriteString('Env', '__GLX_VENDOR_LIBRARY_NAME', 'mesa');
+    end;
+
+    if nofastclearsCheckBox.Checked then
+      Ini.WriteString('Env', 'RADV_DEBUG', 'nofastclears');
+
+    if FFSR4UpgradeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_FSR4_UPGRADE', '1');
+
+    if FDLSSUpgradeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_DLSS_UPGRADE', '1');
+
+    if FXeSSUpgradeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_XESS_UPGRADE', '1');
+
+    if GetPerformanceCheckBox(0).Checked then
+      Ini.WriteString('Env', 'PROTON_PRIORITY_HIGH', '1');
+
+    if GetPerformanceCheckBox(1).Checked then
+      Ini.WriteString('Env', 'PROTON_USE_WOW64', '1');
+
+    if GetPerformanceCheckBox(2).Checked then
+      Ini.WriteString('Env', 'PROTON_FORCE_LARGE_ADDRESS_AWARE', '1');
+
+    if GetPerformanceCheckBox(3).Checked then
+      Ini.WriteString('Env', 'STAGING_SHARED_MEMORY', '1');
+
+    if GetPerformanceCheckBox(4).Checked then
+      Ini.WriteString('Env', 'PROTON_NO_NTSYNC', '1');
+
+    if GetPerformanceCheckBox(5).Checked then
+      Ini.WriteString('Env', 'PROTON_HEAP_DELAY_FREE', '1');
+
+    if FAntilagCheckBox.Checked then
+      Ini.WriteString('Env', 'ENABLE_LAYER_MESA_ANTI_LAG', '1');
+
+    if FLowLatencyCheckBox.Checked then
+      Ini.WriteString('Env', 'LOW_LATENCY_LAYER', '1');
+
+    if FLowLatencyReflexCheckBox.Checked then
+      Ini.WriteString('Env', 'LOW_LATENCY_LAYER_REFLEX', '1');
+
+    if FLowLatencySpoofNvidiaCheckBox.Checked then
+      Ini.WriteString('Env', 'LOW_LATENCY_LAYER_SPOOF_NVIDIA', '1');
+
+    if FLowLatencyHideAmdGpuCheckBox.Checked then
+      Ini.WriteString('Env', 'DXVK_CONFIG', 'dxgi.customDeviceDescription=10de:2204,dxgi.hideAmdGpu=True');
+
+    // 4. Custom environment variables from grid
+    if Assigned(FTweaksGrid) then
+    begin
+      for i := 1 + TWEAK_ROW_COUNT to FTweaksGrid.RowCount - 1 do
+      begin
+        if (FTweaksGrid.Cells[0, i] = '1') and (Trim(FTweaksGrid.Cells[2, i]) <> '') then
+        begin
+          CustomLine := Trim(FTweaksGrid.Cells[2, i]);
+          p := Pos('#customenv', CustomLine);
+          if p > 0 then
+            CustomLine := Trim(Copy(CustomLine, 1, p - 1));
+          p := Pos('=', CustomLine);
+          if p > 0 then
+          begin
+            CustomKey := Trim(Copy(CustomLine, 1, p - 1));
+            CustomVal := Trim(Copy(CustomLine, p + 1, MaxInt));
+            Ini.WriteString('Env', CustomKey, CustomVal);
+          end;
+        end;
+      end;
+    end;
+
+    // Refresh grid to reflect saved state
+    SyncTweaksGridFromCheckBoxes;
+
+    // Show notification
+    SendNotification('Tweaks', 'Configuration saved', GetIconFile);
+
+  finally
+    Ini.Free;
   end;
 
-  // Build launch command — use game-specific fgmod copy when in game mode
+  // Build the Launch Command to display/use
   if FActiveGameName <> '' then
   begin
     if FActiveGameIsNonSteam then
-      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
     else
-      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
   end
   else
-    LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
-  // Index 1: "Always use GameMode" -> -- env gamemoderun (before %command%)
+    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+
+  // Check if gamemode should be added
   if GetGeneralCheckBox(1).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
+
   // Always end with %command%
   if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
     LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
@@ -9751,10 +9059,6 @@ end;
 
 procedure Tgoverlayform.SaveOptiScalerConfig;
 var
-  FGModFilePath: string;
-  FGModLines: TStringList;
-  LineIndex: Integer;
-  LineFound, WineOverrideFound: Boolean;
   SelectedDllName, DllNameWithoutExt: string;
   OptiScalerIniPath: string;
   OptiCfg: TConfigFile;
@@ -9774,384 +9078,265 @@ var
   FGModPath, FGModDestPath, VarsFilePath: string;
   Lines: TStringList;
   i: Integer;
+  Ini: TIniFile;
+  FGModFilePath: string;
 begin
-  // If geSpeedButton is OFF, just show notification and exit - no fgmod modification needed
-  if geSpeedButton.ImageIndex = 0 then
-  begin
-    SendNotification('OptiScaler', 'Configuration saved (Auto Enable disabled)', GetIconFile);
-    Exit;
+  // Get the bgmod.conf path
+  if FActiveGameName <> '' then
+    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
+  else
+    FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
+
+  // Get selected DLL name from combobox
+  case filenameComboBox.ItemIndex of
+    0: SelectedDllName := OPTI_DLL_DXGI;
+    1: SelectedDllName := OPTI_DLL_VERSION;
+    2: SelectedDllName := OPTI_DLL_DBGHELP;
+    3: SelectedDllName := OPTI_DLL_D3D12;
+    4: SelectedDllName := OPTI_DLL_WININET;
+    5: SelectedDllName := OPTI_DLL_WINHTTP;
+    6: SelectedDllName := OPTI_DLL_WINMM;
+    7: SelectedDllName := OPTI_DLL_ASI;
+  else
+    SelectedDllName := OPTI_DLL_DXGI; // Default
   end;
 
-  // Get the fgmod file path
+  DllNameWithoutExt := ChangeFileExt(SelectedDllName, '');
+
+  ForceDirectories(ExtractFilePath(FGModFilePath));
+  Ini := TIniFile.Create(FGModFilePath);
+  try
+    Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
+    Ini.WriteString('Config', 'DLL', SelectedDllName);
+    Ini.WriteString('Config', 'PRESERVE_INI', 'true');
+
+    if emufp8CheckBox.Checked then
+      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
+    else
+      Ini.DeleteKey('Env', 'DXIL_SPIRV_CONFIG');
+  finally
+    Ini.Free;
+  end;
+
+  // Get OptiScaler.ini file path
   if FActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+    OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
   else
-    FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'fgmod';
+    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
 
-  // Check if fgmod file exists
-  if FileExists(FGModFilePath) then
-  begin
-    FGModLines := TStringList.Create;
-    try
-      // Load the fgmod file
-      FGModLines.LoadFromFile(FGModFilePath);
+  // Get ShortcutKey from hidden combobox (stores hex VK code or 'auto')
+  SelectedShortcutKey := Trim(shortcutkeyComboBox.Text);
+  if SelectedShortcutKey = '' then
+    SelectedShortcutKey := 'auto';
 
-      // Get selected DLL name from combobox
-      case filenameComboBox.ItemIndex of
-        0: SelectedDllName := OPTI_DLL_DXGI;
-        1: SelectedDllName := OPTI_DLL_VERSION;
-        2: SelectedDllName := OPTI_DLL_DBGHELP;
-        3: SelectedDllName := OPTI_DLL_D3D12;
-        4: SelectedDllName := OPTI_DLL_WININET;
-        5: SelectedDllName := OPTI_DLL_WINHTTP;
-        6: SelectedDllName := OPTI_DLL_WINMM;
-        7: SelectedDllName := OPTI_DLL_ASI;
-      else
-        SelectedDllName := OPTI_DLL_DXGI; // Default
-      end;
+  // Calculate Scale value from menuscaleTrackBar (divide by 10)
+  ScaleFloat := menuscaleTrackBar.Position / 10.0;
+  // Format with dot as decimal separator
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+  ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
 
-      // Extract DLL name without extension
-      DllNameWithoutExt := ChangeFileExt(SelectedDllName, '');
+  // Get OverrideNvapiDll value from overrideCheckBox
+  if overrideCheckBox.Checked then
+    OverrideNvapiDllValue := 'true'
+  else
+    OverrideNvapiDllValue := 'auto';
 
-      // Search for the line containing dll_name="${DLL:-
-      LineFound := False;
-      for LineIndex := 0 to FGModLines.Count - 1 do
-      begin
-        if Pos(OPTI_DLL_NAME_ANCHOR, FGModLines[LineIndex]) > 0 then
-        begin
-          // Replace the line with the new DLL name
-          FGModLines[LineIndex] := OPTI_DLL_NAME_ANCHOR + SelectedDllName + '}"';
-          LineFound := True;
-          Break;
-        end;
-      end;
+  // Get Dxgi value from spoofCheckBox (Spoof DLSS inputs)
+  if spoofCheckBox.Checked then
+    DxgiValue := 'auto'
+  else
+    DxgiValue := 'false';
 
-      // Search for the WINEDLLOVERRIDES line and update it, or add it if not found
-      WineOverrideFound := False;
-      if LineFound then
-      begin
-        for LineIndex := 0 to FGModLines.Count - 1 do
-        begin
-          if Pos(OPTI_WINEOVERRIDES_PREFIX, FGModLines[LineIndex]) > 0 then
-          begin
-            // Replace the line with the new DLL name (without extension)
-            FGModLines[LineIndex] := OPTI_WINEOVERRIDES_PREFIX + DllNameWithoutExt + OPTI_WINEOVERRIDES_SUFFIX;
-            WineOverrideFound := True;
-            Break;
-          end;
-        end;
+  // Get Fsr4Update value from fsrversionComboBox
+  if fsrversionComboBox.ItemIndex = 0 then
+    Fsr4UpdateValue := 'True'
+  else
+    Fsr4UpdateValue := 'auto';
 
-        // If WINEDLLOVERRIDES line not found, add it after "# Execute the original command"
-        if not WineOverrideFound then
-        begin
-          for LineIndex := 0 to FGModLines.Count - 1 do
-          begin
-            if Pos(FGMOD_ANCHOR_EXEC, FGModLines[LineIndex]) > 0 then
-            begin
-              FGModLines.Insert(LineIndex + 1, '  ' + OPTI_WINEOVERRIDES_PREFIX + DllNameWithoutExt + OPTI_WINEOVERRIDES_SUFFIX);
-              WineOverrideFound := True;
-              Break;
-            end;
-          end;
-        end;
-      end;
+  // Get LoadAsiPlugins value from optipatcherCheckBox
+  if optipatcherCheckBox.Checked then
+    LoadAsiPluginsValue := 'true'
+  else
+    LoadAsiPluginsValue := 'auto';
 
-      // Handle emufp8CheckBox - add or remove DXIL_SPIRV_CONFIG line
-      if WineOverrideFound then
-      begin
-        // First, find and remove any existing DXIL_SPIRV_CONFIG line
-        for LineIndex := FGModLines.Count - 1 downto 0 do
-        begin
-          if Pos(OPTI_EMUFP8_LINE, FGModLines[LineIndex]) > 0 then
-          begin
-            FGModLines.Delete(LineIndex);
-            Break; // Only one such line should exist
-          end;
-        end;
-
-        // If checkbox is checked, add the line after WINEDLLOVERRIDES
-        if emufp8CheckBox.Checked then
-        begin
-          for LineIndex := 0 to FGModLines.Count - 1 do
-          begin
-            if Pos(OPTI_WINEOVERRIDES_PREFIX, FGModLines[LineIndex]) > 0 then
-            begin
-              // Insert the DXIL_SPIRV_CONFIG line right after WINEDLLOVERRIDES
-              FGModLines.Insert(LineIndex + 1, '  ' + OPTI_EMUFP8_LINE);
-              Break;
-            end;
-          end;
-        end;
-      end;
-
-      if LineFound and WineOverrideFound then
-      begin
-        // Save the modified file
-        FGModLines.SaveToFile(FGModFilePath);
-
-        // Get OptiScaler.ini file path
-        if FActiveGameName <> '' then
-          OptiScalerIniPath := GetGameConfigDir(FActiveGameName) + 'OptiScaler.ini'
-        else
-          OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
-
-        // Get ShortcutKey from hidden combobox (stores hex VK code or 'auto')
-        SelectedShortcutKey := Trim(shortcutkeyComboBox.Text);
-        if SelectedShortcutKey = '' then
-          SelectedShortcutKey := 'auto';
-
-        // Calculate Scale value from menuscaleTrackBar (divide by 10)
-        ScaleFloat := menuscaleTrackBar.Position / 10.0;
-        // Format with dot as decimal separator
-        FS := DefaultFormatSettings;
-        FS.DecimalSeparator := '.';
-        ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
-
-        // Get OverrideNvapiDll value from overrideCheckBox
-        if overrideCheckBox.Checked then
-          OverrideNvapiDllValue := 'true'
-        else
-          OverrideNvapiDllValue := 'auto';
-
-        // Get Dxgi value from spoofCheckBox (Spoof DLSS inputs)
-        if spoofCheckBox.Checked then
-          DxgiValue := 'auto'
-        else
-          DxgiValue := 'false';
-
-        // Get Fsr4Update value from fsrversionComboBox
-        if fsrversionComboBox.ItemIndex = 0 then
-          Fsr4UpdateValue := 'True'
-        else
-          Fsr4UpdateValue := 'auto';
-
-        // Get LoadAsiPlugins value from optipatcherCheckBox
-        if optipatcherCheckBox.Checked then
-          LoadAsiPluginsValue := 'true'
-        else
-          LoadAsiPluginsValue := 'auto';
-
-        // Check if OptiScaler.ini exists
-        // Update OptiScaler.ini using TConfigFile wrapper
-        OptiCfg := TConfigFile.Create;
-        try
-          if OptiCfg.Load(OptiScalerIniPath) then
-          begin
-            OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
-            OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
-            OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
-            OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
-            OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
-            OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
-            OptiCfg.Save;
-          end;
-        finally
-          OptiCfg.Free;
-        end;
-        // Silently skip if OptiScaler.ini doesn't exist (OptiScaler not installed yet)
-
-        // ##### Now modify fakenvapi.ini file #####
-        begin
-          // Get fakenvapi.ini file path
-          if FActiveGameName <> '' then
-            FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
-          else
-            FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
-
-          // Get selected force_reflex value from reflexComboBox
-          if forcereflexCheckBox.Checked then
-          begin
-            case reflexComboBox.ItemIndex of
-              0: ForceReflexValue := '0';
-              1: ForceReflexValue := '1';
-              2: ForceReflexValue := '2';
-            end;
-          end
-          else
-            ForceReflexValue := '0';
-
-          // Get force_latencyflex and latencyflex_mode values
-          if forcelatencyflexCheckBox.Checked then
-          begin
-            ForceLatencyFlexValue := '1';
-            case latencyflexComboBox.ItemIndex of
-              0: LatencyFlexModeValue := '0';
-              1: LatencyFlexModeValue := '1';
-              2: LatencyFlexModeValue := '2';
-            else
-              LatencyFlexModeValue := '0';
-            end;
-          end
-          else
-          begin
-            ForceLatencyFlexValue := '0';
-            LatencyFlexModeValue := '0';
-          end;
-
-          // Get enable_trace_logs value from tracelogCheckBox
-          if tracelogCheckBox.Checked then
-            EnableTraceLogsValue := '1'
-          else
-            EnableTraceLogsValue := '0';
-
-          // Update fakenvapi.ini using TConfigFile wrapper
-          FakeCfg := TConfigFile.Create;
-          try
-            if FakeCfg.Load(FakeNvapiIniPath) then
-            begin
-              FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue);
-              FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
-              FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
-              FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
-              if (not forcereflexCheckBox.Checked or FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX)) and
-                 (not forcelatencyflexCheckBox.Checked or (FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) and FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE))) then
-                FakeCfg.Save
-              else
-              begin
-                if forcereflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then
-                  ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
-                if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) then
-                  ShowMessage('Warning: Could not find force_latencyflex line in fakenvapi.ini file');
-                if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE) then
-                  ShowMessage('Warning: Could not find latencyflex_mode line in fakenvapi.ini file');
-              end;
-            end;
-          finally
-            FakeCfg.Free;
-          end;
-          // Silently skip if fakenvapi.ini doesn't exist (OptiScaler not installed yet)
-        end;
-
-        // ##### Copy FSR4 DLL based on fsrversionCombobox selection #####
-        try
-          // FSR4 sub-folders (FSR4_LATEST, FSR4_INT8) always live in the global install path
-          FGModPath := GetOptiScalerInstallPath;
-          // Destination: game config dir in game mode, global install path in global mode
-          if FActiveGameName <> '' then
-            FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName))
-          else
-            FGModDestPath := FGModPath;
-
-          case fsrversionComboBox.ItemIndex of
-            0: // Latest (FP8)
-              begin
-                // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_LATEST to destination root
-                if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-                begin
-                  CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                           IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-
-                  // Add fsrversion=Latest (FP8) to goverlay.vars
-                  VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
-                  if FileExists(VarsFilePath) then
-                  begin
-                    Lines := TStringList.Create;
-                    try
-                      Lines.LoadFromFile(VarsFilePath);
-
-                      // Check if fsrversion line already exists and remove it
-                      for i := Lines.Count - 1 downto 0 do
-                      begin
-                        if Pos('fsrversion=', Lines[i]) > 0 then
-                          Lines.Delete(i);
-                      end;
-
-                      // Add fsrversion line at the end
-                      Lines.Add('fsrversion=Latest (FP8)');
-
-                      // Save the file
-                      Lines.SaveToFile(VarsFilePath);
-                    finally
-                      Lines.Free;
-                    end;
-                  end;
-                end;
-                // Silently skip if FSR4_LATEST doesn't exist (OptiScaler not installed yet)
-              end;
-
-            1: // 4.0.2c (INT8)
-              begin
-                // Copy amd_fidelityfx_upscaler_dx12.dll from FSR4_INT8 to destination root
-                if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-                begin
-                  CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                           IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-
-                  // Add fsrversion line to goverlay.vars
-                  VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
-                  if FileExists(VarsFilePath) then
-                  begin
-                    Lines := TStringList.Create;
-                    try
-                      Lines.LoadFromFile(VarsFilePath);
-
-                      // Check if fsrversion line already exists and remove it
-                      for i := Lines.Count - 1 downto 0 do
-                      begin
-                        if Pos('fsrversion=', Lines[i]) > 0 then
-                          Lines.Delete(i);
-                      end;
-
-                      // Add fsrversion line at the end
-                      Lines.Add('fsrversion=4.0.2c (INT8)');
-
-                      // Save the file
-                      Lines.SaveToFile(VarsFilePath);
-                    finally
-                      Lines.Free;
-                    end;
-                  end;
-                end;
-                // Silently skip if FSR4_INT8 doesn't exist (OptiScaler not installed yet)
-              end;
-          end;
-        except
-          on E: Exception do
-            ShowMessage('Warning: Could not copy FSR4 DLL: ' + E.Message);
-        end;
-
-        // Show notification
-        SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
-
-        // Build launch command — use game-specific fgmod copy when in game mode
-        if FActiveGameName <> '' then
-        begin
-          if FActiveGameIsNonSteam then
-            LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
-          else
-            LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
-        end
-        else
-          LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
-
-        // Check if gamemode should be added
-        if GetGeneralCheckBox(1).Checked then
-          LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-        if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-          LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
-        notificationLabel.Visible := False;
-        FLaunchCommand := LaunchCommand;
-        commandPaintBox.Invalidate;
-        commandPanel.Visible := True;
-      end
-      else
-      begin
-        if not LineFound then
-          ShowMessage('Warning: Could not find dll_name line in fgmod file');
-        if not WineOverrideFound then
-          ShowMessage('Warning: Could not find WINEDLLOVERRIDES line in fgmod file');
-      end;
-
-    finally
-      FGModLines.Free;
+  // Update OptiScaler.ini using TConfigFile wrapper
+  OptiCfg := TConfigFile.Create;
+  try
+    if OptiCfg.Load(OptiScalerIniPath) then
+    begin
+      OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
+      OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
+      OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
+      OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
+      OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
+      OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
+      OptiCfg.Save;
     end;
+  finally
+    OptiCfg.Free;
+  end;
+
+  // ##### Now modify fakenvapi.ini file #####
+  begin
+    // Get fakenvapi.ini file path
+    if FActiveGameName <> '' then
+      FakeNvapiIniPath := GetGameConfigDir(FActiveGameName) + 'fakenvapi.ini'
+    else
+      FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+
+    // Get selected force_reflex value from reflexComboBox
+    if forcereflexCheckBox.Checked then
+    begin
+      case reflexComboBox.ItemIndex of
+        0: ForceReflexValue := '0';
+        1: ForceReflexValue := '1';
+        2: ForceReflexValue := '2';
+      end;
+    end
+    else
+      ForceReflexValue := '0';
+
+    // Get force_latencyflex and latencyflex_mode values
+    if forcelatencyflexCheckBox.Checked then
+    begin
+      ForceLatencyFlexValue := '1';
+      case latencyflexComboBox.ItemIndex of
+        0: LatencyFlexModeValue := '0';
+        1: LatencyFlexModeValue := '1';
+        2: LatencyFlexModeValue := '2';
+      else
+        LatencyFlexModeValue := '0';
+      end;
+    end
+    else
+    begin
+      ForceLatencyFlexValue := '0';
+      LatencyFlexModeValue := '0';
+    end;
+
+    // Get enable_trace_logs value from tracelogCheckBox
+    if tracelogCheckBox.Checked then
+      EnableTraceLogsValue := '1'
+    else
+      EnableTraceLogsValue := '0';
+
+    // Update fakenvapi.ini using TConfigFile wrapper
+    FakeCfg := TConfigFile.Create;
+    try
+      if FakeCfg.Load(FakeNvapiIniPath) then
+      begin
+        FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue);
+        FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
+        FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
+        FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
+        if (not forcereflexCheckBox.Checked or FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX)) and
+           (not forcelatencyflexCheckBox.Checked or (FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) and FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE))) then
+          FakeCfg.Save
+        else
+        begin
+          if forcereflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then
+            ShowMessage('Warning: Could not find force_reflex line in fakenvapi.ini file');
+          if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) then
+            ShowMessage('Warning: Could not find force_latencyflex line in fakenvapi.ini file');
+          if forcelatencyflexCheckBox.Checked and not FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE) then
+            ShowMessage('Warning: Could not find latencyflex_mode line in fakenvapi.ini file');
+        end;
+      end;
+    finally
+      FakeCfg.Free;
+    end;
+  end;
+
+  // ##### Copy FSR4 DLL based on fsrversionCombobox selection #####
+  try
+    FGModPath := GetOptiScalerInstallPath;
+    if FActiveGameName <> '' then
+      FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName))
+    else
+      FGModDestPath := FGModPath;
+
+    case fsrversionComboBox.ItemIndex of
+      0: // Latest (FP8)
+        begin
+          if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+          begin
+            CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                     IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+
+            VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
+            if FileExists(VarsFilePath) then
+            begin
+              Lines := TStringList.Create;
+              try
+                Lines.LoadFromFile(VarsFilePath);
+                for i := Lines.Count - 1 downto 0 do
+                  if Pos('fsrversion=', Lines[i]) > 0 then
+                    Lines.Delete(i);
+                Lines.Add('fsrversion=Latest (FP8)');
+                Lines.SaveToFile(VarsFilePath);
+              finally
+                Lines.Free;
+              end;
+            end;
+          end;
+        end;
+
+      1: // 4.0.2c (INT8)
+        begin
+          if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+          begin
+            CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                     IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+
+            VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
+            if FileExists(VarsFilePath) then
+            begin
+              Lines := TStringList.Create;
+              try
+                Lines.LoadFromFile(VarsFilePath);
+                for i := Lines.Count - 1 downto 0 do
+                  if Pos('fsrversion=', Lines[i]) > 0 then
+                    Lines.Delete(i);
+                Lines.Add('fsrversion=4.0.2c (INT8)');
+                Lines.SaveToFile(VarsFilePath);
+              finally
+                Lines.Free;
+              end;
+            end;
+          end;
+        end;
+    end;
+  except
+    on E: Exception do
+      ShowMessage('Warning: Could not copy FSR4 DLL: ' + E.Message);
+  end;
+
+  // Show notification
+  SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
+
+  // Build launch command — use game-specific bgmod copy when in game mode
+  if FActiveGameName <> '' then
+  begin
+    if FActiveGameIsNonSteam then
+      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
+    else
+      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
   end
   else
-  begin
-    ShowMessage('Error: fgmod file not found at: ' + FGModFilePath);
-  end;
+    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+
+  // Check if gamemode should be added
+  if GetGeneralCheckBox(1).Checked then
+    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
+
+  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+
+  notificationLabel.Visible := False;
+  FLaunchCommand := LaunchCommand;
+  commandPaintBox.Invalidate;
+  commandPanel.Visible := True;
 end;
 
 procedure Tgoverlayform.SaveVkSumiConfig;
@@ -10169,11 +9354,9 @@ var
   Val: Double;
   i: Integer;
   FGModFilePath: string;
-  FileLines: TStringList;
-  TargetLineExists: Boolean;
-  SteamDeckLineIndex: Integer;
   SumiEnabled: Boolean;
   LaunchCommand: string;
+  Ini: TIniFile;
 begin
   ConfigDir := VKSUMIFOLDER;
   ConfigFile := VKSUMICFGFILE;
@@ -10245,93 +9428,53 @@ begin
       ForceDirectories(ConfigDir);
     Lines.SaveToFile(ConfigFile);
 
-    // In game-specific mode: inject VKSUMI_CONFIG_FILE into the game fgmod
+    // In game-specific mode: inject VKSUMI_CONFIG_FILE into the game bgmod
     // so the launcher can locate the per-game config at runtime.
     if FActiveGameName <> '' then
       PatchGameFGModConfigPath(
-        GetGameConfigDir(FActiveGameName) + 'fgmod',
+        GetGameConfigDir(FActiveGameName) + 'bgmod',
         'VKSUMI_CONFIG_FILE',
         VKSUMICFGFILE);
 
-    // Patch fgmod file (global or game-specific) to add/remove export ENABLE_VKSUMI=1
+    // Update bgmod.conf with ENABLE_VKSUMI setting
     if FActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
     else
-      FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
 
-    if FileExists(FGModFilePath) then
-    begin
-      FileLines := TStringList.Create;
-      try
-        FileLines.LoadFromFile(FGModFilePath);
+    ForceDirectories(ExtractFilePath(FGModFilePath));
+    Ini := TIniFile.Create(FGModFilePath);
+    try
+      SumiEnabled := True;
+      if Assigned(FVsEnabledCB) then
+        SumiEnabled := FVsEnabledCB.Checked;
 
-        TargetLineExists := False;
-        SteamDeckLineIndex := -1;
-        for i := 0 to FileLines.Count - 1 do
-        begin
-          if Pos('# Execute the original command', FileLines[i]) > 0 then
-            SteamDeckLineIndex := i;
-          if Pos('export ENABLE_VKSUMI=1', FileLines[i]) > 0 then
-            TargetLineExists := True;
-        end;
-
-        SumiEnabled := True;
-        if Assigned(FVsEnabledCB) then
-          SumiEnabled := FVsEnabledCB.Checked;
-
-        if SumiEnabled then
-        begin
-          if not TargetLineExists then
-          begin
-            if SteamDeckLineIndex >= 0 then
-              FileLines.Insert(SteamDeckLineIndex + 1, '  export ENABLE_VKSUMI=1')
-            else
-            begin
-              // Fallback: search for "$@" and insert before it
-              for i := 0 to FileLines.Count - 1 do
-                if Trim(FileLines[i]) = '"$@"' then
-                begin
-                  FileLines.Insert(i, '  export ENABLE_VKSUMI=1');
-                  Break;
-                end;
-            end;
-            FileLines.SaveToFile(FGModFilePath);
-            fpChmod(FGModFilePath, &755);
-            WriteLn('[FGMOD] Added export ENABLE_VKSUMI=1 to fgmod');
-          end;
-        end
-        else
-        begin
-          if TargetLineExists then
-          begin
-            for i := FileLines.Count - 1 downto 0 do
-              if Pos('export ENABLE_VKSUMI=1', FileLines[i]) > 0 then
-              begin
-                FileLines.Delete(i);
-                Break;
-              end;
-            FileLines.SaveToFile(FGModFilePath);
-            fpChmod(FGModFilePath, &755);
-            WriteLn('[FGMOD] Removed export ENABLE_VKSUMI=1 from fgmod');
-          end;
-        end;
-      finally
-        FileLines.Free;
+      if SumiEnabled then
+      begin
+        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
+        WriteLn('[BGMOD] Enabled vkBasalt/vkSumi in config');
+      end
+      else
+      begin
+        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '0');
+        WriteLn('[BGMOD] Disabled vkBasalt/vkSumi in config');
       end;
+    finally
+      Ini.Free;
     end;
 
     SendNotification('vkSumi', 'Configuration saved to ' + ConfigFile, GetIconFile);
 
-    // Always show the fgmod command — use game-specific fgmod copy when in game mode
+    // Always show the bgmod command — use game-specific bgmod copy when in game mode
     if FActiveGameName <> '' then
     begin
       if FActiveGameIsNonSteam then
-        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
       else
-        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
     end
     else
-      LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
+      LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
     // Check if gamemode should be added (check generalCheckGroup)
     if GetGeneralCheckBox(1).Checked then
@@ -10576,25 +9719,25 @@ begin
       DeleteFile(VKBASALTCFGFILE);
     Lines.SaveToFile(VKBASALTCFGFILE);
 
-    // In game-specific mode: inject VKBASALT_CONFIG_FILE into the game fgmod
+    // In game-specific mode: inject VKBASALT_CONFIG_FILE into the game bgmod
     if FActiveGameName <> '' then
       PatchGameFGModConfigPath(
-        GetGameConfigDir(FActiveGameName) + 'fgmod',
+        GetGameConfigDir(FActiveGameName) + 'bgmod',
         'VKBASALT_CONFIG_FILE',
         VKBASALTCFGFILE);
 
     SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
-    // Always show the fgmod command — use game-specific fgmod copy when in game mode
+    // Always show the bgmod command — use game-specific bgmod copy when in game mode
     if FActiveGameName <> '' then
     begin
       if FActiveGameIsNonSteam then
-        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+        LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
       else
-        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+        LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
     end
     else
-      LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
+      LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
     // Check if gamemode should be added (check generalCheckGroup)
     if GetGeneralCheckBox(1).Checked then
@@ -10667,12 +9810,12 @@ begin
       if FActiveGameName <> '' then
       begin
         if FActiveGameIsNonSteam then
-          LaunchCommand := GetGameConfigDir(FActiveGameName) + 'fgmod '
+          LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
         else
-          LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'fgmod" ';
+          LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
       end
       else
-        LaunchCommand := '"' + GetFGModPath + '/fgmod" ';
+        LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
       // Check if gamemode should be added (check generalCheckGroup)
       if GetGeneralCheckBox(1).Checked then
@@ -11218,48 +10361,22 @@ end;
 // Remove MANGOHUD=1 from fgmod file
 procedure Tgoverlayform.RemoveMangoHudFromFGMod;
 var
-  FGModFilePath: string;
-  FileLines: TStringList;
-  i: Integer;
-  LineRemoved: Boolean;
+  ConfigPath: string;
+  Ini: TIniFile;
 begin
-  // Get fgmod file path
   if FActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
+    ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
   else
-    FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
+    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
 
-  
-  // Check if fgmod file exists
-  if not FileExists(FGModFilePath) then
-    Exit;
-  
-  FileLines := TStringList.Create;
-  try
-    FileLines.LoadFromFile(FGModFilePath);
-    LineRemoved := False;
-    
-    // Find and remove lines containing MANGOHUD=1
-    for i := FileLines.Count - 1 downto 0 do
-    begin
-      if Pos('export MANGOHUD=1', FileLines[i]) > 0 then
-      begin
-        FileLines.Delete(i);
-        LineRemoved := True;
-      end;
+  if FileExists(ConfigPath) then
+  begin
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_MANGOHUD', '0');
+    finally
+      Ini.Free;
     end;
-    
-    // Save the modified file only if a line was removed
-    if LineRemoved then
-    begin
-      FileLines.SaveToFile(FGModFilePath);
-      // Make sure it's still executable
-      fpChmod(FGModFilePath, &755);
-      WriteLn('[FGMOD] Removed MANGOHUD=1 from fgmod (global enable is active)');
-    end;
-    
-  finally
-    FileLines.Free;
   end;
 end;
 
@@ -12260,28 +11377,17 @@ function Tgoverlayform.GetGameToolEnabled(const AGameName: string; AToolIdx: Int
 const
   FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
 var
-  FGModFile: string;
-  Lines: TStringList;
-  i: Integer;
-  Flag: string;
+  ConfigPath: string;
+  Ini: TIniFile;
 begin
-  Result := False;  // default: disabled until explicitly saved
-  FGModFile := GetGameConfigDir(AGameName) + 'fgmod';
-  if not FileExists(FGModFile) then Exit;
-  Flag  := FLAGS[AToolIdx] + '=';
-  Lines := TStringList.Create;
+  Result := False;
+  ConfigPath := GetGameConfigDir(AGameName) + 'bgmod.conf';
+  if not FileExists(ConfigPath) then Exit;
+  Ini := TIniFile.Create(ConfigPath);
   try
-    Lines.LoadFromFile(FGModFile);
-    for i := 0 to Lines.Count - 1 do
-    begin
-      if Pos(Flag, Trim(Lines[i])) = 1 then
-      begin
-        Result := Trim(Copy(Trim(Lines[i]), Length(Flag) + 1, MaxInt)) = '1';
-        Break;
-      end;
-    end;
+    Result := Ini.ReadString('Config', FLAGS[AToolIdx], '0') = '1';
   finally
-    Lines.Free;
+    Ini.Free;
   end;
 end;
 
@@ -12289,47 +11395,19 @@ procedure Tgoverlayform.SetGameToolEnabled(const AGameName: string; AToolIdx: In
 const
   FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
 var
-  FGModFile: string;
-  Lines: TStringList;
-  i: Integer;
-  Flag, NewLine: string;
-  Found: Boolean;
+  ConfigPath: string;
+  Ini: TIniFile;
 begin
-  FGModFile := GetGameConfigDir(AGameName) + 'fgmod';
-  if not FileExists(FGModFile) then Exit;
-  Flag    := FLAGS[AToolIdx] + '=';
-  NewLine := FLAGS[AToolIdx] + '=' + IfThen(AEnabled, '1', '0');
-  Lines   := TStringList.Create;
-  Found   := False;
+  ConfigPath := GetGameConfigDir(AGameName) + 'bgmod.conf';
+  ForceDirectories(ExtractFilePath(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
   try
-    Lines.LoadFromFile(FGModFile);
-    for i := 0 to Lines.Count - 1 do
-    begin
-      if Pos(Flag, Trim(Lines[i])) = 1 then
-      begin
-        Lines[i] := NewLine;
-        Found := True;
-        Break;
-      end;
-    end;
-    if not Found then
-    begin
-      // Find "=== CONFIG ===" and insert feature flag line after preserve_ini line
-      for i := 0 to Lines.Count - 1 do
-      begin
-        if Pos('# === CONFIG ===', Lines[i]) >= 1 then
-        begin
-          Lines.Insert(i + 1, NewLine);
-          Found := True;
-          Break;
-        end;
-      end;
-      if not Found then
-        Lines.Insert(0, NewLine);  // fallback
-    end;
-    Lines.SaveToFile(FGModFile);
+    if AEnabled then
+      Ini.WriteString('Config', FLAGS[AToolIdx], '1')
+    else
+      Ini.WriteString('Config', FLAGS[AToolIdx], '0');
   finally
-    Lines.Free;
+    Ini.Free;
   end;
 end;
 
@@ -12403,90 +11481,27 @@ end;
 
 procedure Tgoverlayform.RemoveTweaksFromGameFGMod(const AFGModFile: string);
 var
-  Lines: TStringList;
-  i: Integer;
+  ConfigPath: string;
+  Ini: TIniFile;
+  DSpirvVal: string;
 begin
-  if not FileExists(AFGModFile) then Exit;
-  Lines := TStringList.Create;
+  ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
+  if not FileExists(ConfigPath) then Exit;
+  Ini := TIniFile.Create(ConfigPath);
   try
-    Lines.LoadFromFile(AFGModFile);
-    for i := Lines.Count - 1 downto 0 do
-    begin
-      if (Pos('export PROTON_ENABLE_HDR=1',              Lines[i]) > 0) or
-         (Pos('export ENABLE_HDR_WSI=1',                 Lines[i]) > 0) or
-         (Pos('export PROTON_ENABLE_WAYLAND=1',          Lines[i]) > 0) or
-         (Pos('export PROTON_LOG=1',                     Lines[i]) > 0) or
-         (Pos('export PROTON_USE_SDL=1',                 Lines[i]) > 0) or
-         (Pos('#gamemode',                               Lines[i]) > 0) or
-         (Pos('export RADV_PERFTEST=rt,emulate_rt',      Lines[i]) > 0) or
-         (Pos('export PROTON_HIDE_NVIDIA_GPU=1',         Lines[i]) > 0) or
-         (Pos('export PROTON_ENABLE_NVAPI=1',            Lines[i]) > 0) or
-         (Pos('export PROTON_USE_WINED3D=1',             Lines[i]) > 0) or
-         (Pos('export MESA_LOADER_DRIVER_OVERRIDE=zink', Lines[i]) > 0) or
-         (Pos('export __GLX_VENDOR_LIBRARY_NAME=mesa',   Lines[i]) > 0) or
-         (Pos('export RADV_DEBUG=nofastclears',          Lines[i]) > 0) or
-         (Pos('export PROTON_PRIORITY_HIGH=1',           Lines[i]) > 0) or
-         (Pos('export PROTON_USE_WOW64=1',               Lines[i]) > 0) or
-         (Pos('export PROTON_FORCE_LARGE_ADDRESS_AWARE=1', Lines[i]) > 0) or
-         (Pos('export STAGING_SHARED_MEMORY=1',          Lines[i]) > 0) or
-           (Pos('export PROTON_NO_NTSYNC=1',               Lines[i]) > 0) or
-           (Pos('export PROTON_HEAP_DELAY_FREE=1',         Lines[i]) > 0) or
-           (Pos('export ENABLE_LAYER_MESA_ANTI_LAG=1',     Lines[i]) > 0) or
-           (Pos('export PROTON_FSR4_UPGRADE=1',            Lines[i]) > 0) or
-           (Pos('export PROTON_DLSS_UPGRADE=1',            Lines[i]) > 0) or
-           (Pos('export PROTON_XESS_UPGRADE=1',            Lines[i]) > 0) or
-           (Pos('#customenv',                              Lines[i]) > 0) or
-           (Pos('export SteamDeck=1',                     Lines[i]) > 0) then
-        Lines.Delete(i);
-    end;
-    Lines.SaveToFile(AFGModFile);
-    fpChmod(AFGModFile, &755);
+    Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '0');
+    DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
+    Ini.EraseSection('Env');
+    if DSpirvVal <> '' then
+      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
   finally
-    Lines.Free;
+    Ini.Free;
   end;
 end;
 
 procedure Tgoverlayform.EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
-var
-  Lines: TStringList;
-  i, StartIdx, EndIdx: Integer;
 begin
-  if not FileExists(AFGModFile) then Exit;
-  Lines := TStringList.Create;
-  try
-    Lines.LoadFromFile(AFGModFile);
-    // Already has the new conditional — nothing to do
-    for i := 0 to Lines.Count - 1 do
-      if Pos('GOVERLAY_OPTISCALER" == "1"', Lines[i]) > 0 then
-        Exit;
-    // Find start of OptiScaler install section
-    StartIdx := -1;
-    for i := 0 to Lines.Count - 1 do
-      if Pos('Cleanup Old Injectors', Lines[i]) > 0 then
-      begin
-        StartIdx := i;
-        Break;
-      end;
-    // Find end: first "cp -f ... MangoHud.conf" line after start
-    EndIdx := -1;
-    for i := StartIdx + 1 to Lines.Count - 1 do
-      if (Pos('MangoHud.conf', Lines[i]) > 0) and (Pos('cp -f', Lines[i]) > 0) then
-      begin
-        EndIdx := i;
-        Break;
-      end;
-    if (StartIdx < 0) or (EndIdx <= StartIdx) then Exit;
-    // Insert 'fi' + blank line before the MangoHud.conf line
-    Lines.Insert(EndIdx, '');
-    Lines.Insert(EndIdx, 'fi');
-    // Insert the 'if' check + blank line before the start of the OptiScaler section
-    Lines.Insert(StartIdx, '');
-    Lines.Insert(StartIdx, 'if [[ "$GOVERLAY_OPTISCALER" == "1" ]]; then');
-    Lines.SaveToFile(AFGModFile);
-    fpChmod(AFGModFile, &755);
-  finally
-    Lines.Free;
-  end;
+  // Obsolete: bgmod binary manages OptiScaler conditional logic natively.
 end;
 
 procedure Tgoverlayform.RemoveOptiScalerGameFiles(const AGameCfgDir: string);
@@ -12531,117 +11546,29 @@ begin
 end;
 
 procedure Tgoverlayform.PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
-const
-  CONDITIONAL_LINE = '[[ "$GOVERLAY_OPTISCALER" == "1" ]] && export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
-  LEGACY_LINE      = '  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES,dxgi=n,b"';
-var
-  Lines: TStringList;
-  i: Integer;
-  Found: Boolean;
 begin
-  if not FileExists(AFGModFile) then Exit;
-  Lines := TStringList.Create;
-  try
-    Lines.LoadFromFile(AFGModFile);
-    Found := False;
-    for i := 0 to Lines.Count - 1 do
-    begin
-      // Match both the conditional form (new template) and the legacy unconditional form
-      if (Pos('WINEDLLOVERRIDES', Lines[i]) > 0) and
-         (Pos('dxgi=n,b', Lines[i]) > 0) then
-      begin
-        Lines[i] := CONDITIONAL_LINE;
-        Found := True;
-        Break;
-      end;
-    end;
-    // If no WINEDLLOVERRIDES line found at all, insert before "$@" in the execute block
-    if not Found then
-    begin
-      for i := 0 to Lines.Count - 1 do
-      begin
-        if Trim(Lines[i]) = '"$@"' then
-        begin
-          Lines.Insert(i, '  ' + CONDITIONAL_LINE);
-          Break;
-        end;
-      end;
-    end;
-    Lines.SaveToFile(AFGModFile);
-    fpChmod(AFGModFile, &755);
-  finally
-    Lines.Free;
-  end;
+  // Obsolete: bgmod handles OptiScaler overrides natively
 end;
 
-// Ensures AConditionalLine is present in AFGModFile, inserting it before "$@"
-// in the execute block if absent. ASearchKey is a unique substring of the line
-// used to detect whether it already exists. The GOVERLAY_X flag value (written
-// by SetGameToolEnabled) already controls whether the line actually runs — this
-// function only guarantees the line is there in the first place.
 procedure Tgoverlayform.PatchGameFGModConditionalExport(
   const AFGModFile, AConditionalLine, ASearchKey: string);
-var
-  Lines: TStringList;
-  i: Integer;
 begin
-  if not FileExists(AFGModFile) then Exit;
-  Lines := TStringList.Create;
-  try
-    Lines.LoadFromFile(AFGModFile);
-    // Already present — nothing to do
-    for i := 0 to Lines.Count - 1 do
-      if Pos(ASearchKey, Lines[i]) > 0 then
-        Exit;
-    // Not found: insert before the "$@" call in the execute block
-    for i := 0 to Lines.Count - 1 do
-      if Trim(Lines[i]) = '"$@"' then
-      begin
-        Lines.Insert(i, '  ' + AConditionalLine);
-        Break;
-      end;
-    Lines.SaveToFile(AFGModFile);
-    fpChmod(AFGModFile, &755);
-  finally
-    Lines.Free;
-  end;
+  // Obsolete: bgmod handles tool conditionals natively
 end;
 
-// Adds or updates `export AEnvVar="AConfigPath"` in the game fgmod file.
-// Inserts before the "$@" execute line when not yet present; replaces in-place
-// when already present (handles path changes after re-saving the config).
 procedure Tgoverlayform.PatchGameFGModConfigPath(
   const AFGModFile, AEnvVar, AConfigPath: string);
 var
-  Lines: TStringList;
-  ExportLine: string;
-  i: Integer;
+  ConfigPath: string;
+  Ini: TIniFile;
 begin
-  if not FileExists(AFGModFile) then Exit;
-  ExportLine := 'export ' + AEnvVar + '="' + AConfigPath + '"';
-  Lines := TStringList.Create;
+  ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
+  ForceDirectories(ExtractFilePath(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
   try
-    Lines.LoadFromFile(AFGModFile);
-    // Update if already present (path may have changed)
-    for i := 0 to Lines.Count - 1 do
-      if Pos('export ' + AEnvVar + '=', Lines[i]) > 0 then
-      begin
-        Lines[i] := '  ' + ExportLine;
-        Lines.SaveToFile(AFGModFile);
-        fpChmod(AFGModFile, &755);
-        Exit;
-      end;
-    // Not found: insert before the "$@" execute call
-    for i := 0 to Lines.Count - 1 do
-      if Trim(Lines[i]) = '"$@"' then
-      begin
-        Lines.Insert(i, '  ' + ExportLine);
-        Break;
-      end;
-    Lines.SaveToFile(AFGModFile);
-    fpChmod(AFGModFile, &755);
+    Ini.WriteString('Env', AEnvVar, AConfigPath);
   finally
-    Lines.Free;
+    Ini.Free;
   end;
 end;
 
@@ -19104,16 +18031,17 @@ begin
   // Copy scripts without overwriting — user config lives inside fgmod.
   // Then patch the script body for OptiScaler conditional if needed.
   FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
-  ExecuteShellCommand('cp -n ' + QuotedStr(FGOrig + 'fgmod') + ' ' +
-    QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'fgmod'));
-  ExecuteShellCommand('cp -n ' + QuotedStr(FGOrig + 'fgmod-uninstaller.sh') + ' ' +
-    QuotedStr(GameCfgDir + 'fgmod-uninstaller.sh') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'fgmod-uninstaller.sh'));
-  ExecuteShellCommand('cp -n ' + QuotedStr(FGOrig + 'fgmod-remover.sh') + ' ' +
-    QuotedStr(GameCfgDir + 'fgmod-remover.sh') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'fgmod-remover.sh'));
-  EnsureGameFGModOptiScalerConditional(GameCfgDir + 'fgmod');
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod') + ' ' +
+    QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'bgmod'));
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-uninstaller.sh') + ' ' +
+    QuotedStr(GameCfgDir + 'bgmod-uninstaller.sh') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'bgmod-uninstaller.sh'));
+  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-remover.sh') + ' ' +
+    QuotedStr(GameCfgDir + 'bgmod-remover.sh') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'bgmod-remover.sh'));
+  ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
+  EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
   MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
   UpdateGameContextLabel;
   SetNavActive(1);

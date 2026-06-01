@@ -137,7 +137,7 @@
         <ResourceBaseClass Value="Form"/>
       </Unit6>
       <Unit7>
-        <Filename Value="fgmod_resources.pas"/>
+        <Filename Value="bgmod_resources.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit7>
     </Units>
