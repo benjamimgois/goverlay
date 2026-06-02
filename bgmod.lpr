@@ -473,12 +473,17 @@ var
   Key, Val, Line: string;
   Args: array of PChar;
   ArgsStrings: array of string;
-  OrigDlls: array[0..4] of string = (
+  OrigDlls: array[0..9] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
     'amd_fidelityfx_framegeneration_dx12.dll',
     'amd_fidelityfx_upscaler_dx12.dll',
-    'amd_fidelityfx_vk.dll'
+    'amd_fidelityfx_vk.dll',
+    'libxess.dll',
+    'libxess_dx11.dll',
+    'libxess_fg.dll',
+    'libxell.dll',
+    'nvngx.dll'
   );
   ProxyDlls: array[0..5] of string = (
     'dxgi.dll',

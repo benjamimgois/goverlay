@@ -43,11 +43,35 @@ var
   CentralLogDir: string;
   CentralLogFile: string;
 
+procedure UpdateCentralLogPaths;
+var
+  DataHome, GameDirName: string;
+begin
+  if GameDir = '' then Exit;
+  GameDirName := ExtractFileName(ExcludeTrailingPathDelimiter(GameDir));
+  if GameDirName = '' then Exit;
+  
+  if CentralLogFile = '' then
+  begin
+    DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+      
+    CentralLogDir := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'logs' + PathDelim + GameDirName;
+    CentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'bgmod-uninstaller.log';
+  end;
+end;
+
 procedure Log(const Msg: string);
 var
   F: TextFile;
   LogMsg: string;
 begin
+  if (GameDir <> '') and (CentralLogFile = '') then
+    UpdateCentralLogPaths;
+
   LogMsg := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Msg;
   WriteLn(LogMsg);
   

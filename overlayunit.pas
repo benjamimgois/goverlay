@@ -865,7 +865,7 @@ type
     function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
-    procedure RunFGModUninstallCommands(const ATargetDir: string);
+    procedure RunFGModUninstallCommands(const ATargetDir, AGameName: string);
     procedure CheckAndUpdateConfigVersion;
     procedure RefreshGameCardsAsync(Data: PtrInt);
     function  GetMangoHudConfigEnvPrefix: string;
@@ -8542,9 +8542,9 @@ begin
       Result[i] := '_';
 end;
 
-procedure Tgoverlayform.RunFGModUninstallCommands(const ATargetDir: string);
+procedure Tgoverlayform.RunFGModUninstallCommands(const ATargetDir, AGameName: string);
 begin
-  TGamesTabHelper(FGamesHelper).RunFGModUninstallCommands(ATargetDir);
+  TGamesTabHelper(FGamesHelper).RunFGModUninstallCommands(ATargetDir, AGameName);
 end;
 function Tgoverlayform.CleanGameNameForSearch(const AName: string): string;
 var
