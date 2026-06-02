@@ -251,6 +251,69 @@ begin
   end;
 end;
 
+procedure SafeDeleteDirectory(const Path: string);
+var
+  SR: TSearchRec;
+  FileP: string;
+begin
+  if not DirectoryExists(Path) then Exit;
+  
+  if FindFirst(IncludeTrailingPathDelimiter(Path) + '*', faAnyFile, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          FileP := IncludeTrailingPathDelimiter(Path) + SR.Name;
+          if (SR.Attr and faDirectory) <> 0 then
+            SafeDeleteDirectory(FileP)
+          else
+            SafeDeleteFile(FileP);
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+  
+  try
+    if RemoveDir(Path) then
+      Log('Removed directory: ' + Path)
+    else
+      Log('Failed to remove directory: ' + Path);
+  except
+    on E: Exception do
+      Log('Exception removing directory ' + Path + ': ' + E.Message);
+  end;
+end;
+
+procedure SafeCleanOrRestore(const TargetDir, FileName: string; IsOriginalGameFile: Boolean);
+var
+  FullFile, FullBackup: string;
+begin
+  FullFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
+  FullBackup := FullFile + '.b';
+  
+  if FileExists(FullBackup) then
+  begin
+    try
+      if FileExists(FullFile) then
+        DeleteFile(FullFile);
+      if RenameFile(FullBackup, FullFile) then
+        Log('Restored original ' + FileName)
+      else
+        Log('Failed to restore ' + FileName);
+    except
+      on E: Exception do
+        Log('Exception restoring ' + FileName + ': ' + E.Message);
+    end;
+  end
+  else if not IsOriginalGameFile then
+  begin
+    SafeDeleteFile(FullFile);
+  end;
+end;
+
 procedure SafeBackupFile(const TargetDir, DllFile: string);
 var
   FullSrc, FullDest: string;
@@ -426,6 +489,7 @@ var
     'winhttp.dll'
   );
 
+
 begin
   BgmodPath := ExtractFilePath(ParamStr(0));
   
@@ -572,17 +636,73 @@ begin
         
         // 11. Copy uninstaller
         SafeCopyFile(BgmodPath + 'bgmod-uninstaller', IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller');
+      end
+      else
+      begin
+        Log('OptiScaler is disabled. Cleaning up game directory...');
+        
+        // Original game files (ONLY restore if backup exists, do NOT delete if no backup)
+        SafeCleanOrRestore(GameDir, 'd3dcompiler_47.dll', True);
+        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_dx12.dll', True);
+        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_framegeneration_dx12.dll', True);
+        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_upscaler_dx12.dll', True);
+        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_vk.dll', True);
+        SafeCleanOrRestore(GameDir, 'libxess.dll', True);
+        SafeCleanOrRestore(GameDir, 'libxess_dx11.dll', True);
+        SafeCleanOrRestore(GameDir, 'libxess_fg.dll', True);
+        SafeCleanOrRestore(GameDir, 'libxell.dll', True);
+        
+        // Copied proxy/supporting files (restore if backup exists, otherwise safe to delete)
+        SafeCleanOrRestore(GameDir, 'OptiScaler.dll', False);
+        SafeCleanOrRestore(GameDir, 'dxgi.dll', False);
+        SafeCleanOrRestore(GameDir, 'winmm.dll', False);
+        SafeCleanOrRestore(GameDir, 'dbghelp.dll', False);
+        SafeCleanOrRestore(GameDir, 'version.dll', False);
+        SafeCleanOrRestore(GameDir, 'wininet.dll', False);
+        SafeCleanOrRestore(GameDir, 'winhttp.dll', False);
+        SafeCleanOrRestore(GameDir, 'OptiScaler.ini', False);
+        SafeCleanOrRestore(GameDir, 'OptiScaler.log', False);
+        SafeCleanOrRestore(GameDir, 'OptiScaler.asi', False);
+        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better.dll', False);
+        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.ini', False);
+        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.log', False);
+        SafeCleanOrRestore(GameDir, 'nvapi64.dll', False);
+        SafeCleanOrRestore(GameDir, 'fakenvapi.ini', False);
+        SafeCleanOrRestore(GameDir, 'fakenvapi.log', False);
+        SafeCleanOrRestore(GameDir, 'fakenvapi.dll', False);
+        SafeCleanOrRestore(GameDir, 'nvngx.dll', True);
+        SafeCleanOrRestore(GameDir, 'nvngx.ini', False);
+        SafeCleanOrRestore(GameDir, 'nvngx_dlss.dll', True);
+        SafeCleanOrRestore(GameDir, 'nvngx_dlssd.dll', True);
+        SafeCleanOrRestore(GameDir, 'nvngx_dlssg.dll', True);
+        SafeCleanOrRestore(GameDir, 'dlss-enabler.dll', False);
+        SafeCleanOrRestore(GameDir, 'dlss-enabler-upscaler.dll', False);
+        SafeCleanOrRestore(GameDir, 'dlss-enabler.log', False);
+        SafeCleanOrRestore(GameDir, 'nvngx-wrapper.dll', False);
+        SafeCleanOrRestore(GameDir, '_nvngx.dll', False);
+        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better-3.0.dll', False);
+        SafeCleanOrRestore(GameDir, 'bgmod-uninstaller', False);
+        
+        // Remove plugins folder
+        SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
       end;
       
       // --- MangoHud Configuration Copy ---
       if GOverlayMangoHud then
-        SafeCopyFile(BgmodPath + 'MangoHud.conf', IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
+        SafeCopyFile(BgmodPath + 'MangoHud.conf', IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf')
+      else
+        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
         
       // --- vkBasalt Configuration Copy ---
       if GOverlayVkBasalt then
       begin
         SafeCopyFile(BgmodPath + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
         SafeCopyFile(BgmodPath + 'vkSumi.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
+      end
+      else
+      begin
+        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
+        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
       end;
     end;
   end;
@@ -591,16 +711,16 @@ begin
   Log('Exporting environment variables...');
   
   // Export environment variables read from bgmod.conf [Env] section
-  if GOverlayTweaks then
+  for i := 0 to EnvList.Count - 1 do
   begin
-    for i := 0 to EnvList.Count - 1 do
+    Line := EnvList[i];
+    p := Pos('=', Line);
+    if p > 0 then
     begin
-      Line := EnvList[i];
-      p := Pos('=', Line);
-      if p > 0 then
+      Key := Copy(Line, 1, p - 1);
+      Val := Copy(Line, p + 1, MaxInt);
+      if (Key = 'MANGOHUD_CONFIGFILE') or GOverlayTweaks then
       begin
-        Key := Copy(Line, 1, p - 1);
-        Val := Copy(Line, p + 1, MaxInt);
         SetEnvironmentVariable(Key, Val);
         Log('Export [Env]: ' + Key + '=' + Val);
       end;

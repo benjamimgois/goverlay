@@ -358,27 +358,33 @@ begin
   end;
 end;
 
-procedure SafeRestoreFile(const TargetDir, DllFile: string);
+procedure SafeCleanOrRestore(const TargetDir, FileName: string; IsOriginalGameFile: Boolean);
 var
-  FullSrc, FullDest: string;
+  FullFile, FullBackup: string;
 begin
-  FullSrc := IncludeTrailingPathDelimiter(TargetDir) + DllFile + '.b';
-  FullDest := IncludeTrailingPathDelimiter(TargetDir) + DllFile;
+  FullFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
+  FullBackup := FullFile + '.b';
   
-  if FileExists(FullSrc) then
+  if FileExists(FullBackup) then
   begin
     try
-      SafeDeleteFile(FullDest);
-      if RenameFile(FullSrc, FullDest) then
-        Log('Restored original ' + DllFile)
+      if FileExists(FullFile) then
+        DeleteFile(FullFile);
+      if RenameFile(FullBackup, FullFile) then
+        Log('Restored original ' + FileName)
       else
-        Log('Failed to restore ' + DllFile);
+        Log('Failed to restore ' + FileName);
     except
       on E: Exception do
-        Log('Exception restoring ' + DllFile + ': ' + E.Message);
+        Log('Exception restoring ' + FileName + ': ' + E.Message);
     end;
+  end
+  else if not IsOriginalGameFile then
+  begin
+    SafeDeleteFile(FullFile);
   end;
 end;
+
 
 function GetBGModPath: string;
 var
@@ -396,24 +402,7 @@ var
   Args: array of PChar;
   ArgsStrings: array of string;
   IsGlobalUninstall: Boolean;
-  FilesToClean: array[0..38] of string = (
-    'OptiScaler.dll', 'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'version.dll', 'wininet.dll', 'winhttp.dll',
-    'OptiScaler.ini', 'OptiScaler.log', 'OptiScaler.asi',
-    'dlssg_to_fsr3_amd_is_better.dll', 'dlssg_to_fsr3.ini', 'dlssg_to_fsr3.log',
-    'nvapi64.dll', 'fakenvapi.ini', 'fakenvapi.log', 'fakenvapi.dll',
-    'libxess.dll', 'libxess_dx11.dll', 'libxess_fg.dll', 'libxell.dll', 'nvngx.dll', 'nvngx.ini',
-    'amd_fidelityfx_dx12.dll', 'amd_fidelityfx_framegeneration_dx12.dll', 'amd_fidelityfx_upscaler_dx12.dll', 'amd_fidelityfx_vk.dll',
-    'nvngx_dlss.dll', 'nvngx_dlssd.dll', 'nvngx_dlssg.dll',
-    'dlss-enabler.dll', 'dlss-enabler-upscaler.dll', 'dlss-enabler.log',
-    'nvngx-wrapper.dll', '_nvngx.dll', 'dlssg_to_fsr3_amd_is_better-3.0.dll',
-    'MangoHud.conf', 'vkBasalt.conf', 'vkSumi.conf'
-  );
-  OriginalDlls: array[0..14] of string = (
-    'd3dcompiler_47.dll', 'amd_fidelityfx_dx12.dll', 'amd_fidelityfx_framegeneration_dx12.dll', 
-    'amd_fidelityfx_upscaler_dx12.dll', 'amd_fidelityfx_vk.dll', 'libxess.dll', 'libxess_dx11.dll', 
-    'libxess_fg.dll', 'libxell.dll', 'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'version.dll', 
-    'wininet.dll', 'winhttp.dll'
-  );
+
 
 begin
   GameDir := '';
@@ -486,18 +475,54 @@ begin
     begin
       Log('Starting uninstallation from game directory...');
       
-      // 1. Remove copied files
-      for i := 0 to High(FilesToClean) do
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + FilesToClean[i]);
-        
-      // 2. Remove plugins folder
+      // Original game files (ONLY restore if backup exists, do NOT delete if no backup)
+      SafeCleanOrRestore(GameDir, 'd3dcompiler_47.dll', True);
+      SafeCleanOrRestore(GameDir, 'amd_fidelityfx_dx12.dll', True);
+      SafeCleanOrRestore(GameDir, 'amd_fidelityfx_framegeneration_dx12.dll', True);
+      SafeCleanOrRestore(GameDir, 'amd_fidelityfx_upscaler_dx12.dll', True);
+      SafeCleanOrRestore(GameDir, 'amd_fidelityfx_vk.dll', True);
+      SafeCleanOrRestore(GameDir, 'libxess.dll', True);
+      SafeCleanOrRestore(GameDir, 'libxess_dx11.dll', True);
+      SafeCleanOrRestore(GameDir, 'libxess_fg.dll', True);
+      SafeCleanOrRestore(GameDir, 'libxell.dll', True);
+      
+      // Copied proxy/supporting files (restore if backup exists, otherwise safe to delete)
+      SafeCleanOrRestore(GameDir, 'OptiScaler.dll', False);
+      SafeCleanOrRestore(GameDir, 'dxgi.dll', False);
+      SafeCleanOrRestore(GameDir, 'winmm.dll', False);
+      SafeCleanOrRestore(GameDir, 'dbghelp.dll', False);
+      SafeCleanOrRestore(GameDir, 'version.dll', False);
+      SafeCleanOrRestore(GameDir, 'wininet.dll', False);
+      SafeCleanOrRestore(GameDir, 'winhttp.dll', False);
+      SafeCleanOrRestore(GameDir, 'OptiScaler.ini', False);
+      SafeCleanOrRestore(GameDir, 'OptiScaler.log', False);
+      SafeCleanOrRestore(GameDir, 'OptiScaler.asi', False);
+      SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better.dll', False);
+      SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.ini', False);
+      SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.log', False);
+      SafeCleanOrRestore(GameDir, 'nvapi64.dll', False);
+      SafeCleanOrRestore(GameDir, 'fakenvapi.ini', False);
+      SafeCleanOrRestore(GameDir, 'fakenvapi.log', False);
+      SafeCleanOrRestore(GameDir, 'fakenvapi.dll', False);
+      SafeCleanOrRestore(GameDir, 'nvngx.dll', True);
+      SafeCleanOrRestore(GameDir, 'nvngx.ini', False);
+      SafeCleanOrRestore(GameDir, 'nvngx_dlss.dll', True);
+      SafeCleanOrRestore(GameDir, 'nvngx_dlssd.dll', True);
+      SafeCleanOrRestore(GameDir, 'nvngx_dlssg.dll', True);
+      SafeCleanOrRestore(GameDir, 'dlss-enabler.dll', False);
+      SafeCleanOrRestore(GameDir, 'dlss-enabler-upscaler.dll', False);
+      SafeCleanOrRestore(GameDir, 'dlss-enabler.log', False);
+      SafeCleanOrRestore(GameDir, 'nvngx-wrapper.dll', False);
+      SafeCleanOrRestore(GameDir, '_nvngx.dll', False);
+      SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better-3.0.dll', False);
+      SafeCleanOrRestore(GameDir, 'MangoHud.conf', False);
+      SafeCleanOrRestore(GameDir, 'vkBasalt.conf', False);
+      SafeCleanOrRestore(GameDir, 'vkSumi.conf', False);
+      
+      // Remove plugins folder
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
       
-      // 3. Restore backups
-      for i := 0 to High(OriginalDlls) do
-        SafeRestoreFile(GameDir, OriginalDlls[i]);
-        
-      // 4. Remove wrappers and script configs
+      // Remove wrappers and script configs
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fgmod');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.sh');

@@ -148,6 +148,10 @@ begin
   FForm.FTweaksPaintBox.SetBounds(0, 0, FForm.tweaksTabSheet.ClientWidth,
                             FForm.tweaksTabSheet.ClientHeight - 50);
   FForm.FTweaksPaintBox.Color       := BG;
+  FForm.FTweaksPaintBox.OnPaint     := @FForm.TweaksMD3Paint;
+  FForm.FTweaksPaintBox.OnMouseMove := @FForm.TweaksMD3MouseMove;
+  FForm.FTweaksPaintBox.OnMouseDown := @FForm.TweaksMD3MouseDown;
+  FForm.FTweaksPaintBox.OnMouseWheel:= @FForm.TweaksMD3MouseWheel;
   
   // Vertical scrollbar (right edge)
   FForm.FTweaksScrollBar := TScrollBar.Create(FForm);
@@ -156,6 +160,7 @@ begin
   FForm.FTweaksScrollBar.Align       := alRight;
   FForm.FTweaksScrollBar.Width       := 14;
   FForm.FTweaksScrollBar.Visible     := False;
+  FForm.FTweaksScrollBar.OnChange    := @FForm.TweaksMD3ScrollChange;
 
   // Floating Action Button — circular "+"
   FForm.FTweaksFABBtn := TSpeedButton.Create(FForm);
@@ -172,6 +177,8 @@ begin
   FForm.FTweaksFABBtn.Flat         := True;
   FForm.FTweaksFABBtn.ShowHint     := True;
   FForm.FTweaksFABBtn.Hint         := 'Add custom environment variable';
+  FForm.FTweaksFABBtn.OnClick      := @FForm.TweaksMD3FABClick;
+  FForm.FTweaksFABBtn.OnPaint      := @FForm.TweaksMD3FABPaint;
 
   // Hidden checkbox for AMD Anti-Lag 2 (not in LFM — created dynamically)
   FForm.FAntilagCheckBox := TCheckBox.Create(FForm);
