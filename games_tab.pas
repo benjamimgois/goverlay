@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus,
   LCLtype, Clipbrd, LCLIntf, IniFiles, FileUtil, StrUtils, Types, fpjson,
   jsonparser, themeunit, systemdetector, constants, bgmod_resources, hintsunit,
-  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils;
+  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils, overlay_utils;
 
 const
   CARD_W      = 150;
