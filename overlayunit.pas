@@ -587,8 +587,8 @@ type
     FBasaltHelper:    TObject;
     FMangoHelper:     TObject;
 
-    // Nav rail
-    FNavItems:       array of TPanel;    // item panels
+    // Moved to public:
+    {     FNavItems:       array of TPanel;    // item panels
     FNavIndicators:  array of TShape;    // left indicator bars
     FNavIcons:       array of TLabel;    // unicode icon labels
     FNavLabels:      array of TLabel;    // caption labels
@@ -596,9 +596,8 @@ type
     FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
     FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
     FNavCollapsed:   Boolean;            // sidebar collapsed state
-    // Moved to public:
-    {     FPresetsBgBox:   TPaintBox;          // full-width navy paintbox background for Presets tab
-    FPresetsWrapper: TPanel;             // centered wrapper for the Presets tab content }
+    FPresetsBgBox:   TPaintBox;          // full-width navy paintbox background for Presets tab
+    FPresetsWrapper: TPanel;             // centered wrapper for the Presets tab content
     FNavToggleBtn:   TSpeedButton;       // collapse/expand button
     FNavSmallIcon:   TImage;             // small app icon shown when collapsed
     FOptiScalerImg:  TImage;             // custom image for optiscaler icon
@@ -612,7 +611,7 @@ type
     FDepsMenuItem:       TMenuItem;  // dependency status item inside settingsMenu
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
-    FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
+    FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube }
 
     // Moved to public:
     {     // vkBasalt tab redesign
@@ -663,10 +662,10 @@ type
     FOsStatNameLbls: array[0..5] of TLabel;
     FOsStatVerLbls:  array[0..5] of TLabel; }
 
-    // Per-tool enable toggles (game mode only) — indices 0=MangoHud 1=vkBasalt 2=OptiScaler 3=Tweaks
-    FNavToolBtns:    array[0..3] of TSpeedButton;
+    // Moved to public:
+    {     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
-    FNavToolImgListSmall: TImageList;  // smaller ON/OFF icons for collapsed nav
+    FNavToolImgListSmall: TImageList; }  // smaller ON/OFF icons for collapsed nav
 
     // Moved to public:
     {     // FPS Limit custom input (replaces chip grid)
@@ -756,7 +755,7 @@ type
 
 
 
-    procedure BuildNavRail;
+    // Exposed: procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure AddNavyBgToTab(ATab: TTabSheet);
     procedure StyleGroupBoxNavy(GB: TGroupBox);
@@ -768,46 +767,46 @@ type
     procedure PresetCardMouseLeave(Sender: TObject);
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
-    procedure BuildSettingsButton;
-    procedure RestoreNavRailColors;
-    procedure SettingsBtnMouseEnter(Sender: TObject);
-    procedure SettingsBtnMouseLeave(Sender: TObject);
-    procedure SettingsBtnClick(Sender: TObject);
-    procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
-    procedure BuildNavToolToggles;
-    procedure BuildSmallToggleImages;
-    procedure NavToolToggleClick(Sender: TObject);
-    procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
+    // Exposed: procedure BuildSettingsButton;
+    // Exposed: procedure RestoreNavRailColors;
+    // Exposed: procedure SettingsBtnMouseEnter(Sender: TObject);
+    // Exposed: procedure SettingsBtnMouseLeave(Sender: TObject);
+    // Exposed: procedure SettingsBtnClick(Sender: TObject);
+    // Exposed: procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
+    // Exposed: procedure BuildNavToolToggles;
+    // Exposed: procedure BuildSmallToggleImages;
+    // Exposed: procedure NavToolToggleClick(Sender: TObject);
+    // Exposed: procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
     // Exposed: procedure LoadGameToggleStates;
-    function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
-    procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
-    procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
-    function  ActiveToolIndex: Integer;
-    procedure SetSaveBtnEnabled(AEnabled: Boolean);
-    procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
-    procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
-    procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
+    // Exposed: function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
+    // Exposed: procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
+    // Exposed: procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
+    // Exposed: function  ActiveToolIndex: Integer;
+    // Exposed: procedure SetSaveBtnEnabled(AEnabled: Boolean);
+    // Exposed: procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
+    // Exposed: procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
+    // Exposed: procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
     procedure BuildVkSumiTab;
     procedure VkSumiSliderChange(Sender: TObject);
     procedure LoadVkSumiConfig;
     procedure VsRestoreBtnClick(Sender: TObject);
-    procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
-    procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
-    procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
-    procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
+    // Exposed: procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
+    // Exposed: procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
+    // Exposed: procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
+    // Exposed: procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
     // Exposed: procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
-    procedure NavItemClick(Sender: TObject);
-    procedure NavItemMouseEnter(Sender: TObject);
-    procedure NavItemMouseLeave(Sender: TObject);
-    procedure NavItemPaint(Sender: TObject);
+    // Exposed: procedure NavItemClick(Sender: TObject);
+    // Exposed: procedure NavItemMouseEnter(Sender: TObject);
+    // Exposed: procedure NavItemMouseLeave(Sender: TObject);
+    // Exposed: procedure NavItemPaint(Sender: TObject);
     // Exposed: procedure SetNavActive(AIndex: Integer);
-    procedure NavToggleClick(Sender: TObject);
-    procedure NavAnimTick(Sender: TObject);
-    procedure ApplyNavWidth(AWidth: Integer);
-    procedure ApplyNavCollapsed;
+    // Exposed: procedure NavToggleClick(Sender: TObject);
+    // Exposed: procedure NavAnimTick(Sender: TObject);
+    // Exposed: procedure ApplyNavWidth(AWidth: Integer);
+    // Exposed: procedure ApplyNavCollapsed;
     procedure FormResize(Sender: TObject);
-    procedure ReflowPresetTab(AContentW: Integer);
-    procedure ReflowVisualTab(AContentW: Integer);
+    // Exposed: procedure ReflowPresetTab(AContentW: Integer);
+    // Exposed: procedure ReflowVisualTab(AContentW: Integer);
     procedure InitVisualTab;
     procedure VisualCardPaint(Sender: TObject);
     procedure PerfCardPaint(Sender: TObject);
@@ -822,26 +821,26 @@ type
     procedure UpdatePerfCardTheme;
     // Exposing: procedure UpdateGenericCardTheme(Card: TPanel);
     procedure UpdateExtrasCardTheme;
-    procedure ReflowPerformanceTab(AContentW: Integer);
-    procedure ReflowOptiScalerTab(AContentW: Integer);
-    procedure ReflowOptiScalerTabNew(AContentW: Integer);
+    // Exposed: procedure ReflowPerformanceTab(AContentW: Integer);
+    // Exposed: procedure ReflowOptiScalerTab(AContentW: Integer);
+    // Exposed: procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure RefreshOsStatusDots;
     procedure InitMetricsTab;
-    procedure ReflowMetricsTab(AContentW: Integer);
-    procedure ReflowExtrasTab(AContentW: Integer);
+    // Exposed: procedure ReflowMetricsTab(AContentW: Integer);
+    // Exposed: procedure ReflowExtrasTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure InitTweaksCards;
-    procedure ReflowVkBasaltTab(AContentW: Integer);
-    procedure ReflowVkSumiTab(AContentW: Integer);
+    // Exposed: procedure ReflowVkBasaltTab(AContentW: Integer);
+    // Exposed: procedure ReflowVkSumiTab(AContentW: Integer);
     // Exposing: procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
 
-    procedure StartCube;
-    procedure StopCube;
+    // Exposed: procedure StartCube;
+    // Exposed: procedure StopCube;
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
     procedure RefreshGameCards;
-    procedure ReflowGamesGrid;
+    // Exposed: procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
     procedure GamesEmptySpaceClick(Sender: TObject);
     procedure GameCardMouseEnter(Sender: TObject);
@@ -862,7 +861,7 @@ type
     // Exposed: function  CleanGameNameForSearch(const AName: string): string;
     function  InsertSpacesInUppercase(const AName: string): string;
     // Exposed: function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
-    function  GetGameConfigDir(const AGameName: string): string;
+    // Exposed: function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
     procedure RunFGModUninstallCommands(const ATargetDir, AGameName: string);
@@ -876,7 +875,7 @@ type
     function  GetVkSumiLaunchEnv: string;
     // Exposed: procedure UpdateGameContextLabel;
     // Exposed: procedure PreviewBtnClick(Sender: TObject);
-    procedure LoadGlobalThumb;
+    // Exposed: procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
     // Exposed: procedure HideGameThumb;
     // Exposed: procedure ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
@@ -922,7 +921,7 @@ type
     
     // Home tab
     procedure InitHomeTab;
-    procedure ShowHomeTab(Sender: TObject = nil);
+    // Exposed: procedure ShowHomeTab(Sender: TObject = nil);
     procedure RefreshHomeModuleStatus;
     procedure RefreshHomeOptiStatus;
     procedure RefreshHomeDeps;
@@ -1108,6 +1107,35 @@ type
     FLowLatencySpoofNvidiaCheckBox: TCheckBox;
     FLowLatencyHideAmdGpuCheckBox: TCheckBox;
 
+    // Navigation rail fields (moved from private)
+    FNavItems:       array of TPanel;    // item panels
+    FNavIndicators:  array of TShape;    // left indicator bars
+    FNavIcons:       array of TLabel;    // unicode icon labels
+    FNavLabels:      array of TLabel;    // caption labels
+    FNavActive:      Integer;            // index of active item (-1 = none)
+    FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
+    FNavClickCBs:    array of TNotifyEvent; // click callbacks per item
+    FNavCollapsed:   Boolean;            // sidebar collapsed state
+    FNavToggleBtn:   TSpeedButton;       // collapse/expand button
+    FNavSmallIcon:   TImage;             // small app icon shown when collapsed
+    FOptiScalerImg:  TImage;             // custom image for optiscaler icon
+    FMangoHudImg:    TImage;             // custom image for mangohud icon
+    FNavAnimTimer:   TTimer;             // sidebar animation timer
+    FNavAnimTarget:  Integer;            // animation target width
+    FNavAnimCurrent: Integer;            // animation current width (fixed-point *10)
+
+    // Settings button (bottom of sidebar)
+    FSettingsIconLbl: TLabel;
+    FDepsMenuItem:       TMenuItem;  // dependency status item inside settingsMenu
+    FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
+    FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
+    FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
+
+    FNavToolBtns:    array[0..3] of TSpeedButton;
+    FNavToolEnabled: array[0..3] of Boolean;
+    FNavToolImgListSmall: TImageList;  // smaller ON/OFF icons for collapsed nav
+    FNavHelper:      TObject;            // cached sidebar nav helper
+
     FGamesScrollBox: TScrollBox;
     FGamesPanel: TPanel;
     FGamesLoaded: Boolean;
@@ -1158,7 +1186,53 @@ type
     function OsHexToKeyStr(const HexStr: string): string;
     procedure PresetsBgBoxPaint(Sender: TObject);
     procedure PresetsWrapperPaint(Sender: TObject);
+    procedure BuildNavRail;
+    procedure BuildSettingsButton;
+    procedure RestoreNavRailColors;
+    procedure SettingsBtnMouseEnter(Sender: TObject);
+    procedure SettingsBtnMouseLeave(Sender: TObject);
+    procedure SettingsBtnClick(Sender: TObject);
+    procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
+    procedure BuildNavToolToggles;
+    procedure BuildSmallToggleImages;
+    procedure NavToolToggleClick(Sender: TObject);
+    procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
+    function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
+    procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
+    procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
+    function  ActiveToolIndex: Integer;
+    procedure SetSaveBtnEnabled(AEnabled: Boolean);
+    procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
+    procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
+    procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
+    procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
+    procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
+    procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
+    procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
+    procedure NavItemClick(Sender: TObject);
+    procedure NavItemMouseEnter(Sender: TObject);
+    procedure NavItemMouseLeave(Sender: TObject);
+    procedure NavItemPaint(Sender: TObject);
+    procedure NavToggleClick(Sender: TObject);
+    procedure NavAnimTick(Sender: TObject);
+    procedure ApplyNavWidth(AWidth: Integer);
+    procedure ApplyNavCollapsed;
+    function  GetGameConfigDir(const AGameName: string): string;
     procedure LoadGameToggleStates;
+    procedure ReflowPresetTab(AContentW: Integer);
+    procedure ReflowVisualTab(AContentW: Integer);
+    procedure ReflowPerformanceTab(AContentW: Integer);
+    procedure ReflowOptiScalerTab(AContentW: Integer);
+    procedure ReflowOptiScalerTabNew(AContentW: Integer);
+    procedure ReflowMetricsTab(AContentW: Integer);
+    procedure ReflowExtrasTab(AContentW: Integer);
+    procedure ReflowVkBasaltTab(AContentW: Integer);
+    procedure ReflowVkSumiTab(AContentW: Integer);
+    procedure StartCube;
+    procedure StopCube;
+    procedure ReflowGamesGrid;
+    procedure LoadGlobalThumb;
+    procedure ShowHomeTab(Sender: TObject = nil);
     procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
     procedure SetNavActive(AIndex: Integer);
     procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
@@ -1387,7 +1461,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -2462,6 +2536,7 @@ begin
   FreeAndNil(FOptiIconGfx);
   FreeAndNil(FOptiScalerHelper);
   FreeAndNil(FHomeHelper);
+  FreeAndNil(FNavHelper);
   FreeAndNil(FTweaksHelper);
   FreeAndNil(FGamesHelper);
   FreeAndNil(FBasaltHelper);
@@ -2510,6 +2585,7 @@ begin
   FMangoHelper := TMangoHudUiHelper.Create(Self);
   FOptiScalerHelper := TOptiScalerTabHelper.Create(Self);
   FHomeHelper := THomeTabHelper.Create(Self);
+  FNavHelper := TSidebarNavHelper.Create(Self);
   FReshadeDownloadedOnFirstShow := False;
   FAutoDownloadingReshade := False;
 
@@ -6352,1011 +6428,153 @@ begin
 end;
 
 procedure Tgoverlayform.BuildNavRail;
-const
-  // Item definitions: (unicode icon, caption, top offset)
-  ITEMS: array[0..4] of record Icon, Caption: string; end = (
-    (Icon: '󰊴'; Caption: 'Games'),
-    (Icon: '󱁥'; Caption: 'MangoHud'),
-    (Icon: '󰏘'; Caption: 'Post processing'),
-    (Icon: '󰋮'; Caption: 'OptiScaler'),
-    (Icon: '󰒓'; Caption: 'EnvVars')
-  );
-  TOP_START = 108;
-var
-  i: Integer;
-  Item: TPanel;
-  Indicator: TShape;
-  IconPath: string;
-  IconLbl: TLabel;
-  CaptionLbl: TLabel;
-  TopY: Integer;
-  UIStateFile: string;
-  SL: TStringList;
 begin
-  // Hide legacy shape+label widgets
-  mangohudShape.Visible  := False;  mangohudLabel.Visible  := False;
-  vkbasaltShape.Visible  := False;  vkbasaltLabel.Visible  := False;
-  optiscalerShape.Visible := False; optiscalerLabel.Visible := False;
-  tweaksShape.Visible    := False;  tweaksLabel.Visible    := False;
-
-  SetLength(FNavItems,      Length(ITEMS));
-  SetLength(FNavIndicators, Length(ITEMS));
-  SetLength(FNavIcons,      Length(ITEMS));
-  SetLength(FNavLabels,     Length(ITEMS));
-  SetLength(FNavClickCBs,   Length(ITEMS));
-
-  FNavClickCBs[0] := @gamesLabelClick;
-  FNavClickCBs[1] := @mangohudLabelClick;
-  FNavClickCBs[2] := @vkbasaltLabelClick;
-  FNavClickCBs[3] := @optiscalerLabelClick;
-  FNavClickCBs[4] := @tweaksLabelClick;
-
-  FNavActive     := -1;
-  FNavHoveredIdx := -1;
-  FNavCollapsed    := False;
-  FCubeAutoLaunch  := False;  // disabled by default
-
-  // Restore sidebar collapsed state from previous session
-  UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
-  if FileExists(UIStateFile) then
-  begin
-    SL := TStringList.Create;
-    try
-      SL.LoadFromFile(UIStateFile);
-      if (SL.Count > 0) and (SL[0] = '1') then
-        FNavCollapsed := True;
-      if (SL.Count > 1) and (SL[1] = '1') then
-        FCubeAutoLaunch := True;
-    finally
-      SL.Free;
-    end;
-  end;
-
-  FNavAnimCurrent := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED) * 10;
-  FNavAnimTarget  := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
-
-  FNavAnimTimer := TTimer.Create(Self);
-  FNavAnimTimer.Interval := 12;  // ~80fps
-  FNavAnimTimer.Enabled  := False;
-  FNavAnimTimer.OnTimer  := @NavAnimTick;
-
-  // Toggle button — small discrete arrow, bottom-right of logo area
-  FNavToggleBtn := TSpeedButton.Create(Self);
-  FNavToggleBtn.Parent  := Self;
-  FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 28, 53, 24, 24);
-  FNavToggleBtn.Caption    := '«';
-  FNavToggleBtn.Font.Size  := 11;
-  FNavToggleBtn.Font.Color := $00666666;
-  FNavToggleBtn.Flat    := True;
-  FNavToggleBtn.Cursor  := crHandPoint;
-  FNavToggleBtn.Color   := $00221F1E;
-  FNavToggleBtn.OnClick := @NavToggleClick;
-
-  // Small app icon shown in collapsed state instead of the full logo
-  FNavSmallIcon := TImage.Create(Self);
-  FNavSmallIcon.Parent  := Self;
-  FNavSmallIcon.SetBounds((NAV_W_COLLAPSED - 40) div 2, 8, 40, 40);
-  FNavSmallIcon.Stretch      := True;
-  FNavSmallIcon.Proportional := True;
-  FNavSmallIcon.Center       := True;
-  FNavSmallIcon.Visible      := False;
-  // Load icon — try installed path first, then local data dir
-  IconPath := GetIconFile();
-  if not FileExists(IconPath) then
-    IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
-  if FileExists(IconPath) then
-    try FNavSmallIcon.Picture.LoadFromFile(IconPath); except end;
-
-
-  for i := 0 to High(ITEMS) do
-  begin
-    TopY := TOP_START + i * (NAV_ITEM_H + 4);
-
-    // --- Item panel ---
-    Item := TPanel.Create(Self);
-    Item.Parent  := Self;
-    Item.SetBounds(goverlayPaintBox.Left, goverlayPaintBox.Top + TopY, NAV_ITEM_W, NAV_ITEM_H);
-    Item.BevelOuter := bvNone;
-    Item.Caption := '';
-    Item.Color   := NAV_COLOR_BG;
-    Item.Cursor  := crHandPoint;
-    Item.Tag     := i;
-    Item.OnClick      := @NavItemClick;
-    Item.OnMouseEnter := @NavItemMouseEnter;
-    Item.OnMouseLeave := @NavItemMouseLeave;
-    Item.OnPaint      := @NavItemPaint;
-
-    // --- Active indicator bar (left edge) ---
-    Indicator := TShape.Create(Self);
-    Indicator.Parent := Item;
-    Indicator.SetBounds(0, 12, NAV_INDICATOR_W, NAV_ITEM_H - 24);
-    Indicator.Brush.Color := NAV_COLOR_INDICATOR;
-    Indicator.Pen.Color   := NAV_COLOR_INDICATOR;
-    Indicator.Shape   := stRoundRect;
-    Indicator.Visible := False;
-
-    // --- Icon label (Nerd Font / Unicode) ---
-    IconLbl := TLabel.Create(Self);
-    IconLbl.Parent := Item;
-    IconLbl.SetBounds(16, (NAV_ITEM_H - NAV_ICON_SIZE) div 2, NAV_ICON_SIZE, NAV_ICON_SIZE);
-
-    if i = 3 then
-    begin
-      IconLbl.Caption := ''; // Clear text
-
-      FOptiScalerImg := TImage.Create(Self);
-      FOptiScalerImg.Parent := Item;
-      FOptiScalerImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
-      FOptiScalerImg.Stretch := True;
-      FOptiScalerImg.Proportional := True;
-      FOptiScalerImg.Center := True;
-      FOptiScalerImg.Cursor := crHandPoint;
-      FOptiScalerImg.Tag := i;
-      FOptiScalerImg.OnClick      := @NavItemClick;
-      FOptiScalerImg.OnMouseEnter := @NavItemMouseEnter;
-      FOptiScalerImg.OnMouseLeave := @NavItemMouseLeave;
-
-      IconPath := GetAppBaseDir + 'assets/icons/scale-up2.png';
-      WriteLn(StdErr, '[NavIcon] scale-up2 path="', IconPath, '" exists=', FileExists(IconPath));
-      if FileExists(IconPath) then
-        try FOptiScalerImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] scale-up2 load error: ', E.Message); end;
-    end
-    else if i = 1 then
-    begin
-      IconLbl.Caption := ''; // Clear text
-
-      FMangoHudImg := TImage.Create(Self);
-      FMangoHudImg.Parent := Item;
-      FMangoHudImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
-      FMangoHudImg.Stretch := True;
-      FMangoHudImg.Proportional := True;
-      FMangoHudImg.Center := True;
-      FMangoHudImg.Cursor := crHandPoint;
-      FMangoHudImg.Tag := i;
-      FMangoHudImg.OnClick      := @NavItemClick;
-      FMangoHudImg.OnMouseEnter := @NavItemMouseEnter;
-      FMangoHudImg.OnMouseLeave := @NavItemMouseLeave;
-
-      IconPath := GetAppBaseDir + 'assets/icons/mango-inactive.png';
-      WriteLn(StdErr, '[NavIcon] mango-inactive path="', IconPath, '" exists=', FileExists(IconPath));
-      if FileExists(IconPath) then
-        try FMangoHudImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] mango-inactive load error: ', E.Message); end;
-    end
-    else
-    begin
-      IconLbl.Caption   := ITEMS[i].Icon;
-    end;
-    IconLbl.Font.Size := 18;
-    IconLbl.Font.Color := $00AAAAAA;
-    IconLbl.Font.Name  := 'Noto Sans';
-    IconLbl.Transparent := True;
-    IconLbl.Cursor := crHandPoint;
-    IconLbl.Tag    := i;
-    IconLbl.OnClick      := @NavItemClick;
-    IconLbl.OnMouseEnter := @NavItemMouseEnter;
-    IconLbl.OnMouseLeave := @NavItemMouseLeave;
-
-    // --- Caption label ---
-    CaptionLbl := TLabel.Create(Self);
-    CaptionLbl.Parent := Item;
-    CaptionLbl.SetBounds(52, (NAV_ITEM_H - 16) div 2, NAV_ITEM_W - 60, 20);
-    CaptionLbl.Caption   := ITEMS[i].Caption;
-    CaptionLbl.Font.Size := 9;
-    CaptionLbl.Font.Color := $00AAAAAA;
-    CaptionLbl.Font.Name  := 'Noto Sans';
-    CaptionLbl.Font.Style := [fsBold];
-    CaptionLbl.Transparent := True;
-    CaptionLbl.Cursor := crHandPoint;
-    CaptionLbl.Tag    := i;
-    CaptionLbl.OnClick      := @NavItemClick;
-    CaptionLbl.OnMouseEnter := @NavItemMouseEnter;
-    CaptionLbl.OnMouseLeave := @NavItemMouseLeave;
-
-    FNavItems[i]      := Item;
-    FNavIndicators[i] := Indicator;
-    FNavIcons[i]      := IconLbl;
-    FNavLabels[i]     := CaptionLbl;
-  end;
-
-  // Build per-tool toggle buttons (game mode only)
-  BuildNavToolToggles;
-  BuildSmallToggleImages;
-
-  // Apply persisted collapsed state (no animation on startup)
-  if FNavCollapsed then
-    ApplyNavCollapsed;
-
-  LoadGlobalThumb;
+  TSidebarNavHelper(FNavHelper).BuildNavRail;
 end;
 
 procedure Tgoverlayform.BuildSettingsButton;
-const
-  BTN_SIZE       = 40;
-  BTN_BOTTOM_PAD = 12;
-var
-  Sep: TMenuItem;
 begin
-  // Transparent label — no background, just the gear icon over the sidebar gradient
-  FSettingsIconLbl := TLabel.Create(Self);
-  FSettingsIconLbl.Parent       := Self;
-  FSettingsIconLbl.Caption      := '⚙';
-  FSettingsIconLbl.Font.Color   := $00AAAAAA;  // dimmed like inactive nav items
-  FSettingsIconLbl.Font.Height  := -24;
-  FSettingsIconLbl.Font.Quality := fqAntialiased;
-  FSettingsIconLbl.Transparent  := True;
-  FSettingsIconLbl.Cursor       := crHandPoint;
-  FSettingsIconLbl.AutoSize     := False;
-  FSettingsIconLbl.Width        := BTN_SIZE;
-  FSettingsIconLbl.Height       := BTN_SIZE;
-  FSettingsIconLbl.Alignment    := taCenter;
-
-  // Center horizontally inside the sidebar, fixed distance from bottom
-  FSettingsIconLbl.AnchorSideLeft.Control := goverlayPaintBox;
-  FSettingsIconLbl.AnchorSideLeft.Side    := asrCenter;
-  FSettingsIconLbl.AnchorSideBottom.Control := Self;
-  FSettingsIconLbl.AnchorSideBottom.Side    := asrBottom;
-  FSettingsIconLbl.BorderSpacing.Bottom     := BTN_BOTTOM_PAD;
-  FSettingsIconLbl.Anchors := [akLeft, akBottom];
-
-  FSettingsIconLbl.OnMouseEnter := @SettingsBtnMouseEnter;
-  FSettingsIconLbl.OnMouseLeave := @SettingsBtnMouseLeave;
-  FSettingsIconLbl.OnClick      := @SettingsBtnClick;
-
-  // Dependencies status item at the top of the settings menu
-  FDepsMenuItem := TMenuItem.Create(settingsMenu);
-  FDepsMenuItem.Caption := 'Status';
-  FDepsMenuItem.ImageIndex := 0;
-  FDepsMenuItem.Enabled := True;
-  FDepsMenuItem.OnClick := @ShowHomeTab;
-  settingsMenu.Items.Insert(0, FDepsMenuItem);
-
-  // Separator after deps item
-  Sep := TMenuItem.Create(settingsMenu);
-  Sep.Caption := '-';
-  settingsMenu.Items.Insert(1, Sep);
-
-  // Auto-launch cube toggle
-  FCubeAutoLaunchItem := TMenuItem.Create(settingsMenu);
-  FCubeAutoLaunchItem.Caption := 'Auto launch PasCube';
-  FCubeAutoLaunchItem.ImageIndex := 4;
-  FCubeAutoLaunchItem.Checked := FCubeAutoLaunch;
-  FCubeAutoLaunchItem.OnClick := @CubeAutoLaunchMenuItemClick;
-  settingsMenu.Items.Insert(2, FCubeAutoLaunchItem);
-
-  Sep := TMenuItem.Create(settingsMenu);
-  Sep.Caption := '-';
-  settingsMenu.Items.Insert(3, Sep);
-
-  // How to Use — now available via popup menu only
-  FHowToMenuItem := TMenuItem.Create(settingsMenu);
-  FHowToMenuItem.Caption := 'How to use FGMOD';
-  FHowToMenuItem.ImageIndex := 18;
-  FHowToMenuItem.OnClick := @howtoBitBtnClick;
-  settingsMenu.Items.Insert(4, FHowToMenuItem);
-
-  Sep := TMenuItem.Create(settingsMenu);
-  Sep.Caption := '-';
-  settingsMenu.Items.Insert(5, Sep);
+  TSidebarNavHelper(FNavHelper).BuildSettingsButton;
 end;
 
 procedure Tgoverlayform.SettingsBtnMouseEnter(Sender: TObject);
 begin
-  if Assigned(FSettingsIconLbl) then
-    FSettingsIconLbl.Font.Color := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
+  TSidebarNavHelper(FNavHelper).SettingsBtnMouseEnter(Sender);
 end;
 
 procedure Tgoverlayform.SettingsBtnMouseLeave(Sender: TObject);
 begin
-  if Assigned(FSettingsIconLbl) then
-    FSettingsIconLbl.Font.Color := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
+  TSidebarNavHelper(FNavHelper).SettingsBtnMouseLeave(Sender);
 end;
 
 procedure Tgoverlayform.SettingsBtnClick(Sender: TObject);
 begin
-  settingsMenu.PopUp;
+  TSidebarNavHelper(FNavHelper).SettingsBtnClick(Sender);
 end;
 
 procedure Tgoverlayform.CubeAutoLaunchMenuItemClick(Sender: TObject);
-var
-  UIStateFile: string;
-  SL: TStringList;
 begin
-  FCubeAutoLaunch := not FCubeAutoLaunch;
-  FCubeAutoLaunchItem.Checked := FCubeAutoLaunch;
-
-  UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
-  SL := TStringList.Create;
-  try
-    SL.Add(IfThen(FNavCollapsed, '1', '0'));
-    SL.Add(IfThen(FCubeAutoLaunch, '1', '0'));
-    SL.SaveToFile(UIStateFile);
-  finally
-    SL.Free;
-  end;
+  TSidebarNavHelper(FNavHelper).CubeAutoLaunchMenuItemClick(Sender);
 end;
 
-// ============================================================================
-// PER-TOOL TOGGLE BUTTONS (game mode only)
-// ============================================================================
-
 procedure Tgoverlayform.BuildNavToolToggles;
-const
-  BTN_SIZE = 32;
-var
-  i: Integer;
-  Btn: TSpeedButton;
 begin
-  for i := 0 to 3 do
-  begin
-    FNavToolEnabled[i] := True;
-    Btn := TSpeedButton.Create(Self);
-    Btn.Parent    := FNavItems[i + 1];  // offset by 1: Games is at index 0
-    Btn.SetBounds(NAV_ITEM_W - BTN_SIZE - 6, (NAV_ITEM_H - BTN_SIZE) div 2, BTN_SIZE, BTN_SIZE);
-    Btn.Flat      := True;
-    Btn.Caption   := '';
-    Btn.Images    := globalbuttonImageList;
-    Btn.ImageIndex := 1;  // 1 = ON
-    Btn.Cursor    := crHandPoint;
-    Btn.Tag       := i;
-    Btn.OnClick   := @NavToolToggleClick;
-    Btn.Visible   := False;
-    FNavToolBtns[i] := Btn;
-  end;
+  TSidebarNavHelper(FNavHelper).BuildNavToolToggles;
 end;
 
 procedure Tgoverlayform.BuildSmallToggleImages;
-var
-  SrcBmp, DstBmp: TBitmap;
-  i: Integer;
 begin
-  if Assigned(FNavToolImgListSmall) then
-    FreeAndNil(FNavToolImgListSmall);
-
-  FNavToolImgListSmall := TImageList.Create(Self);
-  FNavToolImgListSmall.Width  := 20;
-  FNavToolImgListSmall.Height := 9;
-
-  for i := 0 to 1 do
-  begin
-    SrcBmp := TBitmap.Create;
-    try
-      SrcBmp.Width  := globalbuttonImageList.Width;
-      SrcBmp.Height := globalbuttonImageList.Height;
-      SrcBmp.Canvas.Brush.Color := clFuchsia;
-      SrcBmp.Canvas.FillRect(0, 0, SrcBmp.Width, SrcBmp.Height);
-      globalbuttonImageList.Draw(SrcBmp.Canvas, 0, 0, i);
-
-      DstBmp := TBitmap.Create;
-      try
-        DstBmp.Width  := 20;
-        DstBmp.Height := 9;
-        DstBmp.Canvas.Brush.Color := clFuchsia;
-        DstBmp.Canvas.FillRect(0, 0, DstBmp.Width, DstBmp.Height);
-        DstBmp.Canvas.StretchDraw(Rect(0, 0, 20, 9), SrcBmp);
-        FNavToolImgListSmall.AddMasked(DstBmp, clFuchsia);
-      finally
-        DstBmp.Free;
-      end;
-    finally
-      SrcBmp.Free;
-    end;
-  end;
+  TSidebarNavHelper(FNavHelper).BuildSmallToggleImages;
 end;
 
 procedure Tgoverlayform.NavToolToggleClick(Sender: TObject);
-var
-  Idx: Integer;
-  NewEnabled: Boolean;
-  GameCfgDir: string;
-  ConfigFiles: array[0..2] of string;
 begin
-  Idx        := (Sender as TSpeedButton).Tag;
-  NewEnabled := not FNavToolEnabled[Idx];
-  FNavToolEnabled[Idx] := NewEnabled;
-  // ImageIndex 1 = ON (green), 0 = OFF (red)
-  FNavToolBtns[Idx].ImageIndex := IfThen(NewEnabled, 1, 0);
-  if FActiveGameName <> '' then
-  begin
-    SetGameToolEnabled(FActiveGameName, Idx, NewEnabled);
-    GameCfgDir := GetGameConfigDir(FActiveGameName);
-    if not NewEnabled then
-    begin
-      // Delete the tool's config file when disabling (indices 0-2 only)
-      ConfigFiles[0] := GameCfgDir + 'MangoHud.conf';
-      ConfigFiles[1] := GameCfgDir + 'vkBasalt.conf';
-      ConfigFiles[2] := GameCfgDir + 'OptiScaler.ini';
-      if (Idx <= 2) and FileExists(ConfigFiles[Idx]) then
-        DeleteFile(ConfigFiles[Idx]);
-      if (Idx = 1) and FileExists(GameCfgDir + 'vkSumi.conf') then
-        DeleteFile(GameCfgDir + 'vkSumi.conf');
-      // Tweaks: remove all tweak export lines from the game's fgmod
-      if Idx = 3 then
-        RemoveTweaksFromGameFGMod(GameCfgDir + 'fgmod');
-    end;
-    // Ensure conditional export lines exist in the fgmod for tools that need them.
-    // The GOVERLAY_X flag (set above) controls whether each line actually runs.
-    if Idx = 0 then
-      PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
-        '[[ "$GOVERLAY_MANGOHUD" == "1" ]] && export MANGOHUD=1',
-        'MANGOHUD=1');
-    if Idx = 1 then
-    begin
-      PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
-        '[[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKBASALT=1',
-        'ENABLE_VKBASALT=1');
-      PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
-        '[[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKSUMI=1',
-        'ENABLE_VKSUMI=1');
-    end;
-    // OptiScaler toggle copies/removes all OptiScaler files and patches fgmod
-    if Idx = 2 then
-    begin
-      PatchGameFGModWineDllOverrides(GameCfgDir + 'fgmod', NewEnabled);
-      if NewEnabled then
-        CopyOptiScalerGameFiles(GameCfgDir)
-      else
-        RemoveOptiScalerGameFiles(GameCfgDir);
-    end;
-  end;
-  ApplyToolEnabledState(Idx, NewEnabled);
+  TSidebarNavHelper(FNavHelper).NavToolToggleClick(Sender);
 end;
 
 procedure Tgoverlayform.UpdateNavToolToggleVisibility(AShowLabels: Boolean);
-const
-  BTN_FULL   = 32;  // button size in expanded mode
-  BTN_SMALL  = 20;  // button size in collapsed mode
-  ICON_TOP_C = 8;   // icon top offset in collapsed mode (shifted up to make room)
-var
-  i: Integer;
-  ShouldShow: Boolean;
-  BtnLeft, BtnTop, BtnW: Integer;
 begin
-  ShouldShow := FActiveGameName <> '';
-  for i := 0 to 3 do
-    if Assigned(FNavToolBtns[i]) then
-    begin
-      if ShouldShow then
-      begin
-        if AShowLabels then
-        begin
-          // Expanded: full-size button on the right side of the nav item
-          BtnW    := BTN_FULL;
-          BtnLeft := NAV_ITEM_W - BtnW - 6;
-          BtnTop  := (NAV_ITEM_H - BtnW) div 2;
-          FNavToolBtns[i].Images := globalbuttonImageList;
-        end
-        else
-        begin
-          // Collapsed: small button below the icon, horizontally centred
-          BtnW    := BTN_SMALL;
-          BtnLeft := (NAV_W_COLLAPSED - BtnW) div 2;
-          BtnTop  := ICON_TOP_C + NAV_ICON_SIZE + 4;
-          if Assigned(FNavToolImgListSmall) then
-            FNavToolBtns[i].Images := FNavToolImgListSmall;
-        end;
-        FNavToolBtns[i].SetBounds(BtnLeft, BtnTop, BtnW, BtnW);
-      end;
-      FNavToolBtns[i].Visible := ShouldShow;
-    end;
+  TSidebarNavHelper(FNavHelper).UpdateNavToolToggleVisibility(AShowLabels);
 end;
 
 procedure Tgoverlayform.LoadGameToggleStates;
-var
-  i: Integer;
-  ToolOn: Boolean;
 begin
-  if FActiveGameName = '' then
-  begin
-    // Global mode: all tools enabled, hide toggles
-    for i := 0 to 3 do
-    begin
-      FNavToolEnabled[i] := True;
-      if Assigned(FNavToolBtns[i]) then
-      begin
-        FNavToolBtns[i].Visible    := False;
-        FNavToolBtns[i].ImageIndex := 1;  // ON
-      end;
-      ApplyToolEnabledState(i, True);
-    end;
-    Exit;
-  end;
-  for i := 0 to 3 do
-  begin
-    ToolOn := GetGameToolEnabled(FActiveGameName, i);
-    FNavToolEnabled[i] := ToolOn;
-    if Assigned(FNavToolBtns[i]) then
-      FNavToolBtns[i].ImageIndex := IfThen(ToolOn, 1, 0);
-    ApplyToolEnabledState(i, ToolOn);
-  end;
-  // Update visibility, button size/position, and icon vertical position
-  ApplyNavWidth(IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED));
+  TSidebarNavHelper(FNavHelper).LoadGameToggleStates;
 end;
 
 function Tgoverlayform.GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
-const
-  FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
-var
-  ConfigPath: string;
-  Ini: TIniFile;
 begin
-  Result := False;
-  ConfigPath := GetGameConfigDir(AGameName) + 'bgmod.conf';
-  if not FileExists(ConfigPath) then Exit;
-  Ini := TIniFile.Create(ConfigPath);
-  try
-    Result := Ini.ReadString('Config', FLAGS[AToolIdx], '0') = '1';
-  finally
-    Ini.Free;
-  end;
+  Result := TSidebarNavHelper(FNavHelper).GetGameToolEnabled(AGameName, AToolIdx);
 end;
 
 procedure Tgoverlayform.SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
-const
-  FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
-var
-  ConfigPath: string;
-  Ini: TIniFile;
 begin
-  ConfigPath := GetGameConfigDir(AGameName) + 'bgmod.conf';
-  ForceDirectories(ExtractFilePath(ConfigPath));
-  Ini := TIniFile.Create(ConfigPath);
-  try
-    if AEnabled then
-      Ini.WriteString('Config', FLAGS[AToolIdx], '1')
-    else
-      Ini.WriteString('Config', FLAGS[AToolIdx], '0');
-  finally
-    Ini.Free;
-  end;
+  TSidebarNavHelper(FNavHelper).SetGameToolEnabled(AGameName, AToolIdx, AEnabled);
 end;
 
 procedure Tgoverlayform.ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
 begin
-  case AToolIdx of
-    0: // MangoHud spans several tab sheets
-    begin
-      SetControlTreeEnabled(presetTabSheet,       AEnabled);
-      SetControlTreeEnabled(visualTabSheet,        AEnabled);
-      SetControlTreeEnabled(performanceTabSheet,   AEnabled);
-      SetControlTreeEnabled(metricsTabSheet,       AEnabled);
-      SetControlTreeEnabled(extrasTabSheet,        AEnabled);
-    end;
-    1:
-    begin
-      SetControlTreeEnabled(vkbasaltTabsheet,    AEnabled);
-      SetControlTreeEnabled(vksumiTabSheet,      AEnabled);
-    end;
-    2: SetControlTreeEnabled(optiscalertabsheet,  AEnabled);
-    3: SetControlTreeEnabled(tweaksTabSheet,      AEnabled);
-  end;
-  // Disable Save when the toggled tool owns the currently visible tab
-  if ActiveToolIndex = AToolIdx then
-    SetSaveBtnEnabled(AEnabled);
+  TSidebarNavHelper(FNavHelper).ApplyToolEnabledState(AToolIdx, AEnabled);
 end;
 
-// Returns the tool index (0=MangoHud, 1=vkBasalt, 2=OptiScaler, -1=other)
-// for the currently active page control tab.
 function Tgoverlayform.ActiveToolIndex: Integer;
-var
-  P: TTabSheet;
 begin
-  P := goverlayPageControl.ActivePage;
-  if (P = presetTabSheet) or (P = visualTabSheet) or
-     (P = performanceTabSheet) or (P = metricsTabSheet) or (P = extrasTabSheet) then
-    Result := 0
-  else if (P = vkbasaltTabsheet) or (P = vksumiTabSheet) then
-    Result := 1
-  else if P = optiscalertabsheet then
-    Result := 2
-  else if P = tweaksTabSheet then
-    Result := 3
-  else
-    Result := -1;
+  Result := TSidebarNavHelper(FNavHelper).ActiveToolIndex;
 end;
 
 procedure Tgoverlayform.SetSaveBtnEnabled(AEnabled: Boolean);
 begin
-  saveBitBtn.Enabled := AEnabled;
-  if AEnabled then
-    saveBitBtn.Color := $008300   // original green
-  else
-    saveBitBtn.Color := $00666666; // grey when disabled
+  TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(AEnabled);
 end;
 
 procedure Tgoverlayform.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
-var
-  i: Integer;
-  Child: TControl;
 begin
-  ACtrl.Enabled := AEnabled;
-  for i := 0 to ACtrl.ControlCount - 1 do
-  begin
-    Child := ACtrl.Controls[i];
-    Child.Enabled := AEnabled;
-    if Child is TWinControl then
-      SetControlTreeEnabled(TWinControl(Child), AEnabled);
-  end;
+  TSidebarNavHelper(FNavHelper).SetControlTreeEnabled(ACtrl, AEnabled);
 end;
 
 procedure Tgoverlayform.RemoveTweaksFromGameFGMod(const AFGModFile: string);
-var
-  ConfigPath: string;
-  Ini: TIniFile;
-  DSpirvVal: string;
 begin
-  ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
-  if not FileExists(ConfigPath) then Exit;
-  Ini := TIniFile.Create(ConfigPath);
-  try
-    Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '0');
-    DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
-    Ini.EraseSection('Env');
-    if DSpirvVal <> '' then
-      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
-  finally
-    Ini.Free;
-  end;
-end;
-
-procedure Tgoverlayform.EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
-begin
-  // Obsolete: bgmod binary manages OptiScaler conditional logic natively.
+  TSidebarNavHelper(FNavHelper).RemoveTweaksFromGameFGMod(AFGModFile);
 end;
 
 procedure Tgoverlayform.RemoveOptiScalerGameFiles(const AGameCfgDir: string);
-var
-  Dir: string;
 begin
-  Dir := IncludeTrailingPathDelimiter(AGameCfgDir);
-  ExecuteShellCommand(
-    'rm -f ' +
-    QuotedStr(Dir + 'OptiScaler.dll') + ' ' +
-    QuotedStr(Dir + 'OptiScaler.ini') + ' ' +
-    QuotedStr(Dir + 'fakenvapi.dll') + ' ' +
-    QuotedStr(Dir + 'fakenvapi.ini') + ' ' +
-    QuotedStr(Dir + 'amd_fidelityfx_framegeneration_dx12.dll') + ' ' +
-    QuotedStr(Dir + 'amd_fidelityfx_upscaler_dx12.dll') + ' ' +
-    QuotedStr(Dir + 'amd_fidelityfx_vk.dll') + ' ' +
-    QuotedStr(Dir + 'amd_fidelityfx_dx12.dll') + ' ' +
-    QuotedStr(Dir + 'dlssg_to_fsr3_amd_is_better.dll') + ' ' +
-    QuotedStr(Dir + 'libxess.dll') + ' ' +
-    QuotedStr(Dir + 'libxess_dx11.dll') + ' ' +
-    QuotedStr(Dir + 'libxess_fg.dll') + ' ' +
-    QuotedStr(Dir + 'libxell.dll') + ' ' +
-    QuotedStr(Dir + 'nvngx.dll') + ' ' +
-    QuotedStr(Dir + 'nvngx_dlss.dll') + ' ' +
-    QuotedStr(Dir + 'nvngx_dlssd.dll') + ' ' +
-    QuotedStr(Dir + 'nvngx_dlssg.dll') + ' ' +
-    QuotedStr(Dir + 'setup_linux.sh') + ' ' +
-    QuotedStr(Dir + 'setup_windows.bat') + ' ' +
-    QuotedStr(Dir + '!! README_EXTRACT ALL FILES TO GAME FOLDER !!.txt') + ' 2>/dev/null');
-  ExecuteShellCommand(
-    'rm -rf ' +
-    QuotedStr(Dir + 'D3D12_OptiScaler') + ' ' +
-    QuotedStr(Dir + 'Licenses') + ' ' +
-    QuotedStr(Dir + 'plugins') + ' 2>/dev/null');
+  TSidebarNavHelper(FNavHelper).RemoveOptiScalerGameFiles(AGameCfgDir);
 end;
 
 procedure Tgoverlayform.CopyOptiScalerGameFiles(const AGameCfgDir: string);
 begin
-  // Copy all files from .fgmod_original (no-clobber for scripts already present)
-  ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' +
-    QuotedStr(AGameCfgDir) + ' 2>/dev/null');
-end;
-
-procedure Tgoverlayform.PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
-begin
-  // Obsolete: bgmod handles OptiScaler overrides natively
-end;
-
-procedure Tgoverlayform.PatchGameFGModConditionalExport(
-  const AFGModFile, AConditionalLine, ASearchKey: string);
-begin
-  // Obsolete: bgmod handles tool conditionals natively
-end;
-
-procedure Tgoverlayform.PatchGameFGModConfigPath(
-  const AFGModFile, AEnvVar, AConfigPath: string);
-var
-  ConfigPath: string;
-  Ini: TIniFile;
-begin
-  ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
-  ForceDirectories(ExtractFilePath(ConfigPath));
-  Ini := TIniFile.Create(ConfigPath);
-  try
-    Ini.WriteString('Env', AEnvVar, AConfigPath);
-  finally
-    Ini.Free;
-  end;
+  TSidebarNavHelper(FNavHelper).CopyOptiScalerGameFiles(AGameCfgDir);
 end;
 
 procedure Tgoverlayform.RestoreNavRailColors;
-var
-  i: Integer;
-  IsLight: Boolean;
-  BgActive, BgNormal, TextActive, TextInactive, ToggleColor: TColor;
 begin
-  if Length(FNavItems) = 0 then Exit;
-  IsLight := CurrentTheme = tmLight;
-  if IsLight then
-  begin
-    BgActive    := NAV_LIGHT_ACTIVE;
-    BgNormal    := NAV_LIGHT_BG;
-    TextActive  := clBlack;
-    TextInactive := $00555555;
-    ToggleColor := NAV_LIGHT_BG;
-  end
-  else
-  begin
-    BgActive    := NAV_COLOR_ACTIVE;
-    BgNormal    := NAV_COLOR_BG;
-    TextActive  := clWhite;
-    TextInactive := $00AAAAAA;
-    ToggleColor := $00221F1E;
-  end;
-
-  for i := 0 to High(FNavItems) do
-  begin
-    if i = FNavActive then
-    begin
-      FNavItems[i].Color       := BgActive;
-      FNavIcons[i].Font.Color  := TextActive;
-      FNavLabels[i].Font.Color := TextActive;
-    end
-    else
-    begin
-      FNavItems[i].Color       := BgNormal;
-      FNavIcons[i].Font.Color  := TextInactive;
-      FNavLabels[i].Font.Color := TextInactive;
-    end;
-    FNavItems[i].Invalidate;
-  end;
-  if Assigned(FNavToggleBtn) then
-    FNavToggleBtn.Color := ToggleColor;
-  if Assigned(FSettingsIconLbl) then
-    FSettingsIconLbl.Font.Color := TextInactive;
+  TSidebarNavHelper(FNavHelper).RestoreNavRailColors;
 end;
 
 procedure Tgoverlayform.SetNavActive(AIndex: Integer);
-var
-  i: Integer;
-  IconPath: string;
 begin
-  DbgLog(Format('  SetNavActive(%d) BEGIN', [AIndex]));
-  FNavActive := AIndex;
-  for i := 0 to High(FNavItems) do
-  begin
-    if i = AIndex then
-    begin
-      FNavIndicators[i].Visible     := True;
-      FNavIndicators[i].Brush.Color := IfThen(i = 0, NAV_IND_GAMES, NAV_IND_TOOLS);
-      FNavIndicators[i].Pen.Color   := IfThen(i = 0, NAV_IND_GAMES, NAV_IND_TOOLS);
-      FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
-      FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
-      if (i = 3) and Assigned(FOptiScalerImg) then
-      begin
-        IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
-        if FileExists(IconPath) then
-          try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
-      end;
-      if (i = 1) and Assigned(FMangoHudImg) then
-      begin
-        IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
-        if FileExists(IconPath) then
-          try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
-      end;
-    end
-    else
-    begin
-      FNavIndicators[i].Visible := False;
-      FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
-      FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
-      if (i = 3) and Assigned(FOptiScalerImg) then
-      begin
-        IconPath := GetAppBaseDir + 'assets/icons/scale-up2.png';
-        if FileExists(IconPath) then
-          try FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
-      end;
-      if (i = 1) and Assigned(FMangoHudImg) then
-      begin
-        IconPath := GetAppBaseDir + 'assets/icons/mango-inactive.png';
-        if FileExists(IconPath) then
-          try FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
-      end;
-    end;
-    FNavItems[i].Invalidate;
-  end;
-
-  if FNavActive = 1 then
-    StartCube
-  else
-    StopCube;
-  DbgLog(Format('  SetNavActive(%d) END', [AIndex]));
+  TSidebarNavHelper(FNavHelper).SetNavActive(AIndex);
 end;
 
 procedure Tgoverlayform.NavItemClick(Sender: TObject);
-var
-  Idx: Integer;
 begin
-  Idx := (Sender as TControl).Tag;
-  if Assigned(FNavClickCBs[Idx]) then
-    FNavClickCBs[Idx](FNavItems[Idx]);
+  TSidebarNavHelper(FNavHelper).NavItemClick(Sender);
 end;
 
 procedure Tgoverlayform.NavItemMouseEnter(Sender: TObject);
-var
-  Idx: Integer;
 begin
-  Idx := (Sender as TControl).Tag;
-  FNavHoveredIdx := Idx;
-  FNavItems[Idx].Invalidate;
+  TSidebarNavHelper(FNavHelper).NavItemMouseEnter(Sender);
 end;
 
 procedure Tgoverlayform.NavItemMouseLeave(Sender: TObject);
-var
-  Idx: Integer;
 begin
-  Idx := (Sender as TControl).Tag;
-  FNavHoveredIdx := -1;
-  FNavItems[Idx].Invalidate;
+  TSidebarNavHelper(FNavHelper).NavItemMouseLeave(Sender);
 end;
 
 procedure Tgoverlayform.NavItemPaint(Sender: TObject);
-var
-  P: TPanel;
-  Idx: Integer;
-  BgColor: TColor;
 begin
-  P   := TPanel(Sender);
-  Idx := P.Tag;
-  if CurrentTheme = tmLight then
-  begin
-    if Idx = FNavActive then      BgColor := NAV_LIGHT_ACTIVE
-    else if Idx = FNavHoveredIdx then BgColor := NAV_LIGHT_HOVER
-    else                              BgColor := NAV_LIGHT_BG;
-  end
-  else
-  begin
-    if Idx = FNavActive then      BgColor := NAV_COLOR_ACTIVE
-    else if Idx = FNavHoveredIdx then BgColor := NAV_COLOR_HOVER
-    else                              BgColor := NAV_COLOR_BG;
-  end;
-  P.Canvas.Brush.Color := BgColor;
-  P.Canvas.Brush.Style := bsSolid;
-  P.Canvas.FillRect(P.ClientRect);
+  TSidebarNavHelper(FNavHelper).NavItemPaint(Sender);
 end;
 
 procedure Tgoverlayform.ApplyNavCollapsed;
-var
-  NavW: Integer;
 begin
-  NavW := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
-  FNavAnimCurrent := NavW * 10;
-  ApplyNavWidth(NavW);
-
-  if FNavCollapsed then
-    FNavToggleBtn.Caption := '»'
-  else
-    FNavToggleBtn.Caption := '«';
+  TSidebarNavHelper(FNavHelper).ApplyNavCollapsed;
 end;
 
 procedure Tgoverlayform.NavToggleClick(Sender: TObject);
-var
-  UIStateFile: string;
-  SL: TStringList;
 begin
-  FNavCollapsed  := not FNavCollapsed;
-  FNavAnimTarget := IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED);
-  FNavAnimTimer.Enabled := True;
-
-  // Persist state for next session
-  UIStateFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'ui_state';
-  SL := TStringList.Create;
-  try
-    SL.Add(IfThen(FNavCollapsed, '1', '0'));
-    SL.Add(IfThen(FCubeAutoLaunch, '1', '0'));
-    SL.SaveToFile(UIStateFile);
-  finally
-    SL.Free;
-  end;
+  TSidebarNavHelper(FNavHelper).NavToggleClick(Sender);
 end;
 
 procedure Tgoverlayform.NavAnimTick(Sender: TObject);
-const
-  EASE = 0.22; // fraction of remaining distance per tick (ease-out)
-var
-  PrevW, NextW: Integer;
 begin
-  PrevW := FNavAnimCurrent div 10;
-
-  // Ease-out: move a fraction of remaining distance each tick
-  FNavAnimCurrent := FNavAnimCurrent +
-    Round((FNavAnimTarget * 10 - FNavAnimCurrent) * EASE);
-
-  NextW := FNavAnimCurrent div 10;
-
-  // Snap to target when close enough
-  if Abs(NextW - FNavAnimTarget) <= 1 then
-  begin
-    FNavAnimCurrent := FNavAnimTarget * 10;
-    FNavAnimTimer.Enabled := False;
-    ApplyNavCollapsed;  // final state: show/hide labels etc.
-    Exit;
-  end;
-
-  if NextW <> PrevW then
-  begin
-    DbgLog(Format('NavAnimTick: width %d -> %d', [PrevW, NextW]));
-    ApplyNavWidth(NextW);
-  end;
+  TSidebarNavHelper(FNavHelper).NavAnimTick(Sender);
 end;
 
 procedure Tgoverlayform.ApplyNavWidth(AWidth: Integer);
-var
-  i, PanelLeft, ContentW: Integer;
-  ShowLabels: Boolean;
 begin
-  DbgLog(Format('ApplyNavWidth(%d)', [AWidth]));
-  PanelLeft  := AWidth;
-  ShowLabels := AWidth > (NAV_W_COLLAPSED + NAV_W_EXPANDED) div 2;
-
-  goverlayPaintBox.Width := AWidth;
-  goverlayPanel.Left     := PanelLeft;
-  goverlayPanel.Width    := Max(1, Self.ClientWidth - PanelLeft);
-
-  for i := 0 to High(FNavItems) do
-  begin
-    FNavItems[i].Width   := AWidth;
-    FNavIcons[i].Left    := IfThen(ShowLabels, 16, (AWidth - NAV_ICON_SIZE) div 2);
-    // In collapsed+game mode the button sits below the icon, so shift icon up
-    FNavIcons[i].Top     := IfThen(ShowLabels or (FActiveGameName = ''),
-                              (NAV_ITEM_H - NAV_ICON_SIZE) div 2, 8);
-    FNavLabels[i].Visible := ShowLabels;
-  end;
-
-  // Show/hide the Games↔Tools separator section
-
-  UpdateNavToolToggleVisibility(ShowLabels);
-
-  if Assigned(FMangoHudImg) then
-  begin
-    FMangoHudImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
-    FMangoHudImg.Top  := IfThen(ShowLabels or (FActiveGameName = ''),
-                           (NAV_ITEM_H - 24) div 2, 8);
-  end;
-  if Assigned(FOptiScalerImg) then
-  begin
-    FOptiScalerImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
-    FOptiScalerImg.Top  := IfThen(ShowLabels or (FActiveGameName = ''),
-                             (NAV_ITEM_H - 24) div 2, 8);
-  end;
-
-  FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 28, AWidth - 26);
-
-  goverlayimage.Visible  := ShowLabels;
-  FNavSmallIcon.Visible  := not ShowLabels;
-  FNavSmallIcon.Left     := (AWidth - 40) div 2;
-
-  // dependenciesLabel and dependencieSpeedButton are permanently hidden;
-  // dependency status is shown in the settings menu instead.
-
-  // Reflow all content tabs whenever the sidebar width changes
-  ContentW := Max(1, Self.ClientWidth - AWidth);
-  ReflowPresetTab(ContentW);
-  ReflowVisualTab(ContentW);
-  ReflowPerformanceTab(ContentW);
-  ReflowMetricsTab(ContentW);
-  ReflowExtrasTab(ContentW);
-  ReflowOptiScalerTab(ContentW);
-  ReflowOptiScalerTabNew(ContentW);
-  ReflowVkBasaltTab(ContentW);
-  ReflowVkSumiTab(ContentW);
-  if FGamesLoaded then
-    ReflowGamesGrid;
-
-  // Repaint sidebar so the thumbnail scales with the nav width
-  goverlayPaintBox.Invalidate;
+  TSidebarNavHelper(FNavHelper).ApplyNavWidth(AWidth);
 end;
 
 procedure Tgoverlayform.FormResize(Sender: TObject);
@@ -9016,5 +8234,34 @@ begin
   TGamesTabHelper(FGamesHelper).RefreshGameCardsAsync(Data);
 end;
 
+procedure Tgoverlayform.PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
+begin
+  // Obsolete: bgmod handles OptiScaler overrides natively
+end;
+
+procedure Tgoverlayform.PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
+begin
+  // Obsolete: bgmod handles tool conditionals natively
+end;
+
+procedure Tgoverlayform.PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
+var
+  ConfigPath: string;
+  Ini: TIniFile;
+begin
+  ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
+  ForceDirectories(ExtractFilePath(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    Ini.WriteString('Env', AEnvVar, AConfigPath);
+  finally
+    Ini.Free;
+  end;
+end;
+
+procedure Tgoverlayform.EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
+begin
+  // Obsolete: bgmod binary manages OptiScaler conditional logic natively.
+end;
 
 end.
