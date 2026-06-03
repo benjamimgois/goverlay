@@ -545,6 +545,7 @@ begin
       
       // Remove plugins folder
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+      SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       
       // Remove wrappers and script configs
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod');

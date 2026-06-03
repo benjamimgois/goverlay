@@ -588,7 +588,7 @@ begin
     DxgiValue := 'false';
 
   if Settings.FsrversionItemIndex = 0 then
-    Fsr4UpdateValue := 'True'
+    Fsr4UpdateValue := 'true'
   else
     Fsr4UpdateValue := 'auto';
 
@@ -608,6 +608,10 @@ begin
       OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
       OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
       OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
+      if Settings.FsrversionItemIndex = 0 then
+        OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
+      else
+        OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'auto');
       OptiCfg.Save;
     end;
   finally

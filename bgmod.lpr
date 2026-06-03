@@ -28,12 +28,41 @@ begin
   end;
 end;
 
-function setenv(name: PChar; value: PChar; overwrite: Integer): Integer; cdecl; external 'c' name 'setenv';
 function execvp(file_: PChar; argv: PPChar): Integer; cdecl; external 'c' name 'execvp';
+function execvpe(file_: PChar; argv: PPChar; envp: PPChar): Integer; cdecl; external 'c' name 'execvpe';
 
-procedure SetEnvironmentVariable(const Name, Value: string);
+procedure SetEnvVarInList(EnvStrings: TStringList; const AKey, AVal: string);
+var
+  idx: Integer;
+  Prefix: string;
 begin
-  setenv(PChar(Name), PChar(Value), 1);
+  Prefix := AKey + '=';
+  for idx := 0 to EnvStrings.Count - 1 do
+  begin
+    if Pos(Prefix, EnvStrings[idx]) = 1 then
+    begin
+      EnvStrings[idx] := Prefix + AVal;
+      Exit;
+    end;
+  end;
+  EnvStrings.Add(Prefix + AVal);
+end;
+
+function GetEnvVarFromList(EnvStrings: TStringList; const AKey: string): string;
+var
+  idx: Integer;
+  Prefix: string;
+begin
+  Prefix := AKey + '=';
+  for idx := 0 to EnvStrings.Count - 1 do
+  begin
+    if Pos(Prefix, EnvStrings[idx]) = 1 then
+    begin
+      Result := Copy(EnvStrings[idx], Length(Prefix) + 1, MaxInt);
+      Exit;
+    end;
+  end;
+  Result := '';
 end;
 
 var
@@ -468,12 +497,13 @@ var
   BgmodPath, DllName, DllBase, CurrentOverrides, NewOverrides, TempStr: string;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
   Ini: TIniFile;
-  EnvList: TStringList;
-  i, p, StartArgIdx: Integer;
+  EnvList, EnvStrings: TStringList;
+  i, p, StartArgIdx, EnvCount: Integer;
   Key, Val, Line: string;
+  EnvArgs: array of PChar;
   Args: array of PChar;
   ArgsStrings: array of string;
-  OrigDlls: array[0..9] of string = (
+  OrigDlls: array[0..12] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
     'amd_fidelityfx_framegeneration_dx12.dll',
@@ -483,7 +513,10 @@ var
     'libxess_dx11.dll',
     'libxess_fg.dll',
     'libxell.dll',
-    'nvngx.dll'
+    'nvngx.dll',
+    'nvngx_dlss.dll',
+    'nvngx_dlssd.dll',
+    'nvngx_dlssg.dll'
   );
   ProxyDlls: array[0..5] of string = (
     'dxgi.dll',
@@ -532,6 +565,7 @@ begin
   PreserveIni := True;
   
   EnvList := TStringList.Create;
+  EnvStrings := TStringList.Create;
   
   // Read configurations from bgmod.conf
   if FileExists(BgmodPath + 'bgmod.conf') then
@@ -621,6 +655,18 @@ begin
           CopyDirectory(BgmodPath + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
         end;
         
+        // 7b. Copy D3D12_OptiScaler/ folder if it exists
+        if DirectoryExists(BgmodPath + 'D3D12_OptiScaler') then
+        begin
+          Log('Installing D3D12_OptiScaler directory...');
+          CopyDirectory(BgmodPath + 'D3D12_OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+        end
+        else if DirectoryExists(BgmodPath + 'D3D12_Optiscaler') then
+        begin
+          Log('Installing D3D12_Optiscaler directory...');
+          CopyDirectory(BgmodPath + 'D3D12_Optiscaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+        end;
+        
         // 8. Copy supporting libraries
         SafeCopyFile(BgmodPath + 'libxess.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
         SafeCopyFile(BgmodPath + 'libxess_dx11.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_dx11.dll');
@@ -631,6 +677,9 @@ begin
         SafeCopyFile(BgmodPath + 'amd_fidelityfx_upscaler_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
         SafeCopyFile(BgmodPath + 'amd_fidelityfx_vk.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');
         SafeCopyFile(BgmodPath + 'nvngx.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
+        SafeCopyFile(BgmodPath + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlss.dll');
+        SafeCopyFile(BgmodPath + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssd.dll');
+        SafeCopyFile(BgmodPath + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssg.dll');
         
         // 9. Copy Nukem FG
         SafeCopyFile(BgmodPath + 'dlssg_to_fsr3_amd_is_better.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
@@ -690,6 +739,7 @@ begin
         
         // Remove plugins folder
         SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+        SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       end;
       
       // --- MangoHud Configuration Copy ---
@@ -715,6 +765,14 @@ begin
   // Set up Environment Variables
   Log('Exporting environment variables...');
   
+  // Initialize EnvStrings with current environment from envp
+  EnvCount := 0;
+  while envp[EnvCount] <> nil do
+  begin
+    EnvStrings.Add(StrPas(envp[EnvCount]));
+    Inc(EnvCount);
+  end;
+  
   // Export environment variables read from bgmod.conf [Env] section
   for i := 0 to EnvList.Count - 1 do
   begin
@@ -724,9 +782,11 @@ begin
     begin
       Key := Copy(Line, 1, p - 1);
       Val := Copy(Line, p + 1, MaxInt);
-      if (Key = 'MANGOHUD_CONFIGFILE') or GOverlayTweaks then
+      // Always export DXIL_SPIRV_CONFIG and MANGOHUD_CONFIGFILE.
+      // Other environment variables are exported if GOverlayTweaks is enabled.
+      if (Key = 'MANGOHUD_CONFIGFILE') or (Key = 'DXIL_SPIRV_CONFIG') or GOverlayTweaks then
       begin
-        SetEnvironmentVariable(Key, Val);
+        SetEnvVarInList(EnvStrings, Key, Val);
         Log('Export [Env]: ' + Key + '=' + Val);
       end;
     end;
@@ -735,28 +795,34 @@ begin
   // Export explicit config flags
   if GOverlayMangoHud then
   begin
-    SetEnvironmentVariable('MANGOHUD', '1');
+    SetEnvVarInList(EnvStrings, 'MANGOHUD', '1');
     Log('Export: MANGOHUD=1');
   end;
   if GOverlayVkBasalt then
   begin
-    SetEnvironmentVariable('ENABLE_VKBASALT', '1');
-    SetEnvironmentVariable('ENABLE_VKSUMI', '1');
+    SetEnvVarInList(EnvStrings, 'ENABLE_VKBASALT', '1');
+    SetEnvVarInList(EnvStrings, 'ENABLE_VKSUMI', '1');
     Log('Export: ENABLE_VKBASALT=1, ENABLE_VKSUMI=1');
   end;
   if GOverlayOptiscaler then
   begin
     DllBase := ChangeFileExt(DllName, '');
-    CurrentOverrides := GetEnvironmentVariable('WINEDLLOVERRIDES');
+    CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
     if CurrentOverrides <> '' then
       NewOverrides := CurrentOverrides + ',' + DllBase + '=n,b'
     else
       NewOverrides := DllBase + '=n,b';
-    SetEnvironmentVariable('WINEDLLOVERRIDES', NewOverrides);
+    SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
   end;
   
   EnvList.Free;
+  
+  // Serialize EnvStrings into EnvArgs
+  SetLength(EnvArgs, EnvStrings.Count + 1);
+  for i := 0 to EnvStrings.Count - 1 do
+    EnvArgs[i] := PChar(EnvStrings[i]);
+  EnvArgs[EnvStrings.Count] := nil;
   
   // Execute the game
   StartArgIdx := 1;
@@ -766,6 +832,7 @@ begin
   if StartArgIdx > ParamCount then
   begin
     Log('bgmod done (no command was specified).');
+    EnvStrings.Free;
     Exit;
   end;
   
@@ -790,9 +857,10 @@ begin
   Log('Launching subprocess: ' + ArgsStrings[0]);
   Log('------------------------------------------------------------------------');
   
-  execvp(Args[0], @Args[0]);
+  execvpe(Args[0], @Args[0], @EnvArgs[0]);
   
-  // If we reach here, execvp failed
-  Log('Error: execvp failed');
+  // If we reach here, execvpe failed
+  Log('Error: execvpe failed');
+  EnvStrings.Free;
   Halt(127);
 end.
