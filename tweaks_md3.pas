@@ -5,7 +5,7 @@ unit tweaks_md3;
 interface
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, overlayunit;
+  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, bgmod_resources, configkeys, goverlay_system, apputils, overlayunit;
 
 type
   TTweakRow = record
@@ -63,6 +63,9 @@ type
     procedure FABPaint(Sender: TObject);
     function ItemHeight: Integer;
     function HeaderHeight: Integer;
+    procedure InitTweaksCards;
+    procedure SaveTweaksConfig;
+    procedure LoadTweaksFromFGMod;
   end;
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
@@ -810,6 +813,510 @@ begin
   FForm.FTweaksGrid.Cells[2, Row] := Val;
   FForm.FTweaksGrid.Cells[3, Row] := '';
   FForm.FTweaksPaintBox.Invalidate;
+end;
+
+procedure TTweaksMD3Helper.InitTweaksCards;
+const
+  BG   = $002E1E1A;
+  HDR  = 35;   // accent bar (3) + title area
+  SHDR = 22;   // section-title height offset added to each reparented control
+  GAP  = 4;
+var
+  BgBox: TPaintBox;
+  BasicCard, AdvCard: TPanel;
+  GenSec, GfxSec, PerfSec: TPanel;
+  Bar: TPanel;
+  Lbl: TLabel;
+  HalfW: Integer;
+  i: Integer;
+  procedure MakeBar(ACard: TPanel);
+  begin
+    Bar := TPanel.Create(ACard);
+    Bar.Parent     := ACard;
+    Bar.BevelOuter := bvNone;
+    Bar.Caption    := '';
+    Bar.Color      := RGBToColor(48, 190, 240);
+    Bar.SetBounds(0, 0, ACard.Width, 3);
+    Bar.Anchors    := [akLeft, akRight, akTop];
+  end;
+  procedure MakeLbl(ACard: TPanel; const ACaption: string);
+  begin
+    Lbl := TLabel.Create(ACard);
+    Lbl.Parent      := ACard;
+    Lbl.Caption     := ACaption;
+    Lbl.Font.Color  := clWhite;
+    Lbl.Font.Size   := 10;
+    Lbl.Font.Style  := [fsBold];
+    Lbl.AutoSize    := True;
+    Lbl.SetBounds(12, 8, 250, 22);
+    Lbl.Transparent := True;
+  end;
+  function MakeSec(ACard: TPanel; const ATitle: string;
+                   ALeft, ATop, AWidth, AHeight: Integer): TPanel;
+  var SLbl: TLabel;
+  begin
+    Result := TPanel.Create(ACard);
+    Result.Parent      := ACard;
+    Result.BevelOuter  := bvNone;
+    Result.BorderStyle := bsNone;
+    Result.Caption     := '';
+    Result.Color       := BG;
+    Result.OnPaint     := @FForm.SubCardPaint;
+    Result.SetBounds(ALeft, ATop, AWidth, AHeight);
+    Result.Anchors     := [akLeft, akTop, akRight, akBottom];
+    SLbl := TLabel.Create(Result);
+    SLbl.Parent      := Result;
+    SLbl.Caption     := ATitle;
+    SLbl.Font.Color  := $00CCAAAA;
+    SLbl.Font.Style  := [fsBold];
+    SLbl.Font.Size   := 8;
+    SLbl.Left        := 6;
+    SLbl.Top         := 4;
+    SLbl.Transparent := True;
+    SLbl.AutoSize    := True;
+  end;
+  procedure ReparentTo(C: TControl; APanel: TPanel);
+  begin
+    C.AnchorSideLeft.Control   := nil;
+    C.AnchorSideTop.Control    := nil;
+    C.AnchorSideRight.Control  := nil;
+    C.AnchorSideBottom.Control := nil;
+    C.Anchors := [akLeft, akTop];
+    C.Top     := C.Top + SHDR;
+    C.Parent  := APanel;
+  end;
+  procedure DarkChk(C: TCheckBox);
+  begin
+    C.ParentColor := False; C.Color := BG; C.Font.Color := clWhite; C.Font.Size := 9;
+  end;
+begin
+  BgBox := TPaintBox.Create(FForm);
+  BgBox.Parent  := FForm.tweaksTabSheet;
+  BgBox.Align   := alClient;
+  BgBox.OnPaint := @FForm.PresetsBgBoxPaint;
+
+  // ── Basic Tweaks card ──
+  BasicCard := TPanel.Create(FForm);
+  BasicCard.Parent     := FForm.tweaksTabSheet;
+  BasicCard.BevelOuter := bvNone;
+  BasicCard.Caption    := '';
+  BasicCard.Color      := BG;
+  BasicCard.OnPaint    := @FForm.PerfCardPaint;
+  BasicCard.SetBounds(2, 2, FForm.tweaksTabSheet.ClientWidth - 4, 182);
+  BasicCard.Anchors    := [akLeft, akTop, akRight];
+  MakeBar(BasicCard);
+  MakeLbl(BasicCard, 'Basic Tweaks');
+
+  HalfW  := (BasicCard.Width - 12) div 2;
+  GenSec := MakeSec(BasicCard, 'General',  4,            HDR + GAP, HalfW, 182 - HDR - GAP - 4);
+  GfxSec := MakeSec(BasicCard, 'Graphics', 4 + HalfW + 4, HDR + GAP, HalfW, 182 - HDR - GAP - 4);
+
+  // General controls → GenSec
+  ReparentTo(FForm.simdeckCheckBox,       GenSec); DarkChk(FForm.simdeckCheckBox);       FForm.simdeckCheckBox.OnChange       := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.enhdrCheckBox,         GenSec); DarkChk(FForm.enhdrCheckBox);         FForm.enhdrCheckBox.OnChange         := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.actprotonlogsCheckBox, GenSec); DarkChk(FForm.actprotonlogsCheckBox); FForm.actprotonlogsCheckBox.OnChange := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.gamemodeCheckBox,      GenSec); DarkChk(FForm.gamemodeCheckBox);      FForm.gamemodeCheckBox.OnChange      := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.enwaylandCheckBox,     GenSec); DarkChk(FForm.enwaylandCheckBox);     FForm.enwaylandCheckBox.OnChange     := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.usesdlCheckBox,        GenSec); DarkChk(FForm.usesdlCheckBox);        FForm.usesdlCheckBox.OnChange        := @FForm.TweaksCheckChange;
+
+  // Graphics controls → GfxSec
+  ReparentTo(FForm.emurtCheckBox,         GfxSec); DarkChk(FForm.emurtCheckBox);         FForm.emurtCheckBox.OnChange         := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.forcenvapiCheckBox,    GfxSec); DarkChk(FForm.forcenvapiCheckBox);    FForm.forcenvapiCheckBox.OnChange    := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.forcezinkCheckBox,     GfxSec); DarkChk(FForm.forcezinkCheckBox);     FForm.forcezinkCheckBox.OnChange     := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.hidenvidiaCheckBox,    GfxSec); DarkChk(FForm.hidenvidiaCheckBox);    FForm.hidenvidiaCheckBox.OnChange    := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.wined3dCheckBox,       GfxSec); DarkChk(FForm.wined3dCheckBox);       FForm.wined3dCheckBox.OnChange       := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.nofastclearsCheckBox,  GfxSec); DarkChk(FForm.nofastclearsCheckBox);  FForm.nofastclearsCheckBox.OnChange  := @FForm.TweaksCheckChange;
+
+  FForm.basicGroupBox.Visible := False;
+
+  // ── Advanced Tweaks card ──
+  AdvCard := TPanel.Create(FForm);
+  AdvCard.Parent     := FForm.tweaksTabSheet;
+  AdvCard.BevelOuter := bvNone;
+  AdvCard.Caption    := '';
+  AdvCard.Color      := BG;
+  AdvCard.OnPaint    := @FForm.PerfCardPaint;
+  AdvCard.SetBounds(2, 189, FForm.tweaksTabSheet.ClientWidth - 4, 184);
+  AdvCard.Anchors    := [akLeft, akTop, akRight];
+  MakeBar(AdvCard);
+  MakeLbl(AdvCard, 'Advanced Tweaks');
+
+  HalfW   := (AdvCard.Width - 12) div 2;
+  PerfSec := MakeSec(AdvCard, 'Performance', 4,             HDR + GAP, HalfW, 184 - HDR - GAP - 4);
+  FForm.FCustomSec := MakeSec(AdvCard, 'Custom',   4 + HalfW + 4, HDR + GAP,
+                         AdvCard.Width - HalfW - 16, 184 - HDR - GAP - 4);
+
+  // Performance controls → PerfSec
+  ReparentTo(FForm.highpriCheckBox,       PerfSec); DarkChk(FForm.highpriCheckBox);       FForm.highpriCheckBox.OnChange       := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.largeaddressCheckBox,  PerfSec); DarkChk(FForm.largeaddressCheckBox);  FForm.largeaddressCheckBox.OnChange  := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.stagememCheckBox,      PerfSec); DarkChk(FForm.stagememCheckBox);       FForm.stagememCheckBox.OnChange      := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.wow64CheckBox,         PerfSec); DarkChk(FForm.wow64CheckBox);          FForm.wow64CheckBox.OnChange         := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.disablentsyncCheckBox, PerfSec); DarkChk(FForm.disablentsyncCheckBox);  FForm.disablentsyncCheckBox.OnChange := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.heapdelayCheckBox,     PerfSec); DarkChk(FForm.heapdelayCheckBox);      FForm.heapdelayCheckBox.OnChange     := @FForm.TweaksCheckChange;
+
+  FForm.advancedGroupBox.Visible := False;
+
+  // Hide old cards — grid will replace them
+  BasicCard.Visible := False;
+  AdvCard.Visible   := False;
+  FForm.FCustomSec.Visible := False;
+
+  // ── MD3-style custom tweaks list ──
+  InitTweaksMD3;
+end;
+
+procedure TTweaksMD3Helper.SaveTweaksConfig;
+var
+  LaunchCommand: string;
+  ConfigPath: string;
+  Ini: TIniFile;
+  i: Integer;
+  HasTweaks: Boolean;
+  DSpirvVal: string;
+  CustomLine: string;
+  CustomKey, CustomVal: string;
+  p: Integer;
+begin
+  // Check if any tweaks are active
+  HasTweaks := FForm.GetGeneralCheckBox(0).Checked or FForm.GetGeneralCheckBox(1).Checked or
+               FForm.GetGeneralCheckBox(2).Checked or FForm.GetGeneralCheckBox(3).Checked or
+               FForm.GetGeneralCheckBox(4).Checked or FForm.GetGeneralCheckBox(5).Checked or
+               FForm.GetGraphicsCheckBox(0).Checked or FForm.GetGraphicsCheckBox(1).Checked or
+               FForm.GetGraphicsCheckBox(2).Checked or FForm.GetGraphicsCheckBox(3).Checked or
+               FForm.GetGraphicsCheckBox(4).Checked or
+               FForm.nofastclearsCheckBox.Checked or
+               FForm.GetPerformanceCheckBox(0).Checked or FForm.GetPerformanceCheckBox(1).Checked or
+               FForm.GetPerformanceCheckBox(2).Checked or FForm.GetPerformanceCheckBox(3).Checked or
+               FForm.GetPerformanceCheckBox(4).Checked or FForm.GetPerformanceCheckBox(5).Checked or
+               FForm.FAntilagCheckBox.Checked or
+               FForm.FLowLatencyCheckBox.Checked or
+               FForm.FLowLatencyReflexCheckBox.Checked or
+               FForm.FLowLatencySpoofNvidiaCheckBox.Checked or
+               FForm.FLowLatencyHideAmdGpuCheckBox.Checked or
+               FForm.FFSR4UpgradeCheckBox.Checked or
+               FForm.FDLSSUpgradeCheckBox.Checked or
+               FForm.FXeSSUpgradeCheckBox.Checked or
+               FForm.FReEngineRTCheckBox.Checked or
+               (Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT));
+
+  // Determine the bgmod.conf path
+  if FForm.FActiveGameName <> '' then
+    ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf'
+  else
+    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
+
+  ForceDirectories(ExtractFilePath(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    // 1. Write Config section
+    Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '1');
+    if FForm.GetGeneralCheckBox(1).Checked then
+      Ini.WriteString('Config', 'gamemode', '1')
+    else
+      Ini.WriteString('Config', 'gamemode', '0');
+
+    if FForm.FReEngineRTCheckBox.Checked then
+      Ini.WriteString('Config', 'winedetectionenable', '0')
+    else
+      Ini.WriteString('Config', 'winedetectionenable', '1');
+
+    // 2. Erase Env section but preserve DXIL_SPIRV_CONFIG
+    DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
+    Ini.EraseSection('Env');
+    if DSpirvVal <> '' then
+      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
+
+    // 3. Write active tweaks to Env
+    if FForm.GetGeneralCheckBox(0).Checked then
+      Ini.WriteString('Env', 'SteamDeck', '1');
+
+    if FForm.GetGeneralCheckBox(2).Checked then
+    begin
+      Ini.WriteString('Env', 'PROTON_ENABLE_HDR', '1');
+      Ini.WriteString('Env', 'ENABLE_HDR_WSI', '1');
+    end;
+
+    if FForm.GetGeneralCheckBox(3).Checked then
+      Ini.WriteString('Env', 'PROTON_ENABLE_WAYLAND', '1');
+
+    if FForm.GetGeneralCheckBox(4).Checked then
+      Ini.WriteString('Env', 'PROTON_LOG', '1');
+
+    if FForm.GetGeneralCheckBox(5).Checked then
+      Ini.WriteString('Env', 'PROTON_USE_SDL', '1');
+
+    if FForm.GetGraphicsCheckBox(0).Checked then
+      Ini.WriteString('Env', 'RADV_PERFTEST', 'rt,emulate_rt');
+
+    if FForm.GetGraphicsCheckBox(1).Checked then
+      Ini.WriteString('Env', 'PROTON_HIDE_NVIDIA_GPU', '1');
+
+    if FForm.GetGraphicsCheckBox(2).Checked then
+      Ini.WriteString('Env', 'PROTON_ENABLE_NVAPI', '1');
+
+    if FForm.GetGraphicsCheckBox(3).Checked then
+      Ini.WriteString('Env', 'PROTON_USE_WINED3D', '1');
+
+    if FForm.GetGraphicsCheckBox(4).Checked then
+    begin
+      Ini.WriteString('Env', 'MESA_LOADER_DRIVER_OVERRIDE', 'zink');
+      if IsNvidiaModuleLoaded then
+        Ini.WriteString('Env', '__GLX_VENDOR_LIBRARY_NAME', 'mesa');
+    end;
+
+    if FForm.nofastclearsCheckBox.Checked then
+      Ini.WriteString('Env', 'RADV_DEBUG', 'nofastclears');
+
+    if FForm.FFSR4UpgradeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_FSR4_UPGRADE', '1');
+
+    if FForm.FDLSSUpgradeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_DLSS_UPGRADE', '1');
+
+    if FForm.FXeSSUpgradeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_XESS_UPGRADE', '1');
+
+    if FForm.GetPerformanceCheckBox(0).Checked then
+      Ini.WriteString('Env', 'PROTON_PRIORITY_HIGH', '1');
+
+    if FForm.GetPerformanceCheckBox(1).Checked then
+      Ini.WriteString('Env', 'PROTON_USE_WOW64', '1');
+
+    if FForm.GetPerformanceCheckBox(2).Checked then
+      Ini.WriteString('Env', 'PROTON_FORCE_LARGE_ADDRESS_AWARE', '1');
+
+    if FForm.GetPerformanceCheckBox(3).Checked then
+      Ini.WriteString('Env', 'STAGING_SHARED_MEMORY', '1');
+
+    if FForm.GetPerformanceCheckBox(4).Checked then
+      Ini.WriteString('Env', 'PROTON_NO_NTSYNC', '1');
+
+    if FForm.GetPerformanceCheckBox(5).Checked then
+      Ini.WriteString('Env', 'PROTON_HEAP_DELAY_FREE', '1');
+
+    if FForm.FAntilagCheckBox.Checked then
+      Ini.WriteString('Env', 'ENABLE_LAYER_MESA_ANTI_LAG', '1');
+
+    if FForm.FLowLatencyCheckBox.Checked then
+      Ini.WriteString('Env', 'LOW_LATENCY_LAYER', '1');
+
+    if FForm.FLowLatencyReflexCheckBox.Checked then
+      Ini.WriteString('Env', 'LOW_LATENCY_LAYER_REFLEX', '1');
+
+    if FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
+      Ini.WriteString('Env', 'LOW_LATENCY_LAYER_SPOOF_NVIDIA', '1');
+
+    if FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
+      Ini.WriteString('Env', 'DXVK_CONFIG', 'dxgi.customDeviceDescription=10de:2204,dxgi.hideAmdGpu=True');
+
+    // 4. Custom environment variables from grid
+    if Assigned(FForm.FTweaksGrid) then
+    begin
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      begin
+        if (FForm.FTweaksGrid.Cells[0, i] = '1') and (Trim(FForm.FTweaksGrid.Cells[2, i]) <> '') then
+        begin
+          CustomLine := Trim(FForm.FTweaksGrid.Cells[2, i]);
+          p := Pos('#customenv', CustomLine);
+          if p > 0 then
+            CustomLine := Trim(Copy(CustomLine, 1, p - 1));
+          p := Pos('=', CustomLine);
+          if p > 0 then
+          begin
+            CustomKey := Trim(Copy(CustomLine, 1, p - 1));
+            CustomVal := Trim(Copy(CustomLine, p + 1, MaxInt));
+            Ini.WriteString('Env', CustomKey, CustomVal);
+          end;
+        end;
+      end;
+    end;
+
+    // Refresh grid to reflect saved state
+    FForm.SyncTweaksGridFromCheckBoxes;
+
+    // Show notification
+    SendNotification('Tweaks', 'Configuration saved', GetIconFile);
+
+  finally
+    Ini.Free;
+  end;
+
+  // Build the Launch Command to display/use
+  if FForm.FActiveGameName <> '' then
+  begin
+    if FForm.FActiveGameIsNonSteam then
+      LaunchCommand := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod '
+    else
+      LaunchCommand := '"' + FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod" ';
+  end
+  else
+    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+
+  // Check if gamemode should be added
+  if FForm.GetGeneralCheckBox(1).Checked then
+    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
+
+  // Always end with %command%
+  if not ( (FForm.FActiveGameName <> '') and FForm.FActiveGameIsNonSteam ) then
+    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+
+  // RE Engine RT workaround suffix (after %command%)
+  if FForm.FReEngineRTCheckBox.Checked then
+    LaunchCommand := LaunchCommand + LAUNCH_SUFFIX_WINE_DETECTION;
+
+  FForm.notificationLabel.Visible := False;
+  FForm.FLaunchCommand := LaunchCommand;
+  FForm.commandPaintBox.Invalidate;
+  FForm.commandPanel.Visible := True;
+end;
+
+procedure TTweaksMD3Helper.LoadTweaksFromFGMod;
+var
+  ConfigPath: string;
+  Ini: TIniFile;
+  EnvList: TStringList;
+  i, Row: Integer;
+  Key, Val: string;
+begin
+  // Get bgmod config path
+  if FForm.FActiveGameName <> '' then
+    ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf'
+  else
+    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
+
+  // Check if bgmod.conf exists
+  if not FileExists(ConfigPath) then
+    Exit;
+
+  Ini := TIniFile.Create(ConfigPath);
+  EnvList := TStringList.Create;
+  try
+    // Reset all tweaks checkboxes first
+    FForm.GetGeneralCheckBox(0).Checked := False;
+    FForm.GetGeneralCheckBox(1).Checked := False;
+    FForm.GetGeneralCheckBox(2).Checked := False;
+    FForm.GetGeneralCheckBox(3).Checked := False;
+    FForm.GetGeneralCheckBox(4).Checked := False;
+    FForm.GetGeneralCheckBox(5).Checked := False;
+
+    // Reset graphicsCheckGroup checkboxes
+    FForm.GetGraphicsCheckBox(0).Checked := False;
+    FForm.GetGraphicsCheckBox(1).Checked := False;
+    FForm.GetGraphicsCheckBox(2).Checked := False;
+    FForm.GetGraphicsCheckBox(3).Checked := False;
+    FForm.GetGraphicsCheckBox(4).Checked := False;
+
+    // Reset performanceCheckGroup checkboxes
+    FForm.GetPerformanceCheckBox(0).Checked := False;
+    FForm.GetPerformanceCheckBox(1).Checked := False;
+    FForm.GetPerformanceCheckBox(2).Checked := False;
+    FForm.GetPerformanceCheckBox(3).Checked := False;
+    FForm.GetPerformanceCheckBox(4).Checked := False;
+    FForm.GetPerformanceCheckBox(5).Checked := False;
+    FForm.FAntilagCheckBox.Checked := False;
+    FForm.FFSR4UpgradeCheckBox.Checked := False;
+    FForm.FDLSSUpgradeCheckBox.Checked := False;
+    FForm.FXeSSUpgradeCheckBox.Checked := False;
+    FForm.FReEngineRTCheckBox.Checked := False;
+    FForm.FLowLatencyCheckBox.Checked := False;
+    FForm.FLowLatencyReflexCheckBox.Checked := False;
+    FForm.FLowLatencySpoofNvidiaCheckBox.Checked := False;
+    FForm.FLowLatencyHideAmdGpuCheckBox.Checked := False;
+
+    // Reset custom env list
+    FForm.customenvEdit.Text := '';
+    if Assigned(FForm.FCustomListBox) then
+      FForm.FCustomListBox.Items.Clear;
+
+    // Reset grid to predefined rows only (discard previous custom rows)
+    if Assigned(FForm.FTweaksGrid) then
+      FForm.FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
+
+    // Load gamemode state from Config
+    FForm.GetGeneralCheckBox(1).Checked := Ini.ReadString('Config', 'gamemode', '0') = '1';
+
+    // Load winedetectionenable state from Config
+    FForm.FReEngineRTCheckBox.Checked := Ini.ReadString('Config', 'winedetectionenable', '1') = '0';
+
+    // Load environment variables from Env section
+    Ini.ReadSectionValues('Env', EnvList);
+    for i := 0 to EnvList.Count - 1 do
+    begin
+      Key := EnvList.Names[i];
+      Val := EnvList.ValueFromIndex[i];
+
+      // Handle predefined keys
+      if SameText(Key, 'SteamDeck') then
+        FForm.GetGeneralCheckBox(0).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_ENABLE_HDR') then
+        FForm.GetGeneralCheckBox(2).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_ENABLE_WAYLAND') then
+        FForm.GetGeneralCheckBox(3).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_LOG') then
+        FForm.GetGeneralCheckBox(4).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_USE_SDL') then
+        FForm.GetGeneralCheckBox(5).Checked := Val = '1'
+      else if SameText(Key, 'RADV_PERFTEST') and (Pos('rt', Val) > 0) then
+        FForm.GetGraphicsCheckBox(0).Checked := True
+      else if SameText(Key, 'PROTON_HIDE_NVIDIA_GPU') then
+        FForm.GetGraphicsCheckBox(1).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_ENABLE_NVAPI') then
+        FForm.GetGraphicsCheckBox(2).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_USE_WINED3D') then
+        FForm.GetGraphicsCheckBox(3).Checked := Val = '1'
+      else if SameText(Key, 'MESA_LOADER_DRIVER_OVERRIDE') and SameText(Val, 'zink') then
+        FForm.GetGraphicsCheckBox(4).Checked := True
+      else if SameText(Key, 'PROTON_FSR4_UPGRADE') then
+        FForm.FFSR4UpgradeCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_DLSS_UPGRADE') then
+        FForm.FDLSSUpgradeCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_XESS_UPGRADE') then
+        FForm.FXeSSUpgradeCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_PRIORITY_HIGH') then
+        FForm.GetPerformanceCheckBox(0).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_USE_WOW64') then
+        FForm.GetPerformanceCheckBox(1).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
+        FForm.GetPerformanceCheckBox(2).Checked := Val = '1'
+      else if SameText(Key, 'STAGING_SHARED_MEMORY') then
+        FForm.GetPerformanceCheckBox(3).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_NO_NTSYNC') then
+        FForm.GetPerformanceCheckBox(4).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_HEAP_DELAY_FREE') then
+        FForm.GetPerformanceCheckBox(5).Checked := Val = '1'
+      else if SameText(Key, 'ENABLE_LAYER_MESA_ANTI_LAG') then
+        FForm.FAntilagCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'RADV_DEBUG') and SameText(Val, 'nofastclears') then
+        FForm.nofastclearsCheckBox.Checked := True
+      else if SameText(Key, 'LOW_LATENCY_LAYER') then
+        FForm.FLowLatencyCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'LOW_LATENCY_LAYER_REFLEX') then
+        FForm.FLowLatencyReflexCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') then
+        FForm.FLowLatencySpoofNvidiaCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'DXVK_CONFIG') and (Pos('hideAmdGpu', Val) > 0) then
+        FForm.FLowLatencyHideAmdGpuCheckBox.Checked := True
+      else if not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
+      begin
+        // Treat as custom environment variable
+        if Assigned(FForm.FCustomListBox) then
+          FForm.FCustomListBox.Items.Add(Key + '=' + Val);
+        if Assigned(FForm.FTweaksGrid) then
+        begin
+          Row := FForm.FTweaksGrid.RowCount;
+          FForm.FTweaksGrid.RowCount := Row + 1;
+          FForm.FTweaksGrid.Cells[0, Row] := '1';
+          FForm.FTweaksGrid.Cells[1, Row] := 'Custom';
+          FForm.FTweaksGrid.Cells[2, Row] := Key + '=' + Val;
+          FForm.FTweaksGrid.Cells[3, Row] := '';
+        end;
+      end;
+    end;
+  finally
+    EnvList.Free;
+    Ini.Free;
+  end;
+  FForm.SyncTweaksGridFromCheckBoxes;
 end;
 
 end.

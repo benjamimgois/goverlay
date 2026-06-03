@@ -2770,6 +2770,11 @@ begin
       if Assigned(FLimitCaptureBtn) and (Trim(AValue) <> '') then
         FLimitCaptureBtn.Caption := '⌨ ' + AValue;
     end
+    else if SameText(AKey, MANGO_KEY_FPS_LIMIT) then
+    begin
+      if Assigned(FFpsLimitEdit) then
+        FFpsLimitEdit.Text := AValue;
+    end
     else if SameText(AKey, MANGO_KEY_VSYNC) then
     begin
       if TryStrToInt(AValue, IntValue) then
