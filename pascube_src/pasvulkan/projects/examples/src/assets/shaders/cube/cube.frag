@@ -75,15 +75,15 @@ void main() {
         
         lighting = totalLight * (0.95 + noise * 0.1);
     } else {
-        // NORMAL MODE: directional light from top-left-front
-        vec3 L = normalize(vec3(-1.0, 1.5, 1.0));
+        // NORMAL MODE: directional light from top-front
+        vec3 L = normalize(vec3(0.2, 0.95, 0.4));
         
         // Lambertian diffuse shading
         float diff = max(dot(N, L), 0.0);
         
-        // Matte ambient (0.2) + diffuse (0.7) for high 3D contrast
-        vec3 ambient = vec3(0.20);
-        vec3 diffuseColor = diff * vec3(0.70);
+        // Matte ambient + diffuse with no specular highlight for maximum tridimensionality
+        vec3 ambient = vec3(0.18);
+        vec3 diffuseColor = diff * vec3(0.82);
         
         lighting = ambient + diffuseColor;
     }
