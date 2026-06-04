@@ -110,6 +110,7 @@ type
        fMouseLeftButtonDown:boolean;
        fLastMousePosition:TpvVector2;
        fAutoRotation:boolean;
+       fDraggingCube:boolean;
        fVulkanRenderPass:TpvVulkanRenderPass;
        fVulkanVertexBuffer:TpvVulkanBuffer;
        fVulkanIndexBuffer:TpvVulkanBuffer;
@@ -218,6 +219,7 @@ type
         procedure InitParticles;
         procedure UpdateParticles(const aDeltaTime: TpvDouble);
         procedure DrawMenuOverlay;
+        function IsStartButtonHovered(const aPos: TpvVector2): Boolean;
         procedure DrawBenchmarkOverlay;
         procedure DrawResultsOverlay;
         procedure GenerateBeveledCube;
@@ -262,6 +264,7 @@ constructor TPasCubeScreen.Create;
 begin
  inherited Create;
  fMouseLeftButtonDown:=false;
+ fDraggingCube:=false;
  fLastMousePosition:=TpvVector2.Create(0.0,0.0);
  fAutoRotation:=true;
  FillChar(fState,SizeOf(TScreenExampleCubeState),#0);
@@ -818,22 +821,35 @@ begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
     fMouseLeftButtonDown:=true;
     fLastMousePosition:=aPointerEvent.Position;
-    fAutoRotation:=false;
+    if IsStartButtonHovered(aPointerEvent.Position) then begin
+     fAutoRotation:=false;
+     fDraggingCube:=false;
+     result:=true;
+    end else begin
+     fAutoRotation:=false;
+     fDraggingCube:=true;
+    end;
    end;
   end;
   TpvApplicationInputPointerEventType.Up:begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
     fMouseLeftButtonDown:=false;
     fAutoRotation:=true;
+    if fDraggingCube then begin
+     fDraggingCube:=false;
+    end else if IsStartButtonHovered(aPointerEvent.Position) then begin
+     StartBenchmark;
+     result:=true;
+    end;
    end;
   end;
   TpvApplicationInputPointerEventType.Motion:begin
-   if fMouseLeftButtonDown then begin
-    Delta:=aPointerEvent.Position-fLastMousePosition;
-    fLastMousePosition:=aPointerEvent.Position;
+   Delta:=aPointerEvent.Position-fLastMousePosition;
+   if fMouseLeftButtonDown and fDraggingCube then begin
     fState.AnglePhases[1]:=fState.AnglePhases[1]+(Delta.x*0.005);
     fState.AnglePhases[0]:=fState.AnglePhases[0]+(Delta.y*0.005);
    end;
+   fLastMousePosition:=aPointerEvent.Position;
   end;
  end;
 end;
@@ -1542,28 +1558,81 @@ end;
 
 procedure TPasCubeScreen.DrawMenuOverlay;
 var app: TPasCubeApplication;
-    cx: TpvFloat;
-    ResStr: string;
+    cx, yText, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    isHovered: Boolean;
+    bgR, bgG, bgB, bgA: TpvFloat;
+    fgR, fgG, fgB, fgA: TpvFloat;
+    textR, textG, textB, textA: TpvFloat;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
  cx := pvApplication.Width * 0.5;
+ yText := pvApplication.Height - 110.0;
 
- // Centered Title
- app.TextOverlay.AddText(cx, 80.0, 2.0, toaCenter, 'PasCube Benchmark');
+ isHovered := IsStartButtonHovered(fLastMousePosition);
 
- // Resolution string
- case fResolutionOption of
-  ro720p: ResStr := '720p';
-  ro1080p: ResStr := '1080p';
-  roNative: ResStr := 'Native';
-  else ResStr := '720p';
+ // Configure colors based on hover state (Graphite colors)
+ if isHovered then begin
+  // Lighter graphite fill, lighter grey outline, white text
+  bgR := 62.0 / 255.0; bgG := 62.0 / 255.0; bgB := 62.0 / 255.0; bgA := 1.0;
+  fgR := 102.0 / 255.0; fgG := 102.0 / 255.0; fgB := 102.0 / 255.0; fgA := 1.0;
+  textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+ end else begin
+  // Charcoal/Graphite fill, medium grey outline, silver-white text
+  bgR := 46.0 / 255.0; bgG := 46.0 / 255.0; bgB := 46.0 / 255.0; bgA := 1.0;
+  fgR := 68.0 / 255.0; fgG := 68.0 / 255.0; fgB := 68.0 / 255.0; fgA := 1.0;
+  textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
  end;
 
- // Clear text instructions instead of buttons
- app.TextOverlay.AddText(cx, pvApplication.Height - 120.0, 1.3, toaCenter, 'Resolution: ' + ResStr);
- app.TextOverlay.AddText(cx, pvApplication.Height - 80.0, 1.2, toaCenter, 'Press ENTER to start');
+ charWidth := app.TextOverlay.FontCharWidth;
+ charHeight := app.TextOverlay.FontCharHeight;
+
+ paddingX := charWidth * 1.5;
+ paddingY := charHeight * 0.4;
+
+ btnWidth := (15.0 * charWidth * 1.4) + (2.0 * paddingX);
+ btnHeight := (charHeight * 1.4) + (2.0 * paddingY);
+ btnX := cx - (btnWidth * 0.5);
+ btnY := yText - paddingY;
+
+ // Centered Title (Increased font size to 2.4, using default font)
+ app.TextOverlay.AddText(cx, 80.0, 2.4, toaCenter, 'PasCube Benchmark');
+
+ // Draw the button background box
+ app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+
+ // Draw the button text (Increased font size to 1.4, using default font)
+ app.TextOverlay.AddText(cx, yText, 1.4, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+end;
+
+function TPasCubeScreen.IsStartButtonHovered(const aPos: TpvVector2): Boolean;
+var app: TPasCubeApplication;
+    cx, yText, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+begin
+ Result := false;
+ if fBenchmarkPhase <> bpIdleMenu then Exit;
+ app := UnitPasCubeApplication.Application;
+ if not Assigned(app) then Exit;
+
+ cx := pvApplication.Width * 0.5;
+ yText := pvApplication.Height - 110.0;
+
+ charWidth := app.TextOverlay.FontCharWidth;
+ charHeight := app.TextOverlay.FontCharHeight;
+
+ paddingX := charWidth * 1.5;
+ paddingY := charHeight * 0.4;
+
+ btnWidth := (15.0 * charWidth * 1.4) + (2.0 * paddingX);
+ btnHeight := (charHeight * 1.4) + (2.0 * paddingY);
+ btnX := cx - (btnWidth * 0.5);
+ btnY := yText - paddingY;
+
+ Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+           (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
