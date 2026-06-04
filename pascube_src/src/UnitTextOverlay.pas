@@ -117,6 +117,7 @@ type PTextOverlayBufferCharVertex=^TTextOverlayBufferCharVertex;
        procedure BeforeDestroySwapChain;
        procedure Reset;
        procedure AddText(const pX,pY,aSize:TpvFloat;const aAlignment:TTextOverlayAlignment;const aText:TpvApplicationRawByteString;const pBR:TpvFloat=1.0;const pBG:TpvFloat=1.0;const pBB:TpvFloat=1.0;const pBA:TpvFloat=0.0;const pFR:TpvFloat=1.0;const pFG:TpvFloat=1.0;const pFB:TpvFloat=1.0;const pFA:TpvFloat=1.0);
+       procedure AddBox(const pX,pY,pW,pH:TpvFloat;const pBR,pBG,pBB,pBA:TpvFloat;const pFR:TpvFloat=0.0;const pFG:TpvFloat=0.0;const pFB:TpvFloat=0.0;const pFA:TpvFloat=0.0;const pType:TpvFloat=32.0);
        procedure PreUpdate(const aDeltaTime:double);
        procedure PostUpdate(const aDeltaTime:double);
        procedure Draw(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil);
@@ -617,6 +618,33 @@ begin
    cX:=cX+(fFontCharWidth*aSize);
   end;
  end;
+end;
+
+procedure TTextOverlay.AddBox(const pX,pY,pW,pH:TpvFloat;const pBR,pBG,pBB,pBA:TpvFloat;const pFR:TpvFloat=0.0;const pFG:TpvFloat=0.0;const pFB:TpvFloat=0.0;const pFA:TpvFloat=0.0;const pType:TpvFloat=32.0);
+var EdgeIndex:TpvInt32;
+    BufferChar:PTextOverlayBufferChar;
+begin
+  if pBA>0.0 then begin
+    if fCountBufferChars<TextOverlayBufferCharSize then begin
+      BufferChar:=@fBufferChars^[fCountBufferChars];
+      inc(fCountBufferChars);
+      for EdgeIndex:=0 to 3 do begin
+        BufferChar^.Vertices[EdgeIndex].x:=(((pX+((EdgeIndex and 1)*pW))*fInvWidth)*2.0)-1.0;
+        BufferChar^.Vertices[EdgeIndex].y:=(((pY+((EdgeIndex shr 1)*pH))*fInvHeight)*2.0)-1.0;
+        BufferChar^.Vertices[EdgeIndex].u:=EdgeIndex and 1;
+        BufferChar^.Vertices[EdgeIndex].v:=EdgeIndex shr 1;
+        BufferChar^.Vertices[EdgeIndex].w:=pType;
+        BufferChar^.Vertices[EdgeIndex].br:=pBR;
+        BufferChar^.Vertices[EdgeIndex].bg:=pBG;
+        BufferChar^.Vertices[EdgeIndex].bb:=pBB;
+        BufferChar^.Vertices[EdgeIndex].ba:=pBA;
+        BufferChar^.Vertices[EdgeIndex].fr:=pFR;
+        BufferChar^.Vertices[EdgeIndex].fg:=pFG;
+        BufferChar^.Vertices[EdgeIndex].fb:=pFB;
+        BufferChar^.Vertices[EdgeIndex].fa:=pFA;
+      end;
+    end;
+  end;
 end;
 
 procedure TTextOverlay.PreUpdate(const aDeltaTime:double);

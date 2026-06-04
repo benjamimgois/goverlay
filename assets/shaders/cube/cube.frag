@@ -48,15 +48,11 @@ void main() {
             float dist = length(lightPos);
             float atten = 1.0 / (1.0 + dist * 0.1 + dist * dist * 0.01);
             
-            // Diffuse
+            // Smooth Diffuse
             float diff = max(dot(N, L), 0.0);
-            if (diff > 0.75) diff = 1.0;
-            else if (diff > 0.35) diff = 0.55;
-            else diff = 0.2;
             
-            // Specular
-            float specRaw = pow(max(dot(N, H), 0.0), pushConsts.params.z);
-            float spec = (specRaw > 0.6) ? 1.0 : 0.0;
+            // Smooth Specular
+            float spec = pow(max(dot(N, H), 0.0), pushConsts.params.z);
             
             // Light color variation
             vec3 lightColor = vec3(
@@ -66,7 +62,7 @@ void main() {
             );
             
             totalLight += (diff * pushConsts.params.x * lightColor + 
-                          spec * pushConsts.params.y * vec3(1.0)) * atten;
+                           spec * pushConsts.params.y * vec3(1.0)) * atten;
         }
         
         // Extra noise stress
@@ -79,40 +75,22 @@ void main() {
         
         lighting = totalLight * (0.95 + noise * 0.1);
     } else {
-        // NORMAL MODE: single light
-        vec3 L = normalize(vec3(0.5, 0.7, 1.0));
-        vec3 H = normalize(L + V);
+        // NORMAL MODE: directional light from top-front
+        vec3 L = normalize(vec3(0.2, 0.95, 0.4));
         
-        float diffRaw = max(dot(N, L), 0.0);
-        float diff;
-        if (diffRaw > 0.75) diff = 1.0;
-        else if (diffRaw > 0.35) diff = 0.55;
-        else diff = 0.2;
+        // Lambertian diffuse shading
+        float diff = max(dot(N, L), 0.0);
         
-        float specRaw = pow(max(dot(N, H), 0.0), pushConsts.params.z);
-        float spec = (specRaw > 0.6) ? 1.0 : 0.0;
+        // Matte ambient + diffuse with no specular highlight for maximum tridimensionality
+        vec3 ambient = vec3(0.18);
+        vec3 diffuseColor = diff * vec3(0.82);
         
-        vec3 ambient = vec3(0.15);
-        vec3 diffuse = diff * pushConsts.params.x * vec3(1.0);
-        vec3 specular = spec * pushConsts.params.y * vec3(1.0);
-        
-        lighting = ambient + diffuse + specular;
+        lighting = ambient + diffuseColor;
     }
     
-    // Texture / material
-    vec4 texColor = texture(samplerColor, inTexCoord);
-    float brush = sin(inTexCoord.y * 60.0) * 0.02 + 0.98;
-    vec3 tintedTex = texColor.rgb * pushConsts.vector.rgb * brush;
-    vec3 materialColor = lighting * tintedTex;
-    
-    // Edge detection
-    float edgeThickness = 0.018;
-    float edgeX = min(inTexCoord.x, 1.0 - inTexCoord.x);
-    float edgeY = min(inTexCoord.y, 1.0 - inTexCoord.y);
-    float edgeDist = min(edgeX, edgeY);
-    float edgeFactor = smoothstep(0.0, edgeThickness, edgeDist);
-    vec3 edgeColor = vec3(0.04, 0.04, 0.06);
-    vec3 finalColor = mix(edgeColor, materialColor, edgeFactor);
+    // Base color: premium matte light-grey/white
+    vec3 baseColor = vec3(0.9) * pushConsts.vector.rgb;
+    vec3 finalColor = lighting * baseColor;
     
     outColor = vec4(finalColor, pushConsts.vector.a);
 }

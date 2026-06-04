@@ -143,6 +143,8 @@ type
        fPhaseResultIndex: Integer;
        fResolutionOption: TResolutionOption;
        fSelectedResolution: Integer;
+       fHoveredButtonIndex: Integer;
+       fCubeIndexCount: TpvInt32;
        fHistory: array[0..MAX_BENCHMARK_HISTORY-1] of TBenchmarkResult;
        fHistoryCount: Integer;
        fBestScore: Integer;
@@ -218,6 +220,7 @@ type
         procedure DrawMenuOverlay;
         procedure DrawBenchmarkOverlay;
         procedure DrawResultsOverlay;
+        procedure GenerateBeveledCube;
         function GetPhaseDuration: TpvDouble;
         function GetPhaseName: String;
         function GetPhaseObjectCount: Integer;
@@ -246,71 +249,7 @@ uses UnitPasCubeApplication, UnitTextOverlay;
        TexCoord:TpvVector2;
       end;
 
-const CubeVertices:array[0..23] of TVertex=
-       (// Left
-        (Position:(x:-1;y:-1;z:-1;);Tangent:(x:0;y:0;z:1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:-1;y:0;z:0;);TexCoord:(u:0;v:0)),
-        (Position:(x:-1;y: 1;z:-1;);Tangent:(x:0;y:0;z:1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:-1;y:0;z:0;);TexCoord:(u:0;v:1)),
-        (Position:(x:-1;y: 1;z: 1;);Tangent:(x:0;y:0;z:1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:-1;y:0;z:0;);TexCoord:(u:1;v:1)),
-        (Position:(x:-1;y:-1;z: 1;);Tangent:(x:0;y:0;z:1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:-1;y:0;z:0;);TexCoord:(u:1;v:0)),
-
-        // Right
-        (Position:(x: 1;y:-1;z: 1;);Tangent:(x:0;y:0;z:-1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:1;y:0;z:0;);TexCoord:(u:0;v:0)),
-        (Position:(x: 1;y: 1;z: 1;);Tangent:(x:0;y:0;z:-1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:1;y:0;z:0;);TexCoord:(u:0;v:1)),
-        (Position:(x: 1;y: 1;z:-1;);Tangent:(x:0;y:0;z:-1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:1;y:0;z:0;);TexCoord:(u:1;v:1)),
-        (Position:(x: 1;y:-1;z:-1;);Tangent:(x:0;y:0;z:-1;);Bitangent:(x:0;y:1;z:0;);Normal:(x:1;y:0;z:0;);TexCoord:(u:1;v:0)),
-
-        // Bottom
-        (Position:(x:-1;y:-1;z:-1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:1;);Normal:(x:0;y:-1;z:0;);TexCoord:(u:0;v:0)),
-        (Position:(x:-1;y:-1;z: 1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:1;);Normal:(x:0;y:-1;z:0;);TexCoord:(u:0;v:1)),
-        (Position:(x: 1;y:-1;z: 1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:1;);Normal:(x:0;y:-1;z:0;);TexCoord:(u:1;v:1)),
-        (Position:(x: 1;y:-1;z:-1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:1;);Normal:(x:0;y:-1;z:0;);TexCoord:(u:1;v:0)),
-
-        // Top
-        (Position:(x:-1;y: 1;z:-1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:-1;);Normal:(x:0;y:1;z:0;);TexCoord:(u:0;v:0)),
-        (Position:(x: 1;y: 1;z:-1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:-1;);Normal:(x:0;y:1;z:0;);TexCoord:(u:0;v:1)),
-        (Position:(x: 1;y: 1;z: 1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:-1;);Normal:(x:0;y:1;z:0;);TexCoord:(u:1;v:1)),
-        (Position:(x:-1;y: 1;z: 1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:0;z:-1;);Normal:(x:0;y:1;z:0;);TexCoord:(u:1;v:0)),
-
-        // Back
-        (Position:(x: 1;y:-1;z:-1;);Tangent:(x:-1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:-1;);TexCoord:(u:0;v:0)),
-        (Position:(x: 1;y: 1;z:-1;);Tangent:(x:-1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:-1;);TexCoord:(u:0;v:1)),
-        (Position:(x:-1;y: 1;z:-1;);Tangent:(x:-1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:-1;);TexCoord:(u:1;v:1)),
-        (Position:(x:-1;y:-1;z:-1;);Tangent:(x:-1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:-1;);TexCoord:(u:1;v:0)),
-
-        // Front
-        (Position:(x:-1;y:-1;z:1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:1;);TexCoord:(u:0;v:0)),
-        (Position:(x:-1;y: 1;z:1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:1;);TexCoord:(u:0;v:1)),
-        (Position:(x: 1;y: 1;z:1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:1;);TexCoord:(u:1;v:1)),
-        (Position:(x: 1;y:-1;z:1;);Tangent:(x:1;y:0;z:0;);Bitangent:(x:0;y:1;z:0;);Normal:(x:0;y:0;z:1;);TexCoord:(u:1;v:0))
-
-       );
-
-       CubeIndices:array[0..35] of TpvInt32=
-        ( // Left
-          0, 1, 2,
-          0, 2, 3,
-
-          // Right
-          4, 5, 6,
-          4, 6, 7,
-
-          // Bottom
-          8, 9, 10,
-          8, 10, 11,
-
-          // Top
-          12, 13, 14,
-          12, 14, 15,
-
-          // Back
-          16, 17, 18,
-          16, 18, 19,
-
-          // Front
-          20, 21, 22,
-          20, 22, 23);
-
-      SkyVertices:array[0..2] of TSkyVertex=
+const SkyVertices:array[0..2] of TSkyVertex=
        (
         (Position:(x:-1.0;y:-1.0);TexCoord:(x:0.0;y:0.0)),
         (Position:(x: 3.0;y:-1.0);TexCoord:(x:2.0;y:0.0)),
@@ -334,6 +273,8 @@ begin
  fPhysicsWorld := TPhysicsWorld.Create;
  fResolutionOption := ro720p;
  fSelectedResolution := 0;
+ fHoveredButtonIndex := -1;
+ fCubeIndexCount := 36;
  fBestScore := 0;
  fLastScore := 0;
  fHistoryCount := 0;
@@ -457,43 +398,16 @@ begin
                               SizeOf(SkyVertices),
                               TpvVulkanBufferUseTemporaryStagingBufferMode.Yes);
 
-  fSkyPipelineLayout:=TpvVulkanPipelineLayout.Create(pvApplication.VulkanDevice);
-  fSkyPipelineLayout.Initialize;
+   fSkyPipelineLayout:=TpvVulkanPipelineLayout.Create(pvApplication.VulkanDevice);
+   fSkyPipelineLayout.AddPushConstantRange(TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),0,SizeOf(TpvFloat)*2);
+   fSkyPipelineLayout.Initialize;
 
   fVulkanGraphicsPipeline:=nil;
   fSkyGraphicsPipeline:=nil;
 
  fVulkanRenderPass:=nil;
 
- fVulkanVertexBuffer:=TpvVulkanBuffer.Create(pvApplication.VulkanDevice,
-                                             SizeOf(CubeVertices),
-                                             TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT) or TVkBufferUsageFlags(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
-                                             TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
-                                             [],
-                                             TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-                                            );
- fVulkanVertexBuffer.UploadData(pvApplication.VulkanDevice.TransferQueue,
-                                fVulkanTransferCommandBuffer,
-                                fVulkanTransferCommandBufferFence,
-                                CubeVertices,
-                                0,
-                                SizeOf(CubeVertices),
-                                TpvVulkanBufferUseTemporaryStagingBufferMode.Yes);
-
- fVulkanIndexBuffer:=TpvVulkanBuffer.Create(pvApplication.VulkanDevice,
-                                            SizeOf(CubeIndices),
-                                            TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT) or TVkBufferUsageFlags(VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
-                                            TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
-                                            [],
-                                            TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-                                           );
- fVulkanIndexBuffer.UploadData(pvApplication.VulkanDevice.TransferQueue,
-                               fVulkanTransferCommandBuffer,
-                               fVulkanTransferCommandBufferFence,
-                               CubeIndices,
-                               0,
-                               SizeOf(CubeIndices),
-                               TpvVulkanBufferUseTemporaryStagingBufferMode.Yes);
+  GenerateBeveledCube;
 
  for Index:=0 to MaxInFlightFrames-1 do begin
   fVulkanUniformBuffers[Index]:=TpvVulkanBuffer.Create(pvApplication.VulkanDevice,
@@ -874,11 +788,21 @@ begin
    KEYCODE_UP:begin
     if fBenchmarkPhase = bpIdleMenu then begin
      if fSelectedResolution > 0 then Dec(fSelectedResolution);
+     case fSelectedResolution of
+      0: fResolutionOption := ro720p;
+      1: fResolutionOption := ro1080p;
+      2: fResolutionOption := roNative;
+     end;
     end;
    end;
    KEYCODE_DOWN:begin
     if fBenchmarkPhase = bpIdleMenu then begin
      if fSelectedResolution < 2 then Inc(fSelectedResolution);
+     case fSelectedResolution of
+      0: fResolutionOption := ro720p;
+      1: fResolutionOption := ro1080p;
+      2: fResolutionOption := roNative;
+     end;
     end;
    end;
   end;
@@ -888,7 +812,7 @@ end;
 function TPasCubeScreen.PointerEvent(const aPointerEvent:TpvApplicationInputPointerEvent):boolean;
 var Delta:TpvVector2;
 begin
- result:=inherited PointerEvent(aPointerEvent);
+ result := false;
  case aPointerEvent.PointerEventType of
   TpvApplicationInputPointerEventType.Down:begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
@@ -1013,6 +937,7 @@ var p:pointer;
     i: Integer;
     isBenchmark: Boolean;
     gpuStressValue: TpvFloat;
+    SkyParams: array[0..1] of TpvFloat;
 begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
@@ -1064,6 +989,11 @@ begin
    if fShowSkybox then begin
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fSkyGraphicsPipeline.Handle);
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindVertexBuffers(0,1,@fSkyVertexBuffer.Handle,@Offsets);
+    SkyParams[0] := State^.AnglePhases[1];
+    SkyParams[1] := State^.AnglePhases[0];
+    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
+     fSkyPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+     0, SizeOf(TpvFloat)*2, @SkyParams[0]);
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDraw(3,1,0,0);
    end;
 
@@ -1108,7 +1038,7 @@ begin
      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
       fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
       0, SizeOf(TpvVector4)*2, @PushConstants);
-     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(36,1,0,0,0);
+     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
     end;
    end;
 
@@ -1134,7 +1064,7 @@ begin
      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
       fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
       0, SizeOf(TpvVector4)*2, @PushConstants);
-     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(36,1,0,0,0);
+     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
     end;
    end;
 
@@ -1154,7 +1084,7 @@ begin
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
      fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
      0, SizeOf(TpvVector4)*2, @PushConstants);
-    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(36,1,0,0,0);
+    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
    end;
 
   fVulkanRenderPass.EndRenderPass(fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex]);
@@ -1612,18 +1542,28 @@ end;
 
 procedure TPasCubeScreen.DrawMenuOverlay;
 var app: TPasCubeApplication;
-    cy: TpvFloat;
+    cx: TpvFloat;
+    ResStr: string;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
- cy := pvApplication.Height * 0.35;
- app.TextOverlay.AddText(pvApplication.Width*0.5, cy - 80, 2.5, toaCenter, 'PasCube Benchmark');
- app.TextOverlay.AddText(pvApplication.Width*0.5, cy - 20, 1.5, toaCenter, Format('Resolution: %s', [fCurrentResult.Resolution]));
- if fLastScore > 0 then
-  app.TextOverlay.AddText(pvApplication.Width*0.5, cy + 20, 1.3, toaCenter, Format('Last Score: %s', [FormatScoreValue(fLastScore)]));
- if fBestScore > 0 then
-  app.TextOverlay.AddText(pvApplication.Width*0.5, cy + 50, 1.3, toaCenter, Format('Best Score: %s', [FormatScoreValue(fBestScore)]));
- app.TextOverlay.AddText(pvApplication.Width*0.5, cy + 100, 1.2, toaCenter, 'Press ENTER to start');
+
+ cx := pvApplication.Width * 0.5;
+
+ // Centered Title
+ app.TextOverlay.AddText(cx, 80.0, 2.0, toaCenter, 'PasCube Benchmark');
+
+ // Resolution string
+ case fResolutionOption of
+  ro720p: ResStr := '720p';
+  ro1080p: ResStr := '1080p';
+  roNative: ResStr := 'Native';
+  else ResStr := '720p';
+ end;
+
+ // Clear text instructions instead of buttons
+ app.TextOverlay.AddText(cx, pvApplication.Height - 120.0, 1.3, toaCenter, 'Resolution: ' + ResStr);
+ app.TextOverlay.AddText(cx, pvApplication.Height - 80.0, 1.2, toaCenter, 'Press ENTER to start');
 end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
@@ -1678,45 +1618,207 @@ var app: TPasCubeApplication;
     cy, x1, x2, x3, x4, y: TpvFloat;
     i: Integer;
     lineStr, phaseType: String;
+    cx: TpvFloat;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
- cy := pvApplication.Height * 0.15;
- app.TextOverlay.AddText(pvApplication.Width*0.5, cy, 3.0, toaCenter, 'Benchmark Complete!');
- app.TextOverlay.AddText(pvApplication.Width*0.5, cy + 60, 4.0, toaCenter,
-  FormatScoreValue(fCurrentResult.TotalScore));
- y := cy + 130;
- x1 := pvApplication.Width * 0.10;
- x2 := pvApplication.Width * 0.35;
+
+ cx := pvApplication.Width * 0.5;
+ cy := pvApplication.Height * 0.12;
+
+ app.TextOverlay.AddText(cx, cy, 2.5, toaCenter, 'Benchmark Complete!');
+ app.TextOverlay.AddText(cx, cy + 50, 3.5, toaCenter, FormatScoreValue(fCurrentResult.TotalScore));
+
+ y := cy + 110;
+ x1 := pvApplication.Width * 0.15;
+ x2 := pvApplication.Width * 0.40;
  x3 := pvApplication.Width * 0.60;
- x4 := pvApplication.Width * 0.80;
- app.TextOverlay.AddText(x1, y, 1.5, toaLeft, 'Phase');
- app.TextOverlay.AddText(x2, y, 1.5, toaLeft, 'Type');
- app.TextOverlay.AddText(x3, y, 1.5, toaRight, 'Score');
- app.TextOverlay.AddText(x4, y, 1.5, toaRight, 'FPS');
- y := y + 25;
- app.TextOverlay.AddText(x1, y, 1.2, toaLeft, '--------------------------------------------------');
+ x4 := pvApplication.Width * 0.85;
+
+ app.TextOverlay.AddText(x1, y, 1.3, toaLeft, 'Phase');
+ app.TextOverlay.AddText(x2, y, 1.3, toaLeft, 'Type');
+ app.TextOverlay.AddText(x3, y, 1.3, toaRight, 'Score');
+ app.TextOverlay.AddText(x4, y, 1.3, toaRight, 'FPS');
+ y := y + 20;
+ app.TextOverlay.AddText(x1, y, 1.1, toaLeft, '--------------------------------------------------');
+
  for i := 0 to 6 do begin
-  y := y + 25;
+  y := y + 22;
   case i of
    0..2: phaseType := 'CPU';
    3..4: phaseType := 'GPU';
    5: phaseType := 'Both';
    else phaseType := '';
   end;
-  app.TextOverlay.AddText(x1, y, 1.3, toaLeft, fCurrentResult.PhaseResults[i].PhaseName);
-  app.TextOverlay.AddText(x2, y, 1.3, toaLeft, phaseType);
-  app.TextOverlay.AddText(x3, y, 1.3, toaRight, FormatScoreValue(fCurrentResult.PhaseResults[i].Score));
-  app.TextOverlay.AddText(x4, y, 1.3, toaRight,
-   Format('%.1f', [fCurrentResult.PhaseResults[i].FPSAvg]));
+  app.TextOverlay.AddText(x1, y, 1.1, toaLeft, fCurrentResult.PhaseResults[i].PhaseName);
+  app.TextOverlay.AddText(x2, y, 1.1, toaLeft, phaseType);
+  app.TextOverlay.AddText(x3, y, 1.1, toaRight, FormatScoreValue(fCurrentResult.PhaseResults[i].Score));
+  app.TextOverlay.AddText(x4, y, 1.1, toaRight, Format('%.1f', [fCurrentResult.PhaseResults[i].FPSAvg]));
  end;
- y := y + 40;
- app.TextOverlay.AddText(pvApplication.Width*0.5, y, 1.5, toaCenter, 'History (Last 5 runs)');
+
+ y := y + 35;
+ app.TextOverlay.AddText(cx, y, 1.3, toaCenter, 'History (Last 5 runs)');
  for i := 0 to Min(fHistoryCount, 5) - 1 do begin
-  y := y + 22;
+  y := y + 20;
   lineStr := Format('#%d: %s  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), fHistory[i].Timestamp]);
-  app.TextOverlay.AddText(pvApplication.Width*0.5, y, 1.2, toaCenter, lineStr);
+  app.TextOverlay.AddText(cx, y, 1.1, toaCenter, lineStr);
  end;
+
+ // Clear text instructions instead of buttons
+ app.TextOverlay.AddText(cx, pvApplication.Height - 80.0, 1.2, toaCenter, 'Press ENTER/SPACE for Menu');
+end;
+
+procedure TPasCubeScreen.GenerateBeveledCube;
+const Subdivisions = 16;
+      R = 0.15;
+      InnerLimit = 0.85; // 1.0 - R
+var Face, ix, iy: Integer;
+    fx, fy, len: TpvFloat;
+    P, C, D, N: TpvVector3;
+    U, V, W: TpvVector3;
+    Vertices: array of TVertex;
+    Indices: array of TpvInt32;
+    VertexCount, IndexCount: Integer;
+    v00, v10, v01, v11: Integer;
+    FaceOffset: Integer;
+    function Clamp(const Value, MinValue, MaxValue: TpvFloat): TpvFloat; inline;
+    begin
+     if Value < MinValue then
+      result := MinValue
+     else if Value > MaxValue then
+      result := MaxValue
+     else
+      result := Value;
+    end;
+begin
+ SetLength(Vertices, 6 * (Subdivisions + 1) * (Subdivisions + 1));
+ SetLength(Indices, 6 * Subdivisions * Subdivisions * 6);
+ VertexCount := 0;
+ IndexCount := 0;
+
+ for Face := 0 to 5 do begin
+  // Define U, V (tangents) and W (normal) for each face
+  case Face of
+   0: begin // Left (-X)
+    W := TpvVector3.Create(-1.0, 0.0, 0.0);
+    U := TpvVector3.Create(0.0, 0.0, 1.0);
+    V := TpvVector3.Create(0.0, 1.0, 0.0);
+   end;
+   1: begin // Right (+X)
+    W := TpvVector3.Create(1.0, 0.0, 0.0);
+    U := TpvVector3.Create(0.0, 0.0, -1.0);
+    V := TpvVector3.Create(0.0, 1.0, 0.0);
+   end;
+   2: begin // Bottom (-Y)
+    W := TpvVector3.Create(0.0, -1.0, 0.0);
+    U := TpvVector3.Create(1.0, 0.0, 0.0);
+    V := TpvVector3.Create(0.0, 0.0, 1.0);
+   end;
+   3: begin // Top (+Y)
+    W := TpvVector3.Create(0.0, 1.0, 0.0);
+    U := TpvVector3.Create(1.0, 0.0, 0.0);
+    V := TpvVector3.Create(0.0, 0.0, -1.0);
+   end;
+   4: begin // Back (-Z)
+    W := TpvVector3.Create(0.0, 0.0, -1.0);
+    U := TpvVector3.Create(-1.0, 0.0, 0.0);
+    V := TpvVector3.Create(0.0, 1.0, 0.0);
+   end;
+   5: begin // Front (+Z)
+    W := TpvVector3.Create(0.0, 0.0, 1.0);
+    U := TpvVector3.Create(1.0, 0.0, 0.0);
+    V := TpvVector3.Create(0.0, 1.0, 0.0);
+   end;
+  end;
+
+  FaceOffset := VertexCount;
+
+  for iy := 0 to Subdivisions do begin
+   fy := (iy / Subdivisions) * 2.0 - 1.0;
+   for ix := 0 to Subdivisions do begin
+    fx := (ix / Subdivisions) * 2.0 - 1.0;
+
+    // Point on the unit cube face
+    P := W + U * fx + V * fy;
+
+    // Closest point on the inner box
+    C.x := Clamp(P.x, -InnerLimit, InnerLimit);
+    C.y := Clamp(P.y, -InnerLimit, InnerLimit);
+    C.z := Clamp(P.z, -InnerLimit, InnerLimit);
+
+    // Vector from inner box closest point to face point
+    D := P - C;
+    len := sqrt(sqr(D.x) + sqr(D.y) + sqr(D.z));
+
+    if len > 0.0 then begin
+     N := D * (1.0 / len);
+     Vertices[VertexCount].Position := C + N * R;
+     Vertices[VertexCount].Normal := N;
+    end else begin
+     Vertices[VertexCount].Position := P;
+     Vertices[VertexCount].Normal := W;
+    end;
+
+    Vertices[VertexCount].Tangent := U;
+    Vertices[VertexCount].Bitangent := V;
+    Vertices[VertexCount].TexCoord.u := ix / Subdivisions;
+    Vertices[VertexCount].TexCoord.v := iy / Subdivisions;
+
+    Inc(VertexCount);
+   end;
+  end;
+
+  // Indices
+  for iy := 0 to Subdivisions - 1 do begin
+   for ix := 0 to Subdivisions - 1 do begin
+    v00 := FaceOffset + iy * (Subdivisions + 1) + ix;
+    v10 := v00 + 1;
+    v01 := v00 + (Subdivisions + 1);
+    v11 := v01 + 1;
+
+    Indices[IndexCount + 0] := v00;
+    Indices[IndexCount + 1] := v01;
+    Indices[IndexCount + 2] := v11;
+    Indices[IndexCount + 3] := v00;
+    Indices[IndexCount + 4] := v11;
+    Indices[IndexCount + 5] := v10;
+    Inc(IndexCount, 6);
+   end;
+  end;
+ end;
+
+ // Create and upload buffers
+ fVulkanVertexBuffer := TpvVulkanBuffer.Create(pvApplication.VulkanDevice,
+                                             VertexCount * SizeOf(TVertex),
+                                             TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT) or TVkBufferUsageFlags(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+                                             TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                             [],
+                                             TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+                                            );
+ fVulkanVertexBuffer.UploadData(pvApplication.VulkanDevice.TransferQueue,
+                                fVulkanTransferCommandBuffer,
+                                fVulkanTransferCommandBufferFence,
+                                Vertices[0],
+                                0,
+                                VertexCount * SizeOf(TVertex),
+                                TpvVulkanBufferUseTemporaryStagingBufferMode.Yes);
+
+ fVulkanIndexBuffer := TpvVulkanBuffer.Create(pvApplication.VulkanDevice,
+                                            IndexCount * SizeOf(TpvInt32),
+                                            TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT) or TVkBufferUsageFlags(VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
+                                            TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                            [],
+                                            TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+                                           );
+ fVulkanIndexBuffer.UploadData(pvApplication.VulkanDevice.TransferQueue,
+                               fVulkanTransferCommandBuffer,
+                               fVulkanTransferCommandBufferFence,
+                               Indices[0],
+                               0,
+                               IndexCount * SizeOf(TpvInt32),
+                               TpvVulkanBufferUseTemporaryStagingBufferMode.Yes);
+
+ fCubeIndexCount := IndexCount;
 end;
 
 end.

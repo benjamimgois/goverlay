@@ -22,7 +22,7 @@ out gl_PerVertex {
 };
 
 void main() {
-  outNormal = (ubo.modelViewNormalMatrix * vec4(inNormal, 1.0)).xyz;
+  outNormal = normalize((ubo.modelViewNormalMatrix * vec4(inNormal, 0.0)).xyz);
 	outTexCoord = inTexCoord;
 	gl_Position = ubo.modelViewProjectionMatrix * vec4(inPosition, 1.0);
 }
