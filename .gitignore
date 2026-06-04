@@ -96,3 +96,6 @@ lib/
 *.app/
 
 # End of https://www.toptal.com/developers/gitignore/api/lazarus
+
+# Allow precompiled lzma object files required by PasCube linking
+!pascube_src/pasvulkan/src/lzma_c/*.o
