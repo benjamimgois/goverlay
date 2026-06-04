@@ -39,6 +39,7 @@ type TPasCubeApplication=class(TpvApplication)
        fDesiredX:TpvInt32;
        fDesiredY:TpvInt32;
        fHasDesiredPosition:boolean;
+       fVersion:string;
       public
        constructor Create; override;
        destructor Destroy; override;
@@ -53,6 +54,7 @@ type TPasCubeApplication=class(TpvApplication)
        procedure Draw(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil); override;
       published
        property TextOverlay:TTextOverlay read fTextOverlay;
+       property Version:string read fVersion write fVersion;
       end;
 
 var Application:TPasCubeApplication=nil;
@@ -71,6 +73,7 @@ begin
  fDesiredX:=0;
  fDesiredY:=0;
  fHasDesiredPosition:=false;
+ fVersion:='1.8.0';
 end;
 
 destructor TPasCubeApplication.Destroy;
@@ -89,7 +92,6 @@ begin
   VulkanDebugging:=true;
   VulkanValidation:=true;
  end;
- Title:='PasCube 1.8.0';
  PathName:='PasCube';
  StartScreen:=TPasCubeScreen;
  VisibleMouseCursor:=true;
@@ -121,9 +123,13 @@ begin
    Inc(Index);
    PosY:=StrToIntDef(ParamStr(Index),0);
    HasY:=true;
+  end else if (Arg='--version') and (Index<ParamCount) then begin
+   Inc(Index);
+   fVersion:=ParamStr(Index);
   end;
   Inc(Index);
  end;
+ Title:='PasCube ' + fVersion;
  if HasX or HasY then begin
   fDesiredX:=PosX;
   fDesiredY:=PosY;
