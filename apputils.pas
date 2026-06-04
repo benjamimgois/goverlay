@@ -288,11 +288,7 @@ function CheckDependencies(out Missing: TStringList): Boolean;
 begin
   Missing := TStringList.Create;
 
-  if not IsRunningInFlatpak then
-  begin
-    if not IsCommandAvailable('pascube') then
-      Missing.Add('pascube');
-  end;
+
 
   if IsRunningInFlatpak then
   begin
@@ -313,8 +309,7 @@ begin
       Missing.Add('vkbasalt');
   end;
 
-  if not IsCommandAvailable('vkcube') then
-    Missing.Add('vkcube');
+
   if not IsCommandAvailable('7z') then
     Missing.Add('p7zip');
   if not IsCommandAvailable('curl') then

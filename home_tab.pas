@@ -62,8 +62,8 @@ const
 var
   BG, CARD_BG, TXT_CLR, MUTED_CLR: TColor;
 
-  DEP_NAMES: array[0..7] of string = (
-    'PasCube', 'vkcube', '7z', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
+  DEP_NAMES: array[0..5] of string = (
+    '7z', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
   MOD_NAMES: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'vkSumi');
 
 var
@@ -324,12 +324,12 @@ begin
     end;
     Inc(Y, Card.Height + SEC_GAP);
 
-    // ── Card 2: Dependencies (3×3 grid) ──────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
+    // ── Card 2: Dependencies (3×2 grid) ──────────────────────────────────────
+    Card := MkCard(Y, CARD_P * 2 + 24 + 2 * ROW_H + 8);
     MkTitle(Card, 'Dependencies', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    for i := 0 to 7 do
+    for i := 0 to 5 do
     begin
       Row  := CARD_P + 30 + (i div 3) * ROW_H;
       ColX := CARD_P + (i mod 3) * COL_W;
@@ -471,13 +471,11 @@ end;
 
 procedure THomeTabHelper.RefreshHomeDeps;
 const
-  DEP_KEYS: array[0..7] of string = (
-    'pascube', 'vkcube', 'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas', 'nerdfonts');
-  DEP_DISPLAY: array[0..7] of string = (
-    'PasCube', 'vkcube', '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
-  DEP_HINTS: array[0..7] of string = (
-    'OpenGL preview cube for testing the MangoHud overlay',
-    'Vulkan cube for testing Vulkan layer injection',
+  DEP_KEYS: array[0..5] of string = (
+    'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas', 'nerdfonts');
+  DEP_DISPLAY: array[0..5] of string = (
+    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
+  DEP_HINTS: array[0..5] of string = (
     'Archive tool required for OptiScaler extraction',
     'HTTP client used to download OptiScaler updates and covers',
     'Version control used to fetch fgmod scripts',
@@ -495,7 +493,7 @@ begin
     if not Assigned(FHomeDepDots[0]) then Exit;
     CheckDependencies(Missing);
     try
-      for i := 0 to 7 do
+      for i := 0 to 5 do
       begin
         FHomeDepDots[i].Hint := DEP_HINTS[i];
         FHomeDepLbls[i].Hint := DEP_HINTS[i];

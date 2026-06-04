@@ -274,12 +274,7 @@ function CheckDependencies(out Missing: TStringList): Boolean;
 begin
   Missing := TStringList.Create;
 
-  // check if pascube is available (skip in Flatpak mode - no Flatpak version yet)
-  if not IsRunningInFlatpak then
-  begin
-    if not IsCommandAvailable('pascube') then
-       Missing.Add('pascube');
-  end;
+
 
   // Check for Flatpak runtimes or native binaries
   if IsRunningInFlatpak then
@@ -315,9 +310,7 @@ begin
       Missing.Add('vksumi');
   end;
 
-  // check if vkcube is available
-  if not IsCommandAvailable('vkcube') then
-    Missing.Add('vkcube');
+
 
   // check if 7z is available
   if not IsCommandAvailable('7z') then
