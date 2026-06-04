@@ -1,0 +1,8 @@
+
+let (ta,tb,i)=(0,0,1000000);
+ta=DateTime.now();
+while(i-->0){
+}
+tb=DateTime.now();
+puts(Math.round(DateTime.milliseconds(tb-ta))," milliseconds");
+readLine();

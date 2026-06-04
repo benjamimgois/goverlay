@@ -3634,8 +3634,8 @@ begin
   if IsRunningInFlatpak then
   begin
       // FLATPAK MODE
-      if IsCommandAvailable('pascube') then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
+      if IsPasCubeAvailable then
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetPasCubeCommand + ' &')
       else if IsCommandAvailable('vkcube') then
       begin
          SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
@@ -3650,8 +3650,8 @@ begin
   else
   begin
       // NATIVE MODE
-      if IsCommandAvailable('pascube') then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 pascube &')
+      if IsPasCubeAvailable then
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetPasCubeCommand + ' &')
       else if IsCommandAvailable('vkcube') then
       begin
         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
@@ -4153,8 +4153,8 @@ procedure Tgoverlayform.runpascubetItemClick(Sender: TObject);
 begin
 
 
-  if IsCommandAvailable('pascube') then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'pascube &')
+  if IsPasCubeAvailable then
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' &')
   else
     SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
 
@@ -7312,8 +7312,8 @@ end;
 
 procedure Tgoverlayform.PreviewBtnClick(Sender: TObject);
 begin
-  if IsCommandAvailable('pascube') then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'pascube &')
+  if IsPasCubeAvailable then
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' &')
   else if IsCommandAvailable('vkcube') then
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &')
   else

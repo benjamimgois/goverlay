@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Check if the script is run from the root of the PasVulkan GIT repository by checking if the .git directory is present
+if [ ! -d ".git" ]; then
+  echo "This script must be run from the root of the PasVulkan GIT repository"
+  exit 1
+fi
+
+# Check if the script is run from the original author by checking if the home directory /home/bero is present, which is the home directory of the original author 
+if [ ! -d "/home/bero" ]; then
+  echo "This script must be run only from the original author"
+  exit 1
+fi
+
+read -p "Enter commit message (or leave blank for default): " commit_message
+
+if [ -z "$commit_message" ]; then
+  commit_message="More work"
+fi
+
+# Save the current directory in a variable
+OLD_DIR="$(pwd)" 
+
+# Copy modified files from the PasJSON submodule to the real directory of the PasJSON GIT repository
+cp -f externals/pasjson/src/PasJSON.pas ../pasjson/src/PasJSON.pas
+
+# Clean the PasJSON submodule from the local changes 
+cd externals/pasjson
+git stash # Stash the local changes
+git stash drop # Drop the stashed local changes
+git pull origin master # For ensuring that the local PasJSON submodule is on the right branch
+cd "${OLD_DIR}"
+
+# Commit the changes in the PasJSON GIT repository
+cd ../pasjson
+git commit -a -m "$commit_message"
+git push
+cd "${OLD_DIR}"
+
+# Update all submodules including the PasJSON submodule for the lastest versions
+git submodule update --remote --recursive
+
+# Commit the changes in the main PasVulkan GIT repository
+git commit -am "Updated submodules"
+git push
+
+# Switch to the old directory back
+cd "${OLD_DIR}"
+
+# Exit with success
+exit 0

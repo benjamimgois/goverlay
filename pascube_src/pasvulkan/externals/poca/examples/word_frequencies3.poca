@@ -1,0 +1,34 @@
+#!/usr/bin/env poca
+
+// A very simple word frequency counter thatdoes not take punctuation into account.
+
+let ta, tb;
+
+ta = DateTime.now();
+let words = {}, file = IO.open(arguments.pop() ?? __FILE__, 'r');
+while (!file.eof()) {
+  foreach (let s in file.readln().split(' ', true)){
+    words[s] = words[?s?] + 1;
+  }
+}
+file.close();
+tb = DateTime.now();
+puts(`Read In Time taken: ${DateTime.milliseconds(tb - ta)}ms`);
+
+ta = DateTime.now();
+let temp = words.toArray(); 
+tb = DateTime.now();
+puts(`Array Time taken: ${DateTime.milliseconds(tb - ta)}ms`);
+
+ta = DateTime.now();
+temp.sort(1).reverse();
+tb = DateTime.now();
+puts(`Sort Time taken: ${DateTime.milliseconds(tb - ta)}ms`);
+
+ta = DateTime.now();
+foreach(let w in temp) {
+  puts(`${w[0]} ${w[1]}`);
+}
+tb = DateTime.now();
+puts(`Output Time taken: ${DateTime.milliseconds(tb - ta)}ms`);
+

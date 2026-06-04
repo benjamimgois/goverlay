@@ -1,0 +1,103 @@
+
+(function(rows, cols){
+
+  var seed = (Math.random() * 0xffffffff) | 0;
+
+  function _random(maxValue) {
+    seed ^= seed << 13;
+    seed ^= seed >> 17;
+    seed ^= seed << 5;
+    return (((seed >> 24) & 0xffffff) * maxValue) >> 24;
+  }
+
+  var a = [];
+
+  for (let i = 0; i < (rows * 2) + 1; i++) {
+    let l = [];
+    for (let j = 0; j < (cols * 2) + 1; j++) {
+      l.push("#");
+    }
+    a.push(l);
+  }
+
+  function mazeStep(r, c) {
+    let vector = [[0, 0], [0, 0], [0, 0]]; /* 3 possible directions */
+    while (1) {
+    
+      let i = 0; /* create a list of possible options */
+      if ((r > 1) && (a[r - 2][c] !== " ")) { 
+        vector[i][0] = r - 2; 
+        vector[i][1] = c; 
+        i++; 
+      }
+      if ((r < (rows * 2) - 1) && (a[r + 2][c] !== " ")) { 
+        vector[i][0] = r + 2; 
+        vector[i][1] = c; 
+        i++; 
+      }
+      if ((c > 1) && (a[r][c - 2] !== " ")) { 
+        vector[i][0] = r; 
+        vector[i][1] = c - 2; 
+        i++; 
+      }
+      if ((c < (cols * 2) - 1) && (a[r][c + 2] !== " ")) { 
+        vector[i][0] = r; 
+        vector[i][1] = c + 2; 
+        i++; 
+      }   
+
+      // i is never > 3 because path behind is cleared
+    
+      // check for dead end
+      if (i == 0){
+        break; 
+      }
+    
+      // select one of the possible directions at random
+      i = _random(i);
+    
+      // knock out block
+      a[vector[i][0]][vector[i][1]] = " "; 
+
+      // knock out path
+      a[((vector[i][0] + r) / 2) | 0][((vector[i][1] + c) / 2) | 0] = " "; 
+    
+      // move to the next location recursively
+      mazeStep(vector[i][0], vector[i][1]);
+    
+    }
+
+  }
+
+  mazeStep(1, 1);
+
+  // knock out the entrance and exit
+  while(1){
+    let col = Math.floor((Math.random() * cols * 2)) | 0;
+    if (a[1][col] == " "){
+      a[0][col] = " ";
+      break;
+    }
+  }
+
+  // knock out the exit
+  while(1){
+    let col = Math.floor((Math.random() * cols * 2)) | 0;
+    if (a[(rows * 2) - 1][col] == " "){
+      a[rows * 2][col] = " ";
+      break;
+    }
+  }
+
+  // print the maze
+  for (let i = 0; i < (rows * 2) + 1; i++) {
+    let l = "";
+    for (let j = 0; j < (cols * 2) + 1; j++) {
+      l ~= a[i][j];
+    }
+    puts(l);
+  }
+
+})(6, 12);
+
+// Done!

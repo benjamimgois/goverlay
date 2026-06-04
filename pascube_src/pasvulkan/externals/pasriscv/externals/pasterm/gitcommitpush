@@ -1,0 +1,10 @@
+#!/bin/sh
+
+read -p "Enter commit message (or leave blank for default): " commit_message
+
+if [ -z "$commit_message" ]; then
+  commit_message="More work"
+fi
+
+git commit -am "$commit_message"
+git push

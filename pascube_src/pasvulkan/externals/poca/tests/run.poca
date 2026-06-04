@@ -1,0 +1,136 @@
+#!/usr/bin/env poca
+
+// A rudimentary Unit Testing tool/suite for POCA.
+
+/*
+  TODO:
+   - load tests from relative path (need Path.methods)
+   - capture exceptions
+   - option to only run specific tests from one or more files
+*/
+
+import Test from 'unit/base.poca';
+import TestRunner from 'runner.poca';
+
+let align = function(s, col = 50) {
+  const padding = Math.max(0, col - s.length);
+  return ' '.repeat(padding);
+};
+
+const RESET  = "\x1b[0m";
+const RED    = "\x1b[31m";
+const YELLOW = "\x1b[33m";
+const GREEN  = "\x1b[32m";
+const BLUE   = "\x1b[34m";
+const WHITE  = "\x1b[37m";
+
+let test_files = [];
+
+const flags = arguments.map(arg => (/^-([a-z]|-[a-z-]{3,})$/.match(arg)) && arg);
+const verbose = (flags.includes('-v') || flags.includes('--verbose')) && arguments.remove('-v').remove('--verbose');
+const quiet = (flags.includes('-q') || flags.includes('--quiet')) && arguments.remove('-q').remove('--quiet');
+const abort = (flags.includes('-s') || flags.includes('--stop-on-error')) && arguments.remove('-s').remove('--stop-on-error');
+
+if (arguments.length > 0)
+  test_files = arguments;
+
+if (test_files.empty()) {
+  foreach (let entry in IO.getDirectoryEntries('tests/unit/test_*.poca'))
+    if (entry.type == 'file' && entry.size > 0)
+      test_files.push('tests/unit/' ~ entry.name);
+
+  test_files.sort();
+}
+
+let total = 0, succeeded = 0, failed = 0;
+
+let results = {};
+let log = (file, topic, args...) => (quiet) ? {} : {
+  if (!results.contains(file))
+    results[file] = {};
+
+  if (!results[file].contains(topic))
+    results[file][topic] = [];
+
+  if (args.length)
+    results[file][topic].push(args...)
+};
+
+foreach (let f in test_files) {
+  let t = require(f);
+
+  foreach (let n in t.keys()) {
+    const tests = (typeof(t[n]) === 'Array') ? t[n] : [ t[n] ];
+
+    for (let i = 0; i < tests.length; ++i) {
+      ++total;
+
+      let res = TestRunner.run_as_coro(tests[i]); // tests[i]()
+      if (typeof(res) === 'Array') {
+        let sub_res = true;
+        foreach (let ok in res) {
+          if (!ok) {
+            sub_res = false;
+            break; // break early if a sub-test fails
+          }
+        }
+
+        res = sub_res;
+      }
+
+      (res == true) ? ++succeeded : ++failed;
+      log(f, n, res);
+
+      if (abort && failed > 0)
+        break;
+    }
+
+    if (abort && failed > 0)
+      break;
+  }
+
+  if (abort && failed > 0)
+    break;
+}
+
+let line_break = false;
+
+forkey (let test in results) {
+  forkey (let topic in results[test]) {
+    const tests = results[test][topic];
+
+    const num_ok = tests.reduce((sum, v) => sum += v );
+    if (!verbose && tests.length == num_ok)
+      continue;
+
+    line_break = true;
+
+    puts();
+    puts(RESET ~ "=> Running test '" ~ YELLOW ~ test ~ RESET ~ "'...");
+
+    if (tests.length > 1) {
+      for (let i = 0; i < tests.length; ++i) {
+        const res = tests[i];
+        puts(WHITE ~ `${topic}#${BLUE}${i+1}${WHITE}` ~ align(`${topic}#${i+1}`) ~ '[' ~ (res ? GREEN ~ 'OK' : RED ~'FAIL') ~ WHITE ~ ']');
+      }
+    } else puts(WHITE ~ topic ~ align(topic) ~ '[' ~ (tests[0] ? GREEN ~ 'OK' : RED ~ 'FAIL') ~ WHITE ~ ']');
+  }
+}
+
+if (line_break)
+  puts();
+
+let error = if (failed > 0 || total !== (succeeded + failed)) {
+  if (!quiet)
+    puts(RED ~ `D'oh! ${failed} of ${total} test${total > 1 ? 's' : ''} failed. 😬` ~ WHITE);
+  true;
+} else {
+  if (!quiet)
+    puts(GREEN ~ `Perfect! All ${succeeded} test${total > 1 ? 's' : ''} succeeded. 🥳` ~ WHITE);
+  false;
+};
+
+if (verbose)
+  puts();
+
+return error;

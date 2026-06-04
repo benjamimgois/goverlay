@@ -1,0 +1,86 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_gpu_shader_fp64 : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer TriangleIndices {
+  uint indices[];
+} triangleIndices;
+
+layout(push_constant) uniform PushConstants {
+  uint tileMapResolution;
+  uint tileResolution;
+} pushConstants;
+
+/* clang-format on */
+
+void main(){
+
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  uint lod = 0u;
+  uint lodIndexOffset = 0u;
+
+  bool foundLOD = false;
+  for(uint lodOffset = 0u, resolution = pushConstants.tileResolution; (lod < 32u) && (resolution > 0u); lod++, resolution >>= 1u){
+    lodIndexOffset = lodOffset;
+    if(uint(gl_GlobalInvocationID.x) < (lodOffset += (((resolution * resolution) * (tileMapSize * 6u))))){
+      foundLOD = true;
+      break;
+    }
+  }   
+
+  if(foundLOD){
+
+    const uint index = uint(gl_GlobalInvocationID.x) - lodIndexOffset;
+
+    const uint tileLODResolution = pushConstants.tileResolution >> lod; 
+    
+    const uint tileIndexSize = (tileLODResolution * tileLODResolution) * 6u;
+
+    const uint tileVertexSize = pushConstants.tileResolution * pushConstants.tileResolution;
+
+    const uint tileMapTotalSize = tileIndexSize * tileMapSize;
+
+    if(index < tileMapTotalSize){
+
+      const uint tileMapIndex = index / tileIndexSize;
+
+      const uint tileMapContentIndex = index - (tileMapIndex * tileIndexSize);
+
+      const uint tileQuadIndex = tileMapContentIndex / 6u;
+
+      const uint tileTotalResolution = pushConstants.tileResolution * pushConstants.tileMapResolution;
+
+      uvec2 tileQuadXY;
+      tileQuadXY.y = tileQuadIndex / tileLODResolution;
+      tileQuadXY.x = tileQuadIndex - (tileQuadXY.y * tileLODResolution);
+      tileQuadXY += uvec2[4](uvec2(0u, 0u), uvec2(1u, 0u), uvec2(1u, 1u), uvec2(0u, 1u))[uint[6](0u, 1u, 2u, 0u, 2u, 3u)[tileMapContentIndex - (tileQuadIndex * 6u)]];
+      tileQuadXY <<= lod;
+
+      uvec2 tileMapXY;
+      tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+      tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+      uvec2 globalXY = (tileMapXY * uvec2(pushConstants.tileResolution)) + tileQuadXY;
+      globalXY = ((((globalXY.x / tileTotalResolution) + (globalXY.y / tileTotalResolution)) & 1u) != 0u) ? (uvec2(tileTotalResolution) - ((globalXY % tileTotalResolution) + uvec2(1u))) : (globalXY % tileTotalResolution);
+
+      tileMapXY = uvec2(globalXY) / uvec2(pushConstants.tileResolution);
+      tileQuadXY = globalXY - (uvec2(tileMapXY) * pushConstants.tileResolution);   
+
+      triangleIndices.indices[lodIndexOffset + index] = (((tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x) * tileVertexSize) + 
+                                                        ((tileQuadXY.y * pushConstants.tileResolution) + tileQuadXY.x);
+
+    }
+  
+  }
+  
+}

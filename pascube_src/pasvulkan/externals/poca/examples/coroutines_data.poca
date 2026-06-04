@@ -1,0 +1,64 @@
+const (START, LIMIT) = (1000, 1111);
+
+// Coroutines can have instance data, which can be accessed
+// using `.data()`, which is a hash you can fill with stuff.
+
+// If you're using a closure, you can also access the data
+// hash from within the coro function using the coroutine
+// instance's `.data()` method, and always using `this`.
+
+let corofun(i) -> {
+  puts(`corofun started with a limit of ${this.limit}!`);
+
+  while (i < this.limit) {
+    puts('corofun state: ' ~ coro.state());
+    puts('corofun alive: ' ~ coro.alive());
+    Coroutine.yield(i += Coroutine.get());
+  }
+
+  puts('corofun ended!');
+};
+
+var coro = Coroutine.create(corofun, START);
+coro.data().limit = LIMIT;
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //  false
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts();
+puts("Let's go!");
+
+puts();
+puts(coro.resume(100));
+
+// corofun started!
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts('coro state: ' ~ coro.state()); // always outside
+
+puts();
+puts(coro.resume(10));
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts();
+puts(coro.resume(1));
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts();
+coro.resume(); // this resume will terminate the loop
+
+// corofun ended!
+
+puts('coro alive: ' ~ coro.alive());               // false
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //    true

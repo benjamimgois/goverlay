@@ -1,0 +1,200 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_multiview : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+/* clang-format on */
+
+#define MULTISCATAPPROX_ENABLED
+#define ATMOSPHEREMAP_ENABLED 
+#undef SHADOWS_ENABLED
+
+#include "globaldescriptorset.glsl"
+
+#include "atmosphere_common.glsl"
+
+// Push constants
+layout(push_constant, std140) uniform PushConstants {
+  vec4 cameraPosition;
+  vec4 upVector; 
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+#ifdef USE_RGB9E5
+layout(set = 2, binding = 0, r32ui) writeonly uniform uimageCube uDestinationTexture;
+#elif defined(USE_RGBA32F)
+layout(set = 2, binding = 0, rgba32f) writeonly uniform imageCube uDestinationTexture;
+#elif defined(USE_RGBA16F)
+layout(set = 2, binding = 0, rgba16f) writeonly uniform imageCube uDestinationTexture;
+#elif defined(USE_R11G11B10F)
+layout(set = 2, binding = 0, r11f_g11f_b10f) writeonly uniform imageCube uDestinationTexture;
+#elif defined(USE_RGBA8)
+layout(set = 2, binding = 0, rgba8) writeonly uniform imageCube uDestinationTexture;
+#else
+layout(set = 2, binding = 0) writeonly uniform imageCube uDestinationTexture;
+#endif
+
+layout(set = 2, binding = 1) uniform sampler2D uTransmittanceLutTexture;
+
+layout(set = 2, binding = 2) uniform sampler2D uMultiScatteringTexture;
+
+layout(set = 2, binding = 3) uniform samplerCube uSkyLuminanceLUTTexture;
+
+layout(set = 2, binding = 4) uniform samplerCube uAtmosphereMapTexture;
+
+layout(set = 2, binding = 5) uniform samplerCube uPrecipitationMapTexture;
+
+layout(set = 2, binding = 6, std430) buffer AtmosphereParametersBuffer {
+  AtmosphereParameters atmosphereParameters;
+} uAtmosphereParameters;
+
+ivec2 destinationTextureSize = imageSize(uDestinationTexture);
+
+#include "cubemap.glsl"
+
+#ifdef USE_RGB9E5
+#include "rgb9e5.glsl"
+#endif
+
+#include "textureutils.glsl"
+
+void main() {
+
+  #define atmosphereParameters uAtmosphereParameters.atmosphereParameters
+
+  ivec3 uvw = ivec3(gl_GlobalInvocationID.xyz);
+  if (all(greaterThanEqual(uvw, ivec3(0))) && all(lessThan(uvw, ivec3(destinationTextureSize, 6)))) {
+
+    vec3 direction = getCubeMapDirection((vec2(uvw.xy) + vec2(0.5)) / vec2(destinationTextureSize), uvw.z);
+
+    vec3 cameraPosition = pushConstants.cameraPosition.xyz;
+
+    vec3 upVector = pushConstants.upVector.xyz;
+
+    vec3 worldPos = (atmosphereParameters.inverseTransform * vec4(cameraPosition, 1.0)).xyz;
+
+    vec3 worldDir = direction; 
+
+    float viewHeight = length(worldPos);
+
+    //worldPos = normalize(worldPos) * clamp(viewHeight, atmosphereParameters.BottomRadius + PLANET_RADIUS_OFFSET + 0.001, atmosphereParameters.TopRadius - (0.001 + PLANET_RADIUS_OFFSET));
+    worldPos = normalize(worldPos) * (atmosphereParameters.BottomRadius + PLANET_RADIUS_OFFSET + 0.001);
+
+    viewHeight = length(worldPos) - atmosphereParameters.BottomRadius;
+
+    vec3 sunDirection = normalize(getSunDirection(atmosphereParameters));
+
+    // The more accurate and more bruteforce ray marching approach  
+
+    vec3 inscattering;
+    vec3 transmittance; 
+     
+    if(atmosphereParameters.AbsorptionExtinction.w <= 0.0){
+      
+      inscattering = vec3(0.0);
+      transmittance = vec3(1.0);
+
+    }else if(!MoveToTopAtmosphere(worldPos, worldDir, atmosphereParameters.TopRadius)){
+      // Move to top atmosphere as the starting point for ray marching.
+      // This is critical to be after the above to not disrupt above atmosphere tests and voxel selection.
+      
+      // Ray is not intersecting the atmosphere       
+      inscattering = GetSunLuminance(cameraPosition, worldDir, sunDirection, atmosphereParameters.BottomRadius).xyz;
+      transmittance = vec3(1.0);
+
+    }else {
+
+      bool IntersectGround = raySphereIntersectNearest(worldPos, worldDir, vec3(0.0), atmosphereParameters.BottomRadius) >= 0.0;
+      if(IntersectGround){
+
+        // In the sky luminance LUT, the atmosphere sky ambient light is stored as atmosphere sphere position.
+
+        inscattering = textureLod(uSkyLuminanceLUTTexture, vec3(normalize(worldPos)), 0.0).xyz;
+
+        transmittance = vec3(0.0); // Ground is blocking the light, so no transmittance.
+      
+      }else{
+
+/*      if(IntersectGround){
+          worldDir = normalize(worldPos); // For a very rough quick and dirty ambient lighting term, by sampling the sky just straight upwards.
+        }*/
+
+        const bool ground = false;
+        const float sampleCountIni = 0.0;
+        const bool variableSampleCount = true;
+        const bool mieRayPhase = true;
+        const float depthBufferValue = -1.0;
+        SingleScatteringResult ss = IntegrateScatteredLuminance(
+          uTransmittanceLutTexture,
+          uMultiScatteringTexture,
+          uAtmosphereMapTexture,
+          vec2(0.0), 
+          worldPos, 
+          worldDir, 
+          sunDirection, 
+          atmosphereParameters, 
+          ground, 
+          sampleCountIni, 
+          depthBufferValue, 
+          variableSampleCount,  
+          mieRayPhase,
+          mat4(0.0),
+          -1.0,
+          false
+        );
+
+        inscattering = ss.L;
+
+        //if(!IntersectGround){
+          //inscattering += GetSunLuminance(cameraPosition, worldDir, sunDirection, atmosphereParameters.BottomRadius).xyz * ss.Transmittance;
+        //}
+
+        transmittance = ss.Transmittance;
+
+      }
+
+    }
+
+    {
+      // Apply the rain map by darkening the atmosphere where rain is present, but only for the cubemaps for indirect lighting, 
+      // but not for the direct lighting rendering, as here would be wrong, since clouds are already present in the direct lighting rendering,
+      // so we don't want to darken the atmosphere again, as it would result in a double darkening effect.
+      float rainFactor = mix(1.0, atmosphereParameters.RainAtmosphereCubeMapLuminanceFactor, clamp(textureLod(uPrecipitationMapTexture, direction, 0.0).x, 0.0, 1.0));
+      inscattering *= rainFactor;
+      // Transmittance is not affected by rain, so it remains unchanged.
+    }
+
+    {
+      float fadeFactor = clamp(atmosphereParameters.AbsorptionExtinction.w, 0.0, 1.0);
+      inscattering *= fadeFactor;
+      transmittance = mix(vec3(1.0), transmittance, fadeFactor); 
+    } 
+
+    vec4 outputColor = vec4(inscattering, 1.0 - clamp(dot(transmittance, vec3(1.0 / 3.0)), 0.0, 1.0));
+
+#ifdef USE_RGB9E5
+    imageStore(uDestinationTexture, uvw, uvec4(encodeRGB9E5(outputColor.xyz)));
+#else    
+    imageStore(uDestinationTexture, uvw, clamp(outputColor, vec4(-65504.0), vec4(65504.0))); // Clamp to the range of 16-bit floating point numbers.
+#endif
+
+  }
+ 
+}

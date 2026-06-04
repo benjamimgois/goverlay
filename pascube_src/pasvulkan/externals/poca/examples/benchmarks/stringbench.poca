@@ -1,0 +1,119 @@
+function nowSeconds(){
+  return DateTime.milliseconds(DateTime.now()) * 0.001;
+}
+
+function bench(let name, let fn){
+  GarbageCollector.collect();
+  GarbageCollector.collect();
+  let ta = DateTime.now();
+  let out = fn();
+  let tb = DateTime.now();
+  let dt = DateTime.milliseconds(tb - ta) * 0.001;
+
+  // Extract result fields with safe defaults
+  let len  = (out && out?.len)   ? out.len   : 0;
+  let sum  = (out && out?.sum)   ? out.sum   : 0;
+  let items= (out && out?.items) ? out.items : 0;
+
+  // pad name to 24 chars: "%-24s : %.6f s   (len=%d sum=%d items=%d)"
+  let n = name;
+  while(n.length < 24){ 
+    n ~= " "; 
+  }
+
+  // dt with 6 decimal places 
+  print(n, " : ", dt.toFixed(6), " s   (len=", len, " sum=", sum, " items=", items, ")\n");
+
+  return { name: name, sec: dt };
+}
+
+
+// Utility: fast repeat by doubling
+function repeatString(let base, let count){
+  let out = "";
+  let chunk = base;
+  let n = +count;
+  while(n > 0){
+    if((n & 1) != 0){
+      out ~= chunk;
+    }
+    n = n >> 1;
+    if(n){
+      chunk ~= chunk;
+    }
+  }
+  return out;
+}
+
+// ---- Run ----
+
+let results = [];
+
+// 1) naive_concat_200k
+results.push(bench("naive_concat_200k", function(){
+  let N = 200000;
+  let s = "";
+  for(let i = 0; i < N; i++){
+    s ~= "a";
+  }
+  return { len: s.length };
+}));
+
+// 2) builder_table_concat
+results.push(bench("builder_table_concat", function(){
+  let N = 200000;
+  let buf = [];
+  buf.resize(N);
+  for(let i = 0; i < N; i++){
+    buf[i] = "a";
+  }
+  let s = "".concat(buf);
+  return { len: s.length, items: N };
+}));
+
+// 3) substring_copy_loop
+results.push(bench("substring_copy_loop", function(){
+  let s = repeatString("abcdef", 200000); // 1.2 MB
+  let sum = 0;
+  for(let i = 0; i < s.length; i += 3){
+    let sub = s.substr(i, 2);
+    sum = sum + sub.length;
+  }
+  return { sum: sum };
+}));
+
+// 4) hash_keys_200k
+results.push(bench("hash_keys_200k", function(){
+  let N = 200000;
+  let t = {};
+  for(let i = 1; i <= N; ++i){
+    t["" ~ i] = i;
+  }
+  let sum = 0;
+  for(let i = 1; i <= 1000; ++i){
+    if(t["" ~ i]){
+      sum = sum + t["" ~ i];
+    }
+  }
+  return { items: N, sum: sum };
+}));
+
+// 5) stream_mixed_builder
+results.push(bench("stream_mixed_builder", function(){
+  let N = 100000;
+  let b = [];
+  b.resize(N * 3);
+  for(let i = 1, n = 0; i <= N; ++i){
+    b[n++] = "ID:";
+    b[n++] = i ~ "";
+    b[n++] = "\n";
+  }
+  let out = "".concat(b);
+  return { len: out.length };
+}));
+
+print("\n#poca,name,seconds\n");
+for(let i = 0; i < results.length; ++i){
+  let r = results[i];
+  print("poca," ~ r.name ~ "," ~ r.sec, "\n");
+}

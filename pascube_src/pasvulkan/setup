@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [ -d ".git" ]; then
+  ./initsubmodules
+else
+  ./create_externals_symlinks_for_with_svn  
+fi 
+./compileprojectmanager

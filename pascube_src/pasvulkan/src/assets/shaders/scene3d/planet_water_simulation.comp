@@ -1,0 +1,348 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// Not used more, but kept for reference, which is more readable than the optimized variants in planet_water_simulation_outflow.comp 
+// and planet_water_simulation_waterheight.comp . 
+
+// Water simulation based on "Fast Hydraulic Erosion Simulation and Visualization on GPU" by Xing Mei, Philippe Decaudin, Bao-Gang Hu
+// Link: https://hal.inria.fr/inria-00402079/document
+
+// But yet without the erosion part of the terrain part, just the water flow simulation for now.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#if 0
+// 16-bit floats
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : enable
+#extension GL_EXT_shader_16bit_storage : enable
+#endif
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+
+  float attenuation; // The attenuation factor for the water flow, used to scale the water flow based on the height difference
+  float strength; // The strength of the water flow, used to scale the water flow based on the height difference
+  float minTotalFlow; // The minimum total flow, used to prevent the water flow from being too low
+  float initialWaterLevel; // The initial water level, used to set the initial water height in the simulation     
+
+  float pipeLengthSquared; // The squared length of the pipe, used to calculate the water flow based on the height difference
+  float crossSectionalPipeArea; // The cross-sectional area of the pipe, used to calculate the water flow based on the height difference
+  float gravity; // The gravitational acceleration, used to calculate the water flow based on the height difference
+  float evaporation; // The evaporation rate, used to calculate the evaporation based on the water height   
+  
+  float evaporationHeightCoefficient; // The coefficient for the evaporation height, used to calculate the evaporation based on the water height (not in the original paper, but added for more controllable evaporation in game-related scenarios)
+  float compensationFactor; // The compensation factor for the
+  float bottomRadius; // The radius of the bottom of the planet height map
+  float topRadius; // The radius of the top of the planet height map
+  
+  float deltaTime; // The time step in seconds, used to scale the simulation time
+  float rainIntensity; // The rain intensity, used to scale the rain map values
+  float scale; // The scale of the noise, used to scale the noise values for the rain fall noise 
+  float timeScale; // The time scale for the rain fall simulation, used to scale the time step
+  
+  uint planetHeightMapResolution; // The resolution of the planet height map, used to calculate the indices for the height map  
+  uint waterHeightMapResolution; // The resolution of the water height map, used to calculate the indices for the water height map
+  uint waterHeightMapBorder; // The border size for the water height map, so that the solver does not need to handle the border cases of a octahedral map
+  uint precipitationAtmosphereMapResolution; // The resolution of the precipitation atmosphere map
+
+  uint precipitationAtmosphereMapShift; // The shift for the precipitation atmosphere map relative to the water height map
+  uint frameIndex; // The current frame index, used for random number generation
+
+} pushConstants;
+
+uint waterHeightMapResolutionWithBorder = pushConstants.waterHeightMapResolution + (pushConstants.waterHeightMapBorder * 2);
+
+layout(set = 0, binding = 0) uniform sampler2D uPlanetHeightmap;
+
+#if 0
+#define _float float16_t
+#define _vec4 f16vec4
+#else
+#define _float float
+#define _vec4 vec4
+#endif
+
+layout(set = 0, binding = 1, std430) readonly buffer InWaterHeightMap {
+  _float values[];
+} inWaterHeightMap;
+
+layout(set = 0, binding = 2, std430) writeonly buffer OutWaterHeightMap {
+  _float values[];
+} outWaterHeightMap;
+
+#if defined(OUTFLOW)
+
+layout(set = 0, binding = 3, std430) coherent buffer WaterFlowMap {
+  _vec4 values[];
+} waterFlowMap;
+
+layout(set = 0, binding = 4, std430) readonly buffer WaterMaxHeightDifference {
+  uint value;
+} waterMaxHeightDifference;
+
+#else
+layout(set = 0, binding = 3, std430) readonly buffer WaterFlowMap {
+  _vec4 values[];
+} waterFlowMap;
+
+layout(set = 0, binding = 4, std430) coherent buffer WaterMaxHeightDifference {
+  uint value;
+} waterMaxHeightDifference;
+
+#endif
+
+layout(set = 0, binding = 5, std430) buffer PrecipitationAtmosphereMap {
+  _float values[];
+} precipitationAtmosphereMap;
+
+#include "pcg.glsl"
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+#include "floatint.glsl"
+
+vec2 texelSize = 1.0 / vec2(pushConstants.waterHeightMapResolution);
+
+uint getIndex(uvec2 position, ivec2 offset){
+  const ivec2 intPosition = wrapOctahedralTexelCoordinates(ivec2(position) + offset, ivec2(pushConstants.waterHeightMapResolution));  
+  return (intPosition.y * pushConstants.waterHeightMapResolution) + intPosition.x;
+}
+
+uint getFlowMapIndex(ivec2 position){
+  position = (((position + ivec2(int(pushConstants.waterHeightMapBorder))) % ivec2(int(waterHeightMapResolutionWithBorder))) + ivec2(int(waterHeightMapResolutionWithBorder))) % ivec2(int(waterHeightMapResolutionWithBorder));
+  return (position.y * waterHeightMapResolutionWithBorder) + position.x;
+}
+
+#if defined(OUTFLOW)
+vec2 readHeight(ivec2 p, const in vec3 referenceNormal, const in bool includeSphericalElevationDifference){
+  p = clamp(wrapOctahedralTexelCoordinates(p, ivec2(pushConstants.waterHeightMapResolution)), ivec2(0), ivec2(pushConstants.waterHeightMapResolution - 1));
+  uint index = (uint(p.y) * pushConstants.waterHeightMapResolution) + uint(p.x);
+  const float planetHeight = mix(
+    pushConstants.bottomRadius,
+    pushConstants.topRadius,
+    (pushConstants.planetHeightMapResolution == pushConstants.waterHeightMapResolution) 
+      ? texelFetch(uPlanetHeightmap, ivec2(p), 0).x // When the planet height map resolution is the same as the water height map resolution, we can just use texelFetch.
+      : texturePlanetOctahedralMap(uPlanetHeightmap, (vec2(p) + vec2(0.5)) * texelSize).x // Otherwise we need to use interpolation.
+  );
+  const float waterHeight = inWaterHeightMap.values[index];
+  // Carefully adjust the planet height to include spherical elevation differences and properly computing height differences between the center point 
+  // and its neighbors for to effectively account for the sphere's curvature of spherical planet geometry in the simulation.
+  return vec2(
+    planetHeight, // * (1.0 + (includeSphericalElevationDifference ? (dot(normalize(octPlanetUnsignedDecode(vec2(p) * texelSize)) - referenceNormal, referenceNormal)) : 0.0)), 
+    waterHeight
+  );
+} 
+#endif
+
+#if !defined(OUTFLOW)
+shared float sharedHeightDifferences[16 * 16];
+#endif
+
+void main(){
+
+  const uvec2 position = uvec2(gl_GlobalInvocationID.xy);
+
+  //if(all(lessThan(position, uvec2(pushConstants.waterHeightMapResolution)))) // avoid this check, because deadlock with barrier 
+  {
+
+#if defined(OUTFLOW)
+    
+    const ivec2 realPosition = ivec2(position) - ivec2(pushConstants.waterHeightMapBorder);
+
+    const ivec2 wrappedPosition = wrapOctahedralTexelCoordinates(realPosition, ivec2(pushConstants.waterHeightMapResolution));
+
+    const uint flowMapIndex = (position.y * waterHeightMapResolutionWithBorder) + position.x;
+
+    vec4 outFlow;
+
+    if(pushConstants.frameIndex == 0){
+
+      // The first frame is a special case and the easy one, we just need to initialize the water flow map.
+      outFlow = vec4(0.0);
+
+    }else{
+
+      const vec3 centerNormal = normalize(octPlanetUnsignedDecode(vec2(wrappedPosition) * texelSize));
+
+      const vec2 centerHeight = readHeight(ivec2(realPosition), centerNormal, false);
+     
+      const vec4 oldFlow = vec4(waterFlowMap.values[flowMapIndex]);
+
+      const vec4 heightDifferences = vec4(dot(centerHeight, vec2(1.0))) - 
+                                     vec4(
+                                       dot(readHeight(ivec2(realPosition) + ivec2( 1,  0), centerNormal, true), vec2(1.0)),
+                                       dot(readHeight(ivec2(realPosition) + ivec2( 0,  1), centerNormal, true), vec2(1.0)),
+                                       dot(readHeight(ivec2(realPosition) + ivec2(-1,  0), centerNormal, true), vec2(1.0)),
+                                       dot(readHeight(ivec2(realPosition) + ivec2( 0, -1), centerNormal, true), vec2(1.0))
+                                     ); 
+
+      const vec4 newFlow = max(vec4(0.0), heightDifferences * pushConstants.crossSectionalPipeArea * pushConstants.gravity * pushConstants.compensationFactor * pushConstants.deltaTime);
+
+      outFlow = max(vec4(0.0), (newFlow * pushConstants.strength) + (oldFlow * pushConstants.attenuation));
+
+      // Apply K factor from the paper:
+      // The total outflow should not exceed the total amount of the water in the given cell. If the calculated value is larger than 
+      // the current amount in the given cell, then flux will be scaled down with an appropriate factor K. 
+      const float absMinTotalFlow = abs(pushConstants.minTotalFlow);
+      if(absMinTotalFlow > 1e-7){ 
+        float totalOutFlow = dot(outFlow, vec4(1.0));
+        if(totalOutFlow > absMinTotalFlow){
+          if(pushConstants.minTotalFlow > 0.0){
+            // The way the paper describes it
+            outFlow *= min(1.0, (centerHeight.y * pushConstants.pipeLengthSquared) / (totalOutFlow * pushConstants.deltaTime));
+          }else{ // if pushConstants.minTotalFlow < 0.0
+            // A more simple way to do it
+            outFlow *= min(1.0, centerHeight.y / totalOutFlow);
+          }  
+        }else{          
+          outFlow = vec4(0.0);
+        }
+      }
+     
+    }
+
+    waterFlowMap.values[flowMapIndex] = _vec4(outFlow);
+
+#else
+
+    const uint heightMapIndex = (position.y * pushConstants.waterHeightMapResolution) + position.x;
+
+    float waterOutHeight;
+
+    if(pushConstants.frameIndex == 0){
+
+      // The first frame is a special case and the easy one, we just need to initialize the water height map.     
+      waterOutHeight = pushConstants.initialWaterLevel;
+
+      // Initialize the shared height difference to zero for the first frame.
+      sharedHeightDifferences[gl_LocalInvocationIndex] = 0.0;
+
+    }else{
+
+      // Calculate the total inflow
+      const float totalInFlow = dot(vec4(waterFlowMap.values[heightMapIndex]), vec4(1.0));
+       
+      // Calculate the total outflow
+      const float totalOutFlow = waterFlowMap.values[getFlowMapIndex(ivec2(position) + ivec2( 1,  0))].z +
+                                 waterFlowMap.values[getFlowMapIndex(ivec2(position) + ivec2( 0,  1))].w + 
+                                 waterFlowMap.values[getFlowMapIndex(ivec2(position) + ivec2(-1,  0))].x + 
+                                 waterFlowMap.values[getFlowMapIndex(ivec2(position) + ivec2( 0, -1))].y;
+
+      // Read the water height from the input water height map
+      const float inWaterHeight = inWaterHeightMap.values[heightMapIndex];
+
+      // Calculate the rain fall value based on the precipitation atmosphere map and the rain intensity
+      const uint precipitationAtmosphereMapIndex = ((position.y >> pushConstants.precipitationAtmosphereMapShift) * pushConstants.precipitationAtmosphereMapResolution) + (position.x >> pushConstants.precipitationAtmosphereMapShift);
+      float rainFallValue = clamp(precipitationAtmosphereMap.values[precipitationAtmosphereMapIndex], 0.0, 1.0) * pushConstants.rainIntensity * pushConstants.deltaTime; 
+      if(rainFallValue > 0.0){
+        vec3 positionOctahedral = octPlanetUnsignedDecode((vec2(position) + vec2(0.5)) / vec2(pushConstants.waterHeightMapResolution));
+        rainFallValue *= clamp(pcgNoise(vec4(vec3(positionOctahedral) * pushConstants.scale, float(pushConstants.frameIndex) * pushConstants.timeScale)), 0.0, 1.0);
+      }
+
+      // Calculate the new water height, considering the inflow, outflow, evaporation, and rain fall in the same pass, while the paper does it in
+      // seperate passes. This is for efficiency reasons, so that we can do the whole simulation in fewer passes and with less memory bandwidth usage.
+      waterOutHeight = max(
+        0.0, 
+        ((inWaterHeight + (((totalOutFlow - totalInFlow) * pushConstants.deltaTime) / pushConstants.pipeLengthSquared)) * 
+         (1.0 - clamp(pushConstants.evaporation * exp(-(inWaterHeight * pushConstants.evaporationHeightCoefficient)) * pushConstants.deltaTime, 0.0, 1.0))) +
+         rainFallValue
+      );
+      
+      // Calculate the absolute height differences
+      sharedHeightDifferences[gl_LocalInvocationIndex] = abs(inWaterHeight - waterOutHeight);
+
+    }
+
+    outWaterHeightMap.values[heightMapIndex] = _float(waterOutHeight);
+
+
+    // Perform a parallel max reduction to calculate the total absolute height differences
+
+    memoryBarrierShared();
+    barrier();
+
+#if 0    
+
+    // Automatic unrolled version of the parallel max reduction
+    
+    [[unroll]] for(uint i = 128u; i > 0u; i >>= 1u){
+      if(gl_LocalInvocationIndex < i){
+        sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + i]);
+      }
+      memoryBarrierShared();
+      barrier();
+    }
+
+#else
+
+    // Manual unrolled version of the parallel max reduction
+
+    if(gl_LocalInvocationIndex < 128){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 128]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 64){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 64]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 32){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 32]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 16){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 16]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 8){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 8]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 4){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 4]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 2){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 2]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+    if(gl_LocalInvocationIndex < 1){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 1]);
+    }
+    memoryBarrierShared();
+    barrier();
+
+#endif
+
+    if(gl_LocalInvocationIndex == 0){
+      atomicMax(waterMaxHeightDifference.value, floatBitsToUint(sharedHeightDifferences[0]));
+    }    
+
+#endif
+
+  }
+
+}

@@ -1,0 +1,36 @@
+
+function oa(){
+  return {};
+}
+
+let x={a:12,y:()=>puts(@a)};
+let y={prototype:x,b:34};
+let z={prototype:y,c:56};
+let w(x=(4))->x*x;
+
+puts(x.a);
+puts(y.a);
+puts(z.a);
+puts();
+
+y.a=13;
+
+puts(x.a);
+puts(y.a);
+puts(z.a);
+puts();
+
+z.a=14;
+
+puts(x.a);
+puts(y.a);
+puts(z.a);
+puts();
+
+x.y();
+y.y();
+z.y();
+puts(w());
+
+readLine();
+

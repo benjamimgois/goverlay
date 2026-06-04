@@ -1,0 +1,126 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) readonly uniform image2D uImageHeightMap;
+layout(set = 0, binding = 1, r32f) readonly uniform image2D uImageWaterMap;
+layout(set = 0, binding = 2, rgb10_a2) writeonly uniform image2D uImageNormalMap;
+
+/* clang-format on */
+
+layout(push_constant) uniform PushConstants {
+  float bottomRadius;
+  float topRadius;
+} pushConstants;
+
+#include "octahedralmap.glsl"
+#include "octahedral.glsl"
+
+vec3 safeNormalize(vec3 v){
+  return (length(v) > 0.0) ? normalize(v) : vec3(0.0);
+}
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageHeightMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    vec2 invTexSize = vec2(1.0) / vec2(texSize);  
+
+    vec2 center = vec2(texel) * invTexSize;
+
+    vec3 sphereNormal = octPlanetSignedDecode(fma(center, vec2(2.0), vec2(-1.0)));
+    vec3 sphereTangent = normalize(cross((abs(sphereNormal.y) < 0.999999) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0), sphereNormal));
+    vec3 sphereBitangent = normalize(cross(sphereNormal, sphereTangent));
+
+    ivec2 xy = wrapOctahedralTexelCoordinates(texel, texSize);
+
+#if 1
+  
+    vec3 normal;
+
+    {
+
+      // Calculate the normal as the average of the normals of some temporary virtual triangles
+      
+      // a(-1, -1) b( 0, -1) c( 1, -1)
+      // d(-1,  0) e( 0,  0) f( 1,  0)
+      // g(-1,  1) h( 0,  1) i( 1,  1)
+
+      ivec2 axy = wrapOctahedralTexelCoordinates(texel + ivec2(-1, -1), texSize);
+      ivec2 bxy = wrapOctahedralTexelCoordinates(texel + ivec2(0, -1), texSize);
+      ivec2 cxy = wrapOctahedralTexelCoordinates(texel + ivec2(1, -1), texSize);
+      ivec2 dxy = wrapOctahedralTexelCoordinates(texel + ivec2(-1, 0), texSize);
+      ivec2 exy = wrapOctahedralTexelCoordinates(texel + ivec2(0, 0), texSize);
+      ivec2 fxy = wrapOctahedralTexelCoordinates(texel + ivec2(1, 0), texSize);
+      ivec2 gxy = wrapOctahedralTexelCoordinates(texel + ivec2(-1, 1), texSize);
+      ivec2 hxy = wrapOctahedralTexelCoordinates(texel + ivec2(0, 1), texSize);
+      ivec2 ixy = wrapOctahedralTexelCoordinates(texel + ivec2(1, 1), texSize);
+
+      vec3 a = octPlanetUnsignedDecode(vec2(axy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, axy).x) + imageLoad(uImageWaterMap, axy).x);
+      vec3 b = octPlanetUnsignedDecode(vec2(bxy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, bxy).x) + imageLoad(uImageWaterMap, bxy).x);
+      vec3 c = octPlanetUnsignedDecode(vec2(cxy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, cxy).x) + imageLoad(uImageWaterMap, cxy).x);
+      vec3 d = octPlanetUnsignedDecode(vec2(dxy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, dxy).x) + imageLoad(uImageWaterMap, dxy).x);
+      vec3 e = octPlanetUnsignedDecode(vec2(exy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, exy).x) + imageLoad(uImageWaterMap, exy).x);
+      vec3 f = octPlanetUnsignedDecode(vec2(fxy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, fxy).x) + imageLoad(uImageWaterMap, fxy).x);
+      vec3 g = octPlanetUnsignedDecode(vec2(gxy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, gxy).x) + imageLoad(uImageWaterMap, gxy).x);
+      vec3 h = octPlanetUnsignedDecode(vec2(hxy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, hxy).x) + imageLoad(uImageWaterMap, hxy).x);
+      vec3 i = octPlanetUnsignedDecode(vec2(ixy) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, ixy).x) + imageLoad(uImageWaterMap, ixy).x);
+
+      // Calculate the smoothed normal at point e as the average of the normals of the surrounding triangles in triangle fan order:
+      normal = safeNormalize(
+        safeNormalize(cross(a - e, b - e)) + // Triangle EAB
+        safeNormalize(cross(b - e, c - e)) + // Triangle EBC          
+        safeNormalize(cross(c - e, f - e)) + // Triangle EDA
+        safeNormalize(cross(f - e, i - e)) + // Triangle EFI
+        safeNormalize(cross(i - e, h - e)) + // Triangle EIH
+        safeNormalize(cross(h - e, g - e)) + // Triangle EHG
+        safeNormalize(cross(g - e, d - e)) + // Triangle EGD
+        safeNormalize(cross(d - e, a - e))   // Triangle EDA
+      );   
+
+    }       
+
+#else
+
+    ivec2 xy00 = wrapOctahedralTexelCoordinates(texel + ivec2(-1, 0), texSize);
+    ivec2 xy01 = wrapOctahedralTexelCoordinates(texel + ivec2(1, 0), texSize);
+    ivec2 xy10 = wrapOctahedralTexelCoordinates(texel + ivec2(0, -1), texSize);
+    ivec2 xy11 = wrapOctahedralTexelCoordinates(texel + ivec2(0, 1), texSize);
+
+    vec3 p = octPlanetUnsignedDecode(vec2(xy00) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, xy).x) + imageLoad(uImageWaterMap, xy).x);
+    vec3 p00 = octPlanetUnsignedDecode(vec2(xy00) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, xy00).x) + imageLoad(uImageWaterMap, xy00).x);
+    vec3 p01 = octPlanetUnsignedDecode(vec2(xy01) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, xy01).x) + imageLoad(uImageWaterMap, xy01).x);
+    vec3 p11 = octPlanetUnsignedDecode(vec2(xy11) * invTexSize) * (mix(pushConstants.bottomRadius, pushConstants.topRadius, imageLoad(uImageHeightMap, xy11).x) + imageLoad(uImageWaterMap, xy11).x);
+
+    vec3 tangent = (distance(p00, p01) > 0.0)
+                     ? normalize(p01 - p00) 
+                     : ((distance(p10, p11) > 0.0) 
+                         ? normalize(cross(normalize(p11 - p10), sphereNormal)) 
+                         : normalize(p - p00));
+
+    vec3 bitangent = (distance(p10, p11) > 0.0) 
+                       ? normalize(p11 - p10) 
+                       : ((distance(p01, p00) > 0.0)
+                           ? normalize(cross(normalize(p01 - p00), sphereNormal)) 
+                           : normalize(p - p10));
+
+    vec3 normal = normalize(cross(tangent, bitangent));
+#endif
+
+    imageStore(uImageNormalMap, texel, vec4(fma(normal, vec3(0.5), vec3(0.5)), 1.0));
+
+  }
+
+}

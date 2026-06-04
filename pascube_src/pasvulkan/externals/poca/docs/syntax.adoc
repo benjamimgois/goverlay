@@ -1,0 +1,1433 @@
+= POCA
+:toc:
+:toc-placement: preamble
+:toclevels: 2
+:showtitle:
+:!webfonts:
+
+// Need some preamble to get TOC:
+{empty}
+
+== Introduction
+
+POCA is JavaScript/ECMAScript-like, but it's not the same. It has some
+differences and even a few features that ECMAScript doesn't have.
+
+This document shows the features of POCA. POCA is a very powerful scripting
+language, that uses some of the concepts coming from ECMAScript, Lua, Squirrel,
+Nasal, Python, and Perl. POCA supports object-oriented programming (OOP) in two
+flavours (prototype-based and class-based), as well as functional programming
+and procedural programming styles.
+
+In POCA everything is an expression; there are no statements, so for example
+something like
+
+[source,javascript]
+----
+var a = scope {
+  var b = 1;
+  for (let c = 0; c < 16; c++) {
+    b += c + c
+  };
+  b;
+};
+----
+
+and
+
+[source,javascript]
+----
+var a = if (b < 1) {
+          1
+        } else if (b < 4){
+          2
+        } else {
+          3
+        };
+----
+
+is valid POCA code.
+
+People familiar with other programming languages, especially scripting
+languages such as JavaScript/ECMAScript in particular, are usually able to
+learn POCA fairly quickly.
+
+== Architecture
+
+POCA uses a frame stack, infinite register, bytecode instruction set
+architecture (ISA).
+
+Unlike almost all other script interpreters, POCA is thread-safe and scalable
+when called from multiple CPU threads. No special handling is required and the
+threads can be scheduled concurrently. There is no global lock (GIL) on the g
+interpreter or the x86 just in time (JIT) compiler execution engine. The only
+limit to scalability is the single-threaded incremental and generational
+garbage collector, which must block all bytecode interpreter threads and CPU
+native code threads compiled by the JIT compiler before executing.
+
+POCA's API design concept is more or less similar to Lua's. This means that
+concepts like hash tables (hashes), meta tables (hash table events), vectors
+(arrays), etc. exist here too.
+
+== Overview
+
+=== Imperative and structured
+
+POCA supports structured programming in the style of C. POCA supports function
+and block scoping with the keywords var, let and const. POCA requires explicit
+semicolons, as automatic semicolon injection can introduce hard-to-detect bugs.
+The only exception is that you can omit the last semicolon in a `function`,
+`scope`, or `code` block.
+
+As with C-like languages, control flow can be achieved using `while`, `for`,
+`do` / `while`, `if` / `else`, and `switch` / `case` statements. Functions are
+weakly typed and can accept and return any type. Unspecified arguments default
+to undefined. In addition to `for`, POCA also supports `foreach`, which can
+iterate over ranges (arrays).
+
+=== Weakly typed
+
+POCA, like ECMAScript/JavaScript, is weakly typed. This means that in most, but
+not all cases, certain types are implicitly assigned based on the operation
+being performed, avoiding some typical JavaScript/ECMAScript quirks.
+
+=== Dynamic
+
+POCA is dynamically typed. Thus, a type is associated with a concrete value and
+not with an expression. POCA supports several ways to test the type of objects,
+including duck typing.
+
+=== Everything is an expression
+
+In POCA, everything is an expression, even statements, declarations and
+definitions. So the following code snippet is valid:
+
+[source,javascript]
+----
+let a = scope{let b = 0; for(let c = 0; c < 6; c++){ b++ }; b; };
+let bla = if(a != 0){ 1 }else{ a ? 2 : 3 };
+----
+
+POCA essentially maps the mathematical concept and expression of "something"
+into a complete scripting language.
+
+=== Scoping
+
+POCA supports lexical scoping, meaning that a variable’s scope is determined by 
+its position in the source code.
+
+Variables declared with `var` are local-scoped; they are accessible only within 
+the scope in  which they are declared and any nested scopes. This behavior is 
+similar to JavaScript’s function-scoped variables declared with `var`. Such 
+variables are stored in a local hash table and can be accessed from the current 
+frame as well as all nested frames.
+
+In contrast, variables declared with `let` and `const` are block-scoped. Unlike 
+`var`, they are bound to the block in which they are declared, meaning their 
+visibility and lifetime are limited to that block and any nested blocks. 
+This behavior is similar to JavaScript’s block-scoped variables declared with 
+`let` and `const`. These block-bound variables are 
+**not stored in the function’s normal local variable hash table** (the structure 
+used for `var` variables). Instead, they reside in 
+**specialized fast-access frame variable storages** that are tied to the current 
+execution frame. This design provides quick access to block-scoped variables and 
+keeps them isolated per block. The engine manages these storages using a 
+**display-list mechanism** (a structure that maintains a list of active lexical 
+environments by nesting level), which allows nested blocks or inner functions to 
+efficiently reference variables from their enclosing blocks, even beyond the 
+immediate block context for closures. This is similar to how ECMAScript/JavaScript also
+optimizes variable storage between registers and the stack, except that ECMAScript/JavaScript
+uses environment objects for closures, while POCA uses a display-list mechanism based 
+on a chain of context frames, where every frame can have its own display list.
+
+This frame-based storage is utilized whenever a block-scoped variable needs to 
+exist beyond the immediate block execution or be accessible from an inner scope. 
+For example, if an inner function (closure) is defined inside a block and captures 
+a `let`/`const` variable, that variable will be placed in the frame storage so the 
+inner function can access it later. In such cases (or generally when the function 
+contains any nested scopes), the compiler ensures the variable lives in the frame 
+storage. On the other hand, if a block’s variables are *purely local* (used only 
+within the block and not needed by any outside code or closures), POCA may optimize 
+by keeping them in **registers** instead of in the frame storage. Using registers 
+for strictly local variables avoids the overhead of managing an extra storage 
+structure and yields faster access. In summary, `let` and `const` variables are 
+confined to their block and kept out of the general local table, living either 
+in a dedicated frame storage (when necessary for scope access or lifetime) or 
+directly in registers for maximal performance in self-contained cases.
+
+`let` and `const` have higher priority than `var` in variable resolution. When 
+the same identifier is used for both a `let`/`const` variable and a `var` variable, 
+the `let`/`const` binding takes precedence within its scope, effectively shadowing 
+the `var` variable. Variables in inner scopes shadow variables in outer scopes 
+following standard lexical scoping rules - the most local binding wins regardless 
+of whether it's declared with `var`, `let`, or `const`. The compiler resolves `let` 
+and `const` bindings at compile time through static analysis of the lexical scope, 
+providing fast access through registers or frame storage. In contrast, `var` 
+variables are stored in a hash table and resolved at runtime, allowing for dynamic 
+behavior but with the overhead of hash table lookups.
+
+Example:
+
+[source,javascript]
+----
+let a = 1;
+const b = 2;
+function Func1(){
+  let c = 3;
+  scope{
+    let c = 4;
+    puts(c);
+  }
+  // c is 3 here and not 4
+  // because c is block-scoped
+  // and not function-scoped
+  var d = 4; // d is function-scoped 
+  function Func2(){
+    let e = 5;
+    scope{
+      let e = 6;
+      puts(e);
+    }
+    // e is 5 here and not 6
+    // because e is block-scoped
+    // and not function-scoped
+    return a + b + c + d + e;
+  }
+  Func2();
+}
+Func1();
+----
+
+This approach ensures that `let` and `const` variables occupy the specialized fast-access
+frame variable storages only when necessary, reducing overhead, much like how
+ECMAScript/JavaScript optimizes variable storage between registers and the stack.
+
+POCA also supports closures, allowing functions to capture and remember the 
+environment in which they were created, even if that environment is no longer in scope. 
+This enables powerful programming techniques such as maintaining state or 
+encapsulating private variables. Note that closures in POCA behave slightly differently 
+from those in ECMAScript/JavaScript: in POCA, closures capture variables at the time 
+the function is defined rather than when the block is exited. For example, consider 
+the following code:
+
+[source,javascript]
+----
+let a = 1;
+let t = new Array();
+for(let i = 0; i < 10; i++){
+  let b = i;
+  t.push(
+    function(){
+      return a + b + i;
+    }
+  );
+}
+for(let i = 0; i < 10; i++){
+  puts(t[i]());
+}
+----
+
+This code outputs:
+
+[source,javascript]
+----
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+----
+
+Here, the variable `i` is captured when the function is defined, causing each closure 
+to reference the same (final) value of `i`. In contrast, ECMAScript/JavaScript typically 
+captures the variable when the block is exited. To create a closure that captures the 
+current value of `i` in POCA, you can use an inline function to create a new scope:
+
+[source,javascript]
+----
+let a = 1;
+let t = new Array();
+for(let i = 0; i < 10; i++){
+  t.push(
+    function(i){
+      let b = i;
+      return function(){
+        return a + b + i;
+      }
+    }(i)
+  );
+}
+for(let i = 0; i < 10; i++){
+  puts(t[i]());
+}
+----
+
+This code outputs:
+
+[source,javascript]
+----
+1
+3
+5
+7
+9
+11
+13
+15
+17
+19
+----
+
+In this case, the inline function creates a new scope that captures the current 
+value of `i`, resulting in each closure maintaining its own copy of `i`. This 
+behavior is similar to how closures are handled in Python, where variables are 
+captured at function definition time.
+
+Below is a Python script that demonstrates the "freeze effect" in closures, with 
+print statements that refer to the POCA behavior:
+
+[source,python]
+----
+
+# Without using default arguments:
+# All closures refer to the final values of 'i' and 'b'.
+a = 1
+closures_without_freeze = []
+for i in range(10):
+    b = i
+    closures_without_freeze.append(lambda: a + b + i)
+
+print("Without freeze (no default arguments), like at POCA without inline function:")
+for func in closures_without_freeze:
+    # Since 'i' and 'b' end with the value 9, each call returns: 1 + 9 + 9 = 19.
+    print(func())
+
+# Using default arguments to capture (freeze) the current values at function definition time:
+closures_with_freeze = []
+for i in range(10):
+    b = i
+    # Here, 'i=i' and 'b=b' freeze the current values.
+    closures_with_freeze.append(lambda i=i, b=b: a + b + i)
+
+print("\nWith freeze (using default arguments), like at POCA with inline function:")
+for func in closures_with_freeze:
+    print(func())
+
+### Explanation
+#
+# - **Without Freeze:**  
+#   The closures are created without default arguments, so they capture `i` 
+#   and `b` by reference. When the loop ends, both `i` and `b` have the final 
+#   value of 9, and every closure returns the same result (19). This is analogous 
+#   to POCA code that doesn’t use an inline function to create a new scope.
+# 
+# - **With Freeze:**  
+#   Using default arguments (`i=i, b=b`), each lambda captures the current values 
+#   of `i` and `b` at the time it is defined. This “freezes” the values, similar
+#   to how an inline function in POCA creates a new scope, ensuring that each 
+#   closure maintains its own copy of `i` and `b`.
+# 
+# This script clearly illustrates the difference in behavior between closures that 
+# do not freeze variable values and those that do.
+
+----
+
+Finally, POCA supports the `scope` and `code` keywords to create explicit scopes. 
+The `scope` keyword creates a new scope, while the `code` keyword creates a new 
+code block without introducing a new scope. This provides additional control over 
+variable visibility and lifetime.
+
+==== Static vs Dynamic Scoping
+
+An important distinction in POCA is that `let` and `const` follow static scoping rules based 
+on declaration order, while `var` uses dynamic scoping. This difference has significant 
+implications for when and how variables can be accessed:
+
+* **Static scoping** (`let`/`const`): Variables must be declared in the source code before 
+  they can be referenced. The compiler performs static analysis to resolve these bindings 
+  at compile time, ensuring that only variables defined earlier in the lexical scope are 
+  accessible.
+
+* **Dynamic scoping** (`var`): Variables are resolved at runtime and can be accessed from 
+  anywhere within their scope, regardless of the declaration order in the source code, unless 
+  they are shadowed by another `let`/`const`/`var` definition. This provides more flexibility 
+  but comes with the overhead of hash table lookups.
+
+This means that a function or `scope { ... }` block can reference a `var` variable that is 
+declared later in the source code (as long as it's in the same scope), but attempting to 
+reference a `let` or `const` variable declared after the function or scope block will result 
+in a compile-time error.
+
+Example:
+
+[source,javascript]
+----
+let outerLet = 1;
+
+function example(){
+  puts(outerLet);    // Valid: outerLet is declared before the function
+  puts(dynamicVar);  // Valid: var uses dynamic scoping
+  puts(laterLet);    // Error: let/const are statically scoped by order
+}
+
+let laterLet = 2;
+var dynamicVar = 3;
+
+example();
+----
+
+This design choice allows POCA to optimize `let` and `const` variables for performance 
+through static analysis and register allocation, while maintaining the flexibility of 
+`var` for dynamic programming patterns that require runtime variable resolution.
+
+**Comparison with JavaScript/ECMAScript:**
+
+For developers familiar with JavaScript/ECMAScript, it's important to note that POCA's 
+scoping behavior differs significantly from JavaScript's hoisting mechanism:
+
+In **JavaScript/ECMAScript**:
+
+* **`let` and `const`**: Have block scope and are subject to the **Temporal Dead Zone (TDZ)**. 
+  They are hoisted but cannot be accessed before their declaration, resulting in a 
+  `ReferenceError` if referenced earlier in the code.
+
+* **`var`**: Has function scope (or global scope) and is **hoisted** to the top of its scope. 
+  The declaration is hoisted but not the initialization, so accessing a `var` variable before 
+  its declaration line returns `undefined` rather than an error.
+
+In **POCA**:
+
+* **`let` and `const`**: Follow **static scoping by declaration order** - they must be declared 
+  before use, with compile-time verification. This is a compile-time check, not a runtime TDZ.
+
+* **`var`**: Uses **true dynamic scoping** with runtime hash table lookup, allowing access from 
+  anywhere within the scope regardless of declaration order, unless they are shadowed by another 
+  `let`/`const`/`var` definition.
+
+The key difference: JavaScript uses hoisting (moving declarations to the top) with all three 
+keywords using lexical scoping, while POCA fundamentally distinguishes between compile-time 
+static resolution (`let`/`const`) and runtime dynamic resolution (`var`). This makes POCA's 
+`var` more flexible for dynamic programming patterns, while `let`/`const` enable better 
+compile-time optimization.
+
+== Data types
+
+=== Which data types?
+
+POCA has the following data types on the language level:
+
+- `Null`: Special null value
+- `Number`: Double-precision floating point numbers (64 bit IEEE 754)
+- `String`: Immutable sequences of characters, ASCII and UTF-8 supported together with code
+  point and code unit operations
+- `Hash`: Hash tables with support for meta tables (similar to Lua), equivalent to JavaScript objects
+- `Array`: Ordered collections of values
+- `Ghost`: Special type for external types, objects, and resources, for example,
+  native primitives such as Locks, Threads, RegExps, etc.
+- `Function`: First-class functions, closures, and lambdas, linked to `Code` or `NativeCode` 
+  object values 
+- `Code`: Bytecode-compiled code objects, including JIT-compiled native code
+- `NativeCode`: Native code objects, such as native functions wrapped for POCA
+
+and some additional types on the internal engine level, such as:
+
+- `Reference`: Internal reference type for objects, so just ignore this type 
+  when programming in POCA, as it's not exposed on the language level.
+
+==== Why No Separate Boolean Type?
+
+You might wonder why there's no dedicated `Boolean` type. In POCA, boolean values are represented using the `Number` type, where `0` is considered `false` and any non-zero value is considered `true`. For convenience, POCA provides `false` and `true` as predefined constants (aliases for `0` and `1` respectively), allowing you to write idiomatic boolean logic while maintaining the simplicity of a unified numeric type.
+
+While this may seem unusual, this approach simplifies the type system and allows for more flexible operations, similar to how some other scripting languages handle boolean logic. It also simplifies type coercion rules in expressions and the instruction set architecture.
+
+==== Why No Separate Integer Type?
+
+All numbers are represented as double-precision floating point values. This design choice simplifies the language and avoids complications arising from having multiple numeric types, while still allowing for integer-like operations when needed, such as bitwise operations and integer division, although these are limited to the 53-bit integer range due to the IEEE 754 representation of the mantissa in 64-bit double-precision floats.
+
+==== Why No Separate Undefined Type?
+
+Instead of having both `null` and `undefined`, POCA uses the single special value `null` to represent both concepts. This unification simplifies the type system and reduces complexity when dealing with absent or uninitialized values.
+
+By default, read accesses to undefined hash table keys, array indices, or out-of-bounds array accesses throw exceptions rather than returning `undefined`. This design choice enhances code reliability and helps catch errors early, as developers are immediately alerted to attempts to access non-existent properties or indices that might otherwise lead to silent failures.
+
+However, POCA provides the optional chaining operator (`?.`) and nullish coalescing operator (`??`) for cases where you want to safely handle potentially missing values. These operators treat missing properties or out-of-bounds accesses as `null` without throwing exceptions, allowing for graceful fallback handling (see <<nullish-coalescing-operator>> for details).
+
+This approach minimizes confusion by providing a single representation for "no value" scenarios and aligns with POCA's design philosophy of keeping the language straightforward and easy to use.
+
+=== Classes
+
+POCA supports class-based object-oriented programming (OOP) with the `class` keyword, which allows you to define classes, constructors, methods, and inheritance. These are just syntactic sugar over POCA's 
+prototype-based OOP model with the `Hash` data type, making it easier to work with objects in a familiar way. See the other documentation sections for more details on classes and OOP in POCA.
+
+== A quick tour
+
+=== How to declare variables
+
+[source,javascript]
+----
+var x;
+let y;
+----
+
+=== How to use variables
+
+[source,javascript]
+----
+x = 5;
+y = 6;
+let z = x + y;
+----
+
+=== Values
+
+The POCA syntax defines two types of values:
+
+* Fixed values
+* Variable values
+
+Fixed values are called Literals.
+
+Variable values are called Variables.
+
+=== Literals
+
+The two most important syntax rules for fixed values are:
+
+Numbers are written with or without decimals:
+
+[source,javascript]
+----
+10.50
+
+1001
+----
+
+Strings are text, written within double or single quotes:
+
+[source,javascript]
+----
+"John Doe"
+
+'John Doe'
+----
+
+=== Variables
+
+In a programming language, variables are used to store data values.
+
+POCA uses the keywords var, let and const to declare variables.
+
+An equal sign is used to assign values to variables.
+
+In this example, x is defined as a variable. Then, x is assigned (given) the value 6:
+
+[source,javascript]
+----
+let x;
+x = 6;
+
+// or
+
+let x = 6;
+----
+
+=== Operators
+
+POCA uses arithmetic operators ( + - * / ) to compute values:
+
+[source,javascript]
+----
+(5 + 6) * 10
+----
+
+POCA uses an assignment operator ( = ) to assign values to variables:
+
+[source,javascript]
+----
+let x, y;
+x = 5;
+y = 6;
+----
+
+=== Expressions
+
+An expression is a combination of values, variables, and operators, which computes to a value.
+
+The computation is called an evaluation.
+
+For example, 5 * 10 evaluates to 50:
+
+[source,javascript]
+----
+5 * 10
+----
+
+Expressions can also contain variable values:
+
+[source,javascript]
+----
+x * 10
+----
+
+The values can be of various types, such as numbers and strings.
+
+For example, `"John" ~ " " ~ "Doe"`, evaluates to `"John Doe"`, since `~` is using for string concatenation:
+
+[source,javascript]
+----
+"John" ~ " " ~ "Doe"
+----
+
+=== Nullish Coalescing Operator
+
+POCA provides the nullish coalescing operator `??` to provide default values when dealing with `null` or `undefined`.
+
+The `??` operator returns its left operand if it's not `null` or `undefined`, otherwise it returns the right operand:
+
+[source,javascript]
+----
+let name = userName ?? "Guest";        // Use userName if defined, else "Guest"
+let port = config.port ?? 8080;        // Use config.port if set, else 8080
+let value = input ?? fallback ?? 0;   // Chain multiple defaults (left-to-right)
+----
+
+==== Important: Nullish vs Falsy
+
+Unlike the logical OR operator (`||`), which treats all falsy values (`0`, `""`, `false`, `null`, `undefined`) as triggers for the default, `??` **only** triggers on `null` or `undefined`:
+
+[source,javascript]
+----
+let count = 0;
+let x = count || 10;    // x = 10 (because 0 is falsy)
+let y = count ?? 10;    // y = 0  (because 0 is not nullish)
+
+let name = "";
+let a = name || "Anonymous";   // a = "Anonymous" (because "" is falsy)
+let b = name ?? "Anonymous";   // b = ""  (because "" is not nullish)
+----
+
+==== Precedence and Mixing Rules
+
+The `??` operator has **very low precedence**. It's lower than `||` and `&&`, but higher than the ternary `?:`, so it evaluates **after** most other operators. This means that in mixed expressions, `||` and `&&` bind their operands first, and the resulting value then becomes the operand for `??`.
+
+**When mixing `??` with `&&` or `||`, the evaluation order may be surprising** because those operators bind more tightly, as `??` has lower precedence:
+
+[source,javascript]
+----
+// ⚠️ These parse in ways that may surprise you:
+result = a || b ?? c;        // Parsed as: (a || b) ?? c
+result = a ?? b && c;        // Parsed as: a ?? (b && c)
+
+// ✅ Always use explicit parentheses to show intent clearly:
+result = a || (b ?? c);      // OR first, then coalesce
+result = (a || b) ?? c;      // Coalesce the OR result
+result = a ?? (b && c);      // Coalesce with AND result
+result = (a ?? b) && c;      // AND after coalescing
+----
+
+Because the low precedence can lead to unexpected grouping, **always add parentheses when mixing `??` with logical operators**, even though it's not a syntax error. This makes your intent explicit and prevents subtle logic errors.
+
+==== Common Patterns
+
+[source,javascript]
+----
+// Providing default values
+let timeout = options.timeout ?? 5000;
+
+// Chaining fallbacks (evaluates left-to-right)
+let port = args.port ?? env.PORT ?? config.port ?? 3000;
+
+// With arithmetic - always use parentheses for clarity
+let total = (price ?? 0) + (tax ?? 0);
+let scaled = (value ?? 1) * multiplier;
+
+// With conditionals
+let message = isError ? errorMsg : (userMsg ?? "No message");
+
+// Safe property access
+let displayName = user?.profile?.name ?? "Anonymous";
+----
+
+==== Why Not Forbid Mixing Like JavaScript?
+
+JavaScript/ECMAScript forbids mixing `??` with `&&` or `||` without parentheses as a syntax error. POCA takes a different approach: it allows mixing but with clear precedence rules where `??` has lower precedence than `&&` and `||`, and encourages developers to use parentheses for clarity. Parentheses are always recommended when combining these operators to avoid ambiguity, even when some people might find it tedious and/or too verbose.
+
+The rationale is that POCA developers should understand operator precedence, just as they do for arithmetic operators like `+` and `*`. Forbidding certain combinations adds language complexity without solving the real issue. Instead, POCA relies on documentation and linter warnings to guide developers toward using parentheses for clarity.
+
+This keeps the language simpler while still encouraging readable code through best practices rather than hard restrictions.
+
+==== Best Practices
+
+* Use `??` when you specifically want to handle `null`/`undefined` but preserve other falsy values like `0`, `""`, or `false`
+* Use `||` when you want to default on any falsy value
+* Always add parentheses when combining `??` with other logical operators for readability
+* Prefer clear, explicit grouping in complex expressions over relying on precedence rules
+
+=== Keywords
+
+POCA keywords are used to identify actions to be performed.
+
+The `let` keyword is used to create variables:
+
+[source,javascript]
+----
+let x = 5 + 6;
+let y = x * 10;
+----
+
+The `var` keyword is also used to create variables:
+
+[source,javascript]
+----
+var x = 5 + 6;
+var y = x * 10;
+----
+
+However, the `const` keyword is also used to create constants:
+
+[source,javascript]
+----
+const x = 5 + 6;
+const y = x * 10;
+----
+
+=== Comments
+
+Not all POCA statements are "executed".
+
+Code after double slashes `//` or between
+
+[source,javascript]
+```
+/*
+```
+
+and
+
+[source,javascript]
+```
+*/
+```
+
+is treated as a comment.
+
+Comments are ignored, and will not be executed:
+
+[source,javascript]
+----
+let x = 5;   // I will be executed
+
+// x = 6;   I will NOT be executed
+----
+
+=== Identifiers / Names
+
+Identifiers are POCA names.
+
+Identifiers are used to name variables and keywords, and functions.
+
+The rules for legal names are the same in most programming languages.
+
+A POCA name must begin with:
+
+* A letter (A-Z or a-z)
+* A dollar sign ($)
+* Or an underscore (_)
+
+Subsequent characters may be letters, digits, underscores, or dollar signs.
+
+Numbers are not allowed as the first character in names.
+
+This way POCA can easily distinguish identifiers from numbers.
+
+=== POCA is Case Sensitive
+
+All POCA identifiers are case sensitive.
+
+The variables lastName and lastname, are two different variables:
+
+[source,javascript]
+----
+let lastName = "Doe";
+let lastname = "Peterson";
+----
+
+POCA does not interpret LET or Let as the keyword let.
+
+=== POCA Character Set
+
+POCA uses the Unicode character set together with the UTF8 internal encoding.
+
+Unicode covers (almost) all the characters, punctuations, and symbols in the world.
+
+== Learning by examples
+
+=== Definitions
+
+[source,javascript]
+----
+a = 3.14159;                    // a is then inside in the current environment hash table
+var b = 0x10000;                // b is then inside in the current environment hash table
+let c = 0b10101;                // c is then assigned to a VM-register or frame variable storage, depending on the scope
+const f = "This is a constant";
+
+var (g, h) = (0, 1);
+(g, h) = (h, g);
+
+function bla(){
+  return [1, 2, 3]:
+}
+
+let (x, y, z) = bla();
+----
+
+=== Scope and code blocks
+
+POCA distinguishes between object/hash literals and code blocks based on their content. Object literals are defined by key-value pairs separated by colons (`:`) and commas (`,`). Code blocks consist of expressions or statements without this pattern. The `scope` and 'code' keywords can be used to explicitly define a code block when ambiguity might arise, as everything in POCA is treated as an expression.
+
+[source,javascript]
+----
+// Example object literal with multiple keys
+{ name: "Alice", age: 30 }
+
+// Example object literal with a single key-value pair
+{ Name: "Alice" }
+
+// Example shorthand object literal
+{ name, age } // Assuming 'name' and 'age' are defined variables, it expands to { name: name, age: age }
+
+// Example object literal with a single shorthand key
+{ name } // Assuming 'name' is defined, it expands to { name: name }
+
+// Example code block
+{ name; } // This is treated as a code block, because of the semicolon, for distinguishing it from an shorthand object literal
+
+// Example code block
+{ print("Hello"); }
+
+// Explicit code block using 'scope' where a new scope is created
+scope {
+  let x = 10;
+  print(x);
+}
+
+// Example code block using 'code' where no new scope is created
+code {
+  let y = 20;
+  print(y);
+}
+
+// Example of nested code blocks with explicit 'scope' and 'code' keywords
+scope {
+  let a = 1 + 2;
+  code {
+    let b = a + 2;
+    print(b);
+  }
+}
+
+----
+
+Without the `scope` and `code` keyword, POCA relies on the presence of key-value pairs (identifiers followed by a colon and value) to identify object literals. If no such pattern is found within the curly braces, it's treated as a code block. However, empty curly braces `{}` are always treated as an empty object literal, since inside code blocks, these are anyway effectively no-ops and will be garbage collected later.
+
+This distinction allows for flexibility in defining both objects and code blocks, making POCA's syntax versatile.
+
+=== Arrays/Vectors
+
+[source,javascript]
+----
+let va = [1, 2, 3];
+let vb = [4, 5, 6];
+let vc = (va ~ vb) ~ [7, 8, 9];  // ~ is the concatenation operator for arrays, strings, etc.
+let vd = vc[0 .. 4];             // range slice copy
+
+va.push(21);
+va.push(42);
+va.push(1337);
+
+for(let i = 0; i < va.size(); i++){
+  puts(va[i]);
+}
+
+foreach(let arrayElement in vd){
+  puts(arrayElement);
+}
+
+while(!va.empty()){
+  va.pop();
+}
+
+function Bla(){
+  return [1, 2, 3];
+}
+
+let (a, b, c) = Bla();
+
+puts(a, " ", b, " ", c);
+----
+
+=== Hashs/Prototyping/Objects
+
+[source,javascript]
+----
+let aHash = {
+              bla: "bla!",
+              bluh: "bluh?"
+            };
+
+foreach(let hashElement; aHash){
+  puts(hashElement);
+}
+
+function oa(){
+  return {};
+}
+
+var x = {a: 12, y:() => puts(@a)};
+let y = {prototype: x, b: 34};
+let z = {prototype: y, c: 56};
+const p = {b: 42, "c": 41};
+
+puts(x.a);
+puts(y.a);
+puts(z.a);
+puts();
+
+y.a=13;
+
+puts(x.a);
+puts(y.a);
+puts(z.a);
+puts();
+
+z.a=14;
+
+puts(x.a);
+puts(y.a);
+puts(z.a);
+puts();
+
+x.y();
+y.y();
+z.y();
+
+readLine();
+----
+
+=== Functions/Lambdas
+
+[source,javascript]
+----
+// Function parameters default to 'let'
+function Test1(a, b){
+  return (a + b) * 2;  // a and b are treated as 'let' by default
+}
+
+// Explicit 'let' (same as default)
+function Test2(let a, let b){
+  return (a + b) * 2;
+}
+
+// Explicit 'var' when needed for hash table storage
+function Test3(var a, var b){
+  return (a + b) * 2;  // a and b stored in local hash table
+}
+
+fastfunction Test4(let a, let b){
+  return (a + b) * 2;
+}
+
+let u(x=(4)) -> x * x;
+
+puts(u());
+
+y(x) -> x * x;
+
+puts(y(4));
+
+let z=(x)=>x + x;
+
+puts(z(4));
+
+let w=function(x)(x * x) - x;
+
+puts(w(4));
+
+let a = function(x){
+ return (x * x) - x;
+}
+
+puts(a(4));
+
+let function b(x){
+  return (x * x) - x;
+}
+
+puts(b(4));
+
+f(x) -> x + 3;
+function g(m, x) m(x) * m(x);
+puts(g(f, 7));
+
+function searchPrimes(let from, let to){
+  let (dummy, primes, n, i, j, isPrime) = (0, 0, 0, 0, 0, 0);
+  from = +from;
+  to = +to;
+  for(n = from; n<= to; ++n){
+    i = ((n % 2) === 0) ? 2 : 3;
+    j = n ** 0.5;
+    isPrime = 1;
+    while(i <= j){
+      if((n % i) === 0){
+        isPrime = 0;
+        break;
+      }
+      i += 2;
+    }
+    primes += isPrime;
+  }
+  return primes;
+}
+----
+
+==== Function Parameter Scoping
+
+Function parameters default to `let` scope unless explicitly declared with `var`. 
+This provides better performance by storing parameters directly in the function's 
+register set or frame storage for faster access, depending on the scoping, avoiding 
+the hash table lookup overhead of `var`.
+
+When you need dynamic variable lookup or metaprogramming features, you can 
+explicitly declare parameters as `var` to store them in the local hash table.
+
+==== Fast Functions
+
+POCA provides a `fastfunction` keyword for performance-critical functions. Fast 
+functions are optimized by eliminating the overhead of the local variable hash 
+table that regular functions use for `var`-declared variables.
+
+**Key Differences:**
+
+* **Regular `function`**: Variables declared with `var` are stored in a hash table 
+  (object/dictionary), which provides flexibility but has lookup overhead.
+* **Fast `fastfunction`**: Does not create the hash table for `var` variables. 
+  All variables must be declared with `let` or `const`, which are stored directly 
+  in the function's register set or frame storage for faster access, depending on 
+  the scoping.
+
+**When to use `fastfunction`:**
+
+* Performance-critical code (hot loops, frequently called functions)
+* Functions that don't need `var`'s dynamic properties
+* Functions where all local variables can be declared with `let` or `const`
+
+**Restrictions:**
+
+* Cannot use `var` keyword inside a `fastfunction`
+* All local variables must be declared with `let` or `const`
+* Slightly less flexible than regular functions, but significantly faster
+
+**Example:**
+
+[source,javascript]
+----
+// Regular function - uses hash table for var variables
+function regularSum(a, b) {
+  var temp = a + b;  // stored in hash table
+  return temp * 2;
+}
+
+// Fast function - all variables in registers/frame storage
+fastfunction fastSum(let a, let b) {
+  let temp = a + b;  // stored directly in registers/frame storage
+  return temp * 2;
+}
+
+// Fast function with const
+fastfunction computeArea(let width, let height) {
+  const pi = 3.14159;
+  let radius = width / 2;
+  return pi * radius * radius;
+}
+----
+
+For most code, regular `function` is fine. Use `fastfunction` when you've 
+identified performance bottlenecks through profiling and the function doesn't 
+require `var` semantics.
+
+=== Threads
+
+[source,javascript]
+----
+var terminated = 0;
+
+function thread1function(){
+  while(!terminated){
+    puts("Thread 1");
+  }
+}
+
+var thread1 = new Thread(thread1function);
+
+var thread2 = new Thread(function(){
+  while(!terminated){
+    puts("Thread 2");
+  }
+});
+
+thread1.start();
+readLine();
+
+thread2.start();
+readLine();
+
+terminated = 1;
+
+thread1.wait();
+thread2.wait();
+----
+
+=== Coroutines
+
+[source,javascript]
+----
+function testcoroutinefunction(i){
+  while(1){
+    Coroutine.yield(i += Coroutine.get());
+  }
+}
+
+var testcoroutine = new Coroutine(testcoroutinefunction, 1000);
+print("Go!\r\n");
+print(testcoroutine.resume(100), "\r\n");
+print(testcoroutine.resume(10), "\r\n");
+print(testcoroutine.resume(1)," \r\n");
+readLine();
+----
+
+=== Classes
+
+[source,javascript]
+----
+var a = 12, b = 4;
+
+class Test extends BaseClass {
+
+  var a = 0;
+
+  constructor(let v){
+    this.a = v + 1;
+  }
+
+  function init(let v){
+    this.a = v + 1;
+  }
+
+  function b(){
+     puts(this.a);
+  }
+
+}
+
+class TestB extends Test {
+
+  var x = 0;
+
+  constructor(let v){
+    super(v * 2);
+    this.x = v + 1;
+  }
+
+  function b(){
+     super();    // calls previous Test.B
+     super.b();  // also calls previous Test.B
+     super.c();  // also previous Test.c
+     this.a--;
+     super.b();  // also calls previous Test.B
+     puts(this.x);
+  }
+
+}
+
+function Test.c(){
+  puts(if(this.a === 247) "yeah" else "ups");
+}
+
+function Test::d(){
+  puts((this.a === 247) ? "allright" : "fail!");
+}
+
+Test.e = function(){
+  puts((this.a === 247) ? ":-)" : ":-(");
+}
+
+let bla = new Test(246);
+
+puts(bla.a, " ", a, " ", b);
+
+bla.b();
+bla.c();
+bla.d();
+bla.e();
+
+puts();
+
+puts("Keys of object bla instance of class ",bla.className,":\n", scope{
+  let s = "";
+  forkey(key;bla){
+    s ~= key ~ " of type " ~ typeof(bla[key]) ~ "\n";
+  }
+  s
+});
+
+let blup = new TestB(123);
+
+puts(blup.a , " ", blup.x, " " , (blup instanceof Test) ? "true" : "false");
+blup.b();
+
+puts(Test.className);
+puts(bla.className);
+puts(TestB.className);
+puts(blup.className);
+
+var piep = new blup.classType(42);
+
+puts(piep.a);
+
+readLine();
+----
+
+=== Modules/Namespaces
+
+[source,javascript]
+----
+module TestModule {
+
+  class TestClass {
+
+    var a = 0;
+
+    constructor(let v){
+      this.a = v;
+    }
+
+    function b(){
+      puts(this.a);
+    }
+
+  }
+
+  function TestClass::c(){
+    puts(this.a * 2);
+  }
+
+}
+
+module OtherTestModule {
+
+  class TestClass {
+
+    class TestClassInsideTestClass {
+
+      module TestModuleInsideTestClassInsideTestClass {
+      }
+
+    }
+
+    var a = 0;
+
+    constructor(var v){
+      this.a = v + v;
+    }
+
+    function b(){
+      puts(this.a);
+    }
+
+  }
+
+  function TestClass.c(){
+    puts(this.a * 2);
+  }
+
+}
+
+var TestClassInstanceFromTestModule = new TestModule.TestClass(2);
+TestClassInstanceFromTestModule.b();
+TestClassInstanceFromTestModule.c();
+
+puts();
+
+var TestClassInstanceFromOtherTestModule = new OtherTestModule.TestClass(2);
+TestClassInstanceFromOtherTestModule.b();
+TestClassInstanceFromOtherTestModule.c();
+----
+
+=== Hash events/Operator overloading
+
+[source,javascript]
+----
+var Vector = {
+  create: function(let vx=0, let vy=0, let vz=0){
+    return setHashEvents({
+                           prototype: this,
+                           x: vx,
+                           y: vy,
+                           z: vz
+                         }, this);
+  },
+  __add: fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x + b.x, a.y + b.y, a.z + b.z);
+    }else{
+      throw "No vector?";
+    }
+  },
+  __sub: fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x - b.x, a.y - b.y, a.z - b.z);
+    }else{
+      throw "No vector?";
+    }
+  },
+  __mul:fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x * b.x, a.y * b.y, a.z * b.z);
+    }else{
+      throw "No vector?";
+    }
+  },
+  __div: fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x / b.x, a.y / b.y, a.z / b.z);
+    }else{
+      throw "No vector?";
+    }
+  }
+};
+
+var va = new Vector(1, 2, 3);
+var vb = new Vector(10, 20, 30);
+
+var vc = va + vb;
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+vc -= vb;
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+vc *= vb;
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+vc /= (va*vb);
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+readLine();
+----
+
+=== Regular expressions
+
+[source,javascript]
+----
+var expr = "", lineRegExp = /^(.*)\\s*$/, match = [], i = 0, currentScope = {};
+while(1){
+  print((expr === "") ? "> " : "\\ ");
+  if(match = lineRegExp.match(line = readLine()))  {
+    expr ~= match[0][1] ~ "\n";
+    continue;
+  }
+  if((expr ~= line) === ""){
+    break;
+  }
+  try{
+    print("< " ~ eval(expr, "<eval>", [], null, currentScope) ~ "\n");
+  }catch(err){
+    for(i = err.size() - 1; i >= 0; i--){
+      print(err[i] ~ " ");
+    }
+    print("\n");
+  }
+  expr = "";
+}
+----
+
+=== Exception handling
+
+[source,javascript]
+----
+try{
+  print("Hello ");
+}catch(c){
+  print("dear ");
+}finally{
+  print("World!\n");
+}
+
+try{
+  print("Hello ");
+  throw 123;
+}catch(c){
+  print("dear ");
+}finally{
+  print("World!\n");
+}
+----
+
+=== When
+
+[source,javascript]
+----
+let aValue = 5;
+when(aValue){
+  case(5 .. 10, 15 .. 17){
+    puts("Hey! ", aValue);
+    aValue++;
+    retry;
+  }
+  case(18){
+    puts("Hi! ", aValue);
+    fallthrough;
+  }
+  case(19){
+    puts("Hallo!");
+  }
+  else{
+    puts("Ups!");
+  }
+}
+----
+
+=== Switch
+
+[source,javascript]
+----
+let aValue = 5;
+switch(aValue){
+  case 1:
+  case 5:
+  case 7:
+  case 10:
+    puts("Hey! ", aValue);
+    break;
+  case 18:
+    puts("Hi! ", aValue);
+  case 19:
+    puts("Hallo!");
+    break;
+  default:
+    puts("Ups!");
+    break;
+}
+----
+
+=== And more!
+
+And much more!

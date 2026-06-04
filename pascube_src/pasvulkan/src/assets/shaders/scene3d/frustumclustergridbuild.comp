@@ -1,0 +1,159 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(push_constant, std140) uniform PushConstants {
+  uvec4 tileSizeZNearZFar; 
+  vec4 viewRect;
+  uvec4 countLightsViewIndexSizeOffsetedViewIndex;  
+  uvec4 clusterSize;
+  vec4 scaleBiasMax;
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 0, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+struct AABB {
+  vec4 minViewSpaceBounds;
+  vec4 maxViewSpaceBounds; 
+  vec4 minWorldSpaceBounds;
+  vec4 maxWorldSpaceBounds;
+};
+
+layout(set = 0, binding = 1, std430) buffer FrustumClusterGridAABBs {
+  AABB frustumClusterGridAABBs[];
+};
+
+layout (set = 0, binding = 2, std430) buffer FrustumClusterGridIndexListCounters {
+  uint frustumClusterGridIndexListCounter; 
+};
+/* clang-format on */
+
+mat4 invMat;
+
+// Convert the screen space coordinates to view space coordinates
+vec4 screenSpaceToViewSpace(vec4 coord) {
+  vec2 ndc = fma((coord.xy - pushConstants.viewRect.xy) / pushConstants.viewRect.zw, vec2(2.0), vec2(-1.0));
+  vec4 view = invMat * vec4(ndc, coord.z, 1.0);
+  return view / view.w;
+}
+
+// Calculate the line intersection with the z plane
+vec3 lineIntersectionToZPlane(vec3 firstPoint, vec3 secondPoint, float zValueViewSpace){
+  vec3 lineDirection = secondPoint - firstPoint;
+  return fma(lineDirection, vec3((zValueViewSpace - firstPoint.z) / lineDirection.z), firstPoint);
+}
+
+void main() {
+  //
+
+  View view = uView.views[pushConstants.countLightsViewIndexSizeOffsetedViewIndex.w];
+
+  invMat = view.inverseProjectionMatrix;
+
+  // Define the infinity value with the bit pattern of the corresponding IEEE float value for infinity
+  const float infinity = uintBitsToFloat(0x7f800000u);
+
+  // Calculate the global invocation index
+  uvec3 globalInvocationID = uvec3(gl_GlobalInvocationID.xyz); //(gl_WorkGroupID.xyz * gl_WorkGroupSize.xyz) + gl_LocalInvocationID.xyz; 
+  uvec3 globalSize = uvec3(gl_NumWorkGroups.xyz * gl_WorkGroupSize.xyz); 
+  uint globalInvocationIndex = (((globalInvocationID.z * globalSize.y) + globalInvocationID.y) * globalSize.x) + globalInvocationID.x;
+ 
+  // Calculate the cluster index
+  uint clusterIndex = globalInvocationIndex + (pushConstants.countLightsViewIndexSizeOffsetedViewIndex.y * pushConstants.countLightsViewIndexSizeOffsetedViewIndex.z);
+
+  // Calculate the min and max screen space end points
+#ifdef REVERSEDZ
+  vec4 minScreen = vec4(vec2(uvec2(globalInvocationID.xy) * pushConstants.tileSizeZNearZFar.xy), 1.0, 1.0);
+  vec4 maxScreen = vec4(vec2((uvec2(globalInvocationID.xy) + uvec2(1)) * pushConstants.tileSizeZNearZFar.xy), 1.0, 1.0);
+#else
+  vec4 minScreen = vec4(vec2(uvec2(globalInvocationID.xy) * pushConstants.tileSizeZNearZFar.xy), 0.0, 1.0);
+  vec4 maxScreen = vec4(vec2((uvec2(globalInvocationID.xy) + uvec2(1)) * pushConstants.tileSizeZNearZFar.xy), 0.0, 1.0);
+#endif
+
+  // Calculate the min and max end points of the line segment in view space
+  vec3 minView = screenSpaceToViewSpace(minScreen).xyz;
+  vec3 maxView = screenSpaceToViewSpace(maxScreen).xyz;
+
+  // Get the near and far plane values from the push constants
+  vec2 ZNearZFar = uintBitsToFloat(pushConstants.tileSizeZNearZFar.zw);
+
+  // Calculate the near and far plane for the cluster 
+  float clusterNear = (globalInvocationID.z == 0u) ? 0.0 : (ZNearZFar.x * pow(ZNearZFar.y / ZNearZFar.x, globalInvocationID.z / float(globalSize.z)));
+  float clusterFar = ((globalInvocationID.z + 1u) == globalSize.z)  //
+                         ? 3.4e+32  // infinity                     // the last cluster depth row is going into the infinity for a reserved z projection matrix with an actually infinite z far plane
+                         : (ZNearZFar.x * pow(ZNearZFar.y / ZNearZFar.x, (globalInvocationID.z + 1) / float(globalSize.z)));
+
+  // Calculate the min and max bounds for the AABB in view space per line intersections with the near and far plane
+#if 0
+  vec3 minNear = (minView * clusterNear) / minView.z;
+  vec3 minFar = (minView * clusterFar) / minView.z;
+  vec3 maxNear = (maxView * clusterNear) / maxView.z;
+  vec3 maxFar = (maxView * clusterFar) / maxView.z;
+#else
+  vec3 minNear = lineIntersectionToZPlane(vec3(0.0), minView, -clusterNear);
+  vec3 minFar = lineIntersectionToZPlane(vec3(0.0), minView, -clusterFar); 
+  vec3 maxNear = lineIntersectionToZPlane(vec3(0.0), maxView, -clusterNear);
+  vec3 maxFar = lineIntersectionToZPlane(vec3(0.0), maxView, -clusterFar); 
+#endif
+
+  // Calculate the min and max bounds for the AABB in view space
+  vec3 aabbViewSpaceMin = min(min(minNear, minFar), min(maxNear, maxFar));
+  vec3 aabbViewSpaceMax = max(max(minNear, minFar), max(maxNear, maxFar));
+  
+  // Calculate the world space min and max bounds for the AABB
+  mat4 viewSpaceToWorldSpaceMatrix = view.inverseViewMatrix;
+  vec4 aabbCorners[8] = {
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMin.x, aabbViewSpaceMin.y, aabbViewSpaceMin.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMin.x, aabbViewSpaceMin.y, aabbViewSpaceMax.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMin.x, aabbViewSpaceMax.y, aabbViewSpaceMin.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMin.x, aabbViewSpaceMax.y, aabbViewSpaceMax.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMax.x, aabbViewSpaceMin.y, aabbViewSpaceMin.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMax.x, aabbViewSpaceMin.y, aabbViewSpaceMax.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMax.x, aabbViewSpaceMax.y, aabbViewSpaceMin.z, 1.0),  //
+    viewSpaceToWorldSpaceMatrix * vec4(aabbViewSpaceMax.x, aabbViewSpaceMax.y, aabbViewSpaceMax.z, 1.0),  //
+  };
+  aabbCorners[0] /= aabbCorners[0].w;
+  aabbCorners[1] /= aabbCorners[1].w;
+  aabbCorners[2] /= aabbCorners[2].w;
+  aabbCorners[3] /= aabbCorners[3].w;
+  aabbCorners[4] /= aabbCorners[4].w;
+  aabbCorners[5] /= aabbCorners[5].w;
+  aabbCorners[6] /= aabbCorners[6].w;
+  aabbCorners[7] /= aabbCorners[7].w;
+  vec3 aabbWorldSpaceMin = min(min(min(min(min(min(min(aabbCorners[0], aabbCorners[1]), aabbCorners[2]), aabbCorners[3]), aabbCorners[4]), aabbCorners[5]), aabbCorners[6]), aabbCorners[7]).xyz;
+  vec3 aabbWorldSpaceMax = max(max(max(max(max(max(max(aabbCorners[0], aabbCorners[1]), aabbCorners[2]), aabbCorners[3]), aabbCorners[4]), aabbCorners[5]), aabbCorners[6]), aabbCorners[7]).xyz;
+
+  // Calculate the center and extents for the bounding sphere with center and radius in the end 
+  vec3 center = (aabbViewSpaceMin + aabbViewSpaceMax) * 0.5;
+  vec3 extents = (aabbViewSpaceMax - aabbViewSpaceMin) * 0.5;
+  float radius = length(extents);
+
+  // Write the final data
+  frustumClusterGridAABBs[clusterIndex].minViewSpaceBounds = vec4(aabbViewSpaceMin, center.x);
+  frustumClusterGridAABBs[clusterIndex].maxViewSpaceBounds = vec4(aabbViewSpaceMax, center.y);
+  frustumClusterGridAABBs[clusterIndex].minWorldSpaceBounds = vec4(aabbWorldSpaceMin, center.z);
+  frustumClusterGridAABBs[clusterIndex].maxWorldSpaceBounds = vec4(aabbWorldSpaceMax, radius);
+
+  if(clusterIndex == 0u){
+    // Reset the atomic index counter for the sorted light and decal index lists, for the next compute shader pass, which assigns the lights and decals to 
+    // the clusters. So we do need to reset the counter only once at the beginning of the first compute shader invocation in this compute shader pass, since
+    // it is just for later use in the next compute shader pass. 
+    frustumClusterGridIndexListCounter = 0u; 
+  }
+
+}

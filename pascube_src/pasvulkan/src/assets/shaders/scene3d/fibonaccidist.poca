@@ -1,0 +1,71 @@
+
+var MathTAU = Math.PI * 2.0;
+
+function WrapIntoMinusPIToPI(x){
+  x = (x + Math.PI) % MathTAU;
+  return (x - Math.PI) + ((x < 0.0) ? MathTAU : 0.0);
+//return ((((x + Math.PI) % MathTAU) + MathTAU) % MathTAU) - Math.PI;
+}
+
+function max(a, b){
+  return (a > b) ? a : b;
+}
+
+(function(){
+
+  let GoldenRatio = 1.61803398874989485; // (1.0 + sqrt(5.0)) / 2.0 (golden ratio)   
+  let GoldenRatioMinusOne = 0.61803398874989485; // ((1.0 + sqrt(5.0)) / 2.0) - 1.0 (golden ratio)   
+  let OneOverSqrt5 = 0.447213595499957939; // 1.0 / sqrt(5.0) 
+  let PImulSqrt5 = 7.024814731040726393; // PI * sqrt(5.0)
+  let PImul20 = 62.831853071795864769; // PI * 20.0
+  let PImul20overSqrt5 = 28.099258924162905573; // (PI * 20.0) / sqrt(5.0)
+  let OneOverLogGoldenRatio = 2.0780869212350275376; // 1.0 / ln((1.0 + sqrt(5.0)) / 2.0) (1.0 / log of golden ratio)
+
+  // Test case if both Phi calculation methods are equal enough for our purposes for the first x values,
+  // when using the golden ratio based method and the golden angle based method, and when both are
+  // wrapped into the range of -PI to PI. 
+  let count = 65536;
+  let points = [];
+  for(let index = 0; index < count; index++){
+    let phi = WrapIntoMinusPIToPI(((index * GoldenRatioMinusOne) % 1.0) * MathTAU);  
+    let y = 1.0 - (((index * 2.0) + 1.0) / count);
+    let sinTheta = Math.sqrt(1.0 - (y * y));
+    points.push([Math.cos(phi) * sinTheta, y, Math.sin(phi) * sinTheta]);
+  }
+
+  let referenceMinimumSquaredDistance = PImul20overSqrt5 / count;
+  let referenceMinimumDistance = Math.sqrt(referenceMinimumSquaredDistance);
+
+  let minimumDistance = 3e+38;
+  let maximumDistance = 0.0;
+  let ca = [0, 2, 4, 5, 3, 1];
+  for(let index = 0; index < count; index++){
+    let cosTheta = 1.0 - (((index * 2.0) + 1.0) / count);
+    let z = max(0.0, Math.round(0.5 * Math.log(count * PImulSqrt5 * (1.0 - (cosTheta * cosTheta))) * OneOverLogGoldenRatio));
+    for(let otherIndex = 0; otherIndex < 12; otherIndex++){
+      let k = Math.round(Math.pow(GoldenRatio, (z + ca[otherIndex % 6]) - 2.0) * OneOverSqrt5) * ((otherIndex < 6) ? 1 : -1) + index;
+      if((k >= 0) && (k < count)){
+        let x = points[index][0] - points[k][0];
+        let y = points[index][1] - points[k][1];
+        let z = points[index][2] - points[k][2];
+        let squaredDistance = (x * x) + (y * y) + (z * z);
+        let distance = Math.sqrt(squaredDistance);
+        if(squaredDistance <= referenceMinimumSquaredDistance){
+          if(distance < minimumDistance){
+            minimumDistance = distance;
+          }
+          if(distance > maximumDistance){
+            maximumDistance = distance;
+         
+          }
+        }
+      }
+    }
+  }
+
+  print("minimumDistance = ", minimumDistance, "\n");
+  print("maximumDistance = ", maximumDistance, "\n");
+
+  print("referenceMinimumDistance = ", referenceMinimumDistance, "\n");
+
+})();

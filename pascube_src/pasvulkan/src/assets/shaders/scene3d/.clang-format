@@ -1,0 +1,114 @@
+﻿#BasedOnStyle: Google
+#ColumnLimit: 1000
+
+# See Clang docs: http://clang.llvm.org/docs/ClangFormatStyleOptions.html
+BasedOnStyle: LLVM
+
+# Allow double brackets such as std::vector<std::vector<int>>.
+Standard: Cpp11
+
+NamespaceIndentation: Inner
+
+# Indent 2 spaces at a time.
+IndentWidth: 2
+
+# Keep lines under 256 columns long.
+ColumnLimit: 256
+
+# Always break before braces
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+  # Keeps extern "C" blocks unindented.
+  AfterExternBlock: false
+
+BreakConstructorInitializers: BeforeComma
+
+# Indent case labels.
+IndentCaseLabels: true
+
+# Right-align pointers and references
+PointerAlignment: Right
+
+# ANGLE likes to align things as much as possible.
+AlignOperands: false
+AlignConsecutiveAssignments: false
+#AlignArrayOfStructures: Left
+AlignConsecutiveDeclarations: true
+AlignAfterOpenBracket: Align
+
+# Use 2 space negative offset for access modifiers
+AccessModifierOffset: -2
+
+# TODO(jmadill): Decide if we want this on. Doesn't have an "all or none" mode.
+AllowShortCaseLabelsOnASingleLine: false
+
+AllowAllArgumentsOnNextLine: false
+
+BinPackArguments: false
+
+BinPackParameters: false
+
+# Useful for spacing out functions in classes
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+# Indent nested PP directives.
+IndentPPDirectives: AfterHash
+
+# Include blocks style
+IncludeBlocks: Preserve
+
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+#SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+#SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInContainerLiterals: false
+SpacesInCStyleCastParentheses: false
+SpacesInConditionalStatement: false
+#SpacesInLineCommentPrefix:
+#  Minimum: 1
+#  Maximum: -1
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+AlignEscapedNewlines: Left
+
+AllowShortFunctionsOnASingleLine: None
+
+UseTab: Never # ForIndentation
+
+Cpp11BracedListStyle: false
+
+UseCRLF: false
+
+DeriveLineEnding: true
+
+TabWidth: 2
+
+ExperimentalAutoDetectBinPacking: true
+
+# ForceEmptyLineAtEOF: true

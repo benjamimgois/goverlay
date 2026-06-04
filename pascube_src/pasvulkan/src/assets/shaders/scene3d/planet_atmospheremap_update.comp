@@ -1,0 +1,57 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r8) uniform image2D uImageAtmosphereMap;
+
+layout(set = 0, binding = 1) uniform sampler2D uImageAdditionMap;
+
+layout(push_constant) uniform PushConstants {
+  float additionFactor;
+  float additionOffset;
+  float reductionFactor;
+  float reductionOffset;
+  float factor;
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+void main(){
+  
+  const ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  const ivec2 texSize = imageSize(uImageAtmosphereMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    const vec3 normal = octPlanetUnsignedDecode(vec2(texel) / vec2(texSize));
+
+    float value = imageLoad(uImageAtmosphereMap, texel).x;
+
+    const float additionValue = texturePlanetOctahedralMap(uImageAdditionMap, normal).x;
+
+    const float factor = pushConstants.factor;
+
+    // Apply the reduction and addition factors and offsets
+    value = ((value * ((factor > 1) ? pow(pushConstants.reductionFactor, factor) : pushConstants.reductionFactor)) + (pushConstants.reductionOffset * factor)) +
+            ((additionValue * (pushConstants.additionFactor * factor)) + (pushConstants.additionOffset * factor));
+
+    value = clamp(round(clamp(value, 0.0, 1.0) * 255.0) / 255.0, 0.0, 1.0); // Round to 8-bit precision 
+
+    imageStore(uImageAtmosphereMap, texel, vec4(value));      
+    
+  }
+
+}
+

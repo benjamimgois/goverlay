@@ -1,0 +1,32 @@
+// JS like arrow function lambda
+let y(x)=>x*x;
+
+puts(y(4));
+
+// same as fast lambda (has no `this`!)
+let z=(x)->x+x;
+
+puts(z(4));
+
+// single parameter lambda without parentheses
+let u=x=>(x*x)+x; 
+
+puts(u(4));
+
+// some more verbose lambdas using the function keyword
+
+let w = function(x)(x*x)-x;
+
+puts(w(4));
+
+let a=function(x){
+  return (x*x)-x;
+}
+
+puts(a(4));
+
+let function b(x){
+  return (x*x)-x;
+}
+
+puts(b(4));

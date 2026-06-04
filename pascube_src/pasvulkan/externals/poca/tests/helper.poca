@@ -1,0 +1,159 @@
+StringHash?.beginsWith ??= function(sub) {
+  return this.indexOf(sub) === 0;
+};
+
+StringHash?.endsWith ??= function(sub) {
+  return this.lastIndexOf(sub) === this.length - sub.length;
+};
+
+StringHash?.beginWith ??= StringHash.beginsWith;
+StringHash?.endWith ??= StringHash.endsWith;
+
+function dump(root, output = true) {
+  let (val, stack, depth, buf) = (root, [], 0, []);
+
+  while (true) {
+
+    if (typeof(val) === 'Array') {
+      const array = val;
+
+      if (array.length > 0) {
+        buf.push('[');
+
+        depth++;
+
+        stack.push({ type: 'array', array, index: 0 });
+        val = array[0];
+
+        buf.push("\n", '  '.repeat(depth));
+
+        continue;
+      }
+
+      buf.push('[]');
+
+    } else if (val && typeof(val) === 'Hash') {
+      const hash = val;
+      const keys = hash.rawKeys();
+
+      if (keys.length > 0) {
+        buf.push('{');
+
+        depth++;
+
+        stack.push({ type: 'hash', hash, keys, index: 0 });
+
+        const k = keys[0];
+        buf.push("\n" ~ '  '.repeat(depth) ~ k ~ ': ');
+        val = hash[k];
+
+        continue;
+      }
+
+      buf.push('{}');
+
+    } else {
+      const s = when (typeof(val)) {
+        case ('Null') { 'null' }
+        case ('Number') { val.toString() }
+        case ('String') { "'" ~ val ~ "'" } // FIXME: properly escape
+        case ('Function') { '/* function */ null' }
+        default { 'null' }
+      };
+
+      buf.push(s);
+    }
+
+    let rel = false;
+
+    while (stack.length) {
+      const frame = stack[stack.length - 1];
+
+      if (frame.type === 'array') {
+        if (++frame.index >= frame.array.length) {
+          stack.pop();
+          depth--;
+
+          buf.push("\n" ~ "  ".repeat(depth) ~ ']');
+
+          continue; // close and continue unwinding the stack
+        }
+
+        buf.push(', ');
+        val = frame.array[frame.index];
+        rel = true;
+
+        break; // done
+
+      } else if (frame.type === 'hash') { // hash
+        if (++frame.index >= frame.keys.length) {
+          stack.pop();
+          depth--;
+
+          buf.push("\n" ~ "  ".repeat(depth) ~ '}');
+
+          continue; // close and continue unwinding the stack
+        }
+
+        buf.push(', ');
+
+        const k = frame.keys[frame.index];
+        
+        buf.push(k, ': ');
+        val = frame.hash[k];
+        rel = true;
+
+        break; // done
+      }
+    }
+
+    if (!rel)
+      break; // done
+  }
+
+  const s = buf.join('');
+  output && puts(s);
+
+  return s;
+}
+
+function assert_structure(actual, expected) {
+  let stack = [ [ actual, expected ] ];
+
+  while (stack.length > 0) {
+    const (a, b) = stack.pop();
+    if (a === b)
+      return continue;
+
+    const (ta, tb) = (typeof(a), typeof(b));
+    if (ta !== tb)
+      return false;
+
+    if (ta === 'Array') {
+      if (a.length !== b.length)
+        return false;
+
+      for (let i = 0; i < a.length; ++i) {
+        if (typeof(a[i]) !== typeof(b[i]))
+          return false;
+
+        stack.push([ a[i], b[i] ]);
+      }
+    } else if (ta === 'Hash') {
+      if (a.rawKeys().length !== b.rawKeys().length)
+        return false;
+
+      foreach (let k in a.rawKeys()) { // NOTE: doesn't check order
+        if (!b.contains(k) || typeof(a[k]) !== typeof(b[k]))
+          return false;
+
+        stack.push([ a[k], b[k] ]);
+      }
+    } else { // String, Number, Null, HashGhost, Function, Class, Module
+      if (a !== b)
+        return false;
+    }
+  }
+
+  return true;
+}

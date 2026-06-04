@@ -1,0 +1,81 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform texture2D uTextureHeightMap;
+layout(set = 0, binding = 1) uniform texture2D uTextureNormalMap;
+
+layout(set = 0, binding = 2, std430) buffer uPhysicsData {
+  uvec4 data[]; // x = height (float), y = normal (2x int16), z = slope (float), w = unused
+} physicsData;
+
+/* clang-format on */
+
+layout(push_constant) uniform PushConstants {
+  float planetGroundRadius; // planet ground radius
+  float heightMapScale; // scale of height map
+  int stepScaleSize;
+  int stepScaleShift;
+  ivec2 resolution;
+} pushConstants;
+
+#include "octahedralmap.glsl"
+#include "octahedral.glsl"
+#include "rgb10a2.glsl"
+
+vec3 safeNormalize(vec3 v){
+  return (length(v) > 0.0) ? normalize(v) : vec3(0.0);
+}
+
+void main(){
+  
+  const ivec2 position = ivec2(gl_GlobalInvocationID.xy);
+
+  if(all(greaterThanEqual(position, ivec2(0))) && all(lessThan(position, pushConstants.resolution))){
+
+    const ivec2 texSize = textureSize(uTextureHeightMap, 0);
+
+    const float height = fma(texelFetch(uTextureHeightMap, ivec2(position) << ivec2(pushConstants.stepScaleShift), 0).x, pushConstants.heightMapScale, pushConstants.planetGroundRadius);
+
+    const vec3 normalCenter = normalize(fma(texelFetch(uTextureNormalMap, ivec2(position) << ivec2(pushConstants.stepScaleShift), 0).xyz, vec3(2.0), vec3(-1.0)));
+
+    const vec3 normal00 = normalize(fma(texelFetch(uTextureNormalMap, wrapOctahedralTexelCoordinates((ivec2(position) << ivec2(pushConstants.stepScaleShift)) + ivec2(-1, -1), ivec2(texSize)), 0).xyz, vec3(2.0), vec3(-1.0)));
+    const vec3 normal01 = normalize(fma(texelFetch(uTextureNormalMap, wrapOctahedralTexelCoordinates((ivec2(position) << ivec2(pushConstants.stepScaleShift)) + ivec2(1, -1), ivec2(texSize)), 0).xyz, vec3(2.0), vec3(-1.0)));
+    const vec3 normal10 = normalize(fma(texelFetch(uTextureNormalMap, wrapOctahedralTexelCoordinates((ivec2(position) << ivec2(pushConstants.stepScaleShift)) + ivec2(-1, 1), ivec2(texSize)), 0).xyz, vec3(2.0), vec3(-1.0)));
+    const vec3 normal11 = normalize(fma(texelFetch(uTextureNormalMap, wrapOctahedralTexelCoordinates((ivec2(position) << ivec2(pushConstants.stepScaleShift)) + ivec2(1, 1), ivec2(texSize)), 0).xyz, vec3(2.0), vec3(-1.0)));
+
+    // Calculate the slope 
+    const vec2 slopeXY = vec2(
+      max(length(normal01 - normal00), max(length(normal01 - normalCenter), length(normal00 - normalCenter))), 
+      max(length(normal11 - normal10), max(length(normal11 - normalCenter), length(normal10 - normalCenter)))
+    );
+    const float slope = length(slopeXY);
+    //const float slopeAngle = atan(slopeXY.y, slopeXY.x);
+
+    physicsData.data[(position.y * pushConstants.resolution.x) + position.x] = uvec4(
+      
+      // Height (float)
+      floatBitsToUint(height),
+
+      // Normal (2x int16) from the physics resolution equivalent mipmap LOD level of the normal map
+      packSnorm2x16(octSignedEncode(normalize(fma(texelFetch(uTextureNormalMap, ivec2(position), int(pushConstants.stepScaleShift)).xyz, vec3(2.0), vec3(-1.0))))),
+      
+      // Slope (float)
+      floatBitsToUint(slope),
+
+      // Unused for now
+      0u
+    );
+
+  }
+
+}

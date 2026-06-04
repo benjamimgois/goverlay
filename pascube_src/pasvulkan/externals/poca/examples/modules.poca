@@ -1,0 +1,62 @@
+
+module TestModule {
+
+  class TestClass {
+
+    var a = 0;
+     
+    constructor(let v){
+      this.a = v;  
+    }     
+    
+    function b(){
+      puts(this.a);
+    }
+     
+  }
+  
+  function TestClass::c(){
+    puts(this.a * 2);
+  }
+
+}
+
+module OtherTestModule {
+
+  class TestClass {
+
+    class TestClassInsideTestClass {
+      
+      module TestModuleInsideTestClassInsideTestClass {
+      }
+      
+    }
+    
+    var a = 0;
+     
+    constructor(var v){
+      this.a = v + v;  
+    }
+    
+    function b(){ 
+      puts(this.a);
+    }
+     
+  }
+  
+  function TestClass.c(){
+    puts(this.a * 2);
+  }
+
+}
+
+var TestClassInstanceFromTestModule = new TestModule.TestClass(2);
+TestClassInstanceFromTestModule.b();
+TestClassInstanceFromTestModule.c();
+
+print("\n");
+
+var TestClassInstanceFromOtherTestModule = new OtherTestModule.TestClass(2);
+TestClassInstanceFromOtherTestModule.b();
+TestClassInstanceFromOtherTestModule.c();
+

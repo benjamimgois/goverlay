@@ -1,0 +1,8 @@
+
+(function(){
+
+  for(let i = 0; i < 1024; i++){
+    puts(i);
+  }
+  
+}());

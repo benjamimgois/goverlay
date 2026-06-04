@@ -1,0 +1,24 @@
+
+let a = Vector2.create(1, 2);
+puts("Vector2 a: " ~ a);
+let b = Vector2.create(3, 4);
+puts("Vector2 b: " ~ b);
+let c = a.clone().add(b);
+puts("Vector2 c (a + b): " ~ c);
+let d = b.clone().sub(a);
+puts("Vector2 d (b - a): " ~ d);
+
+let e = a + b;
+puts("Vector2 e (a + b using operator): " ~ e);
+let f = b - a;
+puts("Vector2 f (b - a using operator): " ~ f);
+
+let g = a * b;
+puts("Vector2 g (a * b): " ~ g);
+let h = a / b;
+puts("Vector2 h (a / b): " ~ h);
+
+let i = a * 2;
+puts("Vector2 i (a * 2): " ~ i);
+let j = b / 2;
+puts("Vector2 j (b / 2): " ~ j); 

@@ -1,0 +1,108 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// Water simulation based on "Fast Hydraulic Erosion Simulation and Visualization on GPU" by Xing Mei, Philippe Decaudin, Bao-Gang Hu
+// Link: https://hal.inria.fr/inria-00402079/document
+
+// But yet without the erosion part of the terrain part, just the water flow simulation for now.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 1) uniform sampler2DArray uBrushTextureArray;
+
+layout(push_constant) uniform PushConstants {
+  vec4 positionRadius; // xyz = position, w = radius
+  float innerRadius;
+  float value;
+  uint waterHeightMapResolution;
+  uint brushIndex;
+  float brushRotation;
+} pushConstants;
+
+// This shader transforms the relative water height map buffer to an absolute water height map image for rendering.
+
+layout(set = 0, binding = 0, std430) coherent buffer WaterHeightMap {
+  float values[];
+} waterHeightMap;
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+void main(){
+
+  const uvec2 position = uvec2(gl_GlobalInvocationID.xy);
+
+  if((all(lessThan(position, uvec2(pushConstants.waterHeightMapResolution)))) && (abs(pushConstants.value) > 1e-7)){      
+
+    vec3 p = octPlanetUnsignedDecode(vec2(position) / vec2(pushConstants.waterHeightMapResolution));
+
+    vec3 n = normalize(pushConstants.positionRadius.xyz);
+
+    float d;
+
+    if(pushConstants.brushIndex == 0u){
+
+      // Just a circle brush
+     
+      d = smoothstep(
+        0.0,
+        -pushConstants.innerRadius,
+        length(p - n) - pushConstants.positionRadius.w
+      );
+
+    }else if(pushConstants.brushIndex <= 255u){
+
+      // Brush texture
+
+      vec3 t = n.yzx - n.zxy, 
+           b = normalize(cross(n, t = normalize(t - dot(t, n)))),
+           o = p - n;
+      if(pushConstants.brushRotation != 0.0){
+        const vec2 rotationSinCos = sin(vec2(pushConstants.brushRotation) + vec2(0.0, 1.57079632679));
+        const vec3 ot = t, ob = b;
+        t = (ot * rotationSinCos.y) - (ob * rotationSinCos.x);
+        b = (ot * rotationSinCos.x) + (ob * rotationSinCos.y);
+      }
+      vec2 uv = vec2(dot(o, t), dot(o, b)) / pushConstants.positionRadius.w;
+      d = smoothstep(1.0, 1.0 - (1.0 / length(textureSize(uBrushTextureArray, 0).xy)), max(abs(uv.x), abs(uv.y)));
+
+      d *= smoothstep(-1e-4, 1e-4, dot(p, n)); // When we are on the back side of the planet, we need to clear the brush, but smoothly.
+
+      if(d > 0.0){
+        d *= textureLod(uBrushTextureArray, vec3(fma(uv, vec2(0.5), vec2(0.5)), float(pushConstants.brushIndex)), 0.0).x;
+      } 
+
+    }else{
+
+      // No brush
+
+      d = 0.0;
+
+    }
+
+    if(d > 0.0){
+
+      uint index = (position.y * pushConstants.waterHeightMapResolution) + position.x;
+
+      if(pushConstants.value < 0.0){
+        waterHeightMap.values[index] += d * pushConstants.value;
+      }else{  
+        // When the value is positive, we want to add the value to the water height map, where we ensure that the
+        // original value is not negative, so that it is being pushed up and not below the terrain.
+        waterHeightMap.values[index] = max(0.0, waterHeightMap.values[index]) + (d * pushConstants.value);
+      }
+
+    }      
+
+  }
+
+}

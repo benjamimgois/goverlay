@@ -1,0 +1,248 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// Water simulation based on "Fast Hydraulic Erosion Simulation and Visualization on GPU" by Xing Mei, Philippe Decaudin, Bao-Gang Hu
+// Link: https://hal.inria.fr/inria-00402079/document
+
+// But yet without the erosion part of the terrain part, just the water flow simulation for now.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#ifdef USE_FP16
+// 16-bit floats
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : enable
+#extension GL_EXT_shader_16bit_storage : enable
+#endif
+
+/* clang-format off */
+
+#define WORKGROUP_SIZE 16
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+
+#define READONLY_WATERFLOW
+#include "planet_water_simulation.glsl"
+
+#ifdef USE_COMPACT_FLOW
+shared vec2 sharedFlowMapValues[WORKGROUP_SIZE + 2][WORKGROUP_SIZE + 2]; // WORKGROUP_SIZE x WORKGROUP_SIZE + 1x1 for the border on each side for the 3x3 kernel 
+#else
+shared vec4 sharedFlowMapValues[WORKGROUP_SIZE + 2][WORKGROUP_SIZE + 2]; // WORKGROUP_SIZE x WORKGROUP_SIZE + 1x1 for the border on each side for the 3x3 kernel 
+#endif
+
+shared float sharedHeightDifferences[WORKGROUP_SIZE * WORKGROUP_SIZE];
+
+#ifdef USE_COMPACT_FLOW
+
+// Apply checkerboard flip to a 2D flow vector when crossing octahedral seams.
+// If the parity (x^y)&1 differs between source and target cell, swap+flip.
+// This maps neighbor flow orientation into the local cell's orientation.
+vec2 applyOctaCheckerboardFlip(vec2 v, ivec2 fromXY, ivec2 toXY){
+  fromXY = (fromXY + ivec2(int(pushConstants.waterHeightMapResolution))) / int(pushConstants.waterHeightMapResolution);
+  toXY = (toXY + ivec2(int(pushConstants.waterHeightMapResolution))) / int(pushConstants.waterHeightMapResolution);
+  bool flip = (((fromXY.x ^ fromXY.y) & 1) != ((toXY.x ^ toXY.y) & 1));
+  return flip ? vec2(v.y, -v.x) : v;
+}
+
+#endif
+
+void main(){
+
+  if(pushConstants.frameIndex != 0){
+
+    const ivec2 localPos = ivec2(gl_LocalInvocationID.xy);
+    const ivec2 tileOrigin = (ivec2(gl_WorkGroupID.xy) * WORKGROUP_SIZE) - ivec2(1, 1);
+      
+    const int dimension = WORKGROUP_SIZE + 2;
+    const int totalElements = dimension * dimension;
+    const int threadID = (localPos.y * WORKGROUP_SIZE) + localPos.x;
+          
+    for(int i = threadID; i < totalElements; i += 256){
+      ivec2 t = ivec2(i % dimension, i / dimension);
+#ifdef USE_COMPACT_FLOW      
+      sharedFlowMapValues[t.y][t.x] = waterFlowMap.values[getFlowMapIndex(tileOrigin + t)].xy;
+#else
+      sharedFlowMapValues[t.y][t.x] = waterFlowMap.values[getFlowMapIndex(tileOrigin + t)];
+#endif
+    }
+
+  }
+
+  memoryBarrierShared();
+  barrier();
+
+  const uvec2 position = uvec2(gl_GlobalInvocationID.xy);
+
+  bool inBounds = all(lessThan(position, uvec2(pushConstants.waterHeightMapResolution)));
+
+  const uint heightMapIndex = (position.y * pushConstants.waterHeightMapResolution) + position.x;
+
+  const uint flowMapIndex = ((position.y + uint(pushConstants.waterHeightMapBorder)) * waterHeightMapResolutionWithBorder) + (position.x + uint(pushConstants.waterHeightMapBorder));
+
+  float waterOutHeight;
+
+  if(inBounds){
+
+    if(pushConstants.frameIndex == 0){
+
+      // The first frame is a special case and the easy one, we just need to initialize the water height map.     
+      waterOutHeight = pushConstants.initialWaterLevel;
+
+      // Initialize the shared height difference to zero for the first frame.
+      sharedHeightDifferences[gl_LocalInvocationIndex] = 0.0;
+
+    }else{
+
+      // Calculate water height change using flow divergence
+#ifdef USE_COMPACT_FLOW
+      // For compact flow, calculate net divergence directly from neighbor flows
+      const vec2 selfFlow = vec2(waterFlowMap.values[flowMapIndex].xy);
+      
+      // Get neighbor flows with octahedral corrections
+      const ivec2 position = ivec2(gl_GlobalInvocationID.xy);
+      const vec2 flowE = applyOctaCheckerboardFlip(sharedFlowMapValues[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 2], position, ivec2(position.x + 1, position.y)); // ( 1,  0)
+      const vec2 flowS = applyOctaCheckerboardFlip(sharedFlowMapValues[gl_LocalInvocationID.y + 2][gl_LocalInvocationID.x + 1], position, ivec2(position.x, position.y + 1)); // ( 0,  1)
+      const vec2 flowW = applyOctaCheckerboardFlip(sharedFlowMapValues[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 0], position, ivec2(position.x - 1, position.y)); // (-1,  0)
+      const vec2 flowN = applyOctaCheckerboardFlip(sharedFlowMapValues[gl_LocalInvocationID.y + 0][gl_LocalInvocationID.x + 1], position, ivec2(position.x, position.y - 1)); // ( 0, -1)
+      
+      // Calculate flow divergence more carefully to avoid instability
+      // Flow INTO this cell from neighbors (positive contribution)
+      const float inflowFromE = max(0.0, -flowE.x);  // East neighbor flowing west
+      const float inflowFromS = max(0.0, -flowS.y);  // South neighbor flowing north  
+      const float inflowFromW = max(0.0, flowW.x);   // West neighbor flowing east
+      const float inflowFromN = max(0.0, flowN.y);   // North neighbor flowing south
+      
+      // Flow OUT of this cell (negative contribution)  
+      const float outflowToE = max(0.0, selfFlow.x);   // This cell flowing east
+      const float outflowToS = max(0.0, selfFlow.y);   // This cell flowing south
+      const float outflowToW = max(0.0, -selfFlow.x);  // This cell flowing west
+      const float outflowToN = max(0.0, -selfFlow.y);  // This cell flowing north
+      
+      const float totalInflow = inflowFromE + inflowFromS + inflowFromW + inflowFromN;
+      const float totalOutflow = outflowToE + outflowToS + outflowToW + outflowToN;
+      
+      // Use the same formula as normal mode for consistency
+      const float flowDivergence = ((totalInflow - totalOutflow) * pushConstants.deltaTime) / pushConstants.pipeLengthSquared;
+#else
+      // Traditional inflow/outflow calculation
+      const float totalInFlow = dot(vec4(waterFlowMap.values[flowMapIndex]), vec4(1.0));
+      const float totalOutFlow = sharedFlowMapValues[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 2].z + // ivec2( 1,  0)
+                                 sharedFlowMapValues[gl_LocalInvocationID.y + 2][gl_LocalInvocationID.x + 1].w + // ivec2( 0,  1)
+                                 sharedFlowMapValues[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 0].x + // ivec2(-1,  0)
+                                 sharedFlowMapValues[gl_LocalInvocationID.y + 0][gl_LocalInvocationID.x + 1].y;  // ivec2( 0, -1)
+      const float flowDivergence = ((totalOutFlow - totalInFlow) * pushConstants.deltaTime) / pushConstants.pipeLengthSquared;
+#endif
+ 
+      // Read the water height from the input water height map
+      const float inWaterHeight = inWaterHeightMap.values[heightMapIndex];
+
+      // Calculate the rain fall value based on the precipitation atmosphere map and the rain intensity
+      const uint precipitationAtmosphereMapIndex = ((position.y >> pushConstants.precipitationAtmosphereMapShift) * pushConstants.precipitationAtmosphereMapResolution) + (position.x >> pushConstants.precipitationAtmosphereMapShift);
+      float rainFallValue = clamp(precipitationAtmosphereMap.values[precipitationAtmosphereMapIndex], 0.0, 1.0) * pushConstants.rainIntensity * pushConstants.deltaTime; 
+      if(rainFallValue > 0.0){
+        vec3 positionOctahedral = octPlanetUnsignedDecode((vec2(position) + vec2(0.5)) / vec2(pushConstants.waterHeightMapResolution));
+        rainFallValue *= clamp(pcgNoise(vec4(vec3(positionOctahedral) * pushConstants.scale, float(pushConstants.frameIndex) * pushConstants.timeScale)), 0.0, 1.0);
+      }
+
+      // Calculate the new water height, considering the flow divergence, evaporation, and rain fall
+      waterOutHeight = max(
+        0.0, 
+        ((inWaterHeight + flowDivergence) * 
+        (1.0 - clamp(pushConstants.evaporation * exp(-(inWaterHeight * pushConstants.evaporationHeightCoefficient)) * pushConstants.deltaTime, 0.0, 1.0))) +
+        rainFallValue
+      );
+
+      // Calculate the absolute height differences
+      sharedHeightDifferences[gl_LocalInvocationIndex] = abs(inWaterHeight - waterOutHeight);
+
+    }
+
+    outWaterHeightMap.values[heightMapIndex] = _float(waterOutHeight);
+  
+  }else{
+
+    sharedHeightDifferences[gl_LocalInvocationIndex] = 0.0; // If the position is out of bounds, we set the height difference to zero
+    
+  }
+
+  // Perform a parallel max reduction to calculate the total absolute height differences
+
+  memoryBarrierShared();
+  barrier();
+
+#if WORKGROUP_SIZE != 16   
+
+  // Automatic unrolled version of the parallel max reduction for WORKGROUP_SIZE != 16
+  
+  [[unroll]] for(uint i = 128u; i > 0u; i >>= 1u){
+    if(gl_LocalInvocationIndex < i){
+      sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + i]);
+    }
+    memoryBarrierShared();
+    barrier();
+  }
+
+#else
+
+  // Manual unrolled version of the parallel max reduction for WORKGROUP_SIZE == 16
+
+  if(gl_LocalInvocationIndex < 128){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 128]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 64){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 64]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 32){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 32]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 16){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 16]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 8){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 8]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 4){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 4]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 2){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 2]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+  if(gl_LocalInvocationIndex < 1){
+    sharedHeightDifferences[gl_LocalInvocationIndex] = max(sharedHeightDifferences[gl_LocalInvocationIndex], sharedHeightDifferences[gl_LocalInvocationIndex + 1]);
+  }
+  memoryBarrierShared();
+  barrier();
+
+#endif
+
+  if(inBounds && (gl_LocalInvocationIndex == 0)){
+    atomicMax(waterMaxHeightDifference.value, floatBitsToUint(sharedHeightDifferences[0]));
+  }    
+
+}

@@ -1,0 +1,37 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uSourceTexture; // Source mipmap level texture
+
+layout(set = 0, binding = 1, rgba16f) writeonly uniform image2D uDestinationTexture; // Destination mipmap level image
+/* clang-format on */
+
+ivec2 sourceSize = ivec2(textureSize(uSourceTexture, 0).xy);
+
+vec2 invSourceSize = vec2(1.0) / vec2(sourceSize);
+
+void main() {
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 xy = invocationPosition.xy;
+  ivec2 destinationTextureSize = imageSize(uDestinationTexture);
+  if (all(greaterThanEqual(invocationPosition, ivec2(0))) && all(lessThan(invocationPosition, destinationTextureSize))) {
+#ifdef LEVEL0
+    // Just copy the source texture to the destination texture for the first mipmap level
+    vec4 color = texelFetch(uSourceTexture, xy, 0);
+#else    
+    // Simple box filter to downsample the source texture, should be good enough for now for mipmapping the user interface stuff for 3D reprojection in the VR compositor 
+    vec4 color = (texelFetch(uSourceTexture, xy + ivec2(0, 0), 0) +
+                  texelFetch(uSourceTexture, xy + ivec2(1, 0), 0) +
+                  texelFetch(uSourceTexture, xy + ivec2(0, 1), 0) + 
+                  texelFetch(uSourceTexture, xy + ivec2(1, 1), 0)) * 0.25;                  
+#endif
+    imageStore(uDestinationTexture, invocationPosition, color);
+  }
+}

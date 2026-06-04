@@ -1,0 +1,96 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+#ifdef MSAA
+
+#ifdef MULTIVIEW
+layout(set = 0, binding = 0) uniform sampler2DMSArray uSourceTexture; // Source mipmap level texture
+#else
+layout(set = 0, binding = 0) uniform sampler2DMS uSourceTexture; // Source mipmap level texture
+#endif
+
+#else
+
+#ifdef MULTIVIEW
+layout(set = 0, binding = 0) uniform sampler2DArray uSourceTexture; // Source mipmap level texture
+#else
+layout(set = 0, binding = 0) uniform sampler2D uSourceTexture; // Source mipmap level texture
+#endif
+
+#endif
+
+#ifdef MULTIVIEW
+layout(set = 0, binding = 1, r32f) writeonly uniform image2DArray uDestinationTexture; // Destination mipmap level image
+#else
+layout(set = 0, binding = 1, r32f) writeonly uniform image2D uDestinationTexture; // Destination mipmap level image
+#endif
+
+layout(push_constant) uniform PushConstants {
+  uint countSamples;
+} pushConstants;
+
+/* clang-format on */
+
+#ifdef REVERSEDZ
+  #define reduceOp min
+#else
+  #define reduceOp max
+#endif
+
+void main() {
+#ifdef MULTIVIEW
+  ivec3 invocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+  ivec2 xy = invocationPosition.xy;
+  ivec3 destinationTextureSize = imageSize(uDestinationTexture);
+  if (all(greaterThanEqual(invocationPosition, ivec3(0))) && all(lessThan(invocationPosition, destinationTextureSize)))
+#else
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 xy = invocationPosition.xy;
+  ivec2 destinationTextureSize = imageSize(uDestinationTexture);
+  if (all(greaterThanEqual(invocationPosition, ivec2(0))) && all(lessThan(invocationPosition, destinationTextureSize)))
+#endif
+  {
+#ifdef MULTIVIEW
+    int viewIndex = int(gl_GlobalInvocationID.z);
+  #ifdef MSAA
+    ivec3 sourceSize = ivec3(textureSize(uSourceTexture).xyz);
+  #else
+    ivec3 sourceSize = ivec3(textureSize(uSourceTexture, 0).xyz);
+  #endif
+    ivec3 sourceSizeMask = sourceSize - ivec3(1);
+    float depth;
+    #ifdef MSAA       
+        depth = texelFetch(uSourceTexture, ivec3(xy, viewIndex), 0).x;
+        for (int i = 1, j = int(pushConstants.countSamples); i < j; i++) {
+          depth = reduceOp(depth, texelFetch(uSourceTexture, ivec3(xy, viewIndex), i).x);
+        }
+    #else
+        depth = texelFetch(uSourceTexture, ivec3(xy, viewIndex), 0).x;
+    #endif
+#else
+  #ifdef MSAA
+    ivec2 sourceSize = ivec2(textureSize(uSourceTexture).xy);
+  #else
+    ivec2 sourceSize = ivec2(textureSize(uSourceTexture, 0).xy);
+  #endif
+    ivec2 sourceSizeMask = sourceSize - ivec2(1);
+    float depth;
+    #ifdef MSAA
+        depth = texelFetch(uSourceTexture, xy, 0).x;
+        for (int i = 0, j = int(pushConstants.countSamples); i < j; i++) {
+          depth = reduceOp(depth, texelFetch(uSourceTexture, xy, i).x);
+        }
+    #else
+        depth = texelFetch(uSourceTexture, xy, 0).x;
+    #endif
+#endif
+    imageStore(uDestinationTexture, invocationPosition, vec4(depth));
+  }
+}

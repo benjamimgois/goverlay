@@ -1,0 +1,61 @@
+function bsearch(a, t) {
+  if (a.empty() || t === null || t < a[0] || t > a[-1])
+   return null;
+
+  let (l, r, m, c) = (0,  a.size() - 1, null, null);
+
+  while (l <= r) {
+    m = Math.floor((l + r) / 2);
+    c = a[m];
+    if (c < t)
+      l = m + 1;
+    else if (c > t)
+      r = m - 1;
+    else
+      return m;
+  }
+}
+
+// most likely faster for large arrays
+
+function bsearch2(a, t) {
+  if (a.empty() || t === null || t < a[0] || t > a[-1])
+   return null;
+
+  let (l, r, m) = (0,  a.size() - 1, null);
+
+  while (l !== r) {
+    m = Math.ceil((l + r) / 2);
+    if (a[m] > t)
+      r = m - 1;
+    else
+      l = m;
+  }
+
+  a[l] === t ? l : null;
+}
+
+const a = [-1000000..1000000];
+const t = 38911;
+
+let i;
+let ts, te;
+const times = 10000;
+
+ts = DateTime.now();
+for (let j = 0; j < times; ++j)
+  i = bsearch(a, t);
+te = DateTime.now();
+
+puts('value: ' ~ t);
+puts('found: ' ~ (i && a[i] === t) ? `index ${i}` : 'NO');
+puts(`bsearch duration: ${Math.round(DateTime.milliseconds(te - ts))}ms`);
+
+ts = DateTime.now();
+for (let j = 0; j < times; ++j)
+  i = bsearch2(a, t);
+te = DateTime.now();
+
+puts('value: ' ~ t);
+puts('found: ' ~ (i && a[i] === t) ? `index ${i}` : 'NO');
+puts(`bsearch2 duration: ${Math.round(DateTime.milliseconds(te - ts))}ms`);

@@ -155,6 +155,16 @@ function IsNerdFontInstalled: Boolean;
 /// <returns>String indicating installation type</returns>
 function GetGOverlayInstallationType: string;
 
+/// <summary>
+/// Checks if the pascube Vulkan test binary is available locally or on PATH.
+/// </summary>
+function IsPasCubeAvailable: Boolean;
+
+/// <summary>
+/// Gets the command string to launch pascube.
+/// </summary>
+function GetPasCubeCommand: string;
+
 
 implementation
 
@@ -711,6 +721,28 @@ begin
     Result := 'Appimage'
   else
     Result := 'Native package';
+end;
+
+function IsPasCubeAvailable: Boolean;
+var
+  LocalPath: string;
+begin
+  LocalPath := ExtractFilePath(ParamStr(0)) + 'pascube';
+  if FileExists(LocalPath) then
+    Result := True
+  else
+    Result := IsCommandAvailable('pascube');
+end;
+
+function GetPasCubeCommand: string;
+var
+  LocalPath: string;
+begin
+  LocalPath := ExtractFilePath(ParamStr(0)) + 'pascube';
+  if FileExists(LocalPath) then
+    Result := LocalPath
+  else
+    Result := 'pascube';
 end;
 
 end.

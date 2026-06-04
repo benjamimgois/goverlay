@@ -1,0 +1,240 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba8) uniform image2DArray uImageBlendMap;
+
+layout(set = 0, binding = 1) uniform sampler2DArray uBrushTextureArray;
+
+layout(push_constant) uniform PushConstants {
+  vec4 positionRadius; // xyz = position, w = radius
+  vec4 innerRadiusValueMinMax; // x = inner radius, y = value, z = min, w = max
+  uint layerIndexFlags;
+  uint brushIndex;
+  float brushRotation;
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+void main(){
+  
+  const uint layerIndex = pushConstants.layerIndexFlags & 0xffu;
+  const uint flags = pushConstants.layerIndexFlags >> 16u;
+
+  ivec3 texel = ivec3(gl_GlobalInvocationID.xy, int(layerIndex >> 2u)); // four layers per texel (RGBA), one per color channel 
+
+  ivec3 texSize = imageSize(uImageBlendMap);
+  texSize.z = min(texSize.z, 2); // Limit the number of texture layers, since we've here just an fixed-sized vec4 array
+
+  if(all(greaterThanEqual(texel, ivec3(0))) && all(lessThan(texel, texSize))){
+
+    vec3 p = octPlanetUnsignedDecode(vec2(texel) / vec2(texSize.xy));
+
+    vec3 n = normalize(pushConstants.positionRadius.xyz);
+
+    float d;
+
+    if(pushConstants.brushIndex == 0u){
+
+      // Just a circle brush
+     
+      d = smoothstep(
+        0.0,
+        -pushConstants.innerRadiusValueMinMax.x,
+        length(p - n) - pushConstants.positionRadius.w
+      );
+
+    }else if(pushConstants.brushIndex <= 255u){
+
+      // Brush texture
+
+      vec3 t = n.yzx - n.zxy, 
+           b = normalize(cross(n, t = normalize(t - dot(t, n)))),
+           o = p - n;
+      if(pushConstants.brushRotation != 0.0){
+        const vec2 rotationSinCos = sin(vec2(pushConstants.brushRotation) + vec2(0.0, 1.57079632679));
+        const vec3 ot = t, ob = b;
+        t = (ot * rotationSinCos.y) - (ob * rotationSinCos.x);
+        b = (ot * rotationSinCos.x) + (ob * rotationSinCos.y);
+      }
+      vec2 uv = vec2(dot(o, t), dot(o, b)) / pushConstants.positionRadius.w;
+      d = smoothstep(1.0, 1.0 - (1.0 / length(textureSize(uBrushTextureArray, 0).xy)), max(abs(uv.x), abs(uv.y)));
+
+      d *= smoothstep(-1e-4, 1e-4, dot(p, n)); // When we are on the back side of the planet, we need to clear the brush, but smoothly.
+
+      if(d > 0.0){
+        d *= textureLod(uBrushTextureArray, vec3(fma(uv, vec2(0.5), vec2(0.5)), float(pushConstants.brushIndex)), 0.0).x;
+      } 
+
+    }else{
+
+      // No brush
+
+      d = 0.0;
+
+    }
+
+    if(d > 0.0){
+
+      const float smallestValue = 1.0 / 256.0;
+
+      if((flags & 1u) != 0u){
+
+#if 1
+        // Read blend map values 
+        vec4 blendMapValueLayers[2] = vec4[2](
+          imageLoad(uImageBlendMap, ivec3(texel.xy, 0)),
+          imageLoad(uImageBlendMap, ivec3(texel.xy, 1))
+        );
+
+        if(pushConstants.innerRadiusValueMinMax.y > 0.0){
+
+          // Raise a single layer and lower all other layers
+
+          // Get the current blend map values for the modified layer  
+          vec4 blendMapValues = blendMapValueLayers[layerIndex >> 2u];
+
+          // Get the current blend map value for the modified layer
+          float blendMapValue = blendMapValues[layerIndex & 3u];
+          
+          // Calculate the target blend map value for the modified layer
+          const float targetBlendMapValue = mix(blendMapValue, max(blendMapValue, d), clamp(pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+
+          // Calculate the delta value         
+          float deltaValue = max(0.0, targetBlendMapValue - blendMapValue);
+          deltaValue = mix(deltaValue, smallestValue, float(bool((deltaValue > 1e-6) && (deltaValue < smallestValue))));
+
+          // Update the blend map value for the modified layer with the delta value but ensure that the delta value is not too small
+          blendMapValues[layerIndex & 3u] = clamp(
+            blendMapValue + deltaValue,
+            pushConstants.innerRadiusValueMinMax.z,
+            pushConstants.innerRadiusValueMinMax.w
+          );
+
+          // Get the blend map value
+          blendMapValue = blendMapValues[layerIndex & 3u];
+
+          // Update the blend map values for the modified layer
+          blendMapValueLayers[layerIndex >> 2u] = blendMapValues;
+
+          // Calculate blend map value layer masks
+          const vec4 blendMapValueLayerMasks[2] = vec4[2](
+            vec4(notEqual(uvec4(layerIndex), uvec4(0u, 1u, 2u, 3u))),
+            vec4(notEqual(uvec4(layerIndex), uvec4(4u, 5u, 6u, 7u)))          
+          );
+
+          // Sum of all other weights
+          const float otherWeightSum = dot(blendMapValueLayers[0], blendMapValueLayerMasks[0]) + dot(blendMapValueLayers[1], blendMapValueLayerMasks[1]);
+          
+          // Normalize all other weights to sum to 1.0 in relation to the target weight of the modified layer
+          if(otherWeightSum > (1.0 - blendMapValue)){
+            const float weightSumFactor =(1.0 - blendMapValue) / otherWeightSum;
+            blendMapValueLayers[0] = mix(blendMapValueLayers[0], min(blendMapValueLayers[0], blendMapValueLayers[0] * vec4(weightSumFactor)), blendMapValueLayerMasks[0]);
+            blendMapValueLayers[1] = mix(blendMapValueLayers[1], min(blendMapValueLayers[1], blendMapValueLayers[1] * vec4(weightSumFactor)), blendMapValueLayerMasks[1]);
+          }
+
+        }else{
+
+          // Minimize all weights
+
+          blendMapValueLayers[0] = mix(blendMapValueLayers[0], min(blendMapValueLayers[0], vec4(1.0 - d)), clamp(-pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+          blendMapValueLayers[1] = mix(blendMapValueLayers[1], min(blendMapValueLayers[1], vec4(1.0 - d)), clamp(-pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+//        blendMapValueLayers[0] = mix(blendMapValueLayers[0], vec4(0.0), d * clamp(-pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+//        blendMapValueLayers[1] = mix(blendMapValueLayers[1], vec4(0.0), d * clamp(-pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+
+        }
+
+        // Write back the modified blend map values
+        imageStore(uImageBlendMap, ivec3(texel.xy, 0), blendMapValueLayers[0]);
+        imageStore(uImageBlendMap, ivec3(texel.xy, 1), blendMapValueLayers[1]);
+
+#else
+        for(uint layerTopLevelIndex = 0u, countTopLevels = texSize.z; layerTopLevelIndex < countTopLevels; layerTopLevelIndex++){
+
+          ivec3 texelTopLevel = ivec3(texel.xy, int(layerTopLevelIndex));
+
+          vec4 blendMapValues = imageLoad(uImageBlendMap, texelTopLevel);
+
+          const uvec4 targetLayerIndices = uvec4(layerTopLevelIndex << 2u) | uvec4(0u, 1u, 2u, 3u);
+
+          const vec4 targetLayerFactors = vec4(uvec4(equal(targetLayerIndices, uvec4(layerIndex))));
+
+          const vec4 targetBlendMapValues = mix(
+                                              mix(blendMapValues, min(blendMapValues, 1.0 - d), clamp(pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0)),
+                                              mix(blendMapValues, max(blendMapValues, d), clamp(pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0)),
+                                              targetLayerFactors
+                                            );
+
+          vec4 deltaValues = targetBlendMapValues - blendMapValues;
+          
+          deltaValues = mix(
+                          min(vec4(0.0), deltaValues),
+                          max(vec4(0.0), deltaValues),
+                          targetLayerFactors
+                        );
+
+          const vec4 absDeltaValues = abs(deltaValues);
+          
+          blendMapValues = clamp(
+            blendMapValues + mix(deltaValues, sign(deltaValues) * smallestValue, vec4(uvec4(greaterThan(absDeltaValues, vec4(1e-6))) & uvec4(lessThan(absDeltaValues, vec4(smallestValue))))),
+            pushConstants.innerRadiusValueMinMax.zzzz,
+            pushConstants.innerRadiusValueMinMax.wwww
+          );
+
+          imageStore(uImageBlendMap, texelTopLevel, blendMapValues);
+
+        }
+#endif
+
+      }else{
+
+        vec4 blendMapValues = imageLoad(uImageBlendMap, texel);
+
+        const float blendMapValue = blendMapValues[layerIndex & 3u];
+
+        float deltaValue;
+        
+        if(pushConstants.innerRadiusValueMinMax.y > 0.0){
+          
+          const float targetBlendMapValue = mix(blendMapValue, max(blendMapValue, d), clamp(pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+          
+          deltaValue = max(0.0, targetBlendMapValue - blendMapValue);
+
+        }else{
+
+          const float targetBlendMapValue = mix(blendMapValue, min(blendMapValue, 1.0 - d), clamp(-pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+//        const float targetBlendMapValue = mix(blendMapValue, 0.0, d * clamp(-pushConstants.innerRadiusValueMinMax.y, 0.0, 1.0));
+          
+          deltaValue = min(0.0, targetBlendMapValue - blendMapValue);
+
+        }
+
+        const float absDeltaValue = abs(deltaValue);
+        
+        blendMapValues[layerIndex & 3u] = clamp(
+          blendMapValue + mix(deltaValue, sign(deltaValue) * smallestValue, float(bool((absDeltaValue > 1e-6) && (absDeltaValue < smallestValue)))),
+          pushConstants.innerRadiusValueMinMax.z,
+          pushConstants.innerRadiusValueMinMax.w
+        );
+
+        imageStore(uImageBlendMap, texel, blendMapValues);
+
+      }
+         
+    }
+
+  }
+
+}
+

@@ -1,0 +1,191 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#ifdef USE_ATOMIC_FLOATS
+  #extension GL_EXT_shader_atomic_float : enable
+#endif 
+
+#define LOCAL_SIZE 8
+
+/* clang-format off */
+layout(local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer SphericalHarmonicsBuffer {
+#ifdef USE_ATOMIC_FLOATS
+  float sphericalHarmonics[36]; // 9 * 4
+#else
+  uint sphericalHarmonics[36]; // 9 * 4
+#endif
+} sphericalHarmonicsBuffer;
+
+layout(set = 0, binding = 1) uniform samplerCube uSourceTexture;
+
+layout(push_constant) uniform PushConstants {
+  int uLODLevel;
+} pushConstants;
+
+/* clang-format on */
+
+float areaIntegral(vec2 v){
+  return atan(v.x * v.y, sqrt(dot(v, v) + 1.0));
+}
+
+float calculateSolidAngle(ivec2 xy, ivec2 wh){
+  vec2 st = fma(((vec2(xy) + vec2(0.5)) / vec2(wh)), vec2(2.0), vec2(-1.0));
+  vec4 xy0xy1 = st.xyxy + (vec2(1, -1.0).xxyy / wh.xyxy);
+  return ((areaIntegral(xy0xy1.xy) - areaIntegral(xy0xy1.xw)) - areaIntegral(xy0xy1.zy)) + areaIntegral(xy0xy1.zw);
+}
+
+vec3 calculateDirection(int face, ivec2 xy, ivec2 wh){
+  vec2 st = fma(((vec2(xy) + vec2(0.5)) / vec2(wh)), vec2(2.0), vec2(-1.0));
+  vec3 a[6] = vec3[6](
+    vec3(1.0, -st.y, -st.x), // positive X
+    vec3(-1.0, -st.y, st.x), // negative X
+    vec3(st.x, 1.0, st.y), // positive Y
+    vec3(st.x, -1.0, -st.y), // negative Y
+    vec3(st.x, -st.y, 1.0), // positive Z
+    vec3(-st.x, -st.y, -1.0) // negative Z
+  );
+  return normalize(a[face]);
+}
+
+#ifdef USE_ATOMIC_FLOATS
+#define atomicAddFloat(TARGET, SUMMAND) \
+  { \
+    atomicAdd(TARGET, SUMMAND); \
+  }
+#else
+#define atomicAddFloat(TARGET, SUMMAND) \
+  { \
+    uint expected = TARGET; \
+    uint added = floatBitsToUint(uintBitsToFloat(expected) + SUMMAND); \
+    uint returned = atomicCompSwap(TARGET, expected, added); \
+    while(returned != expected){ \
+      expected = returned; \
+      added = floatBitsToUint(uintBitsToFloat(expected) + SUMMAND); \
+      returned = atomicCompSwap(TARGET, expected, added); \
+    } \
+  }
+#endif
+  
+shared vec3 shCoefficients[LOCAL_SIZE][LOCAL_SIZE][9];
+shared float shWeights[LOCAL_SIZE][LOCAL_SIZE];
+
+void main(){
+
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][0] = vec3(0.0);    
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][1] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][2] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][3] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][4] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][5] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][6] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][7] = vec3(0.0);
+  shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][8] = vec3(0.0);
+
+  shWeights[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = 0.0;
+
+  memoryBarrier();
+  barrier();
+
+  int lodLevel = pushConstants.uLODLevel;
+
+  ivec2 texSize = ivec2(textureSize(uSourceTexture, lodLevel).xy);
+
+  ivec3 texUVW = ivec3(gl_GlobalInvocationID.xyz);
+
+  if(all(greaterThanEqual(texUVW, ivec3(0))) && all(lessThan(texUVW, ivec3(texSize, 6)))){
+  
+    vec3 direction = calculateDirection(texUVW.z, texUVW.xy, texSize);
+    
+    float solidAngle = calculateSolidAngle(ivec2(gl_GlobalInvocationID.xy), texSize);
+
+    shWeights[gl_LocalInvocationID.y][gl_LocalInvocationID.x] += solidAngle;
+
+    vec3 color = textureLod(uSourceTexture, direction, lodLevel).xyz * solidAngle;
+
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][0] += 0.282094792 * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][1] += ((-0.488602512) * direction.y) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][2] += (0.488602512 * direction.z) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][3] += ((-0.488602512) * direction.x) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][4] += (1.092548431 * (direction.x * direction.y)) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][5] += ((-1.092548431) * (direction.y * direction.z)) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][6] += ((0.946174695 * (direction.z * direction.z)) - 0.315391565) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][7] += ((-1.092548431) * (direction.x * direction.z)) * color;
+    shCoefficients[gl_LocalInvocationID.y][gl_LocalInvocationID.x][8] += (0.546274215 * ((direction.x * direction.x) - (direction.y * direction.y))) * color;
+  
+  }
+
+  memoryBarrier();
+  barrier();
+
+  if (gl_LocalInvocationID.x == 0){
+    for (int i = 1; i < LOCAL_SIZE; i++){
+      shWeights[gl_LocalInvocationID.y][0] += shWeights[gl_LocalInvocationID.y][i];
+      shCoefficients[gl_LocalInvocationID.y][0][0] += shCoefficients[gl_LocalInvocationID.y][i][0];
+      shCoefficients[gl_LocalInvocationID.y][0][1] += shCoefficients[gl_LocalInvocationID.y][i][1];
+      shCoefficients[gl_LocalInvocationID.y][0][2] += shCoefficients[gl_LocalInvocationID.y][i][2];
+      shCoefficients[gl_LocalInvocationID.y][0][3] += shCoefficients[gl_LocalInvocationID.y][i][3];
+      shCoefficients[gl_LocalInvocationID.y][0][4] += shCoefficients[gl_LocalInvocationID.y][i][4];
+      shCoefficients[gl_LocalInvocationID.y][0][5] += shCoefficients[gl_LocalInvocationID.y][i][5];
+      shCoefficients[gl_LocalInvocationID.y][0][6] += shCoefficients[gl_LocalInvocationID.y][i][6];
+      shCoefficients[gl_LocalInvocationID.y][0][7] += shCoefficients[gl_LocalInvocationID.y][i][7];
+      shCoefficients[gl_LocalInvocationID.y][0][8] += shCoefficients[gl_LocalInvocationID.y][i][8];
+    }
+  }
+
+  memoryBarrier();
+  barrier();
+
+  if ((gl_LocalInvocationID.x == 0) && (gl_LocalInvocationID.y == 0)){
+
+    for (int i = 1; i < LOCAL_SIZE; i++){
+      shWeights[0][0] += shWeights[i][0];
+      shCoefficients[0][0][0] += shCoefficients[i][0][0];
+      shCoefficients[0][0][1] += shCoefficients[i][0][1];
+      shCoefficients[0][0][2] += shCoefficients[i][0][2];
+      shCoefficients[0][0][3] += shCoefficients[i][0][3];
+      shCoefficients[0][0][4] += shCoefficients[i][0][4];
+      shCoefficients[0][0][5] += shCoefficients[i][0][5];
+      shCoefficients[0][0][6] += shCoefficients[i][0][6];
+      shCoefficients[0][0][7] += shCoefficients[i][0][7];
+      shCoefficients[0][0][8] += shCoefficients[i][0][8];
+    }
+
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[0], shCoefficients[0][0][0].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[1], shCoefficients[0][0][0].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[2], shCoefficients[0][0][0].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[3], shWeights[0][0]); // Misuse w as weight for the normalization pass after the accumulation
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[4], shCoefficients[0][0][1].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[5], shCoefficients[0][0][1].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[6], shCoefficients[0][0][1].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[8], shCoefficients[0][0][2].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[9], shCoefficients[0][0][2].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[10], shCoefficients[0][0][2].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[12], shCoefficients[0][0][3].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[13], shCoefficients[0][0][3].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[14], shCoefficients[0][0][3].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[16], shCoefficients[0][0][4].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[17], shCoefficients[0][0][4].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[18], shCoefficients[0][0][4].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[20], shCoefficients[0][0][5].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[21], shCoefficients[0][0][5].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[22], shCoefficients[0][0][5].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[24], shCoefficients[0][0][6].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[25], shCoefficients[0][0][6].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[26], shCoefficients[0][0][6].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[28], shCoefficients[0][0][7].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[29], shCoefficients[0][0][7].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[30], shCoefficients[0][0][7].z);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[32], shCoefficients[0][0][8].x);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[33], shCoefficients[0][0][8].y);
+    atomicAddFloat(sphericalHarmonicsBuffer.sphericalHarmonics[34], shCoefficients[0][0][8].z);
+
+  }
+
+  memoryBarrier();
+  barrier();
+    
+}

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Get the current year
+current_year=$(date +%Y)
+
+# Function to update the year in a file
+update_year() {
+  file="$1"
+  # Replace only the second year in the range with the current year, keeping the first year unchanged
+  sed -i -E "s/Copyright \(C\) ([0-9]{4})-[0-9]{4}, Benjamin Rosseaux/Copyright (C) \1-$current_year, Benjamin Rosseaux/" "$file"
+  echo "Updated $file"
+}
+
+# Find all *.pas files recursively and update the year
+find . -type f -name "*.pas" -print0 | while IFS= read -r -d '' file; do
+  update_year "$file"
+done

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -xe
+
+# Save the current directory in a variable
+CWD="$(pwd)"
+
+# Switch to the src directory
+cd src
+
+# Build for Linux
+"$HOME/fpcupdeluxe/lazarus/lazbuild" --pcp="$HOME/fpcupdeluxe/config_lazarus" -B gltfviewer.lpi $*
+
+# Build for Windows
+"$HOME/fpcupdeluxe/lazarus/lazbuild" --pcp="$HOME/fpcupdeluxe/config_lazarus" --os=win64 -B gltfviewer.lpi $*
+
+# Switch back to the root directory
+cd "$CWD"
+
+# Patch the Linux binary for the relative path to the shared libraries
+patchelf --set-rpath "\$ORIGIN" ./bin/gltfviewer
+
+# Exit with success
+exit 0 
+

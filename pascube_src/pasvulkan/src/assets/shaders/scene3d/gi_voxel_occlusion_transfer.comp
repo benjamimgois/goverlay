@@ -1,0 +1,64 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+//#extension GL_EXT_scalar_block_layout : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(set = 0, binding = 0, std140) readonly uniform VoxelGridData {
+  #include "voxelgriddata_uniforms.glsl"
+} voxelGridData;
+
+layout(set = 0, binding = 1, std430) coherent buffer VoxelGridContentData {
+  uvec4 data[];
+} voxelGridContentData;
+
+layout(set = 0, binding = 2, std430) coherent buffer VoxelGridContentMetaData {
+  uint data[];
+} voxelGridContentMetaData;
+
+layout(set = 0, binding = 3, r8) writeonly uniform image3D uImageVolumeOcclusion[]; // 0.0 .. 1.0 scaled 8-bit unsigned integer (R8_unorm)
+
+layout(push_constant) uniform PushConstants {
+  uint cascadeIndex;
+} pushConstants;
+
+void main(){
+
+  uint cascadeIndex = pushConstants.cascadeIndex;
+
+  uint voxelGridSize = voxelGridData.gridSizes[cascadeIndex >> 2u][cascadeIndex & 0x3u];
+
+  uvec3 invocation = uvec3(gl_GlobalInvocationID.xyz);
+
+  if(all(greaterThanEqual(invocation, uvec3(0))) && all(lessThan(invocation, uvec3(uvec2(voxelGridSize), voxelGridSize)))){
+
+    uvec3 volumePosition = uvec3(invocation);
+
+    uint volumeBaseIndex = ((((uint(volumePosition.z) * voxelGridSize) + uint(volumePosition.y)) * voxelGridSize) + uint(volumePosition.x)) + voxelGridData.dataOffsets[cascadeIndex >> 2u][cascadeIndex & 3u];
+
+    uint volumeIndex = volumeBaseIndex << 1u;
+
+    vec2 volumeOcclusion = vec2(0.0);
+    for(uint voxelFragmentIndex = voxelGridContentMetaData.data[volumeIndex + 3], 
+             voxelFragmentCounter = 0u,
+             countVoxelFragments = min(1024u, voxelGridContentMetaData.data[volumeIndex + 2]); 
+        (voxelFragmentIndex != 0u) && (voxelFragmentCounter < countVoxelFragments); 
+        voxelFragmentCounter++){
+      uvec4 volumeFragment = voxelGridContentData.data[voxelFragmentIndex - 1u];
+      volumeOcclusion += vec2(clamp(float(uint(volumeFragment.w & 0xffu)) * (1.0 / 255.0), 0.0, 1.0), 1.0);      
+      voxelFragmentIndex = volumeFragment.x;
+    }
+    volumeOcclusion.x /= max(1.0, volumeOcclusion.y);
+    
+    imageStore(uImageVolumeOcclusion[cascadeIndex], ivec3(volumePosition), vec4(volumeOcclusion.xxxx));
+
+  }
+
+}
+

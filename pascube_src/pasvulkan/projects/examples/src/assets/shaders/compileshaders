@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd textoverlay
+./compileshaders
+cd ..
+
+cd triangle
+./compileshaders
+cd ..
+
+cd cube
+./compileshaders
+cd ..
+
+cd dragon
+./compileshaders
+cd ..
+

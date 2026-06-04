@@ -1,0 +1,71 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) writeonly uniform image2D uImageHeightMap;
+
+layout(set = 0, binding = 1) buffer TileMapDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapDirtyBuffer;
+
+layout(set = 0, binding = 2) buffer InputData {
+  float data[]; 
+} inputData;
+
+layout(push_constant) uniform PushConstants {
+  float inputBottomRadius;
+  float inputTopRadius;
+  float bottomRadius;
+  float topRadius;
+  int inputResolution;
+  uint tileMapResolution;
+  uint tileMapShift; 
+} pushConstants;
+
+/* clang-format on */
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageHeightMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    vec2 uv = vec2(texel) / vec2(texSize);
+
+    vec2 inputXY = uv * vec2(pushConstants.inputResolution);
+    ivec2 inputTexel = ivec2(inputXY);
+    vec2 inputUV = inputXY - vec2(inputTexel);
+
+    vec4 inputHeights = vec4(
+      inputData.data[(clamp(inputTexel.y, 0, pushConstants.inputResolution - 1) * pushConstants.inputResolution) + clamp(inputTexel.x, 0, pushConstants.inputResolution - 1)],
+      inputData.data[(clamp(inputTexel.y, 0, pushConstants.inputResolution - 1) * pushConstants.inputResolution) + clamp(inputTexel.x + 1, 0, pushConstants.inputResolution - 1)],
+      inputData.data[(clamp(inputTexel.y + 1, 0, pushConstants.inputResolution - 1) * pushConstants.inputResolution) + clamp(inputTexel.x, 0, pushConstants.inputResolution - 1)],
+      inputData.data[(clamp(inputTexel.y + 1, 0, pushConstants.inputResolution - 1) * pushConstants.inputResolution) + clamp(inputTexel.x + 1, 0, pushConstants.inputResolution - 1)]
+    );
+
+    float height = mix(mix(inputHeights.x, inputHeights.y, inputUV.x), mix(inputHeights.z, inputHeights.w, inputUV.x), inputUV.y);
+
+    height = clamp((fma(height, pushConstants.inputTopRadius - pushConstants.inputBottomRadius, pushConstants.inputBottomRadius) - pushConstants.bottomRadius) / (pushConstants.topRadius - pushConstants.bottomRadius), 0.0, 1.0);
+
+    {
+      uvec2 tileMapXY = uvec2(texel) >> pushConstants.tileMapShift;
+      uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
+      atomicOr(tileMapDirtyBuffer.data[tileMapIndex >> 5u], 1u << (tileMapIndex & 31u));     
+    }
+   
+    imageStore(uImageHeightMap, texel, vec4(height));
+
+  }
+
+}
+

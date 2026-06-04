@@ -1,0 +1,32 @@
+
+let counter = 0;
+
+function TestFunction(){
+  counter++;
+  return counter;
+}
+
+function TestFunction2(){
+  function TestFunction3(){
+    counter++;
+    return counter;
+  }
+  for(let i = 0; i < 10; i++){
+    TestFunction3();
+  }
+  return counter;
+}
+
+let ta = DateTime.now();
+for(let i = 0; i < 1000000; i++){
+  TestFunction();
+}
+let tb = DateTime.now(); 
+puts(`TestFunction Time taken: ${DateTime.milliseconds(tb - ta)}ms`);
+
+ta = DateTime.now();
+for(let i = 0; i < 1000000; i++){
+  TestFunction2();
+}
+tb = DateTime.now();
+puts(`TestFunction2 Time taken: ${DateTime.milliseconds(tb - ta)}ms`);

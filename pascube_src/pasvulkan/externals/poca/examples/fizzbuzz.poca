@@ -1,0 +1,25 @@
+// A FizzBuzz function.
+// It accepts either a Number, or a range (= Array).
+
+let fizz_buzz(x) => {
+  foreach (let i in (typeof(x) == 'Array' ? x : [1..x])) {
+    switch (true) {
+      case i%3 === 0 && i%5 === 0:
+        puts('FizzBuzz');
+      break;
+      case i%3 === 0:
+        puts('Fizz');
+      break;
+      case i%5 === 0:
+        puts('Buzz');
+      break;
+      default:
+        puts(i);
+      break;
+    }
+  }
+};
+
+fizz_buzz(20);
+puts();
+fizz_buzz([1..20]);

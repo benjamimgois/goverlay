@@ -1,0 +1,101 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_gpu_shader_fp64 : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#if 0
+// Just a idea to include material indices and weights in the vertex data, but it's not used in this shader yet.
+struct TriangleVertex {
+  uvec4 positionNormal; // xyz = position, w = octahedral normal (2x16 bit for x and y)
+  uvec2 materialIndicesAndWeights; // x = byte-wise material indices, y = byte-wise material weights
+}; // 24 bytes per vertex (16 bytes for positionNormal, 8 bytes for materialIndicesAndWeights) 
+#endif
+
+layout(set = 0, binding = 0, std430) buffer TriangleVertices {
+  uvec4 vertices[]; // 16 bytes per vertex
+} triangleVertices;
+
+layout(set = 0, binding = 1, std430) buffer TriangleSlopes {
+  float slopes[];
+} triangleSlopes;
+
+layout(set = 0, binding = 2, std430) buffer QueuedTiles {
+  uint data[]; // 6-based, because two VkDispatchIndirectCommand structs are stored in the same buffer at the beginning, with three 32-bit unsigned integers each
+} queuedTiles;
+
+layout(push_constant) uniform PushConstants {
+  uint tileMapResolution;
+  uint tileResolution;
+} pushConstants;
+ 
+#include "octahedral.glsl"
+
+vec3 getNormal(const ivec2 p){
+  const uvec2 globalXY = uvec2(wrapOctahedralTexelCoordinates(p, ivec2(pushConstants.tileMapResolution * pushConstants.tileResolution)));
+  const uvec2 tileMapXY = globalXY / uvec2(pushConstants.tileResolution);
+  const uvec2 tileXY = globalXY - (tileMapXY * uvec2(pushConstants.tileResolution));
+  const uint tileIndex = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
+  const uint vertexIndex = (tileIndex * pushConstants.tileResolution * pushConstants.tileResolution) + ((tileXY.y * pushConstants.tileResolution) + tileXY.x); 
+  return octSignedDecode(unpackSnorm2x16(triangleVertices.vertices[vertexIndex].w));
+}
+
+void main(){
+
+  const uint queuedTileIndex = uint(gl_GlobalInvocationID.y);
+  
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  if((queuedTileIndex < tileMapSize) && (queuedTileIndex < queuedTiles.data[1u])){
+
+    const uint tileMapIndex = queuedTiles.data[queuedTileIndex + 6u];
+
+    if(tileMapIndex < tileMapSize){
+
+      uvec2 tileMapXY;
+      tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+      tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+      const uint tileVertexSize = pushConstants.tileResolution * pushConstants.tileResolution;
+
+      const uint tileVertexIndex = uint(gl_GlobalInvocationID.x);
+      
+      if(tileVertexIndex < tileVertexSize){
+
+        uvec2 tileVertexXY;
+        tileVertexXY.y = tileVertexIndex / pushConstants.tileResolution;
+        tileVertexXY.x = tileVertexIndex - (tileVertexXY.y * pushConstants.tileResolution);
+
+        ivec2 quadXY = ivec2(uvec2((tileMapXY * pushConstants.tileResolution) + tileVertexXY));
+
+        vec3 normalCenter = getNormal(quadXY);
+        vec3 normal00 = getNormal(quadXY + ivec2(-1, -1));
+        vec3 normal01 = getNormal(quadXY + ivec2(1, -1));
+        vec3 normal10 = getNormal(quadXY + ivec2(-1, 1));
+        vec3 normal11 = getNormal(quadXY + ivec2(1, 1));
+
+        // Calculate the slope
+        const vec2 slopeXY = vec2(
+          max(length(normal01 - normal00), max(length(normal01 - normalCenter), length(normal00 - normalCenter))),
+          max(length(normal11 - normal10), max(length(normal11 - normalCenter), length(normal10 - normalCenter)))
+        ); 
+        const float slope = length(slopeXY);
+        //const float slopeAngle = atan(slopeXY.y, slopeXY.x);
+
+        triangleSlopes.slopes[(tileMapIndex * tileVertexSize) + tileVertexIndex] = slope;
+
+      }
+    
+    }
+
+  }
+
+}

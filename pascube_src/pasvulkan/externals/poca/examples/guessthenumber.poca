@@ -1,0 +1,32 @@
+
+function randOnRange(low, high){
+  var r = Math.random();
+  return Math.floor(r * ((high - low) + 1)) + low;
+}
+ 
+function guessTheNumber(low, high){
+  var num = randOnRange(low, high);
+  var guessCount = 0;
+ 
+  function checkGuess(n){
+    if(n < low || n > high){
+      print("That number is not between \{low} and \{high}!\n");
+      return false;
+    }else if(n == num){
+      print("You got it in \{guessCount} tries.\n");
+      return true;
+    }else{
+      print((n < num) ? "Too low.\n" : "Too high.\n");
+      return false;
+    } 
+  }
+
+  print("I have picked a number between \{low} and \{high}. Try to guess it!\n");
+  do{
+    guessCount++;
+    print("  Your guess: ");
+    var n = Math.int(readLine());
+  }while(!checkGuess(n));
+}
+
+guessTheNumber(1, 100);

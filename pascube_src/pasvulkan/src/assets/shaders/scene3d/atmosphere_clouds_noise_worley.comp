@@ -1,0 +1,42 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_multiview : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 4) in;
+
+/* clang-format on */
+
+layout(set = 0, binding = 0, rgba8) uniform writeonly image3D uDestinationTexture;
+
+#include "math.glsl"
+
+#include "atmosphere_clouds_noise.glsl"
+
+void main(){
+
+  ivec3 p = ivec3(gl_GlobalInvocationID.xyz), size = imageSize(uDestinationTexture).xyz; 
+
+  if(all(greaterThanEqual(p, ivec3(0))) && all(lessThan(p, size))){          
+
+    vec3 o = vec3(p) / vec3(size);
+    
+    const float detailNoiseLowRemap = -1.0,
+                detailNoiseHighRemap = 1.0,
+                totalSize = 0.5;           
+
+    imageStore(uDestinationTexture, 
+               p,
+               clamp(vec4(remap01(getWorley3Octaves(o, 10.0 * totalSize), detailNoiseLowRemap, detailNoiseHighRemap),
+                          remap01(getWorley3Octaves(o, 16.0 * totalSize), detailNoiseLowRemap, detailNoiseHighRemap),
+                          remap01(getWorley3Octaves(o, 20.0 * totalSize), detailNoiseLowRemap, detailNoiseHighRemap),
+                          remap01(getWorley3Octaves(o, 30.0 * totalSize), detailNoiseLowRemap, detailNoiseHighRemap)), vec4(0.0), vec4(1.0)));
+
+  }
+
+}

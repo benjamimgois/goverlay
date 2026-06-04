@@ -1,0 +1,8379 @@
+= PasVulkan POCA Script API Documentation
+:toc:
+:toc-placement: preamble
+:toclevels: 3
+:showtitle:
+:!webfonts:
+
+// Need some preamble to get TOC:
+{empty}
+
+== Overview
+
+This document describes the PasVulkan-specific extensions to the POCA scripting API. PasVulkan provides a comprehensive set of types and functions for 2D/3D graphics, mathematics, input handling, and sprite management within POCA scripts.
+
+For the base POCA scripting API (Array, Boolean, Console, etc.), please refer to link:https://github.com/BeRo1985/poca/blob/master/docs/scriptapi.adoc[POCA Script API Documentation].
+
+'''''
+
+== Vector2
+
+=== Overview
+
+The Vector2 type represents a 2-dimensional vector with x and y components. It is exposed as a ghost object in POCA scripts and provides comprehensive vector mathematics operations.
+
+'''''
+
+=== Global Vector2 Object
+
+==== Vector2.create()
+
+*Usage:*
+
+[source,js]
+----
+let vec = Vector2.create(x, y);
+----
+
+* *Description:* Creates a new 2D vector with the specified x and y components.
+* *Parameters:*
+** `+x+` (number): The x component of the vector (default: 0.0)
+** `+y+` (number): The y component of the vector (default: 0.0)
+* *Return Value:* A new Vector2 object.
+* *Example:*
++
+[source,js]
+----
+let position = Vector2.create(10.5, 20.3);
+let origin = Vector2.create(); // (0, 0)
+----
+
+'''''
+
+=== Vector2 Properties
+
+==== x, r
+
+*Usage:*
+
+[source,js]
+----
+let xValue = vec.x;
+vec.x = 5.0;
+let rValue = vec.r; // Same as x
+----
+
+* *Description:* Gets or sets the x component of the vector. The `+r+` property is an alias for `+x+`.
+* *Type:* number
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3, 4);
+vec.x = 10;
+puts("X component: " + vec.x);
+----
+
+'''''
+
+==== y, g
+
+*Usage:*
+
+[source,js]
+----
+let yValue = vec.y;
+vec.y = 5.0;
+let gValue = vec.g; // Same as y
+----
+
+* *Description:* Gets or sets the y component of the vector. The `+g+` property is an alias for `+y+`.
+* *Type:* number
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3, 4);
+vec.y = 8;
+puts("Y component: " + vec.y);
+----
+
+'''''
+
+=== Vector2 Methods
+
+==== length()
+
+*Usage:*
+
+[source,js]
+----
+let len = vec.length();
+----
+
+* *Description:* Returns the Euclidean length (magnitude) of the vector.
+* *Parameters:* None.
+* *Return Value:* The length of the vector as a number.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3, 4);
+let len = vec.length(); // Returns 5.0
+----
+
+'''''
+
+==== squaredLength()
+
+*Usage:*
+
+[source,js]
+----
+let sqLen = vec.squaredLength();
+----
+
+* *Description:* Returns the squared length of the vector. This is more efficient than `+length()+` when you only need to compare lengths.
+* *Parameters:* None.
+* *Return Value:* The squared length of the vector.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3, 4);
+let sqLen = vec.squaredLength(); // Returns 25.0
+----
+
+'''''
+
+==== normalize()
+
+*Usage:*
+
+[source,js]
+----
+vec.normalize();
+----
+
+* *Description:* Normalizes the vector in place, making it a unit vector (length = 1).
+* *Parameters:* None.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3, 4);
+vec.normalize(); // vec is now (0.6, 0.8)
+----
+
+'''''
+
+==== dot(other)
+
+*Usage:*
+
+[source,js]
+----
+let dotProduct = vec.dot(otherVec);
+----
+
+* *Description:* Computes the dot product of this vector with another vector.
+* *Parameters:*
+** `+other+` (Vector2): The other vector.
+* *Return Value:* The dot product as a number.
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector2.create(1, 0);
+let v2 = Vector2.create(0, 1);
+let dot = v1.dot(v2); // Returns 0.0
+----
+
+'''''
+
+==== cross(other)
+
+*Usage:*
+
+[source,js]
+----
+let crossProduct = vec.cross(otherVec);
+----
+
+* *Description:* Computes the 2D cross product (z component of the 3D cross product) with another vector.
+* *Parameters:*
+** `+other+` (Vector2): The other vector.
+* *Return Value:* The cross product as a number.
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector2.create(1, 0);
+let v2 = Vector2.create(0, 1);
+let cross = v1.cross(v2); // Returns 1.0
+----
+
+'''''
+
+==== distanceTo(other)
+
+*Usage:*
+
+[source,js]
+----
+let distance = vec.distanceTo(otherVec);
+----
+
+* *Description:* Computes the Euclidean distance between this vector and another vector.
+* *Parameters:*
+** `+other+` (Vector2): The other vector.
+* *Return Value:* The distance as a number.
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector2.create(0, 0);
+let v2 = Vector2.create(3, 4);
+let dist = v1.distanceTo(v2); // Returns 5.0
+----
+
+'''''
+
+==== lerp(other, t)
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.lerp(otherVec, t);
+----
+
+* *Description:* Performs linear interpolation between this vector and another vector, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector2): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector2.create(0, 0);
+let v2 = Vector2.create(10, 10);
+v1.lerp(v2, 0.5); // v1 is now (5, 5)
+----
+
+'''''
+
+==== nlerp(other, t)
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.nlerp(otherVec, t);
+----
+
+* *Description:* Performs normalized linear interpolation between this vector and another vector, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector2): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== slerp(other, t)
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.slerp(otherVec, t);
+----
+
+* *Description:* Performs spherical linear interpolation between this vector and another vector, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector2): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== sqlerp(other, t)
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.sqlerp(b, c, d, t);
+----
+
+* *Description:* Performs squared spherical linear interpolation (squad), modifying this vector in place.
+* *Parameters:*
+** `+b+` (Vector2): Second control point.
+** `+c+` (Vector2): Third control point.
+** `+d+` (Vector2): Fourth control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== clone()
+
+*Usage:*
+
+[source,js]
+----
+let copy = vec.clone();
+----
+
+* *Description:* Creates a copy of this vector.
+* *Parameters:* None.
+* *Return Value:* A new Vector2 with the same components.
+* *Example:*
++
+[source,js]
+----
+let original = Vector2.create(5, 10);
+let copy = original.clone();
+----
+
+'''''
+
+==== copy(other)
+
+*Usage:*
+
+[source,js]
+----
+vec.copy(otherVec);
+----
+
+* *Description:* Copies the components from another vector to this vector.
+* *Parameters:*
+** `+other+` (Vector2): The vector to copy from.
+* *Return Value:* The vector itself.
+
+'''''
+
+==== add(other)
+
+*Usage:*
+
+[source,js]
+----
+vec.add(otherVec);
+----
+
+* *Description:* Adds another vector to this vector in place.
+* *Parameters:*
+** `+other+` (Vector2 or number): The vector or scalar to add.
+* *Return Value:* The vector itself.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(1, 2);
+vec.add(Vector2.create(3, 4)); // vec is now (4, 6)
+----
+
+'''''
+
+==== sub(other)
+
+*Usage:*
+
+[source,js]
+----
+vec.sub(otherVec);
+----
+
+* *Description:* Subtracts another vector from this vector in place.
+* *Parameters:*
+** `+other+` (Vector2 or number): The vector or scalar to subtract.
+* *Return Value:* The vector itself.
+
+'''''
+
+==== mul(value)
+
+*Usage:*
+
+[source,js]
+----
+vec.mul(scalar);
+vec.mul(otherVec);
+vec.mul(matrix);
+----
+
+* *Description:* Multiplies this vector by a scalar, another vector (component-wise), or transforms it by a matrix, in place.
+* *Parameters:*
+** `+value+` (number, Vector2, Matrix3x3, or Matrix4x4): The value to multiply/transform by.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(2, 3);
+vec.mul(2); // vec is now (4, 6)
+
+let vec2 = Vector2.create(1, 2);
+vec2.mul(Vector2.create(3, 4)); // vec2 is now (3, 8)
+
+let transform = Matrix3x3.create(/* ... */);
+vec.mul(transform); // Transform vec by matrix
+----
+
+'''''
+
+==== div(value)
+
+*Usage:*
+
+[source,js]
+----
+vec.div(scalar);
+----
+
+* *Description:* Divides this vector by a scalar or another vector (component-wise) in place.
+* *Parameters:*
+** `+value+` (number or Vector2): The scalar or vector to divide by.
+* *Return Value:* The vector itself.
+
+'''''
+
+==== neg()
+
+*Usage:*
+
+[source,js]
+----
+vec.neg();
+----
+
+* *Description:* Negates this vector in place.
+* *Parameters:* None.
+* *Return Value:* The vector itself.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3, -4);
+vec.neg(); // vec is now (-3, 4)
+----
+
+'''''
+
+==== equal(other)
+
+*Usage:*
+
+[source,js]
+----
+let isEqual = vec.equal(otherVec);
+----
+
+* *Description:* Checks if this vector equals another vector.
+* *Parameters:*
+** `+other+` (Vector2): The vector to compare with.
+* *Return Value:* 1 if equal, 0 otherwise.
+
+'''''
+
+==== notEqual(other)
+
+*Usage:*
+
+[source,js]
+----
+let isNotEqual = vec.notEqual(otherVec);
+----
+
+* *Description:* Checks if this vector is not equal to another vector.
+* *Parameters:*
+** `+other+` (Vector2): The vector to compare with.
+* *Return Value:* 1 if not equal, 0 otherwise.
+
+'''''
+
+==== toString()
+
+*Usage:*
+
+[source,js]
+----
+let str = vec.toString();
+----
+
+* *Description:* Converts the vector to a string representation.
+* *Parameters:* None.
+* *Return Value:* A string representation of the vector.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector2.create(3.5, 4.2);
+puts(vec.toString()); // Outputs something like "(3.5, 4.2)"
+----
+
+'''''
+
+=== Operator Overloading
+
+Vector2 supports operator overloading for common mathematical operations:
+
+* *Addition:* `+vec1 + vec2+` or `+vec + scalar+`
+* *Subtraction:* `+vec1 - vec2+` or `+vec - scalar+`
+* *Multiplication:* `+vec * scalar+`, `+vec1 * vec2+`, `+vec * matrix+`, or `+matrix * vec+`
+** Supports Matrix3x3 and Matrix4x4 transformations in both orders
+* *Division:* `+vec / scalar+` or `+vec1 / vec2+`
+* *Negation:* `+-vec+`
+* *Equality:* `+vec1 == vec2+`
+* *Inequality:* `+vec1 != vec2+`
+
+*Example:*
+
+[source,js]
+----
+let v1 = Vector2.create(1, 2);
+let v2 = Vector2.create(3, 4);
+let sum = v1 + v2; // (4, 6)
+let scaled = v1 * 2; // (2, 4)
+
+let transform = Matrix3x3.create(/* ... */);
+let transformed = v1 * transform; // Transform vector
+----
+
+'''''
+
+== Vector3
+
+=== Overview
+
+The Vector3 type represents a 3-dimensional vector with x, y, and z components. It provides similar functionality to Vector2 but for 3D space.
+
+'''''
+
+=== Global Vector3 Object
+
+==== Vector3.create()
+
+*Usage:*
+
+[source,js]
+----
+let vec = Vector3.create(x, y, z);
+----
+
+* *Description:* Creates a new 3D vector with the specified x, y, and z components.
+* *Parameters:*
+** `+x+` (number): The x component (default: 0.0)
+** `+y+` (number): The y component (default: 0.0)
+** `+z+` (number): The z component (default: 0.0)
+* *Return Value:* A new Vector3 object.
+* *Example:*
++
+[source,js]
+----
+let position = Vector3.create(10, 20, 30);
+let origin = Vector3.create(); // (0, 0, 0)
+----
+
+'''''
+
+=== Vector3 Properties
+
+==== x, r / y, g / z, b
+
+*Usage:*
+
+[source,js]
+----
+let xValue = vec.x; // or vec.r
+let yValue = vec.y; // or vec.g
+let zValue = vec.z; // or vec.b
+vec.x = 5.0;
+vec.y = 10.0;
+vec.z = 15.0;
+----
+
+* *Description:* Gets or sets the x, y, or z components of the vector. The `+r+`, `+g+`, and `+b+` properties are aliases for `+x+`, `+y+`, and `+z+` respectively.
+* *Type:* number
+
+'''''
+
+=== Vector3 Methods
+
+==== length()
+
+*Usage:*
+
+[source,js]
+----
+let len = vec.length();
+----
+
+* *Description:* Calculates and returns the Euclidean length (magnitude) of the vector.
+* *Parameters:* None.
+* *Return Value:* The length of the vector as a number.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector3.create(3, 4, 0);
+let len = vec.length(); // Returns 5.0
+----
+
+'''''
+
+==== squaredLength()
+
+*Usage:*
+
+[source,js]
+----
+let sqLen = vec.squaredLength();
+----
+
+* *Description:* Returns the squared length of the vector. This is faster than `+length()+` since it avoids the square root operation.
+* *Parameters:* None.
+* *Return Value:* The squared length as a number.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector3.create(3, 4, 0);
+let sqLen = vec.squaredLength(); // Returns 25.0
+----
+
+'''''
+
+==== normalize()
+
+*Usage:*
+
+[source,js]
+----
+vec.normalize();
+----
+
+* *Description:* Normalizes the vector in place (converts it to unit length while preserving direction).
+* *Parameters:* None.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let vec = Vector3.create(3, 4, 0);
+vec.normalize(); // vec is now approximately (0.6, 0.8, 0.0)
+----
+
+'''''
+
+==== dot()
+
+*Usage:*
+
+[source,js]
+----
+let dotProduct = vec.dot(other);
+----
+
+* *Description:* Computes the dot product (scalar product) with another vector.
+* *Parameters:*
+** `+other+` (Vector3): The other vector.
+* *Return Value:* The dot product as a number.
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector3.create(1, 0, 0);
+let v2 = Vector3.create(0, 1, 0);
+let dot = v1.dot(v2); // Returns 0.0 (perpendicular)
+----
+
+'''''
+
+==== cross()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.cross(other);
+----
+
+* *Description:* Computes the cross product with another vector, returning a new Vector3 perpendicular to both vectors.
+* *Parameters:*
+** `+other+` (Vector3): The other vector.
+* *Return Value:* The same Vector3 representing the cross product.
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector3.create(1, 0, 0);
+let v2 = Vector3.create(0, 1, 0);
+let cross = v1.cross(v2); // Returns Vector3(0, 0, 1)
+----
+
+'''''
+
+==== distanceTo()
+
+*Usage:*
+
+[source,js]
+----
+let dist = vec.distanceTo(other);
+----
+
+* *Description:* Calculates the distance to another vector.
+* *Parameters:*
+** `+other+` (Vector3): The other vector.
+* *Return Value:* The distance as a number.
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector3.create(0, 0, 0);
+let v2 = Vector3.create(3, 4, 0);
+let dist = v1.distanceTo(v2); // Returns 5.0
+----
+
+'''''
+
+==== lerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.lerp(other, t);
+----
+
+* *Description:* Performs linear interpolation between this vector and another, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector3): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let start = Vector3.create(0, 0, 0);
+let end = Vector3.create(10, 10, 10);
+start.lerp(end, 0.5); // start is now (5, 5, 5)
+----
+
+'''''
+
+==== nlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.nlerp(other, t);
+----
+
+* *Description:* Performs normalized linear interpolation (lerp followed by normalization), modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector3): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== slerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.slerp(other, t);
+----
+
+* *Description:* Performs spherical linear interpolation between this vector and another, maintaining constant angular velocity, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector3): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== sqlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.sqlerp(b, c, d, t);
+----
+
+* *Description:* Performs squared spherical linear interpolation (squad), modifying this vector in place.
+* *Parameters:*
+** `+b+` (Vector3): Second control point.
+** `+c+` (Vector3): Third control point.
+** `+d+` (Vector3): Fourth control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== clone()
+
+*Usage:*
+
+[source,js]
+----
+let copy = vec.clone();
+----
+
+* *Description:* Creates a new vector with the same values as this one.
+* *Parameters:* None.
+* *Return Value:* A new Vector3 object.
+* *Example:*
++
+[source,js]
+----
+let original = Vector3.create(1, 2, 3);
+let copy = original.clone();
+copy.x = 5; // original is unchanged
+----
+
+'''''
+
+==== copy()
+
+*Usage:*
+
+[source,js]
+----
+vec.copy(other);
+----
+
+* *Description:* Copies the values from another vector into this one.
+* *Parameters:*
+** `+other+` (Vector3): The vector to copy from.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== add()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.add(other);
+----
+
+* *Description:* Adds another vector or scalar to this vector.
+* *Parameters:*
+** `+other+` (Vector3 or number): The vector or scalar to add.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let v1 = Vector3.create(1, 2, 3);
+let v2 = Vector3.create(4, 5, 6);
+v1.add(v2); // v1 is now (5, 7, 9)
+----
+
+'''''
+
+==== sub()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.sub(other);
+----
+
+* *Description:* Subtracts another vector or scalar from this vector.
+* *Parameters:*
+** `+other+` (Vector3 or number): The vector or scalar to subtract.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== mul()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.mul(value);
+----
+
+* *Description:* Multiplies this vector by another vector, scalar, matrix, or quaternion.
+* *Parameters:*
+** `+value+` (Vector3, number, Matrix3x3, Matrix4x4, or Quaternion): The value to multiply/transform by.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let vec = Vector3.create(1, 2, 3);
+vec.mul(2); // vec is now (2, 4, 6)
+
+let mat = Matrix4x4.create(/* ... */);
+vec.mul(mat); // Transform vec by matrix
+
+let rot = Quaternion.create(/* ... */);
+vec.mul(rot); // Rotate vec by quaternion
+----
+
+'''''
+
+==== div()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.div(value);
+----
+
+* *Description:* Divides this vector by another vector or scalar.
+* *Parameters:*
+** `+value+` (Vector3 or number): The vector or scalar to divide by.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== neg()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.neg();
+----
+
+* *Description:* Negates this vector (all components multiplied by -1).
+* *Parameters:* None.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let vec = Vector3.create(1, -2, 3);
+vec.neg(); // vec is now (-1, 2, -3)
+----
+
+'''''
+
+==== equal()
+
+*Usage:*
+
+[source,js]
+----
+let isEqual = vec.equal(other);
+----
+
+* *Description:* Checks if this vector is equal to another vector.
+* *Parameters:*
+** `+other+` (Vector3): The vector to compare with.
+* *Return Value:* 1 if equal, 0 otherwise.
+
+'''''
+
+==== notEqual()
+
+*Usage:*
+
+[source,js]
+----
+let notEqual = vec.notEqual(other);
+----
+
+* *Description:* Checks if this vector is not equal to another vector.
+* *Parameters:*
+** `+other+` (Vector3): The vector to compare with.
+* *Return Value:* 1 if not equal, 0 otherwise.
+
+'''''
+
+==== toString()
+
+*Usage:*
+
+[source,js]
+----
+let str = vec.toString();
+----
+
+* *Description:* Converts the vector to a string representation.
+* *Parameters:* None.
+* *Return Value:* A string representation of the vector.
+* *Example:*
++
+[source,js]
+----
+let vec = Vector3.create(1.5, 2.5, 3.5);
+puts(vec.toString()); // Outputs something like "(1.5, 2.5, 3.5)"
+----
+
+'''''
+
+=== Vector3 Operator Overloading
+
+Vector3 supports operator overloading with extended multiplication support:
+
+* *Addition:* `+vec1 + vec2+` or `+vec + scalar+`
+* *Subtraction:* `+vec1 - vec2+` or `+vec - scalar+`
+* *Multiplication:* `+vec * scalar+`, `+vec1 * vec2+`, `+vec * matrix+`, `+vec * quat+`, or `+matrix/quat * vec+`
+** Supports Matrix3x3, Matrix4x4, and Quaternion transformations in both orders
+* *Division:* `+vec / scalar+` or `+vec1 / vec2+`
+* *Negation:* `+-vec+`
+* *Equality:* `+vec1 == vec2+`
+* *Inequality:* `+vec1 != vec2+`
+
+*Example:*
+
+[source,js]
+----
+let v = Vector3.create(1, 0, 0);
+let rotation = Quaternion.create(/* ... */);
+let rotated = v * rotation; // Rotate vector
+let backRotated = rotation * v; // Also works
+----
+
+'''''
+
+== Vector4
+
+=== Overview
+
+The Vector4 type represents a 4-dimensional vector with x, y, z, and w components. Commonly used for colors (RGBA) or homogeneous coordinates.
+
+'''''
+
+=== Global Vector4 Object
+
+==== Vector4.create()
+
+*Usage:*
+
+[source,js]
+----
+let vec = Vector4.create(x, y, z, w);
+----
+
+* *Description:* Creates a new 4D vector.
+* *Parameters:*
+** `+x+` (number): The x component (default: 0.0)
+** `+y+` (number): The y component (default: 0.0)
+** `+z+` (number): The z component (default: 0.0)
+** `+w+` (number): The w component (default: 0.0)
+* *Return Value:* A new Vector4 object.
+* *Example:*
++
+[source,js]
+----
+let color = Vector4.create(1.0, 0.0, 0.0, 1.0); // Red color
+----
+
+'''''
+
+=== Vector4 Properties
+
+* `+x+`, `+r+`: First component
+* `+y+`, `+g+`: Second component
+* `+z+`, `+b+`: Third component
+* `+w+`, `+a+`: Fourth component
+
+'''''
+
+=== Vector4 Methods
+
+==== length()
+
+*Usage:*
+
+[source,js]
+----
+let len = vec.length();
+----
+
+* *Description:* Calculates and returns the Euclidean length (magnitude) of the vector.
+* *Parameters:* None.
+* *Return Value:* The length of the vector as a number.
+
+'''''
+
+==== squaredLength()
+
+*Usage:*
+
+[source,js]
+----
+let sqLen = vec.squaredLength();
+----
+
+* *Description:* Returns the squared length of the vector. This is faster than `+length()+` since it avoids the square root operation.
+* *Parameters:* None.
+* *Return Value:* The squared length as a number.
+
+'''''
+
+==== normalize()
+
+*Usage:*
+
+[source,js]
+----
+vec.normalize();
+----
+
+* *Description:* Normalizes the vector in place (converts it to unit length while preserving direction).
+* *Parameters:* None.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== dot()
+
+*Usage:*
+
+[source,js]
+----
+let dotProduct = vec.dot(other);
+----
+
+* *Description:* Computes the dot product (scalar product) with another vector.
+* *Parameters:*
+** `+other+` (Vector4): The other vector.
+* *Return Value:* The dot product as a number.
+
+'''''
+
+==== cross()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.cross(other);
+----
+
+* *Description:* Computes the cross product with another vector.
+* *Parameters:*
+** `+other+` (Vector4): The other vector.
+* *Return Value:* The cross product as a number.
+
+'''''
+
+==== distanceTo()
+
+*Usage:*
+
+[source,js]
+----
+let dist = vec.distanceTo(other);
+----
+
+* *Description:* Calculates the distance to another vector.
+* *Parameters:*
+** `+other+` (Vector4): The other vector.
+* *Return Value:* The distance as a number.
+
+'''''
+
+==== lerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.lerp(other, t);
+----
+
+* *Description:* Performs linear interpolation between this vector and another, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector4): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let red = Vector4.create(1, 0, 0, 1);
+let blue = Vector4.create(0, 0, 1, 1);
+red.lerp(blue, 0.5); // red is now purple
+----
+
+'''''
+
+==== nlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.nlerp(other, t);
+----
+
+* *Description:* Performs normalized linear interpolation (lerp followed by normalization), modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector4): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== slerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.slerp(other, t);
+----
+
+* *Description:* Performs spherical linear interpolation between this vector and another, modifying this vector in place.
+* *Parameters:*
+** `+other+` (Vector4): The target vector.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== sqlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.sqlerp(b, c, d, t);
+----
+
+* *Description:* Performs squared spherical linear interpolation (squad), modifying this vector in place.
+* *Parameters:*
+** `+b+` (Vector4): Second control point.
+** `+c+` (Vector4): Third control point.
+** `+d+` (Vector4): Fourth control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== clone()
+
+*Usage:*
+
+[source,js]
+----
+let copy = vec.clone();
+----
+
+* *Description:* Creates a new vector with the same values as this one.
+* *Parameters:* None.
+* *Return Value:* A new Vector4 object.
+* *Example:*
++
+[source,js]
+----
+let color = Vector4.create(1, 0, 0, 1);
+let copy = color.clone();
+----
+
+'''''
+
+==== copy()
+
+*Usage:*
+
+[source,js]
+----
+vec.copy(other);
+----
+
+* *Description:* Copies the values from another vector into this one.
+* *Parameters:*
+** `+other+` (Vector4): The vector to copy from.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+====add()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.add(other);
+----
+
+* *Description:* Adds another vector or scalar to this vector.
+* *Parameters:*
+** `+other+` (Vector4 or number): The vector or scalar to add.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== sub()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.sub(other);
+----
+
+* *Description:* Subtracts another vector or scalar from this vector.
+* *Parameters:*
+** `+other+` (Vector4 or number): The vector or scalar to subtract.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== mul()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.mul(value);
+----
+
+* *Description:* Multiplies this vector by another vector, scalar, matrix, or quaternion.
+* *Parameters:*
+** `+value+` (Vector4, number, Matrix3x3, Matrix4x4, or Quaternion): The value to multiply/transform by.
+* *Return Value:* The vector itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let color = Vector4.create(1, 0.5, 0.5, 1);
+color.mul(1.5); // Brighten color
+
+let mat = Matrix4x4.create(/* ... */);
+color.mul(mat); // Transform color by matrix
+
+let quat = Quaternion.create(/* ... */);
+color.mul(quat); // Rotate xyz components by quaternion
+----
+
+'''''
+
+==== div()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.div(value);
+----
+
+* *Description:* Divides this vector by another vector or scalar.
+* *Parameters:*
+** `+value+` (Vector4 or number): The vector or scalar to divide by.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== neg()
+
+*Usage:*
+
+[source,js]
+----
+let result = vec.neg();
+----
+
+* *Description:* Negates this vector (all components multiplied by -1).
+* *Parameters:* None.
+* *Return Value:* The vector itself (for method chaining).
+
+'''''
+
+==== equal()
+
+*Usage:*
+
+[source,js]
+----
+let isEqual = vec.equal(other);
+----
+
+* *Description:* Checks if this vector is equal to another vector.
+* *Parameters:*
+** `+other+` (Vector4): The vector to compare with.
+* *Return Value:* 1 if equal, 0 otherwise.
+
+'''''
+
+==== notEqual()
+
+*Usage:*
+
+[source,js]
+----
+let notEqual = vec.notEqual(other);
+----
+
+* *Description:* Checks if this vector is not equal to another vector.
+* *Parameters:*
+** `+other+` (Vector4): The vector to compare with.
+* *Return Value:* 1 if not equal, 0 otherwise.
+
+'''''
+
+==== toString()
+
+*Usage:*
+
+[source,js]
+----
+let str = vec.toString();
+----
+
+* *Description:* Converts the vector to a string representation.
+* *Parameters:* None.
+* *Return Value:* A string representation of the vector.
+* *Example:*
++
+[source,js]
+----
+let color = Vector4.create(1, 0, 0, 1);
+puts(color.toString()); // Outputs something like "(1, 0, 0, 1)"
+----
+
+'''''
+
+=== Vector4 Operator Overloading
+
+Vector4 supports operator overloading with extended multiplication support:
+
+* *Addition:* `+vec1 + vec2+` or `+vec + scalar+`
+* *Subtraction:* `+vec1 - vec2+` or `+vec - scalar+`
+* *Multiplication:* `+vec * scalar+`, `+vec1 * vec2+`, `+vec * matrix+`, `+vec * quat+`, or `+matrix/quat * vec+`
+** Supports Matrix3x3, Matrix4x4, and Quaternion transformations in both orders
+** When multiplying with Quaternion, rotates the xyz components
+* *Division:* `+vec / scalar+` or `+vec1 / vec2+`
+* *Negation:* `+-vec+`
+* *Equality:* `+vec1 == vec2+`
+* *Inequality:* `+vec1 != vec2+`
+
+'''''
+
+== Quaternion
+
+=== Overview
+
+The Quaternion type represents a rotation in 3D space using four components (x, y, z, w). Quaternions are preferred over Euler angles for many rotation operations.
+
+'''''
+
+=== Global Quaternion Object
+
+==== Quaternion.create()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.create(x, y, z, w);
+----
+
+* *Description:* Creates a new quaternion.
+* *Parameters:*
+** `+x+` (number): The x component (default: 0.0)
+** `+y+` (number): The y component (default: 0.0)
+** `+z+` (number): The z component (default: 0.0)
+** `+w+` (number): The w component (default: 1.0)
+* *Return Value:* A new Quaternion object.
+* *Example:*
++
+[source,js]
+----
+let identity = Quaternion.create(); // Identity rotation
+----
+
+'''''
+
+==== Quaternion.createFromAngleAxis()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromAngleAxis(angle, axis);
+----
+
+* *Description:* Creates a quaternion from an angle and a rotation axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+** `+axis+` (Vector3): The axis of rotation (should be normalized).
+* *Return Value:* A new Quaternion representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let axis = Vector3.create(0, 1, 0); // Y-axis
+let quat = Quaternion.createFromAngleAxis(Math.PI / 2, axis); // 90° rotation around Y
+----
+
+'''''
+
+==== Quaternion.createFromEuler()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromEuler(pitch, yaw, roll);
+let quat = Quaternion.createFromEuler(eulerAngles);
+----
+
+* *Description:* Creates a quaternion from Euler angles (pitch, yaw, roll).
+* *Parameters:*
+** `+pitch+` (number): Rotation around X-axis in radians.
+** `+yaw+` (number): Rotation around Y-axis in radians.
+** `+roll+` (number): Rotation around Z-axis in radians.
+** `+eulerAngles+` (Vector3): A Vector3 containing (pitch, yaw, roll).
+* *Return Value:* A new Quaternion representing the Euler rotation.
+* *Example:*
++
+[source,js]
+----
+let quat1 = Quaternion.createFromEuler(0, Math.PI / 4, 0); // 45° yaw
+let angles = Vector3.create(0, Math.PI / 4, 0);
+let quat2 = Quaternion.createFromEuler(angles);
+----
+
+'''''
+
+==== Quaternion.createFromToRotation()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromToRotation(fromDirection, toDirection);
+----
+
+* *Description:* Creates a quaternion representing the rotation from one direction vector to another.
+* *Parameters:*
+** `+fromDirection+` (Vector3): The starting direction vector.
+** `+toDirection+` (Vector3): The target direction vector.
+* *Return Value:* A new Quaternion representing the rotation between the two directions.
+* *Example:*
++
+[source,js]
+----
+let from = Vector3.create(1, 0, 0); // Forward
+let to = Vector3.create(0, 0, 1);   // Right
+let quat = Quaternion.createFromToRotation(from, to);
+----
+
+'''''
+
+==== Quaternion.createFromLookRotation()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromLookRotation(forward, up);
+----
+
+* *Description:* Creates a quaternion that rotates to look in a specific direction with a given up vector.
+* *Parameters:*
+** `+forward+` (Vector3): The forward direction vector.
+** `+up+` (Vector3): The up direction vector.
+* *Return Value:* A new Quaternion representing the look rotation.
+* *Example:*
++
+[source,js]
+----
+let forward = Vector3.create(0, 0, -1);
+let up = Vector3.create(0, 1, 0);
+let quat = Quaternion.createFromLookRotation(forward, up);
+----
+
+'''''
+
+==== Quaternion.createFromScaledAngleAxis()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromScaledAngleAxis(scaledAxis);
+----
+
+* *Description:* Creates a quaternion from a scaled angle-axis representation where the magnitude of the vector is the angle.
+* *Parameters:*
+** `+scaledAxis+` (Vector3): A vector whose direction is the axis and magnitude is the angle in radians.
+* *Return Value:* A new Quaternion.
+* *Example:*
++
+[source,js]
+----
+let scaledAxis = Vector3.create(0, Math.PI / 2, 0); // 90° around Y-axis
+let quat = Quaternion.createFromScaledAngleAxis(scaledAxis);
+----
+
+'''''
+
+==== Quaternion.createFromAngularVelocity()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromAngularVelocity(angularVelocity);
+----
+
+* *Description:* Creates a quaternion from an angular velocity vector (used in physics simulations).
+* *Parameters:*
+** `+angularVelocity+` (Vector3): The angular velocity vector.
+* *Return Value:* A new Quaternion.
+* *Example:*
++
+[source,js]
+----
+let angVel = Vector3.create(0, 1, 0);
+let quat = Quaternion.createFromAngularVelocity(angVel);
+----
+
+'''''
+
+==== Quaternion.createFromCols()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromCols(col0, col1, col2);
+----
+
+* *Description:* Creates a quaternion from three column vectors representing a rotation matrix.
+* *Parameters:*
+** `+col0+` (Vector3): First column of the rotation matrix.
+** `+col1+` (Vector3): Second column of the rotation matrix.
+** `+col2+` (Vector3): Third column of the rotation matrix.
+* *Return Value:* A new Quaternion.
+* *Example:*
++
+[source,js]
+----
+let c0 = Vector3.create(1, 0, 0);
+let c1 = Vector3.create(0, 1, 0);
+let c2 = Vector3.create(0, 0, 1);
+let quat = Quaternion.createFromCols(c0, c1, c2);
+----
+
+'''''
+
+==== Quaternion.createFromXY()
+
+*Usage:*
+
+[source,js]
+----
+let quat = Quaternion.createFromXY(xAxis, yAxis);
+----
+
+* *Description:* Creates a quaternion from X and Y axis vectors.
+* *Parameters:*
+** `+xAxis+` (Vector3): The X-axis direction.
+** `+yAxis+` (Vector3): The Y-axis direction.
+* *Return Value:* A new Quaternion.
+* *Example:*
++
+[source,js]
+----
+let x = Vector3.create(1, 0, 0);
+let y = Vector3.create(0, 1, 0);
+let quat = Quaternion.createFromXY(x, y);
+----
+
+'''''
+
+=== Quaternion Properties
+
+* `+x+`: X component
+* `+y+`: Y component
+* `+z+`: Z component
+* `+w+`: W component
+
+'''''
+
+=== Quaternion Methods
+
+==== length()
+
+*Usage:*
+
+[source,js]
+----
+let len = quat.length();
+----
+
+* *Description:* Returns the magnitude of the quaternion.
+* *Parameters:* None.
+* *Return Value:* The length as a number.
+
+'''''
+
+==== squaredLength()
+
+*Usage:*
+
+[source,js]
+----
+let sqLen = quat.squaredLength();
+----
+
+* *Description:* Returns the squared magnitude of the quaternion. This is faster than `+length()+`.
+* *Parameters:* None.
+* *Return Value:* The squared length as a number.
+
+'''''
+
+==== normalize()
+
+*Usage:*
+
+[source,js]
+----
+quat.normalize();
+----
+
+* *Description:* Normalizes the quaternion in place. A normalized quaternion represents a valid rotation.
+* *Parameters:* None.
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.create(0, 1, 0, 1);
+quat.normalize(); // Now represents a valid rotation
+----
+
+'''''
+
+==== dot()
+
+*Usage:*
+
+[source,js]
+----
+let dotProduct = quat.dot(other);
+----
+
+* *Description:* Computes the dot product with another quaternion.
+* *Parameters:*
+** `+other+` (Quaternion): The other quaternion.
+* *Return Value:* The dot product as a number.
+
+'''''
+
+==== lerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.lerp(other, t);
+----
+
+* *Description:* Performs linear interpolation between this quaternion and another, modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== nlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.nlerp(other, t);
+----
+
+* *Description:* Performs normalized linear interpolation, modifying this quaternion in place. This is faster than slerp but doesn't maintain constant angular velocity.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.create(0, 0.707, 0, 0.707);
+q1.nlerp(q2, 0.5); // q1 is now halfway interpolated
+----
+
+'''''
+
+==== slerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.slerp(other, t);
+----
+
+* *Description:* Performs spherical linear interpolation, modifying this quaternion in place. This produces smooth rotation with constant angular velocity.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1); // Identity
+let q2 = Quaternion.create(0, 0.707, 0, 0.707); // 90° around Y
+q1.slerp(q2, 0.5); // q1 is now smoothly interpolated halfway
+----
+
+'''''
+
+==== sqlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.sqlerp(b, c, d, t);
+----
+
+* *Description:* Performs squared spherical linear interpolation (squad), modifying this quaternion in place.
+* *Parameters:*
+** `+b+` (Quaternion): Second control point.
+** `+c+` (Quaternion): Third control point.
+** `+d+` (Quaternion): Fourth control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== clone()
+
+*Usage:*
+
+[source,js]
+----
+let copy = quat.clone();
+----
+
+* *Description:* Creates a new quaternion with the same values as this one.
+* *Parameters:* None.
+* *Return Value:* A new Quaternion object.
+
+'''''
+
+==== copy()
+
+*Usage:*
+
+[source,js]
+----
+quat.copy(other);
+----
+
+* *Description:* Copies the values from another quaternion into this one.
+* *Parameters:*
+** `+other+` (Quaternion): The quaternion to copy from.
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== add()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.add(other);
+----
+
+* *Description:* Adds another quaternion to this quaternion, modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The quaternion to add.
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== sub()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.sub(other);
+----
+
+* *Description:* Subtracts another quaternion from this quaternion, modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The quaternion to subtract.
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== mul()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.mul(other);
+----
+
+* *Description:* Multiplies this quaternion by another quaternion, scalar, or vector. When multiplying quaternions, this combines rotations (note: order matters). When multiplying by a Vector3, it returns the rotated vector.
+* *Parameters:*
+** `+other+` (Quaternion, number, or Vector3): The quaternion, scalar, or vector to multiply by.
+* *Return Value:* The modified quaternion itself when multiplying by Quaternion/number, or a new Vector3 when multiplying by Vector3.
+* *Example:*
++
+[source,js]
+----
+let rotX = Quaternion.create(/* rotation around X */);
+let rotY = Quaternion.create(/* rotation around Y */);
+rotX.mul(rotY); // Combined rotation in rotX
+
+let vec = Vector3.create(1, 0, 0);
+let rotated = rotX.mul(vec); // Returns rotated Vector3
+----
+
+'''''
+
+==== div()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.div(value);
+----
+
+* *Description:* Divides this quaternion by a scalar value or another quaternion, modifying this quaternion in place.
+* *Parameters:*
+** `+value+` (number or Quaternion): The scalar or quaternion to divide by.
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== neg()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.neg();
+----
+
+* *Description:* Negates this quaternion (all components multiplied by -1), modifying it in place.
+* *Parameters:* None.
+* *Return Value:* The quaternion itself (for method chaining).
+
+'''''
+
+==== equal()
+
+*Usage:*
+
+[source,js]
+----
+let isEqual = quat.equal(other);
+----
+
+* *Description:* Checks if this quaternion is equal to another quaternion.
+* *Parameters:*
+** `+other+` (Quaternion): The quaternion to compare with.
+* *Return Value:* 1 if equal, 0 otherwise.
+
+'''''
+
+==== notEqual()
+
+*Usage:*
+
+[source,js]
+----
+let notEqual = quat.notEqual(other);
+----
+
+* *Description:* Checks if this quaternion is not equal to another quaternion.
+* *Parameters:*
+** `+other+` (Quaternion): The quaternion to compare with.
+* *Return Value:* 1 if not equal, 0 otherwise.
+
+'''''
+
+==== toString()
+
+*Usage:*
+
+[source,js]
+----
+let str = quat.toString();
+----
+
+* *Description:* Converts the quaternion to a string representation.
+* *Parameters:* None.
+* *Return Value:* A string representation of the quaternion.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.create(0, 0, 0, 1);
+puts(quat.toString()); // Outputs something like "(0, 0, 0, 1)"
+----
+
+'''''
+
+==== toEuler()
+
+*Usage:*
+
+[source,js]
+----
+let eulerAngles = quat.toEuler();
+----
+
+* *Description:* Converts the quaternion to Euler angles (pitch, yaw, roll).
+* *Parameters:* None.
+* *Return Value:* A Vector3 containing the Euler angles in radians (x=pitch, y=yaw, z=roll).
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromEuler(0.1, 0.2, 0.3);
+let euler = quat.toEuler();
+puts("Pitch: " + euler.x + ", Yaw: " + euler.y + ", Roll: " + euler.z);
+----
+
+'''''
+
+==== toPitch()
+
+*Usage:*
+
+[source,js]
+----
+let pitch = quat.toPitch();
+----
+
+* *Description:* Extracts the pitch (rotation around X-axis) from the quaternion.
+* *Parameters:* None.
+* *Return Value:* The pitch angle in radians.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromEuler(0.5, 0, 0);
+let pitch = quat.toPitch(); // Returns ~0.5
+----
+
+'''''
+
+==== toYaw()
+
+*Usage:*
+
+[source,js]
+----
+let yaw = quat.toYaw();
+----
+
+* *Description:* Extracts the yaw (rotation around Y-axis) from the quaternion.
+* *Parameters:* None.
+* *Return Value:* The yaw angle in radians.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromEuler(0, 0.5, 0);
+let yaw = quat.toYaw(); // Returns ~0.5
+----
+
+'''''
+
+==== toRoll()
+
+*Usage:*
+
+[source,js]
+----
+let roll = quat.toRoll();
+----
+
+* *Description:* Extracts the roll (rotation around Z-axis) from the quaternion.
+* *Parameters:* None.
+* *Return Value:* The roll angle in radians.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromEuler(0, 0, 0.5);
+let roll = quat.toRoll(); // Returns ~0.5
+----
+
+'''''
+
+==== toAngleAxis()
+
+*Usage:*
+
+[source,js]
+----
+let result = quat.toAngleAxis();
+----
+
+* *Description:* Converts the quaternion to an angle-axis representation.
+* *Parameters:* None.
+* *Return Value:* A hash object with `+angle+` (number) and `+axis+` (Vector3) properties.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromAngleAxis(Math.PI / 2, Vector3.create(0, 1, 0));
+let result = quat.toAngleAxis();
+puts("Angle: " + result.angle + ", Axis: " + result.axis.toString());
+----
+
+'''''
+
+==== toScaledAngleAxis()
+
+*Usage:*
+
+[source,js]
+----
+let scaledAxis = quat.toScaledAngleAxis();
+----
+
+* *Description:* Converts the quaternion to a scaled angle-axis representation where the vector's magnitude is the angle.
+* *Parameters:* None.
+* *Return Value:* A Vector3 whose direction is the axis and magnitude is the angle in radians.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromAngleAxis(Math.PI / 2, Vector3.create(0, 1, 0));
+let scaledAxis = quat.toScaledAngleAxis();
+puts("Scaled axis: " + scaledAxis.toString());
+----
+
+'''''
+
+==== approximatedSlerp()
+
+*Usage:*
+
+[source,js]
+----
+quat.approximatedSlerp(other, t);
+----
+
+* *Description:* Performs a faster approximation of spherical linear interpolation (slerp), modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+q1.approximatedSlerp(q2, 0.5); // Fast interpolation
+----
+
+'''''
+
+==== elerp()
+
+*Usage:*
+
+[source,js]
+----
+quat.elerp(other, t);
+----
+
+* *Description:* Performs exponential linear interpolation, modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+q1.elerp(q2, 0.5); // Exponential interpolation
+----
+
+'''''
+
+==== unflippedSlerp()
+
+*Usage:*
+
+[source,js]
+----
+quat.unflippedSlerp(other, t);
+----
+
+* *Description:* Performs spherical linear interpolation without quaternion flipping, modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+q1.unflippedSlerp(q2, 0.5);
+----
+
+'''''
+
+==== unflippedApproximatedSlerp()
+
+*Usage:*
+
+[source,js]
+----
+quat.unflippedApproximatedSlerp(other, t);
+----
+
+* *Description:* Performs a faster approximation of spherical linear interpolation without quaternion flipping.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+q1.unflippedApproximatedSlerp(q2, 0.5);
+----
+
+'''''
+
+==== unflippedSqlerp()
+
+*Usage:*
+
+[source,js]
+----
+quat.unflippedSqlerp(q1, q2, q3, t);
+----
+
+* *Description:* Performs spherical quadratic interpolation without quaternion flipping, modifying this quaternion in place.
+* *Parameters:*
+** `+q1+` (Quaternion): First control point.
+** `+q2+` (Quaternion): Second control point.
+** `+q3+` (Quaternion): Third control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q0 = Quaternion.create(0, 0, 0, 1);
+let q1 = Quaternion.createFromEuler(0, Math.PI / 4, 0);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+let q3 = Quaternion.createFromEuler(0, Math.PI, 0);
+q0.unflippedSqlerp(q1, q2, q3, 0.5);
+----
+
+'''''
+
+==== angleBetween()
+
+*Usage:*
+
+[source,js]
+----
+let angle = quat.angleBetween(other);
+----
+
+* *Description:* Calculates the angle (in radians) between this quaternion and another.
+* *Parameters:*
+** `+other+` (Quaternion): The other quaternion.
+* *Return Value:* The angle between the two quaternions in radians.
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+let angle = q1.angleBetween(q2);
+puts("Angle between quaternions: " + angle);
+----
+
+'''''
+
+==== between()
+
+*Usage:*
+
+[source,js]
+----
+quat.between(other);
+----
+
+* *Description:* Calculates the quaternion representing the rotation from this quaternion to another, modifying this quaternion in place.
+* *Parameters:*
+** `+other+` (Quaternion): The target quaternion.
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let q1 = Quaternion.create(0, 0, 0, 1);
+let q2 = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+q1.between(q2); // q1 now represents the delta rotation
+----
+
+'''''
+
+==== integrate()
+
+*Usage:*
+
+[source,js]
+----
+quat.integrate(omega, deltaTime);
+----
+
+* *Description:* Integrates angular velocity into the quaternion (for physics simulations), modifying this quaternion in place.
+* *Parameters:*
+** `+omega+` (Vector3): The angular velocity vector.
+** `+deltaTime+` (number): The time step for integration.
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.create(0, 0, 0, 1);
+let angularVelocity = Vector3.create(0, 1, 0); // Rotating around Y-axis
+quat.integrate(angularVelocity, 0.016); // One frame at ~60fps
+----
+
+'''''
+
+==== spin()
+
+*Usage:*
+
+[source,js]
+----
+quat.spin(omega, deltaTime);
+----
+
+* *Description:* Applies a spin (continuous rotation) to the quaternion based on angular velocity, modifying this quaternion in place.
+* *Parameters:*
+** `+omega+` (Vector3): The angular velocity vector.
+** `+deltaTime+` (number): The time step for the spin.
+* *Return Value:* The quaternion itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.create(0, 0, 0, 1);
+let angularVelocity = Vector3.create(0, 2, 0); // Fast rotation around Y
+quat.spin(angularVelocity, 0.016);
+----
+
+'''''
+
+=== Quaternion Operator Overloading
+
+Quaternion supports operator overloading:
+
+* *Addition:* `+quat1 + quat2+`
+* *Subtraction:* `+quat1 - quat2+`
+* *Multiplication:* `+quat1 * quat2+` (combines rotations), `+quat * scalar+`, `+quat * vec+`, or `+vec * quat+`
+** Quaternion×Quaternion combines rotations
+** Quaternion×Vector3 or Vector3×Quaternion rotates the vector and returns a Vector3
+* *Division:* `+quat / scalar+` or `+quat1 / quat2+`
+* *Negation:* `+-quat+`
+* *Equality:* `+quat1 == quat2+`
+* *Inequality:* `+quat1 != quat2+`
+
+*Example:*
+
+[source,js]
+----
+let q1 = Quaternion.create(/* ... */);
+let q2 = Quaternion.create(/* ... */);
+let combined = q1 * q2; // Combine rotations
+
+let vec = Vector3.create(1, 0, 0);
+let rotated = q1 * vec; // Returns rotated Vector3
+----
+
+'''''
+
+== Matrix3x3
+
+=== Overview
+
+The Matrix3x3 type represents a 3x3 matrix, commonly used for 2D transformations.
+
+'''''
+
+=== Global Matrix3x3 Object
+
+==== Matrix3x3.create()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.create(
+  m00, m01, m02,
+  m10, m11, m12,
+  m20, m21, m22
+);
+----
+
+* *Description:* Creates a new 3x3 matrix. If no parameters are provided, creates an identity matrix.
+* *Parameters:* Nine numbers representing the matrix elements (row-major order).
+* *Return Value:* A new Matrix3x3 object.
+* *Example:*
++
+[source,js]
+----
+let identity = Matrix3x3.create(); // Identity matrix
+----
+
+'''''
+
+==== Matrix3x3.createRotateX()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createRotateX(angle);
+----
+
+* *Description:* Creates a 3x3 rotation matrix around the X-axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+* *Return Value:* A new Matrix3x3 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createRotateX(Math.PI / 2); // 90° rotation around X
+----
+
+'''''
+
+==== Matrix3x3.createRotateY()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createRotateY(angle);
+----
+
+* *Description:* Creates a 3x3 rotation matrix around the Y-axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+* *Return Value:* A new Matrix3x3 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createRotateY(Math.PI / 4); // 45° rotation around Y
+----
+
+'''''
+
+==== Matrix3x3.createRotateZ()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createRotateZ(angle);
+----
+
+* *Description:* Creates a 3x3 rotation matrix around the Z-axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+* *Return Value:* A new Matrix3x3 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createRotateZ(Math.PI); // 180° rotation around Z
+----
+
+'''''
+
+==== Matrix3x3.createRotate()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createRotate(angle, axis);
+----
+
+* *Description:* Creates a 3x3 rotation matrix around an arbitrary axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+** `+axis+` (Vector3): The axis of rotation (should be normalized).
+* *Return Value:* A new Matrix3x3 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let axis = Vector3.create(1, 1, 0).normalize();
+let mat = Matrix3x3.createRotate(Math.PI / 3, axis);
+----
+
+'''''
+
+==== Matrix3x3.createScale()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createScale(sx, sy, sz);
+let mat = Matrix3x3.createScale(scaleVec);
+----
+
+* *Description:* Creates a 3x3 scale matrix.
+* *Parameters:*
+** `+sx+` (number): Scale factor for X-axis.
+** `+sy+` (number): Scale factor for Y-axis.
+** `+sz+` (number): Scale factor for Z-axis.
+** `+scaleVec+` (Vector3): A vector containing the scale factors.
+* *Return Value:* A new Matrix3x3 representing the scale transformation.
+* *Example:*
++
+[source,js]
+----
+let mat1 = Matrix3x3.createScale(2, 3, 1); // Non-uniform scale
+let mat2 = Matrix3x3.createScale(Vector3.create(2, 2, 2)); // Uniform scale
+----
+
+'''''
+
+==== Matrix3x3.createTranslation()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createTranslation(tx, ty);
+let mat = Matrix3x3.createTranslation(translationVec);
+----
+
+* *Description:* Creates a 3x3 translation matrix (for 2D transformations).
+* *Parameters:*
+** `+tx+` (number): Translation along X-axis.
+** `+ty+` (number): Translation along Y-axis.
+** `+translationVec+` (Vector2): A vector containing the translation.
+* *Return Value:* A new Matrix3x3 representing the translation.
+* *Example:*
++
+[source,js]
+----
+let mat1 = Matrix3x3.createTranslation(10, 20);
+let mat2 = Matrix3x3.createTranslation(Vector2.create(10, 20));
+----
+
+'''''
+
+==== Matrix3x3.createFromQuaternion()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createFromQuaternion(quat);
+----
+
+* *Description:* Creates a 3x3 rotation matrix from a quaternion.
+* *Parameters:*
+** `+quat+` (Quaternion): The quaternion to convert.
+* *Return Value:* A new Matrix3x3 representing the same rotation.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+let mat = Matrix3x3.createFromQuaternion(quat);
+----
+
+'''''
+
+==== Matrix3x3.createFromQTangent()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createFromQTangent(qtangent);
+----
+
+* *Description:* Creates a 3x3 matrix from a QTangent (compressed tangent space quaternion).
+* *Parameters:*
+** `+qtangent+` (Quaternion): The QTangent quaternion.
+* *Return Value:* A new Matrix3x3.
+* *Example:*
++
+[source,js]
+----
+let qt = Quaternion.create(0.5, 0.5, 0.5, 0.5);
+let mat = Matrix3x3.createFromQTangent(qt);
+----
+
+'''''
+
+==== Matrix3x3.createFromToRotation()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createFromToRotation(from, to);
+----
+
+* *Description:* Creates a 3x3 rotation matrix that rotates from one direction to another.
+* *Parameters:*
+** `+from+` (Vector3): The starting direction.
+** `+to+` (Vector3): The target direction.
+* *Return Value:* A new Matrix3x3 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let from = Vector3.create(1, 0, 0);
+let to = Vector3.create(0, 1, 0);
+let mat = Matrix3x3.createFromToRotation(from, to);
+----
+
+'''''
+
+==== Matrix3x3.createConstructForwardUp()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createConstructForwardUp(forward, up);
+----
+
+* *Description:* Creates a 3x3 orientation matrix from forward and up vectors.
+* *Parameters:*
+** `+forward+` (Vector3): The forward direction.
+** `+up+` (Vector3): The up direction.
+* *Return Value:* A new Matrix3x3 representing the orientation.
+* *Example:*
++
+[source,js]
+----
+let forward = Vector3.create(0, 0, -1);
+let up = Vector3.create(0, 1, 0);
+let mat = Matrix3x3.createConstructForwardUp(forward, up);
+----
+
+'''''
+
+==== Matrix3x3.createOuterProduct()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createOuterProduct(u, v);
+----
+
+* *Description:* Creates a 3x3 matrix from the outer product of two vectors.
+* *Parameters:*
+** `+u+` (Vector3): First vector.
+** `+v+` (Vector3): Second vector.
+* *Return Value:* A new Matrix3x3 representing the outer product (u ⊗ v).
+* *Example:*
++
+[source,js]
+----
+let u = Vector3.create(1, 0, 0);
+let v = Vector3.create(0, 1, 0);
+let mat = Matrix3x3.createOuterProduct(u, v);
+----
+
+'''''
+
+==== Matrix3x3.createSkewYX()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createSkewYX(angle);
+----
+
+* *Description:* Creates a 3x3 skew matrix that shears Y by X.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix3x3 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createSkewYX(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix3x3.createSkewZX()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createSkewZX(angle);
+----
+
+* *Description:* Creates a 3x3 skew matrix that shears Z by X.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix3x3 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createSkewZX(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix3x3.createSkewXY()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createSkewXY(angle);
+----
+
+* *Description:* Creates a 3x3 skew matrix that shears X by Y.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix3x3 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createSkewXY(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix3x3.createSkewZY()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createSkewZY(angle);
+----
+
+* *Description:* Creates a 3x3 skew matrix that shears Z by Y.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix3x3 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createSkewZY(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix3x3.createSkewXZ()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createSkewXZ(angle);
+----
+
+* *Description:* Creates a 3x3 skew matrix that shears X by Z.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix3x3 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createSkewXZ(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix3x3.createSkewYZ()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix3x3.createSkewYZ(angle);
+----
+
+* *Description:* Creates a 3x3 skew matrix that shears Y by Z.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix3x3 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix3x3.createSkewYZ(Math.PI / 6);
+----
+
+'''''
+
+=== Matrix3x3 Properties
+
+Matrix3x3 provides indexed access to its elements:
+
+* `+m00+`, `+m01+`, `+m02+`: First row
+* `+m10+`, `+m11+`, `+m12+`: Second row
+* `+m20+`, `+m21+`, `+m22+`: Third row
+
+'''''
+
+=== Matrix3x3 Methods
+
+==== clone()
+
+*Usage:*
+
+[source,js]
+----
+let copy = mat.clone();
+----
+
+* *Description:* Creates a new matrix with the same values as this one.
+* *Parameters:* None.
+* *Return Value:* A new Matrix3x3 object.
+* *Example:*
++
+[source,js]
+----
+let original = Matrix3x3.create();
+let copy = original.clone();
+----
+
+'''''
+
+==== copy()
+
+*Usage:*
+
+[source,js]
+----
+mat.copy(other);
+----
+
+* *Description:* Copies the values from another matrix into this one.
+* *Parameters:*
+** `+other+` (Matrix3x3): The matrix to copy from.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== add()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.add(other);
+----
+
+* *Description:* Adds another matrix to this matrix (element-wise addition).
+* *Parameters:*
+** `+other+` (Matrix3x3): The matrix to add.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== sub()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.sub(other);
+----
+
+* *Description:* Subtracts another matrix from this matrix (element-wise subtraction).
+* *Parameters:*
+** `+other+` (Matrix3x3): The matrix to subtract.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== mul()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.mul(other);
+----
+
+* *Description:* Multiplies this matrix by another matrix, scalar, vector, or quaternion. Matrix multiplication combines transformations. When multiplying by a vector, returns the transformed vector.
+* *Parameters:*
+** `+other+` (Matrix3x3, number, Vector2, Vector3, Vector4, or Quaternion): The value to multiply by.
+* *Return Value:* The modified matrix itself when multiplying by Matrix3x3/number/Quaternion, or a new vector when multiplying by a vector.
+* *Example:*
++
+[source,js]
+----
+let mat1 = Matrix3x3.create(); // Identity
+let mat2 = Matrix3x3.create(
+  2, 0, 0,
+  0, 2, 0,
+  0, 0, 1
+); // 2x scale
+mat1.mul(mat2); // mat1 is now scaled
+
+let vec = Vector3.create(1, 2, 3);
+let transformed = mat1.mul(vec); // Returns transformed Vector3
+----
+
+'''''
+
+==== div()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.div(value);
+----
+
+* *Description:* Divides this matrix by a scalar or another matrix (element-wise division), modifying this matrix in place.
+* *Parameters:*
+** `+value+` (number or Matrix3x3): The scalar or matrix to divide by.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== neg()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.neg();
+----
+
+* *Description:* Negates this matrix (all elements multiplied by -1), modifying it in place.
+* *Parameters:* None.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== lerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.lerp(other, t);
+----
+
+* *Description:* Performs linear interpolation between this matrix and another, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix3x3): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== nlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.nlerp(other, t);
+----
+
+* *Description:* Performs normalized linear interpolation, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix3x3): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== slerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.slerp(other, t);
+----
+
+* *Description:* Performs spherical linear interpolation, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix3x3): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== elerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.elerp(other, t);
+----
+
+* *Description:* Performs exponential linear interpolation, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix3x3): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== sqlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.sqlerp(b, c, d, t);
+----
+
+* *Description:* Performs squared spherical linear interpolation (squad), modifying this matrix in place.
+* *Parameters:*
+** `+b+` (Matrix3x3): Second control point.
+** `+c+` (Matrix3x3): Third control point.
+** `+d+` (Matrix3x3): Fourth control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== equal()
+
+*Usage:*
+
+[source,js]
+----
+let isEqual = mat.equal(other);
+----
+
+* *Description:* Checks if this matrix is equal to another matrix.
+* *Parameters:*
+** `+other+` (Matrix3x3): The matrix to compare with.
+* *Return Value:* 1 if equal, 0 otherwise.
+
+'''''
+
+==== notEqual()
+
+*Usage:*
+
+[source,js]
+----
+let notEqual = mat.notEqual(other);
+----
+
+* *Description:* Checks if this matrix is not equal to another matrix.
+* *Parameters:*
+** `+other+` (Matrix3x3): The matrix to compare with.
+* *Return Value:* 1 if not equal, 0 otherwise.
+
+'''''
+
+==== toString()
+
+*Usage:*
+
+[source,js]
+----
+let str = mat.toString();
+----
+
+* *Description:* Converts the matrix to a string representation.
+* *Parameters:* None.
+* *Return Value:* A string representation of the matrix.
+
+'''''
+
+=== Matrix3x3 Operator Overloading
+
+Matrix3x3 supports operator overloading:
+
+* *Addition:* `+mat1 + mat2+`
+* *Subtraction:* `+mat1 - mat2+`
+* *Multiplication:* `+mat1 * mat2+`, `+mat * scalar+`, `+mat * vec+`, `+mat * quat+`, or `+vec/quat * mat+`
+** Matrix×Matrix combines transformations
+** Matrix×Vector (Vector2/3/4) or Vector×Matrix transforms the vector and returns the transformed vector
+** Matrix×Quaternion or Quaternion×Matrix combines transformation and rotation
+* *Division:* `+mat / scalar+` or `+mat1 / mat2+`
+* *Negation:* `+-mat+`
+* *Equality:* `+mat1 == mat2+`
+* *Inequality:* `+mat1 != mat2+`
+
+*Example:*
+
+[source,js]
+----
+let mat = Matrix3x3.create(/* ... */);
+let vec = Vector3.create(1, 2, 3);
+let transformed = mat * vec; // Returns transformed Vector3
+let alsoTransformed = vec * mat; // Also works
+----
+
+'''''
+
+== Matrix4x4
+
+=== Overview
+
+The Matrix4x4 type represents a 4x4 matrix, the standard transformation matrix for 3D graphics.
+
+'''''
+
+=== Global Matrix4x4 Object
+
+==== Matrix4x4.create()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.create(
+  m00, m01, m02, m03,
+  m10, m11, m12, m13,
+  m20, m21, m22, m23,
+  m30, m31, m32, m33
+);
+----
+
+* *Description:* Creates a new 4x4 matrix. If no parameters are provided, creates an identity matrix.
+* *Parameters:* Sixteen numbers representing the matrix elements (row-major order).
+* *Return Value:* A new Matrix4x4 object.
+* *Example:*
++
+[source,js]
+----
+let identity = Matrix4x4.create(); // Identity matrix
+----
+
+'''''
+
+==== Matrix4x4.createRotateX()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createRotateX(angle);
+----
+
+* *Description:* Creates a 4x4 rotation matrix around the X-axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+* *Return Value:* A new Matrix4x4 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createRotateX(Math.PI / 2); // 90° rotation around X
+----
+
+'''''
+
+==== Matrix4x4.createRotateY()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createRotateY(angle);
+----
+
+* *Description:* Creates a 4x4 rotation matrix around the Y-axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+* *Return Value:* A new Matrix4x4 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createRotateY(Math.PI / 4); // 45° rotation around Y
+----
+
+'''''
+
+==== Matrix4x4.createRotateZ()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createRotateZ(angle);
+----
+
+* *Description:* Creates a 4x4 rotation matrix around the Z-axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+* *Return Value:* A new Matrix4x4 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createRotateZ(Math.PI); // 180° rotation around Z
+----
+
+'''''
+
+==== Matrix4x4.createRotate()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createRotate(angle, axis);
+----
+
+* *Description:* Creates a 4x4 rotation matrix around an arbitrary axis.
+* *Parameters:*
+** `+angle+` (number): The rotation angle in radians.
+** `+axis+` (Vector3): The axis of rotation (should be normalized).
+* *Return Value:* A new Matrix4x4 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let axis = Vector3.create(1, 1, 0).normalize();
+let mat = Matrix4x4.createRotate(Math.PI / 3, axis);
+----
+
+'''''
+
+==== Matrix4x4.createRotation()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createRotation(sourceMatrix);
+----
+
+* *Description:* Extracts the rotation part from a 4x4 matrix (removes translation and scale).
+* *Parameters:*
+** `+sourceMatrix+` (Matrix4x4): The source matrix.
+* *Return Value:* A new Matrix4x4 containing only the rotation.
+* *Example:*
++
+[source,js]
+----
+let transform = Matrix4x4.createTranslation(10, 20, 30);
+let rotation = Matrix4x4.createRotation(transform);
+----
+
+'''''
+
+==== Matrix4x4.createScale()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createScale(sx, sy, sz);
+let mat = Matrix4x4.createScale(scaleVec);
+----
+
+* *Description:* Creates a 4x4 scale matrix.
+* *Parameters:*
+** `+sx+` (number): Scale factor for X-axis.
+** `+sy+` (number): Scale factor for Y-axis.
+** `+sz+` (number): Scale factor for Z-axis.
+** `+scaleVec+` (Vector3 or Vector4): A vector containing the scale factors.
+* *Return Value:* A new Matrix4x4 representing the scale transformation.
+* *Example:*
++
+[source,js]
+----
+let mat1 = Matrix4x4.createScale(2, 3, 4); // Non-uniform scale
+let mat2 = Matrix4x4.createScale(Vector3.create(2, 2, 2)); // Uniform scale
+----
+
+'''''
+
+==== Matrix4x4.createTranslation()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createTranslation(tx, ty, tz);
+let mat = Matrix4x4.createTranslation(translationVec);
+----
+
+* *Description:* Creates a 4x4 translation matrix.
+* *Parameters:*
+** `+tx+` (number): Translation along X-axis.
+** `+ty+` (number): Translation along Y-axis.
+** `+tz+` (number): Translation along Z-axis.
+** `+translationVec+` (Vector3): A vector containing the translation.
+* *Return Value:* A new Matrix4x4 representing the translation.
+* *Example:*
++
+[source,js]
+----
+let mat1 = Matrix4x4.createTranslation(10, 20, 30);
+let mat2 = Matrix4x4.createTranslation(Vector3.create(10, 20, 30));
+----
+
+'''''
+
+==== Matrix4x4.createTranslated()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createTranslated(sourceMatrix, translation);
+----
+
+* *Description:* Creates a translated copy of a matrix.
+* *Parameters:*
+** `+sourceMatrix+` (Matrix4x4): The source matrix.
+** `+translation+` (Vector3): The translation to apply.
+* *Return Value:* A new Matrix4x4 with the translation applied.
+* *Example:*
++
+[source,js]
+----
+let original = Matrix4x4.createRotateY(Math.PI / 4);
+let translated = Matrix4x4.createTranslated(original, Vector3.create(5, 10, 15));
+----
+
+'''''
+
+==== Matrix4x4.createFromQuaternion()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createFromQuaternion(quat);
+----
+
+* *Description:* Creates a 4x4 rotation matrix from a quaternion.
+* *Parameters:*
+** `+quat+` (Quaternion): The quaternion to convert.
+* *Return Value:* A new Matrix4x4 representing the same rotation.
+* *Example:*
++
+[source,js]
+----
+let quat = Quaternion.createFromEuler(0, Math.PI / 2, 0);
+let mat = Matrix4x4.createFromQuaternion(quat);
+----
+
+'''''
+
+==== Matrix4x4.createFromToRotation()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createFromToRotation(from, to);
+----
+
+* *Description:* Creates a 4x4 rotation matrix that rotates from one direction to another.
+* *Parameters:*
+** `+from+` (Vector3): The starting direction.
+** `+to+` (Vector3): The target direction.
+* *Return Value:* A new Matrix4x4 representing the rotation.
+* *Example:*
++
+[source,js]
+----
+let from = Vector3.create(1, 0, 0);
+let to = Vector3.create(0, 1, 0);
+let mat = Matrix4x4.createFromToRotation(from, to);
+----
+
+'''''
+
+==== Matrix4x4.createLookAt()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createLookAt(eye, center, up);
+----
+
+* *Description:* Creates a view matrix for a camera looking at a target point.
+* *Parameters:*
+** `+eye+` (Vector3): The camera position.
+** `+center+` (Vector3): The point the camera is looking at.
+** `+up+` (Vector3): The up direction vector.
+* *Return Value:* A new Matrix4x4 view matrix.
+* *Example:*
++
+[source,js]
+----
+let eye = Vector3.create(0, 5, 10);
+let center = Vector3.create(0, 0, 0);
+let up = Vector3.create(0, 1, 0);
+let viewMatrix = Matrix4x4.createLookAt(eye, center, up);
+----
+
+'''''
+
+==== Matrix4x4.createPerspective()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createPerspective(fovy, aspect, znear, zfar);
+----
+
+* *Description:* Creates a perspective projection matrix (for 3D rendering).
+* *Parameters:*
+** `+fovy+` (number): Field of view angle in the Y direction (in radians).
+** `+aspect+` (number): Aspect ratio (width/height).
+** `+znear+` (number): Near clipping plane distance.
+** `+zfar+` (number): Far clipping plane distance.
+* *Return Value:* A new Matrix4x4 perspective projection matrix.
+* *Example:*
++
+[source,js]
+----
+let projMatrix = Matrix4x4.createPerspective(
+    Math.PI / 3,  // 60° field of view
+    16 / 9,       // 16:9 aspect ratio
+    0.1,          // Near plane
+    1000          // Far plane
+);
+----
+
+'''''
+
+==== Matrix4x4.createOrtho()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createOrtho(left, right, bottom, top, znear, zfar);
+----
+
+* *Description:* Creates an orthographic projection matrix (for 2D rendering or isometric 3D).
+* *Parameters:*
+** `+left+` (number): Left edge of the view volume.
+** `+right+` (number): Right edge of the view volume.
+** `+bottom+` (number): Bottom edge of the view volume.
+** `+top+` (number): Top edge of the view volume.
+** `+znear+` (number): Near clipping plane distance.
+** `+zfar+` (number): Far clipping plane distance.
+* *Return Value:* A new Matrix4x4 orthographic projection matrix.
+* *Example:*
++
+[source,js]
+----
+let orthoMatrix = Matrix4x4.createOrtho(-100, 100, -75, 75, 0.1, 100);
+----
+
+'''''
+
+==== Matrix4x4.createSkewYX()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createSkewYX(angle);
+----
+
+* *Description:* Creates a 4x4 skew matrix that shears Y by X.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix4x4 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createSkewYX(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix4x4.createSkewZX()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createSkewZX(angle);
+----
+
+* *Description:* Creates a 4x4 skew matrix that shears Z by X.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix4x4 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createSkewZX(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix4x4.createSkewXY()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createSkewXY(angle);
+----
+
+* *Description:* Creates a 4x4 skew matrix that shears X by Y.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix4x4 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createSkewXY(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix4x4.createSkewZY()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createSkewZY(angle);
+----
+
+* *Description:* Creates a 4x4 skew matrix that shears Z by Y.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix4x4 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createSkewZY(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix4x4.createSkewXZ()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createSkewXZ(angle);
+----
+
+* *Description:* Creates a 4x4 skew matrix that shears X by Z.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix4x4 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createSkewXZ(Math.PI / 6);
+----
+
+'''''
+
+==== Matrix4x4.createSkewYZ()
+
+*Usage:*
+
+[source,js]
+----
+let mat = Matrix4x4.createSkewYZ(angle);
+----
+
+* *Description:* Creates a 4x4 skew matrix that shears Y by Z.
+* *Parameters:*
+** `+angle+` (number): The skew angle in radians.
+* *Return Value:* A new Matrix4x4 representing the skew transformation.
+* *Example:*
++
+[source,js]
+----
+let mat = Matrix4x4.createSkewYZ(Math.PI / 6);
+----
+
+'''''
+
+=== Matrix4x4 Properties
+
+Matrix4x4 provides indexed access to all 16 elements (`+m00+` through `+m33+`).
+
+'''''
+
+=== Matrix4x4 Methods
+
+==== clone()
+
+*Usage:*
+
+[source,js]
+----
+let copy = mat.clone();
+----
+
+* *Description:* Creates a new matrix with the same values as this one.
+* *Parameters:* None.
+* *Return Value:* A new Matrix4x4 object.
+* *Example:*
++
+[source,js]
+----
+let original = Matrix4x4.create();
+let copy = original.clone();
+----
+
+'''''
+
+==== copy()
+
+*Usage:*
+
+[source,js]
+----
+mat.copy(other);
+----
+
+* *Description:* Copies the values from another matrix into this one.
+* *Parameters:*
+** `+other+` (Matrix4x4): The matrix to copy from.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== add()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.add(other);
+----
+
+* *Description:* Adds another matrix to this matrix (element-wise addition).
+* *Parameters:*
+** `+other+` (Matrix4x4): The matrix to add.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== sub()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.sub(other);
+----
+
+* *Description:* Subtracts another matrix from this matrix (element-wise subtraction).
+* *Parameters:*
+** `+other+` (Matrix4x4): The matrix to subtract.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== mul()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.mul(other);
+----
+
+* *Description:* Multiplies this matrix by another matrix, scalar, vector, or quaternion. Matrix multiplication combines transformations. When multiplying by a vector, returns the transformed vector.
+* *Parameters:*
+** `+other+` (Matrix4x4, number, Vector2, Vector3, Vector4, or Quaternion): The value to multiply by.
+* *Return Value:* The modified matrix itself when multiplying by Matrix4x4/number/Quaternion, or a new vector when multiplying by a vector.
+* *Example:*
++
+[source,js]
+----
+let projection = Matrix4x4.create(/* ... */);
+let view = Matrix4x4.create(/* ... */);
+let model = Matrix4x4.create(); // Identity
+projection.mul(view).mul(model); // Combine transformations
+canvas.setProjectionMatrix(projection);
+
+let position = Vector3.create(1, 2, 3);
+let transformed = model.mul(position); // Returns transformed Vector3
+----
+
+'''''
+
+==== div()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.div(value);
+----
+
+* *Description:* Divides this matrix by a scalar or another matrix (element-wise division), modifying this matrix in place.
+* *Parameters:*
+** `+value+` (number or Matrix4x4): The scalar or matrix to divide by.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== neg()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.neg();
+----
+
+* *Description:* Negates this matrix (all elements multiplied by -1), modifying it in place.
+* *Parameters:* None.
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== lerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.lerp(other, t);
+----
+
+* *Description:* Performs linear interpolation between this matrix and another, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix4x4): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== nlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.nlerp(other, t);
+----
+
+* *Description:* Performs normalized linear interpolation, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix4x4): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== slerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.slerp(other, t);
+----
+
+* *Description:* Performs spherical linear interpolation, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix4x4): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== elerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.elerp(other, t);
+----
+
+* *Description:* Performs exponential linear interpolation, modifying this matrix in place.
+* *Parameters:*
+** `+other+` (Matrix4x4): The target matrix.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== sqlerp()
+
+*Usage:*
+
+[source,js]
+----
+let result = mat.sqlerp(b, c, d, t);
+----
+
+* *Description:* Performs squared spherical linear interpolation (squad), modifying this matrix in place.
+* *Parameters:*
+** `+b+` (Matrix4x4): Second control point.
+** `+c+` (Matrix4x4): Third control point.
+** `+d+` (Matrix4x4): Fourth control point.
+** `+t+` (number): The interpolation factor (0.0 to 1.0).
+* *Return Value:* The matrix itself (for method chaining).
+
+'''''
+
+==== equal()
+
+*Usage:*
+
+[source,js]
+----
+let isEqual = mat.equal(other);
+----
+
+* *Description:* Checks if this matrix is equal to another matrix.
+* *Parameters:*
+** `+other+` (Matrix4x4): The matrix to compare with.
+* *Return Value:* 1 if equal, 0 otherwise.
+
+'''''
+
+==== notEqual()
+
+*Usage:*
+
+[source,js]
+----
+let notEqual = mat.notEqual(other);
+----
+
+* *Description:* Checks if this matrix is not equal to another matrix.
+* *Parameters:*
+** `+other+` (Matrix4x4): The matrix to compare with.
+* *Return Value:* 1 if not equal, 0 otherwise.
+
+'''''
+
+==== toString()
+
+*Usage:*
+
+[source,js]
+----
+let str = mat.toString();
+----
+
+* *Description:* Converts the matrix to a string representation.
+* *Parameters:* None.
+* *Return Value:* A string representation of the matrix.
+
+'''''
+
+=== Matrix4x4 Operator Overloading
+
+Matrix4x4 supports operator overloading with extended capabilities:
+
+* *Addition:* `+mat1 + mat2+`
+* *Subtraction:* `+mat1 - mat2+`
+* *Multiplication:* `+mat1 * mat2+`, `+mat * scalar+`, `+mat * vec+`, `+mat * quat+`, or `+vec/quat * mat+`
+** Matrix×Matrix combines transformations
+** Matrix×Vector (Vector2/3/4) or Vector×Matrix transforms the vector and returns the transformed vector
+** Matrix×Quaternion or Quaternion×Matrix combines transformation and rotation
+* *Division:* `+mat / scalar+` or `+mat1 / mat2+`
+* *Negation:* `+-mat+`
+* *Equality:* `+mat1 == mat2+`
+* *Inequality:* `+mat1 != mat2+`
+
+*Example:*
+
+[source,js]
+----
+let transform = Matrix4x4.create(/* ... */);
+let position = Vector3.create(1, 2, 3);
+let worldPos = transform * position; // Returns transformed Vector3
+----
+
+'''''
+
+== Sprite
+
+=== Overview
+
+The Sprite type represents a 2D image or sprite atlas region that can be rendered on screen. Sprites are created by loading them into a SpriteAtlas and then retrieved for rendering.
+
+'''''
+
+=== Creating Sprites
+
+Sprites are not created directly - they are created through SpriteAtlas methods:
+
+* `+SpriteAtlas.load()+` - Load a sprite from an image file
+* `+SpriteAtlas.loadSignedDistanceFieldSprite()+` - Create an SDF sprite from SVG path data
+* `+SpriteAtlas.get()+` - Retrieve a previously loaded sprite by name
+
+'''''
+
+=== Using Sprites
+
+Once you have a Sprite object (from a SpriteAtlas), you can draw it using Canvas methods:
+
+*Example:*
+
+[source,js]
+----
+// Create and load sprites into an atlas
+let atlas = SpriteAtlas.create();
+let playerSprite = atlas.load("player", "sprites/player.png", true, 2, 1);
+atlas.upload(); // Upload to GPU
+
+// Draw the sprite
+canvas.drawSpritePosition(playerSprite, Vector2.create(100, 100));
+
+// Or with more control
+canvas.drawSprite(
+  playerSprite,
+  Vector2.create(0, 0),      // Source position
+  Vector2.create(64, 64),    // Source size
+  Vector2.create(100, 100),  // Destination position
+  Vector2.create(128, 128)   // Destination size (scaled)
+);
+----
+
+'''''
+
+=== Sprite Canvas Drawing Methods
+
+Sprites can be drawn using these Canvas methods:
+
+* `+canvas.drawSprite(sprite, srcPos, srcSize, destPos, destSize)+`
+* `+canvas.drawSpriteOriginRotation(sprite, srcPos, srcSize, destPos, destSize, origin, angle)+`
+* `+canvas.drawSpritePosition(sprite, position)+`
+
+See the Canvas API documentation for full details on these methods.
+
+'''''
+
+== SpriteAtlas
+
+=== Overview
+
+The SpriteAtlas type manages a collection of sprites packed into a single texture atlas for efficient rendering. It supports loading images from files and creating signed distance field sprites for vector graphics.
+
+'''''
+
+=== Global SpriteAtlas Object
+
+==== SpriteAtlas.create()
+
+*Usage:*
+
+[source,js]
+----
+let atlas = SpriteAtlas.create(sRGB, depth16Bit, mipMaps, useConvexHullTrimming);
+----
+
+* *Description:* Creates a new sprite atlas.
+* *Parameters:*
+** `+sRGB+` (boolean): Use sRGB color space (default: true)
+** `+depth16Bit+` (boolean): Use 16-bit depth (default: false)
+** `+mipMaps+` (boolean): Generate mipmaps (default: true)
+** `+useConvexHullTrimming+` (boolean): Use convex hull for trimming (default: false)
+* *Return Value:* A new SpriteAtlas object.
+* *Example:*
++
+[source,js]
+----
+let atlas = SpriteAtlas.create(true, false, true, false);
+----
+
+'''''
+
+=== SpriteAtlas Methods
+
+==== load()
+
+*Usage:*
+
+[source,js]
+----
+let sprite = atlas.load(name, filename, automaticTrim, padding, trimPadding);
+----
+
+* *Description:* Loads a sprite from an image file into the atlas.
+* *Parameters:*
+** `+name+` (string): Name to identify the sprite
+** `+filename+` (string): Path to the image file
+** `+automaticTrim+` (boolean): Automatically trim transparent pixels (default: false)
+** `+padding+` (number): Padding around the sprite in pixels (default: 0)
+** `+trimPadding+` (number): Extra padding for trimmed sprites (default: 0)
+* *Return Value:* A Sprite object.
+* *Example:*
++
+[source,js]
+----
+let sprite = atlas.load("player", "sprites/player.png", true, 2, 1);
+----
+
+'''''
+
+==== loadSignedDistanceFieldSprite()
+
+*Usage:*
+
+[source,js]
+----
+let sprite = atlas.loadSignedDistanceFieldSprite(name, svgPath, imageWidth, imageHeight, 
+                                                 automaticTrim, padding, trimPadding,
+                                                 scale, offsetX, offsetY, vectorPathFillRule,
+                                                 sdfVariant, protectBorder);
+----
+
+* *Description:* Creates a signed distance field sprite from SVG path data for high-quality scalable graphics.
+* *Parameters:*
+** `+name+` (string): Name to identify the sprite
+** `+svgPath+` (string): SVG path data
+** `+imageWidth+` (number): Width of generated image (default: 64)
+** `+imageHeight+` (number): Height of generated image (default: 64)
+** `+automaticTrim+` (boolean): Automatically trim (default: true)
+** `+padding+` (number): Padding in pixels (default: 2)
+** `+trimPadding+` (number): Trim padding (default: 0)
+** `+scale+` (number): Scale factor (default: 1.0)
+** `+offsetX+` (number): X offset (default: 0.0)
+** `+offsetY+` (number): Y offset (default: 0.0)
+** `+vectorPathFillRule+` (number): Fill rule (0=NonZero, 1=EvenOdd, default: 0)
+** `+sdfVariant+` (number): SDF variant (default: 4 for Default)
+** `+protectBorder+` (boolean): Protect border (default: false)
+* *Return Value:* A Sprite object with SDF data.
+* *Example:*
++
+[source,js]
+----
+let icon = atlas.loadSignedDistanceFieldSprite(
+  "heart",
+  "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+  64, 64
+);
+----
+
+'''''
+
+==== get()
+
+*Usage:*
+
+[source,js]
+----
+let sprite = atlas.get(name);
+----
+
+* *Description:* Retrieves a previously loaded sprite by name.
+* *Parameters:*
+** `+name+` (string): Name of the sprite
+* *Return Value:* A Sprite object, or null if not found.
+* *Example:*
++
+[source,js]
+----
+let playerSprite = atlas.get("player");
+canvas.drawSpritePosition(playerSprite, Vector2.create(100, 100));
+----
+
+'''''
+
+==== upload()
+
+*Usage:*
+
+[source,js]
+----
+atlas.upload();
+----
+
+* *Description:* Uploads the atlas to GPU memory. Must be called after loading all sprites and before rendering.
+* *Parameters:* None.
+* *Return Value:* The atlas itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+let atlas = SpriteAtlas.create();
+atlas.load("sprite1", "img1.png");
+atlas.load("sprite2", "img2.png");
+atlas.upload(); // Upload to GPU
+----
+
+'''''
+
+==== destroy()
+
+*Usage:*
+
+[source,js]
+----
+atlas.destroy();
+----
+
+* *Description:* Explicitly destroys the sprite atlas and frees its resources.
+* *Parameters:* None.
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+let tempAtlas = SpriteAtlas.create();
+// Use atlas...
+tempAtlas.destroy(); // Free resources
+----
+
+'''''
+
+== Texture
+
+=== Overview
+
+The Texture type represents a Vulkan texture that can be used for rendering. Textures can be loaded from image files and used in Canvas operations.
+
+'''''
+
+=== Global Texture Object
+
+==== Texture.create()
+
+*Usage:*
+
+[source,js]
+----
+let texture = Texture.create(filename, mipmaps, srgb, additionalSRGB);
+----
+
+* *Description:* Creates a texture from an image file.
+* *Parameters:*
+** `+filename+` (string): Path to the image file
+** `+mipmaps+` (boolean): Whether to generate mipmaps (default: true)
+** `+srgb+` (boolean): Whether to use sRGB color space (default: false)
+** `+additionalSRGB+` (boolean): Additional sRGB flag (default: false)
+* *Return Value:* A new Texture object.
+* *Example:*
++
+[source,js]
+----
+let myTexture = Texture.create("assets/textures/wall.png", true, false, false);
+canvas.setTexture(myTexture);
+----
+
+'''''
+
+=== Texture Methods
+
+==== destroy()
+
+*Usage:*
+
+[source,js]
+----
+texture.destroy();
+----
+
+* *Description:* Explicitly destroys the texture and frees its resources.
+* *Parameters:* None.
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+let temp = Texture.create("temp.png");
+// Use texture...
+temp.destroy(); // Free resources immediately
+----
+
+'''''
+
+== Font
+
+=== Overview
+
+The Font type represents a font that can be used for text rendering.
+
+'''''
+
+=== Font Properties and Methods
+
+Font objects are loaded by the host application and can be used with Canvas text drawing methods.
+
+'''''
+
+== CanvasFont
+
+=== Overview
+
+The CanvasFont type is a specialized font for Canvas-based text rendering with distance field support for high-quality text at any size.
+
+'''''
+
+=== Global CanvasFont Object
+
+==== CanvasFont.create()
+
+*Usage:*
+
+[source,js]
+----
+let font = CanvasFont.create(filename, dpi, atlasSize, firstCodePoint, lastCodePoint);
+----
+
+* *Description:* Creates a canvas font from a TrueType font file.
+* *Parameters:*
+** `+filename+` (string): Path to the TTF font file
+** `+dpi+` (number): DPI for font rendering (default: 96)
+** `+atlasSize+` (number): Size of the texture atlas (default: 512)
+** `+firstCodePoint+` (number): First Unicode code point to include (default: 0)
+** `+lastCodePoint+` (number): Last Unicode code point to include (default: 255)
+* *Return Value:* A new CanvasFont object.
+* *Example:*
++
+[source,js]
+----
+let font = CanvasFont.create("fonts/roboto.ttf", 96, 512, 0, 255);
+canvas.setFont(font);
+canvas.setFontSize(32);
+canvas.drawText("High Quality Text", 100, 100);
+----
+
+'''''
+
+=== CanvasFont Methods
+
+==== destroy()
+
+*Usage:*
+
+[source,js]
+----
+font.destroy();
+----
+
+* *Description:* Explicitly destroys the font and frees its resources.
+* *Parameters:* None.
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+let tempFont = CanvasFont.create("temp.ttf");
+// Use font...
+tempFont.destroy(); // Free resources
+----
+
+'''''
+
+== CanvasShape
+
+=== Overview
+
+The CanvasShape type represents a 2D vector shape created from Canvas paths that can be stroked or filled multiple times efficiently. Shapes are created by capturing Canvas path operations.
+
+'''''
+
+=== CanvasShape Usage
+
+CanvasShape objects are created through Canvas methods like `+getStrokeShape()+` and `+getFillShape()+` after building a path.
+
+'''''
+
+=== CanvasShape Methods
+
+==== destroy()
+
+*Usage:*
+
+[source,js]
+----
+shape.destroy();
+----
+
+* *Description:* Explicitly destroys the shape and frees its resources.
+* *Parameters:* None.
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.circle(0, 0, 50);
+canvas.endPath();
+let shape = canvas.getFillShape();
+// Draw shape multiple times
+canvas.drawShape(shape);
+// When done
+shape.destroy();
+----
+
+'''''
+
+== Canvas
+
+=== Overview
+
+The Canvas API provides a comprehensive 2D drawing interface similar to HTML5 Canvas but with additional features for game development. Canvas operations are hardware-accelerated using Vulkan.
+
+'''''
+
+=== Canvas Dimensions
+
+==== getWidth()
+
+*Usage:*
+
+[source,js]
+----
+let width = canvas.getWidth();
+----
+
+* *Description:* Returns the width of the canvas in pixels.
+* *Parameters:* None.
+* *Return Value:* The canvas width as a number.
+
+'''''
+
+==== getHeight()
+
+*Usage:*
+
+[source,js]
+----
+let height = canvas.getHeight();
+----
+
+* *Description:* Returns the height of the canvas in pixels.
+* *Parameters:* None.
+* *Return Value:* The canvas height as a number.
+
+'''''
+
+=== Canvas Drawing Operations
+
+==== clear(color)
+
+*Usage:*
+
+[source,js]
+----
+canvas.clear(color);
+----
+
+* *Description:* Clears the entire canvas with the specified color.
+* *Parameters:*
+** `+color+` (Vector4): The clear color (RGBA).
+* *Return Value:* The canvas itself (for method chaining).
+* *Example:*
++
+[source,js]
+----
+canvas.clear(Vector4.create(0, 0, 0, 1)); // Clear to black
+----
+
+'''''
+
+==== drawFilledCircle(center, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledCircle(center, radius);
+// or
+canvas.drawFilledCircle(centerX, centerY, radius);
+----
+
+* *Description:* Draws a filled circle.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+radius+` (number): The circle radius.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radius+` (number): The circle radius.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.setColor(Vector4.create(1, 0, 0, 1)); // Red
+
+// Using Vector2:
+canvas.drawFilledCircle(Vector2.create(100, 100), 50);
+
+// or using individual numbers:
+canvas.drawFilledCircle(100, 100, 50);
+----
+
+'''''
+
+==== drawFilledEllipse(center, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledEllipse(center, radius);
+// or
+canvas.drawFilledEllipse(centerX, centerY, radiusX, radiusY);
+----
+
+* *Description:* Draws a filled ellipse.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+radius+` (Vector2): The x and y radii.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radiusX+` (number): The X radius.
+*** `+radiusY+` (number): The Y radius.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawFilledEllipse(Vector2.create(100, 100), Vector2.create(80, 40));
+
+// or using individual numbers:
+canvas.drawFilledEllipse(100, 100, 80, 40);
+----
+
+'''''
+
+==== drawFilledRectangle(topLeft, size)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledRectangle(topLeft, size);
+// or
+canvas.drawFilledRectangle(x, y, width, height);
+----
+
+* *Description:* Draws a filled rectangle.
+* *Parameters:*
+** *Option A:*
+*** `+topLeft+` (Vector2): The top-left corner position.
+*** `+size+` (Vector2): The width and height.
+** or *Option B:*
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawFilledRectangle(
+  Vector2.create(50, 50),
+  Vector2.create(100, 80)
+);
+
+// or using individual numbers:
+canvas.drawFilledRectangle(50, 50, 100, 80);
+----
+
+'''''
+
+==== drawFilledRectangleCenter(center, size)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledRectangleCenter(center, size);
+// or
+canvas.drawFilledRectangleCenter(centerX, centerY, width, height);
+----
+
+* *Description:* Draws a filled rectangle centered at the specified position.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+size+` (Vector2): The width and height.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawFilledRectangleCenter(Vector2.create(200, 150), Vector2.create(100, 80));
+
+// or using individual numbers:
+canvas.drawFilledRectangleCenter(200, 150, 100, 80);
+----
+
+'''''
+
+==== drawFilledRoundedRectangle(topLeft, size, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledRoundedRectangle(topLeft, size, radius);
+// or
+canvas.drawFilledRoundedRectangle(x, y, width, height, radius);
+----
+
+* *Description:* Draws a filled rounded rectangle.
+* *Parameters:*
+** *Option A:*
+*** `+topLeft+` (Vector2): The top-left corner position.
+*** `+size+` (Vector2): The width and height.
+*** `+radius+` (number): The corner radius for all corners.
+** or *Option B:*
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+radius+` (number): The corner radius for all corners.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawFilledRoundedRectangle(
+  Vector2.create(50, 50), 
+  Vector2.create(200, 100), 
+  15
+);
+
+// or using individual numbers:
+canvas.drawFilledRoundedRectangle(50, 50, 200, 100, 15);
+----
+
+'''''
+
+==== drawFilledRoundedRectangleCenter(center, size, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledRoundedRectangleCenter(center, size, radius);
+// or
+canvas.drawFilledRoundedRectangleCenter(centerX, centerY, width, height, radius);
+----
+
+* *Description:* Draws a filled rounded rectangle centered at the specified position.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+size+` (Vector2): The width and height.
+*** `+radius+` (number): The corner radius for all corners.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+radius+` (number): The corner radius for all corners.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawFilledRoundedRectangleCenter(Vector2.create(200, 150), Vector2.create(100, 80), 10);
+
+// or using individual numbers:
+canvas.drawFilledRoundedRectangleCenter(200, 150, 100, 80, 10);
+----
+
+'''''
+
+==== drawFilledCircleArcRingSegment(center, innerRadius, outerRadius, startAngle, endAngle, gapThickness)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawFilledCircleArcRingSegment(center, innerRadius, outerRadius, startAngle, endAngle, gapThickness);
+// or
+canvas.drawFilledCircleArcRingSegment(centerX, centerY, innerRadius, outerRadius, startAngle, endAngle, gapThickness);
+----
+
+* *Description:* Draws a filled circular arc ring segment (like a pie slice).
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+innerRadius+` (number): The inner radius.
+*** `+outerRadius+` (number): The outer radius.
+*** `+startAngle+` (number): The start angle in radians.
+*** `+endAngle+` (number): The end angle in radians.
+*** `+gapThickness+` (number): Gap thickness (default: 0.0).
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+innerRadius+` (number): The inner radius.
+*** `+outerRadius+` (number): The outer radius.
+*** `+startAngle+` (number): The start angle in radians.
+*** `+endAngle+` (number): The end angle in radians.
+*** `+gapThickness+` (number): Gap thickness (default: 0.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Draw a quarter-circle ring using Vector2:
+canvas.drawFilledCircleArcRingSegment(
+  Vector2.create(200, 200), 
+  30, 50, 
+  0, Math.PI / 2, 
+  0
+);
+
+// or using individual numbers:
+canvas.drawFilledCircleArcRingSegment(200, 200, 30, 50, 0, Math.PI / 2, 0);
+----
+
+'''''
+
+==== drawTexturedRectangle(texture, topLeft, size, rotationAngle, textureArrayLayer)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawTexturedRectangle(texture, topLeft, size, rotationAngle, textureArrayLayer);
+// or
+canvas.drawTexturedRectangle(texture, x, y, width, height, rotationAngle, textureArrayLayer);
+----
+
+* *Description:* Draws a textured rectangle using the specified texture.
+* *Parameters:*
+** *Option A:*
+*** `+texture+` (Texture): The texture to use.
+*** `+topLeft+` (Vector2): The top-left corner position.
+*** `+size+` (Vector2): The width and height.
+*** `+rotationAngle+` (number): Rotation angle in radians (default: 0.0).
+*** `+textureArrayLayer+` (number): Texture array layer index (default: 0).
+** or *Option B:*
+*** `+texture+` (Texture): The texture to use.
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+rotationAngle+` (number): Rotation angle in radians (default: 0.0).
+*** `+textureArrayLayer+` (number): Texture array layer index (default: 0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawTexturedRectangle(
+  texture,
+  Vector2.create(0, 0), 
+  Vector2.create(800, 600),
+  0, 0
+);
+
+// or using individual numbers:
+canvas.drawTexturedRectangle(texture, 0, 0, 800, 600, 0, 0);
+----
+
+'''''
+
+==== drawTexturedRectangleCenter(texture, center, size, rotationAngle, textureArrayLayer)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawTexturedRectangleCenter(texture, center, size, rotationAngle, textureArrayLayer);
+// or
+canvas.drawTexturedRectangleCenter(texture, centerX, centerY, width, height, rotationAngle, textureArrayLayer);
+----
+
+* *Description:* Draws a textured rectangle centered at the specified position.
+* *Parameters:*
+** *Option A:*
+*** `+texture+` (Texture): The texture to use.
+*** `+center+` (Vector2): The center position.
+*** `+size+` (Vector2): The width and height.
+*** `+rotationAngle+` (number): Rotation angle in radians (default: 0.0).
+*** `+textureArrayLayer+` (number): Texture array layer index (default: 0).
+** or *Option B:*
+*** `+texture+` (Texture): The texture to use.
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+rotationAngle+` (number): Rotation angle in radians (default: 0.0).
+*** `+textureArrayLayer+` (number): Texture array layer index (default: 0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawTexturedRectangleCenter(
+  texture,
+  Vector2.create(400, 300), 
+  Vector2.create(64, 64),
+  Math.PI / 4, 0
+);
+
+// or using individual numbers:
+canvas.drawTexturedRectangleCenter(texture, 400, 300, 64, 64, Math.PI / 4, 0);
+----
+
+'''''
+
+==== drawSprite(sprite, srcPosition, srcSize, destPosition, destSize)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawSprite(sprite, srcPosition, srcSize, destPosition, destSize);
+// or
+canvas.drawSprite(sprite, srcX, srcY, srcWidth, srcHeight, destX, destY, destWidth, destHeight);
+----
+
+* *Description:* Draws a sprite from a source rectangle to a destination rectangle.
+* *Parameters:*
+** *Option A:*
+*** `+sprite+` (Sprite): The sprite to draw.
+*** `+srcPosition+` (Vector2): The source position in the sprite.
+*** `+srcSize+` (Vector2): The source size to copy from the sprite.
+*** `+destPosition+` (Vector2): The destination position on the canvas.
+*** `+destSize+` (Vector2): The destination size on the canvas.
+** or *Option B:*
+*** `+sprite+` (Sprite): The sprite to draw.
+*** `+srcX+` (number): The source X position in the sprite.
+*** `+srcY+` (number): The source Y position in the sprite.
+*** `+srcWidth+` (number): The source width to copy from the sprite.
+*** `+srcHeight+` (number): The source height to copy from the sprite.
+*** `+destX+` (number): The destination X position on the canvas.
+*** `+destY+` (number): The destination Y position on the canvas.
+*** `+destWidth+` (number): The destination width on the canvas.
+*** `+destHeight+` (number): The destination height on the canvas.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2 (copy 32x32 region from (0,0) to 64x64 at (100,100)):
+canvas.drawSprite(
+  sprite,
+  Vector2.create(0, 0), Vector2.create(32, 32),
+  Vector2.create(100, 100), Vector2.create(64, 64)
+);
+
+// or using individual numbers:
+canvas.drawSprite(sprite, 0, 0, 32, 32, 100, 100, 64, 64);
+----
+
+'''''
+
+==== drawSpriteOriginRotation(sprite, srcPosition, srcSize, destPosition, destSize, origin, rotation)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawSpriteOriginRotation(sprite, srcPosition, srcSize, destPosition, destSize, origin, rotation);
+// or
+canvas.drawSpriteOriginRotation(sprite, srcX, srcY, srcWidth, srcHeight, destX, destY, destWidth, destHeight, originX, originY, rotation);
+----
+
+* *Description:* Draws a sprite with custom origin and rotation from a source rectangle to a destination rectangle.
+* *Parameters:*
+** *Option A:*
+*** `+sprite+` (Sprite): The sprite to draw.
+*** `+srcPosition+` (Vector2): The source position in the sprite.
+*** `+srcSize+` (Vector2): The source size to copy from the sprite.
+*** `+destPosition+` (Vector2): The destination position on the canvas.
+*** `+destSize+` (Vector2): The destination size on the canvas.
+*** `+origin+` (Vector2): The origin point for rotation (in sprite coordinates).
+*** `+rotation+` (number): The rotation angle in radians.
+** or *Option B:*
+*** `+sprite+` (Sprite): The sprite to draw.
+*** `+srcX+` (number): The source X position in the sprite.
+*** `+srcY+` (number): The source Y position in the sprite.
+*** `+srcWidth+` (number): The source width to copy from the sprite.
+*** `+srcHeight+` (number): The source height to copy from the sprite.
+*** `+destX+` (number): The destination X position on the canvas.
+*** `+destY+` (number): The destination Y position on the canvas.
+*** `+destWidth+` (number): The destination width on the canvas.
+*** `+destHeight+` (number): The destination height on the canvas.
+*** `+originX+` (number): The origin X coordinate for rotation.
+*** `+originY+` (number): The origin Y coordinate for rotation.
+*** `+rotation+` (number): The rotation angle in radians.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2 (rotate around center):
+canvas.drawSpriteOriginRotation(
+  sprite,
+  Vector2.create(0, 0), Vector2.create(32, 32),
+  Vector2.create(100, 100), Vector2.create(64, 64),
+  Vector2.create(16, 16), Math.PI / 4
+);
+
+// or using individual numbers:
+canvas.drawSpriteOriginRotation(sprite, 0, 0, 32, 32, 100, 100, 64, 64, 16, 16, Math.PI / 4);
+----
+
+'''''
+
+==== drawSpritePosition(sprite, position)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawSpritePosition(sprite, position);
+// or
+canvas.drawSpritePosition(sprite, x, y);
+----
+
+* *Description:* Draws a sprite at the specified position with its default size.
+* *Parameters:*
+** *Option A:*
+*** `+sprite+` (Sprite): The sprite to draw.
+*** `+position+` (Vector2): The position to draw at.
+** or *Option B:*
+*** `+sprite+` (Sprite): The sprite to draw.
+*** `+x+` (number): The X coordinate to draw at.
+*** `+y+` (number): The Y coordinate to draw at.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawSpritePosition(sprite, Vector2.create(50, 100));
+
+// or using individual numbers:
+canvas.drawSpritePosition(sprite, 50, 100);
+----
+
+'''''
+
+=== Canvas Text Drawing
+
+==== drawText(text, position)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawText(text, position);
+// or
+canvas.drawText(text, x, y);
+----
+
+* *Description:* Draws text at the specified position using the current font.
+* *Parameters:*
+** *Option A:*
+*** `+text+` (string): The text to draw.
+*** `+position+` (Vector2): The position to draw at.
+** or *Option B:*
+*** `+text+` (string): The text to draw.
+*** `+x+` (number): The X coordinate to draw at.
+*** `+y+` (number): The Y coordinate to draw at.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.setFont(myFont);
+canvas.setFontSize(24);
+canvas.setColor(Vector4.create(1, 1, 1, 1)); // White
+
+// Using Vector2:
+canvas.drawText("Hello, World!", Vector2.create(100, 100));
+
+// or using individual numbers:
+canvas.drawText("Hello, World!", 100, 100);
+----
+
+'''''
+
+==== drawTextCodePoint(codePoint, position)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawTextCodePoint(codePoint, position);
+// or
+canvas.drawTextCodePoint(codePoint, x, y);
+----
+
+* *Description:* Draws a single Unicode code point at the specified position.
+* *Parameters:*
+** *Option A:*
+*** `+codePoint+` (number): The Unicode code point.
+*** `+position+` (Vector2): The position to draw at.
+** or *Option B:*
+*** `+codePoint+` (number): The Unicode code point.
+*** `+x+` (number): The X coordinate to draw at.
+*** `+y+` (number): The Y coordinate to draw at.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Draw a Unicode heart symbol (U+2764)
+// Using Vector2:
+canvas.drawTextCodePoint(0x2764, Vector2.create(100, 100));
+
+// or using individual numbers:
+canvas.drawTextCodePoint(0x2764, 100, 100);
+----
+
+'''''
+
+==== textWidth(text)
+
+*Usage:*
+
+[source,js]
+----
+let width = canvas.textWidth(text);
+----
+
+* *Description:* Measures the width of text when rendered with the current font.
+* *Parameters:*
+** `+text+` (string): The text to measure.
+* *Return Value:* The text width in pixels.
+
+'''''
+
+==== textHeight(text)
+
+*Usage:*
+
+[source,js]
+----
+let height = canvas.textHeight(text);
+----
+
+* *Description:* Measures the height of text when rendered with the current font.
+* *Parameters:*
+** `+text+` (string): The text to measure.
+* *Return Value:* The text height in pixels.
+
+'''''
+
+==== textSize(text)
+
+*Usage:*
+
+[source,js]
+----
+let size = canvas.textSize(text);
+----
+
+* *Description:* Measures both width and height of text.
+* *Parameters:*
+** `+text+` (string): The text to measure.
+* *Return Value:* A Vector2 containing width and height.
+
+'''''
+
+==== textRowHeight()
+
+*Usage:*
+
+[source,js]
+----
+let rowHeight = canvas.textRowHeight();
+----
+
+* *Description:* Returns the line height for the current font.
+* *Parameters:* None.
+* *Return Value:* The row height in pixels.
+
+'''''
+
+=== Canvas Path Operations
+
+==== beginPath()
+
+*Usage:*
+
+[source,js]
+----
+canvas.beginPath();
+----
+
+* *Description:* Begins a new path. Call this before defining path commands.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+
+'''''
+
+==== moveTo(position)
+
+*Usage:*
+
+[source,js]
+----
+canvas.moveTo(position);
+// or
+canvas.moveTo(x, y);
+----
+
+* *Description:* Moves the current path position without drawing.
+* *Parameters:*
+** *Option A:*
+*** `+position+` (Vector2): The position to move to.
+** or *Option B:*
+*** `+x+` (number): The X coordinate to move to.
+*** `+y+` (number): The Y coordinate to move to.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.moveTo(Vector2.create(50, 50));
+
+// or using individual numbers:
+canvas.moveTo(50, 50);
+----
+
+'''''
+
+==== lineTo(position)
+
+*Usage:*
+
+[source,js]
+----
+canvas.lineTo(position);
+// or
+canvas.lineTo(x, y);
+----
+
+* *Description:* Draws a line from the current position to the specified position.
+* *Parameters:*
+** *Option A:*
+*** `+position+` (Vector2): The end position.
+** or *Option B:*
+*** `+x+` (number): The end X coordinate.
+*** `+y+` (number): The end Y coordinate.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.moveTo(10, 10);
+
+// Using Vector2:
+canvas.lineTo(Vector2.create(100, 100));
+
+// or using individual numbers:
+canvas.lineTo(100, 100);
+
+canvas.stroke();
+----
+
+'''''
+
+==== quadraticCurveTo(control, end)
+
+*Usage:*
+
+[source,js]
+----
+canvas.quadraticCurveTo(control, end);
+// or
+canvas.quadraticCurveTo(controlX, controlY, endX, endY);
+----
+
+* *Description:* Draws a quadratic Bézier curve.
+* *Parameters:*
+** *Option A:*
+*** `+control+` (Vector2): The control point.
+*** `+end+` (Vector2): The end point.
+** or *Option B:*
+*** `+controlX+` (number): The control point X coordinate.
+*** `+controlY+` (number): The control point Y coordinate.
+*** `+endX+` (number): The end point X coordinate.
+*** `+endY+` (number): The end point Y coordinate.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.moveTo(10, 10);
+
+// Using Vector2:
+canvas.quadraticCurveTo(Vector2.create(50, 5), Vector2.create(90, 10));
+
+// or using individual numbers:
+canvas.quadraticCurveTo(50, 5, 90, 10);
+
+canvas.stroke();
+----
+
+'''''
+
+==== cubicCurveTo(control1, control2, end)
+
+*Usage:*
+
+[source,js]
+----
+canvas.cubicCurveTo(control1, control2, end);
+// or
+canvas.cubicCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+----
+
+* *Description:* Draws a cubic Bézier curve.
+* *Parameters:*
+** *Option A:*
+*** `+control1+` (Vector2): The first control point.
+*** `+control2+` (Vector2): The second control point.
+*** `+end+` (Vector2): The end point.
+** or *Option B:*
+*** `+cp1X+` (number): The first control point X coordinate.
+*** `+cp1Y+` (number): The first control point Y coordinate.
+*** `+cp2X+` (number): The second control point X coordinate.
+*** `+cp2Y+` (number): The second control point Y coordinate.
+*** `+endX+` (number): The end point X coordinate.
+*** `+endY+` (number): The end point Y coordinate.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.moveTo(10, 10);
+
+// Using Vector2:
+canvas.cubicCurveTo(
+  Vector2.create(20, 5), 
+  Vector2.create(80, 5), 
+  Vector2.create(90, 10)
+);
+
+// or using individual numbers:
+canvas.cubicCurveTo(20, 5, 80, 5, 90, 10);
+
+canvas.stroke();
+----
+
+'''''
+
+==== arc(center, radius, startAngle, endAngle, counterClockwise)
+
+*Usage:*
+
+[source,js]
+----
+canvas.arc(center, radius, startAngle, endAngle, counterClockwise);
+// or
+canvas.arc(centerX, centerY, radius, startAngle, endAngle, counterClockwise);
+----
+
+* *Description:* Adds an arc to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center of the arc.
+*** `+radius+` (number): The arc radius.
+*** `+startAngle+` (number): The start angle in radians.
+*** `+endAngle+` (number): The end angle in radians.
+*** `+counterClockwise+` (boolean): Whether to draw counter-clockwise.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radius+` (number): The arc radius.
+*** `+startAngle+` (number): The start angle in radians.
+*** `+endAngle+` (number): The end angle in radians.
+*** `+counterClockwise+` (boolean): Whether to draw counter-clockwise.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2 (draw a quarter circle):
+canvas.arc(Vector2.create(100, 100), 50, 0, Math.PI / 2, false);
+
+// or using individual numbers:
+canvas.arc(100, 100, 50, 0, Math.PI / 2, false);
+
+canvas.stroke();
+----
+
+'''''
+
+==== arcTo(point1, point2, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.arcTo(point1, point2, radius);
+// or
+canvas.arcTo(x1, y1, x2, y2, radius);
+----
+
+* *Description:* Adds an arc to the current path using control points.
+* *Parameters:*
+** *Option A:*
+*** `+point1+` (Vector2): The first control point.
+*** `+point2+` (Vector2): The second control point.
+*** `+radius+` (number): The arc radius.
+** or *Option B:*
+*** `+x1+` (number): The first control point X coordinate.
+*** `+y1+` (number): The first control point Y coordinate.
+*** `+x2+` (number): The second control point X coordinate.
+*** `+y2+` (number): The second control point Y coordinate.
+*** `+radius+` (number): The arc radius.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.moveTo(10, 10);
+
+// Using Vector2:
+canvas.arcTo(Vector2.create(50, 10), Vector2.create(50, 50), 20);
+
+// or using individual numbers:
+canvas.arcTo(50, 10, 50, 50, 20);
+
+canvas.stroke();
+----
+
+'''''
+
+==== ellipse(center, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.ellipse(center, radius);
+// or
+canvas.ellipse(centerX, centerY, radiusX, radiusY);
+----
+
+* *Description:* Adds an ellipse to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center of the ellipse.
+*** `+radius+` (Vector2): The x and y radii.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radiusX+` (number): The X radius.
+*** `+radiusY+` (number): The Y radius.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.ellipse(Vector2.create(100, 100), Vector2.create(60, 40));
+
+// or using individual numbers:
+canvas.ellipse(100, 100, 60, 40);
+
+canvas.stroke();
+----
+
+'''''
+
+==== circle(center, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.circle(center, radius);
+// or
+canvas.circle(centerX, centerY, radius);
+----
+
+* *Description:* Adds a circle to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center of the circle.
+*** `+radius+` (number): The circle radius.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radius+` (number): The circle radius.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.circle(Vector2.create(100, 100), 50);
+
+// or using individual numbers:
+canvas.circle(100, 100, 50);
+
+canvas.fill();
+----
+
+'''''
+
+==== rectangle(topLeft, size)
+
+*Usage:*
+
+[source,js]
+----
+canvas.rectangle(topLeft, size);
+// or
+canvas.rectangle(x, y, width, height);
+----
+
+* *Description:* Adds a rectangle to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+topLeft+` (Vector2): The top-left corner.
+*** `+size+` (Vector2): The width and height.
+** or *Option B:*
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.rectangle(Vector2.create(10, 10), Vector2.create(100, 80));
+
+// or using individual numbers:
+canvas.rectangle(10, 10, 100, 80);
+
+canvas.stroke();
+----
+
+'''''
+
+==== rectangleCenter(center, size)
+
+*Usage:*
+
+[source,js]
+----
+canvas.rectangleCenter(center, size);
+// or
+canvas.rectangleCenter(centerX, centerY, width, height);
+----
+
+* *Description:* Adds a centered rectangle to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+size+` (Vector2): The width and height.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.rectangleCenter(Vector2.create(100, 100), Vector2.create(80, 60));
+
+// or using individual numbers:
+canvas.rectangleCenter(100, 100, 80, 60);
+
+canvas.fill();
+----
+
+'''''
+
+==== roundedRectangle(topLeft, size, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.roundedRectangle(topLeft, size, radius);
+// or
+canvas.roundedRectangle(x, y, width, height, radius);
+----
+
+* *Description:* Adds a rounded rectangle to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+topLeft+` (Vector2): The top-left corner.
+*** `+size+` (Vector2): The width and height.
+*** `+radius+` (number): The corner radius for all corners.
+** or *Option B:*
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+radius+` (number): The corner radius for all corners.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.roundedRectangle(Vector2.create(10, 10), Vector2.create(100, 80), 15);
+
+// or using individual numbers:
+canvas.roundedRectangle(10, 10, 100, 80, 15);
+
+canvas.stroke();
+----
+
+'''''
+
+==== roundedRectangleCenter(center, size, radius)
+
+*Usage:*
+
+[source,js]
+----
+canvas.roundedRectangleCenter(center, size, radius);
+// or
+canvas.roundedRectangleCenter(centerX, centerY, width, height, radius);
+----
+
+* *Description:* Adds a centered rounded rectangle to the current path.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2): The center position.
+*** `+size+` (Vector2): The width and height.
+*** `+radius+` (number): The corner radius for all corners.
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+radius+` (number): The corner radius for all corners.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+
+// Using Vector2:
+canvas.roundedRectangleCenter(Vector2.create(100, 100), Vector2.create(80, 60), 10);
+
+// or using individual numbers:
+canvas.roundedRectangleCenter(100, 100, 80, 60, 10);
+
+canvas.fill();
+----
+
+'''''
+
+==== closePath()
+
+*Usage:*
+
+[source,js]
+----
+canvas.closePath();
+----
+
+* *Description:* Closes the current path by connecting the end to the start.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+
+'''''
+
+==== endPath()
+
+*Usage:*
+
+[source,js]
+----
+canvas.endPath();
+----
+
+* *Description:* Ends the current path definition.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+
+'''''
+
+==== stroke()
+
+*Usage:*
+
+[source,js]
+----
+canvas.stroke();
+----
+
+* *Description:* Strokes the current path with the current stroke style.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.moveTo(Vector2.create(10, 10));
+canvas.lineTo(Vector2.create(100, 100));
+canvas.setLineWidth(2);
+canvas.setColor(Vector4.create(1, 0, 0, 1));
+canvas.stroke();
+----
+
+'''''
+
+==== fill()
+
+*Usage:*
+
+[source,js]
+----
+canvas.fill();
+----
+
+* *Description:* Fills the current path with the current fill style.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+
+'''''
+
+=== Canvas State Management
+
+==== push()
+
+*Usage:*
+
+[source,js]
+----
+canvas.push();
+----
+
+* *Description:* Saves the current canvas state (transformations, styles, etc.) onto a stack.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.push();
+canvas.setColor(Vector4.create(1, 0, 0, 1)); // Red
+// ... draw something ...
+canvas.pop(); // Restore previous color
+----
+
+'''''
+
+==== pop()
+
+*Usage:*
+
+[source,js]
+----
+canvas.pop();
+----
+
+* *Description:* Restores the canvas state from the stack.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+
+'''''
+
+==== flush()
+
+*Usage:*
+
+[source,js]
+----
+canvas.flush();
+----
+
+* *Description:* Flushes pending draw commands to the GPU.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+
+'''''
+
+=== Canvas Properties (Getters and Setters)
+
+==== getClipRect()
+
+*Usage:*
+
+[source,js]
+----
+let rect = canvas.getClipRect();
+----
+
+* *Description:* Returns the current clipping rectangle as a Vector4 (x, y, width, height).
+* *Parameters:* None.
+* *Return Value:* Vector4 representing the clipping rectangle.
+* *Example:*
++
+[source,js]
+----
+let clipRect = canvas.getClipRect();
+puts("Clip rect: " + clipRect.toString());
+----
+
+'''''
+
+==== setClipRect(leftTop, widthHeight)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setClipRect(leftTop, widthHeight);
+// or
+canvas.setClipRect(x, y, width, height);
+----
+
+* *Description:* Sets the clipping rectangle to restrict rendering to a specific area.
+* *Parameters:*
+** *Option A:*
+*** `+leftTop+` (Vector2): Top-left corner position.
+*** `+widthHeight+` (Vector2): Width and height.
+** or *Option B:*
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The width of the clip rectangle.
+*** `+height+` (number): The height of the clip rectangle.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.setClipRect(Vector2.create(10, 10), Vector2.create(200, 150));
+
+// or using individual numbers:
+canvas.setClipRect(10, 10, 200, 150);
+
+canvas.drawFilledRectangle(Vector2.create(0, 0), Vector2.create(300, 300));
+// Only the portion within the clip rect is drawn
+----
+
+'''''
+
+==== setScissor()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setScissor(left, top, width, height);
+----
+
+* *Description:* Sets the scissor rectangle for hardware-accelerated clipping.
+* *Parameters:*
+** `+left+` (number): Left edge in pixels
+** `+top+` (number): Top edge in pixels
+** `+width+` (number): Width in pixels
+** `+height+` (number): Height in pixels
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setScissor(0, 0, 800, 600);
+----
+
+'''''
+
+==== getBlendingMode()
+
+*Usage:*
+
+[source,js]
+----
+let mode = canvas.getBlendingMode();
+----
+
+* *Description:* Returns the current blending mode.
+* *Parameters:* None.
+* *Return Value:* Number representing the blending mode (see Canvas.BlendingMode).
+
+'''''
+
+==== setBlendingMode()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setBlendingMode(mode);
+----
+
+* *Description:* Sets the blending mode for compositing operations.
+* *Parameters:*
+** `+mode+` (number): Blending mode (use Canvas.BlendingMode constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setBlendingMode(Canvas.BlendingMode.AdditiveBlending);
+canvas.setColor(Vector4.create(1, 1, 1, 0.5));
+canvas.drawFilledCircle(Vector2.create(100, 100), 50);
+----
+
+'''''
+
+==== getLineCap()
+
+*Usage:*
+
+[source,js]
+----
+let cap = canvas.getLineCap();
+----
+
+* *Description:* Returns the current line cap style.
+* *Parameters:* None.
+* *Return Value:* Number representing the line cap style (see Canvas.LineCap).
+
+'''''
+
+==== setLineCap()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setLineCap(cap);
+----
+
+* *Description:* Sets the line cap style for path strokes.
+* *Parameters:*
+** `+cap+` (number): Line cap style (use Canvas.LineCap constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setLineCap(Canvas.LineCap.Round);
+canvas.setLineWidth(10);
+canvas.beginPath();
+canvas.moveTo(Vector2.create(10, 100));
+canvas.lineTo(Vector2.create(200, 100));
+canvas.stroke();
+----
+
+'''''
+
+==== getLineJoin()
+
+*Usage:*
+
+[source,js]
+----
+let join = canvas.getLineJoin();
+----
+
+* *Description:* Returns the current line join style.
+* *Parameters:* None.
+* *Return Value:* Number representing the line join style (see Canvas.LineJoin).
+
+'''''
+
+==== setLineJoin()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setLineJoin(join);
+----
+
+* *Description:* Sets the line join style for path corners.
+* *Parameters:*
+** `+join+` (number): Line join style (use Canvas.LineJoin constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setLineJoin(Canvas.LineJoin.Miter);
+canvas.setLineWidth(10);
+canvas.beginPath();
+canvas.moveTo(Vector2.create(10, 10));
+canvas.lineTo(Vector2.create(100, 10));
+canvas.lineTo(Vector2.create(100, 100));
+canvas.stroke();
+----
+
+'''''
+
+==== getLineWidth()
+
+*Usage:*
+
+[source,js]
+----
+let width = canvas.getLineWidth();
+----
+
+* *Description:* Returns the current line width in pixels.
+* *Parameters:* None.
+* *Return Value:* Number representing the line width.
+
+'''''
+
+==== setLineWidth()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setLineWidth(width);
+----
+
+* *Description:* Sets the line width for path strokes.
+* *Parameters:*
+** `+width+` (number): Line width in pixels
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setLineWidth(5);
+canvas.beginPath();
+canvas.circle(Vector2.create(100, 100), 50);
+canvas.stroke();
+----
+
+'''''
+
+==== getMiterLimit()
+
+*Usage:*
+
+[source,js]
+----
+let limit = canvas.getMiterLimit();
+----
+
+* *Description:* Returns the current miter limit for line joins.
+* *Parameters:* None.
+* *Return Value:* Number representing the miter limit.
+
+'''''
+
+==== setMiterLimit()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setMiterLimit(limit);
+----
+
+* *Description:* Sets the miter limit to control sharp corners in path strokes.
+* *Parameters:*
+** `+limit+` (number): Miter limit value
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setMiterLimit(10);
+canvas.setLineJoin(Canvas.LineJoin.Miter);
+----
+
+'''''
+
+==== getZPosition()
+
+*Usage:*
+
+[source,js]
+----
+let z = canvas.getZPosition();
+----
+
+* *Description:* Returns the current Z position for depth sorting.
+* *Parameters:* None.
+* *Return Value:* Number representing the Z position.
+
+'''''
+
+==== setZPosition()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setZPosition(z);
+----
+
+* *Description:* Sets the Z position for depth sorting of drawn elements.
+* *Parameters:*
+** `+z+` (number): Z position (higher values are drawn on top)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setZPosition(0);
+canvas.drawFilledRectangle(Vector2.create(10, 10), Vector2.create(100, 100));
+canvas.setZPosition(1);
+canvas.drawFilledCircle(Vector2.create(60, 60), 40); // Drawn on top
+----
+
+'''''
+
+==== getTextHorizontalAlignment()
+
+*Usage:*
+
+[source,js]
+----
+let align = canvas.getTextHorizontalAlignment();
+----
+
+* *Description:* Returns the current horizontal text alignment.
+* *Parameters:* None.
+* *Return Value:* Number representing the alignment (see Canvas.TextHorizontalAlignment).
+
+'''''
+
+==== setTextHorizontalAlignment()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setTextHorizontalAlignment(alignment);
+----
+
+* *Description:* Sets the horizontal text alignment.
+* *Parameters:*
+** `+alignment+` (number): Alignment mode (use Canvas.TextHorizontalAlignment constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Center);
+canvas.drawText("Centered Text", Vector2.create(400, 300));
+----
+
+'''''
+
+==== getTextVerticalAlignment()
+
+*Usage:*
+
+[source,js]
+----
+let align = canvas.getTextVerticalAlignment();
+----
+
+* *Description:* Returns the current vertical text alignment.
+* *Parameters:* None.
+* *Return Value:* Number representing the alignment (see Canvas.TextVerticalAlignment).
+
+'''''
+
+==== setTextVerticalAlignment()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setTextVerticalAlignment(alignment);
+----
+
+* *Description:* Sets the vertical text alignment.
+* *Parameters:*
+** `+alignment+` (number): Alignment mode (use Canvas.TextVerticalAlignment constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setTextVerticalAlignment(Canvas.TextVerticalAlignment.Middle);
+canvas.drawText("Middle Aligned", Vector2.create(100, 300));
+----
+
+'''''
+
+==== getFont()
+
+*Usage:*
+
+[source,js]
+----
+let font = canvas.getFont();
+----
+
+* *Description:* Returns the current font object.
+* *Parameters:* None.
+* *Return Value:* Font object.
+
+'''''
+
+==== setFont()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setFont(font);
+----
+
+* *Description:* Sets the current font for text rendering.
+* *Parameters:*
+** `+font+` (Font or CanvasFont): Font object to use
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+let myFont = CanvasFont.create("fonts/arial.ttf", 96, 512);
+canvas.setFont(myFont);
+canvas.drawText("Custom Font", Vector2.create(100, 100));
+----
+
+'''''
+
+==== getFontSize()
+
+*Usage:*
+
+[source,js]
+----
+let size = canvas.getFontSize();
+----
+
+* *Description:* Returns the current font size in pixels.
+* *Parameters:* None.
+* *Return Value:* Number representing the font size.
+
+'''''
+
+==== setFontSize()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setFontSize(size);
+----
+
+* *Description:* Sets the font size for text rendering.
+* *Parameters:*
+** `+size+` (number): Font size in pixels
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setFontSize(24);
+canvas.drawText("24px Text", Vector2.create(10, 50));
+canvas.setFontSize(48);
+canvas.drawText("48px Text", Vector2.create(10, 100));
+----
+
+'''''
+
+==== getTexture()
+
+*Usage:*
+
+[source,js]
+----
+let texture = canvas.getTexture();
+----
+
+* *Description:* Returns the current texture.
+* *Parameters:* None.
+* *Return Value:* Texture object or null.
+
+'''''
+
+==== setTexture()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setTexture(texture);
+----
+
+* *Description:* Sets the current texture for textured fills.
+* *Parameters:*
+** `+texture+` (Texture): Texture object to use
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+let tex = Texture.create("pattern.png");
+canvas.setTexture(tex);
+canvas.setFillStyle(Canvas.FillStyle.Image);
+canvas.drawFilledRectangle(Vector2.create(0, 0), Vector2.create(200, 200));
+----
+
+'''''
+
+==== getMaskTexture()
+
+*Usage:*
+
+[source,js]
+----
+let maskTex = canvas.getMaskTexture();
+----
+
+* *Description:* Returns the current mask texture.
+* *Parameters:* None.
+* *Return Value:* Texture object or null.
+
+'''''
+
+==== setMaskTexture()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setMaskTexture(texture);
+----
+
+* *Description:* Sets the mask texture for advanced masking effects.
+* *Parameters:*
+** `+texture+` (Texture): Mask texture object
+* *Return Value:* None.
+
+'''''
+
+==== getFillStyle()
+
+*Usage:*
+
+[source,js]
+----
+let style = canvas.getFillStyle();
+----
+
+* *Description:* Returns the current fill style.
+* *Parameters:* None.
+* *Return Value:* Number representing the fill style (see Canvas.FillStyle).
+
+'''''
+
+==== setFillStyle()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setFillStyle(style);
+----
+
+* *Description:* Sets the fill style for shapes.
+* *Parameters:*
+** `+style+` (number): Fill style (use Canvas.FillStyle constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+canvas.setStartColor(Vector4.create(1, 0, 0, 1)); // Red
+canvas.setStopColor(Vector4.create(0, 0, 1, 1));  // Blue
+canvas.drawFilledRectangle(Vector2.create(0, 0), Vector2.create(200, 200));
+----
+
+'''''
+
+==== getFillRule()
+
+*Usage:*
+
+[source,js]
+----
+let rule = canvas.getFillRule();
+----
+
+* *Description:* Returns the current fill rule.
+* *Parameters:* None.
+* *Return Value:* Number representing the fill rule (see Canvas.FillRule).
+
+'''''
+
+==== setFillRule()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setFillRule(rule);
+----
+
+* *Description:* Sets the fill rule for complex paths.
+* *Parameters:*
+** `+rule+` (number): Fill rule (use Canvas.FillRule constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setFillRule(Canvas.FillRule.EvenOdd);
+canvas.beginPath();
+// Draw complex self-intersecting path
+canvas.fill();
+----
+
+'''''
+
+==== getFillWrapMode()
+
+*Usage:*
+
+[source,js]
+----
+let mode = canvas.getFillWrapMode();
+----
+
+* *Description:* Returns the current fill wrap mode.
+* *Parameters:* None.
+* *Return Value:* Number representing the wrap mode (see Canvas.FillWrapMode).
+
+'''''
+
+==== setFillWrapMode()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setFillWrapMode(mode);
+----
+
+* *Description:* Sets the fill wrap mode for textured fills.
+* *Parameters:*
+** `+mode+` (number): Wrap mode (use Canvas.FillWrapMode constants)
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.setFillWrapMode(Canvas.FillWrapMode.WrappedRepeat);
+canvas.setFillStyle(Canvas.FillStyle.Image);
+----
+
+'''''
+
+==== getColor()
+
+*Usage:*
+
+[source,js]
+----
+let color = canvas.getColor();
+----
+
+* *Description:* Returns the current drawing color.
+* *Parameters:* None.
+* *Return Value:* Vector4 representing RGBA color.
+
+'''''
+
+==== setColor(color)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setColor(color);
+// or
+canvas.setColor(r, g, b, a);
+----
+
+* *Description:* Sets the current drawing color.
+* *Parameters:*
+** *Option A:*
+*** `+color+` (Vector4): RGBA color (components 0.0-1.0).
+** or *Option B:*
+*** `+r+` (number): Red component (0.0-1.0).
+*** `+g+` (number): Green component (0.0-1.0).
+*** `+b+` (number): Blue component (0.0-1.0).
+*** `+a+` (number): Alpha component (0.0-1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector4:
+canvas.setColor(Vector4.create(1, 0, 0, 1)); // Red
+
+// or using individual numbers:
+canvas.setColor(1, 0, 0, 1); // Red
+
+canvas.drawFilledCircle(Vector2.create(100, 100), 50);
+----
+
+'''''
+
+==== getStartColor()
+
+*Usage:*
+
+[source,js]
+----
+let color = canvas.getStartColor();
+----
+
+* *Description:* Returns the gradient start color.
+* *Parameters:* None.
+* *Return Value:* Vector4 representing RGBA color.
+
+'''''
+
+==== setStartColor(color)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setStartColor(color);
+// or
+canvas.setStartColor(r, g, b, a);
+----
+
+* *Description:* Sets the gradient start color.
+* *Parameters:*
+** *Option A:*
+*** `+color+` (Vector4): RGBA color (components 0.0-1.0).
+** or *Option B:*
+*** `+r+` (number): Red component (0.0-1.0).
+*** `+g+` (number): Green component (0.0-1.0).
+*** `+b+` (number): Blue component (0.0-1.0).
+*** `+a+` (number): Alpha component (0.0-1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+
+// Using Vector4:
+canvas.setStartColor(Vector4.create(1, 1, 0, 1)); // Yellow
+
+// or using individual numbers:
+canvas.setStartColor(1, 1, 0, 1); // Yellow
+
+canvas.setStopColor(Vector4.create(1, 0, 1, 1));  // Magenta
+----
+
+'''''
+
+==== getStopColor()
+
+*Usage:*
+
+[source,js]
+----
+let color = canvas.getStopColor();
+----
+
+* *Description:* Returns the gradient stop color.
+* *Parameters:* None.
+* *Return Value:* Vector4 representing RGBA color.
+
+'''''
+
+==== setStopColor(color)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setStopColor(color);
+// or
+canvas.setStopColor(r, g, b, a);
+----
+
+* *Description:* Sets the gradient stop color.
+* *Parameters:*
+** *Option A:*
+*** `+color+` (Vector4): RGBA color (components 0.0-1.0).
+** or *Option B:*
+*** `+r+` (number): Red component (0.0-1.0).
+*** `+g+` (number): Green component (0.0-1.0).
+*** `+b+` (number): Blue component (0.0-1.0).
+*** `+a+` (number): Alpha component (0.0-1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+canvas.setStartColor(Vector4.create(1, 1, 0, 1)); // Yellow
+
+// Using Vector4:
+canvas.setStopColor(Vector4.create(1, 0, 1, 1));  // Magenta
+
+// or using individual numbers:
+canvas.setStopColor(1, 0, 1, 1);  // Magenta
+----
+
+'''''
+
+==== getProjectionMatrix()
+
+*Usage:*
+
+[source,js]
+----
+let matrix = canvas.getProjectionMatrix();
+----
+
+* *Description:* Returns the current projection matrix.
+* *Parameters:* None.
+* *Return Value:* Matrix4x4 object.
+
+'''''
+
+==== setProjectionMatrix(matrix)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setProjectionMatrix(matrix);
+// or
+canvas.setProjectionMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33);
+----
+
+* *Description:* Sets the projection matrix for 3D transforms.
+* *Parameters:*
+** *Option A:*
+*** `+matrix+` (Matrix4x4): Projection matrix.
+** or *Option B:*
+*** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
+*** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
+*** `+m20, m21, m22, m23+` (numbers): Third row of the matrix.
+*** `+m30, m31, m32, m33+` (numbers): Fourth row of the matrix.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Matrix4x4:
+let matrix = Matrix4x4.create(1, 0. 0, 0,
+                              0, 1, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 0, 1);
+canvas.setProjectionMatrix(matrix);
+
+// or using individual numbers (identity matrix):
+canvas.setProjectionMatrix(
+  1, 0, 0, 0,
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1
+);
+----
+
+'''''
+
+==== getViewMatrix()
+
+*Usage:*
+
+[source,js]
+----
+let matrix = canvas.getViewMatrix();
+----
+
+* *Description:* Returns the current view matrix.
+* *Parameters:* None.
+* *Return Value:* Matrix4x4 object.
+
+'''''
+
+==== setViewMatrix(matrix)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setViewMatrix(matrix);
+// or
+canvas.setViewMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33);
+----
+
+* *Description:* Sets the view matrix for camera transforms.
+* *Parameters:*
+** *Option A:*
+*** `+matrix+` (Matrix4x4): View matrix.
+** or *Option B:*
+*** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
+*** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
+*** `+m20, m21, m22, m23+` (numbers): Third row of the matrix.
+*** `+m30, m31, m32, m33+` (numbers): Fourth row of the matrix.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Matrix4x4:
+let matrix = Matrix4x4.create(1, 0. 0, 0,
+                              0, 1, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 0, 1);
+canvas.setViewMatrix(matrix);
+
+// or using individual numbers (identity matrix):
+canvas.setViewMatrix(
+  1, 0, 0, 0,
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1
+);
+----
+
+'''''
+
+==== getModelMatrix()
+
+*Usage:*
+
+[source,js]
+----
+let matrix = canvas.getModelMatrix();
+----
+
+* *Description:* Returns the current model matrix.
+* *Parameters:* None.
+* *Return Value:* Matrix4x4 object.
+
+'''''
+
+==== setModelMatrix(matrix)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setModelMatrix(matrix);
+// or
+canvas.setModelMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33);
+----
+
+* *Description:* Sets the model matrix for object transforms.
+* *Parameters:*
+** *Option A:*
+*** `+matrix+` (Matrix4x4): Model matrix.
+** or *Option B:*
+*** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
+*** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
+*** `+m20, m21, m22, m23+` (numbers): Third row of the matrix.
+*** `+m30, m31, m32, m33+` (numbers): Fourth row of the matrix.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Matrix4x4.create():
+let matrix = Matrix4x4.create(1, 0, 0, 0,
+                              0, 1, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 0, 1);
+canvas.setModelMatrix(matrix);
+
+// or using individual numbers (identity matrix):
+canvas.setModelMatrix(1, 0, 0, 0,
+                      0, 1, 0, 0,
+                      0, 0, 1, 0,
+                      0, 0, 0, 1);
+
+canvas.drawFilledRectangle(Vector2.create(0, 0), Vector2.create(100, 100));
+----
+
+'''''
+
+==== getFillMatrix()
+
+*Usage:*
+
+[source,js]
+----
+let matrix = canvas.getFillMatrix();
+----
+
+* *Description:* Returns the current fill matrix for texture/gradient transforms.
+* *Parameters:* None.
+* *Return Value:* Matrix4x4 object.
+
+'''''
+
+==== setFillMatrix(matrix)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setFillMatrix(matrix);
+// or
+canvas.setFillMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33);
+----
+
+* *Description:* Sets the fill matrix for transforming fill textures/gradients.
+* *Parameters:*
+** *Option A:*
+*** `+matrix+` (Matrix4x4): Fill transformation matrix.
+** or *Option B:*
+*** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
+*** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
+*** `+m20, m21, m22, m23+` (numbers): Third row of the matrix.
+*** `+m30, m31, m32, m33+` (numbers): Fourth row of the matrix.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Matrix4x4.create():
+let matrix = Matrix4x4.create(2, 0, 0, 0,
+                              0, 2, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 0, 1);
+canvas.setFillMatrix(matrix);
+
+// or using individual numbers (scale by 2):
+canvas.setFillMatrix(2, 0, 0, 0,
+                     0, 2, 0, 0,
+                     0, 0, 1, 0,
+                     0, 0, 0, 1);
+----
+
+'''''
+
+==== getMaskMatrix()
+
+*Usage:*
+
+[source,js]
+----
+let matrix = canvas.getMaskMatrix();
+----
+
+* *Description:* Returns the current mask matrix.
+* *Parameters:* None.
+* *Return Value:* Matrix4x4 object.
+
+'''''
+
+==== setMaskMatrix(matrix)
+
+*Usage:*
+
+[source,js]
+----
+canvas.setMaskMatrix(matrix);
+// or
+canvas.setMaskMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33);
+----
+
+* *Description:* Sets the mask matrix for transforming mask textures.
+* *Parameters:*
+** *Option A:*
+*** `+matrix+` (Matrix4x4): Mask transformation matrix.
+** or *Option B:*
+*** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
+*** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
+*** `+m20, m21, m22, m23+` (numbers): Third row of the matrix.
+*** `+m30, m31, m32, m33+` (numbers): Fourth row of the matrix.
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Matrix4x4.create():
+let matrix = Matrix4x4.create(1, 0, 0, 0,
+                              0, 1, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 0, 1);
+canvas.setMaskMatrix(matrix);
+
+// or using individual numbers (identity matrix):
+canvas.setMaskMatrix(1, 0, 0, 0,
+                     0, 1, 0, 0,
+                     0, 0, 1, 0,
+                     0, 0, 0, 1);
+----
+
+'''''
+
+==== setStrokePattern()
+
+*Usage:*
+
+[source,js]
+----
+canvas.setStrokePattern(pattern);
+----
+
+* *Description:* Sets a stroke pattern for dashed/dotted lines.
+* *Parameters:*
+** `+pattern+` (string): Pattern string
+* *Return Value:* None.
+
+'''''
+
+==== drawShape()
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawShape(shape);
+----
+
+* *Description:* Draws a previously created CanvasShape.
+* *Parameters:*
+** `+shape+` (CanvasShape): Shape object to draw
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.circle(Vector2.create(0, 0), 50);
+canvas.endPath();
+let shape = canvas.getFillShape();
+// Draw the shape multiple times
+canvas.drawShape(shape);
+----
+
+'''''
+
+==== getStrokeShape()
+
+*Usage:*
+
+[source,js]
+----
+let shape = canvas.getStrokeShape();
+----
+
+* *Description:* Returns a CanvasShape from the current path's stroke.
+* *Parameters:* None.
+* *Return Value:* CanvasShape object.
+
+'''''
+
+==== getFillShape()
+
+*Usage:*
+
+[source,js]
+----
+let shape = canvas.getFillShape();
+----
+
+* *Description:* Returns a CanvasShape from the current path's fill.
+* *Parameters:* None.
+* *Return Value:* CanvasShape object.
+* *Example:*
++
+[source,js]
+----
+canvas.beginPath();
+canvas.rectangle(Vector2.create(0, 0), Vector2.create(100, 100));
+canvas.endPath();
+let fillShape = canvas.getFillShape();
+// Reuse this shape for efficient rendering
+for (let i = 0; i < 10; i++) {
+  canvas.push();
+  canvas.setModelMatrix(/* transform */);
+  canvas.drawShape(fillShape);
+  canvas.pop();
+}
+----
+
+'''''
+
+=== Canvas Enumerations
+
+The Canvas namespace provides several enumeration objects:
+
+==== Canvas.BlendingMode
+
+Blending modes for compositing:
+
+* `+None+`: No blending
+* `+NoDiscard+`: No discard blending
+* `+AlphaBlending+`: Standard alpha blending
+* `+AdditiveBlending+`: Additive blending
+* `+OnlyDepth+`: Only depth rendering
+
+*Example:*
+
+[source,js]
+----
+canvas.setBlendingMode(Canvas.BlendingMode.AlphaBlending);
+canvas.setBlendingMode(Canvas.BlendingMode.AdditiveBlending); // For glow effects
+----
+
+'''''
+
+==== Canvas.LineCap
+
+Line cap styles:
+
+* `+Butt+`: Butt line cap (flat end)
+* `+Square+`: Square line cap (extends half line width)
+* `+Round+`: Round line cap
+
+*Example:*
+
+[source,js]
+----
+canvas.setLineCap(Canvas.LineCap.Round);
+----
+
+'''''
+
+==== Canvas.LineJoin
+
+Line join styles:
+
+* `+Bevel+`: Beveled line join
+* `+Miter+`: Mitered line join
+* `+Round+`: Rounded line join
+
+*Example:*
+
+[source,js]
+----
+canvas.setLineJoin(Canvas.LineJoin.Round);
+----
+
+'''''
+
+==== Canvas.FillRule
+
+Fill rules for path filling:
+
+* `+DoNotMatter+`: Fill rule does not matter
+* `+NonZero+`: Non-zero winding rule
+* `+EvenOdd+`: Even-odd rule
+
+*Example:*
+
+[source,js]
+----
+canvas.setFillRule(Canvas.FillRule.EvenOdd);
+----
+
+'''''
+
+==== Canvas.FillStyle
+
+Fill styles:
+
+* `+Color+`: Solid color fill
+* `+Image+`: Image/texture fill
+* `+LinearGradient+`: Linear gradient fill
+* `+RadialGradient+`: Radial gradient fill
+
+*Example:*
+
+[source,js]
+----
+canvas.setFillStyle(Canvas.FillStyle.Color);
+canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+----
+
+'''''
+
+==== Canvas.FillWrapMode
+
+Texture wrap modes:
+
+* `+None+`: No wrapping
+* `+WrappedRepeat+`: Wrapped repeat mode
+* `+MirroredRepeat+`: Mirrored repeat mode
+
+*Example:*
+
+[source,js]
+----
+canvas.setFillWrapMode(Canvas.FillWrapMode.WrappedRepeat);
+----
+
+'''''
+
+==== Canvas.TextHorizontalAlignment
+
+Horizontal text alignment:
+
+* `+Leading+`: Leading alignment (left in LTR, right in RTL)
+* `+Center+`: Center alignment
+* `+Tailing+`: Tailing alignment (right in LTR, left in RTL)
+
+*Example:*
+
+[source,js]
+----
+canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Center);
+----
+
+'''''
+
+==== Canvas.TextVerticalAlignment
+
+Vertical text alignment:
+
+* `+Leading+`: Leading alignment (top)
+* `+Middle+`: Middle alignment (vertical center)
+* `+Tailing+`: Tailing alignment (bottom)
+
+*Example:*
+
+[source,js]
+----
+canvas.setTextVerticalAlignment(Canvas.TextVerticalAlignment.Middle);
+----
+
+'''''
+
+==== Canvas.VectorPathFillRule
+
+Vector path fill rules:
+
+* `+NonZero+`: Non-zero winding rule
+* `+EvenOdd+`: Even-odd rule
+
+'''''
+
+==== Canvas.SignedDistanceField2DVariant
+
+SDF rendering variants for advanced text and shape rendering:
+
+* `+SDF+`: Standard signed distance field
+* `+SSAASDF+`: Super-sampled anti-aliased SDF
+* `+GSDF+`: Gradient-based SDF
+* `+MSDF+`: Multi-channel signed distance field
+* `+Default+`: Default SDF variant
+
+*Example:*
+
+[source,js]
+----
+// SDF variants are typically set at the system level
+// and used internally for high-quality text rendering
+----
+
+'''''
+
+== Input
+
+=== Overview
+
+The Input API provides access to keyboard, mouse, and pointer events. Event data is passed through hash objects containing event information.
+
+'''''
+
+=== Input Event Types
+
+The Input.EventType enumeration defines the following event types:
+
+* `+EVENT_NONE+`: No event
+* `+EVENT_KEY+`: Keyboard event
+* `+EVENT_POINTER+`: Pointer/mouse event
+* `+EVENT_SCROLLED+`: Scroll wheel event
+* `+EVENT_DRAGDROPFILE+`: Drag and drop file event
+
+'''''
+
+=== Key Codes
+
+The Input.KeyCode enumeration provides constants for all keyboard keys:
+
+==== Special Keys
+
+* `+KEYCODE_QUIT+`
+* `+KEYCODE_ANYKEY+`
+* `+KEYCODE_UNKNOWN+`
+* `+KEYCODE_FIRST+`
+* `+KEYCODE_BACKSPACE+`
+* `+KEYCODE_TAB+`
+* `+KEYCODE_RETURN+`
+* `+KEYCODE_PAUSE+`
+* `+KEYCODE_ESCAPE+`
+* `+KEYCODE_SPACE+`
+* `+KEYCODE_DELETE+`
+
+==== Punctuation and Symbol Keys
+
+* `+KEYCODE_EXCLAIM+` (!)
+* `+KEYCODE_QUOTEDBL+` (")
+* `+KEYCODE_HASH+` (#)
+* `+KEYCODE_DOLLAR+` ($)
+* `+KEYCODE_AMPERSAND+` (&)
+* `+KEYCODE_APOSTROPHE+` (')
+* `+KEYCODE_LEFTPAREN+` (()
+* `+KEYCODE_RIGHTPAREN+` ())
+* `+KEYCODE_ASTERISK+` (*)
+* `+KEYCODE_PLUS+` (+)
+* `+KEYCODE_COMMA+` (,)
+* `+KEYCODE_MINUS+` (-)
+* `+KEYCODE_PERIOD+` (.)
+* `+KEYCODE_SLASH+` (/)
+* `+KEYCODE_COLON+` (:)
+* `+KEYCODE_SEMICOLON+` (;)
+* `+KEYCODE_LESS+` (<)
+* `+KEYCODE_EQUALS+` (=)
+* `+KEYCODE_GREATER+` (>)
+* `+KEYCODE_QUESTION+` (?)
+* `+KEYCODE_AT+` (@)
+* `+KEYCODE_LEFTBRACKET+` ([)
+* `+KEYCODE_BACKSLASH+` (\)
+* `+KEYCODE_RIGHTBRACKET+` (])
+* `+KEYCODE_CARET+` (^)
+* `+KEYCODE_UNDERSCORE+` (_)
+* `+KEYCODE_BACKQUOTE+` (`)
+* `+KEYCODE_LEFTBRACE+` ({)
+* `+KEYCODE_PIPE+` (|)
+* `+KEYCODE_RIGHTBRACE+` (})
+* `+KEYCODE_TILDE+` (~)
+
+==== Alphanumeric Keys
+
+* `+KEYCODE_0+` through `+KEYCODE_9+`
+* `+KEYCODE_A+` through `+KEYCODE_Z+`
+
+==== Function Keys
+
+* `+KEYCODE_F1+` through `+KEYCODE_F24+`
+
+==== Arrow Keys
+
+* `+KEYCODE_UP+`
+* `+KEYCODE_DOWN+`
+* `+KEYCODE_LEFT+`
+* `+KEYCODE_RIGHT+`
+
+==== Modifier Keys
+
+* `+KEYCODE_LSHIFT+`, `+KEYCODE_RSHIFT+`
+* `+KEYCODE_LCTRL+`, `+KEYCODE_RCTRL+`
+* `+KEYCODE_LALT+`, `+KEYCODE_RALT+`
+* `+KEYCODE_LGUI+`, `+KEYCODE_RGUI+`
+
+==== Numpad Keys
+
+* `+KEYCODE_KP0+` through `+KEYCODE_KP9+`
+* `+KEYCODE_KP_PERIOD+`, `+KEYCODE_KP_DIVIDE+`, `+KEYCODE_KP_MULTIPLY+`
+* `+KEYCODE_KP_MINUS+`, `+KEYCODE_KP_PLUS+`, `+KEYCODE_KP_ENTER+`, `+KEYCODE_KP_EQUALS+`
+
+==== Advanced Numpad Keys
+
+* `+KEYCODE_KP_00+`, `+KEYCODE_KP_000+`
+* `+KEYCODE_KP_LEFTPAREN+`, `+KEYCODE_KP_RIGHTPAREN+`
+* `+KEYCODE_KP_LEFTBRACE+`, `+KEYCODE_KP_RIGHTBRACE+`
+* `+KEYCODE_KP_TAB+`, `+KEYCODE_KP_BACKSPACE+`
+* `+KEYCODE_KP_A+` through `+KEYCODE_KP_F+`
+* `+KEYCODE_KP_XOR+`, `+KEYCODE_KP_POWER+`, `+KEYCODE_KP_PERCENT+`
+* `+KEYCODE_KP_LESS+`, `+KEYCODE_KP_GREATER+`
+* `+KEYCODE_KP_AMPERSAND+`, `+KEYCODE_KP_DBLAMPERSAND+`
+* `+KEYCODE_KP_VERTICALBAR+`, `+KEYCODE_KP_DBLVERTICALBAR+`
+* `+KEYCODE_KP_COLON+`, `+KEYCODE_KP_COMMA+`, `+KEYCODE_KP_HASH+`
+* `+KEYCODE_KP_SPACE+`, `+KEYCODE_KP_AT+`, `+KEYCODE_KP_EXCLAM+`
+* `+KEYCODE_KP_MEMSTORE+`, `+KEYCODE_KP_MEMRECALL+`, `+KEYCODE_KP_MEMCLEAR+`
+* `+KEYCODE_KP_MEMADD+`, `+KEYCODE_KP_MEMSUBTRACT+`, `+KEYCODE_KP_MEMMULTIPLY+`, `+KEYCODE_KP_MEMDIVIDE+`
+* `+KEYCODE_KP_PLUSMINUS+`, `+KEYCODE_KP_CLEAR+`, `+KEYCODE_KP_CLEARENTRY+`
+* `+KEYCODE_KP_BINARY+`, `+KEYCODE_KP_OCTAL+`, `+KEYCODE_KP_DECIMAL+`, `+KEYCODE_KP_HEXADECIMAL+`
+* `+KEYCODE_KP_EQUALSAS400+`
+* `+KEYCODE_THOUSANDSSEPARATOR+`, `+KEYCODE_DECIMALSEPARATOR+`
+* `+KEYCODE_CURRENCYUNIT+`, `+KEYCODE_CURRENCYSUBUNIT+`
+
+==== Navigation Keys
+
+* `+KEYCODE_HOME+`
+* `+KEYCODE_END+`
+* `+KEYCODE_PAGEUP+`
+* `+KEYCODE_PAGEDOWN+`
+* `+KEYCODE_INSERT+`
+
+==== Lock Keys
+
+* `+KEYCODE_CAPSLOCK+`
+* `+KEYCODE_NUMLOCK+`
+* `+KEYCODE_SCROLLLOCK+`
+* `+KEYCODE_LOCKINGCAPSLOCK+`
+* `+KEYCODE_LOCKINGNUMLOCK+`
+* `+KEYCODE_LOCKINGSCROLLLOCK+`
+
+==== System Keys
+
+* `+KEYCODE_MODE+`
+* `+KEYCODE_HELP+`
+* `+KEYCODE_PRINTSCREEN+`
+* `+KEYCODE_SYSREQ+`
+* `+KEYCODE_MENU+`
+* `+KEYCODE_POWER+`
+* `+KEYCODE_APPLICATION+`
+* `+KEYCODE_SELECT+`
+* `+KEYCODE_STOP+`
+* `+KEYCODE_AGAIN+`
+* `+KEYCODE_UNDO+`
+* `+KEYCODE_CUT+`
+* `+KEYCODE_COPY+`
+* `+KEYCODE_PASTE+`
+* `+KEYCODE_FIND+`
+
+==== Media Keys
+
+* `+KEYCODE_MUTE+`
+* `+KEYCODE_VOLUMEUP+`
+* `+KEYCODE_VOLUMEDOWN+`
+* `+KEYCODE_AUDIONEXT+`
+* `+KEYCODE_AUDIOPREV+`
+* `+KEYCODE_AUDIOSTOP+`
+* `+KEYCODE_AUDIOPLAY+`
+* `+KEYCODE_AUDIOMUTE+`
+* `+KEYCODE_MEDIASELECT+`
+* `+KEYCODE_AUDIO_FAST_FORWARD+`
+* `+KEYCODE_AUDIO_REWIND+`
+
+==== Application Control Keys
+
+* `+KEYCODE_WWW+`
+* `+KEYCODE_MAIL+`
+* `+KEYCODE_CALCULATOR+`
+* `+KEYCODE_COMPUTER+`
+* `+KEYCODE_AC_SEARCH+`
+* `+KEYCODE_AC_HOME+`
+* `+KEYCODE_AC_BACK+`
+* `+KEYCODE_AC_FORWARD+`
+* `+KEYCODE_AC_STOP+`
+* `+KEYCODE_AC_REFRESH+`
+* `+KEYCODE_AC_BOOKMARKS+`
+
+==== Display and Brightness Keys
+
+* `+KEYCODE_BRIGHTNESSDOWN+`
+* `+KEYCODE_BRIGHTNESSUP+`
+* `+KEYCODE_DISPLAYSWITCH+`
+* `+KEYCODE_KBDILLUMTOGGLE+`
+* `+KEYCODE_KBDILLUMDOWN+`
+* `+KEYCODE_KBDILLUMUP+`
+* `+KEYCODE_EJECT+`
+* `+KEYCODE_SLEEP+`
+
+==== International Keys
+
+* `+KEYCODE_INTERNATIONAL1+` through `+KEYCODE_INTERNATIONAL9+`
+* `+KEYCODE_LANG1+` through `+KEYCODE_LANG9+`
+* `+KEYCODE_NONUSBACKSLASH+`
+* `+KEYCODE_NONUSHASH+`
+* `+KEYCODE_102ND+`
+* `+KEYCODE_KATAKANAHIRAGANA+`
+* `+KEYCODE_HENKAN+`
+* `+KEYCODE_MUHENKAN+`
+* `+KEYCODE_HANGEUL+`
+* `+KEYCODE_HANJA+`
+
+==== Mobile/Android Keys
+
+* `+KEYCODE_BACK+`
+* `+KEYCODE_CAMERA+`
+* `+KEYCODE_CALL+`
+* `+KEYCODE_CENTER+`
+* `+KEYCODE_FORWARD_DEL+`
+* `+KEYCODE_DPAD_CENTER+`, `+KEYCODE_DPAD_LEFT+`, `+KEYCODE_DPAD_RIGHT+`
+* `+KEYCODE_DPAD_DOWN+`, `+KEYCODE_DPAD_UP+`
+* `+KEYCODE_ENDCALL+`
+* `+KEYCODE_ENVELOPE+`
+* `+KEYCODE_EXPLORER+`
+* `+KEYCODE_FOCUS+`
+* `+KEYCODE_GRAVE+`
+* `+KEYCODE_HEADSETHOOK+`
+* `+KEYCODE_NOTIFICATION+`
+* `+KEYCODE_PICTSYMBOLS+`
+* `+KEYCODE_SWITCH_CHARSET+`
+
+==== Game Controller Keys
+
+* `+KEYCODE_BUTTON_CIRCLE+`
+* `+KEYCODE_BUTTON_A+`, `+KEYCODE_BUTTON_B+`, `+KEYCODE_BUTTON_C+`
+* `+KEYCODE_BUTTON_X+`, `+KEYCODE_BUTTON_Y+`, `+KEYCODE_BUTTON_Z+`
+* `+KEYCODE_BUTTON_L1+`, `+KEYCODE_BUTTON_R1+`
+* `+KEYCODE_BUTTON_L2+`, `+KEYCODE_BUTTON_R2+`
+* `+KEYCODE_BUTTON_THUMBL+`, `+KEYCODE_BUTTON_THUMBR+`
+* `+KEYCODE_BUTTON_START+`, `+KEYCODE_BUTTON_SELECT+`, `+KEYCODE_BUTTON_MODE+`
+
+==== Other Keys
+
+* `+KEYCODE_ALTERASE+`
+* `+KEYCODE_CANCEL+`
+* `+KEYCODE_CLEAR+`
+* `+KEYCODE_PRIOR+`
+* `+KEYCODE_RETURN2+`
+* `+KEYCODE_SEPARATOR+`
+* `+KEYCODE_OUT+`
+* `+KEYCODE_OPER+`
+* `+KEYCODE_CLEARAGAIN+`
+* `+KEYCODE_CRSEL+`
+* `+KEYCODE_EXSEL+`
+* `+KEYCODE_COUNT+` (Total number of key codes)
+
+'''''
+
+=== Key Modifier Flags
+
+The Input.KeyModifier enumeration provides flags for modifier key states:
+
+* `+KEYMOD_NONE+`
+* `+KEYMOD_LSHIFT+`
+* `+KEYMOD_RSHIFT+`
+* `+KEYMOD_LCTRL+`
+* `+KEYMOD_RCTRL+`
+* `+KEYMOD_LALT+`
+* `+KEYMOD_RALT+`
+* `+KEYMOD_LMETA+`
+* `+KEYMOD_RMETA+`
+* `+KEYMOD_NUM+`
+* `+KEYMOD_CAPS+`
+* `+KEYMOD_MODE+`
+* `+KEYMOD_CTRL+`
+* `+KEYMOD_SHIFT+`
+* `+KEYMOD_ALT+`
+* `+KEYMOD_META+`
+
+'''''
+
+=== Pointer Button Flags
+
+The Input.PointerButton enumeration provides flags for pointer buttons:
+
+* `+POINTERBUTTON_NONE+`
+* `+POINTERBUTTON_LEFT+`
+* `+POINTERBUTTON_MIDDLE+`
+* `+POINTERBUTTON_RIGHT+`
+* `+POINTERBUTTON_X1+`
+* `+POINTERBUTTON_X2+`
+
+'''''
+
+=== Pointer Event Types
+
+The Input.PointerEventTypes enumeration defines pointer/mouse event types:
+
+* `+POINTEREVENT_DOWN+`: Pointer button pressed
+* `+POINTEREVENT_UP+`: Pointer button released
+* `+POINTEREVENT_MOTION+`: Pointer moved
+* `+POINTEREVENT_DRAG+`: Pointer dragged (moved while button pressed)
+
+'''''
+
+=== Key Event Types
+
+The Input.KeyEventTypes enumeration defines keyboard event types:
+
+* `+KEYEVENT_DOWN+`: Key pressed
+* `+KEYEVENT_UP+`: Key released
+* `+KEYEVENT_TYPED+`: Key typed (with repeat)
+* `+KEYEVENT_UNICODE+`: Unicode character input
+
+'''''
+
+=== Joystick Hat Positions
+
+The Input.JoystickHats enumeration provides constants for joystick hat (D-pad) positions:
+
+* `+JOYSTICK_HAT_CENTERED+`: Hat centered (no direction)
+* `+JOYSTICK_HAT_LEFT+`: Hat pushed left
+* `+JOYSTICK_HAT_RIGHT+`: Hat pushed right
+* `+JOYSTICK_HAT_UP+`: Hat pushed up
+* `+JOYSTICK_HAT_DOWN+`: Hat pushed down
+* `+JOYSTICK_HAT_LEFTUP+`: Hat pushed left and up (diagonal)
+* `+JOYSTICK_HAT_RIGHTUP+`: Hat pushed right and up (diagonal)
+* `+JOYSTICK_HAT_LEFTDOWN+`: Hat pushed left and down (diagonal)
+* `+JOYSTICK_HAT_RIGHTDOWN+`: Hat pushed right and down (diagonal)
+* `+JOYSTICK_HAT_NONE+`: No hat input
+
+'''''
+
+=== Game Controller Bind Types
+
+The Input.GameControllerBindTypes enumeration defines controller binding types:
+
+* `+GAME_CONTROLLER_BINDTYPE_NONE+`: No binding
+* `+GAME_CONTROLLER_BINDTYPE_BUTTON+`: Bound to a button
+* `+GAME_CONTROLLER_BINDTYPE_AXIS+`: Bound to an axis
+* `+GAME_CONTROLLER_BINDTYPE_HAT+`: Bound to a hat/D-pad
+
+'''''
+
+=== Game Controller Axes
+
+The Input.GameControllerAxes enumeration defines standard game controller analog axes:
+
+* `+GAME_CONTROLLER_AXIS_INVALID+`: Invalid axis
+* `+GAME_CONTROLLER_AXIS_LEFTX+`: Left stick X axis
+* `+GAME_CONTROLLER_AXIS_LEFTY+`: Left stick Y axis
+* `+GAME_CONTROLLER_AXIS_RIGHTX+`: Right stick X axis
+* `+GAME_CONTROLLER_AXIS_RIGHTY+`: Right stick Y axis
+* `+GAME_CONTROLLER_AXIS_TRIGGERLEFT+`: Left trigger axis
+* `+GAME_CONTROLLER_AXIS_TRIGGERRIGHT+`: Right trigger axis
+* `+GAME_CONTROLLER_AXIS_MAX+`: Maximum axis index
+
+'''''
+
+=== Game Controller Buttons
+
+The Input.GameControllerButtons enumeration defines standard game controller buttons:
+
+* `+GAME_CONTROLLER_BUTTON_INVALID+`: Invalid button
+* `+GAME_CONTROLLER_BUTTON_A+`: A button (Xbox) / Cross (PlayStation)
+* `+GAME_CONTROLLER_BUTTON_B+`: B button (Xbox) / Circle (PlayStation)
+* `+GAME_CONTROLLER_BUTTON_X+`: X button (Xbox) / Square (PlayStation)
+* `+GAME_CONTROLLER_BUTTON_Y+`: Y button (Xbox) / Triangle (PlayStation)
+* `+GAME_CONTROLLER_BUTTON_BACK+`: Back/Select button
+* `+GAME_CONTROLLER_BUTTON_GUIDE+`: Guide/Home button
+* `+GAME_CONTROLLER_BUTTON_START+`: Start button
+* `+GAME_CONTROLLER_BUTTON_LEFTSTICK+`: Left stick click
+* `+GAME_CONTROLLER_BUTTON_RIGHTSTICK+`: Right stick click
+* `+GAME_CONTROLLER_BUTTON_LEFTSHOULDER+`: Left shoulder button (LB/L1)
+* `+GAME_CONTROLLER_BUTTON_RIGHTSHOULDER+`: Right shoulder button (RB/R1)
+* `+GAME_CONTROLLER_BUTTON_DPAD_UP+`: D-pad up
+* `+GAME_CONTROLLER_BUTTON_DPAD_DOWN+`: D-pad down
+* `+GAME_CONTROLLER_BUTTON_DPAD_LEFT+`: D-pad left
+* `+GAME_CONTROLLER_BUTTON_DPAD_RIGHT+`: D-pad right
+* `+GAME_CONTROLLER_BUTTON_MISC1+`: Misc button 1 (e.g., Xbox Share button)
+* `+GAME_CONTROLLER_BUTTON_PADDLE1+`: Paddle 1 (Xbox Elite)
+* `+GAME_CONTROLLER_BUTTON_PADDLE2+`: Paddle 2 (Xbox Elite)
+* `+GAME_CONTROLLER_BUTTON_PADDLE3+`: Paddle 3 (Xbox Elite)
+* `+GAME_CONTROLLER_BUTTON_PADDLE4+`: Paddle 4 (Xbox Elite)
+* `+GAME_CONTROLLER_BUTTON_TOUCHPAD+`: Touchpad button (PlayStation)
+* `+GAME_CONTROLLER_BUTTON_MAX+`: Maximum button index
+
+
+'''''
+
+=== Input Event Hash Structure
+
+Input events are passed to scripts as hash objects with the following structure:
+
+==== Key Event Hash
+
+When `+eventType+` is `+EVENT_KEY+`:
+
+* `+eventType+`: The event type (EVENT_KEY)
+* `+keyCode+`: The key code (from Input.KeyCode)
+* `+modifiers+`: Key modifier flags
+* `+pressed+`: 1 if key was pressed, 0 if released
+
+==== Pointer Event Hash
+
+When `+eventType+` is `+EVENT_POINTER+`:
+
+* `+eventType+`: The event type (EVENT_POINTER)
+* `+position+`: Vector2 with pointer position
+* `+delta+`: Vector2 with movement delta
+* `+buttons+`: Button state flags
+* `+pressure+`: Pointer pressure (0.0 to 1.0)
+
+==== Scroll Event Hash
+
+When `+eventType+` is `+EVENT_SCROLLED+`:
+
+* `+eventType+`: The event type (EVENT_SCROLLED)
+* `+delta+`: Vector2 with scroll delta
+
+'''''
+
+=== Example: Input Handling
+
+[source,js]
+----
+// In your update function, handle input events
+function onInput(event) {
+  let eventType = event.eventType;
+  
+  if (eventType == Input.EventType.EVENT_KEY) {
+    let keyCode = event.keyCode;
+    let pressed = event.pressed;
+    
+    if (keyCode == Input.KeyCode.KEYCODE_ESCAPE && pressed) {
+      // Handle escape key press
+      puts("Escape pressed!");
+    }
+    
+    if (keyCode == Input.KeyCode.KEYCODE_SPACE && pressed) {
+      // Handle space bar
+      playerJump();
+    }
+  } else if (eventType == Input.EventType.EVENT_POINTER) {
+    let position = event.position;
+    let buttons = event.buttons;
+    
+    if (buttons & Input.PointerButton.BUTTON_LEFT) {
+      // Handle left mouse button
+      handleClick(position);
+    }
+  } else if (eventType == Input.EventType.EVENT_SCROLLED) {
+    let delta = event.delta;
+    // Handle scroll
+    zoom += delta.y;
+  }
+}
+----
+
+'''''
+
+== Audio
+
+=== Overview
+
+The Audio API provides comprehensive sound and music playback capabilities. It manages sound effects (with polyphony and spatial audio support) and background music. The API consists of two main components: the SoundManager for managing sound effects, and the MusicManager for managing background music.
+
+'''''
+
+=== SoundManager
+
+The SoundManager namespace provides functions for creating, finding, and managing sound effects.
+
+==== SoundManager.create()
+
+*Usage:*
+
+[source,js]
+----
+let sound = SoundManager.create(name, fileName, polyphony, loop, realVoices, fadeOutDuration);
+----
+
+* *Description:* Creates a new sound effect with the specified parameters.
+* *Parameters:*
+** `+name+` (string): A unique identifier for the sound.
+** `+fileName+` (string): The path to the audio file.
+** `+polyphony+` (number): Maximum number of simultaneous instances of this sound (default: 1).
+** `+loop+` (number): Whether the sound should loop (1 for true, 0 for false, default: 1).
+** `+realVoices+` (number): Number of real audio voices to allocate (-1 for automatic, default: -1).
+** `+fadeOutDuration+` (number): Duration of fade-out in seconds when stopping (default: 0.0).
+* *Return Value:* A Sound object.
+* *Example:*
++
+[source,js]
+----
+// Create a sound effect that can play 4 times simultaneously
+let explosionSound = SoundManager.create("explosion", "sounds/explosion.ogg", 4, 0, -1, 0.5);
+
+// Create a looping ambient sound
+let ambientSound = SoundManager.create("ambient", "sounds/ambient.ogg", 1, 1);
+----
+
+'''''
+
+==== SoundManager.find()
+
+*Usage:*
+
+[source,js]
+----
+let sound = SoundManager.find(name);
+----
+
+* *Description:* Finds a previously created sound by name.
+* *Parameters:*
+** `+name+` (string): The name of the sound to find.
+* *Return Value:* The Sound object, or null if not found.
+* *Example:*
++
+[source,js]
+----
+let sound = SoundManager.find("explosion");
+if (sound.valid()) {
+  sound.play(1.0, 0.0, 1.0);
+}
+----
+
+'''''
+
+==== SoundManager.remove()
+
+*Usage:*
+
+[source,js]
+----
+SoundManager.remove(name);
+----
+
+* *Description:* Removes and destroys a sound by name.
+* *Parameters:*
+** `+name+` (string): The name of the sound to remove.
+* *Return Value:* None.
+
+'''''
+
+==== SoundManager.clear()
+
+*Usage:*
+
+[source,js]
+----
+SoundManager.clear();
+----
+
+* *Description:* Removes all sounds from the manager.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+=== Sound Objects
+
+Sound objects are created through the SoundManager and provide methods for playback control.
+
+==== sound.valid()
+
+*Usage:*
+
+[source,js]
+----
+let isValid = sound.valid();
+----
+
+* *Description:* Checks if the sound object is valid and ready to use.
+* *Parameters:* None.
+* *Return Value:* 1 if valid, 0 otherwise.
+
+'''''
+
+==== sound.destroy()
+
+*Usage:*
+
+[source,js]
+----
+sound.destroy();
+----
+
+* *Description:* Destroys the sound object and releases its resources.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== sound.load()
+
+*Usage:*
+
+[source,js]
+----
+sound.load();
+----
+
+* *Description:* Loads the sound data from disk.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== sound.reload()
+
+*Usage:*
+
+[source,js]
+----
+sound.reload();
+----
+
+* *Description:* Reloads the sound data from disk.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== sound.getName()
+
+*Usage:*
+
+[source,js]
+----
+let name = sound.getName();
+----
+
+* *Description:* Returns the name of the sound.
+* *Parameters:* None.
+* *Return Value:* The sound name as a string.
+
+'''''
+
+==== sound.getUID()
+
+*Usage:*
+
+[source,js]
+----
+let uid = sound.getUID();
+----
+
+* *Description:* Returns the unique identifier of the sound.
+* *Parameters:* None.
+* *Return Value:* The UID as a number.
+
+'''''
+
+==== sound.getFileName()
+
+*Usage:*
+
+[source,js]
+----
+let fileName = sound.getFileName();
+----
+
+* *Description:* Returns the file name of the sound.
+* *Parameters:* None.
+* *Return Value:* The file name as a string.
+
+'''''
+
+==== sound.getPolyphony()
+
+*Usage:*
+
+[source,js]
+----
+let polyphony = sound.getPolyphony();
+----
+
+* *Description:* Returns the maximum polyphony of the sound.
+* *Parameters:* None.
+* *Return Value:* The polyphony value.
+
+'''''
+
+==== sound.getLoop()
+
+*Usage:*
+
+[source,js]
+----
+let loop = sound.getLoop();
+----
+
+* *Description:* Returns whether the sound loops.
+* *Parameters:* None.
+* *Return Value:* 1 if looping, 0 otherwise.
+
+'''''
+
+==== sound.getRealVoices()
+
+*Usage:*
+
+[source,js]
+----
+let realVoices = sound.getRealVoices();
+----
+
+* *Description:* Returns the number of real voices allocated for this sound.
+* *Parameters:* None.
+* *Return Value:* The number of real voices.
+
+'''''
+
+==== sound.getFadeOutDuration()
+
+*Usage:*
+
+[source,js]
+----
+let duration = sound.getFadeOutDuration();
+----
+
+* *Description:* Returns the fade-out duration in seconds.
+* *Parameters:* None.
+* *Return Value:* The fade-out duration.
+
+'''''
+
+==== sound.play()
+
+*Usage:*
+
+[source,js]
+----
+let voiceID = sound.play(volume, panning, rate);
+----
+
+* *Description:* Plays the sound with the specified parameters.
+* *Parameters:*
+** `+volume+` (number): Volume level (0.0 to 1.0 or higher).
+** `+panning+` (number): Stereo panning (-1.0 for left, 0.0 for center, 1.0 for right).
+** `+rate+` (number): Playback rate (1.0 is normal speed).
+* *Return Value:* A voice ID that can be used to control this specific playback instance.
+* *Example:*
++
+[source,js]
+----
+let voiceID = sound.play(0.8, 0.0, 1.0); // Play at 80% volume, centered
+----
+
+'''''
+
+==== sound.playSpatialization(volume, panning, rate, spatialization, position, velocity, local)
+
+*Usage:*
+
+[source,js]
+----
+let voiceID = sound.playSpatialization(volume, panning, rate, spatialization, position, velocity, local);
+// or when spatialization is enabled, you can use individual numbers:
+let voiceID = sound.playSpatialization(volume, panning, rate, spatialization, x, y, z, vx, vy, vz, local);
+----
+
+* *Description:* Plays the sound with 3D spatial audio.
+* *Parameters:*
+** `+volume+` (number): Volume level.
+** `+panning+` (number): Stereo panning.
+** `+rate+` (number): Playback rate.
+** `+spatialization+` (number): Enable spatialization (1 for true, 0 for false).
+** *When spatialization is enabled:*
+*** *Option A:*
+**** `+position+` (Vector3): 3D position of the sound source.
+**** `+velocity+` (Vector3): 3D velocity of the sound source (for Doppler effect).
+*** or *Option B:*
+**** `+x, y, z+` (numbers): 3D position coordinates.
+**** `+vx, vy, vz+` (numbers): 3D velocity components.
+** `+local+` (number): Use local coordinates (1) or world coordinates (0).
+* *Return Value:* A voice ID.
+* *Example:*
++
+[source,js]
+----
+// Using Vector3:
+let pos = Vector3.create(10, 0, 5);
+let vel = Vector3.create(0, 0, 0);
+let voiceID = sound.playSpatialization(1.0, 0.0, 1.0, 1, pos, vel, 0);
+
+// or using individual numbers:
+let voiceID = sound.playSpatialization(1.0, 0.0, 1.0, 1, 10, 0, 5, 0, 0, 0, 0);
+----
+
+'''''
+
+==== sound.stop()
+
+*Usage:*
+
+[source,js]
+----
+sound.stop(voiceID);
+----
+
+* *Description:* Stops a specific playback instance.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID returned by play() or playSpatialization().
+* *Return Value:* None.
+
+'''''
+
+==== sound.keyOff()
+
+*Usage:*
+
+[source,js]
+----
+sound.keyOff(voiceID);
+----
+
+* *Description:* Triggers the release phase of a sound (for sounds with ADSR envelopes).
+* *Parameters:*
+** `+voiceID+` (number): The voice ID.
+* *Return Value:* None.
+
+'''''
+
+==== sound.setVolume()
+
+*Usage:*
+
+[source,js]
+----
+sound.setVolume(voiceID, volume);
+----
+
+* *Description:* Changes the volume of a playing sound instance.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID.
+** `+volume+` (number): The new volume level.
+* *Return Value:* The voice ID.
+
+'''''
+
+==== sound.setPanning()
+
+*Usage:*
+
+[source,js]
+----
+sound.setPanning(voiceID, panning);
+----
+
+* *Description:* Changes the panning of a playing sound instance.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID.
+** `+panning+` (number): The new panning value.
+* *Return Value:* The voice ID.
+
+'''''
+
+==== sound.setRate()
+
+*Usage:*
+
+[source,js]
+----
+sound.setRate(voiceID, rate);
+----
+
+* *Description:* Changes the playback rate of a playing sound instance.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID.
+** `+rate+` (number): The new playback rate.
+* *Return Value:* The voice ID.
+
+'''''
+
+==== sound.setPosition(voiceID, spatialization, position, velocity, local)
+
+*Usage:*
+
+[source,js]
+----
+sound.setPosition(voiceID, spatialization, position, velocity, local);
+// or when spatialization is enabled, you can use individual numbers:
+sound.setPosition(voiceID, spatialization, x, y, z, vx, vy, vz, local);
+----
+
+* *Description:* Updates the 3D position and velocity of a playing sound instance.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID.
+** `+spatialization+` (number): Enable spatialization.
+** *When spatialization is enabled:*
+*** *Option A:*
+**** `+position+` (Vector3): New 3D position.
+**** `+velocity+` (Vector3): New 3D velocity.
+*** or *Option B:*
+**** `+x, y, z+` (numbers): New 3D position coordinates.
+**** `+vx, vy, vz+` (numbers): New 3D velocity components.
+** `+local+` (number): Use local coordinates.
+* *Return Value:* The voice ID.
+* *Example:*
++
+[source,js]
+----
+// Using Vector3:
+let newPos = Vector3.create(15, 5, 0);
+let newVel = Vector3.create(2, 0, 0);
+sound.setPosition(voiceID, 1, newPos, newVel, 0);
+
+// or using individual numbers:
+sound.setPosition(voiceID, 1, 15, 5, 0, 2, 0, 0, 0);
+----
+
+'''''
+
+==== sound.setEffectMix()
+
+*Usage:*
+
+[source,js]
+----
+sound.setEffectMix(voiceID, active);
+----
+
+* *Description:* Enables or disables audio effects for a playing sound instance.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID.
+** `+active+` (number): 1 to enable effects, 0 to disable.
+* *Return Value:* The voice ID.
+
+'''''
+
+==== sound.isPlaying()
+
+*Usage:*
+
+[source,js]
+----
+let playing = sound.isPlaying();
+----
+
+* *Description:* Checks if any instance of this sound is currently playing.
+* *Parameters:* None.
+* *Return Value:* 1 if playing, 0 otherwise.
+
+'''''
+
+==== sound.isVoicePlaying()
+
+*Usage:*
+
+[source,js]
+----
+let playing = sound.isVoicePlaying(voiceID);
+----
+
+* *Description:* Checks if a specific voice instance is currently playing.
+* *Parameters:*
+** `+voiceID+` (number): The voice ID to check.
+* *Return Value:* 1 if playing, 0 otherwise.
+
+'''''
+
+=== MusicManager
+
+The MusicManager namespace provides functions for managing background music.
+
+==== MusicManager.create()
+
+*Usage:*
+
+[source,js]
+----
+let music = MusicManager.create(name, fileName);
+----
+
+* *Description:* Creates a new music track.
+* *Parameters:*
+** `+name+` (string): A unique identifier for the music.
+** `+fileName+` (string): The path to the audio file.
+* *Return Value:* A Music object.
+* *Example:*
++
+[source,js]
+----
+let bgMusic = MusicManager.create("background", "music/background.ogg");
+----
+
+'''''
+
+==== MusicManager.find()
+
+*Usage:*
+
+[source,js]
+----
+let music = MusicManager.find(name);
+----
+
+* *Description:* Finds a previously created music track by name.
+* *Parameters:*
+** `+name+` (string): The name of the music to find.
+* *Return Value:* The Music object, or null if not found.
+
+'''''
+
+==== MusicManager.remove()
+
+*Usage:*
+
+[source,js]
+----
+MusicManager.remove(name);
+----
+
+* *Description:* Removes and destroys a music track by name.
+* *Parameters:*
+** `+name+` (string): The name of the music to remove.
+* *Return Value:* None.
+
+'''''
+
+==== MusicManager.clear()
+
+*Usage:*
+
+[source,js]
+----
+MusicManager.clear();
+----
+
+* *Description:* Removes all music tracks from the manager.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+=== Music Objects
+
+Music objects are created through the MusicManager and provide methods for playback control.
+
+==== music.valid()
+
+*Usage:*
+
+[source,js]
+----
+let isValid = music.valid();
+----
+
+* *Description:* Checks if the music object is valid and ready to use.
+* *Parameters:* None.
+* *Return Value:* 1 if valid, 0 otherwise.
+
+'''''
+
+==== music.destroy()
+
+*Usage:*
+
+[source,js]
+----
+music.destroy();
+----
+
+* *Description:* Destroys the music object and releases its resources.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== music.load()
+
+*Usage:*
+
+[source,js]
+----
+music.load();
+----
+
+* *Description:* Loads the music data from disk.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== music.reload()
+
+*Usage:*
+
+[source,js]
+----
+music.reload();
+----
+
+* *Description:* Reloads the music data from disk.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== music.getName()
+
+*Usage:*
+
+[source,js]
+----
+let name = music.getName();
+----
+
+* *Description:* Returns the name of the music track.
+* *Parameters:* None.
+* *Return Value:* The music name as a string.
+
+'''''
+
+==== music.getUID()
+
+*Usage:*
+
+[source,js]
+----
+let uid = music.getUID();
+----
+
+* *Description:* Returns the unique identifier of the music track.
+* *Parameters:* None.
+* *Return Value:* The UID as a number.
+
+'''''
+
+==== music.getFileName()
+
+*Usage:*
+
+[source,js]
+----
+let fileName = music.getFileName();
+----
+
+* *Description:* Returns the file name of the music track.
+* *Parameters:* None.
+* *Return Value:* The file name as a string.
+
+'''''
+
+==== music.play()
+
+*Usage:*
+
+[source,js]
+----
+music.play(volume, panning, rate, loop);
+----
+
+* *Description:* Plays the music track.
+* *Parameters:*
+** `+volume+` (number): Volume level (0.0 to 1.0 or higher).
+** `+panning+` (number): Stereo panning (-1.0 to 1.0).
+** `+rate+` (number): Playback rate (1.0 is normal speed).
+** `+loop+` (number): Whether to loop (1 for true, 0 for false).
+* *Return Value:* None.
+* *Example:*
++
+[source,js]
+----
+music.play(0.7, 0.0, 1.0, 1); // Play at 70% volume, centered, looping
+----
+
+'''''
+
+==== music.stop()
+
+*Usage:*
+
+[source,js]
+----
+music.stop();
+----
+
+* *Description:* Stops the music playback.
+* *Parameters:* None.
+* *Return Value:* None.
+
+'''''
+
+==== music.setVolume()
+
+*Usage:*
+
+[source,js]
+----
+music.setVolume(volume);
+----
+
+* *Description:* Changes the volume of the currently playing music.
+* *Parameters:*
+** `+volume+` (number): The new volume level.
+* *Return Value:* None.
+
+'''''
+
+==== music.setPanning()
+
+*Usage:*
+
+[source,js]
+----
+music.setPanning(panning);
+----
+
+* *Description:* Changes the panning of the currently playing music.
+* *Parameters:*
+** `+panning+` (number): The new panning value.
+* *Return Value:* None.
+
+'''''
+
+==== music.setRate()
+
+*Usage:*
+
+[source,js]
+----
+music.setRate(rate);
+----
+
+* *Description:* Changes the playback rate of the currently playing music.
+* *Parameters:*
+** `+rate+` (number): The new playback rate.
+* *Return Value:* None.
+
+'''''
+
+==== music.isPlaying()
+
+*Usage:*
+
+[source,js]
+----
+let playing = music.isPlaying();
+----
+
+* *Description:* Checks if the music is currently playing.
+* *Parameters:* None.
+* *Return Value:* 1 if playing, 0 otherwise.
+
+'''''
+
+=== Example: Audio Usage
+
+[source,js]
+----
+// Create and play sound effects
+let explosionSound = SoundManager.create("explosion", "sounds/explosion.wav", 4, 0);
+let jumpSound = SoundManager.create("jump", "sounds/jump.wav", 2, 0);
+
+// Play sound effects
+explosionSound.play(1.0, 0.0, 1.0);
+
+// Play with 3D spatialization
+let enemyPos = Vector3.create(10, 0, 5);
+let enemyVel = Vector3.create(0, 0, 0);
+let voiceID = explosionSound.playSpatialization(0.8, 0.0, 1.0, 1, enemyPos, enemyVel, 0);
+
+// Create and play background music
+let bgMusic = MusicManager.create("bgm", "music/background.ogg");
+bgMusic.play(0.6, 0.0, 1.0, 1); // Loop the music
+
+// Later, fade out music by reducing volume
+bgMusic.setVolume(0.3);
+
+// Stop music
+bgMusic.stop();
+
+// Clean up
+SoundManager.clear();
+MusicManager.clear();
+----
+
+'''''
+
+== Summary
+
+The PasVulkan POCA Script API provides a comprehensive set of types and functions for game development:
+
+* *Math Types:* Vector2, Vector3, Vector4, Quaternion, Matrix3x3, Matrix4x4
+* *Graphics Types:* Sprite, SpriteAtlas, Texture, Font, CanvasFont, CanvasShape
+* *Canvas API:* Comprehensive 2D drawing with shapes, text, sprites, and paths
+* *Input API:* Keyboard, mouse, and pointer event handling
+* *Audio API:* Sound effects with polyphony and 3D spatialization, background music playback
+
+All types support operator overloading and provide fluent APIs for method chaining. The Canvas API is hardware-accelerated using Vulkan for high-performance 2D rendering. The Audio API provides both simple 2D and advanced 3D spatial audio capabilities.
+
+For the base POCA scripting features (Array, Boolean, Console, String, Math, etc.), please refer to the link:https://github.com/BeRo1985/poca/blob/master/docs/scriptapi.adoc[POCA Script API Documentation].
+
+'''''
+
+== Integration with PasVulkan
+
+To use these APIs in your PasVulkan application:
+
+1. Create a POCA context using the POCA library
+2. Call `+InitializeForPOCAContext+` to register all PasVulkan types and functions
+3. Create a `+TpvPOCAAudio+` instance to enable audio functionality
+4. Load and execute your POCA scripts
+5. Pass Canvas, Sprite, Font, and other objects from your PasVulkan application to scripts
+6. Handle input events and forward them to scripts through event hashes
+7. Call `+FinalizeForPOCAContext+` when done to clean up resources
+
+The PasVulkan POCA integration is designed to provide a complete scripting solution for games and applications built with PasVulkan.

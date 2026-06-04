@@ -1,0 +1,17 @@
+EXPORTS
+FLRECreate
+FLREDestroy
+FLREFree
+FLREGetCountCaptures
+FLREGetNamedGroupIndex
+FLREGetPrefilterExpression
+FLREGetPrefilterSQLBooleanFullTextExpression
+FLREGetPrefilterSQLExpression
+FLREGetPrefilterShortExpression
+FLREGetRange
+FLREGetVersion
+FLREGetVersionString
+FLREMatch
+FLREMatchAll
+FLREMatchNext
+FLREReplaceAll

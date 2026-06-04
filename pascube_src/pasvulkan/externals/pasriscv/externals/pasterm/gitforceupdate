@@ -1,0 +1,4 @@
+#!/bin/sh
+git stash save
+git pull
+git stash drop

@@ -1,0 +1,356 @@
+#!/usr/bin/env poca
+
+// Tetris game in POCA
+
+// This is a simple implementation of the classic Tetris game.
+// Controls: W (rotate), A (left), S (down), D (right), Q (quit)
+// The game uses ANSI escape codes for terminal control.
+// It is designed to run in a terminal that supports ANSI escape codes.
+
+// Board dimensions: typical Tetris board is 10 columns x 20 rows.
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
+
+// FrameBuffer: one object per cell to track what was drawn last time and what to draw now.
+let fb = new Array(BOARD_WIDTH * BOARD_HEIGHT);
+for (let i = 0; i < fb.length; i++) {
+  fb[i] = { old: '-', current: ' ' };
+}
+
+// Board state: each cell holds a character; ' ' means empty,
+// while a letter such as 'I', 'J', etc., represents a locked tetromino block.
+let board = new Array(BOARD_WIDTH * BOARD_HEIGHT);
+for (let i = 0; i < board.length; i++) {
+  board[i] = ' ';
+}
+
+// Tetromino definitions: each tetromino is defined by its type and
+// an array of block coordinates relative to a pivot.
+// The rotation will be performed about (0,0) using the transform (x, y) -> (-y, x).
+const TETROMINOS = [
+  { type: 'I', blocks: [ {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 2, y: 0} ] },
+  { type: 'J', blocks: [ {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1} ] },
+  { type: 'L', blocks: [ {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: -1, y: -1} ] },
+  { type: 'O', blocks: [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 0, y: -1}, {x: 1, y: -1} ] },
+  { type: 'S', blocks: [ {x: 0, y: 0}, {x: 1, y: 0}, {x: -1, y: -1}, {x: 0, y: -1} ] },
+  { type: 'T', blocks: [ {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 0, y: -1} ] },
+  { type: 'Z', blocks: [ {x: -1, y: 0}, {x: 0, y: 0}, {x: 0, y: -1}, {x: 1, y: -1} ] }
+];
+
+// Global variables for the active tetromino, game state, and score.
+let currentTetromino = null;
+let running = true;
+let score = 0;
+
+// --- Terminal Control Functions ---
+function clearScreen() {
+  print("\u001b[2J");
+}
+
+function setCursorPosition(x, y) {
+  print(`\u001b[${y+1};${x+1}H`);
+}
+
+function setCursorVisible(visible) {
+  print(visible ? "\u001b[?25h" : "\u001b[?25l");
+}
+
+function setColor(color) {
+  print(`\u001b[38;5;${color}m`);
+}
+
+function resetColor() {
+  print("\u001b[0m");
+}
+
+function setBackgroundColor(color) {
+  print(`\u001b[48;5;${color}m`);
+}
+
+function resetBackgroundColor() {
+  print("\u001b[49m");
+}
+
+// Map each tetromino type to a color code.
+function getColorForPiece(piece) {
+  if (piece === 'I') return 6;    // cyan
+  if (piece === 'J') return 4;    // blue
+  if (piece === 'L') return 202;  // orange-ish
+  if (piece === 'O') return 11;   // yellow
+  if (piece === 'S') return 2;    // green
+  if (piece === 'T') return 5;    // magenta
+  if (piece === 'Z') return 1;    // red
+  return 8; // default gray for unknown
+}
+
+function getBackgroundColorForPiece(piece) {
+  if (piece === 'I') return 10; // light cyan
+  if (piece === 'J') return 12; // light blue
+  if (piece === 'L') return 214; // light orange
+  if (piece === 'O') return 226; // light yellow
+  if (piece === 'S') return 46; // light green
+  if (piece === 'T') return 13; // light magenta
+  if (piece === 'Z') return 9; // light red
+  return 0; // default black for unknown
+}
+
+// --- Tetromino Management ---
+
+// The bag of tetrominos to be used in the game.
+let bag = [];
+
+// Create a new bag of tetrominos, shuffling them for randomness.
+function createBag() {
+  bag = [];
+  for (let i = 0; i < TETROMINOS.length; i++) {
+    bag.push(i);
+  }
+  // Shuffle the bag
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    (bag[i], bag[j]) = (bag[j], bag[i]);
+  }
+}
+
+// Get the next tetromino from the bag, or create a new bag if empty.
+function getNextTetromino() {
+  if (bag.length === 0) {
+    createBag();
+  }
+  const idx = bag.pop();
+  return TETROMINOS[idx];
+}
+
+// Create a new tetromino chosen at random.
+function spawnTetromino() {
+  
+  // Get a random tetromino from the bag, but avoid repeating the same type.
+  let tet, tries = TETROMINOS.length;
+  do{
+    tet = getNextTetromino();
+  }while((tries-- > 0) && (currentTetromino != null) && (tet.type == currentTetromino.type)); 
+    
+  // Create a copy of the blocks to avoid modifying the original tetromino.
+  // This is important to avoid side effects when rotating or moving.
+  let blocksCopy = [];
+  for (let i = 0; i < tet.blocks.length; i++) {
+    let b = tet.blocks[i];
+    blocksCopy.push({ x: b.x, y: b.y });
+  }
+
+  // Position the new tetromino at the top middle of the board.
+  let posX = Math.floor(BOARD_WIDTH / 2);
+  let posY = 1; // Starting near the top (parts above y=0 are allowed)
+  return { type: tet.type, blocks: blocksCopy, x: posX, y: posY };
+}
+
+// Check whether a tetromino in its current (or test) position collides
+// with board boundaries or already locked blocks.
+function collides(tetromino) {
+  for (let i = 0; i < tetromino.blocks.length; i++) {
+    let bx = tetromino.x + tetromino.blocks[i].x;
+    let by = tetromino.y + tetromino.blocks[i].y;
+    // Outside horizontal bounds
+    if (bx < 0 || bx >= BOARD_WIDTH) return true;
+    // Below the bottom
+    if (by >= BOARD_HEIGHT) return true;
+    // Check collision with locked blocks (ignore parts above the board)
+    if (by >= 0) {
+      if (board[by * BOARD_WIDTH + bx] !== ' ') return true;
+    }
+  }
+  return false;
+}
+
+// Rotate the current tetromino 90° clockwise.
+// Uses the transform: (x, y) -> (-y, x)
+// Only applies the rotation if it does not cause a collision.
+function rotateTetromino(tetromino) {
+  let newBlocks = [];
+  for (let i = 0; i < tetromino.blocks.length; i++) {
+    let b = tetromino.blocks[i];
+    newBlocks.push({ x: -b.y, y: b.x });
+  }
+  let testTet = { type: tetromino.type, blocks: newBlocks, x: tetromino.x, y: tetromino.y };
+  if (!collides(testTet)) {
+    tetromino.blocks = newBlocks;
+  }
+}
+
+// Try to move the current tetromino by (dx, dy).
+// Returns true if the move is successful.
+function moveTetromino(dx, dy) {
+  let testTet = { type: currentTetromino.type, blocks: currentTetromino.blocks, x: currentTetromino.x + dx, y: currentTetromino.y + dy };
+  if (!collides(testTet)) {
+    currentTetromino.x += dx;
+    currentTetromino.y += dy;
+    return true;
+  }
+  return false;
+}
+
+// Lock the tetromino into the board by copying its blocks into the board state,
+// then check and clear any full lines. Afterwards, spawn a new tetromino.
+// If the new tetromino immediately collides, the game is over.
+function lockTetromino() {
+  for (let i = 0; i < currentTetromino.blocks.length; i++) {
+    let bx = currentTetromino.x + currentTetromino.blocks[i].x;
+    let by = currentTetromino.y + currentTetromino.blocks[i].y;
+    if (by >= 0 && by < BOARD_HEIGHT && bx >= 0 && bx < BOARD_WIDTH) {
+      board[by * BOARD_WIDTH + bx] = currentTetromino.type;
+    }
+  }
+  clearLines();
+  currentTetromino = spawnTetromino();
+  if (collides(currentTetromino)) {
+    running = false;
+  }
+}
+
+// Check each row; if a row is completely filled, remove it and shift all rows above down.
+// Increase the score for each cleared line.
+function clearLines() {
+  for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+    let full = true;
+    for (let x = 0; x < BOARD_WIDTH; x++) {
+      if (board[y * BOARD_WIDTH + x] === ' ') {
+        full = false;
+        break;
+      }
+    }
+    if (full) {
+      for (let ty = y; ty > 0; ty--) {
+        for (let x = 0; x < BOARD_WIDTH; x++) {
+          board[ty * BOARD_WIDTH + x] = board[(ty - 1) * BOARD_WIDTH + x];
+        }
+      }
+      for (let x = 0; x < BOARD_WIDTH; x++) {
+        board[x] = ' ';
+      }
+      score += 100;
+      y++; // Recheck this row after shifting down.
+    }
+  }
+}
+
+// --- Display Functions ---
+
+// Merge the board state and the current tetromino into the frame buffer.
+function updateFrameBuffer() {
+  // Copy the board into the frame buffer.
+  for (let y = 0; y < BOARD_HEIGHT; y++) {
+    for (let x = 0; x < BOARD_WIDTH; x++) {
+      let idx = y * BOARD_WIDTH + x;
+      fb[idx].current = board[idx];
+    }
+  }
+  // Overlay the falling tetromino.
+  for (let i = 0; i < currentTetromino.blocks.length; i++) {
+    let bx = currentTetromino.x + currentTetromino.blocks[i].x;
+    let by = currentTetromino.y + currentTetromino.blocks[i].y;
+    if (by >= 0 && by < BOARD_HEIGHT && bx >= 0 && bx < BOARD_WIDTH) {
+      let idx = by * BOARD_WIDTH + bx;
+      fb[idx].current = currentTetromino.type;
+    }
+  }
+}
+
+// Draw the frame buffer by comparing the current content with the previous drawn state,
+// updating only the cells that have changed.
+function drawFrameBuffer() {
+  setBackgroundColor(8);
+  for (let y = 0; y < BOARD_HEIGHT; y++) {
+    for (let x = 0; x < BOARD_WIDTH; x++) {
+      let idx = y * BOARD_WIDTH + x;
+      if (fb[idx].current !== fb[idx].old) {
+        setCursorPosition(x, y);
+        let cell = fb[idx].current;
+        if (cell !== ' ') {
+          setColor(getColorForPiece(cell));
+          setBackgroundColor(getBackgroundColorForPiece(cell));
+        } else {
+          setColor(8);
+          setBackgroundColor(0);
+        }
+        // For visibility, draw a block character or a dot for empty.
+        print(cell === ' ' ? "\u2591" : cell);
+        fb[idx].old = fb[idx].current;
+      }
+    }
+  }
+  resetColor();
+  resetBackgroundColor();
+  setCursorPosition(0, BOARD_HEIGHT);
+  print("Score: ", score);
+  setCursorVisible(false);
+}
+
+// --- Input Handling ---
+// Map keys to moving left/right, rotating, and soft-drop.
+function keypress(key) {
+  if (key === 3 || key === 113) {  // Ctrl-C or 'q'
+    running = false;
+  } else if (key === 97) {         // 'a' to move left
+    moveTetromino(-1, 0);
+  } else if (key === 100) {        // 'd' to move right
+    moveTetromino(1, 0);
+  } else if (key === 115) {        // 's' to move down faster
+    if (!moveTetromino(0, 1)) {    // if moving down fails, lock the tetromino.
+      lockTetromino();
+    }
+  } else if (key === 119) {        // 'w' to rotate
+    rotateTetromino(currentTetromino);
+  } else if (key === 32) {        // space to hard drop
+    while (moveTetromino(0, 1)) {}
+    lockTetromino();
+  }
+}
+
+// --- Main Game Loop ---
+
+// Initialize terminal.
+Console.initialize();
+clearScreen();
+setCursorVisible(false);
+
+// Create the first tetromino.
+currentTetromino = spawnTetromino();
+
+// Main game loop.
+while (running) {
+
+  GarbageCollector.collect(); // Collect garbage to free memory at the beginning of each frame to avoid unregular pauses
+  
+  updateFrameBuffer();
+  drawFrameBuffer();
+  setCursorPosition(0, BOARD_HEIGHT + 1);
+  print("WSAD to move/rotate, SPACE to hard drop, Q to quit");
+  
+  // Wait for user input or a timeout.
+  // The game will automatically move the tetromino down every 10 frames.
+  for(let nowTime = DateTime.now(), waitDuration = Math.round(Math.max(10.0, 500.0 - ((score / 1000.0) * 10.0))); 
+      DateTime.milliseconds(DateTime.now() - nowTime) < waitDuration; ){
+   
+    // Process user input if available.
+    let input = Console.readKey();
+    if (input) {
+      keypress(input);
+      break; // Exit the loop to process the next frame.
+    }
+
+    sleep(1); // Sleep for a short time to avoid busy waiting.
+
+  }
+  
+  // Try to move the tetromino downward automatically.
+  if (!moveTetromino(0, 1)) {
+    lockTetromino();
+  }
+}
+
+// Game over: restore terminal settings and show final score.
+clearScreen();
+setCursorVisible(true);
+setCursorPosition(0, 0);
+print("Game Over! Final Score: ", score, "\n");
+Console.finalize();

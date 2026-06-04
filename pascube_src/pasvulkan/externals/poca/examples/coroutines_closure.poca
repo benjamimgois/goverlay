@@ -1,0 +1,73 @@
+const (START, LIMIT) = (1000, 1111);
+
+// As Coroutine functions have no state for themselves,
+// we have to use an alternative to introduce a limit,
+// that we can pass to the coro, if we don't want to
+// pass it on together with the counter in every resume.
+
+// But if we want to use the outer scoped const in corofun,
+// we'd get a runtime error: Undefined symbol: LIMIT
+
+// So we use a closure instead.
+
+// UPDATE: Now there's also coro data, but we'll leave this
+//         perfectly working example intact. :)
+
+let corofun = ( (j) => {
+ 
+  return (i) => {
+    puts('corofun started!');
+
+    while (i < j) {
+      puts('corofun state: ' ~ coro.state());
+      puts('corofun alive: ' ~ coro.alive());
+      Coroutine.yield(i += Coroutine.get());
+    }
+
+    puts('corofun ended!');
+  };
+
+})(LIMIT);
+
+var coro = Coroutine.create(corofun, START);
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //  false
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts();
+puts("Let's go!");
+
+puts();
+puts(coro.resume(100));
+
+// corofun started!
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts('coro state: ' ~ coro.state()); // always outside
+
+puts();
+puts(coro.resume(10));
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts();
+puts(coro.resume(1));
+
+puts('coro alive: ' ~ coro.alive());               //  true
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //   false
+
+puts();
+coro.resume(); // this resume will terminate the loop
+
+// corofun ended!
+
+puts('coro alive: ' ~ coro.alive());               // false
+puts('coro resumed: ' ~ coro.resumed());          //   true
+puts('coro terminated: ' ~ coro.terminated());   //    true

@@ -1,0 +1,18 @@
+
+function GCD(arr){
+  let i, y, n = arr.size(), x = Math.abs(arr[0]);
+  for (i = 1; i < n; i++){
+    y = Math.abs(arr[i]); 
+    while(x && y){
+      if(x > y){
+        x %= y;
+      }else{
+        y %= x;
+      }
+    }
+    x += y;
+  }
+  return x;
+}
+ 
+print(GCD([57,0,-45,-18,90,447]),"\n"); // => 3

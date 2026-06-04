@@ -1,0 +1,19 @@
+
+
+let va=[1,2,3];
+let vb=[4,5,6];
+let vc=(va~vb)~[7,8,9];
+let vd=vc[0..4];
+
+foreach(let ve;vd){
+ puts(ve);
+}
+         
+let ha={bla:"bla!",bluh:"bluh?"};
+
+foreach(let he;ha){
+ puts(he);
+}
+
+readLine();
+

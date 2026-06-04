@@ -1,0 +1,62 @@
+
+var Vector = {
+  create: function(let vx=0, let vy=0, let vz=0){
+    return setHashEvents({
+                           prototype: this, 
+                           x: vx,
+                           y: vy,
+                           z: vz
+                         }, this);
+  },
+  __add: fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x + b.x, a.y + b.y, a.z + b.z);
+    }else{
+      throw "No vector?";
+    }
+  },
+  __sub: fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x - b.x, a.y - b.y, a.z - b.z);
+    }else{
+      throw "No vector?";
+    }
+  },
+  __mul:fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x * b.x, a.y * b.y, a.z * b.z);
+    }else{
+      throw "No vector?";
+    }
+  },
+  __div: fastfunction(let a, let b){
+    // Important hint: "this" can be null here (even in non-fastfunction functions), so doesn't use it here! :-)
+    if((a instanceof Vector) && (b instanceof Vector)){
+      return new Vector(a.x / b.x, a.y / b.y, a.z / b.z);
+    }else{
+      throw "No vector?";
+    }
+  }
+};
+
+var va = new Vector(1, 2, 3);
+var vb = new Vector(10, 20, 30);
+
+var vc = va + vb;
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+vc -= vb;
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+vc *= vb;
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+vc /= (va*vb);
+puts(vc.x, " ", vc.y, " ", vc.z);
+
+readLine();
+
+

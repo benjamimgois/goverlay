@@ -1,0 +1,335 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#include "space_lines.glsl"
+
+struct Vertex {
+  uvec4 position; // xyz = Position, w = Line thickness
+  uvec4 position0; // xyz = Position 0, w = z min (optional for clipping)
+  uvec4 position1; // xyz = Position 1, w = z max (optional for clipping)
+  uvec4 color; // Color
+};
+
+#define Primitive Vertex // Just for simplicity so these are the same
+
+layout(set = 0, binding = 0) buffer SourcePrimitives {
+  Primitive primitives[];
+} sourcePrimitives;
+
+layout(set = 0, binding = 1) buffer DestinationVertices {
+  Vertex vertices[];
+} destinationVertices;
+
+layout(set = 0, binding = 2) buffer DestinationIndices {
+  uint indices[];
+} destinationIndices;
+
+/*
+// From Vulkan spec, just as reference: 
+struct VkDrawIndexedIndirectCommand {
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  int vertexOffset;
+  uint firstInstance;
+};
+*/
+
+struct DrawIndexedIndirectCommand {
+  uvec4 cmd0; // indexCount_instanceCount_firstIndex_vertexOffset; // x = indexCount, y = instanceCount, z = firstIndex, w = vertexOffset  
+  uvec4 cmd1; // firstInstance_padding0_padding1_padding2; // x = firstInstance, y = vertexCount, z = unused, w = unused
+};
+
+layout(set = 0, binding = 3) coherent buffer DestinationDrawIndexedIndirectCommand {
+  DrawIndexedIndirectCommand drawIndexedIndirectCommand;
+} destinationDrawIndexedIndirectCommand;
+
+layout(push_constant) uniform PushConstants {
+  uint viewBaseIndex;
+  uint countViews;
+  uint countAllViews;
+  uint countPrimitives;
+  vec2 viewPortSize;
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(std140, set = 0, binding = 4) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+/* clang-format on */
+
+vec2 clipSpaceToScreenSpace(const vec2 clipSpace) {
+  return fma(clipSpace, vec2(0.5), vec2(0.5)) * pushConstants.viewPortSize;
+}
+
+vec2 screenSpaceToClipSpace(const vec2 screenSpace) {
+  return fma(screenSpace / pushConstants.viewPortSize, vec2(2.0), vec2(-1.0));
+}
+
+shared mat4 viewProjectionMatrices[8]; // 8 view projection matrices for 8 views, that should be enough
+shared mat4 inverseViewProjectionMatrices[8]; // 8 inverse view projection matrices for 8 views, that should be enough
+
+// Define frustum plane equations in clip space
+const vec4 frustumPlanes[6] = {
+  vec4( 1.0,  0.0,  0.0, -1.0), // Right plane: x - w <= 0
+  vec4(-1.0,  0.0,  0.0, -1.0), // Left plane:  x + w >= 0
+  vec4( 0.0,  1.0,  0.0, -1.0), // Top plane:    y - w <= 0
+  vec4( 0.0, -1.0,  0.0, -1.0), // Bottom plane: y + w >= 0
+  vec4( 0.0,  0.0,  1.0, -1.0), // Far plane:    z - w <= 0
+  vec4( 0.0,  0.0, -1.0, -1.0)  // Near plane:   z + w >= 0
+};
+
+// Function to clip the line segment against the frustum planes
+bool clipLineToFrustum(inout vec4 start, inout vec4 end) {
+
+  // Initialize t0 and t1 for parametric line
+  float t0 = 0.0;
+  float t1 = 1.0;
+  vec4 d = end - start;
+
+  // Clip against the six frustum planes in clip space
+  for(int i = 0; i < 6; i++){
+    vec4 plane = frustumPlanes[i];
+    float denominator = dot(plane, d);
+    float numerator = -dot(plane, start);
+    if(denominator == 0.0){
+      // Line is parallel to plane
+      if(numerator < 0.0){
+        // Line is outside the plane
+        return false;
+      }
+      // Line is inside the plane, continue to next plane
+    } else {
+      float t = numerator / denominator;
+      if(denominator < 0.0){
+        // Entering half-space
+        if(t > t1){
+          return false;
+        }
+        if(t > t0){
+          t0 = t;
+        }
+      } else {
+        // Exiting half-space
+        if(t < t0){
+          return false;
+        }
+        if(t < t1){
+          t1 = t;
+        }
+      }
+    }
+  }
+
+  if(t0 > t1){
+    // Line is outside the frustum
+    return false;
+  }
+
+  // Update the start and end points based on t0 and t1
+  vec4 clippedStart = start + (t0 * d);
+  vec4 clippedEnd = start + (t1 * d);
+
+  start = clippedStart;
+  end = clippedEnd;
+
+  return true;
+}
+
+
+void main(){
+
+  if((gl_LocalInvocationID.x < pushConstants.countViews) && (gl_LocalInvocationID.x < 8u)){
+    uint viewIndex = gl_LocalInvocationID.x;
+    inverseViewProjectionMatrices[viewIndex] = inverse(viewProjectionMatrices[viewIndex] = uView.views[pushConstants.viewBaseIndex + viewIndex].projectionMatrix * uView.views[pushConstants.viewBaseIndex + viewIndex].viewMatrix);
+  }
+
+  barrier();
+  memoryBarrierShared();
+
+  uint primitiveIndex = gl_GlobalInvocationID.x;
+  
+  if(primitiveIndex < pushConstants.countPrimitives){
+
+    uint viewBaseIndex = pushConstants.viewBaseIndex;
+
+    Primitive primitive = sourcePrimitives.primitives[primitiveIndex];
+   
+    // Initialize the AABB with infinity and -infinity
+    vec4 aabb = vec4(uintBitsToFloat(0x7f800000u), uintBitsToFloat(0x7f800000u), uintBitsToFloat(0xff800000u), uintBitsToFloat(0xff800000u));
+
+    bool visible = true;
+
+    bool useSpecialVertices = false;
+
+    vec2 specialVertices[4];
+
+    // Line
+    
+    // Line start
+    vec3 lineStart3D = uintBitsToFloat(primitive.position0.xyz);
+    
+    // Line end
+    vec3 lineEnd3D = uintBitsToFloat(primitive.position1.xyz);
+
+    visible = true;
+
+    // Ensure that the line is visible in all views at the correct positions
+    for(int viewIndex = 0; viewIndex < int(pushConstants.countViews); viewIndex++){
+
+      mat4 viewProjectionMatrix = viewProjectionMatrices[viewIndex];
+
+      vec4 lineStartClip = viewProjectionMatrix * vec4(lineStart3D, 1.0);
+      vec4 lineEndClip = viewProjectionMatrix * vec4(lineEnd3D, 1.0);
+
+      if(any(lessThan(lineStartClip.xyz, vec3(-lineStartClip.w))) || 
+         any(lessThan(lineEndClip.xyz, vec3(-lineEndClip.w))) ||
+         any(greaterThan(lineStartClip.xyz, vec3(lineStartClip.w))) ||
+         any(greaterThan(lineEndClip.xyz, vec3(lineEndClip.w)))){
+
+        if(clipLineToFrustum(lineStartClip, lineEndClip)){
+
+          mat4 inverseViewProjectionMatrix = inverseViewProjectionMatrices[viewIndex];
+
+          vec4 lineStart3DClip = inverseViewProjectionMatrix * lineStartClip; 
+          lineStart3D = lineStart3DClip.xyz / lineStart3DClip.w;
+
+          vec4 lineEnd3DClip = inverseViewProjectionMatrix * lineEndClip; 
+          lineEnd3D = lineEnd3DClip.xyz / lineEnd3DClip.w;
+
+        }else{
+
+          visible = false;
+          break;
+
+        }
+
+      }
+
+      vec2 lineStartScreen = clipSpaceToScreenSpace(lineStartClip.xy / lineStartClip.w);
+      vec2 lineEndScreen = clipSpaceToScreenSpace(lineEndClip.xy / lineEndClip.w);
+
+      aabb.xy = min(aabb.xy, lineStartScreen);
+      aabb.zw = max(aabb.zw, lineStartScreen);
+
+      aabb.xy = min(aabb.xy, lineEndScreen);
+      aabb.zw = max(aabb.zw, lineEndScreen);
+
+    }
+
+    primitive.position0.xyz = floatBitsToUint(lineStart3D);
+    primitive.position1.xyz = floatBitsToUint(lineEnd3D);
+
+    float lineThickness = uintBitsToFloat(primitive.position.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+    // Add the radius to the AABB
+    aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+    aabb.xy = screenSpaceToClipSpace(aabb.xy);
+    aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+    // Check if the primitive is visible at all (culling)
+    visible = visible && (all(lessThanEqual(aabb.xy, vec2(1.0))) && all(greaterThanEqual(aabb.zw, vec2(-1.0))) && all(lessThanEqual(aabb.xy, aabb.zw)));
+
+    // If the primitive is visible, generate the vertices and indices
+    uint firstVertex = 0u;
+    if(visible){
+
+      // Premultiply the color with the alpha value
+      primitive.color.xyz = uvec3(floatBitsToUint(uintBitsToFloat(primitive.color.xyz) * uintBitsToFloat(primitive.color.w))); 
+     
+      // Generate the quad vertices for the current primitive 
+      firstVertex = atomicAdd(destinationDrawIndexedIndirectCommand.drawIndexedIndirectCommand.cmd1.y, 4u); // Each primitive has 4 vertices for a quad of two triangles
+      {
+
+        destinationVertices.vertices[firstVertex] = Vertex(
+          uvec4(floatBitsToUint(vec3(0.0, 0.0, 0.0)), primitive.position.w),
+          primitive.position0,
+          primitive.position1,
+          primitive.color
+        );
+
+        destinationVertices.vertices[firstVertex + 1u] = Vertex(
+          uvec4(floatBitsToUint(vec3(1.0, 0.0, 0.0)), primitive.position.w),
+          primitive.position0,
+          primitive.position1,
+          primitive.color
+        );
+
+
+        destinationVertices.vertices[firstVertex + 2u] = Vertex(
+          uvec4(floatBitsToUint(vec3(1.0, 0.0, 1.0)), primitive.position.w),
+          primitive.position0,
+          primitive.position1,
+          primitive.color
+        );
+
+
+        destinationVertices.vertices[firstVertex + 3u] = Vertex(
+          uvec4(floatBitsToUint(vec3(0.0, 0.0, 1.0)), primitive.position.w),
+          primitive.position0,
+          primitive.position1,
+          primitive.color
+        );
+
+      }   
+
+    }
+
+    {  
+
+      // Generate the quad indices for the current primitive
+//    uint firstIndex = atomicAdd(destinationDrawIndexedIndirectCommand.drawIndexedIndirectCommand.cmd0.x, 6u); // Each primitive has 6 indices for a quad of two triangles
+      // We can't use atomicAdd here because the indices need to be in order to ensure that the rendering order is correct for the primitives,
+      // so we generate degenerate indices for invisible primitives to keep the indices in sync with the vertices but not render the primitive.      
+      uint firstIndex = primitiveIndex * 6u; // Each primitive has 6 indices for a quad of two triangles
+      atomicAdd(destinationDrawIndexedIndirectCommand.drawIndexedIndirectCommand.cmd0.x, 6u); // But increment the index count for the draw command anyway, for the indirect draw call later
+      if(visible){
+
+        destinationIndices.indices[firstIndex] = firstVertex;
+        destinationIndices.indices[firstIndex + 1u] = firstVertex + 1u;
+        destinationIndices.indices[firstIndex + 2u] = firstVertex + 2u;
+
+        destinationIndices.indices[firstIndex + 3u] = firstVertex;
+        destinationIndices.indices[firstIndex + 4u] = firstVertex + 2u;
+        destinationIndices.indices[firstIndex + 5u] = firstVertex + 3u;
+
+      }else{
+
+        // If the primitive is not visible, output degenerate indices to keep the indices in sync with the vertices but not render the primitive
+
+        destinationIndices.indices[firstIndex] = firstVertex;
+        destinationIndices.indices[firstIndex + 1u] = firstVertex;
+        destinationIndices.indices[firstIndex + 2u] = firstVertex;
+
+        destinationIndices.indices[firstIndex + 3u] = firstVertex;
+        destinationIndices.indices[firstIndex + 4u] = firstVertex;
+        destinationIndices.indices[firstIndex + 5u] = firstVertex;
+
+      }
+
+    }
+
+    // All further things happen in the vertex and fragment shaders
+
+  }
+
+}

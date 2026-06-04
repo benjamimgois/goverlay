@@ -1,0 +1,47 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_gpu_shader_fp64 : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer TileMapExpandedDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapExpandedDirtyBuffer;
+
+layout(set = 0, binding = 1, std430) buffer QueuedTiles {
+  uint data[]; // 6-based, because two VkDispatchIndirectCommand structs are stored in the same buffer at the beginning, with three 32-bit unsigned integers each
+} queuedTiles;
+
+layout(push_constant) uniform PushConstants {
+  uint tileMapResolution;
+  uint visualTileResolution;
+  uint physicsTileResolution;
+} pushConstants;
+
+void main() {
+  const uvec2 tileMapXY = uvec2(gl_GlobalInvocationID.xy);
+  if(all(equal(tileMapXY, uvec2(0u)))){
+    // 256 tile positions per dispatch local group
+    // [1] anxd [4] aren't written to, due to race-conditions otherwise, these are cleared with vkCmdFillBuffer before dispatch
+    // Each vkCmdDispatchIndirect struct contains three 32-bit uints, here are two of them, one for visual and one for physics.
+    queuedTiles.data[0] = ((pushConstants.visualTileResolution * pushConstants.visualTileResolution) + 255u) >> 8u; 
+    queuedTiles.data[2] = 1u;
+    queuedTiles.data[3] = ((pushConstants.physicsTileResolution * pushConstants.physicsTileResolution) + 255u) >> 8u;
+    queuedTiles.data[5] = 1u;
+  }
+  if(all(lessThan(tileMapXY, uvec2(pushConstants.tileMapResolution)))){
+    const uint index = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
+    if((tileMapExpandedDirtyBuffer.data[index >> 5] & (1u << (index & 31u))) != 0u){
+      queuedTiles.data[atomicAdd(queuedTiles.data[1], 1u) + 6u] = index;
+    //atomicAdd(queuedTiles.data[4], 1u); // also increment physics tile count, or use VkCmdCopyBuffer to copy visual tile count to physics tile count after dispatch
+    }
+  }
+}

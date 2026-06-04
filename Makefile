@@ -3,10 +3,14 @@ bindir = /bin
 libexecdir = /libexec
 datadir = /share
 
-all: goverlay start_goverlay.sh bgmod bgmod-uninstaller
+all: goverlay start_goverlay.sh bgmod bgmod-uninstaller pascube_bin
 
 goverlay: *.pas *.lfm goverlay.lpi goverlay.lpr goverlay.ico
 	lazbuild -B goverlay.lpi --bm=Release $(LAZBUILDOPTS)
+
+pascube_bin:
+	lazbuild -B pascube_src/pascube.lpi $(LAZBUILDOPTS)
+	cp pascube_src/pascube ./pascube
 
 bgmod: bgmod.lpr
 	fpc -O3 bgmod.lpr
@@ -28,6 +32,11 @@ start_goverlay.sh: data/goverlay.sh.in
 
 clean:
 	rm -f goverlay
+	rm -f pascube
+	rm -f pascube_src/pascube
+	rm -rf pascube_src/lib/
+	rm -rf pascube_src/backup/
+	rm -f pascube_src/pascube.lps
 	rm -f bgmod
 	rm -f bgmod-uninstaller
 	rm -f data/bgmod/bgmod
@@ -40,8 +49,9 @@ clean:
 	rm -f goverlay.lps
 	rm -f goverlay_*.tar.xz
 
-install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
+install: goverlay data/goverlay.sh bgmod bgmod-uninstaller pascube_bin
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay
+	install -D -m=755 pascube $(DESTDIR)$(prefix)$(libexecdir)/pascube
 	install -D -m=755 data/goverlay.sh $(DESTDIR)$(prefix)$(bindir)/goverlay
 	install -D -m=644 data/io.github.benjamimgois.goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/io.github.benjamimgois.goverlay.desktop
 	install -D -m=644 data/io.github.benjamimgois.goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/io.github.benjamimgois.goverlay.metainfo.xml
@@ -58,6 +68,7 @@ install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 
 uninstall:
 	rm -f $(DESTDIR)$(prefix)$(libexecdir)/goverlay
+	rm -f $(DESTDIR)$(prefix)$(libexecdir)/pascube
 	rm -f $(DESTDIR)$(prefix)$(bindir)/goverlay
 	rm -f $(DESTDIR)$(prefix)$(datadir)/applications/io.github.benjamimgois.goverlay.desktop
 	rm -f $(DESTDIR)$(prefix)$(datadir)/metainfo/io.github.benjamimgois.goverlay.metainfo.xml

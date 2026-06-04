@@ -1,0 +1,8 @@
+
+let counter=0,temp=new Array(2),a=[].resize(1);
+while(1){
+  temp=new Array(2);
+  a[0]=temp;
+  puts(counter++);
+}
+

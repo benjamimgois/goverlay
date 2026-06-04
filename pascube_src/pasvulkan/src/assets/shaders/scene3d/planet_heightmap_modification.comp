@@ -1,0 +1,128 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) uniform image2D uImageHeightMap;
+
+layout(set = 0, binding = 1) buffer TileMapDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapDirtyBuffer;
+
+layout(set = 0, binding = 2) uniform sampler2DArray uBrushTextureArray;
+
+layout(push_constant) uniform PushConstants {
+  vec4 positionRadius; // xyz = position, w = radius
+  vec4 innerRadiusValueMinMax; // x = inner radius, y = value, z = min, w = max
+  uvec4 tileMapResolutionShiftBrushIndexBrushRotation; // x = dirty size, y = shift, z = brush index, w = brush rotation
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageHeightMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    vec3 p = octPlanetUnsignedDecode(vec2(texel) / vec2(texSize));
+
+    vec3 n = normalize(pushConstants.positionRadius.xyz);
+
+    float d;
+
+    if(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z == 0u){
+
+      // Just a circle brush
+     
+      d = smoothstep(
+        0.0,
+        -pushConstants.innerRadiusValueMinMax.x,
+        length(p - n) - pushConstants.positionRadius.w
+      );
+
+    }else if(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z <= 255u){
+
+      // Brush texture
+
+      vec3 t = n.yzx - n.zxy, 
+           b = normalize(cross(n, t = normalize(t - dot(t, n)))),
+           o = p - n;
+      float brushRotation = uintBitsToFloat(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.w); 
+      if(brushRotation != 0.0){
+        const vec2 rotationSinCos = sin(vec2(brushRotation) + vec2(0.0, 1.57079632679));
+        const vec3 ot = t, ob = b;
+        t = (ot * rotationSinCos.y) - (ob * rotationSinCos.x);
+        b = (ot * rotationSinCos.x) + (ob * rotationSinCos.y);
+      }
+      vec2 uv = vec2(dot(o, t), dot(o, b)) / pushConstants.positionRadius.w;
+      d = smoothstep(1.0, 1.0 - (1.0 / length(textureSize(uBrushTextureArray, 0).xy)), max(abs(uv.x), abs(uv.y)));
+
+      d *= smoothstep(-1e-4, 1e-4, dot(p, n)); // When we are on the back side of the planet, we need to clear the brush, but smoothly.
+
+      if(d > 0.0){
+        d *= textureLod(uBrushTextureArray, vec3(fma(uv, vec2(0.5), vec2(0.5)), float(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z)), 0.0).x;
+      } 
+
+    }else{
+
+      // No brush
+
+      d = 0.0;
+
+    }
+
+    if(d > 0.0){
+
+      // When we are on the dirty map tile corner, we need to update the adjacent tiles as well, otherwise we can only update the current tile.
+/*    uint tileMapMask = pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.x - 1u; // Size is always a power of two, so we can convert it to a mask easily.
+      uvec2 tileMapFractionalXY = uvec2(texel) & uvec2(tileMapMask);
+      if(any(equal(tileMapFractionalXY, uvec2(0))) || any(equal(tileMapFractionalXY, uvec2(tileMapMask)))){
+        const ivec2 minXY = ivec2((tileMapFractionalXY.x == 0u) ? -1 : 0, (tileMapFractionalXY.y == 0u) ? -1 : 0);
+        const ivec2 maxXY = ivec2((tileMapFractionalXY.x == tileMapMask) ? 1 : 0, (tileMapFractionalXY.y == tileMapMask) ? 1 : 0);
+        for(int y = minXY.y; y <= maxXY.y; y++){
+          for(int x = minXY.x; x <= maxXY.x; x++){
+            uvec2 tileMapXY = uvec2(wrapOctahedralTexelCoordinates(ivec2(texel) + ivec2(x, y), ivec2(texSize))) >> pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.y;
+            uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.x) + tileMapXY.x;
+            atomicOr(tileMapDirtyBuffer.data[tileMapIndex >> 5u], 1u << (tileMapIndex & 31u));
+          }
+        }
+        // Commented out code, because the CPU expands the dirty map in the moment anyway.
+      }else*/{
+        uvec2 tileMapXY = uvec2(texel) >> pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.y;
+        uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.x) + tileMapXY.x;
+        atomicOr(tileMapDirtyBuffer.data[tileMapIndex >> 5u], 1u << (tileMapIndex & 31u));
+      } 
+
+      float height = imageLoad(uImageHeightMap, texel).x + (d * pushConstants.innerRadiusValueMinMax.y);
+          
+      imageStore(
+        uImageHeightMap, 
+        texel, 
+        vec4(
+          clamp(
+            height, 
+            pushConstants.innerRadiusValueMinMax.z, 
+            pushConstants.innerRadiusValueMinMax.w
+          )
+        )
+      );
+
+    }
+
+  }
+
+}
+

@@ -1,0 +1,355 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+/* clang-format off */
+
+#ifndef PASS
+#define PASS 0
+#endif
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+/*
+// From Vulkan spec, just as reference: 
+struct VkDrawIndexedIndirectCommand {
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  int vertexOffset;
+  uint firstInstance;
+};
+*/
+
+struct DrawIndexedIndirectCommand {
+  uvec4 cmd0; // indexCount_instanceCount_firstIndex_vertexOffset; // x = indexCount, y = instanceCount, z = firstIndex, w = vertexOffset  
+  uvec4 cmd1; // firstInstance_objectIndex_flags_instanceDataIndex; // x = firstInstance, y = objectIndex, z = boundingSphereIndex, w = flags
+}; // 32 bytes per draw indexed indirect command, dividable by 32 bytes for better GPU cache line alignment 
+
+#if PASS == 0
+
+layout(push_constant) uniform PushConstants {
+  uint baseDrawIndexedIndirectCommandIndex;
+  uint countDrawIndexedIndirectCommands;
+  uint drawCallIndex;
+  uint countObjectIndices;
+  uint skipCulling; // 1u if it is the first frame, if there are sudden complete new views, or if the objectIndices are not valid anymore, 0u otherwise
+  uint visibilityBufferOffset;  
+} pushConstants;
+
+layout(set = 0, binding = 0, std430) buffer InputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand commands[];
+} inputDrawIndexedIndirectCommands;
+
+layout(set = 0, binding = 1, std430) readonly buffer InputVisiblityBuffer { // from previous frame
+  uint bitmap[];
+} inputVisibilityBuffer;
+
+layout(set = 0, binding = 2, std430) buffer OutputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand commands[];
+} outputDrawIndexedIndirectCommands;
+
+layout(set = 0, binding = 3, std430) buffer OutputDrawIndexedIndirectCommandCounts {
+  uint counts[];
+} outputDrawIndexedIndirectCommandCounts;
+
+#else // PASS == 1
+
+layout(push_constant) uniform PushConstants {
+  uint baseDrawIndexedIndirectCommandIndex;
+  uint countDrawIndexedIndirectCommands;
+  uint drawCallIndex;
+  uint countObjectIndices;
+  uint skipCulling; // 1u if it is the first frame, if there are sudden complete new views, or if the objectIndices are not valid anymore, 0u otherwise
+  uint visibilityBufferOffset;  
+  uint textureDepthIndex;
+  uint baseViewIndex;
+  uint countViews;
+  uint baseDrawIndexedIndirectCommandIndexForDisocclusions;
+  uint drawCallIndexForDisocclusions;
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 0, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256 views as maximum for a single renderer instance (but a application/game can have multiple renderer instances for the same scene)  
+} uView;
+
+layout(set = 0, binding = 1, std430) readonly buffer InputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand commands[];
+} inputDrawIndexedIndirectCommands;
+
+layout(set = 0, binding = 2, std430) buffer OutputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand commands[];
+} outputDrawIndexedIndirectCommands;
+
+layout(set = 0, binding = 3, std430) buffer OutputDrawIndexedIndirectCommandCounts {
+  uint counts[];
+} outputDrawIndexedIndirectCommandCounts;
+
+layout(set = 0, binding = 4, std430) buffer OutputVisiblityBuffer {
+  uint bitmap[];
+} outputVisiblityBuffer;
+
+layout(set = 0, binding = 5) uniform sampler2DArray uTextureDepths[];
+
+// Global descriptor set 
+layout(set = 1, binding = 0, std430) readonly buffer InstanceMatrices {
+  mat4 instanceMatrices[]; // pair-wise: 0 = base, 1 = previous (for velocity)
+} instanceMatrices;
+
+// Bounding sphere descriptor set
+layout(set = 2, binding = 0, std430) readonly buffer BoundingSpheres {
+  vec4 boundingSpheres[]; // xyz = center, w = radius
+} boundingSphereBuffer;
+
+#include "frustum.glsl"
+
+#include "projectsphere.glsl"
+
+vec4 sphereTransform(const in vec4 sphere, const in mat4 transform){
+  return vec4(
+    (transform * vec4(sphere.xyz, 1.0)).xyz, 
+    max(
+      // We are conservative here, so don't scale smaller than the original sphere radius for to be sure that the object is not culled away as a false positive
+      sphere.w * max(1.0, sqrt(max(max(dot(transform[0].xyz, transform[0].xyz), dot(transform[1].xyz, transform[1].xyz)), dot(transform[2].xyz, transform[2].xyz)))),
+      0.0
+    )
+  );
+}
+
+// The following variables are shared between all invocations of this shader for too keep the pre-calculations needed for the culling small, which
+// are valid and the same for all invocations anyway. Other implementations uses CPU pre-calculations for it, but this is a more simple and straight 
+// forward approach in my opinion, so that almost everything is done on the GPU and is in the same place, as long as it don't hurts the performance
+// significantly.
+shared mat4 viewMatrices[8];
+shared mat4 projectionMatrices[8];
+shared vec4 inverseProjectionMatrixZData[8];
+shared float zNears[8]; 
+//shared vec4 fastFrustums[8];
+shared Frustum frustums[8];
+
+#endif
+
+void main(){
+
+#if PASS == 0
+
+  // In the first pass, just draw the previous frame visible stuff as against-cull-data (HiZ depth buffer) for the next pass
+  // The previous drawIndexedIndirectCommands can't be reused directly here in this everything-in-a-single-round-trip
+  // implementation, since as there is the possibility of no more existing objects, different data offsets and so on. Therefore 
+  // this first pass is needed, otherwise it would be possible that it breaks, On the other hand, the object indices are temporally 
+  // stable, so they can be reused from the previous frame for the starting point HiZ depth buffer.
+
+  uint invocationIndex = gl_GlobalInvocationID.x;
+
+  if(invocationIndex >= pushConstants.countDrawIndexedIndirectCommands){
+    return;  
+  }
+
+  uint sourceIndex = pushConstants.baseDrawIndexedIndirectCommandIndex + invocationIndex;
+
+  const uvec4 cmd0 = inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd0;
+  uvec4 cmd1 = inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd1;
+
+  if((pushConstants.skipCulling == 0u) &&  // If it is the first frame or the like, just don't cull anything
+     ((cmd1.y < pushConstants.countObjectIndices) && // Check if the object index is in the valid range, since
+                                                     // new drawIndexedIndirectCommands may have been added 
+                                                     // with a higher object index than the current 
+                                                     // countObjectIndices in contrast to the previous frame
+      ((inputVisibilityBuffer.bitmap[pushConstants.visibilityBufferOffset + (cmd1.y >> 5u)] & (1u << (cmd1.y & 31u))) == 0u))){
+    // Skip, since it was not visible in the previous frame    
+    return; 
+  }
+
+  if(((cmd1.w & 2u) | cmd0.w) != 0u){
+    // It has instance effects, so it is not a candidate for HiZ depth buffer culling, since it can have holes in the depth buffer through the
+    // instance effects, so just pass it through to the next pass as non-added, so that the next pass can handle it properly.
+    return;
+  }
+  
+  inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd1.w = (cmd1.w |= 1u); // Mark as added
+
+  uint destinationIndex = pushConstants.baseDrawIndexedIndirectCommandIndex + atomicAdd(outputDrawIndexedIndirectCommandCounts.counts[pushConstants.drawCallIndex], 1u);
+  
+  outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd0 = cmd0;
+  outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd1 = cmd1;
+  
+#else // PASS == 1
+
+  // In the second pass, cull the stuff against the previous frame visible stuff but with the current view and projection matrices
+
+  uint localInvocationIndex = gl_LocalInvocationID.x;
+
+  // Maximal 8 views at once, for example 2 for VR (for the left und right eyes), 4 for cascaded shadow maps, 6 for cube maps
+  uint countViews = min(pushConstants.countViews, 8); 
+
+  if(localInvocationIndex < countViews){
+    
+    uint viewIndex = pushConstants.baseViewIndex + localInvocationIndex;
+
+    viewMatrices[localInvocationIndex] = uView.views[viewIndex].viewMatrix;
+
+    mat4 projectionMatrix = projectionMatrices[localInvocationIndex] = uView.views[viewIndex].projectionMatrix;
+
+    inverseProjectionMatrixZData[localInvocationIndex] = vec4(uView.views[viewIndex].inverseProjectionMatrix[2].zw, uView.views[viewIndex].inverseProjectionMatrix[3].zw);
+
+    // Get z near from projection matrix 
+    zNears[localInvocationIndex] = abs(uView.views[viewIndex].inverseProjectionMatrix[3][2] / uView.views[viewIndex].inverseProjectionMatrix[2][3]);
+
+    mat4 transposedProjectionMatrix = transpose(uView.views[viewIndex].projectionMatrix);
+
+/*  fastFrustums[localInvocationIndex] = vec4(
+      normalize(transposedProjectionMatrix[3] + transposedProjectionMatrix[0]).xz, 
+      normalize(transposedProjectionMatrix[3] + transposedProjectionMatrix[1]).yz
+    );*/
+
+    frustumSetup(frustums[localInvocationIndex], uView.views[viewIndex].projectionMatrix);
+      
+  }
+
+  memoryBarrierShared();
+  groupMemoryBarrier();
+  barrier(); 
+
+  uint invocationIndex = gl_GlobalInvocationID.x;
+
+  if(invocationIndex >= pushConstants.countDrawIndexedIndirectCommands){
+    return;  
+  }
+
+  uint sourceIndex = pushConstants.baseDrawIndexedIndirectCommandIndex + invocationIndex;
+
+  bool isDrawIndexedIndirectCommandVisible = false;
+
+  const uvec4 cmd0 = inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd0;
+
+  const uvec4 cmd1 = inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd1;
+
+  vec4 boundingSphere = boundingSphereBuffer.boundingSpheres[cmd1.z];
+
+  vec4 screenSpaceAABB = vec4(-2.0); // out of screen space, so that it is always culled away 
+
+  // Only cull when needed, since some render passes may not need culling, so we just forward the drawIndexedIndirectCommands 
+  // directly to the output buffer in that case. And don't cull draw items with more than one instance, since in this case
+  // the bounding sphere is not valid for all instances.
+  if((boundingSphere.w > 0.0) && (pushConstants.skipCulling == 0u) && (cmd0.y == 1u)){
+
+    if(cmd1.x != 0u){
+      // Instance matrix is available, so transform the bounding sphere by it (pair-wise instance matrices: 0 = base, 1 = previous for velocity)
+      boundingSphere = sphereTransform(boundingSphere, instanceMatrices.instanceMatrices[cmd1.x << 1u]);
+    } 
+ 
+    vec2 viewPortSize = vec2(textureSize(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)], 0).xy);
+    int countLODLevels = textureQueryLevels(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)]);
+
+    for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+
+      vec4 viewSpaceBoundingSphere = vec4((viewMatrices[viewIndex] * vec4(boundingSphere.xyz, 1.0)).xyz, boundingSphere.w);
+
+      // Frustum visible check, but without testing the far planes, so it is more projection matrix variant independent (reverse z, 
+      // infinite far plane, and the like). The CPU culling should already have frustum-culled it away anyway, so this is just a 
+      // safety check.
+      bool visible = frustumCullingSphereTest(frustums[viewIndex], viewSpaceBoundingSphere);
+/*    vec4 frustum = fastFrustums[viewIndex];
+      bool visible = (((-viewSpaceBoundingSphere.z) + viewSpaceBoundingSphere.w) >= zNears[viewIndex]) &&
+                     (((viewSpaceBoundingSphere.z * frustum.y) - (abs(viewSpaceBoundingSphere.x) * frustum.x)) > -viewSpaceBoundingSphere.w) &&
+                     (((viewSpaceBoundingSphere.z * frustum.w) - (abs(viewSpaceBoundingSphere.y) * frustum.z)) > -viewSpaceBoundingSphere.w);*/
+
+      if(visible){
+
+        vec4 aabb;
+
+        if(projectSphere(viewSpaceBoundingSphere.xyz, viewSpaceBoundingSphere.w, zNears[viewIndex], uView.views[pushConstants.baseViewIndex + viewIndex].projectionMatrix, aabb, true)){
+
+          vec2 size = vec2(aabb.zw - aabb.xy) * viewPortSize;
+
+          float level = clamp(floor(log2(max(size.x, size.y))), 0.0, float(countLODLevels - 1)); 
+
+#undef USE_FASTER_DEPTH_CALCULATIONS
+#ifdef USE_FASTER_DEPTH_CALCULATIONS
+          vec2 depthZ = fma(
+            inverseProjectionMatrixZData[viewIndex].xy, 
+            textureLod(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)], vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).xx, 
+            inverseProjectionMatrixZData[viewIndex].zw
+          );
+#else
+          vec2 depthZ = (uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix * vec4(
+            (aabb.xy + aabb.zw) - vec2(1.0), // optimized from: fma(mix(aabb.xy, aabb.zw, 0.5), vec2(2.0), vec2(-1.0))
+            textureLod(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)], vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).x, 
+            1.0
+          )).zw;
+#endif
+          float depth = -(depthZ.x / depthZ.y); // flip the sign, because z in view space is negative otherwise
+          
+          visible = ((-viewSpaceBoundingSphere.z) - viewSpaceBoundingSphere.w) <= depth;
+
+        }
+
+      }
+
+      if(visible){
+        
+        isDrawIndexedIndirectCommandVisible = true;
+
+        // No need to check also the other views in this case
+        break; 
+
+      }
+
+    }
+
+  }else{
+      
+    // Always visible, if there is no bounding sphere, or if culling is disabled, or if there are more than one instance, since in this case 
+    // the bounding sphere is not valid for all instances, or always invisible, when instanceCount is zero.       
+    isDrawIndexedIndirectCommandVisible = (cmd0.y != 0u);
+
+  }
+
+  if(!isDrawIndexedIndirectCommandVisible){
+    return;
+  }
+
+  const uint objectIndex = cmd1.y;
+  
+  // Mark as visible in any case, independently of being already added in the previous pass 
+  atomicOr(outputVisiblityBuffer.bitmap[pushConstants.visibilityBufferOffset + (cmd1.y >> 5u)], 1u << (cmd1.y & 31u)); 
+
+  // Append to the global part of the output buffer to ensure the forward+ pass renders all visible elements as much as possible, so that false positive 
+  // occlusion culls are avoided as much as possible.
+  {
+
+    uint destinationIndex = pushConstants.baseDrawIndexedIndirectCommandIndex + atomicAdd(outputDrawIndexedIndirectCommandCounts.counts[pushConstants.drawCallIndex], 1u);
+    
+    // Copy the command data to the output buffer
+    outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd0 = cmd0;
+    outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd1 = cmd1;
+
+  }
+
+  // Manage disocclusion in the output buffer. This step helps optimize depth pre-pass by minimizing depth-buffer overdraw and avoiding redundant rendering 
+  // in the depth buffer. This is necessary because a complete depth pre-pass is needed for things like e.g. screen space ambient occlusion and the like.
+  if(((cmd1.w & 1u) == 0u) &&                                                             // Just when not already added in the previous pass to the global output buffer part
+     (pushConstants.baseDrawIndexedIndirectCommandIndexForDisocclusions != 0xffffffffu)){ // Just when enabled
+
+    uint destinationIndex = pushConstants.baseDrawIndexedIndirectCommandIndexForDisocclusions + atomicAdd(outputDrawIndexedIndirectCommandCounts.counts[pushConstants.drawCallIndexForDisocclusions], 1u);
+    
+    // Copy the command data to the output buffer
+    outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd0 = cmd0;
+    outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd1 = cmd1;
+
+  }
+
+#endif
+
+} 

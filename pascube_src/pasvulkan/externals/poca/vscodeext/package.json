@@ -1,0 +1,25 @@
+{
+  "name": "poca",
+  "displayName": "Poca",
+  "description": "Poca language support",
+  "version": "0.0.2",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "poca",
+      "aliases": ["poca", "Poca"],
+      "extensions": [".poca"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "poca",
+      "scopeName": "source.poca",
+      "path": "./syntaxes/poca.tmLanguage.json"
+    }]
+  }
+}

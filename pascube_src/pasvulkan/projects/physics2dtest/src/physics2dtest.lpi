@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <PathDelim Value="\"/>
+    <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+        <MainUnitHasScaledStatement Value="False"/>
+        <CompatibilityMode Value="True"/>
+      </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="physics2dtest"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+      <Icon Value="0"/>
+    </General>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default"/>
+      </Modes>
+    </RunParams>
+    <Units Count="1">
+      <Unit0>
+        <Filename Value="physics2dtest.dpr"/>
+        <IsPartOfProject Value="True"/>
+      </Unit0>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value=".\..\bin\physics2dtest"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir);.;..\..\..\src"/>
+      <OtherUnitFiles Value="..\..\..\src;..\..\..\externals\pucu\src;..\..\..\externals\pasdblstrutils\src;..\..\..\externals\pasmp\src;..\..\..\externals\pasjson\src;..\..\..\externals\kraft\src;..\..\..\externals\rnl\src;..\..\..\externals\pasgltf\src"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Conditionals Value="if ((TargetOS=&apos;linux&apos;) or (TargetOS=&apos;freebsd&apos;) or (TargetOS=&apos;unix&apos;)) and not (TargetOS=&apos;android&apos;) then begin
+ CustomOptions += &apos; -dWayland -dXCB -dXLIB&apos;;
+end;
+
+if TargetOS=&apos;linux&apos; then begin
+ CustomOptions += &apos; -dPasVulkanUseSDL2&apos;;
+ if TargetOS&lt;>&apos;android&apos; then begin
+  CustomOptions += &apos; -dPasVulkanUseSDL2WithVulkanSupport&apos;;
+ end;
+end;
+
+ CustomOptions += &apos; -dPasVulkanPasMP&apos;;
+
+// example for adding linker options on Mac OS X
+//if TargetOS=&apos;darwin&apos; then
+//  LinkerOptions := &apos; -framework OpenGL&apos;;
+
+// example for adding a unit and include path on Windows
+//if SrcOS=&apos;win&apos; then begin
+//  UnitPath += &apos;;win&apos;;
+//  IncPath += &apos;;win&apos;;
+//end;"/>
+    <Parsing>
+      <Style Value="1"/>
+      <SyntaxOptions>
+        <SyntaxMode Value="Delphi"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <TargetCPU Value="x86_64"/>
+    </CodeGeneration>
+    <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf3"/>
+        <UseExternalDbgSyms Value="True"/>
+      </Debugging>
+    </Linking>
+    <Other>
+      <CustomOptions Value="-dDEBUG"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="7">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+      <Item4>
+        <Name Value="TApplicationException"/>
+      </Item4>
+      <Item5>
+        <Name Value="EVulkanPipelineCacheException"/>
+      </Item5>
+      <Item6>
+        <Name Value="EpvVulkanPipelineCacheException"/>
+      </Item6>
+      <Item7>
+        <Name Value="EpvVulkanResultException"/>
+      </Item7>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

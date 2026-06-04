@@ -1,0 +1,138 @@
+
+// A* Pathfinding Algorithm 
+
+// This is a simple implementation of the A* pathfinding algorithm in POCA.
+// It finds the shortest path from a start node to a goal node in a grid.
+// The grid is represented as a 2D array of nodes, where each node has a
+// position (x, y), a cost (g), a heuristic (h), and a parent node.
+// The algorithm uses a priority queue to explore the nodes with the lowest
+// f = g + h first. The heuristic used is the Manhattan distance between
+// the current node and the goal node. The algorithm returns the path from
+// the start node to the goal node, or an empty array if no path is found.
+
+var astar = {
+
+  create: function(let grid, let start, let goal) {      
+    let instance = {};
+    instance.prototype = this;
+    instance.grid = [];
+    for (let i = 0; i < grid.length; i++) {
+      let row = [];
+      for (let j = 0; j < grid[i].length; j++) {
+        row.push(
+          {
+            x: j,
+            y: i,
+            g: 0,
+            h: 0,
+            f: 0,
+            parent: null
+          }
+        );        
+      }
+      instance.grid.push(row);
+    }
+    instance.start = instance.grid[start.y][start.x];
+    instance.goal = instance.grid[goal.y][goal.x];
+    instance.openSet = [];
+    instance.closedSet = [];
+    instance.path = [];
+    return instance;
+  },
+  
+  heuristic: function(a, b) {
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  },
+
+  getNeighbors: function(node) {
+    let neighbors = [];
+    let x = node.x;
+    let y = node.y;
+
+    if (x > 0) {
+       neighbors.push(this.grid[y][x - 1]);
+    } 
+    if (x < this.grid[0].length - 1) {
+       neighbors.push(this.grid[y][x + 1]);
+    }
+    if (y > 0) {
+       neighbors.push(this.grid[y - 1][x]);
+    }
+    if (y < this.grid.length - 1) {
+       neighbors.push(this.grid[y + 1][x]);
+    }
+
+    return neighbors;
+  },
+
+  findPath: function() {
+
+    this.openSet.push(this.start);
+
+    while (this.openSet.length > 0) {
+      let current = this.openSet[0];
+
+      for (let i = 1, j = this.openSet.length; i < j; i++) {
+        if (this.openSet[i].f < current.f) {
+          current = this.openSet[i];
+        }
+      }
+
+      if (current === this.goal) {
+        let temp = current;
+        while (temp) {
+          this.path.unshift(temp);
+          temp = temp.parent;
+        }
+        return this.path;
+      }
+
+      this.openSet.remove(current);
+      this.closedSet.push(current);
+
+      let neighbors = this.getNeighbors(current);
+      foreach (let neighbor in neighbors) {
+
+        if (this.closedSet.includes(neighbor)) continue;
+
+        let tentativeG = current.g + 1;
+
+        if (!this.openSet.includes(neighbor)) {
+          this.openSet.push(neighbor);
+        } else if (tentativeG >= neighbor.g) {
+          continue;
+        }
+
+        neighbor.parent = current;
+        neighbor.g = tentativeG;
+        neighbor.h = this.heuristic(neighbor, this.goal);
+        neighbor.f = neighbor.g + neighbor.h;
+      }
+    }
+
+    return [];
+  }
+};
+
+// Example usage
+
+let grid = [
+  [0, 0, 0, 0, 0],
+  [0, 1, 1, 1, 0],
+  [0, 0, 0, 1, 0],
+  [0, 1, 0, 0, 0],
+  [0, 0, 0, 1, 0]
+];
+
+let start = { x: 0, y: 0 };
+let goal = { x: 4, y: 4 };
+let astarInstance = astar.create(grid, start, goal);
+let path = astarInstance.findPath();
+if (path.size() > 0) {
+  print("Path found:");
+  foreach (let node in path) {
+    print("(", node.x, ", ", node.y, ")\n");
+  }
+} else {
+  print("No path found.\n");
+}

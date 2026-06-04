@@ -1,0 +1,57 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  int size;
+  float fFactor;
+  float ngon;  
+  float phiShutterMax;
+} pushConstants;
+
+layout(set = 0, binding = 0, std430) writeonly buffer BokehShapeTaps {
+  int countBokehShapeTaps; 
+  vec2 bokehShapeTaps[];
+};
+
+/* clang-format on */
+
+const float PI = 3.14159265359;   
+const float halfPI = 1.57079632679;
+
+// o = tap sample xy, f = f-factor, n = diaphragm shape ngon, phiShutterMax = max. lens shutter rotation 
+vec2 getBokehTapSampleCoord(const in vec2 o, const in float f, const float n, const in float phiShutterMax){
+    vec2 ab = (o * 2.0) - vec2(1.0);    
+    vec2 phir = ((ab.x * ab.x) > (ab.y * ab.y)) ? vec2((abs(ab.x) > 1e-8) ? ((PI * 0.25) * (ab.y / ab.x)) : 0.0, ab.x) : vec2((abs(ab.y) > 1e-8) ? ((PI * 0.5) - ((PI * 0.25) * (ab.x / ab.y))) : 0.0, ab.y); 
+    phir.x += f * phiShutterMax;
+    phir.y *= (f > 0.0) ? pow((cos(PI / n) / cos(phir.x - ((2.0 * (PI / n)) * floor(((n * phir.x) + PI) / (2.0 * PI))))), f) : 1.0;
+    return sin(vec2(phir.x) + vec2(0.0, halfPI)) * phir.y;
+}               
+
+void main() {
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+  if(all(greaterThanEqual(invocationPosition, ivec2(0))) && all(lessThan(invocationPosition, ivec2(pushConstants.size)))){
+    int countSamples = pushConstants.size * pushConstants.size;
+    int sampleIndex = (invocationPosition.y * pushConstants.size) + invocationPosition.x;
+    if(sampleIndex == 0){
+      countBokehShapeTaps = countSamples;
+    }
+    vec2 offset;
+    if(pushConstants.ngon < 3.0){
+      // Below 3 edges a such bokeh shape doesn't exist, so take here a circle bokeh shape instead for this then.
+      offset = sin(vec2(float(sampleIndex) * 2.39996322973) + vec2(0.0, halfPI)) * (float(sampleIndex) / float(countSamples - 1));
+    }else{
+      offset = getBokehTapSampleCoord(vec2(ivec2(invocationPosition.x, invocationPosition.y)) / float(pushConstants.size - 1), 
+                                      pushConstants.fFactor, 
+                                      pushConstants.ngon,
+                                      pushConstants.phiShutterMax);
+    }
+    bokehShapeTaps[sampleIndex] = offset;    
+  }
+}

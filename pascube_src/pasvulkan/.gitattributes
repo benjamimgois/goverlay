@@ -1,0 +1,32 @@
+*.inc -text linguist-language=Pascal
+*.bat -text
+*.pas -text
+*.dpr -text linguist-language=Pascal
+*.dproj -text linguist-language=XML
+*.lpr -text linguist-language=Pascal
+*.lpi -text linguist-language=XML
+*.poca -text linguist-language=js
+*.vert -text linguist-language=GLSL
+*.frag -text linguist-language=GLSL
+*.comp -text linguist-language=GLSL
+*.geom -text linguist-language=GLSL
+*.task -text linguist-language=GLSL
+*.mesh -text linguist-language=GLSL
+*.glsl -text
+*.meta -text
+*.txt -text
+*.md -text
+*.c -text
+*.h -text
+*.cpp -text
+*.hpp -text
+*.java -text
+*.xml -text
+*.json -text
+*.js -text
+*.sh -text
+*.xhtml -text
+*.xhtm -text
+*.html -text
+*.htm -text
+*.css -text

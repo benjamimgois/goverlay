@@ -1,0 +1,66 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer BoundingBoxes {
+  vec4 data[]; // pair-wise min/max, vec4 instead of vec3 for 16-byte alignment, so w is unused and zero in this case
+} boundingBoxes;
+
+layout(set = 0, binding = 1, std430) buffer BoundingSpheres {
+  vec4 data[]; // xyz = center, w = radius
+} boundingSpheres;
+
+layout(push_constant) uniform PushConstants {
+  float bottomRadius;
+  float topRadius;
+  uint tileMapResolution;
+} pushConstants;
+
+#include "octahedral.glsl"
+
+void main(){
+
+  const uint tileMapIndex = uint(gl_GlobalInvocationID.x);
+  
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  if(tileMapIndex < tileMapSize){
+
+    uvec2 tileMapXY;
+    tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+    tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+    // Gather the worst-case extreme points of the tile with conservative coordinates, by sampling 27 points on the
+    // tile including the corners, the center on the corners, and the center of the tile. Probably more than necessary,
+    // but better safe than too few for a conservative bounding box and sphere.
+    vec3 aabbMin = vec3(uintBitsToFloat(0x7f800000u)); // +inf
+    vec3 aabbMax = vec3(uintBitsToFloat(0xff800000u)); // -inf
+    [[unroll]] for(uint h = 0u; h <= 2u; h++){
+      [[unroll]] for(uint y = 0u; y <= 2u; y++){
+        [[unroll]] for(uint x = 0u; x <= 2u; x++){
+          vec3 position = octPlanetUnsignedDecode(vec2(tileMapXY + (vec2(uvec2(x, y)) * 0.5)) / vec2(pushConstants.tileMapResolution)) * mix(pushConstants.bottomRadius, pushConstants.topRadius, float(h) * 0.5);
+          aabbMin = min(aabbMin, position);
+          aabbMax = max(aabbMax, position);
+        }
+      }
+    }    
+
+    // Store the conservative worst-case bounding box of the tile
+    boundingBoxes.data[(tileMapIndex << 1u) | 0u] = vec4(aabbMin, 0.0);
+    boundingBoxes.data[(tileMapIndex << 1u) | 1u] = vec4(aabbMax, 0.0);
+
+    // Get the conservative worst-case bounding sphere of the tile from the bounding box
+    boundingSpheres.data[tileMapIndex] = vec4((aabbMin + aabbMax) * 0.5, length(aabbMax - aabbMin) * 0.5);
+
+  }
+
+}

@@ -1,0 +1,226 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) coherent buffer WaterHeightMap {
+  float values[];
+} waterHeightMap;
+
+layout(set = 0, binding = 1, std430) coherent buffer PrecipitationSimulationMapInput {
+  vec4 values[];
+} precipitationSimulationMapInput;
+
+layout(set = 0, binding = 2, std430) coherent buffer PrecipitationSimulationMapOutput {
+  vec4 values[];
+} precipitationSimulationMapOutput;
+
+layout(set = 0, binding = 3, std430) coherent buffer PrecipitationAdvectionMapInput {
+  float values[];
+} precipitationAdvectionMapInput;
+
+layout(set = 0, binding = 4, std430) coherent buffer PrecipitationAdvectionMapOutput {
+  float values[];
+} precipitationAdvectionMapOutput;
+
+layout(set = 0, binding = 5) uniform sampler2D uImageAtmosphereMap;
+
+layout(push_constant) uniform PushConstants {
+  
+  uint waterHeightMapResolution; // Resolution of the water height map
+  uint precipitationSimulationMapResolution; // Resolution of the precipitation simulation map
+  float additionCoefficient; // Coefficient for the precipitation addition
+  float removalCoefficient; // Coefficient for the precipitation removal
+  
+  float deltaTime; // Time step in seconds
+  float CScale; 
+  float K;
+  float v; // Viscosity factor
+  
+  float vorticity; // Vorticity factor, not used in this shader but can be used for future enhancements
+  float dampingFactor; // Damping factor for the velocity
+  float waterFactor; // Factor for the water height contribution
+  float waterExponent; // Exponent for the water height contribution
+  
+  float waterForce; // Force applied to the water height
+  float maximumVelocity; // Maximum velocity for the simulation
+  
+} pushConstants;
+
+/* clang-format on */
+
+#include "pcg.glsl"
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+uint waterHeightMapResolution = pushConstants.waterHeightMapResolution;
+
+ivec2 waterHeightMapSize = ivec2(int(pushConstants.waterHeightMapResolution));
+
+uint precipitationSimulationMapResolution = pushConstants.precipitationSimulationMapResolution;
+
+ivec2 precipitationSimulationMapSize = ivec2(int(pushConstants.precipitationSimulationMapResolution));
+
+float getWaterHeight(const vec3 position){
+  
+  // Get the octahedral coordinates of the position
+  vec2 uv = octEqualAreaUnsignedEncode(position) * vec2(waterHeightMapResolution);
+  ivec2 texel = ivec2(uv);
+  vec2 uvFrac = fract(uv);
+
+  // Get the indices of the four texels surrounding the position
+  ivec2 texels[4] = ivec2[4](
+    wrapOctahedralTexelCoordinates(texel + ivec2(0, 0), waterHeightMapSize), // Bottom left
+    wrapOctahedralTexelCoordinates(texel + ivec2(1, 0), waterHeightMapSize), // Bottom right
+    wrapOctahedralTexelCoordinates(texel + ivec2(0, 1), waterHeightMapSize), // Top left
+    wrapOctahedralTexelCoordinates(texel + ivec2(1, 1), waterHeightMapSize)  // Top right
+  );
+
+  // Get the indices of the four texels surrounding the position
+  ivec4 texelIndices = ivec4(
+    (texels[0].y * int(waterHeightMapResolution)) + texels[0].x,
+    (texels[1].y * int(waterHeightMapResolution)) + texels[1].x,
+    (texels[2].y * int(waterHeightMapResolution)) + texels[2].x,
+    (texels[3].y * int(waterHeightMapResolution)) + texels[3].x
+  );
+
+  // Get the heights of the four texels
+  vec4 heights = vec4(
+    waterHeightMap.values[texelIndices.x],
+    waterHeightMap.values[texelIndices.y],
+    waterHeightMap.values[texelIndices.z],
+    waterHeightMap.values[texelIndices.w]
+  );
+
+  // Horizontal interpolation based on the fractional part of the U coordinate
+  vec2 horizontalInterpolation = mix(heights.xy, heights.zw, uvFrac.x);
+
+  // Vertical interpolation based on the fractional part of the V coordinate
+  float height = mix(horizontalInterpolation.x, horizontalInterpolation.y, uvFrac.y);
+
+  // Return the interpolated height
+  return height;
+
+}
+
+vec4 getValue(ivec2 texel){  
+  texel = wrapOctahedralTexelCoordinates(texel, ivec2(precipitationSimulationMapSize));
+  return precipitationSimulationMapInput.values[uint((texel.y * precipitationSimulationMapResolution) + texel.x)];
+}
+
+void setValue(ivec2 texel, vec4 value){
+  // No wrap for output, as it is not needed
+  precipitationSimulationMapOutput.values[uint((texel.y * precipitationSimulationMapResolution) + texel.x)] = value;
+}
+
+vec4 getInterpolatedValue(vec2 texel){  
+  ivec2 texelFloor = ivec2(floor(texel));
+  vec2 texelFrac = fract(texel);
+  return mix(mix(getValue(texelFloor + ivec2(0, 0)), getValue(texelFloor + ivec2(1, 0)), texelFrac.x), 
+             mix(getValue(texelFloor + ivec2(0, 1)), getValue(texelFloor + ivec2(1, 1)), texelFrac.x), texelFrac.y);
+}
+
+float getAdvectionValue(ivec2 texel){
+  texel = wrapOctahedralTexelCoordinates(texel, ivec2(precipitationSimulationMapSize));
+  return precipitationAdvectionMapInput.values[uint((texel.y * precipitationSimulationMapResolution) + texel.x)]; 
+}
+
+float getInterpolatedAdvectionValue(vec2 texel){
+  ivec2 texelFloor = ivec2(floor(texel));
+  vec2 texelFrac = fract(texel);
+  return mix(mix(getAdvectionValue(texelFloor + ivec2(0, 0)), getAdvectionValue(texelFloor + ivec2(1, 0)), texelFrac.x), 
+             mix(getAdvectionValue(texelFloor + ivec2(0, 1)), getAdvectionValue(texelFloor + ivec2(1, 1)), texelFrac.x), texelFrac.y);
+}
+
+void setAdvectionValue(ivec2 texel, float value){
+  // No wrap for output, as it is not needed
+  precipitationAdvectionMapOutput.values[uint((texel.y * precipitationSimulationMapResolution) + texel.x)] = value;
+}
+
+void main(){
+
+  uvec2 texel = uvec2(gl_GlobalInvocationID.xy);
+
+  if(any(greaterThanEqual(texel, uvec2(pushConstants.precipitationSimulationMapResolution)))){
+    return; // Out of bounds
+  }
+
+  vec3 position = octPlanetUnsignedDecode(vec2(texel) / vec2(pushConstants.precipitationSimulationMapResolution));
+
+  float atmosphere = clamp(texturePlanetOctahedralMap(uImageAtmosphereMap, position).x, 0.0, 1.0);
+  
+  float water = clamp(pow(getWaterHeight(position) * pushConstants.waterFactor, pushConstants.waterExponent), 0.0, 1.0);
+  
+  float dt = pushConstants.deltaTime;
+  float CScale = pushConstants.CScale;
+  float K = pushConstants.K;
+  float v = pushConstants.v;
+  float S = K / dt;
+
+  vec4 FC = getValue(ivec2(texel));
+  vec4 FR = getValue(ivec2(texel) + ivec2(1, 0));
+  vec4 FL = getValue(ivec2(texel) + ivec2(-1, 0));
+  vec4 FU = getValue(ivec2(texel) + ivec2(0, 1));
+  vec4 FD = getValue(ivec2(texel) + ivec2(0, -1));
+
+  const vec3 UdX = (FR.xyz - FL.xyz) * CScale; // Right - Left
+  const vec3 UdY = (FU.xyz - FD.xyz) * CScale; // Up - Down
+  
+  const vec2 DdX = vec2(UdX.z, UdY.z); // Density difference
+  const float Udiv = UdX.x + UdY.y;
+
+  // Solve for density
+  FC.z -= dot(vec3(DdX, Udiv), FC.xyz) * dt;
+
+  // Solve for the velocity
+  vec2 PdX = S * DdX;
+  vec2 laplacian = (FR.xy + FL.xy + FU.xy + FD.xy) - (FC.xy * 4.0);
+  vec2 viscosityForce = laplacian * v;
+
+  // Semi-lagrangian advection
+  vec2 Was = vec2(texel) - ((FC.xy / vec2(precipitationSimulationMapResolution)) * dt);
+  FC.xyw = getInterpolatedValue(Was).xyw;
+
+  vec2 externalForces = vec2(water * pushConstants.waterForce);
+  
+  // Update the velocity
+  FC.xy += ((viscosityForce - PdX) + externalForces) * dt;
+
+  // Linear velocity damping
+  FC.xy *= exp(-dt * pushConstants.dampingFactor);
+
+  // Vorticity calculation
+  FC.w = ((FR.y - FL.y) - FU.x) + FD.x;
+  float vorticity = pushConstants.vorticity;
+  if(vorticity > 0.0){
+    // Calculate the vorticity    
+    vec2 vorticityVector = vec2(FU.w - FD.w, FL.w - FR.w);
+    vorticityVector *= (vorticity / length(vorticityVector + vec2(1e-7))) * FC.w;    
+    FC.xy += vorticityVector;
+  }
+
+  FC.xy *= atmosphere; // Apply atmosphere factor. No atmosphere means no movement. 
+  
+  // Stabilize 
+  FC = clamp(FC, vec2(-pushConstants.maximumVelocity, 0.5).xxyx, vec2(pushConstants.maximumVelocity, 3.0).xxyx);
+
+  // Set the new value in the output buffer
+  setValue(ivec2(texel), FC);
+
+  // Advection 
+  float advectionValue = getInterpolatedAdvectionValue(vec2(texel) - FC.xy);
+  advectionValue *= exp(-dt * pushConstants.removalCoefficient); // Apply removal coefficient
+  advectionValue += water * pushConstants.additionCoefficient * dt; // Add water height contribution
+  advectionValue *= atmosphere; // Apply atmosphere factor
+  advectionValue = clamp(advectionValue, 0.0, 1.0); // Clamp to [0, 1] range
+  setAdvectionValue(ivec2(texel), advectionValue);
+
+}
+

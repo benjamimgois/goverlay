@@ -1,0 +1,35 @@
+
+let a = 0, b = 0;
+
+function threadIncrementAFunction(){
+  let localCounter = 0;
+  for(let i = 0; i < 200000000; i++){
+    localCounter++;    
+  }
+  a = localCounter;
+}
+
+function threadIncrementBFunction(){
+  let localCounter = 0;
+  for(let i = 0; i < 200000000; i++){
+    localCounter++;    
+  }
+  b = localCounter;
+}
+
+let startTime = DateTime.now();
+
+let threadIncrementA = new Thread(threadIncrementAFunction);
+let threadIncrementB = new Thread(threadIncrementBFunction);
+
+threadIncrementA.start();
+threadIncrementB.start();
+
+threadIncrementA.wait();
+threadIncrementB.wait();
+
+let endTime = DateTime.now();
+
+puts("a = ", a, ", b = ", b);
+puts("Finished in ", DateTime.milliseconds(endTime - startTime), " ms");
+

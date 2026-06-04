@@ -1,0 +1,146 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+/* clang-format on */
+
+#define MULTISCATAPPROX_ENABLED
+//#define ATMOSPHEREMAP_ENABLED 
+#undef SHADOWS_ENABLED     
+
+#include "globaldescriptorset.glsl"
+
+#include "atmosphere_common.glsl"
+
+// Push constants
+layout(push_constant, std140) uniform PushConstants {
+  int baseViewIndex;
+  int countViews;
+  int frameIndex;
+  int dummy;
+} pushConstants;  
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+layout(set = 2, binding = 0, rgba32f) uniform image2DArray uDestinationTexture;
+
+layout(set = 2, binding = 1) uniform sampler2D uTransmittanceLutTexture;
+
+layout(set = 2, binding = 2) uniform sampler2D uMultiScatteringTexture;
+
+layout(set = 2, binding = 3) uniform samplerCube uAtmosphereMapTexture;
+
+layout(set = 2, binding = 4, std430) buffer AtmosphereParametersBuffer {
+  AtmosphereParameters atmosphereParameters;
+} uAtmosphereParameters;
+
+void main() {
+
+  ivec2 size = imageSize(uDestinationTexture).xy;
+
+  ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+  int viewIndex = int(gl_GlobalInvocationID.z);
+  
+  if(all(greaterThanEqual(coord, ivec2(0))) && all(lessThan(coord, size)) && (viewIndex < pushConstants.countViews)) {
+
+    View view = uView.views[pushConstants.baseViewIndex + viewIndex];
+
+    mat4 inverseViewMatrix = view.inverseViewMatrix;
+    mat4 inverseProjectionMatrix = view.inverseProjectionMatrix;
+
+    mat4 SkyInvViewProjMat = inverseViewMatrix * inverseProjectionMatrix;
+
+    const vec2 size = vec2(256.0, 128.0);
+
+    vec2 uv = (vec2(coord) + vec2(0.5)) / vec2(size);
+
+    //seedSampleSeedT(uBlueNoise, ivec2(coord), pushConstants.frameIndex);
+
+    vec3 worldPos, worldDir;
+    GetCameraPositionDirection(worldPos, worldDir, view.viewMatrix, view.projectionMatrix, view.inverseViewMatrix, view.inverseProjectionMatrix, uv);
+
+    worldPos = (uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(worldPos, 1.0)).xyz;
+    worldDir = normalize((uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(worldDir, 0.0)).xyz);
+
+//  worldPos += vec3(0.0, uAtmosphereParameters.atmosphereParameters.BottomRadius, 0.0);
+  
+    uv = vec2(coord) / vec2(size);
+
+    float viewHeight = max(length(worldPos), uAtmosphereParameters.atmosphereParameters.BottomRadius + 1e-4);  
+
+    float viewZenithCosAngle;
+    float lightViewCosAngle;
+    UvToSkyViewLutParams(uAtmosphereParameters.atmosphereParameters, viewZenithCosAngle, lightViewCosAngle, viewHeight, uv);
+
+    vec3 sunDir = getSunDirection(uAtmosphereParameters.atmosphereParameters);
+    {
+      vec3 upVector = worldPos / viewHeight;
+      float sunZenithCosAngle = clamp(dot(upVector, normalize(sunDir)), -1.0, 1.0);
+      sunDir = normalize(vec3(sqrt(1.0 - (sunZenithCosAngle * sunZenithCosAngle)), sunZenithCosAngle, 0.0));
+    }
+
+    worldPos = vec3(0.0, viewHeight, 0.0);
+
+    float viewZenithSinAngle = sqrt(1.0 - (viewZenithCosAngle * viewZenithCosAngle));
+    worldDir = vec3(
+      viewZenithSinAngle * lightViewCosAngle, 
+      viewZenithCosAngle,
+      viewZenithSinAngle * sqrt(1.0 - (lightViewCosAngle * lightViewCosAngle))
+    );
+
+    if(!MoveToTopAtmosphere(worldPos, worldDir, uAtmosphereParameters.atmosphereParameters.TopRadius)) {
+      imageStore(uDestinationTexture, ivec3(coord, viewIndex), vec4(0.0, 0.0, 0.0, 1.0));
+      imageStore(uDestinationTexture, ivec3(coord, int(viewIndex + pushConstants.countViews)), vec4(1.0));
+    }else{
+      const bool ground = false;
+      const float sampleCountIni = 30.0;
+      const float depthBufferValue = -1.0;
+      const bool variableSampleCount = true;
+      const bool mieRayPhase = true;
+      SingleScatteringResult ss = IntegrateScatteredLuminance(
+        uTransmittanceLutTexture,
+        uMultiScatteringTexture,
+  //    uAtmosphereMapTexture,
+        uv, 
+        worldPos, 
+        worldDir, 
+        sunDir, 
+        uAtmosphereParameters.atmosphereParameters, 
+        ground, 
+        sampleCountIni, 
+        depthBufferValue, 
+        variableSampleCount,  
+        mieRayPhase,
+        SkyInvViewProjMat,
+        -1.0,
+        false
+      ); 
+      
+      // Store the luminance and monochromatic transmittance in the first slice (monochromatic transmittance for GPUs without dual source blending support)
+      imageStore(uDestinationTexture, ivec3(coord, viewIndex), vec4(ss.L, clamp(dot(ss.Transmittance, vec3(1.0 / 3.0)) * 1.0, 0.0, 1.0)));
+
+      // Store the transmittance in the second slices part after all luminance slices (for GPUs with dual source blending support)
+      imageStore(uDestinationTexture, ivec3(coord, int(viewIndex + pushConstants.countViews)), vec4(ss.Transmittance, 1.0));
+
+    }
+
+  }
+
+}
+

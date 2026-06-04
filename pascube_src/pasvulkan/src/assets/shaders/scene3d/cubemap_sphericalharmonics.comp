@@ -1,0 +1,106 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#define NUM_COEFS 9
+#define NUM_SAMPLES 8
+#define LOCAL_SIZE 8
+#define NUM_INVOCATIONS (LOCAL_SIZE * LOCAL_SIZE)
+#define NUM_SHARED (NUM_INVOCATIONS * NUM_COEFS)
+
+/* clang-format off */
+layout(local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer SphericalHarmonicsBuffer {
+  vec4 sphericalHarmonics[9];
+} sphericalHarmonicsBuffer;
+
+layout(set = 0, binding = 1) uniform samplerCube uSourceTexture;
+
+/* clang-format on */
+
+// Integrating over a sphere so each sample has a weight of (4.0 * PI) / samplecount (uniform solid angle, for each sample)
+const float gFactor = 12.5663706144 / float(NUM_SAMPLES * NUM_SAMPLES * LOCAL_SIZE * LOCAL_SIZE); 
+
+shared vec3 sSphericalHarmonics[NUM_SHARED]; // 8*8*9*4*4 = 9216 bytes (since vec3 can be here actually a vec4 for alignment reasons)
+
+#include "global_illumination_cascaded_radiance_hints.glsl"
+
+/*const float PI = 3.1415926535897932384626433832795;
+const float HalfPI = 1.5707963267948966192313216916398;
+const float TAU = 6.283185307179586476925286766559;*/
+
+void main() {
+
+ ivec2 lInvocationPosition = (ivec2(gl_WorkGroupID.xy) * ivec2(gl_WorkGroupSize.xy)) + ivec2(gl_LocalInvocationID.xy);
+    
+  vec3 lSphericalHarmonics[NUM_COEFS];
+  for(uint lCoefIndex = 0u; lCoefIndex < uint(NUM_COEFS); lCoefIndex++){
+    lSphericalHarmonics[lCoefIndex] = vec3(0.0);
+  }
+    
+  for(int lY = 0; lY < NUM_SAMPLES; lY++){
+    for(int lX = 0; lX < NUM_SAMPLES; lX++){
+      vec2 lCoord = vec2(vec2(ivec2((lInvocationPosition * NUM_SAMPLES) + ivec2(lX, lY))) * vec2(1.0 / 64.0));// * vec2(1.0, 0.5); 
+	    float y = 1.0 - (2.0 * lCoord.y);
+      vec3 lRayDirection = normalize(vec3(sin(vec2(vec2(6.283185307179586476925286766559 * lCoord.x) + vec2(1.5707963267948966192313216916398, 0.0))) * sqrt(max(0.0, 1.0 - (y * y))), y).xzy);
+/*    vec2 lThetaPhi = ((lCoord * 2.0) - vec2(1.0)) * vec2(3.1415926535897932384626433832795, -1.5707963267948966192313216916398);
+      vec3 lRayDirection = normalize(vec3(cos(lThetaPhi.x) * cos(lThetaPhi.y), sin(lThetaPhi.y), sin(lThetaPhi.x) * cos(lThetaPhi.y)));*/
+      vec3 lColor = globalIlluminationEncodeColor(textureLod(uSourceTexture, lRayDirection, 0.0).xyz);
+      lSphericalHarmonics[0] += 0.282094792 * lColor;
+      lSphericalHarmonics[1] += ((-0.488602512) * lRayDirection.y) * lColor;
+      lSphericalHarmonics[2] += (0.488602512 * lRayDirection.z) * lColor;
+      lSphericalHarmonics[3] += ((-0.488602512) * lRayDirection.x) * lColor;
+      lSphericalHarmonics[4] += (1.092548431 * (lRayDirection.x * lRayDirection.y)) * lColor;
+      lSphericalHarmonics[5] += ((-1.092548431) * (lRayDirection.y * lRayDirection.z)) * lColor;
+      lSphericalHarmonics[6] += ((0.946174695 * (lRayDirection.z * lRayDirection.z)) - 0.315391565) * lColor;
+      lSphericalHarmonics[7] += ((-1.092548431) * (lRayDirection.x * lRayDirection.z)) * lColor;
+      lSphericalHarmonics[8] += (0.546274215 * ((lRayDirection.x * lRayDirection.x) - (lRayDirection.y * lRayDirection.y))) * lColor;        
+    }
+  }
+  
+  memoryBarrier();
+  barrier();  
+  
+  uint lInvocationIndex = gl_LocalInvocationIndex;
+
+  for(uint lCoefIndex = 0u; lCoefIndex < uint(NUM_COEFS); lCoefIndex++){
+    uint lIndex = (lInvocationIndex * NUM_COEFS) + lCoefIndex;
+    sSphericalHarmonics[lIndex] = lSphericalHarmonics[lCoefIndex];
+  }
+
+#if 0    
+  for(uint lOffset = NUM_SHARED >> 1; lOffset >= uint(NUM_COEFS); lOffset >>= 1){
+    memoryBarrierShared();
+    barrier();
+    for(uint lDst = lInvocationIndex; lDst < lOffset; lDst += uint(NUM_INVOCATIONS)){
+      sSphericalHarmonics[lDst] += sSphericalHarmonics[lDst + lOffset];
+    }    
+  }
+#else 
+  memoryBarrier();
+  barrier();
+  if(lInvocationIndex == 0u){
+    for(uint lOtherInvocationIndex = 1u; lOtherInvocationIndex < NUM_INVOCATIONS; lOtherInvocationIndex++){
+      for(uint lCoefIndex = 0u; lCoefIndex < uint(NUM_COEFS); lCoefIndex++){
+        sSphericalHarmonics[lCoefIndex] += sSphericalHarmonics[(lOtherInvocationIndex * NUM_COEFS) + lCoefIndex];
+      }
+    }
+  }
+#endif    
+
+  memoryBarrier();
+  barrier();
+  
+  if(lInvocationIndex == 0u){
+    for(uint lCoefIndex = 0u; lCoefIndex < uint(NUM_COEFS); lCoefIndex++){
+      sphericalHarmonicsBuffer.sphericalHarmonics[lCoefIndex] = vec4(sSphericalHarmonics[lCoefIndex] * gFactor, 0.0);
+    }          
+  }    
+  
+  memoryBarrier();
+  barrier();
+
+}

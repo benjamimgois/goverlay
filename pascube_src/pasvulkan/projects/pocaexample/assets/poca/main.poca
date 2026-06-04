@@ -1,0 +1,165 @@
+
+var applicationData = { initialized: false }; // Application data object, used to store application-specific data with survival across application code reloads  
+var application = null; // the application object, used to access the application functions
+
+function loadCode() {
+  if (application) {
+    // Clear cache for require to reload the application object
+    ModuleManager.remove("application");
+  }
+  application = require("application"); // load the application object from the application module
+  if (application) {
+    application.data = applicationData; // set the data object to the application object
+  }
+}
+
+// called when a new application session is created
+function onApplicationCreate() {
+  print("POCA: onApplicationCreate\n");
+  loadCode(); // load the application code
+  if (application) {
+    application?.create(); // call the create function of the application object
+  }
+}
+
+// called when a application session is destroyed
+function onApplicationDestroy() {
+
+  print("POCA: onApplicationDestroy\n");
+
+  if (application) {
+   application?.destroy(); // call the destroy function of the application object
+  }
+
+}
+
+// called when the application screen becomes visible
+function onApplicationShow() {
+  print("POCA: onApplicationShow\n");
+  if (application) {
+    application?.show(); // call the show function of the application object
+  }
+}
+
+// called when the application screen becomes hidden
+function onApplicationHide() {
+  print("POCA: onApplicationHide\n");
+  if (application) {
+    application?.hide(); // call the hide function of the application object
+  }
+}
+
+// called when the application is resumed
+function onApplicationResume() {
+  print("POCA: onApplicationResume\n");
+  if (application) {
+    application?.resume(); // call the resume function of the application object
+  }
+}
+
+// called when the application is paused
+function onApplicationPause() {
+  print("POCA: onApplicationPause\n");
+  if (application) {
+    application?.pause(); // call the pause function of the application object
+  }
+}
+
+// called when the application is resized
+function onApplicationResize(width, height) {
+  print("POCA: onApplicationResize to ",  width, "x", height, "\n");
+  if (application) {
+    application?.resize(width, height); // call the resize function of the application object
+  }
+}
+
+// called after the swap chain of the application is created
+function onApplicationAfterCreateSwapChain() {
+  print("POCA: onApplicationAfterCreateSwapChain\n");
+  if (application) {
+    application?.afterCreateSwapChain(); // call the afterCreateSwapChain function of the application object
+  }
+}
+
+// called before the swap chain of the application is destroyed
+function onApplicationBeforeDestroySwapChain() {
+  print("POCA: onApplicationBeforeDestroySwapChain\n");
+  if (application) {
+    application?.beforeDestroySwapChain(); // call the beforeDestroySwapChain function of the application
+  }
+}
+
+// called every frame before the application is updated and rendered in parallel, use this to update the atomic parts of the application, 
+// like adding or removing entities. Otherwise it may lead to undefined behavior, even crashes. 
+function onApplicationCheck(deltaTime) {
+  //print("POCA: onApplicationCheck\n");
+  if (application) {
+    application?.check(deltaTime); // call the check function of the application object
+  }
+}
+
+// called every frame after the application gets updated 
+function onApplicationUpdate(deltaTime) {
+  //print("POCA: onApplicationUpdate\n");
+  if (application) {
+    application?.update(deltaTime); // call the update function of the application object
+  }
+}
+
+// called on every input event, like key press, mouse click, etc.
+function onApplicationInputEvent(event) {
+  if (application) {
+    if(application?.onInputEvent(event)) {
+      return true; // if the application object handled the event, return true
+    }
+  }
+  if (event.EventType === Input.EventTypes.EVENT_KEY) {
+    if (event.KeyEventType === Input.KeyEventTypes.KEYEVENT_DOWN) {
+      if (event.KeyCode === Input.KeyCodes.KEYCODE_F5) {        
+        print("POCA: Reloading application code due to F5 key press\n");
+        loadCode(); // reload the application code
+        return false; // do not consume the event, so the engine can handle it as well               
+      }
+    }
+  }
+  return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Canvas
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var canvas = null;
+
+var canvas_font = null;
+
+// called when a new canvas is created
+function onApplicationCreateCanvas(nativeCanvas) {
+  canvas = nativeCanvas;
+  if (application) {
+    application?.createCanvas(nativeCanvas); // call the createCanvas function of the application object
+  }
+}
+
+// called when a canvas is destroyed
+function onApplicationDestroyCanvas(nativeCanvas) {
+  canvas = null;
+  if (application) {
+    application?.destroyCanvas(nativeCanvas); // call the destroyCanvas function of the application object
+  }
+}
+
+// called at update time to update the canvas
+function onApplicationUpdateCanvas(deltaTime, width, height, nativeWidth, nativeHeight) {
+  if (application) {
+    application?.updateCanvas(deltaTime, width, height, nativeWidth, nativeHeight); // call the updateCanvas function of the application object
+  }
+}
+
+// called when the canvas is about to be drawn
+function onApplicationDrawCanvas(nativeCanvas, width, height, nativeWidth, nativeHeight) {
+  if (canvas && application) {
+    application?.drawCanvas(nativeCanvas, width, height, nativeWidth, nativeHeight); // call the drawCanvas function of the application object
+  }
+}
+

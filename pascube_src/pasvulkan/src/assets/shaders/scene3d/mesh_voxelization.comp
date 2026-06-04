@@ -1,0 +1,60 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+struct InPackedVertex {
+  uvec4 positionMaterialID;
+  uvec4 normalSignTangentGeneration;
+  uvec4 texCoord0TexCoord1;
+  uvec4 color0ModelScale;
+};
+
+layout(set = 0, binding = 0, std430) buffer InVertices {
+  InPackedVertex vertices[];
+} inVertices;
+
+layout(set = 0, binding = 1, std430) buffer InIndices {
+  uint indices[];
+} inIndices;
+
+layout(set = 0, binding = 2, std430) buffer OutDominantAxis {
+  uint dominantAxis[];
+} outDominantAxis;
+
+layout(push_constant) uniform PushConstants {
+  uint indexOffset;
+  uint countIndices;
+} pushConstants;
+
+void main(){
+
+  uint baseIndex = uint(gl_GlobalInvocationID.x) * 3;
+  if((baseIndex + 2) < pushConstants.countIndices){
+
+    baseIndex += pushConstants.indexOffset;
+
+    vec3 worldSpacePositions[3] = vec3[3](
+      uintBitsToFloat(inVertices.vertices[baseIndex + 0].positionMaterialID.xyz),
+      uintBitsToFloat(inVertices.vertices[baseIndex + 1].positionMaterialID.xyz),
+      uintBitsToFloat(inVertices.vertices[baseIndex + 2].positionMaterialID.xyz)
+    );
+
+    vec3 faceNormal = abs(cross(worldSpacePositions[1] - worldSpacePositions[0], worldSpacePositions[2] - worldSpacePositions[0]));
+
+    int dominantAxisIndex = (faceNormal.y > faceNormal.x) ? ((faceNormal.y > faceNormal.z) ? 1 : 2) : ((faceNormal.x > faceNormal.z) ? 0 : 2);
+
+    // vertex-wise and just once not triangle-wise, because of a unitized index buffer for not just triangles, also for points and lines
+    outDominantAxis.dominantAxis[baseIndex + 0] = dominantAxisIndex;
+    outDominantAxis.dominantAxis[baseIndex + 1] = dominantAxisIndex;
+    outDominantAxis.dominantAxis[baseIndex + 2] = dominantAxisIndex;
+
+  }
+
+} 
+

@@ -1,0 +1,149 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba8) readonly uniform image2DArray uSourceTexture;
+
+layout(set = 0, binding = 1) buffer DestinationBuffer {
+  uvec2 values[];
+} destinationBuffer;
+
+layout(push_constant) uniform PushConstants {
+  int targetMipMapLevel;
+} pushConstants;
+
+shared uvec4 sharedValues[8 * 8];
+
+/* clang-format on */
+
+// Reduce operation for 8x16-bit (uvec4) to 8x16-bit (uvec4) for eight values at once.
+uvec4 reduceOp(const in uvec4 a, const in uvec4 b){
+  return uvec4(
+    packUnorm2x16(mix(unpackUnorm2x16(a.x), unpackUnorm2x16(b.x), 0.5)),
+    packUnorm2x16(mix(unpackUnorm2x16(a.y), unpackUnorm2x16(b.y), 0.5)),
+    packUnorm2x16(mix(unpackUnorm2x16(a.z), unpackUnorm2x16(b.z), 0.5)),
+    packUnorm2x16(mix(unpackUnorm2x16(a.w), unpackUnorm2x16(b.w), 0.5))
+  );
+}
+
+// Load from source texture (8x8-bit, two RGBA8 texels) and convert to 8x16-bit (uvec4) format for processing with higher precision. 
+uvec4 loadFromSourceTexture(const in ivec2 position){
+  const vec4 a = imageLoad(uSourceTexture, ivec3(position, 0));
+  const vec4 b = imageLoad(uSourceTexture, ivec3(position, 1));
+  return uvec4(packUnorm2x16(a.xy), packUnorm2x16(a.zw), packUnorm2x16(b.xy), packUnorm2x16(b.zw));
+}
+
+// Convert 8x16-bit (uvec4) to 8x8-bit (uvec2)
+uvec2 convert(const in uvec4 v){
+  return uvec2(
+    packUnorm4x8(vec4(unpackUnorm2x16(v.x), unpackUnorm2x16(v.y))),
+    packUnorm4x8(vec4(unpackUnorm2x16(v.z), unpackUnorm2x16(v.w)))
+  );
+}
+
+void main() {
+
+  // Downsample towards pushConstants.targetMipMapLevel to destinationBuffer.
+
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+              
+  ivec2 sourceSize = imageSize(uSourceTexture).xy;
+
+  ivec2 destinationTextureSize = sourceSize >> 1;
+
+  uvec4 values[4];
+
+  if(all(lessThan(invocationPosition.xy, destinationTextureSize))){
+    if(pushConstants.targetMipMapLevel == 0){
+      destinationBuffer.values[(((invocationPosition.y << 1) + 0) * sourceSize.x) + ((invocationPosition.x << 1) + 0)] = convert(loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(0, 0)));  
+      destinationBuffer.values[(((invocationPosition.y << 1) + 0) * sourceSize.x) + ((invocationPosition.x << 1) + 1)] = convert(loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(1, 0)));
+      destinationBuffer.values[(((invocationPosition.y << 1) + 1) * sourceSize.x) + ((invocationPosition.x << 1) + 0)] = convert(loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(0, 1)));
+      destinationBuffer.values[(((invocationPosition.y << 1) + 1) * sourceSize.x) + ((invocationPosition.x << 1) + 1)] = convert(loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(1, 1)));
+      return;
+    }  
+    values[0] = uvec4(
+      reduceOp(
+        reduceOp(
+          loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(0, 0)),
+          loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(1, 0))
+        ),
+        reduceOp(
+          loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(0, 1)),
+          loadFromSourceTexture((invocationPosition.xy << 1) + ivec2(1, 1))
+        )
+      )
+    );
+  }else{
+    if(pushConstants.targetMipMapLevel == 0){
+      return;
+    }
+    values[0] = uvec4(0);  
+  } 
+
+  if((all(lessThan(invocationPosition.xy >> 0, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 1)){
+    destinationBuffer.values[((invocationPosition.y >> 0) * destinationTextureSize.x) + (invocationPosition.x >> 0)] = convert(values[0]);
+  }
+  if(pushConstants.targetMipMapLevel == 1){
+    return;
+  }
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  sharedValues[localInvocationIndex] = values[0];
+
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+  
+  if((localInvocationIndex & 0x09 /*0b001001*/) == 0){
+    values[1] = sharedValues[localInvocationIndex + 0x01];
+    values[2] = sharedValues[localInvocationIndex + 0x08];
+    values[3] = sharedValues[localInvocationIndex + 0x09];
+    values[0] = uvec4(reduceOp(reduceOp(values[0], values[1]), reduceOp(values[2], values[3])));
+    if((all(lessThan(invocationPosition.xy >> 1, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 2)){
+      destinationBuffer.values[((invocationPosition.y >> 1) * destinationTextureSize.x) + (invocationPosition.x >> 1)] = convert(values[0]);
+    }
+   sharedValues[localInvocationIndex] = values[0];
+  }
+  if(pushConstants.targetMipMapLevel == 2){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x1b /*0b011011*/) == 0){
+    values[1] = sharedValues[localInvocationIndex + 0x02];
+    values[2] = sharedValues[localInvocationIndex + 0x10];
+    values[3] = sharedValues[localInvocationIndex + 0x12];
+    values[0] = uvec4(reduceOp(reduceOp(values[0], values[1]), reduceOp(values[2], values[3])));
+    if((all(lessThan(invocationPosition.xy >> 2, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 3)){
+      destinationBuffer.values[((invocationPosition.y >> 2) * destinationTextureSize.x) + (invocationPosition.x >> 2)] = convert(values[0]);
+    }
+   sharedValues[localInvocationIndex] = values[0];
+  }
+  if(pushConstants.targetMipMapLevel == 3){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x3f /*0b111111*/) == 0){
+    values[1] = sharedValues[localInvocationIndex + 0x04];
+    values[2] = sharedValues[localInvocationIndex + 0x20];
+    values[3] = sharedValues[localInvocationIndex + 0x24];
+    values[0] = uvec4(reduceOp(reduceOp(values[0], values[1]), reduceOp(values[2], values[3])));
+    if((all(lessThan(invocationPosition.xy >> 3, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 4)){
+      destinationBuffer.values[((invocationPosition.y >> 3) * destinationTextureSize.x) + (invocationPosition.x >> 3)] = convert(values[0]);
+    }
+
+  }
+
+}

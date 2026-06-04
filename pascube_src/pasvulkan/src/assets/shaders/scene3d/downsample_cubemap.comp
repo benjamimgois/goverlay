@@ -1,0 +1,232 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#if defined(USE_RGB9E5)
+#undef ALPHA
+layout(set = 0, binding = 0, r32ui) readonly uniform uimageCube uSourceTexture;
+layout(set = 0, binding = 1, r32ui) writeonly uniform uimageCube uDestinationTextures[];
+#elif defined(USE_RGBA32F)
+#define ALPHA
+layout(set = 0, binding = 0, rgba32f) readonly uniform imageCube uSourceTexture;
+layout(set = 0, binding = 1, rgba32f) writeonly uniform imageCube uDestinationTextures[];
+#elif defined(USE_RGBA16F)
+#define ALPHA
+layout(set = 0, binding = 0, rgba16f) readonly uniform imageCube uSourceTexture;
+layout(set = 0, binding = 1, rgba16f) writeonly uniform imageCube uDestinationTextures[];
+#elif defined(USE_R11G11B10F)
+#undef ALPHA
+layout(set = 0, binding = 0, r11f_g11f_b10f) readonly uniform imageCube uSourceTexture;
+layout(set = 0, binding = 1, r11f_g11f_b10f) writeonly uniform imageCube uDestinationTextures[];
+#else
+#define ALPHA
+layout(set = 0, binding = 0, rgba8) readonly uniform imageCube uSourceTexture;
+layout(set = 0, binding = 1, rgba8) writeonly uniform imageCube uDestinationTextures[];
+#endif
+
+layout(push_constant) uniform PushConstants {
+  int countMipMapLevels;
+} pushConstants;
+
+shared float sharedR[8 * 8];
+shared float sharedG[8 * 8];
+shared float sharedB[8 * 8];
+#ifdef ALPHA
+shared float sharedA[8 * 8];
+#endif
+
+/* clang-format on */
+
+#ifdef USE_RGB9E5
+#include "rgb9e5.glsl"
+#endif
+
+vec4 reduceOp(const in vec4 a, const in vec4 b){
+#if defined(USE_RGB9E5)
+  return clamp(mix(a, b, 0.5), vec4(0.0), vec4(65408.0));
+#elif defined(USE_RGBA16F)
+  return clamp(mix(a, b, 0.5), vec4(0.0), vec4(65504.0));
+#elif defined(USE_RGBA32F)
+  return max(mix(a, b, 0.5), vec4(0.0));
+#elif defined(USE_R11G11B10F)
+  return clamp(mix(a, b, 0.5), vec4(0.0), vec4(65024.0));
+#else
+  return clamp(mix(a, b, 0.5), vec4(0.0), vec4(1.0)); 
+#endif
+}
+
+void main() {
+
+  // Maximum four mipmap levels in a single pass, so more mip map levels require multiple passes divided by four mip maps, the remainder must be in
+  // pushConstants.countMipMapLevels.
+
+  ivec3 invocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+              
+  ivec2 sourceSize = imageSize(uSourceTexture).xy;
+
+  ivec2 destinationTextureSize = imageSize(uDestinationTextures[0]).xy;
+
+  vec4 texel;
+
+  if(all(lessThan(invocationPosition.xy, destinationTextureSize))){
+    mat4x4 texels = mat4x4(
+#ifdef USE_RGB9E5
+      vec4(decodeRGB9E5(imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(0, 0), invocationPosition.z)).x), 1.0),
+      vec4(decodeRGB9E5(imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(1, 0), invocationPosition.z)).x), 1.0),
+      vec4(decodeRGB9E5(imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(0, 1), invocationPosition.z)).x), 1.0),
+      vec4(decodeRGB9E5(imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(1, 1), invocationPosition.z)).x), 1.0)
+#else      
+      imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(0, 0), invocationPosition.z)),
+      imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(1, 0), invocationPosition.z)),
+      imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(0, 1), invocationPosition.z)),
+      imageLoad(uSourceTexture, ivec3((invocationPosition.xy << 1) + ivec2(1, 1), invocationPosition.z))
+#endif      
+    );
+    texel = reduceOp(reduceOp(texels[0], texels[1]), reduceOp(texels[2], texels[3]));
+  }else{
+    texel = vec4(0.0);
+  } 
+
+  if(all(lessThan(invocationPosition.xy >> 0, destinationTextureSize))){
+#ifdef USE_RGB9E5
+    imageStore(uDestinationTextures[0], ivec3(invocationPosition.xy >> 0, invocationPosition.z), uvec4(encodeRGB9E5(texel.xyz)));
+#else    
+    imageStore(uDestinationTextures[0], ivec3(invocationPosition.xy >> 0, invocationPosition.z), vec4(texel));
+#endif
+  }
+  if(pushConstants.countMipMapLevels == 1){
+    return;
+  }
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  sharedR[localInvocationIndex] = texel.x;
+  sharedG[localInvocationIndex] = texel.y;
+  sharedB[localInvocationIndex] = texel.z;
+#ifdef ALPHA
+  sharedA[localInvocationIndex] = texel.w;
+#endif
+
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+  
+  if((localInvocationIndex & 0x09 /*0b001001*/) == 0){
+    texel = reduceOp(
+      reduceOp(
+        texel, 
+#ifdef ALPHA
+        vec4(sharedR[localInvocationIndex + 0x01], sharedG[localInvocationIndex + 0x01], sharedB[localInvocationIndex + 0x01], sharedA[localInvocationIndex + 0x01])
+#else          
+        vec4(sharedR[localInvocationIndex + 0x01], sharedG[localInvocationIndex + 0x01], sharedB[localInvocationIndex + 0x01], 1.0)
+#endif
+      ), 
+      reduceOp(
+#ifdef ALPHA
+        vec4(sharedR[localInvocationIndex + 0x08], sharedG[localInvocationIndex + 0x08], sharedB[localInvocationIndex + 0x08], sharedA[localInvocationIndex + 0x08]),
+        vec4(sharedR[localInvocationIndex + 0x09], sharedG[localInvocationIndex + 0x09], sharedB[localInvocationIndex + 0x09], sharedA[localInvocationIndex + 0x09])
+#else
+        vec4(sharedR[localInvocationIndex + 0x08], sharedG[localInvocationIndex + 0x08], sharedB[localInvocationIndex + 0x08], 1.0),
+        vec4(sharedR[localInvocationIndex + 0x09], sharedG[localInvocationIndex + 0x09], sharedB[localInvocationIndex + 0x09], 1.0)
+#endif          
+      )
+    );
+    if(all(lessThan(invocationPosition.xy >> 1, destinationTextureSize))){
+#ifdef USE_RGB9E5
+      imageStore(uDestinationTextures[1], ivec3(invocationPosition.xy >> 1, invocationPosition.z), uvec4(encodeRGB9E5(texel.xyz)));
+#else
+      imageStore(uDestinationTextures[1], ivec3(invocationPosition.xy >> 1, invocationPosition.z), vec4(texel));
+#endif      
+    }
+    sharedR[localInvocationIndex] = texel.x;
+    sharedG[localInvocationIndex] = texel.y;
+    sharedB[localInvocationIndex] = texel.z;
+#ifdef ALPHA
+    sharedA[localInvocationIndex] = texel.w;
+#endif
+  }
+  if(pushConstants.countMipMapLevels == 2){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x1b /*0b011011*/) == 0){
+    texel = reduceOp(
+      reduceOp(
+        texel, 
+#ifdef ALPHA
+        vec4(sharedR[localInvocationIndex + 0x02], sharedG[localInvocationIndex + 0x02], sharedB[localInvocationIndex + 0x02], sharedA[localInvocationIndex + 0x02])
+#else
+        vec4(sharedR[localInvocationIndex + 0x02], sharedG[localInvocationIndex + 0x02], sharedB[localInvocationIndex + 0x02], 1.0)
+#endif          
+      ), 
+      reduceOp(
+#ifdef ALPHA
+        vec4(sharedR[localInvocationIndex + 0x10], sharedG[localInvocationIndex + 0x10], sharedB[localInvocationIndex + 0x10], sharedA[localInvocationIndex + 0x10]), 
+        vec4(sharedR[localInvocationIndex + 0x12], sharedG[localInvocationIndex + 0x12], sharedB[localInvocationIndex + 0x12], sharedA[localInvocationIndex + 0x12])
+#else
+        vec4(sharedR[localInvocationIndex + 0x10], sharedG[localInvocationIndex + 0x10], sharedB[localInvocationIndex + 0x10], 1.0),  
+        vec4(sharedR[localInvocationIndex + 0x12], sharedG[localInvocationIndex + 0x12], sharedB[localInvocationIndex + 0x12], 1.0)
+#endif          
+      )
+    );
+    if(all(lessThan(invocationPosition.xy >> 2, destinationTextureSize))){
+#ifdef USE_RGB9E5
+      imageStore(uDestinationTextures[2], ivec3(invocationPosition.xy >> 2, invocationPosition.z), uvec4(encodeRGB9E5(texel.xyz)));
+#else
+      imageStore(uDestinationTextures[2], ivec3(invocationPosition.xy >> 2, invocationPosition.z), vec4(texel)); 
+#endif
+    }
+    sharedR[localInvocationIndex] = texel.x;
+    sharedG[localInvocationIndex] = texel.y;
+    sharedB[localInvocationIndex] = texel.z;
+#ifdef ALPHA
+    sharedA[localInvocationIndex] = texel.w;
+#endif    
+  }
+  if(pushConstants.countMipMapLevels == 3){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x3f /*0b111111*/) == 0){
+    texel = reduceOp(
+      reduceOp(
+        texel, 
+#ifdef ALPHA
+        vec4(sharedR[localInvocationIndex + 0x04], sharedG[localInvocationIndex + 0x04], sharedB[localInvocationIndex + 0x04], sharedA[localInvocationIndex + 0x04])  
+#else
+        vec4(sharedR[localInvocationIndex + 0x04], sharedG[localInvocationIndex + 0x04], sharedB[localInvocationIndex + 0x04], 1.0)
+#endif          
+      ), 
+      reduceOp(
+#ifdef ALPHA
+        vec4(sharedR[localInvocationIndex + 0x20], sharedG[localInvocationIndex + 0x20], sharedB[localInvocationIndex + 0x20], sharedA[localInvocationIndex + 0x20]),
+        vec4(sharedR[localInvocationIndex + 0x24], sharedG[localInvocationIndex + 0x24], sharedB[localInvocationIndex + 0x24], sharedA[localInvocationIndex + 0x24])
+#else
+        vec4(sharedR[localInvocationIndex + 0x20], sharedG[localInvocationIndex + 0x20], sharedB[localInvocationIndex + 0x20], 1.0),
+        vec4(sharedR[localInvocationIndex + 0x24], sharedG[localInvocationIndex + 0x24], sharedB[localInvocationIndex + 0x24], 1.0)
+#endif          
+      )
+    );
+    if(all(lessThan(invocationPosition.xy >> 3, destinationTextureSize))){
+#ifdef USE_RGB9E5
+      imageStore(uDestinationTextures[3], ivec3(invocationPosition.xy >> 3, invocationPosition.z), uvec4(encodeRGB9E5(texel.xyz)));
+#else
+      imageStore(uDestinationTextures[3], ivec3(invocationPosition.xy >> 3, invocationPosition.z), vec4(texel));
+#endif
+    }
+  }
+
+}

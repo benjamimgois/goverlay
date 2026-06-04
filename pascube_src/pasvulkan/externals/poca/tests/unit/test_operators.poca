@@ -1,0 +1,23 @@
+(function() {
+
+  return {
+    nullish_coalescing_assignment: [
+      () => {
+        let a = 5;
+        //a ??= 5;
+        Test.assertType(a, 'Number');
+        Test.assertEqual(a, 5);
+      },
+
+      () => {
+        let h = {};
+        h?.a ??= 5;
+        //h['a'] = 5;
+        Test.assert(contains(h, 'a'));
+        Test.assertType(h.a, 'Number');
+        Test.assertEqual(h.a, 5);
+      }
+    ],
+  }
+
+})();

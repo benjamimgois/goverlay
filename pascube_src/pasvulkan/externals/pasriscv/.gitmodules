@@ -1,0 +1,12 @@
+[submodule "externals/pasriscv_software"]
+	path = externals/pasriscv_software
+	url = https://github.com/BeRo1985/pasriscv_software.git
+[submodule "externals/rnl"]
+	path = externals/rnl
+	url = https://github.com/BeRo1985/rnl.git
+[submodule "externals/pasmp"]
+	path = externals/pasmp
+	url = https://github.com/BeRo1985/pasmp.git
+[submodule "externals/pasterm"]
+	path = externals/pasterm
+	url = https://github.com/BeRo1985/pasterm.git

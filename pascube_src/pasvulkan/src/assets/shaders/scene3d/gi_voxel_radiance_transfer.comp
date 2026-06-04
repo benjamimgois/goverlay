@@ -1,0 +1,114 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+//#extension GL_EXT_scalar_block_layout : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout (set = 0, binding = 0, std140) readonly uniform VoxelGridData {
+  #include "voxelgriddata_uniforms.glsl"
+} voxelGridData;
+
+layout(set = 0, binding = 1, std430) coherent buffer VoxelGridContentData {
+  uvec4 data[];
+} voxelGridContentData;
+
+layout(set = 0, binding = 2, std430) coherent buffer VoxelGridContentMetaData {
+  uint data[];
+} voxelGridContentMetaData;
+
+layout(set = 0, binding = 3, rgba16f) writeonly uniform image3D uImageVolume[]; 
+
+layout(push_constant) uniform PushConstants {
+  uint cascadeIndex;
+} pushConstants;
+
+#include "rgb9e5.glsl"
+
+/*
+const vec3 directions[6] = vec3[6](
+  vec3(1.0, 0.0, 0.0),
+  vec3(0.0, 1.0, 0.0),
+  vec3(0.0, 0.0, 1.0),
+  vec3(-1.0, 0.0, 0.0),
+  vec3(0.0, -1.0, 0.0),
+  vec3(0.0, 0.0, -1.0)      
+);
+*/
+
+vec3 octDecode(vec2 oct) {
+  vec3 v = vec3(oct.xy, 1.0 - (abs(oct.x) + abs(oct.y)));
+  float t = max(-v.z, 0.0);
+  v.xy += vec2((v.x >= 0.0) ? -t : t, (v.y >= 0.0) ? -t : t);
+/*if(v.z < 0.0){
+    v.xy = (1.0 - abs(v.yx)) * vec2((v.x >= 0.0) ? 1.0 : -1.0, (v.y >= 0.0) ? 1.0 : -1.0);
+  }*/
+  return normalize(v);
+}
+
+void main(){
+
+  uint cascadeIndex = pushConstants.cascadeIndex;
+
+  uint voxelGridSize = voxelGridData.gridSizes[cascadeIndex >> 2u][cascadeIndex & 0x3u];
+
+  uvec3 invocation = uvec3(gl_GlobalInvocationID.xyz);
+
+  if(all(greaterThanEqual(invocation, uvec3(0))) && all(lessThan(invocation, uvec3(uvec2(voxelGridSize), voxelGridSize)))){
+
+    uvec3 volumePosition = uvec3(invocation);
+
+    uint volumeBaseIndex = ((((uint(volumePosition.z) * voxelGridSize) + uint(volumePosition.y)) * voxelGridSize) + uint(volumePosition.x)) + voxelGridData.dataOffsets[cascadeIndex >> 2u][cascadeIndex & 3u];
+
+    uint volumeIndex = volumeBaseIndex << 1u;
+
+    vec4 volumeColors[6] = vec4[6](vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0));
+
+    float count = 0.0;
+
+    for(uint voxelFragmentIndex = voxelGridContentMetaData.data[volumeIndex + 3], 
+             voxelFragmentCounter = 0u,
+             countVoxelFragments = min(1024u, voxelGridContentMetaData.data[volumeIndex + 2]); 
+        (voxelFragmentIndex != 0u) && (voxelFragmentCounter < countVoxelFragments); 
+        voxelFragmentCounter++){
+      uvec4 volumeFragment = voxelGridContentData.data[voxelFragmentIndex - 1u];
+      vec4 baseColor = vec4(decodeRGB9E5(volumeFragment.y), clamp(float(uint(volumeFragment.w & 0xffu)) * (1.0 / 255.0), 0.0, 1.0));
+      vec4 emissionColor = vec4(decodeRGB9E5(volumeFragment.z), baseColor);
+      vec3 normal = octDecode(vec2((ivec2(uvec2((volumeFragment.ww >> uvec2(8u, 20u)) & uvec2(0xfffu))) - ivec2(2048)) / 2047.0));
+      vec3 lighting = vec3(1.0);
+      {
+        // TODO: Light evaluation
+      }
+      vec4 color = vec4((baseColor.xyz * lighting.xyz) + emissionColor.xyz, 1.0) * baseColor.w; // premultiplied alpha
+      uvec3 anisotropicAxisDirectionSideIndices = uvec3((normal.x > 0.0) ? 0u : 3u, (normal.y > 0.0) ? 1u : 4u, (normal.z > 0.0) ? 2u : 5u);
+      [[unroll]] for(uint anisotropicAxisDirectionIndexCounter = 0u; anisotropicAxisDirectionIndexCounter < 3u; anisotropicAxisDirectionIndexCounter++){
+        uint anisotropicAxisDirectionIndex = anisotropicAxisDirectionSideIndices[anisotropicAxisDirectionIndexCounter];
+        float anisotropicAxisDirectionSideWeight = abs(normal[anisotropicAxisDirectionIndexCounter]);
+    //[[unroll]] for(uint anisotropicAxisDirectionIndex = 0u; anisotropicAxisDirectionIndex < 6u; anisotropicAxisDirectionIndex++){
+    //  float anisotropicAxisDirectionSideWeight = max(0.0, dot(directions[anisotropicAxisDirectionIndex], normal));
+        volumeColors[anisotropicAxisDirectionIndex] += color * anisotropicAxisDirectionSideWeight;
+      }
+      voxelFragmentIndex = volumeFragment.x;
+      count += 1.0;
+    }
+    
+    if(count > 0.0){
+      [[unroll]] for(uint anisotropicAxisDirectionIndex = 0; anisotropicAxisDirectionIndex < 6; anisotropicAxisDirectionIndex++){
+        imageStore(uImageVolume[(cascadeIndex * 6) + anisotropicAxisDirectionIndex], ivec3(volumePosition), volumeColors[anisotropicAxisDirectionIndex] / count);
+      } 
+    }else{
+      [[unroll]] for(uint anisotropicAxisDirectionIndex = 0; anisotropicAxisDirectionIndex < 6; anisotropicAxisDirectionIndex++){
+        imageStore(uImageVolume[(cascadeIndex * 6) + anisotropicAxisDirectionIndex], ivec3(volumePosition), vec4(0.0));
+      }
+    }
+
+  }
+
+}
+

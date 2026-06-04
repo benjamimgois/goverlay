@@ -1,0 +1,114 @@
+import assert_structure from '../helper';
+
+#undef USE_TABLE
+
+#define ASSERT_CODE(comparison)       \
+        const ok = comparison;        \
+        if (!Coroutine.inside())      \
+          return ok;                  \
+                                      \
+        let result = Coroutine.get(); \
+        result?.tests ??= [];         \
+        result.tests.push(ok);        \
+                                      \
+        Coroutine.yield(result);      \
+
+
+#ifdef USE_TABLE
+
+let Test = (function() {
+  const asserts = {
+    assert:          (value) => !!(value) === true,
+    assertType:      (value, expected) => expected === typeof(value),
+    assertEqual:     (actual, expected) => expected === actual,
+    assertNotEqual:  (actual, expected) => expected !== actual,
+    assertLike:      (actual, expected) => expected == actual,
+    assertNotLike:   (actual, expected) => expected != actual,
+    assertSize:      (what, size) => what.size() === size,
+    assertZero:      (actual) => 0 === actual,
+    assertFalse:     (value) => !value == false,
+    assertLikeNull:  (value) => value == null,
+    assertNotLikeNul l: (value) => value != null,
+    assertNotNull:   (value) => value !== null,
+    assertStructure: (actual, expected) => assert_structure(actual, expected)
+  };
+
+  let test_table = {};
+
+  foreach (const t in asserts.keys()) {
+    test_table[t] = (args...) => { ASSERT_CODE(call(asserts[t], args)) }
+  }
+
+  return test_table;
+})();
+
+#else // USE_TABLE
+
+let Test = {
+    assertType: function(value, expected) {
+      ASSERT_CODE(expected === typeof(value))
+    },
+
+    assertEqual: (actual, expected, msg = 'assertEqual failed') => {
+      ASSERT_CODE(expected === actual)
+    },
+
+    assertNotEqual: (actual, expected, msg = 'assertNotEqual failed') => {
+      ASSERT_CODE(expected !== actual)
+    },
+
+    assert: (value) => {
+      ASSERT_CODE(!!(value))
+    },
+
+    assertSize: (what, size, msg = 'assertSize failed') => {
+      ASSERT_CODE(what.size() === size)
+    },
+
+    assertZero: (actual, msg = 'assertZero failed') => {
+      ASSERT_CODE(0 === actual)
+    },
+
+    assertFalse: (value) => {
+      ASSERT_CODE(!(value))
+    },
+
+    assertNull: (value) => {
+      ASSERT_CODE(value === null)
+    },
+
+    assertNotNull: (value) => {
+      ASSERT_CODE(value !== null)
+    },
+
+    assertLikeNull: (value) => {
+      ASSERT_CODE(value == null)
+    },
+
+    assertNotLikeNull: (value) => {
+      ASSERT_CODE(value != null)
+    },
+
+    assertLike: (actual, expected, msg = 'assertLike failed') => {
+      ASSERT_CODE(expected == actual)
+    },
+
+    assertNotLike: (actual, expected, msg = 'assertNotLike failed') => {
+      ASSERT_CODE(expected != actual)
+    },
+
+    assertLength: (what, len, msg = 'assertLength failed') => {
+      ASSERT_CODE(what.length === len)
+    },
+
+    assertStructure: (actual, expected, msg = 'assertStructure failed') => {
+      ASSERT_CODE(assert_structure(actual, expected));
+    }
+};
+#endif // USE_TABLE
+
+Test.assertTrue = Test.assert;
+Test.assertUnlike = Test.assertNotLike;
+Test.assertUnequal = Test.assertNotEqual;
+
+export Test;

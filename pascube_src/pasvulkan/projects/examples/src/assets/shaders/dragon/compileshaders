@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+glslangValidator -V dragon.vert -o dragon_vert.spv
+glslangValidator -V dragon.frag -o dragon_frag.spv
+for f in *.spv; do
+  # spirv-opt --strip-debug --unify-const --flatten-decorations --eliminate-dead-const "$f" -o "$f"
+  spirv-opt --strip-debug --unify-const --flatten-decorations --eliminate-dead-const --strength-reduction --simplify-instructions --remove-duplicates -O "$f" -o "$f"
+done
+cp -f dragon_vert.spv ../../../../assets/shaders/dragon/dragon_vert.spv
+cp -f dragon_frag.spv ../../../../assets/shaders/dragon/dragon_frag.spv
+rm -f *.spv

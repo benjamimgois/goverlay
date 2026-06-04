@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+glslangValidator -V textoverlay.vert -o textoverlay_vert.spv
+glslangValidator -V textoverlay.frag -o textoverlay_frag.spv
+for f in *.spv; do
+  # spirv-opt --strip-debug --unify-const --flatten-decorations --eliminate-dead-const "$f" -o "$f"
+  spirv-opt --strip-debug --unify-const --flatten-decorations --eliminate-dead-const --strength-reduction --simplify-instructions --remove-duplicates -O "$f" -o "$f"
+done
+cp -f textoverlay_vert.spv ../../../../assets/shaders/textoverlay/textoverlay_vert.spv
+cp -f textoverlay_frag.spv ../../../../assets/shaders/textoverlay/textoverlay_frag.spv
+rm -f *.spv

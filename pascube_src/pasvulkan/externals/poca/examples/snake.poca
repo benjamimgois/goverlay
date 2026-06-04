@@ -1,0 +1,191 @@
+#!/usr/bin/env poca
+
+// Snake game in POCA
+
+// This is a simple implementation of the classic Snake game.
+// The snake moves around the screen, eating food and growing longer.
+// The game ends when the snake collides with itself.
+// Controls: W (up), A (left), S (down), D (right), Q (quit)
+// This code uses ANSI escape codes for terminal control.
+// It is designed to run in a terminal that supports ANSI escape codes.
+
+const WIDTH = 20;
+const HEIGHT = 10;
+
+let snake = [];        // Array of {x,y}
+let snakeLength = 3;
+let food = { x: 0, y: 0 };
+let dx = 0, dy = -1;   // initial direction: up
+let running = true;
+
+// FrameBuffer: flat array of cells { old, current }
+let fb = new Array(WIDTH * HEIGHT);
+for (let i = 0; i < fb.length; i++) {
+  fb[i] = { old: '-', current: ' ' };
+}
+
+// Terminal control functions
+function clearScreen() {
+  print("\u001b[2J");
+}
+
+function setCursorPosition(let x, let y) {
+  print(`\u001b[${y + 1};${x + 1}H`);
+}
+
+function setCursorVisible(visible) {
+  print(visible ? "\u001b[?25h" : "\u001b[?25l");
+}
+
+function setColor(color) {
+  print(`\u001b[38;5;${color}m`);
+}
+
+function resetColor() {
+  print("\u001b[0m");
+}
+
+function setBackgroundColor(let color) {
+  print(`\u001b[48;5;${color}m`);
+}
+
+function resetBackgroundColor() {
+  print("\u001b[49m");
+}
+
+// Initialize snake in center (horizontal orientation)
+const midX = Math.floor(WIDTH / 2);
+const midY = Math.floor(HEIGHT / 2);
+for (let i = 0; i < snakeLength; i++) {
+  snake.push({ x: midX + i, y: midY });
+}
+
+// Place food at random position not on the snake
+function placeFood() {
+  while (true) {
+    food.x = Math.floor(Math.random() * WIDTH);
+    food.y = Math.floor(Math.random() * HEIGHT);
+    let coll = false;
+    for (let i = 0; i < snakeLength; i++) {
+      if (snake[i].x === food.x && snake[i].y === food.y) {
+        coll = true;
+        break;
+      }
+    }
+    if (!coll) break;
+  }
+}
+placeFood();
+
+// Update frame buffer with snake and food
+function updateFrameBuffer() {
+  for (let i = 0; i < WIDTH * HEIGHT; i++) {
+    fb[i].current = ' ';
+  }
+  for (let i = 0; i < snakeLength; i++) {
+    const idx = snake[i].y * WIDTH + snake[i].x;
+    fb[idx].current = 'O';
+  }
+  const idx = food.y * WIDTH + food.x;
+  fb[idx].current = '*';
+}
+
+// Draw only changed cells
+function drawFrameBuffer() {
+  setBackgroundColor(8);
+  for (let y = 0; y < HEIGHT; y++) {
+    for (let x = 0; x < WIDTH; x++) {
+      const idx = y * WIDTH + x;
+      if (fb[idx].current !== fb[idx].old) {
+        setCursorPosition(x, y);
+        // Set color: green for snake, yellow for food, white for blank
+        if (fb[idx].current === 'O') {
+          setColor(2);
+        } else if (fb[idx].current === '*') {
+          setColor(3);
+        } else {
+          setColor(7);
+        }
+        print(fb[idx].current);
+        fb[idx].old = fb[idx].current;
+      }
+    }
+  }
+  resetColor();
+  resetBackgroundColor();
+  setCursorPosition(0, HEIGHT);
+  print("Score: ", snakeLength);
+  setCursorVisible(false);
+}
+
+function keypress(let key) {
+  if (key === 3 || key === 113) { // ctrl-c or 'q'
+    running = false;
+  } else if (key === 97 && dx === 0) {
+    dx = -1; dy = 0;
+  } else if (key === 100 && dx === 0) {
+    dx = 1; dy = 0;
+  } else if (key === 119 && dy === 0) {
+    dx = 0; dy = -1;
+  } else if (key === 115 && dy === 0) {
+    dx = 0; dy = 1;
+  }
+};
+
+// Move snake (wrap-around and collision detection)
+function moveSnake() {
+  // Shift snake segments
+  for (let i = snakeLength - 1; i > 0; i--) {
+    snake[i] = { x: snake[i - 1].x, y: snake[i - 1].y };
+  }
+  snake[0].x += dx;
+  snake[0].y += dy;
+
+  // Wrap around edges
+  if (snake[0].x < 0) snake[0].x = WIDTH - 1;
+  if (snake[0].x >= WIDTH) snake[0].x = 0;
+  if (snake[0].y < 0) snake[0].y = HEIGHT - 1;
+  if (snake[0].y >= HEIGHT) snake[0].y = 0;
+
+  // Check self-collision
+  for (let i = 1; i < snakeLength; i++) {
+    if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+      running = false;
+      return;
+    }
+  }
+
+  // Check if food is eaten
+  if (snake[0].x === food.x && snake[0].y === food.y) {
+    snakeLength++;
+    snake.push({ x: snake[snakeLength - 2].x, y: snake[snakeLength - 2].y });
+    placeFood();
+  }
+}
+
+// Initialize terminal
+Console.initialize();
+
+// Game loop
+clearScreen();
+setCursorVisible(false);
+do{
+  GarbageCollector.collect(); // Collect garbage to free memory at the beginning of each frame to avoid unregular pauses
+  updateFrameBuffer();
+  drawFrameBuffer();
+  print("\n");
+  print("WSAD to move, Q to quit");
+  sleep(300 - Math.min(snakeLength * 5, 200));
+  let input = Console.readKey();
+  keypress(input);
+  moveSnake();
+} while (running);
+
+// Game over
+clearScreen();
+setCursorVisible(true);
+setCursorPosition(0, 0);
+print("Game Over! Your score: ", snakeLength, "\n");
+
+// Restore terminal settings
+Console.finalize();

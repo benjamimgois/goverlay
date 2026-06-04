@@ -1,0 +1,53 @@
+// 3D Donut
+
+// Set the garbage collector to non-incremental mode for performance, since at an incremental garbage collection, it can happen that
+// the incremental garbage collection must be started often from scratch again due to invariants of the garbage collection algorithm,
+// where the full garbage collection at other larger intervals needs then more time, to scan the then more allocated memory than
+// the full garbage collector would need to scan in the same time. So the incremental garbage collector is not really useful in this case. 
+// This is important for performance in a tight loop.
+GarbageCollector.setIncremental(false); 
+
+(function(){  
+  const (canvasWidth, canvasHeight) = (80, 24);
+  const (canvasSize, xOffset, yOffset, innerRadius, fov, w, tau, u) = (canvasHeight * canvasWidth, 40, 12, 2, 5, 30, Math.PI * 2.0, '.,-~:;=!*#$@');
+  const q = (((u.length + 1) * 2) / 3) << 0;      
+  let (A, B, b, z) = (0, 0, new Array(canvasSize), new Array(7040));
+  do{
+    GarbageCollector.collect(); // Collect garbage to free memory at the beginning of each frame to avoid unregular pauses
+    let time = Math.frac(DateTime.now()) * 864000000.0;
+    A = time * 0.0002;
+    B = time * 0.0001;
+    b.fill(' ');
+    z.fill(0);
+    let (e, g, n, m) = (Math.sin(A), Math.cos(A), Math.sin(B), Math.cos(B));
+    for (let j = 0, ji = tau / 90.0; j < tau; j += ji) {
+      let (f, d) = (Math.sin(j), Math.cos(j));
+      for (let i = 0, ii = tau / 314.0; i < tau; i += ii) {
+        let (h, c, l) = (d + innerRadius, Math.sin(i), Math.cos(i));
+        let (D, t) = (1.0 / ((c * h * e) + (f * g) + fov), (c * h * g) - (f * e));
+        let (x, y) = ((xOffset + ((w * D) * ((l * h * m) - (t * n)))) << 0, (yOffset + (((w / 2) * D) * ((l * h * n) + (t * m)))) << 0);
+        let (o, N) = (((y * canvasWidth) + x) << 0, (q * ((((((f * e) - (c * d * g)) * m) - (c * d * e)) - (f * g)) - (l * d * n))) << 0);
+        if((((x > 0) && (x < canvasWidth)) && ((y > 0) && (y < canvasHeight))) && (D > z[o])) {
+          z[o] = D;
+          b[o] = (N > 0) ? N : 0;
+        }
+      }
+    }
+    print("\x1b[2J\x1b[H");
+    let o = 0;
+    for(let y = 0; y < canvasHeight; y++) {
+      let r = "";
+      for(let x = 0; x < canvasWidth; x++) {
+        let l = b[o++];
+        if (l == ' ') {
+          r ~= ' ';
+        } else {
+          r ~= "\x1b[38;5;" ~ ((l & 7) + 202).toString() ~ "m" ~ u.charAt(l) ~ "\x1b[0m";
+        }
+      }
+      print(r, "\n");
+    }
+    sleep(10);
+  }while(1);
+})();
+

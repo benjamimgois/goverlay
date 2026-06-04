@@ -1,0 +1,73 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_gpu_shader_fp64 : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer TileMapDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapDirtyBuffer;
+
+layout(set = 0, binding = 1) buffer TileMapExpandedDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapExpandedDirtyBuffer;
+
+layout(push_constant) uniform PushConstants {
+  uint tileMapResolution;
+} pushConstants;
+
+void main() {
+
+  // Expand dirty map, so that also adjacent tiles are marked as dirty, since tile edges are shared.
+  // Indeed, it can be done more efficiently, but it's not worth the effort, because it's only done at
+  // changing the height map, which is not done very often and maximal once per frame ir time step. 
+  // The most important thing is that the mesh for the physics engine is updated correctly, because 
+  // it's used for collision detection and so on. An expanded dirty map is used here, because it
+  // would otherwise be self-overlapping and thus not work correctly, when it would update the dirty
+  // map in-place. In other words, it would mark too much tiles as dirty then, which would result in
+  // unnecessary work for updating the physics mesh and so on.
+
+  const uvec2 tileMapXY = uvec2(gl_GlobalInvocationID.xy);
+
+  if(all(lessThan(tileMapXY, uvec2(pushConstants.tileMapResolution)))){
+
+    const uint index = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
+
+    const uint mask = pushConstants.tileMapResolution - 1;
+
+    const uint bitMask = 1u << (index & 31u);
+
+    uint value = 0u;
+
+    // Gather from adjacent tiles (=> expand dirty map)
+    [[unroll]] for(int y = -1; y <= 1; y++){
+      [[unroll]] for(int x = -1; x <= 1; x++){
+        ivec2 tileMapOtherXY = ivec2(tileMapXY) + ivec2(x, y);      
+        ivec2 tileMapOtherWrapXY = tileMapOtherXY / ivec2(pushConstants.tileMapResolution);
+        if((((abs(tileMapOtherWrapXY.x) + (int(tileMapOtherXY.x < 0) & 1)) & 1) ^ ((abs(tileMapOtherWrapXY.y) + (int(tileMapOtherXY.y < 0) & 1)) & 1)) != 0){
+          // Octahedral wrap, here the coordinates must be mirrored in a checkerboard pattern at overflows
+          tileMapOtherXY.xy = ivec2(pushConstants.tileMapResolution) - (((tileMapOtherXY.xy + ivec2(pushConstants.tileMapResolution)) & ivec2(mask)) + ivec2(1));
+        } else {
+          tileMapOtherXY.xy = (tileMapOtherXY.xy + ivec2(pushConstants.tileMapResolution)) & ivec2(mask);
+        }      
+        uint otherIndex = (uint(tileMapOtherXY.y) * pushConstants.tileMapResolution) + uint(tileMapOtherXY.x);
+        if((tileMapDirtyBuffer.data[otherIndex >> 5u] & (1u << (otherIndex & 31u))) != 0u){
+          value |= bitMask;
+        }
+      }
+    }
+
+    // Store into expanded dirty map
+    atomicOr(tileMapExpandedDirtyBuffer.data[index >> 5u], value);
+
+  }
+
+}

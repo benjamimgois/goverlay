@@ -1,0 +1,26 @@
+(function(){
+  Group.setMaterialHologram(
+    Group.getMaterialID("TestAnimatedMaterial"),
+    {
+      "active": true,
+      "direction": [0.0, 20.0, 0.0], // when the direction is [0.0, 0.0, 0.0], the direction is calculated from the up vector of the view matrix
+      "flickerSpeed": 1.0,
+      "flickerMin": 0.5,
+      "flickerMax": 1.0,
+      "mainColor": [0.0, 0.05, 0.3],
+      "mainAlpha": 1.0,
+      "rimColor": [0.0, 0.9, 0.972],
+      "rimAlpha": 1.0,
+      "rimPower": 1.29,
+      "rimThreshold": 0.0,
+      "scanTiling": 1024.0,
+      "scanSpeed": -32.0,
+      "scanMin": 0.0,
+      "scanMax": 0.5,
+      "glowTiling": 0.25,
+      "glowSpeed": 1.0,
+      "glowMin": 0.0,
+      "glowMax": 0.65
+    }
+  );
+})();

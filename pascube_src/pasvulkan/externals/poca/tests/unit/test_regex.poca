@@ -1,0 +1,114 @@
+import dump from '../helper';
+
+const s = 'The needle in the haystack in a barn besides an inn.';
+
+(function() {
+
+  return {
+
+    test_match: [
+      () => {
+        Test.assertNull(/hatstack/.match(s));
+        Test.assertNotNull(/haystack/.match(s));
+
+        Test.assertStructure(
+          /in/.match(s)[0],
+          [ 'in' ]
+        );
+
+        Test.assertStructure(
+          /(in)/.match(s)[0],
+          [ 'in', 'in' ]
+        );
+
+        Test.assertStructure(
+          /in (a|the)/.match(s, 0, -1),
+          [ [ 'in the', 'the' ], [ 'in a', 'a' ] ]
+        );
+
+        Test.assertStructure(
+          /(in)/.match(s)[0],
+          [ 'in', 'in' ]
+        );
+
+      }
+    ],
+
+    test_exec: [
+      () => {
+
+        Test.assertStructure(
+          /in/.exec(s),
+          [
+            [
+              [ 11, 2, 'in', 'wholematch' ],
+            ]
+          ]
+        );
+
+        Test.assertStructure(
+          /(in)/.exec(s),
+          [
+            [
+              [ 11, 2, 'in', 'wholematch' ],
+              [ 11, 2, 'in', '1' ]
+            ]
+          ]
+        );
+
+        Test.assertStructure(
+          /(in)/.exec(s),
+          [
+            [
+              [ 11, 2, 'in', 'wholematch' ],
+              [ 11, 2, 'in', '1' ]
+            ]
+          ]
+        );
+
+        Test.assertStructure(
+          /(?<inn>inn)/.exec(s),
+          [
+            [
+              [ 48, 3, 'inn', 'wholematch' ],
+              [ 48, 3, 'inn', 'inn' ]
+            ]
+          ]
+        );
+#if 0
+        dump(/(inn?)/.exec(s));
+        Test.assertStructure(
+          /(?<inn>inn)/.exec(s),
+          [
+            [
+            ]
+          ]
+        );
+
+        dump(/((?<inn>inn?)|(?<in>in))/.exec(s, 0, -1));
+        Test.assertStructure(
+          /(?<inn>inn)/.exec(s),
+          [
+            [
+            ]
+          ]
+        );
+#endif
+      }
+    ],
+
+    test_regexp_match: [
+      () => {
+        let rx = new RegExp("/😀/");
+
+        Test.assertStructure(
+          rx.split('Hello 😀 my 😀 friend! 👋'),
+          [ 'Hello ', ' my ', ' friend! 👋' ]
+        );
+      }
+
+    ]
+
+  };
+
+})();

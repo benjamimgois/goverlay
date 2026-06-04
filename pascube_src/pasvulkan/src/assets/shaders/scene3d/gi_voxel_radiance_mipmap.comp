@@ -1,0 +1,134 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+//#extension GL_EXT_scalar_block_layout : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout (set = 0, binding = 0, std140) readonly uniform VoxelGridData {
+  #include "voxelgriddata_uniforms.glsl"
+} voxelGridData;
+
+layout(set = 0, binding = 1, rgba16f) readonly uniform image3D uImageSourceVolume[]; 
+
+layout(set = 0, binding = 2, rgba16f) writeonly uniform image3D uImageDestinationVolume[];
+
+layout(push_constant) uniform PushConstants {
+  uint mipMapLevel;
+  uint cascadeIndex;
+} pushConstants;
+
+#define voxelIndex(x, y, z) ((((z << 1) + y) << 1) + x)    
+
+ivec3 maxSourceSize;
+
+vec4 imageLoadEx(const uint index, ivec3 pos){
+  return (all(greaterThanEqual(pos, ivec3(0))) && all(lessThan(pos, maxSourceSize))) ? 
+          imageLoad(uImageSourceVolume[index], pos) : 
+          vec4(0.0);
+}
+
+void fetchVoxels(out vec4 voxels[8], const in uint index, const in ivec3 pos){
+  voxels = vec4[8](
+    vec4(imageLoadEx(index, pos + ivec3(0, 0, 0))), // 0
+    vec4(imageLoadEx(index, pos + ivec3(1, 0, 0))), // 1
+    vec4(imageLoadEx(index, pos + ivec3(0, 1, 0))), // 2
+    vec4(imageLoadEx(index, pos + ivec3(1, 1, 0))), // 3
+    vec4(imageLoadEx(index, pos + ivec3(0, 0, 1))), // 4
+    vec4(imageLoadEx(index, pos + ivec3(1, 0, 1))), // 5
+    vec4(imageLoadEx(index, pos + ivec3(0, 1, 1))), // 6
+    vec4(imageLoadEx(index, pos + ivec3(1, 1, 1)))  // 7
+  );
+}                        
+
+void main(){
+
+  uint cascadeIndex = pushConstants.cascadeIndex;
+
+  uint voxelSourceGridSize = voxelGridData.gridSizes[cascadeIndex >> 2u][cascadeIndex & 3u];
+
+  uint voxelDestinationGridSize = voxelSourceGridSize >> pushConstants.mipMapLevel;
+
+  voxelSourceGridSize >>= pushConstants.mipMapLevel - 1u;
+
+  uvec3 invocation = uvec3(gl_GlobalInvocationID.xyz);
+
+  if(all(greaterThanEqual(invocation, uvec3(0))) && all(lessThan(invocation, uvec3(uvec2(voxelDestinationGridSize), voxelDestinationGridSize)))){
+
+    uvec3 volumeDestinationPosition = uvec3(invocation);
+
+    uvec3 volumeSourcePosition = volumeDestinationPosition << uvec3(1u);
+
+    uint baseImageIndex = cascadeIndex * 6u;
+
+    maxSourceSize = ivec3(int(voxelSourceGridSize));
+
+    vec4 voxels[8];
+    {
+      // +x
+      fetchVoxels(voxels, baseImageIndex + 0, ivec3(volumeSourcePosition));
+      vec4 temp = ((voxels[voxelIndex(0, 0, 0)] + (voxels[voxelIndex(1, 0, 0)] * (1.0 - voxels[voxelIndex(0, 0, 0)].w))) +
+                   (voxels[voxelIndex(0, 1, 0)] + (voxels[voxelIndex(1, 1, 0)] * (1.0 - voxels[voxelIndex(0, 1, 0)].w))) +
+                   (voxels[voxelIndex(0, 0, 1)] + (voxels[voxelIndex(1, 0, 1)] * (1.0 - voxels[voxelIndex(0, 0, 1)].w))) +
+                   (voxels[voxelIndex(0, 1, 1)] + (voxels[voxelIndex(1, 1, 1)] * (1.0 - voxels[voxelIndex(0, 1, 1)].w)))) * 0.25;  
+      imageStore(uImageDestinationVolume[baseImageIndex + 0], ivec3(volumeDestinationPosition), vec4(temp));
+    }
+    
+    {
+      // +y
+      fetchVoxels(voxels, baseImageIndex + 1, ivec3(volumeSourcePosition));
+      vec4 temp = ((voxels[voxelIndex(0, 0, 0)] + (voxels[voxelIndex(0, 1, 0)] * (1.0 - voxels[voxelIndex(0, 0, 0)].w))) +
+                   (voxels[voxelIndex(1, 0, 0)] + (voxels[voxelIndex(1, 1, 0)] * (1.0 - voxels[voxelIndex(1, 0, 0)].w))) +
+                   (voxels[voxelIndex(0, 0, 1)] + (voxels[voxelIndex(0, 1, 1)] * (1.0 - voxels[voxelIndex(0, 0, 1)].w))) +
+                   (voxels[voxelIndex(1, 0, 1)] + (voxels[voxelIndex(1, 1, 1)] * (1.0 - voxels[voxelIndex(1, 0, 1)].w)))) * 0.25;  
+      imageStore(uImageDestinationVolume[baseImageIndex + 1], ivec3(volumeDestinationPosition), vec4(temp));
+    }
+    
+    {
+      // +z
+      fetchVoxels(voxels, baseImageIndex + 2, ivec3(volumeSourcePosition));
+      vec4 temp = ((voxels[voxelIndex(0, 0, 0)] + (voxels[voxelIndex(0, 0, 1)] * (1.0 - voxels[voxelIndex(0, 0, 0)].w))) +
+                   (voxels[voxelIndex(1, 0, 0)] + (voxels[voxelIndex(1, 0, 1)] * (1.0 - voxels[voxelIndex(1, 0, 0)].w))) +
+                   (voxels[voxelIndex(0, 1, 0)] + (voxels[voxelIndex(0, 1, 1)] * (1.0 - voxels[voxelIndex(0, 1, 0)].w))) +
+                   (voxels[voxelIndex(1, 1, 0)] + (voxels[voxelIndex(1, 1, 1)] * (1.0 - voxels[voxelIndex(1, 1, 0)].w)))) * 0.25;  
+      imageStore(uImageDestinationVolume[baseImageIndex + 2], ivec3(volumeDestinationPosition), vec4(temp));
+    }
+    
+    {
+      // -x
+      fetchVoxels(voxels, baseImageIndex + 3, ivec3(volumeSourcePosition));
+      vec4 temp = ((voxels[voxelIndex(1, 0, 0)] + (voxels[voxelIndex(0, 0, 0)] * (1.0 - voxels[voxelIndex(1, 0, 0)].w))) +
+                   (voxels[voxelIndex(1, 1, 0)] + (voxels[voxelIndex(0, 1, 0)] * (1.0 - voxels[voxelIndex(1, 1, 0)].w))) +
+                   (voxels[voxelIndex(1, 0, 1)] + (voxels[voxelIndex(0, 0, 1)] * (1.0 - voxels[voxelIndex(1, 0, 1)].w))) +
+                   (voxels[voxelIndex(1, 1, 1)] + (voxels[voxelIndex(0, 1, 1)] * (1.0 - voxels[voxelIndex(1, 1, 1)].w)))) * 0.25;  
+      imageStore(uImageDestinationVolume[baseImageIndex + 3], ivec3(volumeDestinationPosition), vec4(temp));
+    }
+    
+    {
+      // -y
+      fetchVoxels(voxels, baseImageIndex + 4, ivec3(volumeSourcePosition));
+      vec4 temp = ((voxels[voxelIndex(0, 1, 0)] + (voxels[voxelIndex(0, 0, 0)] * (1.0 - voxels[voxelIndex(0, 1, 0)].w))) +
+                   (voxels[voxelIndex(1, 1, 0)] + (voxels[voxelIndex(1, 0, 0)] * (1.0 - voxels[voxelIndex(1, 1, 0)].w))) +
+                   (voxels[voxelIndex(0, 1, 1)] + (voxels[voxelIndex(0, 0, 1)] * (1.0 - voxels[voxelIndex(0, 1, 1)].w))) +
+                   (voxels[voxelIndex(1, 0, 1)] + (voxels[voxelIndex(1, 0, 1)] * (1.0 - voxels[voxelIndex(1, 1, 1)].w)))) * 0.25;  
+      imageStore(uImageDestinationVolume[baseImageIndex + 4], ivec3(volumeDestinationPosition), vec4(temp));
+    }
+
+    {
+      // -z
+      fetchVoxels(voxels, baseImageIndex + 5, ivec3(volumeSourcePosition));
+      vec4 temp = ((voxels[voxelIndex(0, 0, 1)] + (voxels[voxelIndex(0, 0, 0)] * (1.0 - voxels[voxelIndex(0, 0, 1)].w))) +
+                   (voxels[voxelIndex(1, 0, 1)] + (voxels[voxelIndex(1, 0, 0)] * (1.0 - voxels[voxelIndex(1, 0, 1)].w))) +
+                   (voxels[voxelIndex(0, 1, 1)] + (voxels[voxelIndex(0, 1, 0)] * (1.0 - voxels[voxelIndex(0, 1, 1)].w))) +
+                   (voxels[voxelIndex(1, 1, 1)] + (voxels[voxelIndex(1, 1, 0)] * (1.0 - voxels[voxelIndex(1, 1, 1)].w)))) * 0.25;  
+      imageStore(uImageDestinationVolume[baseImageIndex + 5], ivec3(volumeDestinationPosition), vec4(temp));
+    }             
+
+  }
+
+}

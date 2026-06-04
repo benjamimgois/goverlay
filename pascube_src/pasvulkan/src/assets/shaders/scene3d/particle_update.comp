@@ -1,0 +1,87 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#include "particle.glsl"
+
+layout(set = 0, binding = 1, std430) buffer ParticleMetaData {
+  uvec4 aliveDeadSimulationCount; // x = alive #1 count, y = alive #2 count, z = dead count, w = simulation count
+  uint emissionCount;
+} particleMetaData;
+
+layout(set = 0, binding = 1, std430) buffer ParticleData {
+  Particle particles[];
+} particleData;
+
+layout(set = 0, binding = 2, std430) buffer ParticleDeadIndices {
+  uint deadIndices[];
+} particleDeadIndices;
+
+layout(set = 0, binding = 3, std430) buffer ParticlePreIndices {
+  uint preIndices[];
+} particlePreIndices;
+
+layout(set = 0, binding = 4, std430) buffer ParticlePostIndices {
+  uint postIndices[];
+} particlePostIndices;
+
+// Push constant data
+layout(push_constant) uniform PushConstants {
+  uint doubleBufferIndex;
+  float deltaTime;
+} pushConstants;
+
+void main(){
+
+  uint index = gl_GlobalInvocationID.x;
+
+  if(index < particleMetaData.aliveDeadSimulationCount.w){
+
+    // Pop the particle from the list of alive particles from the previous stage
+    uint particleIndex = particlePreIndices.preIndices[atomicAdd(particleMetaData.aliveDeadSimulationCount[pushConstants.doubleBufferIndex & 1u], -1) - 1];
+
+    // Get the particle data
+    Particle particle = particleData.particles[particleIndex];
+
+    // Check if the particle is alive
+    if(particle.positionAge.w < particle.velocityLifeTime.w){
+
+      // Update the particle time from 0.0 to 1.0 
+      particle.gravityTime.w = particle.positionAge.w / particle.velocityLifeTime.w;
+
+      // Update the particle position and age
+      particle.positionAge += vec4(particle.velocityLifeTime.xyz, 1.0) * pushConstants.deltaTime;
+
+      // Update the particle velocity
+      particle.velocityLifeTime.xyz += particle.gravityTime.xyz * pushConstants.deltaTime;
+
+      // Write back the updated particle data
+      particleData.particles[particleIndex] = particle;
+
+      // Add the particle to the list of alive particles for the next stage
+      particlePostIndices.postIndices[atomicAdd(particleMetaData.aliveDeadSimulationCount[(pushConstants.doubleBufferIndex + 1) & 1u], 1)] = particleIndex;
+
+    }else{
+
+      // The particle is dead
+      
+      if(particle.velocityLifeTime.w > 0.0){
+
+        // Fresh dead particle, add it to the list of dead particles
+        particleDeadIndices.deadIndices[atomicAdd(particleMetaData.aliveDeadSimulationCount.z, 1)] = particleIndex;
+
+        // Reset the lifetime to 0.0 to avoid double-freeing
+        particleData.particles[particleIndex].velocityLifeTime.w = 0.0;
+
+      }
+
+    }
+
+  }
+
+}

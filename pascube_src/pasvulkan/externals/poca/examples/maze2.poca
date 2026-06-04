@@ -1,0 +1,70 @@
+
+function makeMaze(w, h) {
+
+  var maze = new Array(w);
+  for (var i = 0; i < w; i++) {
+    maze[i] = new Array(h);
+    for (var j = 0; j < h; j++) {
+      maze[i][j] = 1;
+    }
+  }
+
+  var stack = new Array();
+  var x = 0;
+  var y = 0;
+  maze[x][y] = 0;
+  stack.push([x, y]);
+
+  while (stack.size() > 0) {
+    var neighbors = new Array();
+    if ((x > 1) && (maze[x - 2][y] != 0)) {
+      neighbors.push([x - 2, y]);
+    }
+    if ((x < (w - 2)) && (maze[x + 2][y] != 0)) {
+      neighbors.push([x + 2, y]);
+    }
+    if ((y > 1) && (maze[x][y - 2] != 0)) {
+      neighbors.push([x, y - 2]);
+    }
+    if ((y < (h - 2)) && (maze[x][y + 2] != 0)) {
+      neighbors.push([x, y + 2]);
+    }
+
+    if (neighbors.size() > 0) {
+      var next = neighbors[Math.floor(Math.random() * neighbors.size())];
+      var nx = next[0];
+      var ny = next[1];
+      maze[nx][ny] = 0;
+      maze[x + (nx - x) / 2][y + (ny - y) / 2] = 0;
+      stack.push([nx, ny]);
+      x = nx;
+      y = ny;
+    } else {
+      var last = stack.pop();
+      x = last[0];
+      y = last[1];
+    }
+  }
+
+  return maze;
+
+}
+
+function printMaze(maze) {
+  var w = maze.size();
+  var h = maze[0].size();
+  for (var j = 0; j < h; j++) {
+    for (var i = 0; i < w; i++) {
+      if (maze[i][j] == 1) {
+        print("#");
+      } else {
+        print(" ");
+      }
+    }
+    print("\n");
+  }
+}
+
+var maze = makeMaze(12, 12);
+
+printMaze(maze);

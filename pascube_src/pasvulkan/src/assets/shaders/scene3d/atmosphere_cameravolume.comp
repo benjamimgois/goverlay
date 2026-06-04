@@ -1,0 +1,209 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+/* clang-format on */
+
+#define MULTISCATAPPROX_ENABLED
+//#define ATMOSPHEREMAP_ENABLED 
+#undef SHADOWS_ENABLED
+
+#include "globaldescriptorset.glsl"
+
+#include "atmosphere_common.glsl"
+
+// Push constants
+layout(push_constant, std140) uniform PushConstants {
+  int baseViewIndex;
+  int countViews;
+  int frameIndex;
+  int dummy;
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+layout(set = 2, binding = 0, rgba32f) uniform image2DArray uDestinationTexture;
+
+layout(set = 2, binding = 1) uniform sampler2D uTransmittanceLutTexture;
+
+layout(set = 2, binding = 2) uniform sampler2D uMultiScatteringTexture;
+
+layout(set = 2, binding = 3) uniform samplerCube uAtmosphereMapTexture;
+
+layout(set = 2, binding = 4, std430) buffer AtmosphereParametersBuffer {
+  AtmosphereParameters atmosphereParameters;
+} uAtmosphereParameters;
+
+const float aerialPerspectiveStartDepthKM = 0.0; 
+
+void main() {
+
+  ivec2 size = imageSize(uDestinationTexture).xy;
+
+  ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+  int globalZ = int(gl_GlobalInvocationID.z);
+
+  int viewIndex = int(globalZ / AP_SLICE_COUNT_INT);
+
+  int sliceIndex = globalZ % AP_SLICE_COUNT_INT;
+  
+  if(all(greaterThanEqual(coord, ivec2(0))) && all(lessThan(coord, size)) && (viewIndex < pushConstants.countViews)) {
+
+    View view = uView.views[pushConstants.baseViewIndex + viewIndex];
+
+    mat4 inverseViewMatrix = view.inverseViewMatrix;
+    mat4 inverseProjectionMatrix = view.inverseProjectionMatrix;
+
+    mat4 skyInvViewProjMat = inverseViewMatrix * inverseProjectionMatrix;
+
+    int sliceID = sliceIndex;
+
+    vec2 uv = (vec2(coord) + vec2(0.5)) / vec2(size);
+
+    //seedSampleSeedT(uBlueNoise, ivec2(coord), pushConstants.frameIndex);
+
+    vec3 worldPos, worldDir;
+    GetCameraPositionDirection(worldPos, worldDir, view.viewMatrix, view.projectionMatrix, view.inverseViewMatrix, view.inverseProjectionMatrix, uv);
+
+    worldPos = (uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(worldPos, 1.0)).xyz;
+    worldDir = normalize((uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(worldDir, 0.0)).xyz);
+
+    float earthR = uAtmosphereParameters.atmosphereParameters.BottomRadius;
+    vec3 earthO = vec3(0.0, -earthR, 0.0);
+    vec3 camPos = worldPos;// + vec3(0.0, earthR, 0.0);
+    vec3 SunDir = getSunDirection(uAtmosphereParameters.atmosphereParameters);
+    vec3 SunLuminance = vec3(0.0);
+
+    float Slice = ((float(sliceID) + 0.5) / float(AP_SLICE_COUNT));
+    Slice *= Slice;	// squared distribution
+    Slice *= AP_SLICE_COUNT;
+
+    vec3 rayOrigin = fma(worldDir, vec3(aerialPerspectiveStartDepthKM), camPos); 
+
+    // (BeRo): Move ray marching start up to top atmosphere, for to avoid missing the atmosphere in the special case of the camera being
+    // far outside the atmosphere.
+    //if(length(rayOrigin) >= uAtmosphereParameters.atmosphereParameters.TopRadius)
+    {
+      vec2 t = raySphereIntersect(rayOrigin, worldDir, vec3(0.0), uAtmosphereParameters.atmosphereParameters.TopRadius);
+      if(all(greaterThanEqual(t, vec2(0.0)))){
+        rayOrigin += worldDir * min(t.x, t.y);
+      }
+    }
+
+    // Compute position from froxel information
+    float tMax = AerialPerspectiveSliceToDepth(Slice);
+    vec3 voxelWorldPos = rayOrigin + (tMax * worldDir);
+    float voxelHeight = length(voxelWorldPos);
+
+#if 1
+    vec3 cameraToVoxel = voxelWorldPos - camPos;
+    float cameraToVoxelLength = length(cameraToVoxel);
+    vec3 cameraToVoxelDir = cameraToVoxel / cameraToVoxelLength;    
+    float planetNearT = raySphereIntersectNearest(camPos, cameraToVoxelDir, vec3(0.0), uAtmosphereParameters.atmosphereParameters.BottomRadius);
+    bool belowHorizon = (planetNearT > 0.0) && (planetNearT < cameraToVoxelLength);
+    bool underGround = voxelHeight <= uAtmosphereParameters.atmosphereParameters.BottomRadius;
+    if(belowHorizon || underGround){
+      camPos += normalize(cameraToVoxel) * 2e-2; 
+
+      vec3 normalizedVoxelWorldPos = normalize(voxelWorldPos);
+      vec3 camProjectedOnGround = normalize(camPos) * uAtmosphereParameters.atmosphereParameters.BottomRadius; // camPos - dot(camPos, normalizedVoxelWorldPos) * normalizedVoxelWorldPos; 
+      vec3 voxelWorldPosProjectedOnGround = normalizedVoxelWorldPos * uAtmosphereParameters.atmosphereParameters.BottomRadius; // voxelWorldPos - dot(voxelWorldPos, normalizedVoxelWorldPos) * normalizedVoxelWorldPos;
+      vec3 voxelGroundToRayStart = camPos - voxelWorldPosProjectedOnGround;
+      if(belowHorizon && (dot(normalize(voxelGroundToRayStart), normalizedVoxelWorldPos) < 1e-4)){
+        vec3 midPoint = mix(camProjectedOnGround, voxelWorldPosProjectedOnGround, 0.5);
+        float midPointLength = length(midPoint);
+        vec3 midPointOnGround = normalize(midPoint) * uAtmosphereParameters.atmosphereParameters.BottomRadius;
+        voxelWorldPos = fma(midPointOnGround - camPos, vec3(2.0), camPos);
+      }else{
+        voxelWorldPos = normalize(voxelWorldPos) * uAtmosphereParameters.atmosphereParameters.BottomRadius;
+      }
+
+      vec3 rayOrigin = fma(worldDir, vec3(aerialPerspectiveStartDepthKM), camPos); 
+      
+      worldDir = normalize(voxelWorldPos - camPos);
+      tMax = length(voxelWorldPos - rayOrigin);
+
+    }
+#else
+    // If the voxel is under the ground, make sure to offset it out on the ground.
+    if(voxelHeight <= (uAtmosphereParameters.atmosphereParameters.BottomRadius + PLANET_RADIUS_OFFSET)){
+      // Apply a position offset to make sure no artefact are visible close to the earth boundaries for large voxel.
+      voxelWorldPos = normalize(voxelWorldPos) * (uAtmosphereParameters.atmosphereParameters.BottomRadius + PLANET_RADIUS_OFFSET + 0.001);
+      worldDir = normalize(voxelWorldPos - camPos);
+      tMax = length(voxelWorldPos - rayOrigin);
+    }
+#endif
+
+    float tMaxMax = tMax;
+
+    float viewHeight = length(rayOrigin);
+
+    // Move ray marching start up to top atmosphere.
+    if(viewHeight >= uAtmosphereParameters.atmosphereParameters.TopRadius){
+      vec3 previousWorldPosition = rayOrigin;
+      if(!MoveToTopAtmosphere(rayOrigin, worldDir, uAtmosphereParameters.atmosphereParameters.TopRadius)){
+        // Ray is not intersecting the atmosphere
+        imageStore(uDestinationTexture, ivec3(coord, (viewIndex * AP_SLICE_COUNT_INT) + sliceID), vec4(0.0, 0.0, 0.0, 1.0));
+        imageStore(uDestinationTexture, ivec3(coord, ((viewIndex + pushConstants.countViews) * AP_SLICE_COUNT_INT) + sliceID), vec4(1.0));
+        return;
+      }
+      float LengthToAtmosphere = length(previousWorldPosition - rayOrigin);
+      if(tMaxMax < LengthToAtmosphere){
+        // tMaxMax for this voxel is not within earth
+        imageStore(uDestinationTexture, ivec3(coord, (viewIndex * AP_SLICE_COUNT_INT) + sliceID), vec4(0.0, 0.0, 0.0, 1.0));
+        imageStore(uDestinationTexture, ivec3(coord, ((viewIndex + pushConstants.countViews) * AP_SLICE_COUNT_INT) + sliceID), vec4(1.0));
+        return;
+      }
+      // Now world position has been moved to the atmosphere boundary: we need to reduce tMaxMax accordingly.
+      tMaxMax = max(0.0, tMaxMax - LengthToAtmosphere);
+    }
+
+    const bool ground = false;
+    const float SampleCountIni = max(1.0, float(sliceID + 1) * 2.0);
+    const float DepthBufferValue = -1.0;
+    const bool VariableSampleCount = false;
+    const bool MieRayPhase = true;
+    SingleScatteringResult ss = IntegrateScatteredLuminance(
+      uTransmittanceLutTexture,
+      uMultiScatteringTexture,
+//    uAtmosphereMapTexture,
+      uv, 
+      rayOrigin, 
+      worldDir, 
+      SunDir, 
+      uAtmosphereParameters.atmosphereParameters, 
+      ground, 
+      SampleCountIni,  
+      DepthBufferValue, 
+      VariableSampleCount, 
+      MieRayPhase,
+      skyInvViewProjMat,
+      tMaxMax,
+      false
+    ); 
+
+    // Store the luminance and monochromatic transmittance in the first slice (monochromatic transmittance for GPUs without dual source blending support)
+    imageStore(uDestinationTexture, ivec3(coord, (viewIndex * AP_SLICE_COUNT_INT) + sliceID), vec4(ss.L, clamp(dot(ss.Transmittance, vec3(1.0 / 3.0)), 0.0, 1.0)));
+
+    // Store the transmittance in the second slices part after all luminance slices (for GPUs with dual source blending support)
+    imageStore(uDestinationTexture, ivec3(coord, ((viewIndex + pushConstants.countViews) * AP_SLICE_COUNT_INT) + sliceID), vec4(ss.Transmittance, 1.0));
+
+  }
+
+}

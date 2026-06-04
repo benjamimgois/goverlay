@@ -1,0 +1,48 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer SphericalHarmonicsBuffer {
+  vec4 sphericalHarmonics[9]; 
+} sphericalHarmonicsBuffer;
+
+layout(set = 0, binding = 2, std430) buffer SphericalHarmonicsMetaDataBuffer {
+  vec4 dominantLightDirection;
+  vec4 dominantLightColor;
+  vec4 ambientLightColor;
+} sphericalHarmonicsMetaDataBuffer;
+
+/* clang-format on */
+
+void main() {
+ 
+  const float g_sh1 = 0.2820947917738781;                                                     // 0.5 * sqrt(1.0 / pi)
+  const float g_sh2 = 0.4886025119029199;                                                     // 0.5 * sqrt(3.0 / pi) 
+  const float g_sh3 = 1.0925484305920790;                                                     // 0.5 * sqrt(15.0 / pi) 
+  const float g_sh4 = 0.3153915652525200;                                                     // 0.25 * sqrt(5.0 / pi) 
+  const float g_sh5 = 0.5462742152960395;                                                     // 0.25 * sqrt(15.0 / pi) 
+  const float directionalLightNormalizationFactor = 2.9567930857315701;                       // (16.0 * pi) / 17.0
+  const float ambientLightNormalizationFactor = 3.5449077018110321;                           // 2.0 * sqrt(pi)
+  const float inverseAmbientLightNormalizationFactor = 1.0 / ambientLightNormalizationFactor;  
+  vec3 direction = normalize((normalize(vec3(-sphericalHarmonicsBuffer.sphericalHarmonics[3].x, -sphericalHarmonicsBuffer.sphericalHarmonics[1].x, sphericalHarmonicsBuffer.sphericalHarmonics[2].x)) * 0.2126) + 
+                             (normalize(vec3(-sphericalHarmonicsBuffer.sphericalHarmonics[3].y, -sphericalHarmonicsBuffer.sphericalHarmonics[1].y, sphericalHarmonicsBuffer.sphericalHarmonics[2].y)) * 0.7152) + 
+                             (normalize(vec3(-sphericalHarmonicsBuffer.sphericalHarmonics[3].z, -sphericalHarmonicsBuffer.sphericalHarmonics[1].z, sphericalHarmonicsBuffer.sphericalHarmonics[2].z)) * 0.0722));
+  vec3 sh0l = vec3(g_sh1, -(g_sh2 * direction.y), g_sh2 * direction.z) * directionalLightNormalizationFactor;
+  vec3 sh1l = vec3(-(g_sh2 * direction.x), g_sh3 * (direction.y * direction.x), -(g_sh3 * (direction.y * direction.z))) * directionalLightNormalizationFactor;
+  vec3 sh2l = vec3(g_sh4 * ((3.0 * (direction.z * direction.z)) - 1.0), -(g_sh3 * (direction.x * direction.z)), g_sh5 * ((direction.x * direction.x) - (direction.y * direction.y))) * directionalLightNormalizationFactor;
+  vec3 directional = max(vec3(0.0), vec3(dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[0].x, sphericalHarmonicsBuffer.sphericalHarmonics[1].x, sphericalHarmonicsBuffer.sphericalHarmonics[2].x), sh0l) + dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[3].x, sphericalHarmonicsBuffer.sphericalHarmonics[4].x, sphericalHarmonicsBuffer.sphericalHarmonics[5].x), sh1l) + dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[6].x, sphericalHarmonicsBuffer.sphericalHarmonics[7].x, sphericalHarmonicsBuffer.sphericalHarmonics[8].x), sh2l),
+                                           dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[0].y, sphericalHarmonicsBuffer.sphericalHarmonics[1].y, sphericalHarmonicsBuffer.sphericalHarmonics[2].y), sh0l) + dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[3].y, sphericalHarmonicsBuffer.sphericalHarmonics[4].y, sphericalHarmonicsBuffer.sphericalHarmonics[5].y), sh1l) + dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[6].y, sphericalHarmonicsBuffer.sphericalHarmonics[7].y, sphericalHarmonicsBuffer.sphericalHarmonics[8].y), sh2l),
+                                           dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[0].z, sphericalHarmonicsBuffer.sphericalHarmonics[1].z, sphericalHarmonicsBuffer.sphericalHarmonics[2].z), sh0l) + dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[3].z, sphericalHarmonicsBuffer.sphericalHarmonics[4].z, sphericalHarmonicsBuffer.sphericalHarmonics[5].z), sh1l) + dot(vec3(sphericalHarmonicsBuffer.sphericalHarmonics[6].z, sphericalHarmonicsBuffer.sphericalHarmonics[7].z, sphericalHarmonicsBuffer.sphericalHarmonics[8].z), sh2l)) /
+                     (dot(sh0l, sh0l) + dot(sh1l, sh1l) + dot(sh2l, sh2l)));
+  vec3 ambient = max(vec3(0.0), (sphericalHarmonicsBuffer.sphericalHarmonics[0].xyz - (directional * g_sh1)) * inverseAmbientLightNormalizationFactor);  
+
+  sphericalHarmonicsMetaDataBuffer.dominantLightDirection = vec4(direction, 0.0);
+  sphericalHarmonicsMetaDataBuffer.dominantLightColor = vec4(directional, 0.0);
+  sphericalHarmonicsMetaDataBuffer.ambientLightColor = vec4(ambient, 0.0);
+
+}

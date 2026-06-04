@@ -1,0 +1,48 @@
+
+var ObjTest = {
+
+  create: function(){
+    return {
+      prototype: ObjTest,
+      a: 42
+    };
+  },
+
+  b: 21
+
+};
+
+var obj = new ObjTest();
+
+print(obj.a, " ", obj.b, "\n");
+
+var OtherObjTest = {
+
+  prototype: ObjTest,
+
+  create: function(){
+
+/*  let obj = new ObjTest();
+    obj.prototype = OtherObjTest;
+    obj.c = 42;
+    return obj;*/
+
+    // Or shorter:
+
+    return (new ObjTest()) ~ { prototype: OtherObjTest, c: 42 };
+
+  },
+
+  d: 21,
+
+  test: function(){
+    print(this.a, " ", this.b, " ", this.c, " ", this.d, "\n");
+  }
+
+};
+
+var otherObj = new OtherObjTest();
+
+print(otherObj.a, " ", otherObj.b, " ", otherObj.c, " ", otherObj.d, "\n");
+otherObj.test();
+

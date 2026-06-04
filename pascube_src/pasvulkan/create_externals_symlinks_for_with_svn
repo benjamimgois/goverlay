@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+if [ ! -d "./externals" ]; then mkdir -p ./externals; fi
+if [ ! -d "./externals/pasmp" ]; then ln -s ../../PASMP.github/trunk ./externals/pasmp; fi
+if [ ! -d "./externals/pucu" ]; then ln -s ../../PUCU.github/trunk ./externals/pucu; fi
+if [ ! -d "./externals/pasdblstrutils" ]; then ln -s ../../PASDBLSTRUTILS.github/trunk ./externals/pasdblstrutils; fi
+if [ ! -d "./externals/kraft" ]; then ln -s ../../KRAFT.github/trunk ./externals/kraft; fi
+if [ ! -d "./externals/pasjson" ]; then ln -s ../../PASJSON.github/trunk ./externals/pasjson; fi
+if [ ! -d "./externals/pasgltf" ]; then ln -s ../../PASGLTF.github/trunk ./externals/pasgltf; fi
+if [ ! -d "./externals/rnl" ]; then ln -s ../../RNL.github/trunk ./externals/rnl; fi
+if [ ! -d "./externals/flre" ]; then ln -s ../../FLRE.github/trunk ./externals/flre; fi
+if [ ! -d "./externals/poca" ]; then ln -s ../../POCA.github/trunk ./externals/poca; fi
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+CWD=$(pwd)
+./gitforceupdate
+cd ./src
+./buildonserver.sh
+cd "$CWD"

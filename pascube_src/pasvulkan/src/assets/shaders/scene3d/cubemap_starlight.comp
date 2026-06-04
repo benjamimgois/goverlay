@@ -1,0 +1,63 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant, std140) uniform PushConstants {
+  vec4 lightDirectionIntensityFactor; // xyz = light direction, w = intensity factor
+} pushConstants;
+
+/* clang-format on */
+
+#ifdef USE_RGB9E5
+#undef ALPHA
+layout(set = 0, binding = 0, r32ui) writeonly uniform uimageCube uDestinationTexture;
+#elif defined(USE_RGBA32F)
+#define ALPHA
+layout(set = 0, binding = 0, rgba32f) writeonly uniform imageCube uDestinationTexture;
+#elif defined(USE_RGBA16F)
+#define ALPHA
+layout(set = 0, binding = 0, rgba16f) writeonly uniform imageCube uDestinationTexture;
+#elif defined(USE_R11G11B10F)
+#undef ALPHA
+layout(set = 0, binding = 0, r11f_g11f_b10f) writeonly uniform imageCube uDestinationTexture;
+#elif defined(USE_RGBA8)
+#define ALPHA
+layout(set = 0, binding = 0, rgba8) writeonly uniform imageCube uDestinationTexture;
+#else
+layout(set = 0, binding = 0) writeonly uniform imageCube uDestinationTexture;
+#endif
+
+ivec2 destinationTextureSize = imageSize(uDestinationTexture);
+
+#include "cubemap.glsl"
+
+#ifdef USE_RGB9E5
+#include "rgb9e5.glsl"
+#endif
+
+#define COMPUTE_DERIVATIVES
+#include "env_starlight.glsl"
+
+void main() {
+  ivec3 uvw = ivec3(gl_GlobalInvocationID.xyz);
+  if (all(greaterThanEqual(uvw, ivec3(0))) && all(lessThan(uvw, ivec3(destinationTextureSize, 6)))) {
+    vec3 direction = getCubeMapDirection((vec2(uvw.xy) + vec2(0.5)) / vec2(destinationTextureSize), uvw.z);
+    vec3 directionX = getCubeMapDirection((vec2(uvw.xy) + vec2(1.5, 0.5)) / vec2(destinationTextureSize), uvw.z);
+    vec3 directionY = getCubeMapDirection((vec2(uvw.xy) + vec2(0.5, 1.5)) / vec2(destinationTextureSize), uvw.z);
+    vec4 c = vec4(vec3(getStarlight(direction, directionX, directionY)) * pushConstants.lightDirectionIntensityFactor.w, 1.0);
+#ifdef USE_RGB9E5
+    imageStore(uDestinationTexture, uvw, uvec4(encodeRGB9E5(c.xyz)));
+#elif defined(USE_RGBA16F)
+    imageStore(uDestinationTexture, uvw, clamp(c, vec4(-65504.0), vec4(65504.0))); // Clamp to the range of 16-bit floating point numbers.
+#elif defined(USE_R11G11B10F)
+    imageStore(uDestinationTexture, uvw, clamp(c, vec4(0.0), vec4(65000.0))); // Clamp to the approximately representable range of 11-bit/10-bit floating point numbers.
+#else   
+    imageStore(uDestinationTexture, uvw, c); // Store the raw value, no conversion, no clamping, no encoding, just store the value as is.
+#endif
+  }
+}

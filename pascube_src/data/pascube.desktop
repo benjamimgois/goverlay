@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=pasCube
+Comment=A simple vulkan spinning cube in pascal
+Exec=pascube
+Icon=pascube
+StartupWMClass=pascube
+Terminal=false
+Type=Application
+Categories=Game;
+Keywords=pascube;cube;test;vulkan;

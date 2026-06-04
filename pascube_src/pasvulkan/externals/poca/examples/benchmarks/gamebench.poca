@@ -1,0 +1,76 @@
+// 2D entities: movement + naive circle-circle collisions (O(N^2))
+// Data layout: SoA, numeric arrays; avoid sparse/object maps for JIT stability.
+
+const N = 1000;
+const W = 1024.0, H = 768.0;
+const DT = 1.0 / 60.0;
+
+let x  = new Array(N);
+let y  = new Array(N);
+let vx = new Array(N);
+let vy = new Array(N);
+let r  = new Array(N);
+
+let i = 0;
+while (i < N) {
+  x[i]  = Math.random() * W;
+  y[i]  = Math.random() * H;
+  vx[i] = (Math.random() * 2.0 - 1.0) * 100.0;
+  vy[i] = (Math.random() * 2.0 - 1.0) * 100.0;
+  r[i]  = 4.0;
+  i = i + 1;
+}
+
+function step() {
+  // integrate
+  let i = 0;
+  while (i < N) {
+    let xi = x[i] + vx[i] * DT;
+    let yi = y[i] + vy[i] * DT;
+    // wrap
+    if (xi < 0.0) xi = xi + W; else if (xi >= W) xi = xi - W;
+    if (yi < 0.0) yi = yi + H; else if (yi >= H) yi = yi - H;
+    x[i] = xi; y[i] = yi;
+    i = i + 1;
+  }
+  // collisions (naive)
+  i = 0;
+  while (i < N) {
+    let xi = x[i], yi = y[i], ri = r[i];
+    let j = i + 1;
+    while (j < N) {
+      let dx = x[j] - xi;
+      let dy = y[j] - yi;
+      let rr = ri + r[j];
+      let d2 = dx*dx + dy*dy;
+      if (d2 < rr*rr) {
+        let d = (d2 > 0.0) ? Math.sqrt(d2) : 1e-6;
+        let nx = dx / d;
+        let ny = dy / d;
+        let pen = rr - d;
+        // separate positions 50/50
+        x[j] = x[j] + nx * (pen * 0.5);
+        y[j] = y[j] + ny * (pen * 0.5);
+        x[i] = x[i] - nx * (pen * 0.5);
+        y[i] = y[i] - ny * (pen * 0.5);
+        // crude velocity reflection along normal
+        let vdot_i = vx[i]*nx + vy[i]*ny;
+        let vdot_j = vx[j]*nx + vy[j]*ny;
+        vx[i] = vx[i] - 2.0 * vdot_i * nx;
+        vy[i] = vy[i] - 2.0 * vdot_i * ny;
+        vx[j] = vx[j] - 2.0 * vdot_j * nx;
+        vy[j] = vy[j] - 2.0 * vdot_j * ny;
+      }
+      j = j + 1;
+    }
+    i = i + 1;
+  }
+}
+
+// micro benchmark
+let t0 = DateTime.now();
+let steps = 10;
+let k = 0;
+while (k < steps) { step(); k = k + 1; }
+let t1 = DateTime.now();
+print("poca: steps=", steps, ", N=", N, ", elapsed=", DateTime.milliseconds(t1 - t0) * 0.001, "s\n");

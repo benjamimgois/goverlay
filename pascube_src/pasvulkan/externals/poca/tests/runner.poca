@@ -1,0 +1,19 @@
+let TestRunner = {
+  run: (fn) => {
+    return fn();
+  },
+
+  run_as_coro: (fn) => {
+    if (typeof(fn) != 'Function')
+      throw 'TestRunner: Argument must be a Function';
+
+    let coro = Coroutine.create(fn); // , { tests: [] });
+
+    while (!coro.terminated())
+      coro.resume(coro.data());
+
+    return coro.data()?.tests;
+  }
+};
+
+export TestRunner;

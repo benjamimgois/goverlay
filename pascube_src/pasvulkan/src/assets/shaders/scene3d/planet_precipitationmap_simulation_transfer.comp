@@ -1,0 +1,58 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) coherent buffer PrecipitationAdvectionMapInputA {
+  float values[];
+} precipitationAdvectionMapInputA;
+
+layout(set = 0, binding = 1, std430) coherent buffer PrecipitationAdvectionMapInputB {
+  float values[];
+} precipitationAdvectionMapInputB;
+
+layout(set = 0, binding = 2, r8_snorm) uniform image2D uImagePrecipitationMap;
+
+layout(push_constant) uniform PushConstants {
+  uint precipitationSimulationMapResolution; // Resolution of the precipitation simulation map
+  float noClouds; // Value for no clouds
+  float dryClouds; // Value for dry clouds
+  float wetClouds; // Value for wet clouds
+  float alpha; // Interpolation factor for the advection map
+} pushConstants;
+
+/* clang-format on */
+
+void main(){
+
+  uvec2 texel = uvec2(gl_GlobalInvocationID.xy);
+
+  if(any(greaterThanEqual(texel, uvec2(pushConstants.precipitationSimulationMapResolution)))){
+    return; // Out of bounds
+  }
+
+  // Calculate the index in the advection map
+  uint index = (texel.y * pushConstants.precipitationSimulationMapResolution) + texel.x;
+
+  // Get the advection values from the precipitation advection map inputs
+  float advectionValueA = precipitationAdvectionMapInputA.values[index];
+  float advectionValueB = precipitationAdvectionMapInputB.values[index];
+
+  // Interpolate between the two advection values using the alpha factor
+  float advectionValue = mix(advectionValueA, advectionValueB, pushConstants.alpha);
+
+  // Map to the precipitation map values
+  float precipitationValue = mix(mix(-1.0, 0.0, clamp((advectionValue - pushConstants.noClouds) / (pushConstants.dryClouds - pushConstants.noClouds), 0.0, 1.0)), 1.0, clamp((advectionValue - pushConstants.dryClouds) / (pushConstants.wetClouds - pushConstants.dryClouds), 0.0, 1.0));
+
+  // Store the precipitation value in the image
+  imageStore(uImagePrecipitationMap, ivec2(texel), vec4(precipitationValue));
+
+}
+

@@ -1,0 +1,173 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// Water simulation based on "Fast Hydraulic Erosion Simulation and Visualization on GPU" by Xing Mei, Philippe Decaudin, Bao-Gang Hu
+// Link: https://hal.inria.fr/inria-00402079/document
+
+// But yet without the erosion part of the terrain part, just the water flow simulation for now.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#ifdef USE_FP16
+// 16-bit floats
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : enable
+#extension GL_EXT_shader_16bit_storage : enable
+#endif
+
+/* clang-format off */
+
+#define WORKGROUP_SIZE 16
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+
+#include "planet_water_simulation.glsl"
+
+vec2 readHeight(ivec2 p){
+  p = clamp(wrapOctahedralTexelCoordinates(p, ivec2(pushConstants.waterHeightMapResolution)), ivec2(0), ivec2(pushConstants.waterHeightMapResolution - 1));
+  uint index = (uint(p.y) * pushConstants.waterHeightMapResolution) + uint(p.x);
+  const float planetHeight = mix(
+    pushConstants.bottomRadius,
+    pushConstants.topRadius,
+#ifdef USE_HEIGHTMAP_BUFFER
+    // When using the height map buffer, we can just use the index directly, since in this case the height map has the same resolution as
+    // the water height map as fixed constraint for to avoid the need for interpolation.
+    inPlanetHeightMap.values[index]
+#else
+    (pushConstants.planetHeightMapResolution == pushConstants.waterHeightMapResolution) 
+      ? texelFetch(uPlanetHeightmap, ivec2(p), 0).x // When the planet height map resolution is the same as the water height map resolution, we can just use texelFetch.
+      : texturePlanetOctahedralMap(uPlanetHeightmap, (vec2(p) + vec2(0.5)) * texelSize).x // Otherwise we need to use interpolation.
+#endif
+  );
+  const float waterHeight = inWaterHeightMap.values[index];
+  // Carefully adjust the planet height to include spherical elevation differences and properly computing height differences between the center point 
+  // and its neighbors for to effectively account for the sphere's curvature of spherical planet geometry in the simulation.
+  return vec2(
+    planetHeight, 
+    waterHeight
+  );
+} 
+
+ // (1.0 + (includeSphericalElevationDifference ? (dot(normalize(octPlanetUnsignedDecode(vec2(p) * texelSize)) - referenceNormal, referenceNormal)) : 0.0)), 
+
+shared vec2 sharedHeights[WORKGROUP_SIZE + 2][WORKGROUP_SIZE + 2]; // WORKGROUP_SIZE x WORKGROUP_SIZE + 1x1 for the border on each side for the 3x3 kernel
+
+void main(){
+
+  // Load all heights for the 3x3 kernel for the current thread, including the border, when it's not the first frame.
+  if(pushConstants.frameIndex != 0){
+
+    const ivec2 localPos = ivec2(gl_LocalInvocationID.xy);
+    const ivec2 tileOrigin = ((ivec2(gl_WorkGroupID.xy) * WORKGROUP_SIZE) - ivec2(1, 1)) - ivec2(int(pushConstants.waterHeightMapBorder));
+      
+    const int dimension = WORKGROUP_SIZE + 2;
+    const int totalElements = dimension * dimension;
+    const int threadID = (localPos.y * WORKGROUP_SIZE) + localPos.x;
+          
+    for(int i = threadID; i < totalElements; i += 256){
+      ivec2 t = ivec2(i % dimension, i / dimension);
+      sharedHeights[t.y][t.x] = readHeight(tileOrigin + t);
+    }
+
+  }
+
+  memoryBarrierShared();
+  barrier();
+
+  const uvec2 position = uvec2(gl_GlobalInvocationID.xy);
+
+  if(all(lessThan(position, uvec2(waterHeightMapResolutionWithBorder)))){
+
+    const ivec2 realPosition = ivec2(position) - ivec2(pushConstants.waterHeightMapBorder);
+
+    const ivec2 wrappedPosition = wrapOctahedralTexelCoordinates(realPosition, ivec2(pushConstants.waterHeightMapResolution));
+
+    const uint flowMapIndex = (position.y * waterHeightMapResolutionWithBorder) + position.x;
+
+#ifdef USE_COMPACT_FLOW
+    vec2 outFlow;
+#else
+    vec4 outFlow;
+#endif
+
+    if(pushConstants.frameIndex == 0){
+
+      // The first frame is a special case and the easy one, we just need to initialize the water flow map.
+#ifdef USE_COMPACT_FLOW
+      outFlow = vec2(0.0);
+#else
+      outFlow = vec4(0.0);
+#endif
+
+    }else{
+
+      const vec3 centerNormal = normalize(octPlanetUnsignedDecode(vec2(wrappedPosition) * texelSize));
+
+      const vec2 centerHeight = sharedHeights[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 1]; // readHeight(ivec2(position));
+     
+#ifdef USE_COMPACT_FLOW
+      const vec2 oldFlow = vec2(waterFlowMap.values[flowMapIndex].xy);
+#else
+      const vec4 oldFlow = vec4(waterFlowMap.values[flowMapIndex]);
+#endif      
+
+      const vec4 heightDifferences = vec4(dot(centerHeight, vec2(1.0))) - 
+                                     vec4(
+                                       dot(sharedHeights[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 2], vec2(1.0)), // ivec2( 1,  0)
+                                       dot(sharedHeights[gl_LocalInvocationID.y + 2][gl_LocalInvocationID.x + 1], vec2(1.0)), // ivec2( 0,  1)
+                                       dot(sharedHeights[gl_LocalInvocationID.y + 1][gl_LocalInvocationID.x + 0], vec2(1.0)), // ivec2(-1,  0)
+                                       dot(sharedHeights[gl_LocalInvocationID.y + 0][gl_LocalInvocationID.x + 1], vec2(1.0))  // ivec2( 0, -1)
+                                     ); 
+
+      const vec4 newFlow = max(vec4(0.0), heightDifferences * pushConstants.crossSectionalPipeArea * pushConstants.gravity * pushConstants.compensationFactor * pushConstants.deltaTime);
+
+#ifdef USE_COMPACT_FLOW
+      outFlow = (vec2(newFlow.x - newFlow.z, newFlow.y - newFlow.w) * pushConstants.strength) + (oldFlow * pushConstants.attenuation);
+#else
+      outFlow = max(vec4(0.0), (newFlow * pushConstants.strength) + (oldFlow * pushConstants.attenuation));
+#endif
+
+      // Apply K factor from the paper:
+      // The total outflow should not exceed the total amount of the water in the given cell. If the calculated value is larger than 
+      // the current amount in the given cell, then flux will be scaled down with an appropriate factor K. 
+      const float absMinTotalFlow = abs(pushConstants.minTotalFlow);
+      if(absMinTotalFlow > 1e-7){ 
+#ifdef USE_COMPACT_FLOW
+        // For compact flow: calculate total actual outflow from net flows
+        float totalOutFlow = max(0.0, outFlow.x) + max(0.0, outFlow.y) + max(0.0, -outFlow.x) + max(0.0, -outFlow.y);
+#else
+        float totalOutFlow = dot(outFlow, vec4(1.0));
+#endif
+        if(totalOutFlow > absMinTotalFlow){
+          if(pushConstants.minTotalFlow > 0.0){
+            // The way the paper describes it
+            outFlow *= min(1.0, (centerHeight.y * pushConstants.pipeLengthSquared) / (totalOutFlow * pushConstants.deltaTime));
+          }else{ // if pushConstants.minTotalFlow < 0.0
+            // A more simple way to do it
+            outFlow *= min(1.0, centerHeight.y / totalOutFlow);
+          }  
+        }else{          
+#ifdef USE_COMPACT_FLOW
+          outFlow = vec2(0.0);
+#else
+          outFlow = vec4(0.0);
+#endif
+        }
+      }
+     
+    }
+
+#ifdef USE_COMPACT_FLOW
+    waterFlowMap.values[flowMapIndex] = _vec4(outFlow, 0.0, 0.0); // Store the outflow as a compact vec2 in the flow map, with the z and w components unused.
+#else    
+    waterFlowMap.values[flowMapIndex] = _vec4(outFlow);
+#endif
+
+  }
+
+}

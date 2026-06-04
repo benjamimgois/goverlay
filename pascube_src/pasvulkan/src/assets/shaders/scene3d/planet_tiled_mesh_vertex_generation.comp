@@ -1,0 +1,162 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_gpu_shader_fp64 : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#if 0
+// Just a idea to include material indices and weights in the vertex data, but it's not used in this shader yet.
+struct TriangleVertex {
+  uvec4 positionNormal; // xyz = position, w = octahedral normal (2x16 bit for x and y)
+  uvec2 materialIndicesAndWeights; // x = byte-wise material indices, y = byte-wise material weights
+}; // 24 bytes per vertex (16 bytes for positionNormal, 8 bytes for materialIndicesAndWeights) 
+#endif
+
+layout(set = 0, binding = 0, std430) buffer TriangleVertices {
+  uvec4 vertices[]; // 16 bytes per vertex
+} triangleVertices;
+
+layout(set = 0, binding = 1, std430) buffer QueuedTiles {
+  uint data[]; // 6-based, because two VkDispatchIndirectCommand structs are stored in the same buffer at the beginning, with three 32-bit unsigned integers each
+} queuedTiles;
+
+layout(set = 0, binding = 2) uniform texture2D uTextureHeightMap; // r32f
+
+layout(set = 0, binding = 3) uniform texture2D uTextureNormalMap; // rgba16_snorm
+
+layout(push_constant) uniform PushConstants {
+  //mat4 modelMatrix;
+  float bottomRadius;
+  float topRadius;
+  uint tileMapResolution;
+  uint tileResolution;
+  int lod;
+} pushConstants;
+
+#include "octahedral.glsl"
+
+vec3 safeNormalize(vec3 v){
+  return (length(v) > 0.0) ? normalize(v) : vec3(0.0);
+}
+
+#define safeNormalizeEx safeNormalize
+
+/*vec3 safeNormalizeEx(vec3 v){
+  return v;
+}*/
+
+#define PLANET_MESH
+#include "planet_map.glsl"
+
+void main(){
+
+  const uint queuedTileIndex = uint(gl_GlobalInvocationID.y);
+  
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  if((queuedTileIndex < tileMapSize) && (queuedTileIndex < queuedTiles.data[1u])){
+
+    const uint tileMapIndex = queuedTiles.data[queuedTileIndex + 6u];
+
+    if(tileMapIndex < tileMapSize){
+
+      uvec2 tileMapXY;
+      tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+      tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+      const uint tileVertexSize = pushConstants.tileResolution * pushConstants.tileResolution;
+
+      const uint tileVertexIndex = uint(gl_GlobalInvocationID.x);
+      
+      if(tileVertexIndex < tileVertexSize){
+
+        uvec2 tileVertexXY;
+        tileVertexXY.y = tileVertexIndex / pushConstants.tileResolution;
+        tileVertexXY.x = tileVertexIndex - (tileVertexXY.y * pushConstants.tileResolution);
+
+        uvec2 quadXY = (tileMapXY * pushConstants.tileResolution) + tileVertexXY;
+        
+#if 1
+        // Variant that uses temporary neighbor vertices to calculate the smoothed vertex normal
+
+        // Calculate the normal as the average of the normals of some temporary virtual triangles
+
+        // a(-1, -1) b( 0, -1) c( 1, -1)
+        // d(-1,  0) e( 0,  0) f( 1,  0)
+        // g(-1,  1) h( 0,  1) i( 1,  1)
+
+        ivec2 axy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2(-1, -1), ivec2(totalResolution));
+        ivec2 bxy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2( 0, -1), ivec2(totalResolution));
+        ivec2 cxy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2( 1, -1), ivec2(totalResolution));
+        ivec2 dxy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2(-1,  0), ivec2(totalResolution));
+        ivec2 exy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2( 0,  0), ivec2(totalResolution));
+        ivec2 fxy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2( 1,  0), ivec2(totalResolution));
+        ivec2 gxy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2(-1,  1), ivec2(totalResolution));
+        ivec2 hxy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2( 0,  1), ivec2(totalResolution));
+        ivec2 ixy = wrapOctahedralTexelCoordinates(ivec2(quadXY) + ivec2( 1,  1), ivec2(totalResolution));
+
+        float ah = getHeightAt(axy);
+        float bh = getHeightAt(bxy);
+        float ch = getHeightAt(cxy);
+        float dh = getHeightAt(dxy);
+        float eh = getHeightAt(exy);
+        float fh = getHeightAt(fxy);
+        float gh = getHeightAt(gxy);
+        float hh = getHeightAt(hxy);
+        float ih = getHeightAt(ixy);
+        
+        vec4 av = vec4(correctedOctPlanetUnsignedDecode(axy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, ah), ah);
+        vec4 bv = vec4(correctedOctPlanetUnsignedDecode(bxy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, bh), bh);
+        vec4 cv = vec4(correctedOctPlanetUnsignedDecode(cxy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, ch), ch);
+        vec4 dv = vec4(correctedOctPlanetUnsignedDecode(dxy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, dh), dh);
+        vec4 ev = vec4(correctedOctPlanetUnsignedDecode(exy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, eh), eh);
+        vec4 fv = vec4(correctedOctPlanetUnsignedDecode(fxy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, fh), fh);
+        vec4 gv = vec4(correctedOctPlanetUnsignedDecode(gxy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, gh), gh);
+        vec4 hv = vec4(correctedOctPlanetUnsignedDecode(hxy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, hh), hh);
+        vec4 iv = vec4(correctedOctPlanetUnsignedDecode(ixy) * mix(pushConstants.bottomRadius, pushConstants.topRadius, ih), ih);
+        
+        // Calculate the smoothed normal at point e as the average of the normals of the surrounding triangles in triangle fan order:
+        vec3 normal = safeNormalize(
+          safeNormalizeEx(cross(av.xyz - ev.xyz, bv.xyz - ev.xyz)) + // Triangle EAB
+          safeNormalizeEx(cross(bv.xyz - ev.xyz, cv.xyz - ev.xyz)) + // Triangle EBC          
+          safeNormalizeEx(cross(cv.xyz - ev.xyz, fv.xyz - ev.xyz)) + // Triangle EDA
+          safeNormalizeEx(cross(fv.xyz - ev.xyz, iv.xyz - ev.xyz)) + // Triangle EFI
+          safeNormalizeEx(cross(iv.xyz - ev.xyz, hv.xyz - ev.xyz)) + // Triangle EIH
+          safeNormalizeEx(cross(hv.xyz - ev.xyz, gv.xyz - ev.xyz)) + // Triangle EHG
+          safeNormalizeEx(cross(gv.xyz - ev.xyz, dv.xyz - ev.xyz)) + // Triangle EGD
+          safeNormalizeEx(cross(dv.xyz - ev.xyz, av.xyz - ev.xyz))   // Triangle EDA
+        );          
+
+        triangleVertices.vertices[(tileMapIndex * tileVertexSize) + tileVertexIndex] = uvec4(floatBitsToUint(ev.xyz), packSnorm2x16(octSignedEncode(normal))); 
+
+#else
+
+        // Variant that uses the height map to get the smoothed vertex normal directly, but it need another compute shader pass to 
+        // calculate the height map with the same calculation efford as above. So it's not really faster, but rather it can be even 
+        // slower, because the other compute shader pass works on the complete height map at once, while this variant above works 
+        // only on changed/updated tiles.
+
+        float height = getHeightAt(ivec2(quadXY));
+
+        triangleVertices.vertices[(tileMapIndex * tileVertexSize) + tileVertexIndex] = uvec4(
+          floatBitsToUint(correctedOctPlanetUnsignedDecode(ivec2(quadXY)) * mix(pushConstants.bottomRadius, pushConstants.topRadius, height)),
+          packSnorm2x16(octSignedEncode(normalize(texelFetch(uTextureNormalMap, ivec2(quadXY), pushConstants.lod).xyz)))
+        );
+
+#endif        
+
+      }
+    
+    }
+
+  }
+
+}

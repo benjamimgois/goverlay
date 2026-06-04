@@ -1,0 +1,113 @@
+
+module ExtendedMath {
+
+  class Vector {
+    
+    var x, y, z;
+    
+    constructor(arguments...){
+      switch(arguments.size()){
+        case 1:
+          if(arguments[0] instanceof Vector){          
+            (this.x, this.y, this.z) = (arguments[0].x, arguments[0].y, arguments[0].z);
+          }else{
+            (this.x, this.y, this.z) = (0, 0, 0);          
+          }
+          break;       
+        case 3:
+          (this.x, this.y, this.z) = arguments;
+          break;
+        default: 
+          (this.x, this.y, this.z) = (0, 0, 0);          
+          break;
+      }
+    }
+
+    function __add(let a, let b){
+      if((a instanceof Vector) && (b instanceof Vector)){
+        return new Vector(a.x + b.x, a.y + b.y, a.z + b.z);
+      }else{
+        throw "No vector?";
+      }
+    }
+    
+    function __sub(let a, let b){
+      if((a instanceof Vector) && (b instanceof Vector)){
+        return new Vector(a.x - b.x, a.y - b.y, a.z - b.z);
+      }else{
+        throw "No vector?";
+      }
+    }
+    
+    function __mul(let a, let b){
+      if((a instanceof Vector) && (b instanceof Vector)){
+        return new Vector(a.x * b.x, a.y * b.y, a.z * b.z);
+      }else{
+        throw "No vector?";
+      }
+    }
+    
+    function __div(let a, let b){
+      if((a instanceof Vector) && (b instanceof Vector)){
+        return new Vector(a.x / b.x, a.y / b.y, a.z / b.z);
+      }else{
+        throw "No vector?";
+      }
+    }
+    
+    function dump(){
+      puts(this.x, " ", this.y, " ", this.z);
+    }    
+    
+  }
+
+  function Vector::clone(){
+    return new Vector(this.x, this.y, this.z); 
+  }
+
+  function Vector.clear(){
+    (this.x, this.y, this.z) = (0, 0, 0); 
+  }
+  
+  module OtherMath {
+     
+    class Matrix {
+      var _00, _01, _02, _03;
+      var _10, _11, _12, _13;
+      var _20, _21, _22, _23;
+      var _30, _31, _32, _33;
+    }
+    
+    export Matrix;
+    
+  } 
+  
+  export Vector;
+  
+}
+
+import Vector from ExtendedMath;
+import Matrix from ExtendedMath.OtherMath;
+
+var va = new Vector(1, 2, 3);
+var vb = new Vector(10, 20, 30);
+
+var vc = va + vb;
+vc.dump();
+
+vc -= vb;
+vc.dump();
+
+vc *= vb;
+vc.dump();
+
+vc /= (va * vb);
+vc.dump();
+
+var vd = vb.clone();
+vd.dump();
+
+vd.clear();
+vd.dump();
+
+readLine();

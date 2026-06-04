@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# check if clang++ is installed, for use clang++ instead of g++, otherwise use g++
+if [ -x "$(command -v clang++)" ]; then
+  echo 'clang++ is installed, use clang++ instead of g++'
+  clang++ -o dfaoittrain -O3 -g -gdwarf-3 -std=c++17 -fopenmp -march=native dfaoittrain.cpp
+else
+  echo 'clang++ is not installed, use g++ instead of clang++'
+  g++ -o dfaoittrain -O3 -g -gdwarf-3 -std=c++17 dfaoittrain.cpp
+fi
+

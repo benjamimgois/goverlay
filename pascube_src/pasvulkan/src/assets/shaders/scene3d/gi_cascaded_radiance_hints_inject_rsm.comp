@@ -1,0 +1,335 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+#define OCCLUSION_SAMPLES 4
+//#define SAMPLES 32
+
+#define INJECT_RSM_COMPUTE_SHADER
+
+layout(set = 0, binding = 1) uniform sampler2D uTexture2DInputs[]; // 0 = RSM color, 1 = RSM depth, 2 = RSM depth, 3 = depth buffer
+layout(set = 0, binding = 2, rgba16f) coherent uniform image3D uImageSH[]; // The global illumination volume images
+layout(set = 0, binding = 3, rgba32f) coherent uniform image3D uImageMetaInfo[]; // The global illumination volume meta info image
+
+#define uTexReflectiveShadowMapColor uTexture2DInputs[0]
+#define uTexReflectiveShadowMapNormal uTexture2DInputs[1]
+#define uTexReflectiveShadowMapDepth uTexture2DInputs[2]
+#define uTexDepthBuffer uTexture2DInputs[3]
+
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_SET 0
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_BINDING 0
+
+#include "global_illumination_cascaded_radiance_hints.glsl"
+//#include "global_illumination_sample_taps_array.glsl"
+
+layout(set = 0, binding = 4, std140) uniform uMetaData {
+  mat4 uWorldToReflectiveShadowMapMatrix;
+  mat4 uReflectiveShadowMapToWorldMatrix;
+  mat4 uModelViewProjectionMatrix;
+  vec4 uSpreadExtents[GI_CASCADES]; // xy = texture-space spread, zw = world-space extends
+  vec4 uLightDirection;
+  vec4 uLightPosition;
+  vec4 uScaleFactors;
+  ivec4 uCountSamples;
+};
+
+vec2 hammersley(int index, int samples){
+  return vec2(float(index) / float(samples), float(bitfieldReverse(uint(index))) * 2.3283064365386963e-10);
+}
+
+vec2 uniformCircleMapping(vec2 lUV, vec2 lExtents){
+  return sin(vec2(lUV.y * 6.28318530718) + vec2(1.5707963267948966, 0.0)) * (sqrt(lUV.x) * lExtents);
+}
+
+vec2 quadraticCircleMapping(vec2 lUV, vec2 lExtents){
+  return sin(vec2(lUV.y * 6.28318530718) + vec2(1.5707963267948966, 0.0)) * (lUV.x * lExtents);
+}
+
+float quadraticCircleMappingWeight(float lR, float lMaxR){
+  return 3.14159265359 * lMaxR * lMaxR * lR;
+}
+
+float uniformCircleMappingWeight(float lR, float lMaxR){
+  return 3.14159265359 * lMaxR * lMaxR;
+}
+
+vec3 getRandomInsideOrOnSpherePosition(ivec4 pSeed){
+  const uint lRandomMulConstant = 1103515245u;
+  uvec4 lRandomState = uvec4(pSeed); 
+  lRandomState = ((lRandomState >> 8u) ^ lRandomState.ywzx) * lRandomMulConstant;
+  lRandomState = ((lRandomState >> 8u) ^ lRandomState.ywzx) * lRandomMulConstant;
+  lRandomState = ((lRandomState >> 8u) ^ lRandomState.ywzx) * lRandomMulConstant;
+  lRandomState = ((lRandomState >> 8u) ^ lRandomState.ywzx) * lRandomMulConstant;
+  vec4 lRandom = vec4(uintBitsToFloat(uvec4(uvec4(((lRandomState >> 9u) & uvec4(0x007fffffu)) | uvec4(0x3f800000u))))) - vec4(1.0);
+  vec4 lSinCosThetaPhi = sin(vec4(vec2(lRandom.x * 6.28318530718, acos(fma(lRandom.y, 2.0, -1.0))).xxyy + vec2(0.0, 1.5707963267948966).xyxy)); // x = sin(theta), y = cos(theta), z = sin(phi), w = cos(phi)
+  return vec3(lSinCosThetaPhi.yx * lSinCosThetaPhi.z, lSinCosThetaPhi.w) * pow(abs(lRandom.z), 1.0 / 3.0);
+}
+
+#if 0
+#define circleMapping quadraticCircleMapping
+#define circleMappingWeight quadraticCircleMappingWeight
+#else
+#define circleMapping uniformCircleMapping
+#define circleMappingWeight uniformCircleMappingWeight
+#endif
+
+vec3 unprojectUV(vec2 lUV, float lDepth){
+  vec4 lTemp = uReflectiveShadowMapToWorldMatrix * vec4(fma(vec2(lUV.xy), vec2(2.0), vec2(-1.0)), lDepth, 1.0); 
+  return lTemp.xyz / lTemp.w; 
+}
+
+void main(){
+
+  ivec3 lInvocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+  if(all(greaterThanEqual(lInvocationPosition, ivec3(0))) && all(lessThan(lInvocationPosition, uGlobalIlluminationCascadedVolumeSize))){
+    
+    int lCascadeIndex = lInvocationPosition.z / GI_MAX_DEPTH;
+    lInvocationPosition.z -= (lCascadeIndex * GI_MAX_DEPTH);
+
+  #if GI_COMPRESSION == 0
+      int lTexIndexOffset = lCascadeIndex * 7;
+  #elif GI_COMPRESSION == 1
+      int lTexIndexOffset = lCascadeIndex * 5;
+  #elif GI_COMPRESSION == 2
+      int lTexIndexOffset = lCascadeIndex * 3;
+  #else
+      #error "GI_COMPRESSION must be 0, 1 or 2"
+  #endif   
+
+    if(globalIlluminationVolumeAABBDeltas[lCascadeIndex].w >= 0){
+      ivec3 lCacheVolumePosition = lInvocationPosition + globalIlluminationVolumeAABBDeltas[lCascadeIndex].xyz;
+      if(all(greaterThanEqual(lCacheVolumePosition, ivec3(0))) && all(lessThan(lCacheVolumePosition, uGlobalIlluminationVolumeSize))){
+        // Discard, because in this case, we can use the cached values
+        return;    
+      }
+    }
+    
+    vec3 lCellSize = globalIlluminationVolumeCellSizes[lCascadeIndex].xyz; 
+    float lCellMagnitude = length(lCellSize); 
+
+    vec3 lCellMin = globalIlluminationVolumeAABBMin[lCascadeIndex].xyz + (vec3(lInvocationPosition) * lCellSize);
+    vec3 lCellMax = lCellMin + lCellSize;
+
+    vec3 lPosition = lCellMin + (lCellSize * 0.5);
+
+/*  vec3 lPosition = mix(globalIlluminationVolumeAABBMin[lCascadeIndex].xyz,
+                         globalIlluminationVolumeAABBMax[lCascadeIndex].xyz,
+                         (vec3(lInvocationPosition) + vec3(0.5)) / vec3(uGlobalIlluminationVolumeSize));*/
+
+    vec4 lBaseUVPos = uWorldToReflectiveShadowMapMatrix * vec4(lPosition, 1.0); 
+    //vec4 lBaseUVPos = uWorldToReflectiveShadowMapMatrix * vec4(lPosition + vec3(0.01), 1.0); 
+    vec2 lBaseUV = clamp(fma(vec2(lBaseUVPos.xy / lBaseUVPos.w), vec2(0.5), vec2(0.5)), vec2(0.0),vec2(1.0));
+    //vec2 lBaseUV = clamp(fma(vec2(lBaseUVPos.xy / lBaseUVPos.w), vec2(0.5) * sign(dot(uLightDirection.xyz, uLightPosition.xyz - lPosition)), vec2(0.5)), vec2(0.0),vec2(1.0));
+    //lBaseUV = clamp(lBaseUV, vec2(0.499 * uSpreadExtents.xy), vec2(1.0 - (0.499 * uSpreadExtents.xy))); // - vec2(0.5 * uSpreadExtents.xy);
+    
+    float lMinimumDistance = uintBitsToFloat(0x7f800000u); // +infinity
+    float lMaximumDistance = 0.0; 
+
+    vec3 lSphericalHarmonics[9];
+    lSphericalHarmonics[0] = vec3(0.0); 
+    lSphericalHarmonics[1] = vec3(0.0); 
+    lSphericalHarmonics[2] = vec3(0.0); 
+    lSphericalHarmonics[3] = vec3(0.0); 
+    lSphericalHarmonics[4] = vec3(0.0); 
+    lSphericalHarmonics[5] = vec3(0.0); 
+    lSphericalHarmonics[6] = vec3(0.0); 
+    lSphericalHarmonics[7] = vec3(0.0); 
+    lSphericalHarmonics[8] = vec3(0.0); 
+
+    int countSamples = uCountSamples.x;
+    int countOcclusionSamples = uCountSamples.y;
+    
+    vec4 lSamplePositionSpiral = vec4(0.0,                                        // phi
+                                      1.0 - ((2.0 / float(countSamples)) * 0.5),  // z
+                                      2.399963229728653,                          // delta phi  PI * (3.0 - sqrt(5.0)) (golden angle)  
+                                      -(2.0 / float(countSamples)));              // delta z
+  
+    //float lWorldMaxR = distance(unprojectUV(lBaseUV, 0.0), unprojectUV(lBaseUV + vec2(uSpreadExtents.x, 0.0), 0.0));
+
+    for(int lSampleIndex = 0; lSampleIndex < countSamples; lSampleIndex++){
+      
+      // 2.399963229728653 = PI * (3.0 - sqrt(5.0)) (golden angle) 
+      vec2 lSampleUV = lBaseUV + ((sin(vec2(vec2(float(lSampleIndex) * 2.399963229728653) + vec2(1.5707963267948966, 0.0))) * sqrt((float(lSampleIndex) + 0.5) / float(countSamples))) * uSpreadExtents[lCascadeIndex].xy); 
+      const float lSampleWeight = 1.0;
+
+      //vec2 lXI = hammersley(lSampleIndex, countSamples);
+      //vec2 lSampleUV = lBaseUV + circleMapping(lXI, uSpreadExtents.xy);
+      //float lSampleWeight = circleMappingWeight(lXI.x, lWorldMaxR);
+
+      /*float lSamplePositionTheta = acos(lSamplePositionSpiral.y);
+      vec3 lSamplePosition = lPosition + ((vec3(sin(vec2(lSamplePositionSpiral.xx + vec2(1.5707963267948966, 0.0))) * sin(lSamplePositionTheta), cos(lSamplePositionTheta)).xzy * 0.5) * lCellSize);
+      lSamplePositionSpiral.xy += lSamplePositionSpiral.zw;  */
+
+      vec4 lReflectiveShadowMapNormalUsed = textureLod(uTexReflectiveShadowMapNormal, lSampleUV, 0.0); 
+      if(lReflectiveShadowMapNormalUsed.w < 0.5){
+        continue;
+      }
+
+      vec4 lReflectiveShadowMapPosition = uReflectiveShadowMapToWorldMatrix * vec4(fma(vec2(lSampleUV.xy), vec2(2.0), vec2(-1.0)), 
+                                                                                   textureLod(uTexReflectiveShadowMapDepth, lSampleUV, 0.0).x, 
+                                                                                   1.0); 
+      lReflectiveShadowMapPosition /= lReflectiveShadowMapPosition.w; 
+
+      // Important: Not just on-sphere, but inside the sphere, because we want to have also random samples inside the sphere, not just on the surface
+      vec3 lSamplePosition = lPosition + (getRandomInsideOrOnSpherePosition(ivec4(ivec3(lPosition), lSampleIndex)) * 0.5 * lCellSize);   
+
+      vec3 lSampleVector = lReflectiveShadowMapPosition.xyz - lSamplePosition;
+
+      float lSampleDistance = length(lSampleVector); 
+      if((lSampleDistance < lCellMagnitude)){// || (all(greaterThanEqual(lSamplePosition, lCellMin)) && all(lessThan(lSamplePosition, lCellMax)))){
+        continue;
+      }
+      
+      vec3 lSampleDirection = (lSampleDistance <= 0.007) ? vec3(0.0) : normalize(lSampleVector);
+
+      vec3 lReflectiveShadowMapNormal = normalize(lReflectiveShadowMapNormalUsed.xyz - vec3(0.5)); 
+
+      float lSampleFactor = max(dot(lSampleDirection, lReflectiveShadowMapNormal), 0.0);
+      if(lSampleFactor < 0.07){
+        continue;
+      }
+      lSampleFactor /= (lSampleDistance * lSampleDistance) + 1e-2;
+
+      if(countOcclusionSamples > 0){
+        float lCurrentVisibility;
+        {
+          vec4 lTemp = uModelViewProjectionMatrix * vec4(lSamplePosition, 1.0); 
+          lTemp /= lTemp.w;
+          lCurrentVisibility = (fma(lTemp.z, 2.0, -1.0) < (fma(textureLod(uTexDepthBuffer, vec2(fma(lTemp.xy, vec2(0.5), vec2(0.5))), 0.0).x, 2.0, -1.0) * 1.1)) ? 1.0 : -1.0; 
+        }
+        int lDepthVisibility = OCCLUSION_SAMPLES; 
+        for(int lOcclusionSampleIndex = 1; lOcclusionSampleIndex < countOcclusionSamples; lOcclusionSampleIndex++){ 
+          vec4 lTemp = uModelViewProjectionMatrix * vec4(mix(lReflectiveShadowMapPosition.xyz, lPosition, float(lOcclusionSampleIndex) / float(countOcclusionSamples)), 1.0); 
+          lTemp /= lTemp.w;
+          lDepthVisibility -= ((fma(lTemp.z, 2.0, -1.0) * lCurrentVisibility) < (fma(textureLod(uTexDepthBuffer, vec2(fma(lTemp.xy, vec2(0.5), vec2(0.5))), 0.0).x, 2.0, -1.0) * lCurrentVisibility)) ? 0 : 1; 
+        } 
+        lSampleFactor *= clamp(float(lDepthVisibility) / float(OCCLUSION_SAMPLES), 0.0, 1.0);
+      }
+      
+      vec3 lReflectiveShadowMapColor = max(vec3(0.0), textureLod(uTexReflectiveShadowMapColor, lSampleUV, 0.0).xyz);  
+
+      globalIlluminationCompressedSphericalHarmonicsEncodeAndAccumulate(lSampleDirection, globalIlluminationEncodeColor(max(vec3(0.0), lReflectiveShadowMapColor.xyz * lSampleFactor * lSampleWeight)), lSphericalHarmonics);
+      
+      lMinimumDistance = min(lMinimumDistance, lSampleDistance); 
+      lMaximumDistance = max(lMaximumDistance, lSampleDistance); 
+    } 
+    
+    ivec3 lVolumePosition = lInvocationPosition;
+
+    vec4 lMetaInfo = imageLoad(uImageMetaInfo[lCascadeIndex], lVolumePosition);
+    lMetaInfo = vec4(min(lMetaInfo.x, lMinimumDistance), max(lMetaInfo.y, lMaximumDistance), 0.0, 0.0);
+
+    //float lSHScale = 1.0 / float(countSamples);
+//  float lSHScale = uScaleFactors[lCascadeIndex];// * ((2.0 * lWorldMaxR * lWorldMaxR) / float(countSamples));
+    float lSHScale = uScaleFactors[lCascadeIndex];
+
+    lSphericalHarmonics[0] *= lSHScale;
+#if GI_COMPRESSION == 0
+    lSphericalHarmonics[1] *= lSHScale;
+    lSphericalHarmonics[2] *= lSHScale;
+    lSphericalHarmonics[3] *= lSHScale;
+    lSphericalHarmonics[4] *= lSHScale;
+    lSphericalHarmonics[5] *= lSHScale;
+    lSphericalHarmonics[6] *= lSHScale;
+    lSphericalHarmonics[7] *= lSHScale;
+    lSphericalHarmonics[8] *= lSHScale;
+#elif GI_COMPRESSION == 1
+    lSphericalHarmonics[1] *= lSHScale;
+    lSphericalHarmonics[2] *= lSHScale;
+    lSphericalHarmonics[3] *= lSHScale;
+    lSphericalHarmonics[4].x *= lSHScale;
+    lSphericalHarmonics[5].x *= lSHScale;
+    lSphericalHarmonics[6].x *= lSHScale;
+    lSphericalHarmonics[7].x *= lSHScale;
+    lSphericalHarmonics[8].x *= lSHScale;
+#elif GI_COMPRESSION == 2
+    lSphericalHarmonics[1].x *= lSHScale;
+    lSphericalHarmonics[2].x *= lSHScale;
+    lSphericalHarmonics[3].x *= lSHScale;
+    lSphericalHarmonics[4].x *= lSHScale;
+    lSphericalHarmonics[5].x *= lSHScale;
+    lSphericalHarmonics[6].x *= lSHScale;
+    lSphericalHarmonics[7].x *= lSHScale;
+    lSphericalHarmonics[8].x *= lSHScale;
+#endif      
+
+    {
+#if GI_COMPRESSION == 0
+      vec4 lTSH0 = imageLoad(uImageSH[lTexIndexOffset + 0], lVolumePosition);   
+      vec4 lTSH1 = imageLoad(uImageSH[lTexIndexOffset + 1], lVolumePosition);   
+      vec4 lTSH2 = imageLoad(uImageSH[lTexIndexOffset + 2], lVolumePosition);   
+      vec4 lTSH3 = imageLoad(uImageSH[lTexIndexOffset + 3], lVolumePosition);   
+      vec4 lTSH4 = imageLoad(uImageSH[lTexIndexOffset + 4], lVolumePosition);   
+      vec4 lTSH5 = imageLoad(uImageSH[lTexIndexOffset + 5], lVolumePosition);   
+      vec4 lTSH6 = imageLoad(uImageSH[lTexIndexOffset + 6], lVolumePosition);   
+      lSphericalHarmonics[0] += vec3(lTSH0.xyz);
+      lSphericalHarmonics[1] += vec3(lTSH0.w, lTSH1.xy);
+      lSphericalHarmonics[2] += vec3(lTSH1.zw, lTSH2.x);
+      lSphericalHarmonics[3] += vec3(lTSH2.yzw);
+      lSphericalHarmonics[4] += vec3(lTSH3.xyz);
+      lSphericalHarmonics[5] += vec3(lTSH3.w, lTSH4.xy);
+      lSphericalHarmonics[6] += vec3(lTSH4.zw, lTSH5.x);
+      lSphericalHarmonics[7] += vec3(lTSH5.yzw);
+      lSphericalHarmonics[8] += vec3(lTSH6.xyz);
+#elif GI_COMPRESSION == 1
+      vec4 lTSH0 = imageLoad(uImageSH[lTexIndexOffset + 0], lVolumePosition);   
+      vec4 lTSH1 = imageLoad(uImageSH[lTexIndexOffset + 1], lVolumePosition);   
+      vec4 lTSH2 = imageLoad(uImageSH[lTexIndexOffset + 2], lVolumePosition);   
+      vec4 lTSH3 = imageLoad(uImageSH[lTexIndexOffset + 3], lVolumePosition);   
+      vec4 lTSH4 = imageLoad(uImageSH[lTexIndexOffset + 4], lVolumePosition);   
+      lSphericalHarmonics[0] += vec3(lTSH0.xyz);
+      lSphericalHarmonics[1] += vec3(lTSH0.w, lTSH1.xy);
+      lSphericalHarmonics[2] += vec3(lTSH1.zw, lTSH2.x);
+      lSphericalHarmonics[3] += vec3(lTSH2.yzw);
+      lSphericalHarmonics[4] += vec3(lTSH3.x, vec2(0.0));
+      lSphericalHarmonics[5] += vec3(lTSH3.y, vec2(0.0));
+      lSphericalHarmonics[6] += vec3(lTSH3.z, vec2(0.0));
+      lSphericalHarmonics[7] += vec3(lTSH3.w, vec2(0.0));
+      lSphericalHarmonics[8] += vec3(lTSH4.x, vec2(0.0));
+#elif GI_COMPRESSION == 2
+      vec4 lTSH0 = imageLoad(uImageSH[lTexIndexOffset + 0], lVolumePosition);   
+      vec4 lTSH1 = imageLoad(uImageSH[lTexIndexOffset + 1], lVolumePosition);   
+      vec4 lTSH2 = imageLoad(uImageSH[lTexIndexOffset + 2], lVolumePosition);   
+      lSphericalHarmonics[0] += vec3(lTSH0.xyz);
+      lSphericalHarmonics[1] += vec3(lTSH0.w, vec2(0.0));
+      lSphericalHarmonics[2] += vec3(lTSH1.x, vec2(0.0));
+      lSphericalHarmonics[3] += vec3(lTSH1.y, vec2(0.0));
+      lSphericalHarmonics[4] += vec3(lTSH1.z, vec2(0.0));
+      lSphericalHarmonics[5] += vec3(lTSH1.w, vec2(0.0));
+      lSphericalHarmonics[6] += vec3(lTSH2.x, vec2(0.0));
+      lSphericalHarmonics[7] += vec3(lTSH2.y, vec2(0.0));
+      lSphericalHarmonics[8] += vec3(lTSH2.z, vec2(0.0));
+#endif
+    }
+    
+#if GI_COMPRESSION == 0
+    imageStore(uImageSH[lTexIndexOffset + 0], lVolumePosition, vec4(lSphericalHarmonics[0].xyz, lSphericalHarmonics[1].x));
+    imageStore(uImageSH[lTexIndexOffset + 1], lVolumePosition, vec4(lSphericalHarmonics[1].yz, lSphericalHarmonics[2].xy));
+    imageStore(uImageSH[lTexIndexOffset + 2], lVolumePosition, vec4(lSphericalHarmonics[2].z, lSphericalHarmonics[3].xyz));
+    imageStore(uImageSH[lTexIndexOffset + 3], lVolumePosition, vec4(lSphericalHarmonics[4].xyz, lSphericalHarmonics[5].x));
+    imageStore(uImageSH[lTexIndexOffset + 4], lVolumePosition, vec4(lSphericalHarmonics[5].yz, lSphericalHarmonics[6].xy));
+    imageStore(uImageSH[lTexIndexOffset + 5], lVolumePosition, vec4(lSphericalHarmonics[6].z, lSphericalHarmonics[7].xyz));
+    imageStore(uImageSH[lTexIndexOffset + 6], lVolumePosition, vec4(lSphericalHarmonics[8].xyz, 0.0));
+#elif GI_COMPRESSION == 1
+    imageStore(uImageSH[lTexIndexOffset + 0], lVolumePosition, vec4(lSphericalHarmonics[0].xyz, lSphericalHarmonics[1].x));
+    imageStore(uImageSH[lTexIndexOffset + 1], lVolumePosition, vec4(lSphericalHarmonics[1].yz, lSphericalHarmonics[2].xy));
+    imageStore(uImageSH[lTexIndexOffset + 2], lVolumePosition, vec4(lSphericalHarmonics[2].z, lSphericalHarmonics[3].xyz));
+    imageStore(uImageSH[lTexIndexOffset + 3], lVolumePosition, vec4(lSphericalHarmonics[4].x, lSphericalHarmonics[5].x, lSphericalHarmonics[6].x, lSphericalHarmonics[7].x));
+    imageStore(uImageSH[lTexIndexOffset + 4], lVolumePosition, vec4(lSphericalHarmonics[8].x, vec3(0.0)));
+#elif GI_COMPRESSION == 2
+    imageStore(uImageSH[lTexIndexOffset + 0], lVolumePosition, vec4(lSphericalHarmonics[0].xyz, lSphericalHarmonics[1].x));
+    imageStore(uImageSH[lTexIndexOffset + 1], lVolumePosition, vec4(lSphericalHarmonics[2].x, lSphericalHarmonics[3].x, lSphericalHarmonics[4].x, lSphericalHarmonics[5].x));
+    imageStore(uImageSH[lTexIndexOffset + 2], lVolumePosition, vec4(lSphericalHarmonics[6].x, lSphericalHarmonics[7].x, lSphericalHarmonics[8].x, 0.0));
+#endif      
+    imageStore(uImageMetaInfo[lCascadeIndex], lVolumePosition, lMetaInfo);        
+
+  }
+
+} 

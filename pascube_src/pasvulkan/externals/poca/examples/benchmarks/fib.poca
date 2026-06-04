@@ -1,0 +1,36 @@
+
+fastfunction fibR(let n){
+  n = +n;
+  return (n < 2) ? n : (fibR(n-2) + fibR(n-1));
+}
+
+function fibI(let n){
+  let last = 0, cur = 1;
+  n = +n;
+  n = n - 1;
+  while(n){
+    --n;
+    let tmp = cur;
+    cur = last + cur;
+     last = tmp;
+  }
+  return cur;
+}
+
+var N = 28;
+let ta = 0, tb = 0;
+
+ta=DateTime.now();
+puts("fibI: ", fibI(N));
+tb=DateTime.now();
+puts("fibI time: ", Math.round(DateTime.milliseconds(tb-ta)), " milliseconds");
+puts("");
+
+ta=DateTime.now();
+for(let i = 0; i < 5; i++){
+  puts("fibR: ", fibR(N));
+}
+tb=DateTime.now();
+puts("fibR time: ", Math.round(DateTime.milliseconds(tb-ta)), " milliseconds");
+puts("");
+

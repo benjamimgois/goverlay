@@ -1,0 +1,130 @@
+
+var application = {
+
+  data: null,
+
+  create: function() {
+    print("POCA: Application create\n");
+    // Initialize application data
+    if (this.data && !this.data.initialized) {
+      this.data.initialized = true;
+      this.data.counter = 0;
+      this.data.ball = {
+        position: { x: 0.0, y: 0.0 },
+        velocity: { x: 100.0, y: 150.0 },
+        size: 32.0,
+        needToReset: true
+      };
+      this.data.canvasWidth = 800;
+      this.data.canvasHeight = 600;
+    }
+  },
+
+  destroy: function() {
+    print("POCA: Application destroy\n");
+    // Cleanup application data if needed
+  },
+
+  show: function() {
+    print("POCA: Application show\n");
+    // Handle application becoming visible
+  },
+
+  hide: function() {
+    print("POCA: Application hide\n");
+    // Handle application becoming hidden
+  },
+
+  resume: function() {
+    print("POCA: Application resume\n");
+    // Handle application resuming
+  },
+
+  pause: function() {
+    print("POCA: Application pause\n");
+    // Handle application pausing
+  },
+
+  resize: function(width, height) {
+    print("POCA: Application resize to ", width, "x", height, "\n");
+    // Handle application resizing
+    this.data.ball.needToReset = true; // reset ball position on resize
+  },
+
+  afterCreateSwapChain: function() {
+    print("POCA: Application afterCreateSwapChain\n");
+    // Handle actions after swap chain creation
+  },
+
+  beforeDestroySwapChain: function() {
+    print("POCA: Application beforeDestroySwapChain\n");
+    // Handle actions before swap chain destruction
+  },
+
+  check: function(deltaTime) {
+    // Perform checks before update
+  },
+
+  update: function(deltaTime) {
+    // Update application logic
+    this.data.counter += deltaTime;
+    //print("POCA: Application update, counter = " + this.data.counter + "\n");
+  },
+
+  onInputEvent: function(event) {
+    // Handle input events
+    //print("POCA: Application onInputEvent\n");
+    return false; // return true if the event was handled
+  },
+
+  createCanvas: function(nativeCanvas) {
+    print("POCA: Application createCanvas\n");
+    // Setup the native canvas if needed
+  },
+
+  destroyCanvas: function(nativeCanvas) {
+    print("POCA: Application destroyCanvas\n");
+    // Cleanup the native canvas if needed
+  },  
+
+  updateCanvas: function(deltaTime, width, height, nativeWidth, nativeHeight) {
+    // Update the native canvas if needed
+
+    let ball = this.data.ball;  
+
+    if (ball.needToReset) {
+      // Initialize ball position in the center
+      ball.position.x = width * 0.5;
+      ball.position.y = height * 0.5;
+      ball.needToReset = false;
+    }
+
+    // Update ball position
+    ball.position.x += ball.velocity.x * deltaTime;
+    ball.position.y += ball.velocity.y * deltaTime;
+    // Bounce off walls
+    if ((ball.position.x < ball.size) || (ball.position.x > (width - ball.size))) {
+      ball.velocity.x = -ball.velocity.x;
+      ball.position.x = Math.max(ball.size, Math.min(ball.position.x, width - ball.size));
+    }    
+    if ((ball.position.y < ball.size) || (ball.position.y > (height - ball.size))) {
+      ball.velocity.y = -ball.velocity.y;
+      ball.position.y = Math.max(ball.size, Math.min(ball.position.y, height - ball.size));
+    }
+
+  },
+
+  drawCanvas: function(nativeCanvas, width, height, nativeWidth, nativeHeight) {
+    // Draw on the native canvas if needed
+
+    let canvas = nativeCanvas;
+
+    let ball = this.data.ball;  
+    canvas.setColor(1.0, 0.0, 0.0, 1.0);
+    canvas.drawFilledCircle(ball.position.x, ball.position.y, ball.size);
+
+  }
+
+};
+
+return application;

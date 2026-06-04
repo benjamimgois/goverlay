@@ -1,0 +1,16 @@
+let row = Array.create(5);
+
+for (let r = 0; r < 15; ++r) {
+  if (row.length == r) {
+    puts("[resizing]");
+    row.resize(r * 2);
+  }
+
+  row[r] = row[r] ?? [];
+  puts(`r: ${r} ${typeof(row[r])}`);
+
+  for (let c = 0; c < 5; ++c) {
+    puts(`   c: ${c}`);
+    row[r].push(c);
+  }
+}

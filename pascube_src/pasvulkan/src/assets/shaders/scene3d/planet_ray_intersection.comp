@@ -1,0 +1,181 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uImageHeightMap;
+
+layout(set = 0, binding = 1) buffer Result {
+  vec4 hitNormalTime; // xyz = hit normal, w = hit time
+} result;
+
+/* clang-format on */
+
+layout(push_constant) uniform PushConstants {
+  vec4 rayOriginPlanetBottomRadius; // xyz = ray origin, w = planet bottom radius
+  vec4 rayDirectionPlanetTopRadius; // xyz = ray direction, w = planet top radius
+  vec4 planetCenter;                // xyz = planet center, w = unused 
+} pushConstants;
+
+#include "octahedralmap.glsl"
+#include "octahedral.glsl"
+
+#if 1
+// This solveQuadraticRoots function offers a significant improvement over the old solveQuadraticRoots
+// function in terms of numerical stability and accuracy. In computing, especially for floating-point
+// numbers, the representation and precision of real numbers are limited, which can lead to issues
+// like loss of significance and catastrophic cancellation. This problem is particularly acute when
+// dealing with values that are very close in magnitude but have opposite signs.
+// The old solveQuadraticRoots function uses a direct approach to calculate the roots of the quadratic
+// equation, which suffers from these numerical stability issues. Specifically, when 'b' and the
+// square root of the discriminant ('d') in the quadratic formula have values close to each other
+// but opposite in sign, it can lead to significant errors due to rounding and cancellation.
+// This solveQuadraticRoots function addresses this by using an alternative formulation:
+// q = -0.5 * (b + sign(b) * sqrt(b^2 - 4ac))
+// t0 = q / a
+// t1 = c / q
+// This approach ensures that the terms added to compute 'q' always have the same sign, thus avoiding
+// the catastrophic cancellation that can occur in the OldSolveQuadraticRoots function. By doing so,
+// this solveQuadraticRoots provides more reliable and accurate results, particularly in edge cases 
+// where precision is crucial.
+bool solveQuadraticRoots(float a, float b, float c, out vec2 t) {
+  float discriminant = (b * b) - ((a * c) * 4.0);
+  if(discriminant < 0.0){
+    t = vec2(0.0);
+    return false;
+  }else{
+    if (discriminant == 0.0) {
+      t = vec2(((-0.5 * b) / a));
+    } else {
+      float q = (b + (sqrt(discriminant) * (b > 0.0 ? 1.0 : -1.0))) * (-0.5);
+      t = vec2(q / a, c / q);
+      if(t.x > t.y){
+        t = t.yx;
+      }
+    }  
+    return true;
+  }
+}
+#else
+bool solveQuadraticRoots(float a, float b, float c, out vec2 t) {
+  float discriminant = (b * b) - ((a * c) * 4.0);
+  if(discriminant < 0.0){
+    t = vec2(0.0);
+    return false;
+  }else{
+    float a2 = a * 2.0;
+    if(abs(a2) < 1e-7){
+      t = vec2(0.0);
+      return false;
+    }else{
+      float inverseDenominator = 1.0 / a2;
+      if(abs(discriminant) < 1e-7){
+        t = vec2((-b) * inverseDenominator);
+      }else{
+        t = fma(vec2(sqrt(discriminant)), vec2(-1.0, 1.0), vec2(-b)) * inverseDenominator;
+        if(t.x > t.y){
+          t = t.yx;
+        }
+      }
+      return true;
+    }
+  }
+}
+#endif
+
+bool intersectRaySphere(vec4 sphere, vec3 rayOrigin, vec3 rayDirection, out float time) {
+  vec3 sphereCenterToRayOrigin = rayOrigin - sphere.xyz;
+  vec2 t;
+  bool result = solveQuadraticRoots(dot(rayDirection, rayDirection), 
+                                    dot(rayDirection, sphereCenterToRayOrigin) * 2.0, 
+                                    dot(sphereCenterToRayOrigin, sphereCenterToRayOrigin) - (sphere.w * sphere.w), 
+                                    t);
+  if(result){
+    if(t.x > t.y){
+      t = t.yx;
+    }
+    if(t.x < 0.0){
+      t.x = t.y;
+      if(t.x < 0.0){
+        result = false;
+      }
+    }    
+    time = t.x;
+  }
+  return result;
+}
+
+void main(){
+
+  // This compute shader is called just once for a single ray without multiple invocations, so the CPU doesn't need to do the work itself,
+  // and so that all relevant data can be stay on the GPU. The CPU will only need to read the result buffer back to check if the ray hit
+  // the planet's height map. 
+
+  vec4 hitNormalTime = vec2(0.0, -1.0).xxxy;
+  
+  float hitRayTime;
+  
+  vec3 rayDirection = normalize(pushConstants.rayDirectionPlanetTopRadius.xyz); // re-normalization just for safety
+
+  // Check if ray hit the planet with its top radius.
+  if(intersectRaySphere(vec4(pushConstants.planetCenter.xyz, pushConstants.rayDirectionPlanetTopRadius.w), 
+                        pushConstants.rayOriginPlanetBottomRadius.xyz,
+                        rayDirection,
+                        hitRayTime)){
+   
+    // Ray may have hit the planet, but we need to check if it hit the height map.
+
+    // Check if ray origin is above the planet's bottom radius, otherwise it can't hit the height map. 
+    if(length(pushConstants.rayOriginPlanetBottomRadius.xyz - pushConstants.planetCenter.xyz) >= pushConstants.rayOriginPlanetBottomRadius.w){
+
+      bool inside = length(pushConstants.rayOriginPlanetBottomRadius.xyz - pushConstants.planetCenter.xyz) <= pushConstants.rayDirectionPlanetTopRadius.w;
+
+      vec3 rayOrigin = pushConstants.rayOriginPlanetBottomRadius.xyz + (inside ? vec3(0.0) : (rayDirection * hitRayTime));
+
+      float maxTime = max(
+        length((pushConstants.planetCenter.xyz - (rayDirection * pushConstants.rayOriginPlanetBottomRadius.w)) - rayOrigin),
+        length((pushConstants.planetCenter.xyz - (rayDirection * pushConstants.rayDirectionPlanetTopRadius.w)) - rayOrigin)
+      );
+
+      float currentTime = 0.0;
+
+      const int maxSteps = 4096; // should be enough for now
+
+      float timeStep = maxTime * (4.0 / float(maxSteps));
+
+      float threshold = (pushConstants.rayDirectionPlanetTopRadius.w - pushConstants.rayOriginPlanetBottomRadius.w) * 1e-4;
+
+      for(int stepIndex = 0; (stepIndex < maxSteps) && (currentTime < maxTime); stepIndex++){
+      
+        vec3 samplePosition = rayOrigin + (rayDirection * currentTime);
+
+        vec3 sphereNormal = normalize(samplePosition - pushConstants.planetCenter.xyz);
+
+        float height = textureCatmullRomPlanetOctahedralMap(uImageHeightMap, sphereNormal).x;
+
+        vec3 spherePosition = fma(sphereNormal, vec3(mix(pushConstants.rayOriginPlanetBottomRadius.w, pushConstants.rayDirectionPlanetTopRadius.w, height)), pushConstants.planetCenter.xyz);
+
+        float sphereSampleDistance = length(samplePosition - spherePosition);
+        if(abs(sphereSampleDistance) < threshold){
+          hitNormalTime = vec4(sphereNormal, distance(rayOrigin, spherePosition));
+          break;
+        }
+
+        currentTime += clamp(abs(sphereSampleDistance) * 1e-1, timeStep * 1e-2, timeStep) * (sphereSampleDistance > 0.0 ? 1.0 : -1.0);
+
+      }    
+
+    }
+                        
+  }
+
+  result.hitNormalTime = hitNormalTime;
+
+}

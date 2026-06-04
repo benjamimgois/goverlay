@@ -1,0 +1,143 @@
+#version 450 core
+
+#undef EQUIRECTANGULAR_MAP
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_multiview : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+/* clang-format on */
+
+// Push constants
+layout(push_constant, std140) uniform PushConstants {
+  vec4 coverageRotation; // xyz = axis, w = angle
+  vec4 typeRotation; // xyz = axis, w = angle
+  vec4 wetnessRotation; // xyz = axis, w = angle
+  vec4 topRotation; // xyz = axis, w = angle
+  float coveragePerlinWorleyDifference;
+  float totalSize;
+  float worleySeed; 
+} pushConstants;
+
+#ifdef EQUIRECTANGULAR_MAP
+layout(set = 0, binding = 0, rgba8) uniform writeonly image2D uDestinationTexture;
+#else 
+layout(set = 0, binding = 0, rgba8) uniform writeonly imageCube uDestinationTexture;
+#endif
+
+#include "math.glsl"
+
+#include "atmosphere_clouds_noise.glsl"
+
+#include "cubemap.glsl"
+
+#include "rotation.glsl" 
+
+void main(){
+
+#ifdef EQUIRECTANGULAR_MAP
+  ivec2 p = ivec2(gl_GlobalInvocationID.xy), size = ivec2(imageSize(uDestinationTexture).xy);
+#else
+  ivec3 p = ivec3(gl_GlobalInvocationID.xyz), size = ivec3(imageSize(uDestinationTexture).xy, 6); 
+#endif
+
+  if(
+#ifdef EQUIRECTANGULAR_MAP
+     all(greaterThanEqual(p, ivec2(0))) && all(lessThan(p, size))
+#else    
+     all(greaterThanEqual(p, ivec3(0))) && all(lessThan(p, size))
+#endif
+    ){          
+
+    vec2 uv = (vec2(p.xy) + vec2(0.5)) / vec2(size.xy);
+
+#ifdef EQUIRECTANGULAR_MAP
+
+    vec2 thetaPhi = fma(uv, vec2(2.0), vec2(-1.0)) * vec2(3.1415926535897932, -1.5707963267948966); 
+    vec4 thetaPhiSinCos = sin(thetaPhi.xxyy + vec2(0.0, 1.5707963267948966).xyxy);
+    vec3 rayDirection = vec3(thetaPhiSinCos.ww * thetaPhiSinCos.yx, thetaPhiSinCos.z).xzy;
+
+#else
+
+    int faceIndex = p.z;
+
+    vec3 rayDirection = getCubeMapDirection(uv, faceIndex);
+
+#endif
+
+    const float depthOffset1 = 0.0;
+    const float depthOffset2 = 500.0;
+    const float depthOffset3 = 100.0;
+    const float depthOffset4 = 200.0;
+    const float depthOffset5 = 300.0;
+      
+    const float totalSize = pushConstants.totalSize;
+    const float worleySeed = pushConstants.worleySeed;
+      
+    const float perlinNoise1LowRemap = 1.0;
+    const float perlinNoise1HighRemap = 1.25;
+      
+    const float worleyNoise1LowRemap = 0.65;
+    const float worleyNoise1HighRemap = 0.9;
+      
+    const float perlinNoise2LowRemap = 0.85;
+    const float perlinNoise2HighRemap = 1.9;
+    
+    const float perlinNoise3LowRemap = 0.5;
+    const float perlinNoise3HighRemap = 1.3;
+      
+    const float perlinNoise4LowRemap = 1.0;
+    const float perlinNoise4HighRemap = 1.4;
+      
+    const float perlinNoise5LowRemap = 1.0;
+    const float perlinNoise5HighRemap = 1.2;
+      
+    const float coveragePerlinWorleyDifference = clamp(pushConstants.coveragePerlinWorleyDifference, 0.0, 1.0);
+
+    vec3 pc = fma(rotate(rayDirection, pushConstants.coverageRotation), vec3(0.5), vec3(0.5));
+    vec3 pt = fma(rotate(rayDirection, pushConstants.typeRotation), vec3(0.5), vec3(0.5));
+    vec3 pw = fma(rotate(rayDirection, pushConstants.wetnessRotation), vec3(0.5), vec3(0.5));
+    vec3 ptop = fma(rotate(rayDirection, pushConstants.topRotation), vec3(0.5), vec3(0.5));
+  #if 1
+    float perlinNoise1 = getPerlin7Octaves(pc + vec3(0.0, 0.0, depthOffset1), 3.0 * totalSize, false);
+    float worleyNoise1 = getWorley2Octaves(pc + vec3(0.0, 0.0, depthOffset1), 3.0 * totalSize, worleySeed);
+    float perlinNoise2 = getPerlin7Octaves(pt + vec3(0.0, 0.0, depthOffset2), 3.0 * totalSize, false);
+    float perlinNoise3 = getPerlin7Octaves(pt + vec3(0.0, 0.0, depthOffset3), 2.0 * totalSize, false);
+    float perlinNoise4 = getPerlin7Octaves(pw + vec3(0.0, 0.0, depthOffset4), 3.0 * totalSize, false);
+    float perlinNoise5 = getPerlin7Octaves(ptop.xyz + vec3(0.0, 0.0, depthOffset5), 3.0 * totalSize, false);
+  #else
+    float perlinNoise1 = getPerlin7Octaves(vec4(pc, depthOffset1), 3.0 * totalSize, false);
+    float worleyNoise1 = getWorley2Octaves(vec4(pc, depthOffset1), 3.0 * totalSize, worleySeed);
+    float perlinNoise2 = getPerlin7Octaves(vec4(pt, depthOffset2), 3.0 * totalSize, false);
+    float perlinNoise3 = getPerlin7Octaves(vec4(pt, depthOffset3), 2.0 * totalSize, false);
+    float perlinNoise4 = getPerlin7Octaves(vec4(pw, depthOffset4), 3.0 * totalSize, false);
+    float perlinNoise5 = getPerlin7Octaves(vec4(ptop.xyz, depthOffset5), 3.0 * totalSize, false);
+  #endif  
+      
+    // Remap
+    perlinNoise1 = remap01(perlinNoise1, perlinNoise1LowRemap, perlinNoise1HighRemap);
+    worleyNoise1 = remap01(worleyNoise1, worleyNoise1LowRemap, worleyNoise1HighRemap);
+    perlinNoise2 = remap01(perlinNoise2, perlinNoise2LowRemap, perlinNoise2HighRemap);
+    perlinNoise3 = remap01(perlinNoise3, perlinNoise3LowRemap, perlinNoise3HighRemap);
+    perlinNoise4 = remap01(perlinNoise4, perlinNoise4LowRemap, perlinNoise4HighRemap);
+    perlinNoise5 = remap01(perlinNoise5, perlinNoise5LowRemap, perlinNoise5HighRemap);
+    
+    float coverage = clamp(dilatePerlinWorley(perlinNoise1, worleyNoise1, coveragePerlinWorleyDifference) - perlinNoise4, 0.0, 1.0);
+
+    float type = perlinNoise2;
+
+    float wetness = perlinNoise3;
+
+    float top = perlinNoise5;
+
+    imageStore(uDestinationTexture, p, clamp(vec4(coverage, type, wetness, top), vec4(0.0), vec4(1.0)));
+
+  }
+  
+}  

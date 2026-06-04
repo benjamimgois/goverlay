@@ -1,0 +1,75 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+// A bilinear 13-tap 2x downsampler (equals to a 36-tap non-bilinear 2x downsampler)
+// Idea is of the http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare slides
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+#ifdef MULTIVIEW
+layout(set = 0, binding = 0) uniform sampler2DArray uSourceTexture; 
+#else
+layout(set = 0, binding = 0) uniform sampler2D uSourceTexture; 
+#endif
+
+layout (set = 0, binding = 1, std430) buffer HistogramBuffer {
+  uint histogramBuffer[];
+};
+
+layout(push_constant, std140) uniform PushConstants {
+  float minLogLuminance;
+  float logLuminanceRange;
+  float inverseLogLuminanceRange;
+  float timeCoefficient;
+  float minLuminance;
+  float maxLuminance;   
+  uint countPixels;
+} pushConstants;
+
+/* clang-format on */
+
+shared uint sharedHistogram[16 * 16];
+
+#ifdef MULTIVIEW
+#endif
+
+void main() {
+
+  sharedHistogram[gl_LocalInvocationIndex] = 0;
+  groupMemoryBarrier();
+
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 uv = invocationPosition.xy;
+#ifdef MULTIVIEW
+  ivec3 sourceTextureSize = textureSize(uSourceTexture, 0);
+#else
+  ivec2 sourceTextureSize = textureSize(uSourceTexture, 0);
+#endif
+  if (all(greaterThanEqual(invocationPosition, ivec2(0))) && all(lessThan(invocationPosition, sourceTextureSize.xy))){
+#ifdef MULTIVIEW
+    for(int viewIndex = 0; viewIndex < sourceTextureSize.z; viewIndex++) 
+#endif
+    {
+#ifdef MULTIVIEW
+      vec4 color = texelFetch(uSourceTexture, ivec3(uv, viewIndex), 0);   
+#else
+      vec4 color = texelFetch(uSourceTexture, ivec2(uv), 0);
+#endif
+      color.xyz = clamp(color.xyz, vec3(0.0), vec3(65504.0));    
+      float luminance = clamp(dot(color.xyz, vec3(0.2125, 0.7154, 0.0721)), pushConstants.minLuminance, pushConstants.maxLuminance); // vec3(0.2126, 0.7152, 0.0722)
+      float logLuminance = clamp((log2(luminance) - pushConstants.minLogLuminance) * pushConstants.inverseLogLuminanceRange, 0.0, 1.0);
+      uint binIndex = uint((logLuminance * 254.0) + 1.0);
+      atomicAdd(sharedHistogram[binIndex], 1);
+    }
+  }
+
+  groupMemoryBarrier();
+
+  atomicAdd(histogramBuffer[gl_LocalInvocationIndex], sharedHistogram[gl_LocalInvocationIndex]);
+
+}

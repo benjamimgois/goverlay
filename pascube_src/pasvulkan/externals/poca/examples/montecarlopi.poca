@@ -1,0 +1,15 @@
+function mcpi(let n){
+  let m = 0;
+  for(let i = 0; i < n; i++){
+    let (x,y) = (Math.random(), Math.random());
+    if(((x * x) + (y * y)) < 1){
+      m++; 
+    }
+  }
+  return (4 * m) / n;
+}
+print(mcpi(1000), "\n");
+print(mcpi(10000), "\n");
+print(mcpi(100000), "\n");
+print(mcpi(1000000), "\n");
+print(mcpi(10000000), "\n");

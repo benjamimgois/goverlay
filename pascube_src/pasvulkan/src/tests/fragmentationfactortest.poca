@@ -1,0 +1,171 @@
+// Function to calculate the variance-based metric, based on https://jackwrfuller.au/posts/memory-fragmentation/
+function calculateVarianceBasedMetric(freeSpaces) {
+
+  // Get the number of free memory blocks
+  var blockCount = freeSpaces.size();
+  
+  // If there are no blocks, return 0
+  if(blockCount === 0){
+    return 0.0;
+  }
+
+  // Calculate the total free memory
+  var totalFreeMemory = 0.0;
+  for(var index = 0; index < blockCount; index++){
+    totalFreeMemory += freeSpaces[index];
+  }
+
+  // If there is no free memory, return 0
+  if(totalFreeMemory === 0.0){
+    return 0.0;
+  }
+
+  // Calculate the mean of the free memory sizes
+  var meanFreeMemory = totalFreeMemory / blockCount;
+
+  // Calculate the variance
+  var sumSquaredDifferences = 0;
+  for(var index = 0; index < blockCount; index++){
+    sumSquaredDifferences += Math.pow(freeSpaces[index] - meanFreeMemory, 2.0);
+  }
+  var variance = Math.sqrt(sumSquaredDifferences);
+
+  // Calculate the final metric
+  return (blockCount > 1.0) ? (1.0 - (1.0 / totalFreeMemory) * (blockCount / Math.sqrt(blockCount * (blockCount - 1.0))) * variance) : 0.0;
+}
+
+// Function to calculate the quality-based metric, based on https://asawicki.info/news_1757_a_metric_for_memory_fragmentation 
+function calculateQualityBasedMetric(freeSpaces) {
+  var totalFreeMemory = 0.0;
+  var qualitySum = 0.0;
+
+  // Sum the squares of the free block sizes and the total free memory
+  for (var index = 0.0, count = freeSpaces.size(); index < count; index++) {
+    qualitySum += Math.pow(freeSpaces[index], 2.0);
+    totalFreeMemory += freeSpaces[index];
+  }
+
+  // If there is no free memory, return 0
+  if(totalFreeMemory === 0){
+    return 0;
+  }
+
+  // Calculate the final metric
+  return 1.0 - Math.pow(Math.sqrt(qualitySum) / totalFreeMemory, 2.0);
+}
+
+// Function to calculate the simple heuristic metric (totalFreeMemory-largestFreeBlock)/totalFreeMemory
+function calculateSimpleHeuristicMetric(freeSpaces) {
+  var totalFreeMemory = 0;
+  var largestFreeBlock = 0;
+
+  // Find the largest free block and the total free memory
+  for(var index = 0, count = freeSpaces.size(); index < count; index++){
+    totalFreeMemory += freeSpaces[index];
+    if(freeSpaces[index] > largestFreeBlock){
+      largestFreeBlock = freeSpaces[index];
+    }
+  }
+
+  // Calculate the final metric
+  return (totalFreeMemory === 0) ? 0.0 : ((totalFreeMemory - largestFreeBlock) / totalFreeMemory);
+}
+
+var results = [];
+
+function testMetrics(scenarioName, description, freeSpaces){
+  let scenarioResults = {
+    scenarioName: scenarioName,
+    description: description,
+    freeSpaces: "[" ~ freeSpaces.join(", ") ~ "]",
+    varianceBasedMetric: calculateVarianceBasedMetric(freeSpaces).toFixed(6),
+    qualityBasedMetric: calculateQualityBasedMetric(freeSpaces).toFixed(6),
+    simpleHeuristicMetric: calculateSimpleHeuristicMetric(freeSpaces).toFixed(6)
+  }; 
+  print("--- ", scenarioResults.scenarioName, " ---\n");
+  print("Description: ", scenarioResults.description, "\n");
+  print("Free spaces: ", scenarioResults.freeSpaces, "\n");
+  print("Variance-based memory fragmentation metric: ", scenarioResults.varianceBasedMetric, "\n");
+  print("Quality-based memory fragmentation metric: ", scenarioResults.qualityBasedMetric, "\n");
+  print("Simple heuristic memory fragmentation metric: ", scenarioResults.simpleHeuristicMetric, "\n");
+  results.push(scenarioResults);
+}
+
+testMetrics("Scenario 1", "No free blocks", []);
+testMetrics("Scenario 2", "Single free block", [1000]);
+testMetrics("Scenario 3", "Two equal free blocks", [500, 500]);
+testMetrics("Scenario 4", "Five equal free blocks", [100, 100, 100, 100, 100]);
+testMetrics("Scenario 5", "Four free blocks with varying sizes", [200, 800, 50, 950]);
+testMetrics("Scenario 6", "Ten free blocks with increasing sizes", [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]);
+testMetrics("Scenario 7", "Ten free blocks with increasing sizes and one duplicate", [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1000]);
+testMetrics("Scenario 8", "Ten free blocks with increasing sizes and two duplicates", [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1000, 1000]);
+testMetrics("Scenario 9", "Ten free blocks with random sizes", [900, 300, 100, 1000, 500, 200, 700, 400, 800, 600]);
+testMetrics("Scenario 10", "Four free blocks with random sizes", [400, 100, 200, 800]);
+testMetrics("Scenario 11", "Three free blocks with random sizes", [700, 300, 250]);
+testMetrics("Scenario 12", "Two free blocks with random sizes", [650, 150]);
+testMetrics("Scenario 13", "50 free blocks with random sizes", [276, 645, 413, 746, 201, 993, 341, 422, 853, 741, 273, 730, 233, 997, 152, 307, 571, 794, 772, 950, 356, 172, 192, 858, 602, 820, 976, 484, 575, 201, 737, 475, 351, 502, 933, 983, 977, 638, 483, 779, 777, 581, 554, 864, 369, 264, 778, 994, 207, 502]);
+testMetrics("Scenario 14", "20 free blocks with equal sizes", [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+testMetrics("Scenario 15", "Two free blocks with different sizes", [200, 800]);
+testMetrics("Scenario 16", "Two free big blocks and three small free blocks", [200, 800, 1, 1, 1]); 
+
+// Export as HTML table  
+var html =
+  "<html>\n" ~
+  "  <head>\n" ~
+  "    <title>Memory fragmentation metrics</title>\n" ~
+  "    <style>\n" ~
+  "      table {\n" ~
+  "        font-family: arial, sans-serif;\n" ~
+  "        border-collapse: collapse;\n" ~
+  "        width: 100%;\n" ~
+  "      }\n" ~
+  "      td, th {\n" ~
+  "        border: 1px solid #dddddd;\n" ~
+  "        text-align: left;\n" ~
+  "        padding: 8px;\n" ~
+  "      }\n" ~
+  "      tr:nth-child(even) {\n" ~
+  "        background-color: #dddddd;\n" ~
+  "      }\n" ~
+  "    </style>\n" ~
+  "  </head>\n" ~
+  "  <body>\n" ~
+  "    <h2>Memory fragmentation metrics</h2>\n" ~
+  "    <table>\n" ~
+  "      <tr>\n" ~
+  "        <th>Scenario</th>\n" ~
+  "        <th>Description</th>\n" ~
+  "        <th>Free spaces</th>\n" ~
+  "        <th>Variance-based metric</th>\n" ~
+  "        <th>Quality-based metric</th>\n" ~
+  "        <th>Simple heuristic metric</th>\n" ~
+  "      </tr>\n";
+for(var index = 0, count = results.size(); index < count; index++){
+  var result = results[index];
+  html ~=
+    "      <tr>\n" ~
+    "        <td>" ~ result.scenarioName ~ "</td>\n" ~
+    "        <td>" ~ result.description ~ "</td>\n" ~
+    "        <td>" ~ result.freeSpaces ~ "</td>\n" ~
+    "        <td>" ~ result.varianceBasedMetric ~ "</td>\n" ~
+    "        <td>" ~ result.qualityBasedMetric ~ "</td>\n" ~
+    "        <td>" ~ result.simpleHeuristicMetric ~ "</td>\n" ~
+    "      </tr>\n";
+}
+html ~=
+  "    </table>\n" ~
+  "    <p>\n" ~
+  "      <b>Variance-based metric:</b> The variance-based metric is based on the variance of the free memory block sizes. A lower value indicates less fragmentation. Based on <a href=\"https://jackwrfuller.au/posts/memory-fragmentation/\">this article</a> by jackwrfuller.\n" ~
+  "    </p>\n" ~
+  "    <p>\n" ~
+  "      <b>Quality-based metric:</b> The quality-based metric is based on the sum of the squares of the free memory block sizes. A lower value indicates less fragmentation. Based on <a href=\"https://asawicki.info/news_1757_a_metric_for_memory_fragmentation\">this article</a> by AdamSawicki.\n" ~
+  "    </p>\n" ~
+  "    <p>\n" ~
+  "      <b>Simple heuristic metric:</b> The simple heuristic metric is based on the difference between the total free memory and the largest free block size. A lower value indicates less fragmentation.\n" ~
+  "    </p>\n" ~
+  "  </body>\n" ~
+  "</html>\n";
+
+var htmlFile = IO.open("memoryfragmentationmetrics.html", "c");
+htmlFile.write(html);
+htmlFile.close();

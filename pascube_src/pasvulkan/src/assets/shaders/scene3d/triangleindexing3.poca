@@ -1,0 +1,154 @@
+
+
+// For vertices
+
+class UVW {
+
+  var u = 0.0, w = 0.0, v = 0.0;
+
+  constructor(const u, const v, const w){
+    this.u = u;
+    this.v = v;
+    this.w = w;
+  }
+
+  function lerp(const uvw, reg t){
+    t = Math.clamp(t, 0.0, 1.0);
+    let invT = 1.0 - t;
+    return new UVW(
+      (this.u * invT) + (uvw.u * t), 
+      (this.v * invT) + (uvw.v * t), 
+      (this.w * invT) + (uvw.w * t)
+    );
+  }
+
+  function __eq(const a, const b){
+    if((a instanceof UVW) && (b instanceof UVW)){
+      const t = 1e-6;
+      return (Math.abs(a.u - b.u) < t) && (Math.abs(a.v - b.v) < t) && (Math.abs(a.w - b.w) < t);
+    }else{
+      throw "Not a UVW!"
+    }
+  }
+
+  function __neq(const a, const b){
+    if((a instanceof UVW) && (b instanceof UVW)){
+      const t = 1e-6;
+      return (Math.abs(a.u - b.u) >= t) || (Math.abs(a.v - b.v) >= t) || (Math.abs(a.w - b.w) >= t);
+    }else{
+      throw "Not a UVW!"
+    }
+  }
+
+}
+
+let resolution = 10;
+
+// Reference code
+
+let referenceCount = ((resolution + 3) * (resolution + 2)) >> 1;
+print("referenceCount: ", referenceCount, "\n");
+
+let rowColumns = new Array();
+
+let uvwWeights = new Array();
+
+let k = 0;
+for(let rowIndex = 0, rows = resolution + 1; rowIndex < rows; rowIndex++){
+  print(rowIndex, ": ");
+  let rowTime = rowIndex / rows;
+  let baseUVW = (new UVW(1.0, 0.0, 0.0)).lerp(new UVW(0.0, 0.0, 1.0), rowTime);
+  let topUVW = (new UVW(0.0, 1.0, 0.0)).lerp(new UVW(0.0, 0.0, 1.0), rowTime);
+  for(let columnIndex = 0, columns = (resolution + 2) - rowIndex; columnIndex < columns; columnIndex++){
+    let columnTime = columnIndex / ((resolution + 1) - rowIndex);
+    uvwWeights.push(baseUVW.lerp(topUVW, columnTime));
+    rowColumns.push({ row: rowIndex, column: columnIndex });
+    print(columnIndex, " ");
+    k++;
+  }
+  print("\n");
+}
+
+uvwWeights.push(new UVW(0.0, 0.0, 1.0));
+rowColumns.push({ row: resolution + 1, column: 0 });
+k++;
+
+print("k: ", k, "\n");
+
+// O(1) draft code for as shader
+
+let errors = false;
+
+let vertexResolution = resolution + 1;
+
+let count = ((vertexResolution + 1) * (vertexResolution + 2)) >> 1;
+
+for(let linearIndex = 0, linearCount = referenceCount; linearIndex < linearCount; linearIndex++){
+
+  let rowIndex = vertexResolution - Math.floor(Math.sqrt(((count - (linearIndex + 1)) * 2.0) + 0.25) - 0.5);
+  let columnIndex = ((vertexResolution + 1) - rowIndex) - ((count - linearIndex) - (((((vertexResolution - rowIndex) * ((vertexResolution - rowIndex) + 1)) >> 1))));
+
+  let rowColumn = rowColumns[linearIndex];
+
+  if((rowColumn.row != rowIndex) || (rowColumn.column != columnIndex)){
+    print("ERROR!\n");
+    print("rowColumns[index]: row: ", rowColumns[linearIndex].row, " column: ", rowColumns[linearIndex].column, "\n");
+    print("                   row: ", rowIndex, " column: ", columnIndex, "\n");
+    print("count: ", count, "\n");
+    print("\n");
+    errors = true;
+    break;
+  }
+
+  // Prepare reference UVW and interpolation times
+  let referenceUVW = uvwWeights[linearIndex];
+
+  let rowTime = rowIndex / vertexResolution;
+  let columnTime = columnIndex / (vertexResolution - rowIndex);
+ 
+  // Calculate UVW with bilinear interpolation
+  if(true){ 
+    
+    // dummy if as JavaScript/ECMAScript-syntax-highlighting-compatible workaround, because POCA is not JavaScript/ECMAScript, POCA interprets 
+    // {} otherwise as a object/hash literal, since in POCA everything is an expression, so there are no statements in the traditional sense.
+    // And VSCode does not support POCA syntax highlighting natively yet. Otherwise we could just use block{} instead of if(true){} here. 
+    // Indeed, POCA is very similar to JavaScript/ECMAScript, but it's not the same, POCA has more features on the one side but it omits 
+    // some features on the other side, and it has some differences in syntax and semantics. POCA is just in many aspects a better ECMAScript, 
+    // but it's not ECMAScript. POCA is simply a vision variant of what ECMAScript should actually be.
+
+    let baseUVW = (new UVW(1.0, 0.0, 0.0)).lerp(new UVW(0.0, 0.0, 1.0), rowTime);
+    let topUVW = (new UVW(0.0, 1.0, 0.0)).lerp(new UVW(0.0, 0.0, 1.0), rowTime);
+    let uvw = baseUVW.lerp(topUVW, columnTime);
+
+    if(referenceUVW != uvw){
+      print("ERROR!\n");
+      print("row: ", rowIndex, " column: ", columnIndex, "\n");
+      print("uvw: ", uvw.u, " ", uvw.v, " ", uvw.w, "\n");
+      print("referenceUVW: ", referenceUVW.u, " ", referenceUVW.v, " ", referenceUVW.w, "\n");
+      errors = true;
+      break; 
+    }
+
+  }
+
+  // Direct UVW calculation without bilinear interpolation  
+  if(true){
+
+    let directUVW = new UVW((1.0 - rowTime) * (1.0 - columnTime),  (1.0 - rowTime) * columnTime, rowTime);
+    
+    if(directUVW != referenceUVW){
+      print("ERROR!\n");
+      print("row: ", rowIndex, " column: ", columnIndex, "\n");
+      print("directUVW: ", directUVW.u, " ", directUVW.v, " ", directUVW.w, "\n");
+      print("referenceUVW: ", referenceUVW.u, " ", referenceUVW.v, " ", referenceUVW.w, "\n");
+      print("directUVW length: ", Math.sqrt((directUVW.u * directUVW.u) + (directUVW.v * directUVW.v) + (directUVW.w * directUVW.w)), "\n");
+      print("referenceUVW length: ", Math.sqrt((referenceUVW.u * referenceUVW.u) + (referenceUVW.v * referenceUVW.v) + (referenceUVW.w * referenceUVW.w)), "\n");
+      errors = true;
+      break; 
+    }
+  }
+  
+}  
+if(!errors){
+  print("No errors!\n");
+}

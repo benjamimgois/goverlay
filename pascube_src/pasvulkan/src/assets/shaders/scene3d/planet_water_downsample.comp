@@ -1,0 +1,132 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer SourceBuffer {
+  float values[];
+} sourceBuffer;
+
+layout(set = 0, binding = 1) buffer DestinationBuffer {
+  float values[];
+} destinationBuffer;
+
+layout(push_constant) uniform PushConstants {
+  int waterMapResolution;
+  int targetMipMapLevel;
+} pushConstants;
+
+shared float sharedHeights[8 * 8];
+
+/* clang-format on */
+
+float reduceOp(const in float a, const in float b){
+  return (a + b) * 0.5;
+}
+
+void main() {
+
+  // Downsample towards pushConstants.targetMipMapLevel to destinationBuffer.
+
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+              
+  ivec2 sourceSize = ivec2(pushConstants.waterMapResolution);
+
+  ivec2 destinationTextureSize = sourceSize >> 1;
+
+  vec4 heights;
+
+  if(all(lessThan(invocationPosition.xy, destinationTextureSize))){
+    if(pushConstants.targetMipMapLevel == 0){
+      destinationBuffer.values[(((invocationPosition.y << 1) + 0) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 0)] = sourceBuffer.values[(((invocationPosition.y << 1) + 0) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 0)];
+      destinationBuffer.values[(((invocationPosition.y << 1) + 0) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 1)] = sourceBuffer.values[(((invocationPosition.y << 1) + 0) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 1)];
+      destinationBuffer.values[(((invocationPosition.y << 1) + 1) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 0)] = sourceBuffer.values[(((invocationPosition.y << 1) + 1) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 0)];
+      destinationBuffer.values[(((invocationPosition.y << 1) + 1) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 1)] = sourceBuffer.values[(((invocationPosition.y << 1) + 1) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 1)];
+      return;
+    }
+    heights = vec4(
+      reduceOp(
+        reduceOp(
+          sourceBuffer.values[(((invocationPosition.y << 1) + 0) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 0)],
+          sourceBuffer.values[(((invocationPosition.y << 1) + 0) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 1)]
+        ),
+        reduceOp(
+          sourceBuffer.values[(((invocationPosition.y << 1) + 1) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 0)],
+          sourceBuffer.values[(((invocationPosition.y << 1) + 1) * pushConstants.waterMapResolution) + ((invocationPosition.x << 1) + 1)]
+        )
+      )
+    );
+  }else{
+    if(pushConstants.targetMipMapLevel == 0){
+      return;
+    }
+    heights = vec4(0.0);  
+  } 
+
+
+  if((all(lessThan(invocationPosition.xy >> 0, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 1)){
+    destinationBuffer.values[((invocationPosition.y >> 0) * destinationTextureSize.x) + (invocationPosition.x >> 0)] = heights.x;
+  }
+  if(pushConstants.targetMipMapLevel == 1){
+    return;
+  }
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  sharedHeights[localInvocationIndex] = heights.x;
+
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+  
+  if((localInvocationIndex & 0x09 /*0b001001*/) == 0){
+    heights.y = sharedHeights[localInvocationIndex + 0x01];
+    heights.z = sharedHeights[localInvocationIndex + 0x08];
+    heights.w = sharedHeights[localInvocationIndex + 0x09];
+    heights = vec4(reduceOp(reduceOp(heights.x, heights.y), reduceOp(heights.z, heights.w)));
+    if((all(lessThan(invocationPosition.xy >> 1, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 2)){
+      destinationBuffer.values[((invocationPosition.y >> 1) * destinationTextureSize.x) + (invocationPosition.x >> 1)] = heights.x;
+    }
+    sharedHeights[localInvocationIndex] = heights.x;
+  }
+  if(pushConstants.targetMipMapLevel == 2){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x1b /*0b011011*/) == 0){
+    heights.y = sharedHeights[localInvocationIndex + 0x02];
+    heights.z = sharedHeights[localInvocationIndex + 0x10];
+    heights.w = sharedHeights[localInvocationIndex + 0x12];
+    heights = vec4(reduceOp(reduceOp(heights.x, heights.y), reduceOp(heights.z, heights.w)));
+    if((all(lessThan(invocationPosition.xy >> 2, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 3)){
+      destinationBuffer.values[((invocationPosition.y >> 2) * destinationTextureSize.x) + (invocationPosition.x >> 2)] = heights.x;
+    }
+    sharedHeights[localInvocationIndex] = heights.x;
+  }
+  if(pushConstants.targetMipMapLevel == 3){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x3f /*0b111111*/) == 0){
+    heights.y = sharedHeights[localInvocationIndex + 0x04];
+    heights.z = sharedHeights[localInvocationIndex + 0x20];
+    heights.w = sharedHeights[localInvocationIndex + 0x24];
+    heights = vec4(reduceOp(reduceOp(heights.x, heights.y), reduceOp(heights.z, heights.w)));
+    if((all(lessThan(invocationPosition.xy >> 3, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 4)){
+      destinationBuffer.values[((invocationPosition.y >> 3) * destinationTextureSize.x) + (invocationPosition.x >> 3)] = heights.x;
+    }
+
+  }
+
+}

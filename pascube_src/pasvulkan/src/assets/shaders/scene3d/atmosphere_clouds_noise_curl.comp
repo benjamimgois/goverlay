@@ -1,0 +1,39 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_multiview : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+/* clang-format on */
+
+layout(set = 0, binding = 0, rgba8) uniform image3D uDestinationTexture;
+
+#include "math.glsl"
+
+#include "atmosphere_clouds_noise.glsl"
+
+void main(){
+ 
+  ivec3 p = ivec3(gl_GlobalInvocationID.xyz), size = imageSize(uDestinationTexture).xyz; 
+
+  if(all(greaterThanEqual(p, ivec3(0))) && all(lessThan(p, size))){          
+
+    vec3 o = vec3(p) / vec3(size);
+
+    const float curlScale = 4.0,
+                curlLow = -0.5,
+                curlHigh = 3.0;
+
+    imageStore(uDestinationTexture, 
+               p,
+               vec4(clamp(encodeCURL(remap01Unclamped(curlNoise(o * curlScale), vec3(curlLow), vec3(curlHigh))), vec3(0.0), vec3(1.0)), 1.0));
+   
+  }
+  
+}  

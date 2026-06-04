@@ -1,0 +1,138 @@
+// This is a simple example of how to use the PasVulkan Scene3D animation API based on the glTF draft extension KHR_animation_pointer in my
+// own scripting language with the name POCA which is ECMAScript/JavaScript-like, but which is much more powerful and has a lot of features
+// which are not available in JavaScript/ECMAScript, even in the newest version of ECMAScript (ECMAScript 2023).
+
+// This API exists because no real authoring tools for the KHR_animation_pointer draft extension exist yet, so I had to create my own
+// authoring way, which is this API. I hope, that the glTF exporter of Blender will support the KHR_animation_pointer extension soon,
+// so that people can use Blender to create animations for glTF files with the KHR_animation_pointer extension, but until then, this
+// API is the only way to create animations for glTF files with the KHR_animation_pointer extension in a acceptable way for usage
+// in combination with PasVulkan.
+
+// Code can be embedded into the glTF files itself in extras fields of any GLTF node, which is compatible with the gltf exporter of Blender,
+// since it supports custom properties per node, which are exported as extras fields into glTF files. The code can be embedded as a string or
+// as a file, which is relative to the glTF file itself. All code are concatenated together and then executed nearly at the end of the loading
+// process of the glTF file. glTF 2.0 JSON example:
+// "nodes": [
+//   {
+//     "name": "myNode",
+//     "extras": {
+//       "pocacode": "Your code here", (but in a correct JSON string escaped way, of course)
+//   or: "pocafile": "yourcodefile.poca", (relative to the gltf/glb file)
+//        ...
+//     },
+//     ...
+//   },
+//   ...
+// ]
+//
+
+// At PasVulkan Scene3D each GLTF is an so-named group, which can be instansiated in turn as group instances. Thus, the group instances are
+// then the actual scene graph nodes in the overall 3D scene world, which can be transformed, animated, etc. Therefore the naming "Group"
+// instead "GLTF" at the API level, since it will no limited to GLTF files only, but also maybe other file formats later, which can be
+// loaded into the PasVulkan Scene3D structure.
+
+(function(){
+  // Create a new animation
+  let animation = Group.createAnimation("mySuperCoolAnimation");
+
+  // Create a new animation channel
+  let animationChannel = animation.createChannel(
+                          "/nodes/" ~ Group.getNodeID("Cube") ~ "/translation", // the target, for more information see the KHR_animation_pointer draft extension in the glTF 2.0 specification
+                          "linear", // linear, step, cubicspline (for more information see the glTF 2.0 specification)
+                          3 // 1 (float), 2 (vec2), 3 (vec3), 4 (vec4) (the number of components in the data,
+                        );  // morph weights with bigger number of components are not supported yet with this API)
+                            // and cubicspline needs an array of three sub-array of the same size as the data array, which are the
+                            // in- and out-tangents for each keyframe ([in-tangent, data, out-tangent] for each keyframe)  
+
+  if(animationChannel != null){
+
+    try{
+
+      let FPS = 30.0; // Frames per second, since the animations at GLTF are second-unit based, we need to convert it to seconds
+
+      // Create 500 keyframes
+      for(let i = 0; i < 500; i++){
+        animationChannel.createKeyFrame(
+          i / FPS, // The time in seconds
+          [Math.sin((i / FPS) * Math.PI * 2.0), 0.0, 0.0] // The actual data
+        );
+      }
+
+    }finally{
+
+      // Finish the animation channel, this will finalize the internal arrays and do some necessary post processing, for example sorting the keyframes,
+      // when they are not in order.
+      animationChannel.finish();
+
+    }
+
+  }
+})();
+
+(function(){
+  // Create a new animation
+  let animation = Group.createAnimation("myOtherAlsoSuperCoolAnimation");
+
+  // Create a new animation channel
+  let animationChannel = animation.createChannel(
+                          "/materials/" ~ Group.getMaterialID("TestAnimatedMaterial") ~ "/pbrMetallicRoughness/baseColorFactor", // the target, for more information see the KHR_animation_pointer draft extension in the glTF 2.0 specification
+                          "linear", // linear, step, cubicspline (for more information see the glTF 2.0 specification)
+                          4 // 1 (float), 2 (vec2), 3 (vec3), 4 (vec4) (the number of components in the data, 
+                        );  // morph weights with bigger number of components are not supported yet with this API)
+                            // and cubicspline needs an array of three sub-array of the same size as the data array, which are the
+                            // in- and out-tangents for each keyframe ([in-tangent, data, out-tangent] for each keyframe)  
+
+  if(animationChannel != null){
+
+    try{
+
+      let FPS = 30.0; // Frames per second, since the animations at GLTF are second-unit based, we need to convert it to seconds
+
+      // Create 500 keyframes
+      for(let i = 0; i < 500; i++){
+        animationChannel.createKeyFrame(
+          i / FPS, // The time in seconds
+          [(Math.sin((i / FPS) * Math.PI * 2.0) * 0.5) + 0.5,
+           (Math.cos((i / FPS) * Math.PI * 1.5) * 0.5) + 0.5,
+           (Math.sin((i / FPS) * Math.PI * 2.5) * 0.5) + 0.5,
+           1.0] // The actual data
+        );
+      }
+
+    }finally{
+
+      // Finish the animation channel, this will finalize the internal arrays and do some necessary post processing, for example sorting the keyframes,
+      // when they are not in order.
+      animationChannel.finish();
+
+    }
+
+  }
+})();
+
+(function(){
+  Group.setMaterialHologram(
+    Group.getMaterialID("TestAnimatedMaterial"),
+    {
+      "active": true,
+      "direction": [0.0, 0.0, 0.0], // when the direction is [0.0, 0.0, 0.0], the direction is calculated from the up vector of the view matrix
+      "flickerSpeed": 100.0,
+      "flickerMin": 0.5,
+      "flickerMax": 1.0,
+      "mainColor": [0.0, 0.05, 0.3],
+      "mainAlpha": 1.0,
+      "rimColor": [0.0, 0.9, 0.972],
+      "rimAlpha": 1.0,
+      "rimPower": 1.29,
+      "rimThreshold": 0.0,
+      "scanTiling": 2048.0,
+      "scanSpeed": -32.0,
+      "scanMin": 0.0,
+      "scanMax": 1.0,
+      "glowTiling": 0.25,
+      "glowSpeed": 10.0,
+      "glowMin": 0.0,
+      "glowMax": 0.65
+    }
+  );
+})();

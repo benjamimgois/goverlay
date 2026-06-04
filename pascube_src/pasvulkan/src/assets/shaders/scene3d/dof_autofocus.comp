@@ -1,0 +1,35 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  float coefficient;
+} pushConstants;
+
+layout(set = 0, binding = 0, std430) readonly buffer NearestFarthestDepthBuffer {
+  vec4 nearestFarthestDepthBuffer;
+};
+
+layout(set = 0, binding = 1, std430) readonly buffer LastAutoFocusDepth {
+  float lastAutoFocusDepth;
+};
+
+layout(set = 0, binding = 2, std430) writeonly buffer AutoFocusDepth {
+  float autoFocusDepth;
+};
+
+/* clang-format on */
+
+void main() {
+  autoFocusDepth = ((pushConstants.coefficient >= 1.0) || isnan(lastAutoFocusDepth) || isinf(lastAutoFocusDepth)) 
+                      ? nearestFarthestDepthBuffer.y 
+                      : mix(lastAutoFocusDepth, 
+                            nearestFarthestDepthBuffer.y, 
+                            clamp(pushConstants.coefficient, 0.0, 1.0));
+}

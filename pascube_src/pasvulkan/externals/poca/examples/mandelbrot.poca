@@ -1,0 +1,16 @@
+let chars = " .,:;=|iI+hHOE#$-";
+for(let Im = -1.2; Im <= 1.2; Im += 0.05){  
+  for(let Re = -2; Re <= 1; Re += 0.03){ 
+    let Zr = Re, Zi = Im, n = 0;
+    for(; n < 16; n++){
+      let Zr2 = Zr * Zr, Zi2 = Zi * Zi;
+      if((Zr2 + Zi2) > 4){
+        break;
+      }
+      Zi = (2 * Zr * Zi) + Im; 
+      Zr = (Zr2 - Zi2) + Re;
+    }
+    print(chars.charAt(n));
+  }
+  print("\n");
+}

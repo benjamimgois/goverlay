@@ -1,0 +1,58 @@
+
+Libpng 1.2.59 - September 28, 2017
+
+This is a public release of libpng, intended for use in production codes.
+
+Files available for download:
+
+Source files with LF line endings (for Unix/Linux) and with a
+"configure" script
+
+   libpng-1.2.59.tar.xz (LZMA-compressed, recommended)
+   libpng-1.2.59.tar.gz
+
+Source files with LF line endings (for Unix/Linux) without the
+"configure" script
+
+   libpng-1.2.59-no-config.tar.xz (LZMA-compressed, recommended)
+   libpng-1.2.59-no-config.tar.gz
+
+Source files with CRLF line endings (for Windows), without the
+"configure" script
+
+   lpng1259.zip
+   lpng1259.7z
+
+Project files
+
+   libpng-1.2.59-project-netware.zip
+   libpng-1.2.59-project-wince.zip
+
+Other information:
+
+   libpng-1.2.59-README.txt
+   libpng-1.2.59-KNOWNBUGS.txt
+   libpng-1.2.59-LICENSE.txt
+   libpng-1.2.59-Y2K-compliance.txt
+   libpng-1.2.59-[previous version]-diff.txt
+   libpng-1.2.59-*.asc (armored detached GPG signatures)
+
+Changes since the last public release (1.2.58):
+
+version 1.2.59 [September 28, 2017]
+  Added PNGMINUS_UNUSED macro to contrib/pngminus/p*.c and added missing
+    parenthesis in contrib/pngminus/pnm2png.c (bug report by Christian Hesse).
+  Compute a larger limit on IDAT because some applications write a deflate
+    buffer for each row (Bug report by Andrew Church).
+  Initialize memory allocated by png_inflate to zero, using memset, to
+    stop an oss-fuzz "use of uninitialized value" detection in png_set_text_2()
+    due to truncated iTXt or zTXt chunk.
+
+Send comments/corrections/commendations to png-mng-implement at lists.sf.net
+(subscription required; visit
+https://lists.sourceforge.net/lists/listinfo/png-mng-implement
+to subscribe)
+or to glennrp at users.sourceforge.net
+
+Glenn R-P
+#endif

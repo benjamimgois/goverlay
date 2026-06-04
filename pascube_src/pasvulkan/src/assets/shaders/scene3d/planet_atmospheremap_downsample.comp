@@ -1,0 +1,128 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r8) uniform image2D uImageAtmosphereMapIn;
+
+layout(set = 0, binding = 1, r8) uniform image2D uImageAtmosphereMapOut;
+
+layout(push_constant) uniform PushConstants {
+  int atmosphereMapResolution;
+  int targetMipMapLevel;
+} pushConstants;
+
+shared float sharedFactors[8 * 8];
+
+/* clang-format on */
+
+float reduceOp(const in float a, const in float b){
+  return (a + b) * 0.5;
+}
+
+void main() {
+
+  // Downsample towards pushConstants.targetMipMapLevel to destinationBuffer.
+
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+              
+  ivec2 sourceSize = ivec2(pushConstants.atmosphereMapResolution);
+
+  ivec2 destinationTextureSize = sourceSize >> 1;
+
+  vec4 factors;
+
+  if(all(lessThan(invocationPosition.xy, destinationTextureSize))){
+    if(pushConstants.targetMipMapLevel == 0){
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition << 1) + ivec2(0, 0), vec4(imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(0, 0))));
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition << 1) + ivec2(1, 0), vec4(imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(1, 0))));
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition << 1) + ivec2(0, 1), vec4(imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(0, 1))));
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition << 1) + ivec2(1, 1), vec4(imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(1, 1))));
+      return;
+    }
+    factors = vec4(
+      reduceOp(
+        reduceOp(
+          imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(0, 0)).x,
+          imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(1, 0)).x
+        ),
+        reduceOp(
+          imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(0, 1)).x,
+          imageLoad(uImageAtmosphereMapIn, ivec2(invocationPosition << 1) + ivec2(1, 1)).x
+        )
+      )
+    );
+  }else{
+    if(pushConstants.targetMipMapLevel == 0){
+      return;
+    }
+    factors = vec4(0.0);  
+  } 
+
+
+  if((all(lessThan(invocationPosition.xy >> 0, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 1)){
+    imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition >> 0), vec4(factors.x));
+  }
+  if(pushConstants.targetMipMapLevel == 1){
+    return;
+  }
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  sharedFactors[localInvocationIndex] = factors.x;
+
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+  
+  if((localInvocationIndex & 0x09 /*0b001001*/) == 0){
+    factors.y = sharedFactors[localInvocationIndex + 0x01];
+    factors.z = sharedFactors[localInvocationIndex + 0x08];
+    factors.w = sharedFactors[localInvocationIndex + 0x09];
+    factors = vec4(reduceOp(reduceOp(factors.x, factors.y), reduceOp(factors.z, factors.w)));
+    if((all(lessThan(invocationPosition.xy >> 1, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 2)){
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition >> 1), vec4(factors.x));
+    }
+    sharedFactors[localInvocationIndex] = factors.x;
+  }
+  if(pushConstants.targetMipMapLevel == 2){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x1b /*0b011011*/) == 0){
+    factors.y = sharedFactors[localInvocationIndex + 0x02];
+    factors.z = sharedFactors[localInvocationIndex + 0x10];
+    factors.w = sharedFactors[localInvocationIndex + 0x12];
+    factors = vec4(reduceOp(reduceOp(factors.x, factors.y), reduceOp(factors.z, factors.w)));
+    if((all(lessThan(invocationPosition.xy >> 2, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 3)){
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition >> 2), vec4(factors.x));
+    }
+    sharedFactors[localInvocationIndex] = factors.x;
+  }
+  if(pushConstants.targetMipMapLevel == 3){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x3f /*0b111111*/) == 0){
+    factors.y = sharedFactors[localInvocationIndex + 0x04];
+    factors.z = sharedFactors[localInvocationIndex + 0x20];
+    factors.w = sharedFactors[localInvocationIndex + 0x24];
+    factors = vec4(reduceOp(reduceOp(factors.x, factors.y), reduceOp(factors.z, factors.w)));
+    if((all(lessThan(invocationPosition.xy >> 3, destinationTextureSize))) && (pushConstants.targetMipMapLevel == 4)){
+      imageStore(uImageAtmosphereMapOut, ivec2(invocationPosition >> 3), vec4(factors.x));
+    }
+
+  }
+
+}

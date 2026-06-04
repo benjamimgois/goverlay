@@ -1,0 +1,21 @@
+
+let a=[1,3,7];
+a.push(21);
+a.push(42);
+a.push(1337);
+
+puts(a.size());
+puts();
+for(let i=0;i<a.size();i++){
+ puts(a[i]);
+}
+puts();
+while(!a.empty()){
+ puts(a.pop());
+}
+
+puts();
+puts("Test".toUpperCase());
+
+readLine();
+

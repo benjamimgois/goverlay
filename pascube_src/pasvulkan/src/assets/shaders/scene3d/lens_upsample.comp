@@ -1,0 +1,106 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+// A 3x3 tent-filter-based 2x upsampler
+// Idea is of the http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare slides
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+#ifdef MULTIVIEW
+layout(set = 0, binding = 0) uniform sampler2DArray uSourceTexture; // Source mipmap level texture
+
+#if defined(RGBA16F)
+layout(set = 0, binding = 1, rgba16f) volatile uniform image2DArray uDestinationTexture; // Destination mipmap level image
+#elif defined(R11G11B10F)
+layout(set = 0, binding = 1, r11f_g11f_b10f) volatile uniform image2DArray uDestinationTexture; // Destination mipmap level image
+#else
+ #error "RGBA16F or R11G11B10F needed!"
+#endif
+#else
+layout(set = 0, binding = 0) uniform sampler2D uSourceTexture; // Source mipmap level texture
+
+#if defined(RGBA16F)
+layout(set = 0, binding = 1, rgba16f) volatile uniform image2D uDestinationTexture; // Destination mipmap level image
+#elif defined(R11G11B10F)
+layout(set = 0, binding = 1, r11f_g11f_b10f) volatile uniform image2D uDestinationTexture; // Destination mipmap level image
+#else
+ #error "RGBA16F or R11G11B10F needed!"
+#endif
+#endif
+
+/* clang-format on */
+
+#ifdef MULTIVIEW
+int viewIndex = int(gl_GlobalInvocationID.z); 
+#endif
+
+ivec2 sourceSize = ivec2(textureSize(uSourceTexture, 0).xy);
+
+vec2 invSourceSize = vec2(1.0) / vec2(sourceSize);
+
+vec4 getNearestSource(const in ivec2 uv, const in ivec2 offset) {
+#ifdef MULTIVIEW
+  return clamp(texelFetch(uSourceTexture, ivec3(clamp(uv + offset, ivec2(0), ivec2(sourceSize) - ivec2(1)), viewIndex), 0), vec4(0.0), vec4(65504.0));
+#else
+  return clamp(texelFetch(uSourceTexture, ivec2(clamp(uv + offset, ivec2(0), ivec2(sourceSize) - ivec2(1))), 0), vec4(0.0), vec4(65504.0));
+#endif
+}
+
+vec4 getBilinearSource(const in vec2 uv, const in vec2 offset) {
+#ifdef MULTIVIEW
+  return clamp(textureLod(uSourceTexture, vec3(vec2(uv + offset), viewIndex), 0.0), vec4(0.0), vec4(65504.0));
+#else  
+  return clamp(textureLod(uSourceTexture, vec2(uv + offset), 0.0), vec4(0.0), vec4(65504.0));
+#endif
+}
+
+void main() {
+#ifdef MULTIVIEW
+  ivec3 invocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+  ivec2 xy = invocationPosition.xy;
+  ivec3 destinationTextureSize = imageSize(uDestinationTexture);
+  if (all(greaterThanEqual(invocationPosition, ivec3(0))) && all(lessThan(invocationPosition, destinationTextureSize))) 
+#else
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 xy = invocationPosition.xy;
+  ivec2 destinationTextureSize = imageSize(uDestinationTexture);
+  if (all(greaterThanEqual(invocationPosition, ivec2(0))) && all(lessThan(invocationPosition, destinationTextureSize))) 
+#endif
+  {
+    vec4 color = imageLoad(uDestinationTexture, invocationPosition);
+#if 1
+    vec4 offsets = vec3(1.0, -1.0, 0.0).xxyz * invSourceSize.xyxy * 1.5; 
+    vec2 uv = (vec2(invocationPosition.xy) + vec2(0.5)) / vec2(destinationTextureSize); 
+  	color += clamp(
+              ((getBilinearSource(uv, -offsets.xy) + //
+                getBilinearSource(uv, -offsets.zy) + //
+                getBilinearSource(uv,  offsets.zy) + //
+                getBilinearSource(uv,  offsets.xy)) * 0.0625) + //
+              ((getBilinearSource(uv, -offsets.wy) + //
+                getBilinearSource(uv,  offsets.zw) + //
+                getBilinearSource(uv,  offsets.xw) + //
+                getBilinearSource(uv,  offsets.wy)) * 0.125) + //
+               (getBilinearSource(uv,  offsets.ww) * 0.25),
+              vec4(0.0),
+               vec4(65504.0)
+              );              
+#else
+    vec4 offsets = vec3(0.5, -0.5, 0.0).xxyz * invSourceSize.xyxy; 
+    vec2 uv = (vec2(invocationPosition.xy) + vec2(0.5)) / vec2(destinationTextureSize); 
+    color += clamp(
+              getBilinearSource(uv, offsets.xy) + //
+              getBilinearSource(uv, offsets.zy) + //
+              getBilinearSource(uv, offsets.zy) + //
+              getBilinearSource(uv, offsets.xy), //
+              vec4(0.0),
+              vec4(65504.0)
+             ) * 0.25;
+#endif
+    imageStore(uDestinationTexture, invocationPosition, color);
+  }
+}

@@ -1,0 +1,60 @@
+import dump from '../helper';
+
+(function() {
+
+  return {
+    empty_array_is_true: [
+      () => Test.assertTrue([]),
+      () => Test.assertTrue(Array.create())
+    ],
+
+    empty_array_is_not_null: () => Test.assertNotNull([]),
+    empty_array_is_not_like_null: () => Test.assertNotLikeNull([]),
+
+    empty_array_has_zero_length: [
+      () => Test.assertZero([].size()),
+      () => Test.assertFalse(Array.create().size())
+    ],
+
+    array_length: [
+      () => {
+        let a = [ 1, 2, 3 ];
+        Test.assertSize(a, 3);
+      },
+    ],
+
+    array_concatenate: [
+      () => {
+        let a = [ 1, 2, 3 ] ~ [ 4, 5, 6 ];
+        Test.assertSize(a, 6);
+      }
+    ],
+
+    array_join: [
+      () => Test.assertEqual([ 'a', 'b', 'c' ].join(''), 'abc'),
+      () => Test.assertEqual([ 'a', 'b', 'c' ].join(), 'a,b,c'),
+      () => Test.assertEqual([ 'a', 'b', 'c' ].join(' '), 'a b c'),
+      () => Test.assertEqual([ '"foo"', '"bar"', '"baz"' ].join(', '), '"foo", "bar", "baz"')
+    ],
+
+    array_map: [
+      () => {
+        Test.assertStructure([ 'a', 'b', 'c' ].map(a => a.repeat(3)), [ 'aaa', 'bbb', 'ccc' ]);
+        Test.assertStructure([ 3, 9, 27 ].map(a => a *= 3), [ 9, 27, 81 ]);
+      },
+    ],
+
+    array_reduce: [
+      () => {
+        Test.assertEqual([ 'a', 'b', 'c' ].reduce((acc, cur) => acc ~= cur), 'abc');
+        Test.assertEqual([ 'a', 'b', 'c' ].reduce((acc, cur) => acc ~= cur, ''), 'abc');
+
+        Test.assertEqual([ '3', '6', '9' ].reduce((acc, cur) => acc += cur), 18);
+        Test.assertEqual([ '3', '6', '9' ].reduce((acc, cur) => acc += cur, 0), 18);
+
+        Test.assertEqual([ 'x', 'y', 'z' ].map(a => a.repeat(3)).reduce((acc, cur) => acc ~= cur), 'xxxyyyzzz');
+      }
+    ]
+  };
+
+})();

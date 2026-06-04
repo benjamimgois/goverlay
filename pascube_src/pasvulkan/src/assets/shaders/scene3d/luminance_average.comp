@@ -1,0 +1,167 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+// A bilinear 13-tap 2x downsampler (equals to a 36-tap non-bilinear 2x downsampler)
+// Idea is of the http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare slides
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout (set = 0, binding = 0, std430) buffer HistogramBuffer {
+  uint histogramBuffer[];
+};
+
+layout (set = 0, binding = 1, std430) readonly buffer LastHistogramLuminanceBuffer {
+  float histogramLuminance;
+  float luminanceFactor; 
+} lastHistogramLuminanceBuffer;
+
+layout (set = 0, binding = 2, std430) buffer HistogramLuminanceBuffer {
+  float histogramLuminance;
+  float luminanceFactor; 
+} histogramLuminanceBuffer;
+
+layout(push_constant, std140) uniform PushConstants {
+  
+  vec4 minMaxLuminanceFactorExponent;
+
+  float minLogLuminance;
+  float logLuminanceRange;
+  float inverseLogLuminanceRange;
+  float timeCoefficient;
+  
+  float minLuminance;
+  float maxLuminance; 
+  float manualLMax;  
+  uint countPixels;
+
+} pushConstants;
+
+/* clang-format on */
+
+shared uint sharedHistogram[16 * 16];
+
+#ifdef MULTIVIEW
+#endif
+
+void main() {
+
+  uint countForThisBin = histogramBuffer[gl_LocalInvocationIndex];  
+  sharedHistogram[gl_LocalInvocationIndex] = countForThisBin * gl_LocalInvocationIndex;
+  
+  groupMemoryBarrier();
+  barrier();
+
+  histogramBuffer[gl_LocalInvocationIndex] = 0;
+
+  [[unroll]] 
+  for(uint binIndex = ((16 * 16) >> 1); binIndex > 0; binIndex >>= 1){
+    if(uint(gl_LocalInvocationIndex) < binIndex){
+      sharedHistogram[gl_LocalInvocationIndex] += sharedHistogram[gl_LocalInvocationIndex + binIndex];
+    }
+    groupMemoryBarrier();
+    barrier();
+  }
+
+  barrier();
+
+  if(gl_LocalInvocationIndex == 0){
+
+#if 0
+    uint zeroPixelCount = countForThisBin;
+
+    uint minBin = 255;
+    uint maxBin = 0;
+
+    uint countSeenPixels = 0;
+
+    uint highBin = 0;
+    uint highPixelThreshold = uint((1.0 - 0.05) * float(pushConstants.countPixels - zeroPixelCount));
+
+    uint lowBin = 0;
+    uint lowPixelThreshold = uint((1.0 - 0.95) * float(pushConstants.countPixels - zeroPixelCount));
+
+    for(uint i = 255; i >= 0; i--){
+      uint v = sharedHistogram[i];
+      if(v > 0){
+        maxBin = max(maxBin, i);
+        minBin = min(minBin, i);
+      }
+      countSeenPixels += v;
+      if(countSeenPixels >= highPixelThreshold){
+        highBin = max(highBin, i);
+      }
+      if(countSeenPixels >= lowPixelThreshold){
+        lowBin = max(lowBin, i);
+      }
+    } 
+
+#endif
+
+#if 0
+
+    const float lowPercentile = 0.1;
+    const float highPercentile = 0.9;
+
+    const float histogramValueSum = float(sharedHistogram[0]);
+
+    float lowPercentileSum = histogramValueSum * lowPercentile;
+    float highPercentileSum = histogramValueSum * highPercentile;
+
+    vec2 sumLuminanceWeight = vec2(0.0);
+
+    for(uint i = 0; i < 256; i++){
+      float histogramValue = float(sharedHistogram[i]);
+      float luminance = exp2(fma(float(i) - 1.0, pushConstants.logLuminanceRange / 254.0, pushConstants.minLogLuminance));  
+      float offset = min(lowPercentileSum, histogramValue);
+      lowPercentileSum -= offset;
+      histogramValue = min(histogramValue - offset, highPercentileSum -= offset);
+      highPercentileSum -= histogramValue;
+      sumLuminanceWeight += vec2(luminance, 1.0) * histogramValue;
+    }
+
+    float newHistogramLuminance = sumLuminanceWeight.x / max(1e-5, sumLuminanceWeight.y);
+
+#endif
+
+#if 1
+    // Compute the new histogram luminance from the histogram 
+    float newHistogramLuminance = exp2(fma((float(sharedHistogram[0]) / max(1.0, float(pushConstants.countPixels - countForThisBin))) - 1.0, 
+                                           pushConstants.logLuminanceRange / 254.0, 
+                                           pushConstants.minLogLuminance));
+#endif
+
+    // clamp to avoid exploded values, Infinities and NaNs                                       
+    newHistogramLuminance = clamp(newHistogramLuminance, pushConstants.minLuminance, pushConstants.maxLuminance); 
+    newHistogramLuminance = (isnan(newHistogramLuminance) || isinf(newHistogramLuminance)) ? 1.0 : newHistogramLuminance;
+
+    // Interpolate between the last and the new histogram luminance over time for smooth transitions
+    newHistogramLuminance = mix(lastHistogramLuminanceBuffer.histogramLuminance, newHistogramLuminance, pushConstants.timeCoefficient);
+
+    // again to avoid Infinities and NaNs just for safety                                       
+    float histogramLuminance = histogramLuminanceBuffer.histogramLuminance = (isnan(newHistogramLuminance) || isinf(newHistogramLuminance)) ? 1.0 : newHistogramLuminance;
+
+#if 1
+    float Lmax = 9.6 * histogramLuminance; // optimized from (78 / (0.65 * 100)) * pow(2, log2(histogramLuminance * (100 / 12.5)));
+#else
+    float S = 100.0;
+    float K = 12.5;  
+    float q = 0.65;
+    float EV100 = log2(histogramLuminance * (S / K));
+    float Lmax = (78.0 / (q * S)) * pow(2.0, EV100);
+#endif
+
+    histogramLuminanceBuffer.luminanceFactor = clamp(
+      pow(1.0 / max(1e-6, (pushConstants.manualLMax < 0.0) ? Lmax : pushConstants.manualLMax), pushConstants.minMaxLuminanceFactorExponent.w) * pushConstants.minMaxLuminanceFactorExponent.z, 
+      pushConstants.minMaxLuminanceFactorExponent.x, 
+      pushConstants.minMaxLuminanceFactorExponent.y
+    );
+
+  }
+
+}

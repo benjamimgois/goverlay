@@ -1,0 +1,397 @@
+
+const FACE_POS_X = 0;
+const FACE_NEG_X = 1;
+const FACE_POS_Y = 2;
+const FACE_NEG_Y = 3;
+const FACE_POS_Z = 4;
+const FACE_NEG_Z = 5;
+
+function wrapCubeFace(f, x, y, dx, dy, a, faceSize){
+
+  // This function repeatedly adjusts the face [f] and the coordinates [x, y] until the coordinates [x, y] are 
+  // within the bounds of the cube face [0, faceSize]. This approach naturally supports multiple successive folds 
+  // across different faces, including diagonal transitions, without needing to handle diagonal transition cases 
+  // separately.
+
+  while((x < 0) || (x >= faceSize) || (y < 0) || (y >= faceSize)){
+    
+    let ox = x, oy = y, odx = dx, ody = dy, oa = a, of = f;
+    
+    switch(f){
+      case FACE_POS_X:{ // X+ face
+        if(x < 0){ // Z+ - moved off the left edge of X+ → onto Z+’s left edge
+          f = FACE_POS_Z;
+          x += faceSize;   
+        }else if(x >= faceSize){ // Z- - moved off the right edge of X+ → onto Z-’s right edge
+          f = FACE_NEG_Z;
+          x -= faceSize;
+        }else if(y < 0){ // Y+ - moved off the top of X+ → onto Y+’s right edge
+          f = FACE_POS_Y;
+          x = faceSize + oy;
+          y = faceSize - (ox + 1);
+          dx = ody;
+          dy = -odx;
+          a -= Math.PI * 0.5;          
+        }else if(y >= faceSize){ // Y- - moved off the bottom of X+ → onto Y-’s right edge
+          f = FACE_NEG_Y;              
+          x = faceSize - ((oy - faceSize) + 1);
+          y = ox;  
+          dx = -ody;
+          dy = odx;           
+          a += Math.PI * 0.5;
+        }
+        break;
+      }
+      
+      case FACE_NEG_X:{ // X- face
+        if(x < 0){ // Z- - moved off the left of X- → onto Z-’s left edge
+          f = FACE_NEG_Z;
+          x += faceSize;
+        }else if(x >= faceSize){ // Z+ - moved off the right of X- → onto Z+’s right edge
+          f = FACE_POS_Z;   
+          x -= faceSize;
+        }else if(y < 0){ // Y+ - moved off the top of X- → onto Y+’s left edge
+          f = FACE_POS_Y;   
+          x = -(oy + 1);
+          y = ox;
+          dx = -ody;
+          dy = odx;
+          a += Math.PI * 0.5;
+        }else if(y >= faceSize){ // Y- - moved off the bottom of X- → onto Y-’s left edge
+          f = FACE_NEG_Y;  
+          x = oy - faceSize;
+          y = faceSize - (ox + 1);
+          dx = ody;
+          dy = -odx;
+          a -= Math.PI * 0.5;
+        }
+        break;
+      }
+      
+      case FACE_POS_Y:{ // Y+ face
+        if(x < 0){ // X- - moved off the left of Y+ → onto X-’s top edge
+          f = FACE_NEG_X;   
+          x = oy;            
+          y = -(ox + 1);
+          dx = ody;
+          dy = -odx;
+          a -= Math.PI * 0.5;
+        }else if(x >= faceSize){ // X+ - moved off the right of Y+ → onto X+’s top edge
+          f = FACE_POS_X;   
+          x = faceSize - (oy + 1);
+          y = ox - faceSize;
+          dx = -ody;
+          dy = odx;
+          a += Math.PI * 0.5;
+        }else if(y < 0){ // Z- - moved off the top of Y+ → onto Z-’s top edge
+          f = FACE_NEG_Z;   
+          x = faceSize - (ox + 1);
+          y = -(oy + 1);
+          dx = -odx;
+          dy = -ody;
+          a += Math.PI;
+        }else if(y >= faceSize){ // Z+ - moved off the bottom of Y+ → onto Z+’s top edge
+          f = FACE_POS_Z;   
+          y -= faceSize;
+        }
+        break;
+      }
+      
+      case FACE_NEG_Y:{ // Y- face
+        if(x < 0){ // X- - moved off the left of Y- → onto X-’s bottom edge
+          f = FACE_NEG_X;  
+          x = faceSize - (oy + 1);
+          y = faceSize + ox;
+          dx = -ody;
+          dy = odx;
+          a += Math.PI * 0.5;               
+        }else if(x >= faceSize){ // X+ - moved off the right of Y- → onto X+’s bottom edge
+          f = FACE_POS_X;
+          x = oy;
+          y = faceSize - ((ox - faceSize) + 1);
+          dx = ody;
+          dy = -odx;
+          a -= Math.PI * 0.5;
+        }else if(y < 0){ // Z+ - moved off the top of Y- → onto Z+’s bottom edge
+          f = FACE_POS_Z; 
+          y += faceSize;
+        }else if(y >= faceSize){ // Z- - moved off the bottom of Y- → onto Z-’s bottom edge
+          f = FACE_NEG_Z;
+          x = faceSize - (ox + 1);
+          y = faceSize - ((oy - faceSize) + 1);
+          dx = -odx;
+          dy = -ody;
+          a += Math.PI;
+        }
+        break;
+      }
+      
+      case FACE_POS_Z:{ // Z+ face
+        if(x < 0){ // X- - moved off the left of Z+ → onto X-’s right edge
+          f = FACE_NEG_X; 
+          x += faceSize;
+        }else if(x >= faceSize){ // X+ - moved off the right of Z+ → onto X+’s left edge
+          f = FACE_POS_X;
+          x -= faceSize;
+        }else if(y < 0){ // Y+ - moved off the top of Z+ → onto Y+’s top edge
+          f = FACE_POS_Y;  
+          y += faceSize;
+        }else if(y >= faceSize){ // Y- - moved off the bottom of Z+ → onto Y-’s top edge
+          f = FACE_NEG_Y;  
+          y -= faceSize;
+        }
+        break;
+      }
+      
+      case FACE_NEG_Z:{ // Z- face
+        if(x < 0){ // X+ - moved off the left of Z- → onto X-’s right edge
+          f = FACE_POS_X; 
+          x += faceSize;
+        }else if(x >= faceSize){ // X- - moved off the right of Z- → onto X+’s left edge
+          f = FACE_NEG_X;
+          x -= faceSize;
+        }else if(y < 0){ // Y+ - moved off the top of Z- → onto Y+’s bottom edge (flipped)
+          f = FACE_POS_Y;
+          x = faceSize - (ox + 1);
+          y = -(oy + 1);
+          dx = -odx;
+          dy = -ody;
+          a += Math.PI; 
+        }else if(y >= faceSize){ // Y- - moved off the bottom of Z- → onto Y-’s bottom edge (flipped)
+          f = FACE_NEG_Y;
+          x = faceSize - (ox + 1);
+          y = faceSize - ((oy - faceSize) + 1);
+          dx = -odx;
+          dy = -ody;
+          a += Math.PI;
+        }
+        break;
+      } 
+
+      default:{
+        // This should never happen
+        x = (((x % faceSize) + faceSize) % faceSize);
+        y = (((y % faceSize) + faceSize) % faceSize);
+        break;
+      }
+
+    }
+
+  }
+
+  // wrap angle to [-PI, PI]
+  while(a < -Math.PI){
+    a += Math.PI * 2;
+  }
+  while(a >= Math.PI){
+    a -= Math.PI * 2;
+  } 
+
+  return { f, x, y, dx, dy, a };
+}  
+
+let failed = false;
+
+function testCubeMap() {
+
+  const size = 4;
+
+  for(let startFace = 0; startFace < 6; startFace++){
+    
+    let face = startFace;
+
+    for(let startDirection = 0; startDirection < 4; startDirection++){
+      
+      let x = 2, y = 2;
+      let dx, dy;
+
+      switch(startDirection){
+        case 0:{          
+          dx = -1;
+          dy = 0;
+          break;
+        }
+        case 1:{
+          dx = 0;
+          dy = -1;
+          break;
+        }
+        case 2:{
+          dx = 1;
+          dy = 0;
+          break;
+        }
+        default:{
+          dx = 0;
+          dy = 1;
+          break;
+        }
+      }
+
+      print(`f:x:y:dx:dy = ${face}:${x}:${y}:${dx}:${dy}`);
+
+      for(let stepIndex = 0; stepIndex < 16; stepIndex++){
+        x += dx;
+        y += dy;
+        let result = wrapCubeFace(face, x, y, dx, dy, 0, size);
+        face = result.f;        
+        x = result.x;
+        y = result.y;
+        dx = result.dx;
+        dy = result.dy;
+        print(` => ${face}:${x}:${y}:${dx}:${dy}`);
+      }
+      print("\n");
+
+      if(!((x == 2) && (y == 2) && (face == startFace))) {
+        print(`Failed for startFace: ${startFace}, startDirection: ${startDirection}`);       
+        failed = true; 
+      } else {
+        print(`Passed for startFace: ${startFace}, startDirection: ${startDirection}`);
+      }
+      print("\n\n");
+
+    }
+   
+  }
+  puts();
+
+  // Test with diagonal steps
+       
+  scope{
+
+    let startFace = FACE_POS_Z;
+    let face = startFace;
+    let x = 2;
+    let y = 2;
+    let dx = 1;
+    let dy = -1;
+
+    puts("Diagonal #1 test +1:-1");
+
+    print(`f:x:y:dx:dy = ${face}:${x}:${y}:${dx}:${dy}`);
+    
+    do{
+      x += dx;
+      y += dy;
+
+      let result = wrapCubeFace(face, x, y, dx, dy, 0, size);
+      face = result.f;        
+      x = result.x;
+      y = result.y;
+      dx = result.dx;
+      dy = result.dy;
+      print(` > ${face}:${x}:${y}:${dx}:${dy}`);
+    }while((x != 2) || (y != 2) || (face != startFace));
+    
+    print("\n");
+    puts("Diagonal #1 test passed");
+    puts();
+
+  }
+   
+  scope{
+    let startFace = FACE_POS_Z;
+    let face = startFace;
+    let x = 2;
+    let y = 2;
+    let dx = -1;
+    let dy = 1;
+
+    puts("Diagonal #2 test -1:+1");
+
+    print(`f:x:y:dx:dy = ${face}:${x}:${y}:${dx}:${dy}`);
+    
+    do{
+      x += dx;
+      y += dy;
+
+      let result = wrapCubeFace(face, x, y, dx, dy, 0, size);
+      face = result.f;        
+      x = result.x;
+      y = result.y;
+      dx = result.dx;
+      dy = result.dy;
+      print(` > ${face}:${x}:${y}:${dx}:${dy}`);
+    }while((x != 2) || (y != 2) || (face != startFace));
+    
+    print("\n");
+    puts("Diagonal #2 test passed");
+    puts();
+
+  }
+
+  scope{
+    let startFace = FACE_POS_Z;
+    let face = startFace;
+    let x = 2;
+    let y = 2;
+    let dx = -1;
+    let dy = -1;
+
+    puts("Diagonal #3 test -1:-1");
+
+    print(`f:x:y:dx:dy = ${face}:${x}:${y}:${dx}:${dy}`);
+    
+    do{
+      x += dx;
+      y += dy;
+
+      let result = wrapCubeFace(face, x, y, dx, dy, 0, size);
+      face = result.f;        
+      x = result.x;
+      y = result.y;
+      dx = result.dx;
+      dy = result.dy;
+      print(` > ${face}:${x}:${y}:${dx}:${dy}`);
+    }while((x != 2) || (y != 2) || (face != startFace));
+    
+    print("\n");
+    puts("Diagonal #3 test passed");
+    puts();
+
+  }
+
+  scope{
+    let startFace = FACE_POS_Z;
+    let face = startFace;
+    let x = 2;
+    let y = 2;
+    let dx = 1;
+    let dy = 1;
+
+    puts("Diagonal #4 test +1:+1");
+
+    print(`f:x:y:dx:dy = ${face}:${x}:${y}:${dx}:${dy}`);
+    
+    do{
+      x += dx;
+      y += dy;
+
+      let result = wrapCubeFace(face, x, y, dx, dy, 0, size);
+      face = result.f;        
+      x = result.x;
+      y = result.y;
+      dx = result.dx;
+      dy = result.dy;
+      print(` > ${face}:${x}:${y}:${dx}:${dy}`);
+    }while((x != 2) || (y != 2) || (face != startFace));
+    
+    print("\n");
+    puts("Diagonal #4 test passed");
+    puts();
+
+  }
+
+  puts("All diagonal tests passed");
+  puts();
+
+}
+
+testCubeMap();
+
+if(failed){
+  puts("Some tests failed");
+}else{
+  puts("All tests passed");
+}

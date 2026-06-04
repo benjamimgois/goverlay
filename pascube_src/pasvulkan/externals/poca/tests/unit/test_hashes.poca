@@ -1,0 +1,41 @@
+(function() {
+
+  return {
+    empty_hash_is_true: [
+      () => Test.assertTrue({}),
+      //() => Test.assertTrue(Hash.create())
+    ],
+
+    empty_hash_is_not_null: () => Test.assertNotNull({}),
+    empty_hash_is_not_like_null: () => Test.assertNotLikeNull({}),
+
+    empty_hash_has_zero_length: [
+      () => Test.assertZero({}.size()),
+      // () => Test.assertFalse(Hash.create().size())
+    ],
+
+    hash_length: [
+      () => {
+        let h = { a: 1, b: 2, c: 3 };
+        Test.assertSize(h, 3);
+      },
+    ],
+
+    hash_concatenate: [
+      () => {
+        let h = { a: 1, b: 2, c: 3 } ~ { z: -1, y: -2, x: -3 };
+        Test.assertSize(h, 6);
+      }
+    ],
+
+    hash_join: [
+      () => Test.assertEqual([ 'a', 'b', 'c' ].join(''), 'abc'),
+      () => Test.assertEqual([ 'a', 'b', 'c' ].join(), 'a,b,c'),
+      () => Test.assertEqual([ 'a', 'b', 'c' ].join(' '), 'a b c'),
+      () => Test.assertEqual([ '"foo"', '"bar"', '"baz"' ].join(', '), '"foo", "bar", "baz"')
+    ]
+
+  };
+
+})();
+

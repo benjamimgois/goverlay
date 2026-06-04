@@ -1,0 +1,87 @@
+
+var a = 12, b = 4;
+
+class Test extends BaseClass {
+
+  var a = 0;
+
+  constructor(let v){
+    this.a = v + 1;
+  }
+
+  function init(let v){
+    this.a = v + 1;
+  }
+
+  function b(){
+     puts(this.a);
+  } 
+
+}
+
+class TestB extends Test {
+
+  var x = 0;
+
+  constructor(let v){
+    super(v * 2);
+    this.x = v + 1;
+  }
+
+  function b(){
+     super();    // calls previous Test.B
+     super.b();  // also calls previous Test.B
+     super.c();  // also previous Test.c
+     this.a--;
+     super.b();  // also calls previous Test.B     
+     puts(this.x);
+  } 
+
+}
+
+function Test.c(){
+  puts(if(this.a == 247) "yeah" else "ups");
+}
+
+function Test::d(){
+  puts((this.a == 247) ? "allright" : "fail!");
+}
+
+Test.e = function(){
+  puts((this.a == 247) ? ":-)" : ":-(");
+}
+
+let bla = new Test(246);
+
+puts(bla.a, " ", a, " ", b);
+
+bla.b();
+bla.c();
+bla.d();
+bla.e();
+
+puts();
+
+puts("Keys of object bla instance of class ",bla.className,":\n", scope{
+  let s = ""; 
+  forkey(let key;bla){
+    s ~= key ~ " of type " ~ typeof(bla[key]) ~ "\n";
+  }
+  s
+});
+
+let blup = new TestB(123);
+
+puts(blup.a , " ", blup.x, " " , (blup instanceof Test) ? "true" : "false");
+blup.b();
+
+puts(Test.className);
+puts(bla.className);
+puts(TestB.className);
+puts(blup.className);
+
+var piep = new blup.classType(42);
+
+puts(piep.a);
+ 
+readLine();

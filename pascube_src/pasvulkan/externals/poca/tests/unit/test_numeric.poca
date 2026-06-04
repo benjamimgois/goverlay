@@ -1,0 +1,44 @@
+(function() {
+
+  return {
+    numeric_comparison: [
+      () => Test.assertEqual(1, 1),
+      () => Test.assertEqual(01, 1),
+      () => Test.assertEqual(0x1, 1),
+      () => Test.assertEqual(0xa, 10),
+    ],
+
+    numeric_like_string: [
+      () => Test.assertLike('1', 1),
+      () => Test.assertLike('2', 02),
+      () => Test.assertLike('03', 3),
+      () => Test.assertLike('10', 10),
+      () => Test.assertLike('0', 0x0)
+    ],
+
+    decimal_comparison: [
+      () => Test.assertEqual(1, 1),
+      () => Test.assertEqual(01, 1),
+      () => Test.assertEqual(0x1, 1),
+      () => Test.assertEqual(0xa, 10),
+    ],
+
+    decimal_like_string: [
+      () => Test.assertLike('0', 0.),
+      () => Test.assertLike('.1', 0.1),
+      () => Test.assertLike('00000.035', 0.03500000),
+      () => Test.assertLike('010.000', 10.0),
+      () => Test.assertLike('-38.911', -38.911)
+    ],
+
+    numeric_decimal_comparison: [
+      () => Test.assertEqual(1.0, 1),
+      () => Test.assertEqual(1000.000, 1000),
+
+      // precision limit hits hard...
+      () => Test.assertEqual(1.0000000000000001, 1),
+      () => Test.assertUnequal(1000.0000000000001, 1000)
+    ]
+  };
+
+})();

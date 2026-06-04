@@ -1,0 +1,15 @@
+[submodule "externals/pasmp"]
+	path = externals/pasmp
+	url = https://github.com/BeRo1985/pasmp.git
+[submodule "externals/pasdblstrutils"]
+	path = externals/pasdblstrutils
+	url = https://github.com/BeRo1985/pasdblstrutils.git
+[submodule "externals/pucu"]
+	path = externals/pucu
+	url = https://github.com/BeRo1985/pucu.git
+[submodule "externals/pasjson"]
+	path = externals/pasjson
+	url = https://github.com/BeRo1985/pasjson.git
+[submodule "externals/flre"]
+	path = externals/flre
+	url = https://github.com/BeRo1985/flre.git

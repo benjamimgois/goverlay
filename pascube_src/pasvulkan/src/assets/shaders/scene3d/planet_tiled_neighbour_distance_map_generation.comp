@@ -1,0 +1,134 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_gpu_shader_fp64 : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#if 0
+// Just a idea to include material indices and weights in the vertex data, but it's not used in this shader yet.
+struct TriangleVertex {
+  uvec4 positionNormal; // xyz = position, w = octahedral normal (2x16 bit for x and y)
+  uvec2 materialIndicesAndWeights; // x = byte-wise material indices, y = byte-wise material weights
+}; // 24 bytes per vertex (16 bytes for positionNormal, 8 bytes for materialIndicesAndWeights) 
+#endif
+
+layout(set = 0, binding = 0, std430) buffer TriangleVertices {
+  uvec4 vertices[]; // 16 bytes per vertex
+} triangleVertices;
+
+layout(set = 0, binding = 1, std430) buffer QueuedTiles {
+  uint data[]; // 6-based, because two VkDispatchIndirectCommand structs are stored in the same buffer at the beginning, with three 32-bit unsigned integers each
+} queuedTiles;
+
+layout(set = 0, binding = 2, std430) buffer NeighbourDistances {
+  float values[];
+} neighbourDistances;
+
+layout(push_constant) uniform PushConstants {
+  uint tileMapResolution;
+  uint tileResolution;
+} pushConstants;
+
+#include "octahedral.glsl"
+
+uint tileVertexSize = pushConstants.tileResolution * pushConstants.tileResolution;
+
+uint totalResolution = pushConstants.tileMapResolution * pushConstants.tileResolution;
+
+vec3 getTriangleVertex(ivec2 quadXY){
+
+  quadXY = wrapOctahedralTexelCoordinates(ivec2(quadXY), ivec2(totalResolution));
+  
+  uvec2 tileMapXY = quadXY / uvec2(pushConstants.tileResolution);
+
+  uvec2 tileVertexXY = quadXY - (tileMapXY * uvec2(pushConstants.tileResolution));
+
+  uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
+
+  uint tileVertexIndex = (tileMapIndex * tileVertexSize) + ((tileVertexXY.y * pushConstants.tileResolution) + tileVertexXY.x);
+
+  return uintBitsToFloat(triangleVertices.vertices[tileVertexIndex].xyz);
+
+} 
+
+void main(){
+
+  const uint queuedTileIndex = uint(gl_GlobalInvocationID.y);
+  
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  if((queuedTileIndex < tileMapSize) && (queuedTileIndex < queuedTiles.data[1u])){
+
+    const uint tileMapIndex = queuedTiles.data[queuedTileIndex + 6u];
+
+    if(tileMapIndex < tileMapSize){
+
+      uvec2 tileMapXY;
+      tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+      tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+      const uint tileVertexIndex = uint(gl_GlobalInvocationID.x);
+      
+      if(tileVertexIndex < tileVertexSize){
+
+        uvec2 tileVertexXY;
+        tileVertexXY.y = tileVertexIndex / pushConstants.tileResolution;
+        tileVertexXY.x = tileVertexIndex - (tileVertexXY.y * pushConstants.tileResolution);
+
+        uvec2 quadXY = (tileMapXY * pushConstants.tileResolution) + tileVertexXY;
+
+        // Calculate the distances to the neighbors
+
+        // a(-1, -1) b( 0, -1) c( 1, -1)
+        // d(-1,  0) e( 0,  0) f( 1,  0)
+        // g(-1,  1) h( 0,  1) i( 1,  1)
+
+        vec3 av = getTriangleVertex(ivec2(quadXY) + ivec2(-1, -1));
+        vec3 bv = getTriangleVertex(ivec2(quadXY) + ivec2( 0, -1));
+        vec3 cv = getTriangleVertex(ivec2(quadXY) + ivec2( 1, -1));
+        vec3 dv = getTriangleVertex(ivec2(quadXY) + ivec2(-1,  0));
+        vec3 ev = getTriangleVertex(ivec2(quadXY) + ivec2( 0,  0));
+        vec3 fv = getTriangleVertex(ivec2(quadXY) + ivec2( 1,  0));
+        vec3 gv = getTriangleVertex(ivec2(quadXY) + ivec2(-1,  1));
+        vec3 hv = getTriangleVertex(ivec2(quadXY) + ivec2( 0,  1));
+        vec3 iv = getTriangleVertex(ivec2(quadXY) + ivec2( 1,  1));
+
+        neighbourDistances.values[(tileMapIndex * tileVertexSize) + tileVertexIndex] = 
+          max(
+            max(
+              max(
+                max(
+                  max(
+                    max(
+                      max(
+                        distance(av, ev), 
+                        distance(bv, ev)
+                      ), 
+                      distance(cv, ev)
+                    ), 
+                    distance(dv, ev)
+                  ), 
+                  distance(fv, ev)
+                ), 
+                distance(gv, ev)
+              ), 
+              distance(hv, ev)
+            ), 
+            distance(iv, ev)
+           );
+
+      }
+    
+    }
+
+  }
+
+}

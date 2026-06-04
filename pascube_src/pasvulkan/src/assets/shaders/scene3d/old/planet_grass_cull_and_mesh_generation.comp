@@ -1,0 +1,469 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 1, local_size_y = 256, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+
+  mat4 modelMatrix;
+
+  uint baseViewIndex;
+  uint countViews;
+  uint additionalViewIndex;
+  uint countAdditionalViews; 
+
+  uint tileMapResolution;
+  uint tileResolution;  
+  uint maximumCountVertices;
+  uint maximumCountIndices;
+ 
+  float maximumDistance;
+  float grassHeight;
+  float grassThickness;
+  uint countVerticesPerBladeEdge;
+
+  float time;
+
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 0, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256 views as maximum for a single renderer instance (but a application/game can have multiple renderer instances for the same scene)  
+} uView;
+
+layout(set = 0, binding = 1) uniform sampler2DArray uTextureDepth;
+
+layout(set = 1, binding = 0, std430) buffer VisibleTileList {
+  uint visibleTiles[];
+} visibleTileList;
+
+layout(set = 1, binding = 1, std430) buffer VisualMeshVertices {
+  uvec4 vertices[]; // xyz = 32-bit float vertex position, w = 2x 16-bit signed normalized octahedral-encoded normal
+} visualMeshVertices;
+
+layout(set = 1, binding = 2, std430) buffer GrassMetaData {
+  uint countGrassVertices;
+  uint countGrassIndices;  
+} grassMetaData;
+
+struct GrassVertex {
+  uvec4 positionNormal; // xyz = 32-bit float vertex position, w = 2x 16-bit signed normalized octahedral-encoded normal
+  uvec4 texcoord;       // x = 2x 16-bit unsigned normalized texcoord, yzw = unused
+};
+
+layout(set = 1, binding = 3, std430) buffer GrassVertices {
+  GrassVertex vertices[]; 
+} grassVertices;
+
+layout(set = 1, binding = 4, std430) buffer GrassIndices {
+  uint indices[];
+} grassIndices;
+
+#include "frustum.glsl"
+
+#include "aabb.glsl"
+  
+#include "projectsphere.glsl"
+
+#include "projectaabb.glsl"
+
+#include "octahedral.glsl"
+
+#include "tangentspacebasis.glsl"
+
+#include "pcg.glsl"
+
+// The following variables are shared between all invocations of this shader for too keep the pre-calculations needed for the culling small, which
+// are valid and the same for all invocations anyway. Other implementations uses CPU pre-calculations for it, but this is a more simple and straight 
+// forward approach in my opinion, so that almost everything is done on the GPU and is in the same place, as long as it don't hurts the performance
+// significantly.
+shared vec3 planetPosition;
+shared mat3 planetNormalMatrix;
+shared Frustum frustums[8];
+shared Frustum additionalFrustums[8];
+
+vec3 bezier(const in vec3 p0, const in vec3 p1, const in vec3 p2, const in float t){
+  return mix(mix(p0, p1, t), mix(p1, p2, t), t);
+}
+
+vec3 bezierDerivative(const in vec3 p0, const in vec3 p1, const in vec3 p2, const in float t){
+  return ((2.0 * (1. - t)) * (p1 - p0)) + ((2.0 * t) * (p2 - p1));
+}
+
+void main(){
+
+  const uint countVerticesPerBladeEdge = pushConstants.countVerticesPerBladeEdge;
+  const uint countVerticesPerBlade = countVerticesPerBladeEdge * 2u;
+  const uint countTrianglesPerBlade = (countVerticesPerBladeEdge * 2u) - 2u; 
+  const uint countIndicesPerBlade = countTrianglesPerBlade * 3u;
+
+  /////////////////////////////////////////////////////////////////////////
+   
+  uint localInvocationIndex = gl_LocalInvocationIndex;
+
+  // Maximal 8 views at once, for example 2 for VR (for the left und right eyes), 4 for cascaded shadow maps, 6 for cube maps
+  uint countViews = min(pushConstants.countViews, 8); 
+
+  if(localInvocationIndex == 0u){
+    vec4 p = pushConstants.modelMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+    planetPosition = p.xyz / p.w;
+    planetNormalMatrix = transpose(inverse(mat3(pushConstants.modelMatrix)));
+  }
+
+  if((countViews > 0u) && (localInvocationIndex < countViews)){   
+    frustumSetup(frustums[localInvocationIndex], uView.views[pushConstants.baseViewIndex + localInvocationIndex].projectionMatrix);      
+  }
+
+  if((pushConstants.countAdditionalViews > 0u) && (localInvocationIndex < pushConstants.countAdditionalViews)){   
+    frustumSetup(additionalFrustums[localInvocationIndex], uView.views[pushConstants.additionalViewIndex + localInvocationIndex].projectionMatrix);      
+  }
+
+  memoryBarrierShared();
+  groupMemoryBarrier();
+  barrier(); 
+
+  // A early pre-check if there is enough space for the new vertices and indices
+  if(((grassMetaData.countGrassVertices + countVerticesPerBlade) > pushConstants.maximumCountVertices) ||
+     ((grassMetaData.countGrassIndices + countIndicesPerBlade) > pushConstants.maximumCountIndices)){
+    return;
+  } 
+
+  const uint tileListIndex = gl_GlobalInvocationID.x;  
+
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  const uint countVisibleTiles = visibleTileList.visibleTiles[0];
+
+  const uint localTileY = gl_GlobalInvocationID.y / pushConstants.tileResolution;
+  const uint localTileX = gl_GlobalInvocationID.y - (localTileY * pushConstants.tileResolution);
+
+  const uvec2 localTileXY = uvec2(localTileX, localTileY);
+
+  // Check if the current invocation is still in the valid ranges, otherwise return
+  if((tileListIndex >= tileMapSize) || 
+     (tileListIndex >= countVisibleTiles) || 
+     any(greaterThanEqual(localTileXY, uvec2(pushConstants.tileResolution)))){ 
+    return;
+  }
+
+  vec2 viewPortSize = vec2(textureSize(uTextureDepth, 0).xy);
+  int countLODLevels = textureQueryLevels(uTextureDepth);
+
+  const uint tileMapIndex = visibleTileList.visibleTiles[tileListIndex + 3u];
+
+  const uint tileMapY = tileMapIndex / pushConstants.tileMapResolution;
+  const uint tileMapX = tileMapIndex - (tileMapY * pushConstants.tileMapResolution);
+
+  uvec2 globalXY = (uvec2(tileMapX, tileMapY) * pushConstants.tileResolution) + localTileXY;
+
+  const uint globalIndex = (((tileMapY * pushConstants.tileMapResolution) + tileMapX) * 
+                             (pushConstants.tileResolution * pushConstants.tileResolution)) + 
+                           ((localTileXY.y * pushConstants.tileResolution) + localTileXY.x);
+
+  /////////////////////////////////////////////////////////////////////////
+
+  // Generate some random data for the grass blade to make it look more natural, but keep it deterministic, based on the global position
+  // and the linear global index of the grass blade
+  const uvec4 randomUIntData = pcgHash44(uvec4(globalXY.xy, globalIndex, 0u));
+
+  // The following line generates a random float value in the range of [0.0, 1.0] for each component through bittwiddling tricks 
+  const vec4 randomFloatData = uintBitsToFloat(((randomUIntData >> uvec4(9u)) & uvec4(0x007fffffu)) | uvec4(0x3f800000u)) - vec4(1.0);
+
+  /////////////////////////////////////////////////////////////////////////
+
+  // TODO: Add evaluation of the grass map data here (density and other properties) together with early out return
+  //       if the grass is not needed at this position. randomFloatData.x can be used for the density evaluation
+
+  /////////////////////////////////////////////////////////////////////////
+
+  uvec4 rawVertex = visualMeshVertices.vertices[globalIndex];
+
+  vec3 patchPosition = uintBitsToFloat(rawVertex.xyz);
+
+  vec3 patchNormal = octSignedDecode(unpackSnorm2x16(rawVertex.w));      
+
+  vec3 patchTangent, patchBitangent;
+
+  getTangentSpaceBasisFromNormal(patchNormal, patchTangent, patchBitangent); 
+
+  mat3 patchTangentSpaceBasis = mat3(patchTangent, patchBitangent, patchNormal);
+
+  /////////////////////////////////////////////////////////////////////////
+
+  const float grassHeight = pushConstants.grassHeight;
+  const float grassThickness = pushConstants.grassThickness;
+  const float grassLeaning = 0.3;
+
+  /////////////////////////////////////////////////////////////////////////
+
+  // The calculation of the bounding sphere is based on the worst case scenario, assuming that the grass blade is leaning to
+  // the maximum, the bounding sphere is calculated by the following formula:
+  //
+  //   center = patchPosition + (patchNormal * (max(grassHeight, grassThickness) * 0.5))
+  //   radius = max(grassHeight, grassThickness) * 0.5
+
+  vec4 boundingSphere = vec4(
+    (pushConstants.modelMatrix * vec4(patchPosition, 1.0)).xyz,
+    max(max(grassHeight, grassThickness), 0.25)
+  );
+
+/*
+  vec4 boundingSphere = vec4(
+    (pushConstants.modelMatrix * vec4(fma(patchNormal, vec3(max(grassHeight, grassThickness) * 0.5), patchPosition), 1.0)).xyz,
+    max(grassHeight, grassThickness) * 0.5
+  );
+*/
+
+  /////////////////////////////////////////////////////////////////////////
+
+  // Distance culling based on the bounding sphere of the grass blade
+
+  if(pushConstants.maximumDistance > 1e-7){
+
+    bool visible = false;
+
+    for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+
+      vec3 cameraPosition = (countViews > 0) ? uView.views[pushConstants.baseViewIndex + viewIndex].inverseViewMatrix[3].xyz : vec3(0.0);
+      
+      // If the grass blade is not too far away from the camera, mark it as visible and break the loop, since it is visible
+      // at least at one view  
+      if((pushConstants.maximumDistance > 1e-7) && 
+        ((distance(cameraPosition, boundingSphere.xyz) - boundingSphere.w) <= pushConstants.maximumDistance)){
+        visible = true;      
+        break;
+      }
+
+    }
+
+    // Early out if the grass blade is too far away from the camera at all views
+    if(!visible){
+      return;
+    }
+
+  }
+
+  /////////////////////////////////////////////////////////////////////////
+
+  // Frustum culling and hierarchical depth-buffer-culling based on the bounding sphere of the grass blade
+  
+  {
+    
+    bool visible = false;
+
+    for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+      
+      mat4 viewMatrix = uView.views[pushConstants.baseViewIndex + viewIndex].viewMatrix;      
+      vec4 viewSpaceBoundingSphere = vec4((viewMatrix * vec4(boundingSphere.xyz, 1.0)).xyz, boundingSphere.w);
+
+      if(frustumCullingSphereTest(frustums[viewIndex], viewSpaceBoundingSphere)){
+      
+        visible = true;
+
+        vec4 aabb;
+
+        float zNear = abs(uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[3][2] / uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[2][3]);
+
+        if(projectSphere(viewSpaceBoundingSphere.xyz, viewSpaceBoundingSphere.w, zNear, uView.views[pushConstants.baseViewIndex + viewIndex].projectionMatrix, aabb, true)){
+
+          vec2 size = vec2(aabb.zw - aabb.xy) * viewPortSize;
+          
+          float level = clamp(floor(log2(max(size.x, size.y))), 0.0, float(countLODLevels - 1)); 
+
+#undef USE_FASTER_DEPTH_CALCULATIONS
+#ifdef USE_FASTER_DEPTH_CALCULATIONS
+          vec2 depthZ = fma(
+            uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[2].zw,
+            textureLod(uTextureDepth, vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).xx, 
+            uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[3].zw
+          );
+#else
+          vec2 depthZ = (uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix * vec4(
+            (aabb.xy + aabb.zw) - vec2(1.0), // optimized from: fma(mix(aabb.xy, aabb.zw, 0.5), vec2(2.0), vec2(-1.0))
+            textureLod(uTextureDepth, vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).x, 
+            1.0
+          )).zw;
+#endif
+          float depth = -(depthZ.x / depthZ.y); // flip the sign, because z in view space is negative otherwise
+          
+          visible = (((-viewSpaceBoundingSphere.z) - viewSpaceBoundingSphere.w) <= depth);
+
+        }
+
+        if(visible){
+          break;
+        }
+
+      }
+
+      if(visible){
+        break;
+      }
+
+    }
+  
+    // If the grass blade is not visible, then return
+    if(!visible){
+      return;
+    }
+
+  }
+
+  /////////////////////////////////////////////////////////////////////////
+
+  // Otherwise, add the vertices and indices for the grass blades
+
+  uint countBlades = 1u;
+
+  for(uint bladeIndex = 0u; bladeIndex < countBlades; bladeIndex++){
+ 
+    // Generate some random data for the grass blade to make it look more natural, but keep it deterministic, based on the global position
+    // and the linear global index of the grass blade
+    const uvec4 randomUIntData = pcgHash44(uvec4(globalXY.xy, globalIndex - bladeIndex, bladeIndex));
+
+    // The following line generates a random float value in the range of [0.0, 1.0] for each component through bittwiddling tricks 
+    const vec4 randomFloatData = uintBitsToFloat(((randomUIntData >> uvec4(9u)) & uvec4(0x007fffffu)) | uvec4(0x3f800000u)) - vec4(1.0);
+
+    float bladeDirectionAngle = randomFloatData.y * 6.28318530718; // 2 * PI
+    vec2 bladeDirection = normalize(sin(vec2(bladeDirectionAngle) + vec2(1.57079632679, 0.0)));
+
+    float offsetAngle = randomFloatData.z * 6.28318530718; // 2 * PI
+    vec2 offsetDirection = normalize(sin(vec2(offsetAngle) + vec2(1.57079632679, 0.0)));      
+    float offsetRadius = randomFloatData.x * 0.25; // TODO: Make it configurable
+
+    vec3 bladeOffset = vec3(offsetDirection.xy, 0.0) * offsetRadius; 
+
+    vec3 p0 = bladeOffset;
+    vec3 p1 = p0 + vec2(0.0, grassHeight).xxy;
+    vec3 p2 = fma(vec3(bladeDirection, 0.0), vec3(grassHeight * grassLeaning), p1);      
+
+    // Add some wind effect to the grass blade 
+    {
+
+      const float windDirection = radians(20.0); // TODO: Calculate this based on the global position in 3D space and make it configurable
+  
+      const float windStrength = 0.01; // TODO: Calculate this based on the global position in 3D space and make it configurable
+
+      vec2 windOffset = sin(
+        vec2(
+          pushConstants.time + 
+          dot(sin(vec2(windDirection) + vec2(1.57079632679, 0.0)), vec2(globalXY) / vec2(pushConstants.tileMapResolution * pushConstants.tileResolution)) + 
+          (randomFloatData.w * 4.0)
+        ) * vec2(0.5, 1.0)
+      ) * vec2(2.0, 1.0) * windStrength;
+
+      // TODO: Add additional usage of a velocity field for physical interaction with sphere colliders just as the player
+
+      p2 += vec3(windOffset, 0.0);
+
+    }
+    
+    // Ensure that the grass blade has a persistent length
+    {
+      vec3 p01 = p1 - p0;
+      vec3 p12 = p2 - p1;
+      float L = fma(2.0, length(p2 - p0), length(p01) + length(p12)) / 3.0; 
+      float lDiff = grassHeight / L;
+      p1 = fma(p01, vec3(lDiff), p0); 
+      p2 = fma(p12, vec3(lDiff), p1);
+    }
+
+    vec3 sideVector = normalize(vec3(bladeDirection.y, -bladeDirection.x, 0.0)); 
+
+    vec3 offset = sideVector * grassThickness;
+
+    /////////////////////////////////////////////////////////////////////////
+
+    uint baseVertexIndex = atomicAdd(grassMetaData.countGrassVertices, countVerticesPerBlade);
+    uint baseIndexIndex = atomicAdd(grassMetaData.countGrassIndices, countIndicesPerBlade);
+
+    // Post-check if there is enough space for the new vertices and indices
+    if(((baseVertexIndex + countVerticesPerBlade) > pushConstants.maximumCountVertices) ||
+      ((baseIndexIndex + countIndicesPerBlade) > pushConstants.maximumCountIndices)){
+      return;
+    }
+
+    // The following diagram shows the vertex and triangle layout for a single grass blade with 4 edge vertices on each side as example:
+    //
+    // V6 +-----+  V7
+    //    |\  T5|
+    //    | \   |
+    //    |  \  |
+    //    |   \ |
+    //    | T4 \|
+    // V4 +-----+ V5
+    //    |\  T3|
+    //    | \   |
+    //    |  \  |
+    //    |   \ |
+    //    | T2 \|
+    // V2 +-----+ V3
+    //    |\  T1|
+    //    | \   |
+    //    |  \  |
+    //    |   \ |
+    //    | T0 \|
+    // V0 +-----+ V1
+    //
+    // Hint: Winding order don't matter here, because grass is double sided for the rendering, so no backface 
+    //       culling is performed here at all 
+
+    // Calculate and store the vertices for the grass blade
+    for(uint i = 0u, j = uint(countVerticesPerBlade); i < j; i++){
+      float t = float(uint(i >> 1u)) / float(uint((countVerticesPerBlade >> 1u) - 1u));
+      float s = float(int(1 - ((int(i) & 1) << 1))); // 1 or -1
+      vec3 localP0 = p0 + (offset * (s * 1.0));
+      vec3 localP1 = p1 + (offset * (s * 0.7));
+      vec3 localP2 = p2 + (offset * (s * 0.3));    
+      vec3 position = (pushConstants.modelMatrix * vec4(patchPosition + (patchTangentSpaceBasis * bezier(localP0, localP1, localP2, t)), 1.0)).xyz;
+      vec3 normal = normalize(planetNormalMatrix * (patchTangentSpaceBasis * cross(sideVector, normalize(bezierDerivative(localP0, localP1, localP2, t)))));
+      grassVertices.vertices[baseVertexIndex + i] = GrassVertex(
+        uvec4(
+          floatBitsToUint(position),                      // xyz: 32-bit float vertex position 
+          packSnorm2x16(octSignedEncode(normal))          //   w: 2x 16-bit signed normalized octahedral-encoded normal
+        ),
+        uvec4(
+          packUnorm2x16(vec2(float(uint(i & 1u)), t)),    //   x: 2x 16-bit unsigned normalized texcoord
+          0u,                                             //   y: unused
+          0u,                                             //   z: unused
+          0u                                              //   w: unused
+        )
+      );    
+    }
+
+    // Store the indices for the grass blade
+    for(uint i = 0u, j = uint(countTrianglesPerBlade) >> 1u; i < j; i++){
+      
+      uint triangleBaseIndex = baseIndexIndex + (i * 6u);
+      uint triangleBaseVertex = baseVertexIndex + (i << 1u);
+
+      // First triangle of the quad 
+      grassIndices.indices[triangleBaseIndex + 0u] = triangleBaseVertex + 0u;
+      grassIndices.indices[triangleBaseIndex + 1u] = triangleBaseVertex + 1u;
+      grassIndices.indices[triangleBaseIndex + 2u] = triangleBaseVertex + 2u;
+
+      // Second triangle of the quad    
+      grassIndices.indices[triangleBaseIndex + 3u] = triangleBaseVertex + 3u;
+      grassIndices.indices[triangleBaseIndex + 4u] = triangleBaseVertex + 2u;
+      grassIndices.indices[triangleBaseIndex + 5u] = triangleBaseVertex + 1u;
+
+    }
+
+  }
+
+}
+

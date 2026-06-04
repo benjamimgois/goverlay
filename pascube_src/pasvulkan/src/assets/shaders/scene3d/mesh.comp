@@ -1,0 +1,276 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  uint indexOffset;
+  uint countIndices;
+} pushConstants;
+
+struct InPackedVertex {
+  uvec4 positionMorphTargetVertexBaseIndex; // xyz = position, w = morphTargetVertexBaseIndex
+  uvec4 jointBlockBaseIndexCountJointBlocksRootNodeNodeIndex; // x = jointBlockBaseIndex, y = countJointBlocks, z = rootNode, w = nodeIndex
+  uvec4 normalTangentFlagsGeneration; // x = normal (2x half oct), y = tangent (2x half oct), z = flags, w = generation
+};
+
+struct OutPackedVertex {
+  uvec4 positionNormalXY; // xyz = position (32-bit float), w = normal x y (16-bit signed normalized oct)
+  uvec4 normalZSignTangentXYZModelScaleXYZ; // x = normal z + sign of tangent z (16-bit signed normalized), y = tangent x y (16-bit signed normalized oct), z = tangent z + model scale x (16-bit float), w = model scale y z (16-bit float)
+};
+
+#ifdef RAYTRACING
+struct OutRayTracingVertex {
+  uvec4 position; // w = vertex index for inside ray tracing shaders for simplifying the code for looking up the absolute vertex index in a fast and simple way, instead of using a separate buffer for that, for offsetting relative vertex indices in the ray shaders to absolute vertex indices.
+};  
+#endif
+
+struct MorphTargetVertex {
+   uvec4 position; // xyz = position, w = index 
+   uvec4 normalTangentNext; // x = normal x y (16-bit signed normalized oct), y = tangent x y (16-bit signed normalized oct), z = next, w = unused
+};
+
+// Static descriptor set. Explanation:
+//   1. Contains data resources primarily processed on or by the GPU itself, without continuous streaming
+//      from the CPU. However, the CPU can still update these resources from time to time, not every frame.
+//      The updates are done in a way that the GPU doesn’t have to wait for the CPU to finish, by updating
+//      only the data ranges not currently used by the GPU at the time of the update. For example by 
+//      reusing data ranges, which were used by old deleted objects, for new objects, since buffers can 
+//      always only grow in size, never shrink, in this implementation.   
+//   2. Unlike dynamic resources, these do not change with every frame.
+//   3. Resource reallocations is triggered by buffer size changes and the like. 
+//      In such cases, new larger buffers are allocated along with a new revamped static descriptor set,
+//      while the GPU is still working on the current frame with the old static descriptor set, which
+//      will be delayed-destroyed once the GPU is done with it, together with the old buffers. 
+//      This new static descriptor set is then used for all subsequent frames until the next buffer size change.
+//   4. This allows the GPU to continue working on the current frame, while the CPU prepares the new static 
+//      descriptor set and buffers for upcoming frames.
+
+layout(set = 0, binding = 0, std430) buffer InVertices {
+  InPackedVertex inVertices[];
+};
+
+layout(set = 0, binding = 1, std430) buffer InIndices {
+  uint inIndices[];
+};
+
+layout(set = 0, binding = 2, std430) buffer MorphTargetVertices {
+  MorphTargetVertex morphTargetVertices[];
+};
+
+struct JointBlock {
+  uvec4 joints;
+  vec4 weights;
+};
+
+layout(set = 0, binding = 3, std430) buffer JointBlocks {
+  JointBlock jointBlocks[];
+};
+
+// Dynamic descriptor set. Explanation:
+//   1. Contains data resources that are streamed from the CPU to the GPU every frame, or, which are highly 
+//      per-frame-dependent, even on GPU side, for example for differentiating between temporal data.
+//   2. These resources change with every frame, in contrast to the static set.
+//   3. Utilizes in-flight-frame-wise buffering, often double or triple buffered, but never more than that, 
+//      but also never less than that, to avoid CPU-GPU synchronization stalls, and because the current
+//      mesh data pipeline implementation requires at least double buffering, for velocity vectors and
+//      the like, which are temporally dependent on the previous frame. 
+//   4. This setup ensures efficient frame-by-frame data streaming and synchronization between CPU and GPU.
+
+layout(set = 1, binding = 0, std430) buffer OutVertices {
+  OutPackedVertex outVertices[]; // In the dynamic descriptor set, since for to get the velocity vectors we need also to know the previous frame's vertex positions,
+};                               // especially for animated vertices and the like, where simple MVP matrix reprojections are not enough.  
+
+layout(set = 1, binding = 1, std430) buffer OutGenerations {
+  uint outGenerations[]; // In the dynamic descriptor set, because we need to know the previous frame's generation to avoid wrong velocity vectors at new vertices.
+};
+
+layout(set = 1, binding = 2, std430) buffer NodeMatrices {
+  mat4 nodeMatrices[]; // Here it should be clear, why we need to double buffer the node matrices. :-)
+};
+
+layout(set = 1, binding = 3, std430) buffer MorphTargetWeights {
+  float morphTargetWeights[]; // Also here it should be clear, why we need to double buffer the morph target weights. :-)
+};
+
+#ifdef RAYTRACING
+layout(set = 1, binding = 4, std430) buffer OutRayTracingVertices {
+  OutRayTracingVertex outRayTracingVertices[]; // This could also be in the static descriptor set, but for now it's in the dynamic one, just to be consistent 
+};                                             // with the other dynamic buffers. But maybe I will move it to the static one later, since it's not really needed 
+#endif                                         // in the dynamic one, in order to save some memory in the long run.   
+
+/* clang-format on */
+
+// Octahedron normal vector decoding
+vec3 octDecode(vec2 oct) {
+  vec3 v = vec3(oct.xy, 1.0 - (abs(oct.x) + abs(oct.y)));
+  if (v.z < 0.0) {
+    v.xy = (1.0 - abs(v.yx)) * vec2((v.x >= 0.0) ? 1.0 : -1.0, (v.y >= 0.0) ? 1.0 : -1.0);
+  }
+  return normalize(v);
+}
+
+#if 0
+vec2 unpackSnorm2x16Ex(uint v){
+  // -32768 .. 32767 -> -1.0 .. 1.0 instad -32767 .. 32767 -> -1.0 .. 1.0 like at unpackSnorm2x16
+  ivec2 s = ivec2(
+    int(uint(uint(v & 0x0000ffffu) << 16u)) >> 16,
+    int(uint(v & 0xffff0000u)) >> 16
+  );
+  return vec2(
+    (s.x < 0) ? (float(s.x) / 32768.0) : (float(s.x) / 32767.0), 
+    (s.y < 0) ? (float(s.y) / 32768.0) : (float(s.y) / 32767.0)
+  ); 
+}
+#endif
+
+#include "adjugate.glsl"
+
+void main(){
+  uint vertexIndex = gl_GlobalInvocationID.x;
+  // uint vertexIndex = uint((((gl_GlobalInvocationID.z * gl_WorkGroupSize.y) + gl_GlobalInvocationID.y) * gl_WorkGroupSize.x) + gl_GlobalInvocationID.x);
+  if(vertexIndex < pushConstants.countIndices){
+
+    vertexIndex = inIndices[vertexIndex + pushConstants.indexOffset];
+
+    {
+
+      // Read vertex data
+      InPackedVertex inPackedVertex = inVertices[vertexIndex];
+      const vec3 inPosition = uintBitsToFloat(inPackedVertex.positionMorphTargetVertexBaseIndex.xyz);
+      const uint inMorphTargetVertexBaseIndex = inPackedVertex.positionMorphTargetVertexBaseIndex.w;
+      const uint inJointBlockBaseIndex = inPackedVertex.jointBlockBaseIndexCountJointBlocksRootNodeNodeIndex.x;
+      const uint inCountJointBlocks = inPackedVertex.jointBlockBaseIndexCountJointBlocksRootNodeNodeIndex.y;
+      const uint inRootNode = inPackedVertex.jointBlockBaseIndexCountJointBlocksRootNodeNodeIndex.z;
+      const uint inNodeIndex = inPackedVertex.jointBlockBaseIndexCountJointBlocksRootNodeNodeIndex.w;
+      const vec2 inNormal = unpackSnorm2x16(inPackedVertex.normalTangentFlagsGeneration.x);
+      const vec2 inTangent = unpackSnorm2x16(inPackedVertex.normalTangentFlagsGeneration.y);
+      const uint inFlags = inPackedVertex.normalTangentFlagsGeneration.z;
+      const uint inGeneration = inPackedVertex.normalTangentFlagsGeneration.w;
+
+     vec3 position = inPosition;
+
+      // Decode tangent space
+      mat3 tangentSpace;
+      {
+        vec3 tangent = octDecode(inTangent);
+        vec3 normal = octDecode(inNormal);
+        tangentSpace = mat3(tangent, normalize(cross(normal, tangent)) * (((inFlags & (1u << 0)) != 0) ? -1.0 : 1.0), normal);
+      }
+      // mat3 tangentSpace = mat3(inTangent.xyz, cross(inTangent.xyz, inNormal) * inTangent.w, inNormal);
+
+      // Process morph target vertices (a linked list of morph target vertices)
+      if(inMorphTargetVertexBaseIndex != 0xffffffffu){
+        vec4 normal = vec4(tangentSpace[2], 0.0);
+        vec4 tangent = vec4(tangentSpace[0], sign(dot(cross(tangentSpace[2], tangentSpace[0]), tangentSpace[1])));
+        vec3 originalNormal = normal.xyz, originalTangent = tangent.xyz; // Needed for morph target blending, since absolute normal and tangent are stored in the morph target vertices, instead of the deltas originally, because for better precision with 16-bit octahedral normals and tangents. 
+        uint morphTargetVertexIndex = inMorphTargetVertexBaseIndex;
+        uint protectionCounter = 0x0ffffu;
+        while((morphTargetVertexIndex != 0xffffffffu) && (protectionCounter-- > 0u)){
+          MorphTargetVertex morphTargetVertex = morphTargetVertices[morphTargetVertexIndex];
+          float weight = morphTargetWeights[morphTargetVertex.position.w];
+          if(weight != 0.0){ // since octehedron decoding can be somewhat costly, we only do it when the weight is not zero
+            position += uintBitsToFloat(morphTargetVertex.position.xyz) * weight;
+            normal += vec4(octDecode(unpackSnorm2x16(morphTargetVertex.normalTangentNext.x)) - originalNormal, 1.0) * weight;
+            tangent.xyz += (octDecode(unpackSnorm2x16(morphTargetVertex.normalTangentNext.y)) - originalTangent) * weight;
+          }  
+          morphTargetVertexIndex = morphTargetVertex.normalTangentNext.z;
+        }
+        normal.xyz = normalize(normal.xyz);
+        tangent.xyz = normalize(tangent.xyz);
+        tangentSpace = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz) * tangent.w), normal.xyz);
+      }
+
+      // Base matrix initialization
+      mat4 baseMatrix = mat4(
+        1.0, 0.0, 0.0, 0.0,  
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+      );
+
+      // Get node matrix
+      mat4 nodeMatrix = nodeMatrices[inNodeIndex];
+
+      // Process joints (an array list of joint blocks with 4 joints and 4 weights each) and apply on base matrix  
+      if(inCountJointBlocks > 0u){
+        mat4 inverseNodeMatrix = inverse(nodeMatrix);
+        mat4 skinMatrix = mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        for(uint jointBlockBaseIndex = inJointBlockBaseIndex, endJointBlockBaseIndex = jointBlockBaseIndex + inCountJointBlocks;  //
+            jointBlockBaseIndex < endJointBlockBaseIndex;                                                                         //
+            jointBlockBaseIndex++){
+          JointBlock jointBlock = jointBlocks[jointBlockBaseIndex];
+          skinMatrix += ((inverseNodeMatrix * nodeMatrices[jointBlock.joints.x]) * jointBlock.weights.x) +  //
+                        ((inverseNodeMatrix * nodeMatrices[jointBlock.joints.y]) * jointBlock.weights.y) +  //
+                        ((inverseNodeMatrix * nodeMatrices[jointBlock.joints.z]) * jointBlock.weights.z) +  //
+                        ((inverseNodeMatrix * nodeMatrices[jointBlock.joints.w]) * jointBlock.weights.w);
+        }
+        baseMatrix *= skinMatrix;
+      }
+
+      // Construct model node matrix (model matrix * node matrix * base matrix)
+      mat4 modelNodeMatrix = nodeMatrices[inRootNode] * (nodeMatrix * baseMatrix);
+
+      // Construct normal matrix
+      mat3 normalMatrix = adjugate(modelNodeMatrix);
+
+      // Transform tangent space
+      tangentSpace = normalMatrix * tangentSpace;
+
+      // Write out vertex data
+      {
+	  
+        vec3 tangent = normalize(tangentSpace[0]);
+        vec3 bitangent = normalize(tangentSpace[1]);
+        vec3 normal = normalize(tangentSpace[2]);
+
+        float tbnSign = (dot(normalize(cross(normal, tangent)), bitangent) < 0.0) ? -1.0 : 1.0;
+
+        vec3 modelScale = vec3(length(modelNodeMatrix[0].xyz), length(modelNodeMatrix[1].xyz), length(modelNodeMatrix[2].xyz));
+
+         // Transform position
+        vec4 p = modelNodeMatrix * vec4(position.xyz, 1.0);
+
+        // Perspective divide
+        vec3 finalPosition = p.xyz / p.w;
+
+        outVertices[vertexIndex] = OutPackedVertex(
+          /*outPackedVertex.positionNormalXY =*/ uvec4(
+            uvec3(floatBitsToUint(finalPosition.xyz)), 
+            packSnorm2x16(normal.xy)
+          ),
+          /* outPackedVertex.normalZSignTangentXYZModelScaleXYZ = */uvec4(
+            packSnorm2x16(vec2(normal.z, tbnSign)), 
+            packSnorm2x16(tangent.xy), 
+            (packSnorm2x16(vec2(tangent.z, 0.0)) & 0xffffu) | (packHalf2x16(vec2(0.0, modelScale.x)) & 0xffff0000u),
+            packHalf2x16(modelScale.yz)
+          )
+        );
+
+        outGenerations[vertexIndex] = inGeneration;
+
+      }
+
+#ifdef RAYTRACING
+      {
+        // For ray tracing we need the position in node space, not world nor model space, since BLAS references have transform matrices already,
+        // so we can't transform them again with modelNodeMatrix or modelMatrix, which includes also the world space model transform,
+        // baseMatrix is without that, so we use that here.
+        vec4 p = baseMatrix * vec4(position.xyz, 1.0);
+        vec3 finalPosition = p.xyz / p.w;
+        OutRayTracingVertex outRayTracingVertex;
+        outRayTracingVertex.position = uvec4(uvec3(floatBitsToUint(finalPosition.xyz)), uint(vertexIndex));
+        outRayTracingVertices[vertexIndex] = outRayTracingVertex;
+      }
+#endif
+
+    }
+
+  }
+
+}

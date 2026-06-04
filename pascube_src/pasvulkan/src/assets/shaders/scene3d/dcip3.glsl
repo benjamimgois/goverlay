@@ -1,0 +1,16 @@
+#ifndef DCIP3_GLSL
+#define DCIP3_GLSL
+
+const mat3 DCIP3ToLinearSRGBMatrix = mat3(
+  1.224947, -0.042056, -0.019641,
+  -0.224947, 1.042056, -0.078651,
+  0.000000, 0.000000, 1.098291  
+);
+
+const mat3 LinearSRGBToDCIP3Matrix = mat3(	
+  0.822458, 0.033193, 0.017085,
+  0.177542, 0.966807, 0.072410,
+  0.000000, 0.000000, 0.910505
+);
+
+#endif

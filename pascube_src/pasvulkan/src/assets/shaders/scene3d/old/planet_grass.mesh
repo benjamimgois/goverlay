@@ -1,0 +1,719 @@
+#version 460
+
+#if defined(MESH_SHADER_EMULATION)
+  // This shader is compiled as a compute shader when the mesh shader emulation path is defined.
+  // In this compute shader code, vertex and index data is generated for the vertex shader invocations
+  // as a poor-man mesh shader alternative into storage buffers, with size limitations.
+  // The LOD calculations are done only once for the first view, as the vertex shader code handles
+  // the multiview stuff. The LOD calculations are based just on the first view for simplicity.
+  // For ray tracing later, it is necessary to keep all the data unified for all views anyway, as the 
+  // ray tracing code will access all the data at once for all views.
+  #pragma shader_stage(compute)
+#else
+  // Otherwise, when the mesh shader emulation code path is not defined, this shader is compiled as a mesh shader.
+  #pragma shader_stage(mesh)
+  #extension GL_EXT_mesh_shader : enable 
+  #ifdef MULTIVIEW
+    #extension GL_EXT_multiview : enable
+  #endif
+#endif
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#define TASK_GROUP_SIZE 128
+
+#define MESH_GROUP_SIZE 32 // 128
+
+#define GRASS_VERT_COUNT 64 // 256
+#define GRASS_PRIM_COUNT 48 // 192
+
+layout(local_size_x = MESH_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+#if !defined(MESH_SHADER_EMULATION)
+layout(triangles, max_vertices = GRASS_VERT_COUNT, max_primitives = GRASS_PRIM_COUNT) out;
+#endif
+
+#include "planet_grass.glsl"
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256 views as maximum for a single renderer instance (but a application/game can have multiple renderer instances for the same scene)  
+} uView;
+
+layout(set = 3, binding = 1, std430) readonly buffer VisualMeshVertices {
+  uvec4 vertices[]; // xyz = 32-bit float vertex position, w = 2x 16-bit signed normalized octahedral-encoded normal
+} visualMeshVertices;
+
+layout(set = 3, binding = 2, std430) readonly buffer VisualMeshDistances {
+  float values[];
+} visualMeshDistances;
+
+struct TaskData {
+  uint count;
+  uint indices[TASK_GROUP_SIZE];
+};
+
+#if defined(MESH_SHADER_EMULATION)
+
+#if defined(DIRECT_MESH_SHADER_EMULATION)
+
+// Not used, just as a reference for a example for a more direct mesh shader emulation approach
+
+layout(set = 4, binding = 2, std430) readonly buffer InputMetaData {
+  uint countMaxMeshTasks; // = TASK_GROUP_SIZE as countX for VkDispatchIndirectCommand 
+  uint countPayloads; // as countY practically for VkDispatchIndirectCommand
+  uint countZ; // = 1 for VkDispatchIndirectCommand 
+} inputMetaData;
+
+layout(set = 4, binding = 3, std430) readonly buffer TaskPayload {
+  TaskData taskData[];
+} taskPayload;
+
+layout(set = 4, binding = 4, std430) buffer OutputMetaData {
+
+  // VkDrawIndexedIndirectCommand
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  uint vertexOffset;
+  uint firstInstance;
+
+  uint countVertices; // Not a part of the VkDrawIndexedIndirectCommand, but needed for the mesh shader emulation
+
+} outputMetaData;
+
+struct OutputVertex {
+  vec4 position; // xyz = position, w = texcoord u
+  vec4 normal; // xyz = normal, w = texcoord v
+};
+
+layout(set = 4, binding = 5, std430) buffer OutputVertices {
+  OutputVertex vertices[];  
+} outputVertices;
+
+layout(set = 4, binding = 6, std430) buffer OutputIndices {
+  uint indices[];  
+} outputIndices;
+
+#else
+
+// The actually used and more optimized mesh shader emulation approach, which is more direct and does not
+// need the task payload buffer
+
+layout(set = 4, binding = 2, std430) readonly buffer InputData {
+  // Index 0: VkDispatchIndirectCommand x = 1 (where group size x is MESH_GROUP_SIZE)
+  // Index 1: VkDispatchIndirectCommand y = countIndices
+  // Index 2: VkDispatchIndirectCommand z = 1
+  // >= Index 3: Indices
+  uint data[]; 
+} inputData;
+
+layout(set = 4, binding = 3, std430) buffer OutputMetaData {
+
+  // VkDrawIndexedIndirectCommand
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  uint vertexOffset;
+  uint firstInstance;
+
+  uint countVertices; // Not a part of the VkDrawIndexedIndirectCommand, but needed for the mesh shader emulation
+
+} outputMetaData;
+
+struct OutputVertex {
+  vec4 position; // xyz = position, w = texcoord u
+  vec4 normal; // xyz = normal, w = texcoord v
+};
+
+layout(set = 4, binding = 4, std430) buffer OutputVertices {
+  OutputVertex vertices[];  
+} outputVertices;
+
+layout(set = 4, binding = 5, std430) buffer OutputIndices {
+  uint indices[];  
+} outputIndices;
+
+#endif
+
+#else
+taskPayloadSharedEXT TaskData taskData;
+#endif
+
+#if !defined(MESH_SHADER_EMULATION)
+
+#if defined(RAYTRACING)
+
+layout(location = 0) out vec3 outWorldSpacePosition[];
+
+layout(location = 1) out OutBlock {
+  vec3 position;
+  vec3 normal;
+  vec2 texCoord;
+  vec3 worldSpacePosition;
+  vec3 viewSpacePosition;
+  vec3 cameraRelativePosition;
+  vec2 jitter;
+#ifdef VELOCITY
+  vec4 previousClipSpace;
+  vec4 currentClipSpace;
+#endif  
+} outBlock[];
+
+#else
+
+layout(location = 0) out OutBlock {
+  vec3 position;
+  vec3 normal;
+  vec2 texCoord;
+  vec3 worldSpacePosition;
+  vec3 viewSpacePosition;
+  vec3 cameraRelativePosition;
+  vec2 jitter;
+#ifdef VELOCITY
+  vec4 previousClipSpace;
+  vec4 currentClipSpace;
+#endif  
+} outBlock[];
+#endif // defined(RAYTRACING)
+
+#endif // defined(MESH_SHADER_EMULATION)
+
+#include "pcg.glsl"
+
+#include "octahedral.glsl"
+
+#include "tangentspacebasis.glsl"
+
+vec3 bezier(const in vec3 p0, const in vec3 p1, const in vec3 p2, const in float t){
+  return mix(mix(p0, p1, t), mix(p1, p2, t), t);
+}
+
+vec3 bezierDerivative(const in vec3 p0, const in vec3 p1, const in vec3 p2, const in float t){
+  return mix(p1 - p0, p2 - p1, t) * 2.0;
+}
+
+float easeOut(const in float t, const in float power){
+  return 1.0 - pow(1.0 - t, power);
+}
+
+#if defined(MESH_SHADER_EMULATION)
+// The view index is always 0 for the mesh shader emulation, where the vertex shader code will handle the multiview stuff,
+// but where the LOD stuff is calculated based just on the first view here, for simplicity reasons.
+uint viewIndex = pushConstants.viewBaseIndex; 
+#else
+#if defined(MULTIVIEW)
+// When multiview is enabled, the view index is the global view index, which is the view base index plus the view index.
+uint viewIndex = pushConstants.viewBaseIndex + uint(gl_ViewIndex);
+#else
+// When multiview is disabled, the view index is always 0 plus the view base index.
+uint viewIndex = pushConstants.viewBaseIndex;
+#endif // defined(MULTIVIEW)
+#endif // defined(MESH_SHADER_EMULATION)
+
+mat4 viewMatrix = uView.views[viewIndex].viewMatrix;
+mat4 projectionMatrix = uView.views[viewIndex].projectionMatrix;
+mat4 inverseViewMatrix = uView.views[viewIndex].inverseViewMatrix;
+
+shared mat4 viewProjectionMatrix;
+shared mat4 inverseModelViewMatrix;
+shared mat3 normalModelMatrix;
+shared vec3 cameraPosition;
+
+#if defined(MESH_SHADER_EMULATION)
+shared uint baseVertex;
+shared uint baseIndex;
+shared bool validGroup;
+#endif
+
+const uvec3 vertexIndices[2] = uvec3[2](uvec3(0, 1, 2), uvec3(1, 3, 2));
+
+//#define BRUTEFORCE_NORMAL_CALCULATION
+
+void main() {
+  
+  if(gl_LocalInvocationIndex == 0u){
+
+#if defined(MESH_SHADER_EMULATION)
+    if(all(equal(uvec3(gl_GlobalInvocationID), uvec3(0u)))){
+      // Fill the other fields of VkDrawIndexedIndirectCommand with the later needed values, but
+      // consider outputMetaData as previously cleared with zeros with vkCmdFillBuffer, so that
+      // even outputMetaData.instanceCount would be zero, when there are no stuff to draw at all.
+      outputMetaData.instanceCount = 1u;
+      outputMetaData.firstIndex = 0u;
+      outputMetaData.vertexOffset = 0u;
+      outputMetaData.firstInstance = 0u;      
+    }
+#endif
+
+    // Stuff that is only needed once per task group for all invocations, to avoid redundant calculations
+
+    viewProjectionMatrix = projectionMatrix * viewMatrix;
+    
+    inverseModelViewMatrix = inverse(viewMatrix * pushConstants.modelMatrix);
+    
+    normalModelMatrix = transpose(inverse(mat3(pushConstants.modelMatrix)));
+
+#if 1
+    // The actual standard approach
+    cameraPosition = inverseViewMatrix[3].xyz;
+#else
+    // This approach assumes that the view matrix has no scaling or skewing, but only rotation and translation.
+    cameraPosition = (-viewMatrix[3].xyz) * mat3(viewMatrix);
+#endif   
+
+  }
+
+#if defined(MESH_SHADER_EMULATION)
+  memoryBarrierBuffer();
+#endif
+  memoryBarrierShared();
+  barrier();
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  const uint countVerticesPerBladeEdge = 4u;
+  const uint countVerticesPerBlade = countVerticesPerBladeEdge * 2u;
+  const uint countTrianglesPerBlade = (countVerticesPerBladeEdge * 2u) - 2u; 
+  const uint countIndicesPerBlade = countTrianglesPerBlade * 3u;
+
+  /////////////////////////////////////////////////////////////////////////////
+
+#if defined(MESH_SHADER_EMULATION)
+  bool validInvocation = true; // needed because we can't use return because of barrier usage 
+#endif
+
+  /////////////////////////////////////////////////////////////////////////////
+
+#if defined(MESH_SHADER_EMULATION) && !defined(DIRECT_MESH_SHADER_EMULATION)
+
+  uint indexIndex = gl_GlobalInvocationID.y;
+
+  // Check if the task index is out of bounds 
+  if(indexIndex >= inputData.data[1u]){
+    indexIndex = 0u; // Reset the index to zero, because we are out of bounds
+    validInvocation = false; // No return here, because of usage of barriers, instead just mark the invocation as invalid and output nothing
+  } 
+
+  const uint globalIndex = inputData.data[indexIndex + 3u];
+
+#else
+#if defined(MESH_SHADER_EMULATION)
+
+  uint taskIndex = gl_WorkGroupID.y;
+
+  // Check if the task index is out of bounds 
+  if(taskIndex >= inputMetaData.countPayloads){
+    taskIndex = 0u; // Reset the index to zero, because we are out of bounds
+    validInvocation = false; // No return here, because of usage of barriers, instead just mark the invocation as invalid and output nothing
+  }
+  
+  #define taskData taskPayload.taskData[taskIndex]
+
+#endif
+
+  uint invocationIndex = gl_WorkGroupID.x;
+
+/*if(invocationIndex >= taskData.count){ // not really needed, because the invocation index is always in bounds because of EmitMeshTasksEXT parameters
+    invocationIndex = 0u; // Reset the index to zero, because we are out of bounds
+    validInvocation = false; // No return here, because of usage of barriers, instead just mark the invocation as invalid and output nothing
+  }*/
+
+  const uint globalIndex = taskData.indices[invocationIndex];
+  
+#endif
+
+  const uint tileSize = pushConstants.tileResolution * pushConstants.tileResolution;
+
+  const uint tileMapIndex = globalIndex / tileSize; 
+  const uint localTileIndex = globalIndex - (tileMapIndex * tileSize);
+
+  const uint tileMapY = tileMapIndex / pushConstants.tileMapResolution;
+  const uint tileMapX = tileMapIndex - (tileMapY * pushConstants.tileMapResolution);
+
+  const uvec2 tileMapXY = uvec2(tileMapX, tileMapY);
+
+  const uint localTileY = localTileIndex / pushConstants.tileResolution;
+  const uint localTileX = localTileIndex - (localTileY * pushConstants.tileResolution);
+
+  const uvec2 localTileXY = uvec2(localTileX, localTileY);
+  
+  const uvec2 globalXY = (tileMapXY * uvec2(pushConstants.tileResolution)) + localTileXY;
+
+  const uvec4 rawVertex = visualMeshVertices.vertices[globalIndex];
+
+  const float grassOffsetRadius = visualMeshDistances.values[globalIndex];
+
+  const vec3 patchPosition = uintBitsToFloat(rawVertex.xyz);
+
+// const uint countVertices = countVerticesPerBlade * countBlades;
+
+  const uint maxCountBlades = min(max(pushConstants.maximalCountBladesPerPatch, 1u), 8u); // 1 .. 8
+
+  const float countBladesFloat = mix(
+    1.0, 
+    float(maxCountBlades), 
+    min(
+      pow(clamp(1.0 / (1.0 + max(0.0, log2(distance(patchPosition, inverseViewMatrix[3].xyz)) - 2.0)), 0.0, 1.0), 1.0),
+      pow(1.0 - clamp(distance(patchPosition, inverseViewMatrix[3].xyz) / pushConstants.maximumDistance, 0.0, 1.0), 2.0)
+    )
+  );
+
+  const uint countBlades = uint(ceil(countBladesFloat));
+
+  const uint countIndicesPerPayload = countIndicesPerBlade * countBlades;
+
+  const uint countVertices = countVerticesPerBlade * countBlades;
+  const uint countTriangles = countTrianglesPerBlade * countBlades;
+
+  const float grassHeight = pushConstants.grassHeight;
+  const float grassThickness = pushConstants.grassThickness;
+  const float grassLeaning = 0.5;//min(0.5, grassOffsetRadius); // TODO: Make it configurable
+
+  ////////////////////////////////////////////////////////////////////////////////
+      
+#if defined(MESH_SHADER_EMULATION)
+
+   if(gl_LocalInvocationIndex == 0u){
+
+    validGroup = ((outputMetaData.countVertices + countVertices) < pushConstants.maximalCountVertices) && 
+                 ((outputMetaData.indexCount + countIndicesPerPayload) < pushConstants.maximalCountIndices);
+
+    if(validGroup){
+
+      baseVertex = atomicAdd(outputMetaData.countVertices, countVerticesPerBlade * countBlades);
+      baseIndex = atomicAdd(outputMetaData.indexCount, countTrianglesPerBlade * countBlades * 3u);
+
+      // Re-check if we are out of bounds in case of race conditions
+      if(((baseVertex + (countVerticesPerBlade * countBlades)) > pushConstants.maximalCountVertices) ||
+         ((baseIndex + (countTrianglesPerBlade * countBlades * 3u)) > pushConstants.maximalCountIndices)){
+        validGroup = false;
+      }
+
+    }  
+
+  }
+
+  memoryBarrierBuffer();
+  memoryBarrierShared();
+  barrier();
+
+  if(!validGroup){
+    validInvocation = false;
+  }
+  
+#else
+
+  SetMeshOutputsEXT(countVerticesPerBlade * countBlades, countTrianglesPerBlade * countBlades);
+
+#endif
+
+  ////////////////////////////////////////////////////////////////////////////////
+
+  //mat3 planetNormalMatrix = transpose(inverse(mat3(pushConstants.modelMatrix)));
+
+  ////////////////////////////////////////////////////////////////////////////////
+
+  vec3 patchNormal = octSignedDecode(unpackSnorm2x16(rawVertex.w));      
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  mat3 patchTangentSpaceBasis = getTangentSpaceFromNormal(patchNormal);
+  if(dot(patchTangentSpaceBasis[2], cross(patchTangentSpaceBasis[0], patchTangentSpaceBasis[1])) < 0.0){
+    patchTangentSpaceBasis[0] = -patchTangentSpaceBasis[0];
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  //const vec3 cameraWorldLeft = normalize(transpose(patchTangentSpaceBasis) * (inverseModelViewMatrix * vec4(-1.0, 0.0, 0.0, 0.0)).xyz);
+
+  const vec3 viewDirection = normalize((pushConstants.modelMatrix * vec4(patchPosition, 1.0)).xyz - cameraPosition);
+  const vec3 viewDirectionXZ = normalize(vec3(viewDirection.x, 0.0, viewDirection.z));
+
+  const mat3 modelPatchSpaceBasisMatrix = normalModelMatrix * patchTangentSpaceBasis;
+   
+  /////////////////////////////////////////////////////////////////////////////
+
+#if defined(MESH_SHADER_EMULATION)
+  if(validInvocation)
+#endif
+  {
+
+    for(uint i = 0u; i < 2; i++) {
+      uint vertexID = gl_LocalInvocationIndex + (i * MESH_GROUP_SIZE);
+      
+      if(vertexID >= countVertices){
+        break;
+      }
+
+      uint bladeID = vertexID / countVerticesPerBlade;
+      uint vertexIndex = vertexID - (bladeID * countVerticesPerBlade);
+
+      // Generate some random data for the grass blade to make it look more natural, but keep it deterministic, based on the global position
+      // and the linear global index of the grass blade
+      const uvec4 randomUIntData[2] = uvec4[2](
+        pcgHash44(uvec4(globalXY, globalIndex, bladeID)),
+        pcgHash44(uvec4(bladeID, globalIndex, globalXY))
+      );
+  
+      // The following line generates a random float value in the range of [0.0, 1.0] for each component through bittwiddling tricks 
+      const vec4 randomFloatData[2] = vec4[2](
+        uintBitsToFloat(((randomUIntData[0] >> uvec4(9u)) & uvec4(0x007fffffu)) | uvec4(0x3f800000u)) - vec4(1.0),
+        uintBitsToFloat(((randomUIntData[1] >> uvec4(9u)) & uvec4(0x007fffffu)) | uvec4(0x3f800000u)) - vec4(1.0)
+      );
+
+      float bladeDirectionAngle = randomFloatData[0].x * 6.28318530718; // 2 * PI
+      vec3 bladeDirection = vec3(normalize(sin(vec2(bladeDirectionAngle) + vec2(1.57079632679, 0.0))), 0.0);
+      const vec3 bladeUp = vec3(0.0, 0.0, 1.0);
+
+      float offsetAngle = randomFloatData[0].y * 6.28318530718; // 2 * PI
+      vec2 offsetDirection = normalize(sin(vec2(offsetAngle) + vec2(1.57079632679, 0.0)));      
+      float offsetRadius = randomFloatData[0].z * grassOffsetRadius;
+
+      vec3 bladeOffset = vec3(offsetDirection.xy, 0.0) * offsetRadius; 
+
+      float bladeHeight = grassHeight * mix(0.25, 1.0, randomFloatData[0].w);
+      float bladeLeaning = grassLeaning * mix(0.1, 1.0, randomFloatData[1].x);
+
+      vec3 p0 = bladeOffset;
+      vec3 p1 = p0 + vec2(0.0, bladeHeight).xxy;
+      vec3 p2 = fma(bladeDirection, vec3(bladeHeight * bladeLeaning), p1);      
+
+      // Add some wind effect to the grass blade 
+      {
+
+        const float windDirection = radians(20.0); // TODO: Calculate this based on the global position in 3D space and make it configurable
+
+        const float windStrength = 0.01; // TODO: Calculate this based on the global position in 3D space and make it configurable
+
+        vec2 windOffset = sin(
+          vec2(
+            pushConstants.time + 
+            //dot(sin(vec2(windDirection) + vec2(1.57079632679, 0.0)), vec2(globalXY) / vec2(pushConstants.tileMapResolution * pushConstants.tileResolution)) + 
+            (randomFloatData[1].y * 4.0)
+          ) * vec2(0.5, 1.0)
+        ) * vec2(2.0, 1.0) * windStrength;
+
+        // TODO: Add additional usage of a velocity field for physical interaction with sphere colliders just as the player
+
+        p2 += vec3(windOffset, 0.0);
+
+      }
+      
+      // Ensure that the grass blade has a persistent length
+      {
+        vec3 p01 = p1 - p0;
+        vec3 p12 = p2 - p1;
+        float L = fma(2.0, length(p2 - p0), length(p01) + length(p12)) / 3.0; 
+        float lDiff = bladeHeight / L;
+        p1 = fma(p01, vec3(lDiff), p0); 
+        p2 = fma(p12, vec3(lDiff), p1);
+      }
+
+      vec3 sideVector = normalize(vec3(bladeDirection.y, -bladeDirection.x, 0.0)); 
+      
+      const float viewDotNormal = clamp(dot(modelPatchSpaceBasisMatrix * bladeDirection, viewDirectionXZ), 0.0, 1.0);
+      const float viewSpaceThickenFactor = clamp(easeOut(1.0 - viewDotNormal, 4.0) * smoothstep(0.0, 0.2, viewDotNormal), 0.0, 1.0);
+
+      float t = float(uint(vertexIndex >> 1u)) / float(countVerticesPerBladeEdge - 1u);
+
+      float t2 = (float(uint(vertexIndex >> 1u)) + 0.5) / float(countVerticesPerBladeEdge);
+
+      float s = float(int(1 - ((int(vertexIndex) & 1) << 1))); // 1 or -1
+
+      vec3 offset = sideVector * 
+                    (
+                      grassThickness * // Base thickness of the grass blade 
+                      (1.0 + (viewSpaceThickenFactor * 0.5)) * // Thicken the grass blade based on the view direction
+                      mix(1.0, 0.01, smoothstep(0.5, 1.0, t)) * // tapering towards the top to the grass blade tip
+                      ((bladeID == (countBlades - 1u)) ? fract(countBladesFloat) : 1.0) * // LOD fade out fractional scaling for to keep the LOD transition smooth 
+                      (float(maxCountBlades) / countBladesFloat) // LOD width compensation scaling for to keep the visual appearance of the grass blades consistent even in the distance  
+                    );
+
+      vec3 localP0 = p0 + (offset * (s * 1.0));
+      vec3 localP1 = p1 + (offset * (s * 0.7));
+      vec3 localP2 = p2 + (offset * (s * 0.3));    
+
+      vec3 position = (pushConstants.modelMatrix * vec4(patchPosition + (patchTangentSpaceBasis * bezier(localP0, localP1, localP2, t)), 1.0)).xyz;
+
+  #if defined(BRUTEFORCE_NORMAL_CALCULATION)
+
+      vec3 normal = vec3(0.0); // clear the normal for the brute-force calculation
+
+  #else
+
+      vec3 normal = normalize(modelPatchSpaceBasisMatrix * cross(bezierDerivative(localP0, localP1, localP2, t2), sideVector));
+      
+  #endif
+
+      vec3 worldSpacePosition = position;
+
+      vec4 viewSpacePosition = viewMatrix * vec4(position, 1.0);
+      viewSpacePosition.xyz /= viewSpacePosition.w;
+
+  #if defined(MESH_SHADER_EMULATION)
+
+      outputVertices.vertices[baseVertex + vertexID] = OutputVertex(
+        vec4(position, float(uint(vertexIndex & 1u))),
+        vec4(normal, t)
+      );
+
+      // The vertex shader as next stage will do the rest of the work vertex-wise, so no need to do it here and to save some memory 
+      
+  #else
+
+      outBlock[vertexID].position = position;         
+      outBlock[vertexID].normal = normal;
+      outBlock[vertexID].texCoord = vec2(float(uint(i & 1u)), t);
+      outBlock[vertexID].worldSpacePosition = worldSpacePosition;
+      outBlock[vertexID].viewSpacePosition = viewSpacePosition.xyz;  
+      outBlock[vertexID].cameraRelativePosition = worldSpacePosition - cameraPosition;
+      outBlock[vertexID].jitter = pushConstants.jitter;
+    #ifdef VELOCITY
+      outBlock[vertexID].currentClipSpace = viewProjectionMatrix * vec4(position, 1.0);
+      outBlock[vertexID].previousClipSpace = (uView.views[viewIndex + pushConstants.countAllViews].projectionMatrix * uView.views[viewIndex + pushConstants.countAllViews].viewMatrix) * vec4(position, 1.0);
+    #endif
+
+    #if defined(RAYTRACING)
+      outWorldSpacePosition[vertexID] = worldSpacePosition;
+    #endif
+
+      gl_MeshVerticesEXT[vertexID].gl_Position = viewProjectionMatrix * vec4(position, 1.0);
+
+  #endif
+
+    }
+  
+  }
+
+#if defined(BRUTEFORCE_NORMAL_CALCULATION)
+#if defined(MESH_SHADER_EMULATION)
+  memoryBarrierBuffer();
+#else
+  memoryBarrierShared();
+#endif
+  barrier();
+#endif
+
+#if defined(MESH_SHADER_EMULATION)
+  if(validInvocation)
+#endif
+  {
+
+    // Emit the indices for the grass blade
+    for(uint i = 0u; i < 2u; i++){
+      
+      uint triangleID = gl_LocalInvocationIndex + (i * MESH_GROUP_SIZE);
+
+      if(triangleID >= countTriangles){
+        break;
+      }
+
+      uint bladeID = triangleID / countTrianglesPerBlade;
+      uint triangleIndex = triangleID - (bladeID * countTrianglesPerBlade);
+
+      uint offset = (bladeID * countVerticesPerBlade) + ((triangleIndex >> 1u) << 1u);
+
+  #if defined(BRUTEFORCE_NORMAL_CALCULATION)
+      
+  #if defined(MESH_SHADER_EMULATION)
+
+      uvec3 indices = vertexIndices[triangleIndex & 1u] + uvec3(offset);
+
+      uint targetBaseIndex = baseIndex + (triangleID * 3u);
+      outputIndices.indices[targetBaseIndex + 0u] = indices[0];
+      outputIndices.indices[targetBaseIndex + 1u] = indices[1];
+      outputIndices.indices[targetBaseIndex + 2u] = indices[2];
+
+      vec3 normal = normalize(cross(
+        outputVertices.vertices[baseVertex + indices[1]].position - outputVertices.vertices[baseVertex + indices[0]].position,
+        outputVertices.vertices[baseVertex + indices[2]].position - outputVertices.vertices[baseVertex + indices[0]].position
+      ));
+
+      outputVertices.vertices[baseVertex + indices[0]].normal.xyz += normal;
+      outputVertices.vertices[baseVertex + indices[1]].normal.xyz += normal;
+      outputVertices.vertices[baseVertex + indices[2]].normal.xyz += normal;
+
+  #else
+
+      uvec3 indices = gl_PrimitiveTriangleIndicesEXT[triangleID] = vertexIndices[triangleIndex & 1u] + uvec3(offset);
+
+      vec3 normal = normalize(cross(
+        outBlock[indices[1]].position - outBlock[indices[0]].position,
+        outBlock[indices[2]].position - outBlock[indices[0]].position
+      ));
+      
+      outBlock[indices[0]].normal += normal;
+      outBlock[indices[1]].normal += normal;
+      outBlock[indices[2]].normal += normal;
+
+  #endif
+    
+
+  #else
+
+  #if defined(MESH_SHADER_EMULATION)
+      
+      uvec3 indices = vertexIndices[triangleIndex & 1u] + uvec3(offset);
+
+      uint targetBaseIndex = baseIndex + (triangleID * 3u);
+      outputIndices.indices[targetBaseIndex + 0u] = indices[0];
+      outputIndices.indices[targetBaseIndex + 1u] = indices[1];
+      outputIndices.indices[targetBaseIndex + 2u] = indices[2];
+
+  #else
+      
+      gl_PrimitiveTriangleIndicesEXT[triangleID] = vertexIndices[triangleIndex & 1u] + uvec3(offset);
+
+  #endif
+
+  #endif
+
+    }
+
+  }
+
+#if defined(BRUTEFORCE_NORMAL_CALCULATION)
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+#if defined(MESH_SHADER_EMULATION)
+  memoryBarrierBuffer();
+#else
+  memoryBarrierShared();
+#endif
+  barrier();
+
+#if defined(MESH_SHADER_EMULATION)
+  if(validInvocation)
+#endif
+  {
+
+    // Normalize the normals    
+    for(uint i = 0u; i < 2u; i++){
+      uint vertexID = gl_LocalInvocationIndex + (i * MESH_GROUP_SIZE);
+      if(vertexID >= countVertices){
+        break;
+      }
+  #if defined(MESH_SHADER_EMULATION)
+      outputVertices.vertices[baseVertex + vertexID].normal.xyz = normalize(outputVertices.vertices[baseVertex + vertexID].normal.xyz);
+  #else
+      outBlock[vertexID].normal = normalize(outBlock[vertexID].normal);
+  #endif
+    }
+
+  }
+
+#endif
+
+} 

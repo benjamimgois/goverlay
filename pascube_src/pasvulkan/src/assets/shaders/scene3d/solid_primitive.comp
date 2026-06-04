@@ -1,0 +1,821 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#include "solid_primitive.glsl"
+
+struct Vertex {
+  uvec4 position; // xy = Clip space position, zw = Offset0
+  uvec4 position0; // xyz = Position, w = Primitive topology
+  uvec4 position1; // xyz = Position, w = Line thickness or point size
+  uvec4 position2; // xyz = Position, w = unused 
+  uvec4 position3; // xyz = Position, w = unused 
+  uvec4 offset1Offset2; // xy = Offset1, zw = Offset2
+  uvec4 offset3; // xy = Offset3, zw = unused
+  uvec4 color; // Color
+};
+
+#define Primitive Vertex // Just for simplicity so these are the same
+
+layout(set = 0, binding = 0) buffer SourcePrimitives {
+  Primitive primitives[];
+} sourcePrimitives;
+
+layout(set = 0, binding = 1) buffer DestinationVertices {
+  Vertex vertices[];
+} destinationVertices;
+
+layout(set = 0, binding = 2) buffer DestinationIndices {
+  uint indices[];
+} destinationIndices;
+
+/*
+// From Vulkan spec, just as reference: 
+struct VkDrawIndexedIndirectCommand {
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  int vertexOffset;
+  uint firstInstance;
+};
+*/
+
+struct DrawIndexedIndirectCommand {
+  uvec4 cmd0; // indexCount_instanceCount_firstIndex_vertexOffset; // x = indexCount, y = instanceCount, z = firstIndex, w = vertexOffset  
+  uvec4 cmd1; // firstInstance_padding0_padding1_padding2; // x = firstInstance, y = vertexCount, z = unused, w = unused
+};
+
+layout(set = 0, binding = 3) coherent buffer DestinationDrawIndexedIndirectCommand {
+  DrawIndexedIndirectCommand drawIndexedIndirectCommand;
+} destinationDrawIndexedIndirectCommand;
+
+layout(push_constant) uniform PushConstants {
+  uint viewBaseIndex;
+  uint countViews;
+  uint countAllViews;
+  uint countPrimitives;
+  vec2 viewPortSize;
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(std140, set = 0, binding = 4) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+/* clang-format on */
+
+vec2 clipSpaceToScreenSpace(const vec2 clipSpace) {
+  return fma(clipSpace, vec2(0.5), vec2(0.5)) * pushConstants.viewPortSize;
+}
+
+vec2 screenSpaceToClipSpace(const vec2 screenSpace) {
+  return fma(screenSpace / pushConstants.viewPortSize, vec2(2.0), vec2(-1.0));
+}
+
+shared mat4 viewProjectionMatrices[8]; // 8 view projection matrices for 8 views, that should be enough
+shared mat4 inverseViewProjectionMatrices[8]; // 8 inverse view projection matrices for 8 views, that should be enough
+
+// Define frustum plane equations in clip space
+const vec4 frustumPlanes[6] = {
+  vec4( 1.0,  0.0,  0.0, -1.0), // Right plane: x - w <= 0
+  vec4(-1.0,  0.0,  0.0, -1.0), // Left plane:  x + w >= 0
+  vec4( 0.0,  1.0,  0.0, -1.0), // Top plane:    y - w <= 0
+  vec4( 0.0, -1.0,  0.0, -1.0), // Bottom plane: y + w >= 0
+  vec4( 0.0,  0.0,  1.0, -1.0), // Far plane:    z - w <= 0
+  vec4( 0.0,  0.0, -1.0, -1.0)  // Near plane:   z + w >= 0
+};
+
+// Function to clip the line segment against the frustum planes
+bool clipLineToFrustum(inout vec4 start, inout vec4 end) {
+
+  // Initialize t0 and t1 for parametric line
+  float t0 = 0.0;
+  float t1 = 1.0;
+  vec4 d = end - start;
+
+  // Clip against the six frustum planes in clip space
+  for(int i = 0; i < 6; i++){
+    vec4 plane = frustumPlanes[i];
+    float denominator = dot(plane, d);
+    float numerator = -dot(plane, start);
+    if(denominator == 0.0){
+      // Line is parallel to plane
+      if(numerator < 0.0){
+        // Line is outside the plane
+        return false;
+      }
+      // Line is inside the plane, continue to next plane
+    } else {
+      float t = numerator / denominator;
+      if(denominator < 0.0){
+        // Entering half-space
+        if(t > t1){
+          return false;
+        }
+        if(t > t0){
+          t0 = t;
+        }
+      } else {
+        // Exiting half-space
+        if(t < t0){
+          return false;
+        }
+        if(t < t1){
+          t1 = t;
+        }
+      }
+    }
+  }
+
+  if(t0 > t1){
+    // Line is outside the frustum
+    return false;
+  }
+
+  // Update the start and end points based on t0 and t1
+  vec4 clippedStart = start + (t0 * d);
+  vec4 clippedEnd = start + (t1 * d);
+
+  start = clippedStart;
+  end = clippedEnd;
+
+  return true;
+}
+
+
+void main(){
+
+  if((gl_LocalInvocationID.x < pushConstants.countViews) && (gl_LocalInvocationID.x < 8u)){
+    uint viewIndex = gl_LocalInvocationID.x;
+    inverseViewProjectionMatrices[viewIndex] = inverse(viewProjectionMatrices[viewIndex] = uView.views[pushConstants.viewBaseIndex + viewIndex].projectionMatrix * uView.views[pushConstants.viewBaseIndex + viewIndex].viewMatrix);
+  }
+
+  barrier();
+  memoryBarrierShared();
+
+  uint primitiveIndex = gl_GlobalInvocationID.x;
+  
+  if(primitiveIndex < pushConstants.countPrimitives){
+
+    uint viewBaseIndex = pushConstants.viewBaseIndex;
+
+    Primitive primitive = sourcePrimitives.primitives[primitiveIndex];
+    
+    uint primitiveTopology = primitive.position0.w & 7u;
+    bool threeDimensional = (primitive.position0.w & 8u) == 0u;
+
+    // Initialize the AABB with infinity and -infinity
+    vec4 aabb = vec4(uintBitsToFloat(0x7f800000u), uintBitsToFloat(0x7f800000u), uintBitsToFloat(0xff800000u), uintBitsToFloat(0xff800000u));
+
+    bool visible = true;
+
+    bool useSpecialVertices = false;
+
+    vec2 specialVertices[4];
+
+    if(threeDimensional){
+
+      switch(primitiveTopology){
+        
+        case PRIMITIVE_TOPOLOGY_POINT:
+        case PRIMITIVE_TOPOLOGY_POINT_WIREFRAME: {
+
+          // Point (or circle)
+
+          // Center of the point (or circle) 
+          vec3 center3D = uintBitsToFloat(primitive.position0.xyz);
+          vec2 centerOffset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(centerOffset);
+
+          visible = false;
+
+          // Ensure that the point is visible in all views at the correct positions
+          for(int viewIndex = 0; viewIndex < int(pushConstants.countViews); viewIndex++){
+
+            vec4 centerClip = viewProjectionMatrices[viewIndex] * vec4(center3D, 1.0);
+
+            visible = visible || all(greaterThanEqual(centerClip.xyz, vec3(-centerClip.w)));
+
+            vec2 centerScreen = clipSpaceToScreenSpace((centerClip.xy / centerClip.w) + centerOffset);
+
+            aabb.xy = min(aabb.xy, centerScreen);
+            aabb.zw = max(aabb.zw, centerScreen);
+
+          } 
+
+          float radius;
+          if(primitiveTopology == PRIMITIVE_TOPOLOGY_POINT_WIREFRAME){
+            radius = max(uintBitsToFloat(primitive.position1.w), uintBitsToFloat(primitive.position2.w)) + 1.0; // Add 1.0 to the radius for anti-aliasing
+          }else{
+            radius = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the radius for anti-aliasing
+          }         
+
+          // Add the radius to the AABB
+          aabb.xyzw += vec2(-radius, radius).xxyy;
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          break;
+
+        }
+
+        case PRIMITIVE_TOPOLOGY_LINE: {
+
+          // Line
+          
+          // Line start
+          vec3 lineStart3D = uintBitsToFloat(primitive.position0.xyz);
+          vec2 lineStartOffset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(lineStartOffset);
+
+          // Line end
+          vec3 lineEnd3D = uintBitsToFloat(primitive.position1.xyz);
+          vec2 lineEndOffset = uintBitsToFloat(primitive.offset1Offset2.xy) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.xy = floatBitsToUint(lineEndOffset);
+
+          visible = true;
+
+          // Ensure that the line is visible in all views at the correct positions
+          for(int viewIndex = 0; viewIndex < int(pushConstants.countViews); viewIndex++){
+
+            mat4 viewProjectionMatrix = viewProjectionMatrices[viewIndex];
+
+            vec4 lineStartClip = viewProjectionMatrix * vec4(lineStart3D, 1.0);
+            vec4 lineEndClip = viewProjectionMatrix * vec4(lineEnd3D, 1.0);
+
+            if(any(lessThan(lineStartClip.xyz, vec3(-lineStartClip.w))) || 
+               any(lessThan(lineEndClip.xyz, vec3(-lineEndClip.w))) ||
+               any(greaterThan(lineStartClip.xyz, vec3(lineStartClip.w))) ||
+               any(greaterThan(lineEndClip.xyz, vec3(lineEndClip.w)))){
+
+              if(clipLineToFrustum(lineStartClip, lineEndClip)){
+
+                mat4 inverseViewProjectionMatrix = inverseViewProjectionMatrices[viewIndex];
+
+                vec4 lineStart3DClip = inverseViewProjectionMatrix * lineStartClip; 
+                lineStart3D = lineStart3DClip.xyz / lineStart3DClip.w;
+
+                vec4 lineEnd3DClip = inverseViewProjectionMatrix * lineEndClip; 
+                lineEnd3D = lineEnd3DClip.xyz / lineEnd3DClip.w;
+
+              }else{
+
+                visible = false;
+                break;
+
+              }
+
+            }
+
+            vec2 lineStartScreen = clipSpaceToScreenSpace((lineStartClip.xy / lineStartClip.w) + lineStartOffset);
+            vec2 lineEndScreen = clipSpaceToScreenSpace((lineEndClip.xy / lineEndClip.w) + lineEndOffset);
+
+            aabb.xy = min(aabb.xy, lineStartScreen);
+            aabb.zw = max(aabb.zw, lineStartScreen);
+
+            aabb.xy = min(aabb.xy, lineEndScreen);
+            aabb.zw = max(aabb.zw, lineEndScreen);
+
+          }
+
+          primitive.position0.xyz = floatBitsToUint(lineStart3D);
+          primitive.position1.xyz = floatBitsToUint(lineEnd3D);
+
+          float lineThickness = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+          // Add the radius to the AABB
+          aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          if(pushConstants.countViews == 1){
+
+            // When there is only one view, we can use the special vertices to draw the line to reduce overdraw
+
+            useSpecialVertices = true;
+
+            mat4 viewProjectionMatrix = viewProjectionMatrices[0];
+
+            vec4 lineStartClip = viewProjectionMatrix * vec4(lineStart3D, 1.0);
+            vec4 lineEndClip = viewProjectionMatrix * vec4(lineEnd3D, 1.0);
+
+            vec2 lineStartScreen = clipSpaceToScreenSpace((lineStartClip.xy / lineStartClip.w) + lineStartOffset);
+            vec2 lineEndScreen = clipSpaceToScreenSpace((lineEndClip.xy / lineEndClip.w) + lineEndOffset);
+
+            vec2 direction = normalize(lineEndScreen - lineStartScreen) * fma(lineThickness, 1.0, 1.0); // 0.7071067811865475, 1.0);
+            vec2 normal = vec2(-direction.y, direction.x);
+
+            specialVertices[0] = screenSpaceToClipSpace((lineStartScreen - direction) - normal);
+            specialVertices[1] = screenSpaceToClipSpace((lineStartScreen - direction) + normal);
+            specialVertices[2] = screenSpaceToClipSpace((lineEndScreen + direction) + normal);
+            specialVertices[3] = screenSpaceToClipSpace((lineEndScreen + direction) - normal);
+            
+          }
+
+          break;
+
+        }
+
+        case PRIMITIVE_TOPOLOGY_TRIANGLE: 
+        case PRIMITIVE_TOPOLOGY_TRIANGLE_WIREFRAME: {
+
+          // Triangle
+
+          // Triangle vertex 0
+          vec3 triangleVertex03D = uintBitsToFloat(primitive.position0.xyz);
+          vec2 triangleVertex0Offset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(triangleVertex0Offset);
+
+          // Triangle vertex 1
+          vec3 triangleVertex13D = uintBitsToFloat(primitive.position1.xyz);
+          vec2 triangleVertex1Offset = uintBitsToFloat(primitive.offset1Offset2.xy) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.xy = floatBitsToUint(triangleVertex1Offset);
+
+          // Triangle vertex 2
+          vec3 triangleVertex23D = uintBitsToFloat(primitive.position2.xyz);
+          vec2 triangleVertex2Offset = uintBitsToFloat(primitive.offset1Offset2.zw) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.zw = floatBitsToUint(triangleVertex2Offset);
+
+          visible = false;
+
+          // Ensure that the triangle is visible in all views at the correct positions
+          for(int viewIndex = 0; viewIndex < int(pushConstants.countViews); viewIndex++){
+
+            mat4 viewProjectionMatrix = viewProjectionMatrices[viewIndex];
+
+            vec4 triangleVertex0Clip = viewProjectionMatrix * vec4(triangleVertex03D, 1.0);
+            vec4 triangleVertex1Clip = viewProjectionMatrix * vec4(triangleVertex13D, 1.0);
+            vec4 triangleVertex2Clip = viewProjectionMatrix * vec4(triangleVertex23D, 1.0);
+
+            // Check if the triangle is visible in the current view (not behind the camera)
+            visible = visible || (all(greaterThanEqual(triangleVertex0Clip.xyz, vec3(-triangleVertex0Clip.w))) ||
+                                  all(greaterThanEqual(triangleVertex1Clip.xyz, vec3(-triangleVertex1Clip.w))) || 
+                                  all(greaterThanEqual(triangleVertex2Clip.xyz, vec3(-triangleVertex2Clip.w))));
+
+            vec2 triangleVertex0Screen = clipSpaceToScreenSpace((triangleVertex0Clip.xy / triangleVertex0Clip.w) + triangleVertex0Offset);
+            vec2 triangleVertex1Screen = clipSpaceToScreenSpace((triangleVertex1Clip.xy / triangleVertex1Clip.w) + triangleVertex1Offset);
+            vec2 triangleVertex2Screen = clipSpaceToScreenSpace((triangleVertex2Clip.xy / triangleVertex2Clip.w) + triangleVertex2Offset);
+
+            aabb.xy = min(aabb.xy, triangleVertex0Screen);
+            aabb.zw = max(aabb.zw, triangleVertex0Screen);
+
+            aabb.xy = min(aabb.xy, triangleVertex1Screen);
+            aabb.zw = max(aabb.zw, triangleVertex1Screen);
+
+            aabb.xy = min(aabb.xy, triangleVertex2Screen);
+            aabb.zw = max(aabb.zw, triangleVertex2Screen);
+
+          }
+
+          if(primitiveTopology == PRIMITIVE_TOPOLOGY_TRIANGLE_WIREFRAME){
+
+            float lineThickness = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+            // Add the line thickness to the AABB
+            aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+          }else{
+           
+            // Add the radius to the AABB
+            aabb.xyzw += vec2(-1.0, 1.0).xxyy;
+
+          }
+
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          break;
+
+        }
+
+        case PRIMITIVE_TOPOLOGY_QUAD:
+        case PRIMITIVE_TOPOLOGY_QUAD_WIREFRAME: {
+
+          // Quad
+
+          // Quad vertex 0
+          vec3 quadVertex03D = uintBitsToFloat(primitive.position0.xyz);
+          vec2 quadVertex0Offset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(quadVertex0Offset);
+
+          // Quad vertex 1
+          vec3 quadVertex13D = uintBitsToFloat(primitive.position1.xyz);
+          vec2 quadVertex1Offset = uintBitsToFloat(primitive.offset1Offset2.xy) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.xy = floatBitsToUint(quadVertex1Offset);
+
+          // Quad vertex 2
+          vec3 quadVertex23D = uintBitsToFloat(primitive.position2.xyz);
+          vec2 quadVertex2Offset = uintBitsToFloat(primitive.offset1Offset2.zw) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.zw = floatBitsToUint(quadVertex2Offset);
+
+          // Quad vertex 3
+          vec3 quadVertex33D = uintBitsToFloat(primitive.position3.xyz);
+          vec2 quadVertex3Offset = uintBitsToFloat(primitive.offset3.xy) * vec2(2.0, -2.0);
+          primitive.offset3.xy = floatBitsToUint(quadVertex3Offset);
+
+          visible = false;
+
+          // Ensure that the quad is visible in all views at the correct positions
+          for(int viewIndex = 0; viewIndex < int(pushConstants.countViews); viewIndex++){
+
+            mat4 viewProjectionMatrix = viewProjectionMatrices[viewIndex];
+
+            vec4 quadVertex0Clip = viewProjectionMatrix * vec4(quadVertex03D, 1.0);
+            vec4 quadVertex1Clip = viewProjectionMatrix * vec4(quadVertex13D, 1.0);
+            vec4 quadVertex2Clip = viewProjectionMatrix * vec4(quadVertex23D, 1.0);
+            vec4 quadVertex3Clip = viewProjectionMatrix * vec4(quadVertex33D, 1.0);
+
+            // Check if the quad is visible in the current view (not behind the camera)
+            visible = visible || (all(greaterThanEqual(quadVertex0Clip.xyz, vec3(-quadVertex0Clip.w))) ||
+                                  all(greaterThanEqual(quadVertex1Clip.xyz, vec3(-quadVertex1Clip.w))) || 
+                                  all(greaterThanEqual(quadVertex2Clip.xyz, vec3(-quadVertex2Clip.w))) ||
+                                  all(greaterThanEqual(quadVertex3Clip.xyz, vec3(-quadVertex3Clip.w))));
+
+            vec2 quadVertex0Screen = clipSpaceToScreenSpace((quadVertex0Clip.xy / quadVertex0Clip.w) + quadVertex0Offset);
+            vec2 quadVertex1Screen = clipSpaceToScreenSpace((quadVertex1Clip.xy / quadVertex1Clip.w) + quadVertex1Offset);
+            vec2 quadVertex2Screen = clipSpaceToScreenSpace((quadVertex2Clip.xy / quadVertex2Clip.w) + quadVertex2Offset);
+            vec2 quadVertex3Screen = clipSpaceToScreenSpace((quadVertex3Clip.xy / quadVertex3Clip.w) + quadVertex3Offset);
+
+            aabb.xy = min(aabb.xy, quadVertex0Screen);
+            aabb.zw = max(aabb.zw, quadVertex0Screen);
+
+            aabb.xy = min(aabb.xy, quadVertex1Screen);
+            aabb.zw = max(aabb.zw, quadVertex1Screen);
+
+            aabb.xy = min(aabb.xy, quadVertex2Screen);
+            aabb.zw = max(aabb.zw, quadVertex2Screen);
+
+            aabb.xy = min(aabb.xy, quadVertex3Screen);
+            aabb.zw = max(aabb.zw, quadVertex3Screen);
+
+          }
+
+          if(primitiveTopology == PRIMITIVE_TOPOLOGY_QUAD_WIREFRAME){
+
+            float lineThickness = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+            // Add the line thickness to the AABB
+            aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+          }else{
+           
+            // Add the radius to the AABB
+            aabb.xyzw += vec2(-1.0, 1.0).xxyy;
+
+          }
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          break;
+
+        }
+
+        default:{
+          // Do nothing
+          break;
+        }
+
+      }
+
+    }else{
+
+      switch(primitiveTopology){
+        
+        case PRIMITIVE_TOPOLOGY_POINT: 
+        case PRIMITIVE_TOPOLOGY_POINT_WIREFRAME: {
+
+          // Point (or circle)
+
+          // Center of the point (or circle) 
+          vec2 center2D = fma(uintBitsToFloat(primitive.position0.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));  
+          primitive.position0.xy = floatBitsToUint(center2D);
+          vec2 centerOffset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(centerOffset);
+          vec2 centerScreen = clipSpaceToScreenSpace(center2D.xy + centerOffset);
+          aabb.xy = min(aabb.xy, centerScreen);
+          aabb.zw = max(aabb.zw, centerScreen);
+
+          float radius;
+          if(primitiveTopology == PRIMITIVE_TOPOLOGY_POINT_WIREFRAME){
+            radius = max(uintBitsToFloat(primitive.position1.w), uintBitsToFloat(primitive.position2.w)) + 1.0; // Add 1.0 to the radius for anti-aliasing
+          }else{
+            radius = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the radius for anti-aliasing
+          }         
+
+          // Add the radius to the AABB
+          aabb.xyzw += vec2(-radius, radius).xxyy;
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          break;
+
+        }
+
+        case PRIMITIVE_TOPOLOGY_LINE: {
+
+          // Line
+          
+          // Line start
+          vec2 lineStart2D = fma(uintBitsToFloat(primitive.position0.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position0.xy = floatBitsToUint(lineStart2D);
+          vec2 lineStartOffset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(lineStartOffset);
+
+          // Line end
+          vec2 lineEnd2D = fma(uintBitsToFloat(primitive.position1.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position1.xy = floatBitsToUint(lineEnd2D);
+          vec2 lineEndOffset = uintBitsToFloat(primitive.offset1Offset2.xy) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.xy = floatBitsToUint(lineEndOffset);
+
+          vec2 lineStartScreen = clipSpaceToScreenSpace(lineStart2D + lineStartOffset);
+          vec2 lineEndScreen = clipSpaceToScreenSpace(lineEnd2D + lineEndOffset);
+
+          aabb.xy = min(aabb.xy, lineStartScreen);
+          aabb.zw = max(aabb.zw, lineStartScreen);
+
+          aabb.xy = min(aabb.xy, lineEndScreen);
+          aabb.zw = max(aabb.zw, lineEndScreen);
+
+          float lineThickness = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+          // Add the radius to the AABB
+          aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          {
+
+            // In this case, we can use the special vertices to draw the line to reduce overdraw
+
+            useSpecialVertices = true;
+
+            vec2 direction = normalize(lineEndScreen - lineStartScreen) * fma(lineThickness, 1.0, 1.0); // 0.7071067811865475, 1.0);
+            vec2 normal = vec2(-direction.y, direction.x);
+
+            specialVertices[0] = screenSpaceToClipSpace((lineStartScreen - direction) - normal);
+            specialVertices[1] = screenSpaceToClipSpace((lineStartScreen - direction) + normal);
+            specialVertices[2] = screenSpaceToClipSpace((lineEndScreen + direction) + normal);
+            specialVertices[3] = screenSpaceToClipSpace((lineEndScreen + direction) - normal);
+            
+          }
+
+          break;
+
+        }
+
+        case PRIMITIVE_TOPOLOGY_TRIANGLE:
+        case PRIMITIVE_TOPOLOGY_TRIANGLE_WIREFRAME: {
+
+          // Triangle
+
+          // Triangle vertex 0
+          vec2 triangleVertex02D = fma(uintBitsToFloat(primitive.position0.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position0.xy = floatBitsToUint(triangleVertex02D);
+          vec2 triangleVertex0Offset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(triangleVertex0Offset);
+
+          // Triangle vertex 1
+          vec2 triangleVertex12D = fma(uintBitsToFloat(primitive.position1.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position1.xy = floatBitsToUint(triangleVertex12D);
+          vec2 triangleVertex1Offset = uintBitsToFloat(primitive.offset1Offset2.xy) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.xy = floatBitsToUint(triangleVertex1Offset);
+
+          // Triangle vertex 2
+          vec2 triangleVertex22D = fma(uintBitsToFloat(primitive.position2.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position2.xy = floatBitsToUint(triangleVertex22D);
+          vec2 triangleVertex2Offset = uintBitsToFloat(primitive.offset1Offset2.zw) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.zw = floatBitsToUint(triangleVertex2Offset);
+
+          vec2 triangleVertex0Screen = clipSpaceToScreenSpace(triangleVertex02D.xy + triangleVertex0Offset);
+          vec2 triangleVertex1Screen = clipSpaceToScreenSpace(triangleVertex12D.xy + triangleVertex1Offset);
+          vec2 triangleVertex2Screen = clipSpaceToScreenSpace(triangleVertex22D.xy + triangleVertex2Offset);
+
+          aabb.xy = min(aabb.xy, triangleVertex0Screen);
+          aabb.zw = max(aabb.zw, triangleVertex0Screen);
+
+          aabb.xy = min(aabb.xy, triangleVertex1Screen);
+          aabb.zw = max(aabb.zw, triangleVertex1Screen);
+
+          aabb.xy = min(aabb.xy, triangleVertex2Screen);
+          aabb.zw = max(aabb.zw, triangleVertex2Screen);
+
+          if(primitiveTopology == PRIMITIVE_TOPOLOGY_TRIANGLE_WIREFRAME){
+
+            float lineThickness = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+            // Add the line thickness to the AABB
+            aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+          }else{
+
+            // Add the radius to the AABB
+            aabb.xyzw += vec2(-1.0, 1.0).xxyy;
+
+          }
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          break;
+
+        }
+
+        case PRIMITIVE_TOPOLOGY_QUAD: 
+        case PRIMITIVE_TOPOLOGY_QUAD_WIREFRAME: {
+
+          // Quad 
+
+          // Quad vertex 0
+          vec2 quadVertex02D = fma(uintBitsToFloat(primitive.position0.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position0.xy = floatBitsToUint(quadVertex02D);
+          vec2 quadVertex0Offset = uintBitsToFloat(primitive.position.zw) * vec2(2.0, -2.0);
+          primitive.position.zw = floatBitsToUint(quadVertex0Offset);
+
+          // Quad vertex 1
+          vec2 quadVertex12D = fma(uintBitsToFloat(primitive.position1.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position1.xy = floatBitsToUint(quadVertex12D);
+          vec2 quadVertex1Offset = uintBitsToFloat(primitive.offset1Offset2.xy) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.xy = floatBitsToUint(quadVertex1Offset);
+
+          // Quad vertex 2
+          vec2 quadVertex22D = fma(uintBitsToFloat(primitive.position2.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position2.xy = floatBitsToUint(quadVertex22D);
+          vec2 quadVertex2Offset = uintBitsToFloat(primitive.offset1Offset2.zw) * vec2(2.0, -2.0);
+          primitive.offset1Offset2.zw = floatBitsToUint(quadVertex2Offset);
+
+          // Quad vertex 3
+          vec2 quadVertex32D = fma(uintBitsToFloat(primitive.position3.xy), vec2(2.0, -2.0), vec2(-1.0, 1.0));
+          primitive.position3.xy = floatBitsToUint(quadVertex32D);
+          vec2 quadVertex3Offset = uintBitsToFloat(primitive.offset3.xy) * vec2(2.0, -2.0);
+          primitive.offset3.xy = floatBitsToUint(quadVertex3Offset);
+
+          vec2 quadVertex0Screen = clipSpaceToScreenSpace(quadVertex02D.xy + quadVertex0Offset);
+          vec2 quadVertex1Screen = clipSpaceToScreenSpace(quadVertex12D.xy + quadVertex1Offset);
+          vec2 quadVertex2Screen = clipSpaceToScreenSpace(quadVertex22D.xy + quadVertex2Offset);
+          vec2 quadVertex3Screen = clipSpaceToScreenSpace(quadVertex32D.xy + quadVertex3Offset);
+
+          aabb.xy = min(aabb.xy, quadVertex0Screen);
+          aabb.zw = max(aabb.zw, quadVertex0Screen);
+
+          aabb.xy = min(aabb.xy, quadVertex1Screen);
+          aabb.zw = max(aabb.zw, quadVertex1Screen);
+
+          aabb.xy = min(aabb.xy, quadVertex2Screen);
+          aabb.zw = max(aabb.zw, quadVertex2Screen);
+
+          aabb.xy = min(aabb.xy, quadVertex3Screen);
+          aabb.zw = max(aabb.zw, quadVertex3Screen);
+
+          if(primitiveTopology == PRIMITIVE_TOPOLOGY_QUAD_WIREFRAME){
+
+            float lineThickness = uintBitsToFloat(primitive.position1.w) + 1.0; // Add 1.0 to the line tickness for anti-aliasing
+
+            // Add the line thickness to the AABB
+            aabb.xyzw += vec2(-lineThickness, lineThickness).xxyy;
+
+          }else{
+              
+            // Add the radius to the AABB
+            aabb.xyzw += vec2(-1.0, 1.0).xxyy;
+  
+          } 
+
+          aabb.xy = screenSpaceToClipSpace(aabb.xy);
+          aabb.zw = screenSpaceToClipSpace(aabb.zw);
+
+          break;
+
+        }
+
+        default:{
+          // Do nothing
+          break;
+        }
+
+      }
+
+    }    
+
+    // Check if the primitive is visible at all (culling)
+    visible = visible && (all(lessThanEqual(aabb.xy, vec2(1.0))) && all(greaterThanEqual(aabb.zw, vec2(-1.0))) && all(lessThanEqual(aabb.xy, aabb.zw)));
+
+    // If the primitive is visible, generate the vertices and indices
+    uint firstVertex = 0u;
+    if(visible){
+
+      // Premultiply the color with the alpha value
+      primitive.color.xyz = uvec3(floatBitsToUint(uintBitsToFloat(primitive.color.xyz) * uintBitsToFloat(primitive.color.w))); 
+     
+      // Generate the quad vertices for the current primitive 
+      firstVertex = atomicAdd(destinationDrawIndexedIndirectCommand.drawIndexedIndirectCommand.cmd1.y, 4u); // Each primitive has 4 vertices for a quad of two triangles
+      {
+
+        destinationVertices.vertices[firstVertex] = Vertex(
+          uvec4(floatBitsToUint(useSpecialVertices ? specialVertices[0] : aabb.xy), primitive.position.zw),
+          primitive.position0,
+          primitive.position1,
+          primitive.position2,
+          primitive.position3,
+          primitive.offset1Offset2,
+          primitive.offset3,
+          primitive.color
+        );
+
+        destinationVertices.vertices[firstVertex + 1u] = Vertex(
+          uvec4(floatBitsToUint(useSpecialVertices ? specialVertices[1] : aabb.zy), primitive.position.zw),
+          primitive.position0,
+          primitive.position1,
+          primitive.position2,
+          primitive.position3,
+          primitive.offset1Offset2,
+          primitive.offset3,
+          primitive.color
+        );
+
+        destinationVertices.vertices[firstVertex + 2u] = Vertex(
+          uvec4(floatBitsToUint(useSpecialVertices ? specialVertices[2] : aabb.zw), primitive.position.zw),
+          primitive.position0,
+          primitive.position1,
+          primitive.position2,
+          primitive.position3,
+          primitive.offset1Offset2,
+          primitive.offset3,
+          primitive.color
+        );
+
+        destinationVertices.vertices[firstVertex + 3u] = Vertex(
+          uvec4(floatBitsToUint(useSpecialVertices ? specialVertices[3] : aabb.xw), primitive.position.zw),
+          primitive.position0,
+          primitive.position1,
+          primitive.position2,
+          primitive.position3,
+          primitive.offset1Offset2,
+          primitive.offset3,
+          primitive.color
+        );
+
+      }  
+
+    }
+
+    {  
+
+      // Generate the quad indices for the current primitive
+//    uint firstIndex = atomicAdd(destinationDrawIndexedIndirectCommand.drawIndexedIndirectCommand.cmd0.x, 6u); // Each primitive has 6 indices for a quad of two triangles
+      // We can't use atomicAdd here because the indices need to be in order to ensure that the rendering order is correct for the primitives,
+      // so we generate degenerate indices for invisible primitives to keep the indices in sync with the vertices but not render the primitive.      
+      uint firstIndex = primitiveIndex * 6u; // Each primitive has 6 indices for a quad of two triangles
+      atomicAdd(destinationDrawIndexedIndirectCommand.drawIndexedIndirectCommand.cmd0.x, 6u); // But increment the index count for the draw command anyway, for the indirect draw call later
+      if(visible){
+
+        destinationIndices.indices[firstIndex] = firstVertex;
+        destinationIndices.indices[firstIndex + 1u] = firstVertex + 1u;
+        destinationIndices.indices[firstIndex + 2u] = firstVertex + 2u;
+
+        destinationIndices.indices[firstIndex + 3u] = firstVertex;
+        destinationIndices.indices[firstIndex + 4u] = firstVertex + 2u;
+        destinationIndices.indices[firstIndex + 5u] = firstVertex + 3u;
+
+      }else{
+
+        // If the primitive is not visible, output degenerate indices to keep the indices in sync with the vertices but not render the primitive
+
+        destinationIndices.indices[firstIndex] = firstVertex;
+        destinationIndices.indices[firstIndex + 1u] = firstVertex;
+        destinationIndices.indices[firstIndex + 2u] = firstVertex;
+
+        destinationIndices.indices[firstIndex + 3u] = firstVertex;
+        destinationIndices.indices[firstIndex + 4u] = firstVertex;
+        destinationIndices.indices[firstIndex + 5u] = firstVertex;
+
+      }
+
+    }
+
+    // All further things happen in the vertex and fragment shaders
+
+  }
+
+}

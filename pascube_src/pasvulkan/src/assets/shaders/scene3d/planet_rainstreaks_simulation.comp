@@ -1,0 +1,149 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct RainDrop {
+  vec4 position; // Position of the raindrop (xyz) and factor (w, set to 0.0 when out of frustum by the rainfall mesh generation compute shader)
+};
+
+layout(set = 0, binding = 0, std430) buffer RainDropBuffer {
+  RainDrop data[]; // Array of raindrops
+} rainDropBuffer;
+
+layout(set = 0, binding = 1, std430) buffer PrecipitationAtmosphereMapBuffer {
+  float values[];
+} precipitationAtmosphereMapBuffer;
+
+layout(set = 0, binding = 2) uniform sampler2D uImageHeightMap; // Height map of the planet,
+
+layout(push_constant) uniform PushConstants {
+  
+  mat4 planetModelMatrix; // Model matrix of the planet
+  
+  vec4 cameraPosition; // Position of the camera 
+
+  float planetBottomRadius; // Bottom radius of the planet
+  float planetTopRadius; // Top radius of the planet
+  float spawnBottomRadius; // Bottom radius for spawning raindrops
+  float spawnTopRadius; // Top radius for spawning raindrops
+
+  float spawnDistance; // Distance from the camera to spawn raindrops
+  float gravity; // Gravity factor
+  float deltaTime; // Time delta for simulation
+  uint countRainDrops; // Number of raindrops
+
+  uint precipitationAtmosphereResolution; // Resolution of the precipitation atmosphere map
+  uint frameIndex; // Current frame rainDropIndex
+   
+} pushConstants;  
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+#include "pcg.glsl"
+#include "floatint.glsl"
+
+shared mat4 sharedPlanetInverseModelMatrix;
+
+float getRainAtmosphereFactor(const vec3 position) {
+  
+  // Get the octahedral coordinates of the position
+  vec2 uv = octEqualAreaUnsignedEncode(position);
+
+  // Calculate the integer coordinates for the UV mapping
+  ivec2 xy = clamp(ivec2(round(uv * vec2(pushConstants.precipitationAtmosphereResolution))), ivec2(0), ivec2(pushConstants.precipitationAtmosphereResolution - 1));
+
+  // Calculate the index in the precipitation atmosphere map buffer
+  uint index = uint(xy.x + (xy.y * pushConstants.precipitationAtmosphereResolution));
+
+  // Return the value from the precipitation atmosphere map buffer, but the wetness part > 0.0
+  return clamp(precipitationAtmosphereMapBuffer.values[index], 0.0, 1.0);
+
+}
+
+void main() {
+
+  // Get the index of the raindrop being processed
+  uint rainDropIndex = gl_GlobalInvocationID.x;
+
+  // Initialize the shared memory for the inverse model matrix of the planet
+  // This is done to avoid calculating it multiple times in parallel threads
+  // and to ensure that all threads have access to the same value.
+  if(gl_LocalInvocationIndex == 0){
+    // Calculate the inverse model matrix of the planet
+    sharedPlanetInverseModelMatrix = inverse(pushConstants.planetModelMatrix);
+  }
+  barrier();
+  memoryBarrierShared();
+
+  // Check if the raindrop index is within the range of the number of raindrops
+  if(rainDropIndex < pushConstants.countRainDrops){
+    
+    // Get the raindrop from the buffer 
+    RainDrop drop = rainDropBuffer.data[rainDropIndex];
+
+    // Calculate the position of the raindrop in planet space using the inverse model matrix
+    // This is done to ensure that the raindrop position is origin centered, so that length(position.xyz) is the distance from the center of the planet
+    // and the height can be calculated correctly.
+    vec4 position = vec4(
+      (sharedPlanetInverseModelMatrix * vec4(drop.position.xyz, 1.0)).xyz,
+      (pushConstants.frameIndex == 0) 
+        ? 0.0 // If this is the first frame, set the factor to 0.0 to indicate that the raindrop is inactive
+        : drop.position.w
+    ); 
+
+    // Update the position of the raindrop based on gravity
+    position.xyz += normalize(position.xyz) * pushConstants.gravity * pushConstants.deltaTime;
+
+    // Get the height of the raindrop position on the planet
+    float height = length(position.xyz); 
+
+    // Encode the position in octahedral coordinates for the height map lookup and spawn logic
+    vec2 uv = octEqualAreaUnsignedEncode((sharedPlanetInverseModelMatrix * vec4(pushConstants.cameraPosition.xyz, 1.0)).xyz);
+
+    // Sample the height map using the octahedral coordinates and calculate the height of the planet at that position
+    float planetHeight = mix(
+      pushConstants.planetBottomRadius,
+      pushConstants.planetTopRadius, 
+      texturePlanetOctahedralMap(uImageHeightMap, uv).x
+    );
+
+    // Check if the raindrop is outside the planet's radius or inactive or outside the view frustum, if so, we need to (re-)spawn it
+    if((position.w < 1e-7) || (height < planetHeight)){
+      
+      // Get a random value based on the raindrop index and the frame index
+      uvec4 random = pcgHash44(uvec4(floatBitsToUint(uv), pushConstants.frameIndex, rainDropIndex));
+
+      // Generate a new position for the raindrop, first we add a random offset to the octahedral coordinates, ...
+      uv = wrapOctahedralCoordinates(uv + (makeFloat(random.xy) * pushConstants.spawnDistance)); // (simpler than doing it in 3D space with TBN vectors) 
+
+      // .. then we decode them back to 3D coordinates 
+      position = vec4(
+        normalize(octEqualAreaUnsignedDecode(uv)) * mix(pushConstants.spawnBottomRadius, pushConstants.spawnTopRadius, makeAbsFloat(random.z)), 
+        1.0 // Set the factor to 1.0 to indicate that the raindrop is active
+      );
+      
+    }
+
+    if(position.w > 1e-7){
+      position.w *= getRainAtmosphereFactor(position.xyz); // Apply the rain atmosphere factor to the raindrop factor
+    }
+
+    // Update the raindrop position
+    drop.position = vec4((pushConstants.planetModelMatrix * vec4(position.xyz, 1.0)).xyz, position.w);
+
+    // Write the updated raindrop back to the buffer 
+    rainDropBuffer.data[rainDropIndex] = drop;
+    
+  }
+
+}

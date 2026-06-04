@@ -1,0 +1,66 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+//#extension GL_EXT_scalar_block_layout : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout (set = 0, binding = 0, std140) readonly uniform VoxelGridData {
+  #include "voxelgriddata_uniforms.glsl"
+} voxelGridData;
+
+layout(set = 0, binding = 1, r8) readonly uniform image3D uImageSourceVolumeOcclusion[]; // 0.0 .. 1.0 scaled 8-bit unsigned integer (R8_unorm)
+
+layout(set = 0, binding = 2, r8) writeonly uniform image3D uImageDestinationOcclusion[]; // 0.0 .. 1.0 scaled 8-bit unsigned integer (R8_unorm)
+
+layout(push_constant) uniform PushConstants {
+  uint mipMapLevel;
+  uint cascadeIndex;
+} pushConstants;
+
+#define voxelIndex(x, y, z) ((((z << 1) + y) << 1) + x)    
+
+void main(){
+
+  uint cascadeIndex = pushConstants.cascadeIndex;
+
+  uint voxelSourceGridSize = voxelGridData.gridSizes[cascadeIndex >> 2u][cascadeIndex & 3u];
+
+  uint voxelDestinationGridSize = voxelSourceGridSize >> pushConstants.mipMapLevel;
+
+  voxelSourceGridSize >>= pushConstants.mipMapLevel - 1u;
+
+  uvec3 invocation = uvec3(gl_GlobalInvocationID.xyz);
+
+  if(all(greaterThanEqual(invocation, uvec3(0))) && all(lessThan(invocation, uvec3(uvec2(voxelDestinationGridSize), voxelDestinationGridSize)))){
+
+    uvec3 volumeDestinationPosition = uvec3(invocation.xyz);
+
+    uvec3 volumeSourcePosition = volumeDestinationPosition << 1u;
+
+    // Mono alpha
+    imageStore(
+      uImageDestinationOcclusion[cascadeIndex],
+      ivec3(volumeDestinationPosition), 
+      vec4(
+        (
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(0, 0, 0)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(1, 0, 0)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(0, 1, 0)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(1, 1, 0)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(0, 0, 1)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(1, 0, 1)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(0, 1, 1)).x +
+          imageLoad(uImageSourceVolumeOcclusion[cascadeIndex], ivec3(volumeSourcePosition) + ivec3(1, 1, 1)).x
+        ) * 0.125
+      )
+    );
+
+  }
+
+}

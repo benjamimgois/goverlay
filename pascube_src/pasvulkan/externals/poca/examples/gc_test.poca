@@ -1,0 +1,115 @@
+
+GarbageCollector.setIncremental(false);
+
+function executeTests(tests...){
+
+  let timeStart = DateTime.now();
+
+  let beginGarbageCollectorUsage = GarbageCollector.used();
+  let beginGarbageCollectorFree = GarbageCollector.free();
+
+  foreach(let test in tests){
+    test();
+    print("."); 
+  }  
+  print("\n");
+
+  let timeEnd = DateTime.now();
+
+  let endGarbageCollectorUsage = GarbageCollector.used();
+  let endGarbageCollectorFree = GarbageCollector.free();
+
+  let elapsed = timeEnd - timeStart;
+  print("Elapsed time: ", DateTime.milliseconds(elapsed) * 0.001, " seconds\n");
+  print("Garbage collector usage: ", beginGarbageCollectorUsage, " -> ", endGarbageCollectorUsage, "\n");
+  print("Garbage collector free: ", beginGarbageCollectorFree, " -> ", endGarbageCollectorFree, "\n");
+
+}
+
+let MaxCountIterations = 10000;
+
+function TestAppendArray(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r ~= [1, 2, 3, 4, 5];
+  }
+}
+
+function TestAppendHash(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r.push({"a": 1, "b": 2, "c": 3, "d": 4}); 
+  }
+}
+
+function TestAppendString(){
+  let r = "";
+  for(let i = 0; i < MaxCountIterations; i++){
+    r ~= "1234567890";
+  }
+}
+
+function TestAppendFunction(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r.push(function(){});
+  }
+}
+
+function TestAppendArray2(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r.push([[], [], [], [], []]);
+  }
+}
+
+function TestAppendHash2(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r.push([{}, {}, {}, {}]);
+  }
+}
+
+function TestAppendHash3(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r.push([{"a": [], "b": [], "c": [], "d": []}, {"a": [], "b": [], "c": [], "d": []}, {"a": [], "b": [], "c": [], "d": []}]);
+  }
+}
+
+function TestAppendTree(){
+  let r = [];
+  for(let i = 0; i < MaxCountIterations; i++){
+    r.push(
+      {
+        a: { b: { c: [] } },
+        d: { e: { } },
+        j: { k: { l: { m: [ { a: 1, b: 2, c: 3 } ] } } }
+      }
+    );
+  }
+}
+
+for(let i = 0; i < 10; i++){
+  print("Test ", i, " ");
+  executeTests(
+    TestAppendArray,
+    TestAppendHash,
+    TestAppendString,
+    TestAppendFunction,
+    TestAppendArray2,
+    TestAppendHash2,
+    TestAppendHash3,
+    TestAppendTree
+  );
+  print("\n");
+}
+
+print("Doing garbage collection\n");
+GarbageCollector.collect();
+print("Garbage collector usage: ", GarbageCollector.used(), "\n");
+print("Garbage collector free: ", GarbageCollector.free(), "\n");
+
+print("\n");
+print("End of tests\n");
+

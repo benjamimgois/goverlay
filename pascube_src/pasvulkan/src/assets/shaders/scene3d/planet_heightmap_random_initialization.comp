@@ -1,0 +1,282 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) writeonly uniform image2D uImageHeightMap;
+
+layout(set = 0, binding = 1) buffer TileMapDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapDirtyBuffer;
+
+layout(push_constant) uniform PushConstants {
+  int octaves;
+  float scale;
+  float amplitude;
+  float lacunarity;
+  float gain;
+  float factor;
+  float minHeight;
+  float maxHeight;
+  float bottomRadius;
+  float topRadius;
+  uint tileMapResolution;
+  uint tileMapShift; 
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+float hash21(const vec2 p, const float scale){
+  vec3 p3 = fract(p.xyx * scale * 0.1031);
+  p3 += p3.yzx + vec3(33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float noise21(const vec2 p, const float scale){
+  vec2 i = floor(p);
+  vec2 f = p - i;
+  vec2 u = (f * f) * fma(f, vec2(-2.0), vec2(3.0));
+  return mix(mix(hash21(i + vec2(0.0, 0.0), scale), hash21(i + vec2(1.0, 0.0), scale), u.x),
+             mix(hash21(i + vec2(0.0, 1.0), scale), hash21(i + vec2(1.0, 1.0), scale), u.x), u.y);
+}
+
+float fbm(const vec2 p, const int octaves, const float scale, const float amplitude, const float lacunarity, const float gain){
+  float result = 0.0;
+  float s = scale;
+  float a = amplitude;
+  for(int i = 0; i < octaves; i++){
+    result += noise21(p * s, scale) * a;
+    s *= lacunarity;
+    a *= gain;
+  }
+  return result;
+}
+
+float hash3(const vec3 p, const float scale){
+  vec3 p3 = fract(p * scale * 0.1031);
+  p3 += p3.zyx + vec3(31.32);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float noise3(const vec3 p, const float scale){
+  vec3 i = floor(p);
+  vec3 f = p - i;
+  vec3 u = (f * f) * fma(f, vec3(-2.0), vec3(3.0));
+  return mix(mix(mix(hash3(i + vec3(0.0, 0.0, 0.0), scale), hash3(i + vec3(1.0, 0.0, 0.0), scale), u.x),
+                 mix(hash3(i + vec3(0.0, 1.0, 0.0), scale), hash3(i + vec3(1.0, 1.0, 0.0), scale), u.x), u.y),
+             mix(mix(hash3(i + vec3(0.0, 0.0, 1.0), scale), hash3(i + vec3(1.0, 0.0, 1.0), scale), u.x),
+                 mix(hash3(i + vec3(0.0, 1.0, 1.0), scale), hash3(i + vec3(1.0, 1.0, 1.0), scale), u.x), u.y), u.z);
+}
+
+float fbm3(const vec3 p, const int octaves, const float scale, const float amplitude, const float lacunarity, const float gain){
+  float result = 0.0;
+  float s = scale;
+  float a = amplitude;
+  for(int i = 0; i < octaves; i++){
+    result += noise3(p * s, scale) * a;
+    s *= lacunarity;
+    a *= gain;
+  }
+  return result;
+}
+
+vec2 hash22(in vec2 x, float scale){
+  const vec2 k = vec2(0.3183099, 0.3678794);
+  x = fract(x * scale);
+  x = fma(x, k, k.yx);
+  return fma(fract((k * 16.0) * fract((x.x * x.y) * (x.x + x.y))), vec2(2.0), vec2(-1.0));
+}
+
+vec3 noised(in vec2 x, float scale){
+  vec2 p = floor(x);
+  vec2 w = fract(x);
+  vec2 w2 = w * w;
+  vec2 u = w2 * w * fma(w, fma(w, vec2(6.0), vec2(-15.0)), vec2(10.0));
+  vec2 du = 30.0 * (w2 * fma(w, w - vec2(2.0), vec2(1.0)));
+  vec2 ga = hash22(p + vec2(0.0, 0.0), scale);
+  vec2 gb = hash22(p + vec2(1.0, 0.0), scale);
+  vec2 gc = hash22(p + vec2(0.0, 1.0), scale);
+  vec2 gd = hash22(p + vec2(1.0, 1.0), scale);
+  float va = dot(ga, w - vec2(0.0, 0.0));
+  float vb = dot(gb, w - vec2(1.0, 0.0));
+  float vc = dot(gb, w - vec2(0.0, 1.0));
+  float vd = dot(gb, w - vec2(1.0, 1.0));
+  return vec3( 
+    va + (u.x * (vb - va)) + (u.y * (vc - va)) + (u.x * (u.y * (((va - vb) - vc) + vd))),
+    (ga + (u.x*  (gb - ga)) + (u.y * (gc - ga)) + (u.x * (u.y * (((ga - gb) - gc) + gd)))) + (du * (((u.yx * (((va - vb) - vc) + vd)) + vec2(vb, vc)) - va))
+  );
+}  
+
+
+vec4 noised(in vec3 x, float scale){
+  vec3 p = floor(x);
+  vec3 w = fract(x);
+  vec3 w2 = w * w;
+  vec3 u = w2 * w * fma(w, fma(w, vec3(6.0), vec3(-15.0)), vec3(10.0));
+  vec3 du = 30.0 * (w2 * fma(w, w - vec3(2.0), vec3(1.0)));
+  float a = hash3(p + vec3(0.0, 0.0, 0.0), scale);
+  float b = hash3(p + vec3(1.0, 0.0, 0.0), scale);
+  float c = hash3(p + vec3(0.0, 1.0, 0.0), scale);
+  float d = hash3(p + vec3(1.0, 1.0, 0.0), scale);
+  float e = hash3(p + vec3(0.0, 0.0, 1.0), scale);
+  float f = hash3(p + vec3(1.0, 0.0, 1.0), scale);
+  float g = hash3(p + vec3(0.0, 1.0, 1.0), scale); 
+  float h = hash3(p + vec3(1.0, 1.0, 1.0), scale);
+  float k0 = a;
+  float k1 = b - a;
+  float k2 = c - a;
+  float k3 = e - a;
+  float k4 = ((a - b) - c) + d;
+  float k5 = ((a - c) - e) + g;
+  float k6 = ((a - b) - e) + f;
+  float k7 = (((((((-a) + b) + c) - d) + e) - f) - g) + h;
+  return vec4(
+    fma(k0 + (k1 * u.x) + (k2 *u.y) + (k3 * u.z) + (k4 * u.x* u.y) + (k5 * u.y * u.z) + (k6 * u.z * u.x) + (k7 * u.x * u.y * u.z), 2.0, -1.0),
+    vec3(
+      k1 + (k4 * u.y) + (k6 * u.z) + (k7 * u.y * u.z), 
+      k2 + (k5 * u.z) + (k4 * u.x) + (k7 * u.z * u.x), 
+      k3 + (k6 * u.x) + (k5 * u.y) + (k7 * u.x * u.y)
+    ) * (2.0 * du)
+  );  
+}
+
+const mat3 m3 = mat3(0.00, 0.80, 0.60, -0.80, 0.36, -0.48, -0.60, -0.48, 0.64 );
+const mat3 m3i = mat3(0.00, -0.80, -0.60, 0.80, 0.36, -0.48, 0.60, -0.48, 0.64);  
+
+vec4 fbm(in vec3 p, const int octaves, const float scale, const float amplitude, const float lacunarity, const float gain){
+  float a = amplitude;
+  vec4 r = vec4(0.0);
+  vec3 derivatives = vec3(0.0);
+  mat3 m = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+  p = scale * m3 * p;
+  m = scale * m3i * m;
+  for(int i=0; i < octaves; i++){
+    vec4 n = noised(p, scale);
+    r += vec4(n.x, m * n.yzw) * a;
+    a *= gain;
+    p = lacunarity * m3 * p;
+    m = lacunarity * m3i * m;
+  }
+  return r;
+}
+
+vec4 fbmWithErosion(in vec3 p, const int octaves, const float scale, const float amplitude, const float lacunarity, const float gain){
+  vec4 r = vec4(0.0);
+  vec3 du = vec3(0.0);
+  float res = 0.0;
+  float a = amplitude;
+  float s = scale;
+  for(int i = 0; i < octaves; i++){
+    vec4 v = noised(p * s, scale);
+    du += v.yzw;
+    r += vec4(v.x / fma(dot(du, du), 0.2, 1.0), v.yzw) * a;
+    a *= gain;
+    s *= lacunarity;
+  }
+  return r;
+}
+
+const float HEIGHT_TILES = 3.0;
+const int HEIGHT_OCTAVES = 3;
+const float HEIGHT_AMP = 0.25;
+const float HEIGHT_GAIN = 0.1;
+const float HEIGHT_LACUNARITY = 2.0;
+
+const float EROSION_TILES = 4.0;
+const int EROSION_OCTAVES = 5;
+const float EROSION_GAIN = 0.5;
+const float EROSION_LACUNARITY = 2.0;
+
+const float EROSION_SLOPE_STRENGTH = 3.0;
+const float EROSION_BRANCH_STRENGTH = 3.0;
+const float EROSION_STRENGTH = 0.04;
+
+vec3 Erosion(in vec2 p, vec2 dir, float scale){
+  vec2 ip = floor(p);
+  vec2 fp = fract(p);
+  float f = 6.28318530718;
+  vec3 va = vec3(0.0);
+  float wt = 0.0;
+  for(int i =- 2; i <= 1; i++){
+    for(int j = -2; j <= 1; j++){
+      vec2 o = vec2(i, j);
+      vec2 h = hash22(ip - o, scale) * 0.5;
+      vec2 pp = fp + o - h;
+      float d = dot(pp, pp);
+      float w = exp(-d * 2.0);
+      wt +=w;
+      float mag = dot(pp, dir);
+      va += vec3(cos(mag * f), -sin(mag * f) * (pp * 0.0 + dir)) * w;
+    }
+  }
+  return va / wt;
+}
+
+vec2 Heightmap(vec2 uv, float scale){
+  vec2 p = uv * HEIGHT_TILES;
+  vec3 n = vec3(0.0);
+  float nf = 1.0;
+  float na = HEIGHT_AMP;
+  for (int i = 0; i < HEIGHT_OCTAVES; i++){
+    n += noised(p * nf, scale) * na * vec3(1.0, nf, nf);
+    na *= HEIGHT_GAIN;
+    nf *= HEIGHT_LACUNARITY;
+  }
+  n.x = fma(n.x, 0.5, 0.5);
+  vec2 dir = n.zy * vec2(1.0, -1.0) * EROSION_SLOPE_STRENGTH;
+  vec3 h = vec3(0.0);
+  float a = 0.5;
+  float f = 1.0;
+ //a *= smoothstep(0.0, 1.0, n.x); 
+ //a *= smoothstep(WATER_HEIGHT - 0.1, WATER_HEIGHT + 0.2, n.x);
+  for(int i = 0; i < EROSION_OCTAVES; i++){
+    h += Erosion(p * EROSION_TILES * f, dir + (h.zy * vec2(1.0, -1.0) * EROSION_BRANCH_STRENGTH), scale) * a * vec2(1.0, f).xyy;
+    a *= EROSION_GAIN;
+    f *= EROSION_LACUNARITY;
+  }   
+  return vec2(fma(h.x - 0.5, EROSION_STRENGTH, n.x), h.x);
+}
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageHeightMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    ivec2 xy = wrapOctahedralTexelCoordinates(texel, texSize);
+    
+    vec3 p = octPlanetUnsignedDecode(vec2(xy) / vec2(texSize));
+
+    {
+      uvec2 tileMapXY = uvec2(texel) >> pushConstants.tileMapShift;
+      uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
+      atomicOr(tileMapDirtyBuffer.data[tileMapIndex >> 5u], 1u << (tileMapIndex & 31u));     
+    }
+   
+    float height = fbm3(
+      fma(p, vec3(0.5), vec3(0.5)), 
+      pushConstants.octaves,
+      pushConstants.scale,
+      pushConstants.amplitude,  
+      pushConstants.lacunarity,
+      pushConstants.gain
+    );
+   
+    imageStore(uImageHeightMap, texel, vec4(clamp(height * pushConstants.factor, pushConstants.minHeight, pushConstants.maxHeight)));
+
+  }
+
+}
+

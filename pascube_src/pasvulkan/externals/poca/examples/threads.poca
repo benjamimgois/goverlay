@@ -1,0 +1,26 @@
+
+var terminated=0, counter=0, counters={ a: 0, b: 1 };
+
+function thread1function(){ while(!terminated){ puts("Thread 1"); counter++; counters.a++; } }
+
+function thread2function(){ while(!terminated){ puts("Thread 2"); counter++; counters.b++; } }
+
+var thread1=new Thread(thread1function);
+var thread2=new Thread(thread2function);
+
+thread1.start();
+readLine();
+
+thread2.start();
+readLine();
+
+terminated=1;
+
+thread1.wait();
+thread2.wait();
+
+print("counter: ",counter,"\n");
+print("counters.a: ",counters.a,"\n");
+print("counters.b: ",counters.b,"\n");
+print("counters.a + counters.b: ",counters.a + counters.b,"\n");
+print("Hint: These can be different because they are not atomic operations (race conditions). But it should show the threadsafety of POCA.\n");

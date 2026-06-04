@@ -1,0 +1,120 @@
+
+(function(){
+  
+  loop1: for (let i = 0; i < 3; i++) {
+    loop2: for (let j = 0; j < 3; j++) {
+      if (i === 1 && j === 1) {
+        break loop1;
+      }
+      puts(`i = ${i}, j = ${j}`);
+    }
+  }
+  puts();
+  // Expected output:
+  // "i = 0, j = 0"
+  // "i = 0, j = 1"
+  // "i = 0, j = 2"
+  // "i = 1, j = 0"
+
+})();
+
+(function(){
+
+  // The first for statement is labeled "loop1"
+  loop1: for (let i = 0; i < 3; i++) {
+    // The second for statement is labeled "loop2"
+    loop2: for (let j = 0; j < 3; j++) {
+      if (i === 1 && j === 1) {
+        continue loop1;
+      }
+      puts(`i = ${i}, j = ${j}`);
+    }
+  }
+  // Expected output:
+  // "i = 0, j = 0"
+  // "i = 0, j = 1"
+  // "i = 0, j = 2"
+  // "i = 1, j = 0"
+  // "i = 2, j = 0"
+  // "i = 2, j = 1"
+  // "i = 2, j = 2"
+  puts();
+
+})();
+
+(function(){
+
+  // Numbers from 1 to 100
+  const items = [1..100];
+  const tests = [
+    { pass: (item) => item % 2 === 0 },
+    { pass: (item) => item % 3 === 0 },
+    { pass: (item) => item % 5 === 0 },
+  ];
+  let itemsPassed = 0;
+
+  itemIteration: foreach (const item in items) {
+    foreach (const test in tests) {
+      if (!test.pass(item)) {
+        continue itemIteration;
+      }
+    }
+
+    itemsPassed++;
+  }
+
+  puts(`Items that passed all tests: ${itemsPassed}`); // Should print 3
+  puts();
+
+})();
+
+(function(){
+
+  // Numbers from 1 to 100
+  const items = [1..100];
+  const tests = [
+    { pass: (item) => item % 2 === 0 },
+    { pass: (item) => item % 3 === 0 },
+    { pass: (item) => item % 5 === 0 },
+  ];
+
+  let allPass = true;
+
+  itemIteration: foreach (const item in items) {
+    foreach (const test in tests) {
+      if (!test.pass(item)) {
+        allPass = false;
+        break itemIteration;
+      }
+    }
+  }
+
+  puts(`Did all items pass all tests? ${allPass ? "true" : "false"}`); // Should print false
+  puts();
+
+})();
+
+(function(){
+
+  const matrix = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+  ];
+
+  let sum = 0;
+
+  rowLoop: for (let i = 0; i < matrix.length; i++) {
+    colLoop: for (let j = 0; j < matrix[i].length; j++) {
+      if (matrix[i][j] % 2 === 0) {
+        continue rowLoop; // Skip to the next row if an even number is found
+      }
+      sum += matrix[i][j];
+      //puts(`Adding ${matrix[i][j]} to sum, current sum: ${sum}`);
+    }
+  }
+
+  puts(`Sum of odd numbers before encountering an even number in each row: ${sum}`); // Should print 8 (1+7)
+  puts();
+
+})();

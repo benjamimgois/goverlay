@@ -1,0 +1,23 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) writeonly uniform image2D uImageGrassMap;
+
+/* clang-format on */
+
+void main(){
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 texSize = imageSize(uImageGrassMap);
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+    imageStore(uImageGrassMap, texel, vec4(0.0));
+  }
+}

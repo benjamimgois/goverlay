@@ -1,0 +1,360 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+#ifdef REDUCTION
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+#else
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+#endif
+
+#ifdef MULTIVIEW
+#ifdef MSAA
+layout(set = 0, binding = 0) uniform sampler2DMSArray uSourceTexture; // Source mipmap level texture
+#else
+layout(set = 0, binding = 0) uniform sampler2DArray uSourceTexture; // Source mipmap level texture
+#endif
+#if defined(REDUCTION)                                     
+layout(set = 0, binding = 1, rg32f) writeonly uniform image2DArray uDestinationTextures[]; // Destination mipmap level image
+#else
+layout(set = 0, binding = 1, rg32f) writeonly uniform image2DArray uDestinationTexture; // Destination mipmap level image
+#endif
+#else
+#ifdef MSAA
+layout(set = 0, binding = 0) uniform sampler2DMS uSourceTexture; // Source mipmap level texture
+#else
+layout(set = 0, binding = 0) uniform sampler2D uSourceTexture; // Source mipmap level texture
+#endif
+#if defined(REDUCTION)
+layout(set = 0, binding = 1, rg32f) writeonly uniform image2D uDestinationTextures[]; // Destination mipmap level image
+#else
+layout(set = 0, binding = 1, rg32f) writeonly uniform image2D uDestinationTexture; // Destination mipmap level image
+#endif
+#endif
+
+#ifdef REVERSEDZ
+
+  //#define reduceOp min
+  #define minDepthOp max
+  #define maxDepthOp min
+
+#else
+
+  //#define reduceOp max
+  #define minDepthOp min
+  #define maxDepthOp max
+
+#endif
+
+vec2 reduceOp(vec2 a, vec2 b){
+  vec2 aMinMax = vec2(min(a.x, a.y), max(a.x, a.y));
+  vec2 bMinMax = vec2(min(b.x, b.y), max(b.x, b.y));
+#ifdef REVERSEDZ
+  return vec2(min(aMinMax.x, bMinMax.x), max(aMinMax.y, bMinMax.y));
+#else
+  return vec2(max(aMinMax.y, bMinMax.y), min(aMinMax.x, bMinMax.x));
+#endif
+} 
+
+#ifdef FIRSTPASS
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 0, binding = 2, std430) volatile buffer NearestFarthestDepthBuffer {
+  uvec4 nearestFarthestDepthBuffer;
+};
+
+layout(set = 0, binding = 3, std140) uniform uboViews {
+  View views[256];
+} uView;
+
+layout(push_constant) uniform PushConstants {
+  uint countSamples;
+  uint viewBaseIndex;
+} pushConstants;
+
+mat4 inverseProjectionMatrix;
+
+float linearizeDepth(float z) {
+#if 0
+  vec2 v = (inverseProjectionMatrix * vec4(vec3(fma(inTexCoord, vec2(2.0), vec2(-1.0)), z), 1.0)).zw;
+#else
+  vec2 v = fma(inverseProjectionMatrix[2].zw, vec2(z), inverseProjectionMatrix[3].zw);
+#endif
+  return -(v.x / v.y);
+}
+
+#elif defined(REDUCTION)
+
+layout(push_constant) uniform PushConstants {
+  int countMipMapLevels;
+} pushConstants;
+
+shared vec2 sharedZ[8 * 8];
+
+#endif
+
+/* clang-format on */
+
+#if defined(REDUCTION)
+ivec2 sourceSize = ivec2(textureSize(uSourceTexture, 0).xy);
+
+vec2 getTexel(ivec2 xy, 
+#ifdef MULTIVIEW 
+              int viewIndex,
+#endif
+              int level, 
+              ivec2 offset) { 
+#ifdef MULTIVIEW
+  return texelFetch(uSourceTexture, ivec3(clamp(xy + offset, ivec2(0), ivec2(sourceSize - 1)), viewIndex), level).xy;
+#else
+  return texelFetch(uSourceTexture, clamp(xy + offset, ivec2(0), ivec2(sourceSize - 1)), level).xy;
+#endif
+}
+#endif
+
+void main() {
+#if defined(FIRSTPASS)
+
+#ifdef MULTIVIEW
+  ivec3 invocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+#else
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+#endif
+
+  ivec2 xy = invocationPosition.xy;
+
+#ifdef MULTIVIEW
+  ivec3 destinationTextureSize = imageSize(uDestinationTexture);
+#else
+  ivec2 destinationTextureSize = imageSize(uDestinationTexture);
+#endif
+
+#ifdef MULTIVIEW
+  if (all(greaterThanEqual(invocationPosition, ivec3(0))) && all(lessThan(invocationPosition, destinationTextureSize)))
+#else
+  if (all(greaterThanEqual(invocationPosition, ivec2(0))) && all(lessThan(invocationPosition, destinationTextureSize)))
+#endif
+  {
+
+#ifdef MULTIVIEW
+    int viewIndex = int(gl_GlobalInvocationID.z);
+    inverseProjectionMatrix = uView.views[pushConstants.viewBaseIndex + uint(viewIndex)].inverseProjectionMatrix;
+#else
+    inverseProjectionMatrix = uView.views[pushConstants.viewBaseIndex].inverseProjectionMatrix;
+#endif
+
+    float depth;
+
+#ifdef MSAA       
+
+#ifdef MULTIVIEW
+    float minDepth = texelFetch(uSourceTexture, ivec3(xy, viewIndex), 0).x;
+#else
+    float minDepth = texelFetch(uSourceTexture, ivec2(xy), 0).x;
+#endif
+    float maxDepth = minDepth;
+
+    for (int i = 1, j = int(pushConstants.countSamples); i < j; i++) {
+#ifdef MULTIVIEW      
+      float sampleDepth = texelFetch(uSourceTexture, ivec3(xy, viewIndex), i).x; 
+#else
+      float sampleDepth = texelFetch(uSourceTexture, ivec2(xy), i).x; 
+#endif
+      minDepth = minDepthOp(minDepth, sampleDepth);
+      maxDepth = maxDepthOp(maxDepth, sampleDepth);
+    }
+
+    depth = maxDepth;
+
+    float minDepthLinear = linearizeDepth(minDepth);
+    float maxDepthLinear = linearizeDepth(maxDepth);
+
+    uint minDepthUI = floatBitsToUint(min(minDepthLinear, maxDepthLinear));
+    uint maxDepthUI = floatBitsToUint(max(minDepthLinear, maxDepthLinear));
+
+    atomicMin(nearestFarthestDepthBuffer.x, minDepthUI);
+    atomicMax(nearestFarthestDepthBuffer.z, maxDepthUI);
+
+    if(all(greaterThanEqual(xy, (destinationTextureSize.xy * 52) >> 7)) && all(lessThanEqual(xy, (destinationTextureSize.xy * 76) >> 7))){
+      atomicMin(nearestFarthestDepthBuffer.y, minDepthUI);
+      atomicMax(nearestFarthestDepthBuffer.w, maxDepthUI);
+    }
+
+#else
+
+#ifdef MULTIVIEW
+    depth = texelFetch(uSourceTexture, ivec3(xy, viewIndex), 0).x;
+#else
+    depth = texelFetch(uSourceTexture, ivec2(xy), 0).x;
+#endif
+
+    uint depthUI = floatBitsToUint(linearizeDepth(depth));
+
+    atomicMin(nearestFarthestDepthBuffer.x, depthUI);
+    atomicMax(nearestFarthestDepthBuffer.z, depthUI);
+
+    if(all(greaterThanEqual(xy, (destinationTextureSize.xy * 52) >> 7)) && all(lessThanEqual(xy, (destinationTextureSize.xy * 76) >> 7))){
+      atomicMin(nearestFarthestDepthBuffer.y, depthUI);
+      atomicMax(nearestFarthestDepthBuffer.w, depthUI);
+    }
+
+#endif
+    
+    imageStore(uDestinationTexture, invocationPosition, vec4(depth));
+
+  }
+
+#elif defined(REDUCTION)
+
+  // Maximum four mipmap levels in a single pass, so more mip map levels require multiple passes divided by four mip maps, the remainder must be in
+  // pushConstants.countMipMapLevels.
+
+#ifdef MULTIVIEW
+  ivec3 invocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+#else
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+#endif
+             
+  vec2 depths;
+
+  //ivec2 sourceSize = textureSize(uSourceTexture, 0).xy;
+
+  ivec2 destinationTextureSize = imageSize(uDestinationTextures[0]).xy;
+
+#ifdef MULTIVIEW
+  depths = reduceOp(
+    reduceOp(
+      getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(0, 0)), 
+      getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(1, 0))), 
+    reduceOp(
+      getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(0, 1)), 
+      getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(1, 1))
+    )
+  );
+  if((sourceSize.x & 1) != 0){
+    if((sourceSize.y & 1) != 0){
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(0, 2)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(1, 2)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(2, 0)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(2, 1)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(2, 2)));
+    }else{
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(2, 0)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(2, 1)));
+    }      
+  }else{
+    if((sourceSize.y & 1) != 0){
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(0, 2)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, invocationPosition.z, 0, ivec2(1, 2)));
+    }
+  }
+#else
+  depths = reduceOp(
+    reduceOp(
+      getTexel(invocationPosition.xy << 1, 0, ivec2(0, 0)), 
+      getTexel(invocationPosition.xy << 1, 0, ivec2(1, 0))), 
+    reduceOp(
+      getTexel(invocationPosition.xy << 1, 0, ivec2(0, 1)), 
+      getTexel(invocationPosition.xy << 1, 0, ivec2(1, 1))
+    )
+  );
+  if((sourceSize.x & 1) != 0){
+    if((sourceSize.y & 1) != 0){
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(0, 2)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(1, 2)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(2, 0)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(2, 1)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(2, 2)));
+    }else{
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(2, 0)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(2, 1)));
+    }      
+  }else{
+    if((sourceSize.y & 1) != 0){
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(0, 2)));
+      depths = reduceOp(depths, getTexel(invocationPosition.xy << 1, 0, ivec2(1, 2)));
+    }
+  }
+#endif
+ 
+  if(all(lessThan(invocationPosition.xy >> 0, destinationTextureSize))){
+#ifdef MULTIVIEW
+    imageStore(uDestinationTextures[0], ivec3(invocationPosition.xy >> 0, invocationPosition.z), depths.xyxy);
+#else
+    imageStore(uDestinationTextures[0], invocationPosition.xy >> 0, depths.xyxy);
+#endif
+  }
+  if(pushConstants.countMipMapLevels == 1){
+    return;
+  }
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  sharedZ[localInvocationIndex] = depths;
+
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+  
+  if((localInvocationIndex & 0x09 /*0b001001*/) == 0){
+    depths = reduceOp(reduceOp(depths, sharedZ[localInvocationIndex + 0x01]), reduceOp(sharedZ[localInvocationIndex + 0x08], sharedZ[localInvocationIndex + 0x09]));
+    if(all(lessThan(invocationPosition.xy >> 1, destinationTextureSize))){
+#ifdef MULTIVIEW
+      imageStore(uDestinationTextures[1], ivec3(invocationPosition.xy >> 1, invocationPosition.z), depths.xyxy);
+#else
+      imageStore(uDestinationTextures[1], invocationPosition.xy >> 1, depths.xyxy);
+#endif
+    }
+    sharedZ[localInvocationIndex] = depths;
+  }
+  if(pushConstants.countMipMapLevels == 2){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x1b /*0b011011*/) == 0){
+    depths = reduceOp(reduceOp(depths, sharedZ[localInvocationIndex + 0x02]), reduceOp(sharedZ[localInvocationIndex + 0x10], sharedZ[localInvocationIndex + 0x12]));
+    if(all(lessThan(invocationPosition.xy >> 2, destinationTextureSize))){
+#ifdef MULTIVIEW
+      imageStore(uDestinationTextures[2], ivec3(invocationPosition.xy >> 2, invocationPosition.z), depths.xyxy);
+#else
+      imageStore(uDestinationTextures[2], invocationPosition.xy >> 2, depths.xyxy);
+#endif
+    }
+    sharedZ[localInvocationIndex] = depths;
+  }
+  if(pushConstants.countMipMapLevels == 3){
+    return;
+  }
+  barrier();
+
+  destinationTextureSize = max(ivec2(1), destinationTextureSize >> 1);
+
+  if((localInvocationIndex & 0x3f /*0b111111*/) == 0){
+    depths = reduceOp(reduceOp(depths, sharedZ[localInvocationIndex + 0x04]), reduceOp(sharedZ[localInvocationIndex + 0x20], sharedZ[localInvocationIndex + 0x24]));
+    if(all(lessThan(invocationPosition.xy >> 3, destinationTextureSize))){
+#ifdef MULTIVIEW
+      imageStore(uDestinationTextures[3], ivec3(invocationPosition.xy >> 3, invocationPosition.z), depths.xyxy);
+#else
+      imageStore(uDestinationTextures[3], invocationPosition.xy >> 3, depths.xyxy);
+#endif
+    }
+  }
+
+#else 
+
+  #error "No pass defined"
+
+#endif  
+}

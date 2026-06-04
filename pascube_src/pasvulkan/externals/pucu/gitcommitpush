@@ -1,0 +1,3 @@
+#!/bin/sh
+git commit -am "More work"
+git push

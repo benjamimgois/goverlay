@@ -1,0 +1,72 @@
+function makeMaze(w, h) {
+
+  // Create visibility grid
+  var vis = [];
+  for (var i = 0; i < h; i++) {
+    vis.push(((new Array(w)).fill(0)) ~ [1]);
+  }
+  vis.push((new Array(w + 1)).fill(1));
+
+  // Create vertical walls
+  var ver = [];
+  for (let i = 0; i < h; i++) {
+    ver.push(((new Array(w)).fill("|  ")) ~ ["|"]);
+  }
+  ver.push([]); // empty last row for vertical walls
+
+  // Create horizontal walls
+  var hor = [];
+  for (let i = 0; i <= h; i++) {
+    hor.push(((new Array(w)).fill("+--")) ~ ["+"]);
+  }
+
+  // Walk function to generate maze
+  function walk(x, y) {
+    vis[y][x] = 1;
+
+    let directions = [
+      [x - 1, y],
+      [x, y + 1],
+      [x + 1, y],
+      [x, y - 1]
+    ];
+
+    // Shuffle directions
+    for (let i = directions.size() - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      (directions[i], directions[j]) = (directions[j], directions[i]);
+    }
+
+    for (var i = 0; i < directions.size(); i++) {
+
+      let (xx, yy) = (directions[i][0], directions[i][1]);
+
+      if (vis[yy][xx]) continue;
+      if (xx === x) hor[Math.max(y, yy)][x] = "+  ";
+      if (yy === y) ver[y][Math.max(x, xx)] = "   ";
+      walk(xx, yy);
+    }
+  }
+
+  walk(Math.floor(Math.random() * w), Math.floor(Math.random() * h));
+
+  // Build the maze string
+  let result = "";
+  for (var i = 0; i < h; i++) {
+    for (var j = 0; j < w + 1; j++) {
+      result ~= hor[i][j];
+    }
+    result ~= "\n";
+    for (var j = 0; j < w + 1; j++) {
+      result ~= ver[i][j];
+    }
+    result ~= "\n";
+  }
+  for (var j = 0; j < w + 1; j++) {
+    result ~= hor[h][j];
+  }
+
+  return result ~ "\n";
+}
+
+print(makeMaze(16, 8));

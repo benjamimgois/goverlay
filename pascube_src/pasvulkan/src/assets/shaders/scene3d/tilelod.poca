@@ -1,0 +1,17 @@
+
+  let tileMapResolution = 64;
+  let tileResolution = 64;
+  let lod = 4;
+
+  let lodOffset = 0;
+  for(let i = 0; i < lod; i++){
+    lodOffset += (tileResolution >> i) * (tileResolution >> i);
+  }
+  lodOffset *= tileMapResolution * tileMapResolution * 6;
+  print(lodOffset, "\n");
+
+let directLODOffset = (((tileResolution * tileResolution) * (1.0 - Math.pow(0.5, lod << 1)) / 0.75)) * ((tileMapResolution * tileMapResolution) * 6);
+  print(directLODOffset, "\n");
+
+let directIntLODOffset = (((1 << ((lod * 2) + 1)) - 1) * ((tileResolution >> 1) * (tileResolution >> 1))) * ((tileMapResolution * tileMapResolution) * 6);
+print(directIntLODOffset, "\n");

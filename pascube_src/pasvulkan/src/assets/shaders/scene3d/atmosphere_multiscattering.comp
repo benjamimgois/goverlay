@@ -1,0 +1,200 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 64) in;
+
+/* clang-format on */
+
+#undef MULTISCATAPPROX_ENABLED
+#undef SHADOWS_ENABLED
+
+#include "globaldescriptorset.glsl"
+
+#include "atmosphere_common.glsl"
+
+// Push constants
+layout(push_constant, std140) uniform PushConstants {
+  int baseViewIndex;
+  int countViews;
+  float MultipleScatteringFactor;
+  int frameIndex;
+} pushConstants;
+
+shared vec3 MultiScatAs1SharedMem[64];
+shared vec3 LSharedMem[64];
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+layout(set = 2, binding = 0, rgba32f) uniform image2D uDestinationTexture;
+
+layout(set = 2, binding = 1) uniform sampler2D uTransmittanceLutTexture;
+
+layout(set = 2, binding = 2, std430) buffer AtmosphereParametersBuffer {
+  AtmosphereParameters atmosphereParameters;
+} uAtmosphereParameters;
+
+void main() {
+  
+  ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 size = imageSize(uDestinationTexture).xy;
+
+  bool inBounds = all(greaterThanEqual(xy, ivec2(0))) && all(lessThan(xy, size));
+  
+  vec2 pixPos = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);
+  vec2 uv = pixPos / vec2(size);
+
+  uv = vec2(fromSubUvsToUnit(uv.x, size.x), fromSubUvsToUnit(uv.y, size.y));
+
+  float cosSunZenithAngle = fma(uv.x, 2.0, -1.0);
+  vec3 sunDir = vec3(0.0, cosSunZenithAngle, sqrt(clamp(1.0 - (cosSunZenithAngle * cosSunZenithAngle), 0.0, 1.0)));
+  float viewHeight = uAtmosphereParameters.atmosphereParameters.BottomRadius + clamp(uv.y + PLANET_RADIUS_OFFSET, 0.0, 1.0) * ((uAtmosphereParameters.atmosphereParameters.TopRadius - uAtmosphereParameters.atmosphereParameters.BottomRadius) - PLANET_RADIUS_OFFSET);
+
+//vec3 WorldPos = normalize(uView.views[pushConstants.baseViewIndex].inverseViewMatrix[3].xyz) * viewHeight;
+  vec3 WorldPos = vec3(0.0, viewHeight, 0.0);
+
+  const bool ground = true;
+  const float SampleCountIni = 20;
+  const float DepthBufferValue = -1.0;
+  const bool VariableSampleCount = false;
+  const bool MieRayPhase = false;
+
+  const float SphereSolidAngle = 4.0 * PI;
+  const float IsotropicPhase = 1.0 / SphereSolidAngle;
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  #define SQRTSAMPLECOUNT 8
+  const float sqrtSample = float(SQRTSAMPLECOUNT);
+  int y = localInvocationIndex / SQRTSAMPLECOUNT;
+  int x = localInvocationIndex - (y * SQRTSAMPLECOUNT);
+  float i = float(int(y)) + 0.5;
+  float j = float(int(x)) + 0.5;
+  if(inBounds){
+    float randA = i / sqrtSample;
+    float randB = j / sqrtSample;
+    float theta = 2.0 * PI * randA;
+    float phi = acos(1.0 - (2.0 * randB));
+    vec2 cosSinPhi = vec2(sin(vec2(phi) + vec2(PI * 0.5, 0.0)));
+    vec2 cosSinTheta = vec2(sin(vec2(theta) + vec2(PI * 0.5, 0.0)));
+    vec3 WorldDir = vec3(cosSinTheta.xy * cosSinPhi.y, cosSinPhi.x);
+    SingleScatteringResult result = IntegrateScatteredLuminance(
+      uTransmittanceLutTexture,
+      uv, 
+      WorldPos, 
+      WorldDir, 
+      sunDir,  
+      uAtmosphereParameters.atmosphereParameters,
+      ground, 
+      SampleCountIni, 
+      DepthBufferValue, 
+      VariableSampleCount, 
+      MieRayPhase,
+      mat4(1.0),
+      -1.0,
+      false
+    );
+    MultiScatAs1SharedMem[localInvocationIndex] = result.MultiScatAs1 * SphereSolidAngle / (sqrtSample * sqrtSample);
+    LSharedMem[localInvocationIndex] = result.L * SphereSolidAngle / (sqrtSample * sqrtSample);
+  }else{
+    MultiScatAs1SharedMem[localInvocationIndex] = vec3(0.0);
+    LSharedMem[localInvocationIndex] = vec3(0.0);
+  }
+  #undef SQRTSAMPLECOUNT
+
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 64 to 32
+  if(localInvocationIndex < 32){
+    MultiScatAs1SharedMem[localInvocationIndex] += MultiScatAs1SharedMem[localInvocationIndex + 32];
+    LSharedMem[localInvocationIndex] += LSharedMem[localInvocationIndex + 32];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 32 to 16
+  if(localInvocationIndex < 16){
+    MultiScatAs1SharedMem[localInvocationIndex] += MultiScatAs1SharedMem[localInvocationIndex + 16];
+    LSharedMem[localInvocationIndex] += LSharedMem[localInvocationIndex + 16];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 16 to 8
+  if(localInvocationIndex < 8){
+    MultiScatAs1SharedMem[localInvocationIndex] += MultiScatAs1SharedMem[localInvocationIndex + 8];
+    LSharedMem[localInvocationIndex] += LSharedMem[localInvocationIndex + 8];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 8 to 4
+  if(localInvocationIndex < 4){
+    MultiScatAs1SharedMem[localInvocationIndex] += MultiScatAs1SharedMem[localInvocationIndex + 4];
+    LSharedMem[localInvocationIndex] += LSharedMem[localInvocationIndex + 4];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 4 to 2
+  if(localInvocationIndex < 2){
+    MultiScatAs1SharedMem[localInvocationIndex] += MultiScatAs1SharedMem[localInvocationIndex + 2];
+    LSharedMem[localInvocationIndex] += LSharedMem[localInvocationIndex + 2];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 2 to 1
+  if(localInvocationIndex < 1){
+    MultiScatAs1SharedMem[localInvocationIndex] += MultiScatAs1SharedMem[localInvocationIndex + 1];
+    LSharedMem[localInvocationIndex] += LSharedMem[localInvocationIndex + 1];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  if(inBounds && (localInvocationIndex == 0)){
+
+  /*for(int i = 1; i < 64; i++){
+      MultiScatAs1SharedMem[0] += MultiScatAs1SharedMem[i];
+      LSharedMem[0] += LSharedMem[i];
+    }*/
+
+    vec3 MultiScatAs1 = MultiScatAs1SharedMem[0] * IsotropicPhase;
+    vec3 InScatteredLuminance = LSharedMem[0] * IsotropicPhase;
+
+  #if MULTI_SCATTERING_POWER_SERIE == 0
+    vec3 MultiScatAs1SQR = MultiScatAs1 * MultiScatAs1;
+    vec3 L = InScatteredLuminance * ((((1.0 + MultiScatAs1) + MultiScatAs1SQR) + (MultiScatAs1 * MultiScatAs1SQR)) + (MultiScatAs1SQR * MultiScatAs1SQR));
+  #else
+    const vec3 r = MultiScatAs1;
+    const vec3 SumOfAllMultiScatteringEventsContribution = 1.0 / (1.0 - r);
+    vec3 L = InScatteredLuminance * SumOfAllMultiScatteringEventsContribution;
+  #endif
+
+    imageStore(uDestinationTexture, ivec2(pixPos), vec4(pushConstants.MultipleScatteringFactor * L, 1.0));
+
+  }
+
+}

@@ -1,0 +1,234 @@
+// 3D Rotating Cube
+
+// Set the garbage collector to non-incremental mode for performance
+GarbageCollector.setIncremental(false);
+
+// --- Terminal Control Functions ---
+function clearScreen() {
+  print("\u001b[2J");
+}
+
+function setCursorPosition(x, y) {
+  print(`\u001b[${y+1};${x+1}H`);
+}
+
+function setCursorVisible(visible) {
+  print(visible ? "\u001b[?25h" : "\u001b[?25l");
+}
+
+function setColor(color) {
+  print(`\u001b[38;5;${color}m`);
+}
+
+function resetColor() {
+  print("\u001b[0m");
+}
+
+function setBackgroundColor(color) {
+  print(`\u001b[48;5;${color}m`);
+}
+
+function resetBackgroundColor() {
+  print("\u001b[49m");
+}
+
+const width = 80;
+const height = 40;
+
+let vertices = [
+  -1,-1,-1,-1,-1, 1,-1, 1,-1, -1, 1, 1, 1,-1,-1, 1,-1, 1, 1, 1,-1, 1, 1, 1
+];
+let indices = [
+  0, 1, 0, 4, 0, 2, 1, 3, 1, 5, 2, 3, 2, 6, 3, 7, 4, 5, 4, 6, 5, 7, 6, 7
+];
+
+let startTime = DateTime.now();
+
+let workVertices = new Array(8 * 3);
+
+const ratio = 0.5; // font size y / x
+const zoom = 20;
+
+let buf = new Array(height);
+for(let i = 0; i < height; i++){
+  buf[i] = new Array(width);
+}
+
+function clearBuffer(){
+  for(let i = 0; i < height; i++){
+    buf[i].fill(0);
+  }
+}
+
+function line(x0, y0, x1, y1, c){
+  // Xiaolin Wu's line algorithm for antialiasing
+  
+  let steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+  
+  if(steep){
+    (x0, y0) = (y0, x0);
+    (x1, y1) = (y1, x1);
+  }
+  if(x0 > x1){
+    (x0, x1) = (x1, x0);
+    (y0, y1) = (y1, y0);
+  }
+  
+  let dx = x1 - x0;
+  let dy = y1 - y0;
+  let gradient = (dx == 0) ? 1.0 : (dy / dx);
+  
+  // Handle first endpoint
+  let xend = Math.round(x0);
+  let yend = y0 + (gradient * (xend - x0));
+  let xgap = 1 - ((x0 + 0.5) - Math.floor(x0 + 0.5));
+  let xpxl1 = xend;
+  let ypxl1 = Math.floor(yend);
+  
+  if(steep){
+    if((ypxl1 >= 0) && (ypxl1 < width) && (xpxl1 >= 0) && (xpxl1 < height)){
+      buf[xpxl1][ypxl1] += (1 - (yend - Math.floor(yend))) * xgap * c;
+    }
+    if((ypxl1 + 1 >= 0) && (ypxl1 + 1 < width) && (xpxl1 >= 0) && (xpxl1 < height)){
+      buf[xpxl1][ypxl1 + 1] += (yend - Math.floor(yend)) * xgap * c;
+    }
+  }else{
+    if((xpxl1 >= 0) && (xpxl1 < width) && (ypxl1 >= 0) && (ypxl1 < height)){
+      buf[ypxl1][xpxl1] += (1 - (yend - Math.floor(yend))) * xgap * c;
+    }
+    if((xpxl1 >= 0) && (xpxl1 < width) && (ypxl1 + 1 >= 0) && (ypxl1 + 1 < height)){
+      buf[ypxl1 + 1][xpxl1] += (yend - Math.floor(yend)) * xgap * c;
+    }
+  }
+  
+  let intery = yend + gradient;
+  
+  // Handle second endpoint
+  xend = Math.round(x1);
+  yend = y1 + gradient * (xend - x1);
+  xgap = (x1 + 0.5) - Math.floor(x1 + 0.5);
+  let xpxl2 = xend;
+  let ypxl2 = Math.floor(yend);
+  
+  if(steep){
+    if((ypxl2 >= 0) && (ypxl2 < width) && (xpxl2 >= 0) && (xpxl2 < height)){
+      buf[xpxl2][ypxl2] += (1 - (yend - Math.floor(yend))) * xgap * c;
+    }
+    if((ypxl2 + 1 >= 0) && (ypxl2 + 1 < width) && (xpxl2 >= 0) && (xpxl2 < height)){
+      buf[xpxl2][ypxl2 + 1] += (yend - Math.floor(yend)) * xgap * c;
+    }
+  }else{
+    if((xpxl2 >= 0) && (xpxl2 < width) && (ypxl2 >= 0) && (ypxl2 < height)){
+      buf[ypxl2][xpxl2] += (1 - (yend - Math.floor(yend))) * xgap * c;
+    }
+    if((xpxl2 >= 0) && (xpxl2 < width) && (ypxl2 + 1 >= 0) && (ypxl2 + 1 < height)){
+      buf[ypxl2 + 1][xpxl2] += (yend - Math.floor(yend)) * xgap * c;
+    }
+  }
+  
+  // Main loop
+  if(steep){
+    for(let x = xpxl1 + 1; x < xpxl2; x++){
+      let ipart = Math.floor(intery);
+      let fpart = intery - ipart;
+      if((ipart >= 0) && (ipart < width) && (x >= 0) && (x < height)){
+        buf[x][ipart] += (1 - fpart) * c;
+      }
+      if((ipart + 1 >= 0) && (ipart + 1 < width) && (x >= 0) && (x < height)){
+        buf[x][ipart + 1] += fpart * c;
+      }
+      intery += gradient;
+    }
+  }else{
+    for(let x = xpxl1 + 1; x < xpxl2; x++){
+      let ipart = Math.floor(intery);
+      let fpart = intery - ipart;
+      if((x >= 0) && (x < width) && (ipart >= 0) && (ipart < height)){
+        buf[ipart][x] += (1 - fpart) * c;
+      }
+      if((x >= 0) && (x < width) && (ipart + 1 >= 0) && (ipart + 1 < height)){
+        buf[ipart + 1][x] += fpart * c;
+      }
+      intery += gradient;
+    }
+  }
+
+}
+
+function renderCube(){
+  let (offsetX, offsetY) = (width * 0.5, height * 0.5);
+  for(let p = 0; p < 12; p++){
+    let sx = (Math.round((zoom * workVertices[indices[p * 2] * 3]) + offsetX)) << 0;
+    let sy = (Math.round(((zoom * workVertices[indices[p * 2] * 3 + 1]) * ratio) + offsetY)) << 0;
+    let sx1 = (Math.round((zoom * workVertices[indices[p * 2 + 1] * 3]) + offsetX)) << 0;
+    let sy1 = (Math.round(((zoom * workVertices[indices[p * 2 + 1] * 3 + 1]) * ratio) + offsetY)) << 0;
+    line(sx, sy, sx1, sy1, 1.0);
+  }
+}
+
+function updateCube(){
+  let currentTime = DateTime.now();
+  let elapsed = DateTime.milliseconds(currentTime - startTime) * 0.03125;
+  let (xa, ya, za) = (elapsed * 0.1, elapsed * 0.02, elapsed * 0.04);
+  let (cosXA, sinXA) = (Math.cos(xa), Math.sin(xa));
+  let (cosYA, sinYA) = (Math.cos(ya), Math.sin(ya));
+  let (cosZA, sinZA) = (Math.cos(za), Math.sin(za));
+  for(let p = 0; p < 8; p++){
+    let (x, y, z) = (vertices[p * 3], vertices[(p * 3) + 1], vertices[(p * 3) + 2]);
+    let (y0, z0) = ((y * cosXA) - (z * sinXA), (y * sinXA) + (z * cosXA));
+    let (x1, z1) = ((x * cosYA) - (z0 * sinYA), (x * sinYA) + (z0 * cosYA));
+    let (x2, y2) = ((x1 * cosZA) - (y0 * sinZA), (x1 * sinZA) + (y0 * cosZA));
+    workVertices[p * 3] = x2;
+    workVertices[(p * 3) + 1] = y2;
+    workVertices[(p * 3) + 2] = z1;
+  }
+}
+
+let chars = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$", countChars = chars.length;
+
+// Precompute brightness to character mapping
+let brightnessLookupTable = new Array(256);
+for(let brightness = 0; brightness < 256; brightness++){
+  brightnessLookupTable[brightness] = `\u001b[38;2;${brightness};${brightness};${brightness}m` ~ chars.charAt(Math.min(Math.max(Math.round((brightness / 255) * countChars), 0), countChars - 1));
+}
+
+function drawScreen(){  
+  setCursorPosition(0, 0);
+  let s = '';
+  for(let i = 0; i < height; i++){
+    let line = buf[i];
+    for(let j = 0; j < width; j++){
+      s ~= brightnessLookupTable[Math.min(Math.max(Math.round(line[j] * 255), 0), 255)];
+    }
+    s ~= "\n";
+  }
+  print(s);
+}
+
+Console.initialize();
+
+clearScreen();
+setCursorVisible(false);
+while(true){
+  updateCube();
+  clearBuffer();
+  renderCube();
+  drawScreen();
+  //sleep(10);
+  let key = Console.readKey();
+  if (key) {
+    if ((key === 3) || (key === 113)) {  // Ctrl-C or 'q'
+      break;
+    } 
+  }
+  GarbageCollector.collect(); // Manually call gc to avoid stuttering
+}
+
+resetColor();
+resetBackgroundColor();
+clearScreen();
+setCursorVisible(true);
+setCursorPosition(0, 0);
+Console.finalize();
+
+puts("Good bye!");

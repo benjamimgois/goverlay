@@ -1,0 +1,425 @@
+object FormMain: TFormMain
+  Left = -8
+  Height = 726
+  Top = -8
+  Width = 1009
+  Caption = 'Kraft physics engine sandbox - Copyright (C) 2015-2023, Benjamin ''BeRo'' Rosseaux'
+  ClientHeight = 211
+  ClientWidth = 320
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Menu = MainMenu1
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  Position = poScreenCenter
+  LCLVersion = '2.3.0.0'
+  WindowState = wsMaximized
+  object sSplitter1: TSplitter
+    Left = 305
+    Height = 726
+    Top = 0
+    Width = 5
+    ResizeStyle = rsLine
+  end
+  object sSplitter3: TSplitter
+    Left = 819
+    Height = 726
+    Top = 0
+    Width = 5
+    Align = alRight
+    ResizeAnchor = akRight
+    ResizeStyle = rsLine
+  end
+  object sPanelLeft: TPanel
+    Left = 0
+    Height = 726
+    Top = 0
+    Width = 305
+    Align = alLeft
+    BevelOuter = bvNone
+    ClientHeight = 726
+    ClientWidth = 305
+    ParentBackground = False
+    TabOrder = 0
+    object sSplitter2: TSplitter
+      Cursor = crVSplit
+      Left = 0
+      Height = 6
+      Top = 297
+      Width = 305
+      Align = alTop
+      ResizeAnchor = akTop
+      ResizeStyle = rsLine
+    end
+    object sPanelLeftTop: TPanel
+      Left = 0
+      Height = 297
+      Top = 0
+      Width = 305
+      Align = alTop
+      BevelOuter = bvNone
+      ClientHeight = 297
+      ClientWidth = 305
+      ParentBackground = False
+      TabOrder = 0
+      object sGroupBoxTree: TGroupBox
+        Left = 0
+        Height = 297
+        Top = 0
+        Width = 305
+        Align = alClient
+        Caption = 'Tree'
+        ClientHeight = 285
+        ClientWidth = 293
+        ParentBackground = False
+        TabOrder = 0
+        object sTreeViewMain: TTreeView
+          Left = 0
+          Height = 269
+          Top = 0
+          Width = 301
+          Align = alClient
+          BackgroundColor = clDefault
+          Color = clDefault
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'MS Sans Serif'
+          HideSelection = False
+          Indent = 19
+          ParentFont = False
+          ReadOnly = True
+          ShowSeparators = False
+          TabOrder = 0
+          OnChange = sTreeViewMainChange
+          Options = [tvoAutoItemHeight, tvoKeepCollapsedNodes, tvoReadOnly, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+        end
+      end
+    end
+    object sPanelLeftBottom: TPanel
+      Left = 0
+      Height = 423
+      Top = 303
+      Width = 305
+      Align = alClient
+      BevelOuter = bvNone
+      ClientHeight = 423
+      ClientWidth = 305
+      ParentBackground = False
+      TabOrder = 1
+      object sGroupBoxPropertyEditor: TGroupBox
+        Left = 0
+        Height = 423
+        Top = 0
+        Width = 305
+        Align = alClient
+        Caption = 'Property editor'
+        ParentBackground = False
+        TabOrder = 0
+      end
+    end
+  end
+  object sPanelRight: TPanel
+    Left = 824
+    Height = 726
+    Top = 0
+    Width = 185
+    Align = alRight
+    BevelOuter = bvNone
+    ClientHeight = 726
+    ClientWidth = 185
+    ParentBackground = False
+    TabOrder = 1
+    object sGroupBoxDemos: TGroupBox
+      Left = 0
+      Height = 726
+      Top = 0
+      Width = 185
+      Align = alClient
+      Caption = 'Demos'
+      ClientHeight = 714
+      ClientWidth = 173
+      ParentBackground = False
+      TabOrder = 0
+      object sTreeViewDemos: TTreeView
+        Left = 0
+        Height = 698
+        Top = 0
+        Width = 181
+        Align = alClient
+        BackgroundColor = clDefault
+        Color = clDefault
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        HideSelection = False
+        Indent = 19
+        ParentFont = False
+        ReadOnly = True
+        ShowSeparators = False
+        TabOrder = 0
+        OnDblClick = sTreeViewDemosDblClick
+        OnKeyPress = sTreeViewDemosKeyPress
+        Options = [tvoAutoItemHeight, tvoKeepCollapsedNodes, tvoReadOnly, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+      end
+    end
+  end
+  object sPanelMiddle: TPanel
+    Left = 310
+    Height = 726
+    Top = 0
+    Width = 509
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 726
+    ClientWidth = 509
+    FullRepaint = False
+    ParentBackground = False
+    TabOrder = 2
+    object sSplitter4: TSplitter
+      Cursor = crVSplit
+      Left = 0
+      Height = 6
+      Top = 552
+      Width = 509
+      Align = alBottom
+      ResizeAnchor = akBottom
+      ResizeStyle = rsLine
+    end
+    object sPanelMiddleBottom: TPanel
+      Left = 0
+      Height = 168
+      Top = 558
+      Width = 509
+      Align = alBottom
+      BevelOuter = bvNone
+      ClientHeight = 168
+      ClientWidth = 509
+      ParentBackground = False
+      TabOrder = 0
+      object sPageControl1: TPageControl
+        Left = 0
+        Height = 168
+        Top = 0
+        Width = 509
+        ActivePage = sTabSheetInfo
+        Align = alClient
+        TabIndex = 0
+        TabOrder = 0
+        object sTabSheetInfo: TTabSheet
+          Caption = 'Info'
+          ClientHeight = 133
+          ClientWidth = 505
+          object sMemoInfo: TMemo
+            Left = 0
+            Height = 133
+            Top = 0
+            Width = 505
+            Align = alClient
+            Font.Height = -11
+            Font.Name = 'MS Sans Serif'
+            Lines.Strings = (
+              'Left button = rotate, OR (due to Delphi''s OnMouseDown limitations), right button = Grab and '
+              'rotate'
+              'Cursor keys / WASD = Move forwards, backwards and sidewars '
+              'PageUp/PageDown R/F = Move upwards and downwards'
+              'Space = Fire a sphere'
+              ''
+              'Attention: Some demo scenes needs higher count of velocity iterations and/or position '
+              'iterations and/or a higher world update frequency, for to being (more) stable.'
+            )
+            ParentFont = False
+            ReadOnly = True
+            TabOrder = 0
+          end
+        end
+        object sTabSheetPerformance: TTabSheet
+          Caption = 'Performance'
+          ClientHeight = 133
+          ClientWidth = 505
+          object sLabelBroadPhaseTime: TLabel
+            Left = 8
+            Height = 13
+            Top = 8
+            Width = 657
+            AutoSize = False
+            Caption = '0 '
+            ParentColor = False
+          end
+          object sLabelMidPhaseTime: TLabel
+            Left = 8
+            Height = 13
+            Top = 24
+            Width = 721
+            AutoSize = False
+            Caption = '0 '
+            ParentColor = False
+          end
+          object sLabelNarrowPhaseTime: TLabel
+            Left = 8
+            Height = 13
+            Top = 40
+            Width = 721
+            AutoSize = False
+            Caption = '0 '
+            ParentColor = False
+          end
+          object sLabelSolverTime: TLabel
+            Left = 8
+            Height = 13
+            Top = 56
+            Width = 721
+            AutoSize = False
+            Caption = '0 '
+            ParentColor = False
+          end
+          object sLabelContinuousTime: TLabel
+            Left = 8
+            Height = 13
+            Top = 72
+            Width = 721
+            AutoSize = False
+            Caption = '0 '
+            ParentColor = False
+          end
+          object sLabelTotalTime: TLabel
+            Left = 8
+            Height = 13
+            Top = 88
+            Width = 721
+            AutoSize = False
+            Caption = '0 '
+            ParentColor = False
+          end
+        end
+        object sTabSheetSettings: TTabSheet
+          Caption = 'Settings'
+          ClientHeight = 133
+          ClientWidth = 505
+          object sCheckBoxDrawDynamicAABBTree: TCheckBox
+            Left = 8
+            Height = 20
+            Top = 8
+            Width = 160
+            Caption = 'Draw dynamic AABB tree '
+            TabOrder = 0
+          end
+          object sCheckBoxDrawContacts: TCheckBox
+            Left = 8
+            Height = 20
+            Top = 32
+            Width = 102
+            Caption = 'Draw contacts'
+            Checked = True
+            State = cbChecked
+            TabOrder = 1
+          end
+          object sCheckBoxDrawWireFrame: TCheckBox
+            Left = 8
+            Height = 20
+            Top = 56
+            Width = 111
+            Caption = 'Draw wireframe'
+            TabOrder = 2
+          end
+          object sCheckBoxDrawSolid: TCheckBox
+            Left = 8
+            Height = 20
+            Top = 80
+            Width = 83
+            Caption = 'Draw solid'
+            Checked = True
+            State = cbChecked
+            TabOrder = 3
+          end
+          object sCheckBoxDrawConstraints: TCheckBox
+            Left = 8
+            Height = 20
+            Top = 104
+            Width = 116
+            Caption = 'Draw constraints'
+            Checked = True
+            State = cbChecked
+            TabOrder = 4
+          end
+        end
+      end
+    end
+    object sPageControl2: TPageControl
+      Left = 0
+      Height = 552
+      Top = 0
+      Width = 509
+      ActivePage = sTabSheetWorld
+      Align = alClient
+      TabIndex = 0
+      TabOrder = 1
+      object sTabSheetWorld: TTabSheet
+        Caption = 'World'
+        ClientHeight = 517
+        ClientWidth = 505
+        object OpenGLControlWorld: TOpenGLControl
+          Left = 0
+          Height = 517
+          Top = 0
+          Width = 505
+          Align = alClient
+          OnEnter = OpenGLControlWorldEnter
+          OnExit = OpenGLControlWorldExit
+          OnKeyDown = OpenGLControlWorldKeyDown
+          OnKeyUp = OpenGLControlWorldKeyUp
+          OnMouseDown = OpenGLControlWorldMouseDown
+          OnMouseMove = OpenGLControlWorldMouseMove
+          OnMouseUp = OpenGLControlWorldMouseUp
+          OnMouseWheel = OpenGLControlWorldMouseWheel
+          OnPaint = OpenGLControlWorldPaint
+        end
+      end
+    end
+  end
+  object MainMenu1: TMainMenu
+    Left = 392
+    Top = 80
+    object N1: TMenuItem
+      Caption = '&File'
+      object N2: TMenuItem
+        Caption = '&Quit'
+        ShortCut = 32883
+        OnClick = N2Click
+      end
+    end
+    object N3: TMenuItem
+      Caption = '&Settings'
+      Visible = False
+      object Skinned1: TMenuItem
+        Caption = '&Skinned'
+        OnClick = Skinned1Click
+      end
+    end
+  end
+  object TimerPerformance: TTimer
+    Interval = 20
+    OnTimer = TimerPerformanceTimer
+    Left = 547
+    Top = 424
+  end
+  object TimerFPS: TTimer
+    OnTimer = TimerFPSTimer
+    Left = 624
+    Top = 424
+  end
+  object TimerDraw: TTimer
+    Enabled = False
+    Interval = 10
+    OnTimer = TimerDrawTimer
+    Left = 411
+    Top = 351
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 562
+    Top = 313
+  end
+end

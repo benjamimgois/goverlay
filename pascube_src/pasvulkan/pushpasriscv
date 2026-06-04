@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Check if the script is run from the root of the PasVulkan GIT repository by checking if the .git directory is present
+if [ ! -d ".git" ]; then
+  echo "This script must be run from the root of the PasVulkan GIT repository"
+  exit 1
+fi
+
+# Check if the script is run from the original author by checking if the home directory /home/bero is present, which is the home directory of the original author 
+if [ ! -d "/home/bero" ]; then
+  echo "This script must be run only from the original author"
+  exit 1
+fi
+
+read -p "Enter commit message (or leave blank for default): " commit_message
+
+if [ -z "$commit_message" ]; then
+  commit_message="More work"
+fi
+
+# Save the current directory in a variable
+OLD_DIR="$(pwd)" 
+
+# Copy modified files from the pasriscv submodule to the real directory of the pasriscv GIT repository
+cp -f externals/pasriscv/README.md ../pasriscv/README.md
+cp -f externals/pasriscv/docs/documentation.md ../pasriscv/docs/documentation.md
+cp -f externals/pasriscv/src/PasRISCV.pas ../pasriscv/src/PasRISCV.pas
+
+# Clean the pasriscv submodule from the local changes 
+cd externals/pasriscv
+git stash # Stash the local changes
+git stash drop # Drop the stashed local changes
+git pull origin master # For ensuring that the local pasriscv submodule is on the right branch
+cd "${OLD_DIR}"
+
+# Commit the changes in the pasriscv GIT repository
+cd ../pasriscv
+git commit -a -m "$commit_message"
+git push
+cd "${OLD_DIR}"
+
+# Update all submodules including the pasriscv submodule for the lastest versions
+git submodule update --remote --recursive
+
+# Commit the changes in the main PasVulkan GIT repository
+git commit -am "Updated submodules"
+git push
+
+# Switch to the old directory back
+cd "${OLD_DIR}"
+
+# Exit with success
+exit 0

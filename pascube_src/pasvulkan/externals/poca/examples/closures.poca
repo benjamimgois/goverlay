@@ -1,0 +1,84 @@
+
+function makeAdder(x) {
+  return function (y) {
+    return x + y;
+  };
+}
+
+const add5 = makeAdder(5);
+const add10 = makeAdder(10);
+
+print(add5(2), "\n"); // 7
+print(add10(2), "\n"); // 12
+
+print("\n");
+
+////////////////////////////////////////////////////////////////////////////////
+
+const counter = (function () {
+  
+  var privateCounter = 0;
+
+  function changeBy(val) {
+    privateCounter += val;
+  }
+
+  return {
+    increment:function(){
+      changeBy(1);
+    },
+    decrement:function(){
+      changeBy(-1);
+    },
+    value:function(){
+      return privateCounter;
+    },
+  };
+})();
+
+print(counter.value(), "\n"); // 0.
+
+counter.increment();
+counter.increment();
+print(counter.value(), "\n"); // 2.
+
+counter.decrement();
+print(counter.value(), "\n"); // 1.
+
+print("\n");
+
+////////////////////////////////////////////////////////////////////////////////
+
+// global scope
+var e = 10;
+function sum(a) {
+  return function (b) {
+    return function (c) {
+      // outer functions scope
+      return function (d) {
+        // local scope
+        return a + b + c + d + e;
+      };
+    };
+  };
+}
+
+print(sum(1)(2)(3)(4), "\n"); // 20
+
+print("\n");
+
+////////////////////////////////////////////////////////////////////////////////
+
+function make_closure() {
+  var count = 0;
+
+  return function() {
+    return ++count;
+  };
+};
+
+let numeraire = make_closure();
+
+puts(numeraire()); // => 1
+puts(numeraire()); // => 2
+puts(numeraire()); // => 3

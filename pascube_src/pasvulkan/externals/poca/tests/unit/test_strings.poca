@@ -1,0 +1,166 @@
+(function() {
+
+  return {
+    empty_string_is_false: () => Test.assertFalse(''),
+    empty_string_is_not_null: () => Test.assertNotNull(''),
+    empty_string_is_not_like_null: () => Test.assertNotLikeNull(''),
+
+    empty_string_has_length_zero: () => Test.assertZero(''.length),
+    empty_string_has_size_zero: () => Test.assertZero(''.size()),
+
+    string_has_length_one: () => Test.assertEqual(' '.length, 1),
+    string_has_size_one: () => Test.assertEqual(' '.size(), 1),
+
+    space_string_is_true: () => Test.assertFalse(' '),
+
+    string_length: [
+      () => {
+        let a = '';
+        let b = "";
+        let c = ``;
+        Test.assertZero(a.length);
+        Test.assertZero(b.length);
+        Test.assertZero(c.length);
+      }
+    ],
+
+    string_size: [
+      () => {
+        let a = '';
+        let b = "";
+        let c = ``;
+        Test.assertZero(a.size());
+        Test.assertZero(b.size());
+        Test.assertZero(c.size());
+      }
+    ],
+
+    string_type: [
+      () => {
+        const ca = '';
+        const cb = "";
+        const cc = ``;
+
+        Test.assertType(ca, 'String');
+        Test.assertType(cb, 'String');
+        Test.assertType(cc, 'String');
+      }
+    ],
+
+    string_comparison: [
+      () => Test.assertEqual('abc', "abc"),
+      () => Test.assertEqual(`abc`, "abc"),
+
+      () => Test.assertUnlike('abc', 'abc '),
+      () => Test.assertUnlike('abc', ' abc'),
+      () => Test.assertUnlike('abc', ' abc '),
+
+      () => { let abc = 'abc'; Test.assertEqual(abc, 'abc') },
+      () => { let abc = 'abc'; Test.assertEqual(abc, abc) },
+
+      () => Test.assertLike('1', 1),
+      () => Test.assertUnequal('1', 1)
+    ],
+
+
+    string_split: [
+      () => {
+        let s = 'foo bar baz';
+        let a = s.split(' ');
+
+        Test.assert(
+          typeof(a) == 'Array' && a.size() == 3 &&
+
+          a[0] == 'foo' &&
+          a[1] == 'bar' &&
+          a[2] == 'baz'
+        );
+      },
+
+      () => {
+        let s = '  foo bar   baz ';
+        let a = s.split(' ');
+
+        Test.assert(
+          typeof(a) == 'Array' && a.size() == 8 &&
+
+          a[0] == ''    &&
+          a[1] == ''    &&
+          a[2] == 'foo' &&
+          a[3] == 'bar' &&
+          a[4] == ''    &&
+          a[5] == ''    &&
+          a[6] == 'baz' &&
+          a[7] == ''
+        );
+      },
+
+      () => {
+        let s = '  foo bar   baz ';
+        let a = s.split(' ', true);
+
+        Test.assert(
+          typeof(a) == 'Array' && a.size() == 3 &&
+
+          a[0] == 'foo' &&
+          a[1] == 'bar' &&
+          a[2] == 'baz'
+        );
+      }
+    ],
+
+    string_split_by_regex: [
+      () => {
+        const s = 'foo   bar baz ';
+
+        Test.assertLength(/./.split(s), 15);
+
+        Test.assertStructure(
+          /\s/.split(s),
+          [ 'foo', '', '', 'bar', 'baz', '' ]
+        );
+
+        Test.assertStructure(
+          /\s+/.split(s),
+          [ 'foo', 'bar', 'baz', '' ]
+        );
+
+        Test.assertStructure(
+          / /.split(s),
+          [ 'foo', '', '', 'bar', 'baz', '' ]
+        );
+
+        Test.assertStructure(
+          /\s+bar\s+/.split(s),
+          [ 'foo', 'baz ' ]
+        );
+
+        Test.assertStructure(
+          /  /.split(s),
+          [ 'foo', ' bar baz ' ]
+        );
+      },
+
+      () => {
+        let rx = new RegExp("/😀/");
+
+        Test.assertStructure(
+          rx.split('Hello 😀 my 😀 friend! 👋'),
+          [ 'Hello ', ' my ', ' friend! 👋' ]
+        );
+      }
+    ],
+
+    string_repeat: [
+      () => Test.assertEqual(''.repeat(0), ''),
+      () => Test.assertEqual(''.repeat(1), ''),
+      () => Test.assertEqual(' '.repeat(0), ''),
+      () => Test.assertEqual(' '.repeat(1), ' '),
+      () => Test.assertEqual(' '.repeat(5), '     '),
+      () => Test.assertEqual('  '.repeat(1), '  '),
+      () => Test.assertEqual('  '.repeat(3), '      ')
+    ],
+
+  };
+
+})();

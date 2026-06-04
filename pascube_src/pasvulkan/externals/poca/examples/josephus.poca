@@ -1,0 +1,26 @@
+function Josephus(n){
+  var head = {};
+  var current = head;
+  for (var i = 0; i < n-1; i++) {
+    current.label = i+1;
+    current.next = {prev: current};
+    current = current.next;
+  }
+  current.label = n;
+  current.next = head;
+  head.prev = current;
+  function kill(spacing){
+    var current = head;
+    while (current.next !== current) {
+      for (var i = 0; i < spacing-1; i++) {
+        current = current.next;
+      }
+      current.prev.next = current.next;
+      current.next.prev = current.prev;
+      current = current.next;
+    }
+    return current.label;
+  }
+  return local;
+}
+print(Josephus(30).kill(2), "\n"); // <= 29

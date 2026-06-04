@@ -1,0 +1,423 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  mat4 modelMatrix;
+  uint baseViewIndex;
+  uint countViews;
+  uint additionalViewIndex;
+  uint countAdditionalViews; 
+  uint tileMapResolution;
+  uint tileResolution;
+  float bottomRadius;
+  float topRadius;
+  uint minimumLODLevel;
+  uint flags;
+} pushConstants;
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 0, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256 views as maximum for a single renderer instance (but a application/game can have multiple renderer instances for the same scene)  
+} uView;
+
+#if defined(PASS1)
+layout(set = 0, binding = 1) uniform sampler2DArray uTextureDepth;
+#endif
+
+layout(set = 1, binding = 0, std430) readonly buffer BoundingBoxes {
+  vec4 data[]; // pair-wise min/max, vec4 instead of vec3 for 16-byte alignment, so w is unused and zero in this case
+} boundingBoxes;
+
+layout(set = 1, binding = 1, std430) readonly buffer BoundingSpheres {
+  vec4 data[]; // xyz = center, w = radius
+} boundingSpheres;
+
+layout(set = 1, binding = 2, std430) readonly buffer PreviousVisibilityBuffer {
+  uint bitmap[];
+} previousVisibilityBuffer;
+
+layout(set = 1, binding = 3, std430) volatile buffer VisibilityBuffer {
+  uint bitmap[];
+} visibilityBuffer;
+
+/*
+// From Vulkan spec, just as reference: 
+struct VkDrawIndexedIndirectCommand {
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  int vertexOffset;
+  uint firstInstance;
+};
+*/
+
+struct DrawIndexedIndirectCommand {
+  uvec4 cmd0; // indexCount_instanceCount_firstIndex_vertexOffset; // x = indexCount, y = instanceCount, z = firstIndex, w = vertexOffset  
+  uvec4 cmd1; // firstInstance_padding0_padding1_padding2; // x = firstInstance, y = padding/unused, z = padding/unused, w = padding/unused
+  vec4 boundingSphere; // xyz = center, w = radius
+  uvec4 padding; // padding/unused
+}; // 64 bytes per draw indexed indirect command, dividable by 32 bytes for better GPU cache line alignment 
+
+layout(set = 1, binding = 4, std430) buffer OutputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand data[]; // 1-based, since 0 is used for counters and the like
+} outputDrawIndexedIndirectCommands;
+
+layout(set = 1, binding = 5, std430) readonly buffer TileVertexIndexGroups {
+  uvec2 data[]; // x = first vertex index, y = count of indices, and the data count is the same as the tile map size multiplied by LOD levels    
+} tileVertexIndexGroups;
+
+layout(set = 1, binding = 6, std430) buffer VisibleTileList {
+  uint data[]; // first item = count of visible tiles, then after index 2 the tile indices follow, since the first three items are indirect compute dispatch arguments
+} visibleTileList;
+
+layout(set = 1, binding = 7, std430) buffer TileLODMap {
+  uint data[]; // tile map size * 4 bytes, each 4 bytes for a single tile LOD level as 32-bit unsigned integer
+} tileLODMap;
+
+#include "frustum.glsl"
+
+#include "aabb.glsl"
+  
+#include "projectsphere.glsl"
+
+#include "projectaabb.glsl"
+
+#include "octahedral.glsl"
+
+// The following variables are shared between all invocations of this shader for too keep the pre-calculations needed for the culling small, which
+// are valid and the same for all invocations anyway. Other implementations uses CPU pre-calculations for it, but this is a more simple and straight 
+// forward approach in my opinion, so that almost everything is done on the GPU and is in the same place, as long as it don't hurts the performance
+// significantly.
+shared mat4 planetModelMatrix;
+shared mat4 planetInverseModelMatrix;
+shared Frustum frustums[8];
+shared Frustum additionalFrustums[8];
+
+void main(){
+
+  const uint countLODLevels = uint(log2(float(pushConstants.tileResolution)));
+
+  uint localInvocationIndex = gl_LocalInvocationID.x;
+
+  // Maximal 8 views at once, for example 2 for VR (for the left und right eyes), 4 for cascaded shadow maps, 6 for cube maps
+  uint countViews = min(pushConstants.countViews, 8); 
+
+  if(localInvocationIndex == 0u){
+    planetModelMatrix = pushConstants.modelMatrix;
+    planetInverseModelMatrix = inverse(planetModelMatrix);
+  }
+
+  if((countViews > 0u) && (localInvocationIndex < countViews)){   
+    frustumSetup(frustums[localInvocationIndex], uView.views[pushConstants.baseViewIndex + localInvocationIndex].projectionMatrix);      
+  }
+
+  if((pushConstants.countAdditionalViews > 0u) && (localInvocationIndex < pushConstants.countAdditionalViews)){   
+    frustumSetup(additionalFrustums[localInvocationIndex], uView.views[pushConstants.additionalViewIndex + localInvocationIndex].projectionMatrix);      
+  }
+
+  memoryBarrierShared();
+  groupMemoryBarrier();
+  barrier(); 
+
+  const uint tileMapIndex = gl_GlobalInvocationID.x;  
+
+  const uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  if(
+     (tileMapIndex < tileMapSize)
+#if defined(PASS0)
+     && ((previousVisibilityBuffer.bitmap[tileMapIndex >> 5u] & (1u << (tileMapIndex & 31u))) != 0u)
+#endif
+    ){
+
+#if defined(PASS1)
+    vec2 viewPortSize = vec2(textureSize(uTextureDepth, 0).xy);
+    int countLODLevels = textureQueryLevels(uTextureDepth);
+#endif
+
+    vec4 boundingSphere = boundingSpheres.data[tileMapIndex];
+    vec4 worldSpaceBoundingSphere = vec4((pushConstants.modelMatrix * vec4(boundingSphere.xyz, 1.0)).xyz, boundingSphere.w);
+
+    vec3 aabbMin = boundingBoxes.data[(tileMapIndex << 1u) | 0u].xyz;
+    vec3 aabbMax = boundingBoxes.data[(tileMapIndex << 1u) | 1u].xyz;
+
+    bool visible = false, notFurtherCull = false;
+    for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+      mat4 viewMatrix = uView.views[pushConstants.baseViewIndex + viewIndex].viewMatrix;
+      mat4 modelViewMatrix = viewMatrix * pushConstants.modelMatrix;
+      vec4 viewSpaceBoundingSphere = vec4((modelViewMatrix * vec4(boundingSphere.xyz, 1.0)).xyz, boundingSphere.w);
+      if(frustumCullingSphereTest(frustums[viewIndex], viewSpaceBoundingSphere)){
+        vec3 viewSpaceAABBMin = aabbMin;
+        vec3 viewSpaceAABBMax = aabbMax;
+        aabbTransform(viewSpaceAABBMin, viewSpaceAABBMax, modelViewMatrix);
+        if(frustumCullingAABBTest(frustums[viewIndex], viewSpaceAABBMin, viewSpaceAABBMax)){
+
+          visible = true; 
+
+#if defined(PASS1)
+
+          vec4 aabb;
+
+          float zNear = abs(uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[3][2] / uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[2][3]);
+
+//        if(projectAABB(viewSpaceAABBMin, viewSpaceAABBMax, zNear, uView.views[pushConstants.baseViewIndex + viewIndex].projectionMatrix, aabb, true)){
+          if(projectSphere(viewSpaceBoundingSphere.xyz, viewSpaceBoundingSphere.w, zNear, uView.views[pushConstants.baseViewIndex + viewIndex].projectionMatrix, aabb, true)){
+
+            vec2 size = vec2(aabb.zw - aabb.xy) * viewPortSize;
+
+            float level = clamp(floor(log2(max(size.x, size.y))), 0.0, float(countLODLevels - 1)); 
+
+#undef USE_FASTER_DEPTH_CALCULATIONS
+#ifdef USE_FASTER_DEPTH_CALCULATIONS
+            vec2 depthZ = fma(
+              uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[2].zw,
+              textureLod(uTextureDepth, vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).xx, 
+              uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix[3].zw
+            );
+#else
+            vec2 depthZ = (uView.views[pushConstants.baseViewIndex + viewIndex].inverseProjectionMatrix * vec4(
+              (aabb.xy + aabb.zw) - vec2(1.0), // optimized from: fma(mix(aabb.xy, aabb.zw, 0.5), vec2(2.0), vec2(-1.0))
+              textureLod(uTextureDepth, vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).x, 
+              1.0
+            )).zw;
+#endif
+            float depth = -(depthZ.x / depthZ.y); // flip the sign, because z in view space is negative otherwise
+            
+            visible = (((-viewSpaceBoundingSphere.z) - viewSpaceBoundingSphere.w) <= depth);
+
+          }
+
+#endif
+
+          if(visible && ((pushConstants.flags & ((1u << 0u) | (1u << 1u))) != 0u)){
+
+            vec3 planetSpaceCameraPosition = (planetInverseModelMatrix * vec4(uView.views[pushConstants.baseViewIndex + viewIndex].inverseViewMatrix[3].xyz, 1.0)).xyz;
+
+            if((pushConstants.flags & (1u << 0u)) != 0u){
+
+              uvec2 tileMapXY;
+              tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+              tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+              vec3 sphereNormal = octPlanetUnsignedDecode((vec2(tileMapXY) + vec2(0.5)) / float(pushConstants.tileMapResolution));
+
+              // Based on: https://cesium.com/blog/2013/04/25/horizon-culling/
+
+              // V = viewer position
+              // C = center of unit sphere
+              // H = horizon point
+              // T = target point to test against horizon plane
+              // P = projection of VH onto VC
+              // Q = projection of VT onto VC
+
+              vec3 cv = planetSpaceCameraPosition / pushConstants.bottomRadius;
+
+              vec3 t = (sphereNormal * pushConstants.topRadius) / pushConstants.bottomRadius;
+  //          vec3 t = worldSpaceBoundingSphere.xyz / pushConstants.bottomRadius;
+
+              float vhMagnitudeSquared = dot(cv, cv) - 1.0;
+
+              vec3 vt = t - cv;
+              float vtMagnitudeSquared = dot(vt, vt);
+
+              float vtDotVc = -dot(vt, cv);
+              
+              // If vhMagnitudeSquared < 0.0 then we are below the surface of the ellipsoid and in this case, set the culling 
+              // plane to be on V.
+              bool isOccluded = (vhMagnitudeSquared < 0.0) 
+                                  ? (vtDotVc > 0.0) 
+                                  : (((vtDotVc > vhMagnitudeSquared) && ((vtDotVc * vtDotVc) > (vhMagnitudeSquared * vtMagnitudeSquared))));
+
+              visible = !isOccluded;
+
+            }  
+
+            if(visible && (length(planetSpaceCameraPosition) < (worldSpaceBoundingSphere.w * 2.0))){
+              notFurtherCull = true;
+            }
+
+          }
+
+          if(visible){
+            break;
+          }
+
+        }
+      }
+    }
+    
+    // Additional views for example for tightly culled shadow maps to the camera frustum in addition to the shadow frustum
+    if(visible && (pushConstants.countAdditionalViews > 0u) && ((pushConstants.flags & (1u << 1u)) != 0u) && !notFurtherCull){
+      visible = false;
+      for(uint viewIndex = 0u; viewIndex < pushConstants.countAdditionalViews; viewIndex++){
+        mat4 viewMatrix = uView.views[pushConstants.additionalViewIndex + viewIndex].viewMatrix;
+        mat4 modelViewMatrix = viewMatrix * pushConstants.modelMatrix;
+        vec4 viewSpaceBoundingSphere = vec4((modelViewMatrix * vec4(boundingSphere.xyz, 1.0)).xyz, boundingSphere.w);
+        if(frustumCullingSphereTest(additionalFrustums[viewIndex], viewSpaceBoundingSphere)){
+          vec3 viewSpaceAABBMin = aabbMin;
+          vec3 viewSpaceAABBMax = aabbMax;
+          mat4 modelViewMatrix = viewMatrix * pushConstants.modelMatrix;
+          aabbTransform(viewSpaceAABBMin, viewSpaceAABBMax, modelViewMatrix);
+          if(frustumCullingAABBTest(additionalFrustums[viewIndex], viewSpaceAABBMin, viewSpaceAABBMax)){
+            visible = true;
+            break;
+          }
+        }
+      }
+    }
+
+#if defined(PASS0) || defined(PASS1)  
+    // add to visibility buffer only if not yet existing        
+    const uint mask = 1u << (tileMapIndex & 31u);
+#endif
+
+    if(visible){
+
+#if defined(PLANET_SCREEN_FILL_SCALE) || defined(TILE_SCREEN_FILL_SCALE)
+
+#if defined(TILE_SCREEN_FILL_SCALE)
+      float tileScreenFillScale = 0.0;
+      for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+        vec4 aabb2D;
+        vec4 tileSphereCenter = viewMatrices[viewIndex] * pushConstants.modelMatrix * vec4(boundingSphere.xyz, 1.0);
+        tileSphereCenter.xyz /= tileSphereCenter.w;
+        if(projectSphere(tileSphereCenter.xyz, boundingSphere.w, zNears[viewIndex], projectionMatrices[viewIndex], aabb2D)){
+          tileScreenFillScale = max(tileScreenFillScale, length(aabb2D.zw - aabb2D.xy));
+        }
+      }
+      if(tileScreenFillScale == 0.0){
+        tileScreenFillScale = 1.0;
+      }
+#endif
+
+#if defined(PLANET_SCREEN_FILL_SCALE)
+      // Additional LOD stuff for the whole planet sphere itself
+      float planetSphereScreenFillScale = 0.0;
+      for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+        vec4 planetSphereCenter = (viewMatrices[viewIndex] * pushConstants.modelMatrix) * vec4(0.0, 0.0, 0.0, 1.0);
+        planetSphereCenter.xyz /= planetSphereCenter.w;
+        vec4 aabb2D;
+        if(projectSphere(planetSphereCenter.xyz, pushConstants.radius, zNears[viewIndex], projectionMatrices[viewIndex], aabb2D)){
+          planetSphereScreenFillScale = max(planetSphereScreenFillScale, length(aabb2D.zw - aabb2D.xy) * 0.0625);
+        }
+      }
+      if(planetSphereScreenFillScale == 0.0){
+        planetSphereScreenFillScale = 1.0;
+      }
+
+#if defined(TILE_SCREEN_FILL_SCALE)
+      uint lod = uint(min(max(floor(log2(1.0 / clamp(min(tileScreenFillScale, planetSphereScreenFillScale), 1e-6, 1.0))), 0.0), max(0.0, float(int(countLODLevels) - 2)))); 
+#else
+      uint lod = uint(min(max(floor(log2(1.0 / clamp(planetSphereScreenFillScale, 1e-6, 1.0))), 0.0), max(0.0, float(int(countLODLevels) - 2))));
+#endif                                      
+#else
+#if defined(TILE_SCREEN_FILL_SCALE)
+      uint lod = uint(min(max(floor(log2(1.0 / clamp(tileScreenFillScale, 1e-6, 1.0))), 0.0), max(0.0, float(int(countLODLevels) - 2)))); 
+#else
+      uint lod = 0u;
+#endif      
+#endif
+
+      lod = min(max(lod, pushConstants.minimumLODLevel), max(1u, countLODLevels) - 1u);
+
+#else  
+
+//    const uint lod = min(pushConstants.minimumLODLevel, max(1u, countLODLevels) - 1u);      
+      
+      const uint lod = min(max(tileLODMap.data[tileMapIndex], pushConstants.minimumLODLevel), max(1u, countLODLevels) - 1u);
+
+#endif
+
+#if 1
+      
+      uvec2 tileIndexOffsetAndCount = tileVertexIndexGroups.data[(lod * tileMapSize) + tileMapIndex];
+      const uint tileIndexOffset = tileIndexOffsetAndCount.x;
+      const uint countTileIndices = tileIndexOffsetAndCount.y;
+
+#else
+      const uint tileResolution = pushConstants.tileResolution >> lod;
+
+      const uint tileSize = tileResolution * tileResolution;
+
+      const uint countTileIndices = tileSize * 6u;
+
+      const uint lod0TileSize = pushConstants.tileResolution * pushConstants.tileResolution;
+      uint tileIndexOffset = tileMapIndex * countTileIndices;
+      for(uint lodCounter = 0u; lodCounter < lod; lodCounter++){
+        tileIndexOffset += (lod0TileSize >> (lodCounter << 1u)) * (tileMapSize * 6u);
+      }
+#endif
+
+/*
+#if defined(PASS1) // Only for the disocclusion pass so that every visible tile can be directly added to the list of visible tiles without further checks 
+      {
+        // If visible, add to the list of visible tiles for other also to be culled content on the planet like trees, grass, etc.
+        const uint outputVisibleTileIndex = atomicAdd(visibleTileList.data[1], 1u) + 3u; // 3-based, see above
+        visibleTileList.data[outputVisibleTileIndex] = tileMapIndex;
+      }
+#endif*/
+
+#if defined(PASS0) || defined(PASS1)  
+      // add to visibility buffer only if not yet existing        
+      if((atomicOr(visibilityBuffer.bitmap[tileMapIndex >> 5u], mask) & mask) == 0u)
+#endif      
+      { 
+
+        // If visible, add to the list of visible tiles for other also to be culled content on the planet like trees, grass, etc.
+        const uint outputVisibleTileIndex = atomicAdd(visibleTileList.data[1], 1u) + 3u; // 3-based, see above
+        visibleTileList.data[outputVisibleTileIndex] = tileMapIndex;
+
+        const uint outputDrawIndexedIndirectCommandIndex = atomicAdd(outputDrawIndexedIndirectCommands.data[0].cmd0.x, 1u) + 1u; // 1-based, since 0 is used for counters and the like
+
+#if defined(PASS1)  
+        const uint outputDrawIndexedIndirectCommandDisocclusionIndex = atomicAdd(outputDrawIndexedIndirectCommands.data[0].cmd0.y, 1u) + tileMapSize + 1u; // 1-based, since 0 is used for counters and the like
+        outputDrawIndexedIndirectCommands.data[outputDrawIndexedIndirectCommandDisocclusionIndex] = 
+#endif
+        outputDrawIndexedIndirectCommands.data[outputDrawIndexedIndirectCommandIndex] = DrawIndexedIndirectCommand(
+          uvec4(
+            countTileIndices, // indexCount
+            1u, // instanceCount
+            tileIndexOffset, // firstIndex
+            0u  // vertexOffset
+          ),
+          uvec4(
+            0u, // firstInstance
+            0u, // padding/unused
+            0u, // padding/unused
+            0u  // padding/unused
+          ),
+          worldSpaceBoundingSphere,
+          uvec4(0u) // padding/unused
+        );      
+
+      }
+
+    }
+#if defined(PASS0) || defined(PASS1)  
+    else{
+      // If not visible, remove from visibility buffer
+      atomicAnd(visibilityBuffer.bitmap[tileMapIndex >> 5u], ~mask);
+    }
+#endif      
+
+    
+  }
+
+}
+

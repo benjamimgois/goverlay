@@ -1,0 +1,15 @@
+
+// From https://booping.synth.download/notes/a628ykjo22mh01fv
+// Leibniz formula for pi
+
+(function(){
+  let r = 0.0;
+  for (let i = 99; i >= 0; i--) {
+    let w = i / 100;
+    w = ((1.0 / w) + (1 / (w - 1.0))) * 1.5;
+    w = Math.exp(w) / (2.0 * Math.cosh(w));
+    r += (((i & 1) ? -4.0 : 4.0) * (Math.isNaN(w) ? 1.0 : w)) / ((2 * i) + 1);
+  }
+  Console.log(r, " Error: ", r - Math.PI);
+})();
+

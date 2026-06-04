@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Save the current directory in a variable
+CWD="$(pwd)"
+
+# Switch to the src directory
+cd src
+
+# Build for Linux
+/home/bero/fpcupdeluxe/lazarus/lazbuild --pcp="/home/bero/fpcupdeluxe/config_lazarus" -B gltfviewer.lpi $*
+
+# Build for Windows
+/home/bero/fpcupdeluxe/lazarus/lazbuild --pcp="/home/bero/fpcupdeluxe/config_lazarus" --os=win64 -B gltfviewer.lpi $*
+
+# Switch back to the root directory
+cd "$CWD"
+
+# Patch the Linux binary for the relative path to the shared libraries
+patchelf --set-rpath "\$ORIGIN" ./bin/gltfviewer
+
+# Define the out directory
+OUTDIR="${CWD}/out"
+
+# Make the out directories
+mkdir -p "${OUTDIR}"
+mkdir -p "${OUTDIR}/gltfviewer/bin"
+
+# Copy the linux binaries to the out directory
+cp -f ./bin/libktx.so "${OUTDIR}/gltfviewer/bin/libktx.so"
+cp -f ./bin/libktx_read.so "${OUTDIR}/gltfviewer/bin/libktx_read.so"
+cp -f ./bin/gltfviewer "${OUTDIR}/gltfviewer/bin/gltfviewer"
+
+# Copy the windows binaries to the out directory
+cp -f ./bin/turbojpeg64.dll "${OUTDIR}/gltfviewer/bin/turbojpeg64.dll"
+cp -f ./bin/ktx.dll "${OUTDIR}/gltfviewer/bin/ktx.dll"
+cp -f ./bin/ktx_read.dll "${OUTDIR}/gltfviewer/bin/ktx_read.dll"
+cp -f ./bin/gltfviewer.exe "${OUTDIR}/gltfviewer/bin/gltfviewer.exe"
+
+cp -f ./bin/settings.json "${OUTDIR}/gltfviewer/bin/settings.json"
+
+# Copy the data files from assets to the out directory 
+mkdir -p "${OUTDIR}/gltfviewer/assets"
+cp -rf ./assets/* "${OUTDIR}/gltfviewer/assets"
+
+# Compresse the out directory to a zip file, so that gltfviewer is contained as directory inside the zip file
+cd "${OUTDIR}"
+zip -r gltfviewer.zip gltfviewer
+cd "${CWD}"
+
+# Move the zip file to the root directory
+mv -f "${OUTDIR}/gltfviewer.zip" "${CWD}/gltfviewer.zip"
+
+# Delete the out directory
+rm -rf "${OUTDIR}"
+
+# Exit with success
+exit 0 
+

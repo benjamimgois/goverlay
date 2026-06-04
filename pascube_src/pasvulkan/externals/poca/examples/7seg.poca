@@ -1,0 +1,62 @@
+#!/usr/bin/env poca
+
+const NUMBER   = arguments.shift() ?? '0123456789';
+const SIZE     = arguments.shift() ?? 3;
+const SPACING  = arguments.shift() ?? (SIZE > 1 ? SIZE - 1 : SIZE);
+
+if (arguments.length > 0 or SIZE < 1 or SPACING < 1) {
+  puts("Usage: 7set [NUMBER] [SIZE] [SPACING]\n"
+       "       SIZE and SPACING must be ≥1");
+  return 1;
+}
+
+// bit segment
+// assignments
+//
+//    - 0 -
+//    1   5
+//    - 2 -
+//    3   6
+//    - 4 -
+//
+//   (little
+//   endian)
+
+let DIGITS = [ 0b1111011, 0b1100000, 0b0111101, 0b1110101, 0b1100110,
+               0b1010111, 0b1011111, 0b1100001, 0b1111111, 0b1110111 ];
+
+let cols = [];
+
+for (let i = 0; i < NUMBER.length; ++i) {
+  cols.push(Array.create(5));
+
+  foreach (let j in [0..6]) {
+    const mask = ((DIGITS[ord(NUMBER[i])-48] >> j) & 1);
+
+    when (j) {
+      case (0, 2, 4) {
+        const c = (mask == 1 ? '-' : ' ');
+        cols[i][j] = ' ' ~ c.repeat(SIZE) ~ ' ';
+      }
+      case (1, 3) {
+        const c = (mask == 1 ? '|' : ' ');
+        cols[i][j] = c ~ ' '.repeat(SIZE);
+      }
+      case (5, 6) {
+        cols[i][(j&2)+1] ~= (mask == 1 ? '|' : ' ');
+      }
+    }
+  }
+}
+
+for (let i = 0; i < 5; ++i) {
+  let line = '';
+
+  for (var j = 0; j < cols.length; ++j)
+    line ~= cols[j][i] ~ ' '.repeat(SPACING);
+
+  const h = (i % 2 ==  0) ? 1 : SIZE;
+
+  foreach (let z in [1..h])
+    puts(line.trimRight());
+}

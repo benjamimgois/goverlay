@@ -1,0 +1,7 @@
+
+for(let i = 0, j = 16; i < j; i++){
+  let t = i / (j - 1);
+  let a = Math.acos(1.0 - (2.0 * t));
+  let b = Math.PI * t;
+  print(a, " ", b, "\n");
+} 

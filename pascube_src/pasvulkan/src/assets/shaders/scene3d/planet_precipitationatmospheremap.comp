@@ -1,0 +1,34 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform texture2D uImagePrecipitationMap;
+
+layout(set = 0, binding = 1) uniform texture2D uImageAtmosphereMap;
+
+layout(set = 0, binding = 2, std430) buffer PrecipitationAtmosphereMapBuffer {
+  float values[];
+} precipitationAtmosphereMapBuffer;
+
+/* clang-format on */
+
+void main(){
+  uvec2 texel = uvec2(gl_GlobalInvocationID.xy);
+  uvec2 texSize = uvec2(textureSize(uImagePrecipitationMap, 0).xy);
+  if(all(lessThan(texel, texSize))){
+    const float precipitation = texelFetch(uImagePrecipitationMap, ivec2(texel), 0).x;
+    const float atmosphere = texelFetch(uImageAtmosphereMap, ivec2(texel), 0).x;     
+    // Just only scale the positive precipitation by the atmosphere value, but leave the negative precipitation as is, because
+    // -1.0 = no clouds .. 0.0 = dry clouds .. 1.0 = wet clouds 
+    precipitationAtmosphereMapBuffer.values[(texel.y * texSize.x) + texel.x] = (precipitation > 0.0) ? (precipitation * atmosphere) : precipitation; 
+  }
+}

@@ -1,0 +1,61 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// Water simulation based on "Fast Hydraulic Erosion Simulation and Visualization on GPU" by Xing Mei, Philippe Decaudin, Bao-Gang Hu
+// Link: https://hal.inria.fr/inria-00402079/document
+
+// But yet without the erosion part of the terrain part, just the water flow simulation for now.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  float bottomRadius;
+  float topRadius;
+  uint planetHeightMapResolution;
+  uint waterHeightMapResolution;
+  float factor;
+} pushConstants;
+
+layout(set = 0, binding = 0, std430) readonly buffer InWaterHeightMapA {
+  float values[];
+} inWaterHeightMapA;
+
+layout(set = 0, binding = 1, std430) readonly buffer InWaterHeightMapB {
+  float values[];
+} inWaterHeightMapB;
+
+layout(set = 0, binding = 2, r32f) writeonly uniform image2D uImageWaterMap;  
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+void main(){
+
+  const uvec2 position = uvec2(gl_GlobalInvocationID.xy);
+
+  if(all(lessThan(position, uvec2(pushConstants.waterHeightMapResolution)))){
+
+    const ivec2 p = clamp(wrapOctahedralTexelCoordinates(ivec2(position), ivec2(pushConstants.waterHeightMapResolution)), ivec2(0), ivec2(pushConstants.waterHeightMapResolution - 1));
+   
+    const uint index = (uint(p.y) * pushConstants.waterHeightMapResolution) + uint(p.x);
+
+    const float waterHeight = mix(
+      inWaterHeightMapA.values[index],
+      inWaterHeightMapB.values[index],
+      pushConstants.factor
+    );
+
+    imageStore(uImageWaterMap, ivec2(position), vec4((waterHeight < 1e-6) ? -1.0 : waterHeight));
+
+  }
+
+}

@@ -1,0 +1,65 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) uniform image2D uImageWaterMap;
+
+layout(set = 0, binding = 1) uniform sampler2D uImageHeightMap;
+
+layout(push_constant) uniform PushConstants {
+  vec4 positionRadius; // xyz = position, w = radius
+  vec4 innerRadiusValueMinMax; // x = inner radius, y = value, z = min, w = max
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageWaterMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    vec3 sphereNormal = octPlanetUnsignedDecode(vec2(texel) / vec2(texSize));
+
+    float d = smoothstep(
+      0.0,
+      -pushConstants.innerRadiusValueMinMax.x,
+      length(sphereNormal - pushConstants.positionRadius.xyz) - pushConstants.positionRadius.w
+    );
+
+    if(d > 0.0){
+      
+      float height = imageLoad(uImageWaterMap, texel).x + (d * pushConstants.innerRadiusValueMinMax.y);
+          
+      imageStore(
+        uImageWaterMap, 
+        texel, 
+        vec4(
+          clamp(
+            height, 
+            pushConstants.innerRadiusValueMinMax.z, 
+            pushConstants.innerRadiusValueMinMax.w
+          )
+        )
+      );
+
+    }
+
+  }
+
+}
+

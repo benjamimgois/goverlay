@@ -1,0 +1,68 @@
+
+import 'importsrc';
+
+importsrc.randomFunction();
+
+import randomFunction from 'importsrc';
+
+randomFunction();
+
+import * from 'importsrc';
+
+randomFunction();
+
+let imported = import 'importsrc';
+
+imported.randomFunction();
+
+let otherImported = import('importsrc');
+
+otherImported.randomFunction();
+
+let yetOtherImported = import('importsrc',['*']);
+
+otherImported.randomFunction();
+
+module EmbeddedModule {
+
+  function otherRandomFunction(){
+    puts("And the second!");
+  }
+
+  export otherRandomFunction;
+
+}
+
+import otherRandomFunction from EmbeddedModule;
+
+otherRandomFunction();
+
+puts();
+
+let TestObject = require('./importsrc2'); // As in Lua as alternative to the import mechanism
+
+puts(TestObject.d());
+
+puts();
+
+puts("Loaded modules:");
+forkey(let moduleName in ModuleManager.moduleScopes){
+  puts(moduleName);
+}
+
+puts();
+
+// Remove the modules from the module manager for reloading
+// (for example if you want to reload the module after editing it)
+// Note that this is not necessary if you don't want to reload the module
+// and you can just use the module as is.
+puts("Removing modules from module manager cache..."); 
+ModuleManager.remove('importsrc');
+ModuleManager.remove('importsrc2');
+
+puts();
+
+puts("Loaded modules:");
+forkey(let moduleName in ModuleManager.moduleScopes){
+  puts(moduleName);
+}

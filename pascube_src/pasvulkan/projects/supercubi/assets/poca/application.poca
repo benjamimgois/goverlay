@@ -1,0 +1,1494 @@
+
+// Platformer game application for POCA
+var application = {
+
+  data: null,
+
+  // Game mode constants
+  MODE_STARTSCREEN: 0,
+  MODE_RUNNING: 1,
+  MODE_GAMEOVER: 2,
+  MODE_LEVELCOMPLETE: 3,
+
+  create: function() {
+    print("POCA: supercubi create\n");
+    
+    // Initialize game state only if not already initialized
+    if (!this.data.initialized) {
+      this.data.initialized = true;
+      this.data.gameMode = this.MODE_STARTSCREEN;
+      this.data.score = 0;
+      this.data.lives = 3;
+      this.data.cameraX = 0;
+      this.data.cameraY = 0;
+      this.data.cameraLastX = 0;
+      this.data.cameraLastY = 0;
+      this.data.cameraRenderX = 0;
+      this.data.cameraRenderY = 0;
+      this.data.gameWidth = 4000;
+      this.data.gameHeight = 500;
+      this.data.time = 0.0;
+      this.data.accumulator = 0.0;
+      this.data.first = true;
+            
+      // Virtual canvas size (the size we design for)
+      this.data.virtualWidth = 800;
+      this.data.virtualHeight = 500;
+      
+      // Actual canvas size (will be updated in resize)
+      this.data.canvasWidth = 800;
+      this.data.canvasHeight = 500;
+      
+      // Player properties
+      this.data.player = {
+        x: 100,
+        y: 300,
+        lastX: 100,
+        lastY: 300,
+        renderX: 100,
+        renderY: 300,
+        width: 32,
+        height: 32,
+        velocityX: 0,
+        velocityY: 0,
+        speed: 4,
+        jumpPower: 15,
+        isJumping: false,
+        gravity: 0.5,
+        maxFallSpeed: 15,
+        friction: 0.5,
+        facing: 'right'
+      };
+      
+      // Key state tracking
+      this.data.keys = {
+        left: false,
+        right: false,
+        up: false,
+        space: false
+      };
+      
+      this.data.platforms = [];
+      this.data.coins = [];
+      this.data.enemies = [];
+      this.data.goal = null;
+      this.data.clouds = [];
+
+      this.data.music = MusicManager.create("supercubi_music","music/background_music.ogg");
+
+      this.data.sounds = {
+        block: SoundManager.create("supercubi_block","sounds/block.wav", 4), 
+        collect: SoundManager.create("supercubi_collect","sounds/collect.wav", 4),
+        enemyterminate: SoundManager.create("supercubi_enemyterminate","sounds/enemy_terminate.wav", 4),
+        gameover: SoundManager.create("supercubi_gameover","sounds/gameover.wav", 1),
+        hurt: SoundManager.create("supercubi_hurt","sounds/hurt.wav", 1),
+        jump: SoundManager.create("supercubi_jump","sounds/jump.wav", 1),
+        levelcomplete: SoundManager.create("supercubi_levelcomplete","sounds/level_complete.wav", 1)
+      };
+      
+      this.initGame(this.MODE_STARTSCREEN);
+    }
+  },
+
+  initGame: function(gameMode) {
+    print("POCA: Initializing game\n");
+    
+    // Reset game state
+    this.data.score = 0;
+    this.data.lives = 3;
+    this.data.cameraX = 0;
+    this.data.cameraY = 0;
+    this.data.cameraLastX = 0;
+    this.data.cameraLastY = 0;
+    this.data.cameraRenderX = 0;
+    this.data.cameraRenderY = 0;
+    this.data.gameMode = gameMode;
+    this.data.time = 0.0;
+    this.data.accumulator = 0.0;
+    this.data.first = true;
+
+    // Reset player
+    this.data.player.x = 100;
+    this.data.player.y = 300;
+    this.data.player.lastX = 100;
+    this.data.player.lastY = 300;
+    this.data.player.renderX = 100;
+    this.data.player.renderY = 300;
+    this.data.player.velocityX = 0;
+    this.data.player.velocityY = 0;
+    this.data.player.isJumping = false;
+    this.data.player.facing = 'right';
+
+    // Create clouds for parallax scrolling (appear at various depths)
+    this.data.clouds = [
+      // Layer 1 - Far background (scrolls at 0.2x camera speed)
+      { x: 50, y: 65, scale: 0.75, layer: 0.2 },
+      { x: 150, y: 45, scale: 0.75, layer: 0.2 },
+      { x: 520, y: 85, scale: 0.9, layer: 0.2 },
+      { x: 890, y: 35, scale: 0.8, layer: 0.2 },
+      { x: 1180, y: 70, scale: 0.85, layer: 0.2 },
+      { x: 1450, y: 50, scale: 0.8, layer: 0.2 },
+      { x: 1820, y: 90, scale: 0.9, layer: 0.2 },
+      { x: 2100, y: 40, scale: 0.75, layer: 0.2 },
+      { x: 2480, y: 75, scale: 0.85, layer: 0.2 },
+      { x: 2750, y: 55, scale: 0.8, layer: 0.2 },
+      { x: 3050, y: 80, scale: 0.9, layer: 0.2 },
+      { x: 3380, y: 45, scale: 0.85, layer: 0.2 },
+      { x: 3650, y: 65, scale: 0.8, layer: 0.2 },
+      { x: 3920, y: 50, scale: 0.75, layer: 0.2 },
+      
+      // Layer 2 - Mid background (scrolls at 0.4x camera speed)
+      { x: -50, y: 115, scale: 1.0, layer: 0.4 },
+      { x: 280, y: 105, scale: 1.0, layer: 0.4 },
+      { x: 650, y: 130, scale: 1.15, layer: 0.4 },
+      { x: 920, y: 85, scale: 1.05, layer: 0.4 },
+      { x: 1250, y: 120, scale: 1.1, layer: 0.4 },
+      { x: 1580, y: 95, scale: 1.0, layer: 0.4 },
+      { x: 1880, y: 125, scale: 1.15, layer: 0.4 },
+      { x: 2180, y: 90, scale: 1.05, layer: 0.4 },
+      { x: 2520, y: 115, scale: 1.1, layer: 0.4 },
+      { x: 2820, y: 100, scale: 1.0, layer: 0.4 },
+      { x: 3120, y: 110, scale: 1.15, layer: 0.4 },
+      { x: 3450, y: 85, scale: 1.05, layer: 0.4 },
+      { x: 3750, y: 120, scale: 1.1, layer: 0.4 },
+      
+      // Layer 3 - Foreground (scrolls at 0.6x camera speed)
+      { x: -120, y: 165, scale: 1.35, layer: 0.6 },
+      { x: 380, y: 145, scale: 1.25, layer: 0.6 },
+      { x: 720, y: 170, scale: 1.35, layer: 0.6 },
+      { x: 1020, y: 125, scale: 1.2, layer: 0.6 },
+      { x: 1350, y: 160, scale: 1.3, layer: 0.6 },
+      { x: 1680, y: 135, scale: 1.25, layer: 0.6 },
+      { x: 1980, y: 165, scale: 1.35, layer: 0.6 },
+      { x: 2280, y: 130, scale: 1.2, layer: 0.6 },
+      { x: 2620, y: 155, scale: 1.3, layer: 0.6 },
+      { x: 2920, y: 140, scale: 1.25, layer: 0.6 },
+      { x: 3220, y: 150, scale: 1.35, layer: 0.6 },
+      { x: 3550, y: 125, scale: 1.2, layer: 0.6 },
+      { x: 3850, y: 160, scale: 1.3, layer: 0.6 }
+    ];
+
+    // Create platforms
+    this.data.platforms = [
+      // Ground
+      { x: 0, y: 450, width: 200, height: 50 },
+      { x: 250, y: 450, width: 150, height: 50 },
+      { x: 450, y: 450, width: 150, height: 50 },
+      { x: 650, y: 450, width: 150, height: 50 },
+      { x: 850, y: 450, width: 150, height: 50 },
+
+      // Platforms
+      { x: 300, y: 350, width: 100, height: 20 },
+      { x: 500, y: 300, width: 100, height: 20 },
+      { x: 700, y: 250, width: 100, height: 20 },
+      { x: 900, y: 350, width: 100, height: 20 },
+      { x: 1100, y: 300, width: 100, height: 20 },
+      { x: 1300, y: 250, width: 100, height: 20 },
+      { x: 1500, y: 350, width: 100, height: 20 },
+      { x: 1700, y: 300, width: 100, height: 20 },
+      { x: 1900, y: 250, width: 100, height: 20 },
+      { x: 2100, y: 350, width: 100, height: 20 },
+      { x: 2300, y: 300, width: 100, height: 20 },
+      { x: 2500, y: 250, width: 100, height: 20 },
+      { x: 2700, y: 350, width: 100, height: 20 },
+      { x: 2900, y: 300, width: 100, height: 20 },
+      { x: 3100, y: 250, width: 100, height: 20 },
+      { x: 3300, y: 350, width: 100, height: 20 },
+      { x: 3500, y: 300, width: 100, height: 20 },
+      { x: 3700, y: 250, width: 100, height: 20 },
+
+      // Final platform
+      { x: 3900, y: 400, width: 100, height: 50 }
+    ];
+
+    // Create coins at fixed positions above platforms
+    this.data.coins = [
+      // Above first set of platforms
+      { x: 350, y: 310, width: 16, height: 16, collected: false },
+      { x: 380, y: 310, width: 16, height: 16, collected: false },
+      { x: 550, y: 260, width: 16, height: 16, collected: false },
+      { x: 580, y: 260, width: 16, height: 16, collected: false },
+      { x: 750, y: 210, width: 16, height: 16, collected: false },
+      { x: 780, y: 210, width: 16, height: 16, collected: false },
+      
+      // Above middle platforms
+      { x: 950, y: 310, width: 16, height: 16, collected: false },
+      { x: 980, y: 310, width: 16, height: 16, collected: false },
+      { x: 1150, y: 260, width: 16, height: 16, collected: false },
+      { x: 1180, y: 260, width: 16, height: 16, collected: false },
+      { x: 1350, y: 210, width: 16, height: 16, collected: false },
+      { x: 1380, y: 210, width: 16, height: 16, collected: false },
+      { x: 1550, y: 310, width: 16, height: 16, collected: false },
+      { x: 1580, y: 310, width: 16, height: 16, collected: false },
+      { x: 1750, y: 260, width: 16, height: 16, collected: false },
+      { x: 1780, y: 260, width: 16, height: 16, collected: false },
+      { x: 1950, y: 210, width: 16, height: 16, collected: false },
+      { x: 1980, y: 210, width: 16, height: 16, collected: false },
+      
+      // Above later platforms
+      { x: 2150, y: 310, width: 16, height: 16, collected: false },
+      { x: 2180, y: 310, width: 16, height: 16, collected: false },
+      { x: 2350, y: 260, width: 16, height: 16, collected: false },
+      { x: 2380, y: 260, width: 16, height: 16, collected: false },
+      { x: 2550, y: 210, width: 16, height: 16, collected: false },
+      { x: 2580, y: 210, width: 16, height: 16, collected: false },
+      { x: 2750, y: 310, width: 16, height: 16, collected: false },
+      { x: 2780, y: 310, width: 16, height: 16, collected: false },
+      { x: 2950, y: 260, width: 16, height: 16, collected: false },
+      { x: 2980, y: 260, width: 16, height: 16, collected: false },
+      { x: 3150, y: 210, width: 16, height: 16, collected: false },
+      { x: 3180, y: 210, width: 16, height: 16, collected: false },
+      { x: 3350, y: 310, width: 16, height: 16, collected: false },
+      { x: 3380, y: 310, width: 16, height: 16, collected: false },
+      { x: 3550, y: 260, width: 16, height: 16, collected: false },
+      { x: 3580, y: 260, width: 16, height: 16, collected: false },
+      { x: 3750, y: 210, width: 16, height: 16, collected: false },
+      { x: 3780, y: 210, width: 16, height: 16, collected: false },
+      
+      // Some floating coins in the air
+      { x: 200, y: 250, width: 16, height: 16, collected: false },
+      { x: 230, y: 250, width: 16, height: 16, collected: false },
+      { x: 600, y: 150, width: 16, height: 16, collected: false },
+      { x: 1000, y: 180, width: 16, height: 16, collected: false },
+      { x: 1400, y: 150, width: 16, height: 16, collected: false },
+      { x: 1800, y: 120, width: 16, height: 16, collected: false },
+      { x: 2200, y: 150, width: 16, height: 16, collected: false },
+      { x: 2600, y: 180, width: 16, height: 16, collected: false },
+      { x: 3000, y: 150, width: 16, height: 16, collected: false },
+      { x: 3400, y: 120, width: 16, height: 16, collected: false },
+      { x: 3800, y: 150, width: 16, height: 16, collected: false }
+    ];
+
+    // Create enemies
+    this.data.enemies = [
+      { x: 400, y: 420, lastX: 400, lastY: 420, renderX: 400, renderY: 420, width: 32, height: 32, speed: 2, direction: 1, platformIndex: -1 },
+      { x: 800, y: 420, lastX: 800, lastY: 420, renderX: 800, renderY: 420, width: 32, height: 32, speed: 1.5, direction: -1, platformIndex: -1 },
+      { x: 1100, y: 270, lastX: 1100, lastY: 270, renderX: 1100, renderY: 270, width: 32, height: 32, speed: 2.5, direction: 1, platformIndex: -1 },
+      { x: 1500, y: 320, lastX: 1500, lastY: 320, renderX: 1500, renderY: 320, width: 32, height: 32, speed: 1.8, direction: -1, platformIndex: -1 },
+      { x: 1900, y: 220, lastX: 1900, lastY: 220, renderX: 1900, renderY: 220, width: 32, height: 32, speed: 2.2, direction: 1, platformIndex: -1 },
+      { x: 2300, y: 270, lastX: 2300, lastY: 270, renderX: 2300, renderY: 270, width: 32, height: 32, speed: 1.7, direction: -1, platformIndex: -1 },
+      { x: 2700, y: 320, lastX: 2700, lastY: 320, renderX: 2700, renderY: 320, width: 32, height: 32, speed: 2.3, direction: 1, platformIndex: -1 },
+      { x: 3100, y: 220, lastX: 3100, lastY: 220, renderX: 3100, renderY: 220, width: 32, height: 32, speed: 1.9, direction: -1, platformIndex: -1 },
+      { x: 3500, y: 270, lastX: 3500, lastY: 270, renderX: 3500, renderY: 270, width: 32, height: 32, speed: 2.1, direction: 1, platformIndex: -1 }
+    ];
+
+    // Create goal
+    this.data.goal = {
+      x: 3900,
+      y: 350,
+      width: 32,
+      height: 50
+    };
+    
+  },
+
+  destroy: function() {
+    print("POCA: Application destroy\n");
+  },
+
+  show: function() {
+    print("POCA: Application show\n");
+    if(this.data && this.data.initialized && this.data.music) {
+      this.data.music.play(0.3275, 0.0, 1.0, true); // Volume, Panning, Rate, Loop 
+    }
+  },
+
+  hide: function() {
+    if(this.data && this.data.initialized && this.data.music) {
+      this.data.music.stop();
+    }
+    print("POCA: Application hide\n");
+  },
+
+  resume: function() {
+    print("POCA: Application resume\n");
+  },
+
+  pause: function() {
+    print("POCA: Application pause\n");
+  },
+
+  resize: function(width, height) {
+    print("POCA: Application resize to ", width, "x", height, "\n");
+    this.data.canvasWidth = width;
+    this.data.canvasHeight = height;
+  },
+
+  afterCreateSwapChain: function() {
+    print("POCA: Application afterCreateSwapChain\n");
+  },
+
+  beforeDestroySwapChain: function() {
+    print("POCA: Application beforeDestroySwapChain\n");
+  },
+
+  check: function(deltaTime) {
+    // Perform checks before update
+  },
+
+  updatePlayer: function(deltaTime) {
+    if(!(this.data.gameMode === this.MODE_STARTSCREEN || this.data.gameMode === this.MODE_RUNNING)) return;
+
+    // Cache player
+    let player = this.data.player;
+
+    // Cache platforms
+    let platforms = this.data.platforms;
+    let countPlatforms = platforms.length;
+
+    // Cache enemies
+    let enemies = this.data.enemies;
+    let countEnemies = enemies.length;
+
+    // Cache coins
+    let coins = this.data.coins;
+    let countCoins = coins.length;
+    
+    // Horizontal movement
+    if (this.data.gameMode === this.MODE_STARTSCREEN) {
+      // Disable movement on start screen
+      this.data.keys.left = false;
+      this.data.keys.right = false;
+      this.data.keys.up = false;
+    }
+    if (this.data.keys.left) {
+      player.velocityX = -player.speed;
+      player.facing = 'left';
+    } else if (this.data.keys.right) {
+      player.velocityX = player.speed;
+      player.facing = 'right';
+    } else {
+      player.velocityX *= player.friction; // Friction
+    }
+
+    // Apply gravity
+    player.velocityY += player.gravity;
+    
+    // Cap fall speed
+    if (player.velocityY > player.maxFallSpeed) {
+      player.velocityY = player.maxFallSpeed;
+    }
+
+    // Update position
+    player.x += player.velocityX;
+    player.y += player.velocityY;
+
+    // Platform collision detection
+    let onGround = false, collisionDetected = false;
+    for (let i = 0; i < countPlatforms; i++) {
+
+      let platform = platforms[i];
+      
+      if (player.x < platform.x + platform.width &&
+          player.x + player.width > platform.x &&
+          player.y < platform.y + platform.height &&
+          player.y + player.height > platform.y) {
+
+        // Collision from top
+        if (player.velocityY > 0 && player.y < platform.y) {
+          if(player.velocityY > player.gravity) { // Only when there was a significant velocity downwards 
+            collisionDetected = true;
+          }
+          player.y = platform.y - player.height;
+          player.velocityY = 0;
+          player.isJumping = false;
+          onGround = true;
+        }
+        // Collision from bottom
+        else if (player.velocityY < 0 && player.y > platform.y) {
+          player.y = platform.y + platform.height;
+          player.velocityY = 0;
+          collisionDetected = true;
+        }
+        // Collision from left
+        else if (player.velocityX > 0 && player.x < platform.x) {
+          player.x = platform.x - player.width;
+          player.velocityX = 0;
+          collisionDetected = true;
+        }
+        // Collision from right
+        else if (player.velocityX < 0 && player.x > platform.x) {
+          player.x = platform.x + platform.width;
+          player.velocityX = 0;
+          collisionDetected = true;
+        }
+      }
+    }
+
+    // Keep player within level boundaries
+    if (player.x < 0) {
+      player.x = 0;
+      player.velocityX = 0;
+      collisionDetected = true;
+    } else if (player.x + player.width > this.data.gameWidth) {
+      player.x = this.data.gameWidth - player.width;
+      player.velocityX = 0;
+      collisionDetected = true;
+    }
+
+    if(collisionDetected && this.data.sounds.block && this.data.gameMode === this.MODE_RUNNING) {
+      this.data.sounds.block.play(1.0, 0.0, 1.0);
+    }
+
+    // Update camera to follow player
+    let centerX = this.data.virtualWidth / 2;
+    let centerY = this.data.virtualHeight / 2;
+    let safeZoneWidth = 200;
+    let safeZoneHeight = 150;
+
+    if (player.x < this.data.cameraX + centerX - safeZoneWidth) {
+      this.data.cameraX = player.x - (centerX - safeZoneWidth);
+    } else if (player.x > this.data.cameraX + centerX + safeZoneWidth) {
+      this.data.cameraX = player.x - (centerX + safeZoneWidth);
+    }
+
+    if (player.y < this.data.cameraY + centerY - safeZoneHeight) {
+      this.data.cameraY = player.y - (centerY - safeZoneHeight);
+    } else if (player.y > this.data.cameraY + centerY + safeZoneHeight) {
+      this.data.cameraY = player.y - (centerY + safeZoneHeight);
+    }
+
+    // Camera scrolls slowly on start screen in both directions
+    if (this.data.gameMode === this.MODE_STARTSCREEN) {
+      let scrollTime = Math.fract(this.data.time * 0.01);
+      //scrollTime = 1.0 - (Math.abs(scrollTime - 0.5) * 2.0); // Triangle wave
+      scrollTime = 0.5 - (Math.cos(scrollTime * 2.0 * Math.PI) * 0.5); // Smooth cosine wave
+      this.data.cameraX = scrollTime * (this.data.gameWidth - this.data.virtualWidth);
+    }
+
+    // Keep camera within bounds
+    this.data.cameraX = Math.max(0, Math.min(this.data.cameraX, this.data.gameWidth - this.data.virtualWidth));
+    this.data.cameraY = Math.max(0, Math.min(this.data.cameraY, this.data.gameHeight - this.data.virtualHeight));
+
+    // Coin collection
+    for (let i = 0; i < countCoins; i++) {
+      let coin = coins[i];
+      if (!coin.collected &&
+          player.x < coin.x + coin.width &&
+          player.x + player.width > coin.x &&
+          player.y < coin.y + coin.height &&
+          player.y + player.height > coin.y) {
+        coin.collected = true;
+        this.data.score += 100;
+        if(this.data.sounds.collect && this.data.gameMode === this.MODE_RUNNING) {
+          this.data.sounds.collect.play(1.0, 0.0, 1.0);
+        }
+      }
+    }
+
+    // Enemy collision
+    for (let i = countEnemies - 1; i >= 0; i--) {
+      let enemy = enemies[i];
+      if (player.x < enemy.x + enemy.width &&
+          player.x + player.width > enemy.x &&
+          player.y < enemy.y + enemy.height &&
+          player.y + player.height > enemy.y) {
+        
+        // Check if player is jumping on enemy from above
+        if (player.velocityY > 0 && player.y + player.height - player.velocityY < enemy.y + 10) {
+          // Player jumped on enemy - eliminate it
+          this.data.enemies.splice(i, 1);
+          this.data.score += 200;
+          player.velocityY = -8; // Small bounce
+          if(this.data.sounds.enemyterminate && this.data.gameMode === this.MODE_RUNNING) {
+            this.data.sounds.enemyterminate.play(1.0, 0.0, 1.0);
+          }
+        } else {
+          // Player hit enemy - take damage
+          this.data.lives--;
+          if (this.data.lives <= 0) {
+            this.gameOver();
+          }else{
+            // Reset player position
+            player.x = 100;
+            player.y = 300;
+            player.lastX = 100;
+            player.lastY = 300;
+            player.renderX = 100;
+            player.renderY = 300;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.facing = 'right';
+            if(this.data.sounds.hurt && this.data.gameMode === this.MODE_RUNNING) {
+              this.data.sounds.hurt.play(1.0, 0.0, 1.0);
+            }
+          }
+        }
+      }
+    }
+
+    // Goal collision
+    if (this.data.goal &&
+        player.x < this.data.goal.x + this.data.goal.width &&
+        player.x + player.width > this.data.goal.x &&
+        player.y < this.data.goal.y + this.data.goal.height &&
+        player.y + player.height > this.data.goal.y) {
+      // Player reached goal
+      this.data.score += 1000;
+      this.levelComplete();
+    }
+
+    // Screen boundaries - falling off bottom
+    if (player.y > this.data.gameHeight) {
+      this.data.lives--;
+      if (this.data.lives <= 0) {
+        this.gameOver();
+      }else{  
+        player.x = 100;
+        player.y = 300;
+        player.lastX = 100;
+        player.lastY = 300;
+        player.renderX = 100;
+        player.renderY = 300;
+        player.velocityX = 0;
+        player.velocityY = 0;
+        if(this.data.sounds.hurt && this.data.gameMode === this.MODE_RUNNING) {
+          this.data.sounds.hurt.play(1.0, 0.0, 1.0);
+        }
+      }
+    }
+
+  },
+
+  updateEnemies: function(deltaTime) {
+
+    if(!(this.data.gameMode === this.MODE_STARTSCREEN || this.data.gameMode === this.MODE_RUNNING)) return;
+
+    // Cache platforms
+    let platforms = this.data.platforms;
+    let countPlatforms = platforms.length;
+
+    // Cache enemies
+    let enemies = this.data.enemies;
+    let countEnemies = enemies.length;
+
+    // Update each enemy
+    for (let i = 0; i < countEnemies; i++) {
+
+      let enemy = enemies[i];
+
+      // Calculate next position
+      let nextX = enemy.x + (enemy.speed * enemy.direction);
+      
+      // Check if there will be ground under the enemy or if enemy will hit a wall
+      let groundAhead = false, wallAhead = false;
+      let checkX = enemy.direction > 0 ? nextX + enemy.width : nextX;
+      let checkY = enemy.y + enemy.height + 5;
+
+      // Check current last known platform first for efficiency
+      if(enemy.platformIndex >= 0){
+
+        let platform = platforms[enemy.platformIndex];
+
+        // Check for ground ahead
+        if (checkX >= platform.x && 
+            checkX <= platform.x + platform.width &&
+            checkY >= platform.y && 
+            checkY <= platform.y + platform.height) {
+          groundAhead = true;
+        }
+      
+        // Check for wall ahead
+        if (nextX < platform.x + platform.width &&
+            nextX + enemy.width > platform.x &&
+            enemy.y < platform.y + platform.height &&
+            enemy.y + enemy.height > platform.y) {
+          if (Math.abs((enemy.y + enemy.height) - platform.y) > 10) {
+            wallAhead = true;
+          }
+        }
+
+        // If enemy has moved off the platform, reset platformIndex
+        if (!(enemy.x >= platform.x && 
+              enemy.x + enemy.width <= platform.x + platform.width &&
+              enemy.y + enemy.height === platform.y)) {
+          enemy.platformIndex = -1;
+        }
+
+      }
+
+      // Then check all platforms if no platform assigned
+      if((enemy.platformIndex < 0) && (!groundAhead || wallAhead)){
+
+        for (let j = 0; j < countPlatforms; j++) {
+          
+          let platform = platforms[j];
+
+          // Check for ground ahead
+          if (checkX >= platform.x && 
+              checkX <= platform.x + platform.width &&
+              checkY >= platform.y && 
+              checkY <= platform.y + platform.height) {
+            groundAhead = true;
+            enemy.platformIndex = j;
+            break;
+          }
+        
+          // Check for wall ahead
+          if (nextX < platform.x + platform.width &&
+              nextX + enemy.width > platform.x &&
+              enemy.y < platform.y + platform.height &&
+              enemy.y + enemy.height > platform.y) {
+            if (Math.abs((enemy.y + enemy.height) - platform.y) > 10) {
+              wallAhead = true;
+              enemy.platformIndex = j;
+              break;
+            }
+          }
+
+        }
+
+      }
+        
+      // Reverse direction if no ground ahead or wall ahead
+      if (!groundAhead || wallAhead) {
+        enemy.direction *= -1;
+      } else {
+        enemy.x = nextX;
+      }
+
+    }
+
+  },
+
+  gameOver: function() {
+    this.data.gameMode = this.MODE_GAMEOVER;
+    print("POCA: Game Over! Final Score: ", this.data.score, "\n");
+    if(this.data.sounds.gameover) {
+      this.data.sounds.gameover.play(1.0, 0.0, 1.0);
+    }
+  },
+
+  levelComplete: function() {
+    this.data.gameMode = this.MODE_LEVELCOMPLETE;
+    print("POCA: Level Complete! Score: ", this.data.score, "\n");
+    if(this.data.sounds.levelcomplete) {
+      this.data.sounds.levelcomplete.play(1.0, 0.0, 1.0);
+    }
+  },
+
+  storeLast: function() {
+
+    if (!this.data || !this.data.initialized) return;
+
+    // Store last frame state
+    let enemies = this.data.enemies;
+    let countEnemies = enemies.length;
+    for (let i = 0; i < countEnemies; i++) {
+      let enemy = enemies[i];
+      enemy.lastX = enemy.x;
+      enemy.lastY = enemy.y;
+    }
+
+    this.data.player.lastX = this.data.player.x;
+    this.data.player.lastY = this.data.player.y;
+
+    this.data.cameraLastX = this.data.cameraX;
+    this.data.cameraLastY = this.data.cameraY;
+
+  },
+
+  updateStep: function(deltaTime) {
+    if (!this.data || !this.data.initialized) return;
+    
+    if (this.data.gameMode === this.MODE_STARTSCREEN || this.data.gameMode === this.MODE_RUNNING) {
+      this.updatePlayer(deltaTime);
+      this.updateEnemies(deltaTime);
+    }
+
+  },
+
+  interpolate: function(alpha) {
+
+    if (!this.data || !this.data.initialized) return;
+
+    let invAlpha = 1.0 - alpha;
+
+    // Interpolate enemy positions
+    let enemies = this.data.enemies;
+    let countEnemies = enemies.length;
+    for (let i = 0; i < countEnemies; i++) {
+      let enemy = enemies[i];
+      enemy.renderX = (enemy.lastX * invAlpha) + (enemy.x * alpha);
+      enemy.renderY = (enemy.lastY * invAlpha) + (enemy.y * alpha);
+    }
+
+    // Interpolate player position
+    let player = this.data.player;
+    player.renderX = (player.lastX * invAlpha) + (player.x * alpha);
+    player.renderY = (player.lastY * invAlpha) + (player.y * alpha);
+
+    // Interpolate camera position
+    this.data.cameraRenderX = (this.data.cameraLastX * invAlpha) + (this.data.cameraX * alpha);
+    this.data.cameraRenderY = (this.data.cameraLastY * invAlpha) + (this.data.cameraY * alpha);
+
+  },
+
+  update: function(deltaTime) {
+    if (!this.data || !this.data.initialized) return;
+
+    // "Fix your timestep" approach for consistent updates and consistent physics behavior
+
+    let tickRate = 1.0 / 60.0; // 60 updates per second
+    let accumulator = Math.min(this.data.accumulator, 0.25); // Prevent spiral of death
+    accumulator += deltaTime;
+ 
+    if(this.data.first){
+      this.storeLast();
+      this.data.first = false;
+    }
+
+    while (accumulator >= tickRate) {
+      this.storeLast();
+      this.updateStep(tickRate);
+      accumulator -= tickRate;
+    }
+
+    this.data.accumulator = accumulator;
+
+    let alpha = accumulator / tickRate;
+    this.interpolate(alpha);
+
+    this.data.time += deltaTime;
+
+  },
+
+  jump: function(){
+    if (this.data.gameMode === this.MODE_RUNNING && !this.data.player.isJumping) {
+      this.data.player.velocityY = -this.data.player.jumpPower;
+      this.data.player.isJumping = true;
+      this.data.sounds.jump.play(1.0, 0.0, 1.0);
+    }
+  },
+
+  onInputEvent: function(event) {
+    if (!event || !this.data || !this.data.initialized) return false;
+
+    // Handle keyboard events
+    if (event.EventType === Input.EventTypes.EVENT_KEY) {
+      
+      if ((event.KeyEventType === Input.KeyEventTypes.KEYEVENT_DOWN) || (event.KeyEventType === Input.KeyEventTypes.KEYEVENT_UP)) {
+
+        let isDown = (event.KeyEventType === Input.KeyEventTypes.KEYEVENT_DOWN);
+        
+        if (event.KeyCode === Input.KeyCodes.KEYCODE_LEFT || event.KeyCode === Input.KeyCodes.KEYCODE_A) {
+          this.data.keys.left = isDown;
+          return true;
+        } else if (event.KeyCode === Input.KeyCodes.KEYCODE_RIGHT || event.KeyCode === Input.KeyCodes.KEYCODE_D) {
+          this.data.keys.right = isDown;
+          return true;
+        } else if (event.KeyCode === Input.KeyCodes.KEYCODE_UP || event.KeyCode === Input.KeyCodes.KEYCODE_W) {
+          // Jump also on up, not just space
+          this.jump();
+          this.data.keys.up = isDown;
+          return true;
+        } else if (event.KeyCode === Input.KeyCodes.KEYCODE_SPACE) {        
+          if (isDown) {
+            // Start game from start screen
+            if (this.data.gameMode === this.MODE_STARTSCREEN) {
+              this.initGame(this.MODE_RUNNING);
+              return true;
+            }
+            // Restart game from game over screen
+            else if (this.data.gameMode === this.MODE_GAMEOVER) {
+              this.initGame(this.MODE_STARTSCREEN);
+              return true;
+            }
+            // Continue from level complete screen
+            else if (this.data.gameMode === this.MODE_LEVELCOMPLETE) {
+              this.initGame(this.MODE_STARTSCREEN);
+              return true;
+            }
+            // Jump during gameplay
+            else {
+              this.jump();
+            }
+          }
+          this.data.keys.space = isDown;
+          return true;
+        }
+
+      }
+
+    }
+    
+    return false;
+  },
+
+  createCanvas: function(nativeCanvas) {
+    print("POCA: Application createCanvas\n");
+    this.data.fontVGA = nativeCanvas.createCanvasFontFromGlobal("vga");
+  },
+
+  destroyCanvas: function(nativeCanvas) {
+    this.data.fontVGA = null;
+    print("POCA: Application destroyCanvas\n");
+  },
+
+  updateCanvas: function(deltaTime, width, height, nativeWidth, nativeHeight) {
+    // Canvas updates handled in update()
+  },
+
+  drawCanvas: function(nativeCanvas, width, height, nativeWidth, nativeHeight) {
+    if (!this.data || !this.data.initialized) {
+      print("POCA: drawCanvas called but data not initialized!\n");
+      return;
+    }
+
+    let canvas = nativeCanvas;
+    let cameraX = this.data.cameraRenderX;
+    let cameraY = this.data.cameraRenderY;
+
+    // Calculate scale to fit virtual canvas within actual canvas while preserving aspect ratio
+    let scale;
+    if (width / height < this.data.virtualWidth / this.data.virtualHeight) {
+      scale = width / this.data.virtualWidth;
+    } else {
+      scale = height / this.data.virtualHeight;
+    }
+
+    // Create view matrix to scale and center the virtual canvas
+    // Translate to virtual center -> Scale -> Translate to actual center
+    let m1 = Matrix4x4.create(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      -this.data.virtualWidth * 0.5, -this.data.virtualHeight * 0.5, 0, 1
+    );
+    
+    let m2 = Matrix4x4.create(
+      scale, 0, 0, 0,
+      0, scale, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+    
+    let m3 = Matrix4x4.create(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      width * 0.5, height * 0.5, 0, 1
+    );
+    
+    // Combine matrices: m1 * m2 * m3
+    let viewMatrix = m1 * m2 * m3; // or m1.clone().mul(m2).mul(m3);
+    canvas.setViewMatrix(viewMatrix);
+
+    // Get culling rectangle in virtual canvas coordinates, per inverse of view matrix
+    let invScale = 1.0 / scale;
+    let cullX0 = ((width * -0.5) * invScale) + (this.data.virtualWidth * 0.5);
+    let cullY0 = ((height * -0.5) * invScale) + (this.data.virtualHeight * 0.5);
+    let cullX1 = cullX0 + (width * invScale);
+    let cullY1 = cullY0 + (height * invScale);
+
+    // Now draw everything in virtual canvas coordinates
+
+    // Draw sky background (light blue)
+    // Draw background sky with gradient BEFORE view matrix (fill entire actual canvas including borders)
+    // Set up linear gradient from darker blue at top to lighter blue at bottom
+    canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+    canvas.setStartColor(0.0625, 0.25, 0.75, 1.0);
+    canvas.setStopColor(0.5, 0.75, 1.0, 1.0); 
+    
+    // Set fill matrix for vertical gradient (top to bottom)
+    let gradientMatrix = Matrix4x4.create(
+      0, 1 / this.data.virtualWidth, 0, 0,
+      1 / this.data.virtualHeight, 0, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+    canvas.setFillMatrix(gradientMatrix);
+    
+    // Draw the gradient rectangle, more width to cover entire canvas area including borders
+    canvas.drawFilledRectangle(-this.data.virtualWidth * 8, 0, this.data.virtualWidth * 16, this.data.virtualHeight);
+    
+    // Reset to solid color fill style for other drawing
+    canvas.setFillStyle(Canvas.FillStyle.Color);
+
+    // Draw sun with rotating rays
+    let sunX = 400;
+    let sunY = 100;
+    let sunRadius = 40;
+    let rayCount = 8;
+    let rayRotation = this.data.time * 0.5; // Slow rotation
+    
+    // Draw sun rays (rotating)
+    canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+    canvas.setStartColor(1.0, 1.0, 0.25, 1.0);
+    canvas.setStopColor(1.0, 0.75, 0.0, 0.0); 
+    for (let i = 0; i < rayCount; i++) {
+      let angle = (i / rayCount) * Math.PI * 2 + rayRotation;
+      let rayLength = 64;
+      let rayWidth = 8;
+      
+      // Calculate ray position
+      let rayX = sunX + Math.sin(angle) * (sunRadius + rayLength / 2);
+      let rayY = sunY + Math.cos(angle) * (sunRadius + rayLength / 2);
+      
+      // Create rotation matrix for the ray
+      let cos = Math.cos(angle);
+      let sin = Math.sin(angle);
+      
+      // Model matrix composed of three transformations:
+      // 1. Translate to origin
+      // 2. Rotate around origin
+      // 3. Translate to final position
+      let toOriginMatrix = Matrix4x4.create(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        -rayWidth / 2, -rayLength, 0, 1
+      );
+      
+      let rotationMatrix = Matrix4x4.create(
+        cos, -sin, 0, 0,
+        sin, cos, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+      
+      let translationMatrix = Matrix4x4.create(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        rayX, rayY, 0, 1
+      );
+
+      let rayMatrix = toOriginMatrix.mul(rotationMatrix).mul(translationMatrix);
+
+      let fillMatrix = Matrix4x4.create(
+        0, 1 / rayWidth, 0, 0,
+        1 / rayLength, 0, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+      fillMatrix = rayMatrix.inverse().mul(fillMatrix);
+      canvas.setFillMatrix(fillMatrix);
+
+      canvas.setModelMatrix(rayMatrix);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0); 
+      canvas.drawFilledRectangle(0, 0, rayWidth, rayLength);
+    }
+    
+    // Reset model matrix
+    let identityMatrix = Matrix4x4.create(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+    canvas.setModelMatrix(identityMatrix);
+    
+    // Draw sun core (bright yellow circle)
+    // Set fill style for sun
+    canvas.setFillStyle(Canvas.FillStyle.RadialGradient);
+    let sunToOriginMatrix = Matrix4x4.create(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      -sunX, -sunY, 0, 1
+    );
+    let sunScaleMatrix = Matrix4x4.create(
+      1 / sunRadius, 0, 0, 0,
+      0, 1 / sunRadius, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+    let sunFillMatrix = sunToOriginMatrix.mul(sunScaleMatrix); 
+    canvas.setFillMatrix(sunFillMatrix);
+    canvas.setStartColor(1.0, 1.0, 0.25, 1.0);
+    canvas.setStopColor(1.0, 0.75, 0.0, 1.0);
+    canvas.setColor(1.0, 1.0, 1.0, 1.0);
+    canvas.drawFilledCircle(sunX, sunY, sunRadius);
+    
+    // Draw sun highlight (lighter center)
+    // Reset fill style to solid color
+    canvas.setFillStyle(Canvas.FillStyle.Color);
+    canvas.setColor(1.0, 1.0, 0.6, 0.3275);
+    canvas.drawFilledCircle(sunX - 8, sunY - 8, sunRadius * 0.6);
+
+    // Draw clouds with parallax scrolling (white fluffy clouds)
+    
+    let clouds = this.data.clouds;
+    let countClouds = clouds.length;
+    for (let i = 0; i < countClouds; i++) {
+      let cloud = clouds[i];
+
+      // Calculate parallax offsets using sine and cosine for smooth movement for fluffiness motion
+      let parallaxOffsetX = Math.sin(this.data.time * 0.75 + cloud.x * 0.50) * 5;
+      let parallaxOffsetY = Math.cos(this.data.time * 0.50 + cloud.y * 0.75) * 2;
+      let parallaxScale = 1.0 + Math.sin(this.data.time + cloud.x * 0.25) * 0.05;
+
+      // Apply parallax effect by multiplying camera position by layer depth
+      let parallaxX = cloud.x + parallaxOffsetX - (cameraX * cloud.layer);
+      let parallaxY = cloud.y + parallaxOffsetY - (cameraY * cloud.layer);
+
+      // Scale cloud size based on scale factor
+      let baseSize = 30;
+      let size1 = baseSize * cloud.scale * parallaxScale;
+      let size2 = (baseSize * 1.125) * cloud.scale * parallaxScale;
+
+      // Offsets for the back circles to create depth
+      let offsetX = -2.5 * cloud.scale;
+      let offsetY = 2.5 * cloud.scale;
+
+      // Culling
+      let x = parallaxX - size1 + offsetX, y = parallaxY + offsetY, width = (size1 * 4) + Math.abs(offsetX * 2), height = (size2 * 2) + Math.abs(offsetY * 2);
+      if ((x > cullX1) || ((x + width) < cullX0) || (y > cullY1) || ((y + height) < cullY0)) {
+        continue; // Skip
+      }
+
+      let backColorFactor = 0.5 + 0.125 * cloud.layer; // Lighter for farther layers
+      canvas.setFillStyle(Canvas.FillStyle.Color);
+      canvas.setColor(backColorFactor, backColorFactor, backColorFactor, 0.5);       
+      
+      // Draw three overlapping circles to form a cloud
+      canvas.drawFilledCircle(parallaxX + offsetX, parallaxY + offsetY, size1);
+      canvas.drawFilledCircle(parallaxX + size1 + offsetX, parallaxY - 10 + offsetY, size2);
+      canvas.drawFilledCircle(parallaxX + size1 * 2 + offsetX, parallaxY + offsetY, size1);
+
+      let colorFactor = 0.75 + 0.25 * cloud.layer; // Lighter for farther layers
+      canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+      canvas.setStartColor(colorFactor, colorFactor, colorFactor, 1.0);
+      canvas.setStopColor(colorFactor * 0.5, colorFactor * 0.5, colorFactor * 0.5, 1.0);
+      let cloudToOriginMatrix = Matrix4x4.create(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        -parallaxX, -parallaxY, 0, 1
+      );
+      let cloudScaleMatrix = Matrix4x4.create(
+        0, 1 / (size1 * 3), 0, 0,
+        1 / (size1 * 1.5), 0, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+      let cloudFillMatrix = cloudToOriginMatrix.mul(cloudScaleMatrix);
+      canvas.setFillMatrix(cloudFillMatrix);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0);       
+      
+      // Draw three overlapping circles to form a cloud
+      canvas.drawFilledCircle(parallaxX, parallaxY, size1);
+      canvas.drawFilledCircle(parallaxX + size1, parallaxY - 10, size2);
+      canvas.drawFilledCircle(parallaxX + size1 * 2, parallaxY, size1);
+    }
+
+    // Draw platforms
+    let platforms = this.data.platforms;
+    let countPlatforms = platforms.length;
+    canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+    for (let i = 0; i < countPlatforms; i++) {
+      let platform = platforms[i];
+
+      // Culling
+      let x = platform.x - cameraX, y = platform.y - cameraY;
+      if ((x > cullX1) || ((x + platform.width) < cullX0) || (y > cullY1) || ((y + platform.height) < cullY0)) {
+        continue; // Skip
+      }
+            
+      // Brown platform
+      canvas.setStartColor(0.3025, 0.0729, 0.0049, 1.0);
+      canvas.setStopColor(0.1485, 0.0351, 0.0000, 1.0);
+      let platformToOriginMatrix = Matrix4x4.create(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        -(platform.x - cameraX), -(platform.y - cameraY), 0, 1
+      );
+      let platformScaleMatrix = Matrix4x4.create(
+        0, 1 / platform.width, 0, 0,
+        1 / platform.height, 0, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+      let platformFillMatrix = platformToOriginMatrix.clone().mul(platformScaleMatrix);
+      canvas.setFillMatrix(platformFillMatrix);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0);
+      canvas.drawFilledRectangle(
+        platform.x - cameraX,
+        platform.y - cameraY,
+        platform.width,
+        platform.height
+      );
+
+      // Green grass top
+      canvas.setStartColor(0.013, 0.3025, 0.013, 1.0);
+      canvas.setStopColor(0.009, 0.275, 0.009, 0.0);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0);
+      platformScaleMatrix = Matrix4x4.create(
+        0, 1 / platform.width, 0, 0,
+        1 / 10, 0, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+      platformFillMatrix = platformToOriginMatrix.clone().mul(platformScaleMatrix);
+      canvas.setFillMatrix(platformFillMatrix);
+      canvas.drawFilledRectangle(
+        platform.x - cameraX,
+        platform.y - cameraY,
+        platform.width,
+        10
+      );
+    }
+
+    // Draw coins
+    let coins = this.data.coins;
+    let countCoins = coins.length;
+    canvas.setFillStyle(Canvas.FillStyle.Color);
+    for (let i = 0; i < countCoins; i++) {
+      let coin = coins[i];
+      if (!coin.collected) {
+
+        // Culling
+        let x = coin.x - cameraX, y = coin.y - cameraY;
+        if ((x > cullX1) || ((x + coin.width) < cullX0) || (y > cullY1) || ((y + coin.height) < cullY0)) {
+          continue; // Skip
+        }
+
+        // Gold coin
+        canvas.setColor(1.0, 0.84, 0.0, 1.0);
+        canvas.drawFilledCircle(
+          coin.x + coin.width / 2 - cameraX,
+          coin.y + coin.height / 2 - cameraY,
+          coin.width / 2
+        );
+        
+        // White shine
+        let offsetX = Math.sin(this.data.time * 0.9 + coin.x * 0.1) * 0.25;
+        let offsetY = Math.cos(this.data.time * 0.8 + coin.x * 0.1) * 0.25;
+        let scale = 1.0 + Math.sin(this.data.time * 2.0 + coin.x * 0.5 + Math.sin(this.data.time * 0.5 + coin.x * 0.1)) * 0.1;
+        canvas.setColor(1.0, 1.0, 1.0, 1.0);
+        canvas.drawFilledCircle(
+          coin.x + coin.width / 3 - cameraX + offsetX,
+          coin.y + coin.height / 3 - cameraY + offsetY,
+          (coin.width / 6) * scale
+        );
+      }
+    }
+
+    // Draw enemies
+    let enemies = this.data.enemies;
+    let countEnemies = enemies.length;
+    for (let i = 0; i < countEnemies; i++) {
+      let enemy = enemies[i];
+
+      // Culling
+      let x = enemy.renderX - cameraX, y = enemy.renderY - cameraY;
+      if (((x - 1) > cullX1) || ((x + enemy.width + 1) < cullX0) || (y > cullY1) || ((y + enemy.height) < cullY0)) {
+        continue; // Skip
+      }
+      
+      // Dark red enemy body
+      canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+      canvas.setStartColor(0.4125, 0.0, 0.0, 1.0);
+      canvas.setStopColor(0.3025, 0.0, 0.0, 1.0);
+      let enemyToOriginMatrix = Matrix4x4.create(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        -(enemy.renderX - cameraX), -(enemy.renderY - cameraY), 0, 1
+      );
+      let enemyScaleMatrix = Matrix4x4.create(
+        0, 1 / enemy.width, 0, 0,
+        1 / enemy.height, 0, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+      let enemyFillMatrix = enemyToOriginMatrix.clone().mul(enemyScaleMatrix);
+      canvas.setFillMatrix(enemyFillMatrix);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0);
+      canvas.drawFilledRectangle(
+        enemy.renderX - cameraX,
+        enemy.renderY - cameraY,
+        enemy.width,
+        enemy.height
+      );
+
+      // Black eyes - slightly shifted in walking direction
+      let eyeOffset = enemy.direction * 2; // Shift 2 pixels in walk direction
+      canvas.setFillStyle(Canvas.FillStyle.Color);
+      canvas.setColor(0.0, 0.0, 0.0, 1.0);
+      canvas.drawFilledRectangle(
+        enemy.renderX + 8 + eyeOffset - cameraX,
+        enemy.renderY + 8 - cameraY,
+        4,
+        4
+      );
+      canvas.drawFilledRectangle(
+        enemy.renderX + 20 + eyeOffset - cameraX,
+        enemy.renderY + 8 - cameraY,
+        4,
+        4
+      );
+    }
+
+    // Draw goal
+    if (this.data.goal) {
+      let goal = this.data.goal;
+
+      // Culling
+      let x = goal.x - cameraX, y = goal.y - cameraY;
+      if (!((x > cullX1) || ((x + goal.width) < cullX0) || (y > cullY1) || ((y + goal.height) < cullY0))) {
+        
+        // Not culled, draw it
+        
+        // Green flag pole base
+        canvas.setFillStyle(Canvas.FillStyle.RadialGradient);
+        canvas.setStartColor(0.25, 1.0, 0.25, 1.0);
+        canvas.setStopColor(0.125, 0.75, 0.125, 1.0);
+        let goalToOriginMatrix = Matrix4x4.create(
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          -(goal.x + goal.width / 2 - cameraX), -(goal.y + goal.height / 2 - cameraY), 0, 1
+        );
+        let goalScaleMatrix = Matrix4x4.create(
+          0, 2 / goal.width, 0, 0,
+          2 / goal.height, 0, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1
+        );
+        let goalFillMatrix = goalToOriginMatrix.clone().mul(goalScaleMatrix);
+        canvas.setFillMatrix(goalFillMatrix);
+        canvas.setColor(1.0, 1.0, 1.0, 1.0);
+        canvas.drawFilledRectangle(
+          goal.x - cameraX,
+          goal.y - cameraY,
+          goal.width,
+          goal.height
+        );
+
+        // White pole
+        canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+        canvas.setStartColor(1.0, 1.0, 1.0, 1.0);
+        canvas.setStopColor(0.75, 0.75, 0.75, 1.0);
+        let poleToOriginMatrix = Matrix4x4.create(
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          -(goal.x + 11 - cameraX), -(goal.y + 5 - cameraY), 0, 1
+        );
+        let poleScaleMatrix = Matrix4x4.create(
+          0, 1 / 2, 0, 0,
+          1 / 30, 0, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1
+        );
+        let poleFillMatrix = poleToOriginMatrix.clone().mul(poleScaleMatrix);
+        canvas.setFillMatrix(poleFillMatrix);
+        canvas.setColor(1.0, 1.0, 1.0, 1.0);
+        canvas.drawFilledRectangle(
+          goal.x + 10 - cameraX,
+          goal.y + 5 - cameraY,
+          2,
+          30
+        );
+
+        // Red flag (triangle approximated with rectangle)
+        canvas.setFillStyle(Canvas.FillStyle.RadialGradient);
+        canvas.setStartColor(1.0, 0.0, 0.0, 1.0);
+        canvas.setStopColor(0.1, 0.0, 0.0, 1.0);
+        let flagToOriginMatrix = Matrix4x4.create(
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          -(goal.x + 16 - cameraX), -(goal.y + 7.5 - cameraY), 0, 1
+        );
+        let flagScaleMatrix = Matrix4x4.create(
+          0, 1 / 13, 0, 0,
+          1 / 20, 0, 0, 0,  
+          0, 0, 1, 0,
+          0, 0, 0, 1
+        );
+        canvas.setFillMatrix(flagToOriginMatrix.clone().mul(flagScaleMatrix));
+        canvas.setColor(1.0, 1.0, 1.0, 1.0);
+        canvas.drawFilledRectangle(
+          goal.x + 12 - cameraX,
+          goal.y + 5 - cameraY,
+          13,
+          20
+        );
+      
+      }
+
+    }
+
+    // Draw player
+    let player = this.data.player;
+    canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
+    canvas.setStartColor(1.0, 0.165, 0.165, 1.0);
+    canvas.setStopColor(0.75, 0.125, 0.125, 1.0);
+    let playerToOriginMatrix = Matrix4x4.create(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      -(player.renderX - cameraX), -(player.renderY - cameraY), 0, 1
+    );
+    let playerScaleMatrix = Matrix4x4.create(
+      0, 1 / player.width, 0, 0,
+      1 / player.height, 0, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+    let playerFillMatrix = playerToOriginMatrix.clone().mul(playerScaleMatrix);
+    canvas.setFillMatrix(playerFillMatrix);
+    canvas.setColor(1.0, 1.0, 1.0, 1.0); // Red player
+    canvas.drawFilledRectangle(
+      player.renderX - cameraX,
+      player.renderY - cameraY,
+      player.width,
+      player.height
+    );
+
+    // Player eye
+    canvas.setFillStyle(Canvas.FillStyle.Color);
+    canvas.setColor(0.0, 0.0, 0.0, 1.0);
+    if (player.facing == 'right') {
+      canvas.drawFilledRectangle(
+        player.renderX + 20 - cameraX,
+        player.renderY + 8 - cameraY,
+        4,
+        4
+      );
+    } else {
+      canvas.drawFilledRectangle(
+        player.renderX + 8 - cameraX,
+        player.renderY + 8 - cameraY,
+        4,
+        4
+      );
+    }
+
+    // Draw UI
+    // Set font for text rendering
+    canvas.setFont(this.data.fontVGA);
+    canvas.setFontSize(24);
+    
+    // Draw based on game mode
+    if (this.data.gameMode === this.MODE_STARTSCREEN) {
+
+      // Start screen
+
+      const TitleText1 = "SUPER CUBI";
+      const TitleText2 = "Adventure";
+      const InfoText1 = "Arrow keys or WASD to move";
+      const InfoText2 = "Space to jump";
+      const InfoText3 = "Press SPACE to start";
+
+      let offsetX = Math.sin(this.data.time * 2.0) * 5.0;
+      let offsetY = Math.cos(this.data.time * 2.0) * 5.0;
+      let offsetScale = 1.0 + (Math.sin(this.data.time * 3.0) * 0.05);
+      let otherOffsetX = Math.cos((this.data.time + 0.3725) * 2.5) * 2.0; 
+      let otherOffsetY = Math.sin((this.data.time + 0.3725) * 2.5) * 2.0;
+      canvas.setFontSize(64 * offsetScale);
+      canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Center);
+      canvas.setColor(1.0 * 0.5, 0.5 * 0.5, 0.125 * 0.5, 1.0); // Orange text
+      canvas.drawText(TitleText1, this.data.virtualWidth / 2 + offsetX + otherOffsetX, this.data.virtualHeight / 2 - 100 + offsetY + otherOffsetY);
+      canvas.setColor(1.0, 0.5, 0.125, 1.0); // Orange text
+      canvas.drawText(TitleText1, this.data.virtualWidth / 2 + offsetX, this.data.virtualHeight / 2 - 100 + offsetY);
+
+      canvas.setFontSize(32);
+      canvas.setColor(1.0 * 0.5, 0.84 * 0.5, 0.0 * 0.5, 1.0); // Gold text
+      canvas.drawText(TitleText2, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 - 40 + 2.0);
+      canvas.setColor(1.0, 0.84, 0.0, 1.0); // Gold text
+      canvas.drawText(TitleText2, this.data.virtualWidth / 2, this.data.virtualHeight / 2 - 40);
+
+      canvas.setFontSize(24);
+      canvas.setColor(0.5, 0.5, 0.5, 1.0); // White text
+      canvas.drawText(InfoText1, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 20 + 2.0);
+      canvas.drawText(InfoText2, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 50 + 2.0);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0); // White text
+      canvas.drawText(InfoText1, this.data.virtualWidth / 2, this.data.virtualHeight / 2 + 20);
+      canvas.drawText(InfoText2, this.data.virtualWidth / 2, this.data.virtualHeight / 2 + 50);
+
+      canvas.setFontSize(32);
+      canvas.setColor(0.0, 0.5, 0.0, 1.0); // Green text
+      canvas.drawText(InfoText3, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 120 + 2.0);
+      canvas.setColor(0.0, 1.0, 0.0, 1.0); // Green text
+      canvas.drawText(InfoText3, this.data.virtualWidth / 2, this.data.virtualHeight / 2 + 120);
+
+      canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Leading); // Reset to left
+      
+    } else if (this.data.gameMode === this.MODE_RUNNING) {
+
+      let ScoreText = "Score: " ~ this.data.score;
+
+      // Draw score during gameplay
+      canvas.setColor(0.5, 0.5, 0.5, 1.0); // White text
+      canvas.drawText(ScoreText, 10 - 1.0, 10 + 1.0);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0); // White text
+      canvas.drawText(ScoreText, 10, 10);
+
+      // Simple lives indicator - draw hearts as circles
+      for (let i = 0; i < this.data.lives; i++) {
+        canvas.setColor(1.0, 0.0, 0.0, 1.0);
+        canvas.drawFilledCircle(20 + i * 25, 50, 8);
+      }
+            
+    } else if (this.data.gameMode === this.MODE_GAMEOVER) {
+      
+      // Game over screen
+      
+      const GameOverText = "GAME OVER";
+      let FinalScoreText = "Final Score: " ~ this.data.score;
+      const ContinueText = "Press SPACE to continue";
+
+      let offsetScale = 1.0 + (Math.sin(this.data.time * 3.0) * 0.05);
+      canvas.setFontSize(64 * offsetScale);
+      canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Center);
+      canvas.setColor(0.5, 0.0, 0.0, 1.0); // Red text
+      canvas.drawText(GameOverText, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 - 60 + 2.0);
+      canvas.setColor(1.0, 0.0, 0.0, 1.0); // Red text
+      canvas.drawText(GameOverText, this.data.virtualWidth / 2, this.data.virtualHeight / 2 - 60);
+
+      canvas.setFontSize(32);
+      canvas.setColor(0.5, 0.5, 0.5, 1.0); // White text
+      canvas.drawText(FinalScoreText, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 2.0);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0); // White text
+      canvas.drawText(FinalScoreText, this.data.virtualWidth / 2, this.data.virtualHeight / 2);
+      
+      canvas.setFontSize(24);
+      canvas.setColor(0.0, 0.5, 0.0, 1.0); // Green text
+      canvas.drawText(ContinueText, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 60 + 2.0);
+      canvas.setColor(0.0, 1.0, 0.0, 1.0); // Green text
+      canvas.drawText(ContinueText, this.data.virtualWidth / 2, this.data.virtualHeight / 2 + 60);
+      
+      canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Leading); // Reset to left
+      
+    } else if (this.data.gameMode === this.MODE_LEVELCOMPLETE) {
+
+      // Level complete screen
+
+      const LevelCompleteText = "LEVEL COMPLETE!";
+      let FinalScoreText = "Final Score: " ~ this.data.score;
+      const ContinueText = "Press SPACE to continue";
+      
+      let offsetScale = 1.0 + (Math.sin(this.data.time * 3.0) * 0.05);
+      canvas.setFontSize(64 * offsetScale);
+      canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Center);
+      canvas.setColor(0.5, 0.42, 0.0, 1.0); // Gold shadow
+      canvas.drawText(LevelCompleteText, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 - 60 + 2.0);
+      canvas.setColor(1.0, 0.84, 0.0, 1.0); // Gold text
+      canvas.drawText(LevelCompleteText, this.data.virtualWidth / 2, this.data.virtualHeight / 2 - 60);
+
+      canvas.setFontSize(32);
+      canvas.setColor(0.5, 0.5, 0.5, 1.0); // Shadow
+      canvas.drawText(FinalScoreText, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 2.0);
+      canvas.setColor(1.0, 1.0, 1.0, 1.0); // White text
+      canvas.drawText(FinalScoreText, this.data.virtualWidth / 2, this.data.virtualHeight / 2);
+      
+      canvas.setFontSize(24);
+      canvas.setColor(0.0, 0.5, 0.0, 1.0); // Green shadow
+      canvas.drawText(ContinueText, this.data.virtualWidth / 2 - 2.0, this.data.virtualHeight / 2 + 60 + 2.0);
+      canvas.setColor(0.0, 1.0, 0.0, 1.0); // Green text
+      canvas.drawText(ContinueText, this.data.virtualWidth / 2, this.data.virtualHeight / 2 + 60);
+
+      canvas.setTextHorizontalAlignment(Canvas.TextHorizontalAlignment.Leading); // Reset to left
+      
+    }
+
+  }
+
+};
+
+return application;

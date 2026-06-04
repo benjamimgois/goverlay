@@ -1,0 +1,56 @@
+function evalCode(fn){
+  if(typeof(fn) == "String") { fn = compile(fn); }
+  return call(fn, [], null, {});
+}
+
+var outer = "blah";
+print("outer = ", outer, "\n");
+
+function f1(){
+  print("[call] arguments[0] = ", arguments[0], "\n");
+  print("[call] outer = ", outer, "\n");
+}
+call(f1, [1], null, {});
+outer = "blee";
+call(f1, [2], null, {});
+
+evalCode('print("[eval] outer = ", outer, "\n");');
+outer = "bloo";
+evalCode('print("[eval] outer = ", outer, "\n");');
+
+evalCode('call(f1, ["eval -> call"], null, {});');
+
+let f2 = function(){ evalCode('print("Inside f2!\n");'); };
+call(f2, [], null, {});
+
+function f3(){ 3 };
+print("f3() = ", f3(), "\n");
+print("[call] f3() = ", call(f3, [], null, {}), "\n");
+
+// A Lisp-like map function.
+function map(fun, list){
+  let result = [];
+  for(let i = 0; i < list.size(); i++) {
+    result.push(call(fun, [list[i]], null, {}));
+  }
+  return result;
+}
+
+var list = [1, 2, 3, 4, 5];
+print("Before map():");
+foreach(var elem; list) { print(" ", elem); }
+list = map(function(){ arguments[0] + 100 }, list);
+print("\nAfter map():");
+foreach(var elem; list) { print(" ", elem); }
+print("\n");
+
+let fn = function(){ print("a = ", a, "\n"); var b = a; }
+let hash = { a : 2 };
+call(fn, null, null, hash);
+hash.a += 1;
+call(fn, null, null, hash);
+hash.a += 1;
+call(fn, null, null, hash);
+hash.a += 1;
+call(fn, null, null, hash);
+print("hash.b = ", hash.b, "\n");

@@ -1,0 +1,72 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+#ifdef RGBA32F
+layout(set = 0, binding = 0, rgba32f) uniform readonly image3D uSourceTexture; // Source mipmap level texture
+layout(set = 0, binding = 1, rgba32f) uniform writeonly image3D uDestinationTexture; // Destination mipmap level texture
+#elif defined(RGBA16F)
+layout(set = 0, binding = 0, rgba16f) uniform readonly image3D uSourceTexture; // Source mipmap level texture
+layout(set = 0, binding = 1, rgba16f) uniform writeonly image3D uDestinationTexture; // Destination mipmap level texture
+#elif defined(R11G11B10F)
+layout(set = 0, binding = 0, r11f_g11f_b10f) uniform readonly image3D uSourceTexture; // Source mipmap level texture
+layout(set = 0, binding = 1, r11f_g11f_b10f) uniform writeonly image3D uDestinationTexture; // Destination mipmap level texture
+#elif defined(RGB9E5)
+layout(set = 0, binding = 0, r32ui) uniform readonly uimage3D uSourceTexture; // Source mipmap level texture (aliased as r32ui, because of the lack of naive support for rgba9e5 in case of image access)
+layout(set = 0, binding = 1, r32ui) uniform writeonly uimage3D uDestinationTexture; // Destination mipmap level texture (aliased as r32ui, because of the lack of naive support for rgba9e5 in case of image access)
+#else
+layout(set = 0, binding = 0, rgba8) uniform readonly image3D uSourceTexture; // Source mipmap level texture
+layout(set = 0, binding = 1, rgba8) uniform writeonly image3D uDestinationTexture; // Destination mipmap level texture
+#endif
+
+#ifdef RGB9E5
+#include "rgb9e5.glsl"
+#endif
+
+void main(){
+
+  ivec3 dstPosition = ivec3(gl_GlobalInvocationID.xyz);
+
+  ivec3 destinationTextureSize = imageSize(uDestinationTexture);
+
+  if (all(greaterThanEqual(dstPosition, ivec3(0))) && all(lessThan(dstPosition, destinationTextureSize))){
+
+    ivec3 srcPosition = dstPosition << 1;
+
+#ifdef RGB9E5
+
+    vec3 r = (decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(0, 0, 0))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(1, 0, 0))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(0, 1, 0))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(1, 1, 0))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(0, 0, 1))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(1, 0, 1))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(0, 1, 1))) +  //
+              decodeRGB9E5(imageLoad(uSourceTexture, srcPosition + ivec3(1, 1, 1)))) * 0.125; 
+
+    imageStore(uDestinationTexture, dstPosition, uvec4(encodeRGB9E5(r)));
+
+#else
+
+    vec4 r = (imageLoad(uSourceTexture, srcPosition + ivec3(0, 0, 0)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(1, 0, 0)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(0, 1, 0)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(1, 1, 0)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(0, 0, 1)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(1, 0, 1)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(0, 1, 1)) +  //
+              imageLoad(uSourceTexture, srcPosition + ivec3(1, 1, 1))) * 0.125;
+
+    imageStore(uDestinationTexture, dstPosition, r);
+
+#endif
+
+  }
+
+}

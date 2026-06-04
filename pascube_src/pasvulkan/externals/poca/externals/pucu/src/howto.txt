@@ -1,0 +1,8 @@
+
+1. First compile and run PUCUConvertUnicode
+2. Second compile and run PUCUGenCodePages (which is Windows only for now)
+3. Then !!!!recompile!!! and run PUCUBuild
+4. Delete the no more needed PUCUUnicodePass1.pas, PUCUUnicodePass2.pas and PUCUCodePages.inc from the same directory as the PUCUConvertUnicode, PUCUGenCodePages and PUCUBuild binaries 
+
+
+ 

@@ -1,0 +1,121 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+#define INJECT_RSM_COMPUTE_SHADER
+
+/*layout(push_constant) uniform PushConstants {
+  int uFirst;  
+};*/
+
+layout(set = 0, binding = 1, rgba16f) coherent uniform image3D uImageSH[]; // The global illumination volume images
+layout(set = 0, binding = 2, rgba32f) coherent uniform image3D uImageMetaInfo[]; // The global illumination volume meta info image
+layout(set = 0, binding = 3) uniform sampler3D uTexLastSH[]; // The previous global illumination volume textures
+layout(set = 0, binding = 4) uniform sampler3D uTexLastMetaInfo[]; // The previous global illumination volume meta info texture
+
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_SET 0
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_BINDING 0
+
+#include "global_illumination_cascaded_radiance_hints.glsl"
+
+void main(){
+
+  ivec3 lInvocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+  if(all(greaterThanEqual(lInvocationPosition, ivec3(0))) && all(lessThan(lInvocationPosition, uGlobalIlluminationCascadedVolumeSize))){
+    
+    int lCascadeIndex = lInvocationPosition.z / GI_MAX_DEPTH;
+    lInvocationPosition.z -= (lCascadeIndex * GI_MAX_DEPTH);
+
+  #if GI_COMPRESSION == 0
+      int lTexIndexOffset = lCascadeIndex * 7;
+  #elif GI_COMPRESSION == 1
+      int lTexIndexOffset = lCascadeIndex * 5;
+  #elif GI_COMPRESSION == 2
+      int lTexIndexOffset = lCascadeIndex * 3;
+  #else
+      #error "GI_COMPRESSION must be 0, 1 or 2"
+  #endif   
+
+    if(globalIlluminationVolumeAABBDeltas[lCascadeIndex].w >= 0){
+      ivec3 lCacheVolumePosition = lInvocationPosition + globalIlluminationVolumeAABBDeltas[lCascadeIndex].xyz;
+      if(all(greaterThanEqual(lCacheVolumePosition, ivec3(0))) && all(lessThan(lCacheVolumePosition, uGlobalIlluminationVolumeSize))){
+#if GI_COMPRESSION == 0
+        vec4 uCachedSH0 = texelFetch(uTexLastSH[lTexIndexOffset + 0], lCacheVolumePosition, 0);
+        vec4 uCachedSH1 = texelFetch(uTexLastSH[lTexIndexOffset + 1], lCacheVolumePosition, 0);
+        vec4 uCachedSH2 = texelFetch(uTexLastSH[lTexIndexOffset + 2], lCacheVolumePosition, 0);
+        vec4 uCachedSH3 = texelFetch(uTexLastSH[lTexIndexOffset + 3], lCacheVolumePosition, 0);
+        vec4 uCachedSH4 = texelFetch(uTexLastSH[lTexIndexOffset + 4], lCacheVolumePosition, 0);
+        vec4 uCachedSH5 = texelFetch(uTexLastSH[lTexIndexOffset + 5], lCacheVolumePosition, 0);
+        vec4 uCachedSH6 = texelFetch(uTexLastSH[lTexIndexOffset + 6], lCacheVolumePosition, 0);
+#elif GI_COMPRESSION == 1
+        vec4 uCachedSH0 = texelFetch(uTexLastSH[lTexIndexOffset + 0], lCacheVolumePosition, 0);
+        vec4 uCachedSH1 = texelFetch(uTexLastSH[lTexIndexOffset + 1], lCacheVolumePosition, 0);
+        vec4 uCachedSH2 = texelFetch(uTexLastSH[lTexIndexOffset + 2], lCacheVolumePosition, 0);
+        vec4 uCachedSH3 = texelFetch(uTexLastSH[lTexIndexOffset + 3], lCacheVolumePosition, 0);
+        vec4 uCachedSH4 = texelFetch(uTexLastSH[lTexIndexOffset + 4], lCacheVolumePosition, 0);
+#elif GI_COMPRESSION == 2
+        vec4 uCachedSH0 = texelFetch(uTexLastSH[lTexIndexOffset + 0], lCacheVolumePosition, 0);
+        vec4 uCachedSH1 = texelFetch(uTexLastSH[lTexIndexOffset + 1], lCacheVolumePosition, 0);
+        vec4 uCachedSH2 = texelFetch(uTexLastSH[lTexIndexOffset + 2], lCacheVolumePosition, 0);
+#endif      
+        vec4 uCachedMetaInfo = texelFetch(uTexLastMetaInfo[lCascadeIndex], lCacheVolumePosition, 0);
+        ivec3 lVolumePosition = lInvocationPosition;
+#if GI_COMPRESSION == 0
+        imageStore(uImageSH[lTexIndexOffset + 0], lVolumePosition, uCachedSH0);
+        imageStore(uImageSH[lTexIndexOffset + 1], lVolumePosition, uCachedSH1);
+        imageStore(uImageSH[lTexIndexOffset + 2], lVolumePosition, uCachedSH2);
+        imageStore(uImageSH[lTexIndexOffset + 3], lVolumePosition, uCachedSH3);
+        imageStore(uImageSH[lTexIndexOffset + 4], lVolumePosition, uCachedSH4);
+        imageStore(uImageSH[lTexIndexOffset + 5], lVolumePosition, uCachedSH5);
+        imageStore(uImageSH[lTexIndexOffset + 6], lVolumePosition, uCachedSH6);
+#elif GI_COMPRESSION == 1
+        imageStore(uImageSH[lTexIndexOffset + 0], lVolumePosition, uCachedSH0);
+        imageStore(uImageSH[lTexIndexOffset + 1], lVolumePosition, uCachedSH1);
+        imageStore(uImageSH[lTexIndexOffset + 2], lVolumePosition, uCachedSH2);
+        imageStore(uImageSH[lTexIndexOffset + 3], lVolumePosition, uCachedSH3);
+        imageStore(uImageSH[lTexIndexOffset + 4], lVolumePosition, uCachedSH4);
+#elif GI_COMPRESSION == 2
+        imageStore(uImageSH[lTexIndexOffset + 0], lVolumePosition, uCachedSH0);
+        imageStore(uImageSH[lTexIndexOffset + 1], lVolumePosition, uCachedSH1);
+        imageStore(uImageSH[lTexIndexOffset + 2], lVolumePosition, uCachedSH2);
+#endif      
+        imageStore(uImageMetaInfo[lCascadeIndex], lVolumePosition, uCachedMetaInfo);     
+        return;               
+      }
+    }
+
+    // Otherwise clear the volume for a new frame
+/*/
+#if GI_COMPRESSION == 0
+    imageStore(uImageSH[lTexIndexOffset + 0], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 1], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 2], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 3], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 4], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 5], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 6], lInvocationPosition, vec4(0.0));
+#elif GI_COMPRESSION == 1
+    imageStore(uImageSH[lTexIndexOffset + 0], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 1], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 2], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 3], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 4], lInvocationPosition, vec4(0.0));
+#elif GI_COMPRESSION == 2
+    imageStore(uImageSH[lTexIndexOffset + 0], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 1], lInvocationPosition, vec4(0.0));
+    imageStore(uImageSH[lTexIndexOffset + 2], lInvocationPosition, vec4(0.0));
+#endif    
+    float infinity = uintBitsToFloat(0x7f800000u);
+    imageStore(uImageMetaInfo[lCascadeIndex], lInvocationPosition, vec4(infinity, -infinity, 0.0, 0.0)); // x = minimum distance, y = maximum distance
+/**/
+
+ }   
+
+} 

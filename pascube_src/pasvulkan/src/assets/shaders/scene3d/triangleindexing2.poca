@@ -1,0 +1,101 @@
+
+// For indices
+
+let resolution = 10;
+
+// Reference code
+
+let triangles = new Array((resolution + 1) * (resolution + 1) * 3);
+
+let rowColumns = new Array();
+
+let bases = new Array();
+
+let k = 0, c = 0;
+
+// loop through rows of vertices on bottom side, only + 1 because we're excluding the single one on the right side
+for(let i = 0, icount = resolution + 1; i < icount; i++){
+
+  bases.push(c);
+
+  print(i, " ", c, " ", k, ": ");
+ 
+  // loop through vertices on this row
+  for(let j = 0, jcount = (resolution + 1) - i; j < jcount; j++){
+
+    print(j, " ");
+
+    // get index of next vertex on this row 
+    let next = c + ((resolution + 2) - i); 
+
+    triangles[k] = c; // current vertex
+    triangles[k + 1] = c + 1; // the next vertex on this row
+    triangles[k + 2] = next; // the next vertex on the next row
+    k += 3;
+    
+    // add down pointing triangles, when we're not on the last row
+    if(j > 0){      
+      triangles[k] = c;
+      triangles[k + 1] = next;
+      triangles[k + 2] = next - 1;
+      k += 3;
+    }
+
+    rowColumns.push({ row: i, column: j });
+
+    c++;
+  }
+
+  // increment counter, because we're skipping the top vertex
+  c++; 
+
+  print("\n");
+}
+
+print("k: ", k, " must be ", ((resolution + 1) * (resolution + 1) * 3), " - c: ", c, " must be ", (((resolution + 3) * (resolution + 2)) >> 1) - 1, "\n");
+
+//print(String.dump(rowColumns),"\n");
+
+// O(1) draft code for as shader
+
+let count = ((resolution + 1) * (resolution + 2)) >> 1;
+print("count: ", count, "\n");
+
+let errors = false;
+for(let linearIndex = 0; linearIndex < count; linearIndex++){
+
+  let rowIndex = resolution - Math.floor(Math.sqrt(((count - (linearIndex + 1)) * 2.0) + 0.25) - 0.5);
+  let columnIndex = ((resolution + 1) - rowIndex) - ((count - linearIndex) - (((((resolution - rowIndex) * ((resolution - rowIndex) + 1)) >> 1))));
+
+  let c = (rowIndex * ((2 * (resolution + 2)) - (rowIndex - 1))) >> 1;
+
+  let rowColumn = rowColumns[linearIndex];
+
+  if((rowColumn.row != rowIndex) || (rowColumn.column != columnIndex)){
+    print("ERROR!\n");
+    print("rowColumns[index]: row: ", rowColumns[linearIndex].row, " column: ", rowColumns[linearIndex].column, "\n");
+    print("                   row: ", rowIndex, " column: ", columnIndex, "\n");
+    print("count: ", count, "\n");
+    print("columns: ", columns, "\n");
+    print("\n");
+    errors = true;
+    break;
+  }
+
+  if(bases[rowIndex] != c){
+    print("ERROR!\n");
+    print("bases[rowIndex]: ", bases[rowIndex], " c: ", c, "\n");
+    print("rowIndex: ", rowIndex, "\n");
+    print("\n");
+    errors = true;
+    break;
+  }
+  
+}
+if(!errors){
+  print("No errors!\n");
+}
+
+// let c = (row == 0) ? 0 : ((row / 2) * (2 * (resolution + 2) - (row - 1)));
+// let c = (rowIndex / 2) * (2 * (resolution + 2) - (rowIndex - 1));
+

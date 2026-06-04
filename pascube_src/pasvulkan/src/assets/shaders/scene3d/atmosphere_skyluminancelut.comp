@@ -1,0 +1,193 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 64) in;
+
+/* clang-format on */
+
+#undef MULTISCATAPPROX_ENABLED
+#undef SHADOWS_ENABLED
+
+#include "globaldescriptorset.glsl"
+
+#include "atmosphere_common.glsl"
+
+#include "tangentspacebasis.glsl"
+
+// Push constants
+layout(push_constant, std140) uniform PushConstants {
+  int baseViewIndex;
+  int countViews;
+  int frameIndex;
+} pushConstants;
+
+shared vec3 SkyLuminanceSharedMem[64];
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256]; // 65536 / (64 * 4) = 256
+} uView;
+
+layout(set = 2, binding = 0, rgba32f) uniform imageCube uDestinationTexture;
+
+layout(set = 2, binding = 1) uniform sampler2D uTransmittanceLutTexture;
+
+layout(set = 2, binding = 2) uniform sampler2D uMultiScatteringLutTexture;
+
+layout(set = 2, binding = 3, std430) buffer AtmosphereParametersBuffer {
+  AtmosphereParameters atmosphereParameters;
+} uAtmosphereParameters;
+
+#include "cubemap.glsl"
+
+void main() {
+  
+  ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 size = imageSize(uDestinationTexture).xy;
+
+  int faceIndex = int(gl_WorkGroupID.z); 
+
+  bool inBounds = all(greaterThanEqual(xy, ivec2(0))) && all(lessThan(xy, size)) && (faceIndex >= 0) && (faceIndex < 6);
+
+  vec2 pixPos = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);
+  vec2 uv = pixPos / vec2(size);
+ 
+  vec3 sunDir = getSunDirection(uAtmosphereParameters.atmosphereParameters);
+  float viewHeight = mix(uAtmosphereParameters.atmosphereParameters.BottomRadius, uAtmosphereParameters.atmosphereParameters.TopRadius, 0.5);
+
+#if 0
+  // Equirectangular projection of the sky for the sky luminance LUT
+  vec4 thetaPhiSinCos = sin(fma(uv, vec2(6.2831853071795864, -3.1415926535897932), vec2(-3.1415926535897932, 1.5707963267948966)).xxyy + vec2(0.0, 1.5707963267948966).xyxy);
+  vec3 WorldPos = vec3(thetaPhiSinCos.ww * thetaPhiSinCos.yx, thetaPhiSinCos.z).xzy;
+#else
+  // Cube map projection of the sky for the sky luminance LUT
+  vec3 WorldPos = getCubeMapDirection(uv, faceIndex);
+#endif
+
+//WorldPos = (uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(WorldPos, 0.0)).xyz;    
+  WorldPos *= viewHeight;
+
+  const bool ground = true;
+  const float SampleCountIni = 20;
+  const float DepthBufferValue = -1.0;
+  const bool VariableSampleCount = false;
+  const bool MieRayPhase = false;
+
+  const float SphereSolidAngle = 4.0 * PI;
+  const float IsotropicPhase = 1.0 / SphereSolidAngle;
+
+  int localInvocationIndex = int(gl_LocalInvocationIndex);
+
+  #define SQRTSAMPLECOUNT 8
+  const float sqrtSample = float(SQRTSAMPLECOUNT);
+  int y = localInvocationIndex / SQRTSAMPLECOUNT;
+  int x = localInvocationIndex - (y * SQRTSAMPLECOUNT);
+  float i = float(int(y)) + 0.5;
+  float j = float(int(x)) + 0.5;
+  if(inBounds){
+    float randA = i / sqrtSample;
+    float randB = j / sqrtSample;
+    float theta = 2.0 * PI * randA;
+    float phi = acos(1.0 - (2.0 * randB)); // PI * randB;
+    vec2 cosSinPhi = vec2(sin(vec2(phi) + vec2(PI * 0.5, 0.0)));
+    vec2 cosSinTheta = vec2(sin(vec2(theta) + vec2(PI * 0.5, 0.0)));
+    vec3 WorldDir = vec3(cosSinTheta.xy * cosSinPhi.y, cosSinPhi.x);
+    SingleScatteringResult result = IntegrateScatteredLuminance(
+      uTransmittanceLutTexture,
+      uv, 
+      WorldPos, 
+      WorldDir, 
+      sunDir,  
+      uAtmosphereParameters.atmosphereParameters,
+      ground, 
+      SampleCountIni, 
+      DepthBufferValue, 
+      VariableSampleCount, 
+      MieRayPhase,
+      mat4(1.0),
+      -1.0,
+      false
+    );
+    SkyLuminanceSharedMem[localInvocationIndex] = result.L * SphereSolidAngle / (sqrtSample * sqrtSample);
+  }else{
+    SkyLuminanceSharedMem[localInvocationIndex] = vec3(0.0);
+  }
+  #undef SQRTSAMPLECOUNT
+
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 64 to 32
+  if(localInvocationIndex < 32){
+    SkyLuminanceSharedMem[localInvocationIndex] += SkyLuminanceSharedMem[localInvocationIndex + 32];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 32 to 16
+  if(localInvocationIndex < 16){
+    SkyLuminanceSharedMem[localInvocationIndex] += SkyLuminanceSharedMem[localInvocationIndex + 16];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 16 to 8
+  if(localInvocationIndex < 8){
+    SkyLuminanceSharedMem[localInvocationIndex] += SkyLuminanceSharedMem[localInvocationIndex + 8];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 8 to 4
+  if(localInvocationIndex < 4){
+    SkyLuminanceSharedMem[localInvocationIndex] += SkyLuminanceSharedMem[localInvocationIndex + 4];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 4 to 2
+  if(localInvocationIndex < 2){
+    SkyLuminanceSharedMem[localInvocationIndex] += SkyLuminanceSharedMem[localInvocationIndex + 2];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  // 2 to 1
+  if(localInvocationIndex < 1){
+    SkyLuminanceSharedMem[localInvocationIndex] += SkyLuminanceSharedMem[localInvocationIndex + 1];
+  }
+  barrier();
+  groupMemoryBarrier();
+  memoryBarrierShared();
+
+  if(inBounds && (localInvocationIndex == 0)){
+
+  /*for(int i = 1; i < 64; i++){
+      SkyLuminanceSharedMem[0] += SkyLuminanceSharedMem[i];
+    }*/
+
+    vec3 InScatteredLuminance = SkyLuminanceSharedMem[0] * IsotropicPhase;
+
+    imageStore(uDestinationTexture, ivec3(pixPos, faceIndex), vec4(InScatteredLuminance, 1.0));
+
+  }
+
+}

@@ -1,0 +1,110 @@
+
+// This example shows how to use the prototype approach and the class approach in POCA. 
+// The prototype approach is similar to ECMAScript/JavaScript, but not exactly the same.
+// The class approach is just a syntactic sugar for the prototype approach internally.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The prototype approach (similar to ECMAScript/JavaScript, but not exactly the same) 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The prototype approach is similar to ECMAScript/JavaScript, but not exactly the same. The main difference is that
+// POCA does not have the concept of a constructor function as in JavaScript. In JavaScript, a constructor function
+// is a special function that is used to create new objects. In POCA, a so such constructor function is not used.
+// Instead, POCA uses a special property called "prototype" to create a new hash object with the same prototype as the 
+// original object. And "create" is just a normal function that returns a new hash object with the same prototype as the 
+// original object. The "new" keyword is just a syntactic sugar for the "create" function, which is transformed into a
+// normal function call before the actual parsing process. Keep this in mind when using the prototype approach.
+
+let TestObject = {
+  create: function() {
+    puts('TestObject constructor');
+    return { prototype: this };
+  },
+  alive: function() { return true; },
+  resumed: function() { return false; },
+  terminated: function() { return false; },
+  state: function() { return 'test'; }
+};
+
+let testObj = TestObject.create();
+puts('testObj alive: ', testObj.alive());             //  true
+puts('testObj resumed: ', testObj.resumed());         //  false
+puts('testObj terminated: ', testObj.terminated());   //   false
+puts('testObj state: ', testObj.state()); // always outside
+puts('testObj prototype: ', testObj instanceof TestObject); // true
+puts('testObj prototype: ', testObj is TestObject); // false
+
+puts();
+
+let TestObject2 = {
+  prototype: TestObject, // inherit from TestObject
+  create: function() {
+    let result = new TestObject(); // create a new object with the prototype TestObject
+    result.prototype = this; // set the prototype to TestObject2    
+    puts('TestObject2 constructor');
+    return result;
+  }
+}; 
+
+var testObj2 = TestObject2.create();
+puts('testObj2 alive: ', testObj2.alive());               //  true
+puts('testObj2 resumed: ', testObj2.resumed());          //  false
+puts('testObj2 terminated: ', testObj2.terminated());   //   false
+puts('testObj2 state: ', testObj2.state()); // always outside
+puts('testObj2 prototype: ', testObj2 instanceof TestObject); // true
+puts('testObj2 prototype: ', testObj2 is TestObject); // false
+puts('testObj2 prototype: ', testObj2 instanceof TestObject2); // true
+puts('testObj2 prototype: ', testObj2 is TestObject2); // false
+
+puts();
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The class approach (just a syntactic sugar for the prototype approach internally)
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The class approach, but which is just more or less a syntactic sugar for the prototype approach internally
+// A class is just a hash object with special properties internally to make it work like a class, but in fact 
+// it is just a hash object with a prototype chain and some special properties effectively.
+// Class constructs are transformed before the actual parsing process into a hash object with a prototype chain
+// and special properties. Keep this in mind when using classes.
+
+class TestClass {
+  constructor() {
+    puts('TestClass constructor');
+  }
+  function alive() { return true; }
+  function resumed() { return false; }
+  function terminated() { return false; }
+  function state() { return 'test'; }
+}
+
+let testClass = new TestClass();
+puts('testClass alive: ', testClass.alive());               //  true
+puts('testClass resumed: ', testClass.resumed());          //  false
+puts('testClass terminated: ', testClass.terminated());   //   false
+puts('testClass state: ', testClass.state()); // always outside
+puts('testClass prototype: ', testClass instanceof TestClass); // true
+puts('testClass prototype: ', testClass is TestClass); // true
+puts('testClass prototype: ', testClass instanceof TestObject); // false
+puts('testClass prototype: ', testClass is TestObject); // false
+puts();
+
+class TestClass2 extends TestClass {
+  constructor() {
+    super();
+    puts('TestClass2 constructor');
+  }
+}
+
+let testClass2 = new TestClass2();
+puts('testClass2 alive: ', testClass2.alive());               //  true
+puts('testClass2 resumed: ', testClass2.resumed());          //  false
+puts('testClass2 terminated: ', testClass2.terminated());   //   false
+puts('testClass2 state: ', testClass2.state()); // always outside
+puts('testClass2 prototype: ', testClass2 instanceof TestClass); // true
+puts('testClass2 prototype: ', testClass2 is TestClass); // false 
+puts('testClass2 prototype: ', testClass2 instanceof TestObject); // false
+puts('testClass2 prototype: ', testClass2 is TestObject); // false
+puts('testClass2 prototype: ', testClass2 instanceof TestClass2); // true
+puts('testClass2 prototype: ', testClass2 is TestClass2); // true
+puts();

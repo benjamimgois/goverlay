@@ -1,4 +1,7 @@
 goverlay
+/pascube
+pascube_debug.log
+benchmark_results.json
 start_goverlay.sh
 data/goverlay.sh
 lib/
