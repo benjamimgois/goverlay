@@ -1573,38 +1573,38 @@ begin
 
  isHovered := IsStartButtonHovered(fLastMousePosition);
 
- // Configure colors based on hover state (Graphite colors)
- if isHovered then begin
-  // Lighter graphite fill, lighter grey outline, white text
-  bgR := 62.0 / 255.0; bgG := 62.0 / 255.0; bgB := 62.0 / 255.0; bgA := 1.0;
-  fgR := 102.0 / 255.0; fgG := 102.0 / 255.0; fgB := 102.0 / 255.0; fgA := 1.0;
-  textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
- end else begin
-  // Charcoal/Graphite fill, medium grey outline, silver-white text
-  bgR := 46.0 / 255.0; bgG := 46.0 / 255.0; bgB := 46.0 / 255.0; bgA := 1.0;
-  fgR := 68.0 / 255.0; fgG := 68.0 / 255.0; fgB := 68.0 / 255.0; fgA := 1.0;
-  textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
- end;
+  // Configure colors based on hover state (GOverlay Blue Theme)
+  if isHovered then begin
+   // Lighter blue-grey fill, cyan outline, white text
+   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+   // GOverlay dark blue-grey background, subtle blue-grey outline, silver-white text
+   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
 
- charWidth := app.TextOverlay.FontCharWidth;
- charHeight := app.TextOverlay.FontCharHeight;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
 
- paddingX := charWidth * 1.5;
- paddingY := charHeight * 0.4;
+  paddingX := charWidth * 1.5;
+  paddingY := charHeight * 0.4;
 
- btnWidth := (15.0 * charWidth * 1.4) + (2.0 * paddingX);
- btnHeight := (charHeight * 1.4) + (2.0 * paddingY);
- btnX := cx - (btnWidth * 0.5);
- btnY := yText - paddingY;
+  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
+  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+  btnX := cx - (btnWidth * 0.5);
+  btnY := yText - paddingY;
 
- // Centered Title (Increased font size to 2.4, using default font)
- app.TextOverlay.AddText(cx, 80.0, 2.4, toaCenter, 'PasCube Benchmark');
+  // Centered Title (Increased font size to 3.0, using default font)
+  app.TextOverlay.AddText(cx, 80.0, 3.0, toaCenter, 'PasCube Benchmark');
 
- // Draw the button background box
- app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  // Draw the button background box
+  app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
 
- // Draw the button text (Increased font size to 1.4, using default font)
- app.TextOverlay.AddText(cx, yText, 1.4, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  // Draw the button text (Increased font size to 1.8, using default font)
+  app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 end;
 
 function TPasCubeScreen.IsStartButtonHovered(const aPos: TpvVector2): Boolean;
@@ -1612,27 +1612,27 @@ var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
 begin
- Result := false;
- if fBenchmarkPhase <> bpIdleMenu then Exit;
- app := UnitPasCubeApplication.Application;
- if not Assigned(app) then Exit;
+  Result := false;
+  if fBenchmarkPhase <> bpIdleMenu then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
 
- cx := pvApplication.Width * 0.5;
- yText := pvApplication.Height - 110.0;
+  cx := pvApplication.Width * 0.5;
+  yText := pvApplication.Height - 110.0;
 
- charWidth := app.TextOverlay.FontCharWidth;
- charHeight := app.TextOverlay.FontCharHeight;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
 
- paddingX := charWidth * 1.5;
- paddingY := charHeight * 0.4;
+  paddingX := charWidth * 1.5;
+  paddingY := charHeight * 0.4;
 
- btnWidth := (15.0 * charWidth * 1.4) + (2.0 * paddingX);
- btnHeight := (charHeight * 1.4) + (2.0 * paddingY);
- btnX := cx - (btnWidth * 0.5);
- btnY := yText - paddingY;
+  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
+  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+  btnX := cx - (btnWidth * 0.5);
+  btnY := yText - paddingY;
 
- Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
-           (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
