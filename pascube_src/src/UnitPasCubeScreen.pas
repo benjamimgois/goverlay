@@ -29,7 +29,9 @@ uses SysUtils,
      PasVulkan.Math,
      PasVulkan.Framework,
      PasVulkan.Application,
-     UnitBenchmarkPhysics;
+     UnitBenchmarkPhysics,
+     fpjson,
+     jsonparser;
 
 const CountTextures=1;
       MAX_BENCHMARK_HISTORY = 10;
@@ -165,6 +167,9 @@ type
        // Debug
        fDebugLog: TStringList;
        fLastDebugSave: TpvDouble;
+
+       // Persistent Mapped Uniform Buffer Pointers
+       fVulkanUniformBufferPointers: array[0..MaxInFlightFrames-1] of pointer;
 
       public
 
@@ -513,6 +518,7 @@ begin
                                           0,
                                           SizeOf(TScreenExampleCubeUniformBuffer),
                                           TpvVulkanBufferUseTemporaryStagingBufferMode.Yes);
+  fVulkanUniformBufferPointers[Index]:=fVulkanUniformBuffers[Index].Memory.MapMemory(0,SizeOf(TScreenExampleCubeUniformBuffer));
  end;
 
   fVulkanDescriptorPool:=TpvVulkanDescriptorPool.Create(pvApplication.VulkanDevice,
@@ -577,7 +583,11 @@ begin
  FreeAndNil(fVulkanDescriptorSetLayout);
  FreeAndNil(fVulkanDescriptorPool);
  for Index:=0 to MaxInFlightFrames-1 do begin
-  FreeAndNil(fVulkanUniformBuffers[Index]);
+  if Assigned(fVulkanUniformBuffers[Index]) then begin
+   fVulkanUniformBuffers[Index].Memory.UnmapMemory;
+   FreeAndNil(fVulkanUniformBuffers[Index]);
+  end;
+  fVulkanUniformBufferPointers[Index]:=nil;
  end;
  FreeAndNil(fVulkanIndexBuffer);
  FreeAndNil(fVulkanVertexBuffer);
@@ -1089,10 +1099,9 @@ begin
      fUniformBuffer.ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
      fUniformBuffer.ModelViewMatrix := ModelMatrix * ViewMatrix;
      fUniformBuffer.ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
-     p := fVulkanUniformBuffers[pvApplication.DrawInFlightFrameIndex].Memory.MapMemory(0,SizeOf(TScreenExampleCubeUniformBuffer));
+     p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
      if assigned(p) then begin
       Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
-      fVulkanUniformBuffers[pvApplication.DrawInFlightFrameIndex].Memory.UnmapMemory;
      end;
      PushConstants.Vector := TpvVector4.Create(body^.Color.x, body^.Color.y, body^.Color.z, 1.0);
      PushConstants.Params := TpvVector4.Create(1.4, 0.7, 24.0, gpuStressValue);
@@ -1115,10 +1124,9 @@ begin
      fUniformBuffer.ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
      fUniformBuffer.ModelViewMatrix := ModelMatrix * ViewMatrix;
      fUniformBuffer.ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
-     p := fVulkanUniformBuffers[pvApplication.DrawInFlightFrameIndex].Memory.MapMemory(0,SizeOf(TScreenExampleCubeUniformBuffer));
+     p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
      if assigned(p) then begin
       Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
-      fVulkanUniformBuffers[pvApplication.DrawInFlightFrameIndex].Memory.UnmapMemory;
      end;
      PushConstants.Vector := TpvVector4.Create(
       fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
@@ -1137,10 +1145,9 @@ begin
     fUniformBuffer.ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
     fUniformBuffer.ModelViewMatrix:=ModelMatrix*ViewMatrix;
     fUniformBuffer.ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
-    p:=fVulkanUniformBuffers[pvApplication.DrawInFlightFrameIndex].Memory.MapMemory(0,SizeOf(TScreenExampleCubeUniformBuffer));
+    p:=fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
     if assigned(p) then begin
      Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
-     fVulkanUniformBuffers[pvApplication.DrawInFlightFrameIndex].Memory.UnmapMemory;
     end;
     PushConstants.Vector:=TpvVector4.Create(0.92, 0.93, 0.98, 1.0);
     PushConstants.Params:=TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
@@ -1276,8 +1283,8 @@ var fpsAvg, ftAvg: TpvDouble;
     objCount, lightCount, partCount: Integer;
 begin
  if (fBenchmarkPhase > bpWarmup) and (fPhaseResultIndex >= 0) and (fPhaseResultIndex <= 6) then begin
-  if fFrameCount > 0 then begin
-   fpsAvg := pvApplication.FramesPerSecond;
+  if (fFrameCount > 0) and (fPhaseFrameTimeSum > 0.0) then begin
+   fpsAvg := fFrameCount / fPhaseFrameTimeSum;
    ftAvg := (fPhaseFrameTimeSum / fFrameCount) * 1000.0;
   end else begin
    fpsAvg := 0.0;
@@ -1377,26 +1384,24 @@ end;
 procedure TPasCubeScreen.CalculateScore;
 var i: Integer;
     phaseScore: Integer;
-    extraFactor: TpvDouble;
-    fpsAvg, ftAvg: TpvDouble;
+    Multiplier: TpvDouble;
+    fpsAvg: TpvDouble;
     total: Integer;
 begin
  total := 0;
  for i := 0 to 6 do begin
   fpsAvg := fCurrentResult.PhaseResults[i].FPSAvg;
-  ftAvg := fCurrentResult.PhaseResults[i].FrameTimeMs;
-  if ftAvg < 0.1 then ftAvg := 0.1;
   case i of
-   0: extraFactor := 1.0;
-   1: extraFactor := 1.5;
-   2: extraFactor := 2.0;
-   3: extraFactor := 8.0;
-   4: extraFactor := 0.05;
-   5: extraFactor := 18.0;
-   6: extraFactor := 10.0;
-   else extraFactor := 1.0;
+   0: Multiplier := 100.0;
+   1: Multiplier := 150.0;
+   2: Multiplier := 200.0;
+   3: Multiplier := 120.0;
+   4: Multiplier := 300.0;
+   5: Multiplier := 250.0;
+   6: Multiplier := 250.0;
+   else Multiplier := 100.0;
   end;
-  phaseScore := Round((fpsAvg * 1000.0) / (ftAvg * extraFactor));
+  phaseScore := Round(fpsAvg * Multiplier);
   if phaseScore < 1 then phaseScore := 1;
   fCurrentResult.PhaseResults[i].Score := phaseScore;
   total := total + phaseScore;
@@ -1470,15 +1475,74 @@ end;
 procedure TPasCubeScreen.LoadResultsJSON;
 var SL: TStringList;
     filePath: String;
+    JSONData: TJSONData;
+    JSONObj: TJSONObject;
+    HistoryArr: TJSONArray;
+    HistoryObj: TJSONObject;
+    PhasesArr: TJSONArray;
+    PhaseObj: TJSONObject;
+    i, j: Integer;
 begin
+ fHistoryCount := 0;
+ fBestScore := 0;
+ fLastScore := 0;
+ FillChar(fHistory, SizeOf(fHistory), #0);
+
  filePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
  if not FileExists(filePath) then Exit;
  SL := TStringList.Create;
  try
   try
    SL.LoadFromFile(filePath);
+   if SL.Text <> '' then begin
+    JSONData := GetJSON(SL.Text);
+    try
+     if Assigned(JSONData) and (JSONData is TJSONObject) then begin
+      JSONObj := TJSONObject(JSONData);
+      HistoryArr := TJSONArray(JSONObj.FindPath('history'));
+      if Assigned(HistoryArr) then begin
+       for i := 0 to Min(HistoryArr.Count, MAX_BENCHMARK_HISTORY) - 1 do begin
+        HistoryObj := HistoryArr.Objects[i];
+        if Assigned(HistoryObj) then begin
+         fHistory[i].Timestamp := HistoryObj.Get('timestamp', '');
+         fHistory[i].Resolution := HistoryObj.Get('resolution', '');
+         fHistory[i].DeviceName := HistoryObj.Get('device', '');
+         fHistory[i].VulkanAPI := HistoryObj.Get('vulkan_api', '');
+         fHistory[i].TotalScore := HistoryObj.Get('total_score', 0);
+         
+         PhasesArr := TJSONArray(HistoryObj.FindPath('phases'));
+         if Assigned(PhasesArr) then begin
+          for j := 0 to Min(PhasesArr.Count, 7) - 1 do begin
+           PhaseObj := PhasesArr.Objects[j];
+           if Assigned(PhaseObj) then begin
+            fHistory[i].PhaseResults[j].PhaseName := PhaseObj.Get('name', '');
+            fHistory[i].PhaseResults[j].Score := PhaseObj.Get('score', 0);
+            fHistory[i].PhaseResults[j].FPSAvg := PhaseObj.Get('fps_avg', 0.0);
+            fHistory[i].PhaseResults[j].FPSMin := PhaseObj.Get('fps_min', 0.0);
+            fHistory[i].PhaseResults[j].FPSMax := PhaseObj.Get('fps_max', 0.0);
+            fHistory[i].PhaseResults[j].FrameTimeMs := PhaseObj.Get('frame_time_ms', 0.0);
+            fHistory[i].PhaseResults[j].ObjectsRendered := PhaseObj.Get('objects', 0);
+            fHistory[i].PhaseResults[j].ParticlesActive := PhaseObj.Get('particles', 0);
+            fHistory[i].PhaseResults[j].LightsActive := PhaseObj.Get('lights', 0);
+            fHistory[i].PhaseResults[j].PhysicsBodies := PhaseObj.Get('bodies', 0);
+           end;
+          end;
+         end;
+         Inc(fHistoryCount);
+         if fHistory[i].TotalScore > fBestScore then
+          fBestScore := fHistory[i].TotalScore;
+        end;
+       end;
+       if fHistoryCount > 0 then
+        fLastScore := fHistory[0].TotalScore;
+      end;
+     end;
+    finally
+     JSONData.Free;
+    end;
+   end;
   except
-   Exit;
+   // ignore error and start with empty results
   end;
  finally
   SL.Free;

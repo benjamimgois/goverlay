@@ -31,6 +31,11 @@ type
    RotVelocity: TpvVector3;
   end;
 
+  TAABB = record
+   MinCoords: TpvVector3;
+   MaxCoords: TpvVector3;
+  end;
+
   TPhysicsWorld = class
    private
     fBodies: array[0..MAX_BODIES-1] of TCubeBody;
@@ -109,12 +114,12 @@ end;
 procedure TPhysicsWorld.Step(const aDeltaTime: TpvFloat);
 var i, j: Integer;
     bodyA, bodyB: PCubeBody;
-    minA, maxA, minB, maxB: TpvVector3;
     overlapX, overlapY, overlapZ, minOverlap: TpvFloat;
     normal: TpvVector3;
     relVel: TpvFloat;
     impulse: TpvFloat;
     dt: TpvFloat;
+    AABBs: array[0..MAX_BODIES-1] of TAABB;
 begin
  dt := Min(aDeltaTime, 0.05); // clamp dt to avoid explosion
 
@@ -151,20 +156,26 @@ begin
   end;
  end;
 
+ // Precompute AABBs to avoid O(N^2) allocations
+ for i := 0 to fBodyCount - 1 do begin
+  if fBodies[i].Active then begin
+   AABBs[i].MinCoords := TpvVector3.Create(
+    fBodies[i].Position.x - fBodies[i].Scale,
+    fBodies[i].Position.y - fBodies[i].Scale,
+    fBodies[i].Position.z - fBodies[i].Scale
+   );
+   AABBs[i].MaxCoords := TpvVector3.Create(
+    fBodies[i].Position.x + fBodies[i].Scale,
+    fBodies[i].Position.y + fBodies[i].Scale,
+    fBodies[i].Position.z + fBodies[i].Scale
+   );
+  end;
+ end;
+
  // Body-body collision (AABB)
  for i := 0 to fBodyCount - 1 do begin
   bodyA := @fBodies[i];
   if not bodyA^.Active then Continue;
-  minA := TpvVector3.Create(
-   bodyA^.Position.x - bodyA^.Scale,
-   bodyA^.Position.y - bodyA^.Scale,
-   bodyA^.Position.z - bodyA^.Scale
-  );
-  maxA := TpvVector3.Create(
-   bodyA^.Position.x + bodyA^.Scale,
-   bodyA^.Position.y + bodyA^.Scale,
-   bodyA^.Position.z + bodyA^.Scale
-  );
 
   for j := i + 1 to fBodyCount - 1 do begin
    bodyB := @fBodies[j];
@@ -172,28 +183,17 @@ begin
 
    Inc(fCollisionChecks);
 
-   minB := TpvVector3.Create(
-    bodyB^.Position.x - bodyB^.Scale,
-    bodyB^.Position.y - bodyB^.Scale,
-    bodyB^.Position.z - bodyB^.Scale
-   );
-   maxB := TpvVector3.Create(
-    bodyB^.Position.x + bodyB^.Scale,
-    bodyB^.Position.y + bodyB^.Scale,
-    bodyB^.Position.z + bodyB^.Scale
-   );
-
-   // AABB overlap test
-   if (maxA.x > minB.x) and (minA.x < maxB.x) and
-      (maxA.y > minB.y) and (minA.y < maxB.y) and
-      (maxA.z > minB.z) and (minA.z < maxB.z) then begin
+   // AABB overlap test using precomputed/cached AABBs
+   if (AABBs[i].MaxCoords.x > AABBs[j].MinCoords.x) and (AABBs[i].MinCoords.x < AABBs[j].MaxCoords.x) and
+      (AABBs[i].MaxCoords.y > AABBs[j].MinCoords.y) and (AABBs[i].MinCoords.y < AABBs[j].MaxCoords.y) and
+      (AABBs[i].MaxCoords.z > AABBs[j].MinCoords.z) and (AABBs[i].MinCoords.z < AABBs[j].MaxCoords.z) then begin
 
     Inc(fContactSolves);
 
     // Find minimum overlap axis
-    overlapX := Min(maxA.x - minB.x, maxB.x - minA.x);
-    overlapY := Min(maxA.y - minB.y, maxB.y - minA.y);
-    overlapZ := Min(maxA.z - minB.z, maxB.z - minA.z);
+    overlapX := Min(AABBs[i].MaxCoords.x - AABBs[j].MinCoords.x, AABBs[j].MaxCoords.x - AABBs[i].MinCoords.x);
+    overlapY := Min(AABBs[i].MaxCoords.y - AABBs[j].MinCoords.y, AABBs[j].MaxCoords.y - AABBs[i].MinCoords.y);
+    overlapZ := Min(AABBs[i].MaxCoords.z - AABBs[j].MinCoords.z, AABBs[j].MaxCoords.z - AABBs[i].MinCoords.z);
 
     minOverlap := overlapX;
     normal := TpvVector3.Create(1,0,0);
@@ -209,6 +209,12 @@ begin
     // Separate bodies
     bodyA^.Position := bodyA^.Position - normal * (minOverlap * 0.5);
     bodyB^.Position := bodyB^.Position + normal * (minOverlap * 0.5);
+
+    // Update cached AABBs for the separated bodies to preserve correctness
+    AABBs[i].MinCoords := TpvVector3.Create(bodyA^.Position.x - bodyA^.Scale, bodyA^.Position.y - bodyA^.Scale, bodyA^.Position.z - bodyA^.Scale);
+    AABBs[i].MaxCoords := TpvVector3.Create(bodyA^.Position.x + bodyA^.Scale, bodyA^.Position.y + bodyA^.Scale, bodyA^.Position.z + bodyA^.Scale);
+    AABBs[j].MinCoords := TpvVector3.Create(bodyB^.Position.x - bodyB^.Scale, bodyB^.Position.y - bodyB^.Scale, bodyB^.Position.z - bodyB^.Scale);
+    AABBs[j].MaxCoords := TpvVector3.Create(bodyB^.Position.x + bodyB^.Scale, bodyB^.Position.y + bodyB^.Scale, bodyB^.Position.z + bodyB^.Scale);
 
     // Simple impulse response
     relVel := (bodyB^.Velocity - bodyA^.Velocity).Dot(normal);
