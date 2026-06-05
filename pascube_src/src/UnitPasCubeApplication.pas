@@ -129,7 +129,7 @@ begin
   end;
   Inc(Index);
  end;
- Title:='PasCube ' + fVersion;
+ Title:='PasCube';
  if HasX or HasY then begin
   fDesiredX:=PosX;
   fDesiredY:=PosY;
