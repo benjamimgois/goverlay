@@ -979,6 +979,11 @@ type
     FOsShortcutCaptureBtn:  TBitBtn;
     FLaunchCommand: string;
     FOptiscalerUpdate: TOptiscalerTab;
+    FBenchmarkTimer: TTimer;
+    FBenchmarkWasRunning: Boolean;
+    FBenchmarkStarted: Boolean;
+    FBenchmarkStartTicks: Integer;
+    FBenchmarkResultsItem: TMenuItem;
     FActiveGameName: string;
     FActiveGameIsNonSteam: Boolean;
 
@@ -1193,6 +1198,8 @@ type
     procedure SettingsBtnMouseLeave(Sender: TObject);
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
+    procedure BenchmarkTimerTick(Sender: TObject);
+    procedure BenchmarkResultsMenuItemClick(Sender: TObject);
     procedure BuildNavToolToggles;
     procedure BuildSmallToggleImages;
     procedure NavToolToggleClick(Sender: TObject);
@@ -1461,7 +1468,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, benchmarkresultsunit;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -2780,6 +2787,12 @@ begin
   FStatusTimer := TTimer.Create(Self);
   FStatusTimer.Enabled := False;
   FStatusTimer.OnTimer := @StatusTimerTick;
+
+  FBenchmarkTimer := TTimer.Create(Self);
+  FBenchmarkTimer.Enabled := False;
+  FBenchmarkTimer.Interval := 1000;
+  FBenchmarkTimer.OnTimer := @BenchmarkTimerTick;
+  FBenchmarkWasRunning := False;
 
   // Initialize Games tab container (games are loaded on FormShow)
   InitGamesTab;
@@ -4154,7 +4167,13 @@ begin
 
 
   if IsPasCubeAvailable then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &')
+  begin
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
+    FBenchmarkWasRunning := True;
+    FBenchmarkStarted := False;
+    FBenchmarkStartTicks := 0;
+    FBenchmarkTimer.Enabled := True;
+  end
   else
     SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
 
@@ -7604,6 +7623,67 @@ end;
 procedure Tgoverlayform.EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
 begin
   // Obsolete: bgmod binary manages OptiScaler conditional logic natively.
+end;
+
+procedure Tgoverlayform.BenchmarkTimerTick(Sender: TObject);
+var
+  ProcCheck: TProcess;
+  IsRunning: Boolean;
+begin
+  if not FBenchmarkWasRunning then
+  begin
+    FBenchmarkTimer.Enabled := False;
+    Exit;
+  end;
+
+  IsRunning := False;
+  ProcCheck := TProcess.Create(nil);
+  try
+    ProcCheck.CommandLine := 'pgrep -x pascube';
+    ProcCheck.Options := [poWaitOnExit];
+    ProcCheck.Execute;
+    if ProcCheck.ExitStatus = 0 then
+      IsRunning := True;
+  finally
+    ProcCheck.Free;
+  end;
+
+  if IsRunning then
+  begin
+    if not FBenchmarkStarted then
+    begin
+      FBenchmarkStarted := True;
+      DbgLog('BenchmarkTimerTick: pascube started successfully in process table.');
+    end;
+  end
+  else
+  begin
+    if FBenchmarkStarted then
+    begin
+      FBenchmarkTimer.Enabled := False;
+      FBenchmarkWasRunning := False;
+      DbgLog('BenchmarkTimerTick: pascube terminated. Opening results form.');
+      BenchmarkResultsMenuItemClick(Self);
+    end
+    else
+    begin
+      Inc(FBenchmarkStartTicks);
+      if FBenchmarkStartTicks > 15 then
+      begin
+        FBenchmarkTimer.Enabled := False;
+        FBenchmarkWasRunning := False;
+        DbgLog('BenchmarkTimerTick: pascube failed to start within 15 seconds. Aborting.');
+      end;
+    end;
+  end;
+end;
+
+procedure Tgoverlayform.BenchmarkResultsMenuItemClick(Sender: TObject);
+begin
+  if not Assigned(BenchmarkResultsForm) then
+    Application.CreateForm(TBenchmarkResultsForm, BenchmarkResultsForm);
+  BenchmarkResultsForm.RefreshResults;
+  BenchmarkResultsForm.ShowModal;
 end;
 
 end.

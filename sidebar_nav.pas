@@ -350,20 +350,27 @@ begin
   FForm.FCubeAutoLaunchItem.OnClick := @FForm.CubeAutoLaunchMenuItemClick;
   FForm.settingsMenu.Items.Insert(2, FForm.FCubeAutoLaunchItem);
 
+  // Benchmark results menu item
+  FForm.FBenchmarkResultsItem := TMenuItem.Create(FForm.settingsMenu);
+  FForm.FBenchmarkResultsItem.Caption := 'Últimos Resultados Benchmark';
+  FForm.FBenchmarkResultsItem.ImageIndex := 12;
+  FForm.FBenchmarkResultsItem.OnClick := @FForm.BenchmarkResultsMenuItemClick;
+  FForm.settingsMenu.Items.Insert(3, FForm.FBenchmarkResultsItem);
+
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(3, Sep);
+  FForm.settingsMenu.Items.Insert(4, Sep);
 
   // How to Use — now available via popup menu only
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
   FForm.FHowToMenuItem.Caption := 'How to use FGMOD';
   FForm.FHowToMenuItem.ImageIndex := 18;
   FForm.FHowToMenuItem.OnClick := @FForm.howtoBitBtnClick;
-  FForm.settingsMenu.Items.Insert(4, FForm.FHowToMenuItem);
+  FForm.settingsMenu.Items.Insert(5, FForm.FHowToMenuItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(5, Sep);
+  FForm.settingsMenu.Items.Insert(6, Sep);
 end;
 
 procedure TSidebarNavHelper.SettingsBtnMouseEnter(Sender: TObject);

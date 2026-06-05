@@ -75,6 +75,13 @@ type
    VulkanAPI: String;
   end;
 
+  THardwareRef = record
+    Name: String;
+    Score: Integer;
+    IsCurrent: Boolean;
+    Specs: String;
+   end;
+
   TModelMatrixInfo=record
    ModelViewProjectionMatrix:TpvMatrix4x4;
    ModelViewMatrix:TpvMatrix4x4;
@@ -1649,6 +1656,7 @@ begin
  if fHistoryCount < MAX_BENCHMARK_HISTORY then Inc(fHistoryCount);
  SaveResultsJSON;
  SaveDebugLog;
+ pvApplication.Terminate;
 end;
 
 procedure TPasCubeScreen.SaveResultsJSON;
@@ -1986,69 +1994,173 @@ end;
 
 procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
-    cy, x1, x2, x3, x4, y: TpvFloat;
-    i: Integer;
-    lineStr, phaseType, resultStr: String;
-    cx: TpvFloat;
+    cy, cx, y: TpvFloat;
+    i, j: Integer;
+    lineStr, resultStr, descStr: String;
+    leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
+    ry: TpvFloat;
+    HWRefs: array[0..8] of THardwareRef;
+    TempHW: THardwareRef;
+    MaxScore: Integer;
+    barStartX, maxBarWidth, barWidth, barHeight, barY: TpvFloat;
+    bgR, bgG, bgB, bgA: TpvFloat;
+    hwScoreStr: String;
+    charWidth, charHeight: TpvFloat;
+    textScaleTitle, textScaleValue, textScaleHeader, textScaleNormal, textScaleSmall: TpvFloat;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
+ charWidth := app.TextOverlay.FontCharWidth;
+ charHeight := app.TextOverlay.FontCharHeight;
+
+ textScaleTitle := 2.2;
+ textScaleValue := 3.2;
+ textScaleHeader := 1.4;
+ textScaleNormal := 1.15;
+ textScaleSmall := 0.85;
+
  cx := pvApplication.Width * 0.5;
- cy := pvApplication.Height * 0.12;
+ cy := pvApplication.Height * 0.06;
 
- app.TextOverlay.AddText(cx, cy, 2.5, toaCenter, 'Benchmark Complete!');
- app.TextOverlay.AddText(cx, cy + 50, 3.5, toaCenter, FormatScoreValue(fCurrentResult.TotalScore));
+ app.TextOverlay.AddText(cx, cy, textScaleTitle, toaCenter, 'Benchmark Complete!');
+ app.TextOverlay.AddText(cx, cy + charHeight * textScaleTitle * 1.3, textScaleValue, toaCenter, FormatScoreValue(fCurrentResult.TotalScore));
 
- y := cy + 110;
- x1 := pvApplication.Width * 0.15;
- x2 := pvApplication.Width * 0.40;
- x3 := pvApplication.Width * 0.60;
- x4 := pvApplication.Width * 0.85;
+ leftColX1 := pvApplication.Width * 0.06;
+ leftColWidth := pvApplication.Width * 0.42;
+ rightColX1 := pvApplication.Width * 0.52;
+ rightColWidth := pvApplication.Width * 0.42;
 
- app.TextOverlay.AddText(x1, y, 1.3, toaLeft, 'Phase');
- app.TextOverlay.AddText(x2, y, 1.3, toaLeft, 'Type');
- app.TextOverlay.AddText(x3, y, 1.3, toaRight, 'Result');
- app.TextOverlay.AddText(x4, y, 1.3, toaRight, 'Points');
- y := y + 20;
- app.TextOverlay.AddText(cx, y, 1.1, toaCenter, '----------------------------------------------------------------------');
+ y := cy + charHeight * 7.5;
+
+ // --- COLUNA ESQUERDA: Detalhes do Benchmark ---
+ app.TextOverlay.AddText(leftColX1, y, textScaleHeader, toaLeft, 'Detalhes do Benchmark');
+ y := y + charHeight * textScaleHeader * 1.2;
+ app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, '---------------------------------------------------------');
 
  for i := 1 to 3 do begin
-  y := y + 22;
+  y := y + charHeight * textScaleNormal * 1.4;
   case i of
    1: begin
-     phaseType := 'CPU';
      resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
+     descStr := 'Importante para fisica basica, logica do jogo e taxa de FPS minima.';
    end;
    2: begin
-     phaseType := 'CPU';
      resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
+     descStr := 'Importante para streaming de assets, fisica avancada e IA complexa.';
    end;
    3: begin
-     phaseType := 'GPU';
      resultStr := Format('%.1f FPS', [fCurrentResult.PhaseResults[i].FPSAvg]);
+     descStr := 'Determina a taxa maxima de quadros (FPS) e a fidelidade visual.';
    end;
    else begin
-     phaseType := '';
      resultStr := '';
+     descStr := '';
    end;
   end;
-  app.TextOverlay.AddText(x1, y, 1.1, toaLeft, fCurrentResult.PhaseResults[i].PhaseName);
-  app.TextOverlay.AddText(x2, y, 1.1, toaLeft, phaseType);
-  app.TextOverlay.AddText(x3, y, 1.1, toaRight, resultStr);
-  app.TextOverlay.AddText(x4, y, 1.1, toaRight, FormatScoreValue(fCurrentResult.PhaseResults[i].Score));
+
+  app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, fCurrentResult.PhaseResults[i].PhaseName);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth, y, textScaleNormal, toaRight, Format('%s  (%s pts)', [resultStr, FormatScoreValue(fCurrentResult.PhaseResults[i].Score)]));
+
+  y := y + charHeight * textScaleNormal * 1.0;
+  app.TextOverlay.AddText(leftColX1 + 10.0, y, textScaleSmall, toaLeft, descStr);
  end;
 
- y := y + 35;
- app.TextOverlay.AddText(cx, y, 1.3, toaCenter, 'History (Last 5 runs)');
+ y := y + charHeight * textScaleNormal * 2.2;
+ app.TextOverlay.AddText(leftColX1, y, textScaleHeader, toaLeft, 'Historico (Ultimos 5 testes)');
+ y := y + charHeight * textScaleHeader * 1.2;
+ app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, '---------------------------------------------------------');
+
  for i := 0 to Min(fHistoryCount, 5) - 1 do begin
-  y := y + 20;
-  lineStr := Format('#%d: %s  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), fHistory[i].Timestamp]);
-  app.TextOverlay.AddText(cx, y, 1.1, toaCenter, lineStr);
+  y := y + charHeight * textScaleNormal * 1.3;
+  lineStr := Format('#%d: %s pts  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), StringReplace(fHistory[i].Timestamp, 'T', ' ', [rfReplaceAll])]);
+  app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, lineStr);
  end;
 
- // Clear text instructions instead of buttons
- app.TextOverlay.AddText(cx, pvApplication.Height - 80.0, 1.2, toaCenter, 'Press ENTER/SPACE for Menu');
+ // --- COLUNA DIREITA: Comparativo de Hardware ---
+ ry := cy + charHeight * 7.5;
+ app.TextOverlay.AddText(rightColX1, ry, textScaleHeader, toaLeft, 'Comparativo de Hardware');
+ ry := ry + charHeight * textScaleHeader * 1.2;
+ app.TextOverlay.AddText(rightColX1, ry, textScaleNormal, toaLeft, '---------------------------------------------------------');
+
+ HWRefs[0].Name := 'Nintendo Switch'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
+ HWRefs[0].Specs := 'CPU: Tegra X1 4C | RAM: 4GB LPDDR4 | GPU: Maxwell 256 | OS: Horizon';
+ HWRefs[1].Name := 'Steam Deck'; HWRefs[1].Score := 1300; HWRefs[1].IsCurrent := false;
+ HWRefs[1].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
+ HWRefs[2].Name := 'ROG Ally X'; HWRefs[2].Score := 2100; HWRefs[2].IsCurrent := false;
+ HWRefs[2].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
+ HWRefs[3].Name := 'PC Gamer Basico'; HWRefs[3].Score := 2800; HWRefs[3].IsCurrent := false;
+ HWRefs[3].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
+ HWRefs[4].Name := 'Xbox Series'; HWRefs[4].Score := 3200; HWRefs[4].IsCurrent := false;
+ HWRefs[4].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
+ HWRefs[5].Name := 'PlayStation 5'; HWRefs[5].Score := 4500; HWRefs[5].IsCurrent := false;
+ HWRefs[5].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
+ HWRefs[6].Name := 'PC Gamer Medio'; HWRefs[6].Score := 6500; HWRefs[6].IsCurrent := false;
+ HWRefs[6].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
+ HWRefs[7].Name := 'PC Gamer Avancado'; HWRefs[7].Score := 12500; HWRefs[7].IsCurrent := false;
+ HWRefs[7].Specs := 'CPU: R7 7800X3D | RAM: 32GB DDR5 | GPU: RTX 4080 Super | OS: Win11';
+ HWRefs[8].Name := 'Sistema Atual'; HWRefs[8].Score := fCurrentResult.TotalScore; HWRefs[8].IsCurrent := true;
+ HWRefs[8].Specs := 'CPU: ' + IntToStr(pvApplication.CountCPUThreads) + 'T | GPU: ' + fCurrentResult.DeviceName;
+
+ // Ordenar decrescente por pontuacao
+ for i := 0 to 7 do begin
+  for j := i + 1 to 8 do begin
+   if HWRefs[i].Score < HWRefs[j].Score then begin
+    TempHW := HWRefs[i];
+    HWRefs[i] := HWRefs[j];
+    HWRefs[j] := TempHW;
+   end;
+  end;
+ end;
+
+ MaxScore := HWRefs[0].Score;
+ if MaxScore = 0 then MaxScore := 1;
+
+ for i := 0 to 8 do begin
+  ry := ry + charHeight * textScaleNormal * 2.2;
+  // Left: Name
+  app.TextOverlay.AddText(rightColX1, ry, textScaleNormal, toaLeft, HWRefs[i].Name);
+  
+  // Right: Score
+  hwScoreStr := FormatScoreValue(HWRefs[i].Score);
+  app.TextOverlay.AddText(rightColX1 + rightColWidth, ry, textScaleNormal, toaRight, hwScoreStr);
+  
+  // Draw horizontal bar dynamically
+  barStartX := rightColX1 + (20.0 * charWidth * textScaleNormal);
+  maxBarWidth := rightColWidth - (20.0 * charWidth * textScaleNormal) - (10.0 * charWidth * textScaleNormal);
+  barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
+  if barWidth < 2.0 then barWidth := 2.0;
+  
+  if HWRefs[i].IsCurrent then begin
+   bgR := 48.0 / 255.0;
+   bgG := 190.0 / 255.0;
+   bgB := 240.0 / 255.0;
+   bgA := 1.0;
+  end else begin
+   bgR := 70.0 / 255.0;
+   bgG := 80.0 / 255.0;
+   bgB := 100.0 / 255.0;
+   bgA := 0.8;
+  end;
+
+  barHeight := charHeight * textScaleNormal * 0.7;
+  barY := ry + (charHeight * textScaleNormal - barHeight) * 0.5;
+
+  app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, bgR, bgG, bgB, bgA, bgR, bgG, bgB, bgA, 255.0);
+
+  // Draw Specs
+  app.TextOverlay.AddText(rightColX1 + (2.0 * charWidth * textScaleSmall),
+                          ry + charHeight * textScaleNormal * 1.0,
+                          textScaleSmall,
+                          toaLeft,
+                          HWRefs[i].Specs,
+                          1.0, 1.0, 1.0, 0.0,
+                          0.65, 0.70, 0.80, 1.0
+                         );
+ end;
+
+ // Instrucoes
+ app.TextOverlay.AddText(cx, pvApplication.Height - 80.0, textScaleNormal, toaCenter, 'Press ENTER/SPACE for Menu');
 end;
 
 procedure TPasCubeScreen.GenerateBeveledCube;
