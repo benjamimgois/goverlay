@@ -297,6 +297,7 @@ var
   ValStr: string;
   AvailableBytes: Integer;
   LoopCounter: Integer;
+  EnvVar: string;
 begin
   ThreadLog('T7ZipThread.Execute: Thread started. Cmd: ' + FCommand + ' Args: ' + FArguments);
   StepCount := 0;
@@ -304,28 +305,58 @@ begin
   LoopCounter := 0;
   AProcess := TProcess.Create(nil);
   try
-    if FileExists('/usr/bin/stdbuf') then begin
-      AProcess.Executable := '/usr/bin/stdbuf';
-      AProcess.Parameters.Add('-oL');
-      AProcess.Parameters.Add(FCommand);
-    end else if FileExists('/bin/stdbuf') then begin
-      AProcess.Executable := '/bin/stdbuf';
-      AProcess.Parameters.Add('-oL');
-      AProcess.Parameters.Add(FCommand);
-    end else begin
-      AProcess.Executable := FCommand;
+    // Build environment block without preload/overlay variables to prevent deadlocks
+    i := 1;
+    while GetEnvironmentString(i) <> '' do begin
+      EnvVar := GetEnvironmentString(i);
+      if (Pos('LD_PRELOAD=', EnvVar) <> 1) and
+         (Pos('MANGOHUD=', EnvVar) <> 1) and
+         (Pos('MANGOHUD_CONFIGFILE=', EnvVar) <> 1) and
+         (Pos('ENABLE_VKBASALT=', EnvVar) <> 1) and
+         (Pos('VKBASALT_CONFIG_FILE=', EnvVar) <> 1) and
+         (Pos('ENABLE_VKSUMI=', EnvVar) <> 1) and
+         (Pos('VKSUMI_CONFIG_FILE=', EnvVar) <> 1) then begin
+        AProcess.Environment.Add(EnvVar);
+      end;
+      Inc(i);
     end;
-    AProcess.Parameters.Add('b');
-    if FArguments <> '' then begin
-      AProcess.Parameters.Add(FArguments);
-    end;
-    AProcess.Parameters.Add('3');
+
+    // Execute 7z via /bin/sh to close inherited Vulkan/Wayland file descriptors dynamically
+    AProcess.Executable := '/bin/sh';
+    AProcess.Parameters.Add('-c');
+
+    ValStr := 'for fd in /proc/self/fd/*; do fd_num="${fd##*/}"; [ "$fd_num" = "*" ] && continue; ' +
+              'if [ "$fd_num" -gt 2 ]; then eval "exec $fd_num>&-" 2>/dev/null; fi; done; ' +
+              'if command -v stdbuf >/dev/null 2>&1; then ' +
+              'exec stdbuf -oL ' + FCommand + ' b';
+    if FArguments <> '' then
+      ValStr := ValStr + ' ' + FArguments;
+    ValStr := ValStr + ' 3; else exec ' + FCommand + ' b';
+    if FArguments <> '' then
+      ValStr := ValStr + ' ' + FArguments;
+    ValStr := ValStr + ' 3; fi';
+
+    AProcess.Parameters.Add(ValStr);
     AProcess.Options := [poUsePipes, poNoConsole, poStderrToOutPut];
 
     ThreadLog('T7ZipThread.Execute: Spawning process... Executable = ' + AProcess.Executable);
     for i := 0 to AProcess.Parameters.Count - 1 do begin
       ThreadLog('T7ZipThread.Execute: Param[' + IntToStr(i) + '] = ' + AProcess.Parameters[i]);
     end;
+
+    ThreadLog('--- Environment Variables ---');
+    i := 1;
+    while GetEnvironmentString(i) <> '' do begin
+      ThreadLog('Env: ' + GetEnvironmentString(i));
+      Inc(i);
+    end;
+    ThreadLog('-----------------------------');
+
+    ThreadLog('--- Child Environment Variables ---');
+    for i := 0 to AProcess.Environment.Count - 1 do begin
+      ThreadLog('Child Env: ' + AProcess.Environment[i]);
+    end;
+    ThreadLog('-----------------------------------');
 
     try
       AProcess.Execute;
@@ -337,7 +368,16 @@ begin
       end;
     end;
 
-    while (not Terminated) and (AProcess.Running or (AProcess.Output.NumBytesAvailable > 0)) do begin
+    while not Terminated do begin
+      {$ifdef linux}
+      if not (AProcess.Running and DirectoryExists('/proc/' + IntToStr(AProcess.ProcessID))) then
+      {$else}
+      if not AProcess.Running then
+      {$endif}
+      begin
+        if AProcess.Output.NumBytesAvailable = 0 then
+          Break;
+      end;
       Inc(LoopCounter);
       if LoopCounter mod 20 = 0 then begin
         ThreadLog('T7ZipThread.Execute loop: Running = ' + BoolToStr(AProcess.Running, True) +
@@ -651,7 +691,6 @@ begin
  // Push constant range should cover both vectors (2 * SizeOf(TpvVector4) = 32 bytes)
  fVulkanPipelineLayout.AddPushConstantRange(TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),0,SizeOf(TpvVector4)*2);
  fVulkanPipelineLayout.Initialize;
-
 end;
 
 procedure TPasCubeScreen.Hide;
