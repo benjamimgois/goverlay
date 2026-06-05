@@ -255,6 +255,25 @@ begin
   Result := Finished;
 end;
 
+procedure ThreadLog(const Msg: string);
+var
+  F: TextFile;
+  Path: string;
+begin
+  Path := ExtractFilePath(ParamStr(0)) + 'pascube_thread.log';
+  try
+    AssignFile(F, Path);
+    if FileExists(Path) then
+      Append(F)
+    else
+      Rewrite(F);
+    WriteLn(F, FormatDateTime('hh:nn:ss.zzz', Now) + ' | ' + Msg);
+    CloseFile(F);
+  except
+    // ignore
+  end;
+end;
+
 constructor T7ZipThread.Create(const aCommand, aArguments: string);
 begin
   FCommand := aCommand;
@@ -277,10 +296,12 @@ var
   i: Integer;
   ValStr: string;
   AvailableBytes: Integer;
+  LoopCounter: Integer;
 begin
-  WriteLn('T7ZipThread.Execute: Thread started. Cmd: ', FCommand, ' Args: ', FArguments);
+  ThreadLog('T7ZipThread.Execute: Thread started. Cmd: ' + FCommand + ' Args: ' + FArguments);
   StepCount := 0;
   TextBuf := '';
+  LoopCounter := 0;
   AProcess := TProcess.Create(nil);
   try
     if FileExists('/usr/bin/stdbuf') then begin
@@ -301,23 +322,27 @@ begin
     AProcess.Parameters.Add('3');
     AProcess.Options := [poUsePipes, poNoConsole, poStderrToOutPut];
 
-    WriteLn('T7ZipThread.Execute: Spawning process...');
-    WriteLn('T7ZipThread.Execute: Executable = ', AProcess.Executable);
+    ThreadLog('T7ZipThread.Execute: Spawning process... Executable = ' + AProcess.Executable);
     for i := 0 to AProcess.Parameters.Count - 1 do begin
-      WriteLn('T7ZipThread.Execute: Param[', i, '] = ', AProcess.Parameters[i]);
+      ThreadLog('T7ZipThread.Execute: Param[' + IntToStr(i) + '] = ' + AProcess.Parameters[i]);
     end;
 
     try
       AProcess.Execute;
-      WriteLn('T7ZipThread.Execute: Process spawned successfully.');
+      ThreadLog('T7ZipThread.Execute: Process spawned successfully.');
     except
       on E: Exception do begin
-        WriteLn('T7ZipThread.Execute: FAILED to execute process. Exception: ', E.Message);
+        ThreadLog('T7ZipThread.Execute: FAILED to execute process. Exception: ' + E.Message);
         Exit;
       end;
     end;
 
     while (not Terminated) and (AProcess.Running or (AProcess.Output.NumBytesAvailable > 0)) do begin
+      Inc(LoopCounter);
+      if LoopCounter mod 20 = 0 then begin
+        ThreadLog('T7ZipThread.Execute loop: Running = ' + BoolToStr(AProcess.Running, True) +
+                  ' NumBytesAvailable = ' + IntToStr(AProcess.Output.NumBytesAvailable));
+      end;
       AvailableBytes := AProcess.Output.NumBytesAvailable;
       if AvailableBytes > 0 then begin
         if AvailableBytes > SizeOf(Buffer) - 1 then
@@ -334,12 +359,12 @@ begin
               Delete(TextBuf, 1, LineEnd);
               Line := Trim(Line);
               if Line <> '' then begin
-                WriteLn('T7ZipThread: Read line: ', Line);
+                ThreadLog('T7ZipThread: Read line: ' + Line);
                 if (Pos('22:', Line) = 1) or (Pos('23:', Line) = 1) or (Pos('24:', Line) = 1) or (Pos('25:', Line) = 1) then begin
                   Inc(StepCount);
                   if StepCount > 12 then StepCount := 12;
                   FProgress := StepCount / 12.0;
-                  WriteLn('T7ZipThread: Matched step: ', StepCount, ' progress: ', FProgress);
+                  ThreadLog('T7ZipThread: Matched step: ' + IntToStr(StepCount) + ' progress: ' + FloatToStr(FProgress));
                 end;
                 if Pos('Tot:', Line) = 1 then begin
                   totPos := Length(Line);
@@ -348,7 +373,7 @@ begin
                   while (i > 0) and (Line[i] <> ' ') do Dec(i);
                   ValStr := Copy(Line, i + 1, totPos - i);
                   FScore := StrToIntDef(ValStr, 0);
-                  WriteLn('T7ZipThread: Matched Tot. Score: ', FScore);
+                  ThreadLog('T7ZipThread: Matched Tot. Score: ' + IntToStr(FScore));
                 end;
               end;
             end else
@@ -361,12 +386,12 @@ begin
     if AProcess.Running then begin
       AProcess.Terminate(0);
     end;
-    WriteLn('T7ZipThread.Execute: Process loop ended. ExitStatus: ', AProcess.ExitStatus);
+    ThreadLog('T7ZipThread.Execute: Process loop ended. ExitStatus = ' + IntToStr(AProcess.ExitStatus));
   finally
     AProcess.Free;
   end;
   FProgress := 1.0;
-  WriteLn('T7ZipThread.Execute: Thread completed. Score: ', FScore);
+  ThreadLog('T7ZipThread.Execute: Thread completed. Score = ' + IntToStr(FScore));
 end;
 
 
@@ -1294,8 +1319,10 @@ end;
 
 procedure TPasCubeScreen.DebugLog(const aMsg: String);
 begin
- if Assigned(fDebugLog) then
+ if Assigned(fDebugLog) then begin
   fDebugLog.Add(FormatDateTime('hh:nn:ss.zzz', Now) + ' | ' + aMsg);
+  SaveDebugLog;
+ end;
 end;
 
 procedure TPasCubeScreen.SaveDebugLog;
