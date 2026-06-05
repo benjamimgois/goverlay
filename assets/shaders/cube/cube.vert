@@ -9,9 +9,14 @@ layout (location = 2) in vec3 inBitangent;
 layout (location = 3) in vec3 inNormal;
 layout (location = 4) in vec2 inTexCoord;
 
-layout (binding = 0) uniform UBO {
+struct ModelMatrixInfo {
 	mat4 modelViewProjectionMatrix;
+	mat4 modelViewMatrix;
 	mat4 modelViewNormalMatrix;
+};
+
+layout (binding = 0) uniform UBO {
+	ModelMatrixInfo instances[256];
 } ubo;
 
 layout (location = 0) out vec3 outNormal;
@@ -22,7 +27,7 @@ out gl_PerVertex {
 };
 
 void main() {
-    outNormal = normalize((ubo.modelViewNormalMatrix * vec4(inNormal, 0.0)).xyz);
-    outTexCoord = inTexCoord;
-    gl_Position = ubo.modelViewProjectionMatrix * vec4(inPosition, 1.0);
+	outNormal = normalize((ubo.instances[gl_InstanceIndex].modelViewNormalMatrix * vec4(inNormal, 0.0)).xyz);
+	outTexCoord = inTexCoord;
+	gl_Position = ubo.instances[gl_InstanceIndex].modelViewProjectionMatrix * vec4(inPosition, 1.0);
 }

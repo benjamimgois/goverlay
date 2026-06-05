@@ -75,11 +75,15 @@ type
    VulkanAPI: String;
   end;
 
+  TModelMatrixInfo=record
+   ModelViewProjectionMatrix:TpvMatrix4x4;
+   ModelViewMatrix:TpvMatrix4x4;
+   ModelViewNormalMatrix:TpvMatrix4x4;
+  end;
+
   PScreenExampleCubeUniformBuffer=^TScreenExampleCubeUniformBuffer;
      TScreenExampleCubeUniformBuffer=record
-      ModelViewProjectionMatrix:TpvMatrix4x4;
-      ModelViewMatrix:TpvMatrix4x4;
-      ModelViewNormalMatrix:TpvMatrix4x4;
+      Instances: array[0..255] of TModelMatrixInfo;
      end;
 
      PScreenExampleCubeState=^TScreenExampleCubeState;
@@ -1166,6 +1170,9 @@ var p:pointer;
     gpuStressValue: TpvFloat;
     SkyParams: array[0..1] of TpvFloat;
     scaleFactor, scaleX, scaleY, scaleZ: TpvFloat;
+    N, Cols, Rows, colIdx, rowIdx: Integer;
+    SpacingX, SpacingY, CubeScale, PosX, PosY: TpvFloat;
+    CubeScaleX, CubeScaleY, CubeScaleZ, rotX, rotY: TpvFloat;
 begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
@@ -1251,9 +1258,9 @@ begin
                      TpvMatrix4x4.CreateRotate(body^.Rotation.y, TpvVector3.Create(0,1,0)) *
                      TpvMatrix4x4.CreateRotate(body^.Rotation.z, TpvVector3.Create(0,0,1)) *
                      TpvMatrix4x4.CreateTranslation(body^.Position.x, body^.Position.y, body^.Position.z);
-      fUniformBuffer.ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
-      fUniformBuffer.ModelViewMatrix := ModelMatrix * ViewMatrix;
-      fUniformBuffer.ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+      fUniformBuffer.Instances[0].ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
+      fUniformBuffer.Instances[0].ModelViewMatrix := ModelMatrix * ViewMatrix;
+      fUniformBuffer.Instances[0].ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
       p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
       if assigned(p) then begin
        Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
@@ -1275,9 +1282,9 @@ begin
                       fParticlePositions[i].x,
                       fParticlePositions[i].y,
                       fParticlePositions[i].z);
-      fUniformBuffer.ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
-      fUniformBuffer.ModelViewMatrix := ModelMatrix * ViewMatrix;
-      fUniformBuffer.ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+      fUniformBuffer.Instances[0].ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
+      fUniformBuffer.Instances[0].ModelViewMatrix := ModelMatrix * ViewMatrix;
+      fUniformBuffer.Instances[0].ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
       p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
       if assigned(p) then begin
        Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
@@ -1292,8 +1299,8 @@ begin
      end;
     end;
 
-    // Default cube (idle menu / warmup / all CPU & GPU benchmark phases)
-    if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_Stress]) then begin
+    // Default cube (idle menu / warmup / CPU single / GPU stress phases)
+    if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_Stress]) then begin
      ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
                   TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
 
@@ -1302,13 +1309,6 @@ begin
          scaleFactor := 1.0 + Sin(fPhaseTimer * 10.0) * 0.12;
          ModelMatrix := TpvMatrix4x4.CreateScale(scaleFactor, scaleFactor, scaleFactor) * ModelMatrix;
          PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
-         PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
-       end else if fBenchmarkPhase = bpCPU_Multi then begin
-         scaleX := 1.0 + Sin(fPhaseTimer * 15.0) * 0.15;
-         scaleY := 1.0 + Cos(fPhaseTimer * 12.0) * 0.15;
-         scaleZ := 1.0 + Sin(fPhaseTimer * 9.0) * 0.15;
-         ModelMatrix := TpvMatrix4x4.CreateScale(scaleX, scaleY, scaleZ) * ModelMatrix;
-         PushConstants.Vector := TpvVector4.Create(1.0, 0.05 + 0.05 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
          PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
        end else if fBenchmarkPhase = bpGPU_Stress then begin
          PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
@@ -1322,9 +1322,9 @@ begin
        PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
      end;
 
-     fUniformBuffer.ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
-     fUniformBuffer.ModelViewMatrix:=ModelMatrix*ViewMatrix;
-     fUniformBuffer.ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+     fUniformBuffer.Instances[0].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
+     fUniformBuffer.Instances[0].ModelViewMatrix:=ModelMatrix*ViewMatrix;
+     fUniformBuffer.Instances[0].ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
      p:=fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
      if assigned(p) then begin
       Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
@@ -1333,6 +1333,60 @@ begin
       fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
       0, SizeOf(TpvVector4)*2, @PushConstants);
      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
+    end else if isBenchmark and (fBenchmarkPhase = bpCPU_Multi) then begin
+      // CPU Multi-Threaded phase: Render a grid of cubes corresponding to logical core/thread count
+      N := pvApplication.CountCPUThreads;
+      if N < 1 then N := 1;
+      if N > 256 then N := 256;
+
+      Cols := Trunc(Sqrt(N));
+      if Sqrt(N) - Cols > 0.0 then Inc(Cols);
+      Rows := N div Cols;
+      if N mod Cols <> 0 then Inc(Rows);
+
+      SpacingX := 4.2 / Max(1, Cols);
+      SpacingY := 3.0 / Max(1, Rows);
+      CubeScale := Min(1.0 / Cols, 1.0 / Rows) * 0.95;
+
+      for i := 0 to N - 1 do begin
+        colIdx := i mod Cols;
+        rowIdx := i div Cols;
+        PosX := (colIdx - (Cols - 1) * 0.5) * SpacingX;
+        PosY := ((Rows - 1 - rowIdx) - (Rows - 1) * 0.5) * SpacingY;
+
+        scaleX := 1.0 + Sin(fPhaseTimer * 15.0 + i) * 0.15;
+        scaleY := 1.0 + Cos(fPhaseTimer * 12.0 + i) * 0.15;
+        scaleZ := 1.0 + Sin(fPhaseTimer * 9.0 + i) * 0.15;
+
+        CubeScaleX := CubeScale * scaleX;
+        CubeScaleY := CubeScale * scaleY;
+        CubeScaleZ := CubeScale * scaleZ;
+
+        rotX := State^.AnglePhases[0] + (i * 0.17);
+        rotY := State^.AnglePhases[1] + (i * 0.13);
+
+        ModelMatrix := TpvMatrix4x4.CreateScale(CubeScaleX, CubeScaleY, CubeScaleZ) *
+                       TpvMatrix4x4.CreateRotate(rotX * TwoPI, TpvVector3.Create(0.0,0.0,1.0)) *
+                       TpvMatrix4x4.CreateRotate(rotY * TwoPI, TpvVector3.Create(0.0,1.0,0.0)) *
+                       TpvMatrix4x4.CreateTranslation(PosX, PosY, 0.0);
+
+        fUniformBuffer.Instances[i].ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
+        fUniformBuffer.Instances[i].ModelViewMatrix := ModelMatrix * ViewMatrix;
+        fUniformBuffer.Instances[i].ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+      end;
+
+      p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
+      if assigned(p) then begin
+       Move(fUniformBuffer, p^, SizeOf(TScreenExampleCubeUniformBuffer));
+      end;
+
+      PushConstants.Vector := TpvVector4.Create(1.0, 0.05 + 0.05 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
+      PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
+
+      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
+       fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+       0, SizeOf(TpvVector4)*2, @PushConstants);
+      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount, N, 0, 0, 0);
     end;
 
   fVulkanRenderPass.EndRenderPass(fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex]);
