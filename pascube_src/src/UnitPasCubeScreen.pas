@@ -1211,13 +1211,14 @@ begin
    // Main Cube (Instance 0)
    ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
                 TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
+   ModelMatrix:=ModelMatrix*TpvMatrix4x4.CreateTranslation(Sin(fBenchmarkTimer * 1.5) * 0.8, Cos(fBenchmarkTimer * 1.0) * 0.5, 0.0);
    fUniformBuffer.Instances[0].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
    fUniformBuffer.Instances[0].ModelViewMatrix:=ModelMatrix*ViewMatrix;
    fUniformBuffer.Instances[0].ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
 
-   // 8 Orbiting Particles (Instances 1..8)
-   for i:=0 to 7 do begin
-    ModelMatrix:=TpvMatrix4x4.CreateScale(0.15,0.15,0.15)*
+   // Orbiting Particles (Instances 1..250)
+   for i:=0 to fParticleCount - 1 do begin
+    ModelMatrix:=TpvMatrix4x4.CreateScale(0.18,0.18,0.18)*
                  TpvMatrix4x4.CreateTranslation(fParticlePositions[i].x,fParticlePositions[i].y,fParticlePositions[i].z);
     fUniformBuffer.Instances[i+1].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
     fUniformBuffer.Instances[i+1].ModelViewMatrix:=ModelMatrix*ViewMatrix;
@@ -1330,18 +1331,28 @@ begin
      end;
     end;
 
-     // Render particles (GPU particle phase)
-     if isBenchmark and (fBenchmarkPhase = bpGPU_Stress) then begin
-      for i := 0 to 7 do begin
-       PushConstants.Vector := TpvVector4.Create(
-        fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
-       PushConstants.Params := TpvVector4.Create(1.2, 0.5, 16.0, gpuStressValue);
-       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
-        fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-        0, SizeOf(TpvVector4)*2, @PushConstants);
-       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,i + 1);
+      // Render particles (GPU particle phase)
+      if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase = bpGPU_Stress) then begin
+       // 8 Orbiting lights
+       for i := 0 to 7 do begin
+        PushConstants.Vector := TpvVector4.Create(fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
+        PushConstants.Params := TpvVector4.Create(1.2, 0.5, 16.0, gpuStressValue);
+        fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
+         fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+         0, SizeOf(TpvVector4)*2, @PushConstants);
+        fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount, 1, 0, 0, i + 1);
+       end;
+       
+       // Standard background particles
+       if fParticleCount > 8 then begin
+        PushConstants.Vector := TpvVector4.Create(0.0, 0.7, 0.9, 0.45);
+        PushConstants.Params := TpvVector4.Create(1.0, 0.3, 12.0, gpuStressValue);
+        fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
+         fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+         0, SizeOf(TpvVector4)*2, @PushConstants);
+        fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount, fParticleCount - 8, 0, 0, 9);
+       end;
       end;
-     end;
 
      // Default cube (idle menu / warmup / CPU single / GPU stress phases)
      if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_Stress]) then begin
@@ -1600,8 +1611,7 @@ begin
     DebugLog('NextPhase: bpCPU_Multi -> bpGPU_Stress. Initializing particles.');
     fBenchmarkPhase := bpGPU_Stress;
     fPhaseResultIndex := 3;
-     InitParticles;
-     fParticleCount := 8;
+    InitParticles;
    end;
    bpGPU_Stress: begin
     DebugLog('NextPhase: bpGPU_Stress -> bpResults. Completing benchmark.');
@@ -1827,6 +1837,7 @@ begin
 end;
 
 procedure TPasCubeScreen.InitParticles;
+var i: Integer;
 begin
  fParticleCount := 8;
  fParticleColors[0] := TpvVector3.Create(1.0, 0.05, 0.05); // Red
@@ -1838,15 +1849,20 @@ begin
  fParticleColors[6] := TpvVector3.Create(0.5, 0.05, 1.0);  // Purple
  fParticleColors[7] := TpvVector3.Create(1.0, 1.0, 1.0);   // White
  
+ // Initialize positions for the first 8 orbiting particles
+ for i := 0 to 7 do begin
+  fParticlePositions[i] := TpvVector3.Create(1.5 + i * 0.25, 0.0, 0.0);
+ end;
+ 
  UpdateParticles(0.0);
- DebugLog('InitParticles: Initialized 8 distinct colored particles');
+ DebugLog('InitParticles: Initialized 8 orbiting particles');
 end;
 
 procedure TPasCubeScreen.UpdateParticles(const aDeltaTime: TpvDouble);
 var i: Integer;
     angle, radius, speed: TpvFloat;
 begin
- for i := 0 to fParticleCount - 1 do begin
+ for i := 0 to 7 do begin
   radius := 1.5 + i * 0.25;
   speed := 0.8 + i * 0.15;
   angle := fBenchmarkTimer * speed + (i * (TwoPI / 8.0));
@@ -1984,7 +2000,7 @@ begin
   bpWarmup: infoStr := 'Calibrating render engine and caches...';
   bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
   bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
-  bpGPU_Stress: infoStr := 'Running Vulkan GPU Stress (2,000 particles + 8 lights)...';
+  bpGPU_Stress: infoStr := 'Running Vulkan GPU Stress (8 particles + 8 lights)...';
  end;
 
  pbWidth := pvApplication.Width * 0.6;
@@ -1992,25 +2008,30 @@ begin
  pbX := (pvApplication.Width - pbWidth) * 0.5;
  pbY := pvApplication.Height - 120.0;
 
- // Draw stage description and progress percentage
- if infoStr <> '' then
-  app.TextOverlay.AddText(pvApplication.Width * 0.5, pbY - 25.0, 1.2, toaCenter, infoStr);
-  
- app.TextOverlay.AddText(pvApplication.Width * 0.5, pbY - 55.0, 1.5, toaCenter, Format('Progress: %.0f%%', [progress * 100.0]));
+  // Draw stage description
+  if infoStr <> '' then
+   app.TextOverlay.AddText(pvApplication.Width * 0.5, pbY - 25.0, 1.2, toaCenter, infoStr);
 
- // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
- app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
-                        22.0/255.0, 25.0/255.0, 37.0/255.0, 0.8,
-                        50.0/255.0, 60.0/255.0, 85.0/255.0, 1.0,
-                        255.0);
-
- // Draw progress bar fill (cyan)
- if progress > 0.01 then begin
-  app.TextOverlay.AddBox(pbX + 2.0, pbY + 2.0, (pbWidth - 4.0) * progress, pbHeight - 4.0,
-                         48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
-                         48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+  // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
+  app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
+                         22.0/255.0, 25.0/255.0, 37.0/255.0, 0.8,
+                         50.0/255.0, 60.0/255.0, 85.0/255.0, 1.0,
                          255.0);
- end;
+
+  // Draw progress bar fill (cyan)
+  if progress > 0.01 then begin
+   app.TextOverlay.AddBox(pbX + 2.0, pbY + 2.0, (pbWidth - 4.0) * progress, pbHeight - 4.0,
+                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                          255.0);
+  end;
+
+  // Draw progress percentage text centered inside the progress bar
+  app.TextOverlay.AddText(pvApplication.Width * 0.5,
+                          pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.8) * 0.5,
+                          0.8,
+                          toaCenter,
+                          Format('%.0f%%', [progress * 100.0]));
 end;
 
 procedure TPasCubeScreen.DrawResultsOverlay;

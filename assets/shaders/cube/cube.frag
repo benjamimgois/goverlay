@@ -68,12 +68,15 @@ void main() {
         }
         
         // Extra noise stress
-        float noise = 0.0;
-        for (int i = 0; i < 16; i++) {
+        float val = inTexCoord.x + inTexCoord.y;
+        for (int i = 0; i < 15000; i++) {
             float fi = float(i);
-            noise += hash(inTexCoord.x * 100.0 + fi) * hash(inTexCoord.y * 100.0 + fi + 50.0);
+            val = sin(val + fi) + cos(val - fi);
+            val = tan(clamp(val, -1.5, 1.5)) + sqrt(abs(val) + 1.0);
+            val = log(abs(val) + 1.1) + exp(clamp(val * 0.01, -2.0, 2.0));
+            val = asin(clamp(sin(val), -0.9, 0.9)) + acos(clamp(cos(val), -0.9, 0.9));
         }
-        noise = noise / 16.0;
+        float noise = fract(val * 0.001);
         
         lighting = totalLight * (0.95 + noise * 0.1);
 
