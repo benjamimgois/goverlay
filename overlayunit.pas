@@ -983,7 +983,6 @@ type
     FBenchmarkWasRunning: Boolean;
     FBenchmarkStarted: Boolean;
     FBenchmarkStartTicks: Integer;
-    FBenchmarkResultsItem: TMenuItem;
     FActiveGameName: string;
     FActiveGameIsNonSteam: Boolean;
 
@@ -1199,7 +1198,6 @@ type
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
     procedure BenchmarkTimerTick(Sender: TObject);
-    procedure BenchmarkResultsMenuItemClick(Sender: TObject);
     procedure BuildNavToolToggles;
     procedure BuildSmallToggleImages;
     procedure NavToolToggleClick(Sender: TObject);
@@ -1468,7 +1466,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, benchmarkresultsunit;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -7754,8 +7752,7 @@ begin
     begin
       FBenchmarkTimer.Enabled := False;
       FBenchmarkWasRunning := False;
-      DbgLog('BenchmarkTimerTick: pascube terminated. Opening results form.');
-      // BenchmarkResultsMenuItemClick(Self);
+      DbgLog('BenchmarkTimerTick: pascube terminated. Results shown in PasCube overlay.');
     end
     else
     begin
@@ -7766,32 +7763,6 @@ begin
         FBenchmarkWasRunning := False;
         DbgLog('BenchmarkTimerTick: pascube failed to start within 15 seconds. Aborting.');
       end;
-    end;
-  end;
-end;
-
-procedure Tgoverlayform.BenchmarkResultsMenuItemClick(Sender: TObject);
-begin
-  DbgLog('BenchmarkResultsMenuItemClick called.');
-  try
-    if not Assigned(BenchmarkResultsForm) then
-    begin
-      DbgLog('BenchmarkResultsMenuItemClick: Creating TBenchmarkResultsForm instance directly.');
-      BenchmarkResultsForm := TBenchmarkResultsForm.Create(Application);
-      DbgLog('BenchmarkResultsMenuItemClick: TBenchmarkResultsForm instance created.');
-    end;
-    
-    DbgLog('BenchmarkResultsMenuItemClick: Calling RefreshResults...');
-    BenchmarkResultsForm.RefreshResults;
-    
-    DbgLog('BenchmarkResultsMenuItemClick: Calling ShowModal...');
-    BenchmarkResultsForm.ShowModal;
-    DbgLog('BenchmarkResultsMenuItemClick: ShowModal finished.');
-  except
-    on E: Exception do
-    begin
-      DbgLog('BenchmarkResultsMenuItemClick: Exception caught: ' + E.Message);
-      ShowMessage('Error showing benchmark results: ' + E.Message);
     end;
   end;
 end;

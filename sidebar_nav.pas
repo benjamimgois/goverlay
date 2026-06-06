@@ -350,13 +350,6 @@ begin
   FForm.FCubeAutoLaunchItem.OnClick := @FForm.CubeAutoLaunchMenuItemClick;
   FForm.settingsMenu.Items.Insert(2, FForm.FCubeAutoLaunchItem);
 
-  // Benchmark results menu item
-  FForm.FBenchmarkResultsItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FBenchmarkResultsItem.Caption := 'Latest Benchmark Results';
-  FForm.FBenchmarkResultsItem.ImageIndex := 12;
-  FForm.FBenchmarkResultsItem.OnClick := @FForm.BenchmarkResultsMenuItemClick;
-  FForm.settingsMenu.Items.Insert(3, FForm.FBenchmarkResultsItem);
-
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
   FForm.settingsMenu.Items.Insert(4, Sep);

@@ -172,10 +172,7 @@
         <Filename Value="overlay_utils.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit15>
-      <Unit16>
-        <Filename Value="benchmarkresultsunit.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit16>
+
     </Units>
   </ProjectOptions>
   <CompilerOptions>
