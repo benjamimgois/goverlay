@@ -40,6 +40,7 @@ const CountTextures=1;
 type
   TBenchmarkPhase = (
    bpIdleMenu,
+   bpResolutionSelect,
    bpWarmup,
    bpCPU_Single,   // CPU Single-Threaded 7-Zip test
    bpCPU_Multi,    // CPU Multi-Threaded 7-Zip test
@@ -50,7 +51,8 @@ type
   TResolutionOption = (
    ro720p,
    ro1080p,
-   roNative
+   ro1440p,
+   ro4K
   );
 
   TBenchmarkPhaseResult = record
@@ -247,8 +249,17 @@ type
         procedure UpdateParticles(const aDeltaTime: TpvDouble);
         procedure DrawMenuOverlay;
         function IsStartButtonHovered(const aPos: TpvVector2): Boolean;
+        function IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
+        function GetResolutionButtonRect(const aIndex: Integer; out aX, aY, aW, aH: TpvFloat): Boolean;
+        function IsResolutionButtonHovered(const aIndex: Integer; const aPos: TpvVector2): Boolean;
+        procedure DrawResolutionSelectOverlay;
+        procedure SelectResolution(const aIndex: Integer);
         procedure DrawBenchmarkOverlay;
-        procedure DrawResultsOverlay;
+         function GetCPUName: String;
+         function GetRAMSize: String;
+         function GetOSName: String;
+         function CleanGPUName(const aName: String): String;
+         procedure DrawResultsOverlay;
         procedure GenerateBeveledCube;
         function GetPhaseDuration: TpvDouble;
         function GetPhaseName: String;
@@ -994,34 +1005,44 @@ begin
  if fReady and (aKeyEvent.KeyEventType=TpvApplicationInputKeyEventType.Down) then begin
   case aKeyEvent.KeyCode of
    KEYCODE_ESCAPE:begin
-    pvApplication.Terminate;
+    if fBenchmarkPhase = bpResolutionSelect then begin
+     fBenchmarkPhase := bpIdleMenu;
+     fHoveredButtonIndex := -1;
+     result:=true;
+    end else begin
+     pvApplication.Terminate;
+    end;
    end;
    KEYCODE_RETURN,KEYCODE_SPACE:begin
     if fBenchmarkPhase = bpIdleMenu then begin
-     StartBenchmark;
+     fBenchmarkPhase := bpResolutionSelect;
+     fHoveredButtonIndex := 0;
+     result:=true;
+    end else if fBenchmarkPhase = bpResolutionSelect then begin
+     if (fHoveredButtonIndex >= 0) and (fHoveredButtonIndex <= 3) then begin
+      SelectResolution(fHoveredButtonIndex);
+      result:=true;
+     end;
     end else if fBenchmarkPhase = bpResults then begin
      fBenchmarkPhase := bpIdleMenu;
+     pvApplication.Width := 1280;
+     pvApplication.Height := 720;
      fShowSkybox := true;
+     result:=true;
     end;
    end;
    KEYCODE_UP:begin
-    if fBenchmarkPhase = bpIdleMenu then begin
-     if fSelectedResolution > 0 then Dec(fSelectedResolution);
-     case fSelectedResolution of
-      0: fResolutionOption := ro720p;
-      1: fResolutionOption := ro1080p;
-      2: fResolutionOption := roNative;
-     end;
+    if fBenchmarkPhase = bpResolutionSelect then begin
+     if fHoveredButtonIndex > 0 then Dec(fHoveredButtonIndex)
+     else fHoveredButtonIndex := 3;
+     result:=true;
     end;
    end;
    KEYCODE_DOWN:begin
-    if fBenchmarkPhase = bpIdleMenu then begin
-     if fSelectedResolution < 2 then Inc(fSelectedResolution);
-     case fSelectedResolution of
-      0: fResolutionOption := ro720p;
-      1: fResolutionOption := ro1080p;
-      2: fResolutionOption := roNative;
-     end;
+    if fBenchmarkPhase = bpResolutionSelect then begin
+     if fHoveredButtonIndex < 3 then Inc(fHoveredButtonIndex)
+     else fHoveredButtonIndex := 0;
+     result:=true;
     end;
    end;
   end;
@@ -1030,6 +1051,8 @@ end;
 
 function TPasCubeScreen.PointerEvent(const aPointerEvent:TpvApplicationInputPointerEvent):boolean;
 var Delta:TpvVector2;
+    i: Integer;
+    hoveredAny: Boolean;
 begin
  result := false;
  case aPointerEvent.PointerEventType of
@@ -1037,10 +1060,26 @@ begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
     fMouseLeftButtonDown:=true;
     fLastMousePosition:=aPointerEvent.Position;
-    if IsStartButtonHovered(aPointerEvent.Position) then begin
+    if (fBenchmarkPhase = bpIdleMenu) and (IsStartButtonHovered(aPointerEvent.Position) or IsViewResultsButtonHovered(aPointerEvent.Position)) then begin
      fAutoRotation:=false;
      fDraggingCube:=false;
      result:=true;
+    end else if fBenchmarkPhase = bpResolutionSelect then begin
+     hoveredAny := false;
+     for i := 0 to 3 do begin
+      if IsResolutionButtonHovered(i, aPointerEvent.Position) then begin
+       hoveredAny := true;
+       break;
+      end;
+     end;
+     if hoveredAny then begin
+      fAutoRotation:=false;
+      fDraggingCube:=false;
+      result:=true;
+     end else begin
+      fAutoRotation:=false;
+      fDraggingCube:=true;
+     end;
     end else begin
      fAutoRotation:=false;
      fDraggingCube:=true;
@@ -1053,9 +1092,23 @@ begin
     fAutoRotation:=true;
     if fDraggingCube then begin
      fDraggingCube:=false;
-    end else if IsStartButtonHovered(aPointerEvent.Position) then begin
-     StartBenchmark;
+    end else if (fBenchmarkPhase = bpIdleMenu) and IsStartButtonHovered(aPointerEvent.Position) then begin
+     fBenchmarkPhase := bpResolutionSelect;
+     fHoveredButtonIndex := -1;
      result:=true;
+    end else if (fBenchmarkPhase = bpIdleMenu) and IsViewResultsButtonHovered(aPointerEvent.Position) then begin
+     if fHistoryCount > 0 then begin
+      pvApplication.Terminate;
+      result:=true;
+     end;
+    end else if fBenchmarkPhase = bpResolutionSelect then begin
+     for i := 0 to 3 do begin
+      if IsResolutionButtonHovered(i, aPointerEvent.Position) then begin
+       SelectResolution(i);
+       result:=true;
+       break;
+      end;
+     end;
     end;
    end;
   end;
@@ -1066,6 +1119,16 @@ begin
     fState.AnglePhases[0]:=fState.AnglePhases[0]+(Delta.y*0.005);
    end;
    fLastMousePosition:=aPointerEvent.Position;
+
+   if fBenchmarkPhase = bpResolutionSelect then begin
+    fHoveredButtonIndex := -1;
+    for i := 0 to 3 do begin
+     if IsResolutionButtonHovered(i, aPointerEvent.Position) then begin
+      fHoveredButtonIndex := i;
+      break;
+     end;
+    end;
+   end;
   end;
  end;
 end;
@@ -1101,8 +1164,8 @@ begin
  fPhaseFrameTimeSum := fPhaseFrameTimeSum + aDeltaTime;
  Inc(fFrameCount);
 
- // Benchmark state machine
- if fBenchmarkPhase > bpIdleMenu then begin
+  // Benchmark state machine
+  if fBenchmarkPhase > bpResolutionSelect then begin
   fBenchmarkTimer := fBenchmarkTimer + aDeltaTime;
   fPhaseTimer := fPhaseTimer + aDeltaTime;
 
@@ -1156,12 +1219,13 @@ begin
  fStates[pvApplication.UpdateInFlightFrameIndex]:=fState;
  fReady:=true;
 
- // Add overlay text during update
- case fBenchmarkPhase of
-  bpIdleMenu: DrawMenuOverlay;
-  bpResults: DrawResultsOverlay;
-  else DrawBenchmarkOverlay;
- end;
+  // Add overlay text during update
+  case fBenchmarkPhase of
+   bpIdleMenu: DrawMenuOverlay;
+   bpResolutionSelect: DrawResolutionSelectOverlay;
+   bpResults: DrawResultsOverlay;
+   else DrawBenchmarkOverlay;
+  end;
 end;
 
 procedure TPasCubeScreen.Draw(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil);
@@ -1186,7 +1250,7 @@ begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
 
-  isBenchmark := fBenchmarkPhase > bpIdleMenu;
+  isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_Stress];
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -1522,7 +1586,8 @@ begin
   case fResolutionOption of
    ro720p: fCurrentResult.Resolution := '1280x720';
    ro1080p: fCurrentResult.Resolution := '1920x1080';
-   roNative: fCurrentResult.Resolution := 'Native';
+   ro1440p: fCurrentResult.Resolution := '2560x1440';
+   ro4K: fCurrentResult.Resolution := '3840x2160';
   end;
   fCurrentResult.DeviceName := pvApplication.VulkanDevice.PhysicalDevice.DeviceName;
   fCurrentResult.VulkanAPI := Format('%d.%d.%d', [
@@ -1886,8 +1951,8 @@ end;
 procedure TPasCubeScreen.DrawMenuOverlay;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    isHovered: Boolean;
+    btnWidth, btnHeight, btnX, paddingX, paddingY: TpvFloat;
+    isStartHovered, isViewHovered: Boolean;
     bgR, bgG, bgB, bgA: TpvFloat;
     fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
@@ -1898,40 +1963,59 @@ begin
  cx := pvApplication.Width * 0.5;
  yText := pvApplication.Height - 110.0;
 
- isHovered := IsStartButtonHovered(fLastMousePosition);
+ charWidth := app.TextOverlay.FontCharWidth;
+ charHeight := app.TextOverlay.FontCharHeight;
 
-  // Configure colors based on hover state (GOverlay Blue Theme)
-  if isHovered then begin
-   // Lighter blue-grey fill, cyan outline, white text
+ paddingX := charWidth * 1.5;
+ paddingY := charHeight * 0.4;
+
+ btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
+ btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+
+ // Centered Title (Increased font size to 3.0, using default font)
+ app.TextOverlay.AddText(cx, 80.0, 3.0, toaCenter, 'PasCube Benchmark');
+
+ // 1. Start benchmark button
+ isStartHovered := IsStartButtonHovered(fLastMousePosition);
+ if isStartHovered then begin
+  bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+  fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+  textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+ end else begin
+  bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+  fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+  textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+ end;
+
+ if fHistoryCount > 0 then
+  btnX := cx - btnWidth - 15.0
+ else
+  btnX := cx - (btnWidth * 0.5);
+
+ app.TextOverlay.AddBox(btnX, yText - paddingY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+ 
+ if fHistoryCount > 0 then
+  app.TextOverlay.AddText(cx - (btnWidth * 0.5) - 15.0, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA)
+ else
+  app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+ // 2. View results button (only if history exists)
+ if fHistoryCount > 0 then begin
+  isViewHovered := IsViewResultsButtonHovered(fLastMousePosition);
+  if isViewHovered then begin
    bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
    fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
   end else begin
-   // GOverlay dark blue-grey background, subtle blue-grey outline, silver-white text
    bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
    fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
   end;
 
-  charWidth := app.TextOverlay.FontCharWidth;
-  charHeight := app.TextOverlay.FontCharHeight;
-
-  paddingX := charWidth * 1.5;
-  paddingY := charHeight * 0.4;
-
-  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
-  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnX := cx - (btnWidth * 0.5);
-  btnY := yText - paddingY;
-
-  // Centered Title (Increased font size to 3.0, using default font)
-  app.TextOverlay.AddText(cx, 80.0, 3.0, toaCenter, 'PasCube Benchmark');
-
-  // Draw the button background box
-  app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-
-  // Draw the button text (Increased font size to 1.8, using default font)
-  app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  btnX := cx + 15.0;
+  app.TextOverlay.AddBox(btnX, yText - paddingY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  app.TextOverlay.AddText(cx + (btnWidth * 0.5) + 15.0, yText, 1.8, toaCenter, 'View results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+ end;
 end;
 
 function TPasCubeScreen.IsStartButtonHovered(const aPos: TpvVector2): Boolean;
@@ -1955,11 +2039,164 @@ begin
 
   btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnX := cx - (btnWidth * 0.5);
+  
+  if fHistoryCount > 0 then
+    btnX := cx - btnWidth - 15.0
+  else
+    btnX := cx - (btnWidth * 0.5);
+    
   btnY := yText - paddingY;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+end;
+
+function TPasCubeScreen.IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
+var app: TPasCubeApplication;
+    cx, yText, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+begin
+  Result := false;
+  if fBenchmarkPhase <> bpIdleMenu then Exit;
+  if fHistoryCount = 0 then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  cx := pvApplication.Width * 0.5;
+  yText := pvApplication.Height - 110.0;
+
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+
+  paddingX := charWidth * 1.5;
+  paddingY := charHeight * 0.4;
+
+  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
+  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+  
+  btnX := cx + 15.0;
+  btnY := yText - paddingY;
+
+  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+end;
+
+function TPasCubeScreen.GetResolutionButtonRect(const aIndex: Integer; out aX, aY, aW, aH: TpvFloat): Boolean;
+var app: TPasCubeApplication;
+    cx, cy, startY, paddingX, paddingY, spacingY: TpvFloat;
+    charWidth, charHeight: TpvFloat;
+begin
+ Result := false;
+ app := UnitPasCubeApplication.Application;
+ if not Assigned(app) then Exit;
+
+ cx := pvApplication.Width * 0.5;
+ cy := pvApplication.Height * 0.5;
+
+ charWidth := app.TextOverlay.FontCharWidth;
+ charHeight := app.TextOverlay.FontCharHeight;
+
+ paddingX := charWidth * 2.0;
+ paddingY := charHeight * 0.5;
+
+ aW := (18.0 * charWidth * 1.5) + (2.0 * paddingX);
+ aH := (charHeight * 1.5) + (2.0 * paddingY);
+ spacingY := aH + 20.0;
+ startY := cy - (2.0 * spacingY) + 40.0;
+
+ aX := cx - (aW * 0.5);
+ aY := startY + (aIndex * spacingY);
+ Result := true;
+end;
+
+function TPasCubeScreen.IsResolutionButtonHovered(const aIndex: Integer; const aPos: TpvVector2): Boolean;
+var bx, by, bw, bh: TpvFloat;
+begin
+ Result := false;
+ if fBenchmarkPhase <> bpResolutionSelect then Exit;
+ if GetResolutionButtonRect(aIndex, bx, by, bw, bh) then begin
+  Result := (aPos.x >= bx) and (aPos.x <= bx + bw) and
+            (aPos.y >= by) and (aPos.y <= by + bh);
+ end;
+end;
+
+procedure TPasCubeScreen.DrawResolutionSelectOverlay;
+var app: TPasCubeApplication;
+    cx, paddingY: TpvFloat;
+    charHeight: TpvFloat;
+    i: Integer;
+    isHovered: Boolean;
+    bgR, bgG, bgB, bgA: TpvFloat;
+    fgR, fgG, fgB, fgA: TpvFloat;
+    textR, textG, textB, textA: TpvFloat;
+    btnText: String;
+    btnX, btnY, btnW, btnH: TpvFloat;
+begin
+ app := UnitPasCubeApplication.Application;
+ if not Assigned(app) then Exit;
+
+ cx := pvApplication.Width * 0.5;
+
+ charHeight := app.TextOverlay.FontCharHeight;
+
+ // Draw Title
+ app.TextOverlay.AddText(cx, 80.0, 2.5, toaCenter, 'Select Benchmark Resolution');
+
+ paddingY := charHeight * 0.5;
+
+ for i := 0 to 3 do begin
+  isHovered := fHoveredButtonIndex = i;
+
+  if isHovered then begin
+   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
+
+  if GetResolutionButtonRect(i, btnX, btnY, btnW, btnH) then begin
+   case i of
+    0: btnText := '720p (1280x720)';
+    1: btnText := '1080p (1920x1080)';
+    2: btnText := '1440p (2560x1440)';
+    3: btnText := '4K (3840x2160)';
+   end;
+
+   app.TextOverlay.AddBox(btnX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+   app.TextOverlay.AddText(cx, btnY + paddingY, 1.5, toaCenter, btnText, 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  end;
+ end;
+end;
+
+procedure TPasCubeScreen.SelectResolution(const aIndex: Integer);
+begin
+ case aIndex of
+  0: begin
+   fResolutionOption := ro720p;
+   pvApplication.Width := 1280;
+   pvApplication.Height := 720;
+  end;
+  1: begin
+   fResolutionOption := ro1080p;
+   pvApplication.Width := 1920;
+   pvApplication.Height := 1080;
+  end;
+  2: begin
+   fResolutionOption := ro1440p;
+   pvApplication.Width := 2560;
+   pvApplication.Height := 1440;
+  end;
+  3: begin
+   fResolutionOption := ro4K;
+   pvApplication.Width := 3840;
+   pvApplication.Height := 2160;
+  end;
+ end;
+ fHoveredButtonIndex := -1;
+ StartBenchmark;
 end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
@@ -1992,8 +2229,8 @@ begin
  // Render header centered
  app.TextOverlay.AddText(pvApplication.Width * 0.5, 40.0, 2.2, toaCenter, phaseStr);
 
- // Render FPS on the top left
- app.TextOverlay.AddText(20, 40, 1.5, toaLeft, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
+ // Render FPS right below the main cube
+ app.TextOverlay.AddText(pvApplication.Width * 0.5, pvApplication.Height * 0.72, 1.5, toaCenter, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
 
  infoStr := '';
  case fBenchmarkPhase of
@@ -2008,9 +2245,9 @@ begin
  pbX := (pvApplication.Width - pbWidth) * 0.5;
  pbY := pvApplication.Height - 120.0;
 
-  // Draw stage description
+  // Draw stage description (shifted up to avoid overlapping with progress bar)
   if infoStr <> '' then
-   app.TextOverlay.AddText(pvApplication.Width * 0.5, pbY - 25.0, 1.2, toaCenter, infoStr);
+   app.TextOverlay.AddText(pvApplication.Width * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
 
   // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
   app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
@@ -2034,6 +2271,96 @@ begin
                           Format('%.0f%%', [progress * 100.0]));
 end;
 
+function TPasCubeScreen.GetCPUName: String;
+var SL: TStringList;
+    i: Integer;
+    line: String;
+begin
+ Result := 'Unknown CPU';
+ SL := TStringList.Create;
+ try
+  if FileExists('/proc/cpuinfo') then begin
+   SL.LoadFromFile('/proc/cpuinfo');
+   for i := 0 to SL.Count - 1 do begin
+    line := SL[i];
+    if Pos('model name', line) = 1 then begin
+     Result := Trim(Copy(line, Pos(':', line) + 1, Length(line)));
+     // Remove common vendor noise to keep it concise
+     Result := StringReplace(Result, 'Intel(R) Core(TM) ', '', [rfReplaceAll]);
+     Result := StringReplace(Result, 'AMD ', '', [rfReplaceAll]);
+     Result := StringReplace(Result, ' CPU', '', [rfReplaceAll]);
+     Result := StringReplace(Result, ' Processor', '', [rfReplaceAll]);
+     break;
+    end;
+   end;
+  end;
+ finally
+  SL.Free;
+ end;
+end;
+
+function TPasCubeScreen.GetRAMSize: String;
+var SL: TStringList;
+    i: Integer;
+    line: String;
+    kb: Int64;
+begin
+ Result := 'Unknown RAM';
+ SL := TStringList.Create;
+ try
+  if FileExists('/proc/meminfo') then begin
+   SL.LoadFromFile('/proc/meminfo');
+   for i := 0 to SL.Count - 1 do begin
+    line := SL[i];
+    if Pos('MemTotal:', line) = 1 then begin
+     line := Trim(Copy(line, 10, Length(line)));
+     line := StringReplace(line, ' kB', '', [rfReplaceAll]);
+     kb := StrToInt64Def(line, 0);
+     if kb > 0 then begin
+      Result := Format('%.0fGB', [kb / 1048576.0]);
+     end;
+     break;
+    end;
+   end;
+  end;
+ finally
+  SL.Free;
+ end;
+end;
+
+function TPasCubeScreen.GetOSName: String;
+var SL: TStringList;
+    i: Integer;
+    line: String;
+begin
+ Result := 'Linux';
+ SL := TStringList.Create;
+ try
+  if FileExists('/etc/os-release') then begin
+   SL.LoadFromFile('/etc/os-release');
+   for i := 0 to SL.Count - 1 do begin
+    line := SL[i];
+    if Pos('PRETTY_NAME=', line) = 1 then begin
+     Result := Copy(line, 13, Length(line) - 13);
+     Result := StringReplace(Result, '"', '', [rfReplaceAll]);
+     break;
+    end;
+   end;
+  end;
+ finally
+  SL.Free;
+ end;
+end;
+
+function TPasCubeScreen.CleanGPUName(const aName: String): String;
+begin
+ Result := aName;
+ Result := StringReplace(Result, 'NVIDIA GeForce ', '', [rfReplaceAll]);
+ Result := StringReplace(Result, 'AMD Radeon ', '', [rfReplaceAll]);
+ Result := StringReplace(Result, ' (TM)', '', [rfReplaceAll]);
+ Result := StringReplace(Result, ' Graphics', '', [rfReplaceAll]);
+end;
+
 procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
     cy, cx, y: TpvFloat;
@@ -2049,6 +2376,7 @@ var app: TPasCubeApplication;
     hwScoreStr: String;
     charWidth, charHeight: TpvFloat;
     textScaleTitle, textScaleValue, textScaleHeader, textScaleNormal, textScaleSmall: TpvFloat;
+    pixelRatio, scaleFactor: TpvDouble;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
@@ -2142,7 +2470,19 @@ begin
  HWRefs[7].Name := 'PC Gamer Avancado'; HWRefs[7].Score := 12500; HWRefs[7].IsCurrent := false;
  HWRefs[7].Specs := 'CPU: R7 7800X3D | RAM: 32GB DDR5 | GPU: RTX 4080 Super | OS: Win11';
  HWRefs[8].Name := 'Sistema Atual'; HWRefs[8].Score := fCurrentResult.TotalScore; HWRefs[8].IsCurrent := true;
- HWRefs[8].Specs := 'CPU: ' + IntToStr(pvApplication.CountCPUThreads) + 'T | GPU: ' + fCurrentResult.DeviceName;
+ HWRefs[8].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
+
+ case fResolutionOption of
+  ro720p: pixelRatio := 1.0;
+  ro1080p: pixelRatio := 921600.0 / 2073600.0;
+  ro1440p: pixelRatio := 921600.0 / 3686400.0;
+  ro4K: pixelRatio := 921600.0 / 8294400.0;
+  else pixelRatio := 1.0;
+ end;
+ scaleFactor := 0.5 + 0.5 * pixelRatio;
+
+ for i := 0 to 7 do
+  HWRefs[i].Score := Round(HWRefs[i].Score * scaleFactor);
 
  // Ordenar decrescente por pontuacao
  for i := 0 to 7 do begin

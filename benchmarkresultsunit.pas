@@ -57,6 +57,7 @@ type
 
     FCurrentScore: Integer;
     FCurrentSpecs: string;
+    FResolution: string;
     FValueCPUSingle, FScoreCPUSingle: string;
     FValueCPUMulti, FScoreCPUMulti: string;
     FValueGPURender, FScoreGPURender: string;
@@ -331,13 +332,13 @@ begin
   
   if Ref.IsCurrent then
   begin
-    BarH := 18;
-    BarY := 26;
+    BarH := 16;
+    BarY := 24;
   end
   else
   begin
-    BarH := 14;
-    BarY := 26;
+    BarH := 12;
+    BarY := 24;
   end;
   
   TrackRect := Rect(0, BarY, P.ClientWidth, BarY + BarH);
@@ -387,6 +388,7 @@ begin
   // Initialize defaults
   FCurrentScore := 0;
   FCurrentSpecs := 'CPU: 1T | GPU: Unknown';
+  FResolution := '';
   FValueCPUSingle := '0 MIPS';
   FScoreCPUSingle := '(0 points)';
   FValueCPUMulti := '0 MIPS';
@@ -430,7 +432,7 @@ begin
   Self.Font.Name := 'DejaVu Sans';
   Self.Font.Color := clWhite;
   Self.Width := 1024;
-  Self.Height := 768;
+  Self.Height := 820;
   Self.Position := poScreenCenter;
   Self.Caption := 'Benchmark Results - PasCube';
 
@@ -802,6 +804,10 @@ begin
               FLabelScore.Caption := FormatScore(TotalScore);
 
               FCurrentSpecs := 'CPU: ' + IntToStr(GetCPUThreadCount) + 'T | GPU: ' + LatestResultObj.Strings['device'];
+              if LatestResultObj.IndexOfName('resolution') >= 0 then
+                FResolution := LatestResultObj.Strings['resolution']
+              else
+                FResolution := '';
 
               PhasesArray := LatestResultObj.Arrays['phases'];
               if Assigned(PhasesArray) then
@@ -860,6 +866,7 @@ var
   BarW: Integer;
   ControlChild: TControl;
   CurY: Integer;
+  scaleFactor, pixelRatio: Double;
 begin
   DbgLog('RebuildBars start.');
   if not Assigned(FPanelBars) then
@@ -894,6 +901,19 @@ begin
   HWRefs[8].Name := 'Current System'; HWRefs[8].Score := FCurrentScore; HWRefs[8].IsCurrent := true;
   HWRefs[8].Specs := FCurrentSpecs;
 
+  // Scale reference system scores based on resolution
+  pixelRatio := 1.0;
+  if FResolution = '1920x1080' then
+    pixelRatio := 921600.0 / 2073600.0
+  else if FResolution = '2560x1440' then
+    pixelRatio := 921600.0 / 3686400.0
+  else if FResolution = '3840x2160' then
+    pixelRatio := 921600.0 / 8294400.0;
+  scaleFactor := 0.5 + 0.5 * pixelRatio;
+
+  for i := 0 to 7 do
+    HWRefs[i].Score := Round(HWRefs[i].Score * scaleFactor);
+
   // Sort descending by score
   for i := 0 to 7 do
     for j := i + 1 to 8 do
@@ -925,9 +945,9 @@ begin
     RowPanel.OnPaint := @RowPanelPaint;
     
     if HWRefs[i].IsCurrent then
-      RowPanel.Height := 72
+      RowPanel.Height := 70
     else
-      RowPanel.Height := 54;
+      RowPanel.Height := 64;
       
     RowPanel.Top := CurY;
     CurY := CurY + RowPanel.Height + 6;
@@ -963,17 +983,22 @@ begin
     ScoreLbl.Left := RowPanel.ClientWidth - ScoreLbl.Width - 4;
     ScoreLbl.Anchors := [akTop, akRight];
 
-    // Specs under the bar if current system
+    // Specs under the bar
+    SpecsLbl := TLabel.Create(Self);
+    SpecsLbl.Parent := RowPanel;
+    SpecsLbl.Caption := HWRefs[i].Specs;
+    SpecsLbl.Font.Color := COLOR_TEXT_LIGHT;
     if HWRefs[i].IsCurrent then
     begin
-      SpecsLbl := TLabel.Create(Self);
-      SpecsLbl.Parent := RowPanel;
-      SpecsLbl.Caption := HWRefs[i].Specs;
       SpecsLbl.Font.Size := 8;
-      SpecsLbl.Font.Color := COLOR_TEXT_LIGHT;
-      SpecsLbl.Top := 48;
-      SpecsLbl.Left := 4;
+      SpecsLbl.Top := 46;
+    end
+    else
+    begin
+      SpecsLbl.Font.Size := 7;
+      SpecsLbl.Top := 42;
     end;
+    SpecsLbl.Left := 4;
   end;
 end;
 
