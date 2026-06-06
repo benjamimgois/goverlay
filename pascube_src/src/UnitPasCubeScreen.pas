@@ -40,11 +40,13 @@ const CountTextures=1;
 type
   TBenchmarkPhase = (
    bpIdleMenu,
-   bpResolutionSelect,
    bpWarmup,
    bpCPU_Single,   // CPU Single-Threaded 7-Zip test
    bpCPU_Multi,    // CPU Multi-Threaded 7-Zip test
-   bpGPU_Stress,   // GPU Vulkan particle rendering stress test
+   bpGPU_720p,     // GPU Vulkan stress at 720p
+   bpGPU_1080p,    // GPU Vulkan stress at 1080p
+   bpGPU_1440p,    // GPU Vulkan stress at 1440p
+   bpGPU_4K,       // GPU Vulkan stress at 4K
    bpResults
   );
 
@@ -72,7 +74,7 @@ type
    Timestamp: String;
    Resolution: String;
    TotalScore: Integer;
-   PhaseResults: array[0..6] of TBenchmarkPhaseResult;
+   PhaseResults: array[0..8] of TBenchmarkPhaseResult;
    DeviceName: String;
    VulkanAPI: String;
   end;
@@ -250,10 +252,7 @@ type
         procedure DrawMenuOverlay;
         function IsStartButtonHovered(const aPos: TpvVector2): Boolean;
         function IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
-        function GetResolutionButtonRect(const aIndex: Integer; out aX, aY, aW, aH: TpvFloat): Boolean;
-        function IsResolutionButtonHovered(const aIndex: Integer; const aPos: TpvVector2): Boolean;
-        procedure DrawResolutionSelectOverlay;
-        procedure SelectResolution(const aIndex: Integer);
+        function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
         procedure DrawBenchmarkOverlay;
          function GetCPUName: String;
          function GetRAMSize: String;
@@ -1005,9 +1004,11 @@ begin
  if fReady and (aKeyEvent.KeyEventType=TpvApplicationInputKeyEventType.Down) then begin
   case aKeyEvent.KeyCode of
    KEYCODE_ESCAPE:begin
-    if fBenchmarkPhase = bpResolutionSelect then begin
+    if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
      fBenchmarkPhase := bpIdleMenu;
-     fHoveredButtonIndex := -1;
+     pvApplication.Width := 1280;
+     pvApplication.Height := 720;
+     fShowSkybox := true;
      result:=true;
     end else begin
      pvApplication.Terminate;
@@ -1015,14 +1016,8 @@ begin
    end;
    KEYCODE_RETURN,KEYCODE_SPACE:begin
     if fBenchmarkPhase = bpIdleMenu then begin
-     fBenchmarkPhase := bpResolutionSelect;
-     fHoveredButtonIndex := 0;
+     StartBenchmark;
      result:=true;
-    end else if fBenchmarkPhase = bpResolutionSelect then begin
-     if (fHoveredButtonIndex >= 0) and (fHoveredButtonIndex <= 3) then begin
-      SelectResolution(fHoveredButtonIndex);
-      result:=true;
-     end;
     end else if fBenchmarkPhase = bpResults then begin
      fBenchmarkPhase := bpIdleMenu;
      pvApplication.Width := 1280;
@@ -1032,18 +1027,8 @@ begin
     end;
    end;
    KEYCODE_UP:begin
-    if fBenchmarkPhase = bpResolutionSelect then begin
-     if fHoveredButtonIndex > 0 then Dec(fHoveredButtonIndex)
-     else fHoveredButtonIndex := 3;
-     result:=true;
-    end;
    end;
    KEYCODE_DOWN:begin
-    if fBenchmarkPhase = bpResolutionSelect then begin
-     if fHoveredButtonIndex < 3 then Inc(fHoveredButtonIndex)
-     else fHoveredButtonIndex := 0;
-     result:=true;
-    end;
    end;
   end;
  end;
@@ -1051,8 +1036,6 @@ end;
 
 function TPasCubeScreen.PointerEvent(const aPointerEvent:TpvApplicationInputPointerEvent):boolean;
 var Delta:TpvVector2;
-    i: Integer;
-    hoveredAny: Boolean;
 begin
  result := false;
  case aPointerEvent.PointerEventType of
@@ -1064,22 +1047,10 @@ begin
      fAutoRotation:=false;
      fDraggingCube:=false;
      result:=true;
-    end else if fBenchmarkPhase = bpResolutionSelect then begin
-     hoveredAny := false;
-     for i := 0 to 3 do begin
-      if IsResolutionButtonHovered(i, aPointerEvent.Position) then begin
-       hoveredAny := true;
-       break;
-      end;
-     end;
-     if hoveredAny then begin
-      fAutoRotation:=false;
-      fDraggingCube:=false;
-      result:=true;
-     end else begin
-      fAutoRotation:=false;
-      fDraggingCube:=true;
-     end;
+    end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+     fAutoRotation:=false;
+     fDraggingCube:=false;
+     result:=true;
     end else begin
      fAutoRotation:=false;
      fDraggingCube:=true;
@@ -1093,32 +1064,21 @@ begin
     if fDraggingCube then begin
      fDraggingCube:=false;
     end else if (fBenchmarkPhase = bpIdleMenu) and IsStartButtonHovered(aPointerEvent.Position) then begin
-     fBenchmarkPhase := bpResolutionSelect;
-     fHoveredButtonIndex := -1;
+     StartBenchmark;
      result:=true;
     end else if (fBenchmarkPhase = bpIdleMenu) and IsViewResultsButtonHovered(aPointerEvent.Position) then begin
      if fHistoryCount > 0 then begin
       fCurrentResult := fHistory[0];
-      if fHistory[0].Resolution = '1920x1080' then
-        fResolutionOption := ro1080p
-      else if fHistory[0].Resolution = '2560x1440' then
-        fResolutionOption := ro1440p
-      else if fHistory[0].Resolution = '3840x2160' then
-        fResolutionOption := ro4K
-      else
-        fResolutionOption := ro720p;
       fBenchmarkPhase := bpResults;
       fShowSkybox := true;
       result:=true;
      end;
-    end else if fBenchmarkPhase = bpResolutionSelect then begin
-     for i := 0 to 3 do begin
-      if IsResolutionButtonHovered(i, aPointerEvent.Position) then begin
-       SelectResolution(i);
-       result:=true;
-       break;
-      end;
-     end;
+    end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+     fBenchmarkPhase := bpIdleMenu;
+     pvApplication.Width := 1280;
+     pvApplication.Height := 720;
+     fShowSkybox := true;
+     result:=true;
     end;
    end;
   end;
@@ -1129,16 +1089,6 @@ begin
     fState.AnglePhases[0]:=fState.AnglePhases[0]+(Delta.y*0.005);
    end;
    fLastMousePosition:=aPointerEvent.Position;
-
-   if fBenchmarkPhase = bpResolutionSelect then begin
-    fHoveredButtonIndex := -1;
-    for i := 0 to 3 do begin
-     if IsResolutionButtonHovered(i, aPointerEvent.Position) then begin
-      fHoveredButtonIndex := i;
-      break;
-     end;
-    end;
-   end;
   end;
  end;
 end;
@@ -1174,69 +1124,68 @@ begin
  fPhaseFrameTimeSum := fPhaseFrameTimeSum + aDeltaTime;
  Inc(fFrameCount);
 
-  // Benchmark state machine
-  if fBenchmarkPhase > bpResolutionSelect then begin
-  fBenchmarkTimer := fBenchmarkTimer + aDeltaTime;
-  fPhaseTimer := fPhaseTimer + aDeltaTime;
-
-  case fBenchmarkPhase of
-   bpWarmup: begin
-    if fPhaseTimer >= 3.0 then NextPhase;
-   end;
-    bpCPU_Single, bpCPU_Multi: begin
-     if Assigned(f7ZipThread) then begin
-       if Frac(fPhaseTimer * 2.0) < aDeltaTime * 2.0 then begin
-         DebugLog('Update: Phase=' + GetPhaseName + ' ThreadFinished=' + BoolToStr(f7ZipThread.IsFinished, True) + ' Progress=' + FloatToStrF(f7ZipThread.Progress, ffFixed, 1, 3) + ' Score=' + IntToStr(f7ZipThread.Score));
-         WriteLn('Update: Phase=', GetPhaseName, ' ThreadFinished=', f7ZipThread.IsFinished, ' Progress=', f7ZipThread.Progress, ' Score=', f7ZipThread.Score);
-       end;
-       if f7ZipThread.IsFinished then begin
-         DebugLog('Update: Phase=' + GetPhaseName + ' thread finished. Moving to next phase.');
-         NextPhase;
-       end;
-     end else begin
-       DebugLog('Update: Phase=' + GetPhaseName + ' thread is nil! Moving to next phase.');
-       WriteLn('Update: Phase=', GetPhaseName, ' Thread is nil!');
-       NextPhase;
-     end;
-    end;
-   bpGPU_Stress: begin
-    if fPhaseTimer >= 10.0 then NextPhase;
-   end;
-  end;
- end;
-
- // Update lights & particles if in GPU stress phase
- if fBenchmarkPhase = bpGPU_Stress then begin
-  UpdateLights(aDeltaTime);
-  UpdateParticles(aDeltaTime);
- end;
-
- // Original cube rotation (for idle/demo or benchmark)
- SpeedMultiplier := pvApplication.FramesPerSecond / MaxFPS;
- if SpeedMultiplier > 1.0 then SpeedMultiplier := 1.0;
- if SpeedMultiplier < 0.0 then SpeedMultiplier := 0.0;
+   // Benchmark state machine
+   if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
+   fBenchmarkTimer := fBenchmarkTimer + aDeltaTime;
+   fPhaseTimer := fPhaseTimer + aDeltaTime;
  
- if fBenchmarkPhase = bpCPU_Single then
-   SpeedMultiplier := SpeedMultiplier * 4.0
- else if fBenchmarkPhase = bpCPU_Multi then
-   SpeedMultiplier := SpeedMultiplier * 10.0;
-
- if fAutoRotation or (fBenchmarkPhase > bpIdleMenu) then begin
-  fState.Time := fState.Time + aDeltaTime;
-  fState.AnglePhases[0] := frac(fState.AnglePhases[0] + (aDeltaTime * f0 * SpeedMultiplier));
-  fState.AnglePhases[1] := frac(fState.AnglePhases[1] + (aDeltaTime * f1 * SpeedMultiplier));
- end;
- fStates[pvApplication.UpdateInFlightFrameIndex]:=fState;
- fReady:=true;
-
-  // Add overlay text during update
-  case fBenchmarkPhase of
-   bpIdleMenu: DrawMenuOverlay;
-   bpResolutionSelect: DrawResolutionSelectOverlay;
-   bpResults: DrawResultsOverlay;
-   else DrawBenchmarkOverlay;
+   case fBenchmarkPhase of
+    bpWarmup: begin
+     if fPhaseTimer >= 3.0 then NextPhase;
+    end;
+     bpCPU_Single, bpCPU_Multi: begin
+      if Assigned(f7ZipThread) then begin
+        if Frac(fPhaseTimer * 2.0) < aDeltaTime * 2.0 then begin
+          DebugLog('Update: Phase=' + GetPhaseName + ' ThreadFinished=' + BoolToStr(f7ZipThread.IsFinished, True) + ' Progress=' + FloatToStrF(f7ZipThread.Progress, ffFixed, 1, 3) + ' Score=' + IntToStr(f7ZipThread.Score));
+          WriteLn('Update: Phase=', GetPhaseName, ' ThreadFinished=', f7ZipThread.IsFinished, ' Progress=', f7ZipThread.Progress, ' Score=', f7ZipThread.Score);
+        end;
+        if f7ZipThread.IsFinished then begin
+          DebugLog('Update: Phase=' + GetPhaseName + ' thread finished. Moving to next phase.');
+          NextPhase;
+        end;
+      end else begin
+        DebugLog('Update: Phase=' + GetPhaseName + ' thread is nil! Moving to next phase.');
+        WriteLn('Update: Phase=', GetPhaseName, ' Thread is nil!');
+        NextPhase;
+      end;
+     end;
+    bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K: begin
+     if fPhaseTimer >= 10.0 then NextPhase;
+    end;
+   end;
   end;
-end;
+ 
+  // Update lights & particles if in GPU stress phase
+  if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
+   UpdateLights(aDeltaTime);
+   UpdateParticles(aDeltaTime);
+  end;
+ 
+  // Original cube rotation (for idle/demo or benchmark)
+  SpeedMultiplier := pvApplication.FramesPerSecond / MaxFPS;
+  if SpeedMultiplier > 1.0 then SpeedMultiplier := 1.0;
+  if SpeedMultiplier < 0.0 then SpeedMultiplier := 0.0;
+  
+  if fBenchmarkPhase = bpCPU_Single then
+    SpeedMultiplier := SpeedMultiplier * 4.0
+  else if fBenchmarkPhase = bpCPU_Multi then
+    SpeedMultiplier := SpeedMultiplier * 10.0;
+ 
+  if fAutoRotation or (fBenchmarkPhase > bpIdleMenu) then begin
+   fState.Time := fState.Time + aDeltaTime;
+   fState.AnglePhases[0] := frac(fState.AnglePhases[0] + (aDeltaTime * f0 * SpeedMultiplier));
+   fState.AnglePhases[1] := frac(fState.AnglePhases[1] + (aDeltaTime * f1 * SpeedMultiplier));
+  end;
+  fStates[pvApplication.UpdateInFlightFrameIndex]:=fState;
+  fReady:=true;
+ 
+   // Add overlay text during update
+   case fBenchmarkPhase of
+    bpIdleMenu: DrawMenuOverlay;
+    bpResults: DrawResultsOverlay;
+    else DrawBenchmarkOverlay;
+   end;
+ end;
 
 procedure TPasCubeScreen.Draw(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil);
 const TwoPI=2.0*pi;
@@ -1260,7 +1209,7 @@ begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
 
-  isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_Stress];
+  isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K];
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -1281,7 +1230,7 @@ begin
   ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
   ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,pvApplication.Width/pvApplication.Height,1.0,128.0);
 
-  if isBenchmark and (fBenchmarkPhase = bpGPU_Stress) then begin
+  if isBenchmark and (fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K]) then begin
    // Main Cube (Instance 0)
    ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
                 TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
@@ -1374,7 +1323,7 @@ begin
                                                                                                                0,
                                                                                                                nil);
 
-    if fBenchmarkPhase = bpGPU_Stress then
+    if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then
      gpuStressValue := fBenchmarkTimer
     else
      gpuStressValue := 0.0;
@@ -1406,7 +1355,7 @@ begin
     end;
 
       // Render particles (GPU particle phase)
-      if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase = bpGPU_Stress) then begin
+      if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K]) then begin
        // 8 Orbiting lights
        for i := 0 to 7 do begin
         PushConstants.Vector := TpvVector4.Create(fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
@@ -1429,12 +1378,12 @@ begin
       end;
 
      // Default cube (idle menu / warmup / CPU single / GPU stress phases)
-     if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_Stress]) then begin
+     if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K]) then begin
       if isBenchmark then begin
         if fBenchmarkPhase = bpCPU_Single then begin
           PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
-        end else if fBenchmarkPhase = bpGPU_Stress then begin
+        end else if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
           PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
         end else begin
@@ -1553,7 +1502,7 @@ begin
   bpWarmup: Result := 3.0;
   bpCPU_Single: Result := 0.0;
   bpCPU_Multi: Result := 0.0;
-  bpGPU_Stress: Result := 10.0;
+  bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K: Result := 10.0;
   else Result := 0.0;
  end;
 end;
@@ -1565,7 +1514,10 @@ begin
   bpWarmup: Result := 'Warmup';
   bpCPU_Single: Result := 'CPU Single-Thread';
   bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
-  bpGPU_Stress: Result := 'GPU Vulkan Render';
+  bpGPU_720p: Result := 'GPU Stress at 720p';
+  bpGPU_1080p: Result := 'GPU Stress at 1080p';
+  bpGPU_1440p: Result := 'GPU Stress at 1440p';
+  bpGPU_4K: Result := 'GPU Stress at 4K';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
  end;
@@ -1580,7 +1532,7 @@ procedure TPasCubeScreen.StartBenchmark;
 begin
   if Assigned(fDebugLog) then fDebugLog.Clear;
   DebugLog('=== START BENCHMARK ===');
-  DebugLog(Format('Resolution=%d Device=%s', [Ord(fResolutionOption), pvApplication.VulkanDevice.PhysicalDevice.DeviceName]));
+  DebugLog(Format('Resolution=Multi Device=%s', [pvApplication.VulkanDevice.PhysicalDevice.DeviceName]));
   fBenchmarkPhase := bpWarmup;
   fBenchmarkTimer := 0.0;
   fPhaseTimer := 0.0;
@@ -1593,12 +1545,7 @@ begin
   fPhysicsWorld.Clear;
   FillChar(fCurrentResult,SizeOf(fCurrentResult),#0);
   fCurrentResult.Timestamp := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now);
-  case fResolutionOption of
-   ro720p: fCurrentResult.Resolution := '1280x720';
-   ro1080p: fCurrentResult.Resolution := '1920x1080';
-   ro1440p: fCurrentResult.Resolution := '2560x1440';
-   ro4K: fCurrentResult.Resolution := '3840x2160';
-  end;
+  fCurrentResult.Resolution := 'Multi';
   fCurrentResult.DeviceName := pvApplication.VulkanDevice.PhysicalDevice.DeviceName;
   fCurrentResult.VulkanAPI := Format('%d.%d.%d', [
    pvApplication.VulkanDevice.PhysicalDevice.Properties.apiVersion shr 22,
@@ -1655,7 +1602,7 @@ begin
      fCurrentResult.PhaseResults[fPhaseResultIndex].LightsActive := 0;
      fCurrentResult.PhaseResults[fPhaseResultIndex].ParticlesActive := 0;
      fCurrentResult.PhaseResults[fPhaseResultIndex].PhysicsBodies := 0;
-   end else if fBenchmarkPhase = bpGPU_Stress then begin
+   end else if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
      fCurrentResult.PhaseResults[fPhaseResultIndex].Score := Round(fpsAvg * 35.0);
      fCurrentResult.PhaseResults[fPhaseResultIndex].ObjectsRendered := 1;
      fCurrentResult.PhaseResults[fPhaseResultIndex].LightsActive := 8;
@@ -1683,16 +1630,47 @@ begin
     f7ZipThread := T7ZipThread.Create('7z', '');
    end;
    bpCPU_Multi: begin
-    DebugLog('NextPhase: bpCPU_Multi -> bpGPU_Stress. Initializing particles.');
-    fBenchmarkPhase := bpGPU_Stress;
+    DebugLog('NextPhase: bpCPU_Multi -> bpGPU_720p. Setting 720p resolution and initializing particles.');
+    fBenchmarkPhase := bpGPU_720p;
     fPhaseResultIndex := 3;
+    fResolutionOption := ro720p;
+    pvApplication.Width := 1280;
+    pvApplication.Height := 720;
     InitParticles;
    end;
-   bpGPU_Stress: begin
-    DebugLog('NextPhase: bpGPU_Stress -> bpResults. Completing benchmark.');
-    fBenchmarkPhase := bpResults;
+   bpGPU_720p: begin
+    DebugLog('NextPhase: bpGPU_720p -> bpGPU_1080p. Setting 1080p resolution and initializing particles.');
+    fBenchmarkPhase := bpGPU_1080p;
     fPhaseResultIndex := 4;
+    fResolutionOption := ro1080p;
+    pvApplication.Width := 1920;
+    pvApplication.Height := 1080;
+    InitParticles;
+   end;
+   bpGPU_1080p: begin
+    DebugLog('NextPhase: bpGPU_1080p -> bpGPU_1440p. Setting 1440p resolution and initializing particles.');
+    fBenchmarkPhase := bpGPU_1440p;
+    fPhaseResultIndex := 5;
+    fResolutionOption := ro1440p;
+    pvApplication.Width := 2560;
+    pvApplication.Height := 1440;
+    InitParticles;
+   end;
+   bpGPU_1440p: begin
+    DebugLog('NextPhase: bpGPU_1440p -> bpGPU_4K. Setting 4K resolution and initializing particles.');
+    fBenchmarkPhase := bpGPU_4K;
+    fPhaseResultIndex := 6;
+    fResolutionOption := ro4K;
+    pvApplication.Width := 3840;
+    pvApplication.Height := 2160;
+    InitParticles;
+   end;
+   bpGPU_4K: begin
+    DebugLog('NextPhase: bpGPU_4K -> bpResults. Restoring 720p and completing benchmark.');
+    fBenchmarkPhase := bpResults;
     CalculateScore;
+    pvApplication.Width := 1280;
+    pvApplication.Height := 720;
     FinishBenchmark;
     Exit;
    end;
@@ -1730,27 +1708,58 @@ begin
 end;
 
 procedure TPasCubeScreen.CalculateScore;
-var cpuSTPoints, cpuMTPoints, gpuPoints: Integer;
+var cpuSTPoints, cpuMTPoints: Integer;
+    gpu720Points, gpu1080Points, gpu1440Points, gpu4KPoints, gpuAvgPoints: Integer;
+    gpuAvgFPS: TpvDouble;
 begin
-  // Calculate normalized points:
-  // CPU ST: raw MIPS / 3
-  // CPU MT: raw MIPS / 20
-  // GPU: already set to fpsAvg * 35 in NextPhase
   cpuSTPoints := Round(fCurrentResult.PhaseResults[1].Score / 3.0);
   cpuMTPoints := Round(fCurrentResult.PhaseResults[2].Score / 20.0);
-  gpuPoints := fCurrentResult.PhaseResults[3].Score;
+  
+  gpu720Points := fCurrentResult.PhaseResults[3].Score;
+  gpu1080Points := fCurrentResult.PhaseResults[4].Score;
+  gpu1440Points := fCurrentResult.PhaseResults[5].Score;
+  gpu4KPoints := fCurrentResult.PhaseResults[6].Score;
 
   if cpuSTPoints < 1 then cpuSTPoints := 1;
   if cpuMTPoints < 1 then cpuMTPoints := 1;
-  if gpuPoints < 1 then gpuPoints := 1;
+  if gpu720Points < 1 then gpu720Points := 1;
+  if gpu1080Points < 1 then gpu1080Points := 1;
+  if gpu1440Points < 1 then gpu1440Points := 1;
+  if gpu4KPoints < 1 then gpu4KPoints := 1;
 
   // Save normalized points in Score for display in the grid
   fCurrentResult.PhaseResults[1].Score := cpuSTPoints;
   fCurrentResult.PhaseResults[2].Score := cpuMTPoints;
-  fCurrentResult.PhaseResults[3].Score := gpuPoints;
+  fCurrentResult.PhaseResults[3].Score := gpu720Points;
+  fCurrentResult.PhaseResults[4].Score := gpu1080Points;
+  fCurrentResult.PhaseResults[5].Score := gpu1440Points;
+  fCurrentResult.PhaseResults[6].Score := gpu4KPoints;
 
-  // Calculate weighted global gaming score: 35% CPU ST + 15% CPU MT + 50% GPU
-  fCurrentResult.TotalScore := Round((0.35 * cpuSTPoints) + (0.15 * cpuMTPoints) + (0.50 * gpuPoints));
+  gpuAvgPoints := Round((gpu720Points + gpu1080Points + gpu1440Points + gpu4KPoints) / 4.0);
+  if gpuAvgPoints < 1 then gpuAvgPoints := 1;
+
+  gpuAvgFPS := (fCurrentResult.PhaseResults[3].FPSAvg +
+                fCurrentResult.PhaseResults[4].FPSAvg +
+                fCurrentResult.PhaseResults[5].FPSAvg +
+                fCurrentResult.PhaseResults[6].FPSAvg) / 4.0;
+
+  // Populate PhaseResults[7] as the main GPU Vulkan Render phase for GOverlay compatibility
+  fCurrentResult.PhaseResults[7].PhaseName := 'GPU Vulkan Render';
+  fCurrentResult.PhaseResults[7].Score := gpuAvgPoints;
+  fCurrentResult.PhaseResults[7].FPSAvg := gpuAvgFPS;
+  fCurrentResult.PhaseResults[7].FPSMin := fCurrentResult.PhaseResults[6].FPSMin;
+  fCurrentResult.PhaseResults[7].FPSMax := fCurrentResult.PhaseResults[3].FPSMax;
+  fCurrentResult.PhaseResults[7].FrameTimeMs := (fCurrentResult.PhaseResults[3].FrameTimeMs +
+                                                 fCurrentResult.PhaseResults[4].FrameTimeMs +
+                                                 fCurrentResult.PhaseResults[5].FrameTimeMs +
+                                                 fCurrentResult.PhaseResults[6].FrameTimeMs) / 4.0;
+  fCurrentResult.PhaseResults[7].ObjectsRendered := 1;
+  fCurrentResult.PhaseResults[7].LightsActive := 8;
+  fCurrentResult.PhaseResults[7].ParticlesActive := fParticleCount;
+  fCurrentResult.PhaseResults[7].PhysicsBodies := 0;
+
+  // Calculate weighted global gaming score: 35% CPU ST + 15% CPU MT + 50% GPU average
+  fCurrentResult.TotalScore := Round((0.35 * cpuSTPoints) + (0.15 * cpuMTPoints) + (0.50 * gpuAvgPoints));
   if fCurrentResult.TotalScore < 1 then fCurrentResult.TotalScore := 1;
 end;
 
@@ -1788,7 +1797,7 @@ begin
    json := json + ' "vulkan_api": "' + fHistory[i].VulkanAPI + '",';
    json := json + ' "total_score": ' + IntToStr(fHistory[i].TotalScore) + ',';
    json := json + ' "phases": [';
-   for j := 0 to 6 do begin
+   for j := 0 to 8 do begin
     json := json + '{';
     json := json + '"name":"' + fHistory[i].PhaseResults[j].PhaseName + '",';
     json := json + '"score":' + IntToStr(fHistory[i].PhaseResults[j].Score) + ',';
@@ -1801,7 +1810,7 @@ begin
     json := json + '"lights":' + IntToStr(fHistory[i].PhaseResults[j].LightsActive) + ',';
     json := json + '"bodies":' + IntToStr(fHistory[i].PhaseResults[j].PhysicsBodies);
     json := json + '}';
-    if j < 6 then json := json + ',';
+    if j < 8 then json := json + ',';
    end;
    json := json + ']}';
    if i < fHistoryCount - 1 then json := json + ',';
@@ -1859,7 +1868,7 @@ begin
          
          PhasesArr := TJSONArray(HistoryObj.FindPath('phases'));
          if Assigned(PhasesArr) then begin
-          for j := 0 to Min(PhasesArr.Count, 7) - 1 do begin
+          for j := 0 to Min(PhasesArr.Count, 9) - 1 do begin
            PhaseObj := PhasesArr.Objects[j];
            if Assigned(PhaseObj) then begin
             fHistory[i].PhaseResults[j].PhaseName := PhaseObj.Get('name', '');
@@ -2092,123 +2101,30 @@ begin
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
-function TPasCubeScreen.GetResolutionButtonRect(const aIndex: Integer; out aX, aY, aW, aH: TpvFloat): Boolean;
+function TPasCubeScreen.IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, cy, startY, paddingX, paddingY, spacingY: TpvFloat;
-    charWidth, charHeight: TpvFloat;
+    cx, yText, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
 begin
  Result := false;
+ if fBenchmarkPhase <> bpResults then Exit;
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
  cx := pvApplication.Width * 0.5;
- cy := pvApplication.Height * 0.5;
-
+ yText := pvApplication.Height - 55.0;
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
-
- paddingX := charWidth * 2.0;
- paddingY := charHeight * 0.5;
-
- aW := (18.0 * charWidth * 1.5) + (2.0 * paddingX);
- aH := (charHeight * 1.5) + (2.0 * paddingY);
- spacingY := aH + 20.0;
- startY := cy - (2.0 * spacingY) + 40.0;
-
- aX := cx - (aW * 0.5);
- aY := startY + (aIndex * spacingY);
- Result := true;
+ paddingX := charWidth * 1.5;
+ paddingY := charHeight * 0.4;
+ btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+ btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+ btnX := cx - (btnWidth * 0.5);
+ btnY := yText - paddingY;
+ Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+           (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
-function TPasCubeScreen.IsResolutionButtonHovered(const aIndex: Integer; const aPos: TpvVector2): Boolean;
-var bx, by, bw, bh: TpvFloat;
-begin
- Result := false;
- if fBenchmarkPhase <> bpResolutionSelect then Exit;
- if GetResolutionButtonRect(aIndex, bx, by, bw, bh) then begin
-  Result := (aPos.x >= bx) and (aPos.x <= bx + bw) and
-            (aPos.y >= by) and (aPos.y <= by + bh);
- end;
-end;
-
-procedure TPasCubeScreen.DrawResolutionSelectOverlay;
-var app: TPasCubeApplication;
-    cx, paddingY: TpvFloat;
-    charHeight: TpvFloat;
-    i: Integer;
-    isHovered: Boolean;
-    bgR, bgG, bgB, bgA: TpvFloat;
-    fgR, fgG, fgB, fgA: TpvFloat;
-    textR, textG, textB, textA: TpvFloat;
-    btnText: String;
-    btnX, btnY, btnW, btnH: TpvFloat;
-begin
- app := UnitPasCubeApplication.Application;
- if not Assigned(app) then Exit;
-
- cx := pvApplication.Width * 0.5;
-
- charHeight := app.TextOverlay.FontCharHeight;
-
- // Draw Title
- app.TextOverlay.AddText(cx, 80.0, 2.5, toaCenter, 'Select Benchmark Resolution');
-
- paddingY := charHeight * 0.5;
-
- for i := 0 to 3 do begin
-  isHovered := fHoveredButtonIndex = i;
-
-  if isHovered then begin
-   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
-
-  if GetResolutionButtonRect(i, btnX, btnY, btnW, btnH) then begin
-   case i of
-    0: btnText := '720p (1280x720)';
-    1: btnText := '1080p (1920x1080)';
-    2: btnText := '1440p (2560x1440)';
-    3: btnText := '4K (3840x2160)';
-   end;
-
-   app.TextOverlay.AddBox(btnX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-   app.TextOverlay.AddText(cx, btnY + paddingY, 1.5, toaCenter, btnText, 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
-  end;
- end;
-end;
-
-procedure TPasCubeScreen.SelectResolution(const aIndex: Integer);
-begin
- case aIndex of
-  0: begin
-   fResolutionOption := ro720p;
-   pvApplication.Width := 1280;
-   pvApplication.Height := 720;
-  end;
-  1: begin
-   fResolutionOption := ro1080p;
-   pvApplication.Width := 1920;
-   pvApplication.Height := 1080;
-  end;
-  2: begin
-   fResolutionOption := ro1440p;
-   pvApplication.Width := 2560;
-   pvApplication.Height := 1440;
-  end;
-  3: begin
-   fResolutionOption := ro4K;
-   pvApplication.Width := 3840;
-   pvApplication.Height := 2160;
-  end;
- end;
- fHoveredButtonIndex := -1;
- StartBenchmark;
-end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
 var app: TPasCubeApplication;
@@ -2248,7 +2164,10 @@ begin
   bpWarmup: infoStr := 'Calibrating render engine and caches...';
   bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
   bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
-  bpGPU_Stress: infoStr := 'Running Vulkan GPU Stress (8 particles + 8 lights)...';
+  bpGPU_720p: infoStr := 'Testing GPU at 720p (1280x720)...';
+  bpGPU_1080p: infoStr := 'Testing GPU at 1080p (1920x1080)...';
+  bpGPU_1440p: infoStr := 'Testing GPU at 1440p (2560x1440)...';
+  bpGPU_4K: infoStr := 'Testing GPU at 4K (3840x2160)...';
  end;
 
  pbWidth := pvApplication.Width * 0.6;
@@ -2370,12 +2289,11 @@ begin
  Result := StringReplace(Result, 'AMD Radeon ', '', [rfReplaceAll]);
  Result := StringReplace(Result, ' (TM)', '', [rfReplaceAll]);
 end;
-
 procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
-    cy, cx: TpvFloat;
+    cx: TpvFloat;
     i, j: Integer;
-    lineStr, resultStr, descStr, pointsStr, titleStr, resStr: String;
+    lineStr, resultStr, descStr: String;
     leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
     HWRefs: array[0..8] of THardwareRef;
     TempHW: THardwareRef;
@@ -2384,9 +2302,13 @@ var app: TPasCubeApplication;
     bgR, bgG, bgB, bgA: TpvFloat;
     hwScoreStr: String;
     charWidth, charHeight: TpvFloat;
-    textScaleTitle, textScaleValue, textScaleHeader, textScaleNormal, textScaleSmall: TpvFloat;
-    pixelRatio, scaleFactor: TpvDouble;
+    textScaleSmall: TpvFloat;
+    scaleFactor: TpvDouble;
     cardY, cardHeight, itemY, topBoxX, topBoxY, topBoxW, topBoxH: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
+    isReturnHovered: Boolean;
+    fgR, fgG, fgB, fgA: TpvFloat;
+    textR, textG, textB, textA: TpvFloat;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
@@ -2394,29 +2316,20 @@ begin
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
 
- textScaleTitle := 2.2;
- textScaleValue := 3.2;
- textScaleHeader := 1.4;
- textScaleNormal := 1.15;
  textScaleSmall := 0.65;
 
  cx := pvApplication.Width * 0.5;
- cy := pvApplication.Height * 0.06;
+
+ leftColX1 := pvApplication.Width * 0.05;
+ leftColWidth := pvApplication.Width * 0.43;
+ rightColX1 := pvApplication.Width * 0.52;
+ rightColWidth := pvApplication.Width * 0.43;
 
   // --- TOP SCORE CARD ---
-  topBoxW := 65.0 * charWidth;
+  topBoxX := leftColX1;
+  topBoxW := (rightColX1 + rightColWidth) - leftColX1;
   topBoxH := 6.0 * charHeight;
-  topBoxX := cx - topBoxW * 0.5;
   topBoxY := 1.0 * charHeight;
-
-  case fResolutionOption of
-   ro720p: resStr := '720p';
-   ro1080p: resStr := '1080p';
-   ro1440p: resStr := '1440p';
-   ro4K: resStr := '4K';
-   else resStr := 'Unknown';
-  end;
-  titleStr := 'Results in ' + resStr;
 
   // Draw Top Card Background (Glassmorphism with Cyan Outline Glow)
   app.TextOverlay.AddBox(topBoxX, topBoxY, topBoxW, topBoxH, 
@@ -2424,52 +2337,82 @@ begin
                          48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.4, 
                          255.0);
 
-  app.TextOverlay.AddText(cx, topBoxY + 0.75 * charHeight, 1.1, toaCenter, titleStr, 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-  app.TextOverlay.AddText(cx, topBoxY + 2.25 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
-
-  leftColX1 := pvApplication.Width * 0.05;
-  leftColWidth := pvApplication.Width * 0.43;
-  rightColX1 := pvApplication.Width * 0.52;
-  rightColWidth := pvApplication.Width * 0.43;
+  app.TextOverlay.AddText(cx, topBoxY + 0.7 * charHeight, 1.1, toaCenter, 'Final results', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(cx, topBoxY + 2.1 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
   // --- COLUNA ESQUERDA: Detalhes do Benchmark em Cards ---
-  for i := 1 to 3 do begin
-   cardY := (7.8 * charHeight) + (i - 1) * (6.6 * charHeight);
-   cardHeight := 6.0 * charHeight;
+  // Card 1: CPU Performance
+  cardY := 7.8 * charHeight;
+  cardHeight := 6.0 * charHeight;
+  app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
+                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
+                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
+                         255.0);
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'CPU Performance', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  
+  // Single-Thread
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 2.0 * charHeight, 1.0, toaLeft, 'Single-Thread');
+  resultStr := Format('%s MIPS (%s points)', [FormatScoreValue(Round(fCurrentResult.PhaseResults[1].FPSAvg)), FormatScoreValue(fCurrentResult.PhaseResults[1].Score)]);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 2.0 * charWidth, cardY + 2.0 * charHeight, 1.0, toaRight, resultStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
-   // Draw Card Background (Semi-transparent Blue Theme, soft outline)
-   app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
-                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
-                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
-                          255.0);
+  // Multi-Thread
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 3.4 * charHeight, 1.0, toaLeft, 'Multi-Thread');
+  resultStr := Format('%s MIPS (%s points)', [FormatScoreValue(Round(fCurrentResult.PhaseResults[2].FPSAvg)), FormatScoreValue(fCurrentResult.PhaseResults[2].Score)]);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 2.0 * charWidth, cardY + 3.4 * charHeight, 1.0, toaRight, resultStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
-   case i of
-    1: begin
-      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'CPU Single-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-      resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
-      descStr := 'Important for basic physics, game logic, and minimum FPS.';
-    end;
-    2: begin
-      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-      resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
-      descStr := 'Important for asset streaming, advanced physics, and complex AI.';
-    end;
-    3: begin
-      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'GPU Vulkan Render', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-      resultStr := Format('%.1f FPS', [fCurrentResult.PhaseResults[i].FPSAvg]);
-      descStr := 'Determines maximum frame rate (FPS) and visual fidelity.';
-    end;
-   end;
+  // Description
+  descStr := 'Physics, logic, asset streaming, and AI workloads.';
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 4.8 * charHeight, textScaleSmall, toaLeft, descStr, 1.0, 1.0, 1.0, 0.0, 179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0);
 
-   app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 1.875 * charHeight, 1.4, toaLeft, resultStr);
-   pointsStr := '(' + FormatScoreValue(fCurrentResult.PhaseResults[i].Score) + ' points)';
-   app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth + (Length(resultStr) * charWidth * 1.4) + 1.5 * charWidth, cardY + 2.25 * charHeight, 0.9, toaLeft, pointsStr, 1.0, 1.0, 1.0, 0.0, 0.65, 0.70, 0.80, 1.0);
-   app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 4.1 * charHeight, textScaleSmall, toaLeft, descStr, 1.0, 1.0, 1.0, 0.0, 0.75, 0.75, 0.78, 1.0);
-  end;
+  // Card 2: GPU Performance (Standard)
+  cardY := 14.5 * charHeight;
+  cardHeight := 6.0 * charHeight;
+  app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
+                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
+                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
+                         255.0);
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'GPU Performance (Standard)', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  
+  // 720p
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 2.0 * charHeight, 1.0, toaLeft, '720p (HD)');
+  resultStr := Format('%.1f FPS (%s points)', [fCurrentResult.PhaseResults[3].FPSAvg, FormatScoreValue(fCurrentResult.PhaseResults[3].Score)]);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 2.0 * charWidth, cardY + 2.0 * charHeight, 1.0, toaRight, resultStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+  // 1080p
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 3.4 * charHeight, 1.0, toaLeft, '1080p (Full HD)');
+  resultStr := Format('%.1f FPS (%s points)', [fCurrentResult.PhaseResults[4].FPSAvg, FormatScoreValue(fCurrentResult.PhaseResults[4].Score)]);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 2.0 * charWidth, cardY + 3.4 * charHeight, 1.0, toaRight, resultStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+  // Description
+  descStr := 'Standard rendering resolutions for mainstream devices.';
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 4.8 * charHeight, textScaleSmall, toaLeft, descStr, 1.0, 1.0, 1.0, 0.0, 179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0);
+
+  // Card 3: GPU Performance (High-End)
+  cardY := 21.2 * charHeight;
+  cardHeight := 6.0 * charHeight;
+  app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
+                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
+                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
+                         255.0);
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'GPU Performance (High-End)', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  
+  // 1440p
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 2.0 * charHeight, 1.0, toaLeft, '1440p (QHD)');
+  resultStr := Format('%.1f FPS (%s points)', [fCurrentResult.PhaseResults[5].FPSAvg, FormatScoreValue(fCurrentResult.PhaseResults[5].Score)]);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 2.0 * charWidth, cardY + 2.0 * charHeight, 1.0, toaRight, resultStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+  // 4K
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 3.4 * charHeight, 1.0, toaLeft, '4K (Ultra HD)');
+  resultStr := Format('%.1f FPS (%s points)', [fCurrentResult.PhaseResults[6].FPSAvg, FormatScoreValue(fCurrentResult.PhaseResults[6].Score)]);
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 2.0 * charWidth, cardY + 3.4 * charHeight, 1.0, toaRight, resultStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+  // Description
+  descStr := 'Enthusiast targets with extreme GPU workloads.';
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 4.8 * charHeight, textScaleSmall, toaLeft, descStr, 1.0, 1.0, 1.0, 0.0, 179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0);
 
   // --- CARD HISTÓRICO ---
-  cardY := 27.5 * charHeight;
-  cardHeight := 11.0 * charHeight;
+  cardY := 27.9 * charHeight;
+  cardHeight := 11.5 * charHeight;
   app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
@@ -2479,7 +2422,7 @@ begin
 
   for i := 0 to Min(fHistoryCount, 5) - 1 do begin
    itemY := cardY + 2.375 * charHeight + i * 1.5 * charHeight;
-   lineStr := Format('#%d: %s pts  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), StringReplace(fHistory[i].Timestamp, 'T', ' ', [rfReplaceAll])]);
+   lineStr := Format('#%d: %s points  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), StringReplace(fHistory[i].Timestamp, 'T', ' ', [rfReplaceAll])]);
    if i = 0 then
     app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.95, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
    else
@@ -2488,7 +2431,7 @@ begin
 
   // --- COLUNA DIREITA: Comparativo de Hardware em Card ---
   cardY := 7.8 * charHeight;
-  cardHeight := 30.6 * charHeight;
+  cardHeight := 32.0 * charHeight;
 
   // Draw Large Card Background
   app.TextOverlay.AddBox(rightColX1, cardY, rightColWidth, cardHeight, 
@@ -2506,7 +2449,7 @@ begin
   HWRefs[2].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
   HWRefs[3].Name := 'Entry Gamer PC'; HWRefs[3].Score := 1500; HWRefs[3].IsCurrent := false;
   HWRefs[3].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-  HWRefs[4].Name := 'Xbox Series'; HWRefs[4].Score := 1700; HWRefs[4].IsCurrent := false;
+  HWRefs[4].Name := 'XBOX Series X'; HWRefs[4].Score := 2100; HWRefs[4].IsCurrent := false;
   HWRefs[4].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
   HWRefs[5].Name := 'PlayStation 5'; HWRefs[5].Score := 2000; HWRefs[5].IsCurrent := false;
   HWRefs[5].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
@@ -2517,17 +2460,7 @@ begin
   HWRefs[8].Name := 'Current System'; HWRefs[8].Score := fCurrentResult.TotalScore; HWRefs[8].IsCurrent := true;
   HWRefs[8].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
 
-  case fResolutionOption of
-   ro720p: pixelRatio := 1.0;
-   ro1080p: pixelRatio := 921600.0 / 2073600.0;
-   ro1440p: pixelRatio := 921600.0 / 3686400.0;
-   ro4K: pixelRatio := 921600.0 / 8294400.0;
-   else pixelRatio := 1.0;
-  end;
-  scaleFactor := 0.5 + 0.5 * pixelRatio;
-
-  for i := 0 to 7 do
-   HWRefs[i].Score := Round(HWRefs[i].Score * scaleFactor);
+  scaleFactor := 1.0;
 
   // Ordenar decrescente por pontuacao
   for i := 0 to 7 do begin
@@ -2544,20 +2477,20 @@ begin
   if MaxScore = 0 then MaxScore := 1;
 
   for i := 0 to 8 do begin
-   itemY := cardY + 2.8 * charHeight + i * 3.0 * charHeight;
+   itemY := cardY + 2.8 * charHeight + i * 3.2 * charHeight;
 
    // Left: Name
    if HWRefs[i].IsCurrent then
-    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
    else
-    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
    
    // Right: Score
-   hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' pts';
+   hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
    if HWRefs[i].IsCurrent then
-    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
    else
-    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
+    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
    
    // Draw horizontal bar dynamically
    barStartX := rightColX1 + 22.5 * charWidth;
@@ -2577,8 +2510,8 @@ begin
     bgA := 0.8;
    end;
 
-   barHeight := 0.5 * charHeight;
-   barY := itemY + 1.5 * charHeight;
+   barHeight := 0.35 * charHeight;
+   barY := itemY + 1.4 * charHeight;
 
    // Background track
    app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight, 
@@ -2590,17 +2523,37 @@ begin
 
    // Draw Specs
    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                           itemY + 2.1 * charHeight,
+                           itemY + 2.0 * charHeight,
                            textScaleSmall,
                            toaLeft,
                            HWRefs[i].Specs,
                            1.0, 1.0, 1.0, 0.0,
-                           0.65, 0.70, 0.80, 1.0
+                           179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0
                           );
   end;
 
-  // Instrucoes
-  app.TextOverlay.AddText(cx, pvApplication.Height - 2.2 * charHeight, textScaleNormal, toaCenter, 'Press ENTER/SPACE for Menu');;
+  // --- RETURN TO MENU BUTTON ---
+  yText := pvApplication.Height - 55.0;
+  paddingX := charWidth * 1.5;
+  paddingY := charHeight * 0.4;
+  btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+  btnX := cx - (btnWidth * 0.5);
+  btnY := yText - paddingY;
+
+  isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
+  if isReturnHovered then begin
+   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
+
+  app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 end;
 
 procedure TPasCubeScreen.GenerateBeveledCube;
