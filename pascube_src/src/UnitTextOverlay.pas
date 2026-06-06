@@ -654,7 +654,7 @@ begin
  fBufferChars:=@fBufferCharsBuffers[fUpdateBufferIndex];
  begin
   Reset;
-  AddText(0.0,pvApplication.Height-(fFontCharHeight*2.0),2.0,toaLeft,TpvApplicationRawByteString('Device: '+pvApplication.VulkanDevice.PhysicalDevice.DeviceName{$ifdef Android}+' ('+TpvApplicationRawByteString(AndroidDeviceName)+')'{$endif}));
+  //AddText(0.0,pvApplication.Height-(fFontCharHeight*2.0),2.0,toaLeft,TpvApplicationRawByteString('Device: '+pvApplication.VulkanDevice.PhysicalDevice.DeviceName{$ifdef Android}+' ('+TpvApplicationRawByteString(AndroidDeviceName)+')'{$endif}));
   //AddText(0.0,pvApplication.Height-(fFontCharHeight*4.0),2.0,toaLeft,TpvApplicationRawByteString('PasCube: ' + TPasCubeApplication(pvApplication).Version));
   {AddText(0.0,fFontCharHeight*1.0,1.0,toaLeft,TpvApplicationRawByteString('Vulkan API version: '+IntToStr(pvApplication.VulkanDevice.PhysicalDevice.Properties.apiVersion shr 22)+'.'+IntToStr((pvApplication.VulkanDevice.PhysicalDevice.Properties.apiVersion shr 12) and $3ff)+'.'+IntToStr((pvApplication.VulkanDevice.PhysicalDevice.Properties.apiVersion shr 0) and $fff)));
   Str(pvApplication.FramesPerSecond:1:1,FPS);

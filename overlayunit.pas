@@ -7755,7 +7755,7 @@ begin
       FBenchmarkTimer.Enabled := False;
       FBenchmarkWasRunning := False;
       DbgLog('BenchmarkTimerTick: pascube terminated. Opening results form.');
-      BenchmarkResultsMenuItemClick(Self);
+      // BenchmarkResultsMenuItemClick(Self);
     end
     else
     begin

@@ -1098,7 +1098,17 @@ begin
      result:=true;
     end else if (fBenchmarkPhase = bpIdleMenu) and IsViewResultsButtonHovered(aPointerEvent.Position) then begin
      if fHistoryCount > 0 then begin
-      pvApplication.Terminate;
+      fCurrentResult := fHistory[0];
+      if fHistory[0].Resolution = '1920x1080' then
+        fResolutionOption := ro1080p
+      else if fHistory[0].Resolution = '2560x1440' then
+        fResolutionOption := ro1440p
+      else if fHistory[0].Resolution = '3840x2160' then
+        fResolutionOption := ro4K
+      else
+        fResolutionOption := ro720p;
+      fBenchmarkPhase := bpResults;
+      fShowSkybox := true;
       result:=true;
      end;
     end else if fBenchmarkPhase = bpResolutionSelect then begin
@@ -1756,7 +1766,8 @@ begin
  if fHistoryCount < MAX_BENCHMARK_HISTORY then Inc(fHistoryCount);
  SaveResultsJSON;
  SaveDebugLog;
- pvApplication.Terminate;
+ fBenchmarkPhase := bpResults;
+ fShowSkybox := true;
 end;
 
 procedure TPasCubeScreen.SaveResultsJSON;
@@ -2358,16 +2369,14 @@ begin
  Result := StringReplace(Result, 'NVIDIA GeForce ', '', [rfReplaceAll]);
  Result := StringReplace(Result, 'AMD Radeon ', '', [rfReplaceAll]);
  Result := StringReplace(Result, ' (TM)', '', [rfReplaceAll]);
- Result := StringReplace(Result, ' Graphics', '', [rfReplaceAll]);
 end;
 
 procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
-    cy, cx, y: TpvFloat;
+    cy, cx: TpvFloat;
     i, j: Integer;
-    lineStr, resultStr, descStr: String;
+    lineStr, resultStr, descStr, pointsStr, titleStr, resStr: String;
     leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
-    ry: TpvFloat;
     HWRefs: array[0..8] of THardwareRef;
     TempHW: THardwareRef;
     MaxScore: Integer;
@@ -2377,6 +2386,7 @@ var app: TPasCubeApplication;
     charWidth, charHeight: TpvFloat;
     textScaleTitle, textScaleValue, textScaleHeader, textScaleNormal, textScaleSmall: TpvFloat;
     pixelRatio, scaleFactor: TpvDouble;
+    cardY, cardHeight, itemY, topBoxX, topBoxY, topBoxW, topBoxH: TpvFloat;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
@@ -2388,161 +2398,209 @@ begin
  textScaleValue := 3.2;
  textScaleHeader := 1.4;
  textScaleNormal := 1.15;
- textScaleSmall := 0.85;
+ textScaleSmall := 0.65;
 
  cx := pvApplication.Width * 0.5;
  cy := pvApplication.Height * 0.06;
 
- app.TextOverlay.AddText(cx, cy, textScaleTitle, toaCenter, 'Benchmark Complete!');
- app.TextOverlay.AddText(cx, cy + charHeight * textScaleTitle * 1.3, textScaleValue, toaCenter, FormatScoreValue(fCurrentResult.TotalScore));
+  // --- TOP SCORE CARD ---
+  topBoxW := 65.0 * charWidth;
+  topBoxH := 6.0 * charHeight;
+  topBoxX := cx - topBoxW * 0.5;
+  topBoxY := 1.0 * charHeight;
 
- leftColX1 := pvApplication.Width * 0.06;
- leftColWidth := pvApplication.Width * 0.42;
- rightColX1 := pvApplication.Width * 0.52;
- rightColWidth := pvApplication.Width * 0.42;
+  case fResolutionOption of
+   ro720p: resStr := '720p';
+   ro1080p: resStr := '1080p';
+   ro1440p: resStr := '1440p';
+   ro4K: resStr := '4K';
+   else resStr := 'Unknown';
+  end;
+  titleStr := 'Results in ' + resStr;
 
- y := cy + charHeight * 7.5;
+  // Draw Top Card Background (Glassmorphism with Cyan Outline Glow)
+  app.TextOverlay.AddBox(topBoxX, topBoxY, topBoxW, topBoxH, 
+                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.85, 
+                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.4, 
+                         255.0);
 
- // --- COLUNA ESQUERDA: Detalhes do Benchmark ---
- app.TextOverlay.AddText(leftColX1, y, textScaleHeader, toaLeft, 'Detalhes do Benchmark');
- y := y + charHeight * textScaleHeader * 1.2;
- app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, '---------------------------------------------------------');
+  app.TextOverlay.AddText(cx, topBoxY + 0.75 * charHeight, 1.1, toaCenter, titleStr, 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(cx, topBoxY + 2.25 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
- for i := 1 to 3 do begin
-  y := y + charHeight * textScaleNormal * 1.4;
-  case i of
-   1: begin
-     resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
-     descStr := 'Importante para fisica basica, logica do jogo e taxa de FPS minima.';
+  leftColX1 := pvApplication.Width * 0.05;
+  leftColWidth := pvApplication.Width * 0.43;
+  rightColX1 := pvApplication.Width * 0.52;
+  rightColWidth := pvApplication.Width * 0.43;
+
+  // --- COLUNA ESQUERDA: Detalhes do Benchmark em Cards ---
+  for i := 1 to 3 do begin
+   cardY := (7.8 * charHeight) + (i - 1) * (6.6 * charHeight);
+   cardHeight := 6.0 * charHeight;
+
+   // Draw Card Background (Semi-transparent Blue Theme, soft outline)
+   app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
+                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
+                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
+                          255.0);
+
+   case i of
+    1: begin
+      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'CPU Single-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+      resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
+      descStr := 'Important for basic physics, game logic, and minimum FPS.';
+    end;
+    2: begin
+      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+      resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
+      descStr := 'Important for asset streaming, advanced physics, and complex AI.';
+    end;
+    3: begin
+      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.625 * charHeight, 1.0, toaLeft, 'GPU Vulkan Render', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+      resultStr := Format('%.1f FPS', [fCurrentResult.PhaseResults[i].FPSAvg]);
+      descStr := 'Determines maximum frame rate (FPS) and visual fidelity.';
+    end;
    end;
-   2: begin
-     resultStr := Format('%s MIPS', [FormatScoreValue(Round(fCurrentResult.PhaseResults[i].FPSAvg))]);
-     descStr := 'Importante para streaming de assets, fisica avancada e IA complexa.';
-   end;
-   3: begin
-     resultStr := Format('%.1f FPS', [fCurrentResult.PhaseResults[i].FPSAvg]);
-     descStr := 'Determina a taxa maxima de quadros (FPS) e a fidelidade visual.';
-   end;
-   else begin
-     resultStr := '';
-     descStr := '';
+
+   app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 1.875 * charHeight, 1.4, toaLeft, resultStr);
+   pointsStr := '(' + FormatScoreValue(fCurrentResult.PhaseResults[i].Score) + ' points)';
+   app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth + (Length(resultStr) * charWidth * 1.4) + 1.5 * charWidth, cardY + 2.25 * charHeight, 0.9, toaLeft, pointsStr, 1.0, 1.0, 1.0, 0.0, 0.65, 0.70, 0.80, 1.0);
+   app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 4.1 * charHeight, textScaleSmall, toaLeft, descStr, 1.0, 1.0, 1.0, 0.0, 0.75, 0.75, 0.78, 1.0);
+  end;
+
+  // --- CARD HISTÓRICO ---
+  cardY := 27.5 * charHeight;
+  cardHeight := 11.0 * charHeight;
+  app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight, 
+                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.82, 
+                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.3, 
+                         255.0);
+
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.75 * charHeight, 1.1, toaLeft, 'History (Last 5 runs)', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+
+  for i := 0 to Min(fHistoryCount, 5) - 1 do begin
+   itemY := cardY + 2.375 * charHeight + i * 1.5 * charHeight;
+   lineStr := Format('#%d: %s pts  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), StringReplace(fHistory[i].Timestamp, 'T', ' ', [rfReplaceAll])]);
+   if i = 0 then
+    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.95, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+   else
+    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.95, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
+  end;
+
+  // --- COLUNA DIREITA: Comparativo de Hardware em Card ---
+  cardY := 7.8 * charHeight;
+  cardHeight := 30.6 * charHeight;
+
+  // Draw Large Card Background
+  app.TextOverlay.AddBox(rightColX1, cardY, rightColWidth, cardHeight, 
+                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.85, 
+                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.4, 
+                         255.0);
+
+  app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, cardY + 0.94 * charHeight, 1.2, toaLeft, 'Hardware Comparison', 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+  HWRefs[0].Name := 'Nintendo Switch'; HWRefs[0].Score := 180; HWRefs[0].IsCurrent := false;
+  HWRefs[0].Specs := 'CPU: Tegra X1 4C | RAM: 4GB LPDDR4 | GPU: Maxwell 256 | OS: Horizon';
+  HWRefs[1].Name := 'Steam Deck'; HWRefs[1].Score := 650; HWRefs[1].IsCurrent := false;
+  HWRefs[1].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
+  HWRefs[2].Name := 'ROG Ally X'; HWRefs[2].Score := 1100; HWRefs[2].IsCurrent := false;
+  HWRefs[2].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
+  HWRefs[3].Name := 'Entry Gamer PC'; HWRefs[3].Score := 1500; HWRefs[3].IsCurrent := false;
+  HWRefs[3].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
+  HWRefs[4].Name := 'Xbox Series'; HWRefs[4].Score := 1700; HWRefs[4].IsCurrent := false;
+  HWRefs[4].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
+  HWRefs[5].Name := 'PlayStation 5'; HWRefs[5].Score := 2000; HWRefs[5].IsCurrent := false;
+  HWRefs[5].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
+  HWRefs[6].Name := 'Mid-Range Gamer PC'; HWRefs[6].Score := 2800; HWRefs[6].IsCurrent := false;
+  HWRefs[6].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
+  HWRefs[7].Name := 'High-End Gamer PC'; HWRefs[7].Score := 4200; HWRefs[7].IsCurrent := false;
+  HWRefs[7].Specs := 'CPU: R7 7800X3D | RAM: 32GB DDR5 | GPU: RTX 4080 Super | OS: Win11';
+  HWRefs[8].Name := 'Current System'; HWRefs[8].Score := fCurrentResult.TotalScore; HWRefs[8].IsCurrent := true;
+  HWRefs[8].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
+
+  case fResolutionOption of
+   ro720p: pixelRatio := 1.0;
+   ro1080p: pixelRatio := 921600.0 / 2073600.0;
+   ro1440p: pixelRatio := 921600.0 / 3686400.0;
+   ro4K: pixelRatio := 921600.0 / 8294400.0;
+   else pixelRatio := 1.0;
+  end;
+  scaleFactor := 0.5 + 0.5 * pixelRatio;
+
+  for i := 0 to 7 do
+   HWRefs[i].Score := Round(HWRefs[i].Score * scaleFactor);
+
+  // Ordenar decrescente por pontuacao
+  for i := 0 to 7 do begin
+   for j := i + 1 to 8 do begin
+    if HWRefs[i].Score < HWRefs[j].Score then begin
+     TempHW := HWRefs[i];
+     HWRefs[i] := HWRefs[j];
+     HWRefs[j] := TempHW;
+    end;
    end;
   end;
 
-  app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, fCurrentResult.PhaseResults[i].PhaseName);
-  app.TextOverlay.AddText(leftColX1 + leftColWidth, y, textScaleNormal, toaRight, Format('%s  (%s pts)', [resultStr, FormatScoreValue(fCurrentResult.PhaseResults[i].Score)]));
+  MaxScore := HWRefs[0].Score;
+  if MaxScore = 0 then MaxScore := 1;
 
-  y := y + charHeight * textScaleNormal * 1.0;
-  app.TextOverlay.AddText(leftColX1 + 10.0, y, textScaleSmall, toaLeft, descStr);
- end;
+  for i := 0 to 8 do begin
+   itemY := cardY + 2.8 * charHeight + i * 3.0 * charHeight;
 
- y := y + charHeight * textScaleNormal * 2.2;
- app.TextOverlay.AddText(leftColX1, y, textScaleHeader, toaLeft, 'Historico (Ultimos 5 testes)');
- y := y + charHeight * textScaleHeader * 1.2;
- app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, '---------------------------------------------------------');
-
- for i := 0 to Min(fHistoryCount, 5) - 1 do begin
-  y := y + charHeight * textScaleNormal * 1.3;
-  lineStr := Format('#%d: %s pts  (%s)', [i+1, FormatScoreValue(fHistory[i].TotalScore), StringReplace(fHistory[i].Timestamp, 'T', ' ', [rfReplaceAll])]);
-  app.TextOverlay.AddText(leftColX1, y, textScaleNormal, toaLeft, lineStr);
- end;
-
- // --- COLUNA DIREITA: Comparativo de Hardware ---
- ry := cy + charHeight * 7.5;
- app.TextOverlay.AddText(rightColX1, ry, textScaleHeader, toaLeft, 'Comparativo de Hardware');
- ry := ry + charHeight * textScaleHeader * 1.2;
- app.TextOverlay.AddText(rightColX1, ry, textScaleNormal, toaLeft, '---------------------------------------------------------');
-
- HWRefs[0].Name := 'Nintendo Switch'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
- HWRefs[0].Specs := 'CPU: Tegra X1 4C | RAM: 4GB LPDDR4 | GPU: Maxwell 256 | OS: Horizon';
- HWRefs[1].Name := 'Steam Deck'; HWRefs[1].Score := 1300; HWRefs[1].IsCurrent := false;
- HWRefs[1].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
- HWRefs[2].Name := 'ROG Ally X'; HWRefs[2].Score := 2100; HWRefs[2].IsCurrent := false;
- HWRefs[2].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
- HWRefs[3].Name := 'PC Gamer Basico'; HWRefs[3].Score := 2800; HWRefs[3].IsCurrent := false;
- HWRefs[3].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
- HWRefs[4].Name := 'Xbox Series'; HWRefs[4].Score := 3200; HWRefs[4].IsCurrent := false;
- HWRefs[4].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
- HWRefs[5].Name := 'PlayStation 5'; HWRefs[5].Score := 4500; HWRefs[5].IsCurrent := false;
- HWRefs[5].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
- HWRefs[6].Name := 'PC Gamer Medio'; HWRefs[6].Score := 6500; HWRefs[6].IsCurrent := false;
- HWRefs[6].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
- HWRefs[7].Name := 'PC Gamer Avancado'; HWRefs[7].Score := 12500; HWRefs[7].IsCurrent := false;
- HWRefs[7].Specs := 'CPU: R7 7800X3D | RAM: 32GB DDR5 | GPU: RTX 4080 Super | OS: Win11';
- HWRefs[8].Name := 'Sistema Atual'; HWRefs[8].Score := fCurrentResult.TotalScore; HWRefs[8].IsCurrent := true;
- HWRefs[8].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
-
- case fResolutionOption of
-  ro720p: pixelRatio := 1.0;
-  ro1080p: pixelRatio := 921600.0 / 2073600.0;
-  ro1440p: pixelRatio := 921600.0 / 3686400.0;
-  ro4K: pixelRatio := 921600.0 / 8294400.0;
-  else pixelRatio := 1.0;
- end;
- scaleFactor := 0.5 + 0.5 * pixelRatio;
-
- for i := 0 to 7 do
-  HWRefs[i].Score := Round(HWRefs[i].Score * scaleFactor);
-
- // Ordenar decrescente por pontuacao
- for i := 0 to 7 do begin
-  for j := i + 1 to 8 do begin
-   if HWRefs[i].Score < HWRefs[j].Score then begin
-    TempHW := HWRefs[i];
-    HWRefs[i] := HWRefs[j];
-    HWRefs[j] := TempHW;
+   // Left: Name
+   if HWRefs[i].IsCurrent then
+    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+   else
+    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+   
+   // Right: Score
+   hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' pts';
+   if HWRefs[i].IsCurrent then
+    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+   else
+    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.25 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
+   
+   // Draw horizontal bar dynamically
+   barStartX := rightColX1 + 22.5 * charWidth;
+   maxBarWidth := rightColWidth - 25.0 * charWidth;
+   barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
+   if barWidth < 2.0 then barWidth := 2.0;
+   
+   if HWRefs[i].IsCurrent then begin
+    bgR := 48.0 / 255.0;
+    bgG := 190.0 / 255.0;
+    bgB := 240.0 / 255.0;
+    bgA := 1.0;
+   end else begin
+    bgR := 70.0 / 255.0;
+    bgG := 80.0 / 255.0;
+    bgB := 100.0 / 255.0;
+    bgA := 0.8;
    end;
-  end;
- end;
 
- MaxScore := HWRefs[0].Score;
- if MaxScore = 0 then MaxScore := 1;
+   barHeight := 0.5 * charHeight;
+   barY := itemY + 1.5 * charHeight;
 
- for i := 0 to 8 do begin
-  ry := ry + charHeight * textScaleNormal * 2.2;
-  // Left: Name
-  app.TextOverlay.AddText(rightColX1, ry, textScaleNormal, toaLeft, HWRefs[i].Name);
-  
-  // Right: Score
-  hwScoreStr := FormatScoreValue(HWRefs[i].Score);
-  app.TextOverlay.AddText(rightColX1 + rightColWidth, ry, textScaleNormal, toaRight, hwScoreStr);
-  
-  // Draw horizontal bar dynamically
-  barStartX := rightColX1 + (20.0 * charWidth * textScaleNormal);
-  maxBarWidth := rightColWidth - (20.0 * charWidth * textScaleNormal) - (10.0 * charWidth * textScaleNormal);
-  barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
-  if barWidth < 2.0 then barWidth := 2.0;
-  
-  if HWRefs[i].IsCurrent then begin
-   bgR := 48.0 / 255.0;
-   bgG := 190.0 / 255.0;
-   bgB := 240.0 / 255.0;
-   bgA := 1.0;
-  end else begin
-   bgR := 70.0 / 255.0;
-   bgG := 80.0 / 255.0;
-   bgB := 100.0 / 255.0;
-   bgA := 0.8;
+   // Background track
+   app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight, 
+                          22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8, 
+                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6, 
+                          255.0);
+   // Fill
+   app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, bgR, bgG, bgB, bgA, bgR, bgG, bgB, bgA, 255.0);
+
+   // Draw Specs
+   app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
+                           itemY + 2.1 * charHeight,
+                           textScaleSmall,
+                           toaLeft,
+                           HWRefs[i].Specs,
+                           1.0, 1.0, 1.0, 0.0,
+                           0.65, 0.70, 0.80, 1.0
+                          );
   end;
 
-  barHeight := charHeight * textScaleNormal * 0.7;
-  barY := ry + (charHeight * textScaleNormal - barHeight) * 0.5;
-
-  app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, bgR, bgG, bgB, bgA, bgR, bgG, bgB, bgA, 255.0);
-
-  // Draw Specs
-  app.TextOverlay.AddText(rightColX1 + (2.0 * charWidth * textScaleSmall),
-                          ry + charHeight * textScaleNormal * 1.0,
-                          textScaleSmall,
-                          toaLeft,
-                          HWRefs[i].Specs,
-                          1.0, 1.0, 1.0, 0.0,
-                          0.65, 0.70, 0.80, 1.0
-                         );
- end;
-
- // Instrucoes
- app.TextOverlay.AddText(cx, pvApplication.Height - 80.0, textScaleNormal, toaCenter, 'Press ENTER/SPACE for Menu');
+  // Instrucoes
+  app.TextOverlay.AddText(cx, pvApplication.Height - 2.2 * charHeight, textScaleNormal, toaCenter, 'Press ENTER/SPACE for Menu');;
 end;
 
 procedure TPasCubeScreen.GenerateBeveledCube;
