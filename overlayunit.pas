@@ -1492,10 +1492,25 @@ var
 procedure DbgLog(const Msg: string);
 var
   T: QWord;
+  LogPath: string;
+  F: TextFile;
 begin
   T := GetTickCount64;
   if GDbgT0 = 0 then GDbgT0 := T;
   WriteLn(StdErr, Format('[%6d ms] %s', [T - GDbgT0, Msg]));
+  try
+    LogPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'benchmark_debug.log';
+    TConfigManager.EnsureDirectoryExists(TConfigManager.GetGoverlayFolder);
+    AssignFile(F, LogPath);
+    if FileExists(LogPath) then
+      Append(F)
+    else
+      Rewrite(F);
+    WriteLn(F, Format('[%6d ms] %s', [T - GDbgT0, Msg]));
+    CloseFile(F);
+  except
+    // ignore
+  end;
 end;
 
 // ============================================================================
@@ -4168,6 +4183,11 @@ begin
 
   if IsPasCubeAvailable then
   begin
+    try
+      DeleteFile(IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'benchmark_debug.log');
+    except
+    end;
+    DbgLog('*** RUN PASCUBE MENU CLICK - RUNNING PASCUBE ***');
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
@@ -7332,7 +7352,18 @@ end;
 procedure Tgoverlayform.PreviewBtnClick(Sender: TObject);
 begin
   if IsPasCubeAvailable then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &')
+  begin
+    try
+      DeleteFile(IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'benchmark_debug.log');
+    except
+    end;
+    DbgLog('*** PREVIEW BUTTON CLICK - RUNNING PASCUBE ***');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
+    FBenchmarkWasRunning := True;
+    FBenchmarkStarted := False;
+    FBenchmarkStartTicks := 0;
+    FBenchmarkTimer.Enabled := True;
+  end
   else if IsCommandAvailable('vkcube') then
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &')
   else
@@ -7625,28 +7656,89 @@ begin
   // Obsolete: bgmod binary manages OptiScaler conditional logic natively.
 end;
 
+function IsProcessRunningPure(const ProcName: string): Boolean;
+var
+  SR: TSearchRec;
+  Pid: Integer;
+  CommPath, Name: string;
+  SL: TStringList;
+begin
+  Result := False;
+  if FindFirst('/proc/*', faDirectory, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Attr and faDirectory = faDirectory) and TryStrToInt(SR.Name, Pid) then
+        begin
+          CommPath := '/proc/' + SR.Name + '/comm';
+          if FileExists(CommPath) then
+          begin
+            SL := TStringList.Create;
+            try
+              SL.LoadFromFile(CommPath);
+              if SL.Count > 0 then
+              begin
+                Name := Trim(SL[0]);
+                if Name = ProcName then
+                begin
+                  Result := True;
+                  Break;
+                end;
+              end;
+            finally
+              SL.Free;
+            end;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
 procedure Tgoverlayform.BenchmarkTimerTick(Sender: TObject);
 var
   ProcCheck: TProcess;
   IsRunning: Boolean;
+  ExitCode: Integer;
 begin
+  DbgLog(Format('BenchmarkTimerTick: WasRunning=%d Started=%d StartTicks=%d', 
+    [Ord(FBenchmarkWasRunning), Ord(FBenchmarkStarted), FBenchmarkStartTicks]));
+
   if not FBenchmarkWasRunning then
   begin
     FBenchmarkTimer.Enabled := False;
+    DbgLog('BenchmarkTimerTick: FBenchmarkWasRunning is False. Disabling timer.');
     Exit;
   end;
 
-  IsRunning := False;
-  ProcCheck := TProcess.Create(nil);
-  try
-    ProcCheck.CommandLine := 'pgrep -x pascube';
-    ProcCheck.Options := [poWaitOnExit];
-    ProcCheck.Execute;
-    if ProcCheck.ExitStatus = 0 then
-      IsRunning := True;
-  finally
+  // Primary check: Pure Pascal proc search
+  IsRunning := IsProcessRunningPure('pascube');
+  DbgLog(Format('BenchmarkTimerTick: IsProcessRunningPure = %d', [Ord(IsRunning)]));
+
+  if not IsRunning then
+  begin
+    // Fallback: pgrep check
+    ProcCheck := TProcess.Create(nil);
+    try
+      ProcCheck.CommandLine := 'pgrep -x pascube';
+      ProcCheck.Options := [poWaitOnExit];
+      ProcCheck.Execute;
+      ExitCode := ProcCheck.ExitStatus;
+      DbgLog(Format('BenchmarkTimerTick: pgrep fallback exit code = %d', [ExitCode]));
+      if ExitCode = 0 then
+        IsRunning := True;
+    except
+      on E: Exception do
+      begin
+        DbgLog('BenchmarkTimerTick: Exception during pgrep execute: ' + E.Message);
+      end;
+    end;
     ProcCheck.Free;
   end;
+
+  DbgLog(Format('BenchmarkTimerTick: Final IsRunning=%d', [Ord(IsRunning)]));
 
   if IsRunning then
   begin
@@ -7680,10 +7772,28 @@ end;
 
 procedure Tgoverlayform.BenchmarkResultsMenuItemClick(Sender: TObject);
 begin
-  if not Assigned(BenchmarkResultsForm) then
-    Application.CreateForm(TBenchmarkResultsForm, BenchmarkResultsForm);
-  BenchmarkResultsForm.RefreshResults;
-  BenchmarkResultsForm.ShowModal;
+  DbgLog('BenchmarkResultsMenuItemClick called.');
+  try
+    if not Assigned(BenchmarkResultsForm) then
+    begin
+      DbgLog('BenchmarkResultsMenuItemClick: Creating TBenchmarkResultsForm instance directly.');
+      BenchmarkResultsForm := TBenchmarkResultsForm.Create(Application);
+      DbgLog('BenchmarkResultsMenuItemClick: TBenchmarkResultsForm instance created.');
+    end;
+    
+    DbgLog('BenchmarkResultsMenuItemClick: Calling RefreshResults...');
+    BenchmarkResultsForm.RefreshResults;
+    
+    DbgLog('BenchmarkResultsMenuItemClick: Calling ShowModal...');
+    BenchmarkResultsForm.ShowModal;
+    DbgLog('BenchmarkResultsMenuItemClick: ShowModal finished.');
+  except
+    on E: Exception do
+    begin
+      DbgLog('BenchmarkResultsMenuItemClick: Exception caught: ' + E.Message);
+      ShowMessage('Error showing benchmark results: ' + E.Message);
+    end;
+  end;
 end;
 
 end.

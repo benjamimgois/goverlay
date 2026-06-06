@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Math,
-  fpjson, jsonparser, systemdetector;
+  fpjson, jsonparser, systemdetector, configmanager;
 
 type
   TBenchmarkResultsForm = class(TForm)
@@ -78,7 +78,7 @@ var
   BenchmarkResultsForm: TBenchmarkResultsForm;
 
 const
-  COLOR_BG = $302BC2A; // BGR for #2a2b30
+  COLOR_BG = $302B2A; // BGR for #2a2b30
   COLOR_CARD = $3C3635; // BGR for #35363c
   COLOR_SCORE_CARD = $443E3D; // BGR for #3d3e44
   COLOR_TRACK = $2A2625; // BGR for #25262a
@@ -89,10 +89,49 @@ const
 
 implementation
 
+procedure DbgLog(const Msg: string);
+var
+  LogPath: string;
+  F: TextFile;
+begin
+  WriteLn(StdErr, '[ResultsForm] ' + Msg);
+  try
+    LogPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'benchmark_debug.log';
+    TConfigManager.EnsureDirectoryExists(TConfigManager.GetGoverlayFolder);
+    AssignFile(F, LogPath);
+    if FileExists(LogPath) then
+      Append(F)
+    else
+      Rewrite(F);
+    WriteLn(F, '[ResultsForm] ' + Msg);
+    CloseFile(F);
+  except
+    // ignore
+  end;
+end;
+
+function FormatScore(Val: Integer): string;
+var
+  S: string;
+  i: Integer;
+begin
+  S := IntToStr(Val);
+  Result := '';
+  for i := 1 to Length(S) do
+  begin
+    Result := Result + S[i];
+    if ((Length(S) - i) mod 3 = 0) and (i < Length(S)) then
+      Result := Result + '.';
+  end;
+end;
+
 constructor TBenchmarkResultsForm.Create(AOwner: TComponent);
 begin
+  DbgLog('Create constructor start.');
   inherited CreateNew(AOwner);
+  DbgLog('CreateNew called. Building UI...');
   BuildUI;
+  DbgLog('UI Built. Setting OnResize...');
   Self.OnResize := @FormResize;
   // Initialize defaults
   FCurrentScore := 0;
@@ -104,12 +143,25 @@ begin
   FValueGPURender := '0.0 FPS';
   FScoreGPURender := '(0 pts)';
   FHistoryCount := 0;
+  DbgLog('Create constructor end.');
 end;
 
 procedure TBenchmarkResultsForm.FormResize(Sender: TObject);
 begin
   if Assigned(FShapeScore) and Assigned(FPanelTop) then
+  begin
     FShapeScore.Left := (FPanelTop.ClientWidth - FShapeScore.Width) div 2;
+    if Assigned(FLabelTitle) then
+    begin
+      FLabelTitle.AdjustSize;
+      FLabelTitle.Left := FShapeScore.Left + (FShapeScore.Width - FLabelTitle.Width) div 2;
+    end;
+    if Assigned(FLabelScore) then
+    begin
+      FLabelScore.AdjustSize;
+      FLabelScore.Left := FShapeScore.Left + (FShapeScore.Width - FLabelScore.Width) div 2;
+    end;
+  end;
 
   if Assigned(FPanelLeft) and Assigned(FPanelClient) then
     FPanelLeft.Width := Round(FPanelClient.ClientWidth * 0.44);
@@ -157,15 +209,10 @@ begin
   FLabelTitle.Caption := 'BENCHMARK COMPLETE!';
   FLabelTitle.Font.Size := 12;
   FLabelTitle.Font.Color := COLOR_TEXT_LIGHT;
-  FLabelTitle.Alignment := taCenter;
-  FLabelTitle.AutoSize := False;
-  FLabelTitle.Width := FShapeScore.Width;
+  FLabelTitle.Transparent := True;
+  FLabelTitle.AutoSize := True;
   FLabelTitle.Top := FShapeScore.Top + 18;
-  FLabelTitle.AnchorSideLeft.Control := FShapeScore;
-  FLabelTitle.AnchorSideLeft.Side := asrLeft;
-  FLabelTitle.AnchorSideRight.Control := FShapeScore;
-  FLabelTitle.AnchorSideRight.Side := asrRight;
-  FLabelTitle.Anchors := [akLeft, akRight];
+  FLabelTitle.BringToFront;
 
   FLabelScore := TLabel.Create(Self);
   FLabelScore.Parent := FPanelTop;
@@ -173,15 +220,10 @@ begin
   FLabelScore.Font.Size := 38;
   FLabelScore.Font.Style := [fsBold];
   FLabelScore.Font.Color := clWhite;
-  FLabelScore.Alignment := taCenter;
-  FLabelScore.AutoSize := False;
-  FLabelScore.Width := FShapeScore.Width;
-  FLabelScore.Top := FShapeScore.Top + 40;
-  FLabelScore.AnchorSideLeft.Control := FShapeScore;
-  FLabelScore.AnchorSideLeft.Side := asrLeft;
-  FLabelScore.AnchorSideRight.Control := FShapeScore;
-  FLabelScore.AnchorSideRight.Side := asrRight;
-  FLabelScore.Anchors := [akLeft, akRight];
+  FLabelScore.Transparent := True;
+  FLabelScore.AutoSize := True;
+  FLabelScore.Top := FShapeScore.Top + 42;
+  FLabelScore.BringToFront;
 
   // Container panel
   FPanelClient := TPanel.Create(Self);
@@ -206,26 +248,32 @@ begin
   FPanelRight.Color := COLOR_BG;
 
   // 1. CPU Single-Thread Card
-  CardPanel := TPanel.Create(Self);
-  CardPanel.Parent := FPanelLeft;
-  CardPanel.Align := alTop;
-  CardPanel.Height := 115;
-  CardPanel.BevelOuter := bvNone;
-  CardPanel.Color := COLOR_BG;
-  CardPanel.BorderSpacing.Bottom := 10;
-  CardPanel.BorderSpacing.Left := 20;
-  CardPanel.BorderSpacing.Right := 10;
-  CardPanel.BorderSpacing.Top := 5;
+  FCardSingle := TPanel.Create(Self);
+  FCardSingle.Parent := FPanelLeft;
+  FCardSingle.AnchorSideTop.Control := FPanelLeft;
+  FCardSingle.AnchorSideTop.Side := asrTop;
+  FCardSingle.AnchorSideLeft.Control := FPanelLeft;
+  FCardSingle.AnchorSideLeft.Side := asrLeft;
+  FCardSingle.AnchorSideRight.Control := FPanelLeft;
+  FCardSingle.AnchorSideRight.Side := asrRight;
+  FCardSingle.Anchors := [akTop, akLeft, akRight];
+  FCardSingle.Height := 135;
+  FCardSingle.BevelOuter := bvNone;
+  FCardSingle.Color := COLOR_BG;
+  FCardSingle.BorderSpacing.Bottom := 10;
+  FCardSingle.BorderSpacing.Left := 20;
+  FCardSingle.BorderSpacing.Right := 10;
+  FCardSingle.BorderSpacing.Top := 5;
 
   Shape := TShape.Create(Self);
-  Shape.Parent := CardPanel;
+  Shape.Parent := FCardSingle;
   Shape.Align := alClient;
   Shape.Shape := stRoundRect;
   Shape.Brush.Color := COLOR_CARD;
   Shape.Pen.Color := COLOR_CARD;
 
   TitleLbl := TLabel.Create(Self);
-  TitleLbl.Parent := CardPanel;
+  TitleLbl.Parent := FCardSingle;
   TitleLbl.Caption := '⚡ CPU Single-Thread';
   TitleLbl.Font.Size := 10;
   TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
@@ -233,7 +281,7 @@ begin
   TitleLbl.Left := 12;
 
   FValSingleLbl := TLabel.Create(Self);
-  FValSingleLbl.Parent := CardPanel;
+  FValSingleLbl.Parent := FCardSingle;
   FValSingleLbl.Caption := '0 MIPS';
   FValSingleLbl.Font.Size := 20;
   FValSingleLbl.Font.Style := [fsBold];
@@ -242,44 +290,50 @@ begin
   FValSingleLbl.Left := 12;
 
   FScoreSingleLbl := TLabel.Create(Self);
-  FScoreSingleLbl.Parent := CardPanel;
+  FScoreSingleLbl.Parent := FCardSingle;
   FScoreSingleLbl.Caption := '(0 pts)';
   FScoreSingleLbl.Font.Size := 11;
-  FScoreSingleLbl.Font.Color := COLOR_TEXT_GREY;
-  FScoreSingleLbl.Top := 35;
-  FScoreSingleLbl.Left := 180;
+  FScoreSingleLbl.Font.Color := COLOR_TEXT_LIGHT;
+  FScoreSingleLbl.Top := 56;
+  FScoreSingleLbl.Left := 12;
 
   DescLbl := TLabel.Create(Self);
-  DescLbl.Parent := CardPanel;
+  DescLbl.Parent := FCardSingle;
   DescLbl.Caption := 'Importante para física básica, lógica do jogo e taxa de FPS mínima.';
   DescLbl.Font.Size := 8;
   DescLbl.Font.Color := COLOR_TEXT_GREY;
   DescLbl.WordWrap := True;
-  DescLbl.Top := 65;
+  DescLbl.Top := 80;
   DescLbl.Left := 12;
   DescLbl.Width := 380;
   DescLbl.Anchors := [akLeft, akTop, akRight];
 
   // 2. CPU Multi-Thread Card
-  CardPanel := TPanel.Create(Self);
-  CardPanel.Parent := FPanelLeft;
-  CardPanel.Align := alTop;
-  CardPanel.Height := 115;
-  CardPanel.BevelOuter := bvNone;
-  CardPanel.Color := COLOR_BG;
-  CardPanel.BorderSpacing.Bottom := 10;
-  CardPanel.BorderSpacing.Left := 20;
-  CardPanel.BorderSpacing.Right := 10;
+  FCardMulti := TPanel.Create(Self);
+  FCardMulti.Parent := FPanelLeft;
+  FCardMulti.AnchorSideTop.Control := FCardSingle;
+  FCardMulti.AnchorSideTop.Side := asrBottom;
+  FCardMulti.AnchorSideLeft.Control := FPanelLeft;
+  FCardMulti.AnchorSideLeft.Side := asrLeft;
+  FCardMulti.AnchorSideRight.Control := FPanelLeft;
+  FCardMulti.AnchorSideRight.Side := asrRight;
+  FCardMulti.Anchors := [akTop, akLeft, akRight];
+  FCardMulti.Height := 135;
+  FCardMulti.BevelOuter := bvNone;
+  FCardMulti.Color := COLOR_BG;
+  FCardMulti.BorderSpacing.Bottom := 10;
+  FCardMulti.BorderSpacing.Left := 20;
+  FCardMulti.BorderSpacing.Right := 10;
 
   Shape := TShape.Create(Self);
-  Shape.Parent := CardPanel;
+  Shape.Parent := FCardMulti;
   Shape.Align := alClient;
   Shape.Shape := stRoundRect;
   Shape.Brush.Color := COLOR_CARD;
   Shape.Pen.Color := COLOR_CARD;
 
   TitleLbl := TLabel.Create(Self);
-  TitleLbl.Parent := CardPanel;
+  TitleLbl.Parent := FCardMulti;
   TitleLbl.Caption := '⚡ CPU Multi-Thread';
   TitleLbl.Font.Size := 10;
   TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
@@ -287,7 +341,7 @@ begin
   TitleLbl.Left := 12;
 
   FValMultiLbl := TLabel.Create(Self);
-  FValMultiLbl.Parent := CardPanel;
+  FValMultiLbl.Parent := FCardMulti;
   FValMultiLbl.Caption := '0 MIPS';
   FValMultiLbl.Font.Size := 20;
   FValMultiLbl.Font.Style := [fsBold];
@@ -296,44 +350,50 @@ begin
   FValMultiLbl.Left := 12;
 
   FScoreMultiLbl := TLabel.Create(Self);
-  FScoreMultiLbl.Parent := CardPanel;
+  FScoreMultiLbl.Parent := FCardMulti;
   FScoreMultiLbl.Caption := '(0 pts)';
   FScoreMultiLbl.Font.Size := 11;
-  FScoreMultiLbl.Font.Color := COLOR_TEXT_GREY;
-  FScoreMultiLbl.Top := 35;
-  FScoreMultiLbl.Left := 180;
+  FScoreMultiLbl.Font.Color := COLOR_TEXT_LIGHT;
+  FScoreMultiLbl.Top := 56;
+  FScoreMultiLbl.Left := 12;
 
   DescLbl := TLabel.Create(Self);
-  DescLbl.Parent := CardPanel;
+  DescLbl.Parent := FCardMulti;
   DescLbl.Caption := 'Importante para streaming de assets em mundo aberto, física avançada e IA complexa.';
   DescLbl.Font.Size := 8;
   DescLbl.Font.Color := COLOR_TEXT_GREY;
   DescLbl.WordWrap := True;
-  DescLbl.Top := 65;
+  DescLbl.Top := 80;
   DescLbl.Left := 12;
   DescLbl.Width := 380;
   DescLbl.Anchors := [akLeft, akTop, akRight];
 
   // 3. GPU Vulkan Render Card
-  CardPanel := TPanel.Create(Self);
-  CardPanel.Parent := FPanelLeft;
-  CardPanel.Align := alTop;
-  CardPanel.Height := 115;
-  CardPanel.BevelOuter := bvNone;
-  CardPanel.Color := COLOR_BG;
-  CardPanel.BorderSpacing.Bottom := 10;
-  CardPanel.BorderSpacing.Left := 20;
-  CardPanel.BorderSpacing.Right := 10;
+  FCardGPU := TPanel.Create(Self);
+  FCardGPU.Parent := FPanelLeft;
+  FCardGPU.AnchorSideTop.Control := FCardMulti;
+  FCardGPU.AnchorSideTop.Side := asrBottom;
+  FCardGPU.AnchorSideLeft.Control := FPanelLeft;
+  FCardGPU.AnchorSideLeft.Side := asrLeft;
+  FCardGPU.AnchorSideRight.Control := FPanelLeft;
+  FCardGPU.AnchorSideRight.Side := asrRight;
+  FCardGPU.Anchors := [akTop, akLeft, akRight];
+  FCardGPU.Height := 135;
+  FCardGPU.BevelOuter := bvNone;
+  FCardGPU.Color := COLOR_BG;
+  FCardGPU.BorderSpacing.Bottom := 10;
+  FCardGPU.BorderSpacing.Left := 20;
+  FCardGPU.BorderSpacing.Right := 10;
 
   Shape := TShape.Create(Self);
-  Shape.Parent := CardPanel;
+  Shape.Parent := FCardGPU;
   Shape.Align := alClient;
   Shape.Shape := stRoundRect;
   Shape.Brush.Color := COLOR_CARD;
   Shape.Pen.Color := COLOR_CARD;
 
   TitleLbl := TLabel.Create(Self);
-  TitleLbl.Parent := CardPanel;
+  TitleLbl.Parent := FCardGPU;
   TitleLbl.Caption := '⚡ GPU Vulkan Render';
   TitleLbl.Font.Size := 10;
   TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
@@ -341,7 +401,7 @@ begin
   TitleLbl.Left := 12;
 
   FValGPULbl := TLabel.Create(Self);
-  FValGPULbl.Parent := CardPanel;
+  FValGPULbl.Parent := FCardGPU;
   FValGPULbl.Caption := '0.0 FPS';
   FValGPULbl.Font.Size := 20;
   FValGPULbl.Font.Style := [fsBold];
@@ -350,67 +410,75 @@ begin
   FValGPULbl.Left := 12;
 
   FScoreGPULbl := TLabel.Create(Self);
-  FScoreGPULbl.Parent := CardPanel;
+  FScoreGPULbl.Parent := FCardGPU;
   FScoreGPULbl.Caption := '(0 pts)';
   FScoreGPULbl.Font.Size := 11;
-  FScoreGPULbl.Font.Color := COLOR_TEXT_GREY;
-  FScoreGPULbl.Top := 35;
-  FScoreGPULbl.Left := 180;
+  FScoreGPULbl.Font.Color := COLOR_TEXT_LIGHT;
+  FScoreGPULbl.Top := 56;
+  FScoreGPULbl.Left := 12;
 
   DescLbl := TLabel.Create(Self);
-  DescLbl.Parent := CardPanel;
+  DescLbl.Parent := FCardGPU;
   DescLbl.Caption := 'Determina a taxa máxima de quadros (FPS) e a fidelidade visual dos gráficos.';
   DescLbl.Font.Size := 8;
   DescLbl.Font.Color := COLOR_TEXT_GREY;
   DescLbl.WordWrap := True;
-  DescLbl.Top := 65;
+  DescLbl.Top := 80;
   DescLbl.Left := 12;
   DescLbl.Width := 380;
   DescLbl.Anchors := [akLeft, akTop, akRight];
 
   // 4. Test History Card
-  CardPanel := TPanel.Create(Self);
-  CardPanel.Parent := FPanelLeft;
-  CardPanel.Align := alClient;
-  CardPanel.BevelOuter := bvNone;
-  CardPanel.Color := COLOR_BG;
-  CardPanel.BorderSpacing.Bottom := 20;
-  CardPanel.BorderSpacing.Left := 20;
-  CardPanel.BorderSpacing.Right := 10;
+  FCardHistory := TPanel.Create(Self);
+  FCardHistory.Parent := FPanelLeft;
+  FCardHistory.AnchorSideTop.Control := FCardGPU;
+  FCardHistory.AnchorSideTop.Side := asrBottom;
+  FCardHistory.AnchorSideBottom.Control := FPanelLeft;
+  FCardHistory.AnchorSideBottom.Side := asrBottom;
+  FCardHistory.AnchorSideLeft.Control := FPanelLeft;
+  FCardHistory.AnchorSideLeft.Side := asrLeft;
+  FCardHistory.AnchorSideRight.Control := FPanelLeft;
+  FCardHistory.AnchorSideRight.Side := asrRight;
+  FCardHistory.Anchors := [akTop, akBottom, akLeft, akRight];
+  FCardHistory.BevelOuter := bvNone;
+  FCardHistory.Color := COLOR_BG;
+  FCardHistory.BorderSpacing.Bottom := 20;
+  FCardHistory.BorderSpacing.Left := 20;
+  FCardHistory.BorderSpacing.Right := 10;
 
   Shape := TShape.Create(Self);
-  Shape.Parent := CardPanel;
+  Shape.Parent := FCardHistory;
   Shape.Align := alClient;
   Shape.Shape := stRoundRect;
   Shape.Brush.Color := COLOR_CARD;
   Shape.Pen.Color := COLOR_CARD;
 
   TitleLbl := TLabel.Create(Self);
-  TitleLbl.Parent := CardPanel;
+  TitleLbl.Parent := FCardHistory;
   TitleLbl.Caption := '⚡ Histórico de Testes';
   TitleLbl.Font.Size := 10;
   TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
   TitleLbl.Top := 8;
-  TitleLbl.Left := 12;
+  TitleLbl.Left := 24;
 
   // Header
   TitleLbl := TLabel.Create(Self);
-  TitleLbl.Parent := CardPanel;
+  TitleLbl.Parent := FCardHistory;
   TitleLbl.Caption := 'Pos   |   Pontuação   |   Data e Hora';
   TitleLbl.Font.Size := 9;
   TitleLbl.Font.Style := [fsBold];
   TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
   TitleLbl.Top := 30;
-  TitleLbl.Left := 16;
+  TitleLbl.Left := 24;
 
   for i := 0 to 4 do
   begin
     FHistoryLabels[i] := TLabel.Create(Self);
-    FHistoryLabels[i].Parent := CardPanel;
+    FHistoryLabels[i].Parent := FCardHistory;
     FHistoryLabels[i].Caption := '';
     FHistoryLabels[i].Font.Size := 9;
     FHistoryLabels[i].Top := 50 + i * 20;
-    FHistoryLabels[i].Left := 16;
+    FHistoryLabels[i].Left := 24;
   end;
 
   // Build Right Column structures
@@ -466,72 +534,84 @@ var
   PhaseScore: Integer;
   PhaseFPSAvg: Double;
 begin
-  FilePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
-  if not FileExists(FilePath) then Exit;
-
-  SL := TStringList.Create;
   try
-    SL.LoadFromFile(FilePath);
-    Parser := TJSONParser.Create(SL.Text);
+    FilePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
+    DbgLog('LoadResults: FilePath = ' + FilePath);
+    if not FileExists(FilePath) then
+    begin
+      DbgLog('LoadResults: File does not exist: ' + FilePath);
+      Exit;
+    end;
+
+    DbgLog('LoadResults: File exists, loading...');
+    SL := TStringList.Create;
     try
-      JSONDoc := Parser.Parse;
+      SL.LoadFromFile(FilePath);
+      DbgLog('LoadResults: File loaded (' + IntToStr(SL.Count) + ' lines). Parsing...');
+      Parser := TJSONParser.Create(SL.Text);
       try
-        if JSONDoc is TJSONObject then
-        begin
-          HistoryArray := TJSONObject(JSONDoc).Arrays['history'];
-          if Assigned(HistoryArray) and (HistoryArray.Count > 0) then
+        JSONDoc := Parser.Parse;
+        try
+          if JSONDoc is TJSONObject then
           begin
-            FHistoryCount := Min(HistoryArray.Count, 5);
-            for i := 0 to FHistoryCount - 1 do
+            HistoryArray := TJSONObject(JSONDoc).Arrays['history'];
+            if Assigned(HistoryArray) and (HistoryArray.Count > 0) then
             begin
-              FHistoryScores[i] := TJSONObject(HistoryArray.Items[i]).Integers['total_score'];
-              FHistoryTimes[i] := StringReplace(TJSONObject(HistoryArray.Items[i]).Strings['timestamp'], 'T', ' ', [rfReplaceAll]);
-            end;
-
-            LatestResultObj := TJSONObject(HistoryArray.Items[0]);
-            TotalScore := LatestResultObj.Integers['total_score'];
-            FCurrentScore := TotalScore;
-            FLabelScore.Caption := Format('%,d', [TotalScore]);
-
-            FCurrentSpecs := 'CPU: ' + IntToStr(GetCPUThreadCount) + 'T | GPU: ' + LatestResultObj.Strings['device'];
-
-            PhasesArray := LatestResultObj.Arrays['phases'];
-            if Assigned(PhasesArray) then
-            begin
-              for i := 0 to PhasesArray.Count - 1 do
+              FHistoryCount := Min(HistoryArray.Count, 5);
+              for i := 0 to FHistoryCount - 1 do
               begin
-                PhaseName := TJSONObject(PhasesArray.Items[i]).Strings['name'];
-                PhaseScore := TJSONObject(PhasesArray.Items[i]).Integers['score'];
-                PhaseFPSAvg := TJSONObject(PhasesArray.Items[i]).Floats['fps_avg'];
+                FHistoryScores[i] := TJSONObject(HistoryArray.Items[i]).Integers['total_score'];
+                FHistoryTimes[i] := StringReplace(TJSONObject(HistoryArray.Items[i]).Strings['timestamp'], 'T', ' ', [rfReplaceAll]);
+              end;
 
-                if PhaseName = 'CPU Light' then
+              LatestResultObj := TJSONObject(HistoryArray.Items[0]);
+              TotalScore := LatestResultObj.Integers['total_score'];
+              FCurrentScore := TotalScore;
+              FLabelScore.Caption := FormatScore(TotalScore);
+
+              FCurrentSpecs := 'CPU: ' + IntToStr(GetCPUThreadCount) + 'T | GPU: ' + LatestResultObj.Strings['device'];
+
+              PhasesArray := LatestResultObj.Arrays['phases'];
+              if Assigned(PhasesArray) then
+              begin
+                for i := 0 to PhasesArray.Count - 1 do
                 begin
-                  FValueCPUSingle := Format('%,d MIPS', [Round(PhaseFPSAvg)]);
-                  FScoreCPUSingle := Format('(%,d pts)', [PhaseScore]);
-                end
-                else if PhaseName = 'CPU Heavy' then
-                begin
-                  FValueCPUMulti := Format('%,d MIPS', [Round(PhaseFPSAvg)]);
-                  FScoreCPUMulti := Format('(%,d pts)', [PhaseScore]);
-                end
-                else if (PhaseName = 'GPU Particles') or (PhaseName = 'Combined') then
-                begin
-                  // Handle GPU rendering results
-                  FValueGPURender := Format('%.1f FPS', [PhaseFPSAvg]);
-                  FScoreGPURender := Format('(%,d pts)', [PhaseScore]);
+                  PhaseName := TJSONObject(PhasesArray.Items[i]).Strings['name'];
+                  PhaseScore := TJSONObject(PhasesArray.Items[i]).Integers['score'];
+                  PhaseFPSAvg := TJSONObject(PhasesArray.Items[i]).Floats['fps_avg'];
+
+                  if (PhaseName = 'CPU Single-Thread') or (PhaseName = 'CPU Light') then
+                  begin
+                    FValueCPUSingle := FormatScore(Round(PhaseFPSAvg)) + ' MIPS';
+                    FScoreCPUSingle := '(' + FormatScore(PhaseScore) + ' pts)';
+                  end
+                  else if (PhaseName = 'CPU Multi-Thread') or (PhaseName = 'CPU Heavy') then
+                  begin
+                    FValueCPUMulti := FormatScore(Round(PhaseFPSAvg)) + ' MIPS';
+                    FScoreCPUMulti := '(' + FormatScore(PhaseScore) + ' pts)';
+                  end
+                  else if (PhaseName = 'GPU Vulkan Render') or (PhaseName = 'GPU Particles') or (PhaseName = 'Combined') then
+                  begin
+                    FValueGPURender := FormatFloat('0.0', PhaseFPSAvg) + ' FPS';
+                    FScoreGPURender := '(' + FormatScore(PhaseScore) + ' pts)';
+                  end;
                 end;
               end;
             end;
           end;
+        finally
+          JSONDoc.Free;
         end;
       finally
-        JSONDoc.Free;
+        Parser.Free;
       end;
     finally
-      Parser.Free;
+      SL.Free;
     end;
-  finally
-    SL.Free;
+    DbgLog('LoadResults complete.');
+  except
+    on E: Exception do
+      DbgLog('LoadResults Exception: ' + E.Message);
   end;
 end;
 
@@ -549,7 +629,12 @@ var
   ControlChild: TControl;
   CurY: Integer;
 begin
-  if not Assigned(FPanelBars) then Exit;
+  DbgLog('RebuildBars start.');
+  if not Assigned(FPanelBars) then
+  begin
+    DbgLog('RebuildBars: FPanelBars is nil!');
+    Exit;
+  end;
 
   // Clear existing controls
   while FPanelBars.ControlCount > 0 do
@@ -603,7 +688,7 @@ begin
     if HWRefs[i].IsCurrent then
       RowPanel.Height := 72
     else
-      RowPanel.Height := 52;
+      RowPanel.Height := 54;
       
     RowPanel.Top := CurY;
     CurY := CurY + RowPanel.Height + 6;
@@ -626,7 +711,7 @@ begin
     // Score label
     ScoreLbl := TLabel.Create(Self);
     ScoreLbl.Parent := RowPanel;
-    ScoreLbl.Caption := Format('%,d pts', [HWRefs[i].Score]);
+    ScoreLbl.Caption := FormatScore(HWRefs[i].Score) + ' pts';
     ScoreLbl.Font.Size := 10;
     if HWRefs[i].IsCurrent then
     begin
@@ -645,7 +730,7 @@ begin
     TrackShape.Shape := stRoundRect;
     TrackShape.Brush.Color := COLOR_TRACK;
     TrackShape.Pen.Color := COLOR_TRACK;
-    TrackShape.Top := 22;
+    TrackShape.Top := 26;
     TrackShape.Left := 0;
     TrackShape.Height := 16;
     TrackShape.Width := RowPanel.ClientWidth;
@@ -659,7 +744,7 @@ begin
     FillShape := TShape.Create(Self);
     FillShape.Parent := RowPanel;
     FillShape.Shape := stRoundRect;
-    FillShape.Top := 22;
+    FillShape.Top := 26;
     FillShape.Left := 0;
     FillShape.Height := 16;
     FillShape.Width := BarW;
@@ -684,7 +769,7 @@ begin
       SpecsLbl.Caption := HWRefs[i].Specs;
       SpecsLbl.Font.Size := 8;
       SpecsLbl.Font.Color := COLOR_TEXT_LIGHT;
-      SpecsLbl.Top := 44;
+      SpecsLbl.Top := 48;
       SpecsLbl.Left := 4;
     end;
   end;
@@ -694,27 +779,32 @@ procedure TBenchmarkResultsForm.RefreshResults;
 var
   i: Integer;
 begin
-  LoadResults;
+  DbgLog('RefreshResults start.');
+  try
+    LoadResults;
   
   // Update left column metrics
   FValSingleLbl.Caption := FValueCPUSingle;
+  FValSingleLbl.AdjustSize;
   FScoreSingleLbl.Caption := FScoreCPUSingle;
-  FScoreSingleLbl.Left := FValSingleLbl.Left + FValSingleLbl.Width + 12;
+  FScoreSingleLbl.AdjustSize;
 
   FValMultiLbl.Caption := FValueCPUMulti;
+  FValMultiLbl.AdjustSize;
   FScoreMultiLbl.Caption := FScoreCPUMulti;
-  FScoreMultiLbl.Left := FValMultiLbl.Left + FValMultiLbl.Width + 12;
+  FScoreMultiLbl.AdjustSize;
 
   FValGPULbl.Caption := FValueGPURender;
+  FValGPULbl.AdjustSize;
   FScoreGPULbl.Caption := FScoreGPURender;
-  FScoreGPULbl.Left := FValGPULbl.Left + FValGPULbl.Width + 12;
+  FScoreGPULbl.AdjustSize;
 
   // Update history labels
   for i := 0 to 4 do
   begin
     if i < FHistoryCount then
     begin
-      FHistoryLabels[i].Caption := Format('%d   |   %,d pts   |   %s', [i+1, FHistoryScores[i], FHistoryTimes[i]]);
+      FHistoryLabels[i].Caption := Format('%d   |   %s pts   |   %s', [i+1, FormatScore(FHistoryScores[i]), FHistoryTimes[i]]);
       if i = 0 then
       begin
         FHistoryLabels[i].Font.Color := RGBToColor(0, 240, 255);
@@ -731,7 +821,13 @@ begin
       FHistoryLabels[i].Visible := False;
   end;
 
-  RebuildBars;
+    DbgLog('Calling RebuildBars...');
+    RebuildBars;
+  except
+    on E: Exception do
+      DbgLog('RefreshResults Exception: ' + E.Message);
+  end;
+  DbgLog('RefreshResults end.');
 end;
 
 function TBenchmarkResultsForm.GetCPUThreadCount: Integer;
