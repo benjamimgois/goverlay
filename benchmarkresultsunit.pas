@@ -290,11 +290,11 @@ begin
   MidPt := Point(Pt.X + Ctrl.Width div 2, Pt.Y + Ctrl.Height div 2);
   BgColor := GetBgColorAtPoint(MidPt, Self.ClientWidth, Self.ClientHeight);
   
-  // Blend with #1e1f22 (30, 31, 34) at 75% opacity (191)
-  CardBgColor := BlendColors(RGBToColor(30, 31, 34), BgColor, 191);
+  // Blend with #1e1f22 (30, 31, 34) at 55% opacity (140)
+  CardBgColor := BlendColors(RGBToColor(30, 31, 34), BgColor, 140);
   
-  // Border: #ffffff (255, 255, 255) with 12% opacity (30) on top of CardBgColor
-  BorderCol := BlendColors(RGBToColor(255, 255, 255), CardBgColor, 30);
+  // Border: #ffffff (255, 255, 255) with 15% opacity (40) on top of CardBgColor
+  BorderCol := BlendColors(RGBToColor(255, 255, 255), CardBgColor, 40);
   
   // Draw rounded rect background
   TargetCanvas.Brush.Color := CardBgColor;
@@ -388,11 +388,11 @@ begin
   FCurrentScore := 0;
   FCurrentSpecs := 'CPU: 1T | GPU: Unknown';
   FValueCPUSingle := '0 MIPS';
-  FScoreCPUSingle := '(0 pts)';
+  FScoreCPUSingle := '(0 points)';
   FValueCPUMulti := '0 MIPS';
-  FScoreCPUMulti := '(0 pts)';
+  FScoreCPUMulti := '(0 points)';
   FValueGPURender := '0.0 FPS';
-  FScoreGPURender := '(0 pts)';
+  FScoreGPURender := '(0 points)';
   FHistoryCount := 0;
   DbgLog('Create constructor end.');
 end;
@@ -511,7 +511,8 @@ begin
   FCardSingle.Height := 135;
   FCardSingle.BevelOuter := bvNone;
   FCardSingle.BevelInner := bvNone;
-  FCardSingle.ParentBackground := False;
+  FCardSingle.ParentBackground := True;
+  FCardSingle.ParentColor := True;
   FCardSingle.OnPaint := @CardPaint;
   FCardSingle.BorderSpacing.Bottom := 10;
   FCardSingle.BorderSpacing.Left := 20;
@@ -537,7 +538,7 @@ begin
 
   FScoreSingleLbl := TLabel.Create(Self);
   FScoreSingleLbl.Parent := FCardSingle;
-  FScoreSingleLbl.Caption := '(0 pts)';
+  FScoreSingleLbl.Caption := '(0 points)';
   FScoreSingleLbl.Font.Size := 11;
   FScoreSingleLbl.Font.Color := COLOR_TEXT_LIGHT;
   FScoreSingleLbl.Top := 56;
@@ -567,7 +568,8 @@ begin
   FCardMulti.Height := 135;
   FCardMulti.BevelOuter := bvNone;
   FCardMulti.BevelInner := bvNone;
-  FCardMulti.ParentBackground := False;
+  FCardMulti.ParentBackground := True;
+  FCardMulti.ParentColor := True;
   FCardMulti.OnPaint := @CardPaint;
   FCardMulti.BorderSpacing.Bottom := 10;
   FCardMulti.BorderSpacing.Left := 20;
@@ -592,7 +594,7 @@ begin
 
   FScoreMultiLbl := TLabel.Create(Self);
   FScoreMultiLbl.Parent := FCardMulti;
-  FScoreMultiLbl.Caption := '(0 pts)';
+  FScoreMultiLbl.Caption := '(0 points)';
   FScoreMultiLbl.Font.Size := 11;
   FScoreMultiLbl.Font.Color := COLOR_TEXT_LIGHT;
   FScoreMultiLbl.Top := 56;
@@ -622,7 +624,8 @@ begin
   FCardGPU.Height := 135;
   FCardGPU.BevelOuter := bvNone;
   FCardGPU.BevelInner := bvNone;
-  FCardGPU.ParentBackground := False;
+  FCardGPU.ParentBackground := True;
+  FCardGPU.ParentColor := True;
   FCardGPU.OnPaint := @CardPaint;
   FCardGPU.BorderSpacing.Bottom := 10;
   FCardGPU.BorderSpacing.Left := 20;
@@ -647,7 +650,7 @@ begin
 
   FScoreGPULbl := TLabel.Create(Self);
   FScoreGPULbl.Parent := FCardGPU;
-  FScoreGPULbl.Caption := '(0 pts)';
+  FScoreGPULbl.Caption := '(0 points)';
   FScoreGPULbl.Font.Size := 11;
   FScoreGPULbl.Font.Color := COLOR_TEXT_LIGHT;
   FScoreGPULbl.Top := 56;
@@ -678,7 +681,8 @@ begin
   FCardHistory.Anchors := [akTop, akBottom, akLeft, akRight];
   FCardHistory.BevelOuter := bvNone;
   FCardHistory.BevelInner := bvNone;
-  FCardHistory.ParentBackground := False;
+  FCardHistory.ParentBackground := True;
+  FCardHistory.ParentColor := True;
   FCardHistory.OnPaint := @CardPaint;
   FCardHistory.BorderSpacing.Bottom := 20;
   FCardHistory.BorderSpacing.Left := 20;
@@ -718,7 +722,8 @@ begin
   FCardComp.Align := alClient;
   FCardComp.BevelOuter := bvNone;
   FCardComp.BevelInner := bvNone;
-  FCardComp.ParentBackground := False;
+  FCardComp.ParentBackground := True;
+  FCardComp.ParentColor := True;
   FCardComp.OnPaint := @CardPaint;
   FCardComp.BorderSpacing.Bottom := 20;
   FCardComp.BorderSpacing.Left := 10;
@@ -810,17 +815,17 @@ begin
                   if (PhaseName = 'CPU Single-Thread') or (PhaseName = 'CPU Light') then
                   begin
                     FValueCPUSingle := FormatScore(Round(PhaseFPSAvg)) + ' MIPS';
-                    FScoreCPUSingle := '(' + FormatScore(PhaseScore) + ' pts)';
+                    FScoreCPUSingle := '(' + FormatScore(PhaseScore) + ' points)';
                   end
                   else if (Pos('CPU Multi-Thread', PhaseName) = 1) or (PhaseName = 'CPU Heavy') then
                   begin
                     FValueCPUMulti := FormatScore(Round(PhaseFPSAvg)) + ' MIPS';
-                    FScoreCPUMulti := '(' + FormatScore(PhaseScore) + ' pts)';
+                    FScoreCPUMulti := '(' + FormatScore(PhaseScore) + ' points)';
                   end
                   else if (PhaseName = 'GPU Vulkan Render') or (PhaseName = 'GPU Particles') or (PhaseName = 'Combined') then
                   begin
                     FValueGPURender := FormatFloat('0.0', PhaseFPSAvg) + ' FPS';
-                    FScoreGPURender := '(' + FormatScore(PhaseScore) + ' pts)';
+                    FScoreGPURender := '(' + FormatScore(PhaseScore) + ' points)';
                   end;
                 end;
               end;
@@ -945,7 +950,7 @@ begin
     // Score label
     ScoreLbl := TLabel.Create(Self);
     ScoreLbl.Parent := RowPanel;
-    ScoreLbl.Caption := FormatScore(HWRefs[i].Score) + ' pts';
+    ScoreLbl.Caption := FormatScore(HWRefs[i].Score) + ' points';
     ScoreLbl.Font.Size := 10;
     if HWRefs[i].IsCurrent then
     begin
@@ -1001,7 +1006,7 @@ begin
   begin
     if i < FHistoryCount then
     begin
-      FHistoryLabels[i].Caption := Format('%d   |   %s pts   |   %s', [i+1, FormatScore(FHistoryScores[i]), FHistoryTimes[i]]);
+      FHistoryLabels[i].Caption := Format('%d   |   %s points   |   %s', [i+1, FormatScore(FHistoryScores[i]), FHistoryTimes[i]]);
       if i = 0 then
       begin
         FHistoryLabels[i].Font.Color := RGBToColor(0, 240, 255);
