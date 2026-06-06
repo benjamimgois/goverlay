@@ -181,9 +181,10 @@ type
        fHistoryCount: Integer;
        fBestScore: Integer;
        fLastScore: Integer;
-       fShowSkybox: Boolean;
+        fShowSkybox: Boolean;
+        fExpandedHardwareIdx: Integer;
 
-       // Metrics
+        // Metrics
        fFrameAccumulator: TpvDouble;
        fFrameCount: Integer;
        fPhaseFPSMin: TpvDouble;
@@ -252,8 +253,9 @@ type
         procedure DrawMenuOverlay;
         function IsStartButtonHovered(const aPos: TpvVector2): Boolean;
         function IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
-        function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
-        procedure DrawBenchmarkOverlay;
+         function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
+         function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
+         procedure DrawBenchmarkOverlay;
          function GetCPUName: String;
          function GetRAMSize: String;
          function GetOSName: String;
@@ -503,8 +505,9 @@ begin
  fBestScore := 0;
  fLastScore := 0;
  fHistoryCount := 0;
- fShowSkybox := true;
- fPhaseResultIndex := -1;
+  fShowSkybox := true;
+  fExpandedHardwareIdx := -1;
+  fPhaseResultIndex := -1;
  FillChar(fCurrentResult,SizeOf(fCurrentResult),#0);
  FillChar(fHistory,SizeOf(fHistory),#0);
  fDebugLog := TStringList.Create;
@@ -1036,6 +1039,7 @@ end;
 
 function TPasCubeScreen.PointerEvent(const aPointerEvent:TpvApplicationInputPointerEvent):boolean;
 var Delta:TpvVector2;
+    idx:Integer;
 begin
  result := false;
  case aPointerEvent.PointerEventType of
@@ -1048,6 +1052,10 @@ begin
      fDraggingCube:=false;
      result:=true;
     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+     fAutoRotation:=false;
+     fDraggingCube:=false;
+     result:=true;
+    end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
      fAutoRotation:=false;
      fDraggingCube:=false;
      result:=true;
@@ -1078,6 +1086,12 @@ begin
      pvApplication.Width := 1280;
      pvApplication.Height := 720;
      fShowSkybox := true;
+     result:=true;
+    end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+     if fExpandedHardwareIdx = idx then
+      fExpandedHardwareIdx := -1
+     else
+      fExpandedHardwareIdx := idx;
      result:=true;
     end;
    end;
@@ -2121,8 +2135,78 @@ begin
  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
  btnX := cx - (btnWidth * 0.5);
  btnY := yText - paddingY;
- Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
-           (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+end;
+
+function TPasCubeScreen.IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
+var app: TPasCubeApplication;
+    cx, rightColX1, rightColWidth, cardY: TpvFloat;
+    charWidth, charHeight: TpvFloat;
+    i, j: Integer;
+    itemY, itemH: TpvFloat;
+    HWRefs: array[0..8] of THardwareRef;
+    TempHW: THardwareRef;
+begin
+  Result := false;
+  aIndex := -1;
+  if fBenchmarkPhase <> bpResults then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+  cx := pvApplication.Width * 0.5;
+  rightColX1 := pvApplication.Width * 0.52;
+  rightColWidth := pvApplication.Width * 0.43;
+  cardY := 7.8 * charHeight;
+
+  // Reconstruct and sort hardware references (same as DrawResultsOverlay)
+  HWRefs[0].Name := 'Nintendo Switch'; HWRefs[0].Score := 180; HWRefs[0].IsCurrent := false;
+  HWRefs[0].Specs := 'CPU: Tegra X1 4C | RAM: 4GB LPDDR4 | GPU: Maxwell 256 | OS: Horizon';
+  HWRefs[1].Name := 'Steam Deck'; HWRefs[1].Score := 650; HWRefs[1].IsCurrent := false;
+  HWRefs[1].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
+  HWRefs[2].Name := 'ROG Ally X'; HWRefs[2].Score := 1100; HWRefs[2].IsCurrent := false;
+  HWRefs[2].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
+  HWRefs[3].Name := 'Entry Gamer PC'; HWRefs[3].Score := 1500; HWRefs[3].IsCurrent := false;
+  HWRefs[3].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
+  HWRefs[4].Name := 'XBOX Series X'; HWRefs[4].Score := 2100; HWRefs[4].IsCurrent := false;
+  HWRefs[4].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
+  HWRefs[5].Name := 'PlayStation 5'; HWRefs[5].Score := 2000; HWRefs[5].IsCurrent := false;
+  HWRefs[5].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
+  HWRefs[6].Name := 'Mid-Range Gamer PC'; HWRefs[6].Score := 2800; HWRefs[6].IsCurrent := false;
+  HWRefs[6].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
+  HWRefs[7].Name := 'High-End Gamer PC'; HWRefs[7].Score := 4200; HWRefs[7].IsCurrent := false;
+  HWRefs[7].Specs := 'CPU: R7 7800X3D | RAM: 32GB DDR5 | GPU: RTX 4080 Super | OS: Win11';
+  HWRefs[8].Name := 'Current System'; HWRefs[8].Score := fCurrentResult.TotalScore; HWRefs[8].IsCurrent := true;
+  HWRefs[8].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
+
+  for i := 0 to 7 do begin
+   for j := i + 1 to 8 do begin
+    if HWRefs[i].Score < HWRefs[j].Score then begin
+     TempHW := HWRefs[i];
+     HWRefs[i] := HWRefs[j];
+     HWRefs[j] := TempHW;
+    end;
+   end;
+  end;
+
+  // Determine which item is hovered using the same Y layout as DrawResultsOverlay
+  itemY := cardY + 2.8 * charHeight;
+  for i := 0 to 8 do begin
+   if fExpandedHardwareIdx = i then
+    itemH := 4.8 * charHeight
+   else
+    itemH := 3.0 * charHeight;
+
+   if (aPos.x >= rightColX1) and (aPos.x <= rightColX1 + rightColWidth) and
+      (aPos.y >= itemY) and (aPos.y <= itemY + itemH) then begin
+    aIndex := i;
+    Result := true;
+    Exit;
+   end;
+   itemY := itemY + itemH;
+  end;
 end;
 
 
@@ -2476,61 +2560,76 @@ begin
   MaxScore := HWRefs[0].Score;
   if MaxScore = 0 then MaxScore := 1;
 
-  for i := 0 to 8 do begin
-   itemY := cardY + 2.8 * charHeight + i * 3.2 * charHeight;
-
-   // Left: Name
-   if HWRefs[i].IsCurrent then
-    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
-   else
-    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-   
-   // Right: Score
-   hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
-   if HWRefs[i].IsCurrent then
-    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
-   else
-    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
-   
-   // Draw horizontal bar dynamically
-   barStartX := rightColX1 + 22.5 * charWidth;
-   maxBarWidth := rightColWidth - 25.0 * charWidth;
-   barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
-   if barWidth < 2.0 then barWidth := 2.0;
-   
-   if HWRefs[i].IsCurrent then begin
-    bgR := 48.0 / 255.0;
-    bgG := 190.0 / 255.0;
-    bgB := 240.0 / 255.0;
-    bgA := 1.0;
-   end else begin
-    bgR := 70.0 / 255.0;
-    bgG := 80.0 / 255.0;
-    bgB := 100.0 / 255.0;
-    bgA := 0.8;
+   // Initialize expanded index to Current System on first draw
+   if fExpandedHardwareIdx < 0 then begin
+    for i := 0 to 8 do begin
+     if HWRefs[i].IsCurrent then begin
+      fExpandedHardwareIdx := i;
+      Break;
+     end;
+    end;
    end;
 
-   barHeight := 0.35 * charHeight;
-   barY := itemY + 1.4 * charHeight;
+   itemY := cardY + 2.8 * charHeight;
 
-   // Background track
-   app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight, 
-                          22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8, 
-                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6, 
-                          255.0);
-   // Fill
-   app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, bgR, bgG, bgB, bgA, bgR, bgG, bgB, bgA, 255.0);
+   for i := 0 to 8 do begin
+    // Left: Name
+    if HWRefs[i].IsCurrent then
+     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+    else
+     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-   // Draw Specs
-   app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                           itemY + 2.0 * charHeight,
-                           textScaleSmall,
-                           toaLeft,
-                           HWRefs[i].Specs,
-                           1.0, 1.0, 1.0, 0.0,
-                           179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0
-                          );
-  end;
+    // Right: Score
+    hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
+    if HWRefs[i].IsCurrent then
+     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+    else
+     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
+
+    // Draw horizontal bar dynamically
+    barStartX := rightColX1 + 22.5 * charWidth;
+    maxBarWidth := rightColWidth - 25.0 * charWidth;
+    barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
+    if barWidth < 2.0 then barWidth := 2.0;
+
+    if HWRefs[i].IsCurrent then begin
+     bgR := 48.0 / 255.0;
+     bgG := 190.0 / 255.0;
+     bgB := 240.0 / 255.0;
+     bgA := 1.0;
+    end else begin
+     bgR := 70.0 / 255.0;
+     bgG := 80.0 / 255.0;
+     bgB := 100.0 / 255.0;
+     bgA := 0.8;
+    end;
+
+    barHeight := 0.25 * charHeight;
+    barY := itemY + 1.4 * charHeight;
+
+    // Background track
+    app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
+                           22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8,
+                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6,
+                           255.0);
+    // Fill
+    app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, bgR, bgG, bgB, bgA, bgR, bgG, bgB, bgA, 255.0);
+
+    // Draw Specs only when expanded
+    if fExpandedHardwareIdx = i then begin
+     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
+                             itemY + 2.8 * charHeight,
+                             textScaleSmall,
+                             toaLeft,
+                             HWRefs[i].Specs,
+                             1.0, 1.0, 1.0, 0.0,
+                             179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0
+                            );
+     itemY := itemY + 4.8 * charHeight;
+    end else begin
+     itemY := itemY + 3.0 * charHeight;
+    end;
+   end;
 
   // --- RETURN TO MENU BUTTON ---
   yText := pvApplication.Height - 55.0;

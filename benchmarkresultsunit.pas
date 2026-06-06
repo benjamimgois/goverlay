@@ -67,6 +67,7 @@ type
     FHistoryTimes: array[0..4] of string;
 
     FHWRefs: array[0..8] of THardwareRef;
+    FExpandedIdx: Integer;
 
     procedure LoadResults;
     procedure BuildUI;
@@ -76,6 +77,7 @@ type
     procedure FormPaint(Sender: TObject);
     procedure CardPaint(Sender: TObject);
     procedure RowPanelPaint(Sender: TObject);
+    procedure RowPanelClick(Sender: TObject);
   public
     procedure RefreshResults;
   end;
@@ -330,16 +332,9 @@ begin
   MaxScore := FHWRefs[0].Score;
   if MaxScore = 0 then MaxScore := 1;
   
-  if Ref.IsCurrent then
-  begin
-    BarH := 16;
-    BarY := 24;
-  end
-  else
-  begin
-    BarH := 12;
-    BarY := 24;
-  end;
+  // Clean minimal bar — uniform thin height for all rows
+  BarH := 10;
+  BarY := 28;
   
   TrackRect := Rect(0, BarY, P.ClientWidth, BarY + BarH);
   
@@ -385,10 +380,11 @@ begin
   DbgLog('UI Built. Setting OnResize...');
   Self.OnResize := @FormResize;
   Self.OnPaint := @FormPaint;
-  // Initialize defaults
-  FCurrentScore := 0;
-  FCurrentSpecs := 'CPU: 1T | GPU: Unknown';
-  FResolution := '';
+   // Initialize defaults
+   FCurrentScore := 0;
+   FCurrentSpecs := 'CPU: 1T | GPU: Unknown';
+   FExpandedIdx := -1;
+   FResolution := '';
   FValueCPUSingle := '0 MIPS';
   FScoreCPUSingle := '(0 points)';
   FValueCPUMulti := '0 MIPS';
@@ -737,7 +733,7 @@ begin
   FLabelCompTitle.Caption := 'HARDWARE COMPARISON';
   FLabelCompTitle.Font.Size := 11;
   FLabelCompTitle.Font.Style := [fsBold];
-  FLabelCompTitle.Font.Color := RGBToColor(96, 165, 250); // Soft Tech Blue #60a5fa
+  FLabelCompTitle.Font.Color := RGBToColor(96, 165, 250);
   FLabelCompTitle.Top := 12;
   FLabelCompTitle.Left := 16;
 
@@ -865,8 +861,9 @@ var
   Proportion: Double;
   BarW: Integer;
   ControlChild: TControl;
-  CurY: Integer;
+  CurY, RowH, RowHExpanded, RowGap, SpecsTop: Integer;
   scaleFactor, pixelRatio: Double;
+  CurrentIdx: Integer;
 begin
   DbgLog('RebuildBars start.');
   if not Assigned(FPanelBars) then
@@ -931,6 +928,22 @@ begin
   MaxScore := HWRefs[0].Score;
   if MaxScore = 0 then MaxScore := 1;
 
+  // Identify Current System index after sorting
+  CurrentIdx := -1;
+  for i := 0 to 8 do
+    if FHWRefs[i].IsCurrent then
+    begin
+      CurrentIdx := i;
+      Break;
+    end;
+  if FExpandedIdx = -1 then
+    FExpandedIdx := CurrentIdx;
+
+  RowH := 48;
+  RowHExpanded := 78;
+  RowGap := 14;
+  SpecsTop := 50;
+
   CurY := 0;
   for i := 0 to 8 do
   begin
@@ -943,14 +956,16 @@ begin
     RowPanel.Width := FPanelBars.ClientWidth;
     RowPanel.Tag := i;
     RowPanel.OnPaint := @RowPanelPaint;
-    
-    if HWRefs[i].IsCurrent then
-      RowPanel.Height := 70
+    RowPanel.Cursor := crHandPoint;
+    RowPanel.OnClick := @RowPanelClick;
+
+    if i = FExpandedIdx then
+      RowPanel.Height := RowHExpanded
     else
-      RowPanel.Height := 64;
-      
+      RowPanel.Height := RowH;
+
     RowPanel.Top := CurY;
-    CurY := CurY + RowPanel.Height + 6;
+    CurY := CurY + RowPanel.Height + RowGap;
 
     // Name label
     NameLbl := TLabel.Create(Self);
@@ -964,8 +979,9 @@ begin
     end
     else
       NameLbl.Font.Color := clWhite;
-    NameLbl.Top := 2;
+    NameLbl.Top := 8;
     NameLbl.Left := 0;
+    NameLbl.OnClick := @RowPanelClick;
 
     // Score label
     ScoreLbl := TLabel.Create(Self);
@@ -979,26 +995,22 @@ begin
     end
     else
       ScoreLbl.Font.Color := COLOR_TEXT_LIGHT;
-    ScoreLbl.Top := 2;
-    ScoreLbl.Left := RowPanel.ClientWidth - ScoreLbl.Width - 4;
+    ScoreLbl.Top := 8;
     ScoreLbl.Anchors := [akTop, akRight];
+    ScoreLbl.OnClick := @RowPanelClick;
+    ScoreLbl.AdjustSize;
+    ScoreLbl.Left := RowPanel.ClientWidth - ScoreLbl.Width - 4;
 
-    // Specs under the bar
+    // Specs label — hidden by default, shown only for expanded row
     SpecsLbl := TLabel.Create(Self);
     SpecsLbl.Parent := RowPanel;
     SpecsLbl.Caption := HWRefs[i].Specs;
-    SpecsLbl.Font.Color := COLOR_TEXT_LIGHT;
-    if HWRefs[i].IsCurrent then
-    begin
-      SpecsLbl.Font.Size := 8;
-      SpecsLbl.Top := 46;
-    end
-    else
-    begin
-      SpecsLbl.Font.Size := 7;
-      SpecsLbl.Top := 42;
-    end;
+    SpecsLbl.Font.Color := RGBToColor(179, 179, 179); // soft grey #b3b3b3
+    SpecsLbl.Font.Size := 8;
+    SpecsLbl.Top := SpecsTop;
     SpecsLbl.Left := 4;
+    SpecsLbl.Visible := (i = FExpandedIdx);
+    SpecsLbl.OnClick := @RowPanelClick;
   end;
 end;
 
@@ -1055,6 +1067,29 @@ begin
       DbgLog('RefreshResults Exception: ' + E.Message);
   end;
   DbgLog('RefreshResults end.');
+end;
+
+procedure TBenchmarkResultsForm.RowPanelClick(Sender: TObject);
+var
+  P: TControl;
+  Idx: Integer;
+begin
+  P := nil;
+  if Sender is TControl then
+    P := TControl(Sender);
+
+  // If sender is a child label, get its Parent (RowPanel) to read Tag
+  if Assigned(P) and (P.Parent is TPanel) then
+    Idx := TPanel(P.Parent).Tag
+  else if Sender is TPanel then
+    Idx := TPanel(Sender).Tag
+  else
+    Idx := -1;
+
+  if Idx < 0 then Exit;
+
+  FExpandedIdx := Idx;
+  RebuildBars;
 end;
 
 function TBenchmarkResultsForm.GetCPUThreadCount: Integer;
