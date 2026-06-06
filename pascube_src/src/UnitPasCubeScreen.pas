@@ -91,6 +91,8 @@ type
   PScreenExampleCubeUniformBuffer=^TScreenExampleCubeUniformBuffer;
      TScreenExampleCubeUniformBuffer=record
       Instances: array[0..255] of TModelMatrixInfo;
+      ParticlePositions: array[0..7] of TpvVector4;
+      ParticleColors: array[0..7] of TpvVector4;
      end;
 
      PScreenExampleCubeState=^TScreenExampleCubeState;
@@ -1205,6 +1207,53 @@ begin
   ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
   ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,pvApplication.Width/pvApplication.Height,1.0,128.0);
 
+  if isBenchmark and (fBenchmarkPhase = bpGPU_Stress) then begin
+   // Main Cube (Instance 0)
+   ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
+                TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
+   fUniformBuffer.Instances[0].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
+   fUniformBuffer.Instances[0].ModelViewMatrix:=ModelMatrix*ViewMatrix;
+   fUniformBuffer.Instances[0].ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+
+   // 8 Orbiting Particles (Instances 1..8)
+   for i:=0 to 7 do begin
+    ModelMatrix:=TpvMatrix4x4.CreateScale(0.15,0.15,0.15)*
+                 TpvMatrix4x4.CreateTranslation(fParticlePositions[i].x,fParticlePositions[i].y,fParticlePositions[i].z);
+    fUniformBuffer.Instances[i+1].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
+    fUniformBuffer.Instances[i+1].ModelViewMatrix:=ModelMatrix*ViewMatrix;
+    fUniformBuffer.Instances[i+1].ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+   end;
+
+   // View-space positions and colors for shaders
+   for i:=0 to 7 do begin
+    fUniformBuffer.ParticlePositions[i]:=ViewMatrix*TpvVector4.Create(fParticlePositions[i],1.0);
+    fUniformBuffer.ParticleColors[i]:=TpvVector4.Create(fParticleColors[i],1.0);
+   end;
+
+   p:=fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
+   if assigned(p) then begin
+    Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
+   end;
+  end else if isBenchmark and (fBenchmarkPhase = bpCPU_Multi) then begin
+   // Handled in its own instanced drawing loop
+  end else begin
+   // Non-instanced single cube phases
+   ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
+                TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
+   if isBenchmark and (fBenchmarkPhase = bpCPU_Single) then begin
+    scaleFactor:=1.0+Sin(fPhaseTimer*10.0)*0.12;
+    ModelMatrix:=TpvMatrix4x4.CreateScale(scaleFactor,scaleFactor,scaleFactor)*ModelMatrix;
+   end;
+   fUniformBuffer.Instances[0].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
+   fUniformBuffer.Instances[0].ModelViewMatrix:=ModelMatrix*ViewMatrix;
+   fUniformBuffer.Instances[0].ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+
+   p:=fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
+   if assigned(p) then begin
+    Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
+   end;
+  end;
+
   fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].Reset(TVkCommandBufferResetFlags(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
   fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].BeginRecording(TVkCommandBufferUsageFlags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
 
@@ -1281,66 +1330,42 @@ begin
      end;
     end;
 
-    // Render particles (GPU particle phase)
-    if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase = bpGPU_Stress) then begin
-     for i := 0 to fParticleCount - 1 do begin
-      ModelMatrix := TpvMatrix4x4.CreateScale(0.15, 0.15, 0.15) *
-                     TpvMatrix4x4.CreateTranslation(
-                      fParticlePositions[i].x,
-                      fParticlePositions[i].y,
-                      fParticlePositions[i].z);
-      fUniformBuffer.Instances[0].ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
-      fUniformBuffer.Instances[0].ModelViewMatrix := ModelMatrix * ViewMatrix;
-      fUniformBuffer.Instances[0].ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
-      p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
-      if assigned(p) then begin
-       Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
+     // Render particles (GPU particle phase)
+     if isBenchmark and (fBenchmarkPhase = bpGPU_Stress) then begin
+      for i := 0 to 7 do begin
+       PushConstants.Vector := TpvVector4.Create(
+        fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
+       PushConstants.Params := TpvVector4.Create(1.2, 0.5, 16.0, gpuStressValue);
+       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
+        fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+        0, SizeOf(TpvVector4)*2, @PushConstants);
+       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,i + 1);
       end;
-      PushConstants.Vector := TpvVector4.Create(
-       fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
-      PushConstants.Params := TpvVector4.Create(1.2, 0.5, 16.0, gpuStressValue);
+     end;
+
+     // Default cube (idle menu / warmup / CPU single / GPU stress phases)
+     if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_Stress]) then begin
+      if isBenchmark then begin
+        if fBenchmarkPhase = bpCPU_Single then begin
+          PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
+          PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
+        end else if fBenchmarkPhase = bpGPU_Stress then begin
+          PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
+          PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
+        end else begin
+          PushConstants.Vector := TpvVector4.Create(0.92, 0.93, 0.98, 1.0);
+          PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
+        end;
+      end else begin
+        PushConstants.Vector := TpvVector4.Create(0.92, 0.93, 0.98, 1.0);
+        PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
+      end;
+
       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
        fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
        0, SizeOf(TpvVector4)*2, @PushConstants);
       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
-     end;
-    end;
-
-    // Default cube (idle menu / warmup / CPU single / GPU stress phases)
-    if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_Stress]) then begin
-     ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
-                  TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
-
-     if isBenchmark then begin
-       if fBenchmarkPhase = bpCPU_Single then begin
-         scaleFactor := 1.0 + Sin(fPhaseTimer * 10.0) * 0.12;
-         ModelMatrix := TpvMatrix4x4.CreateScale(scaleFactor, scaleFactor, scaleFactor) * ModelMatrix;
-         PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
-         PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
-       end else if fBenchmarkPhase = bpGPU_Stress then begin
-         PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
-         PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
-       end else begin
-         PushConstants.Vector := TpvVector4.Create(0.92, 0.93, 0.98, 1.0);
-         PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
-       end;
-     end else begin
-       PushConstants.Vector := TpvVector4.Create(0.92, 0.93, 0.98, 1.0);
-       PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
-     end;
-
-     fUniformBuffer.Instances[0].ModelViewProjectionMatrix:=(ModelMatrix*ViewMatrix)*ProjectionMatrix;
-     fUniformBuffer.Instances[0].ModelViewMatrix:=ModelMatrix*ViewMatrix;
-     fUniformBuffer.Instances[0].ModelViewNormalMatrix:=TpvMatrix4x4.Create((ModelMatrix*ViewMatrix).ToMatrix3x3.Inverse.Transpose);
-     p:=fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
-     if assigned(p) then begin
-      Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
-     end;
-     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
-      fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-      0, SizeOf(TpvVector4)*2, @PushConstants);
-     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
-    end else if isBenchmark and (fBenchmarkPhase = bpCPU_Multi) then begin
+     end else if isBenchmark and (fBenchmarkPhase = bpCPU_Multi) then begin
       // CPU Multi-Threaded phase: Render a grid of cubes corresponding to logical core/thread count
       N := pvApplication.CountCPUThreads;
       if N < 1 then N := 1;
@@ -1454,7 +1479,7 @@ begin
   bpIdleMenu: Result := 'Menu';
   bpWarmup: Result := 'Warmup';
   bpCPU_Single: Result := 'CPU Single-Thread';
-  bpCPU_Multi: Result := 'CPU Multi-Thread';
+  bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
   bpGPU_Stress: Result := 'GPU Vulkan Render';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
@@ -1575,8 +1600,8 @@ begin
     DebugLog('NextPhase: bpCPU_Multi -> bpGPU_Stress. Initializing particles.');
     fBenchmarkPhase := bpGPU_Stress;
     fPhaseResultIndex := 3;
-    InitParticles;
-    fParticleCount := 2000;
+     InitParticles;
+     fParticleCount := 8;
    end;
    bpGPU_Stress: begin
     DebugLog('NextPhase: bpGPU_Stress -> bpResults. Completing benchmark.');
@@ -1802,46 +1827,42 @@ begin
 end;
 
 procedure TPasCubeScreen.InitParticles;
-var i: Integer;
-    theta, phi, radius: TpvFloat;
 begin
- fParticleCount := 2000;
- for i := 0 to fParticleCount - 1 do begin
-  theta := Random * 2.0 * Pi;
-  phi := ArcCos(2.0 * Random - 1.0);
-  radius := 0.5 + Random * 5.0;
-  fParticlePositions[i].x := radius * Sin(phi) * Cos(theta);
-  fParticlePositions[i].y := radius * Sin(phi) * Sin(theta);
-  fParticlePositions[i].z := radius * Cos(phi);
-  fParticleColors[i].x := 0.5 + Random * 0.5;
-  fParticleColors[i].y := 0.7 + Random * 0.3;
-  fParticleColors[i].z := 1.0;
- end;
- DebugLog(Format('InitParticles: count=%d firstPos=(%.2f,%.2f,%.2f)', [
-  fParticleCount, fParticlePositions[0].x, fParticlePositions[0].y, fParticlePositions[0].z]));
+ fParticleCount := 8;
+ fParticleColors[0] := TpvVector3.Create(1.0, 0.05, 0.05); // Red
+ fParticleColors[1] := TpvVector3.Create(0.05, 1.0, 0.05); // Green
+ fParticleColors[2] := TpvVector3.Create(0.1, 0.3, 1.0);   // Blue
+ fParticleColors[3] := TpvVector3.Create(1.0, 0.9, 0.05);  // Yellow
+ fParticleColors[4] := TpvVector3.Create(1.0, 0.05, 1.0);  // Magenta
+ fParticleColors[5] := TpvVector3.Create(1.0, 0.5, 0.05);  // Orange
+ fParticleColors[6] := TpvVector3.Create(0.5, 0.05, 1.0);  // Purple
+ fParticleColors[7] := TpvVector3.Create(1.0, 1.0, 1.0);   // White
+ 
+ UpdateParticles(0.0);
+ DebugLog('InitParticles: Initialized 8 distinct colored particles');
 end;
 
 procedure TPasCubeScreen.UpdateParticles(const aDeltaTime: TpvDouble);
 var i: Integer;
-    speed: TpvFloat;
-    orbitX, orbitY, orbitZ: TpvFloat;
-    distSq: TpvFloat;
+    angle, radius, speed: TpvFloat;
 begin
  for i := 0 to fParticleCount - 1 do begin
-  speed := fBenchmarkTimer * (0.5 + (i mod 16) * 0.15);
-  orbitX := Cos(speed + i * 0.7) * (0.3 + (i mod 7) * 0.15);
-  orbitY := Sin(speed + i * 1.1) * (0.3 + (i mod 5) * 0.15);
-  orbitZ := Cos(speed + i * 1.9) * (0.2 + (i mod 3) * 0.1);
-  fParticlePositions[i].x := fParticlePositions[i].x + orbitX * aDeltaTime;
-  fParticlePositions[i].y := fParticlePositions[i].y + orbitY * aDeltaTime;
-  fParticlePositions[i].z := fParticlePositions[i].z + orbitZ * aDeltaTime;
-  distSq := fParticlePositions[i].x * fParticlePositions[i].x +
-            fParticlePositions[i].y * fParticlePositions[i].y +
-            fParticlePositions[i].z * fParticlePositions[i].z;
-  if distSq > 64.0 then begin
-   fParticlePositions[i].x := (Random - 0.5) * 1.0;
-   fParticlePositions[i].y := (Random - 0.5) * 1.0;
-   fParticlePositions[i].z := (Random - 0.5) * 1.0;
+  radius := 1.5 + i * 0.25;
+  speed := 0.8 + i * 0.15;
+  angle := fBenchmarkTimer * speed + (i * (TwoPI / 8.0));
+  
+  if (i mod 3) = 0 then begin
+    fParticlePositions[i].x := radius * Cos(angle);
+    fParticlePositions[i].y := radius * Sin(angle);
+    fParticlePositions[i].z := radius * Sin(angle * 0.5) * 0.3;
+  end else if (i mod 3) = 1 then begin
+    fParticlePositions[i].x := radius * Cos(angle);
+    fParticlePositions[i].y := radius * Sin(angle * 0.5) * 0.3;
+    fParticlePositions[i].z := radius * Sin(angle);
+  end else begin
+    fParticlePositions[i].x := radius * Cos(angle * 0.5) * 0.3;
+    fParticlePositions[i].y := radius * Cos(angle);
+    fParticlePositions[i].z := radius * Sin(angle);
   end;
  end;
 end;

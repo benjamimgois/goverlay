@@ -21,6 +21,7 @@ layout (binding = 0) uniform UBO {
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outTexCoord;
+layout (location = 2) out vec3 outPosition;
 
 out gl_PerVertex {
     vec4 gl_Position;   
@@ -29,5 +30,6 @@ out gl_PerVertex {
 void main() {
 	outNormal = normalize((ubo.instances[gl_InstanceIndex].modelViewNormalMatrix * vec4(inNormal, 0.0)).xyz);
 	outTexCoord = inTexCoord;
+	outPosition = (ubo.instances[gl_InstanceIndex].modelViewMatrix * vec4(inPosition, 1.0)).xyz;
 	gl_Position = ubo.instances[gl_InstanceIndex].modelViewProjectionMatrix * vec4(inPosition, 1.0);
 }

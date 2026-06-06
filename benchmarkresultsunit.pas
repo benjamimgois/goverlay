@@ -9,12 +9,19 @@ uses
   fpjson, jsonparser, systemdetector, configmanager;
 
 type
+  THardwareRef = record
+    Name: string;
+    Score: Integer;
+    IsCurrent: Boolean;
+    Specs: string;
+  end;
+
   TBenchmarkResultsForm = class(TForm)
     constructor Create(AOwner: TComponent); override;
     procedure FormResize(Sender: TObject);
   private
     FPanelTop: TPanel;
-    FShapeScore: TShape;
+    FShapeScore: TPaintBox;
     FLabelTitle: TLabel;
     FLabelScore: TLabel;
 
@@ -45,7 +52,6 @@ type
 
     // Right column comparison card
     FCardComp: TPanel;
-    FShapeComp: TShape;
     FLabelCompTitle: TLabel;
     FPanelBars: TPanel;
 
@@ -59,19 +65,18 @@ type
     FHistoryScores: array[0..4] of Integer;
     FHistoryTimes: array[0..4] of string;
 
+    FHWRefs: array[0..8] of THardwareRef;
+
     procedure LoadResults;
     procedure BuildUI;
     procedure RebuildBars;
     function GetCPUThreadCount: Integer;
+
+    procedure FormPaint(Sender: TObject);
+    procedure CardPaint(Sender: TObject);
+    procedure RowPanelPaint(Sender: TObject);
   public
     procedure RefreshResults;
-  end;
-
-  THardwareRef = record
-    Name: string;
-    Score: Integer;
-    IsCurrent: Boolean;
-    Specs: string;
   end;
 
 var
@@ -125,6 +130,251 @@ begin
   end;
 end;
 
+function BlendColors(Color1, Color2: TColor; Alpha: Byte): TColor;
+var
+  R1, G1, B1, R2, G2, B2: Byte;
+begin
+  R1 := Red(Color1); G1 := Green(Color1); B1 := Blue(Color1);
+  R2 := Red(Color2); G2 := Green(Color2); B2 := Blue(Color2);
+  Result := RGBToColor(
+    (R1 * Alpha + R2 * (255 - Alpha)) div 255,
+    (G1 * Alpha + G2 * (255 - Alpha)) div 255,
+    (B1 * Alpha + B2 * (255 - Alpha)) div 255
+  );
+end;
+
+function GetBgColorAtPoint(Pt: TPoint; FormWidth, FormHeight: Integer): TColor;
+var
+  CX, CY: Integer;
+  MaxDist, Dist, Ratio: Double;
+  R_c, G_c, B_c, R_e, G_e, B_e: Byte;
+begin
+  CX := FormWidth div 2;
+  CY := FormHeight div 2;
+  MaxDist := Sqrt(CX * CX + CY * CY);
+  if MaxDist <= 0 then MaxDist := 1;
+  
+  Dist := Sqrt(Sqr(Pt.X - CX) + Sqr(Pt.Y - CY));
+  Ratio := Dist / MaxDist;
+  if Ratio < 0 then Ratio := 0;
+  if Ratio > 1 then Ratio := 1;
+  
+  // Center is #3a3b3f (58, 59, 63)
+  // Edge is #202124 (32, 33, 36)
+  R_c := 58; G_c := 59; B_c := 63;
+  R_e := 32; G_e := 33; B_e := 36;
+  
+  Result := RGBToColor(
+    Round(R_c + (R_e - R_c) * Ratio),
+    Round(G_c + (G_e - G_c) * Ratio),
+    Round(B_c + (B_e - B_c) * Ratio)
+  );
+end;
+
+procedure DrawRadialGradient(ACanvas: TCanvas; Rect: TRect; ColorCenter, ColorEdge: TColor);
+var
+  CX, CY, i, Steps: Integer;
+  R_c, G_c, B_c, R_e, G_e, B_e: Byte;
+  Ratio: Double;
+  Rx, Ry: Integer;
+begin
+  CX := (Rect.Left + Rect.Right) div 2;
+  CY := (Rect.Top + Rect.Bottom) div 2;
+  
+  R_c := Red(ColorCenter); G_c := Green(ColorCenter); B_c := Blue(ColorCenter);
+  R_e := Red(ColorEdge); G_e := Green(ColorEdge); B_e := Blue(ColorEdge);
+  
+  // Fill background with edge color first
+  ACanvas.Brush.Color := ColorEdge;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Pen.Style := psClear;
+  ACanvas.FillRect(Rect);
+  
+  Steps := 120;
+  for i := Steps downto 1 do
+  begin
+    Ratio := i / Steps; // 1.0 down to 0.0
+    Rx := Round((CX - Rect.Left) * Ratio);
+    Ry := Round((CY - Rect.Top) * Ratio);
+    
+    ACanvas.Brush.Color := RGBToColor(
+      Round(R_e + (R_c - R_e) * Ratio),
+      Round(G_e + (G_c - G_e) * Ratio),
+      Round(B_e + (B_c - B_e) * Ratio)
+    );
+    ACanvas.Ellipse(CX - Rx, CY - Ry, CX + Rx, CY + Ry);
+  end;
+end;
+
+procedure DrawPillGradientHorizontal(ACanvas: TCanvas; Rect: TRect; ColorStart, ColorEnd: TColor);
+var
+  X, Y1, Y2: Integer;
+  R_start, G_start, B_start: Byte;
+  R_end, G_end, B_end: Byte;
+  Ratio: Double;
+  W, H, R, CX1, CX2: Integer;
+  CY, DX, DY: Integer;
+begin
+  R_start := Red(ColorStart); G_start := Green(ColorStart); B_start := Blue(ColorStart);
+  R_end := Red(ColorEnd); G_end := Green(ColorEnd); B_end := Blue(ColorEnd);
+  
+  W := Rect.Right - Rect.Left;
+  H := Rect.Bottom - Rect.Top;
+  if (W <= 0) or (H <= 0) then Exit;
+  
+  R := H div 2;
+  CY := Rect.Top + R;
+  CX1 := Rect.Left + R;
+  CX2 := Rect.Right - R;
+  
+  for X := Rect.Left to Rect.Right do
+  begin
+    if X < CX1 then
+    begin
+      DX := CX1 - X;
+      if DX > R then DX := R;
+      DY := Round(Sqrt(R * R - DX * DX));
+      Y1 := CY - DY;
+      Y2 := CY + DY;
+    end
+    else if X > CX2 then
+    begin
+      DX := X - CX2;
+      if DX > R then DX := R;
+      DY := Round(Sqrt(R * R - DX * DX));
+      Y1 := CY - DY;
+      Y2 := CY + DY;
+    end
+    else
+    begin
+      Y1 := Rect.Top;
+      Y2 := Rect.Bottom;
+    end;
+    
+    Ratio := (X - Rect.Left) / W;
+    ACanvas.Pen.Color := RGBToColor(
+      Round(R_start + (R_end - R_start) * Ratio),
+      Round(G_start + (G_end - G_start) * Ratio),
+      Round(B_start + (B_end - B_start) * Ratio)
+    );
+    ACanvas.Line(X, Y1, X, Y2);
+  end;
+end;
+
+procedure TBenchmarkResultsForm.FormPaint(Sender: TObject);
+begin
+  DrawRadialGradient(Self.Canvas, Self.ClientRect, RGBToColor(58, 59, 63), RGBToColor(32, 33, 36));
+end;
+
+procedure TBenchmarkResultsForm.CardPaint(Sender: TObject);
+var
+  Ctrl: TControl;
+  TargetCanvas: TCanvas;
+  Pt: TPoint;
+  Rect: TRect;
+  BgColor, CardBgColor, BorderCol: TColor;
+  MidPt: TPoint;
+begin
+  if not (Sender is TControl) then Exit;
+  Ctrl := TControl(Sender);
+  if Ctrl is TPanel then
+    TargetCanvas := TPanel(Ctrl).Canvas
+  else if Ctrl is TPaintBox then
+    TargetCanvas := TPaintBox(Ctrl).Canvas
+  else
+    Exit;
+    
+  Pt := Ctrl.ClientToParent(Point(0, 0), Self);
+  Rect := Ctrl.ClientRect;
+  
+  MidPt := Point(Pt.X + Ctrl.Width div 2, Pt.Y + Ctrl.Height div 2);
+  BgColor := GetBgColorAtPoint(MidPt, Self.ClientWidth, Self.ClientHeight);
+  
+  // Blend with #1e1f22 (30, 31, 34) at 75% opacity (191)
+  CardBgColor := BlendColors(RGBToColor(30, 31, 34), BgColor, 191);
+  
+  // Border: #ffffff (255, 255, 255) with 12% opacity (30) on top of CardBgColor
+  BorderCol := BlendColors(RGBToColor(255, 255, 255), CardBgColor, 30);
+  
+  // Draw rounded rect background
+  TargetCanvas.Brush.Color := CardBgColor;
+  TargetCanvas.Brush.Style := bsSolid;
+  TargetCanvas.Pen.Style := psClear;
+  TargetCanvas.RoundRect(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, 16, 16);
+  
+  // Draw border
+  TargetCanvas.Brush.Style := bsClear;
+  TargetCanvas.Pen.Color := BorderCol;
+  TargetCanvas.Pen.Width := 1;
+  TargetCanvas.RoundRect(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, 16, 16);
+end;
+
+procedure TBenchmarkResultsForm.RowPanelPaint(Sender: TObject);
+var
+  P: TPanel;
+  Idx: Integer;
+  Ref: THardwareRef;
+  TrackRect, FillRect: TRect;
+  BarH, BarY: Integer;
+  Proportion: Double;
+  FillW: Integer;
+  MaxScore: Integer;
+  ColorStart, ColorEnd: TColor;
+begin
+  if not (Sender is TPanel) then Exit;
+  P := TPanel(Sender);
+  Idx := P.Tag;
+  Ref := FHWRefs[Idx];
+  
+  MaxScore := FHWRefs[0].Score;
+  if MaxScore = 0 then MaxScore := 1;
+  
+  if Ref.IsCurrent then
+  begin
+    BarH := 18;
+    BarY := 26;
+  end
+  else
+  begin
+    BarH := 14;
+    BarY := 26;
+  end;
+  
+  TrackRect := Rect(0, BarY, P.ClientWidth, BarY + BarH);
+  
+  // Draw track background
+  DrawPillGradientHorizontal(P.Canvas, TrackRect, COLOR_TRACK, COLOR_TRACK);
+  
+  // Draw fill bar
+  Proportion := Ref.Score / MaxScore;
+  FillW := Round(Proportion * TrackRect.Width);
+  if FillW < BarH then FillW := BarH;
+  
+  FillRect := Rect(0, BarY, FillW, BarY + BarH);
+  
+  if Ref.IsCurrent then
+  begin
+    ColorStart := RGBToColor(37, 99, 235); // #2563eb
+    ColorEnd := RGBToColor(0, 240, 255);   // #00f0ff
+    DrawPillGradientHorizontal(P.Canvas, FillRect, ColorStart, ColorEnd);
+    
+    // Draw neon outline glow
+    P.Canvas.Brush.Style := bsClear;
+    P.Canvas.Pen.Color := RGBToColor(122, 230, 255);
+    P.Canvas.Pen.Width := 1;
+    P.Canvas.Ellipse(FillRect.Left, FillRect.Top, FillRect.Left + BarH, FillRect.Bottom);
+    P.Canvas.Ellipse(FillRect.Right - BarH, FillRect.Top, FillRect.Right, FillRect.Bottom);
+    P.Canvas.Line(FillRect.Left + BarH div 2, FillRect.Top, FillRect.Right - BarH div 2, FillRect.Top);
+    P.Canvas.Line(FillRect.Left + BarH div 2, FillRect.Bottom - 1, FillRect.Right - BarH div 2, FillRect.Bottom - 1);
+  end
+  else
+  begin
+    ColorStart := RGBToColor(58, 65, 80);  // #3a4150
+    ColorEnd := RGBToColor(79, 88, 108);   // #4f586c
+    DrawPillGradientHorizontal(P.Canvas, FillRect, ColorStart, ColorEnd);
+  end;
+end;
+
 constructor TBenchmarkResultsForm.Create(AOwner: TComponent);
 begin
   DbgLog('Create constructor start.');
@@ -133,6 +383,7 @@ begin
   BuildUI;
   DbgLog('UI Built. Setting OnResize...');
   Self.OnResize := @FormResize;
+  Self.OnPaint := @FormPaint;
   // Initialize defaults
   FCurrentScore := 0;
   FCurrentSpecs := 'CPU: 1T | GPU: Unknown';
@@ -171,8 +422,6 @@ end;
 
 procedure TBenchmarkResultsForm.BuildUI;
 var
-  CardPanel: TPanel;
-  Shape: TShape;
   TitleLbl, DescLbl: TLabel;
   i: Integer;
 begin
@@ -183,7 +432,7 @@ begin
   Self.Width := 1024;
   Self.Height := 768;
   Self.Position := poScreenCenter;
-  Self.Caption := 'Resultados do Benchmark - PasCube';
+  Self.Caption := 'Benchmark Results - PasCube';
 
   // Hero section panel
   FPanelTop := TPanel.Create(Self);
@@ -191,17 +440,16 @@ begin
   FPanelTop.Align := alTop;
   FPanelTop.Height := 140;
   FPanelTop.BevelOuter := bvNone;
-  FPanelTop.Color := COLOR_BG;
+  FPanelTop.BevelInner := bvNone;
+  FPanelTop.ParentBackground := True;
 
-  // Score Shape
-  FShapeScore := TShape.Create(Self);
+  // Score PaintBox (replacing Shape)
+  FShapeScore := TPaintBox.Create(Self);
   FShapeScore.Parent := FPanelTop;
-  FShapeScore.Shape := stRoundRect;
-  FShapeScore.Brush.Color := COLOR_SCORE_CARD;
-  FShapeScore.Pen.Color := COLOR_SCORE_CARD;
   FShapeScore.Width := 460;
   FShapeScore.Height := 110;
   FShapeScore.Top := 15;
+  FShapeScore.OnPaint := @CardPaint;
 
   // Labels inside score card
   FLabelTitle := TLabel.Create(Self);
@@ -219,7 +467,7 @@ begin
   FLabelScore.Caption := '0';
   FLabelScore.Font.Size := 38;
   FLabelScore.Font.Style := [fsBold];
-  FLabelScore.Font.Color := clWhite;
+  FLabelScore.Font.Color := RGBToColor(59, 130, 246); // Electric Blue #3b82f6
   FLabelScore.Transparent := True;
   FLabelScore.AutoSize := True;
   FLabelScore.Top := FShapeScore.Top + 42;
@@ -230,14 +478,16 @@ begin
   FPanelClient.Parent := Self;
   FPanelClient.Align := alClient;
   FPanelClient.BevelOuter := bvNone;
-  FPanelClient.Color := COLOR_BG;
+  FPanelClient.BevelInner := bvNone;
+  FPanelClient.ParentBackground := True;
 
   // Panel Left
   FPanelLeft := TPanel.Create(Self);
   FPanelLeft.Parent := FPanelClient;
   FPanelLeft.Align := alLeft;
   FPanelLeft.BevelOuter := bvNone;
-  FPanelLeft.Color := COLOR_BG;
+  FPanelLeft.BevelInner := bvNone;
+  FPanelLeft.ParentBackground := True;
   FPanelLeft.Width := 440;
 
   // Panel Right
@@ -245,7 +495,8 @@ begin
   FPanelRight.Parent := FPanelClient;
   FPanelRight.Align := alClient;
   FPanelRight.BevelOuter := bvNone;
-  FPanelRight.Color := COLOR_BG;
+  FPanelRight.BevelInner := bvNone;
+  FPanelRight.ParentBackground := True;
 
   // 1. CPU Single-Thread Card
   FCardSingle := TPanel.Create(Self);
@@ -259,24 +510,19 @@ begin
   FCardSingle.Anchors := [akTop, akLeft, akRight];
   FCardSingle.Height := 135;
   FCardSingle.BevelOuter := bvNone;
-  FCardSingle.Color := COLOR_BG;
+  FCardSingle.BevelInner := bvNone;
+  FCardSingle.ParentBackground := False;
+  FCardSingle.OnPaint := @CardPaint;
   FCardSingle.BorderSpacing.Bottom := 10;
   FCardSingle.BorderSpacing.Left := 20;
   FCardSingle.BorderSpacing.Right := 10;
   FCardSingle.BorderSpacing.Top := 5;
 
-  Shape := TShape.Create(Self);
-  Shape.Parent := FCardSingle;
-  Shape.Align := alClient;
-  Shape.Shape := stRoundRect;
-  Shape.Brush.Color := COLOR_CARD;
-  Shape.Pen.Color := COLOR_CARD;
-
   TitleLbl := TLabel.Create(Self);
   TitleLbl.Parent := FCardSingle;
   TitleLbl.Caption := '⚡ CPU Single-Thread';
   TitleLbl.Font.Size := 10;
-  TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
+  TitleLbl.Font.Color := RGBToColor(96, 165, 250); // Soft Tech Blue #60a5fa
   TitleLbl.Top := 8;
   TitleLbl.Left := 12;
 
@@ -299,7 +545,7 @@ begin
 
   DescLbl := TLabel.Create(Self);
   DescLbl.Parent := FCardSingle;
-  DescLbl.Caption := 'Importante para física básica, lógica do jogo e taxa de FPS mínima.';
+  DescLbl.Caption := 'Important for basic physics, game logic, and minimum FPS rate.';
   DescLbl.Font.Size := 8;
   DescLbl.Font.Color := COLOR_TEXT_GREY;
   DescLbl.WordWrap := True;
@@ -320,23 +566,18 @@ begin
   FCardMulti.Anchors := [akTop, akLeft, akRight];
   FCardMulti.Height := 135;
   FCardMulti.BevelOuter := bvNone;
-  FCardMulti.Color := COLOR_BG;
+  FCardMulti.BevelInner := bvNone;
+  FCardMulti.ParentBackground := False;
+  FCardMulti.OnPaint := @CardPaint;
   FCardMulti.BorderSpacing.Bottom := 10;
   FCardMulti.BorderSpacing.Left := 20;
   FCardMulti.BorderSpacing.Right := 10;
-
-  Shape := TShape.Create(Self);
-  Shape.Parent := FCardMulti;
-  Shape.Align := alClient;
-  Shape.Shape := stRoundRect;
-  Shape.Brush.Color := COLOR_CARD;
-  Shape.Pen.Color := COLOR_CARD;
 
   TitleLbl := TLabel.Create(Self);
   TitleLbl.Parent := FCardMulti;
   TitleLbl.Caption := '⚡ CPU Multi-Thread';
   TitleLbl.Font.Size := 10;
-  TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
+  TitleLbl.Font.Color := RGBToColor(96, 165, 250); // Soft Tech Blue #60a5fa
   TitleLbl.Top := 8;
   TitleLbl.Left := 12;
 
@@ -359,7 +600,7 @@ begin
 
   DescLbl := TLabel.Create(Self);
   DescLbl.Parent := FCardMulti;
-  DescLbl.Caption := 'Importante para streaming de assets em mundo aberto, física avançada e IA complexa.';
+  DescLbl.Caption := 'Important for open-world asset streaming, advanced physics, and complex AI.';
   DescLbl.Font.Size := 8;
   DescLbl.Font.Color := COLOR_TEXT_GREY;
   DescLbl.WordWrap := True;
@@ -380,23 +621,18 @@ begin
   FCardGPU.Anchors := [akTop, akLeft, akRight];
   FCardGPU.Height := 135;
   FCardGPU.BevelOuter := bvNone;
-  FCardGPU.Color := COLOR_BG;
+  FCardGPU.BevelInner := bvNone;
+  FCardGPU.ParentBackground := False;
+  FCardGPU.OnPaint := @CardPaint;
   FCardGPU.BorderSpacing.Bottom := 10;
   FCardGPU.BorderSpacing.Left := 20;
   FCardGPU.BorderSpacing.Right := 10;
-
-  Shape := TShape.Create(Self);
-  Shape.Parent := FCardGPU;
-  Shape.Align := alClient;
-  Shape.Shape := stRoundRect;
-  Shape.Brush.Color := COLOR_CARD;
-  Shape.Pen.Color := COLOR_CARD;
 
   TitleLbl := TLabel.Create(Self);
   TitleLbl.Parent := FCardGPU;
   TitleLbl.Caption := '⚡ GPU Vulkan Render';
   TitleLbl.Font.Size := 10;
-  TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
+  TitleLbl.Font.Color := RGBToColor(96, 165, 250); // Soft Tech Blue #60a5fa
   TitleLbl.Top := 8;
   TitleLbl.Left := 12;
 
@@ -419,7 +655,7 @@ begin
 
   DescLbl := TLabel.Create(Self);
   DescLbl.Parent := FCardGPU;
-  DescLbl.Caption := 'Determina a taxa máxima de quadros (FPS) e a fidelidade visual dos gráficos.';
+  DescLbl.Caption := 'Determines the maximum frame rate (FPS) and graphical fidelity.';
   DescLbl.Font.Size := 8;
   DescLbl.Font.Color := COLOR_TEXT_GREY;
   DescLbl.WordWrap := True;
@@ -441,30 +677,25 @@ begin
   FCardHistory.AnchorSideRight.Side := asrRight;
   FCardHistory.Anchors := [akTop, akBottom, akLeft, akRight];
   FCardHistory.BevelOuter := bvNone;
-  FCardHistory.Color := COLOR_BG;
+  FCardHistory.BevelInner := bvNone;
+  FCardHistory.ParentBackground := False;
+  FCardHistory.OnPaint := @CardPaint;
   FCardHistory.BorderSpacing.Bottom := 20;
   FCardHistory.BorderSpacing.Left := 20;
   FCardHistory.BorderSpacing.Right := 10;
 
-  Shape := TShape.Create(Self);
-  Shape.Parent := FCardHistory;
-  Shape.Align := alClient;
-  Shape.Shape := stRoundRect;
-  Shape.Brush.Color := COLOR_CARD;
-  Shape.Pen.Color := COLOR_CARD;
-
   TitleLbl := TLabel.Create(Self);
   TitleLbl.Parent := FCardHistory;
-  TitleLbl.Caption := '⚡ Histórico de Testes';
+  TitleLbl.Caption := '⚡ Test History';
   TitleLbl.Font.Size := 10;
-  TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
+  TitleLbl.Font.Color := RGBToColor(96, 165, 250); // Soft Tech Blue #60a5fa
   TitleLbl.Top := 8;
   TitleLbl.Left := 24;
 
   // Header
   TitleLbl := TLabel.Create(Self);
   TitleLbl.Parent := FCardHistory;
-  TitleLbl.Caption := 'Pos   |   Pontuação   |   Data e Hora';
+  TitleLbl.Caption := 'Pos   |   Score   |   Date & Time';
   TitleLbl.Font.Size := 9;
   TitleLbl.Font.Style := [fsBold];
   TitleLbl.Font.Color := COLOR_TEXT_LIGHT;
@@ -486,25 +717,20 @@ begin
   FCardComp.Parent := FPanelRight;
   FCardComp.Align := alClient;
   FCardComp.BevelOuter := bvNone;
-  FCardComp.Color := COLOR_BG;
+  FCardComp.BevelInner := bvNone;
+  FCardComp.ParentBackground := False;
+  FCardComp.OnPaint := @CardPaint;
   FCardComp.BorderSpacing.Bottom := 20;
   FCardComp.BorderSpacing.Left := 10;
   FCardComp.BorderSpacing.Right := 20;
   FCardComp.BorderSpacing.Top := 5;
-
-  FShapeComp := TShape.Create(Self);
-  FShapeComp.Parent := FCardComp;
-  FShapeComp.Align := alClient;
-  FShapeComp.Shape := stRoundRect;
-  FShapeComp.Brush.Color := COLOR_CARD;
-  FShapeComp.Pen.Color := COLOR_CARD;
 
   FLabelCompTitle := TLabel.Create(Self);
   FLabelCompTitle.Parent := FCardComp;
   FLabelCompTitle.Caption := 'HARDWARE COMPARISON';
   FLabelCompTitle.Font.Size := 11;
   FLabelCompTitle.Font.Style := [fsBold];
-  FLabelCompTitle.Font.Color := COLOR_TEXT_LIGHT;
+  FLabelCompTitle.Font.Color := RGBToColor(96, 165, 250); // Soft Tech Blue #60a5fa
   FLabelCompTitle.Top := 12;
   FLabelCompTitle.Left := 16;
 
@@ -512,7 +738,8 @@ begin
   FPanelBars.Parent := FCardComp;
   FPanelBars.Align := alClient;
   FPanelBars.BevelOuter := bvNone;
-  FPanelBars.Color := COLOR_CARD;
+  FPanelBars.BevelInner := bvNone;
+  FPanelBars.ParentBackground := True;
   FPanelBars.BorderSpacing.Top := 36;
   FPanelBars.BorderSpacing.Left := 16;
   FPanelBars.BorderSpacing.Right := 16;
@@ -585,7 +812,7 @@ begin
                     FValueCPUSingle := FormatScore(Round(PhaseFPSAvg)) + ' MIPS';
                     FScoreCPUSingle := '(' + FormatScore(PhaseScore) + ' pts)';
                   end
-                  else if (PhaseName = 'CPU Multi-Thread') or (PhaseName = 'CPU Heavy') then
+                  else if (Pos('CPU Multi-Thread', PhaseName) = 1) or (PhaseName = 'CPU Heavy') then
                   begin
                     FValueCPUMulti := FormatScore(Round(PhaseFPSAvg)) + ' MIPS';
                     FScoreCPUMulti := '(' + FormatScore(PhaseScore) + ' pts)';
@@ -649,17 +876,17 @@ begin
   HWRefs[1].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
   HWRefs[2].Name := 'ROG Ally X'; HWRefs[2].Score := 2100; HWRefs[2].IsCurrent := false;
   HWRefs[2].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
-  HWRefs[3].Name := 'PC Gamer Basico'; HWRefs[3].Score := 2800; HWRefs[3].IsCurrent := false;
+  HWRefs[3].Name := 'Entry Gamer PC'; HWRefs[3].Score := 2800; HWRefs[3].IsCurrent := false;
   HWRefs[3].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
   HWRefs[4].Name := 'Xbox Series'; HWRefs[4].Score := 3200; HWRefs[4].IsCurrent := false;
   HWRefs[4].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
   HWRefs[5].Name := 'PlayStation 5'; HWRefs[5].Score := 4500; HWRefs[5].IsCurrent := false;
   HWRefs[5].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-  HWRefs[6].Name := 'PC Gamer Medio'; HWRefs[6].Score := 6500; HWRefs[6].IsCurrent := false;
+  HWRefs[6].Name := 'Mid-Range Gamer PC'; HWRefs[6].Score := 6500; HWRefs[6].IsCurrent := false;
   HWRefs[6].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-  HWRefs[7].Name := 'PC Gamer Avancado'; HWRefs[7].Score := 12500; HWRefs[7].IsCurrent := false;
+  HWRefs[7].Name := 'High-End Gamer PC'; HWRefs[7].Score := 12500; HWRefs[7].IsCurrent := false;
   HWRefs[7].Specs := 'CPU: R7 7800X3D | RAM: 32GB DDR5 | GPU: RTX 4080 Super | OS: Win11';
-  HWRefs[8].Name := 'Sistema Atual'; HWRefs[8].Score := FCurrentScore; HWRefs[8].IsCurrent := true;
+  HWRefs[8].Name := 'Current System'; HWRefs[8].Score := FCurrentScore; HWRefs[8].IsCurrent := true;
   HWRefs[8].Specs := FCurrentSpecs;
 
   // Sort descending by score
@@ -672,6 +899,10 @@ begin
         HWRefs[j] := TempHW;
       end;
 
+  // Copy sorted refs to class member for paint handlers
+  for i := 0 to 8 do
+    FHWRefs[i] := HWRefs[i];
+
   MaxScore := HWRefs[0].Score;
   if MaxScore = 0 then MaxScore := 1;
 
@@ -681,9 +912,12 @@ begin
     RowPanel := TPanel.Create(Self);
     RowPanel.Parent := FPanelBars;
     RowPanel.BevelOuter := bvNone;
-    RowPanel.Color := COLOR_CARD;
+    RowPanel.BevelInner := bvNone;
+    RowPanel.ParentBackground := True;
     RowPanel.Left := 0;
     RowPanel.Width := FPanelBars.ClientWidth;
+    RowPanel.Tag := i;
+    RowPanel.OnPaint := @RowPanelPaint;
     
     if HWRefs[i].IsCurrent then
       RowPanel.Height := 72
@@ -723,43 +957,6 @@ begin
     ScoreLbl.Top := 2;
     ScoreLbl.Left := RowPanel.ClientWidth - ScoreLbl.Width - 4;
     ScoreLbl.Anchors := [akTop, akRight];
-
-    // Bar Track
-    TrackShape := TShape.Create(Self);
-    TrackShape.Parent := RowPanel;
-    TrackShape.Shape := stRoundRect;
-    TrackShape.Brush.Color := COLOR_TRACK;
-    TrackShape.Pen.Color := COLOR_TRACK;
-    TrackShape.Top := 26;
-    TrackShape.Left := 0;
-    TrackShape.Height := 16;
-    TrackShape.Width := RowPanel.ClientWidth;
-    TrackShape.Anchors := [akLeft, akTop, akRight];
-
-    // Bar Fill
-    Proportion := HWRefs[i].Score / MaxScore;
-    BarW := Round(Proportion * TrackShape.Width);
-    if BarW < 4 then BarW := 4;
-
-    FillShape := TShape.Create(Self);
-    FillShape.Parent := RowPanel;
-    FillShape.Shape := stRoundRect;
-    FillShape.Top := 26;
-    FillShape.Left := 0;
-    FillShape.Height := 16;
-    FillShape.Width := BarW;
-
-    if HWRefs[i].IsCurrent then
-    begin
-      FillShape.Brush.Color := RGBToColor(0, 240, 255);
-      FillShape.Pen.Color := clWhite;
-      FillShape.Pen.Width := 2;
-    end
-    else
-    begin
-      FillShape.Brush.Color := COLOR_BAR_DEFAULT;
-      FillShape.Pen.Color := COLOR_BAR_DEFAULT;
-    end;
 
     // Specs under the bar if current system
     if HWRefs[i].IsCurrent then

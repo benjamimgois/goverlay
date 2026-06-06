@@ -352,7 +352,7 @@ begin
 
   // Benchmark results menu item
   FForm.FBenchmarkResultsItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FBenchmarkResultsItem.Caption := 'Últimos Resultados Benchmark';
+  FForm.FBenchmarkResultsItem.Caption := 'Latest Benchmark Results';
   FForm.FBenchmarkResultsItem.ImageIndex := 12;
   FForm.FBenchmarkResultsItem.OnClick := @FForm.BenchmarkResultsMenuItemClick;
   FForm.settingsMenu.Items.Insert(3, FForm.FBenchmarkResultsItem);

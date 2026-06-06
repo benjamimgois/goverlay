@@ -5,8 +5,21 @@
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec2 inTexCoord;
+layout (location = 2) in vec3 inPosition;
 
 layout (binding = 1) uniform sampler2D samplerColor;
+
+struct ModelMatrixInfo {
+	mat4 modelViewProjectionMatrix;
+	mat4 modelViewMatrix;
+	mat4 modelViewNormalMatrix;
+};
+
+layout (binding = 0) uniform UBO {
+	ModelMatrixInfo instances[256];
+	vec4 particlePositions[8];
+	vec4 particleColors[8];
+} ubo;
 
 layout (push_constant) uniform PushConsts {
 	vec4 vector;
@@ -22,31 +35,27 @@ float hash(float n) {
 
 void main() {
     vec3 N = normalize(inNormal);
-    vec3 V = vec3(0.0, 0.0, 1.0);
+    vec3 V = normalize(-inPosition);
     
     float gpuStressMode = pushConsts.params.w; // 0 = normal, >0 = heavy GPU mode
     
     vec3 lighting;
+    vec3 reflectionColor = vec3(0.0);
     
     if (gpuStressMode > 0.5) {
-        // GPU HEAVY MODE: 8 procedural orbiting lights
+        // GPU HEAVY MODE: 8 actual orbiting particles lighting + reflection
         vec3 totalLight = vec3(0.05); // ambient
-        float time = gpuStressMode;
         
         for (int i = 0; i < 8; i++) {
-            float fi = float(i);
-            vec3 lightPos = vec3(
-                sin(time * (0.5 + fi * 0.1) + fi * 0.8) * 5.0,
-                cos(time * (0.3 + fi * 0.05) + fi * 1.2) * 3.0 + 1.0,
-                sin(time * (0.4 + fi * 0.07) + fi * 2.0) * 4.0
-            );
+            vec3 lightPos = ubo.particlePositions[i].xyz;
+            vec3 lightColor = ubo.particleColors[i].rgb;
             
-            vec3 L = normalize(lightPos);
+            vec3 L = normalize(lightPos - inPosition);
             vec3 H = normalize(L + V);
             
             // Distance attenuation
-            float dist = length(lightPos);
-            float atten = 1.0 / (1.0 + dist * 0.1 + dist * dist * 0.01);
+            float dist = length(lightPos - inPosition);
+            float atten = 1.0 / (1.0 + dist * 0.2 + dist * dist * 0.1);
             
             // Smooth Diffuse
             float diff = max(dot(N, L), 0.0);
@@ -54,15 +63,8 @@ void main() {
             // Smooth Specular
             float spec = pow(max(dot(N, H), 0.0), pushConsts.params.z);
             
-            // Light color variation
-            vec3 lightColor = vec3(
-                0.7 + sin(fi * 2.1) * 0.3,
-                0.7 + sin(fi * 3.7) * 0.3,
-                0.7 + sin(fi * 5.3) * 0.3
-            );
-            
             totalLight += (diff * pushConsts.params.x * lightColor + 
-                           spec * pushConsts.params.y * vec3(1.0)) * atten;
+                           spec * pushConsts.params.y * lightColor) * atten;
         }
         
         // Extra noise stress
@@ -74,6 +76,22 @@ void main() {
         noise = noise / 16.0;
         
         lighting = totalLight * (0.95 + noise * 0.1);
+
+        // Colored Specular reflections of the particles on the cube surface
+        vec3 R = reflect(-V, N);
+        for (int i = 0; i < 8; i++) {
+            vec3 P = ubo.particlePositions[i].xyz;
+            vec3 C = ubo.particleColors[i].rgb;
+            
+            vec3 D = P - inPosition;
+            float t = dot(D, R);
+            if (t > 0.0) {
+                float distSq = dot(D, D) - t * t;
+                // Soft glow reflection
+                float reflectionIntensity = exp(-distSq * 25.0) * (1.0 / (1.0 + t * 0.15));
+                reflectionColor += C * reflectionIntensity * 1.5;
+            }
+        }
     } else {
         // NORMAL MODE: directional light from top-front
         vec3 L = normalize(vec3(0.2, 0.95, 0.4));
@@ -90,7 +108,7 @@ void main() {
     
     // Base color: premium matte light-grey/white
     vec3 baseColor = vec3(0.9) * pushConsts.vector.rgb;
-    vec3 finalColor = lighting * baseColor;
+    vec3 finalColor = lighting * baseColor + reflectionColor;
     
     outColor = vec4(finalColor, pushConsts.vector.a);
 }
