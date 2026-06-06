@@ -2573,22 +2573,21 @@ begin
    itemY := cardY + 2.8 * charHeight;
 
    for i := 0 to 8 do begin
-    // Left: Name
+    // --- Linha 1: Nome (esquerda) + Pontuacao (direita) ---
     if HWRefs[i].IsCurrent then
-     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
     else
-     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    // Right: Score
     hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
     if HWRefs[i].IsCurrent then
-     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
+     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0)
     else
-     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY + 0.2 * charHeight, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
+     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, 180.0 / 255.0, 185.0 / 255.0, 200.0 / 255.0, 1.0);
 
-    // Draw horizontal bar dynamically
-    barStartX := rightColX1 + 22.5 * charWidth;
-    maxBarWidth := rightColWidth - 25.0 * charWidth;
+    // --- Linha 2: Barra fina moderna ---
+    barStartX := rightColX1 + 2.5 * charWidth;
+    maxBarWidth := rightColWidth - 5.0 * charWidth;
     barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
     if barWidth < 2.0 then barWidth := 2.0;
 
@@ -2604,10 +2603,10 @@ begin
      bgA := 0.8;
     end;
 
-    barHeight := 0.25 * charHeight;
-    barY := itemY + 1.4 * charHeight;
+    barHeight := 0.18 * charHeight;
+    barY := itemY + 1.1 * charHeight;
 
-    // Background track
+    // Background track (ocupa toda a larg util)
     app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
                            22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8,
                            50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6,
@@ -2615,19 +2614,19 @@ begin
     // Fill
     app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, bgR, bgG, bgB, bgA, bgR, bgG, bgB, bgA, 255.0);
 
-    // Draw Specs only when expanded
+    // --- Linha 3: Especificacoes (accordion, oculto por padrao) ---
     if fExpandedHardwareIdx = i then begin
      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                             itemY + 2.8 * charHeight,
-                             textScaleSmall,
+                             itemY + 1.65 * charHeight,
+                             0.6,
                              toaLeft,
                              HWRefs[i].Specs,
                              1.0, 1.0, 1.0, 0.0,
                              179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, 1.0
                             );
-     itemY := itemY + 4.8 * charHeight;
+     itemY := itemY + 4.2 * charHeight;
     end else begin
-     itemY := itemY + 3.0 * charHeight;
+     itemY := itemY + 2.6 * charHeight;
     end;
    end;
 
