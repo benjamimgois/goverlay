@@ -49,7 +49,7 @@ clean:
 	rm -f goverlay.lps
 	rm -f goverlay_*.tar.xz
 
-install: goverlay data/goverlay.sh bgmod bgmod-uninstaller pascube_bin
+install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay
 	install -D -m=755 pascube $(DESTDIR)$(prefix)$(libexecdir)/pascube
 	install -D -m=755 data/goverlay.sh $(DESTDIR)$(prefix)$(bindir)/goverlay
