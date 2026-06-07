@@ -29,50 +29,50 @@ void main() {
     vec3 lighting;
     
     if (gpuStressMode > 0.5) {
-        // GPU HEAVY MODE: 8 procedural orbiting lights
+        // GPU STRESS MODE: 4 procedural orbiting lights (reduced from 8 for better scaling on slower GPUs)
         vec3 totalLight = vec3(0.05); // ambient
         float time = gpuStressMode;
-        
-        for (int i = 0; i < 8; i++) {
+
+        for (int i = 0; i < 4; i++) {
             float fi = float(i);
             vec3 lightPos = vec3(
                 sin(time * (0.5 + fi * 0.1) + fi * 0.8) * 5.0,
                 cos(time * (0.3 + fi * 0.05) + fi * 1.2) * 3.0 + 1.0,
                 sin(time * (0.4 + fi * 0.07) + fi * 2.0) * 4.0
             );
-            
+
             vec3 L = normalize(lightPos);
             vec3 H = normalize(L + V);
-            
+
             // Distance attenuation
             float dist = length(lightPos);
             float atten = 1.0 / (1.0 + dist * 0.1 + dist * dist * 0.01);
-            
+
             // Smooth Diffuse
             float diff = max(dot(N, L), 0.0);
-            
+
             // Smooth Specular
             float spec = pow(max(dot(N, H), 0.0), pushConsts.params.z);
-            
+
             // Light color variation
             vec3 lightColor = vec3(
                 0.7 + sin(fi * 2.1) * 0.3,
                 0.7 + sin(fi * 3.7) * 0.3,
                 0.7 + sin(fi * 5.3) * 0.3
             );
-            
-            totalLight += (diff * pushConsts.params.x * lightColor + 
+
+            totalLight += (diff * pushConsts.params.x * lightColor +
                            spec * pushConsts.params.y * vec3(1.0)) * atten;
         }
-        
-        // Extra noise stress
+
+        // Light noise stress (reduced from 16 to 4 iterations)
         float noise = 0.0;
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 4; i++) {
             float fi = float(i);
             noise += hash(inTexCoord.x * 100.0 + fi) * hash(inTexCoord.y * 100.0 + fi + 50.0);
         }
-        noise = noise / 16.0;
-        
+        noise = noise / 4.0;
+
         lighting = totalLight * (0.95 + noise * 0.1);
     } else {
         // NORMAL MODE: directional light from top-front
