@@ -225,9 +225,9 @@ begin
 
    SetLength(SDFFontData,SDFFontWidth*SDFFontHeight*SDFFontDepth);
 
-   Stream:=TpvDataStream.Create(@GUIStandardTrueTypeFontMonoFontData,GUIStandardTrueTypeFontMonoFontDataSize);
-   try
-    TrueTypeFont:=TpvTrueTypeFont.Create(Stream);
+    Stream:=TpvDataStream.Create(@GUIStandardTrueTypeFontMonoFontData,GUIStandardTrueTypeFontMonoFontDataSize);
+    try
+     TrueTypeFont:=TpvTrueTypeFont.Create(Stream);
     try
      TrueTypeFont.GenerateSimpleLinearSignedDistanceFieldTextureArray(@SDFFontData[0],
                                                                       SDFFontWidth,
