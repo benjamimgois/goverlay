@@ -13397,3 +13397,556 @@
 23:07:20.053 | T7ZipThread: Matched Tot. Score: 108412
 23:07:20.103 | T7ZipThread.Execute: Process loop ended. ExitStatus = -1
 23:07:20.103 | T7ZipThread.Execute: Thread completed. Score = 108412
+16:25:05.088 | T7ZipThread.Execute: Thread started. Cmd: 7z Args: -mmt1
+16:25:05.089 | T7ZipThread.Execute: Spawning process... Executable = /bin/sh
+16:25:05.089 | T7ZipThread.Execute: Param[0] = -c
+16:25:05.089 | T7ZipThread.Execute: Param[1] = for fd in /proc/self/fd/*; do fd_num="${fd##*/}"; [ "$fd_num" = "*" ] && continue; if [ "$fd_num" -gt 2 ]; then eval "exec $fd_num>&-" 2>/dev/null; fi; done; if command -v stdbuf >/dev/null 2>&1; then exec stdbuf -oL 7z b -mmt1 3; else exec 7z b -mmt1 3; fi
+16:25:05.089 | --- Environment Variables ---
+16:25:05.089 | Env: COLORFGBG=15;0
+16:25:05.089 | Env: COLORTERM=truecolor
+16:25:05.089 | Env: DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+16:25:05.089 | Env: DEBUGINFOD_URLS=https://debuginfod.archlinux.org https://debuginfod.cachyos.org 
+16:25:05.089 | Env: DESKTOP_SESSION=/usr/share/wayland-sessions/plasma.desktop
+16:25:05.089 | Env: DISPLAY=:0
+16:25:05.089 | Env: FLATPAK_TTY_PROGRESS=1
+16:25:05.089 | Env: GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/benjamim/.gtkrc-2.0:/home/benjamim/.config/gtkrc-2.0
+16:25:05.089 | Env: GTK_RC_FILES=/etc/gtk/gtkrc:/home/benjamim/.gtkrc:/home/benjamim/.config/gtkrc
+16:25:05.089 | Env: HOME=/home/benjamim
+16:25:05.089 | Env: ICEAUTHORITY=/run/user/1000/iceauth_BxvUoV
+16:25:05.089 | Env: INVOCATION_ID=a71f8d4fba6044eb91a1a84515b7bc88
+16:25:05.089 | Env: JOURNAL_STREAM=10:28904
+16:25:05.089 | Env: KDE_APPLICATIONS_AS_SCOPE=1
+16:25:05.089 | Env: KDE_FULL_SESSION=true
+16:25:05.089 | Env: KDE_SESSION_UID=1000
+16:25:05.089 | Env: KDE_SESSION_VERSION=6
+16:25:05.089 | Env: KONSOLE_DBUS_ACTIVATION_COOKIE=d9pkRkNLUCrW/I6lBfK6ma0VFQ6XM2OSiLgPAeaAb0Y=
+16:25:05.089 | Env: KONSOLE_DBUS_SERVICE=:1.191
+16:25:05.089 | Env: KONSOLE_DBUS_SESSION=/Sessions/1
+16:25:05.089 | Env: KONSOLE_DBUS_WINDOW=/Windows/1
+16:25:05.089 | Env: KONSOLE_VERSION=260402
+16:25:05.089 | Env: LANG=pt_BR.UTF-8
+16:25:05.089 | Env: LANGUAGE=
+16:25:05.089 | Env: LC_ADDRESS=pt_BR.UTF-8
+16:25:05.089 | Env: LC_IDENTIFICATION=pt_BR.UTF-8
+16:25:05.089 | Env: LC_MEASUREMENT=pt_BR.UTF-8
+16:25:05.089 | Env: LC_MONETARY=pt_BR.UTF-8
+16:25:05.089 | Env: LC_NAME=pt_BR.UTF-8
+16:25:05.089 | Env: LC_NUMERIC=pt_BR.UTF-8
+16:25:05.089 | Env: LC_PAPER=pt_BR.UTF-8
+16:25:05.089 | Env: LC_TELEPHONE=pt_BR.UTF-8
+16:25:05.089 | Env: LC_TIME=pt_BR.UTF-8
+16:25:05.089 | Env: LOGNAME=benjamim
+16:25:05.089 | Env: MAIL=/var/spool/mail/benjamim
+16:25:05.089 | Env: MANAGERPID=1116
+16:25:05.089 | Env: MANAGERPIDFDID=16436
+16:25:05.089 | Env: MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/session.slice/plasma-plasmashell.service/memory.pressure
+16:25:05.089 | Env: MEMORY_PRESSURE_WRITE=c29tZSAyMDAwMDAgMjAwMDAwMAA=
+16:25:05.089 | Env: MOTD_SHOWN=pam
+16:25:05.089 | Env: OLDPWD=/home/benjamim
+16:25:05.089 | Env: PAM_KWALLET5_LOGIN=/run/user/1000/kwallet5.socket
+16:25:05.089 | Env: PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+16:25:05.089 | Env: PROFILEHOME=
+16:25:05.089 | Env: PWD=/mnt/NVME/Software/goverlay
+16:25:05.089 | Env: QT_WAYLAND_RECONNECT=1
+16:25:05.089 | Env: SESSION_MANAGER=local/cachyos-x8664:@/tmp/.ICE-unix/1355,unix/cachyos-x8664:/tmp/.ICE-unix/1355
+16:25:05.089 | Env: SHELL=/usr/bin/zsh
+16:25:05.089 | Env: SHELL_SESSION_ID=f21420d782f94085acc729bf0d19a60a
+16:25:05.089 | Env: SYSTEMD_EXEC_PID=1419
+16:25:05.089 | Env: TERM=xterm-256color
+16:25:05.089 | Env: USER=benjamim
+16:25:05.089 | Env: WAYLAND_DISPLAY=wayland-0
+16:25:05.089 | Env: WINDOWID=94823404439792
+16:25:05.089 | Env: XAUTHORITY=/run/user/1000/xauth_VlxOXT
+16:25:05.089 | Env: XDG_CONFIG_DIRS=/home/benjamim/.config/kdedefaults:/etc/xdg
+16:25:05.089 | Env: XDG_CURRENT_DESKTOP=KDE
+16:25:05.089 | Env: XDG_DATA_DIRS=/home/benjamim/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+16:25:05.089 | Env: XDG_MENU_PREFIX=plasma-
+16:25:05.089 | Env: XDG_RUNTIME_DIR=/run/user/1000
+16:25:05.089 | Env: XDG_SEAT=seat0
+16:25:05.089 | Env: XDG_SEAT_PATH=/org/freedesktop/DisplayManager/Seat0
+16:25:05.089 | Env: XDG_SESSION_CLASS=user
+16:25:05.089 | Env: XDG_SESSION_DESKTOP=KDE
+16:25:05.089 | Env: XDG_SESSION_ID=2
+16:25:05.089 | Env: XDG_SESSION_PATH=/org/freedesktop/DisplayManager/Session1
+16:25:05.089 | Env: XDG_SESSION_TYPE=wayland
+16:25:05.089 | Env: XDG_VTNR=2
+16:25:05.089 | Env: XKB_DEFAULT_LAYOUT=br
+16:25:05.089 | Env: _JAVA_AWT_WM_NONREPARENTING=1
+16:25:05.089 | Env: SHLVL=1
+16:25:05.089 | Env: P9K_TTY=old
+16:25:05.089 | Env: _P9K_TTY=/dev/pts/0
+16:25:05.089 | Env: ZSH=/usr/share/oh-my-zsh
+16:25:05.089 | Env: PAGER=less
+16:25:05.089 | Env: LESS=-R
+16:25:05.089 | Env: LSCOLORS=Gxfxcxdxbxegedabagacad
+16:25:05.089 | Env: LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.7z=01;31:*.ace=01;31:*.alz=01;31:*.apk=01;31:*.arc=01;31:*.arj=01;31:*.bz=01;31:*.bz2=01;31:*.cab=01;31:*.cpio=01;31:*.crate=01;31:*.deb=01;31:*.drpm=01;31:*.dwm=01;31:*.dz=01;31:*.ear=01;31:*.egg=01;31:*.esd=01;31:*.gz=01;31:*.jar=01;31:*.lha=01;31:*.lrz=01;31:*.lz=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.lzo=01;31:*.pyz=01;31:*.rar=01;31:*.rpm=01;31:*.rz=01;31:*.sar=01;31:*.swm=01;31:*.t7z=01;31:*.tar=01;31:*.taz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tgz=01;31:*.tlz=01;31:*.txz=01;31:*.tz=01;31:*.tzo=01;31:*.tzst=01;31:*.udeb=01;31:*.war=01;31:*.whl=01;31:*.wim=01;31:*.xz=01;31:*.z=01;31:*.zip=01;31:*.zoo=01;31:*.zst=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.jxl=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:
+16:25:05.089 | Env: FZF_DEFAULT_COMMAND=fd --type f --hidden --exclude .git
+16:25:05.089 | Env: HISTCONTROL=ignoreboth
+16:25:05.089 | Env: HISTORY_IGNORE=(\&|[bf]g|c|clear|history|exit|q|pwd|* --help)
+16:25:05.089 | Env: LESS_TERMCAP_md=[1m[32m
+16:25:05.089 | Env: LESS_TERMCAP_me=(B[m
+16:25:05.089 | Env: PROMPT_COMMAND=history -a; 
+16:25:05.089 | Env: P9K_SSH=0
+16:25:05.089 | Env: _P9K_SSH_TTY=/dev/pts/0
+16:25:05.089 | Env: FZF_BASE=/usr/share/fzf
+16:25:05.089 | Env: _=/mnt/NVME/Software/goverlay/./pascube
+16:25:05.089 | -----------------------------
+16:25:05.089 | --- Child Environment Variables ---
+16:25:05.089 | Child Env: COLORFGBG=15;0
+16:25:05.089 | Child Env: COLORTERM=truecolor
+16:25:05.089 | Child Env: DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+16:25:05.090 | Child Env: DEBUGINFOD_URLS=https://debuginfod.archlinux.org https://debuginfod.cachyos.org 
+16:25:05.090 | Child Env: DESKTOP_SESSION=/usr/share/wayland-sessions/plasma.desktop
+16:25:05.090 | Child Env: DISPLAY=:0
+16:25:05.090 | Child Env: FLATPAK_TTY_PROGRESS=1
+16:25:05.090 | Child Env: GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/benjamim/.gtkrc-2.0:/home/benjamim/.config/gtkrc-2.0
+16:25:05.090 | Child Env: GTK_RC_FILES=/etc/gtk/gtkrc:/home/benjamim/.gtkrc:/home/benjamim/.config/gtkrc
+16:25:05.090 | Child Env: HOME=/home/benjamim
+16:25:05.090 | Child Env: ICEAUTHORITY=/run/user/1000/iceauth_BxvUoV
+16:25:05.090 | Child Env: INVOCATION_ID=a71f8d4fba6044eb91a1a84515b7bc88
+16:25:05.090 | Child Env: JOURNAL_STREAM=10:28904
+16:25:05.090 | Child Env: KDE_APPLICATIONS_AS_SCOPE=1
+16:25:05.090 | Child Env: KDE_FULL_SESSION=true
+16:25:05.090 | Child Env: KDE_SESSION_UID=1000
+16:25:05.090 | Child Env: KDE_SESSION_VERSION=6
+16:25:05.090 | Child Env: KONSOLE_DBUS_ACTIVATION_COOKIE=d9pkRkNLUCrW/I6lBfK6ma0VFQ6XM2OSiLgPAeaAb0Y=
+16:25:05.090 | Child Env: KONSOLE_DBUS_SERVICE=:1.191
+16:25:05.090 | Child Env: KONSOLE_DBUS_SESSION=/Sessions/1
+16:25:05.090 | Child Env: KONSOLE_DBUS_WINDOW=/Windows/1
+16:25:05.090 | Child Env: KONSOLE_VERSION=260402
+16:25:05.090 | Child Env: LANG=pt_BR.UTF-8
+16:25:05.090 | Child Env: LANGUAGE=
+16:25:05.090 | Child Env: LC_ADDRESS=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_IDENTIFICATION=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_MEASUREMENT=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_MONETARY=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_NAME=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_NUMERIC=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_PAPER=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_TELEPHONE=pt_BR.UTF-8
+16:25:05.090 | Child Env: LC_TIME=pt_BR.UTF-8
+16:25:05.090 | Child Env: LOGNAME=benjamim
+16:25:05.090 | Child Env: MAIL=/var/spool/mail/benjamim
+16:25:05.090 | Child Env: MANAGERPID=1116
+16:25:05.090 | Child Env: MANAGERPIDFDID=16436
+16:25:05.090 | Child Env: MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/session.slice/plasma-plasmashell.service/memory.pressure
+16:25:05.090 | Child Env: MEMORY_PRESSURE_WRITE=c29tZSAyMDAwMDAgMjAwMDAwMAA=
+16:25:05.090 | Child Env: MOTD_SHOWN=pam
+16:25:05.090 | Child Env: OLDPWD=/home/benjamim
+16:25:05.090 | Child Env: PAM_KWALLET5_LOGIN=/run/user/1000/kwallet5.socket
+16:25:05.090 | Child Env: PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+16:25:05.090 | Child Env: PROFILEHOME=
+16:25:05.090 | Child Env: PWD=/mnt/NVME/Software/goverlay
+16:25:05.090 | Child Env: QT_WAYLAND_RECONNECT=1
+16:25:05.090 | Child Env: SESSION_MANAGER=local/cachyos-x8664:@/tmp/.ICE-unix/1355,unix/cachyos-x8664:/tmp/.ICE-unix/1355
+16:25:05.090 | Child Env: SHELL=/usr/bin/zsh
+16:25:05.090 | Child Env: SHELL_SESSION_ID=f21420d782f94085acc729bf0d19a60a
+16:25:05.090 | Child Env: SYSTEMD_EXEC_PID=1419
+16:25:05.090 | Child Env: TERM=xterm-256color
+16:25:05.090 | Child Env: USER=benjamim
+16:25:05.090 | Child Env: WAYLAND_DISPLAY=wayland-0
+16:25:05.090 | Child Env: WINDOWID=94823404439792
+16:25:05.090 | Child Env: XAUTHORITY=/run/user/1000/xauth_VlxOXT
+16:25:05.090 | Child Env: XDG_CONFIG_DIRS=/home/benjamim/.config/kdedefaults:/etc/xdg
+16:25:05.090 | Child Env: XDG_CURRENT_DESKTOP=KDE
+16:25:05.090 | Child Env: XDG_DATA_DIRS=/home/benjamim/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+16:25:05.090 | Child Env: XDG_MENU_PREFIX=plasma-
+16:25:05.090 | Child Env: XDG_RUNTIME_DIR=/run/user/1000
+16:25:05.090 | Child Env: XDG_SEAT=seat0
+16:25:05.090 | Child Env: XDG_SEAT_PATH=/org/freedesktop/DisplayManager/Seat0
+16:25:05.090 | Child Env: XDG_SESSION_CLASS=user
+16:25:05.090 | Child Env: XDG_SESSION_DESKTOP=KDE
+16:25:05.090 | Child Env: XDG_SESSION_ID=2
+16:25:05.090 | Child Env: XDG_SESSION_PATH=/org/freedesktop/DisplayManager/Session1
+16:25:05.090 | Child Env: XDG_SESSION_TYPE=wayland
+16:25:05.090 | Child Env: XDG_VTNR=2
+16:25:05.090 | Child Env: XKB_DEFAULT_LAYOUT=br
+16:25:05.090 | Child Env: _JAVA_AWT_WM_NONREPARENTING=1
+16:25:05.090 | Child Env: SHLVL=1
+16:25:05.090 | Child Env: P9K_TTY=old
+16:25:05.090 | Child Env: _P9K_TTY=/dev/pts/0
+16:25:05.090 | Child Env: ZSH=/usr/share/oh-my-zsh
+16:25:05.090 | Child Env: PAGER=less
+16:25:05.090 | Child Env: LESS=-R
+16:25:05.090 | Child Env: LSCOLORS=Gxfxcxdxbxegedabagacad
+16:25:05.090 | Child Env: LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.7z=01;31:*.ace=01;31:*.alz=01;31:*.apk=01;31:*.arc=01;31:*.arj=01;31:*.bz=01;31:*.bz2=01;31:*.cab=01;31:*.cpio=01;31:*.crate=01;31:*.deb=01;31:*.drpm=01;31:*.dwm=01;31:*.dz=01;31:*.ear=01;31:*.egg=01;31:*.esd=01;31:*.gz=01;31:*.jar=01;31:*.lha=01;31:*.lrz=01;31:*.lz=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.lzo=01;31:*.pyz=01;31:*.rar=01;31:*.rpm=01;31:*.rz=01;31:*.sar=01;31:*.swm=01;31:*.t7z=01;31:*.tar=01;31:*.taz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tgz=01;31:*.tlz=01;31:*.txz=01;31:*.tz=01;31:*.tzo=01;31:*.tzst=01;31:*.udeb=01;31:*.war=01;31:*.whl=01;31:*.wim=01;31:*.xz=01;31:*.z=01;31:*.zip=01;31:*.zoo=01;31:*.zst=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.jxl=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:
+16:25:05.090 | Child Env: FZF_DEFAULT_COMMAND=fd --type f --hidden --exclude .git
+16:25:05.090 | Child Env: HISTCONTROL=ignoreboth
+16:25:05.090 | Child Env: HISTORY_IGNORE=(\&|[bf]g|c|clear|history|exit|q|pwd|* --help)
+16:25:05.090 | Child Env: LESS_TERMCAP_md=[1m[32m
+16:25:05.090 | Child Env: LESS_TERMCAP_me=(B[m
+16:25:05.090 | Child Env: PROMPT_COMMAND=history -a; 
+16:25:05.090 | Child Env: P9K_SSH=0
+16:25:05.090 | Child Env: _P9K_SSH_TTY=/dev/pts/0
+16:25:05.090 | Child Env: FZF_BASE=/usr/share/fzf
+16:25:05.090 | Child Env: _=/mnt/NVME/Software/goverlay/./pascube
+16:25:05.090 | -----------------------------------
+16:25:05.091 | T7ZipThread.Execute: Process spawned successfully.
+16:25:05.141 | T7ZipThread: Read line: 7-Zip 26.01 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-04-27
+16:25:05.141 | T7ZipThread: Read line: 64-bit locale=pt_BR.UTF-8 Threads:16 OPEN_MAX:4096, ASM
+16:25:05.141 | T7ZipThread: Read line: mt1
+16:25:05.141 | T7ZipThread: Read line: Compiler:  ver:15.2.1 20260209 GCC 15.2.1 : AVX512VL
+16:25:05.141 | T7ZipThread: Read line: Linux : 7.0.11-1-cachyos : #1 SMP PREEMPT_DYNAMIC Fri, 05 Jun 2026 09:37:35 +0000 : x86_64
+16:25:05.141 | T7ZipThread: Read line: PageSize:4KB HPS:2MB THPS:2MB THP:always hwcap:2 hwcap2:2
+16:25:05.141 | T7ZipThread: Read line: AMD Ryzen 7 7800X3D 8-Core Processor
+16:25:05.141 | T7ZipThread: Read line: (A60F12)  (LP)
+16:25:05.942 | T7ZipThread: Read line: 1T CPU Freq (MHz):  4939  4940  4809  4957  4950  4923  4938
+16:25:05.942 | T7ZipThread: Read line: RAM size:   31692 MB (LP),  # CPU hardware threads:  16
+16:25:05.942 | T7ZipThread: Read line: RAM usage:    437 MB (LP),  # Benchmark threads:      1
+16:25:05.942 | T7ZipThread: Read line: Compressing  |                  Decompressing
+16:25:05.942 | T7ZipThread: Read line: Dict     Speed Usage    R/U Rating  |      Speed Usage    R/U Rating
+16:25:05.942 | T7ZipThread: Read line: KiB/s     %   MIPS   MIPS  |      KiB/s     %   MIPS   MIPS
+16:25:06.042 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:07.044 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:08.045 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:08.646 | T7ZipThread: Read line: 22:      12042   100  11674  11715  |     121690    99  10459  10390
+16:25:08.646 | T7ZipThread: Matched step: 1 progress: 0.08333333582
+16:25:09.046 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:10.047 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:11.049 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 69
+16:25:11.049 | T7ZipThread: Read line: 23:      11276   101  11367  11489  |     120201    99  10458  10405
+16:25:11.049 | T7ZipThread: Matched step: 2 progress: 0.1666666716
+16:25:12.050 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:13.051 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:14.052 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:14.453 | T7ZipThread: Read line: 24:       8989    99   9717   9666  |     117849    99  10450  10346
+16:25:14.453 | T7ZipThread: Matched step: 3 progress: 0.25
+16:25:15.053 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:16.055 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:17.056 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:18.057 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:19.058 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:20.059 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:20.310 | T7ZipThread: Read line: 25:       7571   100   8677   8645  |     116275   100  10363  10349
+16:25:20.310 | T7ZipThread: Matched step: 4 progress: 0.3333333433
+16:25:21.061 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:22.062 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:22.963 | T7ZipThread: Read line: 22:      12148   100  11787  11818  |     121161   100  10396  10345
+16:25:22.963 | T7ZipThread: Matched step: 5 progress: 0.4166666567
+16:25:23.063 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:24.064 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:25.066 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:25.366 | T7ZipThread: Read line: 23:      11183   100  11367  11395  |     121708   100  10587  10535
+16:25:25.366 | T7ZipThread: Matched step: 6 progress: 0.5
+16:25:26.067 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:27.068 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:28.069 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:28.720 | T7ZipThread: Read line: 24:       9266   100   9991   9964  |     118228    99  10450  10379
+16:25:28.720 | T7ZipThread: Matched step: 7 progress: 0.5833333135
+16:25:29.070 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:30.072 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:31.073 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:32.074 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:33.075 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:34.077 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:34.577 | T7ZipThread: Read line: 25:       7643    99   8779   8727  |     112475    99  10077  10011
+16:25:34.577 | T7ZipThread: Matched step: 8 progress: 0.6666666865
+16:25:35.078 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:36.079 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:37.080 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:37.180 | T7ZipThread: Read line: 22:      12693   100  12388  12348  |     121618   100  10396  10384
+16:25:37.180 | T7ZipThread: Matched step: 9 progress: 0.75
+16:25:38.081 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:39.083 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:39.633 | T7ZipThread: Read line: 23:      11083    99  11367  11293  |     117332    99  10209  10156
+16:25:39.633 | T7ZipThread: Matched step: 10 progress: 0.8333333135
+16:25:40.084 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:41.085 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:42.086 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:43.088 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 69
+16:25:43.088 | T7ZipThread: Read line: 24:       8757    99   9559   9416  |     118812    99  10519  10431
+16:25:43.088 | T7ZipThread: Matched step: 11 progress: 0.9166666865
+16:25:44.089 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:45.090 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:46.091 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:47.092 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:48.094 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:48.795 | T7ZipThread: Read line: 25:       7795   100   8925   8901  |     118079   100  10512  10510
+16:25:48.795 | T7ZipThread: Matched step: 12 progress: 1
+16:25:48.795 | T7ZipThread: Read line: ----------------------------------  | ------------------------------
+16:25:48.795 | T7ZipThread: Read line: Avr:     10037   100  10467  10448  |     118786    99  10406  10353
+16:25:48.795 | T7ZipThread: Read line: Tot:             100  10436  10401
+16:25:48.795 | T7ZipThread: Matched Tot. Score: 10401
+16:25:48.845 | T7ZipThread.Execute: Process loop ended. ExitStatus = -1
+16:25:48.845 | T7ZipThread.Execute: Thread completed. Score = 10401
+16:25:48.846 | T7ZipThread.Execute: Thread started. Cmd: 7z Args: 
+16:25:48.846 | T7ZipThread.Execute: Spawning process... Executable = /bin/sh
+16:25:48.846 | T7ZipThread.Execute: Param[0] = -c
+16:25:48.846 | T7ZipThread.Execute: Param[1] = for fd in /proc/self/fd/*; do fd_num="${fd##*/}"; [ "$fd_num" = "*" ] && continue; if [ "$fd_num" -gt 2 ]; then eval "exec $fd_num>&-" 2>/dev/null; fi; done; if command -v stdbuf >/dev/null 2>&1; then exec stdbuf -oL 7z b 3; else exec 7z b 3; fi
+16:25:48.846 | --- Environment Variables ---
+16:25:48.846 | Env: COLORFGBG=15;0
+16:25:48.846 | Env: COLORTERM=truecolor
+16:25:48.846 | Env: DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+16:25:48.846 | Env: DEBUGINFOD_URLS=https://debuginfod.archlinux.org https://debuginfod.cachyos.org 
+16:25:48.846 | Env: DESKTOP_SESSION=/usr/share/wayland-sessions/plasma.desktop
+16:25:48.846 | Env: DISPLAY=:0
+16:25:48.846 | Env: FLATPAK_TTY_PROGRESS=1
+16:25:48.846 | Env: GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/benjamim/.gtkrc-2.0:/home/benjamim/.config/gtkrc-2.0
+16:25:48.846 | Env: GTK_RC_FILES=/etc/gtk/gtkrc:/home/benjamim/.gtkrc:/home/benjamim/.config/gtkrc
+16:25:48.846 | Env: HOME=/home/benjamim
+16:25:48.846 | Env: ICEAUTHORITY=/run/user/1000/iceauth_BxvUoV
+16:25:48.846 | Env: INVOCATION_ID=a71f8d4fba6044eb91a1a84515b7bc88
+16:25:48.846 | Env: JOURNAL_STREAM=10:28904
+16:25:48.846 | Env: KDE_APPLICATIONS_AS_SCOPE=1
+16:25:48.846 | Env: KDE_FULL_SESSION=true
+16:25:48.847 | Env: KDE_SESSION_UID=1000
+16:25:48.847 | Env: KDE_SESSION_VERSION=6
+16:25:48.847 | Env: KONSOLE_DBUS_ACTIVATION_COOKIE=d9pkRkNLUCrW/I6lBfK6ma0VFQ6XM2OSiLgPAeaAb0Y=
+16:25:48.847 | Env: KONSOLE_DBUS_SERVICE=:1.191
+16:25:48.847 | Env: KONSOLE_DBUS_SESSION=/Sessions/1
+16:25:48.847 | Env: KONSOLE_DBUS_WINDOW=/Windows/1
+16:25:48.847 | Env: KONSOLE_VERSION=260402
+16:25:48.847 | Env: LANG=pt_BR.UTF-8
+16:25:48.847 | Env: LANGUAGE=
+16:25:48.847 | Env: LC_ADDRESS=pt_BR.UTF-8
+16:25:48.847 | Env: LC_IDENTIFICATION=pt_BR.UTF-8
+16:25:48.847 | Env: LC_MEASUREMENT=pt_BR.UTF-8
+16:25:48.847 | Env: LC_MONETARY=pt_BR.UTF-8
+16:25:48.847 | Env: LC_NAME=pt_BR.UTF-8
+16:25:48.847 | Env: LC_NUMERIC=pt_BR.UTF-8
+16:25:48.847 | Env: LC_PAPER=pt_BR.UTF-8
+16:25:48.847 | Env: LC_TELEPHONE=pt_BR.UTF-8
+16:25:48.847 | Env: LC_TIME=pt_BR.UTF-8
+16:25:48.847 | Env: LOGNAME=benjamim
+16:25:48.847 | Env: MAIL=/var/spool/mail/benjamim
+16:25:48.847 | Env: MANAGERPID=1116
+16:25:48.847 | Env: MANAGERPIDFDID=16436
+16:25:48.847 | Env: MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/session.slice/plasma-plasmashell.service/memory.pressure
+16:25:48.847 | Env: MEMORY_PRESSURE_WRITE=c29tZSAyMDAwMDAgMjAwMDAwMAA=
+16:25:48.847 | Env: MOTD_SHOWN=pam
+16:25:48.847 | Env: OLDPWD=/home/benjamim
+16:25:48.847 | Env: PAM_KWALLET5_LOGIN=/run/user/1000/kwallet5.socket
+16:25:48.847 | Env: PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+16:25:48.847 | Env: PROFILEHOME=
+16:25:48.847 | Env: PWD=/mnt/NVME/Software/goverlay
+16:25:48.847 | Env: QT_WAYLAND_RECONNECT=1
+16:25:48.847 | Env: SESSION_MANAGER=local/cachyos-x8664:@/tmp/.ICE-unix/1355,unix/cachyos-x8664:/tmp/.ICE-unix/1355
+16:25:48.847 | Env: SHELL=/usr/bin/zsh
+16:25:48.847 | Env: SHELL_SESSION_ID=f21420d782f94085acc729bf0d19a60a
+16:25:48.847 | Env: SYSTEMD_EXEC_PID=1419
+16:25:48.847 | Env: TERM=xterm-256color
+16:25:48.847 | Env: USER=benjamim
+16:25:48.847 | Env: WAYLAND_DISPLAY=wayland-0
+16:25:48.847 | Env: WINDOWID=94823404439792
+16:25:48.847 | Env: XAUTHORITY=/run/user/1000/xauth_VlxOXT
+16:25:48.847 | Env: XDG_CONFIG_DIRS=/home/benjamim/.config/kdedefaults:/etc/xdg
+16:25:48.847 | Env: XDG_CURRENT_DESKTOP=KDE
+16:25:48.847 | Env: XDG_DATA_DIRS=/home/benjamim/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+16:25:48.847 | Env: XDG_MENU_PREFIX=plasma-
+16:25:48.847 | Env: XDG_RUNTIME_DIR=/run/user/1000
+16:25:48.847 | Env: XDG_SEAT=seat0
+16:25:48.847 | Env: XDG_SEAT_PATH=/org/freedesktop/DisplayManager/Seat0
+16:25:48.847 | Env: XDG_SESSION_CLASS=user
+16:25:48.847 | Env: XDG_SESSION_DESKTOP=KDE
+16:25:48.847 | Env: XDG_SESSION_ID=2
+16:25:48.847 | Env: XDG_SESSION_PATH=/org/freedesktop/DisplayManager/Session1
+16:25:48.847 | Env: XDG_SESSION_TYPE=wayland
+16:25:48.847 | Env: XDG_VTNR=2
+16:25:48.847 | Env: XKB_DEFAULT_LAYOUT=br
+16:25:48.847 | Env: _JAVA_AWT_WM_NONREPARENTING=1
+16:25:48.847 | Env: SHLVL=1
+16:25:48.847 | Env: P9K_TTY=old
+16:25:48.847 | Env: _P9K_TTY=/dev/pts/0
+16:25:48.847 | Env: ZSH=/usr/share/oh-my-zsh
+16:25:48.847 | Env: PAGER=less
+16:25:48.847 | Env: LESS=-R
+16:25:48.847 | Env: LSCOLORS=Gxfxcxdxbxegedabagacad
+16:25:48.847 | Env: LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.7z=01;31:*.ace=01;31:*.alz=01;31:*.apk=01;31:*.arc=01;31:*.arj=01;31:*.bz=01;31:*.bz2=01;31:*.cab=01;31:*.cpio=01;31:*.crate=01;31:*.deb=01;31:*.drpm=01;31:*.dwm=01;31:*.dz=01;31:*.ear=01;31:*.egg=01;31:*.esd=01;31:*.gz=01;31:*.jar=01;31:*.lha=01;31:*.lrz=01;31:*.lz=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.lzo=01;31:*.pyz=01;31:*.rar=01;31:*.rpm=01;31:*.rz=01;31:*.sar=01;31:*.swm=01;31:*.t7z=01;31:*.tar=01;31:*.taz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tgz=01;31:*.tlz=01;31:*.txz=01;31:*.tz=01;31:*.tzo=01;31:*.tzst=01;31:*.udeb=01;31:*.war=01;31:*.whl=01;31:*.wim=01;31:*.xz=01;31:*.z=01;31:*.zip=01;31:*.zoo=01;31:*.zst=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.jxl=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:
+16:25:48.847 | Env: FZF_DEFAULT_COMMAND=fd --type f --hidden --exclude .git
+16:25:48.847 | Env: HISTCONTROL=ignoreboth
+16:25:48.847 | Env: HISTORY_IGNORE=(\&|[bf]g|c|clear|history|exit|q|pwd|* --help)
+16:25:48.847 | Env: LESS_TERMCAP_md=[1m[32m
+16:25:48.847 | Env: LESS_TERMCAP_me=(B[m
+16:25:48.847 | Env: PROMPT_COMMAND=history -a; 
+16:25:48.847 | Env: P9K_SSH=0
+16:25:48.847 | Env: _P9K_SSH_TTY=/dev/pts/0
+16:25:48.847 | Env: FZF_BASE=/usr/share/fzf
+16:25:48.847 | Env: _=/mnt/NVME/Software/goverlay/./pascube
+16:25:48.847 | -----------------------------
+16:25:48.847 | --- Child Environment Variables ---
+16:25:48.847 | Child Env: COLORFGBG=15;0
+16:25:48.847 | Child Env: COLORTERM=truecolor
+16:25:48.847 | Child Env: DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+16:25:48.847 | Child Env: DEBUGINFOD_URLS=https://debuginfod.archlinux.org https://debuginfod.cachyos.org 
+16:25:48.847 | Child Env: DESKTOP_SESSION=/usr/share/wayland-sessions/plasma.desktop
+16:25:48.847 | Child Env: DISPLAY=:0
+16:25:48.847 | Child Env: FLATPAK_TTY_PROGRESS=1
+16:25:48.847 | Child Env: GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/benjamim/.gtkrc-2.0:/home/benjamim/.config/gtkrc-2.0
+16:25:48.847 | Child Env: GTK_RC_FILES=/etc/gtk/gtkrc:/home/benjamim/.gtkrc:/home/benjamim/.config/gtkrc
+16:25:48.847 | Child Env: HOME=/home/benjamim
+16:25:48.847 | Child Env: ICEAUTHORITY=/run/user/1000/iceauth_BxvUoV
+16:25:48.847 | Child Env: INVOCATION_ID=a71f8d4fba6044eb91a1a84515b7bc88
+16:25:48.847 | Child Env: JOURNAL_STREAM=10:28904
+16:25:48.847 | Child Env: KDE_APPLICATIONS_AS_SCOPE=1
+16:25:48.847 | Child Env: KDE_FULL_SESSION=true
+16:25:48.847 | Child Env: KDE_SESSION_UID=1000
+16:25:48.847 | Child Env: KDE_SESSION_VERSION=6
+16:25:48.847 | Child Env: KONSOLE_DBUS_ACTIVATION_COOKIE=d9pkRkNLUCrW/I6lBfK6ma0VFQ6XM2OSiLgPAeaAb0Y=
+16:25:48.847 | Child Env: KONSOLE_DBUS_SERVICE=:1.191
+16:25:48.847 | Child Env: KONSOLE_DBUS_SESSION=/Sessions/1
+16:25:48.847 | Child Env: KONSOLE_DBUS_WINDOW=/Windows/1
+16:25:48.847 | Child Env: KONSOLE_VERSION=260402
+16:25:48.847 | Child Env: LANG=pt_BR.UTF-8
+16:25:48.847 | Child Env: LANGUAGE=
+16:25:48.847 | Child Env: LC_ADDRESS=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_IDENTIFICATION=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_MEASUREMENT=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_MONETARY=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_NAME=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_NUMERIC=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_PAPER=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_TELEPHONE=pt_BR.UTF-8
+16:25:48.847 | Child Env: LC_TIME=pt_BR.UTF-8
+16:25:48.847 | Child Env: LOGNAME=benjamim
+16:25:48.847 | Child Env: MAIL=/var/spool/mail/benjamim
+16:25:48.847 | Child Env: MANAGERPID=1116
+16:25:48.847 | Child Env: MANAGERPIDFDID=16436
+16:25:48.847 | Child Env: MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/session.slice/plasma-plasmashell.service/memory.pressure
+16:25:48.847 | Child Env: MEMORY_PRESSURE_WRITE=c29tZSAyMDAwMDAgMjAwMDAwMAA=
+16:25:48.847 | Child Env: MOTD_SHOWN=pam
+16:25:48.847 | Child Env: OLDPWD=/home/benjamim
+16:25:48.848 | Child Env: PAM_KWALLET5_LOGIN=/run/user/1000/kwallet5.socket
+16:25:48.848 | Child Env: PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+16:25:48.848 | Child Env: PROFILEHOME=
+16:25:48.848 | Child Env: PWD=/mnt/NVME/Software/goverlay
+16:25:48.848 | Child Env: QT_WAYLAND_RECONNECT=1
+16:25:48.848 | Child Env: SESSION_MANAGER=local/cachyos-x8664:@/tmp/.ICE-unix/1355,unix/cachyos-x8664:/tmp/.ICE-unix/1355
+16:25:48.848 | Child Env: SHELL=/usr/bin/zsh
+16:25:48.848 | Child Env: SHELL_SESSION_ID=f21420d782f94085acc729bf0d19a60a
+16:25:48.848 | Child Env: SYSTEMD_EXEC_PID=1419
+16:25:48.848 | Child Env: TERM=xterm-256color
+16:25:48.848 | Child Env: USER=benjamim
+16:25:48.848 | Child Env: WAYLAND_DISPLAY=wayland-0
+16:25:48.848 | Child Env: WINDOWID=94823404439792
+16:25:48.848 | Child Env: XAUTHORITY=/run/user/1000/xauth_VlxOXT
+16:25:48.848 | Child Env: XDG_CONFIG_DIRS=/home/benjamim/.config/kdedefaults:/etc/xdg
+16:25:48.848 | Child Env: XDG_CURRENT_DESKTOP=KDE
+16:25:48.848 | Child Env: XDG_DATA_DIRS=/home/benjamim/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+16:25:48.848 | Child Env: XDG_MENU_PREFIX=plasma-
+16:25:48.848 | Child Env: XDG_RUNTIME_DIR=/run/user/1000
+16:25:48.848 | Child Env: XDG_SEAT=seat0
+16:25:48.848 | Child Env: XDG_SEAT_PATH=/org/freedesktop/DisplayManager/Seat0
+16:25:48.848 | Child Env: XDG_SESSION_CLASS=user
+16:25:48.848 | Child Env: XDG_SESSION_DESKTOP=KDE
+16:25:48.848 | Child Env: XDG_SESSION_ID=2
+16:25:48.848 | Child Env: XDG_SESSION_PATH=/org/freedesktop/DisplayManager/Session1
+16:25:48.848 | Child Env: XDG_SESSION_TYPE=wayland
+16:25:48.848 | Child Env: XDG_VTNR=2
+16:25:48.848 | Child Env: XKB_DEFAULT_LAYOUT=br
+16:25:48.848 | Child Env: _JAVA_AWT_WM_NONREPARENTING=1
+16:25:48.848 | Child Env: SHLVL=1
+16:25:48.848 | Child Env: P9K_TTY=old
+16:25:48.848 | Child Env: _P9K_TTY=/dev/pts/0
+16:25:48.848 | Child Env: ZSH=/usr/share/oh-my-zsh
+16:25:48.848 | Child Env: PAGER=less
+16:25:48.848 | Child Env: LESS=-R
+16:25:48.848 | Child Env: LSCOLORS=Gxfxcxdxbxegedabagacad
+16:25:48.848 | Child Env: LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.7z=01;31:*.ace=01;31:*.alz=01;31:*.apk=01;31:*.arc=01;31:*.arj=01;31:*.bz=01;31:*.bz2=01;31:*.cab=01;31:*.cpio=01;31:*.crate=01;31:*.deb=01;31:*.drpm=01;31:*.dwm=01;31:*.dz=01;31:*.ear=01;31:*.egg=01;31:*.esd=01;31:*.gz=01;31:*.jar=01;31:*.lha=01;31:*.lrz=01;31:*.lz=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.lzo=01;31:*.pyz=01;31:*.rar=01;31:*.rpm=01;31:*.rz=01;31:*.sar=01;31:*.swm=01;31:*.t7z=01;31:*.tar=01;31:*.taz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tgz=01;31:*.tlz=01;31:*.txz=01;31:*.tz=01;31:*.tzo=01;31:*.tzst=01;31:*.udeb=01;31:*.war=01;31:*.whl=01;31:*.wim=01;31:*.xz=01;31:*.z=01;31:*.zip=01;31:*.zoo=01;31:*.zst=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.jxl=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:
+16:25:48.848 | Child Env: FZF_DEFAULT_COMMAND=fd --type f --hidden --exclude .git
+16:25:48.848 | Child Env: HISTCONTROL=ignoreboth
+16:25:48.848 | Child Env: HISTORY_IGNORE=(\&|[bf]g|c|clear|history|exit|q|pwd|* --help)
+16:25:48.848 | Child Env: LESS_TERMCAP_md=[1m[32m
+16:25:48.848 | Child Env: LESS_TERMCAP_me=(B[m
+16:25:48.848 | Child Env: PROMPT_COMMAND=history -a; 
+16:25:48.848 | Child Env: P9K_SSH=0
+16:25:48.848 | Child Env: _P9K_SSH_TTY=/dev/pts/0
+16:25:48.848 | Child Env: FZF_BASE=/usr/share/fzf
+16:25:48.848 | Child Env: _=/mnt/NVME/Software/goverlay/./pascube
+16:25:48.848 | -----------------------------------
+16:25:48.849 | T7ZipThread.Execute: Process spawned successfully.
+16:25:48.899 | T7ZipThread: Read line: 7-Zip 26.01 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-04-27
+16:25:48.899 | T7ZipThread: Read line: 64-bit locale=pt_BR.UTF-8 Threads:16 OPEN_MAX:4096, ASM
+16:25:48.899 | T7ZipThread: Read line: Compiler:  ver:15.2.1 20260209 GCC 15.2.1 : AVX512VL
+16:25:48.899 | T7ZipThread: Read line: Linux : 7.0.11-1-cachyos : #1 SMP PREEMPT_DYNAMIC Fri, 05 Jun 2026 09:37:35 +0000 : x86_64
+16:25:48.899 | T7ZipThread: Read line: PageSize:4KB HPS:2MB THPS:2MB THP:always hwcap:2 hwcap2:2
+16:25:48.899 | T7ZipThread: Read line: AMD Ryzen 7 7800X3D 8-Core Processor
+16:25:48.899 | T7ZipThread: Read line: (A60F12)  (LP)
+16:25:49.700 | T7ZipThread: Read line: 1T CPU Freq (MHz):  4758  3975  4748  4955  4913  4881  4927
+16:25:49.800 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:50.351 | T7ZipThread: Read line: 8T CPU Freq (MHz): 764% 4710   794% 4868
+16:25:50.805 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:51.206 | T7ZipThread: Read line: 16T CPU Freq (MHz): 1138% 3466   1221% 3726
+16:25:51.206 | T7ZipThread: Read line: RAM size:   31692 MB (LP),  # CPU hardware threads:  16
+16:25:51.206 | T7ZipThread: Read line: RAM usage:   3559 MB (LP),  # Benchmark threads:     16
+16:25:51.206 | T7ZipThread: Read line: Compressing  |                  Decompressing
+16:25:51.206 | T7ZipThread: Read line: Dict     Speed Usage    R/U Rating  |      Speed Usage    R/U Rating
+16:25:51.206 | T7ZipThread: Read line: KiB/s     %   MIPS   MIPS  |      KiB/s     %   MIPS   MIPS
+16:25:51.807 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:52.809 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:53.810 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:54.762 | T7ZipThread: Read line: 22:     107821  1240   8460 104888  |    1211974  1233   8380 103345
+16:25:54.762 | T7ZipThread: Matched step: 1 progress: 0.08333333582
+16:25:54.812 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:55.814 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:56.816 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:57.818 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:58.419 | T7ZipThread: Read line: 23:      97351  1192   8318  99190  |    1089619  1121   8405  94260
+16:25:58.419 | T7ZipThread: Matched step: 2 progress: 0.1666666716
+16:25:58.819 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:25:59.821 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:00.824 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:01.825 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:02.326 | T7ZipThread: Read line: 24:     101380  1303   8367 109004  |    1130422  1179   8411  99185
+16:26:02.326 | T7ZipThread: Matched step: 3 progress: 0.25
+16:26:02.827 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:03.829 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:04.831 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:05.833 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:06.834 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:07.435 | T7ZipThread: Read line: 25:     101278  1321   8756 115636  |    1109600  1192   8284  98722
+16:26:07.435 | T7ZipThread: Matched step: 4 progress: 0.3333333433
+16:26:07.836 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:08.837 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:09.840 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:10.841 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:11.392 | T7ZipThread: Read line: 22:     102783  1182   8460  99988  |    1064172  1078   8416  90742
+16:26:11.392 | T7ZipThread: Matched step: 5 progress: 0.4166666567
+16:26:11.846 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:12.847 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:13.850 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:14.851 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:14.951 | T7ZipThread: Read line: 23:     100823  1224   8391 102727  |    1108428  1138   8428  95887
+16:26:14.951 | T7ZipThread: Matched step: 6 progress: 0.5
+16:26:15.854 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:16.857 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:17.863 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:18.865 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:18.965 | T7ZipThread: Read line: 24:      94151  1194   8477 101232  |    1132403  1200   8279  99359
+16:26:18.965 | T7ZipThread: Matched step: 7 progress: 0.5833333135
+16:26:19.867 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:20.868 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:21.870 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:22.875 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:23.877 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:24.077 | T7ZipThread: Read line: 25:     101052  1315   8774 115378  |    1100403  1182   8284  97903
+16:26:24.077 | T7ZipThread: Matched step: 8 progress: 0.6666666865
+16:26:24.879 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:25.880 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:26.881 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:27.632 | T7ZipThread: Read line: 22:     110916  1270   8497 107900  |    1213668  1241   8336 103489
+16:26:27.632 | T7ZipThread: Matched step: 9 progress: 0.75
+16:26:27.883 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:28.886 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:29.887 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:30.889 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:31.189 | T7ZipThread: Read line: 23:     105480  1279   8401 107472  |    1098194  1133   8384  95002
+16:26:31.189 | T7ZipThread: Matched step: 10 progress: 0.8333333135
+16:26:31.890 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:32.900 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:33.901 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:34.907 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:35.057 | T7ZipThread: Read line: 24:      93262  1191   8421 100276  |    1200487  1265   8328 105333
+16:26:35.057 | T7ZipThread: Matched step: 11 progress: 0.9166666865
+16:26:35.911 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:36.914 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:37.916 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:38.917 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:39.919 | T7ZipThread.Execute loop: Running = True NumBytesAvailable = 0
+16:26:40.169 | T7ZipThread: Read line: 25:     101257  1322   8746 115612  |    1103896  1185   8287  98214
+16:26:40.169 | T7ZipThread: Matched step: 12 progress: 1
+16:26:40.169 | T7ZipThread: Read line: ----------------------------------  | ------------------------------
+16:26:40.169 | T7ZipThread: Read line: Avr:    101463  1253   8506 106608  |    1130272  1179   8352  98453
+16:26:40.169 | T7ZipThread: Read line: Tot:            1216   8429 102531
+16:26:40.169 | T7ZipThread: Matched Tot. Score: 102531
+16:26:40.219 | T7ZipThread.Execute: Process loop ended. ExitStatus = -1
+16:26:40.219 | T7ZipThread.Execute: Thread completed. Score = 102531
