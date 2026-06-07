@@ -69,7 +69,7 @@ void main() {
         
         // Extra noise stress
         float val = inTexCoord.x + inTexCoord.y;
-        for (int i = 0; i < 15000; i++) {
+        for (int i = 0; i < 4000; i++) {
             float fi = float(i);
             val = sin(val + fi) + cos(val - fi);
             val = tan(clamp(val, -1.5, 1.5)) + sqrt(abs(val) + 1.0);
