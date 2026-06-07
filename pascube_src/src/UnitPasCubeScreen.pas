@@ -1128,7 +1128,7 @@ begin
        charHeight := app.TextOverlay.FontCharHeight;
        leftColX1 := pvApplication.Width * 0.05;
        leftColWidth := pvApplication.Width * 0.43;
-       histCardY := 1.0 * charHeight + 6.5 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 13.5 * charHeight + 0.5 * charHeight;
+        histCardY := 1.0 * charHeight + 6.5 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight;
        histGraphY := histCardY;
        histGraphH := (1.0 * charHeight + (pvApplication.Height - 55.0 - 1.0 * charHeight - 55.0)) - histGraphY;
        if histGraphH < 6.0 * charHeight then histGraphH := 6.0 * charHeight;
@@ -1423,7 +1423,7 @@ begin
        Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
       end;
       PushConstants.Vector := TpvVector4.Create(body^.Color.x, body^.Color.y, body^.Color.z, 1.0);
-       PushConstants.Params := TpvVector4.Create(1.4, 0.7, 12.0, gpuStressValue);
+       PushConstants.Params := TpvVector4.Create(1.4, 0.7, 24.0, gpuStressValue);
       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
        fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
        0, SizeOf(TpvVector4)*2, @PushConstants);
@@ -1436,7 +1436,7 @@ begin
        // 8 Orbiting lights
        for i := 0 to 7 do begin
         PushConstants.Vector := TpvVector4.Create(fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
-         PushConstants.Params := TpvVector4.Create(1.2, 0.5, 8.0, gpuStressValue);
+         PushConstants.Params := TpvVector4.Create(1.2, 0.5, 16.0, gpuStressValue);
         fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
          fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
          0, SizeOf(TpvVector4)*2, @PushConstants);
@@ -1446,7 +1446,7 @@ begin
        // Standard background particles
        if fParticleCount > 8 then begin
         PushConstants.Vector := TpvVector4.Create(0.0, 0.7, 0.9, 0.45);
-         PushConstants.Params := TpvVector4.Create(1.0, 0.3, 6.0, gpuStressValue);
+         PushConstants.Params := TpvVector4.Create(1.0, 0.3, 12.0, gpuStressValue);
         fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
          fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
          0, SizeOf(TpvVector4)*2, @PushConstants);
@@ -1462,7 +1462,7 @@ begin
           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
         end else if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
           PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
-           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 12.0, gpuStressValue);
+           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
         end else begin
           PushConstants.Vector := TpvVector4.Create(0.92, 0.93, 0.98, 1.0);
           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
@@ -2007,29 +2007,33 @@ end;
 procedure TPasCubeScreen.InitParticles;
 var i: Integer;
 begin
- fParticleCount := 4;
+ fParticleCount := 8;
  fParticleColors[0] := TpvVector3.Create(1.0, 0.05, 0.05); // Red
  fParticleColors[1] := TpvVector3.Create(0.05, 1.0, 0.05); // Green
  fParticleColors[2] := TpvVector3.Create(0.1, 0.3, 1.0);   // Blue
  fParticleColors[3] := TpvVector3.Create(1.0, 0.9, 0.05);  // Yellow
+ fParticleColors[4] := TpvVector3.Create(1.0, 0.05, 1.0);  // Magenta
+ fParticleColors[5] := TpvVector3.Create(1.0, 0.5, 0.05);  // Orange
+ fParticleColors[6] := TpvVector3.Create(0.5, 0.05, 1.0);  // Purple
+ fParticleColors[7] := TpvVector3.Create(1.0, 1.0, 1.0);   // White
  
- // Initialize positions for the first 4 orbiting particles
- for i := 0 to 3 do begin
+ // Initialize positions for the first 8 orbiting particles
+ for i := 0 to 7 do begin
   fParticlePositions[i] := TpvVector3.Create(1.5 + i * 0.25, 0.0, 0.0);
  end;
  
  UpdateParticles(0.0);
- DebugLog('InitParticles: Initialized 4 orbiting particles');
+ DebugLog('InitParticles: Initialized 8 orbiting particles');
 end;
 
 procedure TPasCubeScreen.UpdateParticles(const aDeltaTime: TpvDouble);
 var i: Integer;
     angle, radius, speed: TpvFloat;
 begin
- for i := 0 to 3 do begin
+ for i := 0 to 7 do begin
   radius := 1.5 + i * 0.25;
   speed := 0.8 + i * 0.15;
-  angle := fBenchmarkTimer * speed + (i * (TwoPI / 4.0));
+  angle := fBenchmarkTimer * speed + (i * (TwoPI / 8.0));
   
   if (i mod 3) = 0 then begin
     fParticlePositions[i].x := radius * Cos(angle);
@@ -2474,6 +2478,10 @@ end;
 function TPasCubeScreen.GetDriverVersion: String;
 var SL: TStringList;
     path: String;
+    i: Integer;
+    VendorID: TVkUInt32;
+    DriverVersion: TVkUInt32;
+    Major, Minor, Patch: TVkUInt32;
 begin
  Result := 'Unknown';
 
@@ -2490,22 +2498,41 @@ begin
   Exit;
  end;
 
- // Try DRM kernel module version (Mesa / AMD / Intel)
- path := '/sys/class/drm/card0/device/driver/module/version';
- if FileExists(path) then begin
-  SL := TStringList.Create;
-  try
-   SL.LoadFromFile(path);
-   if SL.Count > 0 then
-    Result := Trim(SL[0]);
-  finally
-   SL.Free;
+ // Try DRM kernel module version for any card (Mesa / AMD / Intel)
+ for i := 0 to 3 do begin
+  path := Format('/sys/class/drm/card%d/device/driver/module/version', [i]);
+  if FileExists(path) then begin
+   SL := TStringList.Create;
+   try
+    SL.LoadFromFile(path);
+    if SL.Count > 0 then begin
+     Result := Trim(SL[0]);
+     Exit;
+    end;
+   finally
+    SL.Free;
+   end;
   end;
-  Exit;
  end;
 
- // Fallback to Vulkan API version
- Result := 'Vulkan ' + fCurrentResult.VulkanAPI;
+ // Fallback: decode Vulkan driverVersion from physical device properties
+ if Assigned(pvApplication.VulkanDevice) then begin
+  VendorID := pvApplication.VulkanDevice.PhysicalDevice.Properties.vendorID;
+  DriverVersion := pvApplication.VulkanDevice.PhysicalDevice.Properties.driverVersion;
+  if VendorID = $10DE then begin
+   // NVIDIA encoding: major*1000 + minor*10 + patch
+   Major := DriverVersion div 1000;
+   Minor := (DriverVersion - (Major * 1000)) div 10;
+   Patch := DriverVersion - (Major * 1000) - (Minor * 10);
+   Result := Format('NVIDIA %d.%d.%d', [Major, Minor, Patch]);
+  end else begin
+   // Mesa / Intel / AMD standard encoding: major<<22 | minor<<12 | patch
+   Major := DriverVersion shr 22;
+   Minor := (DriverVersion shr 12) and $3FF;
+   Patch := DriverVersion and $FFF;
+   Result := Format('Mesa %d.%d.%d', [Major, Minor, Patch]);
+  end;
+ end;
 end;
 
 procedure TPasCubeScreen.DrawResultsOverlay;
@@ -2609,80 +2636,20 @@ begin
    app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
    app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.8 * charHeight, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
-    // --- BENCHMARK DETAILS CARD ---
-    cardY := cardY + cardHeight + 0.5 * charHeight;
-    cardHeight := 13.5 * charHeight;
-    app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight,
-                           33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                           255.0);
+    // --- SCORE TREND GRAPH (expanded, replaces former History / Benchmark Details space) ---
+    if fHistoryCount > 0 then begin
+     graphY := cardY + cardHeight + 0.5 * charHeight;
+     // Align bottom with Hardware Comparison card bottom
+     graphH := (hwCardY + hwTotalH) - graphY;
+     if graphH < 10.0 * charHeight then graphH := 10.0 * charHeight;
+     graphW := leftColWidth;
 
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.75 * charHeight, 1.1, toaLeft, 'Benchmark Details', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-
-    // Helper to format a phase detail line
-    itemY := cardY + 2.2 * charHeight;
-    lineStr := Format('CPU ST: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[1].Score),
-       fCurrentResult.PhaseResults[1].FPSAvg,
-       fCurrentResult.PhaseResults[1].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
-
-    itemY := itemY + 1.3 * charHeight;
-    lineStr := Format('CPU MT: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[2].Score),
-       fCurrentResult.PhaseResults[2].FPSAvg,
-       fCurrentResult.PhaseResults[2].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
-
-    itemY := itemY + 1.3 * charHeight;
-    lineStr := Format('GPU 720p: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[3].Score),
-       fCurrentResult.PhaseResults[3].FPSAvg,
-       fCurrentResult.PhaseResults[3].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
-
-    itemY := itemY + 1.3 * charHeight;
-    lineStr := Format('GPU 1080p: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[4].Score),
-       fCurrentResult.PhaseResults[4].FPSAvg,
-       fCurrentResult.PhaseResults[4].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
-
-    itemY := itemY + 1.3 * charHeight;
-    lineStr := Format('GPU 1440p: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[5].Score),
-       fCurrentResult.PhaseResults[5].FPSAvg,
-       fCurrentResult.PhaseResults[5].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
-
-    itemY := itemY + 1.3 * charHeight;
-    lineStr := Format('GPU 4K: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[6].Score),
-       fCurrentResult.PhaseResults[6].FPSAvg,
-       fCurrentResult.PhaseResults[6].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
-
-    itemY := itemY + 1.5 * charHeight;
-    lineStr := Format('GPU Avg: %s pts | %.1f FPS | %.2f ms',
-      [FormatScoreValue(fCurrentResult.PhaseResults[7].Score),
-       fCurrentResult.PhaseResults[7].FPSAvg,
-       fCurrentResult.PhaseResults[7].FrameTimeMs]);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, itemY, 0.75, toaLeft, lineStr, 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
-
-   // --- SCORE TREND GRAPH (bar chart, bottom-aligned with Hardware Comparison) ---
-   if fHistoryCount > 0 then begin
-    graphY := cardY + cardHeight + 0.5 * charHeight;
-    // Align bottom with Hardware Comparison card bottom
-    graphH := (hwCardY + hwTotalH) - graphY;
-    if graphH < 6.0 * charHeight then graphH := 6.0 * charHeight;
-    graphW := leftColWidth;
-
-    // Graph background card
-    app.TextOverlay.AddBox(leftColX1, graphY, graphW, graphH,
-                           33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                           255.0);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, graphY + 0.5 * charHeight, 0.9, toaLeft, 'Score Trend', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+     // Graph background card
+     app.TextOverlay.AddBox(leftColX1, graphY, graphW, graphH,
+                            33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
+                            50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                            255.0);
+     app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, graphY + 0.5 * charHeight, 0.9, toaLeft, 'Score Trend', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
 
     // Find min/max for scaling
     graphMaxScore := fHistory[0].TotalScore;
