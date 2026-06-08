@@ -567,6 +567,7 @@ type
     procedure performanceTabSheetShow(Sender: TObject);
     procedure visualTabSheetShow(Sender: TObject);
     procedure metricsTabSheetShow(Sender: TObject);
+    procedure tweaksTabSheetShow(Sender: TObject);
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
@@ -2283,6 +2284,11 @@ begin
   UpdateGenericCardTheme(FMtCpuCard);
 end;
 
+procedure Tgoverlayform.tweaksTabSheetShow(Sender: TObject);
+begin
+  LoadTweaksFromFGMod;
+end;
+
 // ============================================================================
 // MODERN DESIGN SYSTEM HELPERS
 // ============================================================================
@@ -2825,13 +2831,14 @@ begin
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
-  vkbasaltTabSheet.OnShow := @vkbasaltTabSheetShow;
+   vkbasaltTabSheet.OnShow := @vkbasaltTabSheetShow;
 
-  // Initialize vkSumi tab
-  vksumiTabSheet.OnShow := @vkSumiTabSheetShow;
-  performanceTabSheet.OnShow := @performanceTabSheetShow;
-  visualTabSheet.OnShow := @visualTabSheetShow;
-  metricsTabSheet.OnShow := @metricsTabSheetShow;
+   // Initialize vkSumi tab
+   vksumiTabSheet.OnShow := @vkSumiTabSheetShow;
+   performanceTabSheet.OnShow := @performanceTabSheetShow;
+   visualTabSheet.OnShow := @visualTabSheetShow;
+   metricsTabSheet.OnShow := @metricsTabSheetShow;
+   tweaksTabSheet.OnShow := @tweaksTabSheetShow;
 
   // Initialize Extras tab
   InitExtrasTab;

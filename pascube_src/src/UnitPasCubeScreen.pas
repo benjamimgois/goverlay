@@ -183,13 +183,15 @@ type
        fHistoryCount: Integer;
        fBestScore: Integer;
        fLastScore: Integer;
-        fShowSkybox: Boolean;
-         fExpandedHardwareIdx: Integer;
-         fHoveredHardwareIdx: Integer;
-         fHoveredHistoryIdx: Integer;
-         fHWExpandProgress: array[0..11] of TpvFloat;
+         fShowSkybox: Boolean;
+          fExpandedHardwareIdx: Integer;
+          fHoveredHardwareIdx: Integer;
+          fHoveredHistoryIdx: Integer;
+          fHWExpandProgress: array[0..11] of TpvFloat;
+          fClearConfirmPending: Boolean;
+          fClearConfirmHovered: Integer; // 0=none, 1=yes, 2=no
 
-        // Metrics
+         // Metrics
        fFrameAccumulator: TpvDouble;
        fFrameCount: Integer;
        fPhaseFPSMin: TpvDouble;
@@ -260,6 +262,7 @@ type
         function IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
          function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
          function IsClearButtonHovered(const aPos: TpvVector2): Boolean;
+         function IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
          function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
          procedure DrawBenchmarkOverlay;
          procedure ClearBenchmarkResults;
@@ -514,12 +517,14 @@ begin
  fBestScore := 0;
  fLastScore := 0;
  fHistoryCount := 0;
-  fShowSkybox := true;
-  fExpandedHardwareIdx := -1;
-  fHoveredHardwareIdx := -1;
-  fHoveredHistoryIdx := -1;
-  FillChar(fHWExpandProgress, SizeOf(fHWExpandProgress), #0);
-  fPhaseResultIndex := -1;
+   fShowSkybox := true;
+   fExpandedHardwareIdx := -1;
+   fHoveredHardwareIdx := -1;
+   fHoveredHistoryIdx := -1;
+   fClearConfirmPending := false;
+   fClearConfirmHovered := 0;
+   FillChar(fHWExpandProgress, SizeOf(fHWExpandProgress), #0);
+   fPhaseResultIndex := -1;
  FillChar(fCurrentResult,SizeOf(fCurrentResult),#0);
  FillChar(fHistory,SizeOf(fHistory),#0);
  fDebugLog := TStringList.Create;
@@ -1062,26 +1067,30 @@ begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
     fMouseLeftButtonDown:=true;
     fLastMousePosition:=aPointerEvent.Position;
-    if (fBenchmarkPhase = bpIdleMenu) and (IsStartButtonHovered(aPointerEvent.Position) or IsViewResultsButtonHovered(aPointerEvent.Position)) then begin
-     fAutoRotation:=false;
-     fDraggingCube:=false;
-     result:=true;
-     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+     if (fBenchmarkPhase = bpIdleMenu) and (IsStartButtonHovered(aPointerEvent.Position) or IsViewResultsButtonHovered(aPointerEvent.Position)) then begin
       fAutoRotation:=false;
       fDraggingCube:=false;
       result:=true;
-     end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
+      end else if (fBenchmarkPhase = bpResults) and fClearConfirmPending and IsClearConfirmButtonHovered(aPointerEvent.Position, idx) then begin
+       fAutoRotation:=false;
+       fDraggingCube:=false;
+       result:=true;
+      end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+       fAutoRotation:=false;
+       fDraggingCube:=false;
+       result:=true;
+      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
+       fAutoRotation:=false;
+       fDraggingCube:=false;
+       result:=true;
+      end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+       fAutoRotation:=false;
+       fDraggingCube:=false;
+       result:=true;
+      end else begin
       fAutoRotation:=false;
-      fDraggingCube:=false;
-      result:=true;
-     end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
-      fAutoRotation:=false;
-      fDraggingCube:=false;
-      result:=true;
-     end else begin
-     fAutoRotation:=false;
-     fDraggingCube:=true;
-    end;
+      fDraggingCube:=true;
+     end;
    end;
   end;
   TpvApplicationInputPointerEventType.Up:begin
@@ -1100,14 +1109,29 @@ begin
       fShowSkybox := true;
       result:=true;
      end;
-     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
-      fBenchmarkPhase := bpIdleMenu;
-      pvApplication.Width := 1280;
-      pvApplication.Height := 720;
-      fShowSkybox := true;
+     end else if (fBenchmarkPhase = bpResults) and fClearConfirmPending and IsClearConfirmButtonHovered(aPointerEvent.Position, idx) then begin
+      if idx = 1 then begin
+       ClearBenchmarkResults;
+      end else begin
+       fClearConfirmPending := false;
+       fClearConfirmHovered := 0;
+      end;
       result:=true;
+     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+      if fClearConfirmPending then begin
+       fClearConfirmPending := false;
+       fClearConfirmHovered := 0;
+       result:=true;
+      end else begin
+       fBenchmarkPhase := bpIdleMenu;
+       pvApplication.Width := 1280;
+       pvApplication.Height := 720;
+       fShowSkybox := true;
+       result:=true;
+      end;
      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
-      ClearBenchmarkResults;
+      fClearConfirmPending := true;
+      fClearConfirmHovered := 0;
       result:=true;
      end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
       fExpandedHardwareIdx := idx;
@@ -1121,16 +1145,23 @@ begin
     fState.AnglePhases[1]:=fState.AnglePhases[1]+(Delta.x*0.005);
     fState.AnglePhases[0]:=fState.AnglePhases[0]+(Delta.y*0.005);
    end;
-    fLastMousePosition:=aPointerEvent.Position;
-    if fBenchmarkPhase = bpResults then begin
-     if IsHardwareItemHovered(aPointerEvent.Position, idx) then
-      fHoveredHardwareIdx := idx
-     else
-      fHoveredHardwareIdx := -1;
+     fLastMousePosition:=aPointerEvent.Position;
+     if fBenchmarkPhase = bpResults then begin
+      if fClearConfirmPending then begin
+       if IsClearConfirmButtonHovered(aPointerEvent.Position, idx) then
+        fClearConfirmHovered := idx
+       else
+        fClearConfirmHovered := 0;
+      end else begin
+       if IsHardwareItemHovered(aPointerEvent.Position, idx) then
+        fHoveredHardwareIdx := idx
+       else
+        fHoveredHardwareIdx := -1;
+      end;
 
-     // Check hover on Score Trend history bars
-     fHoveredHistoryIdx := -1;
-     if fHistoryCount > 0 then begin
+      // Check hover on Score Trend history bars
+      fHoveredHistoryIdx := -1;
+      if (not fClearConfirmPending) and (fHistoryCount > 0) then begin
       app := UnitPasCubeApplication.Application;
       if Assigned(app) then begin
        charWidth := app.TextOverlay.FontCharWidth;
@@ -2292,49 +2323,87 @@ begin
 
 function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
+    yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    returnBtnWidth, totalWidth, gap: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpResults then Exit;
+  if fClearConfirmPending then Exit;
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := pvApplication.Width * 0.5;
   yText := pvApplication.Height - 55.0;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
 
-  // Return button dimensions (same as IsReturnButtonHovered)
-  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-
-  // Clear button: slightly smaller font scale to fit text
-  gap := charWidth * 3.0;
+  // Clear button: left-aligned with a small margin
   btnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-
-  // Center both buttons as a group
-  totalWidth := btnWidth + gap + returnBtnWidth;
-  btnX := cx - (totalWidth * 0.5);
+  btnX := 20.0;  // small left margin
   btnY := yText - paddingY;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
+function TPasCubeScreen.IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
+var app: TPasCubeApplication;
+    cx, cy, charWidth, charHeight: TpvFloat;
+    boxW, boxH, boxX, boxY: TpvFloat;
+    btnW, btnH, yesX, noX, btnY: TpvFloat;
+    gap: TpvFloat;
+begin
+  Result := false;
+  aButton := 0;
+  if fBenchmarkPhase <> bpResults then Exit;
+  if not fClearConfirmPending then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  cx := pvApplication.Width * 0.5;
+  cy := pvApplication.Height * 0.5;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+
+  boxW := 32.0 * charWidth;
+  boxH := 7.0 * charHeight;
+  boxX := cx - boxW * 0.5;
+  boxY := cy - boxH * 0.5;
+
+  if (aPos.x < boxX) or (aPos.x > boxX + boxW) or
+     (aPos.y < boxY) or (aPos.y > boxY + boxH) then Exit;
+
+  // Yes / No buttons inside the box
+  gap := 3.0 * charWidth;
+  btnW := 10.0 * charWidth;
+  btnH := 2.2 * charHeight;
+  yesX := cx - gap * 0.5 - btnW;
+  noX := cx + gap * 0.5;
+  btnY := boxY + boxH - btnH - 1.2 * charHeight;
+
+  if (aPos.x >= yesX) and (aPos.x <= yesX + btnW) and
+     (aPos.y >= btnY) and (aPos.y <= btnY + btnH) then
+  begin
+    aButton := 1;
+    Result := true;
+    Exit;
+  end;
+
+  if (aPos.x >= noX) and (aPos.x <= noX + btnW) and
+     (aPos.y >= btnY) and (aPos.y <= btnY + btnH) then
+  begin
+    aButton := 2;
+    Result := true;
+    Exit;
+  end;
+end;
+
 procedure TPasCubeScreen.ClearBenchmarkResults;
 var
   filePath: String;
-  Res: Integer;
 begin
-  Res := MessageDlg('Clear benchmark history',
-                    'This will permanently delete all benchmark results. Are you sure?',
-                    mtConfirmation, mbYesNo, 0);
-  if Res <> mrYes then Exit;
-
   fHistoryCount := 0;
   fBestScore := 0;
   fLastScore := 0;
@@ -2347,6 +2416,8 @@ begin
   pvApplication.Width := 1280;
   pvApplication.Height := 720;
   fShowSkybox := true;
+  fClearConfirmPending := false;
+  fClearConfirmHovered := 0;
 end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
@@ -2602,9 +2673,9 @@ begin
  end;
 end;
 
-procedure TPasCubeScreen.DrawResultsOverlay;
+ procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
-    cx: TpvFloat;
+    cx, cy: TpvFloat;
     i, j: Integer;
     lineStr, resultStr, descStr: String;
     leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
@@ -2624,26 +2695,30 @@ var app: TPasCubeApplication;
     halfWidth, gap, hwCardY, hwTotalH: TpvFloat;
      btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
      clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
+     returnBtnWidth, totalWidth: TpvFloat;
      isReturnHovered, isClearHovered: Boolean;
      fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
-     // Graph variables
-     graphY, graphH, graphW, pointX, pointY, prevX, prevY, barW, scoreRange: TpvFloat;
-     graphMaxScore, graphMinScore: Integer;
-     graphIdx: Integer;
-     baseY, plotTop, plotH, barX, barTopH: TpvFloat;
-     popupX, popupY, popupW, popupH: TpvFloat;
-     detailStr: String;
+      // Graph variables
+      graphY, graphH, graphW, pointX, pointY, prevX, prevY, barW, scoreRange: TpvFloat;
+      graphMaxScore, graphMinScore: Integer;
+      graphIdx: Integer;
+      baseY, plotTop, plotH, barX, barTopH: TpvFloat;
+      popupX, popupY, popupW, popupH: TpvFloat;
+      detailStr: String;
+      // Clear confirmation dialog variables
+      boxW, boxH, boxX, boxY, btnW, btnH, yesX, noX: TpvFloat;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
- charWidth := app.TextOverlay.FontCharWidth;
- charHeight := app.TextOverlay.FontCharHeight;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
 
- textScaleSmall := 0.65;
+  textScaleSmall := 0.65;
 
- cx := pvApplication.Width * 0.5;
+  cx := pvApplication.Width * 0.5;
+  cy := pvApplication.Height * 0.5;
 
   leftColX1 := pvApplication.Width * 0.05;
   leftColWidth := pvApplication.Width * 0.43;
@@ -2947,37 +3022,29 @@ begin
   yText := pvApplication.Height - 55.0;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
-
-  // Recompute both button widths so they match hit-test logic
-  clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
-  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  gap := charWidth * 3.0;
-  totalWidth := clearBtnWidth + gap + returnBtnWidth;
-
-  // Common Y
-  btnY := yText - paddingY;
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
 
-  // --- CLEAR RESULTS BUTTON ---
+  // --- CLEAR RESULTS BUTTON (left-aligned) ---
   isClearHovered := IsClearButtonHovered(fLastMousePosition);
   if isClearHovered then begin
-    bgR := 56.0 / 255.0; bgG := 33.0 / 255.0; bgB := 33.0 / 255.0; bgA := 1.0;
-    fgR := 240.0 / 255.0; fgG := 80.0 / 255.0; fgB := 80.0 / 255.0; fgA := 1.0;
+    bgR := 120.0 / 255.0; bgG := 20.0 / 255.0; bgB := 20.0 / 255.0; bgA := 1.0;
+    fgR := 220.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
     textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
   end else begin
-    bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-    fgR := 85.0 / 255.0; fgG := 50.0 / 255.0; fgB := 50.0 / 255.0; fgA := 1.0;
+    bgR := 80.0 / 255.0; bgG := 15.0 / 255.0; bgB := 15.0 / 255.0; bgA := 1.0;
+    fgR := 140.0 / 255.0; fgG := 35.0 / 255.0; fgB := 35.0 / 255.0; fgA := 1.0;
     textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
   end;
 
-  clearBtnX := cx - (totalWidth * 0.5);
-  clearBtnY := btnY;
+  clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
+  clearBtnX := 20.0;
+  clearBtnY := yText - paddingY;
   clearBtnHeight := btnHeight;
 
   app.TextOverlay.AddBox(clearBtnX, clearBtnY, clearBtnWidth, clearBtnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
   app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-  // --- RETURN TO MENU BUTTON ---
+  // --- RETURN TO MENU BUTTON (centered) ---
   isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
   if isReturnHovered then begin
     bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
@@ -2989,13 +3056,80 @@ begin
     textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
   end;
 
-  btnX := clearBtnX + clearBtnWidth + gap;
+  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+  btnX := cx - (returnBtnWidth * 0.5);
   btnY := clearBtnY;
   btnWidth := returnBtnWidth;
   btnHeight := clearBtnHeight;
 
   app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
   app.TextOverlay.AddText(btnX + btnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+  // --- CLEAR CONFIRMATION DIALOG ---
+  if fClearConfirmPending then begin
+    // Dim background
+    app.TextOverlay.AddBox(0, 0, pvApplication.Width, pvApplication.Height,
+                           0.0, 0.0, 0.0, 0.6,
+                           0.0, 0.0, 0.0, 0.0, 255.0);
+
+    // Dialog box
+    boxW := 32.0 * charWidth;
+    boxH := 7.0 * charHeight;
+    boxX := cx - boxW * 0.5;
+    boxY := cy - boxH * 0.5;
+    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
+                           22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
+                           48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
+                           255.0);
+
+    // Title
+    app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.0, toaCenter,
+                            'Clear benchmark history',
+                            0.0, 0.0, 0.0, 0.0,
+                            1.0, 1.0, 1.0, 1.0);
+
+    // Message
+    app.TextOverlay.AddText(cx, boxY + 2.4 * charHeight, 0.75, toaCenter,
+                            'This will permanently delete all results.',
+                            0.0, 0.0, 0.0, 0.0,
+                            179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+
+    // Yes / No buttons
+    gap := 3.0 * charWidth;
+    btnW := 10.0 * charWidth;
+    btnH := 2.2 * charHeight;
+    yesX := cx - gap * 0.5 - btnW;
+    noX := cx + gap * 0.5;
+    btnY := boxY + boxH - btnH - 1.2 * charHeight;
+
+    // Yes button
+    if fClearConfirmHovered = 1 then begin
+      bgR := 56.0/255.0; bgG := 33.0/255.0; bgB := 33.0/255.0; bgA := 1.0;
+      fgR := 240.0/255.0; fgG := 80.0/255.0; fgB := 80.0/255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
+      fgR := 85.0/255.0; fgG := 50.0/255.0; fgB := 50.0/255.0; fgA := 1.0;
+      textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
+    end;
+    app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5 + charHeight * 0.15, 1.0, toaCenter,
+                            'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+    // No button
+    if fClearConfirmHovered = 2 then begin
+      bgR := 33.0/255.0; bgG := 38.0/255.0; bgB := 56.0/255.0; bgA := 1.0;
+      fgR := 48.0/255.0; fgG := 190.0/255.0; fgB := 240.0/255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
+      fgR := 50.0/255.0; fgG := 60.0/255.0; fgB := 85.0/255.0; fgA := 1.0;
+      textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
+    end;
+    app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5 + charHeight * 0.15, 1.0, toaCenter,
+                            'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  end;
 end;
 
 procedure TPasCubeScreen.GenerateBeveledCube;
