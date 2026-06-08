@@ -1034,6 +1034,7 @@ begin
     begin
       Ini.WriteString('Env', 'PROTON_ENABLE_HDR', '1');
       Ini.WriteString('Env', 'ENABLE_HDR_WSI', '1');
+      Ini.WriteString('Env', 'DXVK_HDR', '1');
     end;
 
     if FForm.GetGeneralCheckBox(3).Checked then

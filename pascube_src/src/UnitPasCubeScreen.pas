@@ -259,8 +259,10 @@ type
         function IsStartButtonHovered(const aPos: TpvVector2): Boolean;
         function IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
          function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
+         function IsClearButtonHovered(const aPos: TpvVector2): Boolean;
          function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
          procedure DrawBenchmarkOverlay;
+         procedure ClearBenchmarkResults;
          function GetCPUName: String;
          function GetRAMSize: String;
          function GetOSName: String;
@@ -1064,15 +1066,19 @@ begin
      fAutoRotation:=false;
      fDraggingCube:=false;
      result:=true;
-    end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
-     fAutoRotation:=false;
-     fDraggingCube:=false;
-     result:=true;
-    end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
-     fAutoRotation:=false;
-     fDraggingCube:=false;
-     result:=true;
-    end else begin
+     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+      fAutoRotation:=false;
+      fDraggingCube:=false;
+      result:=true;
+     end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
+      fAutoRotation:=false;
+      fDraggingCube:=false;
+      result:=true;
+     end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+      fAutoRotation:=false;
+      fDraggingCube:=false;
+      result:=true;
+     end else begin
      fAutoRotation:=false;
      fDraggingCube:=true;
     end;
@@ -1094,12 +1100,15 @@ begin
       fShowSkybox := true;
       result:=true;
      end;
-    end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
-     fBenchmarkPhase := bpIdleMenu;
-     pvApplication.Width := 1280;
-     pvApplication.Height := 720;
-     fShowSkybox := true;
-     result:=true;
+     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+      fBenchmarkPhase := bpIdleMenu;
+      pvApplication.Width := 1280;
+      pvApplication.Height := 720;
+      fShowSkybox := true;
+      result:=true;
+     end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
+      ClearBenchmarkResults;
+      result:=true;
      end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
       fExpandedHardwareIdx := idx;
       result:=true;
@@ -2279,8 +2288,58 @@ begin
      end;
      itemY := itemY + itemH;
     end;
- end;
+  end;
 
+function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
+var app: TPasCubeApplication;
+    cx, yText, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    returnBtnWidth, returnBtnX, gap: TpvFloat;
+begin
+  Result := false;
+  if fBenchmarkPhase <> bpResults then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  cx := pvApplication.Width * 0.5;
+  yText := pvApplication.Height - 55.0;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+  paddingX := charWidth * 1.5;
+  paddingY := charHeight * 0.4;
+
+  // Return button dimensions (same as IsReturnButtonHovered)
+  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+  returnBtnX := cx - (returnBtnWidth * 0.5);
+
+  // Clear button: left of Return button with a gap
+  gap := charWidth * 2.0;
+  btnWidth := (14.0 * charWidth * 1.2) + (2.0 * paddingX);
+  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+  btnX := returnBtnX - gap - btnWidth;
+  btnY := yText - paddingY;
+
+  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+end;
+
+procedure TPasCubeScreen.ClearBenchmarkResults;
+var
+  filePath: String;
+begin
+  fHistoryCount := 0;
+  fBestScore := 0;
+  fLastScore := 0;
+  FillChar(fHistory, SizeOf(fHistory), #0);
+  filePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
+  if FileExists(filePath) then
+    DeleteFile(filePath);
+  // Return to menu since there are no results to display
+  fBenchmarkPhase := bpIdleMenu;
+  pvApplication.Width := 1280;
+  pvApplication.Height := 720;
+  fShowSkybox := true;
+end;
 
 procedure TPasCubeScreen.DrawBenchmarkOverlay;
 var app: TPasCubeApplication;
@@ -2555,9 +2614,10 @@ var app: TPasCubeApplication;
     scaleFactor: TpvDouble;
     cardY, cardHeight, itemY, topBoxX, topBoxY, topBoxW, topBoxH: TpvFloat;
     halfWidth, gap, hwCardY, hwTotalH: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
-    isReturnHovered: Boolean;
-    fgR, fgG, fgB, fgA: TpvFloat;
+     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
+     clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
+     isReturnHovered, isClearHovered: Boolean;
+     fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
      // Graph variables
      graphY, graphH, graphW, pointX, pointY, prevX, prevY, barW, scoreRange: TpvFloat;
@@ -2897,6 +2957,26 @@ begin
 
   app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
   app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+  // --- CLEAR RESULTS BUTTON ---
+  isClearHovered := IsClearButtonHovered(fLastMousePosition);
+  if isClearHovered then begin
+    bgR := 56.0 / 255.0; bgG := 33.0 / 255.0; bgB := 33.0 / 255.0; bgA := 1.0;
+    fgR := 240.0 / 255.0; fgG := 80.0 / 255.0; fgB := 80.0 / 255.0; fgA := 1.0;
+    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+    bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+    fgR := 85.0 / 255.0; fgG := 50.0 / 255.0; fgB := 50.0 / 255.0; fgA := 1.0;
+    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
+
+  clearBtnWidth := (14.0 * charWidth * 1.2) + (2.0 * paddingX);
+  clearBtnHeight := btnHeight;
+  clearBtnX := btnX - (charWidth * 2.0) - clearBtnWidth;
+  clearBtnY := btnY;
+
+  app.TextOverlay.AddBox(clearBtnX, clearBtnY, clearBtnWidth, clearBtnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 end;
 
 procedure TPasCubeScreen.GenerateBeveledCube;
