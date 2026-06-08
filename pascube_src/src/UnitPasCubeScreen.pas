@@ -43,18 +43,12 @@ type
    bpWarmup,
    bpCPU_Single,   // CPU Single-Threaded 7-Zip test
    bpCPU_Multi,    // CPU Multi-Threaded 7-Zip test
-   bpGPU_720p,     // GPU Vulkan stress at 720p
    bpGPU_1080p,    // GPU Vulkan stress at 1080p
-   bpGPU_1440p,    // GPU Vulkan stress at 1440p
-   bpGPU_4K,       // GPU Vulkan stress at 4K
    bpResults
   );
 
   TResolutionOption = (
-   ro720p,
-   ro1080p,
-   ro1440p,
-   ro4K
+   ro1080p
   );
 
   TBenchmarkPhaseResult = record
@@ -527,7 +521,7 @@ begin
  fBenchmarkTimer := 0.0;
  fPhaseTimer := 0.0;
  fPhysicsWorld := TPhysicsWorld.Create;
- fResolutionOption := ro720p;
+  fResolutionOption := ro1080p;
  fSelectedResolution := 0;
  fHoveredButtonIndex := -1;
  fCubeIndexCount := 36;
@@ -1041,11 +1035,9 @@ begin
  if fReady and (aKeyEvent.KeyEventType=TpvApplicationInputKeyEventType.Down) then begin
   case aKeyEvent.KeyCode of
    KEYCODE_ESCAPE:begin
-    if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
-     fBenchmarkPhase := bpIdleMenu;
-     pvApplication.Width := 1280;
-     pvApplication.Height := 720;
-     fShowSkybox := true;
+      if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p] then begin
+      fBenchmarkPhase := bpIdleMenu;
+      fShowSkybox := true;
      result:=true;
     end else begin
      pvApplication.Terminate;
@@ -1055,11 +1047,9 @@ begin
     if fBenchmarkPhase = bpIdleMenu then begin
      StartBenchmark;
      result:=true;
-    end else if fBenchmarkPhase = bpResults then begin
-     fBenchmarkPhase := bpIdleMenu;
-     pvApplication.Width := 1280;
-     pvApplication.Height := 720;
-     fShowSkybox := true;
+     end else if fBenchmarkPhase = bpResults then begin
+      fBenchmarkPhase := bpIdleMenu;
+      fShowSkybox := true;
      result:=true;
     end;
    end;
@@ -1139,11 +1129,9 @@ begin
        fClearConfirmPending := false;
        fClearConfirmHovered := 0;
        result:=true;
-      end else begin
-       fBenchmarkPhase := bpIdleMenu;
-       pvApplication.Width := 1280;
-       pvApplication.Height := 720;
-       fShowSkybox := true;
+       end else begin
+        fBenchmarkPhase := bpIdleMenu;
+        fShowSkybox := true;
        result:=true;
       end;
      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
@@ -1239,7 +1227,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
  Inc(fFrameCount);
 
    // Benchmark state machine
-   if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
+    if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p] then begin
    fBenchmarkTimer := fBenchmarkTimer + aDeltaTime;
    fPhaseTimer := fPhaseTimer + aDeltaTime;
  
@@ -1263,9 +1251,9 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
         NextPhase;
       end;
      end;
-    bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K: begin
-     if fPhaseTimer >= 10.0 then NextPhase;
-    end;
+     bpGPU_1080p: begin
+      if fPhaseTimer >= 10.0 then NextPhase;
+     end;
    end;
   end;
  
@@ -1277,7 +1265,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
    end;
 
    // Update lights & particles if in GPU stress phase
-   if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
+    if fBenchmarkPhase in [bpGPU_1080p] then begin
     UpdateLights(aDeltaTime);
     UpdateParticles(aDeltaTime);
    end;
@@ -1345,7 +1333,7 @@ begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
 
-  isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K];
+   isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p];
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -1366,7 +1354,7 @@ begin
   ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
   ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,pvApplication.Width/pvApplication.Height,1.0,128.0);
 
-  if isBenchmark and (fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K]) then begin
+   if isBenchmark and (fBenchmarkPhase in [bpGPU_1080p]) then begin
    // Main Cube (Instance 0)
    ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
                 TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
@@ -1459,7 +1447,7 @@ begin
                                                                                                                0,
                                                                                                                nil);
 
-    if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then
+     if fBenchmarkPhase in [bpGPU_1080p] then
      gpuStressValue := fBenchmarkTimer
     else
      gpuStressValue := 0.0;
@@ -1491,7 +1479,7 @@ begin
     end;
 
       // Render particles (GPU particle phase)
-      if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K]) then begin
+       if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase in [bpGPU_1080p]) then begin
        // 8 Orbiting lights
        for i := 0 to 7 do begin
         PushConstants.Vector := TpvVector4.Create(fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
@@ -1514,12 +1502,12 @@ begin
       end;
 
      // Default cube (idle menu / warmup / CPU single / GPU stress phases)
-     if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K]) then begin
+      if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_1080p]) then begin
       if isBenchmark then begin
         if fBenchmarkPhase = bpCPU_Single then begin
           PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
-        end else if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
+         end else if fBenchmarkPhase in [bpGPU_1080p] then begin
           PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
            PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
         end else begin
@@ -1637,9 +1625,9 @@ begin
  case fBenchmarkPhase of
   bpWarmup: Result := 3.0;
   bpCPU_Single: Result := 0.0;
-  bpCPU_Multi: Result := 0.0;
-  bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K: Result := 10.0;
-  else Result := 0.0;
+   bpCPU_Multi: Result := 0.0;
+   bpGPU_1080p: Result := 10.0;
+   else Result := 0.0;
  end;
 end;
 
@@ -1650,10 +1638,7 @@ begin
   bpWarmup: Result := 'Warmup';
   bpCPU_Single: Result := 'CPU Single-Thread';
   bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
-  bpGPU_720p: Result := 'GPU Stress at 720p';
-  bpGPU_1080p: Result := 'GPU Stress at 1080p';
-  bpGPU_1440p: Result := 'GPU Stress at 1440p';
-  bpGPU_4K: Result := 'GPU Stress at 4K';
+   bpGPU_1080p: Result := 'GPU Stress at 1080p';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
  end;
@@ -1740,8 +1725,8 @@ begin
      fCurrentResult.PhaseResults[fPhaseResultIndex].LightsActive := 0;
      fCurrentResult.PhaseResults[fPhaseResultIndex].ParticlesActive := 0;
      fCurrentResult.PhaseResults[fPhaseResultIndex].PhysicsBodies := 0;
-   end else if fBenchmarkPhase in [bpGPU_720p, bpGPU_1080p, bpGPU_1440p, bpGPU_4K] then begin
-     fCurrentResult.PhaseResults[fPhaseResultIndex].Score := Round(fpsAvg * 35.0);
+    end else if fBenchmarkPhase in [bpGPU_1080p] then begin
+      fCurrentResult.PhaseResults[fPhaseResultIndex].Score := Round(fpsAvg * 140.0);
      fCurrentResult.PhaseResults[fPhaseResultIndex].ObjectsRendered := 1;
      fCurrentResult.PhaseResults[fPhaseResultIndex].LightsActive := 8;
      fCurrentResult.PhaseResults[fPhaseResultIndex].ParticlesActive := fParticleCount;
@@ -1767,51 +1752,20 @@ begin
     fPhaseResultIndex := 2;
     f7ZipThread := T7ZipThread.Create('7z', '');
    end;
-   bpCPU_Multi: begin
-    DebugLog('NextPhase: bpCPU_Multi -> bpGPU_720p. Setting 720p resolution and initializing particles.');
-    fBenchmarkPhase := bpGPU_720p;
-    fPhaseResultIndex := 3;
-    fResolutionOption := ro720p;
-    pvApplication.Width := 1280;
-    pvApplication.Height := 720;
-    InitParticles;
-   end;
-   bpGPU_720p: begin
-    DebugLog('NextPhase: bpGPU_720p -> bpGPU_1080p. Setting 1080p resolution and initializing particles.');
-    fBenchmarkPhase := bpGPU_1080p;
-    fPhaseResultIndex := 4;
-    fResolutionOption := ro1080p;
-    pvApplication.Width := 1920;
-    pvApplication.Height := 1080;
-    InitParticles;
-   end;
-   bpGPU_1080p: begin
-    DebugLog('NextPhase: bpGPU_1080p -> bpGPU_1440p. Setting 1440p resolution and initializing particles.');
-    fBenchmarkPhase := bpGPU_1440p;
-    fPhaseResultIndex := 5;
-    fResolutionOption := ro1440p;
-    pvApplication.Width := 2560;
-    pvApplication.Height := 1440;
-    InitParticles;
-   end;
-   bpGPU_1440p: begin
-    DebugLog('NextPhase: bpGPU_1440p -> bpGPU_4K. Setting 4K resolution and initializing particles.');
-    fBenchmarkPhase := bpGPU_4K;
-    fPhaseResultIndex := 6;
-    fResolutionOption := ro4K;
-    pvApplication.Width := 3840;
-    pvApplication.Height := 2160;
-    InitParticles;
-   end;
-   bpGPU_4K: begin
-    DebugLog('NextPhase: bpGPU_4K -> bpResults. Restoring 720p and completing benchmark.');
-    fBenchmarkPhase := bpResults;
-    CalculateScore;
-    pvApplication.Width := 1280;
-    pvApplication.Height := 720;
-    FinishBenchmark;
-    Exit;
-   end;
+     bpCPU_Multi: begin
+      DebugLog('NextPhase: bpCPU_Multi -> bpGPU_1080p. Initializing particles.');
+      fBenchmarkPhase := bpGPU_1080p;
+      fPhaseResultIndex := 3;
+      fResolutionOption := ro1080p;
+      InitParticles;
+     end;
+     bpGPU_1080p: begin
+      DebugLog('NextPhase: bpGPU_1080p -> bpResults. Completing benchmark.');
+      fBenchmarkPhase := bpResults;
+      CalculateScore;
+      FinishBenchmark;
+      Exit;
+     end;
    else begin
     DebugLog('NextPhase: Unknown or bpResults -> bpIdleMenu.');
     fBenchmarkPhase := bpIdleMenu;
@@ -1847,50 +1801,35 @@ end;
 
 procedure TPasCubeScreen.CalculateScore;
 var cpuSTPoints, cpuMTPoints: Integer;
-    gpu720Points, gpu1080Points, gpu1440Points, gpu4KPoints, gpuAvgPoints: Integer;
+    gpu1080Points, gpuAvgPoints: Integer;
     gpuAvgFPS: TpvDouble;
 begin
   cpuSTPoints := Round(fCurrentResult.PhaseResults[1].Score / 3.0);
   cpuMTPoints := Round(fCurrentResult.PhaseResults[2].Score / 20.0);
-  
-  gpu720Points := fCurrentResult.PhaseResults[3].Score;
-  gpu1080Points := fCurrentResult.PhaseResults[4].Score;
-  gpu1440Points := fCurrentResult.PhaseResults[5].Score;
-  gpu4KPoints := fCurrentResult.PhaseResults[6].Score;
+
+  gpu1080Points := fCurrentResult.PhaseResults[3].Score;
 
   if cpuSTPoints < 1 then cpuSTPoints := 1;
   if cpuMTPoints < 1 then cpuMTPoints := 1;
-  if gpu720Points < 1 then gpu720Points := 1;
   if gpu1080Points < 1 then gpu1080Points := 1;
-  if gpu1440Points < 1 then gpu1440Points := 1;
-  if gpu4KPoints < 1 then gpu4KPoints := 1;
 
   // Save normalized points in Score for display in the grid
   fCurrentResult.PhaseResults[1].Score := cpuSTPoints;
   fCurrentResult.PhaseResults[2].Score := cpuMTPoints;
-  fCurrentResult.PhaseResults[3].Score := gpu720Points;
-  fCurrentResult.PhaseResults[4].Score := gpu1080Points;
-  fCurrentResult.PhaseResults[5].Score := gpu1440Points;
-  fCurrentResult.PhaseResults[6].Score := gpu4KPoints;
+  fCurrentResult.PhaseResults[3].Score := gpu1080Points;
 
-  gpuAvgPoints := Round((gpu720Points + gpu1080Points + gpu1440Points + gpu4KPoints) / 4.0);
+  gpuAvgPoints := gpu1080Points;
   if gpuAvgPoints < 1 then gpuAvgPoints := 1;
 
-  gpuAvgFPS := (fCurrentResult.PhaseResults[3].FPSAvg +
-                fCurrentResult.PhaseResults[4].FPSAvg +
-                fCurrentResult.PhaseResults[5].FPSAvg +
-                fCurrentResult.PhaseResults[6].FPSAvg) / 4.0;
+  gpuAvgFPS := fCurrentResult.PhaseResults[3].FPSAvg;
 
   // Populate PhaseResults[7] as the main GPU Vulkan Render phase for GOverlay compatibility
   fCurrentResult.PhaseResults[7].PhaseName := 'GPU Vulkan Render';
   fCurrentResult.PhaseResults[7].Score := gpuAvgPoints;
   fCurrentResult.PhaseResults[7].FPSAvg := gpuAvgFPS;
-  fCurrentResult.PhaseResults[7].FPSMin := fCurrentResult.PhaseResults[6].FPSMin;
+  fCurrentResult.PhaseResults[7].FPSMin := fCurrentResult.PhaseResults[3].FPSMin;
   fCurrentResult.PhaseResults[7].FPSMax := fCurrentResult.PhaseResults[3].FPSMax;
-  fCurrentResult.PhaseResults[7].FrameTimeMs := (fCurrentResult.PhaseResults[3].FrameTimeMs +
-                                                 fCurrentResult.PhaseResults[4].FrameTimeMs +
-                                                 fCurrentResult.PhaseResults[5].FrameTimeMs +
-                                                 fCurrentResult.PhaseResults[6].FrameTimeMs) / 4.0;
+  fCurrentResult.PhaseResults[7].FrameTimeMs := fCurrentResult.PhaseResults[3].FrameTimeMs;
   fCurrentResult.PhaseResults[7].ObjectsRendered := 1;
   fCurrentResult.PhaseResults[7].LightsActive := 8;
   fCurrentResult.PhaseResults[7].ParticlesActive := fParticleCount;
@@ -2440,11 +2379,9 @@ begin
   filePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
   if FileExists(filePath) then
     DeleteFile(filePath);
-  // Return to menu since there are no results to display
-  fBenchmarkPhase := bpIdleMenu;
-  pvApplication.Width := 1280;
-  pvApplication.Height := 720;
-  fShowSkybox := true;
+   // Return to menu since there are no results to display
+   fBenchmarkPhase := bpIdleMenu;
+   fShowSkybox := true;
   fClearConfirmPending := false;
   fClearConfirmHovered := 0;
 end;
@@ -2487,10 +2424,7 @@ begin
   bpWarmup: infoStr := 'Calibrating render engine and caches...';
   bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
   bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
-  bpGPU_720p: infoStr := 'Testing GPU at 720p (1280x720)...';
-  bpGPU_1080p: infoStr := 'Testing GPU at 1080p (1920x1080)...';
-  bpGPU_1440p: infoStr := 'Testing GPU at 1440p (2560x1440)...';
-  bpGPU_4K: infoStr := 'Testing GPU at 4K (3840x2160)...';
+   bpGPU_1080p: infoStr := 'Testing GPU at 1080p (1920x1080)...';
  end;
 
  pbWidth := pvApplication.Width * 0.6;
@@ -2887,10 +2821,10 @@ begin
     // Hover detail popup for Score Trend
      if fHoveredHistoryIdx >= 0 then begin
       popupW := 28.0 * charWidth;
-     popupH := 6.5 * charHeight;
-     popupX := cx - popupW * 0.5;
-     popupY := graphY + graphH * 0.5 - popupH * 0.5;
-     if popupY < graphY + 0.5 * charHeight then popupY := graphY + 0.5 * charHeight;
+      popupH := 5.0 * charHeight;
+      popupX := cx - popupW * 0.5;
+      popupY := graphY + graphH * 0.5 - popupH * 0.5;
+      if popupY < graphY + 0.5 * charHeight then popupY := graphY + 0.5 * charHeight;
 
      // Popup background
      app.TextOverlay.AddBox(popupX, popupY, popupW, popupH,
@@ -2913,25 +2847,17 @@ begin
      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.2 * charHeight, 0.65, toaLeft, detailStr,
                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-     detailStr := Format('GPU 720p:%s 1080p:%s', [
-       FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score),
-       FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[4].Score)]);
-     app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
-                             1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+      detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
+                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-     detailStr := Format('GPU 1440p:%s 4K:%s', [
-       FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[5].Score),
-       FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[6].Score)]);
-     app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 3.6 * charHeight, 0.65, toaLeft, detailStr,
-                             1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+      detailStr := 'Kernel: ' + fHistory[fHoveredHistoryIdx].KernelVersion;
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 3.6 * charHeight, 0.6, toaLeft, detailStr,
+                              1.0, 1.0, 1.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
 
-     detailStr := 'Kernel: ' + fHistory[fHoveredHistoryIdx].KernelVersion;
-     app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 4.5 * charHeight, 0.6, toaLeft, detailStr,
-                             1.0, 1.0, 1.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
-
-     detailStr := 'Driver: ' + fHistory[fHoveredHistoryIdx].DriverVersion;
-     app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 5.1 * charHeight, 0.6, toaLeft, detailStr,
-                             1.0, 1.0, 1.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
+      detailStr := 'Driver: ' + fHistory[fHoveredHistoryIdx].DriverVersion;
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 4.2 * charHeight, 0.6, toaLeft, detailStr,
+                              1.0, 1.0, 1.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
     end;
    end;
 
