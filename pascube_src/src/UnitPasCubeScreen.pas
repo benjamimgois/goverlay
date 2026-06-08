@@ -2294,7 +2294,7 @@ function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    returnBtnWidth, returnBtnX, gap: TpvFloat;
+    returnBtnWidth, totalWidth, gap: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpResults then Exit;
@@ -2310,13 +2310,15 @@ begin
 
   // Return button dimensions (same as IsReturnButtonHovered)
   returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  returnBtnX := cx - (returnBtnWidth * 0.5);
 
-  // Clear button: left of Return button with a gap
-  gap := charWidth * 2.0;
-  btnWidth := (14.0 * charWidth * 1.2) + (2.0 * paddingX);
+  // Clear button: slightly smaller font scale to fit text
+  gap := charWidth * 3.0;
+  btnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnX := returnBtnX - gap - btnWidth;
+
+  // Center both buttons as a group
+  totalWidth := btnWidth + gap + returnBtnWidth;
+  btnX := cx - (totalWidth * 0.5);
   btnY := yText - paddingY;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
@@ -2326,7 +2328,13 @@ end;
 procedure TPasCubeScreen.ClearBenchmarkResults;
 var
   filePath: String;
+  Res: Integer;
 begin
+  Res := MessageDlg('Clear benchmark history',
+                    'This will permanently delete all benchmark results. Are you sure?',
+                    mtConfirmation, mbYesNo, 0);
+  if Res <> mrYes then Exit;
+
   fHistoryCount := 0;
   fBestScore := 0;
   fLastScore := 0;
@@ -2935,28 +2943,20 @@ begin
     itemY := itemY + itemH;
    end;
 
-  // --- RETURN TO MENU BUTTON ---
+  // --- BOTTOM BUTTON BAR ---
   yText := pvApplication.Height - 55.0;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
-  btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnX := cx - (btnWidth * 0.5);
+
+  // Recompute both button widths so they match hit-test logic
+  clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
+  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+  gap := charWidth * 3.0;
+  totalWidth := clearBtnWidth + gap + returnBtnWidth;
+
+  // Common Y
   btnY := yText - paddingY;
-
-  isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
-  if isReturnHovered then begin
-   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
-
-  app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-  app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
 
   // --- CLEAR RESULTS BUTTON ---
   isClearHovered := IsClearButtonHovered(fLastMousePosition);
@@ -2970,13 +2970,32 @@ begin
     textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
   end;
 
-  clearBtnWidth := (14.0 * charWidth * 1.2) + (2.0 * paddingX);
-  clearBtnHeight := btnHeight;
-  clearBtnX := btnX - (charWidth * 2.0) - clearBtnWidth;
+  clearBtnX := cx - (totalWidth * 0.5);
   clearBtnY := btnY;
+  clearBtnHeight := btnHeight;
 
   app.TextOverlay.AddBox(clearBtnX, clearBtnY, clearBtnWidth, clearBtnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
   app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+  // --- RETURN TO MENU BUTTON ---
+  isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
+  if isReturnHovered then begin
+    bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+    fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+    bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+    fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
+
+  btnX := clearBtnX + clearBtnWidth + gap;
+  btnY := clearBtnY;
+  btnWidth := returnBtnWidth;
+  btnHeight := clearBtnHeight;
+
+  app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  app.TextOverlay.AddText(btnX + btnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 end;
 
 procedure TPasCubeScreen.GenerateBeveledCube;
