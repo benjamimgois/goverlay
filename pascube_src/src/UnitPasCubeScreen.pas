@@ -1175,11 +1175,13 @@ begin
        histGraphW := leftColWidth;
        if (aPointerEvent.Position.x >= leftColX1) and (aPointerEvent.Position.x <= leftColX1 + histGraphW) and
           (aPointerEvent.Position.y >= histGraphY) and (aPointerEvent.Position.y <= histGraphY + histGraphH) then begin
-        barSlotW := (histGraphW - 4.0 * charWidth) / fHistoryCount;
-        fHoveredHistoryIdx := Trunc((aPointerEvent.Position.x - (leftColX1 + 2.0 * charWidth)) / barSlotW);
-        if fHoveredHistoryIdx < 0 then fHoveredHistoryIdx := 0;
-        if fHoveredHistoryIdx >= fHistoryCount then fHoveredHistoryIdx := fHistoryCount - 1;
-       end;
+         barSlotW := (histGraphW - 4.0 * charWidth) / fHistoryCount;
+         fHoveredHistoryIdx := Trunc((aPointerEvent.Position.x - (leftColX1 + 2.0 * charWidth)) / barSlotW);
+         if fHoveredHistoryIdx < 0 then fHoveredHistoryIdx := 0;
+         if fHoveredHistoryIdx >= fHistoryCount then fHoveredHistoryIdx := fHistoryCount - 1;
+         // Map visual index (oldest at left) to array index (newest at 0)
+         fHoveredHistoryIdx := fHistoryCount - 1 - fHoveredHistoryIdx;
+        end;
       end;
      end;
     end;
@@ -2700,10 +2702,11 @@ var app: TPasCubeApplication;
      fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
       // Graph variables
-      graphY, graphH, graphW, pointX, pointY, prevX, prevY, barW, scoreRange: TpvFloat;
-      graphMaxScore, graphMinScore: Integer;
-      graphIdx: Integer;
-      baseY, plotTop, plotH, barX, barTopH: TpvFloat;
+       graphY, graphH, graphW, pointX, pointY, prevX, prevY, barW, scoreRange: TpvFloat;
+        graphMaxScore, graphMinScore: Integer;
+        graphIdx, historyIdx: Integer;
+       baseY, plotTop, plotH, barX, barTopH: TpvFloat;
+       paddedMinScore, paddedRange: TpvFloat;
       popupX, popupY, popupW, popupH: TpvFloat;
       detailStr: String;
       // Clear confirmation dialog variables
@@ -2801,45 +2804,58 @@ begin
      if fHistory[graphIdx].TotalScore > graphMaxScore then graphMaxScore := fHistory[graphIdx].TotalScore;
      if fHistory[graphIdx].TotalScore < graphMinScore then graphMinScore := fHistory[graphIdx].TotalScore;
     end;
-    if graphMaxScore = graphMinScore then scoreRange := 1.0 else scoreRange := graphMaxScore - graphMinScore;
+     if graphMaxScore = graphMinScore then scoreRange := 1.0 else scoreRange := graphMaxScore - graphMinScore;
 
-     // Baseline Y (bottom of bars)
-     baseY := graphY + graphH - 1.8 * charHeight;
-    plotTop := graphY + 1.8 * charHeight;
-    plotH := baseY - plotTop;
+      // Add bottom padding so the minimum bar is still visible (~10% of plot height)
+      paddedMinScore := graphMinScore - scoreRange * 0.12;
+      if paddedMinScore < 0 then paddedMinScore := 0;
+      paddedRange := graphMaxScore - paddedMinScore;
+      if paddedRange < 1.0 then paddedRange := 1.0;
+
+      // Baseline Y (bottom of bars)
+      baseY := graphY + graphH - 1.8 * charHeight;
+     plotTop := graphY + 1.8 * charHeight;
+     plotH := baseY - plotTop;
 
     // Draw horizontal axis line
     app.TextOverlay.AddBox(leftColX1 + 2.0 * charWidth, baseY, graphW - 4.0 * charWidth, 0.06 * charHeight,
                            70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4,
                            70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4, 255.0);
 
-     // Draw vertical bars for each history entry
-     barW := (graphW - 4.0 * charWidth) / fHistoryCount * 0.6;
-     for graphIdx := 0 to fHistoryCount - 1 do begin
-      barX := leftColX1 + 2.0 * charWidth + (graphIdx + 0.5) * ((graphW - 4.0 * charWidth) / fHistoryCount) - barW * 0.5;
-      barTopH := ((fHistory[graphIdx].TotalScore - graphMinScore) / scoreRange) * plotH;
-      if barTopH < 2.0 then barTopH := 2.0;
+      // Draw vertical bars for each history entry
+      barW := (graphW - 4.0 * charWidth) / fHistoryCount * 0.6;
+      for graphIdx := 0 to fHistoryCount - 1 do begin
+       historyIdx := fHistoryCount - 1 - graphIdx; // oldest first, newest last
+       barX := leftColX1 + 2.0 * charWidth + (graphIdx + 0.5) * ((graphW - 4.0 * charWidth) / fHistoryCount) - barW * 0.5;
+       barTopH := ((fHistory[historyIdx].TotalScore - paddedMinScore) / paddedRange) * plotH;
+       if barTopH < 2.0 then barTopH := 2.0;
 
-      // Bar fill (cyan for latest, muted for older)
-      if graphIdx = 0 then
-       app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
-                              48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85,
-                              48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85, 255.0)
-      else
-       app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
-                              70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6,
-                              70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 255.0);
+       // Bar fill (cyan for latest = rightmost, muted for older)
+       if historyIdx = 0 then
+        app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
+                               48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85,
+                               48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85, 255.0)
+       else
+        app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
+                               70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6,
+                               70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 255.0);
 
-      // Test label below bar: "Test N" instead of just "N"
-      app.TextOverlay.AddText(barX + barW * 0.5, baseY + 0.3 * charHeight, 0.65, toaCenter, 'Test ' + IntToStr(graphIdx + 1),
-                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+       // Test label below bar: "Test N" instead of just "N"
+       app.TextOverlay.AddText(barX + barW * 0.5, baseY + 0.3 * charHeight, 0.65, toaCenter, 'Test ' + IntToStr(graphIdx + 1),
+                               1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-      // Score label on top of bar
-      // Always show for the latest test (graphIdx = 0); for older tests only if enough height
-      if (graphIdx = 0) or (barTopH > 1.5 * charHeight) then
-       app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH + 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[graphIdx].TotalScore),
-                               1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-     end;
+       // Score label on top of bar
+       // Always show for the latest test (historyIdx = 0); for older tests only if enough height
+       if (historyIdx = 0) or (barTopH > 1.5 * charHeight) then begin
+        // Place label above bar top to avoid overlapping axis label when bar is tiny
+        if barTopH > 1.5 * charHeight then
+         app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH + 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[historyIdx].TotalScore),
+                                 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+        else
+         app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH - 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[historyIdx].TotalScore),
+                                 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+       end;
+      end;
 
     // Hover detail popup for Score Trend
      if fHoveredHistoryIdx >= 0 then begin
