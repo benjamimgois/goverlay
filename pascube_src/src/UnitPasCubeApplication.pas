@@ -100,10 +100,8 @@ begin
  AndroidSeparateMouseAndTouch:=true;
  UseAudio:=false;
  WaitOnPreviousFrames:=false;
- VulkanAPIVersion:=VK_API_VERSION_1_0;
- Blocking:=true;
- VulkanAPIVersion:=VK_API_VERSION_1_0;
- Blocking:=true;
+  VulkanAPIVersion:=VK_API_VERSION_1_0;
+  Blocking:=true;
   PresentMode:=TpvApplicationPresentMode.Immediate;
  Width:=1280;
  Height:=720;

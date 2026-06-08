@@ -287,6 +287,23 @@ implementation
 
 uses UnitPasCubeApplication, UnitTextOverlay, process;
 
+function GetLogDir: string;
+begin
+  Result := GetEnvironmentVariable('HOME') + '/.local/share/goverlay/logs';
+  if Result = '/.local/share/goverlay/logs' then
+    Result := '/tmp/goverlay/logs';
+end;
+
+function GetLogFilePath(const AFileName: string): string;
+var
+  Dir: string;
+begin
+  Dir := GetLogDir;
+  if not DirectoryExists(Dir) then
+    ForceDirectories(Dir);
+  Result := Dir + '/' + AFileName;
+end;
+
 function T7ZipThread.GetIsFinished: Boolean;
 begin
   Result := Finished;
@@ -297,7 +314,7 @@ var
   F: TextFile;
   Path: string;
 begin
-  Path := ExtractFilePath(ParamStr(0)) + 'pascube_thread.log';
+  Path := GetLogFilePath('pascube_thread.log');
   try
     AssignFile(F, Path);
     if FileExists(Path) then
@@ -1607,7 +1624,7 @@ procedure TPasCubeScreen.SaveDebugLog;
 var path: String;
 begin
  if Assigned(fDebugLog) and (fDebugLog.Count > 0) then begin
-  path := ExtractFilePath(ParamStr(0)) + 'pascube_debug.log';
+   path := GetLogFilePath('pascube_debug.log');
   try
    fDebugLog.SaveToFile(path);
   except
