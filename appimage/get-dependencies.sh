@@ -41,7 +41,6 @@ pacman -Syu --noconfirm \
 	xorg-server-xvfb \
 	zsync
 
-# temp solution until pascube can be built in CI
 pacman-key --init
 pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
 pacman-key --lsign-key 3056513887B78AEB
@@ -64,16 +63,3 @@ echo "---------------------------------------------------------------"
 wget --retry-connrefused --tries=30 "$EXTRA_PACKAGES" -O ./get-debloated-pkgs.sh
 chmod +x ./get-debloated-pkgs.sh
 ./get-debloated-pkgs.sh --add-common --prefer-nano mangohud-mini
-
-echo "Getting pascube..."
-echo "---------------------------------------------------------------"
-tarball=$(wget --retry-connrefused --tries=30 https://api.github.com/repos/benjamimgois/pascube/releases -O - \
-		| sed 's/[()",{} ]/\n/g' | grep -oi "https.*/pascube_.*.tar.gz$" | head -1
-)
-wget --retry-connrefused --tries=30 "$tarball" -O /tmp/pascube.tar.gz
-mkdir -p /tmp/pascube
-tar xvf /tmp/pascube.tar.gz -C /tmp/pascube
-chmod +x /tmp/pascube/pascube
-mv -v /tmp/pascube/pascube /usr/bin
-mkdir -p /usr/share/pascube
-mv -v /tmp/pascube/assets /usr/share/pascube
