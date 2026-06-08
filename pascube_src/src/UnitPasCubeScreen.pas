@@ -2654,7 +2654,7 @@ var app: TPasCubeApplication;
     charWidth, charHeight: TpvFloat;
     textScaleSmall: TpvFloat;
     scaleFactor: TpvDouble;
-    cardY, cardHeight, itemY, topBoxX, topBoxY, topBoxW, topBoxH: TpvFloat;
+    cardY, cardHeight, availableH, fixedH, itemY, topBoxX, topBoxY, topBoxW, topBoxH: TpvFloat;
     halfWidth, gap, hwCardY, hwTotalH: TpvFloat;
      btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
      clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
@@ -2700,10 +2700,16 @@ begin
                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.6,
                             255.0);
 
-   // --- COLUNA ESQUERDA: Final Results + CPU + GPU + History ---
+    // --- COLUNA ESQUERDA: Final Results + CPU + GPU + History ---
    halfWidth := (leftColWidth - charWidth) / 2;
    gap := charWidth;
-   cardHeight := 5.0 * charHeight;
+    // Dynamic card height: distribute available vertical space between the 3 cards and Score Trend
+    availableH := (hwCardY + hwTotalH) - (1.0 * charHeight);
+     // Fixed: Main Score (6.5) + 4 gaps (0.5 each) + Score Trend minimum (10.0)
+     fixedH := (6.5 + 0.5*4 + 10.0) * charHeight;
+     cardHeight := (availableH - fixedH) / 3.0;
+     if cardHeight < 5.0 * charHeight then cardHeight := 5.0 * charHeight;
+     if cardHeight > 10.0 * charHeight then cardHeight := 10.0 * charHeight;
 
     // --- Card 0: Main Score (spans both CPU card widths) ---
     cardY := 1.0 * charHeight;
@@ -2724,7 +2730,7 @@ begin
                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
                           255.0);
    app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Single-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-   app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + 2.8 * charHeight, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[1].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+    app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[1].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
    // CPU Multi-Thread (right)
    app.TextOverlay.AddBox(leftColX1 + halfWidth + gap, cardY, halfWidth, cardHeight,
@@ -2732,7 +2738,7 @@ begin
                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
                           255.0);
    app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-   app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + 2.8 * charHeight, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[2].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+    app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[2].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
    // --- Card: Unified GPU Score ---
    cardY := cardY + cardHeight + 0.5 * charHeight;
@@ -2741,7 +2747,7 @@ begin
                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
                           255.0);
    app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-   app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.8 * charHeight, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+    app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
     // --- SCORE TREND GRAPH (expanded, replaces former History / Benchmark Details space) ---
     if fHistoryCount > 0 then begin
@@ -2758,30 +2764,40 @@ begin
                             255.0);
      app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, graphY + 0.5 * charHeight, 0.9, toaLeft, 'Score Trend', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
 
-    // Find min/max for scaling
-    graphMaxScore := fHistory[0].TotalScore;
-    graphMinScore := fHistory[0].TotalScore;
-    for graphIdx := 1 to fHistoryCount - 1 do begin
-     if fHistory[graphIdx].TotalScore > graphMaxScore then graphMaxScore := fHistory[graphIdx].TotalScore;
-     if fHistory[graphIdx].TotalScore < graphMinScore then graphMinScore := fHistory[graphIdx].TotalScore;
-    end;
-     if graphMaxScore = graphMinScore then scoreRange := 1.0 else scoreRange := graphMaxScore - graphMinScore;
+      // Find min/max for scaling
+      graphMaxScore := fHistory[0].TotalScore;
+      graphMinScore := fHistory[0].TotalScore;
+      for graphIdx := 1 to fHistoryCount - 1 do begin
+       if fHistory[graphIdx].TotalScore > graphMaxScore then graphMaxScore := fHistory[graphIdx].TotalScore;
+       if fHistory[graphIdx].TotalScore < graphMinScore then graphMinScore := fHistory[graphIdx].TotalScore;
+      end;
+      if graphMaxScore = graphMinScore then scoreRange := 1.0 else scoreRange := graphMaxScore - graphMinScore;
 
-      // Add bottom padding so the minimum bar is still visible (~10% of plot height)
-      paddedMinScore := graphMinScore - scoreRange * 0.12;
+      // Auto-scale Y axis: 5% top padding, 5% bottom padding, never clamp to zero
+      paddedMinScore := graphMinScore - scoreRange * 0.05;
       if paddedMinScore < 0 then paddedMinScore := 0;
       paddedRange := graphMaxScore - paddedMinScore;
+      // Enforce a minimum range (~5% of max) so tiny score diffs don't exaggerate bar heights
+      if paddedRange < graphMaxScore * 0.05 then begin
+        paddedRange := graphMaxScore * 0.05;
+        paddedMinScore := graphMaxScore - paddedRange;
+      end;
       if paddedRange < 1.0 then paddedRange := 1.0;
 
       // Baseline Y (bottom of bars)
       baseY := graphY + graphH - 1.8 * charHeight;
-     plotTop := graphY + 1.8 * charHeight;
-     plotH := baseY - plotTop;
+      plotTop := graphY + 1.8 * charHeight;
+      plotH := baseY - plotTop;
 
     // Draw horizontal axis line
     app.TextOverlay.AddBox(leftColX1 + 2.0 * charWidth, baseY, graphW - 4.0 * charWidth, 0.06 * charHeight,
                            70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4,
                            70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4, 255.0);
+
+    // Optional: horizontal grid line at mid-range
+    app.TextOverlay.AddBox(leftColX1 + 2.0 * charWidth, plotTop + plotH * 0.5, graphW - 4.0 * charWidth, 0.03 * charHeight,
+                           70.0/255.0, 80.0/255.0, 100.0/255.0, 0.2,
+                           70.0/255.0, 80.0/255.0, 100.0/255.0, 0.2, 255.0);
 
       // Draw vertical bars for each history entry
       barW := (graphW - 4.0 * charWidth) / fHistoryCount * 0.6;
