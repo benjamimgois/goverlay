@@ -964,6 +964,7 @@ type
     // MangoHud config loading helpers
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
+    procedure RestoreIfMaximized;
   public
     // OptiScaler fields (moved from private)
     FOsScrollBox:    TScrollBox;
@@ -3660,10 +3661,20 @@ begin
   ScanImages(Self);
 end;
 
+procedure Tgoverlayform.RestoreIfMaximized;
+begin
+  if WindowState = wsMaximized then
+  begin
+    WindowState := wsNormal;
+    Application.ProcessMessages;
+  end;
+end;
+
 procedure Tgoverlayform.StartCube;
 begin
   if not FCubeAutoLaunch then Exit;
   StopCube; // Prevent duplicates
+  RestoreIfMaximized;
 
   if IsRunningInFlatpak then
   begin
@@ -4194,6 +4205,7 @@ begin
     except
     end;
     DbgLog('*** RUN PASCUBE MENU CLICK - RUNNING PASCUBE ***');
+    RestoreIfMaximized;
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
@@ -4234,6 +4246,7 @@ begin
   // Start vkcube (vulkan demo) only if not already running
   // In Flatpak, MangoHud works via environment variable, not as a wrapper command
   // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
+  RestoreIfMaximized;
   if IsRunningInFlatpak then
   begin
     if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
@@ -7364,6 +7377,7 @@ begin
     except
     end;
     DbgLog('*** PREVIEW BUTTON CLICK - RUNNING PASCUBE ***');
+    RestoreIfMaximized;
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
@@ -7371,7 +7385,10 @@ begin
     FBenchmarkTimer.Enabled := True;
   end
   else if IsCommandAvailable('vkcube') then
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &')
+  begin
+    RestoreIfMaximized;
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &');
+  end
   else
     SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);
 end;

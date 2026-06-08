@@ -2247,6 +2247,7 @@ function TPasCubeScreen.IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    clearBtnWidth, gap, groupWidth, groupX: TpvFloat;
 begin
  Result := false;
  if fBenchmarkPhase <> bpResults then Exit;
@@ -2260,8 +2261,12 @@ begin
  paddingX := charWidth * 1.5;
  paddingY := charHeight * 0.4;
  btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+ clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
+ gap := 4.0 * charWidth;
+ groupWidth := btnWidth + gap + clearBtnWidth;
+ groupX := cx - (groupWidth * 0.5);
  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
- btnX := cx - (btnWidth * 0.5);
+ btnX := groupX;
  btnY := yText - paddingY;
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
@@ -2292,8 +2297,8 @@ begin
    // Reconstruct and sort hardware references (same as DrawResultsOverlay)
    HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 120; HWRefs[0].IsCurrent := false;
    HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-   HWRefs[1].Name := 'Nintendo Switch'; HWRefs[1].Score := 180; HWRefs[1].IsCurrent := false;
-   HWRefs[1].Specs := 'CPU: Tegra X1 4C | RAM: 4GB LPDDR4 | GPU: Maxwell 256 | OS: Horizon';
+    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2800; HWRefs[1].IsCurrent := false;
+    HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
    HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 480; HWRefs[2].IsCurrent := false;
    HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
    HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 650; HWRefs[3].IsCurrent := false;
@@ -2302,15 +2307,15 @@ begin
    HWRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
    HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 1500; HWRefs[5].IsCurrent := false;
    HWRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-   HWRefs[6].Name := 'PlayStation 5'; HWRefs[6].Score := 2000; HWRefs[6].IsCurrent := false;
+   HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 3100; HWRefs[6].IsCurrent := false;
    HWRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-   HWRefs[7].Name := 'XBOX Series X'; HWRefs[7].Score := 2100; HWRefs[7].IsCurrent := false;
+   HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 3500; HWRefs[7].IsCurrent := false;
    HWRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
-   HWRefs[8].Name := 'PlayStation 5 Pro'; HWRefs[8].Score := 2700; HWRefs[8].IsCurrent := false;
+   HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 5000; HWRefs[8].IsCurrent := false;
    HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
-   HWRefs[9].Name := 'Mid-Range Gamer PC'; HWRefs[9].Score := 3400; HWRefs[9].IsCurrent := false;
+   HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 4200; HWRefs[9].IsCurrent := false;
    HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-   HWRefs[10].Name := 'High-End Gamer PC'; HWRefs[10].Score := 6500; HWRefs[10].IsCurrent := false;
+   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 10000; HWRefs[10].IsCurrent := false;
    HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 5090 | OS: Win11';
    HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
    HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
@@ -2342,8 +2347,9 @@ begin
 
 function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    yText, charWidth, charHeight: TpvFloat;
+    cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    returnBtnWidth, gap, groupWidth, groupX: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpResults then Exit;
@@ -2351,16 +2357,20 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
+  cx := pvApplication.Width * 0.5;
   yText := pvApplication.Height - 55.0;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
 
-  // Clear button: left-aligned with a small margin
+  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
   btnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
+  gap := 4.0 * charWidth;
+  groupWidth := returnBtnWidth + gap + btnWidth;
+  groupX := cx - (groupWidth * 0.5);
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnX := 20.0;  // small left margin
+  btnX := groupX + returnBtnWidth + gap;
   btnY := yText - paddingY;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
@@ -2714,7 +2724,7 @@ var app: TPasCubeApplication;
     halfWidth, gap, hwCardY, hwTotalH: TpvFloat;
      btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
      clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
-     returnBtnWidth, totalWidth: TpvFloat;
+     returnBtnWidth, returnBtnX, groupX, groupWidth: TpvFloat;
      isReturnHovered, isClearHovered: Boolean;
      fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
@@ -2890,7 +2900,7 @@ begin
 
      // Title
      app.TextOverlay.AddText(popupX + popupW * 0.5, popupY + 0.4 * charHeight, 0.8, toaCenter,
-                             'Run #' + IntToStr(fHoveredHistoryIdx + 1) + ' Details',
+                              'Run #' + IntToStr(fHistoryCount - fHoveredHistoryIdx) + ' Details',
                              1.0, 1.0, 1.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
 
      // Details
@@ -2930,8 +2940,8 @@ begin
 
     HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 120; HWRefs[0].IsCurrent := false;
     HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Nintendo Switch'; HWRefs[1].Score := 180; HWRefs[1].IsCurrent := false;
-    HWRefs[1].Specs := 'CPU: Tegra X1 4C | RAM: 4GB LPDDR4 | GPU: Maxwell 256 | OS: Horizon';
+    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2800; HWRefs[1].IsCurrent := false;
+    HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
     HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 480; HWRefs[2].IsCurrent := false;
     HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
     HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 650; HWRefs[3].IsCurrent := false;
@@ -2940,15 +2950,15 @@ begin
     HWRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
     HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 1500; HWRefs[5].IsCurrent := false;
     HWRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-    HWRefs[6].Name := 'PlayStation 5'; HWRefs[6].Score := 2000; HWRefs[6].IsCurrent := false;
+    HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 3100; HWRefs[6].IsCurrent := false;
     HWRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-    HWRefs[7].Name := 'XBOX Series X'; HWRefs[7].Score := 2100; HWRefs[7].IsCurrent := false;
+    HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 3500; HWRefs[7].IsCurrent := false;
     HWRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
-    HWRefs[8].Name := 'PlayStation 5 Pro'; HWRefs[8].Score := 2700; HWRefs[8].IsCurrent := false;
+    HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 5000; HWRefs[8].IsCurrent := false;
     HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
-    HWRefs[9].Name := 'Mid-Range Gamer PC'; HWRefs[9].Score := 3400; HWRefs[9].IsCurrent := false;
+    HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 4200; HWRefs[9].IsCurrent := false;
     HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-    HWRefs[10].Name := 'High-End Gamer PC'; HWRefs[10].Score := 6500; HWRefs[10].IsCurrent := false;
+    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 10000; HWRefs[10].IsCurrent := false;
     HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 5090 | OS: Win11';
     HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
     HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
@@ -3058,27 +3068,14 @@ begin
   paddingY := charHeight * 0.4;
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
 
-  // --- CLEAR RESULTS BUTTON (left-aligned) ---
-  isClearHovered := IsClearButtonHovered(fLastMousePosition);
-  if isClearHovered then begin
-    bgR := 120.0 / 255.0; bgG := 20.0 / 255.0; bgB := 20.0 / 255.0; bgA := 1.0;
-    fgR := 220.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-    bgR := 80.0 / 255.0; bgG := 15.0 / 255.0; bgB := 15.0 / 255.0; bgA := 1.0;
-    fgR := 140.0 / 255.0; fgG := 35.0 / 255.0; fgB := 35.0 / 255.0; fgA := 1.0;
-    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
-
+  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
   clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
-  clearBtnX := 20.0;
-  clearBtnY := yText - paddingY;
-  clearBtnHeight := btnHeight;
+  gap := 4.0 * charWidth;
+  groupWidth := returnBtnWidth + gap + clearBtnWidth;
+  groupX := cx - (groupWidth * 0.5);
+  btnY := yText - paddingY;
 
-  app.TextOverlay.AddBox(clearBtnX, clearBtnY, clearBtnWidth, clearBtnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-  app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
-
-  // --- RETURN TO MENU BUTTON (centered) ---
+  // --- RETURN TO MENU BUTTON (left of pair) ---
   isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
   if isReturnHovered then begin
     bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
@@ -3090,14 +3087,25 @@ begin
     textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
   end;
 
-  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  btnX := cx - (returnBtnWidth * 0.5);
-  btnY := clearBtnY;
-  btnWidth := returnBtnWidth;
-  btnHeight := clearBtnHeight;
+  returnBtnX := groupX;
+  app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-  app.TextOverlay.AddBox(btnX, btnY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-  app.TextOverlay.AddText(btnX + btnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  // --- CLEAR RESULTS BUTTON (right of pair, softer red) ---
+  isClearHovered := IsClearButtonHovered(fLastMousePosition);
+  if isClearHovered then begin
+    bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
+    fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+    bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
+    fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
+    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
+
+  clearBtnX := groupX + returnBtnWidth + gap;
+  app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
   // --- CLEAR CONFIRMATION DIALOG ---
   if fClearConfirmPending then begin
