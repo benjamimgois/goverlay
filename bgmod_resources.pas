@@ -238,6 +238,26 @@ begin
   // 2. Refresh active config path with the latest bgmod binaries/scripts
   ForceDirectories(BGModPath);
   WriteLn('[BGMOD] Refreshing active bgmod directory from .bgmod_original...');
+
+  // Preserve user's existing bgmod.conf so it is not overwritten by the
+  // pristine copy from .bgmod_original.
+  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf') then
+  begin
+    WriteLn('[BGMOD] Preserving existing bgmod.conf...');
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf') +
+                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf.bak') +
+                          ' 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end;
+
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := 'sh';
@@ -248,6 +268,23 @@ begin
     Proc.Execute;
   finally
     Proc.Free;
+  end;
+
+  // Restore user's bgmod.conf if it was backed up
+  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf.bak') then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('mv -f ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf.bak') +
+                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf') +
+                          ' 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
   end;
 
   // Make sure binaries are executable in active config path
