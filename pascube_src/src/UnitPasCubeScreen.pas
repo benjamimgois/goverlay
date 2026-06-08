@@ -2813,32 +2813,33 @@ begin
                            70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4,
                            70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4, 255.0);
 
-    // Draw vertical bars for each history entry
-    barW := (graphW - 4.0 * charWidth) / fHistoryCount * 0.6;
-    for graphIdx := 0 to fHistoryCount - 1 do begin
-     barX := leftColX1 + 2.0 * charWidth + (graphIdx + 0.5) * ((graphW - 4.0 * charWidth) / fHistoryCount) - barW * 0.5;
-     barTopH := ((fHistory[graphIdx].TotalScore - graphMinScore) / scoreRange) * plotH;
-     if barTopH < 2.0 then barTopH := 2.0;
+     // Draw vertical bars for each history entry
+     barW := (graphW - 4.0 * charWidth) / fHistoryCount * 0.6;
+     for graphIdx := 0 to fHistoryCount - 1 do begin
+      barX := leftColX1 + 2.0 * charWidth + (graphIdx + 0.5) * ((graphW - 4.0 * charWidth) / fHistoryCount) - barW * 0.5;
+      barTopH := ((fHistory[graphIdx].TotalScore - graphMinScore) / scoreRange) * plotH;
+      if barTopH < 2.0 then barTopH := 2.0;
 
-     // Bar fill (cyan for latest/highest, muted for others)
-     if graphIdx = 0 then
-      app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
-                             48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85,
-                             48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85, 255.0)
-     else
-      app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
-                             70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6,
-                             70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 255.0);
+      // Bar fill (cyan for latest, muted for older)
+      if graphIdx = 0 then
+       app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
+                              48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85,
+                              48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85, 255.0)
+      else
+       app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
+                              70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6,
+                              70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 255.0);
 
-     // Test number label below bar
-     app.TextOverlay.AddText(barX + barW * 0.5, baseY + 0.3 * charHeight, 0.65, toaCenter, IntToStr(graphIdx + 1),
-                             1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+      // Test label below bar: "Test N" instead of just "N"
+      app.TextOverlay.AddText(barX + barW * 0.5, baseY + 0.3 * charHeight, 0.65, toaCenter, 'Test ' + IntToStr(graphIdx + 1),
+                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-     // Score label on top of bar (if enough height)
-     if barTopH > 1.5 * charHeight then
-      app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH + 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[graphIdx].TotalScore),
-                              1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-    end;
+      // Score label on top of bar
+      // Always show for the latest test (graphIdx = 0); for older tests only if enough height
+      if (graphIdx = 0) or (barTopH > 1.5 * charHeight) then
+       app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH + 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[graphIdx].TotalScore),
+                               1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+     end;
 
     // Hover detail popup for Score Trend
      if fHoveredHistoryIdx >= 0 then begin
