@@ -1198,8 +1198,9 @@ type
     procedure SettingsBtnMouseLeave(Sender: TObject);
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
-    procedure BenchmarkTimerTick(Sender: TObject);
-    procedure BuildNavToolToggles;
+     procedure BenchmarkTimerTick(Sender: TObject);
+     procedure CopyPasCubeLogs;
+     procedure BuildNavToolToggles;
     procedure BuildSmallToggleImages;
     procedure NavToolToggleClick(Sender: TObject);
     procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
@@ -7755,22 +7756,63 @@ begin
   end
   else
   begin
-    if FBenchmarkStarted then
+     if FBenchmarkStarted then
+     begin
+       FBenchmarkTimer.Enabled := False;
+       FBenchmarkWasRunning := False;
+       DbgLog('BenchmarkTimerTick: pascube terminated. Results shown in PasCube overlay.');
+       CopyPasCubeLogs;
+     end
+     else
+     begin
+       Inc(FBenchmarkStartTicks);
+       if FBenchmarkStartTicks > 15 then
+       begin
+         FBenchmarkTimer.Enabled := False;
+         FBenchmarkWasRunning := False;
+         DbgLog('BenchmarkTimerTick: pascube failed to start within 15 seconds. Aborting.');
+       end;
+     end;
+   end;
+ end;
+
+procedure Tgoverlayform.CopyPasCubeLogs;
+var
+  PasCubeDir, LogsDir, SrcDebug, SrcThread, DestDebug, DestThread: string;
+  PasCubeCmd: string;
+begin
+  try
+    LogsDir := TConfigManager.GetGoverlayLogsDir;
+    TConfigManager.EnsureDirectoryExists(LogsDir);
+
+    PasCubeCmd := GetPasCubeCommand;
+    PasCubeDir := ExtractFilePath(PasCubeCmd);
+    if PasCubeDir = '' then
+      PasCubeDir := ExtractFilePath(ParamStr(0));
+
+    SrcDebug := IncludeTrailingPathDelimiter(PasCubeDir) + 'pascube_debug.log';
+    SrcThread := IncludeTrailingPathDelimiter(PasCubeDir) + 'pascube_thread.log';
+    DestDebug := IncludeTrailingPathDelimiter(LogsDir) + 'pascube_debug.log';
+    DestThread := IncludeTrailingPathDelimiter(LogsDir) + 'pascube_thread.log';
+
+    if FileExists(SrcDebug) then
     begin
-      FBenchmarkTimer.Enabled := False;
-      FBenchmarkWasRunning := False;
-      DbgLog('BenchmarkTimerTick: pascube terminated. Results shown in PasCube overlay.');
+      CopyFile(SrcDebug, DestDebug);
+      DbgLog('CopyPasCubeLogs: copied pascube_debug.log to ' + DestDebug);
     end
     else
+      DbgLog('CopyPasCubeLogs: pascube_debug.log not found at ' + SrcDebug);
+
+    if FileExists(SrcThread) then
     begin
-      Inc(FBenchmarkStartTicks);
-      if FBenchmarkStartTicks > 15 then
-      begin
-        FBenchmarkTimer.Enabled := False;
-        FBenchmarkWasRunning := False;
-        DbgLog('BenchmarkTimerTick: pascube failed to start within 15 seconds. Aborting.');
-      end;
-    end;
+      CopyFile(SrcThread, DestThread);
+      DbgLog('CopyPasCubeLogs: copied pascube_thread.log to ' + DestThread);
+    end
+    else
+      DbgLog('CopyPasCubeLogs: pascube_thread.log not found at ' + SrcThread);
+  except
+    on E: Exception do
+      DbgLog('CopyPasCubeLogs: exception: ' + E.Message);
   end;
 end;
 

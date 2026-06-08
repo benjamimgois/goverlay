@@ -77,15 +77,21 @@ type
     /// <returns>Full path to blacklist.conf</returns>
     class function GetBlacklistFile: string;
 
-    /// <summary>
-    /// Gets the distro cache file path
-    /// </summary>
-    /// <returns>Full path to distro file</returns>
-    class function GetDistroFile: string;
+     /// <summary>
+     /// Gets the distro cache file path
+     /// </summary>
+     /// <returns>Full path to distro file</returns>
+     class function GetDistroFile: string;
 
-    // ============================================================================
-    // PATH GETTERS - OptiScaler/fgmod
-    // ============================================================================
+     /// <summary>
+     /// Gets the GOverlay logs folder path
+     /// </summary>
+     /// <returns>Full path to GOverlay logs folder</returns>
+     class function GetGoverlayLogsDir: string;
+
+     // ============================================================================
+     // PATH GETTERS - OptiScaler/fgmod
+     // ============================================================================
 
     /// <summary>
     /// Gets the fgmod installation folder path
@@ -259,6 +265,11 @@ end;
 class function TConfigManager.GetDistroFile: string;
 begin
   Result := IncludeTrailingPathDelimiter(GetGoverlayFolder) + GOVERLAY_DISTRO_FILE;
+end;
+
+class function TConfigManager.GetGoverlayLogsDir: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGoverlayFolder) + 'logs';
 end;
 
 // ============================================================================
