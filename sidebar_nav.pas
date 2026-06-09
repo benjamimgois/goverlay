@@ -356,7 +356,7 @@ begin
 
   // How to Use — now available via popup menu only
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FHowToMenuItem.Caption := 'How to use FGMOD';
+  FForm.FHowToMenuItem.Caption := 'How to use';
   FForm.FHowToMenuItem.ImageIndex := 18;
   FForm.FHowToMenuItem.OnClick := @FForm.howtoBitBtnClick;
   FForm.settingsMenu.Items.Insert(5, FForm.FHowToMenuItem);
