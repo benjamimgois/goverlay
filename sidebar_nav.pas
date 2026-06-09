@@ -363,11 +363,13 @@ begin
 
   SteamItem := TMenuItem.Create(FForm.FHowToMenuItem);
   SteamItem.Caption := 'Steam';
+  SteamItem.ImageIndex := 3;
   SteamItem.OnClick := @FForm.howtoSteamClick;
   FForm.FHowToMenuItem.Add(SteamItem);
 
   HeroicItem := TMenuItem.Create(FForm.FHowToMenuItem);
   HeroicItem.Caption := 'Heroic';
+  HeroicItem.ImageIndex := 38;
   HeroicItem.OnClick := @FForm.howtoHeroicClick;
   FForm.FHowToMenuItem.Add(HeroicItem);
 
