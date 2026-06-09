@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  ComCtrls, Buttons, Process;
+  ComCtrls, Buttons, StdCtrls, Process;
 
 type
 
@@ -42,11 +42,16 @@ type
     nextButton: TBitBtn;
     previousButton: TBitBtn;
     FVideoProcess: TProcess;
+    FPlayBtn: TSpeedButton;
+    FStopBtn: TSpeedButton;
     procedure StartSteamVideo;
     procedure StopVideo;
     procedure SteamSheetShow(Sender: TObject);
     procedure SteamSheetHide(Sender: TObject);
     procedure HeroicSheetShow(Sender: TObject);
+    procedure PlayBtnClick(Sender: TObject);
+    procedure StopBtnClick(Sender: TObject);
+    procedure CreateVideoButtons;
 
   public
 
@@ -84,6 +89,9 @@ begin
   heroicSheet.OnShow := @HeroicSheetShow;
 
   OnClose := @FormClose;
+
+  // Create video play/stop buttons
+  CreateVideoButtons;
 end;
 
 procedure ThowtoForm.closehowtoBitBtnClick(Sender: TObject);
@@ -209,10 +217,55 @@ begin
   heroicPaintBox.Invalidate;
 end;
 
+procedure ThowtoForm.CreateVideoButtons;
+begin
+  // Play button on steamSheet
+  FPlayBtn := TSpeedButton.Create(steamSheet);
+  FPlayBtn.Parent := steamSheet;
+  FPlayBtn.Caption := '▶  Watch Tutorial';
+  FPlayBtn.Font.Style := [fsBold];
+  FPlayBtn.Font.Size := 11;
+  FPlayBtn.Width := 160;
+  FPlayBtn.Height := 40;
+  FPlayBtn.Left := (steamSheet.ClientWidth - FPlayBtn.Width) div 2;
+  FPlayBtn.Top := (steamSheet.ClientHeight - FPlayBtn.Height) div 2;
+  FPlayBtn.Flat := True;
+  FPlayBtn.OnClick := @PlayBtnClick;
+
+  // Stop button (hidden initially)
+  FStopBtn := TSpeedButton.Create(steamSheet);
+  FStopBtn.Parent := steamSheet;
+  FStopBtn.Caption := '✕  Stop Video';
+  FStopBtn.Font.Style := [fsBold];
+  FStopBtn.Font.Size := 10;
+  FStopBtn.Width := 120;
+  FStopBtn.Height := 32;
+  FStopBtn.Left := steamSheet.ClientWidth - FStopBtn.Width - 20;
+  FStopBtn.Top := 20;
+  FStopBtn.Flat := True;
+  FStopBtn.Visible := False;
+  FStopBtn.OnClick := @StopBtnClick;
+end;
+
+procedure ThowtoForm.PlayBtnClick(Sender: TObject);
+begin
+  FPlayBtn.Visible := False;
+  FStopBtn.Visible := True;
+  StartSteamVideo;
+end;
+
+procedure ThowtoForm.StopBtnClick(Sender: TObject);
+begin
+  StopVideo;
+  FStopBtn.Visible := False;
+  FPlayBtn.Visible := True;
+end;
+
 procedure ThowtoForm.StartSteamVideo;
 var
   VideoPath: String;
   WidgetHandle: PtrUInt;
+  VideoRect: TRect;
 begin
   StopVideo;
 
@@ -222,12 +275,17 @@ begin
   WidgetHandle := PtrUInt(Self.Handle);
   if WidgetHandle = 0 then Exit;
 
+  // Calculate video area within the paintbox
+  VideoRect := Rect(20, 20, steamPaintBox.Width - 20, steamPaintBox.Height - 20);
+
   FVideoProcess := TProcess.Create(nil);
   FVideoProcess.Executable := '/usr/bin/mpv';
   FVideoProcess.Parameters.Add('--wid=' + IntToStr(WidgetHandle));
   FVideoProcess.Parameters.Add('--no-border');
   FVideoProcess.Parameters.Add('--loop-file=inf');
   FVideoProcess.Parameters.Add('--mute=yes');
+  FVideoProcess.Parameters.Add('--geometry=' + IntToStr(VideoRect.Left) + ':' + IntToStr(VideoRect.Top));
+  FVideoProcess.Parameters.Add('--autofit=' + IntToStr(VideoRect.Width) + 'x' + IntToStr(VideoRect.Height));
   FVideoProcess.Parameters.Add(VideoPath);
   FVideoProcess.Options := [poNoConsole];
   FVideoProcess.Execute;
@@ -245,7 +303,9 @@ end;
 
 procedure ThowtoForm.SteamSheetShow(Sender: TObject);
 begin
-  StartSteamVideo;
+  // Video does NOT auto-start; user clicks Play button
+  FPlayBtn.Visible := True;
+  FStopBtn.Visible := False;
 end;
 
 procedure ThowtoForm.SteamSheetHide(Sender: TObject);
