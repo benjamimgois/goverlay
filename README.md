@@ -66,58 +66,6 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ---
 
-## What’s Inside
-
-Goverlay is organized around a **collapsible sidebar navigation rail** and several dedicated tabs. Here is what each part does.
-
-### Home
-Your dashboard. It shows the status of every integrated module (MangoHud, vkBasalt, vkSumi, OptiScaler) with colored dots, dependency checks, system information, and a GPU architecture diagram. It also lets you switch between **Global Config** and **Per-Game Config** modes.
-
-### Games
-A visual Steam library browser with automatic cover-art loading. Goverlay scans your Steam `appmanifest` files, detects library folders, and displays games as a card grid. You can also add non-Steam folders. Clicking a game enters **Game Mode** — every tab from MangoHud to EnvVars then saves into that game’s own config directory. A right-click context menu opens the install folder or uninstalls wrapper changes.
-
-### MangoHud
-Five sub-tabs give fine-grained control over the overlay:
-- **Presets** — Layout presets (Full, Basic, Horizontal, FPS only, Custom) and color themes.
-- **Visual** — Appearance, borders, background, fonts, position, columns.
-- **Performance** — FPS limit (custom comma-separated), vsync toggles, anisotropic filtering.
-- **Metrics** — GPU and CPU metric cards.
-- **Extras** — System info, logging, and blacklist management.
-
-### vkBasalt
-Configure Vulkan post-processing effects:
-- ReShade shader selection with a built-in shader sync button (clones/updates the official repository).
-- Built-in effects: CAS, FXAA, SMAA, and DLS with live sliders.
-- Toggle key binding.
-
-### vkSumi
-A separate Vulkan post-processor with **15 parameters** split into Luminance (5 sliders) and Chrominance (10 sliders) sections. Each slider shows a live numeric value with two-decimal precision. Includes a toggle key and a restore-defaults button.
-
-### OptiScaler
-GPU spoofing and upscaler configuration:
-- DLSS, FSR, and XeSS settings.
-- `fakenvapi.ini` editor.
-- FakeNVAPI version management.
-- Online updater for OptiScaler and its libraries (FSR, XeSS, DLSS, OptiPatcher).
-- Driver preference toggle (NVIDIA vs MESA).
-
-### EnvVars
-An owner-drawn **Material Design 3 list** of environment-variable toggles grouped into four categories:
-- **General** — Steam Deck simulation, HDR, Wayland, Proton logs, SDL input.
-- **Graphics** — RADV RT emulation, hide NVIDIA GPU, force NVAPI, Zink, WINED3D, FSR4/DLSS/XeSS upgrades, RE Engine RT workaround.
-- **Performance** — High priority, WOW64, large address aware, shared memory, disable NTSYNC, heap delay free, Feral GameMode.
-- **Latency Reduction** — Low-latency layer, Reflex support, spoof NVIDIA, hide AMD GPU, AMD Anti-Lag 2.
-
-A floating action button lets you add **custom environment variables**. Goverlay writes everything into `bgmod.conf` and generates a ready-to-paste launch command.
-
-### Settings
-Accessible from the gear icon at the bottom of the sidebar:
-- Theme toggle (Dark / Light) with Qt6 stylesheet injection.
-- Dependency status viewer.
-- Auto-launch PasCube toggle.
-- "How to use FGMOD" quick guide.
-- About dialog.
-
 ### Integrated Vulkan Preview (PasCube)
 Goverlay ships with **PasCube**, a full Vulkan demo compiled from the PasVulkan engine. It launches automatically (or on demand) to preview your MangoHud, vkBasalt, and vkSumi settings in real time. The demo title bar and overlay display the current GOverlay version.
 
