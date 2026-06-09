@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  ComCtrls, Buttons;
+  ComCtrls, Buttons, Process;
 
 type
 
@@ -36,10 +36,17 @@ type
     procedure previousButtonClick(Sender: TObject);
     procedure steamPaintBoxPaint(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
   private
     FStartTick: Cardinal;
     nextButton: TBitBtn;
     previousButton: TBitBtn;
+    FVideoProcess: TProcess;
+    procedure StartSteamVideo;
+    procedure StopVideo;
+    procedure SteamSheetShow(Sender: TObject);
+    procedure SteamSheetHide(Sender: TObject);
+    procedure HeroicSheetShow(Sender: TObject);
 
   public
 
@@ -70,6 +77,13 @@ begin
   Timer1.OnTimer := @Timer1Timer;
   steamPaintBox.OnPaint := @steamPaintBoxPaint;
   heroicPaintBox.OnPaint := @heroicPaintBoxPaint;
+
+  // Video tab events
+  steamSheet.OnShow := @SteamSheetShow;
+  steamSheet.OnHide := @SteamSheetHide;
+  heroicSheet.OnShow := @HeroicSheetShow;
+
+  OnClose := @FormClose;
 end;
 
 procedure ThowtoForm.closehowtoBitBtnClick(Sender: TObject);
@@ -193,6 +207,60 @@ procedure ThowtoForm.Timer1Timer(Sender: TObject);
 begin
   steamPaintBox.Invalidate;
   heroicPaintBox.Invalidate;
+end;
+
+procedure ThowtoForm.StartSteamVideo;
+var
+  VideoPath: String;
+  WidgetHandle: PtrUInt;
+begin
+  StopVideo;
+
+  VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-1.mp4';
+  if not FileExists(VideoPath) then Exit;
+
+  WidgetHandle := PtrUInt(Self.Handle);
+  if WidgetHandle = 0 then Exit;
+
+  FVideoProcess := TProcess.Create(nil);
+  FVideoProcess.Executable := '/usr/bin/mpv';
+  FVideoProcess.Parameters.Add('--wid=' + IntToStr(WidgetHandle));
+  FVideoProcess.Parameters.Add('--no-border');
+  FVideoProcess.Parameters.Add('--loop-file=inf');
+  FVideoProcess.Parameters.Add('--mute=yes');
+  FVideoProcess.Parameters.Add(VideoPath);
+  FVideoProcess.Options := [poNoConsole];
+  FVideoProcess.Execute;
+end;
+
+procedure ThowtoForm.StopVideo;
+begin
+  if Assigned(FVideoProcess) then
+  begin
+    if FVideoProcess.Running then
+      FVideoProcess.Terminate(0);
+    FreeAndNil(FVideoProcess);
+  end;
+end;
+
+procedure ThowtoForm.SteamSheetShow(Sender: TObject);
+begin
+  StartSteamVideo;
+end;
+
+procedure ThowtoForm.SteamSheetHide(Sender: TObject);
+begin
+  StopVideo;
+end;
+
+procedure ThowtoForm.HeroicSheetShow(Sender: TObject);
+begin
+  StopVideo;
+end;
+
+procedure ThowtoForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  StopVideo;
 end;
 
 end.
