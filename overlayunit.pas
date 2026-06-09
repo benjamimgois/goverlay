@@ -499,6 +499,8 @@ type
     procedure gpuframesjouleBitBtnClick(Sender: TObject);
     procedure gupdateBitBtnClick(Sender: TObject);
     procedure howtoBitBtnClick(Sender: TObject);
+    procedure howtoSteamClick(Sender: TObject);
+    procedure howtoHeroicClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
@@ -4797,7 +4799,38 @@ begin
   howtoform.showmodal;
 end;
 
+procedure Tgoverlayform.howtoSteamClick(Sender: TObject);
+var
+  Proc: TProcess;
+  VideoPath: String;
+begin
+  VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-1.mp4';
+  if not FileExists(VideoPath) then
+  begin
+    ShowMessage('Video tutorial not found.');
+    Exit;
+  end;
 
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/usr/bin/mpv';
+    Proc.Parameters.Add('--no-border');
+    Proc.Parameters.Add('--loop-file=inf');
+    Proc.Parameters.Add('--autofit=80%x80%');
+    Proc.Parameters.Add(VideoPath);
+    Proc.Options := [poNoConsole];
+    Proc.Execute;
+  except
+    Proc.Free;
+    raise;
+  end;
+  // Do not free; mpv runs independently
+end;
+
+procedure Tgoverlayform.howtoHeroicClick(Sender: TObject);
+begin
+  ShowMessage('Heroic tutorial coming soon.');
+end;
 
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
 var

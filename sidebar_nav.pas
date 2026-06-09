@@ -302,6 +302,8 @@ const
   BTN_BOTTOM_PAD = 12;
 var
   Sep: TMenuItem;
+  SteamItem: TMenuItem;
+  HeroicItem: TMenuItem;
 begin
   // Transparent label — no background, just the gear icon over the sidebar gradient
   FForm.FSettingsIconLbl := TLabel.Create(FForm);
@@ -354,11 +356,21 @@ begin
   Sep.Caption := '-';
   FForm.settingsMenu.Items.Insert(4, Sep);
 
-  // How to Use — now available via popup menu only
+  // How to Use — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
   FForm.FHowToMenuItem.Caption := 'How to use';
   FForm.FHowToMenuItem.ImageIndex := 18;
-  FForm.FHowToMenuItem.OnClick := @FForm.howtoBitBtnClick;
+
+  SteamItem := TMenuItem.Create(FForm.FHowToMenuItem);
+  SteamItem.Caption := 'Steam';
+  SteamItem.OnClick := @FForm.howtoSteamClick;
+  FForm.FHowToMenuItem.Add(SteamItem);
+
+  HeroicItem := TMenuItem.Create(FForm.FHowToMenuItem);
+  HeroicItem.Caption := 'Heroic';
+  HeroicItem.OnClick := @FForm.howtoHeroicClick;
+  FForm.FHowToMenuItem.Add(HeroicItem);
+
   FForm.settingsMenu.Items.Insert(5, FForm.FHowToMenuItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
