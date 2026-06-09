@@ -18,10 +18,7 @@ type
     previousBitBtn: TBitBtn;
     steamPaintBox: TPaintBox;
     steamlogoImage: TImage;
-    steamImage: TImage;
     howtoPageControl: TPageControl;
-    heroic2Image: TImage;
-    heroic1Image: TImage;
     heroiclogoImage: TImage;
     heroicPaintBox: TPaintBox;
     steamSheet: TTabSheet;
@@ -68,6 +65,11 @@ implementation
 
 procedure ThowtoForm.FormCreate(Sender: TObject);
 begin
+  // GOverlay dark blue theme
+  Color := RGBToColor(22, 25, 37);
+  BorderStyle := bsSingle;
+  BorderIcons := [biSystemMenu];
+
   //Hide tabs
   howtoPageControl.ShowTabs := False;
   howtoPageControl.ActivePageIndex := 0;
@@ -282,6 +284,8 @@ begin
   FVideoProcess.Executable := '/usr/bin/mpv';
   FVideoProcess.Parameters.Add('--wid=' + IntToStr(WidgetHandle));
   FVideoProcess.Parameters.Add('--no-border');
+  FVideoProcess.Parameters.Add('--no-resize');
+  FVideoProcess.Parameters.Add('--window-dragging=no');
   FVideoProcess.Parameters.Add('--loop-file=inf');
   FVideoProcess.Parameters.Add('--mute=yes');
   FVideoProcess.Parameters.Add('--geometry=' + IntToStr(VideoRect.Left) + ':' + IntToStr(VideoRect.Top));
