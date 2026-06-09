@@ -480,7 +480,7 @@ var
     FForm.FVsValLabels[AIndex].Top         := AY + 5;
     FForm.FVsValLabels[AIndex].Anchors     := [akTop, akRight];
     FForm.FVsValLabels[AIndex].AutoSize    := True;
-    FForm.FVsValLabels[AIndex].Caption     := '0.0';
+    FForm.FVsValLabels[AIndex].Caption     := '0.00';
 
     AY := AY + ROW_H;
   end;
@@ -765,6 +765,7 @@ var
   Idx: Integer;
   TB: TTrackBar;
   Val: Double;
+  S: string;
 begin
   with FForm do
   begin
@@ -778,7 +779,9 @@ begin
     else // -1..1
       Val := (TB.Position - 100) / 100;
   end;
-  FVsValLabels[Idx].Caption := FormatFloat('0.0', Val);
+  S := FormatFloat('0.00', Val);
+  if S = '-0.00' then S := '0.00';
+  FVsValLabels[Idx].Caption := S;
   end;
 end;
 

@@ -19,7 +19,7 @@ const
   TWEAK_ROW_COUNT = 27;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
-    (CheckBox: nil; Category: 'General';    VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
+    (CheckBox: nil; Category: 'Performance'; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
@@ -915,7 +915,6 @@ begin
   ReparentTo(FForm.simdeckCheckBox,       GenSec); DarkChk(FForm.simdeckCheckBox);       FForm.simdeckCheckBox.OnChange       := @FForm.TweaksCheckChange;
   ReparentTo(FForm.enhdrCheckBox,         GenSec); DarkChk(FForm.enhdrCheckBox);         FForm.enhdrCheckBox.OnChange         := @FForm.TweaksCheckChange;
   ReparentTo(FForm.actprotonlogsCheckBox, GenSec); DarkChk(FForm.actprotonlogsCheckBox); FForm.actprotonlogsCheckBox.OnChange := @FForm.TweaksCheckChange;
-  ReparentTo(FForm.gamemodeCheckBox,      GenSec); DarkChk(FForm.gamemodeCheckBox);      FForm.gamemodeCheckBox.OnChange      := @FForm.TweaksCheckChange;
   ReparentTo(FForm.enwaylandCheckBox,     GenSec); DarkChk(FForm.enwaylandCheckBox);     FForm.enwaylandCheckBox.OnChange     := @FForm.TweaksCheckChange;
   ReparentTo(FForm.usesdlCheckBox,        GenSec); DarkChk(FForm.usesdlCheckBox);        FForm.usesdlCheckBox.OnChange        := @FForm.TweaksCheckChange;
 
@@ -936,21 +935,24 @@ begin
   AdvCard.Caption    := '';
   AdvCard.Color      := BG;
   AdvCard.OnPaint    := @FForm.PerfCardPaint;
-  AdvCard.SetBounds(2, 189, FForm.tweaksTabSheet.ClientWidth - 4, 184);
+  AdvCard.SetBounds(2, 189, FForm.tweaksTabSheet.ClientWidth - 4, 210);
   AdvCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(AdvCard);
   MakeLbl(AdvCard, 'Advanced Tweaks');
 
   HalfW   := (AdvCard.Width - 12) div 2;
-  PerfSec := MakeSec(AdvCard, 'Performance', 4,             HDR + GAP, HalfW, 184 - HDR - GAP - 4);
+  PerfSec := MakeSec(AdvCard, 'Performance', 4,             HDR + GAP, HalfW, 210 - HDR - GAP - 4);
   FForm.FCustomSec := MakeSec(AdvCard, 'Custom',   4 + HalfW + 4, HDR + GAP,
                          AdvCard.Width - HalfW - 16, 184 - HDR - GAP - 4);
 
   // Performance controls → PerfSec
+  ReparentTo(FForm.gamemodeCheckBox,      PerfSec); DarkChk(FForm.gamemodeCheckBox);      FForm.gamemodeCheckBox.OnChange      := @FForm.TweaksCheckChange;
+  FForm.gamemodeCheckBox.Left := 10;
+  FForm.gamemodeCheckBox.Top  := 128;
   ReparentTo(FForm.highpriCheckBox,       PerfSec); DarkChk(FForm.highpriCheckBox);       FForm.highpriCheckBox.OnChange       := @FForm.TweaksCheckChange;
   ReparentTo(FForm.largeaddressCheckBox,  PerfSec); DarkChk(FForm.largeaddressCheckBox);  FForm.largeaddressCheckBox.OnChange  := @FForm.TweaksCheckChange;
-  ReparentTo(FForm.stagememCheckBox,      PerfSec); DarkChk(FForm.stagememCheckBox);       FForm.stagememCheckBox.OnChange      := @FForm.TweaksCheckChange;
   ReparentTo(FForm.wow64CheckBox,         PerfSec); DarkChk(FForm.wow64CheckBox);          FForm.wow64CheckBox.OnChange         := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.stagememCheckBox,      PerfSec); DarkChk(FForm.stagememCheckBox);       FForm.stagememCheckBox.OnChange      := @FForm.TweaksCheckChange;
   ReparentTo(FForm.disablentsyncCheckBox, PerfSec); DarkChk(FForm.disablentsyncCheckBox);  FForm.disablentsyncCheckBox.OnChange := @FForm.TweaksCheckChange;
   ReparentTo(FForm.heapdelayCheckBox,     PerfSec); DarkChk(FForm.heapdelayCheckBox);      FForm.heapdelayCheckBox.OnChange     := @FForm.TweaksCheckChange;
 
@@ -980,7 +982,7 @@ begin
   // Check if any tweaks are active
   HasTweaks := FForm.GetGeneralCheckBox(0).Checked or FForm.GetGeneralCheckBox(1).Checked or
                FForm.GetGeneralCheckBox(2).Checked or FForm.GetGeneralCheckBox(3).Checked or
-               FForm.GetGeneralCheckBox(4).Checked or FForm.GetGeneralCheckBox(5).Checked or
+               FForm.GetGeneralCheckBox(4).Checked or
                FForm.GetGraphicsCheckBox(0).Checked or FForm.GetGraphicsCheckBox(1).Checked or
                FForm.GetGraphicsCheckBox(2).Checked or FForm.GetGraphicsCheckBox(3).Checked or
                FForm.GetGraphicsCheckBox(4).Checked or
@@ -988,6 +990,7 @@ begin
                FForm.GetPerformanceCheckBox(0).Checked or FForm.GetPerformanceCheckBox(1).Checked or
                FForm.GetPerformanceCheckBox(2).Checked or FForm.GetPerformanceCheckBox(3).Checked or
                FForm.GetPerformanceCheckBox(4).Checked or FForm.GetPerformanceCheckBox(5).Checked or
+               FForm.GetPerformanceCheckBox(6).Checked or
                FForm.FAntilagCheckBox.Checked or
                FForm.FLowLatencyCheckBox.Checked or
                FForm.FLowLatencyReflexCheckBox.Checked or
@@ -1010,7 +1013,7 @@ begin
   try
     // 1. Write Config section
     Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '1');
-    if FForm.GetGeneralCheckBox(1).Checked then
+    if FForm.GetPerformanceCheckBox(0).Checked then
       Ini.WriteString('Config', 'gamemode', '1')
     else
       Ini.WriteString('Config', 'gamemode', '0');
@@ -1030,20 +1033,20 @@ begin
     if FForm.GetGeneralCheckBox(0).Checked then
       Ini.WriteString('Env', 'SteamDeck', '1');
 
-    if FForm.GetGeneralCheckBox(2).Checked then
+    if FForm.GetGeneralCheckBox(1).Checked then
     begin
       Ini.WriteString('Env', 'PROTON_ENABLE_HDR', '1');
       Ini.WriteString('Env', 'ENABLE_HDR_WSI', '1');
       Ini.WriteString('Env', 'DXVK_HDR', '1');
     end;
 
-    if FForm.GetGeneralCheckBox(3).Checked then
+    if FForm.GetGeneralCheckBox(2).Checked then
       Ini.WriteString('Env', 'PROTON_ENABLE_WAYLAND', '1');
 
-    if FForm.GetGeneralCheckBox(4).Checked then
+    if FForm.GetGeneralCheckBox(3).Checked then
       Ini.WriteString('Env', 'PROTON_LOG', '1');
 
-    if FForm.GetGeneralCheckBox(5).Checked then
+    if FForm.GetGeneralCheckBox(4).Checked then
       Ini.WriteString('Env', 'PROTON_USE_SDL', '1');
 
     if FForm.GetGraphicsCheckBox(0).Checked then
@@ -1077,22 +1080,22 @@ begin
     if FForm.FXeSSUpgradeCheckBox.Checked then
       Ini.WriteString('Env', 'PROTON_XESS_UPGRADE', '1');
 
-    if FForm.GetPerformanceCheckBox(0).Checked then
+    if FForm.GetPerformanceCheckBox(1).Checked then
       Ini.WriteString('Env', 'PROTON_PRIORITY_HIGH', '1');
 
-    if FForm.GetPerformanceCheckBox(1).Checked then
+    if FForm.GetPerformanceCheckBox(2).Checked then
       Ini.WriteString('Env', 'PROTON_USE_WOW64', '1');
 
-    if FForm.GetPerformanceCheckBox(2).Checked then
+    if FForm.GetPerformanceCheckBox(3).Checked then
       Ini.WriteString('Env', 'PROTON_FORCE_LARGE_ADDRESS_AWARE', '1');
 
-    if FForm.GetPerformanceCheckBox(3).Checked then
+    if FForm.GetPerformanceCheckBox(4).Checked then
       Ini.WriteString('Env', 'STAGING_SHARED_MEMORY', '1');
 
-    if FForm.GetPerformanceCheckBox(4).Checked then
+    if FForm.GetPerformanceCheckBox(5).Checked then
       Ini.WriteString('Env', 'PROTON_NO_NTSYNC', '1');
 
-    if FForm.GetPerformanceCheckBox(5).Checked then
+    if FForm.GetPerformanceCheckBox(6).Checked then
       Ini.WriteString('Env', 'PROTON_HEAP_DELAY_FREE', '1');
 
     if FForm.FAntilagCheckBox.Checked then
@@ -1154,7 +1157,7 @@ begin
     LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
   // Check if gamemode should be added
-  if FForm.GetGeneralCheckBox(1).Checked then
+  if FForm.GetPerformanceCheckBox(0).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
   // Always end with %command%
@@ -1198,7 +1201,6 @@ begin
     FForm.GetGeneralCheckBox(2).Checked := False;
     FForm.GetGeneralCheckBox(3).Checked := False;
     FForm.GetGeneralCheckBox(4).Checked := False;
-    FForm.GetGeneralCheckBox(5).Checked := False;
 
     // Reset graphicsCheckGroup checkboxes
     FForm.GetGraphicsCheckBox(0).Checked := False;
@@ -1214,6 +1216,7 @@ begin
     FForm.GetPerformanceCheckBox(3).Checked := False;
     FForm.GetPerformanceCheckBox(4).Checked := False;
     FForm.GetPerformanceCheckBox(5).Checked := False;
+    FForm.GetPerformanceCheckBox(6).Checked := False;
     FForm.FAntilagCheckBox.Checked := False;
     FForm.FFSR4UpgradeCheckBox.Checked := False;
     FForm.FDLSSUpgradeCheckBox.Checked := False;
@@ -1234,7 +1237,7 @@ begin
       FForm.FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
 
     // Load gamemode state from Config
-    FForm.GetGeneralCheckBox(1).Checked := Ini.ReadString('Config', 'gamemode', '0') = '1';
+    FForm.GetPerformanceCheckBox(0).Checked := Ini.ReadString('Config', 'gamemode', '0') = '1';
 
     // Load winedetectionenable state from Config
     FForm.FReEngineRTCheckBox.Checked := Ini.ReadString('Config', 'winedetectionenable', '1') = '0';
@@ -1250,13 +1253,13 @@ begin
       if SameText(Key, 'SteamDeck') then
         FForm.GetGeneralCheckBox(0).Checked := Val = '1'
       else if SameText(Key, 'PROTON_ENABLE_HDR') then
-        FForm.GetGeneralCheckBox(2).Checked := Val = '1'
+        FForm.GetGeneralCheckBox(1).Checked := Val = '1'
       else if SameText(Key, 'PROTON_ENABLE_WAYLAND') then
-        FForm.GetGeneralCheckBox(3).Checked := Val = '1'
+        FForm.GetGeneralCheckBox(2).Checked := Val = '1'
       else if SameText(Key, 'PROTON_LOG') then
-        FForm.GetGeneralCheckBox(4).Checked := Val = '1'
+        FForm.GetGeneralCheckBox(3).Checked := Val = '1'
       else if SameText(Key, 'PROTON_USE_SDL') then
-        FForm.GetGeneralCheckBox(5).Checked := Val = '1'
+        FForm.GetGeneralCheckBox(4).Checked := Val = '1'
       else if SameText(Key, 'RADV_PERFTEST') and (Pos('rt', Val) > 0) then
         FForm.GetGraphicsCheckBox(0).Checked := True
       else if SameText(Key, 'PROTON_HIDE_NVIDIA_GPU') then
@@ -1274,17 +1277,17 @@ begin
       else if SameText(Key, 'PROTON_XESS_UPGRADE') then
         FForm.FXeSSUpgradeCheckBox.Checked := Val = '1'
       else if SameText(Key, 'PROTON_PRIORITY_HIGH') then
-        FForm.GetPerformanceCheckBox(0).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_USE_WOW64') then
         FForm.GetPerformanceCheckBox(1).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
+      else if SameText(Key, 'PROTON_USE_WOW64') then
         FForm.GetPerformanceCheckBox(2).Checked := Val = '1'
-      else if SameText(Key, 'STAGING_SHARED_MEMORY') then
+      else if SameText(Key, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
         FForm.GetPerformanceCheckBox(3).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_NO_NTSYNC') then
+      else if SameText(Key, 'STAGING_SHARED_MEMORY') then
         FForm.GetPerformanceCheckBox(4).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_HEAP_DELAY_FREE') then
+      else if SameText(Key, 'PROTON_NO_NTSYNC') then
         FForm.GetPerformanceCheckBox(5).Checked := Val = '1'
+      else if SameText(Key, 'PROTON_HEAP_DELAY_FREE') then
+        FForm.GetPerformanceCheckBox(6).Checked := Val = '1'
       else if SameText(Key, 'ENABLE_LAYER_MESA_ANTI_LAG') then
         FForm.FAntilagCheckBox.Checked := Val = '1'
       else if SameText(Key, 'RADV_DEBUG') and SameText(Val, 'nofastclears') then

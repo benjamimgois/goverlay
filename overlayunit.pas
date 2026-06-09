@@ -3295,11 +3295,10 @@ function Tgoverlayform.GetGeneralCheckBox(Index: Integer): TCheckBox;
 begin
   case Index of
     0: Result := simdeckCheckBox;        // Simulate Steam Deck
-    1: Result := gamemodeCheckBox;       // Always use GameMode
-    2: Result := enhdrCheckBox;          // Enable HDR
-    3: Result := enwaylandCheckBox;      // Enable Wayland
-    4: Result := actprotonlogsCheckBox;  // Active Proton Logs
-    5: Result := usesdlCheckBox;         // Use SDL Input
+    1: Result := enhdrCheckBox;          // Enable HDR
+    2: Result := enwaylandCheckBox;      // Enable Wayland
+    3: Result := actprotonlogsCheckBox;  // Active Proton Logs
+    4: Result := usesdlCheckBox;         // Use SDL Input
   else
     raise Exception.Create('Invalid general checkbox index: ' + IntToStr(Index));
   end;
@@ -3323,12 +3322,13 @@ end;
 function Tgoverlayform.GetPerformanceCheckBox(Index: Integer): TCheckBox;
 begin
   case Index of
-    0: Result := highpriCheckBox;        // Higher priority for games
-    1: Result := wow64CheckBox;          // Use WOW64
-    2: Result := largeaddressCheckBox;   // Large Address Aware
-    3: Result := stagememCheckBox;       // Staging shared memory
-    4: Result := disablentsyncCheckBox;  // Disable NTSYNC
-    5: Result := heapdelayCheckBox;      // Heap Delay Free
+    0: Result := gamemodeCheckBox;       // Always use GameMode
+    1: Result := highpriCheckBox;        // Higher priority for games
+    2: Result := wow64CheckBox;          // Use WOW64
+    3: Result := largeaddressCheckBox;   // Large Address Aware
+    4: Result := stagememCheckBox;       // Staging shared memory
+    5: Result := disablentsyncCheckBox;  // Disable NTSYNC
+    6: Result := heapdelayCheckBox;      // Heap Delay Free
   else
     raise Exception.Create('Invalid performance checkbox index: ' + IntToStr(Index));
   end;
@@ -5086,7 +5086,7 @@ begin
     LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
   // Check if gamemode should be added (check generalCheckGroup)
-  if GetGeneralCheckBox(1).Checked then
+  if GetPerformanceCheckBox(0).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
   if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
@@ -5179,7 +5179,7 @@ begin
     LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
   // Check if gamemode should be added (check generalCheckGroup)
-  if GetGeneralCheckBox(1).Checked then
+  if GetPerformanceCheckBox(0).Checked then
     LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
   if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
@@ -5251,12 +5251,12 @@ begin
       else
         LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
 
-      // Check if gamemode should be added (check generalCheckGroup)
-      if GetGeneralCheckBox(1).Checked then
-        LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
+  // Check if gamemode should be added (check performanceCheckGroup)
+  if GetPerformanceCheckBox(0).Checked then
+    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
 
-      if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-        LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
+  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
+    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
 
       notificationLabel.Visible := False;
       FLaunchCommand := LaunchCommand;

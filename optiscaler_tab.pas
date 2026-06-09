@@ -838,7 +838,7 @@ begin
     Settings.LatencyFlexItemIndex := latencyflexComboBox.ItemIndex;
     Settings.TraceLogChecked := tracelogCheckBox.Checked;
 
-    if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetGeneralCheckBox(1).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
+    if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
     begin
       if ErrMsg <> '' then
         ShowMessage(ErrMsg);
