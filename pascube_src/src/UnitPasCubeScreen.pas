@@ -182,10 +182,11 @@ type
           fHoveredHardwareIdx: Integer;
           fHoveredHistoryIdx: Integer;
           fHWExpandProgress: array[0..11] of TpvFloat;
-          fClearConfirmPending: Boolean;
-          fClearConfirmHovered: Integer; // 0=none, 1=yes, 2=no
+           fClearConfirmPending: Boolean;
+           fClearConfirmHovered: Integer; // 0=none, 1=yes, 2=no
+           fShowMethodology: Boolean;
 
-         // Metrics
+          // Metrics
        fFrameAccumulator: TpvDouble;
        fFrameCount: Integer;
        fPhaseFPSMin: TpvDouble;
@@ -257,16 +258,18 @@ type
          function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
          function IsClearButtonHovered(const aPos: TpvVector2): Boolean;
          function IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
-         function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
-         procedure DrawBenchmarkOverlay;
+          function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
+          function IsMethodologyButtonHovered(const aPos: TpvVector2): Boolean;
+          procedure DrawBenchmarkOverlay;
          procedure ClearBenchmarkResults;
          function GetCPUName: String;
          function GetRAMSize: String;
          function GetOSName: String;
           function CleanGPUName(const aName: String): String;
           function GetKernelVersion: String;
-          function GetDriverVersion: String;
-          procedure DrawResultsOverlay;
+           function GetDriverVersion: String;
+           procedure DrawResultsOverlay;
+           procedure DrawMethodologyOverlay;
         procedure GenerateBeveledCube;
         function GetPhaseDuration: TpvDouble;
         function GetPhaseName: String;
@@ -532,9 +535,10 @@ begin
    fExpandedHardwareIdx := -1;
    fHoveredHardwareIdx := -1;
    fHoveredHistoryIdx := -1;
-   fClearConfirmPending := false;
-   fClearConfirmHovered := 0;
-   FillChar(fHWExpandProgress, SizeOf(fHWExpandProgress), #0);
+    fClearConfirmPending := false;
+    fClearConfirmHovered := 0;
+     fShowMethodology := false;
+     FillChar(fHWExpandProgress, SizeOf(fHWExpandProgress), #0);
    fPhaseResultIndex := -1;
  FillChar(fCurrentResult,SizeOf(fCurrentResult),#0);
  FillChar(fHistory,SizeOf(fHistory),#0);
@@ -1034,15 +1038,18 @@ begin
  result:=false;
  if fReady and (aKeyEvent.KeyEventType=TpvApplicationInputKeyEventType.Down) then begin
   case aKeyEvent.KeyCode of
-   KEYCODE_ESCAPE:begin
-      if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p] then begin
-      fBenchmarkPhase := bpIdleMenu;
-      fShowSkybox := true;
-     result:=true;
-    end else begin
-     pvApplication.Terminate;
+    KEYCODE_ESCAPE:begin
+       if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p] then begin
+       fBenchmarkPhase := bpIdleMenu;
+       fShowSkybox := true;
+      result:=true;
+     end else if (fBenchmarkPhase = bpResults) and fShowMethodology then begin
+       fShowMethodology := false;
+       result:=true;
+     end else begin
+      pvApplication.Terminate;
+     end;
     end;
-   end;
    KEYCODE_RETURN,KEYCODE_SPACE:begin
     if fBenchmarkPhase = bpIdleMenu then begin
      StartBenchmark;
@@ -1090,14 +1097,18 @@ begin
        fAutoRotation:=false;
        fDraggingCube:=false;
        result:=true;
-      end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
+        end else if (fBenchmarkPhase = bpResults) and fShowMethodology then begin
+         fAutoRotation:=false;
+         fDraggingCube:=false;
+         result:=true;
+        end else begin
        fAutoRotation:=false;
-       fDraggingCube:=false;
-       result:=true;
-      end else begin
-      fAutoRotation:=false;
-      fDraggingCube:=true;
-     end;
+       fDraggingCube:=true;
+      end;
    end;
   end;
   TpvApplicationInputPointerEventType.Up:begin
@@ -1138,10 +1149,10 @@ begin
       fClearConfirmPending := true;
       fClearConfirmHovered := 0;
       result:=true;
-     end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
-      fExpandedHardwareIdx := idx;
-      result:=true;
-     end;
+       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+        fExpandedHardwareIdx := idx;
+        result:=true;
+        end;
    end;
   end;
   TpvApplicationInputPointerEventType.Motion:begin
@@ -1157,12 +1168,13 @@ begin
         fClearConfirmHovered := idx
        else
         fClearConfirmHovered := 0;
-      end else begin
-       if IsHardwareItemHovered(aPointerEvent.Position, idx) then
-        fHoveredHardwareIdx := idx
-       else
-        fHoveredHardwareIdx := -1;
-      end;
+        end else begin
+         fShowMethodology := IsMethodologyButtonHovered(aPointerEvent.Position);
+         if IsHardwareItemHovered(aPointerEvent.Position, idx) then
+          fHoveredHardwareIdx := idx
+         else
+          fHoveredHardwareIdx := -1;
+        end;
 
       // Check hover on Score Trend history bars
       fHoveredHistoryIdx := -1;
@@ -1304,11 +1316,15 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
   
 
    // Add overlay text during update
-   case fBenchmarkPhase of
-    bpIdleMenu: DrawMenuOverlay;
-    bpResults: DrawResultsOverlay;
-    else DrawBenchmarkOverlay;
-   end;
+    case fBenchmarkPhase of
+     bpIdleMenu: DrawMenuOverlay;
+     bpResults: begin
+       DrawResultsOverlay;
+       if fShowMethodology then
+         DrawMethodologyOverlay;
+     end;
+     else DrawBenchmarkOverlay;
+    end;
  end;
 
 procedure TPasCubeScreen.Draw(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil);
@@ -2368,6 +2384,135 @@ begin
   end;
 end;
 
+function TPasCubeScreen.IsMethodologyButtonHovered(const aPos: TpvVector2): Boolean;
+var app: TPasCubeApplication;
+    charWidth, charHeight, leftColX1, leftColWidth: TpvFloat;
+    cardY, btnSize: TpvFloat;
+begin
+  Result := false;
+  if fBenchmarkPhase <> bpResults then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+  leftColX1 := pvApplication.Width * 0.05;
+  leftColWidth := pvApplication.Width * 0.43;
+  cardY := 1.0 * charHeight;
+
+  Result := (aPos.x >= leftColX1 + leftColWidth - 3.0 * charWidth) and
+            (aPos.x <= leftColX1 + leftColWidth - 0.5 * charWidth) and
+            (aPos.y >= cardY + 0.2 * charHeight) and
+            (aPos.y <= cardY + 1.8 * charHeight);
+end;
+
+procedure TPasCubeScreen.DrawMethodologyOverlay;
+var app: TPasCubeApplication;
+    cx, cy, charWidth, charHeight: TpvFloat;
+    boxW, boxH, boxX, boxY: TpvFloat;
+    lineY, lineH: TpvFloat;
+    textScale: TpvFloat;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+  cx := pvApplication.Width * 0.5;
+  cy := pvApplication.Height * 0.5;
+
+  // Dim background
+  app.TextOverlay.AddBox(0, 0, pvApplication.Width, pvApplication.Height,
+                         0.0, 0.0, 0.0, 0.6,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // Dialog box
+  boxW := 66.0 * charWidth;
+  boxH := 22.0 * charHeight;
+  boxX := cx - boxW * 0.5;
+  boxY := cy - boxH * 0.5;
+  app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
+                         22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
+                         48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
+                         255.0);
+
+  // Title
+  app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.1, toaCenter,
+                          'Benchmark Methodology',
+                          0.0, 0.0, 0.0, 0.0,
+                          1.0, 1.0, 1.0, 1.0);
+
+  textScale := 0.9;
+  lineH := 1.1 * charHeight;
+  lineY := boxY + 2.8 * charHeight;
+
+  // Section 1: Tests
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, 1.0, toaLeft, 'Tests',
+                          0.0, 0.0, 0.0, 0.0,
+                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+  lineY := lineY + 1.4 * charHeight;
+
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          '1. CPU Single-Thread: 7-zip benchmark (1 thread)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          '2. CPU Multi-Thread: 7-zip benchmark (all threads)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          '3. GPU: Vulkan instanced multi-cube stress (1080p, 10s)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + 2.0 * charHeight;
+
+  // Section 2: Results
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, 1.0, toaLeft, 'Results',
+                          0.0, 0.0, 0.0, 0.0,
+                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+  lineY := lineY + 1.4 * charHeight;
+
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'CPU Single-Thread Score = raw 7-zip single-thread score',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'CPU Multi-Thread Score = raw 7-zip multi-thread score',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'GPU Score = (avg FPS * 60) + (min FPS * 40), recalibrated to 1080p',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + 2.0 * charHeight;
+
+  // Section 3: Formula
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, 1.0, toaLeft, 'Formula',
+                          0.0, 0.0, 0.0, 0.0,
+                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+  lineY := lineY + 1.4 * charHeight;
+
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'Main Score = (CPU ST * 0.25) + (CPU MT * 0.25) + (GPU * 0.5)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'Weights: CPU 50% (balanced single + multi), GPU 50%',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'Recalibrated against Steam Machine reference (3200 pts)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + 1.0 * charHeight;
+end;
+
 procedure TPasCubeScreen.ClearBenchmarkResults;
 var
   filePath: String;
@@ -2718,8 +2863,17 @@ begin
                             33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.6,
                             255.0);
-    app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 0.5 * charHeight, 1.0, toaCenter, 'Main Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-     app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.2 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+     app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 0.5 * charHeight, 1.0, toaCenter, 'Main Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+      app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.2 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+       // --- Methodology hint (?) aligned right of Main Score title ---
+       if fShowMethodology then begin
+         fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+       end else begin
+         fgR := 150.0 / 255.0; fgG := 160.0 / 255.0; fgB := 180.0 / 255.0; fgA := 0.9;
+       end;
+        app.TextOverlay.AddText(leftColX1 + leftColWidth - 1.0 * charWidth, cardY + 0.5 * charHeight, 1.4, toaRight, '?',
+                                0.0, 0.0, 0.0, 0.0, fgR, fgG, fgB, fgA);
 
    // --- Row 1: CPU Single-Thread | CPU Multi-Thread ---
    cardY := cardY + 6.5 * charHeight + 0.5 * charHeight;
@@ -3097,7 +3251,7 @@ begin
       textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
     end;
     app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5 + charHeight * 0.15, 1.0, toaCenter,
+    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter,
                             'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
     // No button
@@ -3111,7 +3265,7 @@ begin
       textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
     end;
     app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5 + charHeight * 0.15, 1.0, toaCenter,
+    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter,
                             'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end;
 end;
