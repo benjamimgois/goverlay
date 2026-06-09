@@ -45,7 +45,6 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 
 ## Table of Contents
 
-- [What’s Inside](#whats-inside)
 - [Screenshots](#screenshots)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
