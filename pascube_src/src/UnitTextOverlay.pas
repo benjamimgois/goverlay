@@ -23,6 +23,7 @@ interface
 
 uses SysUtils,
      Classes,
+     Math,
      Vulkan,
      PasVulkan.Types,
      PasVulkan.Math,
@@ -129,7 +130,7 @@ type PTextOverlayBufferCharVertex=^TTextOverlayBufferCharVertex;
 
 implementation
 
-uses PasVulkan.Assets, UnitPasCubeApplication;
+uses PasVulkan.Assets, UnitPasCubeApplication, UnitPasCubeScreen;
 
 constructor TTextOverlay.Create;
 var Index:TpvInt32;
@@ -500,8 +501,8 @@ begin
  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(2,0,VK_FORMAT_R32G32B32A32_SFLOAT,SizeOf(TVkFloat)*(2+3));
  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(3,0,VK_FORMAT_R32G32B32A32_SFLOAT,SizeOf(TVkFloat)*(2+3+4));
 
- fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0,0.0,pvApplication.VulkanSwapChain.Width,pvApplication.VulkanSwapChain.Height,0.0,1.0);
- fVulkanGraphicsPipeline.ViewPortState.AddScissor(0,0,pvApplication.VulkanSwapChain.Width,pvApplication.VulkanSwapChain.Height);
+  fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1280.0, 720.0, 0.0, 1.0);
+  fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1280, 720);
 
  fVulkanGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
  fVulkanGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
@@ -549,11 +550,11 @@ begin
 
  fVulkanGraphicsPipeline.FreeMemory;
 
- fFontCharWidth:=pvApplication.Width/160.0;
- fFontCharHeight:=fFontCharWidth*2.0;
+  fFontCharWidth:=1280.0/160.0;
+  fFontCharHeight:=fFontCharWidth*2.0;
 
- fInvWidth:=1.0/pvApplication.Width;
- fInvHeight:=1.0/pvApplication.Height;
+  fInvWidth:=1.0/1280.0;
+  fInvHeight:=1.0/720.0;
 
  if assigned(fVulkanUniformBuffer) then begin
   fUniformBuffer.uThreshold:=1.0;//(SDFFontSpreadScale/sqrt(sqr(fFontCharWidth)+sqr(fFontCharHeight)))*1.0;
@@ -586,44 +587,44 @@ var Index,EdgeIndex:TpvInt32;
     CurrentChar:TpvUInt8;
     cX:TpvFloat;
 begin
- if (pBA>0.0) or (pFA>0.0) then begin
-  case aAlignment of
-   toaLeft:begin
-    cX:=pX;
-   end;
-   toaCenter:begin
-    cX:=pX-((length(aText)*fFontCharWidth*aSize)*0.5);
-   end;
-   else {toaRight:}begin
-    cX:=pX-(length(aText)*fFontCharWidth*aSize);
-   end;
-  end;
-  for Index:=1 to length(aText) do begin
-   CurrentChar:=TpvUInt8(AnsiChar(aText[Index]));
-   if (CurrentChar<>32) or (pBA>0.0) then begin
-    if fCountBufferChars<TextOverlayBufferCharSize then begin
-     BufferChar:=@fBufferChars^[fCountBufferChars];
-     inc(fCountBufferChars);
-     for EdgeIndex:=0 to 3 do begin
-      BufferChar^.Vertices[EdgeIndex].x:=(((cX+((EdgeIndex and 1)*fFontCharWidth*aSize))*fInvWidth)*2.0)-1.0;
-      BufferChar^.Vertices[EdgeIndex].y:=(((pY+((EdgeIndex shr 1)*fFontCharHeight*aSize))*fInvHeight)*2.0)-1.0;
-      BufferChar^.Vertices[EdgeIndex].u:=EdgeIndex and 1;
-      BufferChar^.Vertices[EdgeIndex].v:=EdgeIndex shr 1;
-      BufferChar^.Vertices[EdgeIndex].w:=CurrentChar;
-      BufferChar^.Vertices[EdgeIndex].br:=pBR;
-      BufferChar^.Vertices[EdgeIndex].bg:=pBG;
-      BufferChar^.Vertices[EdgeIndex].bb:=pBB;
-      BufferChar^.Vertices[EdgeIndex].ba:=pBA;
-      BufferChar^.Vertices[EdgeIndex].fr:=pFR;
-      BufferChar^.Vertices[EdgeIndex].fg:=pFG;
-      BufferChar^.Vertices[EdgeIndex].fb:=pFB;
-      BufferChar^.Vertices[EdgeIndex].fa:=pFA;
-     end;
+  if (pBA>0.0) or (pFA>0.0) then begin
+   case aAlignment of
+    toaLeft:begin
+     cX:=pX;
+    end;
+    toaCenter:begin
+     cX:=pX-((length(aText)*fFontCharWidth*aSize)*0.5);
+    end;
+    else {toaRight:}begin
+     cX:=pX-(length(aText)*fFontCharWidth*aSize);
     end;
    end;
-   cX:=cX+(fFontCharWidth*aSize);
+   for Index:=1 to length(aText) do begin
+    CurrentChar:=TpvUInt8(AnsiChar(aText[Index]));
+    if (CurrentChar<>32) or (pBA>0.0) then begin
+     if fCountBufferChars<TextOverlayBufferCharSize then begin
+      BufferChar:=@fBufferChars^[fCountBufferChars];
+      inc(fCountBufferChars);
+      for EdgeIndex:=0 to 3 do begin
+       BufferChar^.Vertices[EdgeIndex].x:=(((cX+((EdgeIndex and 1)*fFontCharWidth*aSize))*fInvWidth)*2.0)-1.0;
+       BufferChar^.Vertices[EdgeIndex].y:=(((pY+((EdgeIndex shr 1)*fFontCharHeight*aSize))*fInvHeight)*2.0)-1.0;
+       BufferChar^.Vertices[EdgeIndex].u:=EdgeIndex and 1;
+       BufferChar^.Vertices[EdgeIndex].v:=EdgeIndex shr 1;
+       BufferChar^.Vertices[EdgeIndex].w:=CurrentChar;
+       BufferChar^.Vertices[EdgeIndex].br:=pBR;
+       BufferChar^.Vertices[EdgeIndex].bg:=pBG;
+       BufferChar^.Vertices[EdgeIndex].bb:=pBB;
+       BufferChar^.Vertices[EdgeIndex].ba:=pBA;
+       BufferChar^.Vertices[EdgeIndex].fr:=pFR;
+       BufferChar^.Vertices[EdgeIndex].fg:=pFG;
+       BufferChar^.Vertices[EdgeIndex].fb:=pFB;
+       BufferChar^.Vertices[EdgeIndex].fa:=pFA;
+      end;
+     end;
+    end;
+    cX:=cX+(fFontCharWidth*aSize);
+   end;
   end;
- end;
 end;
 
 procedure TTextOverlay.AddBox(const pX,pY,pW,pH:TpvFloat;const pBR,pBG,pBB,pBA:TpvFloat;const pFR:TpvFloat=0.0;const pFG:TpvFloat=0.0;const pFB:TpvFloat=0.0;const pFA:TpvFloat=0.0;const pType:TpvFloat=32.0);
@@ -716,12 +717,12 @@ begin
                                             TVkAccessFlags(VK_ACCESS_UNIFORM_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT));}
 
    fVulkanRenderPass.BeginRenderPass(VulkanCommandBuffer,
-                                     pvApplication.VulkanFrameBuffers[aSwapChainImageIndex],
+                                     TPasCubeScreen(pvApplication.Screen).fOffscreenFrameBuffers[aSwapChainImageIndex],
                                      VK_SUBPASS_CONTENTS_INLINE,
                                      0,
                                      0,
-                                     VulkanSwapChain.Width,
-                                     VulkanSwapChain.Height);
+                                     1280,
+                                     720);
 
    VulkanCommandBuffer.CmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanPipelineLayout.Handle,0,1,@fVulkanDescriptorSet.Handle,0,nil);
    VulkanCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
@@ -730,6 +731,25 @@ begin
    VulkanCommandBuffer.CmdDrawIndexed(fCountBufferCharsBuffers[BufferIndex]*6,1,0,0,0);
 
    fVulkanRenderPass.EndRenderPass(VulkanCommandBuffer);
+
+   TPasCubeScreen(pvApplication.Screen).fOffscreenColorAttachments[aSwapChainImageIndex].Image.Blit(
+      VulkanSwapChain[aSwapChainImageIndex],
+      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+      1280,
+      720,
+      1,
+      0,
+      0,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+      VulkanSwapChain.Width,
+      VulkanSwapChain.Height,
+      1,
+      0,
+      0,
+      VulkanCommandBuffer
+    );
 
    VulkanCommandBuffer.EndRecording;
 

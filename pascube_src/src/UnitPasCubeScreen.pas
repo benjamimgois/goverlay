@@ -213,8 +213,11 @@ type
        fVulkanUniformBufferPointers: array[0..MaxInFlightFrames-1] of pointer;
 
       public
+        fOffscreenColorAttachments: array of TpvVulkanFrameBufferAttachment;
+        fOffscreenDepthAttachments: array of TpvVulkanFrameBufferAttachment;
+        fOffscreenFrameBuffers: array of TpvVulkanFrameBuffer;
 
-       constructor Create; override;
+        constructor Create; override;
 
        destructor Destroy; override;
 
@@ -842,216 +845,285 @@ var Index,SwapChainImageIndex:TpvInt32;
 begin
  inherited AfterCreateSwapChain;
 
+  for Index := 0 to Length(fOffscreenFrameBuffers) - 1 do begin
+    FreeAndNil(fOffscreenFrameBuffers[Index]);
+  end;
+  fOffscreenFrameBuffers := nil;
+
+  for Index := 0 to Length(fOffscreenColorAttachments) - 1 do begin
+    FreeAndNil(fOffscreenColorAttachments[Index]);
+  end;
+  fOffscreenColorAttachments := nil;
+
+  for Index := 0 to Length(fOffscreenDepthAttachments) - 1 do begin
+    FreeAndNil(fOffscreenDepthAttachments[Index]);
+  end;
+  fOffscreenDepthAttachments := nil;
+
   FreeAndNil(fVulkanRenderPass);
   FreeAndNil(fVulkanGraphicsPipeline);
   FreeAndNil(fSkyGraphicsPipeline);
 
   fVulkanRenderPass:=TpvVulkanRenderPass.Create(pvApplication.VulkanDevice);
 
- fVulkanRenderPass.AddSubpassDescription(0,
-                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                         [],
-                                         [fVulkanRenderPass.AddAttachmentReference(fVulkanRenderPass.AddAttachmentDescription(0,
-                                                                                                                              pvApplication.VulkanSwapChain.ImageFormat,
+  fVulkanRenderPass.AddSubpassDescription(0,
+                                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                          [],
+                                          [fVulkanRenderPass.AddAttachmentReference(fVulkanRenderPass.AddAttachmentDescription(0,
+                                                                                                                               pvApplication.VulkanSwapChain.ImageFormat,
+                                                                                                                               VK_SAMPLE_COUNT_1_BIT,
+                                                                                                                               VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                                                                                               VK_ATTACHMENT_STORE_OP_STORE,
+                                                                                                                               VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                                                                                                                               VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                                                                                               VK_IMAGE_LAYOUT_UNDEFINED,
+                                                                                                                               VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                                                                                                                              ),
+                                                                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                                                                             )],
+                                          [],
+                                          fVulkanRenderPass.AddAttachmentReference(fVulkanRenderPass.AddAttachmentDescription(0,
+                                                                                                                              pvApplication.VulkanDepthImageFormat,
                                                                                                                               VK_SAMPLE_COUNT_1_BIT,
                                                                                                                               VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                                                                                              VK_ATTACHMENT_STORE_OP_STORE,
+                                                                                                                              VK_ATTACHMENT_STORE_OP_DONT_CARE,
                                                                                                                               VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                                                                                                                               VK_ATTACHMENT_STORE_OP_DONT_CARE,
                                                                                                                               VK_IMAGE_LAYOUT_UNDEFINED,
-                                                                                                                              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                                                                                                                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                                                                                                                              ),
-                                                                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-                                                                            )],
-                                         [],
-                                         fVulkanRenderPass.AddAttachmentReference(fVulkanRenderPass.AddAttachmentDescription(0,
-                                                                                                                             pvApplication.VulkanDepthImageFormat,
-                                                                                                                             VK_SAMPLE_COUNT_1_BIT,
-                                                                                                                             VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                                                                                             VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                                                                                             VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                                                                                             VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                                                                                             VK_IMAGE_LAYOUT_UNDEFINED,
-                                                                                                                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-                                                                                                                            ),
                                                                                   VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                                                                                  ),
-                                         []);
- fVulkanRenderPass.AddSubpassDependency(VK_SUBPASS_EXTERNAL,
-                                        0,
-                                        TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
-                                        TVkPipelineStageFlags(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-                                        TVkAccessFlags(VK_ACCESS_MEMORY_READ_BIT),
-                                        TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) or TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT),
-                                        TVkDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT));
- fVulkanRenderPass.AddSubpassDependency(0,
-                                        VK_SUBPASS_EXTERNAL,
-                                        TVkPipelineStageFlags(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-                                        TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
-                                        TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) or TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT),
-                                        TVkAccessFlags(VK_ACCESS_MEMORY_READ_BIT),
-                                        TVkDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT));
- fVulkanRenderPass.Initialize;
+                                          []);
+  fVulkanRenderPass.AddSubpassDependency(VK_SUBPASS_EXTERNAL,
+                                         0,
+                                         TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
+                                         TVkPipelineStageFlags(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
+                                         TVkAccessFlags(VK_ACCESS_MEMORY_READ_BIT),
+                                         TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) or TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT),
+                                         TVkDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT));
+  fVulkanRenderPass.AddSubpassDependency(0,
+                                         VK_SUBPASS_EXTERNAL,
+                                         TVkPipelineStageFlags(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
+                                         TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
+                                         TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) or TVkAccessFlags(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT),
+                                         TVkAccessFlags(VK_ACCESS_MEMORY_READ_BIT),
+                                         TVkDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT));
+  fVulkanRenderPass.Initialize;
 
- fVulkanRenderPass.ClearValues[0].color.float32[0]:=0.15;
- fVulkanRenderPass.ClearValues[0].color.float32[1]:=0.15;
- fVulkanRenderPass.ClearValues[0].color.float32[2]:=0.15;
- fVulkanRenderPass.ClearValues[0].color.float32[3]:=1.0;
+  fVulkanRenderPass.ClearValues[0].color.float32[0]:=0.15;
+  fVulkanRenderPass.ClearValues[0].color.float32[1]:=0.15;
+  fVulkanRenderPass.ClearValues[0].color.float32[2]:=0.15;
+  fVulkanRenderPass.ClearValues[0].color.float32[3]:=1.0;
 
- fVulkanGraphicsPipeline:=TpvVulkanGraphicsPipeline.Create(pvApplication.VulkanDevice,
-                                                           pvApplication.VulkanPipelineCache,
-                                                           0,
-                                                           [],
-                                                           fVulkanPipelineLayout,
-                                                           fVulkanRenderPass,
-                                                           0,
-                                                           nil,
-                                                           0);
+  fVulkanGraphicsPipeline:=TpvVulkanGraphicsPipeline.Create(pvApplication.VulkanDevice,
+                                                            pvApplication.VulkanPipelineCache,
+                                                            0,
+                                                            [],
+                                                            fVulkanPipelineLayout,
+                                                            fVulkanRenderPass,
+                                                            0,
+                                                            nil,
+                                                            0);
 
- fVulkanGraphicsPipeline.AddStage(fVulkanPipelineShaderStageCubeVertex);
- fVulkanGraphicsPipeline.AddStage(fVulkanPipelineShaderStageCubeFragment);
+  fVulkanGraphicsPipeline.AddStage(fVulkanPipelineShaderStageCubeVertex);
+  fVulkanGraphicsPipeline.AddStage(fVulkanPipelineShaderStageCubeFragment);
 
- fVulkanGraphicsPipeline.InputAssemblyState.Topology:=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
- fVulkanGraphicsPipeline.InputAssemblyState.PrimitiveRestartEnable:=false;
+  fVulkanGraphicsPipeline.InputAssemblyState.Topology:=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  fVulkanGraphicsPipeline.InputAssemblyState.PrimitiveRestartEnable:=false;
 
- fVulkanGraphicsPipeline.VertexInputState.AddVertexInputBindingDescription(0,SizeOf(TVertex),VK_VERTEX_INPUT_RATE_VERTEX);
- fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(0,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Position)));
- fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(1,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Tangent)));
- fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(2,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Bitangent)));
- fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(3,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Normal)));
- fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(4,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.TexCoord)));
+  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputBindingDescription(0,SizeOf(TVertex),VK_VERTEX_INPUT_RATE_VERTEX);
+  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(0,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Position)));
+  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(1,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Tangent)));
+  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(2,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Bitangent)));
+  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(3,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Normal)));
+  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(4,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.TexCoord)));
 
- fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0,0.0,pvApplication.VulkanSwapChain.Width,pvApplication.VulkanSwapChain.Height,0.0,1.0);
- fVulkanGraphicsPipeline.ViewPortState.AddScissor(0,0,pvApplication.VulkanSwapChain.Width,pvApplication.VulkanSwapChain.Height);
+  fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1280.0, 720.0, 0.0, 1.0);
+  fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1280, 720);
 
- fVulkanGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
- fVulkanGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
- fVulkanGraphicsPipeline.RasterizationState.PolygonMode:=VK_POLYGON_MODE_FILL;
- fVulkanGraphicsPipeline.RasterizationState.CullMode:=TVkCullModeFlags(VK_CULL_MODE_BACK_BIT);
- fVulkanGraphicsPipeline.RasterizationState.FrontFace:=VK_FRONT_FACE_COUNTER_CLOCKWISE;
- fVulkanGraphicsPipeline.RasterizationState.DepthBiasEnable:=false;
- fVulkanGraphicsPipeline.RasterizationState.DepthBiasConstantFactor:=0.0;
- fVulkanGraphicsPipeline.RasterizationState.DepthBiasClamp:=0.0;
- fVulkanGraphicsPipeline.RasterizationState.DepthBiasSlopeFactor:=0.0;
- fVulkanGraphicsPipeline.RasterizationState.LineWidth:=1.0;
+  fVulkanGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
+  fVulkanGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
+  fVulkanGraphicsPipeline.RasterizationState.PolygonMode:=VK_POLYGON_MODE_FILL;
+  fVulkanGraphicsPipeline.RasterizationState.CullMode:=TVkCullModeFlags(VK_CULL_MODE_BACK_BIT);
+  fVulkanGraphicsPipeline.RasterizationState.FrontFace:=VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  fVulkanGraphicsPipeline.RasterizationState.DepthBiasEnable:=false;
+  fVulkanGraphicsPipeline.RasterizationState.DepthBiasConstantFactor:=0.0;
+  fVulkanGraphicsPipeline.RasterizationState.DepthBiasClamp:=0.0;
+  fVulkanGraphicsPipeline.RasterizationState.DepthBiasSlopeFactor:=0.0;
+  fVulkanGraphicsPipeline.RasterizationState.LineWidth:=1.0;
 
- fVulkanGraphicsPipeline.MultisampleState.RasterizationSamples:=VK_SAMPLE_COUNT_1_BIT;
- fVulkanGraphicsPipeline.MultisampleState.SampleShadingEnable:=false;
- fVulkanGraphicsPipeline.MultisampleState.MinSampleShading:=0.0;
- fVulkanGraphicsPipeline.MultisampleState.CountSampleMasks:=0;
- fVulkanGraphicsPipeline.MultisampleState.AlphaToCoverageEnable:=false;
- fVulkanGraphicsPipeline.MultisampleState.AlphaToOneEnable:=false;
+  fVulkanGraphicsPipeline.MultisampleState.RasterizationSamples:=VK_SAMPLE_COUNT_1_BIT;
+  fVulkanGraphicsPipeline.MultisampleState.SampleShadingEnable:=false;
+  fVulkanGraphicsPipeline.MultisampleState.MinSampleShading:=0.0;
+  fVulkanGraphicsPipeline.MultisampleState.CountSampleMasks:=0;
+  fVulkanGraphicsPipeline.MultisampleState.AlphaToCoverageEnable:=false;
+  fVulkanGraphicsPipeline.MultisampleState.AlphaToOneEnable:=false;
 
- fVulkanGraphicsPipeline.ColorBlendState.LogicOpEnable:=false;
- fVulkanGraphicsPipeline.ColorBlendState.LogicOp:=VK_LOGIC_OP_COPY;
- fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[0]:=0.0;
- fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[1]:=0.0;
- fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[2]:=0.0;
- fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[3]:=0.0;
- fVulkanGraphicsPipeline.ColorBlendState.AddColorBlendAttachmentState(true,
-                                                                      VK_BLEND_FACTOR_SRC_ALPHA,
-                                                                      VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-                                                                      VK_BLEND_OP_ADD,
-                                                                      VK_BLEND_FACTOR_ONE,
-                                                                      VK_BLEND_FACTOR_ZERO,
-                                                                      VK_BLEND_OP_ADD,
-                                                                      TVkColorComponentFlags(VK_COLOR_COMPONENT_R_BIT) or
-                                                                      TVkColorComponentFlags(VK_COLOR_COMPONENT_G_BIT) or
-                                                                      TVkColorComponentFlags(VK_COLOR_COMPONENT_B_BIT) or
-                                                                      TVkColorComponentFlags(VK_COLOR_COMPONENT_A_BIT));
+  fVulkanGraphicsPipeline.ColorBlendState.LogicOpEnable:=false;
+  fVulkanGraphicsPipeline.ColorBlendState.LogicOp:=VK_LOGIC_OP_COPY;
+  fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[0]:=0.0;
+  fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[1]:=0.0;
+  fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[2]:=0.0;
+  fVulkanGraphicsPipeline.ColorBlendState.BlendConstants[3]:=0.0;
+  fVulkanGraphicsPipeline.ColorBlendState.AddColorBlendAttachmentState(true,
+                                                                       VK_BLEND_FACTOR_SRC_ALPHA,
+                                                                       VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                                                                       VK_BLEND_OP_ADD,
+                                                                       VK_BLEND_FACTOR_ONE,
+                                                                       VK_BLEND_FACTOR_ZERO,
+                                                                       VK_BLEND_OP_ADD,
+                                                                       TVkColorComponentFlags(VK_COLOR_COMPONENT_R_BIT) or
+                                                                       TVkColorComponentFlags(VK_COLOR_COMPONENT_G_BIT) or
+                                                                       TVkColorComponentFlags(VK_COLOR_COMPONENT_B_BIT) or
+                                                                       TVkColorComponentFlags(VK_COLOR_COMPONENT_A_BIT));
 
- fVulkanGraphicsPipeline.DepthStencilState.DepthTestEnable:=true;
- fVulkanGraphicsPipeline.DepthStencilState.DepthWriteEnable:=true; // Glass usually disables DepthWrite but here we want it for simplicity
- fVulkanGraphicsPipeline.DepthStencilState.DepthCompareOp:=VK_COMPARE_OP_LESS;
- fVulkanGraphicsPipeline.DepthStencilState.DepthBoundsTestEnable:=false;
- fVulkanGraphicsPipeline.DepthStencilState.StencilTestEnable:=false;
+  fVulkanGraphicsPipeline.DepthStencilState.DepthTestEnable:=true;
+  fVulkanGraphicsPipeline.DepthStencilState.DepthWriteEnable:=true; // Glass usually disables DepthWrite but here we want it for simplicity
+  fVulkanGraphicsPipeline.DepthStencilState.DepthCompareOp:=VK_COMPARE_OP_LESS;
+  fVulkanGraphicsPipeline.DepthStencilState.DepthBoundsTestEnable:=false;
+  fVulkanGraphicsPipeline.DepthStencilState.StencilTestEnable:=false;
 
-   fVulkanGraphicsPipeline.Initialize;
+  fVulkanGraphicsPipeline.Initialize;
 
-   fVulkanGraphicsPipeline.FreeMemory;
+  fVulkanGraphicsPipeline.FreeMemory;
 
-   fSkyGraphicsPipeline:=TpvVulkanGraphicsPipeline.Create(pvApplication.VulkanDevice,
-                                                          pvApplication.VulkanPipelineCache,
-                                                          0,
-                                                          [],
-                                                          fSkyPipelineLayout,
-                                                          fVulkanRenderPass,
-                                                          0,
-                                                          nil,
-                                                          0);
+  fSkyGraphicsPipeline:=TpvVulkanGraphicsPipeline.Create(pvApplication.VulkanDevice,
+                                                         pvApplication.VulkanPipelineCache,
+                                                         0,
+                                                         [],
+                                                         fSkyPipelineLayout,
+                                                         fVulkanRenderPass,
+                                                         0,
+                                                         nil,
+                                                         0);
 
-   fSkyGraphicsPipeline.AddStage(fSkyPipelineShaderStageVertex);
-   fSkyGraphicsPipeline.AddStage(fSkyPipelineShaderStageFragment);
+  fSkyGraphicsPipeline.AddStage(fSkyPipelineShaderStageVertex);
+  fSkyGraphicsPipeline.AddStage(fSkyPipelineShaderStageFragment);
 
-   fSkyGraphicsPipeline.InputAssemblyState.Topology:=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-   fSkyGraphicsPipeline.InputAssemblyState.PrimitiveRestartEnable:=false;
+  fSkyGraphicsPipeline.InputAssemblyState.Topology:=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  fSkyGraphicsPipeline.InputAssemblyState.PrimitiveRestartEnable:=false;
 
-   fSkyGraphicsPipeline.VertexInputState.AddVertexInputBindingDescription(0,SizeOf(TSkyVertex),VK_VERTEX_INPUT_RATE_VERTEX);
-   fSkyGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(0,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PSkyVertex(nil)^.Position)));
-   fSkyGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(1,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PSkyVertex(nil)^.TexCoord)));
+  fSkyGraphicsPipeline.VertexInputState.AddVertexInputBindingDescription(0,SizeOf(TSkyVertex),VK_VERTEX_INPUT_RATE_VERTEX);
+  fSkyGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(0,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PSkyVertex(nil)^.Position)));
+  fSkyGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(1,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PSkyVertex(nil)^.TexCoord)));
 
-   fSkyGraphicsPipeline.ViewPortState.AddViewPort(0.0,0.0,pvApplication.VulkanSwapChain.Width,pvApplication.VulkanSwapChain.Height,0.0,1.0);
-   fSkyGraphicsPipeline.ViewPortState.AddScissor(0,0,pvApplication.VulkanSwapChain.Width,pvApplication.VulkanSwapChain.Height);
+  fSkyGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1280.0, 720.0, 0.0, 1.0);
+  fSkyGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1280, 720);
 
-   fSkyGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
-   fSkyGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
-   fSkyGraphicsPipeline.RasterizationState.PolygonMode:=VK_POLYGON_MODE_FILL;
-   fSkyGraphicsPipeline.RasterizationState.CullMode:=TVkCullModeFlags(VK_CULL_MODE_NONE);
-   fSkyGraphicsPipeline.RasterizationState.FrontFace:=VK_FRONT_FACE_COUNTER_CLOCKWISE;
-   fSkyGraphicsPipeline.RasterizationState.DepthBiasEnable:=false;
-   fSkyGraphicsPipeline.RasterizationState.LineWidth:=1.0;
+  fSkyGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
+  fSkyGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
+  fSkyGraphicsPipeline.RasterizationState.PolygonMode:=VK_POLYGON_MODE_FILL;
+  fSkyGraphicsPipeline.RasterizationState.CullMode:=TVkCullModeFlags(VK_CULL_MODE_NONE);
+  fSkyGraphicsPipeline.RasterizationState.FrontFace:=VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  fSkyGraphicsPipeline.RasterizationState.DepthBiasEnable:=false;
+  fSkyGraphicsPipeline.RasterizationState.LineWidth:=1.0;
 
-   fSkyGraphicsPipeline.MultisampleState.RasterizationSamples:=VK_SAMPLE_COUNT_1_BIT;
-   fSkyGraphicsPipeline.MultisampleState.SampleShadingEnable:=false;
+  fSkyGraphicsPipeline.MultisampleState.RasterizationSamples:=VK_SAMPLE_COUNT_1_BIT;
+  fSkyGraphicsPipeline.MultisampleState.SampleShadingEnable:=false;
 
-   fSkyGraphicsPipeline.ColorBlendState.LogicOpEnable:=false;
-   fSkyGraphicsPipeline.ColorBlendState.AddColorBlendAttachmentState(false,
-                                                                     VK_BLEND_FACTOR_ONE,
-                                                                     VK_BLEND_FACTOR_ZERO,
-                                                                     VK_BLEND_OP_ADD,
-                                                                     VK_BLEND_FACTOR_ONE,
-                                                                     VK_BLEND_FACTOR_ZERO,
-                                                                     VK_BLEND_OP_ADD,
-                                                                     TVkColorComponentFlags(VK_COLOR_COMPONENT_R_BIT) or
-                                                                     TVkColorComponentFlags(VK_COLOR_COMPONENT_G_BIT) or
-                                                                     TVkColorComponentFlags(VK_COLOR_COMPONENT_B_BIT) or
-                                                                     TVkColorComponentFlags(VK_COLOR_COMPONENT_A_BIT));
+  fSkyGraphicsPipeline.ColorBlendState.LogicOpEnable:=false;
+  fSkyGraphicsPipeline.ColorBlendState.AddColorBlendAttachmentState(false,
+                                                                    VK_BLEND_FACTOR_ONE,
+                                                                    VK_BLEND_FACTOR_ZERO,
+                                                                    VK_BLEND_OP_ADD,
+                                                                    VK_BLEND_FACTOR_ONE,
+                                                                    VK_BLEND_FACTOR_ZERO,
+                                                                    VK_BLEND_OP_ADD,
+                                                                    TVkColorComponentFlags(VK_COLOR_COMPONENT_R_BIT) or
+                                                                    TVkColorComponentFlags(VK_COLOR_COMPONENT_G_BIT) or
+                                                                    TVkColorComponentFlags(VK_COLOR_COMPONENT_B_BIT) or
+                                                                    TVkColorComponentFlags(VK_COLOR_COMPONENT_A_BIT));
 
-   fSkyGraphicsPipeline.DepthStencilState.DepthTestEnable:=false;
-   fSkyGraphicsPipeline.DepthStencilState.DepthWriteEnable:=false;
-   fSkyGraphicsPipeline.DepthStencilState.DepthCompareOp:=VK_COMPARE_OP_ALWAYS;
-   fSkyGraphicsPipeline.DepthStencilState.DepthBoundsTestEnable:=false;
-   fSkyGraphicsPipeline.DepthStencilState.StencilTestEnable:=false;
+  fSkyGraphicsPipeline.DepthStencilState.DepthTestEnable:=false;
+  fSkyGraphicsPipeline.DepthStencilState.DepthWriteEnable:=false;
+  fSkyGraphicsPipeline.DepthStencilState.DepthCompareOp:=VK_COMPARE_OP_ALWAYS;
+  fSkyGraphicsPipeline.DepthStencilState.DepthBoundsTestEnable:=false;
+  fSkyGraphicsPipeline.DepthStencilState.StencilTestEnable:=false;
 
-   fSkyGraphicsPipeline.Initialize;
-   fSkyGraphicsPipeline.FreeMemory;
+  fSkyGraphicsPipeline.Initialize;
+  fSkyGraphicsPipeline.FreeMemory;
 
-   for Index:=0 to pvApplication.CountInFlightFrames-1 do begin
+  for Index:=0 to pvApplication.CountInFlightFrames-1 do begin
 
-  for SwapChainImageIndex:=0 to length(fVulkanRenderCommandBuffers[Index])-1 do begin
-   FreeAndNil(fVulkanRenderCommandBuffers[Index,SwapChainImageIndex]);
+   for SwapChainImageIndex:=0 to length(fVulkanRenderCommandBuffers[Index])-1 do begin
+    FreeAndNil(fVulkanRenderCommandBuffers[Index,SwapChainImageIndex]);
+   end;
+
+   SetLength(fVulkanRenderCommandBuffers[Index],pvApplication.CountSwapChainImages);
+
+   for SwapChainImageIndex:=0 to pvApplication.CountSwapChainImages-1 do begin
+
+    fVulkanRenderCommandBuffers[Index,SwapChainImageIndex]:=TpvVulkanCommandBuffer.Create(fVulkanCommandPool,VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+   end;
+
   end;
 
-  SetLength(fVulkanRenderCommandBuffers[Index],pvApplication.CountSwapChainImages);
+  SetLength(fOffscreenColorAttachments, pvApplication.CountSwapChainImages);
+  SetLength(fOffscreenDepthAttachments, pvApplication.CountSwapChainImages);
+  SetLength(fOffscreenFrameBuffers, pvApplication.CountSwapChainImages);
 
-  for SwapChainImageIndex:=0 to pvApplication.CountSwapChainImages-1 do begin
-
-   fVulkanRenderCommandBuffers[Index,SwapChainImageIndex]:=TpvVulkanCommandBuffer.Create(fVulkanCommandPool,VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-
+  for Index := 0 to pvApplication.CountSwapChainImages - 1 do begin
+    fOffscreenColorAttachments[Index] := TpvVulkanFrameBufferAttachment.Create(
+      pvApplication.VulkanDevice,
+      pvApplication.VulkanDevice.GraphicsQueue,
+      fVulkanGraphicsCommandBuffer,
+      fVulkanGraphicsCommandBufferFence,
+      1280,
+      720,
+      pvApplication.VulkanSwapChain.ImageFormat,
+      TVkImageUsageFlags(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) or TVkImageUsageFlags(VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+    );
+    fOffscreenDepthAttachments[Index] := TpvVulkanFrameBufferAttachment.Create(
+      pvApplication.VulkanDevice,
+      pvApplication.VulkanDevice.GraphicsQueue,
+      fVulkanGraphicsCommandBuffer,
+      fVulkanGraphicsCommandBufferFence,
+      1280,
+      720,
+      pvApplication.VulkanDepthImageFormat,
+      TVkImageUsageFlags(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+    );
+    fOffscreenFrameBuffers[Index] := TpvVulkanFrameBuffer.Create(
+      pvApplication.VulkanDevice,
+      fVulkanRenderPass,
+      1280,
+      720,
+      1,
+      [fOffscreenColorAttachments[Index], fOffscreenDepthAttachments[Index]],
+      false,
+      'fOffscreenFrameBuffers[' + IntToStr(Index) + ']'
+    );
+    fOffscreenFrameBuffers[Index].Initialize;
   end;
-
- end;
 
 end;
 
 
 
 procedure TPasCubeScreen.BeforeDestroySwapChain;
+var Index: TpvInt32;
 begin
- FreeAndNil(fVulkanRenderPass);
- FreeAndNil(fVulkanGraphicsPipeline);
- FreeAndNil(fSkyGraphicsPipeline);
- inherited BeforeDestroySwapChain;
+  for Index := 0 to Length(fOffscreenFrameBuffers) - 1 do begin
+    FreeAndNil(fOffscreenFrameBuffers[Index]);
+  end;
+  fOffscreenFrameBuffers := nil;
+
+  for Index := 0 to Length(fOffscreenColorAttachments) - 1 do begin
+    FreeAndNil(fOffscreenColorAttachments[Index]);
+  end;
+  fOffscreenColorAttachments := nil;
+
+  for Index := 0 to Length(fOffscreenDepthAttachments) - 1 do begin
+    FreeAndNil(fOffscreenDepthAttachments[Index]);
+  end;
+  fOffscreenDepthAttachments := nil;
+
+  FreeAndNil(fVulkanRenderPass);
+  FreeAndNil(fVulkanGraphicsPipeline);
+  FreeAndNil(fSkyGraphicsPipeline);
+  inherited BeforeDestroySwapChain;
 end;
 
 function TPasCubeScreen.KeyEvent(const aKeyEvent:TpvApplicationInputKeyEvent):boolean;
@@ -1095,30 +1167,33 @@ var Delta:TpvVector2;
     app: TPasCubeApplication;
     charWidth, charHeight, leftColX1, leftColWidth: TpvFloat;
     histCardY, histGraphY, histGraphH, histGraphW, barSlotW: TpvFloat;
+    ScaledPos: TpvVector2;
 begin
  result := false;
+ ScaledPos := TpvVector2.Create((aPointerEvent.Position.x / Max(1.0, pvApplication.Width)) * 1280.0,
+                                (aPointerEvent.Position.y / Max(1.0, pvApplication.Height)) * 720.0);
  case aPointerEvent.PointerEventType of
   TpvApplicationInputPointerEventType.Down:begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
     fMouseLeftButtonDown:=true;
-    fLastMousePosition:=aPointerEvent.Position;
-     if (fBenchmarkPhase = bpIdleMenu) and (IsStartButtonHovered(aPointerEvent.Position) or IsViewResultsButtonHovered(aPointerEvent.Position)) then begin
+    fLastMousePosition:=ScaledPos;
+     if (fBenchmarkPhase = bpIdleMenu) and (IsStartButtonHovered(ScaledPos) or IsViewResultsButtonHovered(ScaledPos)) then begin
       fAutoRotation:=false;
       fDraggingCube:=false;
       result:=true;
-      end else if (fBenchmarkPhase = bpResults) and fClearConfirmPending and IsClearConfirmButtonHovered(aPointerEvent.Position, idx) then begin
+      end else if (fBenchmarkPhase = bpResults) and fClearConfirmPending and IsClearConfirmButtonHovered(ScaledPos, idx) then begin
        fAutoRotation:=false;
        fDraggingCube:=false;
        result:=true;
-      end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+      end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(ScaledPos) then begin
        fAutoRotation:=false;
        fDraggingCube:=false;
        result:=true;
-      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
+      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(ScaledPos) then begin
        fAutoRotation:=false;
        fDraggingCube:=false;
        result:=true;
-       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
         fAutoRotation:=false;
         fDraggingCube:=false;
         result:=true;
@@ -1138,17 +1213,17 @@ begin
     fAutoRotation:=true;
     if fDraggingCube then begin
      fDraggingCube:=false;
-    end else if (fBenchmarkPhase = bpIdleMenu) and IsStartButtonHovered(aPointerEvent.Position) then begin
+    end else if (fBenchmarkPhase = bpIdleMenu) and IsStartButtonHovered(ScaledPos) then begin
      StartBenchmark;
      result:=true;
-    end else if (fBenchmarkPhase = bpIdleMenu) and IsViewResultsButtonHovered(aPointerEvent.Position) then begin
+    end else if (fBenchmarkPhase = bpIdleMenu) and IsViewResultsButtonHovered(ScaledPos) then begin
      if fHistoryCount > 0 then begin
       fCurrentResult := fHistory[0];
       fBenchmarkPhase := bpResults;
       fShowSkybox := true;
       result:=true;
      end;
-     end else if (fBenchmarkPhase = bpResults) and fClearConfirmPending and IsClearConfirmButtonHovered(aPointerEvent.Position, idx) then begin
+     end else if (fBenchmarkPhase = bpResults) and fClearConfirmPending and IsClearConfirmButtonHovered(ScaledPos, idx) then begin
       if idx = 1 then begin
        ClearBenchmarkResults;
       end else begin
@@ -1156,7 +1231,7 @@ begin
        fClearConfirmHovered := 0;
       end;
       result:=true;
-     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(aPointerEvent.Position) then begin
+     end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(ScaledPos) then begin
       if fClearConfirmPending then begin
        fClearConfirmPending := false;
        fClearConfirmHovered := 0;
@@ -1166,32 +1241,32 @@ begin
         fShowSkybox := true;
        result:=true;
       end;
-     end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(aPointerEvent.Position) then begin
+     end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(ScaledPos) then begin
       fClearConfirmPending := true;
       fClearConfirmHovered := 0;
       result:=true;
-       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(aPointerEvent.Position, idx) then begin
+       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
         fExpandedHardwareIdx := idx;
         result:=true;
         end;
    end;
   end;
   TpvApplicationInputPointerEventType.Motion:begin
-   Delta:=aPointerEvent.Position-fLastMousePosition;
+   Delta:=ScaledPos-fLastMousePosition;
    if fMouseLeftButtonDown and fDraggingCube then begin
     fState.AnglePhases[1]:=fState.AnglePhases[1]+(Delta.x*0.005);
     fState.AnglePhases[0]:=fState.AnglePhases[0]+(Delta.y*0.005);
    end;
-     fLastMousePosition:=aPointerEvent.Position;
+     fLastMousePosition:=ScaledPos;
      if fBenchmarkPhase = bpResults then begin
       if fClearConfirmPending then begin
-       if IsClearConfirmButtonHovered(aPointerEvent.Position, idx) then
+       if IsClearConfirmButtonHovered(ScaledPos, idx) then
         fClearConfirmHovered := idx
        else
         fClearConfirmHovered := 0;
         end else begin
-         fShowMethodology := IsMethodologyButtonHovered(aPointerEvent.Position);
-         if IsHardwareItemHovered(aPointerEvent.Position, idx) then
+         fShowMethodology := IsMethodologyButtonHovered(ScaledPos);
+         if IsHardwareItemHovered(ScaledPos, idx) then
           fHoveredHardwareIdx := idx
          else
           fHoveredHardwareIdx := -1;
@@ -1204,17 +1279,17 @@ begin
       if Assigned(app) then begin
        charWidth := app.TextOverlay.FontCharWidth;
        charHeight := app.TextOverlay.FontCharHeight;
-       leftColX1 := pvApplication.Width * 0.05;
-       leftColWidth := pvApplication.Width * 0.43;
-        histCardY := 1.0 * charHeight + 6.5 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight;
+       leftColX1 := 1280.0 * 0.05;
+       leftColWidth := 1280.0 * 0.43;
+       histCardY := 1.0 * charHeight + 6.5 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight;
        histGraphY := histCardY;
-       histGraphH := (1.0 * charHeight + (pvApplication.Height - 55.0 - 1.0 * charHeight - 55.0)) - histGraphY;
+       histGraphH := (1.0 * charHeight + (720.0 - 55.0 - 1.0 * charHeight - 55.0)) - histGraphY;
        if histGraphH < 6.0 * charHeight then histGraphH := 6.0 * charHeight;
        histGraphW := leftColWidth;
-       if (aPointerEvent.Position.x >= leftColX1) and (aPointerEvent.Position.x <= leftColX1 + histGraphW) and
-          (aPointerEvent.Position.y >= histGraphY) and (aPointerEvent.Position.y <= histGraphY + histGraphH) then begin
+       if (ScaledPos.x >= leftColX1) and (ScaledPos.x <= leftColX1 + histGraphW) and
+          (ScaledPos.y >= histGraphY) and (ScaledPos.y <= histGraphY + histGraphH) then begin
          barSlotW := (histGraphW - 4.0 * charWidth) / fHistoryCount;
-         fHoveredHistoryIdx := Trunc((aPointerEvent.Position.x - (leftColX1 + 2.0 * charWidth)) / barSlotW);
+         fHoveredHistoryIdx := Trunc((ScaledPos.x - (leftColX1 + 2.0 * charWidth)) / barSlotW);
          if fHoveredHistoryIdx < 0 then fHoveredHistoryIdx := 0;
          if fHoveredHistoryIdx >= fHistoryCount then fHoveredHistoryIdx := fHistoryCount - 1;
          // Map visual index (oldest at left) to array index (newest at 0)
@@ -1388,8 +1463,8 @@ begin
 
   State:=@fStates[pvApplication.DrawInFlightFrameIndex];
 
-  ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
-  ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,pvApplication.Width/pvApplication.Height,1.0,128.0);
+   ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
+   ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,1280.0/720.0,1.0,128.0);
 
    if isBenchmark and (fBenchmarkPhase in [bpGPU_1080p]) then begin
    // Main Cube (Instance 0)
@@ -1455,12 +1530,12 @@ begin
   end;
 
   fVulkanRenderPass.BeginRenderPass(fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex],
-                                    pvApplication.VulkanFrameBuffers[aSwapChainImageIndex],
+                                    fOffscreenFrameBuffers[aSwapChainImageIndex],
                                     VK_SUBPASS_CONTENTS_INLINE,
                                     0,
                                     0,
-                                    pvApplication.VulkanSwapChain.Width,
-                                    pvApplication.VulkanSwapChain.Height);
+                                    1280,
+                                    720);
 
    if fShowSkybox then begin
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fSkyGraphicsPipeline.Handle);
@@ -1690,7 +1765,7 @@ begin
   bpWarmup: Result := 'Warmup';
   bpCPU_Single: Result := 'CPU Single-Thread';
   bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
-   bpGPU_1080p: Result := 'GPU Stress at 1080p';
+   bpGPU_1080p: Result := 'GPU Stress at 720p';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
  end;
@@ -2113,8 +2188,8 @@ begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
- cx := pvApplication.Width * 0.5;
- yText := pvApplication.Height - 110.0;
+ cx := 1280.0 * 0.5;
+ yText := 720.0 - 110.0;
 
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
@@ -2181,8 +2256,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := pvApplication.Width * 0.5;
-  yText := pvApplication.Height - 110.0;
+  cx := 1280.0 * 0.5;
+  yText := 720.0 - 110.0;
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
@@ -2215,8 +2290,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := pvApplication.Width * 0.5;
-  yText := pvApplication.Height - 110.0;
+  cx := 1280.0 * 0.5;
+  yText := 720.0 - 110.0;
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
@@ -2245,8 +2320,8 @@ begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
- cx := pvApplication.Width * 0.5;
- yText := pvApplication.Height - 55.0;
+ cx := 1280.0 * 0.5;
+ yText := 720.0 - 55.0;
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
  paddingX := charWidth * 1.5;
@@ -2280,9 +2355,9 @@ begin
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  cx := pvApplication.Width * 0.5;
-  rightColX1 := pvApplication.Width * 0.52;
-  rightColWidth := pvApplication.Width * 0.43;
+  cx := 1280.0 * 0.5;
+  rightColX1 := 1280.0 * 0.52;
+  rightColWidth := 1280.0 * 0.43;
    cardY := 1.0 * charHeight;  // Must match hwCardY in DrawResultsOverlay
 
    // Reconstruct and sort hardware references (same as DrawResultsOverlay)
@@ -2348,8 +2423,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := pvApplication.Width * 0.5;
-  yText := pvApplication.Height - 55.0;
+  cx := 1280.0 * 0.5;
+  yText := 720.0 - 55.0;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
   paddingX := charWidth * 1.5;
@@ -2382,8 +2457,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := pvApplication.Width * 0.5;
-  cy := pvApplication.Height * 0.5;
+  cx := 1280.0 * 0.5;
+  cy := 720.0 * 0.5;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
 
@@ -2432,8 +2507,8 @@ begin
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  leftColX1 := pvApplication.Width * 0.05;
-  leftColWidth := pvApplication.Width * 0.43;
+  leftColX1 := 1280.0 * 0.05;
+  leftColWidth := 1280.0 * 0.43;
   cardY := 1.0 * charHeight;
 
   Result := (aPos.x >= leftColX1 + leftColWidth - 3.0 * charWidth) and
@@ -2454,11 +2529,11 @@ begin
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  cx := pvApplication.Width * 0.5;
-  cy := pvApplication.Height * 0.5;
+  cx := 1280.0 * 0.5;
+  cy := 720.0 * 0.5;
 
   // Dim background
-  app.TextOverlay.AddBox(0, 0, pvApplication.Width, pvApplication.Height,
+  app.TextOverlay.AddBox(0, 0, 1280.0, 720.0,
                          0.0, 0.0, 0.0, 0.6,
                          0.0, 0.0, 0.0, 0.0, 255.0);
 
@@ -2499,7 +2574,7 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          '3. GPU: Vulkan instanced multi-cube stress (1080p, 10s)',
+                          '3. GPU: Vulkan instanced multi-cube stress (720p, 10s)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 2.0 * charHeight;
@@ -2521,7 +2596,7 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'GPU Score = (avg FPS * 60) + (min FPS * 40), recalibrated to 1080p',
+                          'GPU Score = (avg FPS * 60) + (min FPS * 40), recalibrated to 720p',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 2.0 * charHeight;
@@ -2594,45 +2669,45 @@ begin
  if progress > 1.0 then progress := 1.0;
  if progress < 0.0 then progress := 0.0;
 
- // Render header centered
- app.TextOverlay.AddText(pvApplication.Width * 0.5, 40.0, 2.2, toaCenter, phaseStr);
+  // Render header centered
+  app.TextOverlay.AddText(1280.0 * 0.5, 40.0, 2.2, toaCenter, phaseStr);
 
- // Render FPS right below the main cube
- app.TextOverlay.AddText(pvApplication.Width * 0.5, pvApplication.Height * 0.72, 1.5, toaCenter, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
+  // Render FPS right below the main cube
+  app.TextOverlay.AddText(1280.0 * 0.5, 720.0 * 0.72, 1.5, toaCenter, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
 
- infoStr := '';
- case fBenchmarkPhase of
-  bpWarmup: infoStr := 'Calibrating render engine and caches...';
-  bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
-  bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
-   bpGPU_1080p: infoStr := 'Testing GPU at 1080p (1920x1080)...';
- end;
-
- pbWidth := pvApplication.Width * 0.6;
- pbHeight := 24.0;
- pbX := (pvApplication.Width - pbWidth) * 0.5;
- pbY := pvApplication.Height - 120.0;
-
-  // Draw stage description (shifted up to avoid overlapping with progress bar)
-  if infoStr <> '' then
-   app.TextOverlay.AddText(pvApplication.Width * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
-
-  // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
-  app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
-                         22.0/255.0, 25.0/255.0, 37.0/255.0, 0.8,
-                         50.0/255.0, 60.0/255.0, 85.0/255.0, 1.0,
-                         255.0);
-
-  // Draw progress bar fill (cyan)
-  if progress > 0.01 then begin
-   app.TextOverlay.AddBox(pbX + 2.0, pbY + 2.0, (pbWidth - 4.0) * progress, pbHeight - 4.0,
-                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
-                          48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
-                          255.0);
+  infoStr := '';
+  case fBenchmarkPhase of
+   bpWarmup: infoStr := 'Calibrating render engine and caches...';
+   bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
+   bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
+    bpGPU_1080p: infoStr := 'Testing GPU at 720p (1280x720)...';
   end;
 
-  // Draw progress percentage text centered inside the progress bar
-  app.TextOverlay.AddText(pvApplication.Width * 0.5,
+  pbWidth := 1280.0 * 0.6;
+  pbHeight := 24.0;
+  pbX := (1280.0 - pbWidth) * 0.5;
+  pbY := 720.0 - 120.0;
+
+   // Draw stage description (shifted up to avoid overlapping with progress bar)
+   if infoStr <> '' then
+    app.TextOverlay.AddText(1280.0 * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
+
+   // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
+   app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
+                          22.0/255.0, 25.0/255.0, 37.0/255.0, 0.8,
+                          50.0/255.0, 60.0/255.0, 85.0/255.0, 1.0,
+                          255.0);
+
+   // Draw progress bar fill (cyan)
+   if progress > 0.01 then begin
+    app.TextOverlay.AddBox(pbX + 2.0, pbY + 2.0, (pbWidth - 4.0) * progress, pbHeight - 4.0,
+                           48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                           48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                           255.0);
+   end;
+
+   // Draw progress percentage text centered inside the progress bar
+   app.TextOverlay.AddText(1280.0 * 0.5,
                           pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.8) * 0.5,
                           0.8,
                           toaCenter,
@@ -2861,19 +2936,18 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   textScaleSmall := 0.65;
+  cx := 1280.0 * 0.5;
+  cy := 720.0 * 0.5;
 
-  cx := pvApplication.Width * 0.5;
-  cy := pvApplication.Height * 0.5;
-
-  leftColX1 := pvApplication.Width * 0.05;
-  leftColWidth := pvApplication.Width * 0.43;
-  rightColX1 := pvApplication.Width * 0.52;
-  rightColWidth := pvApplication.Width * 0.43;
+  leftColX1 := 1280.0 * 0.05;
+  leftColWidth := 1280.0 * 0.43;
+  rightColX1 := 1280.0 * 0.52;
+  rightColWidth := 1280.0 * 0.43;
 
     // --- COLUNA DIREITA: Hardware Comparison ---
     hwCardY := 1.0 * charHeight;
     // Leave comfortable margin above Return button (55px)
-    hwTotalH := pvApplication.Height - 55.0 - hwCardY - 55.0;
+    hwTotalH := 720.0 - 55.0 - hwCardY - 55.0;
 
     // Draw right card background first (so text draws on top)
      app.TextOverlay.AddBox(rightColX1, hwCardY, rightColWidth, hwTotalH,
@@ -3053,7 +3127,7 @@ begin
      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.2 * charHeight, 0.65, toaLeft, detailStr,
                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-      detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
+      detailStr := 'GPU 720p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
       app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
                               1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
@@ -3195,7 +3269,7 @@ begin
    end;
 
   // --- BOTTOM BUTTON BAR ---
-  yText := pvApplication.Height - 55.0;
+  yText := 720.0 - 55.0;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
@@ -3242,7 +3316,7 @@ begin
   // --- CLEAR CONFIRMATION DIALOG ---
   if fClearConfirmPending then begin
     // Dim background
-    app.TextOverlay.AddBox(0, 0, pvApplication.Width, pvApplication.Height,
+    app.TextOverlay.AddBox(0, 0, 1280.0, 720.0,
                            0.0, 0.0, 0.0, 0.6,
                            0.0, 0.0, 0.0, 0.0, 255.0);
 
