@@ -103,8 +103,8 @@ begin
   VulkanAPIVersion:=VK_API_VERSION_1_0;
   Blocking:=true;
   PresentMode:=TpvApplicationPresentMode.Immediate;
- Width:=1280;
- Height:=720;
+ Width:=1920;
+ Height:=1080;
  fTextOverlay:=TTextOverlay.Create;
  PosX:=0;
  PosY:=0;

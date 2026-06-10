@@ -939,8 +939,8 @@ begin
   fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(3,0,VK_FORMAT_R32G32B32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.Normal)));
   fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(4,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PVertex(nil)^.TexCoord)));
 
-  fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1280.0, 720.0, 0.0, 1.0);
-  fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1280, 720);
+  fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1920.0, 1080.0, 0.0, 1.0);
+  fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1920, 1080);
 
   fVulkanGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
   fVulkanGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
@@ -1008,8 +1008,8 @@ begin
   fSkyGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(0,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PSkyVertex(nil)^.Position)));
   fSkyGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(1,0,VK_FORMAT_R32G32_SFLOAT,TVkPtrUInt(pointer(@PSkyVertex(nil)^.TexCoord)));
 
-  fSkyGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1280.0, 720.0, 0.0, 1.0);
-  fSkyGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1280, 720);
+  fSkyGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1920.0, 1080.0, 0.0, 1.0);
+  fSkyGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1920, 1080);
 
   fSkyGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
   fSkyGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
@@ -1070,8 +1070,8 @@ begin
       pvApplication.VulkanDevice.GraphicsQueue,
       fVulkanGraphicsCommandBuffer,
       fVulkanGraphicsCommandBufferFence,
-      1280,
-      720,
+      1920,
+      1080,
       pvApplication.VulkanSwapChain.ImageFormat,
       TVkImageUsageFlags(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) or TVkImageUsageFlags(VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
     );
@@ -1080,16 +1080,16 @@ begin
       pvApplication.VulkanDevice.GraphicsQueue,
       fVulkanGraphicsCommandBuffer,
       fVulkanGraphicsCommandBufferFence,
-      1280,
-      720,
+      1920,
+      1080,
       pvApplication.VulkanDepthImageFormat,
       TVkImageUsageFlags(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
     );
     fOffscreenFrameBuffers[Index] := TpvVulkanFrameBuffer.Create(
       pvApplication.VulkanDevice,
       fVulkanRenderPass,
-      1280,
-      720,
+      1920,
+      1080,
       1,
       [fOffscreenColorAttachments[Index], fOffscreenDepthAttachments[Index]],
       false,
@@ -1170,8 +1170,8 @@ var Delta:TpvVector2;
     ScaledPos: TpvVector2;
 begin
  result := false;
- ScaledPos := TpvVector2.Create((aPointerEvent.Position.x / Max(1.0, pvApplication.Width)) * 1280.0,
-                                (aPointerEvent.Position.y / Max(1.0, pvApplication.Height)) * 720.0);
+ ScaledPos := TpvVector2.Create((aPointerEvent.Position.x / Max(1.0, pvApplication.Width)) * 1920.0,
+                                (aPointerEvent.Position.y / Max(1.0, pvApplication.Height)) * 1080.0);
  case aPointerEvent.PointerEventType of
   TpvApplicationInputPointerEventType.Down:begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
@@ -1279,11 +1279,11 @@ begin
       if Assigned(app) then begin
        charWidth := app.TextOverlay.FontCharWidth;
        charHeight := app.TextOverlay.FontCharHeight;
-       leftColX1 := 1280.0 * 0.05;
-       leftColWidth := 1280.0 * 0.43;
+       leftColX1 := 1920.0 * 0.05;
+       leftColWidth := 1920.0 * 0.43;
        histCardY := 1.0 * charHeight + 6.5 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight;
        histGraphY := histCardY;
-       histGraphH := (1.0 * charHeight + (720.0 - 55.0 - 1.0 * charHeight - 55.0)) - histGraphY;
+       histGraphH := (1.0 * charHeight + (1080.0 - 55.0 - 1.0 * charHeight - 55.0)) - histGraphY;
        if histGraphH < 6.0 * charHeight then histGraphH := 6.0 * charHeight;
        histGraphW := leftColWidth;
        if (ScaledPos.x >= leftColX1) and (ScaledPos.x <= leftColX1 + histGraphW) and
@@ -1464,7 +1464,7 @@ begin
   State:=@fStates[pvApplication.DrawInFlightFrameIndex];
 
    ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
-   ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,1280.0/720.0,1.0,128.0);
+   ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,1920.0/1080.0,1.0,128.0);
 
    if isBenchmark and (fBenchmarkPhase in [bpGPU_1080p]) then begin
    // Main Cube (Instance 0)
@@ -1534,8 +1534,8 @@ begin
                                     VK_SUBPASS_CONTENTS_INLINE,
                                     0,
                                     0,
-                                    1280,
-                                    720);
+                                    1920,
+                                    1080);
 
    if fShowSkybox then begin
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fSkyGraphicsPipeline.Handle);
@@ -1765,7 +1765,7 @@ begin
   bpWarmup: Result := 'Warmup';
   bpCPU_Single: Result := 'CPU Single-Thread';
   bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
-   bpGPU_1080p: Result := 'GPU Stress at 720p';
+   bpGPU_1080p: Result := 'GPU Stress at 1080p';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
  end;
@@ -2188,8 +2188,8 @@ begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
- cx := 1280.0 * 0.5;
- yText := 720.0 - 110.0;
+ cx := 1920.0 * 0.5;
+ yText := 1080.0 - 110.0;
 
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
@@ -2256,8 +2256,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := 1280.0 * 0.5;
-  yText := 720.0 - 110.0;
+  cx := 1920.0 * 0.5;
+  yText := 1080.0 - 110.0;
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
@@ -2290,8 +2290,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := 1280.0 * 0.5;
-  yText := 720.0 - 110.0;
+  cx := 1920.0 * 0.5;
+  yText := 1080.0 - 110.0;
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
@@ -2320,8 +2320,8 @@ begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
- cx := 1280.0 * 0.5;
- yText := 720.0 - 55.0;
+ cx := 1920.0 * 0.5;
+ yText := 1080.0 - 55.0;
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
  paddingX := charWidth * 1.5;
@@ -2355,9 +2355,9 @@ begin
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  cx := 1280.0 * 0.5;
-  rightColX1 := 1280.0 * 0.52;
-  rightColWidth := 1280.0 * 0.43;
+  cx := 1920.0 * 0.5;
+  rightColX1 := 1920.0 * 0.52;
+  rightColWidth := 1920.0 * 0.43;
    cardY := 1.0 * charHeight;  // Must match hwCardY in DrawResultsOverlay
 
    // Reconstruct and sort hardware references (same as DrawResultsOverlay)
@@ -2423,8 +2423,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := 1280.0 * 0.5;
-  yText := 720.0 - 55.0;
+  cx := 1920.0 * 0.5;
+  yText := 1080.0 - 55.0;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
   paddingX := charWidth * 1.5;
@@ -2457,8 +2457,8 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  cx := 1280.0 * 0.5;
-  cy := 720.0 * 0.5;
+  cx := 1920.0 * 0.5;
+  cy := 1080.0 * 0.5;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
 
@@ -2507,8 +2507,8 @@ begin
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  leftColX1 := 1280.0 * 0.05;
-  leftColWidth := 1280.0 * 0.43;
+  leftColX1 := 1920.0 * 0.05;
+  leftColWidth := 1920.0 * 0.43;
   cardY := 1.0 * charHeight;
 
   Result := (aPos.x >= leftColX1 + leftColWidth - 3.0 * charWidth) and
@@ -2529,11 +2529,11 @@ begin
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  cx := 1280.0 * 0.5;
-  cy := 720.0 * 0.5;
+  cx := 1920.0 * 0.5;
+  cy := 1080.0 * 0.5;
 
   // Dim background
-  app.TextOverlay.AddBox(0, 0, 1280.0, 720.0,
+  app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0,
                          0.0, 0.0, 0.0, 0.6,
                          0.0, 0.0, 0.0, 0.0, 255.0);
 
@@ -2574,7 +2574,7 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          '3. GPU: Vulkan instanced multi-cube stress (720p, 10s)',
+                          '3. GPU: Vulkan instanced multi-cube stress (1080p, 10s)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 2.0 * charHeight;
@@ -2596,7 +2596,7 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'GPU Score = (avg FPS * 60) + (min FPS * 40), recalibrated to 720p',
+                          'GPU Score = (avg FPS * 60) + (min FPS * 40), recalibrated to 1080p',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 2.0 * charHeight;
@@ -2670,27 +2670,27 @@ begin
  if progress < 0.0 then progress := 0.0;
 
   // Render header centered
-  app.TextOverlay.AddText(1280.0 * 0.5, 40.0, 2.2, toaCenter, phaseStr);
+  app.TextOverlay.AddText(1920.0 * 0.5, 40.0, 2.2, toaCenter, phaseStr);
 
   // Render FPS right below the main cube
-  app.TextOverlay.AddText(1280.0 * 0.5, 720.0 * 0.72, 1.5, toaCenter, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
+  app.TextOverlay.AddText(1920.0 * 0.5, 1080.0 * 0.72, 1.5, toaCenter, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
 
   infoStr := '';
   case fBenchmarkPhase of
    bpWarmup: infoStr := 'Calibrating render engine and caches...';
    bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
    bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
-    bpGPU_1080p: infoStr := 'Testing GPU at 720p (1280x720)...';
+    bpGPU_1080p: infoStr := 'Testing GPU at 1080p (1920x1080)...';
   end;
 
-  pbWidth := 1280.0 * 0.6;
+  pbWidth := 1920.0 * 0.6;
   pbHeight := 24.0;
-  pbX := (1280.0 - pbWidth) * 0.5;
-  pbY := 720.0 - 120.0;
+  pbX := (1920.0 - pbWidth) * 0.5;
+  pbY := 1080.0 - 120.0;
 
    // Draw stage description (shifted up to avoid overlapping with progress bar)
    if infoStr <> '' then
-    app.TextOverlay.AddText(1280.0 * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
+    app.TextOverlay.AddText(1920.0 * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
 
    // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
    app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
@@ -2707,7 +2707,7 @@ begin
    end;
 
    // Draw progress percentage text centered inside the progress bar
-   app.TextOverlay.AddText(1280.0 * 0.5,
+   app.TextOverlay.AddText(1920.0 * 0.5,
                           pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.8) * 0.5,
                           0.8,
                           toaCenter,
@@ -2936,18 +2936,18 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   textScaleSmall := 0.65;
-  cx := 1280.0 * 0.5;
-  cy := 720.0 * 0.5;
+  cx := 1920.0 * 0.5;
+  cy := 1080.0 * 0.5;
 
-  leftColX1 := 1280.0 * 0.05;
-  leftColWidth := 1280.0 * 0.43;
-  rightColX1 := 1280.0 * 0.52;
-  rightColWidth := 1280.0 * 0.43;
+  leftColX1 := 1920.0 * 0.05;
+  leftColWidth := 1920.0 * 0.43;
+  rightColX1 := 1920.0 * 0.52;
+  rightColWidth := 1920.0 * 0.43;
 
     // --- COLUNA DIREITA: Hardware Comparison ---
     hwCardY := 1.0 * charHeight;
     // Leave comfortable margin above Return button (55px)
-    hwTotalH := 720.0 - 55.0 - hwCardY - 55.0;
+    hwTotalH := 1080.0 - 55.0 - hwCardY - 55.0;
 
     // Draw right card background first (so text draws on top)
      app.TextOverlay.AddBox(rightColX1, hwCardY, rightColWidth, hwTotalH,
@@ -3127,7 +3127,7 @@ begin
      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.2 * charHeight, 0.65, toaLeft, detailStr,
                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-      detailStr := 'GPU 720p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
+      detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
       app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
                               1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
@@ -3269,7 +3269,7 @@ begin
    end;
 
   // --- BOTTOM BUTTON BAR ---
-  yText := 720.0 - 55.0;
+  yText := 1080.0 - 55.0;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
@@ -3316,7 +3316,7 @@ begin
   // --- CLEAR CONFIRMATION DIALOG ---
   if fClearConfirmPending then begin
     // Dim background
-    app.TextOverlay.AddBox(0, 0, 1280.0, 720.0,
+    app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0,
                            0.0, 0.0, 0.0, 0.6,
                            0.0, 0.0, 0.0, 0.0, 255.0);
 

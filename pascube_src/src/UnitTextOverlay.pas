@@ -501,8 +501,8 @@ begin
  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(2,0,VK_FORMAT_R32G32B32A32_SFLOAT,SizeOf(TVkFloat)*(2+3));
  fVulkanGraphicsPipeline.VertexInputState.AddVertexInputAttributeDescription(3,0,VK_FORMAT_R32G32B32A32_SFLOAT,SizeOf(TVkFloat)*(2+3+4));
 
-  fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1280.0, 720.0, 0.0, 1.0);
-  fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1280, 720);
+  fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1920.0, 1080.0, 0.0, 1.0);
+  fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1920, 1080);
 
  fVulkanGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
  fVulkanGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
@@ -550,11 +550,11 @@ begin
 
  fVulkanGraphicsPipeline.FreeMemory;
 
-  fFontCharWidth:=1280.0/160.0;
+  fFontCharWidth:=1920.0/160.0;
   fFontCharHeight:=fFontCharWidth*2.0;
 
-  fInvWidth:=1.0/1280.0;
-  fInvHeight:=1.0/720.0;
+  fInvWidth:=1.0/1920.0;
+  fInvHeight:=1.0/1080.0;
 
  if assigned(fVulkanUniformBuffer) then begin
   fUniformBuffer.uThreshold:=1.0;//(SDFFontSpreadScale/sqrt(sqr(fFontCharWidth)+sqr(fFontCharHeight)))*1.0;
@@ -721,8 +721,8 @@ begin
                                      VK_SUBPASS_CONTENTS_INLINE,
                                      0,
                                      0,
-                                     1280,
-                                     720);
+                                      1920,
+                                      1080);
 
    VulkanCommandBuffer.CmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanPipelineLayout.Handle,0,1,@fVulkanDescriptorSet.Handle,0,nil);
    VulkanCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
@@ -736,8 +736,8 @@ begin
       VulkanSwapChain[aSwapChainImageIndex],
       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-      1280,
-      720,
+      1920,
+      1080,
       1,
       0,
       0,
