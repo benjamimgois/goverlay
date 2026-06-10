@@ -120,6 +120,8 @@ var i, j: Integer;
     impulse: TpvFloat;
     dt: TpvFloat;
     AABBs: array[0..MAX_BODIES-1] of TAABB;
+    SortedIndices: array[0..MAX_BODIES-1] of Integer;
+    ActiveCount, h, tmpIdx, idxA, idxB: Integer;
 begin
  dt := Min(aDeltaTime, 0.05); // clamp dt to avoid explosion
 
@@ -156,7 +158,8 @@ begin
   end;
  end;
 
- // Precompute AABBs to avoid O(N^2) allocations
+ // Precompute AABBs to avoid allocations
+ ActiveCount := 0;
  for i := 0 to fBodyCount - 1 do begin
   if fBodies[i].Active then begin
    AABBs[i].MinCoords := TpvVector3.Create(
@@ -169,31 +172,55 @@ begin
     fBodies[i].Position.y + fBodies[i].Scale,
     fBodies[i].Position.z + fBodies[i].Scale
    );
+   SortedIndices[ActiveCount] := i;
+   Inc(ActiveCount);
   end;
  end;
 
- // Body-body collision (AABB)
- for i := 0 to fBodyCount - 1 do begin
-  bodyA := @fBodies[i];
-  if not bodyA^.Active then Continue;
+ // Shellsort to sort SortedIndices by AABBs[index].MinCoords.x (ascending)
+ h := 1;
+ while h < ActiveCount div 3 do
+  h := 3 * h + 1;
+ while h >= 1 do begin
+  for i := h to ActiveCount - 1 do begin
+   j := i;
+   tmpIdx := SortedIndices[j];
+   while (j >= h) and (AABBs[SortedIndices[j - h]].MinCoords.x > AABBs[tmpIdx].MinCoords.x) do begin
+    SortedIndices[j] := SortedIndices[j - h];
+    j := j - h;
+   end;
+   SortedIndices[j] := tmpIdx;
+  end;
+  h := h div 3;
+ end;
 
-  for j := i + 1 to fBodyCount - 1 do begin
-   bodyB := @fBodies[j];
-   if not bodyB^.Active then Continue;
+ // Sweep and Prune
+ for i := 0 to ActiveCount - 1 do begin
+  idxA := SortedIndices[i];
+  bodyA := @fBodies[idxA];
+  for j := i + 1 to ActiveCount - 1 do begin
+   idxB := SortedIndices[j];
+
+   // Since SortedIndices is sorted by MinCoords.x, if MinCoords.x of B > MaxCoords.x of A,
+   // then no subsequent body can possibly overlap with body A on X-axis.
+   if AABBs[idxB].MinCoords.x > AABBs[idxA].MaxCoords.x then
+    Break;
+
+   bodyB := @fBodies[idxB];
 
    Inc(fCollisionChecks);
 
-   // AABB overlap test using precomputed/cached AABBs
-   if (AABBs[i].MaxCoords.x > AABBs[j].MinCoords.x) and (AABBs[i].MinCoords.x < AABBs[j].MaxCoords.x) and
-      (AABBs[i].MaxCoords.y > AABBs[j].MinCoords.y) and (AABBs[i].MinCoords.y < AABBs[j].MaxCoords.y) and
-      (AABBs[i].MaxCoords.z > AABBs[j].MinCoords.z) and (AABBs[i].MinCoords.z < AABBs[j].MaxCoords.z) then begin
+   // Check overlap on Y and Z, and also full overlap check on X
+   if (AABBs[idxA].MaxCoords.y > AABBs[idxB].MinCoords.y) and (AABBs[idxA].MinCoords.y < AABBs[idxB].MaxCoords.y) and
+      (AABBs[idxA].MaxCoords.z > AABBs[idxB].MinCoords.z) and (AABBs[idxA].MinCoords.z < AABBs[idxB].MaxCoords.z) and
+      (AABBs[idxA].MaxCoords.x > AABBs[idxB].MinCoords.x) then begin
 
     Inc(fContactSolves);
 
     // Find minimum overlap axis
-    overlapX := Min(AABBs[i].MaxCoords.x - AABBs[j].MinCoords.x, AABBs[j].MaxCoords.x - AABBs[i].MinCoords.x);
-    overlapY := Min(AABBs[i].MaxCoords.y - AABBs[j].MinCoords.y, AABBs[j].MaxCoords.y - AABBs[i].MinCoords.y);
-    overlapZ := Min(AABBs[i].MaxCoords.z - AABBs[j].MinCoords.z, AABBs[j].MaxCoords.z - AABBs[i].MinCoords.z);
+    overlapX := Min(AABBs[idxA].MaxCoords.x - AABBs[idxB].MinCoords.x, AABBs[idxB].MaxCoords.x - AABBs[idxA].MinCoords.x);
+    overlapY := Min(AABBs[idxA].MaxCoords.y - AABBs[idxB].MinCoords.y, AABBs[idxB].MaxCoords.y - AABBs[idxA].MinCoords.y);
+    overlapZ := Min(AABBs[idxA].MaxCoords.z - AABBs[idxB].MinCoords.z, AABBs[idxB].MaxCoords.z - AABBs[idxA].MinCoords.z);
 
     minOverlap := overlapX;
     normal := TpvVector3.Create(1,0,0);
@@ -210,11 +237,11 @@ begin
     bodyA^.Position := bodyA^.Position - normal * (minOverlap * 0.5);
     bodyB^.Position := bodyB^.Position + normal * (minOverlap * 0.5);
 
-    // Update cached AABBs for the separated bodies to preserve correctness
-    AABBs[i].MinCoords := TpvVector3.Create(bodyA^.Position.x - bodyA^.Scale, bodyA^.Position.y - bodyA^.Scale, bodyA^.Position.z - bodyA^.Scale);
-    AABBs[i].MaxCoords := TpvVector3.Create(bodyA^.Position.x + bodyA^.Scale, bodyA^.Position.y + bodyA^.Scale, bodyA^.Position.z + bodyA^.Scale);
-    AABBs[j].MinCoords := TpvVector3.Create(bodyB^.Position.x - bodyB^.Scale, bodyB^.Position.y - bodyB^.Scale, bodyB^.Position.z - bodyB^.Scale);
-    AABBs[j].MaxCoords := TpvVector3.Create(bodyB^.Position.x + bodyB^.Scale, bodyB^.Position.y + bodyB^.Scale, bodyB^.Position.z + bodyB^.Scale);
+    // Update cached AABBs for the separated bodies
+    AABBs[idxA].MinCoords := TpvVector3.Create(bodyA^.Position.x - bodyA^.Scale, bodyA^.Position.y - bodyA^.Scale, bodyA^.Position.z - bodyA^.Scale);
+    AABBs[idxA].MaxCoords := TpvVector3.Create(bodyA^.Position.x + bodyA^.Scale, bodyA^.Position.y + bodyA^.Scale, bodyA^.Position.z + bodyA^.Scale);
+    AABBs[idxB].MinCoords := TpvVector3.Create(bodyB^.Position.x - bodyB^.Scale, bodyB^.Position.y - bodyB^.Scale, bodyB^.Position.z - bodyB^.Scale);
+    AABBs[idxB].MaxCoords := TpvVector3.Create(bodyB^.Position.x + bodyB^.Scale, bodyB^.Position.y + bodyB^.Scale, bodyB^.Position.z + bodyB^.Scale);
 
     // Simple impulse response
     relVel := (bodyB^.Velocity - bodyA^.Velocity).Dot(normal);

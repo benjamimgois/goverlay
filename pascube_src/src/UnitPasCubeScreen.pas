@@ -110,11 +110,15 @@ type
        FArguments: string;
        FScore: Integer;
        FProgress: Single;
+       FLogBuffer: TStringList;
        function GetIsFinished: Boolean;
+       procedure ThreadLog(const Msg: string);
+       procedure WriteLogBufferToFile;
      protected
        procedure Execute; override;
      public
        constructor Create(const aCommand, aArguments: string);
+       destructor Destroy; override;
        property Score: Integer read FScore;
        property IsFinished: Boolean read GetIsFinished;
        property Progress: Single read FProgress;
@@ -306,11 +310,19 @@ begin
   Result := Finished;
 end;
 
-procedure ThreadLog(const Msg: string);
+procedure T7ZipThread.ThreadLog(const Msg: string);
+begin
+  if Assigned(FLogBuffer) then
+    FLogBuffer.Add(FormatDateTime('hh:nn:ss.zzz', Now) + ' | ' + Msg);
+end;
+
+procedure T7ZipThread.WriteLogBufferToFile;
 var
   F: TextFile;
   Path: string;
+  i: Integer;
 begin
+  if not Assigned(FLogBuffer) or (FLogBuffer.Count = 0) then Exit;
   Path := GetLogFilePath('pascube_thread.log');
   try
     AssignFile(F, Path);
@@ -318,7 +330,8 @@ begin
       Append(F)
     else
       Rewrite(F);
-    WriteLn(F, FormatDateTime('hh:nn:ss.zzz', Now) + ' | ' + Msg);
+    for i := 0 to FLogBuffer.Count - 1 do
+      WriteLn(F, FLogBuffer[i]);
     CloseFile(F);
   except
     // ignore
@@ -331,7 +344,15 @@ begin
   FArguments := aArguments;
   FProgress := 0.0;
   FScore := 0;
+  FLogBuffer := TStringList.Create;
   inherited Create(False);
+end;
+
+destructor T7ZipThread.Destroy;
+begin
+  WriteLogBufferToFile;
+  FreeAndNil(FLogBuffer);
+  inherited Destroy;
 end;
 
 procedure T7ZipThread.Execute;
@@ -1342,7 +1363,7 @@ var p:pointer;
     gpuStressValue: TpvFloat;
     SkyParams: array[0..1] of TpvFloat;
     scaleFactor, scaleX, scaleY, scaleZ: TpvFloat;
-    N, Cols, Rows, colIdx, rowIdx: Integer;
+    N, Cols, Rows, colIdx, rowIdx, ActiveCount: Integer;
     SpacingX, SpacingY, CubeScale, PosX, PosY: TpvFloat;
     CubeScaleX, CubeScaleY, CubeScaleZ, rotX, rotY: TpvFloat;
 begin
@@ -1468,29 +1489,44 @@ begin
     else
      gpuStressValue := 0.0;
 
-    // Render physics bodies (Not used anymore as we cleared the physics world)
+    // Render physics bodies instanced
     if isBenchmark and (fPhysicsWorld.BodyCount > 0) then begin
+     ActiveCount := 0;
      for i := 0 to fPhysicsWorld.BodyCount - 1 do begin
       body := fPhysicsWorld.GetBody(i);
       if not Assigned(body) or not body^.Active then Continue;
+
+      // Clamp to fit UBO Instances array limit
+      if ActiveCount >= 256 then Break;
+
       ModelMatrix := TpvMatrix4x4.CreateScale(body^.Scale, body^.Scale, body^.Scale) *
                      TpvMatrix4x4.CreateRotate(body^.Rotation.x, TpvVector3.Create(1,0,0)) *
                      TpvMatrix4x4.CreateRotate(body^.Rotation.y, TpvVector3.Create(0,1,0)) *
                      TpvMatrix4x4.CreateRotate(body^.Rotation.z, TpvVector3.Create(0,0,1)) *
                      TpvMatrix4x4.CreateTranslation(body^.Position.x, body^.Position.y, body^.Position.z);
-      fUniformBuffer.Instances[0].ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
-      fUniformBuffer.Instances[0].ModelViewMatrix := ModelMatrix * ViewMatrix;
-      fUniformBuffer.Instances[0].ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+
+      fUniformBuffer.Instances[ActiveCount].ModelViewProjectionMatrix := (ModelMatrix * ViewMatrix) * ProjectionMatrix;
+      fUniformBuffer.Instances[ActiveCount].ModelViewMatrix := ModelMatrix * ViewMatrix;
+      fUniformBuffer.Instances[ActiveCount].ModelViewNormalMatrix := TpvMatrix4x4.Create((ModelMatrix * ViewMatrix).ToMatrix3x3.Inverse.Transpose);
+
+      // Save color of first instance as the representative color (UBO color is uniform)
+      if ActiveCount = 0 then begin
+       PushConstants.Vector := TpvVector4.Create(body^.Color.x, body^.Color.y, body^.Color.z, 1.0);
+      end;
+      Inc(ActiveCount);
+     end;
+
+     if ActiveCount > 0 then begin
       p := fVulkanUniformBufferPointers[pvApplication.DrawInFlightFrameIndex];
       if assigned(p) then begin
-       Move(fUniformBuffer,p^,SizeOf(TScreenExampleCubeUniformBuffer));
+       Move(fUniformBuffer, p^, SizeOf(TScreenExampleCubeUniformBuffer));
       end;
-      PushConstants.Vector := TpvVector4.Create(body^.Color.x, body^.Color.y, body^.Color.z, 1.0);
-       PushConstants.Params := TpvVector4.Create(1.4, 0.7, 24.0, gpuStressValue);
+
+      PushConstants.Params := TpvVector4.Create(1.4, 0.7, 24.0, gpuStressValue);
       fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdPushConstants(
        fVulkanPipelineLayout.Handle, TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
        0, SizeOf(TpvVector4)*2, @PushConstants);
-      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount,1,0,0,0);
+      fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdDrawIndexed(fCubeIndexCount, ActiveCount, 0, 0, 0);
      end;
     end;
 

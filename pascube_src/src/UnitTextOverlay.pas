@@ -87,6 +87,7 @@ type PTextOverlayBufferCharVertex=^TTextOverlayBufferCharVertex;
        fVulkanGraphicsPipeline:TpvVulkanGraphicsPipeline;
        fVulkanRenderPass:TpvVulkanRenderPass;
        fVulkanVertexBuffers:array[0..MaxInFlightFrames-1] of TpvVulkanBuffer;
+       fVulkanVertexBufferPointers:array[0..MaxInFlightFrames-1] of pointer;
        fVulkanIndexBuffer:TpvVulkanBuffer;
        fVulkanUniformBuffer:TpvVulkanBuffer;
        fVulkanDescriptorPool:TpvVulkanDescriptorPool;
@@ -295,6 +296,7 @@ begin
                                           0,
                                           SizeOf(TTextOverlayBufferChars),
                                           TpvVulkanBufferUseTemporaryStagingBufferMode.No);
+   fVulkanVertexBufferPointers[Index]:=fVulkanVertexBuffers[Index].Memory.MapMemory(0,SizeOf(TTextOverlayBufferChars));
   end;
   
   fVulkanIndexBuffer:=TpvVulkanBuffer.Create(pvApplication.VulkanDevice,
@@ -394,7 +396,11 @@ begin
   FreeAndNil(fVulkanUniformBuffer);
   FreeAndNil(fVulkanIndexBuffer);
   for Index:=0 to MaxInFlightFrames-1 do begin
-   FreeAndNil(fVulkanVertexBuffers[Index]);
+   if Assigned(fVulkanVertexBuffers[Index]) then begin
+    fVulkanVertexBuffers[Index].Memory.UnmapMemory;
+    FreeAndNil(fVulkanVertexBuffers[Index]);
+   end;
+   fVulkanVertexBufferPointers[Index]:=nil;
   end;
   FreeAndNil(fVulkanPipelineShaderStageTriangleVertex);
   FreeAndNil(fVulkanPipelineShaderStageTriangleFragment);
@@ -689,14 +695,10 @@ begin
   VulkanVertexBuffer:=fVulkanVertexBuffers[pvApplication.DrawInFlightFrameIndex];
 
   Size:=SizeOf(TTextOverlayBufferChar)*fCountBufferCharsBuffers[BufferIndex];
-  p:=VulkanVertexBuffer.Memory.MapMemory(0,Size);
+  p:=fVulkanVertexBufferPointers[BufferIndex];
   if assigned(p) then begin
-   try
-    Move(fBufferCharsBuffers[BufferIndex],p^,Size);
-    VulkanVertexBuffer.Memory.FlushMappedMemoryRange(p,Size);
-   finally
-    VulkanVertexBuffer.Memory.UnmapMemory;
-   end;
+   Move(fBufferCharsBuffers[BufferIndex],p^,Size);
+   VulkanVertexBuffer.Memory.FlushMappedMemoryRange(p,Size);
   end;
 
   if assigned(fVulkanGraphicsPipeline) then begin
