@@ -2361,27 +2361,27 @@ begin
    cardY := 1.0 * charHeight;  // Must match hwCardY in DrawResultsOverlay
 
    // Reconstruct and sort hardware references (same as DrawResultsOverlay)
-   HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 250; HWRefs[0].IsCurrent := false;
+   HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
    HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 3200; HWRefs[1].IsCurrent := false;
+    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2500; HWRefs[1].IsCurrent := false;
     HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
-   HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 800; HWRefs[2].IsCurrent := false;
+   HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 750; HWRefs[2].IsCurrent := false;
    HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
-   HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 1000; HWRefs[3].IsCurrent := false;
+   HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 813; HWRefs[3].IsCurrent := false;
    HWRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
-   HWRefs[4].Name := 'ROG Ally X'; HWRefs[4].Score := 1600; HWRefs[4].IsCurrent := false;
+   HWRefs[4].Name := 'ROG Ally X'; HWRefs[4].Score := 1850; HWRefs[4].IsCurrent := false;
    HWRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
-   HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 2400; HWRefs[5].IsCurrent := false;
+   HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 2000; HWRefs[5].IsCurrent := false;
    HWRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-   HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 3500; HWRefs[6].IsCurrent := false;
+   HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 2000; HWRefs[6].IsCurrent := false;
    HWRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-   HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 4200; HWRefs[7].IsCurrent := false;
+   HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 2200; HWRefs[7].IsCurrent := false;
    HWRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
-   HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 5000; HWRefs[8].IsCurrent := false;
+   HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 2700; HWRefs[8].IsCurrent := false;
    HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
-   HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 5500; HWRefs[9].IsCurrent := false;
+   HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
    HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 10000; HWRefs[10].IsCurrent := false;
+   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 7100; HWRefs[10].IsCurrent := false;
    HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 5090 | OS: Win11';
    HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
    HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
@@ -3144,27 +3144,27 @@ begin
    // --- Hardware Comparison title (right column) ---
    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, hwCardY + 0.94 * charHeight, 1.2, toaLeft, 'Hardware Comparison', 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
-    HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 250; HWRefs[0].IsCurrent := false;
+    HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
     HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 3200; HWRefs[1].IsCurrent := false;
+    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2500; HWRefs[1].IsCurrent := false;
     HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
-    HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 800; HWRefs[2].IsCurrent := false;
+    HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 750; HWRefs[2].IsCurrent := false;
     HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
-    HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 1000; HWRefs[3].IsCurrent := false;
+    HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 813; HWRefs[3].IsCurrent := false;
     HWRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
-    HWRefs[4].Name := 'ROG Ally X'; HWRefs[4].Score := 1600; HWRefs[4].IsCurrent := false;
+    HWRefs[4].Name := 'ROG Ally X'; HWRefs[4].Score := 1850; HWRefs[4].IsCurrent := false;
     HWRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
-    HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 2400; HWRefs[5].IsCurrent := false;
+    HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 2000; HWRefs[5].IsCurrent := false;
     HWRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-    HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 3500; HWRefs[6].IsCurrent := false;
+    HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 2000; HWRefs[6].IsCurrent := false;
     HWRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-    HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 4200; HWRefs[7].IsCurrent := false;
+    HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 2200; HWRefs[7].IsCurrent := false;
     HWRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
-    HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 5000; HWRefs[8].IsCurrent := false;
+    HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 2700; HWRefs[8].IsCurrent := false;
     HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
-    HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 5500; HWRefs[9].IsCurrent := false;
+    HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
     HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 10000; HWRefs[10].IsCurrent := false;
+    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 7100; HWRefs[10].IsCurrent := false;
     HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 5090 | OS: Win11';
     HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
     HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
