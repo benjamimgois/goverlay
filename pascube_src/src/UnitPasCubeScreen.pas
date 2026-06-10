@@ -189,6 +189,8 @@ type
            fClearConfirmPending: Boolean;
            fClearConfirmHovered: Integer; // 0=none, 1=yes, 2=no
            fShowMethodology: Boolean;
+           fGPUIteration: Integer;
+           fGPURuns: array[0..2] of TBenchmarkPhaseResult;
 
           // Metrics
        fFrameAccumulator: TpvDouble;
@@ -1765,7 +1767,7 @@ begin
   bpWarmup: Result := 'Warmup';
   bpCPU_Single: Result := 'CPU Single-Thread';
   bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
-   bpGPU_1080p: Result := 'GPU Stress at 1080p';
+   bpGPU_1080p: Result := 'GPU Stress at 1080p (Run ' + IntToStr(fGPUIteration + 1) + '/3)';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
  end;
@@ -1785,6 +1787,7 @@ begin
   fBenchmarkTimer := 0.0;
   fPhaseTimer := 0.0;
   fPhaseResultIndex := -1;
+  fGPUIteration := 0;
   fShowSkybox := false;
   if Assigned(f7ZipThread) then begin
     f7ZipThread.Free;
@@ -1819,6 +1822,36 @@ end;
 procedure TPasCubeScreen.NextPhase;
 var fpsAvg, ftAvg: TpvDouble;
 begin
+  if fBenchmarkPhase = bpGPU_1080p then begin
+   if (fFrameCount > 0) and (fPhaseFrameTimeSum > 0.0) then begin
+    fpsAvg := fFrameCount / fPhaseFrameTimeSum;
+    ftAvg := (fPhaseFrameTimeSum / fFrameCount) * 1000.0;
+   end else begin
+    fpsAvg := 0.0;
+    ftAvg := 0.0;
+   end;
+
+   // Store iteration results
+   fGPURuns[fGPUIteration].FPSAvg := fpsAvg;
+   fGPURuns[fGPUIteration].FPSMin := fPhaseFPSMin;
+   fGPURuns[fGPUIteration].FPSMax := fPhaseFPSMax;
+   fGPURuns[fGPUIteration].FrameTimeMs := ftAvg;
+
+   if fGPUIteration < 2 then begin
+     Inc(fGPUIteration);
+     DebugLog('NextPhase: bpGPU_1080p iteration ' + IntToStr(fGPUIteration + 1) + ' of 3.');
+     fPhaseTimer := 0.0;
+     ResetCounters;
+     Exit;
+   end;
+
+   // 3 iterations completed, compute average
+   fpsAvg := (fGPURuns[0].FPSAvg + fGPURuns[1].FPSAvg + fGPURuns[2].FPSAvg) / 3.0;
+   ftAvg := (fGPURuns[0].FrameTimeMs + fGPURuns[1].FrameTimeMs + fGPURuns[2].FrameTimeMs) / 3.0;
+   fPhaseFPSMin := (fGPURuns[0].FPSMin + fGPURuns[1].FPSMin + fGPURuns[2].FPSMin) / 3.0;
+   fPhaseFPSMax := (fGPURuns[0].FPSMax + fGPURuns[1].FPSMax + fGPURuns[2].FPSMax) / 3.0;
+  end;
+
   if (fBenchmarkPhase > bpWarmup) and (fPhaseResultIndex >= 0) and (fPhaseResultIndex <= 6) then begin
    if (fFrameCount > 0) and (fPhaseFrameTimeSum > 0.0) then begin
     fpsAvg := fFrameCount / fPhaseFrameTimeSum;
@@ -1884,6 +1917,7 @@ begin
       fBenchmarkPhase := bpGPU_1080p;
       fPhaseResultIndex := 3;
       fResolutionOption := ro1080p;
+      fGPUIteration := 0;
       InitParticles;
      end;
      bpGPU_1080p: begin
