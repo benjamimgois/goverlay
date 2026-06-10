@@ -2608,17 +2608,17 @@ begin
   lineY := lineY + 1.4 * charHeight;
 
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'Main Score = (CPU ST * 0.25) + (CPU MT * 0.25) + (GPU * 0.5)',
+                          'Main Score = (CPU ST * 0.35) + (CPU MT * 0.15) + (GPU * 0.5)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'Weights: CPU 50% (balanced single + multi), GPU 50%',
+                          'Weights: CPU 50% (35% single-thread + 15% multi-thread), GPU 50%',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'Recalibrated against Steam Machine reference (3200 pts)',
+                          'Recalibrated against Steam Machine reference (2500 pts)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 1.0 * charHeight;
