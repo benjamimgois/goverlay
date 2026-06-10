@@ -4801,7 +4801,6 @@ end;
 
 procedure Tgoverlayform.howtoSteamClick(Sender: TObject);
 var
-  Proc: TProcess;
   VideoPath: String;
 begin
   VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-steam.mp4';
@@ -4811,25 +4810,12 @@ begin
     Exit;
   end;
 
-  Proc := TProcess.Create(nil);
-  try
-    Proc.Executable := '/usr/bin/mpv';
-    Proc.Parameters.Add('--no-border');
-    Proc.Parameters.Add('--loop-file=inf');
-    Proc.Parameters.Add('--autofit=80%x80%');
-    Proc.Parameters.Add(VideoPath);
-    Proc.Options := [poNoConsole];
-    Proc.Execute;
-  except
-    Proc.Free;
-    raise;
-  end;
-  // Do not free; mpv runs independently
+  if not OpenURL('file://' + VideoPath) then
+    ShowMessage('Could not open video tutorial. Please install a media player.');
 end;
 
 procedure Tgoverlayform.howtoHeroicClick(Sender: TObject);
 var
-  Proc: TProcess;
   VideoPath: String;
 begin
   VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-heroic.mp4';
@@ -4839,20 +4825,8 @@ begin
     Exit;
   end;
 
-  Proc := TProcess.Create(nil);
-  try
-    Proc.Executable := '/usr/bin/mpv';
-    Proc.Parameters.Add('--no-border');
-    Proc.Parameters.Add('--loop-file=inf');
-    Proc.Parameters.Add('--autofit=80%x80%');
-    Proc.Parameters.Add(VideoPath);
-    Proc.Options := [poNoConsole];
-    Proc.Execute;
-  except
-    Proc.Free;
-    raise;
-  end;
-  // Do not free; mpv runs independently
+  if not OpenURL('file://' + VideoPath) then
+    ShowMessage('Could not open video tutorial. Please install a media player.');
 end;
 
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);

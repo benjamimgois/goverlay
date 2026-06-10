@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  ComCtrls, Buttons, StdCtrls, Process;
+  ComCtrls, Buttons, StdCtrls, Process, LCLIntf;
 
 type
 
@@ -266,33 +266,18 @@ end;
 procedure ThowtoForm.StartSteamVideo;
 var
   VideoPath: String;
-  WidgetHandle: PtrUInt;
-  VideoRect: TRect;
 begin
   StopVideo;
 
   VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-1.mp4';
   if not FileExists(VideoPath) then Exit;
 
-  WidgetHandle := PtrUInt(Self.Handle);
-  if WidgetHandle = 0 then Exit;
+  // Reset button state since we are not playing embedded video
+  FStopBtn.Visible := False;
+  FPlayBtn.Visible := True;
 
-  // Calculate video area within the paintbox
-  VideoRect := Rect(20, 20, steamPaintBox.Width - 20, steamPaintBox.Height - 20);
-
-  FVideoProcess := TProcess.Create(nil);
-  FVideoProcess.Executable := '/usr/bin/mpv';
-  FVideoProcess.Parameters.Add('--wid=' + IntToStr(WidgetHandle));
-  FVideoProcess.Parameters.Add('--no-border');
-  FVideoProcess.Parameters.Add('--no-resize');
-  FVideoProcess.Parameters.Add('--window-dragging=no');
-  FVideoProcess.Parameters.Add('--loop-file=inf');
-  FVideoProcess.Parameters.Add('--mute=yes');
-  FVideoProcess.Parameters.Add('--geometry=' + IntToStr(VideoRect.Left) + ':' + IntToStr(VideoRect.Top));
-  FVideoProcess.Parameters.Add('--autofit=' + IntToStr(VideoRect.Width) + 'x' + IntToStr(VideoRect.Height));
-  FVideoProcess.Parameters.Add(VideoPath);
-  FVideoProcess.Options := [poNoConsole];
-  FVideoProcess.Execute;
+  if not OpenURL('file://' + VideoPath) then
+    ShowMessage('Could not open video tutorial. Please install a media player.');
 end;
 
 procedure ThowtoForm.StopVideo;
