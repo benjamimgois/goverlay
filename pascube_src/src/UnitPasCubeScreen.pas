@@ -124,8 +124,30 @@ type
        property Progress: Single read FProgress;
      end;
 
+     TSubmitThread = class(TThread)
+      private
+        FUrl: string;
+        FPayload: string;
+        FSuccess: Boolean;
+        FErrorMsg: string;
+        FLogBuffer: TStringList;
+        function GetIsFinished: Boolean;
+        procedure ThreadLog(const Msg: string);
+        procedure WriteLogBufferToFile;
+      protected
+        procedure Execute; override;
+      public
+        constructor Create(const aUrl, aPayload: string);
+        destructor Destroy; override;
+        property Success: Boolean read FSuccess;
+        property ErrorMsg: string read FErrorMsg;
+        property IsFinished: Boolean read GetIsFinished;
+      end;
+
      TPasCubeScreen=class(TpvApplicationScreen)
       private
+       fSubmitStatus: Integer; // 0=Idle, 1=Submitting, 2=Success, 3=Error, 4=Disabled
+       fSubmitThread: TSubmitThread;
        fVulkanGraphicsCommandPool:TpvVulkanCommandPool;
        fVulkanGraphicsCommandBuffer:TpvVulkanCommandBuffer;
        fVulkanGraphicsCommandBufferFence:TpvVulkanFence;
@@ -186,8 +208,10 @@ type
           fHoveredHardwareIdx: Integer;
           fHoveredHistoryIdx: Integer;
           fHWExpandProgress: array[0..11] of TpvFloat;
-           fClearConfirmPending: Boolean;
-           fClearConfirmHovered: Integer; // 0=none, 1=yes, 2=no
+            fClearConfirmPending: Boolean;
+            fClearConfirmHovered: Integer; // 0=none, 1=yes, 2=no
+            fSubmitConfirmPending: Boolean;
+            fSubmitConfirmHovered: Integer; // 0=none, 1=yes, 2=no
            fShowMethodology: Boolean;
            fGPUIteration: Integer;
            fGPURuns: array[0..2] of TBenchmarkPhaseResult;
@@ -264,9 +288,14 @@ type
         procedure DrawMenuOverlay;
         function IsStartButtonHovered(const aPos: TpvVector2): Boolean;
         function IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
-         function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
-         function IsClearButtonHovered(const aPos: TpvVector2): Boolean;
-         function IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
+          function IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
+          function IsSubmitButtonHovered(const aPos: TpvVector2): Boolean;
+          function IsClearButtonHovered(const aPos: TpvVector2): Boolean;
+          function GetSubmitURL: String;
+          procedure InitializeSubmitStatus;
+          procedure SubmitBenchmarkResults;
+           function IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
+           function IsSubmitConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
           function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
           function IsMethodologyButtonHovered(const aPos: TpvVector2): Boolean;
           procedure DrawBenchmarkOverlay;
@@ -511,6 +540,168 @@ begin
   ThreadLog('T7ZipThread.Execute: Thread completed. Score = ' + IntToStr(FScore));
 end;
 
+function TSubmitThread.GetIsFinished: Boolean;
+begin
+  Result := Finished;
+end;
+
+procedure TSubmitThread.ThreadLog(const Msg: string);
+begin
+  if Assigned(FLogBuffer) then
+    FLogBuffer.Add(FormatDateTime('hh:nn:ss.zzz', Now) + ' | ' + Msg);
+end;
+
+procedure TSubmitThread.WriteLogBufferToFile;
+var
+  F: TextFile;
+  Path: string;
+  i: Integer;
+begin
+  if not Assigned(FLogBuffer) or (FLogBuffer.Count = 0) then Exit;
+  Path := GetLogFilePath('pascube_submit.log');
+  try
+    AssignFile(F, Path);
+    if FileExists(Path) then
+      Append(F)
+    else
+      Rewrite(F);
+    for i := 0 to FLogBuffer.Count - 1 do
+      WriteLn(F, FLogBuffer[i]);
+    CloseFile(F);
+  except
+    // ignore
+  end;
+end;
+
+constructor TSubmitThread.Create(const aUrl, aPayload: string);
+begin
+  FUrl := aUrl;
+  FPayload := aPayload;
+  FSuccess := False;
+  FErrorMsg := '';
+  FLogBuffer := TStringList.Create;
+  inherited Create(False);
+end;
+
+destructor TSubmitThread.Destroy;
+begin
+  WriteLogBufferToFile;
+  FreeAndNil(FLogBuffer);
+  inherited Destroy;
+end;
+
+procedure TSubmitThread.Execute;
+var
+  AProcess: TProcess;
+  Buffer: array[0..2047] of Char;
+  BytesRead: LongInt;
+  ResponseText: string;
+  AvailableBytes: Integer;
+  i: Integer;
+  EnvVar: string;
+begin
+  ThreadLog('TSubmitThread.Execute: Thread started. URL: ' + FUrl);
+  AProcess := TProcess.Create(nil);
+  try
+    // Build environment block without preload/overlay variables to prevent deadlocks
+    i := 1;
+    while GetEnvironmentString(i) <> '' do begin
+      EnvVar := GetEnvironmentString(i);
+      if (Pos('LD_PRELOAD=', EnvVar) <> 1) and
+         (Pos('MANGOHUD=', EnvVar) <> 1) and
+         (Pos('MANGOHUD_CONFIGFILE=', EnvVar) <> 1) and
+         (Pos('ENABLE_VKBASALT=', EnvVar) <> 1) and
+         (Pos('VKBASALT_CONFIG_FILE=', EnvVar) <> 1) and
+         (Pos('ENABLE_VKSUMI=', EnvVar) <> 1) and
+         (Pos('VKSUMI_CONFIG_FILE=', EnvVar) <> 1) then begin
+        AProcess.Environment.Add(EnvVar);
+      end;
+      Inc(i);
+    end;
+
+    AProcess.Executable := 'curl';
+    AProcess.Parameters.Add('-s');
+    AProcess.Parameters.Add('-L');
+    AProcess.Parameters.Add('--connect-timeout');
+    AProcess.Parameters.Add('10');
+    AProcess.Parameters.Add('--max-time');
+    AProcess.Parameters.Add('30');
+    AProcess.Parameters.Add('-H');
+    AProcess.Parameters.Add('Content-Type: application/json');
+    AProcess.Parameters.Add('-d');
+    AProcess.Parameters.Add(FPayload);
+    AProcess.Parameters.Add(FUrl);
+    AProcess.Options := [poUsePipes, poNoConsole, poStderrToOutPut];
+
+    ThreadLog('TSubmitThread.Execute: Spawning curl...');
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      ThreadLog('TSubmitThread.Execute: curl spawned.');
+    except
+      on E: Exception do begin
+        FSuccess := False;
+        FErrorMsg := E.Message;
+        ThreadLog('TSubmitThread.Execute: FAILED to execute curl. Exception: ' + E.Message);
+        Exit;
+      end;
+    end;
+
+    ResponseText := '';
+    while not Terminated do begin
+      {$ifdef linux}
+      if not (AProcess.Running and DirectoryExists('/proc/' + IntToStr(AProcess.ProcessID))) then
+      {$else}
+      if not AProcess.Running then
+      {$endif}
+      begin
+        if AProcess.Output.NumBytesAvailable = 0 then
+          Break;
+      end;
+
+      AvailableBytes := AProcess.Output.NumBytesAvailable;
+      if AvailableBytes > 0 then begin
+        if AvailableBytes > SizeOf(Buffer) - 1 then
+          AvailableBytes := SizeOf(Buffer) - 1;
+        BytesRead := AProcess.Output.Read(Buffer[0], AvailableBytes);
+        if BytesRead > 0 then begin
+          Buffer[BytesRead] := #0;
+          ResponseText := ResponseText + StrPas(Buffer);
+        end;
+      end;
+      Sleep(10);
+    end;
+
+    try
+      AProcess.WaitOnExit;
+    except
+      // ignore
+    end;
+
+    ThreadLog('TSubmitThread.Execute: Curl exit status: ' + IntToStr(AProcess.ExitStatus));
+    ThreadLog('TSubmitThread.Execute: Curl response: ' + ResponseText);
+
+    if (AProcess.ExitStatus = 0) or (Pos('"status":"success"', ResponseText) > 0) then begin
+      FSuccess := True;
+      // Google Apps Script redirect or permission errors might return page with error message
+      if (Pos('"error"', ResponseText) > 0) or (Pos('errorMessage', ResponseText) > 0) or (Pos('Você precisa ter acesso', ResponseText) > 0) or (Pos('Você precisa de permissão', ResponseText) > 0) then begin
+        FSuccess := False;
+        if (Pos('Você precisa ter acesso', ResponseText) > 0) or (Pos('Você precisa de permissão', ResponseText) > 0) then
+          FErrorMsg := 'Access Denied (Google Script permission error)'
+        else
+          FErrorMsg := 'Server returned error';
+      end;
+    end else begin
+      FSuccess := False;
+      FErrorMsg := 'Exit code ' + IntToStr(AProcess.ExitStatus);
+    end;
+
+  finally
+    AProcess.Free;
+  end;
+  ThreadLog('TSubmitThread.Execute: Thread completed. Success = ' + BoolToStr(FSuccess, True));
+end;
+
 
  type PVertex=^TVertex;
       TVertex=record
@@ -561,8 +752,10 @@ begin
    fExpandedHardwareIdx := -1;
    fHoveredHardwareIdx := -1;
    fHoveredHistoryIdx := -1;
-    fClearConfirmPending := false;
-    fClearConfirmHovered := 0;
+     fClearConfirmPending := false;
+     fClearConfirmHovered := 0;
+     fSubmitConfirmPending := false;
+     fSubmitConfirmHovered := 0;
      fShowMethodology := false;
      FillChar(fHWExpandProgress, SizeOf(fHWExpandProgress), #0);
    fPhaseResultIndex := -1;
@@ -570,20 +763,28 @@ begin
  FillChar(fHistory,SizeOf(fHistory),#0);
  fDebugLog := TStringList.Create;
  fLastDebugSave := 0.0;
- LoadResultsJSON;
+  LoadResultsJSON;
+  GetSubmitURL;
+  fSubmitStatus := 0;
+  fSubmitThread := nil;
 end;
 
 destructor TPasCubeScreen.Destroy;
 begin
- if Assigned(f7ZipThread) then begin
-  f7ZipThread.Terminate;
-  f7ZipThread.WaitFor;
-  FreeAndNil(f7ZipThread);
- end;
- SaveDebugLog;
- FreeAndNil(fDebugLog);
- FreeAndNil(fPhysicsWorld);
- inherited Destroy;
+  if Assigned(f7ZipThread) then begin
+   f7ZipThread.Terminate;
+   f7ZipThread.WaitFor;
+   FreeAndNil(f7ZipThread);
+  end;
+  if Assigned(fSubmitThread) then begin
+   fSubmitThread.Terminate;
+   fSubmitThread.WaitFor;
+   FreeAndNil(fSubmitThread);
+  end;
+  SaveDebugLog;
+  FreeAndNil(fDebugLog);
+  FreeAndNil(fPhysicsWorld);
+  inherited Destroy;
 end;
 
 procedure TPasCubeScreen.Show;
@@ -1187,15 +1388,23 @@ begin
        fAutoRotation:=false;
        fDraggingCube:=false;
        result:=true;
-      end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(ScaledPos) then begin
-       fAutoRotation:=false;
-       fDraggingCube:=false;
-       result:=true;
-      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(ScaledPos) then begin
-       fAutoRotation:=false;
-       fDraggingCube:=false;
-       result:=true;
-       end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
+       end else if (fBenchmarkPhase = bpResults) and fSubmitConfirmPending and IsSubmitConfirmButtonHovered(ScaledPos, idx) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
+        end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(ScaledPos) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
+       end else if (fBenchmarkPhase = bpResults) and IsSubmitButtonHovered(ScaledPos) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
+       end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(ScaledPos) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
+        end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
         fAutoRotation:=false;
         fDraggingCube:=false;
         result:=true;
@@ -1222,6 +1431,7 @@ begin
      if fHistoryCount > 0 then begin
       fCurrentResult := fHistory[0];
       fBenchmarkPhase := bpResults;
+      InitializeSubmitStatus;
       fShowSkybox := true;
       result:=true;
      end;
@@ -1233,16 +1443,36 @@ begin
        fClearConfirmHovered := 0;
       end;
       result:=true;
+     end else if (fBenchmarkPhase = bpResults) and fSubmitConfirmPending and IsSubmitConfirmButtonHovered(ScaledPos, idx) then begin
+      if idx = 1 then begin
+       fSubmitConfirmPending := false;
+       fSubmitConfirmHovered := 0;
+       SubmitBenchmarkResults;
+      end else begin
+       fSubmitConfirmPending := false;
+       fSubmitConfirmHovered := 0;
+      end;
+      result:=true;
      end else if (fBenchmarkPhase = bpResults) and IsReturnButtonHovered(ScaledPos) then begin
       if fClearConfirmPending then begin
        fClearConfirmPending := false;
        fClearConfirmHovered := 0;
+       result:=true;
+      end else if fSubmitConfirmPending then begin
+       fSubmitConfirmPending := false;
+       fSubmitConfirmHovered := 0;
        result:=true;
        end else begin
         fBenchmarkPhase := bpIdleMenu;
         fShowSkybox := true;
        result:=true;
       end;
+     end else if (fBenchmarkPhase = bpResults) and IsSubmitButtonHovered(ScaledPos) then begin
+      if (fSubmitStatus = 0) or (fSubmitStatus = 3) then begin
+       fSubmitConfirmPending := true;
+       fSubmitConfirmHovered := 0;
+      end;
+      result:=true;
      end else if (fBenchmarkPhase = bpResults) and IsClearButtonHovered(ScaledPos) then begin
       fClearConfirmPending := true;
       fClearConfirmHovered := 0;
@@ -1266,6 +1496,11 @@ begin
         fClearConfirmHovered := idx
        else
         fClearConfirmHovered := 0;
+      end else if fSubmitConfirmPending then begin
+       if IsSubmitConfirmButtonHovered(ScaledPos, idx) then
+        fSubmitConfirmHovered := idx
+       else
+        fSubmitConfirmHovered := 0;
         end else begin
          fShowMethodology := IsMethodologyButtonHovered(ScaledPos);
          if IsHardwareItemHovered(ScaledPos, idx) then
@@ -1276,7 +1511,7 @@ begin
 
       // Check hover on Score Trend history bars
       fHoveredHistoryIdx := -1;
-      if (not fClearConfirmPending) and (fHistoryCount > 0) then begin
+      if (not fClearConfirmPending) and (not fSubmitConfirmPending) and (fHistoryCount > 0) then begin
       app := UnitPasCubeApplication.Application;
       if Assigned(app) then begin
        charWidth := app.TextOverlay.FontCharWidth;
@@ -1399,16 +1634,27 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
 
     // Animate hardware comparison accordion
     if fBenchmarkPhase = bpResults then begin
-     for i := 0 to 11 do begin
-      if i = fExpandedHardwareIdx then begin
-       if fHWExpandProgress[i] < 1.0 then
-        fHWExpandProgress[i] := fHWExpandProgress[i] + (1.0 - fHWExpandProgress[i]) * Min(aDeltaTime * 12.0, 1.0);
-      end else begin
-       if fHWExpandProgress[i] > 0.0 then
-        fHWExpandProgress[i] := fHWExpandProgress[i] - fHWExpandProgress[i] * Min(aDeltaTime * 12.0, 1.0);
+      for i := 0 to 11 do begin
+       if i = fExpandedHardwareIdx then begin
+        if fHWExpandProgress[i] < 1.0 then
+         fHWExpandProgress[i] := fHWExpandProgress[i] + (1.0 - fHWExpandProgress[i]) * Min(aDeltaTime * 12.0, 1.0);
+       end else begin
+        if fHWExpandProgress[i] > 0.0 then
+         fHWExpandProgress[i] := fHWExpandProgress[i] - fHWExpandProgress[i] * Min(aDeltaTime * 12.0, 1.0);
+       end;
+      end;
+      if (fSubmitStatus = 1) and Assigned(fSubmitThread) then begin
+       if fSubmitThread.IsFinished then begin
+        if fSubmitThread.Success then
+         fSubmitStatus := 2
+        else begin
+         fSubmitStatus := 3;
+         DebugLog('Submit results failed: ' + fSubmitThread.ErrorMsg);
+        end;
+        FreeAndNil(fSubmitThread);
+       end;
       end;
      end;
-    end;
 
    fReady:=true;
   
@@ -2013,6 +2259,7 @@ begin
  if fHistoryCount < MAX_BENCHMARK_HISTORY then Inc(fHistoryCount);
  SaveResultsJSON;
  SaveDebugLog;
+ InitializeSubmitStatus;
  fBenchmarkPhase := bpResults;
  fShowSkybox := true;
 end;
@@ -2347,10 +2594,11 @@ function TPasCubeScreen.IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    clearBtnWidth, gap, groupWidth, groupX: TpvFloat;
+    submitBtnWidth, clearBtnWidth, gap, groupWidth, groupX: TpvFloat;
 begin
  Result := false;
  if fBenchmarkPhase <> bpResults then Exit;
+ if fClearConfirmPending or fSubmitConfirmPending then Exit;
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
@@ -2363,13 +2611,20 @@ begin
  btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
  clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
  gap := 4.0 * charWidth;
- groupWidth := btnWidth + gap + clearBtnWidth;
+ 
+ if fSubmitStatus = 4 then begin
+  groupWidth := btnWidth + gap + clearBtnWidth;
+ end else begin
+  submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+  groupWidth := btnWidth + gap + submitBtnWidth + gap + clearBtnWidth;
+ end;
+ 
  groupX := cx - (groupWidth * 0.5);
  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
  btnX := groupX;
  btnY := yText - paddingY;
-  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
-            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+ Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+           (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
 function TPasCubeScreen.IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
@@ -2449,11 +2704,11 @@ function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    returnBtnWidth, gap, groupWidth, groupX: TpvFloat;
+    returnBtnWidth, submitBtnWidth, gap, groupWidth, groupX: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpResults then Exit;
-  if fClearConfirmPending then Exit;
+  if fClearConfirmPending or fSubmitConfirmPending then Exit;
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
@@ -2467,14 +2722,132 @@ begin
   returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
   btnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
   gap := 4.0 * charWidth;
-  groupWidth := returnBtnWidth + gap + btnWidth;
-  groupX := cx - (groupWidth * 0.5);
+
+  if fSubmitStatus = 4 then begin
+    groupWidth := returnBtnWidth + gap + btnWidth;
+    groupX := cx - (groupWidth * 0.5);
+    btnX := groupX + returnBtnWidth + gap;
+  end else begin
+    submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+    groupWidth := returnBtnWidth + gap + submitBtnWidth + gap + btnWidth;
+    groupX := cx - (groupWidth * 0.5);
+    btnX := groupX + returnBtnWidth + gap + submitBtnWidth + gap;
+  end;
+
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnX := groupX + returnBtnWidth + gap;
   btnY := yText - paddingY;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+end;
+
+function TPasCubeScreen.IsSubmitButtonHovered(const aPos: TpvVector2): Boolean;
+var app: TPasCubeApplication;
+    cx, yText, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    returnBtnWidth, clearBtnWidth, gap, groupWidth, groupX: TpvFloat;
+begin
+ Result := false;
+ if fBenchmarkPhase <> bpResults then Exit;
+ if fSubmitStatus = 4 then Exit;
+ if fClearConfirmPending or fSubmitConfirmPending then Exit;
+ app := UnitPasCubeApplication.Application;
+ if not Assigned(app) then Exit;
+
+ cx := 1920.0 * 0.5;
+ yText := 1080.0 - 55.0;
+ charWidth := app.TextOverlay.FontCharWidth;
+ charHeight := app.TextOverlay.FontCharHeight;
+ paddingX := charWidth * 1.5;
+ paddingY := charHeight * 0.4;
+ returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+ btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+ clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
+ gap := 4.0 * charWidth;
+ groupWidth := returnBtnWidth + gap + btnWidth + gap + clearBtnWidth;
+ groupX := cx - (groupWidth * 0.5);
+ btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
+ btnX := groupX + returnBtnWidth + gap;
+ btnY := yText - paddingY;
+ Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
+           (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
+end;
+
+function TPasCubeScreen.GetSubmitURL: string;
+var HomeDir: string;
+    ConfigPath: string;
+    SL: TStringList;
+begin
+  Result := GetEnvironmentVariable('PASCUBE_SUBMIT_URL');
+  if Result <> '' then Exit;
+  
+  HomeDir := GetEnvironmentVariable('HOME');
+  if HomeDir = '' then HomeDir := '/home/benjamim';
+  ConfigPath := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if ConfigPath = '' then
+    ConfigPath := HomeDir + '/.config';
+  
+  ConfigPath := ConfigPath + '/goverlay/pascube_submit_url';
+  if not FileExists(ConfigPath) then begin
+    ForceDirectories(ExtractFilePath(ConfigPath));
+    SL := TStringList.Create;
+    try
+      SL.Add('https://script.google.com/macros/s/AKfycby-RLks53RC_zdQmOTx8OOaFATZRhAQy3a30vg03gbcpBCJG_rmAC4U9wlzAIk07XA04w/exec');
+      SL.SaveToFile(ConfigPath);
+    finally
+      SL.Free;
+    end;
+  end;
+
+  if FileExists(ConfigPath) then begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile(ConfigPath);
+      if SL.Count > 0 then
+        Result := Trim(SL[0]);
+    finally
+      SL.Free;
+    end;
+  end;
+end;
+
+procedure TPasCubeScreen.InitializeSubmitStatus;
+begin
+  if GetSubmitURL = '' then
+    fSubmitStatus := 4
+  else
+    fSubmitStatus := 0;
+end;
+
+procedure TPasCubeScreen.SubmitBenchmarkResults;
+var URL: string;
+    JSONObj: TJSONObject;
+    Payload: string;
+begin
+  URL := GetSubmitURL;
+  if URL = '' then begin
+    fSubmitStatus := 4;
+    Exit;
+  end;
+
+  JSONObj := TJSONObject.Create;
+  try
+    JSONObj.Add('username', 'Anonymous');
+    JSONObj.Add('cpu', GetCPUName);
+    JSONObj.Add('gpu', CleanGPUName(fCurrentResult.DeviceName));
+    JSONObj.Add('ram', GetRAMSize);
+    JSONObj.Add('os', GetOSName);
+    JSONObj.Add('main_score', fCurrentResult.TotalScore);
+    JSONObj.Add('cpu_single', fCurrentResult.PhaseResults[1].Score);
+    JSONObj.Add('cpu_multi', fCurrentResult.PhaseResults[2].Score);
+    JSONObj.Add('gpu_score', fCurrentResult.PhaseResults[3].Score);
+    Payload := JSONObj.AsJSON;
+  finally
+    JSONObj.Free;
+  end;
+
+  fSubmitStatus := 1; // Submitting
+  fSubmitThread := TSubmitThread.Create(URL, Payload);
 end;
 
 function TPasCubeScreen.IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
@@ -2511,6 +2884,51 @@ begin
   yesX := cx - gap * 0.5 - btnW;
   noX := cx + gap * 0.5;
   btnY := boxY + boxH - btnH - 1.2 * charHeight;
+
+  if (aPos.x >= yesX) and (aPos.x <= yesX + btnW) and
+     (aPos.y >= btnY) and (aPos.y <= btnY + btnH) then
+  begin
+    aButton := 1;
+    Result := true;
+    Exit;
+  end;
+
+end;
+
+function TPasCubeScreen.IsSubmitConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
+var app: TPasCubeApplication;
+    cx, cy, charWidth, charHeight: TpvFloat;
+    boxW, boxH, boxX, boxY: TpvFloat;
+    btnW, btnH, yesX, noX, btnY: TpvFloat;
+    gap: TpvFloat;
+begin
+  Result := false;
+  aButton := 0;
+  if fBenchmarkPhase <> bpResults then Exit;
+  if not fSubmitConfirmPending then Exit;
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  cx := 1920.0 * 0.5;
+  cy := 1080.0 * 0.5;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+
+  boxW := 66.0 * charWidth;
+  boxH := 30.0 * charHeight;
+  boxX := cx - boxW * 0.5;
+  boxY := cy - boxH * 0.5;
+
+  if (aPos.x < boxX) or (aPos.x > boxX + boxW) or
+     (aPos.y < boxY) or (aPos.y > boxY + boxH) then Exit;
+
+  // Yes / No buttons inside the box
+  gap := 5.0 * charWidth;
+  btnW := 15.0 * charWidth;
+  btnH := 3.5 * charHeight;
+  yesX := cx - gap * 0.5 - btnW;
+  noX := cx + gap * 0.5;
+  btnY := boxY + boxH - btnH - 1.8 * charHeight;
 
   if (aPos.x >= yesX) and (aPos.x <= yesX + btnW) and
      (aPos.y >= btnY) and (aPos.y <= btnY + btnH) then
@@ -2949,7 +3367,9 @@ var app: TPasCubeApplication;
      btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
      clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
      returnBtnWidth, returnBtnX, groupX, groupWidth: TpvFloat;
-     isReturnHovered, isClearHovered: Boolean;
+     submitBtnWidth, submitBtnX: TpvFloat;
+     isReturnHovered, isClearHovered, isSubmitHovered: Boolean;
+     submitStr: String;
      fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
       // Graph variables
@@ -3311,41 +3731,128 @@ begin
   returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
   clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
   gap := 4.0 * charWidth;
-  groupWidth := returnBtnWidth + gap + clearBtnWidth;
-  groupX := cx - (groupWidth * 0.5);
   btnY := yText - paddingY;
 
-  // --- RETURN TO MENU BUTTON (left of pair) ---
-  isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
-  if isReturnHovered then begin
-    bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-    fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  if fSubmitStatus = 4 then begin
+    // 2-button layout: Return to Menu and Clear results
+    groupWidth := returnBtnWidth + gap + clearBtnWidth;
+    groupX := cx - (groupWidth * 0.5);
+
+    // --- RETURN TO MENU BUTTON ---
+    isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
+    if isReturnHovered then begin
+      bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+      fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+      fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+    end;
+
+    returnBtnX := groupX;
+    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+    // --- CLEAR RESULTS BUTTON ---
+    isClearHovered := IsClearButtonHovered(fLastMousePosition);
+    if isClearHovered then begin
+      bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
+      fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
+      fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
+      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+    end;
+
+    clearBtnX := groupX + returnBtnWidth + gap;
+    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end else begin
-    bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-    fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+    // 3-button layout: Return to Menu, Submit results (with status), and Clear results
+    submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
+    groupWidth := returnBtnWidth + gap + submitBtnWidth + gap + clearBtnWidth;
+    groupX := cx - (groupWidth * 0.5);
+
+    // --- RETURN TO MENU BUTTON ---
+    isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
+    if isReturnHovered then begin
+      bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+      fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+      fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+    end;
+
+    returnBtnX := groupX;
+    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+    // --- SUBMIT RESULTS BUTTON ---
+    submitBtnX := groupX + returnBtnWidth + gap;
+    isSubmitHovered := IsSubmitButtonHovered(fLastMousePosition);
+
+    case fSubmitStatus of
+      0: begin
+        submitStr := 'Submit results';
+        if isSubmitHovered then begin
+          bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+          fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+          textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        end else begin
+          bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+          fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+          textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+        end;
+      end;
+      1: begin
+        submitStr := 'Submitting...';
+        bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+        fgR := 200.0 / 255.0; fgG := 150.0 / 255.0; fgB := 30.0 / 255.0; fgA := 1.0;
+        textR := 200.0 / 255.0; textG := 150.0 / 255.0; textB := 30.0 / 255.0; textA := 1.0;
+      end;
+      2: begin
+        submitStr := 'Submitted!';
+        bgR := 20.0 / 255.0; bgG := 60.0 / 255.0; bgB := 30.0 / 255.0; bgA := 1.0;
+        fgR := 48.0 / 255.0; fgG := 200.0 / 255.0; fgB := 100.0 / 255.0; fgA := 1.0;
+        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+      end;
+      3: begin
+        submitStr := 'Error! Retry?';
+        if isSubmitHovered then begin
+          bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
+          fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+          textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        end else begin
+          bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+          fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
+          textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+        end;
+      end;
+    end;
+
+    app.TextOverlay.AddBox(submitBtnX, btnY, submitBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(submitBtnX + submitBtnWidth * 0.5, yText, 1.8, toaCenter, submitStr, 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+    // --- CLEAR RESULTS BUTTON ---
+    isClearHovered := IsClearButtonHovered(fLastMousePosition);
+    if isClearHovered then begin
+      bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
+      fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
+      fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
+      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+    end;
+
+    clearBtnX := groupX + returnBtnWidth + gap + submitBtnWidth + gap;
+    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end;
-
-  returnBtnX := groupX;
-  app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-  app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
-
-  // --- CLEAR RESULTS BUTTON (right of pair, softer red) ---
-  isClearHovered := IsClearButtonHovered(fLastMousePosition);
-  if isClearHovered then begin
-    bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
-    fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
-    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-    bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
-    fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
-
-  clearBtnX := groupX + returnBtnWidth + gap;
-  app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-  app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
   // --- CLEAR CONFIRMATION DIALOG ---
   if fClearConfirmPending then begin
@@ -3410,6 +3917,100 @@ begin
     end;
     app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
     app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter,
+                            'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  end;
+
+  // --- SUBMIT CONFIRMATION DIALOG ---
+  if fSubmitConfirmPending then begin
+    // Dim background
+    app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0,
+                           0.0, 0.0, 0.0, 0.6,
+                           0.0, 0.0, 0.0, 0.0, 255.0);
+
+    // Dialog box
+    boxW := 66.0 * charWidth;
+    boxH := 30.0 * charHeight;
+    boxX := cx - boxW * 0.5;
+    boxY := cy - boxH * 0.5;
+    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
+                           22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
+                           48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
+                           255.0);
+
+    // Title
+    app.TextOverlay.AddText(cx, boxY + 1.2 * charHeight, 1.8, toaCenter,
+                            'Submit benchmark results',
+                            0.0, 0.0, 0.0, 0.0,
+                            48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+
+    // Prompt
+    app.TextOverlay.AddText(cx, boxY + 3.0 * charHeight, 1.2, toaCenter,
+                            'Do you want to submit the following anonymous data?',
+                            0.0, 0.0, 0.0, 0.0,
+                            221.0/255.0, 221.0/255.0, 221.0/255.0, 1.0);
+
+    // System Information
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 5.2 * charHeight, 1.2, toaLeft, 'CPU:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 5.2 * charHeight, 1.2, toaLeft, GetCPUName, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 7.0 * charHeight, 1.2, toaLeft, 'GPU:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 7.0 * charHeight, 1.2, toaLeft, CleanGPUName(fCurrentResult.DeviceName), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 8.8 * charHeight, 1.2, toaLeft, 'RAM:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 8.8 * charHeight, 1.2, toaLeft, GetRAMSize, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 10.6 * charHeight, 1.2, toaLeft, 'OS:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 10.6 * charHeight, 1.2, toaLeft, GetOSName, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 12.4 * charHeight, 1.2, toaLeft, 'Main Score:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 12.4 * charHeight, 1.2, toaLeft, IntToStr(fCurrentResult.TotalScore) + ' points', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 14.2 * charHeight, 1.2, toaLeft, 'CPU Single:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 14.2 * charHeight, 1.2, toaLeft, IntToStr(fCurrentResult.PhaseResults[1].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 16.0 * charHeight, 1.2, toaLeft, 'CPU Multi:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.0 * charHeight, 1.2, toaLeft, IntToStr(fCurrentResult.PhaseResults[2].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 17.8 * charHeight, 1.2, toaLeft, 'GPU Score:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 17.8 * charHeight, 1.2, toaLeft, IntToStr(fCurrentResult.PhaseResults[3].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 19.6 * charHeight, 1.2, toaLeft, 'Contributor:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 19.6 * charHeight, 1.2, toaLeft, 'Anonymous', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
+
+    // Buttons
+    gap := 5.0 * charWidth;
+    btnW := 15.0 * charWidth;
+    btnH := 3.5 * charHeight;
+    yesX := cx - gap * 0.5 - btnW;
+    noX := cx + gap * 0.5;
+    btnY := boxY + boxH - btnH - 1.8 * charHeight;
+
+    // Yes button
+    if fSubmitConfirmHovered = 1 then begin
+      bgR := 33.0/255.0; bgG := 38.0/255.0; bgB := 56.0/255.0; bgA := 1.0;
+      fgR := 48.0/255.0; fgG := 190.0/255.0; fgB := 240.0/255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
+      fgR := 50.0/255.0; fgG := 60.0/255.0; fgB := 85.0/255.0; fgA := 1.0;
+      textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
+    end;
+    app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5, 1.5, toaCenter,
+                            'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+
+    // No button
+    if fSubmitConfirmHovered = 2 then begin
+      bgR := 33.0/255.0; bgG := 38.0/255.0; bgB := 56.0/255.0; bgA := 1.0;
+      fgR := 48.0/255.0; fgG := 190.0/255.0; fgB := 240.0/255.0; fgA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+    end else begin
+      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
+      fgR := 50.0/255.0; fgG := 60.0/255.0; fgB := 85.0/255.0; fgA := 1.0;
+      textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
+    end;
+    app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.5, toaCenter,
                             'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end;
 end;
