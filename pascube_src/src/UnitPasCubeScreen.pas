@@ -433,11 +433,12 @@ begin
 
     ValStr := 'for fd in /proc/self/fd/*; do fd_num="${fd##*/}"; [ "$fd_num" = "*" ] && continue; ' +
               'if [ "$fd_num" -gt 2 ]; then eval "exec $fd_num>&-" 2>/dev/null; fi; done; ' +
+              'if command -v ' + FCommand + ' >/dev/null 2>&1; then cmd="' + FCommand + '"; else cmd="7zz"; fi; ' +
               'if command -v stdbuf >/dev/null 2>&1; then ' +
-              'exec stdbuf -oL ' + FCommand + ' b';
+              'exec stdbuf -oL "$cmd" b';
     if FArguments <> '' then
       ValStr := ValStr + ' ' + FArguments;
-    ValStr := ValStr + ' 3; else exec ' + FCommand + ' b';
+    ValStr := ValStr + ' 3; else exec "$cmd" b';
     if FArguments <> '' then
       ValStr := ValStr + ' ' + FArguments;
     ValStr := ValStr + ' 3; fi';

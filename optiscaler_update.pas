@@ -77,7 +77,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
 // Returns: ~/.local/share/goverlay/bgmod (Sandboxed in Flatpak)
@@ -640,7 +640,7 @@ begin
 
       WriteLn('[DEBUG] Extract7z: Destination directory exists = ', DirectoryExists(ADestPath));
 
-      Process.Executable := '7z';
+      Process.Executable := FindDefaultExecutablePath('7z');
       Process.Parameters.Add('x');
       Process.Parameters.Add('-y');  // Yes to all questions
       Process.Parameters.Add('-o' + ADestPath);

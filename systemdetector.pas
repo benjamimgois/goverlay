@@ -209,6 +209,8 @@ var
 begin
   // We use 'which' to check if command exists
   Result := RunCommand('which', [CommandName], Output);
+  if not Result and (CommandName = '7z') then
+    Result := RunCommand('which', ['7zz'], Output);
 end;
 
 function IsHostCommandAvailable(const CommandName: string): Boolean;
@@ -530,6 +532,14 @@ begin
   begin
     if Output <> '' then
       Result := Output;
+  end
+  else if ExecutableName = '7z' then
+  begin
+    if RunCommand('which', ['7zz'], Output) then
+    begin
+      if Output <> '' then
+        Result := Output;
+    end;
   end;
 end;
 
