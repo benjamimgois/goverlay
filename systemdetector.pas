@@ -737,13 +737,22 @@ function IsPasCubeAvailable: Boolean;
 var
   LocalPath: string;
   AppDir: string;
+  Paths: array[0..4] of string;
+  i: Integer;
 begin
   AppDir := GetEnvironmentVariable('APPDIR');
   if AppDir <> '' then begin
-    LocalPath := IncludeTrailingPathDelimiter(AppDir) + 'bin/pascube';
-    if FileExists(LocalPath) then begin
-      Result := True;
-      Exit;
+    AppDir := IncludeTrailingPathDelimiter(AppDir);
+    Paths[0] := AppDir + 'usr/lib/pascube';
+    Paths[1] := AppDir + 'lib/pascube';
+    Paths[2] := AppDir + 'bin/pascube';
+    Paths[3] := AppDir + 'usr/bin/pascube';
+    Paths[4] := AppDir + 'usr/libexec/pascube';
+    for i := 0 to 4 do begin
+      if FileExists(Paths[i]) then begin
+        Result := True;
+        Exit;
+      end;
     end;
   end;
 
@@ -758,13 +767,22 @@ function GetPasCubeCommand: string;
 var
   LocalPath: string;
   AppDir: string;
+  Paths: array[0..4] of string;
+  i: Integer;
 begin
   AppDir := GetEnvironmentVariable('APPDIR');
   if AppDir <> '' then begin
-    LocalPath := IncludeTrailingPathDelimiter(AppDir) + 'bin/pascube';
-    if FileExists(LocalPath) then begin
-      Result := LocalPath;
-      Exit;
+    AppDir := IncludeTrailingPathDelimiter(AppDir);
+    Paths[0] := AppDir + 'usr/lib/pascube';
+    Paths[1] := AppDir + 'lib/pascube';
+    Paths[2] := AppDir + 'bin/pascube';
+    Paths[3] := AppDir + 'usr/bin/pascube';
+    Paths[4] := AppDir + 'usr/libexec/pascube';
+    for i := 0 to 4 do begin
+      if FileExists(Paths[i]) then begin
+        Result := Paths[i];
+        Exit;
+      end;
     end;
   end;
 
