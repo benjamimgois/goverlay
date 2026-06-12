@@ -736,7 +736,17 @@ end;
 function IsPasCubeAvailable: Boolean;
 var
   LocalPath: string;
+  AppDir: string;
 begin
+  AppDir := GetEnvironmentVariable('APPDIR');
+  if AppDir <> '' then begin
+    LocalPath := IncludeTrailingPathDelimiter(AppDir) + 'bin/pascube';
+    if FileExists(LocalPath) then begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
   LocalPath := ExtractFilePath(ParamStr(0)) + 'pascube';
   if FileExists(LocalPath) then
     Result := True
@@ -747,7 +757,17 @@ end;
 function GetPasCubeCommand: string;
 var
   LocalPath: string;
+  AppDir: string;
 begin
+  AppDir := GetEnvironmentVariable('APPDIR');
+  if AppDir <> '' then begin
+    LocalPath := IncludeTrailingPathDelimiter(AppDir) + 'bin/pascube';
+    if FileExists(LocalPath) then begin
+      Result := LocalPath;
+      Exit;
+    end;
+  end;
+
   LocalPath := ExtractFilePath(ParamStr(0)) + 'pascube';
   if FileExists(LocalPath) then
     Result := LocalPath
