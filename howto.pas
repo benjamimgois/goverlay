@@ -59,6 +59,9 @@ var
 
 implementation
 
+uses
+  overlayunit;
+
 {$R *.lfm}
 
 { ThowtoForm }
@@ -269,7 +272,7 @@ var
 begin
   StopVideo;
 
-  VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-1.mp4';
+  VideoPath := goverlayform.GetAppBaseDir + 'assets/video/bgmod-1.mp4';
   if not FileExists(VideoPath) then Exit;
 
   // Reset button state since we are not playing embedded video

@@ -4803,7 +4803,7 @@ procedure Tgoverlayform.howtoSteamClick(Sender: TObject);
 var
   VideoPath: String;
 begin
-  VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-steam.mp4';
+  VideoPath := GetAppBaseDir + 'assets/video/bgmod-steam.mp4';
   if not FileExists(VideoPath) then
   begin
     ShowMessage('Video tutorial not found.');
@@ -4818,7 +4818,7 @@ procedure Tgoverlayform.howtoHeroicClick(Sender: TObject);
 var
   VideoPath: String;
 begin
-  VideoPath := ExtractFilePath(ParamStr(0)) + 'assets/video/bgmod-heroic.mp4';
+  VideoPath := GetAppBaseDir + 'assets/video/bgmod-heroic.mp4';
   if not FileExists(VideoPath) then
   begin
     ShowMessage('Video tutorial not found.');
