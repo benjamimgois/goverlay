@@ -100,3 +100,8 @@ lib/
 
 # Allow precompiled lzma object files required by PasCube linking
 !pascube_src/pasvulkan/src/lzma_c/*.o
+
+# AI Agent & workspace tooling
+.agent/
+.gemini/
+.opencode/
