@@ -3274,7 +3274,9 @@ var SL: TStringList;
 begin
  Result := 'Linux';
  osReleasePath := '';
- if FileExists('/run/host/etc/os-release') then
+ if FileExists('/run/host/os-release') then
+   osReleasePath := '/run/host/os-release'
+ else if FileExists('/run/host/etc/os-release') then
    osReleasePath := '/run/host/etc/os-release'
  else if FileExists('/run/host/usr/lib/os-release') then
    osReleasePath := '/run/host/usr/lib/os-release'
