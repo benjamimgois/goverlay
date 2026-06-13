@@ -8244,6 +8244,7 @@ begin
 end;
 
 constructor TpvApplicationAssets.Create(const aVulkanApplication:TpvApplication);
+var ExePath, TestPath: String;
 begin
  inherited Create;
  fVulkanApplication:=aVulkanApplication;
@@ -8256,7 +8257,19 @@ begin
 {$elseif defined(PasVulkanUseRelativeDirectory)}
  fBasePath:=TpvUTF8String(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'assets'));
 {$else}
- fBasePath:=TpvUTF8String(IncludeTrailingPathDelimiter(ExpandFileName(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'..')+'assets'))));
+ ExePath:=ExtractFilePath(ParamStr(0));
+ TestPath:=IncludeTrailingPathDelimiter(ExePath+'assets');
+ if DirectoryExists(TestPath) then begin
+  fBasePath:=TpvUTF8String(TestPath);
+ end else begin
+  TestPath:=IncludeTrailingPathDelimiter(ExpandFileName(ExePath+'..'+PathDelim+'assets'));
+  if DirectoryExists(TestPath) then begin
+   fBasePath:=TpvUTF8String(TestPath);
+  end else begin
+   TestPath:=IncludeTrailingPathDelimiter(ExpandFileName(ExePath+'..'+PathDelim+'share'+PathDelim+'goverlay'+PathDelim+'assets'));
+   fBasePath:=TpvUTF8String(TestPath);
+  end;
+ end;
 {$ifend}
 end;
 
