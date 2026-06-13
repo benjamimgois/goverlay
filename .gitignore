@@ -11,6 +11,7 @@ goverlay.lps
 goverlay_*.tar.xz
 *.tar.gz
 *.flatpak
+!data/goverlay.sh.flatpak
 docs/Changelogs/
 /bgmod
 data/bgmod/bgmod
