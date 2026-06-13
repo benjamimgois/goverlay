@@ -1,12 +1,12 @@
 (******************************************************************************
  *                                   PasMP                                    *
  ******************************************************************************
- *                        Version 2025-11-22-20-17-0000                       *
+ *                        Version 2026-01-04-11-34-0000                       *
  ******************************************************************************
  *                                zlib license                                *
  *============================================================================*
  *                                                                            *
- * Copyright (C) 2016-2025, Benjamin Rosseaux (benjamin@rosseaux.de)          *
+ * Copyright (C) 2016-2026, Benjamin Rosseaux (benjamin@rosseaux.de)          *
  *                                                                            *
  * This software is provided 'as-is', without any express or implied          *
  * warranty. In no event will the authors be held liable for any damages      *
@@ -3407,9 +3407,9 @@ end;
 function CLZDWord(Value:TPasMPUInt32):TPasMPUInt32; {$ifdef CAN_INLINE}inline;{$endif}
 begin
  if Value=0 then begin
-  result:=0;
+  result:=32;
  end else begin
-  result:=31-BSRDWord(Value);
+  result:=31 xor BSRDWord(Value);
  end;
 end;
 
@@ -3425,9 +3425,9 @@ end;
 function CLZQWord(Value:TPasMPUInt64):TPasMPUInt32; {$ifdef CAN_INLINE}inline;{$endif}
 begin
  if Value=0 then begin
-  result:=0;
+  result:=64;
  end else begin
-  result:=63-BSRQWord(Value);
+  result:=63 xor BSRQWord(Value);
  end;
 end;
 {$endif}
@@ -9641,7 +9641,7 @@ begin
 end;
 
 function TPasMPSingleProducerSingleConsumerRingBuffer.Read(const Buffer:pointer;Bytes:TPasMPInt32):TPasMPInt32;
-var LocalReadIndex,LocalWriteIndex,ToRead:TPasMPInt32;
+var LocalReadIndex,LocalWriteIndex,ToRead,Count:TPasMPInt32;
     p:PPasMPUInt8;
 begin
  if (Bytes=0) or (Bytes>fSize) then begin
@@ -9670,12 +9670,14 @@ begin
     TPasMP.Yield;
    end;
   until false;
+  Count:=0;
   p:=pointer(Buffer);
   if (LocalReadIndex+Bytes)>fSize then begin
    ToRead:=fSize-LocalReadIndex;
    Move(fData[LocalReadIndex],p^,ToRead);
    inc(p,ToRead);
    dec(Bytes,ToRead);
+   inc(Count,ToRead);
    LocalReadIndex:=0;
   end;
   if Bytes>0 then begin
@@ -9684,6 +9686,7 @@ begin
    if LocalReadIndex>=fSize then begin
     dec(LocalReadIndex,fSize);
    end;
+   inc(Count,Bytes);
   end;
 {$ifdef CPU386}
   asm
@@ -9694,12 +9697,12 @@ begin
 {$endif}
   fReadIndex:=LocalReadIndex;
   TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fLockState);
-  result:=Bytes;
+  result:=Count;
  end;
 end;
 
 function TPasMPSingleProducerSingleConsumerRingBuffer.TryRead(const Buffer:pointer;Bytes:TPasMPInt32):TPasMPInt32;
-var LocalReadIndex,LocalWriteIndex,ToRead:TPasMPInt32;
+var LocalReadIndex,LocalWriteIndex,ToRead,Count:TPasMPInt32;
     p:PPasMPUInt8;
 begin
  if (Bytes=0) or (Bytes>fSize) then begin
@@ -9724,12 +9727,14 @@ begin
   if Bytes>result then begin
    result:=0;
   end else begin
+   Count:=0;
    p:=pointer(Buffer);
    if (LocalReadIndex+Bytes)>fSize then begin
     ToRead:=fSize-LocalReadIndex;
     Move(fData[LocalReadIndex],p^,ToRead);
     inc(p,ToRead);
     dec(Bytes,ToRead);
+    inc(Count,ToRead);
     LocalReadIndex:=0;
    end;
    if Bytes>0 then begin
@@ -9738,6 +9743,7 @@ begin
     if LocalReadIndex>=fSize then begin
      dec(LocalReadIndex,fSize);
     end;
+    inc(Count,Bytes);
    end;
 {$ifdef CPU386}
    asm
@@ -9747,14 +9753,14 @@ begin
    TPasMPMemoryBarrier.ReadWrite;
 {$endif}
    fReadIndex:=LocalReadIndex;
-   result:=Bytes;
+   result:=Count;
   end;
   TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fLockState);
  end;
 end;
 
 function TPasMPSingleProducerSingleConsumerRingBuffer.ReadAsMuchAsPossible(const Buffer:pointer;Bytes:TPasMPInt32):TPasMPInt32;
-var LocalReadIndex,LocalWriteIndex,ToRead:TPasMPInt32;
+var LocalReadIndex,LocalWriteIndex,ToRead,Count:TPasMPInt32;
     p:PPasMPUInt8;
 begin
  if (Bytes=0) or (Bytes>fSize) then begin
@@ -9780,12 +9786,14 @@ begin
    Bytes:=result;
   end;
   if Bytes>0 then begin
+   Count:=0;
    p:=pointer(Buffer);
    if (LocalReadIndex+Bytes)>fSize then begin
     ToRead:=fSize-LocalReadIndex;
     Move(fData[LocalReadIndex],p^,ToRead);
     inc(p,ToRead);
     dec(Bytes,ToRead);
+    inc(Count,ToRead);
     LocalReadIndex:=0;
    end;
    if Bytes>0 then begin
@@ -9794,6 +9802,7 @@ begin
     if LocalReadIndex>=fSize then begin
      dec(LocalReadIndex,fSize);
     end;
+    inc(Count,Bytes);
    end;
 {$ifdef CPU386}
    asm
@@ -9805,12 +9814,12 @@ begin
    fReadIndex:=LocalReadIndex;
   end;
   TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fLockState);
-  result:=Bytes;
+  result:=Count;
  end;
 end;
 
 function TPasMPSingleProducerSingleConsumerRingBuffer.Write(const Buffer:pointer;Bytes:TPasMPInt32):TPasMPInt32;
-var LocalReadIndex,LocalWriteIndex,ToWrite:TPasMPInt32;
+var LocalReadIndex,LocalWriteIndex,ToWrite,Count:TPasMPInt32;
     p:PPasMPUInt8;
 begin
  if (Bytes=0) or (Bytes>fSize) then begin
@@ -9839,12 +9848,14 @@ begin
     TPasMP.Yield;
    end;
   until false;
+  Count:=0;
   p:=pointer(Buffer);
   if (LocalWriteIndex+Bytes)>fSize then begin
    ToWrite:=fSize-LocalWriteIndex;
    Move(p^,fData[LocalWriteIndex],ToWrite);
    inc(p,ToWrite);
    dec(Bytes,ToWrite);
+   inc(Count,ToWrite);
    LocalWriteIndex:=0;
   end;
   if Bytes>0 then begin
@@ -9853,6 +9864,7 @@ begin
    if LocalWriteIndex>=fSize then begin
     dec(LocalWriteIndex,fSize);
    end;
+   inc(Count,Bytes);
   end;
 {$ifdef CPU386}
   asm
@@ -9863,12 +9875,12 @@ begin
 {$endif}
   fWriteIndex:=LocalWriteIndex;
   TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fLockState);
-  result:=Bytes;
+  result:=Count;
  end;
 end;
 
 function TPasMPSingleProducerSingleConsumerRingBuffer.TryWrite(const Buffer:pointer;Bytes:TPasMPInt32):TPasMPInt32;
-var LocalReadIndex,LocalWriteIndex,ToWrite:TPasMPInt32;
+var LocalReadIndex,LocalWriteIndex,ToWrite,Count:TPasMPInt32;
     p:PPasMPUInt8;
 begin
  if (Bytes=0) or (Bytes>fSize) then begin
@@ -9893,12 +9905,14 @@ begin
   if Bytes>result then begin
    result:=0;
   end else begin
+   Count:=0;
    p:=pointer(Buffer);
    if (LocalWriteIndex+Bytes)>fSize then begin
     ToWrite:=fSize-LocalWriteIndex;
     Move(p^,fData[LocalWriteIndex],ToWrite);
     inc(p,ToWrite);
     dec(Bytes,ToWrite);
+    inc(Count,ToWrite);
     LocalWriteIndex:=0;
    end;
    if Bytes>0 then begin
@@ -9907,6 +9921,7 @@ begin
     if LocalWriteIndex>=fSize then begin
      dec(LocalWriteIndex,fSize);
     end;
+    inc(Count,Bytes);
    end;
 {$ifdef CPU386}
    asm
@@ -9916,14 +9931,14 @@ begin
    TPasMPMemoryBarrier.ReadWrite;
 {$endif}
    fWriteIndex:=LocalWriteIndex;
-   result:=Bytes;
+   result:=Count;
   end;
   TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fLockState);
  end;
 end;
 
 function TPasMPSingleProducerSingleConsumerRingBuffer.WriteAsMuchAsPossible(const Buffer:pointer;Bytes:TPasMPInt32):TPasMPInt32;
-var LocalReadIndex,LocalWriteIndex,ToWrite:TPasMPInt32;
+var LocalReadIndex,LocalWriteIndex,ToWrite,Count:TPasMPInt32;
     p:PPasMPUInt8;
 begin
  if (Bytes=0) or (Bytes>fSize) then begin
@@ -9949,12 +9964,14 @@ begin
    Bytes:=result;
   end;
   if Bytes>0 then begin
+   Count:=0;
    p:=pointer(Buffer);
    if (LocalWriteIndex+Bytes)>fSize then begin
     ToWrite:=fSize-LocalWriteIndex;
     Move(p^,fData[LocalWriteIndex],ToWrite);
     inc(p,ToWrite);
     dec(Bytes,ToWrite);
+    inc(Count,ToWrite);
     LocalWriteIndex:=0;
    end;
    if Bytes>0 then begin
@@ -9963,6 +9980,7 @@ begin
     if LocalWriteIndex>=fSize then begin
      dec(LocalWriteIndex,fSize);
     end;
+    inc(Count,Bytes);
    end;
 {$ifdef CPU386}
    asm
@@ -9974,7 +9992,7 @@ begin
    fWriteIndex:=LocalWriteIndex;
   end;
   TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fLockState);
-  result:=Bytes;
+  result:=Count;
  end;
 end;
 

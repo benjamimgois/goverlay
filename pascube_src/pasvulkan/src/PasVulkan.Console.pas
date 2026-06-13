@@ -94,7 +94,7 @@ type { TpvConsole }
              CursorShape:TpvUInt8;
              CurPos:TPoint;
              Color:TpvUInt8;
-            end;  
+            end;
             PCursorInfo=^TCursorInfo;
             TConsoleBuffer=array of TpvUInt32;
             PConsoleBuffer=^TConsoleBuffer;
@@ -141,9 +141,9 @@ type { TpvConsole }
                (r:1.0000;g:1.0000;b:1.0000;a:1.0000)
               );
       private
-       fCanvas:TpvCanvas;   
+       fCanvas:TpvCanvas;
        fScrollBuffer:TConsoleBuffer;
-       fRawBuffer:TConsoleBuffer;                  
+       fRawBuffer:TConsoleBuffer;
        fColumns:TpvSizeInt;
        fRows:TpvSizeInt;
        fCharWidth:TpvSizeInt;
@@ -161,11 +161,12 @@ type { TpvConsole }
        fForcedRedraw:Boolean;
        fUploaded:Boolean;
        fOverwrite:Boolean;
+       fIgnoreDuplicateHistoryEntries:Boolean;
        fWindMin:TpvUInt32;
        fWindMax:TpvUInt32;
        fCursor:TCursorInfo;
        fInternalWidth:TpvSizeInt;
-       fInternalHeight:TpvSizeInt; 
+       fInternalHeight:TpvSizeInt;
        fLines:TUTF8StringList;
        fHistory:TUTF8StringList;
        fHistoryIndex:TpvSizeInt;
@@ -181,6 +182,12 @@ type { TpvConsole }
        fOnDrawRect:TOnDrawRect;
        fOnDrawCodePoint:TOnDrawCodePoint;
        fHistoryFileName:String;
+       fReverseSearchMode:Boolean;
+       fReverseSearchQuery:TpvUTF8String;
+       fReverseSearchIndex:TpvSizeInt;
+       fReverseSearchMatches:TpvSizeIntDynamicArray;
+       fReverseSearchMatchPosition:TpvSizeInt;
+       fReverseSearchOriginalLine:TpvUTF8String;
       public
        constructor Create;
        destructor Destroy; override;
@@ -227,6 +234,11 @@ type { TpvConsole }
        procedure KeyClearScreen;
        procedure KeySwapCurrentCodePointWithPreviousCodePoint;
        procedure KeyChar(const aCodePoint:TpvUInt32);
+       procedure KeyReverseSearch;
+       procedure ReverseSearchUpdateMatches;
+       procedure ReverseSearchExit(const aAccept:Boolean);
+       procedure ReverseSearchAddChar(const aCodePoint:TpvUInt32);
+       procedure ReverseSearchBackspace;
        function GetBuffer(const aColumn,aRow:TpvSizeInt;out aCodePoint:TpvUInt32;out aForegroundColor,aBackgroundColor:TpvSizeInt;out aBlink:Boolean):boolean;
        procedure Draw(const aDeltaTime:TpvDouble);
        function KeyEvent(const aKeyEvent:TpvApplicationInputKeyEvent):boolean;
@@ -249,6 +261,7 @@ type { TpvConsole }
        property ForcedRedraw:Boolean read fForcedRedraw write fForcedRedraw;
        property Uploaded:Boolean read fUploaded write fUploaded;
        property Overwrite:Boolean read fOverwrite write fOverwrite;
+       property IgnoreDuplicateHistoryEntries:Boolean read fIgnoreDuplicateHistoryEntries write fIgnoreDuplicateHistoryEntries;
        property WindMin:TpvUInt32 read fWindMin write fWindMin;
        property WindMax:TpvUInt32 read fWindMax write fWindMax;
        property Lines:TUTF8StringList read fLines;
@@ -276,7 +289,7 @@ begin
 
  fScrollBuffer:=nil;
  fRawBuffer:=nil;
- 
+
  fCharWidth:=8;
  fCharHeight:=16;
  fColumns:=0;
@@ -286,6 +299,8 @@ begin
  fWrapBottom:=0;
 
  fTabWidth:=2;
+
+ fIgnoreDuplicateHistoryEntries:=false;
 
  SetChrDim(80,25);
  CLRSCR(7);
@@ -331,6 +346,12 @@ begin
 
  fOnDrawCodePoint:=nil;
 
+ fReverseSearchMode:=false;
+ fReverseSearchQuery:='';
+ fReverseSearchIndex:=-1;
+ fReverseSearchMatches:=nil;
+ fReverseSearchMatchPosition:=-1;
+ fReverseSearchOriginalLine:='';
 end;
 
 destructor TpvConsole.Destroy;
@@ -358,89 +379,128 @@ begin
 end;
 
 procedure TpvConsole.UpdateScreen;
-var j,x,y,o:TpvSizeInt;
-    i,m,k,l,LineFirstPositionCodePoint,LinePositionCodePoint:TPUCUInt32;
-    s:TpvUTF8String;
-    u32,c:TPUCUUInt32;
+var OtherIndex,x,y,OffsetIndex:TpvSizeInt;
+    Index,MatchIndex,LineStringPosition,LineStringLength,LineFirstPositionCodePoint,LinePositionCodePoint:TPUCUInt32;
+    LineString:TpvUTF8String;
+    UnicodeChar,CurrentChar:TPUCUUInt32;
 begin
  fCurrentBuffer:=@fRawBuffer;
- for i:=0 to (Length(fRawBuffer) shr 1)-1 do begin
-  fRawBuffer[i shl 1]:=0;
-  fRawBuffer[(i shl 1) or 1]:=15;
+ for Index:=0 to (Length(fRawBuffer) shr 1)-1 do begin
+  fRawBuffer[Index shl 1]:=0;
+  fRawBuffer[(Index shl 1) or 1]:=15;
  end;
- c:=7;
- for i:=0 to fRows-2 do begin
-  y:=i;
-  j:=(fLines.Count-(fRows-1))+i;
-  if j>=0 then begin
-   s:=fLines[j];
+ CurrentChar:=7;
+ for Index:=0 to fRows-2 do begin
+  y:=Index;
+  OtherIndex:=(fLines.Count-(fRows-1))+Index;
+  if OtherIndex>=0 then begin
+   LineString:=fLines[OtherIndex];
    x:=0;
-   k:=1;
-   l:=length(s);
-   while k<=l do begin
-    u32:=PUCUUTF8CodeUnitGetCharAndIncFallback(s,k);
-    case u32 of
+   LineStringPosition:=1;
+   LineStringLength:=length(LineString);
+   while LineStringPosition<=LineStringLength do begin
+    UnicodeChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(LineString,LineStringPosition);
+    case UnicodeChar of
      0,31:begin
-      if k<=l then begin
-       c:=PUCUUTF8CodeUnitGetCharAndIncFallback(s,k);
+      if LineStringPosition<=LineStringLength then begin
+       CurrentChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(LineString,LineStringPosition);
       end;
      end;
      else begin
       if x<fColumns then begin
-       o:=(y*fColumns)+x;
-       fRawBuffer[o shl 1]:=u32;
-       fRawBuffer[(o shl 1) or 1]:=c;
+       OffsetIndex:=(y*fColumns)+x;
+       fRawBuffer[OffsetIndex shl 1]:=UnicodeChar;
+       fRawBuffer[(OffsetIndex shl 1) or 1]:=CurrentChar;
       end;
       inc(x);
      end;
-    end; 
+    end;
    end;
   end;
  end;
- c:=15;
+ CurrentChar:=15;
  y:=fRows-1;
  x:=0;
- o:=(y*fColumns)+x;
- fRawBuffer[o shl 1]:=TpvUInt8(ansichar(']'));
- fRawBuffer[(o shl 1) or 1]:=c;
- if fLinePosition<fLineFirstPosition then begin
-  fLineFirstPosition:=fLinePosition;
- end else begin
-  LineFirstPositionCodePoint:=PUCUUTF8GetCodePoint(fLine,fLineFirstPosition);
-  LinePositionCodePoint:=PUCUUTF8GetCodePoint(fLine,fLinePosition);
-  if (LineFirstPositionCodePoint+(fColumns-2))<=LinePositionCodePoint then begin
-   fLineFirstPosition:=PUCUUTF8GetCodeUnit(fLine,Max(0,LinePositionCodePoint-(fColumns-2)));
-   if fLineFirstPosition>length(fLine) then begin
-    fLineFirstPosition:=length(fLine);
+ if fReverseSearchMode then begin
+  LineString:='(reverse-i-search)`'+fReverseSearchQuery+''': ';
+  if (fReverseSearchIndex>=0) and (fReverseSearchIndex<length(fReverseSearchMatches)) then begin
+   LineString:=LineString+fLine;
+  end else begin
+   LineString:=LineString+'# no match found';
+  end;
+  LineStringPosition:=1;
+  LineStringLength:=length(LineString);
+  x:=0;
+  MatchIndex:=0;
+  while (LineStringPosition<=LineStringLength) and (x<fColumns) do begin
+   UnicodeChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(LineString,LineStringPosition);
+   OffsetIndex:=(y*fColumns)+x;
+   if (fReverseSearchMatchPosition>0) and (MatchIndex>0) and (MatchIndex>=fReverseSearchMatchPosition) and (MatchIndex<(fReverseSearchMatchPosition+length(fReverseSearchQuery))) then begin
+    fRawBuffer[OffsetIndex shl 1]:=UnicodeChar;
+    fRawBuffer[(OffsetIndex shl 1) or 1]:=14;
+   end else begin
+    fRawBuffer[OffsetIndex shl 1]:=UnicodeChar;
+    fRawBuffer[(OffsetIndex shl 1) or 1]:=CurrentChar;
    end;
-   if fLineFirstPosition<1 then begin
-    fLineFirstPosition:=1;
+   inc(x);
+   if MatchIndex>=0 then begin
+    inc(MatchIndex);
+   end;
+   if (MatchIndex=0) and (UnicodeChar=TpvUInt8(ansichar(':'))) and (LineStringPosition<LineStringLength) then begin
+    UnicodeChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(LineString,LineStringPosition);
+    OffsetIndex:=(y*fColumns)+x;
+    fRawBuffer[OffsetIndex shl 1]:=UnicodeChar;
+    fRawBuffer[(OffsetIndex shl 1) or 1]:=CurrentChar;
+    inc(x);
+    MatchIndex:=1;
    end;
   end;
- end;
- if fLineFirstPosition<=length(fLine) then begin
-  i:=fLineFirstPosition;
-  j:=2;
-  while i<=length(fLine) do begin
-   u32:=PUCUUTF8CodeUnitGetCharAndIncFallback(fLine,i);
-   if j<=fColumns then begin
-    o:=(y*fColumns)+(j-1);
-    fRawBuffer[o shl 1]:=u32;
-    fRawBuffer[(o shl 1) or 1]:=c;
-   end;
-   inc(j);
-  end;
- end else begin
-  fLineFirstPosition:=1;
- end;
- fCursorOn:=true;
- j:=2+(PUCUUTF8GetCodePoint(fLine,fLinePosition)-PUCUUTF8GetCodePoint(fLine,fLineFirstPosition));
- if j>fColumns then begin
-  j:=fColumns;
+  fCursor.CurPos.Column:=x;
+  fCursor.CurPos.Row:=fRows;
   fCursorOn:=false;
+ end else begin
+  OffsetIndex:=(y*fColumns)+x;
+  fRawBuffer[OffsetIndex shl 1]:=TpvUInt8(ansichar(']'));
+  fRawBuffer[(OffsetIndex shl 1) or 1]:=CurrentChar;
+  if fLinePosition<fLineFirstPosition then begin
+   fLineFirstPosition:=fLinePosition;
+  end else begin
+   LineFirstPositionCodePoint:=PUCUUTF8GetCodePoint(fLine,fLineFirstPosition);
+   LinePositionCodePoint:=PUCUUTF8GetCodePoint(fLine,fLinePosition);
+   if (LineFirstPositionCodePoint+(fColumns-2))<=LinePositionCodePoint then begin
+    fLineFirstPosition:=PUCUUTF8GetCodeUnit(fLine,Max(0,LinePositionCodePoint-(fColumns-2)));
+    if fLineFirstPosition>length(fLine) then begin
+     fLineFirstPosition:=length(fLine);
+    end;
+    if fLineFirstPosition<1 then begin
+     fLineFirstPosition:=1;
+    end;
+   end;
+  end;
+  if fLineFirstPosition<=length(fLine) then begin
+   Index:=fLineFirstPosition;
+   OtherIndex:=2;
+   while Index<=length(fLine) do begin
+    UnicodeChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(fLine,Index);
+    if OtherIndex<=fColumns then begin
+     OffsetIndex:=(y*fColumns)+(OtherIndex-1);
+     fRawBuffer[OffsetIndex shl 1]:=UnicodeChar;
+     fRawBuffer[(OffsetIndex shl 1) or 1]:=CurrentChar;
+    end;
+    inc(OtherIndex);
+   end;
+  end else begin
+   fLineFirstPosition:=1;
+  end;
+  fCursorOn:=true;
+  OtherIndex:=2+(PUCUUTF8GetCodePoint(fLine,fLinePosition)-PUCUUTF8GetCodePoint(fLine,fLineFirstPosition));
+  if OtherIndex>fColumns then begin
+   OtherIndex:=fColumns;
+   fCursorOn:=false;
+  end;
+  fCursor.CurPos.Column:=OtherIndex;
+  fCursor.CurPos.Row:=fRows;
  end;
- fCursor.CurPos.Column:=j;
- fCursor.CurPos.Row:=fRows;
 end;
 
 procedure TpvConsole.ScrollOn;
@@ -449,10 +509,10 @@ begin
 end;
 
 procedure TpvConsole.ScrollTo(const aPosition:TpvSizeInt;const aBuffer:TUTF8StringList);
-var StartLine,EndLine,ScrollPos,i,x,y,z,l:TpvSizeInt;
-    S:TpvUTF8String;
-    p:TPUCUInt32;
-    c:TpvUInt32;
+var StartLine,EndLine,ScrollPos,Index,x,y,ScrollIndex,LineStringLength:TpvSizeInt;
+    LineString:TpvUTF8String;
+    LineStringPosition:TPUCUInt32;
+    CurrentChar:TpvUInt32;
 begin
  if fScrolling then begin
   FillChar(fScrollBuffer[0],Length(fScrollBuffer),0);
@@ -466,33 +526,33 @@ begin
    EndLine:=aBuffer.Count-1;
    StartLine:=0;
   end;
-  z:=-1;
-  for i:=StartLine to EndLine do begin
-   inc(z);
-   ScrollPos:=(z*fColumns) shl 1;
-   S:=aBuffer[i];
-   x:=Length(S);
+  ScrollIndex:=-1;
+  for Index:=StartLine to EndLine do begin
+   inc(ScrollIndex);
+   ScrollPos:=(ScrollIndex*fColumns) shl 1;
+   LineString:=aBuffer[Index];
+   x:=Length(LineString);
    if x>fColumns then begin
     x:=fColumns;
    end;
-   l:=x;
-   p:=1;
+   LineStringLength:=x;
+   LineStringPosition:=1;
    for y:=1 to x do begin
-    if p>l then begin
+    if LineStringPosition>LineStringLength then begin
      break;
-    end else begin 
-     c:=PUCUUTF8CodeUnitGetCharAndIncFallback(S,p);
-     case c of
-      10,13,32:begin        
+    end else begin
+     CurrentChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(LineString,LineStringPosition);
+     case CurrentChar of
+      10,13,32:begin
        fScrollBuffer[ScrollPos]:=0;
       end;
       else begin
-       fScrollBuffer[ScrollPos]:=c;
+       fScrollBuffer[ScrollPos]:=CurrentChar;
       end;
      end;
      fScrollBuffer[ScrollPos+1]:=15;
      inc(ScrollPos,2);
-    end; 
+    end;
    end;
   end;
   fCurrentBuffer:=@fScrollBuffer;
@@ -526,15 +586,15 @@ begin
 end;
 
 procedure TpvConsole.SetChrDim(const aCols,aRows:TpvSizeInt);
- procedure ResizeBuf(const aFW,aFH,aTW,aTH:TpvSizeInt;var aBuf:TConsoleBuffer);
+ procedure ResizeBuf(const aFW,aFH,aTW,aTH:TpvSizeInt;var aBuffer:TConsoleBuffer);
  var x,y,Size:TpvSizeInt;
      OldBuf:TConsoleBuffer;
  begin
   Size:=(aTW*aTH) shl 1;
-  OldBuf:=Copy(aBuf);
-  SetLength(aBuf,Size);
+  OldBuf:=Copy(aBuffer);
+  SetLength(aBuffer,Size);
   if Size>0 then begin
-   FillChar(aBuf[0],Size*SizeOf(TpvUInt32),#0);
+   FillChar(aBuffer[0],Size*SizeOf(TpvUInt32),#0);
    for y:=0 to aTH-1 do begin
     if y>=aFH then begin
      break;
@@ -543,7 +603,7 @@ procedure TpvConsole.SetChrDim(const aCols,aRows:TpvSizeInt);
      if x>=aFW then begin
       break;
      end;
-     PpvUInt64(pointer(@aBuf[((y*aTW)+x) shl 1])^):=PpvUInt64(pointer(@OldBuf[((y*aFW)+x) shl 1])^);
+     PpvUInt64(pointer(@aBuffer[((y*aTW)+x) shl 1])^):=PpvUInt64(pointer(@OldBuf[((y*aFW)+x) shl 1])^);
     end;
    end;
   end;
@@ -569,13 +629,13 @@ begin
 end;
 
 procedure TpvConsole.CLRSCR(aCB:TpvUInt8);
-var i:TpvSizeInt;
+var Index:TpvSizeInt;
 begin
  fCursor.CurPos.Column:=1;
  fCursor.CurPos.Row:=1;
- for i:=0 to (Length(fRawBuffer) shr 1)-1 do begin
-  fRawBuffer[i shl 1]:=0;
-  fRawBuffer[i shl 1+1]:=aCB;
+ for Index:=0 to (Length(fRawBuffer) shr 1)-1 do begin
+  fRawBuffer[Index shl 1]:=0;
+  fRawBuffer[Index shl 1+1]:=aCB;
  end;
  fActualBlinking:=false;
 end;
@@ -596,7 +656,7 @@ begin
  end else begin
   fCursor.CurPos.Row:=aY;
  end;
-end; 
+end;
 
 function TpvConsole.WhereX:TpvSizeInt;
 begin
@@ -609,15 +669,15 @@ begin
 end;
 
 procedure TpvConsole.Write(const aString:TpvUTF8String);
-var i,l:TPUCUInt32;
-    j,MemBufPos:TpvSizeInt;
-    c:TpvUInt32;
+var Index,StringLength:TPUCUInt32;
+    OtherIndex,MemBufPos:TpvSizeInt;
+    CurrentChar:TpvUInt32;
 begin
- i:=1;
- l:=length(aString);
- while i<=l do begin
-  c:=PUCUUTF8CodeUnitGetCharAndIncFallback(aString,i);
-  case c of
+ Index:=1;
+ StringLength:=length(aString);
+ while Index<=StringLength do begin
+  CurrentChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(aString,Index);
+  case CurrentChar of
    0:begin
    end;
    7:begin
@@ -640,7 +700,7 @@ begin
    end;
    9:begin
     if (fTabWidth and (fTabWidth-1))=0 then begin
-     for j:=1 to (((fCursor.CurPos.Column+fTabWidth) and not (fTabWidth-1))-fCursor.CurPos.Column)+1 do begin
+     for OtherIndex:=1 to (((fCursor.CurPos.Column+fTabWidth) and not (fTabWidth-1))-fCursor.CurPos.Column)+1 do begin
       MemBufPos:=(((fCursor.CurPos.Row-1)*fColumns)+fCursor.CurPos.Column-1) shl 1;
       fRawBuffer[MemBufPos]:=32;
       fRawBuffer[MemBufPos+1]:=fCursor.Color;
@@ -648,7 +708,7 @@ begin
       CheckXY;
      end;
     end else begin
-     for j:=1 to ((fCursor.CurPos.Column-((fCursor.CurPos.Column+fTabWidth) mod fTabWidth))-fCursor.CurPos.Column)+1 do begin
+     for OtherIndex:=1 to ((fCursor.CurPos.Column-((fCursor.CurPos.Column+fTabWidth) mod fTabWidth))-fCursor.CurPos.Column)+1 do begin
       MemBufPos:=(((fCursor.CurPos.Row-1)*fColumns)+fCursor.CurPos.Column-1) shl 1;
       fRawBuffer[MemBufPos]:=32;
       fRawBuffer[MemBufPos+1]:=fCursor.Color;
@@ -671,7 +731,7 @@ begin
    end;
    else begin
     MemBufPos:=(((fCursor.CurPos.Row-1)*fColumns)+fCursor.CurPos.Column-1) shl 1;
-    fRawBuffer[MemBufPos]:=c;
+    fRawBuffer[MemBufPos]:=CurrentChar;
     fRawBuffer[MemBufPos+1]:=fCursor.Color;
     inc(fCursor.CurPos.Column);
     CheckXY;
@@ -686,62 +746,81 @@ begin
 end;
 
 procedure TpvConsole.WriteLine(const aString:TpvUTF8String);
-var i,j,k,l,x:TPUCUInt32;
-    OneLine:TpvUTF8String;
-    c:TPUCUUInt32;
+var Index,OtherIndex,YetOtherIndex,StringLength,x:TPUCUInt32;
+    OneLine,LastColorEscape:TpvUTF8String;
+    CurrentChar,ColorCode:TPUCUUInt32;
+    OverwriteLine:Boolean;
+ procedure AddLine(const aLine:TpvUTF8String);
+ begin
+  if OverwriteLine and (fLines.Count>0) then begin
+   fLines[fLines.Count-1]:=aLine;
+  end else begin
+   fLines.Add(aLine);
+  end;
+  OverwriteLine:=false;
+ end;
 begin
- i:=1;
- l:=length(aString);
- j:=0;
+ Index:=1;
+ StringLength:=length(aString);
+ OtherIndex:=0;
  x:=0;
  OneLine:='';
- while (i<=l) do begin
-  c:=PUCUUTF8CodeUnitGetCharAndIncFallback(aString,i);
-  case c of
+ LastColorEscape:='';
+ OverwriteLine:=false;
+ while (Index<=StringLength) do begin
+  CurrentChar:=PUCUUTF8CodeUnitGetCharAndIncFallback(aString,Index);
+  case CurrentChar of
    0,31:begin
     // Color escape
     OneLine:=OneLine+#0;
-    if i<=l then begin
-     OneLine:=OneLine+PUCUUTF32CharToUTF8(PUCUUTF8CodeUnitGetCharAndIncFallback(aString,i));
+    if Index<=StringLength then begin
+     ColorCode:=PUCUUTF8CodeUnitGetCharAndIncFallback(aString,Index);
+     OneLine:=OneLine+PUCUUTF32CharToUTF8(ColorCode);
+     LastColorEscape:=#0+PUCUUTF32CharToUTF8(ColorCode);
     end;
    end;
    9:begin
     // Tab
     if (fTabWidth and (fTabWidth-1))=0 then begin
-     for k:=1 to (((x+fTabWidth) and not (fTabWidth-1))-x)+1 do begin
+     for YetOtherIndex:=1 to (((x+fTabWidth) and not (fTabWidth-1))-x)+1 do begin
       OneLine:=OneLine+#32;
       inc(x);
      end;
     end else begin
-     for k:=1 to ((x-((x+fTabWidth) mod fTabWidth))-x)+1 do begin
+     for YetOtherIndex:=1 to ((x-((x+fTabWidth) mod fTabWidth))-x)+1 do begin
       OneLine:=OneLine+#32;
       inc(x);
      end;
     end;
    end;
    10:begin
-    fLines.Add(OneLine);
+    AddLine(OneLine);
     OneLine:='';
-    j:=0;
+    LastColorEscape:='';
+    OtherIndex:=0;
     x:=0;
    end;
    13:begin
-    // Ignore
+    OneLine:=LastColorEscape;
+    OtherIndex:=0;
+    x:=0;
+    OverwriteLine:=true;
    end;
    else begin
-    OneLine:=OneLine+PUCUUTF32CharToUTF8(c);
-    inc(j);
+    OneLine:=OneLine+PUCUUTF32CharToUTF8(CurrentChar);
+    inc(OtherIndex);
     inc(x);
-    if j>=fColumns then begin
-     fLines.Add(OneLine);
+    if OtherIndex>=fColumns then begin
+     AddLine(OneLine);
      OneLine:='';
-     j:=0;
+     LastColorEscape:='';
+     OtherIndex:=0;
      x:=0;
     end;
    end;
   end;
  end;
- fLines.Add(OneLine);
+ AddLine(OneLine);
 end;
 
 procedure TpvConsole.SetTextColor(const aForegroundColor,aBackgroundColor:TpvSizeInt;const aBlink:Boolean);
@@ -755,45 +834,45 @@ begin
 end;
 
 procedure TpvConsole.InsLine;
-var i,LineLen,StartI,EndI:TpvSizeInt;
+var Index,LineLen,StartIndex,EndIndex:TpvSizeInt;
 begin
  LineLen:=fColumns shl 1;
- StartI:=((fWrapTop-1)*fColumns) shl 1;
+ StartIndex:=((fWrapTop-1)*fColumns) shl 1;
  if fCursor.CurPos.Row>fRows then begin
-  EndI:=(fColumns*fRows) shl 1;
+  EndIndex:=(fColumns*fRows) shl 1;
  end else begin
-  EndI:=(fColumns*fCursor.CurPos.Row) shl 1;
+  EndIndex:=(fColumns*fCursor.CurPos.Row) shl 1;
  end;
- for i:=StartI to EndI-1 do begin
-  if i<(EndI-LineLen) then begin
-   fRawBuffer[i]:=fRawBuffer[i+LineLen];
+ for Index:=StartIndex to EndIndex-1 do begin
+  if Index<(EndIndex-LineLen) then begin
+   fRawBuffer[Index]:=fRawBuffer[Index+LineLen];
   end else begin
-   fRawBuffer[i]:=0;
+   fRawBuffer[Index]:=0;
   end;
  end;
 end;
 
 procedure TpvConsole.DelLine;
-var i,LineLen,EndI:TpvSizeInt;
+var Index,LineLength,EndIndex:TpvSizeInt;
 begin
- LineLen:=fColumns shl 1;
- EndI:=(fWrapBottom*fColumns shl 1)-1;
- for i:=(fColumns*(fCursor.CurPos.Row-1) shl 1) to EndI do begin
-  if (i<Length(fRawBuffer)-LineLen) then begin
-   fRawBuffer[i]:=fRawBuffer[i+LineLen];
+ LineLength:=fColumns shl 1;
+ EndIndex:=(fWrapBottom*fColumns shl 1)-1;
+ for Index:=(fColumns*(fCursor.CurPos.Row-1) shl 1) to EndIndex do begin
+  if (Index<Length(fRawBuffer)-LineLength) then begin
+   fRawBuffer[Index]:=fRawBuffer[Index+LineLength];
   end else begin
-   fRawBuffer[i]:=0;
+   fRawBuffer[Index]:=0;
   end;
  end;
 end;
 
 procedure TpvConsole.ClrEOL;
-var i,MemBufPos,EndPos:TpvSizeInt;
+var Index,MemBufPos,EndPos:TpvSizeInt;
 begin
  MemBufPos:=(((fCursor.CurPos.Row-1)*fColumns)+fCursor.CurPos.Column-1) shl 1;
  EndPos:=(((fCursor.CurPos.Row-1)*fColumns)+fColumns-1) shl 1;
- for i:=MemBufPos to EndPos do begin
-  fRawBuffer[i]:=0;
+ for Index:=MemBufPos to EndPos do begin
+  fRawBuffer[Index]:=0;
  end;
 end;
 
@@ -901,13 +980,23 @@ end;
 procedure TpvConsole.KeyEnter;
 var OK:boolean;
 begin
+ if fReverseSearchMode then begin
+  ReverseSearchExit(true);
+ end;
  OK:=length(trim(fLine))>0;
  if OK then begin
-  fHistory.Add(fLine);
-  fHistoryIndex:=fHistory.Count;
-  if length(fHistoryFileName)>0 then begin
-   AppendToHistoryFileName(fHistoryFileName,fLine);
+  if fIgnoreDuplicateHistoryEntries and (fHistory.Count>0) and (fHistory.Items[fHistory.Count-1]=fLine) then begin
+   OK:=false;
+   fHistoryIndex:=fHistory.Count;
   end;
+  if OK then begin
+   fHistory.Add(fLine);
+   fHistoryIndex:=fHistory.Count;
+   if length(fHistoryFileName)>0 then begin
+    AppendToHistoryFileName(fHistoryFileName,fLine);
+   end;
+  end;
+  OK:=true;
  end;
  WriteLine(#0#15+'>'+fLine);
  if OK and assigned(fOnExecute) then begin
@@ -921,10 +1010,14 @@ end;
 
 procedure TpvConsole.KeyEscape;
 begin
- fLinePosition:=1;
- fLineFirstPosition:=1;
- fLine:='';
- fHistoryIndex:=fHistory.Count;
+ if fReverseSearchMode then begin
+  ReverseSearchExit(false);
+ end else begin
+  fLinePosition:=1;
+  fLineFirstPosition:=1;
+  fLine:='';
+  fHistoryIndex:=fHistory.Count;
+ end;
  fCursorTimeAccumulator:=0.0;
 end;
 
@@ -962,51 +1055,55 @@ end;
 
 procedure TpvConsole.KeyBackspace;
 var //CodeUnitLength:TpvSizeInt;
-    i:TPUCUInt32; 
+    Index:TPUCUInt32;
 begin
- LinePositionClip;
- if fLinePosition>length(fLine) then begin
-  i:=length(fLine)+1;
-  PUCUUTF8Dec(fLine,i);
-  fLine:=copy(fLine,1,i-1);
-  fLinePosition:=length(fLine)+1;
+ if fReverseSearchMode then begin
+  ReverseSearchBackspace;
  end else begin
-  i:=fLinePosition;
-  PUCUUTF8Dec(fLine,i);
-  Delete(fLine,i,fLinePosition-i);
-  fLinePosition:=i;
   LinePositionClip;
+  if fLinePosition>length(fLine) then begin
+   Index:=length(fLine)+1;
+   PUCUUTF8Dec(fLine,Index);
+   fLine:=copy(fLine,1,Index-1);
+   fLinePosition:=length(fLine)+1;
+  end else begin
+   Index:=fLinePosition;
+   PUCUUTF8Dec(fLine,Index);
+   Delete(fLine,Index,fLinePosition-Index);
+   fLinePosition:=Index;
+   LinePositionClip;
+  end;
+  fHistoryIndex:=fHistory.Count;
  end;
- fHistoryIndex:=fHistory.Count;
  fCursorTimeAccumulator:=0.0;
 end;
 
 procedure TpvConsole.KeyDeletePreviousWord;
-var i,Diff:TpvSizeInt;
+var Index,Difference:TpvSizeInt;
 begin
  LinePositionClip;
- i:=fLinePosition;
- while (i>1) and (fLine[i]=' ') do begin
-  dec(i);
+ Index:=fLinePosition;
+ while (Index>1) and (fLine[Index]=' ') do begin
+  dec(Index);
  end;
- while (i>1) and (fLine[i]<>' ') do begin
-  dec(i);
+ while (Index>1) and (fLine[Index]<>' ') do begin
+  dec(Index);
  end;
- Diff:=fLinePosition-i;
- Delete(fLine,i,Diff);
- fLinePosition:=i;
+ Difference:=fLinePosition-Index;
+ Delete(fLine,Index,Difference);
+ fLinePosition:=Index;
  fHistoryIndex:=fHistory.Count;
  fCursorTimeAccumulator:=0.0;
 end;
 
 procedure TpvConsole.KeyCutFromCurrentToEndOfLine;
-var i,Diff:TpvSizeInt;
+var Index,Difference:TpvSizeInt;
 begin
  LinePositionClip;
- i:=fLinePosition;
- Diff:=length(fLine)-i+1;
- pvApplication.Clipboard.SetText(copy(fLine,i,Diff));
- Delete(fLine,i,Diff);
+ Index:=fLinePosition;
+ Difference:=length(fLine)-Index+1;
+ pvApplication.Clipboard.SetText(copy(fLine,Index,Difference));
+ Delete(fLine,Index,Difference);
  fHistoryIndex:=fHistory.Count;
  fCursorTimeAccumulator:=0.0;
 end;
@@ -1023,12 +1120,12 @@ begin
 end;
 
 procedure TpvConsole.KeyPaste;
-var s:TPUCURawByteString;
+var CurrentString:TPUCURawByteString;
 begin
  LinePositionClip;
- s:=pvApplication.Clipboard.GetText;
- Insert(s,fLine,fLinePosition);
- inc(fLinePosition,length(s));
+ CurrentString:=pvApplication.Clipboard.GetText;
+ Insert(CurrentString,fLine,fLinePosition);
+ inc(fLinePosition,length(CurrentString));
  LinePositionClip;
  fHistoryIndex:=fHistory.Count;
  fCursorTimeAccumulator:=0.0;
@@ -1041,30 +1138,30 @@ begin
 end;
 
 procedure TpvConsole.KeySwapCurrentCodePointWithPreviousCodePoint;
-var i,PreviousCodeUnitLength,CurrentCodeUnitLength:TPUCUInt32;
+var Index,PreviousCodeUnitLength,CurrentCodeUnitLength:TPUCUInt32;
     PreviousCodePoint{,CurrentCodePoint}:TPUCURawByteString;
 begin
  if length(fLine)>0 then begin
 
   LinePositionClip;
 
-  i:=length(fLine)+1;
-  PUCUUTF8Dec(fLine,i);
+  Index:=length(fLine)+1;
+  PUCUUTF8Dec(fLine,Index);
 
-  if fLinePosition>i then begin
+  if fLinePosition>Index then begin
 
-   fLinePosition:=i;
+   fLinePosition:=Index;
 
    CurrentCodeUnitLength:=PUCUUTF8GetCharLen(fLine,fLinePosition);
    //CurrentCodePoint:=copy(fLine,fLinePosition,CurrentCodeUnitLength);
 
-   i:=fLinePosition;
-   PUCUUTF8Dec(fLine,i);
-   PreviousCodeUnitLength:=PUCUUTF8GetCharLen(fLine,i);
-   PreviousCodePoint:=copy(fLine,i,PreviousCodeUnitLength);
+   Index:=fLinePosition;
+   PUCUUTF8Dec(fLine,Index);
+   PreviousCodeUnitLength:=PUCUUTF8GetCharLen(fLine,Index);
+   PreviousCodePoint:=copy(fLine,Index,PreviousCodeUnitLength);
 
-   Delete(fLine,i,PreviousCodeUnitLength);
-   Insert(PreviousCodePoint,fLine,i+CurrentCodeUnitLength);
+   Delete(fLine,Index,PreviousCodeUnitLength);
+   Insert(PreviousCodePoint,fLine,Index+CurrentCodeUnitLength);
 
    fLinePosition:=length(fLine)+1;
 
@@ -1077,17 +1174,17 @@ begin
    CurrentCodeUnitLength:=PUCUUTF8GetCharLen(fLine,fLinePosition);
    //CurrentCodePoint:=copy(fLine,fLinePosition,CurrentCodeUnitLength);
 
-   i:=fLinePosition;
-   PUCUUTF8Dec(fLine,i);
-   PreviousCodeUnitLength:=PUCUUTF8GetCharLen(fLine,i);
-   PreviousCodePoint:=copy(fLine,i,PreviousCodeUnitLength);
+   Index:=fLinePosition;
+   PUCUUTF8Dec(fLine,Index);
+   PreviousCodeUnitLength:=PUCUUTF8GetCharLen(fLine,Index);
+   PreviousCodePoint:=copy(fLine,Index,PreviousCodeUnitLength);
 
-   Delete(fLine,i,PreviousCodeUnitLength);
-   Insert(PreviousCodePoint,fLine,i+CurrentCodeUnitLength);
+   Delete(fLine,Index,PreviousCodeUnitLength);
+   Insert(PreviousCodePoint,fLine,Index+CurrentCodeUnitLength);
 
-   inc(i,CurrentCodeUnitLength);
-   PUCUUTF8CodeUnitGetCharAndIncFallback(fLine,i);
-   fLinePosition:=i;
+   inc(Index,CurrentCodeUnitLength);
+   PUCUUTF8CodeUnitGetCharAndIncFallback(fLine,Index);
+   fLinePosition:=Index;
 
    //LinePositionClip;
 
@@ -1102,46 +1199,163 @@ begin
 end;
 
 procedure TpvConsole.KeyChar(const aCodePoint:TpvUInt32);
-var s:TPUCURawByteString;
+var CurrentString:TPUCURawByteString;
     CodeUnitLength:TpvSizeInt;
 begin
- LinePositionClip;
- s:=PUCUUTF32CharToUTF8(aCodePoint);
- if Overwrite then begin
-  if fLinePosition>length(fLine) then begin
-   fLine:=fLine+s;
-   fLinePosition:=length(fLine)+length(s);
+ if fReverseSearchMode then begin
+  ReverseSearchAddChar(aCodePoint);
+ end else begin
+  LinePositionClip;
+  CurrentString:=PUCUUTF32CharToUTF8(aCodePoint);
+  if Overwrite then begin
+   if fLinePosition>length(fLine) then begin
+    fLine:=fLine+CurrentString;
+    fLinePosition:=length(fLine)+length(CurrentString);
+   end else begin
+    CodeUnitLength:=PUCUUTF8GetCharLen(fLine,fLinePosition);
+    Delete(fLine,fLinePosition,CodeUnitLength);
+    Insert(CurrentString,fLine,fLinePosition);
+    inc(fLinePosition,length(CurrentString));
+   end;
   end else begin
-   CodeUnitLength:=PUCUUTF8GetCharLen(fLine,fLinePosition);
-   Delete(fLine,fLinePosition,CodeUnitLength);
-   Insert(s,fLine,fLinePosition);
-   inc(fLinePosition,length(s));
+   if fLinePosition>length(fLine) then begin
+    fLine:=fLine+CurrentString;
+    fLinePosition:=length(fLine)+length(CurrentString);
+   end else begin
+    Insert(CurrentString,fLine,fLinePosition);
+    inc(fLinePosition,length(CurrentString));
+   end;
+  end;
+  fHistoryIndex:=fHistory.Count;
+ end;
+ fCursorTimeAccumulator:=0.0;
+end;
+
+procedure TpvConsole.KeyReverseSearch;
+begin
+ if not fReverseSearchMode then begin
+  fReverseSearchMode:=true;
+  fReverseSearchQuery:='';
+  fReverseSearchIndex:=-1;
+  fReverseSearchMatches:=nil;
+  fReverseSearchMatchPosition:=-1;
+  fReverseSearchOriginalLine:=fLine;
+  ReverseSearchUpdateMatches;
+ end else begin
+  if (fReverseSearchIndex>=0) and (fReverseSearchIndex<length(fReverseSearchMatches)-1) then begin
+   inc(fReverseSearchIndex);
+   if (fReverseSearchIndex>=0) and (fReverseSearchIndex<length(fReverseSearchMatches)) then begin
+    fLine:=fHistory.Items[fReverseSearchMatches[fReverseSearchIndex]];
+    fLinePosition:=length(fLine)+1;
+    fLineFirstPosition:=1;
+   end;
+  end;
+ end;
+ fCursorTimeAccumulator:=0.0;
+end;
+
+procedure TpvConsole.ReverseSearchUpdateMatches;
+var Index,MatchPosition:TpvSizeInt;
+    HistoryItem,LowerQuery,LowerItem:TpvUTF8String;
+begin
+ SetLength(fReverseSearchMatches,0);
+ fReverseSearchIndex:=-1;
+ fReverseSearchMatchPosition:=-1;
+ if length(fReverseSearchQuery)=0 then begin
+  if fHistory.Count>0 then begin
+   SetLength(fReverseSearchMatches,1);
+   fReverseSearchMatches[0]:=fHistory.Count-1;
+   fReverseSearchIndex:=0;
+   fReverseSearchMatchPosition:=1;
+   fLine:=fHistory.Items[fHistory.Count-1];
+   fLinePosition:=length(fLine)+1;
+   fLineFirstPosition:=1;
+  end else begin
+   fLine:='';
+   fLinePosition:=1;
+   fLineFirstPosition:=1;
   end;
  end else begin
-  if fLinePosition>length(fLine) then begin
-   fLine:=fLine+s;
-   fLinePosition:=length(fLine)+length(s);
-  end else begin
-   Insert(s,fLine,fLinePosition);
-   inc(fLinePosition,length(s));
+  LowerQuery:=LowerCase(fReverseSearchQuery);
+  for Index:=fHistory.Count-1 downto 0 do begin
+   HistoryItem:=fHistory.Items[Index];
+   LowerItem:=LowerCase(HistoryItem);
+   MatchPosition:=Pos(LowerQuery,LowerItem);
+   if MatchPosition>0 then begin
+    SetLength(fReverseSearchMatches,length(fReverseSearchMatches)+1);
+    fReverseSearchMatches[length(fReverseSearchMatches)-1]:=Index;
+    if fReverseSearchIndex<0 then begin
+     fReverseSearchIndex:=length(fReverseSearchMatches)-1;
+     fReverseSearchMatchPosition:=MatchPosition;
+     fLine:=HistoryItem;
+     fLinePosition:=length(fLine)+1;
+     fLineFirstPosition:=1;
+    end;
+   end;
   end;
- end; 
- fHistoryIndex:=fHistory.Count;
+  if fReverseSearchIndex<0 then begin
+   fLine:='';
+   fLinePosition:=1;
+   fLineFirstPosition:=1;
+  end;
+ end;
+ fCursorTimeAccumulator:=0.0;
+end;
+
+procedure TpvConsole.ReverseSearchExit(const aAccept:Boolean);
+begin
+ if fReverseSearchMode then begin
+  fReverseSearchMode:=false;
+  if not aAccept then begin
+   fLine:=fReverseSearchOriginalLine;
+   fLinePosition:=length(fLine)+1;
+   fLineFirstPosition:=1;
+  end;
+  fReverseSearchQuery:='';
+  fReverseSearchIndex:=-1;
+  fReverseSearchMatches:=nil;
+  fReverseSearchMatchPosition:=-1;
+  fReverseSearchOriginalLine:='';
+  fHistoryIndex:=fHistory.Count;
+ end;
+ fCursorTimeAccumulator:=0.0;
+end;
+
+procedure TpvConsole.ReverseSearchAddChar(const aCodePoint:TpvUInt32);
+var CurrentString:TPUCURawByteString;
+begin
+ CurrentString:=PUCUUTF32CharToUTF8(aCodePoint);
+ fReverseSearchQuery:=fReverseSearchQuery+CurrentString;
+ ReverseSearchUpdateMatches;
+ fCursorTimeAccumulator:=0.0;
+end;
+
+procedure TpvConsole.ReverseSearchBackspace;
+var Index:TPUCUInt32;
+begin
+ if length(fReverseSearchQuery)>0 then begin
+  Index:=length(fReverseSearchQuery)+1;
+  PUCUUTF8Dec(fReverseSearchQuery,Index);
+  fReverseSearchQuery:=copy(fReverseSearchQuery,1,Index-1);
+  ReverseSearchUpdateMatches;
+ end else begin
+  ReverseSearchExit(false);
+ end;
  fCursorTimeAccumulator:=0.0;
 end;
 
 function TpvConsole.GetBuffer(const aColumn,aRow:TpvSizeInt;out aCodePoint:TpvUInt32;out aForegroundColor,aBackgroundColor:TpvSizeInt;out aBlink:Boolean):boolean;
 var MemBufPos:TpvSizeInt;
-    Val:TpvUInt32;
+    Value:TpvUInt32;
 begin
  result:=(aRow>0) and (aRow<=fRows) and (aColumn>0) and (aColumn<=fColumns);
  if result then begin
   MemBufPos:=(((aRow-1)*fColumns)+aColumn-1) shl 1;
   aCodePoint:=fCurrentBuffer^[MemBufPos];
-  Val:=fCurrentBuffer^[MemBufPos+1];
-  aForegroundColor:=Val and $0f;
-  aBackgroundColor:=(Val and $70) shr 4;
-  aBlink:=(Val and $80)<>0;
+  Value:=fCurrentBuffer^[MemBufPos+1];
+  aForegroundColor:=Value and $0f;
+  aBackgroundColor:=(Value and $70) shr 4;
+  aBlink:=(Value and $80)<>0;
  end else begin
   aCodePoint:=0;
   aForegroundColor:=7;
@@ -1406,6 +1620,34 @@ begin
       result:=true;
      end;
     end;
+    KEYCODE_R:begin
+     if TpvApplicationInputKeyModifier.CTRL in aKeyEvent.KeyModifiers then begin
+      KeyReverseSearch;
+      UpdateScreen;
+      result:=true;
+     end;
+    end;
+    KEYCODE_C:begin
+     if TpvApplicationInputKeyModifier.CTRL in aKeyEvent.KeyModifiers then begin
+      if fReverseSearchMode then begin
+       ReverseSearchExit(false);
+      end else begin
+       fLine:='';
+       fLinePosition:=1;
+       fLineFirstPosition:=1;
+       fHistoryIndex:=fHistory.Count;
+      end;
+      UpdateScreen;
+      result:=true;
+     end;
+    end;
+    KEYCODE_G:begin
+     if (TpvApplicationInputKeyModifier.CTRL in aKeyEvent.KeyModifiers) and fReverseSearchMode then begin
+      ReverseSearchExit(false);
+      UpdateScreen;
+      result:=true;
+     end;
+    end;
     else begin
 //   KeyChar(aKeyEvent.KeyCode);
     end;
@@ -1428,19 +1670,19 @@ begin
 end;
 
 procedure TpvConsole.LoadHistoryFromStream(const aStream:TStream);
-var i,l:TPUCUInt32;
+var Index,StringListLength:TPUCUInt32;
     StringList:TStringList;
-    s:TpvUTF8String;
+    CurrentString:TpvUTF8String;
 begin
  StringList:=TStringList.Create;
  try
   StringList.LoadFromStream(aStream);
-  l:=StringList.Count;
+  StringListLength:=StringList.Count;
   fHistory.Clear;
-  for i:=0 to l-1 do begin
-   s:=StringList[i];
-   s:=StringReplace(s,#127,#10,[rfReplaceAll]);
-   fHistory.Add(s);
+  for Index:=0 to StringListLength-1 do begin
+   CurrentString:=StringList[Index];
+   CurrentString:=StringReplace(CurrentString,#127,#10,[rfReplaceAll]);
+   fHistory.Add(CurrentString);
   end;
   fHistoryIndex:=fHistory.Count;
  finally
@@ -1459,22 +1701,22 @@ begin
  finally
   FreeAndNil(MemoryStream);
  end;
-end; 
+end;
 
 procedure TpvConsole.SaveHistoryToStream(const aStream:TStream);
-var i,l:TPUCUInt32;
-    s:TpvUTF8String;
+var Index,HistoryLength:TPUCUInt32;
+    CurrentString:TpvUTF8String;
     StringList:TStringList;
 begin
  StringList:=TStringList.Create;
  try
-  l:=fHistory.Count;
-  for i:=0 to l-1 do begin
-   s:=History.Items[i];
-   s:=StringReplace(s,#13#10,#10,[rfReplaceAll]);
-   s:=StringReplace(s,#13,#10,[rfReplaceAll]);
-   s:=StringReplace(s,#10,#127,[rfReplaceAll]);
-   StringList.Add(s);
+  HistoryLength:=fHistory.Count;
+  for Index:=0 to HistoryLength-1 do begin
+   CurrentString:=History.Items[Index];
+   CurrentString:=StringReplace(CurrentString,#13#10,#10,[rfReplaceAll]);
+   CurrentString:=StringReplace(CurrentString,#13,#10,[rfReplaceAll]);
+   CurrentString:=StringReplace(CurrentString,#10,#127,[rfReplaceAll]);
+   StringList.Add(CurrentString);
   end;
   StringList.SaveToStream(aStream);
  finally
@@ -1498,7 +1740,7 @@ end;
 procedure TpvConsole.AppendToHistoryFileName(const aFileName:String;const aLine:TpvUTF8String);
 var HistoryFile:File;
     Size:TpvInt64;
-    s:TpvUTF8String;
+    CurrentString:TpvUTF8String;
 begin
  AssignFile(HistoryFile,aFileName);
  if FileExists(aFileName) then begin
@@ -1516,11 +1758,11 @@ begin
    exit;
   end;
  end;
- s:=StringReplace(aLine,#13#10,#10,[rfReplaceAll]);
- s:=StringReplace(s,#13,#10,[rfReplaceAll]);
- s:=StringReplace(s,#10,#127,[rfReplaceAll]);
- s:=aLine+{$ifdef Windows}#13#10{$else}#10{$endif};
- BlockWrite(HistoryFile,s[1],length(s));
+ CurrentString:=StringReplace(aLine,#13#10,#10,[rfReplaceAll]);
+ CurrentString:=StringReplace(CurrentString,#13,#10,[rfReplaceAll]);
+ CurrentString:=StringReplace(CurrentString,#10,#127,[rfReplaceAll]);
+ CurrentString:=aLine+{$ifdef Windows}#13#10{$else}#10{$endif};
+ BlockWrite(HistoryFile,CurrentString[1],length(CurrentString));
  CloseFile(HistoryFile);
 end;
 

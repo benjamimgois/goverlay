@@ -1,0 +1,84 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct BatchRange {
+  uint baseCommandIndex;
+  uint countCommands;
+  uint drawCallIndex;
+  uint baseCommandIndexForDisocclusions;
+  uint drawCallIndexForDisocclusions;
+  uint alphaMode;
+  uint oitDrawCallIndex;
+  uint oitBaseCommandIndex;
+};
+
+layout(push_constant) uniform PushConstants {
+  uint countRanges;
+  uint maxMultiIndirectDrawCalls;
+  uint batchRangeOffset;
+  uint prefixSumOffset;
+  uint cullDispatchIndex;
+} pushConstants;
+
+layout(set = 0, binding = 0, std430) readonly buffer BatchRanges {
+  BatchRange ranges[];
+} batchRanges;
+
+layout(set = 0, binding = 1, std430) buffer OutputDrawIndexedIndirectCommandCounts {
+  uint counts[];
+} outputDrawIndexedIndirectCommandCounts;
+
+layout(set = 0, binding = 2, std430) readonly buffer PrefixSums {
+  uint sums[];
+} prefixSums;
+
+struct VkDispatchIndirectCommand {
+  uint x;
+  uint y;
+  uint z;
+};
+
+layout(set = 0, binding = 3, std430) buffer IndirectDispatch {
+  VkDispatchIndirectCommand commands[];
+} indirectDispatch;
+
+void main(){
+
+  uint index = gl_GlobalInvocationID.x;
+
+  // Thread 0 writes the indirect dispatch parameters for the main cull dispatch
+  // cullDispatchIndex == 0xffffffffu means "filter-only pass" — no dispatch entry to write.
+  if((index == 0u) && (pushConstants.cullDispatchIndex != 0xffffffffu)){
+    uint totalCommands = prefixSums.sums[pushConstants.prefixSumOffset + pushConstants.countRanges];
+    indirectDispatch.commands[pushConstants.cullDispatchIndex] = VkDispatchIndirectCommand((totalCommands + 255u) >> 8u, 1u, 1u);
+  }
+
+  if(index >= pushConstants.countRanges){
+    return;
+  }
+
+  uint drawCallIndex = batchRanges.ranges[pushConstants.batchRangeOffset + index].drawCallIndex;
+  uint oitDrawCallIndex = batchRanges.ranges[pushConstants.batchRangeOffset + index].oitDrawCallIndex;
+
+  // Reset primary counter
+  outputDrawIndexedIndirectCommandCounts.counts[drawCallIndex] = 0u;
+
+  // Reset disocclusion counter
+  uint drawCallIndexForDisocclusions = batchRanges.ranges[pushConstants.batchRangeOffset + index].drawCallIndexForDisocclusions;
+  if(drawCallIndexForDisocclusions != 0xffffffffu){
+    outputDrawIndexedIndirectCommandCounts.counts[drawCallIndexForDisocclusions] = 0u;
+  }
+
+  // Reset OIT promotion counters
+  if(oitDrawCallIndex != 0xffffffffu){
+    outputDrawIndexedIndirectCommandCounts.counts[oitDrawCallIndex] = 0u;
+    outputDrawIndexedIndirectCommandCounts.counts[pushConstants.maxMultiIndirectDrawCalls + oitDrawCallIndex] = 0u;
+  }
+
+}

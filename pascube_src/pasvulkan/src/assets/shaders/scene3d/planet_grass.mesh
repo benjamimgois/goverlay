@@ -43,6 +43,7 @@ layout(triangles, max_vertices = GRASS_VERT_COUNT, max_primitives = GRASS_PRIM_C
 #endif
 
 #include "planet_grass.glsl"
+#include "planet_grassflagsmap.glsl"
 
 struct View {
   mat4 viewMatrix;
@@ -67,6 +68,8 @@ layout(set = PASS_DESCRIPTOR_SET, binding = 0, std140) uniform uboViews {
 
 layout(set = PLANET_DESCRIPTOR_SET, binding = 0) uniform sampler2D uPlanetTextures[]; // 0 = height map, 1 = normal map, 2 = tangent bitangent map
 layout(set = PLANET_DESCRIPTOR_SET, binding = 0) uniform sampler2DArray uPlanetArrayTextures[]; // 0 = height map, 1 = normal map, 2 = tangent bitangent map
+
+layout(set = PLANET_DESCRIPTOR_SET, binding = 2) uniform usampler2D uGrassFlagsMap; // GrassFlagsMap R32UI
 
 layout(set = INSTANCE_DESCRIPTOR_SET, binding = 1, std430) readonly buffer VisualMeshVertices {
   uvec4 vertices[]; // xyz = 32-bit float vertex position, w = 2x 16-bit signed normalized octahedral-encoded normal
@@ -140,11 +143,11 @@ layout(location = 1) out OutBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
 #ifdef VELOCITY
   vec4 previousClipSpace;
   vec4 currentClipSpace;
 #endif  
+  flat uint meshletID; 
 } outBlock[];
 
 #else
@@ -157,11 +160,11 @@ layout(location = 0) out OutBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
 #ifdef VELOCITY
   vec4 previousClipSpace;
   vec4 currentClipSpace;
 #endif  
+  flat uint meshletID; 
 } outBlock[];
 #endif // defined(RAYTRACING)
 
@@ -212,12 +215,15 @@ mat4 viewMatrix = uView.views[viewIndex].viewMatrix;
 mat4 projectionMatrix = uView.views[viewIndex].projectionMatrix;
 mat4 inverseViewMatrix = uView.views[viewIndex].inverseViewMatrix;
 
+shared mat4 modelMatrix;
 shared mat4 viewProjectionMatrix;
 shared mat4 inverseModelViewMatrix;
 shared mat3 normalModelMatrix;
 shared vec3 cameraPosition;
 
 shared float grassDensity;
+shared float grassAge;
+shared uint grassFlags;
 shared uint maxCountBlades;
 
 #if defined(MESH_SHADER_EMULATION)
@@ -248,6 +254,8 @@ uvec4 getTriangleRawVertex(ivec2 quadXY){
 
 #define FineOffseting
 
+#include "quaternion.glsl"
+
 void main() {
   
   if(gl_LocalInvocationIndex == 0u){
@@ -266,11 +274,18 @@ void main() {
 
     // Stuff that is only needed once per task group for all invocations, to avoid redundant calculations
 
+    // Calculate the model matrix from the position/scale and orientation/quaternion push constant values
+    modelMatrix = mat4(quaternionToMatrix(pushConstants.modelMatrixOrientation));
+    modelMatrix[3].xyz = pushConstants.modelMatrixPositionScale.xyz;
+    modelMatrix[0].xyz *= pushConstants.modelMatrixPositionScale.w;
+    modelMatrix[1].xyz *= pushConstants.modelMatrixPositionScale.w;
+    modelMatrix[2].xyz *= pushConstants.modelMatrixPositionScale.w; 
+    
     viewProjectionMatrix = projectionMatrix * viewMatrix;
     
-    inverseModelViewMatrix = inverse(viewMatrix * pushConstants.modelMatrix);
+    inverseModelViewMatrix = inverse(viewMatrix * modelMatrix);
     
-    normalModelMatrix = adjugate(pushConstants.modelMatrix);
+    normalModelMatrix = adjugate(modelMatrix);
 
 #if 1
     // The actual standard approach
@@ -397,6 +412,10 @@ void main() {
 
       grassDensity = textureLod(uPlanetTextures[PLANET_TEXTURE_GRASSMAP], (vec2(globalXY) + vec2(0.5)) / vec2(float(pushConstants.tileMapResolution * pushConstants.tileResolution)), 0).x;
 
+      grassAge = textureLod(uPlanetTextures[PLANET_TEXTURE_GRASSAGEMAP], (vec2(globalXY) + vec2(0.5)) / vec2(float(pushConstants.tileMapResolution * pushConstants.tileResolution)), 0).x;
+
+      grassFlags = textureLod(uGrassFlagsMap, (vec2(globalXY) + vec2(0.5)) / vec2(float(pushConstants.tileMapResolution * pushConstants.tileResolution)), 0).x;
+
       if(grassDensity >= 0.99999){
        
         // Full density, no need to do anything
@@ -447,7 +466,7 @@ void main() {
   ////////////////////////////////////////////////////////////////////////////
 
   vec4 boundingSphere = vec4(
-    (pushConstants.modelMatrix * vec4(patchPosition, 1.0)).xyz,
+    (modelMatrix * vec4(patchPosition, 1.0)).xyz,
     max(max(grassHeight, grassThickness) + grassOffsetRadius, grassOffsetRadius) * 2.0
   );  
 
@@ -485,7 +504,7 @@ void main() {
       
 #if defined(MESH_SHADER_EMULATION)
 
-   if(gl_LocalInvocationIndex == 0u){
+  if(gl_LocalInvocationIndex == 0u){
 
     validGroup = ((outputMetaData.countVertices + countVertices) < pushConstants.maximalCountVertices) && 
                  ((outputMetaData.indexCount + countIndicesPerPayload) < pushConstants.maximalCountIndices);
@@ -521,7 +540,7 @@ void main() {
 
   ////////////////////////////////////////////////////////////////////////////////
 
-  //mat3 planetNormalMatrix = adjugate(pushConstants.modelMatrix);
+  //mat3 planetNormalMatrix = adjugate(modelMatrix);
 
   ////////////////////////////////////////////////////////////////////////////////
 
@@ -543,7 +562,7 @@ void main() {
 #ifndef FineOffseting
   //const vec3 cameraWorldLeft = normalize(transpose(patchTangentSpaceBasis) * (inverseModelViewMatrix * vec4(-1.0, 0.0, 0.0, 0.0)).xyz);
 
-  const vec3 viewDirection = normalize((pushConstants.modelMatrix * vec4(patchPosition, 1.0)).xyz - cameraPosition);
+  const vec3 viewDirection = normalize((modelMatrix * vec4(patchPosition, 1.0)).xyz - cameraPosition);
   const vec3 viewDirectionXZ = normalize(vec3(viewDirection.x, 0.0, viewDirection.z));
 
   const mat3 modelPatchSpaceBasisMatrix = normalModelMatrix * patchTangentSpaceBasis;
@@ -636,7 +655,7 @@ void main() {
 
       //const vec3 cameraWorldLeft = normalize(transpose(patchTangentSpaceBasis) * (inverseModelViewMatrix * vec4(-1.0, 0.0, 0.0, 0.0)).xyz);
 
-      const vec3 viewDirection = normalize((pushConstants.modelMatrix * vec4(patchPosition, 1.0)).xyz - cameraPosition);
+      const vec3 viewDirection = normalize((modelMatrix * vec4(patchPosition, 1.0)).xyz - cameraPosition);
       const vec3 viewDirectionXZ = normalize(vec3(viewDirection.x, 0.0, viewDirection.z));
 
       const mat3 modelPatchSpaceBasisMatrix = normalModelMatrix * patchTangentSpaceBasis;
@@ -645,7 +664,14 @@ void main() {
       const vec3 bladeOffset = vec3(offsetDirection.xy, 0.0) * offsetRadius; 
 #endif      
 
-      float bladeHeight = grassHeight * mix(0.25, 1.0, randomFloatData[0].w) * fadeOutFactor;
+      float growthFactor = smoothstep(0.0, 1.0, grassAge);
+      float bladeHeight = grassHeight * mix(0.25, 1.0, randomFloatData[0].w) * fadeOutFactor * growthFactor;
+
+      // MOWED: cap blade height to 15% of maximum
+      if((grassFlags & GRASS_FLAG_MOWED) != 0u){
+        bladeHeight = min(bladeHeight, grassHeight * 0.15);
+      }
+
       float bladeLeaning = grassLeaning * mix(0.1, 1.0, randomFloatData[1].x);
 
 #ifdef FineOffseting
@@ -655,6 +681,9 @@ void main() {
 #endif
       vec3 p1 = p0 + vec2(0.0, bladeHeight).xxy;
       vec3 p2 = fma(bladeDirection, vec3(bladeHeight * bladeLeaning), p1);      
+#ifdef VELOCITY
+      vec3 previousP2 = p2;
+#endif      
 
       // Add some wind effect to the grass blade 
       {
@@ -673,11 +702,34 @@ void main() {
 
         // TODO: Add additional usage of a velocity field for physical interaction with sphere colliders just as the player
 
+#ifdef VELOCITY
+        vec2 previousWindOffset = sin(
+          vec2(
+            (pushConstants.previousTime) +
+            //dot(sin(vec2(windDirection) + vec2(1.57079632679, 0.0)), vec2(globalXY) / vec2(pushConstants.tileMapResolution * pushConstants.tileResolution)) + 
+            (randomFloatData[1].y * 4.0)
+          ) * vec2(0.5, 1.0)
+        ) * vec2(2.0, 1.0) * windStrength;
+
+        previousP2 += vec3(previousWindOffset, 0.0);
+#endif 
+
         p2 += vec3(windOffset, 0.0);
 
       }
       
       // Ensure that the grass blade has a persistent length
+#ifdef VELOCITY
+      vec3 previousP1;
+      {
+        vec3 p01 = p1 - p0;
+        vec3 p12 = previousP2 - p1;
+        float L = fma(2.0, length(previousP2 - p0), length(p01) + length(p12)) / 3.0; 
+        float lDiff = bladeHeight / L;
+        previousP1 = fma(p01, vec3(lDiff), p0);
+        previousP2 = fma(p12, vec3(lDiff), previousP1);
+      }
+#endif
       {
         vec3 p01 = p1 - p0;
         vec3 p12 = p2 - p1;
@@ -711,7 +763,13 @@ void main() {
       vec3 localP1 = p1 + (offset * (s * 0.7));
       vec3 localP2 = p2 + (offset * (s * 0.3));    
 
-      vec3 position = (pushConstants.modelMatrix * vec4(patchPosition + (patchTangentSpaceBasis * bezier(localP0, localP1, localP2, t)), 1.0)).xyz;
+      vec3 position = (modelMatrix * vec4(patchPosition + (patchTangentSpaceBasis * bezier(localP0, localP1, localP2, t)), 1.0)).xyz;
+
+#ifdef VELOCITY
+      vec3 localPreviousP1 = previousP1 + (offset * (s * 0.7));
+      vec3 localPreviousP2 = previousP2 + (offset * (s * 0.3));
+      vec3 previousPosition = (modelMatrix * vec4(patchPosition + (patchTangentSpaceBasis * bezier(localP0, localPreviousP1, localPreviousP2, t)), 1.0)).xyz;
+#endif
 
   #if defined(BRUTEFORCE_NORMAL_CALCULATION)
 
@@ -767,6 +825,13 @@ void main() {
           ) & uvec2(0x3ffu, 0x3u).xxxy
         ) << uvec4(0u, 10u, 20u, 30u);
 
+#ifdef VELOCITY
+      // Grass moves rather hardly more than 1 meter per frame in the wind, so we can clamp the velocity vectors to that 
+      // range to improve precision for 16-bit signed normalized encoding in comparsion to just storing as half 16-bit
+      // floating point values, which would have a much larger range but much less precision in the small value range.
+      vec3 deltaPosition = clamp(previousPosition - position, vec3(-1.0), vec3(1.0));
+#endif
+
       outputVertices.vertices[baseVertex + vertexID] = OutputVertex(
         uvec4(
           floatBitsToUint(position), 
@@ -775,8 +840,15 @@ void main() {
         uvec4(
           encodedTangentSign.x | encodedTangentSign.y | encodedTangentSign.z | encodedTangentSign.w,
           floatBitsToUint(t),
+#ifdef VELOCITY
+          // Misuse the remaining two uint components to store the velocity vector as packed signed normalized 16-bit values
+          // since blade index and IDs are not yet used by the following shader stages. But this can be changed later if needed.
+          packSnorm2x16(deltaPosition.xy),
+          packSnorm2x16(vec2(deltaPosition.z, 0.0))
+#else
           globalIndex,
           bladeID
+#endif          
         )
       );
 
@@ -791,11 +863,11 @@ void main() {
       outBlock[vertexID].worldSpacePosition = worldSpacePosition;
       outBlock[vertexID].viewSpacePosition = viewSpacePosition.xyz;  
       outBlock[vertexID].cameraRelativePosition = worldSpacePosition - cameraPosition;
-      outBlock[vertexID].jitter = pushConstants.jitter;
     #ifdef VELOCITY
       outBlock[vertexID].currentClipSpace = viewProjectionMatrix * vec4(position, 1.0);
-      outBlock[vertexID].previousClipSpace = (uView.views[viewIndex + pushConstants.countAllViews].projectionMatrix * uView.views[viewIndex + pushConstants.countAllViews].viewMatrix) * vec4(position, 1.0);
+      outBlock[vertexID].previousClipSpace = (uView.views[viewIndex + pushConstants.countAllViews].projectionMatrix * uView.views[viewIndex + pushConstants.countAllViews].viewMatrix) * vec4(previousPosition, 1.0);
     #endif
+      outBlock[vertexID].meshletID = ((pushConstants.flags & 1u) != 0u) ? ((((invocationVariantIndex * countBlades) + bladeID) + (invocationIndex * 53956u)) | 0x80000000u) : 0u;
 
     #if defined(RAYTRACING)
       outWorldSpacePosition[vertexID] = worldSpacePosition;

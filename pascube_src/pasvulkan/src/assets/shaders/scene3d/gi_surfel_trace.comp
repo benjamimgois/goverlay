@@ -1,0 +1,211 @@
+#version 460 core
+
+// Surfel GI — ray tracing / integration pass.
+//
+// One thread per surfel. For every alive surfel it traces GI_SURFEL_RAYS_PER_SURFEL rays over the hemisphere around the
+// surfel normal against the scene TLAS (via the shared gi_rt_gather.glsl layer: emissive + all analytic lights + ray-
+// traced shadows + sky on miss), projects the returned radiance into an L1 RGB SH, and blends it into the surfel's
+// stored SH as a temporal running average. An optional previous-frame multi-bounce feedback term (sampling the surfel
+// hash grid at each hit) gives "infinite" diffuse bounces. Ray directions are jittered per frame so the temporal
+// accumulation integrates the full hemisphere over time.
+
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_ray_query : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference_uvec2 : require
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// Gather layer prerequisites (global scene descriptor set 0 + ray helpers).
+#define RAYTRACING
+#define LIGHTS
+#define USE_MATERIAL_BUFFER_REFERENCE
+#define USE_BUFFER_REFERENCE
+
+#include "globaldescriptorset.glsl"
+#include "raytracing.glsl"
+
+// Surfel buffers on set 1 (set 0 is the global scene, set 2 the planet blend/grass maps for the gather layer).
+#define GLOBAL_ILLUMINATION_SURFEL_COMPUTE
+#define GI_SURFEL_DESCRIPTOR_SET 1
+#include "global_illumination_surfel.glsl"
+
+// Sky on ray miss — identical to gi_ddgi_trace.comp (env A Lambertian dual-blended by env B atmosphere coverage).
+
+layout(set = 1, binding = 6) uniform samplerCube uSurfelEnvironmentMaps[6];
+
+vec3 surfelGatherSky(const in vec3 dir){
+  vec3 irradiance = textureLod(uSurfelEnvironmentMaps[2], dir, 0.0).xyz;
+  vec4 envB = textureLod(uSurfelEnvironmentMaps[5], dir, 0.0);
+  return mix(irradiance, envB.xyz, envB.w);
+}
+
+#define GI_GATHER_SKY(dir) surfelGatherSky(dir)
+
+#define GI_GATHER_PLANET_TEXTURES
+#define GI_GATHER_PLANET_TEXTURES_SET 2
+
+// Global GI-emissive master regulators (push, included below) -> file-scope globals set in main() before any hit is shaded.
+float surfelEmissiveScale = 1.0;
+float surfelEmissiveMax = uintBitsToFloat(0x7f800000u);
+#define GI_GATHER_EMISSIVE_SCALE surfelEmissiveScale
+#define GI_GATHER_EMISSIVE_MAX surfelEmissiveMax
+
+#include "gi_rt_gather.glsl"
+
+#ifndef GI_SURFEL_RAYS_PER_SURFEL
+  #define GI_SURFEL_RAYS_PER_SURFEL 32
+#endif
+
+#ifndef GI_SURFEL_MULTIBOUNCE
+  #define GI_SURFEL_MULTIBOUNCE 1
+#endif
+
+#ifndef GI_SURFEL_MAX_ACCUM
+  #define GI_SURFEL_MAX_ACCUM 256.0 // cap on the running-average sample count (controls the minimum temporal blend)
+#endif
+
+layout(push_constant) uniform PushConstants {
+  uvec4 params;     // x = frameIndex, y = raysPerSurfel, z = unused, w = unused
+  vec4 misc;        // x = max ray distance, y = multi-bounce feedback strength, z = temporal hysteresis (0..1), w = unused
+  vec4 emissiveGI;  // x = global GI emissive scale, y = global GI emissive max (z/w reserved)
+} pushConstants;
+
+// Branchless orthonormal basis (Duff et al. 2017).
+void surfelOrthonormalBasis(const in vec3 n, out vec3 t, out vec3 b){
+  float s = (n.z >= 0.0) ? 1.0 : -1.0;
+  float a = -1.0 / (s + n.z);
+  float c = n.x * n.y * a;
+  t = vec3(1.0 + (s * n.x * n.x * a), s * c, -s * n.x);
+  b = vec3(c, s + (n.y * n.y * a), -n.y);
+}
+
+uint surfelHashU(uint x){
+  x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16;
+  return x;
+}
+float surfelHashF(uint x){ return float(surfelHashU(x) & 0x00ffffffu) / float(0x01000000u); }
+
+void main(){
+  uint surfelIndex = gl_GlobalInvocationID.x;
+  if(surfelIndex >= uint(GI_SURFEL_MAX_COUNT)){
+    return;
+  }
+
+  Surfel surfel = surfels[surfelIndex];
+  if((surfel.flags & GI_SURFEL_FLAG_ALIVE) == 0u){
+    return;
+  }
+
+  vec3 position = surfel.positionRadius.xyz;
+  vec3 normal = normalize(surfel.normalCount.xyz);
+
+  vec3 tangent, bitangent;
+  surfelOrthonormalBasis(normal, tangent, bitangent);
+
+  uint raysPerSurfel = clamp(pushConstants.params.y, 1u, uint(GI_SURFEL_RAYS_PER_SURFEL));
+  uint frameIndex = pushConstants.params.x;
+  float tMax = max(pushConstants.misc.x, 1e-2);
+  float multibounceStrength = pushConstants.misc.y;
+
+  // Publish the global GI-emissive master regulators (push) into the file-scope globals the gather's giGatherShadeHit reads.
+  surfelEmissiveScale = pushConstants.emissiveGI.x;
+  surfelEmissiveMax = pushConstants.emissiveGI.y;
+
+  // Per-(surfel,frame) random offset so the Hammersley set is rotated each frame -> full-hemisphere coverage over time.
+  vec2 jitter = vec2(surfelHashF((surfelIndex * 747796405u) + (frameIndex * 2891336453u)),
+                     surfelHashF((surfelIndex * 2654435761u) ^ (frameIndex * 40503u)));
+
+#if GI_SURFEL_STORAGE_IS_SH
+  SURFEL_SH_TYPE radianceSH = SURFEL_SH_ZERO();
+#else
+  vec3 rayDirections[GI_SURFEL_RAYS_PER_SURFEL];
+  vec3 rayRadiances[GI_SURFEL_RAYS_PER_SURFEL];
+#endif
+
+  uint missCount = 0u; // rays that escaped to the sky (-> per-surfel sky visibility, occludes the env IBL specular at shading)
+
+  // Temporal running-average factor (converge fast while young, then stick at the hysteresis floor). Hoisted above the loop
+  // so the per-ray radial-depth atlas update inside it can use the same alpha.
+  float count = surfel.normalCount.w;
+  float alpha = max(1.0 / (count + 1.0), 1.0 - clamp(pushConstants.misc.z, 0.0, 0.999));
+
+  for(uint j = 0u; j < raysPerSurfel; j++){
+    // Uniform hemisphere sampling (avoids the 1/cos blow-up of cosine sampling at grazing angles).
+    vec2 u = fract(vec2((float(j) + 0.5) / float(raysPerSurfel),
+                        float(surfelHashU(j) & 0xffffu) / 65536.0) + jitter);
+    float cosTheta = u.x;                                   // uniform in [0,1]
+    float sinTheta = sqrt(max(0.0, 1.0 - (cosTheta * cosTheta)));
+    float phi = 6.2831853071795864 * u.y;
+    vec3 dir = normalize((tangent * (sinTheta * cos(phi))) + (bitangent * (sinTheta * sin(phi))) + (normal * cosTheta));
+
+    GIGatherSurface hit = giGatherClosestHit(position + (normal * 1e-3), dir, 1e-3, tMax, CULLMASK_ALL);
+
+    vec3 radiance;
+    if(hit.hit){
+      vec3 previousFrameIndirect = vec3(0.0);
+#if GI_SURFEL_MULTIBOUNCE
+      previousFrameIndirect = giSurfelGatherIrradiance(hit.position, hit.normal) * multibounceStrength;
+      if(any(isnan(previousFrameIndirect)) || any(isinf(previousFrameIndirect))){
+        previousFrameIndirect = vec3(0.0);
+      }
+#endif
+      radiance = giGatherShadeHit(hit, previousFrameIndirect);
+    }else{
+      radiance = GI_GATHER_SKY(dir);
+      missCount++;
+    }
+    if(any(isnan(radiance)) || any(isinf(radiance))){
+      radiance = vec3(0.0);
+    }
+
+    // Radial depth atlas (occlusion): record this ray direction's hit distance (a miss -> tMax = open/far) as half-packed
+    // Chebyshev moments, EMA-blended; one thread per surfel so the indexed write is race-free. Seed on first touch.
+    {
+      int dt = surfelDepthTexel(dir);
+      float dz = min(hit.hit ? hit.hitDistance : tMax, GI_SURFEL_DEPTH_MAX_DIST); // clamp so mean² stays fp16-safe (a miss's ~1e6 would overflow to +Inf)
+      vec2 dm = unpackHalf2x16(surfels[surfelIndex].depth[dt]);
+      surfels[surfelIndex].depth[dt] = packHalf2x16((dm.y <= 0.0) ? vec2(dz, dz * dz) : mix(dm, vec2(dz, dz * dz), alpha));
+    }
+
+#if GI_SURFEL_STORAGE_IS_SH
+    // Project the sampled radiance into the SH (uniform hemisphere -> 2*PI solid angle per sample).
+    radianceSH = SURFEL_SH_ADD(radianceSH, SURFEL_SH_PROJECT(dir, radiance));
+#else
+    rayDirections[j] = dir;
+    rayRadiances[j] = radiance;
+#endif
+  }
+#if GI_SURFEL_STORAGE_IS_SH
+  radianceSH = SURFEL_SH_MUL(radianceSH, 6.2831853071795864 / float(raysPerSurfel));
+#endif
+  // (count + alpha were computed above the loop, for the radial-depth update.)
+
+#if GI_SURFEL_STORAGE_IS_SH
+  surfelStoreSH(surfelIndex, SURFEL_SH_LERP(surfelLoadSH(surfel), radianceSH, alpha));
+#else
+  // Octahedral irradiance: each texel = cosine(=max(0,dot))-weighted average of the ray radiances in its direction.
+  for(int ty = 0; ty < GI_SURFEL_OCT_SIZE; ty++){
+    for(int tx = 0; tx < GI_SURFEL_OCT_SIZE; tx++){
+      vec3 texelDir = surfelOctTexelDirection(tx, ty);
+      vec3 sum = vec3(0.0);
+      float wsum = 0.0;
+      for(uint j = 0u; j < raysPerSurfel; j++){
+        float w = max(0.0, dot(texelDir, rayDirections[j]));
+        sum += rayRadiances[j] * w;
+        wsum += w;
+      }
+      int t = (ty * GI_SURFEL_OCT_SIZE) + tx;
+      vec3 newIrr = (wsum > 0.0) ? (sum / wsum) : vec3(0.0);
+      surfelOctStoreTexel(surfelIndex, t, mix(surfelOctLoadTexel(surfel, t), newIrr, alpha));
+    }
+  }
+#endif
+  // Per-surfel sky visibility: temporally averaged fraction of rays that reached the sky (same running-average alpha as the radiance).
+  surfels[surfelIndex].skyVisibility = mix(surfel.skyVisibility, float(missCount) / float(raysPerSurfel), alpha);
+  surfels[surfelIndex].normalCount.w = min(count + 1.0, float(GI_SURFEL_MAX_ACCUM));
+  // NOTE: the recycle timer (lastFrame) is intentionally NOT refreshed here. The trace processes EVERY alive surfel every
+  // frame, so refreshing it would keep the whole pool alive permanently and the recycle pass could never free slots for
+  // newly-revealed regions (-> large areas with no surfels). The visibility-driven keep-alive lives in giSurfelCoverage.
+}

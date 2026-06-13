@@ -8,7 +8,7 @@ ta = DateTime.now();
 let words = {}, file = IO.open(arguments.pop() ?? __FILE__, 'r');
 while (!file.eof()) {
   foreach (let s in file.readln().split(' ', true)){
-    words[s] = words[?s?] + 1;
+    words[s] = words?[s] + 1;
   }
 }
 file.close();

@@ -540,7 +540,7 @@ asm
 
  // Restore IEEE‑754 float bits from signed‑magnitude
  mov edi,esi
- shr edi,31                   // sign bit → all bits (-1 if negative)
+ shr edi,31                   // sign bit => all bits (-1 if negative)
  dec edi                      // edi = (sign_mask - 1)
  or edi,$80000000             // set MSB for magnitude
  xor edi,esi                  // xor with sum to reapply sign

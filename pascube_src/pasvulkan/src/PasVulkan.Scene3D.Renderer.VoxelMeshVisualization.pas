@@ -87,10 +87,13 @@ type { TpvScene3DRendererVoxelMeshVisualization }
        fInstance:TpvScene3DRendererInstance;
        fRenderer:TpvScene3DRenderer;
        fScene3D:TpvScene3D;
+       fMeshShader:Boolean; // MeshShaders -> mesh-shader path (one workgroup per voxel, GPU-side empty cull) instead of the vertex-instanced cubes
        fVertexShaderModule:TpvVulkanShaderModule;
+       fMeshShaderModule:TpvVulkanShaderModule;
        //fGeometryShaderModule:TpvVulkanShaderModule;
        fFragmentShaderModule:TpvVulkanShaderModule;
        fVulkanPipelineShaderStageVertex:TpvVulkanPipelineShaderStage;
+       fVulkanPipelineShaderStageMesh:TpvVulkanPipelineShaderStage;
        //fVulkanPipelineShaderStageGeometry:TpvVulkanPipelineShaderStage;
        fVulkanPipelineShaderStageFragment:TpvVulkanPipelineShaderStage;
        fVulkanDescriptorSetLayout:TpvVulkanDescriptorSetLayout;
@@ -122,6 +125,7 @@ implementation
 constructor TpvScene3DRendererVoxelMeshVisualization.Create(const aInstance:TpvScene3DRendererInstance;const aRenderer:TpvScene3DRenderer;const aScene3D:TpvScene3D);
 var Index:TpvSizeInt;
     Stream:TStream;
+    PrimaryStageFlags:TVkShaderStageFlags; // VERTEX or (mesh-shader path) MESH: the stage that consumes the view UBO + push constants
 begin
  inherited Create;
 
@@ -131,11 +135,31 @@ begin
 
  fScene3D:=aScene3D;
 
- Stream:=pvScene3DShaderVirtualFileSystem.GetFile('voxel_mesh_visualization_vert.spv');
- try
-  fVertexShaderModule:=TpvVulkanShaderModule.Create(fRenderer.VulkanDevice,Stream);
- finally
-  Stream.Free;
+ fMeshShader:=fScene3D.MeshShaders;
+
+ if fMeshShader then begin
+  PrimaryStageFlags:=TVkShaderStageFlags(VK_SHADER_STAGE_MESH_BIT_EXT);
+ end else begin
+  PrimaryStageFlags:=TVkShaderStageFlags(VK_SHADER_STAGE_VERTEX_BIT);
+ end;
+
+ if fMeshShader then begin
+  // Mesh-shader path: one workgroup per voxel (3D dispatch), emits a cube only for non-empty voxels.
+  Stream:=pvScene3DShaderVirtualFileSystem.GetFile('voxel_mesh_visualization_mesh.spv');
+  try
+   fMeshShaderModule:=TpvVulkanShaderModule.Create(fRenderer.VulkanDevice,Stream);
+  finally
+   Stream.Free;
+  end;
+  fVulkanPipelineShaderStageMesh:=TpvVulkanPipelineShaderStage.Create(TVkShaderStageFlagBits(VK_SHADER_STAGE_MESH_BIT_EXT),fMeshShaderModule,'main');
+ end else begin
+  Stream:=pvScene3DShaderVirtualFileSystem.GetFile('voxel_mesh_visualization_vert.spv');
+  try
+   fVertexShaderModule:=TpvVulkanShaderModule.Create(fRenderer.VulkanDevice,Stream);
+  finally
+   Stream.Free;
+  end;
+  fVulkanPipelineShaderStageVertex:=TpvVulkanPipelineShaderStage.Create(VK_SHADER_STAGE_VERTEX_BIT,fVertexShaderModule,'main');
  end;
 
 {Stream:=pvScene3DShaderVirtualFileSystem.GetFile('voxel_mesh_visualization_geom.spv');
@@ -152,8 +176,6 @@ begin
   Stream.Free;
  end;
 
- fVulkanPipelineShaderStageVertex:=TpvVulkanPipelineShaderStage.Create(VK_SHADER_STAGE_VERTEX_BIT,fVertexShaderModule,'main');
-
 //fVulkanPipelineShaderStageGeometry:=TpvVulkanPipelineShaderStage.Create(VK_SHADER_STAGE_GEOMETRY_BIT,fGeometryShaderModule,'main');
 
  fVulkanPipelineShaderStageFragment:=TpvVulkanPipelineShaderStage.Create(VK_SHADER_STAGE_FRAGMENT_BIT,fFragmentShaderModule,'main');
@@ -162,12 +184,25 @@ begin
  fVulkanDescriptorSetLayout.AddBinding(0,
                                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                        1,
+                                       PrimaryStageFlags,
+                                       []);
+ // binding 1 = voxel content meta-data SSBO, binding 2 = voxel content data SSBO. Always bound so the layout matches whether
+ // or not the shader is the VOXEL_MESH_VIS_RAW_CONTENT diagnostic variant (extra bindings unused by the normal variant are valid).
+ fVulkanDescriptorSetLayout.AddBinding(1,
+                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       1,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_VERTEX_BIT),
+                                       []);
+ fVulkanDescriptorSetLayout.AddBinding(2,
+                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       1,
                                        TVkShaderStageFlags(VK_SHADER_STAGE_VERTEX_BIT),
                                        []);
  fVulkanDescriptorSetLayout.Initialize;
 
  fVulkanDescriptorPool:=TpvVulkanDescriptorPool.Create(fRenderer.VulkanDevice,TVkDescriptorPoolCreateFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),fScene3D.CountInFlightFrames);
  fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,fScene3D.CountInFlightFrames);
+ fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,fScene3D.CountInFlightFrames*2);
  fVulkanDescriptorPool.Initialize;
 
  for Index:=0 to fScene3D.CountInFlightFrames-1 do begin
@@ -181,11 +216,27 @@ begin
                                                     [fInstance.VulkanViewUniformBuffers[Index].DescriptorBufferInfo],
                                                     [],
                                                     false);
+  fVulkanDescriptorSets[Index].WriteToDescriptorSet(1,
+                                                    0,
+                                                    1,
+                                                    TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                                    [],
+                                                    [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffers[Index].DescriptorBufferInfo],
+                                                    [],
+                                                    false);
+  fVulkanDescriptorSets[Index].WriteToDescriptorSet(2,
+                                                    0,
+                                                    1,
+                                                    TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                                    [],
+                                                    [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffers[Index].DescriptorBufferInfo],
+                                                    [],
+                                                    false);
   fVulkanDescriptorSets[Index].Flush;
  end;
 
  fVulkanPipelineLayout:=TpvVulkanPipelineLayout.Create(fRenderer.VulkanDevice);
- fVulkanPipelineLayout.AddPushConstantRange(TVkPipelineStageFlags(VK_SHADER_STAGE_VERTEX_BIT),0,SizeOf(TpvScene3DRendererVoxelMeshVisualization.TPushConstants));
+ fVulkanPipelineLayout.AddPushConstantRange(PrimaryStageFlags,0,SizeOf(TpvScene3DRendererVoxelMeshVisualization.TPushConstants));
  fVulkanPipelineLayout.AddDescriptorSetLayout(fVulkanDescriptorSetLayout);
  fVulkanPipelineLayout.AddDescriptorSetLayout(fInstance.GlobalIlluminationCascadedVoxelConeTracingDescriptorSetLayout);
  fVulkanPipelineLayout.Initialize;
@@ -202,9 +253,11 @@ begin
  FreeAndNil(fVulkanDescriptorPool);
  FreeAndNil(fVulkanDescriptorSetLayout);
  FreeAndNil(fVulkanPipelineShaderStageVertex);
+ FreeAndNil(fVulkanPipelineShaderStageMesh);
 //FreeAndNil(fVulkanPipelineShaderStageGeometry);
  FreeAndNil(fVulkanPipelineShaderStageFragment);
  FreeAndNil(fVertexShaderModule);
+ FreeAndNil(fMeshShaderModule);
 //FreeAndNil(fGeometryShaderModule);
  FreeAndNil(fFragmentShaderModule);
  inherited Destroy;
@@ -226,7 +279,11 @@ begin
                                                    nil,
                                                    0);
 
- fVulkanPipeline.AddStage(fVulkanPipelineShaderStageVertex);
+ if fMeshShader then begin
+  fVulkanPipeline.AddStage(fVulkanPipelineShaderStageMesh);
+ end else begin
+  fVulkanPipeline.AddStage(fVulkanPipelineShaderStageVertex);
+ end;
 //fVulkanPipeline.AddStage(fVulkanPipelineShaderStageGeometry);
  fVulkanPipeline.AddStage(fVulkanPipelineShaderStageFragment);
 
@@ -308,7 +365,14 @@ procedure TpvScene3DRendererVoxelMeshVisualization.Draw(const aInFlightFrameInde
 var CascadeIndex:TpvInt32;
     PushConstants:TpvScene3DRendererVoxelMeshVisualization.TPushConstants;
     DescriptorSets:array[0..1] of TVkDescriptorSet;
+    PushStageFlags:TVkShaderStageFlags;
 begin
+
+ if fMeshShader then begin
+  PushStageFlags:=TVkShaderStageFlags(VK_SHADER_STAGE_MESH_BIT_EXT);
+ end else begin
+  PushStageFlags:=TVkShaderStageFlags(VK_SHADER_STAGE_VERTEX_BIT);
+ end;
 
  PushConstants.ViewBaseIndex:=aViewBaseIndex;
  PushConstants.CountViews:=aCountViews;
@@ -329,16 +393,33 @@ begin
  for CascadeIndex:=0 to fInstance.Renderer.GlobalIlluminationVoxelCountCascades-1 do begin
   PushConstants.CascadeIndex:=CascadeIndex;
   aCommandBuffer.CmdPushConstants(fVulkanPipelineLayout.Handle,
-                                  TVkShaderStageFlags(TVkShaderStageFlagBits.VK_SHADER_STAGE_VERTEX_BIT),
+                                  PushStageFlags,
                                   0,
                                   SizeOf(TpvScene3DRendererVoxelMeshVisualization.TPushConstants),
                                   @PushConstants);
-  aCommandBuffer.CmdDraw(fInstance.Renderer.GlobalIlluminationVoxelGridSize*
-                         fInstance.Renderer.GlobalIlluminationVoxelGridSize*
-                         fInstance.Renderer.GlobalIlluminationVoxelGridSize*36,
-                         1,
-                         0,
-                         0);
+  if assigned(fScene3D.VulkanDevice.BreadcrumbBuffer) then begin
+   fScene3D.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'VoxelMeshVisualization');
+  end;
+  if fMeshShader then begin
+   // Mesh-shader path: one workgroup per voxel via a 3D dispatch (gl_WorkGroupID.xyz = voxel position). Avoids the per-dimension
+   // workgroup-count limit a flat gridSize^3 dispatch would hit, and lets the mesh shader cull empty voxels (emit nothing).
+   if assigned(fScene3D.VulkanDevice.Commands.Commands.CmdDrawMeshTasksEXT) then begin
+    fScene3D.VulkanDevice.Commands.Commands.CmdDrawMeshTasksEXT(aCommandBuffer.Handle,
+                                                               fInstance.Renderer.GlobalIlluminationVoxelGridSize,
+                                                               fInstance.Renderer.GlobalIlluminationVoxelGridSize,
+                                                               fInstance.Renderer.GlobalIlluminationVoxelGridSize);
+   end;
+  end else begin
+   aCommandBuffer.CmdDraw(fInstance.Renderer.GlobalIlluminationVoxelGridSize*
+                          fInstance.Renderer.GlobalIlluminationVoxelGridSize*
+                          fInstance.Renderer.GlobalIlluminationVoxelGridSize*36,
+                          1,
+                          0,
+                          0);
+  end;
+  if assigned(fScene3D.VulkanDevice.BreadcrumbBuffer) then begin
+   fScene3D.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
  end;
 
 end;

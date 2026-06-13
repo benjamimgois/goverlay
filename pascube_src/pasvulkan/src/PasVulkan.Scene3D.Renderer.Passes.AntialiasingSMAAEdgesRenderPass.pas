@@ -364,7 +364,13 @@ begin
                                       @fVulkanDescriptorSets[aInFlightFrameIndex].Handle,0,nil);
  aCommandBuffer.CmdPushConstants(fVulkanPipelineLayout.Handle,TVkShaderStageFlags(TVkShaderStageFlagBits.VK_SHADER_STAGE_VERTEX_BIT),0,SizeOf(TpvVector4),@Metrices);
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'SMAAEdges');
+ end;
  aCommandBuffer.CmdDraw(3,1,0,0);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 end;
 
 end.

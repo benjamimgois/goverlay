@@ -82,7 +82,7 @@ float rcpSinFromCos(const in float cosAngle){
 vec3 getViewClampedNormal(vec3 normal, const in vec3 viewDirection, out float NdotV){
   NdotV = dot(normal, viewDirection);
   if(NdotV < 0.0){
-    normal = (normal - (viewDirection * NdotV)) * rcpSinFromCos(NdotV); 
+    normal = (normal - (viewDirection * NdotV)) * rcpSinFromCos(NdotV);
     NdotV = 0.0;
   }
   return normal;
@@ -262,8 +262,9 @@ vec3 getVolumeTransmissionRay(vec3 n, vec3 v, float thickness, float ior) {
 
 /////////////////////////////
 
-void doSingleLight(const in vec3 lightColor, 
-                   const in vec3 lightLit, 
+void doSingleLight(const in vec3 lightColor,
+                   const in vec3 lightLit,
+                   const in vec2 diffuseSpecularFactors, // x = diffuse scale, y = specular (incl. sheen/clearcoat) scale; lets a caller fade one lobe without the other (e.g. DDGI crossfading the dominant-light specular against the glossy atlas while keeping its diffuse). vec2(1.0) = neutral.
                    const in vec3 lightDirection, // Direction from surface point to light
                    const in vec3 normal, 
                    const in vec3 baseColor,
@@ -340,6 +341,8 @@ void doSingleLight(const in vec3 lightColor,
 #endif
 #endif
 
+  lightDiffuse *= diffuseSpecularFactors.x; // independent diffuse scale (the specular lobes below take diffuseSpecularFactors.y)
+
   if((NDotL > 0.0) || (NDotV > 0.0)) // <= TODO: Check if this check is right, if it produces no missing light output
   {
 
@@ -350,7 +353,7 @@ void doSingleLight(const in vec3 lightColor,
     anisotropyBdotH = dot(anisotropyB, halfwayVector);
 #endif
 
-    lightSpecularMetal = lightIntensity * NDotL * BRDF_specularGGX(alphaRoughness, NDotL, NDotV, NDotH);
+    lightSpecularMetal = lightIntensity * NDotL * BRDF_specularGGX(alphaRoughness, NDotL, NDotV, NDotH) * diffuseSpecularFactors.y;
     lightSpecularDielectric = lightSpecularMetal;
 
     lightMetalBRDF = metalFresnel * lightSpecularMetal;
@@ -367,14 +370,14 @@ void doSingleLight(const in vec3 lightColor,
       float sheenColorMax = max(max(sheenColor.x, sheenColor.y), sheenColor.z);
       lightAlbedoSheenScaling = min(1.0 - (sheenColorMax * albedoSheenScalingLUT(NDotV, sheenRoughness)), //
                                     1.0 - (sheenColorMax * albedoSheenScalingLUT(NDotL, sheenRoughness)));
-      lightSheen = lightIntensity * NDotL * BRDF_specularSheen(sheenColor, sheenRoughness, NDotL, NDotV, NDotH);
+      lightSheen = lightIntensity * NDotL * BRDF_specularSheen(sheenColor, sheenRoughness, NDotL, NDotV, NDotH) * diffuseSpecularFactors.y;
     }
 
     if ((flags & (1u << 8u)) != 0u) { 
       float NDotL = clamp(dot(clearcoatNormal, lightDirection), 0.0, 1.0);
       float NDotV = clamp(dot(clearcoatNormal, viewDirection), 0.0, 1.0);
       float NDotH = clamp(dot(clearcoatNormal, halfwayVector), 0.0, 1.0);
-      lightClearcoatBRDF = lightIntensity * NDotL * BRDF_specularGGX(clearcoatRoughness * clearcoatRoughness, NDotL, NDotV, NDotH);
+      lightClearcoatBRDF = lightIntensity * NDotL * BRDF_specularGGX(clearcoatRoughness * clearcoatRoughness, NDotL, NDotV, NDotH) * diffuseSpecularFactors.y;
     }
 
 #endif

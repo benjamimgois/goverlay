@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/flre](https://git.rosseaux.net/BeRo1985/flre).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 #### FLRE - Fast Light Regular Expressions - A fast light regular expression library
 
 FLRE ( **F** ast **L** ight **R** egular **E** xpressions) is a fast, safe and efficient regular expression library, which is implemented in Object Pascal (Delphi and Free Pascal) but which is even usable from other languages like C/C++ and so on. It requires PUCU.pas from [PUCU](https://github.com/BeRo1985/pucu) for the Unicode data tables. 

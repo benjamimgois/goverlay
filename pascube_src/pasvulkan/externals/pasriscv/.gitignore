@@ -69,3 +69,8 @@ __recovery/
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
 
+# Protect runtime files from git clean
+bin/kernel.bin
+bin/fw_jump.bin
+bin/fw_payload.bin
+

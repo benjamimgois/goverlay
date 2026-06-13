@@ -120,7 +120,9 @@ begin
       Frame^.Arguments[Index]:=POCAArrayGet(ArgumentArray,Index);
      end;
      Frame^.CountArguments:=CountArguments;
+     inc(Context^.NativeCallDepth);
      Frame^.Registers[Frame^.ResultRegister]:=PPOCANativeCode(ObjPtr)^.FunctionPointer(Context,Obj,@Frame^.Arguments[0],Frame^.CountArguments,PPOCANativeCode(ObjPtr)^.UserData);
+     dec(Context^.NativeCallDepth);
      Frame^.CountArguments:=0;
      result:=@Context.FrameStack[Context.FrameTop-1];
      exit;
@@ -132,7 +134,9 @@ begin
       Frame^.Arguments[Index]:=Frame^.Registers[Operands^[Index+ArgumentIndex]];
      end;
      Frame^.CountArguments:=CountArguments;
+     inc(Context^.NativeCallDepth);
      Frame^.Registers[Frame^.ResultRegister]:=PPOCANativeCode(ObjPtr)^.FunctionPointer(Context,Obj,@Frame^.Arguments[0],Frame^.CountArguments,PPOCANativeCode(ObjPtr)^.UserData);
+     dec(Context^.NativeCallDepth);
      Frame^.CountArguments:=0;
      result:=@Context.FrameStack[Context.FrameTop-1];
      exit;

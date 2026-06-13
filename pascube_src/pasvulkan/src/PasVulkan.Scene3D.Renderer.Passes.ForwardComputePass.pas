@@ -76,7 +76,8 @@ uses SysUtils,
      PasVulkan.Scene3D.Renderer.Globals,
      PasVulkan.Scene3D.Renderer,
      PasVulkan.Scene3D.Renderer.Instance,
-     PasVulkan.Scene3D.Renderer.SkyBox;
+     PasVulkan.Scene3D.Renderer.SkyBox,
+     PasVulkan.Scene3D.Renderer.Passes.ForwardRenderPass;
 
 type { TpvScene3DRendererPassesForwardComputePass }
      TpvScene3DRendererPassesForwardComputePass=class(TpvFrameGraph.TComputePass)
@@ -102,6 +103,7 @@ type { TpvScene3DRendererPassesForwardComputePass }
        fPipelineLayout:TpvVulkanPipelineLayout;
        fPipeline:TpvVulkanComputePipeline;
        fPlanetRainStreakComputePass:TpvScene3DPlanet.TRainStreakComputePass;
+       fForwardRenderPass:TpvScene3DRendererPassesForwardRenderPass;
       public
        constructor Create(const aFrameGraph:TpvFrameGraph;const aInstance:TpvScene3DRendererInstance); reintroduce;
        destructor Destroy; override;
@@ -111,6 +113,8 @@ type { TpvScene3DRendererPassesForwardComputePass }
        procedure ReleaseVolatileResources; override;
        procedure Update(const aUpdateInFlightFrameIndex,aUpdateFrameIndex:TpvSizeInt); override;
        procedure Execute(const aCommandBuffer:TpvVulkanCommandBuffer;const aInFlightFrameIndex,aFrameIndex:TpvSizeInt); override;
+      published
+       property ForwardRenderPass:TpvScene3DRendererPassesForwardRenderPass read fForwardRenderPass write fForwardRenderPass;
      end;
 
 implementation
@@ -122,6 +126,8 @@ begin
  inherited Create(aFrameGraph);
 
  fInstance:=aInstance;
+
+ fForwardRenderPass:=nil;
 
  Name:='ForwardComputePass';
 
@@ -217,8 +223,8 @@ begin
 
  for InFlightFrameIndex:=0 to FrameGraph.CountInFlightFrames-1 do begin
   fSpaceLinesPrimitiveBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesPrimitiveBuffers[InFlightFrameIndex];
-  fSpaceLinesVertexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesVertexBuffer;
-  fSpaceLinesIndexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesIndexBuffer;
+  fSpaceLinesVertexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex];
+  fSpaceLinesIndexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex];
   fVulkanDescriptorSets[InFlightFrameIndex]:=TpvVulkanDescriptorSet.Create(fVulkanDescriptorPool,
                                                                            fVulkanDescriptorSetLayout);
   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(0,
@@ -235,7 +241,7 @@ begin
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                  [],
-                                                                 [fInstance.SpaceLinesVertexBuffer.DescriptorBufferInfo],
+                                                                 [fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                  [],
                                                                  false
                                                                 );
@@ -244,7 +250,7 @@ begin
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                  [],
-                                                                 [fInstance.SpaceLinesIndexBuffer.DescriptorBufferInfo],
+                                                                 [fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                  [],
                                                                  false
                                                                 );
@@ -253,7 +259,7 @@ begin
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                  [],
-                                                                 [fInstance.SpaceLinesIndirectDrawCommandBuffer.DescriptorBufferInfo],
+                                                                 [fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                  [],
                                                                  false
                                                                 );
@@ -301,12 +307,17 @@ begin
 
  InFlightFrameIndex:=aInFlightFrameIndex;
 
+ // Clear skybox history image for cached reprojection (must be done outside render pass)
+ if assigned(fForwardRenderPass) and assigned(fForwardRenderPass.SkyBox) and fForwardRenderPass.SkyBox.Cached then begin
+  fForwardRenderPass.SkyBox.ClearHistoryImageAndPrepareLayouts(aInFlightFrameIndex,aCommandBuffer);
+ end;
+
  if fInstance.SpaceLinesPrimitiveDynamicArrays[aInFlightFrameIndex].Count>0 then begin
 
   // Check if the buffers have changed since last frame, for example if the buffers were resized.
   if (fSpaceLinesPrimitiveBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesPrimitiveBuffers[InFlightFrameIndex]) or
-     (fSpaceLinesVertexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesVertexBuffer) or
-     (fSpaceLinesIndexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesIndexBuffer) then begin
+     (fSpaceLinesVertexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex]) or
+     (fSpaceLinesIndexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex]) then begin
    if fSpaceLinesPrimitiveBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesPrimitiveBuffers[InFlightFrameIndex] then begin
     fSpaceLinesPrimitiveBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesPrimitiveBuffers[InFlightFrameIndex];
     fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(0,
@@ -319,25 +330,26 @@ begin
                                                                    false
                                                                   );
    end;
-   if fSpaceLinesVertexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesVertexBuffer then begin
-    fSpaceLinesVertexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesVertexBuffer;
+   if fSpaceLinesVertexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex] then begin
+    fSpaceLinesVertexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex];
     fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(1,
                                                                    0,
                                                                    1,
                                                                    TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                    [],
-                                                                   [fInstance.SpaceLinesVertexBuffer.DescriptorBufferInfo],
+                                                                   [fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                    [],
                                                                    false
                                                                   );
    end;
-   if fSpaceLinesIndexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesIndexBuffer then begin
+   if fSpaceLinesIndexBuffers[InFlightFrameIndex]<>fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex] then begin
+    fSpaceLinesIndexBuffers[InFlightFrameIndex]:=fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex];
     fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(2,
                                                                    0,
                                                                    1,
                                                                    TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                    [],
-                                                                   [fInstance.SpaceLinesIndexBuffer.DescriptorBufferInfo],
+                                                                   [fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                    [],
                                                                    false
                                                                   );
@@ -367,7 +379,7 @@ begin
   BufferMemoryBarriers[1].dstAccessMask:=TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT);
   BufferMemoryBarriers[1].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[1].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[1].buffer:=fInstance.SpaceLinesVertexBuffer.Handle;
+  BufferMemoryBarriers[1].buffer:=fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[1].offset:=0;
   BufferMemoryBarriers[1].size:=VK_WHOLE_SIZE;
 
@@ -377,7 +389,7 @@ begin
   BufferMemoryBarriers[2].dstAccessMask:=TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT);
   BufferMemoryBarriers[2].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[2].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[2].buffer:=fInstance.SpaceLinesIndexBuffer.Handle;
+  BufferMemoryBarriers[2].buffer:=fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[2].offset:=0;
   BufferMemoryBarriers[2].size:=VK_WHOLE_SIZE;
 
@@ -387,7 +399,7 @@ begin
   BufferMemoryBarriers[3].dstAccessMask:=TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT);
   BufferMemoryBarriers[3].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[3].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[3].buffer:=fInstance.SpaceLinesIndirectDrawCommandBuffer.Handle;
+  BufferMemoryBarriers[3].buffer:=fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[3].offset:=0;
   BufferMemoryBarriers[3].size:=VK_WHOLE_SIZE;
 
@@ -399,18 +411,24 @@ begin
                                     0,nil);
 
   // Clear SpaceLinesIndirectDrawCommandBuffer and set the second uint32 to 1 (so three vkCmdFillBuffer calls are needed)
-  aCommandBuffer.CmdFillBuffer(fInstance.SpaceLinesIndirectDrawCommandBuffer.Handle,
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.FillBuffer,'SpaceLinesIndirectClear');
+  end;
+  aCommandBuffer.CmdFillBuffer(fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].Handle,
                                0,
                                SizeOf(TpvUInt32),
                                0);
-  aCommandBuffer.CmdFillBuffer(fInstance.SpaceLinesIndirectDrawCommandBuffer.Handle,
+  aCommandBuffer.CmdFillBuffer(fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].Handle,
                                SizeOf(TpvUInt32),
                                SizeOf(TpvUInt32),
                                1);
-  aCommandBuffer.CmdFillBuffer(fInstance.SpaceLinesIndirectDrawCommandBuffer.Handle,
+  aCommandBuffer.CmdFillBuffer(fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].Handle,
                                SizeOf(TpvUInt32)*2,
                                (SizeOf(TVkDrawIndexedIndirectCommand)+SizeOf(TpvUInt32))-(SizeOf(TpvUInt32)*2),
                                0);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   BufferMemoryBarriers[3].sType:=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
   BufferMemoryBarriers[3].pNext:=nil;
@@ -418,7 +436,7 @@ begin
   BufferMemoryBarriers[3].dstAccessMask:=TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT);
   BufferMemoryBarriers[3].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[3].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[3].buffer:=fInstance.SpaceLinesIndirectDrawCommandBuffer.Handle;
+  BufferMemoryBarriers[3].buffer:=fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[3].offset:=0;
   BufferMemoryBarriers[3].size:=VK_WHOLE_SIZE;
 
@@ -445,12 +463,18 @@ begin
                                   SizeOf(TPushConstants),
                                   @PushConstants);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'SpaceLinesCompute');
+  end;
   aCommandBuffer.CmdDispatch((PushConstants.CountPrimitives+255) shr 8,1,1);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   BufferMemoryBarriers[0].sType:=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
   BufferMemoryBarriers[0].pNext:=nil;
   BufferMemoryBarriers[0].srcAccessMask:=TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT);
-  BufferMemoryBarriers[0].dstAccessMask:=TVkAccessFlags(VK_ACCESS_HOST_WRITE_BIT) or TVkAccessFlags(VK_ACCESS_HOST_READ_BIT) or TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT) or TVkAccessFlags(VK_ACCESS_TRANSFER_READ_BIT);
+  BufferMemoryBarriers[0].dstAccessMask:={TVkAccessFlags(VK_ACCESS_HOST_WRITE_BIT) or TVkAccessFlags(VK_ACCESS_HOST_READ_BIT) or} TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT) or TVkAccessFlags(VK_ACCESS_TRANSFER_READ_BIT);
   BufferMemoryBarriers[0].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[0].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[0].buffer:=fInstance.SpaceLinesPrimitiveBuffers[InFlightFrameIndex].Handle;
@@ -463,7 +487,7 @@ begin
   BufferMemoryBarriers[1].dstAccessMask:=TVkAccessFlags(VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
   BufferMemoryBarriers[1].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[1].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[1].buffer:=fInstance.SpaceLinesVertexBuffer.Handle;
+  BufferMemoryBarriers[1].buffer:=fInstance.SpaceLinesVertexBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[1].offset:=0;
   BufferMemoryBarriers[1].size:=VK_WHOLE_SIZE;
 
@@ -473,7 +497,7 @@ begin
   BufferMemoryBarriers[2].dstAccessMask:=TVkAccessFlags(VK_ACCESS_INDEX_READ_BIT);
   BufferMemoryBarriers[2].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[2].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[2].buffer:=fInstance.SpaceLinesIndexBuffer.Handle;
+  BufferMemoryBarriers[2].buffer:=fInstance.SpaceLinesIndexBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[2].offset:=0;
   BufferMemoryBarriers[2].size:=VK_WHOLE_SIZE;
 
@@ -483,7 +507,7 @@ begin
   BufferMemoryBarriers[3].dstAccessMask:=TVkAccessFlags(VK_ACCESS_INDIRECT_COMMAND_READ_BIT);
   BufferMemoryBarriers[3].srcQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
   BufferMemoryBarriers[3].dstQueueFamilyIndex:=VK_QUEUE_FAMILY_IGNORED;
-  BufferMemoryBarriers[3].buffer:=fInstance.SpaceLinesIndirectDrawCommandBuffer.Handle;
+  BufferMemoryBarriers[3].buffer:=fInstance.SpaceLinesIndirectDrawCommandBuffers[InFlightFrameIndex].Handle;
   BufferMemoryBarriers[3].offset:=0;
   BufferMemoryBarriers[3].size:=VK_WHOLE_SIZE;
 

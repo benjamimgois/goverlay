@@ -32,12 +32,6 @@
   {$ifend}*)
 
 uses
-  {$if defined(fpc) and defined(PasVulkanUseSynFPCx64MM)}
-   SynFPCx64MM,
-  {$ifend}
-  {$if defined(fpc) and defined(PasVulkanUseCMEM)}
-   cmem,
-  {$ifend}
   {$if defined(fpc) and defined(Unix)}
    cthreads,
    BaseUnix,
@@ -52,9 +46,9 @@ uses
   Vulkan,
   PasVulkan.Types,
   PasVulkan.Android,
-{$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+{$ifdef PasVulkanUseSDL2}
   PasVulkan.SDL2,
-{$ifend}
+{$endif}
   PasVulkan.Framework,
   PasVulkan.Application,  
   UnitApplication;
@@ -79,7 +73,7 @@ begin
 end;
 {$ifend}
 
-{$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+{$if defined(PasVulkanUseSDL2)}
 {$if defined(fpc) and defined(android)}
 procedure SDL_main(argc:TpvInt32;arcv:pointer); cdecl;
 var s:string;
@@ -125,8 +119,8 @@ begin
 end;
 {$ifend}
 
-{$if defined(fpc) and defined(android) and not defined(PasVulkanHeadless)}
-{$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+{$if defined(fpc) and defined(android)}
+{$if defined(PasVulkanUseSDL2)}
 exports JNI_OnLoad name 'JNI_OnLoad',
         JNI_OnUnload name 'JNI_OnUnload',
         SDL_main name 'SDL_main';
@@ -161,7 +155,7 @@ begin
   AllocConsole;
  end;
 {$ifend}
-{$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+{$if defined(PasVulkanUseSDL2)}
  SDLMain;
 {$else}
  TApplication.Main;
@@ -172,7 +166,7 @@ begin
   readln;
  end;
 {$ifend}
-{$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+{$if defined(PasVulkanUseSDL2)}
  SDL_Quit;
 {$ifend}
 {$if defined(fpc) and defined(Linux)}

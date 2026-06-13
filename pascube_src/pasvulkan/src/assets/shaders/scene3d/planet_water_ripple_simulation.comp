@@ -1,0 +1,67 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// GPU water ripple simulation pass
+//
+// Explicit discrete wave equation on an octahedral water ripple ping-pong
+// image. Reads from uSourceImage (state at t), writes to uTargetImage (state
+// at t+dt). Stores height (r) and velocity (g) packed into an R16G16F image.
+//
+//   laplacian = (H(+x) + H(-x) + H(+y) + H(-y)) - 4 * H(0)
+//   velocity  = (velocity + laplacian * waveSpeedSquared * dt) * damping
+//   height    = height + velocity * dt
+//
+// This subsystem is fully independent of the existing CPU
+// TGamePlanetWaterImpactMap and of the long-lived EnqueueWaterModification
+// brush writes on the water height map.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+#define WORKGROUP_SIZE 16
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rg16f) readonly uniform image2D uSourceImage;
+layout(set = 0, binding = 1, rg16f) writeonly uniform image2D uTargetImage;
+
+layout(push_constant) uniform PushConstants {
+  uint waterRippleMapResolution;
+  float waveSpeedSquared;  // = waveSpeed * waveSpeed
+  float damping;           // velocity multiplier per step, < 1.0
+  float deltaTime;         // time step in seconds
+} pushConstants;
+
+ivec2 clampCoord(ivec2 coord, int resolution){
+  return clamp(coord, ivec2(0), ivec2(resolution - 1));
+}
+
+void main(){
+
+  const int resolution = int(pushConstants.waterRippleMapResolution);
+  const ivec2 position = ivec2(gl_GlobalInvocationID.xy);
+
+  if(any(greaterThanEqual(position, ivec2(resolution)))){
+    return;
+  }
+
+  vec2 center = imageLoad(uSourceImage, position).xy;
+  vec2 xNeg = imageLoad(uSourceImage, clampCoord(position + ivec2(-1,  0), resolution)).xy;
+  vec2 xPos = imageLoad(uSourceImage, clampCoord(position + ivec2( 1,  0), resolution)).xy;
+  vec2 yNeg = imageLoad(uSourceImage, clampCoord(position + ivec2( 0, -1), resolution)).xy;
+  vec2 yPos = imageLoad(uSourceImage, clampCoord(position + ivec2( 0,  1), resolution)).xy;
+
+  float laplacian = (xNeg.x + xPos.x + yNeg.x + yPos.x) - (center.x * 4.0);
+
+  float velocity = (center.y + (laplacian * pushConstants.waveSpeedSquared * pushConstants.deltaTime)) * pushConstants.damping;
+  float height = center.x + (velocity * pushConstants.deltaTime);
+
+  imageStore(uTargetImage, position, vec4(height, velocity, 0.0, 0.0));
+
+}

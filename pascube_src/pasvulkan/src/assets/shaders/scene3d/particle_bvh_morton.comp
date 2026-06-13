@@ -1,0 +1,51 @@
+#version 460 core
+
+// Particle-BVH build, stage 3: compute the 30-bit Morton key per emitter (center normalized into the world AABB) and write
+// (key, emitterIndex) pairs into Morton buffer A. The [particleCount, CAPACITY) tail is filled with sentinel keys so the
+// subsequent radix sort runs at a static dispatch size and the padding sorts to the end (ignored by the hierarchy stage).
+
+#extension GL_GOOGLE_include_directive : require
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#define PARTICLE_BVH_BINDINGS
+#include "particle_bvh.glsl"
+
+layout(push_constant) uniform PushConstants {
+  uvec2 particleVertexBufferAddress;
+  uint particleCount;
+  uint param;
+} pushConstants;
+
+/* clang-format on */
+
+void main(){
+
+  uint index = gl_GlobalInvocationID.x;
+  if(index >= PARTICLE_BVH_CAPACITY){
+    return;
+  }
+
+  if(index >= pushConstants.particleCount){
+    // Padding slot: sentinel key sorts to the very end, payload marked invalid.
+    particleMortonBufferA.data[index] = uvec2(PARTICLE_BVH_INVALID, PARTICLE_BVH_INVALID);
+    return;
+  }
+
+  vec3 boundsMin = vec3(particleBVHFloatUnflip(particleBVHBoundsBuffer.data[0]),
+                        particleBVHFloatUnflip(particleBVHBoundsBuffer.data[1]),
+                        particleBVHFloatUnflip(particleBVHBoundsBuffer.data[2]));
+  vec3 boundsMax = vec3(particleBVHFloatUnflip(particleBVHBoundsBuffer.data[3]),
+                        particleBVHFloatUnflip(particleBVHBoundsBuffer.data[4]),
+                        particleBVHFloatUnflip(particleBVHBoundsBuffer.data[5]));
+  vec3 extent = max(boundsMax - boundsMin, vec3(1e-6));
+
+  vec3 center = particleEmitterBuffer.emitters[index].positionRadius.xyz;
+  vec3 normalized = (center - boundsMin) / extent;
+
+  uint key = particleBVHMorton3D(normalized);
+  particleMortonBufferA.data[index] = uvec2(key, index);
+
+}

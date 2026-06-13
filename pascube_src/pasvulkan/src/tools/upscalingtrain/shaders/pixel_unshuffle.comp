@@ -1,0 +1,58 @@
+#version 450
+/*
+ * pixel_unshuffle.comp — Rearrange (N, C, H·r, W·r) => (N, C·r², H, W)
+ *
+ * Used in backward pass to convert HR gradient to LR-space representation.
+ *
+ * Bindings: 0=input (HR), 1=output (LR with r² channels), 2=(unused), 3=(unused)
+ * Push constants: p0=r, p1=out_ch (C), p4=H (LR), p5=W (LR), p6=batch
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) readonly  buffer BufI    { float inp[];    };
+layout(set = 0, binding = 1) writeonly buffer BufO    { float outp[];   };
+layout(set = 0, binding = 2) readonly  buffer BufDum1 { float dummy1[]; };
+layout(set = 0, binding = 3) readonly  buffer BufDum2 { float dummy2[]; };
+
+void main() {
+    /* Output coordinates in LR space with expanded channels */
+    int lx  = int(gl_GlobalInvocationID.x);
+    int ly  = int(gl_GlobalInvocationID.y);
+    int noc = int(gl_GlobalInvocationID.z);  /* n * tch + oc */
+
+    int r      = pc.p0;
+    int out_ch = pc.p1;
+    int H      = pc.p4;  /* LR height */
+    int W      = pc.p5;  /* LR width  */
+    int batch  = pc.p6;
+
+    int rr  = r * r;
+    int tch = out_ch * rr;  /* total output channels */
+
+    if (lx >= W || ly >= H || noc >= batch * tch) return;
+
+    int n  = noc / tch;
+    int oc = noc % tch;
+
+    /* Decode which HR sub-pixel this channel corresponds to */
+    int c  = oc / rr;
+    int sr = oc % rr;
+    int sy = sr / r;
+    int sx = sr % r;
+
+    int iH = H * r;
+    int iW = W * r;
+    int hy = ly * r + sy;
+    int hx = lx * r + sx;
+
+    outp[((n * tch + oc) * H + ly) * W + lx] =
+        inp[((n * out_ch + c) * iH + hy) * iW + hx];
+}

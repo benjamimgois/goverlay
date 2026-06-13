@@ -1,0 +1,23 @@
+#version 450
+// frame_energy.comp — variant B (colordiff) lean scene-cut detector. Accumulates the L1 residual
+// energy sum|current - previous| (over a plane) into a single host-visible counter, so the encoder
+// can decide I-vs-P BEFORE transforming: a sudden scene change makes the residual huge, so the
+// encoder falls back to an I-frame (cheaper + no ghosting) instead of coding a useless prediction.
+// Run for all three planes into the same counter; the host reads the total and thresholds it.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0) readonly buffer Current  { int current[]; };
+layout(std430, binding = 1) readonly buffer Previous { int previous[]; };
+layout(std430, binding = 2)          buffer Energy   { uint energy[]; };   // energy[0] accumulates the L1 sum
+layout(push_constant) uniform PushConstants { int pixel_count; int lossless; } push;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  // current is plain int (lossless 5/3) or a float bit-pattern (lossy 9/7); previous is always int.
+  float residual = (push.lossless != 0)
+                 ? float(current[i] - previous[i])
+                 : (intBitsToFloat(current[i]) - float(previous[i]));
+  atomicAdd(energy[0], uint(abs(residual) + 0.5));
+}

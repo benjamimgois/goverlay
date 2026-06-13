@@ -3,8 +3,6 @@
 
 #ifdef SHADOWS
 
-#ifdef PCFPCSS
-
 #ifndef UseReceiverPlaneDepthBias
 #define UseReceiverPlaneDepthBias
 #endif
@@ -57,6 +55,10 @@ vec2 computeReceiverPlaneDepthBias(const vec3 position) {
 
 #endif
 
+//////////////////////////////////////////////////////////////////
+// Common functions
+//////////////////////////////////////////////////////////////////
+
 vec3 getOffsetedBiasedWorldPositionForShadowMapping(const in vec4 values, const in vec3 lightDirection){
   vec3 worldSpacePosition = inWorldSpacePosition;
   {
@@ -80,6 +82,10 @@ float CalculatePenumbraRatio(const in float zReceiver, const in float zBlocker, 
   return ((nearOverFarMinusNear + z_blocker) / (nearOverFarMinusNear + z_receiver)) - 1.0;
 #endif
 }
+
+//////////////////////////////////////////////////////////////////
+// PCF functions
+//////////////////////////////////////////////////////////////////
 
 float doPCFSample(const in sampler2DArrayShadow shadowMapArray, const in vec3 pBaseUVS, const in float pU, const in float pV, const in float pZ, const in vec2 pShadowMapSizeInv){
 #ifdef UseReceiverPlaneDepthBias  
@@ -208,7 +214,11 @@ float DoPCF(const in sampler2DArrayShadow shadowMapArray,
 
   return 1.0 - clamp(shadowMapSum, 0.0, 1.0);
 }
-                                
+
+//////////////////////////////////////////////////////////////////
+// DPCF/PCSS functions
+//////////////////////////////////////////////////////////////////
+
 float ContactHardenPCFKernel(const float occluders,
                              const float occluderDistSum,
                              const float lightDistanceNormalized,
@@ -350,44 +360,9 @@ float DoDPCF_PCSS(const in sampler2DArray shadowMapArray,
 
 }  
 
-float doCascadedShadowMapShadow(const in int cascadedShadowMapIndex, const in vec3 lightDirection, out vec3 shadowUVW) {
-  float value = -1.0;
-  shadowMapSize = (uCascadedShadowMaps.metaData.x == SHADOWMAP_MODE_PCF) ? vec2(textureSize(uCascadedShadowMapTextureShadow, 0).xy) :  vec2(textureSize(uCascadedShadowMapTexture, 0).xy);
-  shadowMapTexelSize = vec3(vec2(1.0) / shadowMapSize, 0.0);
-#ifdef UseReceiverPlaneDepthBias
-  vec4 shadowPosition = cascadedShadowMapPositions[cascadedShadowMapIndex];
-  shadowPositionReceiverPlaneDepthBias = computeReceiverPlaneDepthBias(shadowPosition.xyz); 
-  shadowPosition.z -= min(2.0 * dot(shadowMapTexelSize.xy, abs(shadowPositionReceiverPlaneDepthBias)), 1e-2);
-  shadowUVW = fma(shadowPosition.xyz, vec3(2.0), vec3(-1.0)); 
-#else
-  vec3 worldSpacePosition = getOffsetedBiasedWorldPositionForShadowMapping(uCascadedShadowMaps.constantBiasNormalBiasSlopeBiasClamp[cascadedShadowMapIndex], lightDirection);
-  vec4 shadowPosition = uCascadedShadowMaps.shadowMapMatrices[cascadedShadowMapIndex] * vec4(worldSpacePosition, 1.0);
-  shadowUVW = (shadowPosition /= shadowPosition.w).xyz;
-  shadowPosition = fma(shadowPosition, vec2(0.5, 1.0).xxyy, vec2(0.5, 0.0).xxyy);
-#endif
-  if(all(greaterThanEqual(shadowPosition, vec4(0.0))) && all(lessThanEqual(shadowPosition, vec4(1.0)))){
-    switch(uCascadedShadowMaps.metaData.x){
-      case SHADOWMAP_MODE_PCF:{
-        value = DoPCF(uCascadedShadowMapTextureShadow, cascadedShadowMapIndex, shadowPosition);
-        break;
-      }
-      case SHADOWMAP_MODE_DPCF:{
-        value = DoDPCF_PCSS(uCascadedShadowMapTexture, cascadedShadowMapIndex, shadowPosition, true);
-        break;
-      }
-      case SHADOWMAP_MODE_PCSS:{
-        value = DoDPCF_PCSS(uCascadedShadowMapTexture, cascadedShadowMapIndex, shadowPosition, false);
-        break;
-      }
-      default:{
-        break;
-      }
-    }
-  }
-  return value;
-}
-
-#else
+//////////////////////////////////////////////////////////////////
+// MSM Shadows
+//////////////////////////////////////////////////////////////////
 
 float computeMSM(in vec4 moments, in float fragmentDepth, in float depthBias, in float momentBias) {
   vec4 b = mix(moments, vec4(0.5), momentBias);
@@ -448,7 +423,7 @@ float fastTanArcCos(const in float x){
   return sqrt(-fma(x, x, -1.0)) / x; // tan(acos(x)); sqrt(1.0 - (x * x)) / x 
 }
 
-float doCascadedShadowMapShadow(const in int cascadedShadowMapIndex, const in vec3 lightDirection, out vec3 shadowUVW) {
+float doMSM(const in int cascadedShadowMapIndex, const in vec3 lightDirection, out vec3 shadowUVW) {
   mat4 shadowMapMatrix = uCascadedShadowMaps.shadowMapMatrices[cascadedShadowMapIndex];
   vec4 shadowNDC = shadowMapMatrix * vec4(inWorldSpacePosition, 1.0);
   shadowNDC.xy = fma((shadowUVW = ((shadowNDC /= shadowNDC.w).xyz)).xy, vec2(0.5), vec2(0.5));
@@ -466,7 +441,50 @@ float doCascadedShadowMapShadow(const in int cascadedShadowMapIndex, const in ve
   }
 }
 
+///////////////////////////////////////////////////////////////////
+// Main Function for Cascaded Shadow Maps
+///////////////////////////////////////////////////////////////////
+
+float doCascadedShadowMapShadow(const in int cascadedShadowMapIndex, const in vec3 lightDirection, out vec3 shadowUVW) {
+  float value = -1.0;
+  shadowMapSize = (uCascadedShadowMaps.metaData.x == SHADOWMAP_MODE_PCF) ? vec2(textureSize(uCascadedShadowMapTextureShadow, 0).xy) :  vec2(textureSize(uCascadedShadowMapTexture, 0).xy);
+  shadowMapTexelSize = vec3(vec2(1.0) / shadowMapSize, 0.0);
+#ifdef UseReceiverPlaneDepthBias
+  vec4 shadowPosition = cascadedShadowMapPositions[cascadedShadowMapIndex];
+  shadowPositionReceiverPlaneDepthBias = computeReceiverPlaneDepthBias(shadowPosition.xyz); 
+  shadowPosition.z -= min(2.0 * dot(shadowMapTexelSize.xy, abs(shadowPositionReceiverPlaneDepthBias)), 1e-2);
+  shadowUVW = fma(shadowPosition.xyz, vec3(2.0), vec3(-1.0)); 
+#else
+  vec3 worldSpacePosition = getOffsetedBiasedWorldPositionForShadowMapping(uCascadedShadowMaps.constantBiasNormalBiasSlopeBiasClamp[cascadedShadowMapIndex], lightDirection);
+  vec4 shadowPosition = uCascadedShadowMaps.shadowMapMatrices[cascadedShadowMapIndex] * vec4(worldSpacePosition, 1.0);
+  shadowUVW = (shadowPosition /= shadowPosition.w).xyz;
+  shadowPosition = fma(shadowPosition, vec2(0.5, 1.0).xxyy, vec2(0.5, 0.0).xxyy);
 #endif
+  if(all(greaterThanEqual(shadowPosition, vec4(0.0))) && all(lessThanEqual(shadowPosition, vec4(1.0)))){
+    switch(uCascadedShadowMaps.metaData.x){
+      case SHADOWMAP_MODE_PCF:{
+        value = DoPCF(uCascadedShadowMapTextureShadow, cascadedShadowMapIndex, shadowPosition);
+        break;
+      }
+      case SHADOWMAP_MODE_DPCF:{
+        value = DoDPCF_PCSS(uCascadedShadowMapTexture, cascadedShadowMapIndex, shadowPosition, true);
+        break;
+      }
+      case SHADOWMAP_MODE_PCSS:{
+        value = DoDPCF_PCSS(uCascadedShadowMapTexture, cascadedShadowMapIndex, shadowPosition, false);
+        break;
+      }
+      case SHADOWMAP_MODE_MSM:{
+        value = doMSM(cascadedShadowMapIndex, lightDirection, shadowUVW);
+        break;
+      }
+      default:{
+        break;
+      }
+    }
+  }
+  return value;
+}
 
 vec4 shadowGetCascadeFactors(){
   int cascadedShadowMapIndex = 0;

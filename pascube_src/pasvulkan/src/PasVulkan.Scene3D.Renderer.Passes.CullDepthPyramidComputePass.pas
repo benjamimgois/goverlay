@@ -321,11 +321,11 @@ begin
 
  case fCullRenderPass of
   TpvScene3DRendererCullRenderPass.CascadedShadowMap:begin
-   MipmappedArray2DImage:=fInstance.CascadedShadowMapCullDepthPyramidMipmappedArray2DImage;
+   MipmappedArray2DImage:=fInstance.CascadedShadowMapCullDepthPyramidMipmappedArray2DImages[0];
    CountViews:=TpvScene3DRendererInstance.CountCascadedShadowMapCascades;
   end;
   else begin
-   MipmappedArray2DImage:=fInstance.CullDepthPyramidMipmappedArray2DImage;
+   MipmappedArray2DImage:=fInstance.CullDepthPyramidMipmappedArray2DImages[0];
    CountViews:=fInstance.CountSurfaceViews;
   end;
  end;
@@ -367,6 +367,14 @@ begin
  fInstance.Renderer.VulkanDevice.DebugUtils.SetObjectName(fFirstPassPipeline.Handle,VK_OBJECT_TYPE_PIPELINE,Name+'.fFirstPassPipeline');
 
  for InFlightFrameIndex:=0 to FrameGraph.CountInFlightFrames-1 do begin
+  case fCullRenderPass of
+   TpvScene3DRendererCullRenderPass.CascadedShadowMap:begin
+    MipmappedArray2DImage:=fInstance.CascadedShadowMapCullDepthPyramidMipmappedArray2DImages[InFlightFrameIndex];
+   end;
+   else begin
+    MipmappedArray2DImage:=fInstance.CullDepthPyramidMipmappedArray2DImages[InFlightFrameIndex];
+   end;
+  end;
   case fCullRenderPass of
    TpvScene3DRendererCullRenderPass.CascadedShadowMap:begin
     if assigned(fResourceInput) then begin
@@ -521,6 +529,14 @@ begin
  fInstance.Renderer.VulkanDevice.DebugUtils.SetObjectName(fReductionPipeline.Handle,VK_OBJECT_TYPE_PIPELINE,'CullDepthPyramidComputePass.fReductionPipeline');
 
  for InFlightFrameIndex:=0 to FrameGraph.CountInFlightFrames-1 do begin
+  case fCullRenderPass of
+   TpvScene3DRendererCullRenderPass.CascadedShadowMap:begin
+    MipmappedArray2DImage:=fInstance.CascadedShadowMapCullDepthPyramidMipmappedArray2DImages[InFlightFrameIndex];
+   end;
+   else begin
+    MipmappedArray2DImage:=fInstance.CullDepthPyramidMipmappedArray2DImages[InFlightFrameIndex];
+   end;
+  end;
   for MipMapLevelSetIndex:=0 to fCountMipMapLevelSets-1 do begin
    fReductionVulkanDescriptorSets[InFlightFrameIndex,MipMapLevelSetIndex]:=TpvVulkanDescriptorSet.Create(fReductionVulkanDescriptorPool,
                                                                                                          fReductionVulkanDescriptorSetLayout);
@@ -602,11 +618,11 @@ begin
 
  case fCullRenderPass of
   TpvScene3DRendererCullRenderPass.CascadedShadowMap:begin
-   MipmappedArray2DImage:=fInstance.CascadedShadowMapCullDepthPyramidMipmappedArray2DImage;
+   MipmappedArray2DImage:=fInstance.CascadedShadowMapCullDepthPyramidMipmappedArray2DImages[aInFlightFrameIndex];
    CountViews:=TpvScene3DRendererInstance.CountCascadedShadowMapCascades;
   end;
   else begin
-   MipmappedArray2DImage:=fInstance.CullDepthPyramidMipmappedArray2DImage;
+   MipmappedArray2DImage:=fInstance.CullDepthPyramidMipmappedArray2DImages[aInFlightFrameIndex];
    CountViews:=fInstance.CountSurfaceViews;
   end;
  end;
@@ -653,9 +669,15 @@ begin
                                        0,
                                        nil);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'CullDepthPyramidFirstPass');
+  end;
   aCommandBuffer.CmdDispatch(Max(1,(MipmappedArray2DImage.Width+((1 shl 4)-1)) shr 4),
                              Max(1,(MipmappedArray2DImage.Height+((1 shl 4)-1)) shr 4),
                              CountViews);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   FillChar(ImageMemoryBarrier,SizeOf(TVkImageMemoryBarrier),#0);
   ImageMemoryBarrier.sType:=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -711,9 +733,15 @@ begin
                                    SizeOf(TpvInt32),
                                    @CountMipMaps);
 
+   if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+    fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'CullDepthPyramidReduction');
+   end;
    aCommandBuffer.CmdDispatch(Max(1,(MipmappedArray2DImage.Width+((1 shl (3+MipMapLevelIndex))-1)) shr (3+MipMapLevelIndex)),
                               Max(1,(MipmappedArray2DImage.Height+((1 shl (3+MipMapLevelIndex))-1)) shr (3+MipMapLevelIndex)),
                               CountViews);
+   if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+    fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+   end;
 
    FillChar(ImageMemoryBarrier,SizeOf(TVkImageMemoryBarrier),#0);
    ImageMemoryBarrier.sType:=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

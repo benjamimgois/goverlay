@@ -296,9 +296,15 @@ begin
                                   SizeOf(TpvScene3DRendererInstance.TFrustumClusterGridPushConstants),
                                   @FrustumClusterGridPushConstants);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'FrustumClusterGridBuild');
+  end;
   aCommandBuffer.CmdDispatch((fInstance.FrustumClusterGridSizeX+7) shr 3,
                              (fInstance.FrustumClusterGridSizeY+7) shr 3,
                              (fInstance.FrustumClusterGridSizeZ+7) shr 3);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
  end;
 

@@ -1,0 +1,70 @@
+
+class Hub {
+ 
+  var handlers = [];
+
+  constructor() {
+    this.handlers = [];
+  }
+
+  function onAction(handler) {
+    this.handlers.push(handler);
+  }
+
+  function actionPerformed() {
+    foreach (let handler in this.handlers) {
+      handler();
+    }
+  }
+
+}
+
+function repeat(times, act) {
+  for (let i = 0; i < times; i++) {
+    act(i);
+  }
+}
+
+function gatherHandlers(hub) {
+  let items = [];
+  for (let i = 0; i < 3; i++) {    
+#if 1
+    // Capture loop variable by creating a new variable in the closure
+    // This is necessary to avoid the common pitfall of closures capturing the loop variable, which would lead to 
+    // all handlers referencing the same variable (the last value of i).
+    // Produces: items: [0], items: [0, 1], items: [0, 1, 2]
+    (function(){
+      let j = i;
+      hub.onAction(() => {
+        items.push(j);
+        puts("items: [" ~ items.map(x => x.toString()).join(", ") ~ "]");
+      });
+    })();
+#else    
+    // This will capture the loop variable 'i' directly, which may lead to all handlers referencing the same variable (the last value of i).
+    // Produces: items: [3], items: [3, 3], items: [3, 3, 3]
+    hub.onAction(() => {
+      items.push(i);
+      puts("items: [" ~ items.map(x => x.toString()).join(", ") ~ "]");
+    });
+#endif
+  }
+}
+
+function main() {
+
+  // Repeat
+  let sum = 0;
+  repeat(3, (i) => {
+    sum += i;
+  });
+  puts("sum:", sum);
+
+  // Gather
+  let hub = new Hub();
+  gatherHandlers(hub);
+  hub.actionPerformed();
+
+}
+
+main();

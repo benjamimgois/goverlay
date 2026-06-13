@@ -1,0 +1,49 @@
+#version 460 core
+
+// Particle-BVH radix sort, pass A: per-workgroup digit histogram. One workgroup processes a 256-key block of the (padded,
+// static CAPACITY) Morton buffer; the local 256-bin histogram is written column-major as histogram[bin*NUM_GROUPS + group]
+// so a single linear exclusive scan over the whole histogram yields the global per-(group,bin) output offsets.
+// pushConstants.param = radix pass index (0..3): bit shift = (param&3)*8, source buffer = A if (param&1)==0 else B.
+
+#extension GL_GOOGLE_include_directive : require
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#define PARTICLE_BVH_BINDINGS
+#include "particle_bvh.glsl"
+
+layout(push_constant) uniform PushConstants {
+  uvec2 particleVertexBufferAddress;
+  uint particleCount;
+  uint param;
+} pushConstants;
+
+/* clang-format on */
+
+shared uint sHist[256];
+
+void main(){
+
+  uint localId = gl_LocalInvocationID.x;
+  uint group = gl_WorkGroupID.x; // 0 .. numGroups-1
+  uint gid = (group * PARTICLE_BVH_WORKGROUP) + localId;
+  // Count-adaptive: only ceil(count/256) groups are dispatched/sorted (not the fixed capacity), so the histogram + scan stay tiny for few particles.
+  uint numGroups = (pushConstants.particleCount + (PARTICLE_BVH_WORKGROUP - 1u)) / PARTICLE_BVH_WORKGROUP;
+
+  uint shift = (pushConstants.param & 3u) * 8u;
+  bool srcIsA = (pushConstants.param & 1u) == 0u;
+
+  sHist[localId] = 0u;
+  barrier();
+
+  uint key = srcIsA ? particleMortonBufferA.data[gid].x : particleMortonBufferB.data[gid].x;
+  uint digit = (key >> shift) & 0xffu;
+  atomicAdd(sHist[digit], 1u);
+  barrier();
+
+  // Write this group's per-bin counts column-major: histogram[bin * NUM_GROUPS + group].
+  particleRadixHistogramBuffer.data[(localId * numGroups) + group] = sHist[localId];
+
+}

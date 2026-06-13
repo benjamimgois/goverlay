@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/pasvulkan](https://git.rosseaux.net/BeRo1985/pasvulkan).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # pasvulkan
 
 Vulkan header generator and Vulkan OOP-style API wrapper for Object Pascal (FreePascal >= 3.3.1 FPC trunk and any recent current Delphi version)

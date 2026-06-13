@@ -144,7 +144,7 @@ uint encodeTangentSpaceAsRGB10A2SNorm(mat3 tbn){
 uint encodeQTangentUI32(mat3 m){
   float r = (determinant(m) < 0.0) ? -1.0 : 1.0; // Reflection matrix handling 
   m[2] *= r;
-#if 0
+#ifdef ASSUME_ORTHOGONAL_TANGENT_SPACE
   // When the input matrix is always a valid orthogonal tangent space matrix, we can simplify the quaternion calculation to just this:  
   vec4 q = vec4(m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0], 1.0 + m[0][0] + m[1][1] + m[2][2]);
 #else  
@@ -173,7 +173,7 @@ uint encodeQTangentUI32(mat3 m){
   return ((uint(round(clamp(q.x * 511.0, -511.0, 511.0) + 512.0)) & 0x3ffu) << 0u) | 
          ((uint(round(clamp(q.y * 511.0, -511.0, 511.0) + 512.0)) & 0x3ffu) << 10u) | 
          ((uint(round(clamp(q.z * 255.0, -255.0, 255.0) + 256.0)) & 0x1ffu) << 20u) |
-         ((uint(((dot(cross(m[0], m[2]), m[1]) * r) < 0.0) ? 1u : 0u) & 0x1u) << 29u) | 
+         ((uint(((dot(cross(m[2], m[0]), m[1]) * r) < 0.0) ? 1u : 0u) & 0x1u) << 29u) | 
          ((uint(maxComponentIndex) & 0x3u) << 30u);
 }
 
@@ -184,7 +184,7 @@ mat3 decodeQTangentUI32(uint v){
   vec3 t2 = q.xyz * 2.0, tx = q.xxx * t2.xyz, ty = q.yyy * t2.xyz, tz = q.www * t2.xyz;
   vec3 tangent = vec3(1.0 - (ty.y + (q.z * t2.z)), tx.y + tz.z, tx.z - tz.y);
   vec3 normal = vec3(tx.z + tz.y, ty.z - tz.x, 1.0 - (tx.x + ty.y));
-  return mat3(tangent, cross(tangent, normal) * (((v & (1u << 29u)) != 0u) ? -1.0 : 1.0), normal);
+  return mat3(tangent, cross(normal, tangent) * (((v & (1u << 29u)) != 0u) ? -1.0 : 1.0), normal);
 }
 
 // Decodes the UI32 encoded qtangent into a unpacked qtangent for further processing like vertex interpolation and so on
@@ -200,7 +200,7 @@ mat3 constructTBNFromQTangent(vec4 q){
   vec3 t2 = q.xyz * 2.0, tx = q.xxx * t2.xyz, ty = q.yyy * t2.xyz, tz = q.www * t2.xyz;
   vec3 tangent = vec3(1.0 - (ty.y + (q.z * t2.z)), tx.y + tz.z, tx.z - tz.y);
   vec3 normal = vec3(tx.z + tz.y, ty.z - tz.x, 1.0 - (tx.x + ty.y));
-  return mat3(tangent, cross(tangent, normal) * ((q.w < 0.0) ? -1.0 : 1.0), normal);
+  return mat3(tangent, cross(normal, tangent) * ((q.w < 0.0) ? -1.0 : 1.0), normal);
 }
 
 // Just 8bit per component of the quaternion and sign of the bitangent is stored in the sign of the quaternion in the w component
@@ -229,7 +229,7 @@ uint encodeQTangentRGBA8(mat3 m){
   q = normalize(q); 
   q = mix(q, -q, float(q.w < 0.0));
   q = mix(q, vec4(q.xyz * renormalization, threshold), float(q.w < threshold));
-  return packSnorm4x8(mix(q, -q, float((dot(cross(m[0], m[2]), m[1]) * r) <= 0.0)));
+  return packSnorm4x8(mix(q, -q, float((dot(cross(m[2], m[0]), m[1]) * r) <= 0.0)));
 }
 
 mat3 decodeQTangentRGBA8(uint v){
@@ -237,7 +237,7 @@ mat3 decodeQTangentRGBA8(uint v){
   vec3 t2 = q.xyz * 2.0, tx = q.xxx * t2.xyz, ty = q.yyy * t2.xyz, tz = q.www * t2.xyz;
   vec3 tangent = vec3(1.0 - (ty.y + (q.z * t2.z)), tx.y + tz.z, tx.z - tz.y);
   vec3 normal = vec3(tx.z + tz.y, ty.z - tz.x, 1.0 - (tx.x + ty.y));
-  return mat3(tangent, cross(tangent, normal) * sign(q.w), normal);
+  return mat3(tangent, cross(normal, tangent) * sign(q.w), normal);
 } 
 
 #endif

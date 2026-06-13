@@ -258,4 +258,4 @@
  {$error No double floating point precision}
 {$endif}
 {$scopedenums on}
-
+{-$define PasVulkanRangeChecks}

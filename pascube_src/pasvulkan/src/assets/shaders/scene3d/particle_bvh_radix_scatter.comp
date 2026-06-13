@@ -1,0 +1,63 @@
+#version 460 core
+
+// Particle-BVH radix sort, pass C: stable scatter. Each workgroup re-derives its 256-key block's digits, computes a stable
+// in-block rank per key (count of earlier same-digit keys in the block), and writes each (key,payload) to
+//   dst = scannedHistogram[digit*NUM_GROUPS + group] + rankInBlock
+// which is its globally-sorted position for this radix pass. Stable, so the 4 LSD passes compose into a full sort.
+// pushConstants.param = radix pass index: shift = (param&3)*8, source = A if (param&1)==0 else B, destination = the other.
+
+#extension GL_GOOGLE_include_directive : require
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#define PARTICLE_BVH_BINDINGS
+#include "particle_bvh.glsl"
+
+layout(push_constant) uniform PushConstants {
+  uvec2 particleVertexBufferAddress;
+  uint particleCount;
+  uint param;
+} pushConstants;
+
+/* clang-format on */
+
+shared uint sDigits[256];
+shared uint sGlobalBase[256];
+
+void main(){
+
+  uint localId = gl_LocalInvocationID.x;
+  uint group = gl_WorkGroupID.x;
+  uint gid = (group * PARTICLE_BVH_WORKGROUP) + localId;
+  uint numGroups = (pushConstants.particleCount + (PARTICLE_BVH_WORKGROUP - 1u)) / PARTICLE_BVH_WORKGROUP;
+
+  uint shift = (pushConstants.param & 3u) * 8u;
+  bool srcIsA = (pushConstants.param & 1u) == 0u;
+
+  uvec2 entry = srcIsA ? particleMortonBufferA.data[gid] : particleMortonBufferB.data[gid];
+  uint digit = (entry.x >> shift) & 0xffu;
+  sDigits[localId] = digit;
+
+  // Global output base for this group's bin (post-scan exclusive offset).
+  sGlobalBase[localId] = particleRadixHistogramBuffer.data[(localId * numGroups) + group];
+  barrier();
+
+  // Stable in-block rank: number of earlier keys in this block with the same digit.
+  uint rankInBlock = 0u;
+  for(uint i = 0u; i < localId; i++){
+    if(sDigits[i] == digit){
+      rankInBlock++;
+    }
+  }
+
+  uint dst = sGlobalBase[digit] + rankInBlock;
+
+  if(srcIsA){
+    particleMortonBufferB.data[dst] = entry;
+  }else{
+    particleMortonBufferA.data[dst] = entry;
+  }
+
+}

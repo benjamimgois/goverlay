@@ -1,0 +1,189 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+// RCAS - Robust Contrast-Adaptive Sharpening (FSR1 Pass 2)
+//
+// This is a contrast-adaptive sharpening compute shader inspired by AMD's FidelityFX RCAS.
+// Applied after EASU at display resolution. It uses a 5-tap pattern (center + 4 cardinal
+// neighbors) and derives a sharpening amount inversely proportional to local contrast.
+// High-contrast edges get little/no sharpening (they're already sharp), while low-contrast
+// areas get more sharpening (to recover detail lost during upscaling).
+// The result is clamped to the min/max of the 5-tap neighborhood for anti-ringing.
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+#ifdef MULTIVIEW
+layout(set = 0, binding = 0) uniform sampler2DArray uSourceTexture;
+layout(set = 0, binding = 1, rgba16f) writeonly uniform image2DArray uDestinationTexture;
+#else
+layout(set = 0, binding = 0) uniform sampler2D uSourceTexture;
+layout(set = 0, binding = 1, rgba16f) writeonly uniform image2D uDestinationTexture;
+#endif
+
+/* clang-format on */
+
+// Push constant for tunable sharpness.
+// sharpness: pre-computed on CPU as exp2(-stops) where stops is in AMD's convention:
+//   stops=0.0 => sharpness=1.0 (maximum sharpening)
+//   stops=1.0 => sharpness=0.5 (half sharpening)
+//   stops=2.0 => sharpness=0.25 (quarter sharpening)
+// Recommended default: exp2(-0.25) ≈ 0.84 (slight attenuation)
+layout(push_constant) uniform PushConstants {
+  float sharpness;  // pre-computed: exp2(-stops), 1.0 = max, 0.0 = none
+} pushConstants;
+
+#ifdef MULTIVIEW
+int viewIndex = int(gl_GlobalInvocationID.z);
+#endif
+
+#include "bidirectional_tonemapping.glsl"
+
+#include "srgb.glsl"
+
+// Cheap luma approximation: R*0.5 + G + B*0.5 (= luma * 2).
+// Matches EASU for consistency; exact perceptual luminance is not needed
+// since we only use this for relative contrast measurements.
+float computeLuma(vec3 color) {
+  return color.b * 0.5 + (color.r * 0.5 + color.g);
+}
+
+// Maximum negative weight before sharpening looks unnatural.
+// Empirically tuned to 0.25 - 1/16 = 0.1875.
+const float SHARPENING_LIMIT = 0.25 - (1.0 / 16.0);
+
+// Fetch a source texel, clamped to valid coordinates.
+// Input is already in sRGB space from EASU output - read as-is.
+vec4 fetchSource(ivec2 coordinate, ivec2 sourceSize) {
+  coordinate = clamp(coordinate, ivec2(0), sourceSize - ivec2(1));
+#ifdef MULTIVIEW
+  return texelFetch(uSourceTexture, ivec3(coordinate, viewIndex), 0);
+#else
+  return texelFetch(uSourceTexture, coordinate, 0);
+#endif
+}
+
+void main() {
+
+#ifdef MULTIVIEW
+  ivec3 invocationPosition = ivec3(gl_GlobalInvocationID.xyz);
+  ivec3 dstSize = imageSize(uDestinationTexture);
+  if (any(greaterThanEqual(invocationPosition, dstSize))) {
+    return;
+  }
+#else
+  ivec2 invocationPosition = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 dstSize = imageSize(uDestinationTexture);
+  if (any(greaterThanEqual(invocationPosition, dstSize))) {
+    return;
+  }
+#endif
+
+  ivec2 coordinate = invocationPosition.xy;
+  ivec2 sourceSize = ivec2(textureSize(uSourceTexture, 0).xy);
+
+  // 5-tap cross pattern: center + north/south/east/west.
+  vec4 center = fetchSource(coordinate,                  sourceSize);
+  vec4 north  = fetchSource(coordinate + ivec2( 0, -1),  sourceSize);
+  vec4 south  = fetchSource(coordinate + ivec2( 0,  1),  sourceSize);
+  vec4 west   = fetchSource(coordinate + ivec2(-1,  0),  sourceSize);
+  vec4 east   = fetchSource(coordinate + ivec2( 1,  0),  sourceSize);
+
+  // ------------------------------------------------------------------
+  // Noise detection.
+  //
+  // A simple highpass filter: average of the 4 neighbors minus center.
+  // If this is large relative to local contrast, we're looking at noise
+  // rather than real detail, so we attenuate sharpening.
+  //   noiseFactor = 1.0 => no noise detected, sharpen fully
+  //   noiseFactor < 1.0 => noise detected, reduce sharpening
+  // ------------------------------------------------------------------
+
+  float lumaNorth  = computeLuma(north.rgb);
+  float lumaSouth  = computeLuma(south.rgb);
+  float lumaWest   = computeLuma(west.rgb);
+  float lumaEast   = computeLuma(east.rgb);
+  float lumaCenter = computeLuma(center.rgb);
+
+  float highpass = 0.25 * (lumaNorth + lumaSouth + lumaWest + lumaEast) - lumaCenter;
+  float lumaMaximum = max(max(max(lumaNorth, lumaSouth), max(lumaWest, lumaEast)), lumaCenter);
+  float lumaMinimum = min(min(min(lumaNorth, lumaSouth), min(lumaWest, lumaEast)), lumaCenter);
+  float localContrast = lumaMaximum - lumaMinimum;
+  float noiseRatio = clamp(abs(highpass) / max(localContrast, 1e-6), 0.0, 1.0);
+  float noiseFactor = 1.0 - 0.5 * noiseRatio;
+
+  // ------------------------------------------------------------------
+  // Per-channel sharpening weight derivation.
+  //
+  // The sharpening filter is:
+  //   output = (w*(N+S+E+W) + center) / (4*w + 1)
+  //
+  // For the output to stay in [0,1], w must satisfy:
+  //   w >= -center / (N+S+E+W)          (output >= 0)
+  //   w >= (1-center) / (N+S+E+W - 4)   (output <= 1)
+  //
+  // Rather than using individual tap values (which is noisy with MSAA),
+  // we substitute the neighborhood min/max:
+  //   headroomBlack = min(neighborMin, center) / (4 * neighborMax)
+  //   headroomWhite = (1 - max(neighborMax, center)) / (4 * neighborMin - 4)
+  //
+  // We compute this per-channel and take the most conservative (least
+  // negative) weight across R, G, B to prevent any channel from clipping.
+  // ------------------------------------------------------------------
+
+  // Per-channel neighborhood min/max (4 neighbors only, not center).
+  vec3 neighborMinimum = min(min(north.rgb, south.rgb), min(west.rgb, east.rgb));
+  vec3 neighborMaximum = max(max(north.rgb, south.rgb), max(west.rgb, east.rgb));
+
+  // Headroom toward black: how much negative weight before we'd clip below 0.
+  // This value is always >= 0.
+  vec3 headroomBlack = min(neighborMinimum, center.rgb) / (4.0 * neighborMaximum);
+
+  // Headroom toward white: how much negative weight before we'd clip above 1.
+  // The denominator (4*neighborMinimum - 4) is always <= 0 for values in [0,1],
+  // so the result is <= 0 (a negative weight limit).
+  vec3 headroomWhite = (vec3(1.0) - max(neighborMaximum, center.rgb)) / (4.0 * neighborMinimum - vec3(4.0));
+
+  // Per-channel lobe: the maximum (least-negative) of the two constraints.
+  // -headroomBlack is <= 0, headroomWhite is <= 0, so max picks the tighter bound.
+  vec3 perChannelLobe = max(-headroomBlack, headroomWhite);
+
+  // Pick the channel that allows the least sharpening (most conservative).
+  float conservativeLobe = max(max(perChannelLobe.r, perChannelLobe.g), perChannelLobe.b);
+
+  // Clamp to [−SHARPENING_LIMIT, 0], scale by pre-computed sharpness factor,
+  // and apply noise attenuation.
+  float lobeWeight = max(-SHARPENING_LIMIT, min(conservativeLobe, 0.0)) * pushConstants.sharpness * noiseFactor;
+
+  // ------------------------------------------------------------------
+  // Apply the sharpening kernel.
+  //
+  //          0   lobe   0
+  //         lobe  1   lobe
+  //          0   lobe   0
+  //
+  // Since lobe is negative, this is an unsharp mask:
+  // it subtracts a fraction of the neighbors to enhance the center.
+  // ------------------------------------------------------------------
+
+  float normalization = 1.0 / (1.0 + 4.0 * lobeWeight);
+
+  vec3 resultColor = (center.rgb
+    + lobeWeight * north.rgb + lobeWeight * south.rgb
+    + lobeWeight * west.rgb  + lobeWeight * east.rgb
+  ) * normalization;
+
+  // Safety clamp: don't exceed the neighborhood bounding box.
+  vec3 boundingMin = min(center.rgb, neighborMinimum);
+  vec3 boundingMax = max(center.rgb, neighborMaximum);
+  resultColor = clamp(resultColor, boundingMin, boundingMax);
+
+  // Convert from sRGB back to linear, then undo tone mapping to restore HDR.
+  // Preserve alpha from center. Note: alpha passes through convertSRGBToLinearRGB unchanged (vec4 overload preserves .w).
+  imageStore(uDestinationTexture, invocationPosition, ApplyInverseToneMapping(convertSRGBToLinearRGB(vec4(resultColor, center.a))));
+
+}

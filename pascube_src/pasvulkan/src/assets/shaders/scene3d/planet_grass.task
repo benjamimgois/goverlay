@@ -99,6 +99,7 @@ layout(set = INSTANCE_DESCRIPTOR_SET, binding = 2, std430) buffer VisualMeshDist
 // are valid and the same for all invocations anyway. Other implementations uses CPU pre-calculations for it, but this is a more simple and straight 
 // forward approach in my opinion, so that almost everything is done on the GPU and is in the same place, as long as it don't hurts the performance
 // significantly.
+shared mat4 modelMatrix;
 shared vec3 planetPosition;
 shared Frustum frustums[8];
 
@@ -131,6 +132,8 @@ taskPayloadSharedEXT TaskData taskData;
 
 #include "floatint.glsl"
 
+#include "quaternion.glsl"
+
 void main() {
  
   /////////////////////////////////////////////////////////////////////////
@@ -153,7 +156,14 @@ void main() {
     taskData.count = 0u; // reset the count of visible positions
 #endif
 
-    vec4 p = pushConstants.modelMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+    // Calculate the model matrix from the position/scale and orientation/quaternion push constant values
+    modelMatrix = mat4(quaternionToMatrix(pushConstants.modelMatrixOrientation));
+    modelMatrix[3].xyz = pushConstants.modelMatrixPositionScale.xyz;
+    modelMatrix[0].xyz *= pushConstants.modelMatrixPositionScale.w;
+    modelMatrix[1].xyz *= pushConstants.modelMatrixPositionScale.w;
+    modelMatrix[2].xyz *= pushConstants.modelMatrixPositionScale.w; 
+
+    vec4 p = modelMatrix * vec4(0.0, 0.0, 0.0, 1.0);
     planetPosition = p.xyz / p.w;
 
   }
@@ -227,7 +237,7 @@ void main() {
     /////////////////////////////////////////////////////////////////////////
 
     vec4 boundingSphere = vec4(
-      (pushConstants.modelMatrix * vec4(patchPosition, 1.0)).xyz,
+      (modelMatrix * vec4(patchPosition, 1.0)).xyz,
       max(max(grassHeight, grassThickness) + grassOffsetRadius, grassOffsetRadius) * 2.0
     );
 

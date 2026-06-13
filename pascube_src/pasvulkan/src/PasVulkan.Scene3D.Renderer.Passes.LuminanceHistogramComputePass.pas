@@ -343,9 +343,15 @@ begin
                                  SizeOf(TpvScene3DRendererInstance.TLuminancePushConstants),
                                  @fInstance.fLuminancePushConstants);
 
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'LuminanceHistogramComputePass');
+ end;
  aCommandBuffer.CmdDispatch(Max(1,(fResourceInput.Width+((1 shl 4)-1)) shr 4),
                             Max(1,(fResourceInput.Height+((1 shl 4)-1)) shr 4),
                             1);//fInstance.CountSurfaceViews);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 
 end;
 

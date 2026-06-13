@@ -49,9 +49,34 @@ layout(set = 2, binding = 1, std430) readonly buffer PlanetData
 
   float selectedInnerRadius;
   float heightFactorExponent;
-  uint reserved1;
-  uint reserved2;
+  uint waterRippleMapResolution; // The resolution of the water ripple ping-pong image
+  uint waterRippleReadIndex; // 0 or 1, selects which of PLANET_TEXTURE_WATERRIPPLEMAP_PING/PONG is the current read target
   
+  uvec4 waterAbsorptionDeepColor; // xy = 4x16-bit half float vec4 (xyz = Beer-Lambert absorption 1/m, w = legacy-fade amount 0..1), zw = 4x16-bit half float vec4 (xyz = deep water scattering color linear, w = unused)
+
+  uvec4 waterBaseColorIORs; // xy = 4x16-bit half float vec4 (xyz = water base color linear, w = unused), zw = 4x16-bit half float vec4 (x = waterIOR, y = airIOR, zw = unused)
+
+  uvec4 waterShoreFoam; // xy = 4x16-bit half float vec4 (xyz = foam color linear, w = foam depth start meters), zw = 4x16-bit half float vec4 (x = foam depth end meters, y = pattern scale, z = scroll speed, w = foam intensity 0..1)
+
+  uvec4 waterShoreFoamExtra; // x = half2(breakupLow, breakupHigh), yzw = unused
+
+  uvec4 waterWaveParams; // xy = half4(windDirX, windDirY, windDirZ, waveAmplitude), zw = half4(waveFrequency, waveSteepness, waveSpeed, whitecapFactor)
+
+  uvec4 waterUVWaveParams; // xy = half4(uvWaveAmplitude, uvWaveFrequency, uvWaveSpeed, uvWaveSteepness), zw = half4(uvWaveFactor, waveWindFactor, uvWaveScale, unused)
+
+  uvec4 waterDisplaceParams; // xy = half4(waveDisplaceAmplitude, displaceHeightLowThreshold, displaceHeightHighThreshold, displaceHeightFactor), zw = padding
+
+  uvec4 waterCausticParams; // xy = half4(causticIntensity, causticScale, causticFadeDepth, causticSpeed), zw = half4(causticDepthThresholdLow, causticDepthThresholdHigh, unused, unused)
+
+  uvec4 waterCausticParams2; // xy = half4(tintR, tintG, tintB, unused), zw = padding
+
+  uvec4 waterWhitecapParams; // xy = half4(colorR, colorG, colorB, patternScale), zw = half4(slopeThreshLow, slopeThreshHigh, breakupLow, breakupHigh)
+
+  uvec4 waterWhitecapParams2; // x = half2(whitecapFactor, unused), yzw = unused
+
+  uvec4 waterRainSplashParams; // xy = half4(cellSize, amplitude, ringFreq, envSharp), zw = half4(crownSharp, crownAmp, lifetime, waveSpeed)
+  uvec4 waterRainSplashParams2; // xy = half4(normalStrength, depthThresholdLow, depthThresholdHigh, unused), zw = unused/padding
+
   PlanetMaterial materials[16];
 
 }

@@ -104,7 +104,7 @@ begin
 
     // Count how often a vertex is used in the index buffer
     TrianglesPerVertex.Resize(aCountVertices);
-    FillChar(TrianglesPerVertex.Items[0],TrianglesPerVertex.Count*SizeOf(TpvUInt32),#0);
+    FillChar(TrianglesPerVertex.Items[0],TrianglesPerVertex.Count*SizeOf(TpvSizeInt),#0);
     for Index:=0 to aCountIndices-1 do begin
      inc(TrianglesPerVertex.Items[PpvUInt32Array(aIndices)^[Index]]);
     end;
@@ -112,7 +112,7 @@ begin
 	   // Calculate the offsets for to need to look up into the index buffer for a given triangle
     TriangleOffset:=0;
     IndexBufferOffset.Resize(aCountVertices);
-    FillChar(IndexBufferOffset.Items[0],IndexBufferOffset.Count*SizeOf(TpvUInt32),#0);
+    FillChar(IndexBufferOffset.Items[0],IndexBufferOffset.Count*SizeOf(TpvSizeInt),#0);
     for Index:=0 to aCountVertices-1 do begin
      IndexBufferOffset.Items[Index]:=TriangleOffset;
      inc(TriangleOffset,TrianglesPerVertex.Items[Index]);
@@ -138,6 +138,11 @@ begin
 
     end;
 
+    // Restore IndexBufferOffset (incremented during TriangleData build)
+    for Index:=0 to aCountVertices-1 do begin
+     dec(IndexBufferOffset.Items[Index],TrianglesPerVertex.Items[Index]);
+    end;
+
     LiveTriCount.Initialize;
     try
 
@@ -147,7 +152,7 @@ begin
      try
 
       CacheTimeStamps.Resize(aCountVertices);
-      FillChar(CacheTimeStamps.Items[0],CacheTimeStamps.Count*SizeOf(TpvUInt32),#0);
+      FillChar(CacheTimeStamps.Items[0],CacheTimeStamps.Count*SizeOf(TpvSizeInt),#0);
 
       DeadEndStack.Initialize;
       try
@@ -180,8 +185,8 @@ begin
             c:=PpvUInt32Array(aIndices)^[(Triangle*3)+2];
 
             PpvUInt32Array(aOptimizedIndices)^[aCountOptimizedIndices+0]:=a;
-            PpvUInt32Array(aOptimizedIndices)^[aCountOptimizedIndices+1]:=a;
-            PpvUInt32Array(aOptimizedIndices)^[aCountOptimizedIndices+2]:=a;
+            PpvUInt32Array(aOptimizedIndices)^[aCountOptimizedIndices+1]:=b;
+            PpvUInt32Array(aOptimizedIndices)^[aCountOptimizedIndices+2]:=c;
             inc(aCountOptimizedIndices,3);
 
             DeadEndStack.Enqueue(a);

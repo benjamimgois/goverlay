@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/poca](https://git.rosseaux.net/BeRo1985/poca).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # POCA
 
 Yet another scripting language that is still in the design phase - for example, its syntax and built-in standard library are not finalized yet.

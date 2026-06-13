@@ -11,7 +11,7 @@
 
 #include "bufferreference_definitions.glsl"
 
-#ifdef UNDERWATER
+#if defined(UNDERWATER) || defined(WATER_CAUSTICS)
 layout(location = 0) out OutBlock {
   vec2 texCoord;
   float underWater;
@@ -40,7 +40,7 @@ layout(location = 0) out OutBlock {
 
 // Per water render pass descriptor set
 
-#if !defined(UNDERWATER)
+#if !defined(UNDERWATER) && !defined(WATER_CAUSTICS)
 
 layout(set = 3, binding = 0) readonly buffer VisibilityBuffer {
   uint bitmap[];
@@ -101,6 +101,13 @@ void main(){
   outBlock.underWater = underWater ? 1.0 : 0.0;
   gl_Position = underWater ? vec4(vec2(ivec2((uv << ivec2(1)) - ivec2(1))), 0.0, 1.0) : vec4(uintBitsToFloat(0x7fffffffu));
 #endif
+
+#elif defined(WATER_CAUSTICS)
+  // Caustics: always a fullscreen triangle (no underwater-conditional discard)
+  ivec2 uv = ivec2(ivec2(int(gl_VertexIndex)) << ivec2(0, 1)) & ivec2(2);
+  outBlock.texCoord = vec2(uv);
+  outBlock.underWater = 0.0;
+  gl_Position = vec4(vec2(ivec2((uv << ivec2(1)) - ivec2(1))), 0.0, 1.0);
 
 #else
   uint countQuadPointsInOneDirection = pushConstants.countQuadPointsInOneDirection;

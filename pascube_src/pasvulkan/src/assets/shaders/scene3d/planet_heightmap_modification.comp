@@ -5,6 +5,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 
 /* clang-format off */
 
@@ -16,7 +17,7 @@ layout(set = 0, binding = 1) buffer TileMapDirtyBuffer {
   uint data[]; // bitwise dirty map
 } tileMapDirtyBuffer;
 
-layout(set = 0, binding = 2) uniform sampler2DArray uBrushTextureArray;
+layout(set = 0, binding = 2) uniform sampler2DArray uBrushTextureArray[];
 
 layout(push_constant) uniform PushConstants {
   vec4 positionRadius; // xyz = position, w = radius
@@ -28,6 +29,7 @@ layout(push_constant) uniform PushConstants {
 
 #include "octahedral.glsl"
 #include "octahedralmap.glsl"
+#include "planet_brushes.glsl"
 
 void main(){
   
@@ -41,48 +43,14 @@ void main(){
 
     vec3 n = normalize(pushConstants.positionRadius.xyz);
 
-    float d;
-
-    if(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z == 0u){
-
-      // Just a circle brush
-     
-      d = smoothstep(
-        0.0,
-        -pushConstants.innerRadiusValueMinMax.x,
-        length(p - n) - pushConstants.positionRadius.w
-      );
-
-    }else if(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z <= 255u){
-
-      // Brush texture
-
-      vec3 t = n.yzx - n.zxy, 
-           b = normalize(cross(n, t = normalize(t - dot(t, n)))),
-           o = p - n;
-      float brushRotation = uintBitsToFloat(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.w); 
-      if(brushRotation != 0.0){
-        const vec2 rotationSinCos = sin(vec2(brushRotation) + vec2(0.0, 1.57079632679));
-        const vec3 ot = t, ob = b;
-        t = (ot * rotationSinCos.y) - (ob * rotationSinCos.x);
-        b = (ot * rotationSinCos.x) + (ob * rotationSinCos.y);
-      }
-      vec2 uv = vec2(dot(o, t), dot(o, b)) / pushConstants.positionRadius.w;
-      d = smoothstep(1.0, 1.0 - (1.0 / length(textureSize(uBrushTextureArray, 0).xy)), max(abs(uv.x), abs(uv.y)));
-
-      d *= smoothstep(-1e-4, 1e-4, dot(p, n)); // When we are on the back side of the planet, we need to clear the brush, but smoothly.
-
-      if(d > 0.0){
-        d *= textureLod(uBrushTextureArray, vec3(fma(uv, vec2(0.5), vec2(0.5)), float(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z)), 0.0).x;
-      } 
-
-    }else{
-
-      // No brush
-
-      d = 0.0;
-
-    }
+    float d = sampleBrush(
+      p,
+      n,
+      pushConstants.positionRadius.w,
+      pushConstants.innerRadiusValueMinMax.x,
+      pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z,
+      uintBitsToFloat(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.w)
+    );
 
     if(d > 0.0){
 

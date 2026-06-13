@@ -2927,6 +2927,10 @@ begin
     result:='PVkWaylandDisplay';
    end else if Type_='wl_surface' then begin
     result:='PVkWaylandSurface';
+   end else if Type_='ubm_device' then begin
+    result:='PVkUBMDevice';
+   end else if Type_='ubm_surface' then begin
+    result:='PVkUBMSurface';
    end else if Type_='ANativeWindow' then begin
     result:='PVkAndroidANativeWindow';
    end else if Type_='AHardwareBuffer' then begin
@@ -3006,6 +3010,10 @@ begin
     result:='PPVkWaylandDisplay';
    end else if Type_='wl_surface' then begin
     result:='PPVkWaylandSurface';
+   end else if Type_='ubm_device' then begin
+    result:='PPVkUBMDevice';
+   end else if Type_='ubm_surface' then begin
+    result:='PPVkUBMSurface';
    end else if Type_='ANativeWindow' then begin
     result:='PPVkAndroidANativeWindow';
    end else if Type_='AHardwareBuffer' then begin
@@ -3084,6 +3092,10 @@ begin
     result:='TVkWaylandDisplay';
    end else if Type_='wl_surface' then begin
     result:='TVkWaylandSurface';
+   end else if Type_='ubm_device' then begin
+    result:='TVkUBMDevice';
+   end else if Type_='ubm_surface' then begin
+    result:='TVkUBMSurface';
    end else if Type_='ANativeWindow' then begin
     result:='TVkAndroidANativeWindow';
    end else if Type_='AHardwareBuffer' then begin
@@ -3567,6 +3579,318 @@ var i,j,k,ArraySize,OtherArraySize,CountTypeDefinitions,VersionVariant,VersionMa
    end;
   until Done;
  end;
+ procedure OptimizedResolveTypeDefinitionDependencies;
+ // Stable topological sort with SCC-based cycle handling.
+ // Uses Tarjan's SCC + Kahn's algorithm with min-heap for stable ordering.
+ type TCallStackItem=record
+       Node,EdgeIdx:longint;
+      end;
+ var NameToIndex:TStringList;
+     AdjList:array of array of longint;
+     AdjCount:array of longint;
+     InDegree:array of longint;
+
+     // Tarjan state
+     TarjanIndex,TarjanTop:longint;
+     TarjanNum,TarjanLow:array of longint;
+     TarjanOnStack:array of boolean;
+     TarjanStack:array of longint;
+     SCCId:array of longint;
+     SCCCount:longint;
+
+     // SCC-level DAG
+     SCCAdjList:array of array of longint;
+     SCCAdjCount:array of longint;
+     SCCInDegree:array of longint;
+     SCCMinOrigIdx:array of longint;
+
+     // Heap for Kahn
+     Heap:array of longint;
+     HeapCount:longint;
+
+     // Result
+     ResultList:TPTypeDefinitions;
+     ResultCount:longint;
+
+     // Temporaries
+     i,j,MemberIdx,DepIndex,Cur,Temp,Left,Right,Smallest,Parent:longint;
+     SccA,SccB:longint;
+     MemberType:ansistring;
+
+     // Iterative Tarjan stack
+     CallStack:array of TCallStackItem;
+     CallTop:longint;
+     SCCNodeList:array of array of longint;
+     SCCNodeCount:array of longint;
+
+  procedure AddEdge(FromNode,ToNode:longint);
+  begin
+   if FromNode<>ToNode then begin
+    if AdjCount[FromNode]>=length(AdjList[FromNode]) then begin
+     SetLength(AdjList[FromNode],(AdjCount[FromNode]*2)+4);
+    end;
+    AdjList[FromNode][AdjCount[FromNode]]:=ToNode;
+    inc(AdjCount[FromNode]);
+   end;
+  end;
+
+  procedure HeapPush(Value:longint);
+  var Pos:longint;
+  begin
+   if HeapCount>=length(Heap) then begin
+    SetLength(Heap,(HeapCount*2)+1);
+   end;
+   Heap[HeapCount]:=Value;
+   Pos:=HeapCount;
+   inc(HeapCount);
+   while Pos>0 do begin
+    Parent:=(Pos-1) div 2;
+    if SCCMinOrigIdx[Heap[Parent]]>SCCMinOrigIdx[Heap[Pos]] then begin
+     Temp:=Heap[Parent];
+     Heap[Parent]:=Heap[Pos];
+     Heap[Pos]:=Temp;
+     Pos:=Parent;
+    end else begin
+     break;
+    end;
+   end;
+  end;
+
+  function HeapPop:longint;
+  var Pos:longint;
+  begin
+   result:=Heap[0];
+   dec(HeapCount);
+   if HeapCount>0 then begin
+    Heap[0]:=Heap[HeapCount];
+    Pos:=0;
+    while true do begin
+     Left:=(Pos*2)+1;
+     Right:=(Pos*2)+2;
+     Smallest:=Pos;
+     if (Left<HeapCount) and (SCCMinOrigIdx[Heap[Left]]<SCCMinOrigIdx[Heap[Smallest]]) then begin
+      Smallest:=Left;
+     end;
+     if (Right<HeapCount) and (SCCMinOrigIdx[Heap[Right]]<SCCMinOrigIdx[Heap[Smallest]]) then begin
+      Smallest:=Right;
+     end;
+     if Smallest<>Pos then begin
+      Temp:=Heap[Pos];
+      Heap[Pos]:=Heap[Smallest];
+      Heap[Smallest]:=Temp;
+      Pos:=Smallest;
+     end else begin
+      break;
+     end;
+    end;
+   end;
+  end;
+
+ begin
+
+  if CountTypeDefinitions<=1 then begin
+   exit;
+  end;
+
+  NameToIndex:=TStringList.Create;
+  try
+
+   NameToIndex.Sorted:=true;
+   NameToIndex.Duplicates:=dupIgnore;
+   for i:=0 to CountTypeDefinitions-1 do begin
+    NameToIndex.AddObject(SortedTypeDefinitions[i]^.Name,TObject(pointer(PtrInt(i))));
+   end;
+
+   SetLength(AdjList,CountTypeDefinitions);
+   SetLength(AdjCount,CountTypeDefinitions);
+   for i:=0 to CountTypeDefinitions-1 do begin
+    AdjCount[i]:=0;
+   end;
+   for i:=0 to CountTypeDefinitions-1 do begin
+    if length(SortedTypeDefinitions[i]^.Alias)>0 then begin
+     j:=NameToIndex.IndexOf(SortedTypeDefinitions[i]^.Alias);
+     if j>=0 then begin
+      DepIndex:=longint(PtrInt(pointer(NameToIndex.Objects[j])));
+      AddEdge(DepIndex,i);
+     end;
+    end;
+    for MemberIdx:=0 to SortedTypeDefinitions[i]^.CountMembers-1 do begin
+     MemberType:=SortedTypeDefinitions[i]^.Members[MemberIdx].Type_;
+     j:=NameToIndex.IndexOf(MemberType);
+     if j>=0 then begin
+      DepIndex:=longint(PtrInt(pointer(NameToIndex.Objects[j])));
+      AddEdge(DepIndex,i);
+     end;
+    end;
+   end;
+
+   // Tarjan SCC (iterative)
+   TarjanIndex:=0;
+   TarjanTop:=0;
+   SCCCount:=0;
+   SetLength(TarjanNum,CountTypeDefinitions);
+   SetLength(TarjanLow,CountTypeDefinitions);
+   SetLength(TarjanOnStack,CountTypeDefinitions);
+   SetLength(TarjanStack,CountTypeDefinitions);
+   SetLength(SCCId,CountTypeDefinitions);
+   SetLength(CallStack,CountTypeDefinitions+1);
+   for i:=0 to CountTypeDefinitions-1 do begin
+    TarjanNum[i]:=-1;
+    TarjanOnStack[i]:=false;
+    SCCId[i]:=-1;
+   end;
+   for i:=0 to CountTypeDefinitions-1 do begin
+    if TarjanNum[i]<0 then begin
+     CallTop:=0;
+     CallStack[0].Node:=i;
+     CallStack[0].EdgeIdx:=0;
+     TarjanNum[i]:=TarjanIndex;
+     TarjanLow[i]:=TarjanIndex;
+     inc(TarjanIndex);
+     TarjanStack[TarjanTop]:=i;
+     inc(TarjanTop);
+     TarjanOnStack[i]:=true;
+     while CallTop>=0 do begin
+      Cur:=CallStack[CallTop].Node;
+      if CallStack[CallTop].EdgeIdx<AdjCount[Cur] then begin
+       j:=AdjList[Cur][CallStack[CallTop].EdgeIdx];
+       inc(CallStack[CallTop].EdgeIdx);
+       if TarjanNum[j]<0 then begin
+        TarjanNum[j]:=TarjanIndex;
+        TarjanLow[j]:=TarjanIndex;
+        inc(TarjanIndex);
+        TarjanStack[TarjanTop]:=j;
+        inc(TarjanTop);
+        TarjanOnStack[j]:=true;
+        inc(CallTop);
+        if CallTop>=length(CallStack) then begin
+         SetLength(CallStack,(CallTop*2)+1);
+        end;
+        CallStack[CallTop].Node:=j;
+        CallStack[CallTop].EdgeIdx:=0;
+       end else if TarjanOnStack[j] then begin
+        if TarjanLow[Cur]>TarjanNum[j] then begin
+         TarjanLow[Cur]:=TarjanNum[j];
+        end;
+       end;
+      end else begin
+       if TarjanLow[Cur]=TarjanNum[Cur] then begin
+        repeat
+         dec(TarjanTop);
+         j:=TarjanStack[TarjanTop];
+         TarjanOnStack[j]:=false;
+         SCCId[j]:=SCCCount;
+        until j=Cur;
+        inc(SCCCount);
+       end;
+       dec(CallTop);
+       if CallTop>=0 then begin
+        if TarjanLow[CallStack[CallTop].Node]>TarjanLow[Cur] then begin
+         TarjanLow[CallStack[CallTop].Node]:=TarjanLow[Cur];
+        end;
+       end;
+      end;
+     end;
+    end;
+   end;
+
+   // Build SCC DAG and collect nodes per SCC
+   SetLength(SCCNodeList,SCCCount);
+   SetLength(SCCNodeCount,SCCCount);
+   SetLength(SCCMinOrigIdx,SCCCount);
+   SetLength(SCCInDegree,SCCCount);
+   SetLength(SCCAdjList,SCCCount);
+   SetLength(SCCAdjCount,SCCCount);
+   for i:=0 to SCCCount-1 do begin
+    SCCNodeCount[i]:=0;
+    SCCMinOrigIdx[i]:=CountTypeDefinitions;
+    SCCInDegree[i]:=0;
+    SCCAdjCount[i]:=0;
+   end;
+   for i:=0 to CountTypeDefinitions-1 do begin
+    SccA:=SCCId[i];
+    inc(SCCNodeCount[SccA]);
+    if i<SCCMinOrigIdx[SccA] then begin
+     SCCMinOrigIdx[SccA]:=i;
+    end;
+   end;
+   for i:=0 to SCCCount-1 do begin
+    SetLength(SCCNodeList[i],SCCNodeCount[i]);
+    SCCNodeCount[i]:=0;
+   end;
+   for i:=0 to CountTypeDefinitions-1 do begin
+    SccA:=SCCId[i];
+    SCCNodeList[SccA][SCCNodeCount[SccA]]:=i;
+    inc(SCCNodeCount[SccA]);
+   end;
+   for i:=0 to CountTypeDefinitions-1 do begin
+    SccA:=SCCId[i];
+    for j:=0 to AdjCount[i]-1 do begin
+     SccB:=SCCId[AdjList[i][j]];
+     if SccA<>SccB then begin
+      // Check for duplicate edge
+      Temp:=-1;
+      for MemberIdx:=0 to SCCAdjCount[SccA]-1 do begin
+       if SCCAdjList[SccA][MemberIdx]=SccB then begin
+        Temp:=0;
+        break;
+       end;
+      end;
+      if Temp<0 then begin
+       if SCCAdjCount[SccA]>=length(SCCAdjList[SccA]) then begin
+        SetLength(SCCAdjList[SccA],(SCCAdjCount[SccA]*2)+4);
+       end;
+       SCCAdjList[SccA][SCCAdjCount[SccA]]:=SccB;
+       inc(SCCAdjCount[SccA]);
+       inc(SCCInDegree[SccB]);
+      end;
+     end;
+    end;
+   end;
+
+   // Kahn's on SCC DAG
+   HeapCount:=0;
+   SetLength(Heap,SCCCount);
+   for i:=0 to SCCCount-1 do begin
+    if SCCInDegree[i]=0 then begin
+     HeapPush(i);
+    end;
+   end;
+   SetLength(ResultList,CountTypeDefinitions);
+   ResultCount:=0;
+   while HeapCount>0 do begin
+    Cur:=HeapPop;
+    // Emit nodes of this SCC in original order
+    for j:=0 to SCCNodeCount[Cur]-1 do begin
+     ResultList[ResultCount]:=SortedTypeDefinitions[SCCNodeList[Cur][j]];
+     inc(ResultCount);
+    end;
+    for j:=0 to SCCAdjCount[Cur]-1 do begin
+     DepIndex:=SCCAdjList[Cur][j];
+     dec(SCCInDegree[DepIndex]);
+     if SCCInDegree[DepIndex]=0 then begin
+      HeapPush(DepIndex);
+     end;
+    end;
+   end;
+   if ResultCount<CountTypeDefinitions then begin
+    for i:=0 to CountTypeDefinitions-1 do begin
+     if SCCInDegree[SCCId[i]]>0 then begin
+      ResultList[ResultCount]:=SortedTypeDefinitions[i];
+      inc(ResultCount);
+     end;
+    end;
+   end;
+
+   for i:=0 to CountTypeDefinitions-1 do begin
+    SortedTypeDefinitions[i]:=ResultList[i];
+   end;
+
+  finally
+   NameToIndex.Free;
+  end;
+
+ end;
  function MemberComment(s:ansistring):ansistring;
  begin
   s:=StringReplace(s,#13#10,' ',[rfReplaceAll,rfIgnoreCase]);
@@ -3834,118 +4158,227 @@ begin
         Text:='';
         Ptr:=false;
         Constant:=false;
-        for j:=0 to ChildTag.Items.Count-1 do begin
-         ChildChildItem:=ChildTag.Items[j];
-         if ChildChildItem is TXMLTag then begin
-          ChildChildTag:=TXMLTag(ChildChildItem);
-          if not CheckForVulkanAPI(ChildChildTag) then begin
-           continue;
+        // New vk.xml format: funcpointers use <proto>/<param> structure
+        if assigned(ChildTag.FindTag('proto')) then begin
+         ChildChildTag:=ChildTag.FindTag('proto');
+         TypeDefinition^.Name:=ParseText(ChildChildTag.FindTag('name'),['type']);
+         Text:=ParseText(ChildChildTag,['name']);
+         if pos('*',Text)>0 then begin
+          TypeDefinition^.Ptr:=1;
+         end;
+         Type_:=ParseText(ChildChildTag.FindTag('type'),[]);
+         if Type_='void' then begin
+          if TypeDefinition^.Ptr>0 then begin
+           TypeDefinition^.Type_:='void';
+          end else begin
+           TypeDefinition^.Type_:='void';
           end;
-          if ChildChildTag.Name='name' then begin
-           TypeDefinition^.Name:=ParseText(ChildChildTag,['']);
-           if pos('void*',Text)>0 then begin
-            TypeDefinition^.Ptr:=1;
-            TypeDefinition^.Type_:='void';
-           end else begin
-            Text:=trim(StringReplace(Text,'typedef','',[rfReplaceAll]));
-            Text:=trim(StringReplace(Text,'VKAPI_PTR','',[rfReplaceAll]));
-            Text:=trim(StringReplace(Text,'(','',[rfReplaceAll]));
-            Text:=trim(StringReplace(Text,'*','',[rfReplaceAll]));
-            TypeDefinition^.Type_:=Text;
-           end;
-          end else if ChildChildTag.Name='type' then begin
-           Type_:=ParseText(ChildChildTag,['']);
-          end;
-         end else if ChildChildItem is TXMLText then begin
-          Text:=TXMLText(ChildChildItem).Text;
-          if length(TypeDefinition^.Name)>0 then begin
-           while length(Text)>0 do begin
-            NextText:='';
-            if trim(Text)='const' then begin
-             Constant:=true;
-            end else if length(Type_)>0 then begin
-             if length(TypeDefinition^.Members)<TypeDefinition^.CountMembers+1 then begin
-              SetLength(TypeDefinition^.Members,(TypeDefinition^.CountMembers+1)*2);
-             end;
-             TypeDefinitionMember:=@TypeDefinition^.Members[TypeDefinition^.CountMembers];
-             inc(TypeDefinition^.CountMembers);
-             if (Type_='HWND') or (Type_='HMONITOR') or (Type_='HINSTANCE') or (Type_='SECURITY_ATTRIBUTES') then begin
-              TypeDefinition^.Define:='Windows';
-             end else if Type_='RROutput' then begin
-              TypeDefinition^.Define:='RandR';
-             end else if (Type_='Display') or (Type_='VisualID') or (Type_='Window') then begin
-              TypeDefinition^.Define:='XLIB';
-             end else if (Type_='xcb_connection_t') or (Type_='xcb_visualid_t') or (Type_='xcb_window_t') then begin
-              TypeDefinition^.Define:='XCB';
-             end else if (Type_='wl_display') or (Type_='wl_surface') then begin
-              TypeDefinition^.Define:='Wayland';
-             end else if (Type_='ANativeWindow') or (Type_='AHardwareBuffer') then begin
-              TypeDefinition^.Define:='Android';
-             end else if (Type_='zx_handle_t') or (pos('FUCHSIA',UpperCase(Type_))>0) then begin
-              TypeDefinition^.Define:='Fuchsia';
-             end else if (pos('MTL',Type_)>0) then begin
-              TypeDefinition^.Define:='Metal';
-             end else if (Type_='IDirectFB') or (Type_='IDirectFBSurface') or (pos('DIRECTFB',UpperCase(Type_))>0) then begin
-              TypeDefinition^.Define:='DirectFB';
-             end else if (pos('_screen_context',Type_)>0) or (pos('_screen_window',Type_)>0) or (pos('qnx',LowerCase(Type_))>0) then begin
-              TypeDefinition^.Define:='QNX';
-             end else if pos('StdVideo',Type_)>0 then begin
-              TypeDefinition^.Define:='VkStdVideo';
-             end else if pos('VkVideo',Type_)>0 then begin
-              TypeDefinition^.Define:='VkVideo';
-             end else if (pos('NvSci',Type_)>0) or (Type_='VkSemaphoreSciSyncPoolNV') or ((pos('Sci',Type_)>0) and (pos('NV',Type_)>0)) then begin
-              TypeDefinition^.Define:='NvSci';
-             end else if (Type_='VkFaultLevel') or (Type_='VkFaultType') or (Type_='VkFaultData') or (Type_='VkCommandPoolMemoryConsumption') then begin
-              TypeDefinition^.Define:='VulkanSC';
-             end else if (Type_='VkPerformanceQueryReservationInfoKHR') or
-                         (Type_='VkPipelineOfflineCreateInfo') or
-                         (Type_='VkPhysicalDeviceVulkanSC10Properties') or
-                         (Type_='VkPipelinePoolSize') or
-                         (Type_='VkDeviceObjectReservationCreateInfo') or
-                         (Type_='VkCommandPoolMemoryReservationCreateInfo') or
-                         (Type_='VkCommandPoolMemoryConsumption') or
-                         (Type_='VkPhysicalDeviceVulkanSC10Features') then begin
-              TypeDefinition^.Define:='VulkanSC';
-             end;
-             TypeDefinitionMember^.Type_:=Type_;
-             k:=pos(',',Text);
-             if k>0 then begin
-              NextText:=trim(copy(Text,k+1,(length(Text)-k)+1));
-              Text:=trim(copy(Text,1,k-1));
-             end;
-             Text:=trim(StringReplace(Text,');','',[rfReplaceAll]));
-             if pos('*',Text)>0 then begin
-              for k:=1 to length(Text) do begin
-               if Text[k]='*' then begin
-                inc(TypeDefinitionMember^.Ptr);
-               end;
-              end;
-              Text:=trim(StringReplace(Text,'*','',[rfReplaceAll]));
-             end;
-             TypeDefinitionMember^.Constant:=Constant;
-             Constant:=false;
-             if Text='object' then begin
-              Text:='object_';
-             end else if Text='function' then begin
-              Text:='function_';
-             end else if Text='set' then begin
-              Text:='set_';
-             end else if Text='unit' then begin
-              Text:='unit_';
-             end;
-             TypeDefinitionMember^.Name:=Text;
-             TypeDefinitionMember^.ArraySizeInt:=0;
-             TypeDefinitionMember^.ArraySizeStr:='';
-             TypeDefinitionMember^.OtherArraySizeInt:=0;
-             TypeDefinitionMember^.Comment:='';
-             Type_:='';
+         end else begin
+          TypeDefinition^.Type_:=Type_;
+         end;
+         for j:=0 to ChildTag.Items.Count-1 do begin
+          ChildChildItem:=ChildTag.Items[j];
+          if ChildChildItem is TXMLTag then begin
+           ChildChildTag:=TXMLTag(ChildChildItem);
+           if ChildChildTag.Name='param' then begin
+            Type_:=ParseText(ChildChildTag.FindTag('type'),[]);
+            Name:=ParseText(ChildChildTag.FindTag('name'),[]);
+            Text:=ParseText(ChildChildTag,['type','name']);
+            if length(TypeDefinition^.Members)<TypeDefinition^.CountMembers+1 then begin
+             SetLength(TypeDefinition^.Members,(TypeDefinition^.CountMembers+1)*2);
             end;
-            Text:=NextText;
+            TypeDefinitionMember:=@TypeDefinition^.Members[TypeDefinition^.CountMembers];
+            inc(TypeDefinition^.CountMembers);
+            if (Type_='HWND') or (Type_='HMONITOR') or (Type_='HINSTANCE') or (Type_='SECURITY_ATTRIBUTES') then begin
+             TypeDefinition^.Define:='Windows';
+            end else if Type_='RROutput' then begin
+             TypeDefinition^.Define:='RandR';
+            end else if (Type_='Display') or (Type_='VisualID') or (Type_='Window') then begin
+             TypeDefinition^.Define:='XLIB';
+            end else if (Type_='xcb_connection_t') or (Type_='xcb_visualid_t') or (Type_='xcb_window_t') then begin
+             TypeDefinition^.Define:='XCB';
+            end else if (Type_='wl_display') or (Type_='wl_surface') then begin
+             TypeDefinition^.Define:='Wayland';
+            end else if (Type_='ubm_device') or (Type_='ubm_surface') then begin
+             TypeDefinition^.Define:='UBM';
+            end else if (Type_='ANativeWindow') or (Type_='AHardwareBuffer') then begin
+             TypeDefinition^.Define:='Android';
+            end else if (Type_='zx_handle_t') or (pos('FUCHSIA',UpperCase(Type_))>0) then begin
+             TypeDefinition^.Define:='Fuchsia';
+            end else if (pos('MTL',Type_)>0) then begin
+             TypeDefinition^.Define:='Metal';
+            end else if (Type_='IDirectFB') or (Type_='IDirectFBSurface') or (pos('DIRECTFB',UpperCase(Type_))>0) then begin
+             TypeDefinition^.Define:='DirectFB';
+            end else if (pos('_screen_context',Type_)>0) or (pos('_screen_window',Type_)>0) or (pos('qnx',LowerCase(Type_))>0) then begin
+             TypeDefinition^.Define:='QNX';
+            end else if pos('StdVideo',Type_)>0 then begin
+             TypeDefinition^.Define:='VkStdVideo';
+            end else if pos('VkVideo',Type_)>0 then begin
+             TypeDefinition^.Define:='VkVideo';
+            end else if (pos('NvSci',Type_)>0) or (Type_='VkSemaphoreSciSyncPoolNV') or ((pos('Sci',Type_)>0) and (pos('NV',Type_)>0)) then begin
+             TypeDefinition^.Define:='NvSci';
+            end else if (Type_='VkFaultLevel') or (Type_='VkFaultType') or (Type_='VkFaultData') or (Type_='VkCommandPoolMemoryConsumption') then begin
+             TypeDefinition^.Define:='VulkanSC';
+            end else if (Type_='VkPerformanceQueryReservationInfoKHR') or
+                        (Type_='VkPipelineOfflineCreateInfo') or
+                        (Type_='VkPhysicalDeviceVulkanSC10Properties') or
+                        (Type_='VkPipelinePoolSize') or
+                        (Type_='VkDeviceObjectReservationCreateInfo') or
+                        (Type_='VkCommandPoolMemoryReservationCreateInfo') or
+                        (Type_='VkCommandPoolMemoryConsumption') or
+                        (Type_='VkPhysicalDeviceVulkanSC10Features') then begin
+             TypeDefinition^.Define:='VulkanSC';
+            end;
+            TypeDefinitionMember^.Type_:=Type_;
+            TypeDefinitionMember^.Ptr:=0;
+            if pos('*',Text)>0 then begin
+             for k:=1 to length(Text) do begin
+              if Text[k]='*' then begin
+               inc(TypeDefinitionMember^.Ptr);
+              end;
+             end;
+            end;
+            TypeDefinitionMember^.Constant:=pos('const',Text)>0;
+            if Name='object' then begin
+             Name:='object_';
+            end else if Name='function' then begin
+             Name:='function_';
+            end else if Name='set' then begin
+             Name:='set_';
+            end else if Name='unit' then begin
+             Name:='unit_';
+            end else if Name='property' then begin
+             Name:='property_';
+            end;
+            TypeDefinitionMember^.Name:=Name;
+            TypeDefinitionMember^.ArraySizeInt:=0;
+            TypeDefinitionMember^.ArraySizeStr:='';
+            TypeDefinitionMember^.OtherArraySizeInt:=0;
+            TypeDefinitionMember^.Comment:='';
+            Type_:='';
            end;
           end;
          end;
+         SetLength(TypeDefinition^.Members,TypeDefinition^.CountMembers);
+        end else begin
+         // Old vk.xml format: funcpointers use inline typedef text
+         for j:=0 to ChildTag.Items.Count-1 do begin
+          ChildChildItem:=ChildTag.Items[j];
+          if ChildChildItem is TXMLTag then begin
+           ChildChildTag:=TXMLTag(ChildChildItem);
+           if not CheckForVulkanAPI(ChildChildTag) then begin
+            continue;
+           end;
+           if ChildChildTag.Name='name' then begin
+            TypeDefinition^.Name:=ParseText(ChildChildTag,['']);
+            if pos('void*',Text)>0 then begin
+             TypeDefinition^.Ptr:=1;
+             TypeDefinition^.Type_:='void';
+            end else begin
+             Text:=trim(StringReplace(Text,'typedef','',[rfReplaceAll]));
+             Text:=trim(StringReplace(Text,'VKAPI_PTR','',[rfReplaceAll]));
+             Text:=trim(StringReplace(Text,'(','',[rfReplaceAll]));
+             Text:=trim(StringReplace(Text,'*','',[rfReplaceAll]));
+             TypeDefinition^.Type_:=Text;
+            end;
+           end else if ChildChildTag.Name='type' then begin
+            Type_:=ParseText(ChildChildTag,['']);
+           end;
+          end else if ChildChildItem is TXMLText then begin
+           Text:=TXMLText(ChildChildItem).Text;
+           if length(TypeDefinition^.Name)>0 then begin
+            while length(Text)>0 do begin
+             NextText:='';
+             if trim(Text)='const' then begin
+              Constant:=true;
+             end else if length(Type_)>0 then begin
+              if length(TypeDefinition^.Members)<TypeDefinition^.CountMembers+1 then begin
+               SetLength(TypeDefinition^.Members,(TypeDefinition^.CountMembers+1)*2);
+              end;
+              TypeDefinitionMember:=@TypeDefinition^.Members[TypeDefinition^.CountMembers];
+              inc(TypeDefinition^.CountMembers);
+              if (Type_='HWND') or (Type_='HMONITOR') or (Type_='HINSTANCE') or (Type_='SECURITY_ATTRIBUTES') then begin
+               TypeDefinition^.Define:='Windows';
+              end else if Type_='RROutput' then begin
+               TypeDefinition^.Define:='RandR';
+              end else if (Type_='Display') or (Type_='VisualID') or (Type_='Window') then begin
+               TypeDefinition^.Define:='XLIB';
+              end else if (Type_='xcb_connection_t') or (Type_='xcb_visualid_t') or (Type_='xcb_window_t') then begin
+               TypeDefinition^.Define:='XCB';
+              end else if (Type_='wl_display') or (Type_='wl_surface') then begin
+               TypeDefinition^.Define:='Wayland';
+              end else if (Type_='ubm_device') or (Type_='ubm_surface') then begin
+               TypeDefinition^.Define:='UBM';
+              end else if (Type_='ANativeWindow') or (Type_='AHardwareBuffer') then begin
+               TypeDefinition^.Define:='Android';
+              end else if (Type_='zx_handle_t') or (pos('FUCHSIA',UpperCase(Type_))>0) then begin
+               TypeDefinition^.Define:='Fuchsia';
+              end else if (pos('MTL',Type_)>0) then begin
+               TypeDefinition^.Define:='Metal';
+              end else if (Type_='IDirectFB') or (Type_='IDirectFBSurface') or (pos('DIRECTFB',UpperCase(Type_))>0) then begin
+               TypeDefinition^.Define:='DirectFB';
+              end else if (pos('_screen_context',Type_)>0) or (pos('_screen_window',Type_)>0) or (pos('qnx',LowerCase(Type_))>0) then begin
+               TypeDefinition^.Define:='QNX';
+              end else if pos('StdVideo',Type_)>0 then begin
+               TypeDefinition^.Define:='VkStdVideo';
+              end else if pos('VkVideo',Type_)>0 then begin
+               TypeDefinition^.Define:='VkVideo';
+              end else if (pos('NvSci',Type_)>0) or (Type_='VkSemaphoreSciSyncPoolNV') or ((pos('Sci',Type_)>0) and (pos('NV',Type_)>0)) then begin
+               TypeDefinition^.Define:='NvSci';
+              end else if (Type_='VkFaultLevel') or (Type_='VkFaultType') or (Type_='VkFaultData') or (Type_='VkCommandPoolMemoryConsumption') then begin
+               TypeDefinition^.Define:='VulkanSC';
+              end else if (Type_='VkPerformanceQueryReservationInfoKHR') or
+                          (Type_='VkPipelineOfflineCreateInfo') or
+                          (Type_='VkPhysicalDeviceVulkanSC10Properties') or
+                          (Type_='VkPipelinePoolSize') or
+                          (Type_='VkDeviceObjectReservationCreateInfo') or
+                          (Type_='VkCommandPoolMemoryReservationCreateInfo') or
+                          (Type_='VkCommandPoolMemoryConsumption') or
+                          (Type_='VkPhysicalDeviceVulkanSC10Features') then begin
+               TypeDefinition^.Define:='VulkanSC';
+              end;
+              TypeDefinitionMember^.Type_:=Type_;
+              k:=pos(',',Text);
+              if k>0 then begin
+               NextText:=trim(copy(Text,k+1,(length(Text)-k)+1));
+               Text:=trim(copy(Text,1,k-1));
+              end;
+              Text:=trim(StringReplace(Text,');','',[rfReplaceAll]));
+              if pos('*',Text)>0 then begin
+               for k:=1 to length(Text) do begin
+                if Text[k]='*' then begin
+                 inc(TypeDefinitionMember^.Ptr);
+                end;
+               end;
+               Text:=trim(StringReplace(Text,'*','',[rfReplaceAll]));
+              end;
+              TypeDefinitionMember^.Constant:=Constant;
+              Constant:=false;
+              if Text='object' then begin
+               Text:='object_';
+              end else if Text='function' then begin
+               Text:='function_';
+              end else if Text='set' then begin
+               Text:='set_';
+              end else if Text='unit' then begin
+               Text:='unit_';
+              end else if Text='property' then begin
+               Text:='property_';
+              end;
+              TypeDefinitionMember^.Name:=Text;
+              TypeDefinitionMember^.ArraySizeInt:=0;
+              TypeDefinitionMember^.ArraySizeStr:='';
+              TypeDefinitionMember^.OtherArraySizeInt:=0;
+              TypeDefinitionMember^.Comment:='';
+              Type_:='';
+             end;
+             Text:=NextText;
+            end;
+           end;
+          end;
+         end;
+         SetLength(TypeDefinition^.Members,TypeDefinition^.CountMembers);
         end;
-        SetLength(TypeDefinition^.Members,TypeDefinition^.CountMembers);
        end else if (Category='struct') or (Category='union') then begin
         Name:=ChildTag.GetParameter('name');
         TypeDefinition:=@TypeDefinitions[CountTypeDefinitions];
@@ -4077,6 +4510,8 @@ begin
             Name:='set_';
            end else if Name='unit' then begin
             Name:='unit_';
+           end else if Name='property' then begin
+            Name:='property_';
            end;
            TypeDefinitionMember:=@TypeDefinition^.Members[TypeDefinition^.CountMembers];
            inc(TypeDefinition^.CountMembers);
@@ -4113,6 +4548,8 @@ begin
             TypeDefinition^.Define:='XCB';
            end else if (Type_='wl_display') or (Type_='wl_surface') then begin
             TypeDefinition^.Define:='Wayland';
+           end else if (Type_='ubm_device') or (Type_='ubm_surface') then begin
+            TypeDefinition^.Define:='UBM';
            end else if (Type_='ANativeWindow') or (Type_='AHardwareBuffer') then begin
             TypeDefinition^.Define:='Android';
            end else if (Type_='zx_handle_t') or (pos('FUCHSIA',UpperCase(Type_))>0) then begin
@@ -4152,7 +4589,7 @@ begin
    SortedTypeDefinitions[i]:=@TypeDefinitions[i];
    TypeDefinitionList.AddObject(TypeDefinitions[i].Name,pointer(SortedTypeDefinitions[i]));
   end;
-  ResolveTypeDefinitionDependencies;
+  OptimizedResolveTypeDefinitionDependencies; //ResolveTypeDefinitionDependencies
   for i:=0 to CountTypeDefinitions-1 do begin
    TypeDefinition:=SortedTypeDefinitions[i];
    if length(TypeDefinition^.Define)>0 then begin
@@ -4573,7 +5010,8 @@ begin
           (TypeDefinition^.Name<>'VkSubpassEndInfoKHR') and
           (TypeDefinition^.Name<>'VkSubpassEndInfo') and
           (TypeDefinition^.Name<>'VkExportMetalObjectsInfoEXT') and
-          (TypeDefinition^.Name<>'VkPipelineCreateInfoKHR') then begin
+          (TypeDefinition^.Name<>'VkPipelineCreateInfoKHR') and
+          (RecordConstructorStringList.Count>0) then begin
         if HasArray then begin
          RecordConstructorCodeStringList.Add('var ArrayItemCount:TVkInt32;');
         end;
@@ -5089,6 +5527,8 @@ begin
           ParamName:='set_';
          end else if ParamName='unit' then begin
           ParamName:='unit_';
+         end else if ParamName='property' then begin
+          ParamName:='property_';
          end;
          if pos('const ',trim(Text))=1 then begin
           Line:=Line+'const ';
@@ -5108,6 +5548,8 @@ begin
           Define:='XCB';
          end else if (ParamType='wl_display') or (ParamType='wl_surface') or (pos('Wayland',ParamType)>0) then begin
           Define:='Wayland';
+         end else if (ParamType='ubm_device') or (ParamType='ubm_surface') or (pos('Ubm',ParamType)>0) then begin
+          Define:='UBM';
          end else if (pos('IOS',UpperCase(ParamType))>0) and (pos('MVK',ParamType)>0) then begin
           Define:='MoltenVK_IOS';
          end else if (pos('MACOS',UpperCase(ParamType))>0) and (pos('MVK',ParamType)>0) then begin
@@ -5606,6 +6048,14 @@ begin
    OutputPAS.Add('');
    OutputPAS.Add('     PPVkWaylandSurface=^PVkWaylandSurface;');
    OutputPAS.Add('     PVkWaylandSurface={$ifdef VulkanUseWaylandUnits}Pwl_surface{$else}TVkPointer{$endif};');
+   OutputPAS.Add('{$endif}');
+   OutputPAS.Add('');
+   OutputPAS.Add('{$ifdef UBM}');
+   OutputPAS.Add('     PPVkUBMDevice=^PVkUBMDevice;');
+   OutputPAS.Add('     PVkUBMDevice=TVkPointer;');
+   OutputPAS.Add('');
+   OutputPAS.Add('     PPVkUBMSurface=^PVkUBMSurface;');
+   OutputPAS.Add('     PVkUBMSurface=TVkPointer;');
    OutputPAS.Add('{$endif}');
    OutputPAS.Add('');
    OutputPAS.Add('{$ifdef XCB}');

@@ -37,58 +37,58 @@ struct CloudPhaseParameters {
 };
 
 struct CloudParameters {
-  
+
   vec4 ShapeNoiseWeights;
-  
+
   vec4 DetailNoiseWeights;
-  
-  vec4 /*CloudPhaseParameters*/PhaseParameters; // x = G, y = G2, z = Offset, w = Blend 
-  
+
+  vec4 /*CloudPhaseParameters*/PhaseParameters; // x = G, y = G2, z = Offset, w = Blend
+
   float DetailNoiseMultiplier;
   float StartHeight;
   float EndHeight;
   float CloudScale;
-  
+
   float DetailScale;
   float DensityOffset;
   float DensityMultiplier;
-  float Padding0; 
-  
+  float Padding0;
+
   float LightAbsTowardsSun;
   float LightAbsThroughCloud;
   float DarknessThreshold;
-  float Padding1; 
+  float Padding1;
 
   uint Flags;
   uint CountSamples;
   uint CountSamplesToSun;
-  uint Padding2; 
+  uint Padding2;
 
 };
 
 struct VolumetricCloudLayerLow {
-   
-  vec4 Orientation; 
+
+  vec4 Orientation;
 
   float StartHeight;
   float EndHeight;
   float PositionScale;
   float ShapeNoiseScale;
-  
+
   float DetailNoiseScale;
   float CurlScale;
   float AdvanceCurlScale;
   float AdvanceCurlAmplitude;
-    
+
   mat3x4 heightGradients;
-  mat3x4 anvilDeformations; // unused for now  
+  mat3x4 anvilDeformations; // unused for now
 
 };
 
 struct VolumetricCloudLayerHigh {
 
-  vec4 Orientation; 
-  
+  vec4 Orientation;
+
   float StartHeight;
   float EndHeight;
   float PositionScale;
@@ -102,7 +102,7 @@ struct VolumetricCloudLayerHigh {
   float Speed;
   float Padding0;
   float Padding1;
-  float Padding2;             
+  float Padding2;
 
   vec4 RotationBase;
 
@@ -115,7 +115,7 @@ struct VolumetricCloudLayerHigh {
   vec4 OctaveScales;
 
   vec4 OctaveFactors;
-  
+
 };
 
 struct VolumetricCloudParameters {
@@ -126,7 +126,7 @@ struct VolumetricCloudParameters {
   vec4 wetCoverageTypeWetnessTopFactors; // x = Coverage, y = Type, z = Wetness, w = Top
   vec4 wetCoverageTypeWetnessTopOffsets; // x = Coverage, y = Type, z = Wetness, w = Top
 
-  vec4 Scattering; 
+  vec4 Scattering;
   vec4 Absorption;
 
   float LightingDensity;
@@ -153,56 +153,56 @@ struct VolumetricCloudParameters {
   float WetnessDensityFactor;
   float WetnessLuminanceFactor;
   float Padding;
-  
+
   VolumetricCloudLayerLow LayerLow;
   VolumetricCloudLayerHigh LayerHigh;
 
 };
 
 // Atmosphere culling for avoiding rendering the atmosphere scattering inside scene objects, when the GPU is too slow for real atmospheric shadowing either by
-// using shadow mapping or by using raytracing. 
+// using shadow mapping or by using raytracing.
 // This structure data must set dynamically based on the scene object that it should cull the atmosphere scattering inside.
 struct AtmosphereCullingParameters {
   uvec4 innerOuterFadeDistancesCountFacesMode; // x = inner fade distance, y = outer fade distance, z = count faces, w = mode (0 = Disabled, 1 = Sphere, 2 = AABB, 3 = Convex Hull)
-  mat4 inversedTransform; // Inversed transform matrix 
-  vec4 boundingSphere; // xyz = center, w = radius 
+  mat4 inversedTransform; // Inversed transform matrix
+  vec4 boundingSphere; // xyz = center, w = radius
   vec4 facePlanes[32]; // maximal 32 faces, but for AABB [0] is the center and [1] is the extent, for Sphere [0] is the center (xyz) with radius (w)
 };
 
 struct AtmosphereParameters {
 
   mat4 transform;
- 
+
   mat4 inverseTransform;
- 
+
   mat4 originTransform;
 
   mat4 inverseOriginTransform;
 
   vec4 RayleighScattering; // w = Mu_S_min
- 
+
   vec4 MieScattering; // w = sun direction X
- 
+
   vec4 MieExtinction; // w = sun direction Y
- 
+
   vec4 MieAbsorption; // w = sun direction Z
-  
-  vec4 AbsorptionExtinction; // w = fade factor
- 
+
+  vec4 AbsorptionExtinction; // w = Fade factor, 0.0 = no atmosphere, 1.0 = full atmosphere
+
   vec4 GroundAlbedo; // w = intensity
- 
+
   vec4 SolarIlluminance; // w = intensity
- 
+
   float BottomRadius;
   float TopRadius;
   float RayleighDensityExpScale;
   float MieDensityExpScale;
- 
+
   float MiePhaseG;
   float AbsorptionDensity0LayerWidth;
   float AbsorptionDensity0ConstantTerm;
   float AbsorptionDensity0LinearTerm;
- 
+
   float AbsorptionDensity1ConstantTerm;
   float AbsorptionDensity1LinearTerm;
   int RaymarchingMinSteps;
@@ -211,7 +211,15 @@ struct AtmosphereParameters {
   float maxShadowDistance;
   uint flags;
   float RainAtmosphereCubeMapLuminanceFactor; // Factor to multiply the rain atmosphere luminance by, this is used to adjust the rain atmosphere luminance based on the scene lighting for indirect lighting
-  float unused2;
+  float atmosphereDensityScale; // Multiplier for all scattering/extinction densities; compensates for small-planet shorter optical paths (1.0 = Earth-scale default)
+  float aerialPerspectiveScale; // Scale factor for aerial perspective (atmosphere fog between camera and geometry), 0.0 = none, 1.0 = full (default)
+  float distantExtinctionBoostStartDistance; // Distance (in atmosphere units) from where the extra distance-based extinction boost starts ramping up
+  float distantExtinctionBoostFactor; // Quadratic ramp factor for the distance-based extinction boost, applied to (distance - startDistance)^2
+  float distantExtinctionBoostMax; // Maximum additional optical depth added by the distance-based extinction boost, 0.0 = feature disabled (default)
+  float distantExtinctionBoostPathFadeExpScale; // Exponent applied to the normalised atmosphere-path-length fade in the outside-atmosphere regime (default 2.0: square = grazing limb paths suppressed faster)
+  float distantExtinctionBoostOutsideFactorExpScale; // Exponent applied to the inside/outside blending factor (0 = inside regime, 1 = outside regime); default 2.0
+  float distantExtinctionBoostAltitudeFadeExpScale; // Exponent applied to the altitude-density fade in the inside-atmosphere regime; default 1.0 (linear, kept as-is)
+  float _distantExtinctionBoostReserved; // reserved for future use / padding so that the following CullingParameters struct (which starts with uvec4, alignment 16) stays 16-byte aligned
 
   AtmosphereCullingParameters CullingParameters;
 
@@ -220,17 +228,17 @@ struct AtmosphereParameters {
 };
 
 const uint FLAGS_USE_PRECIPITATION_MAP = 1u << 0u;
-const uint FLAGS_USE_ATMOSPHERE_MAP = 1u << 1u; 
+const uint FLAGS_USE_ATMOSPHERE_MAP = 1u << 1u;
 
 float getAtmosphereCullingSDF(const in AtmosphereCullingParameters CullingParameters, vec3 p){
   if(CullingParameters.innerOuterFadeDistancesCountFacesMode.w == 0u){
     // Disabled
     return 1e20;
   }else{
-    p = (CullingParameters.inversedTransform * vec4(p, 1.0)).xyz; // Transform the point to the local space 
+    p = (CullingParameters.inversedTransform * vec4(p, 1.0)).xyz; // Transform the point to the local space
     float signedDistance = length(p - CullingParameters.boundingSphere.xyz) - CullingParameters.boundingSphere.w;
     if(signedDistance > 0.0){
-      return 1e20; // Outside the bounding sphere, early out 
+      return 1e20; // Outside the bounding sphere, early out
     }
     switch(CullingParameters.innerOuterFadeDistancesCountFacesMode.w & 0xfu){
       case 1u:{
@@ -270,10 +278,10 @@ float getAtmosphereCullingFactor(const in AtmosphereCullingParameters CullingPar
     if((CullingParameters.innerOuterFadeDistancesCountFacesMode.w & 0x10u) != 0u){
       p = c; // Use the camera position instead of the point
     }
-    p = (CullingParameters.inversedTransform * vec4(p, 1.0)).xyz; // Transform the point to the local space 
+    p = (CullingParameters.inversedTransform * vec4(p, 1.0)).xyz; // Transform the point to the local space
     float signedDistance = length(p - CullingParameters.boundingSphere.xyz) - CullingParameters.boundingSphere.w;
     if(signedDistance > 0.0){
-      return 1.0; // Outside the bounding sphere, early out 
+      return 1.0; // Outside the bounding sphere, early out
     }
     switch(CullingParameters.innerOuterFadeDistancesCountFacesMode.w & 0xfu){
       case 1u:{
@@ -309,7 +317,7 @@ float getAtmosphereCullingFactor(const in AtmosphereCullingParameters CullingPar
 }
 
 vec3 getSunDirection(const in AtmosphereParameters atmosphereParameters){
-  vec3 sunDirection = vec3(atmosphereParameters.MieScattering.w, atmosphereParameters.MieExtinction.w, atmosphereParameters.MieAbsorption.w); 
+  vec3 sunDirection = vec3(atmosphereParameters.MieScattering.w, atmosphereParameters.MieExtinction.w, atmosphereParameters.MieAbsorption.w);
   sunDirection = normalize(atmosphereParameters.originTransform * vec4(sunDirection, 0.0)).xyz; // Transform the sun direction to the world space
   return sunDirection;
 }
@@ -437,7 +445,7 @@ vec2 raySphereIntersect(vec3 r0, vec3 rd, vec3 s0, float sR){
   vec3 sphereCenterToRayOrigin = r0 - s0;
   float a = dot(rd, rd),
         b = dot(rd, sphereCenterToRayOrigin) * 2.0,
-        c = dot(sphereCenterToRayOrigin, sphereCenterToRayOrigin) - (sR * sR); 
+        c = dot(sphereCenterToRayOrigin, sphereCenterToRayOrigin) - (sR * sR);
   float discriminant = (b * b) - ((a * c) * 4.0);
   if(discriminant < 0.0){
     return vec2(-1.0);
@@ -446,7 +454,7 @@ vec2 raySphereIntersect(vec3 r0, vec3 rd, vec3 s0, float sR){
   }else{
     float q = (b + (sqrt(discriminant) * ((b > 0.0) ? 1.0 : -1.0))) * (-0.5);
     return vec2(q / a, c / q);
-  }  
+  }
 #else
   float a = dot(rd, rd);
   vec3 s0_r0 = r0 - s0;
@@ -466,7 +474,7 @@ float raySphereIntersectNearest(vec3 r0, vec3 rd, vec3 s0, float sR){
   vec3 sphereCenterToRayOrigin = r0 - s0;
   float a = dot(rd, rd),
         b = dot(rd, sphereCenterToRayOrigin) * 2.0,
-        c = dot(sphereCenterToRayOrigin, sphereCenterToRayOrigin) - (sR * sR); 
+        c = dot(sphereCenterToRayOrigin, sphereCenterToRayOrigin) - (sR * sR);
   float discriminant = (b * b) - ((a * c) * 4.0);
   if(discriminant < 0.0){
     return -1.0;
@@ -483,8 +491,8 @@ float raySphereIntersectNearest(vec3 r0, vec3 rd, vec3 s0, float sR){
       return max(0.0, t.x);
     }else{
       return max(0.0, min(t.x, t.y));
-    }		
-  }  
+    }
+  }
 #else
   float a = dot(rd, rd);
   vec3 s0_r0 = r0 - s0;
@@ -503,13 +511,13 @@ float raySphereIntersectNearest(vec3 r0, vec3 rd, vec3 s0, float sR){
       return max(0.0, sol01.x);
     }else{
       return max(0.0, min(sol01.x, sol01.y));
-    }		
+    }
   }
 #endif
 }
 
 void LutTransmittanceParamsToUv(const in AtmosphereParameters Atmosphere, in float viewHeight, in float viewZenithCosAngle, out vec2 uv){
-  
+
   float H = sqrt(max(0.0, Atmosphere.TopRadius * Atmosphere.TopRadius - Atmosphere.BottomRadius * Atmosphere.BottomRadius));
   float rho = sqrt(max(0.0, viewHeight * viewHeight - Atmosphere.BottomRadius * Atmosphere.BottomRadius));
 
@@ -539,7 +547,7 @@ float hgPhase(float g, float cosTheta){
 #ifdef USE_CornetteShanks
   return CornetteShanksMiePhaseFunction(g, cosTheta);
 #else
-  // Reference implementation (i.e. not schlick approximation). 
+  // Reference implementation (i.e. not schlick approximation).
   // See http://www.pbr-book.org/3ed-2018/Volume_Scattering/Phase_Functions.html
   float numer = 1.0 - (g * g);
   float denom = 1.0 + (g * g) + (2.0 * g * cosTheta);
@@ -583,12 +591,13 @@ MediumSampleRGB sampleMediumRGB(in vec3 WorldPos, in AtmosphereParameters Atmosp
 
   const float viewHeight = max(1e-4, length(WorldPos) - Atmosphere.BottomRadius);
 
-  const float densityMie = exp(Atmosphere.MieDensityExpScale * viewHeight);
-  const float densityRay = exp(Atmosphere.RayleighDensityExpScale * viewHeight);
+  const float densityScale = Atmosphere.atmosphereDensityScale;
+  const float densityMie = exp(Atmosphere.MieDensityExpScale * viewHeight) * densityScale;
+  const float densityRay = exp(Atmosphere.RayleighDensityExpScale * viewHeight) * densityScale;
   const float densityOzo = clamp(viewHeight < Atmosphere.AbsorptionDensity0LayerWidth ?
     fma(Atmosphere.AbsorptionDensity0LinearTerm, viewHeight, Atmosphere.AbsorptionDensity0ConstantTerm) :
-    fma(Atmosphere.AbsorptionDensity1LinearTerm, viewHeight, Atmosphere.AbsorptionDensity1ConstantTerm), 
-    0.0, 1.0);
+    fma(Atmosphere.AbsorptionDensity1LinearTerm, viewHeight, Atmosphere.AbsorptionDensity1ConstantTerm),
+    0.0, 1.0) * densityScale;
 
   MediumSampleRGB s;
 
@@ -633,27 +642,27 @@ float getShadow(in AtmosphereParameters Atmosphere, vec3 p){
 #endif
 
 vec3 IntegrateOpticalDepth(in vec3 WorldPos,
-                           in vec3 WorldDir, 
+                           in vec3 WorldDir,
                            const in AtmosphereParameters Atmosphere,
-                           in bool ground, 
-                           in float SampleCountIni, 
-                           in float tMaxMax, 
+                           in bool ground,
+                           in float SampleCountIni,
+                           in float tMaxMax,
                            in bool VariableSampleCount){
-  
+
   if(tMaxMax < 0.0){
     tMaxMax = 9000000.0;
-  } 
+  }
 
-  // Compute next intersection with atmosphere or ground 
+  // Compute next intersection with atmosphere or ground
   // TODO:gs another empirical finding. This removes a white pixel stripe in the Transmittance LUT.
   vec3 earthO = vec3(0.0, 0.0, -0.001);
   float tMax = 0.0;
-#if 0	
+#if 0
   float tBottom = raySphereIntersectNearest(WorldPos, WorldDir, earthO, Atmosphere.BottomRadius);
   float tTop = raySphereIntersectNearest(WorldPos, WorldDir, earthO, Atmosphere.TopRadius);
   if(tBottom < 0.0){
     if (tTop < 0.0){
-      tMax = 0.0; // No intersection with earth nor atmosphere: stop right away  
+      tMax = 0.0; // No intersection with earth nor atmosphere: stop right away
       return vec3(0.0);
     }else{
       tMax = tTop;
@@ -662,11 +671,11 @@ vec3 IntegrateOpticalDepth(in vec3 WorldPos,
     if(tTop > 0.0){
       tMax = min(tTop, tBottom);
     }
-  }  
+  }
 #else
   vec2 SolT = raySphereIntersect(WorldPos, WorldDir, earthO, Atmosphere.TopRadius);
   if(all(lessThan(SolT, vec2(0.0)))){
-    tMax = 0.0; // No intersection with earth nor atmosphere: stop right away  
+    tMax = 0.0; // No intersection with earth nor atmosphere: stop right away
     return vec3(0.0);
   }
   float tBottom = 0.0;
@@ -674,13 +683,13 @@ vec3 IntegrateOpticalDepth(in vec3 WorldPos,
   if(all(lessThan(SolB, vec2(0.0)))){
     tMax = max(SolT.x, SolT.y);
   }else{
-    tMax = tBottom = max(0.0, all(greaterThanEqual(SolB, vec2(0.0))) ? min(SolB.x, SolB.y) : max(SolB.x, SolB.y));	
+    tMax = tBottom = max(0.0, all(greaterThanEqual(SolB, vec2(0.0))) ? min(SolB.x, SolB.y) : max(SolB.x, SolB.y));
   }
 #endif
-  
+
   tMax = min(tMax, tMaxMax);
 
-  // Sample count 
+  // Sample count
   float SampleCount = SampleCountIni;
   float SampleCountFloor = SampleCountIni;
   float tMaxFloor = tMax;
@@ -743,44 +752,44 @@ vec3 IntegrateOpticalDepth(in vec3 WorldPos,
   }
 
   return OpticalDepth;
-  
+
 }
 
 SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D TransmittanceLutTexture,
 #ifdef MULTISCATAPPROX_ENABLED
-                                                   const in sampler2D MultiScatTexture, 
+                                                   const in sampler2D MultiScatTexture,
 #endif
 #ifdef ATMOSPHEREMAP_ENABLED
                                                    const in samplerCube AtmosphereMapTexture,
 #endif
-                                                   in vec2 uv, 
-                                                   in vec3 WorldPos, 
-                                                   in vec3 WorldDir, 
-                                                   in vec3 SunDir, 
+                                                   in vec2 uv,
+                                                   in vec3 WorldPos,
+                                                   in vec3 WorldDir,
+                                                   in vec3 SunDir,
                                                    const in AtmosphereParameters Atmosphere,
-                                                   in bool ground, 
-                                                   in float SampleCountIni, 
-                                                   in float DepthBufferValue, 
+                                                   in bool ground,
+                                                   in float SampleCountIni,
+                                                   in float DepthBufferValue,
                                                    in bool VariableSampleCount,
-                                                   in bool MieRayPhase, 
+                                                   in bool MieRayPhase,
                                                    in mat4 SkyInvViewProjMat,
                                                    float tMaxMax,
                                                    in bool reversedZ){
   if(tMaxMax < 0.0){
     tMaxMax = 9000000.0;
-  } 
+  }
 
   SingleScatteringResult result = SingleScatteringResult( vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0) );
 
-  // Compute next intersection with atmosphere or ground 
+  // Compute next intersection with atmosphere or ground
   vec3 earthO = vec3(0.0, 0.0, -0.001);
   float tMax = 0.0;
-#if 0	
+#if 0
   float tBottom = raySphereIntersectNearest(WorldPos, WorldDir, earthO, Atmosphere.BottomRadius);
   float tTop = raySphereIntersectNearest(WorldPos, WorldDir, earthO, Atmosphere.TopRadius);
   if(tBottom < 0.0){
     if (tTop < 0.0){
-      tMax = 0.0; // No intersection with earth nor atmosphere: stop right away  
+      tMax = 0.0; // No intersection with earth nor atmosphere: stop right away
       return result;
     }else{
       tMax = tTop;
@@ -789,11 +798,11 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
     if(tTop > 0.0){
       tMax = min(tTop, tBottom);
     }
-  }  
+  }
 #else
   vec2 SolT = raySphereIntersect(WorldPos, WorldDir, earthO, Atmosphere.TopRadius);
   if(all(lessThan(SolT, vec2(0.0)))){
-    tMax = 0.0; // No intersection with earth nor atmosphere: stop right away  
+    tMax = 0.0; // No intersection with earth nor atmosphere: stop right away
     return result;
   }
   float tBottom = 0.0;
@@ -801,7 +810,7 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
   if(all(lessThan(SolB, vec2(0.0)))){
     tMax = max(SolT.x, SolT.y);
   }else{
-    tMax = tBottom = max(0.0, all(greaterThanEqual(SolB, vec2(0.0))) ? min(SolB.x, SolB.y) : max(SolB.x, SolB.y));	
+    tMax = tBottom = max(0.0, all(greaterThanEqual(SolB, vec2(0.0))) ? min(SolB.x, SolB.y) : max(SolB.x, SolB.y));
   }
 #endif
 
@@ -815,12 +824,12 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
       DepthBufferWorldPos /= DepthBufferWorldPos.w;
 
       // Check if the result is valid, because for example in a case of a reverse infinite far Z plane, the depth value can be infinite,
-      // where we just ignore this case then, since it is infinite far away anyway. 
+      // where we just ignore this case then, since it is infinite far away anyway.
       if(!(any(isinf(DepthBufferWorldPos)) || any(isnan(DepthBufferWorldPos)))){
 
         DepthBufferWorldPos.xyz = (Atmosphere.inverseTransform * vec4(DepthBufferWorldPos.xyz, 1.0)).xyz;
 
-        float tDepth = length(DepthBufferWorldPos.xyz - WorldPos); // apply earth offset to go back to origin as top of earth mode. 
+        float tDepth = length(DepthBufferWorldPos.xyz - WorldPos); // apply earth offset to go back to origin as top of earth mode.
         if(!(isinf(tDepth) || isnan(tDepth))){
           tMax = min(tMax, tDepth);
         }
@@ -835,7 +844,7 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
   }
   tMax = min(tMax, tMaxMax);
 
-  // Sample count 
+  // Sample count
   float SampleCount = SampleCountIni;
   float SampleCountFloor = SampleCountIni;
   float tMaxFloor = tMax;
@@ -852,7 +861,7 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
   const vec3 wi = SunDir;
   const vec3 wo = WorldDir;
   float cosTheta = dot(wi, wo);
-  float MiePhaseValue = hgPhase(Atmosphere.MiePhaseG, -cosTheta);	// mnegate cosTheta because due to WorldDir being a "in" direction. 
+  float MiePhaseValue = hgPhase(Atmosphere.MiePhaseG, -cosTheta);	// mnegate cosTheta because due to WorldDir being a "in" direction.
   float RayleighPhaseValue = RayleighPhase(cosTheta);
 
 #ifdef ILLUMINANCE_IS_ONE
@@ -899,13 +908,13 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
 
 #ifdef ATMOSPHEREMAP_ENABLED
     // Evaluate atmosphere map, with AtmosphereMapTexture cube map with atmosphere visiblity values
-    const float atmosphereFactor = ((Atmosphere.flags & FLAGS_USE_ATMOSPHERE_MAP) != 0u) 
-                                     ? textureLod(AtmosphereMapTexture, normalize(P), 0.0).x // 0.0 = no atmosphere, 1.0 = full atmosphere    
+    const float atmosphereFactor = ((Atmosphere.flags & FLAGS_USE_ATMOSPHERE_MAP) != 0u)
+                                     ? textureLod(AtmosphereMapTexture, normalize(P), 0.0).x // 0.0 = no atmosphere, 1.0 = full atmosphere
                                      : 1.0; // No atmosphere map, so use 1.0 as factor
 #endif
 
     MediumSampleRGB medium = sampleMediumRGB(P, Atmosphere);
-    const vec3 SampleOpticalDepth = medium.extinction * 
+    const vec3 SampleOpticalDepth = medium.extinction *
 #ifdef ATMOSPHEREMAP_ENABLED
                                     atmosphereFactor *
 #endif
@@ -927,11 +936,11 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
       PhaseTimesScattering = medium.scattering * uniformPhase;
     }
 
-    // Earth shadow 
+    // Earth shadow
     float tEarth = raySphereIntersectNearest(P, SunDir, earthO + (PLANET_RADIUS_OFFSET * UpVector), Atmosphere.BottomRadius);
     float earthShadow = (tEarth >= 0.0) ? 0.0 : 1.0;
 
-    // Dual scattering for multi scattering 
+    // Dual scattering for multi scattering
 
     vec3 multiScatteredLuminance = vec3(0.0);
 #ifdef MULTISCATAPPROX_ENABLED
@@ -942,6 +951,41 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
 #ifdef SHADOWS_ENABLED
     // First evaluate opaque shadow
     shadow = getShadow(Atmosphere, P);
+#endif
+
+#ifdef CLOUDS_SHADOW_ENABLED
+    // Cloud shadow map attenuation — octahedral lookup from planet center
+    if(!all(equal(globalBDAPointers.cloudsShadowMapBDA, uvec2(0u)))){
+      CloudsShadowMapDataBDABuffer csm = CloudsShadowMapDataBDABuffer(globalBDAPointers.cloudsShadowMapBDA);
+      if(csm.params.x > 0.5){
+        vec3 worldSpaceP = (Atmosphere.transform * vec4(P, 1.0)).xyz;
+        vec3 receiverVector = worldSpaceP - csm.planetCenter.xyz;
+        float receiverRadius = length(receiverVector);
+        vec3 toLight = normalize(-csm.lightDir.xyz); // csm.lightDir is the light travel direction; negate to point toward the sun (matches lighting.glsl)
+        float cloudShellRadius = csm.params.z;       // absolute radius of the cloud layer (from planet center)
+        // Intersect the ray from the receiver toward the sun with the cloud shell sphere, then look up the
+        // cloud transmittance of the radial column at that intersection direction in the octahedral shadow map.
+        float b = dot(receiverVector, toLight);
+        float disc = (b * b) + ((cloudShellRadius * cloudShellRadius) - (receiverRadius * receiverRadius));
+        if((receiverRadius < cloudShellRadius) && (disc > 0.0)){
+          float distanceToCloud = max(0.0, -b + sqrt(disc));
+          vec3 cloudVector = receiverVector + (toLight * distanceToCloud);
+          vec2 octUV = octEqualAreaUnsignedEncode(cloudVector);
+          float cloudTransmittance = textureLod(uCloudsShadowMap, vec3(octUV, 0.0), 0.0).r;
+          float penumbraRadius = tan(csm.params.y) * distanceToCloud;
+          if(penumbraRadius > 0.001){
+            float texelSize = 1.0 / float(textureSize(uCloudsShadowMap, 0).x);
+            float pcfRadius = clamp(penumbraRadius / (cloudShellRadius * 3.14159), 0.0, 4.0 * texelSize);
+            cloudTransmittance  = textureLod(uCloudsShadowMap, vec3(wrapOctahedralCoordinates(octUV + vec2( pcfRadius,  0.0)), 0.0), 0.0).r;
+            cloudTransmittance += textureLod(uCloudsShadowMap, vec3(wrapOctahedralCoordinates(octUV + vec2(-pcfRadius,  0.0)), 0.0), 0.0).r;
+            cloudTransmittance += textureLod(uCloudsShadowMap, vec3(wrapOctahedralCoordinates(octUV + vec2( 0.0,  pcfRadius)), 0.0), 0.0).r;
+            cloudTransmittance += textureLod(uCloudsShadowMap, vec3(wrapOctahedralCoordinates(octUV + vec2( 0.0, -pcfRadius)), 0.0), 0.0).r;
+            cloudTransmittance *= 0.25;
+          }
+          shadow *= cloudTransmittance;
+        }
+      }
+    }
 #endif
 
     vec3 S = globalL * ((earthShadow * shadow * TransmittanceToSun * PhaseTimesScattering) + (multiScatteredLuminance * medium.scattering));
@@ -961,7 +1005,7 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
     result.MultiScatAs1 += throughput * MSint;
 #endif
 
-    // Evaluate input to multi scattering 
+    // Evaluate input to multi scattering
     {
       vec3 newMS;
 
@@ -978,8 +1022,8 @@ SingleScatteringResult IntegrateScatteredLuminance(const in sampler2D Transmitta
     L += throughput * S * dt;
     throughput *= SampleTransmittance;
 #else
-    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/ 
-    vec3 Sint = (S - S * SampleTransmittance) / medium.extinction;	// integrate along the current step segment 
+    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+    vec3 Sint = (S - S * SampleTransmittance) / medium.extinction;	// integrate along the current step segment
     L += throughput * Sint;														// accumulate and also take into account the transmittance from previous steps
     throughput *= SampleTransmittance;
 #endif
@@ -1037,9 +1081,60 @@ float AerialPerspectiveSliceToDepth(float slice){
   return slice * AP_KM_PER_SLICE;
 }
 
-vec3 GetAtmosphereTransmittance(const in AtmosphereParameters Atmosphere, 
+// Computes the additional optical depth ("extinction boost") applied to far away background objects (e.g. asteroids,
+// other space objects, the starfield) so that they fade into the atmospheric haze instead of staying fully visible
+// behind the atmosphere. This compensates for the modest zenith optical depth on small planets, where the physically
+// correct full-column transmittance alone is not enough to occlude distant objects. The boost is a smooth quadratic
+// ramp (zero value and zero slope at the start distance) clamped to a maximum, and is disabled when the maximum is 0.
+// The boost is faded by a hybrid factor that depends on the camera position:
+//  - When the camera is inside the atmosphere, the fade follows the local Rayleigh density at the camera altitude
+//    (the previous, well behaved approach), so the effect is full near the ground and weakens with altitude.
+//  - When the camera is outside the atmosphere (in space), the fade follows how much atmosphere the view ray actually
+//    traverses between the camera and the object (the length of the camera->object segment inside the atmosphere
+//    shell, clamped at the planet surface), so objects seen through the atmosphere limb are still occluded while
+//    objects floating in empty space (whose view ray never crosses the atmosphere) are left untouched.
+// The two regimes are blended smoothly across the atmosphere top boundary to avoid a hard discontinuity.
+float GetDistantExtinctionBoost(const in AtmosphereParameters Atmosphere, const in vec3 WorldPos, const in vec3 WorldDir, const in float distance, const in float viewHeight){
+  if(Atmosphere.distantExtinctionBoostMax <= 0.0){
+    return 0.0;
+  }
+
+  // Inside-the-atmosphere regime: fade with the local atmosphere density at the camera altitude.
+  float altitudeFade = clamp(exp(Atmosphere.RayleighDensityExpScale * max(0.0, viewHeight - Atmosphere.BottomRadius)), 0.0, 1.0);
+  altitudeFade = pow(altitudeFade, max(1e-4, Atmosphere.distantExtinctionBoostAltitudeFadeExpScale));
+
+ #if 0
+  // TODO: Fix the distant extinction boost calculation for view rays from outside the atmosphere but through
+  // the atmosphere.
+  // Outside-the-atmosphere regime: fade with the length of the view ray segment that lies inside the atmosphere
+  // (top) shell, clamped to the object distance and stopped at the planet surface.
+  vec2 topSolutions = raySphereIntersect(WorldPos, WorldDir, vec3(0.0), Atmosphere.TopRadius);
+  float tEnter = max(0.0, min(topSolutions.x, topSolutions.y));
+  float tExit = min(min(distance, 1e9), max(topSolutions.x, topSolutions.y));
+  vec2 bottomSolutions = raySphereIntersect(WorldPos, WorldDir, vec3(0.0), Atmosphere.BottomRadius);
+  float tBottomNear = min(bottomSolutions.x, bottomSolutions.y);
+  if(tBottomNear > 0.0){
+    tExit = min(tExit, tBottomNear);
+  }
+  float atmospherePathLength = max(0.0, tExit - tEnter);
+  float pathFade = clamp(atmospherePathLength / max(1e-4, Atmosphere.TopRadius - Atmosphere.BottomRadius), 0.0, 1.0);
+  pathFade = pow(pathFade, max(1e-4, Atmosphere.distantExtinctionBoostPathFadeExpScale));
+
+  // Blend smoothly from the altitude regime (inside) to the path regime (outside) across the atmosphere top.
+  float outsideFactor = clamp((viewHeight - Atmosphere.BottomRadius) / max(1e-4, Atmosphere.TopRadius - Atmosphere.BottomRadius), 0.0, 1.0);
+  outsideFactor = pow(outsideFactor, max(1e-4, Atmosphere.distantExtinctionBoostOutsideFactorExpScale));
+  float fade = mix(altitudeFade, pathFade, outsideFactor);
+#else
+  float fade = altitudeFade;
+#endif
+
+  float d = max(0.0, min(distance, 1e9) - Atmosphere.distantExtinctionBoostStartDistance); // clamp distance to avoid inf*0 NaN for sky/far pixels
+  return min(d * d * Atmosphere.distantExtinctionBoostFactor, Atmosphere.distantExtinctionBoostMax) * fade;
+}
+
+vec3 GetAtmosphereTransmittance(const in AtmosphereParameters Atmosphere,
                                 const in sampler2D TransmittanceLutTexture,
-                                vec3 WorldPosition, 
+                                vec3 WorldPosition,
                                 vec3 WorldDirection){
   if(any(greaterThan(raySphereIntersect(WorldPosition, WorldDirection, vec3(0.0), Atmosphere.BottomRadius), vec2(0.0)))){
     return vec3(0.0);
@@ -1078,17 +1173,18 @@ float GetZFarDepthValue(const in mat4 projectionMatrix){
   return ProjectionMatrixIsReversedZ(projectionMatrix) ? 0.0 : 1.0;
 }
 
-void GetCameraPositionDirection(out vec3 origin, 
+void GetCameraPositionDirection(out vec3 origin,
                                 out vec3 direction,
                                 const in mat4 viewMatrix,
                                 const in mat4 projectionMatrix,
                                 const in mat4 inverseViewMatrix,
                                 const in mat4 inverseProjectionMatrix,
-                                const in vec2 uv){ 
+                                const in vec2 uv){
 
-#ifdef SHADOWMAP
+#if defined(SHADOWMAP) || defined(CLOUDS_SHADOWMAP)
 
-  // For shadow map rendering, we need to compute the origin and direction of the primary ray in the more safe way, for just to be sure.
+  // For shadow map and cloud shadow map rendering, we need to compute the origin and direction of the primary ray in the more safe way, for just to be sure.
+  // This also correctly handles orthographic projections (used by the cloud shadow map pass).
 
   bool reversedZ = ProjectionMatrixIsReversedZ(projectionMatrix);
 
@@ -1111,12 +1207,12 @@ void GetCameraPositionDirection(out vec3 origin,
 
   vec4 nearPlane = vec4(fma(uv, vec2(2.0), vec2(-1.0)), reversedZ ? 1.0 : 0.0, 1.0);
 
-  vec4 cameraDirection = vec4((inverseProjectionMatrix * nearPlane).xyz, 0.0); 
+  vec4 cameraDirection = vec4((inverseProjectionMatrix * nearPlane).xyz, 0.0);
 
-#if 0    
-  
+#if 0
+
   // Works also for orthographic projection (and for all projection types)
-  
+
   vec4 primaryRayOrigin = inverseViewProjectionMatrix * nearPlane;
   primaryRayOrigin /= primaryRayOrigin.w;
 

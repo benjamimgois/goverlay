@@ -1,0 +1,107 @@
+#version 450
+// apply_pcrd.comp (version2i) — PCRD-like rate-distortion bit-plane truncation, ONE INVOCATION per
+// 32x32 block. Mirrors the CPU apply_pcrd: greedily drop the lowest bit-planes whose distortion/rate
+// slope is below the global lambda (the equal-slope condition), by masking the low magnitude bits in
+// place. The bit-plane coder, the reconstruction (closed loop) and the decoder all then read the same
+// truncated coefficients, so the bitstream format and the GPU decoder are untouched and no drift. The
+// host only dispatches this when PCRD is enabled (lambda > 0). Because 2h's quant makes step*gain
+// ~uniform, the squared INDEX error is a valid image-domain distortion proxy here.
+layout(local_size_x = 64) in;
+layout(constant_id = 0) const int BS = 32;   // coding block size (32 / 64 / 128) — only the block EXTENT scales; cost[]/distortion[] are bit-plane counts
+layout(constant_id = 1) const int COOP = 0;  // 0 = one thread per block (32/64); 1 = one WORKGROUP per block, thread 0 only (128)
+layout(std430, binding = 0) buffer Coefficients { int coefficients[]; };
+layout(push_constant) uniform PushConstants { int width; int height; int blocks_x; int blocks_y; float lambda; } push;
+
+int exp_golomb_length(uint value) { return (2 * findMSB(value + 1u)) + 1; }
+
+void main() {
+  if (COOP != 0 && gl_LocalInvocationID.x != 0u) {
+    return;
+  }
+  uint block = (COOP != 0) ? gl_WorkGroupID.x : gl_GlobalInvocationID.x;
+  if (block >= uint(push.blocks_x * push.blocks_y)) {
+    return;
+  }
+  int block_x = (int(block) % push.blocks_x) * BS;
+  int block_y = (int(block) / push.blocks_x) * BS;
+  int block_width = min(BS, push.width - block_x);
+  int block_height = min(BS, push.height - block_y);
+  int count = block_width * block_height;
+  int block_base = (block_y * push.width) + block_x;
+  #define BLOCK_MAGNITUDE(i) abs(coefficients[block_base + (((i) / block_width) * push.width) + ((i) % block_width)])
+
+  int max_magnitude = 0;
+  for (int i = 0; i < count; i++) {
+    int m = BLOCK_MAGNITUDE(i);
+    if (m > max_magnitude) {
+      max_magnitude = m;
+    }
+  }
+  if (max_magnitude == 0) {
+    return;
+  }
+  int bit_plane_count = 0;
+  while ((1 << bit_plane_count) <= max_magnitude) {
+    bit_plane_count++;
+  }
+  const int T_MAX = 8;
+  int max_t = (bit_plane_count < T_MAX) ? bit_plane_count : T_MAX;
+
+  // Per-plane coding cost: significance (min raw vs RLE) + the signs first-coded there + the 2-bit flag.
+  float cost[32];
+  for (int plane = 0; plane < bit_plane_count; plane++) {
+    int popcount = 0, rle_bits = 0, last = 0, newly_significant = 0;
+    for (int i = 0; i < count; i++) {
+      int m = BLOCK_MAGNITUDE(i);
+      if (((m >> plane) & 1) != 0) {
+        rle_bits += exp_golomb_length(uint(i - last));
+        last = i + 1;
+        popcount++;
+        if ((m >> plane) == 1) {
+          newly_significant++;
+        }
+      }
+    }
+    rle_bits += exp_golomb_length(uint(popcount));
+    int significance = (rle_bits < count) ? rle_bits : count;
+    cost[plane] = float(significance + newly_significant) + 2.0;
+  }
+
+  // Squared-index-error distortion for dropping the lowest t bit-planes (one pass over the coefficients).
+  float distortion[T_MAX + 1];
+  for (int t = 0; t <= max_t; t++) {
+    distortion[t] = 0.0;
+  }
+  for (int i = 0; i < count; i++) {
+    uint m = uint(BLOCK_MAGNITUDE(i));
+    for (int t = 1; t <= max_t; t++) {
+      uint low_mask = (t >= 31) ? 0xFFFFFFFFu : ((1u << uint(t)) - 1u);
+      float dropped = float(m & low_mask);
+      distortion[t] += dropped * dropped;
+    }
+  }
+
+  // Greedy equal-slope truncation: drop while the next plane's distortion/rate slope is below lambda.
+  const float EMPTY_PLANE_BITS = 3.0;
+  int chosen = 0;
+  while (chosen < max_t) {
+    float delta_distortion = distortion[chosen + 1] - distortion[chosen];
+    float delta_rate = cost[chosen] - EMPTY_PLANE_BITS;
+    if (delta_rate > 0.0 && delta_distortion < push.lambda * delta_rate) {
+      chosen++;
+    } else {
+      break;
+    }
+  }
+  if (chosen == 0) {
+    return;
+  }
+
+  uint clear_mask = ~((chosen >= 31) ? 0xFFFFFFFFu : ((1u << uint(chosen)) - 1u));
+  for (int i = 0; i < count; i++) {
+    int idx = block_base + ((i / block_width) * push.width) + (i % block_width);
+    int value = coefficients[idx];
+    int m = int(uint((value < 0) ? -value : value) & clear_mask);
+    coefficients[idx] = (value < 0) ? -m : m;
+  }
+}

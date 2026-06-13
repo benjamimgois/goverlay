@@ -1,0 +1,30 @@
+#version 450
+/*
+ * relu_backward.comp — Zero gradient where activation was <= 0
+ *
+ * Bindings: 0=activation (read), 1=gradient (read+write), 2=(unused), 3=(unused)
+ * Push constants: p0=count (total elements)
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) readonly  buffer BufAct  { float act[];    };
+layout(set = 0, binding = 1)           buffer BufGrad { float grad[];   };
+layout(set = 0, binding = 2) readonly  buffer BufDum1 { float dummy1[]; };
+layout(set = 0, binding = 3) readonly  buffer BufDum2 { float dummy2[]; };
+
+void main() {
+    int idx = int(gl_GlobalInvocationID.x);
+    if (idx >= pc.p0) return;
+
+    if (act[idx] <= 0.0) {
+        grad[idx] = 0.0;
+    }
+}

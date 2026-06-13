@@ -1,0 +1,142 @@
+#version 450
+// motion_merge_bidi.comp — variable-motion B path R-D merge. ONE thread per 32x32 root. Like motion_merge, but
+// the per-block cost is the BIDIRECTIONAL, MODE-AWARE residual: bidi_mode_sad gave [sadL0, sadL1, sadBI] per block
+// at 8/16/32, and a leaf's cost is min(those three) (the best of L0/L1/BI) — so the partition R-D is calibrated to
+// the actual B prediction (no single-ref over-split) AND the mode is decided per LEAF (not per-8). Writes three fine
+// 8-grid fields: mv0 (-> mv_buffer), mv1 (-> mv1_buffer) and the per-leaf prediction mode (-> mode_buffer). This
+// REPLACES mode_decide for the variable B path; blend_mode then applies mode_buffer exactly as before.
+layout(local_size_x = 64) in;
+layout(std430, binding = 0)  readonly  buffer ModeSad8  { int modesad8[]; };    // per block: [L0, L1, BI]
+layout(std430, binding = 1)  readonly  buffer ModeSad16 { int modesad16[]; };
+layout(std430, binding = 2)  readonly  buffer ModeSad32 { int modesad32[]; };
+layout(std430, binding = 3)  readonly  buffer Mv0_8     { int mv0_8[]; };
+layout(std430, binding = 4)  readonly  buffer Mv0_16    { int mv0_16[]; };
+layout(std430, binding = 5)  readonly  buffer Mv0_32    { int mv0_32[]; };
+layout(std430, binding = 6)  readonly  buffer Mv1_8     { int mv1_8[]; };
+layout(std430, binding = 7)  readonly  buffer Mv1_16    { int mv1_16[]; };
+layout(std430, binding = 8)  readonly  buffer Mv1_32    { int mv1_32[]; };
+layout(std430, binding = 9)  writeonly buffer Mv0Out    { int mv0_out[]; };
+layout(std430, binding = 10) writeonly buffer Mv1Out    { int mv1_out[]; };
+layout(std430, binding = 11) writeonly buffer ModeOut   { int mode_out[]; };
+layout(push_constant) uniform PushConstants { int fgx; int fgy; int g16x; int g16y; int g32x; int g32y; int lambda_abs; } push;
+
+// BIT-ESTIMATING R-D (version2n): split only if the (mode-aware) SAD reduction beats lambda_abs * the REAL extra MV
+// bits a split costs = sum over the new children of eg_bits(mv0_child - mv0_parent) + eg_bits(mv1_child - mv1_parent)
+// (parent-relative, GPU-local; both ref MVs counted). Replaces the SAD-proxy rate (lambda_abs*extra_leaves +
+// lambda_rel*SAD/256) that over-valued splitting on B because it could not see the two-MV coded bits.
+int eg_bits(int v) {
+  uint u = (uint(v) << 1) ^ uint(v >> 31);   // zigzag: signed -> unsigned
+  return (2 * findMSB(u + 1u)) + 1;
+}
+// Bits for a leaf's mv0/mv1 pair deviating from a parent's mv0/mv1 (the cost of the leaf existing below the parent).
+int dev_bits(int c0x, int c0y, int c1x, int c1y, int p0x, int p0y, int p1x, int p1y) {
+  return ((eg_bits(c0x - p0x) + eg_bits(c0y - p0y)) + eg_bits(c1x - p1x)) + eg_bits(c1y - p1y);
+}
+
+int min3_mode(int s0, int s1, int s2, out int mode) {
+  mode = 0;
+  int m = s0;
+  if (s1 < m) { m = s1; mode = 1; }
+  if (s2 < m) { m = s2; mode = 2; }
+  return m;
+}
+
+// Fill all in-frame fine cells of the cells x cells block at (fx0,fy0) with the chosen leaf's mv0/mv1/mode.
+void fill_leaf(int fx0, int fy0, int cells, int m0x, int m0y, int m1x, int m1y, int mode) {
+  for (int dy = 0; (dy < cells) && ((fy0 + dy) < push.fgy); dy++) {
+    for (int dx = 0; (dx < cells) && ((fx0 + dx) < push.fgx); dx++) {
+      int c = ((fy0 + dy) * push.fgx) + (fx0 + dx);
+      mv0_out[c * 2] = m0x;
+      mv0_out[(c * 2) + 1] = m0y;
+      mv1_out[c * 2] = m1x;
+      mv1_out[(c * 2) + 1] = m1y;
+      mode_out[c] = mode;
+    }
+  }
+}
+
+void main() {
+  uint root = gl_GlobalInvocationID.x;
+  if (root >= uint(push.g32x * push.g32y)) {
+    return;
+  }
+  int rx = int(root) % push.g32x, ry = int(root) / push.g32x;
+  int fx0 = rx * 4, fy0 = ry * 4;
+
+  int b32 = (ry * push.g32x) + rx;
+  int mode32;
+  int sad_root = min3_mode(modesad32[(b32 * 3) + 0], modesad32[(b32 * 3) + 1], modesad32[(b32 * 3) + 2], mode32);
+  int r0x = mv0_32[b32 * 2], r0y = mv0_32[(b32 * 2) + 1];   // root mv0/mv1 = the parent for the 16-leaves' bit cost
+  int r1x = mv1_32[b32 * 2], r1y = mv1_32[(b32 * 2) + 1];
+
+  // Per 16-quadrant: a single 16-leaf, or split into four 8-leaves, whichever wins the bit-estimating R-D.
+  int quad_choice[4];   // 0 = one 16-leaf, 1 = four 8-leaves, -1 = out of frame
+  int chosen_sad = 0, chosen_rate = 0;   // chosen_rate = total bits the sub-partition's mv0/mv1 deviate from the root
+  for (int qy = 0; qy < 2; qy++) {
+    for (int qx = 0; qx < 2; qx++) {
+      int q16x = (rx * 2) + qx, q16y = (ry * 2) + qy;
+      int qi = (qy * 2) + qx;
+      if ((q16x >= push.g16x) || (q16y >= push.g16y)) {
+        quad_choice[qi] = -1;
+        continue;
+      }
+      int b16 = (q16y * push.g16x) + q16x, dummy;
+      int sad16 = min3_mode(modesad16[(b16 * 3) + 0], modesad16[(b16 * 3) + 1], modesad16[(b16 * 3) + 2], dummy);
+      int q0x = mv0_16[b16 * 2], q0y = mv0_16[(b16 * 2) + 1];
+      int q1x = mv1_16[b16 * 2], q1y = mv1_16[(b16 * 2) + 1];
+      int sad8 = 0;
+      int bits_eight = 0;   // bits of the four 8-MV pairs deviating from THIS 16 (the marginal cost of splitting it)
+      for (int cy = 0; cy < 2; cy++) {
+        for (int cx = 0; cx < 2; cx++) {
+          int f8x = (q16x * 2) + cx, f8y = (q16y * 2) + cy;
+          if ((f8x < push.fgx) && (f8y < push.fgy)) {
+            int b8 = (f8y * push.fgx) + f8x, dm;
+            sad8 += min3_mode(modesad8[(b8 * 3) + 0], modesad8[(b8 * 3) + 1], modesad8[(b8 * 3) + 2], dm);
+            bits_eight += dev_bits(mv0_8[b8 * 2], mv0_8[(b8 * 2) + 1], mv1_8[b8 * 2], mv1_8[(b8 * 2) + 1], q0x, q0y, q1x, q1y);
+          }
+        }
+      }
+      int bits16 = dev_bits(q0x, q0y, q1x, q1y, r0x, r0y, r1x, r1y);   // this 16 deviating from the root 32
+      if ((sad16 - sad8) > (push.lambda_abs * bits_eight)) {
+        quad_choice[qi] = 1;
+        chosen_sad += sad8;
+        chosen_rate += bits16 + bits_eight;
+      } else {
+        quad_choice[qi] = 0;
+        chosen_sad += sad16;
+        chosen_rate += bits16;
+      }
+    }
+  }
+
+  if ((sad_root - chosen_sad) <= (push.lambda_abs * chosen_rate)) {
+    fill_leaf(fx0, fy0, 4, mv0_32[b32 * 2], mv0_32[(b32 * 2) + 1], mv1_32[b32 * 2], mv1_32[(b32 * 2) + 1], mode32);
+    return;
+  }
+  for (int qy = 0; qy < 2; qy++) {
+    for (int qx = 0; qx < 2; qx++) {
+      int qi = (qy * 2) + qx;
+      if (quad_choice[qi] < 0) {
+        continue;
+      }
+      int q16x = (rx * 2) + qx, q16y = (ry * 2) + qy;
+      int qfx = fx0 + (qx * 2), qfy = fy0 + (qy * 2);
+      if (quad_choice[qi] == 0) {
+        int b16 = (q16y * push.g16x) + q16x, mode16;
+        min3_mode(modesad16[(b16 * 3) + 0], modesad16[(b16 * 3) + 1], modesad16[(b16 * 3) + 2], mode16);
+        fill_leaf(qfx, qfy, 2, mv0_16[b16 * 2], mv0_16[(b16 * 2) + 1], mv1_16[b16 * 2], mv1_16[(b16 * 2) + 1], mode16);
+      } else {
+        for (int cy = 0; cy < 2; cy++) {
+          for (int cx = 0; cx < 2; cx++) {
+            int f8x = (q16x * 2) + cx, f8y = (q16y * 2) + cy;
+            if ((f8x < push.fgx) && (f8y < push.fgy)) {
+              int b8 = (f8y * push.fgx) + f8x, mode8;
+              min3_mode(modesad8[(b8 * 3) + 0], modesad8[(b8 * 3) + 1], modesad8[(b8 * 3) + 2], mode8);
+              fill_leaf(f8x, f8y, 1, mv0_8[b8 * 2], mv0_8[(b8 * 2) + 1], mv1_8[b8 * 2], mv1_8[(b8 * 2) + 1], mode8);
+            }
+          }
+        }
+      }
+    }
+  }
+}

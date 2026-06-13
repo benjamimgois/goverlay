@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/pasjson](https://git.rosseaux.net/BeRo1985/pasjson).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # PasJSON
 
 A unified JSON library for both Object-Pascal ecosystems (Delphi and FreePascal)

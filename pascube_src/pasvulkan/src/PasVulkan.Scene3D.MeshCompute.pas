@@ -235,6 +235,20 @@ begin
                                 TVkPipelineStageFlags(VK_PIPELINE_STAGE_VERTEX_INPUT_BIT) or
                                 TVkPipelineStageFlags(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT) or
                                 TVkPipelineStageFlags(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT)});
+   // Additionally sync current-frame mesh-compute dispatch to subsequent consumers (mesh_cull, vertex input, RT build, ...)
+   FillChar(MemoryBarrier,SizeOf(TVkMemoryBarrier),#0);
+   MemoryBarrier.sType:=VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+   MemoryBarrier.srcAccessMask:=TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT);
+   MemoryBarrier.dstAccessMask:=TVkAccessFlags(VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT) or IfThen(TpvScene3D(fSceneInstance).RaytracingActive,TVkAccessFlags(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR) or TVkAccessFlags(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR),0);
+   aCommandBuffer.CmdPipelineBarrier(TVkPipelineStageFlags(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT),
+                                     TVkPipelineStageFlags(VK_PIPELINE_STAGE_VERTEX_INPUT_BIT) or
+                                     TVkPipelineStageFlags(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT) or
+                                     TVkPipelineStageFlags(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT) or
+                                     IfThen(TpvScene3D(fSceneInstance).RaytracingActive,TVkPipelineStageFlags(VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),0),
+                                     0,
+                                     1,@MemoryBarrier,
+                                     0,nil,
+                                     0,nil);
   end else begin
    FillChar(MemoryBarrier,SizeOf(TVkMemoryBarrier),#0);
    MemoryBarrier.sType:=VK_STRUCTURE_TYPE_MEMORY_BARRIER;

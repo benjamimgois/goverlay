@@ -19,6 +19,8 @@
 #define LIGHTCLUSTERS
 #define FRUSTUMCLUSTERGRID
 
+#define PLANET_GRASS_FRAGMENT_SHADER
+
 #include "bufferreference_definitions.glsl"
 
 #if defined(RAYTRACING)
@@ -37,11 +39,11 @@ layout(location = 1) in InBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
 #ifdef VELOCITY
   vec4 previousClipSpace;
   vec4 currentClipSpace;
 #endif  
+  flat uint meshletID; 
 } inBlock;
 
 #else
@@ -54,11 +56,11 @@ layout(location = 0) in InBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
 #ifdef VELOCITY
   vec4 previousClipSpace;
   vec4 currentClipSpace;
 #endif  
+  flat uint meshletID; 
 } inBlock;
 
 #endif
@@ -103,7 +105,7 @@ layout (set = 1, binding = 8, std140) readonly uniform FrustumClusterGridGlobals
 } uFrustumClusterGridGlobals;
 
 layout (set = 1, binding = 9, std430) readonly buffer FrustumClusterGridIndexList {
-   uint frustumClusterGridIndexList[];
+  uint frustumClusterGridIndexList[];
 };
 
 layout (set = 1, binding = 10, std430) readonly buffer FrustumClusterGridData {
@@ -116,6 +118,10 @@ layout (set = 1, binding = 10, std430) readonly buffer FrustumClusterGridData {
 layout(set = 2, binding = 0) uniform sampler2D uPlanetTextures[]; // 0 = height map, 1 = normal map, 2 = tangent bitangent map
 layout(set = 2, binding = 0) uniform sampler2DArray uPlanetArrayTextures[]; // 0 = height map, 1 = normal map, 2 = tangent bitangent map
 
+layout(set = 2, binding = 2) uniform usampler2D uGrassFlagsMap; // GrassFlagsMap R32UI
+
+#define globalRaytracingFlags pushConstants.raytracingFlags
+
 #include "planet_textures.glsl"
 
 #define RainTexture uPlanetTextures[PLANET_TEXTURE_RAINTEXTURE]
@@ -124,6 +130,7 @@ layout(set = 2, binding = 0) uniform sampler2DArray uPlanetArrayTextures[]; // 0
 
 #include "planet_wetness.glsl"
 #include "planet_grass.glsl"
+#include "planet_grassflagsmap.glsl"
 
 #define FRAGMENT_SHADER
 
@@ -139,6 +146,8 @@ layout(set = 2, binding = 0) uniform sampler2DArray uPlanetArrayTextures[]; // 0
 #include "octahedralmap.glsl"
 #include "tangentspacebasis.glsl" 
 
+#include "decals.glsl"
+
 #define LIGHTING_GLOBALS
 #include "lighting.glsl"
 #undef LIGHTING_GLOBALS
@@ -149,6 +158,19 @@ layout(set = 2, binding = 0) uniform sampler2DArray uPlanetArrayTextures[]; // 0
 #undef UseEnvMapLambertian
 
 #include "roughness.glsl"
+
+#if defined(GLOBAL_ILLUMINATION_DDGI)
+  // DDGI probe field for ray-tracing-based global illumination — only for the RT GI modes (DDGI now, Surfel later), never
+  // CRH/VCT. GI lives at the fixed dedicated set 4 (the grass pipeline uses sets 0..3: global, mesh-rendering-pass, planet
+  // textures, grass cull/mesh-gen). Mirrors planet_renderpass.frag / mesh.frag.
+  #define DDGI_DESCRIPTOR_SET 4
+  #include "global_illumination_ddgi_sampling.glsl"
+#elif defined(GLOBAL_ILLUMINATION_SURFEL)
+  // Surfel GI shares the same fixed dedicated set 4 as DDGI (mutually exclusive RT GI build variants).
+  #define GLOBAL_ILLUMINATION_SURFEL_SAMPLE
+  #define GI_SURFEL_DESCRIPTOR_SET 4
+  #include "global_illumination_surfel.glsl"
+#endif
 
 vec3 imageLightBasedLightDirection = imageBasedSphericalHarmonicsMetaData.dominantLightDirection.xyz;
 
@@ -179,6 +201,8 @@ const vec3 inModelScale = vec3(1.0);
 #include "pbr_wetness.glsl"
 #include "blendnormals.glsl"
 
+#include "meshlet.glsl"
+
 void main(){
 
   float sideSign = gl_FrontFacing ? 1.0 : -1.0;
@@ -194,7 +218,7 @@ void main(){
 
   vec3 workTangent = orthonormalizedTangent * sideSign;
   vec3 workBitangent = cross(normalizedNormal, orthonormalizedTangent) * inBlock.tangentSign.w * sideSign;
-  vec3 workNormal = normalizedNormal * sideSign;
+  workNormal = normalizedNormal * sideSign;
 
 //workNormal = normalize(cross(dFdyFine(inBlock.cameraRelativePosition), dFdxFine(inBlock.cameraRelativePosition))); // * sideSign;
 /*vec3 workTangent = normalize(cross((abs(workNormal.y) < 0.999999) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0), workNormal));
@@ -219,7 +243,23 @@ void main(){
 
   const float fakeSelfShadowing = clamp(inBlock.texCoord.y, 0.1, 1.0); 
 
-  vec4 albedo = vec4(baseColorLinearRGB * fakeSelfShadowing, 1.0);  
+  // Sample GrassFlagsMap using the octahedral UV derived from world-space position
+  vec2 grassFlagsUV = octPlanetUnsignedEncode(normalize(inBlock.worldSpacePosition - pushConstants.modelMatrixPositionScale.xyz));
+  uint grassFragFlags = textureLod(uGrassFlagsMap, grassFlagsUV, 0).x;
+
+  vec3 grassAlbedo = baseColorLinearRGB;
+
+  // BURNED: tint towards dark brown
+  if((grassFragFlags & GRASS_FLAG_BURNED) != 0u){
+    grassAlbedo = mix(grassAlbedo, vec3(0.035, 0.015, 0.003), 0.8);
+  }
+
+  // FROZEN: tint towards white-blue
+  if((grassFragFlags & GRASS_FLAG_FROZEN) != 0u){
+    grassAlbedo = mix(grassAlbedo, vec3(0.7, 0.8, 1.0), 0.7);
+  }
+
+  vec4 albedo = vec4(grassAlbedo * fakeSelfShadowing, 1.0);  
 //vec3 baseColor = albedo.xyz;
   vec4 occlusionRoughnessMetallic = vec4(1.0, 0.3, 0.0, 0.0);
 
@@ -231,6 +271,32 @@ void main(){
   vec4 albedo = vec4(baseColorLinearRGB, 1.0);  
   vec3 baseColor = albedo.xyz;
   vec4 occlusionRoughnessMetallic = vec4(fakeSelfShadowing, 0.25, 0.0, 0.0);*/
+
+  vec3 F0Dielectric = vec3(0.04);
+
+  vec3 F90 = vec3(1.0);
+  vec3 F90Dielectric = vec3(1.0);
+
+  float specularWeight = 1.0;
+
+  // Apply decals
+  vec3 decalNormal = vec3(0.0, 0.0, 1.0);
+  float decalNormalBlend = 0.0;  
+  applyDecals(
+    albedo,
+    occlusionRoughnessMetallic.z,
+    occlusionRoughnessMetallic.y,
+    occlusionRoughnessMetallic.x,
+    F0Dielectric,
+    F90Dielectric,
+    specularWeight,
+    decalNormal,
+    decalNormalBlend,
+    inWorldSpacePosition,
+    workNormal,
+    inViewSpacePosition,
+    vec3(0.04)  // Base IOR F0 for dielectrics
+  );
 
   vec4 wetnessNormal = vec4(0.0);
   const float rainTime = float(uint(pushConstants.timeSeconds & 4095u)) + pushConstants.timeFractionalSecond;         
@@ -254,7 +320,7 @@ void main(){
   // The blade normal is rotated slightly to the left or right depending on the x texture coordinate for
   // to fake roundness of the blade without real more complex geometry
   vec3 bladeRelativeNormal = normalize(vec3(0.0, sin(vec2(radians(mix(-60.0, 60.0, inBlock.texCoord.x))) + vec2(0.0, 1.5707963267948966))));
-  vec3 normal = normalize(mat3(workTangent, workBitangent, workNormal) * blendNormals(bladeRelativeNormal.xyz, wetnessNormal.xyz, wetnessNormal.w));
+  vec3 normal = normalize(mat3(workTangent, workBitangent, workNormal) * blendNormals((decalNormalBlend > 0.0) ? blendNormals(bladeRelativeNormal, decalNormal, decalNormalBlend) : bladeRelativeNormal.xyz, wetnessNormal.xyz, wetnessNormal.w));
 
   float NdotV;
   normal = getViewClampedNormal(normal, viewDirection, NdotV);
@@ -271,10 +337,6 @@ void main(){
   vec4 diffuseColorAlpha = vec4(max(vec3(0.0), albedo.xyz * (1.0 - metallicRoughness.x)), albedo.w);
 
   //vec3 F0Dielectric = mix(vec3(0.04), albedo.xyz, metallicRoughness.x);
-  vec3 F0Dielectric = vec3(0.04);
-
-  vec3 F90 = vec3(1.0);
-  vec3 F90Dielectric = vec3(1.0);
 
   float transparency = 0.0;
 
@@ -313,8 +375,6 @@ void main(){
 
   float litIntensity = 1.0;
 
-  const float specularWeight = 1.0;
-
   const float iblWeight = 1.0;
 
 #define LIGHTING_INITIALIZATION
@@ -327,15 +387,52 @@ void main(){
 #include "lighting.glsl"
 #undef LIGHTING_IMPLEMENTATION
 
+#if defined(GLOBAL_ILLUMINATION_DDGI)
+  // RT GI: probe-field diffuse (replaces IBL diffuse); IBL specular kept but occluded by probe sky-visibility · AO.
+  float ddgiSkyVisibility;
+  vec3 ddgiIrradiance = ddgiSampleIrradiance(inWorldSpacePosition, normal, viewDirection, ddgiSkyVisibility);
+  if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
+    colorOutput += ddgiIrradiance * baseColor.xyz * diffuseOcclusion * OneOverPI;
+  }
+  vec3 iblDiffuse = vec3(0.0);
+  float giIBLWeight = ddgiSkyVisibility;
+#elif defined(GLOBAL_ILLUMINATION_SURFEL)
+  // RT GI: surfel-field diffuse (replaces IBL diffuse); IBL specular kept but occluded by the blended surfel sky visibility.
+  float surfelSkyVisibility;
+  vec3 surfelIrradiance = giSurfelSampleIrradiance(inWorldSpacePosition, normal, surfelSkyVisibility);
+  if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
+    colorOutput += surfelIrradiance * baseColor.xyz * diffuseOcclusion * OneOverPI;
+  }
+  vec3 iblDiffuse = vec3(0.0);
+  float giIBLWeight = surfelSkyVisibility;
+#else
   vec3 iblDiffuse = getIBLDiffuse(normal) * baseColor.xyz;
+  const float giIBLWeight = 1.0;
+#endif
   vec3 iblSpecularMetal = getIBLRadianceGGX(normal, viewDirection, perceptualRoughness);
+#if defined(GLOBAL_ILLUMINATION_DDGI) && defined(GI_DDGI_GLOSSY_RESIDUAL)
+  // Probe-derived glossy (matches mesh.frag / planet_renderpass.frag). Storage-agnostic: sample the probe field along
+  // the reflection vector as a broad prefiltered radiance (E(R)/pi) and lerp it into the prefiltered specular source by
+  // roughness (rough grass takes the probe local colour bleed, sharp keeps the environment reflection). giIBLWeight unchanged.
+  {
+    float ddgiGlossySky;
+    vec3 ddgiReflectionVector = normalize(reflect(-viewDirection, normal));
+    vec3 ddgiGlossyRadiance = ddgiSampleIrradiance(inWorldSpacePosition, ddgiReflectionVector, viewDirection, ddgiGlossySky) * OneOverPI; // broad reflection
+#if defined(GI_DDGI_GLOSSY_RADIANCE)
+    // Sharp prefiltered-radiance atlas for low roughness, fading to the broad source toward HI.
+    vec3 ddgiSharpGlossy = ddgiSampleGlossyRadiance(inWorldSpacePosition, normal, ddgiReflectionVector, viewDirection);
+    ddgiGlossyRadiance = mix(ddgiSharpGlossy, ddgiGlossyRadiance, smoothstep(GI_DDGI_GLOSSY_ROUGHNESS_LO, GI_DDGI_GLOSSY_ROUGHNESS_HI, perceptualRoughness));
+#endif
+    iblSpecularMetal = mix(iblSpecularMetal, ddgiGlossyRadiance, smoothstep(0.3, 0.8, perceptualRoughness));
+  }
+#endif
   vec3 iblSpecularDielectric = iblSpecularMetal;
   vec3 iblMetalFresnel = getIBLGGXFresnel(normal, viewDirection, perceptualRoughness, baseColor.xyz, 1.0);
   vec3 iblMetalBRDF = iblMetalFresnel * iblSpecularMetal;
   vec3 iblDielectricFresnel = getIBLGGXFresnel(normal, viewDirection, perceptualRoughness, F0Dielectric, specularWeight);
   vec3 iblDielectricBRDF = mix(iblDiffuse * diffuseOcclusion, iblSpecularDielectric * specularOcclusion, iblDielectricFresnel);
   vec3 iblResultColor = mix(iblDielectricBRDF, iblMetalBRDF * specularOcclusion, metallic); // Dielectric/metallic mix
-  colorOutput += iblResultColor;
+  colorOutput += iblResultColor * giIBLWeight;
       
   //vec3(0.015625) * edgeFactor() * fma(clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 1.0, 0.0), 1.0);
   vec4 c = vec4(colorOutput, 1.0);
@@ -352,11 +449,15 @@ void main(){
     c = mix(c, d, d.w * 0.25);
   } 
 #endif
-   
+
+  if((inBlock.meshletID & 0x80000000u) != 0u){
+    c.xyz = meshletDebugColor(inBlock.meshletID & 0x7fffffffu);
+  }
+  
   outFragColor = vec4(clamp(c.xyz, vec3(-65504.0), vec3(65504.0)), c.w);
 
 #if defined(VELOCITY)
-  outVelocity = (inBlock.currentClipSpace.xy / inBlock.currentClipSpace.w) - (inBlock.previousClipSpace.xy / inBlock.previousClipSpace.w);
+  outVelocity = (((inBlock.currentClipSpace.xy / inBlock.currentClipSpace.w) - pushConstants.jitter.xy) - ((inBlock.previousClipSpace.xy / inBlock.previousClipSpace.w) - pushConstants.jitter.zw)) * 0.5;
 #elif defined(REFLECTIVESHADOWMAPOUTPUT)
   outFragNormalUsed = vec4(vec3(fma(normalize(workNormal), vec3(0.5), vec3(0.5))), 1.0);  
 #endif

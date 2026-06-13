@@ -119,6 +119,8 @@ type PPpvInt8=^PpvInt8;
      PpvUInt64Array=^TpvUInt64Array;
      TpvUInt64Array=array[0..65535] of TpvUInt64;
 
+     TpvUInt64DynamicArray=array of TpvUInt64;
+
      PPpvChar=^PChar;
      PpvChar=PAnsiChar;
      TpvChar=AnsiChar;

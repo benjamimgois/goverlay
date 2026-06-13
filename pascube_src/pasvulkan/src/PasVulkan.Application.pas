@@ -91,6 +91,10 @@ uses {$if defined(Unix)}
       JclDebug,
      {$ifend}
      SysUtils,
+     {$ifndef fpc}
+     DateUtils,
+     IOUtils,
+     {$endif}
      Classes,
      SyncObjs,
      Math,
@@ -117,6 +121,9 @@ const MaxSwapChainImages=3;
 
       FrameTimesHistorySize=1 shl 10;
       FrameTimesHistoryMask=FrameTimesHistorySize-1;
+
+      FramePacingHistorySize=16;
+      FramePacingHistoryMask=FramePacingHistorySize-1;
 
       LOG_NONE=0;
       LOG_ERROR=1;
@@ -562,6 +569,8 @@ type EpvApplication=class(Exception)
 
      TpvApplicationUTF8String={$if declared(UnicodeString)}UTF8String{$else}AnsiString{$ifend};
 
+     TpvApplicationStringList=TpvGenericList<TpvUTF8String>;
+
      TpvApplicationOnStep=procedure(const aVulkanApplication:TpvApplication) of object;
 
      TpvApplicationDisplayOrientation=
@@ -575,6 +584,15 @@ type EpvApplication=class(Exception)
 
      TpvApplicationDisplayOrientations=set of TpvApplicationDisplayOrientation;
      PpvApplicationDisplayOrientations=^TpvApplicationDisplayOrientations;
+
+     TpvApplicationDisplayMode=record
+      Width:TpvInt32;
+      Height:TpvInt32;
+      RefreshRate:TpvInt32;
+     end;
+     PpvApplicationDisplayMode=^TpvApplicationDisplayMode;
+
+     TpvApplicationDisplayModes=array of TpvApplicationDisplayMode;
 
      TpvApplicationInputKeyEventType=
       (
@@ -655,7 +673,7 @@ type EpvApplication=class(Exception)
 
      TpvApplicationInputKeyAction=class
       private
-       fApplication:TpvApplication; 
+       fApplication:TpvApplication;
        fID:TpvUInt64;
        fName:TpvUTF8String;
        fDescription:TpvUTF8String;
@@ -669,13 +687,13 @@ type EpvApplication=class(Exception)
        procedure BeforeDestruction; override;
        procedure AddKeyShortcut(const aShortcut:TpvApplicationInputKeyShortcut);
        procedure RemoveKeyShortcut(const aShortcut:TpvApplicationInputKeyShortcut);
-       function HasKeyShortcut(const aShortcut:TpvApplicationInputKeyShortcut):boolean;       
+       function HasKeyShortcut(const aShortcut:TpvApplicationInputKeyShortcut):boolean;
       published
        property ID:TpvUInt64 read fID write fID;
        property Name:TpvUTF8String read fName write fName;
        property Description:TpvUTF8String read fDescription write fDescription;
        property KeyShortcuts:TpvApplicationInputKeyShortcuts read fKeyShortcuts write fKeyShortcuts;
-     end; 
+     end;
 
      TpvApplicationInputKeyEvent=record
       public
@@ -1215,7 +1233,7 @@ type EpvApplication=class(Exception)
        function GetJoystickByIndex(const aIndex:TpvSizeInt=-1):TpvApplicationJoystick;
       published
        property KeyShortcuts:TpvApplicationInputKeyShortcuts read fKeyShortcuts;
-       property KeyActions:TpvApplicationInputKeyActions read fKeyActions; 
+       property KeyActions:TpvApplicationInputKeyActions read fKeyActions;
      end;
 
      TpvApplicationLifecycleListener=class
@@ -1296,6 +1314,7 @@ type EpvApplication=class(Exception)
        function ExistAsset(const aFileName:TpvUTF8String):boolean;
        function GetAssetStream(const aFileName:TpvUTF8String):TStream;
        function GetAssetSize(const aFileName:TpvUTF8String):TpvUInt64;
+       function GetAssetDateTime(const aFileName:TpvUTF8String):TDateTime;
        function GetDirectoryFileList(const aPath:TpvUTF8String;const aRaiseExceptionOnNonExistentDirectory:boolean=false):TFileNameList;
        property BasePath:TpvUTF8String read fBasePath;
      end;
@@ -1345,6 +1364,40 @@ type EpvApplication=class(Exception)
        NoVSync={$ifdef fpc}0{$else}TpvApplicationPresentMode.Immediate{$endif},
        GreedyVSync={$ifdef fpc}1{$else}TpvApplicationPresentMode.Mailbox{$endif},
        VSync={$ifdef fpc}2{$else}TpvApplicationPresentMode.FIFO{$endif}
+      );
+
+     PpvApplicationFramePacingMode=^TpvApplicationFramePacingMode;
+     TpvApplicationFramePacingMode=
+      (
+       None=0,
+       Auto=1,
+       MonitorRefreshRate=2,
+       PresentIntervalEstimation=3,
+       VulkanPresentTiming=4,
+       VulkanPresentTimingFeedback=5
+      );
+
+     PpvApplicationFramePacingStrategy=^TpvApplicationFramePacingStrategy;
+     TpvApplicationFramePacingStrategy=
+      (
+       DeviationCompensation=0,
+       AbsoluteTimeRaster=1
+      );
+
+     PpvApplicationLowLatencyMode=^TpvApplicationLowLatencyMode;
+     TpvApplicationLowLatencyMode=
+      (
+       None=0,
+       Auto=1,
+       NVReflex=2,
+       AMDAntiLag=3
+      );
+
+     TpvApplicationPresentTimingFeedbackRefreshMode=
+      (
+       Unknown=0,
+       VRR=1,
+       FRR=2
       );
 
      TpvApplicationProcessingMode=
@@ -1400,6 +1453,14 @@ type EpvApplication=class(Exception)
        property Invoked:TPasMPBool32 read fInvoked;
      end;
 
+     TpvApplicationDelayedObjectInstanceToFree=record
+      ObjectInstance:TObject;
+      IterationsLeft:TpvSizeInt;
+     end;
+     PpvApplicationDelayedObjectInstanceToFree=^TpvApplicationDelayedObjectInstanceToFree;
+
+     TpvApplicationDelayedObjectInstanceToFreeArray=TpvDynamicArray<TpvApplicationDelayedObjectInstanceToFree>;
+
      { TpvApplication }
 
      TpvApplication=class
@@ -1442,6 +1503,8 @@ type EpvApplication=class(Exception)
        fHasNewWindowTitle:TPasMPBool32;
 
        fPathName:TpvUTF8String;
+
+       fOldPathNames:TpvApplicationStringList;
 
        fCacheStoragePath:TpvUTF8String;
 
@@ -1493,6 +1556,10 @@ type EpvApplication=class(Exception)
        fCurrentWidth:TpvInt32;
        fCurrentHeight:TpvInt32;
        fCurrentFullscreen:TpvInt32;
+       fCurrentRealFullScreen:TpvInt32;
+       fCurrentFullScreenWidth:Int32;
+       fCurrentFullScreenHeight:Int32;
+       fCurrentFullScreenRefreshRate:TpvInt32;
        fCurrentMaximized:TpvInt32;
        fCurrentPresentMode:TpvInt32;
        fCurrentVisibleMouseCursor:TpvInt32;
@@ -1511,8 +1578,11 @@ type EpvApplication=class(Exception)
 
        fWidth:TpvInt32;
        fHeight:TpvInt32;
+       fFullScreenWidth:TpvInt32;
+       fFullScreenHeight:TpvInt32;
+       fFullScreenRefreshRate:TpvInt32;
        fUseRealFullScreen:boolean;
-       fFullscreen:boolean;
+       fFullScreen:boolean;
        fMaximized:boolean;
        fPresentMode:TpvApplicationPresentMode;
        fPresentFrameLatency:TpvUInt64;
@@ -1526,6 +1596,9 @@ type EpvApplication=class(Exception)
        fRelativeMouse:boolean;
        fHideSystemBars:boolean;
        fAcceptDragDropFiles:boolean;
+       fUseBreadcrumbs:boolean;
+       fManualBreadcrumbs:boolean;
+       fManualSyncBreadcrumbs:boolean;
        fAndroidMouseTouchEvents:boolean;
        fAndroidTouchMouseEvents:boolean;
        fAndroidBlockOnPause:boolean;
@@ -1593,6 +1666,8 @@ type EpvApplication=class(Exception)
 
        fStayActiveRegardlessOfVisibility:boolean;
 
+       fWindowMinimizedOrHidden:boolean;
+
        fGraphicsReady:boolean;
 
        fReinitializeGraphics:boolean;
@@ -1602,6 +1677,8 @@ type EpvApplication=class(Exception)
        fVulkanDebugging:boolean;
 
        fVulkanShaderPrintfDebugging:boolean;
+
+       fVulkanSynchronizationValidation:boolean;
 
        fVulkanValidation:boolean;
 
@@ -1676,6 +1753,8 @@ type EpvApplication=class(Exception)
 
        fOnStep:TpvApplicationOnStep;
 
+       fScreenLock:TPasMPCriticalSection;
+
        fScreen:TpvApplicationScreen;
 
        fStartScreen:TpvApplicationScreenClass;
@@ -1700,6 +1779,53 @@ type EpvApplication=class(Exception)
        fFrameRateLimiterLastTime:TpvHighResolutionTime;
        fFrameRateLimiterDeviation:TpvHighResolutionTime;
 
+       // Frame pacing state for temporally consistent frame output
+       fFramePacingMode:TpvApplicationFramePacingMode;
+       fFramePacingStrategy:TpvApplicationFramePacingStrategy;
+       fFramePacingActive:boolean;
+       fFramePacingEstimatedRefreshInterval:TpvInt64; // in high-res timer ticks
+       fFramePacingNextPresentTarget:TpvInt64;
+       fFramePacingLastPresentTime:TpvInt64;
+       fFramePacingHistory:array[0..FramePacingHistorySize-1] of TpvInt64;
+       fFramePacingHistoryIndex:TpvInt32;
+       fFramePacingHistoryCount:TpvInt32;
+       fFramePacingDriftAccumulator:TpvInt64;
+       fFramePacingSleepWithDriftCompensation:TpvHighResolutionTimerSleepWithDriftCompensation;
+       fFramePacingPresentTimingRefreshDuration:TpvUInt64; // from VK_EXT_present_timing, in nanoseconds
+       fFramePacingPresentTimingTimeDomainID:TpvUInt64; // from vkGetSwapchainTimeDomainPropertiesEXT
+       fFramePacingPresentTimingAvailable:boolean;
+       fFramePacingEffectiveInterval:TpvInt64; // computed pacing interval, consumed by FramePacingAndFrameRateLimiter
+
+       // Present timing feedback state (VulkanPresentTimingFeedback mode)
+       fPresentTimingFeedbackRefreshDuration:TpvUInt64; // ns
+       fPresentTimingFeedbackRefreshInterval:TpvUInt64; // ns (alignment unit)
+       fPresentTimingFeedbackRefreshMode:TpvApplicationPresentTimingFeedbackRefreshMode;
+       fPresentTimingFeedbackRefreshCounter:TpvUInt64;
+       fPresentTimingFeedbackHasRefreshFeedback:boolean;
+       fPresentTimingFeedbackTimeDomainCount:TpvInt32;
+       fPresentTimingFeedbackTimeDomains:array[0..7] of TVkTimeDomainKHR;
+       fPresentTimingFeedbackTimeDomainIDs:array[0..7] of TpvUInt64;
+       fPresentTimingFeedbackActiveTimeDomainID:TpvUInt64;
+       fPresentTimingFeedbackCalibratedHostTime:TpvUInt64;
+       fPresentTimingFeedbackCalibratedStageTime:TpvUInt64;
+       fPresentTimingFeedbackLastRecalibrationTime:TpvUInt64;
+       fPresentTimingFeedbackNeedRecalibration:boolean;
+       fPresentTimingFeedbackLastTargetTime:TpvUInt64;
+       fPresentTimingFeedbackPresentationTimeError:TpvInt64;
+       fPresentTimingFeedbackPendingCompensation:TpvInt64;
+       fPresentTimingFeedbackLastPollPresentID:TpvUInt64;
+       fPresentTimingFeedbackErrorRingIndex:TpvInt32;
+       fPresentTimingFeedbackErrorRingCount:TpvInt32;
+       fPresentTimingFeedbackErrorRingValues:array[0..15] of TpvInt64;
+       fPresentTimingFeedbackInitialized:boolean;
+
+       // Low latency mode
+       fLowLatencyMode:TpvApplicationLowLatencyMode;
+       fLowLatencyActive:boolean;
+       fLowLatencyActiveMode:TpvApplicationLowLatencyMode;
+       fLowLatencyFrameID:TpvUInt64;
+       fLowLatencySleepSemaphore:TpvVulkanTimelineSemaphore;
+
        fFrameTimesHistoryDeltaTimes:array[0..FrameTimesHistorySize-1] of TpvDouble;
        fFrameTimesHistoryTimePoints:array[0..FrameTimesHistorySize-1] of TpvHighResolutionTime;
        fFrameTimesHistoryIndex:TpvSizeInt;
@@ -1708,12 +1834,26 @@ type EpvApplication=class(Exception)
 
        fFramesPerSecond:TpvDouble;
 
+       fTimingCPUUpdate:TpvDouble;
+       fTimingCPUDraw:TpvDouble;
+       fTimingCPUBeginFrame:TpvDouble;
+       fTimingCPUFinishFrame:TpvDouble;
+       fTimingCPUAcquire:TpvDouble;
+       fTimingCPUPresent:TpvDouble;
+       fTimingCPUFramePacing:TpvDouble;
+       fTimingCPUUpdateWait:TpvDouble;
+       fTimingCPUFrameStartTime:TpvHighResolutionTime;
+       fTimingCPUUpdateStart:TpvDouble;
+       fTimingCPUUpdateEnd:TpvDouble;
+       fTimingCPUDrawStart:TpvDouble;
+       fTimingCPUDrawEnd:TpvDouble;
+
        fMaximumFramesPerSecond:TpvDouble;
 
        fFrameCounter:TpvInt64;
 
        fUpdateFrameCounter:TpvInt64;
-       
+
        fDrawFrameCounter:TpvInt64;
 
        fDesiredCountInFlightFrames:TpvInt32;
@@ -1831,6 +1971,9 @@ type EpvApplication=class(Exception)
 
        fUpdateJob:PPasMPJob;
 
+       fDelayedObjectInstanceToFreeArray:TpvApplicationDelayedObjectInstanceToFreeArray;
+       fDelayedObjectInstanceToFreeArrayLock:TPasMPCriticalSection;
+
 {$if not (defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless))}
        fNativeEventQueue:TpvApplicationNativeEventQueue;
 
@@ -1860,7 +2003,8 @@ type EpvApplication=class(Exception)
        fWin32OldTop:TpvInt32;
        fWin32OldWidth:TpvInt32;
        fWin32OldHeight:TpvInt32;
-       fWin32Fullscreen:Boolean;
+       fWin32FullScreen:Boolean;
+       fWin32RealFullScreen:Boolean;
        fWin32HighSurrogate:TpvUInt32;
        fWin32LowSurrogate:TpvUInt32;
        fWin32TouchActive:Boolean;
@@ -1909,7 +2053,9 @@ type EpvApplication=class(Exception)
 
        function PasMPInstanceOnWorkerThreadException(const aException:Exception):Boolean;
 
-       protected
+       function GetNativeRefreshRate:TpvDouble;
+
+      protected
 
        class procedure VulkanDebugLn(const What:TpvUTF8String); static;
 
@@ -1952,7 +2098,16 @@ type EpvApplication=class(Exception)
 
        procedure UpdateFrameTimesHistory;
 
-       procedure FrameRateLimiter;
+       procedure FramePacingAndFrameRateLimiter;
+
+       procedure PollPresentTimingFeedback;
+       procedure RecalibratePresentTimingDomains;
+       procedure UpdatePresentTimingFeedbackProperties;
+       procedure ComputePresentTimingTarget(var aTimingInfo:TVkPresentTimingInfoEXT);
+       procedure InitializeLowLatencyMode;
+       procedure ShutdownLowLatencyMode;
+       procedure SetLowLatencyMarker(const aMarker:TVkLatencyMarkerNV);
+       procedure LowLatencySleep;
 
        procedure UpdateJobFunction(const aJob:PPasMPJob;const aThreadIndex:TPasMPInt32);
        procedure DrawJobFunction(const aJob:PPasMPJob;const aThreadIndex:TPasMPInt32);
@@ -1969,12 +2124,22 @@ type EpvApplication=class(Exception)
 
        procedure DrawBlackScreen(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil); virtual;
 
+       procedure ClearDelayedObjectsToFree;
+
+       procedure ClearDelayedObjectsToFreeIteration;
+
+       procedure ParseCommandLine;
+
+       procedure ProcessOldPathNames;
+
       public
 
        constructor Create; reintroduce; virtual;
        destructor Destroy; override;
 
        class procedure Log(const aLevel:TpvInt32;const aWhere,aWhat:TpvUTF8String); static;
+
+       procedure DelayFreeObjectInstance(const aObjectInstance:TObject;const aIterationsDelay:TpvInt32);
 
        procedure AddQueues; virtual;
 
@@ -2052,6 +2217,8 @@ type EpvApplication=class(Exception)
 
        function WaitForPreviousFrame(const aBlocking:Boolean=true):Boolean; virtual;
 
+       procedure WaitForAllInFlightFrames;
+
        procedure Draw(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil); virtual;
 
        procedure FinishFrame(const aSwapChainImageIndex:TpvInt32;var aWaitSemaphore:TpvVulkanSemaphore;const aWaitFence:TpvVulkanFence=nil); virtual; // example for VR output handling of the rendered stereo images
@@ -2061,6 +2228,8 @@ type EpvApplication=class(Exception)
        procedure UpdateAudio; virtual;
 
        procedure DumpVulkanMemoryManager; virtual;
+
+       function GetSupportedDisplayModes(const aDisplayIndex:TpvInt32=0):TpvApplicationDisplayModes;
 
        class procedure Main; virtual;
 
@@ -2102,6 +2271,7 @@ type EpvApplication=class(Exception)
        property WindowTitle:TpvUTF8String read fWindowTitle write SetWindowTitle;
 
        property PathName:TpvUTF8String read fPathName write fPathName;
+       property OldPathNames:TpvApplicationStringList read fOldPathNames;
 
        property SwapChainColorSpace:TpvApplicationSwapChainColorSpace read fSwapChainColorSpace write fSwapChainColorSpace;
 
@@ -2112,9 +2282,13 @@ type EpvApplication=class(Exception)
 
        property SkipNextDrawFrame:boolean read fSkipNextDrawFrame write fSkipNextDrawFrame;
 
+       property FullScreenWidth:TpvInt32 read fFullScreenWidth write fFullScreenWidth;
+       property FullScreenHeight:TpvInt32 read fFullScreenHeight write fFullScreenHeight;
+       property FullScreenRefreshRate:TpvInt32 read fFullScreenRefreshRate write fFullScreenRefreshRate;
+
        property UseRealFullScreen:boolean read fUseRealFullScreen write fUseRealFullScreen;
 
-       property Fullscreen:boolean read fFullscreen write fFullscreen;
+       property Fullscreen:boolean read fFullScreen write fFullScreen;
 
        property Maximized:boolean read fMaximized write fMaximized;
 
@@ -2127,6 +2301,15 @@ type EpvApplication=class(Exception)
        property ReinitializeGraphics:boolean read fReinitializeGraphics write fReinitializeGraphics;
 
        property PresentMode:TpvApplicationPresentMode read fPresentMode write fPresentMode;
+
+       property FramePacingMode:TpvApplicationFramePacingMode read fFramePacingMode write fFramePacingMode;
+
+       property FramePacingStrategy:TpvApplicationFramePacingStrategy read fFramePacingStrategy write fFramePacingStrategy;
+
+       property LowLatencyMode:TpvApplicationLowLatencyMode read fLowLatencyMode write fLowLatencyMode;
+       property LowLatencyActive:boolean read fLowLatencyActive;
+       property LowLatencyActiveMode:TpvApplicationLowLatencyMode read fLowLatencyActiveMode;
+       property PresentTimingFeedbackRefreshMode:TpvApplicationPresentTimingFeedbackRefreshMode read fPresentTimingFeedbackRefreshMode;
 
        property PresentFrameLatency:TpvUInt64 read fPresentFrameLatency write fPresentFrameLatency;
 
@@ -2147,6 +2330,12 @@ type EpvApplication=class(Exception)
        property HideSystemBars:boolean read fHideSystemBars write fHideSystemBars;
 
        property AcceptDragDropFiles:boolean read fAcceptDragDropFiles write fAcceptDragDropFiles;
+
+       property UseBreadcrumbs:boolean read fUseBreadcrumbs write fUseBreadcrumbs;
+
+       property ManualBreadcrumbs:boolean read fManualBreadcrumbs write fManualBreadcrumbs;
+
+       property ManualSyncBreadcrumbs:boolean read fManualSyncBreadcrumbs write fManualSyncBreadcrumbs;
 
        property DisplayOrientations:TpvApplicationDisplayOrientations read fDisplayOrientations write fDisplayOrientations;
 
@@ -2179,7 +2368,7 @@ type EpvApplication=class(Exception)
        property BackgroundResourceLoaderFrameTimeout:TpvInt64 read fBackgroundResourceLoaderFrameTimeout write fBackgroundResourceLoaderFrameTimeout;
 
        property Debugging:boolean read fDebugging;
-       
+
        property Active:boolean read fActive;
 
        property Terminated:boolean read fTerminated;
@@ -2198,6 +2387,8 @@ type EpvApplication=class(Exception)
        property VulkanDebugging:boolean read fVulkanDebugging write fVulkanDebugging;
 
        property VulkanShaderPrintfDebugging:boolean read fVulkanShaderPrintfDebugging write fVulkanShaderPrintfDebugging;
+
+       property VulkanSynchronizationValidation:boolean read fVulkanSynchronizationValidation write fVulkanSynchronizationValidation;
 
        property VulkanValidation:boolean read fVulkanValidation write fVulkanValidation;
 
@@ -2264,6 +2455,30 @@ type EpvApplication=class(Exception)
 
        property FramesPerSecond:TpvDouble read fFramesPerSecond;
 
+       property TimingCPUUpdate:TpvDouble read fTimingCPUUpdate;
+
+       property TimingCPUDraw:TpvDouble read fTimingCPUDraw;
+
+       property TimingCPUBeginFrame:TpvDouble read fTimingCPUBeginFrame;
+
+       property TimingCPUFinishFrame:TpvDouble read fTimingCPUFinishFrame;
+
+       property TimingCPUAcquire:TpvDouble read fTimingCPUAcquire;
+
+       property TimingCPUPresent:TpvDouble read fTimingCPUPresent;
+
+       property TimingCPUFramePacing:TpvDouble read fTimingCPUFramePacing;
+
+       property TimingCPUUpdateWait:TpvDouble read fTimingCPUUpdateWait;
+
+       property TimingCPUUpdateStart:TpvDouble read fTimingCPUUpdateStart;
+
+       property TimingCPUUpdateEnd:TpvDouble read fTimingCPUUpdateEnd;
+
+       property TimingCPUDrawStart:TpvDouble read fTimingCPUDrawStart;
+
+       property TimingCPUDrawEnd:TpvDouble read fTimingCPUDrawEnd;
+
        property MaximumFramesPerSecond:TpvDouble read fMaximumFramesPerSecond write fMaximumFramesPerSecond;
 
        property FrameCounter:TpvInt64 read fFrameCounter;
@@ -2304,7 +2519,7 @@ const pvApplicationInputKeyModifierKeyShortcutMask:TpvApplicationInputKeyModifie
         TpvApplicationInputKeyModifier.CTRL,
         TpvApplicationInputKeyModifier.ALT,
         TpvApplicationInputKeyModifier.META
-       ]; 
+       ];
 
 var pvApplication:TpvApplication=nil;
 
@@ -2701,6 +2916,114 @@ const DPI_AWARENESS_CONTEXT_UNAWARE=TDPI_AWARENESS_CONTEXT(-1);
 
 {$if defined(fpc) and defined(Windows)}
 //function IsDebuggerPresent:longbool; stdcall; external 'kernel32.dll' name 'IsDebuggerPresent';
+{$ifend}
+
+function GetDateTimeUTCOffset(const aWhen:TDateTime):TDateTime;
+{$if defined(fpc) and declared(GetLocalTimeOffset)}
+begin
+ result:=GetLocalTimeOffset/1440.0;
+end;
+{$elseif defined(DelphiXE2AndUp) and declared(TTimeZone)}
+begin
+ result:=0.0;
+ result:=result+TTimeZone.Local.GetUtcOffset(aWhen);
+end;
+{$else}
+var SystemTimes:array[0..1] of TSystemTime;
+    DateTimes:array[0..1] of TDateTime;
+begin
+{$if declared(GetUniversalTime)}
+ GetUniversalTime(SystemTimes[0]);
+{$else}
+ GetSystemTime(SystemTimes[0]);
+{$ifend}
+ GetLocalTime(SystemTimes[1]);
+ DateTimes[0]:=SystemTimeToDateTime(SystemTimes[0]);
+ DateTimes[1]:=SystemTimeToDateTime(SystemTimes[1]);
+ result:=MinutesBetween(DateTimes[0],DateTimes[1])/1440.0;
+end;
+{$ifend}
+
+function DateTimeFromLocalTimeToUniversalTime(const aDateTime:TDateTime):TDateTime;
+{$if defined(fpc) and declared(LocalTimeToUniversal)}
+begin
+ result:=LocalTimeToUniversal(aDateTime);
+end;
+{$elseif defined(DelphiXE2AndUp) and declared(TTimeZone)}
+begin
+ result:=TTimeZone.Local.ToUniversalTime(aDateTime);
+end;
+{$else}
+begin
+ result:=aDateTime+GetDateTimeUTCOffset(aDateTime);
+end;
+{$ifend}
+
+function DateTimeFromUniversalTimeToLocalTime(const aDateTime:TDateTime):TDateTime;
+{$if defined(fpc) and declared(LocalTimeToUniversal)}
+begin
+ result:=UniversalTimeToLocal(aDateTime);
+end;
+{$elseif defined(DelphiXE2AndUp) and declared(TTimeZone)}
+begin
+ result:=TTimeZone.Local.ToLocalTime(aDateTime);
+end;
+{$else}
+begin
+ result:=aDateTime-GetDateTimeUTCOffset(aDateTime);
+end;
+{$ifend}
+
+{$if not declared(NowUTC)}
+function NowUTC:TDateTime;
+{$if defined(DelphiXE2AndUp)}
+begin
+ result:=TDateTime.NowUTC;
+end;
+{$else}
+begin
+ result:=DateTimeFromLocalTimeToUniversalTime(Now);
+end;
+{$ifend}
+{$ifend}
+
+{$if not declared(FileAgeUTC)}
+function FileAgeUTC(const FileName:String;out FileDateTimeUTC:TDateTime;FollowLink:Boolean=True):Boolean;
+begin
+{$if defined(DelphiXE2AndUp)}
+ result:=FileExists(FileName);
+ if result then begin
+  FileDateTimeUTC:=TFile.GetLastWriteTimeUtc(FileName);
+ end;
+{$else}
+ result:=FileAge(FileName,FileDateTimeUTC{$ifdef fpc},FollowLink{$endif});
+ if result then begin
+  FileDateTimeUTC:=DateTimeFromLocalTimeToUniversalTime(FileDateTimeUTC);
+ end;
+{$ifend}
+end;
+{$ifend}
+
+function DateTimeFromUnixTime(const aUnixTime:TpvInt64):TDateTime;
+{$if declared(UnixToDateTime)}
+begin
+ result:=UnixToDateTime(aUnixTime);
+end;
+{$else}
+begin
+ result:=(TDateTime(aUnixTime)/86400.0)+25569.0;
+end;
+{$ifend}
+
+function DateTimeToUnixTime(const aDateTime:TDateTime):TpvInt64;
+{$if declared(DateTimeToUnix)}
+begin
+ result:=DateTimeToUnix(aDateTime);
+end;
+{$else}
+begin
+ result:=Trunc((aDateTime-25569.0)*86400.0);
+end;
 {$ifend}
 
 {$if defined(fpc)}
@@ -3426,7 +3749,7 @@ begin
   fKeyActions.Add(aAction);
   if aAction.fKeyShortcuts.IndexOf(self)<0 then begin
    aAction.fKeyShortcuts.Add(self);
-  end; 
+  end;
  end;
 end;
 
@@ -3496,7 +3819,7 @@ begin
   fKeyShortcuts.Add(aShortcut);
   if aShortcut.fKeyActions.IndexOf(self)<0 then begin
    aShortcut.fKeyActions.Add(self);
-  end; 
+  end;
  end;
 end;
 
@@ -4970,7 +5293,7 @@ begin
  fKeyShortcutHashMap:=TpvApplicationInputKeyShortcutHashMap.Create(nil);
  fKeyShortcutIDCounter:=0;
  fKeyActions:=TpvApplicationInputKeyActions.Create;
- fKeyActionIDCounter:=0; 
+ fKeyActionIDCounter:=0;
 end;
 
 destructor TpvApplicationInput.Destroy;
@@ -5086,9 +5409,9 @@ begin
  result:=TpvApplicationInputKeyAction.Create(pvApplication,aName,aDescription);
  try
   result.fID:=fKeyActionIDCounter;
- finally 
+ finally
   fKeyActions.Add(result);
- end; 
+ end;
 end;
 
 procedure TpvApplicationInput.RemoveKeyAction(const aKeyAction:TpvApplicationInputKeyAction);
@@ -7921,8 +8244,6 @@ begin
 end;
 
 constructor TpvApplicationAssets.Create(const aVulkanApplication:TpvApplication);
-var
- ExePath,TestPath:String;
 begin
  inherited Create;
  fVulkanApplication:=aVulkanApplication;
@@ -7935,17 +8256,7 @@ begin
 {$elseif defined(PasVulkanUseRelativeDirectory)}
  fBasePath:=TpvUTF8String(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'assets'));
 {$else}
- // Flexible asset path resolution:
- // Priority 1: assets folder next to executable (for development)
- // Priority 2: ../share/goverlay/assets relative to executable (for installed packages)
- ExePath:=ExtractFilePath(ParamStr(0));
- TestPath:=IncludeTrailingPathDelimiter(ExePath+'assets');
- if DirectoryExists(TestPath) then begin
-  fBasePath:=TpvUTF8String(TestPath);
- end else begin
-  TestPath:=IncludeTrailingPathDelimiter(ExpandFileName(ExePath+'..'+PathDelim+'share'+PathDelim+'goverlay'+PathDelim+'assets'));
-  fBasePath:=TpvUTF8String(TestPath);
- end;
+ fBasePath:=TpvUTF8String(IncludeTrailingPathDelimiter(ExpandFileName(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'..')+'assets'))));
 {$ifend}
 end;
 
@@ -8038,7 +8349,40 @@ begin
  try
   result:=Stream.Size;
  finally
-  Stream.Free;
+  FreeAndNil(Stream);
+ end;
+end;
+{$endif}
+
+function TpvApplicationAssets.GetAssetDateTime(const aFileName:TpvUTF8String):TDateTime;
+{$ifdef Android}
+var Asset:PAAsset;
+    FileDescriptor:TpvInt32;
+    Stat:TStat;
+begin
+ result:=0;
+ if assigned(AndroidAssetManager) then begin
+  Asset:=AAssetManager_open(AndroidAssetManager,pansichar(TpvApplicationRawByteString(CorrectFileName(aFileName))),AASSET_MODE_UNKNOWN);
+  if assigned(Asset) then begin
+   try
+    FileDescriptor:=AAsset_openFileDescriptor(Asset,nil,nil);
+    if fpFStat(FileDescriptor,Stat)=0 then begin
+     result:=FileDateToDateTime(Stat.st_mtime);
+    end;
+   finally
+     AAsset_close(Asset);
+   end;
+  end else begin
+   raise Exception.Create('Asset "'+aFileName+'" not found');
+  end;
+ end else begin
+  raise Exception.Create('Asset manager is null');
+ end;
+end;
+{$else}
+begin
+ if not FileAgeUTC(String(CorrectFileName(aFileName)),result) then begin
+  result:=0.0;
  end;
 end;
 {$endif}
@@ -8514,6 +8858,8 @@ begin
 
  fPathName:='PasVulkanApplication';
 
+ fOldPathNames:=TpvApplicationStringList.Create;
+
  fCacheStoragePath:='';
 
  fLocalStoragePath:='';
@@ -8561,6 +8907,12 @@ begin
 
  fFrameLimiterHighResolutionTimerSleepWithDriftCompensation:=TpvHighResolutionTimerSleepWithDriftCompensation.Create(fHighResolutionTimer);
 
+ fFramePacingSleepWithDriftCompensation:=TpvHighResolutionTimerSleepWithDriftCompensation.Create(fHighResolutionTimer);
+
+ fDelayedObjectInstanceToFreeArray.Initialize;
+
+ fDelayedObjectInstanceToFreeArrayLock:=TPasMPCriticalSection.Create;
+
  fAssets:=TpvApplicationAssets.Create(self);
 
  fFiles:=TpvApplicationFiles.Create(self);
@@ -8600,6 +8952,10 @@ begin
  fCurrentWidth:=-1;
  fCurrentHeight:=-1;
  fCurrentFullscreen:=-1;
+ fCurrentRealFullScreen:=-1;
+ fCurrentFullScreenWidth:=-1;
+ fCurrentFullScreenHeight:=-1;
+ fCurrentFullScreenRefreshRate:=-1;
  fCurrentMaximized:=-1;
  fCurrentPresentMode:=High(TpvInt32);
  fCurrentVisibleMouseCursor:=-1;
@@ -8618,14 +8974,17 @@ begin
 
  fWidth:=1280;
  fHeight:=720;
+ fFullScreenWidth:=0;
+ fFullScreenHeight:=0;
+ fFullScreenRefreshRate:=0;
  fUseRealFullScreen:=false;
- fFullscreen:=false;
+ fFullScreen:=false;
  fMaximized:=false;
  fExclusiveFullScreenMode:=TpvVulkanExclusiveFullScreenMode.Default;
  fPresentMode:=TpvApplicationPresentMode.Immediate;
  fPresentFrameLatency:={$ifdef Android}2{$else}1{$endif};
  fPresentFrameLatencyMode:=TpvApplicationPresentFrameLatencyMode.CombinedWait;
- fProcessingMode:=TpvApplicationProcessingMode.Flexible;
+ fProcessingMode:=TpvApplicationProcessingMode.Strict;
  fResizable:=true;
  fVisibleMouseCursor:=false;
  fCatchMouseOnButton:=false;
@@ -8634,6 +8993,9 @@ begin
  fRelativeMouse:=false;
  fHideSystemBars:=false;
  fAcceptDragDropFiles:=false;
+ fUseBreadcrumbs:=false;
+ fManualBreadcrumbs:=false;
+ fManualSyncBreadcrumbs:=false;
  fDisplayOrientations:=[TpvApplicationDisplayOrientation.LandscapeLeft,TpvApplicationDisplayOrientation.LandscapeRight];
  fAndroidMouseTouchEvents:=false;
  fAndroidTouchMouseEvents:=false;
@@ -8662,11 +9024,17 @@ begin
 
  fSkipNextDrawFrame:=false;
 
+ fStayActiveRegardlessOfVisibility:=false;
+
+ fWindowMinimizedOrHidden:=false;
+
  fVulkanRecreateSwapChainOnSuboptimalSurface:=false;
 
  fVulkanDebugging:=false;
 
  fVulkanShaderPrintfDebugging:=false;
+
+ fVulkanSynchronizationValidation:=false;
 
  fVulkanDebuggingEnabled:=false;
 
@@ -8749,12 +9117,14 @@ begin
 
  fVulkanTransferInFlightCommandsFromOldSwapChain:=false;
 
+ fScreenLock:=TPasMPCriticalSection.Create;
+
  fScreen:=nil;
 
  fNextScreen:=nil;
 
  fNextScreenClass:=nil;
- 
+
  fHasNewNextScreen:=false;
 
  fHasLastTime:=false;
@@ -8768,11 +9138,65 @@ begin
  fFrameRateLimiterLastTime:=0;
  fFrameRateLimiterDeviation:=0;
 
+ fFramePacingMode:=TpvApplicationFramePacingMode.None;
+ fFramePacingStrategy:=TpvApplicationFramePacingStrategy.AbsoluteTimeRaster;
+ fFramePacingActive:=false;
+ fFramePacingEstimatedRefreshInterval:=0;
+ fFramePacingNextPresentTarget:=0;
+ fFramePacingLastPresentTime:=0;
+ FillChar(fFramePacingHistory,SizeOf(fFramePacingHistory),#0);
+ fFramePacingHistoryIndex:=0;
+ fFramePacingHistoryCount:=0;
+ fFramePacingDriftAccumulator:=0;
+ fFramePacingPresentTimingRefreshDuration:=0;
+ fFramePacingPresentTimingTimeDomainID:=0;
+ fFramePacingPresentTimingAvailable:=false;
+ fFramePacingEffectiveInterval:=0;
+
+ fPresentTimingFeedbackRefreshDuration:=0;
+ fPresentTimingFeedbackRefreshInterval:=0;
+ fPresentTimingFeedbackRefreshMode:=TpvApplicationPresentTimingFeedbackRefreshMode.Unknown;
+ fPresentTimingFeedbackRefreshCounter:=0;
+ fPresentTimingFeedbackHasRefreshFeedback:=false;
+ fPresentTimingFeedbackTimeDomainCount:=0;
+ fPresentTimingFeedbackActiveTimeDomainID:=0;
+ fPresentTimingFeedbackCalibratedHostTime:=0;
+ fPresentTimingFeedbackCalibratedStageTime:=0;
+ fPresentTimingFeedbackLastRecalibrationTime:=0;
+ fPresentTimingFeedbackNeedRecalibration:=true;
+ fPresentTimingFeedbackLastTargetTime:=0;
+ fPresentTimingFeedbackPresentationTimeError:=0;
+ fPresentTimingFeedbackPendingCompensation:=0;
+ fPresentTimingFeedbackLastPollPresentID:=0;
+ fPresentTimingFeedbackErrorRingIndex:=0;
+ fPresentTimingFeedbackErrorRingCount:=0;
+ fPresentTimingFeedbackInitialized:=false;
+
+ fLowLatencyMode:=TpvApplicationLowLatencyMode.None;
+ fLowLatencyActive:=false;
+ fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.None;
+ fLowLatencyFrameID:=0;
+ fLowLatencySleepSemaphore:=nil;
+
  fFrameCounter:=0;
 
  fUpdateFrameCounter:=0;
 
  fDrawFrameCounter:=0;
+
+ fTimingCPUUpdate:=0.0;
+ fTimingCPUDraw:=0.0;
+ fTimingCPUBeginFrame:=0.0;
+ fTimingCPUFinishFrame:=0.0;
+ fTimingCPUAcquire:=0.0;
+ fTimingCPUPresent:=0.0;
+ fTimingCPUFramePacing:=0.0;
+ fTimingCPUUpdateWait:=0.0;
+ fTimingCPUFrameStartTime:=0;
+ fTimingCPUUpdateStart:=0.0;
+ fTimingCPUUpdateEnd:=0.0;
+ fTimingCPUDrawStart:=0.0;
+ fTimingCPUDrawEnd:=0.0;
 
  SetDesiredCountInFlightFrames(2);
 
@@ -8804,10 +9228,14 @@ begin
 
  pvApplication:=self;
 
+ ParseCommandLine;
+
 end;
 
 destructor TpvApplication.Destroy;
 begin
+
+ ClearDelayedObjectsToFree;
 
 {$if not (defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless))}
  fNativeEventLocalQueue.Finalize;
@@ -8836,7 +9264,13 @@ begin
 
  FreeAndNil(fAssets);
 
+ FreeAndNil(fOldPathNames);
+
+ FreeAndNil(fDelayedObjectInstanceToFreeArrayLock);
+ fDelayedObjectInstanceToFreeArray.Finalize;
+
  FreeAndNil(fFrameLimiterHighResolutionTimerSleepWithDriftCompensation);
+ FreeAndNil(fFramePacingSleepWithDriftCompensation);
 
  FreeAndNil(fHighResolutionTimer);
 
@@ -8847,6 +9281,8 @@ begin
  fPasMPInstance:=nil;
 
  FreeAndNil(fVulkanEventLock);
+
+ FreeAndNil(fScreenLock);
 
  pvApplication:=nil;
 
@@ -8944,6 +9380,140 @@ begin
  end;
 end;
 
+procedure TpvApplication.ParseCommandLine;
+var Index,Count:TpvSizeInt;
+    Value:TpvInt32;
+    Parameter:string;
+begin
+
+ // Parse command line parameters
+ Index:=1;
+ Count:=ParamCount;
+ while Index<=Count do begin
+  Parameter:=LowerCase(ParamStr(Index));
+  inc(Index);
+  if (length(Parameter)>0) and ((Parameter[1]='-') or (Parameter[1]='/')) then begin
+   Delete(Parameter,1,1);
+   if (length(Parameter)>0) and ((Parameter[1]='-') or (Parameter[1]='/')) then begin
+    Delete(Parameter,1,1);
+   end;
+   if Parameter='breadcrumbs' then begin
+    fUseBreadcrumbs:=true;
+   end else if Parameter='manualbreadcrumbs' then begin
+    fManualBreadcrumbs:=true;
+   end else if Parameter='manualsyncbreadcrumbs' then begin
+    fManualSyncBreadcrumbs:=true;
+   end;
+  end;
+ end;
+end;
+
+procedure TpvApplication.ProcessOldPathNames;
+var Index,PartIndex:TpvSizeInt;
+    OldPathName,OldPath,NewPath:TpvUTF8String;
+    OldPaths,NewPaths:array[0..2] of TpvUTF8String;
+begin
+
+ if assigned(fOldPathNames) and (fOldPathNames.Count>0) then begin
+
+  for Index:=0 to fOldPathNames.Count-1 do begin
+
+   OldPathName:=fOldPathNames.Items[Index];
+   if (length(OldPathName)>0) and (OldPathName<>fPathName) then begin
+
+    OldPaths[0]:=TpvUTF8String(ExcludeTrailingPathDelimiter(GetAppDataCacheStoragePath(String(OldPathName))));
+    NewPaths[0]:=ExcludeTrailingPathDelimiter(fCacheStoragePath);
+
+    OldPaths[1]:=TpvUTF8String(ExcludeTrailingPathDelimiter(GetAppDataLocalStoragePath(String(OldPathName))));
+    NewPaths[1]:=ExcludeTrailingPathDelimiter(fLocalStoragePath);
+
+    OldPaths[2]:=TpvUTF8String(ExcludeTrailingPathDelimiter(GetAppDataRoamingStoragePath(String(OldPathName))));
+    NewPaths[2]:=ExcludeTrailingPathDelimiter(fRoamingStoragePath);
+
+    for PartIndex:=0 to 2 do begin
+
+     OldPath:=OldPaths[PartIndex];
+     NewPath:=NewPaths[PartIndex];
+
+     if OldPath<>NewPath then begin
+
+      if (length(OldPath)>0) and DirectoryExists(String(OldPath)) then begin
+
+       if (length(NewPath)>0) and not DirectoryExists(String(NewPath)) then begin
+
+        if not RenameFile(String(OldPath),String(NewPath)) then begin
+
+         if DirectoryExists(String(NewPath)) then begin
+          // Merge contents if target already exists after failed rename
+         end;
+
+        end;
+
+       end;
+
+      end;
+
+     end;
+
+    end;
+
+   end;
+
+  end;
+
+ end;
+
+end;
+
+procedure TpvApplication.ClearDelayedObjectsToFree;
+var Index:TpvSizeInt;
+begin
+ fDelayedObjectInstanceToFreeArrayLock.Acquire;
+ try
+  for Index:=0 to fDelayedObjectInstanceToFreeArray.Count-1 do begin
+   FreeAndNil(fDelayedObjectInstanceToFreeArray.Items[Index].ObjectInstance);
+  end;
+  fDelayedObjectInstanceToFreeArray.Clear;
+ finally
+  fDelayedObjectInstanceToFreeArrayLock.Release;
+ end;
+end;
+
+procedure TpvApplication.ClearDelayedObjectsToFreeIteration;
+var Index:TpvSizeInt;
+    Item:PpvApplicationDelayedObjectInstanceToFree;
+begin
+ fDelayedObjectInstanceToFreeArrayLock.Acquire;
+ try
+  Index:=0;
+  while Index<fDelayedObjectInstanceToFreeArray.Count do begin
+   Item:=@fDelayedObjectInstanceToFreeArray.Items[Index];
+   if Item^.IterationsLeft<=0 then begin
+    FreeAndNil(Item^.ObjectInstance);
+    fDelayedObjectInstanceToFreeArray.Delete(Index);
+   end else begin
+    dec(Item^.IterationsLeft);
+    inc(Index);
+   end;
+  end;
+ finally
+  fDelayedObjectInstanceToFreeArrayLock.Release;
+ end;
+end;
+
+procedure TpvApplication.DelayFreeObjectInstance(const aObjectInstance:TObject;const aIterationsDelay:TpvInt32);
+var Item:PpvApplicationDelayedObjectInstanceToFree;
+begin
+ fDelayedObjectInstanceToFreeArrayLock.Acquire;
+ try
+  Item:=pointer(fDelayedObjectInstanceToFreeArray.AddNew);
+  Item^.ObjectInstance:=aObjectInstance;
+  Item^.IterationsLeft:=aIterationsDelay;
+ finally
+  fDelayedObjectInstanceToFreeArrayLock.Release;
+ end;
+end;
+
 function TpvApplication.PasMPInstanceOnWorkerThreadException(const aException:Exception):Boolean;
 var ExceptionString:string;
 begin
@@ -8955,6 +9525,44 @@ begin
  LogCrash(ExceptionString);
  result:=false;
 end;
+
+function TpvApplication.GetNativeRefreshRate:TpvDouble;
+{$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+var SDLDisplayMode:TSDL_DisplayMode;
+begin
+ if SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(pvApplication.fSurfaceWindow),@SDLDisplayMode)=0 then begin
+  result:=SDLDisplayMode.refresh_rate;
+ end else begin
+  result:=0.0;
+ end;
+end;
+{$elseif defined(Windows) and not defined(PasVulkanHeadless)}
+const ENUM_CURRENT_SETTINGS=DWORD(-1);
+var MonitorHandle:HMONITOR;
+    MonitorInfoEx:{$ifdef fpc}TMONITORINFOEXW{$else}TMonitorInfoExW{$endif};
+    devMode:{$ifdef fpc}TDEVMODEW{$else}DEVMODEW{$endif};
+begin
+ result:=0.0;
+ MonitorHandle:=MonitorFromWindow(fWin32Handle,MONITOR_DEFAULTTONEAREST);
+ if MonitorHandle<>0 then begin
+  FillChar(MonitorInfoEx,SizeOf(MonitorInfoEx),#0);
+  MonitorInfoEx.cbSize:=SizeOf(MonitorInfoEx);
+  if {$ifdef fpc}GetMonitorInfo{$else}GetMonitorInfoW{$endif}(MonitorHandle,@MonitorInfoEx) then begin
+   FillChar(devMode,SizeOf(devMode),#0);
+   devMode.dmSize:=SizeOf(devMode);
+   if EnumDisplaySettingsW(@MonitorInfoEx.szDevice[0],ENUM_CURRENT_SETTINGS,{$ifdef fpc}@{$endif}devMode) then begin
+    if devMode.dmDisplayFrequency>1 then begin
+     result:=devMode.dmDisplayFrequency;
+    end;
+   end;
+  end;
+ end;
+end;
+{$else}
+begin
+ result:=0.0;
+end;
+{$ifend}
 
 procedure TpvApplication.SetTitle(const aTitle:TpvUTF8String);
 begin
@@ -9043,121 +9651,135 @@ var Index:TpvSizeInt;
     pObjects:PVkDebugUtilsObjectNameInfoEXT;
     pLabels:PVkDebugUtilsLabelEXT;
     DoBreak:Boolean;
+    LogLevel:TpvInt32;
 begin
 
  DoBreak:=false;
 
  try
 
-  if assigned(aCallbackData) then begin
+  if pvOutputLogLevel>LOG_NONE then begin
 
-   Message:=aCallbackData^.pMessage;
+   if assigned(aCallbackData) then begin
 
-   MessageIDName:=aCallbackData^.pMessageIdName;
+    Message:=aCallbackData^.pMessage;
 
-   if (pos('Mapping an image with layout',String(Message))>0) and (pos('can result in undefined behavior if this memory is used by the device',String(Message))>0) then begin
-    // Ignore because the AMD allocator will mix up memory types on IGP processors.
-   end else if pos('Invalid SPIR-V binary version 1.3',String(Message))>0 then begin
-    // Ignore because the validator is wrong here.
-   end else if pos('Shader requires flag',String(Message))>0 then begin
-    // Ignore because the validator is wrong here.
-   end else if (pos('SPIR-V module not valid: Pointer operand',String(Message))>0) and (pos('must be a memory object',String(Message))>0) then begin
-    // Ignore because the validator is wrong here.
-   end else if pos('UNASSIGNED-CoreValidation-DrawState-ClearCmdBeforeDraw',String(MessageIDName))>0 then begin
-    // Ignore
-   end else begin
+    MessageIDName:=aCallbackData^.pMessageIdName;
 
-    MessageSeverityTypes:='';
-    if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT))<>0 then begin
-     if length(MessageSeverityTypes)>0 then begin
-      MessageSeverityTypes:=MessageSeverityTypes+'|';
-     end;
-     MessageSeverityTypes:=MessageSeverityTypes+'VERBOSE';
-    end;
-    if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT))<>0 then begin
-     if length(MessageSeverityTypes)>0 then begin
-      MessageSeverityTypes:=MessageSeverityTypes+'|';
-     end;
-     MessageSeverityTypes:=MessageSeverityTypes+'INFORMATION';
-    end;
-    if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT))<>0 then begin
-     if length(MessageSeverityTypes)>0 then begin
-      MessageSeverityTypes:=MessageSeverityTypes+'|';
-     end;
-     MessageSeverityTypes:=MessageSeverityTypes+'WARNING';
-    end;
-    if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT))<>0 then begin
-     if length(MessageSeverityTypes)>0 then begin
-      MessageSeverityTypes:=MessageSeverityTypes+'|';
-     end;
-     MessageSeverityTypes:=MessageSeverityTypes+'ERROR';
-     DoBreak:=true;
-    end;
+    if (pos('Mapping an image with layout',String(Message))>0) and (pos('can result in undefined behavior if this memory is used by the device',String(Message))>0) then begin
+     // Ignore because the AMD allocator will mix up memory types on IGP processors.
+    end else if pos('Invalid SPIR-V binary version 1.3',String(Message))>0 then begin
+     // Ignore because the validator is wrong here.
+    end else if pos('Shader requires flag',String(Message))>0 then begin
+     // Ignore because the validator is wrong here.
+    end else if (pos('SPIR-V module not valid: Pointer operand',String(Message))>0) and (pos('must be a memory object',String(Message))>0) then begin
+     // Ignore because the validator is wrong here.
+    end else if pos('UNASSIGNED-CoreValidation-DrawState-ClearCmdBeforeDraw',String(MessageIDName))>0 then begin
+     // Ignore
+    end else begin
 
-    MessageTypes:='';
-    if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT))<>0 then begin
-     if length(MessageTypes)>0 then begin
-      MessageTypes:=MessageTypes+'|';
-     end;
-     MessageTypes:=MessageTypes+'GENERAL';
-    end;
-    if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT))<>0 then begin
-     if length(MessageTypes)>0 then begin
-      MessageTypes:=MessageTypes+'|';
-     end;
-     MessageTypes:=MessageTypes+'VALIDATION';
-    end;
-    if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))<>0 then begin
-     if length(MessageTypes)>0 then begin
-      MessageTypes:=MessageTypes+'|';
-     end;
-     MessageTypes:=MessageTypes+'PERFORMANCE';
-    end;
-    if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT))<>0 then begin
-     if length(MessageTypes)>0 then begin
-      MessageTypes:=MessageTypes+'|';
-     end;
-     MessageTypes:=MessageTypes+'DEVICE_ADDRESS_BINDING';
-    end;
-
-    Objects:='';
-    if aCallbackData^.objectCount>0 then begin
-     Objects:=NewLine+Tab+'Objects - '+TpvUTF8String(IntToStr(aCallbackData^.objectCount));
-     pObjects:=aCallbackData^.pObjects;
-     for Index:=0 to TpvSizeInt(aCallbackData^.objectCount)-1 do begin
-      Objects:=Objects+NewLine+Tab+Tab+'Object['+TpvUTF8String(IntToStr(Index))+'] - '+
-               TpvUTF8String(VulkanObjectTypeToString(pObjects^.objectType))+', '+
-               'Handle '+TpvUTF8String(UIntToStr(TpvUInt64(pObjects^.objectHandle)));
-      if assigned(pObjects^.pObjectName) and (length(pObjects^.pObjectName)>0) then begin
-       Objects:=Objects+', Name '+TpvUTF8String(pObjects^.pObjectName);
+     LogLevel:=LOG_DEBUG;
+     MessageSeverityTypes:='';
+     if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT))<>0 then begin
+      if length(MessageSeverityTypes)>0 then begin
+       MessageSeverityTypes:=MessageSeverityTypes+'|';
       end;
-      inc(pObjects);
+      MessageSeverityTypes:=MessageSeverityTypes+'VERBOSE';
+      LogLevel:=LOG_VERBOSE;
      end;
-    end;
-
-    QueueLabels:='';
-    if aCallbackData^.QueueLabelCount>0 then begin
-     QueueLabels:=NewLine+Tab+'Queue labels - '+TpvUTF8String(IntToStr(aCallbackData^.QueueLabelCount));
-     pLabels:=aCallbackData^.pQueueLabels;
-     for Index:=0 to TpvSizeInt(aCallbackData^.QueueLabelCount)-1 do begin
-      QueueLabels:=QueueLabels+NewLine+Tab+Tab+'Label['+TpvUTF8String(IntToStr(Index))+'] - '+TpvUTF8String(pLabels^.pLabelName)+'{ '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[0]))+', '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[1]))+', '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[2]))+', '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[3]))+' }';
-      inc(pLabels);
+     if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT))<>0 then begin
+      if length(MessageSeverityTypes)>0 then begin
+       MessageSeverityTypes:=MessageSeverityTypes+'|';
+      end;
+      MessageSeverityTypes:=MessageSeverityTypes+'INFORMATION';
+      LogLevel:=LOG_INFO;
      end;
-    end;
-
-    CmdBufLabels:='';
-    if aCallbackData^.cmdBufLabelCount>0 then begin
-     CmdBufLabels:=NewLine+Tab+'Command buffer labels - '+IntToStr(aCallbackData^.cmdBufLabelCount);
-     pLabels:=aCallbackData^.pCmdBufLabels;
-     for Index:=0 to TpvSizeInt(aCallbackData^.cmdBufLabelCount)-1 do begin
-      CmdBufLabels:=CmdBufLabels+NewLine+Tab+Tab+'Label['+IntToStr(Index)+'] - '+TpvUTF8String(pLabels^.pLabelName)+'{ '+ConvertDoubleToString(pLabels^.color[0])+', '+ConvertDoubleToString(pLabels^.color[1])+', '+ConvertDoubleToString(pLabels^.color[2])+', '+ConvertDoubleToString(pLabels^.color[3])+' }';
-      inc(pLabels);
+     if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT))<>0 then begin
+      if length(MessageSeverityTypes)>0 then begin
+       MessageSeverityTypes:=MessageSeverityTypes+'|';
+      end;
+      MessageSeverityTypes:=MessageSeverityTypes+'WARNING';
+      LogLevel:=LOG_INFO;
      end;
+     if (aMessageSeverity and TVkDebugUtilsMessageSeverityFlagsEXT(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT))<>0 then begin
+      if length(MessageSeverityTypes)>0 then begin
+       MessageSeverityTypes:=MessageSeverityTypes+'|';
+      end;
+      MessageSeverityTypes:=MessageSeverityTypes+'ERROR';
+      LogLevel:=LOG_ERROR;
+      DoBreak:=true;
+     end;
+
+     MessageTypes:='';
+     if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT))<>0 then begin
+      if length(MessageTypes)>0 then begin
+       MessageTypes:=MessageTypes+'|';
+      end;
+      MessageTypes:=MessageTypes+'GENERAL';
+     end;
+     if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT))<>0 then begin
+      if length(MessageTypes)>0 then begin
+       MessageTypes:=MessageTypes+'|';
+      end;
+      MessageTypes:=MessageTypes+'VALIDATION';
+     end;
+     if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))<>0 then begin
+      if length(MessageTypes)>0 then begin
+       MessageTypes:=MessageTypes+'|';
+      end;
+      MessageTypes:=MessageTypes+'PERFORMANCE';
+     end;
+     if (aMessageTypes and TVkDebugUtilsMessageTypeFlagsEXT(VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT))<>0 then begin
+      if length(MessageTypes)>0 then begin
+       MessageTypes:=MessageTypes+'|';
+      end;
+      MessageTypes:=MessageTypes+'DEVICE_ADDRESS_BINDING';
+     end;
+
+     Objects:='';
+     if aCallbackData^.objectCount>0 then begin
+      Objects:=NewLine+Tab+'Objects - '+TpvUTF8String(IntToStr(aCallbackData^.objectCount));
+      pObjects:=aCallbackData^.pObjects;
+      for Index:=0 to TpvSizeInt(aCallbackData^.objectCount)-1 do begin
+       Objects:=Objects+NewLine+Tab+Tab+'Object['+TpvUTF8String(IntToStr(Index))+'] - '+
+                TpvUTF8String(VulkanObjectTypeToString(pObjects^.objectType))+', '+
+                'Handle '+TpvUTF8String(UIntToStr(TpvUInt64(pObjects^.objectHandle)));
+       if assigned(pObjects^.pObjectName) and (length(pObjects^.pObjectName)>0) then begin
+        Objects:=Objects+', Name '+TpvUTF8String(pObjects^.pObjectName);
+       end;
+       inc(pObjects);
+      end;
+     end;
+
+     QueueLabels:='';
+     if aCallbackData^.QueueLabelCount>0 then begin
+      QueueLabels:=NewLine+Tab+'Queue labels - '+TpvUTF8String(IntToStr(aCallbackData^.QueueLabelCount));
+      pLabels:=aCallbackData^.pQueueLabels;
+      for Index:=0 to TpvSizeInt(aCallbackData^.QueueLabelCount)-1 do begin
+       QueueLabels:=QueueLabels+NewLine+Tab+Tab+'Label['+TpvUTF8String(IntToStr(Index))+'] - '+TpvUTF8String(pLabels^.pLabelName)+'{ '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[0]))+', '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[1]))+', '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[2]))+', '+TpvUTF8String(ConvertDoubleToString(pLabels^.color[3]))+' }';
+       inc(pLabels);
+      end;
+     end;
+
+     CmdBufLabels:='';
+     if aCallbackData^.cmdBufLabelCount>0 then begin
+      CmdBufLabels:=NewLine+Tab+'Command buffer labels - '+IntToStr(aCallbackData^.cmdBufLabelCount);
+      pLabels:=aCallbackData^.pCmdBufLabels;
+      for Index:=0 to TpvSizeInt(aCallbackData^.cmdBufLabelCount)-1 do begin
+       CmdBufLabels:=CmdBufLabels+NewLine+Tab+Tab+'Label['+IntToStr(Index)+'] - '+TpvUTF8String(pLabels^.pLabelName)+'{ '+ConvertDoubleToString(pLabels^.color[0])+', '+ConvertDoubleToString(pLabels^.color[1])+', '+ConvertDoubleToString(pLabels^.color[2])+', '+ConvertDoubleToString(pLabels^.color[3])+' }';
+       inc(pLabels);
+      end;
+     end;
+
+     if LogLevel<=pvOutputLogLevel then begin
+
+      Whole:='[Debug] '+MessageSeverityTypes+': '+MessageTypes+' - Message ID number: '+IntToStr(aCallbackData^.messageIdNumber)+' - Message ID name: '+MessageIDName+NewLine+Tab+Message+Objects+QueueLabels+CmdBufLabels;
+
+      VulkanDebugLn(Whole);
+
+     end;
+
     end;
-
-    Whole:='[Debug] '+MessageSeverityTypes+': '+MessageTypes+' - Message ID number: '+IntToStr(aCallbackData^.messageIdNumber)+' - Message ID name: '+MessageIDName+NewLine+Tab+Message+Objects+QueueLabels+CmdBufLabels;
-
-    VulkanDebugLn(Whole);
 
    end;
 
@@ -9267,6 +9889,10 @@ begin
                                         nil,
                                         fVulkanPreferDedicatedGPUs);
 
+  fVulkanDevice.UseBreadcrumbs:=fUseBreadcrumbs;
+  fVulkanDevice.BreadcrumbForceManual:=fManualBreadcrumbs;
+  fVulkanDevice.BreadcrumbForceSyncManual:=fManualSyncBreadcrumbs;
+
   fVulkanPhysicalDeviceHandle:=fVulkanDevice.PhysicalDevice.Handle;
 
   VulkanDebugLn('Device name: '+TpvUTF8String(fVulkanDevice.PhysicalDevice.DeviceName));
@@ -9328,6 +9954,34 @@ begin
    fVulkanDevice.EnabledExtensionNames.Add(VK_KHR_PRESENT_WAIT_EXTENSION_NAME);
   end;
 
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_KHR_PRESENT_ID_2_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_KHR_PRESENT_ID_2_EXTENSION_NAME);
+  end;
+
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+  end;
+
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_EXT_PRESENT_TIMING_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_EXT_PRESENT_TIMING_EXTENSION_NAME);
+  end;
+
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_KHR_PRESENT_WAIT_2_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_KHR_PRESENT_WAIT_2_EXTENSION_NAME);
+  end;
+
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
+  end;
+
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_NV_LOW_LATENCY_2_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_NV_LOW_LATENCY_2_EXTENSION_NAME);
+  end;
+
+  if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_AMD_ANTI_LAG_EXTENSION_NAME)>=0 then begin
+   fVulkanDevice.EnabledExtensionNames.Add(VK_AMD_ANTI_LAG_EXTENSION_NAME);
+  end;
+
   if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_EXT_MULTI_DRAW_EXTENSION_NAME)>=0 then begin
    fVulkanDevice.EnabledExtensionNames.Add(VK_EXT_MULTI_DRAW_EXTENSION_NAME);
   end;
@@ -9363,6 +10017,17 @@ begin
   if fVulkanNVIDIADiagnosticCheckPointsExtensionFound then begin
    fVulkanDevice.EnabledExtensionNames.Add(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
    fVulkanDevice.UseNVIDIADeviceDiagnostics:=true;
+  end;
+
+  if fVulkanDevice.UseBreadcrumbs then begin
+   if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_AMD_BUFFER_MARKER_EXTENSION_NAME)>=0 then begin
+    fVulkanDevice.EnabledExtensionNames.Add(VK_AMD_BUFFER_MARKER_EXTENSION_NAME);
+   end;
+   if fVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME)>=0 then begin
+    if fVulkanDevice.EnabledExtensionNames.IndexOf(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME)<0 then begin
+     fVulkanDevice.EnabledExtensionNames.Add(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
+    end;
+   end;
   end;
 
   if (fVulkanInstance.APIVersion and VK_API_VERSION_WITHOUT_PATCH_MASK)=VK_API_VERSION_1_0 then begin
@@ -9554,7 +10219,7 @@ begin
 {$ifend}
  if not assigned(fVulkanInstance) then begin
 {$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
-  SDL_VERSION(SDL_SysWMinfo.version);
+  SDL_GetVersion(SDL_SysWMinfo.version);
   if {$if defined(PasVulkanUseSDL2WithVulkanSupport)}fSDLVersionWithVulkanSupport or{$ifend}
      (SDL_GetWindowWMInfo(fSurfaceWindow,@SDL_SysWMinfo)<>0) then{$ifend}begin
    fVulkanInstance:=TpvVulkanInstance.Create(TpvVulkanCharString(fTitle),
@@ -9711,12 +10376,18 @@ begin
    end;
    if fVulkanInstance.AvailableExtensionNames.IndexOf(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME)>=0 then begin
     fVulkanInstance.EnabledExtensionNames.Add(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+    // VK_EXT_surface_maintenance1 is the instance-level dependency of the device-level VK_EXT_swapchain_maintenance1 (enabled
+    // later when available) -> enable it here so the device extension's requirement is satisfied (VUID-vkCreateDevice-...-01387).
+    if fVulkanInstance.AvailableExtensionNames.IndexOf(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME)>=0 then begin
+     fVulkanInstance.EnabledExtensionNames.Add(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
+    end;
    end;
    SetupVulkanInstance(fVulkanInstance);
 {$if (defined(fpc) and defined(android)) and not defined(Release)}
    VulkanDebugLn('Calling TpvVulkanInstance.Initialize() . . .');
 {$ifend}
    fVulkanInstance.ShaderPrintfDebugging:=fVulkanDebuggingEnabled and fVulkanShaderPrintfDebugging;
+   fVulkanInstance.SynchronizationValidation:=fVulkanDebuggingEnabled and fVulkanValidation and fVulkanSynchronizationValidation;
    fVulkanInstance.Initialize;
 {$if (defined(fpc) and defined(android)) and not defined(Release)}
    VulkanDebugLn('Called TpvVulkanInstance.Initialize() . . .');
@@ -9835,8 +10506,8 @@ begin
 {$if (defined(fpc) and defined(android)) and not defined(Release)}
    __android_log_write(ANDROID_LOG_VERBOSE,'PasVulkanApplication','Created vulkan surface');
 {$ifend}
-  end else{$ifend} begin
-   SDL_VERSION(SDL_SysWMinfo.version);
+   end else{$ifend} begin
+   SDL_GetVersion(SDL_SysWMinfo.version);
    if SDL_GetWindowWMInfo(fSurfaceWindow,@SDL_SysWMinfo)<>0 then begin
     FillChar(VulkanSurfaceCreateInfo,SizeOf(TpvVulkanSurfaceCreateInfo),#0);
     case SDL_SysWMinfo.subsystem of
@@ -9960,7 +10631,15 @@ begin
 end;
 
 procedure TpvApplication.CreateVulkanSwapChain;
+type TTimeDomains=array[0..15] of TVkTimeDomainKHR;
+     TTimeDomainIDs=array[0..15] of TpvUInt64;
 var Index:TpvInt32;
+    SwapchainTimingProperties:TVkSwapchainTimingPropertiesEXT;
+    SwapchainTimingPropertiesCounter:TpvUInt64;
+    SwapchainTimeDomainProperties:TVkSwapchainTimeDomainPropertiesEXT;
+    TimeDomains:TTimeDomains;
+    TimeDomainIDs:TTimeDomainIDs;
+    TimeDomainCount:TpvUInt64;
 {$if defined(Windows) and not defined(PasVulkanHeadless)}
 {$if defined(PasVulkanUseSDL2)}
     WMInfo:TSDL_SysWMinfo;
@@ -10003,7 +10682,7 @@ begin
  fVulkanSwapChain:=nil;
  fCountSwapChainImages:=0;
 {$else}
- fVulkanSwapChain:=TpvVulkanSwapChain.Create(fVulkanDevice,
+  fVulkanSwapChain:=TpvVulkanSwapChain.Create(fVulkanDevice,
                                              fVulkanSurface,
                                              fVulkanOldSwapChain,
                                              fWidth,
@@ -10022,11 +10701,96 @@ begin
                                              TVkSurfaceTransformFlagsKHR($ffffffff),
                                              fSwapChainColorSpace=TpvApplicationSwapChainColorSpace.SRGB,
                                              fSwapChainHDR,
-                                             fFullscreen,
+                                             fFullScreen,
                                              fExclusiveFullScreenMode,
                                              {$if defined(Windows)}@WindowHandle{$else}nil{$ifend});
 
  fCountSwapChainImages:=fVulkanSwapChain.CountImages;
+
+ // Query VK_EXT_present_timing refresh duration if available
+ fFramePacingPresentTimingAvailable:=false;
+ fFramePacingPresentTimingRefreshDuration:=0;
+ fFramePacingEffectiveInterval:=0;
+ if assigned(fVulkanDevice) and
+    fVulkanDevice.PresentTimingSupport and
+    assigned(fVulkanDevice.Commands.Commands.GetSwapchainTimingPropertiesEXT) then begin
+  try
+   FillChar(SwapchainTimingProperties,SizeOf(TVkSwapchainTimingPropertiesEXT),#0);
+   SwapchainTimingProperties.sType:=VK_STRUCTURE_TYPE_SWAPCHAIN_TIMING_PROPERTIES_EXT;
+   SwapchainTimingPropertiesCounter:=0;
+   if fVulkanDevice.Commands.GetSwapchainTimingPropertiesEXT(fVulkanDevice.Handle,
+                                                             fVulkanSwapChain.Handle,
+                                                             @SwapchainTimingProperties,
+                                                             @SwapchainTimingPropertiesCounter)=VK_SUCCESS then begin
+    if SwapchainTimingProperties.refreshDuration>0 then begin
+     fFramePacingPresentTimingRefreshDuration:=SwapchainTimingProperties.refreshDuration;
+     fFramePacingPresentTimingAvailable:=true;
+     Log(LOG_INFO,'TpvApplication.CreateVulkanSwapChain','VK_EXT_present_timing: refreshDuration='+IntToStr(fFramePacingPresentTimingRefreshDuration)+'ns');
+    end;
+   end;
+  except
+   Log(LOG_INFO,'TpvApplication.CreateVulkanSwapChain','VK_EXT_present_timing query failed');
+  end;
+ end;
+
+ // Query time domain ID for VK_EXT_present_timing
+ fFramePacingPresentTimingTimeDomainID:=0;
+ if fFramePacingPresentTimingAvailable and assigned(fVulkanDevice.Commands.Commands.GetSwapchainTimeDomainPropertiesEXT) then begin
+  try
+   FillChar(SwapchainTimeDomainProperties,SizeOf(TVkSwapchainTimeDomainPropertiesEXT),#0);
+   SwapchainTimeDomainProperties.sType:=VK_STRUCTURE_TYPE_SWAPCHAIN_TIME_DOMAIN_PROPERTIES_EXT;
+   SwapchainTimeDomainProperties.timeDomainCount:=Length(TimeDomains);
+   SwapchainTimeDomainProperties.pTimeDomains:=@TimeDomains[0];
+   SwapchainTimeDomainProperties.pTimeDomainIDs:=@TimeDomainIDs[0];
+   TimeDomainCount:=0;
+   if fVulkanDevice.Commands.GetSwapchainTimeDomainPropertiesEXT(fVulkanDevice.Handle,
+                                                                 fVulkanSwapChain.Handle,
+                                                                 @SwapchainTimeDomainProperties,
+                                                                 @TimeDomainCount)=VK_SUCCESS then begin
+    if TimeDomainCount>0 then begin
+     fFramePacingPresentTimingTimeDomainID:=TimeDomainIDs[0];
+     Log(LOG_INFO,'TpvApplication.CreateVulkanSwapChain','VK_EXT_present_timing: timeDomainID='+IntToStr(fFramePacingPresentTimingTimeDomainID));
+     fPresentTimingFeedbackTimeDomainCount:=1;
+     fPresentTimingFeedbackTimeDomains[0]:=TimeDomains[0];
+     fPresentTimingFeedbackTimeDomainIDs[0]:=TimeDomainIDs[0];
+    end;
+   end;
+  except
+   Log(LOG_INFO,'TpvApplication.CreateVulkanSwapChain','VK_EXT_present_timing time domain query failed');
+  end;
+ end;
+
+ // Reset frame pacing state for new swapchain
+ fFramePacingActive:=false;
+ fFramePacingNextPresentTarget:=0;
+ fFramePacingLastPresentTime:=0;
+ fFramePacingHistoryIndex:=0;
+ fFramePacingHistoryCount:=0;
+ fFramePacingDriftAccumulator:=0;
+ if assigned(fFramePacingSleepWithDriftCompensation) then begin
+  fFramePacingSleepWithDriftCompensation.Reset;
+ end;
+
+ // Reset present timing feedback state for new swapchain
+ fPresentTimingFeedbackRefreshCounter:=0;
+ fPresentTimingFeedbackHasRefreshFeedback:=false;
+ fPresentTimingFeedbackNeedRecalibration:=true;
+ fPresentTimingFeedbackLastTargetTime:=0;
+ fPresentTimingFeedbackPresentationTimeError:=0;
+ fPresentTimingFeedbackPendingCompensation:=0;
+ fPresentTimingFeedbackLastPollPresentID:=0;
+ fPresentTimingFeedbackErrorRingIndex:=0;
+ fPresentTimingFeedbackErrorRingCount:=0;
+ fPresentTimingFeedbackTimeDomainCount:=0;
+ if fFramePacingPresentTimingAvailable and
+    (fFramePacingMode=TpvApplicationFramePacingMode.VulkanPresentTimingFeedback) then begin
+  UpdatePresentTimingFeedbackProperties;
+  fPresentTimingFeedbackActiveTimeDomainID:=fFramePacingPresentTimingTimeDomainID;
+  fPresentTimingFeedbackInitialized:=true;
+  RecalibratePresentTimingDomains;
+ end else begin
+  fPresentTimingFeedbackInitialized:=false;
+ end;
 {$ifend}
 
  fSwapChainImageCounterIndex:=0;
@@ -10635,38 +11399,43 @@ end;
 procedure TpvApplication.SetScreen(const aScreen:TpvApplicationScreen);
 begin
  if fScreen<>aScreen then begin
-  if assigned(fScreen) then begin
-   fScreen.Pause;
-   if assigned(fVulkanSurface) then begin
-    VulkanWaitIdle;
-    if fGraphicsPipelinesReady then begin
-     fScreen.BeforeDestroySwapChain;
-    end else begin
-     BeforeDestroySwapChainWithCheck;
-    end;
-   end;
-   fScreen.Hide;
-   fScreen.Free;
-  end;
-  fScreen:=aScreen;
-  if assigned(fScreen) then begin
-   fScreen.Show;
+  fScreenLock.Acquire;
+  try
    if assigned(fScreen) then begin
-    fScreen.Resize(fWidth,fHeight);
+    fScreen.Pause;
+    if assigned(fVulkanSurface) then begin
+     VulkanWaitIdle;
+     if fGraphicsPipelinesReady then begin
+      fScreen.BeforeDestroySwapChain;
+     end else begin
+      BeforeDestroySwapChainWithCheck;
+     end;
+    end;
+    fScreen.Hide;
+    fScreen.Free;
    end;
-   if assigned(fVulkanSurface) then begin
-    VulkanWaitIdle;
-    if fGraphicsPipelinesReady then begin
-     fScreen.AfterCreateSwapChain;
-    end else begin
-     AfterCreateSwapChainWithCheck;
+   fScreen:=aScreen;
+   if assigned(fScreen) then begin
+    fScreen.Show;
+    if assigned(fScreen) then begin
+     fScreen.Resize(fWidth,fHeight);
+    end;
+    if assigned(fVulkanSurface) then begin
+     VulkanWaitIdle;
+     if fGraphicsPipelinesReady then begin
+      fScreen.AfterCreateSwapChain;
+     end else begin
+      AfterCreateSwapChainWithCheck;
+     end;
+    end;
+    fScreen.Resume;
+    if CanBeParallelProcessed then begin
+     // At parallel processing, skip the next first screen frame, due to double buffering at the parallel processing approach
+     fSkipNextDrawFrame:=true;
     end;
    end;
-   fScreen.Resume;
-   if CanBeParallelProcessed then begin
-    // At parallel processing, skip the next first screen frame, due to double buffering at the parallel processing approach
-    fSkipNextDrawFrame:=true;
-   end;
+  finally
+   fScreenLock.Release;
   end;
  end;
 end;
@@ -10708,51 +11477,105 @@ begin
  end;
 end;
 
+procedure TpvApplication.WaitForAllInFlightFrames;
+var InFlightFrameIndex:TpvSizeInt;
+    InFlightFenceIndex:TpvSizeInt;
+begin
+ fVulkanEventLock.Acquire;
+ try
+  for InFlightFrameIndex:=0 to fCountInFlightFrames-1 do begin
+   InFlightFenceIndex:=fVulkanInFlightFenceIndices[InFlightFrameIndex];
+   if (InFlightFenceIndex>=0) and
+      fVulkanWaitFencesReady[InFlightFenceIndex] then begin
+    if fVulkanWaitFences[InFlightFenceIndex].GetStatus<>VK_SUCCESS then begin
+     fVulkanWaitFences[InFlightFenceIndex].WaitFor;
+    end;
+    fVulkanWaitFences[InFlightFenceIndex].Reset;
+    fVulkanWaitFencesReady[InFlightFenceIndex]:=false;
+    fVulkanInFlightFenceIndices[InFlightFrameIndex]:=-1;
+   end;
+  end;
+ finally
+  fVulkanEventLock.Release;
+ end;
+end;
+
 function TpvApplication.WaitForSwapChainLatency:boolean;
 var Target,TimeOut:TpvUInt64;
     WaitResult:TVkResult;
     PrepreviousFrameFrenceIndex:TpvInt32;
     PrepreviousFrameFrenceMask:TpvUInt32;
     PrepreviousFrameFrence:TpvVulkanFence;
+    PacingNow,PacingInterval:TpvInt64;
+    PacingSum:TpvInt64;
+    PacingIndex,PacingSortIndex,PacingCount:TpvInt32;
+    PacingSorted:array[0..FramePacingHistorySize-1] of TpvInt64;
+    PacingTemp:TpvInt64;
+    RefreshRate:TpvDouble;
+    PresentWait2Info:TVkPresentWait2InfoKHR;
 begin
 
  if fGraphicsReady and (fStayActiveRegardlessOfVisibility or IsVisibleToUser) then begin
 
-  // Frame present waiting part
-  if (fPresentFrameLatencyMode in [TpvApplicationPresentFrameLatencyMode.Auto,
-                                   TpvApplicationPresentFrameLatencyMode.PresentWait,
-                                   TpvApplicationPresentFrameLatencyMode.CombinedWait]) and
-     assigned(fVulkanDevice) and
-     fVulkanDevice.PresentIDSupport and
-     fVulkanDevice.PresentWaitSupport and
-     (fPresentFrameLatency<>0) and
-     (fVulkanPresentLastID>fPresentFrameLatency) and
-     (fPresentMode=TpvApplicationPresentMode.VSync{=TpvApplicationPresentMode.FIFO}) and
-     assigned(fVulkanDevice.Commands.Commands.WaitForPresentKHR) then begin
-   Target:=fVulkanPresentLastID-fPresentFrameLatency;
-   if fBlocking then begin
-    TimeOut:=High(TpvUInt64);
+   // Frame present waiting part (prefer present_wait2, fallback to present_wait)
+   if (fPresentFrameLatencyMode in [TpvApplicationPresentFrameLatencyMode.Auto,
+                                    TpvApplicationPresentFrameLatencyMode.PresentWait,
+                                    TpvApplicationPresentFrameLatencyMode.CombinedWait]) and
+      assigned(fVulkanDevice) and
+      (fVulkanDevice.PresentIDSupport or fVulkanDevice.PresentID2Support) and
+      (fVulkanDevice.PresentWaitSupport or fVulkanDevice.PresentWait2Support) and
+      (fPresentFrameLatency<>0) and
+      (fVulkanPresentLastID>fPresentFrameLatency) and
+      (fPresentMode=TpvApplicationPresentMode.VSync{=TpvApplicationPresentMode.FIFO}) then begin
+    Target:=fVulkanPresentLastID-fPresentFrameLatency;
+    if fBlocking then begin
+{$ifdef Windows}
+     TimeOut:=1000000000; // one second for to avoid deadlock issue with nvidia
+{$else}
+     TimeOut:=High(TpvUInt64);
+{$endif}
+    end else begin
+     TimeOut:=1; // one nanosecond
+    end;
+    if fVulkanDevice.PresentWait2Support and
+       assigned(fVulkanDevice.Commands.Commands.WaitForPresent2KHR) then begin
+     // VK_KHR_present_wait2 path
+     FillChar(PresentWait2Info,SizeOf(TVkPresentWait2InfoKHR),#0);
+     PresentWait2Info.sType:=VK_STRUCTURE_TYPE_PRESENT_WAIT_2_INFO_KHR;
+     PresentWait2Info.presentId:=Target;
+     PresentWait2Info.timeout:=TimeOut;
+     WaitResult:=fVulkanDevice.Commands.WaitForPresent2KHR(fVulkanDevice.Handle,fVulkanSwapChain.Handle,@PresentWait2Info);
+    end else if assigned(fVulkanDevice.Commands.Commands.WaitForPresentKHR) then begin
+     // VK_KHR_present_wait fallback path
+     WaitResult:=fVulkanDevice.Commands.WaitForPresentKHR(fVulkanDevice.Handle,fVulkanSwapChain.Handle,Target,TimeOut);
+    end else begin
+     WaitResult:=VK_SUCCESS;
+    end;
+    case WaitResult of
+     VK_SUCCESS,
+     VK_SUBOPTIMAL_KHR:begin
+      result:=true;
+     end;
+     VK_ERROR_OUT_OF_DATE_KHR,
+     VK_TIMEOUT:begin
+      result:=true;
+(*{$ifdef Windows}
+      if IsVisibleToUser then begin
+       fAcquireVulkanBackBufferState:=TAcquireVulkanBackBufferState.RecreateSwapChain;
+       result:=true;
+       exit;
+      end;
+{$endif}
+      result:=false;*)
+     end;
+     else begin
+      Log(LOG_INFO,'TpvApplication.WaitForSwapChainLatency','vkWaitForPresent failed: '+VulkanErrorToString(WaitResult));
+      result:=true;
+     end;
+    end;
    end else begin
-    TimeOut:=1; // one nanosecond
+    result:=true;
    end;
-   WaitResult:=fVulkanDevice.Commands.WaitForPresentKHR(fVulkanDevice.Handle,fVulkanSwapChain.Handle,Target,TimeOut);
-   case WaitResult of
-    VK_SUCCESS,
-    VK_SUBOPTIMAL_KHR:begin
-     result:=true;
-    end;
-    VK_ERROR_OUT_OF_DATE_KHR,
-    VK_TIMEOUT:begin
-     result:=false;
-    end;
-    else begin
-     Log(LOG_INFO,'TpvApplication.WaitForSwapChainLatency','vkWaitForPresentKHR failed: '+VulkanErrorToString(WaitResult));
-     result:=true;
-    end;
-   end;
-  end else begin
-   result:=true;
-  end;
 
   // Frame fence waiting part
   if result then begin
@@ -10764,8 +11587,8 @@ begin
       ((fPresentFrameLatencyMode in [TpvApplicationPresentFrameLatencyMode.Auto,
                                      TpvApplicationPresentFrameLatencyMode.PresentWait]) and
        assigned(fVulkanDevice) and
-       fVulkanDevice.PresentIDSupport and
-       fVulkanDevice.PresentWaitSupport and
+       (fVulkanDevice.PresentIDSupport or fVulkanDevice.PresentID2Support) and
+       (fVulkanDevice.PresentWaitSupport or fVulkanDevice.PresentWait2Support) and
        (fPresentMode=TpvApplicationPresentMode.VSync) and
        (fPresentFrameLatency>0)) then begin
 
@@ -10830,6 +11653,110 @@ begin
 
     end;
 
+   end;
+
+  end;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Frame pacing: estimate display refresh interval and publish it to        //
+  // FramePacingAndFrameRateLimiter which does the actual sleep at frame end. //
+  //////////////////////////////////////////////////////////////////////////////
+
+  if fBlocking and (fFramePacingMode<>TpvApplicationFramePacingMode.None) then begin
+
+   PacingNow:=fHighResolutionTimer.GetTime;
+
+   // Record frame-to-frame interval for refresh rate estimation.
+   if fFramePacingLastPresentTime<>0 then begin
+    fFramePacingHistory[fFramePacingHistoryIndex]:=PacingNow-fFramePacingLastPresentTime;
+    fFramePacingHistoryIndex:=(fFramePacingHistoryIndex+1) and FramePacingHistoryMask;
+    if fFramePacingHistoryCount<FramePacingHistorySize then begin
+     inc(fFramePacingHistoryCount);
+    end;
+   end;
+
+   // Determine the effective refresh interval:
+   // Priority: VulkanPresentTiming > MonitorRefreshRate > PresentIntervalEstimation
+   // Auto mode tries all three in order, falling through on failure.
+   PacingInterval:=0;
+
+   if (fFramePacingMode in [TpvApplicationFramePacingMode.Auto,TpvApplicationFramePacingMode.VulkanPresentTiming]) and
+      fFramePacingPresentTimingAvailable and (fFramePacingPresentTimingRefreshDuration>0) then begin
+
+    // VK_EXT_present_timing path: use the actual refresh duration reported by the driver
+    PacingInterval:=fHighResolutionTimer.FromNanoseconds(fFramePacingPresentTimingRefreshDuration);
+
+   end else if fFramePacingMode in [TpvApplicationFramePacingMode.Auto,TpvApplicationFramePacingMode.MonitorRefreshRate,TpvApplicationFramePacingMode.PresentIntervalEstimation] then begin
+
+    repeat
+
+     // Try monitor refresh rate first (unless explicitly PresentIntervalEstimation-only)
+     if fFramePacingMode in [TpvApplicationFramePacingMode.Auto,TpvApplicationFramePacingMode.MonitorRefreshRate] then begin
+      RefreshRate:=GetNativeRefreshRate;
+      if RefreshRate>=1.0 then begin
+       fFramePacingEffectiveInterval:=fHighResolutionTimer.FromFloatSeconds(1.0/RefreshRate);
+       break;
+      end;
+     end;
+
+     // Fall back to present history estimation when monitor query failed or not requested
+     if (fFramePacingMode in [TpvApplicationFramePacingMode.Auto,TpvApplicationFramePacingMode.PresentIntervalEstimation]) and
+        (fFramePacingHistoryCount>=4) then begin
+
+      // Software estimation path: compute median of recent present-to-present intervals
+      // to robustly estimate the display refresh interval.
+      PacingCount:=fFramePacingHistoryCount;
+      for PacingIndex:=0 to PacingCount-1 do begin
+       PacingSorted[PacingIndex]:=fFramePacingHistory[(fFramePacingHistoryIndex+FramePacingHistorySize-PacingCount+PacingIndex) and FramePacingHistoryMask];
+      end;
+      // Simple insertion sort for small array (max 16 elements)
+      for PacingIndex:=1 to PacingCount-1 do begin
+       PacingTemp:=PacingSorted[PacingIndex];
+       PacingSortIndex:=PacingIndex;
+       while (PacingSortIndex>0) and (PacingSorted[PacingSortIndex-1]>PacingTemp) do begin
+        PacingSorted[PacingSortIndex]:=PacingSorted[PacingSortIndex-1];
+        dec(PacingSortIndex);
+       end;
+       PacingSorted[PacingSortIndex]:=PacingTemp;
+      end;
+      // Use median (middle quartile range average for robustness)
+      PacingSum:=0;
+      for PacingIndex:=(PacingCount shr 2) to (PacingCount-(PacingCount shr 2))-1 do begin
+       PacingSum:=PacingSum+PacingSorted[PacingIndex];
+      end;
+      PacingInterval:=PacingSum div (PacingCount-(2*(PacingCount shr 2)));
+
+      // Sanity check: only publish the estimated interval when it looks like
+      // a realistic display refresh rate (between ~8ms/125Hz and ~50ms/20Hz).
+      if (PacingInterval>0) and
+         (PacingInterval>=fHighResolutionTimer.FromMilliseconds(8)) and
+         (PacingInterval<=fHighResolutionTimer.FromMilliseconds(50)) then begin
+       fFramePacingEffectiveInterval:=PacingInterval;
+      end else begin
+       fFramePacingEffectiveInterval:=0;
+      end;
+
+     end else begin
+
+      // Assume a default refresh rate of 60Hz when no better information is available, to avoid running with an uncapped frame rate and high CPU/GPU load.
+      fFramePacingEffectiveInterval:=fHighResolutionTimer.FromFloatSeconds(1.0/60.0);
+
+     end;
+
+     break;
+
+    until false;
+
+   end;
+
+   fFramePacingLastPresentTime:=PacingNow;
+
+   // Present timing feedback polling (VulkanPresentTimingFeedback mode)
+   if fFramePacingMode=TpvApplicationFramePacingMode.VulkanPresentTimingFeedback then begin
+    PollPresentTimingFeedback;
+    if fPresentTimingFeedbackNeedRecalibration then begin
+     RecalibratePresentTimingDomains;
+    end;
    end;
 
   end;
@@ -11106,20 +12033,18 @@ begin
       TAcquireVulkanBackBufferState.RecreateSwapChain,
       TAcquireVulkanBackBufferState.RecreateSurface:begin
 
-       if fUpdateWaitsForGPU then begin
-        if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-         fUpdateThread.WaitForDone;
-        end else begin
-         if assigned(fUpdateJob) then begin
-          try
-           fPasMPInstance.WaitRelease(fUpdateJob);
-          finally
-           fUpdateJob:=nil;
-          end;
+       if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+        fUpdateThread.WaitForDone;
+       end else begin
+        if assigned(fUpdateJob) then begin
+         try
+          fPasMPInstance.WaitRelease(fUpdateJob);
+         finally
+          fUpdateJob:=nil;
          end;
-         while TPasMPInterlocked.Read(fInUpdateJobFunction) do begin
-          TPasMP.Yield;
-         end;
+        end;
+        while TPasMPInterlocked.Read(fInUpdateJobFunction) do begin
+         TPasMP.Yield;
         end;
        end;
 
@@ -11225,8 +12150,15 @@ end;
 
 function TpvApplication.PresentVulkanBackBuffer:boolean;
 var PresentIdKHR:TVkPresentIdKHR;
+    PresentId2KHR:TVkPresentId2KHR;
+    PresentTimingsInfoEXT:TVkPresentTimingsInfoEXT;
+    PresentTimingInfoEXT:TVkPresentTimingInfoEXT;
     PresentNext:Pointer;
+    PresentFenceInfo:TVkSwapchainPresentFenceInfoKHR;
+    PresentFenceHandle:TVkFence;
 begin
+
+ SetLowLatencyMarker(VK_LATENCY_MARKER_PRESENT_START_NV);
 
  result:=false;
 
@@ -11293,13 +12225,76 @@ begin
 
   PresentNext:=nil;
 
-  if fVulkanDevice.PresentIDSupport then begin
+  if fVulkanDevice.PresentID2Support then begin
+   // VK_KHR_present_id2 path
+   FillChar(PresentId2KHR,SizeOf(TVkPresentId2KHR),#0);
+   PresentId2KHR.sType:=VK_STRUCTURE_TYPE_PRESENT_ID_2_KHR;
+   PresentId2KHR.swapchainCount:=1;
+   PresentId2KHR.pPresentIds:=@fVulkanPresentID;
+   inc(fVulkanPresentID);
+   PresentNext:=@PresentId2KHR;
+  end else if fVulkanDevice.PresentIDSupport then begin
+   // VK_KHR_present_id fallback path
    FillChar(PresentIdKHR,SizeOf(TVkPresentIdKHR),#0);
    PresentIdKHR.sType:=VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
    PresentIdKHR.swapchainCount:=1;
    PresentIdKHR.pPresentIds:=@fVulkanPresentID;
    inc(fVulkanPresentID);
    PresentNext:=@PresentIdKHR;
+  end;
+
+  // Chain VK_EXT_present_timing info when available, to request
+  // presentation at the nearest refresh cycle for consistent pacing
+  // Present timing: either simple (nearest refresh cycle) or feedback-based
+  if (fFramePacingMode=TpvApplicationFramePacingMode.VulkanPresentTimingFeedback) and
+     fPresentTimingFeedbackInitialized and
+     assigned(fVulkanDevice) and
+     fVulkanDevice.PresentTimingSupport then begin
+   ComputePresentTimingTarget(PresentTimingInfoEXT);
+   FillChar(PresentTimingsInfoEXT,SizeOf(TVkPresentTimingsInfoEXT),#0);
+   PresentTimingsInfoEXT.sType:=VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT;
+   PresentTimingsInfoEXT.swapchainCount:=1;
+   PresentTimingsInfoEXT.pTimingInfos:=@PresentTimingInfoEXT;
+   PresentTimingsInfoEXT.pNext:=PresentNext;
+   PresentNext:=@PresentTimingsInfoEXT;
+  end else if (fFramePacingMode<>TpvApplicationFramePacingMode.None) and
+              fFramePacingPresentTimingAvailable and
+              assigned(fVulkanDevice) and
+              fVulkanDevice.PresentTimingSupport then begin
+   // Simple present timing: request presentation at the nearest refresh cycle for consistent pacing
+   FillChar(PresentTimingInfoEXT,SizeOf(TVkPresentTimingInfoEXT),#0);
+   PresentTimingInfoEXT.sType:=VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT;
+   PresentTimingInfoEXT.flags:=TVkPresentTimingInfoFlagsEXT(VK_PRESENT_TIMING_INFO_PRESENT_AT_NEAREST_REFRESH_CYCLE_BIT_EXT);
+   PresentTimingInfoEXT.targetTime:=0; // nearest refresh cycle
+   PresentTimingInfoEXT.timeDomainID:=fFramePacingPresentTimingTimeDomainID;
+   PresentTimingInfoEXT.presentStageQueries:=0;
+   PresentTimingInfoEXT.targetTimeDomainPresentStage:=0;
+   FillChar(PresentTimingsInfoEXT,SizeOf(TVkPresentTimingsInfoEXT),#0);
+   PresentTimingsInfoEXT.sType:=VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT;
+   PresentTimingsInfoEXT.swapchainCount:=1;
+   PresentTimingsInfoEXT.pTimingInfos:=@PresentTimingInfoEXT;
+   PresentTimingsInfoEXT.pNext:=PresentNext;
+   PresentNext:=@PresentTimingsInfoEXT;
+  end;
+
+  // Chain present fence via VK_KHR_swapchain_maintenance1 when available
+  if fVulkanDevice.SwapchainMaintenance1Support and
+     (fSwapChainImageIndex>=0) and
+     (fSwapChainImageIndex<length(fVulkanPresentCompleteFences)) and
+     assigned(fVulkanPresentCompleteFences[fSwapChainImageIndex]) then begin
+   if fVulkanPresentCompleteFencesReady[fSwapChainImageIndex] then begin
+    fVulkanPresentCompleteFences[fSwapChainImageIndex].WaitFor;
+    fVulkanPresentCompleteFences[fSwapChainImageIndex].Reset;
+    fVulkanPresentCompleteFencesReady[fSwapChainImageIndex]:=false;
+   end;
+   PresentFenceHandle:=fVulkanPresentCompleteFences[fSwapChainImageIndex].Handle;
+   FillChar(PresentFenceInfo,SizeOf(TVkSwapchainPresentFenceInfoKHR),#0);
+   PresentFenceInfo.sType:=VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR;
+   PresentFenceInfo.swapchainCount:=1;
+   PresentFenceInfo.pFences:=@PresentFenceHandle;
+   PresentFenceInfo.pNext:=PresentNext;
+   PresentNext:=@PresentFenceInfo;
+   fVulkanPresentCompleteFencesReady[fSwapChainImageIndex]:=true;
   end;
 
   try
@@ -11381,6 +12376,8 @@ begin
   Log(LOG_VERBOSE,'TpvApplication.PresentVulkanBackBuffer','Exception');
   raise;
  end;
+
+ SetLowLatencyMarker(VK_LATENCY_MARKER_PRESENT_END_NV);
 
 end;
 
@@ -11830,12 +12827,12 @@ var FrameTimes:TpvDoubleDynamicArray;
     Index,Count:TpvSizeInt;
     Sum:TpvDouble;
 begin
- 
+
  result:=0.0;
 
  // Don't solely rely on the count of samples. Median is a better measure of central tendency
  // than the mean (average) for frame times, as it is less sensitive to outliers.
- 
+
  if fFrameTimesHistoryCount>0 then begin
 
   FrameTimes:=nil;
@@ -11851,7 +12848,7 @@ begin
     end else begin
      break;
     end;
-   end; 
+   end;
 
    if Count>0 then begin
 
@@ -11872,7 +12869,7 @@ begin
     end;
 
    end else begin
-     
+
     result:=fFrameTimesHistoryDeltaTimes[((fFrameTimesHistoryIndex+FrameTimesHistorySize)-1) and FrameTimesHistoryMask];
 
    end;
@@ -11884,10 +12881,29 @@ begin
  end;
 
 end;
-   
-procedure TpvApplication.FrameRateLimiter;
-var LastTime,NowTime,FrameTime,TargetInterval,SleepDuration:TpvHighResolutionTime;
+
+procedure TpvApplication.FramePacingAndFrameRateLimiter;
+var LastTime,NowTime,FrameTime,TargetInterval,SleepDuration,
+    LateAmount,Skipped:TpvHighResolutionTime;
 begin
+
+ // VRR + low latency: when VRR display is detected and low latency mode is active,
+ // skip CPU-side frame pacing to let the display adapt to the application frame rate
+ if fLowLatencyActive and
+    (fPresentTimingFeedbackRefreshMode=TpvApplicationPresentTimingFeedbackRefreshMode.VRR) and
+    (not ((fMaximumFramesPerSecond>0.0) and not IsZero(fMaximumFramesPerSecond))) then begin
+  fFrameRateLimiterDeviation:=0;
+  fFramePacingNextPresentTarget:=0;
+  exit;
+ end;
+
+ // VulkanPresentTimingFeedback mode: GPU feedback loop handles pacing, skip CPU-side throttling
+ if (fFramePacingMode=TpvApplicationFramePacingMode.VulkanPresentTimingFeedback) and
+    (not ((fMaximumFramesPerSecond>0.0) and not IsZero(fMaximumFramesPerSecond))) then begin
+  fFrameRateLimiterDeviation:=0;
+  fFramePacingNextPresentTarget:=0;
+  exit;
+ end;
 
  if fFrameRateLimiterLastTime=0 then begin
   fFrameRateLimiterLastTime:=fHighResolutionTimer.GetTime; // Initialize first last time
@@ -11899,13 +12915,63 @@ begin
  // Calculate frame time
  FrameTime:=NowTime-LastTime;
 
- // Check the frame limiter is enabled at all.
+ // Determine target interval: FPS limiter takes priority, then frame pacing,
+ // otherwise no throttling. Both use the same reactive sleep-at-frame-end
+ // mechanism for stable DeltaTime.
+
  if (fMaximumFramesPerSecond>0.0) and not IsZero(fMaximumFramesPerSecond) then begin
 
   // If the frame limiter is enabled, do our magic here. :-)
 
   // Calculate the target time interval based on the maximum frames per second value.
   TargetInterval:=fHighResolutionTimer.FromFloatSeconds(1.0/fMaximumFramesPerSecond);
+
+ end else if fFramePacingEffectiveInterval>0 then begin
+
+  TargetInterval:=fFramePacingEffectiveInterval;
+
+ end else begin
+
+  TargetInterval:=0;
+
+ end;
+
+ if (fFramePacingStrategy=TpvApplicationFramePacingStrategy.AbsoluteTimeRaster) and (TargetInterval>0) then begin
+
+  // Absolute time raster pacing: advance a fixed deadline by the target interval each frame,
+  // sleep until the deadline, and skip missed slots on slow frames. This provides a stable
+  // long-term frame cadence without cumulative drift.
+
+  // Initialize the deadline on first use or after a reset (e.g. swapchain recreate).
+  if fFramePacingNextPresentTarget=0 then begin
+   fFramePacingNextPresentTarget:=NowTime+TargetInterval;
+  end else begin
+   // Advance the deadline by one interval for the just-finished frame.
+   fFramePacingNextPresentTarget:=fFramePacingNextPresentTarget+TargetInterval;
+  end;
+
+  if NowTime<fFramePacingNextPresentTarget then begin
+
+   // Frame finished early => sleep until the absolute deadline.
+   fFramePacingSleepWithDriftCompensation.Sleep(fFramePacingNextPresentTarget-NowTime);
+   NowTime:=fHighResolutionTimer.GetTime;
+
+  end else begin
+
+   // Frame finished late => skip missed deadline slots so we do not accumulate
+   // an ever-growing delay or burst of short-sleeping catch-up frames.
+   LateAmount:=NowTime-fFramePacingNextPresentTarget;
+   Skipped:=(LateAmount div TargetInterval)+1;
+   fFramePacingNextPresentTarget:=fFramePacingNextPresentTarget+(Skipped*TargetInterval);
+
+  end;
+
+  // Reset deviation-based state since it is not used in this mode.
+  fFrameRateLimiterDeviation:=0;
+
+ end else if TargetInterval>0 then begin
+
+  // Reactive deviation-compensated pacing (original behavior for all other modes).
 
   // Check if the deviation should be reset to zero, for example, if a slow frame was present.
   if (FrameTime*100)>((TargetInterval*103)-(fFrameRateLimiterDeviation*100)) then begin
@@ -11933,10 +12999,14 @@ begin
 
   end;
 
+  // Reset absolute raster state since it is not used in this mode.
+  fFramePacingNextPresentTarget:=0;
+
  end else begin
 
-  // Disabled frame limiter => Do not sleeping at all
+  // No frame limiter and no frame pacing => Do not sleep at all
   fFrameRateLimiterDeviation:=0;
+  fFramePacingNextPresentTarget:=0;
 
  end;
 
@@ -11944,7 +13014,7 @@ begin
 
 end;
 
-{procedure TpvApplication.FrameRateLimiter;
+{procedure TpvApplication.FramePacingAndFrameRateLimiter;
 var NowTime,Interval:TpvHighResolutionTime;
 begin
  NowTime:=fHighResolutionTimer.GetTime;
@@ -11972,11 +13042,458 @@ begin
  end;
 end;}
 
+procedure TpvApplication.PollPresentTimingFeedback;
+var PastTimingInfo:TVkPastPresentationTimingInfoEXT;
+    PastTimingProperties:TVkPastPresentationTimingPropertiesEXT;
+    PastTimings:array[0..15] of TVkPastPresentationTimingEXT;
+    Index:TpvInt32;
+    ActualTime,ErrorTime:TpvInt64;
+begin
+ if (not assigned(fVulkanDevice)) or
+    (not fVulkanDevice.PresentTimingSupport) or
+    (not assigned(fVulkanDevice.Commands.Commands.GetPastPresentationTimingEXT)) or
+    (not assigned(fVulkanSwapChain)) then begin
+  exit;
+ end;
+ FillChar(PastTimingInfo,SizeOf(TVkPastPresentationTimingInfoEXT),#0);
+ PastTimingInfo.sType:=VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_INFO_EXT;
+ PastTimingInfo.swapchain:=fVulkanSwapChain.Handle;
+ for Index:=0 to 15 do begin
+  FillChar(PastTimings[Index],SizeOf(TVkPastPresentationTimingEXT),#0);
+  PastTimings[Index].sType:=VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT;
+  PastTimings[Index].presentStageCount:=0;
+  PastTimings[Index].pPresentStages:=nil;
+ end;
+ FillChar(PastTimingProperties,SizeOf(TVkPastPresentationTimingPropertiesEXT),#0);
+ PastTimingProperties.sType:=VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_PROPERTIES_EXT;
+ PastTimingProperties.presentationTimingCount:=16;
+ PastTimingProperties.pPresentationTimings:=@PastTimings[0];
+ try
+  if fVulkanDevice.Commands.GetPastPresentationTimingEXT(fVulkanDevice.Handle,
+                                                         @PastTimingInfo,
+                                                         @PastTimingProperties)=VK_SUCCESS then begin
+   for Index:=0 to TpvInt32(PastTimingProperties.presentationTimingCount)-1 do begin
+    if (PastTimings[Index].reportComplete<>VK_FALSE) and
+       (PastTimings[Index].presentId>fPresentTimingFeedbackLastPollPresentID) then begin
+     fPresentTimingFeedbackLastPollPresentID:=PastTimings[Index].presentId;
+     if (PastTimings[Index].targetTime>0) and (fPresentTimingFeedbackLastTargetTime>0) then begin
+      ActualTime:=TpvInt64(PastTimings[Index].targetTime);
+      ErrorTime:=ActualTime-TpvInt64(fPresentTimingFeedbackLastTargetTime);
+      fPresentTimingFeedbackErrorRingValues[fPresentTimingFeedbackErrorRingIndex]:=ErrorTime;
+      fPresentTimingFeedbackErrorRingIndex:=(fPresentTimingFeedbackErrorRingIndex+1) and 15;
+      if fPresentTimingFeedbackErrorRingCount<16 then begin
+       inc(fPresentTimingFeedbackErrorRingCount);
+      end;
+      fPresentTimingFeedbackPresentationTimeError:=ErrorTime;
+     end;
+    end;
+   end;
+   if PastTimingProperties.timingPropertiesCounter>fPresentTimingFeedbackRefreshCounter then begin
+    fPresentTimingFeedbackRefreshCounter:=PastTimingProperties.timingPropertiesCounter;
+    UpdatePresentTimingFeedbackProperties;
+   end;
+   if PastTimingProperties.timeDomainsCounter>0 then begin
+    fPresentTimingFeedbackNeedRecalibration:=true;
+   end;
+   // Periodic recalibration every ~1 second
+   if fHighResolutionTimer.GetTime>fPresentTimingFeedbackLastRecalibrationTime+fHighResolutionTimer.SecondInterval then begin
+    fPresentTimingFeedbackNeedRecalibration:=true;
+   end;
+  end;
+ except
+ end;
+end;
+
+procedure TpvApplication.RecalibratePresentTimingDomains;
+var TimestampInfos:array[0..1] of TVkCalibratedTimestampInfoKHR;
+    SwapchainCalibratedInfo:TVkSwapchainCalibratedTimestampInfoEXT;
+    Timestamps:array[0..1] of TpvUInt64;
+    MaxDeviation:TpvUInt64;
+    ActiveDomain:TVkTimeDomainKHR;
+    Count:TpvUInt32;
+begin
+ if (not assigned(fVulkanDevice)) or
+    (not fVulkanDevice.CalibratedTimestampsSupport) then begin
+  exit;
+ end;
+ // Determine the active present timing domain type
+ ActiveDomain:=VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR;
+ if fPresentTimingFeedbackTimeDomainCount>0 then begin
+  ActiveDomain:=fPresentTimingFeedbackTimeDomains[0];
+ end;
+ FillChar(TimestampInfos,SizeOf(TimestampInfos),#0);
+ FillChar(Timestamps,SizeOf(Timestamps),#0);
+ FillChar(SwapchainCalibratedInfo,SizeOf(SwapchainCalibratedInfo),#0);
+ // infos[0] = host domain (CLOCK_MONOTONIC_RAW)
+ TimestampInfos[0].sType:=VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR;
+ TimestampInfos[0].timeDomain:=VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR;
+ MaxDeviation:=0;
+ if (ActiveDomain=TVkTimeDomainKHR(VK_TIME_DOMAIN_SWAPCHAIN_LOCAL_EXT)) and
+    assigned(fVulkanSwapChain) then begin
+  // 2-entry query: host + swapchain domain simultaneously
+  TimestampInfos[1].sType:=VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR;
+  TimestampInfos[1].timeDomain:=TVkTimeDomainKHR(VK_TIME_DOMAIN_SWAPCHAIN_LOCAL_EXT);
+  SwapchainCalibratedInfo.sType:=VK_STRUCTURE_TYPE_SWAPCHAIN_CALIBRATED_TIMESTAMP_INFO_EXT;
+  SwapchainCalibratedInfo.pNext:=nil;
+  SwapchainCalibratedInfo.swapchain:=fVulkanSwapChain.Handle;
+  SwapchainCalibratedInfo.presentStage:=0;
+  SwapchainCalibratedInfo.timeDomainId:=fPresentTimingFeedbackActiveTimeDomainID;
+  TimestampInfos[1].pNext:=@SwapchainCalibratedInfo;
+  Count:=2;
+ end else begin
+  Count:=1;
+ end;
+ try
+  if assigned(fVulkanDevice.Commands.Commands.GetCalibratedTimestampsKHR) then begin
+   if fVulkanDevice.Commands.GetCalibratedTimestampsKHR(fVulkanDevice.Handle,
+                                                        Count,
+                                                        @TimestampInfos[0],
+                                                        @Timestamps[0],
+                                                        @MaxDeviation)=VK_SUCCESS then begin
+    fPresentTimingFeedbackCalibratedHostTime:=Timestamps[0];
+    if Count>1 then begin
+     fPresentTimingFeedbackCalibratedStageTime:=Timestamps[1];
+    end else begin
+     // Same domain as host: identity calibration
+     fPresentTimingFeedbackCalibratedStageTime:=Timestamps[0];
+    end;
+    fPresentTimingFeedbackNeedRecalibration:=false;
+    fPresentTimingFeedbackLastRecalibrationTime:=fHighResolutionTimer.GetTime;
+   end;
+  end else if assigned(fVulkanDevice.Commands.Commands.GetCalibratedTimestampsEXT) then begin
+   if fVulkanDevice.Commands.GetCalibratedTimestampsEXT(fVulkanDevice.Handle,
+                                                        Count,
+                                                        @TimestampInfos[0],
+                                                        @Timestamps[0],
+                                                        @MaxDeviation)=VK_SUCCESS then begin
+    fPresentTimingFeedbackCalibratedHostTime:=Timestamps[0];
+    if Count>1 then begin
+     fPresentTimingFeedbackCalibratedStageTime:=Timestamps[1];
+    end else begin
+     // Same domain as host: identity calibration
+     fPresentTimingFeedbackCalibratedStageTime:=Timestamps[0];
+    end;
+    fPresentTimingFeedbackNeedRecalibration:=false;
+    fPresentTimingFeedbackLastRecalibrationTime:=fHighResolutionTimer.GetTime;
+   end;
+  end;
+ except
+ end;
+end;
+
+procedure TpvApplication.UpdatePresentTimingFeedbackProperties;
+var SwapchainTimingProperties:TVkSwapchainTimingPropertiesEXT;
+    SwapchainTimingPropertiesCounter:TpvUInt64;
+begin
+ if (not assigned(fVulkanDevice)) or
+    (not fVulkanDevice.PresentTimingSupport) or
+    (not assigned(fVulkanDevice.Commands.Commands.GetSwapchainTimingPropertiesEXT)) or
+    (not assigned(fVulkanSwapChain)) then begin
+  exit;
+ end;
+ FillChar(SwapchainTimingProperties,SizeOf(TVkSwapchainTimingPropertiesEXT),#0);
+ SwapchainTimingProperties.sType:=VK_STRUCTURE_TYPE_SWAPCHAIN_TIMING_PROPERTIES_EXT;
+ SwapchainTimingPropertiesCounter:=0;
+ try
+  if fVulkanDevice.Commands.GetSwapchainTimingPropertiesEXT(fVulkanDevice.Handle,
+                                                            fVulkanSwapChain.Handle,
+                                                            @SwapchainTimingProperties,
+                                                            @SwapchainTimingPropertiesCounter)=VK_SUCCESS then begin
+   fPresentTimingFeedbackRefreshDuration:=SwapchainTimingProperties.refreshDuration;
+   fPresentTimingFeedbackRefreshInterval:=SwapchainTimingProperties.refreshInterval;
+   if SwapchainTimingProperties.refreshInterval=TpvUInt64($ffffffffffffffff) then begin
+    fPresentTimingFeedbackRefreshMode:=TpvApplicationPresentTimingFeedbackRefreshMode.VRR;
+   end else if SwapchainTimingProperties.refreshInterval>0 then begin
+    fPresentTimingFeedbackRefreshMode:=TpvApplicationPresentTimingFeedbackRefreshMode.FRR;
+   end else begin
+    fPresentTimingFeedbackRefreshMode:=TpvApplicationPresentTimingFeedbackRefreshMode.Unknown;
+   end;
+   fPresentTimingFeedbackHasRefreshFeedback:=true;
+  end;
+ except
+ end;
+end;
+
+procedure TpvApplication.ComputePresentTimingTarget(var aTimingInfo:TVkPresentTimingInfoEXT);
+var NowTime,TargetTime,CompensationTime:TpvUInt64;
+    MeanError:TpvInt64;
+    Index:TpvInt32;
+begin
+ FillChar(aTimingInfo,SizeOf(TVkPresentTimingInfoEXT),#0);
+ aTimingInfo.sType:=VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT;
+ aTimingInfo.timeDomainID:=fPresentTimingFeedbackActiveTimeDomainID;
+ aTimingInfo.presentStageQueries:=0;
+ aTimingInfo.targetTimeDomainPresentStage:=0;
+ if (not fPresentTimingFeedbackHasRefreshFeedback) or
+    (fPresentTimingFeedbackRefreshDuration=0) then begin
+  aTimingInfo.flags:=TVkPresentTimingInfoFlagsEXT(VK_PRESENT_TIMING_INFO_PRESENT_AT_NEAREST_REFRESH_CYCLE_BIT_EXT);
+  aTimingInfo.targetTime:=0;
+  exit;
+ end;
+ MeanError:=0;
+ if fPresentTimingFeedbackErrorRingCount>0 then begin
+  for Index:=0 to fPresentTimingFeedbackErrorRingCount-1 do begin
+   MeanError:=MeanError+fPresentTimingFeedbackErrorRingValues[Index];
+  end;
+  MeanError:=MeanError div fPresentTimingFeedbackErrorRingCount;
+ end;
+ CompensationTime:=0;
+ if MeanError>0 then begin
+  CompensationTime:=TpvUInt64(MeanError shr 2);
+ end;
+ if fPresentTimingFeedbackRefreshMode=TpvApplicationPresentTimingFeedbackRefreshMode.VRR then begin
+  aTimingInfo.flags:=TVkPresentTimingInfoFlagsEXT(VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT);
+  TargetTime:=fPresentTimingFeedbackRefreshDuration;
+  if TargetTime>CompensationTime then begin
+   TargetTime:=TargetTime-CompensationTime;
+  end;
+  aTimingInfo.targetTime:=TargetTime;
+ end else begin
+  NowTime:=fHighResolutionTimer.ToNanoseconds(fHighResolutionTimer.GetTime);
+  TargetTime:=NowTime+fPresentTimingFeedbackRefreshDuration;
+  if fPresentTimingFeedbackRefreshInterval>0 then begin
+   TargetTime:=(((TargetTime+fPresentTimingFeedbackRefreshInterval)-1) div fPresentTimingFeedbackRefreshInterval)*fPresentTimingFeedbackRefreshInterval;
+  end;
+  if TargetTime>CompensationTime then begin
+   TargetTime:=TargetTime-CompensationTime;
+  end;
+  // Convert from host time domain to swapchain time domain using calibration offset
+  if (fPresentTimingFeedbackCalibratedHostTime>0) and
+     (fPresentTimingFeedbackCalibratedStageTime>0) and
+     (fPresentTimingFeedbackCalibratedHostTime<>fPresentTimingFeedbackCalibratedStageTime) then begin
+   TargetTime:=TpvUInt64(TpvInt64(TargetTime)+TpvInt64(fPresentTimingFeedbackCalibratedStageTime)-TpvInt64(fPresentTimingFeedbackCalibratedHostTime));
+  end;
+  aTimingInfo.flags:=0;
+  aTimingInfo.targetTime:=TargetTime;
+ end;
+ fPresentTimingFeedbackLastTargetTime:=aTimingInfo.targetTime;
+end;
+
+procedure TpvApplication.InitializeLowLatencyMode;
+var LatencySleepModeInfo:TVkLatencySleepModeInfoNV;
+    AntiLagData:TVkAntiLagDataAMD;
+begin
+ fLowLatencyActive:=false;
+ fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.None;
+ if not assigned(fVulkanDevice) then begin
+  exit;
+ end;
+ case fLowLatencyMode of
+  TpvApplicationLowLatencyMode.NVReflex:begin
+   if fVulkanDevice.LowLatency2Support and
+      assigned(fVulkanDevice.Commands.Commands.SetLatencySleepModeNV) and
+      assigned(fVulkanSwapChain) then begin
+    FillChar(LatencySleepModeInfo,SizeOf(TVkLatencySleepModeInfoNV),#0);
+    LatencySleepModeInfo.sType:=VK_STRUCTURE_TYPE_LATENCY_SLEEP_MODE_INFO_NV;
+    LatencySleepModeInfo.lowLatencyMode:=VK_TRUE;
+    LatencySleepModeInfo.lowLatencyBoost:=VK_FALSE;
+    LatencySleepModeInfo.minimumIntervalUs:=0;
+    try
+     if fVulkanDevice.Commands.SetLatencySleepModeNV(fVulkanDevice.Handle,
+                                                     fVulkanSwapChain.Handle,
+                                                     @LatencySleepModeInfo)=VK_SUCCESS then begin
+      fLowLatencyActive:=true;
+      Log(LOG_INFO,'TpvApplication.InitializeLowLatencyMode','NV Reflex low latency mode activated');
+       fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.NVReflex;
+      fLowLatencySleepSemaphore:=TpvVulkanTimelineSemaphore.Create(fVulkanDevice,0);
+      fLowLatencyFrameID:=0;
+     end;
+    except
+    end;
+   end;
+  end;
+  TpvApplicationLowLatencyMode.AMDAntiLag:begin
+   if fVulkanDevice.AntiLagSupport and
+      assigned(fVulkanDevice.Commands.Commands.AntiLagUpdateAMD) then begin
+     FillChar(AntiLagData,SizeOf(TVkAntiLagDataAMD),#0);
+     AntiLagData.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
+     AntiLagData.mode:=VK_ANTI_LAG_MODE_ON_AMD;
+     AntiLagData.maxFPS:=0;
+     AntiLagData.pPresentationInfo:=nil;
+     try
+      fVulkanDevice.Commands.AntiLagUpdateAMD(fVulkanDevice.Handle,@AntiLagData);
+      fLowLatencyActive:=true;
+      fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.AMDAntiLag;
+      Log(LOG_INFO,'TpvApplication.InitializeLowLatencyMode','AMD Anti-Lag mode activated');
+     except
+     end;
+   end;
+  end;
+  TpvApplicationLowLatencyMode.Auto:begin
+   if fVulkanDevice.LowLatency2Support and
+      assigned(fVulkanDevice.Commands.Commands.SetLatencySleepModeNV) and
+      assigned(fVulkanSwapChain) then begin
+    FillChar(LatencySleepModeInfo,SizeOf(TVkLatencySleepModeInfoNV),#0);
+    LatencySleepModeInfo.sType:=VK_STRUCTURE_TYPE_LATENCY_SLEEP_MODE_INFO_NV;
+    LatencySleepModeInfo.lowLatencyMode:=VK_TRUE;
+    LatencySleepModeInfo.lowLatencyBoost:=VK_FALSE;
+    LatencySleepModeInfo.minimumIntervalUs:=0;
+    try
+     if fVulkanDevice.Commands.SetLatencySleepModeNV(fVulkanDevice.Handle,
+                                                     fVulkanSwapChain.Handle,
+                                                     @LatencySleepModeInfo)=VK_SUCCESS then begin
+      fLowLatencyActive:=true;
+      Log(LOG_INFO,'TpvApplication.InitializeLowLatencyMode','NV Reflex low latency mode activated (auto)');
+      fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.NVReflex;
+      fLowLatencySleepSemaphore:=TpvVulkanTimelineSemaphore.Create(fVulkanDevice,0);
+      fLowLatencyFrameID:=0;
+     end;
+    except
+    end;
+   end else if fVulkanDevice.AntiLagSupport and
+               assigned(fVulkanDevice.Commands.Commands.AntiLagUpdateAMD) then begin
+    FillChar(AntiLagData,SizeOf(TVkAntiLagDataAMD),#0);
+    AntiLagData.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
+    AntiLagData.mode:=VK_ANTI_LAG_MODE_ON_AMD;
+    AntiLagData.maxFPS:=0;
+    AntiLagData.pPresentationInfo:=nil;
+    try
+     fVulkanDevice.Commands.AntiLagUpdateAMD(fVulkanDevice.Handle,@AntiLagData);
+     fLowLatencyActive:=true;
+     fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.AMDAntiLag;
+     Log(LOG_INFO,'TpvApplication.InitializeLowLatencyMode','AMD Anti-Lag mode activated (auto)');
+    except
+    end;
+   end;
+  end;
+ end;
+end;
+
+procedure TpvApplication.ShutdownLowLatencyMode;
+var LatencySleepModeInfo:TVkLatencySleepModeInfoNV;
+    AntiLagData:TVkAntiLagDataAMD;
+begin
+ if fLowLatencyActive and assigned(fVulkanDevice) then begin
+  case fLowLatencyActiveMode of
+   TpvApplicationLowLatencyMode.NVReflex:begin
+    if fVulkanDevice.LowLatency2Support and
+       assigned(fVulkanDevice.Commands.Commands.SetLatencySleepModeNV) and
+       assigned(fVulkanSwapChain) then begin
+     FillChar(LatencySleepModeInfo,SizeOf(TVkLatencySleepModeInfoNV),#0);
+     LatencySleepModeInfo.sType:=VK_STRUCTURE_TYPE_LATENCY_SLEEP_MODE_INFO_NV;
+     LatencySleepModeInfo.lowLatencyMode:=VK_FALSE;
+     LatencySleepModeInfo.lowLatencyBoost:=VK_FALSE;
+     LatencySleepModeInfo.minimumIntervalUs:=0;
+     try
+      fVulkanDevice.Commands.SetLatencySleepModeNV(fVulkanDevice.Handle,
+                                                   fVulkanSwapChain.Handle,
+                                                   @LatencySleepModeInfo);
+     except
+     end;
+    end;
+    FreeAndNil(fLowLatencySleepSemaphore);
+   end;
+   TpvApplicationLowLatencyMode.AMDAntiLag:begin
+    if fVulkanDevice.AntiLagSupport and
+       assigned(fVulkanDevice.Commands.Commands.AntiLagUpdateAMD) then begin
+     FillChar(AntiLagData,SizeOf(TVkAntiLagDataAMD),#0);
+     AntiLagData.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
+     AntiLagData.mode:=VK_ANTI_LAG_MODE_OFF_AMD;
+     AntiLagData.maxFPS:=0;
+     AntiLagData.pPresentationInfo:=nil;
+     try
+      fVulkanDevice.Commands.AntiLagUpdateAMD(fVulkanDevice.Handle,@AntiLagData);
+     except
+     end;
+    end;
+   end;
+  end;
+  fLowLatencyActiveMode:=TpvApplicationLowLatencyMode.None;
+  fLowLatencyActive:=false;
+ end;
+end;
+
+
+procedure TpvApplication.SetLowLatencyMarker(const aMarker:TVkLatencyMarkerNV);
+var MarkerInfo:TVkSetLatencyMarkerInfoNV;
+    AntiLagData:TVkAntiLagDataAMD;
+    AntiLagPresInfo:TVkAntiLagPresentationInfoAMD;
+begin
+ if fLowLatencyActive and assigned(fVulkanDevice) then begin
+  case fLowLatencyActiveMode of
+   TpvApplicationLowLatencyMode.NVReflex:begin
+    if fVulkanDevice.LowLatency2Support and
+       assigned(fVulkanDevice.Commands.Commands.SetLatencyMarkerNV) and
+       assigned(fVulkanSwapChain) then begin
+     FillChar(MarkerInfo,SizeOf(TVkSetLatencyMarkerInfoNV),#0);
+     MarkerInfo.sType:=VK_STRUCTURE_TYPE_SET_LATENCY_MARKER_INFO_NV;
+     MarkerInfo.presentID:=fVulkanPresentID;
+     MarkerInfo.marker:=aMarker;
+     fVulkanDevice.Commands.SetLatencyMarkerNV(fVulkanDevice.Handle,
+                                               fVulkanSwapChain.Handle,
+                                               @MarkerInfo);
+    end;
+   end;
+   TpvApplicationLowLatencyMode.AMDAntiLag:begin
+    if fVulkanDevice.AntiLagSupport and
+       assigned(fVulkanDevice.Commands.Commands.AntiLagUpdateAMD) then begin
+     if aMarker=VK_LATENCY_MARKER_INPUT_SAMPLE_NV then begin
+      FillChar(AntiLagPresInfo,SizeOf(TVkAntiLagPresentationInfoAMD),#0);
+      AntiLagPresInfo.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_PRESENTATION_INFO_AMD;
+      AntiLagPresInfo.stage:=VK_ANTI_LAG_STAGE_INPUT_AMD;
+      AntiLagPresInfo.frameIndex:=fFrameCounter;
+      FillChar(AntiLagData,SizeOf(TVkAntiLagDataAMD),#0);
+      AntiLagData.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
+      AntiLagData.mode:=VK_ANTI_LAG_MODE_ON_AMD;
+      AntiLagData.maxFPS:=0;
+      AntiLagData.pPresentationInfo:=@AntiLagPresInfo;
+      fVulkanDevice.Commands.AntiLagUpdateAMD(fVulkanDevice.Handle,@AntiLagData);
+     end else if aMarker=VK_LATENCY_MARKER_PRESENT_START_NV then begin
+      FillChar(AntiLagPresInfo,SizeOf(TVkAntiLagPresentationInfoAMD),#0);
+      AntiLagPresInfo.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_PRESENTATION_INFO_AMD;
+      AntiLagPresInfo.stage:=VK_ANTI_LAG_STAGE_PRESENT_AMD;
+      AntiLagPresInfo.frameIndex:=fFrameCounter;
+      FillChar(AntiLagData,SizeOf(TVkAntiLagDataAMD),#0);
+      AntiLagData.sType:=VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
+      AntiLagData.mode:=VK_ANTI_LAG_MODE_ON_AMD;
+      AntiLagData.maxFPS:=0;
+      AntiLagData.pPresentationInfo:=@AntiLagPresInfo;
+      fVulkanDevice.Commands.AntiLagUpdateAMD(fVulkanDevice.Handle,@AntiLagData);
+     end;
+    end;
+   end;
+  end;
+ end;
+end;
+
+procedure TpvApplication.LowLatencySleep;
+var SleepInfo:TVkLatencySleepInfoNV;
+begin
+ if fLowLatencyActive and
+    assigned(fVulkanDevice) and
+    fVulkanDevice.LowLatency2Support and
+    assigned(fVulkanDevice.Commands.Commands.LatencySleepNV) and
+    assigned(fVulkanSwapChain) and
+    assigned(fLowLatencySleepSemaphore) then begin
+  inc(fLowLatencyFrameID);
+  FillChar(SleepInfo,SizeOf(TVkLatencySleepInfoNV),#0);
+  SleepInfo.sType:=VK_STRUCTURE_TYPE_LATENCY_SLEEP_INFO_NV;
+  SleepInfo.signalSemaphore:=fLowLatencySleepSemaphore.Handle;
+  SleepInfo.value:=fLowLatencyFrameID;
+  try
+   if fVulkanDevice.Commands.LatencySleepNV(fVulkanDevice.Handle,
+                                            fVulkanSwapChain.Handle,
+                                            @SleepInfo)=VK_SUCCESS then begin
+    fLowLatencySleepSemaphore.WaitFor(fLowLatencyFrameID,
+                                      fHighResolutionTimer.SecondInterval);
+   end;
+  except
+  end;
+ end;
+end;
+
 procedure TpvApplication.UpdateJobFunction(const aJob:PPasMPJob;const aThreadIndex:TPasMPInt32);
+var StartTime:TpvHighResolutionTime;
 begin
  if not TPasMPInterlocked.CompareExchange(fInUpdateJobFunction,TPasMPBool32(true),TPasMPBool32(false)) then begin
   try
-   Update(fUpdateDeltaTime);
+    SetLowLatencyMarker(VK_LATENCY_MARKER_SIMULATION_START_NV);
+    fTimingCPUUpdateStart:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-fTimingCPUFrameStartTime);
+    StartTime:=fHighResolutionTimer.GetTime;
+    Update(fUpdateDeltaTime);
+    fTimingCPUUpdate:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+    fTimingCPUUpdateEnd:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-fTimingCPUFrameStartTime);
+    SetLowLatencyMarker(VK_LATENCY_MARKER_SIMULATION_END_NV);
   finally
    TPasMPInterlocked.Write(fInUpdateJobFunction,TPasMPBool32(false));
   end;
@@ -11984,8 +13501,15 @@ begin
 end;
 
 procedure TpvApplication.DrawJobFunction(const aJob:PPasMPJob;const aThreadIndex:TPasMPInt32);
+var StartTime:TpvHighResolutionTime;
 begin
+ SetLowLatencyMarker(VK_LATENCY_MARKER_RENDERSUBMIT_START_NV);
+ fTimingCPUDrawStart:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-fTimingCPUFrameStartTime);
+ StartTime:=fHighResolutionTimer.GetTime;
  Draw(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
+ fTimingCPUDraw:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+ fTimingCPUDrawEnd:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-fTimingCPUFrameStartTime);
+ SetLowLatencyMarker(VK_LATENCY_MARKER_RENDERSUBMIT_END_NV);
 end;
 
 procedure TpvApplication.UpdateAudioHook;
@@ -12053,7 +13577,9 @@ begin
  result:=((fCurrentFullScreen=0) or
           ((fFullscreenFocusNeeded and ((WindowFlags and FullScreenFocusActiveFlags)=FullScreenFocusActiveFlags)) or
            ((not fFullscreenFocusNeeded) and ((WindowFlags and FullScreenActiveFlags)=FullScreenActiveFlags)))) and
-         ((WindowFlags and SDL_WINDOW_MINIMIZED)=0);
+         ((WindowFlags and SDL_WINDOW_MINIMIZED)=0) and
+         ((WindowFlags and SDL_WINDOW_HIDDEN)=0) and
+         not fWindowMinimizedOrHidden;
 end;
 {$elseif defined(Windows) and not defined(PasVulkanHeadless)}
 const FullScreenFocusActiveFlags=WS_VISIBLE;
@@ -12174,13 +13700,13 @@ begin
       break;
      end;}
     end;
-   end;   
+   end;
 {$else} // Windows
    GameControllerDBFilePath:='C:\Program Files\Steam\steamapps\common\Steamworks SDK Redist\gamecontrollerdb.txt';
    if not FileExists(GameControllerDBFilePath) then begin
     GameControllerDBFilePath:='C:\Program Files (x86)\Steam\steamapps\common\Steamworks SDK Redist\gamecontrollerdb.txt';
    end;
-{$endif}   
+{$endif}
   end;
   if FileExists(GameControllerDBFilePath) then begin
    pvApplication.Log(LOG_VERBOSE,'TpvApplication.UpdateJoysticks','SDL2 game controller database "'+GameControllerDBFilePath+'" used.');
@@ -12357,6 +13883,8 @@ var Index,Counter,Tries:TpvInt32;
     SDLJoystick:PSDL_Joystick;
     SDLGameController:PSDL_GameController;
     Joystick:TpvApplicationJoystick;
+    FullscreenDisplayMode:TSDL_DisplayMode;
+    DisplayIndex:TpvInt32;
 {$else}
  {$if defined(Windows) and not defined(PasVulkanHeadless)}
     devMode:{$ifdef fpc}TDEVMODEW{$else}DEVMODEW{$endif};
@@ -12370,6 +13898,7 @@ var Index,Counter,Tries:TpvInt32;
     CurrentJobWorkerThread:TPasMPJobWorkerThread;
     LocalNextScreen:TpvApplicationScreen;
     LocalNextScreenClass:TpvApplicationScreenClass;
+    StartTime:TpvHighResolutionTime;
 begin
 
  if assigned(fPasMPInstance.Profiler) then begin
@@ -12378,7 +13907,12 @@ begin
 
  DoSkipNextFrameForRendering:=ShouldSkipNextFrameForRendering;
 
+ LowLatencySleep;
+ SetLowLatencyMarker(VK_LATENCY_MARKER_INPUT_SAMPLE_NV);
+
  ReadyForSwapChainLatency:=DoSkipNextFrameForRendering or WaitForSwapChainLatency;
+
+ ClearDelayedObjectsToFreeIteration;
 
  ProcessRunnables;
 
@@ -12482,7 +14016,6 @@ begin
 {$ifend}
  end;
 
-
  if fCurrentAcceptDragDropFiles<>ord(fAcceptDragDropFiles) then begin
   fCurrentAcceptDragDropFiles:=ord(fAcceptDragDropFiles);
 {$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
@@ -12532,7 +14065,7 @@ begin
   fCurrentWidth:=fWidth;
   fCurrentHeight:=fHeight;
   fCurrentPresentMode:=TpvInt32(fPresentMode);
-  if not fFullscreen then begin
+  if not fFullScreen then begin
 {$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
    SDL_SetWindowSize(fSurfaceWindow,fWidth,fHeight);
 {$else}
@@ -12705,6 +14238,18 @@ begin
         if assigned(fScreen) then begin
          fScreen.Resize(fWidth,fHeight);
         end;
+       end;
+       SDL_WINDOWEVENT_MINIMIZED,SDL_WINDOWEVENT_HIDDEN:begin
+        // Window was minimized or hidden (covers Wayland compositor iconification
+        // which may not set SDL_WINDOW_MINIMIZED reliably).
+        // Reset timing so we do not accumulate a huge delta on restore.
+        fWindowMinimizedOrHidden:=true;
+        fHasLastTime:=false;
+       end;
+       SDL_WINDOWEVENT_RESTORED,SDL_WINDOWEVENT_SHOWN:begin
+        // Window was restored or shown again — reset timing.
+        fWindowMinimizedOrHidden:=false;
+        fHasLastTime:=false;
        end;
       end;
      end;
@@ -13111,8 +14656,13 @@ begin
    fOnStep(self);
   end;
 
-  if fCurrentFullScreen<>ord(fFullScreen) then begin
-   fCurrentFullScreen:=ord(fFullScreen);
+  if (fCurrentFullScreen<>(ord(fFullScreen) and 1)) or
+     (fFullScreen and
+      ((fCurrentRealFullScreen<>(ord(fUseRealFullScreen) and 1)) or
+       (fUseRealFullScreen and
+        ((fCurrentFullScreenWidth<>fFullScreenWidth) or
+         (fCurrentFullScreenHeight<>fFullScreenHeight) or
+         (fCurrentFullScreenRefreshRate<>fFullScreenRefreshRate))))) then begin
    if (Tries=0) and
       not (fAcquireVulkanBackBufferState in [TAcquireVulkanBackBufferState.RecreateSwapChain,
                                              TAcquireVulkanBackBufferState.RecreateSurface,
@@ -13121,23 +14671,81 @@ begin
     fAcquireVulkanBackBufferState:=TAcquireVulkanBackBufferState.RecreateSwapChain;
    end;
 {$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
+
+   // For SDL, we can directly set fullscreen modes without restoring first as SDL handles the
+   // transitions internally, avoiding common pitfalls. Any necessary intermediate steps are
+   // managed by SDL itself, which simplifies the following code and improves reliability across platforms.
+
+   // The result codes of the SDL functions are not checked here, as failures are rare and typically non-critical,
+   // and SDL will often revert to a safe state automatically, so adding them would unnecessarily complicate the code.
+
    if fFullScreen then begin
-{   case fVulkanDevice.PhysicalDevice.Properties.vendorID of
-     $00001002:begin // AMD
+
+    if fUseRealFullScreen then begin
+
+     // Enter real fullscreen
+
+     // Set the desired fullscreen display mode
+     if (fFullScreenWidth>0) and (fFullScreenHeight>0) and (fFullScreenRefreshRate>=0) then begin
+      OK:=SDL_GetWindowDisplayMode(fSurfaceWindow,@FullscreenDisplayMode)=0;
+      if not OK then begin
+       DisplayIndex:=SDL_GetWindowDisplayIndex(fSurfaceWindow);
+       if DisplayIndex<0 then begin
+        DisplayIndex:=0;
+       end;
+       OK:=SDL_GetCurrentDisplayMode(DisplayIndex,@FullscreenDisplayMode)=0;
+       if not OK then begin
+        OK:=SDL_GetDesktopDisplayMode(DisplayIndex,@FullscreenDisplayMode)=0;
+        if not OK then begin
+         FillChar(FullscreenDisplayMode,SizeOf(TSDL_DisplayMode),#0);
+         FullscreenDisplayMode.format:=SDL_PIXELFORMAT_UNKNOWN;
+         FullscreenDisplayMode.w:=fFullScreenWidth;
+         FullscreenDisplayMode.h:=fFullScreenHeight;
+         if fFullScreenRefreshRate>0 then begin
+          FullscreenDisplayMode.refresh_rate:=fFullScreenRefreshRate;
+         end else begin
+          FullscreenDisplayMode.refresh_rate:=0; // Let SDL choose the default refresh rate
+         end;
+         FullscreenDisplayMode.driverdata:=nil;
+         OK:=true;
+        end;
+       end;
+      end;
+      if OK then begin
+       FullscreenDisplayMode.w:=fFullScreenWidth;
+       FullscreenDisplayMode.h:=fFullScreenHeight;
+       // Only set the refresh rate if a positive value is specified, otherwise let the previously obtained/default rate remain
+       if fFullScreenRefreshRate>0 then begin
+        FullscreenDisplayMode.refresh_rate:=fFullScreenRefreshRate;
+       end;
+       SDL_SetWindowSize(fSurfaceWindow,fFullScreenWidth,fFullScreenHeight);
+       SDL_SetWindowDisplayMode(fSurfaceWindow,@FullscreenDisplayMode);
+      end;
+     end;
+
+     // Set real fullscreen mode
+     if (SDL_GetWindowFlags(fSurfaceWindow) and SDL_WINDOW_FULLSCREEN)=0 then begin
       SDL_SetWindowFullscreen(fSurfaceWindow,SDL_WINDOW_FULLSCREEN);
      end;
-     else begin
+
+    end else begin
+
+     // Enter fake fullscreen (borderless window maximized to desktop size)
+     if (SDL_GetWindowFlags(fSurfaceWindow) and SDL_WINDOW_FULLSCREEN_DESKTOP)=0 then begin
       SDL_SetWindowFullscreen(fSurfaceWindow,SDL_WINDOW_FULLSCREEN_DESKTOP);
      end;
-    end;}
-    if fUseRealFullScreen then begin
-     SDL_SetWindowFullscreen(fSurfaceWindow,SDL_WINDOW_FULLSCREEN);
-    end else begin
-     SDL_SetWindowFullscreen(fSurfaceWindow,SDL_WINDOW_FULLSCREEN_DESKTOP);
+
     end;
+
    end else begin
-    SDL_SetWindowFullscreen(fSurfaceWindow,0);
+
+    // Restore windowed mode
+    if (SDL_GetWindowFlags(fSurfaceWindow) and (SDL_WINDOW_FULLSCREEN or SDL_WINDOW_FULLSCREEN_DESKTOP))<>0 then begin
+     SDL_SetWindowFullscreen(fSurfaceWindow,0);
+    end;
+
    end;
+
 {$if defined(PasVulkanUseSDL2WithVulkanSupport)}
    if fSDLVersionWithVulkanSupport then begin
     SDL_Vulkan_GetDrawableSize(fSurfaceWindow,@fWidth,@fHeight);
@@ -13145,41 +14753,77 @@ begin
     SDL_GetWindowSize(fSurfaceWindow,fWidth,fHeight);
    end;
 {$elseif defined(Windows) and not defined(PasVulkanHeadless)}
-   if fFullScreen then begin
-    FillChar(MonitorInfo,SizeOf(TMonitorInfo),#0);
-    MonitorInfo.cbSize:=SizeOf(TMonitorInfo);
-    if (not fWin32Fullscreen) and
-       GetWindowRect(fWin32Handle,Rect) and
-       GetMonitorInfo(MonitorFromWindow(fWin32Handle,MONITOR_DEFAULTTONEAREST),@MonitorInfo) then begin
-     fScreenWidth:=MonitorInfo.rcMonitor.Width;
-     fScreenHeight:=MonitorInfo.rcMonitor.Height;
-     fWin32OldLeft:=Rect.Left;
-     fWin32OldTop:=Rect.Top;
-     fWin32OldWidth:=fWidth;
-     fWin32OldHeight:=fHeight;
-     devMode.dmSize:=SizeOf({$ifdef fpc}TDEVMODEW{$else}DEVMODEW{$endif});
-     devMode.dmPelsWidth:=fScreenWidth;
-     devMode.dmPelsHeight:=fScreenHeight;
-     devMode.dmBitsPerPel:=32;
-     devMode.dmFields:=DM_BITSPERPEL or DM_PELSWIDTH or DM_PELSHEIGHT;
-     {if ChangeDisplaySettingsW(@devMode,CDS_FULLSCREEN)=DISP_CHANGE_SUCCESSFUL then}begin
-      SetWindowLongW(fWin32Handle,GWL_STYLE,WS_VISIBLE or WS_POPUP or WS_CLIPCHILDREN or WS_CLIPSIBLINGS);
-      if fAcceptDragDropFiles then begin
-       SetWindowLongW(fWin32Handle,GWL_EXSTYLE,WS_EX_APPWINDOW or WS_EX_ACCEPTFILES);
-      end else begin
-       SetWindowLongW(fWin32Handle,GWL_EXSTYLE,WS_EX_APPWINDOW);
-      end;
-      SetWindowPos(fWin32Handle,HWND_TOP,MonitorInfo.rcMonitor.Left,MonitorInfo.rcMonitor.Top,fScreenWidth,fScreenHeight,SWP_FRAMECHANGED);
-      ShowWindow(fWin32Handle,SW_SHOW);
-      fWin32Fullscreen:=true;
-{    end else begin
-      fFullscreen:=false;}
-     end;
+
+   // For Win32, the defensive pattern of always restoring to windowed mode first even
+   // before changing fullscreen state to avoid issues is implemented below.
+   //
+   // This approach mitigates various driver and Windows quirks related to fullscreen transitions.
+   //
+   // Detailed explanation:
+   //
+   // The "always restore to windowed first" approach is a common and valid defensive
+   // pattern for Windows fullscreen handling. Here's why:
+   // Reasons for this approach:
+   //
+   // 1. Display mode stack issues: ChangeDisplaySettingsW maintains an internal display mode stack.
+   //     Going directly from one exclusive mode to another can leave stale entries, causing issues
+   //     when restoring.
+   //
+   // 2. Driver quirks: Some GPU drivers (especially older ones, or certain AMD/Intel integrated
+   //    graphics) don't handle direct mode-to-mode transitions well. They expect the clean sequence:
+   //    Exclusive => Desktop => New Exclusive.
+   //
+   // 3. Window style conflicts: Directly changing from real fullscreen (with changed display mode)
+   //    to fake fullscreen (borderless) while keeping popup styles can cause rendering issues or black
+   //    screens.
+   //
+   // 4. Multi-monitor edge cases: When switching between monitors or when display topology changes,
+   //    going through windowed mode ensures the window is properly repositioned.
+   //
+   // 5. Alt-Tab / Focus loss recovery: If the app lost focus during a previous fullscreen session,
+   //     a clean restore ensures predictable state.
+   //
+   // 6. Simplicity and predictability: This pattern simplifies the state management logic, making
+   //    it easier to reason about the current window state.
+   //
+   // The pattern is used by:
+   //
+   // - Many game engines (Unity, Unreal do similar)
+   // - SDL internally uses similar logic
+   // - DirectX sample code often recommends this
+   //
+   // Potential downside:
+   //
+   // - Brief visual flicker during transition (window momentarily visible in windowed state)
+   //
+   // Alternative approaches:
+   //
+   // - Direct mode switching: Attempt to switch directly between exclusive modes. Risky due to
+   //   driver quirks and display stack issues.
+   //
+   // - Persistent borderless window: Always use fake fullscreen (borderless) to avoid mode
+   //   switches. Simpler but may not offer the best performance or compatibility for all apps.
+   //   It's also implemented in this code as an option, where fUseRealFullScreen must be false.
+   //
+   // - Some engines track whether they're changing mode type (real<=>fake) vs just resolution and
+   //   only restore when needed
+   //
+   // - DXGI's SetFullscreenState handles some of this internally for D3D apps
+   //
+   // Conclusion:
+   //
+   // While not strictly required in all cases, restoring to windowed mode first is a robust
+   // defensive practice that avoids many common pitfalls with Windows fullscreen handling across
+   // different hardware and driver configurations.
+
+   if fWin32FullScreen then begin
+    if fWin32RealFullScreen then begin
+     OK:=ChangeDisplaySettingsW(nil,0)=DISP_CHANGE_SUCCESSFUL;
+     fWin32RealFullScreen:=false;
     end else begin
-     fFullscreen:=false;
+     OK:=true;
     end;
-   end else if fWin32Fullscreen then begin
-{   if ChangeDisplaySettingsW(nil,CDS_FULLSCREEN)=DISP_CHANGE_SUCCESSFUL then}begin
+    if OK then begin
      if fResizable then begin
       SetWindowLongW(fWin32Handle,GWL_STYLE,WS_VISIBLE or WS_CAPTION or WS_MINIMIZEBOX or WS_THICKFRAME or WS_MAXIMIZEBOX or WS_SYSMENU);
      end else begin
@@ -13192,13 +14836,77 @@ begin
      end;
      SetWindowPos(fWin32Handle,HWND_TOP,fWin32OldLeft,fWin32OldTop,fWin32OldWidth,fWin32OldHeight,SWP_FRAMECHANGED);
      ShowWindow(fWin32Handle,SW_SHOW);
-     fWin32Fullscreen:=false;
-{   end else begin
-     fFullscreen:=true;}
+     fWin32FullScreen:=false;
+    end else begin
+     fFullScreen:=true;
     end;
    end;
+
+   // Now set the new fullscreen state, when requested
+   if fFullScreen then begin
+    FillChar(MonitorInfo,SizeOf(TMonitorInfo),#0);
+    MonitorInfo.cbSize:=SizeOf(TMonitorInfo);
+    if (not fWin32FullScreen) and
+       GetWindowRect(fWin32Handle,Rect) and
+       GetMonitorInfo(MonitorFromWindow(fWin32Handle,MONITOR_DEFAULTTONEAREST),@MonitorInfo) then begin
+     if fUseRealFullScreen and (fFullScreenWidth>0) and (fFullScreenHeight>0) then begin
+      fScreenWidth:=fFullScreenWidth;
+      fScreenHeight:=fFullScreenHeight;
+     end else begin
+      fScreenWidth:=MonitorInfo.rcMonitor.Width;
+      fScreenHeight:=MonitorInfo.rcMonitor.Height;
+     end;
+     fWin32OldLeft:=Rect.Left;
+     fWin32OldTop:=Rect.Top;
+     fWin32OldWidth:=fWidth;
+     fWin32OldHeight:=fHeight;
+     FillChar(devMode,SizeOf({$ifdef fpc}TDEVMODEW{$else}DEVMODEW{$endif}),#0);
+     devMode.dmSize:=SizeOf({$ifdef fpc}TDEVMODEW{$else}DEVMODEW{$endif});
+     devMode.dmPelsWidth:=fScreenWidth;
+     devMode.dmPelsHeight:=fScreenHeight;
+//   devMode.dmBitsPerPel:=32; // Don't set bitsperpel to avoid problems with HDR/10b displays and similar situations
+     devMode.dmFields:=DM_PELSWIDTH or DM_PELSHEIGHT {or DM_BITSPERPEL};
+     if fFullScreenRefreshRate>0 then begin
+      // When a specific refresh rate is requested, set it
+      devMode.dmDisplayFrequency:=fFullScreenRefreshRate;
+      devMode.dmFields:=devMode.dmFields or DM_DISPLAYFREQUENCY;
+     end;
+     if fUseRealFullScreen then begin
+      OK:=ChangeDisplaySettingsW(@devMode,CDS_FULLSCREEN)=DISP_CHANGE_SUCCESSFUL;
+      fWin32RealFullScreen:=OK;
+     end else begin
+      OK:=true;
+      fWin32RealFullScreen:=false;
+     end;
+     if OK then begin
+      SetWindowLongW(fWin32Handle,GWL_STYLE,WS_VISIBLE or WS_POPUP or WS_CLIPCHILDREN or WS_CLIPSIBLINGS);
+      if fAcceptDragDropFiles then begin
+       SetWindowLongW(fWin32Handle,GWL_EXSTYLE,WS_EX_APPWINDOW or WS_EX_ACCEPTFILES);
+      end else begin
+       SetWindowLongW(fWin32Handle,GWL_EXSTYLE,WS_EX_APPWINDOW);
+      end;
+      SetWindowPos(fWin32Handle,HWND_TOP,MonitorInfo.rcMonitor.Left,MonitorInfo.rcMonitor.Top,fScreenWidth,fScreenHeight,SWP_FRAMECHANGED);
+      ShowWindow(fWin32Handle,SW_SHOW);
+      fWin32FullScreen:=true;
+     end else begin
+      fFullScreen:=false;
+     end;
+    end else begin
+     fFullScreen:=false;
+    end;
+
+   end;
+
 {$else}
 {$ifend}
+   fCurrentFullScreen:=ord(fFullScreen) and 1;
+   fCurrentRealFullScreen:=ord(fUseRealFullScreen) and 1;
+   fCurrentFullScreenWidth:=fFullScreenWidth;
+   fCurrentFullScreenHeight:=fFullScreenHeight;
+   fCurrentFullScreenRefreshRate:=fFullScreenRefreshRate;
+   // Continue with a new fresh loop iteration to process possible new events,
+   // like resize events triggered by the fullscreen change, before rendering the next frame
+   // with the new settings, for to avoid possible issues.
    continue;
   end;
 
@@ -13206,7 +14914,7 @@ begin
 
  end;
 
- if fGraphicsReady and (fStayActiveRegardlessOfVisibility or IsVisibleToUser) then begin
+ if fGraphicsReady then begin
 
   if fReinitializeGraphics then begin
    try
@@ -13227,69 +14935,209 @@ begin
 
   if not fResourceManager.SynchronizationPoint then begin
 
-   if ShouldSkipNextFrameForRendering then begin
+   if fStayActiveRegardlessOfVisibility or IsVisibleToUser then begin
 
-    fSkipNextDrawFrame:=false;
+    if ShouldSkipNextFrameForRendering then begin
 
-    fNowTime:=fHighResolutionTimer.GetTime;
-    if fHasLastTime then begin
-     fDeltaTime:=fNowTime-fLastTime;
-    end else begin
-     fDeltaTime:=0;
-    end;
-    fFloatDeltaTime:=fHighResolutionTimer.ToFloatSeconds(fDeltaTime);
-    fLastTime:=fNowTime;
-    fHasLastTime:=true;
+     fSkipNextDrawFrame:=false;
 
-    UpdateFrameTimesHistory;
+     fNowTime:=fHighResolutionTimer.GetTime;
+     if fHasLastTime then begin
+      fDeltaTime:=fNowTime-fLastTime;
+     end else begin
+      fDeltaTime:=0;
+     end;
+     fFloatDeltaTime:=fHighResolutionTimer.ToFloatSeconds(fDeltaTime);
+     fLastTime:=fNowTime;
+     fHasLastTime:=true;
 
-    fUpdateDeltaTime:=Min(Max(fFloatDeltaTime,0.0),0.25);
+     UpdateFrameTimesHistory;
 
-    fUpdateFrameCounter:=fFrameCounter;
-    fDrawFrameCounter:=fFrameCounter;
+     fUpdateDeltaTime:=Min(Max(fFloatDeltaTime,0.0),0.25);
 
-    fPreviousInFlightFrameIndex:=fCurrentInFlightFrameIndex;
+     fUpdateFrameCounter:=fFrameCounter;
+     fDrawFrameCounter:=fFrameCounter;
 
-    fCurrentInFlightFrameIndex:=fNextInFlightFrameIndex;
+     fPreviousInFlightFrameIndex:=fCurrentInFlightFrameIndex;
 
-    fNextInFlightFrameIndex:=fCurrentInFlightFrameIndex+1;
-    if fNextInFlightFrameIndex>=fCountInFlightFrames then begin
-     fNextInFlightFrameIndex:=0;
-    end;
+     fCurrentInFlightFrameIndex:=fNextInFlightFrameIndex;
 
-    fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex;
-    fUpdateInFlightFrameIndex:=fCurrentInFlightFrameIndex;
+     fNextInFlightFrameIndex:=fCurrentInFlightFrameIndex+1;
+     if fNextInFlightFrameIndex>=fCountInFlightFrames then begin
+      fNextInFlightFrameIndex:=0;
+     end;
 
-    Check(fUpdateDeltaTime);
+     fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex;
+     fUpdateInFlightFrameIndex:=fCurrentInFlightFrameIndex;
 
-    if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-     fUpdateThread.Invoke;
-     fUpdateThread.WaitForDone;
-    end else begin
-     UpdateJobFunction(nil,0);
-    end;
+     Check(fUpdateDeltaTime);
 
-    inc(fFrameCounter);
+     if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+      fUpdateThread.Invoke;
+      fUpdateThread.WaitForDone;
+     end else begin
+      UpdateJobFunction(nil,0);
+     end;
 
-    FrameRateLimiter;
+     inc(fFrameCounter);
 
-    inc(fSwapChainImageCounterIndex);
-    if fSwapChainImageCounterIndex>=fCountSwapChainImages then begin
-     dec(fSwapChainImageCounterIndex,fCountSwapChainImages);
-    end;
+     FramePacingAndFrameRateLimiter;
 
-    VulkanWaitIdle;
+     inc(fSwapChainImageCounterIndex);
+     if fSwapChainImageCounterIndex>=fCountSwapChainImages then begin
+      dec(fSwapChainImageCounterIndex,fCountSwapChainImages);
+     end;
 
-   end else if ReadyForSwapChainLatency then begin
+     VulkanWaitIdle;
 
-    case fProcessingMode of
+    end else if ReadyForSwapChainLatency then begin
 
-     TpvApplicationProcessingMode.Flexible:begin
+     case fProcessingMode of
 
-      fUpdateJob:=nil;
-      try
+      TpvApplicationProcessingMode.Flexible:begin
 
-       if fVulkanBackBufferState=TVulkanBackBufferState.Acquire then begin
+       fUpdateJob:=nil;
+       try
+
+        if fVulkanBackBufferState=TVulkanBackBufferState.Acquire then begin
+
+         fNowTime:=fHighResolutionTimer.GetTime;
+         if fHasLastTime then begin
+          fDeltaTime:=fNowTime-fLastTime;
+         end else begin
+          fDeltaTime:=0;
+         end;
+         fFloatDeltaTime:=fHighResolutionTimer.ToFloatSeconds(fDeltaTime);
+         fLastTime:=fNowTime;
+         fHasLastTime:=true;
+
+         UpdateFrameTimesHistory;
+
+         fUpdateDeltaTime:=Min(Max(fFloatDeltaTime,0.0),0.25);
+
+         fTimingCPUFrameStartTime:=fHighResolutionTimer.GetTime;
+
+         if CanBeParallelProcessed and (fCountInFlightFrames>1) then begin
+
+          fDrawFrameCounter:=fFrameCounter-1;
+
+          fUpdateFrameCounter:=fFrameCounter;
+
+          fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex;
+
+          fUpdateInFlightFrameIndex:=fNextInFlightFrameIndex;
+
+          Check(fUpdateDeltaTime);
+
+          if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+           fUpdateThread.Invoke;
+          end else begin
+           fUpdateJob:=fPasMPInstance.Acquire(UpdateJobFunction,nil,nil,PasMPJobPriorityHigh,PasMPAreaMaskUpdate,PasMPAreaMaskRender,PasMPAffinityMaskUpdateAllowMask,PasMPAffinityMaskUpdateAvoidMask);
+           fPasMPInstance.Run(fUpdateJob);
+          end;
+
+         end else begin
+
+          fUpdateFrameCounter:=fFrameCounter;
+
+          fDrawFrameCounter:=fFrameCounter;
+
+          fDrawInFlightFrameIndex:=fNextInFlightFrameIndex;
+
+          fUpdateInFlightFrameIndex:=fDrawInFlightFrameIndex;
+
+          Check(fUpdateDeltaTime);
+
+          if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+           fUpdateThread.Invoke;
+           fUpdateThread.WaitForDone;
+          end else begin
+           UpdateJobFunction(nil,0);
+          end;
+
+         end;
+
+         if assigned(fVulkanDevice) then begin
+          StartTime:=fHighResolutionTimer.GetTime;
+          while not AcquireVulkanBackBuffer do begin
+           TPasMP.Yield;
+          end;
+          fTimingCPUAcquire:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+         end;
+
+        end;
+
+        if fVulkanBackBufferState=TVulkanBackBufferState.Present then begin
+         try
+          CurrentJobWorkerThread:=fPasMPInstance.JobWorkerThread;
+          if assigned(CurrentJobWorkerThread) then begin
+           CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask or PasMPAreaMaskRender;
+          end;
+          StartTime:=fHighResolutionTimer.GetTime;
+          BeginFrame(fUpdateDeltaTime);
+          fTimingCPUBeginFrame:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+          DrawJobFunction(nil,0);
+          StartTime:=fHighResolutionTimer.GetTime;
+          FinishFrame(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
+          fTimingCPUFinishFrame:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+          if assigned(CurrentJobWorkerThread) then begin
+           CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask and not PasMPAreaMaskRender;
+          end;
+         finally
+          if assigned(fVulkanDevice) then begin
+           try
+            if fUpdateWaitsForGPU then begin
+             StartTime:=fHighResolutionTimer.GetTime;
+             if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+              fUpdateThread.WaitForDone;
+             end else begin
+              if assigned(fUpdateJob) then begin
+               try
+                fPasMPInstance.WaitRelease(fUpdateJob);
+               finally
+                fUpdateJob:=nil;
+               end;
+              end;
+              while TPasMPInterlocked.Read(fInUpdateJobFunction) do begin
+               TPasMP.Yield;
+              end;
+             end;
+             fTimingCPUUpdateWait:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+            end else begin
+             fTimingCPUUpdateWait:=0.0;
+            end;
+           finally
+            try
+             StartTime:=fHighResolutionTimer.GetTime;
+             PresentVulkanBackBuffer;
+             fTimingCPUPresent:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+            finally
+             PostPresent(fSwapChainImageIndex);
+            end;
+           end;
+          end;
+         end;
+         inc(fFrameCounter);
+         StartTime:=fHighResolutionTimer.GetTime;
+         FramePacingAndFrameRateLimiter;
+         fTimingCPUFramePacing:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+        end;
+
+       finally
+        if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+         fUpdateThread.WaitForDone;
+        end else begin
+         if assigned(fUpdateJob) then begin
+          fPasMPInstance.WaitRelease(fUpdateJob);
+         end;
+        end;
+       end;
+
+      end;
+
+      else {TpvApplicationProcessingMode.Strict:}begin
+
+       if (not assigned(fVulkanDevice)) or AcquireVulkanBackBuffer then begin
 
         fNowTime:=fHighResolutionTimer.GetTime;
         if fHasLastTime then begin
@@ -13305,210 +15153,108 @@ begin
 
         fUpdateDeltaTime:=Min(Max(fFloatDeltaTime,0.0),0.25);
 
-        if CanBeParallelProcessed and (fCountInFlightFrames>1) then begin
-
-         fDrawFrameCounter:=fFrameCounter-1;
-
-         fUpdateFrameCounter:=fFrameCounter;
-
-         fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex;
-
-         fUpdateInFlightFrameIndex:=fNextInFlightFrameIndex;
-
-         Check(fUpdateDeltaTime);
-
-         if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-          fUpdateThread.Invoke;
-         end else begin
-          fUpdateJob:=fPasMPInstance.Acquire(UpdateJobFunction,nil,nil,0,PasMPAreaMaskUpdate,PasMPAreaMaskRender,PasMPAffinityMaskUpdateAllowMask,PasMPAffinityMaskUpdateAvoidMask);
-          fPasMPInstance.Run(fUpdateJob);
-         end;
-
-        end else begin
-
-         fUpdateFrameCounter:=fFrameCounter;
-
-         fDrawFrameCounter:=fFrameCounter;
-
-         fDrawInFlightFrameIndex:=fNextInFlightFrameIndex;
-
-         fUpdateInFlightFrameIndex:=fDrawInFlightFrameIndex;
-
-         Check(fUpdateDeltaTime);
-
-         if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-          fUpdateThread.Invoke;
-          fUpdateThread.WaitForDone;
-         end else begin
-          UpdateJobFunction(nil,0);
-         end;
-
-        end;
-
-        if assigned(fVulkanDevice) then begin
-         while not AcquireVulkanBackBuffer do begin
-          TPasMP.Yield;
-         end;
-        end;
-
-       end;
-
-       if fVulkanBackBufferState=TVulkanBackBufferState.Present then begin
         try
-         CurrentJobWorkerThread:=fPasMPInstance.JobWorkerThread;
-         if assigned(CurrentJobWorkerThread) then begin
-          CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask or PasMPAreaMaskRender;
+
+         fTimingCPUFrameStartTime:=fHighResolutionTimer.GetTime;
+
+         if CanBeParallelProcessed and (fCountInFlightFrames>1) then begin
+
+          fDrawFrameCounter:=fFrameCounter-1;
+
+          fUpdateFrameCounter:=fFrameCounter;
+
+          fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex-1;
+          if fDrawInFlightFrameIndex<0 then begin
+           inc(fDrawInFlightFrameIndex,fCountInFlightFrames);
+          end;
+
+          fUpdateInFlightFrameIndex:=fCurrentInFlightFrameIndex;
+
+          Check(fUpdateDeltaTime);
+
+          StartTime:=fHighResolutionTimer.GetTime;
+          BeginFrame(fUpdateDeltaTime);
+          fTimingCPUBeginFrame:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+
+          if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+           fUpdateThread.Invoke;
+           DrawJobFunction(nil,fPasMPInstance.GetJobWorkerThreadIndex);
+           fUpdateThread.WaitForDone;
+          end else begin
+           fUpdateJob:=fPasMPInstance.Acquire(UpdateJobFunction,nil,nil,PasMPJobPriorityHigh,PasMPAreaMaskUpdate,PasMPAreaMaskRender,PasMPAffinityMaskUpdateAllowMask,PasMPAffinityMaskUpdateAvoidMask);
+           try
+            fPasMPInstance.Run(fUpdateJob);
+            CurrentJobWorkerThread:=fPasMPInstance.JobWorkerThread;
+            if assigned(CurrentJobWorkerThread) then begin
+             CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask or PasMPAreaMaskRender;
+            end;
+            DrawJobFunction(nil,fPasMPInstance.GetJobWorkerThreadIndex);
+            if assigned(CurrentJobWorkerThread) then begin
+             CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask and not PasMPAreaMaskRender;
+            end;
+           finally
+            try
+             fPasMPInstance.WaitRelease(fUpdateJob);
+            finally
+             fUpdateJob:=nil;
+            end;
+           end;
+          end;
+
+          StartTime:=fHighResolutionTimer.GetTime;
+          FinishFrame(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
+          fTimingCPUFinishFrame:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+
+         end else begin
+
+          fUpdateFrameCounter:=fFrameCounter;
+
+          fDrawFrameCounter:=fFrameCounter;
+
+          fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex;
+
+          fUpdateInFlightFrameIndex:=fDrawInFlightFrameIndex;
+
+          Check(fUpdateDeltaTime);
+
+          if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
+           fUpdateThread.Invoke;
+           fUpdateThread.WaitForDone;
+          end else begin
+           UpdateJobFunction(nil,0);
+          end;
+
+          StartTime:=fHighResolutionTimer.GetTime;
+          BeginFrame(fUpdateDeltaTime);
+          fTimingCPUBeginFrame:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+
+          DrawJobFunction(nil,0);
+
+          StartTime:=fHighResolutionTimer.GetTime;
+          FinishFrame(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
+          fTimingCPUFinishFrame:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+
          end;
-         BeginFrame(fUpdateDeltaTime);
-         DrawJobFunction(nil,0);
-         FinishFrame(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
-         if assigned(CurrentJobWorkerThread) then begin
-          CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask and not PasMPAreaMaskRender;
-         end;
+
         finally
          if assigned(fVulkanDevice) then begin
           try
-           if fUpdateWaitsForGPU then begin
-            if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-             fUpdateThread.WaitForDone;
-            end else begin
-             if assigned(fUpdateJob) then begin
-              try
-               fPasMPInstance.WaitRelease(fUpdateJob);
-              finally
-               fUpdateJob:=nil;
-              end;
-             end;
-             while TPasMPInterlocked.Read(fInUpdateJobFunction) do begin
-              TPasMP.Yield;
-             end;
-            end;
-           end;
+           StartTime:=fHighResolutionTimer.GetTime;
+           PresentVulkanBackBuffer;
+           fTimingCPUPresent:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
           finally
-           try
-            PresentVulkanBackBuffer;
-           finally
-            PostPresent(fSwapChainImageIndex);
-           end;
+           PostPresent(fSwapChainImageIndex);
           end;
          end;
         end;
+
         inc(fFrameCounter);
-        FrameRateLimiter;
+
+        StartTime:=fHighResolutionTimer.GetTime;
+        FramePacingAndFrameRateLimiter;
+        fTimingCPUFramePacing:=fHighResolutionTimer.ToFloatSeconds(fHighResolutionTimer.GetTime-StartTime);
+
        end;
-
-      finally
-       if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-        fUpdateThread.WaitForDone;
-       end else begin
-        if assigned(fUpdateJob) then begin
-         fPasMPInstance.WaitRelease(fUpdateJob);
-        end;
-       end;
-      end;
-
-     end;
-
-     else {TpvApplicationProcessingMode.Strict:}begin
-
-      if (not assigned(fVulkanDevice)) or AcquireVulkanBackBuffer then begin
-
-       fNowTime:=fHighResolutionTimer.GetTime;
-       if fHasLastTime then begin
-        fDeltaTime:=fNowTime-fLastTime;
-       end else begin
-        fDeltaTime:=0;
-       end;
-       fFloatDeltaTime:=fHighResolutionTimer.ToFloatSeconds(fDeltaTime);
-       fLastTime:=fNowTime;
-       fHasLastTime:=true;
-
-       UpdateFrameTimesHistory;
-
-       fUpdateDeltaTime:=Min(Max(fFloatDeltaTime,0.0),0.25);
-
-       try
-
-        if CanBeParallelProcessed and (fCountInFlightFrames>1) then begin
-
-         fDrawFrameCounter:=fFrameCounter-1;
-
-         fUpdateFrameCounter:=fFrameCounter;
-
-         fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex-1;
-         if fDrawInFlightFrameIndex<0 then begin
-          inc(fDrawInFlightFrameIndex,fCountInFlightFrames);
-         end;
-
-         fUpdateInFlightFrameIndex:=fCurrentInFlightFrameIndex;
-
-         Check(fUpdateDeltaTime);
-
-         BeginFrame(fUpdateDeltaTime);
-
-         if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-          fUpdateThread.Invoke;
-          DrawJobFunction(nil,fPasMPInstance.GetJobWorkerThreadIndex);
-          fUpdateThread.WaitForDone;
-         end else begin
-          fUpdateJob:=fPasMPInstance.Acquire(UpdateJobFunction,nil,nil,0,PasMPAreaMaskUpdate,PasMPAreaMaskRender,PasMPAffinityMaskUpdateAllowMask,PasMPAffinityMaskUpdateAvoidMask);
-          try
-           fPasMPInstance.Run(fUpdateJob);
-           CurrentJobWorkerThread:=fPasMPInstance.JobWorkerThread;
-           if assigned(CurrentJobWorkerThread) then begin
-            CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask or PasMPAreaMaskRender;
-           end;
-           DrawJobFunction(nil,fPasMPInstance.GetJobWorkerThreadIndex);
-           if assigned(CurrentJobWorkerThread) then begin
-            CurrentJobWorkerThread.AreaMask:=CurrentJobWorkerThread.AreaMask and not PasMPAreaMaskRender;
-           end;
-          finally
-           fPasMPInstance.WaitRelease(fUpdateJob);
-          end;
-         end;
-
-         FinishFrame(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
-
-        end else begin
-
-         fUpdateFrameCounter:=fFrameCounter;
-
-         fDrawFrameCounter:=fFrameCounter;
-
-         fDrawInFlightFrameIndex:=fCurrentInFlightFrameIndex;
-
-         fUpdateInFlightFrameIndex:=fDrawInFlightFrameIndex;
-
-         Check(fUpdateDeltaTime);
-
-         if fUseExtraUpdateThread and assigned(fUpdateThread) then begin
-          fUpdateThread.Invoke;
-          fUpdateThread.WaitForDone;
-         end else begin
-          UpdateJobFunction(nil,0);
-         end;
-
-         BeginFrame(fUpdateDeltaTime);
-
-         DrawJobFunction(nil,0);
-
-         FinishFrame(fSwapChainImageIndex,fVulkanWaitSemaphore,fVulkanWaitFence);
-
-        end;
-
-       finally
-        if assigned(fVulkanDevice) then begin
-         try
-          PresentVulkanBackBuffer;
-         finally
-          PostPresent(fSwapChainImageIndex);
-         end;
-        end;
-       end;
-
-       inc(fFrameCounter);
-
-       FrameRateLimiter;
 
       end;
 
@@ -13516,14 +15262,16 @@ begin
 
     end;
 
+   end else begin
+    fDeltaTime:=0;
+    Sleep(1);
    end;
 
   end;
 
  end else begin
-
   fDeltaTime:=0;
-
+  Sleep(1);
  end;
 
  if assigned(fPasMPInstance.Profiler) then begin
@@ -14913,6 +16661,8 @@ begin
 
  fVulkanPipelineCacheFileName:=TpvUTF8String(IncludeTrailingPathDelimiter(String(fCacheStoragePath)))+'vulkan_pipeline_cache.bin';
 
+ ProcessOldPathNames;
+
  ReadConfig;
 
 {$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
@@ -15008,12 +16758,22 @@ begin
   end;
 
 {$if defined(PasVulkanUseSDL2WithVulkanSupport)}
+  // Load Vulkan library globally first to ensure Mesa device selection layers and other Vulkan layers can resolve loader symbols
+  Vulkan.LoadVulkanLibrary(VK_DEFAULT_LIB_NAME);
+
   // For faulty SDL2 >= 2.0.6 builds with corrupt or missing builtin Vulkan support
-  if fSDLVersionWithVulkanSupport and
-     ((assigned(SDL_Vulkan_LoadLibrary) and
-       (SDL_Vulkan_LoadLibrary(VK_DEFAULT_LIB_NAME)<0)) or
-      not assigned(SDL_Vulkan_LoadLibrary)) then begin
-   fSDLVersionWithVulkanSupport:=false;
+  // Note: SDL_Vulkan_LoadLibrary may be nil when SDL2 is statically linked (e.g. in Flatpak runtime).
+  // In that case, check SDL_Vulkan_CreateSurface instead, which is the symbol we actually need.
+  if fSDLVersionWithVulkanSupport then begin
+   if assigned(SDL_Vulkan_LoadLibrary) then begin
+    // Dynamic SDL2: call LoadLibrary and check result
+    if SDL_Vulkan_LoadLibrary(nil) < 0 then begin
+     fSDLVersionWithVulkanSupport:=false;
+    end;
+   end else if not assigned(SDL_Vulkan_CreateSurface) then begin
+    // Neither LoadLibrary nor CreateSurface available — no real Vulkan support
+    fSDLVersionWithVulkanSupport:=false;
+   end;
   end;
 {$ifend}
 
@@ -15059,7 +16819,7 @@ begin
    fVideoFlags:=fVideoFlags or SDL_WINDOW_VULKAN;
   end;
 {$ifend}
-  if fFullscreen then begin
+  if fFullScreen then begin
 {$ifndef Android}
    if (fWidth=fScreenWidth) and (fHeight=fScreenHeight) then begin
     fVideoFlags:=fVideoFlags or SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -15080,7 +16840,7 @@ begin
 
 {$if defined(fpc) and defined(android)}
   fVideoFlags:=fVideoFlags or SDL_WINDOW_FULLSCREEN or SDL_WINDOW_VULKAN;
-  fFullscreen:=true;
+  fFullScreen:=true;
   fCurrentFullscreen:=ord(true);
   fWidth:=fScreenWidth;
   fHeight:=fScreenHeight;
@@ -15141,7 +16901,7 @@ begin
   end;
 
   fWin32Style:=WS_VISIBLE;
-  if fFullscreen then begin
+  if fFullScreen then begin
    fWin32Style:=fWin32Style or WS_POPUP;
   end else begin
    fWin32Style:=fWin32Style or WS_CAPTION or WS_MINIMIZEBOX or WS_SYSMENU;
@@ -15218,7 +16978,9 @@ begin
 
   fWin32HiddenCursor:=CreateCursor(fWin32HInstance,0,0,1,1,@Win32CursorMaskAND,@Win32CursorMaskXOR);
 
-  fWin32Fullscreen:=false;
+  fWin32FullScreen:=false;
+
+  fWin32RealFullScreen:=false;
 
   if fVisibleMouseCursor then begin
    fWin32Cursor:=LoadCursor(0,IDC_ARROW);
@@ -15454,7 +17216,19 @@ begin
 
          VulkanWaitIdle;
 
-         Unload;
+         try
+
+          ClearDelayedObjectsToFree;
+
+         finally
+
+          VulkanWaitIdle;
+
+          Unload;
+
+          ClearDelayedObjectsToFree;
+
+         end;
 
         end;
 
@@ -15579,7 +17353,7 @@ procedure TpvApplication.Start;
 begin
 end;
 
-procedure TpvApplication.Stop; 
+procedure TpvApplication.Stop;
 begin
 end;
 
@@ -15773,7 +17547,13 @@ begin
                                    0,
                                    fVulkanSwapChain.Width,
                                    fVulkanSwapChain.Height);
+ if assigned(fVulkanDevice.BreadcrumbBuffer) then begin
+  fVulkanDevice.BreadcrumbBuffer.RenderPassHint(true);
+ end;
 
+ if assigned(fVulkanDevice.BreadcrumbBuffer) then begin
+  fVulkanDevice.BreadcrumbBuffer.RenderPassHint(false);
+ end;
  fVulkanRenderPass.EndRenderPass(VulkanCommandBuffer);
 
  VulkanCommandBuffer.EndRecording;
@@ -15813,12 +17593,23 @@ end;
 
 procedure TpvApplication.UpdateAudio;
 begin
- if assigned(fScreen) then begin
-  fScreen.UpdateAudio;
+ // Runs on the audio thread (via the audio engine's UpdateHook, from inside the audio engine's critical section).
+ // SetScreen holds fScreenLock across the whole screen lifecycle, which itself enters the audio engine's critical
+ // section - so blocking here on fScreenLock would invert the lock order and dead-lock. Therefore only touch the
+ // screen if fScreenLock can be grabbed without blocking; while a SetScreen is in progress just skip the screen
+ // audio update for those few callbacks, which is harmless.
+ if fScreenLock.TryEnter then begin
+  try
+   if assigned(fScreen) then begin
+    fScreen.UpdateAudio;
+   end;
+  finally
+   fScreenLock.Release;
+  end;
  end;
 end;
 
-procedure TpvApplication.DumpVulkanMemoryManager; 
+procedure TpvApplication.DumpVulkanMemoryManager;
 var StringList:TStringList;
     Index:TpvSizeInt;
     Line:TpvUTF8String;
@@ -15833,9 +17624,112 @@ begin
    end;
   finally
    FreeAndNil(StringList);
-  end; 
- end; 
+  end;
+ end;
 end;
+
+function CompareDisplayModes(const a,b:PpvApplicationDisplayMode):TpvInt32;
+begin
+ result:=(a^.Width*a^.Height)-(b^.Width*b^.Height);
+ if result=0 then begin
+  result:=a^.RefreshRate-b^.RefreshRate;
+ end;
+end;
+
+function TpvApplication.GetSupportedDisplayModes(const aDisplayIndex:TpvInt32=0):TpvApplicationDisplayModes;
+{$if defined(PasVulkanHeadless)}
+begin
+ result:=nil;
+end;
+{$elseif defined(PasVulkanUseSDL2)}
+var CountModes,Index,ResultCount:TpvInt32;
+    SDLDisplayMode:TSDL_DisplayMode;
+    DisplayMode:PpvApplicationDisplayMode;
+    Found:Boolean;
+    OtherIndex:TpvInt32;
+begin
+ result:=nil;
+ ResultCount:=0;
+ CountModes:=SDL_GetNumDisplayModes(aDisplayIndex);
+ if CountModes>0 then begin
+  for Index:=0 to CountModes-1 do begin
+   if SDL_GetDisplayMode(aDisplayIndex,Index,@SDLDisplayMode)=0 then begin
+    // Check for duplicates (same width/height, different refresh rate)
+    Found:=false;
+    for OtherIndex:=0 to ResultCount-1 do begin
+     DisplayMode:=@result[OtherIndex];
+     if (DisplayMode^.Width=SDLDisplayMode.w) and
+        (DisplayMode^.Height=SDLDisplayMode.h) and
+        (DisplayMode^.RefreshRate=SDLDisplayMode.refresh_rate) then begin
+      Found:=true;
+      break;
+     end;
+    end;
+    if not Found then begin
+     if ResultCount>=length(result) then begin
+      SetLength(result,(ResultCount+1)*2);
+     end;
+     DisplayMode:=@result[ResultCount];
+     inc(ResultCount);
+     DisplayMode^.Width:=SDLDisplayMode.w;
+     DisplayMode^.Height:=SDLDisplayMode.h;
+     DisplayMode^.RefreshRate:=SDLDisplayMode.refresh_rate;
+    end;
+   end;
+  end;
+ end;
+ SetLength(result,ResultCount);
+ if length(result)>1 then begin
+  UntypedDirectIntroSort(@result[0],0,length(result)-1,SizeOf(TpvApplicationDisplayMode),@CompareDisplayModes);
+ end;
+end;
+{$elseif defined(Windows)}
+var DevMode:TDeviceMode;
+    Index,ResultCount:TpvInt32;
+    DisplayMode:PpvApplicationDisplayMode;
+    Found:Boolean;
+    OtherIndex:TpvInt32;
+begin
+ result:=nil;
+ ResultCount:=0;
+ Index:=0;
+ FillChar(DevMode,SizeOf(TDeviceMode),0);
+ DevMode.dmSize:=SizeOf(TDeviceMode);
+ while EnumDisplaySettings(nil,Index,DevMode) do begin
+  // Check for duplicates (same width/height, different refresh rate/bit depth)
+  Found:=false;
+  for OtherIndex:=0 to ResultCount-1 do begin
+   DisplayMode:=@result[OtherIndex];
+   if (DisplayMode^.Width=TpvInt32(DevMode.dmPelsWidth)) and
+      (DisplayMode^.Height=TpvInt32(DevMode.dmPelsHeight)) and
+      (DisplayMode^.RefreshRate=TpvInt32(DevMode.dmDisplayFrequency)) then begin
+    Found:=true;
+    break;
+   end;
+  end;
+  if not Found then begin
+   if ResultCount>=length(result) then begin
+    SetLength(result,(ResultCount+1)*2);
+   end;
+   DisplayMode:=@result[ResultCount];
+   inc(ResultCount);
+   DisplayMode^.Width:=DevMode.dmPelsWidth;
+   DisplayMode^.Height:=DevMode.dmPelsHeight;
+   DisplayMode^.RefreshRate:=DevMode.dmDisplayFrequency;
+  end;
+  inc(Index);
+ end;
+ SetLength(result,ResultCount);
+ if length(result)>1 then begin
+  UntypedDirectIntroSort(@result[0],0,length(result)-1,SizeOf(TpvApplicationDisplayMode),@CompareDisplayModes);
+ end;
+end;
+{$else}
+begin
+ // Other platforms - return empty array
+ result:=nil;
+end;
+{$ifend}
 
 class procedure TpvApplication.Main;
 begin
@@ -17044,11 +18938,11 @@ begin
  if pvDebuggerPresent then begin
   pvOutputLogLevel:=LOG_DEBUG; // If a debugger is present, set log level to debug (errors, info, verbose and debug)
  end else begin
-  pvOutputLogLevel:=LOG_INFO; // If no debugger is present, set log level to info (errors and info) 
+  pvOutputLogLevel:=LOG_INFO; // If no debugger is present, set log level to info (errors and info)
  end;
 
  // Parse command line parameters
- Index:=1; 
+ Index:=1;
  Count:=ParamCount;
  while Index<=Count do begin
   Parameter:=LowerCase(ParamStr(Index));
@@ -17076,32 +18970,32 @@ begin
       pvOutputLogLevel:=Value;
      end;
      break;
-    end; 
+    end;
    end;
   end;
  end;
 
-end; 
+end;
 
 initialization
- 
+
  VulkanDisableFloatingPointExceptions;
 
  // Check if a debugger is present
  pvDebuggerPresent:=IsDebuggerPresent;
- 
+
  // Initialize log level
- pvOutputLogLevel:=LOG_DEBUG; 
+ pvOutputLogLevel:=LOG_DEBUG;
  InitializeOutputLogLevel;
 
 {$if defined(Windows) and (defined(Debug) or not defined(Release))}
- 
+
  pvStdOut:=GetStdHandle(Std_Output_Handle);
 
   // Check if a console is existing
  if (pvStdOut=0) or (pvStdOut=Invalid_Handle_Value) then begin
   // If no console is existing and the log level is not none, create a new console
-  if (pvOutputLogLevel>LOG_NONE) and not AttachConsole(ATTACH_PARENT_PROCESS) then begin 
+  if (pvOutputLogLevel>LOG_NONE) and not AttachConsole(ATTACH_PARENT_PROCESS) then begin
    AllocConsole;
   end;
  end;
@@ -17130,8 +19024,8 @@ initialization
 
 {$ifdef Windows}
 {$ifndef PasVulkanUseSDL2}
-  
- // Set timer resolution to 1ms 
+
+ // Set timer resolution to 1ms
  timeBeginPeriod(1);
 
  // Get touchscreen API functions

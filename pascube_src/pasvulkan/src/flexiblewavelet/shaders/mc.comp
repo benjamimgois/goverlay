@@ -1,0 +1,72 @@
+#version 450
+// mc.comp — motion compensation with OBMC (overlapped block motion compensation). Each output pixel
+// blends the half-pel prediction from its OWN 16x16 block's MV with the predictions from the nearest
+// vertical and horizontal neighbour blocks' MVs, weighted by a small edge window (the three weights
+// sum to 8). This smooths the blocking that per-block MVs would otherwise leave at block boundaries.
+// With mv=0 everywhere all three predictions equal previous, so OBMC is the identity -> colordiff.
+layout(local_size_x = 256) in;
+layout(constant_id = 0) const int MB = 16;   // motion block size (8 / 16 / 32) — flat per-pixel, the workgroup stays 256
+const int MB_SHIFT = (MB == 8) ? 3 : ((MB == 16) ? 4 : 5);   // log2(MB): x / MB -> x >> MB_SHIFT (per-pixel here, so the shift/mask matters)
+const int MB_MASK = MB - 1;                                  // x % MB -> x & MB_MASK
+layout(std430, binding = 0) readonly  buffer Previous      { int previous[]; };
+layout(std430, binding = 1) readonly  buffer MotionVectors { int motion_vectors[]; };   // per block: [mv_x, mv_y] (half-pel)
+layout(std430, binding = 2) writeonly buffer McPrevious    { int mc_previous[]; };
+layout(push_constant) uniform PushConstants { int width; int height; int blocks_x; } push;
+
+int clamp_int(int value, int low, int high) {
+  return (value < low) ? low : ((value > high) ? high : value);
+}
+
+// Bilinear half-pel sample of previous[]. Deterministic integer rounding -> matches the CPU reference.
+int sample_half_pel(int base_x, int base_y, int half_x, int half_y) {
+  int x0 = clamp_int(base_x, 0, push.width - 1), y0 = clamp_int(base_y, 0, push.height - 1);
+  if (half_x == 0 && half_y == 0) {
+    return previous[(y0 * push.width) + x0];
+  }
+  int x1 = clamp_int(base_x + 1, 0, push.width - 1), y1 = clamp_int(base_y + 1, 0, push.height - 1);
+  if (half_x == 1 && half_y == 0) {
+    return ((previous[(y0 * push.width) + x0] + previous[(y0 * push.width) + x1]) + 1) >> 1;
+  }
+  if (half_x == 0 && half_y == 1) {
+    return ((previous[(y0 * push.width) + x0] + previous[(y1 * push.width) + x0]) + 1) >> 1;
+  }
+  return ((((previous[(y0 * push.width) + x0] + previous[(y0 * push.width) + x1]) +
+            previous[(y1 * push.width) + x0]) + previous[(y1 * push.width) + x1]) + 2) >> 2;
+}
+
+int sample_block_mv(int block, int x, int y) {
+  int mv_x = motion_vectors[block * 2], mv_y = motion_vectors[(block * 2) + 1];
+  return sample_half_pel(x + (mv_x >> 1), y + (mv_y >> 1), mv_x & 1, mv_y & 1);
+}
+
+// OBMC edge window over an MB-pixel block axis: 2, 1 near each edge, 0 in the middle (MB=16 unchanged).
+int edge_weight(int p) {
+  return (p < 2) ? 2 : ((p < 4) ? 1 : ((p >= (MB - 2)) ? 2 : ((p >= (MB - 4)) ? 1 : 0)));
+}
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  int pixel_count = push.width * push.height;
+  if (i >= uint(pixel_count)) {
+    return;
+  }
+  int x = int(i) % push.width, y = int(i) / push.width;
+  int half_block = MB >> 1;
+  int blocks_y = ((push.height + MB_MASK)) >> MB_SHIFT;
+  int bx = x >> MB_SHIFT, by = y >> MB_SHIFT, px = x & MB_MASK, py = y & MB_MASK;
+
+  int own_block = (by * push.blocks_x) + bx;
+  int vertical_block = (clamp_int((py < half_block) ? (by - 1) : (by + 1), 0, blocks_y - 1) * push.blocks_x) + bx;
+  int horizontal_block = (by * push.blocks_x) + clamp_int((px < half_block) ? (bx - 1) : (bx + 1), 0, push.blocks_x - 1);
+
+  int vertical_weight = edge_weight(py), horizontal_weight = edge_weight(px);
+  int own_weight = (8 - vertical_weight) - horizontal_weight;
+  int prediction = sample_block_mv(own_block, x, y) * own_weight;
+  if (vertical_weight > 0) {
+    prediction += sample_block_mv(vertical_block, x, y) * vertical_weight;
+  }
+  if (horizontal_weight > 0) {
+    prediction += sample_block_mv(horizontal_block, x, y) * horizontal_weight;
+  }
+  mc_previous[i] = (prediction + 4) >> 3;
+}

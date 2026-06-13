@@ -137,16 +137,63 @@ type TpvScene3DRendererAntialiasingMode=
 
      PpvScene3DRendererLensMode=^TpvScene3DRendererLensMode;
 
+     TpvScene3DRendererResamplingMode=
+      (
+       Lanczos,
+       EASU
+      );
+
+     PpvScene3DRendererResamplingMode=^TpvScene3DRendererResamplingMode;
+
+     { TpvScene3DRendererResamplingModeHelper }
+
+     TpvScene3DRendererResamplingModeHelper=record helper for TpvScene3DRendererResamplingMode
+      function ToString:TpvUTF8String;
+      procedure FromString(const aValue:TpvUTF8String);
+     end;
+
+     TpvScene3DRendererAIUpscaleMode=
+      (
+       None,
+       Factor2X,
+       Factor4X
+      );
+
+     PpvScene3DRendererAIUpscaleMode=^TpvScene3DRendererAIUpscaleMode;
+
+     TpvScene3DRendererAIUpscaleQuality=
+      (
+       Low,
+       Mid,
+       High
+      );
+
+     PpvScene3DRendererAIUpscaleQuality=^TpvScene3DRendererAIUpscaleQuality;
+
+     { TpvScene3DRendererAIUpscaleModeHelper }
+
+     TpvScene3DRendererAIUpscaleModeHelper=record helper for TpvScene3DRendererAIUpscaleMode
+      function ToString:TpvUTF8String;
+      procedure FromString(const aValue:TpvUTF8String);
+     end;
+
+     { TpvScene3DRendererAIUpscaleQualityHelper }
+
+     TpvScene3DRendererAIUpscaleQualityHelper=record helper for TpvScene3DRendererAIUpscaleQuality
+      function ToString:TpvUTF8String;
+      procedure FromString(const aValue:TpvUTF8String);
+     end;
+
      TpvScene3DRendererGlobalIlluminationMode=
       (
        Auto=0,
        
-       // No global illumination. Here in this case, it is just StaticEnvironmentMap but with a empty black environment map, for to minimize the count 
+       // No global illumination. Here in this case, it is just EnvironmentMap but with a empty black environment map, for to minimize the count
        // of the shader variants, and a cubemap lookup costs almost nothing these days.
        //None,
        
        // The simplest and fastest way to add global illumination to a scene is to use a static IBL environment map, for example from the sky. 
-       StaticEnvironmentMap, 
+       EnvironmentMap,
 
        // A camera reflection probe is a cubemap that is updated every frame to reflect the scene around it. Nintendo seems to use this technique in some 
        // of their Nintendo Switch games. It may seem like the wrong approach at first glance, but apparently it still seems to work well, at least when 
@@ -162,7 +209,20 @@ type TpvScene3DRendererAntialiasingMode=
        // a rather good technique, but it has some drawbacks, for example light leaking artifacts at thin walls. And with cascaded voxel cone tracing, the
        // scene is split into multiple cascades, where each cascade has its own voxel grid map. This technique is very similar to cascaded shadow maps (CSMs),
        // only that it is used for global illumination instead of shadows.
-       CascadedVoxelConeTracing
+       CascadedVoxelConeTracing,
+
+       // Dynamic Diffuse Global Illumination (DDGI, Majercik et al. 2019). A cascaded grid of light probes that are updated each frame by tracing rays
+       // against the hardware ray tracing acceleration structure (TLAS). Each probe stores irradiance (either as spherical harmonics or as an octahedral
+       // atlas, switchable via a shader define) plus an octahedral mean/mean-squared distance term for the Chebyshev visibility test, which is what
+       // prevents the light leaking that cascaded radiance hints suffer from. The probe grid placement reuses the cascaded radiance hints snapping
+       // infrastructure. Requires hardware ray tracing support (RaytracingActive).
+       DynamicDiffuseGlobalIllumination,
+
+       // Surfel-based global illumination (in the spirit of EA SEED's "Global Illumination Based on Surfels", Halen 2021). Surfels (oriented surface
+       // elements) are spawned from the G-buffer where surfel coverage is insufficient, stored in a persistent GPU pool indexed by a world-space hash
+       // grid, and each surfel accumulates irradiance (as spherical harmonics) over many frames by tracing a few rays per frame against the TLAS. During
+       // shading the nearby surfels are gathered from the hash grid and blended. Requires hardware ray tracing support (RaytracingActive).
+       SurfelGlobalIllumination
 
 {
        // Possible further options on my todo list for the future:
@@ -218,10 +278,16 @@ type TpvScene3DRendererAntialiasingMode=
        None=0,
        FinalView=1,
        CascadedShadowMap=2,
+       Voxelization=3,
+       ReflectionProbe=4,
+       TopDownSkyOcclusionMap=5,
+       ReflectiveShadowMap=6,
        First=1,
-       Last=2
+       Last=6
       );
      PpvScene3DRendererCullRenderPass=^TpvScene3DRendererCullRenderPass;
+
+     TpvScene3DRendererCullRenderPasses=set of TpvScene3DRendererCullRenderPass;
 
      TpvScene3DRendererRenderPass=
       (
@@ -235,8 +301,23 @@ type TpvScene3DRendererAntialiasingMode=
       );
      PpvScene3DRendererRenderPass=^TpvScene3DRendererRenderPass;
 
+     TpvScene3DRendererRenderPasses=set of TpvScene3DRendererRenderPass;
+
 const TpvScene3DRendererRenderPassFirst=TpvScene3DRendererRenderPass.View;
+
       TpvScene3DRendererRenderPassLast=TpvScene3DRendererRenderPass.Voxelization;
+
+      TpvScene3DRendererAllRenderPasses:TpvScene3DRendererRenderPasses=
+       [
+        TpvScene3DRendererRenderPass.View,
+        TpvScene3DRendererRenderPass.CascadedShadowMap,
+        TpvScene3DRendererRenderPass.ReflectionProbe,
+        TpvScene3DRendererRenderPass.TopDownSkyOcclusionMap,
+        TpvScene3DRendererRenderPass.ReflectiveShadowMap,
+        TpvScene3DRendererRenderPass.Voxelization
+       ];
+
+function pvScene3DRendererRenderPassesToMask(const aPasses:TpvScene3DRendererRenderPasses):TpvUInt32;
 
 var pvScene3DShaderVirtualFileSystem:TpvVirtualFileSystem=nil;
 
@@ -352,6 +433,123 @@ begin
  end else begin
   self:=TpvScene3DRendererToneMappingMode.Auto;
  end;
+end;
+
+{ TpvScene3DRendererResamplingModeHelper }
+
+function TpvScene3DRendererResamplingModeHelper.ToString:TpvUTF8String;
+begin
+ case self of
+  TpvScene3DRendererResamplingMode.Lanczos:begin
+   result:='lanczos';
+  end;
+  TpvScene3DRendererResamplingMode.EASU:begin
+   result:='easu';
+  end;
+  else begin
+   result:='lanczos';
+  end;
+ end;
+end;
+
+procedure TpvScene3DRendererResamplingModeHelper.FromString(const aValue:TpvUTF8String);
+var Value:TpvUTF8String;
+begin
+ Value:=LowerCase(Trim(aValue));
+ if (Value='lanczos') or (Value='default') then begin
+  self:=TpvScene3DRendererResamplingMode.Lanczos;
+ end else if (Value='easu') or (Value='fsr1') or (Value='fsr') then begin
+  self:=TpvScene3DRendererResamplingMode.EASU;
+ end else begin
+  self:=TpvScene3DRendererResamplingMode.Lanczos;
+ end;
+end;
+
+{ TpvScene3DRendererAIUpscaleModeHelper }
+
+function TpvScene3DRendererAIUpscaleModeHelper.ToString:TpvUTF8String;
+begin
+ case self of
+  TpvScene3DRendererAIUpscaleMode.None:begin
+   result:='none';
+  end;
+  TpvScene3DRendererAIUpscaleMode.Factor2X:begin
+   result:='factor2x';
+  end;
+  TpvScene3DRendererAIUpscaleMode.Factor4X:begin
+   result:='factor4x';
+  end;
+  else begin
+   result:='none';
+  end;
+ end;
+end;
+
+procedure TpvScene3DRendererAIUpscaleModeHelper.FromString(const aValue:TpvUTF8String);
+var Value:TpvUTF8String;
+begin
+ Value:=LowerCase(Trim(aValue));
+ if (Value='none') or (Value='off') or (Value='disabled') then begin
+  self:=TpvScene3DRendererAIUpscaleMode.None;
+ end else if (Value='factor2x') or (Value='2x') then begin
+  self:=TpvScene3DRendererAIUpscaleMode.Factor2X;
+ end else if (Value='factor4x') or (Value='4x') then begin
+  self:=TpvScene3DRendererAIUpscaleMode.Factor4X;
+ end else begin
+  self:=TpvScene3DRendererAIUpscaleMode.None;
+ end;
+end;
+
+{ TpvScene3DRendererAIUpscaleQualityHelper }
+
+function TpvScene3DRendererAIUpscaleQualityHelper.ToString:TpvUTF8String;
+begin
+ case self of
+  TpvScene3DRendererAIUpscaleQuality.Low:begin
+   result:='low';
+  end;
+  TpvScene3DRendererAIUpscaleQuality.Mid:begin
+   result:='mid';
+  end;
+  TpvScene3DRendererAIUpscaleQuality.High:begin
+   result:='high';
+  end;
+  else begin
+   result:='low';
+  end;
+ end;
+end;
+
+procedure TpvScene3DRendererAIUpscaleQualityHelper.FromString(const aValue:TpvUTF8String);
+var Value:TpvUTF8String;
+begin
+ Value:=LowerCase(Trim(aValue));
+ if (Value='low') or (Value='lo') then begin
+  self:=TpvScene3DRendererAIUpscaleQuality.Low;
+ end else if (Value='mid') or (Value='medium') then begin
+  self:=TpvScene3DRendererAIUpscaleQuality.Mid;
+ end else if (Value='high') or (Value='hi') then begin
+  self:=TpvScene3DRendererAIUpscaleQuality.High;
+ end else begin
+  self:=TpvScene3DRendererAIUpscaleQuality.Low;
+ end;
+end;
+
+function pvScene3DRendererRenderPassesToMask(const aPasses:TpvScene3DRendererRenderPasses):TpvUInt32;
+//var RenderPass:TpvScene3DRendererRenderPass;
+begin
+{result:=0;
+ for RenderPass:=Low(TpvScene3DRendererRenderPass) to High(TpvScene3DRendererRenderPass) do begin
+  if RenderPass in aPasses then begin
+   result:=result or (TpvUInt32(1) shl TpvUInt32(ord(RenderPass)));
+  end;
+ end;}
+ result:=TpvUInt32(ord(TpvScene3DRendererRenderPass.View in aPasses) and 1) shl TpvUInt32(ord(TpvScene3DRendererRenderPass.View)) or
+         TpvUInt32(ord(TpvScene3DRendererRenderPass.CascadedShadowMap in aPasses) and 1) shl TpvUInt32(ord(TpvScene3DRendererRenderPass.CascadedShadowMap)) or
+         TpvUInt32(ord(TpvScene3DRendererRenderPass.ReflectionProbe in aPasses) and 1) shl TpvUInt32(ord(TpvScene3DRendererRenderPass.ReflectionProbe)) or
+         TpvUInt32(ord(TpvScene3DRendererRenderPass.TopDownSkyOcclusionMap in aPasses) and 1) shl TpvUInt32(ord(TpvScene3DRendererRenderPass.TopDownSkyOcclusionMap)) or
+         TpvUInt32(ord(TpvScene3DRendererRenderPass.ReflectiveShadowMap in aPasses) and 1) shl TpvUInt32(ord(TpvScene3DRendererRenderPass.ReflectiveShadowMap)) or
+         TpvUInt32(ord(TpvScene3DRendererRenderPass.Voxelization in aPasses) and 1) shl TpvUInt32(ord(TpvScene3DRendererRenderPass.Voxelization));
 end;
 
 initialization

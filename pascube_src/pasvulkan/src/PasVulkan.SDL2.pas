@@ -2014,7 +2014,7 @@ type PSDLInt8=^TSDLInt8;
       format:TSDLUInt32;
       w:TSDLInt32;
       h:TSDLInt32;
-      refrsh_rate:TSDLInt32;
+      refresh_rate:TSDLInt32;
       driverdata:pointer;
      end;
 
@@ -2476,6 +2476,10 @@ end;
 function LoadSDL2Library(const LibraryName:string=SDL2LibName):boolean;
 begin
  SDL_Library:=sdl2LoadLibrary(LibraryName);
+ if not assigned(SDL_Library) then begin
+  // Fallback: try the versioned soname (Flatpak runtimes may not have the bare 'libSDL2.so' symlink)
+  SDL_Library:=sdl2LoadLibrary('libSDL2-2.0.so.0');
+ end;
  result:=assigned(SDL_Library);
  if result then begin
   SDL_Vulkan_LoadLibrary:=sdl2GetProcAddress(SDL_Library,'SDL_Vulkan_LoadLibrary');
@@ -2484,6 +2488,18 @@ begin
   SDL_Vulkan_GetInstanceExtensions:=sdl2GetProcAddress(SDL_Library,'SDL_Vulkan_GetInstanceExtensions');
   SDL_Vulkan_CreateSurface:=sdl2GetProcAddress(SDL_Library,'SDL_Vulkan_CreateSurface');
   SDL_Vulkan_GetDrawableSize:=sdl2GetProcAddress(SDL_Library,'SDL_Vulkan_GetDrawableSize');
+ end;
+ // Fallback: SDL2 may already be loaded by the dynamic linker via 'external' declarations.
+ // Use dlsym(RTLD_DEFAULT=nil) to find Vulkan symbols from the process-wide symbol table
+ // (needed when dlopen finds the library but Vulkan symbols aren't exported, or when
+ //  SDL2 is the system library loaded under a different handle).
+ if not assigned(SDL_Vulkan_CreateSurface) then begin
+  SDL_Vulkan_LoadLibrary:=sdl2GetProcAddress(nil,'SDL_Vulkan_LoadLibrary');
+  SDL_Vulkan_GetVkGetInstanceProcAddr:=sdl2GetProcAddress(nil,'SDL_Vulkan_GetVkGetInstanceProcAddr');
+  SDL_Vulkan_UnloadLibrary:=sdl2GetProcAddress(nil,'SDL_Vulkan_UnloadLibrary');
+  SDL_Vulkan_GetInstanceExtensions:=sdl2GetProcAddress(nil,'SDL_Vulkan_GetInstanceExtensions');
+  SDL_Vulkan_CreateSurface:=sdl2GetProcAddress(nil,'SDL_Vulkan_CreateSurface');
+  SDL_Vulkan_GetDrawableSize:=sdl2GetProcAddress(nil,'SDL_Vulkan_GetDrawableSize');
  end;
 end;
 

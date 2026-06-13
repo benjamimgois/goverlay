@@ -1,0 +1,23 @@
+#version 450
+// motion_add.comp — P-frame reconstruction/decode add WITH motion. cur = residual + MC(previous),
+// and saves cur as the next frame's reference (the reference is NOT motion-compensated — motion is
+// re-applied per frame from the plain reconstructed previous). Replaces coeff_add when motion is on.
+// mc_previous is the motion-compensated previous frame produced by mc.comp.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0)          buffer Coefficients { int coefficients[]; };   // residual in, reconstructed cur out
+layout(std430, binding = 1) readonly buffer McPrevious   { int mc_previous[]; };
+layout(std430, binding = 2)          buffer Previous     { int previous[]; };        // <- reconstructed cur (next reference)
+layout(push_constant) uniform PushConstants { int pixel_count; int is_predicted; } push;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  int value = coefficients[i];
+  if (push.is_predicted != 0) {
+    value += mc_previous[i];
+  }
+  coefficients[i] = value;
+  previous[i] = value;
+}

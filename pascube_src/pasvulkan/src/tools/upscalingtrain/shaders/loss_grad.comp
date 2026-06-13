@@ -1,0 +1,42 @@
+#version 450
+/*
+ * loss_grad.comp — Compute per-element loss and gradient (L1 or MSE)
+ *
+ * Bindings: 0=output (R), 1=target (R), 2=gradient (W), 3=loss_elem (W)
+ * Push constants: p0=count (total elements), p1=loss_type (0=L1, 1=MSE)
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) readonly  buffer BufOut  { float output_data[]; };
+layout(set = 0, binding = 1) readonly  buffer BufTgt  { float target[];      };
+layout(set = 0, binding = 2) writeonly buffer BufGrad { float grad[];        };
+layout(set = 0, binding = 3) writeonly buffer BufLoss { float loss_elem[];   };
+
+void main() {
+    int idx = int(gl_GlobalInvocationID.x);
+    int count = pc.p0;
+    int loss_type = pc.p1;
+
+    if (idx >= count) return;
+
+    float diff = output_data[idx] - target[idx];
+    float inv_count = 1.0 / float(count);
+
+    if (loss_type == 0) {
+        /* L1 loss */
+        loss_elem[idx] = abs(diff) * inv_count;
+        grad[idx] = (diff >= 0.0 ? 1.0 : -1.0) * inv_count;
+    } else {
+        /* MSE loss */
+        loss_elem[idx] = diff * diff * inv_count;
+        grad[idx] = 2.0 * diff * inv_count;
+    }
+}

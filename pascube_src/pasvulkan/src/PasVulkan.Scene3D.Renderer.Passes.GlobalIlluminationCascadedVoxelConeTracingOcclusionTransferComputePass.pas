@@ -230,7 +230,7 @@ begin
                                                                   1,
                                                                   TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                   [],
-                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffer.DescriptorBufferInfo],
+                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                   [],
                                                                   false
                                                                  );
@@ -239,7 +239,7 @@ begin
                                                                   1,
                                                                   TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                   [],
-                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffer.DescriptorBufferInfo],
+                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                   [],
                                                                   false
                                                                  );
@@ -305,7 +305,7 @@ begin
                                                         TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
                                                         VK_QUEUE_FAMILY_IGNORED,
                                                         VK_QUEUE_FAMILY_IGNORED,
-                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffer.Handle,
+                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffers[aInFlightFrameIndex].Handle,
                                                         0,
                                                         VK_WHOLE_SIZE);
 
@@ -313,7 +313,7 @@ begin
                                                         TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
                                                         VK_QUEUE_FAMILY_IGNORED,
                                                         VK_QUEUE_FAMILY_IGNORED,
-                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffer.Handle,
+                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffers[aInFlightFrameIndex].Handle,
                                                         0,
                                                         VK_WHOLE_SIZE);
 
@@ -359,9 +359,15 @@ begin
                                   SizeOf(TpvUInt32),
                                   @CascadeIndex);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'GIVoxelOcclusionTransfer');
+  end;
   aCommandBuffer.CmdDispatch((fInstance.Renderer.GlobalIlluminationVoxelGridSize+7) shr 3,
                              (fInstance.Renderer.GlobalIlluminationVoxelGridSize+7) shr 3,
                              (fInstance.Renderer.GlobalIlluminationVoxelGridSize+7) shr 3);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
  end;
 

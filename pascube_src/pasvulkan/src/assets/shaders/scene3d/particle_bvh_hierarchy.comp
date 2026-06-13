@@ -1,0 +1,99 @@
+#version 460 core
+
+// Particle-BVH build, stage 5: Karras 2012 radix-tree hierarchy over the sorted Morton keys (in Morton buffer A after the
+// radix sort). One thread per internal node i in [0, N-2]: determine its key range, find the split, and link its two children
+// (each either an internal node `gamma`/`gamma+1` or a leaf node `N-1+gamma`). Also writes child->parent pointers and resets
+// the per-internal-node refit counter. Thread 0 additionally marks the root's parent as invalid (covers the N==1 case too).
+// N = pushConstants.particleCount. Leaf node index = (N-1)+leafSlot; internal node index = internalSlot.
+
+#extension GL_GOOGLE_include_directive : require
+
+/* clang-format off */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#define PARTICLE_BVH_BINDINGS
+#include "particle_bvh.glsl"
+
+layout(push_constant) uniform PushConstants {
+  uvec2 particleVertexBufferAddress;
+  uint particleCount;
+  uint param;
+} pushConstants;
+
+/* clang-format on */
+
+// Length of the common prefix of the (Morton key, index) composite of leaves i and j; -1 if j is out of range.
+int particleBVHDelta(int i, int j, int n){
+  if((j < 0) || (j >= n)){
+    return -1;
+  }
+  uint ki = particleMortonBufferA.data[uint(i)].x;
+  uint kj = particleMortonBufferA.data[uint(j)].x;
+  if(ki == kj){
+    // Equal Morton codes: extend the common prefix using the leaf indices as the tie-break (i != j here).
+    return 32 + (31 - findMSB(uint(i) ^ uint(j)));
+  }
+  return 31 - findMSB(ki ^ kj);
+}
+
+void main(){
+
+  int i = int(gl_GlobalInvocationID.x);
+  int n = int(pushConstants.particleCount);
+
+  if(i == 0){
+    particleBVHParentBuffer.parents[0] = PARTICLE_BVH_INVALID; // root has no parent
+  }
+
+  if(i >= (n - 1)){
+    return; // no internal node here (also short-circuits N<=1)
+  }
+
+  // Direction of the range that this internal node covers.
+  int d = (particleBVHDelta(i, i + 1, n) - particleBVHDelta(i, i - 1, n)) >= 0 ? 1 : -1;
+  int deltaMin = particleBVHDelta(i, i - d, n);
+
+  // Upper bound on the range length.
+  int lmax = 2;
+  while(particleBVHDelta(i, i + (lmax * d), n) > deltaMin){
+    lmax <<= 1;
+  }
+
+  // Binary search for the exact other end of the range.
+  int l = 0;
+  for(int t = (lmax >> 1); t >= 1; t >>= 1){
+    if(particleBVHDelta(i, i + ((l + t) * d), n) > deltaMin){
+      l += t;
+    }
+  }
+  int j = i + (l * d);
+
+  // Binary search for the split position within [i, j].
+  int deltaNode = particleBVHDelta(i, j, n);
+  int s = 0;
+  int t = l;
+  do {
+    t = (t + 1) >> 1; // ceil(t/2)
+    if(particleBVHDelta(i, i + ((s + t) * d), n) > deltaNode){
+      s += t;
+    }
+  } while(t > 1);
+  int gamma = i + (s * d) + min(d, 0);
+
+  int lo = min(i, j);
+  int hi = max(i, j);
+
+  // Children: a single-leaf side becomes a leaf node, otherwise an internal node.
+  uint leftIndex  = (lo == gamma)       ? (uint(n - 1) + uint(gamma))       : uint(gamma);
+  uint rightIndex = (hi == (gamma + 1)) ? (uint(n - 1) + uint(gamma + 1))   : uint(gamma + 1);
+
+  particleBVHNodeBuffer.nodes[i].aabbMin.w = uintBitsToFloat(leftIndex);
+  particleBVHNodeBuffer.nodes[i].aabbMax.w = uintBitsToFloat(rightIndex);
+
+  particleBVHParentBuffer.parents[leftIndex] = uint(i);
+  particleBVHParentBuffer.parents[rightIndex] = uint(i);
+
+  particleBVHRefitCounterBuffer.counters[i] = 0u;
+
+}

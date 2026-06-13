@@ -149,9 +149,9 @@ begin
 
  fVulkanDescriptorPool:=TpvVulkanDescriptorPool.Create(fInstance.Renderer.VulkanDevice,
                                                        TVkDescriptorPoolCreateFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
-                                                       fInstance.Renderer.CountInFlightFrames);
+                                                       fInstance.Renderer.CountInFlightFrames*7);
  fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,fInstance.Renderer.CountInFlightFrames*1);
- fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,fInstance.Renderer.CountInFlightFrames*5);
+ fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,fInstance.Renderer.CountInFlightFrames*6);
  fVulkanDescriptorPool.Initialize;
 
  fVulkanDescriptorSetLayout:=TpvVulkanDescriptorSetLayout.Create(fInstance.Renderer.VulkanDevice);
@@ -181,6 +181,11 @@ begin
                                        TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
                                        []);
  fVulkanDescriptorSetLayout.AddBinding(5,
+                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       1,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
+                                       []);
+ fVulkanDescriptorSetLayout.AddBinding(6,
                                        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                        1,
                                        TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
@@ -235,7 +240,7 @@ begin
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                  [],
-                                                                 [fInstance.FrustumClusterGridIndexListVulkanBuffers[InFlightFrameIndex].DescriptorBufferInfo],
+                                                                 [fInstance.Renderer.Scene3D.DecalBuffers[InFlightFrameIndex].DecalMetaInfoVulkanBuffer.DescriptorBufferInfo],
                                                                  [],
                                                                  false
                                                                 );
@@ -244,11 +249,20 @@ begin
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                  [],
-                                                                 [fInstance.FrustumClusterGridDataVulkanBuffers[InFlightFrameIndex].DescriptorBufferInfo],
+                                                                 [fInstance.FrustumClusterGridIndexListVulkanBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                  [],
                                                                  false
                                                                 );
   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(5,
+                                                                 0,
+                                                                 1,
+                                                                 TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                                                 [],
+                                                                 [fInstance.FrustumClusterGridDataVulkanBuffers[InFlightFrameIndex].DescriptorBufferInfo],
+                                                                 [],
+                                                                 false
+                                                                );
+  fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(6,
                                                                  0,
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
@@ -321,9 +335,15 @@ begin
                                   SizeOf(TpvScene3DRendererInstance.TFrustumClusterGridPushConstants),
                                   @FrustumClusterGridPushConstants);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'FrustumClusterGridAssign');
+  end;
   aCommandBuffer.CmdDispatch((fInstance.FrustumClusterGridSizeX+7) shr 3,
                              (fInstance.FrustumClusterGridSizeY+7) shr 3,
                              (fInstance.FrustumClusterGridSizeZ+7) shr 3);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   FillChar(MemoryBarrier,SizeOf(TVkMemoryBarrier),#0);
   MemoryBarrier.sType:=VK_STRUCTURE_TYPE_MEMORY_BARRIER;

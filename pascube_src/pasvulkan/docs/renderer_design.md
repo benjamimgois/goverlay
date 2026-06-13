@@ -35,29 +35,37 @@ For hardware raytracing this design is required anyway since BLAS (Bottom‑Leve
 
 In a GPU-driven renderer architecture, where all vertices are preprocessed per frame by a compute shader at the beginning of a frame and stored in a single "everything-in-one-single-buffer," the following problems arise regarding per-instance animations:
 
-1. Preprocessing of Vertex Data per Frame
-The compute shader calculates all vertex data for a specific animation state at the start of each frame and stores it in one large shared buffer. This data remains static and unchanged for the entire frame.
+1. **Preprocessing of Vertex Data per Frame**
 
-2. Static Vertex Data for All Instances
-All subsequent rendering stages, including rasterization, further render passes, and hardware raytracing, access the same preprocessed vertex buffer. Consequently, all instances of the same model share the same animation state within a frame. Different animation states per instance are not possible unless separate mesh copies are created in the buffer for additional animation states, which in turn increases vRAM usage.
+   The compute shader calculates all vertex data for a specific animation state at the start of each frame and stores it in one large shared buffer. This data remains static and unchanged for the entire frame.
 
-3. Reduction of Draw Calls Through the "Everything-in-One-Single-Buffer" Approach
-The "everything-in-one-single-buffer" approach aims to reduce the number of draw calls using bindless data structures. Ideally, a single draw call can render multiple meshes, provided shaders have random access to all material data and textures. Older architectures required separate draw calls for each material and texture group, significantly increasing the number of draw calls and potentially impairing performance.
+2. **Static Vertex Data for All Instances**
 
-4. Support for Hi-Z Two-Pass Occlusion Culling
-The "everything-in-one-single-buffer" approach is a prerequisite for Hi-Z two-pass occlusion culling. The culling compute shader needs access to all objects through a single linear object list with offset references to the respective vertex and index ranges within the large buffer. This enables efficient occlusion culling by quickly determining which objects are visible and which are not. Without a unified buffer, such efficient access would be difficult to achieve.
+   All subsequent rendering stages, including rasterization, further render passes, and hardware raytracing, access the same preprocessed vertex buffer. Consequently, all instances of the same model share the same animation state within a frame. Different animation states per instance are not possible unless separate mesh copies are created in the buffer for additional animation states, which in turn increases vRAM usage.
 
-5. Limitations Imposed by Hardware Raytracing (BLAS)
-Hardware raytracing requires the creation of Bottom-Level Acceleration Structures (BLAS), which rely on static vertex data. Although each BLAS can have its own transformation matrix, this only allows positioning, rotation, or scaling of the entire model, not changes in animation poses. Different animation states would require separate vertex data, which cannot be implemented within a single buffer.
+3. **Reduction of Draw Calls Through the "Everything-in-One-Single-Buffer" Approach**
 
-6. Necessity for Multiple Vertex Data Sets for Different Animation States
-To simultaneously represent different animation states, separate areas within the large buffer must be reserved for each required animation variant. Each "unique instance" with its own animation state thus requires individual preprocessed vertex data. This leads to a significant increase in vRAM usage because the same vertex data must be stored multiple times—for each distinct animation.
+   The "everything-in-one-single-buffer" approach aims to reduce the number of draw calls using bindless data structures. Ideally, a single draw call can render multiple meshes, provided shaders have random access to all material data and textures. Older architectures required separate draw calls for each material and texture group, significantly increasing the number of draw calls and potentially impairing performance.
 
-7. Simplified Calculation of Motion Vectors
-Using a double-buffered "everything-in-one-single-buffer" approach simplifies the calculation of motion vectors. Direct access to the positions from the last and current frames in the shared buffer allows efficient computation of position differences for the motion vector render target. These motion vectors are essential for subsequent post-processing passes like antialiasing and motion blur, as they determine pixel motion direction and speed.
+4. **Support for Hi-Z Two-Pass Occlusion Culling**
 
-8. Comparison with Older Rendering Methods
-In older GPU pipelines, animations and transformations were dynamically recalculated at runtime per render pass and pipeline stage in the vertex shader. Each instance could have its own animation state without additional memory for vertex data. However, this older method led to significant overhead in modern games because each render pass and pipeline stage continuously recalculated animations. Although the current approach with a precomputed large buffer sacrifices flexibility regarding animations per GPU instance—as all instances must use the same set of static vertices—it is often more performant overall.
+   The "everything-in-one-single-buffer" approach is a prerequisite for Hi-Z two-pass occlusion culling. The culling compute shader needs access to all objects through a single linear object list with offset references to the respective vertex and index ranges within the large buffer. This enables efficient occlusion culling by quickly determining which objects are visible and which are not. Without a unified buffer, such efficient access would be difficult to achieve.
+
+5. **Limitations Imposed by Hardware Raytracing (BLAS)**
+
+   Hardware raytracing requires the creation of Bottom-Level Acceleration Structures (BLAS), which rely on static vertex data. Although each BLAS can have its own transformation matrix, this only allows positioning, rotation, or scaling of the entire model, not changes in animation poses. Different animation states would require separate vertex data, which cannot be implemented within a single buffer.
+
+6. **Necessity for Multiple Vertex Data Sets for Different Animation States**
+
+   To simultaneously represent different animation states, separate areas within the large buffer must be reserved for each required animation variant. Each "unique instance" with its own animation state thus requires individual preprocessed vertex data. This leads to a significant increase in vRAM usage because the same vertex data must be stored multiple times—for each distinct animation.
+
+7. **Simplified Calculation of Motion Vectors**
+
+   Using a double-buffered "everything-in-one-single-buffer" approach simplifies the calculation of motion vectors. Direct access to the positions from the last and current frames in the shared buffer allows efficient computation of position differences for the motion vector render target. These motion vectors are essential for subsequent post-processing passes like antialiasing and motion blur, as they determine pixel motion direction and speed.
+
+8. **Comparison with Older Rendering Methods**
+
+   In older GPU pipelines, animations and transformations were dynamically recalculated at runtime per render pass and pipeline stage in the vertex shader. Each instance could have its own animation state without additional memory for vertex data. However, this older method led to significant overhead in modern games because each render pass and pipeline stage continuously recalculated animations. Although the current approach with a precomputed large buffer sacrifices flexibility regarding animations per GPU instance—as all instances must use the same set of static vertices—it is often more performant overall.
 
 ### Summary
 
@@ -93,7 +101,7 @@ The foundation of this technique is the **Hierarchical Z-Buffer (Hi-Z)**. It's e
 
 1.  **Base Level (Mip 0):** This is the standard, full-resolution depth buffer generated by rendering some geometry (see Pass 1).
 2.  **Subsequent Levels (Mip 1, Mip 2, ...):** Each subsequent level is a downsampled version of the previous one. For instance, Mip 1 might be half the width and height of Mip 0.
-3.  **Depth Value Storage:** Crucially, each texel (pixel) in a higher mip level (lower resolution) stores a single depth value that represents the depth information of the corresponding block of texels (e.g., 2x2, 4x4) in the lower mip level (higher resolution). For occlusion culling, each texel in the Hi-Z typically stores the **minimum** depth value (i.e., the *nearest* Z value) within its corresponding region in the finer level.
+3.  **Depth Value Storage:** Crucially, each texel (pixel) in a higher mip level (lower resolution) stores a single depth value that represents the depth information of the corresponding block of texels (e.g., 2x2, 4x4) in the lower mip level (higher resolution). For occlusion culling, each texel in the Hi-Z typically stores the **minimum** depth value (i.e., the *nearest* Z value) within its corresponding region in the finer level. PasVulkan supports both standard-Z (0 = near plane, 1 = far plane) and reversed-Z (1 = near plane, 0 = far plane) depth conventions. In reversed-Z mode the pyramid stores the **maximum** depth value per texel instead, since the nearest surface has the highest Z value; occlusion comparisons are inverted accordingly.
 
 This hierarchical structure allows for quick depth comparisons against large screen-space regions by sampling from the appropriate (coarser) mip level.
 
@@ -107,27 +115,34 @@ As the name suggests, the technique generally operates in two - but actually thr
     Render the last frame visible objects in the scene to establish an initial depth buffer, or everything (but frustum culled) into the depth buffer *only* (Z-prepass) to establish a baseline depth buffer for the Hi-Z generation. This is often done using a simplified shader that only writes depth information. The Z-prepass can be thought of as a "depth-only" rendering pass where the goal is to write the depth values of the major occluders in the scene. This pass typically renders all *static* objects and *dynamic* objects that are not occluded by other objects. The Z-prepass is crucial for establishing a baseline depth buffer for the Hi-Z generation. Important that no reprojection from the previous frame depth buffer - as it was done in the past by other implementations - is done here, since it is and was a bad idea, since it can lead to incorrect depth values and artifacts in the Hi-Z buffer. The Z-prepass should be done with the current frame's geometry to ensure that the depth information is accurate and up-to-date. So rendering only the objects that were determined to be *visible* in the last frame into the current frame's initial depth buffer. This leverages temporal coherence to potentially save rendering cost and avoid slight inaccuracies or latency with very fast-moving objects, which wouldn't be the case if reprojection from the previous frame depth buffer would be done here.
 
 2.  **Hi-Z Buffer Construction:** 
-    Using the depth buffer generated in the previous step, construct the Hi-Z mipmap pyramid. This is typically done using compute shaders or specialized hardware features. Starting from the full-resolution depth buffer (Mip 0), successive downsampling passes are performed. In each pass, a compute shader reads a block of texels (e.g., 2x2) from the source mip level and writes the *minimum* (nearest) Z value among them to the corresponding single texel in the destination (coarser) mip level. This process repeats until the smallest mip level (often 1x1) is generated.
+    Using the depth buffer generated in the previous step, construct the Hi-Z mipmap pyramid. This is typically done using compute shaders or specialized hardware features. Starting from the full-resolution depth buffer (Mip 0), successive downsampling passes are performed. In each pass, a compute shader reads a block of texels (e.g., 2x2) from the source mip level and writes the *minimum* (nearest) Z value among them to the corresponding single texel in the destination (coarser) mip level (or the *maximum* when using reversed-Z). This process repeats until the smallest mip level (often 1x1) is generated.
 
 #### Pass 2: Occlusion Query Pass
 
 This pass determines the visibility of the remaining objects (potential *occludees*) that were not rendered in the initial Z-prepass.
 
-1.  **Prepare Occludee List:** Identify the objects whose visibility needs testing. This usually involves objects that passed view-frustum culling. For each object, its bounding volume (e.g., an axis-aligned bounding box - AABB, or an oriented bounding box - OBB) is used for the test.
-2.  **GPU-Based Testing:** This pass is typically implemented using compute shaders or by drawing bounding boxes and using hardware occlusion queries. For each potential occludee:
-    * **Project Bounding Box:** Project the vertices of the object's bounding box onto the screen space.
-    * **Find Screen-Space Rectangle:** Determine the screen-space rectangle that encloses the projected bounding box.
-    * **Determine Farthest Depth ($Z_{max}$):** Calculate the maximum Z value (farthest point from the camera) of the bounding box's vertices after projection. This value is in clip space or a similar space compatible with the depth buffer.
-    * **Select Hi-Z Mip Level:** Based on the screen-space size of the projected bounding box, select an appropriate mip level from the Hi-Z buffer. Smaller projections can use coarser (higher) mip levels for faster queries.
-    * **Sample Hi-Z:** Sample the Hi-Z buffer within the screen-space rectangle corresponding to the object's projection, using the selected mip level. The goal is to find the *minimum* depth value ($Z_{HiZ}$) stored in the Hi-Z within that region. This represents the nearest occluder surface already rendered in that area during Pass 1.
-    * **Perform Depth Test:** Compare the object's farthest depth ($Z_{max}$) with the nearest depth found in the Hi-Z ($Z_{HiZ}$).
-        * **If $Z_{max} > Z_{HiZ}$:** The farthest part of the object's bounding box is behind the nearest occluder found in that screen region. Therefore, the object is considered **occluded**.
-        * **If $Z_{max} \le Z_{HiZ}$:** The object's bounding box is potentially in front of or intersecting the nearest known occluder. The object is considered **potentially visible**.
+1.  **Prepare Occludee List:** Identify the draw nodes whose visibility needs testing. In PasVulkan the tested granularity is the **TGroup mesh node** — a single mesh node within a glTF scene graph — not the top-level scene object or the whole TGroup. This usually involves nodes that passed view-frustum culling. For each node, its bounding sphere is used for the occlusion test.
+2.  **GPU-Based Testing:** This pass is implemented as a compute shader operating over the visible draw-node list. For each potential occludee:
+    * **Project Bounding Sphere:** The object's bounding sphere (center + radius) is projected analytically onto the screen (`projectSphere`), yielding a screen-space circle that conservatively bounds the projected sphere.
+    * **Find Screen-Space Footprint:** The axis-aligned bounding rectangle of the screen-space circle is used as the test region.
+    * **Determine Front-Face Depth ($Z_{front}$):** The view-space depth of the sphere's front face (center depth minus radius, clamped to the near plane) is computed and expressed in the same depth representation as the Hi-Z samples.
+    * **Select Hi-Z Mip Level:** Based on the screen-space size of the projected sphere's footprint, an appropriate mip level is selected from the Hi-Z buffer. Smaller projections can use coarser (higher) mip levels for faster queries.
+    * **Sample Hi-Z:** Sample the Hi-Z buffer within the screen-space footprint at the selected mip level to find the nearest occluder depth ($Z_{HiZ}$) already rendered in that region during Pass 1.
+    * **Perform Depth Test:** Compare the object's front-face depth against the nearest occluder from the Hi-Z:
+        * **If the sphere's front face is behind $Z_{HiZ}$:** The object is entirely occluded and culled.
+        * **Otherwise:** The object is considered **potentially visible** and proceeds to rendering.
 3.  **Generate Visibility Results and Indirect Draw Commands:** 
     The results of these tests (a list or buffer indicating whether each object is visible or occluded) are stored on the GPU. This visibility information is then used in the main rendering pass to draw only the objects that are potentially visible. Additionally, indirect draw commands 
     are written to a buffer for the objects that passed the occlusion test. This buffer contains the draw commands for the visible objects, which will be used in the main rendering passes. The indirect draw command buffer is a GPU-side structure that allows for efficient rendering of multiple objects in a single draw call, reducing CPU overhead and improving performance. 
 4.  **Render Rest Of Visible Objects Into the Depth Buffer:** 
     The objects that are not occluded (i.e., those that passed the depth test) are rendered into the same depth buffer as well, for to construct the final depth buffer for the main rendering passes, so that early depth testing (early-Z testing) can be used to skip over occluded fragments in the main rendering pass. This is important for performance, as it allows the GPU to skip processing fragments that are occluded by other objects.
+
+#### Per-Meshlet Culling (Mesh Shader Extension)
+
+When the mesh shader path is active, visibility testing is further refined at the **meshlet level** as a third culling tier inside the same compute passes. This is described in full in the [Meshlet Rendering](#meshlet-rendering) section. In brief:
+
+* **Normal mesh-shader path:** `mesh_cull.comp` emits per-object task-shader dispatches. The **task shader** (`mesh.task`) then performs per-meshlet bounding-sphere frustum and Hi-Z culling within each workgroup of 32 meshlets before forwarding surviving meshlets to the mesh shader via task payload.
+* **`MESHLET_EXPAND` mode:** The task shader is skipped. `mesh_cull.comp` itself handles per-meshlet culling in Pass 1, appending each surviving meshlet to a scratch buffer for subsequent sorting and direct mesh-shader dispatch.
 
 ### Main Rendering Pass
 
@@ -138,14 +153,14 @@ Finally, the main rendering passes draws the scene on the screen using the visib
 * **GPU Driven:** Performs culling directly on the GPU, avoiding CPU bottlenecks and costly GPU-CPU data transfers (read-backs).
 * **Efficient for Many Objects:** Scales well with a high number of potential occludees.
 * **Handles Dynamic Scenes:** By regenerating the Hi-Z buffer each frame (or frequently), it correctly handles moving occluders and occludees.
-* **Conservative:** The use of bounding boxes and minimum depth values in the Hi-Z buffer ensures that objects are generally not culled incorrectly. False negatives are rare or even completely avoided when implemented correctly. However, the technique may occasionally classify occluded objects as visible, resulting in false positives. This is acceptable and even preferable, since rendering a few unnecessary objects (overdraw) is safer than missing visible ones.
+* **Conservative:** The use of bounding spheres and minimum depth values in the Hi-Z buffer ensures that objects are generally not culled incorrectly. False negatives are rare or even completely avoided when implemented correctly. However, the technique may occasionally classify occluded objects as visible, resulting in false positives. This is acceptable and even preferable, since rendering a few unnecessary objects (overdraw) is safer than missing visible ones.
 * **No Latency:** Because no reprojection is involved, the Hi-Z buffer accurately reflects with the current frame's geometry at all times. This offers a key advantage over older Hi-Z techniques based on reprojection but following a similar overall concept, which could suffer from latency and precision loss in scenarios involving high-velocity motion, object transformations or rapid geometric alterations. By directly deriving the Hi-Z buffer from the present frame, this approach ensures real-time, accurate occlusion without the artifacts inherent in reprojecting previous depth data, crucial for maintaining visual fidelity in demanding scenarios.
 
 ### Disadvantages
 
 * **Overhead:** Requires a Z-prepass (adds draw calls) and compute resources for Hi-Z generation and the query pass. May not be beneficial in simple scenes where occlusion is minimal, but it doesn't hurt either on modern GPUs as they can handle it well.
 * **Memory Usage:** The Hi-Z buffer requires additional memory, especially for high-resolution textures. This can be a concern on lower-end hardware or when many mip levels are used.
-* **Potential Inaccuracy:** Testing against bounding boxes and/or bounding spheres is an approximation, where objects might be marked visible even if technically occluded, especially with complex shapes or poorly fitting bounding boxes. However, this conservative approach is intended to prevent false negatives, making the resulting false positives generally acceptable in real-time rendering, unlike false negatives which would indicate incorrect implementations.
+* **Potential Inaccuracy:** Testing against bounding spheres is an approximation, where objects might be marked visible even if technically occluded, especially with complex elongated shapes or poorly fitting bounding spheres. However, this conservative approach is intended to prevent false negatives, making the resulting false positives generally acceptable in real-time rendering, unlike false negatives which would indicate incorrect implementations.
 * **Complexity:** Implementation requires careful handling of coordinate spaces, depth precision, and GPU synchronization.
 
 ### Conclusion
@@ -157,6 +172,44 @@ Hi-Z Two-Pass Occlusion Culling is a powerful, GPU-centric technique for improvi
 ### Introduction
 
 Efficient model data management is critical for modern rendering engines to achieve high performance and flexibility. PasVulkan uses GLTF as its base foundational model format, extending it internally for improved data representation, compatibility, and efficiency. Its key design principles include a single buffer architecture, bindless data structures, and an optimized approach for handling animations and transformations.
+
+Beyond glTF, PasVulkan can also import **Collada (`.dae`)**, **Wavefront OBJ (`.obj`)**, and **FBX (`.fbx`)** files. All three are implemented as fully native Pascal loaders with no third-party libraries, residing in `PasVulkan.FileFormats.DAE.pas`, `PasVulkan.FileFormats.OBJ.pas`, and `PasVulkan.FileFormats.FBX.pas` respectively. Regardless of the source format, the importer converts the data into the same internal representation as glTF, so all downstream systems (meshlet building, LOD, PVMF caching, GPU buffers) work identically for all formats.
+
+The same native-Pascal philosophy applies to **image and texture formats**. BMP, PNG, JPEG, TGA, QOI, and KTX1 all have fully self-contained Pascal loaders and writers (`PasVulkan.Image.BMP.pas`, `PasVulkan.Image.PNG.pas`, `PasVulkan.Image.JPEG.pas`, `PasVulkan.Image.TGA.pas`, `PasVulkan.Image.QOI.pas`), with no external dependencies. The sole exception is **KTX2**: because KTX2 requires Basis Universal GPU texture compression transcoding, PasVulkan loads the Khronos `libktx` shared library at runtime (`ktx.dll` / `libktx.so` / `libktx.dylib`) to handle KTX2 files.
+
+### glTF 2.0 Compatibility and Game-Oriented Design
+
+PasVulkan strives to maintain broad glTF 2.0 compatibility while simultaneously being practical for game use. The philosophy is: support the full richness of the Khronos ecosystem wherever possible, but integrate it into a pipeline that performs well in real-time gameplay scenarios.
+
+On the **compatibility side**, the engine parses and applies a wide set of official Khronos extensions:
+
+| Category | Extensions |
+|---|---|
+| **Materials** | `KHR_materials_unlit`, `KHR_materials_pbrSpecularGlossiness`, `KHR_materials_specular`, `KHR_materials_sheen`, `KHR_materials_clearcoat`, `KHR_materials_emissive_strength`, `KHR_materials_ior`, `KHR_materials_iridescence`, `KHR_materials_transmission`, `KHR_materials_diffuse_transmission`, `KHR_materials_volume`, `KHR_materials_anisotropy`, `KHR_materials_dispersion` |
+| **Textures** | `KHR_texture_transform`, `KHR_texture_basisu` (Basis Universal) |
+| **Animation** | `KHR_animation_pointer` (animate any property by JSON pointer) |
+| **Lights** | `KHR_lights_punctual` |
+| **Scene graph** | `KHR_node_visibility` |
+| **LOD** | `MSFT_lod`, `MSFT_screencoverage` |
+
+On the **game-engine side**, several pragmatic choices ensure real-time viability:
+
+* All model data is pre-processed at import time (meshlet building, LOD metadata, bounding spheres, material deduplication) and serialised into the PVMF cache (see below), so nothing expensive happens at runtime.
+* Material and texture deduplication across the entire scene reduces GPU memory and descriptor overhead.
+* Features that are visually compelling but prohibitively expensive (e.g. CVCT voxelisation via geometry shaders) are retained in the codebase for completeness but flagged as non-production-ready.
+* The renderer intentionally avoids G-buffer intermediate stages and deferred shading, keeping the forward+ pipeline lean enough for complex open-world scenes.
+
+### PVMF: Pre-Processed Model Cache Format
+
+Loading a glTF file at runtime is expensive: JSON parsing, mesh attribute decoding (potentially with Draco or Basis Universal), meshlet construction, LOD metadata extraction, and material deduplication can all take significant time for large models. To avoid repeating this work on every game start, PasVulkan defines **PVMF** (PasVulkan Model Format) — a binary cache format.
+
+When a group is first imported from glTF the engine can serialise the fully post-processed internal state (meshes, primitives, meshlets, LOD metadata, materials, textures, animations, skins, nodes, scenes) to a PVMF stream via `TGroup.SaveToStream`. On subsequent launches the engine detects the PVMF header (`'P','V','M','F'` signature + version tag `PVMFVersion`) and calls `TGroup.LoadFromStream`, which deserialises the ready-to-use data directly — no JSON parsing, no meshlet rebuilding, no LOD calculation.
+
+Key properties of PVMF:
+
+* **Version-locked:** The version constant (`PVMFVersion`) is bumped whenever the internal data layout changes. A stale cache file is detected by the version mismatch and triggers a clean re-import from the original glTF.
+* **Stores all pre-computed data:** Meshlets (`MeshletDescriptorBuffer` contents), LOD `TGPULODInfo` structs, bounding spheres, material GPU structs, and texture metadata are all written to the cache, so the comment in the importer reads `// CollectMeshlets; // already loaded from PVMF`.
+* **Not a distribution format:** PVMF is an engine-internal cache. It is not intended to be shipped directly to end users or used as an interchange format between tools.
 
 ### Model Instance Structure
 
@@ -188,7 +241,7 @@ To manage instances efficiently, particularly regarding animations and transform
   * **Vertices:**
     * Input data is split into static and dynamic parts.
     * Static input includes texture coordinates, vertex colors, and material indices.
-    * Dynamic input includes position, normal, tangent, morph target base index, joint block base index, joint block count, root node index, generation, and flags (e.g., sign of bitangent).
+    * Dynamic input includes position, morph target base index, joint block base index, joint block count, root node index, node index, normal (oct-encoded int16×2), tangent (oct-encoded int16×2), flags (e.g., sign of bitangent), and generation.
     * Dynamic output is double-buffered across two large shared buffers to enable motion vector computation.
     * Additionally, a position-only output buffer is used for acceleration structures (BLAS). These position-only vertices omit the root transformation matrix, as the root transformation is applied by the bottom-level acceleration structure (BLAS) instance data, which is used for hardware ray tracing.
     * Approximate cost is \~3× vertex data per instance.
@@ -226,6 +279,41 @@ To manage instances efficiently, particularly regarding animations and transform
 
 Indeed, this is a little bit confusing, that two things are called "instance" in the PasVulkan renderer, but they are different things. The first one is the `TpvScene3D.TGroup.TInstance`, which is a unique instance of a model with its own animation state and transformation data, while the second one is the `TpvScene3D.TGroup.TInstance.TRenderInstance`, which represents a specific occurrence of that unique instance in the scene with varying root transformations. This distinction allows for efficient management of model instances and their rendering properties.
 
+#### 4. **Virtual Instances (TVirtualInstanceManager)**
+
+For scenes with many near-identical objects (asteroids, trees, crowd characters …) manually managing one full `TGroup.TInstance` per object would be prohibitively expensive in VRAM and preprocessing time, since every unique animation state requires its own vertex buffer copy. The **Virtual Instance System** solves this by decoupling lightweight user-facing *virtual instances* from the small pool of *non-virtual instances* that own the actual GPU resources:
+
+* **Virtual instances** (`CreateInstance(Virtual:=true)`) — lightweight objects (~few hundred bytes). Each carries a transform, animation state, and scene index. They never own GPU buffers directly.
+* **Non-virtual instances** — a fixed, preallocated pool per group. Each owns the full GPU resources (vertex buffers, joint matrices, etc.) and is recycled rather than freed.
+* **Render instances** — a preallocated pool per non-virtual instance. Used for GPU hardware instancing: multiple virtual instances with the same animation state share one non-virtual instance and are drawn in a single instanced draw call.
+
+Each frame `TVirtualInstanceManager.UpdateAssignments()` runs a two-step greedy assignment:
+
+1. **Diversity pass** — each non-virtual instance is paired with the most *dissimilar* unassigned virtual instance to maximise the range of animation states represented in the pool.
+2. **Instancing pass** — remaining virtual instances are paired with the most *similar* active non-virtual instance, sharing its GPU resources via render-instance hardware instancing.
+
+Similarity is scored from animation time and blend-factor differences, with a temporal coherence bonus (+5.0) for same-frame-as-last-frame assignments and a switching penalty (−1.0) to minimise popping.
+
+For full API details, configuration options, and usage examples see [`docs/scene3d_virtualinstances.md`](scene3d_virtualinstances.md).
+
+### Decal System
+
+The decal system projects textures onto surfaces at runtime without extra geometry or dedicated render passes. Typical uses are bullet holes, scorch marks, dirt, footprints, graffiti, and gameplay indicators.
+
+Each decal is defined by a world-space position, an orientation quaternion, an optional rotation around the forward axis, and a size (width × height in metres). From these, a **world-to-decal transform matrix** is computed once at spawn time and uploaded to the GPU. In the fragment shader, every rendered surface fragment is inverse-transformed into decal space; if it falls inside the unit cube, the decal textures are sampled and blended.
+
+Key aspects of the implementation:
+
+* **Full PBR workflow:** A decal can supply separate textures for albedo, normal map, and ORM (occlusion / roughness / metallic). It modifies all PBR properties of the surface it lands on, not just colour.
+* **Six blend modes:** `AlphaBlend`, `Multiply`, `Overlay`, `Additive`, `JustPBR` (PBR properties only, no albedo), and `JustNormalMap` (normal perturbation only).
+* **Dual lookup strategy:** In the default `LIGHTCLUSTERS` path a compute shader (`frustumclustergridassign.comp`) assigns decals to frustum-space cluster cells each frame; fragment shaders iterate only the decals in their cluster. A BVH skip-tree path is also maintained for ray tracing / path-tracing use cases.
+* **Order-stable rendering:** Decals are stored in an append-only list. Deletion sets the slot to `nil` and defers compaction to `PrepareFrame`, so the relative order of surviving decals never changes and overlap is flicker-free.
+* **Lifetime and fade-out:** Each decal carries an optional lifetime (seconds) and fade-out duration. The engine ages decals in `UpdateDecals`, marks expired ones, and compacts on the next frame.
+* **Pass filtering:** Each decal records which render passes it applies to (mesh, planet surface, grass, etc.), so decals are evaluated only in relevant fragment shaders.
+* **Holder tracking:** Decals can be associated with a scene object (planet, vehicle). If the holder moves, the decal moves with it.
+
+For full API reference, shader integration details, and performance guidance see [`docs/scene3d_decals.md`](scene3d_decals.md).
+
 ### Single Buffer Architecture and Bindless Access
 
 PasVulkan uses a single buffer architecture to enable efficient random access to various data with minimal overhead. This eliminates the need for frequent buffer bindings, improves performance, and significantly reduces buffer binding overhead during rendering, enhancing real-time performance.
@@ -254,11 +342,65 @@ Modern GPU-driven architectures such as PasVulkan therefore trade flexibility fo
 
 This requirement for explicit preprocessing and duplication of animation states contributes to higher memory consumption in modern games. As a result, even titles with similar or only marginally improved visual quality compared to older games may demand significantly more video RAM (vRAM). This increased memory footprint is partly driven by the need to store multiple precomputed animation states and related data structures, which were previously avoided by dynamic runtime calculation but are now necessary for compatibility with advanced rendering features like hardware ray tracing as well as other modern rendering techniques and performance optimizations.
 
+### Dynamic Level of Detail (LOD)
+
+PasVulkan implements a GPU-driven dynamic Level of Detail (LOD) system that automatically adjusts model detail based on screen-space coverage. The LOD selection runs entirely on the GPU inside the mesh culling compute pass (`mesh_cull.comp`), which rewrites draw commands to use the appropriate LOD level for each visible instance.
+
+Key aspects of the implementation:
+
+* **Per-submesh LOD metadata:** Each LOD-enabled submesh stores a `TGPULODInfo` structure (128 bytes) containing up to four LOD levels (`CountLODs` = 1..4), along with screen-coverage thresholds (`Thresholds[0..3]`), index offsets (`FirstIndices`), index counts (`CountIndices`), vertex offsets (`FirstVertices`), and meshlet range descriptors (`MeshletLocalOffsets`, `MeshletCounts`). `CountLODs = 1` means no LOD variation (noop).
+
+* **GPU-side selection:** During the `MeshCullPass0` and `MeshCullPass1` compute passes, the shader evaluates per-instance screen coverage (the minimum over all active views of `max(projected AABB width, projected AABB height)`) against the stored thresholds and selects the appropriate LOD level. The command rewriting — updating the index/vertex offsets in `cmd0` draw commands — happens directly inside `mesh_cull.comp` via buffer device address writes. In temporal mode, the selected LOD level is additionally written to per-in-flight-frame `LODLevelBuffers` for use in the following frame.
+
+* **FinalView pass only:** LOD command rewriting is currently active only for the final view render pass (`TpvScene3DRendererCullRenderPass.FinalView`). Shadow-map passes (e.g. cascaded shadow maps) and other auxiliary passes receive no LOD simplification and always use the full-detail base level.
+
+* **Temporal stability:** To avoid LOD popping, the system supports an optional temporal mode controlled by `FLAG_LOD_TEMPORAL`. When `LODTransformAllLevels` is `false`, temporal mode is enabled: the shader reads the previous frame's selected LOD from `LODLevelBuffers` to rewrite commands one frame ahead of the threshold crossing, avoiding one-frame visual glitches. When `LODTransformAllLevels` is `true` (the default), temporal mode is disabled and all LOD levels are transformed each frame. `FLAG_LOD_RESET_FRAME` is set during the first `CountInFlightFrames` frames after startup and also on any camera reset, causing all LOD levels to be treated as active to fully prime the state. The `lodNeeded` bitfield (per `nodeMatricesIndex`, atomically OR'd with a renderer-instance bitmask) tracks which nodes require vertex transform in the current frame; this is separate from the per-instance LOD level history stored in `LODLevelBuffers`.
+
+* **Integration with occlusion culling:** LOD selection occurs inside the same GPU-driven culling pipeline as Hi-Z occlusion culling, ensuring that distant or small objects are both occluded and simplified with minimal CPU overhead.
+
+* **glTF import and `MSFT_lod` extension:** During glTF import, the engine reads the Microsoft `MSFT_lod` extension from nodes (`node.extensions.MSFT_lod.ids`) to build per-node LOD variant lists (`fLODNodeIndices`). Optional screen-coverage thresholds are read from `node.extras.MSFT_screencoverage` (`fLODScreenCoverages`). Materials also support `MSFT_lod` via `material.extensions.MSFT_lod.ids` (`fLODMaterialIndices`), allowing both geometry and material to vary per LOD level. If no explicit thresholds are provided, the engine falls back to a default power-of-two halving scheme (`0.25`, `0.125`, `0.0625`, ...) for the thresholds stored in `TGPULODInfo`. This fallback is independent of the default CPU-side heuristic in `SelectNodeLODLevel`.
+
+* **Asset preprocessing:** LOD data is generated during asset import / build time and serialized with the scene. The engine stores precomputed LOD metadata in its own binary format (`TGPULODInfo`) alongside the imported geometry, so no glTF re-parsing is required at runtime.
+
+The `GPULODEnabled` property on `TpvScene3D` toggles the feature (enabled by default), while `LODTransformAllLevels` controls whether temporal mode is active: `false` enables temporal mode (only the previously selected LOD level is transformed each frame); `true` (the default) disables temporal mode and transforms all LOD levels every frame.
+
+### Meshlet Rendering
+
+PasVulkan supports GPU-driven meshlet rendering as an optional tier on top of the Hi-Z two-pass culling pipeline, available when the device exposes mesh shader support (`VK_EXT_mesh_shader`). Meshlets partition each primitive into small, independently cullable triangle clusters, enabling fine-grained GPU-side visibility determination that goes beyond node-level (per TGroup mesh node) culling.
+
+#### Meshlet Data Structures
+
+A **meshlet** is a self-contained cluster of up to **64 vertices** and **126 triangles** — the practical hardware limits across current GPU generations (the Vulkan specification allows up to 256, but exceeding real hardware limits triggers slow emulation). Three shared global buffers hold all meshlet data across the entire scene:
+
+* **`MeshletDescriptorBuffer`** — one `TGPUMeshletDescriptor` (32 bytes) per meshlet, containing: bounding sphere (`vec4`: center XYZ + radius), vertex offset and count within `MeshletVertexBuffer`, primitive offset and count within `MeshletPrimitiveBuffer`.
+* **`MeshletVertexBuffer`** — remapped per-meshlet vertex indices (`uint32`), referencing the global vertex buffer.
+* **`MeshletPrimitiveBuffer`** — packed triangle index triples (3× `uint8` per triangle, stored as `uint32`).
+
+Meshlets are built during glTF import (`BuildMeshlets`) for triangle-list primitives. Per-meshlet bounding spheres are updated to world space each frame for accurate culling. Culling is enabled per-node via `FLAG_MESHLET_CULLING_ENABLED` (bit 3 of the cull flags).
+
+#### LOD Integration
+
+`TGPULODInfo` stores `MeshletLocalOffsets[0..3]` and `MeshletCounts[0..3]` alongside the standard index/vertex ranges, so LOD level switching operates at meshlet granularity. When the GPU selects a lower LOD, only the corresponding meshlet sub-range is dispatched, with no CPU involvement.
+
+#### Rendering Paths
+
+Two distinct rendering paths are available depending on whether `MESHLET_EXPAND` is defined at shader compile time:
+
+**1. Normal mesh-shader path** (default)
+
+`mesh_cull.comp` performs per-node (per TGroup mesh node) frustum and Hi-Z culling and, for each surviving node, emits one indirect task-shader dispatch with `groupCountX = ceil(meshletCount / 32)`. The **task shader** (`mesh.task`, `TASK_GROUP_SIZE = 32`) then runs one workgroup per 32 meshlets: in Pass 0 it applies per-meshlet frustum culling only; in Pass 1 it additionally tests each meshlet's bounding sphere against the Hi-Z pyramid. Meshlets that survive are forwarded via the task payload to the **mesh shader** (`mesh.mesh`) for rasterization.
+
+**2. `MESHLET_EXPAND` mode** (alternative compile-time variant)
+
+The task shader is bypassed entirely. `mesh_cull.comp` itself performs per-meshlet culling: Pass 0 submits all meshlets unconditionally; Pass 1 applies frustum and Hi-Z culling per meshlet and appends each surviving meshlet as a separate command entry to a global scratch buffer via `atomicAdd`. A subsequent sort compute pass (`mesh_cull_sort.comp`) scatters the unsorted scratch entries into per-range output positions. The mesh shader is then dispatched directly with one workgroup per meshlet, with no task shader involvement.
+
+#### Fallback Path
+
+When mesh shader support is unavailable, PasVulkan falls back transparently to standard `vkCmdDrawIndexedIndirect` using the conventional vertex/index pipeline. No meshlet culling is performed in this path; node-level Hi-Z culling (per TGroup mesh node, independent of meshlets) still applies. Because culling granularity is already at the mesh-node level rather than the whole-object level, this fallback path can achieve culling effectiveness comparable to the mesh-shader path — provided the glTF content is well-subdivided into mesh nodes. Content authors can therefore influence culling quality directly through their scene graph structure, even on hardware without mesh shader support. There is however a natural limit to this approach: mesh-shader culling can cull at meshlet granularity *within* a single node, which is critical for large, spatially extended meshes (terrain tiles, long bridges, large buildings) where further node subdivision would become impractical or break asset management workflows. Node-level subdivision thus scales well up to a point, but mesh shaders remain the superior solution for scenes containing individually large meshes.
+
 ### Missing Features
 
 PasVulkan does not currently support the following features:
-
-* **Dynamic LODing:** The renderer does not yet implement dynamic Level of Detail (LOD) management, which would allow automatic adjustment of model detail based on distance from the camera or other criteria inside the Hi-Z two-pass occlusion culling process. The problem with dynamic LODing is that it requires additional preprocessing and management of multiple LOD levels per model, which would increase memory usage and complexity. And GLTF does not natively support dynamic LODing yet, so it would require additional extensions or custom implementations to handle this feature. However, this feature is planned for future versions to improve performance in large scenes.
 
 ### Summary
 
@@ -282,7 +424,7 @@ Overall, PasVulkan offers a well-balanced solution combining flexibility and per
 
 ### Introduction
 
-PasVulkan's animation system is designed to efficiently handle complex animations in a simple way. It leverages the GLTF format as its base, extending it to support advanced features like bone animations, morph targets, and animated materials. It's a linear list of animatiomn with weights (bleneded or additive animations), allowing for simple but flexible and efficient animation management. It's pretty much designed like threeJS's animation system, but with some differences to better fit the PasVulkan architecture and design principles.
+PasVulkan's animation system is designed to efficiently handle complex animations in a simple way. It leverages the GLTF format as its base, extending it to support advanced features like bone animations, morph targets, and animated materials. It's a linear list of animations with weights (blended or additive animations), allowing for simple but flexible and efficient animation management. It's pretty much designed like threeJS's animation system, but with some differences to better fit the PasVulkan architecture and design principles.
 
 ### Key Features
 
@@ -319,7 +461,7 @@ PasVulkan's animation system is designed to efficiently handle complex animation
    The system supports animating various properties, including:
 
    * **Bone Transformations:** Each bone in a skeleton can be animated independently, allowing for complex character animations.
-   * **Morph Targets:** Supports morph target animations for facial expressions and other deformations.
+   * **Morph Targets (also known as blend shapes):** Supports morph target animations for facial expressions and other deformations.
    * **Material Properties:** Materials can have animated properties, such as color, texture offsets, and other shader parameters.
    * **Scene Graph Nodes:** Allows for animating the transformations of scene graph nodes, enabling hierarchical animations where parent-child relationships are respected.
    * **Camera Animations:** Cameras can be animated to create dynamic viewpoints and transitions.

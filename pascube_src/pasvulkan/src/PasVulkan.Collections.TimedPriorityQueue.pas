@@ -94,6 +94,7 @@ type EpvTimedPriorityQueue=class(Exception);
              Dead:Boolean;                // Optional for lazy cancel
             end;
             PNode=^TNode;
+            TPNodeArray=array of PNode;
             TNodeArray=array of TNode;
             TIndexArray=array of TpvSizeInt;
             TMapEntry=record

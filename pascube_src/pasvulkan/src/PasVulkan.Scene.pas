@@ -293,7 +293,10 @@ type TpvScene=class;
        function GetNodeListOf(const aNodeClass:TpvSceneNodeClass):TpvSceneNodes;
        function GetNodeOf(const aNodeClass:TpvSceneNodeClass;const aIndex:TpvSizeInt=0):TpvSceneNode;
        function GetNodeCountOf(const aNodeClass:TpvSceneNodeClass):TpvSizeInt;
-       
+
+       procedure ParentReadLock;
+       procedure ParentReadUnlock;
+
        procedure BeforeStartLoad; virtual;
        procedure StartLoad; virtual;
        procedure AfterStartLoad; virtual;
@@ -896,6 +899,20 @@ begin
  end;
 end;
 
+procedure TpvSceneNode.ParentReadLock;
+begin
+ if assigned(fParent) then begin
+  TPasMPMultipleReaderSingleWriterSpinLock.AcquireRead(fParent.fLock);
+ end;
+end;
+
+procedure TpvSceneNode.ParentReadUnlock;
+begin
+ if assigned(fParent) then begin
+  TPasMPMultipleReaderSingleWriterSpinLock.ReleaseRead(fParent.fLock);
+ end;
+end;
+
 procedure TpvSceneNode.BeforeStartLoad;
 begin
 end;
@@ -976,9 +993,14 @@ var ChildNodeIndex:TpvSizeInt;
 begin
  pvApplication.Log(LOG_DEBUG,ClassName+'.WaitForLoaded','Entering...');
  try
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   ChildNode.WaitForLoaded;
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    ChildNode.WaitForLoaded;
+   end;
+  finally
+   ParentReadUnlock;
   end;
   while TPasMPInterlocked.Read(fState)<TpvSceneNodeState.Loaded do begin
    if not pvApplication.PasMPInstance.StealAndExecuteJob then begin
@@ -1042,11 +1064,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.Check;
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.Check;
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1056,11 +1083,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.Store;
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.Store;
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1070,11 +1102,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.BeginUpdate(aDeltaTime);
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.BeginUpdate(aDeltaTime);
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1084,11 +1121,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.Update(aDeltaTime);
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.Update(aDeltaTime);
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1098,11 +1140,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.EndUpdate(aDeltaTime);
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.EndUpdate(aDeltaTime);
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1112,11 +1159,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.Interpolate(aAlpha);
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.Interpolate(aAlpha);
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1126,11 +1178,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.FrameUpdate;
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.FrameUpdate;
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1140,11 +1197,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.Render;
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.Render;
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1154,11 +1216,16 @@ var ChildNodeIndex:TpvSizeInt;
     ChildNode:TpvSceneNode;
 begin
  if (fState=TpvSceneNodeState.Loaded) and not fScene.fUseDirectedAcyclicGraph then begin
-  for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-   ChildNode:=fChildren[ChildNodeIndex];
-   if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-    ChildNode.UpdateAudio;
+  ParentReadLock;
+  try
+   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+    ChildNode:=fChildren[ChildNodeIndex];
+    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+     ChildNode.UpdateAudio;
+    end;
    end;
+  finally
+   ParentReadUnlock;
   end;
  end;
 end;
@@ -1170,11 +1237,16 @@ begin
  if (fState=TpvSceneNodeState.Loaded) then begin
   WriteLn('  ',ClassName,': ',pvApplication.HighResolutionTimer.ToFloatSeconds(fTimeDuration)*1000.0:7:5,' ms');
   if not fScene.fUseDirectedAcyclicGraph then begin
-   for ChildNodeIndex:=0 to fChildren.Count-1 do begin
-    ChildNode:=fChildren[ChildNodeIndex];
-    if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
-     ChildNode.DumpTimes;
+   ParentReadLock;
+   try
+    for ChildNodeIndex:=0 to fChildren.Count-1 do begin
+     ChildNode:=fChildren[ChildNodeIndex];
+     if assigned(ChildNode) and (ChildNode.fState=TpvSceneNodeState.Loaded) then begin
+      ChildNode.DumpTimes;
+     end;
     end;
+   finally
+    ParentReadUnlock;
    end;
   end;
  end;

@@ -115,7 +115,7 @@ void main(){
       vec4 temp = ((voxels[voxelIndex(0, 1, 0)] + (voxels[voxelIndex(0, 0, 0)] * (1.0 - voxels[voxelIndex(0, 1, 0)].w))) +
                    (voxels[voxelIndex(1, 1, 0)] + (voxels[voxelIndex(1, 0, 0)] * (1.0 - voxels[voxelIndex(1, 1, 0)].w))) +
                    (voxels[voxelIndex(0, 1, 1)] + (voxels[voxelIndex(0, 0, 1)] * (1.0 - voxels[voxelIndex(0, 1, 1)].w))) +
-                   (voxels[voxelIndex(1, 0, 1)] + (voxels[voxelIndex(1, 0, 1)] * (1.0 - voxels[voxelIndex(1, 1, 1)].w)))) * 0.25;  
+                   (voxels[voxelIndex(1, 1, 1)] + (voxels[voxelIndex(1, 0, 1)] * (1.0 - voxels[voxelIndex(1, 1, 1)].w)))) * 0.25;  
       imageStore(uImageDestinationVolume[baseImageIndex + 4], ivec3(volumeDestinationPosition), vec4(temp));
     }
 

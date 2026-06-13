@@ -1,0 +1,233 @@
+object FormMain: TFormMain
+  Left = 0
+  Height = 549
+  Top = 0
+  Width = 800
+  Caption = 'PasLLM App LCL - Copyright (C) 2025, Benjamin ''BeRo'' Rosseaux'
+  ClientHeight = 451
+  ClientWidth = 640
+  Color = clBtnFace
+  Constraints.MinHeight = 480
+  Constraints.MinWidth = 640
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Default'
+  Menu = MainMenu
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnResize = FormResize
+  Position = poScreenCenter
+  LCLVersion = '2.3.0.0'
+  object PanelTop: TPanel
+    Left = 0
+    Height = 50
+    Top = 0
+    Width = 800
+    Align = alTop
+    BevelOuter = bvNone
+    ParentBackground = False
+    TabOrder = 0
+    Visible = False
+  end
+  object PanelLeft: TPanel
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    Left = 0
+    Height = 474
+    Top = 50
+    Width = 200
+    Align = alLeft
+    ClientHeight = 474
+    ClientWidth = 200
+    ParentBackground = False
+    TabOrder = 1
+    object PanelLeftTop: TPanel
+      Left = 9
+      Height = 50
+      Top = 9
+      Width = 182
+      Align = alTop
+      BorderSpacing.Around = 8
+      ClientHeight = 50
+      ClientWidth = 182
+      ParentBackground = False
+      TabOrder = 0
+      object EditSessionName: TEdit
+        AnchorSideLeft.Control = PanelLeftTop
+        AnchorSideTop.Control = PanelLeftTop
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = PanelLeftTop
+        AnchorSideRight.Side = asrBottom
+        Left = 9
+        Height = 21
+        Top = 15
+        Width = 164
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 8
+        BorderSpacing.Right = 8
+        BorderSpacing.Bottom = 8
+        OnChange = EditSessionNameChange
+        OnExit = EditSessionNameExit
+        TabOrder = 0
+      end
+    end
+    object PanelSessions: TPanel
+      Left = 9
+      Height = 340
+      Top = 67
+      Width = 182
+      Align = alClient
+      BorderSpacing.Around = 8
+      ClientHeight = 340
+      ClientWidth = 182
+      ParentBackground = False
+      TabOrder = 1
+      object ListBoxSessions: TListBox
+        Left = 9
+        Height = 322
+        Top = 9
+        Width = 164
+        Align = alClient
+        BorderSpacing.Around = 8
+        ItemHeight = 0
+        TabOrder = 0
+      end
+    end
+    object PanelLeftBottom: TPanel
+      Left = 9
+      Height = 50
+      Top = 415
+      Width = 182
+      Align = alBottom
+      BorderSpacing.Around = 8
+      ClientHeight = 50
+      ClientWidth = 182
+      ParentBackground = False
+      TabOrder = 2
+      object FlowPanel1: TFlowPanel
+        Left = 1
+        Height = 48
+        Top = 1
+        Width = 180
+        Align = alClient
+        AutoSize = True
+        BevelOuter = bvNone
+        ControlList = <>
+        FlowLayout = tlTop
+        FlowStyle = fsLeftRightTopBottom
+        TabOrder = 0
+      end
+      object ButtonNew: TButton
+        AnchorSideLeft.Control = PanelLeftBottom
+        AnchorSideTop.Control = PanelLeftBottom
+        AnchorSideTop.Side = asrCenter
+        AnchorSideBottom.Side = asrBottom
+        Left = 9
+        Height = 23
+        Top = 14
+        Width = 49
+        AutoSize = True
+        BorderSpacing.Around = 8
+        Caption = '&New'
+        OnClick = ButtonNewClick
+        TabOrder = 1
+      end
+    end
+  end
+  object PanelChat: TPanel
+    Left = 205
+    Height = 474
+    Top = 50
+    Width = 595
+    Align = alClient
+    ParentBackground = False
+    TabOrder = 2
+  end
+  object Splitter1: TSplitter
+    AnchorSideLeft.Control = PanelLeft
+    AnchorSideLeft.Side = asrBottom
+    AnchorSideTop.Control = PanelLeft
+    Left = 200
+    Height = 474
+    Top = 50
+    Width = 5
+    Beveled = True
+  end
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 25
+    Top = 524
+    Width = 800
+    Align = alBottom
+    AutoSize = True
+    ClientHeight = 25
+    ClientWidth = 800
+    ParentBackground = False
+    TabOrder = 4
+    object StatusBar1: TStatusBar
+      Left = 1
+      Height = 23
+      Top = 1
+      Width = 798
+      Align = alClient
+      Panels = <      
+        item
+          Text = 'Ready'
+          Width = 200
+        end      
+        item
+          Text = '0 prompt token/seconds'
+          Width = 200
+        end      
+        item
+          Text = '0 output token/seconds'
+          Width = 200
+        end      
+        item
+          Text = '0 total token/seconds'
+          Width = 200
+        end>
+      SimplePanel = False
+    end
+  end
+  object MainMenu: TMainMenu
+    Left = 608
+    object MenuFile: TMenuItem
+      Caption = '&File'
+      object MenuFileExit: TMenuItem
+        Caption = 'E&xit'
+        ShortCut = 32883
+        OnClick = MenuFileExitClick
+      end
+    end
+    object MenuEdit: TMenuItem
+      Caption = '&Edit'
+      object MenuEditClear: TMenuItem
+        Caption = '&Clear Chat'
+        ShortCut = 16430
+        OnClick = MenuEditClearClick
+      end
+      object MenuEditSeparator: TMenuItem
+        Caption = '-'
+      end
+      object MenuEditCopy: TMenuItem
+        Caption = '&Copy Last Response'
+        ShortCut = 24643
+        OnClick = MenuEditCopyClick
+      end
+      object MenuEditSelectAll: TMenuItem
+        Caption = 'Select &All'
+        ShortCut = 16449
+        OnClick = MenuEditSelectAllClick
+      end
+    end
+    object MenuHelp: TMenuItem
+      Caption = '&Help'
+      object MenuHelpAbout: TMenuItem
+        Caption = '&About...'
+        OnClick = MenuHelpAboutClick
+      end
+    end
+  end
+end

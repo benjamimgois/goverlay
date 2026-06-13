@@ -17,9 +17,9 @@ const float CVCT_INDIRECT_DIST_K = 0.01;
 #define CVCT_ROUGHNESSTOVOXELCONETRACINGAPERTUREANGLE_METHOD 0
 float cvctRoughnessToVoxelConeTracingApertureAngle(float roughness){
   roughness = clamp(roughness, 0.0, 1.0);
-#if ROUGHNESSTOVOXELCONETRACINGAPERTUREANGLE_METHOD == 0
+#if CVCT_ROUGHNESSTOVOXELCONETRACINGAPERTUREANGLE_METHOD == 0
   return tan(0.0003474660443456835 + (roughness * (1.3331290497744692 - (roughness * 0.5040552688878546))));
-#elif ROUGHNESSTOVOXELCONETRACINGAPERTUREANGLE_METHOD == 1
+#elif CVCT_ROUGHNESSTOVOXELCONETRACINGAPERTUREANGLE_METHOD == 1
   return tan(acos(pow(0.244, 1.0 / (clamp(2.0 / max(1e-4, (roughness * roughness)) - 2.0, 4.0, 1024.0 * 16.0) + 1.0))));
 #else
   return clamp(tan((PI * (0.5 * 0.75)) * max(0.0, roughness)), 0.00174533102, 3.14159265359);
@@ -146,10 +146,10 @@ vec4 cvctTraceRadianceCone(vec3 from,
 
     {
       int textureIndexOffset = int(cascadeIndexEx) * 6;
-      float mipMapLevel = 0.0; //max(0.0, log2((diameter * worldToCascadeScaleFactors[cascadeIndexEx] * voxelGridData.gridSize) + 1.0));   
+      float mipMapLevel = max(0.0, cascadeBlend); //max(0.0, log2((diameter * worldToCascadeScaleFactors[cascadeIndexEx] * voxelGridData.gridSize) + 1.0));   
       value = ((textureLod(uVoxelGridRadiance[textureIndexOffset + textureIndices.x], cascadePosition, mipMapLevel) * directionWeights.x) +
                (textureLod(uVoxelGridRadiance[textureIndexOffset + textureIndices.y], cascadePosition, mipMapLevel) * directionWeights.y) +
-               (textureLod(uVoxelGridRadiance[textureIndexOffset + textureIndices.z], cascadePosition, mipMapLevel) * directionWeights.z));// * (stepDist / voxelSize);
+               (textureLod(uVoxelGridRadiance[textureIndexOffset + textureIndices.z], cascadePosition, mipMapLevel) * directionWeights.z));
     }
 
     if((cascadeBlend > 0.0) && ((cascadeIndexEx + 1u) < voxelGridData.countCascades)){
@@ -165,7 +165,7 @@ vec4 cvctTraceRadianceCone(vec3 from,
 
     accumulator += value * (1.0 - accumulator.w);
 
-    dist += (stepDist = ((voxelGridData.cascadeCellSizes[cascadeIndexEx >> 2u][cascadeIndexEx & 3u] * 0.5) * diameter)); 
+    dist += (stepDist = max(diameter, voxelGridData.cascadeCellSizes[cascadeIndexEx >> 2u][cascadeIndexEx & 3u])); 
 
   }
 
@@ -304,9 +304,33 @@ vec4 cvctTraceRadianceCone(vec3 from,
 
     // Accumulate the occlusion from the ansitropic radiance texture, where the ansitropic occlusion is stored in the alpha channel
     ivec3 textureIndices = ivec3(negativeDirection.x ? 1 : 0, negativeDirection.y ? 3 : 2, negativeDirection.z ? 5 : 4) + ivec3(cascadeIndex * 6);
-    accumulator += (1.0 - accumulator) * ((textureLod(uVoxelGridRadiance[textureIndices.x], cascadePosition, mipMapLevel) * directionWeights.x) +
-                                          (textureLod(uVoxelGridRadiance[textureIndices.y], cascadePosition, mipMapLevel) * directionWeights.y) +
-                                          (textureLod(uVoxelGridRadiance[textureIndices.z], cascadePosition, mipMapLevel) * directionWeights.z));
+    vec4 radianceSample = (textureLod(uVoxelGridRadiance[textureIndices.x], cascadePosition, mipMapLevel) * directionWeights.x) +
+                          (textureLod(uVoxelGridRadiance[textureIndices.y], cascadePosition, mipMapLevel) * directionWeights.y) +
+                          (textureLod(uVoxelGridRadiance[textureIndices.z], cascadePosition, mipMapLevel) * directionWeights.z);
+
+    // Blend with the next coarser cascade at AABB boundaries to avoid hard seams
+    if((uint(cascadeIndex) + 1u) < voxelGridData.countCascades){
+      vec3 fadeFactors = smoothstep(voxelGridData.cascadeAABBFadeStart[cascadeIndex].xyz,
+                                    voxelGridData.cascadeAABBFadeEnd[cascadeIndex].xyz,
+                                    abs(position - voxelGridData.cascadeCenterHalfExtents[cascadeIndex].xyz));
+      float cascadeBlend = max(max(fadeFactors.x, fadeFactors.y), fadeFactors.z);
+      if(cascadeBlend > 0.0){
+        uint nextCascadeIndex = uint(cascadeIndex) + 1u;
+        vec3 nextCascadePosition = cvctWorldToTextureSpace(position, nextCascadeIndex);
+        ivec3 nextTextureIndices = ivec3(negativeDirection.x ? 1 : 0, negativeDirection.y ? 3 : 2, negativeDirection.z ? 5 : 4) + ivec3(int(nextCascadeIndex) * 6);
+        // Recompute diameter and mip map level in the next (coarser) cascade's own normalized space,
+        // since it covers a larger world extent the same world-space cone diameter maps to a finer mip there
+        float nextDiameter = max(voxelGridData.oneOverGridSizes[nextCascadeIndex >> 2u][nextCascadeIndex & 3u] * 0.5, doubledAperture * (dist * voxelGridData.worldToCascadeScales[nextCascadeIndex >> 2u][nextCascadeIndex & 3u]));
+        float nextMipMapLevel = max(0.0, log2((nextDiameter * voxelGridData.gridSizes[nextCascadeIndex >> 2u][nextCascadeIndex & 3u])));
+        radianceSample = mix(radianceSample,
+                             (textureLod(uVoxelGridRadiance[nextTextureIndices.x], nextCascadePosition, nextMipMapLevel) * directionWeights.x) +
+                             (textureLod(uVoxelGridRadiance[nextTextureIndices.y], nextCascadePosition, nextMipMapLevel) * directionWeights.y) +
+                             (textureLod(uVoxelGridRadiance[nextTextureIndices.z], nextCascadePosition, nextMipMapLevel) * directionWeights.z),
+                             cascadeBlend);
+      }
+    }
+
+    accumulator += (1.0 - accumulator.w) * radianceSample;
 
     // Move the position forward
     dist += max(diameter, voxelGridData.oneOverGridSizes[cascadeIndex >> 2u][cascadeIndex & 3u]) * voxelGridData.cascadeToWorldScales[cascadeIndex >> 2u][cascadeIndex & 3u];

@@ -23,13 +23,13 @@
     </PublishOptions>
     <RunParams>
       <local>
-        <CommandLineParams Value="--antialiasing-mode smaa --depth-of-field-mode none --force-use-validation-layers \home\bero\data\GIT\glTF-Sample-Assets\Models\AnimationPointerUVs\glTF-Binary\AnimationPointerUVs.glb"/>
+        <CommandLineParams Value="--antialiasing-mode smaa --depth-of-field-mode none --force-use-validation-layers \home\bero\Projects\GitHub\pasvulkan\projects\planetgame1\assets\models\resolutions\high\general\base.glb"/>
       </local>
       <FormatVersion Value="2"/>
       <Modes Count="1">
         <Mode0 Name="default">
           <local>
-            <CommandLineParams Value="--antialiasing-mode smaa --depth-of-field-mode none --force-use-validation-layers \home\bero\data\GIT\glTF-Sample-Assets\Models\AnimationPointerUVs\glTF-Binary\AnimationPointerUVs.glb"/>
+            <CommandLineParams Value="--antialiasing-mode smaa --depth-of-field-mode none --force-use-validation-layers \home\bero\Projects\GitHub\pasvulkan\projects\planetgame1\assets\models\resolutions\high\general\base.glb"/>
           </local>
         </Mode0>
       </Modes>

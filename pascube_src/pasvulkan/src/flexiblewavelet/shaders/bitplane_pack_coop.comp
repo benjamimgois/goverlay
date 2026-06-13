@@ -1,0 +1,211 @@
+#version 450
+// bitplane_pack_coop.comp — COOPERATIVE variant of bitplane_pack for LARGE blocks (128). ONE WORKGROUP per
+// block (so the few blocks at a given resolution spread across many SMs instead of 3), the OR-pyramid lives in
+// SHARED memory (on-chip, built cooperatively by the 64 threads — vs a 22 KB/thread LOCAL spill that would
+// watchdog-timeout the GPU), and the serial bit-stream encode is done by thread 0. Byte-identical output to
+// bitplane_pack / encode_block. Used only for block size 128 (32/64 keep the cheaper one-thread-per-block path).
+layout(local_size_x = 64) in;
+layout(constant_id = 0) const int BS = 128;   // coding block size (the coop path is dispatched for 128)
+layout(std430, binding = 0) readonly buffer Coefficients { int coefficients[]; };
+layout(std430, binding = 1) readonly buffer Offsets      { uint offsets[]; };
+layout(std430, binding = 2)          buffer Data         { uint data[]; };
+layout(push_constant) uniform PushConstants { int width; int height; int blocks_x; int blocks_y; } push;
+
+shared uint s_pyramid[((BS * BS) / 3) + 4];   // OR-pyramid (levels 1..levels), cooperatively built
+shared int s_off[8];
+shared int s_levels;
+
+int exp_golomb_length(uint value) { return (2 * findMSB(value + 1u)) + 1; }
+
+void main() {
+  uint block = gl_WorkGroupID.x;   // ONE workgroup per block
+  if (block >= uint(push.blocks_x * push.blocks_y)) {
+    return;
+  }
+  uint tid = gl_LocalInvocationID.x;
+  int block_x = (int(block) % push.blocks_x) * BS;
+  int block_y = (int(block) / push.blocks_x) * BS;
+  int block_width = min(BS, push.width - block_x);
+  int block_height = min(BS, push.height - block_y);
+  int coefficient_count = block_width * block_height;
+  int block_base = (block_y * push.width) + block_x;
+
+  #define BLOCK_MAGNITUDE(column, row) (((column) < block_width && (row) < block_height) \
+      ? uint(abs(coefficients[block_base + ((row) * push.width) + (column)])) : 0u)
+
+  // Thread 0 computes the level offsets; all threads then cooperatively build the pyramid.
+  if (tid == 0u) {
+    int levels = findMSB(uint(BS));   // 7 for 128
+    s_levels = levels;
+    int total = 0;
+    for (int L = 1; L <= levels; L++) {
+      s_off[L] = total;
+      int cells = BS >> L;
+      total += cells * cells;
+    }
+  }
+  barrier();
+  int levels = s_levels;
+  {
+    int cells = BS >> 1;   // level 1: 2x2 OR of the magnitudes
+    int count = cells * cells;
+    for (int idx = int(tid); idx < count; idx += 64) {
+      int cx = idx % cells, cy = idx / cells;
+      s_pyramid[s_off[1] + idx] = (BLOCK_MAGNITUDE(2 * cx, 2 * cy) | BLOCK_MAGNITUDE((2 * cx) + 1, 2 * cy))
+          | (BLOCK_MAGNITUDE(2 * cx, (2 * cy) + 1) | BLOCK_MAGNITUDE((2 * cx) + 1, (2 * cy) + 1));
+    }
+  }
+  barrier();
+  for (int L = 2; L <= levels; L++) {   // higher levels: OR of four level-(L-1) cells
+    int cells = BS >> L, child_cells = BS >> (L - 1);
+    int count = cells * cells;
+    for (int idx = int(tid); idx < count; idx += 64) {
+      int cx = idx % cells, cy = idx / cells;
+      int c = s_off[L - 1] + ((2 * cy) * child_cells) + (2 * cx);
+      s_pyramid[s_off[L] + idx] = (s_pyramid[c] | s_pyramid[c + 1]) | (s_pyramid[c + child_cells] | s_pyramid[c + child_cells + 1]);
+    }
+    barrier();
+  }
+  if (tid != 0u) {
+    return;   // the serial bit-stream encode is done by thread 0 (reading the shared pyramid)
+  }
+  #define REGION_OR_L(x, y, L) s_pyramid[s_off[L] + (((y) >> (L)) * (BS >> (L))) + ((x) >> (L))]
+
+  int max_magnitude = 0;
+  for (int row = 0; row < block_height; row++) {
+    for (int column = 0; column < block_width; column++) {
+      int magnitude = int(BLOCK_MAGNITUDE(column, row));
+      if (magnitude > max_magnitude) {
+        max_magnitude = magnitude;
+      }
+    }
+  }
+  int bit_plane_count = 0;
+  while ((1 << bit_plane_count) <= max_magnitude) {
+    bit_plane_count++;
+  }
+
+  uint word_position = offsets[block] >> 2;
+  uint word = 0u;
+  int word_bytes = 0;
+  uint accumulator = 0u;
+  int accumulator_bits = 0;
+  #define PUT_BIT(bit_value) do {                                             \
+      accumulator = (accumulator << 1) | uint(bit_value);                     \
+      if (++accumulator_bits == 8) {                                          \
+        word |= accumulator << (uint(word_bytes) * 8u);                       \
+        accumulator = 0u;                                                     \
+        accumulator_bits = 0;                                                 \
+        if (++word_bytes == 4) { data[word_position++] = word; word = 0u; word_bytes = 0; } \
+      }                                                                       \
+    } while (false)
+  #define PUT_EXP_GOLOMB(input_value) do {                                    \
+      uint value = uint(input_value) + 1u;                                    \
+      int leading_zeros = findMSB(value);                                     \
+      for (int z = 0; z < leading_zeros; z++) PUT_BIT(0);                      \
+      for (int b = leading_zeros; b >= 0; b--) PUT_BIT(int((value >> uint(b)) & 1u)); \
+    } while (false)
+
+  for (int i = 4; i >= 0; i--) {
+    PUT_BIT((bit_plane_count >> i) & 1);
+  }
+  int stack[128];
+  for (int plane = bit_plane_count - 1; plane >= 0; plane--) {
+    int popcount = 0, rle_bits = 0, last = 0;
+    for (int i = 0; i < coefficient_count; i++) {
+      int row = i / block_width, column = i - (row * block_width);
+      if (((int(BLOCK_MAGNITUDE(column, row)) >> plane) & 1) != 0) {
+        rle_bits += exp_golomb_length(uint(i - last));
+        last = i + 1;
+        popcount++;
+      }
+    }
+    rle_bits += exp_golomb_length(uint(popcount));
+
+    int quadtree_bits = 0, stack_pointer = 0;
+    stack[stack_pointer++] = 0 | (0 << 8) | (levels << 16);
+    while (stack_pointer > 0) {
+      int node = stack[--stack_pointer];
+      int x = node & 255, y = (node >> 8) & 255, size_log = (node >> 16) & 7, size = 1 << size_log;
+      if (size == 1) {
+        quadtree_bits += 1;
+        continue;
+      }
+      quadtree_bits += 1;
+      if (((REGION_OR_L(x, y, size_log) >> plane) & 1u) != 0u) {
+        int half_size = size / 2, child_size_log = size_log - 1;
+        stack[stack_pointer++] = (x + half_size) | ((y + half_size) << 8) | (child_size_log << 16);
+        stack[stack_pointer++] = x | ((y + half_size) << 8) | (child_size_log << 16);
+        stack[stack_pointer++] = (x + half_size) | (y << 8) | (child_size_log << 16);
+        stack[stack_pointer++] = x | (y << 8) | (child_size_log << 16);
+      }
+    }
+
+    int method = 0, best = coefficient_count;   // 0 = raw, 1 = RLE, 2 = quadtree
+    if (rle_bits < best) { best = rle_bits; method = 1; }
+    if (quadtree_bits < best) { method = 2; }
+    PUT_BIT((method >> 1) & 1);
+    PUT_BIT(method & 1);
+
+    if (method == 1) {
+      PUT_EXP_GOLOMB(popcount);
+      last = 0;
+      for (int i = 0; i < coefficient_count; i++) {
+        int row = i / block_width, column = i - (row * block_width);
+        int value = coefficients[block_base + (row * push.width) + column];
+        int magnitude = (value < 0) ? -value : value;
+        if (((magnitude >> plane) & 1) != 0) {
+          PUT_EXP_GOLOMB(i - last);
+          last = i + 1;
+          if ((magnitude >> plane) == 1) {
+            PUT_BIT((value < 0) ? 1 : 0);
+          }
+        }
+      }
+    } else if (method == 2) {
+      stack_pointer = 0;
+      stack[stack_pointer++] = 0 | (0 << 8) | (levels << 16);
+      while (stack_pointer > 0) {
+        int node = stack[--stack_pointer];
+        int x = node & 255, y = (node >> 8) & 255, size_log = (node >> 16) & 7, size = 1 << size_log;
+        if (size == 1) {
+          int valid = (x < block_width && y < block_height) ? 1 : 0;
+          int value = (valid != 0) ? coefficients[block_base + (y * push.width) + x] : 0;
+          int magnitude = (value < 0) ? -value : value;
+          int bit = (magnitude >> plane) & 1;
+          PUT_BIT(bit);
+          if (bit != 0 && (magnitude >> plane) == 1) {
+            PUT_BIT((value < 0) ? 1 : 0);
+          }
+          continue;
+        }
+        int any_set = int((REGION_OR_L(x, y, size_log) >> plane) & 1u);
+        PUT_BIT(any_set);
+        if (any_set != 0) {
+          int half_size = size / 2, child_size_log = size_log - 1;
+          stack[stack_pointer++] = (x + half_size) | ((y + half_size) << 8) | (child_size_log << 16);
+          stack[stack_pointer++] = x | ((y + half_size) << 8) | (child_size_log << 16);
+          stack[stack_pointer++] = (x + half_size) | (y << 8) | (child_size_log << 16);
+          stack[stack_pointer++] = x | (y << 8) | (child_size_log << 16);
+        }
+      }
+    } else {
+      for (int i = 0; i < coefficient_count; i++) {
+        int row = i / block_width, column = i - (row * block_width);
+        int value = coefficients[block_base + (row * push.width) + column];
+        int magnitude = (value < 0) ? -value : value;
+        int bit = (magnitude >> plane) & 1;
+        PUT_BIT(bit);
+        if (bit != 0 && (magnitude >> plane) == 1) {
+          PUT_BIT((value < 0) ? 1 : 0);
+        }
+      }
+    }
+  }
+  while (accumulator_bits != 0) {
+    PUT_BIT(0);
+  }
+  if (word_bytes != 0) {
+    data[word_position++] = word;
+  }
+}

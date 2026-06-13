@@ -967,7 +967,7 @@ var application = {
 
       canvas.setModelMatrix(rayMatrix);
       canvas.setColor(1.0, 1.0, 1.0, 1.0); 
-      canvas.drawFilledRectangle(0, 0, rayWidth, rayLength);
+      //canvas.drawFilledRectangle(0, 0, rayWidth, rayLength);
     }
     
     // Reset model matrix

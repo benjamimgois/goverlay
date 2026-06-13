@@ -159,3 +159,6 @@ modules:
         mkdir -p /app/lib/extensions/vulkan/vkBasalt
         # Install metainfo
         install -Dm644 data/${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo
+        # Create a convenience symlink so pascube can find assets at /app/assets/
+        # (pascube resolves: dirname(ParamStr(0))/../assets = /app/libexec/../assets = /app/assets)
+        ln -sf /app/share/goverlay/assets /app/assets

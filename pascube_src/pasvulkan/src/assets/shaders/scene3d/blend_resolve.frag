@@ -14,23 +14,34 @@ layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput uS
 
 #ifdef MSAA
 
+#ifdef WATER
 #ifdef NO_MSAA_WATER
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput uSubpassInputWater;
 #else
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInputMS uSubpassInputWater;
 #endif
-
 layout(input_attachment_index = 2, set = 0, binding = 2) uniform subpassInputMS uSubpassInputTransparent;
 #else
+layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInputMS uSubpassInputTransparent;
+#endif
 
+#else
+
+#ifdef WATER
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput uSubpassInputWater;
-
 layout(input_attachment_index = 2, set = 0, binding = 2) uniform subpassInput uSubpassInputTransparent;
+#else
+layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput uSubpassInputTransparent;
+#endif
 
 #endif
 
 #if defined(MSAA)
+#ifdef WATER
 layout(set = 0, binding = 3, std430) buffer HistogramLuminanceBuffer {
+#else
+layout(set = 0, binding = 2, std430) buffer HistogramLuminanceBuffer {
+#endif
   float histogramLuminance;
   float luminanceFactor; 
 } histogramLuminanceBuffer;
@@ -69,6 +80,7 @@ void main() {
   bool hasTransparency = transparency.w > 1e-4;
   blend(color, transparency);
 
+#ifdef WATER
   vec4 waterColor;  
 #if defined(MSAA) && !defined(NO_MSAA_WATER)
   {
@@ -85,6 +97,7 @@ void main() {
     hasTransparency = true;
   }
   blend(color, waterColor);
+#endif
 
   blend(color, subpassLoad(uSubpassInputOpaque));
 

@@ -265,7 +265,7 @@ begin
                                                                  1,
                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER),
                                                                  [TVkDescriptorImageInfo.Create(fInstance.Renderer.ClampedSampler.Handle,
-                                                                                                fInstance.DepthMipmappedArray2DImage.VulkanArrayImageView.Handle,
+                                                                                                fInstance.DepthMipmappedArray2DImages[InFlightFrameIndex].VulkanArrayImageView.Handle,
                                                                                                 TVkImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))],
                                                                  [],
                                                                  [],
@@ -406,6 +406,10 @@ begin
  end else begin
   PushConstants.Mode:=0;
  end;
+ if (fInstance.DrawMeshletDebugColors and fInstance.Renderer.Scene3D.MeshShaders) or
+    fInstance.GlobalIlluminationCascadedVoxelConeTracingDebugVisualization then begin
+  PushConstants.Mode:=0;
+ end;
  aCommandBuffer.CmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       fVulkanPipelineLayout.Handle,
                                       0,
@@ -417,7 +421,13 @@ begin
                                  SizeOf(TpvScene3DRendererPassesDepthOfFieldPrepareRenderPass.TPushConstants),
                                  @PushConstants);
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'DepthOfFieldPrepare');
+ end;
  aCommandBuffer.CmdDraw(3,1,0,0);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 end;
 
 end.

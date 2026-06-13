@@ -12447,7 +12447,7 @@ begin
 
     for ColumnIndex:=0 to aListView.fColumns.Count-1 do begin
      Column:=TpvGUIListViewColumn(aListView.fColumns.Items[ColumnIndex]);
-     TextPosition:=Column.fRect.Size; TextPosition:=TextPosition*0.5; TextPosition:=Column.fRect.LeftTop+TextPosition;
+     TextPosition:=Column.fRect.LeftTop+(Column.fRect.Size*0.5);
      aDrawEngine.ClipRect:=TpvRect.CreateRelative(ClipRect.LeftTop+Column.fRect.LeftTop,
                                                   Column.fRect.Size).GetIntersection(ClipRect);
      aDrawEngine.DrawText(Column.fCaption,TextPosition);

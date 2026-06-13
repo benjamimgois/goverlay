@@ -196,6 +196,33 @@ type PpvScalar=^TpvScalar;
        x,y:TpvInt32;
      end;
 
+     PPpvUInt32Vector2=^PpvUInt32Vector2;
+     PpvUInt32Vector2=^TpvUInt32Vector2;
+     TpvUInt32Vector2=packed record
+      public
+       constructor Create(const aX:TpvUInt32); overload;
+       constructor Create(const aX,aY:TpvUInt32); overload;
+       class function InlineableCreate(const aX:TpvUInt32):TpvUInt32Vector2; overload; inline; static;
+       class function InlineableCreate(const aX,aY:TpvUInt32):TpvUInt32Vector2; overload; inline; static;
+       class operator Implicit(const aScalar:TpvUInt32):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Explicit(const aScalar:TpvUInt32):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Equal(const aLeft,aRight:TpvUInt32Vector2):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator NotEqual(const aLeft,aRight:TpvUInt32Vector2):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Add(const a,b:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Subtract(const a,b:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Multiply(const aLeft,aRight:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Multiply(const aLeft:TpvUInt32Vector2;const aRight:TpvUInt32):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Multiply(const aLeft:TpvUInt32;const aRight:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Divide(const aLeft,aRight:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Divide(const aLeft:TpvUInt32Vector2;const aRight:TpvUInt32):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Divide(const aLeft:TpvUInt32;const aRight:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Negative(const aValue:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Positive(const aValue:TpvUInt32Vector2):TpvUInt32Vector2; {$ifdef CAN_INLINE}inline;{$endif}
+       function Length:TpvScalar; {$ifdef CAN_INLINE}inline;{$endif}
+      public
+       x,y:TpvUInt32;
+     end;
+
      PpvVector2=^TpvVector2;
      TpvVector2=record
       public
@@ -491,6 +518,52 @@ type PpvScalar=^TpvScalar;
         5:(Vector2:TpvHalfFloatVector2);
         6:(Vector3:TpvHalfFloatVector3);
         7:(RawIntComponents:array[0..3] of TpvUInt16);
+     end;
+
+     PpvUInt32Vector3=^TpvUInt32Vector3;
+     TpvUInt32Vector3=packed record
+      public
+       case TpvUInt8 of
+        0:(RawComponents:array[0..2] of TpvUInt32);
+        1:(x,y,z:TpvUInt32);
+        2:(r,g,b:TpvUInt32);
+        3:(s,t,p:TpvUInt32);
+        5:(Vector2:TpvUInt32Vector2);
+     end;
+
+     PpvUInt32Vector4=^TpvUInt32Vector4;
+     TpvUInt32Vector4=packed record
+      public
+       case TpvUInt8 of
+        0:(RawComponents:array[0..3] of TpvUInt32);
+        1:(x,y,z,w:TpvUInt32);
+        2:(r,g,b,a:TpvUInt32);
+        3:(s,t,p,q:TpvUInt32);
+        5:(Vector2:TpvUInt32Vector2);
+        6:(Vector3:TpvUInt32Vector3);
+     end;
+
+     PpvInt32Vector3=^TpvInt32Vector3;
+     TpvInt32Vector3=packed record
+      public
+       case TpvUInt8 of
+        0:(RawComponents:array[0..2] of TpvInt32);
+        1:(x,y,z:TpvInt32);
+        2:(r,g,b:TpvInt32);
+        3:(s,t,p:TpvInt32);
+        5:(Vector2:TpvInt32Vector2);
+     end;
+
+     PpvInt32Vector4=^TpvInt32Vector4;
+     TpvInt32Vector4=packed record
+      public
+       case TpvUInt8 of
+        0:(RawComponents:array[0..3] of TpvInt32);
+        1:(x,y,z,w:TpvInt32);
+        2:(r,g,b,a:TpvInt32);
+        3:(s,t,p,q:TpvInt32);
+        5:(Vector2:TpvInt32Vector2);
+        6:(Vector3:TpvInt32Vector3);
      end;
 
      PpvInt8PackedTangentSpace=^TpvInt8PackedTangentSpace;
@@ -1021,6 +1094,8 @@ type PpvScalar=^TpvScalar;
        function MulTransposedBasis({$ifdef fpc}constref{$else}const{$endif} a:TpvVector4):TpvVector4; overload; {$ifdef CAN_INLINE}inline;{$endif}
        function MulHomogen({$ifdef fpc}constref{$else}const{$endif} a:TpvVector3):TpvVector3; overload; //{$ifdef CAN_INLINE}inline;{$endif}
        function MulHomogen({$ifdef fpc}constref{$else}const{$endif} a:TpvVector4):TpvVector4; overload; //{$ifdef CAN_INLINE}inline;{$endif}
+       function Equals({$ifdef fpc}constref{$else}const{$endif} WithMatrix:TpvMatrix4x4):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       function NotEquals({$ifdef fpc}constref{$else}const{$endif} WithMatrix:TpvMatrix4x4):boolean; {$ifdef CAN_INLINE}inline;{$endif}
        function Decompose:TpvDecomposedMatrix4x4;
        property Components[const pIndexA,pIndexB:TpvInt32]:TpvScalar read GetComponent write SetComponent; default;
        property Columns[const pIndex:TpvInt32]:TpvVector4 read GetColumn write SetColumn;
@@ -1190,6 +1265,87 @@ type PpvScalar=^TpvScalar;
      PpvOBBs=^TpvOBBs;
      TpvOBBs=array[0..65535] of TpvOBB;
 
+
+     PpvRect=^TpvRect;
+     TpvRect=packed record
+      private
+       function GetWidth:TpvFloat; {$ifdef CAN_INLINE}inline;{$endif}
+       procedure SetWidth(const aWidth:TpvFloat); {$ifdef CAN_INLINE}inline;{$endif}
+       function GetHeight:TpvFloat; {$ifdef CAN_INLINE}inline;{$endif}
+       procedure SetHeight(const aHeight:TpvFloat); {$ifdef CAN_INLINE}inline;{$endif}
+       function GetSize:TpvVector2; {$ifdef CAN_INLINE}inline;{$endif}
+       procedure SetSize(const aSize:TpvVector2); {$ifdef CAN_INLINE}inline;{$endif}
+      public
+       constructor CreateFromVkRect2D(const aFrom:TVkRect2D); overload;
+       constructor CreateAbsolute(const aLeft,aTop,aRight,aBottom:TpvFloat); overload;
+       constructor CreateAbsolute(const aLeftTop,aRightBottom:TpvVector2); overload;
+       constructor CreateRelative(const aLeft,aTop,aWidth,aHeight:TpvFloat); overload;
+       constructor CreateRelative(const aLeftTop,aSize:TpvVector2); overload;
+       class operator Implicit(const a:TVkRect2D):TpvRect; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Explicit(const a:TVkRect2D):TpvRect; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Implicit(const a:TpvRect):TVkRect2D; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Explicit(const a:TpvRect):TVkRect2D; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator Equal(const a,b:TpvRect):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       class operator NotEqual(const a,b:TpvRect):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       function ToVkRect2D:TVkRect2D; {$ifdef CAN_INLINE}inline;{$endif}
+       function Cost:TpvScalar; {$ifdef CAN_INLINE}inline;{$endif}
+       function Area:TpvScalar; {$ifdef CAN_INLINE}inline;{$endif}
+       function Center:TpvVector2; {$ifdef CAN_INLINE}inline;{$endif}
+       function Combine(const aWithRect:TpvRect):TpvRect; overload; {$ifdef CAN_INLINE}inline;{$endif}
+       function Combine(const aWithPoint:TpvVector2):TpvRect; overload; {$ifdef CAN_INLINE}inline;{$endif}
+       procedure DirectCombine(const aWithRect:TpvRect); overload; {$ifdef CAN_INLINE}inline;{$endif}
+       procedure DirectCombine(const aWithPoint:TpvVector2); overload; {$ifdef CAN_INLINE}inline;{$endif}
+       function Intersect(const aWithRect:TpvRect;Threshold:TpvScalar=EPSILON):boolean; overload;// {$ifdef CAN_INLINE}inline;{$endif}
+       function Contains(const aWithRect:TpvRect;Threshold:TpvScalar=EPSILON):boolean; overload;// {$ifdef CAN_INLINE}inline;{$endif}
+       function GetIntersection(const WithAABB:TpvRect):TpvRect; {$ifdef CAN_INLINE}inline;{$endif}
+       function Touched(const aPosition:TpvVector2;Threshold:TpvScalar=EPSILON):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       property Width:TpvFloat read GetWidth write SetWidth;
+       property Height:TpvFloat read GetHeight write SetHeight;
+       property Size:TpvVector2 read GetSize write SetSize;
+      public
+       case TpvInt32 of
+        0:(
+         Left:TpvFloat;
+         Top:TpvFloat;
+         Right:TpvFloat;
+         Bottom:TpvFloat;
+        );
+        1:(
+         MinX:TpvFloat;
+         MinY:TpvFloat;
+         MaxX:TpvFloat;
+         MaxY:TpvFloat;
+        );
+        2:(
+         LeftTop:TpvVector2;
+         RightBottom:TpvVector2;
+        );
+        3:(
+         Min:TpvVector2;
+         Max:TpvVector2;
+        );
+        4:(
+         Offset:TpvVector2;
+        );
+        5:(
+         Vector4:TpvVector4;
+        );
+        6:(
+         AxisComponents:array[0..1,0..1] of TpvFloat;
+        );
+        7:(
+         Components:array[0..3] of TpvFloat;
+        );
+        8:(
+         MinMax:array[0..1] of TpvVector2;
+        );
+     end;
+
+     TpvRectArray=array of TpvRect;
+
+     PpvAABB2D=^TpvAABB2D;
+     TpvAABB2D=TpvRect;
+
      PpvAABB=^TpvAABB;
      TpvAABB=record
       public
@@ -1239,6 +1395,7 @@ type PpvScalar=^TpvScalar;
        function ScissorRect(out Scissor:TpvFloatClipRect;const mvp:TpvMatrix4x4;const vp:TpvFloatClipRect;zcull:boolean):boolean; overload; {$ifdef CAN_INLINE}inline;{$endif}
        function MovingTest(const aAABBTo,bAABBFrom,bAABBTo:TpvAABB;var t:TpvScalar):boolean;
        function SweepTest(const bAABB:TpvAABB;const aV,bV:TpvVector3;var FirstTime,LastTime:TpvScalar):boolean; {$ifdef CAN_INLINE}inline;{$endif}
+       function ProjectToViewport(const aViewProjectionMatrix:TpvMatrix4x4;const aViewportWidth,aViewportHeight:TpvScalar):TpvAABB2D;
        case boolean of
         false:(
          Min,Max:TpvVector3;
@@ -1320,86 +1477,6 @@ type PpvScalar=^TpvScalar;
        constructor CreateFromCartesianVector(const v:TpvVector4); overload;
        function ToCartesianVector:TpvVector3;
      end;
-
-     PpvRect=^TpvRect;
-     TpvRect=packed record
-      private
-       function GetWidth:TpvFloat; {$ifdef CAN_INLINE}inline;{$endif}
-       procedure SetWidth(const aWidth:TpvFloat); {$ifdef CAN_INLINE}inline;{$endif}
-       function GetHeight:TpvFloat; {$ifdef CAN_INLINE}inline;{$endif}
-       procedure SetHeight(const aHeight:TpvFloat); {$ifdef CAN_INLINE}inline;{$endif}
-       function GetSize:TpvVector2; {$ifdef CAN_INLINE}inline;{$endif}
-       procedure SetSize(const aSize:TpvVector2); {$ifdef CAN_INLINE}inline;{$endif}
-      public
-       constructor CreateFromVkRect2D(const aFrom:TVkRect2D); overload;
-       constructor CreateAbsolute(const aLeft,aTop,aRight,aBottom:TpvFloat); overload;
-       constructor CreateAbsolute(const aLeftTop,aRightBottom:TpvVector2); overload;
-       constructor CreateRelative(const aLeft,aTop,aWidth,aHeight:TpvFloat); overload;
-       constructor CreateRelative(const aLeftTop,aSize:TpvVector2); overload;
-       class operator Implicit(const a:TVkRect2D):TpvRect; {$ifdef CAN_INLINE}inline;{$endif}
-       class operator Explicit(const a:TVkRect2D):TpvRect; {$ifdef CAN_INLINE}inline;{$endif}
-       class operator Implicit(const a:TpvRect):TVkRect2D; {$ifdef CAN_INLINE}inline;{$endif}
-       class operator Explicit(const a:TpvRect):TVkRect2D; {$ifdef CAN_INLINE}inline;{$endif}
-       class operator Equal(const a,b:TpvRect):boolean; {$ifdef CAN_INLINE}inline;{$endif}
-       class operator NotEqual(const a,b:TpvRect):boolean; {$ifdef CAN_INLINE}inline;{$endif}
-       function ToVkRect2D:TVkRect2D; {$ifdef CAN_INLINE}inline;{$endif}
-       function Cost:TpvScalar; {$ifdef CAN_INLINE}inline;{$endif}
-       function Area:TpvScalar; {$ifdef CAN_INLINE}inline;{$endif}
-       function Center:TpvVector2; {$ifdef CAN_INLINE}inline;{$endif}
-       function Combine(const aWithRect:TpvRect):TpvRect; overload; {$ifdef CAN_INLINE}inline;{$endif}
-       function Combine(const aWithPoint:TpvVector2):TpvRect; overload; {$ifdef CAN_INLINE}inline;{$endif}
-       procedure DirectCombine(const aWithRect:TpvRect); overload; {$ifdef CAN_INLINE}inline;{$endif}
-       procedure DirectCombine(const aWithPoint:TpvVector2); overload; {$ifdef CAN_INLINE}inline;{$endif}
-       function Intersect(const aWithRect:TpvRect;Threshold:TpvScalar=EPSILON):boolean; overload;// {$ifdef CAN_INLINE}inline;{$endif}
-       function Contains(const aWithRect:TpvRect;Threshold:TpvScalar=EPSILON):boolean; overload;// {$ifdef CAN_INLINE}inline;{$endif}
-       function GetIntersection(const WithAABB:TpvRect):TpvRect; {$ifdef CAN_INLINE}inline;{$endif}
-       function Touched(const aPosition:TpvVector2;Threshold:TpvScalar=EPSILON):boolean; {$ifdef CAN_INLINE}inline;{$endif}
-       property Width:TpvFloat read GetWidth write SetWidth;
-       property Height:TpvFloat read GetHeight write SetHeight;
-       property Size:TpvVector2 read GetSize write SetSize;
-      public
-       case TpvInt32 of
-        0:(
-         Left:TpvFloat;
-         Top:TpvFloat;
-         Right:TpvFloat;
-         Bottom:TpvFloat;
-        );
-        1:(
-         MinX:TpvFloat;
-         MinY:TpvFloat;
-         MaxX:TpvFloat;
-         MaxY:TpvFloat;
-        );
-        2:(
-         LeftTop:TpvVector2;
-         RightBottom:TpvVector2;
-        );
-        3:(
-         Min:TpvVector2;
-         Max:TpvVector2;
-        );
-        4:(
-         Offset:TpvVector2;
-        );
-        5:(
-         Vector4:TpvVector4;
-        );
-        6:(
-         AxisComponents:array[0..1,0..1] of TpvFloat;
-        );
-        7:(
-         Components:array[0..3] of TpvFloat;
-        );
-        8:(
-         MinMax:array[0..1] of TpvVector2;
-        );
-     end;
-
-     TpvRectArray=array of TpvRect;
-
-     PpvAABB2D=^TpvAABB2D;
-     TpvAABB2D=TpvRect;
 
      Vec2=TpvVector2;
 
@@ -2582,7 +2659,7 @@ begin
  end;
 end;
 
-{ TpvIntVector2 }
+{ TpvInt32Vector2 }
 
 constructor TpvInt32Vector2.Create(const aX:TpvInt32);
 begin
@@ -2712,6 +2789,140 @@ begin
 end;
 
 function TpvInt32Vector2.Length:TpvScalar;
+begin
+ result:=sqrt(sqr(x)+sqr(y));
+end;
+
+{ TpvUInt32Vector2 }
+
+constructor TpvUInt32Vector2.Create(const aX:TpvUInt32);
+begin
+ x:=aX;
+ y:=aX;
+end;
+
+constructor TpvUInt32Vector2.Create(const aX,aY:TpvUInt32);
+begin
+ x:=aX;
+ y:=aY;
+end;
+
+class function TpvUInt32Vector2.InlineableCreate(const aX:TpvUInt32):TpvUInt32Vector2;
+begin
+ result.x:=aX;
+ result.y:=aX;
+end;
+
+class function TpvUInt32Vector2.InlineableCreate(const aX,aY:TpvUInt32):TpvUInt32Vector2;
+begin
+ result.x:=aX;
+ result.y:=aY;
+end;
+
+class operator TpvUInt32Vector2.Implicit(const aScalar:TpvUInt32):TpvUInt32Vector2;
+begin
+ result.x:=aScalar;
+ result.y:=aScalar;
+end;
+
+class operator TpvUInt32Vector2.Explicit(const aScalar:TpvUInt32):TpvUInt32Vector2;
+begin
+ result.x:=aScalar;
+ result.y:=aScalar;
+end;
+
+class operator TpvUInt32Vector2.Equal(const aLeft,aRight:TpvUInt32Vector2):boolean;
+begin
+ result:=(aLeft.x=aRight.x) and (aLeft.y=aRight.y);
+end;
+
+class operator TpvUInt32Vector2.NotEqual(const aLeft,aRight:TpvUInt32Vector2):boolean;
+begin
+ result:=(aLeft.x<>aRight.x) or (aLeft.y<>aRight.y);
+end;
+
+class operator TpvUInt32Vector2.Add(const a,b:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ result.x:=a.x+b.x;
+ result.y:=a.y+b.y;
+end;
+
+class operator TpvUInt32Vector2.Subtract(const a,b:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ result.x:=a.x-b.x;
+ result.y:=a.y-b.y;
+end;
+
+class operator TpvUInt32Vector2.Negative(const aValue:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ result.x:=-aValue.x;
+ result.y:=-aValue.y;
+end;
+
+class operator TpvUInt32Vector2.Positive(const aValue:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ result.x:=aValue.x;
+ result.y:=aValue.y;
+end;
+
+class operator TpvUInt32Vector2.Multiply(const aLeft,aRight:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ result.x:=aLeft.x*aRight.x;
+ result.y:=aLeft.y*aRight.y;
+end;
+
+class operator TpvUInt32Vector2.Multiply(const aLeft:TpvUInt32Vector2;const aRight:TpvUInt32):TpvUInt32Vector2;
+begin
+ result.x:=aLeft.x*aRight;
+ result.y:=aLeft.y*aRight;
+end;
+
+class operator TpvUInt32Vector2.Multiply(const aLeft:TpvUInt32;const aRight:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ result.x:=aLeft*aRight.x;
+ result.y:=aLeft*aRight.y;
+end;
+
+class operator TpvUInt32Vector2.Divide(const aLeft,aRight:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ if aRight.x<>0 then begin
+  result.x:=aLeft.x div aRight.x;
+ end else begin
+  result.x:=0;
+ end;
+ if aRight.y<>0 then begin
+  result.y:=aLeft.y div aRight.y;
+ end else begin
+  result.y:=0;
+ end;
+end;
+
+class operator TpvUInt32Vector2.Divide(const aLeft:TpvUInt32Vector2;const aRight:TpvUInt32):TpvUInt32Vector2;
+begin
+ if aRight<>0 then begin
+  result.x:=aLeft.x div aRight;
+  result.y:=aLeft.y div aRight;
+ end else begin
+  result.x:=0;
+  result.y:=0;
+ end;
+end;
+
+class operator TpvUInt32Vector2.Divide(const aLeft:TpvUInt32;const aRight:TpvUInt32Vector2):TpvUInt32Vector2;
+begin
+ if aRight.x<>0 then begin
+  result.x:=aLeft div aRight.x;
+ end else begin
+  result.x:=0;
+ end;
+ if aRight.y<>0 then begin
+  result.y:=aLeft div aRight.y;
+ end else begin
+  result.y:=0;
+ end;
+end;
+
+function TpvUInt32Vector2.Length:TpvScalar;
 begin
  result:=sqrt(sqr(x)+sqr(y));
 end;
@@ -13400,6 +13611,46 @@ begin
  result:=result/result.w;
 end;
 
+function TpvMatrix4x4.Equals({$ifdef fpc}constref{$else}const{$endif} WithMatrix:TpvMatrix4x4):boolean;
+begin
+ result:=(RawComponents[0,0]=WithMatrix.RawComponents[0,0]) and
+         (RawComponents[0,1]=WithMatrix.RawComponents[0,1]) and
+         (RawComponents[0,2]=WithMatrix.RawComponents[0,2]) and
+         (RawComponents[0,3]=WithMatrix.RawComponents[0,3]) and
+         (RawComponents[1,0]=WithMatrix.RawComponents[1,0]) and
+         (RawComponents[1,1]=WithMatrix.RawComponents[1,1]) and
+         (RawComponents[1,2]=WithMatrix.RawComponents[1,2]) and
+         (RawComponents[1,3]=WithMatrix.RawComponents[1,3]) and
+         (RawComponents[2,0]=WithMatrix.RawComponents[2,0]) and
+         (RawComponents[2,1]=WithMatrix.RawComponents[2,1]) and
+         (RawComponents[2,2]=WithMatrix.RawComponents[2,2]) and
+         (RawComponents[2,3]=WithMatrix.RawComponents[2,3]) and
+         (RawComponents[3,0]=WithMatrix.RawComponents[3,0]) and
+         (RawComponents[3,1]=WithMatrix.RawComponents[3,1]) and
+         (RawComponents[3,2]=WithMatrix.RawComponents[3,2]) and
+         (RawComponents[3,3]=WithMatrix.RawComponents[3,3]);
+end;
+
+function TpvMatrix4x4.NotEquals({$ifdef fpc}constref{$else}const{$endif} WithMatrix:TpvMatrix4x4):boolean;
+begin
+ result:=(RawComponents[0,0]<>WithMatrix.RawComponents[0,0]) or
+         (RawComponents[0,1]<>WithMatrix.RawComponents[0,1]) or
+         (RawComponents[0,2]<>WithMatrix.RawComponents[0,2]) or
+         (RawComponents[0,3]<>WithMatrix.RawComponents[0,3]) or
+         (RawComponents[1,0]<>WithMatrix.RawComponents[1,0]) or
+         (RawComponents[1,1]<>WithMatrix.RawComponents[1,1]) or
+         (RawComponents[1,2]<>WithMatrix.RawComponents[1,2]) or
+         (RawComponents[1,3]<>WithMatrix.RawComponents[1,3]) or
+         (RawComponents[2,0]<>WithMatrix.RawComponents[2,0]) or
+         (RawComponents[2,1]<>WithMatrix.RawComponents[2,1]) or
+         (RawComponents[2,2]<>WithMatrix.RawComponents[2,2]) or
+         (RawComponents[2,3]<>WithMatrix.RawComponents[2,3]) or
+         (RawComponents[3,0]<>WithMatrix.RawComponents[3,0]) or
+         (RawComponents[3,1]<>WithMatrix.RawComponents[3,1]) or
+         (RawComponents[3,2]<>WithMatrix.RawComponents[3,2]) or
+         (RawComponents[3,3]<>WithMatrix.RawComponents[3,3]);
+end;
+
 function TpvMatrix4x4.Decompose:TpvDecomposedMatrix4x4;
 var LocalMatrix,PerspectiveMatrix:TpvMatrix4x4;
     BasisMatrix:TpvMatrix3x3;
@@ -16659,6 +16910,39 @@ begin
   FirstTime:=Math.Max(Math.Max(tMin.x,tMin.y),tMin.z);
   LastTime:=Math.Min(Math.Min(tMax.x,tMax.y),tMax.z);
   result:=(LastTime>=0.0) and (FirstTime<=1.0) and (FirstTime<=LastTime);
+ end;
+end;
+
+function TpvAABB.ProjectToViewport(const aViewProjectionMatrix:TpvMatrix4x4;const aViewportWidth,aViewportHeight:TpvScalar):TpvAABB2D;
+const Half:TpvVector2=(x:0.5;y:0.5);
+var i:TpvInt32;
+    v:TpvVector4;
+    p:TpvVector2;
+    First:Boolean;
+begin
+ result.Min:=TpvVector2.Origin;
+ result.Max:=TpvVector2.Origin;
+ First:=true;
+ for i:=0 to 7 do begin
+  v:=aViewProjectionMatrix*TpvVector4.Create(MinMax[(i shr 0) and 1].x,
+                                             MinMax[(i shr 1) and 1].y,
+                                             MinMax[(i shr 2) and 1].z,
+                                             1.0);
+  v:=v/v.w;
+  // Include only visible vertices, and ignore vertices behind the camera
+  if v.z>=0.0 then begin
+   p:=((v.xy*0.5)+Half)*TpvVector2.InlineableCreate(aViewportWidth,aViewportHeight);                                           
+   if First then begin
+    result.Min:=p;
+    result.Max:=p;
+    First:=false;
+   end else begin
+    result.Min.x:=Math.Min(result.Min.x,p.x);
+    result.Min.y:=Math.Min(result.Min.y,p.y);
+    result.Max.x:=Math.Max(result.Max.x,p.x);
+    result.Max.y:=Math.Max(result.Max.y,p.y);
+   end;
+  end; 
  end;
 end;
 
@@ -21502,7 +21786,7 @@ begin
  result:=((TpvUInt32(round(clamp(q.x*511.0,-511.0,511.0)+512.0)) and $3ff) shl 0) or
          ((TpvUInt32(round(clamp(q.y*511.0,-511.0,511.0)+512.0)) and $3ff) shl 10) or
          ((TpvUInt32(round(clamp(q.z*255.0,-255.0,255.0)+256.0)) and $1ff) shl 20) or
-         (TpvUInt32(Ord((aTangent.Cross(aNormal).Dot(aBitangent)*Scale)<0.0) and 1) shl 29) or
+         (TpvUInt32(Ord((aNormal.Cross(aTangent).Dot(aBitangent)*Scale)<0.0) and 1) shl 29) or
          ((TpvUInt32(MaxComponentIndex and 3) shl 30));
 end;
 
@@ -21547,7 +21831,7 @@ begin
  tz:=q.www*t2.xyz;
  aTangent:=TpvVector3.InlineableCreate(1.0-(ty.y+(q.z*t2.z)),tx.y+tz.z,tx.z-tz.y).Normalize;
  aNormal:=TpvVector3.InlineableCreate(tx.z+tz.y,ty.z-tz.x,1.0-(tx.x+ty.y)).Normalize;
- aBitangent:=aTangent.Cross(aNormal)*TpvScalar(TpvInt32(1-((Ord((aValue and (TpvUInt32(1) shl 29))<>0) and 1) shl 1)));
+ aBitangent:=aNormal.Cross(aTangent)*TpvScalar(TpvInt32(1-((Ord((aValue and (TpvUInt32(1) shl 29))<>0) and 1) shl 1)));
 end;
 
 function DecodeQTangentUI32(const aValue:TpvUInt32):TpvMatrix3x3;

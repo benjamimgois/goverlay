@@ -27,6 +27,9 @@ layout(set = 1, binding = 1) uniform sampler3D uVoxelGridOcclusion[];
 
 layout(set = 1, binding = 2) uniform sampler3D uVoxelGridRadiance[];
 
+// Unlit base-colour + emission visualization volume (E5B9G9R9 sample view), filled while the debug visualization is active.
+layout(set = 1, binding = 3) uniform sampler3D uVoxelGridVisualization[];
+
 void main(){
 
   ivec3 position = ivec3(inPosition[0]); // gl_in[0].gl_Position.xyz
@@ -37,13 +40,13 @@ void main(){
        all(lessThan(position, voxelGridData.cascadeAvoidAABBGridMax[cascadeIndex].xyz)))){
 
     vec4 colors[6] = vec4[6](
-      texelFetch(uVoxelGridRadiance[(cascadeIndex * 6) + 0], position, 0),
-      texelFetch(uVoxelGridRadiance[(cascadeIndex * 6) + 1], position, 0),
-      texelFetch(uVoxelGridRadiance[(cascadeIndex * 6) + 2], position, 0),
-      texelFetch(uVoxelGridRadiance[(cascadeIndex * 6) + 3], position, 0),
-      texelFetch(uVoxelGridRadiance[(cascadeIndex * 6) + 4], position, 0),
-      texelFetch(uVoxelGridRadiance[(cascadeIndex * 6) + 5], position, 0)
-    ); 
+      texelFetch(uVoxelGridVisualization[(cascadeIndex * 6) + 0], position, 0),
+      texelFetch(uVoxelGridVisualization[(cascadeIndex * 6) + 1], position, 0),
+      texelFetch(uVoxelGridVisualization[(cascadeIndex * 6) + 2], position, 0),
+      texelFetch(uVoxelGridVisualization[(cascadeIndex * 6) + 3], position, 0),
+      texelFetch(uVoxelGridVisualization[(cascadeIndex * 6) + 4], position, 0),
+      texelFetch(uVoxelGridVisualization[(cascadeIndex * 6) + 5], position, 0)
+    );
 
     mat4 viewProjectionMatrix = inViewProjectionMatrix[0];
 
@@ -74,7 +77,8 @@ void main(){
       
       ivec4 quadIndices = quadIndicesArray[quadIndexCounter];
             
-      if(colors[quadIndexCounter].w > 1e-6){
+      // The E5B9G9R9 sample has no alpha (always 1.0), so emptiness must be tested on rgb only.
+      if(dot(colors[quadIndexCounter].xyz, colors[quadIndexCounter].xyz) > 1e-12){
       
         outColor = colors[quadIndexCounter];
       

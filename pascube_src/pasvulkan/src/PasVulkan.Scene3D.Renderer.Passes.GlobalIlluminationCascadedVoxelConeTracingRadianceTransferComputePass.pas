@@ -81,6 +81,7 @@ type { TpvScene3DRendererPassesGlobalIlluminationCascadedVoxelConeTracingRadianc
       public
       private
        fInstance:TpvScene3DRendererInstance;
+       fResourceCascadedShadowMap:TpvFrameGraph.TPass.TUsedImageResource;
        fComputeShaderModule:TpvVulkanShaderModule;
        fVulkanPipelineShaderStageCompute:TpvVulkanPipelineShaderStage;
        fVulkanDescriptorSetLayout:TpvVulkanDescriptorSetLayout;
@@ -112,6 +113,12 @@ begin
  fInstance:=aInstance;
 
  Name:='GlobalIlluminationCascadedVoxelConeTracingRadianceTransferComputePass';
+
+ fResourceCascadedShadowMap:=AddImageInput('resourcetype_cascadedshadowmap_data',
+                                           'resource_cascadedshadowmap_data_final',
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                           []
+                                          );
 
  //fFirst:=true;
 
@@ -150,6 +157,7 @@ end;
 procedure TpvScene3DRendererPassesGlobalIlluminationCascadedVoxelConeTracingRadianceTransferComputePass.AcquireVolatileResources;
 var InFlightFrameIndex,Index,CascadeIndex,SideIndex:TpvInt32;
     DescriptorImageInfos:TVkDescriptorImageInfoArray;
+    DescriptorImageInfosVisualization:TVkDescriptorImageInfoArray;
 begin
 
  inherited AcquireVolatileResources;
@@ -157,9 +165,10 @@ begin
  fVulkanDescriptorPool:=TpvVulkanDescriptorPool.Create(fInstance.Renderer.VulkanDevice,
                                                        TVkDescriptorPoolCreateFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
                                                        fInstance.Renderer.CountInFlightFrames);
- fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,fInstance.Renderer.CountInFlightFrames*1);
- fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,fInstance.Renderer.CountInFlightFrames*2);
- fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,fInstance.Renderer.CountInFlightFrames*Max(1,fInstance.Renderer.GlobalIlluminationVoxelCountCascades));
+ fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,fInstance.Renderer.CountInFlightFrames*2);
+ fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,fInstance.Renderer.CountInFlightFrames*4);
+ fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,fInstance.Renderer.CountInFlightFrames*1);
+ fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,fInstance.Renderer.CountInFlightFrames*Max(1,fInstance.Renderer.GlobalIlluminationVoxelCountCascades)*6*2);
  fVulkanDescriptorPool.Initialize;
 
  fVulkanDescriptorSetLayout:=TpvVulkanDescriptorSetLayout.Create(fInstance.Renderer.VulkanDevice);
@@ -183,12 +192,39 @@ begin
                                        Max(1,fInstance.Renderer.GlobalIlluminationVoxelCountCascades)*6,
                                        TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
                                        []);
+ fVulkanDescriptorSetLayout.AddBinding(4,
+                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       1,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
+                                       []);
+ fVulkanDescriptorSetLayout.AddBinding(5,
+                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       1,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
+                                       []);
+ fVulkanDescriptorSetLayout.AddBinding(6,
+                                       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                       1,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
+                                       []);
+ fVulkanDescriptorSetLayout.AddBinding(7,
+                                       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                       1,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
+                                       []);
+ // Binding 8: the visualization volume storage views (R32_UINT, ×6 per cascade). Written (encodeRGB9E5 of unlit base+emission)
+ // only when the debug visualization is active; the descriptor is always bound so the layout stays constant.
+ fVulkanDescriptorSetLayout.AddBinding(8,
+                                       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                       Max(1,fInstance.Renderer.GlobalIlluminationVoxelCountCascades)*6,
+                                       TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
+                                       []);
  fVulkanDescriptorSetLayout.Initialize;
 
  fPipelineLayout:=TpvVulkanPipelineLayout.Create(fInstance.Renderer.VulkanDevice);
  fPipelineLayout.AddPushConstantRange(TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
                                       0,
-                                      SizeOf(TpvUInt32));
+                                      SizeOf(TpvUInt32)*2);
  fPipelineLayout.AddDescriptorSetLayout(fVulkanDescriptorSetLayout);
  fPipelineLayout.Initialize;
 
@@ -203,15 +239,21 @@ begin
  for InFlightFrameIndex:=0 to FrameGraph.CountInFlightFrames-1 do begin
 
   DescriptorImageInfos:=nil;
+  DescriptorImageInfosVisualization:=nil;
   try
 
    SetLength(DescriptorImageInfos,fInstance.Renderer.GlobalIlluminationVoxelCountCascades*6);
+   SetLength(DescriptorImageInfosVisualization,fInstance.Renderer.GlobalIlluminationVoxelCountCascades*6);
    Index:=0;
    for CascadeIndex:=0 to fInstance.Renderer.GlobalIlluminationVoxelCountCascades-1 do begin
     for SideIndex:=0 to 5 do begin
      DescriptorImageInfos[Index]:=TVkDescriptorImageInfo.Create(VK_NULL_HANDLE,
                                                                 fInstance.GlobalIlluminationCascadedVoxelConeTracingRadianceImages[CascadeIndex,SideIndex].VulkanImageViews[0].Handle,
                                                                 VK_IMAGE_LAYOUT_GENERAL);
+     // R32_UINT storage view (mip 0) of the visualization volume; the shader imageStores encodeRGB9E5 here.
+     DescriptorImageInfosVisualization[Index]:=TVkDescriptorImageInfo.Create(VK_NULL_HANDLE,
+                                                                             fInstance.GlobalIlluminationCascadedVoxelConeTracingVisualizationImages[CascadeIndex,SideIndex].VulkanImageViews[0].Handle,
+                                                                             VK_IMAGE_LAYOUT_GENERAL);
      inc(Index);
     end;
    end;
@@ -232,7 +274,7 @@ begin
                                                                   1,
                                                                   TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                   [],
-                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffer.DescriptorBufferInfo],
+                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                   [],
                                                                   false
                                                                  );
@@ -241,7 +283,7 @@ begin
                                                                   1,
                                                                   TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
                                                                   [],
-                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffer.DescriptorBufferInfo],
+                                                                  [fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffers[InFlightFrameIndex].DescriptorBufferInfo],
                                                                   [],
                                                                   false
                                                                  );
@@ -254,10 +296,58 @@ begin
                                                                   [],
                                                                   false
                                                                  );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(4,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                                                  [],
+                                                                  [fInstance.Scene3D.LightBuffers[InFlightFrameIndex].LightItemsVulkanBuffer.DescriptorBufferInfo],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(5,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                                                  [],
+                                                                  [fInstance.Scene3D.LightBuffers[InFlightFrameIndex].LightTreeVulkanBuffer.DescriptorBufferInfo],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(6,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER),
+                                                                  [],
+                                                                  [fInstance.CascadedShadowMapVulkanUniformBuffers[InFlightFrameIndex].DescriptorBufferInfo],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(7,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER),
+                                                                  [TVkDescriptorImageInfo.Create(fInstance.Renderer.ClampedNearestSampler.Handle,
+                                                                                                 fResourceCascadedShadowMap.VulkanImageViews[InFlightFrameIndex].Handle,
+                                                                                                 fResourceCascadedShadowMap.ResourceTransition.Layout)],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(8,
+                                                                  0,
+                                                                  length(DescriptorImageInfosVisualization),
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  DescriptorImageInfosVisualization,
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
    fVulkanDescriptorSets[InFlightFrameIndex].Flush;
 
   finally
    DescriptorImageInfos:=nil;
+   DescriptorImageInfosVisualization:=nil;
   end;
 
  end;
@@ -285,8 +375,9 @@ end;
 procedure TpvScene3DRendererPassesGlobalIlluminationCascadedVoxelConeTracingRadianceTransferComputePass.Execute(const aCommandBuffer:TpvVulkanCommandBuffer;const aInFlightFrameIndex,aFrameIndex:TpvSizeInt);
 var InFlightFrameIndex,Index,CascadeIndex,SideIndex:TpvInt32;
     BufferMemoryBarriers:array[0..2] of TVkBufferMemoryBarrier;
-    ImageMemoryBarriers:array[0..(16*6)-1] of TVkImageMemoryBarrier;
+    ImageMemoryBarriers:array[0..(16*6*2)-1] of TVkImageMemoryBarrier;
     InFlightFrameState:TpvScene3DRendererInstance.PInFlightFrameState;
+    PushConstants:array[0..1] of TpvUInt32;
 begin
 
  inherited Execute(aCommandBuffer,aInFlightFrameIndex,aFrameIndex);
@@ -307,7 +398,7 @@ begin
                                                         TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
                                                         VK_QUEUE_FAMILY_IGNORED,
                                                         VK_QUEUE_FAMILY_IGNORED,
-                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffer.Handle,
+                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentDataBuffers[aInFlightFrameIndex].Handle,
                                                         0,
                                                         VK_WHOLE_SIZE);
 
@@ -315,7 +406,7 @@ begin
                                                         TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
                                                         VK_QUEUE_FAMILY_IGNORED,
                                                         VK_QUEUE_FAMILY_IGNORED,
-                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffer.Handle,
+                                                        fInstance.GlobalIlluminationCascadedVoxelConeTracingContentMetaDataBuffers[aInFlightFrameIndex].Handle,
                                                         0,
                                                         VK_WHOLE_SIZE);
 
@@ -335,6 +426,21 @@ begin
                                                                                             0,
                                                                                             1));
    inc(Index);
+   // Visualization volume: always transitioned to GENERAL (kept there permanently) so it has a deterministic layout for both the
+   // optional store here and the sampling in the voxel visualizations, regardless of whether the visualization is active this frame.
+   ImageMemoryBarriers[Index]:=TVkImageMemoryBarrier.Create(TVkAccessFlags(VK_ACCESS_NONE),
+                                                            TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
+                                                            VK_IMAGE_LAYOUT_UNDEFINED,
+                                                            VK_IMAGE_LAYOUT_GENERAL,
+                                                            VK_QUEUE_FAMILY_IGNORED,
+                                                            VK_QUEUE_FAMILY_IGNORED,
+                                                            fInstance.GlobalIlluminationCascadedVoxelConeTracingVisualizationImages[CascadeIndex,SideIndex].VulkanImage.Handle,
+                                                            TVkImageSubresourceRange.Create(TVkImageAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT),
+                                                                                            0,
+                                                                                            fInstance.GlobalIlluminationCascadedVoxelConeTracingVisualizationImages[CascadeIndex,SideIndex].MipMapLevels,
+                                                                                            0,
+                                                                                            1));
+   inc(Index);
   end;
  end;
 
@@ -343,7 +449,7 @@ begin
                                    0,
                                    0,nil,
                                    3,@BufferMemoryBarriers[0],
-                                   fInstance.Renderer.GlobalIlluminationVoxelCountCascades*6,@ImageMemoryBarriers[0]);
+                                   fInstance.Renderer.GlobalIlluminationVoxelCountCascades*6*2,@ImageMemoryBarriers[0]);
 
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_COMPUTE,fPipeline.Handle);
 
@@ -357,15 +463,25 @@ begin
 
  for CascadeIndex:=0 to fInstance.Renderer.GlobalIlluminationVoxelCountCascades-1 do begin
 
+  PushConstants[0]:=TpvUInt32(CascadeIndex);
+  // Gate the unlit base+emission visualization fill on the debug visualization flag, so the extra stores only happen when needed.
+  PushConstants[1]:=TpvUInt32(IfThen(fInstance.GlobalIlluminationCascadedVoxelConeTracingDebugVisualization,1,0));
+
   aCommandBuffer.CmdPushConstants(fPipelineLayout.Handle,
                                   TVkShaderStageFlags(VK_SHADER_STAGE_COMPUTE_BIT),
                                   0,
-                                  SizeOf(TpvUInt32),
-                                  @CascadeIndex);
+                                  SizeOf(TpvUInt32)*2,
+                                  @PushConstants[0]);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'GICVCTRadianceTransfer');
+  end;
   aCommandBuffer.CmdDispatch((fInstance.Renderer.GlobalIlluminationVoxelGridSize+7) shr 3,
                              (fInstance.Renderer.GlobalIlluminationVoxelGridSize+7) shr 3,
                              (fInstance.Renderer.GlobalIlluminationVoxelGridSize+7) shr 3);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
  end;
 
@@ -385,6 +501,20 @@ begin
                                                                                             0,
                                                                                             1));
    inc(Index);
+   // Make the visualization store visible to the subsequent sampling in the voxel visualizations (stays in GENERAL).
+   ImageMemoryBarriers[Index]:=TVkImageMemoryBarrier.Create(TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
+                                                            TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
+                                                            VK_IMAGE_LAYOUT_GENERAL,
+                                                            VK_IMAGE_LAYOUT_GENERAL,
+                                                            VK_QUEUE_FAMILY_IGNORED,
+                                                            VK_QUEUE_FAMILY_IGNORED,
+                                                            fInstance.GlobalIlluminationCascadedVoxelConeTracingVisualizationImages[CascadeIndex,SideIndex].VulkanImage.Handle,
+                                                            TVkImageSubresourceRange.Create(TVkImageAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT),
+                                                                                            0,
+                                                                                            1,
+                                                                                            0,
+                                                                                            1));
+   inc(Index);
   end;
  end;
  aCommandBuffer.CmdPipelineBarrier(TVkPipelineStageFlags(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT),
@@ -392,7 +522,7 @@ begin
                                    0,
                                    0,nil,
                                    2,@BufferMemoryBarriers[1],
-                                   fInstance.Renderer.GlobalIlluminationVoxelCountCascades*6,@ImageMemoryBarriers[0]);
+                                   fInstance.Renderer.GlobalIlluminationVoxelCountCascades*6*2,@ImageMemoryBarriers[0]);
 
 end;
 

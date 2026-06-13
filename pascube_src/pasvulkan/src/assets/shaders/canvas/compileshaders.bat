@@ -49,6 +49,17 @@ set FILLTYPE_VECTOR_PATH=3
 "%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=%FILLTYPE_VECTOR_PATH% -DBLENDING=0 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -o canvas_frag_vectorpath_no_blending_clip_distance_no_discard.spv canvas.frag
 "%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=%FILLTYPE_NO_TEXTURE% -DBLENDING=0 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -DGUI_ELEMENTS -o canvas_frag_gui_no_texture_no_blending_clip_distance_no_discard.spv canvas.frag
 
+rem Coverage mask pass shaders (for transparent shape rendering with coverage buffer)
+"%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=%FILLTYPE_NO_TEXTURE% -DBLENDING=1 -DUSECLIPDISTANCE=0 -DUSENODISCARD=1 -DCOVERAGE_MASK_PASS -o canvas_frag_no_texture_coverage_mask.spv canvas.frag
+"%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=%FILLTYPE_NO_TEXTURE% -DBLENDING=1 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -DCOVERAGE_MASK_PASS -o canvas_frag_no_texture_coverage_mask_clip_distance.spv canvas.frag
+
+rem Coverage cover pass shaders (for transparent shape rendering with coverage buffer)
+"%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=%FILLTYPE_NO_TEXTURE% -DBLENDING=1 -DUSECLIPDISTANCE=0 -DUSENODISCARD=1 -DCOVERAGE_COVER_PASS -o canvas_frag_no_texture_coverage_cover.spv canvas.frag
+"%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=%FILLTYPE_NO_TEXTURE% -DBLENDING=1 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -DCOVERAGE_COVER_PASS -o canvas_frag_no_texture_coverage_cover_clip_distance.spv canvas.frag
+
+rem Coverage reset shader (clear coverage buffer via imageStore inside a render pass)
+"%VULKAN_SDK%/Bin/glslc.exe" -x glsl --target-env=vulkan -fshader-stage=fragment -o coveragereset_frag.spv coveragereset.frag
+
 for %%f in (*.spv) do (
   rem spirv-opt --strip-debug --unify-const --flatten-decorations --eliminate-dead-const %%f -o %%f
   rem spirv-opt --strip-debug --unify-const --flatten-decorations --strength-reduction --simplify-instructions --remove-duplicates --redundancy-elimination --eliminate-dead-code-aggressive --eliminate-dead-branches --eliminate-dead-const %%f -o %%f
@@ -115,7 +126,6 @@ exit /b 1
 :Done
 
 exit /b 0
-
 
 
 

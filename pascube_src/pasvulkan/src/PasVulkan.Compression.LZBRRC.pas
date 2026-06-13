@@ -870,7 +870,7 @@ end;
 {$warnings on}
 {$ifend}
 
- function LZBRRCFastDecompress(const aInData:TpvPointer;aInLen:TpvUInt64;var aDestData:TpvPointer;out aDestLen:TpvUInt64;const aOutputSize:TpvInt64;const aWithSize:boolean):boolean;
+function LZBRRCFastDecompress(const aInData:TpvPointer;aInLen:TpvUInt64;var aDestData:TpvPointer;out aDestLen:TpvUInt64;const aOutputSize:TpvInt64;const aWithSize:boolean):boolean;
 var OutputSize,DestLen:TpvUInt64;
     Allocated:boolean;
 begin

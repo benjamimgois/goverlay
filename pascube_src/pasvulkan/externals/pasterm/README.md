@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/pasterm](https://git.rosseaux.net/BeRo1985/pasterm).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # PasTerm Terminal Emulator
 
 PasTerm is a comprehensive terminal emulator class designed for both **Delphi** and **FreePascal** environments. It handles various terminal functionalities, including input encoding, cursor management, scrolling, and more. This readme provides guidance for new users on integrating and utilizing PasTerm within their applications.

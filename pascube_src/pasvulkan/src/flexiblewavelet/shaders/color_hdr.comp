@@ -1,0 +1,106 @@
+#version 450
+// color_hdr.comp — HDR present (SDR-display fallback, for X11). Inverse YCoCg-R gives the 12-bit
+// PQ-bt2020 code; this decodes PQ -> linear, converts bt2020 -> Rec.709, applies a per-channel
+// Reinhard tonemap (x exposure) and sRGB gamma, into the rgba8 swapchain image. Mirrors the CPU
+// pq_bt2020_to_srgb8(). (A true HDR display would instead write scRGB-linear FP16 to an
+// EXTENDED_SRGB_LINEAR swapchain — same colour math minus the tonemap/gamma.)
+layout(local_size_x = 256) in;
+layout(std430, binding = 0) readonly buffer Luma         { int luma[]; };
+layout(std430, binding = 1) readonly buffer ChromaOrange { int chroma_orange[]; };
+layout(std430, binding = 2) readonly buffer ChromaGreen  { int chroma_green[]; };
+layout(binding = 3, rgba8) uniform writeonly image2D output_image;
+// transfer: 16=PQ, 18=HLG. shift_x/shift_y/small_w/small_h carry the chroma subsampling (0/0 = 4:4:4 ->
+// the chroma upsample reduces to small[y*W+x]); luma is always full-res.
+layout(push_constant) uniform PushConstants { int width; int height; float exposure; int transfer; int shift_x; int shift_y; int small_w; int small_h; } push;
+
+// Bilinear-upsample one subsampled chroma plane at full-res using CENTER siting (the chroma sample sits
+// at the centre of its luma block, matching the box-average downsample -> no half-pixel shift). Bit-
+// identical to the CPU upsample_chroma(): src = (out + 0.5)/2^shift - 0.5; 4:4:4 (shift 0) reduces to
+// small[y*W+x]. A macro because GLSL cannot pass an unsized SSBO array to a function; it uses the
+// per-pixel coords (sx0/sx1/fx/sy0/sy1/fy) computed once in main().
+#define UPSAMPLE_CHROMA(small) upsample_chroma_blend( \
+    small[(sy0 * push.small_w) + sx0], small[(sy0 * push.small_w) + sx1], \
+    small[(sy1 * push.small_w) + sx0], small[(sy1 * push.small_w) + sx1], fx, fy)
+
+int upsample_chroma_blend(int s00, int s01, int s10, int s11, float wx, float wy) {
+  float top = ((1.0 - wx) * float(s00)) + (wx * float(s01));
+  float bottom = ((1.0 - wx) * float(s10)) + (wx * float(s11));
+  float value = ((1.0 - wy) * top) + (wy * bottom);
+  return int(roundEven(value));   // round half to even == the CPU lrintf() in upsample_chroma (default FP rounding)
+}
+
+float pq_decode(float code) {   // SMPTE 2084 code [0,1] -> linear [0,1] (1 = 10000 nits)
+  const float m1 = 0.1593017578125, m2 = 78.84375, c1 = 0.8359375, c2 = 18.8515625, c3 = 18.6875;
+  code = max(code, 0.0);
+  float vp = pow(code, 1.0 / m2);
+  float numerator = max(vp - c1, 0.0);
+  return pow(numerator / (c2 - (c3 * vp)), 1.0 / m1);
+}
+
+float srgb_oetf(float c) {
+  c = clamp(c, 0.0, 1.0);
+  return (c <= 0.0031308) ? (12.92 * c) : ((1.055 * pow(c, 1.0 / 2.4)) - 0.055);
+}
+
+// Linear BT.2020 -> linear Rec.709 (mat3 is column-major: out = M * vec3(r2020,g2020,b2020)). The
+// inverse (Rec.709 -> BT.2020) is its matrix inverse, not needed by the current paths.
+const mat3 BT2020_TO_REC709 = mat3(
+   1.6605, -0.1246, -0.0182,    // column 0 (x R2020)
+  -0.5876,  1.1329, -0.1006,    // column 1 (x G2020)
+  -0.0728, -0.0083,  1.1187);   // column 2 (x B2020)
+
+float hlg_inverse_oetf(float v) {   // HLG signal [0,1] -> scene-linear [0,1]
+  const float a = 0.17883277, b = 0.28466892, c = 0.55991073;
+  return (v <= 0.5) ? ((v * v) / 3.0) : ((exp((v - c) / a) + b) / 12.0);
+}
+
+// HLG signal (BT.2020) [0,1] -> linear Rec.709 normalised to 10000 nits. Inverse OETF -> scene-linear,
+// the OOTF (system gamma 1.2, nominal 1000-nit HLG, applied via BT.2020 luminance), BT.2020->709, and
+// the 1000/10000 scale so HLG shares the same @10000 convention as the PQ path.
+vec3 hlg_to_linear709(vec3 signal) {
+  vec3 scene = vec3(hlg_inverse_oetf(signal.r), hlg_inverse_oetf(signal.g), hlg_inverse_oetf(signal.b));
+  float luminance = dot(scene, vec3(0.2627, 0.6780, 0.0593));
+  vec3 display = scene * pow(max(luminance, 1e-6), 0.2);   // OOTF gain (gamma - 1 = 0.2)
+  return (BT2020_TO_REC709 * display) * (1000.0 / 10000.0);
+}
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.width * push.height)) {
+    return;
+  }
+  int x = int(i) % push.width;
+  int row = int(i) / push.width;
+  float src_x = ((float(x) + 0.5) / float(1 << push.shift_x)) - 0.5;   // center-siting source coord
+  int ix0 = int(floor(src_x));
+  float fx = src_x - float(ix0);
+  int sx0 = clamp(ix0, 0, push.small_w - 1);
+  int sx1 = clamp(ix0 + 1, 0, push.small_w - 1);
+  float src_y = ((float(row) + 0.5) / float(1 << push.shift_y)) - 0.5;
+  int iy0 = int(floor(src_y));
+  float fy = src_y - float(iy0);
+  int sy0 = clamp(iy0, 0, push.small_h - 1);
+  int sy1 = clamp(iy0 + 1, 0, push.small_h - 1);
+  int y = luma[i], co = UPSAMPLE_CHROMA(chroma_orange), cg = UPSAMPLE_CHROMA(chroma_green);
+  int t = y - (cg >> 1);
+  int g = cg + t;
+  int b = t - (co >> 1);
+  int r = b + co;
+  vec3 linear709;
+  if (push.transfer == 18) {       // HLG / BT.2020
+    vec3 signal = vec3(float(clamp(r, 0, 4095)), float(clamp(g, 0, 4095)), float(clamp(b, 0, 4095))) / 4095.0;
+    linear709 = hlg_to_linear709(signal);
+  } else {                         // PQ / BT.2020: PQ-decode then bt2020 -> 709
+    float lr = pq_decode(float(clamp(r, 0, 4095)) / 4095.0);
+    float lg = pq_decode(float(clamp(g, 0, 4095)) / 4095.0);
+    float lb = pq_decode(float(clamp(b, 0, 4095)) / 4095.0);
+    linear709 = BT2020_TO_REC709 * vec3(lr, lg, lb);
+  }
+  vec3 toned;
+  for (int c = 0; c < 3; c++) {
+    float v = max(linear709[c] * push.exposure, 0.0);
+    v = v / (1.0 + v);                 // Reinhard -> [0,1]
+    toned[c] = srgb_oetf(v);
+  }
+  imageStore(output_image, ivec2(x, row), vec4(toned, 1.0));
+}

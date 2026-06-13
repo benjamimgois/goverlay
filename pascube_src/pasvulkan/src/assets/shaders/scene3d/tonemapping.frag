@@ -17,6 +17,7 @@ layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput uS
 
 layout(push_constant) uniform PushConstants {
   int mode;
+  int debugBypass;
 } pushConstants;
 
 #include "rec2020.glsl"
@@ -380,6 +381,10 @@ vec3 doToneMapping(vec3 color){
 void main() {
 #if 1
   vec4 c = subpassLoad(uSubpassInput);
+  if(pushConstants.debugBypass != 0){
+    outColor = vec4(max(vec3(0.0), c.xyz), c.w);
+    return;
+  }
   outColor = vec4(max(vec3(0.0), doToneMapping(max(vec3(0.0), applyColorGrading(c.xyz, colorGradingSettingsBuffer.colorGradingSettings)))), c.w);
 #else
   outColor = vec4(1.0);

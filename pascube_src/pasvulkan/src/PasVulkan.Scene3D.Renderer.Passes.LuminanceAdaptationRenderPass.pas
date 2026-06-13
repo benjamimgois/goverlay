@@ -78,6 +78,10 @@ uses SysUtils,
 
 type { TpvScene3DRendererPassesLuminanceAdaptationRenderPass }
      TpvScene3DRendererPassesLuminanceAdaptationRenderPass=class(TpvFrameGraph.TRenderPass)
+      public
+       type TPushConstants=record
+             DebugBypass:TpvInt32;
+            end;
       private
        fInstance:TpvScene3DRendererInstance;
        fVulkanRenderPass:TpvVulkanRenderPass;
@@ -283,6 +287,7 @@ begin
 
  fVulkanPipelineLayout:=TpvVulkanPipelineLayout.Create(fInstance.Renderer.VulkanDevice);
  fVulkanPipelineLayout.AddDescriptorSetLayout(fVulkanDescriptorSetLayout);
+ fVulkanPipelineLayout.AddPushConstantRange(TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),0,SizeOf(TpvScene3DRendererPassesLuminanceAdaptationRenderPass.TPushConstants));
  fVulkanPipelineLayout.Initialize;
 
  fVulkanGraphicsPipeline:=TpvVulkanGraphicsPipeline.Create(fInstance.Renderer.VulkanDevice,
@@ -379,15 +384,33 @@ begin
 end;
 
 procedure TpvScene3DRendererPassesLuminanceAdaptationRenderPass.Execute(const aCommandBuffer:TpvVulkanCommandBuffer;const aInFlightFrameIndex,aFrameIndex:TpvSizeInt);
+var PushConstants:TpvScene3DRendererPassesLuminanceAdaptationRenderPass.TPushConstants;
 begin
  inherited Execute(aCommandBuffer,aInFlightFrameIndex,aFrameIndex);
+ if (fInstance.DrawMeshletDebugColors and fInstance.Renderer.Scene3D.MeshShaders) or
+    fInstance.GlobalIlluminationCascadedVoxelConeTracingDebugVisualization then begin
+  PushConstants.DebugBypass:=1;
+ end else begin
+  PushConstants.DebugBypass:=0;
+ end;
  aCommandBuffer.CmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       fVulkanPipelineLayout.Handle,
                                       0,
                                       1,
                                       @fVulkanDescriptorSets[aInFlightFrameIndex].Handle,0,nil);
+ aCommandBuffer.CmdPushConstants(fVulkanPipelineLayout.Handle,
+                                 TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                 0,
+                                 SizeOf(TpvScene3DRendererPassesLuminanceAdaptationRenderPass.TPushConstants),
+                                 @PushConstants);
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'LuminanceAdaptation');
+ end;
  aCommandBuffer.CmdDraw(3,1,0,0);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 end;
 
 end.

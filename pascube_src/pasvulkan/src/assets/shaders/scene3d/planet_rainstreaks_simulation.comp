@@ -107,8 +107,8 @@ void main() {
     // Get the height of the raindrop position on the planet
     float height = length(position.xyz); 
 
-    // Encode the position in octahedral coordinates for the height map lookup and spawn logic
-    vec2 uv = octEqualAreaUnsignedEncode((sharedPlanetInverseModelMatrix * vec4(pushConstants.cameraPosition.xyz, 1.0)).xyz);
+    // Encode the position in octahedral coordinates for the height map lookup
+    vec2 uv = octEqualAreaUnsignedEncode((sharedPlanetInverseModelMatrix * vec4(position.xyz, 1.0)).xyz);
 
     // Sample the height map using the octahedral coordinates and calculate the height of the planet at that position
     float planetHeight = mix(
@@ -120,6 +120,9 @@ void main() {
     // Check if the raindrop is outside the planet's radius or inactive or outside the view frustum, if so, we need to (re-)spawn it
     if((position.w < 1e-7) || (height < planetHeight)){
       
+      // Encode the camera position in octahedral coordinates for the spawn logic
+      uv = octEqualAreaUnsignedEncode((sharedPlanetInverseModelMatrix * vec4(pushConstants.cameraPosition.xyz, 1.0)).xyz);
+
       // Get a random value based on the raindrop index and the frame index
       uvec4 random = pcgHash44(uvec4(floatBitsToUint(uv), pushConstants.frameIndex, rainDropIndex));
 

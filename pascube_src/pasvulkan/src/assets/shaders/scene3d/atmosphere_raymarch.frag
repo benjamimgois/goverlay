@@ -27,7 +27,7 @@
 #else
  #undef SHADOWS_ENABLED
 #endif
-#define ATMOSPHEREMAP_ENABLED 
+#define ATMOSPHEREMAP_ENABLED
 
 // Push constants
 layout(push_constant, std140) uniform PushConstants {
@@ -67,19 +67,19 @@ layout(set = 2, binding = 9, std140) uniform uboCascadedShadowMaps {
 } uCascadedShadowMaps;
 
 layout(set = 2, binding = 10) uniform sampler2DArray uCascadedShadowMapTexture;
-
-#ifdef PCFPCSS
-
-// Yay! Binding Aliasing! :-)
 layout(set = 2, binding = 10) uniform sampler2DArrayShadow uCascadedShadowMapTextureShadow;
 
-#endif // PCFPCSS
-#endif // !RAYTRACING 
+#endif // !RAYTRACING
 
 vec3 inWorldSpacePosition, workNormal;
 #endif // SHADOWS
 
 #include "shadows.glsl"
+
+#include "octahedral.glsl"
+
+#define CLOUDS_SHADOW_ENABLED
+layout(set = 2, binding = 14) uniform sampler2DArray uCloudsShadowMap;
 
 #include "atmosphere_common.glsl"
 
@@ -113,7 +113,7 @@ layout(set = 2, binding = 0) uniform texture2DMS uDepthTexture;
 #else
 
 #ifdef MULTIVIEW
-layout(set = 2, binding = 0) uniform texture2DArray uDepthTexture; 
+layout(set = 2, binding = 0) uniform texture2DArray uDepthTexture;
 #else
 layout(set = 2, binding = 0) uniform texture2D uDepthTexture;
 #endif
@@ -130,10 +130,12 @@ layout(set = 2, binding = 12) uniform texture2D uCloudsTransmittanceTexture;
 layout(set = 2, binding = 13) uniform texture2D uCloudsDepthTexture;
 #endif
 
+// Cloud shadow map — now declared before atmosphere_common.glsl include above
+
 /*
 #ifdef MSAA
 layout(input_attachment_index = 0, set = 2, binding = 0) uniform subpassInputMS uSubpassDepth;
-#else  
+#else
 layout(input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput uSubpassDepth;
 #endif
 */
@@ -168,10 +170,10 @@ vec2 intersectSphere(vec3 rayOrigin, vec3 rayDirection, vec4 sphere){
   float b = dot(v, rayDirection),
         c = dot(v, v) - (sphere.w * sphere.w),
         d = (b * b) - c;
-  return (d < 0.0) 
+  return (d < 0.0)
              ? vec2(-1.0)                                // No intersection
              : ((vec2(-1.0, 1.0) * sqrt(d)) - vec2(b));  // Intersection
-}        
+}
 
 int countScatteringSamples = 0;
 mat2x3 scatteringSamples[8] = mat2x3[8](
@@ -184,18 +186,18 @@ mat2x3 scatteringSamples[8] = mat2x3[8](
   mat2x3(vec3(0.0), vec3(1.0)),
   mat2x3(vec3(0.0), vec3(1.0))
 );
-  
+
 void addScatteringSample(const in vec3 inscattering, const in vec3 transmittance){
   int index = countScatteringSamples;
   if(index < 8){
     countScatteringSamples++;
     scatteringSamples[index] = mat2x3(inscattering, transmittance);
   }
-} 
+}
 
 void main() {
 
-  // Early out if the atmosphere is not present 
+  // Early out if the atmosphere is not present
   if(uAtmosphereParameters.atmosphereParameters.AbsorptionExtinction.w < 1e-7){
     outInscattering = vec4(0.0, 0.0, 0.0, 0.0);
 #ifdef DUALBLEND
@@ -210,7 +212,7 @@ void main() {
 /*vec2 pixPos = vec2(gl_FragCoord.xy) + vec2(0.5);
   vec2 uv = pixPos / pushConstants.resolution;*/
 
-  vec2 uv = inTexCoord; 
+  vec2 uv = inTexCoord;
 
   if((pushConstants.flags & FLAGS_USE_BLUE_NOISE) != 0u){
     seedSampleSeedT(uBlueNoise, ivec2(gl_FragCoord.xy), pushConstants.frameIndex);
@@ -218,15 +220,15 @@ void main() {
 
   vec3 rayOrigin, rayDirection;
   GetCameraPositionDirection(rayOrigin, rayDirection, view.viewMatrix, view.projectionMatrix, view.inverseViewMatrix, view.inverseProjectionMatrix, uv);
-  
+
   vec3 worldPos = (uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(rayOrigin, 1.0)).xyz;
   vec3 worldDir = normalize((uAtmosphereParameters.atmosphereParameters.inverseTransform * vec4(rayDirection, 0.0)).xyz);
 
-  vec3 originalWorldPos = worldPos; 
+  vec3 originalWorldPos = worldPos;
 
   //worldPos += vec3(0.0, uAtmosphereParameters.atmosphereParameters.BottomRadius, 0.0);
 
-  float viewHeight = max(length(worldPos), uAtmosphereParameters.atmosphereParameters.BottomRadius + 1e-4);  
+  float viewHeight = max(length(worldPos), uAtmosphereParameters.atmosphereParameters.BottomRadius + 1e-4);
   vec3 L = vec3(0.0);
 
   vec4 cloudsInscattering = vec4(0.0), cloudsTransmittance = vec4(1.0, 1.0, 1.0, 0.0);
@@ -251,7 +253,7 @@ void main() {
       depthBufferValue = min(depthBufferValue, depthValue);
     }
     if(isinf(depthBufferValue)){
-      // Replace +inf with 0.0 with the real farthest depth value 
+      // Replace +inf with 0.0 with the real farthest depth value
       depthBufferValue = 0.0;
     }
   }else{
@@ -304,7 +306,7 @@ void main() {
   bool atmosphereVisible;
 
   bool reversedZ = ProjectionMatrixIsReversedZ(view.projectionMatrix);
- 
+
   // Get the ray length to the farthest depth value
   float rayLength = uintBitsToFloat(0x7f800000u); // +inf
   {
@@ -320,7 +322,7 @@ void main() {
 
   // Check if the camera is outside the atmosphere or inside the atmosphere
   if(length(worldPos) > uAtmosphereParameters.atmosphereParameters.TopRadius){
-    
+
     // The camera is outside the atmosphere, so we must check if the ray intersects the atmosphere at all
 
     // It is visible if rayLength intersects the atmosphere at all and the ray is not behind the farthest depth value
@@ -328,13 +330,13 @@ void main() {
     atmosphereVisible = (tTopSolutions.x > 0.0) && (tTopSolutions.x < rayLength);
 
   }else{
-    
+
     // Otherwise the camera is inside the atmosphere, so it is always visible, since the atmosphere is a sphere
 
     atmosphereVisible = true;
 
   }
-  
+
   vec3 sunDirection = normalize(getSunDirection(uAtmosphereParameters.atmosphereParameters));
 
 #ifdef SHADOWS
@@ -353,8 +355,8 @@ void main() {
 #endif
 
 #ifdef MSAA
-  // When MSAA is used, we must check if the clouds are valid and if the depth value is less than the clouds depth value, otherwise 
-  // the clouds are not valid. This is necessary because clouds are rendered without MSAA but applied to the opaque pass content with 
+  // When MSAA is used, we must check if the clouds are valid and if the depth value is less than the clouds depth value, otherwise
+  // the clouds are not valid. This is necessary because clouds are rendered without MSAA but applied to the opaque pass content with
   // MSAA.
   if(cloudsValid && !depthIsZFar){
     vec4 t = view.inverseProjectionMatrix * vec4(fma(uv, vec2(2.0), vec2(-1.0)), depthBufferValue, 1.0);
@@ -379,27 +381,27 @@ void main() {
 
   //bool rayHitsAtmosphere = any(greaterThanEqual(raySphereIntersect(worldPos, worldDir, vec3(0.0), atmosphereParameters.TopRadius), vec2(0.0)));
 
-  bool needToRayMarch = false, 
-       needAerialPerspective = false, 
-       applyFastCloudIntegration = false, 
+  bool needToRayMarch = false,
+       needAerialPerspective = false,
+       applyFastCloudIntegration = false,
        useAtmosphereMap = (uAtmosphereParameters.atmosphereParameters.flags & FLAGS_USE_ATMOSPHERE_MAP) != 0u,
        needToProcess = (uAtmosphereParameters.atmosphereParameters.AbsorptionExtinction.w > 0.0) &&
                        // When atmosphere map is used, but the min and max are near zero, then the atmosphere is not visible, so we can skip the processing
-                       !(useAtmosphereMap && 
+                       !(useAtmosphereMap &&
                          ((abs(0.0 - uAtmosphereMapMinMax.minValue) < 1e-4) && (abs(0.0 - uAtmosphereMapMinMax.maxValue) < 1e-4))),
        // Fast sky and fast aerial perspective can only be used when the atmosphere map is not used or when the min and max values are near 1.0,
        // because the fast sky and fast aerial perspective are not compatible with the atmosphere map, since they use systematically some
        // aspects of the atmosphere, which are not compatible with the atmosphere map.
-       canUseFastStuff = useAtmosphereMap 
+       canUseFastStuff = useAtmosphereMap
                             ? ((abs(1.0 - uAtmosphereMapMinMax.minValue) < 1e-4) && (abs(1.0 - uAtmosphereMapMinMax.maxValue) < 1e-4))
                             : true;
-  
+
   float targetDepth = uintBitsToFloat(0x7F800000u); // +inf
 
   float atmosphereCullingFactor;
-  if(((((pushConstants.flags & FLAGS_USE_FAST_AERIAL_PERSPECTIVE) != 0u) && canUseFastStuff) || 
-      ((pushConstants.flags & FLAGS_SHADOWS) == 0u)) && 
-      (uAtmosphereParameters.atmosphereParameters.CullingParameters.innerOuterFadeDistancesCountFacesMode.w != 0u)){ 
+  if(((((pushConstants.flags & FLAGS_USE_FAST_AERIAL_PERSPECTIVE) != 0u) && canUseFastStuff) ||
+      ((pushConstants.flags & FLAGS_SHADOWS) == 0u)) &&
+      (uAtmosphereParameters.atmosphereParameters.CullingParameters.innerOuterFadeDistancesCountFacesMode.w != 0u)){
     if(depthIsZFar){
       atmosphereCullingFactor = 1.0;
     }else{
@@ -412,9 +414,9 @@ void main() {
 
   if(/*rayHitsAtmosphere &&*/ depthIsZFar){
 
-    // When fast sky is used, we can use a precomputed sky view LUT to get the inscattering and transmittance values 
+    // When fast sky is used, we can use a precomputed sky view LUT to get the inscattering and transmittance values
     if(((pushConstants.flags & FLAGS_USE_FAST_SKY) != 0u) && needToProcess && canUseFastStuff){
-      
+
       vec2 localUV;
       vec3 UpVector = normalize(worldPos);
       float viewZenithCosAngle = dot(worldDir, UpVector);
@@ -426,19 +428,19 @@ void main() {
       float lightViewCosAngle = lightOnPlane.x;
 
       bool IntersectGround = raySphereIntersectNearest(worldPos, worldDir, vec3(0.0), uAtmosphereParameters.atmosphereParameters.BottomRadius) >= 0.0;
-  
+
       SkyViewLutParamsToUv(uAtmosphereParameters.atmosphereParameters, IntersectGround, viewZenithCosAngle, lightViewCosAngle, viewHeight, localUV);
 
 #if 0
       localUV = getNiceTextureUV(localUV, vec2(textureSize(uSkyViewLUT, 0).xy));
-#endif      
+#endif
 
       vec4 inscattering = textureLod(uSkyViewLUT, vec3(localUV, float(int(gl_ViewIndex))), 0.0).xyzw; // xyz = inscatter, w = transmittance (monochromatic)
 
 #ifdef DUALBLEND
       vec3 transmittance = textureLod(uSkyViewLUT, vec3(localUV, float(int(int(gl_ViewIndex) + pushConstants.countViews))), 0.0).xyz; // xyz = transmittance, w = non-used
 #else
-      vec3 transmittance = vec3(inscattering.w); // convert from monochromatic transmittance, not optimal but better than nothing 
+      vec3 transmittance = vec3(inscattering.w); // convert from monochromatic transmittance, not optimal but better than nothing
 #endif
 
       if(!IntersectGround){
@@ -454,36 +456,36 @@ void main() {
       addScatteringSample(GetSunLuminance(originalWorldPos, worldDir, sunDirection, uAtmosphereParameters.atmosphereParameters.BottomRadius).xyz, vec3(1.0));
 
       needToRayMarch = true;
-      
+
     }
 
     needAerialPerspective = false;
 
-  }else{ 
+  }else{
 
     needAerialPerspective = true;
 
   }
 
-#if 0 
+#if 0
 
   // Not used currently, since there are yet some issues with the clouds integration inbetween the atmosphere slices when using fast sky and fast aerial perspective
   // TODO: Fix the issues with the clouds integration inbetween the atmosphere slices when using fast sky and fast aerial perspective
-  
+
   // Integrate clouds if they are present and not already integrated and if either fast sky or fast aerial perspective is used, otherwise
   // they are integrated in the ray marching later on
-  if(cloudsValid && 
+  if(cloudsValid &&
      (!needToRayMarch) && // When ray marching, clouds are integrated inbetween the atmosphere slices
      canUseFastStuff && // Wenn fast sky or fast aerial perspective can be used
      ((((pushConstants.flags & FLAGS_USE_FAST_SKY) != 0u) && !needAerialPerspective) /*||
       (((pushConstants.flags & FLAGS_USE_FAST_AERIAL_PERSPECTIVE) != 0u) && needAerialPerspective)*/)){
-    addScatteringSample(cloudsInscattering.xyz, cloudsTransmittance.xyz);      
-    targetDepth = cloudsDepth;  
+    addScatteringSample(cloudsInscattering.xyz, cloudsTransmittance.xyz);
+    targetDepth = cloudsDepth;
     cloudsValid = false; // clouds are already integrated, so no need to do it again
   }
 
 #endif
-  
+
   if(needAerialPerspective && needToProcess && atmosphereVisible){
 
     // When fast aerial perspective is used and no clouds are present at this fragment pixel, we can use a precomputed camera volume to get the
@@ -497,7 +499,7 @@ void main() {
       bool fitsInCameraVolume = true;
       if(length(worldPos) >= uAtmosphereParameters.atmosphereParameters.TopRadius){
 
-        vec4 aabb;     
+        vec4 aabb;
         vec3 transformedCenter = ((view.viewMatrix * uAtmosphereParameters.atmosphereParameters.transform) * vec4(vec3(0.0), 1.0)).xyz;
         if(projectSphere(transformedCenter, uAtmosphereParameters.atmosphereParameters.TopRadius, 0.01, view.projectionMatrix, aabb, false)){
 
@@ -509,8 +511,8 @@ void main() {
 
         }
 
-      }   
-  
+      }
+
       if(fitsInCameraVolume){
 
         // (BeRo): Move ray marching start up to top atmosphere, for to avoid missing the atmosphere in the special case of the camera being
@@ -534,7 +536,7 @@ void main() {
         if(slice < 0.5){
           Weight = clamp(slice * 2.0, 0.0, 1.0);
           slice = 0.5;
-        } 
+        }
         float w = sqrt(slice / AP_SLICE_COUNT); // squared distribution
 
 #if 0
@@ -550,7 +552,7 @@ void main() {
         int nextSliceIndex = clamp(sliceIndex + 1, 0, AP_SLICE_COUNT_INT - 1);
         sliceIndex = clamp(sliceIndex, 0, AP_SLICE_COUNT_INT - 1);
 
-        // Manual 3D texture lookup from a 2D array texture, since multiview is not supported for 3D textures (no 3D array textures) 
+        // Manual 3D texture lookup from a 2D array texture, since multiview is not supported for 3D textures (no 3D array textures)
         vec4 inscattering = mix(
                           textureLod(uCameraVolume, vec3(uv, sliceIndex + (int(gl_ViewIndex) * AP_SLICE_COUNT_INT)), 0.0),
                           textureLod(uCameraVolume, vec3(uv, nextSliceIndex + (int(gl_ViewIndex) * AP_SLICE_COUNT_INT)), 0.0),
@@ -567,13 +569,19 @@ void main() {
         vec3 transmittance = vec3(inscattering.w); // convert from monochromatic transmittance, not optimal but better than nothing
 #endif
 
+        {
+          float aerialPerspectiveScale = clamp(uAtmosphereParameters.atmosphereParameters.aerialPerspectiveScale, 0.0, 1.0);
+          inscattering.xyz = mix(vec3(0.0), inscattering.xyz, aerialPerspectiveScale);
+          transmittance = mix(vec3(1.0), transmittance, aerialPerspectiveScale);
+        }
+
         addScatteringSample(mix(vec3(0.0), inscattering.xyz, atmosphereCullingFactor), mix(vec3(1.0), transmittance.xyz, atmosphereCullingFactor));
 
         applyFastCloudIntegration = true;
 
         needToRayMarch = false;
 
-      }  
+      }
 
     }else{
 
@@ -585,7 +593,7 @@ void main() {
 
   // When fast cloud integration is used, we apply the precomputed cloud inscattering and transmittance values directly after the fast sky or
   // fast aerial perspective, even when it isn't correct, since the clouds are not integrated inbetween the atmosphere slices when using fast sky
-  // or fast aerial perspective, but better than nothing 
+  // or fast aerial perspective, but better than nothing
 /*if(applyFastCloudIntegration){
     if(cloudsValid){
       cloudsValid = false;
@@ -599,10 +607,10 @@ void main() {
     if(cloudsValid){
 
       // When clouds are present, we need to handle them inbetween the atmosphere slices, so therefore we need to ray march the first
-      // part of the atmosphere before the clouds, then the clouds, then the rest of the atmosphere after the clouds. 
+      // part of the atmosphere before the clouds, then the clouds, then the rest of the atmosphere after the clouds.
 
       // Move to top atmosphere as the starting point for ray marching.
-      // This is critical to be after the above to not disrupt above atmosphere tests and voxel selection.      
+      // This is critical to be after the above to not disrupt above atmosphere tests and voxel selection.
       vec3 localWorldPos = worldPos + (worldDir * cloudsDepth); // move to the clouds depth as starting point
       if(MoveToTopAtmosphere(localWorldPos, worldDir, uAtmosphereParameters.atmosphereParameters.TopRadius)){
 
@@ -615,15 +623,15 @@ void main() {
           uTransmittanceLutTexture,
           uMultiScatteringTexture,
           uAtmosphereMapTexture,
-          uv, 
-          localWorldPos, 
-          worldDir, 
-          sunDirection, 
-          uAtmosphereParameters.atmosphereParameters, 
-          ground, 
-          sampleCountIni, 
-          depthBufferValue, 
-          variableSampleCount,  
+          uv,
+          localWorldPos,
+          worldDir,
+          sunDirection,
+          uAtmosphereParameters.atmosphereParameters,
+          ground,
+          sampleCountIni,
+          depthBufferValue,
+          variableSampleCount,
           mieRayPhase,
           skyInvViewProjMat,
           -1.0, // infinite depth for ray length threshold
@@ -638,7 +646,7 @@ void main() {
       addScatteringSample(cloudsInscattering.xyz, cloudsTransmittance.xyz);
       targetDepth = cloudsDepth;
 
-      // And then continue with the rest of the atmosphere as usual as if the clouds were not there 
+      // And then continue with the rest of the atmosphere as usual as if the clouds were not there
 
     }//*/
 
@@ -646,7 +654,7 @@ void main() {
     // This is critical to be after the above to not disrupt above atmosphere tests and voxel selection.
     if(MoveToTopAtmosphere(worldPos, worldDir, uAtmosphereParameters.atmosphereParameters.TopRadius)){
 
-      mat4 skyInvViewProjMat = view.inverseViewMatrix * view.inverseProjectionMatrix; 
+      mat4 skyInvViewProjMat = view.inverseViewMatrix * view.inverseProjectionMatrix;
       const bool ground = false;
       const float sampleCountIni = 0.0;
       const bool variableSampleCount = true;
@@ -655,33 +663,42 @@ void main() {
         uTransmittanceLutTexture,
         uMultiScatteringTexture,
         uAtmosphereMapTexture,
-        uv, 
-        worldPos, 
-        worldDir, 
-        sunDirection, 
-        uAtmosphereParameters.atmosphereParameters, 
-        ground, 
-        sampleCountIni, 
-        depthBufferValue, 
-        variableSampleCount,  
+        uv,
+        worldPos,
+        worldDir,
+        sunDirection,
+        uAtmosphereParameters.atmosphereParameters,
+        ground,
+        sampleCountIni,
+        depthBufferValue,
+        variableSampleCount,
         mieRayPhase,
         skyInvViewProjMat,
         targetDepth,
         reversedZ
       );
 
+      if(needAerialPerspective){
+        float aerialPerspectiveScale = clamp(uAtmosphereParameters.atmosphereParameters.aerialPerspectiveScale, 0.0, 1.0);
+        ss.L = mix(vec3(0.0), ss.L, aerialPerspectiveScale);
+        ss.Transmittance = mix(vec3(1.0), ss.Transmittance, aerialPerspectiveScale);
+      }
+
       addScatteringSample(ss.L, ss.Transmittance);
-      
+
     }
 
   }
 
-  if(cloudsValid){
-    cloudsValid = false;
-    addScatteringSample(cloudsInscattering.xyz, cloudsTransmittance.xyz);
-  }
+  // Note: The volumetric clouds are intentionally NOT added as a scattering sample here anymore. They are the
+  // front-most layer and are instead composited manually further below, AFTER the distant extinction boost has
+  // been applied to the clean atmospheric haze. Otherwise the cloud layer (with its dark transmittance and
+  // cloud-shadowed inscattering) would pollute the boost's haze-masking math, so distant background objects
+  // (asteroids) would stop fading into the haze wherever clouds are in front of them.
+  bool compositeClouds = cloudsValid;
+  cloudsValid = false;
 
-  if(countScatteringSamples > 0){
+  if((countScatteringSamples > 0) || compositeClouds){
 
     vec3 inscattering = vec3(0.0);
     vec3 transmittance = vec3(1.0);
@@ -699,16 +716,53 @@ void main() {
     // Back to front
     for(int scatteringSampleIndex = 0; scatteringSampleIndex < countScatteringSamples; scatteringSampleIndex++){
       mat2x3 scatteringSample = scatteringSamples[scatteringSampleIndex];
-        inscattering = (inscattering * scatteringSample[1]) + scatteringSample[0];
-        transmittance *= scatteringSample[1];
+      inscattering = (inscattering * scatteringSample[1]) + scatteringSample[0];
+      transmittance *= scatteringSample[1];
     }
 #endif
 
+    float fadeFactor = clamp(uAtmosphereParameters.atmosphereParameters.AbsorptionExtinction.w, 0.0, 1.0);
     {
-      float fadeFactor = clamp(uAtmosphereParameters.atmosphereParameters.AbsorptionExtinction.w, 0.0, 1.0);
       inscattering *= fadeFactor;
-      transmittance = mix(vec3(1.0), transmittance, fadeFactor); 
-    } 
+      transmittance = mix(vec3(1.0), transmittance, fadeFactor);
+    }
+
+    // Extra distance-based extinction boost: fades far away background objects (asteroids, other space objects) into
+    // the atmospheric haze, since the physically correct zenith transmittance alone is too high to occlude them on a
+    // small planet. It is only applied to actual scene geometry (needAerialPerspective), never to sky/space/skybox
+    // pixels (depthIsZFar) - otherwise the sky would be tinted and the starfield/skybox would turn black in space.
+    // rayLength is the distance to the background object. The boost also grows the already accumulated in-scattering
+    // (haze) so distant objects blend into the haze colour instead of turning black. To keep the haze hue stable the
+    // in-scattering is scaled by a single scalar luminance ratio rather than a per-channel ratio (a per-channel
+    // L / (1 - T) over-amplifies the red channel - which has the highest transmittance - and shifts the colour to
+    // magenta/purple).
+    if(needAerialPerspective){
+      float distantExtinctionBoost = GetDistantExtinctionBoost(uAtmosphereParameters.atmosphereParameters, originalWorldPos, worldDir, rayLength, viewHeight);
+      if(distantExtinctionBoost > 0.0){
+        vec3 boostedTransmittance = transmittance * exp(vec3(-distantExtinctionBoost));
+        const vec3 luminanceWeights = vec3(0.2126, 0.7152, 0.0722);
+        float opacityBefore = max(0.0, 1.0 - dot(transmittance, luminanceWeights));
+        float opacityAfter = max(0.0, 1.0 - dot(boostedTransmittance, luminanceWeights));
+        float hazeGrow = opacityAfter / max(1e-4, opacityBefore);
+        inscattering *= hazeGrow;
+        transmittance = boostedTransmittance;
+      }
+    }
+
+    // Composite the volumetric clouds as the front-most layer now, AFTER the distant extinction boost has faded
+    // the distant background objects into the clean atmospheric haze. This keeps the boost independent of the
+    // cloud layer (and its cloud-shadowed inscattering), so distant objects (asteroids) stay equally occluded by
+    // the haze whether or not clouds happen to be in front of them. The same atmosphere fadeFactor that is applied
+    // to the atmospheric in-scattering/transmittance above is also applied to the cloud layer here, since the
+    // clouds used to be part of the resolved scattering samples and were faded together with the atmosphere.
+    // When there are no clouds at this pixel, cloudsInscattering/cloudsTransmittance are their identity
+    // defaults (0 / 1), so this is a no-op.
+    if(compositeClouds){
+      vec3 fadedCloudsInscattering = cloudsInscattering.xyz * fadeFactor;
+      vec3 fadedCloudsTransmittance = mix(vec3(1.0), cloudsTransmittance.xyz, fadeFactor);
+      inscattering = fadedCloudsInscattering + (inscattering * fadedCloudsTransmittance);
+      transmittance *= fadedCloudsTransmittance;
+    }
 
     if(atmosphereCullingFactor < 1.0){
       inscattering = mix(vec3(0.0), inscattering, atmosphereCullingFactor);
@@ -730,5 +784,5 @@ void main() {
 #endif
 
   }
-  
+
 }

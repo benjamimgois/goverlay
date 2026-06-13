@@ -67,7 +67,7 @@ void main(){
 
   if((queuedTileIndex < tileMapSize) && (queuedTileIndex < queuedTiles.data[1u])){
 
-    const uint tileMapIndex = queuedTiles.data[queuedTileIndex + 6u];
+    const uint tileMapIndex = queuedTiles.data[queuedTileIndex + 9u];
 
     if(tileMapIndex < tileMapSize){
 

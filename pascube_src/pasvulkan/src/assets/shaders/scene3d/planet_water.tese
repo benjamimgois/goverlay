@@ -31,10 +31,11 @@ layout(location = 0) out OutBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
+//vec4 jitter;
   float mapValue;
   float waterOverSurface;
   float underWater;
+  flat uint meshletID;
 } outBlock;
 
 in gl_PerVertex {
@@ -136,6 +137,34 @@ void main(){
 
   float sphereHeight = dot(sphereHeightData, vec2(1.0));
 
+  // Wave height displacement: UV chop (computeWaveDisplacement) + Gerstner swell (computeGerstnerDisplacement).
+  // Only applied where water is present (sphereHeightData.y > 1e-6).
+  if(sphereHeightData.y > 1e-6){
+    vec4 dp0 = vec4(unpackHalf2x16(planetData.waterDisplaceParams.x), unpackHalf2x16(planetData.waterDisplaceParams.y));
+    float displaceAmpl = dp0.x;
+    vec4 wvp0 = vec4(unpackHalf2x16(planetData.waterWaveParams.x), unpackHalf2x16(planetData.waterWaveParams.y));
+    vec4 wvp1 = vec4(unpackHalf2x16(planetData.waterWaveParams.z), unpackHalf2x16(planetData.waterWaveParams.w));
+    float gerstnerAmpl = wvp0.w;
+    if((displaceAmpl > 0.0) || (gerstnerAmpl > 0.0)){  
+      float displacementFactor = smoothstep(dp0.y, dp0.z, sphereHeightData.y) * dp0.w;
+      if(displacementFactor > 0.0){
+        float waveH = 0.0;
+        if(displaceAmpl > 0.0){
+          vec4 uvwp0 = vec4(unpackHalf2x16(planetData.waterUVWaveParams.x), unpackHalf2x16(planetData.waterUVWaveParams.y));
+          vec4 uvwp1 = vec4(unpackHalf2x16(planetData.waterUVWaveParams.z), unpackHalf2x16(planetData.waterUVWaveParams.w));
+          waveH += computeWaveDisplacement(octPlanetUnsignedEncode(sphereNormal), pushConstants.time, uvwp0.y, uvwp0.z, uvwp1.z) * displaceAmpl * displacementFactor;
+        }
+        if(gerstnerAmpl > 0.0){
+          vec3 windDir = wvp0.xyz;
+          float wdL = length(windDir);
+          if(wdL > 1e-3){ windDir /= wdL; }
+          waveH += computeGerstnerDisplacement(sphereNormal * sphereHeight, windDir, wvp1.x, wvp1.z, wvp1.y, pushConstants.time) * gerstnerAmpl * displacementFactor;
+        }
+        sphereHeight = clamp(sphereHeight + waveH, planetData.bottomRadiusTopRadiusHeightMapScale.x * 0.5, planetData.bottomRadiusTopRadiusHeightMapScale.y);
+      }
+    }
+  }
+
   vec3 localPosition = sphereNormal * ((sphereHeight > 1e-6) ? clamp(sphereHeight, planetData.bottomRadiusTopRadiusHeightMapScale.x * 0.5, planetData.bottomRadiusTopRadiusHeightMapScale.y) : 1e-6);
 
   vec3 position = (planetData.modelMatrix * vec4(localPosition, 1.0)).xyz;
@@ -154,10 +183,11 @@ void main(){
   outBlock.worldSpacePosition = worldSpacePosition;
   outBlock.viewSpacePosition = viewSpacePosition.xyz;  
   outBlock.cameraRelativePosition = worldSpacePosition - cameraPosition;
-  outBlock.jitter = pushConstants.jitter;
+//outBlock.jitter = pushConstants.jitter;
   outBlock.mapValue = mapHeight(localPosition, sphereHeight);
   outBlock.waterOverSurface = (sphereHeightData.y > 1e-6) ? 1.0 : 0.0;
   outBlock.underWater = ((inBlocks[0].flags & (1u << 0u)) != 0u) ? 1.0 : 0.0;
+  outBlock.meshletID = 0u; // No meshlet debug in tessellation path
 
 	gl_Position = viewProjectionMatrix * vec4(position, 1.0);
   

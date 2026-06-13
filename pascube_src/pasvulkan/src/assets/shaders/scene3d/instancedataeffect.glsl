@@ -63,8 +63,8 @@ bool applyInstanceDataEffect(const in uint instanceDataIndex, inout vec4 color, 
 
     vec3 SelectedDissolveDitheredTransparency = uintBitsToFloat(instanceDataItem.SelectedDissolveDitheredTransparencyFlags.xyz);
 
-    // First, apply selection highlight effect
-    color.xyz = mix(color.xyz, instanceDataItem.SelectedColorIntensity.xyz * instanceDataItem.SelectedColorIntensity.w, SelectedDissolveDitheredTransparency.x);
+    // First, apply selection highlight effect (replaced by outline now)
+    // color.xyz = mix(color.xyz, instanceDataItem.SelectedColorIntensity.xyz * instanceDataItem.SelectedColorIntensity.w, SelectedDissolveDitheredTransparency.x);
     
     // Then, apply dissolve effect
     const float dissolve = SelectedDissolveDitheredTransparency.y;

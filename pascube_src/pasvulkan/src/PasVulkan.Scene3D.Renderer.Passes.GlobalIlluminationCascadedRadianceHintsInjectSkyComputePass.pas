@@ -234,9 +234,9 @@ begin
    end;
 
    fVulkanImageViews[InFlightFrameIndex]:=TpvVulkanImageView.Create(fInstance.Renderer.VulkanDevice,
-                                                                    fInstance.DepthMipmappedArray2DImage.VulkanImage,
+                                                                    fInstance.DepthMipmappedArray2DImages[InFlightFrameIndex].VulkanImage,
                                                                     TVkImageViewType(VK_IMAGE_VIEW_TYPE_2D),
-                                                                    fInstance.DepthMipmappedArray2DImage.Format,
+                                                                    fInstance.DepthMipmappedArray2DImages[InFlightFrameIndex].Format,
                                                                     VK_COMPONENT_SWIZZLE_IDENTITY,
                                                                     VK_COMPONENT_SWIZZLE_IDENTITY,
                                                                     VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -401,6 +401,9 @@ begin
                                  SizeOf(TpvScene3DRendererPassesGlobalIlluminationCascadedRadianceHintsInjectSkyComputePass.TPushConstants),
                                  @PushConstants);//}
 
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'GIRadianceHintsInjectSky');
+ end;
  aCommandBuffer.CmdDispatch((TpvScene3DRendererInstance.GlobalIlluminationRadiantHintVolumeSize+7) shr 3,
                             (TpvScene3DRendererInstance.GlobalIlluminationRadiantHintVolumeSize+7) shr 3,
                             ((TpvScene3DRendererInstance.GlobalIlluminationRadiantHintVolumeSize*TpvScene3DRendererInstance.CountGlobalIlluminationRadiantHintCascades)+7) shr 3);//}

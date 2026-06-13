@@ -92,6 +92,7 @@ type { TpvScene3DRendererPassesLensResolveRenderPass }
              Dispersal:TpvFloat;
              HaloWidth:TpvFloat;
              Distortion:TpvFloat;
+             DebugBypass:TpvInt32;
             end;
       private
        fInstance:TpvScene3DRendererInstance;
@@ -143,11 +144,19 @@ begin
 
 //SeparateCommandBuffer:=true;
 
- Size:=TpvFrameGraph.TImageSize.Create(TpvFrameGraph.TImageSize.TKind.SurfaceDependent,
-                                       1.0,
-                                       1.0,
-                                       1.0,
-                                       fInstance.CountSurfaceViews);
+ if fInstance.PostProcessingAtScaledResolution and not SameValue(fInstance.SizeFactor,1.0) then begin
+  Size:=TpvFrameGraph.TImageSize.Create(TpvFrameGraph.TImageSize.TKind.SurfaceDependent,
+                                        fInstance.SizeFactor,
+                                        fInstance.SizeFactor,
+                                        1.0,
+                                        fInstance.CountSurfaceViews);
+ end else begin
+  Size:=TpvFrameGraph.TImageSize.Create(TpvFrameGraph.TImageSize.TKind.SurfaceDependent,
+                                        1.0,
+                                        1.0,
+                                        1.0,
+                                        fInstance.CountSurfaceViews);
+ end;
 
  fResourceScene:=AddImageInput(fInstance.LastOutputResource.ResourceType.Name,
                                fInstance.LastOutputResource.Resource.Name,
@@ -155,13 +164,23 @@ begin
                                [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
                               );
 
- fResourceOutput:=AddImageOutput('resourcetype_color_fullres_optimized_non_alpha',
-                                 'resource_lens_final_color',
-                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                 TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
-                                                              TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
-                                 [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                );
+ if fInstance.PostProcessingAtScaledResolution and not SameValue(fInstance.SizeFactor,1.0) then begin
+  fResourceOutput:=AddImageOutput('resourcetype_color_optimized_non_alpha',
+                                  'resource_lens_final_color',
+                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                  TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
+                                                               TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
+                                  [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                 );
+ end else begin
+  fResourceOutput:=AddImageOutput('resourcetype_color_fullres_optimized_non_alpha',
+                                  'resource_lens_final_color',
+                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                  TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
+                                                               TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
+                                  [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                 );
+ end;
 
  fInstance.LastOutputResource:=fResourceOutput;
 
@@ -419,6 +438,12 @@ begin
  fPushConstants.Dispersal:=0.3;
  fPushConstants.HaloWidth:=0.5;
  fPushConstants.Distortion:=1.5;
+ if (fInstance.DrawMeshletDebugColors and fInstance.Renderer.Scene3D.MeshShaders) or
+    fInstance.GlobalIlluminationCascadedVoxelConeTracingDebugVisualization then begin
+  fPushConstants.DebugBypass:=1;
+ end else begin
+  fPushConstants.DebugBypass:=0;
+ end;
 
  aCommandBuffer.CmdPushConstants(fVulkanPipelineLayout.Handle,
                                  TVkShaderStageFlags(TVkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT),
@@ -434,7 +459,13 @@ begin
 
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
 
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'LensResolve');
+ end;
  aCommandBuffer.CmdDraw(3,1,0,0);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 
 end;
 

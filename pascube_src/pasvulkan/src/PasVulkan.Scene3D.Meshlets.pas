@@ -80,10 +80,13 @@ const MaxVerticesPerMeshlet=256;
       MaxPrimitivesPerMeshlet=256;
 
 type TpvScene3DMeshlet=packed record
-      Indices:array[0..MaxPrimitivesPerMeshlet-1,0..2] of TpvUInt32;
-      CountPrimitives:TpvUInt32;
-      BoundingSphere:TpvVector4;
-     end; 
+      Vertices:array[0..MaxVerticesPerMeshlet-1] of TpvUInt32;    // 1024 B (Offset    0) — global vertex indices (local-to-global remap)
+      Indices:array[0..MaxPrimitivesPerMeshlet-1] of TpvUInt32;   // 1024 B (Offset 1024) — packed local triangle indices (3x uint8 per uint32)
+      CountVertices:TpvUInt32;                                    //    4 B (Offset 2048)
+      CountPrimitives:TpvUInt32;                                  //    4 B (Offset 2052)
+      Padding:array[0..1] of TpvUInt32;                           //    8 B (Offset 2056) — reserved for future use (e.g. cone culling)
+      BoundingSphere:TpvVector4;                                  //   16 B (Offset 2064, 16-byte aligned)
+     end;                                                         // 2080 B total (divisible by 32)
      PpvScene3DMeshlet=^TpvScene3DMeshlet;
 
      TpvScene3DMeshlets=TpvDynamicArray<TpvScene3DMeshlet>;
@@ -353,19 +356,19 @@ begin
 
  if aPreprocessIndices then begin
   GetMem(OptimizedIndices,aCountIndices*SizeOf(TpvUInt32));
-  TipsifyIndexBuffer(aIndices,aCountIndices,aCountVertices,32,OptimizedIndices,CountOptimizedIndices);
-  if aCountIndices=CountOptimizedIndices then begin
-   Indices:=OptimizedIndices;
-  end else begin
-   try
+  try
+   TipsifyIndexBuffer(aIndices,aCountIndices,aCountVertices,32,OptimizedIndices,CountOptimizedIndices);
+   if aCountIndices=CountOptimizedIndices then begin
+    Indices:=OptimizedIndices;
+   end else begin
+    FreeMem(OptimizedIndices);
+    OptimizedIndices:=nil;
     Indices:=aIndices;
-   finally
-    try
-     FreeMem(OptimizedIndices);
-    finally
-     OptimizedIndices:=nil;
-    end;
    end;
+  except
+   FreeMem(OptimizedIndices);
+   OptimizedIndices:=nil;
+   raise;
   end;
  end else begin
   OptimizedIndices:=nil;
@@ -395,11 +398,15 @@ begin
      if not MeshletPrimitiveCache.Empty then begin
 
       Meshlet:=pointer(aMeshlets.AddNew);
+      Meshlet^.CountVertices:=MeshletPrimitiveCache.fCountVertices;
+      for VertexIndex:=0 to MeshletPrimitiveCache.fCountVertices-1 do begin
+       Meshlet^.Vertices[VertexIndex]:=MeshletPrimitiveCache.fVertices[VertexIndex];
+      end;
       Meshlet^.CountPrimitives:=MeshletPrimitiveCache.fCountPrimitives;
       for PrimitiveIndex:=0 to MeshletPrimitiveCache.fCountPrimitives-1 do begin
-       Meshlet^.Indices[PrimitiveIndex,0]:=MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,0];
-       Meshlet^.Indices[PrimitiveIndex,1]:=MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,1];
-       Meshlet^.Indices[PrimitiveIndex,2]:=MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,2];
+       Meshlet^.Indices[PrimitiveIndex]:=(MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,0] and $ff)
+                                      or ((MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,1] and $ff) shl 8)
+                                      or ((MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,2] and $ff) shl 16);
       end;
 
      end;
@@ -415,11 +422,15 @@ begin
    if not MeshletPrimitiveCache.Empty then begin
 
     Meshlet:=pointer(aMeshlets.AddNew);
+    Meshlet^.CountVertices:=MeshletPrimitiveCache.fCountVertices;
+    for VertexIndex:=0 to MeshletPrimitiveCache.fCountVertices-1 do begin
+     Meshlet^.Vertices[VertexIndex]:=MeshletPrimitiveCache.fVertices[VertexIndex];
+    end;
     Meshlet^.CountPrimitives:=MeshletPrimitiveCache.fCountPrimitives;
     for PrimitiveIndex:=0 to MeshletPrimitiveCache.fCountPrimitives-1 do begin
-     Meshlet^.Indices[PrimitiveIndex,0]:=MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,0];
-     Meshlet^.Indices[PrimitiveIndex,1]:=MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,1];
-     Meshlet^.Indices[PrimitiveIndex,2]:=MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,2];
+     Meshlet^.Indices[PrimitiveIndex]:=(MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,0] and $ff) or
+                                       ((MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,1] and $ff) shl 8) or
+                                       ((MeshletPrimitiveCache.fPrimitives[PrimitiveIndex,2] and $ff) shl 16);
     end;
 
    end;
@@ -453,15 +464,13 @@ begin
 
    First:=true;
 
-   for PrimitiveIndex:=0 to Meshlet^.CountPrimitives-1 do begin
-    for VertexIndex:=0 to 2 do begin
-     if First then begin
-      First:=false;
-      BoundingBox.Min:=PpvVector3(Pointer(TpvPtrUInt(TpvPtrUInt(aVertices)+(TpvPtrUInt(Meshlet^.Indices[PrimitiveIndex,VertexIndex])*TpvPtrUInt(aVertexStride)))))^;
-      BoundingBox.Max:=BoundingBox.Min;
-     end else begin
-      BoundingBox.CombineVector3(PpvVector3(Pointer(TpvPtrUInt(TpvPtrUInt(aVertices)+(TpvPtrUInt(Meshlet^.Indices[PrimitiveIndex,VertexIndex])*TpvPtrUInt(aVertexStride)))))^);
-     end;
+   for VertexIndex:=0 to Meshlet^.CountVertices-1 do begin
+    if First then begin
+     First:=false;
+     BoundingBox.Min:=PpvVector3(Pointer(TpvPtrUInt(TpvPtrUInt(aVertices)+(TpvPtrUInt(Meshlet^.Vertices[VertexIndex])*TpvPtrUInt(aVertexStride)))))^;
+     BoundingBox.Max:=BoundingBox.Min;
+    end else begin
+     BoundingBox.DirectCombineVector3(PpvVector3(Pointer(TpvPtrUInt(TpvPtrUInt(aVertices)+(TpvPtrUInt(Meshlet^.Vertices[VertexIndex])*TpvPtrUInt(aVertexStride)))))^);
     end;
    end;
 

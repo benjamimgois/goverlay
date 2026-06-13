@@ -342,6 +342,76 @@ The `scope` keyword creates a new scope, while the `code` keyword creates a new
 code block without introducing a new scope. This provides additional control over 
 variable visibility and lifetime.
 
+==== Loop closures pragma
+
+By default, POCA captures loop variables by reference, meaning all closures created 
+inside a loop share the same binding and see the final value of the loop variable 
+after the loop completes. This is the classic behavior described above.
+
+With the `loopclosures` pragma, POCA can instead give each loop iteration its own 
+copy of the captured variables. Closures created in different iterations then each 
+see the value from their own iteration, rather than all sharing the final value.
+
+**Without `loopclosures` (default behavior):**
+
+[source,javascript]
+----
+let fns = [];
+for (let i = 0; i < 3; i++) {
+  fns.push(() => i);
+}
+puts(fns[0]()); // 3
+puts(fns[1]()); // 3
+puts(fns[2]()); // 3
+----
+
+All three closures capture the same `i`, which ends up as 3 after the loop.
+
+**With `loopclosures on`:**
+
+[source,javascript]
+----
+#pragma loopclosures on
+let fns = [];
+for (let i = 0; i < 3; i++) {
+  fns.push(() => i);
+}
+puts(fns[0]()); // 0
+puts(fns[1]()); // 1
+puts(fns[2]()); // 2
+----
+
+Each iteration gets its own copy of `i`, so each closure remembers the value 
+from its iteration.
+
+The pragma can be toggled on and off at any point in the source:
+
+[source,javascript]
+----
+#pragma loopclosures on   // enable per-iteration capture
+#pragma loopclosures off  // disable (back to default shared capture)
+----
+
+It can also be used in the function-call form:
+
+[source,javascript]
+----
+#pragma("loopclosures on")
+----
+
+The pragma applies to `for`, `foreach`, `forindex`, `forkey`, `while`, and 
+`do`/`while` loops. It only adds overhead in loops whose body actually contains 
+nested function definitions (closures); loops without closures are unaffected.
+
+Since per-iteration copying _can_ have a performance cost (each iteration 
+allocates a snapshot of the captured variables), the pragma is disabled by 
+default. Enable it only where you actually need per-iteration capture semantics.
+
+NOTE: Variables declared _outside_ the loop (e.g. a counter declared before a 
+`while` loop) are still shared across iterations, since they belong to the 
+enclosing scope. Only the loop's own iteration variables and body-scoped 
+`let`/`const` declarations get per-iteration copies.
+
 ==== Static vs Dynamic Scoping
 
 An important distinction in POCA is that `let` and `const` follow static scoping rules based 
@@ -667,6 +737,113 @@ This keeps the language simpler while still encouraging readable code through be
 * Use `||` when you want to default on any falsy value
 * Always add parentheses when combining `??` with other logical operators for readability
 * Prefer clear, explicit grouping in complex expressions over relying on precedence rules
+
+=== Optional Chaining
+
+POCA provides optional chaining operators to safely access nested properties, array elements, and hash values without throwing exceptions when intermediate values are `null` or `undefined`.
+
+==== Safe Property Access (`?.`)
+
+The `?.` operator allows safe access to object properties. If the left operand is `null` or `undefined`, the entire expression returns `null` instead of throwing an exception:
+
+[source,javascript]
+----
+let name = user?.profile?.name;           // Safe nested access
+let email = config?.settings?.email;      // Returns null if any part is null
+
+// Traditional approach (verbose and error-prone)
+let oldWay = user && user.profile && user.profile.name;
+
+// With optional chaining (clean and safe)
+let newWay = user?.profile?.name;
+----
+
+==== Safe Bracket Access (`?[`)
+
+The `?[` operator provides safe access to array elements and hash table values. POCA uses `?[key]` syntax (without a dot), which aligns with C#, Kotlin, Swift, Dart, and Groovy. Note that JavaScript/TypeScript uses `?.[key]` (with a dot) instead:
+
+[source,javascript]
+----
+let value = array?[index];                // Safe array access
+let item = hash?[key];                    // Safe hash table access
+let nested = data?[prop]?[0]?[field];     // Chain safe bracket access
+
+// Practical example: word frequency counter
+let words = {};
+words[word] = words?[word] + 1;           // Safely handles missing keys
+
+// Returns null if:
+// - The array/hash is null or undefined
+// - The key doesn't exist (for hashes)
+// - The index is out of bounds (for arrays)
+----
+
+**Important:** POCA uses `?[key]` syntax (no dot), not `?[key?]`. While JavaScript/TypeScript use `?.[key]` (with a dot), most other languages use `?[key]` without the dot.
+
+==== Combining with Nullish Coalescing
+
+Optional chaining pairs perfectly with the nullish coalescing operator for default values:
+
+[source,javascript]
+----
+// Provide defaults for missing values
+let port = config?[env]?["port"] ?? 8080;
+let timeout = options?.timeout ?? 5000;
+let name = user?.profile?.name ?? "Anonymous";
+
+// Word counting with safe access and default
+let count = wordFrequency?[word] ?? 0;
+wordFrequency[word] = count + 1;
+----
+
+==== Short-Circuiting Behavior
+
+When the left operand of `?.` or `?[` is `null` or `undefined`, the entire expression short-circuits and immediately returns `null` without evaluating the rest:
+
+[source,javascript]
+----
+let result = null?.expensive?.computation?.here;  // Returns null immediately
+let data = undefined?[key]?[index];               // No array access attempted
+
+// This is safe and efficient:
+let value = maybeNull?.method()?.property?[0];
+// If maybeNull is null, method() is never called
+----
+
+==== Best Practices
+
+* Use `?.` for safe property access on objects that may be `null` or `undefined`
+* Use `?[` for safe array/hash access when keys or indices may not exist
+* Combine with `??` to provide default values for missing data
+* Don't overuse: if a value should always exist, use regular access (`.` or `[`) to catch errors early
+* Optional chaining is for genuinely optional values, not to hide bugs
+
+==== Comparison with Other Languages
+
+POCA's optional chaining syntax aligns with modern language standards. Note that JavaScript/TypeScript use `?.[` (with a dot) for bracket access, while most other languages use `?[` (without a dot):
+
+[cols="2,3"]
+|===
+|Language |Syntax
+
+|JavaScript/TypeScript
+|`obj?.prop` and `obj?.[key]` _(note: dot before bracket)_
+
+|C#
+|`obj?.prop` and `obj?[key]`
+
+|Kotlin
+|`obj?.prop` and `obj?[key]`
+
+|Swift
+|`obj?.prop` and `obj?[key]`
+
+|Dart
+|`obj?.prop` and `obj?[key]`
+
+|POCA
+|`obj?.prop` and `obj?[key]` _(follows C#/Kotlin/Swift/Dart)_
+|===
 
 === Keywords
 

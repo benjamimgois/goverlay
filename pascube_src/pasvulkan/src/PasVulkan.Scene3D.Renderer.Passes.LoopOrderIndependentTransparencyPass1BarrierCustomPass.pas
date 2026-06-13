@@ -141,7 +141,7 @@ begin
                                                     TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
                                                     VK_QUEUE_FAMILY_IGNORED,
                                                     VK_QUEUE_FAMILY_IGNORED,
-                                                    fInstance.LoopOrderIndependentTransparencyZBufferBuffer.VulkanBuffer.Handle,
+                                                    fInstance.LoopOrderIndependentTransparencyZBufferBuffers[aInFlightFrameIndex].VulkanBuffer.Handle,
                                                     0,
                                                     VK_WHOLE_SIZE);
 

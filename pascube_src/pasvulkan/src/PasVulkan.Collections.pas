@@ -69,7 +69,61 @@ uses SysUtils,
      PasVulkan.Utils,
      Generics.Collections;
 
-type { TpvDynamicArray }
+type { TpvFreeRangeList }
+     TpvFreeRangeList=class
+      public
+       type TRange=record
+             Offset:TpvSizeUInt;
+             Size:TpvSizeUInt;
+            end;
+            PRange=^TRange;
+            TRangeDynamicArray=array of TRange;
+      private
+       fRanges:TRangeDynamicArray; // Sorted by offset
+       fCount:TpvInt32;
+      public
+       constructor Create;
+       destructor Destroy; override;
+       procedure AddRange(const aOffset,aSize:TpvSizeUInt);
+       function FindBestFit(const aSize:TpvSizeUInt;out aOffset:TpvSizeUInt):Boolean;
+       procedure RemoveRange(const aOffset:TpvSizeUInt);
+       procedure CoalesceFreeRanges; // Merge adjacent ranges
+       procedure Clear;
+     end;
+
+     { TpvRingBufferAllocator }
+     TpvRingBufferAllocator=class
+      private
+       fFreeRanges:TpvFreeRangeList;
+       fTotalSize:TpvSizeUInt;
+       fUsedSize:TpvSizeUInt;
+      public
+       constructor Create(const aTotalSize:TpvSizeUInt);
+       destructor Destroy; override;
+       function Allocate(const aSize:TpvSizeUInt;out aOffset:TpvSizeUInt):Boolean;
+       procedure Free(const aOffset,aSize:TpvSizeUInt);
+       procedure Reset;
+       property TotalSize:TpvSizeUInt read fTotalSize;
+       property UsedSize:TpvSizeUInt read fUsedSize;
+     end;
+
+     { TpvArrayAllocator }
+     TpvArrayAllocator=class
+      private
+       fElementSize:TpvSizeUInt;
+       fFreeSlots:TpvSizeIntDynamicArray; // Indices of freed slots
+       fFreeSlotCount:TpvSizeInt;
+       fNextSlot:TpvSizeInt;
+      public
+       constructor Create(const aElementSize:TpvSizeUInt);
+       destructor Destroy; override;
+       function AllocateSlot(out aIndex:TpvSizeInt):Boolean;
+       procedure FreeSlot(const aIndex:TpvSizeInt);
+       procedure Reset;
+       property ElementSize:TpvSizeUInt read fElementSize;
+     end;
+
+     { TpvDynamicArray }
      TpvDynamicArray<T>=record
       public
        type PT=^T;
@@ -633,7 +687,7 @@ type { TpvDynamicArray }
 {$ifdef ExtraStringHashMap}
      { TpvStringHashMap<TpvHashMapValue> }
      TpvStringHashMap<TpvHashMapValue>=class
-      private
+      public
        type TpvHashMapKey=RawByteString;
             TEntity=record
              public
@@ -1151,6 +1205,232 @@ type { TpvDynamicArray }
 implementation
 
 uses Generics.Defaults;
+
+{ TpvFreeRangeList }
+
+constructor TpvFreeRangeList.Create;
+begin
+ inherited Create;
+ fRanges:=nil;
+ fCount:=0;
+end;
+
+destructor TpvFreeRangeList.Destroy;
+begin
+ fRanges:=nil;
+ inherited Destroy;
+end;
+
+procedure TpvFreeRangeList.AddRange(const aOffset,aSize:TpvSizeUInt);
+var Index:TpvInt32;
+    Range:PRange;
+begin
+
+ // If empty, exit early
+ if aSize=0 then begin
+  exit;
+ end;
+
+ // Find insertion point (keep sorted by offset)
+ Index:=0;
+ while (Index<fCount) and (fRanges[Index].Offset<aOffset) do begin
+  inc(Index);
+ end;
+
+ // Expand array if needed
+ if length(fRanges)<=fCount then begin
+  SetLength(fRanges,(fCount+1)*2);
+ end;
+
+ // Insert range
+ if Index<fCount then begin
+  Move(fRanges[Index],fRanges[Index+1],(fCount-Index)*SizeOf(TRange));
+ end;
+
+ Range:=@fRanges[Index];
+ Range^.Offset:=aOffset;
+ Range^.Size:=aSize;
+ inc(fCount);
+
+ // Coalesce adjacent ranges
+ CoalesceFreeRanges;
+end;
+
+function TpvFreeRangeList.FindBestFit(const aSize:TpvSizeUInt;out aOffset:TpvSizeUInt):Boolean;
+var Index,BestIndex:TpvInt32;
+    BestSize:TpvSizeUInt;
+    Range:PRange;
+begin
+
+ result:=false;
+
+ // Initialize best fit search
+ BestIndex:=-1;
+ BestSize:=High(TpvSizeUInt);
+
+ // Find smallest range that fits
+ for Index:=0 to fCount-1 do begin
+  Range:=@fRanges[Index];
+  if (Range^.Size>=aSize) and (Range^.Size<BestSize) then begin
+   BestIndex:=Index;
+   BestSize:=Range^.Size;
+   result:=true;
+  end;
+ end;
+
+ if result then begin
+
+  // Get range
+  Range:=@fRanges[BestIndex];
+
+  // Allocate from best fit range
+  aOffset:=Range^.Offset;
+
+  // Split or remove range
+  if Range^.Size=aSize then begin
+   // Exact fit - remove range
+   if BestIndex<fCount-1 then begin
+    Move(fRanges[BestIndex+1],Range^,(fCount-BestIndex-1)*SizeOf(TRange));
+   end;
+   dec(fCount);
+  end else begin
+   // Partial fit - adjust range
+   inc(Range^.Offset,aSize);
+   dec(Range^.Size,aSize);
+  end;
+ end;
+
+end;
+
+procedure TpvFreeRangeList.RemoveRange(const aOffset:TpvSizeUInt);
+var Index:TpvInt32;
+begin
+ for Index:=0 to fCount-1 do begin
+  if fRanges[Index].Offset=aOffset then begin
+   if (Index+1)<=fCount then begin
+    Move(fRanges[Index+1],fRanges[Index],(fCount-(Index+1))*SizeOf(TRange));
+   end;
+   dec(fCount);
+   exit;
+  end;
+ end;
+end;
+
+procedure TpvFreeRangeList.CoalesceFreeRanges;
+var Index:TpvInt32;
+    Range,NextRange:PRange;
+begin
+ Index:=0;
+ while Index<fCount-1 do begin
+  // Check if current and next ranges are adjacent
+  Range:=@fRanges[Index];
+  NextRange:=@fRanges[Index+1];
+  if (Range^.Offset+Range^.Size)=NextRange^.Offset then begin
+   // Merge ranges
+   Range^.Size:=Range^.Size+NextRange^.Size;
+   if (Index+2)<=fCount then begin
+    Move(fRanges[Index+2],fRanges[Index+1],(fCount-(Index+2))*SizeOf(TRange));
+   end;
+   dec(fCount);
+  end else begin
+   inc(Index);
+  end;
+ end;
+end;
+
+procedure TpvFreeRangeList.Clear;
+begin
+ fCount:=0;
+end;
+
+{ TpvRingBufferAllocator }
+
+constructor TpvRingBufferAllocator.Create(const aTotalSize:TpvSizeUInt);
+begin
+ inherited Create;
+ fTotalSize:=aTotalSize;
+ fUsedSize:=0;
+ fFreeRanges:=TpvFreeRangeList.Create;
+ fFreeRanges.AddRange(0,aTotalSize); // Initially, entire buffer is free
+end;
+
+destructor TpvRingBufferAllocator.Destroy;
+begin
+ FreeAndNil(fFreeRanges);
+ inherited Destroy;
+end;
+
+function TpvRingBufferAllocator.Allocate(const aSize:TpvSizeUInt;out aOffset:TpvSizeUInt):Boolean;
+begin
+ result:=fFreeRanges.FindBestFit(aSize,aOffset);
+ if result then begin
+  inc(fUsedSize,aSize);
+ end;
+end;
+
+procedure TpvRingBufferAllocator.Free(const aOffset,aSize:TpvSizeUInt);
+begin
+ fFreeRanges.AddRange(aOffset,aSize);
+ dec(fUsedSize,aSize);
+end;
+
+procedure TpvRingBufferAllocator.Reset;
+begin
+ fFreeRanges.Clear;
+ fFreeRanges.AddRange(0,fTotalSize);
+ fUsedSize:=0;
+end;
+
+{ TpvArrayAllocator }
+
+constructor TpvArrayAllocator.Create(const aElementSize:TpvSizeUInt);
+begin
+ inherited Create;
+ fElementSize:=aElementSize;
+ fFreeSlots:=nil;
+ fFreeSlotCount:=0;
+ fNextSlot:=0;
+end;
+
+destructor TpvArrayAllocator.Destroy;
+begin
+ fFreeSlots:=nil;
+ inherited Destroy;
+end;
+
+function TpvArrayAllocator.AllocateSlot(out aIndex:TpvSizeInt):Boolean;
+begin
+ result:=true;
+
+ // Reuse freed slot if available
+ if fFreeSlotCount>0 then begin
+  dec(fFreeSlotCount);
+  aIndex:=fFreeSlots[fFreeSlotCount];
+ end else begin
+  // Allocate new slot
+  aIndex:=fNextSlot;
+  inc(fNextSlot);
+ end;
+
+end;
+
+procedure TpvArrayAllocator.FreeSlot(const aIndex:TpvSizeInt);
+var Index:TpvSizeInt;
+begin
+ // Add to free list
+ Index:=fFreeSlotCount;
+ inc(fFreeSlotCount);
+ if length(fFreeSlots)<fFreeSlotCount then begin
+  SetLength(fFreeSlots,fFreeSlotCount*2);
+ end;
+ fFreeSlots[Index]:=aIndex;
+end;
+
+procedure TpvArrayAllocator.Reset;
+begin
+ fFreeSlotCount:=0;
+ fNextSlot:=0;
+end;
 
 { TpvDynamicArray<T> }
 
@@ -4230,14 +4510,14 @@ begin
     Index:=0;
     pA:=@aKeyA;
     pB:=@aKeyB;
-    while (Index+SizeOf(TpvUInt32))<SizeOf(TpvHashMapKey) do begin
+    while (Index+SizeOf(TpvUInt32))<=SizeOf(TpvHashMapKey) do begin
      if TpvUInt32(TpvPointer(@pA^[Index])^)<>TpvUInt32(TpvPointer(@pB^[Index])^) then begin
       result:=false;
       exit;
      end;
      inc(Index,SizeOf(TpvUInt32));
     end;
-    while (Index+SizeOf(UInt8))<SizeOf(TpvHashMapKey) do begin
+    while (Index+SizeOf(UInt8))<=SizeOf(TpvHashMapKey) do begin
      if UInt8(TpvPointer(@pA^[Index])^)<>UInt8(TpvPointer(@pB^[Index])^) then begin
       result:=false;
       exit;

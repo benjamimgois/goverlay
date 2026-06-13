@@ -1,0 +1,474 @@
+#version 460
+
+// Generic Task Shader for meshlet-level culling.
+// Dispatched via vkCmdDrawMeshTasksIndirectCountEXT after mesh_cull.comp
+// has performed object-level culling (Pass0: visibility buffer, Pass1: HiZ).
+//
+// Per workgroup: processes up to TASK_GROUP_SIZE meshlets of one object,
+// performs frustum cull (always) and HiZ occlusion cull (Pass1 only),
+// emits surviving meshlet indices to mesh shader via payload.
+//
+// Variants:
+//   PASS=0 — Meshlet frustum cull only (HiZ pyramid not yet built)
+//   PASS=1 — Meshlet frustum + HiZ occlusion cull (HiZ from Pass0 depth)
+
+#pragma shader_stage(task)
+#extension GL_EXT_mesh_shader : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_debug_printf : enable
+
+#ifndef PASS
+#define PASS 0
+#endif
+
+#ifndef TASK_GROUP_SIZE
+#define TASK_GROUP_SIZE 32
+#endif
+
+#ifdef VOXELIZATION
+// Voxelization prim-chunking constants — MUST mirror mesh.mesh. A meshlet holds up to MAX_MESHLET_PRIMITIVES (126) triangles,
+// but the voxelization mesh shader can only output MAX_VOXEL_MESHLET_PRIMITIVES (42) per workgroup (3 unique, non-shared
+// vertices per triangle → 126 output vertices max). So a meshlet is split into MAX_VOXEL_PRIM_CHUNKS chunks of 42 triangles
+// and the task emits one (meshlet, cascade, chunk) entry per chunk, so every triangle of a >42-prim meshlet gets voxelized
+// (previously triangles 42..125 were silently dropped → under-voxelization).
+#define MAX_MESHLET_PRIMITIVES 126
+#define MAX_VOXEL_MESHLET_PRIMITIVES 42
+#define MAX_VOXEL_PRIM_CHUNKS ((MAX_MESHLET_PRIMITIVES + MAX_VOXEL_MESHLET_PRIMITIVES - 1) / MAX_VOXEL_MESHLET_PRIMITIVES) // ceil(126/42)=3
+// layerIndices entry packs cascade in the low bits and chunk in the high bits: (chunkIndex << VOXEL_CASCADE_BITS) | cascadeIndex.
+#define VOXEL_CASCADE_BITS 4u
+#define VOXEL_CASCADE_MASK 0xfu
+#endif
+
+// Option 1 (now ON by default): enlarge the payload so a single TASK_GROUP_SIZE-meshlet group can emit all
+// TASK_GROUP_SIZE × (max 8 cascades) × MAX_VOXEL_PRIM_CHUNKS (meshlet, cascade, chunk) entries without dropping any.
+// Comment the define to fall back to TASK_GROUP_SIZE capacity (which under-voxelizes — kept only as an escape hatch).
+#define VOXELIZATION_TASK_PAYLOAD_EXPAND
+#if defined(VOXELIZATION) && defined(VOXELIZATION_TASK_PAYLOAD_EXPAND)
+#define TASK_PAYLOAD_CAPACITY (TASK_GROUP_SIZE * 8 * MAX_VOXEL_PRIM_CHUNKS)
+#else
+#define TASK_PAYLOAD_CAPACITY TASK_GROUP_SIZE
+#endif
+
+layout(local_size_x = TASK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+/* clang-format off */
+
+// Push constants — same base layout as mesh_pushconstants.glsl with
+// task-specific reuse of unused fields. Must match mesh.mesh layout.
+layout(push_constant) uniform PushConstants {
+  
+  uint viewBaseIndex;
+  uint countViews;
+  uint countAllViews;
+  uint frameIndex;
+
+  vec4 jitter;
+  
+  uvec4 timeSecondsTimeFractionalSecondWidthHeight;
+  
+  uint raytracingFlags;
+  uint drawFlags; // bit 0 = meshlet debug colors, bit 3 = meshlet culling enabled
+  uint textureDepthIndex;
+  uint meshDrawCommandsBDALow;  // Low 32 bits of mesh draw commands buffer BDA
+  
+  uint meshDrawCommandsBDAHigh; // High 32 bits of mesh draw commands buffer BDA
+  float maximumDistance;
+  float areaTooSmallThreshold;
+
+} pushConstants;
+
+const uint FLAG_MESHLET_CULLING_ENABLED = 1u << 3;
+
+#include "drawinfo.glsl"
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+// --- Descriptor Set 0: Per-draw data (compatible with mesh.vert Set 0) ---
+layout(set = 0, binding = 0, std430) readonly buffer DrawInfoBuffer {
+  DrawInfo drawInfoItems[];
+};
+layout(set = 0, binding = 7, std430) readonly buffer GlobalBDAPointersBuffer {
+  GlobalBDAPointers globalBDAPointers;
+};
+
+// --- Descriptor Set 1: Per-pass data ---
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256];
+} uView;
+
+#if (PASS == 1) && !defined(SELECTIONMASK)
+layout(set = 1, binding = 7) uniform sampler2DArray uTextureDepths[];
+#endif
+
+/* clang-format on */
+
+#include "frustum.glsl"
+
+#include "projectsphere.glsl"
+
+#ifdef VOXELIZATION
+// Voxel cascade AABB data for meshlet-vs-cascade culling
+// Only the VoxelGridData UBO is needed here (not content buffers)
+layout(set = 1, binding = 1, std140) readonly uniform VoxelGridData {
+  #include "voxelgriddata_uniforms.glsl"
+} voxelGridData;
+#endif
+
+// Transform bounding sphere by model matrix (same as mesh_cull.comp)
+vec4 sphereTransform(const in vec4 sphere, const in mat4 transform){
+  return vec4(
+    (transform * vec4(sphere.xyz, 1.0)).xyz,
+    max(
+      sphere.w * max(1.0, sqrt(max(max(dot(transform[0].xyz, transform[0].xyz), dot(transform[1].xyz, transform[1].xyz)), dot(transform[2].xyz, transform[2].xyz)))),
+      0.0
+    )
+  );
+}
+
+// Shared per-view data (pre-computed by first threads, same pattern as mesh_cull.comp)
+shared mat4 viewMatrices[8];
+shared mat4 projectionMatrices[8];
+shared Frustum frustums[8];
+shared mat4 modelMatrix;
+#if PASS == 1
+shared float zNears[8];
+#endif
+
+// Task payload — passed to mesh shader workgroups
+struct TaskPayload {
+  uint meshletDescriptorBase; // base index in meshletDescriptors[] for this object
+  uint meshObjectID;          // DrawInfo index for mesh shader (model matrix, etc.)
+  uint count;                 // number of visible meshlets emitted
+  uint meshletLocalIndices[TASK_PAYLOAD_CAPACITY]; // local meshlet indices (relative to meshletDescriptorBase)
+#if defined(VOXELIZATION) || defined(USE_LAYER_ROUTING)
+  // Each entry is a meshlet × layer pair (cascade for CSM/voxelization)
+  uint layerIndices[TASK_PAYLOAD_CAPACITY];
+#endif
+};
+taskPayloadSharedEXT TaskPayload payload;
+
+void main(){
+
+  uint localInvocationIndex = gl_LocalInvocationIndex;
+#ifndef VOXELIZATION
+  uint countViews = min(pushConstants.countViews, 8u);
+#endif
+
+  // Construct BDA references for meshlet data and draw commands
+  MeshletDescriptorBuffer meshletDescBuf = MeshletDescriptorBuffer(globalBDAPointers.meshletDescriptorBDA);
+  MeshDrawCommandBuffer meshDrawCmdBuf = MeshDrawCommandBuffer(uvec2(pushConstants.meshDrawCommandsBDALow, pushConstants.meshDrawCommandsBDAHigh));
+
+  // Read indirect command metadata for this draw (gl_DrawID from vkCmdDrawMeshTasksIndirectCountEXT)
+  MeshDrawCommand cmd = meshDrawCmdBuf.commands[uint(gl_DrawID)];
+  uint meshletBase = cmd.cmd0.w;
+  uint meshletCount = cmd.cmd1.x;
+  uint meshObjectID = cmd.cmd1.y;
+
+  if(localInvocationIndex == 0u && gl_WorkGroupID.x == 0u){
+#ifdef MESH_SHADER_DEBUG
+    debugPrintfEXT("mesh.task: DrawID=%u meshletBase=%u meshletCount=%u meshObjID=%u flags=0x%x matrixID=%u descBase=%u",
+      gl_DrawID, meshletBase, meshletCount, meshObjectID,
+      drawInfoItems[meshObjectID].flags, drawInfoItems[meshObjectID].matrixID,
+      drawInfoItems[meshObjectID].meshletDescriptorBase);
+#endif
+  }
+
+  // Thread 0: Load model matrix into shared memory and initialize payload
+  if(localInvocationIndex == 0u){
+    MatrixPairBuffer matrixPairBuffer = MatrixPairBuffer(globalBDAPointers.matrixPairBDA);
+    modelMatrix = matrixPairBuffer.pairs[drawInfoItems[meshObjectID].matrixID].modelMatrix;
+    payload.meshletDescriptorBase = meshletBase;
+    payload.meshObjectID = meshObjectID;
+    payload.count = 0u;
+  }
+
+  // First threads: Pre-compute per-view frustum data into shared memory
+#ifndef VOXELIZATION
+  if(localInvocationIndex < countViews){
+    uint viewIndex = pushConstants.viewBaseIndex + localInvocationIndex;
+    viewMatrices[localInvocationIndex] = uView.views[viewIndex].viewMatrix;
+    projectionMatrices[localInvocationIndex] = uView.views[viewIndex].projectionMatrix;
+    frustumSetup(frustums[localInvocationIndex], uView.views[viewIndex].projectionMatrix);
+#if PASS == 1
+    zNears[localInvocationIndex] = abs(
+      uView.views[viewIndex].inverseProjectionMatrix[3][2] /
+      uView.views[viewIndex].inverseProjectionMatrix[2][3]
+    );
+#endif
+  }
+#endif
+
+  memoryBarrierShared();
+  groupMemoryBarrier();
+  barrier();
+
+  // Each thread processes one meshlet within this workgroup's range
+  uint meshletLocalIndex = (gl_WorkGroupID.x * TASK_GROUP_SIZE) + localInvocationIndex;
+
+  if(meshletLocalIndex < meshletCount){
+
+    uint meshletGlobalIndex = meshletBase + meshletLocalIndex;
+
+    // Try per-instance world-space sphere first (from mesh_update_meshlet_boundingspheres.comp)
+    uint meshletBoundingSphereBase = drawInfoItems[meshObjectID].meshletBoundingSphereBase;
+    vec4 worldSphere;
+    bool hasSphere = false;
+    if((meshletBoundingSphereBase != 0xffffffffu) && (globalBDAPointers.meshletBoundingSphereBDA != uvec2(0u))){
+      MeshletBoundingSphereBuffer meshletBoundingSphereBuffer = MeshletBoundingSphereBuffer(globalBDAPointers.meshletBoundingSphereBDA);
+      uint sphereIndex = meshletBoundingSphereBase + (meshletBase - drawInfoItems[meshObjectID].meshletDescriptorBase) + meshletLocalIndex;
+      worldSphere = meshletBoundingSphereBuffer.spheres[sphereIndex];
+      hasSphere = (worldSphere.w > 0.0);
+      if(hasSphere){
+        worldSphere = sphereTransform(worldSphere, modelMatrix);
+      }
+#ifdef MESH_SHADER_DEBUG_EX          
+      if(meshletLocalIndex < 2u){
+        debugPrintfEXT("mesh.task BDASphere obj=%u ml=%u base=%u idx=%u sphere=[%f,%f,%f,%f] hasSphere=%u",
+          meshObjectID, meshletLocalIndex, meshletBoundingSphereBase, sphereIndex,
+          worldSphere.x, worldSphere.y, worldSphere.z, worldSphere.w,
+          uint(hasSphere));
+      }
+#endif      
+    }
+    if(!hasSphere){
+      vec4 meshletSphere = meshletDescBuf.descriptors[meshletGlobalIndex].boundingSphere;
+      if(meshletSphere.w > 0.0){
+        worldSphere = sphereTransform(meshletSphere, modelMatrix);
+        hasSphere = true;
+      }
+    }
+
+    // Distance-based culling: skip meshlets too far from camera
+    bool distanceCulled = false;
+    if(hasSphere && (pushConstants.maximumDistance > 0.0)){
+      vec3 cameraPosition = uView.views[0].inverseViewMatrix[3].xyz;
+      if(distance(cameraPosition, worldSphere.xyz) - worldSphere.w > pushConstants.maximumDistance){
+        distanceCulled = true;
+      }
+    }
+
+#ifdef VOXELIZATION
+
+    // Voxelization: test meshlet bounding sphere against each cascade AABB.
+    // Emit one entry per visible (meshlet, cascade, chunk) triple. A meshlet with >MAX_VOXEL_MESHLET_PRIMITIVES (42)
+    // triangles needs numChunks (=ceil(primitiveCount/42)) mesh workgroups per cascade so every triangle is voxelized.
+    uint meshletPrimitiveCount = min(meshletDescBuf.descriptors[meshletGlobalIndex].primitiveCount, MAX_MESHLET_PRIMITIVES);
+    uint numChunks = (meshletPrimitiveCount + (MAX_VOXEL_MESHLET_PRIMITIVES - 1u)) / MAX_VOXEL_MESHLET_PRIMITIVES;
+    if(((pushConstants.drawFlags & FLAG_MESHLET_CULLING_ENABLED) != 0u) && hasSphere && !distanceCulled){
+
+      uint countCascades = voxelGridData.countCascades;
+      for(uint cascadeIndex = 0u; cascadeIndex < countCascades; cascadeIndex++){
+        // Sphere-vs-AABB test (world-space cascade AABBs from VoxelGridData)
+        vec3 closestPoint = clamp(worldSphere.xyz,
+                                  voxelGridData.cascadeAABBMin[cascadeIndex].xyz,
+                                  voxelGridData.cascadeAABBMax[cascadeIndex].xyz);
+        vec3 diff = closestPoint - worldSphere.xyz;
+        if(dot(diff, diff) <= (worldSphere.w * worldSphere.w)){
+          for(uint chunkIndex = 0u; chunkIndex < numChunks; chunkIndex++){
+            uint idx = atomicAdd(payload.count, 1u);
+            if(idx < TASK_PAYLOAD_CAPACITY){
+              payload.meshletLocalIndices[idx] = meshletLocalIndex;
+              payload.layerIndices[idx] = (chunkIndex << VOXEL_CASCADE_BITS) | cascadeIndex;
+            }
+          }
+        }
+      }
+
+    }else if(!distanceCulled){
+      // Culling disabled or no valid bounding sphere → emit for all cascades × chunks (conservative)
+      uint countCascades = voxelGridData.countCascades;
+      for(uint cascadeIndex = 0u; cascadeIndex < countCascades; cascadeIndex++){
+        for(uint chunkIndex = 0u; chunkIndex < numChunks; chunkIndex++){
+          uint idx = atomicAdd(payload.count, 1u);
+          if(idx < TASK_PAYLOAD_CAPACITY){
+            payload.meshletLocalIndices[idx] = meshletLocalIndex;
+            payload.layerIndices[idx] = (chunkIndex << VOXEL_CASCADE_BITS) | cascadeIndex;
+          }
+        }
+      }
+    }
+
+#elif defined(USE_LAYER_ROUTING)
+
+    // Layer routing: test meshlet against each view/cascade frustum independently.
+    // Emit one payload entry per visible meshlet × view pair.
+    // The mesh shader uses the view index to select the correct matrices and sets
+    // gl_Layer per primitive for cascade/layer routing without multiview.
+    if(((pushConstants.drawFlags & FLAG_MESHLET_CULLING_ENABLED) != 0u) && hasSphere && !distanceCulled){
+
+      for(uint viewIdx = 0u; viewIdx < countViews; viewIdx++){
+
+        vec4 viewSpaceSphere = vec4(
+          (viewMatrices[viewIdx] * vec4(worldSphere.xyz, 1.0)).xyz,
+          worldSphere.w
+        );
+
+        // Frustum cull against this view's frustum
+        if(!frustumCullingSphereTest(frustums[viewIdx], viewSpaceSphere)){
+          continue;
+        }
+
+#if PASS == 1
+        // HiZ occlusion cull per cascade layer
+        {
+          vec4 aabb;
+          if(projectSphere(viewSpaceSphere.xyz, viewSpaceSphere.w, zNears[viewIdx],
+                           projectionMatrices[viewIdx], aabb, true)){
+
+            vec2 viewPortSize = vec2(textureSize(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)], 0).xy);
+            int countLODLevels = textureQueryLevels(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)]);
+
+            vec2 size = vec2(aabb.zw - aabb.xy) * viewPortSize;
+
+            // Area-based culling: skip meshlets too small in this view
+            if((pushConstants.areaTooSmallThreshold > 0.0) && (max(size.x, size.y) < pushConstants.areaTooSmallThreshold)){
+              continue;
+            }
+
+            float level = clamp(floor(log2(max(size.x, size.y))), 0.0, float(countLODLevels - 1));
+
+            vec2 depthZ = (uView.views[pushConstants.viewBaseIndex + viewIdx].inverseProjectionMatrix * vec4(
+              (aabb.xy + aabb.zw) - vec2(1.0),
+              textureLod(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)],
+                         vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIdx)), level).x,
+              1.0
+            )).zw;
+
+            float depth = -(depthZ.x / depthZ.y);
+
+            if(((-viewSpaceSphere.z) - viewSpaceSphere.w) > depth){
+              continue; // Occluded by HiZ in this cascade
+            }
+          }
+        }
+#endif
+
+        uint idx = atomicAdd(payload.count, 1u);
+        if(idx < TASK_PAYLOAD_CAPACITY){
+          payload.meshletLocalIndices[idx] = meshletLocalIndex;
+          payload.layerIndices[idx] = viewIdx;
+        }
+
+      }
+
+    }else if(!distanceCulled){
+      // Culling disabled or no valid bounding sphere → emit for all views (conservative)
+      for(uint viewIdx = 0u; viewIdx < countViews; viewIdx++){
+        uint idx = atomicAdd(payload.count, 1u);
+        if(idx < TASK_PAYLOAD_CAPACITY){
+          payload.meshletLocalIndices[idx] = meshletLocalIndex;
+          payload.layerIndices[idx] = viewIdx;
+        }
+      }
+    }
+
+#else
+
+#ifdef SELECTIONMASK
+
+    // Selection mask: emit EVERY meshlet unconditionally — no frustum/HiZ/distance culling, no dependency on cull state or the
+    // HiZ depth binding -> occluded selected meshlets are drawn too (x-ray), matching the vertex/index pre-occlusion list.
+    bool visible = true;
+
+#else
+
+    bool visible = false;
+
+    if(((pushConstants.drawFlags & FLAG_MESHLET_CULLING_ENABLED) != 0u) && hasSphere && !distanceCulled){
+
+      // Test visibility against each view (visible if ANY view sees it)
+      for(uint viewIndex = 0u; viewIndex < countViews; viewIndex++){
+
+        vec4 viewSpaceSphere = vec4(
+          (viewMatrices[viewIndex] * vec4(worldSphere.xyz, 1.0)).xyz,
+          worldSphere.w
+        );
+
+        // Frustum cull (without far plane, same as mesh_cull.comp)
+        if(!frustumCullingSphereTest(frustums[viewIndex], viewSpaceSphere)){
+          continue;
+        }
+
+#if PASS == 1
+        // HiZ occlusion cull (mirrors mesh_cull.comp Pass1 logic exactly)
+        {
+          vec4 aabb;
+          if(projectSphere(viewSpaceSphere.xyz, viewSpaceSphere.w, zNears[viewIndex],
+                           projectionMatrices[viewIndex], aabb, true)){
+
+            vec2 viewPortSize = vec2(textureSize(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)], 0).xy);
+            int countLODLevels = textureQueryLevels(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)]);
+
+            vec2 size = vec2(aabb.zw - aabb.xy) * viewPortSize;
+
+            // Area-based culling: skip meshlets too small in this view
+            if((pushConstants.areaTooSmallThreshold > 0.0) && (max(size.x, size.y) < pushConstants.areaTooSmallThreshold)){
+              continue;
+            }
+
+            float level = clamp(floor(log2(max(size.x, size.y))), 0.0, float(countLODLevels - 1));
+
+            vec2 depthZ = (uView.views[pushConstants.viewBaseIndex + viewIndex].inverseProjectionMatrix * vec4(
+              (aabb.xy + aabb.zw) - vec2(1.0),
+              textureLod(uTextureDepths[nonuniformEXT(pushConstants.textureDepthIndex)],
+                         vec3(mix(aabb.xy, aabb.zw, 0.5), float(viewIndex)), level).x,
+              1.0
+            )).zw;
+
+            float depth = -(depthZ.x / depthZ.y);
+
+            if(((-viewSpaceSphere.z) - viewSpaceSphere.w) > depth){
+              continue; // Occluded by HiZ
+            }
+          }
+        }
+#endif
+
+        visible = true;
+        break; // Visible in at least one view — no need to check others
+
+      }
+
+    }else if(!distanceCulled){
+      // Culling disabled or no valid bounding sphere → always visible (conservative)
+      visible = true;
+    }
+
+#endif
+
+    if(visible){
+      uint idx = atomicAdd(payload.count, 1u);
+      payload.meshletLocalIndices[idx] = meshletLocalIndex;
+    }
+
+#endif // VOXELIZATION
+
+  }
+
+  // Wait for all threads to finish writing payload
+  barrier();
+
+  // Clamp emit count to the payload capacity (= TASK_GROUP_SIZE normally; TASK_GROUP_SIZE*8 for voxelization, which emits one
+  // (meshlet, cascade) entry per cascade per meshlet — without the bigger capacity those extra pairs were silently dropped).
+  uint emitCount = min(payload.count, TASK_PAYLOAD_CAPACITY);
+
+  if(emitCount > 0u && gl_LocalInvocationIndex == 0u && gl_DrawID < 3){
+#ifdef MESH_SHADER_DEBUG
+    debugPrintfEXT("mesh.task EMIT: DrawID=%u emitCount=%u meshletBase=%u meshObjID=%u",
+      gl_DrawID, emitCount, payload.meshletDescriptorBase, payload.meshObjectID);
+#endif
+  }
+
+  // Emit visible meshlets to mesh shader (one workgroup per visible meshlet)
+  EmitMeshTasksEXT(emitCount, 1u, 1u);
+
+}

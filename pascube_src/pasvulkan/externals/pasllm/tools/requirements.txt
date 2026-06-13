@@ -1,0 +1,10 @@
+# convert.py
+safetensors
+torch
+numpy
+
+# convert.py, only if using models without HF tokenizer.json
+sentencepiece
+
+# download.py
+huggingface_hub

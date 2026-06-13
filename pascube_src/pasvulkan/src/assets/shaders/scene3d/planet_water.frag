@@ -39,12 +39,13 @@ layout(location = 0) in InBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
+//vec4 jitter;
   float mapValue;
   float waterOverSurface;
   float underWater;
+  flat uint meshletID;
 } inBlock;
-#elif defined(UNDERWATER)
+#elif defined(UNDERWATER) || defined(WATER_CAUSTICS)
 layout(location = 0) in InBlock {
   vec2 texCoord;
   float underWater;
@@ -61,7 +62,7 @@ layout(location = 0) out vec4 outFragColor;
   layout(location = 1) out vec4 outFragNormalUsed; // xyz = normal, w = 1.0 if normal was used, 0.0 otherwise (by clearing the normal buffer to vec4(0.0))
 #endif
 
-#if !(defined(TESSELLATION) || defined(UNDERWATER))
+#if !(defined(TESSELLATION) || defined(UNDERWATER) || defined(WATER_CAUSTICS))
 #ifdef MSAA
 #ifndef MSAA_FAST
 layout(input_attachment_index = 0, set = 1, binding = 9) uniform subpassInputMS uOITImgDepth; // Ignored/Unused in the MSAA_FAST case 
@@ -69,7 +70,7 @@ layout(input_attachment_index = 0, set = 1, binding = 9) uniform subpassInputMS 
 #else
 layout(input_attachment_index = 0, set = 1, binding = 9) uniform subpassInput uOITImgDepth;
 #endif
-#endif // !(defined(TESSELLATION) || defined(UNDERWATER))
+#endif // !(defined(TESSELLATION) || defined(UNDERWATER) || defined(WATER_CAUSTICS))
 
 #if defined(TESSELLATION)
 #define inViewSpacePosition inBlock.viewSpacePosition
@@ -129,9 +130,11 @@ layout(set = 2, binding = 0) uniform sampler2DArray uPlanetArrayTextures[]; // 0
 
 // Per water render pass descriptor set
 
-#if !(defined(TESSELLATION) || defined(UNDERWATER))
+#if !(defined(TESSELLATION) || defined(UNDERWATER) || defined(WATER_CAUSTICS))
 layout(set = 3, binding = 2) uniform sampler2DArray uTextureWaterAcceleration;
 #endif
+
+#define globalRaytracingFlags pushConstants.flags
 
 #define PLANET_WATER
 #include "planet_renderpass.glsl"
@@ -153,6 +156,7 @@ layout(set = 3, binding = 2) uniform sampler2DArray uTextureWaterAcceleration;
 #include "octahedral.glsl"
 #include "octahedralmap.glsl"
 #include "tangentspacebasis.glsl" 
+#include "planet_noise.glsl"
 
 float transmissionFactor = 1.0;
 float volumeThickness = 0.005;
@@ -160,13 +164,12 @@ float volumeAttenuationDistance = 1.0 / 0.0; // +INF
 vec3 volumeAttenuationColor = vec3(1.0); 
 float volumeDispersion = 0.0;
 
-const float airIOR = 1.0; 
-
-const float waterIOR = 1.3325; 
+float airIOR = 1.0;
+float waterIOR = 1.3325;
 
 #define IOR_TO_F0(ior) ((ior - 1.0) * (ior - 1.0)) / ((ior + 1.0) * (ior + 1.0))
 
-const float waterF0 = IOR_TO_F0(waterIOR) * IOR_TO_F0(waterIOR);
+float waterF0 = IOR_TO_F0(waterIOR) * IOR_TO_F0(waterIOR);
 
 const vec3 inModelScale = vec3(1.0); 
 
@@ -185,6 +188,8 @@ int inViewIndex = int(gl_ViewIndex);
 
 #include "roughness.glsl"
 
+#include "meshlet.glsl"
+
 vec3 imageLightBasedLightDirection = vec3(0.0, 1.0, 0.0);// imageBasedSphericalHarmonicsMetaData.dominantLightDirection.xyz;
 
 vec3 viewDirection;
@@ -197,7 +202,7 @@ mat4 inverseViewMatrix = uView.views[viewIndex].inverseViewMatrix;
 mat4 projectionMatrix = uView.views[viewIndex].projectionMatrix;
 mat4 inverseProjectionMatrix = uView.views[viewIndex].inverseProjectionMatrix;
 
-#if !(defined(TESSELLATION) || defined(UNDERWATER))
+#if !(defined(TESSELLATION) || defined(UNDERWATER) || defined(WATER_CAUSTICS))
 mat4 viewProjectionMatrix = projectionMatrix * viewMatrix;
 mat4 inverseViewProjectionMatrix = inverseViewMatrix * inverseProjectionMatrix;
 
@@ -239,8 +244,125 @@ mat4 planetInverseModelMatrix = inverse(planetModelMatrix);
 
 #include "planet_water.glsl"
 
+#ifdef WATER_CAUSTICS
+#include "planet_caustics.glsl"
+#endif
+
+// DDGI probe field for ray-tracing-based global illumination, gated to RT GI modes (DDGI now, Surfel later) — never
+// CRH/VCT. Wired into the main water surface AND the underwater fullscreen pass (shore-foam ambient); WATER_CAUSTICS is
+// excluded because that pass is purely additive refracted-sun light with no diffuse/ambient term for DDGI to feed. GI
+// lives at the fixed dedicated set 4 (the water pipelines use sets 0..3), mirroring planet_renderpass.frag / planet_grass.frag.
+#if defined(GLOBAL_ILLUMINATION_DDGI) && !defined(WATER_CAUSTICS)
+  #define DDGI_DESCRIPTOR_SET 4
+  #include "global_illumination_ddgi_sampling.glsl"
+  #define WATER_DDGI 1
+#elif defined(GLOBAL_ILLUMINATION_SURFEL) && !defined(WATER_CAUSTICS)
+  #define GLOBAL_ILLUMINATION_SURFEL_SAMPLE
+  #define GI_SURFEL_DESCRIPTOR_SET 4
+  #include "global_illumination_surfel.glsl"
+  #define WATER_SURFEL 1
+#endif
+
+// Diffuse ambient irradiance for the water surface at a given world position, in getIBLDiffuse()'s "ready to multiply by
+// albedo" convention. Under the DDGI build variant it comes from the probe field (replacing the environment IBL diffuse);
+// otherwise it is the environment IBL diffuse (which ignores the position). The specular reflection path stays IBL either
+// way (water reflections are wanted). An explicit world position is taken because the underwater fullscreen pass has no
+// per-fragment surface position (the file-scope inWorldSpacePosition is only valid on the tessellated surface) — the
+// underwater shore-foam caller reconstructs the world position from the depth buffer instead. viewDirection is file-scope.
+#if defined(WATER_DDGI)
+vec3 waterDiffuseAmbient(const in vec3 worldPosition, const in vec3 n, out float skyVisibility){
+  return ddgiSampleIrradiance(worldPosition, n, viewDirection, skyVisibility) * OneOverPI;
+}
+#elif defined(WATER_SURFEL)
+vec3 waterDiffuseAmbient(const in vec3 worldPosition, const in vec3 n, out float skyVisibility){
+  return giSurfelSampleIrradiance(worldPosition, n, skyVisibility) * OneOverPI;
+}
+#else
+vec3 waterDiffuseAmbient(const in vec3 worldPosition, const in vec3 n, out float skyVisibility){
+  skyVisibility = 1.0;
+  return getIBLDiffuse(n);
+}
+#endif
+vec3 waterDiffuseAmbient(const in vec3 worldPosition, const in vec3 n){
+  float skyVisibility;
+  return waterDiffuseAmbient(worldPosition, n, skyVisibility);
+}
+
 vec3 safeNormalize(vec3 v){
   return (length(v) > 0.0) ? normalize(v) : vec3(0.0);
+}
+
+// Accumulate a single Gerstner-style wave's normal gradient onto normalOffset.
+// d3: 3D wave direction (unit vector in sphere tangent plane), k: wavenumber (rad/m),
+// A: visual amplitude (normal-space, dimensionless), pos: planet-local position (meters).
+// waveSpeed (global) controls the animation rate.
+vec3 waveWindDir = vec3(1.0, 0.0, 0.0);
+float waveAmplitude = 0.0;
+float waveFrequency = 0.05;
+float waveSteepness = 0.5;
+float waveSpeed = 0.5;
+float waveWhitecapFactor = 1.0;
+float uvWaveFrequency    = 5.0; // spatial wave cycles per octahedral UV unit [0,1]
+float uvWaveSpeed        = 0.3; // UV wave animation speed (UV units/s)
+float uvWaveScale        = 10.0; // UV coordinate scale applied to octUV before wave phases (higher = finer ripples)
+float waveDisplaceAmplitude          = 0.0; // per-vertex height displacement amplitude in meters (0=disabled)
+float displaceHeightLowThreshold     = 0.0; // water depth below which displacement fades to 0
+float displaceHeightHighThreshold    = 0.5; // water depth above which displacement is at full strength
+float displaceHeightFactor           = 1.0; // overall multiplier on depth-based displacement fade
+vec3  whitecapColor          = vec3(1.0);  // whitecap foam color (linear RGB)
+float whitecapPatternScale   = 24.0;  // FBM breakup pattern scale
+float whitecapSlopeThreshLow  = 0.05; // heightmap slope where whitecaps begin
+float whitecapSlopeThreshHigh = 0.20; // heightmap slope where whitecaps are full
+float whitecapBreakupLow     = 0.35;  // FBM breakup smoothstep low threshold
+float whitecapBreakupHigh    = 0.75;  // FBM breakup smoothstep high threshold
+float shoreFoamBreakupLow    = 0.35;  // shore foam FBM breakup smoothstep low threshold
+float shoreFoamBreakupHigh   = 0.75;  // shore foam FBM breakup smoothstep high threshold
+float shoreFoamPuddleMinHeight = 0.0005; // puddle suppression: foam fully off below this regional water height
+float shoreFoamPuddleMaxHeight = 0.005;  // puddle suppression: foam fully on above this regional water height
+
+// Fragment-local UV displacement wrapper using global uvWave* uniforms.
+float computeWaveDisplacement(vec2 uv, float time){
+  return computeWaveDisplacement(uv, time, uvWaveFrequency, uvWaveSpeed, uvWaveScale);
+}
+
+// Fragment-local Gerstner displacement wrapper using global wave* uniforms.
+float computeGerstnerDisplacement(vec3 spherePos, float time){
+  return computeGerstnerDisplacement(spherePos, waveWindDir, waveFrequency, waveSpeed, waveSteepness, time);
+}
+
+// Adds rain splash normal perturbation on top of a precomputed water normal.
+// Uses analytic finite-difference slope at fine UV step (cellSize/16) and applies as
+// tangent-space perturbation. Masked by local water depth so dry areas stay flat.
+vec3 applyWaterRainSplashNormal(vec3 n, vec3 baseNormal){
+#ifdef PLANET_DATA_GLSL
+  float strength = unpackHalf2x16(planetData.waterRainSplashParams2.x).x;
+  if(strength <= 0.0){
+    return baseNormal;
+  }
+  vec2 euv = octPlanetUnsignedEncode(n);
+  float waterDepth = getSphereHeightData(euv).y;
+  vec2 splashDepthThresh = unpackHalf2x16(planetData.waterRainSplashParams2.y); // depthThresholdLow, depthThresholdHigh
+  float fade = smoothstep(splashDepthThresh.x, max(splashDepthThresh.y, splashDepthThresh.x + 1e-6), waterDepth);
+  if(fade <= 0.0){
+    return baseNormal;
+  }
+  vec2 slope = getWaterRainSplashSlope(euv, pushConstants.time) * strength * fade;
+  if(dot(slope, slope) <= 1e-12){
+    return baseNormal;
+  }
+  // Build local sphere-tangent basis from neighbouring octahedral UV samples so it
+  // follows the planet curvature instead of assuming flat-earth Y=up.
+  vec2 duv = vec2(1.0) / vec2(textureSize(uPlanetTextures[PLANET_TEXTURE_HEIGHTMAP], 0).xy);
+  vec3 pu = octPlanetUnsignedDecode(wrapOctahedralCoordinates(euv + vec2(duv.x, 0.0))) -
+            octPlanetUnsignedDecode(wrapOctahedralCoordinates(euv - vec2(duv.x, 0.0)));
+  vec3 pv = octPlanetUnsignedDecode(wrapOctahedralCoordinates(euv + vec2(0.0, duv.y))) -
+            octPlanetUnsignedDecode(wrapOctahedralCoordinates(euv - vec2(0.0, duv.y)));
+  vec3 tangent = normalize(pu - (n * dot(n, pu)));
+  vec3 bitangent = normalize(pv - (n * dot(n, pv)) - (tangent * dot(tangent, pv)));
+  return normalize(baseNormal - (tangent * slope.x) - (bitangent * slope.y));
+#else
+  return baseNormal;
+#endif
 }
 
 vec3 getWaterNormal(vec3 position){
@@ -282,6 +404,28 @@ vec3 getWaterNormal(vec3 position){
     float hh = getSphereHeightEx(huv);
     float ih = getSphereHeightEx(iuv);
 
+    // Correct height samples for wave displacement so normals match displaced geometry.
+    // Combines UV chop (computeWaveDisplacement) and Gerstner swell (computeGerstnerDisplacement).
+    // Uses center water depth for smoothstep (approximation; avoids 8 extra texture reads).
+    if((waveDisplaceAmplitude > 0.0) || (waveAmplitude > 0.0)){
+      float centerWaterDepth = getSphereHeightData(euv).y;
+      float displacementFactor = smoothstep(displaceHeightLowThreshold, displaceHeightHighThreshold, centerWaterDepth) * displaceHeightFactor;
+      if(displacementFactor > 0.0){
+        float disT = pushConstants.time;
+        float uvAmpl = waveDisplaceAmplitude * displacementFactor;
+        float gAmpl  = waveAmplitude         * displacementFactor;
+        eh += computeWaveDisplacement(euv, disT) * uvAmpl + computeGerstnerDisplacement(n * eh, disT) * gAmpl;
+        if(ah > 0.0){ ah += computeWaveDisplacement(auv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(auv) * ah, disT) * gAmpl; }
+        if(bh > 0.0){ bh += computeWaveDisplacement(buv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(buv) * bh, disT) * gAmpl; }
+        if(ch > 0.0){ ch += computeWaveDisplacement(cuv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(cuv) * ch, disT) * gAmpl; }
+        if(dh > 0.0){ dh += computeWaveDisplacement(duv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(duv) * dh, disT) * gAmpl; }
+        if(fh > 0.0){ fh += computeWaveDisplacement(fuv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(fuv) * fh, disT) * gAmpl; }
+        if(gh > 0.0){ gh += computeWaveDisplacement(guv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(guv) * gh, disT) * gAmpl; }
+        if(hh > 0.0){ hh += computeWaveDisplacement(huv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(huv) * hh, disT) * gAmpl; }
+        if(ih > 0.0){ ih += computeWaveDisplacement(iuv, disT) * uvAmpl + computeGerstnerDisplacement(octPlanetUnsignedDecode(iuv) * ih, disT) * gAmpl; }
+      }
+    }
+
     vec3 a = octPlanetUnsignedDecode(auv) * ((ah > 0.0) ? ah : eh);
     vec3 b = octPlanetUnsignedDecode(buv) * ((bh > 0.0) ? bh : eh);
     vec3 c = octPlanetUnsignedDecode(cuv) * ((ch > 0.0) ? ch : eh);
@@ -306,7 +450,7 @@ vec3 getWaterNormal(vec3 position){
 
   }       
 
-  return normal;
+  return applyWaterRainSplashNormal(n, normal);
 #else
 
   const vec2 uvOfs = vec2(1.0 / 4096.0, 0.0);
@@ -341,7 +485,7 @@ vec3 getWaterNormal(vec3 position){
                           ? normalize(cross(normalize(p01 - p00), p)) 
                           : normalize(p - p10));
 
-  return normalize(cross(tangent, bitangent));
+  return applyWaterRainSplashNormal(n, normalize(cross(tangent, bitangent)));
 #endif
 }
 
@@ -386,12 +530,17 @@ float HenyeyGreenstein(float mu, float inG){
 
 #define PROCESSLIGHT processLight 
 
-const vec3 waterBaseColor = pow(vec3(0.555555, 0.777777, 1.0), vec3(2.5));//vec3(0.5, 0.7, 0.9);
+vec3 waterBaseColor = pow(vec3(0.555555, 0.777777, 1.0), vec3(2.5));//vec3(0.5, 0.7, 0.9); // default; overridden from planetData.waterBaseColorIORs in main()
 
 vec3 waterDiffuseColor = vec3(0.0);
 vec3 waterSpecularColor = vec3(0.0);
 
 vec3 waterSubscattering = vec3(0.0);
+
+// Downwelling irradiance reaching the water surface from direct (shadow-attenuated) lights.
+// Accumulated in processLight and combined with IBL diffuse to modulate the deep-water
+// scattering color so the volume stays dark at night / in shadow and bright at day.
+vec3 waterDownwellingIrradiance = vec3(0.0);
 
 vec3 waterColor; //vec3(0.090195, 0.115685, 0.12745);
 
@@ -403,11 +552,184 @@ void processLight(const in vec3 lightColor,
 
   float mu = dot(lightDirection, -viewDirection);
 
-  waterSubscattering += HenyeyGreenstein(mu, 0.5) * waterColor * lightColor * (1.0 - clamp(exp(-waterDepth * 0.01), 0.0, 1.0));  
+  waterSubscattering += HenyeyGreenstein(mu, 0.5) * waterColor * lightColor * lightLit * (1.0 - clamp(exp(-waterDepth * 0.01), 0.0, 1.0));  
+
+  // Downwelling irradiance onto the water surface from above (shadow/visibility-aware via
+  // lightLit from the caller, which carries the per-light lightAttenuation including shadows).
+  // Above/below water sign flipping is already handled by the caller via workNormal.
+  waterDownwellingIrradiance += lightColor * lightLit * max(0.0, dot(workNormal, lightDirection));
 
 //waterSubscattering += HenyeyGreenstein(mu, 0.5) * waterColor * lightColor * max(0.0, waterDepth * 0.01);
 
 } 
+
+// --- Shore foam helpers ----------------------------------------------------
+// Uses the shared gradient-noise FBM from planet_noise.glsl so the foam pattern
+// stays stable on the sphere surface while avoiding axis-aligned grid artefacts
+// of naive value-noise.
+
+#define SHORE_FOAM_LEGACY_VALUE_NOISE
+
+#ifdef SHORE_FOAM_LEGACY_VALUE_NOISE
+// Small, self-contained 3D value-noise FBM sampled in local-planet space so
+// the foam pattern stays stable on the sphere surface while being cheap.
+float shoreFoamHash(vec3 p){
+  return hash44ChaCha20(vec4(p, 0.0)).x;
+}
+
+float shoreFoamNoise(vec3 p){
+  vec3 i = floor(p);
+  vec3 f = fract(p);
+  vec3 u = f * f * (3.0 - (2.0 * f));
+  float n000 = shoreFoamHash(i + vec3(0.0, 0.0, 0.0));
+  float n100 = shoreFoamHash(i + vec3(1.0, 0.0, 0.0));
+  float n010 = shoreFoamHash(i + vec3(0.0, 1.0, 0.0));
+  float n110 = shoreFoamHash(i + vec3(1.0, 1.0, 0.0));
+  float n001 = shoreFoamHash(i + vec3(0.0, 0.0, 1.0));
+  float n101 = shoreFoamHash(i + vec3(1.0, 0.0, 1.0));
+  float n011 = shoreFoamHash(i + vec3(0.0, 1.0, 1.0));
+  float n111 = shoreFoamHash(i + vec3(1.0, 1.0, 1.0));
+  return mix(mix(mix(n000, n100, u.x), mix(n010, n110, u.x), u.y),
+             mix(mix(n001, n101, u.x), mix(n011, n111, u.x), u.y),
+             u.z);
+}
+
+float shoreFoamFBM(vec3 p){
+  float f = 0.0;
+  float a = 0.5;
+  for(int i = 0; i < 4; i++){
+    f += shoreFoamNoise(p) * a;
+    p = (p * 2.03) + vec3(17.13, 23.71, 29.17);
+    a *= 0.5;
+  }
+  return f;
+}
+#endif
+
+// Shared shore-foam overlay. Returns aBaseColor unchanged for waterDepth values above the foam
+// range or when the foam is disabled; otherwise blends the configured foam color on top, using
+// aPlanetSpacePos as the pattern domain so the foam stays locked to the planet surface.
+// Foam is suppressed in small isolated water bodies (puddles) by sampling the downsampled
+// water minimap to check the regional average water height.
+vec3 applyShoreFoam(vec3 aBaseColor, vec3 aPlanetSpacePos, float aShoreDepth){
+  vec3 result = aBaseColor;
+  vec4 waterShoreFoam0 = vec4(unpackHalf2x16(planetData.waterShoreFoam.x), unpackHalf2x16(planetData.waterShoreFoam.y));
+  vec4 waterShoreFoam1 = vec4(unpackHalf2x16(planetData.waterShoreFoam.z), unpackHalf2x16(planetData.waterShoreFoam.w));
+  if(waterShoreFoam1.w > 0.0){
+    float shoreMask = 1.0 - smoothstep(waterShoreFoam1.x, waterShoreFoam0.w, aShoreDepth);
+    if(shoreMask > 0.0){
+      // Suppress foam in puddles: sample the downsampled water minimap to get regional average
+      // water height. Puddles have near-zero regional depth everywhere, so shoreMask would
+      // otherwise equal 1.0 across the whole puddle. Scale down to ~0 when the regional
+      // water height is below the puddle threshold.
+      vec2 miniMapUV = octPlanetUnsignedEncode(normalize(aPlanetSpacePos));
+      float regionalWaterHeight = texture(uPlanetTextures[PLANET_TEXTURE_WATERMAP_MINIMAP], miniMapUV).r;
+      float puddleFactor = smoothstep(shoreFoamPuddleMinHeight, shoreFoamPuddleMaxHeight, regionalWaterHeight);
+      shoreMask *= puddleFactor;
+    }
+    if(shoreMask > 0.0){
+      vec3 foamUV = aPlanetSpacePos * waterShoreFoam1.y;
+      float foamPhase = pushConstants.time * waterShoreFoam1.z;
+#ifdef SHORE_FOAM_LEGACY_VALUE_NOISE
+      float foamA = shoreFoamFBM(foamUV + vec3(0.0, 0.0, foamPhase));
+      float foamB = shoreFoamFBM((foamUV * 1.73) + vec3(foamPhase * 0.7, -foamPhase * 0.5, 0.0));
+      float foamPattern = clamp((foamA * 1.4) - (foamB * 0.6) - 0.25, 0.0, 1.0);
+#else
+      // Domain-warp via a cheap low-frequency offset noise to break up any
+      // residual lattice regularity, then sample two decorrelated FBMs and
+      // combine them with a soft smoothstep for an organic foam shape.
+      vec3 warp = vec3(planetGradientNoise(foamUV * 0.5 + vec3(foamPhase, 0.0, 0.0)),
+                       planetGradientNoise(foamUV * 0.5 + vec3(0.0, foamPhase, 0.0)),
+                       planetGradientNoise(foamUV * 0.5 + vec3(0.0, 0.0, foamPhase))) * 0.35;
+      float foamA = planetNoiseFBM((foamUV + warp) + vec3(0.0, 0.0, foamPhase));
+      float foamB = planetNoiseFBM(((foamUV * 1.73) + warp) + vec3(foamPhase * 0.7, -foamPhase * 0.5, 0.0));
+      float foamPattern = smoothstep(shoreFoamBreakupLow, shoreFoamBreakupHigh, foamA - (foamB * 0.4));
+#endif
+      float foamAmount = clamp(shoreMask * foamPattern * waterShoreFoam1.w, 0.0, 1.0);
+      // Modulate the (typically white) foam color by ambient IBL + shadow-attenuated direct
+      // downwelling irradiance so foam darkens at night / in shadow instead of glowing white.
+      vec3 foamIrradiance = waterDiffuseAmbient((planetModelMatrix * vec4(aPlanetSpacePos, 1.0)).xyz, workNormal) + waterDownwellingIrradiance;
+      vec3 foamLit = waterShoreFoam0.xyz * foamIrradiance;
+      result = mix(result, foamLit, foamAmount);
+    }
+  }
+  return result;
+}
+
+// Whitecap (breaking wave crest) mask: combines Gerstner wave-crest phase
+// detection with an FBM breakup to produce ragged, animated foam patches at
+// wave crests. Returns 0 when amplitude*steepness is below threshold.
+float computeWhitecapMask(vec3 position){
+  float globalCoverage = max(0.0, waveWhitecapFactor);
+  if(globalCoverage <= 0.0){
+    return 0.0;
+  }
+  // Whitecap is driven purely by the gradient of the water simulation heightmap in
+  // sphere-correct (round-planet) tangent space — no wave-phase re-computation.
+  // High water surface slope (steep wave face) => whitecap.
+  vec3 n = normalize(position);
+  vec2 octUV = octPlanetUnsignedEncode(n);
+  const vec2 uvOfs = vec2(1.0 / 4096.0, 0.0);
+  vec2 uv00 = wrapOctahedralCoordinates(octUV - uvOfs.xy);
+  vec2 uv01 = wrapOctahedralCoordinates(octUV + uvOfs.xy);
+  vec2 uv10 = wrapOctahedralCoordinates(octUV - uvOfs.yx);
+  vec2 uv11 = wrapOctahedralCoordinates(octUV + uvOfs.yx);
+  // Water simulation heights at neighbours (pure water height, no terrain offset needed for gradient).
+  float wh00 = getWaterHeightData(uv00);
+  float wh01 = getWaterHeightData(uv01);
+  float wh10 = getWaterHeightData(uv10);
+  float wh11 = getWaterHeightData(uv11);
+  // Total surface heights for sphere-correct 3D distances (terrain + water).
+  float h   = getSphereHeight(octUV);
+  float h00 = getSphereHeightEx(uv00);
+  float h01 = getSphereHeightEx(uv01);
+  float h10 = getSphereHeightEx(uv10);
+  float h11 = getSphereHeightEx(uv11);
+  vec3 p    = n * h;
+  vec3 p00  = octPlanetUnsignedDecode(uv00) * ((h00 > 0.0) ? h00 : h);
+  vec3 p01  = octPlanetUnsignedDecode(uv01) * ((h01 > 0.0) ? h01 : h);
+  vec3 p10  = octPlanetUnsignedDecode(uv10) * ((h10 > 0.0) ? h10 : h);
+  vec3 p11  = octPlanetUnsignedDecode(uv11) * ((h11 > 0.0) ? h11 : h);
+  // Sphere-correct 3D surface distances for gradient normalisation.
+  float distU = max(1e-6, length(p01 - p00));
+  float distV = max(1e-6, length(p11 - p10));
+  // Water height gradient in heightmap tangent space (dimensionless, m/m).
+  float gradU = (wh01 - wh00) / distU;
+  float gradV = (wh11 - wh10) / distV;
+  float gradMag = sqrt((gradU * gradU) + (gradV * gradV));
+  // Threshold: scale steepness thresholds with wave amplitude so the whitecap
+  // coverage adapts automatically when wave settings change.
+  float slopeThreshLow  = whitecapSlopeThreshLow;
+  float slopeThreshHigh = whitecapSlopeThreshHigh;
+  float crest = smoothstep(slopeThreshLow, slopeThreshHigh, gradMag);
+  // FBM breakup pattern: use own whitecap patternscale.
+  vec3 foamUV    = position * whitecapPatternScale;
+  float foamPhase = pushConstants.time * waveSpeed * 0.25;
+  vec3 warp      = vec3(planetGradientNoise(foamUV * 0.5 + vec3(foamPhase,        0.0,          0.0        )),
+                        planetGradientNoise(foamUV * 0.5 + vec3(0.0,              foamPhase,    0.0        )),
+                        planetGradientNoise(foamUV * 0.5 + vec3(0.0,              0.0,          foamPhase  ))) * 0.35;
+  float foamA    = planetNoiseFBM((foamUV + warp) + vec3(0.0, 0.0, foamPhase));
+  float foamB    = planetNoiseFBM(((foamUV * 1.73) + warp) + vec3(foamPhase * 0.7, -foamPhase * 0.5, 0.0));
+  float foamBreakup = smoothstep(whitecapBreakupLow, whitecapBreakupHigh, foamA - (foamB * 0.4));
+  return clamp(globalCoverage * crest * foamBreakup, 0.0, 1.0);
+}
+
+// Apply whitecap foam to aBaseColor, lit by the same sky+sun irradiance as
+// shore foam so whitecaps darken at night rather than glowing white.
+// Guard uses waveWhitecapFactor (not waveAmplitude) so geometry displacement
+// amplitude changes don't accidentally disable whitecaps.
+vec3 applyWhitecaps(vec3 aBaseColor, vec3 aPlanetSpacePos){
+  if(waveWhitecapFactor <= 0.0){
+    return aBaseColor;
+  }
+  float mask = computeWhitecapMask(aPlanetSpacePos);
+  if(mask <= 0.0){
+    return aBaseColor;
+  }
+  vec3 foamIrradiance  = waterDiffuseAmbient((planetModelMatrix * vec4(aPlanetSpacePos, 1.0)).xyz, workNormal) + waterDownwellingIrradiance;
+  vec3 foamLit         = whitecapColor * foamIrradiance;
+  return mix(aBaseColor, foamLit, mask);
+}
 
 vec4 doShade(float opaqueDepth, float surfaceDepth, bool underWater){
 
@@ -564,8 +886,25 @@ vec4 doShade(float opaqueDepth, float surfaceDepth, bool underWater){
 #include "lighting.glsl"
 #undef LIGHTING_IMPLEMENTATION
 
-    vec3 iblDiffuse = getIBLDiffuse(normal) * baseColor.xyz;
+    vec3 iblDiffuse = waterDiffuseAmbient(inWorldSpacePosition, normal) * baseColor.xyz;
     vec3 iblSpecularMetal = getIBLRadianceGGX(normal, viewDirection, perceptualRoughness);
+#if defined(WATER_DDGI) && defined(GI_DDGI_GLOSSY_RESIDUAL)
+    // Probe-derived glossy, roughness-gated. Water is normally near-mirror (low roughness), so smoothstep(0.3,0.8) keeps this ~inert and
+    // the sharp environment/SSR reflection wins (sharp water reflections are wanted — see waterDiffuseAmbient). It only kicks
+    // in for rough/foamy water, where a broad probe reflection (with local colour bleed) is appropriate. Storage-agnostic
+    // via ddgiSampleIrradiance (E(R)/pi ~ broad prefiltered radiance along the reflection vector).
+    {
+      float ddgiGlossySky;
+      vec3 ddgiReflectionVector = normalize(reflect(-viewDirection, normal));
+      vec3 ddgiGlossyRadiance = ddgiSampleIrradiance(inWorldSpacePosition, ddgiReflectionVector, viewDirection, ddgiGlossySky) * OneOverPI; // broad reflection
+#if defined(GI_DDGI_GLOSSY_RADIANCE)
+      // Sharp prefiltered-radiance atlas for low roughness, fading to the broad source toward HI.
+      vec3 ddgiSharpGlossy = ddgiSampleGlossyRadiance(inWorldSpacePosition, normal, ddgiReflectionVector, viewDirection);
+      ddgiGlossyRadiance = mix(ddgiSharpGlossy, ddgiGlossyRadiance, smoothstep(GI_DDGI_GLOSSY_ROUGHNESS_LO, GI_DDGI_GLOSSY_ROUGHNESS_HI, perceptualRoughness));
+#endif
+      iblSpecularMetal = mix(iblSpecularMetal, ddgiGlossyRadiance, smoothstep(0.3, 0.8, perceptualRoughness));
+    }
+#endif
     vec3 iblSpecularDielectric = iblSpecularMetal;
     vec3 iblMetalFresnel = getIBLGGXFresnel(normal, viewDirection, perceptualRoughness, baseColor.xyz, 1.0);
     vec3 iblMetalBRDF = iblMetalFresnel * iblSpecularMetal;
@@ -609,11 +948,34 @@ vec4 doShade(float opaqueDepth, float surfaceDepth, bool underWater){
     vec3 refraction = vec3(0.0);
 #endif
 
-    refraction = mix(refraction, vec3(waterF0), clamp(1.0 - exp(-waterDepth * 1.0), 0.0, 1.0)); 
+    // Beer-Lambert per-channel absorption attenuating refraction across the vertical water column,
+    // with the deep-water scattering color as the asymptotic floor for fully-attenuated light.
+    // The deep-water color represents multiple-scattered downwelling irradiance, so it is
+    // modulated by the sum of IBL diffuse (sky) and per-light shadow-attenuated downwelling
+    // irradiance (waterDownwellingIrradiance accumulated in processLight) so the volume stays
+    // lighting-consistent (dark at night / in shadow, bright at day).
+    // waterAbsorption.w (IOR-based fade amount) blends the Beer-Lambert result toward the PBR-correct
+    // mix(refraction, waterF0, 1-exp(-depth)) IOR-based water volume appearance.
+    vec4 waterAbsorption = vec4(unpackHalf2x16(planetData.waterAbsorptionDeepColor.x), unpackHalf2x16(planetData.waterAbsorptionDeepColor.y));
+    vec4 waterDeepColor = vec4(unpackHalf2x16(planetData.waterAbsorptionDeepColor.z), unpackHalf2x16(planetData.waterAbsorptionDeepColor.w));
+    vec3 waterDeepIrradiance = waterDiffuseAmbient(inWorldSpacePosition, underWater ? -normal : normal) + waterDownwellingIrradiance;
+    vec3 waterDeepLit = waterDeepColor.xyz * waterDeepIrradiance;
+    refraction = mix(mix(refraction, waterDeepLit, clamp(vec3(1.0) - exp(-waterDepth * waterAbsorption.xyz), vec3(0.0), vec3(1.0))),
+                     mix(refraction, vec3(waterF0), clamp(1.0 - exp(-waterDepth * 1.0), 0.0, 1.0)),
+                     clamp(waterAbsorption.w, 0.0, 1.0));
+
+    vec3 waterShade = mix(refraction * waterColor, reflection * waterColor, fresnel) + waterSubscattering;
+#if defined(TESSELLATION)
+    // Shore foam overlay: fades in where the water becomes shallow and saturates near the
+    // waterline. Pattern is a cheap 3D FBM sampled in planet-space (see applyShoreFoam).
+    waterShade = applyShoreFoam(waterShade, inBlock.position, waterDepth);
+    // Whitecap foam on wave crests, driven by waveAmplitude*waveSteepness threshold.
+    waterShade = applyWhitecaps(waterShade, inBlock.position);
+#endif
 
     color.xyz = mix(
       texelFetch(uPassTextures[1], ivec3(gl_FragCoord.xy, gl_ViewIndex), 0).xyz,
-      mix(refraction * waterColor, reflection * waterColor, fresnel) + waterSubscattering, 
+      waterShade,
       clamp(1.0 - exp(-max(waterHeight, waterDepth) * 6.0), 0.0, 1.0)
       //clamp(1.0 - exp(-mix(waterHeight, waterDepth, max(0.0, dot(normal, viewDirection))) * 6.0), 0.0, 1.0)
     );
@@ -639,6 +1001,73 @@ vec4 doShade(float opaqueDepth, float surfaceDepth, bool underWater){
 
 
 void main(){
+  {
+    // Unpack configurable water IORs, base color and (re-)derive waterF0 from waterIOR so the
+    // whole shader picks up the per-planet values configured via TpvScene3DPlanet.
+    vec4 baseColor4 = vec4(unpackHalf2x16(planetData.waterBaseColorIORs.x), unpackHalf2x16(planetData.waterBaseColorIORs.y));
+    vec4 iors4 = vec4(unpackHalf2x16(planetData.waterBaseColorIORs.z), unpackHalf2x16(planetData.waterBaseColorIORs.w));
+    waterBaseColor = baseColor4.xyz;
+    waterIOR = (iors4.x > 0.0) ? iors4.x : 1.3325;
+    airIOR = (iors4.y > 0.0) ? iors4.y : 1.0;
+    float f0 = IOR_TO_F0(waterIOR);
+    waterF0 = f0 * f0;
+    ior = waterIOR / airIOR;
+  }
+  {
+    // Unpack wave parameters for Gerstner swell displacement (tese/mesh + frag normal correction).
+    // wp0: (windDirX, windDirY, windDirZ, waveAmplitude)
+    // wp1: (waveFrequency, waveSteepness, waveSpeed, unused)
+    vec4 wp0 = vec4(unpackHalf2x16(planetData.waterWaveParams.x), unpackHalf2x16(planetData.waterWaveParams.y));
+    vec4 wp1 = vec4(unpackHalf2x16(planetData.waterWaveParams.z), unpackHalf2x16(planetData.waterWaveParams.w));
+    float wdLen = length(wp0.xyz);
+    waveWindDir = (wdLen > 1e-3) ? (wp0.xyz / wdLen) : vec3(1.0, 0.0, 0.0);
+    waveAmplitude = wp0.w;
+    waveFrequency = wp1.x;
+    waveSteepness = wp1.y;
+    waveSpeed = wp1.z;
+    {
+      // wp2: (unused, uvWaveFrequency, uvWaveSpeed, unused) — only freq/speed/scale used for UV chop
+      // wp3: (unused, unused, uvWaveScale, unused)
+      vec4 wp2 = vec4(unpackHalf2x16(planetData.waterUVWaveParams.x), unpackHalf2x16(planetData.waterUVWaveParams.y));
+      vec4 wp3 = vec4(unpackHalf2x16(planetData.waterUVWaveParams.z), unpackHalf2x16(planetData.waterUVWaveParams.w));
+      uvWaveFrequency = wp2.y;
+      uvWaveSpeed = wp2.z;
+      uvWaveScale = wp3.z;
+      // dp0: (waveDisplaceAmplitude, displaceHeightLowThreshold, displaceHeightHighThreshold, displaceHeightFactor)
+      vec4 dp0 = vec4(unpackHalf2x16(planetData.waterDisplaceParams.x), unpackHalf2x16(planetData.waterDisplaceParams.y));
+      waveDisplaceAmplitude       = dp0.x;
+      displaceHeightLowThreshold  = dp0.y;
+      displaceHeightHighThreshold = dp0.z;
+      displaceHeightFactor        = dp0.w;
+    }
+  }
+  {
+    // Unpack whitecap-specific parameters.
+    // wcp0: (colorR, colorG, colorB, patternScale)
+    // wcp1: (slopeThreshLow, slopeThreshHigh, breakupLow, breakupHigh)
+    vec4 wcp0 = vec4(unpackHalf2x16(planetData.waterWhitecapParams.x), unpackHalf2x16(planetData.waterWhitecapParams.y));
+    vec4 wcp1 = vec4(unpackHalf2x16(planetData.waterWhitecapParams.z), unpackHalf2x16(planetData.waterWhitecapParams.w));
+    whitecapColor = wcp0.xyz;
+    whitecapPatternScale = wcp0.w;
+    whitecapSlopeThreshLow = wcp1.x;
+    whitecapSlopeThreshHigh = wcp1.y;
+    whitecapBreakupLow = wcp1.z;
+    whitecapBreakupHigh = wcp1.w;
+    waveWhitecapFactor = unpackHalf2x16(planetData.waterWhitecapParams2.x).x;
+  }
+  {
+    // Unpack shore foam breakup thresholds.
+    vec2 sfb = unpackHalf2x16(planetData.waterShoreFoamExtra.x);
+    shoreFoamBreakupLow = sfb.x;
+    shoreFoamBreakupHigh = sfb.y;
+  }
+  {
+    // Unpack puddle foam suppression thresholds.
+    vec2 sfp = unpackHalf2x16(planetData.waterShoreFoamExtra.y);
+    shoreFoamPuddleMinHeight = sfp.x;
+    shoreFoamPuddleMaxHeight = sfp.y;
+  }
+
 #if defined(TESSELLATION)
  
   workNormal = normalize((planetModelMatrix * vec4(getWaterNormal(inBlock.position), 0.0)).xyz) * ((inBlock.underWater > 0.0) ? -1.0 : 1.0);
@@ -671,11 +1100,80 @@ void main(){
 
   outFragColor = vec4(clamp(finalColor.xyz * finalColor.w, vec3(-65504.0), vec3(65504.0)), finalColor.w);
 
+  if((inBlock.meshletID & 0x80000000u) != 0u) {
+    outFragColor = vec4(meshletDebugColor(inBlock.meshletID & 0x7fffffffu), 1.0);
+  }
+
 #elif defined(UNDERWATER)
 
   vec4 finalColor = vec4(textureLod(uPassTextures[1], vec3(inBlock.texCoord, gl_ViewIndex), 1.0).xyz * waterBaseColor * waterBaseColor, 1.0);
 
+  // Shore-foam overlay for the underwater fullscreen pass: reconstruct the ground geometry's
+  // planet-space position from the opaque depth buffer and compare against the water surface
+  // height at that sphere direction. Where the two are close, we are at a shallow shore spot and
+  // applyShoreFoam tints the foam color on top of the underwater look.
+  {
+    float rawDepth = texelFetch(uPassTextures[2], ivec3(gl_FragCoord.xy, gl_ViewIndex), 0).x;
+    vec4 clipPos = vec4(fma(inBlock.texCoord, vec2(2.0), vec2(-1.0)), rawDepth, 1.0);
+    vec4 viewPos = inverseProjectionMatrix * clipPos;
+    viewPos /= viewPos.w;
+    vec3 worldPos = (inverseViewMatrix * viewPos).xyz;
+    vec3 planetPos = (planetInverseModelMatrix * vec4(worldPos, 1.0)).xyz;
+    float groundRadius = length(planetPos);
+    if(groundRadius > 1e-3){
+      vec3 sphereNormal = planetPos / groundRadius;
+      float waterRadius = getSphereHeightEx(octPlanetUnsignedEncode(sphereNormal));
+      if(waterRadius > 0.0){
+        float shoreDepth = max(0.0, waterRadius - groundRadius);
+        // The global workNormal/viewDirection are only set on the tessellated surface, not in this fullscreen pass, but
+        // applyShoreFoam's ambient lookup (waterDiffuseAmbient -> IBL or DDGI) reads them. Use the world-space surface
+        // up-normal at the shore point and the direction toward the camera so the DDGI/IBL diffuse stays well-defined.
+        workNormal = normalize((planetModelMatrix * vec4(sphereNormal, 0.0)).xyz);
+        viewDirection = normalize(inverseViewMatrix[3].xyz - worldPos);
+        finalColor.xyz = applyShoreFoam(finalColor.xyz, planetPos, shoreDepth);
+      }
+    }
+  }
+
   outFragColor = vec4(clamp(finalColor.xyz * finalColor.w, vec3(-65504.0), vec3(65504.0)), finalColor.w);
+
+#elif defined(WATER_CAUSTICS)
+
+  // Reconstruct the world-space terrain position from the opaque depth buffer.
+  float rawDepth = texelFetch(uPassTextures[2], ivec3(gl_FragCoord.xy, gl_ViewIndex), 0).x;
+  vec4 clipPos = vec4(fma(inBlock.texCoord, vec2(2.0), vec2(-1.0)), rawDepth, 1.0);
+  vec4 viewPos = inverseProjectionMatrix * clipPos;
+  viewPos /= viewPos.w;
+  vec3 worldPos = (inverseViewMatrix * viewPos).xyz;
+  vec3 planetPos = (planetInverseModelMatrix * vec4(worldPos, 1.0)).xyz;
+  float groundRadius = length(planetPos);
+
+  if(groundRadius > 1e-3){
+    vec3 sphereNormal = planetPos / groundRadius;
+    float waterRadius = getSphereHeightEx(octPlanetUnsignedEncode(sphereNormal));
+    if(waterRadius > groundRadius){
+      float waterDepth = waterRadius - groundRadius;
+      vec2 cp0 = unpackHalf2x16(planetData.waterCausticParams.x);
+      float causticIntensity = cp0.x;
+      if(causticIntensity > 0.0){
+        vec2 cp1 = unpackHalf2x16(planetData.waterCausticParams.y);
+        vec2 cp2 = unpackHalf2x16(planetData.waterCausticParams.z);
+        float causticScale = cp0.y;
+        float causticFadeDepth = cp1.x;
+        float causticSpeed = cp1.y;
+        float time = pushConstants.time;
+        float caustic = getCausticIntensity(planetPos, time, causticScale, causticSpeed, causticFadeDepth, waterDepth, cp2.x, cp2.y);
+        // Additive caustic light; alpha=0 so we don't disturb the composite alpha.
+        outFragColor = vec4(causticIntensity * caustic * vec3(unpackHalf2x16(planetData.waterCausticParams2.x), unpackHalf2x16(planetData.waterCausticParams2.y).x), 0.0); // caustic tint color
+      } else {
+        discard;
+      }
+    } else {
+      discard;
+    }
+  } else {
+    discard;
+  }
 
 #else
 #ifdef MULTIVIEW

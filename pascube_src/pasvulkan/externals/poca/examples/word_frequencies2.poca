@@ -3,6 +3,6 @@
 // A very simple word frequency counter thatdoes not take punctuation into account.
 
 let words = {}, file = IO.open(arguments.pop() ?? __FILE__, 'r');
-while(!file.eof()) foreach (let s in file.readln().split(' ', true))words[s] = words[?s?] + 1;
+while(!file.eof()) foreach (let s in file.readln().split(' ', true))words[s] = words?[s] + 1;
 file.close();
 foreach(let w in words.toArray().sort(1).reverse())puts(`${w[0]} ${w[1]}`);

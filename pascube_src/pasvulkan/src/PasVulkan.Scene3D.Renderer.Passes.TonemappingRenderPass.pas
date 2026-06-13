@@ -81,6 +81,7 @@ type { TpvScene3DRendererPassesTonemappingRenderPass }
       public
        type TPushConstants=record 
              Mode:TpvInt32;
+             DebugBypass:TpvInt32;
             end; 
             PPushConstants=^TPushConstants;
       private
@@ -394,6 +395,12 @@ begin
  end else begin
   PushConstants.Mode:=0; // HDR => No tone mapping, just color grading if all.
  end;
+ if (fInstance.DrawMeshletDebugColors and fInstance.Renderer.Scene3D.MeshShaders) or
+    fInstance.GlobalIlluminationCascadedVoxelConeTracingDebugVisualization then begin
+  PushConstants.DebugBypass:=1;
+ end else begin
+  PushConstants.DebugBypass:=0;
+ end;
  aCommandBuffer.CmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       fVulkanPipelineLayout.Handle,
                                       0,
@@ -405,7 +412,13 @@ begin
                                  SizeOf(TpvScene3DRendererPassesTonemappingRenderPass.TPushConstants),
                                  @PushConstants);                                     
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'TonemappingRenderPass');
+ end;
  aCommandBuffer.CmdDraw(3,1,0,0);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 end;
 
 end.

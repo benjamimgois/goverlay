@@ -82,21 +82,6 @@ vec4 blend(const in vec4 pFrom, const in vec4 pTo, const in float pFactor){
 }
   
 void main(void){
-  if(inUV.z > 250.0){
-    vec2 size = vec2(1.0 / length(vec2(dFdx(inUV.x), dFdy(inUV.x))),
-                     1.0 / length(vec2(dFdx(inUV.y), dFdy(inUV.y))));
-    vec2 p = (inUV.xy - vec2(0.5)) * size;
-    float r = 6.0;
-    vec2 d = abs(p) - (size * 0.5 - vec2(r));
-    float dist = length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0) - r;
-    float fill = 1.0 - smoothstep(-0.5, 0.5, dist);
-    float borderThickness = 1.0;
-    float border = 1.0 - smoothstep(-0.5, 0.5, abs(dist + borderThickness * 0.5) - borderThickness * 0.5);
-    vec4 col = mix(vec4(inBackgroundColor.rgb, 0.0), inBackgroundColor, fill);
-    col = mix(col, inForegroundColor, border);
-    outFragColor = col;
-    return;
-  }
   float center = textureLod(uSamplerFont, inUV, 0.0).r;
 #ifdef SIMPLE_SIGNED_DISTANCE_FIELD_WIDTH_CALCULATION
   vec2 width = vec2(0.5) + (vec2(-SQRT_0_DOT_5, SQRT_0_DOT_5) * length(vec2(dFdx(center), dFdy(center))));

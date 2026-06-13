@@ -1,0 +1,86 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+// GPU water ripple injection pass
+//
+// Stamps a set of CPU-enqueued ripple sources (EnqueueWaterRipple) into the
+// current ripple ping-pong image as additive Gaussian bumps on both the
+// height (r) and velocity (g) channels, so that the subsequent wave-equation
+// simulation pass can propagate them across the octahedral water surface.
+//
+// This is fully independent of the existing CPU TGamePlanetWaterImpactMap and
+// of the long-lived EnqueueWaterModification brush writes on the water height
+// map, which keep their semantics unchanged.
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+#define WORKGROUP_SIZE 16
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+
+struct WaterRippleSource {
+  vec4 positionRadius;        // xyz = normalized sphere direction, w = angular radius (radians)
+  vec4 strengthVelocityPad;   // x = height strength, y = velocity strength, z,w = reserved
+};
+
+layout(set = 0, binding = 0, std430) readonly buffer WaterRippleSources {
+  uint count;
+  uint pad0;
+  uint pad1;
+  uint pad2;
+  WaterRippleSource items[];
+} waterRippleSources;
+
+layout(set = 0, binding = 1, rg16f) uniform image2D uTargetImage;
+
+layout(push_constant) uniform PushConstants {
+  uint waterRippleMapResolution;
+  uint countSources;
+} pushConstants;
+
+#include "octahedral.glsl"
+
+void main(){
+
+  const uvec2 position = uvec2(gl_GlobalInvocationID.xy);
+
+  if(!all(lessThan(position, uvec2(pushConstants.waterRippleMapResolution)))){
+    return;
+  }
+
+  uint countSources = min(pushConstants.countSources, waterRippleSources.count);
+  if(countSources == 0u){
+    return;
+  }
+
+  vec3 n = octPlanetUnsignedDecode((vec2(position) + vec2(0.5)) / vec2(pushConstants.waterRippleMapResolution));
+
+  vec2 accum = vec2(0.0);
+
+  for(uint i = 0u; i < countSources; i++){
+    WaterRippleSource src = waterRippleSources.items[i];
+    vec3 sn = src.positionRadius.xyz;
+    float angularRadius = max(src.positionRadius.w, 1e-4);
+    // Great-circle angle between texel direction and source direction.
+    float cosAngle = clamp(dot(n, sn), -1.0, 1.0);
+    float angle = acos(cosAngle);
+    float t = angle / angularRadius;
+    if(t < 3.0){
+      // Gaussian falloff; sigma ~ angularRadius/2 so that t=2 means ~2 sigma out.
+      float weight = exp(t * t * -2.0);
+      accum += vec2(src.strengthVelocityPad.x, src.strengthVelocityPad.y) * weight;
+    }
+  }
+
+  if(any(greaterThan(abs(accum), vec2(1e-7)))){
+    vec4 prev = imageLoad(uTargetImage, ivec2(position));
+    imageStore(uTargetImage, ivec2(position), vec4(prev.x + accum.x, prev.y + accum.y, 0.0, 0.0));
+  }
+
+}

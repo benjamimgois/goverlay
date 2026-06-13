@@ -25,6 +25,7 @@ OLD_DIR="$(pwd)"
 # Copy modified files from the pasriscv submodule to the real directory of the pasriscv GIT repository
 cp -f externals/pasriscv/README.md ../pasriscv/README.md
 cp -f externals/pasriscv/docs/documentation.md ../pasriscv/docs/documentation.md
+cp -f externals/pasriscv/docs/xpasriscvctl.md ../pasriscv/docs/xpasriscvctl.md
 cp -f externals/pasriscv/src/PasRISCV.pas ../pasriscv/src/PasRISCV.pas
 
 # Clean the pasriscv submodule from the local changes 

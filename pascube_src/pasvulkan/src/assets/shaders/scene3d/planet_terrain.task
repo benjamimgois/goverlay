@@ -1,0 +1,93 @@
+#version 460
+
+#pragma shader_stage(task)
+
+#extension GL_EXT_mesh_shader : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+#include "bufferreference_definitions.glsl"
+
+#include "planet_terrain.glsl"
+#include "octahedral.glsl"
+
+#define PASS_DESCRIPTOR_SET 1
+#define TERRAIN_MESH_DESCRIPTOR_SET 3
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = PASS_DESCRIPTOR_SET, binding = 0, std140) uniform uboViews {
+  View views[256];
+} uView;
+
+// Visibility bitmap written by planet_cull.comp (one bit per tile)
+layout(set = TERRAIN_MESH_DESCRIPTOR_SET, binding = 1, std430) readonly buffer VisibilityBitmap {
+  uint bitmap[];
+} visibilityBitmap;
+
+struct TaskData {
+  uint tileIndex;
+  uint lodLevel; // 0=full detail, 1=half, 2=quarter; stride = 1<<lodLevel
+};
+
+taskPayloadSharedEXT TaskData taskData;
+
+void main() {
+  uint tileIndex = gl_GlobalInvocationID.x;
+
+  // Per-tile frustum culling: only active when bit PLANET_TERRAIN_FLAG_FRUSTUM_CULL is set
+  // (set by Pascal only for DepthPrepass/DepthPrepassDisocclusion/Opaque passes where planet_cull.comp has run)
+  if ((pushConstants.flags & (1u << PLANET_TERRAIN_FLAG_FRUSTUM_CULL)) != 0u) {
+    if ((visibilityBitmap.bitmap[tileIndex >> 5u] & (1u << (tileIndex & 31u))) == 0u) {
+      EmitMeshTasksEXT(0u, 0u, 0u);
+      return;
+    }
+  }
+
+  uint tileRes = planetData.flagsResolutions.y & 0xFFFFu;
+  uint tileMapRes = (planetData.flagsResolutions.y >> 16u) & 0xFFFFu;
+
+  uint lodLevel = 0u;
+
+  // Distance-based LOD: only active when bit PLANET_TERRAIN_FLAG_TASK_LOD is set
+  if ((pushConstants.flags & (1u << PLANET_TERRAIN_FLAG_TASK_LOD)) != 0u) {
+    uint tileX = tileIndex % tileMapRes;
+    uint tileY = tileIndex / tileMapRes;
+    // Tile center in octahedral UV space -> unit sphere direction
+    vec2 octUV = (vec2(tileX, tileY) + vec2(0.5)) / float(tileMapRes);
+    vec3 tileDir = octUnsignedDecode(octUV);
+    // World position of tile centre (on sphere surface)
+    float topRadius = planetData.bottomRadiusTopRadiusHeightMapScale.y;
+    vec3 tileCenterWorld = (planetData.modelMatrix * vec4(tileDir * topRadius, 1.0)).xyz;
+    // Camera position from inverse view matrix
+    vec3 cameraPos = uView.views[pushConstants.viewBaseIndex].inverseViewMatrix[3].xyz;
+    float dist = length(cameraPos - tileCenterWorld);
+    // LOD thresholds as multiples of planet radius
+    if (dist < 2.0 * topRadius) {
+      lodLevel = 0u;
+    } else if (dist < 5.0 * topRadius) {
+      lodLevel = 1u;
+    } else {
+      lodLevel = 2u;
+    }
+    // Clamp: stride = 1<<lodLevel, need tileRes/(MESHLET_K*stride) >= 1
+    uint maxLodLevel = uint(findMSB(tileRes / MESHLET_K));
+    lodLevel = min(lodLevel, maxLodLevel);
+  }
+
+  uint lodStride = 1u << lodLevel;
+  uint meshletsPerSide = tileRes / (MESHLET_K * lodStride);
+  taskData.tileIndex = tileIndex;
+  taskData.lodLevel = lodLevel;
+  EmitMeshTasksEXT(meshletsPerSide * meshletsPerSide, 1u, 1u);
+}

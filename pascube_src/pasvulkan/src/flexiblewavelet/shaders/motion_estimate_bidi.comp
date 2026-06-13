@@ -1,0 +1,206 @@
+#version 450
+// motion_estimate_bidi.comp — version2n Stage B2b joint/iterative bidirectional motion search. Like
+// motion_estimate.comp, but the per-block cost minimises the TRUE bidirectional residual: for each
+// candidate MV the prediction is (weight_self * MC(searchRef, mv) + weight_other * MC_other + 128) >> 8,
+// where MC_other is the FIXED motion-compensated other reference (e.g. MC(ref1, mv1) while refining mv0).
+// The caller runs it twice (refine mv0 given MC1, then mv1 given MC0). This reduces the actual blended
+// residual instead of two independent single-ref SADs, so the bidirectional prediction is better.
+layout(local_size_x_id = 1) in;               // workgroup = MB*MB threads, one per block pixel (64/256/1024 for MB=8/16/32)
+layout(constant_id = 0) const int MB = 16;    // motion block size (8 / 16 / 32)
+const int MB_SHIFT = (MB == 8) ? 3 : ((MB == 16) ? 4 : 5);   // log2(MB): x / MB -> x >> MB_SHIFT (MB is a power of two)
+const int MB_MASK = MB - 1;                                  // x % MB -> x & MB_MASK
+// Shared arrays sized to the ACTUAL MB*MB (spec constant), not a fixed 1024 — preserves occupancy at MB=8/16.
+layout(std430, binding = 0) readonly  buffer Current0  { int current0[]; };
+layout(std430, binding = 1) readonly  buffer Current1  { int current1[]; };
+layout(std430, binding = 2) readonly  buffer Current2  { int current2[]; };
+layout(std430, binding = 3) readonly  buffer Previous0 { int previous0[]; };   // the reference being searched
+layout(std430, binding = 4) readonly  buffer Previous1 { int previous1[]; };
+layout(std430, binding = 5) readonly  buffer Previous2 { int previous2[]; };
+layout(std430, binding = 6) readonly  buffer McOther0  { int mc_other0[]; };    // the FIXED other prediction (already MC'd, plain int)
+layout(std430, binding = 7) readonly  buffer McOther1  { int mc_other1[]; };
+layout(std430, binding = 8) readonly  buffer McOther2  { int mc_other2[]; };
+layout(std430, binding = 9) writeonly buffer MotionVectors     { int motion_vectors[]; };
+layout(std430, binding = 10) readonly buffer MotionVectorsPrev { int motion_vectors_prev[]; };
+layout(push_constant) uniform PushConstants { int width; int height; int blocks_x; int lossless; int weight_self; int weight_other; } push;
+
+const int SEARCH = 16;
+const int PREDICT = 4;
+const int LAMBDA = 64;
+const int ZERO_BIAS_FLOOR = 64;
+const int ZERO_BIAS_SHIFT = 3;
+
+shared int block_current0[MB * MB];
+shared int block_current1[MB * MB];
+shared int block_current2[MB * MB];
+shared int block_other0[MB * MB];   // the fixed other prediction at the current pixel (block-local)
+shared int block_other1[MB * MB];
+shared int block_other2[MB * MB];
+shared int reduce_cost[MB * MB];
+shared int reduce_pack[MB * MB];
+shared int sad_zero;
+
+int clamp_int(int v, int lo, int hi) { return (v < lo) ? lo : ((v > hi) ? hi : v); }
+
+int decode_current(int raw) { return (push.lossless != 0) ? raw : int(round(intBitsToFloat(raw))); }
+
+// Blended prediction: (weight_self * self_sample + weight_other * other_sample + 128) >> 8.
+int blend(int self_sample, int other_sample) {
+  return (((push.weight_self * self_sample) + (push.weight_other * other_sample)) + 128) >> 8;
+}
+
+// 3-plane SAD of the cached current block against the BLENDED prediction at integer offset (mv_x, mv_y).
+int integer_sad(int origin_x, int origin_y, int mv_x, int mv_y) {
+  int sad = 0;
+  for (int y = 0; y < MB; y++) {
+    int sample_y = clamp_int((origin_y + y) + mv_y, 0, push.height - 1);
+    for (int x = 0; x < MB; x++) {
+      int sample_x = clamp_int((origin_x + x) + mv_x, 0, push.width - 1);
+      int index = (sample_y * push.width) + sample_x, b = (y * MB) + x;
+      int d0 = block_current0[b] - blend(previous0[index], block_other0[b]);
+      int d1 = block_current1[b] - blend(previous1[index], block_other1[b]);
+      int d2 = block_current2[b] - blend(previous2[index], block_other2[b]);
+      sad += (((d0 < 0) ? -d0 : d0) + ((d1 < 0) ? -d1 : d1)) + ((d2 < 0) ? -d2 : d2);
+    }
+  }
+  return sad;
+}
+
+int previous_plane(int plane, int index) {
+  return (plane == 0) ? previous0[index] : ((plane == 1) ? previous1[index] : previous2[index]);
+}
+
+// Half-pel sample of one reference plane (branched — used only in the thread-0 refinement, not hot).
+int sample_half_pel(int plane, int base_x, int base_y, int half_x, int half_y) {
+  int x0 = clamp_int(base_x, 0, push.width - 1), y0 = clamp_int(base_y, 0, push.height - 1);
+  if (half_x == 0 && half_y == 0) {
+    return previous_plane(plane, (y0 * push.width) + x0);
+  }
+  int x1 = clamp_int(base_x + 1, 0, push.width - 1), y1 = clamp_int(base_y + 1, 0, push.height - 1);
+  if (half_x == 1 && half_y == 0) {
+    return ((previous_plane(plane, (y0 * push.width) + x0) + previous_plane(plane, (y0 * push.width) + x1)) + 1) >> 1;
+  }
+  if (half_x == 0 && half_y == 1) {
+    return ((previous_plane(plane, (y0 * push.width) + x0) + previous_plane(plane, (y1 * push.width) + x0)) + 1) >> 1;
+  }
+  return ((((previous_plane(plane, (y0 * push.width) + x0) + previous_plane(plane, (y0 * push.width) + x1)) +
+             previous_plane(plane, (y1 * push.width) + x0)) + previous_plane(plane, (y1 * push.width) + x1)) + 2) >> 2;
+}
+
+int block_current(int plane, int b) {
+  return (plane == 0) ? block_current0[b] : ((plane == 1) ? block_current1[b] : block_current2[b]);
+}
+int block_other(int plane, int b) {
+  return (plane == 0) ? block_other0[b] : ((plane == 1) ? block_other1[b] : block_other2[b]);
+}
+
+void main() {
+  int block = int(gl_WorkGroupID.x);
+  int block_column = block % push.blocks_x, block_row = block / push.blocks_x;
+  int origin_x = block_column * MB, origin_y = block_row * MB;
+  uint local_index = gl_LocalInvocationID.x;
+
+  // Cache the three current-block planes (plain int for 5/3, a float bit-pattern for 9/7) + the fixed
+  // other prediction (already plain int) at the same current-pixel positions.
+  {
+    int pixel_x = clamp_int(origin_x + int(local_index & uint(MB_MASK)), 0, push.width - 1);
+    int pixel_y = clamp_int(origin_y + int(local_index >> uint(MB_SHIFT)), 0, push.height - 1);
+    int index = (pixel_y * push.width) + pixel_x;
+    block_current0[local_index] = decode_current(current0[index]);
+    block_current1[local_index] = decode_current(current1[index]);
+    block_current2[local_index] = decode_current(current2[index]);
+    block_other0[local_index] = mc_other0[index];
+    block_other1[local_index] = mc_other1[index];
+    block_other2[local_index] = mc_other2[index];
+  }
+  barrier();
+
+  // Cooperative 3-plane blended SAD at mv=0 -> drives the adaptive grain-RD margin.
+  {
+    int pixel_x = clamp_int(origin_x + int(local_index & uint(MB_MASK)), 0, push.width - 1);
+    int pixel_y = clamp_int(origin_y + int(local_index >> uint(MB_SHIFT)), 0, push.height - 1);
+    int index = (pixel_y * push.width) + pixel_x, b = int(local_index);
+    int d0 = block_current0[b] - blend(previous0[index], block_other0[b]);
+    int d1 = block_current1[b] - blend(previous1[index], block_other1[b]);
+    int d2 = block_current2[b] - blend(previous2[index], block_other2[b]);
+    reduce_cost[local_index] = (((d0 < 0) ? -d0 : d0) + ((d1 < 0) ? -d1 : d1)) + ((d2 < 0) ? -d2 : d2);
+  }
+  barrier();
+  for (uint stride = gl_WorkGroupSize.x >> 1u; stride > 0u; stride >>= 1u) {
+    if (local_index < stride) {
+      reduce_cost[local_index] += reduce_cost[local_index + stride];
+    }
+    barrier();
+  }
+  if (local_index == 0u) {
+    sad_zero = reduce_cost[0];
+  }
+  barrier();
+  int zero_bias = ZERO_BIAS_FLOOR + (sad_zero >> ZERO_BIAS_SHIFT);
+
+  int predict_x = clamp_int(motion_vectors_prev[block * 2] >> 1, -56, 56);
+  int predict_y = clamp_int(motion_vectors_prev[(block * 2) + 1] >> 1, -56, 56);
+  int span_floor = (2 * SEARCH) + 1, count_floor = span_floor * span_floor;
+  int span_pred = (2 * PREDICT) + 1, count_pred = span_pred * span_pred;
+  int candidates = count_floor + count_pred;
+  int best_cost = 0x7fffffff, best_pack = (64 * 256) + 64;   // default mv=0
+  for (int c = int(local_index); c < candidates; c += int(gl_WorkGroupSize.x)) {
+    int mv_x, mv_y;
+    if (c < count_floor) {
+      mv_x = (c % span_floor) - SEARCH;
+      mv_y = (c / span_floor) - SEARCH;
+    } else {
+      int predictor_relative = c - count_floor;
+      mv_x = predict_x + ((predictor_relative % span_pred) - PREDICT);
+      mv_y = predict_y + ((predictor_relative / span_pred) - PREDICT);
+    }
+    bool still_block = (predict_x == 0 && predict_y == 0);
+    int cost = (integer_sad(origin_x, origin_y, mv_x, mv_y)
+             + (LAMBDA * (abs(mv_x - predict_x) + abs(mv_y - predict_y))))
+             + ((still_block && (mv_x != 0 || mv_y != 0)) ? zero_bias : 0);
+    if (cost < best_cost) {
+      best_cost = cost;
+      best_pack = ((mv_x + 64) * 256) + (mv_y + 64);
+    }
+  }
+  reduce_cost[local_index] = best_cost;
+  reduce_pack[local_index] = best_pack;
+  barrier();
+  for (uint stride = gl_WorkGroupSize.x >> 1u; stride > 0u; stride >>= 1u) {
+    if (local_index < stride && reduce_cost[local_index + stride] < reduce_cost[local_index]) {
+      reduce_cost[local_index] = reduce_cost[local_index + stride];
+      reduce_pack[local_index] = reduce_pack[local_index + stride];
+    }
+    barrier();
+  }
+
+  // Thread 0: half-pel refinement (the integer best + its 8 half-pel neighbours), 3-plane blended SAD, write.
+  if (local_index == 0u) {
+    int integer_mv_x = (reduce_pack[0] / 256) - 64, integer_mv_y = (reduce_pack[0] % 256) - 64;
+    int best_refine_x = 0, best_refine_y = 0, refine_cost = 0x7fffffff;
+    for (int refine_y = -1; refine_y <= 1; refine_y++) {
+      for (int refine_x = -1; refine_x <= 1; refine_x++) {
+        int half_pel_x = (integer_mv_x * 2) + refine_x, half_pel_y = (integer_mv_y * 2) + refine_y;
+        int half_x = half_pel_x & 1, half_y = half_pel_y & 1;
+        int sad = 0;
+        for (int y = 0; y < MB; y++) {
+          for (int x = 0; x < MB; x++) {
+            int sample_x = (origin_x + x) + (half_pel_x >> 1), sample_y = (origin_y + y) + (half_pel_y >> 1);
+            int b = (y * MB) + x;
+            for (int plane = 0; plane < 3; plane++) {
+              int d = block_current(plane, b) - blend(sample_half_pel(plane, sample_x, sample_y, half_x, half_y), block_other(plane, b));
+              sad += (d < 0) ? -d : d;
+            }
+          }
+        }
+        int cost = (sad + ((LAMBDA * (abs(half_pel_x) + abs(half_pel_y))) / 2)) + ((half_pel_x != 0 || half_pel_y != 0) ? zero_bias : 0);
+        if (cost < refine_cost) {
+          refine_cost = cost;
+          best_refine_x = refine_x;
+          best_refine_y = refine_y;
+        }
+      }
+    }
+    motion_vectors[block * 2] = (integer_mv_x * 2) + best_refine_x;
+    motion_vectors[(block * 2) + 1] = (integer_mv_y * 2) + best_refine_y;
+  }
+}

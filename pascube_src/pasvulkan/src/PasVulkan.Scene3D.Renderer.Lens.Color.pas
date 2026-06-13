@@ -406,11 +406,17 @@ begin
           CommandBuffer.BeginRecording(TVkCommandBufferUsageFlags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
 
           RenderPass.BeginRenderPass(CommandBuffer,FrameBuffer,VK_SUBPASS_CONTENTS_INLINE,0,0,Width,Height);
+          if assigned(aVulkanDevice.BreadcrumbBuffer) then begin
+           aVulkanDevice.BreadcrumbBuffer.RenderPassHint(true);
+          end;
 
           CommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,Pipeline.Handle);
 
           CommandBuffer.CmdDraw(3,1,0,0);
 
+          if assigned(aVulkanDevice.BreadcrumbBuffer) then begin
+           aVulkanDevice.BreadcrumbBuffer.RenderPassHint(false);
+          end;
           RenderPass.EndRenderPass(CommandBuffer);
 
           CommandBuffer.EndRecording;

@@ -19,3 +19,5 @@
   uint hardwareConservativeRasterization; // 0 = false, 1 = true
   uint maxGlobalFragmentCount; // maximum number of fragments per voxel globally
   uint maxLocalFragmentCount; // maximum number of fragments per voxel locally
+  float emissiveGIScale; // global GI emissive master regulator: scale (multiplies the per-material emissive GI factor)
+  float emissiveGIMax;   // global GI emissive master regulator: absolute cap (min'd with the per-material emissive GI max)

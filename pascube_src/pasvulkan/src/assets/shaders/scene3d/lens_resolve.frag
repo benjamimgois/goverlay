@@ -22,6 +22,8 @@ layout(push_constant) uniform PushConstants {
   float dispersal;
   float haloWidth;
   float distortion;
+
+  int debugBypass;
   
 } pushConstants;
 
@@ -83,6 +85,10 @@ vec4 getLensFlare(){
 
 
 void main(){
+  if(pushConstants.debugBypass != 0){
+    outFragColor = clamp(subpassLoad(uSubpassScene), vec4(-65504.0), vec4(65504.0));
+    return;
+  }
   vec4 bloom = clamp(textureLod(uTextureBloom, vec3(inTexCoord, gl_ViewIndex), 0.0), vec4(0.0), vec4(65504.0));  
   vec4 lensflares = vec4(0.0);
   vec4 lensStar = vec4(0.0);

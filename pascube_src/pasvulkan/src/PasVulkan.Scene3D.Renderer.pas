@@ -59,6 +59,9 @@ unit PasVulkan.Scene3D.Renderer;
  {$endif}
 {$endif}
 {$m+}
+{$ifdef PasVulkanRangeChecks}
+ {$rangechecks on}
+{$endif}
 
 interface
 
@@ -134,9 +137,9 @@ type TpvScene3DRenderer=class;
        fVulkanPipelineCache:TpvVulkanPipelineCache;
        fCountInFlightFrames:TpvSizeInt;
        fVelocityBufferNeeded:Boolean;
-       fGPUCulling:Boolean;
-       fGPUShadowCulling:Boolean;
-       fEarlyDepthPrepassNeeded:Boolean;
+       fUseMeshletExpand:Boolean;
+       fUseMeshletCulling:Boolean;
+       fUseMeshShaderLayerRouting:Boolean;
        fWetnessMapActive:Boolean;
        fScreenSpaceAmbientOcclusion:Boolean;
        fAntialiasingMode:TpvScene3DRendererAntialiasingMode;
@@ -145,19 +148,20 @@ type TpvScene3DRenderer=class;
        fDepthOfFieldMode:TpvScene3DRendererDepthOfFieldMode;
        fLensMode:TpvScene3DRendererLensMode;
        fGlobalIlluminationMode:TpvScene3DRendererGlobalIlluminationMode;
+       fGlobalIlluminationEmissiveScale:TpvFloat;   // global master regulator: scales the per-material emissive GI contribution
+       fGlobalIlluminationEmissiveMaximum:TpvFloat;  // global master regulator: absolute cap (min'd with the per-material max)
        fToneMappingMode:TpvScene3DRendererToneMappingMode;
 {      fMinLogLuminance:TpvFloat;
        fMaxLogLuminance:TpvFloat;}
        fMaxMSAA:TpvInt32;
        fMaxShadowMSAA:TpvInt32;
        fShadowMapSize:TpvInt32;
+       fCloudsShadowMapSize:TpvInt32;
        fVirtualRealityHUDWidth:TpvInt32;
        fVirtualRealityHUDHeight:TpvInt32;
-       fBufferDeviceAddress:boolean;
        fRaytracingActive:boolean;
        fMeshFragTypeName:TpvUTF8String;
        fMeshFragGlobalIlluminationTypeName:TpvUTF8String;
-       fMeshFragShadowTypeName:TpvUTF8String;
 //     fOptimizedNonAlphaFormat:TVkFormat;
        fOptimizedCubeMapFormat:TVkFormat;
        fFastSky:boolean;
@@ -180,6 +184,10 @@ type TpvScene3DRenderer=class;
        fGlobalIlluminationVoxelGridSize:TpvInt32;
        fGlobalIlluminationVoxelCountCascades:TpvInt32;
        fGlobalIlluminationVoxelCountBounces:TpvInt32;
+       fResamplingMode:TpvScene3DRendererResamplingMode;
+       fRCASSharpness:TpvFloat;
+       fAIUpscaleMode:TpvScene3DRendererAIUpscaleMode;
+       fAIUpscaleQuality:TpvScene3DRendererAIUpscaleQuality;
       private
        fSkyBoxCubeMap:TpvScene3DRendererEnvironmentCubeMap;
        fEnvironmentCubeMap:TpvScene3DRendererEnvironmentCubeMap;
@@ -227,9 +235,9 @@ type TpvScene3DRenderer=class;
        property VulkanPipelineCache:TpvVulkanPipelineCache read fVulkanPipelineCache;
        property CountInFlightFrames:TpvSizeInt read fCountInFlightFrames;
        property VelocityBufferNeeded:Boolean read fVelocityBufferNeeded;
-       property GPUCulling:Boolean read fGPUCulling;
-       property GPUShadowCulling:Boolean read fGPUShadowCulling;
-       property EarlyDepthPrepassNeeded:Boolean read fEarlyDepthPrepassNeeded;
+       property UseMeshletExpand:Boolean read fUseMeshletExpand write fUseMeshletExpand;
+       property UseMeshletCulling:Boolean read fUseMeshletCulling write fUseMeshletCulling;
+       property UseMeshShaderLayerRouting:Boolean read fUseMeshShaderLayerRouting write fUseMeshShaderLayerRouting;
        property WetnessMapActive:Boolean read fWetnessMapActive write fWetnessMapActive;
        property ScreenSpaceAmbientOcclusion:Boolean read fScreenSpaceAmbientOcclusion write fScreenSpaceAmbientOcclusion;
        property AntialiasingMode:TpvScene3DRendererAntialiasingMode read fAntialiasingMode write fAntialiasingMode;
@@ -238,19 +246,24 @@ type TpvScene3DRenderer=class;
        property DepthOfFieldMode:TpvScene3DRendererDepthOfFieldMode read fDepthOfFieldMode write fDepthOfFieldMode;
        property LensMode:TpvScene3DRendererLensMode read fLensMode write fLensMode;
        property GlobalIlluminationMode:TpvScene3DRendererGlobalIlluminationMode read fGlobalIlluminationMode write fGlobalIlluminationMode;
+       property GlobalIlluminationEmissiveScale:TpvFloat read fGlobalIlluminationEmissiveScale write fGlobalIlluminationEmissiveScale;
+       property GlobalIlluminationEmissiveMaximum:TpvFloat read fGlobalIlluminationEmissiveMaximum write fGlobalIlluminationEmissiveMaximum;
        property ToneMappingMode:TpvScene3DRendererToneMappingMode read fToneMappingMode write fToneMappingMode;
+       property ResamplingMode:TpvScene3DRendererResamplingMode read fResamplingMode write fResamplingMode;
+       property RCASSharpness:TpvFloat read fRCASSharpness write fRCASSharpness;
+       property AIUpscaleMode:TpvScene3DRendererAIUpscaleMode read fAIUpscaleMode write fAIUpscaleMode;
+       property AIUpscaleQuality:TpvScene3DRendererAIUpscaleQuality read fAIUpscaleQuality write fAIUpscaleQuality;
 {      property MinLogLuminance:TpvFloat read fMinLogLuminance write fMinLogLuminance;
        property MaxLogLuminance:TpvFloat read fMaxLogLuminance write fMaxLogLuminance;}
        property MaxMSAA:TpvInt32 read fMaxMSAA write fMaxMSAA;
        property MaxShadowMSAA:TpvInt32 read fMaxShadowMSAA write fMaxShadowMSAA;
        property ShadowMapSize:TpvInt32 read fShadowMapSize write fShadowMapSize;
+       property CloudsShadowMapSize:TpvInt32 read fCloudsShadowMapSize write fCloudsShadowMapSize;
        property VirtualRealityHUDWidth:TpvInt32 read fVirtualRealityHUDWidth write fVirtualRealityHUDWidth;
        property VirtualRealityHUDHeight:TpvInt32 read fVirtualRealityHUDHeight write fVirtualRealityHUDHeight;
-       property BufferDeviceAddress:boolean read fBufferDeviceAddress;
        property RaytracingActive:boolean read fRaytracingActive;
        property MeshFragTypeName:TpvUTF8String read fMeshFragTypeName;
        property MeshFragGlobalIlluminationTypeName:TpvUTF8String read fMeshFragGlobalIlluminationTypeName;
-       property MeshFragShadowTypeName:TpvUTF8String read fMeshFragShadowTypeName;
 //     property OptimizedNonAlphaFormat:TVkFormat read fOptimizedNonAlphaFormat;
        property OptimizedCubeMapFormat:TVkFormat read fOptimizedCubeMapFormat;
        property FastSky:boolean read fFastSky write fFastSky;
@@ -397,6 +410,10 @@ begin
 
  fScene3D:=aScene3D;
 
+ fUseMeshletExpand:=true;
+
+ fUseMeshletCulling:=true;
+
  if assigned(aVulkanDevice) then begin
   fVulkanDevice:=aVulkanDevice;
  end else begin
@@ -431,7 +448,18 @@ begin
 
  fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.Auto;
 
+ fGlobalIlluminationEmissiveScale:=1.0;        // no-op default
+ fGlobalIlluminationEmissiveMaximum:=Infinity; // no-op default (unbounded)
+
  fToneMappingMode:=TpvScene3DRendererToneMappingMode.Auto;
+
+ fResamplingMode:=TpvScene3DRendererResamplingMode.Lanczos;
+
+ fRCASSharpness:=0.25;
+
+ fAIUpscaleMode:=TpvScene3DRendererAIUpscaleMode.None;
+
+ fAIUpscaleQuality:=TpvScene3DRendererAIUpscaleQuality.Low;
 
 {fMinLogLuminance:=-8.0;
 
@@ -442,6 +470,8 @@ begin
  fMaxShadowMSAA:=0;
 
  fShadowMapSize:=0;
+
+ fCloudsShadowMapSize:=0;
 
  fVirtualRealityHUDWidth:=2048;
  fVirtualRealityHUDHeight:=1152;
@@ -546,8 +576,11 @@ begin
     (aVulkanDevice.PhysicalDevice.DescriptorIndexingFeaturesEXT.shaderSampledImageArrayNonUniformIndexing=VK_FALSE) then begin
   raise EpvApplication.Create('Application','Support for VK_EXT_DESCRIPTOR_INDEXING (descriptorBindingPartiallyBound + runtimeDescriptorArray + shaderSampledImageArrayNonUniformIndexing) is needed',LOG_ERROR);
  end;
-{if aVulkanDevice.PhysicalDevice.BufferDeviceAddressFeaturesKHR.bufferDeviceAddress=VK_FALSE then begin
-  raise EpvApplication.Create('Application','Support for VK_KHR_buffer_device_address (bufferDeviceAddress) is needed',LOG_ERROR);
+ if aVulkanDevice.PhysicalDevice.BufferDeviceAddressFeaturesKHR.bufferDeviceAddress=VK_FALSE then begin
+  raise EpvApplication.Create('Application','Support for VK_KHR_buffer_device_address (bufferDeviceAddress) is needed for BDA vertex pulling',LOG_ERROR);
+ end;
+{if aVulkanDevice.PhysicalDevice.Vulkan11Features.shaderDrawParameters=VK_FALSE then begin
+  raise EpvApplication.Create('Application','Support for shaderDrawParameters is needed for BDA vertex pulling',LOG_ERROR);
  end;}
  if (aVulkanDevice.Instance.APIVersion and VK_API_VERSION_WITHOUT_PATCH_MASK)<VK_API_VERSION_1_1 then begin
   if aVulkanDevice.PhysicalDevice.AvailableExtensionNames.IndexOf(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME)>=0 then begin
@@ -658,15 +691,12 @@ begin
 
  fVelocityBufferNeeded:=false;
 
- fGPUCulling:=true;
+ fUseMeshletExpand:=fUseMeshletExpand and fScene3D.MeshShaders;
 
- fGPUShadowCulling:=not fScene3D.RaytracingActive;
+ fUseMeshletCulling:=fUseMeshletCulling and fScene3D.MeshShaders;
 
- fEarlyDepthPrepassNeeded:=false;
-
- if fWetnessMapActive or fScreenSpaceAmbientOcclusion then begin
-  fEarlyDepthPrepassNeeded:=true;
- end;
+ fUseMeshShaderLayerRouting:=fScene3D.MeshShaders and
+                             (fScene3D.VulkanDevice.PhysicalDevice.Vulkan12Features.shaderOutputLayer<>VK_FALSE);
 
  if fShadowMapSize=0 then begin
   fShadowMapSize:=512;
@@ -674,18 +704,18 @@ begin
 
  fShadowMapSize:=Max(16,fShadowMapSize);
 
- fBufferDeviceAddress:=fScene3D.UseBufferDeviceAddress;
+ if fCloudsShadowMapSize=0 then begin
+  fCloudsShadowMapSize:=512;
+ end;
+
+ fCloudsShadowMapSize:=Max(16,fCloudsShadowMapSize);
 
  fRaytracingActive:=fScene3D.RaytracingActive;
 
- if fBufferDeviceAddress then begin
-  if fRaytracingActive then begin
-   fMeshFragTypeName:='matbufref_raytracing';
-  end else begin
-   fMeshFragTypeName:='matbufref';
-  end;
+ if fRaytracingActive then begin
+  fMeshFragTypeName:='matbufref_raytracing_';
  end else begin
-  fMeshFragTypeName:='matssbo';
+  fMeshFragTypeName:='matbufref_';
  end;
 
 {FormatProperties:=fVulkanDevice.PhysicalDevice.GetFormatProperties(VK_FORMAT_B10G11R11_UFLOAT_PACK32);
@@ -896,12 +926,6 @@ begin
 
  if fShadowMode=TpvScene3DRendererShadowMode.Auto then begin
   fShadowMode:=TpvScene3DRendererShadowMode.PCF;
- end;
-
- if fShadowMode in [TpvScene3DRendererShadowMode.PCF,TpvScene3DRendererShadowMode.DPCF,TpvScene3DRendererShadowMode.PCSS] then begin
-  fMeshFragShadowTypeName:='pcfpcss';
- end else begin
-  fMeshFragShadowTypeName:='msm';
  end;
 
  if fShadowMode=TpvScene3DRendererShadowMode.MSM then begin
@@ -1130,43 +1154,69 @@ begin
  end;
 
  if fGlobalIlluminationMode=TpvScene3DRendererGlobalIlluminationMode.Auto then begin
-  case TpvVulkanVendorID(fVulkanDevice.PhysicalDevice.Properties.vendorID) of
-   TpvVulkanVendorID.AMD:begin
-    if fVulkanDevice.PhysicalDevice.Properties.deviceType=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU then begin
-     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.StaticEnvironmentMap;
-    end else begin
-     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+  if fRaytracingActive and (fVulkanDevice.PhysicalDevice.Properties.deviceType<>VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) then begin
+   fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.DynamicDiffuseGlobalIllumination;
+  end else begin
+   case TpvVulkanVendorID(fVulkanDevice.PhysicalDevice.Properties.vendorID) of
+    TpvVulkanVendorID.AMD:begin
+     if fVulkanDevice.PhysicalDevice.Properties.deviceType=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU then begin
+      fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.EnvironmentMap;
+     end else begin
+      fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+     end;
     end;
-   end;
-   TpvVulkanVendorID.NVIDIA:begin
-    if fVulkanDevice.PhysicalDevice.Properties.deviceType=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU then begin
-     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.StaticEnvironmentMap;
-    end else begin
-     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+    TpvVulkanVendorID.NVIDIA:begin
+     if fVulkanDevice.PhysicalDevice.Properties.deviceType=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU then begin
+      fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.EnvironmentMap;
+     end else begin
+      fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+     end;
     end;
-   end;
-   TpvVulkanVendorID.Intel:begin
-    if fVulkanDevice.PhysicalDevice.Properties.deviceType=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU then begin
-     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.StaticEnvironmentMap;
-    end else begin
-     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+    TpvVulkanVendorID.Intel:begin
+     if fVulkanDevice.PhysicalDevice.Properties.deviceType=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU then begin
+      fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.EnvironmentMap;
+     end else begin
+      fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+     end;
     end;
-   end;
-   else begin
-    fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.StaticEnvironmentMap;
+    else begin
+     fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.EnvironmentMap;
+    end;
    end;
   end;
 //fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedVoxelConeTracing;
-  fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.StaticEnvironmentMap;
+//fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.EnvironmentMap;
+ end;
+
+ // DDGI and surfel-based global illumination both require hardware ray tracing. If it is not available, fall back to cascaded radiance hints, which is
+ // the closest non-ray-traced equivalent (it also stores spherical harmonics in a cascaded volume).
+ case fGlobalIlluminationMode of
+  TpvScene3DRendererGlobalIlluminationMode.DynamicDiffuseGlobalIllumination,
+  TpvScene3DRendererGlobalIlluminationMode.SurfelGlobalIllumination:begin
+   if not fRaytracingActive then begin
+    if assigned(pvApplication) then begin
+     pvApplication.Log(LOG_INFO,'TpvScene3DRenderer','DynamicDiffuseGlobalIllumination/SurfelGlobalIllumination requires raytracing, downgrading to StaticEnvironmentMap');
+    end;
+    fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.EnvironmentMap;
+//  fGlobalIlluminationMode:=TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints;
+   end;
+  end;
+  else begin
+  end;
  end;
 
  case fGlobalIlluminationMode of
   TpvScene3DRendererGlobalIlluminationMode.CascadedRadianceHints:begin
    fMeshFragGlobalIlluminationTypeName:='globalillumination_cascaded_radiance_hints_';
-   fEarlyDepthPrepassNeeded:=true;
   end;
   TpvScene3DRendererGlobalIlluminationMode.CascadedVoxelConeTracing:begin
    fMeshFragGlobalIlluminationTypeName:='globalillumination_cascaded_voxel_cone_tracing_';
+  end;
+  TpvScene3DRendererGlobalIlluminationMode.DynamicDiffuseGlobalIllumination:begin
+   fMeshFragGlobalIlluminationTypeName:='globalillumination_ddgi_';
+  end;
+  TpvScene3DRendererGlobalIlluminationMode.SurfelGlobalIllumination:begin
+   fMeshFragGlobalIlluminationTypeName:='globalillumination_surfel_';
   end;
   else begin
    fMeshFragGlobalIlluminationTypeName:='';
@@ -1467,16 +1517,30 @@ begin
 
  end else begin
 
-  if assigned(fScene3D) and assigned(fScene3D.SkyBoxTextureImage) then begin
-   fScene3D.SkyBoxTextureImage.Upload;
-   SkyBoxTexture:=fScene3D.SkyBoxTextureImage.Texture;
-   IntensityFactor:=fScene3D.SkyBoxIntensityFactor;
-  end else if assigned(fScene3D) and assigned(fScene3D.EnvironmentTextureImage) then begin
-   SkyBoxTexture:=fScene3D.EnvironmentTextureImage.Texture;
-   IntensityFactor:=fScene3D.EnvironmentIntensityFactor;
-  end else begin
-   SkyBoxTexture:=nil;
-   IntensityFactor:=fScene3D.SkyBoxIntensityFactor;
+  case fScene3D.SkyBoxMode of
+   TpvScene3DEnvironmentMode.Texture:begin
+    if assigned(fScene3D) and assigned(fScene3D.SkyBoxTextureImage) then begin
+     fScene3D.SkyBoxTextureImage.Upload;
+     SkyBoxTexture:=fScene3D.SkyBoxTextureImage.Texture;
+     IntensityFactor:=fScene3D.SkyBoxIntensityFactor;
+    end else if assigned(fScene3D) and assigned(fScene3D.EnvironmentTextureImage) then begin
+     SkyBoxTexture:=fScene3D.EnvironmentTextureImage.Texture;
+     IntensityFactor:=fScene3D.EnvironmentIntensityFactor;
+    end else begin
+     SkyBoxTexture:=nil;
+     IntensityFactor:=fScene3D.SkyBoxIntensityFactor;
+    end;
+   end;
+   TpvScene3DEnvironmentMode.Sky,
+   TpvScene3DEnvironmentMode.Starlight,
+   TpvScene3DEnvironmentMode.CachedStarlight:begin
+    SkyBoxTexture:=nil;
+    IntensityFactor:=fScene3D.SkyBoxIntensityFactor;
+   end;
+   else begin
+    SkyBoxTexture:=nil;
+    IntensityFactor:=1.0;
+   end;
   end;
 
   fSkyBoxCubeMap:=TpvScene3DRendererEnvironmentCubeMap.Create(fVulkanDevice,fVulkanPipelineCache,fGeneralSampler,fScene3D.PrimaryLightDirection,IntensityFactor,false,fOptimizedCubeMapFormat,SkyBoxTexture,fScene3D.SkyBoxMode,'TpvScene3DRenderer.fSkyBoxCubeMap');

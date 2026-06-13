@@ -4011,6 +4011,136 @@ See the Canvas API documentation for full details on these methods.
 
 '''''
 
+=== Sprite Methods
+
+==== getWidth()
+
+*Usage:*
+
+[source,js]
+----
+let width = sprite.getWidth();
+----
+
+* *Description:* Returns the width of the sprite in pixels.
+* *Parameters:* None.
+* *Return Value:* The sprite width as a number.
+
+'''''
+
+==== getHeight()
+
+*Usage:*
+
+[source,js]
+----
+let height = sprite.getHeight();
+----
+
+* *Description:* Returns the height of the sprite in pixels.
+* *Parameters:* None.
+* *Return Value:* The sprite height as a number.
+
+'''''
+
+==== getName()
+
+*Usage:*
+
+[source,js]
+----
+let name = sprite.getName();
+----
+
+* *Description:* Returns the name of the sprite as specified when loading.
+* *Parameters:* None.
+* *Return Value:* The sprite name as a string.
+
+'''''
+
+==== getTrimmedWidth()
+
+*Usage:*
+
+[source,js]
+----
+let width = sprite.getTrimmedWidth();
+----
+
+* *Description:* Returns the trimmed width of the sprite (after transparent pixel trimming).
+* *Parameters:* None.
+* *Return Value:* The trimmed sprite width as a number.
+
+'''''
+
+==== getTrimmedHeight()
+
+*Usage:*
+
+[source,js]
+----
+let height = sprite.getTrimmedHeight();
+----
+
+* *Description:* Returns the trimmed height of the sprite (after transparent pixel trimming).
+* *Parameters:* None.
+* *Return Value:* The trimmed sprite height as a number.
+
+'''''
+
+==== getOffsetX()
+
+*Usage:*
+
+[source,js]
+----
+let offsetX = sprite.getOffsetX();
+----
+
+* *Description:* Returns the X offset of the trimmed sprite region from the original.
+* *Parameters:* None.
+* *Return Value:* The X offset as a number.
+
+'''''
+
+==== getOffsetY()
+
+*Usage:*
+
+[source,js]
+----
+let offsetY = sprite.getOffsetY();
+----
+
+* *Description:* Returns the Y offset of the trimmed sprite region from the original.
+* *Parameters:* None.
+* *Return Value:* The Y offset as a number.
+
+'''''
+
+==== getTrimOffset()
+
+*Usage:*
+
+[source,js]
+----
+let offset = sprite.getTrimOffset();
+----
+
+* *Description:* Returns the trim offset as a Vector2.
+* *Parameters:* None.
+* *Return Value:* A Vector2 with x and y offset values.
+* *Example:*
++
+[source,js]
+----
+let offset = sprite.getTrimOffset();
+let x = offset.x;
+let y = offset.y;
+----
+
+'''''
+
 == SpriteAtlas
 
 === Overview
@@ -4376,6 +4506,39 @@ The Canvas API provides a comprehensive 2D drawing interface similar to HTML5 Ca
 
 '''''
 
+=== Vector Argument Conventions
+
+Many Canvas (and the helper functions used by Scene3D drawing calls) accept vector parameters. Each such parameter accepts any of the following three forms:
+
+[cols="1,1,1,1",options="header"]
+|===
+| Type | Ghost form | Array form | Hash form
+
+| *Vector2*
+| `+Vector2.create(x,y)+`
+| `+[x, y]+`
+| `+{x:…, y:…}+` (aliases: `+s+`/`+u+` for x; `+t+`/`+v+` for y)
+
+| *Vector3*
+| `+Vector3.create(x,y,z)+`
+| `+[x, y, z]+`
+| `+{x:…, y:…, z:…}+` (aliases: `+r+`,`+g+`,`+b+`)
+
+| *Vector4*
+| `+Vector4.create(x,y,z,w)+`
+| `+[x, y, z, w]+`
+| `+{x:…, y:…, z:…, w:…}+` (aliases: `+r+`,`+g+`,`+b+`,`+a+`)
+
+| *Matrix4x4*
+| `+Matrix4x4.create(…)+`
+| `+[m00, m01, …, m33]+` (16 values, row-major)
+| `+{…}+` (component keys)
+|===
+
+Missing hash keys default to `+0.0+`. Wherever a parameter is documented as `+(Vector2)+`, `+(Vector3)+`, `+(Vector4)+`, or `+(Matrix4x4)+`, all three forms above are accepted.
+
+'''''
+
 === Canvas Dimensions
 
 ==== getWidth()
@@ -4421,13 +4584,15 @@ canvas.clear(color);
 
 * *Description:* Clears the entire canvas with the specified color.
 * *Parameters:*
-** `+color+` (Vector4): The clear color (RGBA).
+** `+color+` (Vector4, array, or hash): The clear color (RGBA). See <<Vector Argument Conventions>>.
 * *Return Value:* The canvas itself (for method chaining).
 * *Example:*
 +
 [source,js]
 ----
-canvas.clear(Vector4.create(0, 0, 0, 1)); // Clear to black
+canvas.clear(Vector4.create(0, 0, 0, 1)); // ghost form
+canvas.clear([0, 0, 0, 1]);               // array form
+canvas.clear({r: 0, g: 0, b: 0, a: 1});  // hash form
 ----
 
 '''''
@@ -4446,7 +4611,7 @@ canvas.drawFilledCircle(centerX, centerY, radius);
 * *Description:* Draws a filled circle.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
+*** `+center+` (Vector2, array, or hash): The center position. See <<Vector Argument Conventions>>.
 *** `+radius+` (number): The circle radius.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
@@ -4457,13 +4622,62 @@ canvas.drawFilledCircle(centerX, centerY, radius);
 +
 [source,js]
 ----
-canvas.setColor(Vector4.create(1, 0, 0, 1)); // Red
+canvas.setColor(Vector4.create(1, 0, 0, 1)); // Red (ghost form)
+canvas.setColor([1, 0, 0, 1]);               // Red (array form)
+canvas.setColor({r: 1, g: 0, b: 0, a: 1});  // Red (hash form)
 
-// Using Vector2:
+// Using Vector2 ghost:
 canvas.drawFilledCircle(Vector2.create(100, 100), 50);
-
+// Using array:
+canvas.drawFilledCircle([100, 100], 50);
+// Using hash:
+canvas.drawFilledCircle({x: 100, y: 100}, 50);
 // or using individual numbers:
 canvas.drawFilledCircle(100, 100, 50);
+----
+
+'''''
+
+==== drawStrokeCircle(center, radius, strokeWidth)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawStrokeCircle(center, radius, strokeWidth);
+// or
+canvas.drawStrokeCircle(centerX, centerY, radius, strokeWidth);
+----
+
+* *Description:* Draws a stroked circle outline.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+radius+` (number): The circle radius.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radius+` (number): The circle radius.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+canvas.setColor(Vector4.create(0, 1, 0, 1)); // Green
+
+// Using Vector2:
+canvas.drawStrokeCircle(Vector2.create(100, 100), 50, 3.0);
+
+// or using individual numbers:
+canvas.drawStrokeCircle(100, 100, 50, 3.0);
+
+// Compare filled vs stroked:
+canvas.setColor(1, 0, 0, 1); // Red
+canvas.drawFilledCircle(100, 100, 50);
+canvas.setColor(0, 1, 0, 1); // Green outline
+canvas.drawStrokeCircle(100, 100, 50, 2.0);
 ----
 
 '''''
@@ -4482,8 +4696,8 @@ canvas.drawFilledEllipse(centerX, centerY, radiusX, radiusY);
 * *Description:* Draws a filled ellipse.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
-*** `+radius+` (Vector2): The x and y radii.
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+radius+` (Vector2, array, or hash): The x and y radii.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
 *** `+centerY+` (number): The center Y coordinate.
@@ -4503,6 +4717,43 @@ canvas.drawFilledEllipse(100, 100, 80, 40);
 
 '''''
 
+==== drawStrokeEllipse(center, radius, strokeWidth)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawStrokeEllipse(center, radius, strokeWidth);
+// or
+canvas.drawStrokeEllipse(centerX, centerY, radiusX, radiusY, strokeWidth);
+----
+
+* *Description:* Draws a stroked ellipse outline.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+radius+` (Vector2, array, or hash): The x and y radii.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+radiusX+` (number): The X radius.
+*** `+radiusY+` (number): The Y radius.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawStrokeEllipse(Vector2.create(100, 100), Vector2.create(80, 40), 2.5);
+
+// or using individual numbers:
+canvas.drawStrokeEllipse(100, 100, 80, 40, 2.5);
+----
+
+'''''
+
 ==== drawFilledRectangle(topLeft, size)
 
 *Usage:*
@@ -4517,8 +4768,8 @@ canvas.drawFilledRectangle(x, y, width, height);
 * *Description:* Draws a filled rectangle.
 * *Parameters:*
 ** *Option A:*
-*** `+topLeft+` (Vector2): The top-left corner position.
-*** `+size+` (Vector2): The width and height.
+*** `+topLeft+` (Vector2, array, or hash): The top-left corner position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 ** or *Option B:*
 *** `+x+` (number): The left X coordinate.
 *** `+y+` (number): The top Y coordinate.
@@ -4555,8 +4806,8 @@ canvas.drawFilledRectangleCenter(centerX, centerY, width, height);
 * *Description:* Draws a filled rectangle centered at the specified position.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
-*** `+size+` (Vector2): The width and height.
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
 *** `+centerY+` (number): The center Y coordinate.
@@ -4576,6 +4827,43 @@ canvas.drawFilledRectangleCenter(200, 150, 100, 80);
 
 '''''
 
+==== drawStrokeRectangle(center, bounds, strokeWidth)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawStrokeRectangle(center, bounds, strokeWidth);
+// or
+canvas.drawStrokeRectangle(centerX, centerY, boundsX, boundsY, strokeWidth);
+----
+
+* *Description:* Draws a stroked rectangle outline.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+bounds+` (Vector2, array, or hash): Half-width and half-height from center.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+boundsX+` (number): Half-width from center.
+*** `+boundsY+` (number): Half-height from center.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawStrokeRectangle(Vector2.create(200, 150), Vector2.create(50, 40), 2.0);
+
+// or using individual numbers:
+canvas.drawStrokeRectangle(200, 150, 50, 40, 2.0);
+----
+
+'''''
+
 ==== drawFilledRoundedRectangle(topLeft, size, radius)
 
 *Usage:*
@@ -4590,8 +4878,8 @@ canvas.drawFilledRoundedRectangle(x, y, width, height, radius);
 * *Description:* Draws a filled rounded rectangle.
 * *Parameters:*
 ** *Option A:*
-*** `+topLeft+` (Vector2): The top-left corner position.
-*** `+size+` (Vector2): The width and height.
+*** `+topLeft+` (Vector2, array, or hash): The top-left corner position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 *** `+radius+` (number): The corner radius for all corners.
 ** or *Option B:*
 *** `+x+` (number): The left X coordinate.
@@ -4631,8 +4919,8 @@ canvas.drawFilledRoundedRectangleCenter(centerX, centerY, width, height, radius)
 * *Description:* Draws a filled rounded rectangle centered at the specified position.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
-*** `+size+` (Vector2): The width and height.
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 *** `+radius+` (number): The corner radius for all corners.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
@@ -4654,6 +4942,88 @@ canvas.drawFilledRoundedRectangleCenter(200, 150, 100, 80, 10);
 
 '''''
 
+==== drawStrokeRoundedRectangle(topLeft, size, radius, strokeWidth)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawStrokeRoundedRectangle(topLeft, size, radius, strokeWidth);
+// or
+canvas.drawStrokeRoundedRectangle(x, y, width, height, radius, strokeWidth);
+----
+
+* *Description:* Draws a stroked rounded rectangle outline.
+* *Parameters:*
+** *Option A:*
+*** `+topLeft+` (Vector2, array, or hash): The top-left corner position.
+*** `+size+` (Vector2, array, or hash): The width and height.
+*** `+radius+` (number): The corner radius for all corners.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+** or *Option B:*
+*** `+x+` (number): The left X coordinate.
+*** `+y+` (number): The top Y coordinate.
+*** `+width+` (number): The rectangle width.
+*** `+height+` (number): The rectangle height.
+*** `+radius+` (number): The corner radius for all corners.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawStrokeRoundedRectangle(
+  Vector2.create(50, 50),
+  Vector2.create(200, 100),
+  15, 2.5
+);
+
+// or using individual numbers:
+canvas.drawStrokeRoundedRectangle(50, 50, 200, 100, 15, 2.5);
+----
+
+'''''
+
+==== drawStrokeRoundedRectangleCenter(center, bounds, radius, strokeWidth)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawStrokeRoundedRectangleCenter(center, bounds, radius, strokeWidth);
+// or
+canvas.drawStrokeRoundedRectangleCenter(centerX, centerY, boundsX, boundsY, radius, strokeWidth);
+----
+
+* *Description:* Draws a stroked rounded rectangle outline centered at the specified position.
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+bounds+` (Vector2, array, or hash): Half-width and half-height from center.
+*** `+radius+` (number): The corner radius for all corners.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+boundsX+` (number): Half-width from center.
+*** `+boundsY+` (number): Half-height from center.
+*** `+radius+` (number): The corner radius for all corners.
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Using Vector2:
+canvas.drawStrokeRoundedRectangleCenter(Vector2.create(200, 150), Vector2.create(50, 40), 10, 2.5);
+
+// or using individual numbers:
+canvas.drawStrokeRoundedRectangleCenter(200, 150, 50, 40, 10, 2.5);
+----
+
+'''''
+
 ==== drawFilledCircleArcRingSegment(center, innerRadius, outerRadius, startAngle, endAngle, gapThickness)
 
 *Usage:*
@@ -4668,7 +5038,7 @@ canvas.drawFilledCircleArcRingSegment(centerX, centerY, innerRadius, outerRadius
 * *Description:* Draws a filled circular arc ring segment (like a pie slice).
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
+*** `+center+` (Vector2, array, or hash): The center position.
 *** `+innerRadius+` (number): The inner radius.
 *** `+outerRadius+` (number): The outer radius.
 *** `+startAngle+` (number): The start angle in radians.
@@ -4701,6 +5071,61 @@ canvas.drawFilledCircleArcRingSegment(200, 200, 30, 50, 0, Math.PI / 2, 0);
 
 '''''
 
+==== drawStrokeCircleArcRingSegment(center, innerRadius, outerRadius, startAngle, endAngle, gapThickness, strokeWidth)
+
+*Usage:*
+
+[source,js]
+----
+canvas.drawStrokeCircleArcRingSegment(center, innerRadius, outerRadius, startAngle, endAngle, gapThickness, strokeWidth);
+// or
+canvas.drawStrokeCircleArcRingSegment(centerX, centerY, innerRadius, outerRadius, startAngle, endAngle, gapThickness, strokeWidth);
+----
+
+* *Description:* Draws a stroked outline of a circular arc ring segment (like the outline of a pie slice).
+* *Parameters:*
+** *Option A:*
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+innerRadius+` (number): The inner radius.
+*** `+outerRadius+` (number): The outer radius.
+*** `+startAngle+` (number): The start angle in radians.
+*** `+endAngle+` (number): The end angle in radians.
+*** `+gapThickness+` (number): Gap thickness (default: 0.0).
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+** or *Option B:*
+*** `+centerX+` (number): The center X coordinate.
+*** `+centerY+` (number): The center Y coordinate.
+*** `+innerRadius+` (number): The inner radius.
+*** `+outerRadius+` (number): The outer radius.
+*** `+startAngle+` (number): The start angle in radians.
+*** `+endAngle+` (number): The end angle in radians.
+*** `+gapThickness+` (number): Gap thickness (default: 0.0).
+*** `+strokeWidth+` (number): The width of the stroke (default: 1.0).
+* *Return Value:* The canvas itself.
+* *Example:*
++
+[source,js]
+----
+// Draw a quarter-circle ring outline using Vector2:
+canvas.drawStrokeCircleArcRingSegment(
+  Vector2.create(200, 200), 
+  30, 50, 
+  0, Math.PI / 2, 
+  0, 2.0
+);
+
+// or using individual numbers:
+canvas.drawStrokeCircleArcRingSegment(200, 200, 30, 50, 0, Math.PI / 2, 0, 2.0);
+
+// Compare filled vs stroked:
+canvas.setColor(1, 0, 0, 1);
+canvas.drawFilledCircleArcRingSegment(100, 100, 30, 50, 0, Math.PI, 0);
+canvas.setColor(0, 1, 0, 1);
+canvas.drawStrokeCircleArcRingSegment(300, 100, 30, 50, 0, Math.PI, 0, 3.0);
+----
+
+'''''
+
 ==== drawTexturedRectangle(texture, topLeft, size, rotationAngle, textureArrayLayer)
 
 *Usage:*
@@ -4716,8 +5141,8 @@ canvas.drawTexturedRectangle(texture, x, y, width, height, rotationAngle, textur
 * *Parameters:*
 ** *Option A:*
 *** `+texture+` (Texture): The texture to use.
-*** `+topLeft+` (Vector2): The top-left corner position.
-*** `+size+` (Vector2): The width and height.
+*** `+topLeft+` (Vector2, array, or hash): The top-left corner position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 *** `+rotationAngle+` (number): Rotation angle in radians (default: 0.0).
 *** `+textureArrayLayer+` (number): Texture array layer index (default: 0).
 ** or *Option B:*
@@ -4762,8 +5187,8 @@ canvas.drawTexturedRectangleCenter(texture, centerX, centerY, width, height, rot
 * *Parameters:*
 ** *Option A:*
 *** `+texture+` (Texture): The texture to use.
-*** `+center+` (Vector2): The center position.
-*** `+size+` (Vector2): The width and height.
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 *** `+rotationAngle+` (number): Rotation angle in radians (default: 0.0).
 *** `+textureArrayLayer+` (number): Texture array layer index (default: 0).
 ** or *Option B:*
@@ -4808,10 +5233,10 @@ canvas.drawSprite(sprite, srcX, srcY, srcWidth, srcHeight, destX, destY, destWid
 * *Parameters:*
 ** *Option A:*
 *** `+sprite+` (Sprite): The sprite to draw.
-*** `+srcPosition+` (Vector2): The source position in the sprite.
-*** `+srcSize+` (Vector2): The source size to copy from the sprite.
-*** `+destPosition+` (Vector2): The destination position on the canvas.
-*** `+destSize+` (Vector2): The destination size on the canvas.
+*** `+srcPosition+` (Vector2, array, or hash): The source position in the sprite.
+*** `+srcSize+` (Vector2, array, or hash): The source size to copy from the sprite.
+*** `+destPosition+` (Vector2, array, or hash): The destination position on the canvas.
+*** `+destSize+` (Vector2, array, or hash): The destination size on the canvas.
 ** or *Option B:*
 *** `+sprite+` (Sprite): The sprite to draw.
 *** `+srcX+` (number): The source X position in the sprite.
@@ -4855,11 +5280,11 @@ canvas.drawSpriteOriginRotation(sprite, srcX, srcY, srcWidth, srcHeight, destX, 
 * *Parameters:*
 ** *Option A:*
 *** `+sprite+` (Sprite): The sprite to draw.
-*** `+srcPosition+` (Vector2): The source position in the sprite.
-*** `+srcSize+` (Vector2): The source size to copy from the sprite.
-*** `+destPosition+` (Vector2): The destination position on the canvas.
-*** `+destSize+` (Vector2): The destination size on the canvas.
-*** `+origin+` (Vector2): The origin point for rotation (in sprite coordinates).
+*** `+srcPosition+` (Vector2, array, or hash): The source position in the sprite.
+*** `+srcSize+` (Vector2, array, or hash): The source size to copy from the sprite.
+*** `+destPosition+` (Vector2, array, or hash): The destination position on the canvas.
+*** `+destSize+` (Vector2, array, or hash): The destination size on the canvas.
+*** `+origin+` (Vector2, array, or hash): The origin point for rotation (in sprite coordinates).
 *** `+rotation+` (number): The rotation angle in radians.
 ** or *Option B:*
 *** `+sprite+` (Sprite): The sprite to draw.
@@ -4908,7 +5333,7 @@ canvas.drawSpritePosition(sprite, x, y);
 * *Parameters:*
 ** *Option A:*
 *** `+sprite+` (Sprite): The sprite to draw.
-*** `+position+` (Vector2): The position to draw at.
+*** `+position+` (Vector2, array, or hash): The position to draw at.
 ** or *Option B:*
 *** `+sprite+` (Sprite): The sprite to draw.
 *** `+x+` (number): The X coordinate to draw at.
@@ -4944,7 +5369,7 @@ canvas.drawText(text, x, y);
 * *Parameters:*
 ** *Option A:*
 *** `+text+` (string): The text to draw.
-*** `+position+` (Vector2): The position to draw at.
+*** `+position+` (Vector2, array, or hash): The position to draw at.
 ** or *Option B:*
 *** `+text+` (string): The text to draw.
 *** `+x+` (number): The X coordinate to draw at.
@@ -4982,7 +5407,7 @@ canvas.drawTextCodePoint(codePoint, x, y);
 * *Parameters:*
 ** *Option A:*
 *** `+codePoint+` (number): The Unicode code point.
-*** `+position+` (Vector2): The position to draw at.
+*** `+position+` (Vector2, array, or hash): The position to draw at.
 ** or *Option B:*
 *** `+codePoint+` (number): The Unicode code point.
 *** `+x+` (number): The X coordinate to draw at.
@@ -5096,7 +5521,7 @@ canvas.moveTo(x, y);
 * *Description:* Moves the current path position without drawing.
 * *Parameters:*
 ** *Option A:*
-*** `+position+` (Vector2): The position to move to.
+*** `+position+` (Vector2, array, or hash): The position to move to.
 ** or *Option B:*
 *** `+x+` (number): The X coordinate to move to.
 *** `+y+` (number): The Y coordinate to move to.
@@ -5130,7 +5555,7 @@ canvas.lineTo(x, y);
 * *Description:* Draws a line from the current position to the specified position.
 * *Parameters:*
 ** *Option A:*
-*** `+position+` (Vector2): The end position.
+*** `+position+` (Vector2, array, or hash): The end position.
 ** or *Option B:*
 *** `+x+` (number): The end X coordinate.
 *** `+y+` (number): The end Y coordinate.
@@ -5167,8 +5592,8 @@ canvas.quadraticCurveTo(controlX, controlY, endX, endY);
 * *Description:* Draws a quadratic Bézier curve.
 * *Parameters:*
 ** *Option A:*
-*** `+control+` (Vector2): The control point.
-*** `+end+` (Vector2): The end point.
+*** `+control+` (Vector2, array, or hash): The control point.
+*** `+end+` (Vector2, array, or hash): The end point.
 ** or *Option B:*
 *** `+controlX+` (number): The control point X coordinate.
 *** `+controlY+` (number): The control point Y coordinate.
@@ -5207,9 +5632,9 @@ canvas.cubicCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
 * *Description:* Draws a cubic Bézier curve.
 * *Parameters:*
 ** *Option A:*
-*** `+control1+` (Vector2): The first control point.
-*** `+control2+` (Vector2): The second control point.
-*** `+end+` (Vector2): The end point.
+*** `+control1+` (Vector2, array, or hash): The first control point.
+*** `+control2+` (Vector2, array, or hash): The second control point.
+*** `+end+` (Vector2, array, or hash): The end point.
 ** or *Option B:*
 *** `+cp1X+` (number): The first control point X coordinate.
 *** `+cp1Y+` (number): The first control point Y coordinate.
@@ -5254,7 +5679,7 @@ canvas.arc(centerX, centerY, radius, startAngle, endAngle, counterClockwise);
 * *Description:* Adds an arc to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center of the arc.
+*** `+center+` (Vector2, array, or hash): The center of the arc.
 *** `+radius+` (number): The arc radius.
 *** `+startAngle+` (number): The start angle in radians.
 *** `+endAngle+` (number): The end angle in radians.
@@ -5298,8 +5723,8 @@ canvas.arcTo(x1, y1, x2, y2, radius);
 * *Description:* Adds an arc to the current path using control points.
 * *Parameters:*
 ** *Option A:*
-*** `+point1+` (Vector2): The first control point.
-*** `+point2+` (Vector2): The second control point.
+*** `+point1+` (Vector2, array, or hash): The first control point.
+*** `+point2+` (Vector2, array, or hash): The second control point.
 *** `+radius+` (number): The arc radius.
 ** or *Option B:*
 *** `+x1+` (number): The first control point X coordinate.
@@ -5340,8 +5765,8 @@ canvas.ellipse(centerX, centerY, radiusX, radiusY);
 * *Description:* Adds an ellipse to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center of the ellipse.
-*** `+radius+` (Vector2): The x and y radii.
+*** `+center+` (Vector2, array, or hash): The center of the ellipse.
+*** `+radius+` (Vector2, array, or hash): The x and y radii.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
 *** `+centerY+` (number): The center Y coordinate.
@@ -5379,7 +5804,7 @@ canvas.circle(centerX, centerY, radius);
 * *Description:* Adds a circle to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center of the circle.
+*** `+center+` (Vector2, array, or hash): The center of the circle.
 *** `+radius+` (number): The circle radius.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
@@ -5417,8 +5842,8 @@ canvas.rectangle(x, y, width, height);
 * *Description:* Adds a rectangle to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+topLeft+` (Vector2): The top-left corner.
-*** `+size+` (Vector2): The width and height.
+*** `+topLeft+` (Vector2, array, or hash): The top-left corner.
+*** `+size+` (Vector2, array, or hash): The width and height.
 ** or *Option B:*
 *** `+x+` (number): The left X coordinate.
 *** `+y+` (number): The top Y coordinate.
@@ -5456,8 +5881,8 @@ canvas.rectangleCenter(centerX, centerY, width, height);
 * *Description:* Adds a centered rectangle to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
-*** `+size+` (Vector2): The width and height.
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
 *** `+centerY+` (number): The center Y coordinate.
@@ -5495,8 +5920,8 @@ canvas.roundedRectangle(x, y, width, height, radius);
 * *Description:* Adds a rounded rectangle to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+topLeft+` (Vector2): The top-left corner.
-*** `+size+` (Vector2): The width and height.
+*** `+topLeft+` (Vector2, array, or hash): The top-left corner.
+*** `+size+` (Vector2, array, or hash): The width and height.
 *** `+radius+` (number): The corner radius for all corners.
 ** or *Option B:*
 *** `+x+` (number): The left X coordinate.
@@ -5536,8 +5961,8 @@ canvas.roundedRectangleCenter(centerX, centerY, width, height, radius);
 * *Description:* Adds a centered rounded rectangle to the current path.
 * *Parameters:*
 ** *Option A:*
-*** `+center+` (Vector2): The center position.
-*** `+size+` (Vector2): The width and height.
+*** `+center+` (Vector2, array, or hash): The center position.
+*** `+size+` (Vector2, array, or hash): The width and height.
 *** `+radius+` (number): The corner radius for all corners.
 ** or *Option B:*
 *** `+centerX+` (number): The center X coordinate.
@@ -5675,6 +6100,65 @@ canvas.pop();
 
 '''''
 
+==== beginTransparentShape()
+
+*Usage:*
+
+[source,js]
+----
+canvas.beginTransparentShape();
+----
+
+* *Description:* Begins a transparent shape rendering block. All subsequent drawing operations until `endTransparentShape()` are rendered as a single transparent shape with correct alpha blending, eliminating overdraw artifacts from overlapping transparent geometry.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+* *Notes:*
+** This feature requires `fragmentStoresAndAtomics` device support
+** Automatically ends any previous transparent shape if called while one is active
+** Use for complex transparent shapes with overlapping geometry
+* *Example:*
++
+[source,js]
+----
+// Draw overlapping transparent circles as one shape
+canvas.setColor(Vector4.create(1, 0, 0, 0.5)); // Semi-transparent red
+canvas.beginTransparentShape();
+canvas.drawFilledCircle(Vector2.create(100, 100), 50);
+canvas.drawFilledCircle(Vector2.create(120, 100), 50); // Overlaps first circle
+canvas.drawFilledCircle(Vector2.create(110, 120), 50); // Overlaps both
+canvas.endTransparentShape();
+// Result: One transparent shape without overdraw darkening
+----
+
+'''''
+
+==== endTransparentShape()
+
+*Usage:*
+
+[source,js]
+----
+canvas.endTransparentShape();
+----
+
+* *Description:* Ends the current transparent shape rendering block and composites the accumulated coverage to the framebuffer.
+* *Parameters:* None.
+* *Return Value:* The canvas itself.
+* *Notes:*
+** Must be called after `beginTransparentShape()` to complete the shape
+** Only executes if a transparent shape is currently active
+** Automatically flushes pending geometry
+* *Example:*
++
+[source,js]
+----
+canvas.beginTransparentShape();
+// ... draw multiple overlapping transparent elements ...
+canvas.endTransparentShape();
+----
+
+'''''
+
 ==== flush()
 
 *Usage:*
@@ -5728,8 +6212,8 @@ canvas.setClipRect(x, y, width, height);
 * *Description:* Sets the clipping rectangle to restrict rendering to a specific area.
 * *Parameters:*
 ** *Option A:*
-*** `+leftTop+` (Vector2): Top-left corner position.
-*** `+widthHeight+` (Vector2): Width and height.
+*** `+leftTop+` (Vector2, array, or hash): Top-left corner position.
+*** `+widthHeight+` (Vector2, array, or hash): Width and height.
 ** or *Option B:*
 *** `+x+` (number): The left X coordinate.
 *** `+y+` (number): The top Y coordinate.
@@ -6392,7 +6876,7 @@ canvas.setColor(r, g, b, a);
 * *Description:* Sets the current drawing color.
 * *Parameters:*
 ** *Option A:*
-*** `+color+` (Vector4): RGBA color (components 0.0-1.0).
+*** `+color+` (Vector4, array, or hash): RGBA color (components 0.0-1.0). See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+r+` (number): Red component (0.0-1.0).
 *** `+g+` (number): Green component (0.0-1.0).
@@ -6403,8 +6887,9 @@ canvas.setColor(r, g, b, a);
 +
 [source,js]
 ----
-// Using Vector4:
-canvas.setColor(Vector4.create(1, 0, 0, 1)); // Red
+canvas.setColor(Vector4.create(1, 0, 0, 1)); // ghost form
+canvas.setColor([1, 0, 0, 1]);               // array form
+canvas.setColor({r: 1, g: 0, b: 0, a: 1});  // hash form
 
 // or using individual numbers:
 canvas.setColor(1, 0, 0, 1); // Red
@@ -6443,7 +6928,7 @@ canvas.setStartColor(r, g, b, a);
 * *Description:* Sets the gradient start color.
 * *Parameters:*
 ** *Option A:*
-*** `+color+` (Vector4): RGBA color (components 0.0-1.0).
+*** `+color+` (Vector4, array, or hash): RGBA color (components 0.0-1.0). See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+r+` (number): Red component (0.0-1.0).
 *** `+g+` (number): Green component (0.0-1.0).
@@ -6456,8 +6941,8 @@ canvas.setStartColor(r, g, b, a);
 ----
 canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
 
-// Using Vector4:
-canvas.setStartColor(Vector4.create(1, 1, 0, 1)); // Yellow
+canvas.setStartColor(Vector4.create(1, 1, 0, 1)); // ghost form
+canvas.setStartColor([1, 1, 0, 1]);               // array form
 
 // or using individual numbers:
 canvas.setStartColor(1, 1, 0, 1); // Yellow
@@ -6496,7 +6981,7 @@ canvas.setStopColor(r, g, b, a);
 * *Description:* Sets the gradient stop color.
 * *Parameters:*
 ** *Option A:*
-*** `+color+` (Vector4): RGBA color (components 0.0-1.0).
+*** `+color+` (Vector4, array, or hash): RGBA color (components 0.0-1.0). See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+r+` (number): Red component (0.0-1.0).
 *** `+g+` (number): Green component (0.0-1.0).
@@ -6510,7 +6995,6 @@ canvas.setStopColor(r, g, b, a);
 canvas.setFillStyle(Canvas.FillStyle.LinearGradient);
 canvas.setStartColor(Vector4.create(1, 1, 0, 1)); // Yellow
 
-// Using Vector4:
 canvas.setStopColor(Vector4.create(1, 0, 1, 1));  // Magenta
 
 // or using individual numbers:
@@ -6548,7 +7032,7 @@ canvas.setProjectionMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22
 * *Description:* Sets the projection matrix for 3D transforms.
 * *Parameters:*
 ** *Option A:*
-*** `+matrix+` (Matrix4x4): Projection matrix.
+*** `+matrix+` (Matrix4x4, array [16], or hash): Projection matrix. See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
 *** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
@@ -6606,7 +7090,7 @@ canvas.setViewMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23,
 * *Description:* Sets the view matrix for camera transforms.
 * *Parameters:*
 ** *Option A:*
-*** `+matrix+` (Matrix4x4): View matrix.
+*** `+matrix+` (Matrix4x4, array [16], or hash): View matrix. See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
 *** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
@@ -6664,7 +7148,7 @@ canvas.setModelMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23
 * *Description:* Sets the model matrix for object transforms.
 * *Parameters:*
 ** *Option A:*
-*** `+matrix+` (Matrix4x4): Model matrix.
+*** `+matrix+` (Matrix4x4, array [16], or hash): Model matrix. See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
 *** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
@@ -6722,7 +7206,7 @@ canvas.setFillMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23,
 * *Description:* Sets the fill matrix for transforming fill textures/gradients.
 * *Parameters:*
 ** *Option A:*
-*** `+matrix+` (Matrix4x4): Fill transformation matrix.
+*** `+matrix+` (Matrix4x4, array [16], or hash): Fill transformation matrix. See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
 *** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
@@ -6778,7 +7262,7 @@ canvas.setMaskMatrix(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23,
 * *Description:* Sets the mask matrix for transforming mask textures.
 * *Parameters:*
 ** *Option A:*
-*** `+matrix+` (Matrix4x4): Mask transformation matrix.
+*** `+matrix+` (Matrix4x4, array [16], or hash): Mask transformation matrix. See <<Vector Argument Conventions>>.
 ** or *Option B:*
 *** `+m00, m01, m02, m03+` (numbers): First row of the matrix.
 *** `+m10, m11, m12, m13+` (numbers): Second row of the matrix.
@@ -8315,6 +8799,51 @@ let playing = music.isPlaying();
 
 '''''
 
+==== music.pause()
+
+*Usage:*
+
+[source,js]
+----
+music.pause();
+----
+
+* *Description:* Pauses the currently playing music without resetting the playback position.
+* *Parameters:* None.
+* *Return Value:* The music object (for chaining), or null if invalid.
+
+'''''
+
+==== music.resume()
+
+*Usage:*
+
+[source,js]
+----
+music.resume();
+----
+
+* *Description:* Resumes a paused music track from where it was paused.
+* *Parameters:* None.
+* *Return Value:* The music object (for chaining), or null if invalid.
+
+'''''
+
+==== music.isPaused()
+
+*Usage:*
+
+[source,js]
+----
+let paused = music.isPaused();
+----
+
+* *Description:* Checks if the music is currently paused.
+* *Parameters:* None.
+* *Return Value:* 1 if paused, 0 otherwise.
+
+'''''
+
 === Example: Audio Usage
 
 [source,js]
@@ -8338,6 +8867,11 @@ bgMusic.play(0.6, 0.0, 1.0, 1); // Loop the music
 // Later, fade out music by reducing volume
 bgMusic.setVolume(0.3);
 
+// Pause and resume music
+bgMusic.pause();
+// ... some time later ...
+bgMusic.resume();
+
 // Stop music
 bgMusic.stop();
 
@@ -8345,6 +8879,1273 @@ bgMusic.stop();
 SoundManager.clear();
 MusicManager.clear();
 ----
+
+'''''
+
+== Scene3D
+
+=== Overview
+
+The Scene3D API exposes the PasVulkan 3D scene-graph to POCA scripts.  It is
+accessed through the `+engine.scene3d+` object.
+
+NOTE: `+engine.scene3d+` is *not* created by the engine itself — it is
+injected by the *game application* at context initialisation time by calling
+`+InitializePOCAScene3DContext(context, scene3DInstance, engineHash)+`
+(implemented in `+PasVulkan.POCA.Scene3D.pas+`).  In the planetgame1 (Seeds)
+project this call is made in `+UnitGamePOCA.pas+`.  A game that does not call
+`+InitializePOCAScene3DContext+` will not have an `+engine.scene3d+` object at
+all.
+
+All objects returned by the Scene3D API are *ghost objects*.  A ghost holds
+a *pointer* to the underlying engine resource but does **not** hold an
+independent reference-count on it.  The resource is owned by the scene.
+
+When the POCA garbage collector finalises a ghost, only the internal pointer
+is nulled — the engine resource itself is **not** released.  Call `.destroy()`
+on a ghost to explicitly release (DecRef) the resource immediately and null
+the pointer.  Any resource not explicitly destroyed is cleaned up by
+`+TpvScene3D.Destroy+` at scene / game shutdown.
+
+*Do not* call `+.destroy()+` on ghosts that you still intend to use.  Holding
+a ghost variable alive keeps the pointer valid, but the resource stays alive
+regardless (it is owned by the scene).
+
+'''''
+
+=== engine.scene3d — Scene object
+
+`+engine.scene3d+` is a ghost object injected by the game application (see
+Overview above).  It is the entry point for all Scene3D operations.  All
+factory methods on it return ghost objects that the caller is responsible for
+keeping alive (or explicitly destroying).
+
+'''''
+
+==== engine.scene3d.createImage(width, height, pixels)
+
+*Usage:*
+
+[source,js]
+----
+let img = engine.scene3d.createImage(width, height, pixels);
+----
+
+* *Description:* Creates a `+Scene3DImage+` ghost from an array of packed RGBA8
+  pixel values.  Pixels are encoded as `+0xRRGGBBAA+` 32-bit integers stored in
+  the `+pixels+` array in row-major order.  The underlying image data is stored
+  as QOI internally.
+* *Parameters:*
+** `+width+` (number): Image width in pixels.
+** `+height+` (number): Image height in pixels.
+** `+pixels+` (array): Array of `+width * height+` 32-bit RGBA values.
+* *Return Value:* A `+Scene3DImage+` ghost, or `+null+` on failure.
+* *Notes:* The image is not yet uploaded to the GPU after creation.  Call
+  `+img.upload()+` once per render frame until `+img.isUploaded()+` returns
+  `+true+`, or simply upload before first use.
+* *Example:*
++
+[source,js]
+----
+// 2×2 white image
+let pixels = [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF];
+let img = engine.scene3d.createImage(2, 2, pixels);
+----
+
+'''''
+
+==== engine.scene3d.loadImage(path)
+
+*Usage:*
+
+[source,js]
+----
+let img = engine.scene3d.loadImage("textures/rock.png");
+----
+
+* *Description:* Loads an image from the application asset bundle by virtual
+  path.  Supported formats are those understood by the engine (PNG, JPEG, QOI,
+  KTX2, …).  The image is fully loaded and uploaded synchronously during this
+  call.
+* *Parameters:*
+** `+path+` (string): Asset-relative virtual path.
+* *Return Value:* A `+Scene3DImage+` ghost, or `+null+` if the asset does not
+  exist or loading fails.
+
+'''''
+
+==== engine.scene3d.getImageByName(name)
+
+*Usage:*
+
+[source,js]
+----
+let img = engine.scene3d.getImageByName("my_image");
+----
+
+* *Description:* Looks up an already-loaded image by its internal name.
+* *Parameters:*
+** `+name+` (string): The image name (set during creation or loading).
+* *Return Value:* A `+Scene3DImage+` ghost (new owned reference), or `+null+` if
+  no image with that name exists.
+
+'''''
+
+==== engine.scene3d.createSampler([type])
+
+*Usage:*
+
+[source,js]
+----
+let s = engine.scene3d.createSampler();            // default repeat
+let s = engine.scene3d.createSampler('nonrepeat');
+let s = engine.scene3d.createSampler('mipmap');
+let s = engine.scene3d.createSampler('mipmapnonrepeat');
+----
+
+* *Description:* Creates a new `+Scene3DSampler+` ghost with the given filter
+  and wrap preset.
+* *Parameters:*
+** `+type+` (string, optional): One of `+'default'+`, `+'nonrepeat'+`,
+   `+'mipmap'+`, `+'mipmapnonrepeat'+`.  Defaults to `+'default'+` (bilinear,
+   repeat).
+* *Return Value:* A `+Scene3DSampler+` ghost.
+
+'''''
+
+==== engine.scene3d.defaultSampler()
+
+*Usage:*
+
+[source,js]
+----
+let s = engine.scene3d.defaultSampler();
+----
+
+* *Description:* Returns the scene's built-in default sampler (bilinear, repeat
+  wrapping) as an owned ghost reference.
+* *Return Value:* A `+Scene3DSampler+` ghost, or `+null+` if no default sampler
+  exists.
+
+'''''
+
+==== engine.scene3d.defaultNonRepeatSampler()
+
+*Usage:*
+
+[source,js]
+----
+let s = engine.scene3d.defaultNonRepeatSampler();
+----
+
+* *Description:* Returns the scene's built-in default non-repeat sampler
+  (bilinear, clamp-to-edge) as an owned ghost reference.
+* *Return Value:* A `+Scene3DSampler+` ghost, or `+null+` if not available.
+
+'''''
+
+==== engine.scene3d.createTexture(image [, sampler])
+
+*Usage:*
+
+[source,js]
+----
+let tex = engine.scene3d.createTexture(img);
+let tex = engine.scene3d.createTexture(img, sampler);
+----
+
+* *Description:* Creates a `+Scene3DTexture+` ghost by combining a
+  `+Scene3DImage+` and an optional `+Scene3DSampler+`.  When no sampler is
+  supplied the scene's default repeat sampler is used automatically.
+* *Parameters:*
+** `+image+` (`+Scene3DImage+`): The image ghost to attach.
+** `+sampler+` (`+Scene3DSampler+`, optional): A sampler ghost.  Defaults to
+   the scene default.
+* *Return Value:* A `+Scene3DTexture+` ghost, or `+null+` on failure.
+
+'''''
+
+==== engine.scene3d.createTextureFromImage(width, height, pixels)
+
+*Usage:*
+
+[source,js]
+----
+let tex = engine.scene3d.createTextureFromImage(width, height, pixels);
+----
+
+* *Description:* Convenience shortcut that creates an image from a pixel array
+  and immediately wraps it in a texture using the default sampler.  No separate
+  image ghost is returned; the image is owned by the texture.
+* *Parameters:*
+** `+width+` (number): Image width in pixels.
+** `+height+` (number): Image height in pixels.
+** `+pixels+` (array): Array of `+width * height+` packed RGBA8 values
+   (`+0xRRGGBBAA+`).
+* *Return Value:* A `+Scene3DTexture+` ghost, or `+null+` on failure.
+
+'''''
+
+==== engine.scene3d.createMaterial([opts])
+
+*Usage:*
+
+[source,js]
+----
+let mat = engine.scene3d.createMaterial();
+let mat = engine.scene3d.createMaterial({
+  name: 'myMaterial',
+  shadingModel: 'pbr',          // 'pbr' | 'specularGlossiness' | 'unlit'
+  alphaMode:    'opaque',       // 'opaque' | 'mask' | 'blend'
+  alphaCutoff:  0.5,
+  doubleSided:  false,
+  castShadows:  true,
+  receiveShadows: true,
+  noWetness:    false,
+  baseColor:    [1, 1, 1, 1],  // [r, g, b, a]
+  metallic:     0.0,
+  roughness:    0.5,
+  emissive:     [0, 0, 0],     // [r, g, b]
+  baseColorTexture:          tex,
+  normalTexture:             normalTex,
+  metallicRoughnessTexture:  mrTex,
+  occlusionTexture:          aoTex,
+  emissiveTexture:           emTex,
+  hologram: {
+    active:        false,
+    direction:     [0, 1, 0],
+    flickerSpeed:  1.0,
+    flickerMin:    0.5,
+    flickerMax:    1.0,
+    mainColor:     [0, 0.8, 1, 1],
+    rimColor:      [0, 0.5, 1, 1],
+    rimPower:      2.0,
+    rimThreshold:  0.2,
+    scanTiling:    1.0,
+    scanSpeed:     0.5,
+    scanMin:       0.0,
+    scanMax:       1.0,
+    glowTiling:    1.0,
+    glowSpeed:     0.3,
+    glowMin:       0.0,
+    glowMax:       1.0,
+  },
+});
+----
+
+* *Description:* Creates a new `+Scene3DMaterial+` ghost.  All fields in the
+  optional `+opts+` hash are applied atomically before `+FillShaderData+` is
+  called, so no intermediate GPU updates are generated.
+* *Parameters:*
+** `+opts+` (hash, optional): Initial property values.  All keys are optional
+   and use the defaults of the engine material if omitted.
+
+[cols="1,1,3", options="header"]
+|===
+|Key |Type |Description
+
+|`+name+` |string |Internal material name (default: `+'poca_material'+`).
+|`+shadingModel+` |string |`+'pbr'+` (default), `+'specularGlossiness'+`, or `+'unlit'+`.
+|`+alphaMode+` |string |`+'opaque'+` (default), `+'mask'+`, or `+'blend'+`.
+|`+alphaCutoff+` |number |Alpha cutoff threshold for `+'mask'+` mode (default 0.5).
+|`+doubleSided+` |bool |Disable back-face culling (default `+false+`).
+|`+castShadows+` |bool |Whether the material casts shadows (default `+true+`).
+|`+receiveShadows+` |bool |Whether the material receives shadows (default `+true+`).
+|`+noWetness+` |bool |Suppress wetness/rain interaction (default `+false+`).
+|`+baseColor+` |array[4] |Base colour factor `+[r, g, b, a]+` (default `+[1,1,1,1]+`).
+|`+metallic+` |number |Metallic factor 0–1 (default 0).
+|`+roughness+` |number |Roughness factor 0–1 (default 1).
+|`+emissive+` |array[3] |Emissive colour factor `+[r, g, b]+` (default `+[0,0,0]+`).
+|`+baseColorTexture+` |Scene3DTexture |Base colour / albedo texture.
+|`+normalTexture+` |Scene3DTexture |Tangent-space normal map.
+|`+metallicRoughnessTexture+` |Scene3DTexture |Metallic-roughness texture (B=metallic, G=roughness).
+|`+occlusionTexture+` |Scene3DTexture |Ambient-occlusion texture (R channel).
+|`+emissiveTexture+` |Scene3DTexture |Emissive colour texture.
+|`+hologram+` |hash |Hologram sub-object (see hologram table below).
+|===
+
+[cols="1,1,3", options="header"]
+|===
+|Hologram key |Type |Description
+
+|`+active+` |bool |Enable hologram rendering (default `+false+`).
+|`+direction+` |array[3] |Scan/glow direction vector `+[x, y, z]+`.
+|`+flickerSpeed+` |number |Flicker animation speed.
+|`+flickerMin+` |number |Minimum flicker intensity.
+|`+flickerMax+` |number |Maximum flicker intensity.
+|`+mainColor+` |array[4] |Main hologram colour `+[r, g, b, a]+`.
+|`+rimColor+` |array[4] |Rim light colour `+[r, g, b, a]+`.
+|`+rimPower+` |number |Fresnel rim exponent.
+|`+rimThreshold+` |number |Fresnel rim threshold.
+|`+scanTiling+` |number |Scan-line tiling.
+|`+scanSpeed+` |number |Scan-line scroll speed.
+|`+scanMin+` |number |Scan-line intensity minimum.
+|`+scanMax+` |number |Scan-line intensity maximum.
+|`+glowTiling+` |number |Glow tiling.
+|`+glowSpeed+` |number |Glow scroll speed.
+|`+glowMin+` |number |Glow intensity minimum.
+|`+glowMax+` |number |Glow intensity maximum.
+|===
+
+* *Return Value:* A `+Scene3DMaterial+` ghost.
+
+'''''
+
+=== Scene3DImage
+
+A ghost object wrapping a `+TpvScene3D.TImage+`.  The ghost holds a pointer
+to the image; the image itself is owned by the scene.  GC-finalised ghosts
+only null their pointer.  Call `+img.destroy()+` to release (DecRef) explicitly.
+
+'''''
+
+==== img.upload()
+
+*Usage:*
+
+[source,js]
+----
+img.upload();
+----
+
+* *Description:* Triggers a GPU upload for the image (synchronous staging
+  enqueue).  Due to the render-frame pipeline, the upload may not be visible
+  until the next rendered frame.  Call repeatedly until `+img.isUploaded()+`
+  returns `+true+` if synchronous availability is required.
+* *Return Value:* The image ghost (for method chaining).
+
+'''''
+
+==== img.isUploaded()
+
+*Usage:*
+
+[source,js]
+----
+if (img.isUploaded()) { ... }
+----
+
+* *Description:* Returns `+true+` (`+1+`) if the GPU upload has completed, or
+  `+false+` (`+0+`) if it is still pending.
+* *Return Value:* `+1+` or `+0+`.
+
+'''''
+
+==== img.destroy()
+
+*Usage:*
+
+[source,js]
+----
+img.destroy();
+----
+
+* *Description:* Immediately releases the ghost's reference on the image.  The
+  ghost's internal pointer is nulled; any further method calls on the same
+  variable are silently ignored.
+* *Return Value:* `+null+`.
+
+'''''
+
+=== Scene3DSampler
+
+A ghost object wrapping a `+TpvScene3D.TSampler+`.  The ghost holds a
+pointer; the sampler is owned by the scene.  GC-finalised ghosts only null
+their pointer.  Call `+sampler.destroy()+` to release explicitly.
+
+'''''
+
+==== sampler.destroy()
+
+*Usage:*
+
+[source,js]
+----
+sampler.destroy();
+----
+
+* *Description:* Immediately releases the ghost's reference on the sampler.
+* *Return Value:* `+null+`.
+
+'''''
+
+=== Scene3DTexture
+
+A ghost object wrapping a `+TpvScene3D.TTexture+`.  The ghost holds a
+pointer; the texture is owned by the scene.  GC-finalised ghosts only null
+their pointer.  Call `+tex.destroy()+` to release explicitly.
+
+'''''
+
+==== tex.destroy()
+
+*Usage:*
+
+[source,js]
+----
+tex.destroy();
+----
+
+* *Description:* Immediately releases the ghost's reference on the texture.
+* *Return Value:* `+null+`.
+
+'''''
+
+=== Scene3DMaterial
+
+A ghost object wrapping a `+TpvScene3D.TMaterial+`.  After any setter call the
+material automatically calls `+FillShaderData+` and notifies the scene of a new
+material data generation so GPU buffers are updated.  Use `+fillShaderData()+`
+explicitly to batch multiple setters and trigger only one GPU update.
+
+'''''
+
+==== mat.setShadingModel(model)
+
+*Usage:*
+
+[source,js]
+----
+mat.setShadingModel('pbr');                // PBR metallic-roughness (default)
+mat.setShadingModel('specularGlossiness'); // PBR specular-glossiness
+mat.setShadingModel('unlit');              // Unlit / no lighting
+----
+
+* *Parameters:*
+** `+model+` (string): `+'pbr'+`, `+'specularGlossiness'+`, or `+'unlit'+`.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setAlphaMode(mode)
+
+*Usage:*
+
+[source,js]
+----
+mat.setAlphaMode('opaque'); // (default)
+mat.setAlphaMode('mask');
+mat.setAlphaMode('blend');
+----
+
+* *Parameters:*
+** `+mode+` (string): `+'opaque'+`, `+'mask'+`, or `+'blend'+`.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setAlphaCutoff(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setAlphaCutoff(0.5);
+----
+
+* *Description:* Sets the alpha cutoff threshold used when `+alphaMode+` is
+  `+'mask'+`.
+* *Parameters:*
+** `+value+` (number): Alpha cutoff 0–1.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setDoubleSided(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setDoubleSided(true);
+----
+
+* *Description:* Enables or disables back-face culling.
+* *Parameters:*
+** `+value+` (bool/number): `+true+`/`+1+` = double-sided (no culling).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setCastShadows(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setCastShadows(false);
+----
+
+* *Parameters:*
+** `+value+` (bool/number): `+true+`/`+1+` = casts shadows (default).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setReceiveShadows(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setReceiveShadows(false);
+----
+
+* *Parameters:*
+** `+value+` (bool/number): `+true+`/`+1+` = receives shadows (default).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setNoWetness(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setNoWetness(true);
+----
+
+* *Description:* When `+true+` the material is excluded from rain/wetness
+  effects.
+* *Parameters:*
+** `+value+` (bool/number): `+true+`/`+1+` = suppress wetness.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setBaseColorFactor(r, g, b, a)
+
+*Usage:*
+
+[source,js]
+----
+mat.setBaseColorFactor(1.0, 0.5, 0.0, 1.0);         // scalar form
+mat.setBaseColorFactor([1.0, 0.5, 0.0, 1.0]);        // array form
+mat.setBaseColorFactor({r: 1.0, g: 0.5, b: 0.0, a: 1.0}); // hash form
+mat.setBaseColorFactor(Vector4.create(1.0, 0.5, 0.0, 1.0)); // ghost form
+----
+
+* *Description:* Sets the base colour (albedo) factor.
+* *Parameters (Option A):*
+** `+r+`, `+g+`, `+b+`, `+a+` (number): RGBA components, each 0–1.
+* *Parameters (Option B):*
+** `+color+` (Vector4, array[4], or hash `{r,g,b,a}`): RGBA colour. See <<Vector Argument Conventions>>.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setMetallicFactor(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setMetallicFactor(1.0);
+----
+
+* *Parameters:*
+** `+value+` (number): Metallic factor 0–1.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setRoughnessFactor(value)
+
+*Usage:*
+
+[source,js]
+----
+mat.setRoughnessFactor(0.3);
+----
+
+* *Parameters:*
+** `+value+` (number): Roughness factor 0–1.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setEmissiveFactor(r, g, b)
+
+*Usage:*
+
+[source,js]
+----
+mat.setEmissiveFactor(1.0, 0.5, 0.0);            // scalar form
+mat.setEmissiveFactor([1.0, 0.5, 0.0]);           // array form
+mat.setEmissiveFactor({r: 1.0, g: 0.5, b: 0.0}); // hash form
+mat.setEmissiveFactor(Vector3.create(1.0, 0.5, 0.0)); // ghost form
+----
+
+* *Description:* Sets the emissive colour factor.  The emissive strength
+  component (w) is not modified.
+* *Parameters (Option A):*
+** `+r+`, `+g+`, `+b+` (number): RGB components, each 0–1 (or higher for HDR).
+* *Parameters (Option B):*
+** `+color+` (Vector3, array[3], or hash `{r,g,b}`): RGB colour. See <<Vector Argument Conventions>>.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setBaseColorTexture(tex [, texCoord])
+
+*Usage:*
+
+[source,js]
+----
+mat.setBaseColorTexture(tex);
+mat.setBaseColorTexture(tex, 1); // use UV set 1
+----
+
+* *Description:* Assigns the base colour / albedo texture.
+* *Parameters:*
+** `+tex+` (`+Scene3DTexture+`): The texture ghost.
+** `+texCoord+` (number, optional): UV channel index (default `+0+`).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setNormalTexture(tex [, scale [, texCoord]])
+
+*Usage:*
+
+[source,js]
+----
+mat.setNormalTexture(normalTex);
+mat.setNormalTexture(normalTex, 2.0);     // double normal strength
+mat.setNormalTexture(normalTex, 1.0, 1);  // UV set 1
+----
+
+* *Description:* Assigns the tangent-space normal map.
+* *Parameters:*
+** `+tex+` (`+Scene3DTexture+`): The normal map texture.
+** `+scale+` (number, optional): Normal map scale/strength (default `+1.0+`).
+** `+texCoord+` (number, optional): UV channel index (default `+0+`).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setMetallicRoughnessTexture(tex [, texCoord])
+
+*Usage:*
+
+[source,js]
+----
+mat.setMetallicRoughnessTexture(mrTex);
+----
+
+* *Description:* Assigns the metallic-roughness texture (B channel = metallic,
+  G channel = roughness).
+* *Parameters:*
+** `+tex+` (`+Scene3DTexture+`): The texture ghost.
+** `+texCoord+` (number, optional): UV channel index (default `+0+`).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setOcclusionTexture(tex [, strength [, texCoord]])
+
+*Usage:*
+
+[source,js]
+----
+mat.setOcclusionTexture(aoTex);
+mat.setOcclusionTexture(aoTex, 0.8);     // partial occlusion strength
+mat.setOcclusionTexture(aoTex, 1.0, 1);  // UV set 1
+----
+
+* *Description:* Assigns the ambient-occlusion texture (R channel).
+* *Parameters:*
+** `+tex+` (`+Scene3DTexture+`): The AO texture ghost.
+** `+strength+` (number, optional): Occlusion strength 0–1 (default `+1.0+`).
+** `+texCoord+` (number, optional): UV channel index (default `+0+`).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setEmissiveTexture(tex [, texCoord])
+
+*Usage:*
+
+[source,js]
+----
+mat.setEmissiveTexture(emTex);
+----
+
+* *Description:* Assigns the emissive texture.
+* *Parameters:*
+** `+tex+` (`+Scene3DTexture+`): The emissive texture ghost.
+** `+texCoord+` (number, optional): UV channel index (default `+0+`).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.setHologram(opts)
+
+*Usage:*
+
+[source,js]
+----
+mat.setHologram({
+  active:       true,
+  direction:    [0, 1, 0],
+  flickerSpeed: 2.0,
+  flickerMin:   0.6,
+  flickerMax:   1.0,
+  mainColor:    [0, 0.8, 1, 0.9],
+  rimColor:     [0, 0.4, 1, 1],
+  rimPower:     3.0,
+  rimThreshold: 0.15,
+  scanTiling:   2.0,
+  scanSpeed:    0.8,
+  scanMin:      0.0,
+  scanMax:      0.6,
+  glowTiling:   1.0,
+  glowSpeed:    0.3,
+  glowMin:      0.1,
+  glowMax:      0.9,
+});
+----
+
+* *Description:* Applies hologram rendering parameters.  Only the keys present
+  in `+opts+` are modified; omitted keys retain their current values.
+* *Parameters:*
+** `+opts+` (hash): Hologram property hash.  See the hologram key table in
+   `+createMaterial+` for the full list of accepted keys and their types.
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.fillShaderData()
+
+*Usage:*
+
+[source,js]
+----
+mat.fillShaderData();
+----
+
+* *Description:* Explicitly calls `+FillShaderData+` and notifies the scene of a
+  new material data generation, flushing GPU buffers.  Use this after a batch of
+  setter calls to reduce the number of GPU-buffer updates to one.
++
+NOTE: Every individual setter already calls `+fillShaderData+` internally, so
+calling it again after a single setter is redundant.  It is useful only when
+you want to set many properties at once without intermediate GPU flushes
+(though the current implementation still flushes after each setter).
+* *Return Value:* The material ghost (for method chaining).
+
+'''''
+
+==== mat.destroy()
+
+*Usage:*
+
+[source,js]
+----
+mat.destroy();
+----
+
+* *Description:* Immediately releases the ghost's reference on the material.
+  The ghost's internal pointer is nulled; any further method calls on it are
+  silently ignored.
+* *Return Value:* `+null+`.
+
+'''''
+
+=== Scene3D — Full example
+
+[source,js]
+----
+// Load a texture from an asset file
+let img = engine.scene3d.loadImage("textures/metal_basecolor.png");
+
+// Create a texture using the default sampler
+let tex = engine.scene3d.createTexture(img);
+
+// Build a PBR metallic material
+let mat = engine.scene3d.createMaterial({
+  name:      'metalPlate',
+  metallic:  0.9,
+  roughness: 0.2,
+  baseColorTexture: tex,
+});
+
+// … attach mat to a mesh primitive later …
+
+// Explicit cleanup when no longer needed
+mat.destroy();
+tex.destroy();
+img.destroy();
+----
+
+'''''
+
+=== Scene3DGroup
+
+A `Scene3DGroup` represents a procedurally-created 3D object group (equivalent to a glTF scene file).
+Obtained from `engine.scene3d.createGroup(name)`.
+
+Build order: create meshes → create primitives → add vertices/indices → finish primitives → finish meshes → create nodes → set node properties → create scenes → add nodes → add materials → call `group.finish()` → call `group.createInstance()`.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`group.createMesh([name])` |Create a new `Scene3DMesh` within this group.
+|`group.createNode([name])` |Create a new `Scene3DNode` within this group.
+|`group.createScene([name])` |Create a new `Scene3DGroupScene` within this group.
+|`group.addMaterial(mat)` |Register a `Scene3DMaterial` with this group; returns integer material index.
+|`group.finish()` |Finalise and upload the group to the GPU. Must be called once before `createInstance()`.
+|`group.createInstance()` |Instantiate the group in the scene; returns a `Scene3DInstance`.
+|`group.getAnimationID(name)` |Look up an animation by name; returns integer index or `-1` if not found.
+|`group.destroy()` |Invalidate the POCA ghost (the group itself is owned by the scene).
+|===
+
+.Example
+[source,javascript]
+----
+let g = engine.scene3d.createGroup('myObject');
+let mat = engine.scene3d.createMaterial({ name: 'red', baseColor: [1,0,0,1] });
+let matIdx = g.addMaterial(mat);
+
+let mesh = g.createMesh('body');
+let prim = mesh.createPrimitive('triangles');
+prim.setMaterial(mat);
+// … add vertices / indices …
+prim.finish();
+mesh.finish();
+
+let node = g.createNode('root');
+node.setMesh(mesh);
+node.setTranslation(0.0, 0.0, 0.0);
+
+let sc = g.createScene('default');
+sc.addNode(node);
+
+g.finish();
+let inst = g.createInstance();
+----
+
+'''''
+
+=== Scene3DMesh
+
+A `Scene3DMesh` is a named mesh within a `Scene3DGroup`. Obtained from `group.createMesh(name)`.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`mesh.createPrimitive(['triangles'|'lines'|'points'])` |Create a new `Scene3DPrimitive`. Defaults to `'triangles'`.
+|`mesh.calculateTangentSpace()` |Auto-compute tangents from positions, normals and UVs (call after adding all primitives).
+|`mesh.finish()` |Finalise the mesh (called implicitly by `group.finish()`).
+|`mesh.destroy()` |Invalidate the POCA ghost (mesh lifetime is managed by the group).
+|===
+
+'''''
+
+=== Scene3DPrimitive
+
+A `Scene3DPrimitive` is a draw call within a `Scene3DMesh`. Obtained from `mesh.createPrimitive(topology)`.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`prim.setMaterial(mat)` |Attach a `Scene3DMaterial` to this primitive.
+|`prim.addVertex(x,y,z [,nx,ny,nz] [,tx,ty,tz] [,u0,v0] [,u1,v1] [,r,g,b,a])` a|Append a vertex (positional form). Groups are optional but must be supplied in order. Valid total arg counts: 3, 6, 9, 11, 13, or 17. Normal and tangent are oct-encoded internally. Tangent `(0,0,0)` enables automatic tangent-space via `calculateTangentSpace()`. Color defaults to `(1,1,1,1)`. Returns the integer vertex index.
+|`prim.addVertex({position, normal, tangent, texcoord0, texcoord1, color})` a|Append a vertex (hash/object form). Pass a hash with any of the following keys — all optional: +
+`position` — `Vector3` ghost, `{x,y,z}` / `{r,g,b}` hash, or `[x,y,z]` array +
+`normal` — `Vector3` ghost, `{x,y,z}` / `{r,g,b}` hash, or `[x,y,z]` array +
+`tangent` — `Vector3` ghost, `{x,y,z}` / `{r,g,b}` hash, or `[x,y,z]` array +
+`texcoord0` — `Vector2` ghost, `{x/s/u, y/t/v}` hash, or `[x,y]` array +
+`texcoord1` — `Vector2` ghost, `{x/s/u, y/t/v}` hash, or `[x,y]` array +
+`color` — `Vector4` ghost, `{x/r, y/g, z/b, w/a}` hash, or `[r,g,b,a]` array +
+Returns the integer vertex index.
+|`prim.addIndex(i)` |Append an index into the vertex buffer.
+|`prim.finish()` |Finalise this primitive.
+|`prim.destroy()` |Invalidate the POCA ghost (primitive lifetime is managed by the mesh).
+|===
+
+.Building a triangle (positional form)
+[source,javascript]
+----
+let prim = mesh.createPrimitive('triangles');
+prim.setMaterial(mat);
+prim.addVertex(  0.0,  1.0, 0.0,   0,0,1,   0,0,0,   0.5, 0.0 );
+prim.addVertex( -1.0, -1.0, 0.0,   0,0,1,   0,0,0,   0.0, 1.0 );
+prim.addVertex(  1.0, -1.0, 0.0,   0,0,1,   0,0,0,   1.0, 1.0 );
+prim.addIndex(0); prim.addIndex(1); prim.addIndex(2);
+prim.finish();
+----
+
+.Building a triangle (hash form)
+[source,javascript]
+----
+let prim = mesh.createPrimitive('triangles');
+prim.setMaterial(mat);
+prim.addVertex({position:[  0.0,  1.0, 0.0], normal:[0,0,1], texcoord0:[0.5, 0.0]});
+prim.addVertex({position:[ -1.0, -1.0, 0.0], normal:[0,0,1], texcoord0:[0.0, 1.0]});
+prim.addVertex({position:[  1.0, -1.0, 0.0], normal:[0,0,1], texcoord0:[1.0, 1.0]});
+prim.addIndex(0); prim.addIndex(1); prim.addIndex(2);
+prim.finish();
+----
+
+'''''
+
+=== Scene3DNode
+
+A `Scene3DNode` represents a transform node in the scene graph of a `Scene3DGroup`.
+Obtained from `group.createNode(name)`.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`node.setMesh(mesh)` |Attach a `Scene3DMesh` to this node.
+|`node.addChild(childNode)` |Add a child `Scene3DNode`.
+|`node.setTranslation(x, y, z)` |Set the node's local translation. Also accepts a Vector3 ghost, array `[x,y,z]`, or hash `{x,y,z}`.
+|`node.setRotation(qx, qy, qz, qw)` |Set the node's local rotation as a quaternion. Also accepts a Quaternion ghost, array `[x,y,z,w]`, or hash `{x,y,z,w}`.
+|`node.setScale(sx, sy, sz)` |Set the node's local scale. Also accepts a Vector3 ghost, array `[x,y,z]`, or hash `{x,y,z}`.
+|`node.setMatrix(m00,…,m15)` |Override the full 4×4 transform (16 floats, row-major). Also accepts a Matrix4x4 ghost, array `[16]`, or hash.
+|`node.setVisible(bool)` |Show/hide this node.
+|`node.setCastShadows(bool)` |Enable/disable shadow casting for this node.
+|`node.finish()` |Finalise the node before calling `group.finish()`.
+|`node.destroy()` |Invalidate the POCA ghost (node lifetime is managed by the group).
+|===
+
+'''''
+
+=== Scene3DGroupScene
+
+A `Scene3DGroupScene` is the root scene list within a `Scene3DGroup` that declares which nodes are top-level.
+Obtained from `group.createScene(name)`.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`scene.addNode(node)` |Add a root `Scene3DNode` to this scene.
+|`scene.destroy()` |Invalidate the POCA ghost (scene lifetime is managed by the group).
+|===
+
+NOTE: `scene.finish()` is implicit; called internally by `group.finish()`.
+
+'''''
+
+=== Scene3DLight
+
+A `Scene3DLight` is a standalone dynamic light (point, spot, or directional) placed in the scene.
+Created via `scene3d.createPointLight(...)`, `scene3d.createSpotLight(...)`, or `scene3d.createDirectionalLight(...)`.
+
+The light is owned by POCA — call `light.destroy()` to free it; the GC will also call `Free` automatically.
+Call `light.update()` after changing any property to push the changes to the GPU.
+
+NOTE: `engine.scene3d` is created and managed by the game layer, not the engine directly.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`scene3d.createPointLight(x,y,z, r,g,b, intensity, range)` |Create a point light at position `(x,y,z)` with colour `(r,g,b)`, given `intensity` and attenuation `range`. Returns a `Scene3DLight`.
+|`scene3d.createSpotLight(x,y,z, dx,dy,dz, r,g,b, intensity, range, innerDeg, outerDeg)` |Create a spot light at `(x,y,z)` pointing in direction `(dx,dy,dz)`. `innerDeg` / `outerDeg` are the inner/outer cone half-angles in degrees. Returns a `Scene3DLight`.
+|`scene3d.createDirectionalLight(dx,dy,dz, r,g,b, intensity)` |Create a directional light with direction `(dx,dy,dz)`. Returns a `Scene3DLight`.
+|`light.setType(t)` |Change the light type: `1` = Directional, `2` = Point, `3` = Spot. Returns `light`.
+|`light.setPosition(x,y,z)` |Set the translation part of the light's matrix, preserving orientation. Returns `light`.
+|`light.setDirection(dx,dy,dz)` |Recompute the light matrix orientation toward `(dx,dy,dz)`, preserving the current position. Returns `light`.
+|`light.setMatrix(m00,m01,…,m15)` |Set the full 4×4 double-precision light matrix (16 row-major arguments). Returns `light`.
+|`light.setColor(r,g,b)` |Set the light colour. Returns `light`.
+|`light.setIntensity(v)` |Set the light intensity. Returns `light`.
+|`light.setRange(v)` |Set the attenuation range (point/spot lights). Returns `light`.
+|`light.setConeAngles(innerDeg, outerDeg)` |Set inner and outer cone half-angles in degrees (spot lights). Returns `light`.
+|`light.setCastShadows(bool)` |Enable or disable shadow casting. Returns `light`.
+|`light.setVisible(bool)` |Show or hide the light. Returns `light`.
+|`light.update([inFlightFrameIndex])` |Push all property changes to the GPU. Pass the current in-flight frame index, or omit for auto (`-1`). Returns `light`.
+|`light.destroy()` |Free the light and invalidate the POCA ghost.
+|===
+
+.Example
+[source,javascript]
+----
+let pt = engine.scene3d.createPointLight(0.0, 2.0, 0.0,  1.0, 0.9, 0.7,  5.0, 10.0);
+pt.setCastShadows(true);
+pt.update();
+
+let spot = engine.scene3d.createSpotLight(
+  0.0, 5.0, 0.0,   // position
+  0.0, -1.0, 0.0,  // direction (down)
+  1.0, 1.0, 1.0,   // colour
+  8.0, 20.0,       // intensity, range
+  15.0, 30.0       // inner/outer cone degrees
+);
+spot.update();
+
+let sun = engine.scene3d.createDirectionalLight(-0.5, -1.0, -0.5,  1.0, 0.95, 0.8,  3.0);
+sun.update();
+----
+
+'''''
+
+=== Scene3DDecal
+
+A `Scene3DDecal` is a dynamic decal projected onto scene geometry.
+Created via `scene3d.spawnDecal(opts)` (see opts table in the Reference section).
+
+The decal is owned by `TpvScene3D`; the POCA ghost stores a back-pointer only.
+Call `decal.destroy()` to hide the decal early and release the ghost data.
+Never call `Free` on a decal directly.
+
+NOTE: `engine.scene3d` is created and managed by the game layer, not the engine directly.
+
+[cols="1,3"]
+|===
+|Method / Factory |Description
+
+|`scene3d.spawnDecal(opts)` |Spawn a decal; returns a `Scene3DDecal` ghost. Required opts: `position:[x,y,z]`, `size:[w,h]`. Optional: `orientation:[qx,qy,qz,qw]`, `rotation` (rad), texture indices (`albedoTexture`, `normalTexture`, `ormTexture`, `specularTexture`, `emissiveTexture`), `blendMode`, `pbrBlendFactor`, `opacity`, `angleFade`, `edgeFade`, `lifetime`, `fadeOutTime`, `passMesh`, `passPlanet`, `passGrass`.
+|`decal.setVisible(bool)` |Show or hide the decal. Returns `decal`.
+|`decal.setOpacity(f)` |Set opacity (0–1). Returns `decal`.
+|`decal.setPosition(x,y,z)` |Set the world-space position (`TpvVector3D`). Returns `decal`.
+|`decal.setOrientation(qx,qy,qz,qw)` |Set the orientation quaternion. Returns `decal`.
+|`decal.setRotation(f)` |Set extra rotation about the decal normal, in radians. Returns `decal`.
+|`decal.setSize(w,h)` |Set decal width and height; depth defaults to `0.5`. Returns `decal`.
+|`decal.setBlendMode(mode)` |Set blend mode: `'alpha'`, `'multiply'`, `'overlay'`, `'additive'`, `'pbr'`, `'normalmap'`. Returns `decal`.
+|`decal.destroy()` |Mark decal invisible (if still valid), release ghost data.
+|===
+
+.Example
+[source,javascript]
+----
+let d = engine.scene3d.spawnDecal({
+  position:    [10.0, 0.05, 5.0],
+  size:        [1.0, 1.0],
+  albedoTexture: myAlbedoIdx,
+  blendMode:   'alpha',
+  opacity:     0.8,
+  lifetime:    5.0,
+  fadeOutTime: 1.0
+});
+d.setVisible(true);
+----
+
+'''''
+
+=== Scene3DBakedMesh
+
+A `Scene3DBakedMesh` is a CPU-side triangle soup snapshot of a `Scene3DInstance`'s geometry.
+Obtained from `instance.getBakedMesh()`.
+
+The caller owns the `Scene3DBakedMesh` and must call `destroy()` when finished
+to free the underlying memory.
+
+.Scene3DBakedMesh creation
+[cols="1,3"]
+|===
+|POCA call |Description
+
+|`instance.getBakedMesh()` |Bake the instance's current geometry into a triangle mesh; returns a `Scene3DBakedMesh` ghost.
+|===
+
+.Scene3DBakedMesh methods
+[cols="1,3"]
+|===
+|Method |Description
+
+|`bm.raycast(origin, dir)` |Cast a ray against the baked mesh. `origin` and `dir` are `[x,y,z]` arrays. Returns `{distance, position:{x,y,z}, u, v}` for the closest hit, or `null` if no hit.
+|`bm.destroy()` |Free the baked mesh immediately (must be called to avoid memory leaks).
+|===
+
+.Scene3DBakedMesh example
+[source,js]
+----
+let bm = instance.getBakedMesh();
+let hit = bm.raycast([0,10,0], [0,-1,0]);
+if (hit !== null) {
+  console.log("hit at distance " + hit.distance);
+}
+bm.destroy();
+----
+
+'''
+
+.Scene3DScene raycast
+[cols="1,3"]
+|===
+|Method |Description
+
+|`scene3d.raycast(origin, dir, instances)` |Cast a ray against the baked geometry of every `Scene3DInstance` in the `instances` array. Returns `{instance, distance, position:{x,y,z}, u, v}` for the closest overall hit, or `null` if no hit.
+|===
+
+'''''
+
+=== Scene3DParticle — `scene3d.addParticle`
+
+Spawns a fire-and-forget particle. No ghost is returned; the engine recycles slots automatically.
+
+.addParticle — hash-opts form
+[cols="1,1,3"]
+|===
+|Opt |Default |Description
+
+|`position` |required |`[x,y,z]` world position
+|`velocity` |`[0,0,0]` |Initial velocity vector
+|`gravity` |`[0,0,0]` |Gravity acceleration vector
+|`rotationStart` |`0.0` |Start rotation in radians
+|`rotationEnd` |`0.0` |End rotation in radians
+|`sizeStart` |`[1,1]` |Particle size at birth `[w,h]`
+|`sizeEnd` |`[0,0]` |Particle size at death `[w,h]`
+|`colorStart` |`[1,1,1,1]` |RGBA colour at birth
+|`colorEnd` |`[1,1,1,0]` |RGBA colour at death
+|`lifetime` |`1.0` |Particle lifetime in seconds
+|`textureID` |`0` |Texture atlas index
+|`additiveBlending` |`false` |Use additive blending if `true`
+|===
+
+Returns the particle slot index as an integer.
+
+.addParticle — positional form
+[source,js]
+----
+// scene3d.addParticle(position, velocity, gravity, rotStart, rotEnd,
+//                     sizeStart, sizeEnd, colorStart, colorEnd,
+//                     lifetime, textureID, additiveBlending)
+scene3d.addParticle([x,y,z], [0,0,0], [0,-9.8,0], 0, 0,
+                    [0.5,0.5], [0,0], [1,1,1,1], [1,1,1,0],
+                    2.0, 0, false);
+----
+
+.addParticle — hash form
+[source,js]
+----
+scene3d.addParticle({
+  position: [x, y, z],
+  velocity: [vx, vy, vz],
+  gravity:  [0, -9.8, 0],
+  sizeStart: [0.5, 0.5],
+  sizeEnd:   [0.0, 0.0],
+  colorStart: [1, 0.5, 0, 1],
+  colorEnd:   [1, 0.5, 0, 0],
+  lifetime: 1.5,
+  additiveBlending: true
+});
+----
+
+'''''
+
+=== Scene3DModel (game-side)
+
+`Scene3DModel` is a game-side ghost (Seeds / `UnitGamePOCA.pas`) that wraps a loaded
+`TGameInstanceableModel`. It is obtained by calling `engine.scene3d.loadModel(path)`.
+
+NOTE: This ghost type is only available when running inside the Seeds game engine.
+It uses the game's `TGameInstanceableModels` system, which handles glTF/GLB loading,
+physics collision meshes, and animation.
+
+.Scene3DModel creation
+[cols="1,1,3"]
+|===
+|Function|Returns|Description
+
+|`engine.scene3d.loadModel(path)`|`Scene3DModel`|Load a glTF/GLB asset synchronously. `path` may use the `{models}/…` prefix understood by the asset system.
+|===
+
+.Scene3DModel methods
+[cols="1,1,3"]
+|===
+|Method|Returns|Description
+
+|`model.createInstance()`|`Scene3DInstance`|Wrap the first backing `TGameInstanceableModelInstance` as a `Scene3DInstance` ghost. All transform, animation, and lifecycle methods of `Scene3DInstance` work on the returned value.
+|`model.unload()`|`null`|Immediately free the underlying `TGameInstanceableModel`. The POCA ghost becomes a dangling reference; do not use it afterwards.
+|===
+
+.Scene3DModel example
+[source,javascript]
+----
+let model = engine.scene3d.loadModel('{models}/chess/board.glb');
+let inst = model.createInstance();
+inst.setPosition(0, 0.05, 0);
+// ... use inst ...
+model.unload();
+----
+
+'''''
+
+=== Scene3DInstance
+
+A `Scene3DInstance` is a live copy of a `Scene3DGroup` placed in the scene.
+Obtained from `group.createInstance()`.
+
+The instance owns its own animation state and world transform.
+Call `inst.destroy()` when the object is no longer needed — this releases the Pascal object.
+
+NOTE: `engine.scene3d` (and therefore `group.createInstance()`) is created and managed by the game layer, not the engine directly.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`inst.setScene(sceneIdx)` |Select which root scene within the group to render (integer index); returns `inst`.
+|`inst.setActive(bool)` |Show or hide the instance; returns `inst`.
+|`inst.isActive()` |Returns `true` if the instance is currently active.
+|`inst.setModelMatrix(m00,m01,…,m15)` |Set the 4×4 double-precision world transform. Arguments are the 16 matrix elements in row-major order. Returns `inst`.
+|`inst.getModelMatrix()` |Return the current world matrix as a 16-element flat array (row-major doubles).
+|`inst.setAnimation(idx, time [,factor [,additive]])` |Directly set animation `idx` (integer) to the given `time` (seconds), optional blend `factor` (default `1.0`), and optional `additive` flag (default `false`). Returns `inst`.
+|`inst.setAnimationState(idx, {time?, factor?, additive?})` |Partial update via hash — only the keys present in the hash are applied. Returns `inst`.
+|`inst.getAnimation(idx)` |Returns `{factor, time, additive, complete}` hash for animation `idx`.
+|`inst.setAnimationFactor(idx, factor)` |Set the blend weight for animation `idx`. Returns `inst`.
+|`inst.setAnimationTime(idx, t)` |Set the playback position (seconds) for animation `idx`. Returns `inst`.
+|`inst.setAnimationAdditive(idx, bool)` |Set the additive blend flag for animation `idx`. Returns `inst`.
+|`inst.playAnimation(name [,loop [,speed]])` |High-level start: look up animation by `name`, reset time to `0`, set `factor = speed` (default `1.0`), set loop flag (default `false`). Returns `true` on success, `false` if name not found.
+|`inst.stopAnimation(name)` |Stop the named animation: sets its factor and auto-advance speed to `0`. Returns `inst`.
+|`inst.stopAllAnimations()` |Stop all animations on this instance. Returns `inst`.
+|`inst.isAnimationPlaying(name)` |Returns `true` if the named animation has a non-zero blend factor.
+|`inst.getAnimationTime(name)` |Returns the current playback time (seconds) of the named animation, or `null` if not found.
+|`inst.setAnimationTimeByName(name, t)` |Set the playback time of the named animation. Returns `inst`.
+|`inst.updateAnimations()` |Advance all auto-playing animations by wall-clock delta, handle loop wrap-around or stop on completion, then call `Instance.Update()` to push state to the GPU. Returns `inst`. Call this once per frame for each animated instance.
+|`inst.getBakedMesh()` |Not yet implemented — returns `null`.
+|`inst.createRenderInstance()` |Create a new `Scene3DRenderInstance` (GPU render slot) for this instance. Returns the new ghost.
+|`inst.destroy()` |Free the instance and its animation state. Invalidates the POCA ghost.
+|===
+
+.Example
+[source,javascript]
+----
+let inst = g.createInstance();
+inst.setScene(0);
+inst.setActive(true);
+// identity matrix
+inst.setModelMatrix(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+
+// play "walk" animation in a loop
+inst.playAnimation('walk', true, 1.0);
+
+// in the per-frame update function:
+inst.updateAnimations();
+
+let ri = inst.createRenderInstance();
+ri.setActive(true);
+ri.setModelMatrix(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+----
+
+'''''
+
+=== Scene3DRenderInstance
+
+A `Scene3DRenderInstance` is a GPU draw-call slot for a `Scene3DInstance`.
+Each instance can have multiple render instances (e.g., for instanced rendering at different positions).
+Obtained from `inst.createRenderInstance()`.
+
+The render instance is owned by the Pascal `TInstance` — call `ri.remove()` to deregister it;
+do **not** call `Free`. The POCA ghost is invalidated after `remove()`.
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`ri.setActive(bool)` |Toggle GPU visibility of this render slot. Returns `ri`.
+|`ri.setModelMatrix(m00,m01,…,m15)` |Set the 4×4 double-precision world transform for this render slot (16 row-major doubles). Returns `ri`.
+|`ri.remove()` |Deregister this render instance from the GPU scene. Invalidates the POCA ghost.
+|===
 
 '''''
 
@@ -8357,6 +10158,7 @@ The PasVulkan POCA Script API provides a comprehensive set of types and function
 * *Canvas API:* Comprehensive 2D drawing with shapes, text, sprites, and paths
 * *Input API:* Keyboard, mouse, and pointer event handling
 * *Audio API:* Sound effects with polyphony and 3D spatialization, background music playback
+* *Scene3D API:* 3D scene-graph access — images, samplers, textures, materials, groups, meshes, primitives, nodes, and scenes with full PBR and hologram support
 
 All types support operator overloading and provide fluent APIs for method chaining. The Canvas API is hardware-accelerated using Vulkan for high-performance 2D rendering. The Audio API provides both simple 2D and advanced 3D spatial audio capabilities.
 

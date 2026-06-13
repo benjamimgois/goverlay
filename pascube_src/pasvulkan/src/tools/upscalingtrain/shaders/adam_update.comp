@@ -1,0 +1,48 @@
+#version 450
+/*
+ * adam_update.comp — Adam optimizer per-parameter update
+ *
+ * Bindings: 0=params (R+W), 1=grads (R), 2=m (R+W), 3=v (R+W)
+ * Push constants: p0=count, f0=lr, f1=beta1, f2=beta2, f3=eps, f4=bc1, f5=bc2
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) buffer BufP { float params[]; };
+layout(set = 0, binding = 1) buffer BufG { float grads[];  };
+layout(set = 0, binding = 2) buffer BufM { float m[];      };
+layout(set = 0, binding = 3) buffer BufV { float v[];      };
+
+void main() {
+    int idx = int(gl_GlobalInvocationID.x);
+    if (idx >= pc.p0) return;
+
+    float lr    = pc.f0;
+    float beta1 = pc.f1;
+    float beta2 = pc.f2;
+    float eps   = pc.f3;
+    float bc1   = pc.f4;  /* 1 - beta1^t */
+    float bc2   = pc.f5;  /* 1 - beta2^t */
+
+    float g = grads[idx];
+
+    /* Update moments */
+    float m_new = beta1 * m[idx] + (1.0 - beta1) * g;
+    float v_new = beta2 * v[idx] + (1.0 - beta2) * g * g;
+    m[idx] = m_new;
+    v[idx] = v_new;
+
+    /* Bias-corrected estimates */
+    float m_hat = m_new / bc1;
+    float v_hat = v_new / bc2;
+
+    /* Update parameter */
+    params[idx] -= lr * m_hat / (sqrt(v_hat) + eps);
+}

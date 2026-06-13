@@ -82,7 +82,7 @@ begin
  case aExceptionValue of
   TPasRISCV.THART.TExceptionValue.ECallUMode,
   TPasRISCV.THART.TExceptionValue.ECallSMode,
-  TPasRISCV.THART.TExceptionValue.ECallHMode,
+  TPasRISCV.THART.TExceptionValue.ECallVSMode,
   TPasRISCV.THART.TExceptionValue.ECallMMode:begin
    if Machine.HART.State^.Registers[TPasRISCV.TRegister.A7]=93 then begin // Exit syscall
     TestErrorCode:=Machine.HART.State^.Registers[TPasRISCV.TRegister.A0];
@@ -127,39 +127,63 @@ begin
  Configuration:=TPasRISCV.TConfiguration.Create;
  try
 
-  Configuration.CountHARTs:=4;
+  Configuration.CountHARTs:=1;
 
   Configuration.MemorySize:=TPasRISCVUInt64(2048) shl 20; // 2GB
 
-  if ParamStr(1)='image' then begin
-   // Image
-   if ParamStr(2)='kernel' then begin
-    // With other external kernel
+  if ParamStr(1)='testvectorjit' then begin
+    Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_jump.bin');
+    Configuration.LoadKernelFromFile(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'..')+'benchmarks')+'vectest.bin');
+    Configuration.BootArguments:='root=/dev/mem rw earlyprintk console=$LINUXUART$ earlycon=sbi';
+   end else if ParamStr(1)='testalpine' then begin
+    Configuration.CountHARTs:=4;
+    Configuration.NVMeEnabled:=true;
+    Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_payload.bin');
+    Configuration.DisplayMode:=TPasRISCV.TDisplayMode.SimpleFB;
+    Configuration.SoundMode:=TPasRISCV.TSoundMode.CMI8738;
+   end else if ParamStr(1)='benchmark' then begin
+   Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_jump.bin');
+   Configuration.LoadKernelFromFile(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'..')+'benchmarks')+'bench.bin');
+   Configuration.BootArguments:='root=/dev/mem rw earlyprintk console=$LINUXUART$ earlycon=sbi';
+  end else begin
+   if ParamStr(1)='image' then begin
+    // Image
+    if ParamStr(2)='kernel' then begin
+     // With other external kernel
+     Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_jump.bin');
+     Configuration.LoadKernelFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'kernel.bin');
+    end else begin
+     // With image-embedded kernel
+     Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_payload.bin');
+    end;
+    Configuration.BootArguments:='root=/dev/vda1 rw noquiet rw earlyprintk console=$LINUXUART$ earlycon=sbi';
+ // Configuration.BootArguments:='root=LABEL=rootfs rw noquiet rw earlyprintk console=$LINUXUART$ earlycon=sbi';
+ // Configuration.BootArguments:='root=/dev/vda1 rw earlyprintk console=$LINUXUART$ earlycon=sbi';
+   end else begin
+    // Buildroot
     Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_jump.bin');
     Configuration.LoadKernelFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'kernel.bin');
-   end else begin
-    // With image-embedded kernel
-    Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_payload.bin');
+    Configuration.BootArguments:='root=/dev/mem rw earlyprintk console=$LINUXUART$ earlycon=sbi';
    end;
-   Configuration.BootArguments:='root=/dev/vda1 rw noquiet rw earlyprintk console=$LINUXUART$ earlycon=sbi';
-// Configuration.BootArguments:='root=LABEL=rootfs rw noquiet rw earlyprintk console=$LINUXUART$ earlycon=sbi';
-// Configuration.BootArguments:='root=/dev/vda1 rw earlyprintk console=$LINUXUART$ earlycon=sbi';
-  end else begin
-   // Buildroot
-   Configuration.LoadBIOSFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'fw_jump.bin');
-   Configuration.LoadKernelFromFile(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'kernel.bin');
-   Configuration.BootArguments:='root=/dev/mem rw earlyprintk console=$LINUXUART$ earlycon=sbi';
   end;
 
   MachineInstance:=TMachineInstance.Create;
 
   try
 
+   if ParamStr(1)='image' then begin
+//    Configuration.VirtIOBlockEnabled:=true;
+   end;
+
    Machine:=TPasRISCV.Create(Configuration);
    try
 
     if ParamStr(1)='image' then begin
      Machine.VirtIOBlockDevice.AttachStream(TFileStream.Create(IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)))+'image.img',fmOpenReadWrite{or fmShareDenyNone}));
+    end;
+
+    if ParamStr(1)='testalpine' then begin
+     Machine.NVMeDevice.AttachStream(TFileStream.Create('/home/bero/Projects/GitHub/pasvulkan/projects/pasriscvemu/assets/riscv/alpine.img',fmOpenReadWrite));
     end;
 
     Machine.OnReboot:=MachineInstance.OnReboot;

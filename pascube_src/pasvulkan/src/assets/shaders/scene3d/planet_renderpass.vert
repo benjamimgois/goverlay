@@ -28,8 +28,8 @@ layout(location = 2) out OutBlock {
   vec3 triplanarPosition;
 //vec3 worldSpacePosition;
   vec3 viewSpacePosition;
+  flat uint meshletID;
 //vec3 cameraRelativePosition;
-  vec2 jitter;
 #ifdef VELOCITY
   vec4 previousClipSpace;
   vec4 currentClipSpace;
@@ -47,7 +47,7 @@ layout(location = 0) out OutBlock {
   vec3 worldSpacePosition;
   vec3 viewSpacePosition;
   vec3 cameraRelativePosition;
-  vec2 jitter;
+  flat uint meshletID;
 #ifdef VELOCITY
   vec4 previousClipSpace;
   vec4 currentClipSpace;
@@ -129,11 +129,11 @@ void main(){
 #if !defined(RAYTRACING)
   outBlock.worldSpacePosition = worldSpacePosition;
 #endif
-  outBlock.viewSpacePosition = viewSpacePosition.xyz;  
+  outBlock.viewSpacePosition = viewSpacePosition.xyz;
+  outBlock.meshletID = 0u; // No meshlet ID in vertex shader path
 #if !defined(RAYTRACING)
   outBlock.cameraRelativePosition = worldSpacePosition - cameraPosition;
 #endif
-  outBlock.jitter = pushConstants.jitter;
 #ifdef VELOCITY
   outBlock.currentClipSpace = (projectionMatrix * viewMatrix) * vec4(position, 1.0);
   outBlock.previousClipSpace = (uView.views[viewIndex + pushConstants.countAllViews].projectionMatrix * uView.views[viewIndex + pushConstants.countAllViews].viewMatrix) * vec4(position, 1.0);

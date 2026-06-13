@@ -56,12 +56,12 @@ layout(location = 2) in vec4 inColor;
   layout(location = 3) flat in uint inTextureID;
 #endif
 
-// Specialization constants are sadly unusable due to dead slow shader stage compilation times with several minutes "per" pipeline, 
-// when the validation layers and a debugger (GDB, LLDB, etc.) are active at the same time!
-#undef USE_SPECIALIZATION_CONSTANTS
-#ifdef USE_SPECIALIZATION_CONSTANTS
-layout (constant_id = 0) const bool UseReversedZ = true;
-#endif
+#include "mesh_pushconstants.glsl"
+
+#define REVERSEDZ_BIT 4
+bool reversedZ = (pushConstants.drawFlags & (1u << REVERSEDZ_BIT)) != 0;
+//float reversedZFactor = reversedZ ? -1.0 : 1.0;
+//uint reversedZInvertBit = reversedZ ? 1u : 0u;
 
 // Global descriptor set
 
@@ -122,8 +122,9 @@ void main() {
 
   uint flags = (1u << 6u); // Double-sided
   vec3 normal = inNormal;
+  bool voxelDoubleSided = (flags & (1u << 6u)) != 0u; // voxelize both normal directions (see voxelization_fragment.glsl)
 
-  #include "voxelization_fragment.glsl" 
+  #include "voxelization_fragment.glsl"
 
 #else
 

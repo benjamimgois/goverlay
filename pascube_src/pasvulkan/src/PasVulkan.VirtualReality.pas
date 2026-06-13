@@ -1552,6 +1552,9 @@ begin
                                           0,
                                           pvApplication.VulkanSwapChain.Width,
                                           pvApplication.VulkanSwapChain.Height);
+        if assigned(pvApplication.VulkanDevice.BreadcrumbBuffer) then begin
+         pvApplication.VulkanDevice.BreadcrumbBuffer.RenderPassHint(true);
+        end;
 
         if fCountImages>1 then begin
          CommandBuffer.CmdPushConstants(fVulkanPipelineLayout.Handle,
@@ -1564,6 +1567,9 @@ begin
         CommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
         CommandBuffer.CmdDraw(3,1,0,0);
 
+        if assigned(pvApplication.VulkanDevice.BreadcrumbBuffer) then begin
+         pvApplication.VulkanDevice.BreadcrumbBuffer.RenderPassHint(false);
+        end;
         fVulkanRenderPass.EndRenderPass(CommandBuffer);
 
        end;

@@ -14,6 +14,10 @@ layout(location = 0) out vec4 outColor;
 
 layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput uSubpassInput;
 
+layout(push_constant) uniform PushConstants {
+  int debugBypass;
+} pushConstants;
+
 layout (set = 0, binding = 1, std430) buffer HistogramLuminanceBuffer {
   float histogramLuminance;
   float luminanceFactor; 
@@ -57,6 +61,10 @@ vec3 convertYxy2RGB(vec3 c){
 void main() {
 #if 1
   vec4 c = subpassLoad(uSubpassInput);
+  if(pushConstants.debugBypass != 0){
+    outColor = vec4(max(vec3(0.0), c.xyz), c.w);
+    return;
+  }
   c.xyz = max(convertYxy2RGB(convertRGB2Yxy(max(c.xyz, vec3(0.0))) * vec2(histogramLuminanceBuffer.luminanceFactor, 1.0).xyy), vec3(0.0));
   outColor = vec4(max(vec3(0.0), c.xyz), c.w);
 #else

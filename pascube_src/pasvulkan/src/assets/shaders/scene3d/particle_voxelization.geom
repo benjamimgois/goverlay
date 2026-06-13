@@ -9,12 +9,12 @@ layout(triangles, invocations = COUNT_CLIPMAPS) in; // COUNT_CLIPMAPS is defined
 layout(triangle_strip, max_vertices = 3) out;
 
 layout(location = 0) in vec3 inWorldSpacePosition[];
-layout(location = 1) in vec2 inTexCoord[];
+layout(location = 1) in vec3 inTexCoord[];
 layout(location = 2) in vec4 inColor[];
 layout(location = 3) flat in uint inTextureID[];
 
 layout(location = 0) out vec3 outWorldSpacePosition;
-layout(location = 1) out vec2 outTexCoord;
+layout(location = 1) out vec3 outTexCoord;
 layout(location = 2) out vec4 outColor;
 layout(location = 3) out vec3 outNormal;
 layout(location = 4) flat out uint outTextureID;

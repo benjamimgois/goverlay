@@ -1,0 +1,23 @@
+#version 450
+// dequant97.comp — CDF 9/7 dequantize. Reads the integer quantization index and reconstructs the
+// float coefficient at the deadzone bin midpoint ((index + 0.5) * step, 0 for index 0), writing it
+// back in place (as int bit-patterns, so the following float wavelet pass can reinterpret the buffer).
+// Used by BOTH the decoder and the encoder's closed-loop reconstruction, so they stay in sync.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0)          buffer Coefficients { int coefficients[]; };
+layout(std430, binding = 1) readonly buffer QuantSteps   { int quant_steps[]; };
+layout(push_constant) uniform PushConstants { int pixel_count; float chroma_multiplier; } push;   // must match quant97fwd
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  int step = int((float(quant_steps[i]) * push.chroma_multiplier) + 0.5);
+  if (step < 1) {
+    step = 1;
+  }
+  int index = coefficients[i];   // deadzone reconstruction at the bin midpoint
+  float reconstructed = (index == 0) ? 0.0 : ((float(index) + ((index > 0) ? 0.5 : -0.5)) * float(step));
+  coefficients[i] = floatBitsToInt(reconstructed);
+}

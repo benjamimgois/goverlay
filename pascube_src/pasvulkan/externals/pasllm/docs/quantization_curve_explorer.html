@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quantization Curve Explorer (Q40NL, Q41NL, Q42NL, Q43NL, IQ4_NL, FP4, NF4, Q4_0, Q8_0)</title>
+<style>
+  :root{
+    --bg:#0b0d10; --panel:#12161a; --ink:#e6e6e6; --muted:#94a3b8; --grid:#22303c;
+    --accent:#87c2ff; --a2:#f6a192; --a3:#9ef0a7; --a4:#d7b3ff; --a5:#ffd36e; --a6:#7ee0ff; --a7:#ffa3cf; --a8:#b9f27c; --a9:#f9a86b; --id:#cbd5e1;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji"; background:var(--bg); color:var(--ink)}
+  .wrap{max-width:1200px; margin:24px auto; padding:0 16px 40px}
+  h1{font-size:clamp(20px,2.4vw,28px); margin:0 0 12px; font-weight:700}
+  .sub{color:var(--muted); margin-bottom:16px}
+  .panel{background:var(--panel); border:1px solid #1e2937; border-radius:14px; padding:14px; box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
+  .controls{display:grid; grid-template-columns:1fr; gap:12px}
+  @media (min-width:900px){ .controls{grid-template-columns: 2.2fr 1fr} }
+  fieldset{border:1px solid #203040; border-radius:10px; padding:10px 12px}
+  legend{padding:0 6px; color:#c2d0e0; opacity:.9}
+  label.chk{display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:8px; cursor:pointer}
+  label.chk:hover{background:#15202b}
+  .grid3{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px 10px}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .grow{flex:1 1 auto}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  input[type="range"]{width:100%}
+  .small{font-size:12px; color:var(--muted)}
+  .badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a48; background:#0e141a; color:#d2ddec}
+  .swatch{width:12px; height:12px; border-radius:3px}
+  button{background:#18212b; color:#d7e3ef; border:1px solid #2a3a48; border-radius:10px; padding:8px 10px; cursor:pointer}
+  button:hover{filter:brightness(1.1)}
+  canvas{width:100%; height:420px; display:block; background:#0a1016; border:1px solid #1e2937; border-radius:14px}
+  .charts{display:grid; gap:12px}
+  .legend{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px}
+  .hint{color:#9fb3c8}
+  .footer{margin-top:18px; color:var(--muted)}
+  code{color:#e7f0ff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Quantization Curve Explorer</h1>
+  <div class="sub">Plots <span class="mono">y(x)</span> for normalized inputs <span class="mono">x∈[-1,1]</span> after quantize→dequantize for multiple formats. Identity <span class="mono">y=x</span> is shown for reference. Hover the chart for readouts.</div>
+
+  <div class="controls panel">
+    <fieldset>
+      <legend>Show curves</legend>
+      <div class="grid3" id="curveChecks"></div>
+      <div class="legend" id="legend"></div>
+      <div class="row small"><span class="hint">Tip:</span> Toggle FP4 scale quantization to see <span class="mono">E4M3</span> vs power‑of‑two (<span class="mono">E8M0</span>) effects.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Sampling &amp; FP4 scale</legend>
+      <div class="row">
+        <div class="grow">
+          <label class="small">Samples (<span id="nLabel">1024</span>)</label>
+          <input id="n" type="range" min="128" max="4096" step="64" value="1024" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="grow">
+          <label class="small">Q42NL/Q43NL curve parameter c (<span id="cLabel">0.5</span>)</label>
+          <input id="cParam" type="range" min="-1" max="1" step="0.01" value="0.5" />
+          <div class="row small">
+            <button data-c="-1">c=-1</button>
+            <button data-c="0">c=0 (linear)</button>
+            <button data-c="0.5">c=0.5</button>
+            <button data-c="1">c=1 (Q41NL-like)</button>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="grow">
+          <label class="small">FP4 scale ratio r = S / t<sub>max</sub> (<span id="rLabel">1/6 ≈ 0.1667</span>)</label>
+          <input id="r" type="range" min="0.05" max="0.40" step="0.001" value="0.1667" />
+          <div class="row small">
+            <button data-r="0.125">r=1/8</button>
+            <button data-r="0.1666667">r=1/6</button>
+            <button data-r="0.25">r=1/4</button>
+            <span class="grow"></span>
+            <label class="chk small"><input id="qE4M3" type="checkbox" checked> Quantize r for NVFP4 (E4M3)</label>
+            <label class="chk small"><input id="qE8M0" type="checkbox" checked> Quantize r for MXFP4 (E8M0 power‑of‑two)</label>
+          </div>
+        </div>
+      </div>
+      <div class="row small" style="margin-top:6px; gap:14px">
+        <label class="chk"><input id="showErr" type="checkbox"> Show |error| = |y−x| plot</label>
+        <label class="chk"><input id="showSteps" type="checkbox" checked> Show step boundaries</label>
+        <label class="chk"><input id="showCodes" type="checkbox"> Show codebook markers</label>
+        <span class="grow"></span>
+        <button id="savePNG">Save PNG</button>
+        <button id="saveCSV">Export CSV</button>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="charts panel">
+    <canvas id="chart" aria-label="y(x) curves"></canvas>
+    <canvas id="err" aria-label="|y-x| curves" style="display:none"></canvas>
+  </div>
+
+  <div class="footer small">
+    <div><strong>Mappings (normalized):</strong>
+      <ul>
+        <li><span class="mono">Q4_0</span>: <span class="mono">y = round(7x)/7</span></li>
+        <li><span class="mono">Q8_0</span>: <span class="mono">y = round(127x)/127</span></li>
+        <li><span class="mono">Q40NL</span>: <span class="mono">y = f(q/7)</span>, <span class="mono">q = round(7 f⁻¹(x))</span>, <span class="mono">f(u)=½(u|u|+u)</span>, <span class="mono">f⁻¹(v)=½·sgn(v)(√(1+8|v|)−1)</span></li>
+        <li><span class="mono">Q41NL</span>: <span class="mono">y = g(q/7)</span>, <span class="mono">q = round(7 g⁻¹(x))</span>, <span class="mono">g(u)=u|u|</span>, <span class="mono">g⁻¹(v)=sgn(v)√|v|</span></li>
+        <li><span class="mono">Q42NL/Q43NL</span>: <span class="mono">y = h(q/7, c)</span>, <span class="mono">q = round(7 h⁻¹(x, c))</span>, <span class="mono">h(u,c)=(1−c)u+cu|u|</span>. Parametric curve adapts per-block via <span class="mono">c∈[−1,1]</span>. Q42NL uses FP8 scale, Q43NL uses FP16.</li>
+        <li><span class="mono">IQ4_NL</span>: <span class="mono">y = LUT[argmin |x−c|]</span>, centers <span class="mono">c</span> from ggml <span class="mono">kvalues_iq4nl</span> (int8/127)</li>
+        <li><span class="mono">NVFP4/MXFP4</span>: encode nearest <span class="mono">v∈{0,½,1,1½,2,3,4,6}</span> (with sign) for <span class="mono">x/r</span>, decode <span class="mono">y = v·r</span>. NVFP4 uses <span class="mono">E4M3</span> scale; MXFP4 uses power‑of‑two (<span class="mono">E8M0</span>).</li>
+        <li><span class="mono">NF4</span>: <span class="mono">y = codebook[argmin |x−c|]</span> using either NF4 (simple) or QLoRA centers.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // =========================
+  //  Utilities
+  // =========================
+  function sgn(x){
+    if (x < 0) return -1;
+    if (x > 0) return  1;
+    return 0;
+  }
+  function clamp(x, a, b){
+    return Math.max(a, Math.min(b, x));
+  }
+  function cssVar(name){
+    // Resolve a CSS variable to a concrete color string
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    return (v && v.trim()) || '#ffffff';
+  }
+
+  // =========================
+  //  Nonlinearities (Q40NL/Q41NL)
+  // =========================
+  function f(x){
+    // f(x) = 0.5 * (x*|x| + x)
+    return 0.5 * (Math.abs(x) * x + x);
+  }
+  function fInv(y){
+    // f^{-1}(y) = 0.5 * sign(y) * (sqrt(1 + 8|y|) - 1)
+    return 0.5 * sgn(y) * (Math.sqrt(1 + 8 * Math.abs(y)) - 1);
+  }
+  function g(x){
+    // g(x) = x * |x|
+    return x * Math.abs(x);
+  }
+  function gInv(y){
+    // g^{-1}(y) = sign(y) * sqrt(|y|)
+    return sgn(y) * Math.sqrt(Math.abs(y));
+  }
+
+  // Q42NL/Q43NL parametric curve: h(x,c) = (1-c)*x + c*x|x|
+  function h(x, c){
+    // h(x,c) = (1-c)*x + c*x|x|
+    return (1 - c) * x + c * x * Math.abs(x);
+  }
+  function hInv(y, c){
+    // Solve for x given y = (1-c)*x + c*x|x|
+    // Special cases:
+    const tiny = 1e-6;
+    const a = Math.abs(y);
+    const s = sgn(y);
+    
+    if (Math.abs(c) < tiny) {
+      // c ≈ 0: linear, x = y
+      return y;
+    } else if (c >= 1.0) {
+      // c >= 1: x = sign(y) * sqrt(|y|)
+      return s * Math.sqrt(a);
+    } else if (c <= -1.0) {
+      // c <= -1: x = 1 - sqrt(1 - |y|)
+      return s * (1 - Math.sqrt(Math.max(0, 1 - a)));
+    } else {
+      // General case: solve c*x^2 + (1-c)*x - |y| = 0
+      // Positive root: x = (-(1-c) + sqrt((1-c)^2 + 4*c*|y|)) / (2*c)
+      const b = 1 - c;
+      const disc = b * b + 4 * c * a;
+      if (disc < 0) return 0;
+      const x_pos = (-b + Math.sqrt(disc)) / (2 * c);
+      return s * Math.max(0, Math.min(1, x_pos));
+    }
+  }
+
+  // =========================
+  //  Codebooks / LUTs
+  // =========================
+  const IQ4_CENTERS = [-127,-104,-83,-65,-49,-35,-22,-10, 1,13,25,38,53,69,89,113].map(v => v/127);
+  const NF4_SIMPLE = [-1.0000,-0.6962,-0.5253,-0.3949,-0.2845,-0.1882,-0.1007,-0.0185, 0.0185,0.1007,0.1882,0.2845,0.3949,0.5253,0.6962,1.0000];
+  const NF4_QLORA  = [-1.00000000,-0.69619280,-0.52507305,-0.39491749,-0.28444138,-0.18477343,-0.09105004,0.00000000, 0.07958030,0.16093020,0.24611229,0.33791524,0.44070983,0.56261700,0.72295684,0.93779105];
+
+  // FP4 E2M1 representable positives
+  const FP4_POS = [0, 0.5, 1, 1.5, 2, 3, 4, 6];
+  function nearestE2M1(z){
+    // Return nearest representable value (E2M1 with sign)
+    const s  = sgn(z);
+    const az = Math.abs(z);
+    let best = FP4_POS[0];
+    let bd   = Math.abs(az - best);
+    for (let i = 1; i < FP4_POS.length; i++){
+      const d = Math.abs(az - FP4_POS[i]);
+      if (d < bd){ bd = d; best = FP4_POS[i]; }
+    }
+    return s * best;
+  }
+
+  // =========================
+  //  Scale quantization (FP8 E4M3 / E8M0 / FP8 E5M2 / FP16)
+  // =========================
+  function quantizeE4M3AndDecode(x){
+    // Positive-only E4M3 (no subnormals) → decode to float
+    if (!(x > 0)) return 0;
+    const minN = Math.pow(2, -6);
+    const maxN = Math.pow(2, 7) * 1.75; // approx max normal
+    let s = clamp(x, minN, maxN);
+    let eUnbiased = Math.floor(Math.log2(s));
+    let e = Math.max(1, Math.min(14, eUnbiased + 7)); // bias 7, 0 reserved for zero
+    let base = Math.pow(2, e - 7);
+    let frac = s / base - 1.0;
+    let m = Math.round(frac * 8);
+    const carry = (m >= 8);
+    if (carry){
+      m = 0;
+      e = Math.min(14, e + 1);
+      base = Math.pow(2, e - 7);
+    }
+    return base * (1 + m/8);
+  }
+  function quantizeE8M0Pow2AndDecode(x){
+    // Power-of-two quantization (E8M0 semantics)
+    if (!(x > 0)) return 0;
+    const e = Math.round(Math.log2(x));
+    return Math.pow(2, e);
+  }
+  function quantizeFP8E5M2AndDecode(x){
+    // Quantize to FP8 E5M2 and decode back to float32
+    // FP8 E5M2: 1 sign bit, 5 exponent bits (bias 15), 2 mantissa bits
+    if (!(x > 0)) return 0;
+    const minN = Math.pow(2, -14);  // smallest normal
+    const maxN = 57344.0;           // max FP8 E5M2 value
+    let s = clamp(x, minN, maxN);
+    let eUnbiased = Math.floor(Math.log2(s));
+    let e = Math.max(1, Math.min(30, eUnbiased + 15)); // bias 15
+    let base = Math.pow(2, e - 15);
+    let frac = s / base - 1.0;
+    let m = Math.round(frac * 4);  // 2 mantissa bits = 4 values
+    const carry = (m >= 4);
+    if (carry){
+      m = 0;
+      e = Math.min(30, e + 1);
+      base = Math.pow(2, e - 15);
+    }
+    return base * (1 + m/4);
+  }
+  function quantizeFP16AndDecode(x){
+    // Quantize to FP16 and decode back to float32
+    // Use JavaScript's built-in conversion (approximate)
+    // True FP16 would need more complex implementation
+    // For visualization purposes, we'll use a simplified version
+    if (x === 0) return 0;
+    if (!isFinite(x)) return x;
+    
+    // FP16: 1 sign bit, 5 exponent bits (bias 15), 10 mantissa bits
+    const sign = x < 0 ? -1 : 1;
+    const absX = Math.abs(x);
+    
+    const minN = Math.pow(2, -14);   // smallest normal FP16
+    const maxN = 65504.0;             // max FP16
+    
+    if (absX < minN) return 0;  // flush subnormals to zero for simplicity
+    if (absX > maxN) return sign * maxN;  // clamp to max
+    
+    let eUnbiased = Math.floor(Math.log2(absX));
+    let e = eUnbiased + 15;  // bias 15
+    let base = Math.pow(2, e - 15);
+    let frac = absX / base - 1.0;
+    let m = Math.round(frac * 1024);  // 10 mantissa bits = 1024 values
+    const carry = (m >= 1024);
+    if (carry){
+      m = 0;
+      e = e + 1;
+      base = Math.pow(2, e - 15);
+    }
+    return sign * base * (1 + m/1024);
+  }
+
+  // =========================
+  //  Format mappings y(x) on normalized input
+  // =========================
+  function mapIdentity(x){
+    return x;
+  }
+  function mapQ40NL(x){
+    const xn = clamp(x, -1, 1);
+    let q = Math.round(7 * fInv(xn));
+    q = Math.max(-7, Math.min(7, q));
+    return f(q / 7);
+  }
+  function mapQ41NL(x){
+    const xn = clamp(x, -1, 1);
+    let q = Math.round(7 * gInv(xn));
+    q = Math.max(-7, Math.min(7, q));
+    return g(q / 7);
+  }
+  function mapQ42NL(x, c){
+    // Q42NL with curve parameter c (FP8 E5M2 scale)
+    c = quantizeFP8E5M2AndDecode(Math.abs(c)) * sgn(c);
+    const xn = clamp(x, -1, 1);
+    let q = Math.round(7 * hInv(xn, c));
+    q = Math.max(-7, Math.min(7, q));
+    return h(q / 7, c);
+  }
+  function mapQ43NL(x, c){
+    // Q43NL with curve parameter c (FP16 scale)
+    c = quantizeFP16AndDecode(c);
+    const xn = clamp(x, -1, 1);
+    let q = Math.round(7 * hInv(xn, c));
+    q = Math.max(-7, Math.min(7, q));
+    return h(q / 7, c);
+  }
+  function mapQ4_0(x){
+    return Math.round(7 * clamp(x, -1, 1)) / 7;
+  }
+  function mapQ8_0(x){
+    return Math.round(127 * clamp(x, -1, 1)) / 127;
+  }
+  function mapIQ4_NL(x){
+    // Nearest LUT center
+    let best = IQ4_CENTERS[0];
+    let bd   = Math.abs(x - best);
+    for (let i = 1; i < IQ4_CENTERS.length; i++){
+      const d = Math.abs(x - IQ4_CENTERS[i]);
+      if (d < bd){ bd = d; best = IQ4_CENTERS[i]; }
+    }
+    return best;
+  }
+  function mapNF4_Simple(x){
+    let best = NF4_SIMPLE[0];
+    let bd   = Math.abs(x - best);
+    for (let i = 1; i < NF4_SIMPLE.length; i++){
+      const d = Math.abs(x - NF4_SIMPLE[i]);
+      if (d < bd){ bd = d; best = NF4_SIMPLE[i]; }
+    }
+    return best;
+  }
+  function mapNF4_QLoRA(x){
+    let best = NF4_QLORA[0];
+    let bd   = Math.abs(x - best);
+    for (let i = 1; i < NF4_QLORA.length; i++){
+      const d = Math.abs(x - NF4_QLORA[i]);
+      if (d < bd){ bd = d; best = NF4_QLORA[i]; }
+    }
+    return best;
+  }
+  function mapFP4WithScale(x, r){
+    // Core FP4 mapping with given r = S / t_max
+    const target = x / r;        // encode target
+    const v      = nearestE2M1(target);
+    return v * r;                // decode
+  }
+  function mapNVFP4(x, r, quantize){
+    const rr = quantize ? quantizeE4M3AndDecode(r) : r;
+    return mapFP4WithScale(x, rr);
+  }
+  function mapMXFP4(x, r, quantize){
+    const rr = quantize ? quantizeE8M0Pow2AndDecode(r) : r;
+    return mapFP4WithScale(x, rr);
+  }
+
+  // =========================
+  //  UI model
+  // =========================
+  const CURVES = [
+    { key: 'IDENT',  name: 'Identity y=x',         colorKey: '--id',  map: mapIdentity,   on: true  },
+    { key: 'Q40NL',  name: 'Q40NL',                colorKey: '--a2',  map: mapQ40NL,      on: true  },
+    { key: 'Q41NL',  name: 'Q41NL',                colorKey: '--a9',  map: mapQ41NL,      on: true  },
+    { key: 'Q42NL',  name: 'Q42NL (c param)',      colorKey: '--a8',  map: null,          on: true,  hasParam: true },
+    { key: 'Q43NL',  name: 'Q43NL (c param)',      colorKey: '--a9',  map: null,          on: true,  hasParam: true },
+    { key: 'Q4_0',   name: 'Q4_0',                 colorKey: '--accent', map: mapQ4_0,    on: true  },
+    { key: 'Q8_0',   name: 'Q8_0',                 colorKey: '--a6',  map: mapQ8_0,       on: false },
+    { key: 'IQ4_NL', name: 'IQ4_NL (LUT)',         colorKey: '--a4',  map: mapIQ4_NL,     on: true  },
+    { key: 'NVFP4',  name: 'NVFP4 (E4M3 scale)',   colorKey: '--a7',  map: null,          on: true  },
+    { key: 'MXFP4',  name: 'MXFP4 (pow2 scale)',   colorKey: '--a3',  map: null,          on: true  },
+    { key: 'NF4S',   name: 'NF4 (simple)',         colorKey: '--a5',  map: mapNF4_Simple, on: true  },
+    { key: 'NF4Q',   name: 'NF4_BS64 (QLoRA)',     colorKey: '--a8',  map: mapNF4_QLoRA,  on: true  }
+  ];
+
+  // Build checkboxes
+  const checks = document.getElementById('curveChecks');
+  CURVES.forEach(function(c){
+    const id  = 'c_' + c.key;
+    const lab = document.createElement('label');
+    lab.className = 'chk';
+    lab.htmlFor   = id;
+    lab.title     = c.name;
+    lab.innerHTML = '<input id="'+id+'" type="checkbox" '+(c.on?'checked':'')+'>' + '\n' +
+                    '<span class="badge"><span class="swatch" style="background:'+cssVar(c.colorKey)+'"></span>'+c.name+'</span>';
+    checks.appendChild(lab);
+    lab.querySelector('input').addEventListener('change', function(e){
+      c.on = !!e.target.checked;
+      drawAll();
+      updateLegend();
+    });
+  });
+
+  // Controls
+  const nEl      = document.getElementById('n');
+  const nLabel   = document.getElementById('nLabel');
+  const cEl      = document.getElementById('cParam');
+  const cLabel   = document.getElementById('cLabel');
+  const rEl      = document.getElementById('r');
+  const rLabel   = document.getElementById('rLabel');
+  const qE4      = document.getElementById('qE4M3');
+  const qE8      = document.getElementById('qE8M0');
+  const showErr  = document.getElementById('showErr');
+  const showSteps= document.getElementById('showSteps');
+  const showCodes= document.getElementById('showCodes');
+  const savePNG  = document.getElementById('savePNG');
+  const saveCSV  = document.getElementById('saveCSV');
+
+  // c parameter quick buttons
+  document.querySelectorAll('button[data-c]').forEach(function(b){
+    b.addEventListener('click', function(){
+      cEl.value = b.getAttribute('data-c');
+      cLabel.textContent = parseFloat(cEl.value).toFixed(2);
+      drawAll();
+    });
+  });
+
+  // r quick buttons
+  document.querySelectorAll('button[data-r]').forEach(function(b){
+    b.addEventListener('click', function(){
+      rEl.value = b.getAttribute('data-r');
+      rLabel.textContent = formatR(parseFloat(rEl.value));
+      drawAll();
+    });
+  });
+
+  // Listeners
+  nEl.addEventListener('input', function(){
+    nLabel.textContent = nEl.value;
+    rebuildX();
+    drawAll();
+  });
+  cEl.addEventListener('input', function(){
+    cLabel.textContent = parseFloat(cEl.value).toFixed(2);
+    drawAll();
+  });
+  rEl.addEventListener('input', function(){
+    rLabel.textContent = formatR(parseFloat(rEl.value));
+    drawAll();
+  });
+  qE4.addEventListener('change', drawAll);
+  qE8.addEventListener('change', drawAll);
+  showErr.addEventListener('change', function(){
+    document.getElementById('err').style.display = showErr.checked ? 'block' : 'none';
+    sizeCanvas(errCv);
+    drawAll();
+  });
+  showSteps.addEventListener('change', drawAll);
+  showCodes.addEventListener('change', drawAll);
+
+  // Format r label
+  function formatR(v){
+    const ideal = 1/6;
+    const tag = Math.abs(v - ideal) < 1e-4 ? '1/6 ' : '';
+    return tag + '≈ ' + v.toFixed(4);
+  }
+
+  // =========================
+  //  Canvas setup
+  // =========================
+  const dpr   = Math.max(1, window.devicePixelRatio || 1);
+  const chart = document.getElementById('chart');
+  const errCv = document.getElementById('err');
+
+  function sizeCanvas(cv, h){
+    const w  = cv.clientWidth;
+    const hh = h || cv.clientHeight;
+    cv.width  = Math.round(w  * dpr);
+    cv.height = Math.round(hh * dpr);
+  }
+  sizeCanvas(chart);
+  sizeCanvas(errCv);
+  window.addEventListener('resize', function(){
+    sizeCanvas(chart);
+    sizeCanvas(errCv);
+    drawAll();
+  });
+
+  // Sampling points X
+  let X = [];
+  function rebuildX(){
+    const N = parseInt(nEl.value, 10);
+    X = new Float64Array(N);
+    for (let i = 0; i < N; i++){
+      X[i] = -1 + 2 * i / (N - 1);
+    }
+  }
+  rebuildX();
+
+  // Grid and transforms
+  function drawGrid(ctx, yMin, yMax){
+    const ymin = (typeof yMin === 'number') ? yMin : -1;
+    const ymax = (typeof yMax === 'number') ? yMax :  1;
+
+    const W = ctx.canvas.width, H = ctx.canvas.height;
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    ctx.scale(dpr, dpr);
+
+    const ww = W / dpr, hh = H / dpr;
+
+    // background grid
+    ctx.strokeStyle = cssVar('--grid');
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    for (let t = -1; t <= 1.0001; t += 0.25){
+      const xPx = ((t + 1) / 2) * ww;
+      const yPx = (1 - ((t - ymin) / (ymax - ymin))) * hh;
+      // v-lines
+      ctx.moveTo(xPx, 0);   ctx.lineTo(xPx, hh);
+      // h-lines
+      ctx.moveTo(0, yPx);   ctx.lineTo(ww, yPx);
+    }
+    ctx.stroke();
+
+    // axes (x=0, y=0)
+    ctx.strokeStyle = '#2f3f52';
+    ctx.lineWidth   = 1.2;
+    ctx.beginPath();
+    const x0 = ((0 + 1) / 2) * ww;
+    const y0 = (1 - ((0 - ymin) / (ymax - ymin))) * hh;
+    ctx.moveTo(0, y0); ctx.lineTo(ww, y0);
+    ctx.moveTo(x0, 0); ctx.lineTo(x0, hh);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+  function xyToCanvas(x, y, ctx, yMin, yMax){
+    const ymin = (typeof yMin === 'number') ? yMin : -1;
+    const ymax = (typeof yMax === 'number') ? yMax :  1;
+    const ww = ctx.canvas.width  / dpr;
+    const hh = ctx.canvas.height / dpr;
+    return {
+      X: ((x + 1) / 2) * ww,
+      Y: (1 - ((y - ymin) / (ymax - ymin))) * hh
+    };
+  }
+  function strokeCurve(ctx, xs, ys, color, yMin, yMax){
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth   = 2;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < xs.length; i++){
+      const p = xyToCanvas(xs[i], ys[i], ctx, yMin, yMax);
+      if (i === 0) ctx.moveTo(p.X, p.Y); else ctx.lineTo(p.X, p.Y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  function strokeVLines(ctx, xs, color, yMin, yMax){
+    const ymin = (typeof yMin === 'number') ? yMin : -1;
+    const ymax = (typeof yMax === 'number') ? yMax :  1;
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth   = 1;
+    ctx.strokeStyle = color;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    for (let k = 0; k < xs.length; k++){
+      const x = xs[k];
+      const p0 = xyToCanvas(x, ymin, ctx, ymin, ymax);
+      const p1 = xyToCanvas(x, ymax, ctx, ymin, ymax);
+      ctx.moveTo(p0.X, p0.Y);
+      ctx.lineTo(p1.X, p1.Y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // =========================
+  //  Drawing + diagnostics
+  // =========================
+  function drawAll(){
+    drawGrid(chart.getContext('2d'));
+    if (showErr.checked){
+      drawGrid(errCv.getContext('2d'), 0, 1);
+    }
+
+    const rrBase = parseFloat(rEl.value);
+    const rrNV   = qE4.checked ? quantizeE4M3AndDecode(rrBase)     : rrBase;
+    const rrMX   = qE8.checked ? quantizeE8M0Pow2AndDecode(rrBase) : rrBase;
+    const cParam = parseFloat(cEl.value);
+
+    const ctx  = chart.getContext('2d');
+    const ctxE = errCv.getContext('2d');
+
+    const actives = CURVES.filter(function(c){ return c.on; });
+    actives.forEach(function(c){
+      const color = cssVar(c.colorKey);
+
+      // y(x)
+      const ys = new Float64Array(X.length);
+      for (let i = 0; i < X.length; i++){
+        const x = X[i];
+        let y;
+        if (c.key === 'NVFP4'){
+          y = mapNVFP4(x, rrBase, qE4.checked);
+        } else if (c.key === 'MXFP4'){
+          y = mapMXFP4(x, rrBase, qE8.checked);
+        } else if (c.key === 'Q42NL'){
+          y = mapQ42NL(x, cParam);
+        } else if (c.key === 'Q43NL'){
+          y = mapQ43NL(x, cParam);
+        } else {
+          y = c.map(x);
+        }
+        ys[i] = clamp(y, -1, 1);
+      }
+      strokeCurve(ctx, X, ys, color);
+
+      // error plot
+      if (showErr.checked){
+        const es = new Float64Array(X.length);
+        for (let i = 0; i < X.length; i++){
+          es[i] = Math.abs(ys[i] - X[i]);
+        }
+        strokeCurve(ctxE, X, es, color, 0, 1);
+      }
+
+      // step boundaries
+      if (showSteps.checked){
+        const steps = boundariesFor(c.key, rrNV, rrMX, rrBase);
+        if (steps.length){
+          strokeVLines(ctx, steps, color + '66');
+          if (showErr.checked){
+            strokeVLines(ctxE, steps, color + '66', 0, 1);
+          }
+        }
+      }
+
+      // codebook markers
+      if (showCodes.checked){
+        drawCodeTicks(ctx, c.key, color, rrNV, rrMX, rrBase);
+      }
+    });
+
+    // ensure identity visible if toggled off
+    if (!CURVES[0].on){
+      strokeCurve(ctx, X, X, cssVar('--id'));
+    }
+
+    updateLegend(rrBase, rrNV, rrMX);
+  }
+
+  function updateLegend(rrBase, rrNV, rrMX){
+    const el = document.getElementById('legend');
+    const cParam = parseFloat(cEl.value);
+    el.innerHTML = '';
+    CURVES.forEach(function(c){
+      if (!c.on) return;
+      const color = cssVar(c.colorKey);
+      const sw = document.createElement('span');
+      sw.className = 'badge';
+      const colorBox = '<span class="swatch" style="background:'+color+'"></span>';
+      let extra = '';
+      if (c.key === 'Q42NL' || c.key === 'Q43NL'){
+        extra = '<span class="small">c=' + cParam.toFixed(2) + '</span>';
+      }
+      if (c.key === 'NVFP4'){
+        extra = '<span class="small">r≈' + (rrNV || parseFloat(rEl.value)).toFixed(4) + (qE4.checked ? ' (E4M3)' : '') + '</span>';
+      }
+      if (c.key === 'MXFP4'){
+        extra = '<span class="small">r≈' + (rrMX || parseFloat(rEl.value)).toFixed(4) + (qE8.checked ? ' (pow2)' : '') + '</span>';
+      }
+      sw.innerHTML = colorBox + c.name + ' ' + extra;
+      el.appendChild(sw);
+    });
+  }
+
+  // ----- boundaries & markers -----
+  function midpoints(vals){
+    const xs = [];
+    for (let i = 0; i < vals.length - 1; i++){
+      xs.push(0.5 * (vals[i] + vals[i + 1]));
+    }
+    return xs;
+  }
+  function boundariesFor(key, rrNV, rrMX, rrBase){
+    // Return list of x-positions where the output step changes
+    switch (key){
+      case 'Q4_0': {
+        const qs = [];
+        for (let q = -7; q <= 7; q++) qs.push(q / 7);
+        return midpoints(qs);
+      }
+      case 'Q8_0': {
+        const qs = [];
+        for (let q = -127; q <= 127; q++) qs.push(q / 127);
+        return midpoints(qs).filter(function(v){ return v > -1 && v < 1; });
+      }
+      case 'Q40NL': {
+        const us = [];
+        for (let k = -7; k <= 7; k++) us.push(k / 7);
+        return midpoints(us).map(f).filter(function(v){ return v > -1 && v < 1; });
+      }
+      case 'Q41NL': {
+        const us = [];
+        for (let k = -7; k <= 7; k++) us.push(k / 7);
+        return midpoints(us).map(g).filter(function(v){ return v > -1 && v < 1; });
+      }
+      case 'Q42NL': {
+        const cParam = parseFloat(cEl.value);
+        const us = [];
+        for (let k = -7; k <= 7; k++) us.push(k / 7);
+        return midpoints(us).map(function(u){ return h(u, cParam); }).filter(function(v){ return v > -1 && v < 1; });
+      }
+      case 'Q43NL': {
+        const cParam = parseFloat(cEl.value);
+        const us = [];
+        for (let k = -7; k <= 7; k++) us.push(k / 7);
+        return midpoints(us).map(function(u){ return h(u, cParam); }).filter(function(v){ return v > -1 && v < 1; });
+      }
+      case 'IQ4_NL': {
+        const cs = IQ4_CENTERS.slice().sort(function(a,b){ return a - b; });
+        return midpoints(cs);
+      }
+      case 'NF4S': {
+        const cs = NF4_SIMPLE.slice().sort(function(a,b){ return a - b; });
+        return midpoints(cs);
+      }
+      case 'NF4Q': {
+        const cs = NF4_QLORA.slice().sort(function(a,b){ return a - b; });
+        return midpoints(cs);
+      }
+      case 'NVFP4': {
+        const r = qE4.checked ? rrNV : rrBase;
+        const v = [-6,-4,-3,-2,-1.5,-1,-0.5, 0, 0.5, 1, 1.5, 2, 3, 4, 6].map(function(x){ return x * r; });
+        const uniq = Array.from(new Set(v.filter(function(x){ return x > -1 && x < 1; }))).sort(function(a,b){ return a - b; });
+        return midpoints(uniq);
+      }
+      case 'MXFP4': {
+        const r = qE8.checked ? rrMX : rrBase;
+        const v = [-6,-4,-3,-2,-1.5,-1,-0.5, 0, 0.5, 1, 1.5, 2, 3, 4, 6].map(function(x){ return x * r; });
+        const uniq = Array.from(new Set(v.filter(function(x){ return x > -1 && x < 1; }))).sort(function(a,b){ return a - b; });
+        return midpoints(uniq);
+      }
+    }
+    return [];
+  }
+  function drawCodeTicks(ctx, key, color, rrNV, rrMX, rrBase){
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth   = 2;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+
+    let ys = [];
+    if (key === 'IQ4_NL'){
+      ys = IQ4_CENTERS.slice();
+    } else if (key === 'NF4S'){
+      ys = NF4_SIMPLE.slice();
+    } else if (key === 'NF4Q'){
+      ys = NF4_QLORA.slice();
+    } else if (key === 'NVFP4'){
+      const r = qE4.checked ? rrNV : rrBase;
+      ys = Array.from(new Set(FP4_POS.flatMap(function(v){ return [ v * r, -v * r ]; })));
+    } else if (key === 'MXFP4'){
+      const r = qE8.checked ? rrMX : rrBase;
+      ys = Array.from(new Set(FP4_POS.flatMap(function(v){ return [ v * r, -v * r ]; })));
+    } else if (key === 'Q4_0'){
+      // Levels at y = q/7 for q in [-7..7]
+      const vals = [];
+      for (let q = -7; q <= 7; q++) vals.push(q/7);
+      ys = vals;
+    } else if (key === 'Q8_0'){
+      // Levels at y = q/127 for q in [-127..127]
+      const vals = [];
+      for (let q = -127; q <= 127; q++) vals.push(q/127);
+      ys = vals;
+    } else if (key === 'Q40NL'){
+      // Nonlinear decoded levels y = f(k/7), k in [-7..7]
+      const vals = [];
+      for (let k = -7; k <= 7; k++) vals.push(f(k/7));
+      ys = vals;
+    } else if (key === 'Q41NL'){
+      // Nonlinear decoded levels y = g(k/7), k in [-7..7]
+      const vals = [];
+      for (let k = -7; k <= 7; k++) vals.push(g(k/7));
+      ys = vals;
+    } else {
+      ctx.restore();
+      return;
+    }
+
+    ys = ys.filter(function(y){ return y >= -1 && y <= 1; }).sort(function(a,b){ return a - b; });
+    ys.forEach(function(y){
+      const p = xyToCanvas(1, y, ctx);
+      ctx.moveTo(p.X - 10, p.Y);
+      ctx.lineTo(p.X,      p.Y);
+    });
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // =========================
+  //  Crosshair / readout
+  // =========================
+  const tip = document.createElement('div');
+  Object.assign(tip.style, {
+    position:'fixed', pointerEvents:'none', background:'#0c131a', border:'1px solid #2a3a48',
+    borderRadius:'8px', padding:'6px 8px', fontSize:'12px', color:'#dbe7f3', display:'none', zIndex:10
+  });
+  document.body.appendChild(tip);
+
+  function handleMove(ev){
+    const rect = chart.getBoundingClientRect();
+    const xpx  = (ev.clientX - rect.left);
+    const ww   = rect.width;
+    const x    = -1 + 2 * (xpx / ww);
+
+    if (!CURVES.some(function(c){ return c.on; })) return;
+
+    const N  = X.length;
+    const i  = Math.max(0, Math.min(N - 1, Math.round((x + 1) / 2 * (N - 1))));
+    const xs = X[i];
+
+    const rrBase = parseFloat(rEl.value);
+    const rrNV   = qE4.checked ? quantizeE4M3AndDecode(rrBase)     : rrBase;
+    const rrMX   = qE8.checked ? quantizeE8M0Pow2AndDecode(rrBase) : rrBase;
+
+    const lines = [ 'x = ' + xs.toFixed(5) ];
+    CURVES.forEach(function(c){
+      if (!c.on) return;
+      let y;
+      if (c.key === 'NVFP4'){
+        y = mapNVFP4(xs, rrBase, qE4.checked);
+      } else if (c.key === 'MXFP4'){
+        y = mapMXFP4(xs, rrBase, qE8.checked);
+      } else {
+        y = c.map(xs);
+      }
+      const col = cssVar(c.colorKey);
+      lines.push('<span style="color:'+col+'">'+c.key+'</span>: y='+y.toFixed(5)+'  |y−x|='+Math.abs(y-xs).toFixed(5));
+    });
+
+    tip.innerHTML     = lines.join('<br/>');
+    tip.style.left    = (ev.clientX + 12) + 'px';
+    tip.style.top     = (ev.clientY + 12) + 'px';
+    tip.style.display = 'block';
+  }
+  function handleLeave(){ tip.style.display = 'none'; }
+  chart.addEventListener('mousemove', handleMove);
+  chart.addEventListener('mouseleave', handleLeave);
+
+  // =========================
+  //  Export actions
+  // =========================
+  savePNG.addEventListener('click', function(){
+    const w = chart.width;
+    const h = chart.height + (showErr.checked ? errCv.height : 0);
+    const tmp  = document.createElement('canvas');
+    tmp.width  = w;
+    tmp.height = h;
+    const tctx = tmp.getContext('2d');
+    tctx.fillStyle = cssVar('--bg');
+    tctx.fillRect(0, 0, w, h);
+    tctx.drawImage(chart, 0, 0);
+    if (showErr.checked) tctx.drawImage(errCv, 0, chart.height);
+    const a = document.createElement('a');
+    a.download = 'quantization_curves.png';
+    a.href     = tmp.toDataURL('image/png');
+    a.click();
+  });
+
+  saveCSV.addEventListener('click', function(){
+    const rrBase = parseFloat(rEl.value);
+    const cParam = parseFloat(cEl.value);
+    const active = CURVES.filter(function(c){ return c.on; });
+
+    const headers = ['x'].concat(active.map(function(c){ return c.key; }))
+                         .concat(active.map(function(c){ return 'abs_err_' + c.key; }));
+    const rows = [ headers.join(',') ];
+
+    for (let i = 0; i < X.length; i++){
+      const xs = X[i];
+      const ys = active.map(function(c){
+        if (c.key === 'NVFP4') return mapNVFP4(xs, rrBase, qE4.checked);
+        if (c.key === 'MXFP4') return mapMXFP4(xs, rrBase, qE8.checked);
+        if (c.key === 'Q42NL') return mapQ42NL(xs, cParam);
+        if (c.key === 'Q43NL') return mapQ43NL(xs, cParam);
+        return c.map(xs);
+      });
+      const es = ys.map(function(y){ return Math.abs(y - xs); });
+      rows.push([ xs.toFixed(10) ]
+                .concat(ys.map(function(v){ return v.toFixed(10); }))
+                .concat(es.map(function(v){ return v.toFixed(10); }))
+                .join(','));
+    }
+
+    const blob = new Blob([ rows.join('\n') ], { type:'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'quantization_curves.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // =========================
+  //  Minimal self-tests (console)
+  // =========================
+  function approx(a,b,eps){
+    const e = (typeof eps === 'number') ? eps : 1e-9;
+    const d = Math.abs(a-b);
+    const m = 1 + Math.max(Math.abs(a), Math.abs(b));
+    return d <= e * m;
+  }
+  function runTests(){
+    try{
+      console.log('[tests] running');
+      // f / fInv roundtrips
+      [-1, -0.5, 0, 0.5, 1].forEach(function(x){
+        const y = f(x);
+        console.assert(approx(fInv(y), x, 1e-9), 'fInv(f(x)) mismatch @', x);
+      });
+      [-1, -0.5, 0, 0.5, 1].forEach(function(y){
+        const x = fInv(y);
+        console.assert(approx(f(x), y, 1e-9), 'f(fInv(y)) mismatch @', y);
+      });
+      // g / gInv roundtrips (within domain)
+      [-1, -0.5, 0, 0.5, 1].forEach(function(x){
+        const y = g(x);
+        console.assert(approx(gInv(y), x, 1e-9), 'gInv(g(x)) mismatch @', x);
+      });
+      // LUT monotonicity / sizes
+      console.assert(IQ4_CENTERS.length === 16, 'IQ4 centers length');
+      console.assert(NF4_SIMPLE.length  === 16, 'NF4 simple length');
+      console.assert(NF4_QLORA.length   === 16, 'NF4 QLoRA length');
+      for (let i=1;i<IQ4_CENTERS.length;i++) console.assert(IQ4_CENTERS[i] >= IQ4_CENTERS[i-1], 'IQ4 sorted');
+      for (let i=1;i<NF4_SIMPLE.length;i++)  console.assert(NF4_SIMPLE[i]  >= NF4_SIMPLE[i-1],  'NF4 simple sorted');
+      for (let i=1;i<NF4_QLORA.length;i++)   console.assert(NF4_QLORA[i]   >= NF4_QLORA[i-1],   'NF4 QLoRA sorted');
+      // FP4 representables round back to themselves
+      FP4_POS.forEach(function(v){
+        console.assert(nearestE2M1(v) === v, 'E2M1 self @ +'+v);
+        console.assert(nearestE2M1(-v) === -v, 'E2M1 self @ -'+v);
+      });
+      // Boundary counts: Q4_0 has 14 internal boundaries across [-1,1]
+      const bQ4 = (function(){ const qs=[]; for (let q=-7;q<=7;q++) qs.push(q/7); return qs; })();
+      console.assert((bQ4.length-1) === 14, 'Q4_0 expected 14 boundaries');
+      console.log('[tests] ok');
+    }catch(e){
+      console.error('[tests] failed', e);
+    }
+  }
+
+  // =========================
+  //  Boot
+  // =========================
+  rLabel.textContent = '1/6 ≈ 0.1667';
+  runTests();
+  drawAll();
+})();
+</script>
+</body>
+</html>

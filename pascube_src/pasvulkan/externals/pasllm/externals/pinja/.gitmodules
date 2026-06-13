@@ -1,0 +1,6 @@
+[submodule "externals/pasjson"]
+	path = externals/pasjson
+	url = https://github.com/BeRo1985/pasjson.git
+[submodule "externals/pasdblstrutils"]
+	path = externals/pasdblstrutils
+	url = https://github.com/BeRo1985/pasdblstrutils.git

@@ -492,9 +492,15 @@ begin
                                   SizeOf(TpvScene3DRendererPassesAmbientOcclusionDepthMipMapComputePass.TPushConstants),
                                   @PushConstants);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'AODepthMipMap');
+  end;
   aCommandBuffer.CmdDispatch(Max(1,(fInstance.AmbientOcclusionDepthMipmappedArray2DImage.Width+((1 shl 4)-1)) shr 4),
                              Max(1,(fInstance.AmbientOcclusionDepthMipmappedArray2DImage.Height+((1 shl 4)-1)) shr 4),
                              fInstance.CountSurfaceViews);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   FillChar(ImageMemoryBarrier,SizeOf(TVkImageMemoryBarrier),#0);
   ImageMemoryBarrier.sType:=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -550,9 +556,15 @@ begin
                                    SizeOf(TpvInt32),
                                    @CountMipMaps);
 
+   if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+    fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'AODepthMipMapReduction');
+   end;
    aCommandBuffer.CmdDispatch(Max(1,(fInstance.AmbientOcclusionDepthMipmappedArray2DImage.Width+((1 shl (3+MipMapLevelIndex))-1)) shr (3+MipMapLevelIndex)),
                               Max(1,(fInstance.AmbientOcclusionDepthMipmappedArray2DImage.Height+((1 shl (3+MipMapLevelIndex))-1)) shr (3+MipMapLevelIndex)),
                               fInstance.CountSurfaceViews);
+   if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+    fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+   end;
 
    FillChar(ImageMemoryBarrier,SizeOf(TVkImageMemoryBarrier),#0);
    ImageMemoryBarrier.sType:=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

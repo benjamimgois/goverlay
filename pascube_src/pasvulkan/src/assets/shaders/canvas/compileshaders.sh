@@ -47,6 +47,17 @@ glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYP
 glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYPE_VECTOR_PATH -DBLENDING=0 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -o canvas_frag_vectorpath_no_blending_clip_distance_no_discard.spv canvas.frag
 glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYPE_NO_TEXTURE -DBLENDING=0 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -DGUI_ELEMENTS -o canvas_frag_gui_no_texture_no_blending_clip_distance_no_discard.spv canvas.frag
 
+# Coverage mask pass shaders (for transparent shape rendering with coverage buffer)
+glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYPE_NO_TEXTURE -DBLENDING=1 -DUSECLIPDISTANCE=0 -DUSENODISCARD=1 -DCOVERAGE_MASK_PASS -o canvas_frag_no_texture_coverage_mask.spv canvas.frag
+glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYPE_NO_TEXTURE -DBLENDING=1 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -DCOVERAGE_MASK_PASS -o canvas_frag_no_texture_coverage_mask_clip_distance.spv canvas.frag
+
+# Coverage cover pass shaders (for transparent shape rendering with coverage buffer)
+glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYPE_NO_TEXTURE -DBLENDING=1 -DUSECLIPDISTANCE=0 -DUSENODISCARD=1 -DCOVERAGE_COVER_PASS -o canvas_frag_no_texture_coverage_cover.spv canvas.frag
+glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -DFILLTYPE=$FILLTYPE_NO_TEXTURE -DBLENDING=1 -DUSECLIPDISTANCE=1 -DUSENODISCARD=1 -DCOVERAGE_COVER_PASS -o canvas_frag_no_texture_coverage_cover_clip_distance.spv canvas.frag
+
+# Coverage reset shader (clear coverage buffer via imageStore inside a render pass)
+glslc -x glsl -g --target-env=vulkan -fshader-stage=fragment -o coveragereset_frag.spv coveragereset.frag
+
 #!/bin/bash
 
 # Loop over *.spv files

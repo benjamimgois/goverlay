@@ -143,62 +143,69 @@ begin
                                  [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
                                 );
 
-
-  fResourceWater:=AddImageInput('resourcetype_color',
-                                'resource_water_color',
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                               );
-
-  fResourceTransparent:=AddImageInput('resourcetype_color',
-                                      'resource_orderindependenttransparency_tailblending_color',
-                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                      [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                     );
-
-  fResourceSurface:=AddImageOutput('resourcetype_color_optimized_non_alpha',
-                                   'resource_combinedopaquetransparency_final_color',
-                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                   TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
-                                                                TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
-                                   [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                  );
-
- end else begin
-
-  fResourceOpaque:=AddImageInput('resourcetype_msaa_color_optimized_non_alpha',
-                                 'resource_forwardrendering_msaa_color',
-                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                 [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                );
-
-  if fInstance.Renderer.SupersampleWaterWhenMSAA then begin
-   fResourceWater:=AddImageInput('resourcetype_msaa_color',
-                                 'resource_water_msaa_color',
-                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                 [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                 );
-  end else begin
+  if fInstance.Scene3D.EnableWater then begin
    fResourceWater:=AddImageInput('resourcetype_color',
                                  'resource_water_color',
                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                  [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                );
+  end else begin
+    fResourceWater:=nil;
+   end;
+
+   fResourceTransparent:=AddImageInput('resourcetype_color',
+                                       'resource_orderindependenttransparency_tailblending_color',
+                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                       [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                      );
+
+   fResourceSurface:=AddImageOutput('resourcetype_color_optimized_non_alpha',
+                                    'resource_combinedopaquetransparency_final_color',
+                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                    TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
+                                                                 TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
+                                    [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                   );
+
+  end else begin
+
+   fResourceOpaque:=AddImageInput('resourcetype_msaa_color_optimized_non_alpha',
+                                  'resource_forwardrendering_msaa_color',
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                  [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
                                  );
-  end;
 
-  fResourceTransparent:=AddImageInput('resourcetype_msaa_color',
-                                      'resource_orderindependenttransparency_tailblending_msaa_color',
-                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                      [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                     );
-
-  fResourceSurface:=AddImageOutput('resourcetype_msaa_color_optimized_non_alpha',
-                                   'resource_combinedopaquetransparency_final_msaa_color',
-                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                   TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
-                                                                TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
+   if fInstance.Scene3D.EnableWater then begin
+    if fInstance.Renderer.SupersampleWaterWhenMSAA then begin
+     fResourceWater:=AddImageInput('resourcetype_msaa_color',
+                                   'resource_water_msaa_color',
+                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                    [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
-                                  );
+                                   );
+    end else begin
+     fResourceWater:=AddImageInput('resourcetype_color',
+                                   'resource_water_color',
+                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                   [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                   );
+    end;
+   end else begin
+    fResourceWater:=nil;
+   end;
+
+   fResourceTransparent:=AddImageInput('resourcetype_msaa_color',
+                                       'resource_orderindependenttransparency_tailblending_msaa_color',
+                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                       [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                      );
+
+   fResourceSurface:=AddImageOutput('resourcetype_msaa_color_optimized_non_alpha',
+                                    'resource_combinedopaquetransparency_final_msaa_color',
+                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                    TpvFrameGraph.TLoadOp.Create(TpvFrameGraph.TLoadOp.TKind.Clear,
+                                                                 TpvVector4.InlineableCreate(0.0,0.0,0.0,1.0)),
+                                    [TpvFrameGraph.TResourceTransition.TFlag.Attachment]
+                                   );
 
  end;
 
@@ -229,24 +236,20 @@ begin
  end;
 
  if fInstance.Renderer.SurfaceSampleCountFlagBits=TVkSampleCountFlagBits(VK_SAMPLE_COUNT_1_BIT) then begin
-  if fInstance.ZFar<0.0 then begin
-   Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_reversedz_frag.spv');
+  if fInstance.Scene3D.EnableWater then begin
+   Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_water_frag.spv');
   end else begin
    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_frag.spv');
   end;
  end else begin
-  if fInstance.Renderer.SupersampleWaterWhenMSAA then begin 
-   if fInstance.ZFar<0.0 then begin
-    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_reversedz_msaa_frag.spv');
+  if fInstance.Scene3D.EnableWater then begin
+   if fInstance.Renderer.SupersampleWaterWhenMSAA then begin 
+    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_water_msaa_frag.spv');
    end else begin
-    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_msaa_frag.spv');
+    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_water_msaa_no_msaa_water_frag.spv');
    end;
   end else begin
-   if fInstance.ZFar<0.0 then begin
-    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_reversedz_msaa_no_msaa_water_frag.spv');
-   end else begin
-    Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_msaa_no_msaa_water_frag.spv');
-   end; 
+   Stream:=pvScene3DShaderVirtualFileSystem.GetFile('dfaoit_resolve_msaa_frag.spv');
   end; 
  end;
  try
@@ -284,7 +287,11 @@ begin
  fVulkanDescriptorPool:=TpvVulkanDescriptorPool.Create(fInstance.Renderer.VulkanDevice,
                                                        TVkDescriptorPoolCreateFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
                                                        fInstance.Renderer.CountInFlightFrames);
- fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,2*fInstance.Renderer.CountInFlightFrames);
+ if fInstance.Scene3D.EnableWater then begin
+  fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,2*fInstance.Renderer.CountInFlightFrames);
+ end else begin
+  fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,1*fInstance.Renderer.CountInFlightFrames);
+ end;
  fVulkanDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,4*fInstance.Renderer.CountInFlightFrames);
  fVulkanDescriptorPool.Initialize;
 
@@ -294,31 +301,54 @@ begin
                                        1,
                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
                                        []);
- fVulkanDescriptorSetLayout.AddBinding(1,
-                                       VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-                                       1,
-                                       TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-                                       []);
- fVulkanDescriptorSetLayout.AddBinding(2,
-                                       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                       1,
-                                       TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-                                       []);
- fVulkanDescriptorSetLayout.AddBinding(3,
-                                       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                       1,
-                                       TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-                                       []);
- fVulkanDescriptorSetLayout.AddBinding(4,
-                                       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                       1,
-                                       TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-                                       []);
- fVulkanDescriptorSetLayout.AddBinding(5,
-                                       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                       1,
-                                       TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
-                                       []);
+ if fInstance.Scene3D.EnableWater then begin
+  fVulkanDescriptorSetLayout.AddBinding(1,
+                                        VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(2,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(3,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(4,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(5,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+ end else begin
+  fVulkanDescriptorSetLayout.AddBinding(1,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(2,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(3,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+  fVulkanDescriptorSetLayout.AddBinding(4,
+                                        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        1,
+                                        TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                        []);
+ end;
  fVulkanDescriptorSetLayout.Initialize;
 
  for InFlightFrameIndex:=0 to FrameGraph.CountInFlightFrames-1 do begin
@@ -335,53 +365,92 @@ begin
                                                                  [],
                                                                  false
                                                                 );
-  fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(1,
-                                                                 0,
-                                                                 1,
-                                                                 TVkDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT),
-                                                                 [TVkDescriptorImageInfo.Create(VK_NULL_HANDLE,
-                                                                                                fResourceWater.VulkanImageViews[InFlightFrameIndex].Handle,
-                                                                                                fResourceWater.ResourceTransition.Layout)],// TVkImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))],
-                                                                 [],
-                                                                 [],
-                                                                 false
-                                                                );
-  fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(2,
-                                                                 0,
-                                                                 1,
-                                                                 TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
-                                                                 [fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImage.DescriptorImageInfo],
-                                                                 [],
-                                                                 [],
-                                                                 false
-                                                                );
-  fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(3,
-                                                                 0,
-                                                                 1,
-                                                                 TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
-                                                                 [fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImage.DescriptorImageInfo],
-                                                                 [],
-                                                                 [],
-                                                                 false
-                                                                );
-  fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(4,
-                                                                 0,
-                                                                 1,
-                                                                 TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
-                                                                 [fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImage.DescriptorImageInfo],
-                                                                 [],
-                                                                 [],
-                                                                 false
-                                                                );
-  fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(5,
-                                                                 0,
-                                                                 1,
-                                                                 TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
-                                                                 [fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImage.DescriptorImageInfo],
-                                                                 [],
-                                                                 [],
-                                                                 false
-                                                                );
+  if fInstance.Scene3D.EnableWater then begin
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(1,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT),
+                                                                  [TVkDescriptorImageInfo.Create(VK_NULL_HANDLE,
+                                                                                                 fResourceWater.VulkanImageViews[InFlightFrameIndex].Handle,
+                                                                                                 fResourceWater.ResourceTransition.Layout)],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(2,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(3,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(4,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(5,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+  end else begin
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(1,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(2,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(3,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+   fVulkanDescriptorSets[InFlightFrameIndex].WriteToDescriptorSet(4,
+                                                                  0,
+                                                                  1,
+                                                                  TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE),
+                                                                  [fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImages[InFlightFrameIndex].DescriptorImageInfo],
+                                                                  [],
+                                                                  [],
+                                                                  false
+                                                                 );
+  end;
   fVulkanDescriptorSets[InFlightFrameIndex].Flush;
  end;
 
@@ -491,7 +560,13 @@ begin
                                       1,
                                       @fVulkanDescriptorSets[aInFlightFrameIndex].Handle,0,nil);
  aCommandBuffer.CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'DFAOITResolve');
+ end;
  aCommandBuffer.CmdDraw(3,1,0,0);
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 end;
 
 end.

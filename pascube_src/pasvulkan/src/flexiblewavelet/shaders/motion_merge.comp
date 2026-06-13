@@ -1,0 +1,122 @@
+#version 450
+// motion_merge.comp — version2n variable-motion R-D quadtree merge. ONE thread per 32x32 root. The three
+// motion_estimate passes (MB = 8 / 16 / 32) have filled mv8/16/32 + their per-block SADs; this pass decides,
+// per root, the cheapest partition into 32 / 16 / 8 leaves (cost = SAD + lambda*leaf_count, bottom-up) and
+// writes the chosen leaf MVs REPLICATED into the fine 8-grid mv_out. Downstream the CPU codes that fine field
+// as a quadtree (merge-if-equal) and mc/OBMC run unchanged on the 8-grid. SADs over a region are directly
+// comparable across sizes (same covered pixel count), so SAD32 vs sum(SAD16) vs sum(SAD8) is a valid R-D.
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) readonly  buffer Mv8   { int mv8[]; };
+layout(std430, binding = 1) readonly  buffer Sad8  { int sad8[]; };
+layout(std430, binding = 2) readonly  buffer Mv16  { int mv16[]; };
+layout(std430, binding = 3) readonly  buffer Sad16 { int sad16[]; };
+layout(std430, binding = 4) readonly  buffer Mv32  { int mv32[]; };
+layout(std430, binding = 5) readonly  buffer Sad32 { int sad32[]; };
+layout(std430, binding = 6) writeonly buffer MvOut { int mv_out[]; };   // fine 8-grid [mv_x, mv_y] per cell
+// fine 8-grid = fgx x fgy cells; 16-grid = g16x x g16y; 32-grid = g32x x g32y (each a ceil, NOT a halving).
+// BIT-ESTIMATING R-D (version2n): split a node only if its (SA[T]D) residual reduction beats lambda_abs * the
+// REAL extra MV bits the split costs = sum over the new children of eg_bits(child_mv - parent_mv) (parent-relative,
+// GPU-local: the 8s deviate from their 16, the 16s from the root 32). A child whose MV ~= its parent costs ~0 bits
+// (no spurious split), a genuinely-divergent child pays its honest Exp-Golomb cost. This replaces the old SAD-proxy
+// rate (lambda_abs*extra_leaves + lambda_rel*SAD/256) that over-valued splitting because it could not see coded bits.
+layout(push_constant) uniform PushConstants { int fgx; int fgy; int g16x; int g16y; int g32x; int g32y; int lambda_abs; } push;
+
+// Exp-Golomb code length (bits) of a signed value, via zigzag map then the unsigned Exp-Golomb length 2*floor(log2(u+1))+1.
+int eg_bits(int v) {
+  uint u = (uint(v) << 1) ^ uint(v >> 31);   // zigzag: signed -> unsigned (0,-1,1,-2,2,... -> 0,1,2,3,4,...)
+  return (2 * findMSB(u + 1u)) + 1;
+}
+
+// Write (mx,my) into every in-frame fine cell of the [fx0,fx0+cells) x [fy0,fy0+cells) block.
+void fill_fine(int fx0, int fy0, int cells, int mx, int my) {
+  for (int dy = 0; (dy < cells) && ((fy0 + dy) < push.fgy); dy++) {
+    for (int dx = 0; (dx < cells) && ((fx0 + dx) < push.fgx); dx++) {
+      int idx = (((fy0 + dy) * push.fgx) + (fx0 + dx)) * 2;
+      mv_out[idx] = mx;
+      mv_out[idx + 1] = my;
+    }
+  }
+}
+
+void main() {
+  uint root = gl_GlobalInvocationID.x;
+  if (root >= uint(push.g32x * push.g32y)) {
+    return;
+  }
+  int rx = int(root) % push.g32x, ry = int(root) / push.g32x;   // root coords in the 32-grid
+  int fx0 = rx * 4, fy0 = ry * 4;                                // fine 8-cell origin (32 px = 4 cells)
+
+  int rbase = ((ry * push.g32x) + rx) * 2;
+  int r32x = mv32[rbase], r32y = mv32[rbase + 1];   // root motion = the parent for the 16-leaves' bit cost
+  int sad_root = sad32[(ry * push.g32x) + rx];
+
+  // Per 16-quadrant: split to four 8-leaves only if the SAD reduction beats lambda * the 8s' real extra MV bits.
+  int quad_choice[4];   // 0 = one 16-leaf, 1 = four 8-leaves, -1 = out of frame
+  int chosen_sad = 0, chosen_rate = 0;   // chosen_rate = total bits the sub-partition's MVs deviate from the root
+  for (int qy = 0; qy < 2; qy++) {
+    for (int qx = 0; qx < 2; qx++) {
+      int q16x = (rx * 2) + qx, q16y = (ry * 2) + qy;   // 16-grid coords
+      int qi = (qy * 2) + qx;
+      if ((q16x >= push.g16x) || (q16y >= push.g16y)) {
+        quad_choice[qi] = -1;   // wholly outside the frame
+        continue;
+      }
+      int b16 = (q16y * push.g16x) + q16x;
+      int m16x = mv16[b16 * 2], m16y = mv16[(b16 * 2) + 1];
+      int sad_quad = sad16[b16];
+      int sad_eight = 0;
+      int bits_eight = 0;   // bits of the four 8-MVs deviating from THIS 16 (the marginal cost of splitting it)
+      for (int cy = 0; cy < 2; cy++) {
+        for (int cx = 0; cx < 2; cx++) {
+          int f8x = (q16x * 2) + cx, f8y = (q16y * 2) + cy;   // fine 8-grid coords
+          if ((f8x < push.fgx) && (f8y < push.fgy)) {
+            int b8 = (f8y * push.fgx) + f8x;
+            sad_eight += sad8[b8];
+            bits_eight += eg_bits(mv8[b8 * 2] - m16x) + eg_bits(mv8[(b8 * 2) + 1] - m16y);
+          }
+        }
+      }
+      int bits16 = eg_bits(m16x - r32x) + eg_bits(m16y - r32y);   // this 16 deviating from the root 32
+      if ((sad_quad - sad_eight) > (push.lambda_abs * bits_eight)) {
+        quad_choice[qi] = 1;
+        chosen_sad += sad_eight;
+        chosen_rate += bits16 + bits_eight;
+      } else {
+        quad_choice[qi] = 0;
+        chosen_sad += sad_quad;
+        chosen_rate += bits16;
+      }
+    }
+  }
+
+  // Root: keep one 32-leaf (zero sub-MV bits) unless the sub-partition's SAD reduction beats lambda * its total MV bits.
+  if ((sad_root - chosen_sad) <= (push.lambda_abs * chosen_rate)) {
+    int base = ((ry * push.g32x) + rx) * 2;
+    fill_fine(fx0, fy0, 4, mv32[base], mv32[base + 1]);   // whole root is one 32-leaf
+    return;
+  }
+  for (int qy = 0; qy < 2; qy++) {
+    for (int qx = 0; qx < 2; qx++) {
+      int qi = (qy * 2) + qx;
+      if (quad_choice[qi] < 0) {
+        continue;
+      }
+      int q16x = (rx * 2) + qx, q16y = (ry * 2) + qy;
+      int qfx = fx0 + (qx * 2), qfy = fy0 + (qy * 2);   // this quadrant's fine origin
+      if (quad_choice[qi] == 0) {
+        int base = ((q16y * push.g16x) + q16x) * 2;
+        fill_fine(qfx, qfy, 2, mv16[base], mv16[base + 1]);   // one 16-leaf
+      } else {
+        for (int cy = 0; cy < 2; cy++) {
+          for (int cx = 0; cx < 2; cx++) {
+            int f8x = (q16x * 2) + cx, f8y = (q16y * 2) + cy;
+            if ((f8x < push.fgx) && (f8y < push.fgy)) {
+              int base = ((f8y * push.fgx) + f8x) * 2;
+              fill_fine(f8x, f8y, 1, mv8[base], mv8[base + 1]);   // four 8-leaves
+            }
+          }
+        }
+      }
+    }
+  }
+}

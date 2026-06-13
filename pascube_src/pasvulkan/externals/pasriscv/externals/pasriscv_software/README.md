@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/pasriscv_software](https://git.rosseaux.net/BeRo1985/pasriscv_software).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # pasriscv_software
 
 This repository contains third-party software, including test cases, guest Linux system build scripts, and other related assets, for the PasRISCV Emulator — a RV64GC RISC-V emulator developed in Object Pascal.

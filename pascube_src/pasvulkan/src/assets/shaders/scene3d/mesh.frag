@@ -12,10 +12,6 @@
 #define LIGHTCLUSTERS
 #define FRUSTUMCLUSTERGRID
 
-#ifdef USE_MATERIAL_BUFFER_REFERENCE
-#elif defined(USE_MATERIAL_SSBO)
-#endif 
-
 #extension GL_EXT_multiview : enable
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
@@ -84,8 +80,8 @@ layout(location = 9) flat in uint inMaterialID;
 layout(location = 10) flat in uint inInstanceDataIndex;
 layout(location = 11) flat in vec3 inAABBMin;
 layout(location = 12) flat in vec3 inAABBMax;
-layout(location = 13) flat in uint inCascadeIndex; 
-layout(location = 14) in vec3 inVoxelPosition; 
+layout(location = 13) flat in uint inCascadeIndex;
+layout(location = 14) in vec3 inVoxelPosition;
 layout(location = 15) flat in vec3 inVertex0;
 layout(location = 16) flat in vec3 inVertex1;
 layout(location = 17) flat in vec3 inVertex2;
@@ -109,11 +105,8 @@ layout(location = 11) flat in int inViewIndex;
 layout(location = 12) flat in uint inFrameIndex;
 
 #ifdef VELOCITY
-layout(location = 13) flat in vec4 inJitter;
-layout(location = 14) in vec4 inPreviousClipSpace;
-layout(location = 15) in vec4 inCurrentClipSpace;
-#else
-layout(location = 13) flat in vec2 inJitter;
+layout(location = 13) in vec4 inPreviousClipSpace;
+layout(location = 14) in vec4 inCurrentClipSpace;
 #endif // VELOCITY
 
 #endif // VOXELIZATION
@@ -123,10 +116,10 @@ layout(location = 13) flat in vec2 inJitter;
 // inWorldSpacePosition do need to be calculated in this case, since it is passed as a per-vertex attribute without interpolation.
 vec3 inWorldSpacePosition = (inWorldSpacePositionPerVertex[0] * gl_BaryCoordEXT.x) + (inWorldSpacePositionPerVertex[1] * gl_BaryCoordEXT.y) + (inWorldSpacePositionPerVertex[2] * gl_BaryCoordEXT.z);
 
-// Calculate the geometric normal from the per-vertex positions with consideration of the front facing flag for double-sided triangles 
+// Calculate the geometric normal from the per-vertex positions with consideration of the front facing flag for double-sided triangles
 vec3 inGeometricNormal = normalize(
                            cross(
-                             inWorldSpacePositionPerVertex[1] - inWorldSpacePositionPerVertex[0], 
+                             inWorldSpacePositionPerVertex[1] - inWorldSpacePositionPerVertex[0],
                              inWorldSpacePositionPerVertex[2] - inWorldSpacePositionPerVertex[0]
                            )
                          ) * (gl_FrontFacing ? 1.0 : -1.0);
@@ -135,6 +128,13 @@ vec3 inGeometricNormal = normalize(
 #ifdef VOXELIZATION
   // Nothing in this case, since the fragment shader writes to the voxel grid directly.
 #elif defined(DEPTHONLY)
+#ifdef SELECTIONMASK
+  // Object-selection outline mask (compiled as a DEPTHONLY variant): x = instanceDataIndex (instance data has its own ID, not the object ID), y =
+  // floatBitsToUint(gl_FragCoord.z) of the frontmost selected fragment (the mask pass depth-tests against its OWN depth, so
+  // the nearest selected surface wins per pixel). Visible-vs-occluded is resolved later in the compose pass by comparing y
+  // against the scene depth at the seed position (reverse-Z). No scene-depth sampler is needed in this fragment.
+  layout(location = 0) out uvec2 outSelectionMask;
+#endif
 #else
   #if defined(VELOCITY) && !(defined(MBOIT) && defined(MBOITPASS1))
     layout(location = 1) out vec2 outFragVelocity;
@@ -142,15 +142,8 @@ vec3 inGeometricNormal = normalize(
     layout(location = 1) out vec4 outFragEmission;
   #elif defined(REFLECTIVESHADOWMAPOUTPUT)
     layout(location = 1) out vec4 outFragNormalUsed; // xyz = normal, w = 1.0 if normal was used, 0.0 otherwise (by clearing the normal buffer to vec4(0.0))
-    //layout(location = 2) out vec3 outFragPosition; // Can be reconstructed from depth and inversed model view projection matrix 
+    //layout(location = 2) out vec3 outFragPosition; // Can be reconstructed from depth and inversed model view projection matrix
   #endif
-#endif
-
-// Specialization constants are sadly unusable due to dead slow shader stage compilation times with several minutes "per" pipeline, 
-// when the validation layers and a debugger (GDB, LLDB, etc.) are active at the same time!
-#undef USE_SPECIALIZATION_CONSTANTS
-#ifdef USE_SPECIALIZATION_CONSTANTS
-layout (constant_id = 0) const bool UseReversedZ = true;
 #endif
 
 const int TEXTURE_BRDF_GGX = 0;
@@ -164,7 +157,12 @@ const int TEXTURE_BASE_INDEX = 10;
 
 // Push constants
 
-#include "mesh_pushconstants.glsl" 
+#include "mesh_pushconstants.glsl"
+
+#define REVERSEDZ_BIT 4
+bool reversedZ = (pushConstants.drawFlags & (1u << REVERSEDZ_BIT)) != 0;
+//float reversedZFactor = reversedZ ? -1.0 : 1.0;
+//uint reversedZInvertBit = reversedZ ? 1u : 0u;
 
 // Global descriptor set
 
@@ -178,7 +176,7 @@ const int TEXTURE_BASE_INDEX = 10;
 
 #ifdef FRUSTUMCLUSTERGRID
 layout (set = 1, binding = 6, std140) readonly uniform FrustumClusterGridGlobals {
-  uvec4 tileSizeZNearZFar; 
+  uvec4 tileSizeZNearZFar;
   vec4 viewRect;
   uvec4 countLightsViewIndexSizeOffsetedViewIndex;
   uvec4 clusterSize;
@@ -186,7 +184,7 @@ layout (set = 1, binding = 6, std140) readonly uniform FrustumClusterGridGlobals
 } uFrustumClusterGridGlobals;
 
 layout (set = 1, binding = 7, std430) readonly buffer FrustumClusterGridIndexList {
-   uint frustumClusterGridIndexList[];
+  uint frustumClusterGridIndexList[];
 };
 
 layout (set = 1, binding = 8, std430) readonly buffer FrustumClusterGridData {
@@ -202,7 +200,7 @@ layout(set = 1, binding = 9) uniform utexture2DMSArray uWetnessMap;
 layout(set = 1, binding = 9) uniform utexture2DArray uWetnessMap;
 #endif
 
-layout(set = 1, binding = 10) uniform sampler2D uRainTextures[]; // 0 = rain texture, 1 = rain normal texture, 2 = rain streaks normal texture 
+layout(set = 1, binding = 10) uniform sampler2D uRainTextures[]; // 0 = rain texture, 1 = rain normal texture, 2 = rain streaks normal texture
 
 #define RainTexture uRainTextures[0]
 #define RainNormalTexture uRainTextures[1]
@@ -215,7 +213,7 @@ layout(set = 1, binding = 10) uniform sampler2D uRainTextures[]; // 0 = rain tex
   #include "voxelization_globals.glsl"
 #endif
 
-// Extra global illumination descriptor set (optional, if global illumination is enabled) for more easily sharing the same 
+// Extra global illumination descriptor set (optional, if global illumination is enabled) for more easily sharing the same
 // global illumination data between multiple passes (e.g. opaque and transparent passes).
 
 #if defined(GLOBAL_ILLUMINATION_CASCADED_RADIANCE_HINTS)
@@ -226,7 +224,7 @@ layout(set = 1, binding = 10) uniform sampler2D uRainTextures[]; // 0 = rain tex
   #define GLOBAL_ILLUMINATION_VOLUME_MESH_FRAGMENT
   #include "global_illumination_cascaded_radiance_hints.glsl"
 
-#elif defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING) 
+#elif defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING)
 
   layout (set = 2, binding = 0, std140) readonly uniform VoxelGridData {
     #include "voxelgriddata_uniforms.glsl"
@@ -237,6 +235,17 @@ layout(set = 1, binding = 10) uniform sampler2D uRainTextures[]; // 0 = rain tex
   layout(set = 2, binding = 2) uniform sampler3D uVoxelGridRadiance[];
 
   #include "global_illumination_voxel_cone_tracing.glsl"
+
+#elif defined(GLOBAL_ILLUMINATION_DDGI)
+
+  #define DDGI_DESCRIPTOR_SET 2
+  #include "global_illumination_ddgi_sampling.glsl"
+
+#elif defined(GLOBAL_ILLUMINATION_SURFEL)
+
+  #define GLOBAL_ILLUMINATION_SURFEL_SAMPLE
+  #define GI_SURFEL_DESCRIPTOR_SET 2
+  #include "global_illumination_surfel.glsl"
 
 #endif
 
@@ -250,7 +259,7 @@ layout(set = 1, binding = 10) uniform sampler2D uRainTextures[]; // 0 = rain tex
 
 vec3 workTangent, workBitangent, workNormal;
 
-#include "math.glsl" 
+#include "math.glsl"
 
 #define TRANSPARENCY_GLOBALS
 #include "transparency.glsl"
@@ -284,6 +293,10 @@ uint flags, shadingModel;
   #define TRANSMISSION
 #endif
 
+#if defined(LOOPOIT) || defined(LOCKOIT) || defined(WBOIT) || defined(MBOIT) || defined(DFAOIT)
+  #define SMOOTH_INSTANCE_DATA_EFFECT
+#endif
+
 #if defined(TRANSMISSION)
 float transmissionFactor = 0.0;
 float volumeDispersion = 0.0;
@@ -291,36 +304,35 @@ float volumeDispersion = 0.0;
 
 float volumeThickness = 0.0;
 float volumeAttenuationDistance = 1.0 / 0.0; // +INF
-vec3 volumeAttenuationColor = vec3(1.0); 
+vec3 volumeAttenuationColor = vec3(1.0);
 
 float diffuseTransmissionFactor = 0.0;
 vec3 diffuseTransmissionColorFactor = vec3(1.0);
-float diffuseTransmissionThickness = 1.0; 
+float diffuseTransmissionThickness = 1.0;
 
 #include "blendnormals.glsl"
 
 #define ENABLE_ANISOTROPIC
 #include "pbr.glsl"
-   
+
 /////////////////////////////
 
 #include "shadows.glsl"
+
+#define globalRaytracingFlags pushConstants.raytracingFlags
 
 #define LIGHTING_GLOBALS
 #include "lighting.glsl"
 #undef LIGHTING_GLOBALS
 
-#endif // !defined(DEPTHONLY) || defined(VOXELIZATION) 
+#include "decals.glsl"
 
-#if defined(USE_MATERIAL_BUFFER_REFERENCE)
-  #ifdef USE_INT64
-    Material material = uMaterials.materials[inMaterialID];
-  #else
-    Material material;
-  #endif
+#endif // !defined(DEPTHONLY) || defined(VOXELIZATION)
+
+#ifdef USE_INT64
+Material material = uMaterials.materials[inMaterialID];
 #else
-  #define material materials[inMaterialID]
-//Material material = materials[inMaterialID];
+Material material;
 #endif
 
 const uint smPBRMetallicRoughness = 0u,  //
@@ -335,23 +347,23 @@ vec2 texCoords_dFdx[2];
 vec2 texCoords_dFdy[2];
 
 int getTexCoordID(const in int textureIndex){
-  return material.textures[textureIndex]; 
+  return material.textures[textureIndex];
 }
 
 vec2 textureUV(const in int textureIndex) {
-  int textureID = getTexCoordID(textureIndex); 
+  int textureID = getTexCoordID(textureIndex);
   return (textureID >= 0) ? (material.textureTransforms[textureIndex] * vec3(texCoords[(textureID >> 16) & 0xf], 1.0)).xy : inTexCoord0;
 }
 
 ivec2 texture2DSize(const in int textureIndex) {
-  int textureID = getTexCoordID(textureIndex); 
+  int textureID = getTexCoordID(textureIndex);
   return (textureID >= 0) ? ivec2(textureSize(u2DTextures[nonuniformEXT(textureID & 0x3fff) << 1], 0).xy) : ivec2(0);
 }
 
 vec4 textureFetch(const in int textureIndex, const in vec4 defaultValue, const bool sRGB) {
   int textureID = getTexCoordID(textureIndex);
   if(textureID >= 0){
-    int texCoordIndex = int((textureID >> 16) & 0xf); 
+    int texCoordIndex = int((textureID >> 16) & 0xf);
     mat3x2 m = material.textureTransforms[textureIndex];
     return textureGrad(u2DTextures[nonuniformEXT(((textureID & 0x3fff) << 1) | (int(sRGB) & 1))], //
                         (m * vec3(texCoords[texCoordIndex], 1.0)).xy,   //
@@ -359,7 +371,7 @@ vec4 textureFetch(const in int textureIndex, const in vec4 defaultValue, const b
                         (m * vec3(texCoords_dFdy[texCoordIndex], 0.0)).xy);
   }else{
     return defaultValue;
-  } 
+  }
 }
 
 #endif
@@ -409,7 +421,7 @@ vec4 getWetness(){ // x = wetness, yzw = normal to planet ground
   }else{
     return vec4(0.0); // No wetness
   }
-}  
+}
 
 #include "pbr_wetness.glsl"
 
@@ -417,23 +429,24 @@ vec4 getWetness(){ // x = wetness, yzw = normal to planet ground
 
 void main() {
 #ifdef VOXELIZATION
-  if(any(lessThan(inWorldSpacePosition.xyz, inAABBMin.xyz)) || 
-     any(greaterThan(inWorldSpacePosition.xyz, inAABBMax.xyz)) ||
-     (uint(inCascadeIndex) >= uint(voxelGridData.countCascades))){
+  if(any(lessThan(inWorldSpacePosition.xyz, inAABBMin.xyz)) ||
+    any(greaterThan(inWorldSpacePosition.xyz, inAABBMax.xyz)) ||
+    (uint(inCascadeIndex) >= uint(voxelGridData.countCascades))){
     outFragColor = vec4(0.0);
     return;
   }
 #endif
+  const uint currentInstanceDataIndex = inInstanceDataIndex & 0x7fffffffu;
   {
     // For double sided triangles in the back-facing case, the normal, tangent and bitangent vectors need to be flipped.
-    float frontFacingSign = gl_FrontFacing ? 1.0 : -1.0;   
+    float frontFacingSign = gl_FrontFacing ? 1.0 : -1.0;
 
-    // After vertex interpolation, the normal vector may not be normalized anymore, so it needs to be normalized. 
-    vec3 normalizedNormal = normalize(inNormal); 
+    // After vertex interpolation, the normal vector may not be normalized anymore, so it needs to be normalized.
+    vec3 normalizedNormal = normalize(inNormal);
 
-    // After vertex interpolation, the tangent vector may not be orthogonal to the normal vector anymore, so it needs to be orthonormalized in 
+    // After vertex interpolation, the tangent vector may not be orthogonal to the normal vector anymore, so it needs to be orthonormalized in
     // a quick&dirty but often good enough way.
-    vec3 orthonormalizedTangent = normalize(inTangentSign.xyz - (normalizedNormal * dot(normalizedNormal, inTangentSign.xyz))); 
+    vec3 orthonormalizedTangent = normalize(inTangentSign.xyz - (normalizedNormal * dot(normalizedNormal, inTangentSign.xyz)));
 
     workTangent = orthonormalizedTangent * frontFacingSign;
     workBitangent = cross(normalizedNormal, orthonormalizedTangent) * inTangentSign.w * frontFacingSign;
@@ -441,17 +454,17 @@ void main() {
 
   }
 #ifdef RAYTRACING
-  // The geometric normal is needed for raytracing ray offseting 
+  // The geometric normal is needed for raytracing ray offseting
 #if defined(HAVE_PERVERTEX)
   vec3 triangleNormal = inGeometricNormal;
-#else 
+#else
   vec3 triangleNormal = normalize(cross(dFdyFine(inCameraRelativePosition), dFdxFine(inCameraRelativePosition)));
 #endif // HAVE_PERVERTEX
 #endif // RAYTRACING
-#if defined(USE_MATERIAL_BUFFER_REFERENCE) && !defined(USE_INT64)
+#if !defined(USE_INT64)
   material = uMaterials.materials;
   {
-    uvec2 materialPointer = uvec2(material);  
+    uvec2 materialPointer = uvec2(material);
     uint carry;
     materialPointer.x = uaddCarry(materialPointer.x, uint(inMaterialID * uint(sizeof(Material))), carry);
     materialPointer.y += carry;
@@ -466,11 +479,11 @@ void main() {
   texCoords_dFdx[1] = dFdxFine(inTexCoord1);
   texCoords_dFdy[0] = dFdyFine(inTexCoord0);
   texCoords_dFdy[1] = dFdyFine(inTexCoord1);
-#if !defined(VOXELIZATION)  
-  /*if(!any(notEqual(inJitter.xy, vec2(0.0))))*/{
-    texCoords[0] -= (texCoords_dFdx[0] * inJitter.x) + (texCoords_dFdy[0] * inJitter.y);
-    texCoords[1] -= (texCoords_dFdx[1] * inJitter.x) + (texCoords_dFdy[1] * inJitter.y);
-  }  
+#if !defined(VOXELIZATION)
+  /*if(!any(notEqual(pushConstants.jitter.xy, vec2(0.0))))*/{
+    texCoords[0] -= (texCoords_dFdx[0] * pushConstants.jitter.x) + (texCoords_dFdy[0] * pushConstants.jitter.y);
+    texCoords[1] -= (texCoords_dFdx[1] * pushConstants.jitter.x) + (texCoords_dFdy[1] * pushConstants.jitter.y);
+  }
 #endif
 #endif
 #if !(defined(DEPTHONLY) || defined(VOXELIZATION))
@@ -478,19 +491,25 @@ void main() {
   shadingModel = (flags >> 0u) & 0xfu;
 #endif
 #if defined(VOXELIZATION)
-  
+
   uint flags = material.alphaCutOffFlagsTex0Tex1.y;
-  
+
   // For meta voxelization, a very simple BRDF is used, so the data can be reused for various purposes at the later stages, so that
   // new costly voxelization passes are not required to be performed for these cases. Hence also the name meta voxelization, as the
   // voxelization is just performed for to gather meta data, which is then used for various purposes.
 
-  vec4 baseColor = textureFetch(0, vec4(1.0), true) * material.baseColorFactor * inColor0; 
-  
-  vec4 emissionColor = vec4(textureFetch(4, vec4(1.0), true).xyz * material.emissiveFactor.xyz * material.emissiveFactor.w * inColor0.xyz, baseColor.w);
-  
+  vec4 baseColor = textureFetch(0, vec4(1.0), true) * material.baseColorFactor * inColor0;
+
+  vec3 voxelEmission = textureFetch(4, vec4(1.0), true).xyz * material.emissiveFactor.xyz * material.emissiveFactor.w * inColor0.xyz;
+  // GI-only emissive limitation (PASVULKAN_materials_emissive_gi): per-material factor/max (two fp16 packed into the material's
+  // dispersion/shadow uvec4 .w) scaled by the global master regulator (voxelGridData) and clamped — same policy as the DDGI/
+  // surfel gather (gi_rt_gather.glsl giGatherShadeHit). The voxel feeds only the GI here, so limiting it at injection is correct.
+  vec2 voxelEmissiveGI = unpackHalf2x16(material.dispersionShadowCastMaskShadowReceiveMaskUnused.w);
+  voxelEmission = min(voxelEmission * (voxelEmissiveGI.x * voxelGridData.emissiveGIScale), vec3(min(voxelEmissiveGI.y, voxelGridData.emissiveGIMax)));
+  vec4 emissionColor = vec4(voxelEmission, baseColor.w);
+
   float alpha = ((flags & (1u << 31u)) != 0u) ? 1.0 : baseColor.w;
-  
+
   vec3 normal;
   if ((textureFlags.x & (1 << 2)) != 0) {
     vec4 normalTexture = textureFetch(2, vec2(0.0, 1.0).xxyx, false);
@@ -507,31 +526,38 @@ void main() {
 #if defined(ALPHATEST) || defined(LOOPOIT) || defined(LOCKOIT) || defined(WBOIT) || defined(MBOIT) || defined(DFAOIT)
   uint flags = material.alphaCutOffFlagsTex0Tex1.y;
   float alpha = ((flags & (1u << 31u)) != 0u) ? 1.0 : (textureFetch(0, vec4(1.0), true).w * material.baseColorFactor.w * inColor0.w);
-  if((inInstanceDataIndex > 0u) && ((flags & (1u << 31u)) != 0u)){
+  if((currentInstanceDataIndex > 0u) && ((flags & (1u << 31u)) != 0u)){
     vec4 dummyColor = vec4(1.0);
-    if(!applyInstanceDataEffect(uint(inInstanceDataIndex), dummyColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false)){
+    if(!applyInstanceDataEffect(uint(currentInstanceDataIndex), dummyColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy),
+#ifdef SMOOTH_INSTANCE_DATA_EFFECT
+      true
+#else
+      false
+#endif
+    )){
       alpha = 0.0;
     }
   }
 #endif
 #else
-  
+
   vec4 color = vec4(0.0);
 #ifdef EXTRAEMISSIONOUTPUT
   vec4 emissionColor = vec4(0.0);
 #endif
 #if 0
-   // Just for debugging purposes
-   color = textureFetch(0, vec4(1.0), true) * material.baseColorFactor;
+  // Just for debugging purposes
+  color = textureFetch(0, vec4(1.0), true) * material.baseColorFactor;
 #else
   float litIntensity = 1.0;
+  vec3 baseIORF0Dielectric, F0Dielectric;
   switch (shadingModel) {
     case smPBRMetallicRoughness:
     case smPBRSpecularGlossiness: {
       vec4 baseColor = vec4(1.0);
       float metallic;
       float ior = material.iorIridescenceFactorIridescenceIorIridescenceThicknessMinimum.x;
-      vec3 F0Dielectric = vec3((abs(ior - 1.5) < 1e-6) ? 0.04 : pow((ior - 1.0) / (ior + 1.0), 2.0));
+      baseIORF0Dielectric = vec3((abs(ior - 1.5) < 1e-6) ? 0.04 : pow((ior - 1.0) / (ior + 1.0), 2.0));
       vec3 F90 = vec3(1.0);
       vec3 F90Dielectric = vec3(1.0);
       float perceptualRoughness = 1.0;
@@ -542,8 +568,14 @@ void main() {
           metallic = metallicRoughness.x;
           perceptualRoughness = metallicRoughness.y;
           baseColor = textureFetch(0, vec4(1.0), true) * material.baseColorFactor;
-          if((inInstanceDataIndex > 0u) && ((flags & (1u << 25u)) != 0u)){
-            applyMaterialInstanceDataEffect(uint(inInstanceDataIndex), baseColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false);
+          if((currentInstanceDataIndex > 0u) && ((flags & (1u << 25u)) != 0u)){
+            applyMaterialInstanceDataEffect(uint(currentInstanceDataIndex), baseColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false);
+          }
+          {
+            uint materialColorKeySlot = (flags >> 17u) & 7u;
+            if((materialColorKeySlot > 0u) && (materialColorKeySlot <= 4u) && (currentInstanceDataIndex > 0u)){
+              baseColor *= unpackUnorm4x8(instanceDataItems[currentInstanceDataIndex].materialColorKeys[materialColorKeySlot - 1u]);
+            }
           }
           vec3 specularColorFactor = material.specularFactor.xyz;
           specularWeight = material.specularFactor.w;
@@ -551,7 +583,7 @@ void main() {
             specularWeight *= textureFetch(10, vec4(1.0), false).w;
             specularColorFactor *= textureFetch(11, vec4(1.0), true).xyz;
           }
-          F0Dielectric = min(F0Dielectric * specularColorFactor, vec3(1.0));
+          F0Dielectric = min(baseIORF0Dielectric * specularColorFactor, vec3(1.0));
           F90Dielectric = vec3(specularWeight);
           break;
         }
@@ -560,11 +592,18 @@ void main() {
           ior = 0.0;
           vec4 specularGlossiness = textureFetch(1, vec4(1.0), true) * vec4(material.specularFactor.xyz, material.metallicRoughnessNormalScaleOcclusionStrengthFactor.y);
           baseColor = textureFetch(0, vec4(1.0), true) * material.baseColorFactor;
-          if((inInstanceDataIndex > 0u) && ((flags & (1u << 25u)) != 0u)){
-            applyMaterialInstanceDataEffect(uint(inInstanceDataIndex), baseColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false);
-          }         
+          if((currentInstanceDataIndex > 0u) && ((flags & (1u << 25u)) != 0u)){
+            applyMaterialInstanceDataEffect(uint(currentInstanceDataIndex), baseColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false);
+          }
+          {
+            uint materialColorKeySlot = (flags >> 17u) & 7u;
+            if((materialColorKeySlot > 0u) && (materialColorKeySlot <= 4u) && (currentInstanceDataIndex > 0u)){
+              baseColor *= unpackUnorm4x8(instanceDataItems[currentInstanceDataIndex].materialColorKeys[materialColorKeySlot - 1u]);
+            }
+          }
           perceptualRoughness = clamp(1.0 - specularGlossiness.w, 1e-3, 1.0);
-          F0Dielectric = min(specularGlossiness.xyz * material.specularFactor.xyz, vec3(1.0));
+          baseIORF0Dielectric = specularGlossiness.xyz;
+          F0Dielectric = min(baseIORF0Dielectric * material.specularFactor.xyz, vec3(1.0));
           break;
         }
       }
@@ -573,11 +612,31 @@ void main() {
 
       float occlusion = clamp(mix(1.0, occlusionTexture.x, material.metallicRoughnessNormalScaleOcclusionStrengthFactor.w), 0.0, 1.0);
 
+      // Apply decals BEFORE wetness and normal mapping
+      // Decals modify material properties (albedo, metallic, roughness, etc.)
+      vec3 decalNormal = vec3(0.0, 0.0, 1.0); // Will be blended with material normal later
+      float decalNormalBlend = 0.0;
+      applyDecals(
+        baseColor,
+        metallic,
+        perceptualRoughness,
+        occlusion,
+        F0Dielectric,
+        F90Dielectric,
+        specularWeight,
+        decalNormal,
+        decalNormalBlend,
+        inWorldSpacePosition,
+        workNormal,
+        inViewSpacePosition,
+        baseIORF0Dielectric
+      );
+
 #ifdef WETNESS
-      vec4 wetnessNormal = vec4(0.0); 
+      vec4 wetnessNormal = vec4(0.0);
       if((flags & (1u << 27u)) == 0u){
-        const vec4 wetness = getWetness();  
-        const float rainTime = float(uint(pushConstants.timeSecondsTimeFractionalSecondWidthHeight.x & 4095u)) + uintBitsToFloat(pushConstants.timeSecondsTimeFractionalSecondWidthHeight.y); 
+        const vec4 wetness = getWetness();
+        const float rainTime = float(uint(pushConstants.timeSecondsTimeFractionalSecondWidthHeight.x & 4095u)) + uintBitsToFloat(pushConstants.timeSecondsTimeFractionalSecondWidthHeight.y);
         applyPBRWetness(
           wetness,
           inWorldSpacePosition,
@@ -585,7 +644,7 @@ void main() {
           baseColor.xyz,       // base color
           wetnessNormal,
           metallic,            // metallic
-          perceptualRoughness, // roughness 
+          perceptualRoughness, // roughness
           occlusion,           // occlusion
           RainTexture,
           RainNormalTexture,
@@ -598,19 +657,22 @@ void main() {
 #endif
 
       vec3 normal;
-      if (((textureFlags.x & (1 << 2)) != 0) 
+      if (((textureFlags.x & (1 << 2)) != 0) || (decalNormalBlend > 0.0)
 #ifdef WETNESS
           || (wetnessNormal.w > 0.0)
 #endif
          ) {
-#ifdef WETNESS 
+#ifdef WETNESS
         const vec4 normalTexture = ((textureFlags.x & (1 << 2)) != 0) ? textureFetch(2, vec2(0.0, 1.0).xxyx, false) : vec4(0.5, 0.5, 1.0, 0.0);
 #else
         const vec4 normalTexture = textureFetch(2, vec2(0.0, 1.0).xxyx, false);
 #endif
-        const vec3 normalToApply = normalize((normalTexture.xyz - vec3(0.5)) * (vec2(material.metallicRoughnessNormalScaleOcclusionStrengthFactor.z, 1.0).xxy * 2.0));
+        vec3 normalToApply = normalize((normalTexture.xyz - vec3(0.5)) * (vec2(material.metallicRoughnessNormalScaleOcclusionStrengthFactor.z, 1.0).xxy * 2.0));
+        if(decalNormalBlend > 0.0){
+          normalToApply = blendNormals(normalToApply, decalNormal, decalNormalBlend);
+        }
         normal = normalize(                                                                                                                      //
-            mat3(normalize(workTangent), normalize(workBitangent), normalize(workNormal)) *      
+            mat3(normalize(workTangent), normalize(workBitangent), normalize(workNormal)) *
 #ifdef WETNESS
             blendNormals(normalToApply, wetnessNormal.xyz, wetnessNormal.w)
 #else
@@ -642,7 +704,7 @@ void main() {
 
       perceptualRoughness = min(max(perceptualRoughness, minimumRoughness) + geometryRoughness, 1.0);
 
-#else 
+#else
 
       // Vlachos 2015, "Advanced VR Rendering"
       // Kaplanyan 2016, "Stable specular highlights"
@@ -650,14 +712,14 @@ void main() {
       // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
       // Tokuyoshi and Kaplanyan 2021, "Stable Geometric Specular Antialiasing with Projected-Space NDF Filtering"
       // ===========================================================================================================
-      // In the original paper, this implementation is intended for deferred rendering, but here it is also used 
-      // for forward rendering (as described in Tokuyoshi and Kaplanyan 2019 and 2021). This is mainly because 
+      // In the original paper, this implementation is intended for deferred rendering, but here it is also used
+      // for forward rendering (as described in Tokuyoshi and Kaplanyan 2019 and 2021). This is mainly because
       // the forward version requires an expensive transformation of the half-vector by the tangent frame for each
-      // light. Thus, this is an approximation based on world-space normals, but it works well enough for what is 
+      // light. Thus, this is an approximation based on world-space normals, but it works well enough for what is
       // needed and is an clearly improvement over the implementation based on Vlachos 2015.
       float kernelRoughness;
       {
-        const float SIGMA2 = 0.15915494, KAPPA = 0.18;       
+        const float SIGMA2 = 0.15915494, KAPPA = 0.18;
         vec3 dx = dFdx(workNormal), dy = dFdy(workNormal);
         kernelRoughness = min(KAPPA, (2.0 * SIGMA2) * (dot(dx, dx) + dot(dy, dy)));
       }
@@ -675,7 +737,7 @@ void main() {
       float shadow = 1.0;
   #if defined(ALPHATEST) || defined(LOOPOIT) || defined(LOCKOIT) || defined(WBOIT) || defined(MBOIT) || defined(DFAOIT) || defined(BLEND) || defined(ENVMAP)
       ambientOcclusion = 1.0;
-  #else      
+  #else
       ivec2 ambientOcclusionTextureSize = ivec2(textureSize(uPassTextures[0], 0).xy);
   #if defined(GLOBAL_ILLUMINATION_CASCADED_RADIANCE_HINTS) || defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING)
       ambientOcclusion = texelFetch(uPassTextures[0], ivec3(min(ivec2(gl_FragCoord.xy), ambientOcclusionTextureSize - ivec2(1)), int(gl_ViewIndex)), 0).x;
@@ -691,20 +753,20 @@ void main() {
       {
         vec3 reflectedVector = reflect(-viewDirection, normal);
         float horizon = min(1.0 + dot(reflectedVector, normal), 1.0);
-        specularOcclusion *= horizon * horizon;         
+        specularOcclusion *= horizon * horizon;
       }
 
       if ((flags & (1u << 10u)) != 0u) {
         iridescenceFactor = material.iorIridescenceFactorIridescenceIorIridescenceThicknessMinimum.y * (((textureFlags.x & (1 << 12)) != 0) ? textureFetch(12, vec4(1.0), false).x : 1.0);
         iridescenceIor = material.iorIridescenceFactorIridescenceIorIridescenceThicknessMinimum.z;
         if ((textureFlags.x & (1 << 12)) != 0){
-          iridescenceThickness = mix(material.iorIridescenceFactorIridescenceIorIridescenceThicknessMinimum.w, material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.x, textureFetch(13, vec4(1.0), false).y);  
+          iridescenceThickness = mix(material.iorIridescenceFactorIridescenceIorIridescenceThicknessMinimum.w, material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.x, textureFetch(13, vec4(1.0), false).y);
         }else{
-          iridescenceThickness = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.x;  
+          iridescenceThickness = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.x;
         }
         if(iridescenceThickness == 0.0){
           iridescenceFactor = 0.0;
-        }  
+        }
         //if(iridescenceFactor > 0.0)
         {
 //        float NdotV = clamp(dot(normal, viewDirection), 0.0, 1.0);
@@ -713,34 +775,34 @@ void main() {
         }
       }
 
-      // Transmission, diffuse transmission and volume 
+      // Transmission, diffuse transmission and volume
       if ((flags & ((1u << 11u) | (1u << 16u))) != 0u) {
 
 #if defined(TRANSMISSION)
         // Transmission
         if ((flags & (1u << 11u)) != 0u) {
-          transmissionFactor = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.y * (((textureFlags.x & (1 << 14)) != 0) ? textureFetch(14, vec4(1.0), false).x : 1.0);  
+          transmissionFactor = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.y * (((textureFlags.x & (1 << 14)) != 0) ? textureFetch(14, vec4(1.0), false).x : 1.0);
           if((flags & (1u << 14u)) != 0u){
             volumeDispersion = uintBitsToFloat(material.dispersionShadowCastMaskShadowReceiveMaskUnused.x);
           }
         }
-#endif 
+#endif
 
         // Volume
         if ((flags & (1u << 12u)) != 0u) {
-          volumeThickness = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.z * (((textureFlags.x & (1 << 15)) != 0) ? textureFetch(15, vec4(1.0), false).y : 1.0);  
-          volumeAttenuationDistance = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.w;        
-          volumeAttenuationColor = uintBitsToFloat(material.volumeAttenuationColorAnisotropyStrengthAnisotropyRotation.xyz);        
+          volumeThickness = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.z * (((textureFlags.x & (1 << 15)) != 0) ? textureFetch(15, vec4(1.0), false).y : 1.0);
+          volumeAttenuationDistance = material.iridescenceThicknessMaximumTransmissionFactorVolumeThicknessFactorVolumeAttenuationDistance.w;
+          volumeAttenuationColor = uintBitsToFloat(material.volumeAttenuationColorAnisotropyStrengthAnisotropyRotation.xyz);
         }
 
         // Diffuse transmission
         if ((flags & (1u << 16u)) != 0u) {
-          diffuseTransmissionFactor = material.diffuseTransmissionColorFactor.w * (((textureFlags.x & (1 << 17)) != 0) ? textureFetch(17, vec4(1.0), false).x : 1.0); 
+          diffuseTransmissionFactor = material.diffuseTransmissionColorFactor.w * (((textureFlags.x & (1 << 17)) != 0) ? textureFetch(17, vec4(1.0), false).x : 1.0);
           diffuseTransmissionColorFactor = material.diffuseTransmissionColorFactor.xyz * (((textureFlags.x & (1 << 18)) != 0) ? textureFetch(18, vec4(1.0), true).xyz : vec3(1.0));
-          diffuseTransmissionThickness = volumeThickness * dot(inModelScale.xyz, vec3(0.3333333333)); 
+          diffuseTransmissionThickness = volumeThickness * dot(inModelScale.xyz, vec3(0.3333333333));
         }
 
-      }  
+      }
 
       vec3 imageLightBasedLightDirection = vec3(0.0, 0.0, -1.0);
 
@@ -758,7 +820,7 @@ void main() {
 #undef UseGeometryRoughness
 #ifdef UseGeometryRoughness
         sheenRoughness = min(max(sheenRoughness, minimumRoughness) + geometryRoughness, 1.0);
-#else        
+#else
         sheenRoughness = sqrt(clamp((sheenRoughness * sheenRoughness) + kernelRoughness, 0.0, 1.0));
 #endif
         sheenRoughness = max(sheenRoughness, 1e-7);
@@ -785,7 +847,7 @@ void main() {
           clearcoatNormal = normalize(workNormal);
         }
         //clearcoatNormal *= (((flags & (1u << 6u)) != 0u) && !gl_FrontFacing) ? -1.0 : 1.0;
-#ifdef UseGeometryRoughness        
+#ifdef UseGeometryRoughness
         clearcoatRoughness = min(max(clearcoatRoughness, minimumRoughness) + geometryRoughness, 1.0);
 #else
         clearcoatRoughness = sqrt(clamp((clearcoatRoughness * clearcoatRoughness) + kernelRoughness, 0.0, 1.0));
@@ -794,7 +856,7 @@ void main() {
 
 #ifdef ENABLE_ANISOTROPIC
       if (anisotropyActive = ((flags & (1u << 13u)) != 0u)) {
-        vec2 ansitropicStrengthAnsitropicRotation = unpackHalf2x16(material.volumeAttenuationColorAnisotropyStrengthAnisotropyRotation.w);        
+        vec2 ansitropicStrengthAnsitropicRotation = unpackHalf2x16(material.volumeAttenuationColorAnisotropyStrengthAnisotropyRotation.w);
         vec2 directionRotation = vec2(sin(vec2(ansitropicStrengthAnsitropicRotation.y) + vec2(1.5707963267948966, 0.0)));
         mat2 rotationMatrix = mat2(directionRotation.x, directionRotation.y, -directionRotation.y, directionRotation.x);
         vec3 anisotropySample = textureFetch(16, vec4(1.0, 0.5, 1.0, 1.0), false).xyz;
@@ -805,7 +867,7 @@ void main() {
         alphaRoughnessAnisotropyT = mix(alphaRoughness, 1.0, anisotropyStrength * anisotropyStrength);
         alphaRoughnessAnisotropyB = clamp(alphaRoughness, 1e-3, 1.0);
         anisotropyTdotV = dot(anisotropyT, viewDirection);
-        anisotropyBdotV = dot(anisotropyB, viewDirection);   
+        anisotropyBdotV = dot(anisotropyB, viewDirection);
       }
 #endif
 
@@ -817,7 +879,7 @@ void main() {
 #include "lighting.glsl"
 #undef LIGHTING_INITIALIZATION
 
-      const bool receiveShadows = (flags & (1u << 30u)) != 0u; 
+      const bool receiveShadows = (flags & (1u << 30u)) != 0u;
 
 #define LIGHTING_IMPLEMENTATION
 #include "lighting.glsl"
@@ -837,6 +899,7 @@ void main() {
         colorOutput += shResidualDiffuse * baseColor.xyz * diffuseOcclusion;
         doSingleLight(shDominantDirectionalLightColor,                    //
                       vec3(specularOcclusion),                            //
+                      vec2(1.0),                                          // diffuseSpecularFactors (neutral)
                       -shDominantDirectionalLightDirection,               //
                       normal.xyz,                                         //
                       baseColor.xyz,                                      //
@@ -854,13 +917,13 @@ void main() {
                       clearcoatFresnel,                                   //
                       clearcoatFactor,                                    //
                       clearcoatRoughness,                                 //
-                      specularWeight,                                     // 
+                      specularWeight,                                     //
                       vec3(0.0),                                        //
-                      0.0);                                   
+                      0.0);
 #endif
       }
 #elif defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING)
-      float iblWeight = 1.0; 
+      float iblWeight = 1.0;
       {
         if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
           vec4 c = cvctIndirectDiffuseLight(inWorldSpacePosition.xyz, normal.xyz);
@@ -871,15 +934,130 @@ void main() {
           colorOutput += cvctIndirectSpecularLight(inWorldSpacePosition.xyz, normal.xyz, viewDirection, cvctRoughnessToVoxelConeTracingApertureAngle(perceptualRoughness), 1e+24) * F0Dielectric * specularOcclusion * OneOverPI;
         }
       }
-#endif
-#if !defined(REFLECTIVESHADOWMAPOUTPUT) 
-#if !(defined(GLOBAL_ILLUMINATION_CASCADED_RADIANCE_HINTS))
-#if defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING)
-//    float iblWeight = 1.0; 
+#elif defined(GLOBAL_ILLUMINATION_DDGI)
+  #if GI_DDGI_STORAGE_IS_SH
+      // SH storage (L1 or L2): sample the radiance SH field, extract its dominant directional light (shaded analytically
+      // by doSingleLight) and add the remaining residual SH as diffuse — mirroring the cascaded radiance hints path. The
+      // environment IBL block below is disabled for this variant (see its #if guard); the specular comes from the dominant
+      // light, optionally crossfaded with the directional glossy-radiance atlas by roughness when GI_DDGI_GLOSSY_RADIANCE.
+      {
+        // Roughness crossfade weight (set below when the glossy atlas is built): scales the dominant-light specular; the
+        // glossy atlas takes the complementary 1-weight. Stays 1.0 (full dominant specular, no atlas) when glossy is off.
+        float ddgiSpecularWeight = 1.0;
+        float ddgiSkyVisibility;
+        DDGI_SH_TYPE ddgiRadianceSH = ddgiSampleRadianceSH(inWorldSpacePosition.xyz, normal.xyz, viewDirection, ddgiSkyVisibility);
+        vec3 shDominantDirectionalLightColor, shDominantDirectionalLightDirection;
+        // INVARIANT: the probe radiance field is split into (dominant directional light) + (residual SH), and the total
+        // diffuse must stay = the full field's diffuse, i.e. residualDiffuse (added below) + dominantDiffuse (contributed by
+        // doSingleLight further down) == full-field diffuse. The residual is therefore "field minus dominant", and the
+        // dominant light's DIFFUSE must always be applied at full strength. Only the dominant's SPECULAR may be scaled (it is,
+        // by ddgiSpecularWeight via doSingleLight's diffuseSpecularFactors.y, to crossfade against the glossy atlas). Do NOT
+        // scale the whole dominant light (the 2nd doSingleLight arg / diffuseSpecularFactors.x) by the roughness weight, or
+        // the dominant's diffuse goes missing and low-roughness surfaces darken.
+#ifdef GI_DDGI_SH_APPROXIMATE_DOMINANT
+        // Default (applied to L1 and L2): approximate dominant directional light + residual SH (DC kept).
+        // The dominant light direction/intensity live in the L0/L1 bands, so the L2 variant extracts them from the L1
+        // reduction (identical method to L1); the full L2 detail is preserved in the residual below.
+#if GI_DDGI_STORAGE == GI_DDGI_STORAGE_L2_VALUE
+        SHC3CoefficientsL1ApproximateDirectionalLight(SHC3CoefficientsL1FromL2(ddgiRadianceSH), shDominantDirectionalLightDirection, shDominantDirectionalLightColor);
 #else
-      float iblWeight = 1.0; // for future sky occulsion 
+        SHC3CoefficientsL1ApproximateDirectionalLight(ddgiRadianceSH, shDominantDirectionalLightDirection, shDominantDirectionalLightColor);
 #endif
-      vec3 iblDiffuse = getIBLDiffuse(normal) * baseColor.xyz; 
+        // Residual SH = field minus the extracted dominant light, so it is not double-counted in the diffuse term.
+        DDGI_SH_TYPE shResidual = DDGI_SH_SUB(ddgiRadianceSH, DDGI_SH_PROJECT(shDominantDirectionalLightDirection, shDominantDirectionalLightColor));
+        vec3 shResidualDiffuse = max(vec3(0.0), DDGI_SH_EVALUATE(DDGI_SH_CONVOLVE_COSINE(shResidual), normal.xyz));
+        if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
+          colorOutput += shResidualDiffuse * baseColor.xyz * diffuseOcclusion * OneOverPI;
+        }
+#else
+        // Alternative: native extract-and-subtract -> uniform ambient + DC-zeroed residual + dominant light.
+        vec3 shAmbient;
+        float shModifiedSqrtRoughness;
+        DDGI_SH_EXTRACT_DOMINANT(ddgiRadianceSH, shAmbient, shDominantDirectionalLightDirection, shDominantDirectionalLightColor, sqrt(clamp(perceptualRoughness, 0.0, 1.0)), shModifiedSqrtRoughness);
+        vec3 shResidualDiffuse = max(vec3(0.0), DDGI_SH_EVALUATE(DDGI_SH_CONVOLVE_COSINE(ddgiRadianceSH), normal.xyz));
+        if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
+          colorOutput += fma(shResidualDiffuse, vec3(OneOverPI), max(vec3(0.0), shAmbient)) * baseColor.xyz * diffuseOcclusion;
+        }
+        DDGI_SH_TYPE shResidual = ddgiRadianceSH; // extract-and-subtract leaves the residual (DC-zeroed) field in ddgiRadianceSH
+#endif
+#if defined(GI_DDGI_GLOSSY_RESIDUAL) && defined(GI_DDGI_GLOSSY_RADIANCE) && !defined(REFLECTIVESHADOWMAPOUTPUT)
+        // Probe-field specular, crossfaded by roughness against the dominant directional light (doSingleLight below): at low
+        // roughness the sharp, directional glossy prefiltered-radiance atlas (sampled along the reflection vector) dominates;
+        // at high roughness the broad dominant-light specular does. ddgiSpecularWeight scales the dominant specular (via
+        // doSingleLight's diffuseSpecularFactors.y) and this adds the complementary (1 - weight) of the atlas, so the two sum
+        // to one specular without double-counting. The dominant light's DIFFUSE stays full (diffuseSpecularFactors.x = 1), so
+        // no indirect diffuse is lost. Routed through the same split-sum BRDF term (getIBLGGXFresnel) as the environment IBL.
+        {
+          vec3 ddgiReflectionVector = normalize(reflect(-viewDirection, normal.xyz));
+          // Crossfade weight: 0 at low roughness (take the glossy atlas) .. 1 at high roughness (take the dominant light).
+          ddgiSpecularWeight = smoothstep(GI_DDGI_GLOSSY_ROUGHNESS_LO, GI_DDGI_GLOSSY_ROUGHNESS_HI, perceptualRoughness);
+          vec3 ddgiGlossyRadiance = ddgiSampleGlossyRadiance(inWorldSpacePosition.xyz, normal.xyz, ddgiReflectionVector, viewDirection);
+          vec3 ddgiGlossyFresnel = getIBLGGXFresnel(normal.xyz, viewDirection, perceptualRoughness, mix(F0Dielectric, baseColor.xyz, metallic), mix(specularWeight, 1.0, metallic));
+          colorOutput += ddgiGlossyRadiance * ddgiGlossyFresnel * specularOcclusion * (1.0 - ddgiSpecularWeight);
+        }
+#endif
+        doSingleLight(shDominantDirectionalLightColor,                    //
+                      vec3(specularOcclusion),                            //
+                      vec2(1.0, ddgiSpecularWeight),                      // diffuse kept full; specular crossfaded against the glossy atlas (1-weight added above)
+                      -shDominantDirectionalLightDirection,               //
+                      normal.xyz,                                         //
+                      baseColor.xyz,                                      //
+                      F0Dielectric,                                       //
+                      F90,                                                //
+                      F90Dielectric,                                      //
+                      viewDirection,                                      //
+                      refractiveAngle,                                    //
+                      transparency,                                       //
+                      alphaRoughness,                                     //
+                      metallic,                                           //
+                      sheenColor,                                         //
+                      sheenRoughness,                                     //
+                      clearcoatNormal,                                    //
+                      clearcoatFresnel,                                   //
+                      clearcoatFactor,                                    //
+                      clearcoatRoughness,                                 //
+                      specularWeight,                                     //
+                      vec3(0.0),                                          //
+                      0.0);
+      }
+  #else
+      // Octahedral storage: ddgiSampleIrradiance returns the pre-integrated diffuse irradiance E(n) (outgoing diffuse =
+      // albedo/PI * E) plus a sky-visibility factor from the probes. The probe field replaces the environment IBL diffuse;
+      // the environment IBL specular is kept (block below) but occluded by the probe sky-visibility (long-range "is the
+      // sky actually visible here", which the short-range per-pixel AO misses) combined with that AO.
+      float ddgiSkyVisibility;
+      vec3 ddgiIrradiance = ddgiSampleIrradiance(inWorldSpacePosition.xyz, normal.xyz, viewDirection, ddgiSkyVisibility);
+      float iblWeight = ddgiSkyVisibility;
+      if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
+        colorOutput += ddgiIrradiance * baseColor.xyz * diffuseOcclusion * OneOverPI;
+      }
+  #endif
+#elif defined(GLOBAL_ILLUMINATION_SURFEL)
+      // Surfel GI: gather the nearby surfels from the world hash grid, blend their SH and evaluate the diffuse irradiance
+      // E(n) (outgoing diffuse = albedo/PI * E). The surfel field replaces the environment IBL diffuse; the environment
+      // IBL specular is kept (block below).
+      // Sample the surfel field unconditionally to also get the per-point sky visibility (blend of nearby surfels) — it
+      // occludes the environment IBL specular below (iblWeight), the surfel analogue of DDGI's ddgiSkyVisibility, so enclosed
+      // areas stop being washed out by full-strength env specular. The diffuse irradiance is only added for non-black albedo.
+      float surfelSkyVisibility;
+      vec3 surfelIrradiance = giSurfelSampleIrradiance(inWorldSpacePosition.xyz, normal.xyz, surfelSkyVisibility);
+      float iblWeight = surfelSkyVisibility;
+      if(dot(baseColor.xyz, vec3(1.0)) > 1e-6){
+        colorOutput += surfelIrradiance * baseColor.xyz * diffuseOcclusion * OneOverPI;
+      }
+#endif
+#if !defined(REFLECTIVESHADOWMAPOUTPUT)
+#if !(defined(GLOBAL_ILLUMINATION_CASCADED_RADIANCE_HINTS) || (defined(GLOBAL_ILLUMINATION_DDGI) && !defined(GLOBAL_ILLUMINATION_DDGI_OCT_STORAGE)))
+#if defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING) || defined(GLOBAL_ILLUMINATION_DDGI) || defined(GLOBAL_ILLUMINATION_SURFEL)
+//    float iblWeight = 1.0; // already declared in the global illumination branch above
+#else
+      float iblWeight = 1.0; // for future sky occulsion
+#endif
+#if defined(GLOBAL_ILLUMINATION_DDGI) || defined(GLOBAL_ILLUMINATION_SURFEL)
+      vec3 iblDiffuse = vec3(0.0); // DDGI / surfel GI replaces the environment IBL diffuse term (the field carries the sky via ray misses); IBL specular is kept but occluded via iblWeight
+#else
+      vec3 iblDiffuse = getIBLDiffuse(normal) * baseColor.xyz;
+#endif
 
       // Diffuse transmission
       if ((flags & (1u << 16u)) != 0u) {
@@ -894,17 +1072,17 @@ void main() {
 
       // Transmission
       if ((flags & (1u << 11u)) != 0u) {
-        vec3 iblSpecularTransmission = getIBLVolumeRefraction(normal.xyz, 
+        vec3 iblSpecularTransmission = getIBLVolumeRefraction(normal.xyz,
                                                               viewDirection,
                                                               perceptualRoughness,
-                                                              baseColor.xyz, 
+                                                              baseColor.xyz,
                                                               inWorldSpacePosition,
-                                                              ior, 
-                                                              volumeThickness, 
-                                                              volumeAttenuationColor, 
+                                                              ior,
+                                                              volumeThickness,
+                                                              volumeAttenuationColor,
                                                               volumeAttenuationDistance,
-                                                              volumeDispersion);        
-        iblDiffuse = mix(iblDiffuse, iblSpecularTransmission, transmissionFactor);                                               
+                                                              volumeDispersion);
+        iblDiffuse = mix(iblDiffuse, iblSpecularTransmission, transmissionFactor);
       }
 #endif
       vec3 iblSpecularMetal = getIBLRadianceGGX(normal, viewDirection, perceptualRoughness);
@@ -918,7 +1096,7 @@ void main() {
         iblDielectricBRDF = mix(iblDielectricBRDF, rgbMix(iblDiffuse * diffuseOcclusion, iblSpecularDielectric * specularOcclusion, iridescenceFresnelDielectric), iridescenceFactor);
       }
       vec3 iblSheen = vec3(0.0);
-      float iblAlbedoSheenScaling = 1.0; 
+      float iblAlbedoSheenScaling = 1.0;
       if ((flags & (1u << 7u)) != 0u) {
         iblSheen = getIBLRadianceCharlie(normal, viewDirection, sheenRoughness, sheenColor) * diffuseOcclusion;
 //      float NdotV = clamp(dot(normal, viewDirection), 0.0, 1.0);
@@ -928,7 +1106,7 @@ void main() {
       vec3 iblResultColor = mix(iblDielectricBRDF, iblMetalBRDF * specularOcclusion, metallic); // Dielectric/metallic mix
       iblResultColor = fma(iblResultColor, vec3(iblAlbedoSheenScaling), iblSheen); // Sheen modulation
       iblResultColor = mix(iblResultColor, iblClearcoatBRDF, clearcoatFactor * clearcoatFresnel); // Clearcoat modulation
-      colorOutput += iblResultColor; // Add to the color output
+      colorOutput += iblResultColor * iblWeight; // Add to the color output; iblWeight (= 1 - voxel cone tracing diffuse occlusion) suppresses the environment IBL where the voxel cone tracing already gathered near-field indirect light and occlusion, so the VCT global illumination actually contributes instead of being drowned out by full-strength IBL. For non-VCT paths iblWeight is 1.0.
 #endif
 #endif
 #if defined(REFLECTIVESHADOWMAPOUTPUT)
@@ -953,7 +1131,7 @@ void main() {
 #endif
 #elif defined(GLOBAL_ILLUMINATION_CASCADED_VOXEL_CONE_TRACING)
 #if 0
-      color.xyz += cvctCascadeVisualizationColor(inWorldSpacePosition).xyz;
+      color.xyz += cvctGlobalIlluminationCascadeVisualizationColor(inWorldSpacePosition).xyz;
 #endif
 #endif
 /*    color.xyz += specularOutput;
@@ -966,9 +1144,15 @@ void main() {
     }
     case smUnlit: {
       color = textureFetch(0, vec4(1.0), true) * material.baseColorFactor;
-      if((inInstanceDataIndex > 0u) && ((flags & (1u << 25u)) != 0u)){
-        applyMaterialInstanceDataEffect(uint(inInstanceDataIndex), color, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false);
-      }      
+      if((currentInstanceDataIndex > 0u) && ((flags & (1u << 25u)) != 0u)){
+        applyMaterialInstanceDataEffect(uint(currentInstanceDataIndex), color, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false);
+      }
+      {
+        uint materialColorKeySlot = (flags >> 17u) & 7u;
+        if((materialColorKeySlot > 0u) && (materialColorKeySlot <= 4u) && (currentInstanceDataIndex > 0u)){
+          color *= unpackUnorm4x8(instanceDataItems[currentInstanceDataIndex].materialColorKeys[materialColorKeySlot - 1u]);
+        }
+      }
       color *= vec2((litIntensity * 0.25) + 0.75, 1.0).xxxy;
       break;
     }
@@ -976,7 +1160,7 @@ void main() {
 #ifndef VOXELIZATION
   {
     if((flags & (1u << 15u)) != 0u){
-      
+
       // Holographic effect
 
       // Decode the hologram data from half floats to floats
@@ -993,14 +1177,14 @@ void main() {
       // Calculate the vertex direction
       float vertexDirection;
       vec3 hologramDirection = vec3(decodedFloats0.xy, decodedFloats0.z);
-      float hologramDirectionLength = dot(hologramDirection, hologramDirection); 
+      float hologramDirectionLength = dot(hologramDirection, hologramDirection);
       if(hologramDirectionLength >= 4.0){
-        if(hologramDirection.z >= -(1e-6)){ 
+        if(hologramDirection.z >= -(1e-6)){
           // When the hologram direction is equal or larger than 2.0 unit length, it is assumed that it is a screen space based hologram (as a distinguishing criterion)
-          // Not using gl_FragCoord.y here, because it is only a rounded integer value but not the correct floating point value, therefore using the view projection 
+          // Not using gl_FragCoord.y here, because it is only a rounded integer value but not the correct floating point value, therefore using the view projection
           // matrix to calculate the correct vertex direction. Indeed, the vertex shader could deliever also the clip space position, but this would require to
           // pass the clip space position to the fragment shader, which is not done here, because the clip space position is not needed for other purposes otherwise,
-          // so it is calculated here in the fragment shader instead, only for the hologram effect, if enabled. Given that it's not used in excessive amounts.   
+          // so it is calculated here in the fragment shader instead, only for the hologram effect, if enabled. Given that it's not used in excessive amounts.
           vec4 clipSpace = (view.projectionMatrix * view.viewMatrix) * vec4(inWorldSpacePosition, 1.0);
           vertexDirection = fma(clipSpace.y / clipSpace.w, -0.5 * sign(hologramDirection.y), 0.5); // The sign of the y component of the hologram direction is used to determine the direction of the hologram effect
         }else{
@@ -1008,9 +1192,9 @@ void main() {
         }
       }else{
         if(hologramDirectionLength < 1e-6){
-          // When the hologram direction is zero or nearly zero, it is assumed that it is a view direction based hologram (as a distinguishing criterion) (it's similar to the screen space based hologram, but a bit different anyway) 
-          hologramDirection = normalize(view.inverseViewMatrix[1].xyz); // Up vector of the view matrix as hologram direction 
-        }else{ 
+          // When the hologram direction is zero or nearly zero, it is assumed that it is a view direction based hologram (as a distinguishing criterion) (it's similar to the screen space based hologram, but a bit different anyway)
+          hologramDirection = normalize(view.inverseViewMatrix[1].xyz); // Up vector of the view matrix as hologram direction
+        }else{
           // When the hologram direction is not zero and smaller than 2.0 unit length, it is assumed that it is a world space based hologram
           hologramDirection = normalize(hologramDirection.xyz);
         }
@@ -1035,7 +1219,7 @@ void main() {
       const float hologramGlowMin = decodedFloats5.z;
       const float hologramGlowMax = decodedFloats5.w;
 
-      // Get the hologram time 
+      // Get the hologram time
       const float hologramTime = float(uint(pushConstants.timeSecondsTimeFractionalSecondWidthHeight.x & 4095u)) + uintBitsToFloat(pushConstants.timeSecondsTimeFractionalSecondWidthHeight.y);
 
       // Calculate the scan line part of the hologram effect
@@ -1061,18 +1245,24 @@ void main() {
         color.w = 0.0;
       }*/
 
-    } 
+    }
   }
 #endif // !VOXELIZATION
 #endif
-  float alpha = ((flags & (1u << 31u)) != 0u) 
+  float alpha = ((flags & (1u << 31u)) != 0u)
                    ? 1.0 // Force alpha to 1.0, if actually a opaque material is used, but with transmission in the transparency pass
-                   : color.w * inColor0.w, 
+                   : color.w * inColor0.w,
         outputAlpha = ((flags & 32u) != 0) ? alpha : 1.0; // AMD GPUs under Linux doesn't like mix(1.0, alpha, float(int(uint((flags >> 5u) & 1u)))); due to the unsigned int stuff
   vec4 finalColor = vec4(color.xyz * inColor0.xyz, outputAlpha);
-  if(inInstanceDataIndex > 0u){
-    if(!applyInstanceDataEffect(uint(inInstanceDataIndex), finalColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy), false)){
-      if((flags & (1u << 31u)) == 0u){ 
+  if(currentInstanceDataIndex > 0u){
+    if(!applyInstanceDataEffect(uint(currentInstanceDataIndex), finalColor, vec2(texCoords[0]), uvec2(gl_FragCoord.xy),
+#ifdef SMOOTH_INSTANCE_DATA_EFFECT
+      true
+#else
+      false
+#endif
+    )){
+      if((flags & (1u << 31u)) == 0u){
         finalColor.w = alpha = 0.0;
         if((flags & 32u) != 0){
           outputAlpha = 0.0;
@@ -1080,8 +1270,14 @@ void main() {
       }
     }
   }
+#if !defined(DEPTHONLY) && !defined(VOXELIZATION)
+  if((inInstanceDataIndex & 0x80000000u) != 0u){
+    finalColor = vec4(inColor0.xyz, 1.0);
+  }
+#endif
+
 #if !(defined(WBOIT) || defined(MBOIT) || defined(VOXELIZATION))
-#ifndef BLEND 
+#ifndef BLEND
   outFragColor = vec4(clamp(finalColor.xyz, vec3(-65504.0), vec3(65504.0)), finalColor.w);
 #endif
 #ifdef EXTRAEMISSIONOUTPUT
@@ -1091,32 +1287,24 @@ void main() {
 #endif
 
 #if defined(ALPHATEST)
-  #if defined(NODISCARD)  
+  #if defined(NODISCARD)
     float fragDepth;
   #endif
   if (alpha < uintBitsToFloat(material.alphaCutOffFlagsTex0Tex1.x)) {
   #if defined(WBOIT) || defined(LOCKOIT) || defined(DFAOIT) || defined(LOCKOIT_PASS2)
-    finalColor = vec4(alpha = 0.0);    
+    finalColor = vec4(alpha = 0.0);
   #elif defined(LOCKOIT_PASS1)
-    alpha = 0.0;    
+    alpha = 0.0;
   #elif defined(MBOIT)
-    #if defined(MBOIT) && defined(MBOITPASS1)    
-      alpha = 0.0;    
+    #if defined(MBOIT) && defined(MBOITPASS1)
+      alpha = 0.0;
     #else
-      finalColor = vec4(alpha = 0.0);      
+      finalColor = vec4(alpha = 0.0);
     #endif
-  #else 
-    #if defined(NODISCARD)  
+  #else
+    #if defined(NODISCARD)
       // Workaround for Intel (i)GPUs, which've problems with discarding fragments in 2x2 fragment blocks at alpha-test usage
-#ifdef USE_SPECIALIZATION_CONSTANTS
-      fragDepth = UseReversedZ ? -0.1 : 1.1;      
-#else
-      #if defined(REVERSEDZ)
-        fragDepth = -0.1;
-      #else
-        fragDepth = 1.1;
-      #endif
-#endif
+      fragDepth = reversedZ ? -0.1 : 1.1;
     #else
       #if defined(USEDEMOTE)
         demote;
@@ -1126,22 +1314,22 @@ void main() {
     #endif
   #endif
   }else{
-  #if defined(NODISCARD)  
+  #if defined(NODISCARD)
     fragDepth = gl_FragCoord.z;
   #endif
   #if defined(WBOIT) || defined(MBOIT) || defined(LOCKOIT) || defined(LOOPOIT) || defined(DFAOIT)
     #if defined(WBOIT) || defined(LOCKOIT) || defined(LOOPOIT_PASS2) || defined(DFAOIT)
-      finalColor.w = alpha = 1.0;    
+      finalColor.w = alpha = 1.0;
     #elif defined(LOOPOIT_PASS1)
-      alpha = 1.0;    
-    #elif defined(MBOIT) && defined(MBOITPASS1)    
-      alpha = 1.0;    
+      alpha = 1.0;
+    #elif defined(MBOIT) && defined(MBOITPASS1)
+      alpha = 1.0;
     #else
-      finalColor.w = alpha = 1.0;    
+      finalColor.w = alpha = 1.0;
     #endif
   #endif
   }
-  #if defined(NODISCARD)  
+  #if defined(NODISCARD)
     gl_FragDepth = fragDepth;
   #endif
   #if !(defined(WBOIT) || defined(MBOIT) || defined(LOCKOIT) || defined(LOOPOIT) || defined(DFAOIT))
@@ -1154,11 +1342,11 @@ void main() {
       #endif
       #if 1
         alpha = clamp(((alpha - uintBitsToFloat(material.alphaCutOffFlagsTex0Tex1.x)) / max(fwidth(alpha), 1e-4)) + 0.5, 0.0, 1.0);
-      #endif  
+      #endif
       if (alpha < 1e-2) {
         alpha = 0.0;
       }
-      #ifndef DEPTHONLY  
+      #ifndef DEPTHONLY
         outFragColor.w = finalColor.w = alpha;
       #endif
     #endif
@@ -1167,21 +1355,21 @@ void main() {
 
 #if !defined(VOXELIZATION)
   const bool additiveBlending = false; // Mesh does never use additive blending currently, so static compile time constant folding is possible here.
-   
+
 #define TRANSPARENCY_IMPLEMENTATION
 #include "transparency.glsl"
 #undef TRANSPARENCY_IMPLEMENTATION
 
 #if defined(VELOCITY)
 
-  outFragVelocity = (((inCurrentClipSpace.xy / inCurrentClipSpace.w) - inJitter.xy) - ((inPreviousClipSpace.xy / inPreviousClipSpace.w) - inJitter.zw)) * 0.5;
-  
+  outFragVelocity = (((inCurrentClipSpace.xy / inCurrentClipSpace.w) - pushConstants.jitter.xy) - ((inPreviousClipSpace.xy / inPreviousClipSpace.w) - pushConstants.jitter.zw)) * 0.5;
+
 #elif defined(REFLECTIVESHADOWMAPOUTPUT)
 
   vec3 normal = normalize(workNormal);
 /*normal /= (abs(normal.x) + abs(normal.y) + abs(normal.z));
-  outFragNormalUsed = vec4(vec3(fma(normal.xx, vec2(0.5, -0.5), vec2(fma(normal.y, 0.5, 0.5))), clamp(normal.z * 3.402823e+38, 0.0, 1.0)), 1.0);*/  
-  outFragNormalUsed = vec4(vec3(fma(normal.xyz, vec3(0.5), vec3(0.5))), 1.0);  
+  outFragNormalUsed = vec4(vec3(fma(normal.xx, vec2(0.5, -0.5), vec2(fma(normal.y, 0.5, 0.5))), clamp(normal.z * 3.402823e+38, 0.0, 1.0)), 1.0);*/
+  outFragNormalUsed = vec4(vec3(fma(normal.xyz, vec3(0.5), vec3(0.5))), 1.0);
 
   //outFragPosition = inWorldSpacePosition.xyz;
 
@@ -1189,10 +1377,23 @@ void main() {
 #endif
 
 #ifdef VOXELIZATION
-  #include "voxelization_fragment.glsl"   
+  // Voxelization rasterizes with backface culling DISABLED, and the dominant-axis projection captures a surface from only one
+  // side, so the gl_FrontFacing-based workNormal flip is unreliable here (e.g. a one-sided rasterization of a double-sided floor
+  // stored only -Y -> visible/lit from below only). Pass the GEOMETRIC normal plus the double-sided flag; voxelization_fragment
+  // stores one fragment (single-sided) or two fragments with +N and -N (double-sided, flag bit 6) -> both anisotropic directions.
+  // Covers both the geometry-shader and mesh-shader voxelization paths, since both feed this fragment shader.
+  bool voxelDoubleSided = (flags & (1u << 6u)) != 0u;
+  normal = normalize(inNormal);
+  #include "voxelization_fragment.glsl"
 #endif
 
-} 
+#ifdef SELECTIONMASK
+  // Surviving (alpha-tested) selected fragment: write the object id + its depth. The mask pass depth-tests against its own
+  // depth buffer (frontmost selected wins per pixel); visible-vs-occluded is decided in the compose pass vs the scene depth.
+  outSelectionMask = uvec2(inInstanceDataIndex, floatBitsToUint(gl_FragCoord.z));
+#endif
+
+}
 
 /*oid main() {
   outFragColor = vec4(vec3(mix(0.25, 1.0, max(0.0, dot(workNormal, vec3(0.0, 0.0, 1.0))))), 1.0);

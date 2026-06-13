@@ -1,0 +1,26 @@
+#version 450
+// ycocg_diff.comp — variant B (colordiff) encoder helper. Subtracts the previous reconstructed YCoCg
+// frame from the current one, IN PLACE, BEFORE the forward wavelet (a pixel-domain residual). Run
+// only for a P-frame. Unlike coeff_diff this does NOT update the reference — the closed-loop
+// reconstruction does that afterwards (via coeff_add on the reconstructed samples), so the reference
+// is the reconstructed frame (no lossy drift), not the unquantised current frame.
+//
+// The current samples are in the colour pass's representation: plain int for the lossless 5/3 path,
+// float bit-patterns for the lossy 9/7 path. The reference (from round97 / the lossless inverse) is
+// always plain int, so the lossy case must subtract in float and re-pack the bits.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0)          buffer Current  { int current[]; };
+layout(std430, binding = 1) readonly buffer Previous { int previous[]; };
+layout(push_constant) uniform PushConstants { int pixel_count; int lossless; } push;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  if (push.lossless != 0) {
+    current[i] -= previous[i];
+  } else {
+    current[i] = floatBitsToInt(intBitsToFloat(current[i]) - float(previous[i]));
+  }
+}

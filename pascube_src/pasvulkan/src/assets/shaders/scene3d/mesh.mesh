@@ -1,0 +1,543 @@
+#version 460
+
+// Generic Mesh Shader for meshlet rendering.
+// Receives payload from mesh.task (visible meshlet indices after culling).
+// Reads meshlet vertex/primitive data from global SSBOs, fetches actual
+// vertex data via BDA (same as mesh.vert), and outputs identical varyings
+// to mesh.vert so the fragment shader (mesh.frag) works unchanged.
+//
+// Skinning/morph-targets are already baked into CachedVertexBuffer by
+// mesh.comp — no skinning logic needed here.
+//
+// Variants:
+//   VELOCITY — motion vectors for temporal effects (location 13+14)
+
+#pragma shader_stage(mesh)
+#extension GL_EXT_mesh_shader : enable
+#if !defined(VOXELIZATION) && !defined(USE_LAYER_ROUTING)
+#extension GL_EXT_multiview : enable
+#endif
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_debug_printf : enable
+
+#ifdef RAYTRACING
+#extension GL_EXT_fragment_shader_barycentric : enable
+#endif
+
+#ifndef MESH_GROUP_SIZE
+#define MESH_GROUP_SIZE 64
+#endif
+
+// Meshlet limits — must match TpvScene3D (MaximumVerticesPerMeshlet, MaximumPrimitivesPerMeshlet)
+#define MAX_MESHLET_VERTICES 64
+#define MAX_MESHLET_PRIMITIVES 126
+
+// AMD suggests 128 vertices and 256 primitives per meshlet for optimal performance, while
+// NVIDIA suggests 64 vertices and 126 primitives (or 40, 84 as other possible sweet spots for
+// the primitive count). First generation mesh shader NVIDIA hardware allocates primitive 
+// indices in 128 byte granularity and needs to reserve 4 bytes for the primitive count.
+// Therefore 126, not 128, since going beyond 126 triangles would allocate the next 128 bytes
+// on these first gen NVIDIA cards, resulting in a significant memory waste and performance drop. 
+// On AMD hardware, it is possible to use up to 128 vertices and 256 primitives without such a 
+// penalty, but in practice the optimal numbers can vary based on the specific scene and workload. 
+// So the more conservative 64 vertices and 126 primitives is chosen as the default to ensure good
+// performance across a wider range of hardware, especially considering that many scenes may not 
+// benefit significantly from larger meshlets and that the memory savings can be substantial.
+
+#ifdef VOXELIZATION
+// Voxelization: vertices are duplicated per primitive (dominant-axis projection differs per triangle).
+// 3 vertices × MAX_MESHLET_PRIMITIVES. With 256 prims this would be 768 vertices which exceeds
+// typical maxMeshOutputVertices. Limit to 42 primitives × 3 = 126 vertices for voxelization.
+#define MAX_VOXEL_MESHLET_PRIMITIVES 42
+// Prim-chunking: a meshlet with up to MAX_MESHLET_PRIMITIVES (126) triangles is split into MAX_VOXEL_PRIM_CHUNKS chunks of 42;
+// the task emits one (meshlet, cascade, chunk) entry per chunk, and each mesh workgroup voxelizes its chunk's 42-triangle range.
+#define MAX_VOXEL_PRIM_CHUNKS ((MAX_MESHLET_PRIMITIVES + MAX_VOXEL_MESHLET_PRIMITIVES - 1) / MAX_VOXEL_MESHLET_PRIMITIVES) // ceil(126/42)=3
+// layerIndices entry packs cascade in the low bits and chunk in the high bits (must match mesh.task).
+#define VOXEL_CASCADE_BITS 4u
+#define VOXEL_CASCADE_MASK 0xfu
+layout(local_size_x = MESH_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 126, max_primitives = MAX_VOXEL_MESHLET_PRIMITIVES) out;
+#else
+layout(local_size_x = MESH_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = MAX_MESHLET_VERTICES, max_primitives = MAX_MESHLET_PRIMITIVES) out;
+#endif
+
+// --- Output varyings: MUST match mesh.vert exactly for fragment shader compatibility ---
+// Individual locations, NOT OutBlock struct (planet_grass.mesh style differs — do NOT copy that)
+layout(location = 0) out vec3 outWorldSpacePosition[];
+layout(location = 1) out vec3 outViewSpacePosition[];
+layout(location = 2) out vec3 outCameraRelativePosition[];
+layout(location = 3) out vec4 outTangentSign[];
+layout(location = 4) out vec3 outNormal[];
+layout(location = 5) out vec2 outTexCoord0[];
+layout(location = 6) out vec2 outTexCoord1[];
+layout(location = 7) out vec4 outColor0[];
+layout(location = 8) out vec3 outModelScale[];
+layout(location = 9) flat out uint outMaterialID[];
+layout(location = 10) flat out uint outInstanceDataIndex[];
+#ifndef VOXELIZATION
+layout(location = 11) flat out int outViewIndex[];
+layout(location = 12) flat out uint outFrameIndex[];
+#ifdef VELOCITY
+layout(location = 13) out vec4 outPreviousClipSpace[];
+layout(location = 14) out vec4 outCurrentClipSpace[];
+#endif
+#else
+// Voxelization-specific outputs (replaces viewIndex/frameIndex, matches mesh_voxelization.geom)
+layout(location = 11) flat out vec3 outAABBMin[];
+layout(location = 12) flat out vec3 outAABBMax[];
+layout(location = 13) flat out uint outCascadeIndex[];
+layout(location = 14) out vec3 outVoxelPosition[];
+layout(location = 15) flat out vec3 outVertex0[];
+layout(location = 16) flat out vec3 outVertex1[];
+layout(location = 17) flat out vec3 outVertex2[];
+#endif
+
+/* clang-format off */
+
+// Push constants — same layout as mesh.task (mesh_pushconstants.glsl base with
+// task/mesh-specific reuse of unused fields). All stages in the same pipeline
+// share the push constant layout.
+layout(push_constant) uniform PushConstants {
+  uint viewBaseIndex;
+  uint countViews;
+  uint countAllViews;
+  uint frameIndex;
+  vec4 jitter;
+  uvec4 timeSecondsTimeFractionalSecondWidthHeight;
+  uint raytracingFlags;
+  uint drawFlags; // bit 0 = meshlet debug colors, bit 3 = meshlet culling enabled
+  uint textureDepthIndex;
+  uint meshDrawCommandsBDALow;
+  uint meshDrawCommandsBDAHigh;
+} pushConstants;
+
+#include "drawinfo.glsl"
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+// --- Descriptor Set 0: Per-draw data (same as mesh.vert Set 0) ---
+layout(set = 0, binding = 0, std430) readonly buffer DrawInfoBuffer {
+  DrawInfo drawInfoItems[];
+};
+layout(set = 0, binding = 7, std430) readonly buffer GlobalBDAPointersBuffer {
+  GlobalBDAPointers globalBDAPointers;
+};
+
+// --- Descriptor Set 1: Per-pass data (same as mesh.vert Set 1) ---
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256];
+} uView;
+
+#ifdef VOXELIZATION
+// Voxel grid data for cascade transforms and conservative rasterization
+layout(set = 1, binding = 1, std140) readonly uniform VoxelGridData {
+  #include "voxelgriddata_uniforms.glsl"
+} voxelGridData;
+#endif
+
+/* clang-format on */
+
+#include "adjugate.glsl"
+
+#ifdef NO_TASK_SHADER
+
+// No task shader: mesh_cull.comp already expanded per-meshlet commands via MESHLET_EXPAND.
+// Each draw command = 1 meshlet. Read command from MeshDrawCommandBuffer via BDA + gl_DrawID.
+
+#include "meshlet.glsl"
+
+void main(){
+
+  uint localID = gl_LocalInvocationIndex;
+
+  MeshDrawCommandBuffer meshDrawCmdBuf = MeshDrawCommandBuffer(uvec2(pushConstants.meshDrawCommandsBDALow, pushConstants.meshDrawCommandsBDAHigh));
+  MeshDrawCommand cmd = meshDrawCmdBuf.commands[uint(gl_DrawID)];
+  uint meshletGlobalIndex = cmd.cmd0.w;
+  uint meshObjectID = cmd.cmd1.y;
+
+#else
+
+// Task payload from mesh.task — must match exactly
+#ifndef TASK_GROUP_SIZE
+#define TASK_GROUP_SIZE 32
+#endif
+
+// Must match mesh.task (Option 1, now ON by default via VOXELIZATION_TASK_PAYLOAD_EXPAND).
+#define VOXELIZATION_TASK_PAYLOAD_EXPAND
+#if defined(VOXELIZATION) && defined(VOXELIZATION_TASK_PAYLOAD_EXPAND)
+#define TASK_PAYLOAD_CAPACITY (TASK_GROUP_SIZE * 8 * MAX_VOXEL_PRIM_CHUNKS)
+#else
+#define TASK_PAYLOAD_CAPACITY TASK_GROUP_SIZE
+#endif
+
+struct TaskPayload {
+  uint meshletDescriptorBase; // base index in meshletDescriptors[] for this object
+  uint meshObjectID;          // DrawInfo index (model matrix, material, etc.)
+  uint count;                 // number of visible meshlets emitted by task shader
+  uint meshletLocalIndices[TASK_PAYLOAD_CAPACITY]; // local meshlet indices (relative to base)
+#if defined(VOXELIZATION) || defined(USE_LAYER_ROUTING)
+  uint layerIndices[TASK_PAYLOAD_CAPACITY];        // layer/cascade index per emitted entry
+#endif
+};
+taskPayloadSharedEXT TaskPayload payload;
+
+#include "meshlet.glsl"
+
+void main(){
+
+  uint workGroupIndex = gl_WorkGroupID.x;
+  uint localID = gl_LocalInvocationIndex;
+
+  // Which meshlet from the payload? gl_WorkGroupID.x indexes into visible meshlet list.
+  uint meshletLocalIndex = payload.meshletLocalIndices[workGroupIndex];
+  uint meshletGlobalIndex = payload.meshletDescriptorBase + meshletLocalIndex;
+  uint meshObjectID = payload.meshObjectID;
+#ifdef VOXELIZATION
+  uint packedLayer = payload.layerIndices[workGroupIndex];
+  uint cascadeIndex = packedLayer & VOXEL_CASCADE_MASK;
+  uint chunkIndex = packedLayer >> VOXEL_CASCADE_BITS;
+#elif defined(USE_LAYER_ROUTING)
+  uint layerIndex = payload.layerIndices[workGroupIndex];
+#endif
+
+#endif // NO_TASK_SHADER
+
+  // Construct BDA references for meshlet data
+  MeshletDescriptorBuffer meshletDescBuf = MeshletDescriptorBuffer(globalBDAPointers.meshletDescriptorBDA);
+  MeshletVertexBuffer meshletVertBuf = MeshletVertexBuffer(globalBDAPointers.meshletVertexBDA);
+  MeshletPrimitiveBuffer meshletPrimBuf = MeshletPrimitiveBuffer(globalBDAPointers.meshletPrimitiveBDA);
+
+  // Load meshlet geometry descriptor
+  MeshletDescriptor desc = meshletDescBuf.descriptors[meshletGlobalIndex];
+  uint vertexCount = min(desc.vertexCount, MAX_MESHLET_VERTICES);
+  uint primitiveCount = min(desc.primitiveCount, MAX_MESHLET_PRIMITIVES);
+
+#ifdef VOXELIZATION
+  // Voxelization: each primitive needs its own 3 vertices (dominant-axis projection differs per triangle, so vertices
+  // cannot be shared). This workgroup voxelizes ONE chunk of up to MAX_VOXEL_MESHLET_PRIMITIVES (42) triangles of the
+  // meshlet — chunkIndex selects the range [chunkPrimitiveStart .. chunkPrimitiveStart+chunkPrimitiveCount).
+  uint chunkPrimitiveStart = chunkIndex * MAX_VOXEL_MESHLET_PRIMITIVES;
+  uint chunkPrimitiveCount = (chunkPrimitiveStart < primitiveCount) ? min(MAX_VOXEL_MESHLET_PRIMITIVES, primitiveCount - chunkPrimitiveStart) : 0u;
+  uint voxelVertexCount = chunkPrimitiveCount * 3u;
+  SetMeshOutputsEXT(voxelVertexCount, chunkPrimitiveCount);
+#else
+  // Declare mesh output sizes (must be called before writing any output)
+  SetMeshOutputsEXT(vertexCount, primitiveCount);
+#endif
+
+  // Load draw info and matrices
+  DrawInfo drawInfo = drawInfoItems[meshObjectID];
+  MatrixPairBuffer matrixPairBuffer = MatrixPairBuffer(globalBDAPointers.matrixPairBDA);
+  MatrixPair matrixPair = matrixPairBuffer.pairs[drawInfo.matrixID];
+  mat4 modelMatrix = matrixPair.modelMatrix;
+
+  // View selection — same logic as mesh.vert
+#ifdef VOXELIZATION
+  uint viewIndex = pushConstants.viewBaseIndex;
+#elif defined(USE_LAYER_ROUTING)
+  // Layer routing: view index from task shader payload (per-cascade)
+  uint viewIndex = pushConstants.viewBaseIndex + layerIndex;
+#else
+  uint viewIndex = pushConstants.viewBaseIndex + uint(gl_ViewIndex);
+#endif
+
+  View view = uView.views[viewIndex];
+
+#if 1
+  // Standard approach
+  vec3 cameraPosition = view.inverseViewMatrix[3].xyz;
+#else
+  // Alternative (assumes no scaling/skewing in view matrix)
+  vec3 cameraPosition = (-view.viewMatrix[3].xyz) * mat3(view.viewMatrix);
+#endif
+
+  // Pre-compute combined matrices (shared across all vertices in this meshlet)
+  mat4 modelViewMatrix = view.viewMatrix * modelMatrix;
+  mat3 adjugateModelMatrix = adjugate(modelMatrix);
+  vec3 modelColumnLengths = vec3(
+    length(modelMatrix[0].xyz),
+    length(modelMatrix[1].xyz),
+    length(modelMatrix[2].xyz)
+  );
+
+  // BDA vertex buffers (same as mesh.vert)
+  CachedVertexBuffer cachedVerts = CachedVertexBuffer(globalBDAPointers.cachedVerticesBDA);
+  StaticVertexBuffer staticVerts = StaticVertexBuffer(globalBDAPointers.staticVerticesBDA);
+#ifdef VELOCITY
+  CachedVertexBuffer prevCachedVerts = CachedVertexBuffer(globalBDAPointers.previousCachedVerticesBDA);
+  GenerationBuffer genBuf = GenerationBuffer(globalBDAPointers.generationBDA);
+  GenerationBuffer prevGenBuf = GenerationBuffer(globalBDAPointers.previousGenerationBDA);
+  View previousView = uView.views[viewIndex + pushConstants.countAllViews];
+  mat4 prevModelViewProjectionMatrix = previousView.projectionMatrix * (previousView.viewMatrix * matrixPair.previousModelMatrix);
+#endif
+
+#ifdef MESH_SHADER_DEBUG_FRONT_FACING_WINDING_ISSUE
+  // Determine if winding order must be flipped (negative-scale node transform).
+  // The mesh shader handles this instead of using separate Inversed front-face pipelines.
+  bool flipWinding = false;
+  float nodeMatDet = 1.0;
+  if(!all(equal(globalBDAPointers.nodeMatricesBDA, uvec2(0u)))){
+    NodeMatricesBDABuffer nodeMatBuf = NodeMatricesBDABuffer(globalBDAPointers.nodeMatricesBDA);
+    mat4 nodeMat = nodeMatBuf.matrices[drawInfo.nodeMatricesIndex];
+    nodeMatDet = determinant(nodeMat);
+    flipWinding = nodeMatDet < 0.0;
+  }
+
+  if(localID == 0u){
+    float modelDet = determinant(mat3(modelMatrix));
+    debugPrintfEXT("mesh.mesh: objID=%u meshlet=%u verts=%u prims=%u matrixID=%u instDataIdx=%u flags=0x%x nodeMatIdx=%u",
+                   meshObjectID, meshletGlobalIndex, vertexCount, primitiveCount,
+                   drawInfo.matrixID, drawInfo.instanceDataIndex, drawInfo.flags, drawInfo.nodeMatricesIndex);
+    debugPrintfEXT("  modelDet=%.4f nodeMatDet=%.6f flipWinding=%u",
+                   modelDet, nodeMatDet, uint(flipWinding));
+    debugPrintfEXT("  modelMat row0=(%.3f,%.3f,%.3f,%.3f) row1=(%.3f,%.3f,%.3f,%.3f)",
+                   modelMatrix[0][0], modelMatrix[0][1], modelMatrix[0][2], modelMatrix[0][3],
+                   modelMatrix[1][0], modelMatrix[1][1], modelMatrix[1][2], modelMatrix[1][3]);
+    debugPrintfEXT("  modelMat row2=(%.3f,%.3f,%.3f,%.3f) row3=(%.3f,%.3f,%.3f,%.3f)",
+                   modelMatrix[2][0], modelMatrix[2][1], modelMatrix[2][2], modelMatrix[2][3],
+                   modelMatrix[3][0], modelMatrix[3][1], modelMatrix[3][2], modelMatrix[3][3]);
+  }
+#endif
+
+#ifdef VOXELIZATION
+
+  // --- Voxelization: per-primitive processing ---
+  // Each thread handles one or more primitives. For each primitive, we:
+  // 1. Unpack the 3 local vertex indices from the packed primitive
+  // 2. Fetch & transform the 3 vertices (world-space positions needed)
+  // 3. Compute dominant-axis projection (same as mesh_voxelization.geom)
+  // 4. Conservative rasterization expansion (if no HW support)
+  // 5. Write 3 output vertices with swizzled gl_Position + voxelization outputs
+  // 6. Write primitive triangle indices (sequential: i*3, i*3+1, i*3+2)
+
+  mat4 worldToCascadeClipSpace = voxelGridData.worldToCascadeClipSpaceMatrices[cascadeIndex];
+  float cascadeHalfExtent = voxelGridData.cascadeCenterHalfExtents[cascadeIndex].w;
+  bool hwConservativeRaster = (voxelGridData.hardwareConservativeRasterization != 0u);
+
+  for(uint i = localID; i < chunkPrimitiveCount; i += MESH_GROUP_SIZE){
+
+    // i is the chunk-relative output index; srcPrim is the absolute primitive index within the meshlet.
+    uint srcPrim = chunkPrimitiveStart + i;
+
+    // Unpack local triangle indices
+    uvec3 localTri = (uvec3(meshletPrimBuf.primitives[desc.primitiveOffset + srcPrim]) >> uvec3(0u, 8u, 16u)) & uvec3(0xffu);
+
+    // Fetch world-space positions for the 3 vertices
+    vec3 worldPos[3];
+    for(int v = 0; v < 3; v++){
+      uint globalVertexIdx = meshletVertBuf.vertices[desc.vertexOffset + localTri[v]];
+      PackedCachedVertex cv = cachedVerts.vertices[globalVertexIdx];
+      vec3 position = unpackPosition(cv);
+      worldPos[v] = (modelMatrix * vec4(position, 1.0)).xyz;
+    }
+
+    // Transform to cascade clip space
+    vec3 cascadeSpacePositions[3] = vec3[3](
+      (worldToCascadeClipSpace * vec4(worldPos[0], 1.0)).xyz,
+      (worldToCascadeClipSpace * vec4(worldPos[1], 1.0)).xyz,
+      (worldToCascadeClipSpace * vec4(worldPos[2], 1.0)).xyz
+    );
+
+    // Dominant-axis projection (same as mesh_voxelization.geom)
+    vec3 faceNormal = cross(worldPos[1] - worldPos[0], worldPos[2] - worldPos[0]);
+    ivec3 vertexIndexOrder = (faceNormal.z > 0.0) ? ivec3(0, 1, 2) : ivec3(0, 2, 1);
+    faceNormal = abs(faceNormal);
+    int dominantAxisIndex = (faceNormal.y > faceNormal.x) ? ((faceNormal.y > faceNormal.z) ? 1 : 2) : ((faceNormal.x > faceNormal.z) ? 0 : 2);
+
+    const ivec3 dominantAxisComponentOrders[3] = ivec3[3](
+      ivec3(2, 1, 0), // zyx
+      ivec3(0, 2, 1), // xzy
+      ivec3(0, 1, 2)  // xyz
+    );
+    ivec3 daco = dominantAxisComponentOrders[dominantAxisIndex];
+
+    vec4 projectionVertices[3] = vec4[3](
+      vec4(cascadeSpacePositions[0][daco.x], cascadeSpacePositions[0][daco.y], cascadeSpacePositions[0][daco.z], 1.0),
+      vec4(cascadeSpacePositions[1][daco.x], cascadeSpacePositions[1][daco.y], cascadeSpacePositions[1][daco.z], 1.0),
+      vec4(cascadeSpacePositions[2][daco.x], cascadeSpacePositions[2][daco.y], cascadeSpacePositions[2][daco.z], 1.0)
+    );
+
+    // Conservative rasterization expansion (when no HW support)
+    if(!hwConservativeRaster){
+      vec2 sides[3] = vec2[3](
+        normalize(projectionVertices[vertexIndexOrder[1]].xy - projectionVertices[vertexIndexOrder[0]].xy),
+        normalize(projectionVertices[vertexIndexOrder[2]].xy - projectionVertices[vertexIndexOrder[1]].xy),
+        normalize(projectionVertices[vertexIndexOrder[0]].xy - projectionVertices[vertexIndexOrder[2]].xy)
+      );
+      float texelSize = 1.41421356237 / cascadeHalfExtent;
+      projectionVertices[vertexIndexOrder[0]].xy += normalize(sides[2] - sides[0]) * texelSize;
+      projectionVertices[vertexIndexOrder[1]].xy += normalize(sides[0] - sides[1]) * texelSize;
+      projectionVertices[vertexIndexOrder[2]].xy += normalize(sides[1] - sides[2]) * texelSize;
+    }
+
+    // AABB of the triangle in world space
+    vec3 aabbMin = min(min(worldPos[0], worldPos[1]), worldPos[2]);
+    vec3 aabbMax = max(max(worldPos[0], worldPos[1]), worldPos[2]);
+
+    // Write 3 output vertices per primitive (vertices are not shared in voxelization)
+    uint baseVertex = i * 3u;
+    for(int v = 0; v < 3; v++){
+      int currentVertexIndex = vertexIndexOrder[v];
+      uint outIdx = baseVertex + uint(v);
+
+      uint globalVertexIdx = meshletVertBuf.vertices[desc.vertexOffset + localTri[currentVertexIndex]];
+      PackedCachedVertex cv = cachedVerts.vertices[globalVertexIdx];
+      PackedStaticVertex sv = staticVerts.vertices[globalVertexIdx];
+
+      vec3 position = unpackPosition(cv);
+      vec4 normalSign = unpackNormalSign(cv);
+      vec3 tangent = unpackTangent(cv);
+      vec3 modelScale = unpackModelScale(cv);
+
+      mat3 tangentSpace;
+      {
+        vec3 n = normalSign.xyz;
+        tangentSpace = mat3(normalize(tangent), normalize(cross(n, tangent)) * normalSign.w, normalize(n));
+      }
+      modelScale *= modelColumnLengths;
+      tangentSpace = adjugateModelMatrix * tangentSpace;
+
+      vec4 viewSpacePosition = modelViewMatrix * vec4(position, 1.0);
+      viewSpacePosition.xyz /= viewSpacePosition.w;
+
+      // Dominant-axis projected position (replaces standard clipSpacePosition)
+      gl_MeshVerticesEXT[outIdx].gl_Position = vec4(
+        projectionVertices[currentVertexIndex].xy,
+        fma(projectionVertices[currentVertexIndex].z, 0.5, 0.5),
+        1.0
+      );
+
+      outWorldSpacePosition[outIdx] = worldPos[currentVertexIndex];
+      outViewSpacePosition[outIdx] = viewSpacePosition.xyz;
+      outCameraRelativePosition[outIdx] = worldPos[currentVertexIndex] - cameraPosition;
+      outTangentSign[outIdx] = vec4(tangentSpace[0], normalSign.w);
+      outNormal[outIdx] = tangentSpace[2];
+      outTexCoord0[outIdx] = sv.texCoord0;
+      outTexCoord1[outIdx] = sv.texCoord1;
+      outColor0[outIdx] = ((pushConstants.drawFlags & 1u) != 0u) ? vec4(meshletDebugColor(meshletGlobalIndex), 1.0) : unpackColor0(sv);
+      outModelScale[outIdx] = modelScale;
+      outMaterialID[outIdx] = sv.materialID;
+      outInstanceDataIndex[outIdx] = drawInfo.instanceDataIndex | (((pushConstants.drawFlags & 1u) != 0u) ? 0x80000000u : 0u);
+      outAABBMin[outIdx] = aabbMin;
+      outAABBMax[outIdx] = aabbMax;
+      outCascadeIndex[outIdx] = cascadeIndex;
+      outVoxelPosition[outIdx] = fma(cascadeSpacePositions[currentVertexIndex], vec3(0.5), vec3(0.5));
+      outVertex0[outIdx] = worldPos[vertexIndexOrder[0]];
+      outVertex1[outIdx] = worldPos[vertexIndexOrder[1]];
+      outVertex2[outIdx] = worldPos[vertexIndexOrder[2]];
+    }
+
+    // Primitive triangle indices: sequential (3 unique vertices per primitive)
+    gl_PrimitiveTriangleIndicesEXT[i] = uvec3(baseVertex, baseVertex + 1u, baseVertex + 2u);
+
+    // Per-primitive gl_Layer for cascade routing
+    gl_MeshPrimitivesEXT[i].gl_Layer = int(cascadeIndex);
+  }
+
+#else
+
+  // --- Standard vertex processing ---
+  // Each thread handles up to ceil(vertexCount / MESH_GROUP_SIZE) vertices.
+  // With MESH_GROUP_SIZE=128 and max 256 vertices, each thread handles at most 2.
+  for(uint i = localID; i < vertexCount; i += MESH_GROUP_SIZE){
+
+    // Meshlet vertex remap: local index → global vertex index
+    uint globalVertexIdx = meshletVertBuf.vertices[desc.vertexOffset + i];
+
+    // Fetch vertex data via BDA (identical to mesh.vert)
+    PackedCachedVertex cv = cachedVerts.vertices[globalVertexIdx];
+    PackedStaticVertex sv = staticVerts.vertices[globalVertexIdx];
+
+    vec3 position = unpackPosition(cv);
+    vec4 normalSign = unpackNormalSign(cv);
+    vec3 tangent = unpackTangent(cv);
+    vec3 modelScale = unpackModelScale(cv);
+    vec2 texCoord0 = sv.texCoord0;
+    vec2 texCoord1 = sv.texCoord1;
+    vec4 color0 = unpackColor0(sv);
+    uint materialID = sv.materialID;
+
+    // Tangent space (identical to mesh.vert)
+    mat3 tangentSpace;
+    {
+      vec3 n = normalSign.xyz;
+      tangentSpace = mat3(normalize(tangent), normalize(cross(n, tangent)) * normalSign.w, normalize(n));
+    }
+
+    modelScale *= modelColumnLengths;
+    tangentSpace = adjugateModelMatrix * tangentSpace;
+
+    // Transform to view/clip space (identical to mesh.vert)
+    vec4 viewSpacePosition = modelViewMatrix * vec4(position, 1.0);
+    vec4 clipSpacePosition = view.projectionMatrix * viewSpacePosition;
+    viewSpacePosition.xyz /= viewSpacePosition.w;
+
+    vec3 worldSpacePosition = (modelMatrix * vec4(position, 1.0)).xyz;
+
+#ifdef MESH_SHADER_DEBUG_FRONT_FACING_WINDING_ISSUE
+    if(i == 0u){
+      debugPrintfEXT("  v0: pos=(%.3f,%.3f,%.3f) world=(%.3f,%.3f,%.3f) clip=(%.4f,%.4f,%.4f,%.4f)",
+                     position.x, position.y, position.z,
+                     worldSpacePosition.x, worldSpacePosition.y, worldSpacePosition.z,
+                     clipSpacePosition.x, clipSpacePosition.y, clipSpacePosition.z, clipSpacePosition.w);
+    }
+#endif
+
+    // Write per-vertex built-in outputs
+    gl_MeshVerticesEXT[i].gl_Position = clipSpacePosition;
+    gl_MeshVerticesEXT[i].gl_PointSize = 1.0;
+
+    // Write per-vertex varyings (same locations as mesh.vert)
+    outWorldSpacePosition[i] = worldSpacePosition;
+    outViewSpacePosition[i] = viewSpacePosition.xyz;
+    outCameraRelativePosition[i] = worldSpacePosition - cameraPosition;
+    outTangentSign[i] = vec4(tangentSpace[0], normalSign.w);
+    outNormal[i] = tangentSpace[2];
+    outTexCoord0[i] = texCoord0;
+    outTexCoord1[i] = texCoord1;
+    outColor0[i] = ((pushConstants.drawFlags & 1u) != 0u) ? vec4(meshletDebugColor(meshletGlobalIndex), 1.0) : color0;
+    outModelScale[i] = modelScale;
+    outMaterialID[i] = materialID;
+    outInstanceDataIndex[i] = drawInfo.instanceDataIndex | (((pushConstants.drawFlags & 1u) != 0u) ? 0x80000000u : 0u);
+    outViewIndex[i] = int(viewIndex);
+    outFrameIndex[i] = pushConstants.frameIndex;
+#ifdef VELOCITY
+    // Motion vectors (identical to mesh.vert)
+    uint generation = genBuf.generations[globalVertexIdx];
+    uint previousGeneration = prevGenBuf.generations[globalVertexIdx];
+    vec4 previousClipSpace;
+    if(generation != previousGeneration){
+      previousClipSpace = clipSpacePosition;
+    }else{
+      vec3 previousPosition = unpackPosition(prevCachedVerts.vertices[globalVertexIdx]);
+      previousClipSpace = prevModelViewProjectionMatrix * vec4(previousPosition, 1.0);
+    }
+    outCurrentClipSpace[i] = clipSpacePosition;
+    outPreviousClipSpace[i] = previousClipSpace;
+#endif
+  }
+
+  // --- Primitive processing ---
+  // Each thread handles up to ceil(primitiveCount / MESH_GROUP_SIZE) primitives.
+  // Unpack 3×uint8 triangle indices from each uint32.
+  for(uint i = localID; i < primitiveCount; i += MESH_GROUP_SIZE){
+    gl_PrimitiveTriangleIndicesEXT[i] = (uvec3(meshletPrimBuf.primitives[desc.primitiveOffset + i]) >> uvec3(0u, 8u, 16u)) & uvec3(0xffu);
+#ifdef USE_LAYER_ROUTING
+    // Route each primitive to the correct array layer (cascade)
+    gl_MeshPrimitivesEXT[i].gl_Layer = int(layerIndex);
+#endif
+  }
+
+#endif // VOXELIZATION
+
+}

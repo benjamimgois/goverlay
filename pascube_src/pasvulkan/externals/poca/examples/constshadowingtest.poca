@@ -1,0 +1,72 @@
+const textW = 100.0;
+const outer = 999;
+
+// Test 1: Shadow const in function with let
+let player = {
+  test: function() {
+    let textW = 50.0;
+    let t = 1;
+    t += textW;
+    puts("Test 1 - Shadow in function (expect 51): ", t);  
+  }
+};
+player.test();
+
+// Test 2: Use outer const when not shadowed
+function useOuter() {
+  let x = 1 + outer;
+  puts("Test 2 - Use outer const (expect 1000): ", x);
+}
+useOuter();
+
+// Test 3: Nested block scope shadowing
+function testBlockScope() {
+  let v = outer;
+  puts("Test 3a - Before block (expect 999): ", v);
+  scope {
+    let v = 50;
+    puts("Test 3b - Inside block (expect 50): ", v);
+  }
+  puts("Test 3c - After block (expect 999): ", v);
+}
+testBlockScope();
+
+// Test 4: Multiple nesting levels
+const deep = 1;
+function testDeepNesting() {
+  puts("Test 4a - Outer (expect 1): ", deep);
+  scope {
+    let deep = 2;
+    puts("Test 4b - Level 1 (expect 2): ", deep);
+    scope {
+      let deep = 3;
+      puts("Test 4c - Level 2 (expect 3): ", deep);
+    }
+    puts("Test 4d - Back to Level 1 (expect 2): ", deep);
+  }
+  puts("Test 4e - Back to outer (expect 1): ", deep);
+}
+testDeepNesting();
+
+// Test 5: Default parameter with outer const
+const defaultVal = 42;
+function testDefault(a = defaultVal) {
+  puts("Test 5 - Default param (expect 42): ", a);
+}
+testDefault();
+
+// Test 6: Explicit scope block
+const scopeConst = 100;
+scope {
+  let scopeConst = 200;
+  puts("Test 6 - Scope block shadow (expect 200): ", scopeConst);
+}
+
+// Test 7: Const in expression before shadow declaration evaluated
+function testExpressionOrder() {
+  let result = textW + 1;  // Should use outer textW=100
+  puts("Test 7 - Before shadow (expect 101): ", result);
+}
+testExpressionOrder();
+
+puts("\nAll tests completed!");

@@ -144,7 +144,7 @@ begin
                                                     TVkAccessFlags(VK_ACCESS_SHADER_READ_BIT) or TVkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT),
                                                     VK_QUEUE_FAMILY_IGNORED,
                                                     VK_QUEUE_FAMILY_IGNORED,
-                                                    fInstance.LockOrderIndependentTransparencyABufferBuffer.VulkanBuffer.Handle,
+                                                    fInstance.LockOrderIndependentTransparencyABufferBuffers[aInFlightFrameIndex].VulkanBuffer.Handle,
                                                     0,
                                                     VK_WHOLE_SIZE);
 
@@ -156,7 +156,7 @@ begin
                                                       TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                       VK_QUEUE_FAMILY_IGNORED,
                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                      fInstance.LockOrderIndependentTransparencyAuxImage.VulkanImage.Handle,
+                                                      fInstance.LockOrderIndependentTransparencyAuxImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                       ImageSubresourceRange);
 
  if fInstance.Renderer.TransparencyMode=TpvScene3DRendererTransparencyMode.SPINLOCKOIT then begin
@@ -166,7 +166,7 @@ begin
                                                        TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                        VK_QUEUE_FAMILY_IGNORED,
                                                        VK_QUEUE_FAMILY_IGNORED,
-                                                       fInstance.LockOrderIndependentTransparencySpinLockImage.VulkanImage.Handle,
+                                                       fInstance.LockOrderIndependentTransparencySpinLockImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                        ImageSubresourceRange);
   CountImageMemoryBarriers:=2;
  end else begin

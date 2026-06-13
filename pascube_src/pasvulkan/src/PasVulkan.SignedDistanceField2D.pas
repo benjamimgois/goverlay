@@ -241,20 +241,20 @@ type TpvSignedDistanceField2DVariant=
             end;
             TEdgeColor=
              (
-	            BLACK=0,
-	            RED=1,
-	            GREEN=2,
-	            YELLOW=3,
-	            BLUE=4,
-	            MAGENTA=5,
-	            CYAN=6,
-	            WHITE=7
+              BLACK=0,
+              RED=1,
+              GREEN=2,
+              YELLOW=3,
+              BLUE=4,
+              MAGENTA=5,
+              CYAN=6,
+              WHITE=7
              );
             TEdgeType=
              (
-	            LINEAR=0,
-	            QUADRATIC=1,
-	            CUBIC=2
+              LINEAR=0,
+              QUADRATIC=1,
+              CUBIC=2
              );
        const TOO_LARGE_RATIO=1e12;
              MSDFGEN_CUBIC_SEARCH_STARTS=8;
@@ -338,7 +338,7 @@ type TpvSignedDistanceField2DVariant=
        class procedure GenerateDistanceFieldPixel(var aImage:TpvSignedDistanceField2DMSDFGenerator.TImage;{$ifdef fpc}constref{$else}const{$endif} aShape:TpvSignedDistanceField2DMSDFGenerator.TShape;const aRange:TpvDouble;const aScale,aTranslate:TpvVectorPathVector;const aX,aY:TpvSizeInt); static;
        class procedure GenerateDistanceField(var aImage:TpvSignedDistanceField2DMSDFGenerator.TImage;{$ifdef fpc}constref{$else}const{$endif} aShape:TpvSignedDistanceField2DMSDFGenerator.TShape;const aRange:TpvDouble;const aScale,aTranslate:TpvVectorPathVector;const aPasMPInstance:TPasMP=nil); static;
        class function DetectClash({$ifdef fpc}constref{$else}const{$endif} a,b:TpvSignedDistanceField2DMSDFGenerator.TPixel;const aThreshold:TpvDouble):boolean; static;
-       class procedure ErrorCorrection(var aImage:TpvSignedDistanceField2DMSDFGenerator.TImage;const aThreshold:TpvVectorPathVector); static;
+       class procedure ErrorCorrection(var aImage:TpvSignedDistanceField2DMSDFGenerator.TImage;{$ifdef fpc}constref{$else}const{$endif} aShape:TpvSignedDistanceField2DMSDFGenerator.TShape;const aRange:TpvDouble;const aScale,aTranslate:TpvVectorPathVector); static;
      end;
 
      { TpvSignedDistanceField2DGenerator }
@@ -427,7 +427,7 @@ end;
 class function TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.Empty:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance;
 begin
  result.Distance:=TpvSignedDistanceField2DMSDFGenerator.NegativeInfinityDistance;
- result.Dot:=1.0;
+ result.Dot:=0.0;
 end;
 
 class operator TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.Equal(const a,b:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance):boolean;
@@ -442,22 +442,22 @@ end;
 
 class operator TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.LessThan(const a,b:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance):boolean;
 begin
- result:=(abs(a.Distance)<abs(b.Distance)) or (SameValue(a.Distance,b.Distance) and (a.Dot<b.Dot));
+ result:=(abs(a.Distance)<abs(b.Distance)) or (SameValue(abs(a.Distance),abs(b.Distance)) and (a.Dot<b.Dot));
 end;
 
 class operator TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.LessThanOrEqual(const a,b:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance):boolean;
 begin
- result:=(abs(a.Distance)<abs(b.Distance)) or (SameValue(a.Distance,b.Distance) and ((a.Dot<=b.Dot) or SameValue(a.Dot,b.Dot)));
+ result:=(abs(a.Distance)<abs(b.Distance)) or (SameValue(abs(a.Distance),abs(b.Distance)) and ((a.Dot<=b.Dot) or SameValue(a.Dot,b.Dot)));
 end;
 
 class operator TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.GreaterThan(const a,b:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance):boolean;
 begin
- result:=(abs(a.Distance)>abs(b.Distance)) or (SameValue(a.Distance,b.Distance) and (a.Dot>b.Dot));
+ result:=(abs(a.Distance)>abs(b.Distance)) or (SameValue(abs(a.Distance),abs(b.Distance)) and (a.Dot>b.Dot));
 end;
 
 class operator TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.GreaterThanOrEqual(const a,b:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance):boolean;
 begin
- result:=(abs(a.Distance)>abs(b.Distance)) or (SameValue(a.Distance,b.Distance) and ((a.Dot>=b.Dot) or SameValue(a.Dot,b.Dot)));
+ result:=(abs(a.Distance)>abs(b.Distance)) or (SameValue(abs(a.Distance),abs(b.Distance)) and ((a.Dot>=b.Dot) or SameValue(a.Dot,b.Dot)));
 end;
 
 { TpvSignedDistanceField2DMSDFGenerator.TBounds }
@@ -491,24 +491,42 @@ end;
 constructor TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Create(const aP0,aP1,aP2:TpvVectorPathVector;const aColor:TpvSignedDistanceField2DMSDFGenerator.TEdgeColor);
 begin
  Points[0]:=aP0;
- if (aP0=aP1) or (aP1=aP2) then begin
-  Points[1]:=aP0.Lerp(aP2,0.5);
+ if IsZero((aP1-aP0).Cross(aP2-aP1)) then begin
+  Points[1]:=aP2;
+  Color:=aColor;
+  Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.LINEAR;
  end else begin
   Points[1]:=aP1;
+  Points[2]:=aP2;
+  Color:=aColor;
+  Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.QUADRATIC;
  end;
- Points[2]:=aP2;
- Color:=aColor;
- Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.QUADRATIC;
 end;
 
 constructor TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Create(const aP0,aP1,aP2,aP3:TpvVectorPathVector;const aColor:TpvSignedDistanceField2DMSDFGenerator.TEdgeColor);
+var p12:TpvVectorPathVector;
 begin
  Points[0]:=aP0;
- Points[1]:=aP1;
- Points[2]:=aP2;
- Points[3]:=aP3;
- Color:=aColor;
- Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.CUBIC;
+ p12:=aP2-aP1;
+ if IsZero((aP1-aP0).Cross(p12)) and IsZero(p12.Cross(aP3-aP2)) then begin
+  Points[1]:=aP3;
+  Color:=aColor;
+  Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.LINEAR;
+ end else begin
+  p12:=(aP1*1.5)-(aP0*0.5);
+  if p12=((aP2*1.5)-(aP3*0.5)) then begin
+   Points[1]:=p12;
+   Points[2]:=aP3;
+   Color:=aColor;
+   Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.QUADRATIC;
+  end else begin
+   Points[1]:=aP1;
+   Points[2]:=aP2;
+   Points[3]:=aP3;
+   Color:=aColor;
+   Type_:=TpvSignedDistanceField2DMSDFGenerator.TEdgeType.CUBIC;
+  end;
+ end;
 end;
 
 function TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Point(const aParam:TpvDouble):TpvVectorPathVector;
@@ -555,7 +573,7 @@ end;
 
 function TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.MinSignedDistance(const aOrigin:TpvVectorPathVector;var aParam:TpvDouble):TpvSignedDistanceField2DMSDFGenerator.TSignedDistance;
 var aq,ab,eq,qa,br,epDir,qe,sa,d1,d2:TpvVectorPathVector;
-    EndPointDistance,OrthoDistance,a,b,c,d,MinDistance,Distance,Time:TpvDouble;
+    EndPointDistance,OrthoDistance,a,b,c,d,MinDistance,Distance,Time,ImprovedTime:TpvDouble;
     t:array[0..3] of TpvDouble;
     Solutions,Index,Step:TpvSizeInt;
 begin
@@ -585,20 +603,20 @@ begin
    d:=qa.Dot(ab);
    Solutions:=SolveCubic(t[0],t[1],t[2],a,b,c,d);
    epDir:=Direction(0);
-	 MinDistance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(qa))*qa.Length;
-	 aParam:=-(qa.Dot(epDir)/epDir.Dot(epDir));
+   MinDistance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(qa))*qa.Length;
+   aParam:=-(qa.Dot(epDir)/epDir.Dot(epDir));
    epDir:=Direction(1);
-	 Distance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(Points[2]-aOrigin))*((Points[2]-aOrigin).Length);
-	 if abs(Distance)<abs(MinDistance) then begin
-	  MinDistance:=Distance;
-	  aParam:=(aOrigin-Points[1]).Dot(epDir)/epDir.Dot(epDir);
+   Distance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(Points[2]-aOrigin))*((Points[2]-aOrigin).Length);
+   if abs(Distance)<abs(MinDistance) then begin
+    MinDistance:=Distance;
+    aParam:=(aOrigin-Points[1]).Dot(epDir)/epDir.Dot(epDir);
    end;
    for Index:=0 to Solutions-1 do begin
-		if (t[Index]>0.0) and (t[Index]<1.0) then begin
+    if (t[Index]>0.0) and (t[Index]<1.0) then begin
      qe:=(qa+(ab*(2.0*t[Index])))+(br*sqr(t[Index]));
      Distance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign((ab+(br*t[Index])).Cross(qe))*qe.Length;
-  	 if abs(Distance)<abs(MinDistance) then begin
-	    MinDistance:=Distance;
+     if abs(Distance)<=abs(MinDistance) then begin
+      MinDistance:=Distance;
       aParam:=t[Index];
      end;
     end;
@@ -617,33 +635,39 @@ begin
    br:=(Points[2]-Points[1])-ab;
    sa:=((Points[3]-Points[2])-(Points[2]-Points[1]))-br;
    epDir:=Direction(0);
-	 MinDistance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(qa))*qa.Length;
-	 aParam:=-qa.Dot(epDir)/epDir.Dot(epDir);
+   MinDistance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(qa))*qa.Length;
+   aParam:=-qa.Dot(epDir)/epDir.Dot(epDir);
    begin
     epDir:=Direction(1);
- 	  Distance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(Points[3]-aOrigin))*(Points[3]-aOrigin).Length;
- 	  aParam:=-qa.Dot(epDir)/epDir.Dot(epDir);
+    Distance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(epDir.Cross(Points[3]-aOrigin))*(Points[3]-aOrigin).Length;
     if abs(Distance)<abs(MinDistance) then begin
      MinDistance:=Distance;
      aParam:=(epDir-(Points[3]-aOrigin)).Dot(epDir)/epDir.Dot(epDir);
     end;
    end;
-   for Index:=0 to TpvSignedDistanceField2DMSDFGenerator.MSDFGEN_CUBIC_SEARCH_STARTS-1 do begin
+   for Index:=0 to TpvSignedDistanceField2DMSDFGenerator.MSDFGEN_CUBIC_SEARCH_STARTS do begin
     Time:=Index/TpvSignedDistanceField2DMSDFGenerator.MSDFGEN_CUBIC_SEARCH_STARTS;
     qe:=(((Points[0]+(ab*(3.0*Time)))+(br*(3.0*sqr(Time))))+(sa*(sqr(Time)*Time)))-aOrigin;
-    for Step:=0 to TpvSignedDistanceField2DMSDFGenerator.MSDFGEN_CUBIC_SEARCH_STEPS-1 do begin
-     d1:=((ab*3.0)+(br*(6.0*Time)))+(sa*(sqr(Time)*3.0));
-     d2:=(br*6.0)+(sa*(6.0*Time));
-     Time:=Time-(qe.Dot(d1)/(d1.Dot(d1)+qe.Dot(d2)));
-     if (Time>0.0) and (Time<1.0) then begin
+    d1:=((ab*3.0)+(br*(6.0*Time)))+(sa*(sqr(Time)*3.0));
+    d2:=(br*6.0)+(sa*(6.0*Time));
+    ImprovedTime:=Time-(qe.Dot(d1)/(d1.Dot(d1)+qe.Dot(d2)));
+    if (ImprovedTime>0.0) and (ImprovedTime<1.0) then begin
+     Step:=TpvSignedDistanceField2DMSDFGenerator.MSDFGEN_CUBIC_SEARCH_STEPS;
+     repeat
+      Time:=ImprovedTime;
       qe:=(((Points[0]+(ab*(3.0*Time)))+(br*(3.0*sqr(Time))))+(sa*(sqr(Time)*Time)))-aOrigin;
- 	    Distance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(d1.Cross(qe))*qe.Length();
-      if abs(Distance)<abs(MinDistance) then begin
-       MinDistance:=Distance;
-       aParam:=Time;
+      d1:=((ab*3.0)+(br*(6.0*Time)))+(sa*(sqr(Time)*3.0));
+      dec(Step);
+      if Step=0 then begin
+       break;
       end;
-     end else begin
-      break;
+      d2:=(br*6.0)+(sa*(6.0*Time));
+      ImprovedTime:=Time-(qe.Dot(d1)/(d1.Dot(d1)+qe.Dot(d2)));
+     until not ((ImprovedTime>0.0) and (ImprovedTime<1.0));
+     Distance:=qe.Length;
+     if Distance<abs(MinDistance) then begin
+      MinDistance:=TpvSignedDistanceField2DMSDFGenerator.NonZeroSign(d1.Cross(qe))*Distance;
+      aParam:=Time;
      end;
     end;
    end;
@@ -677,7 +701,7 @@ begin
   dir:=Direction(1).Normalize;
   bq:=aOrigin-Point(1);
   ts:=bq.Dot(dir);
-  if ts<0.0 then begin
+  if ts>0.0 then begin
    PseudoDistance:=bq.Cross(dir);
    if abs(PseudoDistance)<=abs(aDistance.Distance) then begin
     aDistance.Distance:=PseudoDistance;
@@ -744,7 +768,7 @@ begin
  case Type_ of
   TpvSignedDistanceField2DMSDFGenerator.TEdgeType.LINEAR:begin
    aPart1:=TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Create(Points[0],Point(1.0/3.0),Color);
-   aPart2:=TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Create(Point(2.0/3.0),Point(2.0/3.0),Color);
+   aPart2:=TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Create(Point(1.0/3.0),Point(2.0/3.0),Color);
    aPart3:=TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment.Create(Point(2.0/3.0),Points[1],Color);
   end;
   TpvSignedDistanceField2DMSDFGenerator.TEdgeType.QUADRATIC:begin
@@ -1040,7 +1064,7 @@ end;
 class function TpvSignedDistanceField2DMSDFGenerator.SolveCubicNormed(out x0,x1,x2:TpvDouble;a,b,c:TpvDouble):TpvSizeInt;
 const ONE_OVER_3=1.0/3.0;
       ONE_OVER_9=1.0/9.0;
-      ONE_OVER_54=1.0/9.0;
+      ONE_OVER_54=1.0/54.0;
       BoolSign:array[boolean] of TpvInt32=(-1,1);
 var a2,q,r,r2,q3,t,u,v:TpvDouble;
 begin
@@ -1133,36 +1157,22 @@ end;
 
 class function TpvSignedDistanceField2DMSDFGenerator.IsCorner(const aDirection,bDirection:TpvVectorPathVector;const aCrossThreshold:TpvDouble):boolean;
 begin
- result:=(aDirection.Dot(bDirection)<=0.0) or (abs(aDirection.Dot(bDirection))>aCrossThreshold);
+ result:=(aDirection.Dot(bDirection)<=0.0) or (abs(aDirection.Cross(bDirection))>aCrossThreshold);
 end;
 
 class procedure TpvSignedDistanceField2DMSDFGenerator.SwitchColor(var aColor:TpvSignedDistanceField2DMSDFGenerator.TEdgeColor;var aSeed:TpvUInt64;const aBanned:TpvSignedDistanceField2DMSDFGenerator.TEdgeColor=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.BLACK);
-const Start:array[0..2] of TpvSignedDistanceField2DMSDFGenerator.TEdgeColor=
-       (
-        TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.CYAN,
-        TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.MAGENTA,
-        TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.YELLOW
-       );
 var Combined:TpvSignedDistanceField2DMSDFGenerator.TEdgeColor;
-    Shifted:TpvUInt32;
+     Shifted:TpvUInt32;
 begin
  Combined:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor(TpvUInt32(TpvUInt32(aColor) and TpvUInt32(aBanned)));
- case Combined of
-  TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.RED,
-  TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.GREEN,
-  TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.BLUE:begin
-   aColor:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor(TpvUInt32(TpvUInt32(aColor) xor TpvUInt32(TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE)));
-  end;
-  TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.BLACK,
-  TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE:begin
-   aColor:=Start[aSeed mod 3];
-   aSeed:=aSeed div 3;
-  end;
-  else begin
-   Shifted:=TpvUInt32(aColor) shl (1+(aSeed and 1));
-   aColor:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor(TpvUInt32(TpvUInt32(Shifted or (Shifted shr 3)) and TpvUInt32(TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE)));
-   aSeed:=aSeed shr 1;
-  end;
+ if Combined in [TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.RED,
+                 TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.GREEN,
+                 TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.BLUE] then begin
+  aColor:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor(TpvUInt32(TpvUInt32(Combined) xor TpvUInt32(TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE)));
+ end else begin
+  Shifted:=TpvUInt32(aColor) shl (1+(aSeed and 1));
+  aColor:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor(TpvUInt32(TpvUInt32(Shifted or (Shifted shr 3)) and TpvUInt32(TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE)));
+  aSeed:=aSeed shr 1;
  end;
 end;
 
@@ -1177,8 +1187,24 @@ var ContourIndex,EdgeIndex,CountCorners,Corner,Spline,Start,Index:TpvSizeInt;
     Color,InitialColor:TpvSignedDistanceField2DMSDFGenerator.TEdgeColor;
     Colors:array[0..5] of TpvSignedDistanceField2DMSDFGenerator.TEdgeColor;
     Parts:array[0..6] of TpvSignedDistanceField2DMSDFGenerator.TEdgeSegment;
+ function InitializeColor(var aColorSeed:TpvUInt64):TpvSignedDistanceField2DMSDFGenerator.TEdgeColor;
+ const StartColors:array[0..2] of TpvSignedDistanceField2DMSDFGenerator.TEdgeColor=
+        (
+         TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.CYAN,
+         TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.MAGENTA,
+         TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.YELLOW
+        );
+ begin
+  result:=StartColors[aColorSeed mod 3];
+  aColorSeed:=aColorSeed div 3;
+ end;
+ function SymmetricalTrichotomy(const aPosition,aCount:TpvSizeInt):TpvSizeInt;
+ begin
+  result:=Trunc(3.0+(2.875*aPosition/(aCount-1))-1.4375+0.5)-3;
+ end;
 begin
  CrossThreshold:=sin(aAngleThreshold);
+ Color:=InitializeColor(aSeed);
  Corners:=nil;
  try
   for ContourIndex:=0 to aShape.Count-1 do begin
@@ -1200,26 +1226,28 @@ begin
      end;
      case CountCorners of
       0:begin
+       TpvSignedDistanceField2DMSDFGenerator.SwitchColor(Color,aSeed);
        for EdgeIndex:=0 to Contour^.Count-1 do begin
         Edge:=@Contour^.Edges[EdgeIndex];
-        Edge^.Color:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE;
+        Edge^.Color:=Color;
        end;
       end;
       1:begin
-       Colors[0]:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE;
-       TpvSignedDistanceField2DMSDFGenerator.SwitchColor(Colors[0],aSeed);
-       Colors[2]:=Colors[0];
-       TpvSignedDistanceField2DMSDFGenerator.SwitchColor(Colors[2],aSeed);
+       TpvSignedDistanceField2DMSDFGenerator.SwitchColor(Color,aSeed);
+       Colors[0]:=Color;
+       Colors[1]:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE;
+       TpvSignedDistanceField2DMSDFGenerator.SwitchColor(Color,aSeed);
+       Colors[2]:=Color;
        Corner:=Corners[0];
        if Contour.Count>=3 then begin
         for EdgeIndex:=0 to Contour.Count-1 do begin
          Edge:=@Contour^.Edges[(EdgeIndex+Corner) mod Contour.Count];
-         Edge^.Color:=Colors[3+trunc((((3+((2.875*EdgeIndex)/(Contour.Count-1)))-1.4375)+0.5)-3)];
+         Edge^.Color:=Colors[1+SymmetricalTrichotomy(EdgeIndex,Contour.Count)];
         end;
        end else if Contour.Count>=1 then begin
         Contour.Edges[0].SplitInThirds(Parts[(3*Corner)+0],Parts[(3*Corner)+1],Parts[(3*Corner)+2]);
         if Contour.Count>=2 then begin
-         Contour.Edges[0].SplitInThirds(Parts[3-(3*Corner)],Parts[4-(3*Corner)],Parts[5-(3*Corner)]);
+         Contour.Edges[1].SplitInThirds(Parts[3-(3*Corner)],Parts[4-(3*Corner)],Parts[5-(3*Corner)]);
          Parts[0].Color:=Colors[0];
          Parts[1].Color:=Colors[0];
          Parts[2].Color:=Colors[1];
@@ -1249,7 +1277,6 @@ begin
       else begin
        Spline:=0;
        Start:=Corners[0];
-       Color:=TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.WHITE;
        TpvSignedDistanceField2DMSDFGenerator.SwitchColor(Color,aSeed,TpvSignedDistanceField2DMSDFGenerator.TEdgeColor.BLACK);
        InitialColor:=Color;
        for EdgeIndex:=0 to Contour^.Count-1 do begin
@@ -1287,9 +1314,28 @@ var x,y,ContourIndex,EdgeIndex,Winding:TpvSizeInt;
     Param,MedianMinDistance,MinMedianDistance,
     PositiveDistance,NegativeDistance:TpvDouble;
     MinDistance,Distance:TpvSignedDistanceField2DMSDFGenerator.TSignedDistance;
-    HasMinDistance:boolean;
+    HasMinDistance,UseShapeDistanceFallback:boolean;
     Pixel:TpvSignedDistanceField2DMSDFGenerator.PPixel;
-    MultiSignedDistance:TMultiSignedDistance;
+    MultiSignedDistance,PositiveMultiSignedDistance,NegativeMultiSignedDistance,ShapeMultiSignedDistance:TMultiSignedDistance;
+    HasPositiveMultiSignedDistance,HasNegativeMultiSignedDistance:boolean;
+ procedure MergeMultiSignedDistance(var aTarget:TpvSignedDistanceField2DMSDFGenerator.TMultiSignedDistance;const aSource:TpvSignedDistanceField2DMSDFGenerator.TMultiSignedDistance;var aInitialized:boolean);
+ begin
+  if not aInitialized then begin
+   aTarget:=aSource;
+   aInitialized:=true;
+  end else begin
+   if abs(aSource.r)<abs(aTarget.r) then begin
+    aTarget.r:=aSource.r;
+   end;
+   if abs(aSource.g)<abs(aTarget.g) then begin
+    aTarget.g:=aSource.g;
+   end;
+   if abs(aSource.b)<abs(aTarget.b) then begin
+    aTarget.b:=aSource.b;
+   end;
+   aTarget.Median:=TpvSignedDistanceField2DMSDFGenerator.Median(aTarget.r,aTarget.g,aTarget.b);
+  end;
+ end;
 begin
 
  x:=aX;
@@ -1307,6 +1353,10 @@ begin
  PositiveDistance:=TpvSignedDistanceField2DMSDFGenerator.NegativeInfinityDistance;
 
  NegativeDistance:=TpvSignedDistanceField2DMSDFGenerator.PositiveInfinityDistance;
+
+ HasPositiveMultiSignedDistance:=false;
+
+ HasNegativeMultiSignedDistance:=false;
 
  MinDistance:=TpvSignedDistanceField2DMSDFGenerator.TSignedDistance.Empty;
  HasMinDistance:=false;
@@ -1397,26 +1447,26 @@ begin
    r.NearEdge^.DistanceToPseudoDistance(r.MinDistance,p,r.NearParam);
   end;
 
-  if assigned(r.NearEdge) then begin
+  if assigned(g.NearEdge) then begin
    g.NearEdge^.DistanceToPseudoDistance(g.MinDistance,p,g.NearParam);
   end;
 
-  if assigned(r.NearEdge) then begin
+  if assigned(b.NearEdge) then begin
    b.NearEdge^.DistanceToPseudoDistance(b.MinDistance,p,b.NearParam);
   end;
 
-  MedianMinDistance:=abs(TpvSignedDistanceField2DMSDFGenerator.Median(r.MinDistance.Distance,g.MinDistance.Distance,b.MinDistance.Distance));
+  MedianMinDistance:=TpvSignedDistanceField2DMSDFGenerator.Median(r.MinDistance.Distance,g.MinDistance.Distance,b.MinDistance.Distance);
   Contour^.MultiSignedDistance.r:=r.MinDistance.Distance;
   Contour^.MultiSignedDistance.g:=g.MinDistance.Distance;
   Contour^.MultiSignedDistance.b:=b.MinDistance.Distance;
   Contour^.MultiSignedDistance.Median:=MedianMinDistance;
 
   if abs(MedianMinDistance)<>1e240 then begin
-   if (Contour^.Winding>0) and (MedianMinDistance>=0) and (abs(MedianMinDistance)<abs(PositiveDistance)) then begin
-    PositiveDistance:=MedianMinDistance;
+   if (Contour^.Winding>0) and (MedianMinDistance>=0.0) then begin
+    MergeMultiSignedDistance(PositiveMultiSignedDistance,Contour^.MultiSignedDistance,HasPositiveMultiSignedDistance);
    end;
-   if (Contour^.Winding<0) and (MedianMinDistance<=0) and (abs(MedianMinDistance)<abs(NegativeDistance)) then begin
-    NegativeDistance:=MedianMinDistance;
+   if (Contour^.Winding<0) and (MedianMinDistance<=0.0) then begin
+    MergeMultiSignedDistance(NegativeMultiSignedDistance,Contour^.MultiSignedDistance,HasNegativeMultiSignedDistance);
    end;
   end;
  end;
@@ -1425,20 +1475,36 @@ begin
   sr.NearEdge^.DistanceToPseudoDistance(sr.MinDistance,p,sr.NearParam);
  end;
 
- if assigned(r.NearEdge) then begin
+ if assigned(sg.NearEdge) then begin
   sg.NearEdge^.DistanceToPseudoDistance(sg.MinDistance,p,sg.NearParam);
  end;
 
- if assigned(r.NearEdge) then begin
+ if assigned(sb.NearEdge) then begin
   sb.NearEdge^.DistanceToPseudoDistance(sb.MinDistance,p,sb.NearParam);
  end;
+
+ ShapeMultiSignedDistance.r:=sr.MinDistance.Distance;
+ ShapeMultiSignedDistance.g:=sg.MinDistance.Distance;
+ ShapeMultiSignedDistance.b:=sb.MinDistance.Distance;
+ ShapeMultiSignedDistance.Median:=TpvSignedDistanceField2DMSDFGenerator.Median(sr.MinDistance.Distance,sg.MinDistance.Distance,sb.MinDistance.Distance);
+
+ if HasPositiveMultiSignedDistance then begin
+  PositiveDistance:=PositiveMultiSignedDistance.Median;
+ end;
+
+ if HasNegativeMultiSignedDistance then begin
+  NegativeDistance:=NegativeMultiSignedDistance.Median;
+ end;
+
+ UseShapeDistanceFallback:=false;
 
  MultiSignedDistance.r:=TpvSignedDistanceField2DMSDFGenerator.NegativeInfinityDistance;
  MultiSignedDistance.g:=TpvSignedDistanceField2DMSDFGenerator.NegativeInfinityDistance;
  MultiSignedDistance.b:=TpvSignedDistanceField2DMSDFGenerator.NegativeInfinityDistance;
  MultiSignedDistance.Median:=TpvSignedDistanceField2DMSDFGenerator.NegativeInfinityDistance;
 
- if (PositiveDistance>=0.0) and (abs(PositiveDistance)<=abs(NegativeDistance)) then begin
+ if HasPositiveMultiSignedDistance and (PositiveDistance>=0.0) and (abs(PositiveDistance)<=abs(NegativeDistance)) then begin
+  MultiSignedDistance:=PositiveMultiSignedDistance;
   Winding:=1;
   for ContourIndex:=0 to aShape.Count-1 do begin
    Contour:=@aShape.Contours[ContourIndex];
@@ -1446,8 +1512,8 @@ begin
     MultiSignedDistance:=Contour^.MultiSignedDistance;
    end;
   end;
- end else if (NegativeDistance<=0.0) and (abs(NegativeDistance)<=abs(PositiveDistance)) then begin
-  MultiSignedDistance.Median:=-MultiSignedDistance.Median;
+ end else if HasNegativeMultiSignedDistance and (NegativeDistance<=0.0) and (abs(NegativeDistance)<abs(PositiveDistance)) then begin
+  MultiSignedDistance:=NegativeMultiSignedDistance;
   Winding:=-1;
   for ContourIndex:=0 to aShape.Count-1 do begin
    Contour:=@aShape.Contours[ContourIndex];
@@ -1455,19 +1521,23 @@ begin
     MultiSignedDistance:=Contour^.MultiSignedDistance;
    end;
   end;
+ end else begin
+  UseShapeDistanceFallback:=true;
+  MultiSignedDistance:=ShapeMultiSignedDistance;
  end;
 
- for ContourIndex:=0 to aShape.Count-1 do begin
-  Contour:=@aShape.Contours[ContourIndex];
-  if (Contour^.Winding<>Winding) and (abs(Contour^.MultiSignedDistance.Median)<abs(MultiSignedDistance.Median)) then begin
-   MultiSignedDistance:=Contour^.MultiSignedDistance;
+ if not UseShapeDistanceFallback then begin
+  for ContourIndex:=0 to aShape.Count-1 do begin
+   Contour:=@aShape.Contours[ContourIndex];
+   if (Contour^.Winding<>Winding) and (Contour^.MultiSignedDistance.Median*MultiSignedDistance.Median>=0.0) and (abs(Contour^.MultiSignedDistance.Median)<abs(MultiSignedDistance.Median)) then begin
+    MultiSignedDistance:=Contour^.MultiSignedDistance;
+   end;
   end;
- end;
-
- if SameValue(TpvSignedDistanceField2DMSDFGenerator.Median(sr.MinDistance.Distance,sg.MinDistance.Distance,sb.MinDistance.Distance),MultiSignedDistance.Median) then begin
-  MultiSignedDistance.r:=sr.MinDistance.Distance;
-  MultiSignedDistance.g:=sg.MinDistance.Distance;
-  MultiSignedDistance.b:=sb.MinDistance.Distance;
+  if SameValue(ShapeMultiSignedDistance.Median,MultiSignedDistance.Median) then begin
+   MultiSignedDistance.r:=ShapeMultiSignedDistance.r;
+   MultiSignedDistance.g:=ShapeMultiSignedDistance.g;
+   MultiSignedDistance.b:=ShapeMultiSignedDistance.b;
+  end;
  end;
 
  Pixel:=@aImage.Pixels[(aY*aImage.Width)+aX];
@@ -1475,11 +1545,6 @@ begin
  Pixel^.g:=(MultiSignedDistance.g/aRange)+0.5;
  Pixel^.b:=(MultiSignedDistance.b/aRange)+0.5;
  Pixel^.a:=(MinDistance.Distance/aRange)+0.5;
-
- if MultiSignedDistance.r<>0 then begin
-  if Pixel^.r>0 then begin
-  end;
- end;
 end;
 
 type TpvSignedDistanceField2DMSDFGeneratorGenerateDistanceFieldData=record
@@ -1561,79 +1626,500 @@ begin
  result:=(abs(b1-a1)>=aThreshold) and (not (SameValue(b0,b1) and SameValue(b0,b2))) and (abs(a2-0.5)>=abs(b2-0.5));
 end;
 
-class procedure TpvSignedDistanceField2DMSDFGenerator.ErrorCorrection(var aImage:TpvSignedDistanceField2DMSDFGenerator.TImage;const aThreshold:TpvVectorPathVector);
-type TClash=record
-      x,y:TpvSizeInt;
-     end;
-     PClash=^TClash;
-     TClashes=array of TClash;
-var x,y,Count,Index:TpvSizeInt;
-    Clashes:TClashes;
-    Clash:PClash;
+class procedure TpvSignedDistanceField2DMSDFGenerator.ErrorCorrection(var aImage:TpvSignedDistanceField2DMSDFGenerator.TImage;{$ifdef fpc}constref{$else}const{$endif} aShape:TpvSignedDistanceField2DMSDFGenerator.TShape;const aRange:TpvDouble;const aScale,aTranslate:TpvVectorPathVector);
+const ARTIFACT_T_EPSILON=0.01;
+      MIN_DEVIATION_RATIO=10.0/9.0;
+      PROTECTION_RADIUS_TOLERANCE=1.001;
+      STENCIL_ERROR=1;
+      STENCIL_PROTECTED=2;
+type TStencilArray=TpvUInt8DynamicArray;
+var Stencil:TStencilArray;
+    X,Y,ContourIndex,EdgeIndex:TpvSizeInt;
+    Contour:TpvSignedDistanceField2DMSDFGenerator.PContour;
+    Edge,PreviousEdge:TpvSignedDistanceField2DMSDFGenerator.PEdgeSegment;
+    CornerPoint:TpvVectorPathVector;
+    CornerX,CornerY,CornerEndX,CornerEndY:TpvSizeInt;
+    CommonColor:TpvSizeInt;
+    HorizontalSpan,VerticalSpan,DiagonalSpan,HorizontalProtectionRadius,VerticalProtectionRadius,DiagonalProtectionRadius,DistanceMappingDelta,InverseScaleX,InverseScaleY:TpvDouble;
+    PixelA,PixelB,PixelC,PixelD:TpvSignedDistanceField2DMSDFGenerator.PPixel;
+    CurrentMedian,MedianValue,MedianValueA,MedianValueB:TpvDouble;
+    EdgeMask:TpvSizeInt;
     Pixel:TpvSignedDistanceField2DMSDFGenerator.PPixel;
-    Median:TpvDouble;
-begin
 
- Clashes:=nil;
- Count:=0;
- try
-  for y:=0 to aImage.Height-1 do begin
-   for x:=0 to aImage.Width-1 do begin
-    if ((x>0) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[(y*aImage.Width)+(x-1)],aThreshold.x)) or
-       ((x<(aImage.Width-1)) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[(y*aImage.Width)+(x+1)],aThreshold.x)) or
-		   ((y>0) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[((y-1)*aImage.Width)+x],aThreshold.y)) or
-       ((y<(aImage.Height-1)) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[((y+1)*aImage.Width)+x],aThreshold.y)) then begin
-     if Count>=length(Clashes) then begin
-      SetLength(Clashes,(Count+1)+((Count+1) shr 1));
-     end;
-     Clash:=@Clashes[Count];
-     inc(Count);
-     Clash^.x:=x;
-     Clash^.y:=y;
-    end;
+ function PixelChannel(const aPixel:TpvSignedDistanceField2DMSDFGenerator.TPixel;const aChannel:TpvSizeInt):TpvDouble;
+ begin
+  case aChannel of
+   0:begin
+    result:=aPixel.r;
+   end;
+   1:begin
+    result:=aPixel.g;
+   end;
+   else begin
+    result:=aPixel.b;
    end;
   end;
-  for Index:=0 to Count-1 do begin
-   Clash:=@Clashes[Index];
-   Pixel:=@aImage.Pixels[(Clash^.y*aImage.Width)+Clash^.x];
-   Median:=TpvSignedDistanceField2DMSDFGenerator.Median(Pixel^.r,Pixel^.g,Pixel^.b);
-   Pixel^.r:=Median;
-   Pixel^.g:=Median;
-   Pixel^.b:=Median;
-  end;
- finally
-  Clashes:=nil;
  end;
 
- Clashes:=nil;
- Count:=0;
- try
-  for y:=0 to aImage.Height-1 do begin
-   for x:=0 to aImage.Width-1 do begin
-    if ((x>0) and (y>0) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[((y-1)*aImage.Width)+(x-1)],aThreshold.x)) or
-       ((x<(aImage.Width-1)) and (y>0) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[((y-1)*aImage.Width)+(x+1)],aThreshold.x)) or
-		   ((x>0) and (y<(aImage.Height-1)) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[((y+1)*aImage.Width)+(x-1)],aThreshold.y)) or
-       ((x<(aImage.Width-1)) and (y<(aImage.Height-1)) and TpvSignedDistanceField2DMSDFGenerator.DetectClash(aImage.Pixels[(y*aImage.Width)+x],aImage.Pixels[((y+1)*aImage.Width)+(x+1)],aThreshold.y)) then begin
-     if Count>=length(Clashes) then begin
-      SetLength(Clashes,(Count+1)+((Count+1) shr 1));
+ function LinearMedian(const aA,aB:TpvSignedDistanceField2DMSDFGenerator.TPixel;const aTime:TpvDouble):TpvDouble;
+ var InverseTime:TpvDouble;
+ begin
+  InverseTime:=1.0-aTime;
+  result:=TpvSignedDistanceField2DMSDFGenerator.Median((aA.r*InverseTime)+(aB.r*aTime),
+                                                       (aA.g*InverseTime)+(aB.g*aTime),
+                                                       (aA.b*InverseTime)+(aB.b*aTime));
+ end;
+
+ function BilinearMedian(const aA:TpvSignedDistanceField2DMSDFGenerator.TPixel;
+                         const aLinear,aQuadratic:array of TpvDouble;
+                         const aTime:TpvDouble):TpvDouble;
+ begin
+  result:=TpvSignedDistanceField2DMSDFGenerator.Median((aTime*((aTime*aQuadratic[0])+aLinear[0]))+aA.r,
+                                                       (aTime*((aTime*aQuadratic[1])+aLinear[1]))+aA.g,
+                                                       (aTime*((aTime*aQuadratic[2])+aLinear[2]))+aA.b);
+ end;
+
+ function RangeTest(const aATime,aBTime,aXTime,aAMedian,aBMedian,aXMedian,aSpan:TpvDouble;const aProtected:boolean):TpvSizeInt;
+ var AXSpan,BXSpan:TpvDouble;
+ begin
+  if ((aAMedian>0.5) and (aBMedian>0.5) and (aXMedian<=0.5)) or
+     ((aAMedian<0.5) and (aBMedian<0.5) and (aXMedian>=0.5)) or
+     ((not aProtected) and (TpvSignedDistanceField2DMSDFGenerator.Median(aAMedian,aBMedian,aXMedian)<>aXMedian)) then begin
+   AXSpan:=(aXTime-aATime)*aSpan;
+   BXSpan:=(aBTime-aXTime)*aSpan;
+   if not ((aXMedian>=(aAMedian-AXSpan)) and (aXMedian<=(aAMedian+AXSpan)) and (aXMedian>=(aBMedian-BXSpan)) and (aXMedian<=(aBMedian+BXSpan))) then begin
+    result:=3;
+   end else begin
+    result:=1;
+   end;
+  end else begin
+   result:=0;
+  end;
+ end;
+
+ function HasLinearArtifactInner(const aAm,aBm:TpvDouble;
+                                 const aA,aB:TpvSignedDistanceField2DMSDFGenerator.TPixel;
+                                 const aDA,aDB,aSpan:TpvDouble;
+                                 const aProtected:boolean):boolean;
+ var xT,xM:TpvDouble;
+ begin
+  if abs(aDA-aDB)>=1e-15 then begin
+   xT:=aDA/(aDA-aDB);
+   if (xT>ARTIFACT_T_EPSILON) and (xT<(1.0-ARTIFACT_T_EPSILON)) then begin
+    xM:=LinearMedian(aA,aB,xT);
+    result:=(RangeTest(0.0,1.0,xT,aAm,aBm,xM,aSpan,aProtected) and 2)<>0;
+   end else begin
+    result:=false;
+   end;
+  end else begin
+   result:=false;
+  end;
+ end;
+
+ function HasLinearArtifact(const aCurrentMedian:TpvDouble;
+                            const aCurrentPixel,aNeighborPixel:TpvSignedDistanceField2DMSDFGenerator.TPixel;
+                            const aSpan:TpvDouble;const aProtected:boolean):boolean;
+ var NeighborMedian:TpvDouble;
+ begin
+  NeighborMedian:=TpvSignedDistanceField2DMSDFGenerator.Median(aNeighborPixel.r,aNeighborPixel.g,aNeighborPixel.b);
+  if abs(aCurrentMedian-0.5)>=abs(NeighborMedian-0.5) then begin
+   result:=HasLinearArtifactInner(aCurrentMedian,NeighborMedian,aCurrentPixel,aNeighborPixel,
+                                  aCurrentPixel.g-aCurrentPixel.r,aNeighborPixel.g-aNeighborPixel.r,aSpan,aProtected) or
+           HasLinearArtifactInner(aCurrentMedian,NeighborMedian,aCurrentPixel,aNeighborPixel,
+                                  aCurrentPixel.b-aCurrentPixel.g,aNeighborPixel.b-aNeighborPixel.g,aSpan,aProtected) or
+           HasLinearArtifactInner(aCurrentMedian,NeighborMedian,aCurrentPixel,aNeighborPixel,
+                                  aCurrentPixel.r-aCurrentPixel.b,aNeighborPixel.r-aNeighborPixel.b,aSpan,aProtected);
+  end else begin
+   result:=false;
+  end;
+ end;
+
+ function HasDiagonalArtifactInner(const aAMedian,aDMedian:TpvDouble;
+                                   const aA:TpvSignedDistanceField2DMSDFGenerator.TPixel;
+                                   const aLinearCoefficients,aQuadraticCoefficients:array of TpvDouble;
+                                   const aDeltaA,aDeltaBC,aDeltaD,aTimeExtrema0,aTimeExtrema1,aSpan:TpvDouble;
+                                   const aProtected:boolean):boolean;
+ var Solutions,Index,Flags:TpvSizeInt;
+     XMedian:TpvDouble;
+     Times,TimeEnd,EndMedians:array[0..1] of TpvDouble;
+ begin
+  result:=false;
+  Solutions:=TpvSignedDistanceField2DMSDFGenerator.SolveQuadratic(Times[0],Times[1],aDeltaD-aDeltaBC+aDeltaA,aDeltaBC-aDeltaA-aDeltaA,aDeltaA);
+  for Index:=0 to Solutions-1 do begin
+   if (Times[Index]>ARTIFACT_T_EPSILON) and (Times[Index]<1.0-ARTIFACT_T_EPSILON) then begin
+    XMedian:=BilinearMedian(aA,aLinearCoefficients,aQuadraticCoefficients,Times[Index]);
+    Flags:=RangeTest(0,1,Times[Index],aAMedian,aDMedian,XMedian,aSpan,aProtected);
+    if (aTimeExtrema0>0) and (aTimeExtrema0<1) then begin
+     TimeEnd[0]:=0;
+     TimeEnd[1]:=1;
+     EndMedians[0]:=aAMedian;
+     EndMedians[1]:=aDMedian;
+     if aTimeExtrema0>Times[Index] then begin
+      TimeEnd[1]:=aTimeExtrema0;
+      EndMedians[1]:=BilinearMedian(aA,aLinearCoefficients,aQuadraticCoefficients,aTimeExtrema0);
+     end else begin
+      TimeEnd[0]:=aTimeExtrema0;
+      EndMedians[0]:=BilinearMedian(aA,aLinearCoefficients,aQuadraticCoefficients,aTimeExtrema0);
      end;
-     Clash:=@Clashes[Count];
-     inc(Count);
-     Clash^.x:=x;
-     Clash^.y:=y;
+     Flags:=Flags or RangeTest(TimeEnd[0],TimeEnd[1],Times[Index],EndMedians[0],EndMedians[1],XMedian,aSpan,aProtected);
+    end;
+    if (aTimeExtrema1>0) and (aTimeExtrema1<1) then begin
+     TimeEnd[0]:=0;
+     TimeEnd[1]:=1;
+     EndMedians[0]:=aAMedian;
+     EndMedians[1]:=aDMedian;
+     if aTimeExtrema1>Times[Index] then begin
+      TimeEnd[1]:=aTimeExtrema1;
+      EndMedians[1]:=BilinearMedian(aA,aLinearCoefficients,aQuadraticCoefficients,aTimeExtrema1);
+     end else begin
+      TimeEnd[0]:=aTimeExtrema1;
+      EndMedians[0]:=BilinearMedian(aA,aLinearCoefficients,aQuadraticCoefficients,aTimeExtrema1);
+     end;
+     Flags:=Flags or RangeTest(TimeEnd[0],TimeEnd[1],Times[Index],EndMedians[0],EndMedians[1],XMedian,aSpan,aProtected);
+    end;
+    if (Flags and 2)<>0 then begin
+     result:=true;
+     exit;
     end;
    end;
   end;
-  for Index:=0 to Count-1 do begin
-   Clash:=@Clashes[Index];
-   Pixel:=@aImage.Pixels[(Clash^.y*aImage.Width)+Clash^.x];
-   Median:=TpvSignedDistanceField2DMSDFGenerator.Median(Pixel^.r,Pixel^.g,Pixel^.b);
-   Pixel^.r:=Median;
-   Pixel^.g:=Median;
-   Pixel^.b:=Median;
+ end;
+
+ function HasDiagonalArtifact(const aAMedian:TpvDouble;
+                              const aA,aB,aC,aD:TpvSignedDistanceField2DMSDFGenerator.TPixel;
+                              const aSpan:TpvDouble;const aProtected:boolean):boolean;
+ var DiagonalMedian:TpvDouble;
+     BilinearCross:array[0..2] of TpvDouble;
+     LinearCoefficients:array[0..2] of TpvDouble;
+     QuadraticCoefficients:array[0..2] of TpvDouble;
+     TimeExtrema:array[0..2] of TpvDouble;
+     Index:TpvSizeInt;
+ begin
+  DiagonalMedian:=TpvSignedDistanceField2DMSDFGenerator.Median(aD.r,aD.g,aD.b);
+  if abs(aAMedian-0.5)>=abs(DiagonalMedian-0.5) then begin
+   BilinearCross[0]:=(aA.r-aB.r)-aC.r;
+   BilinearCross[1]:=(aA.g-aB.g)-aC.g;
+   BilinearCross[2]:=(aA.b-aB.b)-aC.b;
+   LinearCoefficients[0]:=(-aA.r)-BilinearCross[0];
+   LinearCoefficients[1]:=(-aA.g)-BilinearCross[1];
+   LinearCoefficients[2]:=(-aA.b)-BilinearCross[2];
+   QuadraticCoefficients[0]:=aD.r+BilinearCross[0];
+   QuadraticCoefficients[1]:=aD.g+BilinearCross[1];
+   QuadraticCoefficients[2]:=aD.b+BilinearCross[2];
+   for Index:=0 to 2 do begin
+    if abs(QuadraticCoefficients[Index])>1e-15 then begin
+     TimeExtrema[Index]:=(-0.5)*(LinearCoefficients[Index]/QuadraticCoefficients[Index]);
+    end else begin
+     TimeExtrema[Index]:=-1.0;
+    end;
+   end;
+   result:=HasDiagonalArtifactInner(aAMedian,DiagonalMedian,
+                                    aA,LinearCoefficients,QuadraticCoefficients,
+                                    aA.g-aA.r,((aB.g-aB.r)+aC.g)-aC.r,aD.g-aD.r,
+                                    TimeExtrema[0],TimeExtrema[1],aSpan,aProtected) or
+           HasDiagonalArtifactInner(aAMedian,DiagonalMedian,
+                                    aA,LinearCoefficients,QuadraticCoefficients,
+                                    aA.b-aA.g,((aB.b-aB.g)+aC.b)-aC.g,aD.b-aD.g,
+                                    TimeExtrema[1],TimeExtrema[2],aSpan,aProtected) or
+           HasDiagonalArtifactInner(aAMedian,DiagonalMedian,
+                                    aA,LinearCoefficients,QuadraticCoefficients,
+                                    aA.r-aA.b,((aB.r-aB.b)+aC.r)-aC.b,aD.r-aD.b,
+                                    TimeExtrema[2],TimeExtrema[0],aSpan,aProtected);
+  end else begin
+   result:=false;
   end;
- finally
-  Clashes:=nil;
+ end;
+
+ function EdgeBetweenTexelsChannel(const aA,aB:TpvSignedDistanceField2DMSDFGenerator.TPixel;const aChannel:TpvSizeInt):boolean;
+ var ChannelValueA,ChannelValueB,InterpolationTime:TpvDouble;
+     InterpolatedChannels:array[0..2] of TpvDouble;
+ begin
+  ChannelValueA:=PixelChannel(aA,aChannel);
+  ChannelValueB:=PixelChannel(aB,aChannel);
+  if abs(ChannelValueA-ChannelValueB)>=1e-15 then begin
+   InterpolationTime:=(ChannelValueA-0.5)/(ChannelValueA-ChannelValueB);
+   if (InterpolationTime>0) and (InterpolationTime<1) then begin
+    InterpolatedChannels[0]:=aA.r+InterpolationTime*(aB.r-aA.r);
+    InterpolatedChannels[1]:=aA.g+InterpolationTime*(aB.g-aA.g);
+    InterpolatedChannels[2]:=aA.b+InterpolationTime*(aB.b-aA.b);
+    result:=TpvSignedDistanceField2DMSDFGenerator.Median(InterpolatedChannels[0],
+                                                         InterpolatedChannels[1],
+                                                         InterpolatedChannels[2])=InterpolatedChannels[aChannel];
+   end else begin
+    result:=false;
+   end;
+  end else begin
+   result:=false;
+  end;
+ end;
+
+ function EdgeBetweenTexels(const aA,aB:TpvSignedDistanceField2DMSDFGenerator.TPixel):TpvSizeInt; inline;
+ begin
+  result:=0;
+  if EdgeBetweenTexelsChannel(aA,aB,0) then begin
+   inc(result,1);
+  end;
+  if EdgeBetweenTexelsChannel(aA,aB,1) then begin
+   inc(result,2);
+  end;
+  if EdgeBetweenTexelsChannel(aA,aB,2) then begin
+   inc(result,4);
+  end;
+ end;
+
+ procedure ProtectExtremeChannels(const aStencil:PpvUInt8;const aMSD:TpvSignedDistanceField2DMSDFGenerator.TPixel;const aMedian:TpvDouble;const aMask:TpvSizeInt); inline;
+ begin
+  if ((aMask and 1)<>0) and (aMSD.r<>aMedian) then begin
+   aStencil^:=aStencil^ or STENCIL_PROTECTED;
+   exit;
+  end;
+  if ((aMask and 2)<>0) and (aMSD.g<>aMedian) then begin
+   aStencil^:=aStencil^ or STENCIL_PROTECTED;
+   exit;
+  end;
+  if ((aMask and 4)<>0) and (aMSD.b<>aMedian) then begin
+   aStencil^:=aStencil^ or STENCIL_PROTECTED;
+  end;
+ end;
+
+begin
+
+ if (aImage.Width>0) and (aImage.Height>0) then begin
+
+  if abs(aScale.x)>1e-15 then begin
+   InverseScaleX:=1.0/abs(aScale.x);
+  end else begin
+   InverseScaleX:=1.0;
+  end;
+  if abs(aScale.y)>1e-15 then begin
+   InverseScaleY:=1.0/abs(aScale.y);
+  end else begin
+   InverseScaleY:=1.0;
+  end;
+  DistanceMappingDelta:=1.0/aRange;
+  HorizontalSpan:=MIN_DEVIATION_RATIO*DistanceMappingDelta*InverseScaleX;
+  VerticalSpan:=MIN_DEVIATION_RATIO*DistanceMappingDelta*InverseScaleY;
+  DiagonalSpan:=MIN_DEVIATION_RATIO*DistanceMappingDelta*Sqrt(sqr(InverseScaleX)+sqr(InverseScaleY));
+  HorizontalProtectionRadius:=PROTECTION_RADIUS_TOLERANCE*DistanceMappingDelta*InverseScaleX;
+  VerticalProtectionRadius:=PROTECTION_RADIUS_TOLERANCE*DistanceMappingDelta*InverseScaleY;
+  DiagonalProtectionRadius:=PROTECTION_RADIUS_TOLERANCE*DistanceMappingDelta*Sqrt(sqr(InverseScaleX)+sqr(InverseScaleY));
+
+  SetLength(Stencil,aImage.Width*aImage.Height);
+  FillChar(Stencil[0],length(Stencil)*SizeOf(TpvUInt8),0);
+
+  // ProtectCorners
+  for ContourIndex:=0 to aShape.Count-1 do begin
+   Contour:=@aShape.Contours[ContourIndex];
+   if Contour^.Count>0 then begin
+    PreviousEdge:=@Contour^.Edges[Contour^.Count-1];
+    for EdgeIndex:=0 to Contour^.Count-1 do begin
+     Edge:=@Contour^.Edges[EdgeIndex];
+     CommonColor:=TpvSizeInt(PreviousEdge^.Color) and TpvSizeInt(Edge^.Color);
+     if (CommonColor and (CommonColor-1))=0 then begin
+      CornerPoint:=Edge^.Points[0];
+      CornerPoint.x:=CornerPoint.x*aScale.x+aTranslate.x;
+      CornerPoint.y:=CornerPoint.y*aScale.y+aTranslate.y;
+      CornerX:=TpvSizeInt(Floor(CornerPoint.x-0.5));
+      CornerY:=TpvSizeInt(Floor(CornerPoint.y-0.5));
+      CornerEndX:=CornerX+1;
+      CornerEndY:=CornerY+1;
+      if (CornerX>=0) and (CornerY>=0) and (CornerX<aImage.Width) and (CornerY<aImage.Height) then begin
+       Stencil[CornerY*aImage.Width+CornerX]:=Stencil[CornerY*aImage.Width+CornerX] or STENCIL_PROTECTED;
+      end;
+      if (CornerEndX>=0) and (CornerY>=0) and (CornerEndX<aImage.Width) and (CornerY<aImage.Height) then begin
+       Stencil[CornerY*aImage.Width+CornerEndX]:=Stencil[CornerY*aImage.Width+CornerEndX] or STENCIL_PROTECTED;
+      end;
+      if (CornerX>=0) and (CornerEndY>=0) and (CornerX<aImage.Width) and (CornerEndY<aImage.Height) then begin
+       Stencil[CornerEndY*aImage.Width+CornerX]:=Stencil[CornerEndY*aImage.Width+CornerX] or STENCIL_PROTECTED;
+      end;
+      if (CornerEndX>=0) and (CornerEndY>=0) and (CornerEndX<aImage.Width) and (CornerEndY<aImage.Height) then begin
+       Stencil[CornerEndY*aImage.Width+CornerEndX]:=Stencil[CornerEndY*aImage.Width+CornerEndX] or STENCIL_PROTECTED;
+      end;
+     end;
+     PreviousEdge:=Edge;
+    end;
+   end;
+  end;
+
+  // ProtectEdges: horizontal
+  for Y:=0 to aImage.Height-1 do begin
+   for X:=0 to aImage.Width-2 do begin
+    PixelA:=@aImage.Pixels[(Y*aImage.Width)+X];
+    PixelB:=@aImage.Pixels[(Y*aImage.Width)+(X+1)];
+    MedianValueA:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelA^.r,PixelA^.g,PixelA^.b);
+    MedianValueB:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelB^.r,PixelB^.g,PixelB^.b);
+    if (abs(MedianValueA-0.5)+abs(MedianValueB-0.5))<HorizontalProtectionRadius then begin
+     EdgeMask:=EdgeBetweenTexels(PixelA^,PixelB^);
+     if EdgeMask<>0 then begin
+      ProtectExtremeChannels(@Stencil[(Y*aImage.Width)+X],PixelA^,MedianValueA,EdgeMask);
+      ProtectExtremeChannels(@Stencil[(Y*aImage.Width)+(X+1)],PixelB^,MedianValueB,EdgeMask);
+     end;
+    end;
+   end;
+  end;
+
+  // ProtectEdges: vertical
+  for Y:=0 to aImage.Height-2 do begin
+   for X:=0 to aImage.Width-1 do begin
+    PixelA:=@aImage.Pixels[(Y*aImage.Width)+X];
+    PixelB:=@aImage.Pixels[((Y+1)*aImage.Width)+X];
+    MedianValueA:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelA^.r,PixelA^.g,PixelA^.b);
+    MedianValueB:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelB^.r,PixelB^.g,PixelB^.b);
+    if (abs(MedianValueA-0.5)+abs(MedianValueB-0.5))<VerticalProtectionRadius then begin
+     EdgeMask:=EdgeBetweenTexels(PixelA^,PixelB^);
+     if EdgeMask<>0 then begin
+      ProtectExtremeChannels(@Stencil[(Y*aImage.Width)+X],PixelA^,MedianValueA,EdgeMask);
+      ProtectExtremeChannels(@Stencil[((Y+1)*aImage.Width)+X],PixelB^,MedianValueB,EdgeMask);
+     end;
+    end;
+   end;
+  end;
+
+  // ProtectEdges: diagonal (\)
+  for Y:=0 to aImage.Height-2 do begin
+   for X:=0 to aImage.Width-2 do begin
+    PixelA:=@aImage.Pixels[(Y*aImage.Width)+X];
+    PixelB:=@aImage.Pixels[((Y+1)*aImage.Width)+(X+1)];
+    MedianValueA:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelA^.r,PixelA^.g,PixelA^.b);
+    MedianValueB:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelB^.r,PixelB^.g,PixelB^.b);
+    if (abs(MedianValueA-0.5)+abs(MedianValueB-0.5))<DiagonalProtectionRadius then begin
+     EdgeMask:=EdgeBetweenTexels(PixelA^,PixelB^);
+     if EdgeMask<>0 then begin
+      ProtectExtremeChannels(@Stencil[(Y*aImage.Width)+X],PixelA^,MedianValueA,EdgeMask);
+      ProtectExtremeChannels(@Stencil[((Y+1)*aImage.Width)+(X+1)],PixelB^,MedianValueB,EdgeMask);
+     end;
+    end;
+   end;
+  end;
+
+  // ProtectEdges: diagonal (/)
+  for Y:=0 to aImage.Height-2 do begin
+   for X:=1 to aImage.Width-1 do begin
+    PixelA:=@aImage.Pixels[(Y*aImage.Width)+X];
+    PixelB:=@aImage.Pixels[((Y+1)*aImage.Width)+(X-1)];
+    MedianValueA:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelA^.r,PixelA^.g,PixelA^.b);
+    MedianValueB:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelB^.r,PixelB^.g,PixelB^.b);
+    if (abs(MedianValueA-0.5)+abs(MedianValueB-0.5))<DiagonalProtectionRadius then begin
+     EdgeMask:=EdgeBetweenTexels(PixelA^,PixelB^);
+     if EdgeMask<>0 then begin
+      ProtectExtremeChannels(@Stencil[(Y*aImage.Width)+X],PixelA^,MedianValueA,EdgeMask);
+      ProtectExtremeChannels(@Stencil[((Y+1)*aImage.Width)+(X-1)],PixelB^,MedianValueB,EdgeMask);
+     end;
+    end;
+   end;
+  end;
+
+  // FindErrors
+  for Y:=0 to aImage.Height-1 do begin
+   for X:=0 to aImage.Width-1 do begin
+    if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+     PixelA:=@aImage.Pixels[(Y*aImage.Width)+X];
+     CurrentMedian:=TpvSignedDistanceField2DMSDFGenerator.Median(PixelA^.r,PixelA^.g,PixelA^.b);
+     if X>0 then begin
+      PixelB:=@aImage.Pixels[(Y*aImage.Width)+(X-1)];
+      if HasLinearArtifact(CurrentMedian,PixelA^,PixelB^,HorizontalSpan,
+                           (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+       Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if X<aImage.Width-1 then begin
+       PixelB:=@aImage.Pixels[(Y*aImage.Width)+(X+1)];
+       if HasLinearArtifact(CurrentMedian,PixelA^,PixelB^,HorizontalSpan,
+                            (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if Y>0 then begin
+       PixelB:=@aImage.Pixels[((Y-1)*aImage.Width)+X];
+       if HasLinearArtifact(CurrentMedian,PixelA^,PixelB^,VerticalSpan,
+                            (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if Y<aImage.Height-1 then begin
+       PixelB:=@aImage.Pixels[((Y+1)*aImage.Width)+X];
+       if HasLinearArtifact(CurrentMedian,PixelA^,PixelB^,VerticalSpan,
+                            (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if (X>0) and (Y>0) then begin
+       if HasDiagonalArtifact(CurrentMedian,
+                              aImage.Pixels[(Y*aImage.Width)+X],
+                              aImage.Pixels[(Y*aImage.Width)+(X-1)],
+                              aImage.Pixels[((Y-1)*aImage.Width)+X],
+                              aImage.Pixels[((Y-1)*aImage.Width)+(X-1)],
+                              DiagonalSpan,
+                              (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if (X<aImage.Width-1) and (Y>0) then begin
+       if HasDiagonalArtifact(CurrentMedian,
+                              aImage.Pixels[(Y*aImage.Width)+X],
+                              aImage.Pixels[(Y*aImage.Width)+(X+1)],
+                              aImage.Pixels[((Y-1)*aImage.Width)+X],
+                              aImage.Pixels[((Y-1)*aImage.Width)+(X+1)],
+                              DiagonalSpan,
+                              (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if (X>0) and (Y<aImage.Height-1) then begin
+       if HasDiagonalArtifact(CurrentMedian,
+                              aImage.Pixels[(Y*aImage.Width)+X],
+                              aImage.Pixels[(Y*aImage.Width)+(X-1)],
+                              aImage.Pixels[((Y+1)*aImage.Width)+X],
+                              aImage.Pixels[((Y+1)*aImage.Width)+(X-1)],
+                              DiagonalSpan,
+                              (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+     if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)=0 then begin
+      if (X<aImage.Width-1) and (Y<aImage.Height-1) then begin
+       if HasDiagonalArtifact(CurrentMedian,
+                              aImage.Pixels[(Y*aImage.Width)+X],
+                              aImage.Pixels[(Y*aImage.Width)+(X+1)],
+                              aImage.Pixels[((Y+1)*aImage.Width)+X],
+                              aImage.Pixels[((Y+1)*aImage.Width)+(X+1)],
+                              DiagonalSpan,
+                              (Stencil[(Y*aImage.Width)+X] and STENCIL_PROTECTED)<>0) then begin
+        Stencil[(Y*aImage.Width)+X]:=Stencil[(Y*aImage.Width)+X] or STENCIL_ERROR;
+       end;
+      end;
+     end;
+    end;
+   end;
+  end;
+
+  // Apply
+  for Y:=0 to aImage.Height-1 do begin
+   for X:=0 to aImage.Width-1 do begin
+    if (Stencil[(Y*aImage.Width)+X] and STENCIL_ERROR)<>0 then begin
+     Pixel:=@aImage.Pixels[(Y*aImage.Width)+X];
+     MedianValue:=TpvSignedDistanceField2DMSDFGenerator.Median(Pixel^.r,Pixel^.g,Pixel^.b);
+     Pixel^.r:=MedianValue;
+     Pixel^.g:=MedianValue;
+     Pixel^.b:=MedianValue;
+    end;
+   end;
+  end;
+
+  Stencil:=nil;
+
  end;
 
 end;
@@ -2678,6 +3164,8 @@ var PasMPInstance:TPasMP;
  procedure Generate;
  var TryIteration,ColorChannelIndex,CountColorChannels:TpvInt32;
      OK:boolean;
+     CountMSDFPixels:TpvSizeInt;
+     MSDFOriginalPixels:TpvSignedDistanceField2DMSDFGenerator.TPixels;
  begin
 
   case aVariant of
@@ -2689,6 +3177,16 @@ var PasMPInstance:TPasMP;
    end;
    else begin
     CountColorChannels:=1;
+   end;
+  end;
+
+  CountMSDFPixels:=0;
+  MSDFOriginalPixels:=nil;
+  if assigned(fMSDFImage) then begin
+   CountMSDFPixels:=length(fMSDFImage^.Pixels);
+   if CountMSDFPixels>0 then begin
+    SetLength(MSDFOriginalPixels,CountMSDFPixels);
+    Move(fMSDFImage^.Pixels[0],MSDFOriginalPixels[0],CountMSDFPixels*SizeOf(TpvSignedDistanceField2DMSDFGenerator.TPixel));
    end;
   end;
 
@@ -2706,6 +3204,13 @@ var PasMPInstance:TPasMP;
      try
 
       for TryIteration:=0 to 2 do begin
+
+       if assigned(fMSDFImage) then begin
+        fMSDFAmbiguous:=false;
+        if CountMSDFPixels>0 then begin
+         Move(MSDFOriginalPixels[0],fMSDFImage^.Pixels[0],CountMSDFPixels*SizeOf(TpvSignedDistanceField2DMSDFGenerator.TPixel));
+        end;
+       end;
 
        case TryIteration of
 
@@ -2787,6 +3292,8 @@ var PasMPInstance:TPasMP;
 
      TpvSignedDistanceField2DMSDFGenerator.GenerateDistanceField(MSDFImage,MSDFShape,VulkanDistanceField2DSpreadValue,TpvVectorPathVector.Create(1.0,1.0),TpvVectorPathVector.Create(0.0,0.0));
 
+     TpvSignedDistanceField2DMSDFGenerator.ErrorCorrection(MSDFImage,MSDFShape,VulkanDistanceField2DSpreadValue,TpvVectorPathVector.Create(1.0,1.0),TpvVectorPathVector.Create(0.0,0.0));
+
     finally
      MSDFShape.Contours:=nil;
     end;
@@ -2794,8 +3301,6 @@ var PasMPInstance:TPasMP;
    finally
     Finalize(fShape);
    end;
-
-   TpvSignedDistanceField2DMSDFGenerator.ErrorCorrection(MSDFImage,TpvVectorPathVector.Create(1.001/VulkanDistanceField2DSpreadValue));
 
    fMSDFShape:=@MSDFShape;
    fMSDFImage:=@MSDFImage;

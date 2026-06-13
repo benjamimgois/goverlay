@@ -1,0 +1,88 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+/* clang-format off */
+
+// Compute shader for calculating exact bounding spheres from skinned vertex positions.
+// Dispatched after mesh.comp with one workgroup per skinned node range.
+// Uses shared memory parallel reduction (min/max) with stride loop for arbitrary vertex counts.
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  uint indexOffset;
+  uint countIndices;
+  uint boundingSphereIndex;
+} pushConstants;
+
+// Reuses mesh.comp descriptor set layouts:
+// Set 0 = MeshComputeVulkanDescriptorSet0Layout (LongTermStatic)
+// Set 1 = MeshComputeVulkanDescriptorSet1Layout (ShortTermDynamic)
+// Set 2 = GlobalBoundingSphereVulkanDescriptorSetLayout
+
+struct OutPackedVertex {
+  uvec4 positionNormalXY;
+  uvec4 normalZSignTangentXYZModelScaleXYZ;
+};
+
+// Set 0, binding 1: Index buffer (same as mesh.comp)
+layout(set = 0, binding = 1, std430) readonly buffer InIndices {
+  uint indices[];
+} inIndices;
+
+// Set 1, binding 0: Skinned vertex output (written by mesh.comp)
+layout(set = 1, binding = 0, std430) readonly buffer CachedVertices {
+  OutPackedVertex vertices[];
+} cachedVertices;
+
+// Set 2, binding 0: Bounding sphere output buffer
+layout(set = 2, binding = 0, std430) buffer BoundingSpheres {
+  vec4 spheres[];
+} boundingSpheres;
+
+shared vec3 sMin[256];
+shared vec3 sMax[256];
+
+void main(){
+
+  uint tid = gl_LocalInvocationID.x;
+  uint countIndices = pushConstants.countIndices;
+
+  // Initialize local min/max to extreme values
+  vec3 localMin = vec3(uintBitsToFloat(0x7f7fffffu));
+  vec3 localMax = vec3(uintBitsToFloat(0xff7fffffu));
+
+  // Stride loop: each thread processes multiple vertices when countIndices > 256
+  for(uint i = tid; i < countIndices; i += 256u){
+    uint vertexIndex = inIndices.indices[i + pushConstants.indexOffset];
+    vec3 pos = uintBitsToFloat(cachedVertices.vertices[vertexIndex].positionNormalXY.xyz);
+    localMin = min(localMin, pos);
+    localMax = max(localMax, pos);
+  }
+
+  sMin[tid] = localMin;
+  sMax[tid] = localMax;
+
+  barrier();
+
+  // Parallel tree reduction
+  for(uint s = 128u; s > 0u; s >>= 1u){
+    if(tid < s){
+      sMin[tid] = min(sMin[tid], sMin[tid + s]);
+      sMax[tid] = max(sMax[tid], sMax[tid + s]);
+    }
+    barrier();
+  }
+
+  // Thread 0 computes bounding sphere from AABB and writes output
+  if(tid == 0u){
+    vec3 bMin = sMin[0];
+    vec3 bMax = sMax[0];
+    vec3 center = (bMin + bMax) * 0.5;
+    float radius = length(bMax - center);
+    boundingSpheres.spheres[pushConstants.boundingSphereIndex] = vec4(center, radius);
+  }
+
+}

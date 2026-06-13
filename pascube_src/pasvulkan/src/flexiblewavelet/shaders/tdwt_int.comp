@@ -1,0 +1,141 @@
+#version 450
+// tdwt_int.comp — temporal (3D-DWT) transform along the GOP frame axis, INTEGER reversible
+// (lossless path). ONE INVOCATION PER PIXEL: it gathers that pixel's value across the GOP frames
+// (frame stride = pixel_count), applies a multi-level dyadic 1D wavelet along time, and scatters
+// back. Bit-exact with the CPU temporal_forward_int / temporal_inverse_int (same integer lifting,
+// arithmetic >> = floor, reflect == the CPU mirror for the k +/- 1 offsets).
+//   wavelet: 0 = Haar S-transform, 1 = LeGall 5/3.   inverse: 0 = forward, 1 = inverse.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0) buffer Gop { int data[]; };   // data[(frame * pixel_count) + pixel]
+layout(push_constant) uniform PushConstants {
+  int pixel_count; int num_frames; int levels; int wavelet; int inverse;
+} push;
+
+#define MAX_GOP 64
+
+int reflect_index(int i, int n) {
+  if (i < 0) {
+    return -i;
+  }
+  if (i >= n) {
+    return (2 * (n - 1)) - i;
+  }
+  return i;
+}
+
+void forward_haar(inout int line[MAX_GOP], int len) {
+  int scratch[MAX_GOP];
+  int low_count = (len + 1) / 2;
+  for (int i = 0; i < low_count; i++) {
+    int a = line[2 * i];
+    if (((2 * i) + 1) < len) {
+      int b = line[(2 * i) + 1];
+      int high = a - b;
+      scratch[i] = b + (high >> 1);
+      scratch[low_count + i] = high;
+    } else {
+      scratch[i] = a;
+    }
+  }
+  for (int k = 0; k < len; k++) {
+    line[k] = scratch[k];
+  }
+}
+
+void inverse_haar(inout int line[MAX_GOP], int len) {
+  int scratch[MAX_GOP];
+  int low_count = (len + 1) / 2;
+  for (int i = 0; i < low_count; i++) {
+    if (((2 * i) + 1) < len) {
+      int low = line[i];
+      int high = line[low_count + i];
+      int b = low - (high >> 1);
+      scratch[2 * i] = high + b;
+      scratch[(2 * i) + 1] = b;
+    } else {
+      scratch[2 * i] = line[i];
+    }
+  }
+  for (int k = 0; k < len; k++) {
+    line[k] = scratch[k];
+  }
+}
+
+void forward_53(inout int line[MAX_GOP], int len) {
+  for (int k = 1; k < len; k += 2) {
+    line[k] -= (line[reflect_index(k - 1, len)] + line[reflect_index(k + 1, len)]) >> 1;
+  }
+  for (int k = 0; k < len; k += 2) {
+    line[k] += ((line[reflect_index(k - 1, len)] + line[reflect_index(k + 1, len)]) + 2) >> 2;
+  }
+  int scratch[MAX_GOP];
+  int low_count = (len + 1) / 2;
+  for (int k = 0; k < len; k++) {
+    scratch[((k & 1) != 0) ? (low_count + (k >> 1)) : (k >> 1)] = line[k];
+  }
+  for (int k = 0; k < len; k++) {
+    line[k] = scratch[k];
+  }
+}
+
+void inverse_53(inout int line[MAX_GOP], int len) {
+  int scratch[MAX_GOP];
+  int low_count = (len + 1) / 2;
+  for (int k = 0; k < len; k++) {
+    scratch[k] = line[((k & 1) != 0) ? (low_count + (k >> 1)) : (k >> 1)];
+  }
+  for (int k = 0; k < len; k++) {
+    line[k] = scratch[k];
+  }
+  for (int k = 0; k < len; k += 2) {
+    line[k] -= ((line[reflect_index(k - 1, len)] + line[reflect_index(k + 1, len)]) + 2) >> 2;
+  }
+  for (int k = 1; k < len; k += 2) {
+    line[k] += (line[reflect_index(k - 1, len)] + line[reflect_index(k + 1, len)]) >> 1;
+  }
+}
+
+void main() {
+  uint gid = gl_GlobalInvocationID.x;
+  if (gid >= uint(push.pixel_count)) {
+    return;
+  }
+  int n = push.num_frames;
+  if (n < 2) {
+    return;
+  }
+  int line[MAX_GOP];
+  for (int f = 0; f < n; f++) {
+    line[f] = data[(f * push.pixel_count) + int(gid)];
+  }
+
+  int lengths[16];
+  int count = 0;
+  int len = n;
+  for (int l = 0; (l < push.levels) && (len >= 2); l++) {
+    lengths[count++] = len;
+    len = (len + 1) / 2;
+  }
+
+  if (push.inverse == 0) {
+    for (int l = 0; l < count; l++) {
+      if (push.wavelet == 1) {
+        forward_53(line, lengths[l]);
+      } else {
+        forward_haar(line, lengths[l]);
+      }
+    }
+  } else {
+    for (int l = count - 1; l >= 0; l--) {
+      if (push.wavelet == 1) {
+        inverse_53(line, lengths[l]);
+      } else {
+        inverse_haar(line, lengths[l]);
+      }
+    }
+  }
+
+  for (int f = 0; f < n; f++) {
+    data[(f * push.pixel_count) + int(gid)] = line[f];
+  }
+}

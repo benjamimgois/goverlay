@@ -201,6 +201,9 @@ function DumpCallStack:string;
 
 function DumpExceptionCallStack(e:Exception):string;
 
+procedure GetMemAligned(var p;Size:TpvPtrInt;Align:TpvPtrUInt=16);
+procedure FreeMemAligned(const p);
+
 function CombineTwoUInt32IntoOneUInt64(const a,b:TpvUInt32):TpvUInt64; {$ifdef caninline}inline;{$endif}
 
 // Sorts data direct inplace
@@ -247,6 +250,47 @@ end;
 begin
 end;
 {$ifend}
+
+procedure GetMemAligned(var p;Size:TpvPtrInt;Align:TpvPtrUInt=16);
+var Original,Aligned:TpvPointer;
+    Temp:PpvPointer;
+    Mask:TpvPtrUInt;
+begin
+ if (Align and (Align-1))<>0 then begin
+  dec(Align);
+  Align:=Align or (Align shr 1);
+  Align:=Align or (Align shr 2);
+  Align:=Align or (Align shr 4);
+  Align:=Align or (Align shr 8);
+  Align:=Align or (Align shr 16);
+{$ifdef cpu64}
+  Align:=Align or (Align shr 32);
+{$endif}
+  inc(Align);
+ end;
+ Mask:=Align-1;
+ inc(Size,((Align shl 1)+sizeof(TpvPointer)));
+ GetMem(Original,Size);
+ FillChar(Original^,Size,#0);
+ Aligned:=TpvPointer(TpvPtrUInt(TpvPtrUInt(Original)+sizeof(TpvPointer)));
+ if (Align>1) and ((TpvPtrUInt(Aligned) and Mask)<>0) then begin
+  inc(TpvPtrUInt(Aligned),TpvPtrUInt(TpvPtrUInt(Align)-(TpvPtrUInt(Aligned) and Mask)));
+ end;
+ Temp:=TpvPointer(TpvPtrUInt(TpvPtrUInt(Aligned)-sizeof(TpvPointer)));
+ Temp^:=Original;
+ Temp:=TpvPointer(@p);
+ Temp^:=Aligned;
+end;
+
+procedure FreeMemAligned(const p);
+var pp:TpvPointer;
+begin
+ pp:=TpvPointer(TpvPointer(@p)^);
+ if assigned(pp) then begin
+  pp:=TpvPointer(TpvPointer(TpvPtrUInt(TpvPtrUInt(pp)-sizeof(TpvPointer)))^);
+  FreeMem(pp);
+ end;
+end;
 
 {$ifdef fpc}
 function DumpCallStack:string;

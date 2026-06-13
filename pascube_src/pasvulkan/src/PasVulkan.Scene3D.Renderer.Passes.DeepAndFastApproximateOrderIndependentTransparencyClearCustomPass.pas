@@ -171,7 +171,7 @@ begin
   ClearValue.uint32[2]:=$ffffffff;
   ClearValue.uint32[3]:=0;
  end;
- aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImage.VulkanImage.Handle,
+ aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImages[aInFlightFrameIndex].VulkanImage.Handle,
                                    VK_IMAGE_LAYOUT_GENERAL,
                                    @ClearValue,
                                    1,
@@ -181,7 +181,7 @@ begin
  ClearValue.uint32[1]:=0;
  ClearValue.uint32[2]:=0;
  ClearValue.uint32[3]:=0;
- aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImage.VulkanImage.Handle,
+ aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImages[aInFlightFrameIndex].VulkanImage.Handle,
                                    VK_IMAGE_LAYOUT_GENERAL,
                                    @ClearValue,
                                    1,
@@ -191,7 +191,7 @@ begin
  ClearValue.uint32[1]:=0;
  ClearValue.uint32[2]:=0;
  ClearValue.float32[3]:=1.0;
- aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImage.VulkanImage.Handle,
+ aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImages[aInFlightFrameIndex].VulkanImage.Handle,
                                    VK_IMAGE_LAYOUT_GENERAL,
                                    @ClearValue,
                                    1,
@@ -201,7 +201,7 @@ begin
  ClearValue.uint32[1]:=0;
  ClearValue.uint32[2]:=0;
  ClearValue.uint32[3]:=0;
- aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImage.VulkanImage.Handle,
+ aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImages[aInFlightFrameIndex].VulkanImage.Handle,
                                    VK_IMAGE_LAYOUT_GENERAL,
                                    @ClearValue,
                                    1,
@@ -212,7 +212,7 @@ begin
   ClearValue.uint32[1]:=0;
   ClearValue.uint32[2]:=0;
   ClearValue.uint32[3]:=0;
-  aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencySpinLockImage.VulkanImage.Handle,
+  aCommandBuffer.CmdClearColorImage(fInstance.DeepAndFastApproximateOrderIndependentTransparencySpinLockImages[aInFlightFrameIndex].VulkanImage.Handle,
                                     VK_IMAGE_LAYOUT_GENERAL,
                                     @ClearValue,
                                     1,
@@ -233,7 +233,7 @@ begin
                                                       TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                       VK_QUEUE_FAMILY_IGNORED,
                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImage.VulkanImage.Handle,
+                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyFragmentCounterFragmentDepthsSampleMaskImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                       ImageSubresourceRanges[0]);
 
  ImageMemoryBarriers[1]:=TVkImageMemoryBarrier.Create(TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT),
@@ -242,7 +242,7 @@ begin
                                                       TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                       VK_QUEUE_FAMILY_IGNORED,
                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImage.VulkanImage.Handle,
+                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyAccumulationImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                       ImageSubresourceRanges[0]);
 
  ImageMemoryBarriers[2]:=TVkImageMemoryBarrier.Create(TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT),
@@ -251,7 +251,7 @@ begin
                                                       TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                       VK_QUEUE_FAMILY_IGNORED,
                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImage.VulkanImage.Handle,
+                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyAverageImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                       ImageSubresourceRanges[0]);
 
  ImageMemoryBarriers[3]:=TVkImageMemoryBarrier.Create(TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT),
@@ -260,7 +260,7 @@ begin
                                                       TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                       VK_QUEUE_FAMILY_IGNORED,
                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImage.VulkanImage.Handle,
+                                                      fInstance.DeepAndFastApproximateOrderIndependentTransparencyBucketImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                       ImageSubresourceRanges[1]);
 
  if fInstance.Renderer.TransparencyMode=TpvScene3DRendererTransparencyMode.SPINLOCKOIT then begin
@@ -270,7 +270,7 @@ begin
                                                        TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL),
                                                        VK_QUEUE_FAMILY_IGNORED,
                                                        VK_QUEUE_FAMILY_IGNORED,
-                                                       fInstance.DeepAndFastApproximateOrderIndependentTransparencySpinLockImage.VulkanImage.Handle,
+                                                       fInstance.DeepAndFastApproximateOrderIndependentTransparencySpinLockImages[aInFlightFrameIndex].VulkanImage.Handle,
                                                        ImageSubresourceRanges[2]);
   CountImageMemoryBarriers:=5;
  end else begin

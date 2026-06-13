@@ -3,14 +3,30 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_buffer_reference2 : enable
+#extension GL_EXT_buffer_reference_uvec2 : enable
 
 /* clang-format off */
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
+// Buffer reference for lodNeeded (per nodeMatricesIndex, uint32 bitfield)
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer LODNeededBuffer {
+  uint needed[];
+};
+
+// Buffer reference for morph weight base offsets (per rootNode, uint32 offset into morphTargetWeights)
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer MorphWeightBaseOffsetsBuffer {
+  uint offsets[];
+};
+
 layout(push_constant) uniform PushConstants {
   uint indexOffset;
   uint countIndices;
+  uvec2 lodNeededBDA; // BDA to lodNeeded[previousIFF] for 1-frame-delayed vertex skip
+  uint lodTransformAllLevels; // 0 = Option B (skip if lodNeeded==0), 1 = Option A (transform all)
+  uint morphWeightBaseOffsetsPadding; // explicit padding for 8-byte alignment
+  uvec2 morphWeightBaseOffsetsBDA; // BDA to morph weight base offsets buffer
 } pushConstants;
 
 struct InPackedVertex {
@@ -21,8 +37,8 @@ struct InPackedVertex {
 
 struct OutPackedVertex {
   uvec4 positionNormalXY; // xyz = position (32-bit float), w = normal x y (16-bit signed normalized oct)
-  uvec4 normalZSignTangentXYZModelScaleXYZ; // x = normal z + sign of tangent z (16-bit signed normalized), y = tangent x y (16-bit signed normalized oct), z = tangent z + model scale x (16-bit float), w = model scale y z (16-bit float)
-};
+  uvec4 normalZSignTangentXYZModelScaleXYZ; // x = normal z + sign of tangent z (16-bit signed normalized), y = tangent x y (16-bit signed normalized), z = tangent z + model scale x (16-bit float), w = model scale y z (16-bit float)
+}; // 32 bytes, alignment 16, array stride 32
 
 #ifdef RAYTRACING
 struct OutRayTracingVertex {
@@ -38,7 +54,7 @@ struct MorphTargetVertex {
 // Static descriptor set. Explanation:
 //   1. Contains data resources primarily processed on or by the GPU itself, without continuous streaming
 //      from the CPU. However, the CPU can still update these resources from time to time, not every frame.
-//      The updates are done in a way that the GPU doesn’t have to wait for the CPU to finish, by updating
+//      The updates are done in a way that the GPU doesn't have to wait for the CPU to finish, by updating
 //      only the data ranges not currently used by the GPU at the time of the update. For example by 
 //      reusing data ranges, which were used by old deleted objects, for new objects, since buffers can 
 //      always only grow in size, never shrink, in this implementation.   
@@ -64,9 +80,9 @@ layout(set = 0, binding = 2, std430) buffer MorphTargetVertices {
 };
 
 struct JointBlock {
-  uvec4 joints;
-  vec4 weights;
-};
+  uvec4 joints;   // 16 bytes - 4x uint32 joint indices (global node matrix indices)
+  vec4 weights;   // 16 bytes - 4x float32 joint weights
+}; // 32 bytes, alignment 16, array stride 32
 
 layout(set = 0, binding = 3, std430) buffer JointBlocks {
   JointBlock jointBlocks[];
@@ -132,6 +148,7 @@ vec2 unpackSnorm2x16Ex(uint v){
 #include "adjugate.glsl"
 
 void main(){
+  
   uint vertexIndex = gl_GlobalInvocationID.x;
   // uint vertexIndex = uint((((gl_GlobalInvocationID.z * gl_WorkGroupSize.y) + gl_GlobalInvocationID.y) * gl_WorkGroupSize.x) + gl_GlobalInvocationID.x);
   if(vertexIndex < pushConstants.countIndices){
@@ -153,7 +170,16 @@ void main(){
       const uint inFlags = inPackedVertex.normalTangentFlagsGeneration.z;
       const uint inGeneration = inPackedVertex.normalTangentFlagsGeneration.w;
 
-     vec3 position = inPosition;
+      // LOD vertex-skip: only for vertices with LOD data (bit 1 set in inFlags),
+      // skip if no RendererInstance needs this node
+      if(((inFlags & (1u << 1)) != 0u) && (pushConstants.lodTransformAllLevels == 0u) && !all(equal(pushConstants.lodNeededBDA, uvec2(0u)))){ 
+        LODNeededBuffer lodNeededBuffer = LODNeededBuffer(pushConstants.lodNeededBDA);
+        if(lodNeededBuffer.needed[inNodeIndex] == 0u){
+          return;
+        }
+      }
+
+      vec3 position = inPosition;
 
       // Decode tangent space
       mat3 tangentSpace;
@@ -166,6 +192,12 @@ void main(){
 
       // Process morph target vertices (a linked list of morph target vertices)
       if(inMorphTargetVertexBaseIndex != 0xffffffffu){
+        // Resolve per-instance morph weight base offset via BDA buffer indexed by rootNode
+        uint morphWeightBaseOffset = 0u;
+        if(!all(equal(pushConstants.morphWeightBaseOffsetsBDA, uvec2(0u)))){
+          MorphWeightBaseOffsetsBuffer mwbo = MorphWeightBaseOffsetsBuffer(pushConstants.morphWeightBaseOffsetsBDA);
+          morphWeightBaseOffset = mwbo.offsets[inRootNode];
+        }
         vec4 normal = vec4(tangentSpace[2], 0.0);
         vec4 tangent = vec4(tangentSpace[0], sign(dot(cross(tangentSpace[2], tangentSpace[0]), tangentSpace[1])));
         vec3 originalNormal = normal.xyz, originalTangent = tangent.xyz; // Needed for morph target blending, since absolute normal and tangent are stored in the morph target vertices, instead of the deltas originally, because for better precision with 16-bit octahedral normals and tangents. 
@@ -173,7 +205,7 @@ void main(){
         uint protectionCounter = 0x0ffffu;
         while((morphTargetVertexIndex != 0xffffffffu) && (protectionCounter-- > 0u)){
           MorphTargetVertex morphTargetVertex = morphTargetVertices[morphTargetVertexIndex];
-          float weight = morphTargetWeights[morphTargetVertex.position.w];
+          float weight = morphTargetWeights[morphTargetVertex.position.w + morphWeightBaseOffset];
           if(weight != 0.0){ // since octehedron decoding can be somewhat costly, we only do it when the weight is not zero
             position += uintBitsToFloat(morphTargetVertex.position.xyz) * weight;
             normal += vec4(octDecode(unpackSnorm2x16(morphTargetVertex.normalTangentNext.x)) - originalNormal, 1.0) * weight;
@@ -229,8 +261,6 @@ void main(){
         vec3 bitangent = normalize(tangentSpace[1]);
         vec3 normal = normalize(tangentSpace[2]);
 
-        float tbnSign = (dot(normalize(cross(normal, tangent)), bitangent) < 0.0) ? -1.0 : 1.0;
-
         vec3 modelScale = vec3(length(modelNodeMatrix[0].xyz), length(modelNodeMatrix[1].xyz), length(modelNodeMatrix[2].xyz));
 
          // Transform position
@@ -238,6 +268,8 @@ void main(){
 
         // Perspective divide
         vec3 finalPosition = p.xyz / p.w;
+
+        float tbnSign = (dot(normalize(cross(normal, tangent)), bitangent) < 0.0) ? -1.0 : 1.0;
 
         outVertices[vertexIndex] = OutPackedVertex(
           /*outPackedVertex.positionNormalXY =*/ uvec4(

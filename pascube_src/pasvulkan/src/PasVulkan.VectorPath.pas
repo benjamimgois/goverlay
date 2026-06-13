@@ -72,9 +72,12 @@ uses SysUtils,
      PasDblStrUtils,
      PasMP,
      PasVulkan.Types,
+     PasVulkan.Framework,
      PasVulkan.Utils,
      PasVulkan.Collections,
-     PasVulkan.Math;
+     PasVulkan.BufferRangeAllocator,
+     PasVulkan.Math,
+     PasVulkan.Math.Double;
 
 type PpvVectorPathCommandType=^TpvVectorPathCommandType;
      TpvVectorPathCommandType=
@@ -106,6 +109,14 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
        function Lerp(const b:TpvVectorPathVector;const t:TpvDouble):TpvVectorPathVector;
        function ClampedLerp(const b:TpvVectorPathVector;const t:TpvDouble):TpvVectorPathVector;
        class function IsLeft(const a,b,c:TpvVectorPathVector):TpvDouble; static;
+       class operator Implicit(const a:TpvVector2):TpvVectorPathVector; {$ifdef CANINLINE}inline;{$endif}
+       class operator Implicit(const a:TpvVectorPathVector):TpvVector2; {$ifdef CANINLINE}inline;{$endif}
+       class operator Implicit(const a:TpvVector2D):TpvVectorPathVector; {$ifdef CANINLINE}inline;{$endif}
+       class operator Implicit(const a:TpvVectorPathVector):TpvVector2D; {$ifdef CANINLINE}inline;{$endif}
+       class operator Explicit(const a:TpvVectorPathVector):TpvVector2; {$ifdef CANINLINE}inline;{$endif}
+       class operator Explicit(const a:TpvVector2):TpvVectorPathVector; {$ifdef CANINLINE}inline;{$endif}
+       class operator Explicit(const a:TpvVectorPathVector):TpvVector2D; {$ifdef CANINLINE}inline;{$endif}
+       class operator Explicit(const a:TpvVector2D):TpvVectorPathVector; {$ifdef CANINLINE}inline;{$endif}
        class operator Equal(const a,b:TpvVectorPathVector):boolean; {$ifdef CANINLINE}inline;{$endif}
        class operator NotEqual(const a,b:TpvVectorPathVector):boolean; {$ifdef CANINLINE}inline;{$endif}
        class operator Add(const a,b:TpvVectorPathVector):TpvVectorPathVector; {$ifdef CANINLINE}inline;{$endif}
@@ -338,7 +349,8 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
       (
        Line=0,
        QuadraticCurve,
-       CubicCurve
+       CubicCurve,
+       MetaWindingSettingLine
       );
 
      PpvVectorPathSegmentType=^TpvVectorPathSegmentType;
@@ -351,6 +363,7 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
        fCachedBoundingBox:TpvVectorPathBoundingBox;
        fHasCachedBoundingBox:TPasMPBool32;
        fCachedBoundingBoxLock:TPasMPInt32;
+       fIndex:TPasMPInt32;
       protected
        procedure GetIntersectionPointsWithLineSegment(const aWith:TpvVectorPathSegment;const aIntersectionPoints:TpvVectorPathVectorList); virtual;
        procedure GetIntersectionPointsWithQuadraticCurveSegment(const aWith:TpvVectorPathSegment;const aIntersectionPoints:TpvVectorPathVectorList); virtual;
@@ -391,6 +404,9 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
      TpvVectorPathSegmentMetaWindingSettingLine=class(TpvVectorPathSegmentLine)
       private
        fWinding:TpvInt32;
+      public
+       constructor Create; overload; override;
+       constructor Create(const aP0,aP1:TpvVectorPathVector;const aWinding:TpvInt32); reintroduce; overload;
       published
        property Winding:TpvInt32 read fWinding write fWinding;
      end;
@@ -466,6 +482,8 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
       private
        fFillRule:TpvVectorPathFillRule;
        fContours:TpvVectorPathContours;
+       fResolution:TpvInt32;
+       fBoundingBoxExtent:TpvDouble;
       public
        constructor Create; reintroduce; overload;
        constructor Create(const aVectorPathShape:TpvVectorPathShape); reintroduce; overload;
@@ -483,14 +501,18 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
       published
        property FillRule:TpvVectorPathFillRule read fFillRule write fFillRule;
        property Contours:TpvVectorPathContours read fContours;
+       property Resolution:TpvInt32 read fResolution write fResolution;
+       property BoundingBoxExtent:TpvDouble read fBoundingBoxExtent write fBoundingBoxExtent;
      end;
 
      { TpvVectorPath }
 
      TpvVectorPath=class
       private
+       fShape:TpvVectorPathShape;
        fCommands:TpvVectorPathCommandList;
        fFillRule:TpvVectorPathFillRule;
+       fStartPointSeen:Boolean;
       public
        constructor Create; reintroduce;
        constructor CreateFromSVGPath(const aCommands:TpvRawByteString);
@@ -498,11 +520,29 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
        destructor Destroy; override;
        procedure Assign(const aFrom:TpvVectorPath); overload;
        procedure Assign(const aShape:TpvVectorPathShape); overload;
-       procedure MoveTo(const aX,aY:TpvDouble);
-       procedure LineTo(const aX,aY:TpvDouble);
-       procedure QuadraticCurveTo(const aCX,aCY,aAX,aAY:TpvDouble);
-       procedure CubicCurveTo(const aC0X,aC0Y,aC1X,aC1Y,aAX,aAY:TpvDouble);
-       procedure Close;
+       function MoveTo(const aX,aY:TpvDouble):TpvVectorPath; overload;
+       function MoveTo(const aPosition:TpvVectorPathVector):TpvVectorPath; overload;
+       function LineTo(const aX,aY:TpvDouble):TpvVectorPath; overload;
+       function LineTo(const aPosition:TpvVectorPathVector):TpvVectorPath; overload;
+       function QuadraticCurveTo(const aCX,aCY,aAX,aAY:TpvDouble):TpvVectorPath; overload;
+       function QuadraticCurveTo(const aControlPoint,aAnchorPoint:TpvVectorPathVector):TpvVectorPath; overload;
+       function CubicCurveTo(const aC0X,aC0Y,aC1X,aC1Y,aAX,aAY:TpvDouble):TpvVectorPath; overload;
+       function CubicCurveTo(const aControlPoint0,aControlPoint1,aAnchorPoint:TpvVectorPathVector):TpvVectorPath; overload;
+       function ArcTo(const aOrigin,aRadius:TpvVectorPathVector;const aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean;const aRotation:TpvDouble):TpvVectorPath; overload;
+       function ArcTo(const aOriginX,aOriginY,aRadiusX,aRadiusY:TpvDouble;const aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean;const aRotation:TpvDouble):TpvVectorPath; overload;
+       function Arc(const aCenterX,aCenterY,aRadius,aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean):TpvVectorPath; overload;
+       function Arc(const aCenter:TpvVectorPathVector;const aRadius,aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean):TpvVectorPath; overload;
+       function Ellipse(const aCenterX,aCenterY,aRadiusX,aRadiusY:TpvDouble):TpvVectorPath; overload;
+       function Ellipse(const aCenter,aRadius:TpvVectorPathVector):TpvVectorPath; overload;
+       function Circle(const aCenterX,aCenterY,aRadius:TpvDouble):TpvVectorPath; overload;
+       function Circle(const aCenter:TpvVectorPathVector;const aRadius:TpvDouble):TpvVectorPath; overload;
+       function Rectangle(const aCenterX,aCenterY,aBoundsX,aBoundsY:TpvDouble):TpvVectorPath; overload;
+       function Rectangle(const aCenter,aBounds:TpvVectorPathVector):TpvVectorPath; overload;
+       function RoundedRectangle(const aCenterX,aCenterY,aBoundsX,aBoundsY,aRadiusTopLeft,aRadiusTopRight,aRadiusBottomLeft,aRadiusBottomRight:TpvDouble):TpvVectorPath; overload;
+       function RoundedRectangle(const aCenter,aBounds:TpvVectorPathVector;const aRadiusTopLeft,aRadiusTopRight,aRadiusBottomLeft,aRadiusBottomRight:TpvDouble):TpvVectorPath; overload;
+       function RoundedRectangle(const aCenterX,aCenterY,aBoundsX,aBoundsY,aRadius:TpvDouble):TpvVectorPath; overload;
+       function RoundedRectangle(const aCenter,aBounds:TpvVectorPathVector;const aRadius:TpvDouble):TpvVectorPath; overload;
+       function Close:TpvVectorPath;
        function GetShape:TpvVectorPathShape;
       published
        property FillRule:TpvVectorPathFillRule read fFillRule write fFillRule;
@@ -529,9 +569,13 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
 
      PpvVectorPathGPUSegmentData=^TpvVectorPathGPUSegmentData;
 
+     TpvVectorPathGPUSegmentDataArray=array of TpvVectorPathGPUSegmentData;
+
      TpvVectorPathGPUIndirectSegmentData=TpvUInt32; // 4 bytes per indirect segment
 
      PpvVectorPathGPUIndirectSegmentData=^TpvVectorPathGPUIndirectSegmentData;
+
+     TpvVectorPathGPUIndirectSegmentDataArray=array of TpvVectorPathGPUIndirectSegmentData;
 
      TpvVectorPathGPUGridCellData=packed record // 8 bytes per grid cell
       // uvec2 Begin
@@ -541,6 +585,8 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
      end;
 
      PpvVectorPathGPUGridCellData=^TpvVectorPathGPUGridCellData;
+
+     TpvVectorPathGPUGridCellDataArray=array of TpvVectorPathGPUGridCellData;
 
      TpvVectorPathGPUShapeData=packed record // 32 bytes per segment
       // vec4 minMax - Begin
@@ -556,6 +602,10 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
      end;
 
      PpvVectorPathGPUShapeData=^TpvVectorPathGPUShapeData;
+
+     TpvVectorPathGPUShapeDataArray=array of TpvVectorPathGPUShapeData;
+
+     TpvVectorPathGPUBufferPool=class;
 
      { TpvVectorPathGPUShape }
 
@@ -582,16 +632,156 @@ type PpvVectorPathCommandType=^TpvVectorPathCommandType;
             end;
             TGridCells=TpvObjectGenericList<TGridCell>;
       private
+       fBufferPool:TpvVectorPathGPUBufferPool;
+       fSourceVectorPathShape:TpvVectorPathShape;
        fVectorPathShape:TpvVectorPathShape;
        fBoundingBox:TpvVectorPathBoundingBox;
        fResolution:TpvInt32;
        fSegments:TpvVectorPathSegments;
        fSegmentDynamicAABBTree:TpvVectorPathBVHDynamicAABBTree;
        fGridCells:TGridCells;
+       fGeneration:TPasMPUInt64; // gets the lastest generation from the buffer pool when created or updated, since simple self-increment is not sufficient, when a new TpvVectorPathGPUShape gets the same pointer as a previously removed shape
+       fSegmentBufferRange:TpvBufferRangeAllocator.TBufferRange;
+       fIndirectSegmentBufferRange:TpvBufferRangeAllocator.TBufferRange;
+       fGridCellBufferRange:TpvBufferRangeAllocator.TBufferRange;
+       fShapeIndex:TpvInt32;
+       fBoundingBoxExtent:TpvDouble;
+      private
+       procedure ClearAndInvalidateBufferRanges; 
+       procedure UpdateBufferPool;
+       class function ComputeWindingAtPosition(const aSegments:TpvVectorPathSegments;const aX,aY:TpvDouble):TpvInt32; static;
       public
-       constructor Create(const aVectorPathShape:TpvVectorPathShape;const aResolution:TpvInt32;const aBoundingBoxExtent:TpvDouble=4.0); reintroduce;
+       constructor Create(const aBufferPool:TpvVectorPathGPUBufferPool;const aVectorPathShape:TpvVectorPathShape;const aResolution:TpvInt32=32;const aBoundingBoxExtent:TpvDouble=4.0); reintroduce;
        destructor Destroy; override;
+       procedure Update;
      end;
+
+     TpvVectorPathGPUShapes=array of TpvVectorPathGPUShape;
+
+     TpvVectorPathIndexHashMap=TpvHashMap<TpvVectorPathShape,TpvInt32>;
+
+     TpvVectorPathGPUBufferPoolShapeFreeList=TpvDynamicStack<TpvInt32>;
+
+     { TpvVectorPathGPUBufferPool }
+
+     TpvVectorPathGPUBufferPool=class     
+      public
+       type { TState }
+            TState=class
+             private
+
+              // The buffer pool this state belongs to
+              fBufferPool:TpvVectorPathGPUBufferPool;
+
+              // The device this state is created for
+              fDevice:TpvVulkanDevice; 
+
+              // Generation of this state for tracking updates
+              fGeneration:TPasMPUInt64;
+
+              // Buffers (have size properties, no extra size variables needed)
+              fSegmentsBuffer:TpvVulkanBuffer;
+              fIndirectSegmentsBuffer:TpvVulkanBuffer;
+              fGridCellsBuffer:TpvVulkanBuffer;
+              fShapesBuffer:TpvVulkanBuffer;
+
+              // Shape generation buffer
+              fShapes:TpvVectorPathGPUShapes;
+              fShapeGenerations:TpvUInt64DynamicArray;
+
+              // Descriptor set for the 4 shared buffers
+              fDescriptorPool:TpvVulkanDescriptorPool;
+              fDescriptorSet:TpvVulkanDescriptorSet;
+
+             public
+              constructor Create(const aBufferPool:TpvVectorPathGPUBufferPool); reintroduce;
+              destructor Destroy; override;
+              procedure Update;
+             published
+              property SegmentsBuffer:TpvVulkanBuffer read fSegmentsBuffer;
+              property IndirectSegmentsBuffer:TpvVulkanBuffer read fIndirectSegmentsBuffer;
+              property GridCellsBuffer:TpvVulkanBuffer read fGridCellsBuffer;
+              property ShapesBuffer:TpvVulkanBuffer read fShapesBuffer;
+              property DescriptorSet:TpvVulkanDescriptorSet read fDescriptorSet;
+            end;
+            TStates=array[0..1] of TState; // Double-buffered upload-wise, but single-buffered in terms of actual data,
+                                           // so that only one state is active at a time and so that no synchronization is 
+                                           // needed in order to read from the buffers while uploading new data to the other buffers  
+      private
+
+       // The device this buffer pool is created for
+       fDevice:TpvVulkanDevice;
+
+       // Array of GPU shapes, shape index / ID wise
+       fGPUShapes:TpvVectorPathGPUShapes;
+
+       // Hash map for mapping TpvVectorPathShape to shape index / shape ID
+       fShapeIndexHashMap:TpvVectorPathIndexHashMap;
+
+       // Generation for tracking updates 
+       fGeneration:TPasMPUInt64;
+
+       // Descriptor set layout for the 4 shared buffers
+       fDescriptorSetLayout:TpvVulkanDescriptorSetLayout;
+
+       // States with double-buffering for uploads and rendering for synchronization avoidance at cost of double memory usage
+       fStates:TStates;
+       fActiveStateIndex:TPasMPInt32;
+
+       // The segment buffer holds all segments for all shapes
+       fSegments:TpvVectorPathGPUSegmentDataArray;
+       fSegmentsAllocator:TpvBufferRangeAllocator;
+
+       // The indirect segments buffer holds all indirect segment indices for all shapes
+       fIndirectSegments:TpvVectorPathGPUIndirectSegmentDataArray;
+       fIndirectSegmentsAllocator:TpvBufferRangeAllocator;
+
+       // The grid cells buffer holds all grid cells for all shapes
+       fGridCells:TpvVectorPathGPUGridCellDataArray;
+       fGridCellsAllocator:TpvBufferRangeAllocator;
+       
+       // The shapes buffer holds all shape metadata
+       fShapes:TpvVectorPathGPUShapeDataArray;
+       fFreeShapeIndices:TpvVectorPathGPUBufferPoolShapeFreeList;
+       fShapeIndexCounter:TpvInt32;
+       // Note: Shape metadata uses fGPUShapes array (direct indexing, no allocator needed), instead 
+       // a free list is used for reusing shape indices
+
+       fTransferQueue:TpvVulkanQueue;
+       fTransferCommandPool:TpvVulkanCommandPool;
+       fTransferCommandBuffer:TpvVulkanCommandBuffer;
+       fTransferFence:TpvVulkanFence;
+
+       fFragmentationFactorThreshold:TpvDouble;
+
+       function GetActiveState:TpvVectorPathGPUBufferPool.TState;
+
+       function GetDescriptorSet:TpvVulkanDescriptorSet;
+
+       function CalculateFragmentationFactor:TpvDouble;
+       
+      public
+
+       constructor Create(const aDevice:TpvVulkanDevice); reintroduce;
+       destructor Destroy; override;
+
+       procedure Update;
+
+       function GetOrCreateShape(const aShape:TpvVectorPathShape):TpvVectorPathGPUShape;
+       procedure RemoveShape(const aShape:TpvVectorPathShape);
+       procedure UpdateShape(const aShape:TpvVectorPathShape);
+
+       procedure Defragment(const aForce:boolean=false);
+
+      published
+
+       property DescriptorSet:TpvVulkanDescriptorSet read GetDescriptorSet;
+       
+       property DescriptorSetLayout:TpvVulkanDescriptorSetLayout read fDescriptorSetLayout;
+
+       property FragmentationFactorThreshold:TpvDouble read fFragmentationFactorThreshold write fFragmentationFactorThreshold;
+
+     end;  
 
 implementation
 
@@ -714,6 +904,54 @@ end;
 class function TpvVectorPathVector.IsLeft(const a,b,c:TpvVectorPathVector):TpvDouble;
 begin
  result:=((b.x*a.x)*(c.y*a.y))-((c.x*a.x)*(b.y*a.y));
+end;
+
+class operator TpvVectorPathVector.Implicit(const a:TpvVector2):TpvVectorPathVector;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Implicit(const a:TpvVectorPathVector):TpvVector2;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Implicit(const a:TpvVector2D):TpvVectorPathVector;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Implicit(const a:TpvVectorPathVector):TpvVector2D;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Explicit(const a:TpvVectorPathVector):TpvVector2;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Explicit(const a:TpvVector2):TpvVectorPathVector;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Explicit(const a:TpvVectorPathVector):TpvVector2D;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
+end;
+
+class operator TpvVectorPathVector.Explicit(const a:TpvVector2D):TpvVectorPathVector;
+begin
+ result.x:=a.x;
+ result.y:=a.y;
 end;
 
 class operator TpvVectorPathVector.Equal(const a,b:TpvVectorPathVector):boolean;
@@ -2954,6 +3192,7 @@ begin
  inherited Create;
  fHasCachedBoundingBox:=false;
  fCachedBoundingBoxLock:=0;
+ fIndex:=0;
 end;
 
 destructor TpvVectorPathSegment.Destroy;
@@ -3086,6 +3325,23 @@ begin
  if assigned(self) and assigned(aWith) then begin
   aWith.GetIntersectionPointsWithLineSegment(self,aIntersectionPoints);
  end;
+end;
+
+{ TpvVectorPathSegmentMetaWindingSettingLine }
+
+constructor TpvVectorPathSegmentMetaWindingSettingLine.Create;
+begin
+ inherited Create;
+ fType:=TpvVectorPathSegmentType.MetaWindingSettingLine;
+ fWinding:=0;
+end;
+
+constructor TpvVectorPathSegmentMetaWindingSettingLine.Create(const aP0,aP1:TpvVectorPathVector;const aWinding:TpvInt32);
+begin
+ Create;
+ Points[0]:=aP0;
+ Points[1]:=aP1;
+ fWinding:=aWinding;
 end;
 
 { TpvVectorPathSegmentQuadraticCurve }
@@ -3536,6 +3792,8 @@ begin
  inherited Create;
  fContours:=TpvVectorPathContours.Create;
  fContours.OwnsObjects:=true;
+ fResolution:=32;
+ fBoundingBoxExtent:=4.0;
 end;
 
 constructor TpvVectorPathShape.Create(const aVectorPathShape:TpvVectorPathShape);
@@ -3574,6 +3832,8 @@ begin
    end;
   end;
  end;
+ fResolution:=aVectorPathShape.fResolution;
+ fBoundingBoxExtent:=aVectorPathShape.fBoundingBoxExtent;
 end;
 
 procedure TpvVectorPathShape.Assign(const aVectorPath:TpvVectorPath);
@@ -4285,8 +4545,10 @@ end;
 constructor TpvVectorPath.Create;
 begin
  inherited Create;
+ fShape:=nil;
  fCommands:=TpvVectorPathCommandList.Create(true);
  fFillRule:=TpvVectorPathFillRule.EvenOdd;
+ fStartPointSeen:=false;
 end;
 
 constructor TpvVectorPath.CreateFromSVGPath(const aCommands:TpvRawByteString);
@@ -4670,6 +4932,7 @@ end;
 destructor TpvVectorPath.Destroy;
 begin
  FreeAndNil(fCommands);
+ FreeAndNil(fShape);
  inherited Destroy;
 end;
 
@@ -4683,6 +4946,7 @@ begin
   fCommands.Add(TpvVectorPathCommand.Create(SrcCmd.fCommandType,SrcCmd.fX0,SrcCmd.fY0,SrcCmd.fX1,SrcCmd.fY1,SrcCmd.fX2,SrcCmd.fY2));
  end;
  fFillRule:=aFrom.fFillRule;
+ fStartPointSeen:=Index>0;
 end;
 
 procedure TpvVectorPath.Assign(const aShape:TpvVectorPathShape);
@@ -4692,6 +4956,7 @@ var Contour:TpvVectorPathContour;
     Last,Start:TpvVectorPathVector;
 begin
  fCommands.Clear;
+ fStartPointSeen:=false;
  if assigned(aShape) then begin
   fFillRule:=aShape.fFillRule;
   First:=true;
@@ -4751,6 +5016,7 @@ begin
      else begin
      end;
     end;
+    fStartPointSeen:=true;
    end;
    if (not First) and Contour.fClosed then begin
     fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.Close));
@@ -4759,34 +5025,426 @@ begin
  end;
 end;
 
-procedure TpvVectorPath.MoveTo(const aX,aY:TpvDouble);
+function TpvVectorPath.MoveTo(const aX,aY:TpvDouble):TpvVectorPath;
 begin
  fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.MoveTo,aX,aY));
+ fStartPointSeen:=true;
+ result:=self;
 end;
 
-procedure TpvVectorPath.LineTo(const aX,aY:TpvDouble);
+function TpvVectorPath.MoveTo(const aPosition:TpvVectorPathVector):TpvVectorPath;
+begin
+ fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.MoveTo,aPosition.x,aPosition.y));
+ fStartPointSeen:=true;
+ result:=self;
+end;
+
+function TpvVectorPath.LineTo(const aX,aY:TpvDouble):TpvVectorPath;
 begin
  fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.LineTo,aX,aY));
+ fStartPointSeen:=true;
+ result:=self;
 end;
 
-procedure TpvVectorPath.QuadraticCurveTo(const aCX,aCY,aAX,aAY:TpvDouble);
+function TpvVectorPath.LineTo(const aPosition:TpvVectorPathVector):TpvVectorPath;
+begin
+ fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.LineTo,aPosition.x,aPosition.y));
+ fStartPointSeen:=true;
+ result:=self;
+end;
+
+function TpvVectorPath.QuadraticCurveTo(const aCX,aCY,aAX,aAY:TpvDouble):TpvVectorPath;
 begin
  fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.QuadraticCurveTo,aCX,aCY,aAX,aAY));
+ fStartPointSeen:=true;
+ result:=self;
 end;
 
-procedure TpvVectorPath.CubicCurveTo(const aC0X,aC0Y,aC1X,aC1Y,aAX,aAY:TpvDouble);
+function TpvVectorPath.QuadraticCurveTo(const aControlPoint,aAnchorPoint:TpvVectorPathVector):TpvVectorPath;
+begin
+ fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.QuadraticCurveTo,aControlPoint.x,aControlPoint.y,aAnchorPoint.x,aAnchorPoint.y));
+ fStartPointSeen:=true;
+ result:=self;
+end;
+
+function TpvVectorPath.CubicCurveTo(const aC0X,aC0Y,aC1X,aC1Y,aAX,aAY:TpvDouble):TpvVectorPath;
 begin
  fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.CubicCurveTo,aC0X,aC0Y,aC1X,aC1Y,aAX,aAY));
+ fStartPointSeen:=true;
+ result:=self;
 end;
 
-procedure TpvVectorPath.Close;
+function TpvVectorPath.CubicCurveTo(const aControlPoint0,aControlPoint1,aAnchorPoint:TpvVectorPathVector):TpvVectorPath;
+begin
+ fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.CubicCurveTo,aControlPoint0.x,aControlPoint0.y,aControlPoint1.x,aControlPoint1.y,aAnchorPoint.x,aAnchorPoint.y));
+ fStartPointSeen:=true;
+ result:=self;
+end;
+
+function TpvVectorPath.ArcTo(const aOriginX,aOriginY,aRadiusX,aRadiusY:TpvDouble;const aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean;const aRotation:TpvDouble):TpvVectorPath;
+type TMatrix=array[0..5] of TpvFloat;
+var SweepDirection:TpvInt32;    
+    ArcSweepLeft,StartAngle,CurrentStartAngle,CurrentEndAngle:TpvFloat;
+    CurrentStartOffset,CurrentEndOffset,cp0,cp1,RotationSinCos:TpvVectorPathVector;
+    KappaFactor:TpvFloat;
+    Matrix:TMatrix;
+begin
+ 
+ // Calculate the sweep direction
+ if aCounterClockwise then begin
+  SweepDirection:=-1;
+ end else begin
+  SweepDirection:=1;
+ end;
+
+ // Calculate the total arc we're going to sweep
+ ArcSweepLeft:=(aEndAngle-aStartAngle)*SweepDirection;
+
+ // Ensure the sweep is positive, and normalize it
+ if ArcSweepLeft<0.0 then begin
+  ArcSweepLeft:=TwoPI+(ArcSweepLeft-(Floor(ArcSweepLeft/TwoPI)*TwoPI));
+  StartAngle:=aEndAngle-(ArcSweepLeft*SweepDirection);
+ end else if ArcSweepLeft>TwoPI then begin
+  ArcSweepLeft:=TwoPI;
+  StartAngle:=aStartAngle;
+ end else begin
+  StartAngle:=aStartAngle;
+ end;
+
+ // Create transformation matrix from scratch at once
+ SinCos(aRotation,RotationSinCos.x,RotationSinCos.y);
+
+ Matrix[0]:=aRadiusX*RotationSinCos.y;
+ Matrix[1]:=aRadiusY*RotationSinCos.x;
+ Matrix[2]:=-aRadiusX*RotationSinCos.x;
+ Matrix[3]:=aRadiusY*RotationSinCos.y;
+ Matrix[4]:=aOriginX;
+ Matrix[5]:=aOriginY;
+
+ // Current start angle and offset (unit circle)
+ CurrentStartAngle:=StartAngle;
+ SinCos(StartAngle,CurrentStartOffset.y,CurrentStartOffset.x);
+
+ // Move to the start point (transformed) 
+ if fStartPointSeen then begin
+  LineTo((CurrentStartOffset.x*Matrix[0])+(CurrentStartOffset.y*Matrix[2])+Matrix[4],
+         (CurrentStartOffset.x*Matrix[1])+(CurrentStartOffset.y*Matrix[3])+Matrix[5]);
+ end else begin
+  MoveTo((CurrentStartOffset.x*Matrix[0])+(CurrentStartOffset.y*Matrix[2])+Matrix[4],
+         (CurrentStartOffset.x*Matrix[1])+(CurrentStartOffset.y*Matrix[3])+Matrix[5]);
+ end;
+
+ while ArcSweepLeft>0.0 do begin
+
+  // Calculate the end angle and offset (unit circle)
+  CurrentEndAngle:=CurrentStartAngle+(Min(ArcSweepLeft,HalfPI)*SweepDirection);
+  SinCos(CurrentEndAngle,CurrentEndOffset.y,CurrentEndOffset.x);
+
+  // Calculate the kappa factor
+  KappaFactor:=(4.0/3.0)*tan((CurrentEndAngle-CurrentStartAngle)*0.25);
+
+  // Calculate the control points
+  cp0:=TpvVectorPathVector.Create(CurrentStartOffset.x-(CurrentStartOffset.y*KappaFactor),
+                                  CurrentStartOffset.y+(CurrentStartOffset.x*KappaFactor));
+  cp1:=TpvVectorPathVector.Create(CurrentEndOffset.x+(CurrentEndOffset.y*KappaFactor),
+                                  CurrentEndOffset.y-(CurrentEndOffset.x*KappaFactor));
+
+  // Draw the current arc segment as a Bezier curve (using baked coordinates)
+  CubicCurveTo((cp0.x*Matrix[0])+(cp0.y*Matrix[2])+Matrix[4],
+               (cp0.x*Matrix[1])+(cp0.y*Matrix[3])+Matrix[5],
+               (cp1.x*Matrix[0])+(cp1.y*Matrix[2])+Matrix[4],
+               (cp1.x*Matrix[1])+(cp1.y*Matrix[3])+Matrix[5],
+               (CurrentEndOffset.x*Matrix[0])+(CurrentEndOffset.y*Matrix[2])+Matrix[4],
+               (CurrentEndOffset.x*Matrix[1])+(CurrentEndOffset.y*Matrix[3])+Matrix[5]);
+
+  // Move to the next segment 
+  ArcSweepLeft:=ArcSweepLeft-HalfPI;
+  CurrentStartAngle:=CurrentEndAngle;
+  CurrentStartOffset:=CurrentEndOffset;
+
+ end;
+
+ result:=self;
+
+end;
+
+function TpvVectorPath.ArcTo(const aOrigin,aRadius:TpvVectorPathVector;const aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean;const aRotation:TpvDouble):TpvVectorPath;
+type TMatrix=array[0..5] of TpvFloat;
+var SweepDirection:TpvInt32;    
+    ArcSweepLeft,StartAngle,CurrentStartAngle,CurrentEndAngle:TpvFloat;
+    CurrentStartOffset,CurrentEndOffset,cp0,cp1,RotationSinCos:TpvVectorPathVector;
+    KappaFactor:TpvFloat;
+    Matrix:TMatrix;
+begin
+ 
+ // Calculate the sweep direction
+ if aCounterClockwise then begin
+  SweepDirection:=-1;
+ end else begin
+  SweepDirection:=1;
+ end;
+
+ // Calculate the total arc we're going to sweep
+ ArcSweepLeft:=(aEndAngle-aStartAngle)*SweepDirection;
+
+ // Ensure the sweep is positive, and normalize it
+ if ArcSweepLeft<0.0 then begin
+  ArcSweepLeft:=TwoPI+(ArcSweepLeft-(Floor(ArcSweepLeft/TwoPI)*TwoPI));
+  StartAngle:=aEndAngle-(ArcSweepLeft*SweepDirection);
+ end else if ArcSweepLeft>TwoPI then begin
+  ArcSweepLeft:=TwoPI;
+  StartAngle:=aStartAngle;
+ end else begin
+  StartAngle:=aStartAngle;
+ end;
+
+ // Create transformation matrix from scratch at once
+ SinCos(aRotation,RotationSinCos.x,RotationSinCos.y);
+
+ Matrix[0]:=aRadius.x*RotationSinCos.y;
+ Matrix[1]:=aRadius.y*RotationSinCos.x;
+ Matrix[2]:=-aRadius.x*RotationSinCos.x;
+ Matrix[3]:=aRadius.y*RotationSinCos.y;
+ Matrix[4]:=aOrigin.x;
+ Matrix[5]:=aOrigin.y;
+
+ // Current start angle and offset (unit circle)
+ CurrentStartAngle:=StartAngle;
+ SinCos(StartAngle,CurrentStartOffset.y,CurrentStartOffset.x);
+
+ // Move to the start point (transformed) 
+ if fStartPointSeen then begin
+  LineTo((CurrentStartOffset.x*Matrix[0])+(CurrentStartOffset.y*Matrix[2])+Matrix[4],
+         (CurrentStartOffset.x*Matrix[1])+(CurrentStartOffset.y*Matrix[3])+Matrix[5]);
+ end else begin
+  MoveTo((CurrentStartOffset.x*Matrix[0])+(CurrentStartOffset.y*Matrix[2])+Matrix[4],
+         (CurrentStartOffset.x*Matrix[1])+(CurrentStartOffset.y*Matrix[3])+Matrix[5]);
+ end;
+
+ while ArcSweepLeft>0.0 do begin
+
+  // Calculate the end angle and offset (unit circle)
+  CurrentEndAngle:=CurrentStartAngle+(Min(ArcSweepLeft,HalfPI)*SweepDirection);
+  SinCos(CurrentEndAngle,CurrentEndOffset.y,CurrentEndOffset.x);
+
+  // Calculate the kappa factor
+  KappaFactor:=(4.0/3.0)*tan((CurrentEndAngle-CurrentStartAngle)*0.25);
+
+  // Calculate the control points
+  cp0:=TpvVectorPathVector.Create(CurrentStartOffset.x-(CurrentStartOffset.y*KappaFactor),
+                                  CurrentStartOffset.y+(CurrentStartOffset.x*KappaFactor));
+  cp1:=TpvVectorPathVector.Create(CurrentEndOffset.x+(CurrentEndOffset.y*KappaFactor),
+                                  CurrentEndOffset.y-(CurrentEndOffset.x*KappaFactor));
+
+  // Draw the current arc segment as a Bezier curve (using baked coordinates)
+  CubicCurveTo((cp0.x*Matrix[0])+(cp0.y*Matrix[2])+Matrix[4],
+               (cp0.x*Matrix[1])+(cp0.y*Matrix[3])+Matrix[5],
+               (cp1.x*Matrix[0])+(cp1.y*Matrix[2])+Matrix[4],
+               (cp1.x*Matrix[1])+(cp1.y*Matrix[3])+Matrix[5],
+               (CurrentEndOffset.x*Matrix[0])+(CurrentEndOffset.y*Matrix[2])+Matrix[4],
+               (CurrentEndOffset.x*Matrix[1])+(CurrentEndOffset.y*Matrix[3])+Matrix[5]);
+
+  // Move to the next segment 
+  ArcSweepLeft:=ArcSweepLeft-HalfPI;
+  CurrentStartAngle:=CurrentEndAngle;
+  CurrentStartOffset:=CurrentEndOffset;
+
+ end;
+
+ result:=self;
+
+end;
+
+function TpvVectorPath.Arc(const aCenterX,aCenterY,aRadius,aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean):TpvVectorPath;
+begin
+ result:=ArcTo(aCenterX,aCenterY,aRadius,aRadius,aStartAngle,aEndAngle,aCounterClockwise,0.0);
+end;
+
+function TpvVectorPath.Arc(const aCenter:TpvVectorPathVector;const aRadius,aStartAngle,aEndAngle:TpvDouble;const aCounterClockwise:boolean):TpvVectorPath;
+begin
+ result:=ArcTo(aCenter.X,aCenter.Y,aRadius,aRadius,aStartAngle,aEndAngle,aCounterClockwise,0.0);
+end;
+
+function TpvVectorPath.Ellipse(const aCenterX,aCenterY,aRadiusX,aRadiusY:TpvDouble):TpvVectorPath;
+const ARC_MAGIC=0.5522847498; // 4/3 * (1-cos 45°)/sin 45° = 4/3 * (sqrt(2) - 1)
+begin
+ MoveTo(aCenterX+aRadiusX,aCenterY);
+ CubicCurveTo(aCenterX+aRadiusX,aCenterY-(aRadiusY*ARC_MAGIC),
+              aCenterX+(aRadiusX*ARC_MAGIC),aCenterY-aRadiusY,
+              aCenterX,aCenterY-aRadiusY);
+ CubicCurveTo(aCenterX-(aRadiusX*ARC_MAGIC),aCenterY-aRadiusY,
+              aCenterX-aRadiusX,aCenterY-(aRadiusY*ARC_MAGIC),
+              aCenterX-aRadiusX,aCenterY);
+ CubicCurveTo(aCenterX-aRadiusX,aCenterY+(aRadiusY*ARC_MAGIC),
+              aCenterX-(aRadiusX*ARC_MAGIC),aCenterY+aRadiusY,
+              aCenterX,aCenterY+aRadiusY);
+ CubicCurveTo(aCenterX+(aRadiusX*ARC_MAGIC),aCenterY+aRadiusY,
+              aCenterX+aRadiusX,aCenterY+(aRadiusY*ARC_MAGIC),
+              aCenterX+aRadiusX,aCenterY);
+ Close;
+ result:=self;
+end;
+
+function TpvVectorPath.Ellipse(const aCenter,aRadius:TpvVectorPathVector):TpvVectorPath;
+const ARC_MAGIC=0.5522847498; // 4/3 * (1-cos 45°)/sin 45° = 4/3 * (sqrt(2) - 1)
+begin
+ MoveTo(aCenter.x+aRadius.x,aCenter.y);
+ CubicCurveTo(aCenter.x+aRadius.x,aCenter.y-(aRadius.y*ARC_MAGIC),
+              aCenter.x+(aRadius.x*ARC_MAGIC),aCenter.y-aRadius.y,
+              aCenter.x,aCenter.y-aRadius.y);
+ CubicCurveTo(aCenter.x-(aRadius.x*ARC_MAGIC),aCenter.y-aRadius.y,
+              aCenter.x-aRadius.x,aCenter.y-(aRadius.y*ARC_MAGIC),
+              aCenter.x-aRadius.x,aCenter.y);
+ CubicCurveTo(aCenter.x-aRadius.x,aCenter.y+(aRadius.y*ARC_MAGIC),
+              aCenter.x-(aRadius.x*ARC_MAGIC),aCenter.y+aRadius.y,
+              aCenter.x,aCenter.y+aRadius.y);
+ CubicCurveTo(aCenter.x+(aRadius.x*ARC_MAGIC),aCenter.y+aRadius.y,
+              aCenter.x+aRadius.x,aCenter.y+(aRadius.y*ARC_MAGIC),
+              aCenter.x+aRadius.x,aCenter.y);
+ Close;
+ result:=self;
+end;
+
+function TpvVectorPath.Circle(const aCenterX,aCenterY,aRadius:TpvDouble):TpvVectorPath;
+begin
+ result:=Ellipse(aCenterX,aCenterY,aRadius,aRadius);
+end;
+
+function TpvVectorPath.Circle(const aCenter:TpvVectorPathVector;const aRadius:TpvDouble):TpvVectorPath;
+begin
+ result:=Ellipse(aCenter.x,aCenter.y,aRadius,aRadius);
+end;
+
+function TpvVectorPath.Rectangle(const aCenterX,aCenterY,aBoundsX,aBoundsY:TpvDouble):TpvVectorPath;
+begin
+ MoveTo(aCenterX-aBoundsX,aCenterY-aBoundsY);
+ LineTo(aCenterX+aBoundsX,aCenterY-aBoundsY);
+ LineTo(aCenterX+aBoundsX,aCenterY+aBoundsY);
+ LineTo(aCenterX-aBoundsX,aCenterY+aBoundsY);
+ Close;
+ result:=self;
+end;
+
+function TpvVectorPath.Rectangle(const aCenter,aBounds:TpvVectorPathVector):TpvVectorPath;
+begin
+ MoveTo(aCenter.x-aBounds.x,aCenter.y-aBounds.y);
+ LineTo(aCenter.x+aBounds.x,aCenter.y-aBounds.y);
+ LineTo(aCenter.x+aBounds.x,aCenter.y+aBounds.y);
+ LineTo(aCenter.x-aBounds.x,aCenter.y+aBounds.y);
+ Close;
+ result:=self;
+end;
+
+function TpvVectorPath.RoundedRectangle(const aCenterX,aCenterY,aBoundsX,aBoundsY,aRadiusTopLeft,aRadiusTopRight,aRadiusBottomLeft,aRadiusBottomRight:TpvDouble):TpvVectorPath;
+const ARC_MAGIC=0.5522847498; // 4/3 * (1-cos 45°)/sin 45° = 4/3 * (sqrt(2) - 1)
+var OffsetX,OffsetY,SizeX,SizeY,TopLeftX,TopLeftY,TopRightX,TopRightY,BottomLeftX,BottomLeftY,BottomRightX,BottomRightY:TpvDouble;
+begin
+ if IsZero(aRadiusTopLeft) and
+    IsZero(aRadiusTopRight) and
+    IsZero(aRadiusBottomLeft) and
+    IsZero(aRadiusBottomRight) then begin
+  Rectangle(aCenterX,aCenterY,aBoundsX,aBoundsY);
+ end else begin
+  OffsetX:=aCenterX-aBoundsX;
+  OffsetY:=aCenterY-aBoundsY;
+  SizeX:=aBoundsX*2.0;
+  SizeY:=aBoundsY*2.0;
+  TopLeftX:=Min(aBoundsX,aRadiusTopLeft)*Sign(SizeX);
+  TopLeftY:=Min(aBoundsY,aRadiusTopLeft)*Sign(SizeY);
+  TopRightX:=Min(aBoundsX,aRadiusTopRight)*Sign(SizeX);
+  TopRightY:=Min(aBoundsY,aRadiusTopRight)*Sign(SizeY);
+  BottomLeftX:=Min(aBoundsX,aRadiusBottomLeft)*Sign(SizeX);
+  BottomLeftY:=Min(aBoundsY,aRadiusBottomLeft)*Sign(SizeY);
+  BottomRightX:=Min(aBoundsX,aRadiusBottomRight)*Sign(SizeX);
+  BottomRightY:=Min(aBoundsY,aRadiusBottomRight)*Sign(SizeY);
+  MoveTo(OffsetX,OffsetY+TopLeftY);
+  LineTo(OffsetX,OffsetY+SizeY-BottomLeftY);
+  CubicCurveTo(OffsetX,OffsetY+SizeY-(BottomLeftY*(1.0-ARC_MAGIC)),
+               OffsetX+BottomLeftX*(1.0-ARC_MAGIC),OffsetY+SizeY,
+               OffsetX+BottomLeftX,OffsetY+SizeY);
+  LineTo(OffsetX+SizeX-BottomRightX,OffsetY+SizeY);
+  CubicCurveTo(OffsetX+SizeX-(BottomRightX*(1.0-ARC_MAGIC)),OffsetY+SizeY,
+               OffsetX+SizeX,OffsetY+SizeY-(BottomRightY*(1.0-ARC_MAGIC)),
+               OffsetX+SizeX,OffsetY+SizeY-BottomRightY);
+  LineTo(OffsetX+SizeX,OffsetY+TopRightY);
+  CubicCurveTo(OffsetX+SizeX,OffsetY+TopRightY*(1.0-ARC_MAGIC),
+               OffsetX+SizeX-(TopRightX*(1.0-ARC_MAGIC)),OffsetY,
+               OffsetX+SizeX-TopRightX,OffsetY);
+  LineTo(OffsetX+TopLeftX,OffsetY);
+  CubicCurveTo(OffsetX+TopLeftX*(1.0-ARC_MAGIC),OffsetY,
+               OffsetX,OffsetY+TopLeftY*(1.0-ARC_MAGIC),
+               OffsetX,OffsetY+TopLeftY);
+  Close;
+ end;
+ result:=self;
+end;
+
+function TpvVectorPath.RoundedRectangle(const aCenter,aBounds:TpvVectorPathVector;const aRadiusTopLeft,aRadiusTopRight,aRadiusBottomLeft,aRadiusBottomRight:TpvDouble):TpvVectorPath;
+const ARC_MAGIC=0.5522847498; // 4/3 * (1-cos 45°)/sin 45° = 4/3 * (sqrt(2) - 1)
+var Offset,Size,TopLeft,TopRight,BottomLeft,BottomRight:TpvVectorPathVector;
+begin
+ if IsZero(aRadiusTopLeft) and
+    IsZero(aRadiusTopRight) and
+    IsZero(aRadiusBottomLeft) and
+    IsZero(aRadiusBottomRight) then begin
+  Rectangle(aCenter,aBounds);
+ end else begin
+  Offset:=aCenter-aBounds;
+  Size:=aBounds*2.0;
+  TopLeft:=TpvVectorPathVector.Create(Min(aBounds.x,aRadiusTopLeft)*Sign(Size.x),
+                                      Min(aBounds.y,aRadiusTopLeft)*Sign(Size.y));
+  TopRight:=TpvVectorPathVector.Create(Min(aBounds.x,aRadiusTopRight)*Sign(Size.x),
+                                       Min(aBounds.y,aRadiusTopRight)*Sign(Size.y));
+  BottomLeft:=TpvVectorPathVector.Create(Min(aBounds.x,aRadiusBottomLeft)*Sign(Size.x),
+                                         Min(aBounds.y,aRadiusBottomLeft)*Sign(Size.y));
+  BottomRight:=TpvVectorPathVector.Create(Min(aBounds.x,aRadiusBottomRight)*Sign(Size.x),
+                                          Min(aBounds.y,aRadiusBottomRight)*Sign(Size.y));
+  MoveTo(Offset.x,Offset.y+TopLeft.y);
+  LineTo(Offset.x,Offset.y+Size.y-BottomLeft.y);
+  CubicCurveTo(Offset.x,Offset.y+Size.y-(BottomLeft.y*(1.0-ARC_MAGIC)),
+               Offset.x+BottomLeft.x*(1.0-ARC_MAGIC),Offset.y+Size.y,
+               Offset.x+BottomLeft.x,Offset.y+Size.y);
+  LineTo(Offset.x+Size.x-BottomRight.x,Offset.y+Size.y);
+  CubicCurveTo(Offset.x+Size.x-(BottomRight.x*(1.0-ARC_MAGIC)),Offset.y+Size.y,
+               Offset.x+Size.x,Offset.y+Size.y-(BottomRight.y*(1.0-ARC_MAGIC)),
+               Offset.x+Size.x,Offset.y+Size.y-BottomRight.y);
+  LineTo(Offset.x+Size.x,Offset.y+TopRight.y);
+  CubicCurveTo(Offset.x+Size.x,Offset.y+TopRight.y*(1.0-ARC_MAGIC),
+               Offset.x+Size.x-(TopRight.x*(1.0-ARC_MAGIC)),Offset.y,
+               Offset.x+Size.x-TopRight.x,Offset.y);
+  LineTo(Offset.x+TopLeft.x,Offset.y);
+  CubicCurveTo(Offset.x+TopLeft.x*(1.0-ARC_MAGIC),Offset.y,
+               Offset.x,Offset.y+TopLeft.y*(1.0-ARC_MAGIC),
+               Offset.x,Offset.y+TopLeft.y);
+  Close;
+ end;
+ result:=self;
+end;
+
+function TpvVectorPath.RoundedRectangle(const aCenterX,aCenterY,aBoundsX,aBoundsY,aRadius:TpvDouble):TpvVectorPath;
+begin
+ result:=RoundedRectangle(aCenterX,aCenterY,aBoundsX,aBoundsY,aRadius,aRadius,aRadius,aRadius);
+end;
+
+function TpvVectorPath.RoundedRectangle(const aCenter,aBounds:TpvVectorPathVector;const aRadius:TpvDouble):TpvVectorPath;
+begin
+ result:=RoundedRectangle(aCenter,aBounds,aRadius,aRadius,aRadius,aRadius);
+end;
+
+function TpvVectorPath.Close:TpvVectorPath;
 begin
  fCommands.Add(TpvVectorPathCommand.Create(TpvVectorPathCommandType.Close));
+ result:=self;
 end;
 
 function TpvVectorPath.GetShape:TpvVectorPathShape;
 begin
- result:=TpvVectorPathShape.Create(self);
+ if assigned(fShape) then begin
+  fShape.Assign(self);
+ end else begin
+  fShape:=TpvVectorPathShape.Create(self);
+ end;
+ result:=fShape;
 end;
 
 { TpvVectorPathGPUShape.TGridCell }
@@ -4797,6 +5455,7 @@ begin
 end;
 
 constructor TpvVectorPathGPUShape.TGridCell.Create(const aVectorPathGPUShape:TpvVectorPathGPUShape;const aBoundingBox:TpvVectorPathBoundingBox);
+const EPSILON=1e-8;
 type TYCoordinateHashMap=TpvHashMap<TpvDouble,Boolean>;
 var Segment:TpvVectorPathSegment;
     IntersectionSegments:TpvVectorPathSegments;
@@ -4832,13 +5491,15 @@ begin
 
    for Segment in fVectorPathGPUShape.fSegments do begin
     BoundingBox:=Segment.GetBoundingBox;
-    if fExtendedBoundingBox.Intersect(BoundingBox) then begin
-     fSegments.Add(Segment);
-    end;
-    if ((BoundingBox.MinMax[0].x-TpvVectorPathBoundingBox.EPSILON)<=(fExtendedBoundingBox.MinMax[0].x+TpvVectorPathBoundingBox.EPSILON)) and
-       ((BoundingBox.MinMax[0].y-TpvVectorPathBoundingBox.EPSILON)<=(fExtendedBoundingBox.MinMax[1].y+TpvVectorPathBoundingBox.EPSILON)) and
-       ((fExtendedBoundingBox.MinMax[0].y-TpvVectorPathBoundingBox.EPSILON)<=(BoundingBox.MinMax[1].y+TpvVectorPathBoundingBox.EPSILON)) then begin
-     IntersectionSegments.Add(Segment);
+    if Segment.Type_<>TpvVectorPathSegmentType.MetaWindingSettingLine then begin
+     if fExtendedBoundingBox.Intersect(BoundingBox) then begin
+      fSegments.Add(Segment);
+     end;
+     if ((BoundingBox.MinMax[0].x-TpvVectorPathBoundingBox.EPSILON)<=(fExtendedBoundingBox.MinMax[0].x+TpvVectorPathBoundingBox.EPSILON)) and
+        ((BoundingBox.MinMax[0].y-TpvVectorPathBoundingBox.EPSILON)<=(fExtendedBoundingBox.MinMax[1].y+TpvVectorPathBoundingBox.EPSILON)) and
+        ((fExtendedBoundingBox.MinMax[0].y-TpvVectorPathBoundingBox.EPSILON)<=(BoundingBox.MinMax[1].y+TpvVectorPathBoundingBox.EPSILON)) then begin
+      IntersectionSegments.Add(Segment);
+     end;
     end;
    end;
 
@@ -4850,7 +5511,7 @@ begin
    try
 
     for SegmentIndex:=0 to IntersectionSegments.Count-1 do begin
-     Segment:=fSegments[SegmentIndex];
+     Segment:=IntersectionSegments[SegmentIndex];
      Segment.GetIntersectionPointsWithSegment(DummyGridCellLeftSplitSegmentLine,IntersectionPoints);
      for OtherSegmentIndex:=SegmentIndex+1 to IntersectionSegments.Count-1 do begin
       Segment.GetIntersectionPointsWithSegment(IntersectionSegments[OtherSegmentIndex],IntersectionPoints);
@@ -4870,56 +5531,60 @@ begin
     end;
    end;
 
-  finally
-   FreeAndNil(IntersectionSegments);
-  end;
-
-  YCoordinates.Initialize;
-  try
-
-   YCoordinateHashMap:=TYCoordinateHashMap.Create(false);
+   YCoordinates.Initialize;
    try
-    for Vector in IntersectionPoints do begin
-     //if (Vector.x-TpvVectorPathBoundingBox.EPSILON)<=(fExtendedBoundingBox.MinMax[1].x+TpvVectorPathBoundingBox.EPSILON) then begin
-     if Vector.x<fExtendedBoundingBox.MinMax[0].x then begin
-      CurrentY:=Vector.y;
-      if not YCoordinateHashMap.ExistKey(CurrentY) then begin
-       YCoordinateHashMap.Add(CurrentY,true);
-       YCoordinates.Add(CurrentY);
+
+    YCoordinateHashMap:=TYCoordinateHashMap.Create(false);
+    try
+     for Vector in IntersectionPoints do begin
+      //if (Vector.x-TpvVectorPathBoundingBox.EPSILON)<=(fExtendedBoundingBox.MinMax[1].x+TpvVectorPathBoundingBox.EPSILON) then begin
+      if Vector.x<fExtendedBoundingBox.MinMax[0].x then begin
+       CurrentY:=Vector.y;
+       if not YCoordinateHashMap.ExistKey(CurrentY) then begin
+        YCoordinateHashMap.Add(CurrentY,true);
+        YCoordinates.Add(CurrentY);
+       end;
       end;
      end;
+    finally
+     FreeAndNil(YCoordinateHashMap);
     end;
+
+    if YCoordinates.Count>=2 then begin
+     TpvTypedSort<TpvDouble>.IntroSort(@YCoordinates.Items[0],0,YCoordinates.Count-1,TpvVectorPathGPUShape_TGridCell_YCoordinatesSortFunc);
+    end;
+
+    LastY:=fExtendedBoundingBox.MinMax[0].y;
+    for YCoordinateIndex:=0 to YCoordinates.Count do begin
+     if YCoordinateIndex<YCoordinates.Count then begin
+      CurrentY:=YCoordinates.Items[YCoordinateIndex];
+      if (CurrentY<fExtendedBoundingBox.MinMax[0].y) or (CurrentY>fExtendedBoundingBox.MinMax[1].y) then begin
+       continue;
+      end;
+     end else begin
+      CurrentY:=fExtendedBoundingBox.MinMax[1].y;
+     end;
+     if not SameValue(CurrentY,LastY) then begin
+      SegmentMetaWindingSettingLine:=TpvVectorPathSegmentMetaWindingSettingLine.Create(TpvVectorPathVector.Create(-Infinity,LastY),
+                                                                                       TpvVectorPathVector.Create(-Infinity,CurrentY),
+                                                                                       TpvVectorPathGPUShape.ComputeWindingAtPosition(IntersectionSegments,
+                                                                                                                                      fBoundingBox.MinMax[0].x+EPSILON,
+                                                                                                                                      LastY+((CurrentY-LastY)*0.5)));
+      try
+       fSegments.Add(SegmentMetaWindingSettingLine);
+      finally
+       fVectorPathGPUShape.fSegments.Add(SegmentMetaWindingSettingLine);
+      end;
+     end;
+     LastY:=CurrentY;
+    end;
+
    finally
-    FreeAndNil(YCoordinateHashMap);
-   end;
-
-   if YCoordinates.Count>=2 then begin
-    TpvTypedSort<TpvDouble>.IntroSort(@YCoordinates.Items[0],0,YCoordinates.Count-1,TpvVectorPathGPUShape_TGridCell_YCoordinatesSortFunc);
-   end;
-
-   LastY:=fExtendedBoundingBox.MinMax[0].y;
-   for YCoordinateIndex:=0 to YCoordinates.Count do begin
-    if YCoordinateIndex<YCoordinates.Count then begin
-     CurrentY:=YCoordinates.Items[YCoordinateIndex];
-     if (CurrentY<fExtendedBoundingBox.MinMax[0].y) or (CurrentY>fExtendedBoundingBox.MinMax[1].y) then begin
-      continue;
-     end;
-    end else begin
-     CurrentY:=fExtendedBoundingBox.MinMax[1].y;
-    end;
-    if not SameValue(CurrentY,LastY) then begin
-     SegmentMetaWindingSettingLine:=TpvVectorPathSegmentMetaWindingSettingLine.Create(TpvVectorPathVector.Create(-Infinity,LastY),TpvVectorPathVector.Create(-Infinity,CurrentY));
-     try
-      fSegments.Add(SegmentMetaWindingSettingLine);
-     finally
-      fVectorPathGPUShape.fSegments.Add(SegmentMetaWindingSettingLine);
-     end;
-    end;
-    LastY:=CurrentY;
+    YCoordinates.Finalize;
    end;
 
   finally
-   YCoordinates.Finalize;
+   FreeAndNil(IntersectionSegments);
   end;
 
  finally
@@ -4936,22 +5601,80 @@ end;
 
 { TpvVectorPathGPUShape }
 
-constructor TpvVectorPathGPUShape.Create(const aVectorPathShape:TpvVectorPathShape;const aResolution:TpvInt32;const aBoundingBoxExtent:TpvDouble);
+constructor TpvVectorPathGPUShape.Create(const aBufferPool:TpvVectorPathGPUBufferPool;const aVectorPathShape:TpvVectorPathShape;const aResolution:TpvInt32;const aBoundingBoxExtent:TpvDouble);
+begin
+
+ inherited Create;
+
+ fBufferPool:=aBufferPool;
+
+ fResolution:=aResolution;
+
+ fGeneration:=1;
+
+ fSegmentBufferRange.Clear;
+ fIndirectSegmentBufferRange.Clear;
+ fGridCellBufferRange.Clear;
+ fShapeIndex:=-1; 
+
+ fGridCells:=nil;
+ fSegmentDynamicAABBTree:=nil;
+ fSegments:=nil;
+ fVectorPathShape:=nil;       
+
+ fSourceVectorPathShape:=aVectorPathShape;
+
+ fBoundingBoxExtent:=aBoundingBoxExtent;
+
+ Update;
+
+end;
+
+destructor TpvVectorPathGPUShape.Destroy;
+begin
+
+ if assigned(fBufferPool) then begin
+  fBufferPool.fSegmentsAllocator.ReleaseBufferRangeAndNil(fSegmentBufferRange);
+  fBufferPool.fIndirectSegmentsAllocator.ReleaseBufferRangeAndNil(fIndirectSegmentBufferRange);
+  fBufferPool.fGridCellsAllocator.ReleaseBufferRangeAndNil(fGridCellBufferRange);
+  fBufferPool:=nil;
+ end;
+
+ FreeAndNil(fGridCells);
+ FreeAndNil(fSegmentDynamicAABBTree);
+ FreeAndNil(fSegments);
+ FreeAndNil(fVectorPathShape);
+
+ inherited Destroy;
+end;
+
+procedure TpvVectorPathGPUShape.Update;
 var Contour:TpvVectorPathContour;
     Segment,NewSegment:TpvVectorPathSegment;
     IndexX,IndexY:TpvSizeInt;
     tx0,tx1,ty0,ty1:TpvDouble;
 begin
 
- inherited Create;
+ if assigned(fBufferPool) then begin
+  fBufferPool.fSegmentsAllocator.ReleaseBufferRangeAndNil(fSegmentBufferRange);
+  fBufferPool.fIndirectSegmentsAllocator.ReleaseBufferRangeAndNil(fIndirectSegmentBufferRange);
+  fBufferPool.fGridCellsAllocator.ReleaseBufferRangeAndNil(fGridCellBufferRange);
+ end;
 
- fVectorPathShape:=TpvVectorPathShape.Create(aVectorPathShape);
+ FreeAndNil(fGridCells);
+ FreeAndNil(fSegmentDynamicAABBTree);
+ FreeAndNil(fSegments);
+ FreeAndNil(fVectorPathShape);
+
+ fVectorPathShape:=TpvVectorPathShape.Create(fSourceVectorPathShape);
+
+ // Convert cubic Bezier curves to quadratic Bezier curves with a maximum error of 1.0 units
+ // so that the GPU shader can handle them more easily just using quadratic curves
+ fVectorPathShape.ConvertCubicCurvesToQuadraticCurves(1.0); 
 
  fBoundingBox:=fVectorPathShape.GetBoundingBox;
- fBoundingBox.MinMax[0]:=fBoundingBox.MinMax[0]-TpvVectorPathVector.Create(aBoundingBoxExtent,aBoundingBoxExtent);
- fBoundingBox.MinMax[1]:=fBoundingBox.MinMax[1]+TpvVectorPathVector.Create(aBoundingBoxExtent,aBoundingBoxExtent);
-
- fResolution:=aResolution;
+ fBoundingBox.MinMax[0]:=fBoundingBox.MinMax[0]-TpvVectorPathVector.Create(fBoundingBoxExtent,fBoundingBoxExtent);
+ fBoundingBox.MinMax[1]:=fBoundingBox.MinMax[1]+TpvVectorPathVector.Create(fBoundingBoxExtent,fBoundingBoxExtent);
 
  fSegments:=TpvVectorPathSegments.Create;
  fSegments.OwnsObjects:=true;
@@ -4962,6 +5685,7 @@ begin
    for Segment in Contour.fSegments do begin
     NewSegment:=Segment.Clone;
     try
+     NewSegment.fIndex:=fSegments.Count;
      fSegmentDynamicAABBTree.CreateProxy(NewSegment.GetBoundingBox,TpvPtrInt(TpvPointer(NewSegment)));
     finally
      fSegments.Add(NewSegment);
@@ -4982,22 +5706,1076 @@ begin
    tx0:=IndexX/fResolution;
    tx1:=(IndexX+1)/fResolution;
    fGridCells.Add(TGridCell.Create(self,
-                                   TpvVectorPathBoundingBox.Create(TpvVectorPathVector.Create((fBoundingBox.MinMax[0].x*tx0)+(fBoundingBox.MinMax[1].x*(1.0-tx0)),
-                                                                                              (fBoundingBox.MinMax[0].y*ty0)+(fBoundingBox.MinMax[1].y*(1.0-ty0))),
-                                                                   TpvVectorPathVector.Create((fBoundingBox.MinMax[0].x*tx1)+(fBoundingBox.MinMax[1].x*(1.0-tx1)),
-                                                                                              (fBoundingBox.MinMax[0].y*ty1)+(fBoundingBox.MinMax[1].y*(1.0-ty1))))));
+                                   TpvVectorPathBoundingBox.Create(TpvVectorPathVector.Create((fBoundingBox.MinMax[0].x*(1.0-tx0))+(fBoundingBox.MinMax[1].x*tx0),
+                                                                                              (fBoundingBox.MinMax[0].y*(1.0-ty0))+(fBoundingBox.MinMax[1].y*ty0)),
+                                                                   TpvVectorPathVector.Create((fBoundingBox.MinMax[0].x*(1.0-tx1))+(fBoundingBox.MinMax[1].x*tx1),
+                                                                                              (fBoundingBox.MinMax[0].y*(1.0-ty1))+(fBoundingBox.MinMax[1].y*ty1)))));
   end;
  end;
 
 end;
 
-destructor TpvVectorPathGPUShape.Destroy;
+procedure TpvVectorPathGPUShape.ClearAndInvalidateBufferRanges;
 begin
- FreeAndNil(fGridCells);
- FreeAndNil(fSegmentDynamicAABBTree);
- FreeAndNil(fSegments);
- FreeAndNil(fVectorPathShape);
+ if assigned(fBufferPool) then begin
+  fBufferPool.fSegmentsAllocator.ReleaseBufferRangeAndNil(fSegmentBufferRange);
+  fBufferPool.fIndirectSegmentsAllocator.ReleaseBufferRangeAndNil(fIndirectSegmentBufferRange);
+  fBufferPool.fGridCellsAllocator.ReleaseBufferRangeAndNil(fGridCellBufferRange);
+ end;
+end;
+
+procedure TpvVectorPathGPUShape.UpdateBufferPool;
+var OldCount,NewCount,Index:TpvSizeInt;
+    Segment:TpvVectorPathSegment;
+    SegmentData:PpvVectorPathGPUSegmentData;
+    GridCell:TpvVectorPathGPUShape.TGridCell;
+    GridCellData:PpvVectorPathGPUGridCellData;
+    ShapeData:PpvVectorPathGPUShapeData;
+begin
+
+ // Check if a buffer pool is assigned
+ if assigned(fBufferPool) then begin
+
+  // Update segments
+  if fSegmentBufferRange.Size<fSegments.Count then begin
+   fBufferPool.fSegmentsAllocator.ReleaseBufferRangeAndNil(fSegmentBufferRange);
+  end;
+  if fSegmentBufferRange.Offset<0 then begin
+   fSegmentBufferRange:=fBufferPool.fSegmentsAllocator.AllocateBufferRange(fSegments.Count);
+  end;
+  if fSegmentBufferRange.Size>0 then begin
+   OldCount:=length(fBufferPool.fSegments);
+   NewCount:=fSegmentBufferRange.Offset+fSegmentBufferRange.Size;
+   if OldCount<NewCount then begin
+    inc(NewCount,NewCount);
+    SetLength(fBufferPool.fSegments,NewCount);
+    FillChar(fBufferPool.fSegments[OldCount],(NewCount-OldCount)*SizeOf(TpvVectorPathGPUSegmentData),#0);
+   end;
+   for Index:=0 to fSegments.Count-1 do begin
+    Segment:=fSegments[Index];
+    Segment.fIndex:=Index; // Ensure the segment index is correct
+    SegmentData:=@fBufferPool.fSegments[fSegmentBufferRange.Offset+Index];
+    case Segment.Type_ of
+     TpvVectorPathSegmentType.Line:begin
+      SegmentData^.Type_:=TpvVectorPathGPUSegmentData.TypeLine;
+      SegmentData^.Winding:=0;
+      SegmentData^.Point0:=TpvVectorPathSegmentLine(Segment).Points[0];
+      SegmentData^.Point1:=TpvVectorPathSegmentLine(Segment).Points[1];
+      SegmentData^.Point2:=TpvVector2.Null;
+     end;
+     TpvVectorPathSegmentType.QuadraticCurve:begin
+      SegmentData^.Type_:=TpvVectorPathGPUSegmentData.TypeQuadraticCurve;
+      SegmentData^.Winding:=0;
+      SegmentData^.Point0:=TpvVectorPathSegmentQuadraticCurve(Segment).Points[0];
+      SegmentData^.Point1:=TpvVectorPathSegmentQuadraticCurve(Segment).Points[1];
+      SegmentData^.Point2:=TpvVectorPathSegmentQuadraticCurve(Segment).Points[2];
+     end;
+     TpvVectorPathSegmentType.MetaWindingSettingLine:begin
+      SegmentData^.Type_:=TpvVectorPathGPUSegmentData.TypeMetaWindingSettingLine;
+      SegmentData^.Winding:=TpvVectorPathSegmentMetaWindingSettingLine(Segment).Winding;
+      SegmentData^.Point0:=TpvVectorPathSegmentMetaWindingSettingLine(Segment).Points[0];
+      SegmentData^.Point1:=TpvVectorPathSegmentMetaWindingSettingLine(Segment).Points[1];
+      SegmentData^.Point2:=TpvVector2.Null;
+     end;
+     else begin
+      SegmentData^.Type_:=TpvVectorPathGPUSegmentData.TypeUnknown;
+      SegmentData^.Winding:=0;
+      SegmentData^.Point0:=TpvVector2.Null;
+      SegmentData^.Point1:=TpvVector2.Null;
+      SegmentData^.Point2:=TpvVector2.Null;
+     end;
+    end;
+   end;
+  end;
+
+  // Update indirect segments
+  NewCount:=0;
+  for Index:=0 to fGridCells.Count-1 do begin
+   GridCell:=fGridCells[Index];
+   inc(NewCount,GridCell.fSegments.Count);
+  end;
+
+  if fIndirectSegmentBufferRange.Size<NewCount then begin
+   fBufferPool.fIndirectSegmentsAllocator.ReleaseBufferRangeAndNil(fIndirectSegmentBufferRange);
+  end;
+  if fIndirectSegmentBufferRange.Offset<0 then begin
+   fIndirectSegmentBufferRange:=fBufferPool.fIndirectSegmentsAllocator.AllocateBufferRange(NewCount);
+  end;
+  if fIndirectSegmentBufferRange.Size>0 then begin
+   OldCount:=length(fBufferPool.fIndirectSegments);
+   NewCount:=fIndirectSegmentBufferRange.Offset+fIndirectSegmentBufferRange.Size;
+   if OldCount<NewCount then begin
+    inc(NewCount,NewCount);
+    SetLength(fBufferPool.fIndirectSegments,NewCount);
+    FillChar(fBufferPool.fIndirectSegments[OldCount],(NewCount-OldCount)*SizeOf(TpvVectorPathGPUIndirectSegmentData),#0);
+   end;
+   NewCount:=0;
+   for Index:=0 to fGridCells.Count-1 do begin
+    GridCell:=fGridCells[Index];
+    for OldCount:=0 to GridCell.fSegments.Count-1 do begin
+     Segment:=GridCell.fSegments[OldCount];
+     fBufferPool.fIndirectSegments[fIndirectSegmentBufferRange.Offset+NewCount]:=fSegmentBufferRange.Offset+Segment.fIndex;
+     inc(NewCount);
+    end;
+   end;
+  end;
+
+  // Update grid cells
+  if fGridCellBufferRange.Size<fGridCells.Count then begin
+   fBufferPool.fGridCellsAllocator.ReleaseBufferRangeAndNil(fGridCellBufferRange);
+  end;
+  if fGridCellBufferRange.Offset<0 then begin
+   fGridCellBufferRange:=fBufferPool.fGridCellsAllocator.AllocateBufferRange(fGridCells.Count);
+  end;
+  if fGridCellBufferRange.Size>0 then begin
+   OldCount:=length(fBufferPool.fGridCells);
+   NewCount:=fGridCellBufferRange.Offset+fGridCellBufferRange.Size;
+   if OldCount<NewCount then begin
+    inc(NewCount,NewCount);
+    SetLength(fBufferPool.fGridCells,NewCount);
+    FillChar(fBufferPool.fGridCells[OldCount],(NewCount-OldCount)*SizeOf(TpvVectorPathGPUGridCellData),#0);
+   end;
+   NewCount:=0;
+   for Index:=0 to fGridCells.Count-1 do begin
+    GridCell:=fGridCells[Index];
+    GridCellData:=@fBufferPool.fGridCells[fGridCellBufferRange.Offset+Index];
+    GridCellData^.StartIndirectSegmentIndex:=fIndirectSegmentBufferRange.Offset+NewCount;
+    GridCellData^.CountIndirectSegments:=GridCell.fSegments.Count;
+    inc(NewCount,GridCell.fSegments.Count);
+   end;
+  end;
+
+  // Update shape data
+  OldCount:=length(fBufferPool.fShapes);
+  if OldCount<=fShapeIndex then begin
+   SetLength(fBufferPool.fShapes,(fShapeIndex+1)*2);
+   FillChar(fBufferPool.fShapes[OldCount],(length(fBufferPool.fShapes)-OldCount)*SizeOf(TpvVectorPathGPUShapeData),#0);
+  end;
+  ShapeData:=@fBufferPool.fShapes[fShapeIndex];
+  ShapeData^.Min:=fBoundingBox.Min;
+  ShapeData^.Max:=fBoundingBox.Max;
+  ShapeData^.Flags:=0;
+  if fVectorPathShape.fFillRule=TpvVectorPathFillRule.EvenOdd then begin
+   ShapeData^.Flags:=ShapeData^.Flags or 1;
+  end;
+  ShapeData^.StartGridCellIndex:=fGridCellBufferRange.Offset;
+  ShapeData^.GridSizeX:=fResolution;
+  ShapeData^.GridSizeY:=fResolution;
+
+ end;
+
+end;
+
+class function TpvVectorPathGPUShape.ComputeWindingAtPosition(const aSegments:TpvVectorPathSegments;const aX,aY:TpvDouble):TpvInt32;
+// Computes the winding number at position (aX, aY) using ray casting algorithm.
+// Cast a horizontal ray from (aX, aY) to the left (-infinity) and count intersections:
+// - Increment winding for upward-crossing segments (dy > 0)
+// - Decrement winding for downward-crossing segments (dy < 0)
+// The winding number indicates how many times the path winds around the point.
+const EPSILON=1e-8;
+var SegmentIndex,RootIndex:TpvSizeInt;
+    Segment:TpvVectorPathSegment;
+    P0,P1,P2,P3:TpvVectorPathVector;
+    LineDY,ParamT,ParamX:TpvDouble;
+    QuadA,QuadB,QuadDisc:TpvDouble;
+    ParamT0,ParamT1,ParamX0,ParamX1,QuadDY0,QuadDY1:TpvDouble;
+    CubicCoef0,CubicCoef1,CubicCoef2,CubicCoef3:TpvVectorPathVector;
+    CubicDY:TpvDouble;
+    Roots:TpvDoubleDynamicArray;
+begin
+
+ result:=0;
+
+ for SegmentIndex:=0 to aSegments.Count-1 do begin
+
+  Segment:=aSegments[SegmentIndex];
+  case Segment.Type_ of
+
+   TpvVectorPathSegmentType.Line:begin
+
+    // Linear segment: check if horizontal ray at aY intersects the line segment
+
+    P0:=TpvVectorPathSegmentLine(Segment).Points[0];
+    P1:=TpvVectorPathSegmentLine(Segment).Points[1];
+
+    LineDY:=P1.y-P0.y;
+    if abs(LineDY)>EPSILON then begin
+
+     // Line is not horizontal, compute intersection parameter t
+     ParamT:=(aY-P0.y)/LineDY;
+     if (ParamT>=0.0) and (ParamT<=1.0) then begin
+
+      // Intersection is within line segment bounds
+      ParamX:=P0.x+((P1.x-P0.x)*ParamT);
+      if ParamX<=aX then begin
+
+       // Intersection is to the left of test point
+       if P1.y<P0.y then begin
+        dec(result); // Downward crossing
+       end else begin
+        inc(result); // Upward crossing
+       end;
+
+      end;
+
+     end;
+
+    end;
+
+   end;
+
+   TpvVectorPathSegmentType.QuadraticCurve:begin
+
+    // Quadratic Bézier curve: solve quadratic equation for y intersections
+
+    P0:=TpvVectorPathSegmentQuadraticCurve(Segment).Points[0];
+    P1:=TpvVectorPathSegmentQuadraticCurve(Segment).Points[1];
+    P2:=TpvVectorPathSegmentQuadraticCurve(Segment).Points[2];
+
+    // Quadratic equation: At² + Bt + C = 0, where curve(t).y = aY
+    QuadA:=(P0.y-(2.0*P1.y))+P2.y;
+    QuadB:=(-2.0*P0.y)+(2.0*P1.y);
+    QuadDisc:=(QuadB*QuadB)-(4.0*QuadA*(P0.y-aY));
+
+    if abs(QuadA)>EPSILON then begin
+
+     if QuadDisc>0.0 then begin
+
+      // Two real roots exist
+      QuadDisc:=sqrt(QuadDisc);
+      ParamT0:=(-QuadB-QuadDisc)/(2.0*QuadA);
+      ParamT1:=(-QuadB+QuadDisc)/(2.0*QuadA);
+
+      // Check first root
+      if (ParamT0>=0.0) and (ParamT0<=1.0) then begin
+
+       // Evaluate curve x-coordinate at this y-intersection
+       ParamX0:=(P0.x*((1.0-ParamT0)*(1.0-ParamT0)))+
+                (P1.x*2.0*(1.0-ParamT0)*ParamT0)+
+                (P2.x*(ParamT0*ParamT0));
+       if ParamX0<=aX then begin
+
+        // Intersection is to the left, compute derivative to determine direction
+        QuadDY0:=((P1.y*(1.0-ParamT0))+(P2.y*ParamT0))-
+                 ((P0.y*(1.0-ParamT0))+(P1.y*ParamT0));
+        if QuadDY0<0.0 then begin
+         dec(result); // Downward crossing
+        end else begin
+         inc(result); // Upward crossing
+        end;
+
+       end;
+
+      end;
+
+      // Check second root
+      if (ParamT1>=0.0) and (ParamT1<=1.0) then begin
+
+       // Evaluate curve x-coordinate at this y-intersection
+       ParamX1:=(P0.x*((1.0-ParamT1)*(1.0-ParamT1)))+
+                (P1.x*2.0*(1.0-ParamT1)*ParamT1)+
+                (P2.x*(ParamT1*ParamT1));
+       if ParamX1<=aX then begin
+
+        // Intersection is to the left, compute derivative to determine direction
+        QuadDY1:=((P1.y*(1.0-ParamT1))+(P2.y*ParamT1))-
+                 ((P0.y*(1.0-ParamT1))+(P1.y*ParamT1));
+        if QuadDY1<0.0 then begin
+         dec(result); // Downward crossing
+        end else begin
+         inc(result); // Upward crossing
+        end;
+
+       end;
+
+      end;
+
+     end;
+
+    end else if abs(QuadB)>EPSILON then begin
+
+     // Linear in y: single root t = (aY - P0.y) / QuadB
+     ParamT:=(aY-P0.y)/QuadB;
+     if (ParamT>=0.0) and (ParamT<=1.0) then begin
+      ParamX:=(P0.x*sqr(1.0-ParamT))+
+              (P1.x*2.0*(1.0-ParamT)*ParamT)+
+              (P2.x*sqr(ParamT));
+      if ParamX<=aX then begin
+       if QuadB<0.0 then begin
+        dec(result);
+       end else begin
+        inc(result);
+       end;
+      end;
+     end; 
+
+    end else begin
+
+     // Degenerate quadratic -> treat as line P0..P2
+     LineDY:=P2.y-P0.y;
+     if abs(LineDY)>EPSILON then begin
+      ParamT:=(aY-P0.y)/LineDY;
+      if (ParamT>=0.0) and (ParamT<=1.0) then begin
+       ParamX:=P0.x+((P2.x-P0.x)*ParamT);
+       if ParamX<=aX then begin
+        if P2.y<P0.y then begin
+         dec(result);
+        end else begin
+         inc(result);
+        end;
+       end;
+      end;
+     end;
+
+    end;
+
+   end;
+
+   TpvVectorPathSegmentType.CubicCurve:begin
+
+    // Cubic Bézier curve: solve cubic equation for y intersections using polynomial root finding
+
+    P0:=TpvVectorPathSegmentCubicCurve(Segment).Points[0];
+    P1:=TpvVectorPathSegmentCubicCurve(Segment).Points[1];
+    P2:=TpvVectorPathSegmentCubicCurve(Segment).Points[2];
+    P3:=TpvVectorPathSegmentCubicCurve(Segment).Points[3];
+
+    // Convert to polynomial form: cubic(t) = c0 + c1*t + c2*t² + c3*t³
+    CubicCoef0:=P0;
+    CubicCoef1:=(P0*(-3.0))+(P1*3.0);
+    CubicCoef2:=(P0*3.0)+((P1*(-6.0))+(P2*3.0));
+    CubicCoef3:=(P0*(-1.0))+((P1*3.0)+((P2*(-3.0))+P3));
+
+    // Find all real roots where curve.y = aY
+    Roots:=TpvPolynomial.Create([CubicCoef3.y,CubicCoef2.y,CubicCoef1.y,CubicCoef0.y-aY]).GetRoots;
+    try
+
+     for RootIndex:=0 to length(Roots)-1 do begin
+
+      ParamT:=Roots[RootIndex];
+      if (ParamT>=0.0) and (ParamT<=1.0) then begin
+
+       // Root is within curve bounds, evaluate x-coordinate
+       ParamX:=(((CubicCoef3.x*ParamT)+CubicCoef2.x)*ParamT+CubicCoef1.x)*ParamT+CubicCoef0.x;
+       if ParamX<=aX then begin
+
+        // Intersection is to the left, compute derivative (dy/dt) to determine direction
+        CubicDY:=(3.0*CubicCoef3.y*ParamT*ParamT)+(2.0*CubicCoef2.y*ParamT)+CubicCoef1.y;
+        if CubicDY<0.0 then begin
+         dec(result); // Downward crossing
+        end else begin
+         inc(result); // Upward crossing
+        end;
+
+       end;
+
+      end;
+
+     end;
+
+    finally
+     Roots:=nil;
+    end;
+
+   end;
+
+   else begin
+   end;
+
+  end;
+
+ end;
+
+end;
+
+{ TpvVectorPathGPUBufferPool.TState } 
+
+constructor TpvVectorPathGPUBufferPool.TState.Create(const aBufferPool:TpvVectorPathGPUBufferPool);
+begin
+
+ inherited Create;
+
+ fBufferPool:=aBufferPool;
+
+ fDevice:=fBufferPool.fDevice;
+
+ fGeneration:=High(TpvUInt64);
+
+ // Create buffers with initial size of few elements
+ fSegmentsBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                         65536*SizeOf(TpvVectorPathGPUSegmentData),
+                                         TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                         TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                         TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                         TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                         [],
+                                         TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                         0,
+                                         0,
+                                         0,
+                                         0,
+                                         0,
+                                         0,
+                                         0,
+                                         [],
+                                         0,
+                                         pvAllocationGroupIDCanvas,
+                                         'VectorPathSegments');
+
+ fIndirectSegmentsBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                                  65536*SizeOf(TpvVectorPathGPUIndirectSegmentData),
+                                                  TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                                  TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                                  TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                                  TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                                  [],
+                                                  TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  [],
+                                                  0,
+                                                  pvAllocationGroupIDCanvas,
+                                                  'VectorPathIndirectSegments');
+
+ fGridCellsBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                          65536*SizeOf(TpvVectorPathGPUGridCellData),
+                                          TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                          TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                          TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                          TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                          [],
+                                          TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          [],
+                                          0,
+                                          pvAllocationGroupIDCanvas,
+                                          'VectorPathGridCells');
+
+ fShapesBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                       65536*SizeOf(TpvVectorPathGPUShapeData),
+                                       TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                       TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                       TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                       TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                       [],
+                                       TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                       0,
+                                       0,
+                                       0,
+                                       0,
+                                       0,
+                                       0,
+                                       0,
+                                       [],
+                                       0,
+                                       pvAllocationGroupIDCanvas,
+                                       'VectorPathShapes');
+
+ fShapes:=nil;
+ fShapeGenerations:=nil;
+
+ // Create descriptor pool
+ fDescriptorPool:=TpvVulkanDescriptorPool.Create(fDevice,
+                                                 TVkDescriptorPoolCreateFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+                                                 1); // Max sets
+ fDescriptorPool.AddDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,4); // 4 SSBOs
+ fDescriptorPool.Initialize;
+
+ // Create descriptor set
+ fDescriptorSet:=TpvVulkanDescriptorSet.Create(fDescriptorPool,fBufferPool.fDescriptorSetLayout);
+ fDescriptorSet.WriteToDescriptorSet(0,
+                                     0,
+                                     1,
+                                     TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                     [],
+                                     [fSegmentsBuffer.DescriptorBufferInfo],
+                                     [],
+                                     false);
+ fDescriptorSet.WriteToDescriptorSet(1,
+                                     0,
+                                     1,
+                                     TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                     [],
+                                     [fIndirectSegmentsBuffer.DescriptorBufferInfo],
+                                     [],
+                                     false);
+ fDescriptorSet.WriteToDescriptorSet(2,
+                                     0,
+                                     1,
+                                     TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                     [],
+                                     [fGridCellsBuffer.DescriptorBufferInfo],
+                                     [],
+                                     false);
+ fDescriptorSet.WriteToDescriptorSet(3,
+                                     0,
+                                     1,
+                                     TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                     [],
+                                     [fShapesBuffer.DescriptorBufferInfo],
+                                     [],
+                                     false);
+ fDescriptorSet.Flush;
+
+end;
+
+destructor TpvVectorPathGPUBufferPool.TState.Destroy;
+begin
+
+ fShapes:=nil;
+ fShapeGenerations:=nil;
+
+ // Free Vulkan resources
+ FreeAndNil(fDescriptorSet);
+ FreeAndNil(fDescriptorPool);
+ FreeAndNil(fShapesBuffer);
+ FreeAndNil(fGridCellsBuffer);
+ FreeAndNil(fIndirectSegmentsBuffer); 
+ FreeAndNil(fSegmentsBuffer);
+
  inherited Destroy;
+
+end;
+
+procedure TpvVectorPathGPUBufferPool.TState.Update;
+var ShapeIndex:TpvInt32;
+    OldCount:TpvSizeInt;
+    GPUShape:TpvVectorPathGPUShape;
+    SegmentsMinIndex,SegmentsMaxIndex:TpvSizeInt;
+    IndirectSegmentsMinIndex,IndirectSegmentsMaxIndex:TpvSizeInt;
+    GridCellsMinIndex,GridCellsMaxIndex:TpvSizeInt;
+    ShapesMinIndex,ShapesMaxIndex:TpvSizeInt;
+    DescriptorSetDirty:boolean;
+    Size:TVkDeviceSize;
+begin
+
+ if fGeneration<>fBufferPool.fGeneration then begin
+
+  try
+
+   SegmentsMinIndex:=$7fffffff;
+   SegmentsMaxIndex:=0;
+
+   IndirectSegmentsMinIndex:=$7fffffff;
+   IndirectSegmentsMaxIndex:=0;
+
+   GridCellsMinIndex:=$7fffffff;
+   GridCellsMaxIndex:=0;
+
+   ShapesMinIndex:=$7fffffff;
+   ShapesMaxIndex:=0;
+
+   DescriptorSetDirty:=false;
+
+   for ShapeIndex:=0 to length(fBufferPool.fGPUShapes)-1 do begin
+
+    GPUShape:=fBufferPool.fGPUShapes[ShapeIndex];
+   
+    if assigned(GPUShape) and 
+       (((length(fShapes)<=ShapeIndex) or 
+         ((ShapeIndex<length(fShapes)) and 
+          (fShapes[ShapeIndex]<>GPUShape))) or
+        ((length(fShapeGenerations)<=ShapeIndex) or 
+         ((ShapeIndex<length(fShapeGenerations)) and 
+          (fShapeGenerations[ShapeIndex]<>GPUShape.fGeneration)))) then begin
+
+     // Track dirty ranges for all buffers affected by this shape
+     if GPUShape.fSegmentBufferRange.Size>0 then begin
+      if SegmentsMinIndex>GPUShape.fSegmentBufferRange.Offset then begin
+       SegmentsMinIndex:=GPUShape.fSegmentBufferRange.Offset;
+      end;
+      if SegmentsMaxIndex<=(GPUShape.fSegmentBufferRange.Offset+GPUShape.fSegmentBufferRange.Size)-1 then begin
+       SegmentsMaxIndex:=(GPUShape.fSegmentBufferRange.Offset+GPUShape.fSegmentBufferRange.Size)-1;
+      end;
+     end;
+     
+     if GPUShape.fIndirectSegmentBufferRange.Size>0 then begin
+      if IndirectSegmentsMinIndex>GPUShape.fIndirectSegmentBufferRange.Offset then begin
+       IndirectSegmentsMinIndex:=GPUShape.fIndirectSegmentBufferRange.Offset;
+      end;
+      if IndirectSegmentsMaxIndex<=(GPUShape.fIndirectSegmentBufferRange.Offset+GPUShape.fIndirectSegmentBufferRange.Size)-1 then begin
+       IndirectSegmentsMaxIndex:=(GPUShape.fIndirectSegmentBufferRange.Offset+GPUShape.fIndirectSegmentBufferRange.Size)-1;
+      end;
+     end;
+     
+     if GPUShape.fGridCellBufferRange.Size>0 then begin
+      if GridCellsMinIndex>GPUShape.fGridCellBufferRange.Offset then begin
+       GridCellsMinIndex:=GPUShape.fGridCellBufferRange.Offset;
+      end;
+      if GridCellsMaxIndex<=(GPUShape.fGridCellBufferRange.Offset+GPUShape.fGridCellBufferRange.Size)-1 then begin
+       GridCellsMaxIndex:=(GPUShape.fGridCellBufferRange.Offset+GPUShape.fGridCellBufferRange.Size)-1;
+      end;
+     end;
+     
+     if GPUShape.fShapeIndex>=0 then begin
+      if ShapesMinIndex>GPUShape.fShapeIndex then begin
+       ShapesMinIndex:=GPUShape.fShapeIndex;
+      end;
+      if ShapesMaxIndex<=GPUShape.fShapeIndex then begin
+       ShapesMaxIndex:=GPUShape.fShapeIndex;
+      end;
+     end;
+
+     // Update shape reference
+     OldCount:=length(fShapes);
+     if OldCount<=ShapeIndex then begin
+      SetLength(fShapes,(ShapeIndex+1)*2);
+      FillChar(fShapes[OldCount],(length(fShapes)-OldCount)*SizeOf(TpvVectorPathGPUShape),#0);
+     end;
+     fShapes[ShapeIndex]:=GPUShape;
+     
+     // Update shape generation     
+     OldCount:=length(fShapeGenerations);
+     if OldCount<=ShapeIndex then begin
+      SetLength(fShapeGenerations,(ShapeIndex+1)*2);
+      FillChar(fShapeGenerations[OldCount],(length(fShapeGenerations)-OldCount)*SizeOf(TpvUInt64),#0);
+     end;
+     fShapeGenerations[ShapeIndex]:=GPUShape.fGeneration;
+
+    end;
+
+   end;
+
+   if SegmentsMinIndex<=SegmentsMaxIndex then begin
+    Size:=length(fBufferPool.fSegments)*SizeOf(TpvVectorPathGPUSegmentData);
+    if fSegmentsBuffer.Size<Size then begin
+     FreeAndNil(fSegmentsBuffer);
+     fSegmentsBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                             Size*2, // Allocate double size to avoid frequent reallocations
+                                             TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                             TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                             TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                             TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                             [],
+                                             TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                             0,
+                                             0,
+                                             0,
+                                             0,
+                                             0,
+                                             0,
+                                             0,
+                                             [],
+                                             0,
+                                             pvAllocationGroupIDCanvas,
+                                             'VectorPathSegments');
+     fDescriptorSet.WriteToDescriptorSet(0,
+                                         0,
+                                         1,
+                                         TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                         [],
+                                         [fSegmentsBuffer.DescriptorBufferInfo],
+                                         [],
+                                         false);
+     DescriptorSetDirty:=true;
+     SegmentsMinIndex:=0;
+     SegmentsMaxIndex:=length(fBufferPool.fSegments)-1;
+    end;
+    fSegmentsBuffer.UploadData(fBufferPool.fTransferQueue,
+                               fBufferPool.fTransferCommandBuffer,
+                               fBufferPool.fTransferFence,
+                               fBufferPool.fSegments[SegmentsMinIndex],
+                               SegmentsMinIndex*SizeOf(TpvVectorPathGPUSegmentData),
+                               ((SegmentsMaxIndex-SegmentsMinIndex)+1)*SizeOf(TpvVectorPathGPUSegmentData),
+                               TpvVulkanBufferUseTemporaryStagingBufferMode.Automatic,
+                               false);
+   end;
+
+   if IndirectSegmentsMinIndex<=IndirectSegmentsMaxIndex then begin
+    Size:=length(fBufferPool.fIndirectSegments)*SizeOf(TpvVectorPathGPUIndirectSegmentData);
+    if fIndirectSegmentsBuffer.Size<Size then begin
+     FreeAndNil(fIndirectSegmentsBuffer);
+     fIndirectSegmentsBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                                     Size*2, // Allocate double size to avoid frequent reallocations
+                                                     TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                                     TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                                     TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                                     TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                                     [],
+                                                     TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                                     0,
+                                                     0,
+                                                     0,
+                                                     0,
+                                                     0,
+                                                     0,
+                                                     0,
+                                                     [],
+                                                     0,
+                                                     pvAllocationGroupIDCanvas,
+                                                     'VectorPathIndirectSegments');
+     fDescriptorSet.WriteToDescriptorSet(1,
+                                         0,
+                                         1,
+                                         TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                         [],
+                                         [fIndirectSegmentsBuffer.DescriptorBufferInfo],
+                                         [],
+                                         false);
+     DescriptorSetDirty:=true;
+     IndirectSegmentsMinIndex:=0;
+     IndirectSegmentsMaxIndex:=length(fBufferPool.fIndirectSegments)-1;
+    end;
+    fIndirectSegmentsBuffer.UploadData(fBufferPool.fTransferQueue,
+                                       fBufferPool.fTransferCommandBuffer,
+                                       fBufferPool.fTransferFence,
+                                       fBufferPool.fIndirectSegments[IndirectSegmentsMinIndex],
+                                       IndirectSegmentsMinIndex*SizeOf(TpvVectorPathGPUIndirectSegmentData),
+                                       ((IndirectSegmentsMaxIndex-IndirectSegmentsMinIndex)+1)*SizeOf(TpvVectorPathGPUIndirectSegmentData),
+                                       TpvVulkanBufferUseTemporaryStagingBufferMode.Automatic,
+                                       false);
+   end;
+
+   if GridCellsMinIndex<=GridCellsMaxIndex then begin
+    Size:=length(fBufferPool.fGridCells)*SizeOf(TpvVectorPathGPUGridCellData);
+    if fGridCellsBuffer.Size<Size then begin
+     FreeAndNil(fGridCellsBuffer);
+     fGridCellsBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                              Size*2, // Allocate double size to avoid frequent reallocations
+                                              TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                              TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                              TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                              TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                              [],
+                                              TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                              0,
+                                              0,
+                                              0,
+                                              0,
+                                              0,
+                                              0,
+                                              0,
+                                              [],
+                                              0,
+                                              pvAllocationGroupIDCanvas,
+                                              'VectorPathGridCells');
+     fDescriptorSet.WriteToDescriptorSet(2,
+                                         0,
+                                         1,
+                                         TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                         [],
+                                         [fGridCellsBuffer.DescriptorBufferInfo],
+                                         [],
+                                         false);
+     DescriptorSetDirty:=true;
+     GridCellsMinIndex:=0;
+     GridCellsMaxIndex:=length(fBufferPool.fGridCells)-1;
+    end;
+    fGridCellsBuffer.UploadData(fBufferPool.fTransferQueue,
+                                fBufferPool.fTransferCommandBuffer,
+                                fBufferPool.fTransferFence,
+                                fBufferPool.fGridCells[GridCellsMinIndex],
+                                GridCellsMinIndex*SizeOf(TpvVectorPathGPUGridCellData),
+                                ((GridCellsMaxIndex-GridCellsMinIndex)+1)*SizeOf(TpvVectorPathGPUGridCellData),
+                                TpvVulkanBufferUseTemporaryStagingBufferMode.Automatic,
+                                false);
+   end;
+
+   if ShapesMinIndex<=ShapesMaxIndex then begin
+    Size:=length(fBufferPool.fShapes)*SizeOf(TpvVectorPathGPUShapeData);
+    if fShapesBuffer.Size<Size then begin
+     FreeAndNil(fShapesBuffer);
+     fShapesBuffer:=TpvVulkanBuffer.Create(fDevice,
+                                           Size*2, // Allocate double size to avoid frequent reallocations
+                                           TVkBufferUsageFlags(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) or
+                                           TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) or
+                                           TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                           TVkSharingMode(VK_SHARING_MODE_EXCLUSIVE),
+                                           [],
+                                           TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                                           0,
+                                           0,
+                                           0,
+                                           0,
+                                           0,
+                                           0,
+                                           0,
+                                           [],
+                                           0,
+                                           pvAllocationGroupIDCanvas,
+                                           'VectorPathShapes');
+     fDescriptorSet.WriteToDescriptorSet(3,
+                                         0,
+                                         1,
+                                         TVkDescriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+                                         [],
+                                         [fShapesBuffer.DescriptorBufferInfo],
+                                         [],
+                                         false);
+     DescriptorSetDirty:=true;
+     ShapesMinIndex:=0;
+     ShapesMaxIndex:=length(fBufferPool.fShapes)-1;
+    end;
+    fShapesBuffer.UploadData(fBufferPool.fTransferQueue,
+                             fBufferPool.fTransferCommandBuffer,
+                             fBufferPool.fTransferFence,
+                             fBufferPool.fShapes[ShapesMinIndex],
+                             ShapesMinIndex*SizeOf(TpvVectorPathGPUShapeData),
+                             ((ShapesMaxIndex-ShapesMinIndex)+1)*SizeOf(TpvVectorPathGPUShapeData),
+                             TpvVulkanBufferUseTemporaryStagingBufferMode.Automatic,
+                             false);
+   end;
+
+   if DescriptorSetDirty then begin
+    fDescriptorSet.Flush;
+   end;
+
+  finally
+   fGeneration:=fBufferPool.fGeneration;
+  end;
+
+ end;
+
+end;
+
+{ TpvVectorPathGPUBufferPool }
+
+constructor TpvVectorPathGPUBufferPool.Create(const aDevice:TpvVulkanDevice);
+var Index:TpvSizeInt;
+begin
+
+ inherited Create;
+
+ fDevice:=aDevice;
+
+ fGPUShapes:=nil;
+
+ fShapeIndexHashMap:=TpvVectorPathIndexHashMap.Create(-1);
+
+ fGeneration:=0;
+
+ // Create descriptor set layout
+ fDescriptorSetLayout:=TpvVulkanDescriptorSetLayout.Create(fDevice);
+ fDescriptorSetLayout.AddBinding(0,
+                                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                 1,
+                                 TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                 []); // Segments SSBO
+ fDescriptorSetLayout.AddBinding(1,
+                                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                 1,
+                                 TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                 []); // Indirect segments SSBO
+ fDescriptorSetLayout.AddBinding(2,
+                                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                 1,
+                                 TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                 []); // Grid cells SSBO
+ fDescriptorSetLayout.AddBinding(3,
+                                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                 1,
+                                 TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+                                 []); // Shapes metadata SSBO
+ fDescriptorSetLayout.Initialize;
+
+ for Index:=0 to 1 do begin
+  fStates[Index]:=TState.Create(self);
+ end;
+ fActiveStateIndex:=0;
+
+ fSegments:=nil;
+ fSegmentsAllocator:=TpvBufferRangeAllocator.Create(0);
+
+ fIndirectSegments:=nil;
+ fIndirectSegmentsAllocator:=TpvBufferRangeAllocator.Create(0);
+
+ fGridCells:=nil;
+ fGridCellsAllocator:=TpvBufferRangeAllocator.Create(0);
+
+ fShapes:=nil;
+ fFreeShapeIndices.Initialize;
+ fShapeIndexCounter:=0;
+
+ fTransferQueue:=fDevice.TransferQueue;
+
+ fTransferCommandPool:=TpvVulkanCommandPool.Create(fDevice,fTransferQueue.QueueFamilyIndex,TVkCommandPoolCreateFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT));
+
+ fTransferCommandBuffer:=TpvVulkanCommandBuffer.Create(fTransferCommandPool,VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+ fTransferFence:=TpvVulkanFence.Create(fDevice);
+
+ fFragmentationFactorThreshold:=0.75; 
+
+end;
+
+destructor TpvVectorPathGPUBufferPool.Destroy;
+var Index:TpvSizeInt;
+begin
+
+ for Index:=0 to 1 do begin
+  FreeAndNil(fStates[Index]);
+ end;
+
+ FreeAndNil(fTransferFence);
+ FreeAndNil(fTransferCommandBuffer);
+ FreeAndNil(fTransferCommandPool);
+ fTransferQueue:=nil;
+
+ FreeAndNil(fDescriptorSetLayout);
+
+ fSegments:=nil;
+ FreeAndNil(fSegmentsAllocator);
+
+ fIndirectSegments:=nil;
+ FreeAndNil(fIndirectSegmentsAllocator);
+
+ fGridCells:=nil;
+ FreeAndNil(fGridCellsAllocator);
+
+ fShapes:=nil;
+ fFreeShapeIndices.Finalize;
+
+ FreeAndNil(fShapeIndexHashMap);
+
+ fGPUShapes:=nil;
+
+ inherited Destroy;
+end;
+
+procedure TpvVectorPathGPUBufferPool.Update;
+var CurrentStateIndex,NextStateIndex:TPasMPInt32;
+    CurrentState:TpvVectorPathGPUBufferPool.TState;
+begin
+ CurrentStateIndex:=TPasMPInterlocked.Read(fActiveStateIndex);
+ CurrentState:=fStates[CurrentStateIndex and 1];
+ if CurrentState.fGeneration<>fGeneration then begin
+  NextStateIndex:=(CurrentStateIndex+1) and 1;
+  fStates[NextStateIndex].Update;
+  TPasMPInterlocked.Write(fActiveStateIndex,NextStateIndex);
+ end;
+end;
+
+function TpvVectorPathGPUBufferPool.GetActiveState:TpvVectorPathGPUBufferPool.TState;
+begin
+ result:=fStates[fActiveStateIndex and 1];
+end;
+
+function TpvVectorPathGPUBufferPool.GetDescriptorSet:TpvVulkanDescriptorSet;
+begin
+ result:=GetActiveState.fDescriptorSet;
+end;
+
+function TpvVectorPathGPUBufferPool.GetOrCreateShape(const aShape:TpvVectorPathShape):TpvVectorPathGPUShape;
+var ShapeIndex,OldCount:TpvInt32;
+begin
+ if fShapeIndexHashMap.TryGet(aShape,ShapeIndex) then begin
+  result:=fGPUShapes[ShapeIndex];
+ end else begin
+  if not fFreeShapeIndices.Pop(ShapeIndex) then begin
+   ShapeIndex:=fShapeIndexCounter;
+   inc(fShapeIndexCounter);
+  end;
+  if ShapeIndex>=0 then begin
+   OldCount:=length(fGPUShapes);
+   if OldCount<=ShapeIndex then begin
+    SetLength(fGPUShapes,(ShapeIndex+1)*2);
+    FillChar(fGPUShapes[OldCount],(length(fGPUShapes)-OldCount)*SizeOf(TpvVectorPathGPUShape),#0);
+   end;
+   result:=TpvVectorPathGPUShape.Create(self,aShape,aShape.fResolution,aShape.fBoundingBoxExtent);
+   try
+    result.fShapeIndex:=ShapeIndex;
+    result.UpdateBufferPool;
+    result.fGeneration:=TPasMPInterlocked.Increment(fGeneration);
+    fShapeIndexHashMap.Add(aShape,ShapeIndex);
+   finally
+    fGPUShapes[ShapeIndex]:=result;
+   end;
+  end else begin
+   result:=nil;
+  end;
+ end;
+end;
+
+procedure TpvVectorPathGPUBufferPool.RemoveShape(const aShape:TpvVectorPathShape);
+var ShapeIndex:TpvInt32;
+    GPUShape:TpvVectorPathGPUShape; 
+begin
+ if fShapeIndexHashMap.TryGet(aShape,ShapeIndex) and (ShapeIndex>=0) and (ShapeIndex<length(fGPUShapes)) then begin
+  GPUShape:=fGPUShapes[ShapeIndex];
+  if assigned(GPUShape) then begin
+   try
+    FreeAndNil(fGPUShapes[ShapeIndex]);
+   finally
+    try
+     fShapeIndexHashMap.Delete(aShape);
+    finally
+     fFreeShapeIndices.Push(ShapeIndex);
+    end;
+   end;
+  end;
+ end;
+end;
+
+procedure TpvVectorPathGPUBufferPool.UpdateShape(const aShape:TpvVectorPathShape);
+var ShapeIndex:TpvInt32;
+    GPUShape:TpvVectorPathGPUShape;
+begin
+ if fShapeIndexHashMap.TryGet(aShape,ShapeIndex) and (ShapeIndex>=0) and (ShapeIndex<length(fGPUShapes)) then begin
+  GPUShape:=fGPUShapes[ShapeIndex];
+  if assigned(GPUShape) then begin
+   GPUShape.Update;
+   GPUShape.UpdateBufferPool;
+   GPUShape.fGeneration:=TPasMPInterlocked.Increment(fGeneration);
+  end;
+ end;
+end;
+
+function TpvVectorPathGPUBufferPool.CalculateFragmentationFactor:TpvDouble;
+begin
+ result:=Max(fSegmentsAllocator.CalculateFragmentationFactor,
+             Max(fIndirectSegmentsAllocator.CalculateFragmentationFactor,
+                 fGridCellsAllocator.CalculateFragmentationFactor)); 
+end;
+
+procedure TpvVectorPathGPUBufferPool.Defragment(const aForce:boolean);
+var Index:TpvSizeInt;
+    GPUShape:TpvVectorPathGPUShape;
+    Generation:TPasMPUInt64;
+begin
+ 
+ if aForce or (CalculateFragmentationFactor>fFragmentationFactorThreshold) then begin
+
+  // The TpvBufferRangeAllocator own defragmentation isn't used here because
+  // all shapes depend on multiple buffer ranges and it would be quite complex
+  // to update all shapes correctly while trying just moving buffer ranges
+  // around. So just use new buffer ranges in a single operation is simpler,
+  // where all buffer ranges are cleared and invalidated first and then 
+  // reallocated by updating each shape. This way fragmentation is avoided
+  // completely instead of trying to fix it partially. 
+
+  // Increment generation to force buffer updates
+  Generation:=TPasMPInterlocked.Increment(fGeneration);
+
+  // Pass 1: Clear and invalidate all buffer ranges
+  for Index:=0 to length(fGPUShapes)-1 do begin
+   GPUShape:=fGPUShapes[Index];
+   if assigned(GPUShape) then begin
+    GPUShape.ClearAndInvalidateBufferRanges;
+   end; 
+  end;
+
+  // Pass 2: Reallocate all buffer ranges by re-updating each shape
+  for Index:=0 to length(fGPUShapes)-1 do begin
+   GPUShape:=fGPUShapes[Index];
+   if assigned(GPUShape) then begin
+    GPUShape.UpdateBufferPool;
+    GPUShape.fGeneration:=Generation; // Set generation to the current generation
+   end; 
+  end; 
+
+ end; 
+
 end;
 
 end.

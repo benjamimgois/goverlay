@@ -114,12 +114,16 @@ type { TpvBufferRangeAllocator }
       private
        fOffsetRedBlackTree:TRangeRedBlackTree;
        fSizeRedBlackTree:TRangeRedBlackTree;
-       fCapacity:TpvInt64;
-       fOnResize:TOnResize;
        fAllocated:TpvInt64;
+       fCapacity:TpvInt64;
+       fMaxCapacity:TpvInt64;
+       fElementSize:TpvInt64;
+       fAutomaticSizeAlignment:Boolean;
+       fFragmentCount:TpvInt64;
+       fOnResize:TOnResize;
        fLock:TPasMPCriticalSection;
       public
-       constructor Create(const aCapacity:TpvInt64=0); reintroduce;
+       constructor Create(const aCapacity:TpvInt64=0;const aMaxCapacity:TpvInt64=0;const aElementSize:TpvInt64=0;const aAutomaticSizeAlignment:Boolean=false); reintroduce;
        destructor Destroy; override;
        function Allocate(const aSize:TpvInt64;const aAlignment:TpvInt64=1):TpvInt64;
        function Release(const aOffset:TpvInt64;const aSize:TpvInt64=-1):Boolean;
@@ -129,9 +133,15 @@ type { TpvBufferRangeAllocator }
        procedure ReleaseBufferRangeAndNil(var aBufferRange:TBufferRange);
        function CalculateFragmentationFactor:TpvDouble;
        function Defragment(const aMove:TOnDefragmentMove):Boolean;
+       function ShrinkToFit:boolean;
       published
+       property Allocated:TpvInt64 read fAllocated;
        property Capacity:TpvInt64 read fCapacity;
-       property OnResize:TOnResize read fOnResize write fOnResize; 
+       property MaxCapacity:TpvInt64 read fMaxCapacity write fMaxCapacity;
+       property ElementSize:TpvInt64 read fElementSize write fElementSize;
+       property AutomaticSizeAlignment:Boolean read fAutomaticSizeAlignment write fAutomaticSizeAlignment;
+       property FragmentCount:TpvInt64 read fFragmentCount;
+       property OnResize:TOnResize read fOnResize write fOnResize;
      end;
 
 implementation
@@ -193,7 +203,7 @@ end;
 
 { TpvBufferRangeAllocator }
 
-constructor TpvBufferRangeAllocator.Create(const aCapacity:TpvInt64=0);
+constructor TpvBufferRangeAllocator.Create(const aCapacity:TpvInt64;const aMaxCapacity:TpvInt64;const aElementSize:TpvInt64;const aAutomaticSizeAlignment:Boolean);
 begin
  inherited Create;
  fLock:=TPasMPCriticalSection.Create;
@@ -202,8 +212,14 @@ begin
  fOnResize:=nil;
  fAllocated:=0;
  fCapacity:=aCapacity;
+ fMaxCapacity:=aMaxCapacity;
+ fElementSize:=aElementSize;
+ fAutomaticSizeAlignment:=aAutomaticSizeAlignment;
  if fCapacity>0 then begin
+  fFragmentCount:=1;
   TpvBufferRangeAllocator.TRange.Create(self,0,fCapacity,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+ end else begin
+  fFragmentCount:=0;
  end;
 end;
 
@@ -223,10 +239,16 @@ end;
 function TpvBufferRangeAllocator.Allocate(const aSize:TpvInt64;const aAlignment:TpvInt64=1):TpvInt64;
 var Range:TRange;
     Node,OtherNode:TRangeRedBlackTree.TNode;
-    RangeBeginOffset,RangeEndOffset,PayloadBeginOffset,PayloadEndOffset,Alignment:TpvInt64;
+    Size,RangeBeginOffset,RangeEndOffset,PayloadBeginOffset,PayloadEndOffset,Alignment:TpvInt64;
 begin
 
  if aSize>0 then begin
+
+  if fAutomaticSizeAlignment then begin
+   Size:=RoundUpToPowerOfTwo64(aSize);
+  end else begin
+   Size:=aSize;
+  end;
 
   Alignment:=RoundUpToPowerOfTwo64(aAlignment);
 
@@ -238,16 +260,16 @@ begin
     // Best-fit search
     Node:=fSizeRedBlackTree.Root;
     while assigned(Node) do begin
-     if aSize<Node.Key then begin
+     if Size<Node.Key then begin
       if assigned(Node.Left) then begin
        // If free block is too big, then go to left
        Node:=Node.Left;
        continue;
       end else begin
        // If free block is too big and there is no left children node, then try to find suitable smaller but not too small free blocks
-       while assigned(Node) and (Node.Key>aSize) do begin
+       while assigned(Node) and (Node.Key>Size) do begin
         OtherNode:=Node.Predecessor;
-        if assigned(OtherNode) and (OtherNode.Key>=aSize) then begin
+        if assigned(OtherNode) and (OtherNode.Key>=Size) then begin
          Node:=OtherNode;
         end else begin
          break;
@@ -255,14 +277,14 @@ begin
        end;
        break;
       end;
-     end else if aSize>Node.Key then begin
+     end else if Size>Node.Key then begin
       if assigned(Node.Right) then begin
        // If free block is too small, go to right
        Node:=Node.Right;
        continue;
       end else begin
        // If free block is too small and there is no right children node, then try to find suitable bigger but not too small free blocks
-       while assigned(Node) and (Node.Key<aSize) do begin
+       while assigned(Node) and (Node.Key<Size) do begin
         OtherNode:=Node.Successor;
         if assigned(OtherNode) then begin
          Node:=OtherNode;
@@ -280,10 +302,10 @@ begin
 
     // Check block for if it fits to the desired alignment, otherwise search for a better suitable block
     if Alignment>1 then begin
-     while assigned(Node) and (Node.Key>=aSize) do begin
+     while assigned(Node) and (Node.Key>=Size) do begin
       Range:=Node.Value;
       if ((Range.fOffset and (Alignment-1))<>0) and
-         ((Range.fOffset+(Alignment-(Range.fOffset and (Alignment-1)))+aSize)>=(Range.fOffset+Range.fSize)) then begin
+         ((Range.fOffset+(Alignment-(Range.fOffset and (Alignment-1)))+Size)>=(Range.fOffset+Range.fSize)) then begin
        // If free block is alignment-technical too small, then try to find with-alignment-technical suitable bigger blocks
        Node:=Node.Successor;
       end else begin
@@ -293,7 +315,7 @@ begin
     end;
 
     // If a suitable free block was found, then allocate it
-    if assigned(Node) and (Node.Key>=aSize) then begin
+    if assigned(Node) and (Node.Key>=Size) then begin
 
      Range:=Node.Value;
 
@@ -304,7 +326,7 @@ begin
 {$if false}
 
      // Prefer to allocate from the end of the range
-     PayloadBeginOffset:=RangeEndOffset-aSize;
+     PayloadBeginOffset:=RangeEndOffset-Size;
      if (Alignment>1) and ((PayloadBeginOffset and (Alignment-1))<>0) then begin
       dec(PayloadBeginOffset,PayloadBeginOffset and (Alignment-1));
       if PayloadBeginOffset<RangeBeginOffset then begin
@@ -322,7 +344,7 @@ begin
 
 {$ifend}
 
-     PayloadEndOffset:=PayloadBeginOffset+aSize;
+     PayloadEndOffset:=PayloadBeginOffset+Size;
 
      if (PayloadBeginOffset<PayloadEndOffset) and
         (PayloadEndOffset<=RangeEndOffset) then begin
@@ -332,13 +354,17 @@ begin
       result:=Range.fOffset;
 
       inc(fAllocated,Range.fSize);
+      dec(fFragmentCount); // Original free block consumed
+
 
       if RangeBeginOffset<PayloadBeginOffset then begin
        TpvBufferRangeAllocator.TRange.Create(self,RangeBeginOffset,PayloadBeginOffset-RangeBeginOffset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+       inc(fFragmentCount); // Leftover before
       end;
 
       if PayloadEndOffset<RangeEndOffset then begin
        TpvBufferRangeAllocator.TRange.Create(self,PayloadEndOffset,RangeEndOffset-PayloadEndOffset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+       inc(fFragmentCount); // Leftover after
       end;
 
       exit;
@@ -347,17 +373,24 @@ begin
 
     end;
 
+    // Check if growth would exceed max capacity
+    if (fMaxCapacity>0) and ((fCapacity+Size)>fMaxCapacity) then begin
+     result:=-1;
+     exit;
+    end;
+
     // Otherwise, try to resize the buffer
     result:=fCapacity;
-    inc(fCapacity,aSize);
+    inc(fCapacity,Size);
     if assigned(fOnResize) then begin
      fOnResize(self,fCapacity);
     end;
     Node:=fOffsetRedBlackTree.RightMost;
     if assigned(Node) and assigned(Node.Value) and (Node.Value.fAllocationType=TpvBufferRangeAllocator.TRange.TAllocationType.Free) then begin
-     Node.Value.Update(Node.Value.fOffset,(result+aSize)-Node.Value.fOffset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+     Node.Value.Update(Node.Value.fOffset,(result+Size)-Node.Value.fOffset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
     end else begin
-     TpvBufferRangeAllocator.TRange.Create(self,result,aSize,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+     TpvBufferRangeAllocator.TRange.Create(self,result,Size,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+      inc(fFragmentCount); // New free block from growth
     end;
 
    until false;
@@ -393,6 +426,8 @@ begin
 
     dec(fAllocated,Range.fSize);
 
+    inc(fFragmentCount); // Block becoming free
+
     // Freeing including coalescing free blocks
     while assigned(Node) do begin
 
@@ -405,6 +440,7 @@ begin
       OtherRange.Update(TempOffset,TempSize,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
       FreeAndNil(Range);
       Range:=OtherRange;
+      dec(fFragmentCount); // Two free blocks merged into one
       Node:=OtherNode;
       continue;
      end;
@@ -417,6 +453,7 @@ begin
       TempSize:=(OtherRange.fOffset+OtherRange.fSize)-TempOffset;
       Range.Update(TempOffset,TempSize,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
       FreeAndNil(OtherRange);
+      dec(fFragmentCount); // Two free blocks merged into one
       continue;
      end;
 
@@ -453,7 +490,7 @@ var OldOffset:TpvInt64;
 begin
  if (aBufferRange.Offset>=0) and (aBufferRange.Size>0) then begin
   OldOffset:=aBufferRange.Offset;
-  aBufferRange.Offset:=Allocate(aBufferRange.Size);
+  aBufferRange.Offset:=Allocate(aBufferRange.Size,aBufferRange.Alignment);
   result:=OldOffset<>aBufferRange.Offset;
  end else begin
   result:=false; 
@@ -513,7 +550,7 @@ type TNodes=array of TRangeRedBlackTree.TNode;
 var Index,CountAllocatedNodes:TpvSizeInt;
     AllocatedNodes:TNodes;
     Node,NextNode:TRangeRedBlackTree.TNode;
-    OriginalOffset,Offset,TotalSize,Alignment:TpvInt64;
+    OriginalOffset,Offset,PreviousEndOffset,TotalSize,Alignment:TpvInt64;
 begin
 
  result:=false;
@@ -527,6 +564,7 @@ begin
    // Collect allocated nodes, get total size and free all free nodes 
    TotalSize:=0;
    CountAllocatedNodes:=0;
+   fFragmentCount:=0; // Reset, will rebuild during compaction
    Node:=fOffsetRedBlackTree.LeftMost;
    while assigned(Node) do begin
     NextNode:=Node.Successor;
@@ -554,6 +592,7 @@ begin
    // Assign new offsets, create free nodes for the gaps between the allocated nodes while checking and correcting the alignment, and
    // move the data if the offset has changed
    Offset:=0;
+   PreviousEndOffset:=0;
    for Index:=0 to CountAllocatedNodes-1 do begin
     Node:=AllocatedNodes[Index];
     OriginalOffset:=Node.Value.fOffset;
@@ -561,10 +600,11 @@ begin
     if (Alignment>1) and ((Offset and (Alignment-1))<>0) then begin
      inc(Offset,Alignment-(Offset and (Alignment-1)));
     end;
+    if PreviousEndOffset<Offset then begin
+     TpvBufferRangeAllocator.TRange.Create(self,PreviousEndOffset,Offset-PreviousEndOffset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+     inc(fFragmentCount);
+    end;
     if Offset<>Node.Value.fOffset then begin
-     if OriginalOffset<Offset then begin
-      TpvBufferRangeAllocator.TRange.Create(self,OriginalOffset,Offset-OriginalOffset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
-     end;
      result:=true;
      if assigned(aMove) then begin
       aMove(self,Node.Value.fOffset,Offset,Node.Value.fSize);
@@ -572,11 +612,13 @@ begin
      Node.Value.Update(Offset,Node.Value.fSize,1,Node.Value.fAllocationType);
     end;
     inc(Offset,Node.Value.fSize);
+    PreviousEndOffset:=Offset;
    end;
 
    // Create new free node at the end
    if Offset<TotalSize then begin
     TpvBufferRangeAllocator.TRange.Create(self,Offset,TotalSize-Offset,1,TpvBufferRangeAllocator.TRange.TAllocationType.Free);
+    inc(fFragmentCount); // Trailing free block
    end;
     
   finally
@@ -587,6 +629,32 @@ begin
   fLock.Release;
  end;
 
+end;
+
+function TpvBufferRangeAllocator.ShrinkToFit:boolean;
+var Node:TRangeRedBlackTree.TNode;
+    NewCapacity:TpvInt64;
+begin
+ result:=false;
+ fLock.Acquire;
+ try
+  if fAllocated<fCapacity then begin
+   // Find and remove trailing free block, then set capacity to allocated
+   Node:=fOffsetRedBlackTree.RightMost;
+   if assigned(Node) and assigned(Node.Value) and (Node.Value.fAllocationType=TpvBufferRangeAllocator.TRange.TAllocationType.Free) then begin
+    NewCapacity:=Node.Value.fOffset;
+    Node.Value.Free;
+    dec(fFragmentCount);
+    fCapacity:=NewCapacity;
+    result:=true;
+    if assigned(fOnResize) then begin
+     fOnResize(self,fCapacity);
+    end;
+   end;
+  end;
+ finally
+  fLock.Release;
+ end;
 end;
 
 end.

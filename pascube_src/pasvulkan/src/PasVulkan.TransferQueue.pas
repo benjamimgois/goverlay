@@ -337,13 +337,13 @@ begin
    // as it works. Indeed, vkQueueSubmit() already has also an implicit host memory barrier, but safe is safe.
    MemoryBarrier.sType:=VK_STRUCTURE_TYPE_MEMORY_BARRIER;
    MemoryBarrier.pNext:=nil;
-   MemoryBarrier.srcAccessMask:=TVkAccessFlags(VK_ACCESS_HOST_WRITE_BIT) or
-                                TVkAccessFlags(VK_ACCESS_HOST_READ_BIT) or
+   MemoryBarrier.srcAccessMask:={TVkAccessFlags(VK_ACCESS_HOST_WRITE_BIT) or
+                                TVkAccessFlags(VK_ACCESS_HOST_READ_BIT) or}
                                 TVkAccessFlags(VK_ACCESS_MEMORY_WRITE_BIT) or
                                 TVkAccessFlags(VK_ACCESS_MEMORY_READ_BIT);
    MemoryBarrier.dstAccessMask:=TVkAccessFlags(VK_ACCESS_TRANSFER_READ_BIT) or
                                 TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT);
-   aCommandBuffer.CmdPipelineBarrier(TVkPipelineStageFlags(VK_PIPELINE_STAGE_HOST_BIT),
+   aCommandBuffer.CmdPipelineBarrier(TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
                                      TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
                                      0,
                                      1,
@@ -408,8 +408,8 @@ begin
                                 TVkAccessFlags(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT) or
                                 TVkAccessFlags(VK_ACCESS_TRANSFER_READ_BIT) or
                                 TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT) or
-                                TVkAccessFlags(VK_ACCESS_HOST_READ_BIT) or
-                                TVkAccessFlags(VK_ACCESS_HOST_WRITE_BIT) or
+                               {TVkAccessFlags(VK_ACCESS_HOST_READ_BIT) or
+                                TVkAccessFlags(VK_ACCESS_HOST_WRITE_BIT) or}
                                 TVkAccessFlags(VK_ACCESS_MEMORY_READ_BIT) or
                                 TVkAccessFlags(VK_ACCESS_MEMORY_WRITE_BIT);
    aCommandBuffer.CmdPipelineBarrier(TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),

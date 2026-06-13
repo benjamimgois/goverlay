@@ -149,6 +149,7 @@ type EpvSpriteAtlas=class(Exception);
        fCountTexels:TpvInt64;
        fDepth16Bit:boolean;
        fSRGB:boolean;
+       fPremultipliedAlpha:boolean;
        fUploaded:boolean;
        fDirty:boolean;
        fSpecialSizedArrayTexture:boolean;
@@ -156,7 +157,7 @@ type EpvSpriteAtlas=class(Exception);
        fLayerRootNodes:TPVulkanSpriteAtlasArrayTextureLayerRectNodes;
        fInverseSize:TpvVector2;
       public
-       constructor Create(const aSRGB,aDepth16Bit:boolean); reintroduce;
+       constructor Create(const aSRGB,aDepth16Bit:boolean;const aPremultipliedAlpha:boolean=false); reintroduce;
        destructor Destroy; override;
        procedure Resize(const aWidth,aHeight,aLayers:TpvInt32);
        procedure CopyIn(const aData;const aSrcWidth,aSrcHeight,aDestX,aDestY,aDestLayer:TpvInt32);
@@ -178,6 +179,7 @@ type EpvSpriteAtlas=class(Exception);
        property Layers:TpvInt32 read fLayers;
        property CountTexels:TpvInt64 read fCountTexels;
        property Uploaded:boolean read fUploaded;
+       property PremultipliedAlpha:boolean read fPremultipliedAlpha write fPremultipliedAlpha;
        property Dirty:boolean read fDirty write fDirty;
      end;
 
@@ -580,7 +582,7 @@ begin
 
 end;
 
-constructor TpvSpriteAtlasArrayTexture.Create(const aSRGB,aDepth16Bit:boolean);
+constructor TpvSpriteAtlasArrayTexture.Create(const aSRGB,aDepth16Bit:boolean;const aPremultipliedAlpha:boolean=false);
 begin
  inherited Create;
  fTexels:=nil;
@@ -592,6 +594,7 @@ begin
  fCountTexels:=0;
  fDepth16Bit:=aDepth16Bit;
  fSRGB:=aSRGB;
+ fPremultipliedAlpha:=aPremultipliedAlpha;
  fUploaded:=false;
  fDirty:=true;
  fSpecialSizedArrayTexture:=false;

@@ -17,30 +17,33 @@ layout(set = 0, binding = 0) buffer TileMapExpandedDirtyBuffer {
 } tileMapExpandedDirtyBuffer;
 
 layout(set = 0, binding = 1, std430) buffer QueuedTiles {
-  uint data[]; // 6-based, because two VkDispatchIndirectCommand structs are stored in the same buffer at the beginning, with three 32-bit unsigned integers each
+  uint data[]; // 9-based, because three VkDispatchIndirectCommand structs are stored in the same buffer at the beginning, with three 32-bit unsigned integers each
 } queuedTiles;
 
 layout(push_constant) uniform PushConstants {
   uint tileMapResolution;
   uint visualTileResolution;
   uint physicsTileResolution;
+  uint heightMapTileResolution;
 } pushConstants;
 
 void main() {
   const uvec2 tileMapXY = uvec2(gl_GlobalInvocationID.xy);
   if(all(equal(tileMapXY, uvec2(0u)))){
     // 256 tile positions per dispatch local group
-    // [1] anxd [4] aren't written to, due to race-conditions otherwise, these are cleared with vkCmdFillBuffer before dispatch
-    // Each vkCmdDispatchIndirect struct contains three 32-bit uints, here are two of them, one for visual and one for physics.
+    // [1], [4], [7] aren't written to, due to race-conditions otherwise, these are cleared with vkCmdFillBuffer before dispatch
+    // Each vkCmdDispatchIndirect struct contains three 32-bit uints, here are three of them: visual, physics, and heightmap/smoothing.
     queuedTiles.data[0] = ((pushConstants.visualTileResolution * pushConstants.visualTileResolution) + 255u) >> 8u; 
     queuedTiles.data[2] = 1u;
     queuedTiles.data[3] = ((pushConstants.physicsTileResolution * pushConstants.physicsTileResolution) + 255u) >> 8u;
     queuedTiles.data[5] = 1u;
+    queuedTiles.data[6] = ((pushConstants.heightMapTileResolution * pushConstants.heightMapTileResolution) + 255u) >> 8u;
+    queuedTiles.data[8] = 1u;
   }
   if(all(lessThan(tileMapXY, uvec2(pushConstants.tileMapResolution)))){
     const uint index = (tileMapXY.y * pushConstants.tileMapResolution) + tileMapXY.x;
     if((tileMapExpandedDirtyBuffer.data[index >> 5] & (1u << (index & 31u))) != 0u){
-      queuedTiles.data[atomicAdd(queuedTiles.data[1], 1u) + 6u] = index;
+      queuedTiles.data[atomicAdd(queuedTiles.data[1], 1u) + 9u] = index;
     //atomicAdd(queuedTiles.data[4], 1u); // also increment physics tile count, or use VkCmdCopyBuffer to copy visual tile count to physics tile count after dispatch
     }
   }

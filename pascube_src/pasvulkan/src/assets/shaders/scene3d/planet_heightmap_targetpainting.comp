@@ -1,0 +1,99 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+
+/* clang-format off */
+
+// "Target painting" shader: incrementally moves the current heightmap toward a
+// goal derived from the before-state snapshot and the target height.
+// goal = beforeHeight + (targetHeight - beforeHeight) * d
+// Each frame: currentHeight moves toward goal via mix(currentHeight, goal, strength).
+// This gives continuous, smooth convergence while the brush is held, using
+// before-state as reference for the target shape.
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) uniform image2D uImageHeightMap;
+
+layout(set = 0, binding = 1) buffer TileMapDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapDirtyBuffer;
+
+layout(set = 0, binding = 2) uniform sampler2DArray uBrushTextureArray[];
+
+layout(set = 0, binding = 3) uniform sampler2D uBeforeStateHeightMap;
+
+layout(push_constant) uniform PushConstants {
+  vec4 positionRadius; // xyz = position, w = outer radius
+  vec4 innerRadiusTargetHeightStrengthUnused; // x = inner radius, y = targetHeight (normalized [0,1]), z = strength, w = unused
+  uvec4 tileMapResolutionShiftBrushIndexBrushRotation; // x = dirty size, y = shift, z = brush index, w = brush rotation (float bits)
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+#include "planet_brushes.glsl"
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageHeightMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    vec3 p = octPlanetUnsignedDecode(vec2(texel) / vec2(texSize));
+
+    vec3 n = normalize(pushConstants.positionRadius.xyz);
+
+    float d = sampleBrush(
+      p,
+      n,
+      pushConstants.positionRadius.w,
+      pushConstants.innerRadiusTargetHeightStrengthUnused.x,
+      pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z,
+      uintBitsToFloat(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.w)
+    );
+
+    if(d > 0.0){
+
+      {
+        uvec2 tileMapXY = uvec2(texel) >> pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.y;
+        uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.x) + tileMapXY.x;
+        atomicOr(tileMapDirtyBuffer.data[tileMapIndex >> 5u], 1u << (tileMapIndex & 31u));
+      }
+
+      ivec2 xy = wrapOctahedralTexelCoordinates(texel, texSize);
+
+      // Read height from the frozen before-state snapshot (start of brush stroke).
+      float beforeHeight = texelFetch(uBeforeStateHeightMap, xy, 0).x;
+
+      // Current (already-painted) height this stroke.
+      float currentHeight = imageLoad(uImageHeightMap, texel).x;
+
+      float targetHeight = pushConstants.innerRadiusTargetHeightStrengthUnused.y;
+      float strength     = pushConstants.innerRadiusTargetHeightStrengthUnused.z;
+
+      // Goal: blend from before-state toward target, weighted by brush.
+      float goal = beforeHeight + (targetHeight - beforeHeight) * d;
+
+      // Incrementally move current height toward goal each frame.
+      float newHeight = clamp(mix(currentHeight, goal, strength), 0.0, 1.0);
+
+      imageStore(
+        uImageHeightMap, 
+        texel, 
+        vec4(newHeight)
+      );
+
+    }
+
+  }
+
+}

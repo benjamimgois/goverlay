@@ -298,7 +298,13 @@ begin
                                       @DescriptorSets[0],
                                       0,
                                       nil);
+ if assigned(fScene3D.VulkanDevice.BreadcrumbBuffer) then begin
+  fScene3D.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Draw,'VoxelVisualization');
+ end;
  aCommandBuffer.CmdDraw(36,1,0,0);
+ if assigned(fScene3D.VulkanDevice.BreadcrumbBuffer) then begin
+  fScene3D.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 end;
 
 end.

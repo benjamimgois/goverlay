@@ -1,0 +1,122 @@
+#version 460 core
+
+// DDGI octahedral border (guard band) update pass.
+//
+// Each probe tile in an octahedral atlas is stored with a one-texel guard band so that a linear sampler produces correct
+// results when its 2x2 footprint straddles the tile edge. This pass fills that guard band from the interior texels using
+// the octahedral wrap rule (edges reverse along the edge, corners map to the opposite interior corner). It runs for the
+// visibility atlas always, and for the irradiance atlas in octahedral storage mode.
+
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_buffer_reference : require // for the DDGIMaster type in the shared push-constant block (the field is unused here)
+
+/* clang-format off */
+
+// Storage mode (GI_DDGI_STORAGE) and its *_VALUE defines come from global_illumination_ddgi.glsl.
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_SET 1
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_BINDING 0
+#include "global_illumination_ddgi.glsl"
+// ddgiData (SSBO) comes via global_illumination_ddgi.glsl; border doesn't use it, but the SSBO's buffer_reference members need the extension above
+
+// One workgroup per probe; threads cover the full (bordered) visibility tile, which is the larger of the two tiles.
+layout(local_size_x = GI_DDGI_VISIBILITY_OCT_FULL, local_size_y = GI_DDGI_VISIBILITY_OCT_FULL, local_size_z = 1) in;
+
+#if GI_DDGI_STORAGE == GI_DDGI_STORAGE_OCT_VALUE
+  layout(set = 1, binding = 2, rgba16f) uniform image2D uDDGIIrradianceOct;
+#endif
+layout(set = 1, binding = 3, rg32f) uniform image2D uDDGIVisibilityMoments; // x = mean dist, y = mean dist^2
+layout(set = 1, binding = 4, r8) uniform image2D uDDGIVisibilitySky;        // x = sky visibility (0..1)
+#if defined(GI_DDGI_GLOSSY_RADIANCE)
+  // Glossy prefiltered-radiance atlas; border-copied here too. RGB9E5 copies the raw shared-exponent uint bits (no
+  // decode needed for a guard-band copy), RGBA16F copies the vec4. Format must match the glossy update + the Pascal image.
+  #ifdef GI_DDGI_GLOSSY_RGB9E5
+    layout(set = 1, binding = 5, r32ui) uniform uimage2D uDDGIGlossyRadiance;
+  #else
+    layout(set = 1, binding = 5, rgba16f) uniform image2D uDDGIGlossyRadiance;
+  #endif
+#endif
+
+// Must match the shared push constant layout the pass pushes for all DDGI stages (only params is used here, but the
+// preceding fields must be present so params sits at the correct offset).
+#include "gi_ddgi_pushconstants.glsl"
+
+// Tile-local source interior texel for a border texel t in [0, full-1], using the octahedral wrap rule. Returns false
+// for interior texels (which are left untouched).
+bool ddgiBorderSource(const in ivec2 t, const in int interiorSize, out ivec2 src){
+  int F = interiorSize + 2;
+  bool isLeftRight = (t.x == 0) || (t.x == (F - 1));
+  bool isTopBottom = (t.y == 0) || (t.y == (F - 1));
+  if(!(isLeftRight || isTopBottom)){
+    return false; // interior
+  }
+  if(isLeftRight && isTopBottom){
+    // Corner -> opposite interior corner.
+    src.x = (t.x == 0) ? interiorSize : 1;
+    src.y = (t.y == 0) ? interiorSize : 1;
+  }else if(isTopBottom){
+    // Top / bottom row -> first / last interior row, column reversed.
+    src.x = (F - 1) - t.x;
+    src.y = (t.y == 0) ? 1 : interiorSize;
+  }else{
+    // Left / right column -> first / last interior column, row reversed.
+    src.x = (t.x == 0) ? 1 : interiorSize;
+    src.y = (F - 1) - t.y;
+  }
+  return true;
+}
+
+void main(){
+  uint globalProbeIndex = gl_WorkGroupID.x;
+  uint totalProbes = pushConstants.params.y * pushConstants.params.z;
+  if(globalProbeIndex >= totalProbes){
+    return;
+  }
+
+  int cascadeIndex = int(globalProbeIndex / pushConstants.params.z);
+  int probeIndexInCascade = int(globalProbeIndex % pushConstants.params.z);
+  ivec3 probeCoord = ddgiProbeCoordFromIndex(probeIndexInCascade);
+
+  ivec2 t = ivec2(gl_LocalInvocationID.xy);
+
+  // Visibility atlas (full tile = VIS_FULL).
+  {
+    ivec2 fullOrigin = ddgiProbeTileOrigin(probeCoord, cascadeIndex, GI_DDGI_VISIBILITY_OCT_FULL) - ivec2(1);
+    ivec2 src;
+    if(ddgiBorderSource(t, GI_DDGI_VISIBILITY_OCT_SIZE, src)){
+      vec2 moments = imageLoad(uDDGIVisibilityMoments, fullOrigin + src).xy;
+      float sky = imageLoad(uDDGIVisibilitySky, fullOrigin + src).x;
+      imageStore(uDDGIVisibilityMoments, fullOrigin + t, vec4(moments, 0.0, 0.0));
+      imageStore(uDDGIVisibilitySky, fullOrigin + t, vec4(sky, 0.0, 0.0, 0.0));
+    }
+  }
+
+#if GI_DDGI_STORAGE == GI_DDGI_STORAGE_OCT_VALUE
+  // Irradiance atlas (full tile = IRR_FULL); only the threads inside that smaller tile participate.
+  if(all(lessThan(t, ivec2(GI_DDGI_IRRADIANCE_OCT_FULL)))){
+    ivec2 fullOrigin = ddgiProbeTileOrigin(probeCoord, cascadeIndex, GI_DDGI_IRRADIANCE_OCT_FULL) - ivec2(1);
+    ivec2 src;
+    if(ddgiBorderSource(t, GI_DDGI_IRRADIANCE_OCT_SIZE, src)){
+      vec3 value = imageLoad(uDDGIIrradianceOct, fullOrigin + src).rgb;
+      imageStore(uDDGIIrradianceOct, fullOrigin + t, vec4(value, 1.0));
+    }
+  }
+#endif
+
+#if defined(GI_DDGI_GLOSSY_RADIANCE)
+  // Glossy atlas guard band (full tile = GLOSSY_OCT_FULL); only the threads inside that tile participate.
+  if(all(lessThan(t, ivec2(GI_DDGI_GLOSSY_OCT_FULL)))){
+    ivec2 fullOrigin = ddgiProbeTileOrigin(probeCoord, cascadeIndex, GI_DDGI_GLOSSY_OCT_FULL) - ivec2(1);
+    ivec2 src;
+    if(ddgiBorderSource(t, GI_DDGI_GLOSSY_OCT_SIZE, src)){
+#ifdef GI_DDGI_GLOSSY_RGB9E5
+      uint value = imageLoad(uDDGIGlossyRadiance, fullOrigin + src).x;
+      imageStore(uDDGIGlossyRadiance, fullOrigin + t, uvec4(value, 0u, 0u, 0u));
+#else
+      vec3 value = imageLoad(uDDGIGlossyRadiance, fullOrigin + src).rgb;
+      imageStore(uDDGIGlossyRadiance, fullOrigin + t, vec4(value, 1.0));
+#endif
+    }
+  }
+#endif
+}

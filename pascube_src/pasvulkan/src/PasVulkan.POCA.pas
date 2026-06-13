@@ -228,10 +228,13 @@ type TpvPOCAAudio=class;
              public
               procedure Play(Volume,Panning,Rate:TpvFloat;Loop:boolean);
               procedure Stop;
+              procedure Pause;
+              procedure Resume;
               procedure SetVolume(Volume:TpvFloat);
               procedure SetPanning(Panning:TpvFloat);
               procedure SetRate(Rate:TpvFloat);
               function IsPlaying:boolean;
+              function IsPaused:boolean;
              public
               property UID:TPasMPUInt64 read fUID;
               property Ready:TPasMPBool32 read fReady write fReady;
@@ -294,27 +297,45 @@ procedure POCASetHostData(const aContext:PPOCAContext;const aHostData:PPOCAHostD
 
 function POCANewVector2(const aContext:PPOCAContext;const aVector2:TpvVector2D):TPOCAValue; overload;
 function POCANewVector2(const aContext:PPOCAContext;const aX:TpvDouble=0.0;const aY:TpvDouble=0.0):TPOCAValue; overload;
-function POCAGetVector2Value(const aValue:TPOCAValue):TpvVector2D;
+function POCAIsVector2Value(const aValue:TPOCAValue):Boolean; overload;
+function POCAIsVector2Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean; overload;
+function POCAGetVector2Value(const aValue:TPOCAValue):TpvVector2D; overload;
+function POCAGetVector2Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvVector2D; overload;
 
 function POCANewVector3(const aContext:PPOCAContext;const aVector3:TpvVector3D):TPOCAValue; overload;
 function POCANewVector3(const aContext:PPOCAContext;const aX:TpvDouble=0.0;const aY:TpvDouble=0.0;const aZ:TpvDouble=0.0):TPOCAValue; overload;
-function POCAGetVector3Value(const aValue:TPOCAValue):TpvVector3D;
+function POCAIsVector3Value(const aValue:TPOCAValue):Boolean; overload;
+function POCAIsVector3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean; overload;
+function POCAGetVector3Value(const aValue:TPOCAValue):TpvVector3D; overload;
+function POCAGetVector3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvVector3D; overload;
 
 function POCANewVector4(const aContext:PPOCAContext;const aVector4:TpvVector4D):TPOCAValue; overload;
 function POCANewVector4(const aContext:PPOCAContext;const aX:TpvDouble=0.0;const aY:TpvDouble=0.0;const aZ:TpvDouble=0.0;const aW:TpvDouble=0.0):TPOCAValue; overload;
-function POCAGetVector4Value(const aValue:TPOCAValue):TpvVector4D;
+function POCAIsVector4Value(const aValue:TPOCAValue):Boolean; overload;
+function POCAIsVector4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean; overload;
+function POCAGetVector4Value(const aValue:TPOCAValue):TpvVector4D; overload;
+function POCAGetVector4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvVector4D; overload;
 
 function POCANewQuaternion(const aContext:PPOCAContext;const aQuaternion:TpvQuaternionD):TPOCAValue; overload;
 function POCANewQuaternion(const aContext:PPOCAContext;const aX:TpvDouble=0.0;const aY:TpvDouble=0.0;const aZ:TpvDouble=0.0;const aW:TpvDouble=1.0):TPOCAValue; overload;
-function POCAGetQuaternionValue(const aValue:TPOCAValue):TpvQuaternionD;
+function POCAIsQuaternionValue(const aValue:TPOCAValue):Boolean; overload;
+function POCAIsQuaternionValue(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean; overload;
+function POCAGetQuaternionValue(const aValue:TPOCAValue):TpvQuaternionD; overload;
+function POCAGetQuaternionValue(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvQuaternionD; overload;
 
 function POCANewMatrix3x3(const aContext:PPOCAContext;const aMatrix3x3:TpvMatrix3x3D):TPOCAValue; overload;
 function POCANewMatrix3x3(const aContext:PPOCAContext;const aM00:TpvDouble=1.0;const aM01:TpvDouble=0.0;const aM02:TpvDouble=0.0;const aM10:TpvDouble=0.0;const aM11:TpvDouble=1.0;const aM12:TpvDouble=0.0;const aM20:TpvDouble=0.0;const aM21:TpvDouble=0.0;const aM22:TpvDouble=1.0):TPOCAValue; overload;
-function POCAGetMatrix3x3Value(const aValue:TPOCAValue):TpvMatrix3x3D;
+function POCAIsMatrix3x3Value(const aValue:TPOCAValue):Boolean; overload;
+function POCAIsMatrix3x3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean; overload;
+function POCAGetMatrix3x3Value(const aValue:TPOCAValue):TpvMatrix3x3D; overload;
+function POCAGetMatrix3x3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvMatrix3x3D; overload;
 
 function POCANewMatrix4x4(const aContext:PPOCAContext;const aMatrix4x4:TpvMatrix4x4D):TPOCAValue; overload;
 function POCANewMatrix4x4(const aContext:PPOCAContext;const aM00:TpvDouble=1.0;const aM01:TpvDouble=0.0;const aM02:TpvDouble=0.0;const aM03:TpvDouble=0.0;const aM10:TpvDouble=0.0;const aM11:TpvDouble=1.0;const aM12:TpvDouble=0.0;const aM13:TpvDouble=0.0;const aM20:TpvDouble=0.0;const aM21:TpvDouble=0.0;const aM22:TpvDouble=1.0;const aM23:TpvDouble=0.0;const aM30:TpvDouble=0.0;const aM31:TpvDouble=0.0;const aM32:TpvDouble=0.0;const aM33:TpvDouble=1.0):TPOCAValue; overload;
-function POCAGetMatrix4x4Value(const aValue:TPOCAValue):TpvMatrix4x4D;
+function POCAIsMatrix4x4Value(const aValue:TPOCAValue):Boolean; overload;
+function POCAIsMatrix4x4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean; overload;
+function POCAGetMatrix4x4Value(const aValue:TPOCAValue):TpvMatrix4x4D; overload;
+function POCAGetMatrix4x4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvMatrix4x4D; overload;
 
 function POCANewSprite(const aContext:PPOCAContext;const aSprite:TpvSprite):TPOCAValue;
 function POCAGetSpriteValue(const aValue:TPOCAValue):TpvSprite;
@@ -352,6 +373,37 @@ procedure FinalizeForPOCAContext(const aContext:PPOCAContext);
 implementation
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Data pools
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var POCADataPoolVector2:PPOCADataPool=nil;
+    POCADataPoolVector3:PPOCADataPool=nil;
+    POCADataPoolVector4:PPOCADataPool=nil;
+    POCADataPoolMatrix3x3:PPOCADataPool=nil;
+    POCADataPoolMatrix4x4:PPOCADataPool=nil;
+    POCADataPoolQuaternion:PPOCADataPool=nil;
+
+procedure InitializePOCADataPools;
+begin
+ POCADataPoolVector2:=POCADataPoolCreate(SizeOf(TpvVector2D));
+ POCADataPoolVector3:=POCADataPoolCreate(SizeOf(TpvVector3D));
+ POCADataPoolVector4:=POCADataPoolCreate(SizeOf(TpvVector4D));
+ POCADataPoolMatrix3x3:=POCADataPoolCreate(SizeOf(TpvMatrix3x3D));
+ POCADataPoolMatrix4x4:=POCADataPoolCreate(SizeOf(TpvMatrix4x4D));
+ POCADataPoolQuaternion:=POCADataPoolCreate(SizeOf(TpvQuaternionD));
+end;
+
+procedure FinalizePOCADataPools;
+begin
+ POCADataPoolFree(POCADataPoolVector2);
+ POCADataPoolFree(POCADataPoolVector3);
+ POCADataPoolFree(POCADataPoolVector4);
+ POCADataPoolFree(POCADataPoolMatrix3x3);
+ POCADataPoolFree(POCADataPoolMatrix4x4);
+ POCADataPoolFree(POCADataPoolQuaternion);
+end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Host data
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -372,7 +424,8 @@ end;
 procedure POCAVector2GhostDestroy(const aGhost:PPOCAGhost);
 begin
  if assigned(aGhost) and assigned(aGhost^.Ptr) then begin
-  FreeMem(aGhost^.Ptr);
+  POCADataPoolReleaseElement(POCADataPoolVector2,aGhost^.Ptr);
+//FreeMem(aGhost^.Ptr);
  end;
 end;
 
@@ -461,8 +514,9 @@ const POCAVector2Ghost:TPOCAGhostType=
 function POCANewVector2(const aContext:PPOCAContext;const aVector2:TpvVector2D):TPOCAValue; overload;
 var Vector2:PpvVector2D;
 begin
- Vector2:=nil;
- GetMem(Vector2,SizeOf(TpvVector2D));
+{Vector2:=nil;
+ GetMem(Vector2,SizeOf(TpvVector2D));}
+ Vector2:=POCADataPoolAllocateElement(POCADataPoolVector2);
  Vector2^:=aVector2;
  result:=POCANewGhost(aContext,@POCAVector2Ghost,Vector2,nil,pgptRAW);
  POCATemporarySave(aContext,result);
@@ -474,12 +528,86 @@ begin
  result:=POCANewVector2(aContext,TpvVector2D.Create(aX,aY));
 end;
 
+function POCAIsVector2Value(const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=2;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAVector2Ghost;
+  end;
+ end;
+end;
+
+function POCAIsVector2Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=2;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAVector2Ghost;
+  end;
+ end;
+end;
+
 function POCAGetVector2Value(const aValue:TPOCAValue):TpvVector2D;
 begin
  if POCAGhostGetType(aValue)=@POCAVector2Ghost then begin
   result:=PpvVector2D(POCAGhostFastGetPointer(aValue))^;
  end else begin
   result:=TpvVector2D.Create(0.0,0.0);
+ end;
+end;
+
+function POCAGetVector2Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvVector2D;
+var HashValue:TPOCAValue;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   if POCAArraySize(aValue)>=2 then begin
+    result.x:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,0));
+    result.y:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,1));
+   end else begin
+    result:=TpvVector2D.Create(0.0,0.0);
+   end;
+  end;
+  pvtHASH:begin
+   result:=TpvVector2D.Create(0.0,0.0);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'x');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'s');
+    if POCAIsValueNull(HashValue) then begin
+     HashValue:=POCAHashGetString(aContext,aValue,'u');
+    end;
+   end;
+   result.x:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'y');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'t');
+    if POCAIsValueNull(HashValue) then begin
+     HashValue:=POCAHashGetString(aContext,aValue,'v');
+    end;
+   end;
+   result.y:=POCAGetNumberValue(aContext,HashValue);
+
+  end;
+  else begin
+   if POCAGhostGetType(aValue)=@POCAVector2Ghost then begin
+    result:=PpvVector2D(POCAGhostFastGetPointer(aValue))^;
+   end else begin
+    result:=TpvVector2D.Create(0.0,0.0);
+   end;
+  end;
  end;
 end;
 
@@ -1006,7 +1134,8 @@ end;
 procedure POCAVector3GhostDestroy(const aGhost:PPOCAGhost);
 begin
  if assigned(aGhost) and assigned(aGhost^.Ptr) then begin
-  FreeMem(aGhost^.Ptr);
+  POCADataPoolReleaseElement(POCADataPoolVector3,aGhost^.Ptr);
+//FreeMem(aGhost^.Ptr);
  end;
 end;
 
@@ -1106,8 +1235,9 @@ const POCAVector3Ghost:TPOCAGhostType=
 function POCANewVector3(const aContext:PPOCAContext;const aVector3:TpvVector3D):TPOCAValue; overload;
 var Vector3:PpvVector3D;
 begin
- Vector3:=nil;
- GetMem(Vector3,SizeOf(TpvVector3D));
+{Vector3:=nil;
+ GetMem(Vector3,SizeOf(TpvVector3D));}
+ Vector3:=POCADataPoolAllocateElement(POCADataPoolVector3);
  Vector3^:=aVector3;
  result:=POCANewGhost(aContext,@POCAVector3Ghost,Vector3,nil,pgptRAW);
  POCATemporarySave(aContext,result);
@@ -1119,12 +1249,87 @@ begin
  result:=POCANewVector3(aContext,TpvVector3D.Create(aX,aY,aZ));
 end;
 
+function POCAIsVector3Value(const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=3;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAVector3Ghost;
+  end;
+ end;
+end;
+
+function POCAIsVector3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=3;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAVector3Ghost;
+  end;
+ end;
+end;
+
 function POCAGetVector3Value(const aValue:TPOCAValue):TpvVector3D;
 begin
  if POCAGhostGetType(aValue)=@POCAVector3Ghost then begin
   result:=PpvVector3D(POCAGhostFastGetPointer(aValue))^;
  end else begin
   result:=TpvVector3D.Create(0.0,0.0,0.0);
+ end;
+end;
+
+function POCAGetVector3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvVector3D;
+var HashValue:TPOCAValue;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   if POCAArraySize(aValue)>=3 then begin
+    result.x:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,0));
+    result.y:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,1));
+    result.z:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,2));
+   end else begin
+    result:=TpvVector3D.Create(0.0,0.0,0.0);
+   end;
+  end;
+  pvtHASH:begin
+   result:=TpvVector3D.Create(0.0,0.0,0.0);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'x');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'r');
+   end;
+   result.x:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'y');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'g');
+   end;
+   result.y:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'z');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'b');
+   end;
+   result.z:=POCAGetNumberValue(aContext,HashValue);
+
+  end;
+  else begin
+   if POCAGhostGetType(aValue)=@POCAVector3Ghost then begin
+    result:=PpvVector3D(POCAGhostFastGetPointer(aValue))^;
+   end else begin
+    result:=TpvVector3D.Create(0.0,0.0,0.0);
+   end;
+  end;
  end;
 end;
 
@@ -1675,7 +1880,8 @@ end;
 procedure POCAVector4GhostDestroy(const aGhost:PPOCAGhost);
 begin
  if assigned(aGhost) and assigned(aGhost^.Ptr) then begin
-  FreeMem(aGhost^.Ptr);
+  POCADataPoolReleaseElement(POCADataPoolVector4,aGhost^.Ptr);
+//FreeMem(aGhost^.Ptr);
  end;
 end;
 
@@ -1786,8 +1992,9 @@ const POCAVector4Ghost:TPOCAGhostType=
 function POCANewVector4(const aContext:PPOCAContext;const aVector4:TpvVector4D):TPOCAValue; overload;
 var Vector4:PpvVector4D;
 begin
- Vector4:=nil;
- GetMem(Vector4,SizeOf(TpvVector4D));
+{Vector4:=nil;
+ GetMem(Vector4,SizeOf(TpvVector4D));}
+ Vector4:=POCADataPoolAllocateElement(POCADataPoolVector4);
  Vector4^:=aVector4;
  result:=POCANewGhost(aContext,@POCAVector4Ghost,Vector4,nil,pgptRAW);
  POCATemporarySave(aContext,result);
@@ -1799,12 +2006,94 @@ begin
  result:=POCANewVector4(aContext,TpvVector4D.Create(aX,aY,aZ,aW));
 end;
 
+function POCAIsVector4Value(const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=4;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAVector4Ghost;
+  end;
+ end;
+end;
+
+function POCAIsVector4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=4;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAVector4Ghost;
+  end;
+ end;
+end;
+
 function POCAGetVector4Value(const aValue:TPOCAValue):TpvVector4D;
 begin
  if POCAGhostGetType(aValue)=@POCAVector4Ghost then begin
   result:=PpvVector4D(POCAGhostFastGetPointer(aValue))^;
  end else begin
   result:=TpvVector4D.Create(0.0,0.0,0.0,0.0);
+ end;
+end;
+
+function POCAGetVector4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvVector4D;
+var HashValue:TPOCAValue;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   if POCAArraySize(aValue)>=4 then begin
+    result.x:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,0));
+    result.y:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,1));
+    result.z:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,2));
+    result.w:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,3));
+   end else begin
+    result:=TpvVector4D.Create(0.0,0.0,0.0,0.0);
+   end;
+  end;
+  pvtHASH:begin
+   result:=TpvVector4D.Create(0.0,0.0,0.0,0.0);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'x');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'r');
+   end;
+   result.x:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'y');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'g');
+   end;
+   result.y:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'z');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'b');
+   end;
+   result.z:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'w');
+   if POCAIsValueNull(HashValue) then begin
+    HashValue:=POCAHashGetString(aContext,aValue,'a');
+   end;
+   result.w:=POCAGetNumberValue(aContext,HashValue);
+
+  end;
+  else begin
+   if POCAGhostGetType(aValue)=@POCAVector4Ghost then begin
+    result:=PpvVector4D(POCAGhostFastGetPointer(aValue))^;
+   end else begin
+    result:=TpvVector4D.Create(0.0,0.0,0.0,0.0);
+   end;
+  end;
  end;
 end;
 
@@ -2371,7 +2660,8 @@ end;
 procedure POCAQuaternionGhostDestroy(const aGhost:PPOCAGhost);
 begin
  if assigned(aGhost) and assigned(aGhost^.Ptr) then begin
-  FreeMem(aGhost^.Ptr);
+  POCADataPoolReleaseElement(POCADataPoolQuaternion,aGhost^.Ptr);
+//FreeMem(aGhost^.Ptr);
  end;
 end;
 
@@ -2482,8 +2772,9 @@ const POCAQuaternionGhost:TPOCAGhostType=
 function POCANewQuaternion(const aContext:PPOCAContext;const aQuaternion:TpvQuaternionD):TPOCAValue; overload;
 var Quaternion:PpvQuaternionD;
 begin
- Quaternion:=nil;
- GetMem(Quaternion,SizeOf(TpvQuaternionD));
+{Quaternion:=nil;
+ GetMem(Quaternion,SizeOf(TpvQuaternionD));}
+ Quaternion:=POCADataPoolAllocateElement(POCADataPoolQuaternion);
  Quaternion^:=aQuaternion;
  result:=POCANewGhost(aContext,@POCAQuaternionGhost,Quaternion,nil,pgptRAW);
  POCATemporarySave(aContext,result);
@@ -2495,12 +2786,82 @@ begin
  result:=POCANewQuaternion(aContext,TpvQuaternionD.Create(aX,aY,aZ,aW));
 end;
 
+function POCAIsQuaternionValue(const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=4;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAQuaternionGhost;
+  end;
+ end;
+end;
+
+function POCAIsQuaternionValue(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=4;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAQuaternionGhost;
+  end;
+ end;
+end;
+
 function POCAGetQuaternionValue(const aValue:TPOCAValue):TpvQuaternionD;
 begin
  if POCAGhostGetType(aValue)=@POCAQuaternionGhost then begin
   result:=PpvQuaternionD(POCAGhostFastGetPointer(aValue))^;
  end else begin
   result:=TpvQuaternionD.Create(0.0,0.0,0.0,0.0);
+ end;
+end;
+
+function POCAGetQuaternionValue(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvQuaternionD;
+var HashValue:TPOCAValue;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   if POCAArraySize(aValue)>=4 then begin
+    result.x:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,0));
+    result.y:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,1));
+    result.z:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,2));
+    result.w:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,3));
+   end else begin
+    result:=TpvQuaternionD.Create(0.0,0.0,0.0,0.0);
+   end;
+  end;
+  pvtHASH:begin
+   result:=TpvQuaternionD.Create(0.0,0.0,0.0,0.0);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'x');
+   result.x:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'y');
+   result.y:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'z');
+   result.z:=POCAGetNumberValue(aContext,HashValue);
+
+   HashValue:=POCAHashGetString(aContext,aValue,'w');
+   result.w:=POCAGetNumberValue(aContext,HashValue);
+
+  end;
+  else begin
+   if POCAGhostGetType(aValue)=@POCAQuaternionGhost then begin
+    result:=PpvQuaternionD(POCAGhostFastGetPointer(aValue))^;
+   end else begin
+    result:=TpvQuaternionD.Create(0.0,0.0,0.0,0.0);
+   end;
+  end;
  end;
 end;
 
@@ -3473,7 +3834,8 @@ end;
 procedure POCAMatrix3x3GhostDestroy(const aGhost:PPOCAGhost);
 begin
  if assigned(aGhost) and assigned(aGhost^.Ptr) then begin
-  FreeMem(aGhost^.Ptr);
+  POCADataPoolReleaseElement(POCADataPoolMatrix3x3,aGhost^.Ptr);
+//FreeMem(aGhost^.Ptr);
  end;
 end;
 
@@ -3594,7 +3956,9 @@ const POCAMatrix3x3Ghost:TPOCAGhostType=
 function POCANewMatrix3x3(const aContext:PPOCAContext;const aMatrix3x3:TpvMatrix3x3D):TPOCAValue;
 var Matrix3x3:PpvMatrix3x3D;
 begin
- GetMem(Matrix3x3,SizeOf(TpvMatrix3x3D));
+{Matrix3x3:=nil;
+ GetMem(Matrix3x3,SizeOf(TpvMatrix3x3D));}
+ Matrix3x3:=POCADataPoolAllocateElement(POCADataPoolMatrix3x3);
  Matrix3x3^:=aMatrix3x3;
  result:=POCANewGhost(aContext,@POCAMatrix3x3Ghost,Matrix3x3,nil,pgptRAW);
  POCATemporarySave(aContext,result);
@@ -3616,12 +3980,82 @@ begin
  result:=POCANewMatrix3x3(aContext,Matrix3x3);
 end;
 
+function POCAIsMatrix3x3Value(const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=9;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAMatrix3x3Ghost;
+  end;
+ end;
+end;
+
+function POCAIsMatrix3x3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=9;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAMatrix3x3Ghost;
+  end;
+ end;
+end;
+
 function POCAGetMatrix3x3Value(const aValue:TPOCAValue):TpvMatrix3x3D;
 begin
  if POCAGhostGetType(aValue)=@POCAMatrix3x3Ghost then begin
   result:=PpvMatrix3x3D(POCAGhostFastGetPointer(aValue))^;
  end else begin
   result:=TpvMatrix3x3.Create(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+ end;
+end;
+
+function POCAGetMatrix3x3Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvMatrix3x3D;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   if POCAArraySize(aValue)>=9 then begin
+    result.RawComponents[0,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,0));
+    result.RawComponents[0,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,1));
+    result.RawComponents[0,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,2));
+    result.RawComponents[1,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,3));
+    result.RawComponents[1,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,4));
+    result.RawComponents[1,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,5));
+    result.RawComponents[2,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,6));
+    result.RawComponents[2,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,7));
+    result.RawComponents[2,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,8));
+   end else begin
+    result:=TpvMatrix3x3.Create(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+   end;
+  end;
+  pvtHASH:begin
+   result:=TpvMatrix3x3.Create(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+   result.RawComponents[0,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m00'));
+   result.RawComponents[0,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m01'));
+   result.RawComponents[0,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m02'));
+   result.RawComponents[1,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m10'));
+   result.RawComponents[1,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m11'));
+   result.RawComponents[1,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m12'));
+   result.RawComponents[2,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m20'));
+   result.RawComponents[2,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m21'));
+   result.RawComponents[2,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m22'));
+  end;
+  else begin
+   if POCAGhostGetType(aValue)=@POCAMatrix3x3Ghost then begin
+    result:=PpvMatrix3x3D(POCAGhostFastGetPointer(aValue))^;
+   end else begin
+    result:=TpvMatrix3x3.Create(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
+   end;
+  end;
  end;
 end;
 
@@ -4491,7 +4925,8 @@ end;
 procedure POCAMatrix4x4GhostDestroy(const aGhost:PPOCAGhost);
 begin
  if assigned(aGhost) and assigned(aGhost^.Ptr) then begin
-  FreeMem(aGhost^.Ptr);
+  POCADataPoolReleaseElement(POCADataPoolMatrix4x4,aGhost^.Ptr);
+//FreeMem(aGhost^.Ptr);
  end;
 end;
 
@@ -4668,7 +5103,9 @@ const POCAMatrix4x4Ghost:TPOCAGhostType=
 function POCANewMatrix4x4(const aContext:PPOCAContext;const aMatrix4x4:TpvMatrix4x4D):TPOCAValue;
 var Matrix4x4:PpvMatrix4x4D;
 begin
- GetMem(Matrix4x4,SizeOf(TpvMatrix4x4D));
+{Matrix4x4:=nil;
+ GetMemMatrix4x4,SizeOf(TpvMatrix4x4D));}
+ Matrix4x4:=POCADataPoolAllocateElement(POCADataPoolMatrix4x4);
  Matrix4x4^:=aMatrix4x4;
  result:=POCANewGhost(aContext,@POCAMatrix4x4Ghost,Matrix4x4,nil,pgptRAW);
  POCATemporarySave(aContext,result);
@@ -4697,12 +5134,96 @@ begin
  result:=POCANewMatrix4x4(aContext,Matrix4x4);
 end;
 
+function POCAIsMatrix4x4Value(const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=16;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAMatrix4x4Ghost;
+  end;
+ end;
+end;
+
+function POCAIsMatrix4x4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):Boolean;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   result:=POCAArraySize(aValue)>=16;
+  end;
+  pvtHASH:begin
+   result:=true;
+  end;
+  else begin
+   result:=POCAGhostGetType(aValue)=@POCAMatrix4x4Ghost;
+  end;
+ end;
+end;
+
 function POCAGetMatrix4x4Value(const aValue:TPOCAValue):TpvMatrix4x4D;
 begin
  if POCAGhostGetType(aValue)=@POCAMatrix4x4Ghost then begin
   result:=PpvMatrix4x4D(POCAGhostFastGetPointer(aValue))^;
  end else begin
   result:=TpvMatrix4x4.Create(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+ end;
+end;
+
+function POCAGetMatrix4x4Value(const aContext:PPOCAContext;const aValue:TPOCAValue):TpvMatrix4x4D;
+begin
+ case POCAGetValueType(aValue) of
+  pvtARRAY:begin
+   if POCAArraySize(aValue)>=16 then begin
+    result.RawComponents[0,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,0));
+    result.RawComponents[0,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,1));
+    result.RawComponents[0,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,2));
+    result.RawComponents[0,3]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,3));
+    result.RawComponents[1,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,4));
+    result.RawComponents[1,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,5));
+    result.RawComponents[1,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,6));
+    result.RawComponents[1,3]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,7));
+    result.RawComponents[2,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,8));
+    result.RawComponents[2,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,9));
+    result.RawComponents[2,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,10));
+    result.RawComponents[2,3]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,11));
+    result.RawComponents[3,0]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,12));
+    result.RawComponents[3,1]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,13));
+    result.RawComponents[3,2]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,14));
+    result.RawComponents[3,3]:=POCAGetNumberValue(aContext,POCAArrayGet(aValue,15));
+   end else begin
+    result:=TpvMatrix4x4.Create(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+   end;
+  end;
+  pvtHASH:begin
+   result:=TpvMatrix4x4.Create(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+   result.RawComponents[0,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m00'));
+   result.RawComponents[0,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m01'));
+   result.RawComponents[0,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m02'));
+   result.RawComponents[0,3]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m03'));
+   result.RawComponents[1,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m10'));
+   result.RawComponents[1,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m11'));
+   result.RawComponents[1,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m12'));
+   result.RawComponents[1,3]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m13'));
+   result.RawComponents[2,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m20'));
+   result.RawComponents[2,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m21'));
+   result.RawComponents[2,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m22'));
+   result.RawComponents[2,3]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m23'));
+   result.RawComponents[3,0]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m30'));
+   result.RawComponents[3,1]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m31'));
+   result.RawComponents[3,2]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m32'));
+   result.RawComponents[3,3]:=POCAGetNumberValue(aContext,POCAHashGetString(aContext,aValue,'m33'));
+  end;
+  else begin
+   if POCAGhostGetType(aValue)=@POCAMatrix4x4Ghost then begin
+    result:=PpvMatrix4x4D(POCAGhostFastGetPointer(aValue))^;
+   end else begin
+    result:=TpvMatrix4x4.Create(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+   end;
+  end;
  end;
 end;
 
@@ -5681,12 +6202,140 @@ begin
  result.CastedUInt64:=POCAValueNullCastedUInt64; 
 end;
 
+function POCASpriteFunctionGETWIDTH(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result.Num:=Sprite.Width;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETHEIGHT(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result.Num:=Sprite.Height;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETNAME(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result:=POCANewString(aContext,Sprite.Name);
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETTRIMMEDWIDTH(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result.Num:=Sprite.TrimmedWidth;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETTRIMMEDHEIGHT(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result.Num:=Sprite.TrimmedHeight;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETOFFSETX(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result.Num:=Sprite.TrimmedOffset.x;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETOFFSETY(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result.Num:=Sprite.TrimmedOffset.y;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCASpriteFunctionGETTRIMOFFSET(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sprite:TpvSprite;
+begin
+ if POCAGhostGetType(aThis)=@POCASpriteGhost then begin
+  Sprite:=TpvSprite(POCAGhostFastGetPointer(aThis));
+  if assigned(Sprite) then begin
+   result:=POCANewVector2(aContext,Sprite.TrimmedOffset);
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
 procedure POCAInitSpriteHash(aContext:PPOCAContext);
 var HostData:PPOCAHostData;
 begin
  HostData:=POCAGetHostData(aContext);
  HostData^.SpriteHash:=POCANewHash(aContext);
  POCAArrayPush(aContext^.Instance^.Globals.RootArray,HostData^.SpriteHash);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getWidth',POCASpriteFunctionGETWIDTH);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getHeight',POCASpriteFunctionGETHEIGHT);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getName',POCASpriteFunctionGETNAME);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getTrimmedWidth',POCASpriteFunctionGETTRIMMEDWIDTH);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getTrimmedHeight',POCASpriteFunctionGETTRIMMEDHEIGHT);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getOffsetX',POCASpriteFunctionGETOFFSETX);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getOffsetY',POCASpriteFunctionGETOFFSETY);
+ POCAAddNativeFunction(aContext,HostData^.SpriteHash,'getTrimOffset',POCASpriteFunctionGETTRIMOFFSET);
 end;
 
 procedure POCAInitSpriteNamespace(aContext:PPOCAContext);
@@ -5775,7 +6424,11 @@ begin
  if POCAGhostGetType(aThis)=@POCASpriteAtlasGhost then begin
   SpriteAtlas:=TpvSpriteAtlas(POCAGhostFastGetPointer(aThis));
   if assigned(SpriteAtlas) then begin
-   SpriteAtlas.Free;
+   if assigned(pvApplication) then begin
+    pvApplication.DelayFreeObjectInstance(SpriteAtlas,MaxInFlightFrames);
+   end else begin
+    SpriteAtlas.Free;
+   end;
    PPOCAGhost(POCAGetValueReferencePointer(aThis))^.Ptr:=nil; // For to avoid double free
   end;
  end;
@@ -6404,6 +7057,7 @@ var HostData:PPOCAHostData;
 begin
  HostData:=POCAGetHostData(aContext);
  HostData^.CanvasShapeHash:=POCANewHash(aContext);
+ POCAAddNativeFunction(aContext,HostData^.CanvasShapeHash,'destroy',POCACanvasShapeFunctionDESTROY);
  POCAArrayPush(aContext^.Instance^.Globals.RootArray,HostData^.CanvasShapeHash);
 end;
 
@@ -6587,8 +7241,8 @@ begin
   exit;
  end;
 
- if (aCountArguments>0) and (POCAGhostGetType(aArguments^[0])=POCAVector4GhostPointer) then begin
-  Color:=POCAGetVector4Value(aArguments^[0]); 
+ if (aCountArguments>0) and POCAIsVector4Value(aContext,aArguments^[0]) then begin
+  Color:=POCAGetVector4Value(aContext,aArguments^[0]); 
  end else begin
   if aCountArguments>0 then begin
    Color.x:=POCAGetNumberValue(aContext,aArguments^[0]);
@@ -6641,9 +7295,9 @@ begin
 
  ArgumentIndex:=0;
  
- // Check for Centter
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[0]);
+ // Check for Center
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6674,6 +7328,70 @@ begin
 
 end;
 
+function POCACanvasFunctionDRAWSTROKECIRCLE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var ArgumentIndex:TPOCAInt32;
+    Canvas:TpvCanvas;
+    Center:TpvVector2;
+    Radius:TpvFloat;
+    StrokeWidth:TpvFloat;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ ArgumentIndex:=0;
+ 
+ // Check for Center
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Center.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Center.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.y:=0.0;
+  end;
+ end;
+
+ // Check for Radius
+ if ArgumentIndex<aCountArguments then begin
+  Radius:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  Radius:=0.0;
+ end;
+ 
+ // Check for StrokeWidth
+ if ArgumentIndex<aCountArguments then begin
+  StrokeWidth:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StrokeWidth:=1.0;
+ end;
+ 
+ Canvas.DrawStrokeCircle(Center,Radius,StrokeWidth);
+
+ result:=aThis;
+
+end;
+
 function POCACanvasFunctionDRAWFILLEDELLIPSE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
 var ArgumentIndex:TPOCAInt32;
     Canvas:TpvCanvas;
@@ -6697,8 +7415,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[0]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6716,8 +7434,8 @@ begin
  end;
 
  // Check for Radius
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Radius:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Radius:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6735,6 +7453,81 @@ begin
  end;
 
  Canvas.DrawFilledEllipse(Center,Radius);
+
+ result:=aThis;
+
+end;
+
+function POCACanvasFunctionDRAWSTROKEELLIPSE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var ArgumentIndex:TPOCAInt32;
+    Canvas:TpvCanvas;
+    Center:TpvVector2;
+    Radius:TpvVector2;
+    StrokeWidth:TpvFloat;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ ArgumentIndex:=0;
+ 
+ // Check for Center
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Center.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Center.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.y:=0.0;
+  end;
+ end;
+
+ // Check for Radius
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Radius:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Radius.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Radius.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Radius.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Radius.y:=0.0;
+  end;
+ end;
+
+ // Check for StrokeWidth
+ if ArgumentIndex<aCountArguments then begin
+  StrokeWidth:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StrokeWidth:=1.0;
+ end;
+
+ Canvas.DrawStrokeEllipse(Center,Radius,StrokeWidth);
 
  result:=aThis;
 
@@ -6763,8 +7556,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for LeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  LeftTop:=POCAGetVector2Value(aArguments^[0]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6782,8 +7575,8 @@ begin
  end;
 
  // Check for WidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  WidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6829,8 +7622,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[0]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6848,8 +7641,8 @@ begin
  end;
 
  // Check for Bounds
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Bounds:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6867,6 +7660,81 @@ begin
  end;
 
  Canvas.DrawFilledRectangle(Center,Bounds);
+
+ result:=aThis;
+
+end;
+
+function POCACanvasFunctionDRAWSTROKERECTANGLE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var ArgumentIndex:TPOCAInt32;
+    Canvas:TpvCanvas;
+    Center:TpvVector2;
+    Bounds:TpvVector2;
+    StrokeWidth:TpvFloat;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ ArgumentIndex:=0;
+ 
+ // Check for Center
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Center.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Center.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.y:=0.0;
+  end;
+ end;
+
+ // Check for Bounds
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Bounds.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Bounds.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Bounds.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Bounds.y:=0.0;
+  end;
+ end;
+
+ // Check for StrokeWidth
+ if ArgumentIndex<aCountArguments then begin
+  StrokeWidth:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StrokeWidth:=1.0;
+ end;
+
+ Canvas.DrawStrokeRectangle(Center,Bounds,StrokeWidth);
 
  result:=aThis;
 
@@ -6896,8 +7764,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for LeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  LeftTop:=POCAGetVector2Value(aArguments^[0]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6915,8 +7783,8 @@ begin
  end;
 
  // Check for WidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  WidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6971,8 +7839,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[0]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -6990,8 +7858,8 @@ begin
  end;
 
  // Check for Bounds
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Bounds:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7017,6 +7885,174 @@ begin
  end;
 
  Canvas.DrawFilledRoundedRectangle(Center,Bounds,Radius);
+
+ result:=aThis;
+
+end;
+
+function POCACanvasFunctionDRAWSTROKEROUNDEDRECTANGLE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var ArgumentIndex:TPOCAInt32;
+    Canvas:TpvCanvas;
+    LeftTop:TpvVector2;
+    WidthHeight:TpvVector2;
+    Radius:TpvFloat;
+    StrokeWidth:TpvFloat;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ ArgumentIndex:=0;
+ 
+ // Check for LeftTop
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[0]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   LeftTop.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   LeftTop.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   LeftTop.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   LeftTop.y:=0.0;
+  end;
+ end;
+
+ // Check for WidthHeight
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   WidthHeight.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   WidthHeight.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   WidthHeight.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   WidthHeight.y:=0.0;
+  end;
+ end;
+
+ // Check for Radius
+ if ArgumentIndex<aCountArguments then begin
+  Radius:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  Radius:=0.0;
+ end;
+
+ // Check for StrokeWidth
+ if ArgumentIndex<aCountArguments then begin
+  StrokeWidth:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StrokeWidth:=1.0;
+ end;
+
+ Canvas.DrawStrokeRoundedRectangle(TpvRect.CreateRelative(LeftTop,WidthHeight),Radius,StrokeWidth);
+
+ result:=aThis;
+
+end;
+
+function POCACanvasFunctionDRAWSTROKEROUNDEDRECTANGLECENTER(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var ArgumentIndex:TPOCAInt32;
+    Canvas:TpvCanvas;
+    Center:TpvVector2;
+    Bounds:TpvVector2;
+    Radius:TpvFloat;
+    StrokeWidth:TpvFloat;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ ArgumentIndex:=0;
+ 
+ // Check for Center
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Center.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Center.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.y:=0.0;
+  end;
+ end;
+
+ // Check for Bounds
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Bounds.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Bounds.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Bounds.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Bounds.y:=0.0;
+  end;
+ end;
+
+ // Check for Radius
+ if ArgumentIndex<aCountArguments then begin
+  Radius:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  Radius:=0.0;
+ end;
+
+ // Check for StrokeWidth
+ if ArgumentIndex<aCountArguments then begin
+  StrokeWidth:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StrokeWidth:=1.0;
+ end;
+
+ Canvas.DrawStrokeRoundedRectangle(Center,Bounds,Radius,StrokeWidth);
 
  result:=aThis;
 
@@ -7049,8 +8085,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[0]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7113,6 +8149,106 @@ begin
 
 end;
 
+function POCACanvasFunctionDRAWSTROKECIRCLEARCRINGSEGMENT(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var ArgumentIndex:TPOCAInt32;
+    Canvas:TpvCanvas;
+    Center:TpvVector2;
+    InnerRadius:TpvFloat;
+    OuterRadius:TpvFloat;
+    StartAngle:TpvFloat;
+    EndAngle:TpvFloat;
+    GapThickness:TpvFloat;
+    StrokeWidth:TpvFloat;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ ArgumentIndex:=0;
+ 
+ // Check for Center
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[0]);
+  inc(ArgumentIndex);
+ end else begin
+  if ArgumentIndex<aCountArguments then begin
+   Center.x:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.x:=0.0;
+  end;
+  if ArgumentIndex<aCountArguments then begin
+   Center.y:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+   inc(ArgumentIndex);
+  end else begin
+   Center.y:=0.0;
+  end;
+ end;
+
+ // Check for InnerRadius
+ if ArgumentIndex<aCountArguments then begin
+  InnerRadius:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  InnerRadius:=0.0;
+ end;
+
+ // Check for OuterRadius
+ if ArgumentIndex<aCountArguments then begin
+  OuterRadius:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  OuterRadius:=0.0;
+ end;
+
+ // Check for StartAngle
+ if ArgumentIndex<aCountArguments then begin
+  StartAngle:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StartAngle:=0.0;
+ end;
+
+ // Check for EndAngle
+ if ArgumentIndex<aCountArguments then begin
+  EndAngle:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  EndAngle:=0.0;
+ end;
+
+ // Check for GapThickness
+ if ArgumentIndex<aCountArguments then begin
+  GapThickness:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  GapThickness:=0.0;
+ end;
+
+ // Check for StrokeWidth
+ if ArgumentIndex<aCountArguments then begin
+  StrokeWidth:=POCAGetNumberValue(aContext,aArguments^[ArgumentIndex]);
+  inc(ArgumentIndex);
+ end else begin
+  StrokeWidth:=1.0;
+ end;
+
+ Canvas.DrawStrokeCircleArcRingSegment(Center,InnerRadius,OuterRadius,StartAngle,EndAngle,GapThickness,StrokeWidth);
+
+ result:=aThis;
+
+end;
+
 function POCACanvasFunctionDRAWTEXTUREDRECTANGLE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
 var ArgumentIndex:TPOCAInt32;
     Canvas:TpvCanvas;
@@ -7147,8 +8283,8 @@ begin
  end;
 
  // Check for LeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  LeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7166,8 +8302,8 @@ begin
  end;
 
  // Check for WidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  WidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7240,8 +8376,8 @@ begin
  end;
 
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7259,8 +8395,8 @@ begin
  end;
 
  // Check for Bounds
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Bounds:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7333,8 +8469,8 @@ begin
  end;
 
  // Check for SrcLeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  SrcLeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  SrcLeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7352,8 +8488,8 @@ begin
  end;
 
  // Check for SrcWidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  SrcWidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  SrcWidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7371,8 +8507,8 @@ begin
  end;
 
  // Check for DestLeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  DestLeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  DestLeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7390,8 +8526,8 @@ begin
  end;
 
  // Check for DestWidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  DestWidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  DestWidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7450,8 +8586,8 @@ begin
  end;
 
  // Check for SrcLeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  SrcLeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  SrcLeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7469,8 +8605,8 @@ begin
  end;
 
  // Check for SrcWidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  SrcWidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  SrcWidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7488,8 +8624,8 @@ begin
  end;
 
  // Check for DestLeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  DestLeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  DestLeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7507,8 +8643,8 @@ begin
  end;
 
  // Check for DestWidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  DestWidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  DestWidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7526,8 +8662,8 @@ begin
  end;
 
  // Check for Origin
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Origin:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Origin:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7589,8 +8725,8 @@ begin
  end;
 
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7644,8 +8780,8 @@ begin
  end;
 
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7699,8 +8835,8 @@ begin
  end;
 
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7903,8 +9039,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7949,8 +9085,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -7996,8 +9132,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for ControlPoint
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  ControlPoint:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  ControlPoint:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8015,8 +9151,8 @@ begin
  end;
 
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8063,8 +9199,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for ControlPoint1
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  ControlPoint1:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  ControlPoint1:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8082,8 +9218,8 @@ begin
  end;
 
  // Check for ControlPoint2
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  ControlPoint2:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  ControlPoint2:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8101,8 +9237,8 @@ begin
  end;
 
  // Check for Position
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8151,8 +9287,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8230,8 +9366,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Position1
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position1:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position1:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8249,8 +9385,8 @@ begin
  end;
 
  // Check for Position2
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Position2:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Position2:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8304,8 +9440,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8323,8 +9459,8 @@ begin
  end;
 
  // Check for Radius
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Radius:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Radius:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8370,8 +9506,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8425,8 +9561,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for LeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  LeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8444,8 +9580,8 @@ begin
  end;
 
  // Check for WidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  WidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8491,8 +9627,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8510,8 +9646,8 @@ begin
  end;
 
  // Check for Bounds
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Bounds:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8558,8 +9694,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for LeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  LeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8577,8 +9713,8 @@ begin
  end;
 
  // Check for WidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  WidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8633,8 +9769,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Center
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Center:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Center:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8652,8 +9788,8 @@ begin
  end;
 
  // Check for Bounds
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  Bounds:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Bounds:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8822,6 +9958,52 @@ begin
 
 end;
 
+function POCACanvasFunctionBEGINTRANSPARENTSHAPE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Canvas:TpvCanvas;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas.BeginTransparentShape;
+
+ result:=aThis;
+
+end;
+
+function POCACanvasFunctionENDTRANSPARENTSHAPE(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Canvas:TpvCanvas;
+begin
+
+ if POCAGhostGetType(aThis)<>@POCACanvasGhost then begin
+  POCARuntimeError(aContext,'Canvas expected');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas:=TpvCanvas(POCAGhostFastGetPointer(aThis));
+ if not assigned(Canvas) then begin
+  POCARuntimeError(aContext,'Canvas is null');
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+  exit;
+ end;
+
+ Canvas.EndTransparentShape;
+
+ result:=aThis;
+
+end;
+
 function POCACanvasFunctionFLUSH(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
 var Canvas:TpvCanvas;
 begin
@@ -8896,8 +10078,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for LeftTop
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  LeftTop:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  LeftTop:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -8915,8 +10097,8 @@ begin
  end;
 
  // Check for WidthHeight
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector2GhostPointer) then begin
-  WidthHeight:=POCAGetVector2Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector2Value(aContext,aArguments^[ArgumentIndex]) then begin
+  WidthHeight:=POCAGetVector2Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -9944,8 +11126,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for Color
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector4GhostPointer) then begin
-  Color:=POCAGetVector4Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector4Value(aContext,aArguments^[ArgumentIndex]) then begin
+  Color:=POCAGetVector4Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -10025,8 +11207,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for StartColor
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector4GhostPointer) then begin
-  StartColor:=POCAGetVector4Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector4Value(aContext,aArguments^[ArgumentIndex]) then begin
+  StartColor:=POCAGetVector4Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -10107,8 +11289,8 @@ begin
  ArgumentIndex:=0;
  
  // Check for StopColor
- if (ArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[ArgumentIndex])=POCAVector4GhostPointer) then begin
-  StopColor:=POCAGetVector4Value(aArguments^[ArgumentIndex]);
+ if (ArgumentIndex<aCountArguments) and POCAIsVector4Value(aContext,aArguments^[ArgumentIndex]) then begin
+  StopColor:=POCAGetVector4Value(aContext,aArguments^[ArgumentIndex]);
   inc(ArgumentIndex);
  end else begin
   if ArgumentIndex<aCountArguments then begin
@@ -10145,8 +11327,8 @@ end;
 
 function POCAGetMatrix4x4Argument(aContext:PPOCAContext;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;var aArgumentIndex:TPOCAInt32):TpvMatrix4x4D;
 begin
- if (aArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[aArgumentIndex])=POCAMatrix4x4GhostPointer) then begin
-  result:=POCAGetMatrix4x4Value(aArguments^[aArgumentIndex]);
+ if (aArgumentIndex<aCountArguments) and POCAIsMatrix4x4Value(aContext,aArguments^[aArgumentIndex]) then begin
+  result:=POCAGetMatrix4x4Value(aContext,aArguments^[aArgumentIndex]);
   inc(aArgumentIndex); 
  end else begin
   if aArgumentIndex<aCountArguments then begin
@@ -10250,8 +11432,8 @@ end;
 
 function POCAGetVector3Argument(aContext:PPOCAContext;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;var aArgumentIndex:TPOCAInt32):TpvVector3D;
 begin
- if (aArgumentIndex<aCountArguments) and (POCAGhostGetType(aArguments^[aArgumentIndex])=POCAVector3GhostPointer) then begin
-  result:=POCAGetVector3Value(aArguments^[aArgumentIndex]);
+ if (aArgumentIndex<aCountArguments) and POCAIsVector3Value(aContext,aArguments^[aArgumentIndex]) then begin
+  result:=POCAGetVector3Value(aContext,aArguments^[aArgumentIndex]);
   inc(aArgumentIndex);
  end else begin
   if aArgumentIndex<aCountArguments then begin
@@ -10673,12 +11855,18 @@ begin
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'getHeight',POCACanvasFunctionGETHEIGHT); 
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'clear',POCACanvasFunctionCLEAR);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledCircle',POCACanvasFunctionDRAWFILLEDCIRCLE);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawStrokeCircle',POCACanvasFunctionDRAWSTROKECIRCLE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledEllipse',POCACanvasFunctionDRAWFILLEDELLIPSE);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawStrokeEllipse',POCACanvasFunctionDRAWSTROKEELLIPSE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledRectangle',POCACanvasFunctionDRAWFILLEDRECTANGLE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledRectangleCenter',POCACanvasFunctionDRAWFILLEDRECTANGLECENTER);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawStrokeRectangle',POCACanvasFunctionDRAWSTROKERECTANGLE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledRoundedRectangle',POCACanvasFunctionDRAWFILLEDROUNDEDRECTANGLE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledRoundedRectangleCenter',POCACanvasFunctionDRAWFILLEDROUNDEDRECTANGLECENTER);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawStrokeRoundedRectangle',POCACanvasFunctionDRAWSTROKEROUNDEDRECTANGLE);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawStrokeRoundedRectangleCenter',POCACanvasFunctionDRAWSTROKEROUNDEDRECTANGLECENTER);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawFilledCircleArcRingSegment',POCACanvasFunctionDRAWFILLEDCIRCLEARCRINGSEGMENT);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawStrokeCircleArcRingSegment',POCACanvasFunctionDRAWSTROKECIRCLEARCRINGSEGMENT);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawTexturedRectangle',POCACanvasFunctionDRAWTEXTUREDRECTANGLE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawTexturedRectangleCenter',POCACanvasFunctionDRAWTEXTUREDRECTANGLECENTER);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'drawSprite',POCACanvasFunctionDRAWSPRITE);
@@ -10709,6 +11897,8 @@ begin
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'fill',POCACanvasFunctionFILL);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'push',POCACanvasFunctionPUSH);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'pop',POCACanvasFunctionPOP);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'beginTransparentShape',POCACanvasFunctionBEGINTRANSPARENTSHAPE);
+ POCAAddNativeFunction(aContext,HostData^.CanvasHash,'endTransparentShape',POCACanvasFunctionENDTRANSPARENTSHAPE);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'flush',POCACanvasFunctionFLUSH);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'getClipRect',POCACanvasFunctionGETCLIPRECT);
  POCAAddNativeFunction(aContext,HostData^.CanvasHash,'setClipRect',POCACanvasFunctionSETCLIPRECT);
@@ -11218,23 +12408,23 @@ var Hash:TPOCAValue;
 begin
  Hash:=POCANewHash(aContext);
  POCAArrayPush(aContext^.Instance^.Globals.RootArray,Hash);
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_LSHIFT',POCANewNumber(aContext,KEYMODIFIER_LSHIFT));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_RSHIFT',POCANewNumber(aContext,KEYMODIFIER_RSHIFT));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_LCTRL',POCANewNumber(aContext,KEYMODIFIER_LCTRL));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_RCTRL',POCANewNumber(aContext,KEYMODIFIER_RCTRL));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_LALT',POCANewNumber(aContext,KEYMODIFIER_LALT));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_RALT',POCANewNumber(aContext,KEYMODIFIER_RALT));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_LMETA',POCANewNumber(aContext,KEYMODIFIER_LMETA));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_RMETA',POCANewNumber(aContext,KEYMODIFIER_RMETA));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_NUM',POCANewNumber(aContext,KEYMODIFIER_NUM));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_CAPS',POCANewNumber(aContext,KEYMODIFIER_CAPS));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_SCROLL',POCANewNumber(aContext,KEYMODIFIER_SCROLL));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_MODE',POCANewNumber(aContext,KEYMODIFIER_MODE));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_RESERVED',POCANewNumber(aContext,KEYMODIFIER_RESERVED));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_CTRL',POCANewNumber(aContext,KEYMODIFIER_CTRL));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_SHIFT',POCANewNumber(aContext,KEYMODIFIER_SHIFT));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_ALT',POCANewNumber(aContext,KEYMODIFIER_ALT));
- POCAHashSetString(aContext,Hash,'KEYMODIFIER_META',POCANewNumber(aContext,KEYMODIFIER_META));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_LSHIFT',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_LSHIFT));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_RSHIFT',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_RSHIFT));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_LCTRL',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_LCTRL));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_RCTRL',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_RCTRL));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_LALT',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_LALT));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_RALT',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_RALT));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_LMETA',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_LMETA));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_RMETA',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_RMETA));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_NUM',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_NUM));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_CAPS',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_CAPS));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_SCROLL',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_SCROLL));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_MODE',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_MODE));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_RESERVED',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_RESERVED));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_CTRL',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_CTRL));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_SHIFT',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_SHIFT));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_ALT',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_ALT));
+ POCAHashSetString(aContext,Hash,'KEYMODIFIER_META',POCANewNumber(aContext,TpvUInt32(1) shl KEYMODIFIER_META));
  result:=Hash;
 end;
 
@@ -12727,6 +13917,59 @@ begin
  end;
 end;
 
+function POCAMusicHashPause(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sounds:TpvPOCAAudio;
+    Music:TpvPOCAAudio.TMusic;
+begin
+ if assigned(aUserData) and (TObject(aUserData) is TpvPOCAAudio) and (POCAGhostGetType(aThis)=@POCAMusicGhost) then begin
+  Sounds:=TpvPOCAAudio(aUserData);
+  Music:=POCAGhostFastGetPointer(aThis);
+  if assigned(Music) and Sounds.fMusicExistHashList.ExistKey(Music) then begin
+   Music.Pause;
+   result:=aThis;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCAMusicHashResume(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sounds:TpvPOCAAudio;
+    Music:TpvPOCAAudio.TMusic;
+begin
+ if assigned(aUserData) and (TObject(aUserData) is TpvPOCAAudio) and (POCAGhostGetType(aThis)=@POCAMusicGhost) then begin
+  Sounds:=TpvPOCAAudio(aUserData);
+  Music:=POCAGhostFastGetPointer(aThis);
+  if assigned(Music) and Sounds.fMusicExistHashList.ExistKey(Music) then begin
+   Music.Resume;
+   result:=aThis;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
+function POCAMusicHashIsPaused(aContext:PPOCAContext;const aThis:TPOCAValue;const aArguments:PPOCAValues;const aCountArguments:TPOCAInt32;const aUserData:TPOCAPointer):TPOCAValue;
+var Sounds:TpvPOCAAudio;
+    Music:TpvPOCAAudio.TMusic;
+begin
+ if assigned(aUserData) and (TObject(aUserData) is TpvPOCAAudio) and (POCAGhostGetType(aThis)=@POCAMusicGhost) then begin
+  Sounds:=TpvPOCAAudio(aUserData);
+  Music:=POCAGhostFastGetPointer(aThis);
+  if assigned(Music) and Sounds.fMusicExistHashList.ExistKey(Music) then begin
+   result.Num:=ord(Music.IsPaused) and 1;
+  end else begin
+   result.CastedUInt64:=POCAValueNullCastedUInt64;
+  end;
+ end else begin
+  result.CastedUInt64:=POCAValueNullCastedUInt64;
+ end;
+end;
+
 { TpvPOCAAudio.TSound }
 
 constructor TpvPOCAAudio.TSound.Create(const aSounds:TpvPOCAAudio;const aName,aFileName:TpvUTF8String;const aPolyphony:TpvInt32;const aLoop,aRealVoices:TpvInt32;const aFadeOutDuration:TpvDouble);
@@ -13260,6 +14503,30 @@ begin
  end;
 end;
 
+procedure TpvPOCAAudio.TMusic.Pause;
+begin
+ if assigned(pvApplication.Audio) and assigned(fMusic) then begin
+  pvApplication.Audio.Lock;
+  try
+   fMusic.Pause;
+  finally
+   pvApplication.Audio.Unlock;
+  end;
+ end;
+end;
+
+procedure TpvPOCAAudio.TMusic.Resume;
+begin
+ if assigned(pvApplication.Audio) and assigned(fMusic) then begin
+  pvApplication.Audio.Lock;
+  try
+   fMusic.Resume;
+  finally
+   pvApplication.Audio.Unlock;
+  end;
+ end;
+end;
+
 procedure TpvPOCAAudio.TMusic.SetVolume(Volume:TpvFloat);
 begin
  if assigned(pvApplication.Audio) and assigned(fMusic) then begin
@@ -13303,6 +14570,19 @@ begin
   pvApplication.Audio.Lock;
   try
    result:=fMusic.IsPlaying;
+  finally
+   pvApplication.Audio.Unlock;
+  end;
+ end;
+end;
+
+function TpvPOCAAudio.TMusic.IsPaused:boolean;
+begin
+ result:=false;
+ if assigned(pvApplication.Audio) and assigned(fMusic) then begin
+  pvApplication.Audio.Lock;
+  try
+   result:=fMusic.IsPaused;
   finally
    pvApplication.Audio.Unlock;
   end;
@@ -13373,6 +14653,9 @@ begin
  POCAAddNativeFunction(fPOCASubContext,fPOCAMusicGhostHash,'setPanning',POCAMusicHashSetPanning,nil,self);
  POCAAddNativeFunction(fPOCASubContext,fPOCAMusicGhostHash,'setRate',POCAMusicHashSetRate,nil,self);
  POCAAddNativeFunction(fPOCASubContext,fPOCAMusicGhostHash,'isPlaying',POCAMusicHashIsPlaying,nil,self);
+ POCAAddNativeFunction(fPOCASubContext,fPOCAMusicGhostHash,'pause',POCAMusicHashPause,nil,self);
+ POCAAddNativeFunction(fPOCASubContext,fPOCAMusicGhostHash,'resume',POCAMusicHashResume,nil,self);
+ POCAAddNativeFunction(fPOCASubContext,fPOCAMusicGhostHash,'isPaused',POCAMusicHashIsPaused,nil,self);
 
  fPOCAMusicHash:=POCANewHash(fPOCASubContext);
  POCAAddNativeFunction(fPOCASubContext,fPOCAMusicHash,'create',POCAMusicManagerCreate,nil,self);
@@ -13638,5 +14921,9 @@ initialization
  POCATextureGhostPointer:=@POCATextureGhost;
  POCAFontGhostPointer:=@POCAFontGhost;
  POCACanvasFontGhostPointer:=@POCACanvasFontGhost;
+ POCACanvasShapeGhostPointer:=@POCACanvasShapeGhost;
  POCACanvasGhostPointer:=@POCACanvasGhost;
+ InitializePOCADataPools;
+finalization
+ FinalizePOCADataPools;
 end.

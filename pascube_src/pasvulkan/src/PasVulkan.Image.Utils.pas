@@ -252,13 +252,14 @@ procedure ResizeR8(const aSrc:pointer;const aSrcWidth,aSrcHeight:TpvInt32;const 
 type PPixels=^TPixels;
      TPixels=array[0..65535] of TpvUInt8;
 var DstX,DstY,SrcX,SrcY:TpvInt32;
-    Sum,w,Pixel,Weight,xUL,xUR,xLL,xLR,
+    Sum,WeightSum,Pixel,Weight,xUL,xUR,xLL,xLR,
     Red,Remainder,WeightX,WeightY:TpvUInt32;
+//  SrcPtr,DstPtr:pansichar;
     TempSrc,TempDst:PPixels;
     UpsampleX,UpsampleY:longbool;
     WeightShift,xa,xb,xc,xd,ya,yb,yc,yd:TpvInt32;
     SourceTexelsPerOutPixel,WeightPerPixel,AccumlatorPerPixel,WeightDivider,fw,fh:TpvFloat;
-    XCache:array of TpvSizeInt;
+    XCache:array of TpvInt32;
 begin
  XCache:=nil;
  try
@@ -267,7 +268,7 @@ begin
    TempDst:=pointer(aDst);
    for DstY:=0 to aDstHeight-1 do begin
     SrcY:=DstY*2;
-    TempSrc:=pointer(@pansichar(aSrc)[(SrcY*aSrcWidth) shl 2]);
+    TempSrc:=pointer(@pansichar(aSrc)[SrcY*aSrcWidth]);
     for DstX:=0 to aDstWidth-1 do begin
      xUL:=TempSrc^[0];
      xUR:=TempSrc^[1];
@@ -355,7 +356,7 @@ begin
       xc:=xa shr 8;
       xd:=xb shr 8;
       Sum:=0;
-      w:=0;
+      WeightSum:=0;
       for SrcY:=yc to yd do begin
        if (SrcY<0) or (SrcY>=aSrcHeight) then begin
         continue;
@@ -385,11 +386,11 @@ begin
         inc(PAnsiChar(TempSrc),SizeOf(TpvUInt8));
         Weight:=(WeightX*WeightY) shr WeightShift;
         inc(Sum,Pixel*Weight);
-        inc(w,Weight);
+        inc(WeightSum,Weight);
        end;
       end;
-      if w>0 then begin
-       TempDst^[0]:=Sum div w;
+      if WeightSum>0 then begin
+       TempDst^[0]:=(Sum div WeightSum) and $ff;
       end else begin
        TempDst^[0]:=0;
       end;

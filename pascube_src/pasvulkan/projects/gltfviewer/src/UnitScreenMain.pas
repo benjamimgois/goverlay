@@ -247,6 +247,10 @@ begin
 
  end;
 
+ if Application.TransparentColorKey then begin
+  fScene3D.SkyBoxMode:=TpvScene3DEnvironmentMode.TransparentColorKey;
+ end;
+
  fPrimaryDirectionalLight:=TpvScene3D.TLight.Create(fScene3D);
  fPrimaryDirectionalLight.Type_:=TpvScene3D.TLightData.TType.PrimaryDirectional;
  fPrimaryDirectionalLight.Color:=TpvVector3.InlineableCreate(1.7,1.15,0.70);
@@ -265,6 +269,11 @@ begin
  fRenderer.ShadowMode:=UnitApplication.Application.ShadowMode;
  fRenderer.TransparencyMode:=UnitApplication.Application.TransparencyMode;
  fRenderer.DepthOfFieldMode:=UnitApplication.Application.DepthOfFieldMode;
+ fRenderer.LensMode:=UnitApplication.Application.LensMode;
+ fRenderer.ResamplingMode:=UnitApplication.Application.ResamplingMode;
+ fRenderer.RCASSharpness:=UnitApplication.Application.RCASSharpness;
+ fRenderer.AIUpscaleMode:=UnitApplication.Application.AIUpscaleMode;
+ fRenderer.AIUpscaleQuality:=UnitApplication.Application.AIUpscaleQuality;
  fRenderer.MaxMSAA:=UnitApplication.Application.MaxMSAA;
  fRenderer.MaxShadowMSAA:=UnitApplication.Application.MaxShadowMSAA;
  fRenderer.ShadowMapSize:=UnitApplication.Application.ShadowMapSize;
@@ -276,7 +285,7 @@ begin
 
  fRendererInstance:=TpvScene3DRendererInstance.Create(fRenderer,UnitApplication.Application.VirtualReality);
 
- fRendererInstance.PixelAmountFactor:=1.0;
+ fRendererInstance.SizeFactor:=UnitApplication.Application.SizeFactor;
 
  fRendererInstance.UseDebugBlit:=false;
 
@@ -431,7 +440,7 @@ begin
  if fLoadDelay>0 then begin
   dec(fLoadDelay);
   if fLoadDelay=0 then begin
-// pvApplication.ResourceManager.BackgroundLoadResource(TpvScene3D.TGroup,fLoadedFileName,OnFinish,fScene3D);
+   pvApplication.ResourceManager.BackgroundLoadResource(TpvScene3D.TGroup,fLoadedFileName,OnFinish,fScene3D);
   end;
  end;
  fScene3D.Check(pvApplication.UpdateInFlightFrameIndex);
@@ -675,6 +684,8 @@ begin
 
  fRendererInstance.PrepareFrame(InFlightFrameIndex,pvApplication.DrawFrameCounter);
 
+ fScene3D.FillDrawInfos(InFlightFrameIndex);
+
  TPasMPInterlocked.Write(InFlightFrameState^.Ready,true);
 
  inherited Update(aDeltaTime);
@@ -828,6 +839,34 @@ begin
     PpvVector3(pointer(@fCameraMatrix.RawComponents[1,0]))^:=PpvVector3(pointer(@fCameraMatrix.RawComponents[2,0]))^.Cross(PpvVector3(pointer(@fCameraMatrix.RawComponents[0,0]))^).Normalize;
     PpvVector3(pointer(@fCameraMatrix.RawComponents[2,0]))^:=PpvVector3(pointer(@fCameraMatrix.RawComponents[0,0]))^.Cross(PpvVector3(pointer(@fCameraMatrix.RawComponents[1,0]))^).Normalize;
     fCameraMatrix:=fCameraMatrix.RobustOrthoNormalize;
+   end;
+   KEYCODE_D:begin
+    if (aKeyEvent.KeyModifiers*[TpvApplicationInputKeyModifier.CTRL,TpvApplicationInputKeyModifier.ALT,TpvApplicationInputKeyModifier.SHIFT])=[TpvApplicationInputKeyModifier.CTRL,TpvApplicationInputKeyModifier.SHIFT] then begin
+     if assigned(fRendererInstance) then begin
+      fRendererInstance.DrawMeshletDebugColors:=not fRendererInstance.DrawMeshletDebugColors;
+      if fRendererInstance.DrawMeshletDebugColors then begin
+       pvApplication.Log(LOG_INFO,'TScreenMain.KeyEvent','Meshlet debug colors enabled');
+      end else begin
+       pvApplication.Log(LOG_INFO,'TScreenMain.KeyEvent','Meshlet debug colors disabled');
+      end;
+     end;
+     result:=true;
+     exit;
+    end;
+   end;
+   KEYCODE_H:begin
+    if (aKeyEvent.KeyModifiers*[TpvApplicationInputKeyModifier.CTRL,TpvApplicationInputKeyModifier.ALT,TpvApplicationInputKeyModifier.SHIFT])=[TpvApplicationInputKeyModifier.CTRL,TpvApplicationInputKeyModifier.SHIFT] then begin
+     if assigned(fRendererInstance) then begin
+      fRendererInstance.DebugDrawMeshletBoundingSpheres:=not fRendererInstance.DebugDrawMeshletBoundingSpheres;
+      if fRendererInstance.DebugDrawMeshletBoundingSpheres then begin
+       pvApplication.Log(LOG_INFO,'TScreenMain.KeyEvent','Debug draw meshlet bounding spheres enabled');
+      end else begin
+       pvApplication.Log(LOG_INFO,'TScreenMain.KeyEvent','Debug draw meshlet bounding spheres disabled');
+      end;
+     end;
+     result:=true;
+     exit;
+    end;
    end;
   end;
  end;
@@ -1061,7 +1100,7 @@ begin
  fLoadedFileName:=aFileName;
  fLoadDelay:=(pvApplication.CountInFlightFrames*2)+1;
 
- pvApplication.ResourceManager.BackgroundLoadResource(TpvScene3D.TGroup,fLoadedFileName,OnFinish,fScene3D);
+ //pvApplication.ResourceManager.BackgroundLoadResource(TpvScene3D.TGroup,fLoadedFileName,OnFinish,fScene3D);
 
  pvApplication.SetFocus;
 

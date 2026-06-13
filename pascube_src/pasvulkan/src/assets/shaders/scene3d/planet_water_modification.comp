@@ -12,12 +12,13 @@
 #extension GL_EXT_control_flow_attributes : enable
 #extension GL_EXT_samplerless_texture_functions : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 
 /* clang-format off */
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(set = 0, binding = 1) uniform sampler2DArray uBrushTextureArray;
+layout(set = 0, binding = 1) uniform sampler2DArray uBrushTextureArray[];
 
 layout(push_constant) uniform PushConstants {
   vec4 positionRadius; // xyz = position, w = radius
@@ -36,6 +37,7 @@ layout(set = 0, binding = 0, std430) coherent buffer WaterHeightMap {
 
 #include "octahedral.glsl"
 #include "octahedralmap.glsl"
+#include "planet_brushes.glsl"
 
 void main(){
 
@@ -47,47 +49,14 @@ void main(){
 
     vec3 n = normalize(pushConstants.positionRadius.xyz);
 
-    float d;
-
-    if(pushConstants.brushIndex == 0u){
-
-      // Just a circle brush
-     
-      d = smoothstep(
-        0.0,
-        -pushConstants.innerRadius,
-        length(p - n) - pushConstants.positionRadius.w
-      );
-
-    }else if(pushConstants.brushIndex <= 255u){
-
-      // Brush texture
-
-      vec3 t = n.yzx - n.zxy, 
-           b = normalize(cross(n, t = normalize(t - dot(t, n)))),
-           o = p - n;
-      if(pushConstants.brushRotation != 0.0){
-        const vec2 rotationSinCos = sin(vec2(pushConstants.brushRotation) + vec2(0.0, 1.57079632679));
-        const vec3 ot = t, ob = b;
-        t = (ot * rotationSinCos.y) - (ob * rotationSinCos.x);
-        b = (ot * rotationSinCos.x) + (ob * rotationSinCos.y);
-      }
-      vec2 uv = vec2(dot(o, t), dot(o, b)) / pushConstants.positionRadius.w;
-      d = smoothstep(1.0, 1.0 - (1.0 / length(textureSize(uBrushTextureArray, 0).xy)), max(abs(uv.x), abs(uv.y)));
-
-      d *= smoothstep(-1e-4, 1e-4, dot(p, n)); // When we are on the back side of the planet, we need to clear the brush, but smoothly.
-
-      if(d > 0.0){
-        d *= textureLod(uBrushTextureArray, vec3(fma(uv, vec2(0.5), vec2(0.5)), float(pushConstants.brushIndex)), 0.0).x;
-      } 
-
-    }else{
-
-      // No brush
-
-      d = 0.0;
-
-    }
+    float d = sampleBrush(
+      p,
+      n,
+      pushConstants.positionRadius.w,
+      pushConstants.innerRadius,
+      pushConstants.brushIndex,
+      pushConstants.brushRotation
+    );
 
     if(d > 0.0){
 

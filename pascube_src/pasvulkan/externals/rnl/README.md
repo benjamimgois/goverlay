@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/rnl](https://git.rosseaux.net/BeRo1985/rnl).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # Warning
 
 RNL including its cryptography code is non-audited so far, thus RNL is only intended for real-time games and multimedia applications without processing of any with critical data, but not for serious applications with critical data!

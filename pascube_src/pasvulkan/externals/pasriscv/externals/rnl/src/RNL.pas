@@ -507,7 +507,7 @@ uses {$if defined(Posix)}
 {    Generics.Defaults,
      Generics.Collections;}
 
-const RNL_VERSION='1.00.2023.05.07.16.08.0000';
+const RNL_VERSION='1.00.2026.05.02.00.54.0000';
 
 type PPRNLInt8=^PRNLInt8;
      PRNLInt8=^TRNLInt8;
@@ -1589,7 +1589,8 @@ type PRNLVersion=^TRNLVersion;
      TRNLSocketType=
       (
        RNL_SOCKET_TYPE_STREAM=1,
-       RNL_SOCKET_TYPE_DATAGRAM=2
+       RNL_SOCKET_TYPE_DATAGRAM=2,
+       RNL_SOCKET_TYPE_RAW=3
       );
 
      PRNLSocketWait=^TRNLSocketWait;
@@ -2665,6 +2666,7 @@ type PRNLVersion=^TRNLVersion;
        function AddressGetHostIP(const aAddress:TRNLAddress;out aName;const aNameLength:TRNLInt32):boolean; virtual;
        function AddressGetPrimaryInterfaceHostIP(var aAddress:TRNLAddress;const aFamily:TRNLAddressFamily;const aInterfaceHostAddressType:TRNLInterfaceHostAddressType=RNL_INTERFACE_HOST_ADDRESS_UNICAST):boolean; virtual;
        function SocketCreate(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily):TRNLSocket; virtual;
+       function SocketCreateWithProtocol(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily;const aProtocol:TRNLInt32):TRNLSocket; virtual;
        procedure SocketDestroy(const aSocket:TRNLSocket); virtual;
        function SocketShutdown(const aSocket:TRNLSocket;const aHow:TRNLSocketShutdown=RNL_SOCKET_SHUTDOWN_READ_WRITE):boolean; virtual;
        function SocketGetAddress(const aSocket:TRNLSocket;out aAddress:TRNLAddress;const aFamily:TRNLAddressFamily):boolean; virtual;
@@ -2674,10 +2676,13 @@ type PRNLVersion=^TRNLVersion;
        function SocketListen(const aSocket:TRNLSocket;const aBackLog:TRNLInt32):boolean; virtual;
        function SocketConnect(const aSocket:TRNLSocket;const aAddress:TRNLAddress;const aFamily:TRNLAddressFamily):boolean; virtual;
        function SocketAccept(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aFamily:TRNLAddressFamily):TRNLSocket; virtual;
-       function SocketSelect(const aMaxSocket:TRNLSocket;var aReadSet,aWriteSet:TRNLSocketSet;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):TRNLInt32; virtual;
+       function SocketSelect(const aMaxSocket:TRNLSocket;var aReadSet,aWriteSet:TRNLSocketSet;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):TRNLInt32; overload; virtual;
+       function SocketSelect(const aMaxSocket:TRNLSocket;const aReadSet,aWriteSet,aErrorSet:PRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32; overload; virtual;
        function SocketWait(const aSockets:array of TRNLSocket;var aConditions:TRNLSocketWaitConditions;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):boolean; virtual;
        function Send(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt; virtual;
        function Receive(const aSocket:TRNLSocket;const aAddress:PRNLAddress;out aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt; virtual;
+       function SendStream(const aSocket:TRNLSocket;const aData;const aDataLength:TRNLSizeInt):TRNLSizeInt; virtual;
+       function ReceiveStream(const aSocket:TRNLSocket;out aData;const aDataLength:TRNLSizeInt):TRNLSizeInt; virtual;
       published
        property Instance:TRNLInstance read fInstance;
      end;
@@ -2711,6 +2716,7 @@ type PRNLVersion=^TRNLVersion;
        function AddressGetHostIP(const aAddress:TRNLAddress;out aName;const aNameLength:TRNLInt32):boolean; override;
        function AddressGetPrimaryInterfaceHostIP(var aAddress:TRNLAddress;const aFamily:TRNLAddressFamily;const aInterfaceHostAddressType:TRNLInterfaceHostAddressType=RNL_INTERFACE_HOST_ADDRESS_UNICAST):boolean; override;
        function SocketCreate(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily):TRNLSocket; override;
+       function SocketCreateWithProtocol(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily;const aProtocol:TRNLInt32):TRNLSocket; override;
        procedure SocketDestroy(const aSocket:TRNLSocket); override;
        function SocketShutdown(const aSocket:TRNLSocket;const aHow:TRNLSocketShutdown=RNL_SOCKET_SHUTDOWN_READ_WRITE):boolean; override;
        function SocketGetAddress(const aSocket:TRNLSocket;out aAddress:TRNLAddress;const aFamily:TRNLAddressFamily):boolean; override;
@@ -2721,9 +2727,12 @@ type PRNLVersion=^TRNLVersion;
        function SocketConnect(const aSocket:TRNLSocket;const aAddress:TRNLAddress;const aFamily:TRNLAddressFamily):boolean; override;
        function SocketAccept(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aFamily:TRNLAddressFamily):TRNLSocket; override;
        function SocketSelect(const aMaxSocket:TRNLSocket;var aReadSet,aWriteSet:TRNLSocketSet;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):TRNLInt32; override;
+       function SocketSelect(const aMaxSocket:TRNLSocket;const aReadSet,aWriteSet,aErrorSet:PRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32; override;
        function SocketWait(const aSockets:array of TRNLSocket;var aConditions:TRNLSocketWaitConditions;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):boolean; override;
        function Send(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt; override;
        function Receive(const aSocket:TRNLSocket;const aAddress:PRNLAddress;out aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt; override;
+       function SendStream(const aSocket:TRNLSocket;const aData;const aDataLength:TRNLSizeInt):TRNLSizeInt; override;
+       function ReceiveStream(const aSocket:TRNLSocket;out aData;const aDataLength:TRNLSizeInt):TRNLSizeInt; override;
      end;
 
      TRNLVirtualNetwork=class(TRNLNetwork)
@@ -4082,6 +4091,24 @@ function BSRDWord(Value:TRNLUInt32):TRNLUInt32; {$if defined(CPU386) or defined(
 function SARLongint(Value,Shift:TRNLInt32):TRNLInt32;
 function SARInt64(Value:TRNLInt64;Shift:TRNLInt32):TRNLInt64;
 {$endif}
+
+function RNLSocketCreate(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily):TRNLSocket;
+function RNLSocketCreateWithProtocol(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily;const aProtocol:TRNLInt32):TRNLSocket;
+procedure RNLSocketDestroy(const aSocket:TRNLSocket);
+function RNLSocketSetNonBlock(const aSocket:TRNLSocket):Boolean;
+function RNLSocketSetReuseAddr(const aSocket:TRNLSocket):Boolean;
+function RNLSocketGetError(const aSocket:TRNLSocket;out aError:TRNLInt32):Boolean;
+function RNLSocketBind(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aFamily:TRNLAddressFamily):Boolean;
+function RNLSocketListen(const aSocket:TRNLSocket;const aBackLog:TRNLInt32):Boolean;
+function RNLSocketConnect(const aSocket:TRNLSocket;const aAddress:TRNLAddress;const aFamily:TRNLAddressFamily):Boolean;
+function RNLSocketShutdownWrite(const aSocket:TRNLSocket):Boolean;
+function RNLSocketAccept(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aFamily:TRNLAddressFamily):TRNLSocket;
+function RNLSocketSelectWriteError(const aSocket:TRNLSocket;out aWriteSet,aErrorSet:TRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32;
+function RNLSocketSelectRead(const aSocket:TRNLSocket;out aReadSet:TRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32;
+function RNLSocketSendStream(const aSocket:TRNLSocket;const aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+function RNLSocketReceiveStream(const aSocket:TRNLSocket;out aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+function RNLSocketSend(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt;
+function RNLSocketReceive(const aSocket:TRNLSocket;const aAddress:PRNLAddress;out aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt;
 
 implementation
 
@@ -14016,6 +14043,8 @@ const GetAddrInfo:TGetAddrInfo=nil;
       QueryPerformanceFrequencyBase:TRNLUInt64=0;
       QueryPerformanceFrequencyShift:TRNLInt32=0;
 
+      SD_SEND=1;
+
 function GetTickCount64:TRNLUInt64; stdcall; external 'kernel32.dll' name 'GetTickCount64';
 
 function WSAStartup(wVersionRequired:TRNLUInt16;var WSData:TWSAData):TRNLInt32; stdcall; external 'ws2_32.dll' name 'WSAStartup';
@@ -14050,8 +14079,14 @@ function WSARecvFrom(s:TRNLSocket;
                      lpOverlapped:LPWSAOVERLAPPED;
                      lpCompletionRoutine:LPWSAOVERLAPPED_COMPLETION_ROUTINE):TRNLInt32; stdcall; external 'ws2_32.dll' name 'WSARecvFrom';
 function _select(nfds:TRNLInt32;readfds,writefds,exceptfds:PRNLSocketSet;timeout:PTimeVal):TRNLInt32; stdcall; external 'ws2_32.dll' name 'select';
-
-function WSACreateEvent:TWSAEvent; stdcall; external 'ws2_32.dll' name 'WSACreateEvent';
+function getsockopt(s:TRNLSocket;level,optname:TRNLInt32;optval:TRNLPointer;optlen:TRNLInt32):TRNLInt32; stdcall; external 'ws2_32.dll' name 'getsockopt';
+function WSASend(s:TRNLSocket;lpBuffers:LPWSABUF;dwBufferCount:TRNLUInt32;var lpNumberOfBytesSent:TRNLUInt32;dwFlags:TRNLUInt32;lpOverlapped:LPWSAOVERLAPPED;lpCompletionRoutine:LPWSAOVERLAPPED_COMPLETION_ROUTINE):TRNLInt32; stdcall; external 'ws2_32.dll' name 'WSASend';
+function WSARecv(s:TRNLSocket;lpBuffers:LPWSABUF;dwBufferCount:TRNLUInt32;var lpNumberOfBytesRecvd:TRNLUInt32;var lpFlags:TRNLUInt32;lpOverlapped:LPWSAOVERLAPPED;lpCompletionRoutine:LPWSAOVERLAPPED_COMPLETION_ROUTINE):TRNLInt32; stdcall; external 'ws2_32.dll' name 'WSARecv';
+function _sendto(s:TRNLSocket;const buf;len,flags:TRNLInt32;const addrto:TSockAddr;tolen:TRNLInt32):TRNLInt32; stdcall; external 'ws2_32.dll' name 'sendto';
+function _send(s:TRNLSocket;const buf;len,flags:TRNLInt32):TRNLInt32; stdcall; external 'ws2_32.dll' name 'send';
+function _recvfrom(s:TRNLSocket;var buf;len,flags:TRNLInt32;var from:TSockAddr;var fromlen:TRNLInt32):TRNLInt32; stdcall; external 'ws2_32.dll' name 'recvfrom';
+function _recv(s:TRNLSocket;var buf;len,flags:TRNLInt32):TRNLInt32; stdcall; external 'ws2_32.dll' name 'recv';
+function WSACreateEvent:TWSAEvent;stdcall; external 'ws2_32.dll' name 'WSACreateEvent';
 function WSACloseEvent(hEvent:TWSAEvent):bool; stdcall; external 'ws2_32.dll' name 'WSACloseEvent';
 function WSAResetEvent(hEvent:TWSAEvent):bool;stdcall; external 'ws2_32.dll' name 'WSAResetEvent';
 function WSASetEvent(hEvent:TWSAEvent):bool;stdcall; external 'ws2_32.dll' name 'WSASetEvent';
@@ -16016,6 +16051,11 @@ begin
  result:=RNL_SOCKET_NULL;
 end;
 
+function TRNLNetwork.SocketCreateWithProtocol(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily;const aProtocol:TRNLInt32):TRNLSocket;
+begin
+ result:=RNL_SOCKET_NULL;
+end;
+
 procedure TRNLNetwork.SocketDestroy(const aSocket:TRNLSocket);
 begin
 end;
@@ -16065,6 +16105,11 @@ begin
  result:=-1;
 end;
 
+function TRNLNetwork.SocketSelect(const aMaxSocket:TRNLSocket;const aReadSet,aWriteSet,aErrorSet:PRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32;
+begin
+ result:=-1;
+end;
+
 function TRNLNetwork.SocketWait(const aSockets:array of TRNLSocket;var aConditions:TRNLSocketWaitConditions;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):boolean;
 begin
  aConditions:=[];
@@ -16079,6 +16124,16 @@ end;
 function TRNLNetwork.Receive(const aSocket:TRNLSocket;const aAddress:PRNLAddress;out aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt;
 begin
  result:=-1;
+end;
+
+function TRNLNetwork.SendStream(const aSocket:TRNLSocket;const aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+begin
+ result:=Send(aSocket,nil,aData,aDataLength,RNL_IPV4);
+end;
+
+function TRNLNetwork.ReceiveStream(const aSocket:TRNLSocket;out aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+begin
+ result:=Receive(aSocket,nil,aData,aDataLength,RNL_IPV4);
 end;
 
 constructor TRNLRealNetwork.Create(const aInstance:TRNLInstance);
@@ -16592,6 +16647,41 @@ begin
 end;
 {$ifend}
 
+function TRNLRealNetwork.SocketCreateWithProtocol(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily;const aProtocol:TRNLInt32):TRNLSocket;
+{$if defined(Windows)}
+var SockType:TRNLInt32;
+begin
+ case aType of
+  RNL_SOCKET_TYPE_DATAGRAM: SockType:=SOCK_DGRAM;
+  RNL_SOCKET_TYPE_RAW: SockType:=SOCK_RAW;
+  else SockType:=SOCK_STREAM;
+ end;
+ result:=_Socket(aFamily.GetAddressFamily,SockType,aProtocol);
+end;
+{$else}
+{$if defined(fpc) and defined(Darwin)}
+const TemporaryInt32:TRNLInt32=1;
+{$ifend}
+var SockType:TRNLInt32;
+begin
+ case aType of
+  RNL_SOCKET_TYPE_DATAGRAM: SockType:=SOCK_DGRAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  RNL_SOCKET_TYPE_RAW: SockType:=SOCK_RAW{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  else SockType:=SOCK_STREAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+ end;
+{$ifdef fpc}
+ result:=fpsocket(aFamily.GetAddressFamily,SockType,aProtocol);
+{$ifdef Darwin}
+ if result<>RNL_SOCKET_NULL then begin
+  fpsetsockopt(result,SOL_SOCKET,SO_NOSIGPIPE,TRNLPointer(@TemporaryInt32),SizeOf(TRNLInt32));
+ end;
+{$endif}
+{$else}
+ result:=Posix.SysSocket.socket(aFamily.GetAddressFamily,SockType,aProtocol);
+{$endif}
+end;
+{$ifend}
+
 procedure TRNLRealNetwork.SocketDestroy(const aSocket:TRNLSocket);
 {$if defined(Windows)}
 begin
@@ -17094,6 +17184,26 @@ begin
 {$ifend}
 end;
 {$ifend}
+
+function TRNLRealNetwork.SocketSelect(const aMaxSocket:TRNLSocket;const aReadSet,aWriteSet,aErrorSet:PRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32;
+var tv:{$if defined(Windows)}TTimeVal{$elseif defined(fpc)}TTimeVal{$else}TimeVal{$ifend};
+    t:pointer;
+begin
+ if aTimeout<0 then begin
+  t:=nil;
+ end else begin
+  tv.tv_sec:=aTimeout div 1000;
+  tv.tv_usec:=(aTimeout mod 1000)*1000;
+  t:=@tv;
+ end;
+{$if defined(Windows)}
+ result:=_select(aMaxSocket+1,aReadSet,aWriteSet,aErrorSet,t);
+{$elseif defined(fpc)}
+ result:=fpselect(aMaxSocket+1,aReadSet,aWriteSet,aErrorSet,t);
+{$else}
+ result:=Posix.SysSelect.select(aMaxSocket+1,aReadSet,aWriteSet,aErrorSet,t);
+{$ifend}
+end;
 
 function TRNLRealNetwork.SocketWait(const aSockets:array of TRNLSocket;var aConditions:TRNLSocketWaitConditions;const aTimeout:TRNLInt64;const aEvent:TRNLNetworkEvent=nil):boolean;
 {$if defined(Windows)}
@@ -17620,6 +17730,115 @@ begin
   case GetLastError of
    EWOULDBLOCK{,ECONNRESET},EMSGSIZE:begin
     result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$ifend}
+
+function TRNLRealNetwork.SendStream(const aSocket:TRNLSocket;const aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+{$if defined(Windows)}
+var SentLength:TRNLUInt32;
+    OK:boolean;
+    Buffer:TWSABUF;
+begin
+ Buffer.buf:=@aData;
+ Buffer.len:=aDataLength;
+ OK:=WSASend(aSocket,LPWSABUF(@Buffer),1,SentLength,0,nil,nil)<>SOCKET_ERROR;
+ if OK then begin
+  result:=SentLength;
+ end else begin
+  case WSAGetLastError of
+   WSAEWOULDBLOCK:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$elseif defined(fpc)}
+begin
+ result:=fpSend(aSocket,@aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend});
+ if result=SOCKET_ERROR then begin
+  case SocketError of
+   EsockEWOULDBLOCK:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$else}
+begin
+ result:=Posix.SysSocket.send(aSocket,aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend});
+ if result=SOCKET_ERROR then begin
+  case GetLastError of
+   EWOULDBLOCK:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$ifend}
+
+function TRNLRealNetwork.ReceiveStream(const aSocket:TRNLSocket;out aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+{$if defined(Windows)}
+var RecvLength:TRNLUInt32;
+    Flags:TRNLUInt32;
+    OK:boolean;
+    Buffer:TWSABUF;
+begin
+ Buffer.buf:=@aData;
+ Buffer.len:=aDataLength;
+ Flags:=0;
+ OK:=WSARecv(aSocket,LPWSABUF(@Buffer),1,RecvLength,Flags,nil,nil)<>SOCKET_ERROR;
+ if OK then begin
+  result:=RecvLength;
+ end else begin
+  case WSAGetLastError of
+   WSAEWOULDBLOCK:begin
+    result:=-1;
+   end;
+   WSAECONNRESET:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$elseif defined(fpc)}
+begin
+ result:=fpRecv(aSocket,@aData,aDataLength,0);
+ if result=SOCKET_ERROR then begin
+  case SocketError of
+   EsockEWOULDBLOCK{,EsockECONNRESET}:begin
+    result:=-1;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$else}
+begin
+ result:=Posix.SysSocket.recv(aSocket,aData,aDataLength,0);
+ if result=SOCKET_ERROR then begin
+  case GetLastError of
+   EWOULDBLOCK{,ECONNRESET}:begin
+    result:=-1;
    end;
    else begin
     result:=-1;
@@ -26934,6 +27153,474 @@ begin
  end;
 end;
 {$endif}
+
+function RNLSocketCreate(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily):TRNLSocket;
+{$if defined(Windows)}
+begin
+ if aType=RNL_SOCKET_TYPE_DATAGRAM then begin
+  result:=_Socket(aFamily.GetAddressFamily,SOCK_DGRAM,0);
+ end else begin
+  result:=_Socket(aFamily.GetAddressFamily,SOCK_STREAM,0);
+ end;
+end;
+{$elseif defined(fpc)}
+begin
+ if aType=RNL_SOCKET_TYPE_DATAGRAM then begin
+  result:=fpsocket(aFamily.GetAddressFamily,SOCK_DGRAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend},0);
+ end else begin
+  result:=fpsocket(aFamily.GetAddressFamily,SOCK_STREAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend},0);
+ end;
+end;
+{$else}
+begin
+ if aType=RNL_SOCKET_TYPE_DATAGRAM then begin
+  result:=Posix.SysSocket.socket(aFamily.GetAddressFamily,SOCK_DGRAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend},0);
+ end else begin
+  result:=Posix.SysSocket.socket(aFamily.GetAddressFamily,SOCK_STREAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend},0);
+ end;
+end;
+{$ifend}
+
+function RNLSocketCreateWithProtocol(const aType:TRNLSocketType;const aFamily:TRNLAddressFamily;const aProtocol:TRNLInt32):TRNLSocket;
+{$if defined(Windows)}
+var SockType:TRNLInt32;
+begin
+ case aType of
+  RNL_SOCKET_TYPE_DATAGRAM:begin
+   SockType:=SOCK_DGRAM;
+  end;
+  RNL_SOCKET_TYPE_RAW:begin
+   SockType:=SOCK_RAW;
+  end;
+  else begin
+   SockType:=SOCK_STREAM;
+  end;
+ end;
+ result:=_Socket(aFamily.GetAddressFamily,SockType,aProtocol);
+end;
+{$elseif defined(fpc)}
+var SockType:TRNLInt32;
+begin
+ case aType of
+  RNL_SOCKET_TYPE_DATAGRAM:begin
+   SockType:=SOCK_DGRAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  end;
+  RNL_SOCKET_TYPE_RAW:begin
+   SockType:=SOCK_RAW{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  end;
+  else begin
+   SockType:=SOCK_STREAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  end;
+ end;
+ result:=fpsocket(aFamily.GetAddressFamily,SockType,aProtocol);
+end;
+{$else}
+var SockType:TRNLInt32;
+begin
+ case aType of
+  RNL_SOCKET_TYPE_DATAGRAM:begin
+   SockType:=SOCK_DGRAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  end;
+  RNL_SOCKET_TYPE_RAW:begin
+   SockType:=SOCK_RAW{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  end;
+  else begin
+   SockType:=SOCK_STREAM{$if defined(Linux) or defined(Android)} or SOCK_CLOEXEC{$ifend};
+  end;
+ end;
+ result:=Posix.SysSocket.socket(aFamily.GetAddressFamily,SockType,aProtocol);
+end;
+{$ifend}
+
+procedure RNLSocketDestroy(const aSocket:TRNLSocket);
+begin
+ if aSocket<>RNL_INVALID_SOCKET then begin
+{$if defined(Windows)}
+  CloseSocket(aSocket);
+{$elseif defined(fpc)}
+  CloseSocket(aSocket);
+{$else}
+  Posix.Unistd.__close(aSocket);
+{$ifend}
+ end;
+end;
+
+function RNLSocketSetNonBlock(const aSocket:TRNLSocket):Boolean;
+{$if defined(Windows)}
+var NonBlocking:TRNLUInt32;
+begin
+ NonBlocking:=1;
+ result:=ioctlsocket(aSocket,FIONBIO,NonBlocking)<>SOCKET_ERROR;
+end;
+{$elseif defined(fpc)}
+var NonBlocking:TRNLUInt32;
+begin
+ NonBlocking:=1;
+ result:=fpioctl(aSocket,FIONBIO,TRNLPointer(@NonBlocking))<>SOCKET_ERROR;
+end;
+{$else}
+var NonBlocking:TRNLUInt32;
+begin
+ NonBlocking:=1;
+ result:=ioctl(aSocket,FIONBIO,TRNLPointer(@NonBlocking))<>SOCKET_ERROR;
+end;
+{$ifend}
+
+function RNLSocketSetReuseAddr(const aSocket:TRNLSocket):Boolean;
+var Value:TRNLInt32;
+begin
+ Value:=1;
+{$if defined(Windows)}
+ result:=setsockopt(aSocket,SOL_SOCKET,SO_REUSEADDR,TRNLPointer(@Value),SizeOf(TRNLInt32))<>SOCKET_ERROR;
+{$elseif defined(fpc)}
+ result:=fpsetsockopt(aSocket,SOL_SOCKET,SO_REUSEADDR,TRNLPointer(@Value),SizeOf(TRNLInt32))<>SOCKET_ERROR;
+{$else}
+ result:=setsockopt(aSocket,SOL_SOCKET,SO_REUSEADDR,Value,SizeOf(TRNLInt32))<>SOCKET_ERROR;
+{$ifend}
+end;
+
+function RNLSocketGetError(const aSocket:TRNLSocket;out aError:TRNLInt32):Boolean;
+{$if defined(Windows)}
+begin
+ result:=getsockopt(aSocket,SOL_SOCKET,SO_ERROR,TRNLPointer(@aError),SizeOf(TRNLInt32))<>SOCKET_ERROR;
+end;
+{$elseif defined(fpc)}
+var SockLen:socklen_t;
+begin
+ SockLen:=SizeOf(TRNLInt32);
+ result:=fpgetsockopt(aSocket,SOL_SOCKET,SO_ERROR,TRNLPointer(@aError),@SockLen)<>SOCKET_ERROR;
+end;
+{$else}
+var SockLen:socklen_t;
+begin
+ SockLen:=SizeOf(TRNLInt32);
+ result:=getsockopt(aSocket,SOL_SOCKET,SO_ERROR,aError,SockLen)<>SOCKET_ERROR;
+end;
+{$ifend}
+
+function RNLSocketBind(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aFamily:TRNLAddressFamily):Boolean;
+var SIN:TSockaddrStorage;
+    Address_:TRNLAddress;
+begin
+ if assigned(aAddress) then begin
+  aAddress^.SetSIN(@SIN,aFamily);
+ end else begin
+  Address_.Host:=RNL_HOST_ANY_INIT;
+  Address_.ScopeID:=0;
+  Address_.Port:=0;
+  Address_.SetSIN(@SIN,aFamily);
+ end;
+{$if defined(Windows)}
+ result:=_bind(aSocket,TRNLPointer(@SIN),aFamily.GetSockAddrSize)<>SOCKET_ERROR;
+{$elseif defined(fpc)}
+ result:=fpbind(aSocket,TRNLPointer(@SIN),aFamily.GetSockAddrSize)<>SOCKET_ERROR;
+{$else}
+ result:=Posix.SysSocket.bind(aSocket,sockaddr(TRNLPointer(@SIN)^),aFamily.GetSockAddrSize)<>SOCKET_ERROR;
+{$ifend}
+end;
+
+function RNLSocketListen(const aSocket:TRNLSocket;const aBackLog:TRNLInt32):Boolean;
+begin
+{$if defined(Windows)}
+ if aBackLog<0 then begin
+  result:=_listen(aSocket,SOMAXCONN)<>SOCKET_ERROR;
+ end else begin
+  result:=_listen(aSocket,aBackLog)<>SOCKET_ERROR;
+ end;
+{$elseif defined(fpc)}
+ if aBackLog<0 then begin
+  result:=fplisten(aSocket,SOMAXCONN)<>SOCKET_ERROR;
+ end else begin
+  result:=fplisten(aSocket,aBackLog)<>SOCKET_ERROR;
+ end;
+{$else}
+ if aBackLog<0 then begin
+  result:=Posix.SysSocket.listen(aSocket,SOMAXCONN)<>SOCKET_ERROR;
+ end else begin
+  result:=Posix.SysSocket.listen(aSocket,aBackLog)<>SOCKET_ERROR;
+ end;
+{$ifend}
+end;
+
+function RNLSocketConnect(const aSocket:TRNLSocket;const aAddress:TRNLAddress;const aFamily:TRNLAddressFamily):Boolean;
+var ResultValue:TRNLInt32;
+    SIN:TSockaddrStorage;
+begin
+ aAddress.SetSIN(@SIN,aFamily);
+{$if defined(Windows)}
+ ResultValue:=_Connect(aSocket,TRNLPointer(@SIN),aFamily.GetSockAddrSize);
+ result:=not ((ResultValue=SOCKET_ERROR) and (WSAGetLastError<>WSAEWOULDBLOCK));
+{$elseif defined(fpc)}
+ ResultValue:=fpconnect(aSocket,TRNLPointer(@SIN),aFamily.GetSockAddrSize);
+ if (ResultValue=SOCKET_ERROR) and (fpgeterrno=ESysEINPROGRESS) then begin
+  result:=true;
+ end else begin
+  result:=ResultValue<>SOCKET_ERROR;
+ end;
+{$else}
+ ResultValue:=Posix.SysSocket.connect(aSocket,sockaddr(TRNLPointer(@SIN)^),aFamily.GetSockAddrSize);
+ if (ResultValue=SOCKET_ERROR) and (Posix.Errno.Errno=EINPROGRESS) then begin
+  result:=true;
+ end else begin
+  result:=ResultValue<>SOCKET_ERROR;
+ end;
+{$ifend}
+end;
+
+function RNLSocketShutdownWrite(const aSocket:TRNLSocket):Boolean;
+begin
+{$if defined(Windows)}
+ result:=_shutdown(aSocket,SD_SEND)<>SOCKET_ERROR;
+{$elseif defined(fpc)}
+ result:=fpshutdown(aSocket,SHUT_WR)<>SOCKET_ERROR;
+{$else}
+ result:=Posix.SysSocket.shutdown(aSocket,SHUT_WR)<>SOCKET_ERROR;
+{$ifend}
+end;
+
+function RNLSocketAccept(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aFamily:TRNLAddressFamily):TRNLSocket;
+var SIN:TSockaddrStorage;
+    SINLength:{$if defined(Windows)}TRNLInt32{$else}socklen_t{$ifend};
+begin
+ SINLength:=aFamily.GetSockAddrSize;
+{$if defined(Windows)}
+ if assigned(aAddress) then begin
+  result:=_accept(aSocket,TSockAddr(TRNLPointer(@SIN)^),SINLength);
+ end else begin
+  result:=_accept(aSocket,TSockAddr(TRNLPointer(nil)^),TRNLInt32(TRNLPointer(nil)^));
+ end;
+{$elseif defined(fpc)}
+ if assigned(aAddress) then begin
+  result:=fpaccept(aSocket,TRNLPointer(@SIN),@SINLength);
+ end else begin
+  result:=fpaccept(aSocket,nil,nil);
+ end;
+{$else}
+ if assigned(aAddress) then begin
+  result:=Posix.SysSocket.accept(aSocket,sockaddr(TRNLPointer(@SIN)^),SINLength);
+ end else begin
+  result:=Posix.SysSocket.accept(aSocket,sockaddr(TRNLPointer(nil)^),socklen_t(TRNLPointer(nil)^));
+ end;
+{$ifend}
+ if result=RNL_INVALID_SOCKET then begin
+  result:=RNL_SOCKET_NULL;
+  exit;
+ end;
+ if assigned(aAddress) then begin
+  aAddress^.SetAddress(@SIN);
+ end;
+end;
+
+function RNLSocketSelectWriteError(const aSocket:TRNLSocket;out aWriteSet,aErrorSet:TRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32;
+var TimeValue:{$if defined(Windows)}TTimeVal{$elseif defined(fpc)}TTimeVal{$else}TimeVal{$ifend};
+    TimeValuePointer:pointer;
+begin
+ aWriteSet.Clear;
+ aWriteSet.Add(aSocket);
+ aErrorSet.Clear;
+ aErrorSet.Add(aSocket);
+ if aTimeout<0 then begin
+  TimeValuePointer:=nil;
+ end else begin
+  TimeValue.tv_sec:=aTimeout div 1000;
+  TimeValue.tv_usec:=(aTimeout mod 1000)*1000;
+  TimeValuePointer:=@TimeValue;
+ end;
+{$if defined(Windows)}
+ result:=_select(0,nil,@aWriteSet,@aErrorSet,TimeValuePointer);
+{$elseif defined(fpc)}
+ result:=fpselect(aSocket+1,nil,@aWriteSet,@aErrorSet,TimeValuePointer);
+{$else}
+ result:=Posix.SysSelect.select(aSocket+1,nil,@aWriteSet,@aErrorSet,TimeValuePointer);
+{$ifend}
+end;
+
+function RNLSocketSelectRead(const aSocket:TRNLSocket;out aReadSet:TRNLSocketSet;const aTimeout:TRNLInt64):TRNLInt32;
+var TimeValue:{$if defined(Windows)}TTimeVal{$elseif defined(fpc)}TTimeVal{$else}TimeVal{$ifend};
+    TimeValuePointer:pointer;
+begin
+ aReadSet.Clear;
+ aReadSet.Add(aSocket);
+ if aTimeout<0 then begin
+  TimeValuePointer:=nil;
+ end else begin
+  TimeValue.tv_sec:=aTimeout div 1000;
+  TimeValue.tv_usec:=(aTimeout mod 1000)*1000;
+  TimeValuePointer:=@TimeValue;
+ end;
+{$if defined(Windows)}
+ result:=_select(0,@aReadSet,nil,nil,TimeValuePointer);
+{$elseif defined(fpc)}
+ result:=fpselect(aSocket+1,@aReadSet,nil,nil,TimeValuePointer);
+{$else}
+ result:=Posix.SysSelect.select(aSocket+1,@aReadSet,nil,nil,TimeValuePointer);
+{$ifend}
+end;
+
+function RNLSocketSendStream(const aSocket:TRNLSocket;const aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+{$if defined(Windows)}
+var SentLength:TRNLUInt32;
+    OK:boolean;
+    Buffer:TWSABUF;
+begin
+ Buffer.buf:=@aData;
+ Buffer.len:=aDataLength;
+ OK:=WSASend(aSocket,LPWSABUF(@Buffer),1,SentLength,0,nil,nil)<>SOCKET_ERROR;
+ if OK then begin
+  result:=SentLength;
+ end else begin
+  case WSAGetLastError of
+   WSAEWOULDBLOCK:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$elseif defined(fpc)}
+begin
+ result:=fpSend(aSocket,@aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend});
+ if result=SOCKET_ERROR then begin
+  case SocketError of
+   EsockEWOULDBLOCK:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$else}
+begin
+ result:=Posix.SysSocket.send(aSocket,aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend});
+ if result=SOCKET_ERROR then begin
+  case GetLastError of
+   EWOULDBLOCK:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$ifend}
+
+function RNLSocketReceiveStream(const aSocket:TRNLSocket;out aData;const aDataLength:TRNLSizeInt):TRNLSizeInt;
+{$if defined(Windows)}
+var RecvLength:TRNLUInt32;
+    Flags:TRNLUInt32;
+    OK:boolean;
+    Buffer:TWSABUF;
+begin
+ Buffer.buf:=@aData;
+ Buffer.len:=aDataLength;
+ Flags:=0;
+ OK:=WSARecv(aSocket,LPWSABUF(@Buffer),1,RecvLength,Flags,nil,nil)<>SOCKET_ERROR;
+ if OK then begin
+  result:=RecvLength;
+ end else begin
+  case WSAGetLastError of
+   WSAEWOULDBLOCK:begin
+    result:=-1;
+   end;
+   WSAECONNRESET:begin
+    result:=0;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$elseif defined(fpc)}
+begin
+ result:=fpRecv(aSocket,@aData,aDataLength,0);
+ if result=SOCKET_ERROR then begin
+  case SocketError of
+   EsockEWOULDBLOCK:begin
+    result:=-1;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$else}
+begin
+ result:=Posix.SysSocket.recv(aSocket,aData,aDataLength,0);
+ if result=SOCKET_ERROR then begin
+  case GetLastError of
+   EWOULDBLOCK:begin
+    result:=-1;
+   end;
+   else begin
+    result:=-1;
+   end;
+  end;
+ end;
+end;
+{$ifend}
+
+function RNLSocketSend(const aSocket:TRNLSocket;const aAddress:PRNLAddress;const aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt;
+var SIN:TSockaddrStorage;
+begin
+ if assigned(aAddress) then begin
+  aAddress^.SetSIN(@SIN,aFamily);
+{$if defined(Windows)}
+  result:=_sendto(aSocket,aData,aDataLength,0,TSockAddr(TRNLPointer(@SIN)^),aFamily.GetSockAddrSize);
+{$elseif defined(fpc)}
+  result:=fpsendto(aSocket,@aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend},TRNLPointer(@SIN),aFamily.GetSockAddrSize);
+{$else}
+  result:=Posix.SysSocket.sendto(aSocket,aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend},sockaddr(TRNLPointer(@SIN)^),aFamily.GetSockAddrSize);
+{$ifend}
+ end else begin
+{$if defined(Windows)}
+  result:=_send(aSocket,aData,aDataLength,0);
+{$elseif defined(fpc)}
+  result:=fpSend(aSocket,@aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend});
+{$else}
+  result:=Posix.SysSocket.send(aSocket,aData,aDataLength,{$if defined(Darwin)}0{$else}MSG_NOSIGNAL{$ifend});
+{$ifend}
+ end;
+ if result=SOCKET_ERROR then begin
+  result:=-1;
+ end;
+end;
+
+function RNLSocketReceive(const aSocket:TRNLSocket;const aAddress:PRNLAddress;out aData;const aDataLength:TRNLSizeInt;const aFamily:TRNLAddressFamily):TRNLSizeInt;
+var SIN:TSockaddrStorage;
+    SINLength:{$if defined(Windows)}TRNLInt32{$else}socklen_t{$ifend};
+begin
+ SINLength:=aFamily.GetSockAddrSize;
+ if assigned(aAddress) then begin
+{$if defined(Windows)}
+  result:=_recvfrom(aSocket,aData,aDataLength,0,TSockAddr(TRNLPointer(@SIN)^),SINLength);
+{$elseif defined(fpc)}
+  result:=fprecvfrom(aSocket,@aData,aDataLength,0,TRNLPointer(@SIN),@SINLength);
+{$else}
+  result:=Posix.SysSocket.recvfrom(aSocket,aData,aDataLength,0,sockaddr(TRNLPointer(@SIN)^),SINLength);
+{$ifend}
+  if result<>SOCKET_ERROR then begin
+   aAddress^.SetAddress(@SIN);
+  end;
+ end else begin
+{$if defined(Windows)}
+  result:=_recv(aSocket,aData,aDataLength,0);
+{$elseif defined(fpc)}
+  result:=fprecv(aSocket,@aData,aDataLength,0);
+{$else}
+  result:=Posix.SysSocket.recv(aSocket,aData,aDataLength,0);
+{$ifend}
+ end;
+ if result=SOCKET_ERROR then begin
+  result:=-1;
+ end;
+end;
 
 initialization
  InitializeCRC32C;

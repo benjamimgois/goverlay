@@ -37,6 +37,8 @@ vec3 correctedOctPlanetUnsignedDecode(ivec2 coordinate){
   #error "No shader type defined"
 #endif
 
+#if !defined(PLANET_GRASS)
+
 float getHeightAt(ivec2 coordinate){
 #if 1
   ivec2 xy = coordinate << ivec2(pushConstants.lod);
@@ -61,5 +63,7 @@ float getHeightAt(ivec2 coordinate){
   return texelFetch(PLANET_TEX_HEIGHT_MAP, coordinate << ivec2(pushConstants.lod), 0).x;
 #endif
 }
+
+#endif // !defined(PLANET_GRASS)
 
 #endif // PLANET_MAP_GLSL

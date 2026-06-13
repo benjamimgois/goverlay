@@ -1,0 +1,123 @@
+#!/usr/bin/env zsh
+# Sync script from ~/Projects/GIT/pasllm to ~/Projects/GitHub/pasllm
+# Only syncs files that already exist in the destination to avoid leaking private content
+# Usage: ./githubsync [--dry-run]
+
+set -e
+
+# Parse command line arguments
+DRY_RUN=0
+if [[ "$1" == "--dry-run" ]]; then
+    DRY_RUN=1
+fi
+
+# Get current directory
+ORIGINAL_DIR=$(pwd)
+
+# Define source and destination directories (relative to script location)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOURCE_DIR="$SCRIPT_DIR"
+DEST_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)/GitHub/pasllm"
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo "${BLUE}=== PasLLM GitHub Sync ===${NC}"
+if [[ $DRY_RUN -eq 1 ]]; then
+    echo "${YELLOW}[DRY RUN MODE - No files will be modified]${NC}"
+fi
+echo "Source: $SOURCE_DIR"
+echo "Destination: $DEST_DIR"
+echo ""
+
+# Check if destination exists
+if [[ ! -d "$DEST_DIR" ]]; then
+    echo "${RED}Error: Destination directory does not exist: $DEST_DIR${NC}"
+    exit 1
+fi
+
+# Counter for synced files
+synced_count=0
+skipped_count=0
+uptodate_count=0
+
+# Find all files in destination (excluding .git, externals directories, and .gitmodules)
+echo "${BLUE}Finding files to sync...${NC}"
+cd "$DEST_DIR" || { echo "${RED}Failed to cd to destination${NC}"; exit 1; }
+
+# Use fd if available, otherwise fall back to find
+if command -v fd &> /dev/null; then
+    files=(${(f)"$(fd --type f --hidden --exclude .git --exclude externals --exclude .gitmodules)"})
+else
+    files=(${(f)"$(find . -type f -not -path '*/.git/*' -not -path '*/externals/*' -not -name '.gitmodules' | sed 's|^\./||')"})
+fi
+
+cd "$SOURCE_DIR" || { echo "${RED}Failed to cd to source${NC}"; exit 1; }
+
+echo "${BLUE}Syncing ${#files[@]} files...${NC}"
+echo ""
+
+# Sync each file that exists in destination
+for file in "${files[@]}"; do
+    src_file="$SOURCE_DIR/$file"
+    dest_file="$DEST_DIR/$file"
+    
+    # echo "Processing: $file"
+    if [[ -f "$src_file" ]]; then
+        # Check if source is newer than destination or if destination doesn't exist
+        if [[ "$src_file" -nt "$dest_file" ]] || [[ ! -f "$dest_file" ]]; then
+            if [[ $DRY_RUN -eq 1 ]]; then
+                echo "${BLUE}→${NC} Would sync: $file"
+                ((synced_count++)) || true
+            else
+                # Create destination directory if needed
+                dest_dir=$(dirname "$dest_file")
+                mkdir -p "$dest_dir"
+                
+                # Copy file preserving timestamps
+                if cp -p "$src_file" "$dest_file"; then
+                    echo "${GREEN}✓${NC} Synced: $file"
+                    ((synced_count++)) || true
+                else
+                    echo "${RED}✗${NC} Failed: $file"
+                fi
+            fi
+        else
+            echo "${GREEN}=${NC} Up-to-date: $file"
+            ((uptodate_count++)) || true
+        fi
+    else
+        echo "${YELLOW}⊘${NC} Not found in source: $file"
+        ((skipped_count++)) || true
+    fi
+done
+
+echo ""
+if [[ $DRY_RUN -eq 1 ]]; then
+    echo "${BLUE}=== Dry Run Complete ===${NC}"
+    echo "${BLUE}Would sync: $synced_count files${NC}"
+else
+    echo "${BLUE}=== Sync Complete ===${NC}"
+    echo "${GREEN}Synced: $synced_count files${NC}"
+
+    # Commit changes if any files were synced
+    if [[ $synced_count -gt 0 ]]; then
+        cd "$DEST_DIR" || { echo "${RED}Failed to cd to destination for git commit${NC}"; exit 1; }
+        git commit -am "Sync updated files from pasllm source" || { echo "${RED}No changes to commit${NC}"; }
+        git push || { echo "${RED}Failed to push changes to remote${NC}"; exit 1; }
+    fi
+
+fi
+if [[ $uptodate_count -gt 0 ]]; then
+    echo "${GREEN}Up-to-date: $uptodate_count files${NC}"
+fi
+if [[ $skipped_count -gt 0 ]]; then
+    echo "${YELLOW}Skipped: $skipped_count files (not found in source)${NC}"
+fi
+
+# Return to original directory
+cd "$ORIGINAL_DIR" || { echo "${RED}Failed to return to original directory${NC}"; exit 1; }

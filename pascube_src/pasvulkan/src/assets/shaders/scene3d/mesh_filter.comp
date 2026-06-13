@@ -1,0 +1,210 @@
+#version 450 core
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+
+/* clang-format off */
+
+// mesh_filter.comp — Simplified GPU filter-only compute shader for non-culled RenderPasses
+// (Voxelization, ReflectionProbe, TopDownSkyOcclusionMap, ReflectiveShadowMap).
+//
+// Unlike mesh_cull.comp, this shader:
+//  - Has NO frustum culling, NO HiZ occlusion culling, NO disocclusion handling
+//  - Has NO LOD selection (force LOD 0 — commands pass through with original geometry)
+//  - Has NO 2-pass structure (single pass)
+//  - Has NO visibility buffer read/write
+//
+// When MESH_SHADER_PATH is defined:
+//  - Outputs TGPUDrawMeshTasksIndirectCommand format (groupCountX/Y/Z + meshlet metadata)
+//  - Reads LOD 0 meshlet data via globalBDAPointers.lodInfoBDA / DrawInfo.meshletDescriptorBase
+// When MESH_SHADER_PATH is not defined:
+//  - Copies DrawIndexedIndirectCommand as-is (vertex shader path)
+//
+// It ONLY performs:
+//  - AlphaMode filtering via alphaModeMask push constant
+//  - Shadow pass filtering via FLAG_SHADOW_PASS + NODE_CASTS_SHADOW + MATERIAL_CASTS_SHADOW
+//  - RenderPassMask filtering
+//  - Writes accepted commands to output buffer + atomically increments draw call count
+
+#ifdef MESH_SHADER_PATH
+#ifndef TASK_GROUP_SIZE
+#define TASK_GROUP_SIZE 32
+#endif
+#endif
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+/*
+// From Vulkan spec, just as reference: 
+struct VkDrawIndexedIndirectCommand {
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  int vertexOffset;
+  uint firstInstance;
+};
+*/
+
+struct DrawIndexedIndirectCommand {
+  uvec4 cmd0; // x = indexCount, y = instanceCount, z = firstIndex, w = vertexOffset
+  uvec4 cmd1; // x = firstInstance/meshObjectID, y = boundingSphereIndex, z = lodInfoIndex, w = flags
+}; // 32 bytes per draw indexed indirect command
+
+struct BatchRange {
+  uint baseCommandIndex;
+  uint countCommands;
+  uint drawCallIndex;
+  uint baseCommandIndexForDisocclusions; // unused in filter, kept for struct compatibility
+  uint drawCallIndexForDisocclusions;    // unused in filter, kept for struct compatibility
+  uint alphaMode;
+  uint oitDrawCallIndex;                 // unused in filter, kept for struct compatibility
+  uint oitBaseCommandIndex;              // unused in filter, kept for struct compatibility
+};
+
+layout(push_constant) uniform PushConstants {
+  uint countRanges;
+  uint totalCommands;
+  uint batchRangeOffset;
+  uint prefixSumOffset;
+  uint renderPassMask;
+  uint flags;
+  uint alphaModeMask;
+  uint maxOutputCommands;
+  uint outputCommandSlotOffset; // K*N slot offset to subtract when reading input source
+} pushConstants;
+
+// Descriptor set 0: per-instance buffers (contiguous bindings 0-4)
+layout(set = 0, binding = 0, std430) readonly buffer InputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand commands[];
+} inputDrawIndexedIndirectCommands;
+
+layout(set = 0, binding = 1, std430) buffer OutputDrawIndexedIndirectCommands {
+  DrawIndexedIndirectCommand commands[];
+} outputDrawIndexedIndirectCommands;
+
+layout(set = 0, binding = 2, std430) buffer OutputDrawIndexedIndirectCommandCounts {
+  uint counts[];
+} outputDrawIndexedIndirectCommandCounts;
+
+layout(set = 0, binding = 3, std430) readonly buffer BatchRangesBuffer {
+  BatchRange ranges[];
+} batchRanges;
+
+layout(set = 0, binding = 4, std430) readonly buffer PrefixSumsBuffer {
+  uint sums[];
+} prefixSums;
+
+// Descriptor set 1: global scene buffers (DrawInfo)
+#include "drawinfo.glsl"
+
+layout(set = 1, binding = 0, std430) readonly buffer DrawInfoBuffer {
+  DrawInfo drawInfoItems[];
+};
+
+#ifdef MESH_SHADER_PATH
+layout(set = 1, binding = 7, std430) readonly buffer GlobalBDAPointersBuffer {
+  GlobalBDAPointers globalBDAPointers;
+};
+#endif
+
+// Flag constants (must match mesh_cull.comp)
+const uint FLAG_SHADOW_PASS = 1u << 4;
+const uint DRAW_CMD_FLAG_MATERIAL_CASTS_SHADOW = 1u << 2;
+const uint DRAW_INFO_FLAG_NODE_CASTS_SHADOW = 1u << 7;
+
+// Binary search to find which batch range a global command index belongs to
+uint findRangeIndex(uint globalIndex){
+  uint lo = 0u;
+  uint hi = pushConstants.countRanges;
+  while(lo < hi){
+    uint mid = (lo + hi) >> 1u;
+    if(globalIndex < prefixSums.sums[pushConstants.prefixSumOffset + mid]){
+      hi = mid;
+    } else {
+      lo = mid + 1u;
+    }
+  }
+  return lo - 1u;
+}
+
+void main(){
+
+  uint globalIndex = gl_GlobalInvocationID.x;
+  if(globalIndex >= pushConstants.totalCommands){
+    return;
+  }
+
+  // Find which batch range this command belongs to via binary search over prefix sums
+  uint rangeIndex = findRangeIndex(globalIndex);
+  uint localIndex = globalIndex - prefixSums.sums[pushConstants.prefixSumOffset + rangeIndex];
+
+  uint baseCommandIndex = batchRanges.ranges[pushConstants.batchRangeOffset + rangeIndex].baseCommandIndex;
+  uint countCommands = batchRanges.ranges[pushConstants.batchRangeOffset + rangeIndex].countCommands;
+  uint drawCallIndex = batchRanges.ranges[pushConstants.batchRangeOffset + rangeIndex].drawCallIndex;
+
+  uint sourceIndex = (baseCommandIndex - pushConstants.outputCommandSlotOffset) + localIndex;
+
+  uvec4 cmd0 = inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd0;
+  uvec4 cmd1 = inputDrawIndexedIndirectCommands.commands[sourceIndex].cmd1;
+
+  uint meshObjectID = cmd1.x;
+
+  // RenderPassMask filter: skip if this draw is not visible in the current render pass
+  if((drawInfoItems[meshObjectID].flags & pushConstants.renderPassMask) == 0u){
+    return;
+  }
+
+  // AlphaMode filter: skip if this batch's alpha mode is not allowed for this pass
+  uint batchAlphaMode = batchRanges.ranges[pushConstants.batchRangeOffset + rangeIndex].alphaMode;
+  if(((1u << batchAlphaMode) & pushConstants.alphaModeMask) == 0u){
+    return;
+  }
+
+  // Shadow pass filter: skip items that don't cast shadows (node or material)
+  if((pushConstants.flags & FLAG_SHADOW_PASS) != 0u){
+    if(((drawInfoItems[meshObjectID].flags & DRAW_INFO_FLAG_NODE_CASTS_SHADOW) == 0u) ||
+       ((cmd1.w & DRAW_CMD_FLAG_MATERIAL_CASTS_SHADOW) == 0u)){
+      return;
+    }
+  }
+
+  // Command passed all filters — write to output buffer
+#ifdef MESH_SHADER_PATH
+  // Mesh shader path: expand to TGPUDrawMeshTasksIndirectCommand format
+  // (cmd0 = uvec4(groupCountX, 1, 1, meshletBase), cmd1 = uvec4(meshletCount, meshObjectID, boundingSphereIndex, flags))
+  uint lodInfoIndex = cmd1.z;
+  uint boundingSphereIndex = cmd1.y;
+  uint cmdFlags = cmd1.w;
+  uint meshletBase = drawInfoItems[meshObjectID].meshletDescriptorBase;
+  uint meshletCount = 0u;
+  if((lodInfoIndex != 0xffffffffu) && !all(equal(globalBDAPointers.lodInfoBDA, uvec2(0u)))){
+    LODInfo lodInfo = LODInfoBuffer(globalBDAPointers.lodInfoBDA).items[lodInfoIndex];
+    meshletBase += lodInfo.meshletLocalOffsets[0];
+    meshletCount = lodInfo.meshletCounts[0];
+  }
+  if(meshletCount > 0u){
+    uint groupCountX = (meshletCount + TASK_GROUP_SIZE - 1u) / TASK_GROUP_SIZE;
+    uint destinationIndex = atomicAdd(outputDrawIndexedIndirectCommandCounts.counts[drawCallIndex], 1u);
+    if(destinationIndex < countCommands){
+      destinationIndex += baseCommandIndex;
+      if(destinationIndex < pushConstants.maxOutputCommands){
+        outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd0 = uvec4(groupCountX, 1u, 1u, meshletBase);
+        outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd1 = uvec4(meshletCount, meshObjectID, boundingSphereIndex, cmdFlags);
+      }
+    }
+  }
+#else
+  // Vertex shader path: copy DrawIndexedIndirectCommand as-is
+  uint destinationIndex = atomicAdd(outputDrawIndexedIndirectCommandCounts.counts[drawCallIndex], 1u);
+  if(destinationIndex < countCommands){
+    destinationIndex += baseCommandIndex;
+    if(destinationIndex < pushConstants.maxOutputCommands){
+      outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd0 = cmd0;
+      outputDrawIndexedIndirectCommands.commands[destinationIndex].cmd1 = cmd1;
+    }
+  }
+#endif
+
+}

@@ -40,7 +40,22 @@ vec3 raytracingOffsetRay(const in vec3 position, const in vec3 normal, const in 
 #else  
   #define fixRayOffset(a,b) (a)
 #endif  
-#if 0
+#ifdef PLANET_RENDERPASS
+  // For planets we use a slightly different offset strategy to avoid artifacts on large flat surfaces
+  // Based on: A Fast and Robust Method for Avoiding Self-Intersection - Carsten Wächter & Nikolaus Binder - 26 February 2019
+  // Implementation as optimized GLSL code by Benjamin Rosseaux - 2024
+  // But it seems still to have some issues with a bit far away geometry, so it might need some further tweaking and therefore it 
+  // is not used here for now
+  const float origin = pushConstants.raytracingOffsetConstants.x, 
+              floatScale = pushConstants.raytracingOffsetConstants.y, 
+              intScale = fixRayOffset(pushConstants.raytracingOffsetConstants.z, 32.0), 
+              directionScale = pushConstants.raytracingOffsetConstants.w;
+  return mix(
+    intBitsToFloat(floatBitsToInt(position) + (ivec3(normal * mix(vec3(intScale), vec3(-intScale), vec3(lessThanEqual(position, vec3(0.0))))))), 
+    fma(normal, vec3(floatScale), position), 
+    vec3(lessThan(abs(position), vec3(origin)))
+  ) + (direction * directionScale); // and for additional safety a small offset in the direction of the ray
+#elif 0
   // A simple offset to avoid self-intersections by moving the ray's starting point slightly along the normal direction
   return fma(normal, vec3(fixRayOffset(1e-3, 10.0)), position);
 #elif 0

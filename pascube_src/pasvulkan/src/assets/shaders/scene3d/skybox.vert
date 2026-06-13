@@ -8,10 +8,15 @@
 // layout(location = 0) in vec3 inPosition;
 
 layout(location = 0) out vec3 outPosition;
+#ifdef SKYBOX_CACHED_REPROJECTION
+layout(location = 1) out vec4 outPreviousClipSpacePosition;
+#endif
 
 /* clang-format off */
 
 #include "skybox.glsl"
+
+#include "quaternion.glsl"
 
 /* clang-format on */
 
@@ -24,6 +29,16 @@ void main() {
                        vec4(view.viewMatrix[1].xyz, 0.0),                   //
                        vec4(view.viewMatrix[2].xyz, 0.0),                   //
                        vec4(vec3(0.0, 0.0, 0.0), view.viewMatrix[2].w))) *  //
-                 vec4(outPosition, 1.0))
+                 vec4(transformVectorByQuaternion(outPosition, pushConstants.currentOrientation), 1.0))
                     .xyww;
+#ifdef SKYBOX_CACHED_REPROJECTION
+  View previousView = uView.views[pushConstants.viewBaseIndex + uint(gl_ViewIndex) + pushConstants.countAllViews];
+  outPreviousClipSpacePosition = ((previousView.projectionMatrix *                                   //
+                                   mat4(vec4(previousView.viewMatrix[0].xyz, 0.0),                   //
+                                        vec4(previousView.viewMatrix[1].xyz, 0.0),                   //
+                                        vec4(previousView.viewMatrix[2].xyz, 0.0),                   //
+                                        vec4(vec3(0.0, 0.0, 0.0), previousView.viewMatrix[2].w))) *  //
+                                  vec4(transformVectorByQuaternion(outPosition, pushConstants.previousOrientation), 1.0))
+                                     .xyww;
+#endif
 }

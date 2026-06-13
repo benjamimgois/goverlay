@@ -405,8 +405,20 @@ begin
 
 // fInstance.NearestFarthestDepthVulkanBuffers[InFlightFrameIndex].
 
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.FillBuffer,'DepthMipMapComputePassOld:FillBuffer1');
+ end;
  aCommandBuffer.CmdFillBuffer(NearestFarthestDepthVulkanBuffer.Handle,SizeOf(TVkUInt32)*0,SizeOf(TVkUInt32)*2,TVkUInt32($ffffffff));
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.FillBuffer,'DepthMipMapComputePassOld:FillBuffer2');
+ end;
  aCommandBuffer.CmdFillBuffer(NearestFarthestDepthVulkanBuffer.Handle,SizeOf(TVkUInt32)*2,SizeOf(TVkUInt32)*2,TVkUInt32($00000000));
+ if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+  fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+ end;
 
  FillChar(BufferMemoryBarrier,SizeOf(TVkBufferMemoryBarrier),#0);
  BufferMemoryBarrier.sType:=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -473,9 +485,15 @@ begin
                                        0,
                                        nil);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'DepthMipMapComputePassOld:Dispatch');
+  end;
   aCommandBuffer.CmdDispatch(Max(1,(fResourceInput.Width+((1 shl (4+MipMapLevelIndex))-1)) shr (4+MipMapLevelIndex)),
                              Max(1,(fResourceInput.Height+((1 shl (4+MipMapLevelIndex))-1)) shr (4+MipMapLevelIndex)),
                              fInstance.CountSurfaceViews);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   FillChar(ImageMemoryBarrier,SizeOf(TVkImageMemoryBarrier),#0);
   ImageMemoryBarrier.sType:=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

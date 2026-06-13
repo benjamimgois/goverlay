@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/kraft](https://git.rosseaux.net/BeRo1985/kraft).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 ## Kraft Physics Engine
 
 Kraft Physics Engine is an open source Object Pascal physics engine library that can be used in 3D games.

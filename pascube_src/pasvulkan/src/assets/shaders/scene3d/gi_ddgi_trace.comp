@@ -1,0 +1,260 @@
+#version 460 core
+
+// DDGI probe ray tracing pass.
+//
+// For every probe of every cascade it traces GI_DDGI_RAYS_PER_PROBE rays against the scene TLAS and stores, per ray,
+// the shaded radiance towards the probe plus the hit distance. The probe update passes then integrate this ray data
+// into the irradiance and visibility probe data structures. Ray directions are generated deterministically (spherical
+// Fibonacci rotated by a per-frame random rotation) so the update passes can reconstruct them without a direction buffer.
+
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_ray_query : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference_uvec2 : require
+
+/* clang-format off */
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+// The gather layer needs the engine's global descriptor set (TLAS, lights, materials, textures) and the ray helpers.
+#define RAYTRACING
+#define LIGHTS
+#define USE_MATERIAL_BUFFER_REFERENCE
+#define USE_BUFFER_REFERENCE
+
+#include "globaldescriptorset.glsl"
+#include "raytracing.glsl"
+
+// Particle LBVH (built per frame on the GPU) software-traced here to inject particles — which are NOT in the hardware
+// ray-tracing BLAS (too many, too dynamic) — into the probe irradiance. Descriptor-free: the structs come from particle_bvh.glsl
+// and the BDA refs + queries from particle_bvh_trace.glsl; the emitter/node buffer device addresses + count are pushed
+// (pushConstants.particleBVH + emissiveGIParticleCount.z). Disabled at runtime when particleCount == 0.
+#include "particle_bvh.glsl"
+#include "particle_bvh_trace.glsl"
+
+// Sky on ray miss. The environment maps mirror the mesh shading IBL set (mesh_rendering_pass_descriptorset.glsl set 1
+// binding 2): [0..2] = env A (GGX/Charlie/Lambertian), [3..5] = env B (the atmosphere-inclusive set when planets/atmosphere
+// are active). GI_GATHER_SKY mirrors getIBLDiffuse() from pbr.glsl exactly: the sky diffuse irradiance in the ray
+// direction, dual-blended by env B's alpha (= per-texel atmosphere existence; 0 where there is no/partial atmosphere, and
+// the whole dual term is a no-op when no planet/atmosphere is active). Integrating this per missed ray bakes the sky into
+// the probe irradiance, correctly occluded (a probe whose rays mostly hit geometry sees little sky).
+
+layout(set = 1, binding = 4) uniform samplerCube uDDGIEnvironmentMaps[6];
+
+vec3 ddgiGatherSky(const in vec3 dir){
+  vec3 irradiance = textureLod(uDDGIEnvironmentMaps[2], dir, 0.0).xyz;       // Lambertian (diffuse irradiance), env A
+  vec4 envB = textureLod(uDDGIEnvironmentMaps[5], dir, 0.0);                  // Lambertian, env B (atmosphere); w = coverage
+  return mix(irradiance, envB.xyz, envB.w);
+}
+
+#define GI_GATHER_SKY(dir) ddgiGatherSky(dir)
+
+// Per-planet blend/grass maps (bindless, indexed by planet object index) on set 2, so planet hits get the full material
+// layer blend instead of just the default ground material.
+#define GI_GATHER_PLANET_TEXTURES
+#define GI_GATHER_PLANET_TEXTURES_SET 2
+
+// Global GI-emissive master regulators, delivered via the push constants. The push block is included further below, so these
+// file-scope globals (set in main() before any hit is shaded) let giGatherShadeHit read the values without a signature change.
+float ddgiEmissiveScale = 1.0;
+float ddgiEmissiveMax = uintBitsToFloat(0x7f800000u);
+#define GI_GATHER_EMISSIVE_SCALE ddgiEmissiveScale
+#define GI_GATHER_EMISSIVE_MAX ddgiEmissiveMax
+
+#include "gi_rt_gather.glsl"
+
+// Optional multi-bounce: sample the previous frame's irradiance field at each ray hit and feed it back as the indirect
+// term, giving "infinite" diffuse bounces. Compile-time toggle (default on) plus a runtime strength (push constant
+// blend.y, 0 = effectively first-bounce only). Only the L1 SH storage variant is supported for the feedback read.
+#ifndef GI_DDGI_MULTIBOUNCE
+  #define GI_DDGI_MULTIBOUNCE 1
+#endif
+
+// DDGI probe field definition (UBO + addressing). With multi-bounce we also enable the probe sampling path.
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_SET 1
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_BINDING 0
+#if GI_DDGI_MULTIBOUNCE
+  #define GLOBAL_ILLUMINATION_DDGI_SAMPLE
+#endif
+#include "global_illumination_ddgi.glsl"
+#include "gi_ddgi_raydata.glsl" // shared ray-data contract: ddgiTraceRayDirection / ddgiEncodeRayData / ddgiRayIsFixed
+// ddgiData (SSBO: cascade globals + sub-buffer pointers) + the sub-buffer accessors come via global_illumination_ddgi.glsl
+
+// Per-ray output (rgb = radiance towards the probe, a = hit distance / signed for fixed rays) now lives in the master's
+// ray-data BDA storage buffer (full precision, no image-format cap), written via ddgiStoreRay below.
+
+#if GI_DDGI_MULTIBOUNCE
+// Read-only views of the probe field this in-flight slot still holds from the PREVIOUS frame (the irradiance/visibility
+// update stages overwrite these images only after this trace stage), used as the feedback term. Same bindings as the
+// update stages write (set 1, bindings 2 and 3), just declared read-only here. The probe sampling function bodies
+// (declared by global_illumination_ddgi.glsl) are backed by these storage images via imageLoad. Both irradiance storage
+// variants are supported so multi-bounce works regardless of the GI_DDGI_STORAGE the field was built with.
+
+#if GI_DDGI_STORAGE_IS_SH
+// SH multi-bounce read now comes from the master's irradianceSH BDA buffer; ddgiLoadIrradianceSH is defined after the push
+// constant (it dereferences the master pointer), the prototype in global_illumination_ddgi.glsl lets the sampling use it.
+#else
+layout(set = 1, binding = 2, rgba16f) uniform readonly image2D uDDGIIrradianceOctRead;
+
+vec3 ddgiEvaluateIrradiance(const in ivec3 probeCoord, const in int cascadeIndex, const in vec3 normal){
+  vec2 uv = ddgiProbeOctUV(probeCoord, cascadeIndex, normal, GI_DDGI_IRRADIANCE_OCT_SIZE, GI_DDGI_IRRADIANCE_OCT_FULL);
+  ivec2 texel = ivec2(uv * vec2(ddgiAtlasSize(GI_DDGI_IRRADIANCE_OCT_FULL)));
+  return max(vec3(0.0), imageLoad(uDDGIIrradianceOctRead, texel).rgb);
+}
+#endif
+
+layout(set = 1, binding = 3, rg32f) uniform readonly image2D uDDGIVisibilityMomentsRead; // x = mean dist, y = mean dist^2
+
+vec3 ddgiSampleVisibility(const in ivec3 probeCoord, const in int cascadeIndex, const in vec3 direction){
+  vec2 uv = ddgiProbeOctUV(probeCoord, cascadeIndex, direction, GI_DDGI_VISIBILITY_OCT_SIZE, GI_DDGI_VISIBILITY_OCT_FULL);
+  ivec2 texel = ivec2(uv * vec2(ddgiAtlasSize(GI_DDGI_VISIBILITY_OCT_FULL))); // point sample (no bilinear) is fine for the secondary feedback term
+  // The multibounce gather discards the sky-visibility term (skyVisibilityUnused), so only the distance moments are read
+  // here (z = 0); the sky atlas is therefore not bound in the trace, avoiding a clash with the env cubemaps at binding 4.
+  return vec3(imageLoad(uDDGIVisibilityMomentsRead, texel).xy, 0.0); // x = mean dist, y = mean dist^2, z = sky (unused here)
+}
+#endif
+
+#include "gi_ddgi_pushconstants.glsl"
+
+#if GI_DDGI_PROBE_RELOCATION
+// Probe data (xyz = relocation offset, w = state) lives in the master's probe-data BDA buffer (written by the relocation/
+// classification passes). Used here for this probe's relocated ray origin and by the probe-sampling functions (multi-bounce).
+// Defined after the push constant since it dereferences the master pointer; the prototype in global_illumination_ddgi.glsl
+// lets the sampling functions (compiled above) call it.
+vec4 ddgiLoadProbeData(const in ivec3 probeCoord, const in int cascadeIndex){
+  DDGIProbeDataBuffer pd = ddgiData.probeData; // launder through a local (readonly master field -> non-readonly ref) + hoist
+  return ddgiLoadProbeDataBuffer(pd, probeCoord, cascadeIndex);
+}
+#endif
+
+#if GI_DDGI_MULTIBOUNCE && GI_DDGI_STORAGE_IS_SH
+// Previous-frame SH irradiance (multi-bounce feedback) from the master's irradianceSH BDA buffer. Same packing as the update
+// pass writes; defined after the push constant (dereferences the master), prototyped in global_illumination_ddgi.glsl.
+DDGI_SH_TYPE ddgiLoadIrradianceSH(const in ivec3 probeCoord, const in int cascadeIndex){
+  DDGIIrradianceSHBuffer shBuf = ddgiData.irradianceSH; // hoist the master->sub-pointer deref once
+  DDGISHProbe p = ddgiLoadSHProbe(shBuf, probeCoord, cascadeIndex);     // one contiguous load of the whole probe
+  vec4 a = p.c[0]; vec4 b = p.c[1]; vec4 c = p.c[2];
+#if GI_DDGI_STORAGE == GI_DDGI_STORAGE_L2_VALUE
+  vec4 d = p.c[3]; vec4 e = p.c[4]; vec4 f = p.c[5]; vec4 g = p.c[6];
+  return SHC3CoefficientsL2Create(vec3(a.x, a.y, a.z), vec3(a.w, b.x, b.y), vec3(b.z, b.w, c.x), vec3(c.y, c.z, c.w),
+                                  vec3(d.x, d.y, d.z), vec3(d.w, e.x, e.y), vec3(e.z, e.w, f.x), vec3(f.y, f.z, f.w),
+                                  vec3(g.x, g.y, g.z));
+#else
+  return SHC3CoefficientsL1Create(vec3(a.x, a.y, a.z), vec3(a.w, b.x, b.y), vec3(b.z, b.w, c.x), vec3(c.y, c.z, c.w));
+#endif
+}
+#endif
+
+void main(){
+
+  uint rayIndex = gl_GlobalInvocationID.x;
+  uint globalProbeIndex = gl_GlobalInvocationID.y;
+
+  uint raysPerProbe = pushConstants.params.w;
+  uint totalProbes = pushConstants.params.y * pushConstants.params.z;
+
+  if((rayIndex >= raysPerProbe) || (globalProbeIndex >= totalProbes)){
+    return;
+  }
+
+  // Publish the global GI-emissive master regulators (push) into the file-scope globals the gather's giGatherShadeHit reads.
+  ddgiEmissiveScale = pushConstants.emissiveGIParticleCount.x;
+  ddgiEmissiveMax = pushConstants.emissiveGIParticleCount.y;
+
+  int cascadeIndex = int(globalProbeIndex / pushConstants.params.z);
+  int probeIndexInCascade = int(globalProbeIndex % pushConstants.params.z);
+  ivec3 probeCoord = ddgiProbeCoordFromIndex(probeIndexInCascade); // physical storage slot
+
+  // Toroidal scrolling: the iterated slot is physical; its world position comes from the logical lattice coordinate.
+  ivec3 logicalProbeCoord = ddgiProbeLogicalCoord(probeCoord, cascadeIndex);
+  vec3 probePosition = ddgiProbeGridToWorld(logicalProbeCoord, cascadeIndex);
+#if GI_DDGI_PROBE_RELOCATION
+  // Trace from the relocated probe position (the relocation pass pushed it out of any geometry it was embedded in), so the
+  // gathered irradiance/visibility match the position the shading sampler reads it back at. The probe-data image is not
+  // cleared on allocation, so on this slot's first frame (blend.z) it still holds uninitialized garbage -> skip the offset
+  // until the relocation pass has written a (clamped) value at least once.
+  if(pushConstants.blend.z < 0.5){
+    probePosition += ddgiLoadProbeData(probeCoord, cascadeIndex).xyz;
+  }
+#endif
+
+  mat3 randomRotation = mat3(pushConstants.randomRotation0.xyz, pushConstants.randomRotation1.xyz, pushConstants.randomRotation2.xyz);
+  vec3 rayDirection = ddgiTraceRayDirection(rayIndex, randomRotation); // contract: fixed (unrotated) vs random (rotated)
+
+  float tMin = 1e-3;
+  float tMax = max(ddgiData.ddgiCascadeCellSizes[cascadeIndex].w, 1e-2);
+  float cellSize = ddgiData.ddgiCascadeCellSizes[cascadeIndex].x;
+
+  // Trace via the swappable backend (ray-query by default). Emissive meshes + all analytic lights + ray-traced shadows are
+  // handled in the gather layer; optional multi-bounce feedback samples the previous frame's irradiance field at the hit.
+  GIGatherSurface surface = giTraceClosestHit(probePosition, rayDirection, tMin, tMax, CULLMASK_ALL);
+
+  // Particle LBVH (not in the BLAS): a closest opaque particle nearer than the mesh hit becomes the closest surface — it
+  // occludes, overrides the shaded radiance, and shortens the stored hit distance (so the visibility moments see it too).
+  // Transparent/additive particles add emission without occluding, bounded by the final closest opaque distance.
+  uint particleCount = uint(pushConstants.emissiveGIParticleCount.z);
+  ParticleBVHEmitterRef particleEmitters = ParticleBVHEmitterRef(pushConstants.particleBVH.xy);
+  ParticleBVHNodeRef particleNodes = ParticleBVHNodeRef(pushConstants.particleBVH.zw);
+  bool effectiveHit = surface.hit;
+  bool effectiveBackface = surface.backface;
+  float effectiveHitDistance = surface.hit ? surface.hitDistance : tMax;
+  float particleBound = effectiveHitDistance;
+  vec3 particleOpaqueEmission = vec3(0.0);
+  bool opaqueParticleCloser = false;
+  if(particleCount > 0u){
+    vec3 opaqueEmission;
+    float opaqueT = particleBVHClosestOpaque(particleNodes, particleEmitters, probePosition, rayDirection, tMin, effectiveHitDistance, particleCount, opaqueEmission);
+    if(opaqueT < effectiveHitDistance){
+      opaqueParticleCloser = true;
+      particleOpaqueEmission = opaqueEmission;
+      particleBound = opaqueT;
+      effectiveHit = true;
+      effectiveBackface = false;
+      effectiveHitDistance = opaqueT;
+    }
+  }
+
+  // Shade only the random (blended) rays; fixed rays carry no radiance (the contract encodes only their signed distance).
+  vec3 radiance = vec3(0.0);
+  if(!ddgiRayIsFixed(rayIndex)){
+    if(surface.hit){
+      if(surface.backface){
+        // Backface hit: the probe sits behind/inside this surface (e.g. embedded in a thin ceiling/floor slab). Treat it as
+        // absorptive (black) so the probe does not accumulate light it should not see — the key fix against emissive panels
+        // bleeding through thin geometry to the other side. The stored distance is additionally shortened in the ray-data
+        // encode (gi_ddgi_raydata.glsl) so the visibility (Chebyshev) test registers this slab as a near occluder.
+        radiance = vec3(0.0);
+      }else{
+        vec3 previousFrameIndirect = vec3(0.0);
+#if GI_DDGI_MULTIBOUNCE
+        float skyVisibilityUnused;
+        previousFrameIndirect = ddgiSampleIrradiance(surface.position, surface.normal, -rayDirection, skyVisibilityUnused) * pushConstants.blend.y;
+        // The probe field is not cleared on allocation; ignore non-finite feedback so NaN/Inf cannot lock into the field.
+        if(any(isnan(previousFrameIndirect)) || any(isinf(previousFrameIndirect))){
+          previousFrameIndirect = vec3(0.0);
+        }
+#endif
+        radiance = giGatherShadeHit(surface, previousFrameIndirect);
+      }
+    }else{
+      radiance = GI_GATHER_SKY(rayDirection);
+    }
+    // Inject particles: opaque particle (if closer) replaces the surface radiance; additive particles add emission on top.
+    if(particleCount > 0u){
+      if(opaqueParticleCloser){
+        radiance = particleOpaqueEmission;
+      }
+      radiance += particleBVHAdditiveEmission(particleNodes, particleEmitters, probePosition, rayDirection, tMin, particleBound, particleCount);
+    }
+    if(any(isnan(radiance)) || any(isinf(radiance))){
+      radiance = vec3(0.0);
+    }
+  }
+
+  // Encode per the shared ray-data contract (fixed -> signed/unclamped distance, no radiance; random -> shaded radiance +
+  // backface-shortened, locally-clamped distance).
+  DDGIRayDataBuffer rayData = ddgiData.rayData; // launder through a local (readonly master field -> non-readonly ref)
+  ddgiStoreRay(rayData, globalProbeIndex, rayIndex, raysPerProbe,
+               ddgiEncodeRayData(rayIndex, radiance, effectiveHit, effectiveBackface, effectiveHitDistance, tMax, cellSize));
+}

@@ -1,0 +1,21 @@
+#version 450
+// bidi_blend.comp — version2n hierarchical-B weighted prediction. Combines two plain-int reconstructed
+// YCoCg references (the GPU DPB) into the prediction slot: pred = (w0*ref0 + w1*ref1 + 128) >> 8 — the
+// SAME integer blend as the CPU oracle (encode_frame_bidi), so the result is bit-exact at Q0. For a
+// P-anchor pass w0=256, w1=0 -> pred = ref0 (the closer-reference identity). The existing ycocg_diff
+// (encode residual) / motion_add (reconstruct cur = residual + pred) then consume this slot exactly as
+// they consume the single-reference mc_previous, so the blend is the only new step. The references are
+// zero-MV here (Stage B1); Stage B2 will blend the motion-compensated references instead.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0) readonly  buffer Ref0 { int ref0[]; };
+layout(std430, binding = 1) readonly  buffer Ref1 { int ref1[]; };
+layout(std430, binding = 2) writeonly buffer Prediction { int prediction[]; };
+layout(push_constant) uniform PushConstants { int pixel_count; int weight0; int weight1; } push;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  prediction[i] = (((push.weight0 * ref0[i]) + (push.weight1 * ref1[i])) + 128) >> 8;
+}

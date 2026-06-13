@@ -1,0 +1,88 @@
+#version 450 core
+/*
+ * cnn_conv_forward.comp — Conv2D forward pass with optional ReLU
+ *
+ * Used for ESPCN CNN upscaler inference.
+ * Operates on flat float SSBOs in NCHW layout.
+ *
+ * Bindings:
+ *   0 = weights  (readonly,  float[out_ch * in_ch * ks * ks])
+ *   1 = biases   (readonly,  float[out_ch])
+ *   2 = input    (readonly,  float[batch * in_ch * H * W])
+ *   3 = output   (writeonly, float[batch * out_ch * H * W])
+ *
+ * Push constants:
+ *   inputChannels, outputChannels, kernelSize, padding
+ *   height, width, batchSize, useReLU (0 or 1)
+ *
+ * Dispatch: ((W+15)/16, (H+15)/16, batch * out_ch)
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+  int inputChannels;
+  int outputChannels;
+  int kernelSize;
+  int padding;
+  int height;
+  int width;
+  int batchSize;
+  int useReLU;
+} pushConstants;
+
+layout(set = 0, binding = 0) readonly  buffer WeightBuffer { float weights[]; };
+layout(set = 0, binding = 1) readonly  buffer BiasBuffer   { float biases[];  };
+layout(set = 0, binding = 2) readonly  buffer InputBuffer  { float inputData[];  };
+layout(set = 0, binding = 3) writeonly buffer OutputBuffer { float outputData[]; };
+
+void main() {
+  int outputX = int(gl_GlobalInvocationID.x);
+  int outputY = int(gl_GlobalInvocationID.y);
+  int batchAndChannel = int(gl_GlobalInvocationID.z);
+
+  int inputChannels  = pushConstants.inputChannels;
+  int outputChannels = pushConstants.outputChannels;
+  int kernelSize     = pushConstants.kernelSize;
+  int pad            = pushConstants.padding;
+  int height         = pushConstants.height;
+  int width          = pushConstants.width;
+  int batchSize      = pushConstants.batchSize;
+  int useReLU        = pushConstants.useReLU;
+
+  if (outputX >= width || outputY >= height || batchAndChannel >= batchSize * outputChannels) {
+    return;
+  }
+
+  int batchIndex = batchAndChannel / outputChannels;
+  int outputChannel = batchAndChannel % outputChannels;
+
+  float sum = biases[outputChannel];
+  for (int inputChannel = 0; inputChannel < inputChannels; inputChannel++) {
+    int weightBase = (outputChannel * inputChannels + inputChannel) * kernelSize * kernelSize;
+    int inputBase = (batchIndex * inputChannels + inputChannel) * height * width;
+    for (int kernelY = 0; kernelY < kernelSize; kernelY++) {
+      int inputY = outputY - pad + kernelY;
+      if (inputY < 0 || inputY >= height) {
+        continue;
+      }
+      for (int kernelX = 0; kernelX < kernelSize; kernelX++) {
+        int inputX = outputX - pad + kernelX;
+        if (inputX >= 0 && inputX < width) {
+          sum += weights[weightBase + kernelY * kernelSize + kernelX]
+             * inputData[inputBase + inputY * width + inputX];
+        }
+      }
+    }
+  }
+
+  if (useReLU != 0 && sum < 0.0) {
+    sum = 0.0;
+  }
+  outputData[((batchIndex * outputChannels + outputChannel) * height + outputY) * width + outputX] = sum;
+}

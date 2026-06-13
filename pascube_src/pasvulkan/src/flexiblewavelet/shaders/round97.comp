@@ -1,0 +1,14 @@
+#version 450
+// round97.comp — after the float 9/7 inverse wavelet, read the float result (as int bit-patterns)
+// and write the rounded integer coefficient back in place.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0) buffer Coefficients { int coefficients[]; };
+layout(push_constant) uniform PushConstants { int pixel_count; } push;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  coefficients[i] = int(round(intBitsToFloat(coefficients[i])));
+}

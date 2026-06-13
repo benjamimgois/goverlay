@@ -1,0 +1,61 @@
+#version 450
+/*
+ * conv_forward.comp — Conv2D forward pass with optional ReLU
+ *
+ * Bindings: 0=weights, 1=biases, 2=input, 3=output
+ * Push constants: p0=in_ch, p1=out_ch, p2=ks, p3=pad, p4=H, p5=W, p6=batch, p7=relu
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) readonly  buffer BufW { float weights[]; };
+layout(set = 0, binding = 1) readonly  buffer BufB { float biases[];  };
+layout(set = 0, binding = 2) readonly  buffer BufI { float inp[];     };
+layout(set = 0, binding = 3) writeonly buffer BufO { float outp[];    };
+
+void main() {
+    int ow = int(gl_GlobalInvocationID.x);
+    int oh = int(gl_GlobalInvocationID.y);
+    int noc = int(gl_GlobalInvocationID.z);
+
+    int in_ch  = pc.p0;
+    int out_ch = pc.p1;
+    int ks     = pc.p2;
+    int pad    = pc.p3;
+    int H      = pc.p4;
+    int W      = pc.p5;
+    int batch  = pc.p6;
+    int relu   = pc.p7;
+
+    if (ow >= W || oh >= H || noc >= batch * out_ch) return;
+
+    int n  = noc / out_ch;
+    int oc = noc % out_ch;
+
+    float sum = biases[oc];
+    for (int ic = 0; ic < in_ch; ic++) {
+        int w_base = (oc * in_ch + ic) * ks * ks;
+        int i_base = (n * in_ch + ic) * H * W;
+        for (int kh = 0; kh < ks; kh++) {
+            int ih = oh - pad + kh;
+            if (ih < 0 || ih >= H) continue;
+            for (int kw = 0; kw < ks; kw++) {
+                int iw = ow - pad + kw;
+                if (iw >= 0 && iw < W) {
+                    sum += weights[w_base + kh * ks + kw]
+                         * inp[i_base + ih * W + iw];
+                }
+            }
+        }
+    }
+
+    if (relu != 0 && sum < 0.0) sum = 0.0;
+    outp[((n * out_ch + oc) * H + oh) * W + ow] = sum;
+}

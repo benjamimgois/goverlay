@@ -1,0 +1,114 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+
+/* clang-format off */
+
+// Brush-based interactive smoothing using the before-state snapshot as kernel source.
+// Applies a Gaussian blur over the frozen before-state heightmap within the brush area
+// and blends the result into the authoritative heightmap.
+// Using before-state as source makes this operation idempotent: the smoothed result
+// is always computed from the same original data regardless of how long the brush is held.
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) uniform image2D uImageHeightMap;
+
+layout(set = 0, binding = 1) buffer TileMapDirtyBuffer {
+  uint data[]; // bitwise dirty map
+} tileMapDirtyBuffer;
+
+layout(set = 0, binding = 2) uniform sampler2DArray uBrushTextureArray[];
+
+layout(set = 0, binding = 3) uniform sampler2D uBeforeStateHeightMap;
+
+layout(push_constant) uniform PushConstants {
+  vec4 positionRadius; // xyz = position, w = outer radius
+  vec4 innerRadiusStrengthKernelRadiusSigma; // x = inner radius, y = strength [0,1], z = kernel radius (int as float), w = sigma (texels)
+  uvec4 tileMapResolutionShiftBrushIndexBrushRotation; // x = dirty size, y = shift, z = brush index, w = brush rotation (float bits)
+} pushConstants;
+
+/* clang-format on */
+
+#include "octahedral.glsl"
+#include "octahedralmap.glsl"
+#include "planet_brushes.glsl"
+
+void main(){
+  
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageHeightMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    vec3 p = octPlanetUnsignedDecode(vec2(texel) / vec2(texSize));
+
+    vec3 n = normalize(pushConstants.positionRadius.xyz);
+
+    float d = sampleBrush(
+      p,
+      n,
+      pushConstants.positionRadius.w,
+      pushConstants.innerRadiusStrengthKernelRadiusSigma.x,
+      pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.z,
+      uintBitsToFloat(pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.w)
+    );
+
+    if(d > 0.0){
+
+      {
+        uvec2 tileMapXY = uvec2(texel) >> pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.y;
+        uint tileMapIndex = (tileMapXY.y * pushConstants.tileMapResolutionShiftBrushIndexBrushRotation.x) + tileMapXY.x;
+        atomicOr(tileMapDirtyBuffer.data[tileMapIndex >> 5u], 1u << (tileMapIndex & 31u));
+      }
+
+      ivec2 xy = wrapOctahedralTexelCoordinates(texel, texSize);
+
+      // Read the before-state height at this texel.
+      float beforeHeight = texelFetch(uBeforeStateHeightMap, xy, 0).x;
+
+      // Current (already-painted) height this stroke.
+      float currentHeight = imageLoad(uImageHeightMap, texel).x;
+
+      // Compute Gaussian blur over the before-state snapshot.
+      int   kernelRadius = int(pushConstants.innerRadiusStrengthKernelRadiusSigma.z);
+      float sigma        = max(pushConstants.innerRadiusStrengthKernelRadiusSigma.w, 1e-4);
+      float invTwoSigma2 = 1.0 / (2.0 * sigma * sigma);
+
+      float weightedSum = 0.0;
+      float totalWeight = 0.0;
+
+      for(int oy = -kernelRadius; oy <= kernelRadius; oy++){
+        for(int ox = -kernelRadius; ox <= kernelRadius; ox++){
+          ivec2 sampleXY = wrapOctahedralTexelCoordinates(texel + ivec2(ox, oy), texSize);
+          float sampleH  = texelFetch(uBeforeStateHeightMap, sampleXY, 0).x;
+          float dist2    = float(ox * ox + oy * oy);
+          float w        = exp(-dist2 * invTwoSigma2);
+          weightedSum   += sampleH * w;
+          totalWeight   += w;
+        }
+      }
+
+      float blurredHeight = weightedSum / max(totalWeight, 1e-8);
+
+      float strength  = pushConstants.innerRadiusStrengthKernelRadiusSigma.y;
+
+      imageStore(
+        uImageHeightMap,
+        texel,
+        // Mix from current (already-painted) toward blurred-before-state.
+        // Monotonically converges to blurred target; never regresses on re-visit.
+        vec4(clamp(mix(currentHeight, blurredHeight, d * strength), 0.0, 1.0))
+      );
+
+    }
+
+  }
+
+}

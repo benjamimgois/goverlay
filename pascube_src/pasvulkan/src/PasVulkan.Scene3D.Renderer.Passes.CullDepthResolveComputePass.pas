@@ -473,9 +473,15 @@ begin
                                        0,
                                        nil);
 
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'CullDepthResolve');
+  end;
   aCommandBuffer.CmdDispatch(Max(1,(fResourceInput.Width+((1 shl 4)-1)) shr 4),
                              Max(1,(fResourceInput.Height+((1 shl 4)-1)) shr 4),
                              CountViews);
+  if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+   fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+  end;
 
   FillChar(ImageMemoryBarrier,SizeOf(TVkImageMemoryBarrier),#0);
   ImageMemoryBarrier.sType:=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

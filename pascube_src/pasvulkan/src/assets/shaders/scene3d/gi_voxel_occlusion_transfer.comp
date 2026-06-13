@@ -50,9 +50,19 @@ void main(){
              countVoxelFragments = min(1024u, voxelGridContentMetaData.data[volumeIndex + 2]); 
         (voxelFragmentIndex != 0u) && (voxelFragmentCounter < countVoxelFragments); 
         voxelFragmentCounter++){
+#ifdef GI_VOXEL_CONTENT_FP16
+      // FP16 content layout (stride 2 per cell): alpha is packSnorm2x16(f1.x).x, next-cell pointer is f0.x. Matches the writer.
+      uvec4 f0 = voxelGridContentData.data[((voxelFragmentIndex - 1u) << 1u) | 0u];
+      uvec4 f1 = voxelGridContentData.data[((voxelFragmentIndex - 1u) << 1u) | 1u];
+      uint nextFragmentIndex = f0.x;
+      float fragmentAlpha = clamp(unpackSnorm2x16(f1.x).x, 0.0, 1.0);
+#else
       uvec4 volumeFragment = voxelGridContentData.data[voxelFragmentIndex - 1u];
-      volumeOcclusion += vec2(clamp(float(uint(volumeFragment.w & 0xffu)) * (1.0 / 255.0), 0.0, 1.0), 1.0);      
-      voxelFragmentIndex = volumeFragment.x;
+      uint nextFragmentIndex = volumeFragment.x;
+      float fragmentAlpha = clamp(float(uint(volumeFragment.w & 0xffu)) * (1.0 / 255.0), 0.0, 1.0);
+#endif
+      volumeOcclusion += vec2(fragmentAlpha, 1.0);
+      voxelFragmentIndex = nextFragmentIndex;
     }
     volumeOcclusion.x /= max(1.0, volumeOcclusion.y);
     

@@ -1,0 +1,183 @@
+#version 460 core
+
+// DDGI irradiance integration pass.
+//
+// Integrates the per-ray radiance produced by gi_ddgi_trace.comp into each probe's irradiance representation, blended
+// temporally against the previous frame's data (hysteresis). Two storage variants, selected at compile time:
+//   GI_DDGI_STORAGE_SH  : irradiance as L1 RGB spherical harmonics in three RGBA16F 3D images (one thread per probe).
+//   GI_DDGI_STORAGE_OCT : irradiance as an octahedral tile in one RGBA16F 2D atlas (one thread per interior texel).
+
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_buffer_reference : require
+
+/* clang-format off */
+
+// Storage mode (GI_DDGI_STORAGE), GI_DDGI_STORAGE_IS_SH and the DDGI_SH_* type aliases come from this include.
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_SET 1
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_BINDING 0
+#include "global_illumination_ddgi.glsl"
+#include "gi_ddgi_raydata.glsl"
+// ddgiData (SSBO: cascade globals + sub-buffer pointers) + the sub-buffer accessors come via global_illumination_ddgi.glsl
+
+#if GI_DDGI_STORAGE_IS_SH
+  #include "sphericalharmonics.glsl"
+  layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in; // one thread per probe
+#else
+  layout(local_size_x = GI_DDGI_IRRADIANCE_OCT_SIZE, local_size_y = GI_DDGI_IRRADIANCE_OCT_SIZE, local_size_z = 1) in; // one thread per interior texel
+#endif
+
+// Per-ray radiance + hit distance from the trace pass.
+
+#if GI_DDGI_STORAGE_IS_SH
+  // RGB SH now lives in the master's irradianceSH BDA buffer (DDGI_SH_IMAGE_COUNT packed vec4 per probe); no image binding.
+#else
+  layout(set = 1, binding = 2, rgba16f) uniform image2D uDDGIIrradianceOct;
+#endif
+
+#include "gi_ddgi_pushconstants.glsl"
+
+// Per-probe convergence-warmup hysteresis ramp: reads the per-probe age the visibility update wrote into its own BDA buffer.
+// The probe-update chain runs irradiance before visibility, so this reads the previous frame's age (one frame behind —
+// irrelevant for a warmup ramp); the per-stage compute barrier serializes that read against this frame's visibility write.
+float ddgiProbeAgeHysteresis(const in ivec3 probeCoord, const in int cascadeIndex){
+  DDGIAgeBuffer ageBuffer = ddgiData.age;
+  return ddgiWarmupHysteresis(float(ddgiLoadAge(ageBuffer, probeCoord, cascadeIndex)));
+}
+
+const float GI_DDGI_FOUR_PI = 12.566370614359172;
+
+#if GI_DDGI_STORAGE_IS_SH
+
+// Packing of the RGB SH coefficients into the DDGI_SH_IMAGE_COUNT packed vec4 of the master's irradianceSH BDA buffer.
+// L1 (4 coeffs) uses 3 vec4, L2 (9 coeffs) uses 7; the first three are identical between the two, the L2 ones append c4..c8
+// in the same interleaved pattern. (Same packing as the old SH image set, just sourced from / written to the buffer.)
+DDGI_SH_TYPE ddgiLoadSH(const in ivec3 probeCoord, const in int cascadeIndex){
+  DDGIIrradianceSHBuffer shBuf = ddgiData.irradianceSH; // hoist the master->sub-pointer deref once
+  DDGISHProbe p = ddgiLoadSHProbe(shBuf, probeCoord, cascadeIndex);     // one contiguous load of the whole probe
+  vec4 a = p.c[0]; vec4 b = p.c[1]; vec4 c = p.c[2];
+#if GI_DDGI_STORAGE == GI_DDGI_STORAGE_L2_VALUE
+  vec4 d = p.c[3]; vec4 e = p.c[4]; vec4 f = p.c[5]; vec4 g = p.c[6];
+  return SHC3CoefficientsL2Create(vec3(a.x, a.y, a.z), vec3(a.w, b.x, b.y), vec3(b.z, b.w, c.x), vec3(c.y, c.z, c.w),
+                                  vec3(d.x, d.y, d.z), vec3(d.w, e.x, e.y), vec3(e.z, e.w, f.x), vec3(f.y, f.z, f.w),
+                                  vec3(g.x, g.y, g.z));
+#else
+  return SHC3CoefficientsL1Create(vec3(a.x, a.y, a.z), vec3(a.w, b.x, b.y), vec3(b.z, b.w, c.x), vec3(c.y, c.z, c.w));
+#endif
+}
+
+void ddgiStoreSH(const in ivec3 probeCoord, const in int cascadeIndex, const in DDGI_SH_TYPE sh){
+  DDGIIrradianceSHBuffer shBuf = ddgiData.irradianceSH; // hoist the master->sub-pointer deref once
+  DDGISHProbe p;
+  p.c[0] = vec4(sh.coefficients[0].xyz, sh.coefficients[1].x);
+  p.c[1] = vec4(sh.coefficients[1].yz, sh.coefficients[2].xy);
+  p.c[2] = vec4(sh.coefficients[2].z, sh.coefficients[3].xyz);
+#if GI_DDGI_STORAGE == GI_DDGI_STORAGE_L2_VALUE
+  p.c[3] = vec4(sh.coefficients[4].xyz, sh.coefficients[5].x);
+  p.c[4] = vec4(sh.coefficients[5].yz, sh.coefficients[6].xy);
+  p.c[5] = vec4(sh.coefficients[6].z, sh.coefficients[7].xyz);
+  p.c[6] = vec4(sh.coefficients[8].xyz, 0.0);
+#endif
+  ddgiStoreSHProbe(shBuf, probeCoord, cascadeIndex, p);                 // one contiguous store of the whole probe
+}
+
+void main(){
+  uint globalProbeIndex = gl_GlobalInvocationID.x;
+  uint totalProbes = pushConstants.params.y * pushConstants.params.z;
+  if(globalProbeIndex >= totalProbes){
+    return;
+  }
+
+  int cascadeIndex = int(globalProbeIndex / pushConstants.params.z);
+  int probeIndexInCascade = int(globalProbeIndex % pushConstants.params.z);
+  ivec3 probeCoord = ddgiProbeCoordFromIndex(probeIndexInCascade);
+
+  mat3 randomRotation = mat3(pushConstants.randomRotation0.xyz, pushConstants.randomRotation1.xyz, pushConstants.randomRotation2.xyz);
+
+  uint raysPerProbe = pushConstants.params.w;
+
+  DDGIRayDataBuffer rayData = ddgiData.rayData; // hoist the master->sub-pointer deref out of the ray loop
+  DDGI_SH_TYPE sh = DDGI_SH_ZERO();
+  for(uint r = GI_DDGI_RAY_START; r < raysPerProbe; r++){
+    vec3 rayDirection = ddgiTraceRayDirection(r, randomRotation);
+    vec3 radiance = ddgiLoadRay(rayData, globalProbeIndex, r, raysPerProbe).rgb;
+    sh = DDGI_SH_ADD(sh, DDGI_SH_PROJECT(rayDirection, radiance));
+  }
+
+  // Monte-Carlo estimator over the uniform sphere: c_lm = (4*pi / N) * sum(L * Y_lm), where N is the number of rays actually
+  // integrated (the random rays). With relocation enabled the first GI_DDGI_FIXED_RAYS rays are fixed/unshaded and skipped
+  // (GI_DDGI_RAY_START > 0), so divide by the integrated count, not the full raysPerProbe (else the irradiance is too dark).
+  sh = DDGI_SH_MUL(sh, GI_DDGI_FOUR_PI / float(raysPerProbe - GI_DDGI_RAY_START));
+
+  // The probe buffer is not cleared on allocation, so guard against uninitialized NaN/Inf memory which would otherwise
+  // lock in permanently through the temporal hysteresis blend; on the first (non-finite) read just take the new value.
+  DDGI_SH_TYPE previous = ddgiLoadSH(probeCoord, cascadeIndex);
+
+  // Discard stale previous SH: firstFrame (blend.z) = uninitialized garbage; or the probe just toroidally scrolled into
+  // the volume (its stored SH belongs to a different world cell). Either way take the freshly projected SH.
+  bool firstFrame = (pushConstants.blend.z > 0.5) || ddgiProbeScrolledIn(probeCoord, cascadeIndex);
+  float hysteresis = ddgiProbeAgeHysteresis(probeCoord, cascadeIndex);
+  vec3 finiteCheck = ((previous.coefficients[0] + previous.coefficients[1]) + previous.coefficients[2]) + previous.coefficients[3];
+  if(firstFrame || any(isnan(finiteCheck)) || any(isinf(finiteCheck))){
+    ddgiStoreSH(probeCoord, cascadeIndex, sh);
+  }else{
+    // Lower the hysteresis when the field's mean radiance (SH DC band) changed a lot -> fast re-convergence on lighting changes.
+    hysteresis = ddgiAdaptiveHysteresis(hysteresis, sh.coefficients[0], previous.coefficients[0]);
+    ddgiStoreSH(probeCoord, cascadeIndex, DDGI_SH_LERP(sh, previous, hysteresis));
+  }
+}
+
+#else // GI_DDGI_STORAGE_OCT
+
+void main(){
+  uint globalProbeIndex = gl_WorkGroupID.x;
+  uint totalProbes = pushConstants.params.y * pushConstants.params.z;
+  if(globalProbeIndex >= totalProbes){
+    return;
+  }
+
+  int cascadeIndex = int(globalProbeIndex / pushConstants.params.z);
+  int probeIndexInCascade = int(globalProbeIndex % pushConstants.params.z);
+  ivec3 probeCoord = ddgiProbeCoordFromIndex(probeIndexInCascade);
+
+  ivec2 localTexel = ivec2(gl_LocalInvocationID.xy);
+
+  // Direction this interior texel represents (octahedral mapping of the [0,1]^2 tile).
+  vec2 uv = (vec2(localTexel) + vec2(0.5)) / float(GI_DDGI_IRRADIANCE_OCT_SIZE);
+  vec3 texelDirection = octDecode(fma(uv, vec2(2.0), vec2(-1.0)));
+
+  mat3 randomRotation = mat3(pushConstants.randomRotation0.xyz, pushConstants.randomRotation1.xyz, pushConstants.randomRotation2.xyz);
+  uint raysPerProbe = pushConstants.params.w;
+
+  DDGIRayDataBuffer rayData = ddgiData.rayData; // hoist the master->sub-pointer deref out of the ray loop
+  vec3 sum = vec3(0.0);
+  float sumWeight = 0.0;
+  for(uint r = GI_DDGI_RAY_START; r < raysPerProbe; r++){
+    vec3 rayDirection = ddgiTraceRayDirection(r, randomRotation);
+    float weight = max(0.0, dot(texelDirection, rayDirection));
+    if(weight > 0.0){
+      sum += ddgiLoadRay(rayData, globalProbeIndex, r, raysPerProbe).rgb * weight;
+      sumWeight += weight;
+    }
+  }
+  // Store the cosine-weighted MEAN incident radiance A = E/PI (E = the irradiance integral). The PI that turns A into the full
+  // irradiance E is applied at SHADING sample time (split, like RTXGI), NOT here: the multibounce trace reads this atlas raw and
+  // feeding back PI*A would amplify the feedback loop (open-sky scenes blow up). So the stored/feedback value stays A.
+  vec3 irradiance = (sumWeight > 1e-6) ? (sum / sumWeight) : vec3(0.0);
+
+  ivec2 atlasTexel = ddgiProbeTileOrigin(probeCoord, cascadeIndex, GI_DDGI_IRRADIANCE_OCT_FULL) + localTexel;
+  vec3 previous = imageLoad(uDDGIIrradianceOct, atlasTexel).rgb;
+
+  // Guard against uninitialized NaN/Inf (images are not cleared) and discard stale history: firstFrame (blend.z) =
+  // uninitialized garbage, or the probe just toroidally scrolled into the volume (stored data is for a different world
+  // cell) — in both cases take the freshly computed value instead of blending against it.
+  bool firstFrame = (pushConstants.blend.z > 0.5) || ddgiProbeScrolledIn(probeCoord, cascadeIndex);
+  float hysteresis = ddgiProbeAgeHysteresis(probeCoord, cascadeIndex);
+  // Lower the hysteresis when this texel's irradiance changed a lot -> fast re-convergence on lighting changes (per texel here).
+  // NaN-safe discard: a zero blend weight is not enough, because mix(cur, NaN, 0.0) = cur + NaN*0.0 = NaN; select the fresh value.
+  bool discardPrevious = firstFrame || any(isnan(previous)) || any(isinf(previous));
+  imageStore(uDDGIIrradianceOct, atlasTexel, vec4(discardPrevious ? irradiance : mix(irradiance, previous, ddgiAdaptiveHysteresis(hysteresis, irradiance, previous)), 1.0));
+
+}
+
+#endif

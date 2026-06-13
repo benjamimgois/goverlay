@@ -336,9 +336,15 @@ begin
                                    SizeOf(TpvScene3DRendererPassesGlobalIlluminationCascadedVoxelConeTracingOcclusionMipMapComputePass.TPushConstants),
                                    @PushConstants);
 
+   if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+    fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.BeginBreadcrumb(aCommandBuffer.Handle,TpvVulkanBreadcrumbType.Dispatch,'GIVoxelOcclusionMipMap');
+   end;
    aCommandBuffer.CmdDispatch(((fInstance.Renderer.GlobalIlluminationVoxelGridSize shr MipMapIndex)+7) shr 3,
                               ((fInstance.Renderer.GlobalIlluminationVoxelGridSize shr MipMapIndex)+7) shr 3,
                               ((fInstance.Renderer.GlobalIlluminationVoxelGridSize shr MipMapIndex)+7) shr 3);
+   if assigned(fInstance.Renderer.VulkanDevice.BreadcrumbBuffer) then begin
+    fInstance.Renderer.VulkanDevice.BreadcrumbBuffer.EndBreadcrumb(aCommandBuffer.Handle);
+   end;
 
   end;
 

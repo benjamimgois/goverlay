@@ -1,0 +1,65 @@
+#version 450 core
+
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+
+/* clang-format off */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r32f) uniform image2D uImageGrassAgeMap;
+
+layout(set = 0, binding = 1, r32f) uniform readonly image2D uImageGrassMap;
+
+layout(set = 0, binding = 2, r32ui) uniform readonly uimage2D uImageGrassFlagsMap;
+
+layout(push_constant) uniform PushConstants {
+  float deltaTime;
+  float growthDuration;
+} pushConstants;
+
+/* clang-format on */
+
+#include "planet_grassflagsmap.glsl"
+
+void main(){
+
+  ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+  ivec2 texSize = imageSize(uImageGrassAgeMap);
+
+  if(all(greaterThanEqual(texel, ivec2(0))) && all(lessThan(texel, texSize))){
+
+    float density = imageLoad(uImageGrassMap, texel).x;
+
+    if(density > 0.0){
+
+      uint flags = imageLoad(uImageGrassFlagsMap, texel).x;
+
+      // FROZEN: skip age growth entirely
+      if((flags & GRASS_FLAG_FROZEN) != 0u){
+        return;
+      }
+
+      float age = imageLoad(uImageGrassAgeMap, texel).x;
+
+      if(age < 1.0){
+
+        // FERTILIZED: 10x faster growth (effective duration is 0.1x)
+        float effectiveDuration = ((flags & GRASS_FLAG_FERTILIZED) != 0u)
+                                  ? (pushConstants.growthDuration * 0.1)
+                                  : pushConstants.growthDuration;
+
+        age = min(age + pushConstants.deltaTime / effectiveDuration, 1.0);
+        imageStore(uImageGrassAgeMap, texel, vec4(age));
+
+      }
+
+    }
+
+  }
+
+}

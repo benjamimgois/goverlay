@@ -76,6 +76,7 @@ type { TpvScene3DRendererMipmappedArray3DImage }
       private
        fVulkanImage:TpvVulkanImage;
        fVulkanImageView:TpvVulkanImageView;
+       fVulkanOtherImageView:TpvVulkanImageView; // alternate-format view (e.g. E5B9G9R9 sample view aliasing the R32_UINT storage image); nil unless aOtherFormat is set
        fMemoryBlock:TpvVulkanDeviceMemoryBlock;
        fWidth:TpvInt32;
        fHeight:TpvInt32;
@@ -86,7 +87,7 @@ type { TpvScene3DRendererMipmappedArray3DImage }
 
        VulkanImageViews:array of TpvVulkanImageView;
 
-       constructor Create(const aDevice:TpvVulkanDevice;const aWidth,aHeight,aDepth:TpvInt32;const aFormat:TVkFormat;const aStorageBit:boolean;const aSampleBits:TVkSampleCountFlagBits=TVkSampleCountFlagBits(VK_SAMPLE_COUNT_1_BIT);const aImageLayout:TVkImageLayout=TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL);const aAllocationGroupID:TpvUInt64=0;const aName:TpvUTF8String='');
+       constructor Create(const aDevice:TpvVulkanDevice;const aWidth,aHeight,aDepth:TpvInt32;const aFormat:TVkFormat;const aStorageBit:boolean;const aSampleBits:TVkSampleCountFlagBits=TVkSampleCountFlagBits(VK_SAMPLE_COUNT_1_BIT);const aImageLayout:TVkImageLayout=TVkImageLayout(VK_IMAGE_LAYOUT_GENERAL);const aAllocationGroupID:TpvUInt64=0;const aOtherFormat:TVkFormat=VK_FORMAT_UNDEFINED;const aName:TpvUTF8String='');
 
        destructor Destroy; override;
 
@@ -95,6 +96,8 @@ type { TpvScene3DRendererMipmappedArray3DImage }
        property VulkanImage:TpvVulkanImage read fVulkanImage;
 
        property VulkanImageView:TpvVulkanImageView read fVulkanImageView;
+
+       property VulkanOtherImageView:TpvVulkanImageView read fVulkanOtherImageView;
 
       public
 
@@ -114,7 +117,7 @@ implementation
 
 { TpvScene3DRendererMipmappedArray3DImage }
 
-constructor TpvScene3DRendererMipmappedArray3DImage.Create(const aDevice:TpvVulkanDevice;const aWidth,aHeight,aDepth:TpvInt32;const aFormat:TVkFormat;const aStorageBit:boolean;const aSampleBits:TVkSampleCountFlagBits;const aImageLayout:TVkImageLayout;const aAllocationGroupID:TpvUInt64;const aName:TpvUTF8String);
+constructor TpvScene3DRendererMipmappedArray3DImage.Create(const aDevice:TpvVulkanDevice;const aWidth,aHeight,aDepth:TpvInt32;const aFormat:TVkFormat;const aStorageBit:boolean;const aSampleBits:TVkSampleCountFlagBits;const aImageLayout:TVkImageLayout;const aAllocationGroupID:TpvUInt64;const aOtherFormat:TVkFormat;const aName:TpvUTF8String);
 var MipMapLevelIndex:TpvInt32;
     MemoryRequirements:TVkMemoryRequirements;
     RequiresDedicatedAllocation,
@@ -145,7 +148,7 @@ begin
  StorageBit:=aStorageBit;
 
  fVulkanImage:=TpvVulkanImage.Create(aDevice,
-                                     0, //TVkImageCreateFlags(VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT),
+                                     IfThen(aOtherFormat<>VK_FORMAT_UNDEFINED,TVkImageCreateFlags(VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT),0), // MUTABLE_FORMAT so the alternate-format (aOtherFormat) view can alias the image
                                      VK_IMAGE_TYPE_3D,
                                      aFormat,
                                      aWidth,
@@ -248,6 +251,32 @@ begin
                                                 1);
     aDevice.DebugUtils.SetObjectName(fVulkanImageView.Handle,VK_OBJECT_TYPE_IMAGE_VIEW,'TpvScene3DRendererMipmappedArray3DImage["'+aName+'"].ImageView');
 
+    fVulkanOtherImageView:=nil;
+    if aOtherFormat<>VK_FORMAT_UNDEFINED then begin
+     // Alternate-format whole-image view aliasing the same memory (e.g. E5B9G9R9 sample view over the R32_UINT storage image):
+     // store as R32_UINT via fVulkanImageView, sample (hardware-decoded, RenderDoc-friendly) via fVulkanOtherImageView.
+     // The view's usage is narrowed to SAMPLED (+ transfer) via VkImageViewUsageCreateInfo, dropping the image's STORAGE usage,
+     // because the alternate format (e.g. E5B9G9R9) only needs to be sampled and typically lacks the storage-image format feature.
+     fVulkanOtherImageView:=TpvVulkanImageView.Create(aDevice,
+                                                      fVulkanImage,
+                                                      ImageViewType,
+                                                      aOtherFormat,
+                                                      TVkComponentSwizzle(VK_COMPONENT_SWIZZLE_IDENTITY),
+                                                      TVkComponentSwizzle(VK_COMPONENT_SWIZZLE_IDENTITY),
+                                                      TVkComponentSwizzle(VK_COMPONENT_SWIZZLE_IDENTITY),
+                                                      TVkComponentSwizzle(VK_COMPONENT_SWIZZLE_IDENTITY),
+                                                      TVkImageAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT),
+                                                      0,
+                                                      fMipMapLevels,
+                                                      0,
+                                                      1,
+                                                      true,
+                                                      TVkImageUsageFlags(VK_IMAGE_USAGE_SAMPLED_BIT) or
+                                                      TVkImageUsageFlags(VK_IMAGE_USAGE_TRANSFER_SRC_BIT) or
+                                                      TVkImageUsageFlags(VK_IMAGE_USAGE_TRANSFER_DST_BIT));
+     aDevice.DebugUtils.SetObjectName(fVulkanOtherImageView.Handle,VK_OBJECT_TYPE_IMAGE_VIEW,'TpvScene3DRendererMipmappedArray3DImage["'+aName+'"].OtherImageView');
+    end;
+
     SetLength(VulkanImageViews,fMipMapLevels);
 
     for MipMapLevelIndex:=0 to fMipMapLevels-1 do begin
@@ -288,6 +317,7 @@ begin
   FreeAndNil(VulkanImageViews[MipMapLevelIndex]);
  end;
  VulkanImageViews:=nil;
+ FreeAndNil(fVulkanOtherImageView);
  FreeAndNil(fVulkanImageView);
  FreeAndNil(fVulkanImage);
  FreeAndNil(fMemoryBlock);

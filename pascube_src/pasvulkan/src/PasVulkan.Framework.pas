@@ -58,6 +58,7 @@ unit PasVulkan.Framework;
   {$ifend}
  {$endif}
 {$endif}
+{-$define PasVulkanQueueDiag}
 
 interface
 
@@ -79,7 +80,6 @@ uses {$if defined(Windows)}
      PasVulkan.Math,
      PasVulkan.Collections,
      PasVulkan.XML,
-     PasVulkan.TrueTypeFont,
      PasVulkan.Image.BMP,
      PasVulkan.Image.JPEG,
      PasVulkan.Image.PNG,
@@ -206,6 +206,47 @@ type EpvVulkanException=class(Exception);
 
      TpvVulkanObject=class(TpvReferenceCountedObject);
 
+     PpvVulkanBreadcrumbType=^TpvVulkanBreadcrumbType;
+     TpvVulkanBreadcrumbType=
+      (
+       Dispatch,
+       DispatchIndirect,
+       Draw,
+       DrawIndirectCount,
+       DrawIndirect,
+       DrawIndexedIndirectCount,
+       DrawIndexedIndirect,
+       DrawIndexed,
+       FillBuffer,
+       CopyBuffer
+      );
+
+     PpvVulkanBreadcrumbTechnique=^TpvVulkanBreadcrumbTechnique;
+     TpvVulkanBreadcrumbTechnique=
+      (
+       None,
+       Manual,
+       AMDMarker,
+       NVCheckpoint
+      );
+
+     PpvVulkanBreadcrumbZone=^TpvVulkanBreadcrumbZone;
+     TpvVulkanBreadcrumbZone=record
+      ParentZoneIndex:TpvInt32;
+      Name:TpvRawByteString;
+     end;
+
+     TpvVulkanBreadcrumbZones=array of TpvVulkanBreadcrumbZone;
+
+     PpvVulkanBreadcrumb=^TpvVulkanBreadcrumb;
+     TpvVulkanBreadcrumb=record
+      ZoneIndex:TpvUInt32;
+      BreadcrumbType:TpvVulkanBreadcrumbType;
+      CommandInfo:TpvRawByteString;
+     end;
+
+     TpvVulkanBreadcrumbs=array of TpvVulkanBreadcrumb;
+
      PpvVulkanRawByteChar=PAnsiChar;
      TpvVulkanRawByteChar=AnsiChar;
 
@@ -267,6 +308,11 @@ type EpvVulkanException=class(Exception);
      TVkAccelerationStructureKHRArray=array of TVkAccelerationStructureKHR;
      TVkWriteDescriptorSetAccelerationStructureKHRArray=array of TVkWriteDescriptorSetAccelerationStructureKHR;
      TVkDeviceAddressArray=array of TVkDeviceAddress;
+     TVkSubmitInfoArray=array of TVkSubmitInfo;
+     TVkSemaphoreArray=array of TVkSemaphore;
+     TVkPipelineStageFlagsArray=array of TVkPipelineStageFlags;
+     TVkUInt64Array=array of TVkUInt64;
+     TVkTimelineSemaphoreSubmitInfoArray=array of TVkTimelineSemaphoreSubmitInfo;
 
      TVkUInt32DynamicArray=TpvDynamicArray<TVkUInt32>;
 
@@ -328,6 +374,7 @@ type EpvVulkanException=class(Exception);
        fEngineName:TpvVulkanCharString;
        fValidation:longbool;
        fShaderPrintfDebugging:boolean;
+       fSynchronizationValidation:boolean;
        fAllocationManager:TpvVulkanAllocationManager;
        fAllocationCallbacks:PVkAllocationCallbacks;
        fAvailableLayers:TpvVulkanAvailableLayers;
@@ -390,6 +437,7 @@ type EpvVulkanException=class(Exception);
        property APIVersion:TpvUInt32 read GetAPIVersion write SetAPIVersion;
        property Validation:longbool read fValidation write fValidation;
        property ShaderPrintfDebugging:boolean read fShaderPrintfDebugging write fShaderPrintfDebugging;
+       property SynchronizationValidation:boolean read fSynchronizationValidation write fSynchronizationValidation;
        property AvailableLayers:TpvVulkanAvailableLayers read fAvailableLayers;
        property AvailableExtensions:TpvVulkanAvailableExtensions read fAvailableExtensions;
        property AvailableLayerNames:TStringList read fAvailableLayerNames;
@@ -449,6 +497,11 @@ type EpvVulkanException=class(Exception);
        fRayTracingMaintenance1FeaturesKHR:TVkPhysicalDeviceRayTracingMaintenance1FeaturesKHR;
        fPresentIDFeatures:TVkPhysicalDevicePresentIDFeaturesKHR;
        fPresentWaitFeatures:TVkPhysicalDevicePresentWaitFeaturesKHR;
+       fPresentTimingFeatures:TVkPhysicalDevicePresentTimingFeaturesEXT;
+       fPresentID2Features:TVkPhysicalDevicePresentId2FeaturesKHR;
+       fPresentWait2Features:TVkPhysicalDevicePresentWait2FeaturesKHR;
+       fSwapchainMaintenance1Features:TVkPhysicalDeviceSwapchainMaintenance1FeaturesKHR;
+       fAntiLagFeatures:TVkPhysicalDeviceAntiLagFeaturesAMD;
        fFeatures2KHR:TVkPhysicalDeviceFeatures2KHR;
        fProperties2KHR:TVkPhysicalDeviceProperties2KHR;
        fQueueFamilyProperties:TVkQueueFamilyPropertiesArray;
@@ -533,6 +586,11 @@ type EpvVulkanException=class(Exception);
        property RayTracingMaintenance1FeaturesKHR:TVkPhysicalDeviceRayTracingMaintenance1FeaturesKHR read fRayTracingMaintenance1FeaturesKHR;
        property PresentIDFeatures:TVkPhysicalDevicePresentIDFeaturesKHR read fPresentIDFeatures;
        property PresentWaitFeatures:TVkPhysicalDevicePresentWaitFeaturesKHR read fPresentWaitFeatures;
+       property PresentTimingFeatures:TVkPhysicalDevicePresentTimingFeaturesEXT read fPresentTimingFeatures;
+       property PresentID2Features:TVkPhysicalDevicePresentId2FeaturesKHR read fPresentID2Features;
+       property PresentWait2Features:TVkPhysicalDevicePresentWait2FeaturesKHR read fPresentWait2Features;
+       property SwapchainMaintenance1Features:TVkPhysicalDeviceSwapchainMaintenance1FeaturesKHR read fSwapchainMaintenance1Features;
+       property AntiLagFeatures:TVkPhysicalDeviceAntiLagFeaturesAMD read fAntiLagFeatures;
        property Features2KHR:TVkPhysicalDeviceFeatures2KHR read fFeatures2KHR;
        property Properties2KHR:TVkPhysicalDeviceProperties2KHR read fProperties2KHR;
       published
@@ -674,6 +732,26 @@ type EpvVulkanException=class(Exception);
 
      TpvVulkanDeviceDebugUtils=class;
 
+     TpvVulkanBreadcrumbBuffer=class;
+
+     TpvVulkanSemaphore=class;
+
+     TpvVulkanTimelineSemaphore=class;
+
+     TpvVulkanTimelineEmulationManager=class;
+
+     TpvVulkanTimelinePointFence=class;
+
+     TpvVulkanTimelinePointSemaphore=class;
+
+     TpvVulkanTimelinePoint=class;
+
+     TpvVulkanTimelineWaitPoint=class;
+
+     TpvVulkanDeferredQueueSubmit=class;
+
+     TpvVulkanTimelineQueueData=class;
+
      TpvVulkanDevice=class;
 
      TpvVulkanDeviceOnBeforeDeviceCreate=procedure(const aDevice:TpvVulkanDevice;const aDeviceCreateInfo:PVkDeviceCreateInfo) of object;
@@ -728,9 +806,21 @@ type EpvVulkanException=class(Exception);
        fCanvasCommon:TObject;
        fImageFormatList:boolean;
        fUseNVIDIADeviceDiagnostics:boolean;
+       fUseBreadcrumbs:boolean;
+       fBreadcrumbForceManual:boolean;
+       fBreadcrumbForceSyncManual:boolean;
+       fBreadcrumbTechnique:TpvVulkanBreadcrumbTechnique;
+       fBreadcrumbBuffer:TpvVulkanBreadcrumbBuffer;
        fFullScreenExclusiveSupport:boolean;
        fPresentIDSupport:boolean;
        fPresentWaitSupport:boolean;
+       fPresentTimingSupport:boolean;
+       fPresentID2Support:boolean;
+       fPresentWait2Support:boolean;
+       fSwapchainMaintenance1Support:boolean;
+       fLowLatency2Support:boolean;
+       fAntiLagSupport:boolean;
+       fCalibratedTimestampsSupport:boolean;
        fNVIDIADeviceDiagnosticsFlags:TVkDeviceDiagnosticsConfigFlagsNV;
        fNVIDIADeviceDiagnosticsConfigCreateInfoNV:TVkDeviceDiagnosticsConfigCreateInfoNV;
        fDescriptorIndexingFeaturesEXT:TVkPhysicalDeviceDescriptorIndexingFeaturesEXT;
@@ -753,6 +843,11 @@ type EpvVulkanException=class(Exception);
        fRayTracingMaintenance1FeaturesKHR:TVkPhysicalDeviceRayTracingMaintenance1FeaturesKHR;
        fPresentIDFeatures:TVkPhysicalDevicePresentIDFeaturesKHR;
        fPresentWaitFeatures:TVkPhysicalDevicePresentWaitFeaturesKHR;
+       fPresentTimingFeatures:TVkPhysicalDevicePresentTimingFeaturesEXT;
+       fPresentID2Features:TVkPhysicalDevicePresentId2FeaturesKHR;
+       fPresentWait2Features:TVkPhysicalDevicePresentWait2FeaturesKHR;
+       fSwapchainMaintenance1Features:TVkPhysicalDeviceSwapchainMaintenance1FeaturesKHR;
+       fAntiLagFeatures:TVkPhysicalDeviceAntiLagFeaturesAMD;
        fMultiView:boolean;
        fMultiViewTessellationShader:boolean;
        fMultiViewGeometryShader:boolean;
@@ -760,6 +855,7 @@ type EpvVulkanException=class(Exception);
        fFragmentShaderSampleInterlock:boolean;
        fFragmentShaderPixelInterlock:boolean;
        fFragmentShaderShadingRateInterlock:boolean;
+       fTimelineEmulationManager:TpvVulkanTimelineEmulationManager;
       protected
       public
        constructor Create(const aInstance:TpvVulkanInstance;
@@ -818,9 +914,21 @@ type EpvVulkanException=class(Exception);
        property ImageFormatList:boolean read fImageFormatList;
        property UseNVIDIADeviceDiagnostics:boolean read fUseNVIDIADeviceDiagnostics write fUseNVIDIADeviceDiagnostics;
        property NVIDIADeviceDiagnosticsFlags:TVkDeviceDiagnosticsConfigFlagsNV read fNVIDIADeviceDiagnosticsFlags write fNVIDIADeviceDiagnosticsFlags;
+       property UseBreadcrumbs:boolean read fUseBreadcrumbs write fUseBreadcrumbs;
+       property BreadcrumbForceManual:boolean read fBreadcrumbForceManual write fBreadcrumbForceManual;
+       property BreadcrumbForceSyncManual:boolean read fBreadcrumbForceSyncManual write fBreadcrumbForceSyncManual;
+       property BreadcrumbTechnique:TpvVulkanBreadcrumbTechnique read fBreadcrumbTechnique;
+       property BreadcrumbBuffer:TpvVulkanBreadcrumbBuffer read fBreadcrumbBuffer;
        property FullScreenExclusiveSupport:boolean read fFullScreenExclusiveSupport;
        property PresentIDSupport:boolean read fPresentIDSupport;
        property PresentWaitSupport:boolean read fPresentWaitSupport;
+       property PresentTimingSupport:boolean read fPresentTimingSupport;
+       property PresentID2Support:boolean read fPresentID2Support;
+       property PresentWait2Support:boolean read fPresentWait2Support;
+       property SwapchainMaintenance1Support:boolean read fSwapchainMaintenance1Support;
+       property LowLatency2Support:boolean read fLowLatency2Support;
+       property AntiLagSupport:boolean read fAntiLagSupport;
+       property CalibratedTimestampsSupport:boolean read fCalibratedTimestampsSupport;
        property OnBeforeDeviceCreate:TpvVulkanDeviceOnBeforeDeviceCreate read fOnBeforeDeviceCreate write fOnBeforeDeviceCreate;
       public
        property DescriptorIndexingFeaturesEXT:TVkPhysicalDeviceDescriptorIndexingFeaturesEXT read fDescriptorIndexingFeaturesEXT write fDescriptorIndexingFeaturesEXT;
@@ -843,6 +951,11 @@ type EpvVulkanException=class(Exception);
        property RayTracingMaintenance1FeaturesKHR:TVkPhysicalDeviceRayTracingMaintenance1FeaturesKHR read fRayTracingMaintenance1FeaturesKHR write fRayTracingMaintenance1FeaturesKHR;
        property PresentIDFeatures:TVkPhysicalDevicePresentIDFeaturesKHR read fPresentIDFeatures write fPresentIDFeatures;
        property PresentWaitFeatures:TVkPhysicalDevicePresentWaitFeaturesKHR read fPresentWaitFeatures write fPresentWaitFeatures;
+       property PresentTimingFeatures:TVkPhysicalDevicePresentTimingFeaturesEXT read fPresentTimingFeatures write fPresentTimingFeatures;
+       property PresentID2Features:TVkPhysicalDevicePresentId2FeaturesKHR read fPresentID2Features write fPresentID2Features;
+       property PresentWait2Features:TVkPhysicalDevicePresentWait2FeaturesKHR read fPresentWait2Features write fPresentWait2Features;
+       property SwapchainMaintenance1Features:TVkPhysicalDeviceSwapchainMaintenance1FeaturesKHR read fSwapchainMaintenance1Features write fSwapchainMaintenance1Features;
+       property AntiLagFeatures:TVkPhysicalDeviceAntiLagFeaturesAMD read fAntiLagFeatures write fAntiLagFeatures;
       published
        property MultiView:boolean read fMultiView;
        property MultiViewTessellationShader:boolean read fMultiViewTessellationShader;
@@ -851,6 +964,7 @@ type EpvVulkanException=class(Exception);
        property FragmentShaderSampleInterlock:boolean read fFragmentShaderSampleInterlock;
        property FragmentShaderPixelInterlock:boolean read fFragmentShaderPixelInterlock;
        property FragmentShaderShadingRateInterlock:boolean read fFragmentShaderShadingRateInterlock;
+       property TimelineEmulationManager:TpvVulkanTimelineEmulationManager read fTimelineEmulationManager;
      end;
 
      TpvVulkanDeviceDebugMarker=class
@@ -908,6 +1022,51 @@ type EpvVulkanException=class(Exception);
                                   const aLabelName:TpvRawByteString;
                                   const aColor:array of TVkFloat);
        procedure QueueLabelEnd(const aQueue:TpvVulkanQueue);
+     end;
+
+     TpvVulkanBreadcrumbBuffer=class(TpvVulkanObject)
+      private
+       fDevice:TpvVulkanDevice;
+       fTechnique:TpvVulkanBreadcrumbTechnique;
+       fLock:TPasMPCriticalSection;
+       fZones:TpvVulkanBreadcrumbZones;
+       fZoneCount:TpvInt32;
+       fZoneStack:array of TpvInt32;
+       fZoneStackCount:TpvInt32;
+       fBreadcrumbs:TpvVulkanBreadcrumbs;
+       fBreadcrumbCount:TpvInt32;
+       fMaxBreadcrumbCount:TpvInt32;
+       fCurrentBreadcrumbIndex:TpvInt32;
+       fFrameID:TpvUInt64;
+       fMarkerToken:TpvUInt16;
+       fRecordingEnabled:TPasMPBool32;
+       fInsideRenderPass:TPasMPBool32;
+       fBuffer:TVkBuffer;
+       fBufferMemory:TVkDeviceMemory;
+       fMappedData:PpvUInt32;
+       fMappedDataSize:TVkDeviceSize;
+       fDirectTrace:TPasMPBool32;
+       function GetBreadcrumbTypeString(const aType:TpvVulkanBreadcrumbType):TpvRawByteString;
+       procedure FormatZoneId(var aTarget:TpvRawByteString;const aZoneIndex:TpvInt32);
+       function FindMarkerBufferMemoryTypeIndex(const aMemoryTypeBits:TpvUInt32):TpvInt32;
+      public
+       constructor Create(const aDevice:TpvVulkanDevice;const aTechnique:TpvVulkanBreadcrumbTechnique); reintroduce;
+       destructor Destroy; override;
+       procedure ResetFrame(const aFrameID:TpvUInt64);
+       procedure BeginFrame(const aCommandBuffer:TVkCommandBuffer;const aFrameID:TpvUInt64);
+       procedure EndFrame;
+       procedure PushZone(const aName:TpvRawByteString);
+       procedure PopZone;
+       procedure ToggleRecording(const aEnable:boolean);
+       procedure RenderPassHint(const aEnterRenderPass:boolean);
+       function BeginBreadcrumb(const aCommandBuffer:TVkCommandBuffer;const aType:TpvVulkanBreadcrumbType;const aCommandInfo:TpvRawByteString):boolean;
+       procedure EndBreadcrumb(const aCommandBuffer:TVkCommandBuffer);
+       procedure TraceState(const aQueue:TVkQueue);
+      published
+       property Device:TpvVulkanDevice read fDevice;
+       property Technique:TpvVulkanBreadcrumbTechnique read fTechnique;
+       property RecordingEnabled:TPasMPBool32 read fRecordingEnabled write fRecordingEnabled;
+       property DirectTrace:TPasMPBool32 read fDirectTrace write fDirectTrace;
      end;
 
      TpvVulkanDeviceQueueCreateInfo=class(TpvVulkanObject)
@@ -1252,6 +1411,8 @@ type EpvVulkanException=class(Exception);
        property Name:TpvUTF8String read fName write fName;
      end;
 
+     TpvVulkanDeviceMemoryBlockDynamicArray=array of TpvVulkanDeviceMemoryBlock;
+
      TpvVulkanDeviceMemoryManagerChunkList=record
       First:TpvVulkanDeviceMemoryChunk;
       Last:TpvVulkanDeviceMemoryChunk;
@@ -1408,7 +1569,21 @@ type EpvVulkanException=class(Exception);
      TpvVulkanBufferCopyBatchItemArray=TpvDynamicArray<TpvVulkanBufferCopyBatchItem>;
      PpvVulkanBufferCopyBatchItemArray=^TpvVulkanBufferCopyBatchItemArray;
 
-     TpvVulkanSemaphore=class;
+     TpvVulkanTimelineSemaphoreReference=record
+      Semaphore:TpvVulkanTimelineSemaphore;
+      Value:TpvUInt64;
+     end;
+     PpvVulkanTimelineSemaphoreReference=^TpvVulkanTimelineSemaphoreReference;
+
+     // Helper array types for pointer-based Vulkan array access in emulation
+     TpvVulkanSemaphoreHandleArray=array[0..65535] of TVkSemaphore;
+     PpvVulkanSemaphoreHandleArray=^TpvVulkanSemaphoreHandleArray;
+
+     TpvVulkanUInt64Array=array[0..65535] of TpvUInt64;
+     PpvVulkanUInt64Array=^TpvVulkanUInt64Array;
+
+     TpvVulkanPipelineStageFlagsArray=array[0..65535] of TVkPipelineStageFlags;
+     PpvVulkanPipelineStageFlagsArray=^TpvVulkanPipelineStageFlagsArray;
 
      TpvVulkanBuffer=class(TpvVulkanObject)
       private
@@ -1662,6 +1837,151 @@ type EpvVulkanException=class(Exception);
        property Handle:TVkSemaphore read fSemaphoreHandle;
      end;
 
+     // Timeline semaphore emulation types (Khronos-style fallback for drivers without VK_KHR_timeline_semaphore)
+
+     TpvVulkanTimelinePointFence=class
+      private
+       fDevice:TpvVulkanDevice;
+       fFenceHandle:TVkFence;
+       fRefCount:TpvInt32;
+       fNext:TpvVulkanTimelinePointFence;
+     end;
+
+     TpvVulkanTimelinePointSemaphore=class
+      private
+       fDevice:TpvVulkanDevice;
+       fSemaphoreHandle:TVkSemaphore;
+       fDeviceWaited:boolean;
+       fDeviceSignaled:boolean;
+       fQueue:TpvVulkanQueue;
+       fRefCount:TpvInt32;
+       fNext:TpvVulkanTimelinePointSemaphore;
+     end;
+
+     TpvVulkanTimelinePoint=class
+      private
+       fTimeline:TpvVulkanTimelineSemaphore;
+       fSerial:TpvUInt64;
+       fQueue:TpvVulkanQueue;
+       fSemaphore:TpvVulkanTimelinePointSemaphore;
+       fFence:TpvVulkanTimelinePointFence;
+       fWaiting:TpvInt32;
+       fPrev:TpvVulkanTimelinePoint;
+       fNext:TpvVulkanTimelinePoint;
+     end;
+
+     TpvVulkanTimelineWaitPoint=class
+      private
+       fPoint:TpvVulkanTimelinePoint;
+       fSemaphore:TpvVulkanTimelinePointSemaphore;
+       fFence:TpvVulkanTimelinePointFence;
+       fPrev:TpvVulkanTimelineWaitPoint;
+       fNext:TpvVulkanTimelineWaitPoint;
+     end;
+
+     TpvVulkanDeferredQueueSubmit=class
+      private
+       fSubmitType:TVkStructureType;
+       fFence:TVkFence;
+       fCommandBuffers:array of TVkCommandBuffer;
+       fCommandBufferCount:TpvUInt32;
+       fWaitStageMask:array of TVkPipelineStageFlags;
+       fWaitSemaphores:array of TVkSemaphore;
+       fSignalSemaphores:array of TVkSemaphore;
+       fWaitSemaphoreCount:TpvUInt32;
+       fSignalSemaphoreCount:TpvUInt32;
+       fWaitTimelineReferences:array of TpvVulkanTimelineSemaphoreReference;
+       fSignalTimelineReferences:array of TpvVulkanTimelineSemaphoreReference;
+       fWaitTimelineReferenceCount:TpvUInt32;
+       fSignalTimelineReferenceCount:TpvUInt32;
+       fSerializeSemaphores:array of TpvVulkanTimelinePointSemaphore;
+       fSerializeSemaphoreCount:TpvUInt32;
+       fPrev:TpvVulkanDeferredQueueSubmit;
+       fNext:TpvVulkanDeferredQueueSubmit;
+      public
+       constructor Create;
+       destructor Destroy; override;
+     end;
+
+     TpvVulkanTimelineQueueData=class
+      private
+       fQueue:TpvVulkanQueue;
+       fDeferredHead:TpvVulkanDeferredQueueSubmit;
+       fDeferredTail:TpvVulkanDeferredQueueSubmit;
+       fWaitPointHead:TpvVulkanTimelineWaitPoint;
+       fWaitPointTail:TpvVulkanTimelineWaitPoint;
+      public
+       constructor Create(const aQueue:TpvVulkanQueue);
+       destructor Destroy; override;
+     end;
+
+     TpvVulkanTimelineSemaphore=class(TpvVulkanObject)
+      private
+       fDevice:TpvVulkanDevice;
+       fSemaphoreHandle:TVkSemaphore;
+       fNative:boolean;
+       fHighestPast:TpvUInt64;
+       fHighestPending:TpvUInt64;
+       fPointsHead:TpvVulkanTimelinePoint;
+       fPointsTail:TpvVulkanTimelinePoint;
+      public
+       class var ForceEmulation:boolean;
+      public
+       constructor Create(const aDevice:TpvVulkanDevice;
+                          const aInitialValue:TpvUInt64=0);
+       destructor Destroy; override;
+       function GetCounterValue:TpvUInt64;
+       procedure Signal(const aValue:TpvUInt64);
+       function WaitFor(const aValue:TpvUInt64;const aTimeout:TpvUInt64=TpvUInt64(high(TpvUInt64))):TVkResult;
+      published
+       property Device:TpvVulkanDevice read fDevice;
+       property Handle:TVkSemaphore read fSemaphoreHandle;
+       property NativeTimelineSemaphore:boolean read fNative;
+     end;
+
+     TpvVulkanTimelineEmulationManager=class
+      private
+       fDevice:TpvVulkanDevice;
+       fLock:TPasMPCriticalSection;
+       fConditionVariableLock:TPasMPConditionVariableLock;
+       fConditionVariable:TPasMPConditionVariable;
+       fSemaphores:array of TpvVulkanTimelineSemaphore;
+       fSemaphoreCount:TpvInt32;
+       fFreePointFences:TpvVulkanTimelinePointFence;
+       fFreePointSemaphores:TpvVulkanTimelinePointSemaphore;
+       fFreePoints:TpvVulkanTimelinePoint;
+       fFreeWaitPoints:TpvVulkanTimelineWaitPoint;
+       fQueueDataArray:array of TpvVulkanTimelineQueueData;
+       fQueueDataCount:TpvInt32;
+       function GetPointFenceLocked:TpvVulkanTimelinePointFence;
+       function GetPointSemaphoreLocked:TpvVulkanTimelinePointSemaphore;
+       procedure PointFenceRefLocked(const aFence:TpvVulkanTimelinePointFence);
+       procedure PointFenceUnrefLocked(const aFence:TpvVulkanTimelinePointFence);
+       procedure PointSemaphoreRefLocked(const aSemaphore:TpvVulkanTimelinePointSemaphore);
+       procedure PointSemaphoreUnrefLocked(const aSemaphore:TpvVulkanTimelinePointSemaphore);
+       procedure WaitPointFreeLocked(const aWaitPoint:TpvVulkanTimelineWaitPoint);
+       procedure TimelinePointFreeLocked(const aPoint:TpvVulkanTimelinePoint);
+       function GarbageCollectWaitPointListLocked(var aHead,aTail:TpvVulkanTimelineWaitPoint):TVkResult;
+       function TimelineGarbageCollectLocked(const aSemaphore:TpvVulkanTimelineSemaphore):TVkResult;
+       function TimelineWaitLocked(const aSemaphores:array of TpvVulkanTimelineSemaphore;const aSerials:array of TpvUInt64;const aCount:TpvUInt32;const aWaitAll:boolean;const aAbsTimeoutNs:TpvUInt64):TVkResult;
+       function TimelineCreateWaitPointLocked(const aSemaphore:TpvVulkanTimelineSemaphore;const aSerial:TpvUInt64;const aFence:TpvVulkanTimelinePointFence;out aPointSemaphore:TpvVulkanTimelinePointSemaphore):TVkResult;
+       function TimelineCreatePointLocked(const aQueue:TpvVulkanQueue;const aSemaphore:TpvVulkanTimelineSemaphore;const aSerial:TpvUInt64;const aFence:TpvVulkanTimelinePointFence;out aPoint:TpvVulkanTimelinePoint):TVkResult;
+       function CloneSubmitInfo(const aQueue:TpvVulkanQueue;const aSubmitInfo:PVkSubmitInfo;const aTimelineSubmitInfo:PVkTimelineSemaphoreSubmitInfo;const aFence:TVkFence):TpvVulkanDeferredQueueSubmit;
+       function QueueSubmitDeferredLocked(const aQueueData:TpvVulkanTimelineQueueData;out aAdvance:TpvUInt32):TVkResult;
+       function DeviceSubmitDeferredLocked:TVkResult;
+       function GetQueueDataLocked(const aQueue:TpvVulkanQueue):TpvVulkanTimelineQueueData;
+      public
+       constructor Create(const aDevice:TpvVulkanDevice);
+       destructor Destroy; override;
+       procedure RegisterSemaphore(const aSemaphore:TpvVulkanTimelineSemaphore);
+       procedure UnregisterSemaphore(const aSemaphore:TpvVulkanTimelineSemaphore);
+       function FindSemaphore(const aHandle:TVkSemaphore):TpvVulkanTimelineSemaphore;
+       function ProcessQueueSubmit(const aQueue:TpvVulkanQueue;const aSubmitCount:TpvUInt32;const aSubmits:PVkSubmitInfo;const aFence:TVkFence):TVkResult;
+       function SignalSemaphore(const aSemaphore:TpvVulkanTimelineSemaphore;const aValue:TpvUInt64):TVkResult;
+       function WaitSemaphores(const aSemaphore:TpvVulkanTimelineSemaphore;const aValue:TpvUInt64;const aTimeout:TpvUInt64):TVkResult;
+       function GetCounterValue(const aSemaphore:TpvVulkanTimelineSemaphore;out aValue:TpvUInt64):TVkResult;
+     end;
+
      TpvVulkanQueue=class(TpvVulkanObject)
       private
        fDevice:TpvVulkanDevice;
@@ -1804,6 +2124,79 @@ type EpvVulkanException=class(Exception);
        procedure Reset;
        procedure QueueSubmit(const aCommandBuffer:TpvVulkanCommandBuffer;const aWaitDstStageFlags:TVkPipelineStageFlags;const aWaitSemaphore:TpvVulkanSemaphore=nil;const aSignalSemaphore:TpvVulkanSemaphore=nil);
        procedure SubmitQueued(const aFence:TpvVulkanFence=nil;const aDoWaitAndResetFence:boolean=true);
+     end;
+
+     // Multi-queue submit collector that batches SubmitInfos per queue and flushes
+     // them with one vkQueueSubmit call per queue. Automatically eliminates redundant
+     // semaphores between consecutive SubmitInfos on the same queue.
+     // Supports multiple wait/signal semaphores per entry, timeline semaphore pNext
+     // chains, and entries without command buffers (empty relay submits).
+     TpvVulkanQueueSubmitCollector=class(TpvVulkanObject)
+      public
+       type TSubmitEntry=record
+             CommandBufferHandle:TVkCommandBuffer;
+             WaitSemaphoreHandles:TVkSemaphoreArray;
+             WaitDstStageMasks:TVkPipelineStageFlagsArray;
+             WaitSemaphoreValues:TVkUInt64Array;
+             CountWaitSemaphores:TpvInt32;
+             SignalSemaphoreHandles:TVkSemaphoreArray;
+             SignalSemaphoreValues:TVkUInt64Array;
+             CountSignalSemaphores:TpvInt32;
+             HasTimelineValues:boolean;
+            end;
+            PSubmitEntry=^TSubmitEntry;
+            TSubmitEntries=array of TSubmitEntry;
+            TQueueBatch=record
+             Queue:TpvVulkanQueue;
+             Entries:TSubmitEntries;
+             CountEntries:TpvInt32;
+             LastSignalSemaphoreHandles:TVkSemaphoreArray;
+             LastSignalSemaphoreValues:TVkUInt64Array;
+             CountLastSignalSemaphores:TpvInt32;
+            end;
+            PQueueBatch=^TQueueBatch;
+            TQueueBatches=array of TQueueBatch;
+      private
+       fBatches:TQueueBatches;
+       fCountBatches:TpvInt32;
+       fLastSignalSemaphore:TpvVulkanSemaphore;
+       // Temporary flat arrays for Flush, pre-allocated to avoid per-flush allocation
+       fFlushSubmitInfos:TVkSubmitInfoArray;
+       fFlushTimelineSemaphoreSubmitInfos:TVkTimelineSemaphoreSubmitInfoArray;
+       fFlushCommandBuffers:TVkCommandBufferArray;
+       fFlushWaitSemaphores:TVkSemaphoreArray;
+       fFlushWaitDstStageMasks:TVkPipelineStageFlagsArray;
+       fFlushWaitSemaphoreValues:TVkUInt64Array;
+       fFlushSignalSemaphores:TVkSemaphoreArray;
+       fFlushSignalSemaphoreValues:TVkUInt64Array;
+       function FindOrCreateBatch(const aQueue:TpvVulkanQueue):PQueueBatch;
+      public
+       constructor Create; reintroduce;
+       destructor Destroy; override;
+       procedure Reset;
+       // Simple collect: single optional wait/signal semaphore, TpvVulkanSemaphore objects.
+       // aCommandBuffer may be nil for empty relay submits.
+       procedure Collect(const aQueue:TpvVulkanQueue;
+                         const aCommandBuffer:TpvVulkanCommandBuffer;
+                         const aWaitSemaphore:TpvVulkanSemaphore;
+                         const aWaitDstStageMask:TVkPipelineStageFlags;
+                         const aSignalSemaphore:TpvVulkanSemaphore); overload;
+       // Full collect: multiple wait/signal semaphores as raw Vulkan handles with
+       // optional timeline semaphore values. Pass nil for aWaitSemaphoreValues or
+       // aSignalSemaphoreValues when all semaphores are binary.
+       procedure Collect(const aQueue:TpvVulkanQueue;
+                         const aCommandBufferHandle:TVkCommandBuffer;
+                         const aCountWaitSemaphores:TpvInt32;
+                         const aWaitSemaphoreHandles:PVkSemaphore;
+                         const aWaitDstStageMasks:PVkPipelineStageFlags;
+                         const aWaitSemaphoreValues:PVkUInt64;
+                         const aCountSignalSemaphores:TpvInt32;
+                         const aSignalSemaphoreHandles:PVkSemaphore;
+                         const aSignalSemaphoreValues:PVkUInt64); overload;
+       procedure Flush(const aFence:TpvVulkanFence=nil);
+      public
+       property LastSignalSemaphore:TpvVulkanSemaphore read fLastSignalSemaphore;
+       property CountBatches:TpvInt32 read fCountBatches;
      end;
 
      TpvVulkanRenderPassAttachmentDescriptions=array of TVkAttachmentDescription;
@@ -2042,6 +2435,8 @@ type EpvVulkanException=class(Exception);
        property ImageView:TpvVulkanImageView read fImageView write fImageView;
      end;
 
+     TpvVulkanImageDynamicArray=array of TpvVulkanImage;
+
      TpvVulkanImageView=class(TpvVulkanObject)
       private
        fDevice:TpvVulkanDevice;
@@ -2072,6 +2467,8 @@ type EpvVulkanException=class(Exception);
        property Handle:TVkImageView read fImageViewHandle;
        property Image:TpvVulkanImage read fImage write fImage;
      end;
+
+     TpvVulkanImageViewDynamicArray=array of TpvVulkanImageView;
 
      TpvVulkanFrameBufferAttachment=class(TpvVulkanObject)
       private
@@ -2680,6 +3077,8 @@ type EpvVulkanException=class(Exception);
        property Handle:TVkDescriptorPool read fDescriptorPoolHandle;
      end;
 
+     TpvVulkanDescriptorPoolDynamicArray=array of TpvVulkanDescriptorPool;
+
      TpvVulkanDescriptorSetLayoutBinding=class(TpvVulkanObject)
       private
        fDescriptorSetLayoutBinding:TVkDescriptorSetLayoutBinding;
@@ -2722,6 +3121,9 @@ type EpvVulkanException=class(Exception);
        fDescriptorSetLayoutBindingList:TpvVulkanDescriptorSetLayoutBindingList;
        fDescriptorSetLayoutBindingArray:TVkDescriptorSetLayoutBindingArray;
        fExtendedBinding:boolean;
+       fHasVariableDescriptorCountBinding:boolean;
+       fVariableDescriptorBinding:TpvUInt32;
+       fVariableDescriptorUpperBound:TpvUInt32;
       public
        constructor Create(const aDevice:TpvVulkanDevice;const aFlags:TVkDescriptorSetLayoutCreateFlags=0;const aExtendedBinding:boolean=false);
        destructor Destroy; override;
@@ -2735,6 +3137,9 @@ type EpvVulkanException=class(Exception);
        property Device:TpvVulkanDevice read fDevice;
        property Handle:TVkDescriptorSetLayout read fDescriptorSetLayoutHandle;
        property DescriptorSetLayoutBindingList:TpvVulkanDescriptorSetLayoutBindingList read fDescriptorSetLayoutBindingList;
+       property HasVariableDescriptorCountBinding:boolean read fHasVariableDescriptorCountBinding;
+       property VariableDescriptorBinding:TpvUInt32 read fVariableDescriptorBinding;
+       property VariableDescriptorUpperBound:TpvUInt32 read fVariableDescriptorUpperBound;
      end;
 
      PpvVulkanDescriptorSetWriteDescriptorSetMetaData=^TpvVulkanDescriptorSetWriteDescriptorSetMetaData;
@@ -2757,7 +3162,6 @@ type EpvVulkanException=class(Exception);
        fDescriptorPool:TpvVulkanDescriptorPool;
        fDescriptorSetLayout:TpvVulkanDescriptorSetLayout;
        fDescriptorSetHandle:TVkDescriptorSet;
-       fDescriptorSetAllocateInfo:TVkDescriptorSetAllocateInfo;
        fCopyDescriptorSetQueue:TVkCopyDescriptorSetArray;
        fCopyDescriptorSetQueueSize:TpvInt32;
        fWriteDescriptorSetQueue:TVkWriteDescriptorSetArray;
@@ -2767,10 +3171,17 @@ type EpvVulkanException=class(Exception);
        fWriteDescriptorSetAccelerationStructureKHRQueueSize:TpvInt32;
       public
        constructor Create(const aDescriptorPool:TpvVulkanDescriptorPool;
-                          const aDescriptorSetLayout:TpvVulkanDescriptorSetLayout);
+                          const aDescriptorSetLayout:TpvVulkanDescriptorSetLayout); overload;
+       constructor Create(const aDescriptorPool:TpvVulkanDescriptorPool;
+                          const aDescriptorSetLayout:TpvVulkanDescriptorSetLayout;
+                          const aVariableDescriptorCount:TpvUInt32;
+                          const aExtraNext:Pointer=nil); overload;
        destructor Destroy; override;
        class function Allocate(const aDescriptorPool:TpvVulkanDescriptorPool;
-                               const aDescriptorSetLayouts:array of TpvVulkanDescriptorSetLayout):TpvVulkanDescriptorSetArray;
+                               const aDescriptorSetLayouts:array of TpvVulkanDescriptorSetLayout):TpvVulkanDescriptorSetArray; overload;
+       class function Allocate(const aDescriptorPool:TpvVulkanDescriptorPool;
+                               const aDescriptorSetLayouts:array of TpvVulkanDescriptorSetLayout;
+                               const aVariableDescriptorCounts:array of TpvUInt32):TpvVulkanDescriptorSetArray; overload;
        procedure CopyFromDescriptorSet(const aSourceDescriptorSet:TpvVulkanDescriptorSet;
                                        const aSourceBinding:TpvUInt32;
                                        const aSourceArrayElement:TpvUInt32;
@@ -2802,6 +3213,8 @@ type EpvVulkanException=class(Exception);
        property DescriptorPool:TpvVulkanDescriptorPool read fDescriptorPool;
        property DescriptorSetLayout:TpvVulkanDescriptorSetLayout read fDescriptorSetLayout;
      end;
+
+     TpvVulkanDescriptorSetDynamicArray=array of TpvVulkanDescriptorSet;
 
      TpvVulkanPipelineLayout=class(TpvVulkanObject)
       private
@@ -3528,6 +3941,7 @@ type EpvVulkanException=class(Exception);
        fPersistent:Boolean;
        procedure UpdateSRGBFormat;
        procedure SetSampler(const aSampler:TpvVulkanSampler);
+       function GetHasKTXTexture:boolean;
       public
        constructor Create; overload;
        constructor Create(const aDevice:TpvVulkanDevice;const aExternal:boolean=false;const aName:TpvUTF8String=''); overload;
@@ -3909,6 +4323,7 @@ type EpvVulkanException=class(Exception);
        property BorderColor:TVkBorderColor read fBorderColor write fBorderColor;
        property MaxAnisotropy:double read fMaxAnisotropy write fMaxAnisotropy;
        property DoFreeDataAfterFinish:boolean read fDoFreeDataAfterFinish write fDoFreeDataAfterFinish;
+       property HasKTXTexture:boolean read GetHasKTXTexture;
        property Name:TpvUTF8String read fName write fName;
      end;
 
@@ -3986,7 +4401,20 @@ uses PasVulkan.Utils,
      PasVulkan.Image.Utils,
      PasVulkan.Streams,
      PasVulkan.Compression.Deflate,
+     PasVulkan.HighResolutionTimer,
      PasVulkan.NVIDIA.AfterMath;
+
+{$ifdef PasVulkanQueueDiag}
+var QueueDiagTimer:TpvHighResolutionTimer=nil;
+
+function QueueDiagTimestampUS:TpvInt64;
+begin
+ if not assigned(QueueDiagTimer) then begin
+  QueueDiagTimer:=TpvHighResolutionTimer.Create;
+ end;
+ result:=QueueDiagTimer.ToMicroseconds(QueueDiagTimer.GetTime);
+end;
+{$endif}
 
 const ktxNilLibHandle={$ifdef fpc}NilHandle{$else}THandle(0){$endif};
 
@@ -4308,6 +4736,8 @@ var ktxTexture_CreateFromMemory:TktxTexture_CreateFromMemory=nil;
     ktxLoadLock:TPasMPInt32=0;
 
     ktxVulkanDevice:TpvVulkanDevice=nil;
+
+    BreadcrumbVulkanDevice:TpvVulkanDevice=nil;
 
     KTXTextureName:TpvUTF8String='KTX2Texture';
 
@@ -7784,6 +8214,14 @@ var s:TpvUTF8String;
 {$ifend}
 begin
  if ResultCode<>VK_SUCCESS then begin
+  if (ResultCode=VK_ERROR_DEVICE_LOST) and
+     assigned(BreadcrumbVulkanDevice) and
+     assigned(BreadcrumbVulkanDevice.fBreadcrumbBuffer) and
+     BreadcrumbVulkanDevice.fBreadcrumbBuffer.fDirectTrace and
+    assigned(BreadcrumbVulkanDevice.fUniversalQueue) then begin
+   VulkanDebugLn('VK_ERROR_DEVICE_LOST detected - dumping breadcrumb state:');
+   BreadcrumbVulkanDevice.fBreadcrumbBuffer.TraceState(BreadcrumbVulkanDevice.fUniversalQueue.fQueueHandle);
+  end;
 {$if (defined(fpc) and defined(android)) and not defined(Release)}
   s:='Vulkan error ['+IntToStr(TpvInt64(ResultCode))+']: '+VulkanErrorToString(ResultCode);
   __android_log_write(ANDROID_LOG_ERROR,'PasVulkanApplication',PAnsiChar(s));
@@ -8227,6 +8665,8 @@ begin
 
  fShaderPrintfDebugging:=false;
 
+ fSynchronizationValidation:=false;
+
  fExtDebugUtilsEnabled:=false;
 
  fPhysicalDevices:=TpvVulkanPhysicalDeviceList.Create;
@@ -8449,7 +8889,7 @@ var i:TpvInt32;
     InstanceCommands:PVulkanCommands;
     InstanceCreateInfo:TVkInstanceCreateInfo;
     ValidationFeatures:TVkValidationFeaturesEXT;
-    ValidationFeatureEnable:array[0..0] of TVkValidationFeatureEnableEXT;
+    ValidationFeatureEnable:array[0..1] of TVkValidationFeatureEnableEXT;
 begin
 
  if fInstanceHandle=VK_NULL_INSTANCE then begin
@@ -8487,11 +8927,18 @@ begin
    InstanceCreateInfo.ppEnabledExtensionNames:=@fRawEnabledExtensionNameStrings[0];
   end;
   InstanceCreateInfo.pApplicationInfo:=@fApplicationInfo;
-  if fShaderPrintfDebugging then begin
+  if fShaderPrintfDebugging or fSynchronizationValidation then begin
    FillChar(ValidationFeatures,SizeOf(TVkValidationFeaturesEXT),#0);
    ValidationFeatures.sType:=VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
-   ValidationFeatures.enabledValidationFeatureCount:=1;
-   ValidationFeatureEnable[0]:=VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT;
+   ValidationFeatures.enabledValidationFeatureCount:=0;
+   if fShaderPrintfDebugging then begin
+    ValidationFeatureEnable[ValidationFeatures.enabledValidationFeatureCount]:=VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT;
+    inc(ValidationFeatures.enabledValidationFeatureCount);
+   end;
+   if fSynchronizationValidation then begin
+    ValidationFeatureEnable[ValidationFeatures.enabledValidationFeatureCount]:=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;
+    inc(ValidationFeatures.enabledValidationFeatureCount);
+   end;
    ValidationFeatures.pEnabledValidationFeatures:=@ValidationFeatureEnable;
    ValidationFeatures.pNext:=InstanceCreateInfo.pNext;
    InstanceCreateInfo.pNext:=@ValidationFeatures;
@@ -8930,6 +9377,52 @@ begin
    fPresentWaitFeatures.pNext:=fFeatures2KHR.pNext;
    fFeatures2KHR.pNext:=@fPresentWaitFeatures;
   end;
+ end;
+
+ begin
+  FillChar(fPresentTimingFeatures,SizeOf(TVkPhysicalDevicePresentTimingFeaturesEXT),#0);
+  fPresentTimingFeatures.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_TIMING_FEATURES_EXT;
+  if AvailableExtensionNames.IndexOf(VK_EXT_PRESENT_TIMING_EXTENSION_NAME)>=0 then begin
+   fPresentTimingFeatures.pNext:=fFeatures2KHR.pNext;
+   fFeatures2KHR.pNext:=@fPresentTimingFeatures;
+  end;
+
+  begin
+   FillChar(fPresentID2Features,SizeOf(TVkPhysicalDevicePresentId2FeaturesKHR),#0);
+   fPresentID2Features.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_2_FEATURES_KHR;
+   if AvailableExtensionNames.IndexOf(VK_KHR_PRESENT_ID_2_EXTENSION_NAME)>=0 then begin
+    fPresentID2Features.pNext:=fFeatures2KHR.pNext;
+    fFeatures2KHR.pNext:=@fPresentID2Features;
+   end;
+  end;
+
+  begin
+   FillChar(fPresentWait2Features,SizeOf(TVkPhysicalDevicePresentWait2FeaturesKHR),#0);
+   fPresentWait2Features.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_2_FEATURES_KHR;
+   if AvailableExtensionNames.IndexOf(VK_KHR_PRESENT_WAIT_2_EXTENSION_NAME)>=0 then begin
+    fPresentWait2Features.pNext:=fFeatures2KHR.pNext;
+    fFeatures2KHR.pNext:=@fPresentWait2Features;
+   end;
+  end;
+
+  begin
+   FillChar(fSwapchainMaintenance1Features,SizeOf(TVkPhysicalDeviceSwapchainMaintenance1FeaturesKHR),#0);
+   fSwapchainMaintenance1Features.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
+   if AvailableExtensionNames.IndexOf(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME)>=0 then begin
+    fSwapchainMaintenance1Features.pNext:=fFeatures2KHR.pNext;
+    fFeatures2KHR.pNext:=@fSwapchainMaintenance1Features;
+   end;
+  end;
+
+  begin
+   FillChar(fAntiLagFeatures,SizeOf(TVkPhysicalDeviceAntiLagFeaturesAMD),#0);
+   fAntiLagFeatures.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ANTI_LAG_FEATURES_AMD;
+   if AvailableExtensionNames.IndexOf(VK_AMD_ANTI_LAG_EXTENSION_NAME)>=0 then begin
+    fAntiLagFeatures.pNext:=fFeatures2KHR.pNext;
+    fFeatures2KHR.pNext:=@fAntiLagFeatures;
+   end;
+  end;
+  
  end;
 
  if ((fInstance.APIVersion and VK_API_VERSION_WITHOUT_PATCH_MASK)=VK_API_VERSION_1_0) and
@@ -10139,6 +10632,577 @@ begin
  end;
 end;
 
+{ TpvVulkanBreadcrumbBuffer }
+
+function TpvVulkanBreadcrumbBuffer.GetBreadcrumbTypeString(const aType:TpvVulkanBreadcrumbType):TpvRawByteString;
+begin
+ case aType of
+  TpvVulkanBreadcrumbType.Dispatch:begin
+   result:='Dispatch';
+  end;
+  TpvVulkanBreadcrumbType.DispatchIndirect:begin
+   result:='DispatchIndirect';
+  end;
+  TpvVulkanBreadcrumbType.Draw:begin
+   result:='Draw';
+  end;
+  TpvVulkanBreadcrumbType.DrawIndirectCount:begin
+   result:='DrawIndirectCount';
+  end;
+  TpvVulkanBreadcrumbType.DrawIndirect:begin
+   result:='DrawIndirect';
+  end;
+  TpvVulkanBreadcrumbType.DrawIndexedIndirectCount:begin
+   result:='DrawIndexedIndirectCount';
+  end;
+  TpvVulkanBreadcrumbType.DrawIndexedIndirect:begin
+   result:='DrawIndexedIndirect';
+  end;
+  TpvVulkanBreadcrumbType.DrawIndexed:begin
+   result:='DrawIndexed';
+  end;
+  TpvVulkanBreadcrumbType.FillBuffer:begin
+   result:='FillBuffer';
+  end;
+  TpvVulkanBreadcrumbType.CopyBuffer:begin
+   result:='CopyBuffer';
+  end;
+  else begin
+   result:='<invalid>';
+  end;
+ end;
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.FormatZoneId(var aTarget:TpvRawByteString;const aZoneIndex:TpvInt32);
+begin
+ if (aZoneIndex>=0) and (aZoneIndex<fZoneCount) then begin
+  if fZones[aZoneIndex].ParentZoneIndex>=0 then begin
+   FormatZoneId(aTarget,fZones[aZoneIndex].ParentZoneIndex);
+   aTarget:=aTarget+'/';
+  end;
+  aTarget:=aTarget+fZones[aZoneIndex].Name;
+ end;
+end;
+
+function TpvVulkanBreadcrumbBuffer.FindMarkerBufferMemoryTypeIndex(const aMemoryTypeBits:TpvUInt32):TpvInt32;
+var MemoryProperties:TVkPhysicalDeviceMemoryProperties;
+    Index:TpvInt32;
+    TypeMask,ExpectedFlags:TpvUInt32;
+begin
+ result:=-1;
+ fDevice.fInstance.fVulkan.GetPhysicalDeviceMemoryProperties(fDevice.fPhysicalDevice.fPhysicalDeviceHandle,@MemoryProperties);
+ ExpectedFlags:=TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) or TVkMemoryPropertyFlags(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+ for Index:=0 to TpvInt32(MemoryProperties.memoryTypeCount)-1 do begin
+  TypeMask:=TpvUInt32(1) shl Index;
+  if ((aMemoryTypeBits and TypeMask)<>0) and ((MemoryProperties.memoryTypes[Index].propertyFlags and ExpectedFlags)=ExpectedFlags) then begin
+   result:=Index;
+   exit;
+  end;
+ end;
+end;
+
+constructor TpvVulkanBreadcrumbBuffer.Create(const aDevice:TpvVulkanDevice;const aTechnique:TpvVulkanBreadcrumbTechnique);
+var MarkerBufferSize:TVkDeviceSize;
+    BufferCreateInfo:TVkBufferCreateInfo;
+    MemoryRequirements:TVkMemoryRequirements;
+    AllocationInfo:TVkMemoryAllocateInfo;
+    MappedPointer:PVkVoid;
+    MemoryTypeIndex:TpvInt32;
+begin
+ inherited Create;
+
+ fDevice:=aDevice;
+ fTechnique:=aTechnique;
+
+ fLock:=TPasMPCriticalSection.Create;
+
+ fMaxBreadcrumbCount:=65536;
+ fZoneCount:=0;
+ fZoneStackCount:=0;
+ fBreadcrumbCount:=0;
+ fCurrentBreadcrumbIndex:=-1;
+ fFrameID:=0;
+ fMarkerToken:=0;
+ fRecordingEnabled:=true;
+ fInsideRenderPass:=false;
+ fBuffer:=VK_NULL_HANDLE;
+ fBufferMemory:=VK_NULL_HANDLE;
+ fMappedData:=nil;
+ fMappedDataSize:=0;
+ fDirectTrace:=true;
+
+ SetLength(fZones,128);
+ SetLength(fZoneStack,128);
+ SetLength(fBreadcrumbs,fMaxBreadcrumbCount);
+
+ if (fTechnique=TpvVulkanBreadcrumbTechnique.Manual) or (fTechnique=TpvVulkanBreadcrumbTechnique.AMDMarker) then begin
+
+  MarkerBufferSize:=TVkDeviceSize(fMaxBreadcrumbCount)*2*SizeOf(TpvUInt32);
+
+  FillChar(BufferCreateInfo,SizeOf(TVkBufferCreateInfo),#0);
+  BufferCreateInfo.sType:=VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  BufferCreateInfo.size:=MarkerBufferSize;
+  BufferCreateInfo.usage:=TVkBufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  BufferCreateInfo.sharingMode:=VK_SHARING_MODE_EXCLUSIVE;
+
+  VulkanCheckResult(fDevice.fDeviceVulkan.CreateBuffer(fDevice.fDeviceHandle,@BufferCreateInfo,fDevice.fAllocationCallbacks,@fBuffer));
+
+  FillChar(MemoryRequirements,SizeOf(TVkMemoryRequirements),#0);
+  fDevice.fDeviceVulkan.GetBufferMemoryRequirements(fDevice.fDeviceHandle,fBuffer,@MemoryRequirements);
+
+  MemoryTypeIndex:=FindMarkerBufferMemoryTypeIndex(MemoryRequirements.memoryTypeBits);
+  if MemoryTypeIndex<0 then begin
+   raise EpvVulkanException.Create('Could not find suitable memory type for breadcrumb marker buffer');
+  end;
+
+  FillChar(AllocationInfo,SizeOf(TVkMemoryAllocateInfo),#0);
+  AllocationInfo.sType:=VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  AllocationInfo.allocationSize:=MemoryRequirements.size;
+  AllocationInfo.memoryTypeIndex:=TpvUInt32(MemoryTypeIndex);
+
+  VulkanCheckResult(fDevice.fDeviceVulkan.AllocateMemory(fDevice.fDeviceHandle,@AllocationInfo,fDevice.fAllocationCallbacks,@fBufferMemory));
+
+  MappedPointer:=nil;
+  VulkanCheckResult(fDevice.fDeviceVulkan.MapMemory(fDevice.fDeviceHandle,fBufferMemory,0,MarkerBufferSize,0,@MappedPointer));
+  fMappedData:=MappedPointer;
+  fMappedDataSize:=MarkerBufferSize;
+
+  VulkanCheckResult(fDevice.fDeviceVulkan.BindBufferMemory(fDevice.fDeviceHandle,fBuffer,fBufferMemory,0));
+
+ end;
+
+end;
+
+destructor TpvVulkanBreadcrumbBuffer.Destroy;
+begin
+ if (fTechnique=TpvVulkanBreadcrumbTechnique.AMDMarker) or (fTechnique=TpvVulkanBreadcrumbTechnique.Manual) then begin
+  if assigned(fMappedData) then begin
+   fDevice.fDeviceVulkan.UnmapMemory(fDevice.fDeviceHandle,fBufferMemory);
+   fMappedData:=nil;
+  end;
+  if fBufferMemory<>VK_NULL_HANDLE then begin
+   fDevice.fDeviceVulkan.FreeMemory(fDevice.fDeviceHandle,fBufferMemory,fDevice.fAllocationCallbacks);
+   fBufferMemory:=VK_NULL_HANDLE;
+  end;
+  if fBuffer<>VK_NULL_HANDLE then begin
+   fDevice.fDeviceVulkan.DestroyBuffer(fDevice.fDeviceHandle,fBuffer,fDevice.fAllocationCallbacks);
+   fBuffer:=VK_NULL_HANDLE;
+  end;
+ end;
+ fZones:=nil;
+ fZoneStack:=nil;
+ fBreadcrumbs:=nil;
+ FreeAndNil(fLock);
+ inherited Destroy;
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.ResetFrame(const aFrameID:TpvUInt64);
+var MarkerValue:TpvUInt32;
+    Index:TpvInt32;
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+
+ fLock.Acquire;
+ try
+
+  fZoneCount:=0;
+  fBreadcrumbCount:=0;
+  fCurrentBreadcrumbIndex:=-1;
+  fZoneStackCount:=0;
+
+  fFrameID:=aFrameId;
+  fMarkerToken:=TpvUInt16(aFrameId and $ffff);
+
+  if assigned(fMappedData) then begin
+   MarkerValue:=TpvUInt32(fMarkerToken) shl 16;
+   for Index:=0 to TpvInt32((fMappedDataSize div SizeOf(TpvUInt32))-1) do begin
+    PpvUInt32Array(fMappedData)^[Index]:=MarkerValue;
+   end;
+  end;
+
+ finally
+  fLock.Release;
+ end;
+
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.BeginFrame(const aCommandBuffer:TVkCommandBuffer;const aFrameID:TpvUInt64);
+var MarkerValue:TpvUInt32;
+    Barrier:TVkMemoryBarrier;
+    Index:TpvInt32;
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+
+ fLock.Acquire;
+ try
+
+  fZoneCount:=0;
+  fBreadcrumbCount:=0;
+  fCurrentBreadcrumbIndex:=-1;
+  fZoneStackCount:=0;
+
+  fFrameID:=aFrameID;
+  fMarkerToken:=TpvUInt16(aFrameID and $ffff);
+
+  if assigned(fMappedData) and (fTechnique<>TpvVulkanBreadcrumbTechnique.Manual) then begin
+   MarkerValue:=TpvUInt32(fMarkerToken) shl 16;
+   for Index:=0 to TpvInt32((fMappedDataSize div SizeOf(TpvUInt32))-1) do begin
+    PpvUInt32Array(fMappedData)^[Index]:=MarkerValue;
+   end;
+  end;
+
+  FillChar(Barrier,SizeOf(TVkMemoryBarrier),#0);
+  Barrier.sType:=VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+  Barrier.srcAccessMask:=TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT);
+  Barrier.dstAccessMask:=TVkAccessFlags(VK_ACCESS_TRANSFER_WRITE_BIT);
+  fDevice.fDeviceVulkan.CmdPipelineBarrier(aCommandBuffer,
+                                           TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
+                                           TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
+                                           0,
+                                           1,@Barrier,
+                                           0,nil,
+                                           0,nil);
+
+ finally
+  fLock.Release;
+ end;
+
+ PushZone('Frame#'+IntToStr(aFrameID));
+
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.EndFrame;
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+ PopZone;
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.PushZone(const aName:TpvRawByteString);
+var ZoneIndex:TpvInt32;
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+
+ fLock.Acquire;
+ try
+
+  if fZoneCount>=length(fZones) then begin
+   SetLength(fZones,(fZoneCount+1)*2);
+  end;
+
+  ZoneIndex:=fZoneCount;
+  inc(fZoneCount);
+
+  if fZoneStackCount>0 then begin
+   fZones[ZoneIndex].ParentZoneIndex:=fZoneStack[fZoneStackCount-1];
+  end else begin
+   fZones[ZoneIndex].ParentZoneIndex:=-1;
+  end;
+  fZones[ZoneIndex].Name:=aName;
+
+  if fZoneStackCount>=length(fZoneStack) then begin
+   SetLength(fZoneStack,(fZoneStackCount+1)*2);
+  end;
+
+  fZoneStack[fZoneStackCount]:=ZoneIndex;
+  inc(fZoneStackCount);
+
+ finally
+  fLock.Release;
+ end;
+
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.PopZone;
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+ fLock.Acquire;
+ try
+  if fZoneStackCount>0 then begin
+   dec(fZoneStackCount);
+  end;
+ finally
+  fLock.Release;
+ end;
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.ToggleRecording(const aEnable:boolean);
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+ fLock.Acquire;
+ try
+  fRecordingEnabled:=aEnable;
+ finally
+  fLock.Release;
+ end;   
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.RenderPassHint(const aEnterRenderPass:boolean);
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+ fLock.Acquire;
+ try
+  fInsideRenderPass:=aEnterRenderPass;
+ finally
+  fLock.Release;
+ end;
+end;
+
+function TpvVulkanBreadcrumbBuffer.BeginBreadcrumb(const aCommandBuffer:TVkCommandBuffer;const aType:TpvVulkanBreadcrumbType;const aCommandInfo:TpvRawByteString):boolean;
+var BreadcrumbIndex:TpvInt32;
+    StartValue:TpvUInt32;
+    Offset:TVkDeviceSize;
+begin
+
+ result:=false;
+
+ if not assigned(self) then begin
+  exit;
+ end;
+
+ fLock.Acquire;
+ try
+
+  if (fCurrentBreadcrumbIndex<0) and
+     (fBreadcrumbCount<fMaxBreadcrumbCount) and
+     fRecordingEnabled and
+     ((fTechnique<>TpvVulkanBreadcrumbTechnique.Manual) or not fInsideRenderPass) and
+     (fZoneCount>0) then begin
+   
+   BreadcrumbIndex:=fBreadcrumbCount;
+   inc(fBreadcrumbCount);
+
+   fBreadcrumbs[BreadcrumbIndex].ZoneIndex:=TpvUInt32(fZoneCount-1);
+   fBreadcrumbs[BreadcrumbIndex].BreadcrumbType:=aType;
+   fBreadcrumbs[BreadcrumbIndex].CommandInfo:=aCommandInfo;
+
+   fCurrentBreadcrumbIndex:=BreadcrumbIndex;
+
+   StartValue:=(TpvUInt32(fMarkerToken) shl 16) or TpvUInt32(1);
+
+   case fTechnique of
+    TpvVulkanBreadcrumbTechnique.AMDMarker:begin
+     Offset:=((TVkDeviceSize(BreadcrumbIndex) shl 1) or 0) shl 2;
+     fDevice.fDeviceVulkan.CmdWriteBufferMarkerAMD(aCommandBuffer,
+                                                   TVkPipelineStageFlagBits(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT),
+                                                   fBuffer,
+                                                   Offset,
+                                                   StartValue);
+    end;
+    TpvVulkanBreadcrumbTechnique.Manual:begin
+     if fDevice.fBreadcrumbForceSyncManual then begin
+      fDevice.fDeviceVulkan.CmdPipelineBarrier(aCommandBuffer,
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
+                                               0,
+                                               0,nil,
+                                               0,nil,
+                                               0,nil);
+     end;
+     Offset:=((TVkDeviceSize(BreadcrumbIndex) shl 1) or 0) shl 2;
+     fDevice.fDeviceVulkan.CmdFillBuffer(aCommandBuffer,
+                                         fBuffer,
+                                         Offset,
+                                         SizeOf(TpvUInt32),
+                                         StartValue);
+     if fDevice.fBreadcrumbForceSyncManual then begin
+      fDevice.fDeviceVulkan.CmdPipelineBarrier(aCommandBuffer,
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT),
+                                               0,
+                                               0,nil,
+                                               0,nil,
+                                               0,nil);
+     end;
+    end;
+    TpvVulkanBreadcrumbTechnique.NVCheckpoint:begin
+     fDevice.fDeviceVulkan.CmdSetCheckpointNV(aCommandBuffer,pointer(TpvPtrUInt(BreadcrumbIndex)));
+    end;
+   end;
+
+   result:=true;
+
+  end; 
+
+ finally
+  fLock.Release;
+ end;
+
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.EndBreadcrumb(const aCommandBuffer:TVkCommandBuffer);
+var BreadcrumbIndex:TpvInt32;
+    EndValue:TpvUInt32;
+    Offset:TVkDeviceSize;
+begin
+
+ if not assigned(self) then begin
+  exit;
+ end;
+
+ fLock.Acquire;
+ try
+
+  if fCurrentBreadcrumbIndex>=0 then begin
+
+   BreadcrumbIndex:=fCurrentBreadcrumbIndex;
+
+   EndValue:=(TpvUInt32(fMarkerToken) shl 16) or TpvUInt32(1);
+
+   case fTechnique of
+    TpvVulkanBreadcrumbTechnique.AMDMarker:begin
+     Offset:=((TVkDeviceSize(BreadcrumbIndex) shl 1) or 1) shl 2;
+     fDevice.fDeviceVulkan.CmdWriteBufferMarkerAMD(aCommandBuffer,
+                                                   TVkPipelineStageFlagBits(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
+                                                   fBuffer,
+                                                   Offset,
+                                                   EndValue);
+    end;
+    TpvVulkanBreadcrumbTechnique.Manual:begin
+     if fDevice.fBreadcrumbForceSyncManual then begin
+      fDevice.fDeviceVulkan.CmdPipelineBarrier(aCommandBuffer,
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT),
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
+                                               0,
+                                               0,nil,
+                                               0,nil,
+                                               0,nil);
+     end;
+     Offset:=((TVkDeviceSize(BreadcrumbIndex) shl 1) or 1) shl 2;
+     fDevice.fDeviceVulkan.CmdFillBuffer(aCommandBuffer,
+                                         fBuffer,
+                                         Offset,
+                                         SizeOf(TpvUInt32),
+                                         EndValue);
+     if fDevice.fBreadcrumbForceSyncManual then begin
+      fDevice.fDeviceVulkan.CmdPipelineBarrier(aCommandBuffer,
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_TRANSFER_BIT),
+                                               TVkPipelineStageFlags(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT),
+                                               0,
+                                               0,nil,
+                                               0,nil,
+                                               0,nil);
+     end;
+    end;
+    TpvVulkanBreadcrumbTechnique.NVCheckpoint:begin
+     // NV checkpoints don't need an end marker
+    end;
+   end;
+
+   fCurrentBreadcrumbIndex:=-1;
+
+  end; 
+
+ finally
+  fLock.Release;
+ end;
+
+end;
+
+procedure TpvVulkanBreadcrumbBuffer.TraceState(const aQueue:TVkQueue);
+var BreadcrumbIndex:TpvInt32;
+    MarkerIndex:TpvInt32;
+    MarkerValueStart,MarkerValueEnd:TpvUInt32;
+    MarkerStateStart,MarkerStateEnd:TpvUInt32;
+    ZoneId:TpvRawByteString;
+    CheckpointDataCount:TpvUInt32;
+    CheckpointData:array[0..63] of TVkCheckpointDataNV;
+    CheckpointDataIndex:TpvInt32;
+    LastFailedBreadcrumbIndex:TpvInt32;
+    FoundBreadcrumbReport:boolean;
+    CheckpointBreadcrumbIndex:TpvUInt32;
+begin
+ if not assigned(self) then begin
+  exit;
+ end;
+
+ fLock.Acquire;
+ try
+
+  case fTechnique of
+   TpvVulkanBreadcrumbTechnique.AMDMarker,
+   TpvVulkanBreadcrumbTechnique.Manual:begin
+    if assigned(fMappedData) then begin
+     for BreadcrumbIndex:=0 to fBreadcrumbCount-1 do begin
+      MarkerIndex:=BreadcrumbIndex shl 1;
+      MarkerValueStart:=PpvUInt32Array(fMappedData)^[MarkerIndex or 0];
+      MarkerValueEnd:=PpvUInt32Array(fMappedData)^[MarkerIndex or 1];
+      MarkerStateStart:=MarkerValueStart and $ffff;
+      MarkerStateEnd:=MarkerValueEnd and $ffff;
+      if MarkerStateEnd=1 then begin
+       // Completed successfully
+      end else if MarkerStateStart=1 then begin
+       ZoneId:='';
+       FormatZoneId(ZoneId,fBreadcrumbs[BreadcrumbIndex].ZoneIndex);
+       VulkanDebugLn('Breadcrumb '+IntToStr(BreadcrumbIndex)+': started execution and did not finish. Zone:'+ZoneId+' Type:'+GetBreadcrumbTypeString(fBreadcrumbs[BreadcrumbIndex].BreadcrumbType)+' Info:'+fBreadcrumbs[BreadcrumbIndex].CommandInfo);
+      end else if MarkerStateStart=0 then begin
+       // Not yet started
+      end;
+     end;
+    end;
+   end;
+   TpvVulkanBreadcrumbTechnique.NVCheckpoint:begin
+    CheckpointDataCount:=0;
+    fDevice.fDeviceVulkan.GetQueueCheckpointDataNV(aQueue,@CheckpointDataCount,nil);
+    if CheckpointDataCount>0 then begin
+     if CheckpointDataCount>64 then begin
+      CheckpointDataCount:=64;
+     end;
+     for CheckpointDataIndex:=0 to TpvInt32(CheckpointDataCount)-1 do begin
+      FillChar(CheckpointData[CheckpointDataIndex],SizeOf(TVkCheckpointDataNV),#0);
+      CheckpointData[CheckpointDataIndex].sType:=VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV;
+     end;
+     fDevice.fDeviceVulkan.GetQueueCheckpointDataNV(aQueue,@CheckpointDataCount,@CheckpointData[0]);
+     LastFailedBreadcrumbIndex:=0;
+     for CheckpointDataIndex:=0 to TpvInt32(CheckpointDataCount)-1 do begin
+      CheckpointBreadcrumbIndex:=TpvUInt32(TpvPtrUInt(CheckpointData[CheckpointDataIndex].pCheckpointMarker));
+      if TpvInt32(CheckpointBreadcrumbIndex)>LastFailedBreadcrumbIndex then begin
+       LastFailedBreadcrumbIndex:=TpvInt32(CheckpointBreadcrumbIndex);
+      end;
+     end;
+     for BreadcrumbIndex:=0 to LastFailedBreadcrumbIndex do begin
+      if BreadcrumbIndex<fBreadcrumbCount then begin
+       ZoneId:='';
+       FormatZoneId(ZoneId,fBreadcrumbs[BreadcrumbIndex].ZoneIndex);
+       FoundBreadcrumbReport:=false;
+       for CheckpointDataIndex:=0 to TpvInt32(CheckpointDataCount)-1 do begin
+        CheckpointBreadcrumbIndex:=TpvUInt32(TpvPtrUInt(CheckpointData[CheckpointDataIndex].pCheckpointMarker));
+        if CheckpointBreadcrumbIndex=TpvUInt32(BreadcrumbIndex) then begin
+         FoundBreadcrumbReport:=true;
+         VulkanDebugLn('Breadcrumb '+IntToStr(BreadcrumbIndex)+': started execution and did not finish. Zone:'+ZoneId+' Type:'+GetBreadcrumbTypeString(fBreadcrumbs[BreadcrumbIndex].BreadcrumbType)+' Info:'+fBreadcrumbs[BreadcrumbIndex].CommandInfo);
+        end;
+       end;
+       if not FoundBreadcrumbReport then begin
+        VulkanDebugLn('Breadcrumb '+IntToStr(BreadcrumbIndex)+': finished execution. Zone:'+ZoneId+' Type:'+GetBreadcrumbTypeString(fBreadcrumbs[BreadcrumbIndex].BreadcrumbType)+' Info:'+fBreadcrumbs[BreadcrumbIndex].CommandInfo);
+       end;
+      end;
+     end;
+    end;
+   end;
+   else begin
+    VulkanDebugLn('Vulkan breadcrumbs are disabled');
+   end;
+  end;
+
+ finally
+  fLock.Release;
+ end;
+
+end;
+
 constructor TpvVulkanDevice.Create(const aInstance:TpvVulkanInstance;
                                    const aPhysicalDevice:TpvVulkanPhysicalDevice=nil;
                                    const aSurface:TpvVulkanSurface=nil;
@@ -10215,6 +11279,14 @@ begin
  fImageFormatList:=false;
 
  fUseNVIDIADeviceDiagnostics:=false;
+
+ fUseBreadcrumbs:=false;
+ fBreadcrumbForceManual:=false;
+ fBreadcrumbForceSyncManual:=true;
+ fBreadcrumbTechnique:=TpvVulkanBreadcrumbTechnique.None;
+ fBreadcrumbBuffer:=nil;
+
+ fTimelineEmulationManager:=nil;
 
  fNVIDIADeviceDiagnosticsFlags:=TVkDeviceDiagnosticsConfigFlagsNV(VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV) or
                                 TVkDeviceDiagnosticsConfigFlagsNV(VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV) or
@@ -10363,6 +11435,11 @@ begin
  if ktxVulkanDevice=self then begin
   ktxVulkanDevice:=nil;
  end;
+ if BreadcrumbVulkanDevice=self then begin
+  BreadcrumbVulkanDevice:=nil;
+ end;
+ FreeAndNil(fBreadcrumbBuffer);
+ FreeAndNil(fTimelineEmulationManager);
  FreeAndNil(fCanvasCommon);
  for Index:=0 to length(fQueueFamilyQueues)-1 do begin
   for SubIndex:=0 to length(fQueueFamilyQueues[Index])-1 do begin
@@ -10822,6 +11899,8 @@ begin
     fVulkan11Features.multiviewTessellationShader:=PhysicalDevice.fVulkan11Features.multiviewTessellationShader;
     fVulkan11Features.multiviewGeometryShader:=PhysicalDevice.fVulkan11Features.multiviewGeometryShader;
 
+    fVulkan11Features.shaderDrawParameters:=PhysicalDevice.fVulkan11Features.shaderDrawParameters;
+
     fMultiviewFeaturesKHR.multiview:=PhysicalDevice.fVulkan11Features.multiview;
     fMultiviewFeaturesKHR.multiviewTessellationShader:=PhysicalDevice.fVulkan11Features.multiviewTessellationShader;
     fMultiviewFeaturesKHR.multiviewGeometryShader:=PhysicalDevice.fVulkan11Features.multiviewGeometryShader;
@@ -10952,6 +12031,8 @@ begin
 
     fVulkan12Features.shaderOutputLayer:=PhysicalDevice.fVulkan12Features.shaderOutputLayer;
     fVulkan12Features.shaderOutputViewportIndex:=PhysicalDevice.fVulkan12Features.shaderOutputViewportIndex;
+
+    fVulkan12Features.timelineSemaphore:=PhysicalDevice.fVulkan12Features.timelineSemaphore;
 
     fDescriptorIndexingFeaturesEXT.shaderInputAttachmentArrayDynamicIndexing:=PhysicalDevice.fVulkan12Features.shaderInputAttachmentArrayDynamicIndexing;
     fDescriptorIndexingFeaturesEXT.shaderUniformTexelBufferArrayDynamicIndexing:=PhysicalDevice.fVulkan12Features.shaderUniformTexelBufferArrayDynamicIndexing;
@@ -11161,6 +12242,57 @@ begin
     DeviceCreateInfo.pNext:=@fPresentWaitFeatures;
    end;
 
+   FillChar(fPresentTimingFeatures,SizeOf(TVkPhysicalDevicePresentTimingFeaturesEXT),#0);
+   fPresentTimingFeatures.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_TIMING_FEATURES_EXT;
+   if (fEnabledExtensionNames.IndexOf(VK_EXT_PRESENT_TIMING_EXTENSION_NAME)>=0) and
+      (PhysicalDevice.fPresentTimingFeatures.presentTiming<>VK_FALSE) then begin
+    fPresentTimingFeatures.presentTiming:=PhysicalDevice.fPresentTimingFeatures.presentTiming;
+    fPresentTimingFeatures.presentAtAbsoluteTime:=PhysicalDevice.fPresentTimingFeatures.presentAtAbsoluteTime;
+    fPresentTimingFeatures.presentAtRelativeTime:=PhysicalDevice.fPresentTimingFeatures.presentAtRelativeTime;
+    fPresentTimingFeatures.pNext:=DeviceCreateInfo.pNext;
+    DeviceCreateInfo.pNext:=@fPresentTimingFeatures;
+   end;
+
+  end;
+
+  begin
+
+   FillChar(fPresentID2Features,SizeOf(TVkPhysicalDevicePresentId2FeaturesKHR),#0);
+   fPresentID2Features.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_2_FEATURES_KHR;
+   if (fEnabledExtensionNames.IndexOf(VK_KHR_PRESENT_ID_2_EXTENSION_NAME)>=0) and
+      (PhysicalDevice.fPresentID2Features.presentId2<>VK_FALSE) then begin
+    fPresentID2Features.presentId2:=PhysicalDevice.fPresentID2Features.presentId2;
+    fPresentID2Features.pNext:=DeviceCreateInfo.pNext;
+    DeviceCreateInfo.pNext:=@fPresentID2Features;
+   end;
+
+   FillChar(fPresentWait2Features,SizeOf(TVkPhysicalDevicePresentWait2FeaturesKHR),#0);
+   fPresentWait2Features.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_2_FEATURES_KHR;
+   if (fEnabledExtensionNames.IndexOf(VK_KHR_PRESENT_WAIT_2_EXTENSION_NAME)>=0) and
+      (PhysicalDevice.fPresentWait2Features.presentWait2<>VK_FALSE) then begin
+    fPresentWait2Features.presentWait2:=PhysicalDevice.fPresentWait2Features.presentWait2;
+    fPresentWait2Features.pNext:=DeviceCreateInfo.pNext;
+    DeviceCreateInfo.pNext:=@fPresentWait2Features;
+   end;
+
+   FillChar(fSwapchainMaintenance1Features,SizeOf(TVkPhysicalDeviceSwapchainMaintenance1FeaturesKHR),#0);
+   fSwapchainMaintenance1Features.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
+   if (fEnabledExtensionNames.IndexOf(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME)>=0) and
+      (PhysicalDevice.fSwapchainMaintenance1Features.swapchainMaintenance1<>VK_FALSE) then begin
+    fSwapchainMaintenance1Features.swapchainMaintenance1:=PhysicalDevice.fSwapchainMaintenance1Features.swapchainMaintenance1;
+    fSwapchainMaintenance1Features.pNext:=DeviceCreateInfo.pNext;
+    DeviceCreateInfo.pNext:=@fSwapchainMaintenance1Features;
+   end;
+
+   FillChar(fAntiLagFeatures,SizeOf(TVkPhysicalDeviceAntiLagFeaturesAMD),#0);
+   fAntiLagFeatures.sType:=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ANTI_LAG_FEATURES_AMD;
+   if (fEnabledExtensionNames.IndexOf(VK_AMD_ANTI_LAG_EXTENSION_NAME)>=0) and
+      (PhysicalDevice.fAntiLagFeatures.antiLag<>VK_FALSE) then begin
+    fAntiLagFeatures.antiLag:=PhysicalDevice.fAntiLagFeatures.antiLag;
+    fAntiLagFeatures.pNext:=DeviceCreateInfo.pNext;
+    DeviceCreateInfo.pNext:=@fAntiLagFeatures;
+   end;
+
   end;
 
   /////////////////////////////////////////////////////////////////////////
@@ -11178,6 +12310,21 @@ begin
    fPresentIDSupport:=fPresentIDFeatures.presentId<>VK_FALSE;
 
    fPresentWaitSupport:=fPresentWaitFeatures.presentWait<>VK_FALSE;
+
+   fPresentTimingSupport:=fPresentTimingFeatures.presentTiming<>VK_FALSE;
+
+   fPresentID2Support:=fPresentID2Features.presentId2<>VK_FALSE;
+
+   fPresentWait2Support:=fPresentWait2Features.presentWait2<>VK_FALSE;
+
+   fSwapchainMaintenance1Support:=fSwapchainMaintenance1Features.swapchainMaintenance1<>VK_FALSE;
+
+   fLowLatency2Support:=fEnabledExtensionNames.IndexOf(VK_NV_LOW_LATENCY_2_EXTENSION_NAME)>=0;
+
+   fAntiLagSupport:=fAntiLagFeatures.antiLag<>VK_FALSE;
+
+   fCalibratedTimestampsSupport:=(fEnabledExtensionNames.IndexOf(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)>=0) or
+                                (fEnabledExtensionNames.IndexOf(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)>=0);
 
    fMultiView:=fMultiviewFeaturesKHR.multiview<>VK_FALSE;
    fMultiViewTessellationShader:=fMultiviewFeaturesKHR.multiviewTessellationShader<>VK_FALSE;
@@ -11358,12 +12505,40 @@ begin
   fImageFormatList:=((fInstance.APIVersion and VK_API_VERSION_WITHOUT_PATCH_MASK)>=VK_API_VERSION_1_2) or
                     (fEnabledExtensionNames.IndexOf(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME)>=0);
 
+  if TpvVulkanTimelineSemaphore.ForceEmulation or (fVulkan12Features.timelineSemaphore=VK_FALSE) then begin
+   fTimelineEmulationManager:=TpvVulkanTimelineEmulationManager.Create(self);
+  end;
+
+  if fUseBreadcrumbs then begin
+   if fBreadcrumbForceManual or
+      ((fEnabledExtensionNames.IndexOf(VK_AMD_BUFFER_MARKER_EXTENSION_NAME)<0) and
+       (fEnabledExtensionNames.IndexOf(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME)<0)) then begin
+    fBreadcrumbTechnique:=TpvVulkanBreadcrumbTechnique.Manual;
+   end else if fEnabledExtensionNames.IndexOf(VK_AMD_BUFFER_MARKER_EXTENSION_NAME)>=0 then begin
+    fBreadcrumbTechnique:=TpvVulkanBreadcrumbTechnique.AMDMarker;
+   end else if fEnabledExtensionNames.IndexOf(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME)>=0 then begin
+    fBreadcrumbTechnique:=TpvVulkanBreadcrumbTechnique.NVCheckpoint;
+   end else begin
+    fBreadcrumbTechnique:=TpvVulkanBreadcrumbTechnique.None;
+   end;
+  end else begin
+   fBreadcrumbTechnique:=TpvVulkanBreadcrumbTechnique.None;
+  end;
+
+  if fBreadcrumbTechnique<>TpvVulkanBreadcrumbTechnique.None then begin
+   fBreadcrumbBuffer:=TpvVulkanBreadcrumbBuffer.Create(self,fBreadcrumbTechnique);
+   BreadcrumbVulkanDevice:=self;
+  end;
+
  end;
 
 end;
 
 procedure TpvVulkanDevice.WaitIdle;
 begin
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] DevWait us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' dev=',TpvPtrUInt(fDeviceHandle));
+{$endif}
  VulkanCheckResult(fDeviceVulkan.DeviceWaitIdle(fDeviceHandle));
 end;
 
@@ -16795,6 +17970,9 @@ end;
 
 function TpvVulkanFence.WaitFor(const aTimeOut:TpvUInt64=TpvUInt64(TpvInt64(-1))):TVkResult;
 begin
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] FenceW1 us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' h=',TpvPtrUInt(fFenceHandle));
+{$endif}
  result:=fDevice.fDeviceVulkan.WaitForFences(fDevice.fDeviceHandle,1,@fFenceHandle,VK_TRUE,aTimeOut);
  if result<VK_SUCCESS then begin
   VulkanCheckResult(result);
@@ -16813,6 +17991,9 @@ begin
    for Index:=0 to length(aFences)-1 do begin
     Handles[Index]:=aFences[Index].fFenceHandle;
    end;
+{$ifdef PasVulkanQueueDiag}
+   WriteLn('[QueueDiag] FenceWN us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' n=',length(aFences),' h0=',TpvPtrUInt(Handles[0]));
+{$endif}
    if aWaitAll then begin
     result:=aFences[0].fDevice.fDeviceVulkan.WaitForFences(aFences[0].fDevice.fDeviceHandle,length(aFences),@Handles[0],VK_TRUE,aTimeOut);
    end else begin
@@ -16855,6 +18036,1233 @@ begin
  inherited Destroy;
 end;
 
+{ TpvVulkanDeferredQueueSubmit }
+
+constructor TpvVulkanDeferredQueueSubmit.Create;
+begin
+ inherited Create;
+
+ fSubmitType:=VK_STRUCTURE_TYPE_SUBMIT_INFO;
+ fFence:=VK_NULL_HANDLE;
+
+ fCommandBuffers:=nil;
+ fCommandBufferCount:=0;
+
+ fWaitStageMask:=nil;
+ fWaitSemaphores:=nil;
+ fSignalSemaphores:=nil;
+ fWaitSemaphoreCount:=0;
+ fSignalSemaphoreCount:=0;
+
+ fWaitTimelineReferences:=nil;
+ fSignalTimelineReferences:=nil;
+ fWaitTimelineReferenceCount:=0;
+ fSignalTimelineReferenceCount:=0;
+
+ fSerializeSemaphores:=nil;
+ fSerializeSemaphoreCount:=0;
+
+ fPrev:=nil;
+ fNext:=nil;
+end;
+
+destructor TpvVulkanDeferredQueueSubmit.Destroy;
+begin
+ fCommandBuffers:=nil;
+ fWaitStageMask:=nil;
+ fWaitSemaphores:=nil;
+ fSignalSemaphores:=nil;
+ fWaitTimelineReferences:=nil;
+ fSignalTimelineReferences:=nil;
+ fSerializeSemaphores:=nil;
+ inherited Destroy;
+end;
+
+{ TpvVulkanTimelineQueueData }
+
+constructor TpvVulkanTimelineQueueData.Create(const aQueue:TpvVulkanQueue);
+begin
+ inherited Create;
+ fQueue:=aQueue;
+ fDeferredHead:=nil;
+ fDeferredTail:=nil;
+ fWaitPointHead:=nil;
+ fWaitPointTail:=nil;
+end;
+
+destructor TpvVulkanTimelineQueueData.Destroy;
+var Deferred,NextDeferred:TpvVulkanDeferredQueueSubmit;
+    WaitPoint,NextWaitPoint:TpvVulkanTimelineWaitPoint;
+begin
+ Deferred:=fDeferredHead;
+ while assigned(Deferred) do begin
+  NextDeferred:=Deferred.fNext;
+  Deferred.Free;
+  Deferred:=NextDeferred;
+ end;
+ WaitPoint:=fWaitPointHead;
+ while assigned(WaitPoint) do begin
+  NextWaitPoint:=WaitPoint.fNext;
+  WaitPoint.Free;
+  WaitPoint:=NextWaitPoint;
+ end;
+ inherited Destroy;
+end;
+
+{ TpvVulkanTimelineEmulationManager }
+
+constructor TpvVulkanTimelineEmulationManager.Create(const aDevice:TpvVulkanDevice);
+begin
+ inherited Create;
+ fDevice:=aDevice;
+ fLock:=TPasMPCriticalSection.Create;
+ fConditionVariableLock:=TPasMPConditionVariableLock.Create;
+ fConditionVariable:=TPasMPConditionVariable.Create;
+ fSemaphores:=nil;
+ fSemaphoreCount:=0;
+ fFreePointFences:=nil;
+ fFreePointSemaphores:=nil;
+ fFreePoints:=nil;
+ fFreeWaitPoints:=nil;
+ fQueueDataArray:=nil;
+ fQueueDataCount:=0;
+end;
+
+destructor TpvVulkanTimelineEmulationManager.Destroy;
+var Index:TpvInt32;
+    Fence,NextFence:TpvVulkanTimelinePointFence;
+    Semaphore,NextSemaphore:TpvVulkanTimelinePointSemaphore;
+    Point,NextPoint:TpvVulkanTimelinePoint;
+    WaitPoint,NextWaitPoint:TpvVulkanTimelineWaitPoint;
+begin
+
+ // Free pooled fences
+ Fence:=fFreePointFences;
+ while assigned(Fence) do begin
+  NextFence:=Fence.fNext;
+  if Fence.fFenceHandle<>VK_NULL_HANDLE then begin
+   fDevice.fDeviceVulkan.DestroyFence(fDevice.fDeviceHandle,Fence.fFenceHandle,fDevice.fAllocationCallbacks);
+  end;
+  Fence.Free;
+  Fence:=NextFence;
+ end;
+
+ // Free pooled semaphores
+ Semaphore:=fFreePointSemaphores;
+ while assigned(Semaphore) do begin
+  NextSemaphore:=Semaphore.fNext;
+  if Semaphore.fSemaphoreHandle<>VK_NULL_HANDLE then begin
+   fDevice.fDeviceVulkan.DestroySemaphore(fDevice.fDeviceHandle,Semaphore.fSemaphoreHandle,fDevice.fAllocationCallbacks);
+  end;
+  Semaphore.Free;
+  Semaphore:=NextSemaphore;
+ end;
+
+ // Free pooled points
+ Point:=fFreePoints;
+ while assigned(Point) do begin
+  NextPoint:=Point.fNext;
+  Point.Free;
+  Point:=NextPoint;
+ end;
+
+ // Free pooled wait points
+ WaitPoint:=fFreeWaitPoints;
+ while assigned(WaitPoint) do begin
+  NextWaitPoint:=WaitPoint.fNext;
+  WaitPoint.Free;
+  WaitPoint:=NextWaitPoint;
+ end;
+
+ // Free queue data
+ for Index:=0 to fQueueDataCount-1 do begin
+  FreeAndNil(fQueueDataArray[Index]);
+ end;
+ fQueueDataArray:=nil;
+ fSemaphores:=nil;
+
+ FreeAndNil(fConditionVariable);
+ FreeAndNil(fConditionVariableLock);
+ FreeAndNil(fLock);
+
+ inherited Destroy;
+end;
+
+function TpvVulkanTimelineEmulationManager.GetPointFenceLocked:TpvVulkanTimelinePointFence;
+var FenceCreateInfo:TVkFenceCreateInfo;
+begin
+
+ if assigned(fFreePointFences) then begin
+
+  result:=fFreePointFences;
+  fFreePointFences:=result.fNext;
+  result.fNext:=nil;
+  result.fRefCount:=1;
+
+  // Reset the fence for reuse
+  VulkanCheckResult(fDevice.fDeviceVulkan.ResetFences(fDevice.fDeviceHandle,1,@result.fFenceHandle));
+
+ end else begin
+
+  result:=TpvVulkanTimelinePointFence.Create;
+  result.fDevice:=fDevice;
+  result.fRefCount:=1;
+  result.fNext:=nil;
+
+  FillChar(FenceCreateInfo,SizeOf(TVkFenceCreateInfo),#0);
+  FenceCreateInfo.sType:=VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  FenceCreateInfo.flags:=0;
+  VulkanCheckResult(fDevice.fDeviceVulkan.CreateFence(fDevice.fDeviceHandle,@FenceCreateInfo,fDevice.fAllocationCallbacks,@result.fFenceHandle));
+
+ end;
+
+end;
+
+function TpvVulkanTimelineEmulationManager.GetPointSemaphoreLocked:TpvVulkanTimelinePointSemaphore;
+var SemaphoreCreateInfo:TVkSemaphoreCreateInfo;
+begin
+
+ if assigned(fFreePointSemaphores) then begin
+
+  result:=fFreePointSemaphores;
+  fFreePointSemaphores:=result.fNext;
+  result.fNext:=nil;
+  result.fRefCount:=1;
+  result.fDeviceWaited:=false;
+  result.fDeviceSignaled:=false;
+  result.fQueue:=nil;
+
+ end else begin
+
+  result:=TpvVulkanTimelinePointSemaphore.Create;
+  result.fDevice:=fDevice;
+  result.fRefCount:=1;
+  result.fNext:=nil;
+  result.fDeviceWaited:=false;
+  result.fDeviceSignaled:=false;
+  result.fQueue:=nil;
+
+  FillChar(SemaphoreCreateInfo,SizeOf(TVkSemaphoreCreateInfo),#0);
+  SemaphoreCreateInfo.sType:=VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  SemaphoreCreateInfo.flags:=0;
+  VulkanCheckResult(fDevice.fDeviceVulkan.CreateSemaphore(fDevice.fDeviceHandle,@SemaphoreCreateInfo,fDevice.fAllocationCallbacks,@result.fSemaphoreHandle));
+
+ end;
+
+end;
+
+procedure TpvVulkanTimelineEmulationManager.PointFenceRefLocked(const aFence:TpvVulkanTimelinePointFence);
+begin
+ if assigned(aFence) then begin
+  inc(aFence.fRefCount);
+ end;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.PointFenceUnrefLocked(const aFence:TpvVulkanTimelinePointFence);
+begin
+ if assigned(aFence) then begin
+  dec(aFence.fRefCount);
+  if aFence.fRefCount<=0 then begin
+   aFence.fNext:=fFreePointFences;
+   fFreePointFences:=aFence;
+  end;
+ end;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.PointSemaphoreRefLocked(const aSemaphore:TpvVulkanTimelinePointSemaphore);
+begin
+ if assigned(aSemaphore) then begin
+  inc(aSemaphore.fRefCount);
+ end;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.PointSemaphoreUnrefLocked(const aSemaphore:TpvVulkanTimelinePointSemaphore);
+begin
+ if assigned(aSemaphore) then begin
+  dec(aSemaphore.fRefCount);
+  if aSemaphore.fRefCount<=0 then begin
+
+   // If signaled but not waited, need an empty submit to consume the semaphore
+   if aSemaphore.fDeviceSignaled and (not aSemaphore.fDeviceWaited) and assigned(aSemaphore.fQueue) then begin
+    fDevice.fDeviceVulkan.QueueWaitIdle(aSemaphore.fQueue.fQueueHandle);
+   end;
+
+   aSemaphore.fQueue:=nil;
+   aSemaphore.fNext:=fFreePointSemaphores;
+   fFreePointSemaphores:=aSemaphore;
+
+  end;
+ end;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.WaitPointFreeLocked(const aWaitPoint:TpvVulkanTimelineWaitPoint);
+begin
+ if assigned(aWaitPoint) then begin
+
+  PointSemaphoreUnrefLocked(aWaitPoint.fSemaphore);
+  aWaitPoint.fSemaphore:=nil;
+
+  PointFenceUnrefLocked(aWaitPoint.fFence);
+  aWaitPoint.fFence:=nil;
+
+  if assigned(aWaitPoint.fPoint) then begin
+   dec(aWaitPoint.fPoint.fWaiting);
+  end;
+  aWaitPoint.fPoint:=nil;
+
+  aWaitPoint.fPrev:=nil;
+  aWaitPoint.fNext:=nil;
+
+  // Return to pool
+  aWaitPoint.fNext:=fFreeWaitPoints;
+  fFreeWaitPoints:=aWaitPoint;
+
+ end;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.TimelinePointFreeLocked(const aPoint:TpvVulkanTimelinePoint);
+begin
+ if assigned(aPoint) then begin
+
+  PointSemaphoreUnrefLocked(aPoint.fSemaphore);
+  aPoint.fSemaphore:=nil;
+
+  PointFenceUnrefLocked(aPoint.fFence);
+  aPoint.fFence:=nil;
+
+  aPoint.fTimeline:=nil;
+  aPoint.fQueue:=nil;
+  aPoint.fPrev:=nil;
+  aPoint.fNext:=nil;
+
+  // Return to pool
+  aPoint.fNext:=fFreePoints;
+  fFreePoints:=aPoint;
+
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.GarbageCollectWaitPointListLocked(var aHead,aTail:TpvVulkanTimelineWaitPoint):TVkResult;
+var WaitPoint,NextWaitPoint:TpvVulkanTimelineWaitPoint;
+begin
+ result:=VK_SUCCESS;
+ WaitPoint:=aHead;
+ while assigned(WaitPoint) do begin
+  NextWaitPoint:=WaitPoint.fNext;
+  if assigned(WaitPoint.fSemaphore) and WaitPoint.fSemaphore.fDeviceWaited then begin
+   // Remove from doubly-linked list
+   if assigned(WaitPoint.fPrev) then begin
+    WaitPoint.fPrev.fNext:=WaitPoint.fNext;
+   end else begin
+    aHead:=WaitPoint.fNext;
+   end;
+   if assigned(WaitPoint.fNext) then begin
+    WaitPoint.fNext.fPrev:=WaitPoint.fPrev;
+   end else begin
+    aTail:=WaitPoint.fPrev;
+   end;
+   WaitPointFreeLocked(WaitPoint);
+  end;
+  WaitPoint:=NextWaitPoint;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.TimelineGarbageCollectLocked(const aSemaphore:TpvVulkanTimelineSemaphore):TVkResult;
+var Point,NextPoint:TpvVulkanTimelinePoint;
+    FenceStatus:TVkResult;
+    Index:TpvInt32;
+begin
+ result:=VK_SUCCESS;
+
+ Point:=aSemaphore.fPointsHead;
+ while assigned(Point) do begin
+  NextPoint:=Point.fNext;
+  if assigned(Point.fFence) and (Point.fFence.fFenceHandle<>VK_NULL_HANDLE) then begin
+   FenceStatus:=fDevice.fDeviceVulkan.GetFenceStatus(fDevice.fDeviceHandle,Point.fFence.fFenceHandle);
+   if FenceStatus=VK_SUCCESS then begin
+    // Fence is signaled, this point is complete
+    if (Point.fWaiting<=0) then begin
+
+     // Update highest_past
+     if Point.fSerial>aSemaphore.fHighestPast then begin
+      aSemaphore.fHighestPast:=Point.fSerial;
+     end;
+
+     // Remove from timeline's point list
+     if assigned(Point.fPrev) then begin
+      Point.fPrev.fNext:=Point.fNext;
+     end else begin
+      aSemaphore.fPointsHead:=Point.fNext;
+     end;
+     if assigned(Point.fNext) then begin
+      Point.fNext.fPrev:=Point.fPrev;
+     end else begin
+      aSemaphore.fPointsTail:=Point.fPrev;
+     end;
+
+     TimelinePointFreeLocked(Point);
+    end;
+   end else if FenceStatus<>VK_NOT_READY then begin
+    result:=FenceStatus;
+    exit;
+   end;
+  end;
+  Point:=NextPoint;
+ end;
+
+ // Also garbage collect wait points in all queue data
+ for Index:=0 to fQueueDataCount-1 do begin
+  if assigned(fQueueDataArray[Index]) then begin
+   GarbageCollectWaitPointListLocked(fQueueDataArray[Index].fWaitPointHead,fQueueDataArray[Index].fWaitPointTail);
+  end;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.TimelineCreatePointLocked(const aQueue:TpvVulkanQueue;const aSemaphore:TpvVulkanTimelineSemaphore;const aSerial:TpvUInt64;const aFence:TpvVulkanTimelinePointFence;out aPoint:TpvVulkanTimelinePoint):TVkResult;
+begin
+ result:=VK_SUCCESS;
+
+ if assigned(fFreePoints) then begin
+  aPoint:=fFreePoints;
+  fFreePoints:=aPoint.fNext;
+ end else begin
+  aPoint:=TpvVulkanTimelinePoint.Create;
+ end;
+
+ aPoint.fTimeline:=aSemaphore;
+ aPoint.fSerial:=aSerial;
+ aPoint.fQueue:=aQueue;
+ aPoint.fWaiting:=0;
+ aPoint.fSemaphore:=GetPointSemaphoreLocked;
+ aPoint.fSemaphore.fQueue:=aQueue;
+ aPoint.fFence:=aFence;
+ PointFenceRefLocked(aFence);
+
+ aPoint.fPrev:=aSemaphore.fPointsTail;
+ aPoint.fNext:=nil;
+ if assigned(aSemaphore.fPointsTail) then begin
+  aSemaphore.fPointsTail.fNext:=aPoint;
+ end else begin
+  aSemaphore.fPointsHead:=aPoint;
+ end;
+ aSemaphore.fPointsTail:=aPoint;
+
+ // Update highest_pending
+ if aSerial>aSemaphore.fHighestPending then begin
+  aSemaphore.fHighestPending:=aSerial;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.TimelineCreateWaitPointLocked(const aSemaphore:TpvVulkanTimelineSemaphore;const aSerial:TpvUInt64;const aFence:TpvVulkanTimelinePointFence;out aPointSemaphore:TpvVulkanTimelinePointSemaphore):TVkResult;
+var Point:TpvVulkanTimelinePoint;
+    WaitPoint:TpvVulkanTimelineWaitPoint;
+    QueueData:TpvVulkanTimelineQueueData;
+begin
+ result:=VK_SUCCESS;
+ aPointSemaphore:=nil;
+
+ // If the value is already completed (past), no wait needed
+ if aSerial<=aSemaphore.fHighestPast then begin
+  exit;
+ end;
+
+ // Find the timeline point for this serial
+ Point:=aSemaphore.fPointsHead;
+ while assigned(Point) do begin
+  if Point.fSerial=aSerial then begin
+   break;
+  end;
+  Point:=Point.fNext;
+ end;
+ if not assigned(Point) then begin
+  // Value not yet submitted, caller will need to defer
+  exit;
+ end;
+
+ // If the semaphore hasn't been waited on the device yet, reuse it directly
+ if (not Point.fSemaphore.fDeviceWaited) then begin
+  aPointSemaphore:=Point.fSemaphore;
+  PointSemaphoreRefLocked(aPointSemaphore);
+  Point.fSemaphore.fDeviceWaited:=true;
+  inc(Point.fWaiting);
+  exit;
+ end;
+
+ // Need a new wait point with a serialize submit (1:N wait relationship)
+ if assigned(fFreeWaitPoints) then begin
+  WaitPoint:=fFreeWaitPoints;
+  fFreeWaitPoints:=WaitPoint.fNext;
+ end else begin
+  WaitPoint:=TpvVulkanTimelineWaitPoint.Create;
+ end;
+
+ // Initialize wait point
+ WaitPoint.fPoint:=Point;
+ inc(Point.fWaiting);
+ WaitPoint.fSemaphore:=GetPointSemaphoreLocked;
+ WaitPoint.fSemaphore.fQueue:=Point.fQueue;
+ WaitPoint.fFence:=aFence;
+ PointFenceRefLocked(aFence);
+ aPointSemaphore:=WaitPoint.fSemaphore;
+ PointSemaphoreRefLocked(aPointSemaphore);
+ WaitPoint.fSemaphore.fDeviceWaited:=true;
+
+ // Add to queue data wait point list
+ QueueData:=GetQueueDataLocked(Point.fQueue);
+ WaitPoint.fPrev:=QueueData.fWaitPointTail;
+ WaitPoint.fNext:=nil;
+ if assigned(QueueData.fWaitPointTail) then begin
+  QueueData.fWaitPointTail.fNext:=WaitPoint;
+ end else begin
+  QueueData.fWaitPointHead:=WaitPoint;
+ end;
+ QueueData.fWaitPointTail:=WaitPoint;
+end;
+
+function TpvVulkanTimelineEmulationManager.TimelineWaitLocked(const aSemaphores:array of TpvVulkanTimelineSemaphore;const aSerials:array of TpvUInt64;const aCount:TpvUInt32;const aWaitAll:boolean;const aAbsTimeoutNs:TpvUInt64):TVkResult;
+var Index,FenceCount:TpvUInt32;
+    Fences:array of TVkFence;
+    Point:TpvVulkanTimelinePoint;
+    AllDone,AnyDone:boolean;
+    GarbageCollectResult:TVkResult;
+    RemainingTimeout:TpvUInt64;
+    CurrentTime:TpvUInt64;
+begin
+ result:=VK_SUCCESS;
+
+ while true do begin
+
+  // Garbage collect all involved timelines
+  for Index:=0 to aCount-1 do begin
+   GarbageCollectResult:=TimelineGarbageCollectLocked(aSemaphores[Index]);
+   if GarbageCollectResult<>VK_SUCCESS then begin
+    result:=GarbageCollectResult;
+    exit;
+   end;
+  end;
+
+  // Check if conditions are met
+  AllDone:=true;
+  AnyDone:=false;
+  for Index:=0 to aCount-1 do begin
+   if aSerials[Index]<=aSemaphores[Index].fHighestPast then begin
+    AnyDone:=true;
+   end else begin
+    AllDone:=false;
+   end;
+  end;
+  if aWaitAll then begin
+   if AllDone then begin
+    result:=VK_SUCCESS;
+    exit;
+   end;
+  end else begin
+   if AnyDone then begin
+    result:=VK_SUCCESS;
+    exit;
+   end;
+  end;
+
+  // Collect fences from points that are not yet complete
+  Fences:=nil;
+  FenceCount:=0;
+  for Index:=0 to aCount-1 do begin
+   if aSerials[Index]>aSemaphores[Index].fHighestPast then begin
+    Point:=aSemaphores[Index].fPointsHead;
+    while assigned(Point) do begin
+     if (Point.fSerial<=aSerials[Index]) and assigned(Point.fFence) then begin
+      if FenceCount>=TpvUInt32(length(Fences)) then begin
+       SetLength(Fences,(FenceCount+1)*2);
+      end;
+      Fences[FenceCount]:=Point.fFence.fFenceHandle;
+      inc(FenceCount);
+     end;
+     Point:=Point.fNext;
+    end;
+   end;
+  end;
+
+  if FenceCount>0 then begin
+
+   // Wait on collected fences with a small timeout, then re-check
+   fLock.Release;
+   try
+    if aAbsTimeoutNs=TpvUInt64(high(TpvUInt64)) then begin
+     RemainingTimeout:=1000000000; // 1 second chunks for infinite wait
+    end else begin
+     CurrentTime:=0;
+     // Use a small poll interval
+     RemainingTimeout:=10000000; // 10ms poll
+    end;
+    result:=fDevice.fDeviceVulkan.WaitForFences(fDevice.fDeviceHandle,FenceCount,@Fences[0],ord(aWaitAll),RemainingTimeout);
+   finally
+    fLock.Acquire;
+   end;
+
+   if (result=VK_SUCCESS) then begin
+    continue; // Re-check after fence signaled
+   end else if (result=VK_TIMEOUT) then begin
+    if aAbsTimeoutNs<>TpvUInt64(high(TpvUInt64)) then begin
+     // Check real timeout
+     result:=VK_TIMEOUT;
+     exit;
+    end;
+    // For infinite wait, just loop again
+    continue;
+   end else begin
+    exit; // Real error
+   end;
+
+  end else begin
+
+   // No fences available yet (deferred submissions pending), wait on condition variable
+   fLock.Release;
+   try
+    fConditionVariableLock.Acquire;
+    try
+     fConditionVariable.Wait(fConditionVariableLock,10); // 10ms
+    finally
+     fConditionVariableLock.Release;
+    end;
+   finally
+    fLock.Acquire;
+   end;
+
+   if aAbsTimeoutNs<>TpvUInt64(high(TpvUInt64)) then begin
+    result:=VK_TIMEOUT;
+    exit;
+   end;
+
+  end;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.GetQueueDataLocked(const aQueue:TpvVulkanQueue):TpvVulkanTimelineQueueData;
+var Index:TpvInt32;
+begin
+
+ for Index:=0 to fQueueDataCount-1 do begin
+  if fQueueDataArray[Index].fQueue=aQueue then begin
+   result:=fQueueDataArray[Index];
+   exit;
+  end;
+ end;
+
+ // Create new queue data
+ result:=TpvVulkanTimelineQueueData.Create(aQueue);
+ if fQueueDataCount>=length(fQueueDataArray) then begin
+  SetLength(fQueueDataArray,(fQueueDataCount+1)*2);
+ end;
+ fQueueDataArray[fQueueDataCount]:=result;
+ inc(fQueueDataCount);
+
+end;
+
+function TpvVulkanTimelineEmulationManager.CloneSubmitInfo(const aQueue:TpvVulkanQueue;const aSubmitInfo:PVkSubmitInfo;const aTimelineSubmitInfo:PVkTimelineSemaphoreSubmitInfo;const aFence:TVkFence):TpvVulkanDeferredQueueSubmit;
+var Index:TpvUInt32;
+    TimelineSemaphore:TpvVulkanTimelineSemaphore;
+begin
+ result:=TpvVulkanDeferredQueueSubmit.Create;
+ result.fSubmitType:=VK_STRUCTURE_TYPE_SUBMIT_INFO;
+ result.fFence:=aFence;
+ result.fPrev:=nil;
+ result.fNext:=nil;
+
+ // Clone command buffers
+ result.fCommandBufferCount:=aSubmitInfo^.commandBufferCount;
+ if result.fCommandBufferCount>0 then begin
+  SetLength(result.fCommandBuffers,result.fCommandBufferCount);
+  Move(aSubmitInfo^.pCommandBuffers^,result.fCommandBuffers[0],result.fCommandBufferCount*SizeOf(TVkCommandBuffer));
+ end;
+
+ // Process wait semaphores
+ result.fWaitSemaphoreCount:=0;
+ result.fWaitTimelineReferenceCount:=0;
+ result.fSerializeSemaphoreCount:=0;
+ if aSubmitInfo^.waitSemaphoreCount>0 then begin
+  SetLength(result.fWaitSemaphores,aSubmitInfo^.waitSemaphoreCount);
+  SetLength(result.fWaitStageMask,aSubmitInfo^.waitSemaphoreCount);
+  SetLength(result.fWaitTimelineReferences,aSubmitInfo^.waitSemaphoreCount);
+  for Index:=0 to aSubmitInfo^.waitSemaphoreCount-1 do begin
+   TimelineSemaphore:=FindSemaphore(PpvVulkanSemaphoreHandleArray(aSubmitInfo^.pWaitSemaphores)^[Index]);
+   if assigned(TimelineSemaphore) and assigned(aTimelineSubmitInfo) and (Index<aTimelineSubmitInfo^.waitSemaphoreValueCount) then begin
+    // This is an emulated timeline semaphore wait
+    result.fWaitTimelineReferences[result.fWaitTimelineReferenceCount].Semaphore:=TimelineSemaphore;
+    result.fWaitTimelineReferences[result.fWaitTimelineReferenceCount].Value:=PpvVulkanUInt64Array(aTimelineSubmitInfo^.pWaitSemaphoreValues)^[Index];
+    inc(result.fWaitTimelineReferenceCount);
+   end else begin
+    // Regular binary semaphore
+    result.fWaitSemaphores[result.fWaitSemaphoreCount]:=PpvVulkanSemaphoreHandleArray(aSubmitInfo^.pWaitSemaphores)^[Index];
+    result.fWaitStageMask[result.fWaitSemaphoreCount]:=PpvVulkanPipelineStageFlagsArray(aSubmitInfo^.pWaitDstStageMask)^[Index];
+    inc(result.fWaitSemaphoreCount);
+   end;
+  end;
+ end;
+
+ // Process signal semaphores
+ result.fSignalSemaphoreCount:=0;
+ result.fSignalTimelineReferenceCount:=0;
+ if aSubmitInfo^.signalSemaphoreCount>0 then begin
+  SetLength(result.fSignalSemaphores,aSubmitInfo^.signalSemaphoreCount);
+  SetLength(result.fSignalTimelineReferences,aSubmitInfo^.signalSemaphoreCount);
+  for Index:=0 to aSubmitInfo^.signalSemaphoreCount-1 do begin
+   TimelineSemaphore:=FindSemaphore(PpvVulkanSemaphoreHandleArray(aSubmitInfo^.pSignalSemaphores)^[Index]);
+   if assigned(TimelineSemaphore) and assigned(aTimelineSubmitInfo) and (Index<aTimelineSubmitInfo^.signalSemaphoreValueCount) then begin
+    // This is an emulated timeline semaphore signal
+    result.fSignalTimelineReferences[result.fSignalTimelineReferenceCount].Semaphore:=TimelineSemaphore;
+    result.fSignalTimelineReferences[result.fSignalTimelineReferenceCount].Value:=PpvVulkanUInt64Array(aTimelineSubmitInfo^.pSignalSemaphoreValues)^[Index];
+    inc(result.fSignalTimelineReferenceCount);
+   end else begin
+    // Regular binary semaphore
+    result.fSignalSemaphores[result.fSignalSemaphoreCount]:=PpvVulkanSemaphoreHandleArray(aSubmitInfo^.pSignalSemaphores)^[Index];
+    inc(result.fSignalSemaphoreCount);
+   end;
+  end;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.QueueSubmitDeferredLocked(const aQueueData:TpvVulkanTimelineQueueData;out aAdvance:TpvUInt32):TVkResult;
+var Deferred,NextDeferred:TpvVulkanDeferredQueueSubmit;
+    Index,WaitCount,SignalCount,SerializeIndex:TpvUInt32;
+    AllWaitsReady:boolean;
+    PointSemaphore:TpvVulkanTimelinePointSemaphore;
+    SubmitFence:TpvVulkanTimelinePointFence;
+    Point:TpvVulkanTimelinePoint;
+    SubmitInfo:TVkSubmitInfo;
+    RealWaitSemaphores:array of TVkSemaphore;
+    RealWaitStageMasks:array of TVkPipelineStageFlags;
+    RealSignalSemaphores:array of TVkSemaphore;
+    FenceHandle:TVkFence;
+    SerializeSubmitInfo:TVkSubmitInfo;
+    SerializeWaitSemaphore:TVkSemaphore;
+    SerializeSignalSemaphore:TVkSemaphore;
+    SerializeWaitStage:TVkPipelineStageFlags;
+begin
+ result:=VK_SUCCESS;
+ aAdvance:=0;
+ Deferred:=aQueueData.fDeferredHead;
+
+ while assigned(Deferred) do begin
+  NextDeferred:=Deferred.fNext;
+
+  // Check if all timeline wait dependencies are satisfied
+  AllWaitsReady:=true;
+  for Index:=0 to Deferred.fWaitTimelineReferenceCount-1 do begin
+   if Deferred.fWaitTimelineReferences[Index].Value>Deferred.fWaitTimelineReferences[Index].Semaphore.fHighestPending then begin
+    AllWaitsReady:=false;
+    break;
+   end;
+  end;
+  if not AllWaitsReady then begin
+   Deferred:=NextDeferred;
+   continue;
+  end;
+
+  // Get a shared fence for this submit's signal points
+  SubmitFence:=GetPointFenceLocked;
+
+  // Resolve wait timeline references to real binary semaphores
+  WaitCount:=Deferred.fWaitSemaphoreCount;
+  SetLength(RealWaitSemaphores,WaitCount+Deferred.fWaitTimelineReferenceCount);
+  SetLength(RealWaitStageMasks,WaitCount+Deferred.fWaitTimelineReferenceCount);
+
+  // Copy existing binary wait semaphores
+  for Index:=0 to Deferred.fWaitSemaphoreCount-1 do begin
+   RealWaitSemaphores[Index]:=Deferred.fWaitSemaphores[Index];
+   RealWaitStageMasks[Index]:=Deferred.fWaitStageMask[Index];
+  end;
+
+  // Create wait points for timeline semaphores
+  Deferred.fSerializeSemaphoreCount:=0;
+  SetLength(Deferred.fSerializeSemaphores,Deferred.fWaitTimelineReferenceCount);
+  for Index:=0 to Deferred.fWaitTimelineReferenceCount-1 do begin
+   if Deferred.fWaitTimelineReferences[Index].Value<=Deferred.fWaitTimelineReferences[Index].Semaphore.fHighestPast then begin
+    // Already done, no wait needed
+    continue;
+   end;
+   PointSemaphore:=nil;
+   result:=TimelineCreateWaitPointLocked(Deferred.fWaitTimelineReferences[Index].Semaphore,Deferred.fWaitTimelineReferences[Index].Value,SubmitFence,PointSemaphore);
+   if result<>VK_SUCCESS then begin
+    PointFenceUnrefLocked(SubmitFence);
+    exit;
+   end;
+   if assigned(PointSemaphore) then begin
+    RealWaitSemaphores[WaitCount]:=PointSemaphore.fSemaphoreHandle;
+    RealWaitStageMasks[WaitCount]:=TVkPipelineStageFlags(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    inc(WaitCount);
+    Deferred.fSerializeSemaphores[Deferred.fSerializeSemaphoreCount]:=PointSemaphore;
+    inc(Deferred.fSerializeSemaphoreCount);
+   end;
+  end;
+
+  // Create signal points for timeline semaphores
+  SignalCount:=Deferred.fSignalSemaphoreCount;
+  SetLength(RealSignalSemaphores,SignalCount+Deferred.fSignalTimelineReferenceCount);
+
+  // Copy existing binary signal semaphores
+  for Index:=0 to Deferred.fSignalSemaphoreCount-1 do begin
+   RealSignalSemaphores[Index]:=Deferred.fSignalSemaphores[Index];
+  end;
+
+  // Create timeline points for signal
+  for Index:=0 to Deferred.fSignalTimelineReferenceCount-1 do begin
+   Point:=nil;
+   result:=TimelineCreatePointLocked(aQueueData.fQueue,Deferred.fSignalTimelineReferences[Index].Semaphore,Deferred.fSignalTimelineReferences[Index].Value,SubmitFence,Point);
+   if result<>VK_SUCCESS then begin
+    PointFenceUnrefLocked(SubmitFence);
+    exit;
+   end;
+   RealSignalSemaphores[SignalCount]:=Point.fSemaphore.fSemaphoreHandle;
+   Point.fSemaphore.fDeviceSignaled:=true;
+   inc(SignalCount);
+  end;
+
+  // Submit serialize submits for any wait points that need them (1:N wait)
+  for SerializeIndex:=0 to Deferred.fSerializeSemaphoreCount-1 do begin
+   PointSemaphore:=Deferred.fSerializeSemaphores[SerializeIndex];
+   // The serialize submit waits on the original point's semaphore and signals the new one
+   // This is already handled by TimelineCreateWaitPointLocked, the PointSemaphore is the new semaphore
+   // We don't need separate serialize submits here because we re-use the point semaphore directly
+  end;
+
+  // Build and execute the real submit
+  FillChar(SubmitInfo,SizeOf(TVkSubmitInfo),#0);
+  SubmitInfo.sType:=VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  SubmitInfo.pNext:=nil;
+  SubmitInfo.waitSemaphoreCount:=WaitCount;
+  if WaitCount>0 then begin
+   SubmitInfo.pWaitSemaphores:=@RealWaitSemaphores[0];
+   SubmitInfo.pWaitDstStageMask:=@RealWaitStageMasks[0];
+  end;
+  SubmitInfo.commandBufferCount:=Deferred.fCommandBufferCount;
+  if Deferred.fCommandBufferCount>0 then begin
+   SubmitInfo.pCommandBuffers:=@Deferred.fCommandBuffers[0];
+  end;
+  SubmitInfo.signalSemaphoreCount:=SignalCount;
+  if SignalCount>0 then begin
+   SubmitInfo.pSignalSemaphores:=@RealSignalSemaphores[0];
+  end;
+
+  // Always use our tracking fence for the real submit
+  FenceHandle:=SubmitFence.fFenceHandle;
+
+  // Actually submit to the GPU
+  fLock.Release;
+  try
+{$ifdef PasVulkanQueueDiag}
+   WriteLn('[QueueDiag] TLEm-S us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',aQueueData.fQueue.fQueueFamilyIndex,' h=',TpvPtrUInt(aQueueData.fQueue.fQueueHandle));
+{$endif}
+   result:=fDevice.fDeviceVulkan.QueueSubmit(aQueueData.fQueue.fQueueHandle,1,@SubmitInfo,FenceHandle);
+  finally
+   fLock.Acquire;
+  end;
+  if result<>VK_SUCCESS then begin
+   PointFenceUnrefLocked(SubmitFence);
+   exit;
+  end;
+
+  // If the app provided its own fence, submit an empty batch with it
+  if Deferred.fFence<>VK_NULL_HANDLE then begin
+   FillChar(SubmitInfo,SizeOf(TVkSubmitInfo),#0);
+   SubmitInfo.sType:=VK_STRUCTURE_TYPE_SUBMIT_INFO;
+   fLock.Release;
+   try
+{$ifdef PasVulkanQueueDiag}
+    WriteLn('[QueueDiag] TLEm-EF us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',aQueueData.fQueue.fQueueFamilyIndex,' h=',TpvPtrUInt(aQueueData.fQueue.fQueueHandle));
+{$endif}
+    result:=fDevice.fDeviceVulkan.QueueSubmit(aQueueData.fQueue.fQueueHandle,1,@SubmitInfo,Deferred.fFence);
+   finally
+    fLock.Acquire;
+   end;
+   if result<>VK_SUCCESS then begin
+    PointFenceUnrefLocked(SubmitFence);
+    exit;
+   end;
+  end;
+
+  PointFenceUnrefLocked(SubmitFence);
+
+  // Clean up serialize semaphore references
+  for SerializeIndex:=0 to Deferred.fSerializeSemaphoreCount-1 do begin
+   PointSemaphoreUnrefLocked(Deferred.fSerializeSemaphores[SerializeIndex]);
+  end;
+
+  // Remove from deferred list
+  if assigned(Deferred.fPrev) then begin
+   Deferred.fPrev.fNext:=Deferred.fNext;
+  end else begin
+   aQueueData.fDeferredHead:=Deferred.fNext;
+  end;
+  if assigned(Deferred.fNext) then begin
+   Deferred.fNext.fPrev:=Deferred.fPrev;
+  end else begin
+   aQueueData.fDeferredTail:=Deferred.fPrev;
+  end;
+
+  Deferred.Free;
+  inc(aAdvance);
+  Deferred:=NextDeferred;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.DeviceSubmitDeferredLocked:TVkResult;
+var TotalAdvance,Advance:TpvUInt32;
+    Index:TpvInt32;
+begin
+ result:=VK_SUCCESS;
+
+ repeat
+  TotalAdvance:=0;
+
+  for Index:=0 to fQueueDataCount-1 do begin
+   if assigned(fQueueDataArray[Index]) and assigned(fQueueDataArray[Index].fDeferredHead) then begin
+    Advance:=0;
+    result:=QueueSubmitDeferredLocked(fQueueDataArray[Index],Advance);
+    if result<>VK_SUCCESS then begin
+     exit;
+    end;
+    inc(TotalAdvance,Advance);
+   end;
+  end;
+
+ until TotalAdvance=0;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.RegisterSemaphore(const aSemaphore:TpvVulkanTimelineSemaphore);
+begin
+ fLock.Acquire;
+ try
+
+  if fSemaphoreCount>=length(fSemaphores) then begin
+   SetLength(fSemaphores,(fSemaphoreCount+1)*2);
+  end;
+  fSemaphores[fSemaphoreCount]:=aSemaphore;
+  inc(fSemaphoreCount);
+
+ finally
+  fLock.Release;
+ end;
+end;
+
+procedure TpvVulkanTimelineEmulationManager.UnregisterSemaphore(const aSemaphore:TpvVulkanTimelineSemaphore);
+var Index:TpvInt32;
+begin
+ fLock.Acquire;
+ try
+
+  for Index:=0 to fSemaphoreCount-1 do begin
+   if fSemaphores[Index]=aSemaphore then begin
+    dec(fSemaphoreCount);
+    if Index<fSemaphoreCount then begin
+     fSemaphores[Index]:=fSemaphores[fSemaphoreCount];
+    end;
+    fSemaphores[fSemaphoreCount]:=nil;
+    break;
+   end;
+  end;
+
+ finally
+  fLock.Release;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.FindSemaphore(const aHandle:TVkSemaphore):TpvVulkanTimelineSemaphore;
+var Index:TpvInt32;
+begin
+ result:=nil;
+ for Index:=0 to fSemaphoreCount-1 do begin
+  if TVkSemaphore(TpvPtrUInt(fSemaphores[Index]))=aHandle then begin
+   result:=fSemaphores[Index];
+   exit;
+  end;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.ProcessQueueSubmit(const aQueue:TpvVulkanQueue;const aSubmitCount:TpvUInt32;const aSubmits:PVkSubmitInfo;const aFence:TVkFence):TVkResult;
+var Index,SemaphoreIndex:TpvUInt32;
+    Submit:PVkSubmitInfo;
+    HasTimeline:boolean;
+    TimelineSubmitInfo:PVkTimelineSemaphoreSubmitInfo;
+    Deferred:TpvVulkanDeferredQueueSubmit;
+    QueueData:TpvVulkanTimelineQueueData;
+    pNext:PVkBaseInStructure;
+begin
+ result:=VK_SUCCESS;
+ fLock.Acquire;
+ try
+
+  for Index:=0 to aSubmitCount-1 do begin
+   Submit:=aSubmits;
+   inc(Submit,Index);
+
+   // Find VkTimelineSemaphoreSubmitInfo in pNext chain
+   TimelineSubmitInfo:=nil;
+   pNext:=PVkBaseInStructure(Submit^.pNext);
+   while assigned(pNext) do begin
+    if pNext^.sType=VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO then begin
+     TimelineSubmitInfo:=pointer(pNext);
+     break;
+    end;
+    pNext:=pNext^.pNext;
+   end;
+
+   // Check if any semaphore in this submit is an emulated timeline semaphore
+   HasTimeline:=false;
+   if assigned(TimelineSubmitInfo) then begin
+    for SemaphoreIndex:=0 to Submit^.waitSemaphoreCount-1 do begin
+     if assigned(FindSemaphore(PpvVulkanSemaphoreHandleArray(Submit^.pWaitSemaphores)^[SemaphoreIndex])) then begin
+      HasTimeline:=true;
+      break;
+     end;
+    end;
+    if not HasTimeline then begin
+     for SemaphoreIndex:=0 to Submit^.signalSemaphoreCount-1 do begin
+      if assigned(FindSemaphore(PpvVulkanSemaphoreHandleArray(Submit^.pSignalSemaphores)^[SemaphoreIndex])) then begin
+       HasTimeline:=true;
+       break;
+      end;
+     end;
+    end;
+   end;
+
+   if HasTimeline then begin
+    // Clone and defer this submit
+    if Index=(aSubmitCount-1) then begin
+     Deferred:=CloneSubmitInfo(aQueue,Submit,TimelineSubmitInfo,aFence);
+    end else begin
+     Deferred:=CloneSubmitInfo(aQueue,Submit,TimelineSubmitInfo,VK_NULL_HANDLE);
+    end;
+    QueueData:=GetQueueDataLocked(aQueue);
+
+    // Append to deferred list
+    Deferred.fPrev:=QueueData.fDeferredTail;
+    Deferred.fNext:=nil;
+    if assigned(QueueData.fDeferredTail) then begin
+     QueueData.fDeferredTail.fNext:=Deferred;
+    end else begin
+     QueueData.fDeferredHead:=Deferred;
+    end;
+    QueueData.fDeferredTail:=Deferred;
+   end else begin
+    // No emulated timeline semaphores, pass through directly
+{$ifdef PasVulkanQueueDiag}
+    WriteLn('[QueueDiag] TLEm-PT us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',aQueue.fQueueFamilyIndex,' h=',TpvPtrUInt(aQueue.fQueueHandle));
+{$endif}
+    if Index=(aSubmitCount-1) then begin
+     result:=fDevice.fDeviceVulkan.QueueSubmit(aQueue.fQueueHandle,1,Submit,aFence);
+    end else begin
+     result:=fDevice.fDeviceVulkan.QueueSubmit(aQueue.fQueueHandle,1,Submit,VK_NULL_HANDLE);
+    end;
+    if result<>VK_SUCCESS then begin
+     exit;
+    end;
+   end;
+  end;
+
+  // Try to process all deferred submissions
+  result:=DeviceSubmitDeferredLocked;
+
+  // Broadcast to wake up any waiters
+  fConditionVariableLock.Acquire;
+  try
+   fConditionVariable.Broadcast;
+  finally
+   fConditionVariableLock.Release;
+  end;
+ finally
+  fLock.Release;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.SignalSemaphore(const aSemaphore:TpvVulkanTimelineSemaphore;const aValue:TpvUInt64):TVkResult;
+begin
+ result:=VK_SUCCESS;
+ fLock.Acquire;
+ try
+
+  // Host signal: advance highest_past and highest_pending
+  if aValue>aSemaphore.fHighestPast then begin
+   aSemaphore.fHighestPast:=aValue;
+  end;
+  if aValue>aSemaphore.fHighestPending then begin
+   aSemaphore.fHighestPending:=aValue;
+  end;
+
+  // Try to process deferred submissions that may now be ready
+  result:=DeviceSubmitDeferredLocked;
+
+  // Broadcast to wake up any waiters
+  fConditionVariableLock.Acquire;
+  try
+   fConditionVariable.Broadcast;
+  finally
+   fConditionVariableLock.Release;
+  end;
+
+ finally
+  fLock.Release;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.WaitSemaphores(const aSemaphore:TpvVulkanTimelineSemaphore;const aValue:TpvUInt64;const aTimeout:TpvUInt64):TVkResult;
+var Semaphores:array[0..0] of TpvVulkanTimelineSemaphore;
+    Serials:array[0..0] of TpvUInt64;
+begin
+ Semaphores[0]:=aSemaphore;
+ Serials[0]:=aValue;
+ fLock.Acquire;
+ try
+  result:=TimelineWaitLocked(Semaphores,Serials,1,true,aTimeout);
+ finally
+  fLock.Release;
+ end;
+end;
+
+function TpvVulkanTimelineEmulationManager.GetCounterValue(const aSemaphore:TpvVulkanTimelineSemaphore;out aValue:TpvUInt64):TVkResult;
+begin
+ fLock.Acquire;
+ try
+  result:=TimelineGarbageCollectLocked(aSemaphore);
+  aValue:=aSemaphore.fHighestPast;
+ finally
+  fLock.Release;
+ end;
+end;
+
+{ TpvVulkanTimelineSemaphore }
+
+constructor TpvVulkanTimelineSemaphore.Create(const aDevice:TpvVulkanDevice;
+                                              const aInitialValue:TpvUInt64=0);
+var SemaphoreCreateInfo:TVkSemaphoreCreateInfo;
+    SemaphoreTypeCreateInfo:TVkSemaphoreTypeCreateInfo;
+begin
+ inherited Create;
+
+ fDevice:=aDevice;
+ fSemaphoreHandle:=VK_NULL_HANDLE;
+ fPointsHead:=nil;
+ fPointsTail:=nil;
+ fNative:=not assigned(fDevice.fTimelineEmulationManager);
+
+ if fNative then begin
+
+  fHighestPast:=0;
+  fHighestPending:=0;
+
+  FillChar(SemaphoreTypeCreateInfo,SizeOf(TVkSemaphoreTypeCreateInfo),#0);
+  SemaphoreTypeCreateInfo.sType:=VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+  SemaphoreTypeCreateInfo.pNext:=nil;
+  SemaphoreTypeCreateInfo.semaphoreType:=VK_SEMAPHORE_TYPE_TIMELINE;
+  SemaphoreTypeCreateInfo.initialValue:=aInitialValue;
+
+  FillChar(SemaphoreCreateInfo,SizeOf(TVkSemaphoreCreateInfo),#0);
+  SemaphoreCreateInfo.sType:=VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  SemaphoreCreateInfo.pNext:=@SemaphoreTypeCreateInfo;
+  SemaphoreCreateInfo.flags:=0;
+
+  VulkanCheckResult(fDevice.fDeviceVulkan.CreateSemaphore(fDevice.fDeviceHandle,@SemaphoreCreateInfo,fDevice.fAllocationCallbacks,@fSemaphoreHandle));
+
+ end else begin
+
+  // Emulated: use pointer-as-handle (Khronos-style)
+  fHighestPast:=aInitialValue;
+  fHighestPending:=aInitialValue;
+  fSemaphoreHandle:=TVkSemaphore(TpvPtrUInt(self));
+  fDevice.fTimelineEmulationManager.RegisterSemaphore(self);
+
+ end;
+end;
+
+destructor TpvVulkanTimelineSemaphore.Destroy;
+var Point,NextPoint:TpvVulkanTimelinePoint;
+begin
+
+ if fNative then begin
+
+  if fSemaphoreHandle<>VK_NULL_HANDLE then begin
+   fDevice.fDeviceVulkan.DestroySemaphore(fDevice.fDeviceHandle,fSemaphoreHandle,fDevice.fAllocationCallbacks);
+   fSemaphoreHandle:=VK_NULL_HANDLE;
+  end;
+
+ end else begin
+
+  if assigned(fDevice.fTimelineEmulationManager) then begin
+   fDevice.fTimelineEmulationManager.UnregisterSemaphore(self);
+
+   // Garbage collect and free remaining points
+   fDevice.fTimelineEmulationManager.fLock.Acquire;
+   try
+    fDevice.fTimelineEmulationManager.TimelineGarbageCollectLocked(self);
+    Point:=fPointsHead;
+    while assigned(Point) do begin
+     NextPoint:=Point.fNext;
+     fDevice.fTimelineEmulationManager.TimelinePointFreeLocked(Point);
+     Point:=NextPoint;
+    end;
+   finally
+    fDevice.fTimelineEmulationManager.fLock.Release;
+   end;
+  end;
+
+  fPointsHead:=nil;
+  fPointsTail:=nil;
+  fSemaphoreHandle:=VK_NULL_HANDLE;
+
+ end;
+
+ inherited Destroy;
+end;
+
+function TpvVulkanTimelineSemaphore.GetCounterValue:TpvUInt64;
+begin
+ if fNative then begin
+  result:=0;
+  VulkanCheckResult(fDevice.fDeviceVulkan.GetSemaphoreCounterValue(fDevice.fDeviceHandle,fSemaphoreHandle,@result));
+ end else begin
+  fDevice.fTimelineEmulationManager.GetCounterValue(self,result);
+ end;
+end;
+
+procedure TpvVulkanTimelineSemaphore.Signal(const aValue:TpvUInt64);
+var SignalInfo:TVkSemaphoreSignalInfo;
+begin
+
+ if fNative then begin
+
+  FillChar(SignalInfo,SizeOf(TVkSemaphoreSignalInfo),#0);
+  SignalInfo.sType:=VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
+  SignalInfo.pNext:=nil;
+  SignalInfo.semaphore:=fSemaphoreHandle;
+  SignalInfo.value:=aValue;
+  VulkanCheckResult(fDevice.fDeviceVulkan.SignalSemaphore(fDevice.fDeviceHandle,@SignalInfo));
+
+ end else begin
+  VulkanCheckResult(fDevice.fTimelineEmulationManager.SignalSemaphore(self,aValue));
+ end;
+
+end;
+
+function TpvVulkanTimelineSemaphore.WaitFor(const aValue:TpvUInt64;const aTimeout:TpvUInt64=TpvUInt64(high(TpvUInt64))):TVkResult;
+var WaitInfo:TVkSemaphoreWaitInfo;
+begin
+
+ if fNative then begin
+
+  FillChar(WaitInfo,SizeOf(TVkSemaphoreWaitInfo),#0);
+  WaitInfo.sType:=VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+  WaitInfo.pNext:=nil;
+  WaitInfo.flags:=0;
+  WaitInfo.semaphoreCount:=1;
+  WaitInfo.pSemaphores:=@fSemaphoreHandle;
+  WaitInfo.pValues:=@aValue;
+  result:=fDevice.fDeviceVulkan.WaitSemaphores(fDevice.fDeviceHandle,@WaitInfo,aTimeout);
+
+ end else begin
+  result:=fDevice.fTimelineEmulationManager.WaitSemaphores(self,aValue,aTimeout);
+ end;
+
+end;
+
 constructor TpvVulkanQueue.Create(const aDevice:TpvVulkanDevice;
                                   const aQueue:TVkQueue;
                                   const aQueueFamilyIndex:TpvUInt32);
@@ -16877,16 +19285,32 @@ begin
 end;
 
 procedure TpvVulkanQueue.Submit(const aSubmitCount:TpvUInt32;const aSubmits:PVkSubmitInfo;const aFence:TpvVulkanFence=nil);
+var FenceHandle:TVkFence;
 begin
+
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] Submit us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',fQueueFamilyIndex,' h=',TpvPtrUInt(fQueueHandle));
+{$endif}
+
  if assigned(aFence) then begin
-  VulkanCheckResult(fDevice.fDeviceVulkan.QueueSubmit(fQueueHandle,aSubmitCount,aSubmits,aFence.fFenceHandle));
+  FenceHandle:=aFence.fFenceHandle;
  end else begin
-  VulkanCheckResult(fDevice.fDeviceVulkan.QueueSubmit(fQueueHandle,aSubmitCount,aSubmits,VK_NULL_HANDLE));
+  FenceHandle:=VK_NULL_HANDLE;
  end;
+
+ if assigned(fDevice.fTimelineEmulationManager) then begin
+  VulkanCheckResult(fDevice.fTimelineEmulationManager.ProcessQueueSubmit(self,aSubmitCount,aSubmits,FenceHandle));
+ end else begin
+  VulkanCheckResult(fDevice.fDeviceVulkan.QueueSubmit(fQueueHandle,aSubmitCount,aSubmits,FenceHandle));
+ end;
+
 end;
 
 procedure TpvVulkanQueue.BindSparse(const aBindInfoCount:TpvUInt32;const aBindInfo:PVkBindSparseInfo;const aFence:TpvVulkanFence=nil);
 begin
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] BindSp us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',fQueueFamilyIndex,' h=',TpvPtrUInt(fQueueHandle));
+{$endif}
  if assigned(aFence) then begin
   VulkanCheckResult(fDevice.fDeviceVulkan.QueueBindSparse(fQueueHandle,aBindInfoCount,aBindInfo,aFence.fFenceHandle));
  end else begin
@@ -16896,6 +19320,9 @@ end;
 
 procedure TpvVulkanQueue.WaitIdle;
 begin
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] WaitIdl us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',fQueueFamilyIndex,' h=',TpvPtrUInt(fQueueHandle));
+{$endif}
  VulkanCheckResult(fDevice.fDeviceVulkan.QueueWaitIdle(fQueueHandle));
 end;
 
@@ -17417,6 +19844,9 @@ end;
 procedure TpvVulkanCommandBuffer.Execute(const aQueue:TpvVulkanQueue;const aWaitDstStageFlags:TVkPipelineStageFlags;const aWaitSemaphore:TpvVulkanSemaphore=nil;const aSignalSemaphore:TpvVulkanSemaphore=nil;const aFence:TpvVulkanFence=nil;const aDoWaitAndResetFence:boolean=true);
 var SubmitInfo:TVkSubmitInfo;
 begin
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] CmdExec us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',aQueue.fQueueFamilyIndex,' h=',TpvPtrUInt(aQueue.fQueueHandle));
+{$endif}
  if fLevel=VK_COMMAND_BUFFER_LEVEL_PRIMARY then begin
 
   FillChar(SubmitInfo,SizeOf(TVkSubmitInfo),#0);
@@ -17460,6 +19890,8 @@ begin
   raise EpvVulkanException.Create('Execute called from a non-primary command buffer!');
  end;
 end;
+
+{ TpvVulkanCommandBufferSubmitQueue }
 
 constructor TpvVulkanCommandBufferSubmitQueue.Create(const aQueue:TpvVulkanQueue);
 begin
@@ -17581,6 +20013,463 @@ begin
  end;
 
 end;
+
+{ TpvVulkanQueueSubmitCollector }
+
+constructor TpvVulkanQueueSubmitCollector.Create;
+begin
+ inherited Create;
+ fBatches:=nil;
+ fCountBatches:=0;
+ fLastSignalSemaphore:=nil;
+ fFlushSubmitInfos:=nil;
+ fFlushTimelineSemaphoreSubmitInfos:=nil;
+ fFlushCommandBuffers:=nil;
+ fFlushWaitSemaphores:=nil;
+ fFlushWaitDstStageMasks:=nil;
+ fFlushWaitSemaphoreValues:=nil;
+ fFlushSignalSemaphores:=nil;
+ fFlushSignalSemaphoreValues:=nil;
+end;
+
+destructor TpvVulkanQueueSubmitCollector.Destroy;
+begin
+ fBatches:=nil;
+ fFlushSubmitInfos:=nil;
+ fFlushTimelineSemaphoreSubmitInfos:=nil;
+ fFlushCommandBuffers:=nil;
+ fFlushWaitSemaphores:=nil;
+ fFlushWaitDstStageMasks:=nil;
+ fFlushWaitSemaphoreValues:=nil;
+ fFlushSignalSemaphores:=nil;
+ fFlushSignalSemaphoreValues:=nil;
+ inherited Destroy;
+end;
+
+procedure TpvVulkanQueueSubmitCollector.Reset;
+var BatchIndex:TpvInt32;
+begin
+ for BatchIndex:=0 to fCountBatches-1 do begin
+  fBatches[BatchIndex].CountEntries:=0;
+  fBatches[BatchIndex].CountLastSignalSemaphores:=0;
+ end;
+ fCountBatches:=0;
+ fLastSignalSemaphore:=nil;
+end;
+
+function TpvVulkanQueueSubmitCollector.FindOrCreateBatch(const aQueue:TpvVulkanQueue):PQueueBatch;
+var BatchIndex:TpvInt32;
+begin
+ for BatchIndex:=0 to fCountBatches-1 do begin
+  if fBatches[BatchIndex].Queue=aQueue then begin
+   result:=@fBatches[BatchIndex];
+   exit;
+  end;
+ end;
+ BatchIndex:=fCountBatches;
+ inc(fCountBatches);
+ if length(fBatches)<fCountBatches then begin
+  SetLength(fBatches,fCountBatches*2);
+ end;
+ result:=@fBatches[BatchIndex];
+ result^.Queue:=aQueue;
+ result^.CountEntries:=0;
+ result^.CountLastSignalSemaphores:=0;
+end;
+
+procedure TpvVulkanQueueSubmitCollector.Collect(const aQueue:TpvVulkanQueue;
+                                                const aCommandBuffer:TpvVulkanCommandBuffer;
+                                                const aWaitSemaphore:TpvVulkanSemaphore;
+                                                const aWaitDstStageMask:TVkPipelineStageFlags;
+                                                const aSignalSemaphore:TpvVulkanSemaphore);
+var CommandBufferHandle:TVkCommandBuffer;
+    WaitSemaphoreHandle:TVkSemaphore;
+    WaitDstStageMaskValue:TVkPipelineStageFlags;
+    SignalSemaphoreHandle:TVkSemaphore;
+    CountWait,CountSignal:TpvInt32;
+begin
+ if assigned(aCommandBuffer) then begin
+  if aCommandBuffer.fLevel<>VK_COMMAND_BUFFER_LEVEL_PRIMARY then begin
+   raise EpvVulkanException.Create('TpvVulkanQueueSubmitCollector.Collect: command buffer must be primary');
+  end;
+  CommandBufferHandle:=aCommandBuffer.fCommandBufferHandle;
+ end else begin
+  CommandBufferHandle:=VK_NULL_HANDLE;
+ end;
+ if assigned(aWaitSemaphore) then begin
+  WaitSemaphoreHandle:=aWaitSemaphore.fSemaphoreHandle;
+  WaitDstStageMaskValue:=aWaitDstStageMask;
+  CountWait:=1;
+ end else begin
+  WaitSemaphoreHandle:=VK_NULL_HANDLE;
+  WaitDstStageMaskValue:=0;
+  CountWait:=0;
+ end;
+ if assigned(aSignalSemaphore) then begin
+  SignalSemaphoreHandle:=aSignalSemaphore.fSemaphoreHandle;
+  CountSignal:=1;
+ end else begin
+  SignalSemaphoreHandle:=VK_NULL_HANDLE;
+  CountSignal:=0;
+ end;
+ Collect(aQueue,
+         CommandBufferHandle,
+         CountWait,
+         @WaitSemaphoreHandle,
+         @WaitDstStageMaskValue,
+         nil,
+         CountSignal,
+         @SignalSemaphoreHandle,
+         nil);
+ if assigned(aSignalSemaphore) then begin
+  fLastSignalSemaphore:=aSignalSemaphore;
+ end;
+end;
+
+procedure TpvVulkanQueueSubmitCollector.Collect(const aQueue:TpvVulkanQueue;
+                                                const aCommandBufferHandle:TVkCommandBuffer;
+                                                const aCountWaitSemaphores:TpvInt32;
+                                                const aWaitSemaphoreHandles:PVkSemaphore;
+                                                const aWaitDstStageMasks:PVkPipelineStageFlags;
+                                                const aWaitSemaphoreValues:PVkUInt64;
+                                                const aCountSignalSemaphores:TpvInt32;
+                                                const aSignalSemaphoreHandles:PVkSemaphore;
+                                                const aSignalSemaphoreValues:PVkUInt64);
+var Batch:PQueueBatch;
+    EntryIndex,WaitIndex,SignalIndex,MatchIndex,WriteIndex:TpvInt32;
+    Entry,PrevEntry:PSubmitEntry;
+    HasTimeline,Eliminated:boolean;
+begin
+
+ Batch:=FindOrCreateBatch(aQueue);
+
+ // Add entry
+ EntryIndex:=Batch^.CountEntries;
+ inc(Batch^.CountEntries);
+ if length(Batch^.Entries)<Batch^.CountEntries then begin
+  SetLength(Batch^.Entries,Batch^.CountEntries*2);
+ end;
+ Entry:=@Batch^.Entries[EntryIndex];
+ Entry^.CommandBufferHandle:=aCommandBufferHandle;
+
+ // Copy wait semaphores into entry
+ Entry^.CountWaitSemaphores:=aCountWaitSemaphores;
+ if aCountWaitSemaphores>0 then begin
+  if length(Entry^.WaitSemaphoreHandles)<aCountWaitSemaphores then begin
+   SetLength(Entry^.WaitSemaphoreHandles,aCountWaitSemaphores*2);
+   SetLength(Entry^.WaitDstStageMasks,aCountWaitSemaphores*2);
+   SetLength(Entry^.WaitSemaphoreValues,aCountWaitSemaphores*2);
+  end;
+  Move(aWaitSemaphoreHandles^,Entry^.WaitSemaphoreHandles[0],aCountWaitSemaphores*SizeOf(TVkSemaphore));
+  Move(aWaitDstStageMasks^,Entry^.WaitDstStageMasks[0],aCountWaitSemaphores*SizeOf(TVkPipelineStageFlags));
+  if assigned(aWaitSemaphoreValues) then begin
+   Move(aWaitSemaphoreValues^,Entry^.WaitSemaphoreValues[0],aCountWaitSemaphores*SizeOf(TVkUInt64));
+  end else begin
+   FillChar(Entry^.WaitSemaphoreValues[0],aCountWaitSemaphores*SizeOf(TVkUInt64),0);
+  end;
+ end;
+
+ // Copy signal semaphores into entry
+ Entry^.CountSignalSemaphores:=aCountSignalSemaphores;
+ if aCountSignalSemaphores>0 then begin
+  if length(Entry^.SignalSemaphoreHandles)<aCountSignalSemaphores then begin
+   SetLength(Entry^.SignalSemaphoreHandles,aCountSignalSemaphores*2);
+   SetLength(Entry^.SignalSemaphoreValues,aCountSignalSemaphores*2);
+  end;
+  Move(aSignalSemaphoreHandles^,Entry^.SignalSemaphoreHandles[0],aCountSignalSemaphores*SizeOf(TVkSemaphore));
+  if assigned(aSignalSemaphoreValues) then begin
+   Move(aSignalSemaphoreValues^,Entry^.SignalSemaphoreValues[0],aCountSignalSemaphores*SizeOf(TVkUInt64));
+  end else begin
+   FillChar(Entry^.SignalSemaphoreValues[0],aCountSignalSemaphores*SizeOf(TVkUInt64),0);
+  end;
+ end;
+
+ // Same-queue semaphore elimination: check each wait semaphore against the
+ // previous entry's signal semaphores on this queue batch
+ if (Entry^.CountWaitSemaphores>0) and (Batch^.CountLastSignalSemaphores>0) and (EntryIndex>0) then begin
+
+  PrevEntry:=@Batch^.Entries[EntryIndex-1];
+
+  WaitIndex:=0;
+
+  while WaitIndex<Entry^.CountWaitSemaphores do begin
+
+   Eliminated:=false;
+
+   if Entry^.WaitSemaphoreHandles[WaitIndex]<>VK_NULL_HANDLE then begin
+
+    for SignalIndex:=0 to Batch^.CountLastSignalSemaphores-1 do begin
+
+     if Batch^.LastSignalSemaphoreHandles[SignalIndex]=Entry^.WaitSemaphoreHandles[WaitIndex] then begin
+
+      // Found matching signal — eliminate the wait.
+      // For binary semaphores (signal value=0), also eliminate the signal from
+      // the previous entry (binary semaphores are single-signal/single-wait).
+      // For timeline semaphores (signal value>0), keep the signal (other waiters
+      // like CPU WaitFor or cross-queue waits may need it).
+      if Batch^.LastSignalSemaphoreValues[SignalIndex]=0 then begin
+
+       // Binary semaphore: remove from previous entry's signal arrays
+       WriteIndex:=0;
+       for MatchIndex:=0 to PrevEntry^.CountSignalSemaphores-1 do begin
+        if PrevEntry^.SignalSemaphoreHandles[MatchIndex]<>Entry^.WaitSemaphoreHandles[WaitIndex] then begin
+         if WriteIndex<>MatchIndex then begin
+          PrevEntry^.SignalSemaphoreHandles[WriteIndex]:=PrevEntry^.SignalSemaphoreHandles[MatchIndex];
+          PrevEntry^.SignalSemaphoreValues[WriteIndex]:=PrevEntry^.SignalSemaphoreValues[MatchIndex];
+         end;
+         inc(WriteIndex);
+        end;
+       end;
+
+       PrevEntry^.CountSignalSemaphores:=WriteIndex;
+
+      end;
+
+      // Remove matched handle from batch's LastSignalSemaphore tracking
+      WriteIndex:=0;
+      for MatchIndex:=0 to Batch^.CountLastSignalSemaphores-1 do begin
+       if MatchIndex<>SignalIndex then begin
+        if WriteIndex<>MatchIndex then begin
+         Batch^.LastSignalSemaphoreHandles[WriteIndex]:=Batch^.LastSignalSemaphoreHandles[MatchIndex];
+         Batch^.LastSignalSemaphoreValues[WriteIndex]:=Batch^.LastSignalSemaphoreValues[MatchIndex];
+        end;
+        inc(WriteIndex);
+       end;
+      end;
+      Batch^.CountLastSignalSemaphores:=WriteIndex;
+
+      // Remove this wait semaphore from the entry (compact by shifting)
+      dec(Entry^.CountWaitSemaphores);
+      if WaitIndex<Entry^.CountWaitSemaphores then begin
+       Entry^.WaitSemaphoreHandles[WaitIndex]:=Entry^.WaitSemaphoreHandles[Entry^.CountWaitSemaphores];
+       Entry^.WaitDstStageMasks[WaitIndex]:=Entry^.WaitDstStageMasks[Entry^.CountWaitSemaphores];
+       Entry^.WaitSemaphoreValues[WaitIndex]:=Entry^.WaitSemaphoreValues[Entry^.CountWaitSemaphores];
+      end;
+      Eliminated:=true;
+      break;
+     end;
+    
+    end;
+
+   end;
+
+   if not Eliminated then begin
+    inc(WaitIndex);
+   end;
+
+  end;
+
+ end;
+
+ // Determine if this entry has any timeline semaphore values (non-zero)
+ HasTimeline:=false;
+ for WaitIndex:=0 to Entry^.CountWaitSemaphores-1 do begin
+  if Entry^.WaitSemaphoreValues[WaitIndex]<>0 then begin
+   HasTimeline:=true;
+   break;
+  end;
+ end;
+
+ if not HasTimeline then begin
+  for SignalIndex:=0 to Entry^.CountSignalSemaphores-1 do begin
+   if Entry^.SignalSemaphoreValues[SignalIndex]<>0 then begin
+    HasTimeline:=true;
+    break;
+   end;
+  end;
+ end;
+
+ Entry^.HasTimelineValues:=HasTimeline;
+
+ // Update last signal semaphore tracking for this queue batch
+ if Entry^.CountSignalSemaphores>0 then begin
+  if length(Batch^.LastSignalSemaphoreHandles)<Entry^.CountSignalSemaphores then begin
+   SetLength(Batch^.LastSignalSemaphoreHandles,Entry^.CountSignalSemaphores*2);
+   SetLength(Batch^.LastSignalSemaphoreValues,Entry^.CountSignalSemaphores*2);
+  end;
+  Batch^.CountLastSignalSemaphores:=Entry^.CountSignalSemaphores;
+  Move(Entry^.SignalSemaphoreHandles[0],Batch^.LastSignalSemaphoreHandles[0],Entry^.CountSignalSemaphores*SizeOf(TVkSemaphore));
+  Move(Entry^.SignalSemaphoreValues[0],Batch^.LastSignalSemaphoreValues[0],Entry^.CountSignalSemaphores*SizeOf(TVkUInt64));
+ end else begin
+  Batch^.CountLastSignalSemaphores:=0;
+ end;
+
+end;
+
+procedure TpvVulkanQueueSubmitCollector.Flush(const aFence:TpvVulkanFence);
+var BatchIndex,EntryIndex,SubmitInfoCount:TpvInt32;
+    TotalWaitSemaphores,TotalSignalSemaphores:TpvInt32;
+    WaitOffset,SignalOffset:TpvInt32;
+    Batch:PQueueBatch;
+    Entry:PSubmitEntry;
+    SubmitInfo:PVkSubmitInfo;
+    HasAnyTimeline:boolean;
+begin
+
+ for BatchIndex:=0 to fCountBatches-1 do begin
+
+  Batch:=@fBatches[BatchIndex];
+
+  if Batch^.CountEntries>0 then begin
+
+   // Calculate total semaphore counts for flat array sizing
+   TotalWaitSemaphores:=0;
+   TotalSignalSemaphores:=0;
+   HasAnyTimeline:=false;
+   for EntryIndex:=0 to Batch^.CountEntries-1 do begin
+    inc(TotalWaitSemaphores,Batch^.Entries[EntryIndex].CountWaitSemaphores);
+    inc(TotalSignalSemaphores,Batch^.Entries[EntryIndex].CountSignalSemaphores);
+    if Batch^.Entries[EntryIndex].HasTimelineValues then begin
+     HasAnyTimeline:=true;
+    end;
+   end;
+
+   // Ensure flush arrays are large enough
+   if length(fFlushSubmitInfos)<Batch^.CountEntries then begin
+    SetLength(fFlushSubmitInfos,Batch^.CountEntries*2);
+   end;
+
+   if length(fFlushCommandBuffers)<Batch^.CountEntries then begin
+    SetLength(fFlushCommandBuffers,Batch^.CountEntries*2);
+   end;
+
+   if TotalWaitSemaphores>0 then begin
+    if length(fFlushWaitSemaphores)<TotalWaitSemaphores then begin
+     SetLength(fFlushWaitSemaphores,TotalWaitSemaphores*2);
+     SetLength(fFlushWaitDstStageMasks,TotalWaitSemaphores*2);
+    end;
+   end;
+
+   if TotalSignalSemaphores>0 then begin
+    if length(fFlushSignalSemaphores)<TotalSignalSemaphores then begin
+     SetLength(fFlushSignalSemaphores,TotalSignalSemaphores*2);
+    end;
+   end;
+
+   if HasAnyTimeline then begin
+
+    if length(fFlushTimelineSemaphoreSubmitInfos)<Batch^.CountEntries then begin
+     SetLength(fFlushTimelineSemaphoreSubmitInfos,Batch^.CountEntries*2);
+    end;
+
+    if TotalWaitSemaphores>0 then begin
+     if length(fFlushWaitSemaphoreValues)<TotalWaitSemaphores then begin
+      SetLength(fFlushWaitSemaphoreValues,TotalWaitSemaphores*2);
+     end;
+    end;
+
+    if TotalSignalSemaphores>0 then begin
+     if length(fFlushSignalSemaphoreValues)<TotalSignalSemaphores then begin
+      SetLength(fFlushSignalSemaphoreValues,TotalSignalSemaphores*2);
+     end;
+    end;
+
+   end;
+
+   // Build SubmitInfos with flat pool arrays for stable Vulkan pointers
+   
+   SubmitInfoCount:=0;
+   WaitOffset:=0;
+   SignalOffset:=0;
+
+   for EntryIndex:=0 to Batch^.CountEntries-1 do begin
+
+    Entry:=@Batch^.Entries[EntryIndex];
+
+    // Copy command buffer handle to stable array
+    fFlushCommandBuffers[EntryIndex]:=Entry^.CommandBufferHandle;
+
+    // Copy wait semaphore data to flat arrays at current offset
+    if Entry^.CountWaitSemaphores>0 then begin
+     Move(Entry^.WaitSemaphoreHandles[0],fFlushWaitSemaphores[WaitOffset],Entry^.CountWaitSemaphores*SizeOf(TVkSemaphore));
+     Move(Entry^.WaitDstStageMasks[0],fFlushWaitDstStageMasks[WaitOffset],Entry^.CountWaitSemaphores*SizeOf(TVkPipelineStageFlags));
+     if HasAnyTimeline then begin
+      Move(Entry^.WaitSemaphoreValues[0],fFlushWaitSemaphoreValues[WaitOffset],Entry^.CountWaitSemaphores*SizeOf(TVkUInt64));
+     end;
+    end;
+
+    // Copy signal semaphore data to flat arrays at current offset
+    if Entry^.CountSignalSemaphores>0 then begin
+     Move(Entry^.SignalSemaphoreHandles[0],fFlushSignalSemaphores[SignalOffset],Entry^.CountSignalSemaphores*SizeOf(TVkSemaphore));
+     if HasAnyTimeline then begin
+      Move(Entry^.SignalSemaphoreValues[0],fFlushSignalSemaphoreValues[SignalOffset],Entry^.CountSignalSemaphores*SizeOf(TVkUInt64));
+     end;
+    end;
+
+    // Build SubmitInfo
+    SubmitInfo:=@fFlushSubmitInfos[SubmitInfoCount];
+    FillChar(SubmitInfo^,SizeOf(TVkSubmitInfo),#0);
+    SubmitInfo^.sType:=VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    // Command buffer
+    if Entry^.CommandBufferHandle<>VK_NULL_HANDLE then begin
+     SubmitInfo^.commandBufferCount:=1;
+     SubmitInfo^.pCommandBuffers:=@fFlushCommandBuffers[EntryIndex];
+    end else begin
+     SubmitInfo^.commandBufferCount:=0;
+     SubmitInfo^.pCommandBuffers:=nil;
+    end;
+
+    // Wait semaphores
+    if Entry^.CountWaitSemaphores>0 then begin
+     SubmitInfo^.waitSemaphoreCount:=Entry^.CountWaitSemaphores;
+     SubmitInfo^.pWaitSemaphores:=@fFlushWaitSemaphores[WaitOffset];
+     SubmitInfo^.pWaitDstStageMask:=@fFlushWaitDstStageMasks[WaitOffset];
+    end else begin
+     SubmitInfo^.waitSemaphoreCount:=0;
+     SubmitInfo^.pWaitSemaphores:=nil;
+     SubmitInfo^.pWaitDstStageMask:=nil;
+    end;
+
+    // Signal semaphores
+    if Entry^.CountSignalSemaphores>0 then begin
+     SubmitInfo^.signalSemaphoreCount:=Entry^.CountSignalSemaphores;
+     SubmitInfo^.pSignalSemaphores:=@fFlushSignalSemaphores[SignalOffset];
+    end else begin
+     SubmitInfo^.signalSemaphoreCount:=0;
+     SubmitInfo^.pSignalSemaphores:=nil;
+    end;
+
+    // Timeline semaphore pNext chain (only for entries with timeline values,
+    // but value arrays are populated for all entries when HasAnyTimeline=true)
+    if Entry^.HasTimelineValues then begin
+     FillChar(fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount],SizeOf(TVkTimelineSemaphoreSubmitInfo),#0);
+     fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].sType:=VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+     fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].pNext:=nil;
+     fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].waitSemaphoreValueCount:=Entry^.CountWaitSemaphores;
+     if Entry^.CountWaitSemaphores>0 then begin
+      fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].pWaitSemaphoreValues:=@fFlushWaitSemaphoreValues[WaitOffset];
+     end else begin
+      fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].pWaitSemaphoreValues:=nil;
+     end;
+     fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].signalSemaphoreValueCount:=Entry^.CountSignalSemaphores;
+     if Entry^.CountSignalSemaphores>0 then begin
+      fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].pSignalSemaphoreValues:=@fFlushSignalSemaphoreValues[SignalOffset];
+     end else begin
+      fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount].pSignalSemaphoreValues:=nil;
+     end;
+     SubmitInfo^.pNext:=@fFlushTimelineSemaphoreSubmitInfos[SubmitInfoCount];
+    end;
+    inc(WaitOffset,Entry^.CountWaitSemaphores);
+    inc(SignalOffset,Entry^.CountSignalSemaphores);
+    inc(SubmitInfoCount);
+   end;
+   
+   // Submit all SubmitInfos for this queue in a single vkQueueSubmit call.
+   // The fence is attached to the LAST queue batch only.
+   if (BatchIndex=(fCountBatches-1)) and assigned(aFence) then begin
+    Batch^.Queue.Submit(SubmitInfoCount,@fFlushSubmitInfos[0],aFence);
+   end else begin
+    Batch^.Queue.Submit(SubmitInfoCount,@fFlushSubmitInfos[0]);
+   end;
+
+  end;
+
+ end;
+ Reset;
+end;
+
+{ TpvVulkanRenderPass }
 
 constructor TpvVulkanRenderPass.Create(const aDevice:TpvVulkanDevice);
 begin
@@ -19448,6 +22337,19 @@ begin
    SwapChainCreateInfo.oldSwapchain:=VK_NULL_HANDLE;
   end;
 
+  // Enable present timing on swapchain when the extension is active
+  if fDevice.PresentTimingSupport then begin
+   SwapChainCreateInfo.flags:=SwapChainCreateInfo.flags or TVkSwapchainCreateFlagsKHR(VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT);
+  end;
+
+  // Enable present id2/wait2 on swapchain when the extensions are active
+  if fDevice.PresentId2Support then begin
+   SwapChainCreateInfo.flags:=SwapChainCreateInfo.flags or TVkSwapchainCreateFlagsKHR(VK_SWAPCHAIN_CREATE_PRESENT_ID_2_BIT_KHR);
+  end;
+  if fDevice.PresentWait2Support then begin
+   SwapChainCreateInfo.flags:=SwapChainCreateInfo.flags or TVkSwapchainCreateFlagsKHR(VK_SWAPCHAIN_CREATE_PRESENT_WAIT_2_BIT_KHR);
+  end;
+
 {$if (defined(fpc) and defined(android)) and (defined(Debug) or not defined(Release))}
   VulkanDebugLn('Creating swap chain...');
 {$ifend}
@@ -19587,6 +22489,9 @@ end;
 function TpvVulkanSwapChain.QueuePresent(const aQueue:TpvVulkanQueue;const aSemaphore:TpvVulkanSemaphore=nil;const aNext:Pointer=nil):TVkResult;
 var PresentInfo:TVkPresentInfoKHR;
 begin
+{$ifdef PasVulkanQueueDiag}
+ WriteLn('[QueueDiag] Present us=',QueueDiagTimestampUS,' tid=',GetCurrentThreadID,' qfi=',aQueue.fQueueFamilyIndex,' h=',TpvPtrUInt(aQueue.fQueueHandle));
+{$endif}
  FillChar(PresentInfo,SizeOf(TVkPresentInfoKHR),#0);
  PresentInfo.sType:=VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
  PresentInfo.pNext:=aNext;
@@ -21859,13 +24764,28 @@ begin
   finally
    DescriptorBindingFlags:=nil;
   end;
+  if fExtendedBinding then begin
+   fHasVariableDescriptorCountBinding:=false;
+   fVariableDescriptorBinding:=0;
+   fVariableDescriptorUpperBound:=0;
+   for Index:=0 to fDescriptorSetLayoutBindingList.Count-1 do begin
+    if ((TpvVulkanDescriptorSetLayoutBinding(fDescriptorSetLayoutBindingList[Index]).fBindingFlags and
+         TVkDescriptorBindingFlags(VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT))<>0) and
+       (not fHasVariableDescriptorCountBinding or
+        (TpvVulkanDescriptorSetLayoutBinding(fDescriptorSetLayoutBindingList[Index]).fDescriptorSetLayoutBinding.binding>
+         fVariableDescriptorBinding)) then begin
+     fHasVariableDescriptorCountBinding:=true;
+     fVariableDescriptorBinding:=TpvVulkanDescriptorSetLayoutBinding(fDescriptorSetLayoutBindingList[Index]).fDescriptorSetLayoutBinding.binding;
+     fVariableDescriptorUpperBound:=TpvVulkanDescriptorSetLayoutBinding(fDescriptorSetLayoutBindingList[Index]).fDescriptorSetLayoutBinding.descriptorCount;
+    end;
+   end;
+  end;
  end;
 end;
 
 constructor TpvVulkanDescriptorSet.Create(const aDescriptorPool:TpvVulkanDescriptorPool;
                                           const aDescriptorSetLayout:TpvVulkanDescriptorSetLayout);
-var Index:TpvSizeInt;
-    DescriptorSetLayoutBinding:TpvVulkanDescriptorSetLayoutBinding;
+var DescriptorSetAllocateInfo:TVkDescriptorSetAllocateInfo;
     DescriptorSetVariableDescriptorCountAllocateInfoEXT:TVkDescriptorSetVariableDescriptorCountAllocateInfoEXT;
     Count:TpvUInt32;
 begin
@@ -21889,31 +24809,22 @@ begin
  fWriteDescriptorSetAccelerationStructureKHRQueue:=nil;
  fWriteDescriptorSetAccelerationStructureKHRQueueSize:=0;
 
- FillChar(fDescriptorSetAllocateInfo,SizeOf(TVkDescriptorSetAllocateInfo),#0);
- fDescriptorSetAllocateInfo.sType:=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
- fDescriptorSetAllocateInfo.descriptorPool:=fDescriptorPool.fDescriptorPoolHandle;
- fDescriptorSetAllocateInfo.descriptorSetCount:=1;
- fDescriptorSetAllocateInfo.pSetLayouts:=@fDescriptorSetLayout.fDescriptorSetLayoutHandle;
+ FillChar(DescriptorSetAllocateInfo,SizeOf(TVkDescriptorSetAllocateInfo),#0);
+ DescriptorSetAllocateInfo.sType:=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+ DescriptorSetAllocateInfo.descriptorPool:=fDescriptorPool.fDescriptorPoolHandle;
+ DescriptorSetAllocateInfo.descriptorSetCount:=1;
+ DescriptorSetAllocateInfo.pSetLayouts:=@fDescriptorSetLayout.fDescriptorSetLayoutHandle;
 
- if fDescriptorSetLayout.fExtendedBinding and (fDescriptorSetLayout.fDescriptorSetLayoutBindingList.Count>0) then begin
-  Count:=0;
-  for Index:=0 to fDescriptorSetLayout.fDescriptorSetLayoutBindingList.Count-1 do begin
-   DescriptorSetLayoutBinding:=TpvVulkanDescriptorSetLayoutBinding(fDescriptorSetLayout.fDescriptorSetLayoutBindingList[Index]);
-   if (DescriptorSetLayoutBinding.BindingFlags and TVkDescriptorBindingFlags(VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT))<>0 then begin
-    Count:=DescriptorSetLayoutBinding.DescriptorCount;
-    break;
-   end;
-  end;
-  if Count>0 then begin
-   FillChar(DescriptorSetVariableDescriptorCountAllocateInfoEXT,SizeOf(TVkDescriptorSetVariableDescriptorCountAllocateInfoEXT),#0);
-   DescriptorSetVariableDescriptorCountAllocateInfoEXT.sType:=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
-   DescriptorSetVariableDescriptorCountAllocateInfoEXT.descriptorSetCount:=fDescriptorSetAllocateInfo.descriptorSetCount;
-   DescriptorSetVariableDescriptorCountAllocateInfoEXT.pDescriptorCounts:=@Count;
-   fDescriptorSetAllocateInfo.pNext:=@DescriptorSetVariableDescriptorCountAllocateInfoEXT;
-  end;
+ if fDescriptorSetLayout.fHasVariableDescriptorCountBinding then begin
+  Count:=fDescriptorSetLayout.fVariableDescriptorUpperBound;
+  FillChar(DescriptorSetVariableDescriptorCountAllocateInfoEXT,SizeOf(TVkDescriptorSetVariableDescriptorCountAllocateInfoEXT),#0);
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.sType:=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.descriptorSetCount:=1;
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.pDescriptorCounts:=@Count;
+  DescriptorSetAllocateInfo.pNext:=@DescriptorSetVariableDescriptorCountAllocateInfoEXT;
  end;
 
- VulkanCheckResult(fDevice.fDeviceVulkan.AllocateDescriptorSets(fDevice.fDeviceHandle,@fDescriptorSetAllocateInfo,@fDescriptorSetHandle));
+ VulkanCheckResult(fDevice.fDeviceVulkan.AllocateDescriptorSets(fDevice.fDeviceHandle,@DescriptorSetAllocateInfo,@fDescriptorSetHandle));
 
 end;
 
@@ -21938,6 +24849,74 @@ begin
  SetLength(result,length(aDescriptorSetLayouts));
  for Index:=0 to length(aDescriptorSetLayouts)-1 do begin
   result[Index]:=TpvVulkanDescriptorSet.Create(aDescriptorPool,aDescriptorSetLayouts[Index]);
+ end;
+end;
+
+constructor TpvVulkanDescriptorSet.Create(const aDescriptorPool:TpvVulkanDescriptorPool;
+                                          const aDescriptorSetLayout:TpvVulkanDescriptorSetLayout;
+                                          const aVariableDescriptorCount:TpvUInt32;
+                                          const aExtraNext:Pointer);
+var DescriptorSetAllocateInfo:TVkDescriptorSetAllocateInfo;
+    DescriptorSetVariableDescriptorCountAllocateInfoEXT:TVkDescriptorSetVariableDescriptorCountAllocateInfoEXT;
+    Count:TpvUInt32;
+begin
+ inherited Create;
+
+ fDevice:=aDescriptorPool.fDevice;
+
+ fDescriptorPool:=aDescriptorPool;
+
+ fDescriptorSetLayout:=aDescriptorSetLayout;
+
+ fDescriptorSetHandle:=VK_NULL_HANDLE;
+
+ fCopyDescriptorSetQueue:=nil;
+ fCopyDescriptorSetQueueSize:=0;
+
+ fWriteDescriptorSetQueue:=nil;
+ fWriteDescriptorSetQueueMetaData:=nil;
+ fWriteDescriptorSetQueueSize:=0;
+
+ fWriteDescriptorSetAccelerationStructureKHRQueue:=nil;
+ fWriteDescriptorSetAccelerationStructureKHRQueueSize:=0;
+
+ Assert((not fDescriptorSetLayout.fHasVariableDescriptorCountBinding) or
+        (aVariableDescriptorCount<=fDescriptorSetLayout.fVariableDescriptorUpperBound),
+        'TpvVulkanDescriptorSet.Create: aVariableDescriptorCount exceeds layout upper bound');
+
+ FillChar(DescriptorSetAllocateInfo,SizeOf(TVkDescriptorSetAllocateInfo),#0);
+ DescriptorSetAllocateInfo.sType:=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+ DescriptorSetAllocateInfo.descriptorPool:=fDescriptorPool.fDescriptorPoolHandle;
+ DescriptorSetAllocateInfo.descriptorSetCount:=1;
+ DescriptorSetAllocateInfo.pSetLayouts:=@fDescriptorSetLayout.fDescriptorSetLayoutHandle;
+
+ if fDescriptorSetLayout.fHasVariableDescriptorCountBinding then begin
+  Count:=aVariableDescriptorCount;
+  FillChar(DescriptorSetVariableDescriptorCountAllocateInfoEXT,SizeOf(TVkDescriptorSetVariableDescriptorCountAllocateInfoEXT),#0);
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.sType:=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.descriptorSetCount:=1;
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.pDescriptorCounts:=@Count;
+  DescriptorSetVariableDescriptorCountAllocateInfoEXT.pNext:=aExtraNext;
+  DescriptorSetAllocateInfo.pNext:=@DescriptorSetVariableDescriptorCountAllocateInfoEXT;
+ end else begin
+  DescriptorSetAllocateInfo.pNext:=aExtraNext;
+ end;
+
+ VulkanCheckResult(fDevice.fDeviceVulkan.AllocateDescriptorSets(fDevice.fDeviceHandle,@DescriptorSetAllocateInfo,@fDescriptorSetHandle));
+
+end;
+
+class function TpvVulkanDescriptorSet.Allocate(const aDescriptorPool:TpvVulkanDescriptorPool;
+                                               const aDescriptorSetLayouts:array of TpvVulkanDescriptorSetLayout;
+                                               const aVariableDescriptorCounts:array of TpvUInt32):TpvVulkanDescriptorSetArray;
+var Index:TpvInt32;
+begin
+ Assert(length(aVariableDescriptorCounts)=length(aDescriptorSetLayouts),
+        'TpvVulkanDescriptorSet.Allocate: aVariableDescriptorCounts length must equal aDescriptorSetLayouts length');
+ result:=nil;
+ SetLength(result,length(aDescriptorSetLayouts));
+ for Index:=0 to length(aDescriptorSetLayouts)-1 do begin
+  result[Index]:=TpvVulkanDescriptorSet.Create(aDescriptorPool,aDescriptorSetLayouts[Index],aVariableDescriptorCounts[Index]);
  end;
 end;
 
@@ -26422,7 +29401,11 @@ procedure TpvVulkanTexture.Finish(const aGraphicsQueue:TpvVulkanQueue;
       raise EpvVulkanTextureException.Create('KTX error: '+KTXErrorCodeToString(KTXResult));
      end;
     finally
-     ktxVulkanDeviceInfo_Destroy(KTXVulkanDeviceInfo);
+     try
+      fDevice.Commands.Commands.QueueWaitIdle(aGraphicsQueue.Handle);
+     finally
+      ktxVulkanDeviceInfo_Destroy(KTXVulkanDeviceInfo);
+     end;
     end;
    end else begin
     raise EpvVulkanTextureException.Create('KTX library error');
@@ -29617,7 +32600,11 @@ begin
 
       Assert(TVkSizeInt(DataOffset)=TVkSizeInt(aDataSize));
 
-      aGraphicsCommandBuffer.CmdCopyBufferToImage(StagingBuffer.fBufferHandle,fImage.fImageHandle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,BufferImageCopyArraySize,@BufferImageCopyArray[0]);
+      aGraphicsCommandBuffer.CmdCopyBufferToImage(StagingBuffer.fBufferHandle,
+                                                  fImage.fImageHandle,
+                                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                  BufferImageCopyArraySize,
+                                                  @BufferImageCopyArray[0]);
 
       if fCountMipMaps<1 then begin
 
@@ -30124,6 +33111,11 @@ begin
  end;
 end;
 
+function TpvVulkanTexture.GetHasKTXTexture:boolean;
+begin
+ result:=assigned(fKTXTexture);
+end;
+
 procedure TpvVulkanTexture.UpdateSampler;
 var MagFilter:TVkFilter;
     MinFilter:TVkFilter;
@@ -30271,11 +33263,15 @@ begin
 end;
 
 initialization
+ TpvVulkanTimelineSemaphore.ForceEmulation:=false;
  LoadKTXLibrary;
  InitializeVulkanDefaultGroupHeapChunkSizes;
 finalization
  FreeAndNil(VulkanDefaultGroupHeapChunkSizes);
  KTXTextureName:='';
+{$ifdef PasVulkanQueueDiag}
+ FreeAndNil(QueueDiagTimer);
+{$endif}
 end.
 
 

@@ -14,6 +14,7 @@ layout(push_constant, std140) uniform PushConstants {
   uvec4 countLightsViewIndexSizeOffsetedViewIndex;
   uvec4 clusterSize;
   vec4 scaleBiasMax;
+  uvec4 countDecalsReserved; // x = countDecals, yzw = reserved
 } pushConstants;
 
 struct AABB {
@@ -48,15 +49,19 @@ layout(set = 0, binding = 2, std430) buffer LightMetaInfos {
   LightDecalMetaInfo lightMetaInfos[];
 };
 
-layout (set = 0, binding = 3, std430) buffer FrustumClusterGridIndexList {
+layout(set = 0, binding = 3, std430) buffer DecalMetaInfos {
+  LightDecalMetaInfo decalMetaInfos[];
+};
+
+layout (set = 0, binding = 4, std430) buffer FrustumClusterGridIndexList {
   uint frustumClusterGridIndexList[];
 };
 
-layout (set = 0, binding = 4, std430) buffer FrustumClusterGridData {
+layout (set = 0, binding = 5, std430) buffer FrustumClusterGridData {
   uvec4 frustumClusterGridData[];
 };
 
-layout (set = 0, binding = 5, std430) buffer FrustumClusterGridIndexListCounters {
+layout (set = 0, binding = 6, std430) buffer FrustumClusterGridIndexListCounters {
   uint frustumClusterGridIndexListCounter;
 };
 
@@ -203,8 +208,34 @@ void main() {
   // ----------------------------------------------------------------------------------------------------------------------------
   
   uint countVisibleDecals = 0u;
+  uint countDecals = pushConstants.countDecalsReserved.x;
+  uint countDecalBatches = (countDecals + (countThreads - 1u)) / countThreads;
 
-  // TODO: Implement decal culling
+  for (uint batchIndex = 0; batchIndex < countDecalBatches; batchIndex++) {
+    uint decalTransferIndex = (batchIndex * countThreads) + localInvocationIndex;
+    if(decalTransferIndex < countDecals){
+      sharedLightDecalMetaInfos[localInvocationIndex] = decalMetaInfos[decalTransferIndex];
+    }else{ 
+      sharedLightDecalMetaInfos[localInvocationIndex].minBounds = vec4(0.0);
+      sharedLightDecalMetaInfos[localInvocationIndex].maxBounds = vec4(0.0);
+    }
+    barrier();
+    for (uint decalProcessIndex = 0u; (decalProcessIndex < countThreads) && (countVisibleDecals < 128u); decalProcessIndex++) {
+      LightDecalMetaInfo decalMetaInfo = sharedLightDecalMetaInfos[decalProcessIndex];
+      // Decals use minBounds.w > 0.5 to indicate valid decal (same pattern as lights)
+      if (decalMetaInfo.minBounds.w > 0.5) {
+        // Check AABB intersection in world space
+        vec3 clusterAABBMin = frustumClusterGridAABBs[clusterIndex].minWorldSpaceBounds.xyz;
+        vec3 clusterAABBMax = frustumClusterGridAABBs[clusterIndex].maxWorldSpaceBounds.xyz;
+        vec3 decalAABBMin = decalMetaInfo.minBounds.xyz;
+        vec3 decalAABBMax = decalMetaInfo.maxBounds.xyz;
+        if((all(lessThanEqual(clusterAABBMin, decalAABBMax)) && all(lessThanEqual(decalAABBMin, clusterAABBMax)))){
+          visibleLightDecalIndices[int(countVisibleDecals)] = (batchIndex * countThreads) + decalProcessIndex;
+          countVisibleDecals++;
+        }
+      }
+    }
+  }
 
   barrier();
 

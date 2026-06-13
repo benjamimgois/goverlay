@@ -1,0 +1,45 @@
+#version 450
+/*
+ * conv_backward_bias.comp — Compute gradient w.r.t. biases (dB)
+ *
+ * Each thread computes one bias gradient dB[oc] by summing grad_output
+ * over all (batch, spatial) positions.
+ *
+ * Bindings: 0=grad_output, 1=dB, 2=(unused), 3=(unused)
+ * Push constants: p0=out_ch, p4=H, p5=W, p6=batch
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) readonly  buffer BufGO  { float grad_out[]; };
+layout(set = 0, binding = 1)           buffer BufDB  { float dB[];       };
+layout(set = 0, binding = 2) readonly  buffer BufDum1 { float dummy1[];  };
+layout(set = 0, binding = 3) readonly  buffer BufDum2 { float dummy2[];  };
+
+void main() {
+    int oc = int(gl_GlobalInvocationID.x);
+
+    int out_ch = pc.p0;
+    int H      = pc.p4;
+    int W      = pc.p5;
+    int batch  = pc.p6;
+
+    if (oc >= out_ch) return;
+
+    float sum = 0.0;
+    for (int n = 0; n < batch; n++) {
+        int base = (n * out_ch + oc) * H * W;
+        for (int p = 0; p < H * W; p++) {
+            sum += grad_out[base + p];
+        }
+    }
+
+    dB[oc] += sum;
+}

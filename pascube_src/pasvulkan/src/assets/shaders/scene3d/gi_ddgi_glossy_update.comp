@@ -1,0 +1,102 @@
+#version 460 core
+
+// DDGI glossy prefiltered-radiance integration pass.
+//
+// Integrates the per-ray radiance from gi_ddgi_trace.comp into each probe's octahedral GLOSSY atlas: like the irradiance
+// octahedral update, but with a SHARP directional kernel (pow(dot, n)) and NO cosine convolution, so the stored value is
+// prefiltered *radiance* usable for glossy reflections (sampled along the reflection vector at shading time). One workgroup
+// per probe, one thread per interior glossy texel; reuses the visibility-update shared-ray-cache pattern. Independent of the
+// irradiance storage mode (SH or OCT). Only built/dispatched when GI_DDGI_GLOSSY_RADIANCE is defined.
+//
+// Single fixed prefilter level (v1). The layout is mip-ready: a future mip chain stores blurrier levels below this one and
+// the shading sample picks a level from roughness; nothing here changes except writing the level-0 (sharpest) tile.
+
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_buffer_reference : require
+
+/* clang-format off */
+
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_SET 1
+#define GLOBAL_ILLUMINATION_VOLUME_UNIFORM_BINDING 0
+#include "global_illumination_ddgi.glsl"
+#include "gi_ddgi_raydata.glsl"
+// ddgiData (SSBO: cascade globals + sub-buffer pointers) + the sub-buffer accessors come via global_illumination_ddgi.glsl
+
+layout(local_size_x = GI_DDGI_GLOSSY_OCT_SIZE, local_size_y = GI_DDGI_GLOSSY_OCT_SIZE, local_size_z = 1) in;
+
+// Glossy atlas storage. RGB9E5 (default) is written through an R32_UINT alias view (encode/decode the shared-exponent bits);
+// the RGBA16F fallback writes vec4 directly. Whichever is built MUST match the Pascal image format + the sampling include.
+#ifdef GI_DDGI_GLOSSY_RGB9E5
+  #include "rgb9e5.glsl"
+  layout(set = 1, binding = 5, r32ui) uniform uimage2D uDDGIGlossyRadiance;
+  vec3 ddgiGlossyLoad(const in ivec2 p){ return decodeRGB9E5(imageLoad(uDDGIGlossyRadiance, p).x); }
+  void ddgiGlossyStore(const in ivec2 p, const in vec3 c){ imageStore(uDDGIGlossyRadiance, p, uvec4(encodeRGB9E5(max(vec3(0.0), c)), 0u, 0u, 0u)); }
+#else
+  layout(set = 1, binding = 5, rgba16f) uniform image2D uDDGIGlossyRadiance;
+  vec3 ddgiGlossyLoad(const in ivec2 p){ return imageLoad(uDDGIGlossyRadiance, p).rgb; }
+  void ddgiGlossyStore(const in ivec2 p, const in vec3 c){ imageStore(uDDGIGlossyRadiance, p, vec4(max(vec3(0.0), c), 1.0)); }
+#endif
+
+#include "gi_ddgi_pushconstants.glsl"
+
+// Shared cache of this probe's traced rays for the whole workgroup (one workgroup == one probe), loaded cooperatively once:
+// direction (recomputed trig) + radiance. Then every glossy texel integrates from LDS instead of re-reading the ray-data
+// buffer + recomputing each direction per texel (the RTXGI ProbeBlendingCS optimization, as in the visibility update).
+shared vec3 sDDGIGlossyRayDirection[GI_DDGI_RAYS_PER_PROBE];
+shared vec3 sDDGIGlossyRayRadiance[GI_DDGI_RAYS_PER_PROBE];
+
+void main(){
+  uint globalProbeIndex = gl_WorkGroupID.x;
+  uint totalProbes = pushConstants.params.y * pushConstants.params.z;
+  if(globalProbeIndex >= totalProbes){
+    return;
+  }
+
+  int cascadeIndex = int(globalProbeIndex / pushConstants.params.z);
+  int probeIndexInCascade = int(globalProbeIndex % pushConstants.params.z);
+  ivec3 probeCoord = ddgiProbeCoordFromIndex(probeIndexInCascade);
+
+  ivec2 localTexel = ivec2(gl_LocalInvocationID.xy);
+  vec2 uv = (vec2(localTexel) + vec2(0.5)) / float(GI_DDGI_GLOSSY_OCT_SIZE);
+  vec3 texelDirection = octDecode(fma(uv, vec2(2.0), vec2(-1.0)));
+
+  mat3 randomRotation = mat3(pushConstants.randomRotation0.xyz, pushConstants.randomRotation1.xyz, pushConstants.randomRotation2.xyz);
+  uint raysPerProbe = pushConstants.params.w;
+
+  // Cooperatively load this probe's rays (direction + radiance) into shared memory ONCE for the whole workgroup; the
+  // GLOSSY_OCT_SIZE^2 threads cover the <=128 rays, then barrier so each texel integrates from LDS.
+  DDGIRayDataBuffer rayData = ddgiData.rayData; // hoist the master->sub-pointer deref out of the load
+  uint localIndex = (uint(gl_LocalInvocationID.y) * GI_DDGI_GLOSSY_OCT_SIZE) + uint(gl_LocalInvocationID.x);
+  for(uint r = GI_DDGI_RAY_START + localIndex; r < raysPerProbe; r += uint(GI_DDGI_GLOSSY_OCT_SIZE * GI_DDGI_GLOSSY_OCT_SIZE)){
+    sDDGIGlossyRayDirection[r] = ddgiTraceRayDirection(r, randomRotation);
+    sDDGIGlossyRayRadiance[r] = ddgiLoadRay(rayData, globalProbeIndex, r, raysPerProbe).rgb;
+  }
+  barrier();
+
+  // Sharp directional prefilter: weighted average of incoming radiance in a Phong-like lobe around this texel direction.
+  const float sharpness = GI_DDGI_GLOSSY_SHARPNESS;
+  vec3 sum = vec3(0.0);
+  float sumWeight = 0.0;
+  for(uint r = GI_DDGI_RAY_START; r < raysPerProbe; r++){
+    float weight = pow(max(0.0, dot(texelDirection, sDDGIGlossyRayDirection[r])), sharpness);
+    if(weight > 0.0){
+      sum += sDDGIGlossyRayRadiance[r] * weight;
+      sumWeight += weight;
+    }
+  }
+  vec3 glossy = (sumWeight > 1e-6) ? (sum / sumWeight) : vec3(0.0);
+
+  ivec2 atlasTexel = ddgiProbeTileOrigin(probeCoord, cascadeIndex, GI_DDGI_GLOSSY_OCT_FULL) + localTexel;
+  vec3 previous = ddgiGlossyLoad(atlasTexel);
+
+  // Temporal hysteresis blend, with the same first-frame / toroidal-scroll-in / per-probe age warmup logic as the irradiance
+  // and visibility updates. The age is owned (written) by the visibility update; this pass only reads it (one frame behind,
+  // irrelevant for a warmup ramp), exactly like the irradiance update — so glossy must run before visibility in the chain.
+  bool firstFrame = (pushConstants.blend.z > 0.5) || ddgiProbeScrolledIn(probeCoord, cascadeIndex);
+  DDGIAgeBuffer ageBuffer = ddgiData.age;
+  float hysteresis = ddgiWarmupHysteresis(float(ddgiLoadAge(ageBuffer, probeCoord, cascadeIndex)));
+  // NaN-safe discard: a zero blend weight is not enough, because mix(cur, NaN, 0.0) = cur + NaN*0.0 = NaN; select the fresh value.
+  bool discardPrevious = firstFrame || any(isnan(previous)) || any(isinf(previous));
+  ddgiGlossyStore(atlasTexel, discardPrevious ? glossy : mix(glossy, previous, hysteresis));
+}

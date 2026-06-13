@@ -1,0 +1,176 @@
+#version 460 core
+
+// Mesh-shader variant of the particle voxelization (used when MeshShaderSupport is on, so no geometry shader is needed on
+// modern mesh-capable hardware). 1:1 replacement of particle.vert (-DVOXELIZATION) + particle_voxelization.geom: one workgroup
+// per alive particle, one local invocation per voxel cascade. Each invocation reads the particle's 3 billboard vertices from
+// the particle vertex buffer (via BDA), expands them to world space exactly like particle.vert, then does the per-cascade
+// dominant-axis projection + (optional) conservative-rasterization expansion exactly like particle_voxelization.geom, and emits
+// the projected triangle. Output interface matches particle.frag (-DVOXELIZATION): location 1 texCoord is vec3 (quadCoord, time).
+
+#extension GL_EXT_mesh_shader : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference_uvec2 : require
+
+/* clang-format off */
+
+#define PARTICLE_VOXELIZATION_MAX_CASCADES 8
+
+layout(local_size_x = PARTICLE_VOXELIZATION_MAX_CASCADES, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = PARTICLE_VOXELIZATION_MAX_CASCADES * 3, max_primitives = PARTICLE_VOXELIZATION_MAX_CASCADES) out;
+
+layout(location = 0) out vec3 outWorldSpacePosition[];
+layout(location = 1) out vec3 outTexCoord[];
+layout(location = 2) out vec4 outColor[];
+layout(location = 3) out vec3 outNormal[];
+layout(location = 4) flat out uint outTextureID[];
+layout(location = 5) flat out vec3 outAABBMin[];
+layout(location = 6) flat out vec3 outAABBMax[];
+layout(location = 7) flat out uint outCascadeIndex[];
+layout(location = 8) out vec3 outVoxelPosition[];
+layout(location = 9) flat out vec3 outVertex0[];
+layout(location = 10) flat out vec3 outVertex1[];
+layout(location = 11) flat out vec3 outVertex2[];
+
+#define VOXELIZATION
+#include "voxelization_globals.glsl"
+
+struct View {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  mat4 inverseViewMatrix;
+  mat4 inverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform uboViews {
+  View views[256];
+} uView;
+
+// 48-byte packed TParticleVertex, read straight from the GPU vertex buffer via its device address (same layout as the
+// particle-BVH emit shader / TpvScene3D.TParticleVertex).
+struct PackedParticleVertex {
+  vec4 positionRotation;  // xyz = position (billboard centre, shared by the 3 verts), w = rotation
+  uvec4 quadTexSize;      // x = quadCoord (half2), y = textureID, z/w = size.x/size.y (float bits)
+  uvec4 colorTimeUnused;  // x/y = color (half4), z = time (float bits), w = unused
+};
+
+layout(buffer_reference, std430, buffer_reference_align = 16) readonly buffer ParticleVertexBuffer {
+  PackedParticleVertex vertices[];
+};
+
+layout(push_constant) uniform PushConstants {
+  uvec2 particleVertexBufferAddress; // BDA of the TpvScene3D particle vertex buffer
+  uint viewBaseIndex;                // primary view used for the billboard orientation (matches particle.vert)
+  uint particleCount;                // alive particle count (= vertexCount / 3)
+} pushConstants;
+
+/* clang-format on */
+
+void main(){
+
+  uint particleIndex = gl_WorkGroupID.x;
+  uint cascadeIndex = gl_LocalInvocationID.x;
+
+  uint countCascades = voxelGridData.countCascades;
+
+  if(particleIndex >= pushConstants.particleCount){
+    SetMeshOutputsEXT(0u, 0u);
+    return;
+  }
+
+  SetMeshOutputsEXT(countCascades * 3u, countCascades);
+
+  if(cascadeIndex >= countCascades){
+    return;
+  }
+
+  // --- particle.vert: read + billboard-expand the 3 vertices to world space ---
+  ParticleVertexBuffer vertexBuffer = ParticleVertexBuffer(pushConstants.particleVertexBufferAddress);
+  mat4 inverseViewMatrix = uView.views[pushConstants.viewBaseIndex].inverseViewMatrix;
+  vec3 worldSpaceRight = inverseViewMatrix[0].xyz;
+  vec3 worldSpaceUp = inverseViewMatrix[1].xyz;
+
+  vec3 worldSpacePosition[3];
+  vec3 texCoord[3];
+  vec4 color[3];
+  uint textureID = 0u;
+  for(uint v = 0u; v < 3u; v++){
+    PackedParticleVertex pv = vertexBuffer.vertices[(particleIndex * 3u) + v];
+    vec3 center = pv.positionRotation.xyz;
+    float rotation = pv.positionRotation.w;
+    vec2 quadCoord = unpackHalf2x16(pv.quadTexSize.x);
+    textureID = pv.quadTexSize.y;
+    vec2 size = vec2(uintBitsToFloat(pv.quadTexSize.z), uintBitsToFloat(pv.quadTexSize.w));
+    vec4 col = vec4(unpackHalf2x16(pv.colorTimeUnused.x), unpackHalf2x16(pv.colorTimeUnused.y));
+    float time = uintBitsToFloat(pv.colorTimeUnused.z);
+    vec2 coord = fma(quadCoord, vec2(1.0), vec2(-0.5)) * size;
+    vec2 sinCos = sin(vec2(rotation) + vec2(0.0, 1.57079632679));
+    worldSpacePosition[v] = center + ((worldSpaceRight * ((coord.x * sinCos.y) + (coord.y * sinCos.x))) +
+                                      (worldSpaceUp * ((coord.y * sinCos.y) - (coord.x * sinCos.x))));
+    texCoord[v] = vec3(quadCoord, time);
+    color[v] = col;
+  }
+
+  // --- particle_voxelization.geom: per-cascade dominant-axis projection (one cascade per invocation) ---
+  vec3 cascadeSpacePositions[3] = vec3[3](
+    vec3(voxelGridData.worldToCascadeClipSpaceMatrices[cascadeIndex] * vec4(worldSpacePosition[0], 1.0)).xyz,
+    vec3(voxelGridData.worldToCascadeClipSpaceMatrices[cascadeIndex] * vec4(worldSpacePosition[1], 1.0)).xyz,
+    vec3(voxelGridData.worldToCascadeClipSpaceMatrices[cascadeIndex] * vec4(worldSpacePosition[2], 1.0)).xyz
+  );
+
+  vec3 faceNormal = cross(worldSpacePosition[1] - worldSpacePosition[0], worldSpacePosition[2] - worldSpacePosition[0]);
+  ivec3 vertexIndexOrder = (faceNormal.z > 0.0) ? ivec3(0, 1, 2) : ivec3(0, 2, 1);
+  faceNormal = abs(faceNormal);
+
+  int dominantAxisIndex = (faceNormal.y > faceNormal.x) ? ((faceNormal.y > faceNormal.z) ? 1 : 2) : ((faceNormal.x > faceNormal.z) ? 0 : 2);
+  const ivec3 dominantAxisComponentOrders[3] = ivec3[3](
+    ivec3(2, 1, 0), // zyx
+    ivec3(0, 2, 1), // xzy
+    ivec3(0, 1, 2)  // xyz
+  );
+  ivec3 dominantAxisComponentOrder = dominantAxisComponentOrders[dominantAxisIndex];
+
+  vec4 projectionVertices[3] = vec4[3](
+    vec4(cascadeSpacePositions[0][dominantAxisComponentOrder.x], cascadeSpacePositions[0][dominantAxisComponentOrder.y], cascadeSpacePositions[0][dominantAxisComponentOrder.z], 1.0),
+    vec4(cascadeSpacePositions[1][dominantAxisComponentOrder.x], cascadeSpacePositions[1][dominantAxisComponentOrder.y], cascadeSpacePositions[1][dominantAxisComponentOrder.z], 1.0),
+    vec4(cascadeSpacePositions[2][dominantAxisComponentOrder.x], cascadeSpacePositions[2][dominantAxisComponentOrder.y], cascadeSpacePositions[2][dominantAxisComponentOrder.z], 1.0)
+  );
+
+  // Manual one-texel triangle expansion when hardware conservative rasterization is off (avoids voxelization holes).
+  if(voxelGridData.hardwareConservativeRasterization == 0u){
+    vec2 sides[3] = vec2[3](
+      vec2(normalize(projectionVertices[vertexIndexOrder[1]].xy - projectionVertices[vertexIndexOrder[0]].xy)),
+      vec2(normalize(projectionVertices[vertexIndexOrder[2]].xy - projectionVertices[vertexIndexOrder[1]].xy)),
+      vec2(normalize(projectionVertices[vertexIndexOrder[0]].xy - projectionVertices[vertexIndexOrder[2]].xy))
+    );
+    float texelSize = 1.41421356237 / voxelGridData.cascadeCenterHalfExtents[cascadeIndex].w;
+    projectionVertices[vertexIndexOrder[0]].xy += normalize(sides[2] - sides[0]) * texelSize;
+    projectionVertices[vertexIndexOrder[1]].xy += normalize(sides[0] - sides[1]) * texelSize;
+    projectionVertices[vertexIndexOrder[2]].xy += normalize(sides[1] - sides[2]) * texelSize;
+  }
+
+  vec3 aabbMin = min(min(worldSpacePosition[0], worldSpacePosition[1]), worldSpacePosition[2]);
+  vec3 aabbMax = max(max(worldSpacePosition[0], worldSpacePosition[1]), worldSpacePosition[2]);
+
+  uint baseVertex = cascadeIndex * 3u;
+  for(uint vertexIndex = 0u; vertexIndex < 3u; vertexIndex++){
+    int currentVertexIndex = vertexIndexOrder[int(vertexIndex)];
+    uint outIndex = baseVertex + vertexIndex;
+    outWorldSpacePosition[outIndex] = worldSpacePosition[currentVertexIndex];
+    outTexCoord[outIndex] = texCoord[currentVertexIndex];
+    outColor[outIndex] = color[currentVertexIndex];
+    outNormal[outIndex] = faceNormal;
+    outTextureID[outIndex] = textureID;
+    outAABBMin[outIndex] = aabbMin;
+    outAABBMax[outIndex] = aabbMax;
+    outCascadeIndex[outIndex] = cascadeIndex;
+    outVoxelPosition[outIndex] = fma(cascadeSpacePositions[currentVertexIndex], vec3(0.5), vec3(0.5));
+    outVertex0[outIndex] = worldSpacePosition[vertexIndexOrder[0]];
+    outVertex1[outIndex] = worldSpacePosition[vertexIndexOrder[1]];
+    outVertex2[outIndex] = worldSpacePosition[vertexIndexOrder[2]];
+    gl_MeshVerticesEXT[outIndex].gl_Position = vec4(projectionVertices[currentVertexIndex].xy, fma(projectionVertices[currentVertexIndex].z, 0.5, 0.5), 1.0);
+  }
+  gl_PrimitiveTriangleIndicesEXT[cascadeIndex] = uvec3(baseVertex + 0u, baseVertex + 1u, baseVertex + 2u);
+
+}

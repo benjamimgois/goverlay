@@ -24,6 +24,7 @@ uses SysUtils,
      Classes,
      Math,
      Vulkan,
+     PasDblStrUtils,
      PasVulkan.Types,
      PasVulkan.Math,
      PasVulkan.Framework,
@@ -48,6 +49,12 @@ type TApplication=class(TpvApplication)
        fDepthOfFieldMode:TpvScene3DRendererDepthOfFieldMode;
        fShadowMode:TpvScene3DRendererShadowMode;
        fLensMode:TpvScene3DRendererLensMode;
+       fResamplingMode:TpvScene3DRendererResamplingMode;
+       fRCASSharpness:TpvDouble;
+       fAIUpscaleMode:TpvScene3DRendererAIUpscaleMode;
+       fAIUpscaleQuality:TpvScene3DRendererAIUpscaleQuality;
+       fSizeFactor:TpvDouble;
+       fTransparentColorKey:boolean;
        fMakeScreenshotJPEG:boolean;
        fMakeScreenshotPNG:boolean;
        fMakeScreenshotQOI:boolean;
@@ -83,6 +90,12 @@ type TApplication=class(TpvApplication)
        property DepthOfFieldMode:TpvScene3DRendererDepthOfFieldMode read fDepthOfFieldMode;
        property ShadowMode:TpvScene3DRendererShadowMode read fShadowMode;
        property LensMode:TpvScene3DRendererLensMode read fLensMode;
+       property ResamplingMode:TpvScene3DRendererResamplingMode read fResamplingMode;
+       property RCASSharpness:TpvDouble read fRCASSharpness;
+       property AIUpscaleMode:TpvScene3DRendererAIUpscaleMode read fAIUpscaleMode;
+       property AIUpscaleQuality:TpvScene3DRendererAIUpscaleQuality read fAIUpscaleQuality;
+       property SizeFactor:TpvDouble read fSizeFactor;
+       property TransparentColorKey:boolean read fTransparentColorKey;
      end;
 
 var Application:TApplication=nil;
@@ -99,6 +112,7 @@ var VirtualRealityMode:TpvVirtualReality.TMode;
 {$if not (defined(Android) or defined(iOS))}
     Index:TpvInt32;
     OriginalParameter,Parameter:String;
+    OK:TPasDblStrUtilsBoolean;
 {$ifend}
 begin
  inherited Create;
@@ -120,6 +134,12 @@ begin
  fDepthOfFieldMode:=TpvScene3DRendererDepthOfFieldMode.None;
  fShadowMode:=TpvScene3DRendererShadowMode.Auto;
  fLensMode:=TpvScene3DRendererLensMode.Auto;
+ fResamplingMode:=TpvScene3DRendererResamplingMode.Lanczos;
+ fRCASSharpness:=0.25;
+ fAIUpscaleMode:=TpvScene3DRendererAIUpscaleMode.None;
+ fAIUpscaleQuality:=TpvScene3DRendererAIUpscaleQuality.Low;
+ fSizeFactor:=1.0;
+ fTransparentColorKey:=false;
  VirtualRealityMode:=TpvVirtualReality.TMode.Disabled;
  AcceptDragDropFiles:=true;
 {$if not (defined(Android) or defined(iOS))}
@@ -268,6 +288,47 @@ begin
     end else begin
      fLensMode:=TpvScene3DRendererLensMode.Auto;
     end;
+   end;
+  end else if (Parameter='--transparent-color-key') or
+              (Parameter='/transparent-color-key') then begin
+   fTransparentColorKey:=true;
+  end else if (Parameter='--resampling-mode') or
+              (Parameter='/resampling-mode') then begin
+   if Index<=ParamCount then begin
+    fResamplingMode.FromString(ParamStr(Index));
+    inc(Index);
+   end;
+  end else if (Parameter='--rcas-sharpness') or
+              (Parameter='/rcas-sharpness') then begin
+   if Index<=ParamCount then begin
+    OK:=false;
+    fRCASSharpness:=ConvertStringToDouble(ParamStr(Index),rmNearest,@OK);
+    if not OK then begin
+     fRCASSharpness:=0.25;
+    end;
+    inc(Index);
+   end;
+  end else if (Parameter='--ai-upscale-mode') or
+              (Parameter='/ai-upscale-mode') then begin
+   if Index<=ParamCount then begin
+    fAIUpscaleMode.FromString(ParamStr(Index));
+    inc(Index);
+   end;
+  end else if (Parameter='--ai-upscale-quality') or
+              (Parameter='/ai-upscale-quality') then begin
+   if Index<=ParamCount then begin
+    fAIUpscaleQuality.FromString(ParamStr(Index));
+    inc(Index);
+   end;
+  end else if (Parameter='--size-factor') or
+              (Parameter='/size-factor') then begin
+   if Index<=ParamCount then begin
+    OK:=false;
+    fSizeFactor:=ConvertStringToDouble(ParamStr(Index),rmNearest,@OK);
+    if not OK then begin
+     fSizeFactor:=1.0;
+    end;
+    inc(Index);
    end;
   end else begin
    GLTFFileName:=OriginalParameter;

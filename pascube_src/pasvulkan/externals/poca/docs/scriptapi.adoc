@@ -690,6 +690,42 @@ let doubled = numbers.map(function(x) { return x * 2; });
 
 '''''
 
+==== Array.filter
+
+*Usage:*
+[source,js]
+----
+let newArr = arr.filter(callback);
+----
+
+* *Description:* Creates a new array with all elements that pass the test
+implemented by the provided function.
+* *Parameters:*
+** `+callback+` (function): A function that tests each element of the
+array. Return `+true+` to keep the element, `+false+` otherwise. It
+accepts three arguments:
+*** `+currentValue+`: The current element being processed.
+*** `+index+`: The index of the current element.
+*** `+array+`: The array that `+filter+` was called upon.
+* *Return Value:* A new array with the elements that pass the test. If no
+elements pass the test, an empty array is returned.
+* *Example:*
++
+[source,js]
+----
+let numbers = [1, 2, 3, 4, 5, 6];
+let evens = numbers.filter(function(num) {
+  return num % 2 === 0;
+});
+// evens is [2, 4, 6]
+
+// Filter for values greater than 3
+let greaterThanThree = numbers.filter(function(x) { return x > 3; });
+// greaterThanThree is [4, 5, 6]
+----
+
+'''''
+
 ==== Array.reduce
 
 *Usage:*
@@ -829,6 +865,8 @@ found.
 ** *unshift:* Adds one or more elements to the beginning of the array.
 ** *map:* Creates a new array with the results of calling a provided
 function on every element.
+** *filter:* Creates a new array with all elements that pass the test
+implemented by the provided function.
 ** *reduce:* Executes a reducer function on each element, resulting in a
 single output value (left to right).
 ** *reduceRight:* Executes a reducer function on each element, resulting in

@@ -1,0 +1,20 @@
+#version 450
+// coeff_diff.comp — P-frame encoder helper. Writes the coefficient-domain difference
+// (current - previous) into difference[], and saves the current coefficients into previous[] as the
+// next frame's reference. Non-destructive: coefficients[] (the intra source) is left intact, so the
+// encoder can size both the intra and the predicted stream and pack whichever is smaller.
+layout(local_size_x = 256) in;
+layout(std430, binding = 0) readonly buffer Coefficients { int coefficients[]; };
+layout(std430, binding = 1)          buffer Previous     { int previous[]; };
+layout(std430, binding = 2) writeonly buffer Difference  { int difference[]; };
+layout(push_constant) uniform PushConstants { int pixel_count; } push;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uint(push.pixel_count)) {
+    return;
+  }
+  int current = coefficients[i];
+  difference[i] = current - previous[i];
+  previous[i] = current;   // this frame's coefficients become the next frame's reference
+}

@@ -1,0 +1,67 @@
+#version 450
+/*
+ * loss_reduce.comp — Parallel sum-reduction of per-element loss values
+ *
+ * Bindings: 0=loss_elem (R), 1=loss_sum (W, single float)
+ * Push constants: p0=count (total elements)
+ *
+ * Two-phase reduction: workgroup-local shared-mem reduce, then atomic add.
+ *
+ * Copyright (C) 2026 Benjamin 'BeRo' Rosseaux. License see PasVulkan.Framework.pas (zlib)
+ */
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    int p0, p1, p2, p3, p4, p5, p6, p7;
+    float f0, f1, f2, f3, f4, f5, f6, f7;
+} pc;
+
+layout(set = 0, binding = 0) readonly buffer BufIn  { float loss_elem[]; };
+layout(set = 0, binding = 1)          buffer BufOut { uint  loss_sum[];  };
+
+shared float sdata[256];
+
+void main() {
+    int tid = int(gl_LocalInvocationID.x);
+    int gid = int(gl_GlobalInvocationID.x);
+    int count = pc.p0;
+
+    /* Load (with boundary check) and do first reduction step */
+    float val = (gid < count) ? loss_elem[gid] : 0.0;
+
+    /* Handle elements beyond first dispatch range (grid-stride loop) */
+    int stride = int(gl_NumWorkGroups.x) * 256;
+    for (int i = gid + stride; i < count; i += stride) {
+        val += loss_elem[i];
+    }
+
+    sdata[tid] = val;
+    barrier();
+
+    /* Shared memory reduction */
+    for (int s = 128; s > 0; s >>= 1) {
+        if (tid < s) {
+            sdata[tid] += sdata[tid + s];
+        }
+        barrier();
+    }
+
+    /* Thread 0 atomically adds workgroup sum to output */
+    if (tid == 0) {
+        /* Use atomicAdd on uint bits with float reinterpretation.
+         * Since we need float atomic add but GLSL 450 doesn't have it,
+         * we use a compare-and-swap loop. */
+        float wg_sum = sdata[0];
+        uint old_val = loss_sum[0];
+        uint new_val;
+        do {
+            float old_f = uintBitsToFloat(old_val);
+            float new_f = old_f + wg_sum;
+            new_val = floatBitsToUint(new_f);
+            uint prev = atomicCompSwap(loss_sum[0], old_val, new_val);
+            if (prev == old_val) break;
+            old_val = prev;
+        } while (true);
+    }
+}

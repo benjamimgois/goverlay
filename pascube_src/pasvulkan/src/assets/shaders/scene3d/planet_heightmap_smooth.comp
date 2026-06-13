@@ -1,0 +1,160 @@
+// Edge-preserving bilateral filter for planet heightmap smoothing
+//
+// Problem: User-generated terraforming creates stepped/terraced geometry in the heightmap
+// because brush strokes are discrete and grid-aligned. At grazing light angles, these
+// coherent steps produce visible stripe/banding shadow artifacts on the rendered terrain.
+//
+// Solution: Apply a 5x5 bilateral filter that smooths the height data while preserving
+// intentional sharp features like cliffs and crater rims. The filter operates on radius
+// in meters (not normalized height) for stable, physically meaningful parameters.
+//
+// Adaptive gating: Smoothing is only applied where local step energy exceeds a threshold,
+// leaving already-smooth areas untouched to avoid unnecessary softening.
+//
+// The authoritative heightmap (uHeightTruth) remains unchanged for gameplay and save/load.
+// This shader produces a derived smoothed version (uHeightSmooth) used ONLY for rendering,
+// BLAS mesh generation, physics mesh generation, and water simulation (as ground heightmap) 
+// to avoid visual artifacts. Updates are tile-based and incremental after terraforming and
+// once after loading a saved game.
+
+#version 450 core
+#pragma shader_stage(compute)
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer QueuedTiles {
+  uint data[]; // 9-based, because three VkDispatchIndirectCommand structs are stored in the same buffer at the beginning
+} queuedTiles;
+
+layout(set = 0, binding = 1) uniform texture2D uHeightTruth; // r32f
+layout(set = 0, binding = 2, r32f) uniform writeonly image2D uHeightSmooth; // r32f
+
+layout(push_constant) uniform PushConstants {
+  float bottomRadius;      // 70
+  float topRadius;         // 100
+  uint tileMapResolution;
+  uint tileResolution;
+  int lod;                 // should be 0 for smoothing base level
+  float sigmaRangeMeters;  // e.g. 0.25
+  float minimalStepMeters; // e.g. 0.10
+  float maximalStepMeters; // e.g. 0.30
+  float simpleGaussianBlurFactor;
+  int kernelRadius;        // e.g. 8 for 17x17
+  float sigmaSpatial;      // e.g. 4.0 texels
+  float adaptiveGatingFactor; // 0.0 = always smooth, 1.0 = full adaptive gating
+  float smoothingFactor;   // 0.0 = no smoothing, 1.0 = full smoothing
+  int adaptiveGatingKernelRadius; // e.g. 1 for 3x3 neighborhood step detection
+} pushConstants;
+
+#include "octahedral.glsl"
+
+int totalResolution = int(pushConstants.tileMapResolution * pushConstants.tileResolution);
+
+ivec2 wrapCoordinate(ivec2 coordinate){
+  return wrapOctahedralTexelCoordinates(coordinate, ivec2(totalResolution));
+}
+
+float loadHeight(ivec2 coordinate){
+  return texelFetch(uHeightTruth, wrapCoordinate(coordinate), 0).x;
+}
+
+float gaussian(float squaredDistance, float invTwoSigmaSquared){
+  return exp(-squaredDistance * invTwoSigmaSquared);
+}
+
+float filteredHeight(ivec2 texelPosition){
+
+  float centerHeight = loadHeight(texelPosition);
+  float centerRadius = mix(pushConstants.bottomRadius, pushConstants.topRadius, centerHeight);
+
+  // Adaptive gating based on local step energy (in meters)
+  int adaptiveGatingKernelRadius = pushConstants.adaptiveGatingKernelRadius;
+  float radiusLeft  = mix(pushConstants.bottomRadius, pushConstants.topRadius, loadHeight(texelPosition + ivec2(-adaptiveGatingKernelRadius,  0)));
+  float radiusRight = mix(pushConstants.bottomRadius, pushConstants.topRadius, loadHeight(texelPosition + ivec2( adaptiveGatingKernelRadius,  0)));
+  float radiusUp    = mix(pushConstants.bottomRadius, pushConstants.topRadius, loadHeight(texelPosition + ivec2( 0, -adaptiveGatingKernelRadius)));
+  float radiusDown  = mix(pushConstants.bottomRadius, pushConstants.topRadius, loadHeight(texelPosition + ivec2( 0,  adaptiveGatingKernelRadius)));
+
+  float maximalStep = max(max(abs(radiusLeft - centerRadius), abs(radiusRight - centerRadius)), max(abs(radiusUp - centerRadius), abs(radiusDown - centerRadius)));
+  float alpha = smoothstep(pushConstants.minimalStepMeters, pushConstants.maximalStepMeters, maximalStep);
+
+  // Bilateral filter on radius (meters)
+  int kernelRadius = pushConstants.kernelRadius;
+
+  float sigmaSpatial = pushConstants.sigmaSpatial; // texels
+  float invTwoSigmaSpatialSquared = 1.0 / (2.0 * sigmaSpatial * sigmaSpatial);
+
+  float sigmaRange = max(pushConstants.sigmaRangeMeters, 1e-6);
+  float invTwoSigmaRangeSquared = 1.0 / (2.0 * (sigmaRange * sigmaRange));
+
+  float weightedRadiusSum = 0.0;
+  float totalWeightSum = 0.0;
+
+  for(int offsetY = -kernelRadius; offsetY <= kernelRadius; offsetY++){
+    for(int offsetX = -kernelRadius; offsetX <= kernelRadius; offsetX++){
+
+      float sampleHeight = loadHeight(texelPosition + ivec2(offsetX, offsetY));
+      float sampleRadius = mix(pushConstants.bottomRadius, pushConstants.topRadius, sampleHeight);
+
+      float radiusDelta = sampleRadius - centerRadius;
+
+      float spatialWeight = gaussian(float(offsetX * offsetX + offsetY * offsetY), invTwoSigmaSpatialSquared);
+      float rangeWeight = mix(gaussian(radiusDelta * radiusDelta, invTwoSigmaRangeSquared), 1.0, pushConstants.simpleGaussianBlurFactor);
+      float weight = spatialWeight * rangeWeight;
+
+      weightedRadiusSum += weight * sampleRadius;
+      totalWeightSum += weight;
+    }
+  }
+
+  float filteredRadius = weightedRadiusSum / max(totalWeightSum, 1e-8);
+  float filteredHeight = clamp((filteredRadius - pushConstants.bottomRadius) / (pushConstants.topRadius - pushConstants.bottomRadius), 0.0, 1.0);
+
+  // Adaptive blend to avoid unnecessary softening
+  // adaptiveGatingFactor: 0.0 = always smooth (alpha=1), 1.0 = full adaptive gating
+  // smoothingFactor: 0.0 = no smoothing at all, 1.0 = full smoothing
+  float finalAlpha = mix(1.0, alpha, pushConstants.adaptiveGatingFactor);
+  return mix(centerHeight, filteredHeight, mix(0.0, finalAlpha, pushConstants.smoothingFactor));
+}
+
+void main(){
+
+  uint queuedTileIndex = uint(gl_GlobalInvocationID.y);
+
+  uint tileMapSize = pushConstants.tileMapResolution * pushConstants.tileMapResolution;
+
+  if((queuedTileIndex < tileMapSize) && (queuedTileIndex < queuedTiles.data[1u])){
+
+    uint tileMapIndex = queuedTiles.data[queuedTileIndex + 9u];
+
+    if(tileMapIndex < tileMapSize){
+
+      uvec2 tileMapXY;
+      tileMapXY.y = tileMapIndex / pushConstants.tileMapResolution;
+      tileMapXY.x = tileMapIndex - (tileMapXY.y * pushConstants.tileMapResolution);
+
+      uint tileTexelSize = pushConstants.tileResolution * pushConstants.tileResolution;
+      uint tileTexelIndex = uint(gl_GlobalInvocationID.x);
+
+      if(tileTexelIndex < tileTexelSize){
+
+        uvec2 tileTexelXY;
+        tileTexelXY.y = tileTexelIndex / pushConstants.tileResolution;
+        tileTexelXY.x = tileTexelIndex - (tileTexelXY.y * pushConstants.tileResolution);
+
+        ivec2 texelPosition = ivec2((tileMapXY * pushConstants.tileResolution) + tileTexelXY);
+
+        float outputHeight = filteredHeight(texelPosition);
+
+        imageStore(uHeightSmooth, wrapCoordinate(texelPosition), vec4(outputHeight));
+      }
+
+    }
+
+  }
+
+}

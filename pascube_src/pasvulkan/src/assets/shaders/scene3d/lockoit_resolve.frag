@@ -12,34 +12,52 @@ layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput uS
 
 #ifdef MSAA
 
+#ifdef WATER
 #ifdef NO_MSAA_WATER
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput uSubpassInputWater;
 #else
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInputMS uSubpassInputWater;
 #endif
-
 layout(input_attachment_index = 2, set = 0, binding = 2) uniform subpassInputMS uSubpassInputTransparent;
 #else
+layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInputMS uSubpassInputTransparent;
+#endif
 
+#else
+
+#ifdef WATER
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput uSubpassInputWater;
-
 layout(input_attachment_index = 2, set = 0, binding = 2) uniform subpassInput uSubpassInputTransparent;
+#else
+layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput uSubpassInputTransparent;
+#endif
 
 #endif
 
+#ifdef WATER
 layout(set = 0, binding = 3, rgba32ui) uniform coherent uimageBuffer uOITImgABuffer;
-
 layout(set = 0, binding = 4, r32ui) uniform coherent uimage2DArray uOITImgAux;
-
 layout(set = 0, binding = 5, std140) uniform uboOIT {
   uvec4 oitViewPort;  //
 } uOIT;
-
 #ifdef MSAA
 layout(set = 0, binding = 6, std430) buffer HistogramLuminanceBuffer {
   float histogramLuminance;
   float luminanceFactor; 
 } histogramLuminanceBuffer;
+#endif
+#else
+layout(set = 0, binding = 2, rgba32ui) uniform coherent uimageBuffer uOITImgABuffer;
+layout(set = 0, binding = 3, r32ui) uniform coherent uimage2DArray uOITImgAux;
+layout(set = 0, binding = 4, std140) uniform uboOIT {
+  uvec4 oitViewPort;  //
+} uOIT;
+#ifdef MSAA
+layout(set = 0, binding = 5, std430) buffer HistogramLuminanceBuffer {
+  float histogramLuminance;
+  float luminanceFactor; 
+} histogramLuminanceBuffer;
+#endif
 #endif
 
 /* clang-format on */
@@ -191,6 +209,7 @@ void main() {
   blend(color, subpassLoad(uSubpassInputTransparent));
 #endif
 
+#ifdef WATER
   vec4 waterColor;  
 #if defined(MSAA) && !defined(NO_MSAA_WATER)
   {
@@ -205,6 +224,9 @@ void main() {
 #endif
   bool hasWaterTransparency = waterColor.w > 1e-4;
   blend(color, waterColor);
+#else
+  bool hasWaterTransparency = false;
+#endif
 
   vec4 temporary = subpassLoad(uSubpassInputOpaque);
   temporary.xyz *= temporary.w; // Premultiply alpha for opaque fragments

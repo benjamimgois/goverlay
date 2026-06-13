@@ -34,14 +34,10 @@ layout(set = 1, binding = 3, std140) uniform uboCascadedShadowMaps {
   uvec4 metaData; // x = type
 } uCascadedShadowMaps;
 
-layout(set = 1, binding = 4) uniform sampler2DArray uCascadedShadowMapTexture;
-
-#ifdef PCFPCSS
-
 // Yay! Binding Aliasing! :-)
-layout(set = 1, binding = 4) uniform sampler2DArrayShadow uCascadedShadowMapTextureShadow;
 
-#endif // PCFPCSS
+layout(set = 1, binding = 4) uniform sampler2DArray uCascadedShadowMapTexture;
+layout(set = 1, binding = 4) uniform sampler2DArrayShadow uCascadedShadowMapTextureShadow;
 
 #endif // SHADOWS
 

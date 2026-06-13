@@ -41,6 +41,7 @@ uses SysUtils,
      PasVulkan.Canvas,
      PasVulkan.Font,
      PasVulkan.TrueTypeFont,
+     PasVulkan.SignedDistanceField2D,
      POCA,
      PasVulkan.POCA,
      PasVulkan.Console;
@@ -679,7 +680,9 @@ begin
                                                 [TpvFontCodePointRange.Create(0,65535)],
                                                 true,
                                                 2,
-                                                1);
+                                                1,
+                                                false,
+                                                TpvSignedDistanceField2DVariant.Default);
     if length(CacheStoragePath)>0 then begin
      fVulkanFont.SaveToFile(CacheStoragePath+'terminal_font.dat');
     end;

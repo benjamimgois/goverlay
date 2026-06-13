@@ -475,7 +475,7 @@ void main() {
           ? mix(pushConstants.backgroundFeedbackMin, pushConstants.backgroundFeedbackMax, unbiasedWeightSquaredClamped) // Background
           : mix(
               mix(pushConstants.translucentFeedbackMin, pushConstants.translucentFeedbackMax, unbiasedWeightSquaredClamped), // Translucent
-              mix(pushConstants.opaqueFeedbackMin, pushConstants.opaqueFeedbackMin, unbiasedWeightSquaredClamped), // Opaque
+              mix(pushConstants.opaqueFeedbackMin, pushConstants.opaqueFeedbackMax, unbiasedWeightSquaredClamped), // Opaque
               clamp(current.w, 0.0, 1.0) // In the alpha channel of the current color sample the translucency/opacity factor is stored, 0.0 = full translucent, 1.0 = full opaque
             );
 

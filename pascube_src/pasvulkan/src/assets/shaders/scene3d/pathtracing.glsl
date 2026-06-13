@@ -11,7 +11,6 @@ struct BsdfSample {
 	float pdf; 
 };
 
-
 struct RayPayload {
 	Ray ray;
 	BsdfSample bsdf;

@@ -85,6 +85,7 @@ type { TpvScene3DRendererPassesAtmosphereCloudRenderPass }
        fInstance:TpvScene3DRendererInstance;
        fVulkanRenderPass:TpvVulkanRenderPass;
        fResourceCascadedShadowMap:TpvFrameGraph.TPass.TUsedImageResource;
+       fResourceCloudsShadowMap:TpvFrameGraph.TPass.TUsedImageResource;
        fResourceDepth:TpvFrameGraph.TPass.TUsedImageResource;
        fResourceOutput:TpvFrameGraph.TPass.TUsedImageResource;
        fResourceTransmittance:TpvFrameGraph.TPass.TUsedImageResource;
@@ -144,6 +145,12 @@ begin
                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                            []
                                           );
+
+ fResourceCloudsShadowMap:=AddImageInput('resourcetype_clouds_shadowmap',
+                                         'resource_clouds_shadowmap',
+                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                         []
+                                        );
 
  if fInstance.Renderer.SurfaceSampleCountFlagBits=TVkSampleCountFlagBits(VK_SAMPLE_COUNT_1_BIT) then begin
   fResourceDepth:=AddImageDepthInput('resourcetype_depth',
@@ -217,7 +224,7 @@ begin
  if fInstance.Renderer.RaytracingActive then begin
   ShadowType:='shadows_raytracing_';
  end else begin
-  case fInstance.Renderer.ShadowMode of
+{ case fInstance.Renderer.ShadowMode of
    TpvScene3DRendererShadowMode.PCF,TpvScene3DRendererShadowMode.DPCF,TpvScene3DRendererShadowMode.PCSS:begin
     ShadowType:='shadows_pcfpcss_';
    end;
@@ -227,7 +234,8 @@ begin
    else begin
     ShadowType:='';
    end;
-  end;
+  end;}
+  ShadowType:='shadows_';
  end;
 
  begin
@@ -505,10 +513,12 @@ begin
                                  SizeOf(TpvScene3DAtmosphereGlobals.TCloudRaymarchingPushConstants),
                                  @fPushConstants);
 
- TpvScene3DAtmospheres(fInstance.Scene3D.Atmospheres).DrawClouds(aInFlightFrameIndex,
+ TpvScene3DAtmospheres(fInstance.Scene3D.Atmospheres).DrawClouds(0,
+                                                                 aInFlightFrameIndex,
                                                                  aCommandBuffer,
                                                                  fResourceDepth.VulkanImageViews[aInFlightFrameIndex].Handle,
                                                                  fResourceCascadedShadowMap.VulkanImageViews[aInFlightFrameIndex].Handle,
+                                                                 fResourceCloudsShadowMap.VulkanImageViews[aInFlightFrameIndex].Handle,
                                                                  fInstance);
 
 end;

@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The primary repository has moved to [git.rosseaux.net/BeRo1985/pasmp](https://git.rosseaux.net/BeRo1985/pasmp).
+> This GitHub repository is kept up-to-date via push mirroring.
+
 # PasMP
 PasMP - a parallel-processing/multi-processing library for Object Pascal 
 
