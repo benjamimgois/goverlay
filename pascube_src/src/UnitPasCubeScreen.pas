@@ -292,6 +292,7 @@ type
           function IsSubmitButtonHovered(const aPos: TpvVector2): Boolean;
           function IsClearButtonHovered(const aPos: TpvVector2): Boolean;
           function GetSubmitURL: String;
+          function GetBenchmarkResultsFilePath: String;
           procedure InitializeSubmitStatus;
           procedure SubmitBenchmarkResults;
            function IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
@@ -434,7 +435,7 @@ begin
 
     ValStr := 'for fd in /proc/self/fd/*; do fd_num="${fd##*/}"; [ "$fd_num" = "*" ] && continue; ' +
               'if [ "$fd_num" -gt 2 ]; then eval "exec $fd_num>&-" 2>/dev/null; fi; done; ' +
-              'if command -v ' + FCommand + ' >/dev/null 2>&1; then cmd="' + FCommand + '"; else cmd="7zz"; fi; ' +
+              'if command -v ' + FCommand + ' >/dev/null 2>&1; then cmd="' + FCommand + '"; elif command -v 7zz >/dev/null 2>&1; then cmd="7zz"; else cmd="7za"; fi; ' +
               'if command -v stdbuf >/dev/null 2>&1; then ' +
               'exec stdbuf -oL "$cmd" b';
     if FArguments <> '' then
@@ -2322,7 +2323,7 @@ begin
   SL.Add('  ]');
   SL.Add('}');
   try
-   SL.SaveToFile(ExtractFilePath(ParamStr(0)) + 'benchmark_results.json');
+   SL.SaveToFile(GetBenchmarkResultsFilePath);
   except
    // ignore
   end;
@@ -2347,7 +2348,7 @@ begin
  fLastScore := 0;
  FillChar(fHistory, SizeOf(fHistory), #0);
 
- filePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
+ filePath := GetBenchmarkResultsFilePath;
  if not FileExists(filePath) then Exit;
  SL := TStringList.Create;
  try
@@ -2800,7 +2801,7 @@ begin
   if Result <> '' then Exit;
   
   HomeDir := GetEnvironmentVariable('HOME');
-  if HomeDir = '' then HomeDir := '/home/benjamim';
+  if HomeDir = '' then HomeDir := '/tmp';
   ConfigPath := GetEnvironmentVariable('XDG_CONFIG_HOME');
   if ConfigPath = '' then
     ConfigPath := HomeDir + '/.config';
@@ -2833,6 +2834,21 @@ begin
   end else begin
     Result := ExistingURL;
   end;
+end;
+
+function TPasCubeScreen.GetBenchmarkResultsFilePath: string;
+var
+  HomeDir, ConfigPath: string;
+begin
+  HomeDir := GetEnvironmentVariable('HOME');
+  if HomeDir = '' then HomeDir := '/tmp';
+  ConfigPath := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if ConfigPath = '' then
+    ConfigPath := HomeDir + '/.config';
+  ConfigPath := ConfigPath + '/goverlay';
+  if not DirectoryExists(ConfigPath) then
+    ForceDirectories(ConfigPath);
+  Result := ConfigPath + '/benchmark_results.json';
 end;
 
 procedure TPasCubeScreen.InitializeSubmitStatus;
@@ -3111,7 +3127,7 @@ begin
   fBestScore := 0;
   fLastScore := 0;
   FillChar(fHistory, SizeOf(fHistory), #0);
-  filePath := ExtractFilePath(ParamStr(0)) + 'benchmark_results.json';
+  filePath := GetBenchmarkResultsFilePath;
   if FileExists(filePath) then
     DeleteFile(filePath);
    // Return to menu since there are no results to display
@@ -3254,23 +3270,32 @@ function TPasCubeScreen.GetOSName: String;
 var SL: TStringList;
     i: Integer;
     line: String;
+    osReleasePath: String;
 begin
  Result := 'Linux';
- SL := TStringList.Create;
- try
-  if FileExists('/etc/os-release') then begin
-   SL.LoadFromFile('/etc/os-release');
-   for i := 0 to SL.Count - 1 do begin
-    line := SL[i];
-    if Pos('PRETTY_NAME=', line) = 1 then begin
-     Result := Copy(line, 13, Length(line) - 13);
-     Result := StringReplace(Result, '"', '', [rfReplaceAll]);
-     break;
-    end;
+ osReleasePath := '';
+ if FileExists('/run/host/etc/os-release') then
+   osReleasePath := '/run/host/etc/os-release'
+ else if FileExists('/run/host/usr/lib/os-release') then
+   osReleasePath := '/run/host/usr/lib/os-release'
+ else if FileExists('/etc/os-release') then
+   osReleasePath := '/etc/os-release';
+
+ if osReleasePath <> '' then begin
+   SL := TStringList.Create;
+   try
+     SL.LoadFromFile(osReleasePath);
+     for i := 0 to SL.Count - 1 do begin
+      line := SL[i];
+      if Pos('PRETTY_NAME=', line) = 1 then begin
+       Result := Copy(line, 13, Length(line) - 13);
+       Result := StringReplace(Result, '"', '', [rfReplaceAll]);
+       break;
+      end;
+     end;
+   finally
+     SL.Free;
    end;
-  end;
- finally
-  SL.Free;
  end;
 end;
 
