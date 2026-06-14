@@ -88,7 +88,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="9">
+    <Units Count="13">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -101,78 +101,56 @@
         <ResourceBaseClass Value="Form"/>
       </Unit1>
       <Unit2>
-        <Filename Value="atstringproc_htmlcolor.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="ATStringProc_HtmlColor"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="logpathunit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="logpathForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="logpathUnit"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="customeffectsunit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="customeffectsForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="customeffectsunit"/>
-      </Unit4>
-      <Unit5>
         <Filename Value="blacklistunit.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="blacklistForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="blacklistUnit"/>
-      </Unit5>
-      <Unit6>
+      </Unit2>
+      <Unit3>
         <Filename Value="howto.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="howtoForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="bgmod_resources.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="tweaks_md3.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="games_tab.pas"/>
+        <IsPartOfProject Value="True"/>
       </Unit6>
       <Unit7>
-        <Filename Value="bgmod_resources.pas"/>
+        <Filename Value="vkbasalt_tab.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit7>
       <Unit8>
-        <Filename Value="tweaks_md3.pas"/>
+        <Filename Value="mangohud_ui.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit8>
       <Unit9>
-        <Filename Value="games_tab.pas"/>
+        <Filename Value="goverlay_system.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit9>
       <Unit10>
-        <Filename Value="vkbasalt_tab.pas"/>
+        <Filename Value="optiscaler_tab.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit10>
       <Unit11>
-        <Filename Value="mangohud_ui.pas"/>
+        <Filename Value="home_tab.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit11>
       <Unit12>
-        <Filename Value="goverlay_system.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="optiscaler_tab.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit13>
-      <Unit14>
-        <Filename Value="home_tab.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit14>
-      <Unit15>
         <Filename Value="overlay_utils.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit15>
-
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

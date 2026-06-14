@@ -1,8 +1,0 @@
-
-function randomFunction(){
-  puts("Hello world!");
-}
-
-puts("importsrc.poca loaded!");
-
-export randomFunction; // <= Optional, otherwise everything is exported

@@ -106,3 +106,5 @@ lib/
 .agent/
 .gemini/
 .opencode/
+.agents/
+.rtk/

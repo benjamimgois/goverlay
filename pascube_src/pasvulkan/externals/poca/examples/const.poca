@@ -1,5 +1,0 @@
-
-const bla = 12;
-
-puts(bla);
-

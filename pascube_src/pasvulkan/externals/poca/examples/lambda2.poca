@@ -1,8 +1,0 @@
-
-let f(x)->x+3;
-function g(m,x)m(x)*m(x);
-puts(g(f,7));
-
-readLine();
-
-

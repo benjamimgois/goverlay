@@ -1,9 +1,0 @@
-#!/bin/bash
-
-clang testfloatcompressionfilters.c -lz -lm -llzma -o testfloatcompressionfilters || exit 1
-
-./testfloatcompressionfilters || exit 1
-
-rm -f testfloatcompressionfilters
-
-exit 0

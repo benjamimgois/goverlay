@@ -1,9 +1,0 @@
-build/
-doomgeneric
-doomgeneric.bin
-rv64gc_emu
-*.wad
-.vscode/
-doom_iwad.h
-doom_iwad.c
-bin_to_c
