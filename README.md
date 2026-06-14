@@ -105,6 +105,11 @@ An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and re
 <img width="1129" height="843" alt="Screenshot 5" src="/data/screenshots/5.webp" />
 <img width="1129" height="843" alt="Screenshot 6" src="/data/screenshots/6.webp" />
 <img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/7.webp" />
+<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/7.webp" />
+<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/8.webp" />
+<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/9.webp" />
+<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/10.webp" />
+
 
 </details>
 
