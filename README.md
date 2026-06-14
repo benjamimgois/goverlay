@@ -41,6 +41,8 @@ Whether you want real-time performance monitoring, post-processing effects, smar
 This project exists thanks to the amazing work of the original maintainers and contributors behind the core tools.  
 I’m just a network engineer who loves Linux and gaming — this is my way of giving something back to the community.
 
+<img width="1129" height="843" alt="Screenshot 1" src="/data/screenshots/0.webp" />
+
 ---
 
 ## Table of Contents
