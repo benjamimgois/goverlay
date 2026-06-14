@@ -43,7 +43,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);.;pasvulkan/src"/>
-      <OtherUnitFiles Value="src;pasvulkan/src;pasvulkan/externals/pucu/src;pasvulkan/externals/pasdblstrutils/src;pasvulkan/externals/pasmp/src;pasvulkan/externals/pasjson/src;pasvulkan/externals/kraft/src;pasvulkan/externals/rnl/src;pasvulkan/externals/pasgltf/src"/>
+      <OtherUnitFiles Value="src;pasvulkan/src;pasvulkan/externals/pucu/src;pasvulkan/externals/pasdblstrutils/src;pasvulkan/externals/pasmp/src;pasvulkan/externals/pasjson/src"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       <Libraries Value="pasvulkan/src"/>
     </SearchPaths>
