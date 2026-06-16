@@ -25,6 +25,7 @@ pacman -Syu --noconfirm \
 	libxkbcommon \
 	meson \
 	nlohmann-json \
+	patchelf \
 	pciutils \
 	python \
 	python-mako \
