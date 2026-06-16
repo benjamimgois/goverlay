@@ -520,6 +520,10 @@ var
   i: Integer;
   Ini: TIniFile;
   FGModFilePath: string;
+  FGModFilePathOriginal: string;
+  OptiScalerIniPathOriginal: string;
+  FakeNvapiIniPathOriginal: string;
+  VarsFilePathOriginal: string;
 begin
   Result := False;
   ErrMsg := '';
@@ -560,6 +564,25 @@ begin
       Ini.DeleteKey('Env', 'DXIL_SPIRV_CONFIG');
   finally
     Ini.Free;
+  end;
+
+  if Settings.ActiveGameName = '' then
+  begin
+    FGModFilePathOriginal := GetBGModOriginalPath + PathDelim + 'bgmod.conf';
+    ForceDirectories(ExtractFilePath(FGModFilePathOriginal));
+    Ini := TIniFile.Create(FGModFilePathOriginal);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
+      Ini.WriteString('Config', 'DLL', SelectedDllName);
+      Ini.WriteString('Config', 'PRESERVE_INI', 'true');
+
+      if Settings.EmuFp8Checked then
+        Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
+      else
+        Ini.DeleteKey('Env', 'DXIL_SPIRV_CONFIG');
+    finally
+      Ini.Free;
+    end;
   end;
 
   // Get OptiScaler.ini file path
@@ -619,6 +642,30 @@ begin
     OptiCfg.Free;
   end;
 
+  if Settings.ActiveGameName = '' then
+  begin
+    OptiScalerIniPathOriginal := GetBGModOriginalPath + PathDelim + 'OptiScaler.ini';
+    OptiCfg := TConfigFile.Create;
+    try
+      if OptiCfg.Load(OptiScalerIniPathOriginal) then
+      begin
+        OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
+        OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
+        OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
+        OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
+        if Settings.FsrversionItemIndex = 0 then
+          OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
+        else
+          OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'auto');
+        OptiCfg.Save;
+      end;
+    finally
+      OptiCfg.Free;
+    end;
+  end;
+
   // ##### Now modify fakenvapi.ini file #####
   begin
     if Settings.ActiveGameName <> '' then
@@ -663,7 +710,10 @@ begin
     try
       if FakeCfg.Load(FakeNvapiIniPath) then
       begin
-        FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue);
+        if Settings.ForceReflexChecked then
+          FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue)
+        else
+          FakeCfg.DeleteKey(FAKE_KEY_FORCE_REFLEX);
         FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
         FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
         FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
@@ -683,6 +733,27 @@ begin
       end;
     finally
       FakeCfg.Free;
+    end;
+
+    if Settings.ActiveGameName = '' then
+    begin
+      FakeNvapiIniPathOriginal := GetBGModOriginalPath + PathDelim + 'fakenvapi.ini';
+      FakeCfg := TConfigFile.Create;
+      try
+        if FakeCfg.Load(FakeNvapiIniPathOriginal) then
+        begin
+          if Settings.ForceReflexChecked then
+            FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue)
+          else
+            FakeCfg.DeleteKey(FAKE_KEY_FORCE_REFLEX);
+          FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
+          FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
+          FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
+          FakeCfg.Save;
+        end;
+      finally
+        FakeCfg.Free;
+      end;
     end;
   end;
 
@@ -717,6 +788,28 @@ begin
                 Lines.Free;
               end;
             end;
+
+            if Settings.ActiveGameName = '' then
+            begin
+              CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                       IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+
+              VarsFilePathOriginal := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+              if FileExists(VarsFilePathOriginal) then
+              begin
+                Lines := TStringList.Create;
+                try
+                  Lines.LoadFromFile(VarsFilePathOriginal);
+                  for i := Lines.Count - 1 downto 0 do
+                    if Pos('fsrversion=', Lines[i]) > 0 then
+                      Lines.Delete(i);
+                  Lines.Add('fsrversion=Latest (FP8)');
+                  Lines.SaveToFile(VarsFilePathOriginal);
+                finally
+                  Lines.Free;
+                end;
+              end;
+            end;
           end;
         end;
 
@@ -740,6 +833,28 @@ begin
                 Lines.SaveToFile(VarsFilePath);
               finally
                 Lines.Free;
+              end;
+            end;
+
+            if Settings.ActiveGameName = '' then
+            begin
+              CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                       IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+
+              VarsFilePathOriginal := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+              if FileExists(VarsFilePathOriginal) then
+              begin
+                Lines := TStringList.Create;
+                try
+                  Lines.LoadFromFile(VarsFilePathOriginal);
+                  for i := Lines.Count - 1 downto 0 do
+                    if Pos('fsrversion=', Lines[i]) > 0 then
+                      Lines.Delete(i);
+                  Lines.Add('fsrversion=4.0.2c (INT8)');
+                  Lines.SaveToFile(VarsFilePathOriginal);
+                finally
+                  Lines.Free;
+                end;
               end;
             end;
           end;
@@ -1043,21 +1158,22 @@ begin
     try
       if FakeCfg.Load(FakeNvapiIniPath) then
       begin
-        Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
-        if Value = '0' then
-        begin
-          Settings.ForceReflexChecked := False;
-          Settings.ReflexItemIndex := 0;
-        end
-        else
+        if FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then
         begin
           Settings.ForceReflexChecked := True;
+          Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
           case Value of
+            '0': Settings.ReflexItemIndex := 0;
             '1': Settings.ReflexItemIndex := 1;
             '2': Settings.ReflexItemIndex := 2;
           else
             Settings.ReflexItemIndex := 0;
           end;
+        end
+        else
+        begin
+          Settings.ForceReflexChecked := False;
+          Settings.ReflexItemIndex := 0;
         end;
 
         Settings.ForceLatencyFlexChecked := (FakeCfg.GetValue(FAKE_KEY_FORCE_LATENCY, '0') = '1');
