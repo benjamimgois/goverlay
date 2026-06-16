@@ -207,7 +207,7 @@ begin
   try
     Proc.Executable := 'sh';
     Proc.Parameters.Add('-c');
-    Proc.Parameters.Add('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(SourceDir) + '.') +
+    Proc.Parameters.Add('cp -rf --no-preserve=mode ' + QuotedStr(IncludeTrailingPathDelimiter(SourceDir) + '.') +
                         ' ' + QuotedStr(OriginalPath) + ' 2>/dev/null');
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
