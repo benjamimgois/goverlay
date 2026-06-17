@@ -1,0 +1,13 @@
+Package: goverlay
+Version: VERSION_PLACEHOLDER
+Architecture: amd64
+Maintainer: Benjamim Gois <benjamim.gois@gmail.com>
+Depends: libqt6pas6 (>= 6.2.0), libc6 (>= 2.34), libx11-6
+Recommends: vkbasalt, mangohud
+Section: utils
+Priority: optional
+Homepage: https://github.com/benjamimgois/goverlay
+Description: Graphical UI to manage Vulkan/OpenGL overlays
+ GOverlay is an open-source project that aims to create a Graphical UI
+ to manage Vulkan/OpenGL overlays. It supports vkBasalt, MangoHud,
+ and other overlay tools.

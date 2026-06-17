@@ -40,7 +40,10 @@ pacman -Syu --noconfirm \
 	wayland \
 	wget \
 	xorg-server-xvfb \
-	zsync
+	zsync \
+	dpkg \
+	rpm-org
+
 
 pacman-key --init
 pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
