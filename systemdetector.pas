@@ -135,6 +135,11 @@ function GetSysGPUModel: string;
 function GetSysGPUDriver: string;
 
 /// <summary>
+/// Gets or generates the Goverlay Client ID
+/// </summary>
+function GetGoverlayClientID: string;
+
+/// <summary>
 /// Checks whether a shared library (e.g. 'libqt6pas') is available on the
 /// current system. Works across Ubuntu, Debian, Fedora, OpenSUSE, Arch and
 /// NixOS by first querying ldconfig and then scanning the standard lib dirs.
@@ -651,6 +656,227 @@ begin
       SL.Free;
     end;
   end;
+end;
+
+
+procedure CleanProcessEnvironment(AProcess: TProcess);
+var
+  i: Integer;
+  EnvVar: string;
+begin
+  i := 1;
+  while GetEnvironmentString(i) <> '' do begin
+    EnvVar := GetEnvironmentString(i);
+    if (Pos('LD_PRELOAD=', EnvVar) <> 1) and
+       (Pos('MANGOHUD=', EnvVar) <> 1) and
+       (Pos('MANGOHUD_CONFIGFILE=', EnvVar) <> 1) and
+       (Pos('ENABLE_VKBASALT=', EnvVar) <> 1) and
+       (Pos('VKBASALT_CONFIG_FILE=', EnvVar) <> 1) and
+       (Pos('ENABLE_VKSUMI=', EnvVar) <> 1) and
+       (Pos('VKSUMI_CONFIG_FILE=', EnvVar) <> 1) then begin
+      AProcess.Environment.Add(EnvVar);
+    end;
+    Inc(i);
+  end;
+end;
+
+function GetSHA256Hash(const AInput: string): string;
+var
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr: string;
+  LoopCount: Integer;
+begin
+  Result := '';
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'sha256sum';
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      if Length(AInput) > 0 then
+        AProcess.Input.Write(AInput[1], Length(AInput));
+      AProcess.CloseInput;
+      
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 200 then begin // 1 second timeout
+          try
+            AProcess.Terminate(1);
+          except
+          end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      
+      OutputStr := Trim(OutputStr);
+      if Length(OutputStr) >= 64 then
+        Result := Copy(OutputStr, 1, 64);
+    except
+      // ignore
+    end;
+  finally
+    AProcess.Free;
+  end;
+end;
+
+function GetNvidiaUUID: string;
+var
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr: string;
+  LoopCount: Integer;
+begin
+  Result := '';
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'nvidia-smi';
+    AProcess.Parameters.Add('--query-gpu=uuid');
+    AProcess.Parameters.Add('--format=csv,noheader');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 200 then begin // 1 second timeout
+          try
+            AProcess.Terminate(1);
+          except
+          end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      Result := Trim(OutputStr);
+    except
+      // ignore
+    end;
+  finally
+    AProcess.Free;
+  end;
+end;
+
+function GetAmdUniqueID: string;
+var
+  SL: TStringList;
+  FilePath: string;
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to 8 do begin
+    FilePath := '/sys/class/drm/card' + IntToStr(i) + '/device/unique_id';
+    if FileExists(FilePath) then begin
+      SL := TStringList.Create;
+      try
+        try
+          SL.LoadFromFile(FilePath);
+          if SL.Count > 0 then
+            Result := Trim(SL[0]);
+        except
+          // ignore
+        end;
+      finally
+        SL.Free;
+      end;
+      if Result <> '' then Exit;
+    end;
+  end;
+end;
+
+function GetPersistentUUID: string;
+var
+  ConfigDir, FilePath: string;
+  SL: TStringList;
+  Guid: TGUID;
+  GuidStr: string;
+begin
+  Result := '';
+  ConfigDir := GetAppConfigDir(False);
+  FilePath := IncludeTrailingPathDelimiter(ConfigDir) + 'client-id';
+  
+  // Try reading existing file
+  if FileExists(FilePath) then begin
+    SL := TStringList.Create;
+    try
+      try
+        SL.LoadFromFile(FilePath);
+        if SL.Count > 0 then
+          Result := Trim(SL[0]);
+      except
+        // ignore
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+  
+  // If empty or not found, generate new one
+  if Result = '' then begin
+    if CreateGUID(Guid) = 0 then begin
+      GuidStr := GUIDToString(Guid);
+      // Strip out '{' and '}'
+      if (Length(GuidStr) >= 2) and (GuidStr[1] = '{') and (GuidStr[Length(GuidStr)] = '}') then
+        GuidStr := Copy(GuidStr, 2, Length(GuidStr) - 2);
+      Result := LowerCase(GuidStr);
+      
+      // Save to file
+      try
+        ForceDirectories(ConfigDir);
+        SL := TStringList.Create;
+        try
+          SL.Add(Result);
+          SL.SaveToFile(FilePath);
+        finally
+          SL.Free;
+        end;
+      except
+        // ignore
+      end;
+    end;
+  end;
+end;
+
+function GetGPUHardwareSignature: string;
+begin
+  // Try NVIDIA
+  Result := GetNvidiaUUID;
+  if Result <> '' then Exit;
+  
+  // Try AMD
+  Result := GetAmdUniqueID;
+  if Result <> '' then Exit;
+  
+  // Fallback to persistent UUID
+  Result := GetPersistentUUID;
+end;
+
+function GetGoverlayClientID: string;
+begin
+  Result := GetSHA256Hash(GetGPUHardwareSignature);
 end;
 
 

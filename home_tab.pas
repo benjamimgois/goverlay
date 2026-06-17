@@ -200,7 +200,7 @@ begin
     Y    := CARD_M;
 
     // ── System (List) ────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 5 * ROW_H + 8);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 6 * ROW_H + 8);
     MkTitle(Card, 'System', CARD_P);
 
     // Clear Configuration button (right side of System card)
@@ -223,7 +223,7 @@ begin
 
     MkSep(Card, CARD_P + 22);
 
-    for i := 0 to 4 do
+    for i := 0 to 5 do
     begin
       Row  := CARD_P + 30 + i * ROW_H;
       ColX := CARD_P;
@@ -271,6 +271,12 @@ begin
           IconFile := 'data/icons/system/package.png'; 
           Lbl.Caption := GetGOverlayInstallationType; 
           Ico.Hint := 'Installation'; 
+        end;
+        5:
+        begin
+          IconFile := 'data/icons/system/fingerprint.png';
+          Lbl.Caption := 'Client ID: ' + GetGoverlayClientID;
+          Ico.Hint := 'Client ID';
         end;
       end;
       WriteLn(StdErr, '[HomeIcon] system icon="', IconFile, '" full="', GetAppBaseDir + IconFile, '" exists=', FileExists(GetAppBaseDir + IconFile));

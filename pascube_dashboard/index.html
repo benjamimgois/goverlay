@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pascube Benchmark Dashboard</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons for premium feel -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar or Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <i data-lucide="box"></i>
+                    </div>
+                    <div>
+                        <h1>Pascube <span class="gradient-text">Benchmark</span></h1>
+                        <p class="subtitle">Vulkan performance leaderboard and system specifications</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <a href="https://docs.google.com/spreadsheets/d/1nlMgeW0ZFmtwwT3hty8JAFT3sM0SNhMpc24mH3In9zI/edit?usp=sharing" target="_blank" class="btn btn-secondary">
+                        <i data-lucide="file-spreadsheet"></i>
+                        <span>Original Sheet</span>
+                    </a>
+                    <button id="refresh-btn" class="btn btn-primary">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Sync Data</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon cpu-icon">
+                    <i data-lucide="cpu"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Top CPU Single-Thread</span>
+                    <h3 id="stat-top-cpu-single" class="stat-value">-</h3>
+                    <p id="stat-top-cpu-single-sub" class="stat-sub">-</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon cpu-multi-icon">
+                    <i data-lucide="binary"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Top CPU Multi-Thread</span>
+                    <h3 id="stat-top-cpu-multi" class="stat-value">-</h3>
+                    <p id="stat-top-cpu-multi-sub" class="stat-sub">-</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon gpu-icon">
+                    <i data-lucide="zap"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Top GPU Score</span>
+                    <h3 id="stat-top-gpu" class="stat-value">-</h3>
+                    <p id="stat-top-gpu-sub" class="stat-sub">-</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon runs-icon">
+                    <i data-lucide="database"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Benchmarks</span>
+                    <h3 id="stat-total-runs" class="stat-value">-</h3>
+                    <p class="stat-sub">Valid community runs</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Charts Section -->
+        <section class="charts-section">
+            <div class="chart-container-wrapper large-chart">
+                <div class="chart-header">
+                    <h3>Top 8 CPU - Single Thread</h3>
+                    <p>Highest recorded single-thread scores (higher is better)</p>
+                </div>
+                <div class="chart-canvas-area">
+                    <canvas id="cpuSingleChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container-wrapper large-chart">
+                <div class="chart-header">
+                    <h3>Top 8 CPU - Multi Thread</h3>
+                    <p>Highest recorded multi-thread scores (higher is better)</p>
+                </div>
+                <div class="chart-canvas-area">
+                    <canvas id="cpuMultiChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container-wrapper full-width-chart">
+                <div class="chart-header">
+                    <h3>Top 8 GPU - Performance</h3>
+                    <p>Highest recorded GPU benchmark scores (higher is better)</p>
+                </div>
+                <div class="chart-canvas-area">
+                    <canvas id="gpuChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboard Table Section -->
+        <section class="leaderboard-section">
+            <div class="leaderboard-header">
+                <div class="title-block">
+                    <h2>Community Leaderboard</h2>
+                    <p>Filter, search, and sort all benchmark results</p>
+                </div>
+                <div class="filters-block">
+                    <div class="search-wrapper">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search CPU, GPU, OS...">
+                    </div>
+                    <div class="select-wrapper">
+                        <i data-lucide="filter" class="filter-icon"></i>
+                        <select id="os-filter">
+                            <option value="">All Operating Systems</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table id="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="rank" class="sortable sorted-asc"># <i data-lucide="chevron-up"></i></th>
+                                <th data-sort="cpu" class="sortable">CPU <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="ram" class="sortable">RAM <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="gpu" class="sortable">GPU <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="vram" class="sortable">VRAM <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="os" class="sortable">OS <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="mainScore" class="sortable">Main Score <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="cpuSingle" class="sortable">CPU Single <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="cpuMulti" class="sortable">CPU Multi <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="gpuScore" class="sortable">GPU Score <i data-lucide="chevrons-up-down"></i></th>
+                                <th data-sort="date" class="sortable">Date/Time <i data-lucide="chevrons-up-down"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <!-- Injected by JavaScript -->
+                            <tr>
+                                <td colspan="11" class="loading-state">
+                                    <div class="spinner"></div>
+                                    <p>Loading benchmark data...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <footer class="main-footer">
+            <p>Pascube Benchmark Dashboard &copy; 2026. Data sourced in real-time from Google Sheets.</p>
+        </footer>
+    </div>
+
+    <!-- Main JavaScript Logic -->
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
