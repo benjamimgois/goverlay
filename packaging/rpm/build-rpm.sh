@@ -9,8 +9,10 @@ fi
 
 # Ensure version starts with a digit for package managers (e.g. debian and rpm)
 if [[ ! "$VERSION" =~ ^[0-9] ]]; then
-  VERSION="0.0.0-$VERSION"
+  VERSION="0.0.0.$VERSION"
 fi
+# Replace any hyphens in version with dots for RPM compatibility
+VERSION="${VERSION//-/.}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
