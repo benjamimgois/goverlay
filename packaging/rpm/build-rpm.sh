@@ -34,7 +34,7 @@ sed "s/VERSION_PLACEHOLDER/$VERSION/g" "$SCRIPT_DIR/goverlay.spec" > "$SPEC_FILE
 
 # Build RPM
 echo "Building RPM package..."
-rpmbuild --define "_topdir $RPMBUILD_DIR" -bb "$SPEC_FILE"
+rpmbuild --define "_topdir $RPMBUILD_DIR" -bb "$SPEC_FILE" --nodeps
 
 # Copy output RPM to project root
 find "$RPMBUILD_DIR/RPMS" -type f -name "*.rpm" -exec cp {} "$PROJECT_ROOT" \;
