@@ -2687,8 +2687,8 @@ begin
    HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
    HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
    HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 5174; HWRefs[10].IsCurrent := false;
-   HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 4090 24GB | OS: CachyOS';
+   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 8062; HWRefs[10].IsCurrent := false;
+   HWRefs[10].Specs := 'CPU: R9 9950X3D | RAM: 48GB DDR5 | GPU: RTX 5090 | OS: CachyOS';
    HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
    HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
 
@@ -3908,8 +3908,8 @@ begin
     HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
     HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
     HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 5174; HWRefs[10].IsCurrent := false;
-    HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 4090 24GB | OS: CachyOS';
+    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 8062; HWRefs[10].IsCurrent := false;
+    HWRefs[10].Specs := 'CPU: R9 9950X3D | RAM: 48GB DDR5 | GPU: RTX 5090 | OS: CachyOS';
     HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
     HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
 
