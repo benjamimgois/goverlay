@@ -1675,11 +1675,20 @@ end;
 
 procedure Tgoverlayform.updateBitBtnClick(Sender: TObject);
 begin
+  optversionComboBox.Visible := False;
+  updateBitBtn.Visible := False;
+  checkupdBitBtn.Visible := False;
   updateProgressBar.Visible := True;
   updatestatusLabel.Visible := True;
-  FOptiscalerUpdate.UpdateButtonClick(Sender);
-  updateProgressBar.Visible := False;
-  updatestatusLabel.Visible := False;
+  try
+    FOptiscalerUpdate.UpdateButtonClick(Sender);
+  finally
+    updateProgressBar.Visible := False;
+    updatestatusLabel.Visible := False;
+    optversionComboBox.Visible := True;
+    updateBitBtn.Visible := True;
+    checkupdBitBtn.Visible := True;
+  end;
   // Re-enable controls after installation completes
   UpdateGeSpeedButtonState;
   // Reload installed versions and refresh the Software Status card immediately
