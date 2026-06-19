@@ -23,8 +23,18 @@ mkdir -p "$BUILD_DIR/DEBIAN"
 cd "$PROJECT_ROOT"
 make prefix=/usr libexecdir=/lib DESTDIR="$BUILD_DIR" install
 
-# Copy control and substitute version
-sed "s/VERSION_PLACEHOLDER/$VERSION/g" "$SCRIPT_DIR/control" > "$BUILD_DIR/DEBIAN/control"
+# Detect architecture
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+  DEB_ARCH="amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+  DEB_ARCH="arm64"
+else
+  DEB_ARCH="$ARCH"
+fi
+
+# Copy control and substitute version and architecture
+sed -e "s/VERSION_PLACEHOLDER/$VERSION/g" -e "s/Architecture: amd64/Architecture: $DEB_ARCH/g" "$SCRIPT_DIR/control" > "$BUILD_DIR/DEBIAN/control"
 
 # Set correct permissions
 chmod -R g-w "$BUILD_DIR"
@@ -32,6 +42,6 @@ chmod 755 "$BUILD_DIR/DEBIAN"
 chmod 644 "$BUILD_DIR/DEBIAN/control"
 
 # Build package
-dpkg-deb --build "$BUILD_DIR" "goverlay_${VERSION}_amd64.deb"
+dpkg-deb --build "$BUILD_DIR" "goverlay_${VERSION}_${DEB_ARCH}.deb"
 
-echo "Debian package created: goverlay_${VERSION}_amd64.deb"
+echo "Debian package created: goverlay_${VERSION}_${DEB_ARCH}.deb"

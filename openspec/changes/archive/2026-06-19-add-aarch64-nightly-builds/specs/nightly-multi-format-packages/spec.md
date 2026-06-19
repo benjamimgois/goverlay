@@ -1,9 +1,4 @@
-# Nightly Multi-Format Packages
-
-## Purpose
-Build GOverlay nightly packages in Flatpak, Debian, and RPM formats, and upload them as pre-release assets.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Automated Flatpak Nightly Build
 The system MUST build a Flatpak bundle (`.flatpak`) for both x86_64 and aarch64 architectures on every push to the main branch.
