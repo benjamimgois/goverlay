@@ -716,6 +716,7 @@ var
   S: TStringList;
 begin
   Result := '';
+  if IsRunningInFlatpak then Exit;
   P := TProcess.Create(nil);
   try
     P.Executable := FindDefaultExecutablePath('sh');
@@ -739,6 +740,7 @@ var
   S: TStringList;
 begin
   Result := '';
+  if IsRunningInFlatpak then Exit;
   P := TProcess.Create(nil);
   try
     P.Executable := FindDefaultExecutablePath('sh');
@@ -764,6 +766,7 @@ var
   S: TStringList;
 begin
   Result := '';
+  if IsRunningInFlatpak then Exit;
   P := TProcess.Create(nil);
   try
     P.Executable := FindDefaultExecutablePath('sh');
