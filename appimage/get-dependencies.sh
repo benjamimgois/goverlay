@@ -54,7 +54,7 @@ if [ "$ARCH" = "aarch64" ]; then
 	echo "aarch64 detected. Building vkbasalt from AUR..."
 	git clone https://aur.archlinux.org/vkbasalt.git /tmp/vkbasalt
 	chown -R builder:builder /tmp/vkbasalt
-	(cd /tmp/vkbasalt && su builder -c "makepkg -si --noconfirm")
+	(cd /tmp/vkbasalt && su builder -c "makepkg -si --noconfirm -A")
 else
 	echo "x86_64 detected. Using Chaotic-AUR for vkbasalt..."
 	pacman-key --init
@@ -71,7 +71,7 @@ echo "Building and installing vksumi from AUR..."
 echo "---------------------------------------------------------------"
 git clone https://aur.archlinux.org/vksumi.git /tmp/vksumi
 chown -R builder:builder /tmp/vksumi
-(cd /tmp/vksumi && su builder -c "makepkg -si --noconfirm")
+(cd /tmp/vksumi && su builder -c "makepkg -si --noconfirm -A")
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
