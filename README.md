@@ -156,8 +156,13 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 flatpak install flathub io.github.benjamimgois.goverlay
 
 # Install required Vulkan layers for MangoHud and vkBasalt support
-flatpak --user install flathub org.freedesktop.Platform.VulkanLayer.MangoHud//25.08 \
+flatpak install flathub org.freedesktop.Platform.VulkanLayer.MangoHud//25.08 \
 org.freedesktop.Platform.VulkanLayer.vkBasalt//25.08 -y
+
+# Download vksumi flatpak runtime from its github page and install
+https://github.com/reakjra/vkSumi
+flatpak install vkSumi-25.08.flatpak
+
 ```
 
 ### AppImage
