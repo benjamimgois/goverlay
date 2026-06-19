@@ -45,19 +45,30 @@ pacman -Syu --noconfirm \
 	rpm-org
 
 
-pacman-key --init
-pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-pacman-key --lsign-key 3056513887B78AEB
-pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
-pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-echo '[chaotic-aur]
+# Setup builder user for AUR package compilations
+useradd -m builder || true
+echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' >> /etc/sudoers
+
+ARCH="$(uname -m)"
+if [ "$ARCH" = "aarch64" ]; then
+	echo "aarch64 detected. Building vkbasalt from AUR..."
+	git clone https://aur.archlinux.org/vkbasalt.git /tmp/vkbasalt
+	chown -R builder:builder /tmp/vkbasalt
+	(cd /tmp/vkbasalt && su builder -c "makepkg -si --noconfirm")
+else
+	echo "x86_64 detected. Using Chaotic-AUR for vkbasalt..."
+	pacman-key --init
+	pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+	pacman-key --lsign-key 3056513887B78AEB
+	pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+	pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+	echo '[chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist' >> /etc/pacman.conf
-pacman -Syu --noconfirm vkbasalt
+	pacman -Syu --noconfirm vkbasalt
+fi
 
 echo "Building and installing vksumi from AUR..."
 echo "---------------------------------------------------------------"
-useradd -m builder || true
-echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' >> /etc/sudoers
 git clone https://aur.archlinux.org/vksumi.git /tmp/vksumi
 chown -R builder:builder /tmp/vksumi
 (cd /tmp/vksumi && su builder -c "makepkg -si --noconfirm")
