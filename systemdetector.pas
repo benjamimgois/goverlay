@@ -599,6 +599,151 @@ begin
   end;
 end;
 
+function GetGPUModelFromSysfs: string;
+var
+  SR: TSearchRec;
+  Path, VendorFile, DeviceFile, BootVgaFile: string;
+  VendorId, DeviceId: string;
+  SL: TStringList;
+  FoundCard: string;
+begin
+  Result := 'Unknown GPU';
+  FoundCard := '';
+  SL := TStringList.Create;
+  try
+    if FindFirst('/sys/class/drm/card*', faAnyFile, SR) = 0 then
+    begin
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          Path := '/sys/class/drm/' + SR.Name + '/device/';
+          if DirectoryExists(Path) then
+          begin
+            BootVgaFile := Path + 'boot_vga';
+            if FileExists(BootVgaFile) then
+            begin
+              try
+                SL.LoadFromFile(BootVgaFile);
+                if (SL.Count > 0) and (Trim(SL[0]) = '1') then
+                begin
+                  FoundCard := Path;
+                  Break;
+                end;
+              except
+              end;
+            end;
+            if FoundCard = '' then
+              FoundCard := Path;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+      FindClose(SR);
+    end;
+
+    if FoundCard <> '' then
+    begin
+      VendorFile := FoundCard + 'vendor';
+      DeviceFile := FoundCard + 'device';
+      VendorId := '';
+      DeviceId := '';
+      if FileExists(VendorFile) then
+      begin
+        try
+          SL.LoadFromFile(VendorFile);
+          if SL.Count > 0 then VendorId := LowerCase(Trim(SL[0]));
+        except
+        end;
+      end;
+      if FileExists(DeviceFile) then
+      begin
+        try
+          SL.LoadFromFile(DeviceFile);
+          if SL.Count > 0 then DeviceId := LowerCase(Trim(SL[0]));
+        except
+        end;
+      end;
+
+      if VendorId <> '' then
+      begin
+        if (Pos('1002', VendorId) > 0) or (Pos('0x1002', VendorId) > 0) then
+          Result := 'AMD GPU'
+        else if (Pos('10de', VendorId) > 0) or (Pos('0x10de', VendorId) > 0) then
+          Result := 'NVIDIA GPU'
+        else if (Pos('8086', VendorId) > 0) or (Pos('0x8086', VendorId) > 0) then
+          Result := 'Intel GPU'
+        else
+          Result := 'Generic GPU (' + VendorId + ':' + DeviceId + ')';
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+function GetGPUDriverFromSysfs: string;
+var
+  SR: TSearchRec;
+  Path, UeventFile, BootVgaFile, Line: string;
+  SL: TStringList;
+  FoundCard: string;
+begin
+  Result := 'Unknown Driver';
+  FoundCard := '';
+  SL := TStringList.Create;
+  try
+    if FindFirst('/sys/class/drm/card*', faAnyFile, SR) = 0 then
+    begin
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          Path := '/sys/class/drm/' + SR.Name + '/device/';
+          if DirectoryExists(Path) then
+          begin
+            BootVgaFile := Path + 'boot_vga';
+            if FileExists(BootVgaFile) then
+            begin
+              try
+                SL.LoadFromFile(BootVgaFile);
+                if (SL.Count > 0) and (Trim(SL[0]) = '1') then
+                begin
+                  FoundCard := Path;
+                  Break;
+                end;
+              except
+              end;
+            end;
+            if FoundCard = '' then
+              FoundCard := Path;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+      FindClose(SR);
+    end;
+
+    if FoundCard <> '' then
+    begin
+      UeventFile := FoundCard + 'uevent';
+      if FileExists(UeventFile) then
+      begin
+        try
+          SL.LoadFromFile(UeventFile);
+          for Line in SL do
+          begin
+            if Pos('DRIVER=', Line) = 1 then
+            begin
+              Result := Trim(Copy(Line, 8, Length(Line)));
+              Break;
+            end;
+          end;
+        except
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
 function GetSysGPUModel: string;
 var
   Output, Line, CleanName: string;
@@ -625,6 +770,8 @@ begin
       SL.Free;
     end;
   end;
+  if Result = 'Unknown GPU' then
+    Result := GetGPUModelFromSysfs;
 end;
 
 function GetSysGPUDriver: string;
@@ -656,6 +803,8 @@ begin
       SL.Free;
     end;
   end;
+  if Result = 'Unknown Driver' then
+    Result := GetGPUDriverFromSysfs;
 end;
 
 
