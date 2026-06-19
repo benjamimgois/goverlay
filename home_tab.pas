@@ -409,7 +409,8 @@ begin
       VkOK    := (Missing.IndexOf('vkbasalt') < 0) and
                  (Missing.IndexOf('vkBasalt runtime 25.08') < 0);
       OptiOK  := FForm.IsOptiScalerInstalled;
-      SumiOK  := (Missing.IndexOf('vksumi') < 0);
+      SumiOK  := (Missing.IndexOf('vksumi') < 0) and
+                 (Missing.IndexOf('vkSumi runtime') < 0);
     finally
       Missing.Free;
     end;

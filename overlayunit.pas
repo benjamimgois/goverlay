@@ -1764,7 +1764,7 @@ begin
   FHomeTabSheet.TabVisible:=false;
 
   vkbasalttabsheet.TabVisible:=true;
-  vksumiTabSheet.TabVisible:= not IsRunningInFlatpak;
+  vksumiTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 
   // Stop any running cube instances when entering vkBasalt tab

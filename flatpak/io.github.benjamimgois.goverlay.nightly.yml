@@ -15,6 +15,7 @@ finish-args:
   # File access - use :create to allow creating directories if they don't exist
   - --filesystem=xdg-config/MangoHud:rw
   - --filesystem=xdg-config/vkBasalt:rw
+  - --filesystem=xdg-config/vkSumi:rw
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
@@ -151,10 +152,10 @@ modules:
         # Install bgmod data files to shared data directory
         mkdir -p /app/share/goverlay/bgmod
         cp -r data/bgmod/* /app/share/goverlay/bgmod/
-      - |
         # Create directories for Vulkan layer extensions
         mkdir -p /app/lib/extensions/vulkan/MangoHud
         mkdir -p /app/lib/extensions/vulkan/vkBasalt
+        mkdir -p /app/lib/extensions/vulkan/vkSumi
         # Install metainfo
         install -Dm644 data/${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo
         # Create a convenience symlink so pascube can find assets at /app/assets/
