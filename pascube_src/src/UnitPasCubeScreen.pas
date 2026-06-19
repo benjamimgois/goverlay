@@ -2669,7 +2669,7 @@ begin
    // Reconstruct and sort hardware references (same as DrawResultsOverlay)
    HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
    HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2500; HWRefs[1].IsCurrent := false;
+    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 1700; HWRefs[1].IsCurrent := false;
     HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
    HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 750; HWRefs[2].IsCurrent := false;
    HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
@@ -2687,8 +2687,8 @@ begin
    HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
    HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
    HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 7100; HWRefs[10].IsCurrent := false;
-   HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 5090 | OS: Win11';
+   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 5174; HWRefs[10].IsCurrent := false;
+   HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 4090 24GB | OS: CachyOS';
    HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
    HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
 
@@ -3335,7 +3335,7 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'Recalibrated against Steam Machine reference (2500 pts)',
+                          'Recalibrated against Steam Machine reference (1700 pts)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 1.0 * charHeight;
@@ -3890,7 +3890,7 @@ begin
 
     HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
     HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2500; HWRefs[1].IsCurrent := false;
+    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 1700; HWRefs[1].IsCurrent := false;
     HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
     HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 750; HWRefs[2].IsCurrent := false;
     HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
@@ -3908,8 +3908,8 @@ begin
     HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
     HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
     HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 7100; HWRefs[10].IsCurrent := false;
-    HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 5090 | OS: Win11';
+    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 5174; HWRefs[10].IsCurrent := false;
+    HWRefs[10].Specs := 'CPU: R7 9800X3D | RAM: 32GB DDR5 | GPU: RTX 4090 24GB | OS: CachyOS';
     HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
     HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
 
