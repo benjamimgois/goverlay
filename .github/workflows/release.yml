@@ -62,6 +62,7 @@ jobs:
           mv goverlay_*_amd64.deb "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.deb"
           
           # Rename RPM package
+          rm -f *debuginfo*.rpm
           mv goverlay-*.x86_64.rpm "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.rpm"
 
       - name: Upload artifact
@@ -103,6 +104,13 @@ jobs:
 
       - name: Build Flatpak
         run: |
+          # Copy patch file to the flatpak directory so flatpak-builder can resolve it
+          cp path_fix.patch flatpak/path_fix.patch
+          
+          # Dynamically update the manifest to point to the released tag and commit
+          sed -i "s/tag: .*/tag: ${{ github.ref_name }}/" flatpak/io.github.benjamimgois.goverlay.yml
+          sed -i "s/commit: .*/commit: ${{ github.sha }}/" flatpak/io.github.benjamimgois.goverlay.yml
+
           flatpak-builder \
             --force-clean \
             --repo=flatpak-repo \
