@@ -63,7 +63,13 @@ var
   BG, CARD_BG, TXT_CLR, MUTED_CLR: TColor;
 
   DEP_NAMES: array[0..5] of string = (
-    '7z', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
+    '7z', 'curl', 'git', 'gamemode',
+    {$IFDEF LCLqt6}
+    'qt6pas',
+    {$ELSE}
+    'qt5pas',
+    {$ENDIF}
+    'Nerd Fonts');
   MOD_NAMES: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'vkSumi');
 
 var
@@ -478,6 +484,7 @@ end;
 
 procedure THomeTabHelper.RefreshHomeDeps;
 const
+  {$IFDEF LCLqt6}
   DEP_KEYS: array[0..5] of string = (
     'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas', 'nerdfonts');
   DEP_DISPLAY: array[0..5] of string = (
@@ -489,6 +496,19 @@ const
     'Feral GameMode daemon for CPU/GPU optimisation',
     'Qt6 Pascal bindings — required for the Goverlay GUI',
     'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons');
+  {$ELSE}
+  DEP_KEYS: array[0..5] of string = (
+    'p7zip', 'curl', 'git', 'gamemode', 'libqt5pas', 'nerdfonts');
+  DEP_DISPLAY: array[0..5] of string = (
+    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt5pas', 'Nerd Fonts');
+  DEP_HINTS: array[0..5] of string = (
+    'Archive tool required for OptiScaler extraction',
+    'HTTP client used to download OptiScaler updates and covers',
+    'Version control used to fetch fgmod scripts',
+    'Feral GameMode daemon for CPU/GPU optimisation',
+    'Qt5 Pascal bindings — required for the Goverlay GUI',
+    'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons');
+  {$ENDIF}
   CLR_OK      = $0044BB44;
   CLR_MISSING = $004444BB;  // RGB(187,68,68) — red in Lazarus BGR format
 var

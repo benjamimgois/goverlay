@@ -581,7 +581,7 @@ const PasMPAllocatorPoolBucketBits=12;
       PasMPJobFlagReleaseOnFinish=TPasMPUInt32(TPasMPUInt32(1) shl 30);
 
       PasMPJobFlagActive=TPasMPUInt32(TPasMPUInt32(1) shl 31);
-      PasMPJobFlagActiveAndNotMask=TPasMPUInt32(not PasMPJobFlagActive);
+      PasMPJobFlagActiveAndNotMask=TPasMPUInt32($7fffffff);
 
       PasMPCPUCacheLineSize=64;
 
@@ -3714,7 +3714,7 @@ asm
  str x4, [sp, #8]
  ldr x11, [sp, #40]
  ldr x8, [sp, #16]
- ldr q1, [x8]
+ ldp x12, x13, [x8]
  ldr x8, [sp, #32]
  mov x10, xzr
  ldr x9, [sp, #24]
@@ -3724,10 +3724,6 @@ asm
  .byte 0xfd
  .byte 0x89
  .byte 0xaa
- fmov d0, d1
- mov d1, v1.d[1]
- fmov x13, d1
- fmov x12, d0
 LBB1_1: // =>This Inner Loop Header: Depth=1
  // .dword 0xc87fa169 // ldaxp x9, x8, [x11]
  .byte 0x69
@@ -3746,10 +3742,8 @@ LBB1_3: // in Loop: Header=BB1_1 Depth=1
  stlxp w10, x9, x8, [x11]
  cbnz w10, LBB1_1
 LBB1_4:
- mov v0.d[0], x9
- mov v0.d[1], x8
- ldr x8, [sp, #8]
- str q0, [x8]
+ ldr x10, [sp, #8]
+ stp x9, x8, [x10]
  add sp, sp, #48
 end;
 {$ifend}

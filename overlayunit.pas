@@ -9,7 +9,13 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus, aboutunit, optiscaler_update, protontricksunit,
   blacklistUnit, LCLtype, Clipbrd, LCLIntf, IniFiles,
   FileUtil, StrUtils, Types, fpjson, jsonparser, git2pas, howto, themeunit, systemdetector, constants,
-  bgmod_resources, hintsunit, qt6, qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
+  bgmod_resources, hintsunit,
+  {$IFDEF LCLqt6}
+  qt6,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
   configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils;
 
 

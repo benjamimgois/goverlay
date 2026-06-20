@@ -4,6 +4,15 @@ set -ex
 
 EXTRA_PACKAGES="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/get-debloated-pkgs.sh"
 
+ARCH="$(uname -m)"
+if [ "$ARCH" = "aarch64" ]; then
+	LAZARUS_PKG="lazarus-qt5"
+	QTPAS_PKG="qt5pas"
+else
+	LAZARUS_PKG="lazarus-qt6"
+	QTPAS_PKG="qt6pas"
+fi
+
 echo "Installing build dependencies..."
 echo "---------------------------------------------------------------"
 pacman -Syu --noconfirm \
@@ -20,7 +29,7 @@ pacman -Syu --noconfirm \
 	glslang \
 	glu \
 	hicolor-icon-theme \
-	lazarus \
+	$LAZARUS_PKG \
 	libx11 \
 	libxkbcommon \
 	meson \
@@ -32,7 +41,7 @@ pacman -Syu --noconfirm \
 	python-matplotlib \
 	python-numpy \
 	qt6ct \
-	qt6pas \
+	$QTPAS_PKG \
 	sdl2 \
 	sudo \
 	ttf-nerd-fonts-symbols \
@@ -45,22 +54,34 @@ pacman -Syu --noconfirm \
 	rpm-org
 
 
-pacman-key --init
-pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-pacman-key --lsign-key 3056513887B78AEB
-pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
-pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-echo '[chaotic-aur]
+
+# Setup builder user for AUR package compilations
+useradd -m builder || true
+echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' >> /etc/sudoers
+
+ARCH="$(uname -m)"
+if [ "$ARCH" = "aarch64" ]; then
+	echo "aarch64 detected. Building vkbasalt from AUR..."
+	git clone https://aur.archlinux.org/vkbasalt.git /tmp/vkbasalt
+	chown -R builder:builder /tmp/vkbasalt
+	(cd /tmp/vkbasalt && su builder -c "makepkg -si --noconfirm -A")
+else
+	echo "x86_64 detected. Using Chaotic-AUR for vkbasalt..."
+	pacman-key --init
+	pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+	pacman-key --lsign-key 3056513887B78AEB
+	pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+	pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+	echo '[chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist' >> /etc/pacman.conf
-pacman -Syu --noconfirm vkbasalt
+	pacman -Syu --noconfirm vkbasalt
+fi
 
 echo "Building and installing vksumi from AUR..."
 echo "---------------------------------------------------------------"
-useradd -m builder || true
-echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' >> /etc/sudoers
 git clone https://aur.archlinux.org/vksumi.git /tmp/vksumi
 chown -R builder:builder /tmp/vksumi
-(cd /tmp/vksumi && su builder -c "makepkg -si --noconfirm")
+(cd /tmp/vksumi && su builder -c "makepkg -si --noconfirm -A")
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"

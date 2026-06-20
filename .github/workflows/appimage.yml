@@ -9,9 +9,14 @@ on:
 
 jobs:
   build:
-    name: "Build Packages (x86_64)"
-    runs-on: ubuntu-latest
+    name: "Build Packages (${{ matrix.arch }})"
+    runs-on: ${{ matrix.runner }}
     container: ghcr.io/pkgforge-dev/archlinux:latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,7 +29,8 @@ jobs:
 
       - name: Build GOverlay
         run: |
-          make LAZBUILDOPTS=--lazarusdir=/usr/lib/lazarus
+          export LAZBUILDOPTS="--lazarusdir=/usr/lib/lazarus --widgetset=qt6"
+          make
           make prefix=/usr libexecdir=/lib install
 
       - name: Make Packages (AppImage, DEB, RPM)
@@ -53,12 +59,19 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AppImage-x86_64
+          name: AppImage-${{ matrix.arch }}
           path: "dist"
 
   build-flatpak:
-    name: Build Flatpak Bundle (x86_64)
-    runs-on: ubuntu-latest
+    name: Build Flatpak Bundle (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -95,14 +108,14 @@ jobs:
         run: |
           flatpak build-bundle \
             flatpak-repo \
-            goverlay-nightly-x86_64.flatpak \
+            goverlay-nightly-${{ matrix.arch }}.flatpak \
             io.github.benjamimgois.goverlay
 
       - name: Upload bundle as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flatpak-bundle
-          path: goverlay-nightly-x86_64.flatpak
+          name: flatpak-bundle-${{ matrix.arch }}
+          path: goverlay-nightly-${{ matrix.arch }}.flatpak
           retention-days: 90
 
   release_nightly:
@@ -117,10 +130,17 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: AppImage-x86_64
+          path: .
 
       - uses: actions/download-artifact@v4
         with:
-          name: flatpak-bundle
+          name: flatpak-bundle-x86_64
+          path: .
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatpak-bundle-aarch64
+          path: .
 
       - name: Show downloaded artifacts
         run: ls -la

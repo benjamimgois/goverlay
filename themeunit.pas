@@ -97,7 +97,12 @@ procedure CenterFormOnScreen(AForm: TForm);
 implementation
 
 uses
-  qt6, qtwidgets;
+  {$IFDEF LCLqt6}
+  qt6,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets;
 
 function ColorToRGBString(AColor: TColor): string;
 var

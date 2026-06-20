@@ -7,7 +7,13 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   StdCtrls, Buttons, Menus, LCLtype, Types, Grids,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, qt6, qtwidgets, configkeys;
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls,
+  {$IFDEF LCLqt6}
+  qt6,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets, configkeys;
 
 type
   TMangoHudUiHelper = class

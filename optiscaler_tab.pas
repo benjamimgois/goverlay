@@ -6,7 +6,13 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, qt6, qtwidgets,
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config,
+  {$IFDEF LCLqt6}
+  qt6,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets,
   Math, configkeys, StrUtils;
 
 type
