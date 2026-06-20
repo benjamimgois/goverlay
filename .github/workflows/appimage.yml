@@ -31,7 +31,12 @@ jobs:
 
       - name: Build GOverlay
         run: |
-          make LAZBUILDOPTS=--lazarusdir=/usr/lib/lazarus
+          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            export LAZBUILDOPTS="--lazarusdir=/usr/lib/lazarus --widgetset=qt5"
+          else
+            export LAZBUILDOPTS="--lazarusdir=/usr/lib/lazarus --widgetset=qt6"
+          fi
+          make
           make prefix=/usr libexecdir=/lib install
 
       - name: Make Packages (AppImage, DEB, RPM)

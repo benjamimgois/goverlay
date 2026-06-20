@@ -30,7 +30,14 @@ tar --exclude-vcs --exclude="./build_deb" --exclude="./rpmbuild" --exclude="./di
 
 # Prepare spec file
 SPEC_FILE="$RPMBUILD_DIR/SPECS/goverlay.spec"
-sed "s/VERSION_PLACEHOLDER/$VERSION/g" "$SCRIPT_DIR/goverlay.spec" > "$SPEC_FILE"
+ARCH=$(uname -m)
+if [ "$ARCH" = "aarch64" ]; then
+  sed -e "s/VERSION_PLACEHOLDER/$VERSION/g" \
+      -e "s/Requires:       qt6pas >= 6.2.0/Requires:       qt5pas/g" \
+      "$SCRIPT_DIR/goverlay.spec" > "$SPEC_FILE"
+else
+  sed "s/VERSION_PLACEHOLDER/$VERSION/g" "$SCRIPT_DIR/goverlay.spec" > "$SPEC_FILE"
+fi
 
 # Build RPM
 echo "Building RPM package..."

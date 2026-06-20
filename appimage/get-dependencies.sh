@@ -4,6 +4,15 @@ set -ex
 
 EXTRA_PACKAGES="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/get-debloated-pkgs.sh"
 
+ARCH="$(uname -m)"
+if [ "$ARCH" = "aarch64" ]; then
+	LAZARUS_PKG="lazarus-qt5"
+	QTPAS_PKG="qt5pas"
+else
+	LAZARUS_PKG="lazarus-qt6"
+	QTPAS_PKG="qt6pas"
+fi
+
 echo "Installing build dependencies..."
 echo "---------------------------------------------------------------"
 pacman -Syu --noconfirm \
@@ -20,7 +29,7 @@ pacman -Syu --noconfirm \
 	glslang \
 	glu \
 	hicolor-icon-theme \
-	lazarus-qt6 \
+	$LAZARUS_PKG \
 	libx11 \
 	libxkbcommon \
 	meson \
@@ -32,7 +41,7 @@ pacman -Syu --noconfirm \
 	python-matplotlib \
 	python-numpy \
 	qt6ct \
-	qt6pas \
+	$QTPAS_PKG \
 	sdl2 \
 	sudo \
 	ttf-nerd-fonts-symbols \
@@ -43,6 +52,7 @@ pacman -Syu --noconfirm \
 	zsync \
 	dpkg \
 	rpm-org
+
 
 
 # Setup builder user for AUR package compilations
