@@ -529,11 +529,11 @@ var
 
 
 {$if defined(CPUAARCH64) and defined(LINUX)}
-procedure Dummy_libc_csu_init; cdecl; public; name '__libc_csu_init';
+procedure Dummy_libc_csu_init; cdecl; public name '__libc_csu_init';
 begin
 end;
 
-procedure Dummy_libc_csu_fini; cdecl; public; name '__libc_csu_fini';
+procedure Dummy_libc_csu_fini; cdecl; public name '__libc_csu_fini';
 begin
 end;
 {$endif}
