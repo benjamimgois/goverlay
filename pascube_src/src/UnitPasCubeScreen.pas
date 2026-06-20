@@ -1655,7 +1655,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
            AProcess := TProcess.Create(nil);
            try
              AProcess.Executable := 'xdg-open';
-             AProcess.Parameters.Add('https://docs.google.com/spreadsheets/d/1nlMgeW0ZFmtwwT3hty8JAFT3sM0SNhMpc24mH3In9zI/edit?usp=sharing');
+             AProcess.Parameters.Add('https://benjamimgois.github.io/PascubeDB/');
              AProcess.Options := [];
              AProcess.Execute;
            finally
