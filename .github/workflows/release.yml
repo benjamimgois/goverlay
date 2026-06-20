@@ -1,0 +1,182 @@
+name: GOverlay Stable Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]*'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: "Build Packages (${{ matrix.arch }})"
+    runs-on: ${{ matrix.runner }}
+    container: ghcr.io/pkgforge-dev/archlinux:latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Get dependencies
+        run: |
+          chmod +x ./appimage/get-dependencies.sh
+          ./appimage/get-dependencies.sh
+
+      - name: Build GOverlay
+        run: |
+          export LAZBUILDOPTS="--lazarusdir=/usr/lib/lazarus --widgetset=qt6"
+          make
+          make prefix=/usr libexecdir=/lib install
+
+      - name: Make Packages (AppImage, DEB, RPM)
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          CLEAN_VERSION="${TAG_NAME#v}"
+          export VERSION="$CLEAN_VERSION"
+
+          # Build AppImage
+          chmod +x ./appimage/goverlay-appimage.sh
+          ./appimage/goverlay-appimage.sh
+
+          # Build Debian Package
+          chmod +x ./packaging/deb/build-deb.sh
+          ./packaging/deb/build-deb.sh "$VERSION"
+
+          # Build RPM Package
+          chmod +x ./packaging/rpm/build-rpm.sh
+          ./packaging/rpm/build-rpm.sh "$VERSION"
+
+          # Organize and rename artifacts according to the required convention
+          VERSION_UNDERSCORE="${CLEAN_VERSION//./_}"
+          mkdir ./dist
+          
+          # Rename AppImage
+          mv GOverlay-*-x86_64.AppImage "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.appimage"
+          
+          # Rename Debian package
+          mv goverlay_*_amd64.deb "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.deb"
+          
+          # Rename RPM package
+          mv goverlay-*.x86_64.rpm "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.rpm"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-packages-x86_64
+          path: "dist"
+
+  build-flatpak:
+    name: Build Flatpak Bundle (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+
+      - name: Add Flathub repository
+        run: |
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Install Flatpak SDK and runtime
+        run: |
+          sudo flatpak install -y flathub org.kde.Platform//6.10 org.kde.Sdk//6.10
+          sudo flatpak install -y flathub io.qt.qtwebengine.BaseApp//6.10
+          sudo flatpak install -y flathub org.freedesktop.Sdk.Extension.freepascal//25.08
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder \
+            --force-clean \
+            --repo=flatpak-repo \
+            --disable-rofiles-fuse \
+            --ccache \
+            --state-dir=.flatpak-builder \
+            flatpak-build \
+            flatpak/io.github.benjamimgois.goverlay.yml
+
+      - name: Create Flatpak bundle
+        run: |
+          flatpak build-bundle \
+            flatpak-repo \
+            goverlay-${{ github.ref_name }}-${{ matrix.arch }}.flatpak \
+            io.github.benjamimgois.goverlay
+
+      - name: Rename and organize Flatpak bundle
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          CLEAN_VERSION="${TAG_NAME#v}"
+          VERSION_UNDERSCORE="${CLEAN_VERSION//./_}"
+          mkdir ./dist
+          
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            mv goverlay-${{ github.ref_name }}-amd64.flatpak "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.flatpak"
+          else
+            mv goverlay-${{ github.ref_name }}-arm64.flatpak "./dist/goverlay_${VERSION_UNDERSCORE}_aarch64.flatpak"
+          fi
+
+      - name: Upload bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-flatpak-${{ matrix.arch }}
+          path: "dist"
+          retention-days: 90
+
+  release:
+    name: "Create GitHub Release"
+    needs: [build, build-flatpak]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: stable-packages-x86_64
+          path: .
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: stable-flatpak-amd64
+          path: .
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: stable-flatpak-arm64
+          path: .
+
+      - name: Show downloaded artifacts
+        run: ls -la
+
+      - name: Create stable Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "GOverlay ${{ github.ref_name }}"
+          tag_name: "${{ github.ref_name }}"
+          prerelease: false
+          draft: false
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            *.appimage
+            *.deb
+            *.rpm
+            *.flatpak
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
