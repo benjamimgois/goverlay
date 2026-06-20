@@ -20,7 +20,7 @@ pacman -Syu --noconfirm \
 	glslang \
 	glu \
 	hicolor-icon-theme \
-	lazarus \
+	lazarus-qt6 \
 	libx11 \
 	libxkbcommon \
 	meson \
