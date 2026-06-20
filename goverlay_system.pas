@@ -352,8 +352,13 @@ begin
   // Check for libqt6pas (Qt6 Pascal bindings — required for Goverlay GUI).
   // Arch installs it as libQt6Pas.so; other distros use libqt6pas.so.
   // IsLibraryAvailable checks both via case-insensitive ldconfig + path scan.
+  {$IFDEF LCLqt6}
   if not IsLibraryAvailable('libQt6Pas') then
     Missing.Add('libqt6pas');
+  {$ELSE}
+  if not IsLibraryAvailable('libQt5Pas') then
+    Missing.Add('libqt5pas');
+  {$ENDIF}
 
   // check if zenergy module is available
   // if not IsKernelModuleAvailable('zenergy') then

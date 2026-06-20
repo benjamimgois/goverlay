@@ -332,8 +332,13 @@ begin
       Missing.Add('gamemode');
   end;
 
+  {$IFDEF LCLqt6}
   if not IsLibraryAvailable('libQt6Pas') then
     Missing.Add('libqt6pas');
+  {$ELSE}
+  if not IsLibraryAvailable('libQt5Pas') then
+    Missing.Add('libqt5pas');
+  {$ENDIF}
 
   if not IsNerdFontInstalled then
     Missing.Add('nerdfonts');
