@@ -3209,7 +3209,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 21
+            ItemHeight = 22
             ItemIndex = 0
             Items.Strings = (
               'Default'
@@ -3309,7 +3309,7 @@ object goverlayform: Tgoverlayform
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
           Font.Style = [fsBold]
-          ItemHeight = 27
+          ItemHeight = 28
           ParentColor = True
           ParentFont = False
           ParentShowHint = False
@@ -3354,7 +3354,7 @@ object goverlayform: Tgoverlayform
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
-          ItemHeight = 24
+          ItemHeight = 25
           Items.Strings = (
             'Shift_R+F12'
             'Shift_R+F1'
@@ -4953,7 +4953,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 25
             Items.Strings = (
               'Shift_L+F1'
               'Shift_L+F2'
@@ -5063,7 +5063,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 25
             ItemIndex = 0
             Items.Strings = (
               'Late*'
@@ -6224,7 +6224,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 25
             ItemIndex = 4
             Items.Strings = (
               'Adaptive'
@@ -6253,7 +6253,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 24
+            ItemHeight = 25
             ItemIndex = 4
             Items.Strings = (
               'Adaptive'
@@ -7952,7 +7952,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -12
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ItemHeight = 23
+            ItemHeight = 24
             Items.Strings = (
               'Shift_L+F2'
               'Shift_L+F3'
@@ -9777,7 +9777,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Font.Style = [fsBold]
-            ItemHeight = 19
+            ItemHeight = 20
             ItemIndex = 0
             Items.Strings = (
               'Interface'
@@ -9889,7 +9889,7 @@ object goverlayform: Tgoverlayform
           Width = 109
           Font.Height = -13
           Font.Name = 'Noto Sans'
-          ItemHeight = 24
+          ItemHeight = 25
           ItemIndex = 0
           Items.Strings = (
             'Home'
@@ -11647,7 +11647,7 @@ object goverlayform: Tgoverlayform
               Font.Height = -13
               Font.Name = 'Sans'
               Font.Quality = fqAntialiased
-              ItemHeight = 24
+              ItemHeight = 25
               ItemIndex = 0
               Items.Strings = (
                 'dxgi.dll'
@@ -11726,7 +11726,7 @@ object goverlayform: Tgoverlayform
               Font.Height = -13
               Font.Name = 'Noto Sans'
               Font.Quality = fqAntialiased
-              ItemHeight = 24
+              ItemHeight = 25
               Items.Strings = (
                 'Latest (FP8)'
                 '4.0.2c (INT8)'
@@ -11879,7 +11879,7 @@ object goverlayform: Tgoverlayform
               Font.Height = -13
               Font.Name = 'Sans'
               Font.Quality = fqAntialiased
-              ItemHeight = 24
+              ItemHeight = 25
               Items.Strings = (
                 'Conservative'
                 'Agressive'
@@ -11925,7 +11925,7 @@ object goverlayform: Tgoverlayform
               Font.Height = -13
               Font.Name = 'Sans'
               Font.Quality = fqAntialiased
-              ItemHeight = 24
+              ItemHeight = 25
               Items.Strings = (
                 'Follow game setting'
                 'Force disable'
@@ -12131,7 +12131,7 @@ object goverlayform: Tgoverlayform
               Font.Height = -13
               Font.Name = 'Sans'
               Font.Quality = fqAntialiased
-              ItemHeight = 24
+              ItemHeight = 25
               ItemIndex = 0
               Items.Strings = (
                 '0x2d'
@@ -13351,7 +13351,7 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Font.Style = [fsBold]
-            ItemHeight = 23
+            ItemHeight = 24
             ItemIndex = 0
             Items.Strings = (
               'Stable Channel'
