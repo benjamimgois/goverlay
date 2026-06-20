@@ -3180,7 +3180,7 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   boxW := 66.0 * charWidth;
-  boxH := 30.0 * charHeight;
+  boxH := 34.0 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
 
@@ -4219,7 +4219,7 @@ begin
 
     // Dialog box
     boxW := 66.0 * charWidth;
-    boxH := 32.0 * charHeight;
+    boxH := 34.0 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
     app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
@@ -4275,6 +4275,9 @@ begin
 
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 21.5 * charHeight, 1.2, toaLeft, 'Contributor:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 21.5 * charHeight, 1.2, toaLeft, 'Anonymous', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 23.0 * charHeight, 1.2, toaLeft, 'Client ID:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 23.0 * charHeight, 1.2, toaLeft, Copy(GetPersistentUUID, 1, 8), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
     // Buttons
     gap := 5.0 * charWidth;
