@@ -242,6 +242,104 @@ begin
   end;
 end;
 
+function GetGlobalBGModPath(const LocalBgmodPath: string): string;
+var
+  DataHome: string;
+  PosFlatpak: Integer;
+  FlatpakBase: string;
+begin
+  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
+  if PosFlatpak > 0 then
+  begin
+    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
+    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay' + PathDelim + 'bgmod';
+  end
+  else
+  begin
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'bgmod';
+  end;
+  Result := IncludeTrailingPathDelimiter(Result);
+end;
+
+function NeedsLocalUpdate(const LocalPath, GlobalPath: string): Boolean;
+var
+  LocalVars, GlobalVars: string;
+  LocalSL, GlobalSL: TStringList;
+begin
+  Result := False;
+  LocalVars := IncludeTrailingPathDelimiter(LocalPath) + 'goverlay.vars';
+  GlobalVars := IncludeTrailingPathDelimiter(GlobalPath) + 'goverlay.vars';
+  
+  if not FileExists(GlobalVars) then Exit;
+  if not FileExists(LocalVars) then
+  begin
+    Result := True;
+    Exit;
+  end;
+  
+  LocalSL := TStringList.Create;
+  GlobalSL := TStringList.Create;
+  try
+    try
+      LocalSL.LoadFromFile(LocalVars);
+      GlobalSL.LoadFromFile(GlobalVars);
+      if StringReplace(LocalSL.Text, #13, '', [rfReplaceAll]) <> StringReplace(GlobalSL.Text, #13, '', [rfReplaceAll]) then
+        Result := True;
+    except
+      on E: Exception do
+        Log('Error loading vars files for comparison: ' + E.Message);
+    end;
+  finally
+    LocalSL.Free;
+    GlobalSL.Free;
+  end;
+end;
+
+procedure CopyDirectoryFiltered(const SrcDir, DestDir: string);
+var
+  SR: TSearchRec;
+  SrcFile, DestFile: string;
+begin
+  if not DirectoryExists(DestDir) then
+    ForceDirectories(DestDir);
+    
+  if FindFirst(IncludeTrailingPathDelimiter(SrcDir) + '*', faAnyFile, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          if (UpperCase(SR.Name) = 'BGMOD.CONF') or (UpperCase(SR.Name) = 'OPTISCALER.INI') then
+            Continue;
+            
+          SrcFile := IncludeTrailingPathDelimiter(SrcDir) + SR.Name;
+          DestFile := IncludeTrailingPathDelimiter(DestDir) + SR.Name;
+          
+          if (SR.Attr and faDirectory) <> 0 then
+            CopyDirectoryFiltered(SrcFile, DestFile)
+          else
+          begin
+            try
+              if FileExists(DestFile) then
+                DeleteFile(DestFile);
+              CopyFile(SrcFile, DestFile);
+              fpChmod(DestFile, &755);
+            except
+              on E: Exception do
+                Log('Failed to copy file ' + SrcFile + ' -> ' + DestFile + ': ' + E.Message);
+            end;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
 procedure SafeCopyFile(const Src, Dest: string);
 begin
   if not FileExists(Src) then
@@ -494,7 +592,7 @@ begin
 end;
 
 var
-  BgmodPath, DllName, DllBase, CurrentOverrides, NewOverrides, TempStr: string;
+  BgmodPath, DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath: string;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
@@ -620,86 +718,105 @@ begin
       // --- OptiScaler Copy and Configuration ---
       if GOverlayOptiscaler then
       begin
-        Log('Installing OptiScaler files...');
-        // 1. Cleanup old injectors
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + '_nvngx.dll');
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvngx-wrapper.dll');
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlss-enabler.dll');
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
-        
-        // 2. Backup original DLLs
-        for i := 0 to High(OrigDlls) do
-          SafeBackupFile(GameDir, OrigDlls[i]);
-          
-        // 3. Backup proxy DLLs
-        for i := 0 to High(ProxyDlls) do
-          SafeBackupFile(GameDir, ProxyDlls[i]);
-          
-        // 4. Remove conflicting nvapi64 files
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll');
-        SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll.b');
-        
-        // 5. Core Install - Copy proxy DLL
-        if FileExists(BgmodPath + 'renames' + PathDelim + DllName) then
+        GlobalBgmodPath := GetGlobalBGModPath(BgmodPath);
+        if (GlobalBgmodPath <> '') and NeedsLocalUpdate(BgmodPath, GlobalBgmodPath) then
         begin
-          Log('Using pre-renamed dll ' + DllName);
-          SafeCopyFile(BgmodPath + 'renames' + PathDelim + DllName, IncludeTrailingPathDelimiter(GameDir) + DllName);
+          Log('OptiScaler update detected. Syncing local config files from ' + GlobalBgmodPath);
+          CopyDirectoryFiltered(GlobalBgmodPath, BgmodPath);
+        end;
+
+        if FileExists(IncludeTrailingPathDelimiter(GameDir) + DllName) and
+           FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') and
+           not NeedsLocalUpdate(IncludeTrailingPathDelimiter(GameDir), BgmodPath) then
+        begin
+          Log('OptiScaler files in game directory are already up to date, skipping copy.');
         end
         else
         begin
-          Log('Pre-renamed dll not found, falling back to OptiScaler.dll as ' + DllName);
-          SafeCopyFile(BgmodPath + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
-        end;
-        
-        // 6. OptiScaler.ini Handling
-        if PreserveIni and FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
-          Log('Preserving existing OptiScaler.ini')
-        else
-          SafeCopyFile(BgmodPath + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+          Log('Installing/Updating OptiScaler files in game directory...');
+          // 1. Cleanup old injectors
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + '_nvngx.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvngx-wrapper.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlss-enabler.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
           
-        // 7. Copy plugins/ folder if it exists
-        if DirectoryExists(BgmodPath + 'plugins') then
-        begin
-          Log('Installing ASI plugins directory...');
-          CopyDirectory(BgmodPath + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          // 2. Backup original DLLs
+          for i := 0 to High(OrigDlls) do
+            SafeBackupFile(GameDir, OrigDlls[i]);
+            
+          // 3. Backup proxy DLLs
+          for i := 0 to High(ProxyDlls) do
+            SafeBackupFile(GameDir, ProxyDlls[i]);
+            
+          // 4. Remove conflicting nvapi64 files
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll.b');
+          
+          // 5. Core Install - Copy proxy DLL
+          if FileExists(BgmodPath + 'renames' + PathDelim + DllName) then
+          begin
+            Log('Using pre-renamed dll ' + DllName);
+            SafeCopyFile(BgmodPath + 'renames' + PathDelim + DllName, IncludeTrailingPathDelimiter(GameDir) + DllName);
+          end
+          else
+          begin
+            Log('Pre-renamed dll not found, falling back to OptiScaler.dll as ' + DllName);
+            SafeCopyFile(BgmodPath + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+          end;
+          
+          // 6. OptiScaler.ini Handling
+          if PreserveIni and FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
+            Log('Preserving existing OptiScaler.ini')
+          else
+            SafeCopyFile(BgmodPath + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+            
+          // 7. Copy plugins/ folder if it exists
+          if DirectoryExists(BgmodPath + 'plugins') then
+          begin
+            Log('Installing ASI plugins directory...');
+            CopyDirectory(BgmodPath + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          end;
+          
+          // 7b. Copy D3D12_OptiScaler/ folder if it exists
+          if DirectoryExists(BgmodPath + 'D3D12_OptiScaler') then
+          begin
+            Log('Installing D3D12_OptiScaler directory...');
+            CopyDirectory(BgmodPath + 'D3D12_OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          end
+          else if DirectoryExists(BgmodPath + 'D3D12_Optiscaler') then
+          begin
+            Log('Installing D3D12_Optiscaler directory...');
+            CopyDirectory(BgmodPath + 'D3D12_Optiscaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          end;
+          
+          // 8. Copy supporting libraries
+          SafeCopyFile(BgmodPath + 'libxess.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
+          SafeCopyFile(BgmodPath + 'libxess_dx11.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_dx11.dll');
+          SafeCopyFile(BgmodPath + 'libxess_fg.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_fg.dll');
+          SafeCopyFile(BgmodPath + 'libxell.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxell.dll');
+          SafeCopyFile(BgmodPath + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
+          SafeCopyFile(BgmodPath + 'amd_fidelityfx_framegeneration_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
+          SafeCopyFile(BgmodPath + 'amd_fidelityfx_upscaler_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+          SafeCopyFile(BgmodPath + 'amd_fidelityfx_vk.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');
+          SafeCopyFile(BgmodPath + 'nvngx.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
+          SafeCopyFile(BgmodPath + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlss.dll');
+          SafeCopyFile(BgmodPath + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssd.dll');
+          SafeCopyFile(BgmodPath + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssg.dll');
+          
+          // 9. Copy Nukem FG
+          SafeCopyFile(BgmodPath + 'dlssg_to_fsr3_amd_is_better.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
+          
+          // 10. Copy FakeNVAPI
+          SafeCopyFile(BgmodPath + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
+          SafeCopyFile(BgmodPath + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
+          
+          // 11. Copy uninstaller
+          SafeCopyFile(BgmodPath + 'bgmod-uninstaller', IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller');
+          
+          // 12. Copy version file to game folder
+          SafeCopyFile(BgmodPath + 'goverlay.vars', IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
         end;
-        
-        // 7b. Copy D3D12_OptiScaler/ folder if it exists
-        if DirectoryExists(BgmodPath + 'D3D12_OptiScaler') then
-        begin
-          Log('Installing D3D12_OptiScaler directory...');
-          CopyDirectory(BgmodPath + 'D3D12_OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
-        end
-        else if DirectoryExists(BgmodPath + 'D3D12_Optiscaler') then
-        begin
-          Log('Installing D3D12_Optiscaler directory...');
-          CopyDirectory(BgmodPath + 'D3D12_Optiscaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
-        end;
-        
-        // 8. Copy supporting libraries
-        SafeCopyFile(BgmodPath + 'libxess.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
-        SafeCopyFile(BgmodPath + 'libxess_dx11.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_dx11.dll');
-        SafeCopyFile(BgmodPath + 'libxess_fg.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_fg.dll');
-        SafeCopyFile(BgmodPath + 'libxell.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxell.dll');
-        SafeCopyFile(BgmodPath + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
-        SafeCopyFile(BgmodPath + 'amd_fidelityfx_framegeneration_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
-        SafeCopyFile(BgmodPath + 'amd_fidelityfx_upscaler_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
-        SafeCopyFile(BgmodPath + 'amd_fidelityfx_vk.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');
-        SafeCopyFile(BgmodPath + 'nvngx.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
-        SafeCopyFile(BgmodPath + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlss.dll');
-        SafeCopyFile(BgmodPath + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssd.dll');
-        SafeCopyFile(BgmodPath + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssg.dll');
-        
-        // 9. Copy Nukem FG
-        SafeCopyFile(BgmodPath + 'dlssg_to_fsr3_amd_is_better.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
-        
-        // 10. Copy FakeNVAPI
-        SafeCopyFile(BgmodPath + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
-        SafeCopyFile(BgmodPath + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
-        
-        // 11. Copy uninstaller
-        SafeCopyFile(BgmodPath + 'bgmod-uninstaller', IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller');
       end
       else
       begin
