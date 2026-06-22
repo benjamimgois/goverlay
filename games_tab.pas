@@ -94,6 +94,7 @@ type
   end;
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
+procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
 
 implementation
 
@@ -174,22 +175,89 @@ end;
 
 
 
+procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
+var
+  Bmp: TBitmap;
+  Png: TPortableNetworkGraphic;
+  IconPath: string;
+  DestRect: TRect;
+  IconSize: Integer;
+begin
+  if not Assigned(AForm) then Exit;
+  IconPath := AForm.GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+  if not FileExists(IconPath) then
+    IconPath := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
+  if not FileExists(IconPath) then
+    IconPath := '/usr/share/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png';
+
+  WriteLn(StdErr, '[CoverThread] GenerateFallbackCover APath="', APath, '" IconPath="', IconPath, '" exists=', FileExists(IconPath));
+
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(CARD_W, CARD_H);
+    Bmp.Canvas.Brush.Color := $252525; // Dark background
+    Bmp.Canvas.FillRect(Rect(0, 0, CARD_W, CARD_H));
+
+    if FileExists(IconPath) then
+    begin
+      Png := TPortableNetworkGraphic.Create;
+      try
+        Png.LoadFromFile(IconPath);
+        IconSize := 96; // 96x96 centered inside 150x215
+        DestRect := Rect(
+          (CARD_W - IconSize) div 2,
+          (CARD_H - IconSize) div 2,
+          (CARD_W - IconSize) div 2 + IconSize,
+          (CARD_H - IconSize) div 2 + IconSize
+        );
+        Bmp.Canvas.StretchDraw(DestRect, Png);
+      finally
+        Png.Free;
+      end;
+    end;
+
+    with TJPEGImage.Create do
+    try
+      Assign(Bmp);
+      SaveToFile(APath);
+      WriteLn(StdErr, '[CoverThread] GenerateFallbackCover saved successfully to ', APath);
+    except
+      on E: Exception do
+        WriteLn(StdErr, '[CoverThread] Error saving fallback cover: ', E.Message);
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+
+
 procedure TCoverDownloadThread.Execute;
 var
   i: Integer;
-  AppID, OutPath, Url: string;
+  AppID, GameName, OutPath, Url: string;
   Proc: TProcess;
 begin
   ForceDirectories(FCacheDir);
+  WriteLn(StdErr, '[CoverThread] Execute started. FAppIDs.Count=', FAppIDs.Count);
   for i := 0 to FAppIDs.Count - 1 do
   begin
     if Terminated then Break;
 
-    AppID   := FAppIDs[i];
-    OutPath := FCacheDir + AppID + '.jpg';
-
-    if FileExists(OutPath) then
+    AppID := FAppIDs.Names[i];
+    GameName := FAppIDs.ValueFromIndex[i];
+    if AppID = '' then
     begin
+      AppID := FAppIDs[i];
+      GameName := '';
+    end;
+
+    OutPath := FCacheDir + AppID + '.jpg';
+    WriteLn(StdErr, '[CoverThread] AppID=', AppID, ' GameName="', GameName, '" OutPath="', OutPath, '"');
+
+    if FileExists(OutPath) and (FileSize(OutPath) > 0) then
+    begin
+      WriteLn(StdErr, '[CoverThread] Cached file exists, using it');
       FCurrentImage := TImage(FImages[i]);
       FCurrentPath  := OutPath;
       Synchronize(@DoUpdateImage);
@@ -198,6 +266,7 @@ begin
 
     // Try portrait cover first, then header
     Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/library_600x900.jpg';
+    WriteLn(StdErr, '[CoverThread] Downloading from Steam CDN: ', Url);
     Proc := TProcess.Create(nil);
     try
       Proc.Executable := 'curl';
@@ -211,12 +280,14 @@ begin
       Proc.Parameters.Add(Url);
       Proc.Options := [poWaitOnExit, poNoConsole];
       Proc.Execute;
+      WriteLn(StdErr, '[CoverThread] curl portrait exit code=', Proc.ExitCode, ' exists=', FileExists(OutPath));
       if not FileExists(OutPath) or (Proc.ExitCode <> 0) then
       begin
         // Fallback to header image
         DeleteFile(OutPath);
         Proc.Parameters.Clear;
         Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/header.jpg';
+        WriteLn(StdErr, '[CoverThread] Downloading from Steam CDN header: ', Url);
         Proc.Parameters.Add('-s');
         Proc.Parameters.Add('-L');
         Proc.Parameters.Add('--max-time');
@@ -226,9 +297,31 @@ begin
         Proc.Parameters.Add(OutPath);
         Proc.Parameters.Add(Url);
         Proc.Execute;
+        WriteLn(StdErr, '[CoverThread] curl header exit code=', Proc.ExitCode, ' exists=', FileExists(OutPath));
       end;
     finally
       Proc.Free;
+    end;
+
+    // Fallback to Web search if Steam CDN fails
+    if (not FileExists(OutPath)) or (FileSize(OutPath) = 0) then
+    begin
+      WriteLn(StdErr, '[CoverThread] CDN failed. Web search fallback for GameName="', GameName, '"');
+      if GameName <> '' then
+      begin
+        DeleteFile(OutPath);
+        FForm.SearchWebCover(GameName, OutPath);
+        WriteLn(StdErr, '[CoverThread] Web search result exists=', FileExists(OutPath));
+      end;
+    end;
+
+    // Fallback to GOverlay Icon on dark background if web search also fails
+    if (not FileExists(OutPath)) or (FileSize(OutPath) = 0) then
+    begin
+      WriteLn(StdErr, '[CoverThread] CDN & Web search failed. Generating GOverlay fallback');
+      DeleteFile(OutPath);
+      GenerateFallbackCover(OutPath, FForm);
+      WriteLn(StdErr, '[CoverThread] Fallback cover exists=', FileExists(OutPath));
     end;
 
     if FileExists(OutPath) and (FileSize(OutPath) > 0) then
@@ -332,6 +425,8 @@ begin
       Continue;
     end;
 
+    WriteLn(StdErr, '[NonSteamCoverThread] Processing GameName="', FItems[i].GameName, '" CachePath="', FItems[i].CachePath, '"');
+
     GotCover := False;
 
     // 1st attempt: Steam Store API
@@ -345,8 +440,18 @@ begin
       if FForm.SearchWebCover(FItems[i].GameName, FItems[i].CachePath) then
         GotCover := True;
 
+    // 3rd attempt: GOverlay Icon fallback
+    if not GotCover and (not FileExists(FItems[i].CachePath) or (FileSize(FItems[i].CachePath) = 0)) then
+    begin
+      WriteLn(StdErr, '[NonSteamCoverThread] CDN & Web search failed. Generating GOverlay fallback');
+      DeleteFile(FItems[i].CachePath);
+      GenerateFallbackCover(FItems[i].CachePath, FForm);
+      GotCover := True;
+    end;
+
     if GotCover or FileExists(FItems[i].CachePath) then
     begin
+      WriteLn(StdErr, '[NonSteamCoverThread] Updating image card index=', FItems[i].CardIndex, ' path=', FItems[i].CachePath);
       FCurrentCardIdx := FItems[i].CardIndex;
       FCurrentPath := FItems[i].CachePath;
       Synchronize(@DoUpdateImage);
@@ -756,7 +861,7 @@ begin
           BdgImg.OnMouseUp    := @GameCardMouseUp;
 
           // Load local image or queue for CDN download
-          if FileExists(ImagePath) then
+          if FileExists(ImagePath) and (FileSize(ImagePath) > 0) then
           begin
             try
               CardImage.Picture.LoadFromFile(ImagePath);
@@ -766,7 +871,7 @@ begin
           else
           begin
             // No local image — will be downloaded by background thread
-            PendingIDs.Add(AppID);
+            PendingIDs.Add(AppID + '=' + GameName);
             PendingImages.Add(CardImage);
           end;
 
@@ -1369,7 +1474,7 @@ begin
             CachePath := CacheDir + SanitizeFileName(GameName) + '.jpg';
             HasCover := False;
 
-            if FileExists(CachePath) then
+            if FileExists(CachePath) and (FileSize(CachePath) > 0) then
             begin
               try
                 CardImage.Picture.LoadFromFile(CachePath);
