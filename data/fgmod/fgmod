@@ -23,6 +23,64 @@ error_exit() {
   exit 1
 }
 
+is_goverlay_proxy_file() {
+  local target_file="$1"
+  local dll_name="$2"
+  
+  [[ ! -f "$target_file" ]] && return 1
+  
+  local target_size
+  target_size=$(wc -c < "$target_file" 2>/dev/null | tr -d '[:space:]')
+  [[ -z "$target_size" ]] && return 1
+  
+  local size_rename=""
+  local size_optiscaler=""
+  
+  if [[ -f "$fgmod_path/renames/$dll_name" ]]; then
+    size_rename=$(wc -c < "$fgmod_path/renames/$dll_name" 2>/dev/null | tr -d '[:space:]')
+  fi
+  if [[ -f "$fgmod_path/OptiScaler.dll" ]]; then
+    size_optiscaler=$(wc -c < "$fgmod_path/OptiScaler.dll" 2>/dev/null | tr -d '[:space:]')
+  fi
+  
+  if [[ -n "$size_rename" && "$target_size" -eq "$size_rename" ]] || \
+     [[ -n "$size_optiscaler" && "$target_size" -eq "$size_optiscaler" ]]; then
+    return 0
+  fi
+  
+  local global_fgmod_path=""
+  if [[ "$fgmod_path" == *"io.github.benjamimgois.goverlay"* ]]; then
+    local flatpak_base="${fgmod_path%%/io.github.benjamimgois.goverlay*}/io.github.benjamimgois.goverlay"
+    global_fgmod_path="$flatpak_base/data/goverlay/bgmod"
+    if [[ ! -d "$global_fgmod_path" ]]; then
+      global_fgmod_path="$flatpak_base/data/goverlay/fgmod"
+    fi
+  else
+    global_fgmod_path="${XDG_DATA_HOME:-$HOME/.local/share}/goverlay/bgmod"
+    if [[ ! -d "$global_fgmod_path" ]]; then
+      global_fgmod_path="${XDG_DATA_HOME:-$HOME/.local/share}/goverlay/fgmod"
+    fi
+  fi
+  
+  if [[ -d "$global_fgmod_path" ]]; then
+    local size_global_rename=""
+    local size_global_optiscaler=""
+    if [[ -f "$global_fgmod_path/renames/$dll_name" ]]; then
+      size_global_rename=$(wc -c < "$global_fgmod_path/renames/$dll_name" 2>/dev/null | tr -d '[:space:]')
+    fi
+    if [[ -f "$global_fgmod_path/OptiScaler.dll" ]]; then
+      size_global_optiscaler=$(wc -c < "$global_fgmod_path/OptiScaler.dll" 2>/dev/null | tr -d '[:space:]')
+    fi
+    
+    if [[ -n "$size_global_rename" && "$target_size" -eq "$size_global_rename" ]] || \
+       [[ -n "$size_global_optiscaler" && "$target_size" -eq "$size_global_optiscaler" ]]; then
+      return 0
+    fi
+  fi
+  
+  return 1
+}
+
 # === CONFIG ===
 fgmod_path="$(dirname "$0")"
 dll_name="${DLL:-dxgi.dll}"
@@ -113,7 +171,26 @@ logger -t fgmod "📄 Preserve INI: $preserve_ini"
 if [[ "$GOVERLAY_OPTISCALER" != "0" ]]; then
 
 # === Cleanup Old Injectors ===
-rm -f "$exe_folder_path"/{dxgi.dll,winmm.dll,nvngx.dll,_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}
+rm -f "$exe_folder_path"/{_nvngx.dll,nvngx-wrapper.dll,dlss-enabler.dll,OptiScaler.dll}
+
+proxy_dlls=("dxgi.dll" "winmm.dll" "dbghelp.dll" "version.dll" "wininet.dll" "winhttp.dll")
+for p_dll in "${proxy_dlls[@]}"; do
+  if [[ "$p_dll" == "$dll_name" ]]; then
+    [[ -f "$exe_folder_path/$p_dll" && ! -f "$exe_folder_path/$p_dll.b" ]] && mv -f "$exe_folder_path/$p_dll" "$exe_folder_path/$p_dll.b"
+  else
+    if [[ -f "$exe_folder_path/$p_dll.b" ]]; then
+      mv -f "$exe_folder_path/$p_dll.b" "$exe_folder_path/$p_dll"
+      echo "🔄 Restored inactive proxy DLL backup: $p_dll"
+    elif [[ -f "$exe_folder_path/$p_dll" ]]; then
+      if is_goverlay_proxy_file "$exe_folder_path/$p_dll" "$p_dll"; then
+        rm -f "$exe_folder_path/$p_dll"
+        echo "🧹 Cleaned up inactive GOverlay proxy DLL: $p_dll"
+      else
+        echo "🛡️ Preserved third-party proxy DLL: $p_dll"
+      fi
+    fi
+  fi
+done
 
 # === Optional: Backup Original DLLs ===
 original_dlls=("d3dcompiler_47.dll" "amd_fidelityfx_dx12.dll" "amd_fidelityfx_framegeneration_dx12.dll" "amd_fidelityfx_upscaler_dx12.dll" "amd_fidelityfx_vk.dll" "libxess.dll" "libxess_dx11.dll" "libxess_fg.dll" "libxell.dll")

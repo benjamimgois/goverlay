@@ -42,6 +42,7 @@ var
   GameDir: string;
   CentralLogDir: string;
   CentralLogFile: string;
+  UninstallerPath: string;
 
 procedure UpdateCentralLogPaths;
 var
@@ -382,6 +383,65 @@ begin
   end;
 end;
 
+function GetFileSize(const Path: string): Int64;
+var
+  SR: TSearchRec;
+begin
+  Result := -1;
+  if FindFirst(Path, faAnyFile, SR) = 0 then
+  begin
+    Result := SR.Size;
+    FindClose(SR);
+  end;
+end;
+
+function IsGOverlayProxyFile(const TargetDir, FileName: string): Boolean;
+var
+  TargetFile: string;
+  TargetSize: Int64;
+  BgmodPath, GlobalPath: string;
+begin
+  Result := False;
+  TargetFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
+  TargetSize := GetFileSize(TargetFile);
+  if TargetSize <= 0 then Exit;
+
+  BgmodPath := IncludeTrailingPathDelimiter(GetBGModPath);
+
+  // Compare with local BgmodPath renames and OptiScaler.dll
+  if (TargetSize = GetFileSize(BgmodPath + 'renames' + PathDelim + FileName)) or
+     (TargetSize = GetFileSize(BgmodPath + 'OptiScaler.dll')) then
+  begin
+    Result := True;
+    Exit;
+  end;
+  
+  // If running in flatpak context, check global path as well
+  GlobalPath := UninstallerPath;
+  if Pos('io.github.benjamimgois.goverlay', GlobalPath) > 0 then
+  begin
+    GlobalPath := Copy(GlobalPath, 1, Pos('io.github.benjamimgois.goverlay', GlobalPath) + Length('io.github.benjamimgois.goverlay'));
+    GlobalPath := IncludeTrailingPathDelimiter(GlobalPath) + 'data' + PathDelim + 'goverlay' + PathDelim + 'bgmod';
+    GlobalPath := IncludeTrailingPathDelimiter(GlobalPath);
+    if (TargetSize = GetFileSize(GlobalPath + 'renames' + PathDelim + FileName)) or
+       (TargetSize = GetFileSize(GlobalPath + 'OptiScaler.dll')) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function IsProxyDllName(const FileName: string): Boolean;
+begin
+  Result := SameText(FileName, 'dxgi.dll') or
+            SameText(FileName, 'winmm.dll') or
+            SameText(FileName, 'dbghelp.dll') or
+            SameText(FileName, 'version.dll') or
+            SameText(FileName, 'wininet.dll') or
+            SameText(FileName, 'winhttp.dll');
+end;
+
 procedure SafeCleanOrRestore(const TargetDir, FileName: string; IsOriginalGameFile: Boolean);
 var
   FullFile, FullBackup: string;
@@ -405,7 +465,15 @@ begin
   end
   else if not IsOriginalGameFile then
   begin
-    SafeDeleteFile(FullFile);
+    if IsProxyDllName(FileName) then
+    begin
+      if IsGOverlayProxyFile(TargetDir, FileName) then
+        SafeDeleteFile(FullFile)
+      else
+        Log('Skipping deletion of third-party proxy DLL: ' + FullFile);
+    end
+    else
+      SafeDeleteFile(FullFile);
   end;
 end;
 
@@ -421,7 +489,7 @@ begin
 end;
 
 var
-  UninstallerPath, TempStr, Key, Val, Line, CurrentOverrides: string;
+  TempStr, Key, Val, Line, CurrentOverrides: string;
   i, StartArgIdx: Integer;
   Args: array of PChar;
   ArgsStrings: array of string;

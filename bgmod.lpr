@@ -69,6 +69,7 @@ var
   GameDir: string;
   CentralLogDir: string;
   CentralLogFile: string;
+  BgmodPath: string;
 
 procedure Log(const Msg: string);
 var
@@ -298,6 +299,60 @@ begin
   end;
 end;
 
+function GetFileSize(const Path: string): Int64;
+var
+  SR: TSearchRec;
+begin
+  Result := -1;
+  if FindFirst(Path, faAnyFile, SR) = 0 then
+  begin
+    Result := SR.Size;
+    FindClose(SR);
+  end;
+end;
+
+function IsGOverlayProxyFile(const TargetDir, FileName: string): Boolean;
+var
+  TargetFile: string;
+  TargetSize: Int64;
+  GlobalPath: string;
+begin
+  Result := False;
+  TargetFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
+  TargetSize := GetFileSize(TargetFile);
+  if TargetSize <= 0 then Exit;
+
+  // Compare with local BgmodPath renames and OptiScaler.dll
+  if (TargetSize = GetFileSize(BgmodPath + 'renames' + PathDelim + FileName)) or
+     (TargetSize = GetFileSize(BgmodPath + 'OptiScaler.dll')) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // Compare with global BgmodPath renames and OptiScaler.dll
+  GlobalPath := GetGlobalBGModPath(BgmodPath);
+  if GlobalPath <> '' then
+  begin
+    if (TargetSize = GetFileSize(GlobalPath + 'renames' + PathDelim + FileName)) or
+       (TargetSize = GetFileSize(GlobalPath + 'OptiScaler.dll')) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function IsProxyDllName(const FileName: string): Boolean;
+begin
+  Result := SameText(FileName, 'dxgi.dll') or
+            SameText(FileName, 'winmm.dll') or
+            SameText(FileName, 'dbghelp.dll') or
+            SameText(FileName, 'version.dll') or
+            SameText(FileName, 'wininet.dll') or
+            SameText(FileName, 'winhttp.dll');
+end;
+
 procedure CopyDirectoryFiltered(const SrcDir, DestDir: string);
 var
   SR: TSearchRec;
@@ -437,7 +492,15 @@ begin
   end
   else if not IsOriginalGameFile then
   begin
-    SafeDeleteFile(FullFile);
+    if IsProxyDllName(FileName) then
+    begin
+      if IsGOverlayProxyFile(TargetDir, FileName) then
+        SafeDeleteFile(FullFile)
+      else
+        Log('Skipping deletion of third-party proxy DLL: ' + FullFile);
+    end
+    else
+      SafeDeleteFile(FullFile);
   end;
 end;
 
@@ -592,7 +655,7 @@ begin
 end;
 
 var
-  BgmodPath, DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath: string;
+  DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath: string;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
@@ -747,7 +810,12 @@ begin
             
           // 3. Backup proxy DLLs
           for i := 0 to High(ProxyDlls) do
-            SafeBackupFile(GameDir, ProxyDlls[i]);
+          begin
+            if SameText(ProxyDlls[i], DllName) then
+              SafeBackupFile(GameDir, ProxyDlls[i])
+            else
+              SafeCleanOrRestore(GameDir, ProxyDlls[i], False);
+          end;
             
           // 4. Remove conflicting nvapi64 files
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll');

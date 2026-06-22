@@ -14,6 +14,79 @@ error_exit() {
   exit 1
 }
 
+is_goverlay_proxy_file() {
+  local target_file="$1"
+  local dll_name="$2"
+  
+  [[ ! -f "$target_file" ]] && return 1
+  
+  local target_size
+  target_size=$(wc -c < "$target_file" 2>/dev/null | tr -d '[:space:]')
+  [[ -z "$target_size" ]] && return 1
+  
+  local global_fgmod_path=""
+  if [[ "$HOME" != "" ]]; then
+    global_fgmod_path="$HOME/.local/share/goverlay/bgmod"
+    if [[ ! -d "$global_fgmod_path" ]]; then
+      global_fgmod_path="$HOME/.local/share/goverlay/fgmod"
+    fi
+  fi
+  
+  local flatpak_base="$HOME/.var/app/io.github.benjamimgois.goverlay/data/goverlay"
+  local global_flatpak_bgmod="$flatpak_base/bgmod"
+  local global_flatpak_fgmod="$flatpak_base/fgmod"
+  
+  local size_local_rename=""
+  local size_local_optiscaler=""
+  if [[ -f "$script_dir/renames/$dll_name" ]]; then
+    size_local_rename=$(wc -c < "$script_dir/renames/$dll_name" 2>/dev/null | tr -d '[:space:]')
+  fi
+  if [[ -f "$script_dir/OptiScaler.dll" ]]; then
+    size_local_optiscaler=$(wc -c < "$script_dir/OptiScaler.dll" 2>/dev/null | tr -d '[:space:]')
+  fi
+  
+  if [[ -n "$size_local_rename" && "$target_size" -eq "$size_local_rename" ]] || \
+     [[ -n "$size_local_optiscaler" && "$target_size" -eq "$size_local_optiscaler" ]]; then
+    return 0
+  fi
+
+  if [[ -d "$global_fgmod_path" ]]; then
+    local size_global_rename=""
+    local size_global_optiscaler=""
+    if [[ -f "$global_fgmod_path/renames/$dll_name" ]]; then
+      size_global_rename=$(wc -c < "$global_fgmod_path/renames/$dll_name" 2>/dev/null | tr -d '[:space:]')
+    fi
+    if [[ -f "$global_fgmod_path/OptiScaler.dll" ]]; then
+      size_global_optiscaler=$(wc -c < "$global_fgmod_path/OptiScaler.dll" 2>/dev/null | tr -d '[:space:]')
+    fi
+    
+    if [[ -n "$size_global_rename" && "$target_size" -eq "$size_global_rename" ]] || \
+       [[ -n "$size_global_optiscaler" && "$target_size" -eq "$size_global_optiscaler" ]]; then
+      return 0
+    fi
+  fi
+
+  for fp_path in "$global_flatpak_bgmod" "$global_flatpak_fgmod"; do
+    if [[ -d "$fp_path" ]]; then
+      local size_fp_rename=""
+      local size_fp_optiscaler=""
+      if [[ -f "$fp_path/renames/$dll_name" ]]; then
+        size_fp_rename=$(wc -c < "$fp_path/renames/$dll_name" 2>/dev/null | tr -d '[:space:]')
+      fi
+      if [[ -f "$fp_path/OptiScaler.dll" ]]; then
+        size_fp_optiscaler=$(wc -c < "$fp_path/OptiScaler.dll" 2>/dev/null | tr -d '[:space:]')
+      fi
+      
+      if [[ -n "$size_fp_rename" && "$target_size" -eq "$size_fp_rename" ]] || \
+         [[ -n "$size_fp_optiscaler" && "$target_size" -eq "$size_fp_optiscaler" ]]; then
+        return 0
+      fi
+    fi
+  done
+  
+  return 1
+}
+
 if [ "$#" -lt 1 ]; then
   echo "Usage: $0 program [program_arguments...]"
   exit 1
@@ -106,8 +179,23 @@ logger -t fgmod-uninstaller "🟢 Uninstalling from: $exe_folder_path"
 
 # === Remove OptiScaler Files ===
 echo "🧹 Removing OptiScaler files..."
-rm -f "OptiScaler.dll" "dxgi.dll" "winmm.dll" "dbghelp.dll" "version.dll" "wininet.dll" "winhttp.dll" "OptiScaler.asi"
+rm -f "OptiScaler.dll" "OptiScaler.asi"
 rm -f "OptiScaler.ini" "OptiScaler.log"
+
+proxy_dlls=("dxgi.dll" "winmm.dll" "dbghelp.dll" "version.dll" "wininet.dll" "winhttp.dll")
+for p_dll in "${proxy_dlls[@]}"; do
+  if [[ -f "${p_dll}.b" ]]; then
+    mv -f "${p_dll}.b" "$p_dll"
+    echo "🔄 Restored proxy DLL backup: $p_dll"
+  elif [[ -f "$p_dll" ]]; then
+    if is_goverlay_proxy_file "$p_dll" "$p_dll"; then
+      rm -f "$p_dll"
+      echo "🧹 Cleaned up GOverlay proxy DLL: $p_dll"
+    else
+      echo "🛡️ Preserved third-party proxy DLL: $p_dll"
+    fi
+  fi
+done
 
 # === Remove Nukem FG Mod Files ===
 echo "🧹 Removing Nukem FG Mod files..."
