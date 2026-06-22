@@ -2,9 +2,7 @@
 
 ## Purpose
 Support detecting and configuring vkSumi in Flatpak environment.
-
 ## Requirements
-
 ### Requirement: vkSumi Flatpak Detection
 The system SHALL detect if the vkSumi Vulkan layer is installed in Flatpak mode. It SHALL search for `/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so` or `/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so`.
 
@@ -29,3 +27,11 @@ The system SHALL show the correct status and version indication for vkSumi on th
 #### Scenario: Home tab shows vkSumi status
 - **WHEN** GOverlay is in Flatpak mode and vkSumi is detected
 - **THEN** the Home tab status dot for vkSumi SHALL be green, and the version label SHALL display "installed"
+
+### Requirement: vkSumi Flathub Sandbox Exception
+The Flatpak packaging configuration SHALL document and request the required permission exception in the official Flathub linter repository (`flathub-infra/flatpak-builder-lint`) to authorize read-write access to the `xdg-config/vkSumi` directory.
+
+#### Scenario: Flathub build pipeline validation
+- **WHEN** the Flathub build pipeline runs validation on the GOverlay Flatpak manifest
+- **THEN** the linter error `finish-args-unnecessary-xdg-config-vkSumi-rw-access` SHALL be successfully bypassed by matching the registered exception entry in `exceptions.json`.
+

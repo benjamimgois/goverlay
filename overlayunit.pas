@@ -832,7 +832,6 @@ type
     // Exposed: procedure ReflowPerformanceTab(AContentW: Integer);
     // Exposed: procedure ReflowOptiScalerTab(AContentW: Integer);
     // Exposed: procedure ReflowOptiScalerTabNew(AContentW: Integer);
-    procedure RefreshOsStatusDots;
     procedure InitMetricsTab;
     // Exposed: procedure ReflowMetricsTab(AContentW: Integer);
     // Exposed: procedure ReflowExtrasTab(AContentW: Integer);
@@ -929,7 +928,6 @@ type
     procedure InitHomeTab;
     // Exposed: procedure ShowHomeTab(Sender: TObject = nil);
     procedure RefreshHomeModuleStatus;
-    procedure RefreshHomeOptiStatus;
     procedure RefreshHomeDeps;
     procedure HomeDiagramPaint(Sender: TObject);
     procedure HomeBtnRowResize(Sender: TObject);
@@ -1177,6 +1175,8 @@ type
     FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
     FOptiIconGfx:  TPortableNetworkGraphic;
   public
+    procedure RefreshOsStatusDots;
+    procedure RefreshHomeOptiStatus;
     procedure PerfCardPaint(Sender: TObject);
     procedure TweaksCheckChange(Sender: TObject);
     procedure SyncTweaksGridFromCheckBoxes;
@@ -2635,8 +2635,8 @@ begin
   FAutoDownloadingReshade := False;
 
   //Program Version
-  GVERSION := '1.8.4';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.5';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading

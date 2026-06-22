@@ -35,10 +35,11 @@ type
     FOptiPatcherLabel: TLabel; // Label for OptiPatcher version
     FDlssLabel: TLabel;        // Label for DLSS download date
     FFGModPath: string;
+    FUpdateThread: TThread;
 
-    function GetLatestReleaseTag: string;
-    function GetOptiScalerStableTag: string;
-    function GetOptiScalerPreReleaseTag: string;
+    function GetLatestReleaseTag(ASilent: Boolean = False): string;
+    function GetOptiScalerStableTag(ASilent: Boolean = False): string;
+    function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
@@ -77,7 +78,162 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit;
+
+type
+  TOptiUpdateThread = class(TThread)
+  private
+    FOptiTab: TOptiscalerTab;
+    FIsStableChannel: Boolean;
+    FLatestOptiTag: string;
+    FLatestDeckyVersion: string;
+    FCheckDecky: Boolean;
+    procedure SyncUpdateUI;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOptiTab: TOptiscalerTab; AIsStable: Boolean; ACheckDecky: Boolean);
+  end;
+
+{ TOptiUpdateThread }
+
+constructor TOptiUpdateThread.Create(AOptiTab: TOptiscalerTab; AIsStable: Boolean; ACheckDecky: Boolean);
+begin
+  inherited Create(True);
+  FOptiTab := AOptiTab;
+  FIsStableChannel := AIsStable;
+  FCheckDecky := ACheckDecky;
+  FLatestOptiTag := '';
+  FLatestDeckyVersion := '';
+  FreeOnTerminate := True;
+end;
+
+procedure TOptiUpdateThread.Execute;
+begin
+  WriteLn('[DEBUG] TOptiUpdateThread.Execute: Thread started');
+  // Fetch OptiScaler version
+  if FIsStableChannel then
+  begin
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking Stable channel...');
+    FLatestOptiTag := FOptiTab.GetOptiScalerStableTag(True);
+  end
+  else
+  begin
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking Bleeding-Edge channel...');
+    FLatestOptiTag := FOptiTab.GetOptiScalerPreReleaseTag(True);
+  end;
+
+  // Fetch Decky version if requested
+  if FCheckDecky then
+  begin
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking Decky version...');
+    FLatestDeckyVersion := FOptiTab.GetLatestReleaseTag(True);
+  end;
+
+  WriteLn('[DEBUG] TOptiUpdateThread.Execute: Thread work completed. OptiTag = ', FLatestOptiTag, ', DeckyTag = ', FLatestDeckyVersion);
+
+  if not Terminated then
+  begin
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Synchronizing UI...');
+    Synchronize(@SyncUpdateUI);
+  end;
+end;
+
+procedure TOptiUpdateThread.SyncUpdateUI;
+var
+  HasUpdates: Boolean;
+  CurrentVersion: string;
+begin
+  if Terminated then Exit;
+
+  HasUpdates := False;
+
+  // 1. Process OptiScaler Updates
+  if Assigned(FOptiTab.FOptiLabel2) then
+  begin
+    if Assigned(FOptiTab.FOptiLabel) then
+      CurrentVersion := FOptiTab.FOptiLabel.Caption
+    else
+      CurrentVersion := '';
+
+    if (FLatestOptiTag <> '') and (FLatestOptiTag <> CurrentVersion) then
+    begin
+      FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+      FOptiTab.FOptiLabel2.Font.Color := clLime;
+      FOptiTab.FOptiLabel2.Visible := True;
+      HasUpdates := True;
+      WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler update available: ', FLatestOptiTag);
+    end
+    else
+    begin
+      FOptiTab.FOptiLabel2.Visible := False;
+      WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler is up to date or tag empty');
+    end;
+  end;
+
+  // 2. Process Decky Updates
+  if FCheckDecky and (FLatestDeckyVersion <> '') then
+  begin
+    if Assigned(FOptiTab.FDeckyLabel) and (FOptiTab.FDeckyLabel.Caption <> '') and (FOptiTab.FDeckyLabel.Caption <> '—') then
+    begin
+      if (FLatestDeckyVersion <> FOptiTab.FDeckyLabel.Caption) then
+      begin
+        if Assigned(FOptiTab.FDeckyLabel2) then
+        begin
+          FOptiTab.FDeckyLabel2.Caption := ' Update available ' + '(' + FLatestDeckyVersion + ')';
+          FOptiTab.FDeckyLabel2.Visible := True;
+          FOptiTab.FDeckyLabel2.Font.Color := clLime;
+          HasUpdates := True;
+          WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: Decky update available: ', FLatestDeckyVersion);
+        end;
+      end
+      else
+      begin
+        if Assigned(FOptiTab.FDeckyLabel2) then
+          FOptiTab.FDeckyLabel2.Visible := False;
+        WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: Decky is up to date');
+      end;
+    end;
+  end
+  else
+  begin
+    if Assigned(FOptiTab.FDeckyLabel2) then
+      FOptiTab.FDeckyLabel2.Visible := False;
+  end;
+
+  // 3. Update update button & check button visibility
+  if HasUpdates then
+  begin
+    if Assigned(FOptiTab.FCheckupdBtn) then
+      FOptiTab.FCheckupdBtn.Visible := False;
+    if Assigned(FOptiTab.FUpdateBtn) then
+    begin
+      FOptiTab.FUpdateBtn.Caption := 'Update';
+      FOptiTab.FUpdateBtn.Visible := True;
+    end;
+  end
+  else
+  begin
+    if Assigned(FOptiTab.FCheckupdBtn) then
+    begin
+      FOptiTab.FCheckupdBtn.Visible := True;
+      FOptiTab.FCheckupdBtn.Enabled := True;
+    end;
+    if Assigned(FOptiTab.FUpdateBtn) then
+      FOptiTab.FUpdateBtn.Visible := False;
+  end;
+
+  // 4. Clean up thread pointer
+  FOptiTab.FUpdateThread := nil;
+
+  // 5. Refresh UI layout helpers in overlayunit
+  if Assigned(goverlayform) then
+  begin
+    goverlayform.RefreshHomeOptiStatus;
+    goverlayform.RefreshOsStatusDots;
+  end;
+  WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: UI synchronization finished');
+end;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
 // Returns: ~/.local/share/goverlay/bgmod (Sandboxed in Flatpak)
@@ -153,7 +309,7 @@ begin
   end;
 end;
 
-function TOptiscalerTab.GetLatestReleaseTag: string;
+function TOptiscalerTab.GetLatestReleaseTag(ASilent: Boolean = False): string;
 var
   Process: TProcess;
   OutputList: TStringList;
@@ -228,8 +384,9 @@ begin
       on E: Exception do
       begin
         WriteLn('[ERROR] GetLatestReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
-        ShowMessage('Error getting latest release: ' + E.Message + sLineBreak +
-                   'Check your internet connection and if curl is installed.');
+        if not ASilent then
+          ShowMessage('Error getting latest release: ' + E.Message + sLineBreak +
+                     'Check your internet connection and if curl is installed.');
       end;
     end;
   finally
@@ -238,7 +395,7 @@ begin
   end;
 end;
 
-function TOptiscalerTab.GetOptiScalerStableTag: string;
+function TOptiscalerTab.GetOptiScalerStableTag(ASilent: Boolean = False): string;
 var
   Process: TProcess;
   OutputList: TStringList;
@@ -369,8 +526,9 @@ begin
       on E: Exception do
       begin
         WriteLn('[ERROR] GetOptiScalerStableTag: Exception - ', E.ClassName, ': ', E.Message);
-        ShowMessage('Error getting OptiScaler version: ' + E.Message + sLineBreak +
-                   'Check your internet connection and if curl is installed.');
+        if not ASilent then
+          ShowMessage('Error getting OptiScaler version: ' + E.Message + sLineBreak +
+                     'Check your internet connection and if curl is installed.');
       end;
     end;
   finally
@@ -380,7 +538,7 @@ begin
   end;
 end;
 
-function TOptiscalerTab.GetOptiScalerPreReleaseTag: string;
+function TOptiscalerTab.GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
 var
   Process: TProcess;
   OutputList: TStringList;
@@ -488,8 +646,9 @@ begin
       on E: Exception do
       begin
         WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
-        ShowMessage('Error getting OptiScaler pre-release version: ' + E.Message + sLineBreak +
-                   'Check your internet connection and if curl is installed.');
+        if not ASilent then
+          ShowMessage('Error getting OptiScaler pre-release version: ' + E.Message + sLineBreak +
+                     'Check your internet connection and if curl is installed.');
       end;
     end;
   finally
@@ -938,22 +1097,32 @@ end;
 
 procedure TOptiscalerTab.CheckForUpdatesOnClick;
 var
-  HasUpdates: Boolean;
-  CurrentVersion, LatestTag: string;
   IsStableChannel: Boolean;
 begin
-  HasUpdates := False;
+  if Assigned(FUpdateThread) then
+  begin
+    WriteLn('[DEBUG] CheckForUpdatesOnClick: Update thread is already running, skipping');
+    Exit;
+  end;
 
   // Hide labels before checking
   if Assigned(FDeckyLabel2) then
     FDeckyLabel2.Visible := False;
 
   if Assigned(FOptiLabel2) then
-    FOptiLabel2.Visible := False;
+  begin
+    FOptiLabel2.Caption := 'Searching for updates...';
+    FOptiLabel2.Font.Color := clAqua;
+    FOptiLabel2.Visible := True;
+  end;
 
   // Hide notification label initially
   if Assigned(FNotificationLabel) then
     FNotificationLabel.Visible := False;
+
+  // Disable the check button
+  if Assigned(FCheckupdBtn) then
+    FCheckupdBtn.Enabled := False;
 
   // Determine channel based on ComboBox selection
   IsStableChannel := True;  // Default to stable
@@ -976,74 +1145,10 @@ begin
     LoadVersionsFromFile;
   end;
 
-  // Check for OptiScaler updates based on selected channel
-  if Assigned(FOptiLabel2) then
-  begin
-    // Check if fgmod exists
-    if DirectoryExists(FFGModPath) then
-    begin
-      if Assigned(FOptiLabel) then
-        CurrentVersion := FOptiLabel.Caption
-      else
-        CurrentVersion := '';
-
-      // Get latest version based on selected channel
-      if IsStableChannel then
-      begin
-        WriteLn('[DEBUG] CheckForUpdatesOnClick: Checking Stable channel updates...');
-        LatestTag := GetOptiScalerStableTag;
-      end
-      else
-      begin
-        WriteLn('[DEBUG] CheckForUpdatesOnClick: Checking Bleeding-Edge channel updates...');
-        LatestTag := GetOptiScalerPreReleaseTag;
-      end;
-    end
-    else
-    begin
-      CurrentVersion := '';
-      LatestTag := '';
-    end;
-
-    WriteLn('[DEBUG] CheckForUpdatesOnClick: Current OptiScaler version = "', CurrentVersion, '"');
-    WriteLn('[DEBUG] CheckForUpdatesOnClick: Latest OptiScaler tag = "', LatestTag, '"');
-
-    // Show update if tag is available and different from current
-    if (LatestTag <> '') and (LatestTag <> CurrentVersion) then
-    begin
-      FOptiLabel2.Caption := 'Update Available ' + LatestTag;
-      FOptiLabel2.Font.Color := clLime;
-      FOptiLabel2.Visible := True;
-      HasUpdates := True;
-      WriteLn('[DEBUG] CheckForUpdatesOnClick: OptiScaler update available: ', LatestTag);
-    end
-    else
-      WriteLn('[DEBUG] CheckForUpdatesOnClick: OptiScaler is up to date');
-  end;
-
-  // Check for Decky updates only if fgmod exists
-  if DirectoryExists(FFGModPath) then
-    CheckForUpdates;
-
-  // Check if any update label is visible
-  if Assigned(FDeckyLabel2) and FDeckyLabel2.Visible then
-    HasUpdates := True;
-
-  if Assigned(FOptiLabel2) and FOptiLabel2.Visible then
-    HasUpdates := True;
-
-  // Control button visibility based on updates
-  if HasUpdates then
-  begin
-    // Hide checkupdBtn and show updateBtn
-    if Assigned(FCheckupdBtn) then
-      FCheckupdBtn.Visible := False;
-
-    if Assigned(FUpdateBtn) then
-      FUpdateBtn.Visible := True;
-  end;
-  // If no updates: just hide notification label (already hidden above)
-  // Don't show any message
+  // Spawn background thread for async check
+  FUpdateThread := TOptiUpdateThread.Create(Self, IsStableChannel, DirectoryExists(FFGModPath));
+  WriteLn('[DEBUG] CheckForUpdatesOnClick: Spawned update checking thread');
+  FUpdateThread.Start;
 end;
 
 procedure TOptiscalerTab.CheckForUpdates;
