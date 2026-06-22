@@ -2603,12 +2603,11 @@ begin
 end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
-
 var
  // Process: TProcess;
    AppHandle: THandle;
    saida, Output, FileLines, DefaultConfigContent: TStringList;
-   i: Integer;
+   i, FoundIndex: Integer;
    ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir: string;
 
    FPSList: TStringList;
@@ -3205,20 +3204,30 @@ begin
       saida.LoadFromStream(Process.output);
       LSPCI0 := Trim(saida.text); // store output um variable
       Writeln ('LSPCI0: ', LSPCI0);
-      GPU0 :=  pcidevCombobox.Items[0]; //store first value in variable
-      Writeln ('GPU0: ', GPU0);
 
+      if pcidevCombobox.Items.Count > 0 then
+      begin
+        GPU0 := pcidevCombobox.Items[0]; //store first value in variable
+        Writeln ('GPU0: ', GPU0);
 
-      if LSPCI0 = GPU0 then
-       begin
-        pcidevCombobox.ItemIndex:=0;
-        gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
-       end
-       else
-        begin
-          pcidevCombobox.ItemIndex:=1;
-          gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
-        end;
+        FoundIndex := pcidevCombobox.Items.IndexOf(LSPCI0);
+        if FoundIndex <> -1 then
+          pcidevCombobox.ItemIndex := FoundIndex
+        else if pcidevCombobox.Items.Count > 1 then
+          pcidevCombobox.ItemIndex := 1
+        else
+          pcidevCombobox.ItemIndex := 0;
+
+        if (pcidevCombobox.ItemIndex >= 0) and (pcidevCombobox.ItemIndex < GPUDESC.Count) then
+          gpudescEdit.Text := GPUDESC[pcidevCombobox.ItemIndex]
+        else
+          gpudescEdit.Text := '';
+      end
+      else
+      begin
+        pcidevCombobox.ItemIndex := -1;
+        gpudescEdit.Text := '';
+      end;
 
 
 
@@ -4919,7 +4928,10 @@ var
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
 begin
   //gpudesclabel.Caption:=GPUDESC[pcidevCombobox.ItemIndex];
-  gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex];
+  if (pcidevCombobox.ItemIndex >= 0) and (pcidevCombobox.ItemIndex < GPUDESC.Count) then
+    gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex]
+  else
+    gpudescEdit.Text:='';
 end;
 
 procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);
