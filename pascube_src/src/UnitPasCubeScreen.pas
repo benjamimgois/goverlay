@@ -3443,7 +3443,9 @@ end;
 function TPasCubeScreen.GetCPUName: String;
 var SL: TStringList;
     i: Integer;
-    line: String;
+    line, val: String;
+    valInt: Integer;
+    AProcess: TProcess;
 begin
  Result := 'Unknown CPU';
  SL := TStringList.Create;
@@ -3451,18 +3453,59 @@ begin
   if FileExists('/proc/cpuinfo') then begin
    SL.LoadFromFile('/proc/cpuinfo');
    for i := 0 to SL.Count - 1 do begin
-    line := SL[i];
-    if Pos('model name', line) = 1 then begin
+    line := Trim(SL[i]);
+    if Pos('model name', LowerCase(line)) = 1 then begin
      Result := Trim(Copy(line, Pos(':', line) + 1, Length(line)));
-     // Remove common vendor noise to keep it concise
-     Result := StringReplace(Result, 'Intel(R) Core(TM) ', '', [rfReplaceAll]);
-     Result := StringReplace(Result, 'AMD ', '', [rfReplaceAll]);
-     Result := StringReplace(Result, ' CPU', '', [rfReplaceAll]);
-     Result := StringReplace(Result, ' Processor', '', [rfReplaceAll]);
      break;
     end;
    end;
+   if Result = 'Unknown CPU' then begin
+    for i := 0 to SL.Count - 1 do begin
+     line := Trim(SL[i]);
+     if Pos('processor', LowerCase(line)) = 1 then begin
+      val := Trim(Copy(line, Pos(':', line) + 1, Length(line)));
+      if not TryStrToInt(val, valInt) then begin
+       Result := val;
+       break;
+      end;
+     end;
+    end;
+   end;
   end;
+
+  if Result = 'Unknown CPU' then begin
+    AProcess := TProcess.Create(nil);
+    try
+      CleanProcessEnvironment(AProcess);
+      AProcess.Executable := 'env';
+      AProcess.Parameters.Add('LC_ALL=C');
+      AProcess.Parameters.Add('lscpu');
+      AProcess.Options := [poUsePipes, poNoConsole];
+      try
+        AProcess.Execute;
+        AProcess.CloseInput;
+        SL.Clear;
+        SL.LoadFromStream(AProcess.Output);
+        for i := 0 to SL.Count - 1 do begin
+          line := Trim(SL[i]);
+          if Pos('model name:', LowerCase(line)) = 1 then begin
+            Result := Trim(Copy(line, Pos(':', line) + 1, Length(line)));
+            break;
+          end;
+        end;
+      except
+        // ignore
+      end;
+    finally
+      AProcess.Free;
+    end;
+  end;
+
+  // Remove common vendor noise to keep it concise
+  Result := StringReplace(Result, 'Intel(R) Core(TM) ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, 'AMD ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, ' CPU', '', [rfReplaceAll]);
+  Result := StringReplace(Result, ' Processor', '', [rfReplaceAll]);
  finally
   SL.Free;
  end;

@@ -62,7 +62,14 @@ begin
 end;
 {$endif}
 
+{$if defined(Unix)}
+function setenv(name: PChar; value: PChar; overwrite: LongInt): LongInt; cdecl; external 'c';
+{$ifend}
+
 begin
+{$if defined(Unix)}
+ setenv('PAN_I_WANT_A_BROKEN_VULKAN_DRIVER', '1', 1);
+{$ifend}
 {$if defined(PasVulkanUseSDL2) and not defined(PasVulkanHeadless)}
  SDLMain;
 {$else}
