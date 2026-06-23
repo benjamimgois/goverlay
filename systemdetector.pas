@@ -161,6 +161,11 @@ function IsNerdFontInstalled: Boolean;
 function GetGOverlayInstallationType: string;
 
 /// <summary>
+/// Gets GOverlay package type environment variable prefix
+/// </summary>
+function GetGOverlayPackageEnv: string;
+
+/// <summary>
 /// Checks if the pascube Vulkan test binary is available locally or on PATH.
 /// </summary>
 function IsPasCubeAvailable: Boolean;
@@ -1106,6 +1111,16 @@ begin
     Result := 'Appimage'
   else
     Result := 'Native package';
+end;
+
+function GetGOverlayPackageEnv: string;
+var
+  PkgType: string;
+begin
+  PkgType := LowerCase(GetGOverlayInstallationType);
+  if PkgType = 'native package' then
+    PkgType := 'native';
+  Result := 'GOVERLAY_PACKAGE_TYPE="' + PkgType + '" ';
 end;
 
 function IsPasCubeAvailable: Boolean;

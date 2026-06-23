@@ -3706,7 +3706,7 @@ begin
   begin
       // FLATPAK MODE
       if IsPasCubeAvailable then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetPasCubeCommand + ' --version "' + GVERSION + '" &')
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &')
       else if IsCommandAvailable('vkcube') then
       begin
          SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
@@ -3722,7 +3722,7 @@ begin
   begin
       // NATIVE MODE
       if IsPasCubeAvailable then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetPasCubeCommand + ' --version "' + GVERSION + '" &')
+         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &')
       else if IsCommandAvailable('vkcube') then
       begin
         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
@@ -4232,7 +4232,7 @@ begin
     end;
     DbgLog('*** RUN PASCUBE MENU CLICK - RUNNING PASCUBE ***');
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;
@@ -7435,7 +7435,7 @@ begin
     end;
     DbgLog('*** PREVIEW BUTTON CLICK - RUNNING PASCUBE ***');
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '" &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;

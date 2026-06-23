@@ -73,6 +73,7 @@ type
     VulkanAPI: String;
     KernelVersion: String;
     DriverVersion: String;
+    BenchmarkDuration: Double;
    end;
 
    THardwareRef = record
@@ -301,7 +302,9 @@ type
           function IsMethodologyButtonHovered(const aPos: TpvVector2): Boolean;
           procedure DrawBenchmarkOverlay;
          procedure ClearBenchmarkResults;
-         function GetCPUName: String;
+          function GetCPUName: String;
+          function GetCPUArchitecture: String;
+          function GetPackageType: String;
          function GetRAMSize: String;
          function GetOSName: String;
           function CleanGPUName(const aName: String): String;
@@ -2267,6 +2270,7 @@ end;
 procedure TPasCubeScreen.FinishBenchmark;
 var i: Integer;
 begin
+ fCurrentResult.BenchmarkDuration := fBenchmarkTimer;
  DebugLog(Format('FinishBenchmark: totalScore=%d', [fCurrentResult.TotalScore]));
  if fCurrentResult.TotalScore > fBestScore then fBestScore := fCurrentResult.TotalScore;
  fLastScore := fCurrentResult.TotalScore;
@@ -2300,6 +2304,7 @@ begin
     json := json + ' "kernel": "' + fHistory[i].KernelVersion + '",';
     json := json + ' "driver": "' + fHistory[i].DriverVersion + '",';
     json := json + ' "total_score": ' + IntToStr(fHistory[i].TotalScore) + ',';
+    json := json + ' "duration": ' + FormatFloat('0.0', fHistory[i].BenchmarkDuration) + ',';
    json := json + ' "phases": [';
    for j := 0 to 8 do begin
     json := json + '{';
@@ -2371,6 +2376,7 @@ begin
           fHistory[i].KernelVersion := HistoryObj.Get('kernel', '');
           fHistory[i].DriverVersion := HistoryObj.Get('driver', '');
           fHistory[i].TotalScore := HistoryObj.Get('total_score', 0);
+          fHistory[i].BenchmarkDuration := HistoryObj.Get('duration', 0.0);
          
          PhasesArr := TJSONArray(HistoryObj.FindPath('phases'));
          if Assigned(PhasesArr) then begin
@@ -3106,6 +3112,9 @@ begin
     JSONObj.Add('gpu_score', fCurrentResult.PhaseResults[3].Score);
     JSONObj.Add('machine_hash', GetSHA256Hash(GetGPUHardwareSignature));
     JSONObj.Add('client_id', GetSHA256Hash(GetGPUHardwareSignature));
+    JSONObj.Add('architecture', GetCPUArchitecture);
+    JSONObj.Add('package', GetPackageType);
+    JSONObj.Add('timer', Round(fCurrentResult.BenchmarkDuration));
     Payload := JSONObj.AsJSON;
   finally
     JSONObj.Free;
@@ -3180,7 +3189,7 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   boxW := 66.0 * charWidth;
-  boxH := 34.0 * charHeight;
+  boxH := 38.0 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
 
@@ -3457,6 +3466,67 @@ begin
  finally
   SL.Free;
  end;
+end;
+
+function TPasCubeScreen.GetCPUArchitecture: String;
+var
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr: string;
+  LoopCount: Integer;
+begin
+  Result := 'Unknown';
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'uname';
+    AProcess.Parameters.Add('-m');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 200 then begin // 1 second timeout
+          try
+            AProcess.Terminate(1);
+          except
+          end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      if Trim(OutputStr) <> '' then
+        Result := Trim(OutputStr);
+    except
+      // ignore
+    end;
+  finally
+    AProcess.Free;
+  end;
+end;
+
+function TPasCubeScreen.GetPackageType: String;
+begin
+  Result := GetEnvironmentVariable('GOVERLAY_PACKAGE_TYPE');
+  if Result = '' then begin
+    if GetEnvironmentVariable('FLATPAK_ID') <> '' then
+      Result := 'flatpak'
+    else if GetEnvironmentVariable('APPIMAGE') <> '' then
+      Result := 'appimage'
+    else
+      Result := 'native';
+  end;
 end;
 
 function TPasCubeScreen.GetRAMSize: String;
@@ -4219,7 +4289,7 @@ begin
 
     // Dialog box
     boxW := 66.0 * charWidth;
-    boxH := 34.0 * charHeight;
+    boxH := 38.0 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
     app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
@@ -4278,6 +4348,15 @@ begin
 
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 23.0 * charHeight, 1.2, toaLeft, 'Client ID:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 23.0 * charHeight, 1.2, toaLeft, Copy(GetPersistentUUID, 1, 8), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 24.5 * charHeight, 1.2, toaLeft, 'Architecture:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 24.5 * charHeight, 1.2, toaLeft, GetCPUArchitecture, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 26.0 * charHeight, 1.2, toaLeft, 'Package:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 26.0 * charHeight, 1.2, toaLeft, GetPackageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 27.5 * charHeight, 1.2, toaLeft, 'Timer:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 27.5 * charHeight, 1.2, toaLeft, IntToStr(Round(fCurrentResult.BenchmarkDuration)) + ' seconds', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
     // Buttons
     gap := 5.0 * charWidth;
