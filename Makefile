@@ -52,6 +52,8 @@ clean:
 install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay
 	install -D -m=755 pascube $(DESTDIR)$(prefix)$(libexecdir)/pascube
+	install -D -m=755 bgmod $(DESTDIR)$(prefix)$(libexecdir)/bgmod
+	install -D -m=755 bgmod-uninstaller $(DESTDIR)$(prefix)$(libexecdir)/bgmod-uninstaller
 	install -D -m=755 data/goverlay.sh $(DESTDIR)$(prefix)$(bindir)/goverlay
 	install -D -m=644 data/io.github.benjamimgois.goverlay.desktop $(DESTDIR)$(prefix)$(datadir)/applications/io.github.benjamimgois.goverlay.desktop
 	install -D -m=644 data/io.github.benjamimgois.goverlay.metainfo.xml $(DESTDIR)$(prefix)$(datadir)/metainfo/io.github.benjamimgois.goverlay.metainfo.xml
@@ -65,10 +67,14 @@ install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	cp -r data/icons/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod
 	cp -r data/bgmod/* $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/
+	rm -f $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/bgmod
+	rm -f $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/bgmod-uninstaller
 
 uninstall:
 	rm -f $(DESTDIR)$(prefix)$(libexecdir)/goverlay
 	rm -f $(DESTDIR)$(prefix)$(libexecdir)/pascube
+	rm -f $(DESTDIR)$(prefix)$(libexecdir)/bgmod
+	rm -f $(DESTDIR)$(prefix)$(libexecdir)/bgmod-uninstaller
 	rm -f $(DESTDIR)$(prefix)$(bindir)/goverlay
 	rm -f $(DESTDIR)$(prefix)$(datadir)/applications/io.github.benjamimgois.goverlay.desktop
 	rm -f $(DESTDIR)$(prefix)$(datadir)/metainfo/io.github.benjamimgois.goverlay.metainfo.xml

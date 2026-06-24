@@ -175,7 +175,7 @@ end;
 
 procedure InitializeBGModDirectory;
 var
-  SourceDir, OriginalPath, BGModPath: string;
+  SourceDir, OriginalPath, BGModPath, BinaryDir: string;
   Proc: TProcess;
 begin
   // Handle any migration from older versions first
@@ -209,6 +209,22 @@ begin
     Proc.Parameters.Add('-c');
     Proc.Parameters.Add('cp -rf --no-preserve=mode ' + QuotedStr(IncludeTrailingPathDelimiter(SourceDir) + '.') +
                         ' ' + QuotedStr(OriginalPath) + ' 2>/dev/null');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+  finally
+    Proc.Free;
+  end;
+
+  // Copy architecture-dependent binaries from GOverlay's executable directory (libexec/goverlay/)
+  BinaryDir := ExtractFilePath(ParamStr(0));
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'sh';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add('cp -f --no-preserve=mode ' +
+                        QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod') + ' ' +
+                        QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod-uninstaller') + ' ' +
+                        QuotedStr(OriginalPath) + '/ 2>/dev/null');
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
   finally
