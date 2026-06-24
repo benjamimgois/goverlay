@@ -2226,9 +2226,15 @@ begin
       fGPUIteration := 0;
       InitParticles;
      end;
-     bpGPU_1080p: begin
-      DebugLog('NextPhase: bpGPU_1080p -> bpResults. Completing benchmark.');
-      fBenchmarkPhase := bpResults;
+      bpGPU_1080p: begin
+       DebugLog('NextPhase: bpGPU_1080p -> bpResults. Completing benchmark.');
+       if fGPU360pFallback then
+       begin
+         fRenderWidth := 1920;
+         fRenderHeight := 1080;
+         DebugLog('Restored render resolution from 360p to 1080p for results screen.');
+       end;
+       fBenchmarkPhase := bpResults;
       CalculateScore;
       FinishBenchmark;
       Exit;
