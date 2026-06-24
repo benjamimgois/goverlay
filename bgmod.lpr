@@ -469,6 +469,40 @@ begin
   end;
 end;
 
+procedure CleanDirectory(const SrcDir, DestDir: string);
+var
+  SR: TSearchRec;
+  SrcFile, DestFile: string;
+begin
+  if not DirectoryExists(SrcDir) or not DirectoryExists(DestDir) then Exit;
+  
+  if FindFirst(IncludeTrailingPathDelimiter(SrcDir) + '*', faAnyFile, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          SrcFile := IncludeTrailingPathDelimiter(SrcDir) + SR.Name;
+          DestFile := IncludeTrailingPathDelimiter(DestDir) + SR.Name;
+          
+          if (SR.Attr and faDirectory) <> 0 then
+          begin
+            CleanDirectory(SrcFile, DestFile);
+            RemoveDir(DestFile);
+          end
+          else
+          begin
+            if FileExists(DestFile) then
+              SafeDeleteFile(DestFile);
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
 procedure SafeCleanOrRestore(const TargetDir, FileName: string; IsOriginalGameFile: Boolean);
 var
   FullFile, FullBackup: string;
@@ -888,53 +922,60 @@ begin
       end
       else
       begin
-        Log('OptiScaler is disabled. Cleaning up game directory...');
-        
-        // Original game files (ONLY restore if backup exists, do NOT delete if no backup)
-        SafeCleanOrRestore(GameDir, 'd3dcompiler_47.dll', True);
-        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_dx12.dll', True);
-        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_framegeneration_dx12.dll', True);
-        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_upscaler_dx12.dll', True);
-        SafeCleanOrRestore(GameDir, 'amd_fidelityfx_vk.dll', True);
-        SafeCleanOrRestore(GameDir, 'libxess.dll', True);
-        SafeCleanOrRestore(GameDir, 'libxess_dx11.dll', True);
-        SafeCleanOrRestore(GameDir, 'libxess_fg.dll', True);
-        SafeCleanOrRestore(GameDir, 'libxell.dll', True);
-        
-        // Copied proxy/supporting files (restore if backup exists, otherwise safe to delete)
-        SafeCleanOrRestore(GameDir, 'OptiScaler.dll', False);
-        SafeCleanOrRestore(GameDir, 'dxgi.dll', False);
-        SafeCleanOrRestore(GameDir, 'winmm.dll', False);
-        SafeCleanOrRestore(GameDir, 'dbghelp.dll', False);
-        SafeCleanOrRestore(GameDir, 'version.dll', False);
-        SafeCleanOrRestore(GameDir, 'wininet.dll', False);
-        SafeCleanOrRestore(GameDir, 'winhttp.dll', False);
-        SafeCleanOrRestore(GameDir, 'OptiScaler.ini', False);
-        SafeCleanOrRestore(GameDir, 'OptiScaler.log', False);
-        SafeCleanOrRestore(GameDir, 'OptiScaler.asi', False);
-        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better.dll', False);
-        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.ini', False);
-        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.log', False);
-        SafeCleanOrRestore(GameDir, 'nvapi64.dll', False);
-        SafeCleanOrRestore(GameDir, 'fakenvapi.ini', False);
-        SafeCleanOrRestore(GameDir, 'fakenvapi.log', False);
-        SafeCleanOrRestore(GameDir, 'fakenvapi.dll', False);
-        SafeCleanOrRestore(GameDir, 'nvngx.dll', True);
-        SafeCleanOrRestore(GameDir, 'nvngx.ini', False);
-        SafeCleanOrRestore(GameDir, 'nvngx_dlss.dll', True);
-        SafeCleanOrRestore(GameDir, 'nvngx_dlssd.dll', True);
-        SafeCleanOrRestore(GameDir, 'nvngx_dlssg.dll', True);
-        SafeCleanOrRestore(GameDir, 'dlss-enabler.dll', False);
-        SafeCleanOrRestore(GameDir, 'dlss-enabler-upscaler.dll', False);
-        SafeCleanOrRestore(GameDir, 'dlss-enabler.log', False);
-        SafeCleanOrRestore(GameDir, 'nvngx-wrapper.dll', False);
-        SafeCleanOrRestore(GameDir, '_nvngx.dll', False);
-        SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better-3.0.dll', False);
-        SafeCleanOrRestore(GameDir, 'bgmod-uninstaller', False);
-        
-        // Remove plugins folder
-        SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
-        SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+        if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') then
+        begin
+          Log('OptiScaler is disabled but goverlay.vars exists. Cleaning up game directory...');
+          
+          // Original game files (ONLY restore if backup exists, do NOT delete if no backup)
+          SafeCleanOrRestore(GameDir, 'd3dcompiler_47.dll', True);
+          SafeCleanOrRestore(GameDir, 'amd_fidelityfx_dx12.dll', True);
+          SafeCleanOrRestore(GameDir, 'amd_fidelityfx_framegeneration_dx12.dll', True);
+          SafeCleanOrRestore(GameDir, 'amd_fidelityfx_upscaler_dx12.dll', True);
+          SafeCleanOrRestore(GameDir, 'amd_fidelityfx_vk.dll', True);
+          SafeCleanOrRestore(GameDir, 'libxess.dll', True);
+          SafeCleanOrRestore(GameDir, 'libxess_dx11.dll', True);
+          SafeCleanOrRestore(GameDir, 'libxess_fg.dll', True);
+          SafeCleanOrRestore(GameDir, 'libxell.dll', True);
+          
+          // Copied proxy/supporting files (restore if backup exists, otherwise safe to delete)
+          SafeCleanOrRestore(GameDir, 'OptiScaler.dll', False);
+          SafeCleanOrRestore(GameDir, 'dxgi.dll', False);
+          SafeCleanOrRestore(GameDir, 'winmm.dll', False);
+          SafeCleanOrRestore(GameDir, 'dbghelp.dll', False);
+          SafeCleanOrRestore(GameDir, 'version.dll', False);
+          SafeCleanOrRestore(GameDir, 'wininet.dll', False);
+          SafeCleanOrRestore(GameDir, 'winhttp.dll', False);
+          SafeCleanOrRestore(GameDir, 'OptiScaler.ini', False);
+          SafeCleanOrRestore(GameDir, 'OptiScaler.log', False);
+          SafeCleanOrRestore(GameDir, 'OptiScaler.asi', False);
+          SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better.dll', False);
+          SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.ini', False);
+          SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3.log', False);
+          SafeCleanOrRestore(GameDir, 'nvapi64.dll', False);
+          SafeCleanOrRestore(GameDir, 'fakenvapi.ini', False);
+          SafeCleanOrRestore(GameDir, 'fakenvapi.log', False);
+          SafeCleanOrRestore(GameDir, 'fakenvapi.dll', False);
+          SafeCleanOrRestore(GameDir, 'nvngx.dll', True);
+          SafeCleanOrRestore(GameDir, 'nvngx.ini', False);
+          SafeCleanOrRestore(GameDir, 'nvngx_dlss.dll', True);
+          SafeCleanOrRestore(GameDir, 'nvngx_dlssd.dll', True);
+          SafeCleanOrRestore(GameDir, 'nvngx_dlssg.dll', True);
+          SafeCleanOrRestore(GameDir, 'dlss-enabler.dll', False);
+          SafeCleanOrRestore(GameDir, 'dlss-enabler-upscaler.dll', False);
+          SafeCleanOrRestore(GameDir, 'dlss-enabler.log', False);
+          SafeCleanOrRestore(GameDir, 'nvngx-wrapper.dll', False);
+          SafeCleanOrRestore(GameDir, '_nvngx.dll', False);
+          SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better-3.0.dll', False);
+          SafeCleanOrRestore(GameDir, 'bgmod-uninstaller', False);
+          
+          // Remove plugins folder (only files matching global plugins)
+          CleanDirectory(BgmodPath + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          
+          // Delete version file
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
+        end;
       end;
       
       // --- MangoHud Configuration Copy ---

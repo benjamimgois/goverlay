@@ -442,6 +442,40 @@ begin
             SameText(FileName, 'winhttp.dll');
 end;
 
+procedure CleanDirectory(const SrcDir, DestDir: string);
+var
+  SR: TSearchRec;
+  SrcFile, DestFile: string;
+begin
+  if not DirectoryExists(SrcDir) or not DirectoryExists(DestDir) then Exit;
+  
+  if FindFirst(IncludeTrailingPathDelimiter(SrcDir) + '*', faAnyFile, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          SrcFile := IncludeTrailingPathDelimiter(SrcDir) + SR.Name;
+          DestFile := IncludeTrailingPathDelimiter(DestDir) + SR.Name;
+          
+          if (SR.Attr and faDirectory) <> 0 then
+          begin
+            CleanDirectory(SrcFile, DestFile);
+            RemoveDir(DestFile);
+          end
+          else
+          begin
+            if FileExists(DestFile) then
+              SafeDeleteFile(DestFile);
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
 procedure SafeCleanOrRestore(const TargetDir, FileName: string; IsOriginalGameFile: Boolean);
 var
   FullFile, FullBackup: string;
@@ -621,8 +655,9 @@ begin
       SafeCleanOrRestore(GameDir, 'vkBasalt.conf', False);
       SafeCleanOrRestore(GameDir, 'vkSumi.conf', False);
       
-      // Remove plugins folder
-      SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+      // Remove plugins folder (only files matching global plugins)
+      CleanDirectory(IncludeTrailingPathDelimiter(GetBGModPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+      RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       
       // Remove wrappers and script configs
@@ -633,6 +668,7 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
       
       Log('Uninstallation from game directory completed.');
     end;
