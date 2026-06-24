@@ -125,6 +125,17 @@ modules:
         sha256: 1423d58a1171611d5aba2bf6f8c69c72ef9c38a0aca12c3493e4fda64c9b2dc6
     cleanup:
     - "*"
+  # Nerd Fonts Symbols (for sidebar and game card icons)
+  - name: nerd-fonts-symbols
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 SymbolsNerdFont-Regular.ttf /app/share/fonts/TTF/SymbolsNerdFont-Regular.ttf
+    sources:
+      - type: archive
+        url: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/NerdFontsSymbolsOnly.zip
+        sha256: 2078603c1e7a2fc2fa9e625ba1c30264d5d7c39907813d89beaa373f73a3a340
+    cleanup:
+      - "*"
   # Goverlay application
   - name: goverlay
     buildsystem: simple

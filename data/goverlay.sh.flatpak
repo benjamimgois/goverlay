@@ -6,6 +6,18 @@
 if [ -n "$FLATPAK_ID" ]; then
     # Set Qt plugin path for Flatpak
     export QT_PLUGIN_PATH=/app/plugins
+
+    # Ensure Nerd Font Symbols are available for sidebar and game card icons
+    if ! fc-list | grep -qi "Nerd Font\|Symbols Nerd Font\|NerdFont"; then
+        FONT_SRC="/app/share/fonts/TTF/SymbolsNerdFont-Regular.ttf"
+        if [ -f "$FONT_SRC" ]; then
+            FONT_DST="$HOME/.local/share/fonts"
+            mkdir -p "$FONT_DST"
+            cp "$FONT_SRC" "$FONT_DST/"
+            fc-cache -f "$FONT_DST" >/dev/null 2>&1 &
+        fi
+    fi
+
     # Running in Flatpak - execute binary directly
     # MangoHud will be loaded automatically via Vulkan layers
     exec @libexecdir@/goverlay "$@"
