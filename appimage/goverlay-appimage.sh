@@ -21,6 +21,8 @@ chmod +x ./quick-sharun
 ./quick-sharun \
 	/usr/lib/goverlay        \
 	/usr/lib/pascube         \
+	/usr/lib/bgmod           \
+	/usr/lib/bgmod-uninstaller \
 	/usr/share/goverlay      \
 	/usr/lib/mangohud/*      \
 	/usr/lib/libvkbasalt.so* \
