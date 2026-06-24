@@ -243,6 +243,9 @@ type
         fOffscreenColorAttachments: array of TpvVulkanFrameBufferAttachment;
         fOffscreenDepthAttachments: array of TpvVulkanFrameBufferAttachment;
         fOffscreenFrameBuffers: array of TpvVulkanFrameBuffer;
+        fRenderWidth: Integer;
+        fRenderHeight: Integer;
+        fGPU360pFallback: Boolean;
 
         constructor Create; override;
 
@@ -773,6 +776,9 @@ begin
   GetSubmitURL;
   fSubmitStatus := 0;
   fSubmitThread := nil;
+  fRenderWidth := 1920;
+  fRenderHeight := 1080;
+  fGPU360pFallback := false;
 end;
 
 destructor TPasCubeScreen.Destroy;
@@ -1150,6 +1156,7 @@ begin
 
   fVulkanGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1920.0, 1080.0, 0.0, 1.0);
   fVulkanGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1920, 1080);
+  fVulkanGraphicsPipeline.DynamicState.AddDynamicStates([VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR]);
 
   fVulkanGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
   fVulkanGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
@@ -1219,6 +1226,7 @@ begin
 
   fSkyGraphicsPipeline.ViewPortState.AddViewPort(0.0, 0.0, 1920.0, 1080.0, 0.0, 1.0);
   fSkyGraphicsPipeline.ViewPortState.AddScissor(0, 0, 1920, 1080);
+  fSkyGraphicsPipeline.DynamicState.AddDynamicStates([VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR]);
 
   fSkyGraphicsPipeline.RasterizationState.DepthClampEnable:=false;
   fSkyGraphicsPipeline.RasterizationState.RasterizerDiscardEnable:=false;
@@ -1566,6 +1574,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
  begin
  inherited Update(aDeltaTime);
 
+
  // Update metrics
  fps := pvApplication.FramesPerSecond;
  if fFrameCount = 0 then begin
@@ -1709,7 +1718,21 @@ var p:pointer;
     N, Cols, Rows, colIdx, rowIdx, ActiveCount: Integer;
     SpacingX, SpacingY, CubeScale, PosX, PosY: TpvFloat;
     CubeScaleX, CubeScaleY, CubeScaleZ, rotX, rotY: TpvFloat;
+    Viewport: TVkViewport;
+    Scissor: TVkRect2D;
 begin
+ Viewport.x := 0.0;
+ Viewport.y := 0.0;
+ Viewport.width := fRenderWidth;
+ Viewport.height := fRenderHeight;
+ Viewport.minDepth := 0.0;
+ Viewport.maxDepth := 1.0;
+
+ Scissor.offset.x := 0;
+ Scissor.offset.y := 0;
+ Scissor.extent.width := fRenderWidth;
+ Scissor.extent.height := fRenderHeight;
+
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
 
@@ -1807,6 +1830,8 @@ begin
 
    if fShowSkybox then begin
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fSkyGraphicsPipeline.Handle);
+    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdSetViewport(0,1,@Viewport);
+    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdSetScissor(0,1,@Scissor);
     fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindVertexBuffers(0,1,@fSkyVertexBuffer.Handle,@Offsets);
     SkyParams[0] := State^.AnglePhases[1];
     SkyParams[1] := State^.AnglePhases[0];
@@ -1819,6 +1844,8 @@ begin
    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindVertexBuffers(0,1,@fVulkanVertexBuffer.Handle,@Offsets);
    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindIndexBuffer(fVulkanIndexBuffer.Handle,0,VK_INDEX_TYPE_UINT32);
    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,fVulkanGraphicsPipeline.Handle);
+   fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdSetViewport(0,1,@Viewport);
+   fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdSetScissor(0,1,@Scissor);
    fVulkanRenderCommandBuffers[pvApplication.DrawInFlightFrameIndex,aSwapChainImageIndex].CmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                                                                                                fVulkanPipelineLayout.Handle,
                                                                                                                0,
@@ -2072,6 +2099,9 @@ begin
    fCurrentResult.KernelVersion := GetKernelVersion;
    fCurrentResult.DriverVersion := GetDriverVersion;
    InitParticles;
+   fRenderWidth := 1920;
+   fRenderHeight := 1080;
+   fGPU360pFallback := false;
   ResetCounters;
 end;
 
@@ -2102,6 +2132,16 @@ begin
    fGPURuns[fGPUIteration].FPSMin := fPhaseFPSMin;
    fGPURuns[fGPUIteration].FPSMax := fPhaseFPSMax;
    fGPURuns[fGPUIteration].FrameTimeMs := ftAvg;
+
+   if (fGPUIteration = 0) and (not fGPU360pFallback) and (fpsAvg < 10.0) then begin
+     fGPU360pFallback := true;
+     fRenderWidth := 640;
+     fRenderHeight := 360;
+     fPhaseTimer := 0.0;
+     ResetCounters;
+     DebugLog(Format('NextPhase: Low GPU FPS detected (%.2f). Fallback to 360p.', [fpsAvg]));
+     Exit;
+   end;
 
    if fGPUIteration < 2 then begin
      Inc(fGPUIteration);
@@ -2231,6 +2271,14 @@ var cpuSTPoints, cpuMTPoints: Integer;
     gpu1080Points, gpuAvgPoints: Integer;
     gpuAvgFPS: TpvDouble;
 begin
+  if fGPU360pFallback then begin
+    fCurrentResult.PhaseResults[3].Score := Round(fCurrentResult.PhaseResults[3].Score / 5.0);
+    fCurrentResult.PhaseResults[3].FPSAvg := fCurrentResult.PhaseResults[3].FPSAvg / 5.0;
+    fCurrentResult.PhaseResults[3].FPSMin := fCurrentResult.PhaseResults[3].FPSMin / 5.0;
+    fCurrentResult.PhaseResults[3].FPSMax := fCurrentResult.PhaseResults[3].FPSMax / 5.0;
+    fCurrentResult.PhaseResults[3].FrameTimeMs := fCurrentResult.PhaseResults[3].FrameTimeMs * 5.0;
+  end;
+
   cpuSTPoints := Round(fCurrentResult.PhaseResults[1].Score / 3.0);
   cpuMTPoints := Round(fCurrentResult.PhaseResults[2].Score / 20.0);
 
