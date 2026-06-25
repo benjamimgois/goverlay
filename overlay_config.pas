@@ -45,6 +45,7 @@ type
     SpoofChecked: Boolean;
     FsrversionItemIndex: Integer;
     OptipatcherChecked: Boolean;
+    OptVersionItemIndex: Integer;
     
     // FakeNvapi options
     ForceReflexChecked: Boolean;
@@ -557,6 +558,7 @@ begin
     Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
     Ini.WriteString('Config', 'DLL', SelectedDllName);
     Ini.WriteString('Config', 'PRESERVE_INI', 'true');
+    Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);
 
     if Settings.EmuFp8Checked then
       Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
@@ -575,6 +577,7 @@ begin
       Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
       Ini.WriteString('Config', 'DLL', SelectedDllName);
       Ini.WriteString('Config', 'PRESERVE_INI', 'true');
+      Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);
 
       if Settings.EmuFp8Checked then
         Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
@@ -1231,6 +1234,7 @@ begin
         Settings.FilenameItemIndex := 0;
 
       Settings.EmuFp8Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
+      Settings.OptVersionItemIndex := Ini.ReadInteger('Config', 'OPT_CHANNEL', -1);
     finally
       Ini.Free;
     end;

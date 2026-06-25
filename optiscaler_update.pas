@@ -78,7 +78,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config;
 
 type
   TOptiUpdateThread = class(TThread)
@@ -1229,6 +1229,8 @@ end;
 procedure TOptiscalerTab.InitializeTab;
 var
   CurrentVersion: string;
+  SavedSettings: TOptiScalerSettings;
+  SavedOnChange: TNotifyEvent;
 begin
   // Hide update labels initially
   if Assigned(FDeckyLabel2) then
@@ -1245,29 +1247,39 @@ begin
     // Load current versions
     LoadVersionsFromFile;
 
-    // Detect if bleeding-edge version is installed
-    if Assigned(FOptiLabel) then
+    // Restore saved channel selection from config (primary source)
+    if Assigned(FOptVersionComboBox) then
     begin
-      CurrentVersion := FOptiLabel.Caption;
-      WriteLn('[DEBUG] InitializeTab: Current OptiScaler version = "', CurrentVersion, '"');
-
-      // If version starts with "edge-", select bleeding-edge in ComboBox
-      if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
+      SavedOnChange := FOptVersionComboBox.OnChange;
+      FOptVersionComboBox.OnChange := nil;
+      try
+        SavedSettings := Default(TOptiScalerSettings);
+      if overlay_config.LoadOptiScalerConfig('', SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1]) then
       begin
-        if Assigned(FOptVersionComboBox) then
-        begin
-          FOptVersionComboBox.ItemIndex := 1;  // Select bleeding-edge
-          WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
-        end;
+        FOptVersionComboBox.ItemIndex := SavedSettings.OptVersionItemIndex;
+        WriteLn('[DEBUG] InitializeTab: Restored saved channel selection, ComboBox index = ', SavedSettings.OptVersionItemIndex);
       end
       else
       begin
-        // Stable version
-        if Assigned(FOptVersionComboBox) then
+        // Fallback: derive from installed version tag
+        CurrentVersion := '';
+        if Assigned(FOptiLabel) then
+          CurrentVersion := FOptiLabel.Caption;
+        WriteLn('[DEBUG] InitializeTab: Current OptiScaler version = "', CurrentVersion, '"');
+
+        if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
         begin
-          FOptVersionComboBox.ItemIndex := 0;  // Select stable
+          FOptVersionComboBox.ItemIndex := 1;
+          WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
+        end
+        else
+        begin
+          FOptVersionComboBox.ItemIndex := 0;
           WriteLn('[DEBUG] InitializeTab: Detected stable version, set ComboBox to index 0');
         end;
+      end;
+      finally
+        FOptVersionComboBox.OnChange := SavedOnChange;
       end;
     end;
 

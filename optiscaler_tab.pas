@@ -816,6 +816,9 @@ begin
     latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
 
     tracelogCheckBox.Checked := Settings.TraceLogChecked;
+
+    if Settings.OptVersionItemIndex in [0, 1] then
+      optversionComboBox.ItemIndex := Settings.OptVersionItemIndex;
   end;
 end;
 
@@ -838,6 +841,7 @@ begin
     Settings.SpoofChecked := spoofCheckBox.Checked;
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;
     Settings.OptipatcherChecked := optipatcherCheckBox.Checked;
+    Settings.OptVersionItemIndex := optversionComboBox.ItemIndex;
     Settings.ForceReflexChecked := forcereflexCheckBox.Checked;
     Settings.ReflexItemIndex := reflexComboBox.ItemIndex;
     Settings.ForceLatencyFlexChecked := forcelatencyflexCheckBox.Checked;
