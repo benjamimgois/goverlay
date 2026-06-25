@@ -550,15 +550,15 @@ begin
     Bmp.Free;
   end;
 
-  // --- Icon 1: Wine prefix (greyscale copy of iconsImageList[37]) ---
-  if Assigned(iconsImageList) and (iconsImageList.Count > 37) then
+  // --- Icon 1: Wine prefix (greyscale copy of iconsImageList[38]) ---
+  if Assigned(iconsImageList) and (iconsImageList.Count > 38) then
   begin
     Bmp := TBitmap.Create;
     try
       Bmp.SetSize(16, 16);
       Bmp.Canvas.Brush.Color := clFuchsia;
       Bmp.Canvas.FillRect(0, 0, 16, 16);
-      iconsImageList.Draw(Bmp.Canvas, 0, 0, 37);
+      iconsImageList.Draw(Bmp.Canvas, 0, 0, 38);
       // Convert every non-mask pixel to greyscale
       for y := 0 to 15 do
         for x := 0 to 15 do
@@ -1286,7 +1286,7 @@ begin
         BdgImg.Proportional := True;
         BdgImg.Center      := True;
         BdgImg.Transparent := True;
-        iconsImageList.GetBitmap(37, BdgImg.Picture.Bitmap);
+        iconsImageList.GetBitmap(38, BdgImg.Picture.Bitmap);
         BdgImg.BringToFront;
         BdgImg.OnMouseEnter := @GameCardMouseEnter;
         BdgImg.OnMouseLeave := @GameCardMouseLeave;
