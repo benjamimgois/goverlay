@@ -78,7 +78,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, IniFiles;
 
 type
   TOptiUpdateThread = class(TThread)
@@ -143,8 +143,22 @@ procedure TOptiUpdateThread.SyncUpdateUI;
 var
   HasUpdates: Boolean;
   CurrentVersion: string;
+  NormLatest, NormCurrent: string;
+  CurrentIsEdge, IsCrossChannel: Boolean;
 begin
   if Terminated then Exit;
+
+  // Skip if channel changed since thread was spawned
+  if Assigned(FOptiTab.FOptVersionComboBox) then
+  begin
+    if (FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 0))
+       or (not FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 1)) then
+    begin
+      WriteLn('[DEBUG] SyncUpdateUI: Channel changed since spawn, discarding results (spawned=', FIsStableChannel, ' current=', FOptiTab.FOptVersionComboBox.ItemIndex, ')');
+      FOptiTab.FUpdateThread := nil;
+      Exit;
+    end;
+  end;
 
   HasUpdates := False;
 
@@ -156,19 +170,41 @@ begin
     else
       CurrentVersion := '';
 
-    if (FLatestOptiTag <> '') and (FLatestOptiTag <> CurrentVersion) then
+    if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
     begin
-      FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
-      FOptiTab.FOptiLabel2.Font.Color := clLime;
-      FOptiTab.FOptiLabel2.Visible := True;
-      HasUpdates := True;
-      WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler update available: ', FLatestOptiTag);
+      NormLatest := StringReplace(FLatestOptiTag, '-', '.', [rfReplaceAll]);
+      NormCurrent := StringReplace(CurrentVersion, '-', '.', [rfReplaceAll]);
+      if (Length(NormLatest) > 5) and (Copy(NormLatest, 1, 5) = 'edge.') then
+        NormLatest := Copy(NormLatest, 6, MaxInt);
+      if (Length(NormCurrent) > 5) and (Copy(NormCurrent, 1, 5) = 'edge.') then
+        NormCurrent := Copy(NormCurrent, 6, MaxInt);
+
+      CurrentIsEdge := (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-');
+      if FIsStableChannel then
+        IsCrossChannel := CurrentIsEdge
+      else
+        IsCrossChannel := not CurrentIsEdge;
+
+      WriteLn('[DEBUG] SyncUpdateUI: FIsStableChannel=', FIsStableChannel, ' CurrentVersion="', CurrentVersion,
+              '" CurrentIsEdge=', CurrentIsEdge, ' IsCrossChannel=', IsCrossChannel,
+              ' NormLatest=', NormLatest, ' NormCurrent=', NormCurrent);
+
+      if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
+      begin
+        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+        FOptiTab.FOptiLabel2.Font.Color := clLime;
+        FOptiTab.FOptiLabel2.Visible := True;
+        HasUpdates := True;
+        WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler update available: ', FLatestOptiTag);
+      end
+      else
+      begin
+        FOptiTab.FOptiLabel2.Visible := False;
+        WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler is up to date (remote=', NormLatest, ' installed=', NormCurrent, ')');
+      end;
     end
     else
-    begin
       FOptiTab.FOptiLabel2.Visible := False;
-      WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler is up to date or tag empty');
-    end;
   end;
 
   // 2. Process Decky Updates
@@ -404,8 +440,10 @@ var
   JSONArray: TJSONArray;
   JSONObject: TJSONObject;
   i: Integer;
+  j: Integer;
   TagName: string;
   RegEx: TRegExpr;
+  TagList: TStringList;
 begin
   Result := '';
   Process := TProcess.Create(nil);
@@ -452,49 +490,29 @@ begin
             begin
               WriteLn('[DEBUG] GetOptiScalerStableTag: Array has ', JSONArray.Count, ' tags');
 
-              // First pass: Look for patched versions with -N suffix (e.g., 0.7.9-2)
-              // These should take priority over non-patched versions
-              RegEx.Expression := '^\d+\.\d+\.\d+-\d+$';
-
-              for i := 0 to JSONArray.Count - 1 do
-              begin
-                JSONObject := TJSONObject(JSONArray[i]);
-                TagName := JSONObject.Get('name', '');
-
-                WriteLn('[DEBUG] GetOptiScalerStableTag: Checking tag[', i, '] = "', TagName, '" (looking for patched version)');
-
-                // Check if tag matches patched semantic version pattern
-                if RegEx.Exec(TagName) then
-                begin
-                  Result := TagName;
-                  WriteLn('[DEBUG] GetOptiScalerStableTag: Found patched stable version tag = "', Result, '"');
-                  Break;
-                end;
-              end;
-
-              // Second pass: If no patched version found, look for regular semantic versions
-              if Result = '' then
-              begin
-                WriteLn('[DEBUG] GetOptiScalerStableTag: No patched version found, looking for regular semantic version...');
-                RegEx.Expression := '^\d+\.\d+\.\d+$';
-
+              TagList := TStringList.Create;
+              try
+                RegEx.Expression := '^\d+\.\d+\.\d+(-\d+)?$';
                 for i := 0 to JSONArray.Count - 1 do
                 begin
                   JSONObject := TJSONObject(JSONArray[i]);
                   TagName := JSONObject.Get('name', '');
-
-                  WriteLn('[DEBUG] GetOptiScalerStableTag: Checking tag[', i, '] = "', TagName, '"');
-
-                  // Check if tag matches semantic version pattern (stable release)
                   if RegEx.Exec(TagName) then
-                  begin
-                    Result := TagName;
-                    WriteLn('[DEBUG] GetOptiScalerStableTag: Found stable version tag = "', Result, '"');
-                    Break;
-                  end
-                  else
-                    WriteLn('[DEBUG] GetOptiScalerStableTag: Tag "', TagName, '" is not a stable version (pre-release), skipping');
+                    TagList.Add(TagName);
                 end;
+
+                if TagList.Count > 0 then
+                begin
+                  for i := 0 to TagList.Count - 2 do
+                    for j := i + 1 to TagList.Count - 1 do
+                      if CompareVersions(StringReplace(TagList[i], '-', '.', [rfReplaceAll]),
+                                        StringReplace(TagList[j], '-', '.', [rfReplaceAll])) < 0 then
+                        TagList.Exchange(i, j);
+                  Result := TagList[0];
+                  WriteLn('[DEBUG] GetOptiScalerStableTag: Highest stable tag = "', Result, '" (from ', TagList.Count, ' candidates)');
+                end;
+              finally
+                TagList.Free;
               end;
 
               if Result = '' then
@@ -547,8 +565,10 @@ var
   JSONArray: TJSONArray;
   JSONObject: TJSONObject;
   i: Integer;
+  j: Integer;
   TagName: string;
   RegEx: TRegExpr;
+  TagList: TStringList;
 begin
   Result := '';
   Process := TProcess.Create(nil);
@@ -595,26 +615,29 @@ begin
             begin
               WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Array has ', JSONArray.Count, ' tags');
 
-              // Look for tags starting with "edge-" (GitHub API returns them in reverse chronological order)
-              // The first edge- tag we find will be the most recent
-              RegEx.Expression := '^edge-';
-
-              for i := 0 to JSONArray.Count - 1 do
-              begin
-                JSONObject := TJSONObject(JSONArray[i]);
-                TagName := JSONObject.Get('name', '');
-
-                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Checking tag[', i, '] = "', TagName, '"');
-
-                // Check if tag starts with "edge-"
-                if RegEx.Exec(TagName) then
+              TagList := TStringList.Create;
+              try
+                RegEx.Expression := '^edge-';
+                for i := 0 to JSONArray.Count - 1 do
                 begin
-                  Result := TagName;
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found pre-release tag = "', Result, '"');
-                  Break;
-                end
-                else
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Tag "', TagName, '" does not start with "edge-", skipping');
+                  JSONObject := TJSONObject(JSONArray[i]);
+                  TagName := JSONObject.Get('name', '');
+                  if RegEx.Exec(TagName) then
+                    TagList.Add(TagName);
+                end;
+
+                if TagList.Count > 0 then
+                begin
+                  for i := 0 to TagList.Count - 2 do
+                    for j := i + 1 to TagList.Count - 1 do
+                      if CompareVersions(StringReplace(Copy(TagList[i], 6, MaxInt), '-', '.', [rfReplaceAll]),
+                                        StringReplace(Copy(TagList[j], 6, MaxInt), '-', '.', [rfReplaceAll])) < 0 then
+                        TagList.Exchange(i, j);
+                  Result := TagList[0];
+                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Highest edge tag = "', Result, '" (from ', TagList.Count, ' candidates)');
+                end;
+              finally
+                TagList.Free;
               end;
 
               if Result = '' then
@@ -1101,8 +1124,9 @@ var
 begin
   if Assigned(FUpdateThread) then
   begin
-    WriteLn('[DEBUG] CheckForUpdatesOnClick: Update thread is already running, skipping');
-    Exit;
+    WriteLn('[DEBUG] CheckForUpdatesOnClick: Existing thread found, terminating for new check');
+    FUpdateThread.Terminate;
+    FUpdateThread := nil;
   end;
 
   // Hide labels before checking
@@ -1259,9 +1283,9 @@ begin
         FOptVersionComboBox.ItemIndex := SavedSettings.OptVersionItemIndex;
         WriteLn('[DEBUG] InitializeTab: Restored saved channel selection, ComboBox index = ', SavedSettings.OptVersionItemIndex);
       end
-      else
+      else if not (FOptVersionComboBox.ItemIndex in [0, 1]) then
       begin
-        // Fallback: derive from installed version tag
+        // Fallback: combobox not yet set by game-specific config, derive from installed version tag
         CurrentVersion := '';
         if Assigned(FOptiLabel) then
           CurrentVersion := FOptiLabel.Caption;
@@ -1277,7 +1301,9 @@ begin
           FOptVersionComboBox.ItemIndex := 0;
           WriteLn('[DEBUG] InitializeTab: Detected stable version, set ComboBox to index 0');
         end;
-      end;
+      end
+      else
+        WriteLn('[DEBUG] InitializeTab: ComboBox already set by game config, index = ', FOptVersionComboBox.ItemIndex, '. Skipping fallback.');
       finally
         FOptVersionComboBox.OnChange := SavedOnChange;
       end;
@@ -1333,6 +1359,7 @@ var
   VarsIdx: Integer;
   DlssLineFound: Boolean;
   SyncProc: TProcess;
+  Ini: TIniFile;
 begin
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -1701,6 +1728,24 @@ begin
     end;
 
     ShowToast(ntSuccess, 'OptiScaler installed successfully!', 4000);
+
+    // Persist channel selection to bgmod.conf so combobox survives restart
+    if Assigned(FOptVersionComboBox) then
+    begin
+      Ini := TIniFile.Create(FFGModPath + PathDelim + 'bgmod.conf');
+      try
+        Ini.WriteInteger('Config', 'OPT_CHANNEL', FOptVersionComboBox.ItemIndex);
+        WriteLn('[DEBUG] UpdateButtonClick: Saved OPT_CHANNEL=', FOptVersionComboBox.ItemIndex, ' to bgmod.conf');
+      finally
+        Ini.Free;
+      end;
+      Ini := TIniFile.Create(GetBGModOriginalPath + PathDelim + 'bgmod.conf');
+      try
+        Ini.WriteInteger('Config', 'OPT_CHANNEL', FOptVersionComboBox.ItemIndex);
+      finally
+        Ini.Free;
+      end;
+    end;
 
   finally
     // Re-enable button
