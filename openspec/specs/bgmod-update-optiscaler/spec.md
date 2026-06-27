@@ -5,22 +5,22 @@ This capability enables the `bgmod` execution wrapper to automatically update an
 ## Requirements
 
 ### Requirement: Auto-update game configuration folder
-The `bgmod` execution SHALL check if there is a newer version of OptiScaler available centrally/globally by comparing the `goverlay.vars` files in the global and local configuration directories. The version comparison SHALL use numeric component ordering (e.g., `0.9.3 > 0.9.2`, `0.9.3-2 > 0.9.3-1`). The system SHALL collect all matching tags from the GitHub API and return the numerically highest tag for the selected channel.
+The `bgmod` execution SHALL check if there is a newer version of OptiScaler available by fetching a static JSON manifest file `versions.json` from a raw GitHub URL. The system SHALL compare the version string from the manifest against the installed version. The version comparison SHALL use numeric component ordering (e.g., `0.9.3 > 0.9.2`, `0.9.3-2 > 0.9.3-1`).
 
-#### Scenario: Stable channel finds highest version
-- **WHEN** the OptiScaler stable channel check fetches tags `0.9.2-0`, `0.9.3-0`, `0.9.1-0`
-- **THEN** the system returns `0.9.3-0` as the latest version, regardless of API order.
+#### Scenario: Stable channel version detection
+- **WHEN** the OptiScaler stable channel check reads the `versions.json` manifest
+- **THEN** the system extracts the stable version string and URL without querying the GitHub tags API.
 
-#### Scenario: Bleeding-edge channel finds highest version
-- **WHEN** the OptiScaler bleeding-edge check fetches tags `edge-0.9.4-1`, `edge-0.9.4-2`, `edge-0.9.3-5`
-- **THEN** the system strips the `edge-` prefix, compares numerically, and returns `edge-0.9.4-2`.
+#### Scenario: Bleeding-edge channel version detection
+- **WHEN** the OptiScaler bleeding-edge channel check reads the `versions.json` manifest
+- **THEN** the system extracts the bleeding-edge version string and URL without querying the GitHub tags API.
 
 #### Scenario: Update shown only when remote is higher
-- **WHEN** the installed version is `0.9.3-0` and the latest remote version is `0.9.3-0`
+- **WHEN** the installed version is `0.9.3-0` and the latest remote version in the manifest is `0.9.3-0`
 - **THEN** no update notification is shown.
 
 #### Scenario: Older remote version does not trigger update
-- **WHEN** the installed version is `0.9.4-0` and the latest remote version is `0.9.3-0`
+- **WHEN** the installed version is `0.9.4-0` and the latest remote version in the manifest is `0.9.3-0`
 - **THEN** no update notification is shown.
 
 ### Requirement: Prevent redundant file copies
@@ -54,4 +54,18 @@ The GOverlay OptiScaler tab SHALL save the user's channel selection (Stable or B
 #### Scenario: No saved preference (first run)
 - **WHEN** no prior channel selection has been saved
 - **THEN** the combobox falls back to the installed version tag (edge- prefix → Bleeding, otherwise Stable).
+
+### Requirement: Save OptiScaler version in manifest file during update
+When GOverlay updates/installs OptiScaler, it SHALL write or update the `OptiScalerVersion` key in the `goverlay.vars` file with the version tag that was installed. The file SHALL be saved in both the pristine `.bgmod_original` folder and the global `bgmod` configuration folder.
+
+#### Scenario: Installation generates correct version variable
+- **WHEN** GOverlay successfully extracts OptiScaler release `0.9.3-0`
+- **THEN** GOverlay writes `OptiScalerVersion=0.9.3-0` to the `goverlay.vars` file in both directories.
+
+### Requirement: Copy plugins folder during manual update
+When GOverlay updates OptiScaler files during a manual update, it SHALL copy the `plugins` folder (if it exists) from the pristine `.bgmod_original` folder to the global `bgmod` configuration folder.
+
+#### Scenario: Update copies plugins folder successfully
+- **WHEN** GOverlay performs a manual update and `.bgmod_original/plugins` directory exists
+- **THEN** GOverlay copies `.bgmod_original/plugins` directory recursively to the global `bgmod` directory.
 
