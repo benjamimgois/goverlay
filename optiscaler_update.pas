@@ -37,6 +37,7 @@ type
     FFGModPath: string;
     FUpdateThread: TThread;
 
+    function FetchManifest(ASilent: Boolean; out AStableVer, AStableURL, AEdgeVer, AEdgeURL: string): Boolean;
     function GetLatestReleaseTag(ASilent: Boolean = False): string;
     function GetOptiScalerStableTag(ASilent: Boolean = False): string;
     function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
@@ -50,6 +51,10 @@ type
     procedure CheckForUpdates;
 
   public
+    FOptiStableVersion: string;
+    FOptiStableURL: string;
+    FOptiEdgeVersion: string;
+    FOptiEdgeURL: string;
 
     procedure LoadVersionsFromFile;
     procedure UpdateButtonClick(Sender: TObject);
@@ -431,253 +436,101 @@ begin
   end;
 end;
 
-function TOptiscalerTab.GetOptiScalerStableTag(ASilent: Boolean = False): string;
+function TOptiscalerTab.FetchManifest(ASilent: Boolean; out AStableVer, AStableURL, AEdgeVer, AEdgeURL: string): Boolean;
 var
   Process: TProcess;
   OutputList: TStringList;
   Response: string;
   JSONData: TJSONData;
-  JSONArray: TJSONArray;
-  JSONObject: TJSONObject;
-  i: Integer;
-  j: Integer;
-  TagName: string;
-  RegEx: TRegExpr;
-  TagList: TStringList;
+  JSONObject, StableObj, EdgeObj: TJSONObject;
 begin
-  Result := '';
+  Result := False;
+  AStableVer := '';
+  AStableURL := '';
+  AEdgeVer := '';
+  AEdgeURL := '';
   Process := TProcess.Create(nil);
   OutputList := TStringList.Create;
-  RegEx := TRegExpr.Create;
   try
     try
-      WriteLn('[DEBUG] GetOptiScalerStableTag: Fetching from ', URL_OPTISCALER_BUILDS_API);
-
-      // Use curl to get GitHub API for OptiScaler-builds tags
+      WriteLn('[DEBUG] FetchManifest: Fetching from ', URL_OPTISCALER_MANIFEST);
       Process.Executable := 'curl';
-      Process.Parameters.Add('-s');  // Silent mode
-      Process.Parameters.Add('-L');  // Follow redirects
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add(URL_OPTISCALER_BUILDS_API);
+      Process.Parameters.Add('-s');
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add(URL_OPTISCALER_MANIFEST);
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
-
-      // Read response
       OutputList.LoadFromStream(Process.Output);
       Response := OutputList.Text;
-
-      WriteLn('[DEBUG] GetOptiScalerStableTag: Curl exit status: ', Process.ExitStatus);
-      WriteLn('[DEBUG] GetOptiScalerStableTag: Response length: ', Length(Response), ' bytes');
-
       if (Process.ExitStatus = 0) and (Response <> '') then
       begin
-        WriteLn('[DEBUG] GetOptiScalerStableTag: Parsing JSON response...');
-
-        // Validate response is JSON before parsing (to handle GitHub API errors/rate limiting)
-        if (Length(Response) > 0) and ((Response[1] = '{') or (Response[1] = '[')) then
+        if (Length(Response) > 0) and (Response[1] = '{') then
         begin
           JSONData := GetJSON(Response);
           try
-            if Assigned(JSONData) and (JSONData is TJSONArray) then
+            if Assigned(JSONData) and (JSONData is TJSONObject) then
             begin
-            WriteLn('[DEBUG] GetOptiScalerStableTag: Valid JSON array received');
-            JSONArray := TJSONArray(JSONData);
-
-            if JSONArray.Count > 0 then
-            begin
-              WriteLn('[DEBUG] GetOptiScalerStableTag: Array has ', JSONArray.Count, ' tags');
-
-              TagList := TStringList.Create;
-              try
-                RegEx.Expression := '^\d+\.\d+\.\d+(-\d+)?$';
-                for i := 0 to JSONArray.Count - 1 do
-                begin
-                  JSONObject := TJSONObject(JSONArray[i]);
-                  TagName := JSONObject.Get('name', '');
-                  if RegEx.Exec(TagName) then
-                    TagList.Add(TagName);
-                end;
-
-                if TagList.Count > 0 then
-                begin
-                  for i := 0 to TagList.Count - 2 do
-                    for j := i + 1 to TagList.Count - 1 do
-                      if CompareVersions(StringReplace(TagList[i], '-', '.', [rfReplaceAll]),
-                                        StringReplace(TagList[j], '-', '.', [rfReplaceAll])) < 0 then
-                        TagList.Exchange(i, j);
-                  Result := TagList[0];
-                  WriteLn('[DEBUG] GetOptiScalerStableTag: Highest stable tag = "', Result, '" (from ', TagList.Count, ' candidates)');
-                end;
-              finally
-                TagList.Free;
+              JSONObject := TJSONObject(JSONData);
+              StableObj := TJSONObject(JSONObject.Find('stable'));
+              if Assigned(StableObj) then
+              begin
+                AStableVer := StableObj.Get('version', '');
+                AStableURL := StableObj.Get('url', '');
               end;
-
-              if Result = '' then
-                WriteLn('[ERROR] GetOptiScalerStableTag: No stable version tag found in the array');
-            end
-            else
-              WriteLn('[ERROR] GetOptiScalerStableTag: JSON array is empty');
-          end
-          else
-            WriteLn('[ERROR] GetOptiScalerStableTag: JSON data is not an array');
-        finally
-          JSONData.Free;
+              EdgeObj := TJSONObject(JSONObject.Find('edge'));
+              if Assigned(EdgeObj) then
+              begin
+                AEdgeVer := EdgeObj.Get('version', '');
+                AEdgeURL := EdgeObj.Get('url', '');
+              end;
+              Result := (AStableVer <> '') and (AEdgeVer <> '');
+            end;
+          finally
+            JSONData.Free;
+          end;
         end;
-        end
-        else
-        begin
-          WriteLn('[ERROR] GetOptiScalerStableTag: API returned non-JSON response (possibly rate limited or error)');
-          WriteLn('[ERROR] GetOptiScalerStableTag: Response preview: ', Copy(Response, 1, 200));
-        end;
-      end
-      else
-      begin
-        WriteLn('[ERROR] GetOptiScalerStableTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
-        if Response <> '' then
-          WriteLn('[ERROR] GetOptiScalerStableTag: Response content: ', Copy(Response, 1, 200));
       end;
-
     except
       on E: Exception do
       begin
-        WriteLn('[ERROR] GetOptiScalerStableTag: Exception - ', E.ClassName, ': ', E.Message);
+        WriteLn('[ERROR] FetchManifest: Exception - ', E.ClassName, ': ', E.Message);
         if not ASilent then
-          ShowMessage('Error getting OptiScaler version: ' + E.Message + sLineBreak +
-                     'Check your internet connection and if curl is installed.');
+          ShowMessage('Error getting OptiScaler manifest: ' + E.Message);
       end;
     end;
   finally
-    RegEx.Free;
     OutputList.Free;
     Process.Free;
   end;
 end;
 
-function TOptiscalerTab.GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
+function TOptiscalerTab.GetOptiScalerStableTag(ASilent: Boolean = False): string;
 var
-  Process: TProcess;
-  OutputList: TStringList;
-  Response: string;
-  JSONData: TJSONData;
-  JSONArray: TJSONArray;
-  JSONObject: TJSONObject;
-  i: Integer;
-  j: Integer;
-  TagName: string;
-  RegEx: TRegExpr;
-  TagList: TStringList;
+  StableVer, StableURL, EdgeVer, EdgeURL: string;
 begin
   Result := '';
-  Process := TProcess.Create(nil);
-  OutputList := TStringList.Create;
-  RegEx := TRegExpr.Create;
-  try
-    try
-      WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Fetching from ', URL_OPTISCALER_BUILDS_API);
+  if FetchManifest(ASilent, StableVer, StableURL, EdgeVer, EdgeURL) then
+  begin
+    FOptiStableVersion := StableVer;
+    FOptiStableURL := StableURL;
+    FOptiEdgeVersion := EdgeVer;
+    FOptiEdgeURL := EdgeURL;
+    Result := StableVer;
+  end;
+end;
 
-      // Use curl to get GitHub API for OptiScaler-builds tags
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-s');  // Silent mode
-      Process.Parameters.Add('-L');  // Follow redirects
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add(URL_OPTISCALER_BUILDS_API);
-      Process.Options := [poWaitOnExit, poUsePipes];
-      Process.Execute;
-
-      // Read response
-      OutputList.LoadFromStream(Process.Output);
-      Response := OutputList.Text;
-
-      WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Curl exit status: ', Process.ExitStatus);
-      WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Response length: ', Length(Response), ' bytes');
-
-      if (Process.ExitStatus = 0) and (Response <> '') then
-      begin
-        WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Parsing JSON response...');
-
-        // Validate response is JSON before parsing (to handle GitHub API errors/rate limiting)
-        if (Length(Response) > 0) and ((Response[1] = '{') or (Response[1] = '[')) then
-        begin
-          JSONData := GetJSON(Response);
-          try
-            if Assigned(JSONData) and (JSONData is TJSONArray) then
-            begin
-            WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Valid JSON array received');
-            JSONArray := TJSONArray(JSONData);
-
-            if JSONArray.Count > 0 then
-            begin
-              WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Array has ', JSONArray.Count, ' tags');
-
-              TagList := TStringList.Create;
-              try
-                RegEx.Expression := '^edge-';
-                for i := 0 to JSONArray.Count - 1 do
-                begin
-                  JSONObject := TJSONObject(JSONArray[i]);
-                  TagName := JSONObject.Get('name', '');
-                  if RegEx.Exec(TagName) then
-                    TagList.Add(TagName);
-                end;
-
-                if TagList.Count > 0 then
-                begin
-                  for i := 0 to TagList.Count - 2 do
-                    for j := i + 1 to TagList.Count - 1 do
-                      if CompareVersions(StringReplace(Copy(TagList[i], 6, MaxInt), '-', '.', [rfReplaceAll]),
-                                        StringReplace(Copy(TagList[j], 6, MaxInt), '-', '.', [rfReplaceAll])) < 0 then
-                        TagList.Exchange(i, j);
-                  Result := TagList[0];
-                  WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Highest edge tag = "', Result, '" (from ', TagList.Count, ' candidates)');
-                end;
-              finally
-                TagList.Free;
-              end;
-
-              if Result = '' then
-                WriteLn('[ERROR] GetOptiScalerPreReleaseTag: No pre-release tag found in the array');
-            end
-            else
-              WriteLn('[ERROR] GetOptiScalerPreReleaseTag: JSON array is empty');
-          end
-          else
-            WriteLn('[ERROR] GetOptiScalerPreReleaseTag: JSON data is not an array');
-        finally
-          JSONData.Free;
-        end;
-        end
-        else
-        begin
-          WriteLn('[ERROR] GetOptiScalerPreReleaseTag: API returned non-JSON response (possibly rate limited or error)');
-          WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Response preview: ', Copy(Response, 1, 200));
-        end;
-      end
-      else
-      begin
-        WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Failed to get response (exit: ', Process.ExitStatus, ', response empty: ', Response = '', ')');
-        if Response <> '' then
-          WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Response content: ', Copy(Response, 1, 200));
-      end;
-
-    except
-      on E: Exception do
-      begin
-        WriteLn('[ERROR] GetOptiScalerPreReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
-        if not ASilent then
-          ShowMessage('Error getting OptiScaler pre-release version: ' + E.Message + sLineBreak +
-                     'Check your internet connection and if curl is installed.');
-      end;
-    end;
-  finally
-    RegEx.Free;
-    OutputList.Free;
-    Process.Free;
+function TOptiscalerTab.GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
+var
+  StableVer, StableURL, EdgeVer, EdgeURL: string;
+begin
+  Result := '';
+  if FetchManifest(ASilent, StableVer, StableURL, EdgeVer, EdgeURL) then
+  begin
+    FOptiStableVersion := StableVer;
+    FOptiStableURL := StableURL;
+    FOptiEdgeVersion := EdgeVer;
+    FOptiEdgeURL := EdgeURL;
+    Result := EdgeVer;
   end;
 end;
 
@@ -1358,6 +1211,7 @@ var
   VarsList: TStringList;
   VarsIdx: Integer;
   DlssLineFound: Boolean;
+  OptiLineFound: Boolean;
   SyncProc: TProcess;
   Ini: TIniFile;
 begin
@@ -1459,16 +1313,16 @@ begin
     // Build download URL for .7z file
     if IsStableChannel then
     begin
-      // URL format: https://github.com/benjamimgois/OptiScaler-builds/releases/download/{tag}/optiscaler-stable.7z
-      // Note: The stable release always uses the fixed filename "optiscaler-stable.7z"
-      DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
+      DownloadURL := FOptiStableURL;
+      if DownloadURL = '' then
+        DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
       SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-stable.7z';
     end
     else
     begin
-      // URL format: https://github.com/benjamimgois/OptiScaler-builds/releases/download/{tag}/optiscaler-edge.7z
-      // Note: The bleeding-edge release always uses the fixed filename "optiscaler-edge.7z"
-      DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-edge.7z', [OptiScalerTag]);
+      DownloadURL := FOptiEdgeURL;
+      if DownloadURL = '' then
+        DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-edge.7z', [OptiScalerTag]);
       SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-edge.7z';
     end;
 
@@ -1585,6 +1439,22 @@ begin
         end
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated existing dlssversion line');
+
+        OptiLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 18), 'optiscalerversion=') then
+          begin
+            VarsList[VarsIdx] := 'OptiScalerVersion=' + OptiScalerTag;
+            OptiLineFound := True;
+            Break;
+          end;
+        if not OptiLineFound then
+        begin
+          VarsList.Add('OptiScalerVersion=' + OptiScalerTag);
+          WriteLn('[DEBUG] UpdateButtonClick: Added new OptiScalerVersion line');
+        end
+        else
+          WriteLn('[DEBUG] UpdateButtonClick: Updated existing OptiScalerVersion line');
 
         // Save to .bgmod_original (pristine store)
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
@@ -1772,6 +1642,7 @@ var
   VarsList: TStringList;
   VarsIdx: Integer;
   DlssLineFound: Boolean;
+  OptiLineFound: Boolean;
 begin
   Result := False;
 
@@ -1801,6 +1672,7 @@ begin
     OptiscalerTabTemp := TOptiscalerTab.Create;
     try
       OptiScalerTag := OptiscalerTabTemp.GetOptiScalerStableTag;
+      DownloadURL := OptiscalerTabTemp.FOptiStableURL;
       if OptiScalerTag <> '' then
         WriteLn('[AUTO-INSTALL] Found stable tag: ', OptiScalerTag)
       else
@@ -1817,7 +1689,8 @@ begin
     end;
     
     // Build download URL
-    DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
+    if DownloadURL = '' then
+      DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
     SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-stable-auto.7z';
     
     WriteLn('[AUTO-INSTALL] Download URL: ', DownloadURL);
@@ -1948,6 +1821,22 @@ begin
           end;
         if not DlssLineFound then
           VarsList.Add('dlssversion=' + FormatDateTime('ddmmyy', Now));
+
+        OptiLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 18), 'optiscalerversion=') then
+          begin
+            VarsList[VarsIdx] := 'OptiScalerVersion=' + OptiScalerTag;
+            OptiLineFound := True;
+            Break;
+          end;
+        if not OptiLineFound then
+        begin
+          VarsList.Add('OptiScalerVersion=' + OptiScalerTag);
+          WriteLn('[AUTO-INSTALL] Added new OptiScalerVersion line');
+        end
+        else
+          WriteLn('[AUTO-INSTALL] Updated existing OptiScalerVersion line');
 
         // Save to pristine store
         VarsList.SaveToFile(VarsFilePath);
