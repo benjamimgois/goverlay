@@ -1397,7 +1397,10 @@ begin
       SyncProc.Parameters.Add(
         'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath)) + '*.dll; do ' +
         '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(IncludeTrailingPathDelimiter(FFGModPath)) + '; ' +
-        'done 2>/dev/null');
+        'done; ' +
+        'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ]; then ' +
+        '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ' + QuotedStr(FFGModPath) + '; ' +
+        'fi 2>/dev/null');
       SyncProc.Options := [poWaitOnExit];
       SyncProc.Execute;
     finally
