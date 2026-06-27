@@ -42,6 +42,7 @@ const
 
   // OptiScaler Builds (Stable Channel)
   URL_OPTISCALER_BUILDS_API = 'https://api.github.com/repos/benjamimgois/OptiScaler-builds/tags';
+  URL_OPTISCALER_MANIFEST = 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/versions.json';
 
   // FakeNvapi
   URL_FAKENVAPI_API = 'https://api.github.com/repos/optiscaler/fakenvapi/releases/latest';
