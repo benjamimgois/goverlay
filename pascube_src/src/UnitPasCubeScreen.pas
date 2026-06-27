@@ -74,6 +74,18 @@ type
     KernelVersion: String;
     DriverVersion: String;
     BenchmarkDuration: Double;
+    DisplayServer: String;
+    DisplayResolution: String;
+    RefreshRate: String;
+    DesktopEnvironment: String;
+    StorageType: String;
+    VulkanDriver: String;
+    CPUTempStart: Double;
+    CPUTempMax: Double;
+    CPUTempDelta: Double;
+    GPUTempStart: Double;
+    GPUTempMax: Double;
+    GPUTempDelta: Double;
    end;
 
    THardwareRef = record
@@ -314,6 +326,13 @@ type
           function GetKernelVersion: String;
            function GetDriverVersion: String;
            function GetVRAMSize: String;
+           function GetDisplayServer: String;
+           procedure GetDisplayResolutionAndRefresh(out ARes, ARefresh: String);
+           function GetDesktopEnvironment: String;
+           function GetStorageType: String;
+           function GetVulkanDriver: String;
+           function GetCPUTemperature: Double;
+           function GetGPUTemperature: Double;
            procedure DrawResultsOverlay;
            procedure DrawMethodologyOverlay;
         procedure GenerateBeveledCube;
@@ -329,6 +348,11 @@ type
 implementation
 
 uses UnitPasCubeApplication, UnitTextOverlay, process;
+
+function FloatToJsonStr(const AVal: Double): String;
+begin
+  Result := StringReplace(FormatFloat('0.0', AVal), ',', '.', [rfReplaceAll]);
+end;
 
 function GetLogDir: string;
 begin
@@ -1712,6 +1736,7 @@ var p:pointer;
     body: PCubeBody;
     i: Integer;
     isBenchmark: Boolean;
+    curGPU: Double;
     gpuStressValue: TpvFloat;
     SkyParams: array[0..1] of TpvFloat;
     scaleFactor, scaleX, scaleY, scaleZ: TpvFloat;
@@ -1736,7 +1761,11 @@ begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
 
-   isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p];
+    isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p];
+    if isBenchmark then begin
+      curGPU := GetGPUTemperature;
+      if (curGPU > 0) and (curGPU > fCurrentResult.GPUTempMax) then fCurrentResult.GPUTempMax := curGPU;
+    end;
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -2098,6 +2127,15 @@ begin
    ]);
    fCurrentResult.KernelVersion := GetKernelVersion;
    fCurrentResult.DriverVersion := GetDriverVersion;
+   fCurrentResult.DisplayServer := GetDisplayServer;
+   GetDisplayResolutionAndRefresh(fCurrentResult.DisplayResolution, fCurrentResult.RefreshRate);
+   fCurrentResult.DesktopEnvironment := GetDesktopEnvironment;
+   fCurrentResult.StorageType := GetStorageType;
+   fCurrentResult.VulkanDriver := GetVulkanDriver;
+   fCurrentResult.CPUTempStart := GetCPUTemperature;
+   fCurrentResult.GPUTempStart := GetGPUTemperature;
+   fCurrentResult.CPUTempMax := fCurrentResult.CPUTempStart;
+   fCurrentResult.GPUTempMax := fCurrentResult.GPUTempStart;
    InitParticles;
    fRenderWidth := 1920;
    fRenderHeight := 1080;
@@ -2325,6 +2363,14 @@ procedure TPasCubeScreen.FinishBenchmark;
 var i: Integer;
 begin
  fCurrentResult.BenchmarkDuration := fBenchmarkTimer;
+ if (fCurrentResult.CPUTempStart > 0) and (fCurrentResult.CPUTempMax >= fCurrentResult.CPUTempStart) then
+   fCurrentResult.CPUTempDelta := fCurrentResult.CPUTempMax - fCurrentResult.CPUTempStart
+ else
+   fCurrentResult.CPUTempDelta := -1.0;
+ if (fCurrentResult.GPUTempStart > 0) and (fCurrentResult.GPUTempMax >= fCurrentResult.GPUTempStart) then
+   fCurrentResult.GPUTempDelta := fCurrentResult.GPUTempMax - fCurrentResult.GPUTempStart
+ else
+   fCurrentResult.GPUTempDelta := -1.0;
  DebugLog(Format('FinishBenchmark: totalScore=%d', [fCurrentResult.TotalScore]));
  if fCurrentResult.TotalScore > fBestScore then fBestScore := fCurrentResult.TotalScore;
  fLastScore := fCurrentResult.TotalScore;
@@ -2357,6 +2403,19 @@ begin
     json := json + ' "vulkan_api": "' + fHistory[i].VulkanAPI + '",';
     json := json + ' "kernel": "' + fHistory[i].KernelVersion + '",';
     json := json + ' "driver": "' + fHistory[i].DriverVersion + '",';
+    json := json + ' "display_server": "' + fHistory[i].DisplayServer + '",';
+    json := json + ' "display_resolution": "' + fHistory[i].DisplayResolution + '",';
+    json := json + ' "refresh_rate": "' + fHistory[i].RefreshRate + '",';
+    json := json + ' "desktop": "' + fHistory[i].DesktopEnvironment + '",';
+    json := json + ' "desktop_environment": "' + fHistory[i].DesktopEnvironment + '",';
+    json := json + ' "storage_type": "' + fHistory[i].StorageType + '",';
+    json := json + ' "vulkan_driver": "' + fHistory[i].VulkanDriver + '",';
+    json := json + ' "cpu_temp_start": ' + FloatToJsonStr(fHistory[i].CPUTempStart) + ',';
+    json := json + ' "cpu_temp_max": ' + FloatToJsonStr(fHistory[i].CPUTempMax) + ',';
+    json := json + ' "cpu_temp_delta": ' + FloatToJsonStr(fHistory[i].CPUTempDelta) + ',';
+    json := json + ' "gpu_temp_start": ' + FloatToJsonStr(fHistory[i].GPUTempStart) + ',';
+    json := json + ' "gpu_temp_max": ' + FloatToJsonStr(fHistory[i].GPUTempMax) + ',';
+    json := json + ' "gpu_temp_delta": ' + FloatToJsonStr(fHistory[i].GPUTempDelta) + ',';
     json := json + ' "total_score": ' + IntToStr(fHistory[i].TotalScore) + ',';
     json := json + ' "duration": ' + FormatFloat('0.0', fHistory[i].BenchmarkDuration) + ',';
    json := json + ' "phases": [';
@@ -2429,6 +2488,18 @@ begin
           fHistory[i].VulkanAPI := HistoryObj.Get('vulkan_api', '');
           fHistory[i].KernelVersion := HistoryObj.Get('kernel', '');
           fHistory[i].DriverVersion := HistoryObj.Get('driver', '');
+          fHistory[i].DisplayServer := HistoryObj.Get('display_server', 'N/D');
+          fHistory[i].DisplayResolution := HistoryObj.Get('display_resolution', 'N/D');
+          fHistory[i].RefreshRate := HistoryObj.Get('refresh_rate', 'N/D');
+          fHistory[i].DesktopEnvironment := HistoryObj.Get('desktop_environment', 'N/D');
+          fHistory[i].StorageType := HistoryObj.Get('storage_type', 'N/D');
+          fHistory[i].VulkanDriver := HistoryObj.Get('vulkan_driver', 'N/D');
+          fHistory[i].CPUTempStart := HistoryObj.Get('cpu_temp_start', -1.0);
+          fHistory[i].CPUTempMax := HistoryObj.Get('cpu_temp_max', -1.0);
+          fHistory[i].CPUTempDelta := HistoryObj.Get('cpu_temp_delta', -1.0);
+          fHistory[i].GPUTempStart := HistoryObj.Get('gpu_temp_start', -1.0);
+          fHistory[i].GPUTempMax := HistoryObj.Get('gpu_temp_max', -1.0);
+          fHistory[i].GPUTempDelta := HistoryObj.Get('gpu_temp_delta', -1.0);
           fHistory[i].TotalScore := HistoryObj.Get('total_score', 0);
           fHistory[i].BenchmarkDuration := HistoryObj.Get('duration', 0.0);
          
@@ -3169,6 +3240,39 @@ begin
     JSONObj.Add('architecture', GetCPUArchitecture);
     JSONObj.Add('package', GetPackageType);
     JSONObj.Add('timer', Round(fCurrentResult.BenchmarkDuration));
+    JSONObj.Add('display_server', fCurrentResult.DisplayServer);
+    JSONObj.Add('resolution', fCurrentResult.DisplayResolution);
+    JSONObj.Add('refresh_rate', fCurrentResult.RefreshRate);
+    JSONObj.Add('desktop', fCurrentResult.DesktopEnvironment);
+    JSONObj.Add('desktop_environment', fCurrentResult.DesktopEnvironment);
+    JSONObj.Add('storage_type', fCurrentResult.StorageType);
+    JSONObj.Add('vulkan_driver', fCurrentResult.VulkanDriver);
+
+    if fCurrentResult.GPUTempStart > 0 then begin
+      JSONObj.Add('gpu_temp_start', FloatToJsonStr(fCurrentResult.GPUTempStart));
+      JSONObj.Add('gpu_start_temp', FloatToJsonStr(fCurrentResult.GPUTempStart));
+    end else begin
+      JSONObj.Add('gpu_temp_start', 'N/D');
+      JSONObj.Add('gpu_start_temp', 'N/D');
+    end;
+
+    if fCurrentResult.GPUTempMax > 0 then begin
+      JSONObj.Add('gpu_temp_max', FloatToJsonStr(fCurrentResult.GPUTempMax));
+      JSONObj.Add('gpu_max_temp', FloatToJsonStr(fCurrentResult.GPUTempMax));
+      JSONObj.Add('gpu_temp', FloatToJsonStr(fCurrentResult.GPUTempMax));
+    end else begin
+      JSONObj.Add('gpu_temp_max', 'N/D');
+      JSONObj.Add('gpu_max_temp', 'N/D');
+      JSONObj.Add('gpu_temp', 'N/D');
+    end;
+
+    if fCurrentResult.GPUTempDelta >= 0 then begin
+      JSONObj.Add('gpu_temp_delta', FloatToJsonStr(fCurrentResult.GPUTempDelta));
+      JSONObj.Add('gpu_delta_temp', FloatToJsonStr(fCurrentResult.GPUTempDelta));
+    end else begin
+      JSONObj.Add('gpu_temp_delta', 'N/D');
+      JSONObj.Add('gpu_delta_temp', 'N/D');
+    end;
     Payload := JSONObj.AsJSON;
   finally
     JSONObj.Free;
@@ -3243,7 +3347,7 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   boxW := 66.0 * charWidth;
-  boxH := 38.0 * charHeight;
+  boxH := 46.0 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
 
@@ -3607,6 +3711,428 @@ begin
         Result := Trim(OutputStr);
     except
       // ignore
+    end;
+  finally
+    AProcess.Free;
+  end;
+end;
+
+function TPasCubeScreen.GetDisplayServer: String;
+var
+  Sess: String;
+begin
+  Sess := LowerCase(Trim(GetEnvironmentVariable('XDG_SESSION_TYPE')));
+  if (Sess = 'wayland') or (Sess = 'x11') or (Sess = 'tty') then
+    Result := Sess
+  else if Sess <> '' then
+    Result := Sess
+  else
+    Result := 'N/D';
+end;
+
+procedure TPasCubeScreen.GetDisplayResolutionAndRefresh(out ARes, ARefresh: String);
+var
+  AProcess: TProcess;
+  Buffer: array[0..511] of Char;
+  BytesRead: LongInt;
+  OutputStr, Line, Token, ModeRes: String;
+  SL: TStringList;
+  i, pStar, pSpace, pX, LoopCount: Integer;
+  Found: Boolean;
+  FilePath: String;
+  HzVal: Double;
+begin
+  ARes := 'N/D';
+  ARefresh := 'N/D';
+  Found := False;
+
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'xrandr';
+    AProcess.Parameters.Add('--current');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 40 then begin // 200ms timeout max
+          try AProcess.Terminate(1); except end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      
+      if OutputStr <> '' then begin
+        SL := TStringList.Create;
+        try
+          SL.Text := OutputStr;
+          for i := 0 to SL.Count - 1 do begin
+            Line := SL[i];
+            pStar := Pos('*', Line);
+            if pStar > 0 then begin
+              Token := Trim(Copy(Line, 1, pStar - 1));
+              pSpace := LastDelimiter(' '#9, Token);
+              if pSpace > 0 then begin
+                Token := Trim(Copy(Token, pSpace + 1, Length(Token)));
+              end;
+              if TryStrToFloat(StringReplace(Token, '.', DecimalSeparator, [rfReplaceAll]), HzVal) then
+                ARefresh := IntToStr(Round(HzVal))
+              else
+                ARefresh := Token;
+                
+              Line := Trim(SL[i]);
+              pX := Pos('x', Line);
+              if pX > 1 then begin
+                pSpace := pX - 1;
+                while (pSpace >= 1) and (Line[pSpace] in ['0'..'9']) do Dec(pSpace);
+                ModeRes := Copy(Line, pSpace + 1, Length(Line));
+                pSpace := Pos(' ', ModeRes);
+                if pSpace > 0 then ModeRes := Copy(ModeRes, 1, pSpace - 1);
+                if Pos('x', ModeRes) > 0 then begin
+                  ARes := ModeRes;
+                  Found := True;
+                  Break;
+                end;
+              end;
+            end;
+          end;
+        finally
+          SL.Free;
+        end;
+      end;
+    except
+    end;
+  finally
+    AProcess.Free;
+  end;
+
+  if Found then Exit;
+
+  for i := 0 to 8 do begin
+    FilePath := '/sys/class/drm/card' + IntToStr(i) + '-DP-1/modes';
+    if not FileExists(FilePath) then FilePath := '/sys/class/drm/card' + IntToStr(i) + '-HDMI-A-1/modes';
+    if not FileExists(FilePath) then FilePath := '/sys/class/drm/card' + IntToStr(i) + '-eDP-1/modes';
+    if FileExists(FilePath) then begin
+      SL := TStringList.Create;
+      try
+        try
+          SL.LoadFromFile(FilePath);
+          if (SL.Count > 0) and (Pos('x', SL[0]) > 0) then begin
+            ARes := Trim(SL[0]);
+            Exit;
+          end;
+        except
+        end;
+      finally
+        SL.Free;
+      end;
+    end;
+  end;
+end;
+
+function TPasCubeScreen.GetDesktopEnvironment: String;
+var
+  De: String;
+begin
+  De := GetEnvironmentVariable('XDG_CURRENT_DESKTOP');
+  if De = '' then De := GetEnvironmentVariable('DESKTOP_SESSION');
+  De := Trim(De);
+  if De = '' then begin
+    Result := 'N/D';
+    Exit;
+  end;
+
+  if Pos('KDE', UpperCase(De)) > 0 then Result := 'KDE Plasma'
+  else if Pos('GNOME', UpperCase(De)) > 0 then Result := 'GNOME'
+  else if Pos('HYPRLAND', UpperCase(De)) > 0 then Result := 'Hyprland'
+  else if Pos('XFCE', UpperCase(De)) > 0 then Result := 'XFCE'
+  else if Pos('SWAY', UpperCase(De)) > 0 then Result := 'Sway'
+  else if Pos('CINNAMON', UpperCase(De)) > 0 then Result := 'Cinnamon'
+  else if Pos('MATE', UpperCase(De)) > 0 then Result := 'MATE'
+  else if Pos('LXQT', UpperCase(De)) > 0 then Result := 'LXQt'
+  else Result := De;
+end;
+
+function TPasCubeScreen.GetStorageType: String;
+var
+  AProcess: TProcess;
+  Buffer: array[0..511] of Char;
+  BytesRead: LongInt;
+  OutputStr, Line, DevName, RotaStr, TranStr: String;
+  SL: TStringList;
+  i, p1, p2, LoopCount: Integer;
+  FilePath: String;
+begin
+  Result := 'N/D';
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'lsblk';
+    AProcess.Parameters.Add('-d');
+    AProcess.Parameters.Add('-o');
+    AProcess.Parameters.Add('NAME,ROTA,TRAN');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 40 then begin // 200ms timeout max
+          try AProcess.Terminate(1); except end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+
+      if OutputStr <> '' then begin
+        SL := TStringList.Create;
+        try
+          SL.Text := OutputStr;
+          for i := 1 to SL.Count - 1 do begin
+            Line := Trim(SL[i]);
+            if Line = '' then Continue;
+            p1 := Pos(' ', Line);
+            if p1 > 0 then begin
+              DevName := Copy(Line, 1, p1 - 1);
+              Line := Trim(Copy(Line, p1 + 1, Length(Line)));
+              p2 := Pos(' ', Line);
+              if p2 > 0 then begin
+                RotaStr := Copy(Line, 1, p2 - 1);
+                TranStr := LowerCase(Trim(Copy(Line, p2 + 1, Length(Line))));
+              end else begin
+                RotaStr := Line;
+                TranStr := '';
+              end;
+
+              if (Pos('loop', DevName) = 1) or (Pos('zram', DevName) = 1) or (Pos('ram', DevName) = 1) then Continue;
+
+              if (RotaStr = '0') and ((TranStr = 'nvme') or (Pos('nvme', DevName) = 1)) then begin
+                Result := 'NVMe SSD';
+                Exit;
+              end else if (RotaStr = '0') then begin
+                Result := 'SATA SSD';
+              end else if (RotaStr = '1') and (Result = 'N/D') then begin
+                Result := 'HDD';
+              end;
+            end;
+          end;
+        finally
+          SL.Free;
+        end;
+      end;
+    except
+    end;
+  finally
+    AProcess.Free;
+  end;
+
+  if Result <> 'N/D' then Exit;
+
+  if DirectoryExists('/sys/block/nvme0n1') or DirectoryExists('/sys/block/nvme0') then begin
+    Result := 'NVMe SSD';
+    Exit;
+  end;
+  for i := 0 to 3 do begin
+    FilePath := '/sys/block/sd' + Chr(Ord('a') + i) + '/queue/rotational';
+    if FileExists(FilePath) then begin
+      SL := TStringList.Create;
+      try
+        try
+          SL.LoadFromFile(FilePath);
+          if (SL.Count > 0) then begin
+            if Trim(SL[0]) = '0' then Result := 'SATA SSD'
+            else if Trim(SL[0]) = '1' then Result := 'HDD';
+            Exit;
+          end;
+        except
+        end;
+      finally
+        SL.Free;
+      end;
+    end;
+  end;
+end;
+
+function TPasCubeScreen.GetVulkanDriver: String;
+var
+  DevName, DrvVer: String;
+  VendorID: TVkUInt32;
+begin
+  Result := 'N/D';
+  if not Assigned(pvApplication) or not Assigned(pvApplication.VulkanDevice) or not Assigned(pvApplication.VulkanDevice.PhysicalDevice) then Exit;
+  DevName := UpperCase(pvApplication.VulkanDevice.PhysicalDevice.DeviceName);
+  DrvVer := UpperCase(GetDriverVersion);
+  VendorID := pvApplication.VulkanDevice.PhysicalDevice.Properties.vendorID;
+
+  if (Pos('RADV', DevName) > 0) or (Pos('RADV', DrvVer) > 0) then Result := 'RADV'
+  else if (Pos('ANV', DevName) > 0) or (Pos('ANV', DrvVer) > 0) then Result := 'ANV'
+  else if (Pos('NVK', DevName) > 0) or (Pos('NVK', DrvVer) > 0) then Result := 'NVK'
+  else if (Pos('AMDVLK', DevName) > 0) or (Pos('AMDVLK', DrvVer) > 0) then Result := 'AMDVLK'
+  else if (VendorID = $10DE) or (Pos('NVIDIA', DevName) > 0) then Result := 'NVIDIA Proprietary'
+  else if (VendorID = $1002) or (Pos('AMD', DevName) > 0) or (Pos('RADEON', DevName) > 0) then Result := 'RADV'
+  else if (VendorID = $8086) or (Pos('INTEL', DevName) > 0) then Result := 'ANV';
+end;
+
+function TPasCubeScreen.GetCPUTemperature: Double;
+var
+  i, j: Integer;
+  HwmonPath, NamePath, TempPath, NameStr: String;
+  SL: TStringList;
+  ValInt: LongInt;
+begin
+  Result := -1.0;
+  SL := TStringList.Create;
+  try
+    for i := 0 to 15 do begin
+      HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+      if not DirectoryExists(HwmonPath) then Continue;
+      NamePath := HwmonPath + '/name';
+      NameStr := '';
+      if FileExists(NamePath) then begin
+        try
+          SL.LoadFromFile(NamePath);
+          if SL.Count > 0 then NameStr := LowerCase(Trim(SL[0]));
+        except
+        end;
+      end;
+
+      if (Pos('k10temp', NameStr) > 0) or (Pos('coretemp', NameStr) > 0) or
+         (Pos('zenpower', NameStr) > 0) or (Pos('cpu', NameStr) > 0) or
+         (Pos('acpitz', NameStr) > 0) or (Pos('package', NameStr) > 0) or (NameStr = '') then begin
+        for j := 1 to 8 do begin
+          TempPath := HwmonPath + '/temp' + IntToStr(j) + '_input';
+          if FileExists(TempPath) then begin
+            try
+              SL.LoadFromFile(TempPath);
+              if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
+                if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+                if (Result > 0) and (Result < 150) then Exit;
+              end;
+            except
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    for i := 0 to 8 do begin
+      TempPath := '/sys/class/thermal/thermal_zone' + IntToStr(i) + '/temp';
+      if FileExists(TempPath) then begin
+        try
+          SL.LoadFromFile(TempPath);
+          if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
+            if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+            if (Result > 0) and (Result < 150) then Exit;
+          end;
+        except
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+function TPasCubeScreen.GetGPUTemperature: Double;
+var
+  i, j, LoopCount: Integer;
+  HwmonPath, NamePath, TempPath, NameStr: String;
+  SL: TStringList;
+  ValInt: LongInt;
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr: String;
+begin
+  Result := -1.0;
+  SL := TStringList.Create;
+  try
+    for i := 0 to 15 do begin
+      HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+      if not DirectoryExists(HwmonPath) then Continue;
+      NamePath := HwmonPath + '/name';
+      NameStr := '';
+      if FileExists(NamePath) then begin
+        try
+          SL.LoadFromFile(NamePath);
+          if SL.Count > 0 then NameStr := LowerCase(Trim(SL[0]));
+        except
+        end;
+      end;
+
+      if (Pos('amdgpu', NameStr) > 0) or (Pos('nvidia', NameStr) > 0) or
+         (Pos('nouveau', NameStr) > 0) or (Pos('i915', NameStr) > 0) or (Pos('xe', NameStr) > 0) then begin
+        for j := 1 to 8 do begin
+          TempPath := HwmonPath + '/temp' + IntToStr(j) + '_input';
+          if FileExists(TempPath) then begin
+            try
+              SL.LoadFromFile(TempPath);
+              if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
+                if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+                if (Result > 0) and (Result < 150) then Exit;
+              end;
+            except
+            end;
+          end;
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+
+  if Result > 0 then Exit;
+
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'nvidia-smi';
+    AProcess.Parameters.Add('--query-gpu=temperature.gpu');
+    AProcess.Parameters.Add('--format=csv,noheader');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 40 then begin
+          try AProcess.Terminate(1); except end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      if TryStrToInt(Trim(OutputStr), ValInt) then
+        Result := ValInt;
+    except
     end;
   finally
     AProcess.Free;
@@ -4386,7 +4912,7 @@ begin
 
     // Dialog box
     boxW := 66.0 * charWidth;
-    boxH := 38.0 * charHeight;
+    boxH := 46.0 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
     app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
@@ -4454,6 +4980,21 @@ begin
 
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 27.5 * charHeight, 1.2, toaLeft, 'Timer:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 27.5 * charHeight, 1.2, toaLeft, IntToStr(Round(fCurrentResult.BenchmarkDuration)) + ' seconds', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 29.0 * charHeight, 1.2, toaLeft, 'Display Server:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 29.0 * charHeight, 1.2, toaLeft, fCurrentResult.DisplayServer, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 30.5 * charHeight, 1.2, toaLeft, 'Resolution/Rate:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 30.5 * charHeight, 1.2, toaLeft, fCurrentResult.DisplayResolution + ' @ ' + fCurrentResult.RefreshRate, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 32.0 * charHeight, 1.2, toaLeft, 'Desktop Env:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.0 * charHeight, 1.2, toaLeft, fCurrentResult.DesktopEnvironment, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 33.5 * charHeight, 1.2, toaLeft, 'Storage Type:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.5 * charHeight, 1.2, toaLeft, fCurrentResult.StorageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 35.0 * charHeight, 1.2, toaLeft, 'Vulkan Driver:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.0 * charHeight, 1.2, toaLeft, fCurrentResult.VulkanDriver, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
     // Buttons
     gap := 5.0 * charWidth;
