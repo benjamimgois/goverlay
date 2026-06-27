@@ -272,6 +272,9 @@ begin
     'Memory optimization for AMD GPUs');
   SetHint('simdeckCheckBox', 'Simulate Steam Deck' + LineEnding +
     'Makes game detect system as Steam Deck');
+  SetHint('obs_vkcaptureCheckBox', 'OBS Vulkan Capture' + LineEnding +
+    'OBS_VKCAPTURE=1' + LineEnding +
+    'Activate Vulkan capture for OBS Studio');
   SetHint('wow64CheckBox', 'WOW64' + LineEnding +
     'Windows 64-bit compatibility mode');
   SetHint('fexstatsCheckBox', 'FEX Stats' + LineEnding +

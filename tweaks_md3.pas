@@ -16,7 +16,7 @@ type
   end;
 
 const
-  TWEAK_ROW_COUNT = 27;
+  TWEAK_ROW_COUNT = 28;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
     (CheckBox: nil; Category: 'Performance'; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
@@ -24,6 +24,7 @@ const
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
     (CheckBox: nil; Category: 'General';    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
+    (CheckBox: nil; Category: 'General';    VarName: 'OBS_VKCAPTURE=1';                  Description: 'Activate Vulkan capture for OBS Studio'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates Ray Tracing on GPUs without native support'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
     (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
@@ -81,27 +82,28 @@ begin
     3: Result := Form.enwaylandCheckBox;
     4: Result := Form.actprotonlogsCheckBox;
     5: Result := Form.usesdlCheckBox;
-    6: Result := Form.emurtCheckBox;
-    7: Result := Form.hidenvidiaCheckBox;
-    8: Result := Form.forcenvapiCheckBox;
-    9: Result := Form.wined3dCheckBox;
-    10: Result := Form.forcezinkCheckBox;
-    11: Result := Form.nofastclearsCheckBox;
-    12: Result := Form.FFSR4UpgradeCheckBox;
-    13: Result := Form.FDLSSUpgradeCheckBox;
-    14: Result := Form.FXeSSUpgradeCheckBox;
-    15: Result := Form.highpriCheckBox;
-    16: Result := Form.wow64CheckBox;
-    17: Result := Form.largeaddressCheckBox;
-    18: Result := Form.stagememCheckBox;
-    19: Result := Form.disablentsyncCheckBox;
-    20: Result := Form.heapdelayCheckBox;
-    21: Result := Form.FReEngineRTCheckBox;
-    22: Result := Form.FLowLatencyCheckBox;
-    23: Result := Form.FLowLatencyReflexCheckBox;
-    24: Result := Form.FLowLatencySpoofNvidiaCheckBox;
-    25: Result := Form.FLowLatencyHideAmdGpuCheckBox;
-    26: Result := Form.FAntilagCheckBox;
+    6: Result := Form.obs_vkcaptureCheckBox;
+    7: Result := Form.emurtCheckBox;
+    8: Result := Form.hidenvidiaCheckBox;
+    9: Result := Form.forcenvapiCheckBox;
+    10: Result := Form.wined3dCheckBox;
+    11: Result := Form.forcezinkCheckBox;
+    12: Result := Form.nofastclearsCheckBox;
+    13: Result := Form.FFSR4UpgradeCheckBox;
+    14: Result := Form.FDLSSUpgradeCheckBox;
+    15: Result := Form.FXeSSUpgradeCheckBox;
+    16: Result := Form.highpriCheckBox;
+    17: Result := Form.wow64CheckBox;
+    18: Result := Form.largeaddressCheckBox;
+    19: Result := Form.stagememCheckBox;
+    20: Result := Form.disablentsyncCheckBox;
+    21: Result := Form.heapdelayCheckBox;
+    22: Result := Form.FReEngineRTCheckBox;
+    23: Result := Form.FLowLatencyCheckBox;
+    24: Result := Form.FLowLatencyReflexCheckBox;
+    25: Result := Form.FLowLatencySpoofNvidiaCheckBox;
+    26: Result := Form.FLowLatencyHideAmdGpuCheckBox;
+    27: Result := Form.FAntilagCheckBox;
   else
     Result := nil;
   end;
@@ -902,14 +904,14 @@ begin
   BasicCard.Caption    := '';
   BasicCard.Color      := BG;
   BasicCard.OnPaint    := @FForm.PerfCardPaint;
-  BasicCard.SetBounds(2, 2, FForm.tweaksTabSheet.ClientWidth - 4, 182);
+  BasicCard.SetBounds(2, 2, FForm.tweaksTabSheet.ClientWidth - 4, 214);
   BasicCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(BasicCard);
   MakeLbl(BasicCard, 'Basic Tweaks');
 
   HalfW  := (BasicCard.Width - 12) div 2;
-  GenSec := MakeSec(BasicCard, 'General',  4,            HDR + GAP, HalfW, 182 - HDR - GAP - 4);
-  GfxSec := MakeSec(BasicCard, 'Graphics', 4 + HalfW + 4, HDR + GAP, HalfW, 182 - HDR - GAP - 4);
+  GenSec := MakeSec(BasicCard, 'General',  4,            HDR + GAP, HalfW, 214 - HDR - GAP - 4);
+  GfxSec := MakeSec(BasicCard, 'Graphics', 4 + HalfW + 4, HDR + GAP, HalfW, 214 - HDR - GAP - 4);
 
   // General controls → GenSec
   ReparentTo(FForm.simdeckCheckBox,       GenSec); DarkChk(FForm.simdeckCheckBox);       FForm.simdeckCheckBox.OnChange       := @FForm.TweaksCheckChange;
@@ -917,6 +919,7 @@ begin
   ReparentTo(FForm.actprotonlogsCheckBox, GenSec); DarkChk(FForm.actprotonlogsCheckBox); FForm.actprotonlogsCheckBox.OnChange := @FForm.TweaksCheckChange;
   ReparentTo(FForm.enwaylandCheckBox,     GenSec); DarkChk(FForm.enwaylandCheckBox);     FForm.enwaylandCheckBox.OnChange     := @FForm.TweaksCheckChange;
   ReparentTo(FForm.usesdlCheckBox,        GenSec); DarkChk(FForm.usesdlCheckBox);        FForm.usesdlCheckBox.OnChange        := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.obs_vkcaptureCheckBox, GenSec); DarkChk(FForm.obs_vkcaptureCheckBox); FForm.obs_vkcaptureCheckBox.OnChange := @FForm.TweaksCheckChange;
 
   // Graphics controls → GfxSec
   ReparentTo(FForm.emurtCheckBox,         GfxSec); DarkChk(FForm.emurtCheckBox);         FForm.emurtCheckBox.OnChange         := @FForm.TweaksCheckChange;
@@ -935,7 +938,7 @@ begin
   AdvCard.Caption    := '';
   AdvCard.Color      := BG;
   AdvCard.OnPaint    := @FForm.PerfCardPaint;
-  AdvCard.SetBounds(2, 189, FForm.tweaksTabSheet.ClientWidth - 4, 210);
+  AdvCard.SetBounds(2, 221, FForm.tweaksTabSheet.ClientWidth - 4, 210);
   AdvCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(AdvCard);
   MakeLbl(AdvCard, 'Advanced Tweaks');
@@ -982,7 +985,7 @@ begin
   // Check if any tweaks are active
   HasTweaks := FForm.GetGeneralCheckBox(0).Checked or FForm.GetGeneralCheckBox(1).Checked or
                FForm.GetGeneralCheckBox(2).Checked or FForm.GetGeneralCheckBox(3).Checked or
-               FForm.GetGeneralCheckBox(4).Checked or
+               FForm.GetGeneralCheckBox(4).Checked or FForm.GetGeneralCheckBox(5).Checked or
                FForm.GetGraphicsCheckBox(0).Checked or FForm.GetGraphicsCheckBox(1).Checked or
                FForm.GetGraphicsCheckBox(2).Checked or FForm.GetGraphicsCheckBox(3).Checked or
                FForm.GetGraphicsCheckBox(4).Checked or
@@ -1048,6 +1051,9 @@ begin
 
     if FForm.GetGeneralCheckBox(4).Checked then
       Ini.WriteString('Env', 'PROTON_USE_SDL', '1');
+
+    if FForm.GetGeneralCheckBox(5).Checked then
+      Ini.WriteString('Env', 'OBS_VKCAPTURE', '1');
 
     if FForm.GetGraphicsCheckBox(0).Checked then
       Ini.WriteString('Env', 'RADV_PERFTEST', 'rt,emulate_rt');
@@ -1201,6 +1207,7 @@ begin
     FForm.GetGeneralCheckBox(2).Checked := False;
     FForm.GetGeneralCheckBox(3).Checked := False;
     FForm.GetGeneralCheckBox(4).Checked := False;
+    FForm.GetGeneralCheckBox(5).Checked := False;
 
     // Reset graphicsCheckGroup checkboxes
     FForm.GetGraphicsCheckBox(0).Checked := False;
@@ -1260,6 +1267,8 @@ begin
         FForm.GetGeneralCheckBox(3).Checked := Val = '1'
       else if SameText(Key, 'PROTON_USE_SDL') then
         FForm.GetGeneralCheckBox(4).Checked := Val = '1'
+      else if SameText(Key, 'OBS_VKCAPTURE') then
+        FForm.GetGeneralCheckBox(5).Checked := Val = '1'
       else if SameText(Key, 'RADV_PERFTEST') and (Pos('rt', Val) > 0) then
         FForm.GetGraphicsCheckBox(0).Checked := True
       else if SameText(Key, 'PROTON_HIDE_NVIDIA_GPU') then

@@ -138,6 +138,7 @@ type
     customenvEdit: TEdit;
     advancedGroupBox: TGroupBox;
     simdeckCheckBox: TCheckBox;
+    obs_vkcaptureCheckBox: TCheckBox;
     highpriCheckBox: TCheckBox;
     tweaksImage: TImage;
     tweaksText: TStaticText;
@@ -3325,6 +3326,7 @@ begin
     2: Result := enwaylandCheckBox;      // Enable Wayland
     3: Result := actprotonlogsCheckBox;  // Active Proton Logs
     4: Result := usesdlCheckBox;         // Use SDL Input
+    5: Result := obs_vkcaptureCheckBox;  // OBS Vulkan Capture
   else
     raise Exception.Create('Invalid general checkbox index: ' + IntToStr(Index));
   end;

@@ -14052,7 +14052,7 @@ object goverlayform: Tgoverlayform
           AnchorSideRight.Control = tweaksTabSheet
           AnchorSideRight.Side = asrBottom
           Left = 2
-          Height = 182
+          Height = 214
           Top = 2
           Width = 824
           Anchors = [akTop, akLeft, akRight]
@@ -14060,7 +14060,7 @@ object goverlayform: Tgoverlayform
           BorderSpacing.Top = 2
           BorderSpacing.Right = 2
           Caption = 'Basic Tweaks'
-          ClientHeight = 153
+          ClientHeight = 185
           ClientWidth = 820
           ParentBackground = False
           TabOrder = 0
@@ -14068,13 +14068,13 @@ object goverlayform: Tgoverlayform
             AnchorSideLeft.Control = basicGroupBox
             AnchorSideTop.Control = basicGroupBox
             Left = 5
-            Height = 137
+            Height = 169
             Top = 5
             Width = 375
             BorderSpacing.Left = 5
             BorderSpacing.Top = 5
             Caption = 'General'
-            ClientHeight = 108
+            ClientHeight = 140
             ClientWidth = 371
             ParentBackground = False
             TabOrder = 0
@@ -14163,19 +14163,33 @@ object goverlayform: Tgoverlayform
               Caption = 'Use SDL Input'
               TabOrder = 5
             end
+            object obs_vkcaptureCheckBox: TCheckBox
+              AnchorSideLeft.Control = generalGroupBox
+              AnchorSideTop.Control = actprotonlogsCheckBox
+              AnchorSideTop.Side = asrBottom
+              Left = 10
+              Height = 22
+              Hint = 'OBS_VKCAPTURE=1'#10'Activate Vulkan capture for OBS Studio'
+              Top = 106
+              Width = 180
+              BorderSpacing.Left = 10
+              BorderSpacing.Top = 10
+              Caption = 'OBS Vulkan Capture'
+              TabOrder = 6
+            end
           end
           object graphicsGroupBox: TGroupBox
             AnchorSideLeft.Control = generalGroupBox
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = basicGroupBox
             Left = 390
-            Height = 137
+            Height = 169
             Top = 5
             Width = 375
             BorderSpacing.Left = 10
             BorderSpacing.Top = 5
             Caption = 'Graphics'
-            ClientHeight = 108
+            ClientHeight = 140
             ClientWidth = 371
             ParentBackground = False
             TabOrder = 1
