@@ -52,18 +52,17 @@ jobs:
           ./packaging/rpm/build-rpm.sh "$VERSION"
 
           # Organize and rename artifacts according to the required convention
-          VERSION_UNDERSCORE="${CLEAN_VERSION//./_}"
           mkdir ./dist
           
           # Rename AppImage
-          mv GOverlay-*-x86_64.AppImage "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.appimage"
+          mv GOverlay-*-x86_64.AppImage "./dist/goverlay-${CLEAN_VERSION}-x86_64.AppImage"
           
           # Rename Debian package
-          mv goverlay_*_amd64.deb "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.deb"
+          mv goverlay_*_amd64.deb "./dist/goverlay-${CLEAN_VERSION}-x86_64.deb"
           
           # Rename RPM package
           rm -f *debuginfo*.rpm
-          mv goverlay-*.x86_64.rpm "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.rpm"
+          mv goverlay-*.x86_64.rpm "./dist/goverlay-${CLEAN_VERSION}-x86_64.rpm"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -131,13 +130,12 @@ jobs:
         run: |
           TAG_NAME="${{ github.ref_name }}"
           CLEAN_VERSION="${TAG_NAME#v}"
-          VERSION_UNDERSCORE="${CLEAN_VERSION//./_}"
           mkdir ./dist
           
           if [ "${{ matrix.arch }}" = "amd64" ]; then
-            mv goverlay-${{ github.ref_name }}-amd64.flatpak "./dist/goverlay_${VERSION_UNDERSCORE}_x8664.flatpak"
+            mv goverlay-${{ github.ref_name }}-amd64.flatpak "./dist/goverlay-${CLEAN_VERSION}-x86_64.flatpak"
           else
-            mv goverlay-${{ github.ref_name }}-arm64.flatpak "./dist/goverlay_${VERSION_UNDERSCORE}_aarch64.flatpak"
+            mv goverlay-${{ github.ref_name }}-arm64.flatpak "./dist/goverlay-${CLEAN_VERSION}-aarch64.flatpak"
           fi
 
       - name: Upload bundle as artifact
@@ -182,6 +180,7 @@ jobs:
           generate_release_notes: true
           make_latest: true
           files: |
+            *.AppImage
             *.appimage
             *.deb
             *.rpm
