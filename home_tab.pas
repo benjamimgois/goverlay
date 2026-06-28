@@ -31,6 +31,7 @@ type
     procedure ClearConfigBtnClick(Sender: TObject);
     procedure ClearConfigBtnEnter(Sender: TObject);
     procedure ClearConfigBtnLeave(Sender: TObject);
+    procedure NicknameClick(Sender: TObject);
     procedure HomeChannelComboChange(Sender: TObject);
     function  GetMangoHudVersion: string;
     function  GetVkBasaltVersion: string;
@@ -206,7 +207,7 @@ begin
     Y    := CARD_M;
 
     // ── System (List) ────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 6 * ROW_H + 8);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 7 * ROW_H + 8);
     MkTitle(Card, 'System', CARD_P);
 
     // Clear Configuration button (right side of System card)
@@ -229,7 +230,7 @@ begin
 
     MkSep(Card, CARD_P + 22);
 
-    for i := 0 to 5 do
+    for i := 0 to 6 do
     begin
       Row  := CARD_P + 30 + i * ROW_H;
       ColX := CARD_P;
@@ -283,6 +284,19 @@ begin
           IconFile := 'data/icons/system/fingerprint.png';
           Lbl.Caption := 'Client ID: ' + GetGoverlayClientID;
           Ico.Hint := 'Client ID';
+        end;
+        6:
+        begin
+          IconFile := 'data/icons/system/fingerprint.png';
+          if GetUserNickname <> '' then
+            Lbl.Caption := 'Benchmark Nickname: ' + GetUserNickname + '  [click to edit]'
+          else
+            Lbl.Caption := 'Benchmark Nickname: Anonymous  [click to set]';
+          Ico.Hint := 'Click to set display nickname for leaderboards';
+          Lbl.Cursor := crHandPoint;
+          Ico.Cursor := crHandPoint;
+          Lbl.OnClick := @NicknameClick;
+          Ico.OnClick := @NicknameClick;
         end;
       end;
       WriteLn(StdErr, '[HomeIcon] system icon="', IconFile, '" full="', GetAppBaseDir + IconFile, '" exists=', FileExists(GetAppBaseDir + IconFile));
@@ -858,6 +872,15 @@ begin
       finally S.Free; end;
     except end;
   finally P.Free; end;
+end;
+
+procedure THomeTabHelper.NicknameClick(Sender: TObject);
+var
+  NewNick: string;
+begin
+  NewNick := InputBox('Benchmark Nickname', 'Enter display nickname for leaderboard benchmark uploads:', GetUserNickname);
+  SaveUserNickname(NewNick);
+  InitHomeTab;
 end;
 
 end.

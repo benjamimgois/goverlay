@@ -3210,10 +3210,154 @@ begin
   Result := GetPersistentUUID;
 end;
 
+function GetGoverlayConfigFilePath: string;
+var
+  HomeDir, ConfigPath: string;
+begin
+  HomeDir := GetEnvironmentVariable('HOME');
+  if HomeDir = '' then HomeDir := '/tmp';
+  ConfigPath := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if ConfigPath = '' then
+    ConfigPath := HomeDir + '/.config';
+  Result := IncludeTrailingPathDelimiter(ConfigPath + '/goverlay') + 'goverlay.conf';
+end;
+
+function ReadPasCubeNickname(out APrompted: Boolean): string;
+var
+  ConfigPath: string;
+  SL: TStringList;
+  i, p: Integer;
+  Line, Key, Val: string;
+  InUser: Boolean;
+begin
+  Result := '';
+  APrompted := False;
+  ConfigPath := GetGoverlayConfigFilePath;
+  if FileExists(ConfigPath) then begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile(ConfigPath);
+      InUser := False;
+      for i := 0 to SL.Count - 1 do begin
+        Line := Trim(SL[i]);
+        if (Line <> '') and (Line[1] = '[') then begin
+          if InUser then Break;
+          InUser := SameText(Line, '[User]');
+        end else if InUser then begin
+          p := Pos('=', Line);
+          if p > 0 then begin
+            Key := Trim(Copy(Line, 1, p - 1));
+            Val := Trim(Copy(Line, p + 1, MaxInt));
+            if SameText(Key, 'Nickname') then Result := Val;
+            if SameText(Key, 'NicknamePrompted') then APrompted := (Val = '1') or SameText(Val, 'True');
+          end;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+end;
+
+procedure SavePasCubeNickname(const ANickname: string; APrompted: Boolean);
+var
+  ConfigPath, Dir: string;
+  SL: TStringList;
+  i, p, UserSectionIdx: Integer;
+  Line, Key: string;
+  InUser, FoundNick, FoundPrompted: Boolean;
+begin
+  ConfigPath := GetGoverlayConfigFilePath;
+  Dir := ExtractFilePath(ConfigPath);
+  if not DirectoryExists(Dir) then ForceDirectories(Dir);
+  SL := TStringList.Create;
+  try
+    if FileExists(ConfigPath) then SL.LoadFromFile(ConfigPath);
+    InUser := False;
+    FoundNick := False;
+    FoundPrompted := False;
+    UserSectionIdx := -1;
+    i := 0;
+    while i < SL.Count do begin
+      Line := Trim(SL[i]);
+      if (Line <> '') and (Line[1] = '[') then begin
+        if InUser then Break;
+        InUser := SameText(Line, '[User]');
+        if InUser then UserSectionIdx := i;
+      end else if InUser then begin
+        p := Pos('=', Line);
+        if p > 0 then begin
+          Key := Trim(Copy(Line, 1, p - 1));
+          if SameText(Key, 'Nickname') then begin
+            SL[i] := 'Nickname=' + ANickname;
+            FoundNick := True;
+          end else if SameText(Key, 'NicknamePrompted') then begin
+            if APrompted then SL[i] := 'NicknamePrompted=1' else SL[i] := 'NicknamePrompted=0';
+            FoundPrompted := True;
+          end;
+        end;
+      end;
+      Inc(i);
+    end;
+
+    if UserSectionIdx = -1 then begin
+      SL.Add('[User]');
+      SL.Add('Nickname=' + ANickname);
+      if APrompted then SL.Add('NicknamePrompted=1') else SL.Add('NicknamePrompted=0');
+    end else begin
+      if not FoundNick then SL.Insert(UserSectionIdx + 1, 'Nickname=' + ANickname);
+      if not FoundPrompted then SL.Insert(UserSectionIdx + 2, 'NicknamePrompted=1');
+    end;
+    SL.SaveToFile(ConfigPath);
+  finally
+    SL.Free;
+  end;
+end;
+
+procedure EnsurePasCubeNicknamePrompted;
+var
+  Prompted: Boolean;
+  CurrentNick, TmpFile: string;
+  Proc: TProcess;
+  SL: TStringList;
+begin
+  CurrentNick := ReadPasCubeNickname(Prompted);
+  if not Prompted then begin
+    TmpFile := GetTempDir + 'pascube_nick_' + IntToStr(GetProcessID) + '.txt';
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('if command -v zenity >/dev/null 2>&1; then ' +
+        'zenity --entry --title="Leaderboard Nickname (Optional)" --text="Enter an optional display nickname for benchmark uploads.\nLeaving this field blank keeps your submission anonymous." --entry-text="' + CurrentNick + '" > ' + TmpFile + ' 2>/dev/null; ' +
+        'elif command -v kdialog >/dev/null 2>&1; then ' +
+        'kdialog --title "Leaderboard Nickname (Optional)" --inputbox "Enter an optional display nickname for benchmark uploads.\nLeaving this field blank keeps your submission anonymous." "' + CurrentNick + '" > ' + TmpFile + ' 2>/dev/null; ' +
+        'fi');
+      Proc.Options := [poWaitOnExit];
+      try Proc.Execute; except end;
+    finally
+      Proc.Free;
+    end;
+
+    if FileExists(TmpFile) then begin
+      SL := TStringList.Create;
+      try
+        SL.LoadFromFile(TmpFile);
+        if SL.Count > 0 then CurrentNick := Trim(SL[0]);
+      finally
+        SL.Free;
+        DeleteFile(TmpFile);
+      end;
+    end;
+    SavePasCubeNickname(CurrentNick, True);
+  end;
+end;
+
 procedure TPasCubeScreen.SubmitBenchmarkResults;
-var URL: string;
+var URL, UserNick: string;
     JSONObj: TJSONObject;
     Payload: string;
+    Prompted: Boolean;
 begin
   URL := GetSubmitURL;
   if URL = '' then begin
@@ -3221,9 +3365,13 @@ begin
     Exit;
   end;
 
+  EnsurePasCubeNicknamePrompted;
+  UserNick := ReadPasCubeNickname(Prompted);
+  if UserNick = '' then UserNick := 'Anonymous';
+
   JSONObj := TJSONObject.Create;
   try
-    JSONObj.Add('username', 'Anonymous');
+    JSONObj.Add('username', UserNick);
     JSONObj.Add('cpu', GetCPUName);
     JSONObj.Add('gpu', CleanGPUName(fCurrentResult.DeviceName));
     JSONObj.Add('vram', GetVRAMSize);

@@ -5,7 +5,7 @@ unit systemdetector;
 interface
 
 uses
-  Classes, SysUtils, Process, StrUtils, FileUtil;
+  Classes, SysUtils, Process, StrUtils, FileUtil, IniFiles, Dialogs, configmanager;
 
 type
   /// <summary>
@@ -138,6 +138,10 @@ function GetSysGPUDriver: string;
 /// Gets or generates the Goverlay Client ID
 /// </summary>
 function GetGoverlayClientID: string;
+function GetUserNickname: string;
+procedure SaveUserNickname(const ANickname: string);
+function GetPasCubeNicknameParam: string;
+procedure CheckPromptUserNickname;
 
 /// <summary>
 /// Checks whether a shared library (e.g. 'libqt6pas') is available on the
@@ -1031,6 +1035,97 @@ end;
 function GetGoverlayClientID: string;
 begin
   Result := GetSHA256Hash(GetGPUHardwareSignature);
+end;
+
+function GetUserNickname: string;
+var
+  Ini: TIniFile;
+  ConfigPath: string;
+begin
+  Result := '';
+  try
+    ConfigPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'goverlay.conf';
+    if FileExists(ConfigPath) then
+    begin
+      Ini := TIniFile.Create(ConfigPath);
+      try
+        Result := Ini.ReadString('User', 'Nickname', '');
+      finally
+        Ini.Free;
+      end;
+    end;
+  except
+  end;
+end;
+
+procedure SaveUserNickname(const ANickname: string);
+var
+  Ini: TIniFile;
+  ConfigPath, ConfigDir: string;
+begin
+  try
+    ConfigPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'goverlay.conf';
+    ConfigDir := ExtractFilePath(ConfigPath);
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      Ini.WriteString('User', 'Nickname', Trim(ANickname));
+    finally
+      Ini.Free;
+    end;
+  except
+  end;
+end;
+
+function GetPasCubeNicknameParam: string;
+var
+  Nick: string;
+begin
+  Nick := GetUserNickname;
+  if Nick = '' then Nick := 'Anonymous';
+  Result := ' --nickname "' + Nick + '"';
+end;
+
+procedure CheckPromptUserNickname;
+var
+  Ini: TIniFile;
+  ConfigPath, ConfigDir, Nick: string;
+  Prompted: Boolean;
+begin
+  try
+    ConfigPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'goverlay.conf';
+    Prompted := False;
+    if FileExists(ConfigPath) then
+    begin
+      Ini := TIniFile.Create(ConfigPath);
+      try
+        Prompted := Ini.ReadBool('User', 'NicknamePrompted', False);
+      finally
+        Ini.Free;
+      end;
+    end;
+
+    if not Prompted then
+    begin
+      Nick := InputBox('Leaderboard Nickname (Optional)',
+        'Enter an optional display nickname for benchmark uploads.' + LineEnding +
+        'Leaving this field blank keeps your submissions anonymous.',
+        GetUserNickname);
+      SaveUserNickname(Nick);
+
+      ConfigDir := ExtractFilePath(ConfigPath);
+      if not DirectoryExists(ConfigDir) then
+        ForceDirectories(ConfigDir);
+      Ini := TIniFile.Create(ConfigPath);
+      try
+        Ini.WriteBool('User', 'NicknamePrompted', True);
+      finally
+        Ini.Free;
+      end;
+    end;
+  except
+  end;
 end;
 
 
