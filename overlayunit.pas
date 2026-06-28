@@ -1235,6 +1235,8 @@ type
     procedure ApplyNavWidth(AWidth: Integer);
     procedure ApplyNavCollapsed;
     function  GetGameConfigDir(const AGameName: string): string;
+    function  GetActiveCustomConfigFile: string;
+    function  GetTargetCustomConfigFile: string;
     procedure LoadGameToggleStates;
     procedure ReflowPresetTab(AContentW: Integer);
     procedure ReflowVisualTab(AContentW: Integer);
@@ -1715,24 +1717,42 @@ end;
 
 
 procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
+var
+  GameCfgDir: string;
 begin
+  CUSTOMCFGFILE := GetActiveCustomConfigFile;
 
-  // Update the config files path with proper XDG and Flatpak support
-   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
-   MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  if FActiveGameName <> '' then
+  begin
+    GameCfgDir := GetGameConfigDir(FActiveGameName);
+    if not DirectoryExists(GameCfgDir) then
+      ForceDirectories(GameCfgDir);
+    MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
+  end
+  else
+  begin
+    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  end;
 
+  if not FileExists(CUSTOMCFGFILE) then
+  begin
+    MessageDlg(
+      'Custom Preset Required',
+      'No custom configuration was found to load.' + LineEnding + LineEnding +
+      'To create your custom preset:' + LineEnding +
+      '1. Customize your desired elements and colors in GOverlay.' + LineEnding +
+      '2. Click the menu button in the bottom bar.' + LineEnding +
+      '3. Select "Save Options" -> "Save as Custom Config".' + LineEnding + LineEnding +
+      'Once created, click "Custom" anytime to apply your preset!',
+      mtInformation,
+      [mbOK],
+      0
+    );
+    Exit;
+  end;
 
-
-
-if not FileExists(CUSTOMCFGFILE) then
-begin
-  ShowMessage('You need to save a custom preset first. Click on the hamburger menu and click save as custom config.');
-end
-
-else
-begin
-  ExecuteShellcommand('cp ' + CUSTOMCFGFILE + ' ' + MANGOHUDCFGFILE);
-end;
+  ExecuteShellcommand('cp ' + QuotedStr(CUSTOMCFGFILE) + ' ' + QuotedStr(MANGOHUDCFGFILE));
+  LoadMangoHudConfig;
 
   // Change button color
   fullBitbtn.Color:=clDefault;
@@ -1742,8 +1762,7 @@ end;
   usercustomBitbtn.Color:=$007F5500;
 
   SendNotification('MangoHud', 'Reloading custom user preset', GetIconFile);
-
-  end;
+end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 var
@@ -5402,14 +5421,23 @@ end; // ########################################      end save button click     
 
 procedure Tgoverlayform.savecustomMenuItemClick(Sender: TObject);
 begin
-      // Save current config
-    saveBitbtn.Click;
+  // Save current config
+  saveBitbtn.Click;
 
-    // Copy Mangohud.conf file to custom.conf
-    ExecuteShellCommand('cp '+ MANGOHUDCFGFILE + ' ' + CUSTOMCFGFILE);
+  CUSTOMCFGFILE := GetTargetCustomConfigFile;
+  if FActiveGameName <> '' then
+    MANGOHUDCFGFILE := GetGameConfigDir(FActiveGameName) + 'MangoHud.conf'
+  else
+    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
 
-    //Notification
-    SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
+  // Copy Mangohud.conf file to custom.conf
+  ExecuteShellCommand('cp ' + QuotedStr(MANGOHUDCFGFILE) + ' ' + QuotedStr(CUSTOMCFGFILE));
+
+  // Update preset card visuals so the Custom card instantly activates
+  UpdatePresetCardVisuals;
+
+  // Notification
+  SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
 end;
 
 procedure Tgoverlayform.saveasMenuItemClick(Sender: TObject);
@@ -7352,6 +7380,37 @@ begin
   // the same location whether GOverlay is running natively or as Flatpak.
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
+end;
+
+function Tgoverlayform.GetTargetCustomConfigFile: string;
+var
+  GameCfgDir: string;
+begin
+  if FActiveGameName <> '' then
+  begin
+    GameCfgDir := GetGameConfigDir(FActiveGameName);
+    if not DirectoryExists(GameCfgDir) then
+      ForceDirectories(GameCfgDir);
+    Result := GameCfgDir + 'custom.conf';
+  end
+  else
+  begin
+    Result := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
+  end;
+end;
+
+function Tgoverlayform.GetActiveCustomConfigFile: string;
+var
+  GameCfgDir, GameCustom: string;
+begin
+  if FActiveGameName <> '' then
+  begin
+    GameCfgDir := GetGameConfigDir(FActiveGameName);
+    GameCustom := GameCfgDir + 'custom.conf';
+    if FileExists(GameCustom) then
+      Exit(GameCustom);
+  end;
+  Result := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
 end;
 
 function Tgoverlayform.FindFileInDir(const ADir, AFileName: string): string;

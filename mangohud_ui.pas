@@ -256,15 +256,16 @@ begin
   else
     LblColor := DarkTextColor;
 
-  // Selection bar is drawn directly in PresetCardPaint — no TPanel visibility needed.
-  // We only Invalidate each card so OnPaint runs with the updated FActiveLayoutCard/
-  // FActiveColorCard state.
   for i := 0 to 4 do
   begin
     FPresetLayoutCards[i].Invalidate;
     for j := 0 to FPresetLayoutCards[i].ControlCount - 1 do
+    begin
       if FPresetLayoutCards[i].Controls[j] is TLabel then
-        TLabel(FPresetLayoutCards[i].Controls[j]).Font.Color := LblColor;
+        TLabel(FPresetLayoutCards[i].Controls[j]).Font.Color := LblColor
+      else if FPresetLayoutCards[i].Controls[j] is TImage then
+        TImage(FPresetLayoutCards[i].Controls[j]).Enabled := True;
+    end;
   end;
   for i := 0 to 3 do
   begin
@@ -285,6 +286,7 @@ const
   DARK_SEL    = $0050321E;   // RGB( 30, 50, 80) blue-tinted selection
   DARK_BRD    = $00645050;   // RGB( 80, 80,100) subtle border
   DARK_H_BRD  = $00998888;   // RGB(136,136,153) hover border
+
   // Light theme
   LIGHT_BG    = $00F2F2F2;   // RGB(242,242,242) near-white
   LIGHT_HOVER = $00EEE4E4;   // RGB(228,228,238) faint blue tint
@@ -334,8 +336,7 @@ begin
   Card.Canvas.Brush.Style := bsSolid;
   Card.Canvas.FillRect(Card.ClientRect);
 
-  // 2. Selection accent bar — 4 px, inset 2 px from sides, flush with the 1px border.
-  //    Drawn on canvas (not a child TPanel) so z-order is never an issue.
+  // 2. Selection accent bar
   if IsSelected then
   begin
     Card.Canvas.Brush.Color := clHighlight;
@@ -364,6 +365,11 @@ begin
   for i := 0 to 4 do
     if Card = FPresetLayoutCards[i] then
     begin
+      if (i = 4) and not FileExists(GetActiveCustomConfigFile) then
+      begin
+        usercustomBitBtnClick(usercustomBitBtn);
+        Exit;
+      end;
       FActiveLayoutCard := i;
       UpdatePresetCardVisuals;
       case i of
