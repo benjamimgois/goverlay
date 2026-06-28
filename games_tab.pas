@@ -234,9 +234,10 @@ end;
 
 procedure TCoverDownloadThread.Execute;
 var
-  i: Integer;
-  AppID, GameName, OutPath, Url: string;
+  i, j, k, m, n: Integer;
+  AppID, GameName, OutPath, Url, TmpFile, JsonStr: string;
   Proc: TProcess;
+  CdnUrls, S: TStringList;
 begin
   ForceDirectories(FCacheDir);
   WriteLn(StdErr, '[CoverThread] Execute started. FAppIDs.Count=', FAppIDs.Count);
@@ -264,43 +265,117 @@ begin
       Continue;
     end;
 
-    // Try portrait cover first, then header
-    Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/library_600x900.jpg';
-    WriteLn(StdErr, '[CoverThread] Downloading from Steam CDN: ', Url);
-    Proc := TProcess.Create(nil);
+    // Try multi-CDN candidate URLs
+    CdnUrls := TStringList.Create;
     try
-      Proc.Executable := 'curl';
-      Proc.Parameters.Add('-s');
-      Proc.Parameters.Add('-L');
-      Proc.Parameters.Add('--max-time');
-      Proc.Parameters.Add('15');
-      Proc.Parameters.Add('--fail');
-      Proc.Parameters.Add('-o');
-      Proc.Parameters.Add(OutPath);
-      Proc.Parameters.Add(Url);
-      Proc.Options := [poWaitOnExit, poNoConsole];
-      Proc.Execute;
-      WriteLn(StdErr, '[CoverThread] curl portrait exit code=', Proc.ExitCode, ' exists=', FileExists(OutPath));
-      if not FileExists(OutPath) or (Proc.ExitCode <> 0) then
+      CdnUrls.Add('https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/' + AppID + '/library_600x900.jpg');
+      CdnUrls.Add('https://cdn.cloudflare.steamstatic.com/steam/apps/' + AppID + '/library_600x900.jpg');
+      CdnUrls.Add('https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/library_600x900.jpg');
+      CdnUrls.Add('https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/' + AppID + '/header.jpg');
+      CdnUrls.Add('https://cdn.cloudflare.steamstatic.com/steam/apps/' + AppID + '/header.jpg');
+      CdnUrls.Add('https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/header.jpg');
+
+      for j := 0 to CdnUrls.Count - 1 do
       begin
-        // Fallback to header image
-        DeleteFile(OutPath);
-        Proc.Parameters.Clear;
-        Url := 'https://cdn.akamai.steamstatic.com/steam/apps/' + AppID + '/header.jpg';
-        WriteLn(StdErr, '[CoverThread] Downloading from Steam CDN header: ', Url);
-        Proc.Parameters.Add('-s');
-        Proc.Parameters.Add('-L');
-        Proc.Parameters.Add('--max-time');
-        Proc.Parameters.Add('15');
-        Proc.Parameters.Add('--fail');
-        Proc.Parameters.Add('-o');
-        Proc.Parameters.Add(OutPath);
-        Proc.Parameters.Add(Url);
-        Proc.Execute;
-        WriteLn(StdErr, '[CoverThread] curl header exit code=', Proc.ExitCode, ' exists=', FileExists(OutPath));
+        Url := CdnUrls[j];
+        Proc := TProcess.Create(nil);
+        try
+          Proc.Executable := 'curl';
+          Proc.Parameters.Add('-s');
+          Proc.Parameters.Add('-L');
+          Proc.Parameters.Add('--connect-timeout');
+          Proc.Parameters.Add('3');
+          Proc.Parameters.Add('--max-time');
+          Proc.Parameters.Add('6');
+          Proc.Parameters.Add('--fail');
+          Proc.Parameters.Add('-o');
+          Proc.Parameters.Add(OutPath);
+          Proc.Parameters.Add(Url);
+          Proc.Options := [poWaitOnExit, poNoConsole];
+          try Proc.Execute; except end;
+        finally
+          Proc.Free;
+        end;
+
+        if FileExists(OutPath) and (FileSize(OutPath) > 0) then
+        begin
+          WriteLn(StdErr, '[CoverThread] CDN download successful from ', Url);
+          Break;
+        end
+        else
+          DeleteFile(OutPath);
       end;
     finally
-      Proc.Free;
+      CdnUrls.Free;
+    end;
+
+    // Fallback to Steam Store API details if direct CDN URLs failed
+    if (not FileExists(OutPath)) or (FileSize(OutPath) = 0) then
+    begin
+      TmpFile := GetTempDir + 'goverlay_steam_api_' + AppID + '_' + IntToStr(GetProcessID) + '.json';
+      Proc := TProcess.Create(nil);
+      try
+        Proc.Executable := 'curl';
+        Proc.Parameters.Add('-s');
+        Proc.Parameters.Add('-L');
+        Proc.Parameters.Add('--connect-timeout');
+        Proc.Parameters.Add('3');
+        Proc.Parameters.Add('--max-time');
+        Proc.Parameters.Add('6');
+        Proc.Parameters.Add('-o');
+        Proc.Parameters.Add(TmpFile);
+        Proc.Parameters.Add('https://store.steampowered.com/api/appdetails?appids=' + AppID);
+        Proc.Options := [poWaitOnExit, poNoConsole];
+        try Proc.Execute; except end;
+      finally
+        Proc.Free;
+      end;
+
+      if FileExists(TmpFile) then
+      begin
+        JsonStr := '';
+        S := TStringList.Create;
+        try
+          S.LoadFromFile(TmpFile);
+          JsonStr := S.Text;
+        finally
+          S.Free;
+          DeleteFile(TmpFile);
+        end;
+
+        k := Pos('"header_image":"', JsonStr);
+        if k = 0 then k := Pos('"capsule_image":"', JsonStr);
+        if k > 0 then
+        begin
+          m := PosEx('http', JsonStr, k);
+          if m > 0 then
+          begin
+            n := m;
+            while (n <= Length(JsonStr)) and (JsonStr[n] <> '"') do Inc(n);
+            Url := Copy(JsonStr, m, n - m);
+            Url := StringReplace(Url, '\/', '/', [rfReplaceAll]);
+            if Url <> '' then
+            begin
+              Proc := TProcess.Create(nil);
+              try
+                Proc.Executable := 'curl';
+                Proc.Parameters.Add('-s');
+                Proc.Parameters.Add('-L');
+                Proc.Parameters.Add('--max-time');
+                Proc.Parameters.Add('10');
+                Proc.Parameters.Add('--fail');
+                Proc.Parameters.Add('-o');
+                Proc.Parameters.Add(OutPath);
+                Proc.Parameters.Add(Url);
+                Proc.Options := [poWaitOnExit, poNoConsole];
+                try Proc.Execute; except end;
+              finally
+                Proc.Free;
+              end;
+            end;
+          end;
+        end;
+      end;
     end;
 
     // Fallback to Web search if Steam CDN fails
@@ -798,9 +873,25 @@ begin
             Continue;
 
           // Look for local cover; if absent, queue for CDN download
-          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
           if not FileExists(ImagePath) then
             ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/header.jpg';
           if not FileExists(ImagePath) then
             ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
           if not FileExists(ImagePath) then
