@@ -49,6 +49,7 @@ type
     FForm:      Tgoverlayform;
     FCurrentCardIdx: Integer;
     FCurrentPath:    string;
+    FCurrentIsFallback: Boolean;
     procedure DoUpdateImage;
   protected
     procedure Execute; override;
@@ -220,6 +221,12 @@ begin
     try
       Assign(Bmp);
       SaveToFile(APath);
+      with TStringList.Create do
+      try
+        SaveToFile(APath + '.fallback');
+      finally
+        Free;
+      end;
       WriteLn(StdErr, '[CoverThread] GenerateFallbackCover saved successfully to ', APath);
     except
       on E: Exception do
@@ -474,6 +481,12 @@ begin
     finally
       ScaledBmp.Free;
     end;
+    for j := 0 to CardPanel.ControlCount - 1 do
+      if (CardPanel.Controls[j] is TLabel) and (CardPanel.Controls[j].Tag = 9991) then
+      begin
+        CardPanel.Controls[j].Visible := FCurrentIsFallback;
+        Break;
+      end;
     FForm.ApplyCardBrightness(CardPanel, 100);
   except
   end;
@@ -485,7 +498,7 @@ procedure TNonSteamCoverThread.Execute;
 var
   i: Integer;
   AppId: string;
-  GotCover: Boolean;
+  GotCover, IsFallbackCover: Boolean;
 begin
   for i := 0 to High(FItems) do
   begin
@@ -496,6 +509,7 @@ begin
     begin
       FCurrentCardIdx := FItems[i].CardIndex;
       FCurrentPath := FItems[i].CachePath;
+      FCurrentIsFallback := FileExists(FItems[i].CachePath + '.fallback');
       Synchronize(@DoUpdateImage);
       Continue;
     end;
@@ -503,17 +517,24 @@ begin
     WriteLn(StdErr, '[NonSteamCoverThread] Processing GameName="', FItems[i].GameName, '" CachePath="', FItems[i].CachePath, '"');
 
     GotCover := False;
+    IsFallbackCover := False;
 
     // 1st attempt: Steam Store API
     if Assigned(FForm) and not FForm.FClosing then
       if FForm.SearchSteamStoreGame(FItems[i].GameName, AppId) then
         if FForm.DownloadSteamCover(AppId, FItems[i].CachePath) then
+        begin
           GotCover := True;
+          DeleteFile(FItems[i].CachePath + '.fallback');
+        end;
 
     // 2nd attempt: Web image search
     if not GotCover and Assigned(FForm) and not FForm.FClosing then
       if FForm.SearchWebCover(FItems[i].GameName, FItems[i].CachePath) then
+      begin
         GotCover := True;
+        DeleteFile(FItems[i].CachePath + '.fallback');
+      end;
 
     // 3rd attempt: GOverlay Icon fallback
     if not GotCover and (not FileExists(FItems[i].CachePath) or (FileSize(FItems[i].CachePath) = 0)) then
@@ -522,6 +543,7 @@ begin
       DeleteFile(FItems[i].CachePath);
       GenerateFallbackCover(FItems[i].CachePath, FForm);
       GotCover := True;
+      IsFallbackCover := True;
     end;
 
     if GotCover or FileExists(FItems[i].CachePath) then
@@ -529,6 +551,7 @@ begin
       WriteLn(StdErr, '[NonSteamCoverThread] Updating image card index=', FItems[i].CardIndex, ' path=', FItems[i].CachePath);
       FCurrentCardIdx := FItems[i].CardIndex;
       FCurrentPath := FItems[i].CachePath;
+      FCurrentIsFallback := IsFallbackCover or FileExists(FItems[i].CachePath + '.fallback');
       Synchronize(@DoUpdateImage);
     end;
   end;
@@ -1402,6 +1425,7 @@ begin
       BdgLbl.OnMouseLeave := @GameCardMouseLeave;
       BdgLbl.OnClick := @GameCardClick;
       BdgLbl.OnMouseUp := @GameCardMouseUp;
+      BdgLbl.Tag := 9991;  // marker: non-Steam card title label
 
       // Compute badges from game-specific config dir (if user configured it)
       GameCfgDir := GetGameConfigDir(GameName);
@@ -1576,6 +1600,12 @@ begin
             end;
 
             FCardPanels.Add(CardPanel);
+            for k := 0 to CardPanel.ControlCount - 1 do
+              if (CardPanel.Controls[k] is TLabel) and (CardPanel.Controls[k].Tag = 9991) then
+              begin
+                CardPanel.Controls[k].Visible := not (HasCover and not FileExists(CachePath + '.fallback'));
+                Break;
+              end;
             if HasCover then
             begin
               ScaledBmp := TBitmap.Create;
