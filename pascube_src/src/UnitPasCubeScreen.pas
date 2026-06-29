@@ -4479,7 +4479,7 @@ end;
 var app: TPasCubeApplication;
     cx, cy: TpvFloat;
     i, j: Integer;
-    lineStr, resultStr, descStr: String;
+    lineStr, resultStr, descStr, nickname: String;
     leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
      HWRefs: array[0..11] of THardwareRef;
      TempHW: THardwareRef;
@@ -4499,7 +4499,7 @@ var app: TPasCubeApplication;
      clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
      returnBtnWidth, returnBtnX, groupX, groupWidth: TpvFloat;
      submitBtnWidth, submitBtnX: TpvFloat;
-     isReturnHovered, isClearHovered, isSubmitHovered: Boolean;
+     isReturnHovered, isClearHovered, isSubmitHovered, prompted: Boolean;
      submitStr: String;
      fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
@@ -5053,6 +5053,8 @@ begin
 
   // --- SUBMIT CONFIRMATION DIALOG ---
   if fSubmitConfirmPending then begin
+    nickname := ReadPasCubeNickname(prompted);
+    if nickname = '' then nickname := 'Anonymous';
     // Dim background
     app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0,
                            0.0, 0.0, 0.0, 0.6,
@@ -5115,7 +5117,7 @@ begin
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 20.0 * charHeight, 1.2, toaLeft, IntToStr(fCurrentResult.PhaseResults[3].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 21.5 * charHeight, 1.2, toaLeft, 'Contributor:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 21.5 * charHeight, 1.2, toaLeft, 'Anonymous', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 21.5 * charHeight, 1.2, toaLeft, nickname, 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
 
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 23.0 * charHeight, 1.2, toaLeft, 'Client ID:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 23.0 * charHeight, 1.2, toaLeft, Copy(GetPersistentUUID, 1, 8), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);

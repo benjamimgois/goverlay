@@ -21413,7 +21413,7 @@ object goverlayform: Tgoverlayform
       Caption = '-'
     end
     object settingsWhatsNewMenuItem: TMenuItem
-      Caption = 'What''s new'
+      Caption = 'What''s new ?'
       ImageIndex = 19
       OnClick = whatsNewMenuItemClick
     end
