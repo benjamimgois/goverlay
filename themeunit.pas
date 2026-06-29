@@ -94,6 +94,12 @@ function IsGNOMEDesktop: Boolean;
 /// <param name="AForm">The form to center</param>
 procedure CenterFormOnScreen(AForm: TForm);
 
+/// <summary>
+/// Applies modern semitransparent scrollbar styling (QSS) to a control
+/// </summary>
+/// <param name="AWinControl">The wincontrol to apply scrollbar QSS to</param>
+procedure ApplyModernScrollBarStylesheet(AWinControl: TWinControl);
+
 implementation
 
 uses
@@ -144,6 +150,29 @@ begin
   end;
 end;
 
+procedure ApplyModernScrollBarStylesheet(AWinControl: TWinControl);
+var
+  SS: WideString;
+begin
+  if not Assigned(AWinControl) then Exit;
+  if not AWinControl.HandleAllocated then
+    AWinControl.HandleNeeded;
+  if not AWinControl.HandleAllocated then Exit;
+
+  SS := 'QScrollBar:vertical { border: none; background: transparent; width: 6px; margin: 0px; } ' +
+        'QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.25); min-height: 20px; border-radius: 3px; } ' +
+        'QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.5); } ' +
+        'QScrollBar::handle:vertical:pressed { background: rgba(255, 255, 255, 0.75); } ' +
+        'QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { border: none; background: none; height: 0px; } ' +
+        'QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; } ' +
+        'QScrollBar:horizontal { border: none; background: transparent; height: 6px; margin: 0px; } ' +
+        'QScrollBar::handle:horizontal { background: rgba(255, 255, 255, 0.25); min-width: 20px; border-radius: 3px; } ' +
+        'QScrollBar::handle:horizontal:hover { background: rgba(255, 255, 255, 0.5); } ' +
+        'QScrollBar::sub-line:horizontal, QScrollBar::add-line:horizontal { border: none; background: none; width: 0px; } ' +
+        'QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }';
+  QWidget_setStyleSheet(TQtWidget(AWinControl.Handle).Widget, @SS);
+end;
+
 procedure DoApplyTheme(AControl: TWinControl; ATheme: TThemeMode);
 var
   i, j: Integer;
@@ -165,7 +194,10 @@ begin
   end;
 
   if AControl is TForm then
+  begin
     TForm(AControl).Color := BgColor;
+    ApplyModernScrollBarStylesheet(AControl);
+  end;
 
   for i := 0 to AControl.ControlCount - 1 do
   begin
@@ -175,13 +207,23 @@ begin
     if ctrl.Tag = 9999 then
       Continue;
 
-    if ctrl is TMemo then
+    if ctrl is TScrollBox then
+    begin
+      if ctrl is TWinControl then
+      begin
+        ApplyModernScrollBarStylesheet(TWinControl(ctrl));
+        DoApplyTheme(TWinControl(ctrl), ATheme);
+      end;
+    end
+    else if ctrl is TMemo then
     begin
       TMemo(ctrl).Font.Color := TextColor;
       if ATheme = tmDark then
         TMemo(ctrl).Color := DarkerBackgroundColor
       else
         TMemo(ctrl).Color := LightBackgroundColor;
+      if ctrl is TWinControl then
+        ApplyModernScrollBarStylesheet(TWinControl(ctrl));
     end
     else if ctrl is TComboBox then
     begin
@@ -280,6 +322,16 @@ begin
     end
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := BgColor
+    else if ctrl is TListBox then
+    begin
+      if ATheme = tmDark then
+        TListBox(ctrl).Color := DarkerBackgroundColor
+      else
+        TListBox(ctrl).Color := LightBackgroundColor;
+      TListBox(ctrl).Font.Color := TextColor;
+      if ctrl is TWinControl then
+        ApplyModernScrollBarStylesheet(TWinControl(ctrl));
+    end
     else if ctrl is TListView then
     begin
       if ATheme = tmDark then
@@ -287,6 +339,8 @@ begin
       else
         TListView(ctrl).Color := LightBackgroundColor;
       TListView(ctrl).Font.Color := TextColor;
+      if ctrl is TWinControl then
+        ApplyModernScrollBarStylesheet(TWinControl(ctrl));
     end
     else if ctrl is TButton then
     begin

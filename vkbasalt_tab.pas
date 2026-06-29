@@ -267,7 +267,7 @@ const
   PAD      = 12;   // inner horizontal padding
   NAME_W   = 52;   // effect name label width
   VAL_W    = 32;   // value label width
-  SB_W     = 14;   // scrollbar width
+  SB_W     = 6;    // scrollbar width
 var
   CW:      Integer;
   TabH:    Integer;

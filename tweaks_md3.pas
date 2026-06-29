@@ -163,7 +163,7 @@ begin
   FForm.FTweaksScrollBar.Parent      := FForm.tweaksTabSheet;
   FForm.FTweaksScrollBar.Kind        := sbVertical;
   FForm.FTweaksScrollBar.Align       := alRight;
-  FForm.FTweaksScrollBar.Width       := 14;
+  FForm.FTweaksScrollBar.Width       := 6;
   FForm.FTweaksScrollBar.Visible     := False;
   FForm.FTweaksScrollBar.OnChange    := @FForm.TweaksMD3ScrollChange;
 

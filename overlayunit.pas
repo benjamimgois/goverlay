@@ -3945,6 +3945,15 @@ begin
     FVsBgPanel.Invalidate;
   end;
 
+  // Apply modern scrollbar stylesheet to dynamic tab scrollboxes and standalone scrollbars
+  if Assigned(FGamesScrollBox)  then ApplyModernScrollBarStylesheet(FGamesScrollBox);
+  if Assigned(FMtScrollBox)      then ApplyModernScrollBarStylesheet(FMtScrollBox);
+  if Assigned(FExtScrollBox)     then ApplyModernScrollBarStylesheet(FExtScrollBox);
+  if Assigned(FOsScrollBox)      then ApplyModernScrollBarStylesheet(FOsScrollBox);
+  if Assigned(FVsScrollBox)      then ApplyModernScrollBarStylesheet(FVsScrollBox);
+  if Assigned(FTweaksScrollBar)  then ApplyModernScrollBarStylesheet(FTweaksScrollBar);
+  if Assigned(FVkReshadeSB)      then ApplyModernScrollBarStylesheet(FVkReshadeSB);
+
   // Invalidate painted backgrounds so custom paint handlers repaint with new theme
   if Assigned(FPresetsBgBox)      then FPresetsBgBox.Invalidate;
   if Assigned(FPresetsWrapper)    then FPresetsWrapper.Invalidate;
