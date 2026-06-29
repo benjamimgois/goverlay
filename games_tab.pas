@@ -838,6 +838,7 @@ var
   HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
   TweakLines: TStringList;
   k, BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
+  BdgHint: string;
 begin
   with FForm do
   begin
@@ -1029,136 +1030,46 @@ begin
 
           if BadgeCount > 0 then
           begin
-            // Graphite background strip (right edge, auto-height)
-            BdgY := 2 * BDG_PAD_V + PopCnt(DWord(BadgeCount)) * BDG_SZ
-                    + (PopCnt(DWord(BadgeCount)) - 1) * BDG_GAP;
-            BdgBg := TShape.Create(CardPanel);
-            BdgBg.Parent      := CardPanel;
-            BdgBg.Shape       := stRectangle;
-            BdgBg.Brush.Color := RGBToColor(28, 52, 96);
-            BdgBg.Pen.Style   := psClear;
-            BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
-            BdgBg.AnchorSide[akRight].Control := CardPanel;
-            BdgBg.AnchorSide[akRight].Side    := asrBottom;
-            BdgBg.AnchorSide[akTop].Control   := CardPanel;
-            BdgBg.AnchorSide[akTop].Side      := asrTop;
-            BdgBg.Anchors                     := [akTop, akRight];
-            BdgBg.OnMouseEnter := @GameCardMouseEnter;
-            BdgBg.OnMouseLeave := @GameCardMouseLeave;
-            BdgBg.OnClick      := @GameCardClick;
-            BdgBg.OnMouseUp    := @GameCardMouseUp;
+            BdgImg := TImage.Create(CardPanel);
+            BdgImg.Parent      := CardPanel;
+            BdgImg.AutoSize    := False;
+            BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
+            BdgImg.BorderSpacing.Right := 4;
+            BdgImg.BorderSpacing.Top   := 4;
+            BdgImg.AnchorSide[akRight].Control := CardPanel;
+            BdgImg.AnchorSide[akRight].Side    := asrBottom;
+            BdgImg.AnchorSide[akTop].Control   := CardPanel;
+            BdgImg.AnchorSide[akTop].Side      := asrTop;
+            BdgImg.Anchors                     := [akTop, akRight];
+            BdgImg.Stretch     := True;
+            BdgImg.Proportional := True;
+            BdgImg.Center      := True;
+            BdgImg.Transparent := True;
 
-            BdgSlot := 0;
-            for BdgBit := 0 to 3 do
-            begin
-              if (BadgeCount and (1 shl BdgBit)) = 0 then Continue;
-              BdgX := CARD_W - BDG_W + (BDG_W - BDG_SZ) div 2;
-              BdgY := BDG_PAD_V + BdgSlot * (BDG_SZ + BDG_GAP);
+            IconPath := GetAppBaseDir + 'assets/icons/goverlay.png';
+            if not FileExists(IconPath) then
+              IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+            if not FileExists(IconPath) then
+              IconPath := GetIconFile();
 
-              if BdgBit = 0 then  // MangoHud — PNG icon
-              begin
-                BdgImg := TImage.Create(CardPanel);
-                BdgImg.Parent      := CardPanel;
-                BdgImg.AutoSize    := False;
-                BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-                BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-                BdgImg.BorderSpacing.Top   := BdgY;
-                BdgImg.AnchorSide[akRight].Control := CardPanel;
-                BdgImg.AnchorSide[akRight].Side    := asrBottom;
-                BdgImg.AnchorSide[akTop].Control   := CardPanel;
-                BdgImg.AnchorSide[akTop].Side      := asrTop;
-                BdgImg.Anchors                     := [akTop, akRight];
-                BdgImg.Stretch     := True;
-                BdgImg.Proportional := True;
-                BdgImg.Center      := True;
-                BdgImg.Transparent := True;
-                IconPath := GetAppBaseDir + 'assets/icons/mango-active.png';
-                WriteLn(StdErr, '[Badge] mango-active path="', IconPath, '" exists=', FileExists(IconPath));
-                if FileExists(IconPath) then
-                  try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[Badge] mango-active load error: ', E.Message); end;
-                BdgImg.BringToFront;
-                BdgImg.OnMouseEnter := @GameCardMouseEnter;
-                BdgImg.OnMouseLeave := @GameCardMouseLeave;
-                BdgImg.OnClick      := @GameCardClick;
-                BdgImg.OnMouseUp    := @GameCardMouseUp;
-              end
-              else if BdgBit = 2 then  // OptiScaler — PNG icon
-              begin
-                BdgImg := TImage.Create(CardPanel);
-                BdgImg.Parent      := CardPanel;
-                BdgImg.AutoSize    := False;
-                BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-                BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-                BdgImg.BorderSpacing.Top   := BdgY;
-                BdgImg.AnchorSide[akRight].Control := CardPanel;
-                BdgImg.AnchorSide[akRight].Side    := asrBottom;
-                BdgImg.AnchorSide[akTop].Control   := CardPanel;
-                BdgImg.AnchorSide[akTop].Side      := asrTop;
-                BdgImg.Anchors                     := [akTop, akRight];
-                BdgImg.Stretch     := True;
-                BdgImg.Proportional := True;
-                BdgImg.Center      := True;
-                BdgImg.Transparent := True;
-                IconPath := GetAppBaseDir + 'assets/icons/scale-up2-active.png';
-                WriteLn(StdErr, '[Badge] scale-up2-active path="', IconPath, '" exists=', FileExists(IconPath));
-                if FileExists(IconPath) then
-                  try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[Badge] scale-up2-active load error: ', E.Message); end;
-                BdgImg.BringToFront;
-                BdgImg.OnMouseEnter := @GameCardMouseEnter;
-                BdgImg.OnMouseLeave := @GameCardMouseLeave;
-                BdgImg.OnClick      := @GameCardClick;
-                BdgImg.OnMouseUp    := @GameCardMouseUp;
-              end
-              else  // vkBasalt ('󰏘') or Tweaks ('󰒓') — TLabel glyph
-              begin
-                // Shadow
-                BdgLbl := TLabel.Create(CardPanel);
-                BdgLbl.Parent     := CardPanel;
-                BdgLbl.AutoSize   := False;
-                BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
-                BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 3;
-                BdgLbl.BorderSpacing.Top   := BdgY + 1;
-                BdgLbl.AnchorSide[akRight].Control := CardPanel;
-                BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-                BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-                BdgLbl.AnchorSide[akTop].Side      := asrTop;
-                BdgLbl.Anchors                     := [akTop, akRight];
-                BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-                BdgLbl.Font.Name  := 'Noto Sans';
-                BdgLbl.Font.Size  := BDG_FONT;
-                BdgLbl.Font.Color := clBlack;
-                BdgLbl.Font.Style := [];
-                BdgLbl.Transparent := True;
-                BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-                BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-                BdgLbl.OnClick      := @GameCardClick;
-                BdgLbl.OnMouseUp    := @GameCardMouseUp;
-                // White icon
-                BdgLbl := TLabel.Create(CardPanel);
-                BdgLbl.Parent     := CardPanel;
-                BdgLbl.AutoSize   := False;
-                BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
-                BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 2;
-                BdgLbl.BorderSpacing.Top   := BdgY;
-                BdgLbl.AnchorSide[akRight].Control := CardPanel;
-                BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-                BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-                BdgLbl.AnchorSide[akTop].Side      := asrTop;
-                BdgLbl.Anchors                     := [akTop, akRight];
-                BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-                BdgLbl.Font.Name  := 'Noto Sans';
-                BdgLbl.Font.Size  := BDG_FONT;
-                BdgLbl.Font.Color := clWhite;
-                BdgLbl.Font.Style := [];
-                BdgLbl.Transparent := True;
-                BdgLbl.BringToFront;
-                BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-                BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-                BdgLbl.OnClick      := @GameCardClick;
-                BdgLbl.OnMouseUp    := @GameCardMouseUp;
-              end;
-              Inc(BdgSlot);
-            end;
+            WriteLn(StdErr, '[GOverlayBadge] Steam Game="', GameName, '" IconPath="', IconPath, '" exists=', FileExists(IconPath));
+            if FileExists(IconPath) then
+              try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
+
+            BdgHint := 'Configurações personalizadas ativas:';
+            if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud';
+            if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt';
+            if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler';
+            if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks';
+
+            BdgImg.Hint := BdgHint;
+            BdgImg.ShowHint := True;
+
+            BdgImg.BringToFront;
+            BdgImg.OnMouseEnter := @GameCardMouseEnter;
+            BdgImg.OnMouseLeave := @GameCardMouseLeave;
+            BdgImg.OnClick      := @GameCardClick;
+            BdgImg.OnMouseUp    := @GameCardMouseUp;
           end;
 
           // Store card and original image; apply gradient
@@ -1310,6 +1221,7 @@ var
   GameCfgDir: string;
   HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
   BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
+  BdgHint, IconPath: string;
   BdgBg: TShape;
   TweakLines: TStringList;
   k: Integer;
@@ -1468,130 +1380,46 @@ begin
 
       if BadgeCount > 0 then
       begin
-        BdgY := 2 * BDG_PAD_V + PopCnt(DWord(BadgeCount)) * BDG_SZ
-                + (PopCnt(DWord(BadgeCount)) - 1) * BDG_GAP;
-        BdgBg := TShape.Create(CardPanel);
-        BdgBg.Parent      := CardPanel;
-        BdgBg.Shape       := stRectangle;
-        BdgBg.Brush.Color := RGBToColor(28, 52, 96);
-        BdgBg.Pen.Style   := psClear;
-        BdgBg.SetBounds(CARD_W - BDG_W, 0, BDG_W, BdgY);
-        BdgBg.AnchorSide[akRight].Control := CardPanel;
-        BdgBg.AnchorSide[akRight].Side    := asrBottom;
-        BdgBg.AnchorSide[akTop].Control   := CardPanel;
-        BdgBg.AnchorSide[akTop].Side      := asrTop;
-        BdgBg.Anchors                     := [akTop, akRight];
-        BdgBg.OnMouseEnter := @GameCardMouseEnter;
-        BdgBg.OnMouseLeave := @GameCardMouseLeave;
-        BdgBg.OnClick      := @GameCardClick;
-        BdgBg.OnMouseUp    := @GameCardMouseUp;
+        BdgImg := TImage.Create(CardPanel);
+        BdgImg.Parent      := CardPanel;
+        BdgImg.AutoSize    := False;
+        BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
+        BdgImg.BorderSpacing.Right := 4;
+        BdgImg.BorderSpacing.Top   := 4;
+        BdgImg.AnchorSide[akRight].Control := CardPanel;
+        BdgImg.AnchorSide[akRight].Side    := asrBottom;
+        BdgImg.AnchorSide[akTop].Control   := CardPanel;
+        BdgImg.AnchorSide[akTop].Side      := asrTop;
+        BdgImg.Anchors                     := [akTop, akRight];
+        BdgImg.Stretch     := True;
+        BdgImg.Proportional := True;
+        BdgImg.Center      := True;
+        BdgImg.Transparent := True;
 
-        BdgSlot := 0;
-        for BdgBit := 0 to 3 do
-        begin
-          if (BadgeCount and (1 shl BdgBit)) = 0 then Continue;
-          BdgX := CARD_W - BDG_W + (BDG_W - BDG_SZ) div 2;
-          BdgY := BDG_PAD_V + BdgSlot * (BDG_SZ + BDG_GAP);
+        IconPath := GetAppBaseDir + 'assets/icons/goverlay.png';
+        if not FileExists(IconPath) then
+          IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+        if not FileExists(IconPath) then
+          IconPath := GetIconFile();
 
-          if BdgBit = 0 then  // MangoHud — PNG icon
-          begin
-            BdgImg := TImage.Create(CardPanel);
-            BdgImg.Parent      := CardPanel;
-            BdgImg.AutoSize    := False;
-            BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-            BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-            BdgImg.BorderSpacing.Top   := BdgY;
-            BdgImg.AnchorSide[akRight].Control := CardPanel;
-            BdgImg.AnchorSide[akRight].Side    := asrBottom;
-            BdgImg.AnchorSide[akTop].Control   := CardPanel;
-            BdgImg.AnchorSide[akTop].Side      := asrTop;
-            BdgImg.Anchors                     := [akTop, akRight];
-            BdgImg.Stretch     := True;
-            BdgImg.Proportional := True;
-            BdgImg.Center      := True;
-            BdgImg.Transparent := True;
-            if FileExists(GetAppBaseDir + 'assets/icons/mango-active.png') then
-              try BdgImg.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/mango-active.png'); except end;
-            BdgImg.BringToFront;
-            BdgImg.OnMouseEnter := @GameCardMouseEnter;
-            BdgImg.OnMouseLeave := @GameCardMouseLeave;
-            BdgImg.OnClick      := @GameCardClick;
-            BdgImg.OnMouseUp    := @GameCardMouseUp;
-          end
-          else if BdgBit = 2 then  // OptiScaler — PNG icon
-          begin
-            BdgImg := TImage.Create(CardPanel);
-            BdgImg.Parent      := CardPanel;
-            BdgImg.AutoSize    := False;
-            BdgImg.SetBounds(BdgX, BdgY, BDG_SZ, BDG_SZ);
-            BdgImg.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2;
-            BdgImg.BorderSpacing.Top   := BdgY;
-            BdgImg.AnchorSide[akRight].Control := CardPanel;
-            BdgImg.AnchorSide[akRight].Side    := asrBottom;
-            BdgImg.AnchorSide[akTop].Control   := CardPanel;
-            BdgImg.AnchorSide[akTop].Side      := asrTop;
-            BdgImg.Anchors                     := [akTop, akRight];
-            BdgImg.Stretch     := True;
-            BdgImg.Proportional := True;
-            BdgImg.Center      := True;
-            BdgImg.Transparent := True;
-            if FileExists(GetAppBaseDir + 'assets/icons/scale-up2-active.png') then
-              try BdgImg.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/scale-up2-active.png'); except end;
-            BdgImg.BringToFront;
-            BdgImg.OnMouseEnter := @GameCardMouseEnter;
-            BdgImg.OnMouseLeave := @GameCardMouseLeave;
-            BdgImg.OnClick      := @GameCardClick;
-            BdgImg.OnMouseUp    := @GameCardMouseUp;
-          end
-          else  // vkBasalt or Tweaks — TLabel glyph
-          begin
-            BdgLbl := TLabel.Create(CardPanel);
-            BdgLbl.Parent     := CardPanel;
-            BdgLbl.AutoSize   := False;
-            BdgLbl.SetBounds(BdgX + 1, BdgY + 1, BDG_SZ + 2, BDG_SZ + 2);
-            BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 3;
-            BdgLbl.BorderSpacing.Top   := BdgY + 1;
-            BdgLbl.AnchorSide[akRight].Control := CardPanel;
-            BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-            BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-            BdgLbl.AnchorSide[akTop].Side      := asrTop;
-            BdgLbl.Anchors                     := [akTop, akRight];
-            BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-            BdgLbl.Font.Name  := 'Noto Sans';
-            BdgLbl.Font.Size  := BDG_FONT;
-            BdgLbl.Font.Color := clBlack;
-            BdgLbl.Font.Style := [];
-            BdgLbl.Transparent := True;
-            BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-            BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-            BdgLbl.OnClick      := @GameCardClick;
-            BdgLbl.OnMouseUp    := @GameCardMouseUp;
+        WriteLn(StdErr, '[GOverlayBadge] NonSteam Game="', GameName, '" IconPath="', IconPath, '" exists=', FileExists(IconPath));
+        if FileExists(IconPath) then
+          try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-            BdgLbl := TLabel.Create(CardPanel);
-            BdgLbl.Parent     := CardPanel;
-            BdgLbl.AutoSize   := False;
-            BdgLbl.SetBounds(BdgX, BdgY, BDG_SZ + 2, BDG_SZ + 2);
-            BdgLbl.BorderSpacing.Right := (BDG_W - BDG_SZ) div 2 - 2;
-            BdgLbl.BorderSpacing.Top   := BdgY;
-            BdgLbl.AnchorSide[akRight].Control := CardPanel;
-            BdgLbl.AnchorSide[akRight].Side    := asrBottom;
-            BdgLbl.AnchorSide[akTop].Control   := CardPanel;
-            BdgLbl.AnchorSide[akTop].Side      := asrTop;
-            BdgLbl.Anchors                     := [akTop, akRight];
-            BdgLbl.Caption    := BADGE_GLYPHS[BdgBit];
-            BdgLbl.Font.Name  := 'Noto Sans';
-            BdgLbl.Font.Size  := BDG_FONT;
-            BdgLbl.Font.Color := clWhite;
-            BdgLbl.Font.Style := [];
-            BdgLbl.Transparent := True;
-            BdgLbl.BringToFront;
-            BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-            BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-            BdgLbl.OnClick      := @GameCardClick;
-            BdgLbl.OnMouseUp    := @GameCardMouseUp;
-          end;
-          Inc(BdgSlot);
-        end;
+        BdgHint := 'Configurações personalizadas ativas:';
+        if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud';
+        if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt';
+        if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler';
+        if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks';
+
+        BdgImg.Hint := BdgHint;
+        BdgImg.ShowHint := True;
+
+        BdgImg.BringToFront;
+        BdgImg.OnMouseEnter := @GameCardMouseEnter;
+        BdgImg.OnMouseLeave := @GameCardMouseLeave;
+        BdgImg.OnClick      := @GameCardClick;
+        BdgImg.OnMouseUp    := @GameCardMouseUp;
       end;
 
             // Try to load cached cover; if missing queue async download

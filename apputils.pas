@@ -229,23 +229,32 @@ end;
 function GetIconFile(): string;
 var
   Dirs: TStringDynArray;
-  IconFile: string;
+  IconFile, AppDir: string;
   DataDirs: string;
   i: Integer;
 begin
+  AppDir := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
+  IconFile := AppDir + 'assets/icons/goverlay.png';
+  if FileExists(IconFile) then Exit(IconFile);
+
+  IconFile := AppDir + 'data/icons/128x128/goverlay.png';
+  if FileExists(IconFile) then Exit(IconFile);
+
   DataDirs := GetEnvironmentVariable('XDG_DATA_DIRS');
-  IconFile := PATH_GOVERLAY_ICON;
   if Length(DataDirs) > 0 then
   begin
     Dirs := SplitString(DataDirs, ':');
     for i := Low(Dirs) to High(Dirs) do
     begin
       IconFile := Dirs[i] + '/icons/hicolor/128x128/apps/goverlay.png';
-      if FileExists(IconFile) then
-        Break;
+      if FileExists(IconFile) then Exit(IconFile);
+      IconFile := Dirs[i] + '/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png';
+      if FileExists(IconFile) then Exit(IconFile);
     end;
   end;
-  Result := IconFile;
+
+  if FileExists(PATH_GOVERLAY_ICON) then Exit(PATH_GOVERLAY_ICON);
+  Result := '/usr/share/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png';
 end;
 
 function LibraryExists(const LibName: string): Boolean;
