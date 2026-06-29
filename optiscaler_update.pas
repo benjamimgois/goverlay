@@ -1212,6 +1212,7 @@ var
   VarsIdx: Integer;
   DlssLineFound: Boolean;
   OptiLineFound: Boolean;
+  OptiPatcherLineFound: Boolean;
   SyncProc: TProcess;
   Ini: TIniFile;
 begin
@@ -1459,6 +1460,22 @@ begin
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated existing OptiScalerVersion line');
 
+        OptiPatcherLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 12), 'optipatcher=') then
+          begin
+            VarsList[VarsIdx] := 'optipatcher=rolling-' + FormatDateTime('yyyy.MM.dd', Now);
+            OptiPatcherLineFound := True;
+            Break;
+          end;
+        if not OptiPatcherLineFound then
+        begin
+          VarsList.Add('optipatcher=rolling-' + FormatDateTime('yyyy.MM.dd', Now));
+          WriteLn('[DEBUG] UpdateButtonClick: Added new optipatcher line');
+        end
+        else
+          WriteLn('[DEBUG] UpdateButtonClick: Updated existing optipatcher line');
+
         // Save to .bgmod_original (pristine store)
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
         WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to .bgmod_original');
@@ -1646,6 +1663,7 @@ var
   VarsIdx: Integer;
   DlssLineFound: Boolean;
   OptiLineFound: Boolean;
+  OptiPatcherLineFound: Boolean;
 begin
   Result := False;
 
@@ -1840,6 +1858,22 @@ begin
         end
         else
           WriteLn('[AUTO-INSTALL] Updated existing OptiScalerVersion line');
+
+        OptiPatcherLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 12), 'optipatcher=') then
+          begin
+            VarsList[VarsIdx] := 'optipatcher=rolling-' + FormatDateTime('yyyy.MM.dd', Now);
+            OptiPatcherLineFound := True;
+            Break;
+          end;
+        if not OptiPatcherLineFound then
+        begin
+          VarsList.Add('optipatcher=rolling-' + FormatDateTime('yyyy.MM.dd', Now));
+          WriteLn('[AUTO-INSTALL] Added new optipatcher line');
+        end
+        else
+          WriteLn('[AUTO-INSTALL] Updated existing optipatcher line');
 
         // Save to pristine store
         VarsList.SaveToFile(VarsFilePath);
