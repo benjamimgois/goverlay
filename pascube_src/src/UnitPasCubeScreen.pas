@@ -2315,7 +2315,7 @@ begin
    fGPURuns[fGPUIteration].FPSMax := fPhaseFPSMax;
    fGPURuns[fGPUIteration].FrameTimeMs := ftAvg;
 
-   if (fGPUIteration = 0) and (not fGPU360pFallback) and (fpsAvg < 10.0) then begin
+   if (fGPUIteration = 0) and (not fGPU360pFallback) and (fpsAvg < 5.0) then begin
      fGPU360pFallback := true;
      fRenderWidth := 640;
      fRenderHeight := 360;
