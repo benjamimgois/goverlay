@@ -1213,6 +1213,7 @@ var
   DlssLineFound: Boolean;
   OptiLineFound: Boolean;
   OptiPatcherLineFound: Boolean;
+  FsrLineFound: Boolean;
   SyncProc: TProcess;
   Ini: TIniFile;
 begin
@@ -1475,6 +1476,25 @@ begin
         end
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated existing optipatcher line');
+
+        if not IsStableChannel then
+        begin
+          FsrLineFound := False;
+          for VarsIdx := 0 to VarsList.Count - 1 do
+            if SameText(Copy(VarsList[VarsIdx], 1, 11), 'fsrversion=') then
+            begin
+              VarsList[VarsIdx] := 'fsrversion=4.1.1';
+              FsrLineFound := True;
+              Break;
+            end;
+          if not FsrLineFound then
+          begin
+            VarsList.Add('fsrversion=4.1.1');
+            WriteLn('[DEBUG] UpdateButtonClick: Added new fsrversion line for bleeding-edge');
+          end
+          else
+            WriteLn('[DEBUG] UpdateButtonClick: Updated existing fsrversion line for bleeding-edge');
+        end;
 
         // Save to .bgmod_original (pristine store)
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
