@@ -2477,7 +2477,6 @@ procedure TGamesTabHelper.GameCardMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   Panel: TPanel;
-  Pt: TPoint;
 begin
   with FForm do
   begin
@@ -2500,13 +2499,7 @@ begin
     Exit;
   end;
 
-  // Show "Open prefix folder" only for Steam games (hint first line starts with '(')
-  if Assigned(FOpenPrefixMenuItem) then
-    FOpenPrefixMenuItem.Visible :=
-      (Panel.Hint <> '') and (Panel.Hint[1] = '(');
-
-  Pt := TControl(Sender).ClientToScreen(Point(X, Y));
-  FGameCardMenu.PopUp(Pt.X, Pt.Y);
+  // Context menu on right-click is disabled; all actions are accessed exclusively via the floating button.
   end;
 end;
 
