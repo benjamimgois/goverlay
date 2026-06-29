@@ -1229,11 +1229,14 @@ begin
     if Y + FVkReshadeScrollPos > PB.Height then
     begin
       FVkReshadeSB.Max := Y + FVkReshadeScrollPos - PB.Height + 20;
-      FVkReshadeSB.PageSize := PB.Height;
+      FVkReshadeSB.PageSize := 1;
       FVkReshadeSB.Visible := True;
     end
     else
+    begin
       FVkReshadeSB.Visible := False;
+      FVkReshadeScrollPos := 0;
+    end;
   end;
 end;
 
@@ -1305,15 +1308,19 @@ begin
 end;
 
 procedure TVkBasaltTabHelper.VkReshadeMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var
+  MaxScroll: Integer;
 begin
   with FForm do
   begin
+    if not FVkReshadeSB.Visible then Exit;
+    MaxScroll := FVkReshadeSB.Max;
     FVkReshadeScrollPos := FVkReshadeScrollPos - WheelDelta div 4;
-  if FVkReshadeScrollPos < 0 then FVkReshadeScrollPos := 0;
-  if FVkReshadeScrollPos > FVkReshadeSB.Max then FVkReshadeScrollPos := FVkReshadeSB.Max;
-  FVkReshadeSB.Position := FVkReshadeScrollPos;
-  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
-  Handled := True;
+    if FVkReshadeScrollPos < 0 then FVkReshadeScrollPos := 0;
+    if FVkReshadeScrollPos > MaxScroll then FVkReshadeScrollPos := MaxScroll;
+    FVkReshadeSB.Position := FVkReshadeScrollPos;
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+    Handled := True;
   end;
 end;
 

@@ -559,11 +559,14 @@ begin
   if Y + FForm.FTweaksScrollPos > PB.Height then
   begin
     FForm.FTweaksScrollBar.Max := Y + FForm.FTweaksScrollPos - PB.Height + 20;
-    FForm.FTweaksScrollBar.PageSize := PB.Height;
+    FForm.FTweaksScrollBar.PageSize := 1;
     FForm.FTweaksScrollBar.Visible := True;
   end
   else
+  begin
     FForm.FTweaksScrollBar.Visible := False;
+    FForm.FTweaksScrollPos := 0;
+  end;
 end;
 
 procedure TTweaksMD3Helper.MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -783,10 +786,14 @@ begin
 end;
 
 procedure TTweaksMD3Helper.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var
+  MaxScroll: Integer;
 begin
+  if not FForm.FTweaksScrollBar.Visible then Exit;
+  MaxScroll := FForm.FTweaksScrollBar.Max;
   FForm.FTweaksScrollPos := FForm.FTweaksScrollPos - WheelDelta div 4;
   if FForm.FTweaksScrollPos < 0 then FForm.FTweaksScrollPos := 0;
-  if FForm.FTweaksScrollPos > FForm.FTweaksScrollBar.Max then FForm.FTweaksScrollPos := FForm.FTweaksScrollBar.Max;
+  if FForm.FTweaksScrollPos > MaxScroll then FForm.FTweaksScrollPos := MaxScroll;
   FForm.FTweaksScrollBar.Position := FForm.FTweaksScrollPos;
   FForm.FTweaksPaintBox.Invalidate;
   Handled := True;
