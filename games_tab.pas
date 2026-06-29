@@ -1157,7 +1157,7 @@ begin
     BdgLbl.Parent := CardPanel;
     BdgLbl.AutoSize := False;
     BdgLbl.SetBounds(8, CARD_H - 56, CARD_W - 16, 40);
-    BdgLbl.Caption := 'Add nonsteam folder';
+    BdgLbl.Caption := 'Add game folder';
     BdgLbl.Font.Color := clSilver;
     BdgLbl.Font.Size := 9;
     BdgLbl.Font.Style := [fsBold];
@@ -1173,6 +1173,7 @@ begin
 
     FCardPanels.Add(CardPanel);
     FOrigCovers.Add(nil);
+    CreateActionPanel(CardPanel);
     Inc(j);
 
     // Recalculate panel size including non-Steam and add-folder cards
@@ -2276,14 +2277,13 @@ begin
   FHoverBaseLeft   := Panel.Left;
   FHoverBaseTop    := Panel.Top;
 
-  if Panel.Tag <> 9998 then
-    for j := 0 to Panel.ControlCount - 1 do
-      if Panel.Controls[j].Tag = 9990 then
-      begin
-        Panel.Controls[j].Visible := True;
-        Panel.Controls[j].BringToFront;
-        Break;
-      end;
+  for j := 0 to Panel.ControlCount - 1 do
+    if Panel.Controls[j].Tag = 9990 then
+    begin
+      Panel.Controls[j].Visible := True;
+      Panel.Controls[j].BringToFront;
+      Break;
+    end;
 
   // Smooth scale-up is driven by HoverTimerTick; just bring to front now
   Panel.BringToFront;
@@ -2360,12 +2360,6 @@ begin
     Exit;
 
   FRightClickedCard := Panel;
-
-  if Panel.Tag = 9998 then
-  begin
-    ShowRemoveFoldersMenu(Sender, X, Y);
-    Exit;
-  end;
 
   // Context menu on right-click is disabled; all actions are accessed exclusively via the floating button.
   end;
@@ -2448,6 +2442,12 @@ begin
   with FForm do
   begin
     FRightClickedCard := CardPanel;
+
+    if CardPanel.Tag = 9998 then
+    begin
+      ShowRemoveFoldersMenu(Panel, Panel.Width div 2, Panel.Height div 2);
+      Exit;
+    end;
     if Assigned(FOpenPrefixMenuItem) then
       FOpenPrefixMenuItem.Visible :=
         (CardPanel.Hint <> '') and (CardPanel.Hint[1] = '(');
@@ -2779,9 +2779,9 @@ begin
     if FileExists(NonSteamFile) then
       Lines.LoadFromFile(NonSteamFile);
 
-    // Parent item: "Remove nonsteam folders"
+    // Parent item: "Remove game folders"
     RemoveParent := TMenuItem.Create(FRemoveFoldersMenu);
-    RemoveParent.Caption := 'Remove nonsteam folders';
+    RemoveParent.Caption := 'Remove game folders';
     FRemoveFoldersMenu.Items.Add(RemoveParent);
 
     // Check if there are any folders to remove
