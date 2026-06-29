@@ -21,6 +21,7 @@ const
   // Goverlay Repository
   URL_GOVERLAY_REPO = 'https://github.com/benjamimgois/goverlay';
   URL_GOVERLAY_API_TAGS = 'https://api.github.com/repos/benjamimgois/goverlay/tags?per_page=3';
+  URL_GOVERLAY_API_RELEASES = 'https://api.github.com/repos/benjamimgois/goverlay/releases?per_page=5';
   URL_GOVERLAY_RELEASES = 'https://github.com/benjamimgois/goverlay/releases/tag/';
 
   // MangoHud Repository

@@ -21412,6 +21412,11 @@ object goverlayform: Tgoverlayform
     object Separator2: TMenuItem
       Caption = '-'
     end
+    object settingsWhatsNewMenuItem: TMenuItem
+      Caption = 'What''s new'
+      ImageIndex = 19
+      OnClick = whatsNewMenuItemClick
+    end
     object settingsDonateMenuItem: TMenuItem
       Caption = 'Donate to Goverlay'
       ImageIndex = 17

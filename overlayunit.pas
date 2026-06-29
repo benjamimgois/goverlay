@@ -406,6 +406,7 @@ type
     settingsSpeedButton: TSpeedButton;
     settingsMenu: TPopupMenu;
     themeMenuItem: TMenuItem;
+    settingsWhatsNewMenuItem: TMenuItem;
     settingsDonateMenuItem: TMenuItem;
     settingsAboutMenuItem: TMenuItem;
     timeCheckBox: TCheckBox;
@@ -491,6 +492,7 @@ type
     procedure delayTrackBarChange(Sender: TObject);
     procedure dlsTrackBarChange(Sender: TObject);
     procedure donateMenuItemClick(Sender: TObject);
+    procedure whatsNewMenuItemClick(Sender: TObject);
     procedure patcherlistLabelClick(Sender: TObject);
     procedure protontricksManagerButtonClick(Sender: TObject);
     procedure durationTrackBarChange(Sender: TObject);
@@ -874,6 +876,8 @@ type
     // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
     procedure RunFGModUninstallCommands(const ATargetDir, AGameName: string);
     procedure CheckAndUpdateConfigVersion;
+    procedure CheckAndShowChangelog;
+    procedure ShowChangelogAsync(Data: PtrInt);
     procedure RefreshGameCardsAsync(Data: PtrInt);
     function  GetMangoHudConfigEnvPrefix: string;
     function  GetMangoHudLaunchEnv: string;
@@ -1481,7 +1485,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -2690,7 +2694,7 @@ begin
    // Check for Goverlay updates
   CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
 
-  // Check and update config version, potentially prompting for a config clear
+  // Check and update config version
   CheckAndUpdateConfigVersion;
 
   //Set initial TAB
@@ -3826,7 +3830,8 @@ begin
   TabBar := QTabWidget_tabBar(QTabWidgetH(TabWidget));
   QTabBar_setExpanding(TabBar, True);
 
-  // Start pascube or vkcube (vulkan demo) is now moved to SetNavActive (MangoHud tab)
+  // Check and display changelog popup after form is loaded and mapped
+  Application.QueueAsyncCall(@ShowChangelogAsync, 0);
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -7759,6 +7764,47 @@ begin
   except
     // Fail silently so startup isn't aborted
   end;
+end;
+
+procedure Tgoverlayform.CheckAndShowChangelog;
+var
+  IniFile: TIniFile;
+  ConfigPath, ConfigDir, SeenVer, ReleaseNotesText: string;
+begin
+  try
+    ConfigPath := GetConfigFilePath;
+    ConfigDir := ExtractFilePath(ConfigPath);
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+
+    IniFile := TIniFile.Create(ConfigPath);
+    try
+      SeenVer := IniFile.ReadString('General', 'ChangelogSeenVersion', '');
+      if SeenVer <> GVERSION then
+      begin
+        ReleaseNotesText := GetReleaseNotes(GVERSION);
+        ShowChangelogPopup(GVERSION, ReleaseNotesText);
+        IniFile.WriteString('General', 'ChangelogSeenVersion', GVERSION);
+      end;
+    finally
+      IniFile.Free;
+    end;
+  except
+    // Fail silently so startup isn't aborted
+  end;
+end;
+
+procedure Tgoverlayform.ShowChangelogAsync(Data: PtrInt);
+begin
+  CheckAndShowChangelog;
+end;
+
+procedure Tgoverlayform.whatsNewMenuItemClick(Sender: TObject);
+var
+  ReleaseNotesText: string;
+begin
+  ReleaseNotesText := GetReleaseNotes(GVERSION);
+  ShowChangelogPopup(GVERSION, ReleaseNotesText);
 end;
 
 procedure Tgoverlayform.RefreshGameCardsAsync(Data: PtrInt);

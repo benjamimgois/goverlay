@@ -13,6 +13,7 @@ var
 
 function CompareVersions(const Version1, Version2: string): Integer;
 function GetLatestGoverlayVersion: string;
+function GetReleaseNotes(const AVersion: string): string;
 procedure CheckGoverlayUpdate(const CurrentVersion, Channel: string; UpdateButton: TBitBtn);
 function IsNvidiaModuleLoaded: Boolean;
 function LibraryExists(const LibName: string): Boolean;
@@ -148,6 +149,89 @@ begin
   finally
     OutputList.Free;
     Process.Free;
+  end;
+end;
+
+function GetReleaseNotes(const AVersion: string): string;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  Response, TagName, BodyText, CleanVer: string;
+  JSONData: TJSONData;
+  JSONArray: TJSONArray;
+  JSONObject: TJSONObject;
+  i: Integer;
+begin
+  Result := '';
+  CleanVer := AVersion;
+  if (CleanVer <> '') and (CleanVer[1] = 'v') then
+    Delete(CleanVer, 1, 1);
+
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-s');
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: Mozilla/5.0');
+      Process.Parameters.Add(URL_GOVERLAY_API_RELEASES);
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+
+      OutputList.LoadFromStream(Process.Output);
+      Response := OutputList.Text;
+
+      if (Process.ExitStatus = 0) and (Response <> '') then
+      begin
+        JSONData := GetJSON(Response);
+        try
+          if Assigned(JSONData) and (JSONData is TJSONArray) then
+          begin
+            JSONArray := TJSONArray(JSONData);
+            for i := 0 to JSONArray.Count - 1 do
+            begin
+              JSONObject := JSONArray.Objects[i];
+              if Assigned(JSONObject) then
+              begin
+                TagName := JSONObject.Get('tag_name', '');
+                if (TagName <> '') and (TagName[1] = 'v') then
+                  Delete(TagName, 1, 1);
+
+                if (TagName = CleanVer) or (i = 0) then
+                begin
+                  BodyText := JSONObject.Get('body', '');
+                  if BodyText <> '' then
+                  begin
+                    Result := BodyText;
+                    if TagName = CleanVer then Break;
+                  end;
+                end;
+              end;
+            end;
+          end;
+        finally
+          JSONData.Free;
+        end;
+      end;
+    except
+      on E: Exception do
+        Result := '';
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+
+  if Trim(Result) = '' then
+  begin
+    Result := '• Performance and stability improvements.' + LineEnding +
+              '• User interface enhancements and updates.' + LineEnding + LineEnding +
+              'For complete release notes, visit:' + LineEnding +
+              'https://github.com/benjamimgois/goverlay/releases';
   end;
 end;
 
