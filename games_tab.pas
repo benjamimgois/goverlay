@@ -732,11 +732,11 @@ begin
   FOpenPrefixMenuItem.OnClick := @GameCardOpenPrefixClick;
   FGameCardMenu.Items.Add(FOpenPrefixMenuItem);
 
-  UninstallItem := TMenuItem.Create(FGameCardMenu);
-  UninstallItem.Caption := 'Uninstall changes';
-  UninstallItem.ImageIndex := 2;
-  UninstallItem.OnClick := @GameCardUninstallClick;
-  FGameCardMenu.Items.Add(UninstallItem);
+  FUninstallMenuItem := TMenuItem.Create(FGameCardMenu);
+  FUninstallMenuItem.Caption := 'Uninstall changes';
+  FUninstallMenuItem.ImageIndex := 2;
+  FUninstallMenuItem.OnClick := @GameCardUninstallClick;
+  FGameCardMenu.Items.Add(FUninstallMenuItem);
 
   FGamesScrollBox := TScrollBox.Create(FForm);
   FGamesScrollBox.Parent := gamesTabSheet;
@@ -2435,6 +2435,10 @@ procedure TGamesTabHelper.ActionPanelClick(Sender: TObject);
 var
   Panel, CardPanel: TPanel;
   Pt: TPoint;
+  GameName, GamePath, GameCfgDir: string;
+  Lines, MarkerFiles: TStringList;
+  i: Integer;
+  HasMods: Boolean;
 begin
   if not (Sender is TPanel) then Exit;
   Panel := TPanel(Sender);
@@ -2447,6 +2451,53 @@ begin
     if Assigned(FOpenPrefixMenuItem) then
       FOpenPrefixMenuItem.Visible :=
         (CardPanel.Hint <> '') and (CardPanel.Hint[1] = '(');
+
+    if Assigned(FUninstallMenuItem) then
+    begin
+      HasMods := False;
+      if CardPanel.Hint <> '' then
+      begin
+        Lines := TStringList.Create;
+        try
+          Lines.Text := CardPanel.Hint;
+          if Lines.Count >= 2 then
+          begin
+            i := Pos(') ', Lines[0]);
+            if i > 0 then
+              GameName := Copy(Lines[0], i + 2, MaxInt)
+            else
+              GameName := Lines[0];
+            GamePath := Lines[1];
+
+            GameCfgDir := IncludeTrailingPathDelimiter(GetGameConfigDir(GameName));
+            if FileExists(GameCfgDir + 'bgmod.conf') or
+               FileExists(GameCfgDir + 'goverlay.vars') or
+               FileExists(GameCfgDir + 'OptiScaler.ini') or
+               FileExists(GameCfgDir + 'MangoHud.conf') or
+               FileExists(GameCfgDir + 'vkBasalt.conf') or
+               FileExists(GameCfgDir + 'vkSumi.conf') or
+               FileExists(GameCfgDir + 'fakenvapi.ini') then
+            begin
+              HasMods := True;
+            end;
+
+            if not HasMods and (GamePath <> '') and DirectoryExists(GamePath) then
+            begin
+              MarkerFiles := FindAllFiles(IncludeTrailingPathDelimiter(GamePath), 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller.sh;fgmod-uninstaller.sh;MangoHud.conf;vkBasalt.conf;vkSumi.conf', True);
+              try
+                if MarkerFiles.Count > 0 then
+                  HasMods := True;
+              finally
+                MarkerFiles.Free;
+              end;
+            end;
+          end;
+        finally
+          Lines.Free;
+        end;
+      end;
+      FUninstallMenuItem.Visible := HasMods;
+    end;
 
     Pt := Panel.ClientToScreen(Point(Panel.Width div 2, Panel.Height div 2));
     FGameCardMenu.PopUp(Pt.X, Pt.Y);
@@ -2965,6 +3016,10 @@ begin
     if FileExists(Dir + 'bgmod-remover.sh') then begin DeleteFile(Dir + 'bgmod-remover.sh'); Log('Cleaned up file: ' + Dir + 'bgmod-remover.sh'); end;
     if FileExists(Dir + 'bgmod.conf') then begin DeleteFile(Dir + 'bgmod.conf'); Log('Cleaned up file: ' + Dir + 'bgmod.conf'); end;
     if FileExists(Dir + 'bgmod.log') then begin DeleteFile(Dir + 'bgmod.log'); Log('Cleaned up file: ' + Dir + 'bgmod.log'); end;
+    if FileExists(Dir + 'goverlay.vars') then begin DeleteFile(Dir + 'goverlay.vars'); Log('Cleaned up file: ' + Dir + 'goverlay.vars'); end;
+    if FileExists(Dir + 'MangoHud.conf') then begin DeleteFile(Dir + 'MangoHud.conf'); Log('Cleaned up file: ' + Dir + 'MangoHud.conf'); end;
+    if FileExists(Dir + 'vkBasalt.conf') then begin DeleteFile(Dir + 'vkBasalt.conf'); Log('Cleaned up file: ' + Dir + 'vkBasalt.conf'); end;
+    if FileExists(Dir + 'vkSumi.conf') then begin DeleteFile(Dir + 'vkSumi.conf'); Log('Cleaned up file: ' + Dir + 'vkSumi.conf'); end;
 
     Log('bgmod GUI uninstaller done.');
     

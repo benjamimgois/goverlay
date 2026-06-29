@@ -1171,6 +1171,7 @@ type
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
     FRemoveFoldersMenu: TPopupMenu;  // right-click context menu for Add Non-Steam Folder card
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
+    FUninstallMenuItem: TMenuItem;
     FRightClickedCard: TPanel;      // card that triggered the context menu
     FGameMenuImgList: TImageList;   // icons for the game card context menu
     FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud

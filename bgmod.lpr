@@ -954,6 +954,10 @@ begin
           SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
           CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
           Log('Cleanup of disabled OptiScaler completed.');
         end
         else
