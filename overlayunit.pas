@@ -7541,7 +7541,7 @@ const
   STEP = 10;  // ~10 steps × 16 ms ≈ 160 ms full transition
 var
   Brightness: Integer;
-  Expand: Integer;
+  Expand, ExpandIdx: Integer;
 begin
   if not Assigned(FHoveredCard) then
   begin
@@ -7566,8 +7566,12 @@ begin
     FHoverBaseTop  - Expand,
     CARD_W + 2 * Expand,
     CARD_H + 2 * Expand);
-  if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
-    TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W + 2 * Expand, CARD_H + 2 * Expand);
+  for ExpandIdx := 0 to FHoveredCard.ControlCount - 1 do
+    if (FHoveredCard.Controls[ExpandIdx] is TImage) and (FHoveredCard.Controls[ExpandIdx].Tag <> 9990) then
+    begin
+      TImage(FHoveredCard.Controls[ExpandIdx]).SetBounds(0, 0, CARD_W + 2 * Expand, CARD_H + 2 * Expand);
+      if FHoveredCard.Controls[ExpandIdx].Tag = 9995 then Break;
+    end;
 
   if FHoverBrightness <= 0 then
   begin

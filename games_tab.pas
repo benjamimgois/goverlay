@@ -83,6 +83,14 @@ type
     procedure GameCardMouseEnter(Sender: TObject);
     procedure GameCardMouseLeave(Sender: TObject);
     procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure ActionPanelPaint(Sender: TObject);
+    procedure ActionPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure ActionPanelClick(Sender: TObject);
+    function  GetCardPanel(AControl: TControl): TPanel;
+    procedure CreateActionPanel(CardPanel: TPanel);
+    procedure GameHoverFolderClick(Sender: TObject);
+    procedure GameHoverPrefixClick(Sender: TObject);
+    procedure GameHoverUninstallClick(Sender: TObject);
     procedure GameCardOpenFolderClick(Sender: TObject);
     procedure GameCardOpenPrefixClick(Sender: TObject);
     procedure AddNonSteamFolderClick(Sender: TObject);
@@ -945,6 +953,7 @@ begin
 
           CardImage := TImage.Create(CardPanel);
           CardImage.Parent := CardPanel;
+          CardImage.Tag := 9995;
           CardImage.SetBounds(0, 0, CARD_W, CARD_H);
           CardImage.Stretch := True;
           CardImage.Proportional := False;
@@ -1173,6 +1182,7 @@ begin
           else
             FOrigCovers.Add(nil);
 
+          CreateActionPanel(CardPanel);
           Inc(j);
         until FindNext(SR) <> 0;
         FindClose(SR);
@@ -1378,6 +1388,7 @@ begin
 
       CardImage := TImage.Create(CardPanel);
       CardImage.Parent := CardPanel;
+      CardImage.Tag := 9995;
       CardImage.SetBounds(0, 0, CARD_W, CARD_H);
       CardImage.Stretch := True;
       CardImage.Proportional := False;
@@ -1641,6 +1652,7 @@ begin
               Inc(PendingCount);
             end;
             ApplyCardBrightness(CardPanel, 100);
+            CreateActionPanel(CardPanel);
 
             Inc(ACardIndex);
           until FindNext(SubSR) <> 0;
@@ -2101,7 +2113,7 @@ end;
 
 procedure TGamesTabHelper.ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
 var
-  CardIdx: Integer;
+  CardIdx, CtrlIdx: Integer;
   OrigIntf, DimIntf: TLazIntfImage;
   Img: TImage;
   DimBmp: TBitmap;
@@ -2115,8 +2127,24 @@ begin
   if (CardIdx < 0) or (CardIdx >= FOrigCovers.Count) then Exit;
   OrigIntf := TLazIntfImage(FOrigCovers[CardIdx]);
   if OrigIntf = nil then Exit;
-  if (ACard.ControlCount = 0) or not (ACard.Controls[0] is TImage) then Exit;
-  Img := TImage(ACard.Controls[0]);
+  if (ACard.ControlCount = 0) then Exit;
+  Img := nil;
+  for CtrlIdx := 0 to ACard.ControlCount - 1 do
+    if (ACard.Controls[CtrlIdx] is TImage) and (ACard.Controls[CtrlIdx].Tag = 9995) then
+    begin
+      Img := TImage(ACard.Controls[CtrlIdx]);
+      Break;
+    end;
+  if Img = nil then
+  begin
+    for CtrlIdx := 0 to ACard.ControlCount - 1 do
+      if (ACard.Controls[CtrlIdx] is TImage) and (ACard.Controls[CtrlIdx].Tag <> 9990) then
+      begin
+        Img := TImage(ACard.Controls[CtrlIdx]);
+        Break;
+      end;
+  end;
+  if Img = nil then Exit;
 
   W      := OrigIntf.Width;
   H      := OrigIntf.Height;
@@ -2332,14 +2360,13 @@ end;
 procedure TGamesTabHelper.GameCardMouseEnter(Sender: TObject);
 var
   Panel: TPanel;
+  j: Integer;
 begin
   with FForm do
   begin
   DbgLog('GameCardMouseEnter: ' + TControl(Sender).Name);
-  if Sender is TPanel then Panel := TPanel(Sender)
-  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
-  else Exit;
+  Panel := GetCardPanel(TControl(Sender));
+  if Panel = nil then Exit;
 
   if Sender is TControl then
     TControl(Sender).Cursor := crHandPoint;
@@ -2357,12 +2384,22 @@ begin
   if Assigned(FHoveredCard) then
   begin
     ApplyCardBrightness(FHoveredCard, 100);
+    for j := 0 to FHoveredCard.ControlCount - 1 do
+      if FHoveredCard.Controls[j].Tag = 9990 then
+      begin
+        FHoveredCard.Controls[j].Visible := False;
+        Break;
+      end;
     FHoveredCard.SetBounds(
       FHoveredCard.Left + (FHoveredCard.Width - CARD_W) div 2,
       FHoveredCard.Top  + (FHoveredCard.Height - CARD_H) div 2,
       CARD_W, CARD_H);
-    if (FHoveredCard.ControlCount > 0) and (FHoveredCard.Controls[0] is TImage) then
-      TImage(FHoveredCard.Controls[0]).SetBounds(0, 0, CARD_W, CARD_H);
+    for j := 0 to FHoveredCard.ControlCount - 1 do
+      if (FHoveredCard.Controls[j] is TImage) and (FHoveredCard.Controls[j].Tag <> 9990) then
+      begin
+        TImage(FHoveredCard.Controls[j]).SetBounds(0, 0, CARD_W, CARD_H);
+        if FHoveredCard.Controls[j].Tag = 9995 then Break;
+      end;
   end;
 
   FHoveredCard     := Panel;
@@ -2370,6 +2407,15 @@ begin
   FHoverDir        := 1;
   FHoverBaseLeft   := Panel.Left;
   FHoverBaseTop    := Panel.Top;
+
+  if Panel.Tag <> 9998 then
+    for j := 0 to Panel.ControlCount - 1 do
+      if Panel.Controls[j].Tag = 9990 then
+      begin
+        Panel.Controls[j].Visible := True;
+        Panel.Controls[j].BringToFront;
+        Break;
+      end;
 
   // Smooth scale-up is driven by HoverTimerTick; just bring to front now
   Panel.BringToFront;
@@ -2389,20 +2435,34 @@ end;
 procedure TGamesTabHelper.GameCardMouseLeave(Sender: TObject);
 var
   Panel: TPanel;
+  j: Integer;
+  Pt: TPoint;
 begin
   with FForm do
   begin
   DbgLog('GameCardMouseLeave: ' + TControl(Sender).Name);
-  if Sender is TPanel then Panel := TPanel(Sender)
-  else if Sender is TImage then Panel := TPanel(TImage(Sender).Parent)
-  else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
-  else Exit;
+  Panel := GetCardPanel(TControl(Sender));
+  if Panel = nil then Exit;
 
   if Panel <> FHoveredCard then
   begin
     DbgLog('GameCardMouseLeave: not hovered card, ignoring');
     Exit;
   end;
+
+  if Assigned(FHoveredCard) then
+  begin
+    Pt := FHoveredCard.ScreenToClient(Mouse.CursorPos);
+    if (Pt.X >= 0) and (Pt.Y >= 0) and (Pt.X < FHoveredCard.Width) and (Pt.Y < FHoveredCard.Height) then
+      Exit;
+  end;
+
+  for j := 0 to Panel.ControlCount - 1 do
+    if Panel.Controls[j].Tag = 9990 then
+    begin
+      Panel.Controls[j].Visible := False;
+      Break;
+    end;
 
   // Smooth shrink-back is driven by HoverTimerTick
   FHoverDir := -1;
@@ -2450,6 +2510,161 @@ begin
   end;
 end;
 
+
+
+function TGamesTabHelper.GetCardPanel(AControl: TControl): TPanel;
+var
+  Curr: TControl;
+begin
+  Result := nil;
+  Curr := AControl;
+  while Assigned(Curr) do
+  begin
+    if (Curr is TPanel) and Assigned(FForm.FGamesPanel) and (Curr.Parent = FForm.FGamesPanel) then
+    begin
+      Result := TPanel(Curr);
+      Exit;
+    end;
+    Curr := Curr.Parent;
+  end;
+end;
+
+
+procedure TGamesTabHelper.ActionPanelPaint(Sender: TObject);
+var
+  Panel: TPanel;
+  cx, cy: Integer;
+begin
+  if not (Sender is TPanel) then Exit;
+  Panel := TPanel(Sender);
+  cx := Panel.Width div 2;
+  cy := Panel.Height div 2;
+
+  with Panel.Canvas do
+  begin
+    // Drop shadow (black) for contrast against cover art
+    Brush.Color := clBlack;
+    Brush.Style := bsSolid;
+    Pen.Style := psClear;
+    Rectangle(cx, cy - 5, cx + 3, cy - 2);
+    Rectangle(cx, cy, cx + 3, cy + 3);
+    Rectangle(cx, cy + 5, cx + 3, cy + 8);
+
+    // White dots
+    Brush.Color := clWhite;
+    Rectangle(cx - 1, cy - 6, cx + 2, cy - 3);
+    Rectangle(cx - 1, cy - 1, cx + 2, cy + 2);
+    Rectangle(cx - 1, cy + 4, cx + 2, cy + 7);
+  end;
+end;
+
+
+procedure TGamesTabHelper.ActionPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  Panel: TPanel;
+begin
+  if not (Sender is TPanel) then Exit;
+  Panel := TPanel(Sender);
+  Panel.Hint := 'Opções do jogo';
+  Panel.ShowHint := True;
+end;
+
+
+procedure TGamesTabHelper.ActionPanelClick(Sender: TObject);
+var
+  Panel, CardPanel: TPanel;
+  Pt: TPoint;
+begin
+  if not (Sender is TPanel) then Exit;
+  Panel := TPanel(Sender);
+  CardPanel := GetCardPanel(Panel);
+  if not Assigned(CardPanel) then Exit;
+
+  with FForm do
+  begin
+    FRightClickedCard := CardPanel;
+    if Assigned(FOpenPrefixMenuItem) then
+      FOpenPrefixMenuItem.Visible :=
+        (CardPanel.Hint <> '') and (CardPanel.Hint[1] = '(');
+
+    Pt := Panel.ClientToScreen(Point(Panel.Width div 2, Panel.Height div 2));
+    FGameCardMenu.PopUp(Pt.X, Pt.Y);
+  end;
+end;
+
+
+procedure TGamesTabHelper.CreateActionPanel(CardPanel: TPanel);
+var
+  ActionPanel: TPanel;
+  j: Integer;
+begin
+  with FForm do
+  begin
+  if not Assigned(CardPanel) then Exit;
+
+  ActionPanel := TPanel.Create(CardPanel);
+  ActionPanel.Parent := CardPanel;
+  ActionPanel.SetBounds(CARD_W - 32, CARD_H - 32, 26, 26);
+  ActionPanel.BevelOuter := bvNone;
+  ActionPanel.BevelInner := bvNone;
+  ActionPanel.BorderWidth := 0;
+  ActionPanel.ParentColor := True;
+  ActionPanel.ParentBackground := True;
+  ActionPanel.Tag := 9990;
+  ActionPanel.Visible := False;
+  ActionPanel.OnPaint := @ActionPanelPaint;
+  ActionPanel.OnMouseMove := @ActionPanelMouseMove;
+  ActionPanel.OnClick := @ActionPanelClick;
+  ActionPanel.OnMouseEnter := @GameCardMouseEnter;
+  ActionPanel.OnMouseLeave := @GameCardMouseLeave;
+
+  for j := 0 to CardPanel.ControlCount - 1 do
+    if (CardPanel.Controls[j] is TImage) and (CardPanel.Controls[j].Tag = 9995) then
+    begin
+      TImage(CardPanel.Controls[j]).SendToBack;
+      Break;
+    end;
+  end;
+end;
+
+
+procedure TGamesTabHelper.GameHoverFolderClick(Sender: TObject);
+var
+  Panel: TPanel;
+begin
+  Panel := GetCardPanel(TControl(Sender));
+  if Assigned(Panel) then
+  begin
+    FForm.FRightClickedCard := Panel;
+    GameCardOpenFolderClick(Sender);
+  end;
+end;
+
+
+procedure TGamesTabHelper.GameHoverPrefixClick(Sender: TObject);
+var
+  Panel: TPanel;
+begin
+  Panel := GetCardPanel(TControl(Sender));
+  if Assigned(Panel) then
+  begin
+    FForm.FRightClickedCard := Panel;
+    GameCardOpenPrefixClick(Sender);
+  end;
+end;
+
+
+procedure TGamesTabHelper.GameHoverUninstallClick(Sender: TObject);
+var
+  Panel: TPanel;
+begin
+  Panel := GetCardPanel(TControl(Sender));
+  if Assigned(Panel) then
+  begin
+    FForm.FRightClickedCard := Panel;
+    GameCardUninstallClick(Sender);
+  end;
+end;
 
 
 procedure TGamesTabHelper.GameCardOpenFolderClick(Sender: TObject);
