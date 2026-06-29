@@ -1,8 +1,4 @@
-# nerd-fonts-flatpak
-
-This capability ensures the Nerd Font Symbols typeface is available inside the Flatpak sandbox for rendering sidebar navigation icons and game card ribbon glyphs.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Nerd Font bundled in Flatpak
 The Flatpak build manifest SHALL include the Nerd Font Symbols typeface (`SymbolsNerdFont-Regular.ttf`) as a bundled module, installed to `/app/share/fonts/TTF/` during build, and SHALL NOT include a cleanup pattern that purges the installed font file.

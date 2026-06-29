@@ -14,7 +14,7 @@ if [ -n "$FLATPAK_ID" ]; then
             FONT_DST="$HOME/.local/share/fonts"
             mkdir -p "$FONT_DST"
             cp "$FONT_SRC" "$FONT_DST/"
-            fc-cache -f "$FONT_DST" >/dev/null 2>&1 &
+            fc-cache -f "$FONT_DST" >/dev/null 2>&1
         fi
     fi
 
