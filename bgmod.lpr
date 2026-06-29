@@ -921,7 +921,44 @@ begin
         end;
       end
       else
-        Log('OptiScaler is disabled, skipping.');
+      begin
+        Log('OptiScaler is disabled, checking for cleanup...');
+        if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') or
+           FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll') or
+           FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') or
+           FileExists(IncludeTrailingPathDelimiter(GameDir) + DllName) then
+        begin
+          Log('OptiScaler leftovers detected in game directory, cleaning up...');
+          for i := 0 to High(OrigDlls) do
+            SafeCleanOrRestore(GameDir, OrigDlls[i], True);
+          for i := 0 to High(ProxyDlls) do
+            SafeCleanOrRestore(GameDir, ProxyDlls[i], False);
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.log');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.asi');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.log');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess_dx11.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess_fg.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxell.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
+          SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          Log('Cleanup of disabled OptiScaler completed.');
+        end
+        else
+          Log('OptiScaler is disabled, no leftovers found.');
+      end;
       
       // --- MangoHud Configuration Copy ---
       if GOverlayMangoHud then

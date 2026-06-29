@@ -2110,9 +2110,9 @@ end;
 procedure TGamesTabHelper.GameCardUninstallClick(Sender: TObject);
 var
   Panel: TPanel;
-  GameName, GameCfgDir, GamePath, UninstallerPath: string;
-  Lines: TStringList;
-  i: Integer;
+  GameName, GameCfgDir, GamePath: string;
+  Lines, TargetDirs, MarkerFiles: TStringList;
+  i, j: Integer;
 begin
   with FForm do
   begin
@@ -2144,23 +2144,63 @@ begin
   if DirectoryExists(GameCfgDir) then
     DeleteDirectory(GameCfgDir, False);
 
-  // Remove all OptiScaler/FGMod files from the game's install directory.
-  // The fgmod-uninstaller.sh script is copied to the game's exe folder on first
-  // launch. We locate it to discover the correct target directory, then perform
-  // the same cleanup the script would do (but directly, since the script expects
-  // to be invoked by Steam with the game's exe as argument).
+  // Remove all OptiScaler/FGMod files from the game's install directory and subdirectories.
   if (GamePath <> '') and DirectoryExists(GamePath) then
   begin
     GamePath := IncludeTrailingPathDelimiter(GamePath);
-    UninstallerPath := FindFileInDir(GamePath, 'bgmod-uninstaller');
-    if UninstallerPath = '' then
-      UninstallerPath := FindFileInDir(GamePath, 'bgmod-uninstaller.sh');
-    if UninstallerPath = '' then
-      UninstallerPath := FindFileInDir(GamePath, 'fgmod-uninstaller.sh');
-    if UninstallerPath <> '' then
-      RunFGModUninstallCommands(ExtractFilePath(UninstallerPath), GameName)
-    else
-      RunFGModUninstallCommands(GamePath, GameName);
+    TargetDirs := TStringList.Create;
+    try
+      TargetDirs.Duplicates := dupIgnore;
+      TargetDirs.Sorted := True;
+
+      MarkerFiles := FindAllFiles(GamePath, 'goverlay.vars', True);
+      try
+        for j := 0 to MarkerFiles.Count - 1 do
+          TargetDirs.Add(ExtractFilePath(MarkerFiles[j]));
+      finally
+        MarkerFiles.Free;
+      end;
+
+      MarkerFiles := FindAllFiles(GamePath, 'OptiScaler.dll', True);
+      try
+        for j := 0 to MarkerFiles.Count - 1 do
+          TargetDirs.Add(ExtractFilePath(MarkerFiles[j]));
+      finally
+        MarkerFiles.Free;
+      end;
+
+      MarkerFiles := FindAllFiles(GamePath, 'OptiScaler.ini', True);
+      try
+        for j := 0 to MarkerFiles.Count - 1 do
+          TargetDirs.Add(ExtractFilePath(MarkerFiles[j]));
+      finally
+        MarkerFiles.Free;
+      end;
+
+      MarkerFiles := FindAllFiles(GamePath, 'bgmod-uninstaller*', True);
+      try
+        for j := 0 to MarkerFiles.Count - 1 do
+          TargetDirs.Add(ExtractFilePath(MarkerFiles[j]));
+      finally
+        MarkerFiles.Free;
+      end;
+
+      MarkerFiles := FindAllFiles(GamePath, 'fgmod-uninstaller*', True);
+      try
+        for j := 0 to MarkerFiles.Count - 1 do
+          TargetDirs.Add(ExtractFilePath(MarkerFiles[j]));
+      finally
+        MarkerFiles.Free;
+      end;
+
+      // Always include top-level GamePath as baseline
+      TargetDirs.Add(GamePath);
+
+      for j := 0 to TargetDirs.Count - 1 do
+        RunFGModUninstallCommands(TargetDirs[j], GameName);
+    finally
+      TargetDirs.Free;
+    end;
   end;
 
   // Remove badge controls from the card panel.
