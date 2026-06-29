@@ -356,9 +356,9 @@ begin
   Sep.Caption := '-';
   FForm.settingsMenu.Items.Insert(4, Sep);
 
-  // How to Use — submenu with Steam and Heroic
+  // Video tutorial — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FHowToMenuItem.Caption := 'How to use';
+  FForm.FHowToMenuItem.Caption := 'Video tutorial';
   FForm.FHowToMenuItem.ImageIndex := 18;
 
   SteamItem := TMenuItem.Create(FForm.FHowToMenuItem);

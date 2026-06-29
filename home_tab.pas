@@ -287,11 +287,11 @@ begin
         end;
         6:
         begin
-          IconFile := 'data/icons/system/fingerprint.png';
+          IconFile := 'data/icons/system/user.png';
           if GetUserNickname <> '' then
-            Lbl.Caption := 'Benchmark Nickname: ' + GetUserNickname + '  [click to edit]'
+            Lbl.Caption := 'Pascube nickname: ' + GetUserNickname + '  [click to edit]'
           else
-            Lbl.Caption := 'Benchmark Nickname: Anonymous  [click to set]';
+            Lbl.Caption := 'Pascube nickname: Anonymous  [click to set]';
           Ico.Hint := 'Click to set display nickname for leaderboards';
           Lbl.Cursor := crHandPoint;
           Ico.Cursor := crHandPoint;
@@ -878,7 +878,7 @@ procedure THomeTabHelper.NicknameClick(Sender: TObject);
 var
   NewNick: string;
 begin
-  NewNick := InputBox('Benchmark Nickname', 'Enter display nickname for leaderboard benchmark uploads:', GetUserNickname);
+  NewNick := InputBox('Pascube nickname', 'Enter display nickname for leaderboard benchmark uploads:', GetUserNickname);
   SaveUserNickname(NewNick);
   InitHomeTab;
 end;
