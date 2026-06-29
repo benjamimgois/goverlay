@@ -4969,9 +4969,9 @@ end;
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
   // Disable emufp8CheckBox when "4.0.2c (INT8)" is selected (ItemIndex = 1)
-  // Enable emufp8CheckBox when "Latest (FP8)" is selected (ItemIndex = 0)
+  // Enable emufp8CheckBox when "Latest" is selected (ItemIndex = 0)
   case fsrversionComboBox.ItemIndex of
-    0: // Latest (FP8)
+    0: // Latest
       begin
         emufp8CheckBox.Enabled := True;
       end;

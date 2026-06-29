@@ -769,7 +769,7 @@ begin
       FGModDestPath := FGModPath;
 
     case Settings.FsrversionItemIndex of
-      0: // Latest (FP8)
+      0: // Latest
         begin
           if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
           begin
@@ -785,7 +785,7 @@ begin
                 for i := Lines.Count - 1 downto 0 do
                   if Pos('fsrversion=', Lines[i]) > 0 then
                     Lines.Delete(i);
-                Lines.Add('fsrversion=Latest (FP8)');
+                Lines.Add('fsrversion=Latest');
                 Lines.SaveToFile(VarsFilePath);
               finally
                 Lines.Free;
@@ -806,7 +806,7 @@ begin
                   for i := Lines.Count - 1 downto 0 do
                     if Pos('fsrversion=', Lines[i]) > 0 then
                       Lines.Delete(i);
-                  Lines.Add('fsrversion=Latest (FP8)');
+                  Lines.Add('fsrversion=Latest');
                   Lines.SaveToFile(VarsFilePathOriginal);
                 finally
                   Lines.Free;

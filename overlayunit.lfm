@@ -11728,13 +11728,13 @@ object goverlayform: Tgoverlayform
               Font.Quality = fqAntialiased
               ItemHeight = 25
               Items.Strings = (
-                'Latest (FP8)'
+                'Latest'
                 '4.0.2c (INT8)'
               )
               ParentColor = True
               ParentFont = False
               TabOrder = 2
-              Text = 'Latest (FP8)'
+              Text = 'Latest'
               OnChange = fsrversionComboBoxChange
             end
             object emufp8CheckBox: TCheckBox
@@ -11751,6 +11751,7 @@ object goverlayform: Tgoverlayform
               BorderSpacing.Top = 25
               Caption = 'Emulate FP8'
               TabOrder = 3
+              Visible = False
             end
             object optipatcherCheckBox: TCheckBox
               AnchorSideLeft.Control = emufp8CheckBox
