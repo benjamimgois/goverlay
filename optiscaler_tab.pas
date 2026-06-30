@@ -786,41 +786,57 @@ end;
 procedure TOptiScalerTabHelper.LoadOptiScalerConfig;
 var
   Settings: TOptiScalerSettings;
+  SavedFsrOnChange: TNotifyEvent;
+  SavedOptOnChange: TNotifyEvent;
 begin
   with FForm do
   begin
     if not overlay_config.LoadOptiScalerConfig(FActiveGameName, Settings) then
       Exit;
 
-    filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
-    emufp8CheckBox.Checked := Settings.EmuFp8Checked;
-    shortcutkeyComboBox.Text := Settings.ShortcutKey;
-    if Assigned(FOsShortcutCaptureBtn) then
-      FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
+    // Temporarily disable OnChange handlers to prevent event trigger loops and threads during load
+    SavedFsrOnChange := fsrversionComboBox.OnChange;
+    SavedOptOnChange := optversionComboBox.OnChange;
+    fsrversionComboBox.OnChange := nil;
+    optversionComboBox.OnChange := nil;
+    try
+      filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
+      emufp8CheckBox.Checked := Settings.EmuFp8Checked;
+      shortcutkeyComboBox.Text := Settings.ShortcutKey;
+      if Assigned(FOsShortcutCaptureBtn) then
+        FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
 
-    menuscaleTrackBar.Position := Settings.MenuScalePosition;
-    menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
+      menuscaleTrackBar.Position := Settings.MenuScalePosition;
+      menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
 
-    overrideCheckBox.Checked := Settings.OverrideChecked;
-    optipatcherCheckBox.Checked := Settings.OptipatcherChecked;
+      overrideCheckBox.Checked := Settings.OverrideChecked;
+      optipatcherCheckBox.Checked := Settings.OptipatcherChecked;
 
-    fsrversionComboBox.ItemIndex := Settings.FsrversionItemIndex;
-    spoofCheckBox.Checked := Settings.SpoofChecked;
+      fsrversionComboBox.ItemIndex := Settings.FsrversionItemIndex;
+      spoofCheckBox.Checked := Settings.SpoofChecked;
 
-    forcereflexCheckBox.Checked := Settings.ForceReflexChecked;
-    reflexComboBox.ItemIndex := Settings.ReflexItemIndex;
-    reflexComboBox.Enabled := forcereflexCheckBox.Checked;
+      forcereflexCheckBox.Checked := Settings.ForceReflexChecked;
+      reflexComboBox.ItemIndex := Settings.ReflexItemIndex;
+      reflexComboBox.Enabled := forcereflexCheckBox.Checked;
 
-    forcelatencyflexCheckBox.Checked := Settings.ForceLatencyFlexChecked;
-    latencyflexComboBox.ItemIndex := Settings.LatencyFlexItemIndex;
-    latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
+      forcelatencyflexCheckBox.Checked := Settings.ForceLatencyFlexChecked;
+      latencyflexComboBox.ItemIndex := Settings.LatencyFlexItemIndex;
+      latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
 
-    tracelogCheckBox.Checked := Settings.TraceLogChecked;
+      tracelogCheckBox.Checked := Settings.TraceLogChecked;
 
-    if Settings.OptVersionItemIndex in [0, 1] then
-      optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
-    else
-      optversionComboBox.ItemIndex := 0;
+      if Settings.OptVersionItemIndex in [0, 1] then
+        optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
+      else
+        optversionComboBox.ItemIndex := 0;
+    finally
+      // Restore OnChange handlers
+      fsrversionComboBox.OnChange := SavedFsrOnChange;
+      optversionComboBox.OnChange := SavedOptOnChange;
+    end;
+
+    // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
+    fsrversionComboBoxChange(nil);
   end;
 end;
 
