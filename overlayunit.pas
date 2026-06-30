@@ -4979,22 +4979,23 @@ begin
     FOptiscalerUpdate.CheckForUpdatesOnClick;
     RefreshOsStatusDots;
   end;
+  // Sync emufp8CheckBox enabled state with the current optversionComboBox selection
+  fsrversionComboBoxChange(nil);
 end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
   // Disable emufp8CheckBox when "4.0.2c (INT8)" is selected (ItemIndex = 1)
-  // Enable emufp8CheckBox when "Latest" is selected (ItemIndex = 0)
-  case fsrversionComboBox.ItemIndex of
-    0: // Latest
-      begin
-        emufp8CheckBox.Enabled := True;
-      end;
-    1: // 4.0.2c (INT8)
-      begin
-        emufp8CheckBox.Enabled := False;
-        emufp8CheckBox.Checked := False;  // Also uncheck when disabled
-      end;
+  // or when using bleeding-edge channel (optversionComboBox.ItemIndex = 1).
+  // It only remains available for use when both are "Latest" and "Stable".
+  if (fsrversionComboBox.ItemIndex = 0) and (optversionComboBox.ItemIndex = 0) then
+  begin
+    emufp8CheckBox.Enabled := True;
+  end
+  else
+  begin
+    emufp8CheckBox.Enabled := False;
+    emufp8CheckBox.Checked := False;  // Also uncheck when disabled
   end;
 end;
 

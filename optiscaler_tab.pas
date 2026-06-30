@@ -389,13 +389,13 @@ begin
 
     optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
     optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
-    optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := 142;
+    optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := 216;
     optipatcherCheckBox.Left    := 134;
     optipatcherCheckBox.Parent  := FOsOptiSec;
 
     patcherlistLabel.AnchorSideLeft.Control   := nil; patcherlistLabel.AnchorSideTop.Control    := nil;
     patcherlistLabel.AnchorSideRight.Control  := nil; patcherlistLabel.AnchorSideBottom.Control := nil;
-    patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := 164;
+    patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := 238;
     patcherlistLabel.Left    := 142;
     patcherlistLabel.Parent  := FOsOptiSec;
 
@@ -818,7 +818,9 @@ begin
     tracelogCheckBox.Checked := Settings.TraceLogChecked;
 
     if Settings.OptVersionItemIndex in [0, 1] then
-      optversionComboBox.ItemIndex := Settings.OptVersionItemIndex;
+      optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
+    else
+      optversionComboBox.ItemIndex := 0;
   end;
 end;
 

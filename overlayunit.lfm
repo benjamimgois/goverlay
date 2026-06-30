@@ -11752,21 +11752,19 @@ object goverlayform: Tgoverlayform
               BorderSpacing.Top = 25
               Caption = 'Emulate FP8'
               TabOrder = 3
-              Visible = False
             end
             object optipatcherCheckBox: TCheckBox
-              AnchorSideLeft.Control = fsrversionComboBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = fsrversionComboBox
+              AnchorSideLeft.Control = emufp8CheckBox
+              AnchorSideTop.Control = protontricksManagerButton
               AnchorSideTop.Side = asrCenter
               AnchorSideRight.Control = optiscalerGroupBox
               AnchorSideRight.Side = asrBottom
               Left = 134
               Height = 21
               Hint = 'An ASI Plugin for OptiScaler for exposing DLSS/DLSS-FG inputs '#10'without spoofing in supported games.'
-              Top = 112
+              Top = 185
               Width = 92
-              BorderSpacing.Left = 15
+              BorderSpacing.Top = 30
               BorderSpacing.Right = 20
               Caption = 'OptiPatcher'
               Font.Height = -12
