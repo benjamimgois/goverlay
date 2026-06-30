@@ -11733,6 +11733,7 @@ object goverlayform: Tgoverlayform
               )
               ParentColor = True
               ParentFont = False
+              ReadOnly = True
               TabOrder = 2
               Text = 'Latest'
               OnChange = fsrversionComboBoxChange

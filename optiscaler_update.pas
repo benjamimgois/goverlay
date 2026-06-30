@@ -1386,6 +1386,37 @@ begin
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssg.dll, continuing...');
     UpdateProgress(88);
 
+    // STEP 5b: Setup FSR4 directories and download FSR INT8 DLL
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up FSR4_LATEST and FSR4_INT8 directories...');
+    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST');
+    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8');
+
+    // Copy current default upscaler dll to FSR4_LATEST
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll') then
+    begin
+      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll',
+               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
+      WriteLn('[DEBUG] UpdateButtonClick: Copied default upscaler from OptiScaler/ to FSR4_LATEST');
+    end
+    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+    begin
+      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll',
+               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
+      WriteLn('[DEBUG] UpdateButtonClick: Copied default upscaler from root to FSR4_LATEST');
+    end;
+
+    // Download INT8 upscaler dll
+    UpdateStatus('Downloading FSR 4.0.2c (INT8)');
+    if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
+                    IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Downloaded INT8 upscaler to FSR4_INT8');
+    end
+    else
+    begin
+      WriteLn('[WARN] UpdateButtonClick: Failed to download FSR INT8 DLL');
+    end;
+
     // Sync DLLs from .bgmod_original to the global bgmod working copy.
     // Only DLL files are force-copied so user configs (MangoHud.conf,
     // OptiScaler.ini, etc.) in bgmod are never overwritten.
@@ -1402,6 +1433,12 @@ begin
         'done; ' +
         'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ]; then ' +
         '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ' + QuotedStr(FFGModPath) + '; ' +
+        'fi; ' +
+        'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST') + ' ]; then ' +
+        '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST') + ' ' + QuotedStr(FFGModPath) + '; ' +
+        'fi; ' +
+        'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8') + ' ]; then ' +
+        '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8') + ' ' + QuotedStr(FFGModPath) + '; ' +
         'fi 2>/dev/null');
       SyncProc.Options := [poWaitOnExit];
       SyncProc.Execute;
@@ -1840,6 +1877,43 @@ begin
         WriteLn('[AUTO-INSTALL] nvngx_dlssg.dll downloaded')
       else
         WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlssg.dll');
+    finally
+      Process.Free;
+    end;
+
+    // Download and setup FSR upscaler DLLs
+    WriteLn('[AUTO-INSTALL] Setting up FSR4_LATEST and FSR4_INT8 directories...');
+    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST');
+    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8');
+
+    // Copy current default upscaler dll to FSR4_LATEST
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll') then
+    begin
+      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll',
+               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
+      WriteLn('[AUTO-INSTALL] Copied default upscaler from OptiScaler/ to FSR4_LATEST');
+    end
+    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+    begin
+      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll',
+               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
+      WriteLn('[AUTO-INSTALL] Copied default upscaler from root to FSR4_LATEST');
+    end;
+
+    // Download FSR INT8 DLL using curl
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll');
+      Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      if Process.ExitStatus = 0 then
+        WriteLn('[AUTO-INSTALL] FSR INT8 DLL downloaded to FSR4_INT8')
+      else
+        WriteLn('[AUTO-INSTALL] WARN: Failed to download FSR INT8 DLL');
     finally
       Process.Free;
     end;
