@@ -2036,6 +2036,7 @@ var
   GameName, GameCfgDir, FGOrig: string;
   Lines: TStringList;
   p: Integer;
+  NeedsStableSeed: Boolean;
 begin
   with FForm do
   begin
@@ -2072,6 +2073,23 @@ begin
   GameCfgDir := GetGameConfigDir(GameName);
   if not DirectoryExists(GameCfgDir) then
     ForceDirectories(GameCfgDir);
+
+  // First-selection stable seeding: when no goverlay.vars exists in the game
+  // config dir yet, seed it with stable OptiScaler assets from .bgmod_original
+  // (no-clobber preserves any user-editable files already present) and copy the
+  // pristine goverlay.vars so the Software status card immediately shows the
+  // stable version for this game.
+  NeedsStableSeed := not FileExists(GameCfgDir + 'goverlay.vars');
+  if NeedsStableSeed then
+  begin
+    FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
+    ExecuteShellCommand('cp -rn ' + QuotedStr(FGOrig + '.') + ' ' +
+      QuotedStr(GameCfgDir) + ' 2>/dev/null');
+    // Ensure a goverlay.vars is present: prefer the pristine one from
+    // .bgmod_original; if absent, leave it — LoadVersionsFromFile will simply
+    // report empty status until the user runs an install.
+  end;
+
   // Copy only the launch scripts — OptiScaler files are copied only when the
   // OptiScaler toggle is explicitly enabled for this game.
   // Copy scripts without overwriting — user config lives inside fgmod.
@@ -2085,12 +2103,31 @@ begin
     QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
   ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
   EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
+
+  // Re-point the OptiScaler tab at the active game's config dir and reload
+  // versions so the Software status card reflects this game's goverlay.vars.
+  // This mirrors the assumption made by optiscalerLabelClick (which calls
+  // LoadOptiScalerConfig + RefreshOsStatusDots): once FGModPath is correct,
+  // both the status card and the channel combobox stay in sync per game.
+  if Assigned(FOptiscalerUpdate) then
+  begin
+    FOptiscalerUpdate.FGModPath := GameCfgDir;
+    try
+      FOptiscalerUpdate.LoadVersionsFromFile;
+      FOptiscalerUpdate.InitializeTab;
+      RefreshOsStatusDots;
+    except
+      on E: Exception do
+        WriteLn('[WARN] GameCardClick: could not reload OptiScaler status - ', E.Message);
+    end;
+  end;
+
   MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
   UpdateGameContextLabel;
   SetNavActive(1);
   goverlayPageControl.ShowTabs := True;
   vkbasalttabsheet.TabVisible  := False;
-  optiscalertabsheet.TabVisible := False;
+  optiscalertabsheet.TabVisible := True;
   tweakstabsheet.TabVisible    := False;
   gamesTabSheet.TabVisible     := False;
   goverlayPageControl.ActivePage := presetTabsheet;

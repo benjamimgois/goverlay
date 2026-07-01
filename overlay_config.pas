@@ -517,9 +517,7 @@ var
   ForceReflexValue: string;
   ForceLatencyFlexValue, LatencyFlexModeValue: string;
   EnableTraceLogsValue: string;
-  FGModPath, FGModDestPath, VarsFilePath: string;
-  Lines: TStringList;
-  i: Integer;
+  FGModPath, FGModDestPath: string;
   Ini: TIniFile;
   FGModFilePath: string;
 
@@ -691,64 +689,31 @@ begin
   end;
 
   // ##### Copy FSR4 DLL based on fsrversion selection #####
+  // NOTE: the FSR library version (4.1 / 4.1.1) is written to goverlay.vars by
+  // the OptiScaler install/update flow (UpdateButtonClick) using the value
+  // fetched from vars.txt (fsrstable/fsredge). The FP8-vs-INT8 DLL choice is
+  // persisted separately in OptiScaler.ini (FsrAgilitySDKUpgrade), so this
+  // routine MUST NOT overwrite the fsrversion key in goverlay.vars — doing so
+  // would clobber the real library version with "Latest"/"4.0.2c (INT8)" and
+  // make the Software status card show the wrong value after a channel install.
   try
     FGModPath := GetOptiScalerInstallPath;
     // Always use GameConfigDir as destination (maps to gameconfig/global/ when no game)
     FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(Settings.ActiveGameName));
 
     case Settings.FsrversionItemIndex of
-      0: // Latest
+      0: // Latest (FP8)
         begin
           if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-          begin
             CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
                      IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-
-            VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
-            if FileExists(VarsFilePath) then
-            begin
-              Lines := TStringList.Create;
-              try
-                Lines.LoadFromFile(VarsFilePath);
-                for i := Lines.Count - 1 downto 0 do
-                  if Pos('fsrversion=', Lines[i]) > 0 then
-                    Lines.Delete(i);
-                Lines.Add('fsrversion=Latest');
-                Lines.SaveToFile(VarsFilePath);
-              finally
-                Lines.Free;
-              end;
-            end;
-
-
-          end;
         end;
 
       1: // 4.0.2c (INT8)
         begin
           if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-          begin
             CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
                      IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-
-            VarsFilePath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
-            if FileExists(VarsFilePath) then
-            begin
-              Lines := TStringList.Create;
-              try
-                Lines.LoadFromFile(VarsFilePath);
-                for i := Lines.Count - 1 downto 0 do
-                  if Pos('fsrversion=', Lines[i]) > 0 then
-                    Lines.Delete(i);
-                Lines.Add('fsrversion=4.0.2c (INT8)');
-                Lines.SaveToFile(VarsFilePath);
-              finally
-                Lines.Free;
-              end;
-            end;
-
-
-          end;
         end;
     end;
   except

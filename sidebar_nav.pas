@@ -770,7 +770,10 @@ end;
 
 procedure TSidebarNavHelper.CopyOptiScalerGameFiles(const AGameCfgDir: string);
 begin
-  // Copy all files from .fgmod_original (no-clobber for scripts already present)
+  // Seeding/toggle-on path: copy all files from .bgmod_original (no-clobber)
+  // so existing per-game user configs (bgmod.conf, OptiScaler.ini, etc.) are
+  // preserved. The install/channel-switch flow uses SyncPristineAssetsTo with
+  // force-copy semantics instead — keep this no-clobber to protect user edits.
   ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' +
     QuotedStr(AGameCfgDir) + ' 2>/dev/null');
 end;

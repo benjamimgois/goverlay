@@ -1705,9 +1705,16 @@ begin
   end;
   // Re-enable controls after installation completes
   UpdateGeSpeedButtonState;
-  // Reload installed versions and refresh the Software Status card immediately
+  // Reload installed versions and refresh the Software Status card immediately.
+  // UpdateButtonClick internally reassigns FGModPath to the global pristine
+  // (bgmod/) for asset sync purposes; restore it to the active game/global
+  // config dir so the status card reflects the freshly installed versions
+  // (gameconfig/<game>/ when a game is active, gameconfig/global/ otherwise).
   if Assigned(FOptiscalerUpdate) then
+  begin
+    FOptiscalerUpdate.FGModPath := GetGameConfigDir(FActiveGameName);
     FOptiscalerUpdate.LoadVersionsFromFile;
+  end;
   RefreshOsStatusDots;
 end;
 
@@ -4072,6 +4079,21 @@ begin
     HideGameThumb;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
     SetSaveBtnEnabled(True);
+
+    // Re-point the OptiScaler tab at the global config dir and reload versions
+    // so Software status reflects gameconfig/global/ instead of the last game.
+    if Assigned(FOptiscalerUpdate) then
+    begin
+      FOptiscalerUpdate.FGModPath := GetGameConfigDir('');
+      try
+        FOptiscalerUpdate.LoadVersionsFromFile;
+        FOptiscalerUpdate.InitializeTab;
+        RefreshOsStatusDots;
+      except
+        on E: Exception do
+          WriteLn('[WARN] gamesLabelClick: could not reload OptiScaler status - ', E.Message);
+      end;
+    end;
   end;
 
   SetNavActive(0);
