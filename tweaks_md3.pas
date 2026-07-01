@@ -1156,15 +1156,10 @@ begin
   end;
 
   // Build the Launch Command to display/use
-  if FForm.FActiveGameName <> '' then
-  begin
-    if FForm.FActiveGameIsNonSteam then
-      LaunchCommand := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod '
-    else
-      LaunchCommand := '"' + FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod" ';
-  end
+  if FForm.FActiveGameIsNonSteam then
+    LaunchCommand := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod '
   else
-    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+    LaunchCommand := '"' + FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod" ';
 
   // Check if gamemode should be added
   if FForm.GetPerformanceCheckBox(0).Checked then

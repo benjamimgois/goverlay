@@ -177,48 +177,53 @@ procedure MigrateGlobalConfigToIsolatedFolder;
 var
   DataHome: string;
   BGModPath, GlobalCfgDir: string;
-  FilesToMove: array[0..3] of string;
-  i: Integer;
+  Proc: TProcess;
 begin
   DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
 
-  BGModPath := IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'bgmod');
+  BGModPath    := IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'bgmod');
   GlobalCfgDir := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'gameconfig' + PathDelim + 'global' + PathDelim;
 
-  if not FileExists(GlobalCfgDir + 'bgmod.conf') and FileExists(BGModPath + 'bgmod.conf') then
+  // Only run if gameconfig/global/ does not yet have the bgmod binary
+  if not FileExists(GlobalCfgDir + 'bgmod') then
   begin
-    WriteLn('[BGMOD] Migrating active global configs to gameconfig/global/ ...');
+    WriteLn('[BGMOD] Initializing gameconfig/global/ from bgmod/...');
     if ForceDirectories(GlobalCfgDir) then
     begin
-      FilesToMove[0] := 'bgmod.conf';
-      FilesToMove[1] := 'goverlay.vars';
-      FilesToMove[2] := 'OptiScaler.ini';
-      FilesToMove[3] := 'fakenvapi.ini';
-      for i := 0 to 3 do
-      begin
-        if FileExists(BGModPath + FilesToMove[i]) then
-        begin
-          if CopyFile(BGModPath + FilesToMove[i], GlobalCfgDir + FilesToMove[i]) then
-          begin
-            DeleteFile(BGModPath + FilesToMove[i]);
-            WriteLn('[BGMOD] Migrated: ', FilesToMove[i]);
-          end;
-        end;
+      // Copy everything from bgmod/ into gameconfig/global/
+      Proc := TProcess.Create(nil);
+      try
+        Proc.Executable := 'sh';
+        Proc.Parameters.Add('-c');
+        Proc.Parameters.Add('cp -rf --no-preserve=mode ' +
+                            QuotedStr(BGModPath + '.') +
+                            ' ' + QuotedStr(GlobalCfgDir) + ' 2>/dev/null');
+        Proc.Options := [poWaitOnExit];
+        Proc.Execute;
+      finally
+        Proc.Free;
       end;
+      // Make binaries executable
+      fpChmod(PChar(GlobalCfgDir + 'bgmod'), &755);
+      fpChmod(PChar(GlobalCfgDir + 'bgmod-uninstaller'), &755);
+      WriteLn('[BGMOD] gameconfig/global/ initialized from bgmod/');
     end;
-  end;
+  end
+  else
+    WriteLn('[BGMOD] gameconfig/global/ already initialized, skipping migration.');
 end;
+
 
 procedure InitializeBGModDirectory;
 var
   SourceDir, OriginalPath, BGModPath, BinaryDir: string;
+  GlobalCfgDir, DataHomeEnv: string;
   Proc: TProcess;
 begin
   // Handle any migration from older versions first
   MigrateBGModToXDG;
-  MigrateGlobalConfigToIsolatedFolder;
 
   OriginalPath := GetBGModOriginalPath;
   BGModPath    := GetBGModPath;
@@ -334,6 +339,61 @@ begin
   finally
     Proc.Free;
   end;
+
+  // Ensure gameconfig/global/ exists as a full copy of bgmod/ (first run),
+  // then keep its binaries/DLLs up-to-date on subsequent runs (skip user configs).
+  DataHomeEnv := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHomeEnv = '' then
+    DataHomeEnv := GetUserDir + '.local/share';
+  GlobalCfgDir := IncludeTrailingPathDelimiter(
+    IncludeTrailingPathDelimiter(DataHomeEnv) + 'goverlay' + PathDelim + 'gameconfig' + PathDelim + 'global');
+
+  if not FileExists(GlobalCfgDir + 'bgmod') then
+  begin
+    // First time: copy EVERYTHING from bgmod/ to gameconfig/global/
+    WriteLn('[BGMOD] Initializing gameconfig/global/ from bgmod/...');
+    if ForceDirectories(GlobalCfgDir) then
+    begin
+      Proc := TProcess.Create(nil);
+      try
+        Proc.Executable := 'sh';
+        Proc.Parameters.Add('-c');
+        Proc.Parameters.Add('cp -rf --no-preserve=mode ' +
+                            QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + '.') +
+                            ' ' + QuotedStr(GlobalCfgDir) + ' 2>/dev/null');
+        Proc.Options := [poWaitOnExit];
+        Proc.Execute;
+      finally
+        Proc.Free;
+      end;
+      WriteLn('[BGMOD] gameconfig/global/ initialized from bgmod/');
+    end;
+  end
+  else
+  begin
+    // Subsequent runs: sync only binaries/DLLs (exclude user config files)
+    WriteLn('[BGMOD] Syncing binaries/DLLs to gameconfig/global/...');
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('rsync -a --no-owner --no-group' +
+                          ' --exclude=bgmod.conf --exclude=goverlay.vars' +
+                          ' --exclude=OptiScaler.ini --exclude=fakenvapi.ini' +
+                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath)) +
+                          ' ' + QuotedStr(GlobalCfgDir) +
+                          ' 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end;
+  // Ensure binaries are executable in gameconfig/global/
+  if FileExists(GlobalCfgDir + 'bgmod') then
+    fpChmod(PChar(GlobalCfgDir + 'bgmod'), &755);
+  if FileExists(GlobalCfgDir + 'bgmod-uninstaller') then
+    fpChmod(PChar(GlobalCfgDir + 'bgmod-uninstaller'), &755);
 end;
 
 function IsBGModInitialized: Boolean;

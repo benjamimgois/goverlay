@@ -751,8 +751,13 @@ begin
     ConfigDir := BgmodPath;
     if LowerCase(Key) = 'bgmod' then
     begin
+      // Global mode: ConfigDir = gameconfig/global/ (full copy of bgmod/ with user configs)
       ConfigDir := IncludeTrailingPathDelimiter(Val) + 'gameconfig' + PathDelim + 'global' + PathDelim;
-      SourceDir := BgmodPath;
+      // SourceDir: prefer gameconfig/global/ if it has DLLs, otherwise fall back to bgmod/
+      if FileExists(ConfigDir + 'OptiScaler.dll') then
+        SourceDir := ConfigDir
+      else
+        SourceDir := BgmodPath;
     end
     else
     begin
