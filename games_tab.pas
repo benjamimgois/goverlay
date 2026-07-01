@@ -2998,15 +2998,21 @@ begin
     SafeCleanOrRestore('_nvngx.dll', False);
     SafeCleanOrRestore('dlssg_to_fsr3_amd_is_better-3.0.dll', False);
     SafeCleanOrRestore('bgmod-uninstaller', False);
+    SafeCleanOrRestore('amd_fidelityfx_loader_dx12.dll', False);
     SafeCleanOrRestore('MangoHud.conf', False);
     SafeCleanOrRestore('vkBasalt.conf', False);
     SafeCleanOrRestore('vkSumi.conf', False);
 
-    // 3. Remove plugins folder
+    // 3. Remove plugins and D3D12_OptiScaler folders
     if DirectoryExists(Dir + 'plugins') then
     begin
       DeleteDirectory(Dir + 'plugins', False);
       Log('Removed directory: ' + Dir + 'plugins');
+    end;
+    if DirectoryExists(Dir + 'D3D12_OptiScaler') then
+    begin
+      DeleteDirectory(Dir + 'D3D12_OptiScaler', False);
+      Log('Removed directory: ' + Dir + 'D3D12_OptiScaler');
     end;
 
     // 4. Remove wrappers and script configs

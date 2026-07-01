@@ -698,9 +698,10 @@ var
   EnvArgs: array of PChar;
   Args: array of PChar;
   ArgsStrings: array of string;
-  OrigDlls: array[0..12] of string = (
+  OrigDlls: array[0..13] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
+    'amd_fidelityfx_loader_dx12.dll',
     'amd_fidelityfx_framegeneration_dx12.dll',
     'amd_fidelityfx_upscaler_dx12.dll',
     'amd_fidelityfx_vk.dll',
@@ -897,7 +898,11 @@ begin
           SafeCopyFile(BgmodPath + 'libxess_dx11.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_dx11.dll');
           SafeCopyFile(BgmodPath + 'libxess_fg.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess_fg.dll');
           SafeCopyFile(BgmodPath + 'libxell.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxell.dll');
-          SafeCopyFile(BgmodPath + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
+          SafeCopyFile(BgmodPath + 'amd_fidelityfx_loader_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_loader_dx12.dll');
+          if FileExists(BgmodPath + 'amd_fidelityfx_dx12.dll') then
+            SafeCopyFile(BgmodPath + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll')
+          else if FileExists(BgmodPath + 'amd_fidelityfx_loader_dx12.dll') then
+            SafeCopyFile(BgmodPath + 'amd_fidelityfx_loader_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
           SafeCopyFile(BgmodPath + 'amd_fidelityfx_framegeneration_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
           SafeCopyFile(BgmodPath + 'amd_fidelityfx_upscaler_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
           SafeCopyFile(BgmodPath + 'amd_fidelityfx_vk.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');
@@ -947,6 +952,7 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess_fg.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxell.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_loader_dx12.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');

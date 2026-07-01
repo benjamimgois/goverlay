@@ -631,6 +631,7 @@ begin
       SafeCleanOrRestore(GameDir, 'wininet.dll', False);
       SafeCleanOrRestore(GameDir, 'winhttp.dll', False);
       SafeCleanOrRestore(GameDir, 'OptiScaler.ini', False);
+      SafeCleanOrRestore(GameDir, 'amd_fidelityfx_loader_dx12.dll', False);
       SafeCleanOrRestore(GameDir, 'OptiScaler.log', False);
       SafeCleanOrRestore(GameDir, 'OptiScaler.asi', False);
       SafeCleanOrRestore(GameDir, 'dlssg_to_fsr3_amd_is_better.dll', False);

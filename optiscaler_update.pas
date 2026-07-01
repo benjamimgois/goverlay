@@ -48,6 +48,8 @@ type
     procedure UpdateProgress(AProgress: Integer);
     procedure UpdateStatus(const AStatus: string);
     function ExtractOptiScalerVersion(const AFileName: string): string;
+    function FetchFakeNvapiLatest(out ATag, AURL: string): Boolean;
+    function FetchVarsTxt(out AFsrStable, AFsrEdge, AXessStable, AXessEdge: string): Boolean;
     procedure CheckForUpdates;
 
   public
@@ -811,6 +813,132 @@ begin
   end;
 end;
 
+function TOptiscalerTab.FetchFakeNvapiLatest(out ATag, AURL: string): Boolean;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  Response: string;
+  JSONData: TJSONData;
+  JSONObject, AssetObj: TJSONObject;
+  AssetsArray: TJSONArray;
+  i: Integer;
+begin
+  Result := False;
+  ATag := '';
+  AURL := '';
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    try
+      WriteLn('[DEBUG] FetchFakeNvapiLatest: Fetching from ', URL_FAKENVAPI_API);
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-s');
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-A');
+      Process.Parameters.Add('Goverlay/1.6 (Linux; Flatpak-compatible)');
+      Process.Parameters.Add(URL_FAKENVAPI_API);
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+      OutputList.LoadFromStream(Process.Output);
+      Response := OutputList.Text;
+      if (Process.ExitStatus = 0) and (Response <> '') then
+      begin
+        if (Length(Response) > 0) and (Response[1] = '{') then
+        begin
+          JSONData := GetJSON(Response);
+          try
+            if Assigned(JSONData) and (JSONData is TJSONObject) then
+            begin
+              JSONObject := TJSONObject(JSONData);
+              ATag := JSONObject.Get('tag_name', '');
+              AssetsArray := TJSONArray(JSONObject.Find('assets'));
+              if Assigned(AssetsArray) then
+              begin
+                for i := 0 to AssetsArray.Count - 1 do
+                begin
+                  AssetObj := TJSONObject(AssetsArray.Items[i]);
+                  if Assigned(AssetObj) and SameText(ExtractFileExt(AssetObj.Get('name', '')), '.7z') then
+                  begin
+                    AURL := AssetObj.Get('browser_download_url', '');
+                    Break;
+                  end;
+                end;
+              end;
+              Result := (ATag <> '') and (AURL <> '');
+            end;
+          finally
+            JSONData.Free;
+          end;
+        end;
+      end;
+    except
+      on E: Exception do
+        WriteLn('[ERROR] FetchFakeNvapiLatest: Exception - ', E.ClassName, ': ', E.Message);
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+end;
+
+function TOptiscalerTab.FetchVarsTxt(out AFsrStable, AFsrEdge, AXessStable, AXessEdge: string): Boolean;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  i: Integer;
+  Line: string;
+  SepPos: Integer;
+  Key, Value: string;
+begin
+  Result := False;
+  AFsrStable := '';
+  AFsrEdge := '';
+  AXessStable := '';
+  AXessEdge := '';
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-s');
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-A');
+      Process.Parameters.Add('Goverlay/1.6 (Linux; Flatpak-compatible)');
+      Process.Parameters.Add('https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/vars.txt');
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+      OutputList.LoadFromStream(Process.Output);
+      if Process.ExitStatus = 0 then
+      begin
+        for i := 0 to OutputList.Count - 1 do
+        begin
+          Line := Trim(OutputList[i]);
+          SepPos := Pos('=', Line);
+          if SepPos > 0 then
+          begin
+            Key := Trim(Copy(Line, 1, SepPos - 1));
+            Value := Trim(Copy(Line, SepPos + 1, Length(Line)));
+            if SameText(Key, 'fsrstable') then
+              AFsrStable := Value
+            else if SameText(Key, 'fsredge') then
+              AFsrEdge := Value
+            else if SameText(Key, 'xessstable') then
+              AXessStable := Value
+            else if SameText(Key, 'xessedge') then
+              AXessEdge := Value;
+          end;
+        end;
+        Result := True;
+      end;
+    except
+      on E: Exception do
+        WriteLn('[ERROR] FetchVarsTxt: Exception - ', E.ClassName, ': ', E.Message);
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+end;
 
 procedure TOptiscalerTab.LoadVersionsFromFile;
 var
@@ -1219,6 +1347,22 @@ var
   FsrLineFound: Boolean;
   SyncProc: TProcess;
   Ini: TIniFile;
+  FakeNvapiTag: string;
+  FakeNvapiURL: string;
+  Fake7zPath: string;
+  FakeNvapiVerClean: string;
+  FakeNvapiLineFound: Boolean;
+  XessLineFound: Boolean;
+  FsrStableVal: string;
+  FsrEdgeVal: string;
+  XessStableVal: string;
+  XessEdgeVal: string;
+  FsrStableValTemp: string;
+  FsrEdgeValTemp: string;
+  XessStableValTemp: string;
+  XessEdgeValTemp: string;
+  TargetFsrVersion: string;
+  TargetXessVersion: string;
 begin
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -1359,6 +1503,25 @@ begin
     WriteLn('[DEBUG] UpdateButtonClick: Extraction to .bgmod_original completed successfully');
     UpdateProgress(70);
 
+    // MOVE CONTENTS OF SUBFOLDER "OptiScaler" TO ROOT if it exists
+    if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Moving files from OptiScaler/ subfolder to root...');
+      SyncProc := TProcess.Create(nil);
+      try
+        SyncProc.Executable := 'sh';
+        SyncProc.Parameters.Add('-c');
+        SyncProc.Parameters.Add('cp -rf ' +
+          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/.') + ' ' +
+          QuotedStr(GetBGModOriginalPath) + ' && rm -rf ' +
+          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler'));
+        SyncProc.Options := [poWaitOnExit];
+        SyncProc.Execute;
+      finally
+        SyncProc.Free;
+      end;
+    end;
+
     // STEP 4: Make bgmod.sh executable in .bgmod_original
     WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making bgmod.sh executable in .bgmod_original...');
     if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh') then
@@ -1389,19 +1552,46 @@ begin
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssg.dll, continuing...');
     UpdateProgress(88);
 
+    // Download auxiliary dlssg_to_fsr3 DLL
+    UpdateStatus('Downloading dlssg_to_fsr3 DLL');
+    if not DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll',
+                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'dlssg_to_fsr3_amd_is_better.dll') then
+      WriteLn('[WARN] UpdateButtonClick: Failed to download dlssg_to_fsr3_amd_is_better.dll, continuing...');
+
+    // Fetch and download/extract latest FakeNVAPI
+    UpdateStatus('Downloading FakeNVAPI');
+    FakeNvapiVerClean := '';
+    if FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Found FakeNVAPI tag: ', FakeNvapiTag);
+      Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest.7z';
+      if DownloadFile(FakeNvapiURL, Fake7zPath) then
+      begin
+        WriteLn('[DEBUG] UpdateButtonClick: Extracting FakeNVAPI...');
+        if Extract7z(Fake7zPath, GetBGModOriginalPath) then
+          WriteLn('[DEBUG] UpdateButtonClick: FakeNVAPI extracted successfully')
+        else
+          WriteLn('[WARN] UpdateButtonClick: Failed to extract FakeNVAPI');
+        DeleteFile(Fake7zPath);
+      end
+      else
+        WriteLn('[WARN] UpdateButtonClick: Failed to download FakeNVAPI');
+
+      // Strip leading 'v' for FakeNvapiVersion key
+      FakeNvapiVerClean := FakeNvapiTag;
+      if (Length(FakeNvapiVerClean) > 0) and (FakeNvapiVerClean[1] = 'v') then
+        FakeNvapiVerClean := Copy(FakeNvapiVerClean, 2, Length(FakeNvapiVerClean) - 1);
+    end
+    else
+      WriteLn('[WARN] UpdateButtonClick: Failed to fetch FakeNVAPI latest release info');
+
     // STEP 5b: Setup FSR4 directories and download FSR INT8 DLL
     WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up FSR4_LATEST and FSR4_INT8 directories...');
     ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST');
     ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8');
 
     // Copy current default upscaler dll to FSR4_LATEST
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll') then
-    begin
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
-      WriteLn('[DEBUG] UpdateButtonClick: Copied default upscaler from OptiScaler/ to FSR4_LATEST');
-    end
-    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
     begin
       CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll',
                IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
@@ -1434,6 +1624,9 @@ begin
         'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath)) + '*.dll; do ' +
         '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(IncludeTrailingPathDelimiter(FFGModPath)) + '; ' +
         'done; ' +
+        'if [ -f ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') + ' ]; then ' +
+        '  cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') + ' ' + QuotedStr(FFGModPath) + '; ' +
+        'fi; ' +
         'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ]; then ' +
         '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ' + QuotedStr(FFGModPath) + '; ' +
         'fi; ' +
@@ -1517,24 +1710,88 @@ begin
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated existing optipatcher line');
 
-        if not IsStableChannel then
+        // Fetch dynamic versions from vars.txt
+        FsrStableVal := '4.1';
+        FsrEdgeVal := '4.1.1';
+        XessStableVal := '3.0.1';
+        XessEdgeVal := '3.0.1';
+
+        WriteLn('[DEBUG] UpdateButtonClick: Fetching vars.txt...');
+        if FetchVarsTxt(FsrStableValTemp, FsrEdgeValTemp, XessStableValTemp, XessEdgeValTemp) then
         begin
-          FsrLineFound := False;
+          if FsrStableValTemp <> '' then FsrStableVal := FsrStableValTemp;
+          if FsrEdgeValTemp <> '' then FsrEdgeVal := FsrEdgeValTemp;
+          if XessStableValTemp <> '' then XessStableVal := XessStableValTemp;
+          if XessEdgeValTemp <> '' then XessEdgeVal := XessEdgeValTemp;
+          WriteLn('[DEBUG] UpdateButtonClick: Successfully fetched vars.txt');
+        end
+        else
+          WriteLn('[WARN] UpdateButtonClick: Failed to fetch vars.txt, using fallbacks');
+
+        if IsStableChannel then
+        begin
+          TargetFsrVersion := FsrStableVal;
+          TargetXessVersion := XessStableVal;
+        end
+        else
+        begin
+          TargetFsrVersion := FsrEdgeVal;
+          TargetXessVersion := XessEdgeVal;
+        end;
+
+        // Write FakeNvapiVersion if clean tag exists
+        if FakeNvapiVerClean <> '' then
+        begin
+          FakeNvapiLineFound := False;
           for VarsIdx := 0 to VarsList.Count - 1 do
-            if SameText(Copy(VarsList[VarsIdx], 1, 11), 'fsrversion=') then
+            if SameText(Copy(VarsList[VarsIdx], 1, 18), 'fakenvapiversion=') then
             begin
-              VarsList[VarsIdx] := 'fsrversion=4.1.1';
-              FsrLineFound := True;
+              VarsList[VarsIdx] := 'FakeNvapiVersion=' + FakeNvapiVerClean;
+              FakeNvapiLineFound := True;
               Break;
             end;
-          if not FsrLineFound then
+          if not FakeNvapiLineFound then
           begin
-            VarsList.Add('fsrversion=4.1.1');
-            WriteLn('[DEBUG] UpdateButtonClick: Added new fsrversion line for bleeding-edge');
+            VarsList.Add('FakeNvapiVersion=' + FakeNvapiVerClean);
+            WriteLn('[DEBUG] UpdateButtonClick: Added FakeNvapiVersion line');
           end
           else
-            WriteLn('[DEBUG] UpdateButtonClick: Updated existing fsrversion line for bleeding-edge');
+            WriteLn('[DEBUG] UpdateButtonClick: Updated FakeNvapiVersion line');
         end;
+
+        // Write fsrversion
+        FsrLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 11), 'fsrversion=') then
+          begin
+            VarsList[VarsIdx] := 'fsrversion=' + TargetFsrVersion;
+            FsrLineFound := True;
+            Break;
+          end;
+        if not FsrLineFound then
+        begin
+          VarsList.Add('fsrversion=' + TargetFsrVersion);
+          WriteLn('[DEBUG] UpdateButtonClick: Added fsrversion line');
+        end
+        else
+          WriteLn('[DEBUG] UpdateButtonClick: Updated fsrversion line');
+
+        // Write xessversion
+        XessLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 12), 'xessversion=') then
+          begin
+            VarsList[VarsIdx] := 'xessversion=' + TargetXessVersion;
+            XessLineFound := True;
+            Break;
+          end;
+        if not XessLineFound then
+        begin
+          VarsList.Add('xessversion=' + TargetXessVersion);
+          WriteLn('[DEBUG] UpdateButtonClick: Added xessversion line');
+        end
+        else
+          WriteLn('[DEBUG] UpdateButtonClick: Updated xessversion line');
 
         // Save to .bgmod_original (pristine store)
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
@@ -1724,6 +1981,23 @@ var
   DlssLineFound: Boolean;
   OptiLineFound: Boolean;
   OptiPatcherLineFound: Boolean;
+  FakeNvapiTag: string;
+  FakeNvapiURL: string;
+  Fake7zPath: string;
+  FakeNvapiVerClean: string;
+  FakeNvapiLineFound: Boolean;
+  XessLineFound: Boolean;
+  FsrLineFound: Boolean;
+  FsrStableVal: string;
+  FsrEdgeVal: string;
+  XessStableVal: string;
+  XessEdgeVal: string;
+  FsrStableValTemp: string;
+  FsrEdgeValTemp: string;
+  XessStableValTemp: string;
+  XessEdgeValTemp: string;
+  TargetFsrVersion: string;
+  TargetXessVersion: string;
 begin
   Result := False;
 
@@ -1742,25 +2016,21 @@ begin
   WriteLn('[AUTO-INSTALL] OptiScaler.dll not found, starting automatic installation...');
   
   try
-    // Get user directory
-    UserDir := GetUserDir;
-    
-    // Get stable version tag using the existing working method
-    WriteLn('[AUTO-INSTALL] Getting OptiScaler Stable tag...');
-    OptiScalerTag := '';
-    
-    // Use the existing TOptiscalerTab method that already works
     OptiscalerTabTemp := TOptiscalerTab.Create;
     try
+      // Get user directory
+      UserDir := GetUserDir;
+      
+      // Get stable version tag using the existing working method
+      WriteLn('[AUTO-INSTALL] Getting OptiScaler Stable tag...');
+      OptiScalerTag := '';
+      
       OptiScalerTag := OptiscalerTabTemp.GetOptiScalerStableTag;
       DownloadURL := OptiscalerTabTemp.FOptiStableURL;
       if OptiScalerTag <> '' then
         WriteLn('[AUTO-INSTALL] Found stable tag: ', OptiScalerTag)
       else
         WriteLn('[AUTO-INSTALL] No stable tag found');
-    finally
-      OptiscalerTabTemp.Free;
-    end;
     
     // Verify we have a tag
     if OptiScalerTag = '' then
@@ -1825,6 +2095,25 @@ begin
 
     WriteLn('[AUTO-INSTALL] Extraction to .bgmod_original completed');
 
+    // MOVE CONTENTS OF SUBFOLDER "OptiScaler" TO ROOT if it exists
+    if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler') then
+    begin
+      WriteLn('[AUTO-INSTALL] Moving files from OptiScaler/ subfolder to root...');
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := 'sh';
+        Process.Parameters.Add('-c');
+        Process.Parameters.Add('cp -rf ' +
+          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/.') + ' ' +
+          QuotedStr(GetBGModOriginalPath) + ' && rm -rf ' +
+          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler'));
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+    end;
+
     // Rename bgmod.sh to bgmod in .bgmod_original if it exists
     if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh') then
     begin
@@ -1884,19 +2173,87 @@ begin
       Process.Free;
     end;
 
+    // Download auxiliary dlssg_to_fsr3 DLL
+    WriteLn('[AUTO-INSTALL] Downloading dlssg_to_fsr3 DLL...');
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'dlssg_to_fsr3_amd_is_better.dll');
+      Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      if Process.ExitStatus = 0 then
+        WriteLn('[AUTO-INSTALL] dlssg_to_fsr3_amd_is_better.dll downloaded')
+      else
+        WriteLn('[AUTO-INSTALL] WARN: Failed to download dlssg_to_fsr3_amd_is_better.dll');
+    finally
+      Process.Free;
+    end;
+
+    // Fetch and download/extract latest FakeNVAPI
+    WriteLn('[AUTO-INSTALL] Downloading FakeNVAPI...');
+    FakeNvapiVerClean := '';
+    if OptiscalerTabTemp.FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
+    begin
+      WriteLn('[AUTO-INSTALL] Found FakeNVAPI tag: ', FakeNvapiTag);
+      Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := 'curl';
+        Process.Parameters.Add('-L');
+        Process.Parameters.Add('-o');
+        Process.Parameters.Add(Fake7zPath);
+        Process.Parameters.Add(FakeNvapiURL);
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+        ExitCode := Process.ExitStatus;
+      finally
+        Process.Free;
+      end;
+
+      if (ExitCode = 0) and FileExists(Fake7zPath) then
+      begin
+        WriteLn('[AUTO-INSTALL] Extracting FakeNVAPI...');
+        Process := TProcess.Create(nil);
+        try
+          Process.Executable := '7z';
+          Process.Parameters.Add('x');
+          Process.Parameters.Add('-y');
+          Process.Parameters.Add('-o' + GetBGModOriginalPath);
+          Process.Parameters.Add(Fake7zPath);
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+          ExitCode := Process.ExitStatus;
+        finally
+          Process.Free;
+        end;
+
+        if ExitCode = 0 then
+          WriteLn('[AUTO-INSTALL] FakeNVAPI extracted successfully')
+        else
+          WriteLn('[AUTO-INSTALL] WARN: Failed to extract FakeNVAPI');
+        DeleteFile(Fake7zPath);
+      end
+      else
+        WriteLn('[AUTO-INSTALL] WARN: Failed to download FakeNVAPI');
+
+      // Strip leading 'v' for FakeNvapiVersion key
+      FakeNvapiVerClean := FakeNvapiTag;
+      if (Length(FakeNvapiVerClean) > 0) and (FakeNvapiVerClean[1] = 'v') then
+        FakeNvapiVerClean := Copy(FakeNvapiVerClean, 2, Length(FakeNvapiVerClean) - 1);
+    end
+    else
+      WriteLn('[AUTO-INSTALL] WARN: Failed to fetch FakeNVAPI latest release info');
+
     // Download and setup FSR upscaler DLLs
     WriteLn('[AUTO-INSTALL] Setting up FSR4_LATEST and FSR4_INT8 directories...');
     ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST');
     ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8');
 
-    // Copy current default upscaler dll to FSR4_LATEST
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll') then
-    begin
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
-      WriteLn('[AUTO-INSTALL] Copied default upscaler from OptiScaler/ to FSR4_LATEST');
-    end
-    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+    // Copy current default upscaler dll to FSR4_LATEST (from root since OptiScaler subfolder contents were moved)
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
     begin
       CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll',
                IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
@@ -1972,6 +2329,81 @@ begin
         else
           WriteLn('[AUTO-INSTALL] Updated existing optipatcher line');
 
+        // Fetch dynamic versions from vars.txt
+        FsrStableVal := '4.1';
+        FsrEdgeVal := '4.1.1';
+        XessStableVal := '3.0.1';
+        XessEdgeVal := '3.0.1';
+
+        if OptiscalerTabTemp.FetchVarsTxt(FsrStableValTemp, FsrEdgeValTemp, XessStableValTemp, XessEdgeValTemp) then
+        begin
+          if FsrStableValTemp <> '' then FsrStableVal := FsrStableValTemp;
+          if FsrEdgeValTemp <> '' then FsrEdgeVal := FsrEdgeValTemp;
+          if XessStableValTemp <> '' then XessStableVal := XessStableValTemp;
+          if XessEdgeValTemp <> '' then XessEdgeVal := XessEdgeValTemp;
+          WriteLn('[AUTO-INSTALL] Successfully fetched vars.txt');
+        end
+        else
+          WriteLn('[AUTO-INSTALL] WARN: Failed to fetch vars.txt, using fallbacks');
+
+        // Auto-install is always stable channel
+        TargetFsrVersion := FsrStableVal;
+        TargetXessVersion := XessStableVal;
+
+        // Write FakeNvapiVersion if clean tag exists
+        if FakeNvapiVerClean <> '' then
+        begin
+          FakeNvapiLineFound := False;
+          for VarsIdx := 0 to VarsList.Count - 1 do
+            if SameText(Copy(VarsList[VarsIdx], 1, 18), 'fakenvapiversion=') then
+            begin
+              VarsList[VarsIdx] := 'FakeNvapiVersion=' + FakeNvapiVerClean;
+              FakeNvapiLineFound := True;
+              Break;
+            end;
+          if not FakeNvapiLineFound then
+          begin
+            VarsList.Add('FakeNvapiVersion=' + FakeNvapiVerClean);
+            WriteLn('[AUTO-INSTALL] Added FakeNvapiVersion line');
+          end
+          else
+            WriteLn('[AUTO-INSTALL] Updated FakeNvapiVersion line');
+        end;
+
+        // Write fsrversion
+        FsrLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 11), 'fsrversion=') then
+          begin
+            VarsList[VarsIdx] := 'fsrversion=' + TargetFsrVersion;
+            FsrLineFound := True;
+            Break;
+          end;
+        if not FsrLineFound then
+        begin
+          VarsList.Add('fsrversion=' + TargetFsrVersion);
+          WriteLn('[AUTO-INSTALL] Added fsrversion line');
+        end
+        else
+          WriteLn('[AUTO-INSTALL] Updated fsrversion line');
+
+        // Write xessversion
+        XessLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 12), 'xessversion=') then
+          begin
+            VarsList[VarsIdx] := 'xessversion=' + TargetXessVersion;
+            XessLineFound := True;
+            Break;
+          end;
+        if not XessLineFound then
+        begin
+          VarsList.Add('xessversion=' + TargetXessVersion);
+          WriteLn('[AUTO-INSTALL] Added xessversion line');
+        end
+        else
+          WriteLn('[AUTO-INSTALL] Updated xessversion line');
+
         // Save to pristine store
         VarsList.SaveToFile(VarsFilePath);
         WriteLn('[AUTO-INSTALL] dlssversion saved to .bgmod_original');
@@ -2019,7 +2451,9 @@ begin
     begin
       WriteLn('[AUTO-INSTALL] ERROR: Installation verification failed');
     end;
-    
+  finally
+    OptiscalerTabTemp.Free;
+  end;
   except
     on E: Exception do
     begin
