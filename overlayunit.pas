@@ -2678,6 +2678,10 @@ begin
     end;
   end;
 
+  // Initialize the isolated global profile directory after bgmod/ has been
+  // populated (either from bundled templates or from the auto-install above).
+  InitializeGlobalConfigDirectory;
+
   //Set Window caption
   if GCHANNEL = 'stable' then
   begin

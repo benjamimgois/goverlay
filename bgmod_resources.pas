@@ -10,6 +10,10 @@ uses
 // Initialize the bgmod directory with all resources from the shared folder
 procedure InitializeBGModDirectory;
 
+// Initialize or sync the isolated global profile config directory
+// (gameconfig/global/) from the active bgmod/ directory.
+procedure InitializeGlobalConfigDirectory;
+
 // Check if bgmod directory exists and is properly initialized
 function IsBGModInitialized: Boolean;
 
@@ -219,7 +223,6 @@ end;
 procedure InitializeBGModDirectory;
 var
   SourceDir, OriginalPath, BGModPath, BinaryDir: string;
-  GlobalCfgDir, DataHomeEnv: string;
   Proc: TProcess;
 begin
   // Handle any migration from older versions first
@@ -340,6 +343,15 @@ begin
     Proc.Free;
   end;
 
+end;
+
+procedure InitializeGlobalConfigDirectory;
+var
+  BGModPath, GlobalCfgDir, DataHomeEnv: string;
+  Proc: TProcess;
+begin
+  BGModPath := GetBGModPath;
+
   // Ensure gameconfig/global/ exists as a full copy of bgmod/ (first run),
   // then keep its binaries/DLLs up-to-date on subsequent runs (skip user configs).
   DataHomeEnv := GetEnvironmentVariable('XDG_DATA_HOME');
@@ -389,6 +401,7 @@ begin
       Proc.Free;
     end;
   end;
+
   // Ensure binaries are executable in gameconfig/global/
   if FileExists(GlobalCfgDir + 'bgmod') then
     fpChmod(PChar(GlobalCfgDir + 'bgmod'), &755);
