@@ -1797,10 +1797,10 @@ begin
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
         WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to .bgmod_original');
 
-        // Save directly to global bgmod so it is never lost on copy failure
-        ForceDirectories(FFGModPath);
-        VarsList.SaveToFile(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
-        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to global bgmod');
+        // Save only to .bgmod_original (pristine store) and gameconfig/global (active global config)
+        ForceDirectories(goverlayform.GetGameConfigDir(''));
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir('')) + 'goverlay.vars');
+        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to gameconfig/global');
       except
         on E: Exception do
           WriteLn('[WARN] UpdateButtonClick: Could not write dlssversion - ', E.Message);
@@ -2408,10 +2408,10 @@ begin
         VarsList.SaveToFile(VarsFilePath);
         WriteLn('[AUTO-INSTALL] dlssversion saved to .bgmod_original');
 
-        // Also save directly to global so the seeded copy is up-to-date
-        ForceDirectories(AFGModPath);
-        VarsList.SaveToFile(IncludeTrailingPathDelimiter(AFGModPath) + 'goverlay.vars');
-        WriteLn('[AUTO-INSTALL] dlssversion saved to global bgmod');
+        // Also save to gameconfig/global/ (active global config)
+        ForceDirectories(goverlayform.GetGameConfigDir(''));
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir('')) + 'goverlay.vars');
+        WriteLn('[AUTO-INSTALL] dlssversion saved to gameconfig/global/');
       except
         on E: Exception do
           WriteLn('[AUTO-INSTALL] WARN: Could not write dlssversion - ', E.Message);

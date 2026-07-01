@@ -1013,10 +1013,7 @@ begin
                (Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT));
 
   // Determine the bgmod.conf path
-  if FForm.FActiveGameName <> '' then
-    ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf'
-  else
-    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
+  ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
 
   ForceDirectories(ExtractFilePath(ConfigPath));
   Ini := TIniFile.Create(ConfigPath);
@@ -1196,10 +1193,7 @@ var
   Key, Val: string;
 begin
   // Get bgmod config path
-  if FForm.FActiveGameName <> '' then
-    ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf'
-  else
-    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
+  ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
 
   // Check if bgmod.conf exists
   if not FileExists(ConfigPath) then

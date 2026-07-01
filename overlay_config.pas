@@ -221,9 +221,16 @@ begin
 end;
 
 function GetGameConfigDir(const AGameName: string): string;
+var
+  GameDirName: string;
 begin
+  if AGameName = '' then
+    GameDirName := 'global'
+  else
+    GameDirName := SanitizeFileName(AGameName);
+
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
-            'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
+            'goverlay/gameconfig/' + GameDirName + '/';
 end;
 
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
@@ -360,10 +367,7 @@ begin
     Lines.SaveToFile(Settings.BasaltCfgFile);
 
     // Update bgmod.conf with GOVERLAY_VKBASALT=1
-    if Settings.ActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
+    FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);
@@ -471,10 +475,7 @@ begin
     Lines.SaveToFile(Settings.SumiCfgFile);
 
     // Update bgmod.conf with ENABLE_VKSUMI setting
-    if Settings.ActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
+    FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);
@@ -521,20 +522,14 @@ var
   i: Integer;
   Ini: TIniFile;
   FGModFilePath: string;
-  FGModFilePathOriginal: string;
-  OptiScalerIniPathOriginal: string;
-  FakeNvapiIniPathOriginal: string;
-  VarsFilePathOriginal: string;
+
 begin
   Result := False;
   ErrMsg := '';
   LaunchCommand := '';
 
   // Get the bgmod.conf path
-  if Settings.ActiveGameName <> '' then
-    FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'
-  else
-    FGModFilePath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
+  FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
   // Get selected DLL name from index
   case Settings.FilenameItemIndex of
@@ -568,31 +563,10 @@ begin
     Ini.Free;
   end;
 
-  if Settings.ActiveGameName = '' then
-  begin
-    FGModFilePathOriginal := GetBGModOriginalPath + PathDelim + 'bgmod.conf';
-    ForceDirectories(ExtractFilePath(FGModFilePathOriginal));
-    Ini := TIniFile.Create(FGModFilePathOriginal);
-    try
-      Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
-      Ini.WriteString('Config', 'DLL', SelectedDllName);
-      Ini.WriteString('Config', 'PRESERVE_INI', 'true');
-      Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);
 
-      if Settings.EmuFp8Checked then
-        Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
-      else
-        Ini.DeleteKey('Env', 'DXIL_SPIRV_CONFIG');
-    finally
-      Ini.Free;
-    end;
-  end;
 
   // Get OptiScaler.ini file path
-  if Settings.ActiveGameName <> '' then
-    OptiScalerIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'OptiScaler.ini'
-  else
-    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+  OptiScalerIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'OptiScaler.ini';
 
   SelectedShortcutKey := Trim(Settings.ShortcutKey);
   if SelectedShortcutKey = '' then
@@ -645,36 +619,11 @@ begin
     OptiCfg.Free;
   end;
 
-  if Settings.ActiveGameName = '' then
-  begin
-    OptiScalerIniPathOriginal := GetBGModOriginalPath + PathDelim + 'OptiScaler.ini';
-    OptiCfg := TConfigFile.Create;
-    try
-      if OptiCfg.Load(OptiScalerIniPathOriginal) then
-      begin
-        OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
-        OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
-        OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
-        OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
-        OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
-        OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
-        if Settings.FsrversionItemIndex = 0 then
-          OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
-        else
-          OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'auto');
-        OptiCfg.Save;
-      end;
-    finally
-      OptiCfg.Free;
-    end;
-  end;
+
 
   // ##### Now modify fakenvapi.ini file #####
   begin
-    if Settings.ActiveGameName <> '' then
-      FakeNvapiIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'fakenvapi.ini'
-    else
-      FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+    FakeNvapiIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'fakenvapi.ini';
 
     if Settings.ForceReflexChecked then
     begin
@@ -738,35 +687,14 @@ begin
       FakeCfg.Free;
     end;
 
-    if Settings.ActiveGameName = '' then
-    begin
-      FakeNvapiIniPathOriginal := GetBGModOriginalPath + PathDelim + 'fakenvapi.ini';
-      FakeCfg := TConfigFile.Create;
-      try
-        if FakeCfg.Load(FakeNvapiIniPathOriginal) then
-        begin
-          if Settings.ForceReflexChecked then
-            FakeCfg.SetValue(FAKE_KEY_FORCE_REFLEX, ForceReflexValue)
-          else
-            FakeCfg.DeleteKey(FAKE_KEY_FORCE_REFLEX);
-          FakeCfg.SetValue(FAKE_KEY_FORCE_LATENCY, ForceLatencyFlexValue);
-          FakeCfg.SetValue(FAKE_KEY_LATENCY_MODE, LatencyFlexModeValue);
-          FakeCfg.SetValue(FAKE_KEY_TRACE_LOGS, EnableTraceLogsValue);
-          FakeCfg.Save;
-        end;
-      finally
-        FakeCfg.Free;
-      end;
-    end;
+
   end;
 
   // ##### Copy FSR4 DLL based on fsrversion selection #####
   try
     FGModPath := GetOptiScalerInstallPath;
-    if Settings.ActiveGameName <> '' then
-      FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(Settings.ActiveGameName))
-    else
-      FGModDestPath := FGModPath;
+    // Always use GameConfigDir as destination (maps to gameconfig/global/ when no game)
+    FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(Settings.ActiveGameName));
 
     case Settings.FsrversionItemIndex of
       0: // Latest
@@ -792,27 +720,7 @@ begin
               end;
             end;
 
-            if Settings.ActiveGameName = '' then
-            begin
-              CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                       IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll');
 
-              VarsFilePathOriginal := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
-              if FileExists(VarsFilePathOriginal) then
-              begin
-                Lines := TStringList.Create;
-                try
-                  Lines.LoadFromFile(VarsFilePathOriginal);
-                  for i := Lines.Count - 1 downto 0 do
-                    if Pos('fsrversion=', Lines[i]) > 0 then
-                      Lines.Delete(i);
-                  Lines.Add('fsrversion=Latest');
-                  Lines.SaveToFile(VarsFilePathOriginal);
-                finally
-                  Lines.Free;
-                end;
-              end;
-            end;
           end;
         end;
 
@@ -839,27 +747,7 @@ begin
               end;
             end;
 
-            if Settings.ActiveGameName = '' then
-            begin
-              CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                       IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll');
 
-              VarsFilePathOriginal := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
-              if FileExists(VarsFilePathOriginal) then
-              begin
-                Lines := TStringList.Create;
-                try
-                  Lines.LoadFromFile(VarsFilePathOriginal);
-                  for i := Lines.Count - 1 downto 0 do
-                    if Pos('fsrversion=', Lines[i]) > 0 then
-                      Lines.Delete(i);
-                  Lines.Add('fsrversion=4.0.2c (INT8)');
-                  Lines.SaveToFile(VarsFilePathOriginal);
-                finally
-                  Lines.Free;
-                end;
-              end;
-            end;
           end;
         end;
     end;
@@ -1115,10 +1003,7 @@ begin
   FS.DecimalSeparator := '.';
 
   // 1. Load OptiScaler.ini
-  if ActiveGameName <> '' then
-    OptiScalerIniPath := GetGameConfigDir(ActiveGameName) + 'OptiScaler.ini'
-  else
-    OptiScalerIniPath := GetOptiScalerInstallPath + PathDelim + 'OptiScaler.ini';
+  OptiScalerIniPath := GetGameConfigDir(ActiveGameName) + 'OptiScaler.ini';
 
   if FileExists(OptiScalerIniPath) then
   begin
@@ -1150,10 +1035,7 @@ begin
   end;
 
   // 2. Load fakenvapi.ini
-  if ActiveGameName <> '' then
-    FakeNvapiIniPath := GetGameConfigDir(ActiveGameName) + 'fakenvapi.ini'
-  else
-    FakeNvapiIniPath := GetOptiScalerInstallPath + PathDelim + 'fakenvapi.ini';
+  FakeNvapiIniPath := GetGameConfigDir(ActiveGameName) + 'fakenvapi.ini';
 
   if FileExists(FakeNvapiIniPath) then
   begin
@@ -1199,10 +1081,7 @@ begin
   end;
 
   // 3. Load bgmod.conf and goverlay.vars
-  if ActiveGameName <> '' then
-    ConfigPath := GetGameConfigDir(ActiveGameName) + 'bgmod.conf'
-  else
-    ConfigPath := GetOptiScalerInstallPath + PathDelim + 'bgmod.conf';
+  ConfigPath := GetGameConfigDir(ActiveGameName) + 'bgmod.conf';
 
   if not FileExists(ConfigPath) then
   begin
@@ -1240,10 +1119,7 @@ begin
     end;
   end;
 
-  if ActiveGameName <> '' then
-    VarsPath := IncludeTrailingPathDelimiter(GetGameConfigDir(ActiveGameName)) + 'goverlay.vars'
-  else
-    VarsPath := IncludeTrailingPathDelimiter(GetOptiScalerInstallPath) + 'goverlay.vars';
+  VarsPath := IncludeTrailingPathDelimiter(GetGameConfigDir(ActiveGameName)) + 'goverlay.vars';
 
   if FileExists(VarsPath) then
   begin

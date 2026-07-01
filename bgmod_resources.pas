@@ -173,6 +173,44 @@ begin
   Result := True;
 end;
 
+procedure MigrateGlobalConfigToIsolatedFolder;
+var
+  DataHome: string;
+  BGModPath, GlobalCfgDir: string;
+  FilesToMove: array[0..3] of string;
+  i: Integer;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+
+  BGModPath := IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'bgmod');
+  GlobalCfgDir := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'gameconfig' + PathDelim + 'global' + PathDelim;
+
+  if not FileExists(GlobalCfgDir + 'bgmod.conf') and FileExists(BGModPath + 'bgmod.conf') then
+  begin
+    WriteLn('[BGMOD] Migrating active global configs to gameconfig/global/ ...');
+    if ForceDirectories(GlobalCfgDir) then
+    begin
+      FilesToMove[0] := 'bgmod.conf';
+      FilesToMove[1] := 'goverlay.vars';
+      FilesToMove[2] := 'OptiScaler.ini';
+      FilesToMove[3] := 'fakenvapi.ini';
+      for i := 0 to 3 do
+      begin
+        if FileExists(BGModPath + FilesToMove[i]) then
+        begin
+          if CopyFile(BGModPath + FilesToMove[i], GlobalCfgDir + FilesToMove[i]) then
+          begin
+            DeleteFile(BGModPath + FilesToMove[i]);
+            WriteLn('[BGMOD] Migrated: ', FilesToMove[i]);
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure InitializeBGModDirectory;
 var
   SourceDir, OriginalPath, BGModPath, BinaryDir: string;
@@ -180,6 +218,7 @@ var
 begin
   // Handle any migration from older versions first
   MigrateBGModToXDG;
+  MigrateGlobalConfigToIsolatedFolder;
 
   OriginalPath := GetBGModOriginalPath;
   BGModPath    := GetBGModPath;
@@ -255,30 +294,21 @@ begin
   ForceDirectories(BGModPath);
   WriteLn('[BGMOD] Refreshing active bgmod directory from .bgmod_original...');
 
-  // Preserve user's existing bgmod.conf so it is not overwritten by the
-  // pristine copy from .bgmod_original.
-  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf') then
-  begin
-    WriteLn('[BGMOD] Preserving existing bgmod.conf...');
-    Proc := TProcess.Create(nil);
-    try
-      Proc.Executable := 'sh';
-      Proc.Parameters.Add('-c');
-      Proc.Parameters.Add('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf') +
-                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf.bak') +
-                          ' 2>/dev/null');
-      Proc.Options := [poWaitOnExit];
-      Proc.Execute;
-    finally
-      Proc.Free;
-    end;
-  end;
-
+  // Refresh bgmod/ with the latest binaries and assets from .bgmod_original,
+  // but deliberately skip user config files which now live in gameconfig/global/.
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := 'sh';
     Proc.Parameters.Add('-c');
-    Proc.Parameters.Add('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + '.') +
+    // Use rsync to copy everything except config files that belong in gameconfig/global/
+    Proc.Parameters.Add('rsync -a --no-owner --no-group' +
+                        ' --exclude=bgmod.conf --exclude=goverlay.vars' +
+                        ' --exclude=OptiScaler.ini --exclude=fakenvapi.ini' +
+                        ' ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath)) +
+                        ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath)) +
+                        ' 2>/dev/null || ' +
+                        // Fallback to cp if rsync is not available
+                        'cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + '.') +
                         ' ' + QuotedStr(BGModPath) + ' 2>/dev/null');
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
@@ -286,22 +316,6 @@ begin
     Proc.Free;
   end;
 
-  // Restore user's bgmod.conf if it was backed up
-  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf.bak') then
-  begin
-    Proc := TProcess.Create(nil);
-    try
-      Proc.Executable := 'sh';
-      Proc.Parameters.Add('-c');
-      Proc.Parameters.Add('mv -f ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf.bak') +
-                          ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod.conf') +
-                          ' 2>/dev/null');
-      Proc.Options := [poWaitOnExit];
-      Proc.Execute;
-    finally
-      Proc.Free;
-    end;
-  end;
 
   // Make sure binaries are executable in active config path
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') then

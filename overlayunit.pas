@@ -7391,11 +7391,18 @@ begin
   Result := TGamesTabHelper(FGamesHelper).DownloadSteamCover(AAppId, ACachePath);
 end;
 function Tgoverlayform.GetGameConfigDir(const AGameName: string): string;
+var
+  GameDirName: string;
 begin
+  if AGameName = '' then
+    GameDirName := 'global'
+  else
+    GameDirName := SanitizeFileName(AGameName);
+
   // Use the centralized Flatpak-aware helper so game configs are stored in
   // the same location whether GOverlay is running natively or as Flatpak.
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
-            'goverlay/gameconfig/' + SanitizeFileName(AGameName) + '/';
+            'goverlay/gameconfig/' + GameDirName + '/';
 end;
 
 function Tgoverlayform.GetTargetCustomConfigFile: string;
