@@ -874,7 +874,6 @@ type
     // Exposed: function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
     // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
-    procedure RunFGModUninstallCommands(const ATargetDir, AGameName: string);
     procedure CheckAndUpdateConfigVersion;
     procedure CheckAndShowChangelog;
     procedure ShowChangelogAsync(Data: PtrInt);
@@ -7289,10 +7288,6 @@ begin
       Result[i] := '_';
 end;
 
-procedure Tgoverlayform.RunFGModUninstallCommands(const ATargetDir, AGameName: string);
-begin
-  TGamesTabHelper(FGamesHelper).RunFGModUninstallCommands(ATargetDir, AGameName);
-end;
 function Tgoverlayform.CleanGameNameForSearch(const AName: string): string;
 var
   i: Integer;

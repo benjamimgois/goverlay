@@ -301,48 +301,25 @@ begin
   end;
 end;
 
-function GetFileSize(const Path: string): Int64;
-var
-  SR: TSearchRec;
-begin
-  Result := -1;
-  if FindFirst(Path, faAnyFile, SR) = 0 then
-  begin
-    Result := SR.Size;
-    FindClose(SR);
-  end;
-end;
+// Marker-based ownership check.
+// A proxy DLL is GOverlay-owned when its name is a known GOverlay proxy DLL
+// (per IsProxyDllName) and a goverlay.vars marker file exists in the same
+// directory. The goverlay.vars marker is written by this installer (see the
+// install block, which ends with SafeCopyFile(ConfigDir + 'goverlay.vars',
+// ...)) and is therefore a channel-agnostic signature that GOverlay placed
+// the DLLs there, regardless of whether OptiScaler was installed on the
+// stable or bleeding-edge channel. This replaces the previous file-size
+// comparison against bgmod/renames/<name>.dll / bgmod/OptiScaler.dll, which
+// only matched the stable template and silently failed for bleeding-edge
+// installs whose DLL has a different size, leaving proxy DLLs behind during
+// the disabled-cleanup path here and during uninstaller runs.
+function IsProxyDllName(const FileName: string): Boolean; forward;
 
 function IsGOverlayProxyFile(const TargetDir, FileName: string): Boolean;
-var
-  TargetFile: string;
-  TargetSize: Int64;
-  GlobalPath: string;
 begin
   Result := False;
-  TargetFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
-  TargetSize := GetFileSize(TargetFile);
-  if TargetSize <= 0 then Exit;
-
-  // Compare with local BgmodPath renames and OptiScaler.dll
-  if (TargetSize = GetFileSize(BgmodPath + 'renames' + PathDelim + FileName)) or
-     (TargetSize = GetFileSize(BgmodPath + 'OptiScaler.dll')) then
-  begin
-    Result := True;
-    Exit;
-  end;
-
-  // Compare with global BgmodPath renames and OptiScaler.dll
-  GlobalPath := GetGlobalBGModPath(BgmodPath);
-  if GlobalPath <> '' then
-  begin
-    if (TargetSize = GetFileSize(GlobalPath + 'renames' + PathDelim + FileName)) or
-       (TargetSize = GetFileSize(GlobalPath + 'OptiScaler.dll')) then
-    begin
-      Result := True;
-      Exit;
-    end;
-  end;
+  if not IsProxyDllName(FileName) then Exit;
+  Result := FileExists(IncludeTrailingPathDelimiter(TargetDir) + 'goverlay.vars');
 end;
 
 function IsProxyDllName(const FileName: string): Boolean;

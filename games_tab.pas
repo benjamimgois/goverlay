@@ -72,7 +72,6 @@ type
     function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
     function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
     function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
-    procedure RunFGModUninstallCommands(const ATargetDir, AGameName: string);
     procedure RefreshGameCardsAsync(Data: PtrInt);
     procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
@@ -2148,7 +2147,7 @@ end;
 procedure TGamesTabHelper.GameCardUninstallClick(Sender: TObject);
 var
   Panel: TPanel;
-  GameName, GameCfgDir, GamePath: string;
+  GameName, GameCfgDir, GamePath, UninstallerBin: string;
   Lines, TargetDirs, MarkerFiles: TStringList;
   i, j: Integer;
 begin
@@ -2234,8 +2233,23 @@ begin
       // Always include top-level GamePath as baseline
       TargetDirs.Add(GamePath);
 
+      // Invoke the canonical bgmod-uninstaller binary once per candidate
+      // directory instead of the legacy inline duplicate (RunFGModUninstallCommands).
+      // The binary shares the marker-based IsGOverlayProxyFile logic with bgmod,
+      // so cleanup correctness is identical across the launch-wrapper and GUI
+      // flows. We point the binary at each TargetDir via STEAM_COMPAT_INSTALL_PATH
+      // (its existing fallback resolution path) so it operates only on the
+      // matching subfolder instead of walking the whole game tree at once.
+      UninstallerBin := IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod-uninstaller';
+      if not FileExists(UninstallerBin) then
+        UninstallerBin := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'bgmod-uninstaller';
       for j := 0 to TargetDirs.Count - 1 do
-        RunFGModUninstallCommands(TargetDirs[j], GameName);
+      begin
+        if not DirectoryExists(TargetDirs[j]) then Continue;
+        ExecuteShellCommand(
+          'STEAM_COMPAT_INSTALL_PATH=' + QuotedStr(TargetDirs[j]) + ' ' +
+          QuotedStr(UninstallerBin) + ' -- 2>/dev/null');
+      end;
     finally
       TargetDirs.Free;
     end;
@@ -2883,195 +2897,6 @@ begin
 end;
 
 
-
-procedure TGamesTabHelper.RunFGModUninstallCommands(const ATargetDir, AGameName: string);
-var
-  Dir: string;
-  LogDir, LogFile: string;
-
-  procedure Log(const Msg: string);
-  var
-    F: TextFile;
-    LogMsg: string;
-  begin
-    LogMsg := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Msg;
-    DbgLog('bgmod-uninstaller: ' + Msg);
-
-    // 1. Write to /tmp/bgmod-uninstaller.log
-    try
-      AssignFile(F, '/tmp/bgmod-uninstaller.log');
-      if FileExists('/tmp/bgmod-uninstaller.log') then Append(F) else Rewrite(F);
-      WriteLn(F, LogMsg);
-      CloseFile(F);
-    except
-    end;
-
-    // 2. Write to Game directory bgmod-uninstaller.log
-    if Dir <> '' then
-    begin
-      try
-        AssignFile(F, Dir + 'bgmod-uninstaller.log');
-        if FileExists(Dir + 'bgmod-uninstaller.log') then Append(F) else Rewrite(F);
-        WriteLn(F, LogMsg);
-        CloseFile(F);
-      except
-      end;
-    end;
-
-    // 3. Write to central GOverlay logs directory
-    if LogFile <> '' then
-    begin
-      try
-        if not DirectoryExists(LogDir) then
-          ForceDirectories(LogDir);
-        AssignFile(F, LogFile);
-        if FileExists(LogFile) then Append(F) else Rewrite(F);
-        WriteLn(F, LogMsg);
-        CloseFile(F);
-      except
-      end;
-    end;
-  end;
-
-  procedure SafeCleanOrRestore(const FileName: string; IsOriginalGameFile: Boolean);
-  var
-    FullFile, FullBackup: string;
-  begin
-    FullFile := Dir + FileName;
-    FullBackup := FullFile + '.b';
-    
-    if FileExists(FullBackup) then
-    begin
-      try
-        if FileExists(FullFile) then
-          DeleteFile(FullFile);
-        if RenameFile(FullBackup, FullFile) then
-          Log('Restored original ' + FileName)
-        else
-          Log('Failed to restore ' + FileName);
-      except
-        on E: Exception do
-          Log('Exception restoring ' + FileName + ': ' + E.Message);
-      end;
-    end
-    else if not IsOriginalGameFile then
-    begin
-      if FileExists(FullFile) then
-      begin
-        try
-          if DeleteFile(FullFile) then
-            Log('Cleaned up file: ' + FullFile)
-          else
-            Log('Failed to delete file: ' + FullFile);
-        except
-          on E: Exception do
-            Log('Exception deleting ' + FullFile + ': ' + E.Message);
-        end;
-      end;
-    end;
-  end;
-
-var
-  DataHome: string;
-begin
-  with FForm do
-  begin
-    Dir := IncludeTrailingPathDelimiter(ATargetDir);
-
-    // Resolve central GOverlay logs directory
-    LogDir := '';
-    LogFile := '';
-    if AGameName <> '' then
-    begin
-      DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
-      if DataHome = '' then DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-      if DataHome = '' then DataHome := GetUserDir + '.local/share';
-      LogDir := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'logs' + PathDelim + AGameName;
-      LogFile := IncludeTrailingPathDelimiter(LogDir) + 'bgmod-uninstaller.log';
-    end;
-
-    Log('========================= bgmod GUI uninstaller initialization =========================');
-    Log('Uninstaller location: ' + Dir);
-    Log('Game name: ' + AGameName);
-
-    // 1. Original game files: only restore if backup exists, NEVER delete if no backup
-    SafeCleanOrRestore('d3dcompiler_47.dll', True);
-    SafeCleanOrRestore('amd_fidelityfx_dx12.dll', True);
-    SafeCleanOrRestore('amd_fidelityfx_framegeneration_dx12.dll', True);
-    SafeCleanOrRestore('amd_fidelityfx_upscaler_dx12.dll', True);
-    SafeCleanOrRestore('amd_fidelityfx_vk.dll', True);
-    SafeCleanOrRestore('libxess.dll', True);
-    SafeCleanOrRestore('libxess_dx11.dll', True);
-    SafeCleanOrRestore('libxess_fg.dll', True);
-    SafeCleanOrRestore('libxell.dll', True);
-    SafeCleanOrRestore('nvngx.dll', True);
-    SafeCleanOrRestore('nvngx_dlss.dll', True);
-    SafeCleanOrRestore('nvngx_dlssd.dll', True);
-    SafeCleanOrRestore('nvngx_dlssg.dll', True);
-
-    // 2. Proxy / custom / wrapper files: safely delete if no backup, restore if backup exists
-    SafeCleanOrRestore('OptiScaler.dll', False);
-    SafeCleanOrRestore('dxgi.dll', False);
-    SafeCleanOrRestore('winmm.dll', False);
-    SafeCleanOrRestore('dbghelp.dll', False);
-    SafeCleanOrRestore('version.dll', False);
-    SafeCleanOrRestore('wininet.dll', False);
-    SafeCleanOrRestore('winhttp.dll', False);
-    SafeCleanOrRestore('OptiScaler.ini', False);
-    SafeCleanOrRestore('OptiScaler.log', False);
-    SafeCleanOrRestore('OptiScaler.asi', False);
-    SafeCleanOrRestore('dlssg_to_fsr3_amd_is_better.dll', False);
-    SafeCleanOrRestore('dlssg_to_fsr3.ini', False);
-    SafeCleanOrRestore('dlssg_to_fsr3.log', False);
-    SafeCleanOrRestore('nvapi64.dll', False);
-    SafeCleanOrRestore('fakenvapi.ini', False);
-    SafeCleanOrRestore('fakenvapi.log', False);
-    SafeCleanOrRestore('fakenvapi.dll', False);
-    SafeCleanOrRestore('nvngx.ini', False);
-    SafeCleanOrRestore('dlss-enabler.dll', False);
-    SafeCleanOrRestore('dlss-enabler-upscaler.dll', False);
-    SafeCleanOrRestore('dlss-enabler.log', False);
-    SafeCleanOrRestore('nvngx-wrapper.dll', False);
-    SafeCleanOrRestore('_nvngx.dll', False);
-    SafeCleanOrRestore('dlssg_to_fsr3_amd_is_better-3.0.dll', False);
-    SafeCleanOrRestore('bgmod-uninstaller', False);
-    SafeCleanOrRestore('amd_fidelityfx_loader_dx12.dll', False);
-    SafeCleanOrRestore('MangoHud.conf', False);
-    SafeCleanOrRestore('vkBasalt.conf', False);
-    SafeCleanOrRestore('vkSumi.conf', False);
-
-    // 3. Remove plugins and D3D12_OptiScaler folders
-    if DirectoryExists(Dir + 'plugins') then
-    begin
-      DeleteDirectory(Dir + 'plugins', False);
-      Log('Removed directory: ' + Dir + 'plugins');
-    end;
-    if DirectoryExists(Dir + 'D3D12_OptiScaler') then
-    begin
-      DeleteDirectory(Dir + 'D3D12_OptiScaler', False);
-      Log('Removed directory: ' + Dir + 'D3D12_OptiScaler');
-    end;
-
-    // 4. Remove wrappers and script configs
-    if FileExists(Dir + 'bgmod') then begin DeleteFile(Dir + 'bgmod'); Log('Cleaned up file: ' + Dir + 'bgmod'); end;
-    if FileExists(Dir + 'fgmod') then begin DeleteFile(Dir + 'fgmod'); Log('Cleaned up file: ' + Dir + 'fgmod'); end;
-    if FileExists(Dir + 'bgmod-uninstaller.sh') then begin DeleteFile(Dir + 'bgmod-uninstaller.sh'); Log('Cleaned up file: ' + Dir + 'bgmod-uninstaller.sh'); end;
-    if FileExists(Dir + 'bgmod-remover.sh') then begin DeleteFile(Dir + 'bgmod-remover.sh'); Log('Cleaned up file: ' + Dir + 'bgmod-remover.sh'); end;
-    if FileExists(Dir + 'bgmod.conf') then begin DeleteFile(Dir + 'bgmod.conf'); Log('Cleaned up file: ' + Dir + 'bgmod.conf'); end;
-    if FileExists(Dir + 'bgmod.log') then begin DeleteFile(Dir + 'bgmod.log'); Log('Cleaned up file: ' + Dir + 'bgmod.log'); end;
-    if FileExists(Dir + 'goverlay.vars') then begin DeleteFile(Dir + 'goverlay.vars'); Log('Cleaned up file: ' + Dir + 'goverlay.vars'); end;
-    if FileExists(Dir + 'MangoHud.conf') then begin DeleteFile(Dir + 'MangoHud.conf'); Log('Cleaned up file: ' + Dir + 'MangoHud.conf'); end;
-    if FileExists(Dir + 'vkBasalt.conf') then begin DeleteFile(Dir + 'vkBasalt.conf'); Log('Cleaned up file: ' + Dir + 'vkBasalt.conf'); end;
-    if FileExists(Dir + 'vkSumi.conf') then begin DeleteFile(Dir + 'vkSumi.conf'); Log('Cleaned up file: ' + Dir + 'vkSumi.conf'); end;
-
-    Log('bgmod GUI uninstaller done.');
-    
-    // Note: bgmod-uninstaller.log is deleted last so it matches bgmod-uninstaller binary cleanup in target game folder
-    if FileExists(Dir + 'bgmod-uninstaller.log') then DeleteFile(Dir + 'bgmod-uninstaller.log');
-  end;
-end;
-
-// ============================================================================
 // Game name cleaning for better store search matches
 // ============================================================================
 
