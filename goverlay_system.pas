@@ -192,6 +192,8 @@ begin
           if Assigned(JSONData) and (JSONData is TJSONArray) then
           begin
             JSONArray := TJSONArray(JSONData);
+            // First pass: try to find an exact match for the given version
+            // that is NOT a prerelease (i.e. an official stable release).
             for i := 0 to JSONArray.Count - 1 do
             begin
               JSONObject := JSONArray.Objects[i];
@@ -201,13 +203,33 @@ begin
                 if (TagName <> '') and (TagName[1] = 'v') then
                   Delete(TagName, 1, 1);
 
-                if (TagName = CleanVer) or (i = 0) then
+                if (TagName = CleanVer) and not JSONObject.Get('prerelease', False) then
                 begin
                   BodyText := JSONObject.Get('body', '');
                   if BodyText <> '' then
                   begin
                     Result := BodyText;
-                    if TagName = CleanVer then Break;
+                    Break;
+                  end;
+                end;
+              end;
+            end;
+
+            // Second pass: if no match found (e.g. current build is a nightly
+            // with no matching official release), pick the body of the first
+            // non-prerelease release — i.e. the latest official stable release.
+            if Result = '' then
+            begin
+              for i := 0 to JSONArray.Count - 1 do
+              begin
+                JSONObject := JSONArray.Objects[i];
+                if Assigned(JSONObject) and not JSONObject.Get('prerelease', False) then
+                begin
+                  BodyText := JSONObject.Get('body', '');
+                  if BodyText <> '' then
+                  begin
+                    Result := BodyText;
+                    Break;
                   end;
                 end;
               end;
