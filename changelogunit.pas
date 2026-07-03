@@ -131,28 +131,13 @@ begin
 end;
 
 procedure TChangelogForm.SetChangelogText(const AVersion, AText: string);
-var
-  Html: string;
-  P, CloseP: Integer;
 begin
   FTitleLabel.Caption := '🚀 What''s New in GOverlay ' + AVersion;
-
-  // Strip <img> tags to avoid UI freeze when TIpHtmlPanel tries to fetch
-  // HTTPS images from GitHub. The HTML formatting (bold, headers, lists,
-  // links) is fully preserved.
-  Html := AText;
-  P := Pos('<img', Html);
-  while P > 0 do
-  begin
-    CloseP := Pos('>', Html, P);
-    if CloseP > 0 then
-      Delete(Html, P, CloseP - P + 1)
-    else
-      Break;
-    P := Pos('<img', Html);
-  end;
-
-  FHtmlPanel.SetHtmlFromStr('<html><body style="background-color:#1e2436; color:#e6ebf5; font-family:DejaVu Sans,sans-serif; font-size:13px; padding:8px;">' + Html + '</body></html>');
+  FHtmlPanel.SetHtmlFromStr(
+    '<html><body style="background-color:#1e2436; color:#e6ebf5; font-family:DejaVu Sans,sans-serif; font-size:12px; padding:12px;">' +
+    '<pre style="white-space:pre-wrap; word-wrap:break-word; font-family:DejaVu Sans,sans-serif; font-size:12px; margin:0;">' +
+    AText +
+    '</pre></body></html>');
 end;
 
 procedure ShowChangelogPopup(const AVersion, AText: string);
