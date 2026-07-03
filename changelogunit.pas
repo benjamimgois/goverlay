@@ -13,7 +13,6 @@ type
     FTitleLabel: TLabel;
     FCloseIconLbl: TLabel;
     FMemo: TMemo;
-    FCloseBtn: TBitBtn;
     FDragging: Boolean;
     FDragStart: TPoint;
     procedure FormPaint(Sender: TObject);
@@ -90,15 +89,7 @@ begin
   // Apply modern scrollbar QSS
   ApplyModernScrollBarStylesheet(FMemo);
 
-  // Close Button ("Continue")
-  FCloseBtn := TBitBtn.Create(Self);
-  FCloseBtn.Parent := Self;
-  FCloseBtn.SetBounds(460, 404, 120, 36);
-  FCloseBtn.Caption := 'Continue';
-  FCloseBtn.Kind := bkOK;
-  FCloseBtn.OnClick := @CloseBtnClick;
-  FCloseBtn.Cursor := crHandPoint;
-end;
+  end;
 
 procedure TChangelogForm.FormPaint(Sender: TObject);
 begin
