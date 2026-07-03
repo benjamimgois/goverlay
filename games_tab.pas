@@ -967,6 +967,7 @@ begin
 
           // Steam icon badge (top-left corner, light gray)
           BdgImg := TImage.Create(CardPanel);
+          BdgImg.Tag := 1;  // platform badge — preserve on uninstall
           BdgImg.Parent      := CardPanel;
           BdgImg.AutoSize    := False;
           BdgImg.SetBounds(4, 4, 16, 16);
@@ -1030,6 +1031,7 @@ begin
           if BadgeCount > 0 then
           begin
             BdgImg := TImage.Create(CardPanel);
+            BdgImg.Tag := 2;  // GOverlay badge — remove on uninstall
             BdgImg.Parent      := CardPanel;
             BdgImg.AutoSize    := False;
             BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
@@ -1316,6 +1318,7 @@ begin
       if Assigned(iconsImageList) then
       begin
         BdgImg := TImage.Create(CardPanel);
+        BdgImg.Tag := 1;  // platform badge — preserve on uninstall
         BdgImg.Parent      := CardPanel;
         BdgImg.AutoSize    := False;
         BdgImg.SetBounds(4, 4, 16, 16);
@@ -1381,6 +1384,7 @@ begin
       if BadgeCount > 0 then
       begin
         BdgImg := TImage.Create(CardPanel);
+        BdgImg.Tag := 2;  // GOverlay badge — remove on uninstall
         BdgImg.Parent      := CardPanel;
         BdgImg.AutoSize    := False;
         BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
@@ -2256,14 +2260,12 @@ begin
   end;
 
   // Remove badge controls from the card panel.
-  // Cover image has Proportional=False; badge images have Proportional=True.
+  // GOverlay badges are tagged 2 at creation time; platform badges
+  // (Steam/Wine, top-left) are tagged 1 and must survive uninstall.
   for i := Panel.ControlCount - 1 downto 0 do
   begin
-    if Panel.Controls[i] is TImage then
-    begin
-      if TImage(Panel.Controls[i]).Proportional then
-        Panel.Controls[i].Free;
-    end
+    if (Panel.Controls[i] is TImage) and (Panel.Controls[i].Tag = 2) then
+      Panel.Controls[i].Free
     else if (Panel.Controls[i] is TShape) or (Panel.Controls[i] is TLabel) then
       Panel.Controls[i].Free;
   end;
