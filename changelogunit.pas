@@ -5,14 +5,14 @@ unit changelogunit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, LCLIntf, LCLType;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, LCLIntf, LCLType, IpHtml;
 
 type
   TChangelogForm = class(TForm)
   private
     FTitleLabel: TLabel;
     FCloseIconLbl: TLabel;
-    FMemo: TMemo;
+    FHtmlPanel: TIpHtmlPanel;
     FDragging: Boolean;
     FDragStart: TPoint;
     procedure FormPaint(Sender: TObject);
@@ -38,7 +38,7 @@ begin
   inherited CreateNew(AOwner, Dummy);
   Caption := 'What''s New in GOverlay';
   Width := 600;
-  Height := 460;
+  Height := 520;
   Position := poOwnerFormCenter;
   BorderStyle := bsNone;
   FormStyle := fsStayOnTop;
@@ -74,20 +74,12 @@ begin
   FCloseIconLbl.Cursor := crHandPoint;
   FCloseIconLbl.OnClick := @CloseBtnClick;
 
-  // Memo for Changelog
-  FMemo := TMemo.Create(Self);
-  FMemo.Parent := Self;
-  FMemo.SetBounds(20, 56, 560, 330);
-  FMemo.ReadOnly := True;
-  FMemo.ScrollBars := ssVertical;
-  FMemo.Color := RGBToColor(30, 36, 54);
-  FMemo.Font.Color := RGBToColor(230, 235, 245);
-  FMemo.Font.Size := 10;
-  FMemo.Font.Name := 'DejaVu Sans';
-  FMemo.BorderStyle := bsNone;
-
-  // Apply modern scrollbar QSS
-  ApplyModernScrollBarStylesheet(FMemo);
+  // HTML panel for formatted changelog with images
+  FHtmlPanel := TIpHtmlPanel.Create(Self);
+  FHtmlPanel.Parent := Self;
+  FHtmlPanel.SetBounds(20, 56, 560, 390);
+  FHtmlPanel.Anchors := [akLeft, akTop, akRight, akBottom];
+  FHtmlPanel.BorderStyle := bsNone;
 
   end;
 
@@ -139,11 +131,28 @@ begin
 end;
 
 procedure TChangelogForm.SetChangelogText(const AVersion, AText: string);
+var
+  Html: string;
+  P, CloseP: Integer;
 begin
   FTitleLabel.Caption := '🚀 What''s New in GOverlay ' + AVersion;
-  FMemo.Text := AText;
-  FMemo.SelStart := 0;
-  FMemo.SelLength := 0;
+
+  // Strip <img> tags to avoid UI freeze when TIpHtmlPanel tries to fetch
+  // HTTPS images from GitHub. The HTML formatting (bold, headers, lists,
+  // links) is fully preserved.
+  Html := AText;
+  P := Pos('<img', Html);
+  while P > 0 do
+  begin
+    CloseP := Pos('>', Html, P);
+    if CloseP > 0 then
+      Delete(Html, P, CloseP - P + 1)
+    else
+      Break;
+    P := Pos('<img', Html);
+  end;
+
+  FHtmlPanel.SetHtmlFromStr('<html><body style="background-color:#1e2436; color:#e6ebf5; font-family:DejaVu Sans,sans-serif; font-size:13px; padding:8px;">' + Html + '</body></html>');
 end;
 
 procedure ShowChangelogPopup(const AVersion, AText: string);

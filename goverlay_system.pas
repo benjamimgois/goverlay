@@ -175,7 +175,7 @@ begin
       Process.Parameters.Add('-s');
       Process.Parameters.Add('-L');
       Process.Parameters.Add('-H');
-      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
+      Process.Parameters.Add('Accept: application/vnd.github.v3.html');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: Mozilla/5.0');
       Process.Parameters.Add(URL_GOVERLAY_API_RELEASES);
@@ -205,7 +205,9 @@ begin
 
                 if (TagName = CleanVer) and not JSONObject.Get('prerelease', False) then
                 begin
-                  BodyText := JSONObject.Get('body', '');
+                  BodyText := JSONObject.Get('body_html', '');
+                  if BodyText = '' then
+                    BodyText := JSONObject.Get('body', '');
                   if BodyText <> '' then
                   begin
                     Result := BodyText;
@@ -225,7 +227,9 @@ begin
                 JSONObject := JSONArray.Objects[i];
                 if Assigned(JSONObject) and not JSONObject.Get('prerelease', False) then
                 begin
-                  BodyText := JSONObject.Get('body', '');
+                  BodyText := JSONObject.Get('body_html', '');
+                  if BodyText = '' then
+                    BodyText := JSONObject.Get('body', '');
                   if BodyText <> '' then
                   begin
                     Result := BodyText;
