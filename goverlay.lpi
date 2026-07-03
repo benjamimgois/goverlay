@@ -80,16 +80,13 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
-    <RequiredPackages Count="3">
+    <RequiredPackages Count="2">
       <Item1>
         <PackageName Value="LazOpenGLContext"/>
       </Item1>
       <Item2>
         <PackageName Value="LCL"/>
       </Item2>
-      <Item3>
-        <PackageName Value="TurboPowerIPro"/>
-      </Item3>
     </RequiredPackages>
     <Units Count="14">
       <Unit0>

@@ -5,14 +5,14 @@ unit changelogunit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, LCLIntf, LCLType, IpHtml;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, LCLIntf, LCLType;
 
 type
   TChangelogForm = class(TForm)
   private
     FTitleLabel: TLabel;
     FCloseIconLbl: TLabel;
-    FHtmlPanel: TIpHtmlPanel;
+    FMemo: TMemo;
     FDragging: Boolean;
     FDragStart: TPoint;
     procedure FormPaint(Sender: TObject);
@@ -38,7 +38,7 @@ begin
   inherited CreateNew(AOwner, Dummy);
   Caption := 'What''s New in GOverlay';
   Width := 600;
-  Height := 520;
+  Height := 460;
   Position := poOwnerFormCenter;
   BorderStyle := bsNone;
   FormStyle := fsStayOnTop;
@@ -74,12 +74,20 @@ begin
   FCloseIconLbl.Cursor := crHandPoint;
   FCloseIconLbl.OnClick := @CloseBtnClick;
 
-  // HTML panel for formatted changelog with images
-  FHtmlPanel := TIpHtmlPanel.Create(Self);
-  FHtmlPanel.Parent := Self;
-  FHtmlPanel.SetBounds(20, 56, 560, 390);
-  FHtmlPanel.Anchors := [akLeft, akTop, akRight, akBottom];
-  FHtmlPanel.BorderStyle := bsNone;
+  // Memo for Changelog
+  FMemo := TMemo.Create(Self);
+  FMemo.Parent := Self;
+  FMemo.SetBounds(20, 56, 560, 330);
+  FMemo.ReadOnly := True;
+  FMemo.ScrollBars := ssVertical;
+  FMemo.Color := RGBToColor(30, 36, 54);
+  FMemo.Font.Color := RGBToColor(230, 235, 245);
+  FMemo.Font.Size := 10;
+  FMemo.Font.Name := 'DejaVu Sans';
+  FMemo.BorderStyle := bsNone;
+
+  // Apply modern scrollbar QSS
+  ApplyModernScrollBarStylesheet(FMemo);
 
   end;
 
@@ -133,11 +141,9 @@ end;
 procedure TChangelogForm.SetChangelogText(const AVersion, AText: string);
 begin
   FTitleLabel.Caption := '🚀 What''s New in GOverlay ' + AVersion;
-  FHtmlPanel.SetHtmlFromStr(
-    '<html><body style="background-color:#1e2436; color:#e6ebf5; font-family:DejaVu Sans,sans-serif; font-size:12px; padding:12px;">' +
-    '<pre style="white-space:pre-wrap; word-wrap:break-word; font-family:DejaVu Sans,sans-serif; font-size:12px; margin:0;">' +
-    AText +
-    '</pre></body></html>');
+  FMemo.Text := AText;
+  FMemo.SelStart := 0;
+  FMemo.SelLength := 0;
 end;
 
 procedure ShowChangelogPopup(const AVersion, AText: string);
