@@ -2130,7 +2130,7 @@ begin
   SetNavActive(1);
   goverlayPageControl.ShowTabs := True;
   vkbasalttabsheet.TabVisible  := False;
-  optiscalertabsheet.TabVisible := True;
+  optiscalertabsheet.TabVisible := False;
   tweakstabsheet.TabVisible    := False;
   gamesTabSheet.TabVisible     := False;
   goverlayPageControl.ActivePage := presetTabsheet;
