@@ -482,22 +482,29 @@ begin
   end;
 end;
 
-procedure SafeCleanOrRestore(const TargetDir, FileName: string; IsOriginalGameFile: Boolean);
+// Restore an original DLL from the per-game backup folder, or fall through to
+// the marker-based delete if no backup exists. The in-GameDir `<file>.b`
+// mechanism is gone — backups now live in BackupsDir (outside GameDir) so
+// they cannot be corrupted by reinstalls or Steam "Verify integrity".
+procedure SafeCleanOrRestore(const TargetDir, BackupsDir, FileName: string; IsOriginalGameFile: Boolean);
 var
   FullFile, FullBackup: string;
 begin
   FullFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
-  FullBackup := FullFile + '.b';
-  
+  FullBackup := IncludeTrailingPathDelimiter(BackupsDir) + FileName;
+
   if FileExists(FullBackup) then
   begin
     try
       if FileExists(FullFile) then
         DeleteFile(FullFile);
-      if RenameFile(FullBackup, FullFile) then
-        Log('Restored original ' + FileName)
+      if CopyFile(FullBackup, FullFile) then
+      begin
+        Log('Restored original ' + FileName + ' from ' + BackupsDir);
+        DeleteFile(FullBackup);
+      end
       else
-        Log('Failed to restore ' + FileName);
+        Log('Failed to restore ' + FileName + ' from backup');
     except
       on E: Exception do
         Log('Exception restoring ' + FileName + ': ' + E.Message);
@@ -517,24 +524,44 @@ begin
   end;
 end;
 
-procedure SafeBackupFile(const TargetDir, DllFile: string);
+// Back up the genuine original DLL from GameDir into the per-game backup
+// folder, never inside GameDir. The backup is only written on the first
+// install for this game (when goverlay.vars is NOT yet present in GameDir),
+// and only if the destination slot is empty. This double guard prevents the
+// reinstall-corruption bug where a previously-installed GOverlay proxy
+// (sitting in GameDir/<name> on the second install) would be backed up as
+// "original" — because on reinstall, goverlay.vars already exists, so this
+// function becomes a no-op and the original captured on the first install
+// (or nothing, when the game shipped no such DLL) stays intact in
+// BackupsDir. Uses CopyFile (not Rename) so the GameDir file is left in
+// place for the subsequent overwrite by the proxy install step.
+procedure SafeBackupFile(const GameDir, BackupsDir, DllFile: string);
 var
   FullSrc, FullDest: string;
 begin
-  FullSrc := IncludeTrailingPathDelimiter(TargetDir) + DllFile;
-  FullDest := FullSrc + '.b';
-  
-  if FileExists(FullSrc) and not FileExists(FullDest) then
+  FullSrc := IncludeTrailingPathDelimiter(GameDir) + DllFile;
+  FullDest := IncludeTrailingPathDelimiter(BackupsDir) + DllFile;
+
+  if not FileExists(FullSrc) then Exit;
+  if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') then
   begin
-    try
-      if RenameFile(FullSrc, FullDest) then
-        Log('Backed up original ' + DllFile + ' -> ' + DllFile + '.b')
-      else
-        Log('Failed to backup ' + DllFile);
-    except
-      on E: Exception do
-        Log('Exception backing up ' + DllFile + ': ' + E.Message);
-    end;
+    Log('Skipping backup of ' + DllFile + ' (game already has GOverlay install)');
+    Exit;
+  end;
+  if FileExists(FullDest) then
+  begin
+    Log('Skipping backup of ' + DllFile + ' (backup slot already filled)');
+    Exit;
+  end;
+
+  try
+    if CopyFile(FullSrc, FullDest) then
+      Log('Backed up original ' + DllFile + ' -> ' + BackupsDir + DllFile)
+    else
+      Log('Failed to backup ' + DllFile);
+  except
+    on E: Exception do
+      Log('Exception backing up ' + DllFile + ': ' + E.Message);
   end;
 end;
 
@@ -672,6 +699,8 @@ var
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
+  BackupsDir: string;
+  IsPerGameProfile: Boolean;
   i, p, StartArgIdx, EnvCount: Integer;
   Key, Val, Line: string;
   EnvArgs: array of PChar;
@@ -742,6 +771,17 @@ begin
       if SourceDir = '' then
         SourceDir := BgmodPath;
     end;
+
+    // Resolve the per-game backup folder for original DLLs. It lives outside
+    // GameDir (in the per-game config dir) so it cannot be corrupted by
+    // repeated installs, channel switches, or Steam "Verify integrity". Only
+    // create the folder when running in per-game mode (Key <> 'bgmod'): in
+    // global-profile mode backups are skipped per design (collision risk
+    // across games; the legacy global flow did not back up reliably anyway).
+    IsPerGameProfile := LowerCase(Key) <> 'bgmod';
+    BackupsDir := ConfigDir + 'backups' + PathDelim;
+    if IsPerGameProfile and not DirectoryExists(BackupsDir) then
+      ForceDirectories(BackupsDir);
 
     if Val <> '' then
     begin
@@ -835,18 +875,36 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvngx-wrapper.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlss-enabler.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
-          
+
+          // 1b. Delete legacy in-GameDir <file>.b backups (untrusted post-bug).
+          // The new isolated-folder backup mechanism does not use these; any
+          // leftover .b files come from the previous buggy SafeBackupFile that
+          // could store a previous GOverlay proxy as the "original". Removing
+          // them is unconditional so the next uninstall cannot restore a proxy.
+          for i := 0 to High(OrigDlls) do
+            if FileExists(IncludeTrailingPathDelimiter(GameDir) + OrigDlls[i] + '.b') then
+            begin
+              SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + OrigDlls[i] + '.b');
+              Log('Deleted legacy .b backup of ' + OrigDlls[i]);
+            end;
+          for i := 0 to High(ProxyDlls) do
+            if FileExists(IncludeTrailingPathDelimiter(GameDir) + ProxyDlls[i] + '.b') then
+            begin
+              SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + ProxyDlls[i] + '.b');
+              Log('Deleted legacy .b backup of ' + ProxyDlls[i]);
+            end;
+
           // 2. Backup original DLLs
           for i := 0 to High(OrigDlls) do
-            SafeBackupFile(GameDir, OrigDlls[i]);
-            
+            SafeBackupFile(GameDir, BackupsDir, OrigDlls[i]);
+
           // 3. Backup proxy DLLs
           for i := 0 to High(ProxyDlls) do
           begin
             if SameText(ProxyDlls[i], DllName) then
-              SafeBackupFile(GameDir, ProxyDlls[i])
+              SafeBackupFile(GameDir, BackupsDir, ProxyDlls[i])
             else
-              SafeCleanOrRestore(GameDir, ProxyDlls[i], False);
+              SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
           end;
             
           // 4. Remove conflicting nvapi64 files
@@ -938,9 +996,9 @@ begin
         begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
           for i := 0 to High(OrigDlls) do
-            SafeCleanOrRestore(GameDir, OrigDlls[i], True);
+            SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], True);
           for i := 0 to High(ProxyDlls) do
-            SafeCleanOrRestore(GameDir, ProxyDlls[i], False);
+            SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.log');
