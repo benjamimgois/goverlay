@@ -55,43 +55,43 @@ The GOverlay OptiScaler tab SHALL save the user's channel selection (Stable or B
 - **THEN** the combobox falls back to the installed version tag (edge- prefix → Bleeding, otherwise Stable).
 
 ### Requirement: Save OptiScaler version in manifest file during update
-When GOverlay updates/installs OptiScaler, it SHALL write or update the `OptiScalerVersion` key in the `goverlay.vars` file with the version tag that was installed. The file SHALL be saved in both the pristine `.bgmod_original` folder and the active configuration folder — `~/.local/share/goverlay/gameconfig/global/` when no game is selected, or `~/.local/share/goverlay/gameconfig/<game>/` when a game is active.
+When GOverlay updates/installs OptiScaler, it SHALL write or update the `OptiScalerVersion` key in the `goverlay.vars` file with the version tag that was installed. The file SHALL be saved in both the selected channel's cache folder (`optiscaler-stable` or `optiscaler-edge`) and the active configuration folder.
 
 #### Scenario: Installation generates correct version variable globally
-- **WHEN** GOverlay successfully extracts OptiScaler release `0.9.3-0` with the global profile active
-- **THEN** GOverlay writes `OptiScalerVersion=0.9.3-0` to the `goverlay.vars` file in both `.bgmod_original` and `gameconfig/global/`.
+- **WHEN** GOverlay successfully extracts OptiScaler release `0.9.3-0` with the global profile active on stable channel
+- **THEN** GOverlay writes `OptiScalerVersion=0.9.3-0` to the `goverlay.vars` file in both `optiscaler-stable` and `gameconfig/global/`.
 
 #### Scenario: Installation generates correct version variable per-game
-- **WHEN** GOverlay successfully extracts OptiScaler release `edge-0.9.4-1` with the game `Hades` active
-- **THEN** GOverlay writes `OptiScalerVersion=edge-0.9.4-1` to the `goverlay.vars` file in both `.bgmod_original` and `gameconfig/Hades/`, and does NOT write to `gameconfig/global/`.
+- **WHEN** GOverlay successfully extracts OptiScaler release `edge-0.9.4-1` with the game `Hades` active on bleeding-edge channel
+- **THEN** GOverlay writes `OptiScalerVersion=edge-0.9.4-1` to the `goverlay.vars` file in both `optiscaler-edge` and `gameconfig/Hades/`, and does NOT write to `gameconfig/global/`.
 
 ### Requirement: Copy plugins folder during manual update
-When GOverlay updates OptiScaler files during a manual update, it SHALL copy the `plugins` folder (if it exists) from the pristine `.bgmod_original` folder to the global `bgmod` configuration folder.
+When GOverlay updates OptiScaler files during a manual update, it SHALL copy the `plugins` folder (if it exists) from the active channel's cache folder (`optiscaler-stable` or `optiscaler-edge`) directly to the destination directory.
 
 #### Scenario: Update copies plugins folder successfully
-- **WHEN** GOverlay performs a manual update and `.bgmod_original/plugins` directory exists
-- **THEN** GOverlay copies `.bgmod_original/plugins` directory recursively to the global `bgmod` directory.
+- **WHEN** GOverlay performs a manual update on the stable channel and `optiscaler-stable/plugins` directory exists
+- **THEN** GOverlay copies `optiscaler-stable/plugins` directory recursively to the target destination.
 
 ### Requirement: Move OptiScaler subfolder contents to root
-After extracting the OptiScaler release archive to `.bgmod_original`, GOverlay SHALL check if an `OptiScaler` subfolder exists. If present, it SHALL recursively copy all files and directories inside `OptiScaler` to the root of `.bgmod_original` and then delete the `OptiScaler` subfolder.
+After extracting the OptiScaler release archive to the chosen channel's cache folder, GOverlay SHALL check if an `OptiScaler` subfolder exists. If present, it SHALL recursively copy all files and directories inside `OptiScaler` to the root of the cache folder and then delete the `OptiScaler` subfolder.
 
 #### Scenario: Subfolder contents moved to root during update
-- **WHEN** OptiScaler is extracted to `.bgmod_original` and contains a subfolder named `OptiScaler`
-- **THEN** GOverlay moves its contents to the root and deletes the `OptiScaler` subfolder.
+- **WHEN** OptiScaler is extracted to `optiscaler-stable` and contains a subfolder named `OptiScaler`
+- **THEN** GOverlay moves its contents to the root of `optiscaler-stable` and deletes the `OptiScaler` subfolder.
 
 ### Requirement: Download frame generation helper
-When installing or updating OptiScaler (both interactive and auto-install), GOverlay SHALL download `dlssg_to_fsr3_amd_is_better.dll` from the stable releases URL to `.bgmod_original`.
+When installing or updating OptiScaler (both interactive and auto-install), GOverlay SHALL download `dlssg_to_fsr3_amd_is_better.dll` from the stable releases URL to the selected channel's cache folder.
 
 #### Scenario: Auxiliary DLL downloaded successfully
 - **WHEN** GOverlay performs a manual or automatic OptiScaler installation
-- **THEN** the auxiliary DLL `dlssg_to_fsr3_amd_is_better.dll` is downloaded to `.bgmod_original`.
+- **THEN** the auxiliary DLL `dlssg_to_fsr3_amd_is_better.dll` is downloaded to the target channel's cache folder.
 
 ### Requirement: Download and extract FakeNVAPI
-GOverlay SHALL query the GitHub API to find the latest stable release tag of `fakenvapi`. It SHALL download the `.7z` release archive, extract it to `.bgmod_original`, delete the downloaded archive, and add `FakeNvapiVersion=<version>` (without the 'v' prefix) to `goverlay.vars`.
+GOverlay SHALL query the GitHub API to find the latest stable release tag of `fakenvapi`. It SHALL download the `.7z` release archive, extract it to the selected channel's cache folder, delete the downloaded archive, and add `FakeNvapiVersion=<version>` (without the 'v' prefix) to `goverlay.vars` inside the cache folder.
 
 #### Scenario: FakeNVAPI installed and version tracked
 - **WHEN** GOverlay updates or installs OptiScaler
-- **THEN** GOverlay downloads and extracts the latest stable `fakenvapi` DLL and INI files, and writes `FakeNvapiVersion` to `goverlay.vars`.
+- **THEN** GOverlay downloads and extracts the latest stable `fakenvapi` DLL and INI files to the cache folder, and writes `FakeNvapiVersion` to `goverlay.vars`.
 
 ### Requirement: Dynamic FSR and XeSS version resolution
 During installation or update, GOverlay SHALL fetch `vars.txt` from the remote repository. It SHALL parse the FSR and XeSS version strings for both the stable and edge channels, and write the corresponding values as `fsrversion` and `xessversion` to `goverlay.vars` based on the selected channel.
@@ -101,40 +101,40 @@ During installation or update, GOverlay SHALL fetch `vars.txt` from the remote r
 - **THEN** it parses `vars.txt` and writes the correct `fsrversion` and `xessversion` keys to `goverlay.vars`.
 
 ### Requirement: gameconfig/global/ receives full OptiScaler assets on first run
-When GOverlay auto-installs OptiScaler during the first run, the global profile configuration directory SHALL receive the downloaded OptiScaler runtime files so that it is a complete mirror of `~/.local/share/goverlay/bgmod/`.
+When GOverlay auto-installs OptiScaler during the first run, the global profile configuration directory SHALL receive the downloaded OptiScaler runtime files directly from `optiscaler-stable/`.
 
 #### Scenario: Auto-install on first run
-- **WHEN** GOverlay auto-installs OptiScaler because `bgmod/` does not yet contain `OptiScaler.dll`
-- **THEN** after the download and extraction finish, `~/.local/share/goverlay/gameconfig/global/` SHALL contain the same OptiScaler DLLs, plugins, and supporting libraries as `~/.local/share/goverlay/bgmod/`
+- **WHEN** GOverlay auto-installs OptiScaler because the global config folder does not yet contain `OptiScaler.dll`
+- **THEN** after the download and extraction finish, `~/.local/share/goverlay/gameconfig/global/` SHALL contain the same OptiScaler DLLs, plugins, and supporting libraries as `~/.local/share/goverlay/optiscaler-stable/`.
 
 ### Requirement: Per-game install destination resolution
-When GOverlay installs or updates OptiScaler, the active install destination SHALL be `GetGameConfigDir(FActiveGameName)` — `~/.local/share/goverlay/gameconfig/global/` when no game is selected, or `~/.local/share/goverlay/gameconfig/<game>/` when a game is active. The freshly downloaded DLLs, `plugins/`, `FSR4_LATEST/`, `FSR4_INT8/`, `fakenvapi.ini`, and the regenerated `goverlay.vars` SHALL be written to that destination. The pristine `~/.local/share/goverlay/bgmod/` MAY also be kept in sync with `.bgmod_original` for heuristics, but it MUST NOT be the active destination when a game is selected.
+When GOverlay installs or updates OptiScaler, the active install destination SHALL be `GetGameConfigDir(FActiveGameName)` — `~/.local/share/goverlay/gameconfig/global/` when no game is selected, or `~/.local/share/goverlay/gameconfig/<game>/` when a game is active. The freshly downloaded DLLs, `plugins/`, `FSR4_LATEST/`, `FSR4_INT8/`, `fakenvapi.ini`, and the regenerated `goverlay.vars` SHALL be written directly to that destination from the corresponding cache directory (`optiscaler-stable` or `optiscaler-edge` depending on the selected channel).
 
 #### Scenario: Bleeding-edge install with a game selected
 - **WHEN** a game `Cyberpunk2077` is active and the user switches to the bleeding-edge channel and clicks Update
-- **THEN** GOverlay writes the bleeding-edge DLLs, plugins, FSR4 folders, `fakenvapi.ini`, and a `goverlay.vars` containing `OptiScalerVersion=<edge-tag>` to `~/.local/share/goverlay/gameconfig/Cyberpunk2077/`, leaving `gameconfig/global/` untouched.
+- **THEN** GOverlay writes the bleeding-edge DLLs, plugins, FSR4 folders, `fakenvapi.ini`, and a `goverlay.vars` containing `OptiScalerVersion=<edge-tag>` directly from `optiscaler-edge` to `~/.local/share/goverlay/gameconfig/Cyberpunk2077/`, leaving `gameconfig/global/` untouched.
 
 #### Scenario: Stable install with global profile active
 - **WHEN** no game is selected and the user installs the stable channel
-- **THEN** the destination is `~/.local/share/goverlay/gameconfig/global/`, preserving the existing behavior for the global profile.
+- **THEN** the destination is `~/.local/share/goverlay/gameconfig/global/`, copying files directly from `optiscaler-stable` to `gameconfig/global/`.
 
 ### Requirement: Cache reuse on per-game channel switch
-When the user triggers an OptiScaler install on a channel and `.bgmod_original/goverlay.vars` already contains an `OptiScalerVersion` that equals the latest tag for that channel freshly fetched from the manifest, GOverlay SHALL skip the 7z download and extraction steps and reuse the cached `.bgmod_original` assets. It SHALL still force-copy the DLLs/assets and regenerate `goverlay.vars` in the active destination.
+When the user triggers an OptiScaler install on a channel and the corresponding cache folder (`optiscaler-stable/goverlay.vars` or `optiscaler-edge/goverlay.vars`) already contains an `OptiScalerVersion` that equals the latest tag for that channel freshly fetched from the manifest, GOverlay SHALL skip the 7z download and extraction steps and reuse the cached assets. It SHALL still force-copy the DLLs/assets and regenerate `goverlay.vars` in the active destination.
 
 #### Scenario: Cached edge tag matches latest remote
-- **WHEN** `.bgmod_original/goverlay.vars` already has `OptiScalerVersion=edge-0.9.4-1`, the user selects a game that currently shows stable and switches to bleeding-edge, and the latest edge tag fetched from the manifest is `edge-0.9.4-1`
-- **THEN** GOverlay does NOT download `optiscaler-edge.7z` again; it copies the cached DLLs into `gameconfig/<game>/` and writes a fresh `goverlay.vars` with `OptiScalerVersion=edge-0.9.4-1` there.
+- **WHEN** `optiscaler-edge/goverlay.vars` already has `OptiScalerVersion=edge-0.9.4-1`, the user selects a game that currently shows stable and switches to bleeding-edge, and the latest edge tag fetched from the manifest is `edge-0.9.4-1`
+- **THEN** GOverlay does NOT download `optiscaler-edge.7z` again; it copies the cached DLLs from `optiscaler-edge` into `gameconfig/<game>/` and writes a fresh `goverlay.vars` with `OptiScalerVersion=edge-0.9.4-1` there.
 
 #### Scenario: Cached tag differs from latest remote
-- **WHEN** the cached `.bgmod_original` tag is `edge-0.9.3-0` and the latest edge tag is `edge-0.9.4-1`
-- **THEN** GOverlay downloads and extracts the new `optiscaler-edge.7z` into `.bgmod_original` before copying to the active destination.
+- **WHEN** the cached `optiscaler-edge` tag is `edge-0.9.3-0` and the latest edge tag is `edge-0.9.4-1`
+- **THEN** GOverlay downloads and extracts the new `optiscaler-edge.7z` into `optiscaler-edge` before copying to the active destination.
 
 ### Requirement: First-selection stable seeding on game card click
-When the user clicks a game card whose `gameconfig/<game>/goverlay.vars` does not yet exist, GOverlay SHALL seed the game's config folder with the stable OptiScaler assets from `.bgmod_original` (no-clobber for user-editable files such as `bgmod.conf`, `OptiScaler.ini`, `fakenvapi.ini`) and SHALL place a stable `goverlay.vars` there, so that the Software status card immediately displays the stable version for that game.
+When the user clicks a game card whose `gameconfig/<game>/goverlay.vars` does not yet exist, GOverlay SHALL seed the game's config folder with only the core wrapper scripts (`bgmod`, `bgmod-uninstaller`, and a default `goverlay.vars` baseline) from the pristine `bgmod` template directory. The actual OptiScaler DLLs and plugin assets SHALL NOT be copied at this time.
 
 #### Scenario: First click on a game with no config
 - **WHEN** the user clicks the game card for `Hades` and `~/.local/share/goverlay/gameconfig/Hades/goverlay.vars` does not exist
-- **THEN** GOverlay force-creates `gameconfig/Hades/`, copies the stable OptiScaler DLLs and supporting assets from `.bgmod_original` (no-clobber for `bgmod.conf`/`OptiScaler.ini`/`fakenvapi.ini`), and writes a `goverlay.vars` containing `OptiScalerVersion=<stable-tag>` to `gameconfig/Hades/`.
+- **THEN** GOverlay force-creates `gameconfig/Hades/` and copies only the core wrapper files (`bgmod`, `bgmod-uninstaller`, `goverlay.vars`) from `~/.local/share/goverlay/bgmod/` (no-clobber for `bgmod.conf`), leaving all OptiScaler DLLs/plugins uncopied.
 
 #### Scenario: Existing vars file skips seeding
 - **WHEN** the user clicks a game card and `gameconfig/<game>/goverlay.vars` already exists
@@ -161,4 +161,15 @@ The OptiScaler tab SHALL be visible when a game is selected so the user can view
 #### Scenario: Game selected with OptiScaler toggle on
 - **WHEN** the user enables the OptiScaler toggle for the active game
 - **THEN** the channel combobox and Update button become enabled, allowing the user to switch the game to bleeding-edge and install.
+
+### Requirement: Copy OptiScaler assets only when toggle is enabled
+When the user enables the OptiScaler toggle for a game (or global profile), GOverlay SHALL copy the OptiScaler files (DLLs, plugins, FSR4 folders, `fakenvapi.ini`, and `goverlay.vars`) from the configured channel's cache folder (`optiscaler-stable` or `optiscaler-edge`) to the target config directory.
+
+#### Scenario: OptiScaler toggle enabled for a stable game
+- **WHEN** the user enables the OptiScaler toggle for a game set to the stable channel
+- **THEN** GOverlay copies all OptiScaler runtime files and `goverlay.vars` from `optiscaler-stable` to the game's config directory.
+
+#### Scenario: OptiScaler toggle enabled for a bleeding-edge game
+- **WHEN** the user enables the OptiScaler toggle for a game set to the bleeding-edge channel
+- **THEN** GOverlay copies all OptiScaler runtime files and `goverlay.vars` from `optiscaler-edge` to the game's config directory.
 
