@@ -1554,10 +1554,8 @@ begin
 
     // Engine
     if Settings.EngineVersion then
-    begin
       ConfigLines.Add('engine_version');
-      ConfigLines.Add('engine_color=' + ColorToHTMLColor(Settings.EngineColor));
-    end;
+    ConfigLines.Add('engine_color=' + ColorToHTMLColor(Settings.EngineColor));
     AddIfTrue(Settings.EngineShort, 'engine_short_names');
 
     // Arch
