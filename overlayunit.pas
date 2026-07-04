@@ -3866,13 +3866,11 @@ begin
   // Obsolete: global enable button is no longer used
 end;
 
-// Check if OptiScaler is installed by looking for goverlay.vars file
+// Check if OptiScaler is installed by looking for goverlay.vars file in cache folders
 function Tgoverlayform.IsOptiScalerInstalled: Boolean;
-var
-  VarsFilePath: string;
 begin
-  VarsFilePath := GetOptiScalerInstallPath + PathDelim + 'goverlay.vars';
-  Result := FileExists(VarsFilePath);
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars');
 end;
 
 procedure Tgoverlayform.UpdateGeSpeedButtonState;

@@ -520,6 +520,8 @@ var
   FGModPath, FGModDestPath: string;
   Ini: TIniFile;
   FGModFilePath: string;
+  IsStable: Boolean;
+  ConfigConf: string;
 
 begin
   Result := False;
@@ -697,9 +699,25 @@ begin
   // would clobber the real library version with "Latest"/"4.0.2c (INT8)" and
   // make the Software status card show the wrong value after a channel install.
   try
-    FGModPath := GetOptiScalerInstallPath;
-    // Always use GameConfigDir as destination (maps to gameconfig/global/ when no game)
     FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(Settings.ActiveGameName));
+
+    // Resolve correct cache directory based on OPT_CHANNEL of the game config
+    IsStable := True;
+    ConfigConf := IncludeTrailingPathDelimiter(FGModDestPath) + 'bgmod.conf';
+    if FileExists(ConfigConf) then
+    begin
+      Ini := TIniFile.Create(ConfigConf);
+      try
+        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+      finally
+        Ini.Free;
+      end;
+    end;
+
+    if IsStable then
+      FGModPath := GetBGModOriginalPath
+    else
+      FGModPath := GetBGModOriginalEdgePath;
 
     case Settings.FsrversionItemIndex of
       0: // Latest (FP8)

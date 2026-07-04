@@ -250,19 +250,38 @@ var
   DataHome: string;
   PosFlatpak: Integer;
   FlatpakBase: string;
+  Ini: TIniFile;
+  IsStable: Boolean;
+  ChannelFolder: string;
 begin
+  IsStable := True;
+  if FileExists(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf') then
+  begin
+    Ini := TIniFile.Create(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf');
+    try
+      IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+    finally
+      Ini.Free;
+    end;
+  end;
+
+  if IsStable then
+    ChannelFolder := 'optiscaler-stable'
+  else
+    ChannelFolder := 'optiscaler-edge';
+
   PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
   if PosFlatpak > 0 then
   begin
     FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
-    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay' + PathDelim + 'bgmod';
+    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay' + PathDelim + ChannelFolder;
   end
   else
   begin
     DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
     if DataHome = '' then
       DataHome := GetUserDir + '.local/share';
-    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'bgmod';
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + ChannelFolder;
   end;
   Result := IncludeTrailingPathDelimiter(Result);
 end;

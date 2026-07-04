@@ -22,10 +22,12 @@ function GetBGModPath: string;
 
 // Get the pristine bgmod original path (Flatpak-aware).
 function GetBGModOriginalPath: string;
+function GetBGModOriginalEdgePath: string;
 
 // Compatibility aliases for legacy FGMod calls
 function GetFGModPath: string;
 function GetFGModOriginalPath: string;
+function GetFGModOriginalEdgePath: string;
 
 // Check if OptiScaler is installed in BGMOD directory
 function IsBGModOptiScalerInstalled(const ABGModPath: string): Boolean;
@@ -36,7 +38,7 @@ function MigrateBGModToXDG: Boolean;
 implementation
 
 uses
-  FileUtil, LazFileUtils;
+  FileUtil, LazFileUtils, IniFiles;
 
 function GetFGModPath: string;
 begin
@@ -46,6 +48,11 @@ end;
 function GetFGModOriginalPath: string;
 begin
   Result := GetBGModOriginalPath;
+end;
+
+function GetFGModOriginalEdgePath: string;
+begin
+  Result := GetBGModOriginalEdgePath;
 end;
 
 // Detect if running in Flatpak environment
@@ -104,7 +111,17 @@ begin
   DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
-  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + '.bgmod_original';
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-stable';
+end;
+
+function GetBGModOriginalEdgePath: string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-edge';
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location
@@ -222,7 +239,7 @@ end;
 
 procedure InitializeBGModDirectory;
 var
-  SourceDir, OriginalPath, BGModPath, BinaryDir: string;
+  SourceDir, OriginalPath, BGModPath, BinaryDir, LegacyOrigPath: string;
   Proc: TProcess;
 begin
   // Handle any migration from older versions first
@@ -233,7 +250,7 @@ begin
   SourceDir    := GetBGModSourceDir;
 
   WriteLn('[BGMOD] Source directory     : ', SourceDir);
-  WriteLn('[BGMOD] Original path (.b)  : ', OriginalPath);
+  WriteLn('[BGMOD] Stable cache path    : ', OriginalPath);
   WriteLn('[BGMOD] Active config path  : ', BGModPath);
 
   if SourceDir = '' then
@@ -242,20 +259,42 @@ begin
     Exit;
   end;
 
-  // 1. Copy pristine files from SourceDir to OriginalPath
-  if not ForceDirectories(OriginalPath) then
+  // Migration of legacy .bgmod_original to optiscaler-stable
+  LegacyOrigPath := IncludeTrailingPathDelimiter(ExtractFileDir(OriginalPath)) + '.bgmod_original';
+  if DirectoryExists(LegacyOrigPath) then
   begin
-    WriteLn('[BGMOD] ERROR: cannot create .bgmod_original directory, aborting.');
+    if not DirectoryExists(OriginalPath) then
+    begin
+      WriteLn('[BGMOD] Migrating legacy .bgmod_original to optiscaler-stable...');
+      if not RenameFile(LegacyOrigPath, OriginalPath) then
+        WriteLn('[BGMOD] WARNING: Failed to rename legacy cache folder');
+    end
+    else
+    begin
+      WriteLn('[BGMOD] Removing legacy .bgmod_original folder...');
+      try
+        DeleteDirectory(LegacyOrigPath, False);
+      except
+        on E: Exception do
+          WriteLn('[BGMOD] WARNING: Failed to remove legacy cache folder: ', E.Message);
+      end;
+    end;
+  end;
+
+  // Initialize the bgmod/ template directory with wrapper scripts
+  if not ForceDirectories(BGModPath) then
+  begin
+    WriteLn('[BGMOD] ERROR: cannot create bgmod directory, aborting.');
     Exit;
   end;
 
-  WriteLn('[BGMOD] Copying pristine resources to .bgmod_original...');
+  WriteLn('[BGMOD] Copying pristine resources to bgmod template directory...');
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := 'sh';
     Proc.Parameters.Add('-c');
     Proc.Parameters.Add('cp -rf --no-preserve=mode ' + QuotedStr(IncludeTrailingPathDelimiter(SourceDir) + '.') +
-                        ' ' + QuotedStr(OriginalPath) + ' 2>/dev/null');
+                        ' ' + QuotedStr(BGModPath) + ' 2>/dev/null');
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
   finally
@@ -271,7 +310,7 @@ begin
     Proc.Parameters.Add('cp -f --no-preserve=mode ' +
                         QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod') + ' ' +
                         QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod-uninstaller') + ' ' +
-                        QuotedStr(OriginalPath) + '/ 2>/dev/null');
+                        QuotedStr(BGModPath) + '/ 2>/dev/null');
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
   finally
@@ -279,59 +318,12 @@ begin
   end;
 
   // Make sure binaries are executable
-  if FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod') then
-    fpChmod(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod', &755);
-  if FileExists(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-uninstaller') then
-    fpChmod(IncludeTrailingPathDelimiter(OriginalPath) + 'bgmod-uninstaller', &755);
-
-  // Create backward compatibility symlink for fgmod in original path
-  Proc := TProcess.Create(nil);
-  try
-    Proc.Executable := 'sh';
-    Proc.Parameters.Add('-c');
-    Proc.Parameters.Add('ln -sf bgmod ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + 'fgmod') + ' 2>/dev/null');
-    Proc.Options := [poWaitOnExit];
-    Proc.Execute;
-  finally
-    Proc.Free;
-  end;
-
-  WriteLn('[BGMOD] .bgmod_original resources initialized.');
-
-  // 2. Refresh active config path with the latest bgmod binaries/scripts
-  ForceDirectories(BGModPath);
-  WriteLn('[BGMOD] Refreshing active bgmod directory from .bgmod_original...');
-
-  // Refresh bgmod/ with the latest binaries and assets from .bgmod_original,
-  // but deliberately skip user config files which now live in gameconfig/global/.
-  Proc := TProcess.Create(nil);
-  try
-    Proc.Executable := 'sh';
-    Proc.Parameters.Add('-c');
-    // Use rsync to copy everything except config files that belong in gameconfig/global/
-    Proc.Parameters.Add('rsync -a --no-owner --no-group' +
-                        ' --exclude=bgmod.conf --exclude=goverlay.vars' +
-                        ' --exclude=OptiScaler.ini --exclude=fakenvapi.ini' +
-                        ' ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath)) +
-                        ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath)) +
-                        ' 2>/dev/null || ' +
-                        // Fallback to cp if rsync is not available
-                        'cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(OriginalPath) + '.') +
-                        ' ' + QuotedStr(BGModPath) + ' 2>/dev/null');
-    Proc.Options := [poWaitOnExit];
-    Proc.Execute;
-  finally
-    Proc.Free;
-  end;
-
-
-  // Make sure binaries are executable in active config path
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') then
     fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod', &755);
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') then
     fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller', &755);
 
-  // Create backward compatibility symlink for fgmod in active path
+  // Create backward compatibility symlink for fgmod in bgmod path
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := 'sh';
@@ -343,12 +335,57 @@ begin
     Proc.Free;
   end;
 
+  // Copy wrapper scripts from bgmod/ to optiscaler-stable, and also to optiscaler-edge if it exists
+  OriginalPath := GetBGModOriginalPath;
+  if DirectoryExists(OriginalPath) then
+  begin
+    WriteLn('[BGMOD] Copying wrapper scripts to optiscaler-stable cache...');
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f --no-preserve=mode ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'fgmod') + ' ' +
+                          QuotedStr(OriginalPath) + '/ 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end;
+
+  OriginalPath := GetBGModOriginalEdgePath;
+  if DirectoryExists(OriginalPath) then
+  begin
+    WriteLn('[BGMOD] Copying wrapper scripts to optiscaler-edge cache...');
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f --no-preserve=mode ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'fgmod') + ' ' +
+                          QuotedStr(OriginalPath) + '/ 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end;
+
+  WriteLn('[BGMOD] bgmod template directory resources initialized.');
+
 end;
 
 procedure InitializeGlobalConfigDirectory;
 var
-  BGModPath, GlobalCfgDir, DataHomeEnv: string;
+  BGModPath, GlobalCfgDir, DataHomeEnv, GlobalConf, CacheDir: string;
   Proc: TProcess;
+  IsStable, IsOptiEnabled: Boolean;
+  Ini: TIniFile;
 begin
   BGModPath := GetBGModPath;
 
@@ -399,6 +436,59 @@ begin
       Proc.Execute;
     finally
       Proc.Free;
+    end;
+
+    // Read OPT_CHANNEL and GOVERLAY_OPTISCALER from bgmod.conf
+    IsStable := True;
+    IsOptiEnabled := False;
+    GlobalConf := GlobalCfgDir + 'bgmod.conf';
+    if FileExists(GlobalConf) then
+    begin
+      Ini := TIniFile.Create(GlobalConf);
+      try
+        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+        IsOptiEnabled := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
+      finally
+        Ini.Free;
+      end;
+    end;
+
+    // Then, if OptiScaler is enabled, sync DLLs and plugins from the correct cache folder
+    if IsOptiEnabled then
+    begin
+      if IsStable then
+        CacheDir := GetBGModOriginalPath
+      else
+        CacheDir := GetBGModOriginalEdgePath;
+
+      WriteLn('[BGMOD] Syncing OptiScaler assets from ', CacheDir, ' to gameconfig/global/...');
+      Proc := TProcess.Create(nil);
+      try
+        Proc.Executable := 'sh';
+        Proc.Parameters.Add('-c');
+        Proc.Parameters.Add(
+          'Source=' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir)) + '; ' +
+          'Target=' + QuotedStr(GlobalCfgDir) + '; ' +
+          'for f in "$Source"*.dll; do ' +
+          '  [ -f "$f" ] && cp -f "$f" "$Target"; ' +
+          'done; ' +
+          'if [ -f "$Source"fakenvapi.ini ]; then ' +
+          '  cp -f "$Source"fakenvapi.ini "$Target"; ' +
+          'fi; ' +
+          'if [ -d "$Source"plugins ]; then ' +
+          '  cp -rf "$Source"plugins "$Target"; ' +
+          'fi; ' +
+          'if [ -d "$Source"FSR4_LATEST ]; then ' +
+          '  cp -rf "$Source"FSR4_LATEST "$Target"; ' +
+          'fi; ' +
+          'if [ -d "$Source"FSR4_INT8 ]; then ' +
+          '  cp -rf "$Source"FSR4_INT8 "$Target"; ' +
+          'fi 2>/dev/null');
+        Proc.Options := [poWaitOnExit];
+        Proc.Execute;
+      finally
+        Proc.Free;
+      end;
     end;
   end;
 

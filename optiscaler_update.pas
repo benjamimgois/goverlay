@@ -52,7 +52,8 @@ type
     function FetchVarsTxt(out AFsrStable, AFsrEdge, AXessStable, AXessEdge: string): Boolean;
     function ReadCachedOptiScalerVersion: string;
     procedure CheckForUpdates;
-    procedure SyncPristineAssetsTo(const ATargetDir: string);
+    procedure SyncPristineAssetsTo(const ASourceDir, ATargetDir: string);
+    function GetBGModOriginalPathForChannel(IsStable: Boolean): string;
 
   public
     FOptiStableVersion: string;
@@ -962,9 +963,13 @@ var
   VarsFile: TextFile;
   Line, Key, Value: string;
   SepPos: Integer;
+  IsStable: Boolean;
 begin
   Result := '';
-  VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+  IsStable := True;
+  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 1) then
+    IsStable := False;
+  VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPathForChannel(IsStable)) + 'goverlay.vars';
   if not FileExists(VarsFilePath) then Exit;
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -995,15 +1000,16 @@ begin
   end;
 end;
 
-procedure TOptiscalerTab.SyncPristineAssetsTo(const ATargetDir: string);
+procedure TOptiscalerTab.SyncPristineAssetsTo(const ASourceDir, ATargetDir: string);
 var
-  Target: string;
+  Source, Target: string;
   SyncProc: TProcess;
 begin
-  // Force-copy OptiScaler runtime assets from the pristine .bgmod_original to
+  // Force-copy OptiScaler runtime assets from the pristine cache folder to
   // ATargetDir. Only DLLs, plugins/, FSR4_LATEST/, FSR4_INT8/, and fakenvapi.ini
   // are touched — user-editable files (bgmod.conf, OptiScaler.ini, MangoHud.conf,
   // etc.) are never overwritten by this routine, preserving per-game isolation.
+  Source := IncludeTrailingPathDelimiter(ASourceDir);
   Target := IncludeTrailingPathDelimiter(ATargetDir);
   ForceDirectories(Target);
   SyncProc := TProcess.Create(nil);
@@ -1011,27 +1017,35 @@ begin
     SyncProc.Executable := 'sh';
     SyncProc.Parameters.Add('-c');
     SyncProc.Parameters.Add(
-      'for f in ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath)) + '*.dll; do ' +
+      'for f in ' + QuotedStr(Source) + '*.dll; do ' +
       '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(Target) + '; ' +
       'done; ' +
-      'if [ -f ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') + ' ]; then ' +
-      '  cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') + ' ' + QuotedStr(Target) + '; ' +
+      'if [ -f ' + QuotedStr(Source + 'fakenvapi.ini') + ' ]; then ' +
+      '  cp -f ' + QuotedStr(Source + 'fakenvapi.ini') + ' ' + QuotedStr(Target) + '; ' +
       'fi; ' +
-      'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ]; then ' +
-      '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins') + ' ' + QuotedStr(Target) + '; ' +
+      'if [ -d ' + QuotedStr(Source + 'plugins') + ' ]; then ' +
+      '  cp -rf ' + QuotedStr(Source + 'plugins') + ' ' + QuotedStr(Target) + '; ' +
       'fi; ' +
-      'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST') + ' ]; then ' +
-      '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST') + ' ' + QuotedStr(Target) + '; ' +
+      'if [ -d ' + QuotedStr(Source + 'FSR4_LATEST') + ' ]; then ' +
+      '  cp -rf ' + QuotedStr(Source + 'FSR4_LATEST') + ' ' + QuotedStr(Target) + '; ' +
       'fi; ' +
-      'if [ -d ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8') + ' ]; then ' +
-      '  cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8') + ' ' + QuotedStr(Target) + '; ' +
+      'if [ -d ' + QuotedStr(Source + 'FSR4_INT8') + ' ]; then ' +
+      '  cp -rf ' + QuotedStr(Source + 'FSR4_INT8') + ' ' + QuotedStr(Target) + '; ' +
       'fi 2>/dev/null');
     SyncProc.Options := [poWaitOnExit];
     SyncProc.Execute;
   finally
     SyncProc.Free;
   end;
-  WriteLn('[DEBUG] SyncPristineAssetsTo: synced pristine assets to ', Target);
+  WriteLn('[DEBUG] SyncPristineAssetsTo: synced pristine assets from ', Source, ' to ', Target);
+end;
+
+function TOptiscalerTab.GetBGModOriginalPathForChannel(IsStable: Boolean): string;
+begin
+  if IsStable then
+    Result := GetBGModOriginalPath
+  else
+    Result := GetBGModOriginalEdgePath;
 end;
 
 procedure TOptiscalerTab.LoadVersionsFromFile;
@@ -1045,6 +1059,14 @@ var
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
+
+  // If the file does not exist in FFGModPath, fall back to the active channel's cache folder
+  if not FileExists(VarsFilePath) then
+  begin
+    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // stable cache
+    if not FileExists(VarsFilePath) then
+      VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars'; // edge cache
+  end;
 
   // Check if file exists
   if not FileExists(VarsFilePath) then
@@ -1460,6 +1482,7 @@ var
   DestDir: string;
   CachedTag: string;
   SkipDownloadExtract: Boolean;
+  OrigPath: string;
 begin
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -1506,18 +1529,14 @@ begin
       Exit;
     end;
 
-    // STEP 1: Prepare .bgmod_original for a clean extraction.
-    // The global bgmod working copy is NOT touched here — user modifications
-    // (MangoHud.conf, OptiScaler.ini, etc.) are preserved automatically.
-    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing .bgmod_original directory...');
+    // STEP 1: Resolve the target cache directory based on the selected channel
+    OrigPath := GetBGModOriginalPathForChannel(IsStableChannel);
+
+    WriteLn('[DEBUG] UpdateButtonClick: Step 1 - Preparing cache directory...');
     FFGModPath := GetOptiScalerInstallPath;
-    // Per-game install destination: global profile when no game is selected,
-    // or the active game's config folder otherwise. This replaces the previous
-    // hardcoded gameconfig/global/ target so a channel install actually lands
-    // in the game the user is configuring.
     DestDir := GetGameConfigDir(goverlayform.FActiveGameName);
     WriteLn('[DEBUG] UpdateButtonClick: global bgmod path       = ', FFGModPath);
-    WriteLn('[DEBUG] UpdateButtonClick: .bgmod_original path    = ', GetBGModOriginalPath);
+    WriteLn('[DEBUG] UpdateButtonClick: cache path (OrigPath)   = ', OrigPath);
     WriteLn('[DEBUG] UpdateButtonClick: active install dest     = ', DestDir);
     ForceDirectories(DestDir);
 
@@ -1543,35 +1562,35 @@ begin
       Exit;
     end;
 
-    // Cache reuse: if .bgmod_original already contains OptiScalerVersion equal
+    // Cache reuse: if OrigPath already contains OptiScalerVersion equal
     // to the freshly-fetched tag for this channel, skip the download/extract/
     // DLSS/FakeNVAPI/FSR4 steps and reuse the cached pristine assets. We still
     // sync DLLs to the active destination and regenerate goverlay.vars below.
     CachedTag := ReadCachedOptiScalerVersion;
     SkipDownloadExtract := (CachedTag <> '') and SameText(Trim(CachedTag), Trim(OptiScalerTag));
     if SkipDownloadExtract then
-      WriteLn('[DEBUG] UpdateButtonClick: reusing cached .bgmod_original (cached tag "', CachedTag, '" == requested "', OptiScalerTag, '")')
+      WriteLn('[DEBUG] UpdateButtonClick: reusing cached folder (cached tag "', CachedTag, '" == requested "', OptiScalerTag, '")')
     else
       WriteLn('[DEBUG] UpdateButtonClick: cache miss (cached="', CachedTag, '" requested="', OptiScalerTag, '"), performing full download/extract');
 
     if not SkipDownloadExtract then
     begin
-    // Wipe .bgmod_original so the new release is extracted clean.
-    if DirectoryExists(GetBGModOriginalPath) then
+    // Wipe cache directory so the new release is extracted clean.
+    if DirectoryExists(OrigPath) then
     begin
-      WriteLn('[DEBUG] UpdateButtonClick: Cleaning .bgmod_original for fresh extraction...');
+      WriteLn('[DEBUG] UpdateButtonClick: Cleaning cache directory for fresh extraction...');
       try
-        DeleteDirectory(GetBGModOriginalPath, False);
+        DeleteDirectory(OrigPath, False);
       except
         on E: Exception do
-        begin
-          WriteLn('[ERROR] UpdateButtonClick: Failed to clean .bgmod_original: ', E.Message);
-          ShowMessage('Error: Could not clean .bgmod_original directory.' + sLineBreak + E.Message);
-          Exit;
-        end;
+          begin
+            WriteLn('[ERROR] UpdateButtonClick: Failed to clean cache: ', E.Message);
+            ShowMessage('Error: Could not clean cache directory.' + sLineBreak + E.Message);
+            Exit;
+          end;
       end;
     end;
-    ForceDirectories(GetBGModOriginalPath);
+    ForceDirectories(OrigPath);
 
     UpdateProgress(20);
     UpdateStatus('Downloading');
@@ -1608,20 +1627,20 @@ begin
     UpdateProgress(50);
     UpdateStatus('Installing');
 
-    // STEP 3: Extract .7z file to .bgmod_original (pristine store)
-    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to .bgmod_original...');
-    if not Extract7z(SevenZFilePath, GetBGModOriginalPath) then
+    // STEP 3: Extract .7z file to OrigPath (pristine store)
+    WriteLn('[DEBUG] UpdateButtonClick: Step 3 - Extracting .7z file to cache folder...');
+    if not Extract7z(SevenZFilePath, OrigPath) then
     begin
       WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
       ShowToast(ntError, 'Failed to extract .7z file', 5000);
       Exit;
     end;
 
-    WriteLn('[DEBUG] UpdateButtonClick: Extraction to .bgmod_original completed successfully');
+    WriteLn('[DEBUG] UpdateButtonClick: Extraction completed successfully');
     UpdateProgress(70);
 
     // MOVE CONTENTS OF SUBFOLDER "OptiScaler" TO ROOT if it exists
-    if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler') then
+    if DirectoryExists(IncludeTrailingPathDelimiter(OrigPath) + 'OptiScaler') then
     begin
       WriteLn('[DEBUG] UpdateButtonClick: Moving files from OptiScaler/ subfolder to root...');
       SyncProc := TProcess.Create(nil);
@@ -1629,9 +1648,9 @@ begin
         SyncProc.Executable := 'sh';
         SyncProc.Parameters.Add('-c');
         SyncProc.Parameters.Add('cp -rf ' +
-          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/.') + ' ' +
-          QuotedStr(GetBGModOriginalPath) + ' && rm -rf ' +
-          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler'));
+          QuotedStr(IncludeTrailingPathDelimiter(OrigPath) + 'OptiScaler/.') + ' ' +
+          QuotedStr(OrigPath) + ' && rm -rf ' +
+          QuotedStr(IncludeTrailingPathDelimiter(OrigPath) + 'OptiScaler'));
         SyncProc.Options := [poWaitOnExit];
         SyncProc.Execute;
       finally
@@ -1639,40 +1658,34 @@ begin
       end;
     end;
 
-    // STEP 4: Make bgmod.sh executable in .bgmod_original
-    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making bgmod.sh executable in .bgmod_original...');
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh') then
+    // STEP 4: Make bgmod.sh executable in cache folder if it exists
+    WriteLn('[DEBUG] UpdateButtonClick: Step 4 - Making bgmod.sh executable in cache folder...');
+    if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'bgmod.sh') then
     begin
-      RenameFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh',
-                 IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod');
-      fpChmod(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod', &755);
-      WriteLn('[DEBUG] UpdateButtonClick: bgmod is now executable in .bgmod_original');
-    end
-    else
-      WriteLn('[WARN] UpdateButtonClick: bgmod.sh not found in .bgmod_original');
+      RenameFile(IncludeTrailingPathDelimiter(OrigPath) + 'bgmod.sh',
+                 IncludeTrailingPathDelimiter(OrigPath) + 'bgmod');
+      fpChmod(IncludeTrailingPathDelimiter(OrigPath) + 'bgmod', &755);
+      WriteLn('[DEBUG] UpdateButtonClick: bgmod is now executable');
+    end;
 
     UpdateProgress(75);
 
-    // STEP 5: Download NVIDIA DLSS DLLs into .bgmod_original
-    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs into .bgmod_original...');
+    // STEP 5: Download NVIDIA DLSS DLLs into cache folder
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5 - Downloading NVIDIA DLSS DLLs into cache folder...');
     UpdateStatus('Downloading NVIDIA DLSS');
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll',
-                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlss.dll') then
+                        IncludeTrailingPathDelimiter(OrigPath) + 'nvngx_dlss.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlss.dll, continuing...');
     UpdateProgress(80);
-    if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll',
-                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssd.dll') then
-      WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssd.dll, continuing...');
-    UpdateProgress(84);
     if not DownloadFile(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll',
-                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssg.dll') then
+                        IncludeTrailingPathDelimiter(OrigPath) + 'nvngx_dlssg.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download nvngx_dlssg.dll, continuing...');
     UpdateProgress(88);
 
     // Download auxiliary dlssg_to_fsr3 DLL
     UpdateStatus('Downloading dlssg_to_fsr3 DLL');
     if not DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll',
-                        IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'dlssg_to_fsr3_amd_is_better.dll') then
+                        IncludeTrailingPathDelimiter(OrigPath) + 'dlssg_to_fsr3_amd_is_better.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download dlssg_to_fsr3_amd_is_better.dll, continuing...');
 
     // Fetch and download/extract latest FakeNVAPI
@@ -1685,7 +1698,7 @@ begin
       if DownloadFile(FakeNvapiURL, Fake7zPath) then
       begin
         WriteLn('[DEBUG] UpdateButtonClick: Extracting FakeNVAPI...');
-        if Extract7z(Fake7zPath, GetBGModOriginalPath) then
+        if Extract7z(Fake7zPath, OrigPath) then
           WriteLn('[DEBUG] UpdateButtonClick: FakeNVAPI extracted successfully')
         else
           WriteLn('[WARN] UpdateButtonClick: Failed to extract FakeNVAPI');
@@ -1704,21 +1717,21 @@ begin
 
     // STEP 5b: Setup FSR4 directories and download FSR INT8 DLL
     WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up FSR4_LATEST and FSR4_INT8 directories...');
-    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST');
-    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8');
+    ForceDirectories(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST');
+    ForceDirectories(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_INT8');
 
     // Copy current default upscaler dll to FSR4_LATEST
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+    if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
     begin
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
+      CopyFile(IncludeTrailingPathDelimiter(OrigPath) + 'amd_fidelityfx_upscaler_dx12.dll',
+               IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
       WriteLn('[DEBUG] UpdateButtonClick: Copied default upscaler from root to FSR4_LATEST');
     end;
 
     // Download INT8 upscaler dll
     UpdateStatus('Downloading FSR 4.0.2c (INT8)');
     if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-                    IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll') then
+                    IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll') then
     begin
       WriteLn('[DEBUG] UpdateButtonClick: Downloaded INT8 upscaler to FSR4_INT8');
     end
@@ -1728,28 +1741,25 @@ begin
     end;
     end; // close `if not SkipDownloadExtract then begin`
 
-    // Sync DLLs/assets from .bgmod_original to BOTH the global pristine
-    // bgmod working copy (kept in sync for heuristics) AND the active install
+    // Sync DLLs/assets from OrigPath directly to the active install
     // destination (gameconfig/global/ or gameconfig/<game>/). Force-copy so a
     // channel switch actually replaces stale DLLs in the destination. Only
     // DLLs/plugins/FSR4/fakenvapi.ini are touched — user-editable files such
     // as bgmod.conf, OptiScaler.ini, MangoHud.conf are never clobbered here.
-    WriteLn('[DEBUG] UpdateButtonClick: Syncing assets from .bgmod_original to global bgmod + active destination...');
+    WriteLn('[DEBUG] UpdateButtonClick: Syncing assets from cache to active destination...');
     UpdateStatus('Updating ' + DestDir);
-    SyncPristineAssetsTo(FFGModPath);
-    SyncPristineAssetsTo(DestDir);
+    SyncPristineAssetsTo(OrigPath, DestDir);
+
     // Write/update DLSS download date in goverlay.vars
-    // We keep both .bgmod_original and global bgmod in sync so version labels
-    // are consistent after a restart.
     VarsList := TStringList.Create;
     try
       try
-        // Prefer the freshly-extracted .bgmod_original vars file; fall back to
+        // Prefer the freshly-extracted OrigPath vars file; fall back to
         // the global copy so existing keys (optiScalerVersion, etc.) are preserved.
-        if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars') then
+        if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'goverlay.vars') then
         begin
-          VarsList.LoadFromFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
-          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from .bgmod_original, lines = ', VarsList.Count);
+          VarsList.LoadFromFile(IncludeTrailingPathDelimiter(OrigPath) + 'goverlay.vars');
+          WriteLn('[DEBUG] UpdateButtonClick: Loaded goverlay.vars from cache, lines = ', VarsList.Count);
         end
         else if FileExists(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars') then
         begin
@@ -1890,14 +1900,12 @@ begin
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated xessversion line');
 
-        // Save to .bgmod_original (pristine store)
-        VarsList.SaveToFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
-        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to .bgmod_original');
+        // Save to cache folder (pristine store)
+        VarsList.SaveToFile(IncludeTrailingPathDelimiter(OrigPath) + 'goverlay.vars');
+        WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to cache folder');
 
         // Save to the active install destination (gameconfig/global/ when no
-        // game is selected, or gameconfig/<game>/ when one is). This replaces
-        // the previous hardcoded gameconfig/global/ target so a per-game
-        // channel install writes the new tag to the game being configured.
+        // game is selected, or gameconfig/<game>/ when one is).
         ForceDirectories(DestDir);
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(DestDir) + 'goverlay.vars');
         WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to ', DestDir);
@@ -1909,9 +1917,9 @@ begin
       VarsList.Free;
     end;
 
-    // STEP 6: Read goverlay.vars from .bgmod_original and update all labels
+    // STEP 6: Read goverlay.vars from cache folder and update all labels
     WriteLn('[DEBUG] UpdateButtonClick: Step 6 - Reading goverlay.vars file...');
-    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+    VarsFilePath := IncludeTrailingPathDelimiter(OrigPath) + 'goverlay.vars';
 
     if FileExists(VarsFilePath) then
     begin
@@ -2046,7 +2054,7 @@ begin
       finally
         Ini.Free;
       end;
-      Ini := TIniFile.Create(GetBGModOriginalPath + PathDelim + 'bgmod.conf');
+      Ini := TIniFile.Create(OrigPath + PathDelim + 'bgmod.conf');
       try
         Ini.WriteInteger('Config', 'OPT_CHANNEL', FOptVersionComboBox.ItemIndex);
       finally
@@ -2105,10 +2113,10 @@ begin
   WriteLn('[AUTO-INSTALL] Checking OptiScaler installation...');
   WriteLn('[AUTO-INSTALL] ========================================');
   
-  // Check if OptiScaler.dll already exists
-  if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'OptiScaler.dll') then
+  // Check if OptiScaler.dll already exists in stable cache
+  if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll') then
   begin
-    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists, no installation needed');
+    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists in stable cache, no installation needed');
     Result := True;
     Exit;
   end;
@@ -2520,27 +2528,11 @@ begin
       VarsList.Free;
     end;
 
-    // Seed the global bgmod working copy from .bgmod_original without overwriting
-    // any files the user may have already customised (cp -rn = no clobber).
-    WriteLn('[AUTO-INSTALL] Seeding global bgmod from .bgmod_original...');
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'sh';
-      Process.Parameters.Add('-c');
-      Process.Parameters.Add('cp -rn ' +
-        QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + '.') +
-        ' ' + QuotedStr(AFGModPath) + ' 2>/dev/null');
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-    finally
-      Process.Free;
-    end;
-
     // Clean up download file
     DeleteFile(SevenZFilePath);
 
-    // Verify installation
-    if FileExists(IncludeTrailingPathDelimiter(AFGModPath) + 'OptiScaler.dll') then
+    // Verify installation in the stable cache path
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll') then
     begin
       WriteLn('[AUTO-INSTALL] ========================================');
       WriteLn('[AUTO-INSTALL] OptiScaler installation completed!');

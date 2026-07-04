@@ -2036,10 +2036,9 @@ end;
 procedure TGamesTabHelper.GameCardClick(Sender: TObject);
 var
   Panel: TPanel;
-  GameName, GameCfgDir, FGOrig: string;
+  GameName, GameCfgDir, BGTemplate: string;
   Lines: TStringList;
   p: Integer;
-  NeedsStableSeed: Boolean;
 begin
   with FForm do
   begin
@@ -2077,31 +2076,14 @@ begin
   if not DirectoryExists(GameCfgDir) then
     ForceDirectories(GameCfgDir);
 
-  // First-selection stable seeding: when no goverlay.vars exists in the game
-  // config dir yet, seed it with stable OptiScaler assets from .bgmod_original
-  // (no-clobber preserves any user-editable files already present) and copy the
-  // pristine goverlay.vars so the Software status card immediately shows the
-  // stable version for this game.
-  NeedsStableSeed := not FileExists(GameCfgDir + 'goverlay.vars');
-  if NeedsStableSeed then
-  begin
-    FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
-    ExecuteShellCommand('cp -rn ' + QuotedStr(FGOrig + '.') + ' ' +
-      QuotedStr(GameCfgDir) + ' 2>/dev/null');
-    // Ensure a goverlay.vars is present: prefer the pristine one from
-    // .bgmod_original; if absent, leave it — LoadVersionsFromFile will simply
-    // report empty status until the user runs an install.
-  end;
-
-  // Copy only the launch scripts — OptiScaler files are copied only when the
+  // First-selection stable seeding: copy only wrapper scripts from bgmod/
+  // template folder. OptiScaler files will be copied only when the
   // OptiScaler toggle is explicitly enabled for this game.
-  // Copy scripts without overwriting — user config lives inside fgmod.
-  // Then patch the script body for OptiScaler conditional if needed.
-  FGOrig := IncludeTrailingPathDelimiter(GetFGModOriginalPath);
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod') + ' ' +
+  BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
+  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod') + ' ' +
     QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
     QuotedStr(GameCfgDir + 'bgmod'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(FGOrig + 'bgmod-uninstaller') + ' ' +
+  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod-uninstaller') + ' ' +
     QuotedStr(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
     QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
   ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');

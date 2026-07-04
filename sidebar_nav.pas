@@ -737,6 +737,9 @@ end;
 procedure TSidebarNavHelper.RemoveOptiScalerGameFiles(const AGameCfgDir: string);
 var
   Dir: string;
+  VarsList: TStringList;
+  VarsFilePath: string;
+  i: Integer;
 begin
   Dir := IncludeTrailingPathDelimiter(AGameCfgDir);
   ExecuteShellCommand(
@@ -765,16 +768,58 @@ begin
     'rm -rf ' +
     QuotedStr(Dir + 'D3D12_OptiScaler') + ' ' +
     QuotedStr(Dir + 'Licenses') + ' ' +
-    QuotedStr(Dir + 'plugins') + ' 2>/dev/null');
+    QuotedStr(Dir + 'plugins') + ' ' +
+    QuotedStr(Dir + 'FSR4_LATEST') + ' ' +
+    QuotedStr(Dir + 'FSR4_INT8') + ' 2>/dev/null');
+
+  VarsFilePath := Dir + 'goverlay.vars';
+  if FileExists(VarsFilePath) then
+  begin
+    VarsList := TStringList.Create;
+    try
+      VarsList.LoadFromFile(VarsFilePath);
+      for i := VarsList.Count - 1 downto 0 do
+      begin
+        if SameText(Copy(VarsList[i], 1, 11), 'fsrversion=') or
+           SameText(Copy(VarsList[i], 1, 12), 'xessversion=') or
+           SameText(Copy(VarsList[i], 1, 12), 'optipatcher=') or
+           SameText(Copy(VarsList[i], 1, 12), 'dlssversion=') or
+           SameText(Copy(VarsList[i], 1, 18), 'optiscalerversion=') or
+           SameText(Copy(VarsList[i], 1, 18), 'fakenvapiversion=') then
+          VarsList.Delete(i);
+      end;
+      VarsList.SaveToFile(VarsFilePath);
+    finally
+      VarsList.Free;
+    end;
+  end;
 end;
 
 procedure TSidebarNavHelper.CopyOptiScalerGameFiles(const AGameCfgDir: string);
+var
+  ConfigPath, CacheDir: string;
+  Ini: TIniFile;
+  IsStable: Boolean;
 begin
-  // Seeding/toggle-on path: copy all files from .bgmod_original (no-clobber)
-  // so existing per-game user configs (bgmod.conf, OptiScaler.ini, etc.) are
-  // preserved. The install/channel-switch flow uses SyncPristineAssetsTo with
-  // force-copy semantics instead — keep this no-clobber to protect user edits.
-  ExecuteShellCommand('cp -rn ' + QuotedStr(GetFGModOriginalPath) + '/. ' +
+  IsStable := True;
+  ConfigPath := IncludeTrailingPathDelimiter(AGameCfgDir) + 'bgmod.conf';
+  if FileExists(ConfigPath) then
+  begin
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+    finally
+      Ini.Free;
+    end;
+  end;
+
+  if IsStable then
+    CacheDir := GetBGModOriginalPath
+  else
+    CacheDir := GetBGModOriginalEdgePath;
+
+  WriteLn('[BGMOD] Copying OptiScaler assets from ', CacheDir, ' to ', AGameCfgDir);
+  ExecuteShellCommand('cp -rn ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + '.') + ' ' +
     QuotedStr(AGameCfgDir) + ' 2>/dev/null');
 end;
 

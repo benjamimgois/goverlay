@@ -493,11 +493,30 @@ end;
 function GetBGModPath: string;
 var
   DataHome: string;
+  Ini: TIniFile;
+  IsStable: Boolean;
+  ChannelFolder: string;
 begin
+  IsStable := True;
+  if FileExists(IncludeTrailingPathDelimiter(UninstallerPath) + 'bgmod.conf') then
+  begin
+    Ini := TIniFile.Create(IncludeTrailingPathDelimiter(UninstallerPath) + 'bgmod.conf');
+    try
+      IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+    finally
+      Ini.Free;
+    end;
+  end;
+
+  if IsStable then
+    ChannelFolder := 'optiscaler-stable'
+  else
+    ChannelFolder := 'optiscaler-edge';
+
   DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
-  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'bgmod';
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + ChannelFolder;
 end;
 
 var
@@ -567,16 +586,31 @@ begin
 
   if IsGlobalUninstall then
   begin
-    TempStr := GetBGModPath;
     Log('========================= bgmod global uninstall =========================');
-    Log('Target directory to delete: ' + TempStr);
-    if DirectoryExists(TempStr) then
+    // Get goverlay base folder (parent of cache folders)
+    // ExtractFileDir of GetBGModPath is e.g. ~/.local/share/goverlay
+    TempStr := IncludeTrailingPathDelimiter(ExtractFileDir(ExcludeTrailingPathDelimiter(GetBGModPath)));
+
+    // Delete stable cache
+    if DirectoryExists(TempStr + 'optiscaler-stable') then
     begin
-      SafeDeleteDirectory(TempStr);
-      Log('Global bgmod directory removed.');
-    end
-    else
-      Log('Global bgmod directory not found.');
+      Log('Removing stable cache directory: ' + TempStr + 'optiscaler-stable');
+      SafeDeleteDirectory(TempStr + 'optiscaler-stable');
+    end;
+
+    // Delete edge cache
+    if DirectoryExists(TempStr + 'optiscaler-edge') then
+    begin
+      Log('Removing edge cache directory: ' + TempStr + 'optiscaler-edge');
+      SafeDeleteDirectory(TempStr + 'optiscaler-edge');
+    end;
+
+    // Delete bgmod template folder
+    if DirectoryExists(TempStr + 'bgmod') then
+    begin
+      Log('Removing global bgmod template directory: ' + TempStr + 'bgmod');
+      SafeDeleteDirectory(TempStr + 'bgmod');
+    end;
     Exit;
   end;
 
