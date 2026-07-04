@@ -2676,7 +2676,7 @@ begin
   // This prevents BGMOD from failing due to missing dependencies
   if IsBGModInitialized then
   begin
-    if not IsBGModOptiScalerInstalled(GetFGModPath) then
+    if not IsBGModOptiScalerInstalled(GetBGModOriginalPath) then
     begin
       WriteLn('[GOVERLAY] OptiScaler not detected in BGMOD, starting automatic installation...');
       SendNotification('GOverlay', 'Installing OptiScaler', GetIconFile);
