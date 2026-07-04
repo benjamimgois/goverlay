@@ -10,6 +10,7 @@ uses
 type
   TChangelogForm = class(TForm)
   private
+    FHeaderPanel: TPanel;
     FTitleLabel: TLabel;
     FCloseIconLbl: TLabel;
     FMemo: TMemo;
@@ -50,9 +51,20 @@ begin
   OnMouseMove := @HeaderMouseMove;
   OnMouseUp := @HeaderMouseUp;
 
+  // Header Panel
+  FHeaderPanel := TPanel.Create(Self);
+  FHeaderPanel.Parent := Self;
+  FHeaderPanel.SetBounds(0, 0, Width, 56);
+  FHeaderPanel.BevelOuter := bvNone;
+  FHeaderPanel.BevelInner := bvNone;
+  FHeaderPanel.Color := Color;
+  FHeaderPanel.OnMouseDown := @HeaderMouseDown;
+  FHeaderPanel.OnMouseMove := @HeaderMouseMove;
+  FHeaderPanel.OnMouseUp := @HeaderMouseUp;
+
   // Title Label (Header)
   FTitleLabel := TLabel.Create(Self);
-  FTitleLabel.Parent := Self;
+  FTitleLabel.Parent := FHeaderPanel;
   FTitleLabel.SetBounds(20, 16, 520, 28);
   FTitleLabel.Font.Size := 12;
   FTitleLabel.Font.Style := [fsBold];
@@ -64,7 +76,7 @@ begin
 
   // Close "X" icon in top right
   FCloseIconLbl := TLabel.Create(Self);
-  FCloseIconLbl.Parent := Self;
+  FCloseIconLbl.Parent := FHeaderPanel;
   FCloseIconLbl.SetBounds(Width - 36, 14, 24, 24);
   FCloseIconLbl.Font.Size := 12;
   FCloseIconLbl.Font.Style := [fsBold];
@@ -77,7 +89,7 @@ begin
   // Memo for Changelog
   FMemo := TMemo.Create(Self);
   FMemo.Parent := Self;
-  FMemo.SetBounds(20, 56, 560, 330);
+  FMemo.SetBounds(20, 56, 560, 384);
   FMemo.ReadOnly := True;
   FMemo.ScrollBars := ssVertical;
   FMemo.Color := RGBToColor(30, 36, 54);
@@ -89,7 +101,7 @@ begin
   // Apply modern scrollbar QSS
   ApplyModernScrollBarStylesheet(FMemo);
 
-  end;
+end;
 
 procedure TChangelogForm.FormPaint(Sender: TObject);
 begin
