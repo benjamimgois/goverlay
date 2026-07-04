@@ -71,7 +71,7 @@ type
 implementation
 
 uses
-  apputils, themeunit, configmanager, bgmod_resources, StrUtils;
+  apputils, themeunit, configmanager, bgmod_resources, StrUtils, overlay_config, FileUtil;
 
 constructor TSidebarNavHelper.Create(AForm: Tgoverlayform);
 begin
@@ -800,6 +800,8 @@ var
   ConfigPath, CacheDir: string;
   Ini: TIniFile;
   IsStable: Boolean;
+  Settings: TOptiScalerSettings;
+  FsrDllSrc: string;
 begin
   IsStable := True;
   ConfigPath := IncludeTrailingPathDelimiter(AGameCfgDir) + 'bgmod.conf';
@@ -821,6 +823,21 @@ begin
   WriteLn('[BGMOD] Copying OptiScaler assets from ', CacheDir, ' to ', AGameCfgDir);
   ExecuteShellCommand('cp -rn ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + '.') + ' ' +
     QuotedStr(AGameCfgDir) + ' 2>/dev/null');
+
+  // Copy the correct FSR DLL based on the saved version configuration for this game profile
+  if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then
+  begin
+    if Settings.FsrversionItemIndex = 1 then
+      FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
+    else
+      FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+
+    if FileExists(FsrDllSrc) then
+    begin
+      WriteLn('[BGMOD] CopyOptiScalerGameFiles: Copying correct FSR DLL for FsrversionItemIndex ', Settings.FsrversionItemIndex, ' to ', AGameCfgDir);
+      CopyFile(FsrDllSrc, IncludeTrailingPathDelimiter(AGameCfgDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+    end;
+  end;
 end;
 
 procedure TSidebarNavHelper.RestoreNavRailColors;

@@ -286,30 +286,73 @@ begin
   Result := IncludeTrailingPathDelimiter(Result);
 end;
 
-function NeedsLocalUpdate(const LocalPath, GlobalPath: string): Boolean;
+// Compare specific keys between two goverlay.vars files.
+// ignoreFsrVersion=True  -> only OptiScalerVersion/FakeNVAPI (cache sync check)
+// ignoreFsrVersion=False -> also includes fsrversion (GameDir freshness check)
+function NeedsUpdateWithKeys(const LocalPath, GlobalPath: string; IgnoreFsrVersion: Boolean): Boolean;
 var
   LocalVars, GlobalVars: string;
   LocalSL, GlobalSL: TStringList;
+  LocalVal, GlobalVal: string;
+  VersionKeys: array[0..2] of string = ('optiscalerversion', 'fakenvapiversioN', 'fsrversion');
+  k, LastKey: Integer;
+
+  function GetValFromList(SL: TStringList; const AKey: string): string;
+  var
+    j, sp: Integer;
+    ln, k2: string;
+  begin
+    Result := '';
+    for j := 0 to SL.Count - 1 do
+    begin
+      ln := Trim(SL[j]);
+      sp := Pos('=', ln);
+      if sp > 0 then
+      begin
+        k2 := Trim(Copy(ln, 1, sp - 1));
+        if SameText(k2, AKey) then
+        begin
+          Result := Trim(Copy(ln, sp + 1, Length(ln)));
+          Exit;
+        end;
+      end;
+    end;
+  end;
+
 begin
   Result := False;
-  LocalVars := IncludeTrailingPathDelimiter(LocalPath) + 'goverlay.vars';
+  LocalVars  := IncludeTrailingPathDelimiter(LocalPath)  + 'goverlay.vars';
   GlobalVars := IncludeTrailingPathDelimiter(GlobalPath) + 'goverlay.vars';
-  
+
   if not FileExists(GlobalVars) then Exit;
   if not FileExists(LocalVars) then
   begin
     Result := True;
     Exit;
   end;
-  
-  LocalSL := TStringList.Create;
+
+  // When ignoring fsrversion (cache sync), only compare the first 2 keys.
+  if IgnoreFsrVersion then
+    LastKey := 1
+  else
+    LastKey := 2;
+
+  LocalSL  := TStringList.Create;
   GlobalSL := TStringList.Create;
   try
     try
       LocalSL.LoadFromFile(LocalVars);
       GlobalSL.LoadFromFile(GlobalVars);
-      if StringReplace(LocalSL.Text, #13, '', [rfReplaceAll]) <> StringReplace(GlobalSL.Text, #13, '', [rfReplaceAll]) then
-        Result := True;
+      for k := 0 to LastKey do
+      begin
+        LocalVal  := GetValFromList(LocalSL,  VersionKeys[k]);
+        GlobalVal := GetValFromList(GlobalSL, VersionKeys[k]);
+        if LocalVal <> GlobalVal then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
     except
       on E: Exception do
         Log('Error loading vars files for comparison: ' + E.Message);
@@ -319,6 +362,20 @@ begin
     GlobalSL.Free;
   end;
 end;
+
+// Cache → ConfigDir: ignore fsrversion (user preference, not a version change)
+function NeedsLocalUpdate(const LocalPath, GlobalPath: string): Boolean;
+begin
+  Result := NeedsUpdateWithKeys(LocalPath, GlobalPath, True);
+end;
+
+// ConfigDir → GameDir: include fsrversion so an INT8/Latest change triggers reinstall
+function NeedsGameDirUpdate(const LocalPath, GlobalPath: string): Boolean;
+begin
+  Result := NeedsUpdateWithKeys(LocalPath, GlobalPath, False);
+end;
+
+
 
 // Marker-based ownership check.
 // A proxy DLL is GOverlay-owned when its name is a known GOverlay proxy DLL
@@ -390,6 +447,62 @@ begin
     finally
       FindClose(SR);
     end;
+  end;
+end;
+
+// Reads a key=value pair from a flat text vars file.
+// Returns empty string if not found.
+function ReadVarFromFile(const FilePath, Key: string): string;
+var
+  SL: TStringList;
+  i, SepPos: Integer;
+  Line, K, V: string;
+begin
+  Result := '';
+  if not FileExists(FilePath) then Exit;
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(FilePath);
+    for i := 0 to SL.Count - 1 do
+    begin
+      Line := Trim(SL[i]);
+      SepPos := Pos('=', Line);
+      if SepPos > 0 then
+      begin
+        K := Trim(Copy(Line, 1, SepPos - 1));
+        V := Trim(Copy(Line, SepPos + 1, Length(Line)));
+        if SameText(K, Key) then
+        begin
+          Result := V;
+          Exit;
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+// After CopyDirectoryFiltered syncs the cache to ConfigDir, this restores
+// the correct FSR DLL in ConfigDir based on the saved fsrversion value.
+// This ensures the subsequent copy to GameDir picks the right DLL.
+procedure RestoreFsrDllInConfigDir(const AConfigDir, ASourceDir: string);
+var
+  FsrVer, SrcDll, DestDll: string;
+begin
+  FsrVer := ReadVarFromFile(IncludeTrailingPathDelimiter(AConfigDir) + 'goverlay.vars', 'fsrversion');
+  if (FsrVer = '4.0.2c INT8') or (FsrVer = '4.0.2c (INT8)') then
+  begin
+    SrcDll  := IncludeTrailingPathDelimiter(ASourceDir) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+    DestDll := IncludeTrailingPathDelimiter(AConfigDir) + 'amd_fidelityfx_upscaler_dx12.dll';
+    if FileExists(SrcDll) then
+    begin
+      Log('Restoring FSR4 INT8 DLL in config dir after sync.');
+      if FileExists(DestDll) then DeleteFile(DestDll);
+      CopyFile(SrcDll, DestDll);
+    end
+    else
+      Log('Warning: FSR4_INT8 DLL not found at: ' + SrcDll);
   end;
 end;
 
@@ -877,11 +990,13 @@ begin
         begin
           Log('OptiScaler update detected. Syncing local config files from ' + SourceDir);
           CopyDirectoryFiltered(SourceDir, ConfigDir);
+          // Re-apply the saved FSR DLL version in ConfigDir after the sync overwrote it.
+          RestoreFsrDllInConfigDir(ConfigDir, SourceDir);
         end;
 
         if FileExists(IncludeTrailingPathDelimiter(GameDir) + DllName) and
            FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') and
-           not NeedsLocalUpdate(IncludeTrailingPathDelimiter(GameDir), ConfigDir) then
+           not NeedsGameDirUpdate(IncludeTrailingPathDelimiter(GameDir), ConfigDir) then
         begin
           Log('OptiScaler files in game directory are already up to date, skipping copy.');
         end

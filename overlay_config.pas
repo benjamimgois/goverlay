@@ -522,6 +522,12 @@ var
   FGModFilePath: string;
   IsStable: Boolean;
   ConfigConf: string;
+  VarsPath, CacheVarsPath, TargetFsrVersion: string;
+  VarsList, CacheList: TStringList;
+  VarsIdx, SepPos: Integer;
+  Key, Value: string;
+  Found: Boolean;
+
 
 begin
   Result := False;
@@ -737,6 +743,78 @@ begin
   except
     on E: Exception do
       ErrMsg := ErrMsg + 'Warning: Could not copy FSR4 DLL: ' + E.Message + LineEnding;
+  end;
+
+  // Update fsrversion in goverlay.vars in the game configuration directory
+  VarsPath := IncludeTrailingPathDelimiter(FGModDestPath) + 'goverlay.vars';
+  VarsList := TStringList.Create;
+  try
+    // Try to load existing vars; if absent, copy/load from cache path
+    if FileExists(VarsPath) then
+      VarsList.LoadFromFile(VarsPath)
+    else
+    begin
+      CacheVarsPath := IncludeTrailingPathDelimiter(FGModPath) + 'goverlay.vars';
+      if FileExists(CacheVarsPath) then
+        VarsList.LoadFromFile(CacheVarsPath);
+    end;
+
+    // Determine correct FSR version string to save
+    if Settings.FsrversionItemIndex = 1 then
+      TargetFsrVersion := '4.0.2c INT8'
+    else
+    begin
+      // Read actual version from cache goverlay.vars
+      TargetFsrVersion := '4.1'; // default fallback
+      CacheVarsPath := IncludeTrailingPathDelimiter(FGModPath) + 'goverlay.vars';
+      if FileExists(CacheVarsPath) then
+      begin
+        CacheList := TStringList.Create;
+        try
+          CacheList.LoadFromFile(CacheVarsPath);
+          for VarsIdx := 0 to CacheList.Count - 1 do
+          begin
+            SepPos := Pos('=', CacheList[VarsIdx]);
+            if SepPos > 0 then
+            begin
+              Key := Trim(Copy(CacheList[VarsIdx], 1, SepPos - 1));
+              if SameText(Key, 'fsrversion') then
+              begin
+                TargetFsrVersion := Trim(Copy(CacheList[VarsIdx], SepPos + 1, Length(CacheList[VarsIdx])));
+                Break;
+              end;
+            end;
+          end;
+        finally
+          CacheList.Free;
+        end;
+      end;
+    end;
+
+    // Update fsrversion in the list
+    Found := False;
+    for VarsIdx := 0 to VarsList.Count - 1 do
+    begin
+      SepPos := Pos('=', VarsList[VarsIdx]);
+      if SepPos > 0 then
+      begin
+        Key := Trim(Copy(VarsList[VarsIdx], 1, SepPos - 1));
+        if SameText(Key, 'fsrversion') then
+        begin
+          VarsList[VarsIdx] := 'fsrversion=' + TargetFsrVersion;
+          Found := True;
+          Break;
+        end;
+      end;
+    end;
+
+    if not Found then
+      VarsList.Add('fsrversion=' + TargetFsrVersion);
+
+    ForceDirectories(FGModDestPath);
+    VarsList.SaveToFile(VarsPath);
+  finally
+    VarsList.Free;
   end;
 
   // Build launch command
@@ -1125,7 +1203,7 @@ begin
           end;
         end;
       end;
-      if FsrVer = '4.0.2c (INT8)' then
+      if (FsrVer = '4.0.2c (INT8)') or (FsrVer = '4.0.2c INT8') then
         Settings.FsrversionItemIndex := 1
       else
         Settings.FsrversionItemIndex := 0;

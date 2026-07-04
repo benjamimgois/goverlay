@@ -876,7 +876,13 @@ begin
     if ErrMsg <> '' then
       ShowMessage(ErrMsg);
 
-    SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
+     SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
+
+    if Assigned(FOptiscalerUpdate) then
+    begin
+      FOptiscalerUpdate.LoadVersionsFromFile;
+      RefreshOsStatusDots;
+    end;
 
     notificationLabel.Visible := False;
     FLaunchCommand := LaunchCommand;
