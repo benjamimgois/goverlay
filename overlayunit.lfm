@@ -14172,7 +14172,7 @@ object goverlayform: Tgoverlayform
               Height = 22
               Hint = 'OBS_VKCAPTURE=1'#10'Activate Vulkan capture for OBS Studio'
               Top = 106
-              Width = 180
+              Width = 147
               BorderSpacing.Left = 10
               BorderSpacing.Top = 10
               Caption = 'OBS Vulkan Capture'
@@ -14289,7 +14289,7 @@ object goverlayform: Tgoverlayform
           AnchorSideRight.Side = asrBottom
           Left = 5
           Height = 184
-          Top = 189
+          Top = 221
           Width = 818
           Anchors = [akTop, akLeft, akRight]
           BorderSpacing.Left = 5
@@ -14423,7 +14423,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrBottom
           Left = 220
           Height = 96
-          Top = 441
+          Top = 473
           Width = 96
           BorderSpacing.Left = 220
           BorderSpacing.Top = 68
@@ -14598,7 +14598,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrCenter
           Left = 321
           Height = 48
-          Top = 465
+          Top = 497
           Width = 242
           AutoSize = True
           BorderSpacing.Left = 5
@@ -14617,7 +14617,7 @@ object goverlayform: Tgoverlayform
           AnchorSideTop.Side = asrBottom
           Left = 328
           Height = 18
-          Top = 513
+          Top = 545
           Width = 228
           AutoSize = True
           BorderSpacing.Left = 5
