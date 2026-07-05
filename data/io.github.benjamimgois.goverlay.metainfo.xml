@@ -60,6 +60,33 @@
     </screenshots>
 
     <releases>
+        <release version="1.8.5" date="2026-07-04">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Preserved active tool environment variables (MangoHud, OptiScaler) when tweaks/envvars are saved or toggled off</li>
+                    <li>Added full backup, cleanup, and restoration support for d3d12.dll proxies</li>
+                    <li>Added floating action button (FAB) to game cards for quick options, replacing the right-click context menu</li>
+                    <li>Added asynchronous frameless release notes ("What's New") popup showing latest changelog</li>
+                    <li>Support for user nicknames and leaderboard benchmark submissions</li>
+                    <li>Support for game-specific custom MangoHud preset loading</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Modernized UI scrollbars across all tabs with thin semitransparent styling</li>
+                    <li>Isolated DLL backups outside of the game directories to prevent corruption</li>
+                    <li>Isolated global profile configurations to gameconfig/global/</li>
+                    <li>Improved Steam library scans with multi-CDN fallbacks and web search for covers</li>
+                    <li>Clean up overlay files and wrapper DLLs on game uninstall while preserving native platform badges</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Prevented infinite mouse wheel scrolling past bottom in tweaks and vkbasalt tabs</li>
+                    <li>Fixed OptiScaler version persistence and correct INT8 DLL copying on update</li>
+                    <li>Implemented dynamic GPU 360p fallback on low framerate to prevent system crashes</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.8.2" date="2026-05-29">
             <description>
                 <p>New Features</p>
