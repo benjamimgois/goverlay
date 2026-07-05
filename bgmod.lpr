@@ -854,13 +854,14 @@ var
     'nvngx_dlssd.dll',
     'nvngx_dlssg.dll'
   );
-  ProxyDlls: array[0..5] of string = (
+  ProxyDlls: array[0..6] of string = (
     'dxgi.dll',
     'winmm.dll',
     'dbghelp.dll',
     'version.dll',
     'wininet.dll',
-    'winhttp.dll'
+    'winhttp.dll',
+    'd3d12.dll'
   );
 
 

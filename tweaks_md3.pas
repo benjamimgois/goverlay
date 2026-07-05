@@ -985,6 +985,7 @@ var
   i: Integer;
   HasTweaks: Boolean;
   DSpirvVal: string;
+  DMangoCfgVal: string;
   CustomLine: string;
   CustomKey, CustomVal: string;
   p: Integer;
@@ -1030,11 +1031,14 @@ begin
     else
       Ini.WriteString('Config', 'winedetectionenable', '1');
 
-    // 2. Erase Env section but preserve DXIL_SPIRV_CONFIG
+    // 2. Erase Env section but preserve active tools envvars
     DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
+    DMangoCfgVal := Ini.ReadString('Env', 'MANGOHUD_CONFIGFILE', '');
     Ini.EraseSection('Env');
-    if DSpirvVal <> '' then
+    if (Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1') and (DSpirvVal <> '') then
       Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
+    if (Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0') = '1') and (DMangoCfgVal <> '') then
+      Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', DMangoCfgVal);
 
     // 3. Write active tweaks to Env
     if FForm.GetGeneralCheckBox(0).Checked then

@@ -719,6 +719,7 @@ var
   ConfigPath: string;
   Ini: TIniFile;
   DSpirvVal: string;
+  DMangoCfgVal: string;
 begin
   ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
   if not FileExists(ConfigPath) then Exit;
@@ -726,9 +727,12 @@ begin
   try
     Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '0');
     DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
+    DMangoCfgVal := Ini.ReadString('Env', 'MANGOHUD_CONFIGFILE', '');
     Ini.EraseSection('Env');
-    if DSpirvVal <> '' then
+    if (Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1') and (DSpirvVal <> '') then
       Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
+    if (Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0') = '1') and (DMangoCfgVal <> '') then
+      Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', DMangoCfgVal);
   finally
     Ini.Free;
   end;
