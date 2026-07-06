@@ -28,12 +28,20 @@
 - [ ] 5.4 **Third-party preserve test:** place a `dxgi.dll` from ReShade (or any third-party proxy DLL with a size different from GOverlay's) in a `GameDir` that does NOT contain `goverlay.vars`, run the GOverlay uninstaller on that game, and confirm the third-party `dxgi.dll` is preserved.
 - [ ] 5.5 **Restore-from-backup test:** with a game that has a `dxgi.dll.b` backup from a previous stable install, run the uninstaller and confirm the original `dxgi.dll` is restored (the `.b` path is unchanged and runs before the marker check).
 - [ ] 5.6 **Stale-leftover recovery test:** on a game directory where a previous (buggy) uninstall left a bleeding-edge proxy DLL behind while `goverlay.vars` is still present, run the uninstaller again and confirm the leftover DLL is now removed.
+- [ ] 5.7 **Global launch path UI test:** save configurations under global mode in MangoHud, vkBasalt, vkSumi, and OptiScaler tabs. Verify that the launch command in the preview box matches: `\"~/.local/share/goverlay/gameconfig/global/bgmod\" %command%`.
+- [ ] 5.8 **Global MangoHud config save test:** enable MangoHud under global mode and save. Verify that `gameconfig/global/bgmod.conf` contains `GOVERLAY_MANGOHUD=1`. Disable MangoHud under global mode and save, verify it writes `GOVERLAY_MANGOHUD=0`. Verify that the template file `bgmod/bgmod.conf` is not modified by this action.
 
 ## 6. Consolidate GUI uninstall to invoke bgmod-uninstaller binary
-
-The GUI `GameCardUninstallClick` (games_tab.pas) currently re-implements the bgmod-uninstaller cleanup in an inline `RunFGModUninstallCommands` procedure (~200 lines duplicating SafeCleanOrRestore and the file list). This bypasses the marker-based fix from tasks 1-2 and is the actual code path exercised by the "Uninstall changes" menu action. Consolidate so the GUI invokes the same `bgmod-uninstaller` binary that the bgmod launcher writes into the game folder, ensuring a single source of truth for cleanup behavior.
 
 - [x] 6.1 In `games_tab.pas GameCardUninstallClick`, replace the `RunFGModUninstallCommands(TargetDirs[j], GameName)` call with an invocation of the `bgmod-uninstaller` binary via `TProcess`, pointed at each `TargetDirs[j]` by setting the `STEAM_COMPAT_INSTALL_PATH` environment variable to that directory. Used ExecuteShellCommand with `STEAM_COMPAT_INSTALL_PATH='<dir>' '<binario>' --` form (binary resolves dir via that env var fallback). Binary located via GetBGModPath, fallback GetFGModOriginalPath.
 - [x] 6.2 Delete the inline `RunFGModUninstallCommands` procedure body and its declaration in `TGamesTabHelper` (games_tab.pas). Also removed the delegator `Tgoverlayform.RunFGModUninstallCommands` and its declaration in overlayunit.pas.
 - [x] 6.3 Keep the existing `FindAllFiles(GamePath, 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller*;fgmod-uninstaller*', True)` tree walk — it still produces the list of TargetDirs that need cleanup; the only change is that each dir is now cleaned by the binary instead of the inline copy. Tree walk intact.
 - [x] 6.4 Build the full goverlay project (`lazbuild goverlay.lpi`) and confirm no compile errors / no unresolved references to `RunFGModUninstallCommands`. Build OK (exit 0, 2 warnings).
+
+## 7. Fix bgmod path and configuration saving in global mode
+
+- [x] 7.1 In `overlay_config.pas` (`SaveOptiScalerConfigCore`), change the launch command generation so that in global mode it uses `GetGameConfigDir('')` instead of `GetFGModPath`.
+- [x] 7.2 In `overlay_config.pas` (`SaveMangoHudConfigCore`), change `FGModFilePath` resolution to use `GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'` directly, removing the global mode exception that targets `GetFGModPath`.
+- [x] 7.3 In `overlayunit.pas` (`SaveVkSumiConfig`, `SaveVkBasaltConfig`, `SaveMangoHudConfig`), change the launch command generation so that in global mode it uses `GetGameConfigDir('')` instead of `GetFGModPath`.
+- [x] 7.4 In `overlayunit.pas` (`RemoveMangoHudFromFGMod`), change `ConfigPath` resolution to use `GetGameConfigDir(FActiveGameName) + 'bgmod.conf'` directly, removing the global mode exception that targets `GetFGModPath`.
+- [x] 7.5 Build the full goverlay project and verify no syntax or compilation errors.

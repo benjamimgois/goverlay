@@ -826,7 +826,7 @@ begin
       LaunchCommand := '"' + GetGameConfigDir(Settings.ActiveGameName) + 'bgmod" ';
   end
   else
-    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+    LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
 
   if GeneralCheckbox1Checked then
     LaunchCommand := LaunchCommand + EnvGamemodeRun + ' ';
@@ -1727,10 +1727,7 @@ begin
     ConfigLines.SaveToFile(Settings.MangoHudCfgFile);
 
     // Update bgmod.conf with GOVERLAY_MANGOHUD=1
-    if Settings.ActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'bgmod.conf';
+    FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);

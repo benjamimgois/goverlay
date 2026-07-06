@@ -2665,8 +2665,8 @@ begin
   FAutoDownloadingReshade := False;
 
   //Program Version
-  GVERSION := '1.8.5';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.6';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
@@ -5200,7 +5200,7 @@ begin
       LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
   end
   else
-    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+    LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
 
   // Check if gamemode should be added (check generalCheckGroup)
   if GetPerformanceCheckBox(0).Checked then
@@ -5293,7 +5293,7 @@ begin
       LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
   end
   else
-    LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+    LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
 
   // Check if gamemode should be added (check generalCheckGroup)
   if GetPerformanceCheckBox(0).Checked then
@@ -5366,7 +5366,7 @@ begin
           LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
       end
       else
-        LaunchCommand := '"' + GetFGModPath + '/bgmod" ';
+        LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
 
   // Check if gamemode should be added (check performanceCheckGroup)
   if GetPerformanceCheckBox(0).Checked then
@@ -5924,10 +5924,7 @@ var
   ConfigPath: string;
   Ini: TIniFile;
 begin
-  if FActiveGameName <> '' then
-    ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf'
-  else
-    ConfigPath := GetFGModPath + PathDelim + 'bgmod.conf';
+  ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf';
 
   if FileExists(ConfigPath) then
   begin

@@ -9,12 +9,18 @@ This size-check is fragile for two reasons:
 
 The install flow already writes `goverlay.vars` to `GameDir` (`bgmod.lpr:935` `SafeCopyFile(ConfigDir + 'goverlay.vars', ...)` and `bgmod.lpr` install path also copies `goverlay.vars` as the last step). The presence of `goverlay.vars` in the same directory as the proxy DLL is a stronger, channel-agnostic ownership signal: GOverlay wrote both files together.
 
+Additionally, when running in global mode (`FActiveGameName = ''`), GOverlay isolates the user's global profile configs inside `gameconfig/global/`. The wrapper binary executed under Steam should therefore be `"~/.local/share/goverlay/gameconfig/global/bgmod" %command%`.
+Currently, only the EnvVars (Tweaks) tab correctly constructs this path. The MangoHud, vkBasalt, vkSumi, and OptiScaler tabs point to the old template path `~/.local/share/goverlay/bgmod/bgmod` inside their launch command builders.
+Furthermore, MangoHud saves/deletes configs inside `~/.local/share/goverlay/bgmod/bgmod.conf` instead of `~/.local/share/goverlay/gameconfig/global/bgmod.conf`.
+
 ## Goals / Non-Goals
 
 **Goals:**
 - Replace `IsGOverlayProxyFile`'s size-comparison logic with a marker-based rule: a proxy DLL (per `IsProxyDllName`) without a `.b` backup is GOverlay-owned if `goverlay.vars` exists in the same directory.
 - Apply the new logic identically to both `bgmod.lpr` (launch-wrapper disabled-cleanup path) and `bgmod-uninstaller.lpr`.
 - Keep the third-party safety: when `goverlay.vars` is absent, proxy DLLs without `.b` are still treated as third-party and preserved.
+- Correct the displayed and saved launch command for all overlay tabs when configuring settings in global mode.
+- Correct MangoHud's config updates in global mode to write directly to the active global profile config path `gameconfig/global/bgmod.conf` instead of the template.
 
 **Non-Goals:**
 - Changing the backup/restore semantics of `SafeCleanOrRestore` (the `.b` restore path is unchanged).
@@ -30,10 +36,6 @@ The install flow already writes `goverlay.vars` to `GameDir` (`bgmod.lpr:935` `S
 
 Rationale: `goverlay.vars` is written into `GameDir` by `bgmod` at install time (the install block always ends with `SafeCopyFile(ConfigDir + 'goverlay.vars', ...)`). It is therefore a sufficient and necessary signature that GOverlay installed the proxy DLLs in that directory, irrespective of whether the channel was stable or bleeding-edge or whether the pristine template has since been re-extracted.
 
-**Alternative considered:** compare against `gameconfig/<game>/renames/<name>.dll` instead of `bgmod/renames/<name>.dll`. Rejected: still a size comparison, still fragile if the user later switches channels and the game folder hasn't been re-synced. The marker approach is version-agnostic.
-
-**Alternative considered:** always delete proxy DLLs without `.b` (option C in exploration). Rejected: would nuke legitimate third-party proxy DLLs (ReShade, RTSS, etc.) that share the same well-known proxy names.
-
 ### 2. Function signature and call sites unchanged
 
 `IsGOverlayProxyFile(TargetDir, FileName: string): Boolean` keeps its signature. Only the body changes. All existing call sites (`SafeCleanOrRestore` in both binaries, and the disabled cleanup block in `bgmod.lpr`) continue to invoke it exactly as today. This keeps the blast radius small.
@@ -46,6 +48,14 @@ After the change, `GetFileSize` and the `BgmodPath`/`GlobalPath` lookups inside 
 
 `IsProxyDllName` continues to return true only for `dxgi.dll`, `winmm.dll`, `dbghelp.dll`, `version.dll`, `wininet.dll`, `winhttp.dll`. This is the gating list that prevents the marker rule from sweeping up arbitrary original game DLLs that happen to live next to `goverlay.vars`. Non-proxy DLLs continue to be handled by their `IsOriginalGameFile=True` branch in `SafeCleanOrRestore` (restore `.b` if present, otherwise delete), which is unaffected.
 
+### 5. Standardize Launcher Path in Global Mode
+
+When building the launch command preview in global mode, all configuration tabs (MangoHud, vkBasalt, vkSumi, and OptiScaler) SHALL use `GetGameConfigDir('') + 'bgmod'` (which resolves to `~/.local/share/goverlay/gameconfig/global/bgmod`) as the binary path. This replaces the usage of `GetFGModPath + '/bgmod'`.
+
+### 6. Standardize MangoHud Configuration Location
+
+MangoHud's configuration save (`SaveMangoHudConfigCore` in `overlay_config.pas`) and removal (`RemoveMangoHudFromFGMod` in `overlayunit.pas`) routines SHALL use `GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf'` directly, avoiding the fallback to `GetFGModPath` in global mode. This ensures all config alterations are written directly into `gameconfig/global/bgmod.conf`.
+
 ## Risks / Trade-offs
 
 - **[Risk] User deletes `goverlay.vars` from GameDir but leaves the proxy DLL.** The proxy DLL would then be misclassified as third-party and not removed by a subsequent uninstall. *Mitigation:* the GUI uninstaller (`games_tab.pas` `GameCardUninstallClick`) walks the game tree using `goverlay.vars` as one of its marker files (`MarkerFiles := FindAllFiles(GamePath, 'goverlay.vars', True)`), so any GameDir reached by the uninstaller already contains the marker. The manual-delete case is an accepted limitation, documented in the proposal's Risks section.
@@ -55,4 +65,4 @@ After the change, `GetFileSize` and the `BgmodPath`/`GlobalPath` lookups inside 
 
 ## Open Questions
 
-- Should the `bgmod`/`bgmod-uninstaller` binaries be bumped in `data/bgmod/` as part of the same change, or shipped in a follow-up packaging update? The current implementation tasks assume a rebuild of both binaries and copying into `data/bgmod/`, but the exact packaging workflow is out of scope for this design and can be confirmed at task time.
+- None.
