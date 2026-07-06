@@ -1258,8 +1258,9 @@ begin
       IsStableChannel := False;
   end;
 
-  // Always use ~/fgmod path
-  FFGModPath := GetOptiScalerInstallPath;
+  // Use ~/fgmod path only as fallback if FFGModPath is empty
+  if FFGModPath = '' then
+    FFGModPath := GetOptiScalerInstallPath;
   WriteLn('[DEBUG] CheckForUpdatesOnClick: Using path = ', FFGModPath);
 
   // Load versions from goverlay.vars if it exists

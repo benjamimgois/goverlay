@@ -4249,6 +4249,11 @@ begin
   LoadOptiScalerConfig;
   // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
   fsrversionComboBoxChange(nil);
+
+  // Automatically check for updates when entering the OptiScaler tab
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.CheckForUpdatesOnClick;
+
   DbgLog('<< optiscalerLabelClick END');
 end;
 
