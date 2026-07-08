@@ -574,6 +574,33 @@ begin
   // Get OptiScaler.ini file path
   OptiScalerIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'OptiScaler.ini';
 
+  // Seed default OptiScaler.ini template from cache if it is missing
+  if not FileExists(OptiScalerIniPath) then
+  begin
+    IsStable := True;
+    ConfigConf := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
+    if FileExists(ConfigConf) then
+    begin
+      Ini := TIniFile.Create(ConfigConf);
+      try
+        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+      finally
+        Ini.Free;
+      end;
+    end;
+
+    if IsStable then
+      FGModPath := GetBGModOriginalPath
+    else
+      FGModPath := GetBGModOriginalEdgePath;
+
+    if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'OptiScaler.ini') then
+    begin
+      ForceDirectories(ExtractFilePath(OptiScalerIniPath));
+      CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'OptiScaler.ini', OptiScalerIniPath);
+    end;
+  end;
+
   SelectedShortcutKey := Trim(Settings.ShortcutKey);
   if SelectedShortcutKey = '' then
     SelectedShortcutKey := 'auto';
@@ -1040,6 +1067,8 @@ var
   Ini: TIniFile;
   i, SepPos: Integer;
   ConfigLines: TStringList;
+  IsStable: Boolean;
+  CacheDir: string;
 begin
   Result := False;
   FillChar(Settings, SizeOf(Settings), 0);
@@ -1065,6 +1094,31 @@ begin
 
   // 1. Load OptiScaler.ini
   OptiScalerIniPath := GetGameConfigDir(ActiveGameName) + 'OptiScaler.ini';
+
+  // Fallback: If OptiScaler.ini does not exist in target config folder,
+  // load settings from the template/default OptiScaler.ini in the cache folder.
+  if not FileExists(OptiScalerIniPath) then
+  begin
+    IsStable := True;
+    ConfigPath := GetGameConfigDir(ActiveGameName) + 'bgmod.conf';
+    if FileExists(ConfigPath) then
+    begin
+      Ini := TIniFile.Create(ConfigPath);
+      try
+        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+      finally
+        Ini.Free;
+      end;
+    end;
+
+    if IsStable then
+      CacheDir := GetBGModOriginalPath
+    else
+      CacheDir := GetBGModOriginalEdgePath;
+
+    if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.ini') then
+      OptiScalerIniPath := IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.ini';
+  end;
 
   if FileExists(OptiScalerIniPath) then
   begin
