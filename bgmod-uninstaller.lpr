@@ -183,7 +183,9 @@ begin
       repeat
         if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) <> 0) then
         begin
-          if UpperCase(SR.Name) <> 'ENGINE' then
+          if (UpperCase(SR.Name) <> 'ENGINE') and
+             (UpperCase(SR.Name) <> 'BUGREPORTCLIENT') and
+             (UpperCase(SR.Name) <> 'CRASHREPORTCLIENT') then
           begin
             Res := FindUEShippingExe(IncludeTrailingPathDelimiter(BaseDir) + SR.Name, Depth + 1);
             if Res <> '' then

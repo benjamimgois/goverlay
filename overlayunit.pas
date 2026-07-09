@@ -2665,8 +2665,8 @@ begin
   FAutoDownloadingReshade := False;
 
   //Program Version
-  GVERSION := '1.8.6';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.7';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
