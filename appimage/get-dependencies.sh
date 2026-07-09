@@ -85,6 +85,20 @@ chown -R builder:builder /tmp/vksumi
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
-wget --retry-connrefused --tries=30 "$EXTRA_PACKAGES" -O ./get-debloated-pkgs.sh
+success=0
+for i in 1 2 3 4 5; do
+	if wget --retry-connrefused --tries=5 "$EXTRA_PACKAGES" -O ./get-debloated-pkgs.sh; then
+		success=1
+		break
+	fi
+	echo "Download failed (possibly rate-limited), retrying in 10 seconds ($i/5)..."
+	sleep 10
+done
+
+if [ "$success" -ne 1 ]; then
+	echo "Failed to download get-debloated-pkgs.sh after 5 attempts."
+	exit 1
+fi
+
 chmod +x ./get-debloated-pkgs.sh
 ./get-debloated-pkgs.sh --add-common --prefer-nano mangohud-mini
