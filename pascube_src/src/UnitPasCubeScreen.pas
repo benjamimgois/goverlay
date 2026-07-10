@@ -88,6 +88,8 @@ type
     GPUTempDelta: Double;
     CPUMaxFreq: Integer;
     GPUMaxFreq: Integer;
+    CPUPowerMax: Double;
+    GPUPowerMax: Double;
    end;
 
    THardwareRef = record
@@ -206,9 +208,12 @@ type
         fBenchmarkPhase: TBenchmarkPhase;
         f7ZipThread: T7ZipThread;
         fBenchmarkTimer: TpvDouble;
-       fPhaseTimer: TpvDouble;
-       fPhysicsWorld: TPhysicsWorld;
-       fCurrentResult: TBenchmarkResult;
+        fPhaseTimer: TpvDouble;
+        fPhysicsWorld: TPhysicsWorld;
+        fCurrentResult: TBenchmarkResult;
+        fLastCPUEnergy: Int64;
+        fLastCPUTime: TpvDouble;
+        fLastTelemetryTime: TpvDouble;
        fPhaseResultIndex: Integer;
        fResolutionOption: TResolutionOption;
        fSelectedResolution: Integer;
@@ -333,11 +338,13 @@ type
            function GetDesktopEnvironment: String;
            function GetStorageType: String;
            function GetVulkanDriver: String;
-           function GetCPUTemperature: Double;
-           function GetGPUTemperature: Double;
-           function GetCPUMaxFreq: Integer;
-           function GetGPUMaxFreq: Integer;
-           procedure DrawResultsOverlay;
+            function GetCPUTemperature: Double;
+            function GetGPUTemperature: Double;
+            function GetCPUMaxFreq: Integer;
+            function GetGPUMaxFreq: Integer;
+            procedure UpdateCPUPower;
+            function GetGPUPower: Double;
+            procedure DrawResultsOverlay;
            procedure DrawMethodologyOverlay;
         procedure GenerateBeveledCube;
         function GetPhaseDuration: TpvDouble;
@@ -1741,6 +1748,8 @@ var p:pointer;
     i: Integer;
     isBenchmark: Boolean;
     curGPU: Double;
+    curCPU: Double;
+    curGPUPower: Double;
     gpuStressValue: TpvFloat;
     SkyParams: array[0..1] of TpvFloat;
     scaleFactor, scaleX, scaleY, scaleZ: TpvFloat;
@@ -1766,10 +1775,18 @@ begin
  if assigned(fVulkanGraphicsPipeline) then begin
 
     isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p];
-    if isBenchmark then begin
-      curGPU := GetGPUTemperature;
-      if (curGPU > 0) and (curGPU > fCurrentResult.GPUTempMax) then fCurrentResult.GPUTempMax := curGPU;
-    end;
+     if isBenchmark then begin
+       if fBenchmarkTimer - fLastTelemetryTime > 0.1 then begin
+         fLastTelemetryTime := fBenchmarkTimer;
+         curGPU := GetGPUTemperature;
+         if (curGPU > 0) and (curGPU > fCurrentResult.GPUTempMax) then fCurrentResult.GPUTempMax := curGPU;
+         curCPU := GetCPUTemperature;
+         if (curCPU > 0) and (curCPU > fCurrentResult.CPUTempMax) then fCurrentResult.CPUTempMax := curCPU;
+         curGPUPower := GetGPUPower;
+         if (curGPUPower > 0) and (curGPUPower > fCurrentResult.GPUPowerMax) then fCurrentResult.GPUPowerMax := curGPUPower;
+         UpdateCPUPower;
+       end;
+     end;
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -2286,6 +2303,9 @@ begin
    fCurrentResult.GPUTempMax := fCurrentResult.GPUTempStart;
    fCurrentResult.CPUMaxFreq := GetCPUMaxFreq;
    fCurrentResult.GPUMaxFreq := GetGPUMaxFreq;
+   fLastCPUEnergy := 0;
+   fLastCPUTime := 0.0;
+   fLastTelemetryTime := 0.0;
    InitParticles;
    fRenderWidth := 1920;
    fRenderHeight := 1080;
@@ -2511,7 +2531,12 @@ end;
 
 procedure TPasCubeScreen.FinishBenchmark;
 var i: Integer;
+    curGPUPower: Double;
 begin
+ UpdateCPUPower;
+ curGPUPower := GetGPUPower;
+ if (curGPUPower > 0) and (curGPUPower > fCurrentResult.GPUPowerMax) then
+   fCurrentResult.GPUPowerMax := curGPUPower;
  fCurrentResult.BenchmarkDuration := fBenchmarkTimer;
  if (fCurrentResult.CPUTempStart > 0) and (fCurrentResult.CPUTempMax >= fCurrentResult.CPUTempStart) then
    fCurrentResult.CPUTempDelta := fCurrentResult.CPUTempMax - fCurrentResult.CPUTempStart
@@ -2568,6 +2593,8 @@ begin
     json := json + ' "gpu_temp_delta": ' + FloatToJsonStr(fHistory[i].GPUTempDelta) + ',';
     json := json + ' "cpu_max_freq": ' + IntToStr(fHistory[i].CPUMaxFreq) + ',';
     json := json + ' "gpu_max_freq": ' + IntToStr(fHistory[i].GPUMaxFreq) + ',';
+    json := json + ' "cpu_max_power": ' + FloatToJsonStr(fHistory[i].CPUPowerMax) + ',';
+    json := json + ' "gpu_max_power": ' + FloatToJsonStr(fHistory[i].GPUPowerMax) + ',';
     json := json + ' "total_score": ' + IntToStr(fHistory[i].TotalScore) + ',';
     json := json + ' "duration": ' + FormatFloat('0.0', fHistory[i].BenchmarkDuration) + ',';
    json := json + ' "phases": [';
@@ -2654,6 +2681,12 @@ begin
           fHistory[i].GPUTempDelta := HistoryObj.Get('gpu_temp_delta', -1.0);
           fHistory[i].CPUMaxFreq := HistoryObj.Get('cpu_max_freq', 0);
           fHistory[i].GPUMaxFreq := HistoryObj.Get('gpu_max_freq', 0);
+          fHistory[i].CPUPowerMax := HistoryObj.Get('cpu_max_power', 0.0);
+          if fHistory[i].CPUPowerMax = 0.0 then
+            fHistory[i].CPUPowerMax := HistoryObj.Get('cpumaxpower', 0.0);
+          fHistory[i].GPUPowerMax := HistoryObj.Get('gpu_max_power', 0.0);
+          if fHistory[i].GPUPowerMax = 0.0 then
+            fHistory[i].GPUPowerMax := HistoryObj.Get('gpumaxpower', 0.0);
           fHistory[i].TotalScore := HistoryObj.Get('total_score', 0);
           fHistory[i].BenchmarkDuration := HistoryObj.Get('duration', 0.0);
          
@@ -3433,6 +3466,40 @@ begin
       JSONObj.Add('gpu_temp_delta', 'N/D');
       JSONObj.Add('gpu_delta_temp', 'N/D');
     end;
+
+    if fCurrentResult.CPUTempMax > 0 then begin
+      JSONObj.Add('cpu_temp_max', FloatToJsonStr(fCurrentResult.CPUTempMax));
+      JSONObj.Add('cpu_max_temp', FloatToJsonStr(fCurrentResult.CPUTempMax));
+      JSONObj.Add('cpu_temp', FloatToJsonStr(fCurrentResult.CPUTempMax));
+    end else begin
+      JSONObj.Add('cpu_temp_max', 'N/D');
+      JSONObj.Add('cpu_max_temp', 'N/D');
+      JSONObj.Add('cpu_temp', 'N/D');
+    end;
+
+    if fCurrentResult.CPUTempDelta >= 0 then begin
+      JSONObj.Add('cpu_temp_delta', FloatToJsonStr(fCurrentResult.CPUTempDelta));
+      JSONObj.Add('cpu_delta_temp', FloatToJsonStr(fCurrentResult.CPUTempDelta));
+    end else begin
+      JSONObj.Add('cpu_temp_delta', 'N/D');
+      JSONObj.Add('cpu_delta_temp', 'N/D');
+    end;
+
+    if fCurrentResult.CPUPowerMax > 0 then
+      JSONObj.Add('cpumaxpower', FloatToJsonStr(fCurrentResult.CPUPowerMax))
+    else
+      JSONObj.Add('cpumaxpower', 'N/D');
+
+    if fCurrentResult.GPUPowerMax > 0 then
+      JSONObj.Add('gpumaxpower', FloatToJsonStr(fCurrentResult.GPUPowerMax))
+    else
+      JSONObj.Add('gpumaxpower', 'N/D');
+
+    if Assigned(UnitPasCubeApplication.Application) and (UnitPasCubeApplication.Application.Version <> '') then
+      JSONObj.Add('goverlayversion', UnitPasCubeApplication.Application.Version)
+    else
+      JSONObj.Add('goverlayversion', 'N/D');
+
     Payload := JSONObj.AsJSON;
   finally
     JSONObj.Free;
@@ -3507,7 +3574,7 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   boxW := 66.0 * charWidth;
-  boxH := 36.0 * charHeight;
+  boxH := 42.0 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
 
@@ -4314,40 +4381,50 @@ end;
 
 function TPasCubeScreen.GetCPUTemperature: Double;
 var
-  i, j: Integer;
+  i, j, Pass: Integer;
   HwmonPath, NamePath, TempPath, NameStr: String;
   SL: TStringList;
   ValInt: LongInt;
+  Match: Boolean;
 begin
   Result := -1.0;
   SL := TStringList.Create;
   try
-    for i := 0 to 15 do begin
-      HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
-      if not DirectoryExists(HwmonPath) then Continue;
-      NamePath := HwmonPath + '/name';
-      NameStr := '';
-      if FileExists(NamePath) then begin
-        try
-          SL.LoadFromFile(NamePath);
-          if SL.Count > 0 then NameStr := LowerCase(Trim(SL[0]));
-        except
+    for Pass := 1 to 2 do begin
+      for i := 0 to 15 do begin
+        HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+        if not DirectoryExists(HwmonPath) then Continue;
+        NamePath := HwmonPath + '/name';
+        NameStr := '';
+        if FileExists(NamePath) then begin
+          try
+            SL.LoadFromFile(NamePath);
+            if SL.Count > 0 then NameStr := LowerCase(Trim(SL[0]));
+          except
+          end;
         end;
-      end;
 
-      if (Pos('k10temp', NameStr) > 0) or (Pos('coretemp', NameStr) > 0) or
-         (Pos('zenpower', NameStr) > 0) or (Pos('cpu', NameStr) > 0) or
-         (Pos('acpitz', NameStr) > 0) or (Pos('package', NameStr) > 0) or (NameStr = '') then begin
-        for j := 1 to 8 do begin
-          TempPath := HwmonPath + '/temp' + IntToStr(j) + '_input';
-          if FileExists(TempPath) then begin
-            try
-              SL.LoadFromFile(TempPath);
-              if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
-                if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
-                if (Result > 0) and (Result < 150) then Exit;
+        Match := false;
+        if Pass = 1 then begin
+          if (Pos('k10temp', NameStr) > 0) or (Pos('coretemp', NameStr) > 0) or
+             (Pos('zenpower', NameStr) > 0) then Match := true;
+        end else begin
+          if (Pos('cpu', NameStr) > 0) or (Pos('acpitz', NameStr) > 0) or
+             (Pos('package', NameStr) > 0) or (NameStr = '') then Match := true;
+        end;
+
+        if Match then begin
+          for j := 1 to 8 do begin
+            TempPath := HwmonPath + '/temp' + IntToStr(j) + '_input';
+            if FileExists(TempPath) then begin
+              try
+                SL.LoadFromFile(TempPath);
+                if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
+                  if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+                  if (Result > 0) and (Result < 150) then Exit;
+                end;
+              except
               end;
-            except
             end;
           end;
         end;
@@ -4451,6 +4528,239 @@ begin
       end;
       if TryStrToInt(Trim(OutputStr), ValInt) then
         Result := ValInt;
+    except
+    end;
+  finally
+    AProcess.Free;
+  end;
+end;
+
+procedure TPasCubeScreen.UpdateCPUPower;
+var
+  EnergyVal: Int64;
+  TimeDiff, EnergyDiff: Double;
+  CurrentPower: Double;
+  SL: TStringList;
+  i: Integer;
+  EnergyPath, HwmonPath, NamePath, PowerPath, NameStr: String;
+  ValInt: LongInt;
+
+  function FindCPUEnergyPath(aSL: TStringList): String;
+  var
+    idx, jdx: Integer;
+    hPath, nPath, nStr, lblPath, lblStr, inPath: String;
+  begin
+    Result := '';
+    for idx := 0 to 15 do begin
+      hPath := '/sys/class/hwmon/hwmon' + IntToStr(idx);
+      if not DirectoryExists(hPath) then Continue;
+      
+      for jdx := 1 to 16 do begin
+        inPath := hPath + '/energy' + IntToStr(jdx) + '_input';
+        if not FileExists(inPath) then Continue;
+        
+        lblPath := hPath + '/energy' + IntToStr(jdx) + '_label';
+        if FileExists(lblPath) then begin
+          try
+            aSL.LoadFromFile(lblPath);
+            if aSL.Count > 0 then begin
+              lblStr := LowerCase(Trim(aSL[0]));
+              if (Pos('socket', lblStr) > 0) or (Pos('package', lblStr) > 0) or (Pos('total', lblStr) > 0) then begin
+                Result := inPath;
+                Exit;
+              end;
+            end;
+          except
+          end;
+        end;
+      end;
+      
+      nPath := hPath + '/name';
+      nStr := '';
+      if FileExists(nPath) then begin
+        try
+          aSL.LoadFromFile(nPath);
+          if aSL.Count > 0 then nStr := LowerCase(Trim(aSL[0]));
+        except
+        end;
+      end;
+      
+      if (nStr = 'zenergy') or (nStr = 'zenpower') or (nStr = 'amd_energy') or (nStr = 'intel_rapl') then begin
+        if (nStr = 'zenergy') and FileExists(hPath + '/energy9_input') then begin
+          Result := hPath + '/energy9_input';
+          Exit;
+        end;
+        if FileExists(hPath + '/energy1_input') then begin
+          Result := hPath + '/energy1_input';
+          Exit;
+        end;
+      end;
+    end;
+  end;
+
+begin
+  EnergyVal := 0;
+  SL := TStringList.Create;
+  try
+    if FileExists('/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj') then begin
+      try
+        SL.LoadFromFile('/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj');
+        if (SL.Count > 0) then
+          TryStrToInt64(Trim(SL[0]), EnergyVal);
+      except
+      end;
+    end;
+
+    if EnergyVal = 0 then begin
+      EnergyPath := FindCPUEnergyPath(SL);
+      if EnergyPath <> '' then begin
+        try
+          SL.LoadFromFile(EnergyPath);
+          if (SL.Count > 0) then
+            TryStrToInt64(Trim(SL[0]), EnergyVal);
+        except
+        end;
+      end;
+    end;
+
+    if EnergyVal > 0 then begin
+      if fLastCPUEnergy > 0 then begin
+        TimeDiff := fBenchmarkTimer - fLastCPUTime;
+        if TimeDiff > 0.05 then begin
+          EnergyDiff := EnergyVal - fLastCPUEnergy;
+          if EnergyDiff >= 0 then begin
+            CurrentPower := (EnergyDiff / TimeDiff) / 1000000.0;
+            if (CurrentPower > 0) and (CurrentPower < 1000) then begin
+              if CurrentPower > fCurrentResult.CPUPowerMax then
+                fCurrentResult.CPUPowerMax := CurrentPower;
+            end;
+          end;
+        end;
+      end;
+      fLastCPUEnergy := EnergyVal;
+      fLastCPUTime := fBenchmarkTimer;
+      Exit;
+    end;
+
+    for i := 0 to 15 do begin
+      HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+      if not DirectoryExists(HwmonPath) then Continue;
+      NamePath := HwmonPath + '/name';
+      NameStr := '';
+      if FileExists(NamePath) then begin
+        try
+          SL.LoadFromFile(NamePath);
+          if SL.Count > 0 then NameStr := LowerCase(Trim(SL[0]));
+        except
+        end;
+      end;
+
+      if (Pos('k10temp', NameStr) > 0) or (Pos('coretemp', NameStr) > 0) or
+         (Pos('zenpower', NameStr) > 0) or (Pos('fam15h_power', NameStr) > 0) or
+         (Pos('acpitz', NameStr) > 0) then begin
+        PowerPath := HwmonPath + '/power1_input';
+        if not FileExists(PowerPath) then
+          PowerPath := HwmonPath + '/power1_average';
+          
+        if FileExists(PowerPath) then begin
+          try
+            SL.LoadFromFile(PowerPath);
+            if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
+              if ValInt > 1000 then CurrentPower := ValInt / 1000000.0 else CurrentPower := ValInt;
+              if (CurrentPower > 0) and (CurrentPower < 1000) then begin
+                if CurrentPower > fCurrentResult.CPUPowerMax then
+                  fCurrentResult.CPUPowerMax := CurrentPower;
+              end;
+            end;
+          except
+          end;
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+function TPasCubeScreen.GetGPUPower: Double;
+var
+  i: Integer;
+  HwmonPath, NamePath, PowerPath, NameStr: String;
+  SL: TStringList;
+  ValInt: LongInt;
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr: String;
+  LoopCount: Integer;
+begin
+  Result := -1.0;
+  SL := TStringList.Create;
+  try
+    for i := 0 to 15 do begin
+      HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+      if not DirectoryExists(HwmonPath) then Continue;
+      NamePath := HwmonPath + '/name';
+      NameStr := '';
+      if FileExists(NamePath) then begin
+        try
+          SL.LoadFromFile(NamePath);
+          if SL.Count > 0 then NameStr := LowerCase(Trim(SL[0]));
+        except
+        end;
+      end;
+
+      if (Pos('amdgpu', NameStr) > 0) or (Pos('i915', NameStr) > 0) or (Pos('xe', NameStr) > 0) then begin
+        PowerPath := HwmonPath + '/power1_average';
+        if not FileExists(PowerPath) then
+          PowerPath := HwmonPath + '/power1_input';
+        
+        if FileExists(PowerPath) then begin
+          try
+            SL.LoadFromFile(PowerPath);
+            if (SL.Count > 0) and TryStrToInt(Trim(SL[0]), ValInt) then begin
+              if ValInt > 1000 then Result := ValInt / 1000000.0 else Result := ValInt;
+              if Result > 0 then Exit;
+            end;
+          except
+          end;
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+
+  if Result > 0 then Exit;
+
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'nvidia-smi';
+    AProcess.Parameters.Add('--query-gpu=power.draw');
+    AProcess.Parameters.Add('--format=csv,noheader,nounits');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+        Inc(LoopCount);
+        if LoopCount > 40 then begin
+          try AProcess.Terminate(1); except end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      if TryStrToFloat(StringReplace(Trim(OutputStr), '.', DecimalSeparator, [rfReplaceAll]), Result) then Exit;
     except
     end;
   finally
@@ -5233,7 +5543,7 @@ begin
 
     // Dialog box
     boxW := 66.0 * charWidth;
-    boxH := 36.0 * charHeight;
+    boxH := 42.0 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
     app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
@@ -5322,6 +5632,36 @@ begin
 
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, 'GPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.GPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, 'CPU Max Temp:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.CPUTempMax > 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUTempMax) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'CPU Temp Delta:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.CPUTempDelta >= 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, '+' + FloatToJsonStr(fCurrentResult.CPUTempDelta) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'CPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.CPUPowerMax > 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'GPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.GPUPowerMax > 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.GPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'GOverlay Version:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if Assigned(app) and (app.Version <> '') then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, app.Version, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
     // Buttons
     gap := 5.0 * charWidth;
