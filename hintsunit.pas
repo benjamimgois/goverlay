@@ -323,8 +323,8 @@ begin
   // ============================================================================
 
   SetHint('fpslimmetComboBox', 'Limiter method' + LineEnding +
-    'early: Lower latency' + LineEnding +
-    'late: More stable');
+    'Early: waits before presenting the frame → more stable/consistent frametimes' + LineEnding +
+    'Late (default): waits after presenting the frame → lower latency');
   SetHint('fpslimtoggleComboBox', 'Limiter shortcut' + LineEnding +
     'Key to enable/disable FPS limit');
   SetHint('hudonoffComboBox', 'HUD shortcut' + LineEnding +

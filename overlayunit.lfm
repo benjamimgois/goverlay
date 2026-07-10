@@ -2474,14 +2474,14 @@ object goverlayform: Tgoverlayform
       Height = 683
       Top = 0
       Width = 834
-      ActivePage = gamesTabSheet
+      ActivePage = performanceTabSheet
       Anchors = [akTop, akLeft, akRight, akBottom]
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased
       ParentFont = False
       Style = tsButtons
-      TabIndex = 0
+      TabIndex = 3
       TabOrder = 0
       object gamesTabSheet: TTabSheet
         Caption = 'Games'
