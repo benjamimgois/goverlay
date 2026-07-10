@@ -71,7 +71,7 @@ var
     'qt5pas',
     {$ENDIF}
     'Nerd Fonts',
-    'Low Latency');
+    'Korthos low latency');
   MOD_NAMES: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'vkSumi');
 
 var
@@ -503,7 +503,7 @@ const
   DEP_KEYS: array[0..6] of string = (
     'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas', 'nerdfonts', 'vulkan-low-latency-layer');
   DEP_DISPLAY: array[0..6] of string = (
-    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts', 'Low Latency');
+    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts', 'Korthos low latency');
   DEP_HINTS: array[0..6] of string = (
     'Archive tool required for OptiScaler extraction',
     'HTTP client used to download OptiScaler updates and covers',
@@ -516,7 +516,7 @@ const
   DEP_KEYS: array[0..6] of string = (
     'p7zip', 'curl', 'git', 'gamemode', 'libqt5pas', 'nerdfonts', 'vulkan-low-latency-layer');
   DEP_DISPLAY: array[0..6] of string = (
-    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt5pas', 'Nerd Fonts', 'Low Latency');
+    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt5pas', 'Nerd Fonts', 'Korthos low latency');
   DEP_HINTS: array[0..6] of string = (
     'Archive tool required for OptiScaler extraction',
     'HTTP client used to download OptiScaler updates and covers',

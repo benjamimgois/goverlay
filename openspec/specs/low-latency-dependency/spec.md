@@ -1,7 +1,7 @@
 # low-latency-dependency Specification
 
 ## Purpose
-TBD - created by archiving change goverlay-add-low-latency-dependency. Update Purpose after archive.
+Verifies the presence and displays the status of the Vulkan input latency reduction layer (vulkan-low-latency-layer).
 ## Requirements
 ### Requirement: Low Latency Layer Detection
 The system MUST check for the presence of the Vulkan low latency layer on the host system to determine if the dependency is met.
@@ -31,5 +31,5 @@ The system MUST render the status of the Vulkan low latency layer on the Home pa
 
 #### Scenario: Rendering the dependency on Home page
 - **WHEN** the Home tab is created and updated
-- **THEN** it renders a status dot and the name "Low Latency" at index 6 of the dependency list in a 3x3 grid layout with the hint "Vulkan Low Latency layer — latency reduction layer".
+- **THEN** it renders a status dot and the name "Korthos low latency" at index 6 of the dependency list in a 3x3 grid layout with the hint "Vulkan Low Latency layer — latency reduction layer".
 
