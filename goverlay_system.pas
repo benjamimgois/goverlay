@@ -423,6 +423,13 @@ begin
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/vksumi.json') and
        not IsLibraryAvailable('libVkLayer_vksumi') then
       Missing.Add('vksumi');
+
+    // vulkan-low-latency-layer: check Vulkan layer JSON then fall back to library scan
+    if not FileExists('/usr/share/vulkan/implicit_layer.d/low_latency_layer.json') and
+       not FileExists('/etc/vulkan/implicit_layer.d/low_latency_layer.json') and
+       not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/low_latency_layer.json') and
+       not IsLibraryAvailable('libVkLayer_KORTHOS_LowLatency') then
+      Missing.Add('vulkan-low-latency-layer');
   end;
 
 
