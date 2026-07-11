@@ -1057,7 +1057,7 @@ begin
             if FileExists(IconPath) then
               try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-            BdgHint := 'Configurações personalizadas ativas:';
+            BdgHint := 'Custom settings active:';
             if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud';
             if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt';
             if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler';
@@ -1410,7 +1410,7 @@ begin
         if FileExists(IconPath) then
           try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-        BdgHint := 'Configurações personalizadas ativas:';
+        BdgHint := 'Custom settings active:';
         if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud';
         if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt';
         if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler';
@@ -2455,7 +2455,7 @@ var
 begin
   if not (Sender is TPanel) then Exit;
   Panel := TPanel(Sender);
-  Panel.Hint := 'Opções do jogo';
+  Panel.Hint := 'Game options';
   Panel.ShowHint := True;
 end;
 
