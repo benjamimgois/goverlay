@@ -173,16 +173,35 @@ begin
   Result := (Length(Trimmed) > 0) and ((Trimmed[1] = ';') or (Trimmed[1] = '#'));
 end;
 
-function TConfigFile.FindLineIndex(const AKeyPrefix: string; AStartIndex: Integer = 0): Integer;
+function CleanKeyLine(const AStr: string): string;
 var
   i: Integer;
 begin
+  Result := '';
+  for i := 1 to Length(AStr) do
+    if not (AStr[i] in [' ', #9]) then
+      Result := Result + AStr[i];
+  Result := LowerCase(Result);
+end;
+
+
+function TConfigFile.FindLineIndex(const AKeyPrefix: string; AStartIndex: Integer = 0): Integer;
+var
+  i: Integer;
+  CleanPrefix: string;
+  CleanLine: string;
+begin
   Result := -1;
+  CleanPrefix := CleanKeyLine(AKeyPrefix);
   for i := AStartIndex to FLines.Count - 1 do
-    if not IsCommentLine(FLines[i]) and (Pos(AKeyPrefix, FLines[i]) > 0) then
+    if not IsCommentLine(FLines[i]) then
     begin
-      Result := i;
-      Exit;
+      CleanLine := CleanKeyLine(FLines[i]);
+      if LeftStr(CleanLine, Length(CleanPrefix)) = CleanPrefix then
+      begin
+        Result := i;
+        Exit;
+      end;
     end;
 end;
 
@@ -192,9 +211,12 @@ var
   InSection: Boolean;
   SectionName: string;
   Trimmed: string;
+  CleanPrefix: string;
+  CleanLine: string;
 begin
   Result := -1;
   InSection := (ASection = '');
+  CleanPrefix := CleanKeyLine(AKeyPrefix);
 
   for i := 0 to FLines.Count - 1 do
   begin
@@ -208,10 +230,14 @@ begin
       Continue;
     end;
 
-    if InSection and not IsCommentLine(FLines[i]) and (Pos(AKeyPrefix, FLines[i]) > 0) then
+    if InSection and not IsCommentLine(FLines[i]) then
     begin
-      Result := i;
-      Exit;
+      CleanLine := CleanKeyLine(FLines[i]);
+      if LeftStr(CleanLine, Length(CleanPrefix)) = CleanPrefix then
+      begin
+        Result := i;
+        Exit;
+      end;
     end;
   end;
 end;

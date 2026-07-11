@@ -1020,8 +1020,8 @@ begin
       'for f in ' + QuotedStr(Source) + '*.dll; do ' +
       '  [ -f "$f" ] && cp -f "$f" ' + QuotedStr(Target) + '; ' +
       'done; ' +
-      'if [ -f ' + QuotedStr(Source + 'fakenvapi.ini') + ' ]; then ' +
-      '  cp -f ' + QuotedStr(Source + 'fakenvapi.ini') + ' ' + QuotedStr(Target) + '; ' +
+      'if [ -f ' + QuotedStr(Source + 'fakenvapi.ini') + ' ] && [ ! -f ' + QuotedStr(Target + 'fakenvapi.ini') + ' ]; then ' +
+      '  cp ' + QuotedStr(Source + 'fakenvapi.ini') + ' ' + QuotedStr(Target) + '; ' +
       'fi; ' +
       'if [ -d ' + QuotedStr(Source + 'plugins') + ' ]; then ' +
       '  cp -rf ' + QuotedStr(Source + 'plugins') + ' ' + QuotedStr(Target) + '; ' +

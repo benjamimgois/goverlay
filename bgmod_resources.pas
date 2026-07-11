@@ -472,8 +472,8 @@ begin
           'for f in "$Source"*.dll; do ' +
           '  [ -f "$f" ] && cp -f "$f" "$Target"; ' +
           'done; ' +
-          'if [ -f "$Source"fakenvapi.ini ]; then ' +
-          '  cp -f "$Source"fakenvapi.ini "$Target"; ' +
+          'if [ -f "$Source"fakenvapi.ini ] && [ ! -f "$Target"fakenvapi.ini ]; then ' +
+          '  cp "$Source"fakenvapi.ini "$Target"; ' +
           'fi; ' +
           'if [ -d "$Source"plugins ]; then ' +
           '  cp -rf "$Source"plugins "$Target"; ' +
