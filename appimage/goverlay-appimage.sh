@@ -21,8 +21,6 @@ chmod +x ./quick-sharun
 ./quick-sharun \
 	/usr/lib/goverlay        \
 	/usr/lib/pascube         \
-	/usr/lib/bgmod           \
-	/usr/lib/bgmod-uninstaller \
 	/usr/share/goverlay      \
 	/usr/lib/mangohud/*      \
 	/usr/lib/libvkbasalt.so* \
@@ -70,6 +68,11 @@ if [ -d "${PROJECT_ROOT}/data" ]; then
 else
   echo "[AppImageBuild] WARNING: ${PROJECT_ROOT}/data does not exist!"
 fi
+# Copy unwrapped bgmod and bgmod-uninstaller binaries directly to AppDir/lib
+mkdir -p ./AppDir/lib
+cp -pf /usr/lib/bgmod ./AppDir/lib/bgmod
+cp -pf /usr/lib/bgmod-uninstaller ./AppDir/lib/bgmod-uninstaller
+
 echo "[AppImageBuild] ls AppDir/bin:"
 ls -la ./AppDir/bin/
 
