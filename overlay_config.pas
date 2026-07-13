@@ -53,6 +53,7 @@ type
     ForceLatencyFlexChecked: Boolean;
     LatencyFlexItemIndex: Integer;
     TraceLogChecked: Boolean;
+    ForceFsr4Int8Checked: Boolean;
   end;
 
   TMangoHudSettings = record
@@ -646,6 +647,10 @@ begin
         OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
       else
         OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'auto');
+      if Settings.ForceFsr4Int8Checked then
+        OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'true')
+      else
+        OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'false');
       OptiCfg.Save;
     end;
   finally
@@ -1088,6 +1093,7 @@ begin
   Settings.ForceLatencyFlexChecked := False;
   Settings.LatencyFlexItemIndex := 0;
   Settings.TraceLogChecked := False;
+  Settings.ForceFsr4Int8Checked := True;
 
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
@@ -1143,6 +1149,12 @@ begin
           Settings.FsrversionItemIndex := 0;
 
         Settings.SpoofChecked := SameText(OptiCfg.GetValue(OPTI_KEY_DXGI, ''), 'auto');
+
+        Value := OptiCfg.GetValue('Fsr4ForceEnableInt8=', '');
+        if Value <> '' then
+          Settings.ForceFsr4Int8Checked := SameText(Value, 'true')
+        else
+          Settings.ForceFsr4Int8Checked := True;
       end;
     finally
       OptiCfg.Free;

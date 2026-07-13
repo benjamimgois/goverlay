@@ -377,6 +377,16 @@ begin
     emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 142;
     emufp8CheckBox.Parent  := FOsOptiSec;
 
+    forceFsr4Int8CheckBox := TCheckBox.Create(FForm);
+    forceFsr4Int8CheckBox.Name := 'forceFsr4Int8CheckBox';
+    forceFsr4Int8CheckBox.Caption := 'Force FSR4-i8';
+    forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
+    forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
+    forceFsr4Int8CheckBox.Anchors := [akLeft, akTop];
+    forceFsr4Int8CheckBox.Top := 142;
+    forceFsr4Int8CheckBox.Left := 134;
+    forceFsr4Int8CheckBox.Parent  := FOsOptiSec;
+
     osversionLabel.AnchorSideLeft.Control   := nil; osversionLabel.AnchorSideTop.Control    := nil;
     osversionLabel.AnchorSideRight.Control  := nil; osversionLabel.AnchorSideBottom.Control := nil;
     osversionLabel.Anchors := [akLeft, akTop]; osversionLabel.Top := 190;
@@ -493,6 +503,10 @@ begin
     DarkCombo(filenameComboBox);
     DarkCheck(spoofCheckBox);
     DarkCheck(emufp8CheckBox);
+    DarkCheck(forceFsr4Int8CheckBox);
+    forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
+    forceFsr4Int8CheckBox.ShowHint := True;
+    forceFsr4Int8CheckBox.Visible := False;
     DarkCheck(optipatcherCheckBox);
     DarkLbl(fsrversionLabel,  PURPLE); fsrversionLabel.Transparent := True;
     DarkCombo(fsrversionComboBox);
@@ -802,6 +816,7 @@ begin
     try
       filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
       emufp8CheckBox.Checked := Settings.EmuFp8Checked;
+      forceFsr4Int8CheckBox.Checked := Settings.ForceFsr4Int8Checked;
       shortcutkeyComboBox.Text := Settings.ShortcutKey;
       if Assigned(FOsShortcutCaptureBtn) then
         FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
@@ -853,6 +868,7 @@ begin
     Settings.Channel := GCHANNEL;
     Settings.FilenameItemIndex := filenameComboBox.ItemIndex;
     Settings.EmuFp8Checked := emufp8CheckBox.Checked;
+    Settings.ForceFsr4Int8Checked := forceFsr4Int8CheckBox.Checked;
     Settings.ShortcutKey := shortcutkeyComboBox.Text;
     Settings.MenuScalePosition := menuscaleTrackBar.Position;
     Settings.OverrideChecked := overrideCheckBox.Checked;

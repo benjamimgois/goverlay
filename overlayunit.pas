@@ -189,6 +189,7 @@ type
     durationvalueLabel: TLabel;
     dxapiCheckBox: TCheckBox;
     emufp8CheckBox: TCheckBox;
+    forceFsr4Int8CheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineshortCheckBox: TCheckBox;
     engineversionCheckBox: TCheckBox;
@@ -5013,17 +5014,32 @@ end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
-  // Disable emufp8CheckBox when "4.0.2c (INT8)" is selected (ItemIndex = 1)
-  // or when using bleeding-edge channel (optversionComboBox.ItemIndex = 1).
-  // It only remains available for use when both are "Latest" and "Stable".
-  if (fsrversionComboBox.ItemIndex = 0) and (optversionComboBox.ItemIndex = 0) then
+  // Manage visibility and enabled state of checkboxes based on OptiScaler channel.
+  if optversionComboBox.ItemIndex = 0 then
   begin
-    emufp8CheckBox.Enabled := True;
+    if Assigned(forceFsr4Int8CheckBox) then
+      forceFsr4Int8CheckBox.Visible := False;
+    emufp8CheckBox.Visible := True;
+
+    // Disable emufp8CheckBox when "4.0.2c (INT8)" is selected (ItemIndex = 1)
+    if fsrversionComboBox.ItemIndex = 0 then
+    begin
+      emufp8CheckBox.Enabled := True;
+    end
+    else
+    begin
+      emufp8CheckBox.Enabled := False;
+      emufp8CheckBox.Checked := False;  // Also uncheck when disabled
+    end;
   end
   else
   begin
+    emufp8CheckBox.Checked := False;
+    emufp8CheckBox.Visible := False;
     emufp8CheckBox.Enabled := False;
-    emufp8CheckBox.Checked := False;  // Also uncheck when disabled
+
+    if Assigned(forceFsr4Int8CheckBox) then
+      forceFsr4Int8CheckBox.Visible := True;
   end;
 end;
 
