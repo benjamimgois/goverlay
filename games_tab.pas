@@ -26,6 +26,11 @@ type
     CardIndex: Integer;
   end;
 
+  TPortMapping = record
+    PortName: string;
+    GameName: string;
+  end;
+
   TCoverDownloadThread = class(TThread)
   private
     FAppIDs:   TStringList;
@@ -103,8 +108,126 @@ type
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
 procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
+function NormalizeAppImageName(const AFileName: string): string;
+function ResolveUnofficialPortName(const AGameName: string): string;
 
 implementation
+
+function NormalizeAppImageName(const AFileName: string): string;
+var
+  BaseName: string;
+  i, p: Integer;
+  LowerBase: string;
+begin
+  BaseName := ChangeFileExt(AFileName, ''); // Strip extension (e.g. .appimage)
+  LowerBase := LowerCase(BaseName);
+  
+  // Find common architecture/platform suffixes
+  p := Pos('-linux', LowerBase);
+  if p > 0 then BaseName := Copy(BaseName, 1, p - 1);
+  
+  LowerBase := LowerCase(BaseName);
+  p := Pos('_linux', LowerBase);
+  if p > 0 then BaseName := Copy(BaseName, 1, p - 1);
+
+  LowerBase := LowerCase(BaseName);
+  p := Pos('-x86_64', LowerBase);
+  if p > 0 then BaseName := Copy(BaseName, 1, p - 1);
+  
+  LowerBase := LowerCase(BaseName);
+  p := Pos('_x86_64', LowerBase);
+  if p > 0 then BaseName := Copy(BaseName, 1, p - 1);
+
+  LowerBase := LowerCase(BaseName);
+  p := Pos('-x64', LowerBase);
+  if p > 0 then BaseName := Copy(BaseName, 1, p - 1);
+
+  // Strip trailing version suffixes like -v1.4.1 or -1.4.1
+  LowerBase := LowerCase(BaseName);
+  for i := Length(LowerBase) downto 2 do
+  begin
+    if (LowerBase[i] in ['0'..'9']) and (LowerBase[i-1] = '.') then
+      Continue;
+    if (LowerBase[i] = '.') and (LowerBase[i-1] in ['0'..'9']) then
+      Continue;
+    if (LowerBase[i] in ['0'..'9']) and (LowerBase[i-1] = 'v') and (i >= 3) and (LowerBase[i-2] in ['-', '_']) then
+    begin
+      BaseName := Copy(BaseName, 1, i - 3);
+      Break;
+    end;
+    if (LowerBase[i] in ['0'..'9']) and (LowerBase[i-1] in ['-', '_']) then
+    begin
+      BaseName := Copy(BaseName, 1, i - 2);
+      Break;
+    end;
+  end;
+  
+  Result := Trim(BaseName);
+  if Result = '' then
+    Result := ChangeFileExt(AFileName, ''); // Fallback to raw filename without extension if empty
+end;
+
+const
+  STATIC_PORT_MAPPINGS: array[0..38] of TPortMapping = (
+    (PortName: 'zelda3'; GameName: 'The Legend of Zelda: A Link to the Past'),
+    (PortName: 'ship of harkinian'; GameName: 'The Legend of Zelda: Ocarina of Time'),
+    (PortName: '2 ship 2 harkinian'; GameName: 'The Legend of Zelda: Majora''s Mask'),
+    (PortName: 'zelda64recomp'; GameName: 'The Legend of Zelda: Ocarina of Time'),
+    (PortName: 'dusklight'; GameName: 'The Legend of Zelda: Twilight Princess'),
+    (PortName: 'courage reborn'; GameName: 'The Legend of Zelda: Twilight Princess'),
+    (PortName: 'smw'; GameName: 'Super Mario World'),
+    (PortName: 'sm'; GameName: 'Super Metroid'),
+    (PortName: 'mariokart64recomp'; GameName: 'Mario Kart 64'),
+    (PortName: 'perfect_dark'; GameName: 'Perfect Dark'),
+    (PortName: 'opengoal'; GameName: 'Jak and Daxter'),
+    (PortName: 'spacecadetpinball'; GameName: '3D Pinball for Windows - Space Cadet'),
+    (PortName: 'cannonball'; GameName: 'Outrun'),
+    (PortName: 'dethrace'; GameName: 'Carmageddon'),
+    (PortName: 'openmw'; GameName: 'The Elder Scrolls III: Morrowind'),
+    (PortName: 'openrct2'; GameName: 'RollerCoaster Tycoon 2'),
+    (PortName: 'daggerfall-unity'; GameName: 'The Elder Scrolls II: Daggerfall'),
+    (PortName: 'sa2'; GameName: 'Sonic Advance 2'),
+    (PortName: 'tmc'; GameName: 'The Legend of Zelda: The Minish Cap'),
+    (PortName: 'forest'; GameName: 'Animal Crossing'),
+    (PortName: 'pokeplatinum'; GameName: 'Pokémon Platinum'),
+    (PortName: 'metaforce'; GameName: 'Metroid Prime'),
+    (PortName: 'psydoom'; GameName: 'Doom'),
+    (PortName: 'pt for pc'; GameName: 'PT'),
+    (PortName: 'rec98'; GameName: 'Touhou 1 - The Highly Responsive to Prayers'),
+    (PortName: 'rsdkv5-decompilation'; GameName: 'Sonic Mania'),
+    (PortName: 'sonic 3: angel island revisited'; GameName: 'Sonic 3 & Knuckles'),
+    (PortName: 'wipeout phantom edition'; GameName: 'Wipeout'),
+    (PortName: 'wipeout rewrite'; GameName: 'Wipeout'),
+    (PortName: 'star fox 64 recomp'; GameName: 'Star Fox 64'),
+    (PortName: 'superman 64 recomp'; GameName: 'Superman: The New Superman Adventures'),
+    (PortName: 'dk64 recompiled'; GameName: 'Donkey Kong 64'),
+    (PortName: 'banjorecomp'; GameName: 'Banjo-Kazooie'),
+    (PortName: 'lighthouse'; GameName: 'Banjo-Kazooie'),
+    (PortName: 'fable2recomp'; GameName: 'Fable 2'),
+    (PortName: 'openmbu'; GameName: 'Marble Blast Ultra'),
+    (PortName: 'openmbg'; GameName: 'Marble Blast Gold'),
+    (PortName: 'openmohaa'; GameName: 'Medal of Honor: Allied Assault'),
+    (PortName: 'aleph one'; GameName: 'Marathon')
+  );
+
+function ResolveUnofficialPortName(const AGameName: string): string;
+var
+  LowerName: string;
+  i: Integer;
+begin
+  Result := AGameName;
+  LowerName := Trim(LowerCase(AGameName));
+  if LowerName = '' then Exit;
+  
+  for i := Low(STATIC_PORT_MAPPINGS) to High(STATIC_PORT_MAPPINGS) do
+  begin
+    if STATIC_PORT_MAPPINGS[i].PortName = LowerName then
+    begin
+      Result := STATIC_PORT_MAPPINGS[i].GameName;
+      Exit;
+    end;
+  end;
+end;
 
 constructor TGamesTabHelper.Create(AForm: Tgoverlayform);
 begin
@@ -506,6 +629,7 @@ var
   i: Integer;
   AppId: string;
   GotCover, IsFallbackCover: Boolean;
+  SearchName: string;
 begin
   for i := 0 to High(FItems) do
   begin
@@ -525,10 +649,11 @@ begin
 
     GotCover := False;
     IsFallbackCover := False;
+    SearchName := ResolveUnofficialPortName(FItems[i].GameName);
 
     // 1st attempt: Steam Store API
     if Assigned(FForm) and not FForm.FClosing then
-      if FForm.SearchSteamStoreGame(FItems[i].GameName, AppId) then
+      if FForm.SearchSteamStoreGame(SearchName, AppId) then
         if FForm.DownloadSteamCover(AppId, FItems[i].CachePath) then
         begin
           GotCover := True;
@@ -537,7 +662,7 @@ begin
 
     // 2nd attempt: Web image search
     if not GotCover and Assigned(FForm) and not FForm.FClosing then
-      if FForm.SearchWebCover(FItems[i].GameName, FItems[i].CachePath) then
+      if FForm.SearchWebCover(SearchName, FItems[i].CachePath) then
       begin
         GotCover := True;
         DeleteFile(FItems[i].CachePath + '.fallback');
@@ -1232,6 +1357,7 @@ var
   ShouldSkip: Boolean;
   CacheDir, CachePath: string;
   HasCover: Boolean;
+  IsAppImage: Boolean;
   PendingItems: array of TNonSteamCoverItem;
   PendingCount: Integer;
 const
@@ -1258,13 +1384,21 @@ begin
       if (FolderPath = '') or not DirectoryExists(FolderPath) then
         Continue;
 
-      // Scan sub-folders inside the selected directory — each one is a game
-      if FindFirst(IncludeTrailingPathDelimiter(FolderPath) + '*', faDirectory, SubSR) = 0 then
+      // Scan sub-folders inside the selected directory — each one is a game (directories or .appimage files)
+      if FindFirst(IncludeTrailingPathDelimiter(FolderPath) + '*', faAnyFile, SubSR) = 0 then
       begin
         try
           repeat
             if (SubSR.Name = '.') or (SubSR.Name = '..') then Continue;
-            if (SubSR.Attr and faDirectory) = 0 then Continue;
+            
+            IsAppImage := False;
+            if (SubSR.Attr and faDirectory) = 0 then
+            begin
+              if SameText(ExtractFileExt(SubSR.Name), '.appimage') then
+                IsAppImage := True
+              else
+                Continue;
+            end;
 
             LowerSubName := LowerCase(SubSR.Name);
             // Skip known non-game directories
@@ -1278,7 +1412,10 @@ begin
             if ShouldSkip then Continue;
 
             SubPath := IncludeTrailingPathDelimiter(FolderPath) + SubSR.Name;
-            GameName := SubSR.Name;
+            if IsAppImage then
+              GameName := NormalizeAppImageName(SubSR.Name)
+            else
+              GameName := SubSR.Name;
             if GameName = '' then Continue;
 
       CardX := ARowMargin + (ACardIndex mod ACardsPerRow) * (CARD_W + ARowMargin);
@@ -1439,6 +1576,20 @@ begin
                 HasCover := True;
               except
                 HasCover := False;
+              end;
+            end;
+
+            if IsAppImage and not HasCover then
+            begin
+              GenerateFallbackCover(CachePath, FForm);
+              if FileExists(CachePath) and (FileSize(CachePath) > 0) then
+              begin
+                try
+                  CardImage.Picture.LoadFromFile(CachePath);
+                  HasCover := True;
+                except
+                  HasCover := False;
+                end;
               end;
             end;
 
@@ -1814,7 +1965,11 @@ begin
       if (p > 3) and (p < 15) then
       begin
         TryName := Trim(Copy(CleanName, 1, p - 1));
-        if (TryName <> '') and (Names.IndexOf(TryName) < 0) then
+        if (TryName <> '') and
+           (not SameText(TryName, 'the')) and
+           (not SameText(TryName, 'a')) and
+           (not SameText(TryName, 'an')) and
+           (Names.IndexOf(TryName) < 0) then
           Names.Add(TryName);
       end;
     end;
