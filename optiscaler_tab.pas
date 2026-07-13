@@ -387,15 +387,15 @@ begin
     forceFsr4Int8CheckBox.Left := 134;
     forceFsr4Int8CheckBox.Parent  := FOsOptiSec;
 
-    osversionLabel.AnchorSideLeft.Control   := nil; osversionLabel.AnchorSideTop.Control    := nil;
-    osversionLabel.AnchorSideRight.Control  := nil; osversionLabel.AnchorSideBottom.Control := nil;
-    osversionLabel.Anchors := [akLeft, akTop]; osversionLabel.Top := 190;
-    osversionLabel.Parent  := FOsOptiSec;
+    preferredUpscalerLabel.AnchorSideLeft.Control   := nil; preferredUpscalerLabel.AnchorSideTop.Control    := nil;
+    preferredUpscalerLabel.AnchorSideRight.Control  := nil; preferredUpscalerLabel.AnchorSideBottom.Control := nil;
+    preferredUpscalerLabel.Anchors := [akLeft, akTop]; preferredUpscalerLabel.Top := 190;
+    preferredUpscalerLabel.Parent  := FOsOptiSec;
 
-    protontricksManagerButton.AnchorSideLeft.Control   := nil; protontricksManagerButton.AnchorSideTop.Control    := nil;
-    protontricksManagerButton.AnchorSideRight.Control  := nil; protontricksManagerButton.AnchorSideBottom.Control := nil;
-    protontricksManagerButton.Anchors := [akLeft, akTop]; protontricksManagerButton.Top := 211;
-    protontricksManagerButton.Parent  := FOsOptiSec;
+    preferredUpscalerComboBox.AnchorSideLeft.Control   := nil; preferredUpscalerComboBox.AnchorSideTop.Control    := nil;
+    preferredUpscalerComboBox.AnchorSideRight.Control  := nil; preferredUpscalerComboBox.AnchorSideBottom.Control := nil;
+    preferredUpscalerComboBox.Anchors := [akLeft, akTop]; preferredUpscalerComboBox.Top := 211;
+    preferredUpscalerComboBox.Parent  := FOsOptiSec;
 
     optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
     optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
@@ -510,7 +510,8 @@ begin
     DarkCheck(optipatcherCheckBox);
     DarkLbl(fsrversionLabel,  PURPLE); fsrversionLabel.Transparent := True;
     DarkCombo(fsrversionComboBox);
-    DarkLbl(osversionLabel,   GRAY); osversionLabel.Transparent := True;
+    DarkLbl(preferredUpscalerLabel,   GRAY); preferredUpscalerLabel.Transparent := True;
+    DarkCombo(preferredUpscalerComboBox);
     DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
     // In-Game Menu section
     DarkLbl(menuLabel,           PURPLE);
@@ -802,6 +803,7 @@ var
   Settings: TOptiScalerSettings;
   SavedFsrOnChange: TNotifyEvent;
   SavedOptOnChange: TNotifyEvent;
+  SavedPreferredUpscalerOnChange: TNotifyEvent;
 begin
   with FForm do
   begin
@@ -811,8 +813,10 @@ begin
     // Temporarily disable OnChange handlers to prevent event trigger loops and threads during load
     SavedFsrOnChange := fsrversionComboBox.OnChange;
     SavedOptOnChange := optversionComboBox.OnChange;
+    SavedPreferredUpscalerOnChange := preferredUpscalerComboBox.OnChange;
     fsrversionComboBox.OnChange := nil;
     optversionComboBox.OnChange := nil;
+    preferredUpscalerComboBox.OnChange := nil;
     try
       filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
       emufp8CheckBox.Checked := Settings.EmuFp8Checked;
@@ -839,6 +843,7 @@ begin
       latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
 
       tracelogCheckBox.Checked := Settings.TraceLogChecked;
+      preferredUpscalerComboBox.ItemIndex := Settings.PreferredUpscalerItemIndex;
 
       if Settings.OptVersionItemIndex in [0, 1] then
         optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
@@ -848,6 +853,7 @@ begin
       // Restore OnChange handlers
       fsrversionComboBox.OnChange := SavedFsrOnChange;
       optversionComboBox.OnChange := SavedOptOnChange;
+      preferredUpscalerComboBox.OnChange := SavedPreferredUpscalerOnChange;
     end;
 
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
@@ -881,6 +887,7 @@ begin
     Settings.ForceLatencyFlexChecked := forcelatencyflexCheckBox.Checked;
     Settings.LatencyFlexItemIndex := latencyflexComboBox.ItemIndex;
     Settings.TraceLogChecked := tracelogCheckBox.Checked;
+    Settings.PreferredUpscalerItemIndex := preferredUpscalerComboBox.ItemIndex;
 
     if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
     begin

@@ -11755,7 +11755,7 @@ object goverlayform: Tgoverlayform
             end
             object optipatcherCheckBox: TCheckBox
               AnchorSideLeft.Control = emufp8CheckBox
-              AnchorSideTop.Control = protontricksManagerButton
+              AnchorSideTop.Control = preferredUpscalerComboBox
               AnchorSideTop.Side = asrCenter
               AnchorSideRight.Control = optiscalerGroupBox
               AnchorSideRight.Side = asrBottom
@@ -11792,27 +11792,7 @@ object goverlayform: Tgoverlayform
               ParentFont = False
               OnClick = patcherlistLabelClick
             end
-            object protontricksManagerButton: TBitBtn
-              AnchorSideLeft.Control = fsrversionComboBox
-              AnchorSideTop.Control = osversionLabel
-              AnchorSideTop.Side = asrBottom
-              Left = 10
-              Height = 32
-              Hint = 'Change the Windows version in the game wine prefix'
-              Top = 179
-              Width = 109
-              BorderSpacing.Top = 2
-              Caption = 'Wine Prefix'
-              Font.Height = 12
-              Font.Name = 'Noto Sans'
-              Font.Quality = fqAntialiased
-              Images = iconsImageList
-              ImageIndex = 37
-              ParentFont = False
-              TabOrder = 5
-              OnClick = protontricksManagerButtonClick
-            end
-            object osversionLabel: TLabel
+            object preferredUpscalerLabel: TLabel
               AnchorSideLeft.Control = filenameLabel
               AnchorSideTop.Control = fsrversionComboBox
               AnchorSideTop.Side = asrBottom
@@ -11822,10 +11802,38 @@ object goverlayform: Tgoverlayform
               Left = 10
               Height = 18
               Top = 159
-              Width = 66
+              Width = 105
               BorderSpacing.Top = 20
               BorderSpacing.Right = 85
-              Caption = 'OS version'
+              Caption = 'Preferred upscaler'
+            end
+            object preferredUpscalerComboBox: TComboBox
+              AnchorSideLeft.Control = preferredUpscalerLabel
+              AnchorSideTop.Control = preferredUpscalerLabel
+              AnchorSideTop.Side = asrBottom
+              Left = 10
+              Height = 32
+              Top = 179
+              Width = 109
+              BorderSpacing.Top = 2
+              Font.Height = -13
+              Font.Name = 'Noto Sans'
+              Font.Quality = fqAntialiased
+              ItemHeight = 25
+              Items.Strings = (
+                'auto'
+                'xess'
+                'fsr21'
+                'fsr22'
+                'fsr4'
+                'dlss'
+              )
+              ParentColor = True
+              ParentFont = False
+              ReadOnly = True
+              Style = csDropDownList
+              TabOrder = 5
+              OnChange = preferredUpscalerComboBoxChange
             end
           end
           object fakenvapiGroupBox: TGroupBox

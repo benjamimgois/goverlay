@@ -339,10 +339,18 @@ begin
   FForm.FDepsMenuItem.OnClick := @FForm.ShowHomeTab;
   FForm.settingsMenu.Items.Insert(0, FForm.FDepsMenuItem);
 
-  // Separator after deps item
+  // Wine Prefix menu item directly below Status
+  FForm.FWinePrefixMenuItem := TMenuItem.Create(FForm.settingsMenu);
+  FForm.FWinePrefixMenuItem.Caption := 'Wine Prefix';
+  FForm.FWinePrefixMenuItem.ImageIndex := 37;
+  FForm.FWinePrefixMenuItem.Enabled := True;
+  FForm.FWinePrefixMenuItem.OnClick := @FForm.protontricksManagerButtonClick;
+  FForm.settingsMenu.Items.Insert(1, FForm.FWinePrefixMenuItem);
+
+  // Separator after Wine Prefix item
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(1, Sep);
+  FForm.settingsMenu.Items.Insert(2, Sep);
 
   // Auto-launch cube toggle
   FForm.FCubeAutoLaunchItem := TMenuItem.Create(FForm.settingsMenu);
@@ -350,11 +358,11 @@ begin
   FForm.FCubeAutoLaunchItem.ImageIndex := 4;
   FForm.FCubeAutoLaunchItem.Checked := FForm.FCubeAutoLaunch;
   FForm.FCubeAutoLaunchItem.OnClick := @FForm.CubeAutoLaunchMenuItemClick;
-  FForm.settingsMenu.Items.Insert(2, FForm.FCubeAutoLaunchItem);
+  FForm.settingsMenu.Items.Insert(3, FForm.FCubeAutoLaunchItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(4, Sep);
+  FForm.settingsMenu.Items.Insert(5, Sep);
 
   // Video tutorial — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);

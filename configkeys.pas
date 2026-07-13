@@ -115,6 +115,9 @@ const
   OPTI_KEY_DXGI                = 'Dxgi=';
   OPTI_KEY_LOAD_ASI            = 'LoadAsiPlugins=';
   OPTI_KEY_FSR4_UPDATE         = 'Fsr4Update=';
+  OPTI_KEY_DX11_UPSCALER       = 'Dx11Upscaler=';
+  OPTI_KEY_DX12_UPSCALER       = 'Dx12Upscaler=';
+  OPTI_KEY_VULKAN_UPSCALER     = 'VulkanUpscaler=';
 
   FAKE_KEY_FORCE_REFLEX        = 'force_reflex=';
   FAKE_KEY_FORCE_LATENCY       = 'force_latencyflex=';

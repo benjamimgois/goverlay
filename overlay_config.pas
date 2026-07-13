@@ -54,6 +54,7 @@ type
     LatencyFlexItemIndex: Integer;
     TraceLogChecked: Boolean;
     ForceFsr4Int8Checked: Boolean;
+    PreferredUpscalerItemIndex: Integer;
   end;
 
   TMangoHudSettings = record
@@ -513,6 +514,7 @@ var
   DxgiValue: string;
   LoadAsiPluginsValue: string;
   Fsr4UpdateValue: string;
+  PreferredUpscalerValue: string;
   FakeNvapiIniPath: string;
   FakeCfg: TConfigFile;
   ForceReflexValue: string;
@@ -632,6 +634,17 @@ begin
   else
     LoadAsiPluginsValue := 'auto';
 
+  case Settings.PreferredUpscalerItemIndex of
+    0: PreferredUpscalerValue := 'auto';
+    1: PreferredUpscalerValue := 'xess';
+    2: PreferredUpscalerValue := 'fsr21';
+    3: PreferredUpscalerValue := 'fsr22';
+    4: PreferredUpscalerValue := 'fsr31';
+    5: PreferredUpscalerValue := 'dlss';
+  else
+    PreferredUpscalerValue := 'auto';
+  end;
+
   // Update OptiScaler.ini using TConfigFile wrapper
   OptiCfg := TConfigFile.Create;
   try
@@ -643,6 +656,9 @@ begin
       OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
       OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
       OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
+      OptiCfg.SetValue(OPTI_KEY_DX11_UPSCALER, PreferredUpscalerValue);
+      OptiCfg.SetValue(OPTI_KEY_DX12_UPSCALER, PreferredUpscalerValue);
+      OptiCfg.SetValue(OPTI_KEY_VULKAN_UPSCALER, PreferredUpscalerValue);
       if Settings.FsrversionItemIndex = 0 then
         OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
       else
@@ -1149,6 +1165,27 @@ begin
           Settings.FsrversionItemIndex := 0;
 
         Settings.SpoofChecked := SameText(OptiCfg.GetValue(OPTI_KEY_DXGI, ''), 'auto');
+
+        Value := OptiCfg.GetValue(OPTI_KEY_DX12_UPSCALER, '');
+        if Value = '' then
+          Value := OptiCfg.GetValue(OPTI_KEY_DX11_UPSCALER, '');
+        if Value = '' then
+          Value := OptiCfg.GetValue(OPTI_KEY_VULKAN_UPSCALER, '');
+
+        if SameText(Value, 'auto') or (Value = '') then
+          Settings.PreferredUpscalerItemIndex := 0
+        else if SameText(Value, 'xess') then
+          Settings.PreferredUpscalerItemIndex := 1
+        else if SameText(Value, 'fsr21') then
+          Settings.PreferredUpscalerItemIndex := 2
+        else if SameText(Value, 'fsr22') then
+          Settings.PreferredUpscalerItemIndex := 3
+        else if SameText(Value, 'fsr31') then
+          Settings.PreferredUpscalerItemIndex := 4
+        else if SameText(Value, 'dlss') then
+          Settings.PreferredUpscalerItemIndex := 5
+        else
+          Settings.PreferredUpscalerItemIndex := 0;
 
         Value := OptiCfg.GetValue('Fsr4ForceEnableInt8=', '');
         if Value <> '' then

@@ -74,10 +74,10 @@ type
     acteffectsListBox: TListBox;
     activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
-    osversionLabel: TLabel;
+    preferredUpscalerLabel: TLabel;
+    preferredUpscalerComboBox: TComboBox;
     offsetySpinEdit: TSpinEdit;
     patcherlistLabel: TLabel;
-    protontricksManagerButton: TBitBtn;
     optipatcherLabel: TLabel;
     optipatcherLabel1: TLabel;
     saveasMenuItem: TMenuItem;
@@ -521,6 +521,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure fsrversionComboBoxChange(Sender: TObject);
+    procedure preferredUpscalerComboBoxChange(Sender: TObject);
     procedure gputempCheckBoxChange(Sender: TObject);
     procedure cputempCheckBoxChange(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
@@ -1138,9 +1139,10 @@ type
     FNavAnimTarget:  Integer;            // animation target width
     FNavAnimCurrent: Integer;            // animation current width (fixed-point *10)
 
-    // Settings button (bottom of sidebar)
+     // Settings button (bottom of sidebar)
     FSettingsIconLbl: TLabel;
     FDepsMenuItem:       TMenuItem;  // dependency status item inside settingsMenu
+    FWinePrefixMenuItem: TMenuItem;  // Wine Prefix menu item inside settingsMenu
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
@@ -2928,8 +2930,11 @@ begin
   // Disable Protontricks button in Flatpak (requires permissions not approved by Flathub)
   if IsRunningInFlatpak then
   begin
-    protontricksManagerButton.Enabled := False;
-    protontricksManagerButton.Hint := 'Protontricks integration is not available in the Flatpak version.';
+    if Assigned(FWinePrefixMenuItem) then
+    begin
+      FWinePrefixMenuItem.Enabled := False;
+      FWinePrefixMenuItem.Hint := 'Protontricks integration is not available in the Flatpak version.';
+    end;
   end;
 
   // Global Enable button and label are hidden — FGMOD is always used
@@ -5041,6 +5046,11 @@ begin
     if Assigned(forceFsr4Int8CheckBox) then
       forceFsr4Int8CheckBox.Visible := True;
   end;
+end;
+
+procedure Tgoverlayform.preferredUpscalerComboBoxChange(Sender: TObject);
+begin
+  // No-op, values are saved when the global save button is clicked
 end;
 
 procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);
