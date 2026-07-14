@@ -11821,12 +11821,12 @@ object goverlayform: Tgoverlayform
               Font.Quality = fqAntialiased
               ItemHeight = 25
               Items.Strings = (
-                'auto'
-                'xess'
-                'fsr21'
-                'fsr22'
-                'fsr4'
-                'dlss'
+                'AUTO'
+                'XESS'
+                'FSR21'
+                'FSR22'
+                'FSR4'
+                'DLSS'
               )
               ParentColor = True
               ParentFont = False
