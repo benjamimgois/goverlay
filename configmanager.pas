@@ -307,21 +307,14 @@ end;
 
 class function TConfigManager.GetHostConfigDir: string;
 begin
-  if GetEnvironmentVariable('FLATPAK_ID') <> '' then
-  begin
+  // When running inside Flatpak, HOST_XDG_CONFIG_HOME points to the real
+  // host config directory so we can read/write configs that are visible to
+  // native (non-Flatpak) applications.
+  Result := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  if Result = '' then
+    Result := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if Result = '' then
     Result := GetUserDir + '.config';
-  end
-  else
-  begin
-    // When running inside Flatpak, HOST_XDG_CONFIG_HOME points to the real
-    // host config directory so we can read/write configs that are visible to
-    // native (non-Flatpak) applications.
-    Result := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-    if Result = '' then
-      Result := GetEnvironmentVariable('XDG_CONFIG_HOME');
-    if Result = '' then
-      Result := GetUserDir + '.config';
-  end;
 end;
 
 class function TConfigManager.GetHostDataDir: string;

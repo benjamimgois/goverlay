@@ -48,18 +48,11 @@ function GetMangoHudConfigDir(): String;
 var
   ConfigHome: String;
 begin
-  if IsRunningInFlatpak then
-  begin
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  if ConfigHome = '' then
+    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  if ConfigHome = '' then
     ConfigHome := GetUserDir + '.config';
-  end
-  else
-  begin
-    ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-    if ConfigHome = '' then
-      ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-    if ConfigHome = '' then
-      ConfigHome := GetUserDir + '.config';
-  end;
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'MangoHud';
 end;
 
@@ -67,16 +60,11 @@ function GetVkBasaltConfigDir(): String;
 var
   ConfigHome: String;
 begin
-  if IsRunningInFlatpak then
-  begin
-    ConfigHome := GetUserDir + '.config';
-  end
-  else
-  begin
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  if ConfigHome = '' then
     ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-    if ConfigHome = '' then
-      ConfigHome := GetUserDir + '.config';
-  end;
+  if ConfigHome = '' then
+    ConfigHome := GetUserDir + '.config';
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'vkBasalt';
 end;
 
@@ -85,16 +73,11 @@ function GetVkSumiConfigDir(): String;
 var
   ConfigHome: String;
 begin
-  if IsRunningInFlatpak then
-  begin
-    ConfigHome := GetUserDir + '.config';
-  end
-  else
-  begin
+  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  if ConfigHome = '' then
     ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-    if ConfigHome = '' then
-      ConfigHome := GetUserDir + '.config';
-  end;
+  if ConfigHome = '' then
+    ConfigHome := GetUserDir + '.config';
   Result := IncludeTrailingPathDelimiter(ConfigHome) + 'vkSumi';
 end;
 
