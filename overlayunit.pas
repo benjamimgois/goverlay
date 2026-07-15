@@ -505,6 +505,7 @@ type
     procedure fxaaTrackBarChange(Sender: TObject);
     procedure globalenableMenuItemClick(Sender: TObject);
     procedure gamemodeCheckBoxClick(Sender: TObject);
+    procedure cpupowerCheckBoxClick(Sender: TObject);
     procedure goverlayBitBtnClick(Sender: TObject);
     procedure gpuframesjouleBitBtnClick(Sender: TObject);
     procedure gupdateBitBtnClick(Sender: TObject);
@@ -513,6 +514,7 @@ type
     procedure howtoHeroicClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
     procedure InitializeIntelPowerFixButton;
+    function IsIntelCPU: Boolean;
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
@@ -3052,6 +3054,9 @@ begin
   // Connect GameMode checkbox click event
   gamemodeCheckBox.OnClick := @gamemodeCheckBoxClick;
 
+  // Connect CPU Power checkbox click event
+  cpupowerCheckBox.OnClick := @cpupowerCheckBoxClick;
+
 
 
    // Ensure default configurations are created
@@ -4927,12 +4932,47 @@ begin
     ShowMessage('Could not open video tutorial. Please install a media player.');
 end;
 
+function Tgoverlayform.IsIntelCPU: Boolean;
+var
+  CPUInfo: TStringList;
+  I: Integer;
+  CPUBrand: string;
+begin
+  Result := False;
+  CPUBrand := '';
+  CPUInfo := TStringList.Create;
+  try
+    if FileExists('/proc/cpuinfo') then
+    begin
+      CPUInfo.LoadFromFile('/proc/cpuinfo');
+      for I := 0 to CPUInfo.Count - 1 do
+      begin
+        if Pos('vendor_id', CPUInfo[I]) > 0 then
+        begin
+          CPUBrand := Trim(Copy(CPUInfo[I], Pos(':', CPUInfo[I]) + 1, MaxInt));
+          Break;
+        end;
+      end;
+    end;
+  finally
+    CPUInfo.Free;
+  end;
+  if Pos('GenuineIntel', CPUBrand) > 0 then
+    Result := True;
+end;
+
 procedure Tgoverlayform.InitializeIntelPowerFixButton;
 var
   TargetFile: string;
   FS: TFileStream;
   Readable: Boolean;
 begin
+  if not IsIntelCPU then
+  begin
+    intelpowerfixBitBtn.Visible := False;
+    Exit;
+  end;
+
   TargetFile := '/sys/class/powercap/intel-rapl:0/energy_uj';
   if not FileExists(TargetFile) then
   begin
@@ -6141,6 +6181,31 @@ begin
     if DialogResult = mrNo then
       gamemodeCheckBox.Checked := False;
   end;
+end;
+
+procedure Tgoverlayform.cpupowerCheckBoxClick(Sender: TObject);
+var
+  TargetFile: string;
+  FS: TFileStream;
+  Readable: Boolean;
+begin
+  if not cpupowerCheckBox.Checked then Exit;
+  if not IsIntelCPU then Exit;
+
+  TargetFile := '/sys/class/powercap/intel-rapl:0/energy_uj';
+  if not FileExists(TargetFile) then Exit; // Non-Intel or RAPL not supported
+
+  Readable := False;
+  try
+    FS := TFileStream.Create(TargetFile, fmOpenRead or fmShareDenyNone);
+    FS.Free;
+    Readable := True;
+  except
+    Readable := False;
+  end;
+
+  if not Readable then
+    intelpowerfixBitBtnClick(Sender);
 end;
 
 // ============================================================================
