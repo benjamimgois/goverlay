@@ -512,6 +512,7 @@ type
     procedure howtoSteamClick(Sender: TObject);
     procedure howtoHeroicClick(Sender: TObject);
     procedure intelpowerfixBitBtnClick(Sender: TObject);
+    procedure InitializeIntelPowerFixButton;
     procedure intervalTrackBarChange(Sender: TObject);
     procedure logfolderBitBtnClick(Sender: TObject);
     procedure coreloadtypeBitBtnClick(Sender: TObject);
@@ -3848,6 +3849,9 @@ begin
 
   // Check and display changelog popup after form is loaded and mapped
   Application.QueueAsyncCall(@ShowChangelogAsync, 0);
+
+  // Initialize Intel CPU power monitoring fix button state
+  InitializeIntelPowerFixButton;
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -4923,37 +4927,89 @@ begin
     ShowMessage('Could not open video tutorial. Please install a media player.');
 end;
 
+procedure Tgoverlayform.InitializeIntelPowerFixButton;
+var
+  TargetFile: string;
+  FS: TFileStream;
+  Readable: Boolean;
+begin
+  TargetFile := '/sys/class/powercap/intel-rapl:0/energy_uj';
+  if not FileExists(TargetFile) then
+  begin
+    intelpowerfixBitBtn.Visible := False;
+    Exit;
+  end;
+
+  Readable := False;
+  try
+    FS := TFileStream.Create(TargetFile, fmOpenRead or fmShareDenyNone);
+    FS.Free;
+    Readable := True;
+  except
+    Readable := False;
+  end;
+
+  if Readable then
+    intelpowerfixBitBtn.ImageIndex := 0 // Green/Active
+  else
+    intelpowerfixBitBtn.ImageIndex := 1; // Red/Inactive
+end;
+
 procedure Tgoverlayform.intelpowerfixBitBtnClick(Sender: TObject);
 var
   Response: Integer;
-
+  UdevFile: string;
 begin
-    // Check if running in Flatpak - cannot modify /sys permissions
-    if IsRunningInFlatpak then
+  // Check if running in Flatpak - cannot modify /sys permissions
+  if IsRunningInFlatpak then
+  begin
+    ShowMessage('Intel CPU power monitoring fix is not available in Flatpak.' + LineEnding + LineEnding +
+                'Flatpak applications cannot modify system file permissions in /sys/.' + LineEnding + LineEnding +
+                'This fix must be applied from outside the Flatpak sandbox on the host system.');
+    Exit;
+  end;
+
+  UdevFile := '/etc/udev/rules.d/70-intel-rapl.rules';
+
+  if FileExists(UdevFile) then
+  begin
+    Response := MessageDlg('Intel CPU Power Fix',
+                           'The persistent udev rule fix is currently active.' + LineEnding + LineEnding +
+                           'Do you want to disable and remove it?',
+                           mtConfirmation, [mbYes, mbNo], 0);
+    if Response = mrYes then
     begin
-      ShowMessage('Intel CPU power monitoring fix is not available in Flatpak.' + LineEnding + LineEnding +
-                  'Flatpak applications cannot modify system file permissions in /sys/.' + LineEnding + LineEnding +
-                  'This fix must be applied from outside the Flatpak sandbox on the host system.');
-      Exit;
+      ExecuteShellCommand('pkexec rm -f ' + UdevFile);
+      ShowMessage('Persistent udev rule removed. Please reboot to restore default permissions.');
+      InitializeIntelPowerFixButton;
     end;
+    Exit;
+  end;
 
-    Response := MessageDlg('Due to a known vulnerability in Intel CPUs,  the corresponding energy_uj file has to be readable by corresponding user. Having the file readable may potentially be a security vulnerability persisting until system reboots.', mtConfirmation, [mbYes, mbNo], 0);
+  // Otherwise, the fix is either temporary or inactive
+  Response := MessageDlg('Intel CPU Power Fix',
+                         'Due to a known vulnerability in Intel CPUs, the energy_uj file has to be readable by your user.' + LineEnding +
+                         'Having the file readable may potentially be a security vulnerability.' + LineEnding + LineEnding +
+                         'How would you like to apply the fix?' + LineEnding + LineEnding +
+                         '- Yes: Apply PERMANENTLY (creates persistent udev rule).' + LineEnding +
+                         '- No: Apply TEMPORARILY for this session only (resets on reboot).' + LineEnding +
+                         '- Cancel: Abort changes.',
+                         mtConfirmation, [mbYes, mbNo, mbCancel], 0);
 
-      if Response = mrYes then
-      begin
-      ExecuteShellCommand('pkexec chmod o+r /sys/class/powercap/intel-rapl\:0/energy_uj');
-      //Change button color
-      intelpowerfixBitBtn.ImageIndex:=0;
-      Application.ProcessMessages; // update interface
-      end
-
-      else
-
-      //Show cancel message
-      ShowMessage('Action aborted by user');
-       //Change button color
-      intelpowerfixBitBtn.ImageIndex:=1;
-      Application.ProcessMessages; // update interface
+  if Response = mrYes then
+  begin
+    ExecuteShellCommand('pkexec sh -c "echo ''ACTION==\"add|change\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl*\", RUN+=\"/bin/chmod o+r /sys/%p/energy_uj\"'' > ' + UdevFile + ' && udevadm control --reload-rules && udevadm trigger"');
+    InitializeIntelPowerFixButton;
+  end
+  else if Response = mrNo then
+  begin
+    ExecuteShellCommand('pkexec chmod o+r /sys/class/powercap/intel-rapl:0/energy_uj');
+    InitializeIntelPowerFixButton;
+  end
+  else
+  begin
+    ShowMessage('Action aborted by user');
+  end;
 end;
 
 procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
