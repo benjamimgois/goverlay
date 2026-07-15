@@ -215,11 +215,40 @@ implementation
 function SanitizeFileName(const AName: string): string;
 var
   i: Integer;
+  CharVal: Char;
+  LastWasUnderscore: Boolean;
+  NewLen: Integer;
 begin
   Result := AName;
   for i := 1 to Length(Result) do
-    if Result[i] in ['/', '\', ':', '*', '?', '"', '<', '>', '|', ''''] then
+    if not (Result[i] in ['a'..'z', 'A'..'Z', '0'..'9', '_', '-', ' ', '.', '+', '(', ')', '[', ']']) then
       Result[i] := '_';
+
+  LastWasUnderscore := False;
+  NewLen := 0;
+  for i := 1 to Length(Result) do
+  begin
+    CharVal := Result[i];
+    if CharVal = '_' then
+    begin
+      if not LastWasUnderscore then
+      begin
+        Inc(NewLen);
+        Result[NewLen] := '_';
+        LastWasUnderscore := True;
+      end;
+    end
+    else
+    begin
+      Inc(NewLen);
+      Result[NewLen] := CharVal;
+      LastWasUnderscore := False;
+    end;
+  end;
+  SetLength(Result, NewLen);
+  Result := Trim(Result);
+  if Result = '' then
+    Result := 'game';
 end;
 
 function GetGameConfigDir(const AGameName: string): string;
