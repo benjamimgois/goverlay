@@ -63,6 +63,8 @@ install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	install -D -m=644 data/icons/512x512/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/io.github.benjamimgois.goverlay.png
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/assets
 	cp -r assets/* $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/
+	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-shortcut.py
+	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-launch.sh
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons
 	cp -r data/icons/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod

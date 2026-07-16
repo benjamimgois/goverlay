@@ -360,6 +360,13 @@ begin
   FForm.FCubeAutoLaunchItem.OnClick := @FForm.CubeAutoLaunchMenuItemClick;
   FForm.settingsMenu.Items.Insert(3, FForm.FCubeAutoLaunchItem);
 
+  // Create Steam shortcut
+  FForm.FCreateSteamShortcutItem := TMenuItem.Create(FForm.settingsMenu);
+  FForm.FCreateSteamShortcutItem.Caption := 'Create Steam shortcut';
+  FForm.FCreateSteamShortcutItem.ImageIndex := 3;
+  FForm.FCreateSteamShortcutItem.OnClick := @FForm.CreateSteamShortcutMenuItemClick;
+  FForm.settingsMenu.Items.Insert(4, FForm.FCreateSteamShortcutItem);
+
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
   FForm.settingsMenu.Items.Insert(5, Sep);
@@ -381,11 +388,11 @@ begin
   HeroicItem.OnClick := @FForm.howtoHeroicClick;
   FForm.FHowToMenuItem.Add(HeroicItem);
 
-  FForm.settingsMenu.Items.Insert(5, FForm.FHowToMenuItem);
+  FForm.settingsMenu.Items.Insert(6, FForm.FHowToMenuItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(6, Sep);
+  FForm.settingsMenu.Items.Insert(7, Sep);
 end;
 
 procedure TSidebarNavHelper.SettingsBtnMouseEnter(Sender: TObject);

@@ -1147,6 +1147,7 @@ type
     FDepsMenuItem:       TMenuItem;  // dependency status item inside settingsMenu
     FWinePrefixMenuItem: TMenuItem;  // Wine Prefix menu item inside settingsMenu
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
+    FCreateSteamShortcutItem: TMenuItem; // settings menu item to create steam shortcut
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
 
@@ -1218,6 +1219,7 @@ type
     procedure SettingsBtnMouseLeave(Sender: TObject);
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
+    procedure CreateSteamShortcutMenuItemClick(Sender: TObject);
      procedure BenchmarkTimerTick(Sender: TObject);
      procedure CopyPasCubeLogs;
      procedure BuildNavToolToggles;
@@ -1491,6 +1493,8 @@ implementation
 
 uses
   xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit;
+
+function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -6275,6 +6279,83 @@ end;
 procedure Tgoverlayform.CubeAutoLaunchMenuItemClick(Sender: TObject);
 begin
   TSidebarNavHelper(FNavHelper).CubeAutoLaunchMenuItemClick(Sender);
+end;
+
+procedure Tgoverlayform.CreateSteamShortcutMenuItemClick(Sender: TObject);
+var
+  ShortcutProc: TProcess;
+  PythonScript: string;
+  IconPath: string;
+  OutputList: TStringList;
+  Msg: string;
+  IsSteamRunning: Boolean;
+begin
+  IsSteamRunning := IsProcessRunningPure('steam');
+  if IsSteamRunning then
+  begin
+    ShowMessage('Steam is currently running. Please close Steam completely (Steam -> Exit) before creating the shortcut, as Steam will overwrite and discard any changes when it exits.');
+    Exit;
+  end;
+
+  PythonScript := GetAppBaseDir + 'assets/goverlay-steam-shortcut.py';
+  if not FileExists(PythonScript) then
+  begin
+    // Check local fallback directory if not installed (e.g. running from compile folder)
+    PythonScript := ExtractFilePath(Application.ExeName) + 'assets/goverlay-steam-shortcut.py';
+  end;
+
+  if not FileExists(PythonScript) then
+  begin
+    // Check local assets directory if running from compile folder without bin subpath
+    PythonScript := ExtractFilePath(Application.ExeName) + 'goverlay-steam-shortcut.py';
+  end;
+
+  if not FileExists(PythonScript) then
+  begin
+    ShowMessage('Steam shortcut helper script not found: ' + PythonScript);
+    Exit;
+  end;
+
+  IconPath := GetAppBaseDir + 'data/icons/512x512/goverlay.png';
+  if not FileExists(IconPath) then
+  begin
+    IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/512x512/goverlay.png';
+  end;
+
+  ShortcutProc := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  try
+    ShortcutProc.Executable := FindDefaultExecutablePath('python3');
+    if ShortcutProc.Executable = '' then
+    begin
+      ShowMessage('python3 is not installed or not in PATH.');
+      Exit;
+    end;
+
+    ShortcutProc.Parameters.Add(PythonScript);
+    ShortcutProc.Parameters.Add('add');
+    ShortcutProc.Parameters.Add(Application.ExeName);
+    if FileExists(IconPath) then
+      ShortcutProc.Parameters.Add(IconPath);
+
+    ShortcutProc.Options := [poUsePipes, poStderrToOutPut];
+    ShortcutProc.Execute;
+    ShortcutProc.WaitOnExit;
+
+    OutputList.LoadFromStream(ShortcutProc.Output);
+    if OutputList.Count > 0 then
+      Msg := OutputList.Text
+    else
+      Msg := 'No output from helper script.';
+
+    if ShortcutProc.ExitStatus = 0 then
+      ShowMessage(Msg)
+    else
+      ShowMessage('Error (Code ' + IntToStr(ShortcutProc.ExitStatus) + '):' + LineEnding + Msg);
+  finally
+    ShortcutProc.Free;
+    OutputList.Free;
+  end;
 end;
 
 procedure Tgoverlayform.BuildNavToolToggles;
