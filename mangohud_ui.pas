@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   StdCtrls, Buttons, Menus, LCLtype, Types, Grids,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls,
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, overlay_utils,
   {$IFDEF LCLqt6}
   qt6,
   {$ELSE}
@@ -41,6 +41,7 @@ type
     procedure ReflowExtrasTab(AContentW: Integer);
     procedure UpdateExtrasCardTheme;
     procedure LoadMangoHudConfig;
+    procedure ResetMangoHudControls;
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
     procedure SaveMangoHudConfig;
@@ -2414,6 +2415,146 @@ begin
                        StrToInt('$' + Copy(HexValue, 5, 2)));
 end;
 
+procedure TMangoHudUiHelper.ResetMangoHudControls;
+var
+  i: Integer;
+  ParentControl: TWinControl;
+begin
+  with FForm do
+  begin
+    // 1. Reset all checkboxes inside MangoHud tabs to False
+    for i := 0 to ComponentCount - 1 do
+    begin
+      if Components[i] is TCheckBox then
+      begin
+        ParentControl := (Components[i] as TCheckBox).Parent;
+        while Assigned(ParentControl) do
+        begin
+          if (ParentControl = presetTabSheet) or
+             (ParentControl = visualTabSheet) or
+             (ParentControl = performanceTabSheet) or
+             (ParentControl = metricsTabSheet) or
+             (ParentControl = extrasTabSheet) then
+          begin
+            (Components[i] as TCheckBox).Checked := False;
+            Break;
+          end;
+          ParentControl := ParentControl.Parent;
+        end;
+      end;
+    end;
+
+    // 2. Reset other specific MangoHud controls
+    hudtitleEdit.Text := '';
+    gpunameEdit.Text := '';
+    cpunameEdit.Text := '';
+    logfolderEdit.Text := GetGOverlayDataDir();
+    if Assigned(FFpsLimitEdit) then
+      FFpsLimitEdit.Text := '0';
+
+    // ComboBoxes
+    fontComboBox.ItemIndex := 0;
+    hudonoffComboBox.ItemIndex := 0;
+    fpslimmetComboBox.ItemIndex := 0;
+    fpslimtoggleComboBox.Text := '';
+    if Assigned(FLimitCaptureBtn) then
+      FLimitCaptureBtn.Caption := '⌨ None';
+    vsyncComboBox.ItemIndex := 0;
+    glvsyncComboBox.ItemIndex := 0;
+    logtoggleComboBox.ItemIndex := 0;
+    networkComboBox.ItemIndex := 0;
+
+    // RadioButtons
+    verticalRadioButton.Checked := True;
+    horizontalRadioButton.Checked := False;
+    squareRadioButton.Checked := False;
+    roundRadioButton.Checked := True;
+    topleftRadioButton.Checked := True;
+    topcenterRadioButton.Checked := False;
+    toprightRadioButton.Checked := False;
+    middleleftRadioButton.Checked := False;
+    middlerightRadioButton.Checked := False;
+    bottomleftRadioButton.Checked := False;
+    bottomcenterRadioButton.Checked := False;
+    bottomrightRadioButton.Checked := False;
+
+    // Trackbars and their labels
+    transpTrackBar.Position := 10;
+    alphavalueLabel.Caption := '1.0';
+    
+    fontsizeTrackBar.Position := 24;
+    fontsizevalueLabel.Caption := '24';
+    
+    afTrackBar.Position := 0;
+    afvalueLabel.Caption := '0';
+    
+    mipmapTrackBar.Position := 0;
+    mipmapvalueLabel.Caption := '0';
+    
+    durationTrackBar.Position := 0;
+    durationvalueLabel.Caption := '0s';
+    
+    delayTrackBar.Position := 0;
+    delayvalueLabel.Caption := '0s';
+    
+    intervalTrackBar.Position := 100;
+    intervalvalueLabel.Caption := '100ms';
+
+    columvalueLabel.Caption := '3';
+    columShape.Visible := True;
+    columShape1.Visible := True;
+    columShape2.Visible := True;
+    columShape3.Visible := False;
+    columShape4.Visible := False;
+    columShape5.Visible := False;
+
+    // Reset default colors to stock / standard GOverlay colors
+    hudbackgroundColorButton.ButtonColor := clBlack;
+    fontColorButton.ButtonColor := clWhite;
+    gpuColorButton.ButtonColor := clWhite;
+    cpuColorButton.ButtonColor := clWhite;
+    vramColorButton.ButtonColor := clWhite;
+    ramColorButton.ButtonColor := clWhite;
+    iordrwColorButton.ButtonColor := clWhite;
+    wineColorButton.ButtonColor := clWhite;
+    engineColorButton.ButtonColor := clWhite;
+    batteryColorButton.ButtonColor := clWhite;
+    mediaColorButton.ButtonColor := clWhite;
+    frametimegraphColorButton.ButtonColor := clWhite;
+
+    fpscolor1ColorButton.ButtonColor := clGreen;
+    fpscolor2ColorButton.ButtonColor := clYellow;
+    fpscolor3ColorButton.ButtonColor := clRed;
+    fpscolor2spinedit.Value := 30;
+    fpscolor3spinedit.Value := 60;
+
+    gpuload1ColorButton.ButtonColor := clWhite;
+    gpuload2ColorButton.ButtonColor := clWhite;
+    gpuload3ColorButton.ButtonColor := clWhite;
+    cpuload1ColorButton.ButtonColor := clWhite;
+    cpuload2ColorButton.ButtonColor := clWhite;
+    cpuload3ColorButton.ButtonColor := clWhite;
+
+    // BitBtns
+    frametimetypeBitBtn.ImageIndex := 8;
+    frametimetypeBitBtn.Caption := 'Curve';
+    coreloadtypeBitBtn.ImageIndex := 6;
+    coreloadtypeBitBtn.Caption := 'Percent';
+    gpuframesjouleBitBtn.Caption := 'Frames / Joule';
+    cpuframesjouleBitBtn.Caption := 'Frames / Joule';
+    fpsavgBitBtn.ImageIndex := 9;
+    fpsavgBitBtn.Caption := '1% low';
+
+    // RadioGroups
+    filterRadioGroup.ItemIndex := 0;
+
+    // SpinEdits
+    offsetSpinedit.Value := 0;
+    offsetxSpinEdit.Value := 0;
+    offsetySpinEdit.Value := 0;
+  end;
+end;
+
 procedure TMangoHudUiHelper.LoadMangoHudConfig;
 var
   ConfigLines: TStringList;
@@ -2423,6 +2564,8 @@ var
 begin
   if not FileExists(MANGOHUDCFGFILE) then
     Exit;
+
+  ResetMangoHudControls;
 
   ConfigLines := TStringList.Create;
   try
