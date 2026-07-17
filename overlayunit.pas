@@ -4188,8 +4188,7 @@ UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
 // Reload config when entering the MangoHud tab (global or game-specific)
-if FActiveGameName <> '' then
-  LoadMangoHudConfig;
+LoadMangoHudConfig;
 // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
 if FActiveGameName <> '' then
 begin
