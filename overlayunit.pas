@@ -1839,12 +1839,8 @@ begin
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
-  // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
-  if FActiveGameName <> '' then
-  begin
-    ApplyToolEnabledState(1, FNavToolEnabled[1]);
-    SetSaveBtnEnabled(FNavToolEnabled[1]);
-  end;
+  ApplyToolEnabledState(1, FNavToolEnabled[1]);
+  SetSaveBtnEnabled(FNavToolEnabled[1]);
 
 end;
 
@@ -3363,6 +3359,8 @@ begin
     // Initialize globalenableMenuItem visibility based on active tab
     UpdateGlobalEnableMenuItemVisibility;
 
+    // Load saved toggle states for global mode on startup
+    LoadGameToggleStates;
 end; // form create
 
 // ---------------------------------------------------------------------------
@@ -4189,12 +4187,8 @@ UpdateGlobalEnableMenuItemVisibility;
 
 // Reload config when entering the MangoHud tab (global or game-specific)
 LoadMangoHudConfig;
-// Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
-if FActiveGameName <> '' then
-begin
   ApplyToolEnabledState(0, FNavToolEnabled[0]);
   SetSaveBtnEnabled(FNavToolEnabled[0]);
-end;
 
 DbgLog('<< mangohudLabelClick END');
 end;

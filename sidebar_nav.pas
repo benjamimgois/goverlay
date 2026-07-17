@@ -550,6 +550,24 @@ begin
       else
         RemoveOptiScalerGameFiles(GameCfgDir);
     end;
+  end
+  else
+  begin
+    SetGameToolEnabled('', Idx, NewEnabled);
+    if not NewEnabled then
+    begin
+      if (Idx = 0) and FileExists(MANGOHUDCFGFILE) then
+        DeleteFile(MANGOHUDCFGFILE)
+      else if (Idx = 1) then
+      begin
+        if FileExists(VKBASALTCFGFILE) then
+          DeleteFile(VKBASALTCFGFILE);
+        if FileExists(VKSUMICFGFILE) then
+          DeleteFile(VKSUMICFGFILE);
+      end
+      else if (Idx = 3) then
+        RemoveTweaksFromGameFGMod(FForm.GetGameConfigDir('') + 'fgmod');
+    end;
   end;
   ApplyToolEnabledState(Idx, NewEnabled);
 end;
@@ -564,7 +582,7 @@ var
   ShouldShow: Boolean;
   BtnLeft, BtnTop, BtnW: Integer;
 begin
-  ShouldShow := FForm.FActiveGameName <> '';
+  ShouldShow := FForm.FNavActive <> 0;
   for i := 0 to 3 do
     if Assigned(FForm.FNavToolBtns[i]) then
     begin
@@ -600,17 +618,19 @@ var
 begin
   if FForm.FActiveGameName = '' then
   begin
-    // Global mode: all tools enabled, hide toggles
+    // Global mode: load toggle states from global bgmod.conf
+    FForm.FNavToolEnabled[0] := GetGameToolEnabled('', 0);
+    FForm.FNavToolEnabled[1] := GetGameToolEnabled('', 1);
+    FForm.FNavToolEnabled[2] := GetGameToolEnabled('', 2);
+    FForm.FNavToolEnabled[3] := GetGameToolEnabled('', 3);
+    
     for i := 0 to 3 do
     begin
-      FForm.FNavToolEnabled[i] := True;
       if Assigned(FForm.FNavToolBtns[i]) then
-      begin
-        FForm.FNavToolBtns[i].Visible    := False;
-        FForm.FNavToolBtns[i].ImageIndex := 1;  // ON
-      end;
-      ApplyToolEnabledState(i, True);
+        FForm.FNavToolBtns[i].ImageIndex := IfThen(FForm.FNavToolEnabled[i], 1, 0);
+      ApplyToolEnabledState(i, FForm.FNavToolEnabled[i]);
     end;
+    ApplyNavWidth(IfThen(FForm.FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED));
     Exit;
   end;
   for i := 0 to 3 do
@@ -631,13 +651,26 @@ const
 var
   ConfigPath: string;
   Ini: TIniFile;
+  DefaultVal: string;
 begin
-  Result := False;
+  if AGameName = '' then
+  begin
+    if AToolIdx = 0 then
+      DefaultVal := IfThen(FileExists(MANGOHUDCFGFILE), '1', '0')
+    else if AToolIdx = 1 then
+      DefaultVal := IfThen(FileExists(VKBASALTCFGFILE), '1', '0')
+    else
+      DefaultVal := '0';
+  end
+  else
+    DefaultVal := '0';
+
+  Result := DefaultVal = '1';
   ConfigPath := FForm.GetGameConfigDir(AGameName) + 'bgmod.conf';
   if not FileExists(ConfigPath) then Exit;
   Ini := TIniFile.Create(ConfigPath);
   try
-    Result := Ini.ReadString('Config', FLAGS[AToolIdx], '0') = '1';
+    Result := Ini.ReadString('Config', FLAGS[AToolIdx], DefaultVal) = '1';
   finally
     Ini.Free;
   end;
@@ -658,10 +691,22 @@ begin
       Ini.WriteString('Config', FLAGS[AToolIdx], '1')
     else
       Ini.WriteString('Config', FLAGS[AToolIdx], '0');
+
+    // Also set ENABLE_VKSUMI if updating vkBasalt
+    if AToolIdx = 1 then
+    begin
+      if AEnabled then
+        Ini.WriteString('Config', 'ENABLE_VKSUMI', '1')
+      else
+        Ini.WriteString('Config', 'ENABLE_VKSUMI', '0');
+    end;
   finally
     Ini.Free;
   end;
 end;
+
+// Removed GetGlobalToolEnabled and SetGlobalToolEnabled
+
 
 procedure TSidebarNavHelper.ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
 begin
@@ -733,22 +778,28 @@ procedure TSidebarNavHelper.RemoveTweaksFromGameFGMod(const AFGModFile: string);
 var
   ConfigPath: string;
   Ini: TIniFile;
-  DSpirvVal: string;
-  DMangoCfgVal: string;
+  EnvKeys: TStringList;
+  Key: string;
+  i: Integer;
 begin
   ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
   if not FileExists(ConfigPath) then Exit;
   Ini := TIniFile.Create(ConfigPath);
+  EnvKeys := TStringList.Create;
   try
     Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '0');
-    DSpirvVal := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '');
-    DMangoCfgVal := Ini.ReadString('Env', 'MANGOHUD_CONFIGFILE', '');
-    Ini.EraseSection('Env');
-    if (Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1') and (DSpirvVal <> '') then
-      Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', DSpirvVal);
-    if (Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0') = '1') and (DMangoCfgVal <> '') then
-      Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', DMangoCfgVal);
+    
+    // Read all keys in [Env] section and write them as '0'
+    Ini.ReadSection('Env', EnvKeys);
+    for i := 0 to EnvKeys.Count - 1 do
+    begin
+      Key := EnvKeys[i];
+      // Keep other tool configs intact, set everything else to '0'
+      if (Key <> 'DXIL_SPIRV_CONFIG') and (Key <> 'MANGOHUD_CONFIGFILE') then
+        Ini.WriteString('Env', Key, '0');
+    end;
   finally
+    EnvKeys.Free;
     Ini.Free;
   end;
 end;
@@ -958,6 +1009,7 @@ begin
     FForm.StartCube
   else
     FForm.StopCube;
+  ApplyNavWidth(IfThen(FForm.FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED));
   DbgLog(Format('  SetNavActive(%d) END', [AIndex]));
 end;
 
