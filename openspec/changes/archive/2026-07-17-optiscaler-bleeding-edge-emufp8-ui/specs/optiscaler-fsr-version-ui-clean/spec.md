@@ -1,15 +1,4 @@
-# Capability: optiscaler-fsr-version-ui-clean
-
-Updates OptiScaler FSR version option label to "Latest" and hides the Emulate FP8 checkbox.
-
-## Requirements
-
-### Requirement: Update FSR version combobox options
-GOverlay SHALL display "Latest" instead of "Latest (FP8)" as the first option in the OptiScaler FSR version combobox (`fsrversionComboBox`).
-
-#### Scenario: User opens OptiScaler tab FSR version dropdown
-- **WHEN** user opens the FSR version dropdown in the OptiScaler tab
-- **THEN** GOverlay displays the options "Latest" and "4.0.2c (INT8)".
+## MODIFIED Requirements
 
 ### Requirement: Hide Emulate FP8 checkbox
 GOverlay SHALL control the visibility and behavior of the "Emulate FP8" checkbox (`emufp8CheckBox`) on the OptiScaler tab. It SHALL only hide `emufp8CheckBox` when the stable channel is active and the FSR version is "4.0.2c (INT8)". When the bleeding-edge channel is active, `emufp8CheckBox` SHALL remain visible and enabled, and its tooltip hint SHALL dynamically change to reflect FSR MLFG activation on RDNA3.
@@ -25,10 +14,3 @@ GOverlay SHALL control the visibility and behavior of the "Emulate FP8" checkbox
 #### Scenario: Bleeding-edge channel active
 - **WHEN** the bleeding-edge channel is active
 - **THEN** the "Emulate FP8" checkbox is visible and enabled, and its hint displays "Used to activate FSR MLFG on RDNA3".
-
-### Requirement: Maintain backwards compatibility for configuration files
-GOverlay SHALL parse both "Latest" and "Latest (FP8)" strings when loading OptiScaler configuration files.
-
-#### Scenario: Loading legacy configuration file
-- **WHEN** GOverlay loads an OptiScaler configuration file containing `fsrversion=Latest (FP8)` or `fsrversion=Latest`
-- **THEN** GOverlay selects index 0 ("Latest") in `fsrversionComboBox`.

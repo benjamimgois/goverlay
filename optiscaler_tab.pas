@@ -383,7 +383,7 @@ begin
     forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
     forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
     forceFsr4Int8CheckBox.Anchors := [akLeft, akTop];
-    forceFsr4Int8CheckBox.Top := 142;
+    forceFsr4Int8CheckBox.Top := 165;
     forceFsr4Int8CheckBox.Left := 134;
     forceFsr4Int8CheckBox.Parent  := FOsOptiSec;
 
