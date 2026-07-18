@@ -532,6 +532,41 @@ begin
   end;
 end;
 
+procedure SyncOptiScalerIni(const AConfigDir, AGameDir: string; APreserveIni: Boolean);
+var
+  ConfigIni, GameIni: string;
+  AgeConfig, AgeGame: TDateTime;
+begin
+  ConfigIni := IncludeTrailingPathDelimiter(AConfigDir) + 'OptiScaler.ini';
+  GameIni := IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.ini';
+
+  if not FileExists(ConfigIni) then Exit;
+
+  if not FileExists(GameIni) then
+  begin
+    Log('OptiScaler.ini not found in game directory. Copying from config...');
+    SafeCopyFile(ConfigIni, GameIni);
+  end
+  else if not APreserveIni then
+  begin
+    Log('PreserveIni is false. Overwriting OptiScaler.ini in game directory...');
+    SafeCopyFile(ConfigIni, GameIni);
+  end
+  else
+  begin
+    if FileAge(ConfigIni, AgeConfig) and FileAge(GameIni, AgeGame) then
+    begin
+      if AgeConfig > AgeGame then
+      begin
+        Log('GOverlay configuration is newer than game directory config. Syncing OptiScaler.ini...');
+        SafeCopyFile(ConfigIni, GameIni);
+      end
+      else
+        Log('Preserved existing OptiScaler.ini (game directory file is up-to-date or modified in-game).');
+    end;
+  end;
+end;
+
 procedure SafeDeleteFile(const Path: string);
 begin
   if not FileExists(Path) then Exit;
@@ -1002,6 +1037,9 @@ begin
            not NeedsGameDirUpdate(IncludeTrailingPathDelimiter(GameDir), ConfigDir) then
         begin
           Log('OptiScaler files in game directory are already up to date, skipping copy.');
+          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni);
+          if FileExists(ConfigDir + 'fakenvapi.ini') then
+            SafeCopyFile(ConfigDir + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
         end
         else
         begin
@@ -1061,10 +1099,7 @@ begin
           end;
           
           // 6. OptiScaler.ini Handling
-          if PreserveIni and FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
-            Log('Preserving existing OptiScaler.ini')
-          else
-            SafeCopyFile(ConfigDir + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni);
             
           // 7. Copy plugins/ folder if it exists
           if DirectoryExists(SourceDir + 'plugins') then
