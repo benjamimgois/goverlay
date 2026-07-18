@@ -339,18 +339,23 @@ begin
   FForm.FDepsMenuItem.OnClick := @FForm.ShowHomeTab;
   FForm.settingsMenu.Items.Insert(0, FForm.FDepsMenuItem);
 
+  // Separator between Status and Wine Prefix
+  Sep := TMenuItem.Create(FForm.settingsMenu);
+  Sep.Caption := '-';
+  FForm.settingsMenu.Items.Insert(1, Sep);
+
   // Wine Prefix menu item directly below Status
   FForm.FWinePrefixMenuItem := TMenuItem.Create(FForm.settingsMenu);
   FForm.FWinePrefixMenuItem.Caption := 'Wine Prefix';
   FForm.FWinePrefixMenuItem.ImageIndex := 37;
   FForm.FWinePrefixMenuItem.Enabled := True;
   FForm.FWinePrefixMenuItem.OnClick := @FForm.protontricksManagerButtonClick;
-  FForm.settingsMenu.Items.Insert(1, FForm.FWinePrefixMenuItem);
+  FForm.settingsMenu.Items.Insert(2, FForm.FWinePrefixMenuItem);
 
   // Separator after Wine Prefix item
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(2, Sep);
+  FForm.settingsMenu.Items.Insert(3, Sep);
 
   // Auto-launch cube toggle
   FForm.FCubeAutoLaunchItem := TMenuItem.Create(FForm.settingsMenu);
@@ -358,18 +363,23 @@ begin
   FForm.FCubeAutoLaunchItem.ImageIndex := 4;
   FForm.FCubeAutoLaunchItem.Checked := FForm.FCubeAutoLaunch;
   FForm.FCubeAutoLaunchItem.OnClick := @FForm.CubeAutoLaunchMenuItemClick;
-  FForm.settingsMenu.Items.Insert(3, FForm.FCubeAutoLaunchItem);
+  FForm.settingsMenu.Items.Insert(4, FForm.FCubeAutoLaunchItem);
+
+  // Separator between Auto launch PasCube and Create Steam shortcut
+  Sep := TMenuItem.Create(FForm.settingsMenu);
+  Sep.Caption := '-';
+  FForm.settingsMenu.Items.Insert(5, Sep);
 
   // Create Steam shortcut
   FForm.FCreateSteamShortcutItem := TMenuItem.Create(FForm.settingsMenu);
   FForm.FCreateSteamShortcutItem.Caption := 'Create Steam shortcut';
   FForm.FCreateSteamShortcutItem.ImageIndex := 3;
   FForm.FCreateSteamShortcutItem.OnClick := @FForm.CreateSteamShortcutMenuItemClick;
-  FForm.settingsMenu.Items.Insert(4, FForm.FCreateSteamShortcutItem);
+  FForm.settingsMenu.Items.Insert(6, FForm.FCreateSteamShortcutItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(5, Sep);
+  FForm.settingsMenu.Items.Insert(7, Sep);
 
   // Video tutorial — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
@@ -388,11 +398,11 @@ begin
   HeroicItem.OnClick := @FForm.howtoHeroicClick;
   FForm.FHowToMenuItem.Add(HeroicItem);
 
-  FForm.settingsMenu.Items.Insert(6, FForm.FHowToMenuItem);
+  FForm.settingsMenu.Items.Insert(8, FForm.FHowToMenuItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(7, Sep);
+  FForm.settingsMenu.Items.Insert(9, Sep);
 end;
 
 procedure TSidebarNavHelper.SettingsBtnMouseEnter(Sender: TObject);
