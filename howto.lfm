@@ -1,7 +1,7 @@
 object howtoForm: ThowtoForm
-  Left = 2170
+  Left = 0
   Height = 690
-  Top = 145
+  Top = 0
   Width = 1000
   BorderStyle = bsNone
   Caption = 'howtoForm'
@@ -11,7 +11,7 @@ object howtoForm: ThowtoForm
   DoubleBuffered = True
   ParentDoubleBuffered = False
   Position = poMainFormCenter
-  LCLVersion = '4.4.0.0'
+  LCLVersion = '4.8.0.0'
   OnCreate = FormCreate
   object howtoPageControl: TPageControl
     AnchorSideLeft.Control = Owner
