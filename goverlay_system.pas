@@ -154,8 +154,7 @@ end;
 
 function GetReleaseNotes(const AVersion: string): string;
 var
-  Process: TProcess;
-  OutputList: TStringList;
+  Params: array of string;
   Response, TagName, BodyText, CleanVer: string;
   JSONData: TJSONData;
   JSONArray: TJSONArray;
@@ -167,89 +166,75 @@ begin
   if (CleanVer <> '') and (CleanVer[1] = 'v') then
     Delete(CleanVer, 1, 1);
 
-  Process := TProcess.Create(nil);
-  OutputList := TStringList.Create;
+  Params := [
+    '-s', '-L',
+    '-H', 'Accept: application/vnd.github.v3+json',
+    '-H', 'User-Agent: Mozilla/5.0',
+    URL_GOVERLAY_API_RELEASES
+  ];
+
   try
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-s');
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('Accept: application/vnd.github.v3+json');
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('User-Agent: Mozilla/5.0');
-      Process.Parameters.Add(URL_GOVERLAY_API_RELEASES);
-      Process.Options := [poWaitOnExit, poUsePipes];
-      Process.Execute;
-
-      OutputList.LoadFromStream(Process.Output);
-      Response := OutputList.Text;
-
-      if (Process.ExitStatus = 0) and (Response <> '') then
-      begin
-        JSONData := GetJSON(Response);
-        try
-          if Assigned(JSONData) and (JSONData is TJSONArray) then
+    if Process.RunCommand('curl', Params, Response) and (Response <> '') then
+    begin
+      JSONData := GetJSON(Response);
+      try
+        if Assigned(JSONData) and (JSONData is TJSONArray) then
+        begin
+          JSONArray := TJSONArray(JSONData);
+          // First pass: try to find an exact match for the given version
+          // that is NOT a prerelease (i.e. an official stable release).
+          for i := 0 to JSONArray.Count - 1 do
           begin
-            JSONArray := TJSONArray(JSONData);
-            // First pass: try to find an exact match for the given version
-            // that is NOT a prerelease (i.e. an official stable release).
-            for i := 0 to JSONArray.Count - 1 do
+            JSONObject := JSONArray.Objects[i];
+            if Assigned(JSONObject) then
             begin
-              JSONObject := JSONArray.Objects[i];
-              if Assigned(JSONObject) then
-              begin
-                TagName := JSONObject.Get('tag_name', '');
-                if (TagName <> '') and (TagName[1] = 'v') then
-                  Delete(TagName, 1, 1);
+              TagName := JSONObject.Get('tag_name', '');
+              if (TagName <> '') and (TagName[1] = 'v') then
+                Delete(TagName, 1, 1);
 
-                if (TagName = CleanVer) and not JSONObject.Get('prerelease', False) then
-                begin
-                  BodyText := JSONObject.Get('body_html', '');
-                  if BodyText = '' then
-                    BodyText := JSONObject.Get('body', '');
-                  if BodyText <> '' then
-                  begin
-                    Result := BodyText;
-                    Break;
-                  end;
-                end;
-              end;
-            end;
-
-            // Second pass: if no match found (e.g. current build is a nightly
-            // with no matching official release), pick the body of the first
-            // non-prerelease release — i.e. the latest official stable release.
-            if Result = '' then
-            begin
-              for i := 0 to JSONArray.Count - 1 do
+              if (TagName = CleanVer) and not JSONObject.Get('prerelease', False) then
               begin
-                JSONObject := JSONArray.Objects[i];
-                if Assigned(JSONObject) and not JSONObject.Get('prerelease', False) then
+                BodyText := JSONObject.Get('body_html', '');
+                if BodyText = '' then
+                  BodyText := JSONObject.Get('body', '');
+                if BodyText <> '' then
                 begin
-                  BodyText := JSONObject.Get('body_html', '');
-                  if BodyText = '' then
-                    BodyText := JSONObject.Get('body', '');
-                  if BodyText <> '' then
-                  begin
-                    Result := BodyText;
-                    Break;
-                  end;
+                  Result := BodyText;
+                  Break;
                 end;
               end;
             end;
           end;
-        finally
-          JSONData.Free;
+
+          // Second pass: if no match found (e.g. current build is a nightly
+          // with no matching official release), pick the body of the first
+          // non-prerelease release — i.e. the latest official stable release.
+          if Result = '' then
+          begin
+            for i := 0 to JSONArray.Count - 1 do
+            begin
+              JSONObject := JSONArray.Objects[i];
+              if Assigned(JSONObject) and not JSONObject.Get('prerelease', False) then
+              begin
+                BodyText := JSONObject.Get('body_html', '');
+                if BodyText = '' then
+                  BodyText := JSONObject.Get('body', '');
+                if BodyText <> '' then
+                begin
+                  Result := BodyText;
+                  Break;
+                end;
+              end;
+            end;
+          end;
         end;
+      finally
+        JSONData.Free;
       end;
-    except
-      on E: Exception do
-        Result := '';
     end;
-  finally
-    OutputList.Free;
-    Process.Free;
+  except
+    on E: Exception do
+      Result := '';
   end;
 
   if Trim(Result) = '' then

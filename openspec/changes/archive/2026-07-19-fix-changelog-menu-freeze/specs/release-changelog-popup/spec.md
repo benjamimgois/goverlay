@@ -1,8 +1,5 @@
-# Capability: release-changelog-popup
+## MODIFIED Requirements
 
-## Purpose
-Displays a release notes popup on the first launch of a new version using GitHub release notes.
-## Requirements
 ### Requirement: First-launch version changelog detection and popup
 GOverlay SHALL check the configured `ChangelogSeenVersion` on startup, and if it differs from the current `GVERSION`, GOverlay SHALL fetch the release notes for the version from GitHub and display them in an asynchronous, frameless popup window with custom navy borders.
 Furthermore, manual requests for the changelog (via the "What's New" menu item) SHALL be executed asynchronously in a background thread and SHALL NOT block the main GUI loop.
@@ -23,4 +20,3 @@ The fetch operation SHALL NOT deadlock or block indefinitely, regardless of the 
 #### Scenario: Fetching release notes with large payloads
 - **WHEN** the GitHub API release notes payload exceeds the default operating system pipe buffer (e.g. 64KB)
 - **THEN** GOverlay SHALL successfully read the entire payload and display the popup without deadlock.
-

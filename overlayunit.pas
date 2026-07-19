@@ -8114,11 +8114,9 @@ begin
 end;
 
 procedure Tgoverlayform.whatsNewMenuItemClick(Sender: TObject);
-var
-  ReleaseNotesText: string;
 begin
-  ReleaseNotesText := GetReleaseNotes(GVERSION);
-  ShowChangelogPopup(GVERSION, ReleaseNotesText);
+  with TChangelogFetchThread.Create(GVERSION) do
+    Start;
 end;
 
 procedure Tgoverlayform.RefreshGameCardsAsync(Data: PtrInt);
