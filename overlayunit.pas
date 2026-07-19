@@ -5124,55 +5124,31 @@ end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
-  // Manage visibility and enabled state of checkboxes based on OptiScaler channel.
+  // Force the FSR Version value to "Latest" (index 0) and hide its label/combobox on all channels.
+  if Assigned(fsrversionComboBox) then
+    fsrversionComboBox.ItemIndex := 0;
+
+  if Assigned(fsrversionLabel) then
+    fsrversionLabel.Visible := False;
+  if Assigned(fsrversionComboBox) then
+    fsrversionComboBox.Visible := False;
+
+  // emufp8CheckBox remains visible and enabled for all channels
+  emufp8CheckBox.Visible := True;
+  emufp8CheckBox.Enabled := True;
+
+  // Update emufp8CheckBox hint based on update channel
   if optversionComboBox.ItemIndex = 0 then
-  begin
-    if Assigned(fsrversionLabel) then
-      fsrversionLabel.Visible := True;
-    if Assigned(fsrversionComboBox) then
-      fsrversionComboBox.Visible := True;
-
-    if Assigned(forceFsr4Int8CheckBox) then
-    begin
-      forceFsr4Int8CheckBox.Visible := False;
-      forceFsr4Int8CheckBox.Left := 134;
-      forceFsr4Int8CheckBox.Top := 165;
-    end;
-    emufp8CheckBox.Visible := True;
-    emufp8CheckBox.Hint := 'Emulate FP8' + LineEnding + 'Emulates FP8 floating point precision';
-
-    // Disable emufp8CheckBox when "4.0.2c (INT8)" is selected (ItemIndex = 1)
-    if fsrversionComboBox.ItemIndex = 0 then
-    begin
-      emufp8CheckBox.Enabled := True;
-    end
-    else
-    begin
-      emufp8CheckBox.Enabled := False;
-      emufp8CheckBox.Checked := False;  // Also uncheck when disabled
-    end;
-  end
+    emufp8CheckBox.Hint := 'Emulate FP8' + LineEnding + 'Emulates FP8 floating point precision'
   else
-  begin
-    if Assigned(fsrversionComboBox) then
-      fsrversionComboBox.ItemIndex := 0; // Adjust to "Latest"
-
-    if Assigned(fsrversionLabel) then
-      fsrversionLabel.Visible := False;
-    if Assigned(fsrversionComboBox) then
-      fsrversionComboBox.Visible := False;
-
-    // For bleeding-edge: emufp8CheckBox remains visible and active, but with a different hint
-    emufp8CheckBox.Visible := True;
-    emufp8CheckBox.Enabled := True;
     emufp8CheckBox.Hint := 'Emulate FP8' + LineEnding + 'Used to activate FSR MLFG on RDNA3';
 
-    if Assigned(forceFsr4Int8CheckBox) then
-    begin
-      forceFsr4Int8CheckBox.Left := fsrversionComboBox.Left;
-      forceFsr4Int8CheckBox.Top := emufp8CheckBox.Top;
-      forceFsr4Int8CheckBox.Visible := True;
-    end;
+  // Position and display forceFsr4Int8CheckBox in place of fsrversionComboBox on all channels
+  if Assigned(forceFsr4Int8CheckBox) then
+  begin
+    forceFsr4Int8CheckBox.Left := fsrversionComboBox.Left;
+    forceFsr4Int8CheckBox.Top := emufp8CheckBox.Top;
+    forceFsr4Int8CheckBox.Visible := True;
   end;
 end;
 
