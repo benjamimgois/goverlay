@@ -12,5 +12,5 @@
 ## 3. Verification & Testing
 
 - [x] 3.1 Verify that the Pascal project builds successfully without syntax or type errors
-- [ ] 3.2 Verify the UI changes in the settings modal and OptiScaler tab
+- [x] 3.2 Verify the UI changes in the settings modal and OptiScaler tab
 - [x] 3.3 Verify writing preferred upscaler values to a mock `OptiScaler.ini` configuration file
