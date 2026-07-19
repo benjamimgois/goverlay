@@ -1,9 +1,5 @@
-# Flatpak Config Paths Support
+## MODIFIED Requirements
 
-## Purpose
-Support resolving global configuration directories for MangoHud, vkBasalt, vkSumi, and GOverlay in Flatpak environment using environment variables.
-
-## Requirements
 ### Requirement: Resolve config paths using environment variables
 The system SHALL use `$HOST_XDG_CONFIG_HOME` or `$XDG_CONFIG_HOME` (in that order) to resolve global configuration directories for MangoHud, vkBasalt, vkSumi, and GOverlay's internal configuration folder (`goverlay/`) when running inside Flatpak. The system SHALL NOT bypass `$XDG_CONFIG_HOME` check or hardcode the target config directory to `~/.config`. The system SHALL only fallback to `~/.config` if those environment variables are not set.
 

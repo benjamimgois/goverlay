@@ -1386,7 +1386,7 @@ begin
   with FForm do
   begin
   PendingCount := 0;
-  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
+  NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
   if not FileExists(NonSteamFile) then Exit;
 
   Lines := TStringList.Create;
@@ -2871,7 +2871,7 @@ var
 begin
   with FForm do
   begin
-  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
+  NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
 
   FolderDlg := TSelectDirectoryDialog.Create(FForm);
   try
@@ -2935,7 +2935,7 @@ begin
                 'Are you sure you want to remove the folder "' + FolderPath + '" from Goverlay?', 
                 mtConfirmation, [mbYes, mbNo], 0) = mrYes then
   begin
-    NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
+    NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
     Lines := TStringList.Create;
     try
       if FileExists(NonSteamFile) then
@@ -2977,7 +2977,7 @@ begin
   else
     FRemoveFoldersMenu.Items.Clear;
 
-  NonSteamFile := GetUserDir + '.config/goverlay/nonsteam_folders.txt';
+  NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
   Lines := TStringList.Create;
   try
     if FileExists(NonSteamFile) then
