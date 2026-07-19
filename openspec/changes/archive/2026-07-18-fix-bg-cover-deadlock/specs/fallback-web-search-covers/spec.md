@@ -1,8 +1,4 @@
-# Capability: fallback-web-search-covers
-
-Ensure cover art is always resolved for Steam games by falling back to Bing web image search, and finally programmatically generating a GOverlay icon cover on a dark background if all else fails.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Fallback to web search when Steam CDN download fails
 When portrait and header cover images fail to download from Steam's CDN for a game in a Steam library, GOverlay SHALL perform a web search fallback using the game's name to find and download a cover image.

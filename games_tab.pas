@@ -40,6 +40,7 @@ type
     FCurrentImage: TImage;
     FCurrentPath:  string;
     procedure DoUpdateImage;
+    procedure DoGenerateFallback;
   protected
     procedure Execute; override;
   public
@@ -56,6 +57,7 @@ type
     FCurrentPath:    string;
     FCurrentIsFallback: Boolean;
     procedure DoUpdateImage;
+    procedure DoGenerateFallback;
   protected
     procedure Execute; override;
   public
@@ -304,6 +306,11 @@ begin
   end;
 end;
 
+procedure TCoverDownloadThread.DoGenerateFallback;
+begin
+  GenerateFallbackCover(FCurrentPath, FForm);
+end;
+
 
 
 procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
@@ -532,7 +539,8 @@ begin
     begin
       WriteLn(StdErr, '[CoverThread] CDN & Web search failed. Generating GOverlay fallback');
       DeleteFile(OutPath);
-      GenerateFallbackCover(OutPath, FForm);
+      FCurrentPath := OutPath;
+      Synchronize(@DoGenerateFallback);
       WriteLn(StdErr, '[CoverThread] Fallback cover exists=', FileExists(OutPath));
     end;
 
@@ -622,6 +630,11 @@ begin
   end;
 end;
 
+procedure TNonSteamCoverThread.DoGenerateFallback;
+begin
+  GenerateFallbackCover(FCurrentPath, FForm);
+end;
+
 
 
 procedure TNonSteamCoverThread.Execute;
@@ -673,7 +686,8 @@ begin
     begin
       WriteLn(StdErr, '[NonSteamCoverThread] CDN & Web search failed. Generating GOverlay fallback');
       DeleteFile(FItems[i].CachePath);
-      GenerateFallbackCover(FItems[i].CachePath, FForm);
+      FCurrentPath := FItems[i].CachePath;
+      Synchronize(@DoGenerateFallback);
       GotCover := True;
       IsFallbackCover := True;
     end;

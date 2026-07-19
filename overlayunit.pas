@@ -68,6 +68,18 @@ const
 
 type
 
+  { TChangelogFetchThread - fetches release notes in background and shows popup }
+  TChangelogFetchThread = class(TThread)
+  private
+    FVersion:      string;
+    FReleaseNotes: string;
+    procedure DoShowChangelog;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(const AVersion: string);
+  end;
+
   { Tgoverlayform }
 
   Tgoverlayform = class(TForm)
@@ -2671,8 +2683,8 @@ begin
   FAutoDownloadingReshade := False;
 
   //Program Version
-  GVERSION := '1.8.7';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.8';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
@@ -8068,10 +8080,32 @@ begin
   end;
 end;
 
+{ TChangelogFetchThread }
+
+constructor TChangelogFetchThread.Create(const AVersion: string);
+begin
+  inherited Create(True);
+  FVersion := AVersion;
+  FReleaseNotes := '';
+  FreeOnTerminate := True;
+end;
+
+procedure TChangelogFetchThread.DoShowChangelog;
+begin
+  ShowChangelogPopup(FVersion, FReleaseNotes);
+end;
+
+procedure TChangelogFetchThread.Execute;
+begin
+  FReleaseNotes := GetReleaseNotes(FVersion);
+  if not Terminated then
+    Synchronize(@DoShowChangelog);
+end;
+
 procedure Tgoverlayform.CheckAndShowChangelog;
 var
   IniFile: TIniFile;
-  ConfigPath, ConfigDir, SeenVer, ReleaseNotesText: string;
+  ConfigPath, ConfigDir, SeenVer: string;
 begin
   try
     ConfigPath := GetConfigFilePath;
@@ -8084,9 +8118,11 @@ begin
       SeenVer := IniFile.ReadString('General', 'ChangelogSeenVersion', '');
       if SeenVer <> GVERSION then
       begin
-        ReleaseNotesText := GetReleaseNotes(GVERSION);
-        ShowChangelogPopup(GVERSION, ReleaseNotesText);
+        // Mark as seen immediately so a crash in the thread won't re-show it
         IniFile.WriteString('General', 'ChangelogSeenVersion', GVERSION);
+        // Fetch release notes and show popup asynchronously (avoids blocking main thread on curl)
+        with TChangelogFetchThread.Create(GVERSION) do
+          Start;
       end;
     finally
       IniFile.Free;
