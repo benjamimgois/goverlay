@@ -32,6 +32,9 @@ function GetFGModOriginalEdgePath: string;
 // Check if OptiScaler is installed in BGMOD directory
 function IsBGModOptiScalerInstalled(const ABGModPath: string): Boolean;
 
+// Resolve the directory where compiled bgmod and bgmod-uninstaller binaries are stored
+function GetBGModBinariesSourceDir: string;
+
 // Migrate FGMOD/BGMOD from old location if needed
 function MigrateBGModToXDG: Boolean;
 
@@ -89,6 +92,41 @@ begin
     Result := BaseDir + 'data' + PathDelim + 'bgmod'
   else
     Result := '';
+end;
+
+function GetBGModBinariesSourceDir: string;
+var
+  BinaryDir, AppDirEnv, Candidate: string;
+begin
+  Result := '';
+  BinaryDir := ExtractFilePath(ParamStr(0));
+
+  // Candidate 1: Executable directory (default /usr/libexec/goverlay/ or development folder)
+  if FileExists(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod') then
+  begin
+    Result := BinaryDir;
+    Exit;
+  end;
+
+  // Candidate 2: Relative lib/ directory (ExtractFilePath(ExcludeTrailingPathDelimiter(BinaryDir)) + 'lib')
+  Candidate := IncludeTrailingPathDelimiter(ExtractFilePath(ExcludeTrailingPathDelimiter(BinaryDir))) + 'lib';
+  if FileExists(IncludeTrailingPathDelimiter(Candidate) + 'bgmod') then
+  begin
+    Result := Candidate;
+    Exit;
+  end;
+
+  // Candidate 3: Environment variable APPDIR (for AppImage compatibility)
+  AppDirEnv := GetEnvironmentVariable('APPDIR');
+  if AppDirEnv <> '' then
+  begin
+    Candidate := IncludeTrailingPathDelimiter(AppDirEnv) + 'lib';
+    if FileExists(IncludeTrailingPathDelimiter(Candidate) + 'bgmod') then
+    begin
+      Result := Candidate;
+      Exit;
+    end;
+  end;
 end;
 
 // Get the correct bgmod installation path based on environment
@@ -302,20 +340,25 @@ begin
   end;
 
   // Copy architecture-dependent binaries from GOverlay's executable directory (libexec/goverlay/)
-  BinaryDir := ExtractFilePath(ParamStr(0));
-  Proc := TProcess.Create(nil);
-  try
-    Proc.Executable := 'sh';
-    Proc.Parameters.Add('-c');
-    Proc.Parameters.Add('cp -f --no-preserve=mode ' +
-                        QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod') + ' ' +
-                        QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod-uninstaller') + ' ' +
-                        QuotedStr(BGModPath) + '/ 2>/dev/null');
-    Proc.Options := [poWaitOnExit];
-    Proc.Execute;
-  finally
-    Proc.Free;
-  end;
+  BinaryDir := GetBGModBinariesSourceDir;
+  if BinaryDir <> '' then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f --no-preserve=mode ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod-uninstaller') + ' ' +
+                          QuotedStr(BGModPath) + '/ 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end
+  else
+    WriteLn('[BGMOD] WARNING: Compiled bgmod templates not found in any candidate directory!');
 
   // Make sure binaries are executable
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') then
