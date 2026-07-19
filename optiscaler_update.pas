@@ -1819,7 +1819,7 @@ begin
           WriteLn('[DEBUG] UpdateButtonClick: Updated existing optipatcher line');
 
         // Fetch dynamic versions from vars.txt
-        FsrStableVal := '4.1';
+        FsrStableVal := '4.1.1';
         FsrEdgeVal := '4.1.1';
         XessStableVal := '3.0.1';
         XessEdgeVal := '3.0.1';
@@ -2439,7 +2439,7 @@ begin
           WriteLn('[AUTO-INSTALL] Updated existing optipatcher line');
 
         // Fetch dynamic versions from vars.txt
-        FsrStableVal := '4.1';
+        FsrStableVal := '4.1.1';
         FsrEdgeVal := '4.1.1';
         XessStableVal := '3.0.1';
         XessEdgeVal := '3.0.1';

@@ -100,6 +100,10 @@ During installation or update, GOverlay SHALL fetch `vars.txt` from the remote r
 - **WHEN** GOverlay installs or updates OptiScaler on the stable or edge channel
 - **THEN** it parses `vars.txt` and writes the correct `fsrversion` and `xessversion` keys to `goverlay.vars`.
 
+#### Scenario: Network failure during version resolution fallback to defaults
+- **WHEN** the remote `vars.txt` file cannot be reached during installation or update
+- **THEN** GOverlay SHALL fallback to using the default version `4.1.1` for FSR on the stable channel.
+
 ### Requirement: gameconfig/global/ receives full OptiScaler assets on first run
 When GOverlay auto-installs OptiScaler during the first run, the global profile configuration directory SHALL receive the downloaded OptiScaler runtime files directly from `optiscaler-stable/`.
 

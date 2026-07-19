@@ -60,6 +60,44 @@
     </screenshots>
 
     <releases>
+        <release version="1.8.8" date="2026-07-18">
+            <description>
+                <p>Improvements</p>
+                <ul>
+                    <li>Unified the OptiScaler UI layout between Stable and Bleeding-edge channels</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Resolved UI freezes and deadlocks during startup (changelog fetching and fallback cover generation)</li>
+                    <li>Updated FSR Stable fallback version string to 4.1.1</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.8.7" date="2026-07-18">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Added option to select a preferred upscaler in the OptiScaler tab</li>
+                    <li>Implemented a persistent power monitoring fix for Intel CPUs</li>
+                    <li>Added Vulkan Low Latency layer (Korthos) integration</li>
+                    <li>Support for creating and launching Steam game shortcuts</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Enabled navigation sidebar toggles in global configuration mode</li>
+                    <li>Synchronize configuration files (OptiScaler.ini, fakenvapi.ini) dynamically on game launch</li>
+                    <li>Support for AppImage game detection and custom covers</li>
+                    <li>Improved settings menu visual structure with separators</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Corrected configuration path resolution under Flatpak using XDG_CONFIG_HOME</li>
+                    <li>Fixed config resets and parser bugs in OptiScaler settings</li>
+                    <li>Ignore crash/bug report folders during Unreal Engine game searches</li>
+                    <li>Fixed StartupWMClass in desktop configuration</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.8.5" date="2026-07-04">
             <description>
                 <p>New Features</p>
