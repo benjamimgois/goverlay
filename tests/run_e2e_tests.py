@@ -66,17 +66,26 @@ if not use_xvfb:
 goverlay_proc = None
 
 try:
-    # 2. Launch GOverlay
+    # 2. Launch GOverlay forcing X11 backend (important for Wayland sessions)
     print("[*] Launching GOverlay...")
-    goverlay_proc = subprocess.Popen([GOBERLAY_BIN], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    env = os.environ.copy()
+    env["QT_QPA_PLATFORM"] = "xcb"
+    env["GDK_BACKEND"] = "x11"
+    
+    goverlay_proc = subprocess.Popen([GOBERLAY_BIN], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     # Wait loop for window to appear
     print("[*] Waiting for GOverlay window to spawn...")
     window_id = None
-    for attempt in range(30):  # Try for 15 seconds
+    for attempt in range(40):  # Try for 20 seconds
         time.sleep(0.5)
-        res = run_cmd("xdotool search --name Goverlay")
+        # Search by class first (usually 'goverlay'), then title name case-insensitively
+        res = run_cmd("xdotool search --class goverlay")
         window_ids = res.stdout.strip().split()
+        if not window_ids:
+            res = run_cmd("xdotool search --name '[Gg]overlay'")
+            window_ids = res.stdout.strip().split()
+        
         if window_ids:
             window_id = window_ids[0]
             break
