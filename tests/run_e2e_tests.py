@@ -22,6 +22,12 @@ os.environ["HOME"] = MOCK_HOME
 MOCK_CONFIG_DIR = os.path.join(MOCK_HOME, ".config", "goverlay")
 os.makedirs(MOCK_CONFIG_DIR, exist_ok=True)
 
+# Seed mock config.ini to bypass the Changelog/What's New popup
+mock_config_path = os.path.join(MOCK_CONFIG_DIR, "config.ini")
+with open(mock_config_path, "w") as f:
+    f.write("[General]\nChangelogSeenVersion=1.8.9\n")
+print(f"[*] Seeded mock config.ini at: {mock_config_path}")
+
 # Build binaries path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GOBERLAY_BIN = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "goverlay"))
@@ -37,7 +43,7 @@ if not os.path.exists(GOBERLAY_BIN):
 def run_cmd(cmd):
     return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-def get_window_scale(window_id):
+def get_window_geometry(window_id):
     res = run_cmd(f"xdotool getwindowgeometry {window_id}")
     for line in res.stdout.split("\n"):
         if "Geometry:" in line:
@@ -46,14 +52,32 @@ def get_window_scale(window_id):
                 w = int(parts[0])
                 h = int(parts[1])
                 print(f"[+] Detected window physical size: {w}x{h}")
-                return w / 1045.0, h / 683.0
+                return w, h
             except Exception as e:
-                print(f"[-] Warning: Failed to parse window geometry ({e}). Defaulting to 1.0 scale.")
-    return 1.0, 1.0
+                print(f"[-] Warning: Failed to parse window geometry ({e}). Defaulting to 1045x683.")
+    return 1045, 683
 
-def click_relative(window_id, rx, ry, scale_w, scale_h):
-    tx = int(rx * scale_w)
+def click_relative(window_id, rx, ry, w, h, align="left"):
+    # Design size: 1045x683
+    # Left menu panel has fixed size of 211px.
+    # scale factor for height:
+    scale_h = h / 683.0
+    
     ty = int(ry * scale_h)
+    
+    if align == "fixed":
+        # Sidebar menu elements do not scale or move horizontally
+        tx = rx
+    elif align == "right":
+        # Right-anchored elements inside the right panel
+        # Calculate distance from the right edge in design coordinates (1045)
+        dist_from_right = 1045 - rx
+        tx = w - dist_from_right
+    else: # "left" or left-anchored inside right panel
+        # Keeps position relative to left border (since Left menu is fixed 211px)
+        tx = rx
+        
+    print(f"[*] Clicking relative ({rx}, {ry}) -> physical ({tx}, {ty}) [align={align}]")
     run_cmd(f"xdotool mousemove --window {window_id} {tx} {ty} click 1")
 
 # Check for required tools
@@ -118,9 +142,8 @@ try:
     
     print(f"[+] Found GOverlay window ID: {window_id}")
     
-    # Get window DPI scale factors
-    scale_w, scale_h = get_window_scale(window_id)
-    print(f"[*] Calculated scaling factors: Width={scale_w:.2f}, Height={scale_h:.2f}")
+    # Get window DPI geometry size
+    w, h = get_window_geometry(window_id)
 
     # Activate and raise window
     run_cmd(f"xdotool windowactivate {window_id}")
@@ -135,9 +158,9 @@ try:
 
     # 3. Simulate E2E Interactions
     
-    # Click OptiScaler Tab (X=142, Y=345 relative to window)
+    # Click OptiScaler Tab (X=142, Y=345 relative to window, fixed layout element)
     print("[*] Clicking OptiScaler tab...")
-    click_relative(window_id, 142, 345, scale_w, scale_h)
+    click_relative(window_id, 142, 345, w, h, align="fixed")
     time.sleep(2.5)
     if shutil.which("import") is not None:
         run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_tab_active.png')}")
@@ -148,13 +171,13 @@ try:
 
     # Click MESA GPU Driver radio button
     # Since window manager borders/decorations might offset Y, we try a vertical click sweep
-    # (X=723 relative to window, Y sweeps from 52, 92, 122, 142)
+    # Mesa is right-anchored: X=723 relative to design size (1045)
     print("[*] Toggling MESA GPU Driver option (performing click sweep)...")
     clicked_mesa = False
     opti_y_offset = 92 # default fallback
     for y_offset in [52, 92, 122, 142]:
         print(f"[*] Trying to click MESA option at Y-offset: {y_offset}...")
-        click_relative(window_id, 723, y_offset, scale_w, scale_h)
+        click_relative(window_id, 723, y_offset, w, h, align="right")
         time.sleep(2)
         
         # Verify if changing driver saved the configuration silently
@@ -173,9 +196,9 @@ try:
         print("[-] Assertion Fail: OptiScaler.ini was not generated after driver toggle sweeps.")
         sys.exit(1)
 
-    # Click NVIDIA GPU Driver option to restore/verify toggle (X=293, using working Y-offset)
+    # Click NVIDIA GPU Driver option to restore/verify toggle (X=293, left-aligned layout, using working Y-offset)
     print(f"[*] Toggling NVIDIA GPU Driver option at Y-offset {opti_y_offset}...")
-    click_relative(window_id, 293, opti_y_offset, scale_w, scale_h)
+    click_relative(window_id, 293, opti_y_offset, w, h, align="left")
     time.sleep(2)
     if shutil.which("import") is not None:
         run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_nvidia_clicked.png')}")
@@ -188,9 +211,9 @@ try:
          print("[-] Assertion Fail: ForceReflex did not reset to False in OptiScaler.ini.")
          sys.exit(1)
 
-    # 4. Navigate back to MangoHud (X=142, Y=165)
+    # 4. Navigate back to MangoHud (X=142, Y=165, fixed layout)
     print("[*] Navigating to MangoHud tab...")
-    click_relative(window_id, 142, 165, scale_w, scale_h)
+    click_relative(window_id, 142, 165, w, h, align="fixed")
     time.sleep(2)
     
     # Close GOverlay gracefully
