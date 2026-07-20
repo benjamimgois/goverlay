@@ -1,5 +1,6 @@
-## ADDED Requirements
-
+## Purpose
+Define the requirements for automated end-to-end (E2E) integration testing of the GOverlay GUI interface.
+## Requirements
 ### Requirement: E2E Headless GUI Test Execution
 The GOverlay test suite SHALL support headless execution on Linux systems by spawning GOverlay inside a virtual X server (`Xvfb`).
 
@@ -21,3 +22,11 @@ To handle fractional screen scaling, window resizing, and custom title bar decor
 #### Scenario: Main save button writes config files
 - **WHEN** the test runner edits settings on a tab and clicks the "Save" button using DPI-scaled coordinates
 - **THEN** GOverlay writes the final configuration files, and a desktop notification/console output is captured.
+
+### Requirement: E2E Test Dependency Security
+The E2E test runner environment SHALL utilize non-vulnerable python dependency versions (specifically `pytest>=9.0.3` and `pillow>=12.2.0`) to avoid security alerts.
+
+#### Scenario: Running test runner checks secure dependency versions
+- **WHEN** the E2E test runner is executed or dependencies are audited
+- **THEN** both `pytest` and `pillow` package versions satisfy the secure minimums (`pytest>=9.0.3` and `pillow>=12.2.0`)
+
