@@ -3,17 +3,19 @@
 ### Requirement: E2E Headless GUI Test Execution
 The GOverlay test suite SHALL support headless execution on Linux systems by spawning GOverlay inside a virtual X server (`Xvfb`).
 
+To prevent interactive changelog modal popups from blocking inputs on fresh startup, the test runner SHALL seed a mock initial GOverlay configuration setting `ChangelogSeenVersion` to the current application version.
+
 #### Scenario: Running test runner inside Xvfb
 - **WHEN** the test script is executed on a headless system
-- **THEN** it launches an Xvfb virtual frame buffer, sets the `DISPLAY` environment variable, and boots the GOverlay binary successfully.
+- **THEN** it seeds a mock config file, launches an Xvfb virtual frame buffer, sets the `DISPLAY` environment variable, and boots the GOverlay binary successfully without spawning modal popups.
 
 ### Requirement: Automated UI Navigation and Configuration Assertion
 The test runner SHALL be capable of navigating tabs (MangoHud, vkBasalt, OptiScaler) and asserting the correct mutation of config files upon clicking Save.
 
-To handle fractional screen scaling and custom title bar decorations on host displays, the test runner SHALL scale coordinates dynamically relative to the window geometry and employ a sweep-based click search on critical settings until a successful configuration file update is observed.
+To handle fractional screen scaling, window resizing, and custom title bar decorations on host displays, the test runner SHALL calculate click coordinates dynamically: using absolute values for fixed-width sidebar elements (width=211), left-relative values for left-anchored components, right-relative coordinates for right-anchored components, and employ a sweep-based click search on critical settings until a successful configuration file update is observed.
 
 #### Scenario: Toggling GPU driver saves OptiScaler INI
-- **WHEN** the test runner clicks the "OptiScaler" tab and switches the driver from MESA to NVIDIA using DPI-scaled coordinates and a vertical sweep of mouse click positions
+- **WHEN** the test runner clicks the "OptiScaler" tab and switches the driver from MESA to NVIDIA using LCL-anchoring-aware scaled coordinates and a vertical sweep of mouse click positions
 - **THEN** GOverlay silently saves `OptiScaler.ini` with `ForceReflex=false` and `SpoofDLSS=false`.
 
 #### Scenario: Main save button writes config files
