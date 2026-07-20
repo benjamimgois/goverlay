@@ -202,6 +202,10 @@ begin
         NormLatest := Copy(NormLatest, 6, MaxInt);
       if (Length(NormCurrent) > 5) and (Copy(NormCurrent, 1, 5) = 'edge.') then
         NormCurrent := Copy(NormCurrent, 6, MaxInt);
+      if (Length(NormLatest) > 7) and (Copy(NormLatest, 1, 7) = 'stable.') then
+        NormLatest := Copy(NormLatest, 8, MaxInt);
+      if (Length(NormCurrent) > 7) and (Copy(NormCurrent, 1, 7) = 'stable.') then
+        NormCurrent := Copy(NormCurrent, 8, MaxInt);
 
       CurrentIsEdge := (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-');
       if FIsStableChannel then
