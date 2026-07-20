@@ -97,9 +97,19 @@ When installing or updating OptiScaler (both interactive and auto-install), GOve
 ### Requirement: Download and extract FakeNVAPI
 GOverlay SHALL query the GitHub API to find the latest stable release tag of `fakenvapi`. It SHALL download the `.7z` release archive, extract it to the selected channel's cache folder, delete the downloaded archive, and add `FakeNvapiVersion=<version>` (without the 'v' prefix) to `goverlay.vars` inside the cache folder.
 
+When updating the `FakeNvapiVersion` key in an existing `goverlay.vars`, the system SHALL match the key using a prefix copy of exactly 17 characters (`'fakenvapiversion='`) so that the existing line is correctly identified and updated in-place rather than a duplicate line being appended.
+
 #### Scenario: FakeNVAPI installed and version tracked
 - **WHEN** GOverlay updates or installs OptiScaler
 - **THEN** GOverlay downloads and extracts the latest stable `fakenvapi` DLL and INI files to the cache folder, and writes `FakeNvapiVersion` to `goverlay.vars`.
+
+#### Scenario: FakeNVAPI version key updated in-place
+- **WHEN** GOverlay performs a second install or update and the `goverlay.vars` file already contains a `FakeNvapiVersion=<old>` line
+- **THEN** GOverlay replaces that line in-place with the new version, and no duplicate `FakeNvapiVersion` line is added.
+
+#### Scenario: FakeNVAPI version key removed on uninstall
+- **WHEN** GOverlay uninstalls OptiScaler for a game or switches game context
+- **THEN** the `FakeNvapiVersion` line is correctly removed from the game's `goverlay.vars` during cleanup.
 
 ### Requirement: Dynamic FSR and XeSS version resolution
 During installation or update, GOverlay SHALL fetch `vars.txt` from the remote repository. It SHALL parse the FSR and XeSS version strings for both the stable and edge channels, and write the corresponding values as `fsrversion` and `xessversion` to `goverlay.vars` based on the selected channel.
@@ -247,4 +257,29 @@ If found in any of these candidate locations, GOverlay SHALL copy them to the lo
 #### Scenario: Source development directory resolution
 - **WHEN** GOverlay is run from the source root directory, and the compiled `bgmod` and `bgmod-uninstaller` exist in the same root directory
 - **THEN** GOverlay successfully copies `bgmod` and `bgmod-uninstaller` to `~/.local/share/goverlay/bgmod/`.
+
+
+### Requirement: Synchronize GPU driver options to configuration files
+When the GPU driver selection (NVIDIA or MESA) is toggled in the OptiScaler tab, GOverlay SHALL automatically, immediately, and silently save the updated status of dependent options (such as Spoof DLSS, Force Reflex, and Reflex) into their respective configuration files (`OptiScaler.ini` and `fakenvapi.ini`) to prevent UI desynchronization on tab change or application reload.
+
+The synchronization save operation SHALL be silent (i.e. not trigger user-facing desktop notifications or command panel updates/invalidations) when initiated programmatically via driver selection changes. GOverlay SHALL NOT trigger any configuration saving during application startup when restoring the previously saved driver selection.
+
+#### Scenario: Switching to MESA saves dependent configs silently
+- **WHEN** the user selects the MESA GPU Driver option
+- **THEN** GOverlay enables and checks the Spoof DLSS and Force Reflex checkboxes, and writes these settings directly to the profile's config files silently (no desktop notifications or command panel updates).
+
+#### Scenario: Switching to NVIDIA saves dependent configs silently
+- **WHEN** the user selects the NVIDIA GPU Driver option
+- **THEN** GOverlay disables and unchecks the Spoof DLSS and Force Reflex checkboxes, and writes these settings directly to the profile's config files silently (no desktop notifications or command panel updates).
+
+#### Scenario: Program startup does not trigger save operations
+- **WHEN** GOverlay starts up and loads the saved driver preference
+- **THEN** the driver radio button is updated in the UI, but no configuration files are written, and no desktop notifications are shown.
+
+### Requirement: Global navigation updates Save button state
+When the user switches tabs (MangoHud, vkBasalt, OptiScaler, Tweaks) in global mode, GOverlay SHALL update the Save button enabled state and the tab sheet enabled state to reflect the global enable status of the target tool.
+
+#### Scenario: Navigating to OptiScaler global updates save button
+- **WHEN** the user clicks the OptiScaler tab in global mode and the OptiScaler tool is globally enabled
+- **THEN** the Save button is enabled and set to the active color.
 

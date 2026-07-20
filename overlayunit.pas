@@ -984,7 +984,7 @@ type
 
     // Save helpers (extracted from saveBitBtnClick)
     procedure SaveTweaksConfig;
-    procedure SaveOptiScalerConfig;
+    procedure SaveOptiScalerConfig(ASilent: Boolean = False);
     procedure SaveVkBasaltConfig;
     // Exposing: procedure SaveVkSumiConfig;
 
@@ -1115,6 +1115,7 @@ type
     FReshadePhaseLabel: TLabel;
     FReshadeDownloadedOnFirstShow: Boolean;
     FAutoDownloadingReshade: Boolean;
+    FOsDriverLoading: Boolean;
     FCustomSec:       TPanel;
     FCustomListBox:   TListBox;
     FTweaksVarListBox: TListBox;
@@ -1694,12 +1695,8 @@ popupBitBtn.Visible := False;
 FPreviewBtn.Visible  := False;
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
-// Re-apply per-game tool enabled state for Tweaks
-if FActiveGameName <> '' then
-begin
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
   SetSaveBtnEnabled(FNavToolEnabled[3]);
-end;
 
 // Reload tweak checkboxes from the correct fgmod (game-specific or global)
 // depending on the current context. Without this, the UI always shows the
@@ -2681,6 +2678,7 @@ begin
   FNavHelper := TSidebarNavHelper.Create(Self);
   FReshadeDownloadedOnFirstShow := False;
   FAutoDownloadingReshade := False;
+  FOsDriverLoading := False;
 
   //Program Version
   GVERSION := '1.8.9';
@@ -3303,28 +3301,33 @@ begin
 
     // Check NVIDIA module and configure controls
     // On first run auto-detect; afterwards restore the user's last choice.
-    autodetectnvLabel.Visible := False;
-    autodetectmesaLabel.Visible := False;
-    SavedDriver := LoadOptiScalerDriverPreference;
-    if SameText(SavedDriver, 'nvidia') then
-      nvidiaRadioButton.Checked := True
-    else if SameText(SavedDriver, 'mesa') then
-      mesaRadioButton.Checked := True
-    else
-    begin
-      // First launch (no preference saved yet): run auto-detection
-      if IsNvidiaModuleLoaded then
-      begin
-        nvidiaRadioButton.Checked := True;
-        autodetectnvLabel.Visible := True;
-        autodetectnvLabel.Font.Color := clOlive;
-      end
+    FOsDriverLoading := True;
+    try
+      autodetectnvLabel.Visible := False;
+      autodetectmesaLabel.Visible := False;
+      SavedDriver := LoadOptiScalerDriverPreference;
+      if SameText(SavedDriver, 'nvidia') then
+        nvidiaRadioButton.Checked := True
+      else if SameText(SavedDriver, 'mesa') then
+        mesaRadioButton.Checked := True
       else
       begin
-        mesaRadioButton.Checked := True;
-        autodetectmesaLabel.Visible := True;
-        autodetectmesaLabel.Font.Color := clOlive;
+        // First launch (no preference saved yet): run auto-detection
+        if IsNvidiaModuleLoaded then
+        begin
+          nvidiaRadioButton.Checked := True;
+          autodetectnvLabel.Visible := True;
+          autodetectnvLabel.Font.Color := clOlive;
+        end
+        else
+        begin
+          mesaRadioButton.Checked := True;
+          autodetectmesaLabel.Visible := True;
+          autodetectmesaLabel.Font.Color := clOlive;
+        end;
       end;
+    finally
+      FOsDriverLoading := False;
     end;
 
     // Load all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
@@ -4221,6 +4224,8 @@ begin
       spoofCheckBox.Enabled:=true;
       spoofCheckBox.Checked:=true;
       SaveOptiScalerDriverPreference('mesa');
+      if not FOsDriverLoading then
+        SaveOptiScalerConfig(True);
 end;
 
 procedure Tgoverlayform.nvidiaRadioButtonChange(Sender: TObject);
@@ -4233,6 +4238,8 @@ begin
       spoofCheckBox.Enabled:=false;
       spoofCheckBox.Checked:=false;
       SaveOptiScalerDriverPreference('nvidia');
+      if not FOsDriverLoading then
+        SaveOptiScalerConfig(True);
 end;
 
 
@@ -4263,12 +4270,8 @@ begin
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
-  // Re-apply per-game tool enabled state (overrides UpdateGeSpeedButtonState if tool is disabled)
-  if FActiveGameName <> '' then
-  begin
-    ApplyToolEnabledState(2, FNavToolEnabled[2]);
-    SetSaveBtnEnabled(FNavToolEnabled[2]);
-  end;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
   // Reload all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
   LoadOptiScalerConfig;
   // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
@@ -5274,9 +5277,9 @@ begin
   TTweaksMD3Helper(FTweaksHelper).SaveTweaksConfig;
 end;
 
-procedure Tgoverlayform.SaveOptiScalerConfig;
+procedure Tgoverlayform.SaveOptiScalerConfig(ASilent: Boolean);
 begin
-  TOptiScalerTabHelper(FOptiScalerHelper).SaveOptiScalerConfig;
+  TOptiScalerTabHelper(FOptiScalerHelper).SaveOptiScalerConfig(ASilent);
 end;
 
 procedure Tgoverlayform.SaveVkSumiConfig;

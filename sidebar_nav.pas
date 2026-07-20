@@ -865,7 +865,7 @@ begin
            SameText(Copy(VarsList[i], 1, 12), 'optipatcher=') or
            SameText(Copy(VarsList[i], 1, 12), 'dlssversion=') or
            SameText(Copy(VarsList[i], 1, 18), 'optiscalerversion=') or
-           SameText(Copy(VarsList[i], 1, 18), 'fakenvapiversion=') then
+           SameText(Copy(VarsList[i], 1, 17), 'fakenvapiversion=') then
           VarsList.Delete(i);
       end;
       VarsList.SaveToFile(VarsFilePath);

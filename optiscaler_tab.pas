@@ -25,7 +25,7 @@ type
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure RefreshOsStatusDots;
     procedure LoadOptiScalerConfig;
-    procedure SaveOptiScalerConfig;
+    procedure SaveOptiScalerConfig(ASilent: Boolean = False);
   end;
 
 function OsHexToKeyStr(const HexStr: string): string;
@@ -861,7 +861,7 @@ begin
   end;
 end;
 
-procedure TOptiScalerTabHelper.SaveOptiScalerConfig;
+procedure TOptiScalerTabHelper.SaveOptiScalerConfig(ASilent: Boolean);
 var
   Settings: TOptiScalerSettings;
   ErrMsg: string;
@@ -899,7 +899,8 @@ begin
     if ErrMsg <> '' then
       ShowMessage(ErrMsg);
 
-     SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
+    if not ASilent then
+      SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
 
     if Assigned(FOptiscalerUpdate) then
     begin
@@ -907,10 +908,13 @@ begin
       RefreshOsStatusDots;
     end;
 
-    notificationLabel.Visible := False;
-    FLaunchCommand := LaunchCommand;
-    commandPaintBox.Invalidate;
-    commandPanel.Visible := True;
+    if not ASilent then
+    begin
+      notificationLabel.Visible := False;
+      FLaunchCommand := LaunchCommand;
+      commandPaintBox.Invalidate;
+      commandPanel.Visible := True;
+    end;
   end;
 end;
 

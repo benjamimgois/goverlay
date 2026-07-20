@@ -1856,7 +1856,7 @@ begin
         begin
           FakeNvapiLineFound := False;
           for VarsIdx := 0 to VarsList.Count - 1 do
-            if SameText(Copy(VarsList[VarsIdx], 1, 18), 'fakenvapiversion=') then
+            if SameText(Copy(VarsList[VarsIdx], 1, 17), 'fakenvapiversion=') then
             begin
               VarsList[VarsIdx] := 'FakeNvapiVersion=' + FakeNvapiVerClean;
               FakeNvapiLineFound := True;
@@ -2468,7 +2468,7 @@ begin
         begin
           FakeNvapiLineFound := False;
           for VarsIdx := 0 to VarsList.Count - 1 do
-            if SameText(Copy(VarsList[VarsIdx], 1, 18), 'fakenvapiversion=') then
+            if SameText(Copy(VarsList[VarsIdx], 1, 17), 'fakenvapiversion=') then
             begin
               VarsList[VarsIdx] := 'FakeNvapiVersion=' + FakeNvapiVerClean;
               FakeNvapiLineFound := True;

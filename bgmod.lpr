@@ -296,7 +296,7 @@ var
   LocalVars, GlobalVars: string;
   LocalSL, GlobalSL: TStringList;
   LocalVal, GlobalVal: string;
-  VersionKeys: array[0..2] of string = ('optiscalerversion', 'fakenvapiversioN', 'fsrversion');
+  VersionKeys: array[0..2] of string = ('optiscalerversion', 'fakenvapiversion', 'fsrversion');
   k, LastKey: Integer;
 
   function GetValFromList(SL: TStringList; const AKey: string): string;
