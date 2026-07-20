@@ -37,6 +37,25 @@ if not os.path.exists(GOBERLAY_BIN):
 def run_cmd(cmd):
     return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
+def get_window_scale(window_id):
+    res = run_cmd(f"xdotool getwindowgeometry {window_id}")
+    for line in res.stdout.split("\n"):
+        if "Geometry:" in line:
+            try:
+                parts = line.split("Geometry:")[1].strip().split("x")
+                w = int(parts[0])
+                h = int(parts[1])
+                print(f"[+] Detected window physical size: {w}x{h}")
+                return w / 1045.0, h / 683.0
+            except Exception as e:
+                print(f"[-] Warning: Failed to parse window geometry ({e}). Defaulting to 1.0 scale.")
+    return 1.0, 1.0
+
+def click_relative(window_id, rx, ry, scale_w, scale_h):
+    tx = int(rx * scale_w)
+    ty = int(ry * scale_h)
+    run_cmd(f"xdotool mousemove --window {window_id} {tx} {ty} click 1")
+
 # Check for required tools
 has_xdotool = shutil.which("xdotool") is not None
 if not has_xdotool:
@@ -99,6 +118,10 @@ try:
     
     print(f"[+] Found GOverlay window ID: {window_id}")
     
+    # Get window DPI scale factors
+    scale_w, scale_h = get_window_scale(window_id)
+    print(f"[*] Calculated scaling factors: Width={scale_w:.2f}, Height={scale_h:.2f}")
+
     # Activate and raise window
     run_cmd(f"xdotool windowactivate {window_id}")
     time.sleep(1)
@@ -114,8 +137,8 @@ try:
     
     # Click OptiScaler Tab (X=142, Y=345 relative to window)
     print("[*] Clicking OptiScaler tab...")
-    run_cmd(f"xdotool mousemove --window {window_id} 142 345 click 1")
-    time.sleep(2)
+    click_relative(window_id, 142, 345, scale_w, scale_h)
+    time.sleep(2.5)
     if shutil.which("import") is not None:
         run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_tab_active.png')}")
 
@@ -124,30 +147,35 @@ try:
     print(f"[*] Checking OptiScaler INI path: {opti_ini_path}")
 
     # Click MESA GPU Driver radio button
-    # Abs X = 213 + 500 + 10 = 723, Abs Y = 2 + 40 + 10 = 52. Let's use Y=92 to account for decorations/borders.
-    print("[*] Toggling MESA GPU Driver option...")
-    run_cmd(f"xdotool mousemove --window {window_id} 723 92 click 1")
-    time.sleep(2)
-    if shutil.which("import") is not None:
-        run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_mesa_clicked.png')}")
+    # Since window manager borders/decorations might offset Y, we try a vertical click sweep
+    # (X=723 relative to window, Y sweeps from 52, 92, 122, 142)
+    print("[*] Toggling MESA GPU Driver option (performing click sweep)...")
+    clicked_mesa = False
+    opti_y_offset = 92 # default fallback
+    for y_offset in [52, 92, 122, 142]:
+        print(f"[*] Trying to click MESA option at Y-offset: {y_offset}...")
+        click_relative(window_id, 723, y_offset, scale_w, scale_h)
+        time.sleep(2)
+        
+        # Verify if changing driver saved the configuration silently
+        if os.path.exists(opti_ini_path):
+            config = configparser.ConfigParser()
+            config.read(opti_ini_path)
+            if "Upscale" in config and config.getboolean("Upscale", "ForceReflex", fallback=False):
+                print(f"[+] Success: MESA clicked successfully at Y-offset {y_offset}!")
+                opti_y_offset = y_offset
+                clicked_mesa = True
+                if shutil.which("import") is not None:
+                    run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_mesa_clicked.png')}")
+                break
 
-    # Verify that changing driver saved the configuration silently
-    if os.path.exists(opti_ini_path):
-        print("[+] Success: OptiScaler.ini created successfully via silent save.")
-        config = configparser.ConfigParser()
-        config.read(opti_ini_path)
-        if "Upscale" in config and config.getboolean("Upscale", "ForceReflex", fallback=False):
-            print("[+] Assertion Pass: ForceReflex is set to True under [Upscale].")
-        else:
-            print("[-] Assertion Fail: ForceReflex not set to True in OptiScaler.ini.")
-            sys.exit(1)
-    else:
-        print("[-] Assertion Fail: OptiScaler.ini was not generated after driver toggle.")
+    if not clicked_mesa:
+        print("[-] Assertion Fail: OptiScaler.ini was not generated after driver toggle sweeps.")
         sys.exit(1)
 
-    # Click NVIDIA GPU Driver option to restore/verify toggle (X=293, Y=92)
-    print("[*] Toggling NVIDIA GPU Driver option...")
-    run_cmd(f"xdotool mousemove --window {window_id} 293 92 click 1")
+    # Click NVIDIA GPU Driver option to restore/verify toggle (X=293, using working Y-offset)
+    print(f"[*] Toggling NVIDIA GPU Driver option at Y-offset {opti_y_offset}...")
+    click_relative(window_id, 293, opti_y_offset, scale_w, scale_h)
     time.sleep(2)
     if shutil.which("import") is not None:
         run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_nvidia_clicked.png')}")
@@ -162,7 +190,7 @@ try:
 
     # 4. Navigate back to MangoHud (X=142, Y=165)
     print("[*] Navigating to MangoHud tab...")
-    run_cmd(f"xdotool mousemove --window {window_id} 142 165 click 1")
+    click_relative(window_id, 142, 165, scale_w, scale_h)
     time.sleep(2)
     
     # Close GOverlay gracefully
