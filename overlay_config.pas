@@ -1367,6 +1367,9 @@ var
   TempFiles, FontDirs: TStringList;
   Ini, Ini2: TIniFile;
   FGModFilePath, FGModConfPath: string;
+  BlacklistFile, BlacklistVar: string;
+  BlacklistLines: TStringList;
+  GlobalMangoHudFile: string;
 
   procedure AddIfTrue(ABool: Boolean; const ALine: string);
   begin
@@ -1855,6 +1858,40 @@ begin
     // Auto upload
     AddIfTrue(Settings.AutoUpload, 'upload_logs');
 
+    // Blacklist
+    BlacklistFile := GetUserConfigDir + '/goverlay/blacklist.conf';
+    BlacklistLines := TStringList.Create;
+    try
+      if not FileExists(BlacklistFile) then
+      begin
+        BlacklistLines.Add('zenity');
+        BlacklistLines.Add('protonplus');
+        BlacklistLines.Add('lsfg-vk-ui');
+        BlacklistLines.Add('bazzar');
+        BlacklistLines.Add('gnome-calculator');
+        BlacklistLines.Add('pamac-manager');
+        BlacklistLines.Add('lact');
+        BlacklistLines.Add('ghb');
+        BlacklistLines.Add('bitwig-studio');
+        BlacklistLines.Add('ptyxis');
+        BlacklistLines.Add('yumex');
+        ForceDirectories(ExtractFilePath(BlacklistFile));
+        BlacklistLines.SaveToFile(BlacklistFile);
+      end
+      else
+        BlacklistLines.LoadFromFile(BlacklistFile);
+
+      if BlacklistLines.Count > 0 then
+      begin
+        BlacklistVar := 'blacklist=' + BlacklistLines[0];
+        for i := 1 to BlacklistLines.Count - 1 do
+          BlacklistVar := BlacklistVar + ',' + BlacklistLines[i];
+        ConfigLines.Add(BlacklistVar);
+      end;
+    finally
+      BlacklistLines.Free;
+    end;
+
     // Save to active config file (game-specific or global)
     ConfigLines.SaveToFile(Settings.MangoHudCfgFile);
 
@@ -1869,20 +1906,22 @@ begin
       Ini.Free;
     end;
 
-    // In game-specific mode: inject MANGOHUD_CONFIGFILE into the game bgmod
-    // so Steam picks up the per-game config at launch.
-    if Settings.ActiveGameName <> '' then
+    // Inject MANGOHUD_CONFIGFILE into bgmod.conf for both game and global profiles
+    FGModConfPath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
+    ForceDirectories(ExtractFilePath(FGModConfPath));
+    Ini2 := TIniFile.Create(FGModConfPath);
+    try
+      Ini2.WriteString('Env', 'MANGOHUD_CONFIGFILE', Settings.MangoHudCfgFile);
+    finally
+      Ini2.Free;
+    end;
+
+    // In global mode: also update system-wide ~/.config/MangoHud/MangoHud.conf
+    if Settings.ActiveGameName = '' then
     begin
-      FGModConfPath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
-      ForceDirectories(ExtractFilePath(FGModConfPath));
-      Ini2 := TIniFile.Create(FGModConfPath);
-      try
-        Ini2.WriteString('Env', 'MANGOHUD_CONFIGFILE', Settings.MangoHudCfgFile);
-      finally
-        Ini2.Free;
-      end;
-      Result := True;
-      Exit;
+      GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+      CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
+      ConfigLines.SaveToFile(GlobalMangoHudFile);
     end;
 
     try
@@ -1978,9 +2017,24 @@ begin
 
       // save file content
       DefaultConfigContent.SaveToFile(ConfigFilePath);
+
+      // also save to gameconfig/global/MangoHud.conf
+      ConfigDir := GetGameConfigDir('');
+      if not DirectoryExists(ConfigDir) then
+        ForceDirectories(ConfigDir);
+      DefaultConfigContent.SaveToFile(ConfigDir + 'MangoHud.conf');
     finally
       DefaultConfigContent.Free;
     end;
+  end
+  else
+  begin
+    // Ensure gameconfig/global/MangoHud.conf exists even if ~/.config/MangoHud/MangoHud.conf exists
+    ConfigDir := GetGameConfigDir('');
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+    if not FileExists(ConfigDir + 'MangoHud.conf') and FileExists(ConfigFilePath) then
+      ExecuteShellCommand('cp ' + QuotedStr(ConfigFilePath) + ' ' + QuotedStr(ConfigDir + 'MangoHud.conf'));
   end;
 
   // Check directory  -  BLACKLIST

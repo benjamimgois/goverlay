@@ -3039,7 +3039,7 @@ begin
   if FActiveGameName <> '' then
   begin
     FActiveGameName := '';
-    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    MANGOHUDCFGFILE := GetGameConfigDir('') + 'MangoHud.conf';
     VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
     VKSUMICFGFILE := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';
     UpdateGameContextLabel;

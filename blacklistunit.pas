@@ -128,6 +128,9 @@ procedure TblacklistForm.FormShow(Sender: TObject);
 const
   NewDarkBg = $002E1E1A;
 begin
+  insertblacklistBitBtn.ModalResult := mrNone;
+  removeblacklistBitBtn.ModalResult := mrNone;
+
   // Apply current theme
   ApplyTheme(Self, CurrentTheme);
 

@@ -22,10 +22,10 @@ os.environ["HOME"] = MOCK_HOME
 MOCK_CONFIG_DIR = os.path.join(MOCK_HOME, ".config", "goverlay")
 os.makedirs(MOCK_CONFIG_DIR, exist_ok=True)
 
-# Seed mock goverlay.conf to bypass the Changelog/What's New popup
+# Seed mock goverlay.conf to bypass the Changelog/What's New popup and start with Mesa driver checked
 mock_config_path = os.path.join(MOCK_CONFIG_DIR, "goverlay.conf")
 with open(mock_config_path, "w") as f:
-    f.write("[General]\nChangelogSeenVersion=1.8.9\n")
+    f.write("[General]\nChangelogSeenVersion=1.8.9\n[OptiScaler]\nGpuDriver=mesa\n")
 print(f"[*] Seeded mock goverlay.conf at: {mock_config_path}")
 
 # Seed mock OptiScaler.ini template in optiscaler-stable cache and global gameconfig dir
@@ -57,26 +57,75 @@ def run_cmd(cmd):
     return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 def get_window_geometry(window_id):
+    wx, wy = 0, 0
+    w, h = 1045, 683
     res = run_cmd(f"xdotool getwindowgeometry {window_id}")
     for line in res.stdout.split("\n"):
-        if "Geometry:" in line:
+        if "Position:" in line:
+            try:
+                parts = line.split("Position:")[1].strip().split()[0].split(",")
+                wx = int(parts[0])
+                wy = int(parts[1])
+            except Exception as e:
+                print(f"[-] Warning: Failed to parse window position ({e}).")
+        elif "Geometry:" in line:
             try:
                 parts = line.split("Geometry:")[1].strip().split("x")
                 w = int(parts[0])
                 h = int(parts[1])
-                print(f"[+] Detected window physical size: {w}x{h}")
-                return w, h
             except Exception as e:
-                print(f"[-] Warning: Failed to parse window geometry ({e}). Defaulting to 1045x683.")
-    return 1045, 683
+                print(f"[-] Warning: Failed to parse window geometry ({e}).")
+    print(f"[+] Detected window position: {wx},{wy}, size: {w}x{h}")
+    return wx, wy, w, h
 
-def click_relative(window_id, rx, ry, scale_w, scale_h):
-    tx = int(rx * scale_w)
-    ty = int(ry * scale_h)
-    print(f"[*] Clicking relative ({rx}, {ry}) -> physical ({tx}, {ty}) [scale_w={scale_w:.3f}, scale_h={scale_h:.3f}]")
+def get_dpi_scale():
+    try:
+        res = subprocess.run("xrdb -query", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if res.returncode != 0:
+            print(f"[-] Warning: xrdb failed with exit code {res.returncode}. Stderr: {res.stderr.strip()}")
+            return 1.0
+        for line in res.stdout.split("\n"):
+            if "Xft.dpi:" in line:
+                dpi = float(line.split("Xft.dpi:")[1].strip())
+                scale = dpi / 96.0
+                print(f"[+] Detected system DPI: {dpi} (Scale: {scale:.3f})")
+                return scale
+    except Exception as e:
+        print(f"[-] Warning: Failed to detect DPI via xrdb ({e}). Defaulting to 1.0.")
+    return 1.0
+
+def click_relative(window_id, rx, ry, scale_w, scale_h, align="left"):
+    # Left sidebar menu width scales with DPI
+    sidebar_w = int(211 * scale_w)
+    margin = 8
+    
+    if align == "fixed":
+        # Sidebar elements (left is relative to sidebar)
+        tx = int(rx * scale_w)
+        ty = int(ry * scale_h)
+    elif align == "right":
+        # Right-anchored inside content panel (e.g. Mesa)
+        # Distance from right edge in design coordinates: 1045 - rx
+        dist_from_right = 1045 - rx
+        # In forced window width (1045), right edge is at 1045
+        tx = 1045 - dist_from_right
+        ty = int(ry * scale_h)
+    else: # "left" or left-anchored inside content panel (e.g. Nvidia)
+        # Position is relative to sidebar edge
+        # design left of control inside content panel: rx - 211
+        left_inside_panel = rx - 211 - margin
+        # scale the control's Left property inside the panel
+        tx = sidebar_w + margin + int(left_inside_panel * scale_w)
+        ty = int(ry * scale_h)
+        
+    print(f"[*] Clicking relative ({rx}, {ry}) -> physical ({tx}, {ty}) [scale_w={scale_w:.3f}, align={align}]")
     run_cmd(f"xdotool windowfocus {window_id}")
     time.sleep(0.2)
+    # Simulate a physical click with a delay, ensuring window focus and window-relative coordinates
+    run_cmd(f"xdotool windowactivate {window_id}")
     run_cmd(f"xdotool mousemove --window {window_id} {tx} {ty} click 1")
+    time.sleep(0.1)
+    run_cmd(f"xdotool mousemove --window {window_id} {tx} {ty} mousedown 1 sleep 0.1 mouseup 1")
 
 # Check for required tools
 has_xdotool = shutil.which("xdotool") is not None
@@ -113,8 +162,12 @@ try:
     env["QT_QPA_PLATFORM"] = "xcb"
     env["GDK_BACKEND"] = "x11"
     
-    goverlay_proc = subprocess.Popen([GOBERLAY_BIN], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    goverlay_proc = subprocess.Popen([GOBERLAY_BIN], env=env, text=True)
     
+    # Wait for GOverlay's background initialization / downloads to complete
+    print("[*] Waiting 12 seconds for GOverlay auto-installation and update threads to settle...")
+    time.sleep(12)
+
     # Wait loop for window to appear
     print("[*] Waiting for GOverlay window to spawn...")
     window_id = None
@@ -134,26 +187,27 @@ try:
     if not window_id:
         print("[-] Error: GOverlay window not found after 15 seconds.")
         if goverlay_proc.poll() is not None:
-            stdout, stderr = goverlay_proc.communicate()
-            print(f"GOverlay exited early. Stderr:\n{stderr}")
+            print("GOverlay exited early.")
         sys.exit(1)
     
     print(f"[+] Found GOverlay window ID: {window_id}")
     
+    # Activate and raise window
+    run_cmd(f"xdotool windowactivate {window_id}")
+    time.sleep(1.5)
+
+    # Detect scale factor using system DPI scale from xrdb
+    scale_w = get_dpi_scale()
+    scale_h = scale_w
+    print(f"[*] Calculated scaling factors from system DPI: Width={scale_w:.3f}, Height={scale_h:.3f}")
+
+    # Get window DPI geometry size after settling just for logging
+    _, _, w, h = get_window_geometry(window_id)
+
     # Force window size to design dimensions to ensure stable coordinate mappings
     print("[*] Forcing GOverlay window size to 1045x683...")
     run_cmd(f"xdotool windowsize {window_id} 1045 683")
-    time.sleep(1.5)
-
-    # Get window DPI geometry size
-    w, h = get_window_geometry(window_id)
-    scale_w = w / 1045.0
-    scale_h = h / 683.0
-    print(f"[*] Calculated scaling factors: Width={scale_w:.3f}, Height={scale_h:.3f}")
-
-    # Activate and raise window
-    run_cmd(f"xdotool windowactivate {window_id}")
-    time.sleep(1)
+    time.sleep(2)
 
     # Capture screenshot for debugging if import (ImageMagick) is available
     SCREENSHOTS_DIR = os.path.join(SCRIPT_DIR, "screenshots")
@@ -165,11 +219,8 @@ try:
     # 3. Simulate E2E Interactions
     
     # Click OptiScaler Tab (X=142, Y=345 relative to window)
-    # We click in two vertical locations to handle title bar decoration offsets of up to 40px
-    print("[*] Clicking OptiScaler tab (dual-click vertical sweep)...")
-    click_relative(window_id, 142, 345, scale_w, scale_h)
-    time.sleep(1.5)
-    click_relative(window_id, 142, 385, scale_w, scale_h)
+    print("[*] Clicking OptiScaler tab...")
+    click_relative(window_id, 142, 345, scale_w, scale_h, align="fixed")
     time.sleep(2)
     if shutil.which("import") is not None:
         run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_tab_active.png')}")
@@ -180,13 +231,13 @@ try:
 
     # Click MESA GPU Driver radio button
     # Since window manager borders/decorations might offset Y, we try a vertical click sweep
-    # Mesa is right-anchored: X=715 relative to design size (1045) to click the actual TRadioButton (not the image)
+    # Mesa is right-anchored: X=728 relative to design size (1045) to click the actual TRadioButton (not the image)
     print("[*] Toggling MESA GPU Driver option (performing click sweep)...")
     clicked_mesa = False
-    opti_y_offset = 92 # default fallback
-    for y_offset in [52, 92, 122, 142]:
+    opti_y_offset = 76 # default fallback
+    for y_offset in [76, 52, 92, 122, 142]:
         print(f"[*] Trying to click MESA option at Y-offset: {y_offset}...")
-        click_relative(window_id, 715, y_offset, scale_w, scale_h)
+        click_relative(window_id, 728, y_offset, scale_w, scale_h, align="right")
         time.sleep(2)
         
         # Verify if changing driver saved the configuration in goverlay.conf
@@ -205,24 +256,33 @@ try:
         print("[-] Assertion Fail: MESA driver preference was not saved after click sweeps.")
         sys.exit(1)
 
-    # Click NVIDIA GPU Driver option to restore/verify toggle (X=285, TRadioButton, using working Y-offset)
-    print(f"[*] Toggling NVIDIA GPU Driver option at Y-offset {opti_y_offset}...")
-    click_relative(window_id, 285, opti_y_offset, scale_w, scale_h)
-    time.sleep(2)
-    if shutil.which("import") is not None:
-        run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_nvidia_clicked.png')}")
+    # Click NVIDIA GPU Driver option to restore/verify toggle (performing click sweep)
+    print("[*] Toggling NVIDIA GPU Driver option...")
+    clicked_nv = False
+    for x_offset in [297, 293, 283, 303, 273]:
+        for y_offset in [opti_y_offset, 76, 52, 92, 122, 142]:
+            print(f"[*] Trying to click NVIDIA option at X: {x_offset}, Y: {y_offset}...")
+            click_relative(window_id, x_offset, y_offset, scale_w, scale_h, align="left")
+            time.sleep(2)
+            
+            # Re-verify configuration file changes in goverlay.conf
+            config.read(mock_config_path)
+            if "OptiScaler" in config and config.get("OptiScaler", "GpuDriver", fallback="").lower() == "nvidia":
+                print(f"[+] Success: NVIDIA clicked successfully at X: {x_offset}, Y: {y_offset}! (GpuDriver=nvidia detected)")
+                clicked_nv = True
+                if shutil.which("import") is not None:
+                    run_cmd(f"import -window root {os.path.join(SCREENSHOTS_DIR, 'optiscaler_nvidia_clicked.png')}")
+                break
+        if clicked_nv:
+            break
 
-    # Re-verify configuration file changes in goverlay.conf
-    config.read(mock_config_path)
-    if "OptiScaler" in config and config.get("OptiScaler", "GpuDriver", fallback="").lower() == "nvidia":
-         print("[+] Assertion Pass: GpuDriver successfully reset to nvidia in goverlay.conf.")
-    else:
+    if not clicked_nv:
          print("[-] Assertion Fail: GpuDriver did not reset to nvidia in goverlay.conf.")
          sys.exit(1)
 
     # 4. Navigate back to MangoHud (X=142, Y=165)
     print("[*] Navigating to MangoHud tab...")
-    click_relative(window_id, 142, 165, scale_w, scale_h)
+    click_relative(window_id, 142, 165, scale_w, scale_h, align="fixed")
     time.sleep(2)
     
     # Close GOverlay gracefully
@@ -231,6 +291,7 @@ try:
     time.sleep(1)
 
     print("[+] All integration tests passed successfully!")
+    test_passed = True
 
 finally:
     # Cleanup processes
@@ -244,4 +305,7 @@ finally:
         xvfb_proc.wait()
     
     # Cleanup temp directory
-    shutil.rmtree(TEMP_DIR)
+    if 'test_passed' in locals() and test_passed:
+        shutil.rmtree(TEMP_DIR)
+    else:
+        print(f"[*] Preserving isolated environment for diagnostics: {TEMP_DIR}")

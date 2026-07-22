@@ -249,6 +249,8 @@ begin
     nvidiaRadioButton.Anchors := [akLeft, akTop];
     nvidiaRadioButton.Top     := nvidiaRadioButton.Top + 62;
     nvidiaRadioButton.Parent  := FOsGpuCard;
+    nvidiaRadioButton.Enabled := True;
+    nvidiaRadioButton.Visible := True;
     DarkRadio(nvidiaRadioButton);
 
     mesaRadioButton.AnchorSideLeft.Control   := nil;
@@ -258,6 +260,8 @@ begin
     mesaRadioButton.Anchors := [akLeft, akTop];
     mesaRadioButton.Top     := mesaRadioButton.Top + 62;
     mesaRadioButton.Parent  := FOsGpuCard;
+    mesaRadioButton.Enabled := True;
+    mesaRadioButton.Visible := True;
     DarkRadio(mesaRadioButton);
 
     nvidiaImage.AnchorSideLeft.Control   := nil;

@@ -1752,17 +1752,10 @@ var
 begin
   CUSTOMCFGFILE := GetActiveCustomConfigFile;
 
-  if FActiveGameName <> '' then
-  begin
-    GameCfgDir := GetGameConfigDir(FActiveGameName);
-    if not DirectoryExists(GameCfgDir) then
-      ForceDirectories(GameCfgDir);
-    MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
-  end
-  else
-  begin
-    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
-  end;
+  GameCfgDir := GetGameConfigDir(FActiveGameName);
+  if not DirectoryExists(GameCfgDir) then
+    ForceDirectories(GameCfgDir);
+  MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
 
   if not FileExists(CUSTOMCFGFILE) then
   begin
@@ -2986,7 +2979,11 @@ begin
   // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
   // Games don't run in sandbox, so MangoHud needs configs in the real host location
   MANGOHUDFOLDER := IncludeTrailingPathDelimiter(GetMangoHudConfigDir());
-  MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  MANGOHUDCFGFILE := GetGameConfigDir('') + 'MangoHud.conf';
+  if not DirectoryExists(ExtractFilePath(MANGOHUDCFGFILE)) then
+    ForceDirectories(ExtractFilePath(MANGOHUDCFGFILE));
+  if not FileExists(MANGOHUDCFGFILE) and FileExists(MANGOHUDFOLDER + 'MangoHud.conf') then
+    ExecuteShellCommand('cp ' + QuotedStr(MANGOHUDFOLDER + 'MangoHud.conf') + ' ' + QuotedStr(MANGOHUDCFGFILE));
   BLACKLISTFILE := IncludeTrailingPathDelimiter(GetGOverlayConfigDir()) + 'blacklist.conf';
   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
@@ -3299,6 +3296,36 @@ begin
     LoadVkSumiConfig;
 
 
+    // Load all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
+    LoadOptiScalerConfig;
+
+    //Initiate optiscaler
+
+    FOptiscalerUpdate := TOptiscalerTab.Create;
+
+    FOptiscalerUpdate.FGModPath := GetOptiScalerInstallPath;
+    FOptiscalerUpdate.UpdateBtn := updatebitBtn;
+    FOptiscalerUpdate.CheckupdBtn := checkupdBitbtn;
+    FOptiscalerUpdate.ProgressBar := updateProgressBar;
+    FOptiscalerUpdate.StatusLabel := updatestatusLabel;
+    FOptiscalerUpdate.OptiLabel := optlabel1;
+    FOptiscalerUpdate.OptiLabel2 := optlabel2;
+    FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
+    FOptiscalerUpdate.XessLabel := xessLabel1;
+    FOptiscalerUpdate.FsrLabel := fsrlabel1;
+    FOptiscalerUpdate.FsrVersionComboBox := fsrversionComboBox;
+    FOptiscalerUpdate.OptVersionComboBox := optversionComboBox;
+    FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
+    FOptiscalerUpdate.OptiPatcherLabel := optipatcherLabel1;
+    FOptiscalerUpdate.NotificationLabel := notificationLabel;
+    FOptiscalerUpdate.DlssLabel := dlssLabel1;
+
+    // Connect OnChange event for OptiScaler channel selection
+    optversionComboBox.OnChange := @optversionComboBoxChange;
+
+    //Initialize tab
+    FOptiscalerUpdate.InitializeTab;
+
     // Check NVIDIA module and configure controls
     // On first run auto-detect; afterwards restore the user's last choice.
     FOsDriverLoading := True;
@@ -3330,35 +3357,8 @@ begin
       FOsDriverLoading := False;
     end;
 
-    // Load all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
-    LoadOptiScalerConfig;
-
-    //Initiate optiscaler
-
-    FOptiscalerUpdate := TOptiscalerTab.Create;
-
-    FOptiscalerUpdate.FGModPath := GetOptiScalerInstallPath;
-    FOptiscalerUpdate.UpdateBtn := updatebitBtn;
-    FOptiscalerUpdate.CheckupdBtn := checkupdBitbtn;
-    FOptiscalerUpdate.ProgressBar := updateProgressBar;
-    FOptiscalerUpdate.StatusLabel := updatestatusLabel;
-    FOptiscalerUpdate.OptiLabel := optlabel1;
-    FOptiscalerUpdate.OptiLabel2 := optlabel2;
-    FOptiscalerUpdate.FakeNvapiLabel := fakenvapi1;
-    FOptiscalerUpdate.XessLabel := xessLabel1;
-    FOptiscalerUpdate.FsrLabel := fsrlabel1;
-    FOptiscalerUpdate.FsrVersionComboBox := fsrversionComboBox;
-    FOptiscalerUpdate.OptVersionComboBox := optversionComboBox;
-    FOptiscalerUpdate.FakeNvapiLabel2 := fakenvapi2;
-    FOptiscalerUpdate.OptiPatcherLabel := optipatcherLabel1;
-    FOptiscalerUpdate.NotificationLabel := notificationLabel;
-    FOptiscalerUpdate.DlssLabel := dlssLabel1;
-
-    // Connect OnChange event for OptiScaler channel selection
-    optversionComboBox.OnChange := @optversionComboBoxChange;
-
-    //Initialize tab
-    FOptiscalerUpdate.InitializeTab;
+    WriteLn(StdErr, '[DEBUG_GPU] nvidiaRadioButton.Enabled = ', nvidiaRadioButton.Enabled, ', Checked = ', nvidiaRadioButton.Checked);
+    WriteLn(StdErr, '[DEBUG_GPU] mesaRadioButton.Enabled = ', mesaRadioButton.Enabled, ', Checked = ', mesaRadioButton.Checked);
 
     //Check for updates on startup
     if Assigned(FOptiscalerUpdate) then
@@ -4101,7 +4101,7 @@ begin
   if WasInGameMode then
   begin
     FActiveGameName := '';
-    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    MANGOHUDCFGFILE := GetGameConfigDir('') + 'MangoHud.conf';
     VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
     VKSUMICFGFILE := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';
     UpdateGameContextLabel;
@@ -4216,6 +4216,8 @@ end;
 
 procedure Tgoverlayform.mesaRadioButtonChange(Sender: TObject);
 begin
+  if mesaRadioButton.Checked then
+  begin
       //Enable reflex options
       forcereflexCheckBox.Checked := true;
       forcereflexCheckBox.Enabled := true;
@@ -4226,10 +4228,13 @@ begin
       SaveOptiScalerDriverPreference('mesa');
       if not FOsDriverLoading then
         SaveOptiScalerConfig(True);
+  end;
 end;
 
 procedure Tgoverlayform.nvidiaRadioButtonChange(Sender: TObject);
 begin
+  if nvidiaRadioButton.Checked then
+  begin
       //disable reflex options
       forcereflexCheckBox.Checked := false;
       forcereflexCheckBox.Enabled := false;
@@ -4240,6 +4245,7 @@ begin
       SaveOptiScalerDriverPreference('nvidia');
       if not FOsDriverLoading then
         SaveOptiScalerConfig(True);
+  end;
 end;
 
 
@@ -5532,6 +5538,11 @@ begin
       // if blacklist.conf dont exist, create a stock one
       if not FileExists(BLACKLISTFILE) then
       begin
+        FileLines.Add('zenity');
+        FileLines.Add('protonplus');
+        FileLines.Add('lsfg-vk-ui');
+        FileLines.Add('bazzar');
+        FileLines.Add('gnome-calculator');
         FileLines.Add('pamac-manager');
         FileLines.Add('lact');
         FileLines.Add('ghb');
@@ -5552,18 +5563,12 @@ begin
       FileLines.Free;
     end;
 
-    // Ensure global MangoHud.conf has the blacklist line (idempotent)
+    // Ensure global MangoHud.conf has the updated blacklist line
     BlacklistCfg := TConfigFile.Create;
     try
-      if BlacklistCfg.Load(GlobalMangoHudFile) then
-      begin
-        if not BlacklistCfg.HasKey('blacklist=') then
-          BlacklistCfg.AddRaw(blacklistVAR);
-      end
-      else
-      begin
-        BlacklistCfg.AddRaw(blacklistVAR);
-      end;
+      BlacklistCfg.Load(GlobalMangoHudFile);
+      BlacklistCfg.DeleteKey('blacklist=');
+      BlacklistCfg.AddRaw(blacklistVAR);
       CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
       BlacklistCfg.Save;
     finally
@@ -5602,10 +5607,7 @@ begin
   saveBitbtn.Click;
 
   CUSTOMCFGFILE := GetTargetCustomConfigFile;
-  if FActiveGameName <> '' then
-    MANGOHUDCFGFILE := GetGameConfigDir(FActiveGameName) + 'MangoHud.conf'
-  else
-    MANGOHUDCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  MANGOHUDCFGFILE := GetGameConfigDir(FActiveGameName) + 'MangoHud.conf';
 
   // Copy Mangohud.conf file to custom.conf
   ExecuteShellCommand('cp ' + QuotedStr(MANGOHUDCFGFILE) + ' ' + QuotedStr(CUSTOMCFGFILE));
