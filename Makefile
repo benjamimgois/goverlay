@@ -90,7 +90,17 @@ tests:
 	appstreamcli validate --pedantic data/io.github.benjamimgois.goverlay.metainfo.xml
 	desktop-file-validate data/io.github.benjamimgois.goverlay.desktop
 
+test: test-logic test-gui
+
+test-logic:
+	lazbuild tests/logic/logic_tests.lpi --widgetset=qt6 $(LAZBUILDOPTS)
+	./tests/logic/logic_tests
+
+test-gui:
+	lazbuild tests/gui/gui_tests.lpi --widgetset=qt6 $(LAZBUILDOPTS)
+	./tests/gui/gui_tests
+
 tarball: goverlay start_goverlay.sh
 	tar -cJf goverlay_${VERSION}.tar.xz goverlay start_goverlay.sh
 
-.PHONY: all data/goverlay.sh start_goverlay.sh clean install uninstall tests tarball
+.PHONY: all data/goverlay.sh start_goverlay.sh clean install uninstall tests test test-logic test-gui tarball

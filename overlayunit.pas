@@ -2660,6 +2660,7 @@ var
 
    SavedTheme: TThemeMode;
    SavedDriver: string;
+   TestMode: Boolean;
 
 begin
   FGamesHelper := TGamesTabHelper.Create(Self);
@@ -2673,6 +2674,10 @@ begin
   FAutoDownloadingReshade := False;
   FOsDriverLoading := False;
 
+  // Test mode (GOVERLAY_TEST=1): skip network update checks and background
+  // download/install work so automated tests start deterministically.
+  TestMode := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
+
   //Program Version
   GVERSION := '1.8.9';
   GCHANNEL := 'stable'; //stable ou git
@@ -2683,7 +2688,7 @@ begin
 
   // Auto-install OptiScaler if not present in BGMOD directory
   // This prevents BGMOD from failing due to missing dependencies
-  if IsBGModInitialized then
+  if (not TestMode) and IsBGModInitialized then
   begin
     if not IsBGModOptiScalerInstalled(GetBGModOriginalPath) then
     begin
@@ -2711,7 +2716,8 @@ begin
   end;
 
    // Check for Goverlay updates
-  CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
+  if not TestMode then
+    CheckGoverlayUpdate(GVERSION, GCHANNEL, gupdateBitBtn);
 
   // Check and update config version
   CheckAndUpdateConfigVersion;
@@ -3361,7 +3367,7 @@ begin
     WriteLn(StdErr, '[DEBUG_GPU] mesaRadioButton.Enabled = ', mesaRadioButton.Enabled, ', Checked = ', mesaRadioButton.Checked);
 
     //Check for updates on startup
-    if Assigned(FOptiscalerUpdate) then
+    if (not TestMode) and Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
 
     // Populate Home tab and OptiScaler status card after update check
@@ -8088,6 +8094,8 @@ var
   IniFile: TIniFile;
   ConfigPath, ConfigDir, SeenVer: string;
 begin
+  // Test mode: skip release-notes fetch (network) and popup entirely
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
   try
     ConfigPath := GetConfigFilePath;
     ConfigDir := ExtractFilePath(ConfigPath);

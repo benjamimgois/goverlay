@@ -1226,6 +1226,9 @@ procedure TOptiscalerTab.CheckForUpdatesOnClick;
 var
   IsStableChannel: Boolean;
 begin
+  // Test mode: never spawn network update threads (deterministic test runs)
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
+
   if Assigned(FUpdateThread) then
   begin
     WriteLn('[DEBUG] CheckForUpdatesOnClick: Existing thread found, terminating for new check');
@@ -1474,8 +1477,8 @@ var
   FakeNvapiVerClean: string;
   FakeNvapiLineFound: Boolean;
   XessLineFound: Boolean;
-  FsrStableVal: string;
-  FsrEdgeVal: string;
+   FsrStableVal: string;
+   FsrEdgeVal: string;
   XessStableVal: string;
   XessEdgeVal: string;
   FsrStableValTemp: string;
@@ -1489,6 +1492,9 @@ var
   SkipDownloadExtract: Boolean;
   OrigPath: string;
 begin
+  // Test mode: never download updates (deterministic test runs)
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
+
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
   WriteLn('[DEBUG] ========================================');

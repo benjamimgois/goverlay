@@ -1,6 +1,0 @@
-pytest==9.0.3
-pyvirtualdisplay==3.0
-pyautogui==0.9.54
-pillow==12.2.0
-opencv-python==4.9.0.80
-

@@ -1,54 +1,59 @@
-# GOverlay E2E GUI Integration Tests
+# GOverlay Local Test Suite
 
-This directory contains automated end-to-end integration tests for GOverlay. The test runner launches GOverlay, simulates user navigation/interaction via `xdotool` inside a virtual framebuffer (`Xvfb`), and asserts that correct configuration files are written.
+Automated regression tests for GOverlay, designed to run locally before every
+commit. No X server, no display, no mouse synthesis: tests run in-process
+against the real application code.
 
-## Prerequisites
+## Architecture
 
-Before running the tests, make sure you have the required system packages installed.
-
-### Install System Dependencies
-
-* **Arch Linux / Manjaro:**
-  ```bash
-  sudo pacman -S xorg-server-xvfb xdotool imagemagick
-  ```
-
-* **Ubuntu / Debian / Linux Mint:**
-  ```bash
-  sudo apt install xvfb xdotool imagemagick
-  ```
-
-* **Fedora / RHEL:**
-  ```bash
-  sudo dnf install xorg-x11-server-Xvfb xdotool imagemagick
-  ```
-
-## Running the Tests
-
-### 1. Compile GOverlay
-Make sure you build the latest version of GOverlay before running the tests:
-```bash
-make
+```
+tests/
+  common/   test_isolation.pas  - shared sandbox: fresh mock HOME, seed
+                                  config, re-exec so the FPC runtime sees
+                                  the mocked environment from process start
+  logic/    logic_tests         - headless fpcunit tests for config logic
+                                  (driver preference, OptiScaler INI
+                                  round-trips). No GUI needed.
+  gui/      gui_tests           - instantiates the real Tgoverlayform with
+                                  Qt6 offscreen platform, drives controls
+                                  programmatically (OnClick invocations,
+                                  TRadioButton.Checked) and asserts on
+                                  config files + control state.
 ```
 
-### 2. Run the test suite
-Run the test runner script:
+Key properties:
+
+- **Deterministic**: `GOVERLAY_TEST=1` makes the app skip network update
+  checks, background download threads, and the changelog fetch on startup.
+- **Isolated**: every run uses a fresh temporary `$HOME`. Real user
+  configuration is never touched. The sandbox is deleted on success and
+  preserved (path printed) on failure.
+- **Falsifiable**: toggle tests assert both transitions, so pre-seeded
+  fixture values can never satisfy an assertion by accident.
+
+## Running
+
 ```bash
-python3 tests/run_e2e_tests.py
+make test          # builds and runs both layers
+make test-logic    # logic layer only
+make test-gui      # GUI wiring layer only
 ```
 
-The script will:
-* Spin up a virtual display `Xvfb` (Display `:99`).
-* Launch GOverlay inside the virtual framebuffer using a clean mock `$HOME` directory.
-* Click on the **OptiScaler** tab.
-* Toggle the **MESA** GPU Driver option and assert that `OptiScaler.ini` gets saved silently on disk.
-* Toggle the **NVIDIA** GPU Driver option and assert the update is reverted silently.
-* Capture screenshots of key UI interactions inside `tests/screenshots/` for debugging.
-* Gracefully kill the application and clean up.
+## Commit gate
 
-### Running on Host Display (Visible Mode)
-If you want to run the tests directly on your desktop (so you can watch the mouse clicks and window open/close in real-time), run:
+Install the pre-commit hook to block commits when tests fail:
+
 ```bash
-python3 tests/run_e2e_tests.py --no-virtual
+sh tests/install-hook.sh
 ```
-*Note: Your mouse cursor will be briefly hijacked during the test to simulate clicks.*
+
+Bypass in emergencies with `git commit --no-verify`.
+
+## Writing new tests
+
+- Logic tests: add a `TTestCase` in `logic/logic_test_cases.pas` and
+  `RegisterTest` it. Runs in milliseconds, no display.
+- GUI tests: add to `gui/gui_test_cases.pas`. The form is created once
+  before the suite runs; access controls via `goverlayform.<controlName>`
+  and invoke `.OnClick(control)` / set `.Checked` to exercise the real
+  `.lfm` event bindings.
