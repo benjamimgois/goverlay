@@ -2522,9 +2522,9 @@ begin
     mediaColorButton.ButtonColor := clWhite;
     frametimegraphColorButton.ButtonColor := clWhite;
 
-    fpscolor1ColorButton.ButtonColor := clGreen;
+    fpscolor1ColorButton.ButtonColor := clRed;
     fpscolor2ColorButton.ButtonColor := clYellow;
-    fpscolor3ColorButton.ButtonColor := clRed;
+    fpscolor3ColorButton.ButtonColor := clGreen;
     fpscolor2spinedit.Value := 30;
     fpscolor3spinedit.Value := 60;
 

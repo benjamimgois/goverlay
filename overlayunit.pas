@@ -4576,6 +4576,10 @@ wineColorButton.ButtonColor:=clFuchsia;
 engineColorButton.ButtonColor:=clFuchsia;
 batteryColorButton.ButtonColor:= clFuchsia;
 mediaColorButton.ButtonColor:= clFuchsia;
+frametimegraphColorButton.ButtonColor:= clFuchsia;
+fpscolor1ColorButton.ButtonColor:= clFuchsia;
+fpscolor2ColorButton.ButtonColor:= clFuchsia;
+fpscolor3ColorButton.ButtonColor:= clFuchsia;
 
 
 //Save button
