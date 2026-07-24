@@ -47,3 +47,16 @@
 - [x] 7.5 DLL/channel: `filenameComboBox` → bgmod.conf `DLL=version.dll/dxgi.dll`; `optversionComboBox` → `OPT_CHANNEL=1/0`
 - [x] 7.6 Update buttons: `GOVERLAY_TEST` guard added to `TOptiscalerTab.UpdateButtonClick` (no downloads in tests); both buttons clicked → no-op, no `OptiScaler.dll` appears
 - [x] 7.7 Harness lesson encoded: tab navigation reloads config from disk — tests navigate once, then set controls, then save (no navigate-before-save)
+
+## 8. Coverage Expansion: MangoHud Tabs (full)
+
+- [x] 8.1 Navigation + preset: `mangohudLabel.OnClick` → presetTabSheet active, 5 sub-tabs visible; `fullBitBtn` preset checks fps/gpu controls
+- [x] 8.2 Visual tab (16 elements): hud title, orientation, alpha, corners, bg/font colors, position grid, offsets, toggle key, no_display, hud_compact, horizontal_stretch
+- [x] 8.3 Metrics GPU (20 elements): gpu_text, stats+color, load colors block, vram+color, clocks, temps, fan, power(+limit), efficiency, voltage, throttling(+graph), model, vulkan driver, joule cycler (`flip_efficiency`)
+- [x] 8.4 Metrics CPU (11 elements): cpu_text, stats+color, core_load, core_bars via `coreloadtypeBitBtn` cycler, load colors, mhz, temp, power, efficiency, core_type
+- [x] 8.5 Metrics Mem/IO (7 elements): io_read/write+color, swap, ram+color, ram_temp, procmem, proc_vram
+- [x] 8.6 Metrics Other (18 elements): battery(+color/watt/time), gamepad battery, fps, fps_metrics variants via `fpsavgBitBtn` cycler, frame_timing+color, histogram cycler, frame_count, engine(+color/short), arch, wine(+color), winesync
+- [x] 8.7 Performance (20 elements): show_fps_limit, method late/early, toggle key, fps_limit+0-fallback, resolution, refresh, fcat, fex_stats, fsr, hdr, present_mode, fahrenheit, gamemode, vkbasalt, vsync, gl_vsync=n, filter bicubic/retro, af, picmip, fps_color block + fps_value auto-thresholds
+- [x] 8.8 Extras (15 elements): distro info+exec, display_server, time(+no_label), version#, media_player+color, network iface, output_folder, log_duration, autostart_log, log_interval, toggle_logging, log_versioning, upload_logs
+- [x] 8.9 Side effects: blacklist line auto-created (zenity default), bgmod.conf `GOVERLAY_MANGOHUD=1` + `MANGOHUD_CONFIGFILE`
+- [x] 8.10 Harness lessons: `ColorToHTMLColor` emits UPPERCASE hex; radio uncheck must go through the sibling radio
