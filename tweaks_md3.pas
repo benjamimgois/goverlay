@@ -491,6 +491,8 @@ var
   HoverIdx, RowIdx: Integer;
   R: TRect;
   Chk: TCheckBox;
+  Is2Col: Boolean;
+  ColWidth, Col, CatItemCount, CustomItemCount: Integer;
 begin
   PB := Sender as TPaintBox;
   PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
@@ -507,6 +509,8 @@ begin
   Y := -FForm.FTweaksScrollPos;
   RowIdx := 0;
   HoverIdx := FForm.FTweaksHoverIdx;
+  Is2Col := PB.Width >= 700;
+  ColWidth := PB.Width div 2;
 
   for CatIdx := 0 to 3 do
   begin
@@ -523,16 +527,36 @@ begin
 
     if CatExpanded[CatIdx] then
     begin
+      CatItemCount := 0;
       for i := 0 to TWEAK_ROW_COUNT - 1 do
       begin
         if TWEAK_ROWS[i].Category <> CatNames[CatIdx] then Continue;
         Chk := GetTweakRowCheckBox(FForm, i);
-        R := Rect(0, Y, PB.Width, Y + ItemH);
-        DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
-                 Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
-        Inc(Y, ItemH);
-        Inc(RowIdx);
+        if Is2Col then
+        begin
+          Col := CatItemCount mod 2;
+          if Col = 0 then
+            R := Rect(0, Y, ColWidth, Y + ItemH)
+          else
+            R := Rect(ColWidth, Y, PB.Width, Y + ItemH);
+          DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
+                   Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
+          Inc(CatItemCount);
+          Inc(RowIdx);
+          if Col = 1 then
+            Inc(Y, ItemH);
+        end
+        else
+        begin
+          R := Rect(0, Y, PB.Width, Y + ItemH);
+          DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
+                   Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
+          Inc(Y, ItemH);
+          Inc(RowIdx);
+        end;
       end;
+      if Is2Col and (CatItemCount mod 2 = 1) then
+        Inc(Y, ItemH);
     end;
   end;
 
@@ -545,14 +569,34 @@ begin
   // Custom rows from legacy grid (if any) or hidden listbox
   if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
   begin
+    CustomItemCount := 0;
     for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
     begin
-      R := Rect(0, Y, PB.Width, Y + ItemH);
-      DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
-               FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
-      Inc(Y, ItemH);
-      Inc(RowIdx);
+      if Is2Col then
+      begin
+        Col := CustomItemCount mod 2;
+        if Col = 0 then
+          R := Rect(0, Y, ColWidth, Y + ItemH)
+        else
+          R := Rect(ColWidth, Y, PB.Width, Y + ItemH);
+        DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
+                 FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
+        Inc(CustomItemCount);
+        Inc(RowIdx);
+        if Col = 1 then
+          Inc(Y, ItemH);
+      end
+      else
+      begin
+        R := Rect(0, Y, PB.Width, Y + ItemH);
+        DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
+                 FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
+        Inc(Y, ItemH);
+        Inc(RowIdx);
+      end;
     end;
+    if Is2Col and (CustomItemCount mod 2 = 1) then
+      Inc(Y, ItemH);
   end;
 
   // Update scrollbar
@@ -573,9 +617,9 @@ procedure TTweaksMD3Helper.MouseMove(Sender: TObject; Shift: TShiftState; X, Y: 
 var
   PB: TPaintBox;
   OldHover, ItemH, HeadH, RowIdx, i, CatIdx: Integer;
-  YPos: Integer;
+  YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
   CatName: string;
-  IsLatencyTweak: Boolean;
+  IsLatencyTweak, Is2Col: Boolean;
 begin
   PB := Sender as TPaintBox;
   OldHover := FForm.FTweaksHoverIdx;
@@ -586,6 +630,8 @@ begin
   HeadH := HeaderHeight;
   YPos := -FForm.FTweaksScrollPos;
   RowIdx := 0;
+  Is2Col := PB.Width >= 700;
+  ColWidth := PB.Width div 2;
 
   for CatIdx := 0 to 3 do
   begin
@@ -607,20 +653,41 @@ begin
 
     if FForm.FTweaksCatExpanded[CatIdx] then
     begin
+      CatItemCount := 0;
       for i := 0 to TWEAK_ROW_COUNT - 1 do
       begin
         if TWEAK_ROWS[i].Category <> CatName then Continue;
-        if (Y >= YPos) and (Y < YPos + ItemH) then
+        if Is2Col then
         begin
-          FForm.FTweaksHoverIdx := RowIdx;
-          if CatName = 'Latency reduction' then
-            IsLatencyTweak := True;
-          Break;
+          Col := CatItemCount mod 2;
+          if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
+          else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
+          if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
+          begin
+            FForm.FTweaksHoverIdx := RowIdx;
+            if CatName = 'Latency reduction' then
+              IsLatencyTweak := True;
+            Break;
+          end;
+          Inc(CatItemCount);
+          Inc(RowIdx);
+          if Col = 1 then Inc(YPos, ItemH);
+        end
+        else
+        begin
+          if (Y >= YPos) and (Y < YPos + ItemH) then
+          begin
+            FForm.FTweaksHoverIdx := RowIdx;
+            if CatName = 'Latency reduction' then
+              IsLatencyTweak := True;
+            Break;
+          end;
+          Inc(YPos, ItemH);
+          Inc(RowIdx);
         end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
       end;
       if FForm.FTweaksHoverIdx >= 0 then Break;
+      if Is2Col and (CatItemCount mod 2 = 1) then Inc(YPos, ItemH);
     end;
   end;
 
@@ -632,17 +699,38 @@ begin
     Inc(YPos, HeadH);
     Inc(RowIdx);
 
-    if Assigned(FForm.FTweaksGrid) then
+    if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    begin
+      CustomItemCount := 0;
       for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
       begin
-        if (Y >= YPos) and (Y < YPos + ItemH) then
+        if Is2Col then
         begin
-          FForm.FTweaksHoverIdx := RowIdx;
-          Break;
+          Col := CustomItemCount mod 2;
+          if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
+          else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
+          if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
+          begin
+            FForm.FTweaksHoverIdx := RowIdx;
+            Break;
+          end;
+          Inc(CustomItemCount);
+          Inc(RowIdx);
+          if Col = 1 then Inc(YPos, ItemH);
+        end
+        else
+        begin
+          if (Y >= YPos) and (Y < YPos + ItemH) then
+          begin
+            FForm.FTweaksHoverIdx := RowIdx;
+            Break;
+          end;
+          Inc(YPos, ItemH);
+          Inc(RowIdx);
         end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
       end;
+      if Is2Col and (CustomItemCount mod 2 = 1) then Inc(YPos, ItemH);
+    end;
   end;
 
   if IsLatencyTweak then
@@ -671,10 +759,11 @@ procedure TTweaksMD3Helper.MouseDown(Sender: TObject; Button: TMouseButton; Shif
 var
   PB: TPaintBox;
   ItemH, HeadH, RowIdx, i, CatIdx: Integer;
-  YPos: Integer;
+  YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
   CatName: string;
   ToggleX: Integer;
   Chk: TCheckBox;
+  Is2Col: Boolean;
 begin
   if Button <> mbLeft then Exit;
   PB := Sender as TPaintBox;
@@ -682,6 +771,8 @@ begin
   HeadH := HeaderHeight;
   YPos := -FForm.FTweaksScrollPos;
   RowIdx := 0;
+  Is2Col := PB.Width >= 700;
+  ColWidth := PB.Width div 2;
 
   for CatIdx := 0 to 3 do
   begin
@@ -704,46 +795,93 @@ begin
 
     if FForm.FTweaksCatExpanded[CatIdx] then
     begin
+      CatItemCount := 0;
       for i := 0 to TWEAK_ROW_COUNT - 1 do
       begin
         if TWEAK_ROWS[i].Category <> CatName then Continue;
-        if (Y >= YPos) and (Y < YPos + ItemH) then
+        if Is2Col then
         begin
-          // Check if click is on toggle (right side)
-          ToggleX := PB.Width - 66;
-          if X >= ToggleX then
+          Col := CatItemCount mod 2;
+          if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
+          else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
+
+          if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
           begin
-            Chk := GetTweakRowCheckBox(FForm, i);
-            if Assigned(Chk) then
+            ToggleX := ItemX + ItemW - 66;
+            if X >= ToggleX then
             begin
-              if (Chk = FForm.FAntilagCheckBox) and (not Chk.Checked) and
-                 (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
-                  FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
+              Chk := GetTweakRowCheckBox(FForm, i);
+              if Assigned(Chk) then
               begin
-                ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
-              end
-              else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
-                       (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
-                      (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
-              begin
-                ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
-              end
-              else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
-                ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
-              else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
-                ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
-              else
-              begin
-                Chk.Checked := not Chk.Checked;
-                PB.Invalidate;
+                if (Chk = FForm.FAntilagCheckBox) and (not Chk.Checked) and
+                   (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
+                    FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
+                begin
+                  ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
+                end
+                else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
+                         (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
+                        (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
+                begin
+                  ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
+                end
+                else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
+                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
+                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                else
+                begin
+                  Chk.Checked := not Chk.Checked;
+                  PB.Invalidate;
+                end;
               end;
             end;
+            Exit;
           end;
-          Exit;
+          Inc(CatItemCount);
+          Inc(RowIdx);
+          if Col = 1 then Inc(YPos, ItemH);
+        end
+        else
+        begin
+          if (Y >= YPos) and (Y < YPos + ItemH) then
+          begin
+            ToggleX := PB.Width - 66;
+            if X >= ToggleX then
+            begin
+              Chk := GetTweakRowCheckBox(FForm, i);
+              if Assigned(Chk) then
+              begin
+                if (Chk = FForm.FAntilagCheckBox) and (not Chk.Checked) and
+                   (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
+                    FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
+                begin
+                  ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
+                end
+                else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
+                         (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
+                        (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
+                begin
+                  ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
+                end
+                else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
+                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
+                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                else
+                begin
+                  Chk.Checked := not Chk.Checked;
+                  PB.Invalidate;
+                end;
+              end;
+            end;
+            Exit;
+          end;
+          Inc(YPos, ItemH);
+          Inc(RowIdx);
         end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
       end;
+      if Is2Col and (CatItemCount mod 2 = 1) then Inc(YPos, ItemH);
     end;
   end;
 
@@ -757,32 +895,68 @@ begin
     Inc(YPos, HeadH);
 
   // Custom rows
-  if Assigned(FForm.FTweaksGrid) then
+  if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+  begin
+    CustomItemCount := 0;
     for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
     begin
-      if (Y >= YPos) and (Y < YPos + ItemH) then
+      if Is2Col then
       begin
-        // Delete button hit area (left side, ~24x24 px)
-        if (X >= 16) and (X < 40) then
+        Col := CustomItemCount mod 2;
+        if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
+        else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
+
+        if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
         begin
-          // Remove custom row from grid
-          FForm.FTweaksGrid.DeleteRow(i);
-          PB.Invalidate;
+          // Delete button hit area (left side of item column: ItemX + 16 .. ItemX + 40)
+          if (X >= ItemX + 16) and (X < ItemX + 40) then
+          begin
+            FForm.FTweaksGrid.DeleteRow(i);
+            PB.Invalidate;
+            Exit;
+          end;
+          ToggleX := ItemX + ItemW - 66;
+          if X >= ToggleX then
+          begin
+            if FForm.FTweaksGrid.Cells[0, i] = '1' then
+              FForm.FTweaksGrid.Cells[0, i] := '0'
+            else
+              FForm.FTweaksGrid.Cells[0, i] := '1';
+            PB.Invalidate;
+          end;
           Exit;
         end;
-        ToggleX := PB.Width - 66;
-        if X >= ToggleX then
+        Inc(CustomItemCount);
+        Inc(RowIdx);
+        if Col = 1 then Inc(YPos, ItemH);
+      end
+      else
+      begin
+        if (Y >= YPos) and (Y < YPos + ItemH) then
         begin
-          if FForm.FTweaksGrid.Cells[0, i] = '1' then
-            FForm.FTweaksGrid.Cells[0, i] := '0'
-          else
-            FForm.FTweaksGrid.Cells[0, i] := '1';
-          PB.Invalidate;
+          if (X >= 16) and (X < 40) then
+          begin
+            FForm.FTweaksGrid.DeleteRow(i);
+            PB.Invalidate;
+            Exit;
+          end;
+          ToggleX := PB.Width - 66;
+          if X >= ToggleX then
+          begin
+            if FForm.FTweaksGrid.Cells[0, i] = '1' then
+              FForm.FTweaksGrid.Cells[0, i] := '0'
+            else
+              FForm.FTweaksGrid.Cells[0, i] := '1';
+            PB.Invalidate;
+          end;
+          Exit;
         end;
-        Exit;
+        Inc(YPos, ItemH);
+        Inc(RowIdx);
       end;
-      Inc(YPos, ItemH);
     end;
+    if Is2Col and (CustomItemCount mod 2 = 1) then Inc(YPos, ItemH);
+  end;
 end;
 
 procedure TTweaksMD3Helper.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
