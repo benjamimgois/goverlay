@@ -4094,6 +4094,10 @@ wineColorButton.ButtonColor:=$005B5BEB;
 engineColorButton.ButtonColor:=$005B5BEB;
 batteryColorButton.ButtonColor:= clLime;
 mediaColorButton.ButtonColor:= clYellow;
+frametimegraphColorButton.ButtonColor:= clwhite;
+fpscolor1ColorButton.ButtonColor:= clRed;
+fpscolor2ColorButton.ButtonColor:= clYellow;
+fpscolor3ColorButton.ButtonColor:= clGreen;
 
 
 //Save button
@@ -4833,6 +4837,10 @@ wineColorButton.ButtonColor:=clyellow;
 batteryColorButton.ButtonColor:= clSilver;
 mediaColorButton.ButtonColor:= clSilver;
 iordrwColorButton.ButtonColor:=clSilver;
+frametimegraphColorButton.ButtonColor:= clwhite;
+fpscolor1ColorButton.ButtonColor:= clRed;
+fpscolor2ColorButton.ButtonColor:= clYellow;
+fpscolor3ColorButton.ButtonColor:= clGreen;
 
 
 //Detect GPU and set colors according to BRAND using systemdetector
