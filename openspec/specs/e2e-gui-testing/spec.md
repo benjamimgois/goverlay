@@ -1,32 +1,55 @@
 ## Purpose
-Define the requirements for automated end-to-end (E2E) integration testing of the GOverlay GUI interface.
+Define the requirements for automated integration testing of the GOverlay GUI interface, replacing the previous pixel-coordinate E2E approach with deterministic in-process testing.
+
 ## Requirements
-### Requirement: E2E Headless GUI Test Execution
-The GOverlay test suite SHALL support headless execution on Linux systems by spawning GOverlay inside a virtual X server (`Xvfb`).
 
-To prevent interactive changelog modal popups from blocking inputs on fresh startup, the test runner SHALL seed a mock initial GOverlay configuration setting `ChangelogSeenVersion` to the current application version.
+### Requirement: In-Process Offscreen GUI Testing
 
-#### Scenario: Running test runner inside Xvfb
-- **WHEN** the test script is executed on a headless system
-- **THEN** it seeds a mock config file, launches an Xvfb virtual frame buffer, sets the `DISPLAY` environment variable, and boots the GOverlay binary successfully without spawning modal popups.
+The GUI test suite SHALL instantiate the real `Tgoverlayform` in-process using the Qt6 `offscreen` platform (`QT_QPA_PLATFORM=offscreen`), requiring no X server, virtual framebuffer, window manager, or mouse synthesis.
 
-### Requirement: Automated UI Navigation and Configuration Assertion
-The test runner SHALL be capable of navigating tabs (MangoHud, vkBasalt, OptiScaler) and asserting the correct mutation of config files upon clicking Save.
+Form instantiation itself SHALL be treated as a smoke test: the LCL streaming system validates every `.lfm` event binding at load time, so a missing or renamed handler fails the suite immediately.
 
-To handle fractional screen scaling, window resizing, and custom title bar decorations on host displays, the test runner SHALL calculate click coordinates dynamically: using absolute values for fixed-width sidebar elements (width=211), left-relative values for left-anchored components, right-relative coordinates for right-anchored components, and employ a sweep-based click search on critical settings until a successful configuration file update is observed.
+#### Scenario: Offscreen form smoke test
+- **WHEN** the GUI test harness starts with `QT_QPA_PLATFORM=offscreen` and an isolated `HOME`
+- **THEN** `Tgoverlayform` is created successfully with all `.lfm` bindings resolved, and the process exits cleanly after the suite finishes
 
-#### Scenario: Toggling GPU driver saves OptiScaler INI
-- **WHEN** the test runner clicks the "OptiScaler" tab and switches the driver from MESA to NVIDIA using LCL-anchoring-aware scaled coordinates and a vertical sweep of mouse click positions
-- **THEN** GOverlay silently saves `OptiScaler.ini` with `ForceReflex=false` and `SpoofDLSS=false`.
+### Requirement: Deterministic Test Mode
 
-#### Scenario: Main save button writes config files
-- **WHEN** the test runner edits settings on a tab and clicks the "Save" button using DPI-scaled coordinates
-- **THEN** GOverlay writes the final configuration files, and a desktop notification/console output is captured.
+The application SHALL skip network update checks and background download/install threads during startup when the environment variable `GOVERLAY_TEST=1` is set. When the variable is absent, startup behavior SHALL be unchanged.
 
-### Requirement: E2E Test Dependency Security
-The E2E test runner environment SHALL utilize non-vulnerable python dependency versions (specifically `pytest>=9.0.3` and `pillow>=12.2.0`) to avoid security alerts.
+#### Scenario: Test-mode startup performs no network activity
+- **WHEN** the application starts with `GOVERLAY_TEST=1`
+- **THEN** `FormCreate` completes without invoking update checks or starting background download threads
 
-#### Scenario: Running test runner checks secure dependency versions
-- **WHEN** the E2E test runner is executed or dependencies are audited
-- **THEN** both `pytest` and `pillow` package versions satisfy the secure minimums (`pytest>=9.0.3` and `pillow>=12.2.0`)
+#### Scenario: Normal startup unchanged
+- **WHEN** the application starts without `GOVERLAY_TEST` set
+- **THEN** startup behaves exactly as before this change (update checks and background threads run normally)
+
+### Requirement: Programmatic UI Interaction and Assertion
+
+GUI tests SHALL drive controls through the LCL event chain (`TControl.Click` for buttons/labels, assigning `TRadioButton.Checked` for radio options) and SHALL assert outcomes on both configuration files and control state (`Enabled`/`Checked`). Tests MUST be falsifiable: no assertion may be satisfiable by pre-seeded fixture data alone.
+
+#### Scenario: GPU driver toggle round-trip
+- **WHEN** the test sets `mesaRadioButton.Checked := True` and then `nvidiaRadioButton.Checked := True`
+- **THEN** `goverlay.conf` contains `GpuDriver=mesa` after the first action and `GpuDriver=nvidia` after the second, and the NVIDIA action leaves `forcereflexCheckBox.Enabled = False` and `spoofCheckBox.Checked = False`
+
+#### Scenario: Sidebar navigation switches active tab
+- **WHEN** the test invokes `Click` on the OptiScaler sidebar label
+- **THEN** the main page control's active page is the OptiScaler tab sheet
+
+### Requirement: Isolated Test Configuration Environment
+
+Each test run SHALL execute with `HOME` pointed at a fresh temporary directory, seeded only with the minimal fixtures required (e.g. `ChangelogSeenVersion` to suppress the changelog popup). The temporary directory SHALL be deleted on success and preserved with a printed path on failure.
+
+#### Scenario: Test run does not touch real user configuration
+- **WHEN** any test in the suite runs
+- **THEN** all application file writes occur under the temporary mock `HOME`, and the developer's real `$HOME/.config/goverlay` remains untouched
+
+### Requirement: Headless Logic Layer Testing
+
+Configuration read/write logic (GPU driver preference, OptiScaler INI round-trips) SHALL be covered by fpcunit tests that link no GUI units and run without a display.
+
+#### Scenario: Driver preference round-trip
+- **WHEN** the logic test saves a GPU driver preference and loads it back within an isolated `HOME`
+- **THEN** the loaded value equals the saved value for both `mesa` and `nvidia`
 
