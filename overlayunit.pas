@@ -1931,6 +1931,9 @@ engineColorButton.ButtonColor:=clwhite;
 batteryColorButton.ButtonColor:= clwhite;
 mediaColorButton.ButtonColor:= clwhite;
 frametimegraphColorButton.ButtonColor:= clwhite;
+fpscolor1ColorButton.ButtonColor:= clwhite;
+fpscolor2ColorButton.ButtonColor:= clwhite;
+fpscolor3ColorButton.ButtonColor:= clwhite;
 
 
 //Save button
