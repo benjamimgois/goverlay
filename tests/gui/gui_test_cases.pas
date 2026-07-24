@@ -61,6 +61,7 @@ type
     procedure TestMangoExtrasTab;
     procedure TestMangoGlobalSideEffects;
     procedure TestMangoSettingsPersistence;
+    procedure TestTabSwitchingPersistence;
   end;
 
 implementation
@@ -486,6 +487,10 @@ begin
   Content := ReadFileText(FakeIniPath);
   AssertTrue('force_reflex=2 persisted', Pos('force_reflex=2', Content) > 0);
 
+  goverlayform.LoadOptiScalerConfig;
+  AssertTrue('forcereflexCheckBox reloaded', goverlayform.forcereflexCheckBox.Checked);
+  AssertEquals('reflexComboBox reloaded', 2, goverlayform.reflexComboBox.ItemIndex);
+
   goverlayform.forcereflexCheckBox.Checked := False;
   SaveOpti;
   Content := ReadFileText(FakeIniPath);
@@ -505,6 +510,10 @@ begin
   AssertTrue('force_latencyflex=1 persisted', Pos('force_latencyflex=1', Content) > 0);
   AssertTrue('latencyflex_mode=1 persisted', Pos('latencyflex_mode=1', Content) > 0);
 
+  goverlayform.LoadOptiScalerConfig;
+  AssertTrue('forcelatencyflexCheckBox reloaded', goverlayform.forcelatencyflexCheckBox.Checked);
+  AssertEquals('latencyflexComboBox reloaded', 1, goverlayform.latencyflexComboBox.ItemIndex);
+
   goverlayform.forcelatencyflexCheckBox.Checked := False;
   SaveOpti;
   Content := ReadFileText(FakeIniPath);
@@ -522,6 +531,9 @@ begin
   SaveOpti;
   Content := ReadFileText(FakeIniPath);
   AssertTrue('enable_trace_logs=1 persisted', Pos('enable_trace_logs=1', Content) > 0);
+
+  goverlayform.LoadOptiScalerConfig;
+  AssertTrue('tracelogCheckBox reloaded', goverlayform.tracelogCheckBox.Checked);
 
   goverlayform.tracelogCheckBox.Checked := False;
   SaveOpti;
@@ -640,6 +652,23 @@ begin
   AssertTrue('horizontal_stretch=0', Pos('horizontal_stretch=0', C) > 0);
   AssertTrue('table_columns written', Pos('table_columns=', C) > 0);
 
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertEquals('hudtitleEdit reloaded', 'TestHUD', goverlayform.hudtitleEdit.Text);
+  AssertTrue('horizontalRadioButton reloaded', goverlayform.horizontalRadioButton.Checked);
+  AssertEquals('transpTrackBar reloaded', 6, goverlayform.transpTrackBar.Position);
+  AssertTrue('roundRadioButton reloaded', goverlayform.roundRadioButton.Checked);
+  AssertEquals('hudbackgroundColorButton reloaded', TColor($112233), TColor(goverlayform.hudbackgroundColorButton.ButtonColor));
+  AssertEquals('fontsizeTrackBar reloaded', 25, goverlayform.fontsizeTrackBar.Position);
+  AssertEquals('fontColorButton reloaded', TColor($00FF0000), TColor(goverlayform.fontColorButton.ButtonColor));
+  AssertTrue('toprightRadioButton reloaded', goverlayform.toprightRadioButton.Checked);
+  AssertEquals('offsetxSpinEdit reloaded', 12, goverlayform.offsetxSpinEdit.Value);
+  AssertEquals('offsetySpinEdit reloaded', 7, goverlayform.offsetySpinEdit.Value);
+  AssertEquals('hudonoffComboBox reloaded', 'Shift_R+F12', goverlayform.hudonoffComboBox.Text);
+  AssertTrue('hidehudCheckBox reloaded', goverlayform.hidehudCheckBox.Checked);
+  AssertTrue('hudcompactCheckBox reloaded', goverlayform.hudcompactCheckBox.Checked);
+  AssertTrue('horizontalstrechCheckBox reloaded', goverlayform.horizontalstrechCheckBox.Checked);
+
   // Reverse direction
   goverlayform.hudtitleEdit.Text := '';
   goverlayform.verticalRadioButton.Checked := True;
@@ -710,6 +739,30 @@ begin
   AssertTrue('vulkan_driver', Pos('vulkan_driver', C) > 0);
   AssertTrue('flip_efficiency (Joules/Frame caption)', Pos('flip_efficiency', C) > 0);
 
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertEquals('gpunameEdit reloaded', 'MyGPU', goverlayform.gpunameEdit.Text);
+  AssertTrue('gpuavgloadCheckBox reloaded', goverlayform.gpuavgloadCheckBox.Checked);
+  AssertEquals('gpuColorButton reloaded', TColor($00112233), TColor(goverlayform.gpuColorButton.ButtonColor));
+  AssertTrue('gpuloadcolorCheckBox reloaded', goverlayform.gpuloadcolorCheckBox.Checked);
+  AssertTrue('vramusageCheckBox reloaded', goverlayform.vramusageCheckBox.Checked);
+  AssertEquals('vramColorButton reloaded', TColor($00ABCDEF), TColor(goverlayform.vramColorButton.ButtonColor));
+  AssertTrue('gpufreqCheckBox reloaded', goverlayform.gpufreqCheckBox.Checked);
+  AssertTrue('gpumemfreqCheckBox reloaded', goverlayform.gpumemfreqCheckBox.Checked);
+  AssertTrue('gputempCheckBox reloaded', goverlayform.gputempCheckBox.Checked);
+  AssertTrue('gpumemtempCheckBox reloaded', goverlayform.gpumemtempCheckBox.Checked);
+  AssertTrue('gpujunctempCheckBox reloaded', goverlayform.gpujunctempCheckBox.Checked);
+  AssertTrue('gpufanCheckBox reloaded', goverlayform.gpufanCheckBox.Checked);
+  AssertTrue('gpupowerCheckBox reloaded', goverlayform.gpupowerCheckBox.Checked);
+  AssertTrue('gpupowerlimitCheckBox reloaded', goverlayform.gpupowerlimitCheckBox.Checked);
+  AssertTrue('gpuefficiencyCheckBox reloaded', goverlayform.gpuefficiencyCheckBox.Checked);
+  AssertTrue('gpuvoltageCheckBox reloaded', goverlayform.gpuvoltageCheckBox.Checked);
+  AssertTrue('gputhrottlingCheckBox reloaded', goverlayform.gputhrottlingCheckBox.Checked);
+  AssertTrue('gputhrottlinggraphCheckBox reloaded', goverlayform.gputhrottlinggraphCheckBox.Checked);
+  AssertTrue('gpumodelCheckBox reloaded', goverlayform.gpumodelCheckBox.Checked);
+  AssertTrue('vulkandriverCheckBox reloaded', goverlayform.vulkandriverCheckBox.Checked);
+  AssertEquals('gpuframesjouleBitBtn reloaded', 'Joules / Frame', goverlayform.gpuframesjouleBitBtn.Caption);
+
   // Reverse
   goverlayform.gpuavgloadCheckBox.Checked := False;
   goverlayform.vramusageCheckBox.Checked := False;
@@ -757,6 +810,20 @@ begin
   AssertTrue('cpu_efficiency', Pos('cpu_efficiency', C) > 0);
   AssertTrue('core_type', Pos('core_type', C) > 0);
 
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertEquals('cpunameEdit reloaded', 'MyCPU', goverlayform.cpunameEdit.Text);
+  AssertTrue('cpuavgloadCheckBox reloaded', goverlayform.cpuavgloadCheckBox.Checked);
+  AssertEquals('cpuColorButton reloaded', TColor($000000FF), TColor(goverlayform.cpuColorButton.ButtonColor));
+  AssertTrue('cpuloadcoreCheckBox reloaded', goverlayform.cpuloadcoreCheckBox.Checked);
+  AssertEquals('coreloadtypeBitBtn reloaded', 'Graph', goverlayform.coreloadtypeBitBtn.Caption);
+  AssertTrue('cpuloadcolorCheckBox reloaded', goverlayform.cpuloadcolorCheckBox.Checked);
+  AssertTrue('cpufreqCheckBox reloaded', goverlayform.cpufreqCheckBox.Checked);
+  AssertTrue('cputempCheckBox reloaded', goverlayform.cputempCheckBox.Checked);
+  AssertTrue('cpupowerCheckBox reloaded', goverlayform.cpupowerCheckBox.Checked);
+  AssertTrue('cpuefficiencyCheckBox reloaded', goverlayform.cpuefficiencyCheckBox.Checked);
+  AssertTrue('cpucoretypeCheckBox reloaded', goverlayform.cpucoretypeCheckBox.Checked);
+
   // Reverse
   goverlayform.cpuloadcoreCheckBox.Checked := False;
   goverlayform.cpufreqCheckBox.Checked := False;
@@ -792,6 +859,17 @@ begin
   AssertTrue('ram_temp', Pos('ram_temp', C) > 0);
   AssertTrue('procmem', Pos('procmem', C) > 0);
   AssertTrue('proc_vram', Pos('proc_vram', C) > 0);
+
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('diskioCheckBox reloaded', goverlayform.diskioCheckBox.Checked);
+  AssertEquals('iordrwColorButton reloaded', TColor($0010FF10), TColor(goverlayform.iordrwColorButton.ButtonColor));
+  AssertTrue('swapusageCheckBox reloaded', goverlayform.swapusageCheckBox.Checked);
+  AssertTrue('ramusageCheckBox reloaded', goverlayform.ramusageCheckBox.Checked);
+  AssertEquals('ramColorButton reloaded', TColor($00FF10FF), TColor(goverlayform.ramColorButton.ButtonColor));
+  AssertTrue('ramtempCheckBox reloaded', goverlayform.ramtempCheckBox.Checked);
+  AssertTrue('procmemCheckBox reloaded', goverlayform.procmemCheckBox.Checked);
+  AssertTrue('procvramCheckBox reloaded', goverlayform.procvramCheckBox.Checked);
 
   // Reverse
   goverlayform.diskioCheckBox.Checked := False;
@@ -849,6 +927,27 @@ begin
   AssertTrue('wine', Pos('wine', C) > 0);
   AssertTrue('wine_color hex', Pos('wine_color=666666', C) > 0);
   AssertTrue('winesync', Pos('winesync', C) > 0);
+
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('batteryCheckBox reloaded', goverlayform.batteryCheckBox.Checked);
+  AssertEquals('batteryColorButton reloaded', TColor($00333333), TColor(goverlayform.batteryColorButton.ButtonColor));
+  AssertTrue('batterywattCheckBox reloaded', goverlayform.batterywattCheckBox.Checked);
+  AssertTrue('batterytimeCheckBox reloaded', goverlayform.batterytimeCheckBox.Checked);
+  AssertTrue('deviceCheckBox reloaded', goverlayform.deviceCheckBox.Checked);
+  AssertTrue('fpsCheckBox reloaded', goverlayform.fpsCheckBox.Checked);
+  AssertTrue('fpsavgCheckBox reloaded', goverlayform.fpsavgCheckBox.Checked);
+  AssertTrue('frametimegraphCheckBox reloaded', goverlayform.frametimegraphCheckBox.Checked);
+  AssertEquals('frametimegraphColorButton reloaded', TColor($00444444), TColor(goverlayform.frametimegraphColorButton.ButtonColor));
+  AssertEquals('frametimetypeBitBtn reloaded', 'Histogram', goverlayform.frametimetypeBitBtn.Caption);
+  AssertTrue('framecountCheckBox reloaded', goverlayform.framecountCheckBox.Checked);
+  AssertTrue('engineversionCheckBox reloaded', goverlayform.engineversionCheckBox.Checked);
+  AssertEquals('engineColorButton reloaded', TColor($00555555), TColor(goverlayform.engineColorButton.ButtonColor));
+  AssertTrue('engineshortCheckBox reloaded', goverlayform.engineshortCheckBox.Checked);
+  AssertTrue('archCheckBox reloaded', goverlayform.archCheckBox.Checked);
+  AssertTrue('wineCheckBox reloaded', goverlayform.wineCheckBox.Checked);
+  AssertEquals('wineColorButton reloaded', TColor($00666666), TColor(goverlayform.wineColorButton.ButtonColor));
+  AssertTrue('winesyncCheckBox reloaded', goverlayform.winesyncCheckBox.Checked);
 
   // Reverse: 0.1% low variant writes the other fps_metrics form
   CycleBtnUntil(goverlayform.fpsavgBitBtn, '0.1% low', 4);
@@ -913,6 +1012,29 @@ begin
   // fps limit edit drives the two thresholds: 120 -> 60,120
   AssertTrue('fps_value=60,120', Pos('fps_value=60,120', C) > 0);
 
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('showfpslimCheckBox reloaded', goverlayform.showfpslimCheckBox.Checked);
+  AssertEquals('fpslimmetComboBox reloaded', 1, goverlayform.fpslimmetComboBox.ItemIndex);
+  AssertEquals('fpslimtoggleComboBox reloaded', 'Home', goverlayform.fpslimtoggleComboBox.Text);
+  AssertEquals('FFpsLimitEdit reloaded', '120', goverlayform.FFpsLimitEdit.Text);
+  AssertTrue('resolutionCheckBox reloaded', goverlayform.resolutionCheckBox.Checked);
+  AssertTrue('refreshrateCheckBox reloaded', goverlayform.refreshrateCheckBox.Checked);
+  AssertTrue('fcatCheckBox reloaded', goverlayform.fcatCheckBox.Checked);
+  AssertTrue('fexstatsCheckBox reloaded', goverlayform.fexstatsCheckBox.Checked);
+  AssertTrue('fsrCheckBox reloaded', goverlayform.fsrCheckBox.Checked);
+  AssertTrue('hdrCheckBox reloaded', goverlayform.hdrCheckBox.Checked);
+  AssertTrue('vpsCheckBox reloaded', goverlayform.vpsCheckBox.Checked);
+  AssertTrue('fahrenheitCheckBox reloaded', goverlayform.fahrenheitCheckBox.Checked);
+  AssertTrue('gamemodestatusCheckBox reloaded', goverlayform.gamemodestatusCheckBox.Checked);
+  AssertTrue('vkbasaltstatusCheckBox reloaded', goverlayform.vkbasaltstatusCheckBox.Checked);
+  AssertEquals('vsyncComboBox reloaded', 2, goverlayform.vsyncComboBox.ItemIndex);
+  AssertEquals('glvsyncComboBox reloaded', 2, goverlayform.glvsyncComboBox.ItemIndex);
+  AssertEquals('filterRadioGroup reloaded', 1, goverlayform.filterRadioGroup.ItemIndex);
+  AssertEquals('afTrackBar reloaded', 4, goverlayform.afTrackBar.Position);
+  AssertEquals('mipmapTrackBar reloaded', 2, goverlayform.mipmapTrackBar.Position);
+  AssertTrue('fpscolorCheckBox reloaded', goverlayform.fpscolorCheckBox.Checked);
+
   // Reverse
   goverlayform.fpslimmetComboBox.ItemIndex := 0; // late
   goverlayform.FFpsLimitEdit.Text := '';
@@ -971,6 +1093,23 @@ begin
   AssertTrue('toggle_logging key', Pos('toggle_logging=Shift_L+F10', C) > 0);
   AssertTrue('log_versioning', Pos('log_versioning', C) > 0);
   AssertTrue('upload_logs', Pos('upload_logs', C) > 0);
+
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('distroinfoCheckBox reloaded', goverlayform.distroinfoCheckBox.Checked);
+  AssertTrue('displayserverCheckBox reloaded', goverlayform.displayserverCheckBox.Checked);
+  AssertTrue('timeCheckBox reloaded', goverlayform.timeCheckBox.Checked);
+  AssertTrue('hudversionCheckBox reloaded', goverlayform.hudversionCheckBox.Checked);
+  AssertTrue('mediaCheckBox reloaded', goverlayform.mediaCheckBox.Checked);
+  AssertEquals('mediaColorButton reloaded', TColor($00777777), TColor(goverlayform.mediaColorButton.ButtonColor));
+  AssertTrue('networkCheckBox reloaded', goverlayform.networkCheckBox.Checked);
+  AssertEquals('logfolderEdit reloaded', '/tmp/testlogs', goverlayform.logfolderEdit.Text);
+  AssertEquals('durationTrackBar reloaded', 10, goverlayform.durationTrackBar.Position);
+  AssertEquals('delayTrackBar reloaded', 5, goverlayform.delayTrackBar.Position);
+  AssertEquals('intervalTrackBar reloaded', 100, goverlayform.intervalTrackBar.Position);
+  AssertEquals('logtoggleComboBox reloaded', 'Shift_L+F10', goverlayform.logtoggleComboBox.Text);
+  AssertTrue('versioningCheckBox reloaded', goverlayform.versioningCheckBox.Checked);
+  AssertTrue('autouploadCheckBox reloaded', goverlayform.autouploadCheckBox.Checked);
 
   // Reverse
   goverlayform.timeCheckBox.Checked := False;
@@ -1039,6 +1178,30 @@ begin
   AssertEquals('fpscolor1 restored', TColor($000000FF), TColor(goverlayform.fpscolor1ColorButton.ButtonColor));
   AssertEquals('gpuload1 restored', TColor($0000FF00), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
   AssertEquals('cpuload1 restored', TColor($0000FF00), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+end;
+
+procedure TGoverlayGuiTests.TestTabSwitchingPersistence;
+begin
+  NavigateMangoHud;
+
+  // Set non-default custom settings in MangoHud
+  goverlayform.hudtitleEdit.Text := 'TabSwitchTest';
+  goverlayform.glvsyncComboBox.ItemIndex := 4; // Unset
+  goverlayform.fpscolorCheckBox.Checked := True;
+  goverlayform.fpscolor1ColorButton.ButtonColor := $00112233;
+  SaveMango;
+
+  // Navigate away to OptiScaler tab (triggers sidebar tab click)
+  NavigateOptiScalerTab;
+  AssertTrue('OptiScaler tab active', goverlayform.goverlayPageControl.ActivePage = goverlayform.optiscalerTabSheet);
+
+  // Navigate back to MangoHud tab (triggers sidebar tab click which calls LoadMangoHudConfig)
+  NavigateMangoHud;
+
+  // Assert controls retained saved state after tab navigation
+  AssertEquals('hudtitleEdit persisted across tab switch', 'TabSwitchTest', goverlayform.hudtitleEdit.Text);
+  AssertEquals('glvsyncComboBox persisted across tab switch', 4, goverlayform.glvsyncComboBox.ItemIndex);
+  AssertEquals('fpscolor1 persisted across tab switch', TColor($00112233), TColor(goverlayform.fpscolor1ColorButton.ButtonColor));
 end;
 
 initialization
