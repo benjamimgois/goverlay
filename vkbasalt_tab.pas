@@ -1179,7 +1179,8 @@ var
   Y, ItemH, i: Integer;
   R: TRect;
   EffectName: string;
-  IsActive: Boolean;
+  IsActive, Is2Col: Boolean;
+  ColWidth, Col, ItemX, ItemW, ItemCount: Integer;
 begin
   with FForm do
   begin
@@ -1189,10 +1190,29 @@ begin
 
     ItemH := 44;
     Y := -FVkReshadeScrollPos;
+    Is2Col := PB.Width >= 500;
+    ColWidth := PB.Width div 2;
+    ItemCount := aveffectsListBox.Items.Count;
 
-    for i := 0 to aveffectsListBox.Items.Count - 1 do
+    for i := 0 to ItemCount - 1 do
     begin
-      R := Rect(0, Y, PB.Width, Y + ItemH);
+      if Is2Col then
+      begin
+        Col := i mod 2;
+        if Col = 0 then
+        begin
+          ItemX := 0;
+          ItemW := ColWidth;
+        end
+        else
+        begin
+          ItemX := ColWidth;
+          ItemW := PB.Width - ColWidth;
+        end;
+        R := Rect(ItemX, Y, ItemX + ItemW, Y + ItemH);
+      end
+      else
+        R := Rect(0, Y, PB.Width, Y + ItemH);
 
       // Determine if this effect is active
       IsActive := acteffectsListBox.Items.IndexOf(aveffectsListBox.Items[i]) >= 0;
@@ -1210,6 +1230,10 @@ begin
       PB.Canvas.Pen.Color := RGBToColor(40, 45, 60);
       PB.Canvas.Line(R.Left, R.Bottom - 1, R.Right, R.Bottom - 1);
 
+      // Right vertical divider between columns
+      if Is2Col and (Col = 0) then
+        PB.Canvas.Line(R.Right - 1, R.Top, R.Right - 1, R.Bottom - 1);
+
       // Toggle (right side)
       DrawToggle(PB.Canvas, R.Right - 60, R.Top + (R.Height - 24) div 2, IsActive);
 
@@ -1222,8 +1246,17 @@ begin
       PB.Canvas.Font.Color := clWhite;
       PB.Canvas.TextOut(R.Left + 16, R.Top + (R.Height - PB.Canvas.TextHeight(EffectName)) div 2, EffectName);
 
-      Inc(Y, ItemH);
+      if Is2Col then
+      begin
+        if Col = 1 then
+          Inc(Y, ItemH);
+      end
+      else
+        Inc(Y, ItemH);
     end;
+
+    if Is2Col and (ItemCount mod 2 = 1) then
+      Inc(Y, ItemH);
 
     // Update scrollbar
     if Y + FVkReshadeScrollPos > PB.Height then
@@ -1244,29 +1277,49 @@ procedure TVkBasaltTabHelper.VkReshadeMD3MouseMove(Sender: TObject; Shift: TShif
 var
   PB: TPaintBox;
   OldHover, ItemH, i: Integer;
-  YPos: Integer;
+  YPos, ColWidth, Col, ItemX, ItemW, ItemCount: Integer;
+  Is2Col: Boolean;
 begin
   with FForm do
   begin
     PB := Sender as TPaintBox;
-  OldHover := FVkReshadeHoverIdx;
-  FVkReshadeHoverIdx := -1;
+    OldHover := FVkReshadeHoverIdx;
+    FVkReshadeHoverIdx := -1;
 
-  ItemH := 44;
-  YPos := -FVkReshadeScrollPos;
+    ItemH := 44;
+    YPos := -FVkReshadeScrollPos;
+    Is2Col := PB.Width >= 500;
+    ColWidth := PB.Width div 2;
+    ItemCount := aveffectsListBox.Items.Count;
 
-  for i := 0 to aveffectsListBox.Items.Count - 1 do
-  begin
-    if (Y >= YPos) and (Y < YPos + ItemH) then
+    for i := 0 to ItemCount - 1 do
     begin
-      FVkReshadeHoverIdx := i;
-      Break;
-    end;
-    Inc(YPos, ItemH);
-  end;
+      if Is2Col then
+      begin
+        Col := i mod 2;
+        if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
+        else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
 
-  if OldHover <> FVkReshadeHoverIdx then
-    PB.Invalidate;
+        if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          FVkReshadeHoverIdx := i;
+          Break;
+        end;
+        if Col = 1 then Inc(YPos, ItemH);
+      end
+      else
+      begin
+        if (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          FVkReshadeHoverIdx := i;
+          Break;
+        end;
+        Inc(YPos, ItemH);
+      end;
+    end;
+
+    if OldHover <> FVkReshadeHoverIdx then
+      PB.Invalidate;
   end;
 end;
 
@@ -1274,36 +1327,65 @@ procedure TVkBasaltTabHelper.VkReshadeMD3MouseDown(Sender: TObject; Button: TMou
 var
   PB: TPaintBox;
   ItemH, i: Integer;
-  YPos: Integer;
+  YPos, ColWidth, Col, ItemX, ItemW, ItemCount: Integer;
   ToggleX: Integer;
   EffectPath: string;
+  Is2Col: Boolean;
 begin
   with FForm do
   begin
     if Button <> mbLeft then Exit;
-  PB := Sender as TPaintBox;
-  ItemH := 44;
-  YPos := -FVkReshadeScrollPos;
+    PB := Sender as TPaintBox;
+    ItemH := 44;
+    YPos := -FVkReshadeScrollPos;
+    Is2Col := PB.Width >= 500;
+    ColWidth := PB.Width div 2;
+    ItemCount := aveffectsListBox.Items.Count;
 
-  for i := 0 to aveffectsListBox.Items.Count - 1 do
-  begin
-    if (Y >= YPos) and (Y < YPos + ItemH) then
+    for i := 0 to ItemCount - 1 do
     begin
-      // Check if click is on toggle (right side)
-      ToggleX := PB.Width - 60;
-      if X >= ToggleX then
+      if Is2Col then
       begin
-        EffectPath := aveffectsListBox.Items[i];
-        if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
-          acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath))
-        else
-          acteffectsListBox.Items.Add(EffectPath);
-        PB.Invalidate;
+        Col := i mod 2;
+        if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
+        else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
+
+        if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          ToggleX := ItemX + ItemW - 60;
+          if X >= ToggleX then
+          begin
+            EffectPath := aveffectsListBox.Items[i];
+            if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
+              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath))
+            else
+              acteffectsListBox.Items.Add(EffectPath);
+            PB.Invalidate;
+          end;
+          Exit;
+        end;
+        if Col = 1 then Inc(YPos, ItemH);
+      end
+      else
+      begin
+        if (Y >= YPos) and (Y < YPos + ItemH) then
+        begin
+          // Check if click is on toggle (right side)
+          ToggleX := PB.Width - 60;
+          if X >= ToggleX then
+          begin
+            EffectPath := aveffectsListBox.Items[i];
+            if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
+              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath))
+            else
+              acteffectsListBox.Items.Add(EffectPath);
+            PB.Invalidate;
+          end;
+          Exit;
+        end;
+        Inc(YPos, ItemH);
       end;
-      Exit;
     end;
-    Inc(YPos, ItemH);
-  end;
   end;
 end;
 
