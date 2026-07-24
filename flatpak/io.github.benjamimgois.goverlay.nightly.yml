@@ -22,6 +22,7 @@ finish-args:
   # Additional Steam libraries on secondary drives
   - --filesystem=/mnt:ro
   - --filesystem=/media:ro
+  - --filesystem=/run/media:ro
   
   # Network access for downloads (OptiScaler, ReShade shaders, updates)
   - --share=network
