@@ -2524,7 +2524,7 @@ begin
 
     fpscolor1ColorButton.ButtonColor := clRed;
     fpscolor2ColorButton.ButtonColor := clYellow;
-    fpscolor3ColorButton.ButtonColor := clGreen;
+    fpscolor3ColorButton.ButtonColor := clLime;
     fpscolor2spinedit.Value := 30;
     fpscolor3spinedit.Value := 60;
 

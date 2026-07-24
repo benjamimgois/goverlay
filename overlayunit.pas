@@ -4097,7 +4097,7 @@ mediaColorButton.ButtonColor:= clYellow;
 frametimegraphColorButton.ButtonColor:= clLime;
 fpscolor1ColorButton.ButtonColor:= clRed;
 fpscolor2ColorButton.ButtonColor:= clYellow;
-fpscolor3ColorButton.ButtonColor:= clGreen;
+fpscolor3ColorButton.ButtonColor:= clLime;
 
 
 //Save button
@@ -4840,7 +4840,7 @@ iordrwColorButton.ButtonColor:=clSilver;
 frametimegraphColorButton.ButtonColor:= clwhite;
 fpscolor1ColorButton.ButtonColor:= clRed;
 fpscolor2ColorButton.ButtonColor:= clYellow;
-fpscolor3ColorButton.ButtonColor:= clGreen;
+fpscolor3ColorButton.ButtonColor:= clLime;
 
 
 //Detect GPU and set colors according to BRAND using systemdetector
