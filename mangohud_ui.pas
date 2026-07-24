@@ -2520,7 +2520,7 @@ begin
     engineColorButton.ButtonColor := clWhite;
     batteryColorButton.ButtonColor := clWhite;
     mediaColorButton.ButtonColor := clWhite;
-    frametimegraphColorButton.ButtonColor := clWhite;
+    frametimegraphColorButton.ButtonColor := clLime;
 
     fpscolor1ColorButton.ButtonColor := clRed;
     fpscolor2ColorButton.ButtonColor := clYellow;
