@@ -61,6 +61,10 @@ type
     procedure TestMangoExtrasTab;
     procedure TestMangoGlobalSideEffects;
     procedure TestMangoSettingsPersistence;
+    procedure NavigateTweaksTab;
+    procedure TestVkBasaltRoundTrip;
+    procedure TestVkSumiRoundTrip;
+    procedure TestTweaksTabRoundTrip;
     procedure TestTabSwitchingPersistence;
   end;
 
@@ -1202,6 +1206,64 @@ begin
   AssertEquals('hudtitleEdit persisted across tab switch', 'TabSwitchTest', goverlayform.hudtitleEdit.Text);
   AssertEquals('glvsyncComboBox persisted across tab switch', 4, goverlayform.glvsyncComboBox.ItemIndex);
   AssertEquals('fpscolor1 persisted across tab switch', TColor($00112233), TColor(goverlayform.fpscolor1ColorButton.ButtonColor));
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltRoundTrip;
+begin
+  NavigateVkBasaltTab;
+  goverlayform.casTrackBar.Position := 8;
+  goverlayform.dlsTrackBar.Position := 6;
+  goverlayform.fxaaTrackBar.Position := 4;
+  goverlayform.smaaTrackBar.Position := 2;
+  goverlayform.vkbtogglekeyCombobox.Text := 'Home';
+
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadVkBasaltConfig;
+  AssertEquals('casTrackBar reloaded', 8, goverlayform.casTrackBar.Position);
+  AssertEquals('dlsTrackBar reloaded', 6, goverlayform.dlsTrackBar.Position);
+  AssertEquals('fxaaTrackBar reloaded', 4, goverlayform.fxaaTrackBar.Position);
+  AssertEquals('smaaTrackBar reloaded', 2, goverlayform.smaaTrackBar.Position);
+  AssertEquals('vkbtogglekeyCombobox reloaded', 'Home', goverlayform.vkbtogglekeyCombobox.Text);
+end;
+
+procedure TGoverlayGuiTests.TestVkSumiRoundTrip;
+begin
+  NavigateVkSumiTab;
+  goverlayform.FVsTrackbars[0].Position := 80;
+  goverlayform.FVsTrackbars[1].Position := 120;
+
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  // Reload config into UI and assert trackbars retain state
+  goverlayform.LoadVkSumiConfig;
+  AssertEquals('FVsTrackbars[0] brightness reloaded', 80, goverlayform.FVsTrackbars[0].Position);
+  AssertEquals('FVsTrackbars[1] contrast reloaded', 120, goverlayform.FVsTrackbars[1].Position);
+end;
+
+procedure TGoverlayGuiTests.NavigateTweaksTab;
+begin
+  AssertTrue('tweaksLabel.OnClick is bound', Assigned(goverlayform.tweaksLabel.OnClick));
+  goverlayform.tweaksLabel.OnClick(goverlayform.tweaksLabel);
+end;
+
+procedure TGoverlayGuiTests.TestTweaksTabRoundTrip;
+begin
+  NavigateTweaksTab;
+  AssertTrue('tweaks tab active after click', goverlayform.goverlayPageControl.ActivePage = goverlayform.tweakstabsheet);
+
+  goverlayform.simdeckCheckBox.Checked := True;
+  goverlayform.enhdrCheckBox.Checked := True;
+  goverlayform.obs_vkcaptureCheckBox.Checked := True;
+
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  // Reload config into UI and assert controls retain state
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('simdeckCheckBox reloaded', goverlayform.simdeckCheckBox.Checked);
+  AssertTrue('enhdrCheckBox reloaded', goverlayform.enhdrCheckBox.Checked);
+  AssertTrue('obs_vkcaptureCheckBox reloaded', goverlayform.obs_vkcaptureCheckBox.Checked);
 end;
 
 initialization

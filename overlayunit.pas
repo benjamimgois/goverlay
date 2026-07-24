@@ -600,6 +600,8 @@ type
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
     procedure LoadOptiScalerConfig;
+    procedure LoadVkSumiConfig;
+    procedure LoadTweaksFromFGMod;
 
   private
     FCommandCopiedTime: QWord;
@@ -817,7 +819,6 @@ type
     // Exposed: procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
     procedure BuildVkSumiTab;
     procedure VkSumiSliderChange(Sender: TObject);
-    procedure LoadVkSumiConfig;
     procedure VsRestoreBtnClick(Sender: TObject);
     // Exposed: procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
     // Exposed: procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
@@ -921,7 +922,6 @@ type
     // Exposed: procedure UpdateGeSpeedButtonState;
     // Exposed: procedure UpdateGlobalEnableMenuItemVisibility;
     procedure RemoveMangoHudFromFGMod;
-    procedure LoadTweaksFromFGMod;
     procedure InitCustomEnvGroupBox;
     procedure ApplyCustomEnvTheme;
     procedure CustomEnvAddClick(Sender: TObject);
