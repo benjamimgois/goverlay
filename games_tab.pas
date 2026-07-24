@@ -2929,6 +2929,8 @@ begin
   if not (Sender is TMenuItem) then Exit;
   FolderPath := TMenuItem(Sender).Caption;
   if FolderPath = '' then Exit;
+  if Copy(FolderPath, 1, 8) = 'Remove: ' then
+    FolderPath := Copy(FolderPath, 9, MaxInt);
 
   // Ask user if they want to remove that folder
   if MessageDlg('Remove non-Steam folder', 
@@ -2965,8 +2967,7 @@ var
   Pt: TPoint;
   NonSteamFile: string;
   Lines: TStringList;
-  I: Integer;
-  RemoveParent: TMenuItem;
+  I, AddedCount: Integer;
   SubItem: TMenuItem;
   FolderPath: string;
 begin
@@ -2979,35 +2980,31 @@ begin
 
   NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
   Lines := TStringList.Create;
+  AddedCount := 0;
   try
     if FileExists(NonSteamFile) then
+    begin
       Lines.LoadFromFile(NonSteamFile);
-
-    // Parent item: "Remove game folders"
-    RemoveParent := TMenuItem.Create(FRemoveFoldersMenu);
-    RemoveParent.Caption := 'Remove game folders';
-    FRemoveFoldersMenu.Items.Add(RemoveParent);
-
-    // Check if there are any folders to remove
-    if Lines.Count = 0 then
-    begin
-      SubItem := TMenuItem.Create(FRemoveFoldersMenu);
-      SubItem.Caption := '(No folders found)';
-      SubItem.Enabled := False;
-      RemoveParent.Add(SubItem);
-    end
-    else
-    begin
       for I := 0 to Lines.Count - 1 do
       begin
         FolderPath := Trim(Lines[I]);
         if FolderPath = '' then Continue;
         
-        SubItem := TMenuItem.Create(FRemoveFoldersMenu);
-        SubItem.Caption := FolderPath;
+        SubItem := TMenuItem.Create(nil);
+        SubItem.Caption := 'Remove: ' + FolderPath;
         SubItem.OnClick := @RemoveFolderMenuItemClick;
-        RemoveParent.Add(SubItem);
+        FRemoveFoldersMenu.Items.Add(SubItem);
+        Inc(AddedCount);
       end;
+    end;
+
+    // Check if there are any folders to remove
+    if AddedCount = 0 then
+    begin
+      SubItem := TMenuItem.Create(nil);
+      SubItem.Caption := '(No non-Steam folders added)';
+      SubItem.Enabled := False;
+      FRemoveFoldersMenu.Items.Add(SubItem);
     end;
   finally
     Lines.Free;

@@ -66,6 +66,7 @@ type
     procedure TestVkSumiRoundTrip;
     procedure TestTweaksTabRoundTrip;
     procedure TestTabSwitchingPersistence;
+    procedure TestNonSteamRemoveFoldersMenu;
   end;
 
 implementation
@@ -1264,6 +1265,34 @@ begin
   AssertTrue('simdeckCheckBox reloaded', goverlayform.simdeckCheckBox.Checked);
   AssertTrue('enhdrCheckBox reloaded', goverlayform.enhdrCheckBox.Checked);
   AssertTrue('obs_vkcaptureCheckBox reloaded', goverlayform.obs_vkcaptureCheckBox.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestNonSteamRemoveFoldersMenu;
+var
+  NonSteamFile, FakeFolder: string;
+  Lines: TStringList;
+begin
+  NonSteamFile := IsolatedHome + '/.config/goverlay/nonsteam_folders.txt';
+  FakeFolder := IsolatedHome + '/fake_nonsteam_game_folder';
+  ForceDirectories(ExtractFilePath(NonSteamFile));
+
+  // Write initial nonsteam_folders.txt with a fake folder path
+  Lines := TStringList.Create;
+  try
+    Lines.Add(FakeFolder);
+    Lines.SaveToFile(NonSteamFile);
+  finally
+    Lines.Free;
+  end;
+
+  // Execute ShowRemoveFoldersMenu multiple times to verify clearing and rebuilding runs without LCL double-free crashes
+  goverlayform.ShowRemoveFoldersMenu(goverlayform, 0, 0);
+  AssertTrue('FRemoveFoldersMenu created', Assigned(goverlayform.FRemoveFoldersMenu));
+  AssertEquals('Top-level menu contains folder item', 1, goverlayform.FRemoveFoldersMenu.Items.Count);
+  AssertEquals('MenuItem caption formatted directly', 'Remove: ' + FakeFolder, goverlayform.FRemoveFoldersMenu.Items[0].Caption);
+
+  goverlayform.ShowRemoveFoldersMenu(goverlayform, 0, 0);
+  AssertEquals('Second invocation clears and rebuilds without crash', 1, goverlayform.FRemoveFoldersMenu.Items.Count);
 end;
 
 initialization
