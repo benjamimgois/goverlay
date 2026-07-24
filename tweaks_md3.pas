@@ -16,7 +16,7 @@ type
   end;
 
 const
-  TWEAK_ROW_COUNT = 28;
+  TWEAK_ROW_COUNT = 29;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
     (CheckBox: nil; Category: 'Performance'; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
@@ -45,7 +45,8 @@ const
     (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'),
     (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU (breaks FSR4 upgrade path)'),
     (CheckBox: nil; Category: 'Latency reduction'; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2')
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
+    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'PROTON_VKD3D_LOWLATENCY=1';      Description: '[proton-cachyos] low-latency frame pacing capabilities')
   );
 
 type
@@ -104,6 +105,7 @@ begin
     25: Result := Form.FLowLatencySpoofNvidiaCheckBox;
     26: Result := Form.FLowLatencyHideAmdGpuCheckBox;
     27: Result := Form.FAntilagCheckBox;
+    28: Result := Form.FProtonVkd3dLowLatencyCheckBox;
   else
     Result := nil;
   end;
@@ -240,6 +242,12 @@ begin
   FForm.FLowLatencyHideAmdGpuCheckBox.Visible := False;
   FForm.FLowLatencyHideAmdGpuCheckBox.Name    := 'lowLatencyHideAmdGpuCheckBox';
   FForm.FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA';
+
+  FForm.FProtonVkd3dLowLatencyCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonVkd3dLowLatencyCheckBox.Parent  := FForm;
+  FForm.FProtonVkd3dLowLatencyCheckBox.Visible := False;
+  FForm.FProtonVkd3dLowLatencyCheckBox.Name    := 'protonVkd3dLowLatencyCheckBox';
+  FForm.FProtonVkd3dLowLatencyCheckBox.Caption := 'Enable PROTON_VKD3D_LOWLATENCY';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FForm.FTweaksGrid := TStringGrid.Create(FForm);
@@ -384,7 +392,7 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
   var
     ToggleX, ToggleY, DelX: Integer;
     VarRect, DescRect: TRect;
-    Prefix, PrefixMesa, RestDesc: string;
+    Prefix, PrefixMesa, PrefixCachy, RestDesc: string;
     OldColor: TColor;
     PrefixW: Integer;
   const
@@ -443,6 +451,7 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
 
     Prefix := '[low_latency_layer]';
     PrefixMesa := '[MESA]';
+    PrefixCachy := '[proton-cachyos]';
     if (Pos(Prefix, ADesc) = 1) then
     begin
       OldColor := ACanvas.Font.Color;
@@ -461,6 +470,16 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       PrefixW := ACanvas.TextWidth(PrefixMesa);
       ACanvas.Font.Color := OldColor;
       RestDesc := Copy(ADesc, Length(PrefixMesa) + 1, MaxInt);
+      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
+    end
+    else if (Pos(PrefixCachy, ADesc) = 1) then
+    begin
+      OldColor := ACanvas.Font.Color;
+      ACanvas.Font.Color := RGBToColor(160, 120, 240); // Purple/Violet
+      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, PrefixCachy);
+      PrefixW := ACanvas.TextWidth(PrefixCachy);
+      ACanvas.Font.Color := OldColor;
+      RestDesc := Copy(ADesc, Length(PrefixCachy) + 1, MaxInt);
       ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
     end
     else
@@ -618,13 +637,13 @@ var
   PB: TPaintBox;
   OldHover, ItemH, HeadH, RowIdx, i, CatIdx: Integer;
   YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
-  CatName: string;
-  IsLatencyTweak, Is2Col: Boolean;
+  CatName, TweakHint: string;
+  Is2Col: Boolean;
 begin
   PB := Sender as TPaintBox;
   OldHover := FForm.FTweaksHoverIdx;
   FForm.FTweaksHoverIdx := -1;
-  IsLatencyTweak := False;
+  TweakHint := '';
 
   ItemH := ItemHeight;
   HeadH := HeaderHeight;
@@ -665,8 +684,10 @@ begin
           if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
           begin
             FForm.FTweaksHoverIdx := RowIdx;
-            if CatName = 'Latency reduction' then
-              IsLatencyTweak := True;
+            if TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1' then
+              TweakHint := 'Works only with proton-cachyos'
+            else if CatName = 'Latency reduction' then
+              TweakHint := 'Needs Korthos low latency layer installed';
             Break;
           end;
           Inc(CatItemCount);
@@ -678,8 +699,10 @@ begin
           if (Y >= YPos) and (Y < YPos + ItemH) then
           begin
             FForm.FTweaksHoverIdx := RowIdx;
-            if CatName = 'Latency reduction' then
-              IsLatencyTweak := True;
+            if TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1' then
+              TweakHint := 'Works only with proton-cachyos'
+            else if CatName = 'Latency reduction' then
+              TweakHint := 'Needs Korthos low latency layer installed';
             Break;
           end;
           Inc(YPos, ItemH);
@@ -733,11 +756,11 @@ begin
     end;
   end;
 
-  if IsLatencyTweak then
+  if TweakHint <> '' then
   begin
-    if PB.Hint <> 'Needs Korthos low latency layer installed' then
+    if PB.Hint <> TweakHint then
     begin
-      PB.Hint := 'Needs Korthos low latency layer installed';
+      PB.Hint := TweakHint;
       PB.ShowHint := True;
     end;
   end
@@ -1181,6 +1204,7 @@ begin
                FForm.FLowLatencyReflexCheckBox.Checked or
                FForm.FLowLatencySpoofNvidiaCheckBox.Checked or
                FForm.FLowLatencyHideAmdGpuCheckBox.Checked or
+               FForm.FProtonVkd3dLowLatencyCheckBox.Checked or
                FForm.FFSR4UpgradeCheckBox.Checked or
                FForm.FDLSSUpgradeCheckBox.Checked or
                FForm.FXeSSUpgradeCheckBox.Checked or
@@ -1301,6 +1325,9 @@ begin
     if FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
       Ini.WriteString('Env', 'DXVK_CONFIG', 'dxgi.customDeviceDescription=10de:2204,dxgi.hideAmdGpu=True');
 
+    if FForm.FProtonVkd3dLowLatencyCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_VKD3D_LOWLATENCY', '1');
+
     // 4. Custom environment variables from grid
     if Assigned(FForm.FTweaksGrid) then
     begin
@@ -1407,6 +1434,7 @@ begin
     FForm.FLowLatencyReflexCheckBox.Checked := False;
     FForm.FLowLatencySpoofNvidiaCheckBox.Checked := False;
     FForm.FLowLatencyHideAmdGpuCheckBox.Checked := False;
+    FForm.FProtonVkd3dLowLatencyCheckBox.Checked := False;
 
     // Reset custom env list
     FForm.customenvEdit.Text := '';
@@ -1483,6 +1511,8 @@ begin
         FForm.FLowLatencySpoofNvidiaCheckBox.Checked := Val = '1'
       else if SameText(Key, 'DXVK_CONFIG') and (Pos('hideAmdGpu', Val) > 0) then
         FForm.FLowLatencyHideAmdGpuCheckBox.Checked := True
+      else if SameText(Key, 'PROTON_VKD3D_LOWLATENCY') then
+        FForm.FProtonVkd3dLowLatencyCheckBox.Checked := Val = '1'
       else if not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
       begin
         // Treat as custom environment variable

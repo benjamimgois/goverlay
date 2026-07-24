@@ -1137,6 +1137,7 @@ type
     FLowLatencyReflexCheckBox: TCheckBox;
     FLowLatencySpoofNvidiaCheckBox: TCheckBox;
     FLowLatencyHideAmdGpuCheckBox: TCheckBox;
+    FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1
 
     // Navigation rail fields (moved from private)
     FNavItems:       array of TPanel;    // item panels
@@ -2682,8 +2683,8 @@ begin
   TestMode := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
 
   //Program Version
-  GVERSION := '1.8.9';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.8.10';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
