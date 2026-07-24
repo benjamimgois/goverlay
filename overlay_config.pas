@@ -1769,8 +1769,9 @@ begin
     case Settings.GlvsyncItemIndex of
       0: ConfigLines.Add('gl_vsync=-1');
       1: ConfigLines.Add('gl_vsync=0');
-      2: ConfigLines.Add('gl_vsync=1');
-      3: ConfigLines.Add('gl_vsync=n');
+      2: ConfigLines.Add('gl_vsync=n');
+      3: ConfigLines.Add('gl_vsync=1');
+      4: ConfigLines.Add('gl_vsync=4');
     end;
 
     // Filters

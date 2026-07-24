@@ -2786,6 +2786,7 @@ var
   IntValue: Integer;
   FloatValue: Double;
   j: Integer;
+  ColorList: TStringList;
 begin
   with FForm do
   begin
@@ -2935,16 +2936,104 @@ begin
       if TryStrToInt(AValue, IntValue) then
         vsyncComboBox.ItemIndex := IntValue;
     end
+    else if SameText(AKey, MANGO_KEY_GPU_LIST) then
+    begin
+      if SameText(AValue, '0,1') then
+      begin
+        for j := 0 to pcidevComboBox.Items.Count - 1 do
+        begin
+          if SameText(pcidevComboBox.Items[j], 'Use both GPUs') then
+          begin
+            pcidevComboBox.ItemIndex := j;
+            Break;
+          end;
+        end;
+      end
+      else if TryStrToInt(AValue, IntValue) then
+      begin
+        if (IntValue >= 0) and (IntValue < pcidevComboBox.Items.Count) then
+          pcidevComboBox.ItemIndex := IntValue;
+      end;
+    end
+    else if SameText(AKey, MANGO_KEY_GPU_LOAD_COLOR) then
+    begin
+      ColorList := TStringList.Create;
+      try
+        ColorList.Delimiter := ',';
+        ColorList.StrictDelimiter := True;
+        ColorList.DelimitedText := AValue;
+        if ColorList.Count >= 3 then
+        begin
+          gpuload1ColorButton.ButtonColor := HexToColor(ColorList[0]);
+          gpuload2ColorButton.ButtonColor := HexToColor(ColorList[1]);
+          gpuload3ColorButton.ButtonColor := HexToColor(ColorList[2]);
+        end;
+      finally
+        ColorList.Free;
+      end;
+    end
+    else if SameText(AKey, MANGO_KEY_CPU_LOAD_COLOR) then
+    begin
+      ColorList := TStringList.Create;
+      try
+        ColorList.Delimiter := ',';
+        ColorList.StrictDelimiter := True;
+        ColorList.DelimitedText := AValue;
+        if ColorList.Count >= 3 then
+        begin
+          cpuload1ColorButton.ButtonColor := HexToColor(ColorList[0]);
+          cpuload2ColorButton.ButtonColor := HexToColor(ColorList[1]);
+          cpuload3ColorButton.ButtonColor := HexToColor(ColorList[2]);
+        end;
+      finally
+        ColorList.Free;
+      end;
+    end
+    else if SameText(AKey, MANGO_KEY_FPS_COLOR) then
+    begin
+      ColorList := TStringList.Create;
+      try
+        ColorList.Delimiter := ',';
+        ColorList.StrictDelimiter := True;
+        ColorList.DelimitedText := AValue;
+        if ColorList.Count >= 3 then
+        begin
+          fpscolor1ColorButton.ButtonColor := HexToColor(ColorList[0]);
+          fpscolor2ColorButton.ButtonColor := HexToColor(ColorList[1]);
+          fpscolor3ColorButton.ButtonColor := HexToColor(ColorList[2]);
+        end;
+      finally
+        ColorList.Free;
+      end;
+    end
+    else if SameText(AKey, MANGO_KEY_FPS_VALUE) then
+    begin
+      ColorList := TStringList.Create;
+      try
+        ColorList.Delimiter := ',';
+        ColorList.StrictDelimiter := True;
+        ColorList.DelimitedText := AValue;
+        if ColorList.Count >= 2 then
+        begin
+          fpscolor2SpinEdit.Value := StrToIntDef(ColorList[0], fpscolor2SpinEdit.Value);
+          fpscolor3SpinEdit.Value := StrToIntDef(ColorList[1], fpscolor3SpinEdit.Value);
+        end;
+      finally
+        ColorList.Free;
+      end;
+    end
     else if SameText(AKey, MANGO_KEY_GL_VSYNC) then
     begin
       if SameText(AValue, MANGO_GL_VSYNC_MINUS1) then
         glvsyncComboBox.ItemIndex := 0
       else if SameText(AValue, MANGO_GL_VSYNC_0) then
         glvsyncComboBox.ItemIndex := 1
-      else if SameText(AValue, MANGO_GL_VSYNC_1) then
-        glvsyncComboBox.ItemIndex := 2
       else if SameText(AValue, MANGO_GL_VSYNC_N) then
-        glvsyncComboBox.ItemIndex := 3;
+        glvsyncComboBox.ItemIndex := 2
+      else if SameText(AValue, MANGO_GL_VSYNC_1) then
+        glvsyncComboBox.ItemIndex := 3
+      else if SameText(AValue, MANGO_GL_VSYNC_4) then
+        glvsyncComboBox.ItemIndex := 4;
     end
     else if SameText(AKey, MANGO_KEY_AF) then
     begin

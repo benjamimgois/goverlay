@@ -60,12 +60,13 @@ type
     procedure TestMangoPerformanceTab;
     procedure TestMangoExtrasTab;
     procedure TestMangoGlobalSideEffects;
+    procedure TestMangoSettingsPersistence;
   end;
 
 implementation
 
 uses
-  overlayunit, themeunit, IniFiles, FileUtil, test_isolation;
+  overlayunit, themeunit, IniFiles, FileUtil, test_isolation, Graphics;
 
 function TGoverlayGuiTests.ReadGpuDriver: string;
 var
@@ -882,7 +883,7 @@ begin
   goverlayform.gamemodestatusCheckBox.Checked := True;
   goverlayform.vkbasaltstatusCheckBox.Checked := True;
   goverlayform.vsyncComboBox.ItemIndex := 2;
-  goverlayform.glvsyncComboBox.ItemIndex := 3; // literal 'n'
+  goverlayform.glvsyncComboBox.ItemIndex := 2; // literal 'n'
   goverlayform.filterRadioGroup.ItemIndex := 1; // bicubic
   goverlayform.afTrackBar.Position := 4;
   goverlayform.mipmapTrackBar.Position := 2;
@@ -996,6 +997,48 @@ begin
   AssertEquals('GOVERLAY_MANGOHUD flag', '1', ReadBgmodConf('Config', 'GOVERLAY_MANGOHUD'));
   AssertTrue('MANGOHUD_CONFIGFILE env points at conf',
     Pos('MangoHud.conf', ReadBgmodConf('Env', 'MANGOHUD_CONFIGFILE')) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestMangoSettingsPersistence;
+var
+  C: string;
+begin
+  NavigateMangoHud;
+
+  // 1. OpenGL VSYNC = Unset (index 4)
+  goverlayform.glvsyncComboBox.ItemIndex := 4; // Unset
+
+  // 2. FPS Colors
+  goverlayform.fpscolorCheckBox.Checked := True;
+  goverlayform.fpscolor1ColorButton.ButtonColor := $000000FF; // Red
+  goverlayform.fpscolor2ColorButton.ButtonColor := $0000FFFF; // Yellow
+  goverlayform.fpscolor3ColorButton.ButtonColor := $0000FF00; // Green
+
+  // 3. GPU Load Colors
+  goverlayform.gpuloadcolorCheckBox.Checked := True;
+  goverlayform.gpuload1ColorButton.ButtonColor := $0000FF00; // Green
+  goverlayform.gpuload2ColorButton.ButtonColor := $0000FFFF; // Yellow
+  goverlayform.gpuload3ColorButton.ButtonColor := $000000FF; // Red
+
+  // 4. CPU Load Colors
+  goverlayform.cpuloadcolorCheckBox.Checked := True;
+  goverlayform.cpuload1ColorButton.ButtonColor := $0000FF00; // Green
+  goverlayform.cpuload2ColorButton.ButtonColor := $0000FFFF; // Yellow
+  goverlayform.cpuload3ColorButton.ButtonColor := $000000FF; // Red
+
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('gl_vsync=4 written', Pos('gl_vsync=4', C) > 0);
+  AssertTrue('fps_color written', Pos('fps_color=', C) > 0);
+  AssertTrue('gpu_load_color written', Pos('gpu_load_color=', C) > 0);
+  AssertTrue('cpu_load_color written', Pos('cpu_load_color=', C) > 0);
+
+  // Reload config into UI and assert values are restored rather than resetting to defaults
+  goverlayform.LoadMangoHudConfig;
+  AssertEquals('glvsyncComboBox Unset index preserved', 4, goverlayform.glvsyncComboBox.ItemIndex);
+  AssertEquals('fpscolor1 restored', TColor($000000FF), TColor(goverlayform.fpscolor1ColorButton.ButtonColor));
+  AssertEquals('gpuload1 restored', TColor($0000FF00), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('cpuload1 restored', TColor($0000FF00), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
 end;
 
 initialization

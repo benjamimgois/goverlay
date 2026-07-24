@@ -173,6 +173,11 @@ const
   MANGO_KEY_EXEC               = 'exec';
   MANGO_KEY_GPU_LIST           = 'gpu_list';
   MANGO_KEY_PCI_DEV            = 'pci_dev';
+  MANGO_KEY_GPU_LOAD_COLOR     = 'gpu_load_color';
+  MANGO_KEY_CPU_LOAD_COLOR     = 'cpu_load_color';
+  MANGO_KEY_FPS_VALUE          = 'fps_value';
+  MANGO_KEY_GPU_LOAD_VALUE     = 'gpu_load_value';
+  MANGO_KEY_CPU_LOAD_VALUE     = 'cpu_load_value';
 
   // Boolean flags
   MANGO_FLAG_HORIZONTAL        = 'horizontal';
@@ -265,6 +270,7 @@ const
   MANGO_GL_VSYNC_0             = '0';
   MANGO_GL_VSYNC_1             = '1';
   MANGO_GL_VSYNC_N             = 'n';
+  MANGO_GL_VSYNC_4             = '4';
 
   // FPS metrics values
   MANGO_FPS_METRICS_1PCT       = '0.01';
