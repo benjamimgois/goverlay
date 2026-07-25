@@ -2165,12 +2165,18 @@ begin
   FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
   // GPU image: right-aligned, 5px from right edge
   gpuImage.Left := CW - gpuImage.Width - 5;
+  // Center GPU name edit & color button
+  gpunameEdit.Left    := (CW - gpunameEdit.Width) div 2;
+  gpuColorButton.Left := (CW - gpuColorButton.Width) div 2;
 
   // CPU card
   CardTop := MARGIN + ActiveGpuH + GAP;
   FMtCpuCard.SetBounds(MARGIN, CardTop, CW, ActiveCpuH);
   // CPU image: right-aligned
   cpuImage.Left := CW - cpuImage.Width - 5;
+  // Center CPU name edit & color button
+  cpunameEdit.Left    := (CW - cpunameEdit.Width) div 2;
+  cpuColorButton.Left := (CW - cpuColorButton.Width) div 2;
 
   // Compute dynamic column positions across CW
   ColW := Max(115, (CW - 50) div 6);
@@ -2644,9 +2650,9 @@ begin
     FLoggingCaptureBtn.Top   := 61 + HDR;
   end;
 
-  autouploadCheckBox.Left    := X4;
+  autouploadCheckBox.Left    := Max(X4, X3 + 172);
   autouploadCheckBox.Top     := 67 + HDR;
-  versioningCheckBox.Left    := X5;
+  versioningCheckBox.Left    := Max(X5, autouploadCheckBox.Left + 150);
   versioningCheckBox.Top     := 67 + HDR;
 
   // Anchor Log folder controls to the bottom of the Logging card so they are
