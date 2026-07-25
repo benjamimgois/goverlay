@@ -67,12 +67,13 @@ type
     procedure TestTweaksTabRoundTrip;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
+    procedure TestWindowResizabilityAndGeometry;
   end;
 
 implementation
 
 uses
-  overlayunit, themeunit, IniFiles, FileUtil, test_isolation, Graphics;
+  overlayunit, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
 
 function TGoverlayGuiTests.ReadGpuDriver: string;
 var
@@ -1293,6 +1294,32 @@ begin
 
   goverlayform.ShowRemoveFoldersMenu(goverlayform, 0, 0);
   AssertEquals('Second invocation clears and rebuilds without crash', 1, goverlayform.FRemoveFoldersMenu.Items.Count);
+end;
+
+procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;
+var
+  ConfigPath: string;
+  Ini: TIniFile;
+begin
+  AssertEquals('BorderStyle is bsSizeable', Ord(bsSizeable), Ord(goverlayform.BorderStyle));
+  AssertEquals('Constraints.MinWidth is 1045', 1045, goverlayform.Constraints.MinWidth);
+  AssertEquals('Constraints.MinHeight is 683', 683, goverlayform.Constraints.MinHeight);
+
+  goverlayform.Width := 1150;
+  goverlayform.Height := 750;
+  goverlayform.SaveWindowGeometry;
+
+  ConfigPath := GetConfigFilePath;
+  AssertTrue('Config file exists after saving geometry', FileExists(ConfigPath));
+
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    AssertEquals('Width saved in INI', 1150, Ini.ReadInteger('Window', 'Width', 0));
+    AssertEquals('Height saved in INI', 750, Ini.ReadInteger('Window', 'Height', 0));
+    AssertFalse('Maximized false in INI', Ini.ReadBool('Window', 'Maximized', True));
+  finally
+    Ini.Free;
+  end;
 end;
 
 initialization

@@ -893,6 +893,9 @@ type
     function  SanitizeFileName(const AName: string): string;
     // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
     procedure CheckAndUpdateConfigVersion;
+  public
+    procedure SaveWindowGeometry;
+    procedure LoadWindowGeometry;
     procedure CheckAndShowChangelog;
     procedure ShowChangelogAsync(Data: PtrInt);
     procedure RefreshGameCardsAsync(Data: PtrInt);
@@ -2600,6 +2603,7 @@ procedure Tgoverlayform.FormClose(Sender: TObject; var CloseAction: TCloseAction
 var
   k: Integer;
 begin
+  SaveWindowGeometry;
   FClosing := True;
   if Assigned(FCoverThread) then
   begin
@@ -2725,6 +2729,7 @@ begin
 
   // Check and update config version
   CheckAndUpdateConfigVersion;
+  LoadWindowGeometry;
 
   //Set initial TAB
   goverlayPageControl.ActivePage:=gamesTabsheet;
@@ -8075,6 +8080,72 @@ begin
     try
       // Always update config with the current version
       IniFile.WriteString('General', 'Version', GVERSION);
+    finally
+      IniFile.Free;
+    end;
+  except
+    // Fail silently so startup isn't aborted
+  end;
+end;
+
+procedure Tgoverlayform.LoadWindowGeometry;
+var
+  IniFile: TIniFile;
+  ConfigPath, ConfigDir: string;
+  W, H: Integer;
+  IsMax: Boolean;
+begin
+  Constraints.MinWidth := 1045;
+  Constraints.MinHeight := 683;
+  try
+    ConfigPath := GetConfigFilePath;
+    ConfigDir := ExtractFilePath(ConfigPath);
+    if not DirectoryExists(ConfigDir) or not FileExists(ConfigPath) then
+      Exit;
+
+    IniFile := TIniFile.Create(ConfigPath);
+    try
+      W := IniFile.ReadInteger('Window', 'Width', 0);
+      H := IniFile.ReadInteger('Window', 'Height', 0);
+      IsMax := IniFile.ReadBool('Window', 'Maximized', False);
+
+      if (W >= Constraints.MinWidth) and (H >= Constraints.MinHeight) then
+      begin
+        Self.Width := W;
+        Self.Height := H;
+      end;
+
+      if IsMax then
+        Self.WindowState := wsMaximized;
+    finally
+      IniFile.Free;
+    end;
+  except
+    // Fail silently so startup isn't aborted
+  end;
+end;
+
+procedure Tgoverlayform.SaveWindowGeometry;
+var
+  IniFile: TIniFile;
+  ConfigPath, ConfigDir: string;
+  IsMax: Boolean;
+begin
+  try
+    ConfigPath := GetConfigFilePath;
+    ConfigDir := ExtractFilePath(ConfigPath);
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+
+    IniFile := TIniFile.Create(ConfigPath);
+    try
+      IsMax := (Self.WindowState = wsMaximized);
+      IniFile.WriteBool('Window', 'Maximized', IsMax);
+      if not IsMax then
+      begin
+        IniFile.WriteInteger('Window', 'Width', Self.Width);
+        IniFile.WriteInteger('Window', 'Height', Self.Height);
+      end;
     finally
       IniFile.Free;
     end;

@@ -3,13 +3,13 @@ object goverlayform: Tgoverlayform
   Height = 683
   Top = 245
   Width = 1045
-  BorderStyle = bsSingle
+  BorderStyle = bsSizeable
   Caption = 'Goverlay <GVERSION> <GCHANNEL>'
   ClientHeight = 683
   ClientWidth = 1045
   Color = clBtnText
-  Constraints.MinHeight = 450
-  Constraints.MinWidth = 500
+  Constraints.MinHeight = 683
+  Constraints.MinWidth = 1045
   DoubleBuffered = True
   Font.Quality = fqAntialiased
   Icon.Data = {

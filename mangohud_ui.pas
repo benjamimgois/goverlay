@@ -842,11 +842,11 @@ const
   HDR      = 34;
   R1_TOP   = HDR + 4;
   R1_H     = 118;
-  R2_TOP   = HDR + 130;
-  R2H      = 216;
-  HUD_SEP  = R2_TOP + R2H + 4;
-  HUD_TOP  = HUD_SEP + 6;
-  CARD_H   = HUD_TOP + HUD_H + 4;
+  CARD_H   = 515;  // fixed height — LFM anchors grow the card vertically
+  R2_H     = 216;
+  R2_TOP   = R1_TOP + R1_H + 4;  // = 156
+  HUD_SEP  = R2_TOP + R2_H + 4;  // = 376
+  HUD_TOP  = HUD_SEP + 6;        // = 382
 var
   W, S1, S2, SW: Integer;
   SecW1, SecW2, SecW3: Integer;
@@ -873,7 +873,7 @@ begin
     gpudescEdit.Width := FVisualGpuBar.ClientWidth - gpudescEdit.Left - 5;
   end;
 
-  // Visual Settings card — full width
+  // Visual Settings card — fixed height; LFM Anchor(akBottom) grows it automatically
   FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, CARD_H);
 
   // ── Row 1 section panels ──────────────────────────────────────────────────
@@ -928,11 +928,11 @@ begin
 
   // ── Row 2 section panels ──────────────────────────────────────────────────
   if Assigned(FVisualSections[3]) then
-    FVisualSections[3].SetBounds(4,      R2_TOP, SecW1, R2H);
+    FVisualSections[3].SetBounds(4,      R2_TOP, SecW1, R2_H);
   if Assigned(FVisualSections[4]) then
-    FVisualSections[4].SetBounds(S1 + 4, R2_TOP, SecW2, R2H);
+    FVisualSections[4].SetBounds(S1 + 4, R2_TOP, SecW2, R2_H);
   if Assigned(FVisualSections[5]) then
-    FVisualSections[5].SetBounds(S2 + 4, R2_TOP, SecW3, R2H);
+    FVisualSections[5].SetBounds(S2 + 4, R2_TOP, SecW3, R2_H);
 
   // Fonts section: elastic widths (controls are relative to section panel)
   fontComboBox.Width     := SecW1 - 12;
@@ -941,7 +941,7 @@ begin
 
   // Position section: Image fills panel, radio buttons proportional within it
   ImgW := SecW2 - 8;
-  ImgH := R2H - 26;
+  ImgH := R2_H - 26;
   Image1.SetBounds(4, 22, ImgW, ImgH);
   RW  := topleftRadioButton.Width;
   RH  := topleftRadioButton.Height;
@@ -1542,9 +1542,9 @@ const
   MARGIN   = 2;
   GAP      = 5;   // gap between cards
   ROW1_TOP = 0;
-  ROW1_H   = 180;
-  ROW2_TOP = 185;
+  ROW1_H   = 180;  // fixed — LFM Anchor(akBottom) grows fpslimiterGroupBox automatically
   ROW2_H   = 389;
+  ROW2_TOP = ROW1_TOP + ROW1_H + GAP;  // = 185
   GB_OFF   = 24;
   IMARGIN  = 6;
   IGAP     = 8;
@@ -1691,12 +1691,6 @@ begin
       fpscolor2SpinEdit.Left := fpscolor2ColorButton.Left + (ColW - SpinW) div 2;
       fpscolor3SpinEdit.Left := fpscolor3ColorButton.Left + (ColW - SpinW) div 2;
 
-      WriteLn(Format('DEBUG: FPerfLimitSec.ClientWidth = %d', [FPerfLimitSec.ClientWidth]));
-      WriteLn(Format('DEBUG: ColorStart = %d, ColW = %d, ColorGap = %d', [ColorStart, ColW, ColorGap]));
-      WriteLn(Format('DEBUG: Button1: Left=%d, Width=%d', [fpscolor1ColorButton.Left, fpscolor1ColorButton.Width]));
-      WriteLn(Format('DEBUG: Button2: Left=%d, Width=%d', [fpscolor2ColorButton.Left, fpscolor2ColorButton.Width]));
-      WriteLn(Format('DEBUG: Button3: Left=%d, Width=%d', [fpscolor3ColorButton.Left, fpscolor3ColorButton.Width]));
-      flush(stdout);
 
       // Center vertically within available space [MiddleStart, MiddleEnd]
       // Middle group vertical height:
@@ -2107,13 +2101,12 @@ const
   MARGIN = 8;
   GAP    = 6;
   HDR    = 34;
-  // Card heights: HDR + (LFM deepest control bottom + bottom padding)
-  // GPU: procvramCheckBox bottom = 248+22=270 → +8 = 278 → GPU_H = 34+278 = 312
-  // CPU: iordrwColorButton bottom = 224+15=239 → +8 = 247 → CPU_H = 34+247 = 281
-  GPU_H = 312;
-  CPU_H = 281;
+  BASE_GPU_H = 312;
+  BASE_CPU_H = 281;
 var
-  CW, TotalH, CardTop: Integer;
+  CW, TotalH, CardTop, AvailH, ActiveGpuH, ActiveCpuH: Integer;
+  ColW, X0, X1, X2, X3, X4, X5: Integer;
+  YOff1, YOff2, YOff3, CpuYOff1, CpuYOff2: Integer;
 begin
   with FForm do
   begin
@@ -2123,21 +2116,154 @@ begin
 
   FMtScrollBox.HorzScrollBar.Range := 0;
 
-  TotalH := MARGIN + GPU_H + GAP + CPU_H + MARGIN;
+  AvailH := FMtScrollBox.ClientHeight - 3 * MARGIN - GAP;
+  if AvailH > (BASE_GPU_H + BASE_CPU_H) then
+  begin
+    ActiveGpuH := Max(BASE_GPU_H, Round(AvailH * 0.52));
+    ActiveCpuH := Max(BASE_CPU_H, AvailH - ActiveGpuH);
+  end
+  else
+  begin
+    ActiveGpuH := BASE_GPU_H;
+    ActiveCpuH := BASE_CPU_H;
+  end;
+
+  TotalH := MARGIN + ActiveGpuH + GAP + ActiveCpuH + MARGIN;
   if FMtScrollBox.ClientHeight > TotalH then
     TotalH := FMtScrollBox.ClientHeight;
   FMtBgPanel.SetBounds(0, 0, FMtScrollBox.ClientWidth, TotalH);
 
   // GPU card
-  FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
-  // GPU image: right-aligned, 5px from right edge, same top as LFM (5+HDR)
+  FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
+  // GPU image: right-aligned, 5px from right edge
   gpuImage.Left := CW - gpuImage.Width - 5;
 
   // CPU card
-  CardTop := MARGIN + GPU_H + GAP;
-  FMtCpuCard.SetBounds(MARGIN, CardTop, CW, CPU_H);
+  CardTop := MARGIN + ActiveGpuH + GAP;
+  FMtCpuCard.SetBounds(MARGIN, CardTop, CW, ActiveCpuH);
   // CPU image: right-aligned
   cpuImage.Left := CW - cpuImage.Width - 5;
+
+  // Compute dynamic column positions across CW
+  ColW := Max(115, (CW - 50) div 6);
+  X0 := 11;
+  X1 := X0 + ColW;
+  X2 := X0 + ColW * 2;
+  X3 := X0 + ColW * 3;
+  X4 := X0 + ColW * 4;
+  X5 := X0 + ColW * 5;
+
+  // Compute dynamic vertical section offsets
+  YOff1 := Max(0, (ActiveGpuH - BASE_GPU_H) div 3);
+  YOff2 := Max(0, ((ActiveGpuH - BASE_GPU_H) * 2) div 3);
+  YOff3 := Max(0, ActiveGpuH - BASE_GPU_H);
+
+  CpuYOff1 := Max(0, (ActiveCpuH - BASE_CPU_H) div 2);
+  CpuYOff2 := Max(0, ActiveCpuH - BASE_CPU_H);
+
+  // Reposition GPU Metrics controls dynamically across X0..X5 and Y offsets
+  mainmetricLabel.Top            := 56 + HDR;
+  gpuavgloadCheckBox.Left        := X0;
+  gpuavgloadCheckBox.Top         := 77 + HDR;
+  gpuloadcolorCheckBox.Left      := X1;
+  gpuloadcolorCheckBox.Top       := 77 + HDR;
+  gpuload1ColorButton.Left       := X1;
+  gpuload1ColorButton.Top        := 99 + HDR;
+  gpuload2ColorButton.Left       := X1 + 30;
+  gpuload2ColorButton.Top        := 99 + HDR;
+  gpuload3ColorButton.Left       := X1 + 61;
+  gpuload3ColorButton.Top        := 99 + HDR;
+  vramusageCheckBox.Left         := X2;
+  vramusageCheckBox.Top          := 77 + HDR;
+  vramColorButton.Left           := X2 - 2;
+  vramColorButton.Top            := 99 + HDR;
+  gpufreqCheckBox.Left           := X3;
+  gpufreqCheckBox.Top            := 77 + HDR;
+  gpumemfreqCheckBox.Left        := X4;
+  gpumemfreqCheckBox.Top         := 77 + HDR;
+
+  gputempLabel.Top               := 113 + HDR + YOff1;
+  gputempCheckBox.Left           := X0;
+  gputempCheckBox.Top            := 134 + HDR + YOff1;
+  gpumemtempCheckBox.Left        := X1;
+  gpumemtempCheckBox.Top         := 134 + HDR + YOff1;
+  gpujunctempCheckBox.Left       := X2;
+  gpujunctempCheckBox.Top        := 134 + HDR + YOff1;
+  gpufanCheckBox.Left            := X3;
+  gpufanCheckBox.Top             := 134 + HDR + YOff1;
+
+  gpupowerLabel.Top              := 170 + HDR + YOff2;
+  gpupowerCheckBox.Left          := X0;
+  gpupowerCheckBox.Top           := 191 + HDR + YOff2;
+  gpuvoltageCheckBox.Left        := X1;
+  gpuvoltageCheckBox.Top         := 191 + HDR + YOff2;
+  gputhrottlingCheckBox.Left     := X2;
+  gputhrottlingCheckBox.Top      := 191 + HDR + YOff2;
+  gputhrottlinggraphCheckBox.Left:= X3;
+  gputhrottlinggraphCheckBox.Top := 191 + HDR + YOff2;
+  gpuefficiencyCheckBox.Left     := X4;
+  gpuefficiencyCheckBox.Top      := 191 + HDR + YOff2;
+  gpupowerlimitCheckBox.Left     := X5;
+  gpupowerlimitCheckBox.Top      := 191 + HDR + YOff2;
+  gpuframesjouleBitBtn.Left      := X4 - 3;
+  gpuframesjouleBitBtn.Top       := 213 + HDR + YOff2;
+
+  gpuinfoLabel.Top               := 227 + HDR + YOff3;
+  gpumodelCheckBox.Left          := X0;
+  gpumodelCheckBox.Top           := 248 + HDR + YOff3;
+  vulkandriverCheckBox.Left      := X1;
+  vulkandriverCheckBox.Top       := 248 + HDR + YOff3;
+  procvramCheckBox.Left          := X2;
+  procvramCheckBox.Top           := 248 + HDR + YOff3;
+
+  // Reposition CPU Metrics controls dynamically across X0..X5 and CpuYOffs
+  cpumainmetricsLabel.Top        := 45 + HDR;
+  cpuavgloadCheckBox.Left        := X0;
+  cpuavgloadCheckBox.Top         := 66 + HDR;
+  cpuloadcolorCheckBox.Left      := X1;
+  cpuloadcolorCheckBox.Top       := 66 + HDR;
+  cpuload1ColorButton.Left       := X1;
+  cpuload1ColorButton.Top        := 88 + HDR;
+  cpuload2ColorButton.Left       := X1 + 30;
+  cpuload2ColorButton.Top        := 88 + HDR;
+  cpuload3ColorButton.Left       := X1 + 61;
+  cpuload3ColorButton.Top        := 88 + HDR;
+  cpuloadcoreCheckBox.Left       := X2;
+  cpuloadcoreCheckBox.Top        := 66 + HDR;
+  coreloadtypeBitBtn.Left        := X2 - 2;
+  coreloadtypeBitBtn.Top         := 88 + HDR;
+  cpufreqCheckBox.Left           := X3;
+  cpufreqCheckBox.Top            := 66 + HDR;
+  cpucoretypeCheckBox.Left       := X4;
+  cpucoretypeCheckBox.Top        := 66 + HDR;
+
+  cputempLabel.Top               := 113 + HDR + CpuYOff1;
+  cputempCheckBox.Left           := X0;
+  cputempCheckBox.Top            := 134 + HDR + CpuYOff1;
+  cpupowerCheckBox.Left          := X1;
+  cpupowerCheckBox.Top           := 134 + HDR + CpuYOff1;
+  intelpowerfixBitBtn.Left       := X1 + cpupowerCheckBox.Width + 4;
+  intelpowerfixBitBtn.Top        := 135 + HDR + CpuYOff1;
+  cpuefficiencyCheckBox.Left     := X2;
+  cpuefficiencyCheckBox.Top      := 134 + HDR + CpuYOff1;
+  cpuframesjouleBitBtn.Left      := X2 - 3;
+  cpuframesjouleBitBtn.Top       := 156 + HDR + CpuYOff1;
+  ramtempCheckBox.Left           := X3;
+  ramtempCheckBox.Top            := 134 + HDR + CpuYOff1;
+
+  memLabel.Top                   := 181 + HDR + CpuYOff2;
+  ramusageCheckBox.Left          := X0;
+  ramusageCheckBox.Top           := 202 + HDR + CpuYOff2;
+  ramColorButton.Left            := X0 - 6;
+  ramColorButton.Top             := 224 + HDR + CpuYOff2;
+  diskioCheckBox.Left            := X1;
+  diskioCheckBox.Top             := 202 + HDR + CpuYOff2;
+  iordrwColorButton.Left         := X1 - 6;
+  iordrwColorButton.Top          := 224 + HDR + CpuYOff2;
+  procmemCheckBox.Left           := X2;
+  procmemCheckBox.Top            := 202 + HDR + CpuYOff2;
+  swapusageCheckBox.Left         := X3;
+  swapusageCheckBox.Top          := 202 + HDR + CpuYOff2;
   end;
 end;
 
@@ -2328,11 +2454,12 @@ const
   MARGIN = 8;
   GAP    = 6;
   HDR    = 34;
-  // Card height = HDR + LFM ClientHeight + bottom padding
-  SYS_H  = HDR + 335 + 8;  // 377  (systemGroupBox ClientHeight=335)
-  LOG_H  = HDR + 179 + 8;  // 221  (loggingGroupBox ClientHeight=179)
+  BASE_SYS_H = 377;
+  BASE_LOG_H = 221;
 var
-  CW, TotalH: Integer;
+  CW, TotalH, AvailH, ActiveSysH, ActiveLogH: Integer;
+  ColW, X0, X1, X2, X3, X4, X5: Integer;
+  SysYOff1, SysYOff2, SysYOff3, SysYOff4, LogYOff: Integer;
 begin
   with FForm do
   begin
@@ -2342,18 +2469,165 @@ begin
 
   FExtScrollBox.HorzScrollBar.Range := 0;
 
-  TotalH := MARGIN + SYS_H + GAP + LOG_H + MARGIN;
+  AvailH := FExtScrollBox.ClientHeight - 3 * MARGIN - GAP;
+  if AvailH > (BASE_SYS_H + BASE_LOG_H) then
+  begin
+    ActiveSysH := Max(BASE_SYS_H, Round(AvailH * 0.62));
+    ActiveLogH := Max(BASE_LOG_H, AvailH - ActiveSysH);
+  end
+  else
+  begin
+    ActiveSysH := BASE_SYS_H;
+    ActiveLogH := BASE_LOG_H;
+  end;
+
+  TotalH := MARGIN + ActiveSysH + GAP + ActiveLogH + MARGIN;
   if FExtScrollBox.ClientHeight > TotalH then
     TotalH := FExtScrollBox.ClientHeight;
   FExtBgPanel.SetBounds(0, 0, AContentW, TotalH);
 
-  FExtSysCard.SetBounds(MARGIN, MARGIN, CW, SYS_H);
+  FExtSysCard.SetBounds(MARGIN, MARGIN, CW, ActiveSysH);
   sysinfoImage.Left := CW - sysinfoImage.Width - 4;
   sysinfoImage.Top  := 5;
 
-  FExtLogCard.SetBounds(MARGIN, MARGIN + SYS_H + GAP, CW, LOG_H);
+  FExtLogCard.SetBounds(MARGIN, MARGIN + ActiveSysH + GAP, CW, ActiveLogH);
   Image2.Left := CW - Image2.Width - 4;
   Image2.Top  := 5;
+
+  // Compute dynamic column positions across CW
+  ColW := Max(115, (CW - 50) div 6);
+  X0 := 11;
+  X1 := X0 + ColW;
+  X2 := X0 + ColW * 2;
+  X3 := X0 + ColW * 3;
+  X4 := X0 + ColW * 4;
+  X5 := X0 + ColW * 5;
+
+  // Compute dynamic vertical section offsets
+  SysYOff1 := Max(0, (ActiveSysH - BASE_SYS_H) div 4);
+  SysYOff2 := Max(0, ((ActiveSysH - BASE_SYS_H) * 2) div 4);
+  SysYOff3 := Max(0, ((ActiveSysH - BASE_SYS_H) * 3) div 4);
+  SysYOff4 := Max(0, ActiveSysH - BASE_SYS_H);
+  LogYOff := Max(0, ActiveLogH - BASE_LOG_H);
+
+  // Reposition System Info controls
+  systemLabel.Top            := 11 + HDR;
+  distroinfoCheckBox.Left    := X0;
+  distroinfoCheckBox.Top     := 32 + HDR;
+  refreshrateCheckBox.Left   := X1;
+  refreshrateCheckBox.Top    := 32 + HDR;
+  resolutionCheckBox.Left    := X2;
+  resolutionCheckBox.Top     := 32 + HDR;
+  displayserverCheckBox.Left := X3;
+  displayserverCheckBox.Top  := 32 + HDR;
+  timeCheckBox.Left          := X4;
+  timeCheckBox.Top           := 32 + HDR;
+  archCheckBox.Left          := X5;
+  archCheckBox.Top           := 32 + HDR;
+
+  wineLabel.Top              := 68 + HDR + SysYOff1;
+  wineCheckBox.Left          := X0;
+  wineCheckBox.Top           := 89 + HDR + SysYOff1;
+  engineversionCheckBox.Left := X1;
+  engineversionCheckBox.Top  := 89 + HDR + SysYOff1;
+  engineshortCheckBox.Left   := X2;
+  engineshortCheckBox.Top    := 89 + HDR + SysYOff1;
+  winesyncCheckBox.Left      := X3;
+  winesyncCheckBox.Top       := 89 + HDR + SysYOff1;
+  dxapiCheckBox.Left         := X4;
+  dxapiCheckBox.Top          := 89 + HDR + SysYOff1;
+  fexstatsCheckBox.Left      := X5;
+  fexstatsCheckBox.Top       := 89 + HDR + SysYOff1;
+  wineColorButton.Left       := X0 - 4;
+  wineColorButton.Top        := 111 + HDR + SysYOff1;
+  engineColorButton.Left     := X1 - 6;
+  engineColorButton.Top      := 111 + HDR + SysYOff1;
+
+  optionsLabel.Top           := 131 + HDR + SysYOff2;
+  hudversionCheckBox.Left    := X0;
+  hudversionCheckBox.Top     := 152 + HDR + SysYOff2;
+  gamemodestatusCheckBox.Left:= X1;
+  gamemodestatusCheckBox.Top := 152 + HDR + SysYOff2;
+  vkbasaltstatusCheckBox.Left:= X2;
+  vkbasaltstatusCheckBox.Top := 152 + HDR + SysYOff2;
+  fcatCheckBox.Left          := X3;
+  fcatCheckBox.Top           := 152 + HDR + SysYOff2;
+  fsrCheckBox.Left           := X4;
+  fsrCheckBox.Top            := 152 + HDR + SysYOff2;
+  hdrCheckBox.Left           := X5;
+  hdrCheckBox.Top            := 152 + HDR + SysYOff2;
+
+  batteryLabel.Top           := 190 + HDR + SysYOff3;
+  batteryCheckBox.Left       := X0;
+  batteryCheckBox.Top        := 211 + HDR + SysYOff3;
+  batterywattCheckBox.Left   := X1;
+  batterywattCheckBox.Top    := 211 + HDR + SysYOff3;
+  batterytimeCheckBox.Left   := X2;
+  batterytimeCheckBox.Top    := 211 + HDR + SysYOff3;
+  deviceCheckBox.Left        := X3;
+  deviceCheckBox.Top         := 211 + HDR + SysYOff3;
+  batteryColorButton.Left    := X0 - 5;
+  batteryColorButton.Top     := 233 + HDR + SysYOff3;
+
+  othersLabel.Top            := 262 + HDR + SysYOff4;
+  mediaCheckBox.Left         := X0;
+  mediaCheckBox.Top          := 283 + HDR + SysYOff4;
+  mediaColorButton.Left      := X0 - 5;
+  mediaColorButton.Top       := 305 + HDR + SysYOff4;
+  networkCheckBox.Left       := X1;
+  networkCheckBox.Top        := 283 + HDR + SysYOff4;
+  networkComboBox.Left       := X1;
+  networkComboBox.Top        := 305 + HDR + SysYOff4;
+  fahrenheitCheckBox.Left    := X2;
+  fahrenheitCheckBox.Top     := 283 + HDR + SysYOff4;
+  customcommandEdit.Left     := X3;
+  customcommandEdit.Top      := 283 + HDR + SysYOff4;
+  customcommandEdit.Width    := Max(200, CW - X3 - 20);
+
+  // Reposition Logging controls
+  logdurationLabel.Left      := X0;
+  logdurationLabel.Top       := 11 + HDR;
+  durationTrackBar.Left      := X0 + 15;
+  durationTrackBar.Top       := 40 + HDR;
+  durationvalueLabel.Left    := X0 + 43;
+  durationvalueLabel.Top     := 96 + HDR;
+
+  logdelayLabel.Left         := X1;
+  logdelayLabel.Top          := 11 + HDR;
+  delayTrackBar.Left         := X1 + 15;
+  delayTrackBar.Top          := 40 + HDR;
+  delayvalueLabel.Left       := X1 + 43;
+  delayvalueLabel.Top        := 96 + HDR;
+
+  logintervalLabel.Left      := X2;
+  logintervalLabel.Top       := 11 + HDR;
+  intervalTrackBar.Left      := X2 + 15;
+  intervalTrackBar.Top       := 40 + HDR;
+  intervalvalueLabel.Left    := X2 + 43;
+  intervalvalueLabel.Top     := 96 + HDR;
+
+  logtoggleLabel.Left        := X3;
+  logtoggleLabel.Top         := 40 + HDR;
+  logtoggleComboBox.Left     := X3;
+  logtoggleComboBox.Top      := 61 + HDR;
+  if Assigned(FLoggingCaptureBtn) then
+  begin
+    FLoggingCaptureBtn.Left  := X3;
+    FLoggingCaptureBtn.Top   := 61 + HDR;
+  end;
+
+  autouploadCheckBox.Left    := X4;
+  autouploadCheckBox.Top     := 67 + HDR;
+  versioningCheckBox.Left    := X5;
+  versioningCheckBox.Top     := 67 + HDR;
+
+  logfolderLabel.Left        := X3;
+  logfolderLabel.Top         := 122 + HDR + LogYOff;
+  logfolderEdit.Left         := X3;
+  logfolderEdit.Top          := 143 + HDR + LogYOff;
+  logfolderEdit.Width        := Max(200, CW - X3 - 50);
+  logfolderBitBtn.Left       := logfolderEdit.Left + logfolderEdit.Width + 4;
+  logfolderBitBtn.Top        := 143 + HDR + LogYOff;
   end;
 end;
 
