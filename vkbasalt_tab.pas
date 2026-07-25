@@ -1108,15 +1108,14 @@ end;
 procedure TVkBasaltTabHelper.VkReshadeMD3Paint(Sender: TObject);
   procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
   var
-    Bmp: TBitmap;
-    ThumbR: TRect;
     TrackColor: TColor;
+    ThumbLeft, ThumbTop, ThumbRight, ThumbBottom: Integer;
   const
-    TRACK_W = 176;
-    TRACK_H = 96;
-    THUMB_D = 72;
-    RADIUS  = 48;
-    Pad     = 8;
+    TRACK_W = 44;
+    TRACK_H = 24;
+    THUMB_D = 18;
+    RADIUS  = 12;
+    Pad     = 3;
   begin
     // Track colour
     if AOn then
@@ -1124,54 +1123,39 @@ procedure TVkBasaltTabHelper.VkReshadeMD3Paint(Sender: TObject);
     else
       TrackColor := RGBToColor(70, 70, 70);   // grey
 
-    Bmp := TBitmap.Create;
-    try
-      Bmp.SetSize(TRACK_W, TRACK_H);
+    ACanvas.Brush.Color := TrackColor;
+    ACanvas.Pen.Color   := TrackColor;
+    ACanvas.Pen.Width   := 1;
 
-      // Fill background with canvas current brush color (item background)
-      Bmp.Canvas.Brush.Color := ACanvas.Brush.Color;
-      Bmp.Canvas.FillRect(0, 0, TRACK_W, TRACK_H);
+    // Central rectangle
+    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
 
-      // --- Draw pill-shaped track using central rect + two end caps ---
-      Bmp.Canvas.Brush.Color := TrackColor;
-      Bmp.Canvas.Pen.Color   := TrackColor;
+    // Left cap (semi-circle)
+    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
 
-      // Central rectangle (rounded ends are handled by the caps)
-      Bmp.Canvas.FillRect(RADIUS, 0, TRACK_W - RADIUS, TRACK_H);
+    // Right cap (semi-circle)
+    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
 
-      // Left cap (semi-circle)
-      Bmp.Canvas.Ellipse(0, 0, RADIUS * 2, TRACK_H);
+    // Thumb
+    if AOn then
+      ThumbLeft := AX + TRACK_W - THUMB_D - Pad
+    else
+      ThumbLeft := AX + Pad;
+    ThumbTop    := AY + (TRACK_H - THUMB_D) div 2;
+    ThumbRight  := ThumbLeft + THUMB_D;
+    ThumbBottom := ThumbTop + THUMB_D;
 
-      // Right cap (semi-circle)
-      Bmp.Canvas.Ellipse(TRACK_W - RADIUS * 2, 0, TRACK_W, TRACK_H);
+    // Subtle outer ring/shadow
+    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
+    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
+    ACanvas.Pen.Width   := 1;
+    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
 
-      // --- Thumb ---
-      if AOn then
-        ThumbR.Left := TRACK_W - THUMB_D - Pad
-      else
-        ThumbR.Left := Pad;
-      ThumbR.Top    := (TRACK_H - THUMB_D) div 2;
-      ThumbR.Right  := ThumbR.Left + THUMB_D;
-      ThumbR.Bottom := ThumbR.Top + THUMB_D;
-
-      // Subtle shadow
-      Bmp.Canvas.Brush.Color := RGBToColor(200, 200, 200);
-      Bmp.Canvas.Pen.Color   := RGBToColor(160, 160, 160);
-      Bmp.Canvas.Pen.Width   := 4;
-      Bmp.Canvas.Ellipse(ThumbR);
-
-      // White thumb body
-      InflateRect(ThumbR, -8, -8);
-      Bmp.Canvas.Brush.Color := clWhite;
-      Bmp.Canvas.Pen.Color   := clWhite;
-      Bmp.Canvas.Pen.Width   := 1;
-      Bmp.Canvas.Ellipse(ThumbR);
-
-      // Draw high-resolution bitmap to the target rectangle
-      ACanvas.StretchDraw(Rect(AX, AY, AX + 44, AY + 24), Bmp);
-    finally
-      Bmp.Free;
-    end;
+    // White thumb body
+    ACanvas.Brush.Color := clWhite;
+    ACanvas.Pen.Color   := clWhite;
+    ACanvas.Pen.Width   := 1;
+    ACanvas.Ellipse(ThumbLeft + 2, ThumbTop + 2, ThumbRight - 2, ThumbBottom - 2);
   end;
 
 var
