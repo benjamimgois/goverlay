@@ -29,11 +29,11 @@ type
     procedure PresetCardMouseEnter(Sender: TObject);
     procedure PresetCardMouseLeave(Sender: TObject);
     procedure InitVisualTab;
-    procedure ReflowVisualTab(AContentW: Integer);
+    procedure ReflowVisualTab(AContentW, AContentH: Integer);
     procedure UpdateVisualCardTheme;
     procedure BuildFpsLimitEdit;
     procedure InitPerformanceTab;
-    procedure ReflowPerformanceTab(AContentW: Integer);
+    procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
     procedure UpdatePerfCardTheme;
     procedure InitMetricsTab;
     procedure ReflowMetricsTab(AContentW: Integer);
@@ -832,27 +832,27 @@ begin
 end;
 
 
-procedure TMangoHudUiHelper.ReflowVisualTab(AContentW: Integer);
+procedure TMangoHudUiHelper.ReflowVisualTab(AContentW, AContentH: Integer);
 const
-  MARGIN   = 4;
-  GPU_TOP  = 52;
-  GPU_H    = 67;
-  CARD_TOP = GPU_TOP + GPU_H + 10;  // = 129
-  HUD_H    = 56;
-  HDR      = 34;
-  R1_TOP   = HDR + 4;
-  R1_H     = 118;
-  CARD_H   = 515;  // fixed height — LFM anchors grow the card vertically
-  R2_H     = 216;
-  R2_TOP   = R1_TOP + R1_H + 4;  // = 156
-  HUD_SEP  = R2_TOP + R2_H + 4;  // = 376
-  HUD_TOP  = HUD_SEP + 6;        // = 382
+  MARGIN     = 4;
+  GPU_TOP    = 52;
+  GPU_H      = 67;
+  CARD_TOP   = GPU_TOP + GPU_H + 10;  // = 129
+  TABBAR_H   = 77;   // TPageControl tab bar (35) + goverlaybarPanel (40) + margin (2)
+  HUD_H      = 56;
+  HDR        = 34;
+  R1_TOP     = HDR + 4;   // = 38
+  BASE_R1_H  = 118;
+  BASE_R2_H  = 216;
+  BASE_CARD_H = 477;
 var
   W, S1, S2, SW: Integer;
   SecW1, SecW2, SecW3: Integer;
   RW, RH, CL, CC, CR, RT, RM, RB: Integer;
   ImgW, ImgH: Integer;
   HalfW, GrpW, GrpX, CY, ToggleRight, AvailW, ThirdW: Integer;
+  TabH, ActiveCardH, ActiveHUD_TOP, ActiveHUD_SEP: Integer;
+  RowsAvail, Extra, PerRow, ActiveR1_H, ActiveR2_H, ActiveR2_TOP: Integer;
 begin
   with FForm do
   begin
@@ -873,19 +873,35 @@ begin
     gpudescEdit.Width := FVisualGpuBar.ClientWidth - gpudescEdit.Left - 5;
   end;
 
-  // Visual Settings card — fixed height; LFM Anchor(akBottom) grows it automatically
-  FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, CARD_H);
+  // Derive available tab height from form height (Self.ClientHeight — always up-to-date
+  // during FormResize, unlike child ClientHeight which is stale at that point).
+  TabH := Max(606, AContentH - TABBAR_H);
+  ActiveCardH := Max(BASE_CARD_H, TabH - CARD_TOP);
+
+  // HUD bar anchors to card bottom; rows fill the space between header and HUD.
+  ActiveHUD_TOP := ActiveCardH - HUD_H;
+  ActiveHUD_SEP := ActiveHUD_TOP - 6;
+
+  // Distribute extra vertical space equally between Row1 and Row2.
+  RowsAvail    := ActiveHUD_SEP - 4 - R1_TOP;
+  Extra        := Max(0, RowsAvail - (BASE_R1_H + 4 + BASE_R2_H));
+  PerRow       := Extra div 2;
+  ActiveR1_H   := BASE_R1_H + PerRow;
+  ActiveR2_H   := RowsAvail - ActiveR1_H - 4;   // takes remainder (PerRow or PerRow+1)
+  ActiveR2_TOP := R1_TOP + ActiveR1_H + 4;
+
+  FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, ActiveCardH);
 
   // ── Row 1 section panels ──────────────────────────────────────────────────
   if Assigned(FVisualSections[0]) then
-    FVisualSections[0].SetBounds(4,      R1_TOP, SecW1, R1_H);
+    FVisualSections[0].SetBounds(4,      R1_TOP, SecW1, ActiveR1_H);
   if Assigned(FVisualSections[1]) then
-    FVisualSections[1].SetBounds(S1 + 4, R1_TOP, SecW2, R1_H);
+    FVisualSections[1].SetBounds(S1 + 4, R1_TOP, SecW2, ActiveR1_H);
   if Assigned(FVisualSections[2]) then
-    FVisualSections[2].SetBounds(S2 + 4, R1_TOP, SecW3, R1_H);
+    FVisualSections[2].SetBounds(S2 + 4, R1_TOP, SecW3, ActiveR1_H);
 
   // ── Orientation section: 2 pairs (RB + image) centered in each half ──────
-  CY    := 22 + (R1_H - 22) div 2;  // vertical center of content area = 70
+  CY    := 22 + (ActiveR1_H - 22) div 2;  // vertical center of content area
   HalfW := SecW1 div 2;
   // Left half: verticalRB (20×20) + vImage (30×56)
   GrpW := 20 + 6 + 30;
@@ -928,11 +944,11 @@ begin
 
   // ── Row 2 section panels ──────────────────────────────────────────────────
   if Assigned(FVisualSections[3]) then
-    FVisualSections[3].SetBounds(4,      R2_TOP, SecW1, R2_H);
+    FVisualSections[3].SetBounds(4,      ActiveR2_TOP, SecW1, ActiveR2_H);
   if Assigned(FVisualSections[4]) then
-    FVisualSections[4].SetBounds(S1 + 4, R2_TOP, SecW2, R2_H);
+    FVisualSections[4].SetBounds(S1 + 4, ActiveR2_TOP, SecW2, ActiveR2_H);
   if Assigned(FVisualSections[5]) then
-    FVisualSections[5].SetBounds(S2 + 4, R2_TOP, SecW3, R2_H);
+    FVisualSections[5].SetBounds(S2 + 4, ActiveR2_TOP, SecW3, ActiveR2_H);
 
   // Fonts section: elastic widths (controls are relative to section panel)
   fontComboBox.Width     := SecW1 - 12;
@@ -941,7 +957,7 @@ begin
 
   // Position section: Image fills panel, radio buttons proportional within it
   ImgW := SecW2 - 8;
-  ImgH := R2_H - 26;
+  ImgH := ActiveR2_H - 26;
   Image1.SetBounds(4, 22, ImgW, ImgH);
   RW  := topleftRadioButton.Width;
   RH  := topleftRadioButton.Height;
@@ -976,12 +992,12 @@ begin
   plusSpeedButton.Left := CL + 81;
   columvalueLabel.Left := CL + 110;
 
-  // HUD separator and bar — integrated at the bottom of the main card
+  // HUD separator and bar — anchored to bottom of card
   if Assigned(FVisualHudSep) then
-    FVisualHudSep.SetBounds(8, HUD_SEP, W - 16, 1);
+    FVisualHudSep.SetBounds(8, ActiveHUD_SEP, W - 16, 1);
   if Assigned(FVisualHudBar) then
   begin
-    FVisualHudBar.SetBounds(0, HUD_TOP, W, HUD_H);
+    FVisualHudBar.SetBounds(0, ActiveHUD_TOP, W, HUD_H);
     ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 8;
     AvailW := W - ToggleRight - 8;
     ThirdW := AvailW div 3;
@@ -1537,32 +1553,41 @@ begin
 end;
 
 
-procedure TMangoHudUiHelper.ReflowPerformanceTab(AContentW: Integer);
+procedure TMangoHudUiHelper.ReflowPerformanceTab(AContentW, AContentH: Integer);
 const
-  MARGIN   = 2;
-  GAP      = 5;   // gap between cards
-  ROW1_TOP = 0;
-  ROW1_H   = 180;  // fixed — LFM Anchor(akBottom) grows fpslimiterGroupBox automatically
-  ROW2_H   = 389;
-  ROW2_TOP = ROW1_TOP + ROW1_H + GAP;  // = 185
-  GB_OFF   = 24;
-  IMARGIN  = 6;
-  IGAP     = 8;
+  MARGIN     = 2;
+  GAP        = 5;   // gap between cards
+  ROW1_TOP   = 0;
+  ROW1_H     = 180;  // Information card — fixed height
+  BASE_ROW2_H = 389;
+  ROW2_TOP   = ROW1_TOP + ROW1_H + GAP;  // = 185
+  TABBAR_H   = 77;   // TPageControl tab bar (35) + goverlaybarPanel (40) + margin (2)
+  GB_OFF     = 24;
+  IMARGIN    = 6;
+  IGAP       = 8;
+  // Offset from top of FPerfFiltersSec to where trackbars begin
+  // (filterRadioGroup ≈36px + afLabel ≈18px + spacing ≈4+4 = ~62px; use 65 for safety)
+  TRACK_TOP_OFF = 65;
 var
   CardW, SecW, InfoMargin, ContW, ContH, i: Integer;
   LeftM, Col1W, Col2W, InnerGap: Integer;
   ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
+  TabH, ActiveRow2H, FilterSecH, TrackH: Integer;
 begin
   with FForm do
   begin
   CardW := AContentW - MARGIN * 2;
 
+  // Compute available tab height from form height — reliable during FormResize
+  TabH        := Max(606, AContentH - TABBAR_H);
+  ActiveRow2H := Max(BASE_ROW2_H, TabH - ROW1_H - GAP - 2 * MARGIN);
+
   if Assigned(FPerfCards[0]) then
   begin
     FPerfCards[0].SetBounds(MARGIN, ROW1_TOP, CardW, ROW1_H);
-    FPerfCards[1].SetBounds(MARGIN, ROW2_TOP, CardW, ROW2_H);
+    FPerfCards[1].SetBounds(MARGIN, ROW2_TOP, CardW, ActiveRow2H);
 
     SecW := (CardW - 2 * IMARGIN - IGAP) div 2;
 
@@ -1573,17 +1598,20 @@ begin
       FPerfVsyncSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, ROW1_H - GB_OFF - IMARGIN);
 
     if Assigned(FPerfLimitSec) then
-      FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, ROW2_H - GB_OFF - IMARGIN);
+      FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, ActiveRow2H - GB_OFF - IMARGIN);
     if Assigned(FPerfFiltersSec) then
     begin
-      FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, ROW2_H - GB_OFF - IMARGIN);
+      FilterSecH := ActiveRow2H - GB_OFF - IMARGIN;
+      FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, FilterSecH);
       filterRadioGroup.BorderSpacing.Top := 6;
       afLabel.BorderSpacing.Top := 4;
       mipmapLabel.BorderSpacing.Top := 4;
       afTrackBar.BorderSpacing.Top := 4;
       mipmapTrackBar.BorderSpacing.Top := 4;
-      afTrackBar.Height := 250;
-      mipmapTrackBar.Height := 250;
+      // Trackbars grow to fill the section beneath the radiogroup + labels
+      TrackH := Max(80, FilterSecH - TRACK_TOP_OFF - 8);
+      afTrackBar.Height     := TrackH;
+      mipmapTrackBar.Height := TrackH;
     end;
 
     // Position section title labels
@@ -2621,13 +2649,15 @@ begin
   versioningCheckBox.Left    := X5;
   versioningCheckBox.Top     := 67 + HDR;
 
-  logfolderLabel.Left        := X3;
-  logfolderLabel.Top         := 122 + HDR + LogYOff;
-  logfolderEdit.Left         := X3;
-  logfolderEdit.Top          := 143 + HDR + LogYOff;
+  // Anchor Log folder controls to the bottom of the Logging card so they are
+  // always fully visible regardless of card height.
   logfolderEdit.Width        := Max(200, CW - X3 - 50);
-  logfolderBitBtn.Left       := logfolderEdit.Left + logfolderEdit.Width + 4;
-  logfolderBitBtn.Top        := 143 + HDR + LogYOff;
+  logfolderBitBtn.Left       := X3 + logfolderEdit.Width + 4;
+  logfolderBitBtn.Top        := ActiveLogH - 40;
+  logfolderEdit.Left         := X3;
+  logfolderEdit.Top          := ActiveLogH - 40;
+  logfolderLabel.Left        := X3;
+  logfolderLabel.Top         := ActiveLogH - 62;
   end;
 end;
 

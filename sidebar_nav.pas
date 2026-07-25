@@ -1192,8 +1192,8 @@ begin
   // Reflow all content tabs whenever the sidebar width changes
   ContentW := Max(1, FForm.ClientWidth - AWidth);
   FForm.ReflowPresetTab(ContentW);
-  FForm.ReflowVisualTab(ContentW);
-  FForm.ReflowPerformanceTab(ContentW);
+  FForm.ReflowVisualTab(ContentW, FForm.ClientHeight);
+  FForm.ReflowPerformanceTab(ContentW, FForm.ClientHeight);
   FForm.ReflowMetricsTab(ContentW);
   FForm.ReflowExtrasTab(ContentW);
   FForm.ReflowOptiScalerTab(ContentW);

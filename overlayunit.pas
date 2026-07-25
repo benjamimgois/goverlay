@@ -1268,8 +1268,8 @@ type
     function  GetTargetCustomConfigFile: string;
     procedure LoadGameToggleStates;
     procedure ReflowPresetTab(AContentW: Integer);
-    procedure ReflowVisualTab(AContentW: Integer);
-    procedure ReflowPerformanceTab(AContentW: Integer);
+    procedure ReflowVisualTab(AContentW, AContentH: Integer);
+    procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure ReflowMetricsTab(AContentW: Integer);
@@ -2334,7 +2334,7 @@ var
   ContentW: Integer;
 begin
   ContentW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
-  ReflowPerformanceTab(ContentW);
+  ReflowPerformanceTab(ContentW, Self.ClientHeight);
   UpdatePerfCardTheme;
 end;
 
@@ -3852,8 +3852,8 @@ begin
   // Initial reflow now that the form has real dimensions
   InitW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
   ReflowPresetTab(InitW);
-  ReflowVisualTab(InitW);
-  ReflowPerformanceTab(InitW);
+  ReflowVisualTab(InitW, Self.ClientHeight);
+  ReflowPerformanceTab(InitW, Self.ClientHeight);
   ReflowMetricsTab(InitW);
   ReflowExtrasTab(InitW);
   ReflowOptiScalerTab(InitW);
@@ -6516,11 +6516,12 @@ end;
 
 procedure Tgoverlayform.FormResize(Sender: TObject);
 var
-  NavW, ContentW: Integer;
+  NavW, ContentW, ContentH: Integer;
 begin
   DbgLog('  FormResize BEGIN');
   NavW     := goverlayPaintBox.Width;
   ContentW := Max(1, Self.ClientWidth - NavW);
+  ContentH := Max(1, Self.ClientHeight);   // always reliable in FormResize
 
   goverlayPanel.Left  := NavW;
   goverlayPanel.Width := ContentW;
@@ -6529,8 +6530,8 @@ begin
     ApplyNavWidth(NavW);
 
   ReflowPresetTab(ContentW);
-  ReflowVisualTab(ContentW);
-  ReflowPerformanceTab(ContentW);
+  ReflowVisualTab(ContentW, ContentH);
+  ReflowPerformanceTab(ContentW, ContentH);
   ReflowMetricsTab(ContentW);
   ReflowExtrasTab(ContentW);
   ReflowOptiScalerTab(ContentW);
@@ -6923,9 +6924,9 @@ begin
   TMangoHudUiHelper(FMangoHelper).InitVisualTab;
 end;
 
-procedure Tgoverlayform.ReflowVisualTab(AContentW: Integer);
+procedure Tgoverlayform.ReflowVisualTab(AContentW, AContentH: Integer);
 begin
-  TMangoHudUiHelper(FMangoHelper).ReflowVisualTab(AContentW);
+  TMangoHudUiHelper(FMangoHelper).ReflowVisualTab(AContentW, AContentH);
 end;
 
 procedure Tgoverlayform.BuildFpsLimitEdit;
@@ -7031,9 +7032,9 @@ begin
   TMangoHudUiHelper(FMangoHelper).UpdateExtrasCardTheme;
 end;
 
-procedure Tgoverlayform.ReflowPerformanceTab(AContentW: Integer);
+procedure Tgoverlayform.ReflowPerformanceTab(AContentW, AContentH: Integer);
 begin
-  TMangoHudUiHelper(FMangoHelper).ReflowPerformanceTab(AContentW);
+  TMangoHudUiHelper(FMangoHelper).ReflowPerformanceTab(AContentW, AContentH);
 end;
 
 procedure Tgoverlayform.ReflowOptiScalerTab(AContentW: Integer);
