@@ -2769,8 +2769,8 @@ begin
     fpslimtoggleComboBox.Text := '';
     if Assigned(FLimitCaptureBtn) then
       FLimitCaptureBtn.Caption := '⌨ None';
-    vsyncComboBox.ItemIndex := 0;
-    glvsyncComboBox.ItemIndex := 0;
+    vsyncComboBox.ItemIndex := 4;
+    glvsyncComboBox.ItemIndex := 4;
     logtoggleComboBox.ItemIndex := 0;
     networkComboBox.ItemIndex := 0;
 

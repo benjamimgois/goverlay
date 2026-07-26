@@ -339,10 +339,10 @@ begin
   // ============================================================================
 
   SetHint('vsyncComboBox', 'VSync (Vulkan)' + LineEnding +
-    '0 = Off' + LineEnding +
-    '1 = On' + LineEnding +
+    '0 = Adaptive' + LineEnding +
+    '1 = Off' + LineEnding +
     '2 = Mailbox mode' + LineEnding +
-    '3 = Adaptive');
+    '3 = On');
   SetHint('glvsyncComboBox', 'VSync (OpenGL)' + LineEnding +
     '-1 = Adaptive' + LineEnding +
     '0 = Off' + LineEnding +

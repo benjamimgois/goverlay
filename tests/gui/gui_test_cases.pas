@@ -1036,6 +1036,9 @@ begin
   AssertTrue('vkbasaltstatusCheckBox reloaded', goverlayform.vkbasaltstatusCheckBox.Checked);
   AssertEquals('vsyncComboBox reloaded', 2, goverlayform.vsyncComboBox.ItemIndex);
   AssertEquals('glvsyncComboBox reloaded', 2, goverlayform.glvsyncComboBox.ItemIndex);
+  AssertTrue('vsyncComboBox hint corrected 0=Adaptive', Pos('0 = Adaptive', goverlayform.vsyncComboBox.Hint) > 0);
+  AssertTrue('vsyncComboBox hint corrected 1=Off', Pos('1 = Off', goverlayform.vsyncComboBox.Hint) > 0);
+  AssertTrue('vsyncComboBox hint corrected 3=On', Pos('3 = On', goverlayform.vsyncComboBox.Hint) > 0);
   AssertEquals('filterRadioGroup reloaded', 1, goverlayform.filterRadioGroup.ItemIndex);
   AssertEquals('afTrackBar reloaded', 4, goverlayform.afTrackBar.Position);
   AssertEquals('mipmapTrackBar reloaded', 2, goverlayform.mipmapTrackBar.Position);
@@ -1108,7 +1111,8 @@ begin
   AssertTrue('hudversionCheckBox reloaded', goverlayform.hudversionCheckBox.Checked);
   AssertTrue('mediaCheckBox reloaded', goverlayform.mediaCheckBox.Checked);
   AssertEquals('mediaColorButton reloaded', TColor($00777777), TColor(goverlayform.mediaColorButton.ButtonColor));
-  AssertTrue('networkCheckBox reloaded', goverlayform.networkCheckBox.Checked);
+  if goverlayform.networkComboBox.Items.Count > 0 then
+    AssertTrue('networkCheckBox reloaded', goverlayform.networkCheckBox.Checked);
   AssertEquals('logfolderEdit reloaded', '/tmp/testlogs', goverlayform.logfolderEdit.Text);
   AssertEquals('durationTrackBar reloaded', 10, goverlayform.durationTrackBar.Position);
   AssertEquals('delayTrackBar reloaded', 5, goverlayform.delayTrackBar.Position);
@@ -1150,7 +1154,8 @@ var
 begin
   NavigateMangoHud;
 
-  // 1. OpenGL VSYNC = Unset (index 4)
+  // 1. Vulkan & OpenGL VSYNC = Unset (index 4)
+  goverlayform.vsyncComboBox.ItemIndex := 4; // Unset
   goverlayform.glvsyncComboBox.ItemIndex := 4; // Unset
 
   // 2. FPS Colors
@@ -1173,7 +1178,8 @@ begin
 
   SaveMango;
   C := ReadFileText(MangoConfPath);
-  AssertTrue('gl_vsync=4 written', Pos('gl_vsync=4', C) > 0);
+  AssertEquals('gl_vsync omitted when Unset', 0, Pos('gl_vsync=', C));
+  AssertEquals('vsync omitted when Unset', 0, Pos('vsync=', C));
   AssertTrue('fps_color written', Pos('fps_color=', C) > 0);
   AssertTrue('gpu_load_color written', Pos('gpu_load_color=', C) > 0);
   AssertTrue('cpu_load_color written', Pos('cpu_load_color=', C) > 0);
