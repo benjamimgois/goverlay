@@ -49,11 +49,11 @@ end;
 
 procedure THomeTabHelper.InitHomeTab;
 const
-  CARD_M     = 16;
-  CARD_P     = 18;   // padding inside card (left content margin)
-  ROW_H      = 32;
+  CARD_M     = 14;
+  CARD_P     = 14;   // padding inside card (left content margin)
+  ROW_H      = 26;
   DOT_SZ     = 14;
-  SEC_GAP    = 14;
+  SEC_GAP    = 10;
   COL_W      = 200;
   ACCENT_W   = 4;    // left accent bar width
   // accent colors per section
@@ -177,15 +177,15 @@ begin
     // ── Theme-aware colors ──────────────────────────────────────────────────
     if CurrentTheme = tmLight then
     begin
-      BG       := LighterBackgroundColor;  // $F5F5F5
+      BG       := LightBackgroundColor;    // clWhite
       CARD_BG  := LightBackgroundColor;    // clWhite
       TXT_CLR  := LightTextColor;          // clBlack
       MUTED_CLR := $00606060;              // grey
     end
     else
     begin
-      BG       := $001A1A1A;
-      CARD_BG  := $00222222;
+      BG       := DarkBackgroundColor;     // $0045403A
+      CARD_BG  := DarkBackgroundColor;     // $0045403A
       TXT_CLR  := clWhite;
       MUTED_CLR := clSilver;
     end;
@@ -195,13 +195,13 @@ begin
     FHomeTabSheet.PageControl := goverlayPageControl;
     FHomeTabSheet.Caption     := 'Home';
     FHomeTabSheet.TabVisible  := False;
-    FHomeTabSheet.Color       := BG;
+    FHomeTabSheet.Color       := CARD_BG;
 
     // ── Content panel fills the tab — no ScrollBox needed ────────────────────
     Content := ExtCtrls.TPanel.Create(FForm);
     Content.Parent    := FHomeTabSheet;
     Content.BevelOuter := bvNone;
-    Content.Color     := BG;
+    Content.Color     := CARD_BG;
     Content.Caption   := '';
     Content.Align     := alClient;
 
@@ -402,6 +402,7 @@ begin
     geSpeedButton.Visible     := False;
     geLabel.Visible           := False;
     goverlaybarPanel.Visible  := False;
+    goverlayPageControl.BorderSpacing.Bottom := 0;
 
     // Refresh all home tab sections
     Self.RefreshHomeOptiStatus;
