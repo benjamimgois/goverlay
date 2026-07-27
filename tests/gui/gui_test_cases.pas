@@ -67,6 +67,7 @@ type
     procedure TestTweaksTabRoundTrip;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
+    procedure TestHomeTabHidesToggles;
     procedure TestWindowResizabilityAndGeometry;
   end;
 
@@ -1300,6 +1301,16 @@ begin
 
   goverlayform.ShowRemoveFoldersMenu(goverlayform, 0, 0);
   AssertEquals('Second invocation clears and rebuilds without crash', 1, goverlayform.FRemoveFoldersMenu.Items.Count);
+end;
+
+procedure TGoverlayGuiTests.TestHomeTabHidesToggles;
+var
+  i: Integer;
+begin
+  goverlayform.ShowHomeTab(nil);
+  for i := 0 to 3 do
+    if Assigned(goverlayform.FNavToolBtns[i]) then
+      AssertFalse(Format('Toggle %d hidden on Home tab', [i]), goverlayform.FNavToolBtns[i].Visible);
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;

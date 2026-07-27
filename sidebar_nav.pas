@@ -565,7 +565,7 @@ var
   ShouldShow: Boolean;
   BtnLeft, BtnTop, BtnW: Integer;
 begin
-  ShouldShow := FForm.FNavActive <> 0;
+  ShouldShow := FForm.FNavActive > 0;
   for i := 0 to 3 do
     if Assigned(FForm.FNavToolBtns[i]) then
     begin
