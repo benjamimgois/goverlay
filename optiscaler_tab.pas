@@ -32,6 +32,8 @@ function OsHexToKeyStr(const HexStr: string): string;
 
 implementation
 
+uses bgmod_resources;
+
 constructor TOptiScalerTabHelper.Create(AForm: Tgoverlayform);
 begin
   FForm := AForm;
@@ -842,6 +844,13 @@ begin
       reflexComboBox.ItemIndex := Settings.ReflexItemIndex;
       reflexComboBox.Enabled := forcereflexCheckBox.Checked;
 
+      if nvidiaRadioButton.Checked then
+      begin
+        forcereflexCheckBox.Enabled := False;
+        spoofCheckBox.Enabled := False;
+        reflexComboBox.Enabled := False;
+      end;
+
       forcelatencyflexCheckBox.Checked := Settings.ForceLatencyFlexChecked;
       latencyflexComboBox.ItemIndex := Settings.LatencyFlexItemIndex;
       latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
@@ -899,6 +908,10 @@ begin
         ShowMessage(ErrMsg);
       Exit;
     end;
+
+    // Immediately sync global profile assets (DLLs, plugins, configs) when saving global profile
+    if FActiveGameName = '' then
+      InitializeGlobalConfigDirectory;
 
     if ErrMsg <> '' then
       ShowMessage(ErrMsg);

@@ -26,3 +26,10 @@ GOverlay's INI configuration parser SHALL match and update keys in `OptiScaler.i
 #### Scenario: Update key with different casing and spaces
 - **WHEN** GOverlay saves the settings and updates a key (like `Dxgi=`) in an `OptiScaler.ini` file containing `dxgi = false`
 - **THEN** the parser overwrites the existing `dxgi = false` line instead of appending a new one.
+
+### Requirement: Seed fakenvapi.ini Template on Save if Absent
+GOverlay SHALL copy the template `fakenvapi.ini` from the cache folder to the game configuration directory prior to updating keys when saving OptiScaler settings if `fakenvapi.ini` does not exist in the target directory.
+
+#### Scenario: Saving OptiScaler settings when fakenvapi.ini is missing
+- **WHEN** GOverlay saves OptiScaler settings and `fakenvapi.ini` does not exist in the active gameconfig directory
+- **THEN** GOverlay seeds `fakenvapi.ini` from the cache folder before parsing and writing `force_reflex` or latency settings.

@@ -708,6 +708,33 @@ begin
   begin
     FakeNvapiIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'fakenvapi.ini';
 
+    // Seed default fakenvapi.ini template from cache if it is missing
+    if not FileExists(FakeNvapiIniPath) then
+    begin
+      IsStable := True;
+      ConfigConf := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
+      if FileExists(ConfigConf) then
+      begin
+        Ini := TIniFile.Create(ConfigConf);
+        try
+          IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+        finally
+          Ini.Free;
+        end;
+      end;
+
+      if IsStable then
+        FGModPath := GetBGModOriginalPath
+      else
+        FGModPath := GetBGModOriginalEdgePath;
+
+      if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fakenvapi.ini') then
+      begin
+        ForceDirectories(ExtractFilePath(FakeNvapiIniPath));
+        CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'fakenvapi.ini', FakeNvapiIniPath);
+      end;
+    end;
+
     if Settings.ForceReflexChecked then
     begin
       case Settings.ReflexItemIndex of

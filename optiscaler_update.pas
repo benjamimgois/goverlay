@@ -1590,6 +1590,14 @@ begin
     if DirectoryExists(OrigPath) then
     begin
       WriteLn('[DEBUG] UpdateButtonClick: Cleaning cache directory for fresh extraction...');
+      // Backup existing FakeNVAPI files in case online download fails
+      if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.dll', IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.dll');
+      if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.ini', IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.ini');
+      if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'nvapi64.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(OrigPath) + 'nvapi64.dll', IncludeTrailingPathDelimiter(UserDir) + 'nvapi64_backup.dll');
+
       try
         DeleteDirectory(OrigPath, False);
       except
@@ -1725,6 +1733,27 @@ begin
     end
     else
       WriteLn('[WARN] UpdateButtonClick: Failed to fetch FakeNVAPI latest release info');
+
+    // If FakeNVAPI download failed or files missing, restore backed-up assets
+    if not FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.dll') and FileExists(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.dll') then
+    begin
+      WriteLn('[WARN] UpdateButtonClick: Restoring backed-up fakenvapi.dll...');
+      CopyFile(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.dll', IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.dll');
+    end;
+    if not FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.ini') and FileExists(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.ini') then
+    begin
+      WriteLn('[WARN] UpdateButtonClick: Restoring backed-up fakenvapi.ini...');
+      CopyFile(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.ini', IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.ini');
+    end;
+    if not FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'nvapi64.dll') and FileExists(IncludeTrailingPathDelimiter(UserDir) + 'nvapi64_backup.dll') then
+    begin
+      WriteLn('[WARN] UpdateButtonClick: Restoring backed-up nvapi64.dll...');
+      CopyFile(IncludeTrailingPathDelimiter(UserDir) + 'nvapi64_backup.dll', IncludeTrailingPathDelimiter(OrigPath) + 'nvapi64.dll');
+    end;
+
+    DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.dll');
+    DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.ini');
+    DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'nvapi64_backup.dll');
 
     // STEP 5b: Setup FSR4 directories and download FSR INT8 DLL
     WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up FSR4_LATEST and FSR4_INT8 directories...');

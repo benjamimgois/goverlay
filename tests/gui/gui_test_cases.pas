@@ -46,6 +46,7 @@ type
     procedure TestOptiChannelSave;
     procedure TestOptiEmuFp8Save;
     procedure TestOptiForceReflexSave;
+    procedure TestOptiForceReflexSaveSeedingWhenMissing;
     procedure TestOptiLatencyFlexSave;
     procedure TestOptiTraceLogSave;
     procedure TestOptiUpdateButtonsGuarded;
@@ -117,9 +118,12 @@ begin
   // TControl.Click is protected; invoking OnClick directly exercises the
   // exact .lfm binding -> handler chain, which is what this test verifies.
   AssertTrue('optiscalerLabel.OnClick is bound', Assigned(goverlayform.optiscalerLabel.OnClick));
+  goverlayform.nvidiaRadioButton.Checked := True;
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
   AssertTrue('optiscaler tab is active after sidebar click',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.optiscalerTabSheet);
+  AssertFalse('forcereflex stays disabled on nvidia after tab click', goverlayform.forcereflexCheckBox.Enabled);
+  AssertFalse('spoof stays disabled on nvidia after tab click', goverlayform.spoofCheckBox.Enabled);
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;
@@ -267,6 +271,16 @@ begin
   CloseFile(F);
 
   AssignFile(F, FakeIniPath);
+  Rewrite(F);
+  WriteLn(F, 'force_reflex=0');
+  WriteLn(F, 'force_latencyflex=0');
+  WriteLn(F, 'latencyflex_mode=0');
+  WriteLn(F, 'enable_trace_logs=0');
+  CloseFile(F);
+
+  // Also seed pristine cache template in optiscaler-stable
+  ForceDirectories(IsolatedHome + '/.local/share/goverlay/optiscaler-stable');
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/optiscaler-stable/fakenvapi.ini');
   Rewrite(F);
   WriteLn(F, 'force_reflex=0');
   WriteLn(F, 'force_latencyflex=0');
@@ -502,6 +516,26 @@ begin
   SaveOpti;
   Content := ReadFileText(FakeIniPath);
   AssertTrue('force_reflex key removed when unchecked', Pos('force_reflex', Content) = 0);
+end;
+
+procedure TGoverlayGuiTests.TestOptiForceReflexSaveSeedingWhenMissing;
+var
+  Content: string;
+begin
+  SeedOptiScalerFiles;
+  if FileExists(FakeIniPath) then
+    DeleteFile(FakeIniPath);
+  AssertFalse('fakenvapi.ini removed before save', FileExists(FakeIniPath));
+
+  NavigateOptiScalerTab;
+  goverlayform.mesaRadioButton.Checked := True;
+  goverlayform.forcereflexCheckBox.Checked := True;
+  goverlayform.reflexComboBox.ItemIndex := 2;
+  SaveOpti;
+
+  AssertTrue('fakenvapi.ini seeded on save', FileExists(FakeIniPath));
+  Content := ReadFileText(FakeIniPath);
+  AssertTrue('force_reflex=2 persisted in seeded ini', Pos('force_reflex=2', Content) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiLatencyFlexSave;
