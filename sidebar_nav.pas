@@ -479,10 +479,12 @@ begin
 end;
 
 procedure TSidebarNavHelper.NavToolToggleClick(Sender: TObject);
+const
+  TOOL_NAMES: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'Tweaks');
 var
   Idx: Integer;
   NewEnabled: Boolean;
-  GameCfgDir: string;
+  GameCfgDir, ToolName, ActionStr, Msg: string;
   ConfigFiles: array[0..2] of string;
 begin
   Idx        := (Sender as TSpeedButton).Tag;
@@ -553,6 +555,17 @@ begin
     end;
   end;
   ApplyToolEnabledState(Idx, NewEnabled);
+
+  if (Idx >= 0) and (Idx <= 3) then ToolName := TOOL_NAMES[Idx] else ToolName := 'Tool';
+  if NewEnabled then ActionStr := 'enabled' else ActionStr := 'disabled';
+
+  if FForm.FActiveGameName <> '' then
+    Msg := Format('%s %s for %s', [ToolName, ActionStr, FForm.FActiveGameName])
+  else
+    Msg := Format('%s %s globally', [ToolName, ActionStr]);
+
+  SendNotification('Goverlay', Msg, GetIconFile());
+  FForm.ShowStatusMessage(Msg);
 end;
 
 procedure TSidebarNavHelper.UpdateNavToolToggleVisibility(AShowLabels: Boolean);

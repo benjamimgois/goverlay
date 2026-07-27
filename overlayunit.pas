@@ -1101,6 +1101,7 @@ type
     FVsEnabledCB:   TCheckBox;
     FVsToggleEdit:  TEdit;
     FVsRestoreBtn:      TBitBtn;
+    FVkRestoreBtn:      TBitBtn;
     FVsToggleCaptureBtn: TBitBtn;
     FVsToggleTitleLbl:  TLabel;
     FVsLuminanceTitleLbl: TLabel;
@@ -1281,6 +1282,7 @@ type
     procedure ReflowGamesGrid;
     procedure LoadGlobalThumb;
     procedure ShowHomeTab(Sender: TObject = nil);
+    procedure VkRestoreBtnClick(Sender: TObject);
     procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
     procedure SetNavActive(AIndex: Integer);
     procedure GameCardClick(Sender: TObject);
@@ -5440,6 +5442,12 @@ end;
 procedure Tgoverlayform.VsRestoreBtnClick(Sender: TObject);
 begin
   TVkBasaltTabHelper(FBasaltHelper).VsRestoreBtnClick(Sender);
+end;
+
+procedure Tgoverlayform.VkRestoreBtnClick(Sender: TObject);
+begin
+  if Assigned(FBasaltHelper) then
+    TVkBasaltTabHelper(FBasaltHelper).VkRestoreBtnClick(Sender);
 end;
 
 procedure Tgoverlayform.SaveVkBasaltConfig;

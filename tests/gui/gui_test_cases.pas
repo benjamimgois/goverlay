@@ -75,6 +75,7 @@ type
     procedure TestMangoPresetCardHighlightsResetOnProfileSwitch;
     procedure TestMissingConfigResetsControlsAllTabs;
     procedure TestGameCardClickSynchronizesAllToolPaths;
+    procedure TestVkBasaltRestoreDefaults;
   end;
 
 implementation
@@ -1469,6 +1470,23 @@ begin
     Panel.Free;
     goverlayform.FActiveGameName := '';
   end;
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltRestoreDefaults;
+begin
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+  goverlayform.acteffectsListBox.Items.Add('cas');
+  goverlayform.casTrackBar.Position := 8;
+  goverlayform.fxaaTrackBar.Position := 5;
+
+  AssertEquals('acteffectsListBox has item before restore', 1, goverlayform.acteffectsListBox.Items.Count);
+  AssertEquals('casTrackBar is 8 before restore', 8, goverlayform.casTrackBar.Position);
+
+  goverlayform.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+
+  AssertEquals('acteffectsListBox cleared by restore defaults', 0, goverlayform.acteffectsListBox.Items.Count);
+  AssertEquals('casTrackBar reset to 0 by restore defaults', 0, goverlayform.casTrackBar.Position);
+  AssertEquals('fxaaTrackBar reset to 0 by restore defaults', 0, goverlayform.fxaaTrackBar.Position);
 end;
 
 initialization

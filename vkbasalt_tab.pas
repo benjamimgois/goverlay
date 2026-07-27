@@ -21,6 +21,7 @@ type
     procedure ReflowVkSumiTab(AContentW: Integer);
     procedure VkSumiSliderChange(Sender: TObject);
     procedure VsRestoreBtnClick(Sender: TObject);
+    procedure VkRestoreBtnClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure VkReshadeMD3Paint(Sender: TObject);
     procedure VkReshadeMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -245,10 +246,20 @@ begin
   FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
   FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
 
-  // ── Reshade sync button (restores the old "Update" button, placed inside Toggle Key card)
+  // ── Restore defaults button (placed to the right of Toggle Key button)
+  FVkRestoreBtn := TBitBtn.Create(FVkToggleCard);
+  FVkRestoreBtn.Parent   := FVkToggleCard;
+  FVkRestoreBtn.Caption  := 'Restore Defaults';
+  FVkRestoreBtn.Hint     := 'Reset all vkBasalt sliders and active effects';
+  FVkRestoreBtn.ShowHint := True;
+  FVkRestoreBtn.Anchors  := [akLeft, akTop];
+  FVkRestoreBtn.Cursor   := crHandPoint;
+  FVkRestoreBtn.OnClick  := @VkRestoreBtnClick;
+
+  // ── Reshade sync button (placed to the right of Restore Defaults button)
   FVkReshadeSyncBtn := TBitBtn.Create(FVkToggleCard);
   FVkReshadeSyncBtn.Parent   := FVkToggleCard;
-  FVkReshadeSyncBtn.Anchors  := [akRight, akTop];
+  FVkReshadeSyncBtn.Anchors  := [akLeft, akTop];
   FVkReshadeSyncBtn.Cursor   := crHandPoint;
   FVkReshadeSyncBtn.Caption  := '↻ Sync Shaders';
   FVkReshadeSyncBtn.Font.Name  := 'Noto Sans';
@@ -339,13 +350,13 @@ begin
     FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
                                    FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 6, 120, 28);
 
-  if Assigned(FVkReshadeSyncBtn) then
-  begin
-    if Assigned(FVkToggleCaptureBtn) then
-      FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, FVkToggleCaptureBtn.Top, 130, 28)
-    else
-      FVkReshadeSyncBtn.SetBounds(CW - PAD - 130, 40, 130, 28);
-  end;
+  if Assigned(FVkRestoreBtn) and Assigned(FVkToggleCaptureBtn) then
+    FVkRestoreBtn.SetBounds(FVkToggleCaptureBtn.Left + FVkToggleCaptureBtn.Width + 12,
+                            FVkToggleCaptureBtn.Top, 140, 28);
+
+  if Assigned(FVkReshadeSyncBtn) and Assigned(FVkRestoreBtn) then
+    FVkReshadeSyncBtn.SetBounds(FVkRestoreBtn.Left + FVkRestoreBtn.Width + 12,
+                                FVkToggleCaptureBtn.Top, 130, 28);
   end;
 end;
 
@@ -800,6 +811,30 @@ begin
     end;
   end;
   SaveVkSumiConfig;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkRestoreBtnClick(Sender: TObject);
+begin
+  with FForm do
+  begin
+    acteffectsListBox.Items.Clear;
+    casTrackBar.Position := 0;
+    fxaaTrackBar.Position := 0;
+    smaaTrackBar.Position := 0;
+    dlsTrackBar.Position := 0;
+    casvalueLabel.Caption := '0';
+    fxaavalueLabel.Caption := '0';
+    smaavalueLabel.Caption := '0';
+    dlsvalueLabel.Caption := '0';
+    if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := '0';
+    if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
+    if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
+    if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+
+    SendNotification('vkBasalt', 'Settings restored to defaults', GetIconFile());
+    ShowStatusMessage('🔄 vkBasalt settings restored to defaults');
   end;
 end;
 

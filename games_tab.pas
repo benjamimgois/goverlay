@@ -1117,6 +1117,8 @@ begin
           IconPath := GetAppBaseDir + 'assets/icons/steam-icon.png';
           if FileExists(IconPath) then
             try BdgImg.Picture.LoadFromFile(IconPath); except end;
+          BdgImg.Hint        := 'Steam Game';
+          BdgImg.ShowHint    := True;
           BdgImg.BringToFront;
           BdgImg.OnMouseEnter := @GameCardMouseEnter;
           BdgImg.OnMouseLeave := @GameCardMouseLeave;
@@ -1196,13 +1198,15 @@ begin
             if FileExists(IconPath) then
               try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-            BdgHint := 'Custom settings active:';
-            if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud';
-            if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt';
-            if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler';
-            if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks';
+            BdgHint := 'Enabled GOverlay Tools:';
+            if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
+            if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
+            if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';
+            if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks: Enabled';
 
-            BdgImg.Hint := BdgHint;
+            CardPanel.Hint := CardPanel.Hint + LineEnding + LineEnding + BdgHint;
+            CardImage.Hint := CardPanel.Hint;
+            BdgImg.Hint := CardPanel.Hint;
             BdgImg.ShowHint := True;
 
             BdgImg.BringToFront;
@@ -1561,13 +1565,20 @@ begin
         if FileExists(IconPath) then
           try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-        BdgHint := 'Custom settings active:';
-        if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud';
-        if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt';
-        if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler';
-        if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks';
+        BdgHint := 'Enabled GOverlay Tools:';
+        if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
+        if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
+        if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';
+        if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks: Enabled';
 
-        BdgImg.Hint := BdgHint;
+        CardPanel.Hint := CardPanel.Hint + LineEnding + LineEnding + BdgHint;
+        CardImage.Hint := CardPanel.Hint;
+        if Assigned(BdgLbl) then
+        begin
+          BdgLbl.Hint := CardPanel.Hint;
+          BdgLbl.ShowHint := True;
+        end;
+        BdgImg.Hint := CardPanel.Hint;
         BdgImg.ShowHint := True;
 
         BdgImg.BringToFront;
