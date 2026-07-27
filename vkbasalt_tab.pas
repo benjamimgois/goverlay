@@ -260,7 +260,7 @@ end;
 
 procedure TVkBasaltTabHelper.ReflowVkBasaltTab(AContentW: Integer);
 const
-  MARGIN   = 10;   // outer margin each side
+  MARGIN   = 4;   // outer margin each side
   GAP      = 8;    // gap between cards
   BTIN_H   = 170;  // built-in effects card height
   TOGL_H   = 85;   // toggle key card height (increased for button breathing room)
@@ -617,7 +617,7 @@ end;
 
 procedure TVkBasaltTabHelper.ReflowVkSumiTab(AContentW: Integer);
 const
-  MARGIN   = 16;
+  MARGIN   = 4;
   GAP      = 12;
   CARD_P   = 14;
   GB_PAD   = 8;

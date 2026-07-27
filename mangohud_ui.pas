@@ -1555,7 +1555,7 @@ end;
 
 procedure TMangoHudUiHelper.ReflowPerformanceTab(AContentW, AContentH: Integer);
 const
-  MARGIN     = 2;
+  MARGIN     = 4;
   GAP        = 5;   // gap between cards
   ROW1_TOP   = 0;
   ROW1_H     = 180;  // Information card — fixed height
@@ -2126,7 +2126,7 @@ end;
 
 procedure TMangoHudUiHelper.ReflowMetricsTab(AContentW: Integer);
 const
-  MARGIN = 8;
+  MARGIN = 4;
   GAP    = 6;
   HDR    = 34;
   BASE_GPU_H = 312;
@@ -2485,7 +2485,7 @@ end;
 
 procedure TMangoHudUiHelper.ReflowExtrasTab(AContentW: Integer);
 const
-  MARGIN = 8;
+  MARGIN = 4;
   GAP    = 6;
   HDR    = 34;
   BASE_SYS_H = 377;

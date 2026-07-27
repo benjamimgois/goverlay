@@ -672,7 +672,7 @@ end;
 
 procedure TOptiScalerTabHelper.ReflowOptiScalerTabNew(AContentW: Integer);
 const
-  MARGIN  = 8;    // outer margin inside scroll box
+  MARGIN  = 4;    // outer margin inside scroll box
   GAP     = 6;    // gap between cards
   HDR     = 34;   // accent bar (3) + title area (31)
   PAD     = 14;   // inner horizontal padding

@@ -49,7 +49,7 @@ end;
 
 procedure THomeTabHelper.InitHomeTab;
 const
-  CARD_M     = 14;
+  CARD_M     = 4;
   CARD_P     = 14;   // padding inside card (left content margin)
   ROW_H      = 26;
   DOT_SZ     = 14;

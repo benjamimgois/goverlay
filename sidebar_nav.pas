@@ -109,6 +109,7 @@ begin
   SetLength(FForm.FNavItems,      Length(ITEMS));
   SetLength(FForm.FNavIndicators, Length(ITEMS));
   SetLength(FForm.FNavIcons,      Length(ITEMS));
+  SetLength(FForm.FNavImgIcons,   Length(ITEMS));
   SetLength(FForm.FNavLabels,     Length(ITEMS));
   SetLength(FForm.FNavClickCBs,   Length(ITEMS));
 
@@ -202,71 +203,43 @@ begin
     Indicator.Shape   := stRoundRect;
     Indicator.Visible := False;
 
-    // --- Icon label (Nerd Font / Unicode) ---
+    // --- Icon label (Legacy/Hidden placeholder) ---
     IconLbl := TLabel.Create(FForm);
     IconLbl.Parent := Item;
     IconLbl.SetBounds(16, (NAV_ITEM_H - NAV_ICON_SIZE) div 2, NAV_ICON_SIZE, NAV_ICON_SIZE);
+    IconLbl.Caption := '';
 
-    if i = 3 then
-    begin
-      IconLbl.Caption := ''; // Clear text
+    // --- PNG Icon Image ---
+    FForm.FNavImgIcons[i] := TImage.Create(FForm);
+    FForm.FNavImgIcons[i].Parent := Item;
+    FForm.FNavImgIcons[i].SetBounds(16, (NAV_ITEM_H - 32) div 2, 32, 32);
+    FForm.FNavImgIcons[i].Stretch := True;
+    FForm.FNavImgIcons[i].Proportional := True;
+    FForm.FNavImgIcons[i].Center := True;
+    FForm.FNavImgIcons[i].Cursor := crHandPoint;
+    FForm.FNavImgIcons[i].Tag := i;
+    FForm.FNavImgIcons[i].OnClick      := @FForm.NavItemClick;
+    FForm.FNavImgIcons[i].OnMouseEnter := @FForm.NavItemMouseEnter;
+    FForm.FNavImgIcons[i].OnMouseLeave := @FForm.NavItemMouseLeave;
 
-      FForm.FOptiScalerImg := TImage.Create(FForm);
-      FForm.FOptiScalerImg.Parent := Item;
-      FForm.FOptiScalerImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
-      FForm.FOptiScalerImg.Stretch := True;
-      FForm.FOptiScalerImg.Proportional := True;
-      FForm.FOptiScalerImg.Center := True;
-      FForm.FOptiScalerImg.Cursor := crHandPoint;
-      FForm.FOptiScalerImg.Tag := i;
-      FForm.FOptiScalerImg.OnClick      := @FForm.NavItemClick;
-      FForm.FOptiScalerImg.OnMouseEnter := @FForm.NavItemMouseEnter;
-      FForm.FOptiScalerImg.OnMouseLeave := @FForm.NavItemMouseLeave;
-
-      IconPath := FForm.GetAppBaseDir + 'assets/icons/scale-up2.png';
-      WriteLn(StdErr, '[NavIcon] scale-up2 path="', IconPath, '" exists=', FileExists(IconPath));
-      if FileExists(IconPath) then
-        try FForm.FOptiScalerImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] scale-up2 load error: ', E.Message); end;
-    end
-    else if i = 1 then
-    begin
-      IconLbl.Caption := ''; // Clear text
-
-      FForm.FMangoHudImg := TImage.Create(FForm);
-      FForm.FMangoHudImg.Parent := Item;
-      FForm.FMangoHudImg.SetBounds(18, (NAV_ITEM_H - 24) div 2, 24, 24);
-      FForm.FMangoHudImg.Stretch := True;
-      FForm.FMangoHudImg.Proportional := True;
-      FForm.FMangoHudImg.Center := True;
-      FForm.FMangoHudImg.Cursor := crHandPoint;
-      FForm.FMangoHudImg.Tag := i;
-      FForm.FMangoHudImg.OnClick      := @FForm.NavItemClick;
-      FForm.FMangoHudImg.OnMouseEnter := @FForm.NavItemMouseEnter;
-      FForm.FMangoHudImg.OnMouseLeave := @FForm.NavItemMouseLeave;
-
-      IconPath := FForm.GetAppBaseDir + 'assets/icons/mango-inactive.png';
-      WriteLn(StdErr, '[NavIcon] mango-inactive path="', IconPath, '" exists=', FileExists(IconPath));
-      if FileExists(IconPath) then
-        try FForm.FMangoHudImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] mango-inactive load error: ', E.Message); end;
-    end
-    else
-    begin
-      IconLbl.Caption   := ITEMS[i].Icon;
+    case i of
+      0: IconPath := FForm.GetAppBaseDir + 'assets/icons/games-inactive.png';
+      1: IconPath := FForm.GetAppBaseDir + 'assets/icons/mango-inactive.png';
+      2: IconPath := FForm.GetAppBaseDir + 'assets/icons/postprocessing-inactive.png';
+      3: IconPath := FForm.GetAppBaseDir + 'assets/icons/scale-up2.png';
+      4: IconPath := FForm.GetAppBaseDir + 'assets/icons/envvars-inactive.png';
     end;
-    IconLbl.Font.Size := 18;
-    IconLbl.Font.Color := $00AAAAAA;
-    IconLbl.Font.Name  := 'Noto Sans';
-    IconLbl.Transparent := True;
-    IconLbl.Cursor := crHandPoint;
-    IconLbl.Tag    := i;
-    IconLbl.OnClick      := @FForm.NavItemClick;
-    IconLbl.OnMouseEnter := @FForm.NavItemMouseEnter;
-    IconLbl.OnMouseLeave := @FForm.NavItemMouseLeave;
+
+    if FileExists(IconPath) then
+      try FForm.FNavImgIcons[i].Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[NavIcon] load error (', IconPath, '): ', E.Message); end;
+
+    if i = 1 then FForm.FMangoHudImg := FForm.FNavImgIcons[1];
+    if i = 3 then FForm.FOptiScalerImg := FForm.FNavImgIcons[3];
 
     // --- Caption label ---
     CaptionLbl := TLabel.Create(FForm);
     CaptionLbl.Parent := Item;
-    CaptionLbl.SetBounds(52, (NAV_ITEM_H - 16) div 2, NAV_ITEM_W - 60, 20);
+    CaptionLbl.SetBounds(58, (NAV_ITEM_H - 16) div 2, NAV_ITEM_W - 66, 20);
     CaptionLbl.Caption   := ITEMS[i].Caption;
     CaptionLbl.Font.Size := 9;
     CaptionLbl.Font.Color := $00AAAAAA;
@@ -983,36 +956,25 @@ begin
       FForm.FNavIndicators[i].Pen.Color   := IfThen(i = 0, NAV_IND_GAMES, NAV_IND_TOOLS);
       FForm.FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
       FForm.FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, clBlack, clWhite);
-      if (i = 3) and Assigned(FForm.FOptiScalerImg) then
-      begin
-        IconPath := FForm.GetAppBaseDir + 'assets/icons/scale-up2-active.png';
-        if FileExists(IconPath) then
-          try FForm.FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
-      end;
-      if (i = 1) and Assigned(FForm.FMangoHudImg) then
-      begin
-        IconPath := FForm.GetAppBaseDir + 'assets/icons/mango-active.png';
-        if FileExists(IconPath) then
-          try FForm.FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
-      end;
     end
     else
     begin
       FForm.FNavIndicators[i].Visible := False;
       FForm.FNavIcons[i].Font.Color   := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
       FForm.FNavLabels[i].Font.Color  := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
-      if (i = 3) and Assigned(FForm.FOptiScalerImg) then
-      begin
-        IconPath := FForm.GetAppBaseDir + 'assets/icons/scale-up2.png';
-        if FileExists(IconPath) then
-          try FForm.FOptiScalerImg.Picture.LoadFromFile(IconPath); except end;
+    end;
+
+    if Assigned(FForm.FNavImgIcons[i]) then
+    begin
+      case i of
+        0: IconPath := FForm.GetAppBaseDir + 'assets/icons/' + IfThen(i = AIndex, 'games-active.png', 'games-inactive.png');
+        1: IconPath := FForm.GetAppBaseDir + 'assets/icons/' + IfThen(i = AIndex, 'mango-active.png', 'mango-inactive.png');
+        2: IconPath := FForm.GetAppBaseDir + 'assets/icons/' + IfThen(i = AIndex, 'postprocessing-active.png', 'postprocessing-inactive.png');
+        3: IconPath := FForm.GetAppBaseDir + 'assets/icons/' + IfThen(i = AIndex, 'scale-up2-active.png', 'scale-up2.png');
+        4: IconPath := FForm.GetAppBaseDir + 'assets/icons/' + IfThen(i = AIndex, 'envvars-active.png', 'envvars-inactive.png');
       end;
-      if (i = 1) and Assigned(FForm.FMangoHudImg) then
-      begin
-        IconPath := FForm.GetAppBaseDir + 'assets/icons/mango-inactive.png';
-        if FileExists(IconPath) then
-          try FForm.FMangoHudImg.Picture.LoadFromFile(IconPath); except end;
-      end;
+      if FileExists(IconPath) then
+        try FForm.FNavImgIcons[i].Picture.LoadFromFile(IconPath); except end;
     end;
     FForm.FNavItems[i].Invalidate;
   end;
@@ -1162,25 +1124,20 @@ begin
     // In collapsed+game mode the button sits below the icon, so shift icon up
     FForm.FNavIcons[i].Top     := IfThen(ShowLabels or (FForm.FActiveGameName = ''),
                               (NAV_ITEM_H - NAV_ICON_SIZE) div 2, 8);
+    if Assigned(FForm.FNavImgIcons[i]) then
+    begin
+      FForm.FNavImgIcons[i].Left   := IfThen(ShowLabels, 16, (AWidth - 32) div 2);
+      FForm.FNavImgIcons[i].Top    := IfThen(ShowLabels or (FForm.FActiveGameName = ''),
+                                       (NAV_ITEM_H - 32) div 2, 4);
+      FForm.FNavImgIcons[i].Width  := 32;
+      FForm.FNavImgIcons[i].Height := 32;
+    end;
     FForm.FNavLabels[i].Visible := ShowLabels;
   end;
 
   // Show/hide the Games↔Tools separator section
 
   UpdateNavToolToggleVisibility(ShowLabels);
-
-  if Assigned(FForm.FMangoHudImg) then
-  begin
-    FForm.FMangoHudImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
-    FForm.FMangoHudImg.Top  := IfThen(ShowLabels or (FForm.FActiveGameName = ''),
-                           (NAV_ITEM_H - 24) div 2, 8);
-  end;
-  if Assigned(FForm.FOptiScalerImg) then
-  begin
-    FForm.FOptiScalerImg.Left := IfThen(ShowLabels, 18, (AWidth - 24) div 2);
-    FForm.FOptiScalerImg.Top  := IfThen(ShowLabels or (FForm.FActiveGameName = ''),
-                             (NAV_ITEM_H - 24) div 2, 8);
-  end;
 
   FForm.FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 28, AWidth - 26);
 

@@ -1108,7 +1108,7 @@ begin
   BasicCard.Caption    := '';
   BasicCard.Color      := BG;
   BasicCard.OnPaint    := @FForm.PerfCardPaint;
-  BasicCard.SetBounds(2, 2, FForm.tweaksTabSheet.ClientWidth - 4, 214);
+  BasicCard.SetBounds(4, 2, FForm.tweaksTabSheet.ClientWidth - 8, 214);
   BasicCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(BasicCard);
   MakeLbl(BasicCard, 'Basic Tweaks');
@@ -1142,7 +1142,7 @@ begin
   AdvCard.Caption    := '';
   AdvCard.Color      := BG;
   AdvCard.OnPaint    := @FForm.PerfCardPaint;
-  AdvCard.SetBounds(2, 221, FForm.tweaksTabSheet.ClientWidth - 4, 210);
+  AdvCard.SetBounds(4, 221, FForm.tweaksTabSheet.ClientWidth - 8, 210);
   AdvCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(AdvCard);
   MakeLbl(AdvCard, 'Advanced Tweaks');

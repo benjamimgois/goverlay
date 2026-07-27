@@ -1146,6 +1146,7 @@ type
     FNavItems:       array of TPanel;    // item panels
     FNavIndicators:  array of TShape;    // left indicator bars
     FNavIcons:       array of TLabel;    // unicode icon labels
+    FNavImgIcons:    array of TImage;    // PNG image icons
     FNavLabels:      array of TLabel;    // caption labels
     FNavActive:      Integer;            // index of active item (-1 = none)
     FNavHoveredIdx:  Integer;            // index of hovered item (-1 = none)
@@ -6577,7 +6578,7 @@ begin
   TopPad := Max(MIN_TOP_PAD, (presetTabSheet.ClientHeight - CONTENT_H) div 2 - 40);
 
   // ── Section 1: Layouts ───────────────────────────────────────────────────
-  layoutsLabel.Left := 20;
+  layoutsLabel.Left := 4;
   layoutsLabel.Top  := TopPad;
   LayoutTop         := TopPad + HDR_H + CARD_PAD_T;
 
@@ -6592,7 +6593,7 @@ begin
 
   // ── Section 2: Color Theme ───────────────────────────────────────────────
   ColorHdrTop := LayoutTop + PC_H + SEC_GAP;
-  colorthemeLabel.Left := 20;
+  colorthemeLabel.Left := 4;
   colorthemeLabel.Top  := ColorHdrTop;
   ColorTop := ColorHdrTop + HDR_H + CARD_PAD_T;
 
