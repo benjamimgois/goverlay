@@ -70,6 +70,9 @@ type
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
     procedure TestWindowResizabilityAndGeometry;
+    procedure TestSidebarTabPathResetGlobalMode;
+    procedure TestTweaksResetOnMissingConfig;
+    procedure TestMangoPresetCardHighlightsResetOnProfileSwitch;
   end;
 
 implementation
@@ -1371,6 +1374,47 @@ begin
   finally
     Ini.Free;
   end;
+end;
+
+procedure TGoverlayGuiTests.TestSidebarTabPathResetGlobalMode;
+begin
+  goverlayform.FActiveGameName := 'TestGame';
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  AssertTrue('MANGOHUDCFGFILE points to game dir when active', Pos('TestGame', MANGOHUDCFGFILE) > 0);
+
+  goverlayform.FActiveGameName := '';
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  AssertFalse('MANGOHUDCFGFILE reset to global dir when FActiveGameName empty', Pos('TestGame', MANGOHUDCFGFILE) > 0);
+
+  goverlayform.FActiveGameName := 'TestGame';
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+  AssertTrue('VKBASALTCFGFILE points to game dir when active', Pos('TestGame', VKBASALTCFGFILE) > 0);
+
+  goverlayform.FActiveGameName := '';
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+  AssertFalse('VKBASALTCFGFILE reset to global dir when FActiveGameName empty', Pos('TestGame', VKBASALTCFGFILE) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestTweaksResetOnMissingConfig;
+begin
+  goverlayform.simdeckCheckBox.Checked := True;
+  goverlayform.FActiveGameName := 'NonExistentGameProfile123';
+  goverlayform.LoadTweaksFromFGMod;
+  AssertFalse('simdeckCheckBox reset to false on missing bgmod.conf', goverlayform.simdeckCheckBox.Checked);
+  goverlayform.FActiveGameName := '';
+end;
+
+procedure TGoverlayGuiTests.TestMangoPresetCardHighlightsResetOnProfileSwitch;
+begin
+  goverlayform.FActiveLayoutCard := 0;
+  goverlayform.FActiveColorCard := 2;
+
+  goverlayform.FActiveGameName := 'SomeNewProfile';
+  goverlayform.LoadMangoHudConfig;
+
+  AssertEquals('FActiveLayoutCard reset on profile load', -1, goverlayform.FActiveLayoutCard);
+  AssertEquals('FActiveColorCard reset on profile load', -1, goverlayform.FActiveColorCard);
+  goverlayform.FActiveGameName := '';
 end;
 
 initialization

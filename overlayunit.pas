@@ -1806,6 +1806,11 @@ begin
       ForceDirectories(GameCfgDir);
     VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
     VKSUMICFGFILE := GameCfgDir + 'vkSumi.conf';
+  end
+  else
+  begin
+    VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
+    VKSUMICFGFILE := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';
   end;
 
   // Reload UI from the correct config file (VKBASALTCFGFILE was just updated above)
@@ -4185,7 +4190,9 @@ begin
     if not DirectoryExists(GameCfgDir) then
       ForceDirectories(GameCfgDir);
     MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
-  end;
+  end
+  else
+    MANGOHUDCFGFILE := GetGameConfigDir('') + 'MangoHud.conf';
 
   SetNavActive(1);
 

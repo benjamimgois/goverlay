@@ -2732,6 +2732,9 @@ var
 begin
   with FForm do
   begin
+    FActiveLayoutCard := -1;
+    FActiveColorCard  := -1;
+
     // 1. Reset all checkboxes inside MangoHud tabs to False
     for i := 0 to ComponentCount - 1 do
     begin
@@ -2929,8 +2932,9 @@ begin
     ConfigLines.Free;
   end;
 
-  // Sync FPS chip visuals with the newly loaded checkgroup state
+  // Sync FPS chip visuals and preset card selection highlighting with the newly loaded state
   UpdatePerfCardTheme;
+  UpdatePresetCardVisuals;
 end;
 
 procedure TMangoHudUiHelper.LoadMangoHudBoolFlag(const ATrimmedLine: string);

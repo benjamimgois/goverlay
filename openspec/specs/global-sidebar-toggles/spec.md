@@ -26,3 +26,10 @@ The system SHALL support turning tool configurations ON or OFF globally via the 
 #### Scenario: Toggling a tool ON globally
 - **WHEN** the user clicks a sidebar tool toggle to set it to ON while in global mode
 - **THEN** the system enables the tab sheets and inputs for that tool, allowing customization and saving
+
+### Requirement: Explicit Target Config Path Assignment on Sidebar Tab Navigation
+GOverlay SHALL explicitly set `MANGOHUDCFGFILE`, `VKBASALTCFGFILE`, and `VKSUMICFGFILE` to global profile directory paths when navigating to sidebar tabs in global mode (`FActiveGameName = ''`).
+
+#### Scenario: Navigating to MangoHud or vkBasalt tab in global mode
+- **WHEN** `FActiveGameName` is empty and the user clicks on the MangoHud or vkBasalt sidebar tab
+- **THEN** GOverlay SHALL assign `MANGOHUDCFGFILE`, `VKBASALTCFGFILE`, and `VKSUMICFGFILE` to their respective global config paths before reloading tab settings.

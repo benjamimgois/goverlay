@@ -1392,6 +1392,49 @@ var
   i, Row: Integer;
   Key, Val: string;
 begin
+  // Reset all tweaks checkboxes first
+  FForm.GetGeneralCheckBox(0).Checked := False;
+  FForm.GetGeneralCheckBox(1).Checked := False;
+  FForm.GetGeneralCheckBox(2).Checked := False;
+  FForm.GetGeneralCheckBox(3).Checked := False;
+  FForm.GetGeneralCheckBox(4).Checked := False;
+  FForm.GetGeneralCheckBox(5).Checked := False;
+
+  // Reset graphicsCheckGroup checkboxes
+  FForm.GetGraphicsCheckBox(0).Checked := False;
+  FForm.GetGraphicsCheckBox(1).Checked := False;
+  FForm.GetGraphicsCheckBox(2).Checked := False;
+  FForm.GetGraphicsCheckBox(3).Checked := False;
+  FForm.GetGraphicsCheckBox(4).Checked := False;
+
+  // Reset performanceCheckGroup checkboxes
+  FForm.GetPerformanceCheckBox(0).Checked := False;
+  FForm.GetPerformanceCheckBox(1).Checked := False;
+  FForm.GetPerformanceCheckBox(2).Checked := False;
+  FForm.GetPerformanceCheckBox(3).Checked := False;
+  FForm.GetPerformanceCheckBox(4).Checked := False;
+  FForm.GetPerformanceCheckBox(5).Checked := False;
+  FForm.GetPerformanceCheckBox(6).Checked := False;
+  FForm.FAntilagCheckBox.Checked := False;
+  FForm.FFSR4UpgradeCheckBox.Checked := False;
+  FForm.FDLSSUpgradeCheckBox.Checked := False;
+  FForm.FXeSSUpgradeCheckBox.Checked := False;
+  FForm.FReEngineRTCheckBox.Checked := False;
+  FForm.FLowLatencyCheckBox.Checked := False;
+  FForm.FLowLatencyReflexCheckBox.Checked := False;
+  FForm.FLowLatencySpoofNvidiaCheckBox.Checked := False;
+  FForm.FLowLatencyHideAmdGpuCheckBox.Checked := False;
+  FForm.FProtonVkd3dLowLatencyCheckBox.Checked := False;
+
+  // Reset custom env list
+  FForm.customenvEdit.Text := '';
+  if Assigned(FForm.FCustomListBox) then
+    FForm.FCustomListBox.Items.Clear;
+
+  // Reset grid to predefined rows only (discard previous custom rows)
+  if Assigned(FForm.FTweaksGrid) then
+    FForm.FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
+
   // Get bgmod config path
   ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
 
@@ -1402,48 +1445,6 @@ begin
   Ini := TIniFile.Create(ConfigPath);
   EnvList := TStringList.Create;
   try
-    // Reset all tweaks checkboxes first
-    FForm.GetGeneralCheckBox(0).Checked := False;
-    FForm.GetGeneralCheckBox(1).Checked := False;
-    FForm.GetGeneralCheckBox(2).Checked := False;
-    FForm.GetGeneralCheckBox(3).Checked := False;
-    FForm.GetGeneralCheckBox(4).Checked := False;
-    FForm.GetGeneralCheckBox(5).Checked := False;
-
-    // Reset graphicsCheckGroup checkboxes
-    FForm.GetGraphicsCheckBox(0).Checked := False;
-    FForm.GetGraphicsCheckBox(1).Checked := False;
-    FForm.GetGraphicsCheckBox(2).Checked := False;
-    FForm.GetGraphicsCheckBox(3).Checked := False;
-    FForm.GetGraphicsCheckBox(4).Checked := False;
-
-    // Reset performanceCheckGroup checkboxes
-    FForm.GetPerformanceCheckBox(0).Checked := False;
-    FForm.GetPerformanceCheckBox(1).Checked := False;
-    FForm.GetPerformanceCheckBox(2).Checked := False;
-    FForm.GetPerformanceCheckBox(3).Checked := False;
-    FForm.GetPerformanceCheckBox(4).Checked := False;
-    FForm.GetPerformanceCheckBox(5).Checked := False;
-    FForm.GetPerformanceCheckBox(6).Checked := False;
-    FForm.FAntilagCheckBox.Checked := False;
-    FForm.FFSR4UpgradeCheckBox.Checked := False;
-    FForm.FDLSSUpgradeCheckBox.Checked := False;
-    FForm.FXeSSUpgradeCheckBox.Checked := False;
-    FForm.FReEngineRTCheckBox.Checked := False;
-    FForm.FLowLatencyCheckBox.Checked := False;
-    FForm.FLowLatencyReflexCheckBox.Checked := False;
-    FForm.FLowLatencySpoofNvidiaCheckBox.Checked := False;
-    FForm.FLowLatencyHideAmdGpuCheckBox.Checked := False;
-    FForm.FProtonVkd3dLowLatencyCheckBox.Checked := False;
-
-    // Reset custom env list
-    FForm.customenvEdit.Text := '';
-    if Assigned(FForm.FCustomListBox) then
-      FForm.FCustomListBox.Items.Clear;
-
-    // Reset grid to predefined rows only (discard previous custom rows)
-    if Assigned(FForm.FTweaksGrid) then
-      FForm.FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
 
     // Load gamemode state from Config
     FForm.GetPerformanceCheckBox(0).Checked := Ini.ReadString('Config', 'gamemode', '0') = '1';
