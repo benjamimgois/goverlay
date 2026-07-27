@@ -73,6 +73,7 @@ type
     procedure TestSidebarTabPathResetGlobalMode;
     procedure TestTweaksResetOnMissingConfig;
     procedure TestMangoPresetCardHighlightsResetOnProfileSwitch;
+    procedure TestMissingConfigResetsControlsAllTabs;
   end;
 
 implementation
@@ -1414,6 +1415,38 @@ begin
 
   AssertEquals('FActiveLayoutCard reset on profile load', -1, goverlayform.FActiveLayoutCard);
   AssertEquals('FActiveColorCard reset on profile load', -1, goverlayform.FActiveColorCard);
+  goverlayform.FActiveGameName := '';
+end;
+
+procedure TGoverlayGuiTests.TestMissingConfigResetsControlsAllTabs;
+begin
+  // Initialize vkBasalt/vkSumi controls
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+
+  // 1. MangoHud: Set controls, switch to profile with no MangoHud.conf, verify controls reset
+  goverlayform.fpsCheckBox.Checked := True;
+  goverlayform.hudtitleEdit.Text := 'CustomTitle';
+  goverlayform.FActiveGameName := 'MissingConfigGameProfile999';
+  MANGOHUDCFGFILE := goverlayform.GetGameConfigDir('MissingConfigGameProfile999') + 'MangoHud.conf';
+  goverlayform.LoadMangoHudConfig;
+  AssertFalse('fpsCheckBox reset when MangoHud.conf missing', goverlayform.fpsCheckBox.Checked);
+  AssertEquals('hudtitleEdit reset when MangoHud.conf missing', '', goverlayform.hudtitleEdit.Text);
+
+  // 2. vkBasalt: Add active effect and trackbar position, switch to profile with no vkBasalt.conf, verify reset
+  goverlayform.acteffectsListBox.Items.Add('cas');
+  goverlayform.casTrackBar.Position := 8;
+  VKBASALTCFGFILE := goverlayform.GetGameConfigDir('MissingConfigGameProfile999') + 'vkBasalt.conf';
+  goverlayform.LoadVkBasaltConfig;
+  AssertEquals('acteffectsListBox cleared when vkBasalt.conf missing', 0, goverlayform.acteffectsListBox.Items.Count);
+  AssertEquals('casTrackBar position reset to 0 when vkBasalt.conf missing', 0, goverlayform.casTrackBar.Position);
+
+  // 3. vkSumi: Set custom trackbar position, switch to missing config profile, verify default load
+  if Assigned(goverlayform.FVsEnabledCB) then goverlayform.FVsEnabledCB.Checked := False;
+  VKSUMICFGFILE := goverlayform.GetGameConfigDir('MissingConfigGameProfile999') + 'vkSumi.conf';
+  goverlayform.LoadVkSumiConfig;
+  if Assigned(goverlayform.FVsEnabledCB) then
+    AssertTrue('FVsEnabledCB set to default true when vkSumi.conf missing', goverlayform.FVsEnabledCB.Checked);
+
   goverlayform.FActiveGameName := '';
 end;
 

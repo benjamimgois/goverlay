@@ -2237,9 +2237,6 @@ procedure Tgoverlayform.LoadVkBasaltConfig;
 var
   Settings: TVkBasaltSettings;
 begin
-  if not FileExists(VKBASALTCFGFILE) then
-    Exit;
-
   // Reset all controls before loading so stale values from a previous config
   // do not bleed into the newly loaded one.
   acteffectsListBox.Items.Clear;
@@ -2251,6 +2248,13 @@ begin
   fxaavalueLabel.Caption := '0';
   smaavalueLabel.Caption := '0';
   dlsvalueLabel.Caption  := '0';
+  if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := '0';
+  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
+  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
+  if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+
+  if not FileExists(VKBASALTCFGFILE) then
+    Exit;
 
   if not overlay_config.LoadVkBasaltConfig(VKBASALTCFGFILE, aveffectsListbox.Items, acteffectsListBox.Items, Settings) then
     Exit;
@@ -5399,6 +5403,21 @@ var
   Settings: TVkSumiSettings;
   i: Integer;
 begin
+  if Assigned(FVsEnabledCB) then
+    FVsEnabledCB.Checked := False;
+
+  if Assigned(FVsToggleEdit) then
+    FVsToggleEdit.Text := 'Home';
+
+  if Assigned(FVsToggleCaptureBtn) then
+    FVsToggleCaptureBtn.Caption := '⌨ Home';
+
+  for i := 0 to 14 do
+  begin
+    if Assigned(FVsTrackbars[i]) then
+      FVsTrackbars[i].Position := 0;
+  end;
+
   if not overlay_config.LoadVkSumiConfig(VKSUMICFGFILE, Settings) then
     Exit;
 

@@ -2875,10 +2875,10 @@ var
   i, ColonPos: Integer;
   IntValue: Integer;
 begin
+  ResetMangoHudControls;
+
   if not FileExists(MANGOHUDCFGFILE) then
     Exit;
-
-  ResetMangoHudControls;
 
   ConfigLines := TStringList.Create;
   try
