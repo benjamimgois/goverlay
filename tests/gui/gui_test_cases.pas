@@ -74,12 +74,13 @@ type
     procedure TestTweaksResetOnMissingConfig;
     procedure TestMangoPresetCardHighlightsResetOnProfileSwitch;
     procedure TestMissingConfigResetsControlsAllTabs;
+    procedure TestGameCardClickSynchronizesAllToolPaths;
   end;
 
 implementation
 
 uses
-  overlayunit, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
+  overlayunit, games_tab, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
 
 function TGoverlayGuiTests.ReadGpuDriver: string;
 var
@@ -1448,6 +1449,26 @@ begin
     AssertTrue('FVsEnabledCB set to default true when vkSumi.conf missing', goverlayform.FVsEnabledCB.Checked);
 
   goverlayform.FActiveGameName := '';
+end;
+
+procedure TGoverlayGuiTests.TestGameCardClickSynchronizesAllToolPaths;
+var
+  Panel: TPanel;
+  ExpectedDir: string;
+begin
+  Panel := TPanel.Create(nil);
+  try
+    Panel.Hint := 'PathSyncGameTest';
+    goverlayform.GameCardClick(Panel);
+
+    ExpectedDir := goverlayform.GetGameConfigDir('PathSyncGameTest');
+    AssertEquals('MANGOHUDCFGFILE set on game card click', ExpectedDir + 'MangoHud.conf', MANGOHUDCFGFILE);
+    AssertEquals('VKBASALTCFGFILE set on game card click', ExpectedDir + 'vkBasalt.conf', VKBASALTCFGFILE);
+    AssertEquals('VKSUMICFGFILE set on game card click', ExpectedDir + 'vkSumi.conf', VKSUMICFGFILE);
+  finally
+    Panel.Free;
+    goverlayform.FActiveGameName := '';
+  end;
 end;
 
 initialization

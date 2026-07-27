@@ -2277,6 +2277,8 @@ begin
   end;
 
   MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
+  VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
+  VKSUMICFGFILE   := GameCfgDir + 'vkSumi.conf';
   UpdateGameContextLabel;
   SetNavActive(1);
   goverlayPageControl.ShowTabs := True;

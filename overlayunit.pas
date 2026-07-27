@@ -873,7 +873,6 @@ type
     procedure GamesEmptySpaceClick(Sender: TObject);
     procedure GameCardMouseEnter(Sender: TObject);
     procedure GameCardMouseLeave(Sender: TObject);
-    procedure GameCardClick(Sender: TObject);
     procedure GameCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GameCardOpenFolderClick(Sender: TObject);
     procedure GameCardOpenPrefixClick(Sender: TObject);
@@ -1284,6 +1283,7 @@ type
     procedure ShowHomeTab(Sender: TObject = nil);
     procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
     procedure SetNavActive(AIndex: Integer);
+    procedure GameCardClick(Sender: TObject);
     procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
     procedure CoverThreadTerminated(Sender: TObject);
     function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
