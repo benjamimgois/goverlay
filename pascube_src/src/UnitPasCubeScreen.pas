@@ -3729,7 +3729,7 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'Recalibrated against Steam Machine reference (1700 pts)',
+                          'Recalibrated against Steam Machine reference (2087 pts)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 1.0 * charHeight;
