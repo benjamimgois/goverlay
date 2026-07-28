@@ -1278,9 +1278,17 @@ begin
   end;
 
   // Spawn background thread for async check
-  FUpdateThread := TOptiUpdateThread.Create(Self, IsStableChannel, DirectoryExists(FFGModPath));
-  WriteLn('[DEBUG] CheckForUpdatesOnClick: Spawned update checking thread');
-  FUpdateThread.Start;
+  try
+    FUpdateThread := TOptiUpdateThread.Create(Self, IsStableChannel, DirectoryExists(FFGModPath));
+    WriteLn('[DEBUG] CheckForUpdatesOnClick: Spawned update checking thread');
+    FUpdateThread.Start;
+  except
+    on E: Exception do
+    begin
+      FUpdateThread := nil;
+      WriteLn('[WARNING] CheckForUpdatesOnClick: Failed to spawn update thread: ', E.Message);
+    end;
+  end;
 end;
 
 procedure TOptiscalerTab.CheckForUpdates;

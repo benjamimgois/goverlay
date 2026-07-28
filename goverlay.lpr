@@ -4,6 +4,7 @@ program goverlay;
 
 uses
   {$IFDEF UNIX}
+  cmem,
   cthreads, // <--- Agora será sempre incluído no Linux
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
