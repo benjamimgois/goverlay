@@ -31,23 +31,16 @@ start_goverlay.sh: data/goverlay.sh.in
 	chmod +x start_goverlay.sh
 
 clean:
-	rm -f goverlay
-	rm -f pascube
-	rm -f pascube_src/pascube
-	rm -rf pascube_src/lib/
-	rm -rf pascube_src/backup/
-	rm -f pascube_src/pascube.lps
-	rm -f bgmod
-	rm -f bgmod-uninstaller
-	rm -f data/bgmod/bgmod
-	rm -f data/bgmod/bgmod-uninstaller
-	rm -f data/bgmod/bgmod.conf
-	rm -f start_goverlay.sh
-	rm -f data/goverlay.sh
-	rm -rf lib/
-	rm -rf backup/
-	rm -f goverlay.lps
-	rm -f goverlay_*.tar.xz
+	rm -f goverlay goverlay.dbg goverlay.res goverlay.lps goverlay_*.tar.xz
+	rm -f pascube pascube_src/pascube pascube_src/pascube.res pascube_src/pascube.lps
+	rm -rf pascube_src/lib/ pascube_src/backup/
+	rm -f bgmod bgmod-uninstaller bgmod.o bgmod-uninstaller.o
+	rm -f data/bgmod/bgmod data/bgmod/bgmod-uninstaller data/bgmod/bgmod.conf
+	rm -f start_goverlay.sh data/goverlay.sh
+	rm -rf lib/ backup/
+	rm -f *.o *.ppu *.or *.compiled *.dbg *.res
+	rm -f tests/logic/logic_tests tests/gui/gui_tests tests/gui/gui_tests.compiled
+	rm -rf tests/logic/lib/ tests/gui/lib/ tests/logic/backup/ tests/gui/backup/
 
 install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay

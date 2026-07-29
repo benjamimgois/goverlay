@@ -60,6 +60,43 @@
     </screenshots>
 
     <releases>
+        <release version="1.8.10" date="2026-07-28">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Fluid resizable main window with dynamic reflow and window geometry persistence</li>
+                    <li>Responsive 2-column layouts for Environment Variables tab and VkBasalt ReShade effects selector</li>
+                    <li>Added PROTON_VKD3D_LOWLATENCY tweak support</li>
+                    <li>Live synchronization of PasCube hardware comparison hover scores with benchmark database</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Contextual sidebar auto-hiding on Home tab with toast notifications</li>
+                    <li>High-resolution vector canvas drawing for VkBasalt toggle switches and game card tooltips</li>
+                    <li>Dynamic configuration path synchronization across VkBasalt and VkSumi on game card selection</li>
+                    <li>Flatpak permissions updated with read-only access to external media (/run/media:ro)</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Corrected FPS and frametime default colors across MangoHud Stock, Simple White, and Old Afterburner themes</li>
+                    <li>Resolved persistence issues for gl_vsync, load colors, GPU list filtering, and Vulkan VSync hints</li>
+                    <li>Fixed OptiScaler driver controls, global config sync, default INI file seeding, and update fallbacks</li>
+                    <li>AppImage stability fixes with cmem integration and thread creation guards</li>
+                    <li>Fixed crashes and improved context menu behavior when removing non-Steam game folders</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.8.9" date="2026-07-19">
+            <description>
+                <p>Fixes &amp; Improvements</p>
+                <ul>
+                    <li>Fixed Flatpak non-Steam configuration paths</li>
+                    <li>Resolved UI freezes during changelog fetching and curl pipe deadlocks</li>
+                    <li>Fixed OptiScaler version parsing, GUI synchronization, and silent saving</li>
+                    <li>Included blacklist configuration in per-game profiles</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.8.8" date="2026-07-18">
             <description>
                 <p>Improvements</p>
