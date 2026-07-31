@@ -37,7 +37,7 @@ fi
 if [ "$ARCH" = "aarch64" ]; then
   sed -e "s/VERSION_PLACEHOLDER/$VERSION/g" \
       -e "s/Architecture: amd64/Architecture: $DEB_ARCH/g" \
-      -e "s/libqt6pas6 (>= 6.2.0)/libqt5pas1/g" \
+      -e "s/libqt6pas6/libqt5pas1/g" \
       "$SCRIPT_DIR/control" > "$BUILD_DIR/DEBIAN/control"
 else
   sed -e "s/VERSION_PLACEHOLDER/$VERSION/g" \

@@ -2,7 +2,7 @@ Package: goverlay
 Version: VERSION_PLACEHOLDER
 Architecture: amd64
 Maintainer: Benjamim Gois <benjamim.gois@gmail.com>
-Depends: libqt6pas6 (>= 6.2.0), libc6 (>= 2.34), libx11-6
+Depends: libqt6pas6, libc6 (>= 2.34), libx11-6
 Recommends: vkbasalt, mangohud
 Section: utils
 Priority: optional
