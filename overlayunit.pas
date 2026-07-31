@@ -428,6 +428,7 @@ type
     runpascubetItem: TMenuItem;
     runvkcubeItem: TMenuItem;
     Timer: TTimer;
+    loadconfigMenuItem: TMenuItem;
     saveoptionsItem: TMenuItem;
     layoutImageList: TImageList;
     popsaveMenu: TPopupMenu;
@@ -549,6 +550,7 @@ type
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runpascubetItemClick(Sender: TObject);
+    procedure loadconfigMenuItemClick(Sender: TObject);
     procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
     procedure deckpreset2MenuItemClick(Sender: TObject);
@@ -2699,8 +2701,8 @@ begin
   TestMode := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
 
   //Program Version
-  GVERSION := '1.8.10';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.9.0';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
@@ -5274,6 +5276,7 @@ begin
      (goverlayPageControl.ActivePage = vksumiTabSheet) then
   begin
     // vkBasalt tab: show save options and save as, hide MangoHud-specific items
+    loadconfigMenuItem.Visible := True;
     saveoptionsItem.Visible := True;
     saveasMenuItem.Visible := True;
     savecustomMenuItem.Visible := False;
@@ -5289,6 +5292,7 @@ begin
           (goverlayPageControl.ActivePage = tweaksTabSheet) then
   begin
     // OptiScaler and Tweaks tabs: show only global enable
+    loadconfigMenuItem.Visible := False;
     saveoptionsItem.Visible := False;
     saveasMenuItem.Visible := False;
     savecustomMenuItem.Visible := False;
@@ -5303,6 +5307,7 @@ begin
   else
   begin
     // MangoHud tab: show all options
+    loadconfigMenuItem.Visible := True;
     saveoptionsItem.Visible := True;
     saveasMenuItem.Visible := True;
     savecustomMenuItem.Visible := True;
@@ -5679,6 +5684,65 @@ begin
 
   // Notification
   SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
+end;
+
+procedure Tgoverlayform.loadconfigMenuItemClick(Sender: TObject);
+var
+  OpenDlg: TOpenDialog;
+  SelectedFile: string;
+  TargetFile: string;
+  ToolName: string;
+  ConfigLines: TStringList;
+begin
+  OpenDlg := TOpenDialog.Create(Self);
+  try
+    OpenDlg.Filter := 'Configuration files (*.conf)|*.conf|All files (*.*)|*.*';
+
+    if (goverlayPageControl.ActivePage = vkbasaltTabSheet) then
+    begin
+      OpenDlg.Title := 'Select vkBasalt configuration file (*.conf)';
+      ToolName := 'vkBasalt';
+      TargetFile := VKBASALTCFGFILE;
+    end
+    else if (goverlayPageControl.ActivePage = vksumiTabSheet) then
+    begin
+      OpenDlg.Title := 'Select vkSumi configuration file (*.conf)';
+      ToolName := 'vkSumi';
+      TargetFile := VKSUMICFGFILE;
+    end
+    else
+    begin
+      OpenDlg.Title := 'Select MangoHud configuration file (*.conf)';
+      ToolName := 'MangoHud';
+      TargetFile := MANGOHUDCFGFILE;
+    end;
+
+    if OpenDlg.Execute then
+    begin
+      SelectedFile := OpenDlg.FileName;
+      if FileExists(SelectedFile) and (TargetFile <> '') then
+      begin
+        ConfigLines := TStringList.Create;
+        try
+          ConfigLines.LoadFromFile(SelectedFile);
+          ConfigLines.SaveToFile(TargetFile);
+        finally
+          ConfigLines.Free;
+        end;
+
+        if (goverlayPageControl.ActivePage = vkbasaltTabSheet) then
+          LoadVkBasaltConfig
+        else if (goverlayPageControl.ActivePage = vksumiTabSheet) then
+          LoadVkSumiConfig
+        else
+          LoadMangoHudConfig;
+
+        SendNotification('Goverlay', ToolName + ' configuration loaded successfully', GetIconFile);
+      end;
+    end;
+  finally
+    OpenDlg.Free;
+  end;
 end;
 
 procedure Tgoverlayform.saveasMenuItemClick(Sender: TObject);
