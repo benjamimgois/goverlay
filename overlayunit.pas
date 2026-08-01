@@ -547,6 +547,9 @@ type
     procedure menuscaleTrackBarChange(Sender: TObject);
     procedure mesaRadioButtonChange(Sender: TObject);
     procedure nvidiaRadioButtonChange(Sender: TObject);
+    procedure optiscalerRadioButtonClick(Sender: TObject);
+    procedure dlssenablerRadioButtonClick(Sender: TObject);
+    procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure runpascubetItemClick(Sender: TObject);
@@ -1000,15 +1003,23 @@ type
     // OptiScaler fields (moved from private)
     FOsScrollBox:    TScrollBox;
     FOsBgPanel:      TPanel;
+    FOsUpscalerCard: TPanel;
     FOsGpuCard:      TPanel;
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
     FOsOptiSec:      TPanel;
     FOsImgSec:       TPanel;
     FOsFakeSec:      TPanel;
-    FOsStatDots:     array[0..5] of TShape;
-    FOsStatNameLbls: array[0..5] of TLabel;
-    FOsStatVerLbls:  array[0..5] of TLabel;
+    optiscalerRadioButton: TRadioButton;
+    dlssenablerRadioButton: TRadioButton;
+    optiscalerLogoImage: TImage;
+    dlssEnablerLogoImage: TImage;
+    dlssEnablerVersionLabel: TLabel;
+    FOptiScalerPngLogo: TPortableNetworkGraphic;
+    FDlssEnablerPngLogo: TPortableNetworkGraphic;
+    FOsStatDots:     array[0..6] of TShape;
+    FOsStatNameLbls: array[0..6] of TLabel;
+    FOsStatVerLbls:  array[0..6] of TLabel;
     FOsShortcutCaptureBtn:  TBitBtn;
     FLaunchCommand: string;
     FOptiscalerUpdate: TOptiscalerTab;
@@ -2718,6 +2729,9 @@ begin
       SendNotification('GOverlay', 'Installing OptiScaler', GetIconFile);
       CheckAndInstallOptiScaler(GetFGModPath);
     end;
+
+    // Check and auto-install DLSS Enabler if missing from ~/.local/share/goverlay/dlssenabler-edge
+    CheckAndInstallDlssEnabler;
   end;
 
   // Initialize the isolated global profile directory after bgmod/ has been
@@ -3980,6 +3994,7 @@ begin
   UpdateGenericCardTheme(FMtCpuCard);
 
   // Update OptiScaler tab cards
+  UpdateGenericCardTheme(FOsUpscalerCard);
   UpdateGenericCardTheme(FOsGpuCard);
   UpdateGenericCardTheme(FOsOptionsCard);
   UpdateGenericCardTheme(FOsStatusCard);
@@ -4281,6 +4296,66 @@ begin
       if not FOsDriverLoading then
         SaveOptiScalerConfig(True);
   end;
+end;
+
+procedure Tgoverlayform.optiscalerRadioButtonClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
+  begin
+    optiscalerRadioButton.Checked := True;
+    dlssenablerRadioButton.Checked := False;
+
+    if Assigned(filenameComboBox) then
+    begin
+      Idx := filenameComboBox.Items.IndexOf('dxgi.dll');
+      if Idx >= 0 then
+        filenameComboBox.ItemIndex := Idx;
+    end;
+
+    if Assigned(optversionComboBox) then
+      optversionComboBox.Enabled := True;
+  end;
+  UpdateUpscalerImageOpacity;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
+end;
+
+procedure Tgoverlayform.dlssenablerRadioButtonClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
+  begin
+    dlssenablerRadioButton.Checked := True;
+    optiscalerRadioButton.Checked := False;
+
+    if Assigned(filenameComboBox) then
+    begin
+      Idx := filenameComboBox.Items.IndexOf('version.dll');
+      if Idx >= 0 then
+        filenameComboBox.ItemIndex := Idx;
+    end;
+
+    if Assigned(optversionComboBox) then
+    begin
+      optversionComboBox.ItemIndex := 1; // Bleeding-edge
+      optversionComboBox.Enabled := False;
+    end;
+  end;
+  UpdateUpscalerImageOpacity;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
+end;
+
+procedure Tgoverlayform.UpdateUpscalerImageOpacity;
+begin
+  if not Assigned(optiscalerLogoImage) or not Assigned(dlssEnablerLogoImage) then Exit;
+  if Assigned(optiscalerRadioButton) then
+    optiscalerLogoImage.Enabled := optiscalerRadioButton.Checked;
+  if Assigned(dlssenablerRadioButton) then
+    dlssEnablerLogoImage.Enabled := dlssenablerRadioButton.Checked;
 end;
 
 

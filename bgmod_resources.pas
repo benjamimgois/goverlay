@@ -24,6 +24,9 @@ function GetBGModPath: string;
 function GetBGModOriginalPath: string;
 function GetBGModOriginalEdgePath: string;
 
+function GetGOverlayDataPath: string;
+function GetDlssEnablerPath: string;
+
 // Compatibility aliases for legacy FGMod calls
 function GetFGModPath: string;
 function GetFGModOriginalPath: string;
@@ -160,6 +163,21 @@ begin
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-edge';
+end;
+
+function GetGOverlayDataPath: string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
+end;
+
+function GetDlssEnablerPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-edge';
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location

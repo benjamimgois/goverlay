@@ -71,7 +71,7 @@ type
 implementation
 
 uses
-  apputils, themeunit, configmanager, bgmod_resources, StrUtils, overlay_config, FileUtil;
+  apputils, themeunit, configmanager, bgmod_resources, StrUtils, overlay_config, FileUtil, optiscaler_update;
 
 constructor TSidebarNavHelper.Create(AForm: Tgoverlayform);
 begin
@@ -85,7 +85,7 @@ const
     (Icon: '󰊴'; Caption: 'Games'),
     (Icon: '󱁥'; Caption: 'MangoHud'),
     (Icon: '󰏘'; Caption: 'Post processing'),
-    (Icon: '󰋮'; Caption: 'OptiScaler'),
+    (Icon: '󰋮'; Caption: 'Upscalers'),
     (Icon: '󰒓'; Caption: 'EnvVars')
   );
   TOP_START = 108;
@@ -866,22 +866,27 @@ var
   ConfigPath, CacheDir: string;
   Ini: TIniFile;
   IsStable: Boolean;
+  UpscalerType: Integer;
   Settings: TOptiScalerSettings;
   FsrDllSrc: string;
 begin
+  UpscalerType := 0;
   IsStable := True;
   ConfigPath := IncludeTrailingPathDelimiter(AGameCfgDir) + 'bgmod.conf';
   if FileExists(ConfigPath) then
   begin
     Ini := TIniFile.Create(ConfigPath);
     try
+      UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
     finally
       Ini.Free;
     end;
   end;
 
-  if IsStable then
+  if UpscalerType = 1 then
+    CacheDir := GetDlssEnablerPath
+  else if IsStable then
     CacheDir := GetBGModOriginalPath
   else
     CacheDir := GetBGModOriginalEdgePath;

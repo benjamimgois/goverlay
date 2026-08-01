@@ -203,8 +203,8 @@ const
   end;
 
 const
-  STAT_NAMES: array[0..5] of string = (
-    'OptiScaler', 'FakeNVAPI', 'FSR', 'XeSS', 'DLSS', 'OptiPatcher');
+  STAT_NAMES: array[0..6] of string = (
+    'OptiScaler', 'DLSS Enabler', 'FakeNVAPI', 'FSR', 'XeSS', 'DLSS', 'OptiPatcher');
 var
   i: Integer;
   Dot: TShape;
@@ -238,7 +238,57 @@ begin
     FOsBgPanel.Width      := FOsScrollBox.ClientWidth;
     FOsBgPanel.Height     := 600;  // provisional; updated by ReflowOptiScalerTabNew
 
-    // ── Card 0: GPU Driver ──────────────────────────────────────────────
+    // ── Card 0a: Upscaler (Left) ────────────────────────────────────────
+    MakeCard(FOsUpscalerCard, 'Upscaler');
+
+    optiscalerRadioButton := TRadioButton.Create(FForm);
+    optiscalerRadioButton.Parent := FOsUpscalerCard;
+    optiscalerRadioButton.Caption := '';
+    DarkRadio(optiscalerRadioButton);
+    optiscalerRadioButton.Checked := True;
+    optiscalerRadioButton.OnClick := @optiscalerRadioButtonClick;
+
+    dlssenablerRadioButton := TRadioButton.Create(FForm);
+    dlssenablerRadioButton.Parent := FOsUpscalerCard;
+    dlssenablerRadioButton.Caption := '';
+    DarkRadio(dlssenablerRadioButton);
+    dlssenablerRadioButton.Checked := False;
+    dlssenablerRadioButton.OnClick := @dlssenablerRadioButtonClick;
+
+    optiscalerLogoImage := TImage.Create(FForm);
+    optiscalerLogoImage.Parent := FOsUpscalerCard;
+    optiscalerLogoImage.Transparent := True;
+    optiscalerLogoImage.Center := True;
+    optiscalerLogoImage.Proportional := True;
+    optiscalerLogoImage.Stretch := True;
+
+    dlssEnablerLogoImage := TImage.Create(FForm);
+    dlssEnablerLogoImage.Parent := FOsUpscalerCard;
+    dlssEnablerLogoImage.Transparent := True;
+    dlssEnablerLogoImage.Center := True;
+    dlssEnablerLogoImage.Proportional := True;
+    dlssEnablerLogoImage.Stretch := True;
+
+    dlssEnablerVersionLabel := TLabel.Create(FForm);
+    dlssEnablerVersionLabel.Parent := FOsUpscalerCard;
+    dlssEnablerVersionLabel.Visible := False;
+
+    FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
+    FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;
+
+    IconPath := GetAppBaseDir + 'assets/icons/upscaler_optiscaler.png';
+    if FileExists(IconPath) then
+      FOptiScalerPngLogo.LoadFromFile(IconPath);
+
+    IconPath := GetAppBaseDir + 'assets/icons/upscaler_dlss_enabler.png';
+    if FileExists(IconPath) then
+      FDlssEnablerPngLogo.LoadFromFile(IconPath);
+
+    optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogo);
+    dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogo);
+    UpdateUpscalerImageOpacity;
+
+    // ── Card 0b: GPU Driver (Right) ─────────────────────────────────────
     MakeCard(FOsGpuCard, 'GPU Driver');
     GbSS := 'QRadioButton::indicator { width:14px; height:14px; background-color:rgb(26,30,46); border:1px solid rgb(130,140,170); border-radius:7px; }'
           + 'QRadioButton::indicator:checked { background-color:rgb(48,190,240); border-color:rgb(48,190,240); }';
@@ -273,6 +323,9 @@ begin
     nvidiaImage.Anchors     := [akLeft, akTop];
     nvidiaImage.Top         := nvidiaImage.Top + 62;
     nvidiaImage.Transparent := True;
+    nvidiaImage.Center      := True;
+    nvidiaImage.Proportional := True;
+    nvidiaImage.Stretch     := True;
     nvidiaImage.Parent      := FOsGpuCard;
 
     mesaImage.AnchorSideLeft.Control   := nil;
@@ -282,6 +335,9 @@ begin
     mesaImage.Anchors     := [akLeft, akTop];
     mesaImage.Top         := mesaImage.Top + 62;
     mesaImage.Transparent := True;
+    mesaImage.Center      := True;
+    mesaImage.Proportional := True;
+    mesaImage.Stretch     := True;
     mesaImage.Parent      := FOsGpuCard;
 
     autodetectnvLabel.AnchorSideLeft.Control   := nil;
@@ -587,7 +643,7 @@ begin
     updatestatusLabel.Transparent := True;
 
     // Build dot + name + version rows for each library
-    for i := 0 to 5 do
+    for i := 0 to 6 do
     begin
       Dot := TShape.Create(FForm);
       Dot.Parent      := FOsStatusCard;
@@ -629,20 +685,21 @@ const
 var
   i: Integer;
   Ver, NewTag, VerCaption: string;
-  SrcLbls: array[0..5] of StdCtrls.TLabel;
+  SrcLbls: array[0..6] of StdCtrls.TLabel;
 begin
   with FForm do
   begin
     if not Assigned(FOsStatDots[0]) then Exit;
 
     SrcLbls[0] := optlabel1;
-    SrcLbls[1] := fakenvapi1;
-    SrcLbls[2] := fsrLabel1;
-    SrcLbls[3] := xessLabel1;
-    SrcLbls[4] := dlssLabel1;
-    SrcLbls[5] := optipatcherLabel1;
+    SrcLbls[1] := dlssEnablerVersionLabel;
+    SrcLbls[2] := fakenvapi1;
+    SrcLbls[3] := fsrLabel1;
+    SrcLbls[4] := xessLabel1;
+    SrcLbls[5] := dlssLabel1;
+    SrcLbls[6] := optipatcherLabel1;
 
-    for i := 0 to 5 do
+    for i := 0 to 6 do
     begin
       Ver := SrcLbls[i].Caption;
       VerCaption := IfThen(Ver <> '', Ver, '—');
@@ -684,7 +741,7 @@ const
   OPT_H   = HDR + OPT_GH;    // 324
   DOT_SZ    = 10;
   ROW_H     = 26;   // standard row height
-  STAT_ROWS = 3;    // 3 rows × 2 columns
+  STAT_ROWS = 4;    // 4 rows × 2 columns
   CB_H      = 26;   // combo height
   BTN_H     = 32;   // update buttons height
   PB_H      = 16;   // progress bar height
@@ -697,7 +754,7 @@ const
   IMARGIN = 4;
   IGAP    = 4;
 var
-  CW, CardTop, Y, Row, DotY, TotalH: Integer;
+  CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
   ColX: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, Center, W2, X1, X2, X3: Integer;
@@ -716,15 +773,38 @@ begin
       TotalH := FOsScrollBox.ClientHeight;
     FOsBgPanel.SetBounds(0, 0, FOsScrollBox.ClientWidth, TotalH);
 
-    // ── Card 0: GPU Driver ──────────────────────────────────────────────
-    FOsGpuCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
-    Y := HDR + (GPU_GH - 83) div 2;
-    mesaImage.Top          := Y;
-    nvidiaImage.Top        := Y + (62 - 43) div 2;
-    mesaRadioButton.Top    := Y + (62 - 20) div 2;
-    nvidiaRadioButton.Top  := Y + (62 - 20) div 2;
-    autodetectmesaLabel.Top := Y + 62 + 4;
-    autodetectnvLabel.Top   := Y + 62 + 4;
+    CardW := (CW - GAP) div 2;
+
+    // ── Card 0a: Upscaler (Left 50%) ────────────────────────────────────
+    if Assigned(FOsUpscalerCard) then
+    begin
+      FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CardW, GPU_H);
+      ItemW := (CardW - 2 * PAD) div 2;
+      LogoW := Min(120, Max(40, ItemW - 36));
+
+      if Assigned(optiscalerRadioButton) then
+        optiscalerRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2, 20, 20);
+      if Assigned(optiscalerLogoImage) then
+        optiscalerLogoImage.SetBounds(PAD + 22, HDR + (GPU_GH - 17) div 2, LogoW, 17);
+
+      if Assigned(dlssenablerRadioButton) then
+        dlssenablerRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2, 20, 20);
+      if Assigned(dlssEnablerLogoImage) then
+        dlssEnablerLogoImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 18) div 2, LogoW, 18);
+    end;
+
+    // ── Card 0b: GPU Driver (Right 50%) ─────────────────────────────────
+    FOsGpuCard.SetBounds(MARGIN + CardW + GAP, MARGIN, CardW, GPU_H);
+    ItemW := (CardW - 2 * PAD) div 2;
+    LogoW := ItemW - 22;
+
+    mesaRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2, 20, 20);
+    mesaImage.SetBounds(PAD + 22, HDR + (GPU_GH - 62) div 2, LogoW, 62);
+    autodetectmesaLabel.SetBounds(PAD + 22, HDR + GPU_GH - autodetectmesaLabel.Height - 2, autodetectmesaLabel.Width, autodetectmesaLabel.Height);
+
+    nvidiaRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2, 20, 20);
+    nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 43) div 2, LogoW, 43);
+    autodetectnvLabel.SetBounds(PAD + ItemW + 22, HDR + GPU_GH - autodetectnvLabel.Height - 2, autodetectnvLabel.Width, autodetectnvLabel.Height);
 
     // ── Card 1: Options ─────────────────────────────────────────────────
     CardTop := MARGIN + GPU_H + GAP;
@@ -788,7 +868,7 @@ begin
     ColX[0] := PAD;
     ColX[1] := PAD + ColW;
 
-    for i := 0 to 5 do
+    for i := 0 to 6 do
     begin
       Col    := i mod 2;
       RowIdx := i div 2;
@@ -858,10 +938,24 @@ begin
       tracelogCheckBox.Checked := Settings.TraceLogChecked;
       preferredUpscalerComboBox.ItemIndex := Settings.PreferredUpscalerItemIndex;
 
-      if Settings.OptVersionItemIndex in [0, 1] then
-        optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
+      if Settings.UpscalerTypeItemIndex = 1 then
+      begin
+        dlssenablerRadioButton.Checked := True;
+        optiscalerRadioButton.Checked := False;
+        optversionComboBox.ItemIndex := 1; // Bleeding-edge
+        optversionComboBox.Enabled := False;
+      end
       else
-        optversionComboBox.ItemIndex := 0;
+      begin
+        optiscalerRadioButton.Checked := True;
+        dlssenablerRadioButton.Checked := False;
+        optversionComboBox.Enabled := True;
+        if Settings.OptVersionItemIndex in [0, 1] then
+          optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
+        else
+          optversionComboBox.ItemIndex := 0;
+      end;
+      UpdateUpscalerImageOpacity;
     finally
       // Restore OnChange handlers
       fsrversionComboBox.OnChange := SavedFsrOnChange;
@@ -901,6 +995,10 @@ begin
     Settings.LatencyFlexItemIndex := latencyflexComboBox.ItemIndex;
     Settings.TraceLogChecked := tracelogCheckBox.Checked;
     Settings.PreferredUpscalerItemIndex := preferredUpscalerComboBox.ItemIndex;
+    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
+      Settings.UpscalerTypeItemIndex := 1
+    else
+      Settings.UpscalerTypeItemIndex := 0;
 
     if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
     begin

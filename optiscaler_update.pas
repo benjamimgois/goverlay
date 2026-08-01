@@ -14,6 +14,9 @@ function GetOptiScalerInstallPath: string;
 // Returns True if OptiScaler is installed (or was successfully installed)
 function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
 
+// Check and automatically install DLSS Enabler if not present
+function CheckAndInstallDlssEnabler: Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -34,6 +37,7 @@ type
     FOptVersionComboBox: TComboBox; // ComboBox for OptiScaler channel selection
     FOptiPatcherLabel: TLabel; // Label for OptiPatcher version
     FDlssLabel: TLabel;        // Label for DLSS download date
+    FDlssEnablerLabel: TLabel; // Label for DLSS Enabler version
     FFGModPath: string;
     FUpdateThread: TThread;
 
@@ -83,12 +87,13 @@ type
     property OptVersionComboBox: TComboBox read FOptVersionComboBox write FOptVersionComboBox;
     property OptiPatcherLabel: TLabel read FOptiPatcherLabel write FOptiPatcherLabel;
     property DlssLabel: TLabel read FDlssLabel write FDlssLabel;
+    property DlssEnablerLabel: TLabel read FDlssEnablerLabel write FDlssEnablerLabel;
   end;
 
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, IniFiles;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, IniFiles, StrUtils;
 
 type
   TOptiUpdateThread = class(TThread)
@@ -1059,7 +1064,9 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer, DlssVer: string;
+  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer, DlssVer, DlssEnablerVer: string;
+  DlssEdgeVars: string;
+  DlssEdgeFile: TextFile;
 begin
   // Build path to goverlay.vars
   VarsFilePath := IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars';
@@ -1084,6 +1091,7 @@ begin
   XessVer := '';
   OptiPatcherVer := '';
   DlssVer := '';
+  DlssEnablerVer := '';
 
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -1116,7 +1124,9 @@ begin
           else if SameText(Key, 'optipatcher') then
             OptiPatcherVer := Value
           else if SameText(Key, 'dlssversion') then
-            DlssVer := Value;
+            DlssVer := Value
+          else if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
+            DlssEnablerVer := Value;
         end;
       end;
     finally
@@ -1213,6 +1223,39 @@ begin
         // Ignore errors
       end;
     end;
+
+    if DlssEnablerVer = '' then
+    begin
+      DlssEdgeVars := IncludeTrailingPathDelimiter(GetDlssEnablerPath) + 'goverlay.vars';
+      if FileExists(DlssEdgeVars) then
+      begin
+        try
+          AssignFile(DlssEdgeFile, DlssEdgeVars);
+          Reset(DlssEdgeFile);
+          try
+            while not Eof(DlssEdgeFile) do
+            begin
+              ReadLn(DlssEdgeFile, Line);
+              SepPos := Pos('=', Line);
+              if SepPos > 0 then
+              begin
+                Key := Copy(Line, 1, SepPos - 1);
+                if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
+                  DlssEnablerVer := Copy(Line, SepPos + 1, MaxInt);
+              end;
+            end;
+          finally
+            CloseFile(DlssEdgeFile);
+          end;
+        except
+        end;
+      end;
+    end;
+
+    if Assigned(FDlssEnablerLabel) then
+      FDlssEnablerLabel.Caption := DlssEnablerVer;
+    if Assigned(goverlayform.dlssEnablerVersionLabel) then
+      goverlayform.dlssEnablerVersionLabel.Caption := DlssEnablerVer;
 
   except
     on E: Exception do
@@ -2119,6 +2162,122 @@ begin
   end;
 end;
 
+function CheckAndInstallDlssEnabler: Boolean;
+var
+  DestDir, VarsFilePath, DownloadUrl, TagName, SevenZFile: string;
+  Process: TProcess;
+  VarsList: TStringList;
+  ReleaseJson: string;
+  StartPos, EndPos: Integer;
+begin
+  Result := False;
+  DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath);
+  VarsFilePath := DestDir + 'goverlay.vars';
+
+  if FileExists(VarsFilePath) and (FileExists(DestDir + 'OptiScaler.dll') or FileExists(DestDir + 'OptiScaler.ini')) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  ForceDirectories(DestDir);
+  WriteLn('[DLSS-ENABLER] Checking latest release from bygalacos/OptiScalerBuilder...');
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('https://api.github.com/repos/bygalacos/OptiScalerBuilder/releases/latest');
+    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Execute;
+    SetLength(ReleaseJson, Process.Output.NumBytesAvailable);
+    if Length(ReleaseJson) > 0 then
+      Process.Output.Read(ReleaseJson[1], Length(ReleaseJson));
+  finally
+    Process.Free;
+  end;
+
+  // Extract tag_name
+  StartPos := Pos('"tag_name"', ReleaseJson);
+  if StartPos > 0 then
+  begin
+    StartPos := PosEx('"', ReleaseJson, StartPos + 10);
+    if StartPos > 0 then
+    begin
+      StartPos := PosEx('"', ReleaseJson, StartPos + 1);
+      EndPos := PosEx('"', ReleaseJson, StartPos + 1);
+      if (StartPos > 0) and (EndPos > StartPos) then
+        TagName := Copy(ReleaseJson, StartPos + 1, EndPos - StartPos - 1);
+    end;
+  end;
+
+  // Extract browser_download_url for .7z
+  StartPos := Pos('"browser_download_url"', ReleaseJson);
+  if StartPos > 0 then
+  begin
+    StartPos := PosEx('http', ReleaseJson, StartPos);
+    if StartPos > 0 then
+    begin
+      EndPos := PosEx('"', ReleaseJson, StartPos);
+      if (EndPos > StartPos) then
+        DownloadUrl := Copy(ReleaseJson, StartPos, EndPos - StartPos);
+    end;
+  end;
+
+  if TagName = '' then TagName := 'v0.10.0-pre1';
+  if DownloadUrl = '' then
+    DownloadUrl := 'https://github.com/bygalacos/OptiScalerBuilder/releases/download/' + TagName + '/OptiScaler_' + TagName + '_bygalacos.7z';
+
+  SevenZFile := DestDir + 'dlssenabler.7z';
+  WriteLn('[DLSS-ENABLER] Downloading from ', DownloadUrl, ' to ', SevenZFile);
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(SevenZFile);
+    Process.Parameters.Add(DownloadUrl);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if FileExists(SevenZFile) then
+  begin
+    WriteLn('[DLSS-ENABLER] Extracting 7z archive into ', DestDir, '...');
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := '7z';
+      Process.Parameters.Add('x');
+      Process.Parameters.Add('-y');
+      Process.Parameters.Add('-o' + DestDir);
+      Process.Parameters.Add(SevenZFile);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+    DeleteFile(SevenZFile);
+  end;
+
+  // Write goverlay.vars
+  VarsList := TStringList.Create;
+  try
+    VarsList.Add('dlssenablerversion=' + TagName);
+    VarsList.SaveToFile(VarsFilePath);
+  finally
+    VarsList.Free;
+  end;
+
+  Result := FileExists(VarsFilePath);
+end;
+
 // Check and automatically install OptiScaler if not present
 // Returns True if OptiScaler is installed (or was successfully installed)
 function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
@@ -2575,6 +2734,9 @@ begin
     finally
       VarsList.Free;
     end;
+
+    // Also check and install DLSS Enabler if not present
+    CheckAndInstallDlssEnabler;
 
     // Clean up download file
     DeleteFile(SevenZFilePath);

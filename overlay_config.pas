@@ -55,6 +55,7 @@ type
     TraceLogChecked: Boolean;
     ForceFsr4Int8Checked: Boolean;
     PreferredUpscalerItemIndex: Integer;
+    UpscalerTypeItemIndex: Integer;
   end;
 
   TMangoHudSettings = record
@@ -592,6 +593,7 @@ begin
     Ini.WriteString('Config', 'DLL', SelectedDllName);
     Ini.WriteString('Config', 'PRESERVE_INI', 'true');
     Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);
+    Ini.WriteInteger('Config', 'UPSCALER_TYPE', Settings.UpscalerTypeItemIndex);
 
     if Settings.EmuFp8Checked then
       Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
@@ -1334,6 +1336,7 @@ begin
 
       Settings.EmuFp8Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
       Settings.OptVersionItemIndex := Ini.ReadInteger('Config', 'OPT_CHANNEL', -1);
+      Settings.UpscalerTypeItemIndex := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
     finally
       Ini.Free;
     end;

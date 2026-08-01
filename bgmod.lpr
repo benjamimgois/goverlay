@@ -252,22 +252,27 @@ var
   DataHome: string;
   PosFlatpak: Integer;
   FlatpakBase: string;
+  UpscalerType: Integer;
   Ini: TIniFile;
   IsStable: Boolean;
   ChannelFolder: string;
 begin
+  UpscalerType := 0;
   IsStable := True;
   if FileExists(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf') then
   begin
     Ini := TIniFile.Create(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf');
     try
+      UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
     finally
       Ini.Free;
     end;
   end;
 
-  if IsStable then
+  if UpscalerType = 1 then
+    ChannelFolder := 'dlssenabler-edge'
+  else if IsStable then
     ChannelFolder := 'optiscaler-stable'
   else
     ChannelFolder := 'optiscaler-edge';
@@ -1118,6 +1123,13 @@ begin
           begin
             Log('Installing D3D12_Optiscaler directory...');
             CopyDirectory(SourceDir + 'D3D12_Optiscaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          end;
+
+          // 7c. Copy OptiScaler/ directory if it exists (DLSS Enabler)
+          if DirectoryExists(SourceDir + 'OptiScaler') then
+          begin
+            Log('Installing OptiScaler directory...');
+            CopyDirectory(SourceDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
           end;
           
           // 8. Copy supporting libraries
