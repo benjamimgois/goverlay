@@ -1017,9 +1017,9 @@ type
     dlssEnablerVersionLabel: TLabel;
     FOptiScalerPngLogo: TPortableNetworkGraphic;
     FDlssEnablerPngLogo: TPortableNetworkGraphic;
-    FOsStatDots:     array[0..6] of TShape;
-    FOsStatNameLbls: array[0..6] of TLabel;
-    FOsStatVerLbls:  array[0..6] of TLabel;
+    FOsStatDots:     array[0..4] of TShape;
+    FOsStatNameLbls: array[0..4] of TLabel;
+    FOsStatVerLbls:  array[0..4] of TLabel;
     FOsShortcutCaptureBtn:  TBitBtn;
     FLaunchCommand: string;
     FOptiscalerUpdate: TOptiscalerTab;
@@ -2785,10 +2785,9 @@ begin
   BuildPresetsWrapper;
   BuildSettingsButton;
 
-  // Apply navy background to remaining tabs (vkBasalt, OptiScaler, Tweaks)
-  // Games tab handled separately via FGamesScrollBox/FGamesPanel
+  // Apply navy background to remaining tabs (vkBasalt, Tweaks)
+  // Games & OptiScaler tabs handle background internally via FOsBgPanel
   AddNavyBgToTab(vkbasaltTabSheet);
-  AddNavyBgToTab(optiscalerTabSheet);
 
   // Create vkSumi tab sheet (must exist before BuildVkSumiTab)
   vksumiTabSheet := TTabSheet.Create(goverlayPageControl);
@@ -4410,6 +4409,9 @@ begin
   LoadOptiScalerConfig;
   // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
   fsrversionComboBoxChange(nil);
+
+  // Recalculate tab layout to fill current viewport and anchor Software status at the bottom
+  ReflowOptiScalerTabNew(0);
 
   // Automatically check for updates when entering the OptiScaler tab
   if Assigned(FOptiscalerUpdate) then

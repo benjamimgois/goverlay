@@ -23,6 +23,7 @@ type
     constructor Create(AForm: Tgoverlayform);
     procedure InitOptiScalerTab;
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
+    procedure OsScrollBoxResize(Sender: TObject);
     procedure RefreshOsStatusDots;
     procedure LoadOptiScalerConfig;
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
@@ -203,8 +204,8 @@ const
   end;
 
 const
-  STAT_NAMES: array[0..6] of string = (
-    'OptiScaler', 'DLSS Enabler', 'FakeNVAPI', 'FSR', 'XeSS', 'DLSS', 'OptiPatcher');
+  STAT_NAMES: array[0..4] of string = (
+    'OptiScaler', 'DLSS Enabler', 'FakeNVAPI', 'DLSS / FSR / XeSS', 'OptiPatcher');
 var
   i: Integer;
   Dot: TShape;
@@ -217,13 +218,16 @@ begin
   begin
     // Scroll container fills the tab
     FOsScrollBox := TScrollBox.Create(FForm);
+    if Assigned(optiscalerTabSheet) then
+      optiscalerTabSheet.Color := RGBToColor(22, 26, 40);
     FOsScrollBox.Parent      := optiscalerTabSheet;
     FOsScrollBox.Align       := alClient;
     FOsScrollBox.AutoScroll  := True;
     FOsScrollBox.BorderStyle := bsNone;
     FOsScrollBox.HorzScrollBar.Visible := False;
-    FOsScrollBox.Color       := $1E1E2E;
+    FOsScrollBox.Color       := RGBToColor(22, 26, 40);
     FOsScrollBox.ParentColor := False;
+    FOsScrollBox.OnResize    := @OsScrollBoxResize;
 
     // FOsBgPanel fills the scroll box and reliably paints the dark background
     // in the Qt6 backend (TScrollBox.Color is ignored by the Qt viewport).
@@ -643,7 +647,7 @@ begin
     updatestatusLabel.Transparent := True;
 
     // Build dot + name + version rows for each library
-    for i := 0 to 6 do
+    for i := 0 to 4 do
     begin
       Dot := TShape.Create(FForm);
       Dot.Parent      := FOsStatusCard;
@@ -685,54 +689,110 @@ const
 var
   i: Integer;
   Ver, NewTag, VerCaption: string;
-  SrcLbls: array[0..6] of StdCtrls.TLabel;
+  DlssV, FsrV, XessV: string;
+  HasAnyUpscaler: Boolean;
 begin
   with FForm do
   begin
     if not Assigned(FOsStatDots[0]) then Exit;
 
-    SrcLbls[0] := optlabel1;
-    SrcLbls[1] := dlssEnablerVersionLabel;
-    SrcLbls[2] := fakenvapi1;
-    SrcLbls[3] := fsrLabel1;
-    SrcLbls[4] := xessLabel1;
-    SrcLbls[5] := dlssLabel1;
-    SrcLbls[6] := optipatcherLabel1;
-
-    for i := 0 to 6 do
+    for i := 0 to 4 do
     begin
-      if (i = 1) and not (Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked) then
-      begin
-        FOsStatVerLbls[1].Caption    := '--';
-        FOsStatVerLbls[1].Font.Color := PURPLE;
-        FOsStatDots[1].Brush.Color   := CLR_NONE;
-        Continue;
+      case i of
+        0: // OptiScaler
+          begin
+            Ver := optlabel1.Caption;
+            VerCaption := IfThen(Ver <> '', Ver, '—');
+
+            if optLabel2.Visible and (optLabel2.Caption <> '') then
+            begin
+              NewTag := optLabel2.Caption;
+              if Pos('Update Available ', NewTag) = 1 then
+                NewTag := Copy(NewTag, PREFIX_LEN + 1, MaxInt);
+              if NewTag <> '' then
+              begin
+                VerCaption := VerCaption + ' → ' + NewTag;
+                FOsStatVerLbls[0].Caption    := VerCaption;
+                FOsStatVerLbls[0].Font.Color := CLR_UPDATE;
+                FOsStatDots[0].Brush.Color   := CLR_OK;
+                Continue;
+              end;
+            end;
+
+            FOsStatVerLbls[0].Caption    := VerCaption;
+            FOsStatVerLbls[0].Font.Color := PURPLE;
+            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+              FOsStatDots[0].Brush.Color := CLR_OK
+            else
+              FOsStatDots[0].Brush.Color := CLR_NONE;
+          end;
+
+        1: // DLSS Enabler
+          begin
+            if not (Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked) then
+            begin
+              FOsStatVerLbls[1].Caption    := '--';
+              FOsStatVerLbls[1].Font.Color := PURPLE;
+              FOsStatDots[1].Brush.Color   := CLR_NONE;
+            end
+            else
+            begin
+              Ver := dlssEnablerVersionLabel.Caption;
+              VerCaption := IfThen(Ver <> '', Ver, '—');
+              FOsStatVerLbls[1].Caption    := VerCaption;
+              FOsStatVerLbls[1].Font.Color := PURPLE;
+              if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+                FOsStatDots[1].Brush.Color := CLR_OK
+              else
+                FOsStatDots[1].Brush.Color := CLR_NONE;
+            end;
+          end;
+
+        2: // FakeNVAPI
+          begin
+            Ver := fakenvapi1.Caption;
+            VerCaption := IfThen(Ver <> '', Ver, '—');
+            FOsStatVerLbls[2].Caption    := VerCaption;
+            FOsStatVerLbls[2].Font.Color := PURPLE;
+            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+              FOsStatDots[2].Brush.Color := CLR_OK
+            else
+              FOsStatDots[2].Brush.Color := CLR_NONE;
+          end;
+
+        3: // DLSS / FSR / XeSS
+          begin
+            DlssV := dlssLabel1.Caption;
+            FsrV  := fsrLabel1.Caption;
+            XessV := xessLabel1.Caption;
+
+            if (DlssV = '') or (DlssV = '--') then DlssV := '—';
+            if (FsrV  = '') or (FsrV  = '--') then FsrV  := '—';
+            if (XessV = '') or (XessV = '--') then XessV := '—';
+
+            VerCaption := DlssV + ' / ' + FsrV + ' / ' + XessV;
+            FOsStatVerLbls[3].Caption    := VerCaption;
+            FOsStatVerLbls[3].Font.Color := PURPLE;
+
+            HasAnyUpscaler := (DlssV <> '—') or (FsrV <> '—') or (XessV <> '—');
+            if HasAnyUpscaler then
+              FOsStatDots[3].Brush.Color := CLR_OK
+            else
+              FOsStatDots[3].Brush.Color := CLR_NONE;
+          end;
+
+        4: // OptiPatcher
+          begin
+            Ver := optipatcherLabel1.Caption;
+            VerCaption := IfThen(Ver <> '', Ver, '—');
+            FOsStatVerLbls[4].Caption    := VerCaption;
+            FOsStatVerLbls[4].Font.Color := PURPLE;
+            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+              FOsStatDots[4].Brush.Color := CLR_OK
+            else
+              FOsStatDots[4].Brush.Color := CLR_NONE;
+          end;
       end;
-
-      Ver := SrcLbls[i].Caption;
-      VerCaption := IfThen(Ver <> '', Ver, '—');
-
-      if (i = 0) and optLabel2.Visible and (optLabel2.Caption <> '') then
-      begin
-        NewTag := optLabel2.Caption;
-        if Pos('Update Available ', NewTag) = 1 then
-          NewTag := Copy(NewTag, PREFIX_LEN + 1, MaxInt);
-        if NewTag <> '' then
-        begin
-          VerCaption := VerCaption + ' → ' + NewTag;
-          FOsStatVerLbls[i].Caption    := VerCaption;
-          FOsStatVerLbls[i].Font.Color := CLR_UPDATE;
-          FOsStatDots[i].Brush.Color   := CLR_OK;
-          Continue;
-        end;
-      end;
-
-      FOsStatVerLbls[i].Caption    := VerCaption;
-      FOsStatVerLbls[i].Font.Color := PURPLE;
-      if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
-        FOsStatDots[i].Brush.Color := CLR_OK
-      else
-        FOsStatDots[i].Brush.Color := CLR_NONE;
     end;
   end;
 end;
@@ -744,28 +804,22 @@ const
   HDR     = 34;   // accent bar (3) + title area (31)
   PAD     = 14;   // inner horizontal padding
   GPU_GH  = 96;   // reduced from 130
-  OPT_GH  = 290;  // reduced from 335 to 290
   GPU_H   = HDR + GPU_GH;    // 130
-  OPT_H   = HDR + OPT_GH;    // 324
   DOT_SZ    = 10;
   ROW_H     = 26;   // standard row height
-  STAT_ROWS = 4;    // 4 rows × 2 columns
+  STAT_ROWS = 3;    // 3 rows × 2 columns
   CB_H      = 26;   // combo height
   BTN_H     = 32;   // update buttons height
   PB_H      = 16;   // progress bar height
   STAT_H    = HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
-  W1      = 252;
-  W3      = 252;
-  MIN_W2  = 180;
-  BOX_H   = 280;
   BOX_TOP = 6;
   IMARGIN = 4;
-  IGAP    = 4;
+  IGAP    = 6;
 var
   CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
   ColX: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
-  InnerW, Center, W2, X1, X2, X3: Integer;
+  InnerW, SubCardW, OptH, BoxH, MinOptH: Integer;
   ComboW, CheckW: Integer;
   SliderW, TotalW, StartX: Integer;
   TBarMargin, TrackL: Integer;
@@ -776,10 +830,23 @@ begin
     CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
     if CW < 100 then Exit;
 
-    TotalH := MARGIN + GPU_H + GAP + OPT_H + GAP + STAT_H + MARGIN;
-    if FOsScrollBox.ClientHeight > TotalH then
-      TotalH := FOsScrollBox.ClientHeight;
-    FOsBgPanel.SetBounds(0, 0, FOsScrollBox.ClientWidth, TotalH);
+    TotalH := FOsScrollBox.ClientHeight;
+    if TotalH < 100 then TotalH := 600;
+
+    MinOptH := 265;
+    CardTop := TotalH - MARGIN - STAT_H;
+    if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
+    begin
+      OptH := MinOptH;
+      CardTop := MARGIN + GPU_H + GAP + OptH + GAP;
+      TotalH := CardTop + STAT_H + MARGIN;
+    end
+    else
+    begin
+      OptH := CardTop - GAP - (MARGIN + GPU_H + GAP);
+    end;
+
+    FOsBgPanel.SetBounds(0, 0, FOsScrollBox.ClientWidth, Max(FOsScrollBox.ClientHeight, TotalH));
 
     CardW := (CW - GAP) div 2;
 
@@ -802,7 +869,7 @@ begin
     end;
 
     // ── Card 0b: GPU Driver (Right 50%) ─────────────────────────────────
-    FOsGpuCard.SetBounds(MARGIN + CardW + GAP, MARGIN, CardW, GPU_H);
+    FOsGpuCard.SetBounds(MARGIN + CardW + GAP, MARGIN, CW - CardW - GAP, GPU_H);
     ItemW := (CardW - 2 * PAD) div 2;
     LogoW := ItemW - 22;
 
@@ -814,28 +881,24 @@ begin
     nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 43) div 2, LogoW, 43);
     autodetectnvLabel.SetBounds(PAD + ItemW + 22, HDR + GPU_GH - autodetectnvLabel.Height - 2, autodetectnvLabel.Width, autodetectnvLabel.Height);
 
-    // ── Card 1: Options ─────────────────────────────────────────────────
-    CardTop := MARGIN + GPU_H + GAP;
-    FOsOptionsCard.SetBounds(MARGIN, CardTop, CW, OPT_H);
+    // ── Card 1: Options (Stretched Vertically & Horizontally) ────────────
+    FOsOptionsCard.SetBounds(MARGIN, MARGIN + GPU_H + GAP, CW, OptH);
 
-    InnerW := CW - 8;
-    Center := InnerW div 2;
-    W2     := Max(MIN_W2, InnerW - IMARGIN - W1 - IGAP - W3 - IMARGIN - IGAP);
-    X2     := Center - W2 div 2;
-    if X2 - IGAP - W1 < IMARGIN then
-      X2 := IMARGIN + W1 + IGAP;
-    X1 := X2 - IGAP - W1;
-    X3 := X2 + W2 + IGAP;
-    if Assigned(FOsOptiSec)  then FOsOptiSec.SetBounds(X1, HDR + BOX_TOP, W1, BOX_H);
+    InnerW := CW - 2 * IMARGIN;
+    SubCardW := (InnerW - 2 * IGAP) div 3;
+    BoxH := OptH - HDR - 12;
+    if BoxH < 240 then BoxH := 240;
+
+    if Assigned(FOsOptiSec)  then FOsOptiSec.SetBounds(IMARGIN, HDR + BOX_TOP, SubCardW, BoxH);
     if Assigned(FOsImgSec) then
     begin
-      FOsImgSec.SetBounds(X2, HDR + BOX_TOP, W2, BOX_H);
-      menuLabel.Left := (W2 - menuLabel.Width) div 2;
+      FOsImgSec.SetBounds(IMARGIN + SubCardW + IGAP, HDR + BOX_TOP, SubCardW, BoxH);
+      menuLabel.Left := (SubCardW - menuLabel.Width) div 2;
 
-      SliderW := Min(200, W2 - 24);
-      if SliderW < 120 then SliderW := 120;
+      SliderW := Min(200, SubCardW - 24);
+      if SliderW < 100 then SliderW := 100;
       TotalW := SliderW + 6 + menuscalevalueLabel.Width;
-      StartX := (W2 - TotalW) div 2;
+      StartX := (SubCardW - TotalW) div 2;
 
       menuscaleTrackBar.SetBounds(StartX, 70, SliderW, menuscaleTrackBar.Height);
       menuscalevalueLabel.SetBounds(StartX + SliderW + 6, 70, menuscalevalueLabel.Width, menuscalevalueLabel.Height);
@@ -847,17 +910,16 @@ begin
       mark2Label.Left := StartX + TBarMargin + (2 * TrackL) div 3 - mark2Label.Width div 2;
       mark3Label.Left := StartX + SliderW - TBarMargin - mark3Label.Width div 2;
 
-      shortcutkeyLabel.Left := (W2 - shortcutkeyLabel.Width) div 2;
+      shortcutkeyLabel.Left := (SubCardW - shortcutkeyLabel.Width) div 2;
       if Assigned(FOsShortcutCaptureBtn) then
       begin
-        FOsShortcutCaptureBtn.Left := (W2 - FOsShortcutCaptureBtn.Width) div 2;
+        FOsShortcutCaptureBtn.Left := (SubCardW - FOsShortcutCaptureBtn.Width) div 2;
         FOsShortcutCaptureBtn.Top  := shortcutkeyLabel.Top + shortcutkeyLabel.Height + 4;
       end;
     end;
-    if Assigned(FOsFakeSec)  then FOsFakeSec.SetBounds(X3, HDR + BOX_TOP, W3, BOX_H);
+    if Assigned(FOsFakeSec)  then FOsFakeSec.SetBounds(IMARGIN + 2 * (SubCardW + IGAP), HDR + BOX_TOP, CW - IMARGIN - (IMARGIN + 2 * (SubCardW + IGAP)), BoxH);
 
-    // ── Card 2: Software Status ──────────────────────────────────────────
-    CardTop := MARGIN + GPU_H + GAP + OPT_H + GAP;
+    // ── Card 2: Software Status (Anchored to Bottom) ─────────────────────
     FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
 
     CheckW := 130;
@@ -876,7 +938,7 @@ begin
     ColX[0] := PAD;
     ColX[1] := PAD + ColW;
 
-    for i := 0 to 6 do
+    for i := 0 to 4 do
     begin
       Col    := i mod 2;
       RowIdx := i div 2;
@@ -886,10 +948,20 @@ begin
       FOsStatDots[i].SetBounds(ColX[Col], DotY, DOT_SZ, DOT_SZ);
       FOsStatNameLbls[i].Left := ColX[Col] + DOT_SZ + 6;
       FOsStatNameLbls[i].Top  := Row + (ROW_H - 16) div 2;
-      FOsStatVerLbls[i].Left  := ColX[Col] + DOT_SZ + 6 + 80;
+
+      if Col = 0 then
+        FOsStatVerLbls[i].Left := ColX[0] + DOT_SZ + 6 + 90
+      else
+        FOsStatVerLbls[i].Left := ColX[1] + DOT_SZ + 6 + 140;
+
       FOsStatVerLbls[i].Top   := Row + (ROW_H - 16) div 2;
     end;
   end;
+end;
+
+procedure TOptiScalerTabHelper.OsScrollBoxResize(Sender: TObject);
+begin
+  ReflowOptiScalerTabNew(0);
 end;
 
 procedure TOptiScalerTabHelper.LoadOptiScalerConfig;
