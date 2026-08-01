@@ -607,6 +607,13 @@ begin
       SafeDeleteDirectory(TempStr + 'optiscaler-edge');
     end;
 
+    // Delete dlssenabler edge cache
+    if DirectoryExists(TempStr + 'dlssenabler-edge') then
+    begin
+      Log('Removing dlssenabler edge cache directory: ' + TempStr + 'dlssenabler-edge');
+      SafeDeleteDirectory(TempStr + 'dlssenabler-edge');
+    end;
+
     // Delete bgmod template folder
     if DirectoryExists(TempStr + 'bgmod') then
     begin
@@ -711,6 +718,7 @@ begin
       // Remove plugins folder (only files matching global plugins)
       CleanDirectory(IncludeTrailingPathDelimiter(GetBGModPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
       RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+      SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       
       // Remove wrappers and script configs
