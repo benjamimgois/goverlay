@@ -15,7 +15,7 @@ function GetOptiScalerInstallPath: string;
 function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
 
 // Check and automatically install DLSS Enabler if not present
-function CheckAndInstallDlssEnabler: Boolean;
+function CheckAndInstallDlssEnabler(AForce: Boolean = False): Boolean;
 
 type
   TOptiscalerTab = class
@@ -45,6 +45,7 @@ type
     function GetLatestReleaseTag(ASilent: Boolean = False): string;
     function GetOptiScalerStableTag(ASilent: Boolean = False): string;
     function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
+    function GetDlssEnablerLatestTag(ASilent: Boolean = False): string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
@@ -129,10 +130,18 @@ begin
 end;
 
 procedure TOptiUpdateThread.Execute;
+var
+  IsDlssEnablerActive: Boolean;
 begin
   WriteLn('[DEBUG] TOptiUpdateThread.Execute: Thread started');
-  // Fetch OptiScaler version
-  if FIsStableChannel then
+  IsDlssEnablerActive := Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked;
+
+  if IsDlssEnablerActive then
+  begin
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking DLSS Enabler channel (bygalacos/OptiScalerBuilder)...');
+    FLatestOptiTag := FOptiTab.GetDlssEnablerLatestTag(True);
+  end
+  else if FIsStableChannel then
   begin
     WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking Stable channel...');
     FLatestOptiTag := FOptiTab.GetOptiScalerStableTag(True);
@@ -164,12 +173,14 @@ var
   HasUpdates: Boolean;
   CurrentVersion: string;
   NormLatest, NormCurrent: string;
-  CurrentIsEdge, IsCrossChannel: Boolean;
+  CurrentIsEdge, IsCrossChannel, IsDlssEnablerActive: Boolean;
 begin
   if Terminated then Exit;
 
-  // Skip if channel changed since thread was spawned
-  if Assigned(FOptiTab.FOptVersionComboBox) then
+  IsDlssEnablerActive := Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked;
+
+  // Skip if channel changed since thread was spawned (only for standard OptiScaler)
+  if not IsDlssEnablerActive and Assigned(FOptiTab.FOptVersionComboBox) then
   begin
     if (FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 0))
        or (not FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 1)) then
@@ -191,53 +202,64 @@ begin
 
   HasUpdates := False;
 
-  // 1. Process OptiScaler Updates
+  // 1. Process Updates (OptiScaler or DLSS Enabler)
   if Assigned(FOptiTab.FOptiLabel2) then
   begin
-    if Assigned(FOptiTab.FOptiLabel) then
-      CurrentVersion := FOptiTab.FOptiLabel.Caption
-    else
-      CurrentVersion := '';
-
-    if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
+    if IsDlssEnablerActive then
     begin
-      NormLatest := StringReplace(FLatestOptiTag, '-', '.', [rfReplaceAll]);
-      NormCurrent := StringReplace(CurrentVersion, '-', '.', [rfReplaceAll]);
-      if (Length(NormLatest) > 5) and (Copy(NormLatest, 1, 5) = 'edge.') then
-        NormLatest := Copy(NormLatest, 6, MaxInt);
-      if (Length(NormCurrent) > 5) and (Copy(NormCurrent, 1, 5) = 'edge.') then
-        NormCurrent := Copy(NormCurrent, 6, MaxInt);
-      if (Length(NormLatest) > 7) and (Copy(NormLatest, 1, 7) = 'stable.') then
-        NormLatest := Copy(NormLatest, 8, MaxInt);
-      if (Length(NormCurrent) > 7) and (Copy(NormCurrent, 1, 7) = 'stable.') then
-        NormCurrent := Copy(NormCurrent, 8, MaxInt);
+      CurrentVersion := '';
+      if Assigned(FOptiTab.FDlssEnablerLabel) then
+        CurrentVersion := FOptiTab.FDlssEnablerLabel.Caption;
 
-      CurrentIsEdge := (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-');
-      if FIsStableChannel then
-        IsCrossChannel := CurrentIsEdge
-      else
-        IsCrossChannel := not CurrentIsEdge;
-
-      WriteLn('[DEBUG] SyncUpdateUI: FIsStableChannel=', FIsStableChannel, ' CurrentVersion="', CurrentVersion,
-              '" CurrentIsEdge=', CurrentIsEdge, ' IsCrossChannel=', IsCrossChannel,
-              ' NormLatest=', NormLatest, ' NormCurrent=', NormCurrent);
-
-      if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
+      if (FLatestOptiTag <> '') and (CurrentVersion <> '') and (CurrentVersion <> '—') and (CurrentVersion <> FLatestOptiTag) then
       begin
-        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+        FOptiTab.FOptiLabel2.Caption := 'DLSS Enabler Update Available (' + FLatestOptiTag + ')';
         FOptiTab.FOptiLabel2.Font.Color := clLime;
         FOptiTab.FOptiLabel2.Visible := True;
         HasUpdates := True;
-        WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler update available: ', FLatestOptiTag);
       end
       else
-      begin
         FOptiTab.FOptiLabel2.Visible := False;
-        WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: OptiScaler is up to date (remote=', NormLatest, ' installed=', NormCurrent, ')');
-      end;
     end
     else
-      FOptiTab.FOptiLabel2.Visible := False;
+    begin
+      if Assigned(FOptiTab.FOptiLabel) then
+        CurrentVersion := FOptiTab.FOptiLabel.Caption
+      else
+        CurrentVersion := '';
+
+      if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
+      begin
+        NormLatest := StringReplace(FLatestOptiTag, '-', '.', [rfReplaceAll]);
+        NormCurrent := StringReplace(CurrentVersion, '-', '.', [rfReplaceAll]);
+        if (Length(NormLatest) > 5) and (Copy(NormLatest, 1, 5) = 'edge.') then
+          NormLatest := Copy(NormLatest, 6, MaxInt);
+        if (Length(NormCurrent) > 5) and (Copy(NormCurrent, 1, 5) = 'edge.') then
+          NormCurrent := Copy(NormCurrent, 6, MaxInt);
+        if (Length(NormLatest) > 7) and (Copy(NormLatest, 1, 7) = 'stable.') then
+          NormLatest := Copy(NormLatest, 8, MaxInt);
+        if (Length(NormCurrent) > 7) and (Copy(NormCurrent, 1, 7) = 'stable.') then
+          NormCurrent := Copy(NormCurrent, 8, MaxInt);
+
+        CurrentIsEdge := (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-');
+        if FIsStableChannel then
+          IsCrossChannel := CurrentIsEdge
+        else
+          IsCrossChannel := not CurrentIsEdge;
+
+        if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
+        begin
+          FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+          FOptiTab.FOptiLabel2.Font.Color := clLime;
+          FOptiTab.FOptiLabel2.Visible := True;
+          HasUpdates := True;
+        end
+        else
+          FOptiTab.FOptiLabel2.Visible := False;
+      end
+      else
+        FOptiTab.FOptiLabel2.Visible := False;
+    end;
   end;
 
   // 2. Process Decky Updates
@@ -559,6 +581,43 @@ begin
     FOptiEdgeVersion := EdgeVer;
     FOptiEdgeURL := EdgeURL;
     Result := EdgeVer;
+  end;
+end;
+
+function TOptiscalerTab.GetDlssEnablerLatestTag(ASilent: Boolean = False): string;
+var
+  Process: TProcess;
+  Response: string;
+  StartPos, EndPos: Integer;
+begin
+  Result := '';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('https://api.github.com/repos/bygalacos/OptiScalerBuilder/releases/latest');
+    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Execute;
+    SetLength(Response, Process.Output.NumBytesAvailable);
+    if Length(Response) > 0 then
+      Process.Output.Read(Response[1], Length(Response));
+
+    StartPos := Pos('"tag_name"', Response);
+    if StartPos > 0 then
+    begin
+      StartPos := PosEx('"', Response, StartPos + 10);
+      if StartPos > 0 then
+      begin
+        StartPos := PosEx('"', Response, StartPos + 1);
+        EndPos := PosEx('"', Response, StartPos + 1);
+        if (StartPos > 0) and (EndPos > StartPos) then
+          Result := Copy(Response, StartPos + 1, EndPos - StartPos - 1);
+      end;
+    end;
+  finally
+    Process.Free;
   end;
 end;
 
@@ -1224,32 +1283,41 @@ begin
       end;
     end;
 
-    if DlssEnablerVer = '' then
+    DlssEdgeVars := IncludeTrailingPathDelimiter(GetDlssEnablerPath) + 'goverlay.vars';
+    if FileExists(DlssEdgeVars) then
     begin
-      DlssEdgeVars := IncludeTrailingPathDelimiter(GetDlssEnablerPath) + 'goverlay.vars';
-      if FileExists(DlssEdgeVars) then
-      begin
+      try
+        AssignFile(DlssEdgeFile, DlssEdgeVars);
+        Reset(DlssEdgeFile);
         try
-          AssignFile(DlssEdgeFile, DlssEdgeVars);
-          Reset(DlssEdgeFile);
-          try
-            while not Eof(DlssEdgeFile) do
+          while not Eof(DlssEdgeFile) do
+          begin
+            ReadLn(DlssEdgeFile, Line);
+            SepPos := Pos('=', Line);
+            if SepPos > 0 then
             begin
-              ReadLn(DlssEdgeFile, Line);
-              SepPos := Pos('=', Line);
-              if SepPos > 0 then
+              Key := Copy(Line, 1, SepPos - 1);
+              Value := Copy(Line, SepPos + 1, MaxInt);
+              if (DlssEnablerVer = '') and (SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler')) then
+                DlssEnablerVer := Value;
+              if (Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked) or (OptiVer = '') then
               begin
-                Key := Copy(Line, 1, SepPos - 1);
-                if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
-                  DlssEnablerVer := Copy(Line, SepPos + 1, MaxInt);
+                if SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
+                  OptiVer := Value;
               end;
             end;
-          finally
-            CloseFile(DlssEdgeFile);
           end;
-        except
+        finally
+          CloseFile(DlssEdgeFile);
         end;
+      except
       end;
+    end;
+
+    if (OptiVer <> '') and Assigned(FOptiLabel) then
+    begin
+      FOptiLabel.Caption := OptiVer;
+      FOptiLabel.Font.Color := clOlive;
     end;
 
     if Assigned(FDlssEnablerLabel) then
@@ -1545,6 +1613,23 @@ var
 begin
   // Test mode: never download updates (deterministic test runs)
   if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
+
+  if Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked then
+  begin
+    WriteLn('[DEBUG] UpdateButtonClick: DLSS Enabler selected, updating DLSS Enabler...');
+    UpdateStatus('Downloading DLSS Enabler...');
+    if CheckAndInstallDlssEnabler(True) then
+    begin
+      ShowToast(ntSuccess, 'DLSS Enabler updated successfully!', 3000);
+      LoadVersionsFromFile;
+    end
+    else
+      ShowToast(ntError, 'Failed to update DLSS Enabler', 5000);
+
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Enabled := True;
+    Exit;
+  end;
 
   WriteLn('[DEBUG] ========================================');
   WriteLn('[DEBUG] UpdateButtonClick: Starting OptiScaler installation/update (NEW SIMPLIFIED VERSION)');
@@ -2174,22 +2259,36 @@ begin
   end;
 end;
 
-function CheckAndInstallDlssEnabler: Boolean;
+function CheckAndInstallDlssEnabler(AForce: Boolean = False): Boolean;
 var
-  DestDir, VarsFilePath, DownloadUrl, TagName, SevenZFile: string;
+  DestDir, VarsFilePath, DownloadUrl, TagName, SevenZFile, DlssEnablerVerStr, OptiScalerVerStr: string;
   Process: TProcess;
   VarsList: TStringList;
   ReleaseJson: string;
   StartPos, EndPos: Integer;
+  AlreadyExtracted: Boolean;
 begin
   Result := False;
   DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath);
   VarsFilePath := DestDir + 'goverlay.vars';
+  AlreadyExtracted := FileExists(DestDir + 'OptiScaler.dll') or FileExists(DestDir + 'OptiScaler.ini');
 
-  if FileExists(VarsFilePath) and (FileExists(DestDir + 'OptiScaler.dll') or FileExists(DestDir + 'OptiScaler.ini')) then
+  if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
   begin
-    Result := True;
-    Exit;
+    VarsList := TStringList.Create;
+    try
+      VarsList.LoadFromFile(VarsFilePath);
+      if (VarsList.IndexOfName('optiScalerVersion') >= 0) or (VarsList.IndexOfName('OptiScalerVersion') >= 0) then
+      begin
+        if (VarsList.Values['optiScalerVersion'] <> 'Component') and (VarsList.Values['OptiScalerVersion'] <> 'Component') then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    finally
+      VarsList.Free;
+    end;
   end;
 
   ForceDirectories(DestDir);
@@ -2225,63 +2324,112 @@ begin
     end;
   end;
 
-  // Extract browser_download_url for .7z
-  StartPos := Pos('"browser_download_url"', ReleaseJson);
+  // Extract DLSS Enabler version and OptiScaler version from body table
+  DlssEnablerVerStr := '';
+  OptiScalerVerStr := '';
+
+  // Match DLSS Enabler in release body table (| DLSS Enabler | <ver> |)
+  StartPos := Pos('| DLSS Enabler', ReleaseJson);
+  if StartPos = 0 then
+    StartPos := Pos('DLSS Enabler', ReleaseJson);
+
   if StartPos > 0 then
   begin
-    StartPos := PosEx('http', ReleaseJson, StartPos);
+    StartPos := PosEx('|', ReleaseJson, StartPos + 12);
     if StartPos > 0 then
     begin
-      EndPos := PosEx('"', ReleaseJson, StartPos);
+      EndPos := PosEx('|', ReleaseJson, StartPos + 1);
       if (EndPos > StartPos) then
-        DownloadUrl := Copy(ReleaseJson, StartPos, EndPos - StartPos);
+        DlssEnablerVerStr := Trim(Copy(ReleaseJson, StartPos + 1, EndPos - StartPos - 1));
     end;
   end;
 
-  if TagName = '' then TagName := 'v0.10.0-pre1';
-  if DownloadUrl = '' then
-    DownloadUrl := 'https://github.com/bygalacos/OptiScalerBuilder/releases/download/' + TagName + '/OptiScaler_' + TagName + '_bygalacos.7z';
+  // Match OptiScaler in release body table (| OptiScaler | <ver> |)
+  StartPos := Pos('| OptiScaler |', ReleaseJson);
+  if StartPos = 0 then
+    StartPos := Pos('| OptiScaler', ReleaseJson);
 
-  SevenZFile := DestDir + 'dlssenabler.7z';
-  WriteLn('[DLSS-ENABLER] Downloading from ', DownloadUrl, ' to ', SevenZFile);
-
-  Process := TProcess.Create(nil);
-  try
-    Process.Executable := 'curl';
-    Process.Parameters.Add('-sL');
-    Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
-    Process.Parameters.Add('-o');
-    Process.Parameters.Add(SevenZFile);
-    Process.Parameters.Add(DownloadUrl);
-    Process.Options := [poWaitOnExit];
-    Process.Execute;
-  finally
-    Process.Free;
+  if StartPos > 0 then
+  begin
+    StartPos := PosEx('|', ReleaseJson, StartPos + 10);
+    if StartPos > 0 then
+    begin
+      EndPos := PosEx('|', ReleaseJson, StartPos + 1);
+      if (EndPos > StartPos) then
+      begin
+        OptiScalerVerStr := Trim(Copy(ReleaseJson, StartPos + 1, EndPos - StartPos - 1));
+        EndPos := Pos(' - SHA', OptiScalerVerStr);
+        if EndPos > 0 then
+          OptiScalerVerStr := Trim(Copy(OptiScalerVerStr, 1, EndPos - 1));
+      end;
+    end;
   end;
 
-  if FileExists(SevenZFile) then
+  if DlssEnablerVerStr = '' then DlssEnablerVerStr := TagName;
+  if OptiScalerVerStr = '' then OptiScalerVerStr := TagName;
+
+  // Only download & extract 7z if AForce is True OR files are not extracted yet
+  if AForce or not AlreadyExtracted then
   begin
-    WriteLn('[DLSS-ENABLER] Extracting 7z archive into ', DestDir, '...');
+    // Extract browser_download_url for .7z
+    StartPos := Pos('"browser_download_url"', ReleaseJson);
+    if StartPos > 0 then
+    begin
+      StartPos := PosEx('http', ReleaseJson, StartPos);
+      if StartPos > 0 then
+      begin
+        EndPos := PosEx('"', ReleaseJson, StartPos);
+        if (EndPos > StartPos) then
+          DownloadUrl := Copy(ReleaseJson, StartPos, EndPos - StartPos);
+      end;
+    end;
+
+    if TagName = '' then TagName := 'v0.10.0-pre1';
+    if DownloadUrl = '' then
+      DownloadUrl := 'https://github.com/bygalacos/OptiScalerBuilder/releases/download/' + TagName + '/OptiScaler_' + TagName + '_bygalacos.7z';
+
+    SevenZFile := DestDir + 'dlssenabler.7z';
+    WriteLn('[DLSS-ENABLER] Downloading from ', DownloadUrl, ' to ', SevenZFile);
+
     Process := TProcess.Create(nil);
     try
-      Process.Executable := '7z';
-      Process.Parameters.Add('x');
-      Process.Parameters.Add('-y');
-      Process.Parameters.Add('-o' + DestDir);
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('-o');
       Process.Parameters.Add(SevenZFile);
+      Process.Parameters.Add(DownloadUrl);
       Process.Options := [poWaitOnExit];
       Process.Execute;
     finally
       Process.Free;
     end;
-    DeleteFile(SevenZFile);
+
+    if FileExists(SevenZFile) then
+    begin
+      WriteLn('[DLSS-ENABLER] Extracting 7z archive into ', DestDir, '...');
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := '7z';
+        Process.Parameters.Add('x');
+        Process.Parameters.Add('-y');
+        Process.Parameters.Add('-o' + DestDir);
+        Process.Parameters.Add(SevenZFile);
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+      DeleteFile(SevenZFile);
+    end;
   end;
 
   // Write goverlay.vars
   VarsList := TStringList.Create;
   try
-    VarsList.Add('dlssenablerversion=' + TagName);
+    VarsList.Add('dlssenablerversion=' + DlssEnablerVerStr);
+    VarsList.Add('optiScalerVersion=' + OptiScalerVerStr);
     VarsList.Add('upscalertype=1');
     VarsList.SaveToFile(VarsFilePath);
   finally
