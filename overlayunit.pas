@@ -4318,6 +4318,9 @@ begin
       optversionComboBox.Enabled := True;
   end;
   UpdateUpscalerImageOpacity;
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.LoadVersionsFromFile;
+  RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
 end;
@@ -4345,6 +4348,9 @@ begin
     end;
   end;
   UpdateUpscalerImageOpacity;
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.LoadVersionsFromFile;
+  RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
 end;

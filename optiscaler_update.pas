@@ -1320,6 +1320,9 @@ begin
       FOptiLabel.Font.Color := clOlive;
     end;
 
+    if not (Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked) then
+      DlssEnablerVer := '--';
+
     if Assigned(FDlssEnablerLabel) then
       FDlssEnablerLabel.Caption := DlssEnablerVer;
     if Assigned(goverlayform.dlssEnablerVersionLabel) then

@@ -701,6 +701,14 @@ begin
 
     for i := 0 to 6 do
     begin
+      if (i = 1) and not (Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked) then
+      begin
+        FOsStatVerLbls[1].Caption    := '--';
+        FOsStatVerLbls[1].Font.Color := PURPLE;
+        FOsStatDots[1].Brush.Color   := CLR_NONE;
+        Continue;
+      end;
+
       Ver := SrcLbls[i].Caption;
       VerCaption := IfThen(Ver <> '', Ver, '—');
 
