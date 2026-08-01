@@ -1,38 +1,6 @@
 # Capability: Upscalers Tab & DLSS Enabler Support
 
-## Purpose
-
-Provides integrated configuration, management, version tracking, and automated file deployment for OptiScaler and DLSS Enabler upscaling mods within GOverlay.
-
-## Requirements
-
-### Requirement: Tab Renaming and Card Layout Reorganization
-The sidebar navigation item SHALL display the caption "Upscalers" instead of "OptiScaler".
-The top section of the Upscalers tab SHALL render two 50% width cards side-by-side: "Upscaler" on the left and "GPU Driver" on the right.
-
-#### Scenario: Upscalers tab display
-- **WHEN** GOverlay launches
-- **THEN** system renders the sidebar navigation item with caption "Upscalers" and displays the side-by-side cards
-
-### Requirement: Mutually Exclusive Image Checkboxes
-The "Upscaler" card SHALL contain two mutually exclusive options: "OptiScaler" (selected by default) and "DLSS Enabler".
-Each option SHALL be represented by an image logo.
-The active option's image SHALL be displayed with full opacity (100%), and the inactive option's image SHALL be displayed with reduced opacity (40%).
-When selecting "DLSS Enabler", if no custom proxy DLL is previously configured for the active game, `version.dll` SHALL be automatically pre-selected as the proxy DLL.
-
-#### Scenario: Selecting DLSS Enabler image checkbox
-- **WHEN** user selects DLSS Enabler option
-- **THEN** DLSS Enabler image becomes 100% opaque, OptiScaler image becomes 40% opaque, and version.dll is pre-selected if no proxy was configured
-
-### Requirement: DLSS Enabler Downloading and Version Tracking
-GOverlay SHALL download and extract the latest DLSS Enabler release from `https://github.com/bygalacos/OptiScalerBuilder` into `~/.local/share/goverlay/dlssenabler-edge`.
-A `goverlay.vars` marker file containing `dlssenablerversion=<version>` SHALL be written inside the `dlssenabler-edge` directory.
-The Software Status section on the Upscalers tab SHALL display the installed version of DLSS Enabler.
-Global uninstallation via `bgmod-uninstaller --global` SHALL remove the `~/.local/share/goverlay/dlssenabler-edge` directory.
-
-#### Scenario: Global uninstallation cleans DLSS Enabler cache
-- **WHEN** user runs `bgmod-uninstaller --global`
-- **THEN** system removes the `dlssenabler-edge` cache directory
+## MODIFIED Requirements
 
 ### Requirement: Game Directory File Synchronization
 When launching a game via `bgmod`, `bgmod` SHALL detect if the upscaler currently installed in the game executable directory (recorded in `goverlay.vars`) differs from the upscaler type configured in `bgmod.conf` (`UPSCALER_TYPE`).

@@ -72,6 +72,31 @@ var
   BgmodPath: string;
   ConfigDir: string;
   SourceDir: string;
+  OrigDlls: array[0..13] of string = (
+    'd3dcompiler_47.dll',
+    'amd_fidelityfx_dx12.dll',
+    'amd_fidelityfx_loader_dx12.dll',
+    'amd_fidelityfx_framegeneration_dx12.dll',
+    'amd_fidelityfx_upscaler_dx12.dll',
+    'amd_fidelityfx_vk.dll',
+    'libxess.dll',
+    'libxess_dx11.dll',
+    'libxess_fg.dll',
+    'libxell.dll',
+    'nvngx.dll',
+    'nvngx_dlss.dll',
+    'nvngx_dlssd.dll',
+    'nvngx_dlssg.dll'
+  );
+  ProxyDlls: array[0..6] of string = (
+    'dxgi.dll',
+    'winmm.dll',
+    'dbghelp.dll',
+    'version.dll',
+    'wininet.dll',
+    'winhttp.dll',
+    'd3d12.dll'
+  );
 
 procedure Log(const Msg: string);
 var
@@ -739,6 +764,114 @@ begin
   end;
 end;
 
+function GetInstalledUpscalerType(const TargetDir: string): Integer;
+var
+  VarsPath, Val: string;
+begin
+  Result := -1;
+  VarsPath := IncludeTrailingPathDelimiter(TargetDir) + 'goverlay.vars';
+  if FileExists(VarsPath) then
+  begin
+    Val := ReadVarFromFile(VarsPath, 'upscalertype');
+    if Val = '1' then Exit(1);
+    if Val = '0' then Exit(0);
+
+    Val := ReadVarFromFile(VarsPath, 'dlssenablerversion');
+    if Val <> '' then Exit(1);
+
+    Val := ReadVarFromFile(VarsPath, 'optiscalerversion');
+    if Val <> '' then Exit(0);
+  end;
+
+  if DirectoryExists(IncludeTrailingPathDelimiter(TargetDir) + 'OptiScaler') then
+    Exit(1);
+  if DirectoryExists(IncludeTrailingPathDelimiter(TargetDir) + 'D3D12_OptiScaler') or
+     FileExists(IncludeTrailingPathDelimiter(TargetDir) + 'OptiScaler.dll') then
+    Exit(0);
+end;
+
+procedure WriteVarToFile(const FilePath, Key, Value: string);
+var
+  SL: TStringList;
+  idx, SepPos: Integer;
+  Line, K: string;
+  Found: Boolean;
+begin
+  SL := TStringList.Create;
+  try
+    if FileExists(FilePath) then
+      SL.LoadFromFile(FilePath);
+    Found := False;
+    for idx := 0 to SL.Count - 1 do
+    begin
+      Line := Trim(SL[idx]);
+      SepPos := Pos('=', Line);
+      if SepPos > 0 then
+      begin
+        K := Trim(Copy(Line, 1, SepPos - 1));
+        if SameText(K, Key) then
+        begin
+          SL[idx] := Key + '=' + Value;
+          Found := True;
+          Break;
+        end;
+      end;
+    end;
+    if not Found then
+      SL.Add(Key + '=' + Value);
+    SL.SaveToFile(FilePath);
+  finally
+    SL.Free;
+  end;
+end;
+
+procedure PurgeUpscalerFromGameDir(const AGameDir, ABackupsDir: string);
+var
+  i: Integer;
+begin
+  Log('Purging installed upscaler files from game directory...');
+  for i := 0 to High(ProxyDlls) do
+    SafeCleanOrRestore(AGameDir, ABackupsDir, ProxyDlls[i], False);
+
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.ini');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.log');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.asi');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlss-enabler.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlss-enabler-upscaler.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlss-enabler.log');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + '_nvngx.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx-wrapper.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvapi64.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.ini');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.log');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxess.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxess_dx11.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxess_fg.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxell.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_dx12.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_loader_dx12.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_vk.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlss.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlssd.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlssg.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
+
+  SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler');
+  SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'D3D12_OptiScaler');
+  if DirectoryExists(IncludeTrailingPathDelimiter(AGameDir) + 'plugins') then
+  begin
+    CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
+    RemoveDir(IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
+  end;
+
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars');
+end;
+
 procedure ResolveGameDirectory;
 var
   Arg, ExePath, LutrisId, Cmd: string;
@@ -871,6 +1004,7 @@ end;
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath: string;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
+  UpscalerType, InstalledUpscaler: Integer;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
   BackupsDir: string;
@@ -880,31 +1014,6 @@ var
   EnvArgs: array of PChar;
   Args: array of PChar;
   ArgsStrings: array of string;
-  OrigDlls: array[0..13] of string = (
-    'd3dcompiler_47.dll',
-    'amd_fidelityfx_dx12.dll',
-    'amd_fidelityfx_loader_dx12.dll',
-    'amd_fidelityfx_framegeneration_dx12.dll',
-    'amd_fidelityfx_upscaler_dx12.dll',
-    'amd_fidelityfx_vk.dll',
-    'libxess.dll',
-    'libxess_dx11.dll',
-    'libxess_fg.dll',
-    'libxell.dll',
-    'nvngx.dll',
-    'nvngx_dlss.dll',
-    'nvngx_dlssd.dll',
-    'nvngx_dlssg.dll'
-  );
-  ProxyDlls: array[0..6] of string = (
-    'dxgi.dll',
-    'winmm.dll',
-    'dbghelp.dll',
-    'version.dll',
-    'wininet.dll',
-    'winhttp.dll',
-    'd3d12.dll'
-  );
 
 
 {$if defined(CPUAARCH64) and defined(LINUX)}
@@ -995,6 +1104,7 @@ begin
       GOverlayVkBasalt := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1';
       GOverlayOptiscaler := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       GOverlayTweaks := Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '0') = '1';
+      UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
       PreserveIni := Ini.ReadString('Config', 'PRESERVE_INI', 'true') = 'true';
       
@@ -1029,6 +1139,13 @@ begin
       // --- OptiScaler Copy and Configuration ---
       if GOverlayOptiscaler then
       begin
+        InstalledUpscaler := GetInstalledUpscalerType(GameDir);
+        if (InstalledUpscaler >= 0) and (InstalledUpscaler <> UpscalerType) then
+        begin
+          Log('Upscaler switch detected (installed=' + IntToStr(InstalledUpscaler) + ', target=' + IntToStr(UpscalerType) + '). Purging previous upscaler files...');
+          PurgeUpscalerFromGameDir(GameDir, BackupsDir);
+        end;
+
         if (SourceDir <> ConfigDir) and NeedsLocalUpdate(ConfigDir, SourceDir) then
         begin
           Log('OptiScaler update detected. Syncing local config files from ' + SourceDir);
@@ -1168,6 +1285,7 @@ begin
           
           // 12. Copy version file to game folder
           SafeCopyFile(ConfigDir + 'goverlay.vars', IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
+          WriteVarToFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'upscalertype', IntToStr(UpscalerType));
         end;
       end
       else

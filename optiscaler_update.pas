@@ -1991,6 +1991,18 @@ begin
         else
           WriteLn('[DEBUG] UpdateButtonClick: Updated xessversion line');
 
+        // Write upscalertype=0
+        XessLineFound := False;
+        for VarsIdx := 0 to VarsList.Count - 1 do
+          if SameText(Copy(VarsList[VarsIdx], 1, 14), 'upscalertype=') then
+          begin
+            VarsList[VarsIdx] := 'upscalertype=0';
+            XessLineFound := True;
+            Break;
+          end;
+        if not XessLineFound then
+          VarsList.Add('upscalertype=0');
+
         // Save to cache folder (pristine store)
         VarsList.SaveToFile(IncludeTrailingPathDelimiter(OrigPath) + 'goverlay.vars');
         WriteLn('[DEBUG] UpdateButtonClick: dlssversion saved to cache folder');
@@ -2270,6 +2282,7 @@ begin
   VarsList := TStringList.Create;
   try
     VarsList.Add('dlssenablerversion=' + TagName);
+    VarsList.Add('upscalertype=1');
     VarsList.SaveToFile(VarsFilePath);
   finally
     VarsList.Free;
