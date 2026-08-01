@@ -4301,6 +4301,7 @@ end;
 procedure Tgoverlayform.optiscalerRadioButtonClick(Sender: TObject);
 var
   Idx: Integer;
+  OptVer: string;
 begin
   if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
   begin
@@ -4313,13 +4314,24 @@ begin
       if Idx >= 0 then
         filenameComboBox.ItemIndex := Idx;
     end;
-
-    if Assigned(optversionComboBox) then
-      optversionComboBox.Enabled := True;
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.LoadVersionsFromFile;
+
+  if Assigned(optversionComboBox) then
+  begin
+    optversionComboBox.Enabled := True;
+    OptVer := '';
+    if Assigned(optlabel1) then
+      OptVer := optlabel1.Caption;
+
+    if (Length(OptVer) > 5) and (Copy(OptVer, 1, 5) = 'edge-') then
+      optversionComboBox.ItemIndex := 1
+    else
+      optversionComboBox.ItemIndex := 0;
+  end;
+
   RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
