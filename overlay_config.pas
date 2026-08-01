@@ -56,6 +56,8 @@ type
     ForceFsr4Int8Checked: Boolean;
     PreferredUpscalerItemIndex: Integer;
     UpscalerTypeItemIndex: Integer;
+    FGInputItemIndex: Integer;
+    FGOutputItemIndex: Integer;
   end;
 
   TMangoHudSettings = record
@@ -544,7 +546,7 @@ var
   DxgiValue: string;
   LoadAsiPluginsValue: string;
   Fsr4UpdateValue: string;
-  PreferredUpscalerValue: string;
+  PreferredUpscalerValue, FGInputValue, FGOutputValue: string;
   FakeNvapiIniPath: string;
   FakeCfg: TConfigFile;
   ForceReflexValue: string;
@@ -698,6 +700,35 @@ begin
         OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'true')
       else
         OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'false');
+
+      case Settings.FGInputItemIndex of
+        1: FGInputValue := 'nofg';
+        2: FGInputValue := 'dlssg';
+        3: FGInputValue := 'nukems';
+        4: FGInputValue := 'fsrfg';
+        5: FGInputValue := 'upscaler';
+        6: FGInputValue := 'fsrfg30';
+      else
+        FGInputValue := 'auto';
+      end;
+
+      case Settings.FGOutputItemIndex of
+        1: FGOutputValue := 'nofg';
+        2: FGOutputValue := 'fsrfg';
+        3: FGOutputValue := 'xefg';
+        4: FGOutputValue := 'nukems';
+      else
+        FGOutputValue := 'auto';
+      end;
+
+      OptiCfg.SetValue('FGInput=', FGInputValue, 'FrameGen');
+      OptiCfg.SetValue('FGOutput=', FGOutputValue, 'FrameGen');
+
+      if (not SameText(FGInputValue, 'auto')) or (not SameText(FGOutputValue, 'auto')) then
+        OptiCfg.SetValue('Enabled=', 'true', 'FrameGen')
+      else
+        OptiCfg.SetValue('Enabled=', 'auto', 'FrameGen');
+
       OptiCfg.Save;
     end;
   finally
@@ -1250,6 +1281,34 @@ begin
           Settings.ForceFsr4Int8Checked := SameText(Value, 'true')
         else
           Settings.ForceFsr4Int8Checked := True;
+
+        Value := OptiCfg.GetValue('FGInput=', '', 'FrameGen');
+        if SameText(Value, 'nofg') then
+          Settings.FGInputItemIndex := 1
+        else if SameText(Value, 'dlssg') then
+          Settings.FGInputItemIndex := 2
+        else if SameText(Value, 'nukems') then
+          Settings.FGInputItemIndex := 3
+        else if SameText(Value, 'fsrfg') then
+          Settings.FGInputItemIndex := 4
+        else if SameText(Value, 'upscaler') then
+          Settings.FGInputItemIndex := 5
+        else if SameText(Value, 'fsrfg30') then
+          Settings.FGInputItemIndex := 6
+        else
+          Settings.FGInputItemIndex := 0;
+
+        Value := OptiCfg.GetValue('FGOutput=', '', 'FrameGen');
+        if SameText(Value, 'nofg') then
+          Settings.FGOutputItemIndex := 1
+        else if SameText(Value, 'fsrfg') then
+          Settings.FGOutputItemIndex := 2
+        else if SameText(Value, 'xefg') then
+          Settings.FGOutputItemIndex := 3
+        else if SameText(Value, 'nukems') then
+          Settings.FGOutputItemIndex := 4
+        else
+          Settings.FGOutputItemIndex := 0;
       end;
     finally
       OptiCfg.Free;

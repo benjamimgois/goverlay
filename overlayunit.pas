@@ -88,6 +88,10 @@ type
     actprotonlogsCheckBox: TCheckBox;
     preferredUpscalerLabel: TLabel;
     preferredUpscalerComboBox: TComboBox;
+    fgInputLabel: TLabel;
+    fgInputComboBox: TComboBox;
+    fgOutputLabel: TLabel;
+    fgOutputComboBox: TComboBox;
     offsetySpinEdit: TSpinEdit;
     patcherlistLabel: TLabel;
     optipatcherLabel: TLabel;
@@ -3865,6 +3869,7 @@ procedure Tgoverlayform.FormShow(Sender: TObject);
 var
   InitW: Integer;
   TabSS: WideString;
+  GlobalSS: WideString;
   TabWidget: QWidgetH;
   TabBar: QTabBarH;
   PanelWidget: QWidgetH;
@@ -3906,6 +3911,18 @@ begin
             'QTabBar::tab:hover:!selected { background: rgb(30,36,58); color: rgb(180,192,215); } ' +
             'QTabWidget::pane { border: none; background: rgb(22,26,40); }';
   QWidget_setStyleSheet(TabWidget, @TabSS);
+
+  // Apply global slate-navy ComboBox stylesheet that overrides the KDE/Breeze theme
+  // This affects ALL QComboBox widgets in the application.
+  // Note: ::drop-down is intentionally NOT overridden so Qt renders the native arrow.
+  GlobalSS :=
+    'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
+    'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
+    'QComboBox:hover { border: 1px solid rgb(80,110,170); } ' +
+    'QComboBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
+    'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); ' +
+    'selection-background-color: rgb(50,90,175); border: 1px solid rgb(55,70,108); }';
+  QApplication_setStyleSheet(QApplicationH(QCoreApplication_instance()), @GlobalSS);
 
   // Make tabs stretch to fill the full tab bar width (eliminates gray strip to the right)
   TabBar := QTabWidget_tabBar(QTabWidgetH(TabWidget));
@@ -5290,13 +5307,9 @@ begin
   else
     emufp8CheckBox.Hint := 'Emulate FP8' + LineEnding + 'Used to activate FSR MLFG on RDNA3';
 
-  // Position and display forceFsr4Int8CheckBox in place of fsrversionComboBox on all channels
+  // Display forceFsr4Int8CheckBox on all channels
   if Assigned(forceFsr4Int8CheckBox) then
-  begin
-    forceFsr4Int8CheckBox.Left := fsrversionComboBox.Left;
-    forceFsr4Int8CheckBox.Top := emufp8CheckBox.Top;
     forceFsr4Int8CheckBox.Visible := True;
-  end;
 end;
 
 procedure Tgoverlayform.preferredUpscalerComboBoxChange(Sender: TObject);
@@ -7148,9 +7161,72 @@ const
   DARK_BG   = $002E1E1A;  // matches SubCardPaint / PerfCardPaint dark fill
   LIGHT_BG  = $00F0F0F0;  // matches SubCardPaint / PerfCardPaint light fill
 var
-  j: Integer;
   CardBg, TextColor: TColor;
   SS: WideString;
+
+  procedure ApplyToContainer(Container: TWinControl);
+  var
+    k: Integer;
+  begin
+    for k := 0 to Container.ControlCount - 1 do
+    begin
+      if Container.Controls[k] is TLabel then
+        TLabel(Container.Controls[k]).Font.Color := TextColor
+      else if Container.Controls[k] is TCheckBox then
+      begin
+        TCheckBox(Container.Controls[k]).ParentColor := True;
+        TCheckBox(Container.Controls[k]).Font.Color := TextColor;
+      end
+      else if Container.Controls[k] is TRadioButton then
+      begin
+        TRadioButton(Container.Controls[k]).ParentColor := True;
+        TRadioButton(Container.Controls[k]).Font.Color := TextColor;
+      end
+      else if Container.Controls[k] is TComboBox then
+      begin
+        TComboBox(Container.Controls[k]).Font.Color := TextColor;
+        if CurrentTheme = tmLight then
+        begin
+          TComboBox(Container.Controls[k]).Color := LighterBackgroundColor;
+          SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; }';
+        end
+        else
+        begin
+          TComboBox(Container.Controls[k]).Color := RGBToColor(38, 46, 72);
+          SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
+                'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); selection-background-color: rgb(50,90,175); }';
+        end;
+        QWidget_setStyleSheet(TQtWidget(TComboBox(Container.Controls[k]).Handle).Widget, @SS);
+      end
+      else if Container.Controls[k] is TEdit then
+      begin
+        TEdit(Container.Controls[k]).Font.Color := TextColor;
+        if CurrentTheme = tmLight then
+        begin
+          TEdit(Container.Controls[k]).Color := LighterBackgroundColor;
+          SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }';
+        end
+        else
+        begin
+          TEdit(Container.Controls[k]).Color := RGBToColor(46, 46, 46);
+          SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+        end;
+        QWidget_setStyleSheet(TQtWidget(TEdit(Container.Controls[k]).Handle).Widget, @SS);
+      end
+      else if Container.Controls[k] is TGroupBox then
+      begin
+        TGroupBox(Container.Controls[k]).Color      := CardBg;
+        TGroupBox(Container.Controls[k]).Font.Color := TextColor;
+      end
+      else if Container.Controls[k] is TPanel then
+      begin
+        // Recurse into sub-panels (e.g. FOsOptiSec, FOsImguiSec)
+        TPanel(Container.Controls[k]).Color := CardBg;
+        ApplyToContainer(TPanel(Container.Controls[k]));
+      end;
+    end;
+  end;
+
 begin
   if not Assigned(Card) then Exit;
 
@@ -7167,51 +7243,8 @@ begin
 
   Card.Color := CardBg;
   Card.Invalidate;
-  for j := 0 to Card.ControlCount - 1 do
-  begin
-    if Card.Controls[j] is TLabel then
-    begin
-      TLabel(Card.Controls[j]).Font.Color := TextColor;
-    end
-    else if Card.Controls[j] is TCheckBox then
-    begin
-      TCheckBox(Card.Controls[j]).ParentColor := True;
-      TCheckBox(Card.Controls[j]).Font.Color := TextColor;
-    end
-    else if Card.Controls[j] is TRadioButton then
-    begin
-      TRadioButton(Card.Controls[j]).ParentColor := True;
-      TRadioButton(Card.Controls[j]).Font.Color := TextColor;
-    end
-    else if Card.Controls[j] is TComboBox then
-    begin
-      TComboBox(Card.Controls[j]).Font.Color := TextColor;
-      if CurrentTheme = tmLight then
-        TComboBox(Card.Controls[j]).Color := LighterBackgroundColor
-      else
-        TComboBox(Card.Controls[j]).Color := RGBToColor(34, 38, 52);
-    end
-    else if Card.Controls[j] is TEdit then
-    begin
-      TEdit(Card.Controls[j]).Font.Color := TextColor;
-      if CurrentTheme = tmLight then
-      begin
-        TEdit(Card.Controls[j]).Color := LighterBackgroundColor;
-        SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }';
-      end
-      else
-      begin
-        TEdit(Card.Controls[j]).Color := RGBToColor(46, 46, 46);
-        SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
-      end;
-      QWidget_setStyleSheet(TQtWidget(TEdit(Card.Controls[j]).Handle).Widget, @SS);
-    end
-    else if Card.Controls[j] is TGroupBox then
-    begin
-      TGroupBox(Card.Controls[j]).Color      := CardBg;
-      TGroupBox(Card.Controls[j]).Font.Color := TextColor;
-    end;
-  end;
+
+  ApplyToContainer(Card);
 
   // Force QCheckBox background transparent via Qt stylesheet
   if CurrentTheme = tmLight then

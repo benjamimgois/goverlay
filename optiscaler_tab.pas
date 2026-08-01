@@ -191,8 +191,14 @@ const
   end;
 
   procedure DarkCombo(C: TComboBox);
+  var
+    SS: string;
   begin
-    C.Color := COMBOBG; C.Font.Color := WHITE; C.Font.Size := 9;
+    if C = nil then Exit;
+    C.Color := RGBToColor(38, 46, 72);
+    C.Font.Color := WHITE;
+    C.Font.Size := 9;
+    // Qt stylesheet applied globally via QApplication_setStyleSheet in FormShow
   end;
 
   procedure DarkLbl(L: TLabel; AColor: TColor);
@@ -412,36 +418,96 @@ begin
       Left := 6; Top := 4; Transparent := True; AutoSize := True;
     end;
 
-    // Reparent OptiScaler controls → FOsOptiSec (top += 22 past section title)
+    // Reparent OptiScaler controls → FOsOptiSec
+    // Row 1: File name (left) and Preferred upscaler (right)
     filenameLabel.AnchorSideLeft.Control   := nil; filenameLabel.AnchorSideTop.Control    := nil;
     filenameLabel.AnchorSideRight.Control  := nil; filenameLabel.AnchorSideBottom.Control := nil;
-    filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := 45;
+    filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Top := 40; filenameLabel.Left := 14;
     filenameLabel.Parent  := FOsOptiSec;
 
     filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
     filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
-    filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := 66;
+    filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Top := 60; filenameComboBox.Left := 14;
+    filenameComboBox.Width := 110;
     filenameComboBox.Parent  := FOsOptiSec;
 
+    preferredUpscalerLabel.AnchorSideLeft.Control   := nil; preferredUpscalerLabel.AnchorSideTop.Control    := nil;
+    preferredUpscalerLabel.AnchorSideRight.Control  := nil; preferredUpscalerLabel.AnchorSideBottom.Control := nil;
+    preferredUpscalerLabel.Anchors := [akLeft, akTop]; preferredUpscalerLabel.Top := 40; preferredUpscalerLabel.Left := 134;
+    preferredUpscalerLabel.Parent  := FOsOptiSec;
+
+    preferredUpscalerComboBox.AnchorSideLeft.Control   := nil; preferredUpscalerComboBox.AnchorSideTop.Control    := nil;
+    preferredUpscalerComboBox.AnchorSideRight.Control  := nil; preferredUpscalerComboBox.AnchorSideBottom.Control := nil;
+    preferredUpscalerComboBox.Anchors := [akLeft, akTop]; preferredUpscalerComboBox.Top := 60; preferredUpscalerComboBox.Left := 134;
+    preferredUpscalerComboBox.Width := 110;
+    preferredUpscalerComboBox.Parent  := FOsOptiSec;
+
+    // Row 2: FG Input (left) and FG Output (right)
+    if fgInputLabel = nil then
+    begin
+      fgInputLabel := TLabel.Create(FForm);
+      fgInputLabel.Name := 'fgInputLabel';
+      fgInputLabel.Caption := 'FG Input';
+    end;
+    fgInputLabel.AnchorSideLeft.Control   := nil; fgInputLabel.AnchorSideTop.Control    := nil;
+    fgInputLabel.AnchorSideRight.Control  := nil; fgInputLabel.AnchorSideBottom.Control := nil;
+    fgInputLabel.Anchors := [akLeft, akTop]; fgInputLabel.Top := 112; fgInputLabel.Left := 14;
+    fgInputLabel.Parent  := FOsOptiSec;
+
+    if fgInputComboBox = nil then
+    begin
+      fgInputComboBox := TComboBox.Create(FForm);
+      fgInputComboBox.Name := 'fgInputComboBox';
+      fgInputComboBox.Style := csDropDownList;
+      fgInputComboBox.Items.Add('auto');
+      fgInputComboBox.Items.Add('nofg');
+      fgInputComboBox.Items.Add('dlssg');
+      fgInputComboBox.Items.Add('nukems');
+      fgInputComboBox.Items.Add('fsrfg');
+      fgInputComboBox.Items.Add('upscaler');
+      fgInputComboBox.Items.Add('fsrfg30');
+      fgInputComboBox.ItemIndex := 0;
+    end;
+    fgInputComboBox.AnchorSideLeft.Control   := nil; fgInputComboBox.AnchorSideTop.Control    := nil;
+    fgInputComboBox.AnchorSideRight.Control  := nil; fgInputComboBox.AnchorSideBottom.Control := nil;
+    fgInputComboBox.Anchors := [akLeft, akTop]; fgInputComboBox.Top := 132; fgInputComboBox.Left := 14;
+    fgInputComboBox.Width := 110;
+    fgInputComboBox.Parent  := FOsOptiSec;
+
+    if fgOutputLabel = nil then
+    begin
+      fgOutputLabel := TLabel.Create(FForm);
+      fgOutputLabel.Name := 'fgOutputLabel';
+      fgOutputLabel.Caption := 'FG Output';
+    end;
+    fgOutputLabel.AnchorSideLeft.Control   := nil; fgOutputLabel.AnchorSideTop.Control    := nil;
+    fgOutputLabel.AnchorSideRight.Control  := nil; fgOutputLabel.AnchorSideBottom.Control := nil;
+    fgOutputLabel.Anchors := [akLeft, akTop]; fgOutputLabel.Top := 112; fgOutputLabel.Left := 134;
+    fgOutputLabel.Parent  := FOsOptiSec;
+
+    if fgOutputComboBox = nil then
+    begin
+      fgOutputComboBox := TComboBox.Create(FForm);
+      fgOutputComboBox.Name := 'fgOutputComboBox';
+      fgOutputComboBox.Style := csDropDownList;
+      fgOutputComboBox.Items.Add('auto');
+      fgOutputComboBox.Items.Add('nofg');
+      fgOutputComboBox.Items.Add('fsrfg');
+      fgOutputComboBox.Items.Add('xefg');
+      fgOutputComboBox.Items.Add('nukems');
+      fgOutputComboBox.ItemIndex := 0;
+    end;
+    fgOutputComboBox.AnchorSideLeft.Control   := nil; fgOutputComboBox.AnchorSideTop.Control    := nil;
+    fgOutputComboBox.AnchorSideRight.Control  := nil; fgOutputComboBox.AnchorSideBottom.Control := nil;
+    fgOutputComboBox.Anchors := [akLeft, akTop]; fgOutputComboBox.Top := 132; fgOutputComboBox.Left := 134;
+    fgOutputComboBox.Width := 110;
+    fgOutputComboBox.Parent  := FOsOptiSec;
+
+    // Row 3: Spoof DLSS (left) and Force FSR4-i8 (right)
     spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
     spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
-    spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := 72;
+    spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Top := 190; spoofCheckBox.Left := 14;
     spoofCheckBox.Parent  := FOsOptiSec;
-
-    fsrversionLabel.AnchorSideLeft.Control   := nil; fsrversionLabel.AnchorSideTop.Control    := nil;
-    fsrversionLabel.AnchorSideRight.Control  := nil; fsrversionLabel.AnchorSideBottom.Control := nil;
-    fsrversionLabel.Anchors := [akLeft, akTop]; fsrversionLabel.Top := 115;
-    fsrversionLabel.Parent  := FOsOptiSec;
-
-    fsrversionComboBox.AnchorSideLeft.Control   := nil; fsrversionComboBox.AnchorSideTop.Control    := nil;
-    fsrversionComboBox.AnchorSideRight.Control  := nil; fsrversionComboBox.AnchorSideBottom.Control := nil;
-    fsrversionComboBox.Anchors := [akLeft, akTop]; fsrversionComboBox.Top := 136;
-    fsrversionComboBox.Parent  := FOsOptiSec;
-
-    emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
-    emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
-    emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 142;
-    emufp8CheckBox.Parent  := FOsOptiSec;
 
     forceFsr4Int8CheckBox := TCheckBox.Create(FForm);
     forceFsr4Int8CheckBox.Name := 'forceFsr4Int8CheckBox';
@@ -449,31 +515,29 @@ begin
     forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
     forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
     forceFsr4Int8CheckBox.Anchors := [akLeft, akTop];
-    forceFsr4Int8CheckBox.Top := 165;
+    forceFsr4Int8CheckBox.Top := 190;
     forceFsr4Int8CheckBox.Left := 134;
     forceFsr4Int8CheckBox.Parent  := FOsOptiSec;
 
-    preferredUpscalerLabel.AnchorSideLeft.Control   := nil; preferredUpscalerLabel.AnchorSideTop.Control    := nil;
-    preferredUpscalerLabel.AnchorSideRight.Control  := nil; preferredUpscalerLabel.AnchorSideBottom.Control := nil;
-    preferredUpscalerLabel.Anchors := [akLeft, akTop]; preferredUpscalerLabel.Top := 190;
-    preferredUpscalerLabel.Parent  := FOsOptiSec;
-
-    preferredUpscalerComboBox.AnchorSideLeft.Control   := nil; preferredUpscalerComboBox.AnchorSideTop.Control    := nil;
-    preferredUpscalerComboBox.AnchorSideRight.Control  := nil; preferredUpscalerComboBox.AnchorSideBottom.Control := nil;
-    preferredUpscalerComboBox.Anchors := [akLeft, akTop]; preferredUpscalerComboBox.Top := 211;
-    preferredUpscalerComboBox.Parent  := FOsOptiSec;
+    // Row 4: Emulate FP8 (left) and OptiPatcher (right)
+    emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
+    emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
+    emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 238; emufp8CheckBox.Left := 14;
+    emufp8CheckBox.Parent  := FOsOptiSec;
 
     optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
     optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
-    optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := 216;
-    optipatcherCheckBox.Left    := 134;
+    optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := 238; optipatcherCheckBox.Left := 134;
     optipatcherCheckBox.Parent  := FOsOptiSec;
 
     patcherlistLabel.AnchorSideLeft.Control   := nil; patcherlistLabel.AnchorSideTop.Control    := nil;
     patcherlistLabel.AnchorSideRight.Control  := nil; patcherlistLabel.AnchorSideBottom.Control := nil;
-    patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := 238;
-    patcherlistLabel.Left    := 142;
+    patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := 260; patcherlistLabel.Left := 142;
     patcherlistLabel.Parent  := FOsOptiSec;
+
+    // Hide legacy FSR version controls
+    fsrversionLabel.Visible := False;
+    fsrversionComboBox.Visible := False;
 
     // Reparent ImGUI Menu controls → FOsImgSec
     menuLabel.AnchorSideLeft.Control   := nil; menuLabel.AnchorSideTop.Control    := nil;
@@ -578,6 +642,34 @@ begin
     DarkCombo(fsrversionComboBox);
     DarkLbl(preferredUpscalerLabel,   GRAY); preferredUpscalerLabel.Transparent := True;
     DarkCombo(preferredUpscalerComboBox);
+    if Assigned(fgInputLabel) then
+    begin
+      DarkLbl(fgInputLabel, GRAY); fgInputLabel.Transparent := True;
+    end;
+    if Assigned(fgInputComboBox) then
+    begin
+      DarkCombo(fgInputComboBox);
+      fgInputComboBox.Hint := 'Selected FG Input/Source:' + LineEnding +
+        'dlssg - Can be used with any FG Output. Supports Hudless out of the box. Limited to games that use Streamline v2 and DLSSG' + LineEnding +
+        'nukems - Limited to FSR 3 FG. Requires DLSSG in the game. Supports Hudless out of the box. Uses Streamline swapchain for pacing.' + LineEnding +
+        'fsrfg - Can be used with any FG Output. Supports Hudless out of the box.' + LineEnding +
+        'upscaler - Upscaler must be enabled. Can be used with any FG Output, but might be imperfect with some. To prevent UI glitching, Hudfix is required' + LineEnding +
+        'fsrfg30 - Can be used with any FG Output. Supports Hudless out of the box.';
+      fgInputComboBox.ShowHint := True;
+    end;
+    if Assigned(fgOutputLabel) then
+    begin
+      DarkLbl(fgOutputLabel, GRAY); fgOutputLabel.Transparent := True;
+    end;
+    if Assigned(fgOutputComboBox) then
+    begin
+      DarkCombo(fgOutputComboBox);
+      fgOutputComboBox.Hint := 'Selected FG Output:' + LineEnding +
+        'fsrfg - requires amd_fidelityfx_dx12.dll or amd_fidelityfx_loader_dx12.dll + amd_fidelityfx_framegeneration_dx12.dll' + LineEnding +
+        'xefg - requires libxess_fg.dll, libxell.dll and latest fakenvapi dll' + LineEnding +
+        'nukems - requires dlssg_to_fsr3_amd_is_better.dll, AMD/Intel GPU users need to add fakenvapi as well';
+      fgOutputComboBox.ShowHint := True;
+    end;
     DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
     // In-Game Menu section
     DarkLbl(menuLabel,           PURPLE);
@@ -1017,6 +1109,10 @@ begin
 
       tracelogCheckBox.Checked := Settings.TraceLogChecked;
       preferredUpscalerComboBox.ItemIndex := Settings.PreferredUpscalerItemIndex;
+      if Assigned(fgInputComboBox) then
+        fgInputComboBox.ItemIndex := Settings.FGInputItemIndex;
+      if Assigned(fgOutputComboBox) then
+        fgOutputComboBox.ItemIndex := Settings.FGOutputItemIndex;
 
       if Settings.UpscalerTypeItemIndex = 1 then
       begin
@@ -1075,6 +1171,14 @@ begin
     Settings.LatencyFlexItemIndex := latencyflexComboBox.ItemIndex;
     Settings.TraceLogChecked := tracelogCheckBox.Checked;
     Settings.PreferredUpscalerItemIndex := preferredUpscalerComboBox.ItemIndex;
+    if Assigned(fgInputComboBox) then
+      Settings.FGInputItemIndex := fgInputComboBox.ItemIndex
+    else
+      Settings.FGInputItemIndex := 0;
+    if Assigned(fgOutputComboBox) then
+      Settings.FGOutputItemIndex := fgOutputComboBox.ItemIndex
+    else
+      Settings.FGOutputItemIndex := 0;
     if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
       Settings.UpscalerTypeItemIndex := 1
     else

@@ -710,7 +710,7 @@ begin
   if CurrentTheme = tmLight then
     SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); }'
   else
-    SS := 'QComboBox { background-color: rgb(26,30,46); color: rgb(255,255,255); }';
+    SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; }';
   QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
   gpudescEdit.Parent := FVisualGpuBar;
@@ -1091,7 +1091,7 @@ begin
     if CurrentTheme = tmLight then
       SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); }'
     else
-      SS := 'QComboBox { background-color: rgb(26,30,46); color: rgb(255,255,255); }';
+      SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; }';
     QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
     if CurrentTheme = tmLight then
       SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: none; }'
