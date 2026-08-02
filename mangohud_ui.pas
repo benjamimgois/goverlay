@@ -662,8 +662,30 @@ begin
   Place(columShape3,     FVisualSections[5], 91, 50);
   Place(columShape4,     FVisualSections[5], 118, 50);
   Place(columShape5,     FVisualSections[5], 145, 50);
-  Place(minusButton,     FVisualSections[5], 64,  162);
-  Place(plusSpeedButton, FVisualSections[5], 91,  162);
+
+  // Hide legacy LFM speed buttons
+  minusButton.Visible := False;
+  plusSpeedButton.Visible := False;
+
+  // Create modern TBitBtn controls for Columns minus/plus
+  FColumnsMinusBtn := TBitBtn.Create(FVisualSections[5]);
+  FColumnsMinusBtn.Parent := FVisualSections[5];
+  FColumnsMinusBtn.Caption := '-';
+  FColumnsMinusBtn.Font.Size := 13;
+  FColumnsMinusBtn.Font.Style := [fsBold];
+  FColumnsMinusBtn.OnClick := @FForm.minusButtonClick;
+  FColumnsMinusBtn.Cursor := crHandPoint;
+  FColumnsMinusBtn.SetBounds(64, 162, 24, 24);
+
+  FColumnsPlusBtn := TBitBtn.Create(FVisualSections[5]);
+  FColumnsPlusBtn.Parent := FVisualSections[5];
+  FColumnsPlusBtn.Caption := '+';
+  FColumnsPlusBtn.Font.Size := 13;
+  FColumnsPlusBtn.Font.Style := [fsBold];
+  FColumnsPlusBtn.OnClick := @FForm.plusSpeedButtonClick;
+  FColumnsPlusBtn.Cursor := crHandPoint;
+  FColumnsPlusBtn.SetBounds(91, 162, 24, 24);
+
   Place(columvalueLabel, FVisualSections[5], 124, 164);
   columvalueLabel.Font.Color := TextColor; columvalueLabel.Transparent := True;
   columShape.Height  := 100; columShape1.Height := 100; columShape2.Height := 100;
@@ -705,12 +727,13 @@ begin
   pcidevComboBox.Anchors := [akLeft, akTop];
   pcidevComboBox.Left    := 11;
   pcidevComboBox.Top     := 26;
+  pcidevComboBox.Height  := 28;
   pcidevComboBox.Color       := BarBg;
   pcidevComboBox.Font.Color  := TextColor;
   if CurrentTheme = tmLight then
-    SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); }'
+    SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); padding: 2px 6px; }'
   else
-    SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; }';
+    SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
   QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
   gpudescEdit.Parent := FVisualGpuBar;
@@ -719,14 +742,14 @@ begin
   gpudescEdit.AnchorSideRight.Control := nil;
   gpudescEdit.Anchors     := [akLeft, akTop, akRight];
   gpudescEdit.Left        := pcidevComboBox.Left + pcidevComboBox.Width + 4;
-  gpudescEdit.Top         := pcidevComboBox.Top + (pcidevComboBox.Height - gpudescEdit.Height) div 2;
+  gpudescEdit.Top         := 26;
+  gpudescEdit.Height      := 28;
   gpudescEdit.Color       := BarBg;
   gpudescEdit.Font.Color  := TextColor;
-  gpudescEdit.BorderStyle := bsNone;
   if CurrentTheme = tmLight then
-    SS := 'background-color: rgb(240,240,240); border: none; color: black;'
+    SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px 6px; }'
   else
-    SS := 'background-color: rgb(26,30,46); border: none; color: white;';
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
   QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
 
   // ── HUD Title field — option C: style in place ───────────────────────────
@@ -988,8 +1011,12 @@ begin
   columShape.Left  := CL;       columShape1.Left := CL + 27;
   columShape2.Left := CL + 54;  columShape3.Left := CL + 81;
   columShape4.Left := CL + 108; columShape5.Left := CL + 135;
-  minusButton.Left     := CL + 54;
-  plusSpeedButton.Left := CL + 81;
+  minusButton.Visible := False;
+  plusSpeedButton.Visible := False;
+  if Assigned(FColumnsMinusBtn) then
+    FColumnsMinusBtn.SetBounds(CL + 54, 162, 24, 24);
+  if Assigned(FColumnsPlusBtn) then
+    FColumnsPlusBtn.SetBounds(CL + 81, 162, 24, 24);
   columvalueLabel.Left := CL + 110;
 
   // HUD separator and bar — anchored to bottom of card
@@ -1089,12 +1116,12 @@ begin
 
     // Force Qt stylesheets — KDE/Breeze ignores LCL Color/Font.Color
     if CurrentTheme = tmLight then
-      SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); }'
+      SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); padding: 2px 6px; }'
     else
-      SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; }';
+      SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
     QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
     if CurrentTheme = tmLight then
-      SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: none; }'
+      SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px 6px; }'
     else
       SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
     QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
@@ -1106,6 +1133,19 @@ begin
             'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(hudtitleEdit.Handle).Widget, @SS);
   end;
+
+  // Style Columns minus/plus TBitBtn controls
+  if CurrentTheme = tmLight then
+    SS := 'QPushButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; font-weight: bold; padding: 0px; }'
+  else
+    SS := 'QPushButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; font-weight: bold; padding: 0px; } ' +
+          'QPushButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+          'QPushButton:pressed { background-color: rgb(28,34,54); }';
+
+  if Assigned(FColumnsMinusBtn) and FColumnsMinusBtn.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(FColumnsMinusBtn.Handle).Widget, @SS);
+  if Assigned(FColumnsPlusBtn) and FColumnsPlusBtn.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(FColumnsPlusBtn.Handle).Widget, @SS);
 
   // Update HUD settings bar
   if Assigned(FVisualHudBar) then

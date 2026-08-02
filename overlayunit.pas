@@ -1069,6 +1069,8 @@ type
     FVisualCaptureBtn:  TBitBtn;
     FLimitCaptureBtn:   TBitBtn;
     FLoggingCaptureBtn: TBitBtn;
+    FColumnsMinusBtn:   TBitBtn;
+    FColumnsPlusBtn:    TBitBtn;
     // Extras tab code-generated layout
     FExtScrollBox:  TScrollBox;
     FExtBgPanel:    TPanel;

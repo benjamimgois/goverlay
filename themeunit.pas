@@ -336,6 +336,8 @@ begin
         end;
       end;
     end
+    else if ctrl is TSpeedButton then
+      TSpeedButton(ctrl).Font.Color := TextColor
     else if ctrl is TColorButton then
       TColorButton(ctrl).Color := BgColor
     else if ctrl is TListBox then
