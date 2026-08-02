@@ -11365,8 +11365,9 @@ object goverlayform: Tgoverlayform
               C26F6B6D82FAF10F089A1B11F3091C850809048E420856E0288460058E420856
               E028FE07D12D1A9C137A5CE80000000049454E44AE426082
             }
-            StretchOutEnabled = False
-            StretchInEnabled = False
+            AntialiasingMode = amOn
+            StretchOutEnabled = True
+            StretchInEnabled = True
             Transparent = True
           end
           object nvidiaRadioButton: TRadioButton
@@ -11555,8 +11556,9 @@ object goverlayform: Tgoverlayform
               411024024910048940120441229004419008244110240249100489401204E11F
               0068ABE3439D34340000000049454E44AE426082
             }
-            StretchOutEnabled = False
-            StretchInEnabled = False
+            AntialiasingMode = amOn
+            StretchOutEnabled = True
+            StretchInEnabled = True
           end
           object autodetectnvLabel: TLabel
             AnchorSideLeft.Control = nvidiaImage

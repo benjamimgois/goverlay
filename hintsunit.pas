@@ -279,8 +279,7 @@ begin
     'Windows 64-bit compatibility mode');
   SetHint('fexstatsCheckBox', 'FEX Stats' + LineEnding +
     'FEX-Emu emulator statistics (ARM)');
-  SetHint('emufp8CheckBox', 'Emulate FP8' + LineEnding +
-    'Emulates FP8 floating point precision');
+  SetHint('emufp8CheckBox', 'Emulate FP8 to active MLFG');
   SetHint('actprotonlogsCheckBox', 'Proton Logs' + LineEnding +
     'Activates detailed Proton logs');
   SetHint('heapdelayCheckBox', 'Heap Delay' + LineEnding +

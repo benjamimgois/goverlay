@@ -266,6 +266,7 @@ begin
     dlssenablerRadioButton.OnClick := @dlssenablerRadioButtonClick;
 
     optiscalerLogoImage := TImage.Create(FForm);
+    optiscalerLogoImage.AntialiasingMode := amOn;
     optiscalerLogoImage.Parent := FOsUpscalerCard;
     optiscalerLogoImage.Transparent := True;
     optiscalerLogoImage.Center := True;
@@ -332,11 +333,14 @@ begin
     nvidiaImage.AnchorSideBottom.Control := nil;
     nvidiaImage.Anchors     := [akLeft, akTop];
     nvidiaImage.Top         := nvidiaImage.Top + 62;
-    nvidiaImage.Transparent := True;
-    nvidiaImage.Center      := True;
-    nvidiaImage.Proportional := True;
-    nvidiaImage.Stretch     := True;
-    nvidiaImage.Parent      := FOsGpuCard;
+    nvidiaImage.Transparent       := True;
+    nvidiaImage.StretchInEnabled  := True;
+    nvidiaImage.StretchOutEnabled := True;
+    nvidiaImage.AntialiasingMode  := amOn;
+    nvidiaImage.Center            := True;
+    nvidiaImage.Proportional      := True;
+    nvidiaImage.Stretch          := False;
+    nvidiaImage.Parent            := FOsGpuCard;
 
     mesaImage.AnchorSideLeft.Control   := nil;
     mesaImage.AnchorSideTop.Control    := nil;
@@ -344,11 +348,14 @@ begin
     mesaImage.AnchorSideBottom.Control := nil;
     mesaImage.Anchors     := [akLeft, akTop];
     mesaImage.Top         := mesaImage.Top + 62;
-    mesaImage.Transparent := True;
-    mesaImage.Center      := True;
-    mesaImage.Proportional := True;
-    mesaImage.Stretch     := True;
-    mesaImage.Parent      := FOsGpuCard;
+    mesaImage.Transparent       := True;
+    mesaImage.StretchInEnabled  := True;
+    mesaImage.StretchOutEnabled := True;
+    mesaImage.AntialiasingMode  := amOn;
+    mesaImage.Center            := True;
+    mesaImage.Proportional      := True;
+    mesaImage.Stretch          := False;
+    mesaImage.Parent            := FOsGpuCard;
 
     autodetectnvLabel.AnchorSideLeft.Control   := nil;
     autodetectnvLabel.AnchorSideTop.Control    := nil;
@@ -386,11 +393,30 @@ begin
     FOsOptiSec.Caption     := '';
     FOsOptiSec.Color       := BG;
     FOsOptiSec.OnPaint     := @SubCardPaint;
-    with TLabel.Create(FOsOptiSec) do begin
-      Parent := FOsOptiSec; Caption := 'OptiScaler';
-      Font.Color := $00CCAAAA; Font.Style := [fsBold]; Font.Size := 8;
-      Left := 6; Top := 4; Transparent := True; AutoSize := True;
-    end;
+
+    FOsMainLbl := TLabel.Create(FOsOptiSec);
+    FOsMainLbl.Parent := FOsOptiSec;
+    FOsMainLbl.Caption := 'Main';
+    FOsMainLbl.Font.Color := $00CCAAAA;
+    FOsMainLbl.Font.Style := [fsBold];
+    FOsMainLbl.Font.Size := 8;
+    FOsMainLbl.Transparent := True;
+
+    FOsSpatialLbl := TLabel.Create(FOsOptiSec);
+    FOsSpatialLbl.Parent := FOsOptiSec;
+    FOsSpatialLbl.Caption := 'Spatial Upscaler';
+    FOsSpatialLbl.Font.Color := $00CCAAAA;
+    FOsSpatialLbl.Font.Style := [fsBold];
+    FOsSpatialLbl.Font.Size := 8;
+    FOsSpatialLbl.Transparent := True;
+
+    FOsTemporalLbl := TLabel.Create(FOsOptiSec);
+    FOsTemporalLbl.Parent := FOsOptiSec;
+    FOsTemporalLbl.Caption := 'Temporal Upscaler';
+    FOsTemporalLbl.Font.Color := $00CCAAAA;
+    FOsTemporalLbl.Font.Style := [fsBold];
+    FOsTemporalLbl.Font.Size := 8;
+    FOsTemporalLbl.Transparent := True;
 
     FOsImgSec := TPanel.Create(FForm);
     FOsImgSec.Parent      := FOsOptionsCard;
@@ -398,12 +424,7 @@ begin
     FOsImgSec.BorderStyle := bsNone;
     FOsImgSec.Caption     := '';
     FOsImgSec.Color       := BG;
-    FOsImgSec.OnPaint     := @SubCardPaint;
-    with TLabel.Create(FOsImgSec) do begin
-      Parent := FOsImgSec; Caption := 'ImGUI Menu';
-      Font.Color := $00CCAAAA; Font.Style := [fsBold]; Font.Size := 8;
-      Left := 6; Top := 4; Transparent := True; AutoSize := True;
-    end;
+    FOsImgSec.Visible     := False;
 
     FOsFakeSec := TPanel.Create(FForm);
     FOsFakeSec.Parent      := FOsOptionsCard;
@@ -412,11 +433,13 @@ begin
     FOsFakeSec.Caption     := '';
     FOsFakeSec.Color       := BG;
     FOsFakeSec.OnPaint     := @SubCardPaint;
-    with TLabel.Create(FOsFakeSec) do begin
-      Parent := FOsFakeSec; Caption := 'FakeNVAPI';
-      Font.Color := $00CCAAAA; Font.Style := [fsBold]; Font.Size := 8;
-      Left := 6; Top := 4; Transparent := True; AutoSize := True;
-    end;
+    FOsFakeLbl := TLabel.Create(FOsFakeSec);
+    FOsFakeLbl.Parent      := FOsFakeSec;
+    FOsFakeLbl.Caption     := 'Reflex / Antilag';
+    FOsFakeLbl.Font.Color  := $00CCAAAA;
+    FOsFakeLbl.Font.Style  := [fsBold];
+    FOsFakeLbl.Font.Size   := 8;
+    FOsFakeLbl.Transparent := True;
 
     // Reparent OptiScaler controls → FOsOptiSec
     // Row 1: File name (left) and Preferred upscaler (right)
@@ -519,7 +542,10 @@ begin
     forceFsr4Int8CheckBox.Left := 134;
     forceFsr4Int8CheckBox.Parent  := FOsOptiSec;
 
-    // Row 4: Emulate FP8 (left) and OptiPatcher (right)
+    // Row 4: Force MLFG in RDNA3 (left) and OptiPatcher (right)
+    emufp8CheckBox.Caption := 'Force MLFG in RDNA3';
+    emufp8CheckBox.Hint    := 'Emulate FP8 to active MLFG';
+    emufp8CheckBox.ShowHint := True;
     emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
     emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
     emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Top := 238; emufp8CheckBox.Left := 14;
@@ -530,69 +556,83 @@ begin
     optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Top := 238; optipatcherCheckBox.Left := 134;
     optipatcherCheckBox.Parent  := FOsOptiSec;
 
-    patcherlistLabel.AnchorSideLeft.Control   := nil; patcherlistLabel.AnchorSideTop.Control    := nil;
-    patcherlistLabel.AnchorSideRight.Control  := nil; patcherlistLabel.AnchorSideBottom.Control := nil;
-    patcherlistLabel.Anchors := [akLeft, akTop]; patcherlistLabel.Top := 260; patcherlistLabel.Left := 142;
-    patcherlistLabel.Parent  := FOsOptiSec;
+    patcherlistLabel.Visible := False;
+
+    if FOsPatcherListBtn = nil then
+    begin
+      FOsPatcherListBtn := TSpeedButton.Create(FForm);
+      FOsPatcherListBtn.Name := 'FOsPatcherListBtn';
+      FOsPatcherListBtn.Parent := FOsOptiSec;
+      FOsPatcherListBtn.Flat := True;
+      FOsPatcherListBtn.Transparent := True;
+      FOsPatcherListBtn.Caption := '🔗';
+      FOsPatcherListBtn.Hint := 'Games supported';
+      FOsPatcherListBtn.ShowHint := True;
+      FOsPatcherListBtn.Cursor := crHandPoint;
+      FOsPatcherListBtn.OnClick := @patcherlistLabelClick;
+    end;
+    FOsPatcherListBtn.AnchorSideLeft.Control   := nil; FOsPatcherListBtn.AnchorSideTop.Control    := nil;
+    FOsPatcherListBtn.AnchorSideRight.Control  := nil; FOsPatcherListBtn.AnchorSideBottom.Control := nil;
+    FOsPatcherListBtn.Anchors := [akLeft, akTop];
 
     // Hide legacy FSR version controls
     fsrversionLabel.Visible := False;
     fsrversionComboBox.Visible := False;
 
-    // Reparent ImGUI Menu controls → FOsImgSec
+    // Scale ComboBox (replacing TrackBar)
     menuLabel.AnchorSideLeft.Control   := nil; menuLabel.AnchorSideTop.Control    := nil;
     menuLabel.AnchorSideRight.Control  := nil; menuLabel.AnchorSideBottom.Control := nil;
-    menuLabel.Anchors := [akLeft, akTop]; menuLabel.Top := 45;
-    menuLabel.Parent  := FOsImgSec;
+    menuLabel.Anchors := [akLeft, akTop]; menuLabel.Caption := 'Menu scale';
+    menuLabel.Parent  := FOsOptiSec;
 
-    menuscalevalueLabel.AnchorSideLeft.Control   := nil; menuscalevalueLabel.AnchorSideTop.Control    := nil;
-    menuscalevalueLabel.AnchorSideRight.Control  := nil; menuscalevalueLabel.AnchorSideBottom.Control := nil;
-    menuscalevalueLabel.Anchors := [akLeft, akTop]; menuscalevalueLabel.Top := 70;
-    menuscalevalueLabel.Left    := 252;
-    menuscalevalueLabel.Parent  := FOsImgSec;
+    if menuscaleComboBox = nil then
+    begin
+      menuscaleComboBox := TComboBox.Create(FForm);
+      menuscaleComboBox.Name := 'menuscaleComboBox';
+      menuscaleComboBox.Style := csDropDownList;
+      menuscaleComboBox.Items.Add('1.0');
+      menuscaleComboBox.Items.Add('1.1');
+      menuscaleComboBox.Items.Add('1.2');
+      menuscaleComboBox.Items.Add('1.3');
+      menuscaleComboBox.Items.Add('1.4');
+      menuscaleComboBox.Items.Add('1.5');
+      menuscaleComboBox.Items.Add('1.6');
+      menuscaleComboBox.Items.Add('1.7');
+      menuscaleComboBox.Items.Add('1.8');
+      menuscaleComboBox.Items.Add('1.9');
+      menuscaleComboBox.Items.Add('2.0');
+      menuscaleComboBox.ItemIndex := 5; // default 1.5
+    end;
+    menuscaleComboBox.AnchorSideLeft.Control   := nil; menuscaleComboBox.AnchorSideTop.Control    := nil;
+    menuscaleComboBox.AnchorSideRight.Control  := nil; menuscaleComboBox.AnchorSideBottom.Control := nil;
+    menuscaleComboBox.Anchors := [akLeft, akTop];
+    menuscaleComboBox.Parent  := FOsOptiSec;
 
-    menuscaleTrackBar.AnchorSideLeft.Control   := nil; menuscaleTrackBar.AnchorSideTop.Control    := nil;
-    menuscaleTrackBar.AnchorSideRight.Control  := nil; menuscaleTrackBar.AnchorSideBottom.Control := nil;
-    menuscaleTrackBar.Anchors := [akLeft, akTop]; menuscaleTrackBar.Top := 70;
-    menuscaleTrackBar.Parent  := FOsImgSec;
-
-    mark1Label.AnchorSideLeft.Control   := nil; mark1Label.AnchorSideTop.Control    := nil;
-    mark1Label.AnchorSideRight.Control  := nil; mark1Label.AnchorSideBottom.Control := nil;
-    mark1Label.Anchors := [akLeft, akTop]; mark1Label.Top := 95;
-    mark1Label.Parent  := FOsImgSec;
-
-    mark2Label.AnchorSideLeft.Control   := nil; mark2Label.AnchorSideTop.Control    := nil;
-    mark2Label.AnchorSideRight.Control  := nil; mark2Label.AnchorSideBottom.Control := nil;
-    mark2Label.Anchors := [akLeft, akTop]; mark2Label.Top := 95;
-    mark2Label.Parent  := FOsImgSec;
-
-    mark3Label.AnchorSideLeft.Control   := nil; mark3Label.AnchorSideTop.Control    := nil;
-    mark3Label.AnchorSideRight.Control  := nil; mark3Label.AnchorSideBottom.Control := nil;
-    mark3Label.Anchors := [akLeft, akTop]; mark3Label.Top := 95;
-    mark3Label.Parent  := FOsImgSec;
+    menuscaleTrackBar.Visible := False;
+    menuscalevalueLabel.Visible := False;
+    mark1Label.Visible := False;
+    mark2Label.Visible := False;
+    mark3Label.Visible := False;
 
     shortcutkeyLabel.AnchorSideLeft.Control   := nil; shortcutkeyLabel.AnchorSideTop.Control    := nil;
     shortcutkeyLabel.AnchorSideRight.Control  := nil; shortcutkeyLabel.AnchorSideBottom.Control := nil;
     shortcutkeyLabel.Anchors  := [akLeft, akTop];
-    shortcutkeyLabel.Top      := 185;
-    shortcutkeyLabel.Caption  := 'Menu Toggle Key';
-    shortcutkeyLabel.Parent   := FOsImgSec;
+    shortcutkeyLabel.Caption  := 'Toggle key';
+    shortcutkeyLabel.Parent   := FOsOptiSec;
 
     shortcutImage.Visible := False;
 
     shortcutkeyComboBox.Visible := False;
-    shortcutkeyComboBox.Parent  := FOsImgSec;
+    shortcutkeyComboBox.Parent  := FOsOptiSec;
     if (shortcutkeyComboBox.Text = '') or SameText(shortcutkeyComboBox.Text, 'auto') then
       shortcutkeyComboBox.Text := '0x2d';  // INSERT = default ShortcutKey
 
-    FOsShortcutCaptureBtn := TBitBtn.Create(FOsImgSec);
-    FOsShortcutCaptureBtn.Parent   := FOsImgSec;
+    FOsShortcutCaptureBtn := TBitBtn.Create(FOsOptiSec);
+    FOsShortcutCaptureBtn.Parent   := FOsOptiSec;
     FOsShortcutCaptureBtn.Tag      := 5;
     FOsShortcutCaptureBtn.Anchors  := [akLeft, akTop];
     FOsShortcutCaptureBtn.Cursor   := crHandPoint;
     FOsShortcutCaptureBtn.OnClick  := @CaptureBtnClick;
-    FOsShortcutCaptureBtn.Left     := shortcutkeyLabel.Left;
-    FOsShortcutCaptureBtn.Top      := shortcutkeyLabel.Top + shortcutkeyLabel.Height + 4;
     FOsShortcutCaptureBtn.Width    := 100;
     FOsShortcutCaptureBtn.Height   := 28;
     FOsShortcutCaptureBtn.Caption  := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
@@ -895,8 +935,8 @@ const
   GAP     = 6;    // gap between cards
   HDR     = 34;   // accent bar (3) + title area (31)
   PAD     = 14;   // inner horizontal padding
-  GPU_GH  = 96;   // reduced from 130
-  GPU_H   = HDR + GPU_GH;    // 130
+  GPU_GH  = 68;   // reduced from 96
+  GPU_H   = HDR + GPU_GH;    // 102 (reduced from 130)
   DOT_SZ    = 10;
   ROW_H     = 26;   // standard row height
   STAT_ROWS = 3;    // 3 rows × 2 columns
@@ -912,6 +952,7 @@ var
   ColX: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, SubCardW, OptH, BoxH, MinOptH: Integer;
+  OptW, FakeW, ColM, X1, X2, X3, Y0: Integer;
   ComboW, CheckW: Integer;
   SliderW, TotalW, StartX: Integer;
   TBarMargin, TrackL: Integer;
@@ -963,53 +1004,104 @@ begin
     // ── Card 0b: GPU Driver (Right 50%) ─────────────────────────────────
     FOsGpuCard.SetBounds(MARGIN + CardW + GAP, MARGIN, CW - CardW - GAP, GPU_H);
     ItemW := (CardW - 2 * PAD) div 2;
-    LogoW := ItemW - 22;
 
-    mesaRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2, 20, 20);
-    mesaImage.SetBounds(PAD + 22, HDR + (GPU_GH - 62) div 2, LogoW, 62);
+    mesaRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2 - 2, 20, 20);
+    mesaImage.SetBounds(PAD + 22, HDR + (GPU_GH - 58) div 2 - 2, Min(144, ItemW - 24), 58);
     autodetectmesaLabel.SetBounds(PAD + 22, HDR + GPU_GH - autodetectmesaLabel.Height - 2, autodetectmesaLabel.Width, autodetectmesaLabel.Height);
 
-    nvidiaRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2, 20, 20);
-    nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 43) div 2, LogoW, 43);
+    nvidiaRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2 - 2, 20, 20);
+    nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 42) div 2 - 2, Min(185, ItemW - 24), 42);
     autodetectnvLabel.SetBounds(PAD + ItemW + 22, HDR + GPU_GH - autodetectnvLabel.Height - 2, autodetectnvLabel.Width, autodetectnvLabel.Height);
 
-    // ── Card 1: Options (Stretched Vertically & Horizontally) ────────────
+    // ── Card 1: Options (4 Equal Columns: Main 25%, Spatial 25%, Temporal 25%, FakeNVAPI 25%) ──
     FOsOptionsCard.SetBounds(MARGIN, MARGIN + GPU_H + GAP, CW, OptH);
 
     InnerW := CW - 2 * IMARGIN;
-    SubCardW := (InnerW - 2 * IGAP) div 3;
-    BoxH := OptH - HDR - 12;
+    ColW   := (InnerW - 3 * IGAP) div 4;
+    if ColW < 100 then ColW := 100;
+
+    OptW   := 3 * ColW + 2 * IGAP;
+    FakeW  := InnerW - OptW - IGAP;
+    BoxH   := OptH - HDR - 12;
     if BoxH < 240 then BoxH := 240;
 
-    if Assigned(FOsOptiSec)  then FOsOptiSec.SetBounds(IMARGIN, HDR + BOX_TOP, SubCardW, BoxH);
+    if Assigned(FOsOptiSec) then
+      FOsOptiSec.SetBounds(IMARGIN, HDR + BOX_TOP, OptW, BoxH);
     if Assigned(FOsImgSec) then
+      FOsImgSec.Visible := False;
+    if Assigned(FOsFakeSec) then
+      FOsFakeSec.SetBounds(IMARGIN + OptW + IGAP, HDR + BOX_TOP, FakeW, BoxH);
+
+    // Reflow OptiScaler sub-columns: Main, Spatial Upscaler, Temporal Upscaler
+    if Assigned(FOsOptiSec) then
     begin
-      FOsImgSec.SetBounds(IMARGIN + SubCardW + IGAP, HDR + BOX_TOP, SubCardW, BoxH);
-      menuLabel.Left := (SubCardW - menuLabel.Width) div 2;
+      ColM := 10;
+      X1 := ColM;
+      X2 := ColM + ColW + IGAP;
+      X3 := ColM + 2 * (ColW + IGAP);
 
-      SliderW := Min(200, SubCardW - 24);
-      if SliderW < 100 then SliderW := 100;
-      TotalW := SliderW + 6 + menuscalevalueLabel.Width;
-      StartX := (SubCardW - TotalW) div 2;
+      FOsOptiDiv1 := X2 - IGAP div 2;
+      FOsOptiDiv2 := X3 - IGAP div 2;
 
-      menuscaleTrackBar.SetBounds(StartX, 70, SliderW, menuscaleTrackBar.Height);
-      menuscalevalueLabel.SetBounds(StartX + SliderW + 6, 70, menuscalevalueLabel.Width, menuscalevalueLabel.Height);
+      // Sub-header titles
+      if Assigned(FOsMainLbl) then FOsMainLbl.SetBounds(X1, 6, ColW - 12, 16);
+      if Assigned(FOsSpatialLbl) then FOsSpatialLbl.SetBounds(X2, 6, ColW - 12, 16);
+      if Assigned(FOsTemporalLbl) then FOsTemporalLbl.SetBounds(X3, 6, ColW - 12, 16);
 
-      TBarMargin := 10;
-      TrackL := SliderW - 2 * TBarMargin;
+      Y0 := 36;
+      ComboW := Min(ColW - 14, 165);
 
-      mark1Label.Left := StartX + TBarMargin + TrackL div 3 - mark1Label.Width div 2;
-      mark2Label.Left := StartX + TBarMargin + (2 * TrackL) div 3 - mark2Label.Width div 2;
-      mark3Label.Left := StartX + SliderW - TBarMargin - mark3Label.Width div 2;
+      // --- Column 1: Main ---
+      filenameLabel.SetBounds(X1, Y0, ColW - 12, 16);
+      filenameComboBox.SetBounds(X1, Y0 + 18, ComboW, 26);
 
-      shortcutkeyLabel.Left := (SubCardW - shortcutkeyLabel.Width) div 2;
+      menuLabel.Caption := 'Menu scale';
+      menuLabel.SetBounds(X1, Y0 + 56, ColW - 12, 16);
+      if Assigned(menuscaleComboBox) then
+        menuscaleComboBox.SetBounds(X1, Y0 + 74, ComboW, 26);
+
+      optipatcherCheckBox.SetBounds(X1, Y0 + 124, 95, 20);
+      if Assigned(FOsPatcherListBtn) then
+        FOsPatcherListBtn.SetBounds(X1 + 98, Y0 + 122, 22, 22);
+
+      shortcutkeyLabel.SetBounds(X1, Y0 + 166, ColW - 12, 16);
       if Assigned(FOsShortcutCaptureBtn) then
-      begin
-        FOsShortcutCaptureBtn.Left := (SubCardW - FOsShortcutCaptureBtn.Width) div 2;
-        FOsShortcutCaptureBtn.Top  := shortcutkeyLabel.Top + shortcutkeyLabel.Height + 4;
-      end;
+        FOsShortcutCaptureBtn.SetBounds(X1, Y0 + 184, Min(ColW - 14, 120), 28);
+
+      // --- Column 2: Spatial Upscaler ---
+      preferredUpscalerLabel.SetBounds(X2, Y0, ColW - 12, 16);
+      preferredUpscalerComboBox.SetBounds(X2, Y0 + 18, ComboW, 26);
+
+      spoofCheckBox.SetBounds(X2, Y0 + 56, ColW - 12, 20);
+      forceFsr4Int8CheckBox.SetBounds(X2, Y0 + 88, ColW - 12, 20);
+
+      // --- Column 3: Temporal Upscaler ---
+      fgInputLabel.SetBounds(X3, Y0, ColW - 12, 16);
+      fgInputComboBox.SetBounds(X3, Y0 + 18, ComboW, 26);
+
+      fgOutputLabel.SetBounds(X3, Y0 + 56, ColW - 12, 16);
+      fgOutputComboBox.SetBounds(X3, Y0 + 74, ComboW, 26);
+
+      emufp8CheckBox.SetBounds(X3, Y0 + 124, ColW - 12, 20);
     end;
-    if Assigned(FOsFakeSec)  then FOsFakeSec.SetBounds(IMARGIN + 2 * (SubCardW + IGAP), HDR + BOX_TOP, CW - IMARGIN - (IMARGIN + 2 * (SubCardW + IGAP)), BoxH);
+
+    // Reflow Reflex / Antilag sub-card (Column 4)
+    if Assigned(FOsFakeSec) then
+    begin
+      if Assigned(FOsFakeLbl) then FOsFakeLbl.SetBounds(10, 6, FakeW - 20, 16);
+
+      Y0 := 36;
+      ComboW := Min(FakeW - 20, 165);
+
+      forcereflexCheckBox.SetBounds(10, Y0, FakeW - 20, 20);
+      reflexComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+
+      forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, FakeW - 20, 20);
+      latencyflexComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
+
+      overrideCheckBox.SetBounds(10, Y0 + 124, FakeW - 20, 20);
+      tracelogCheckBox.SetBounds(10, Y0 + 156, FakeW - 20, 20);
+    end;
 
     // ── Card 2: Software Status (Anchored to Bottom) ─────────────────────
     FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
@@ -1062,6 +1154,7 @@ var
   SavedFsrOnChange: TNotifyEvent;
   SavedOptOnChange: TNotifyEvent;
   SavedPreferredUpscalerOnChange: TNotifyEvent;
+  Idx: Integer;
 begin
   with FForm do
   begin
@@ -1085,6 +1178,13 @@ begin
 
       menuscaleTrackBar.Position := Settings.MenuScalePosition;
       menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
+      if Assigned(menuscaleComboBox) then
+      begin
+        Idx := Settings.MenuScalePosition - 10;
+        if Idx < 0 then Idx := 0;
+        if Idx > 10 then Idx := 10;
+        menuscaleComboBox.ItemIndex := Idx;
+      end;
 
       overrideCheckBox.Checked := Settings.OverrideChecked;
       optipatcherCheckBox.Checked := Settings.OptipatcherChecked;
@@ -1159,7 +1259,13 @@ begin
     Settings.EmuFp8Checked := emufp8CheckBox.Checked;
     Settings.ForceFsr4Int8Checked := forceFsr4Int8CheckBox.Checked;
     Settings.ShortcutKey := shortcutkeyComboBox.Text;
-    Settings.MenuScalePosition := menuscaleTrackBar.Position;
+    if Assigned(menuscaleComboBox) and (menuscaleComboBox.ItemIndex >= 0) then
+    begin
+      Settings.MenuScalePosition := 10 + menuscaleComboBox.ItemIndex;
+      menuscaleTrackBar.Position := Settings.MenuScalePosition;
+    end
+    else
+      Settings.MenuScalePosition := menuscaleTrackBar.Position;
     Settings.OverrideChecked := overrideCheckBox.Checked;
     Settings.SpoofChecked := spoofCheckBox.Checked;
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;

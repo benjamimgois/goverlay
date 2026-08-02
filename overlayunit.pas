@@ -345,6 +345,7 @@ type
     mediaColorButton: TColorButton;
     memLabel: TLabel;
     menuLabel: TLabel;
+    menuscaleComboBox: TComboBox;
     menuscaleTrackBar: TTrackBar;
     menuscalevalueLabel: TLabel;
     mesaImage: TImage;
@@ -1014,6 +1015,13 @@ type
     FOsOptiSec:      TPanel;
     FOsImgSec:       TPanel;
     FOsFakeSec:      TPanel;
+    FOsMainLbl:      TLabel;
+    FOsSpatialLbl:   TLabel;
+    FOsTemporalLbl:  TLabel;
+    FOsFakeLbl:      TLabel;
+    FOsPatcherListBtn: TSpeedButton;
+    FOsOptiDiv1:     Integer;
+    FOsOptiDiv2:     Integer;
     optiscalerRadioButton: TRadioButton;
     dlssenablerRadioButton: TRadioButton;
     optiscalerLogoImage: TImage;
@@ -5326,11 +5334,8 @@ begin
   emufp8CheckBox.Visible := True;
   emufp8CheckBox.Enabled := True;
 
-  // Update emufp8CheckBox hint based on update channel
-  if optversionComboBox.ItemIndex = 0 then
-    emufp8CheckBox.Hint := 'Emulate FP8' + LineEnding + 'Emulates FP8 floating point precision'
-  else
-    emufp8CheckBox.Hint := 'Emulate FP8' + LineEnding + 'Used to activate FSR MLFG on RDNA3';
+  emufp8CheckBox.Caption := 'Force MLFG in RDNA3';
+  emufp8CheckBox.Hint := 'Emulate FP8 to active MLFG';
 
   // Display forceFsr4Int8CheckBox on all channels
   if Assigned(forceFsr4Int8CheckBox) then
@@ -6969,6 +6974,19 @@ begin
   P.Canvas.Pen.Color   := Brd;
   P.Canvas.Pen.Width   := 1;
   P.Canvas.Rectangle(0, 0, P.Width, P.Height);
+
+  if P = FOsOptiSec then
+  begin
+    if (FOsOptiDiv1 > 0) and (FOsOptiDiv2 > 0) then
+    begin
+      P.Canvas.Pen.Color := Brd;
+      P.Canvas.Pen.Width := 1;
+      P.Canvas.MoveTo(FOsOptiDiv1, 6);
+      P.Canvas.LineTo(FOsOptiDiv1, P.Height - 6);
+      P.Canvas.MoveTo(FOsOptiDiv2, 6);
+      P.Canvas.LineTo(FOsOptiDiv2, P.Height - 6);
+    end;
+  end;
 end;
 
 procedure Tgoverlayform.UpdateVisualCardTheme;
