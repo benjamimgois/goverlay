@@ -27,6 +27,7 @@ type
     procedure RefreshOsStatusDots;
     procedure LoadOptiScalerConfig;
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
+    procedure UpdateFrameGenOptionsUI;
   end;
 
 function OsHexToKeyStr(const HexStr: string): string;
@@ -482,14 +483,6 @@ begin
       fgInputComboBox := TComboBox.Create(FForm);
       fgInputComboBox.Name := 'fgInputComboBox';
       fgInputComboBox.Style := csDropDownList;
-      fgInputComboBox.Items.Add('auto');
-      fgInputComboBox.Items.Add('nofg');
-      fgInputComboBox.Items.Add('dlssg');
-      fgInputComboBox.Items.Add('nukems');
-      fgInputComboBox.Items.Add('fsrfg');
-      fgInputComboBox.Items.Add('upscaler');
-      fgInputComboBox.Items.Add('fsrfg30');
-      fgInputComboBox.ItemIndex := 0;
     end;
     fgInputComboBox.AnchorSideLeft.Control   := nil; fgInputComboBox.AnchorSideTop.Control    := nil;
     fgInputComboBox.AnchorSideRight.Control  := nil; fgInputComboBox.AnchorSideBottom.Control := nil;
@@ -513,13 +506,8 @@ begin
       fgOutputComboBox := TComboBox.Create(FForm);
       fgOutputComboBox.Name := 'fgOutputComboBox';
       fgOutputComboBox.Style := csDropDownList;
-      fgOutputComboBox.Items.Add('auto');
-      fgOutputComboBox.Items.Add('nofg');
-      fgOutputComboBox.Items.Add('fsrfg');
-      fgOutputComboBox.Items.Add('xefg');
-      fgOutputComboBox.Items.Add('nukems');
-      fgOutputComboBox.ItemIndex := 0;
     end;
+    UpdateFrameGenOptionsUI;
     fgOutputComboBox.AnchorSideLeft.Control   := nil; fgOutputComboBox.AnchorSideTop.Control    := nil;
     fgOutputComboBox.AnchorSideRight.Control  := nil; fgOutputComboBox.AnchorSideBottom.Control := nil;
     fgOutputComboBox.Anchors := [akLeft, akTop]; fgOutputComboBox.Top := 132; fgOutputComboBox.Left := 134;
@@ -689,13 +677,6 @@ begin
     if Assigned(fgInputComboBox) then
     begin
       DarkCombo(fgInputComboBox);
-      fgInputComboBox.Hint := 'Selected FG Input/Source:' + LineEnding +
-        'dlssg - Can be used with any FG Output. Supports Hudless out of the box. Limited to games that use Streamline v2 and DLSSG' + LineEnding +
-        'nukems - Limited to FSR 3 FG. Requires DLSSG in the game. Supports Hudless out of the box. Uses Streamline swapchain for pacing.' + LineEnding +
-        'fsrfg - Can be used with any FG Output. Supports Hudless out of the box.' + LineEnding +
-        'upscaler - Upscaler must be enabled. Can be used with any FG Output, but might be imperfect with some. To prevent UI glitching, Hudfix is required' + LineEnding +
-        'fsrfg30 - Can be used with any FG Output. Supports Hudless out of the box.';
-      fgInputComboBox.ShowHint := True;
     end;
     if Assigned(fgOutputLabel) then
     begin
@@ -704,12 +685,8 @@ begin
     if Assigned(fgOutputComboBox) then
     begin
       DarkCombo(fgOutputComboBox);
-      fgOutputComboBox.Hint := 'Selected FG Output:' + LineEnding +
-        'fsrfg - requires amd_fidelityfx_dx12.dll or amd_fidelityfx_loader_dx12.dll + amd_fidelityfx_framegeneration_dx12.dll' + LineEnding +
-        'xefg - requires libxess_fg.dll, libxell.dll and latest fakenvapi dll' + LineEnding +
-        'nukems - requires dlssg_to_fsr3_amd_is_better.dll, AMD/Intel GPU users need to add fakenvapi as well';
-      fgOutputComboBox.ShowHint := True;
     end;
+    UpdateFrameGenOptionsUI;
     DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
     // In-Game Menu section
     DarkLbl(menuLabel,           PURPLE);
@@ -1232,6 +1209,7 @@ begin
           optversionComboBox.ItemIndex := 0;
       end;
       UpdateUpscalerImageOpacity;
+      UpdateFrameGenOptionsUI;
     finally
       // Restore OnChange handlers
       fsrversionComboBox.OnChange := SavedFsrOnChange;
@@ -1321,6 +1299,120 @@ begin
       commandPanel.Visible := True;
     end;
   end;
+end;
+
+procedure TOptiScalerTabHelper.UpdateFrameGenOptionsUI;
+var
+  IsDLSSEnabler: Boolean;
+  PrevInputText, PrevOutputText: string;
+  Idx: Integer;
+begin
+  if (FForm = nil) or (FForm.fgInputComboBox = nil) or (FForm.fgOutputComboBox = nil) then Exit;
+
+  IsDLSSEnabler := Assigned(FForm.dlssenablerRadioButton) and FForm.dlssenablerRadioButton.Checked;
+
+  PrevInputText := FForm.fgInputComboBox.Text;
+  PrevOutputText := FForm.fgOutputComboBox.Text;
+
+  if IsDLSSEnabler and SameText(PrevInputText, 'nukems') then
+    PrevInputText := 'nvngxfg'
+  else if (not IsDLSSEnabler) and SameText(PrevInputText, 'nvngxfg') then
+    PrevInputText := 'nukems';
+
+  if IsDLSSEnabler and SameText(PrevOutputText, 'nukems') then
+    PrevOutputText := 'nvngxfg'
+  else if (not IsDLSSEnabler) and SameText(PrevOutputText, 'nvngxfg') then
+    PrevOutputText := 'nukems';
+
+  // 1. FG Input Items & Hint
+  FForm.fgInputComboBox.Items.BeginUpdate;
+  try
+    FForm.fgInputComboBox.Items.Clear;
+    FForm.fgInputComboBox.Items.Add('auto');
+    FForm.fgInputComboBox.Items.Add('nofg');
+    FForm.fgInputComboBox.Items.Add('dlssg');
+    if IsDLSSEnabler then
+      FForm.fgInputComboBox.Items.Add('nvngxfg')
+    else
+      FForm.fgInputComboBox.Items.Add('nukems');
+    FForm.fgInputComboBox.Items.Add('fsrfg');
+    FForm.fgInputComboBox.Items.Add('upscaler');
+    FForm.fgInputComboBox.Items.Add('fsrfg30');
+  finally
+    FForm.fgInputComboBox.Items.EndUpdate;
+  end;
+
+  Idx := FForm.fgInputComboBox.Items.IndexOf(PrevInputText);
+  if Idx >= 0 then
+    FForm.fgInputComboBox.ItemIndex := Idx
+  else
+    FForm.fgInputComboBox.ItemIndex := 0;
+
+  if IsDLSSEnabler then
+  begin
+    FForm.fgInputComboBox.Hint := 'Selected FG Input/Source:' + LineEnding +
+      'dlssg - Can be used with any FG Output. Supports Hudless out of the box. Limited to games that use Streamline and DLSSG' + LineEnding +
+      'nvngxfg - Limited to FSR 3 FG (MFG with DLSS Enabler''s dll). Requires DLSSG in the game. Supports Hudless out of the box. Uses Streamline swapchain for pacing.' + LineEnding +
+      'fsrfg - Can be used with any FG Output. Supports Hudless out of the box.' + LineEnding +
+      'upscaler - Upscaler must be enabled. Can be used with any FG Output, but might be imperfect with some. To prevent UI glitching, Hudfix is required' + LineEnding +
+      'fsrfg30 - Can be used with any FG Output. Supports Hudless out of the box.';
+  end
+  else
+  begin
+    FForm.fgInputComboBox.Hint := 'Selected FG Input/Source:' + LineEnding +
+      'dlssg - Can be used with any FG Output. Supports Hudless out of the box. Limited to games that use Streamline v2 and DLSSG' + LineEnding +
+      'nukems - Limited to FSR 3 FG. Requires DLSSG in the game. Supports Hudless out of the box. Uses Streamline swapchain for pacing.' + LineEnding +
+      'fsrfg - Can be used with any FG Output. Supports Hudless out of the box.' + LineEnding +
+      'upscaler - Upscaler must be enabled. Can be used with any FG Output, but might be imperfect with some. To prevent UI glitching, Hudfix is required' + LineEnding +
+      'fsrfg30 - Can be used with any FG Output. Supports Hudless out of the box.';
+  end;
+  FForm.fgInputComboBox.ShowHint := True;
+
+  // 2. FG Output Items & Hint
+  FForm.fgOutputComboBox.Items.BeginUpdate;
+  try
+    FForm.fgOutputComboBox.Items.Clear;
+    FForm.fgOutputComboBox.Items.Add('auto');
+    FForm.fgOutputComboBox.Items.Add('nofg');
+    FForm.fgOutputComboBox.Items.Add('fsrfg');
+    FForm.fgOutputComboBox.Items.Add('xefg');
+    if IsDLSSEnabler then
+    begin
+      FForm.fgOutputComboBox.Items.Add('nvngxfg');
+      FForm.fgOutputComboBox.Items.Add('dlssg');
+      FForm.fgOutputComboBox.Items.Add('dlssgwithnvngx');
+    end
+    else
+    begin
+      FForm.fgOutputComboBox.Items.Add('nukems');
+    end;
+  finally
+    FForm.fgOutputComboBox.Items.EndUpdate;
+  end;
+
+  Idx := FForm.fgOutputComboBox.Items.IndexOf(PrevOutputText);
+  if Idx >= 0 then
+    FForm.fgOutputComboBox.ItemIndex := Idx
+  else
+    FForm.fgOutputComboBox.ItemIndex := 0;
+
+  if IsDLSSEnabler then
+  begin
+    FForm.fgOutputComboBox.Hint := 'Selected FG Output:' + LineEnding +
+      'fsrfg - requires amd_fidelityfx_dx12.dll OR amd_fidelityfx_loader_dx12.dll + amd_fidelityfx_framegeneration_dx12.dll' + LineEnding +
+      'xefg - requires libxess_fg.dll and libxell.dll' + LineEnding +
+      'nvngxfg - requires dlssg_to_fsr3_amd_is_better.dll OR dlss-enabler-headless.dll' + LineEnding +
+      'dlssg - requires streamline dlls inside ''OptiScaler/streamline'' folder + nvngx_dlssg.dll' + LineEnding +
+      'dlssgwithnvngx - requires dlssg_to_fsr3_amd_is_better.dll OR dlss-enabler-headless.dll + streamline dlls inside ''OptiScaler/streamline'' folder';
+  end
+  else
+  begin
+    FForm.fgOutputComboBox.Hint := 'Selected FG Output:' + LineEnding +
+      'fsrfg - requires amd_fidelityfx_dx12.dll or amd_fidelityfx_loader_dx12.dll + amd_fidelityfx_framegeneration_dx12.dll' + LineEnding +
+      'xefg - requires libxess_fg.dll, libxell.dll and latest fakenvapi dll' + LineEnding +
+      'nukems - requires dlssg_to_fsr3_amd_is_better.dll, AMD/Intel GPU users need to add fakenvapi as well';
+  end;
+  FForm.fgOutputComboBox.ShowHint := True;
 end;
 
 end.

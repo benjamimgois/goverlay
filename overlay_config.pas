@@ -704,7 +704,12 @@ begin
       case Settings.FGInputItemIndex of
         1: FGInputValue := 'nofg';
         2: FGInputValue := 'dlssg';
-        3: FGInputValue := 'nukems';
+        3: begin
+             if Settings.UpscalerTypeItemIndex = 1 then
+               FGInputValue := 'nvngxfg'
+             else
+               FGInputValue := 'nukems';
+           end;
         4: FGInputValue := 'fsrfg';
         5: FGInputValue := 'upscaler';
         6: FGInputValue := 'fsrfg30';
@@ -716,7 +721,14 @@ begin
         1: FGOutputValue := 'nofg';
         2: FGOutputValue := 'fsrfg';
         3: FGOutputValue := 'xefg';
-        4: FGOutputValue := 'nukems';
+        4: begin
+             if Settings.UpscalerTypeItemIndex = 1 then
+               FGOutputValue := 'nvngxfg'
+             else
+               FGOutputValue := 'nukems';
+           end;
+        5: FGOutputValue := 'dlssg';
+        6: FGOutputValue := 'dlssgwithnvngx';
       else
         FGOutputValue := 'auto';
       end;
@@ -1287,7 +1299,7 @@ begin
           Settings.FGInputItemIndex := 1
         else if SameText(Value, 'dlssg') then
           Settings.FGInputItemIndex := 2
-        else if SameText(Value, 'nukems') then
+        else if SameText(Value, 'nvngxfg') or SameText(Value, 'nukems') then
           Settings.FGInputItemIndex := 3
         else if SameText(Value, 'fsrfg') then
           Settings.FGInputItemIndex := 4
@@ -1305,8 +1317,12 @@ begin
           Settings.FGOutputItemIndex := 2
         else if SameText(Value, 'xefg') then
           Settings.FGOutputItemIndex := 3
-        else if SameText(Value, 'nukems') then
+        else if SameText(Value, 'nvngxfg') or SameText(Value, 'nukems') then
           Settings.FGOutputItemIndex := 4
+        else if SameText(Value, 'dlssg') then
+          Settings.FGOutputItemIndex := 5
+        else if SameText(Value, 'dlssgwithnvngx') or SameText(Value, 'dlsswithnvngx') then
+          Settings.FGOutputItemIndex := 6
         else
           Settings.FGOutputItemIndex := 0;
       end;

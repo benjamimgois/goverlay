@@ -4365,6 +4365,8 @@ begin
     end;
   end;
   UpdateUpscalerImageOpacity;
+  if Assigned(FOptiScalerHelper) then
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.LoadVersionsFromFile;
 
@@ -4409,6 +4411,8 @@ begin
     end;
   end;
   UpdateUpscalerImageOpacity;
+  if Assigned(FOptiScalerHelper) then
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.LoadVersionsFromFile;
   RefreshOsStatusDots;
