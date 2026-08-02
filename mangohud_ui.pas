@@ -1096,12 +1096,14 @@ begin
     if CurrentTheme = tmLight then
       SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: none; }'
     else
-      SS := 'QLineEdit { background-color: rgb(26,30,46); color: rgb(255,255,255); border: none; }';
+      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
     QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
     if CurrentTheme = tmLight then
       SS := 'QLineEdit { background-color: rgb(242,242,242); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
     else
-      SS := 'QLineEdit { background-color: rgb(54,46,54); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
+            'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+            'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(hudtitleEdit.Handle).Widget, @SS);
   end;
 
@@ -1253,7 +1255,9 @@ begin
   if CurrentTheme = tmLight then
     SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
   else
-    SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: none; }';
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
   QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
 
   // Small hint label below the edit
@@ -1834,7 +1838,9 @@ begin
     if CurrentTheme = tmLight then
       SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
     else
-      SS := 'QLineEdit { background-color: rgb(46,46,46); color: rgb(255,255,255); border: none; }';
+      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px; }' +
+            'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+            'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
   end;
 
@@ -1842,22 +1848,26 @@ begin
   if Assigned(fpscolor2SpinEdit) then
   begin
     fpscolor2SpinEdit.Font.Color := TextColor;
-    fpscolor2SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
+    fpscolor2SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, RGBToColor(38, 46, 72));
     if CurrentTheme = tmLight then
       SS := 'QSpinBox { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
     else
-      SS := 'QSpinBox { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+      SS := 'QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
+            'QSpinBox:hover { border: 1px solid rgb(80,110,170); }' +
+            'QSpinBox:focus { border: 1px solid rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(fpscolor2SpinEdit.Handle).Widget, @SS);
   end;
 
   if Assigned(fpscolor3SpinEdit) then
   begin
     fpscolor3SpinEdit.Font.Color := TextColor;
-    fpscolor3SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
+    fpscolor3SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, RGBToColor(38, 46, 72));
     if CurrentTheme = tmLight then
       SS := 'QSpinBox { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
     else
-      SS := 'QSpinBox { background-color: rgb(46,46,46); color: rgb(255,255,255); border: 1px solid rgb(80,80,80); border-radius: 4px; padding: 2px; }';
+      SS := 'QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
+            'QSpinBox:hover { border: 1px solid rgb(80,110,170); }' +
+            'QSpinBox:focus { border: 1px solid rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(fpscolor3SpinEdit.Handle).Widget, @SS);
   end;
   end;
@@ -2129,8 +2139,8 @@ const
   MARGIN = 4;
   GAP    = 6;
   HDR    = 34;
-  BASE_GPU_H = 312;
-  BASE_CPU_H = 281;
+  BASE_GPU_H = 315;
+  BASE_CPU_H = 300;
 var
   CW, TotalH, CardTop, AvailH, ActiveGpuH, ActiveCpuH: Integer;
   ColW, X0, X1, X2, X3, X4, X5: Integer;
@@ -2488,8 +2498,8 @@ const
   MARGIN = 4;
   GAP    = 6;
   HDR    = 34;
-  BASE_SYS_H = 377;
-  BASE_LOG_H = 221;
+  BASE_SYS_H = 345;
+  BASE_LOG_H = 195;
 var
   CW, TotalH, AvailH, ActiveSysH, ActiveLogH: Integer;
   ColW, X0, X1, X2, X3, X4, X5: Integer;
@@ -2559,63 +2569,63 @@ begin
   archCheckBox.Left          := X5;
   archCheckBox.Top           := 32 + HDR;
 
-  wineLabel.Top              := 68 + HDR + SysYOff1;
+  wineLabel.Top              := 60 + HDR;
   wineCheckBox.Left          := X0;
-  wineCheckBox.Top           := 89 + HDR + SysYOff1;
+  wineCheckBox.Top           := 81 + HDR;
   engineversionCheckBox.Left := X1;
-  engineversionCheckBox.Top  := 89 + HDR + SysYOff1;
+  engineversionCheckBox.Top  := 81 + HDR;
   engineshortCheckBox.Left   := X2;
-  engineshortCheckBox.Top    := 89 + HDR + SysYOff1;
+  engineshortCheckBox.Top    := 81 + HDR;
   winesyncCheckBox.Left      := X3;
-  winesyncCheckBox.Top       := 89 + HDR + SysYOff1;
+  winesyncCheckBox.Top       := 81 + HDR;
   dxapiCheckBox.Left         := X4;
-  dxapiCheckBox.Top          := 89 + HDR + SysYOff1;
+  dxapiCheckBox.Top          := 81 + HDR;
   fexstatsCheckBox.Left      := X5;
-  fexstatsCheckBox.Top       := 89 + HDR + SysYOff1;
+  fexstatsCheckBox.Top       := 81 + HDR;
   wineColorButton.Left       := X0 - 4;
-  wineColorButton.Top        := 111 + HDR + SysYOff1;
+  wineColorButton.Top        := 103 + HDR;
   engineColorButton.Left     := X1 - 6;
-  engineColorButton.Top      := 111 + HDR + SysYOff1;
+  engineColorButton.Top      := 103 + HDR;
 
-  optionsLabel.Top           := 131 + HDR + SysYOff2;
+  optionsLabel.Top           := 120 + HDR;
   hudversionCheckBox.Left    := X0;
-  hudversionCheckBox.Top     := 152 + HDR + SysYOff2;
+  hudversionCheckBox.Top     := 141 + HDR;
   gamemodestatusCheckBox.Left:= X1;
-  gamemodestatusCheckBox.Top := 152 + HDR + SysYOff2;
+  gamemodestatusCheckBox.Top := 141 + HDR;
   vkbasaltstatusCheckBox.Left:= X2;
-  vkbasaltstatusCheckBox.Top := 152 + HDR + SysYOff2;
+  vkbasaltstatusCheckBox.Top := 141 + HDR;
   fcatCheckBox.Left          := X3;
-  fcatCheckBox.Top           := 152 + HDR + SysYOff2;
+  fcatCheckBox.Top           := 141 + HDR;
   fsrCheckBox.Left           := X4;
-  fsrCheckBox.Top            := 152 + HDR + SysYOff2;
+  fsrCheckBox.Top            := 141 + HDR;
   hdrCheckBox.Left           := X5;
-  hdrCheckBox.Top            := 152 + HDR + SysYOff2;
+  hdrCheckBox.Top            := 141 + HDR;
 
-  batteryLabel.Top           := 190 + HDR + SysYOff3;
+  batteryLabel.Top           := 170 + HDR;
   batteryCheckBox.Left       := X0;
-  batteryCheckBox.Top        := 211 + HDR + SysYOff3;
+  batteryCheckBox.Top        := 191 + HDR;
   batterywattCheckBox.Left   := X1;
-  batterywattCheckBox.Top    := 211 + HDR + SysYOff3;
+  batterywattCheckBox.Top    := 191 + HDR;
   batterytimeCheckBox.Left   := X2;
-  batterytimeCheckBox.Top    := 211 + HDR + SysYOff3;
+  batterytimeCheckBox.Top    := 191 + HDR;
   deviceCheckBox.Left        := X3;
-  deviceCheckBox.Top         := 211 + HDR + SysYOff3;
+  deviceCheckBox.Top         := 191 + HDR;
   batteryColorButton.Left    := X0 - 5;
-  batteryColorButton.Top     := 233 + HDR + SysYOff3;
+  batteryColorButton.Top     := 213 + HDR;
 
-  othersLabel.Top            := 262 + HDR + SysYOff4;
+  othersLabel.Top            := 238 + HDR;
   mediaCheckBox.Left         := X0;
-  mediaCheckBox.Top          := 283 + HDR + SysYOff4;
+  mediaCheckBox.Top          := 259 + HDR;
   mediaColorButton.Left      := X0 - 5;
-  mediaColorButton.Top       := 305 + HDR + SysYOff4;
+  mediaColorButton.Top       := 281 + HDR;
   networkCheckBox.Left       := X1;
-  networkCheckBox.Top        := 283 + HDR + SysYOff4;
+  networkCheckBox.Top        := 259 + HDR;
   networkComboBox.Left       := X1;
-  networkComboBox.Top        := 305 + HDR + SysYOff4;
+  networkComboBox.Top        := 281 + HDR;
   fahrenheitCheckBox.Left    := X2;
-  fahrenheitCheckBox.Top     := 283 + HDR + SysYOff4;
+  fahrenheitCheckBox.Top     := 259 + HDR;
   customcommandEdit.Left     := X3;
-  customcommandEdit.Top      := 283 + HDR + SysYOff4;
+  customcommandEdit.Top      := 259 + HDR;
   customcommandEdit.Width    := Max(200, CW - X3 - 20);
 
   // Reposition Logging controls
@@ -2659,11 +2669,11 @@ begin
   // always fully visible regardless of card height.
   logfolderEdit.Width        := Max(200, CW - X3 - 50);
   logfolderBitBtn.Left       := X3 + logfolderEdit.Width + 4;
-  logfolderBitBtn.Top        := ActiveLogH - 40;
+  logfolderBitBtn.Top        := 131 + HDR;
   logfolderEdit.Left         := X3;
-  logfolderEdit.Top          := ActiveLogH - 40;
+  logfolderEdit.Top          := 131 + HDR;
   logfolderLabel.Left        := X3;
-  logfolderLabel.Top         := ActiveLogH - 62;
+  logfolderLabel.Top         := 112 + HDR;
   end;
 end;
 

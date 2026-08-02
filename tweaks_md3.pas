@@ -118,7 +118,7 @@ end;
 
 function TTweaksMD3Helper.ItemHeight: Integer;
 begin
-  Result := 44;
+  Result := 54;
 end;
 
 function TTweaksMD3Helper.HeaderHeight: Integer;
@@ -147,13 +147,10 @@ begin
   FForm.tweaksLabel.Visible := False;
   FForm.tweaksShape.Visible := False;
 
-  // PaintBox fills the tab but leaves room for the bottom bar (40px + padding)
+  // PaintBox fills the tab client area
   FForm.FTweaksPaintBox := TPaintBox.Create(FForm);
   FForm.FTweaksPaintBox.Parent      := FForm.tweaksTabSheet;
-  FForm.FTweaksPaintBox.Align       := alNone;
-  FForm.FTweaksPaintBox.Anchors     := [akLeft, akTop, akRight, akBottom];
-  FForm.FTweaksPaintBox.SetBounds(0, 0, FForm.tweaksTabSheet.ClientWidth,
-                            FForm.tweaksTabSheet.ClientHeight - 50);
+  FForm.FTweaksPaintBox.Align       := alClient;
   FForm.FTweaksPaintBox.Color       := BG;
   FForm.FTweaksPaintBox.OnPaint     := @FForm.TweaksMD3Paint;
   FForm.FTweaksPaintBox.OnMouseMove := @FForm.TweaksMD3MouseMove;
@@ -621,7 +618,7 @@ begin
   // Update scrollbar
   if Y + FForm.FTweaksScrollPos > PB.Height then
   begin
-    FForm.FTweaksScrollBar.Max := Y + FForm.FTweaksScrollPos - PB.Height + 20;
+    FForm.FTweaksScrollBar.Max := Y + FForm.FTweaksScrollPos - PB.Height + 75;
     FForm.FTweaksScrollBar.PageSize := 1;
     FForm.FTweaksScrollBar.Visible := True;
   end

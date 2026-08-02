@@ -311,13 +311,29 @@ begin
          (ctrl.Name = 'gupdateBitBtn') or
          (ctrl.Name = 'updateBitBtn') then
         Continue;
-      TBitBtn(ctrl).Color := BtnColor;
-      TBitBtn(ctrl).Font.Color := TextColor;
-      if TBitBtn(ctrl).HandleAllocated then
+      if ATheme = tmDark then
       begin
-        SS := 'QPushButton, QToolButton { background-color: ' + ColorToRGBString(TBitBtn(ctrl).Color) +
-              '; color: ' + ColorToRGBString(TBitBtn(ctrl).Font.Color) + '; }';
-        QWidget_setStyleSheet(TQtWidget(TBitBtn(ctrl).Handle).Widget, @SS);
+        TBitBtn(ctrl).Color := RGBToColor(38, 46, 72);
+        TBitBtn(ctrl).Font.Color := TextColor;
+        if TBitBtn(ctrl).HandleAllocated then
+        begin
+          SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+                'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+                'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
+                'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
+          QWidget_setStyleSheet(TQtWidget(TBitBtn(ctrl).Handle).Widget, @SS);
+        end;
+      end
+      else
+      begin
+        TBitBtn(ctrl).Color := BtnColor;
+        TBitBtn(ctrl).Font.Color := TextColor;
+        if TBitBtn(ctrl).HandleAllocated then
+        begin
+          SS := 'QPushButton, QToolButton { background-color: ' + ColorToRGBString(TBitBtn(ctrl).Color) +
+                '; color: ' + ColorToRGBString(TBitBtn(ctrl).Font.Color) + '; }';
+          QWidget_setStyleSheet(TQtWidget(TBitBtn(ctrl).Handle).Widget, @SS);
+        end;
       end;
     end
     else if ctrl is TColorButton then
