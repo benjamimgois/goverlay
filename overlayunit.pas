@@ -1024,7 +1024,9 @@ type
     FOsGpuCard:      TPanel;
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
-    FOsOptiSec:      TPanel;
+    FOsMainSec:      TPanel;
+    FOsSpatialSec:   TPanel;
+    FOsTemporalSec:  TPanel;
     FOsImgSec:       TPanel;
     FOsFakeSec:      TPanel;
     FOsMainLbl:      TLabel;
@@ -1032,8 +1034,6 @@ type
     FOsTemporalLbl:  TLabel;
     FOsFakeLbl:      TLabel;
     FOsPatcherListBtn: TSpeedButton;
-    FOsOptiDiv1:     Integer;
-    FOsOptiDiv2:     Integer;
     optiscalerRadioButton: TRadioButton;
     dlssenablerRadioButton: TRadioButton;
     optiscalerLogoImage: TImage;
@@ -7228,18 +7228,6 @@ begin
   P.Canvas.Pen.Width   := 1;
   P.Canvas.Rectangle(0, 0, P.Width, P.Height);
 
-  if P = FOsOptiSec then
-  begin
-    if (FOsOptiDiv1 > 0) and (FOsOptiDiv2 > 0) then
-    begin
-      P.Canvas.Pen.Color := Brd;
-      P.Canvas.Pen.Width := 1;
-      P.Canvas.MoveTo(FOsOptiDiv1, 6);
-      P.Canvas.LineTo(FOsOptiDiv1, P.Height - 6);
-      P.Canvas.MoveTo(FOsOptiDiv2, 6);
-      P.Canvas.LineTo(FOsOptiDiv2, P.Height - 6);
-    end;
-  end;
 end;
 
 procedure Tgoverlayform.UpdateVisualCardTheme;
