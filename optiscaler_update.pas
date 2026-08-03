@@ -40,6 +40,8 @@ type
     FDlssEnablerLabel: TLabel; // Label for DLSS Enabler version
     FFGModPath: string;
     FUpdateThread: TThread;
+    FOptiPatcherCheckThread: TThread;
+    FLastOptiPatcherCheckTime: TDateTime;
 
     function FetchManifest(ASilent: Boolean; out AStableVer, AStableURL, AEdgeVer, AEdgeURL: string): Boolean;
     function GetLatestReleaseTag(ASilent: Boolean = False): string;
@@ -70,6 +72,8 @@ type
     procedure UpdateButtonClick(Sender: TObject);
     procedure InitializeTab;
     procedure CheckForUpdatesOnClick;
+    procedure CheckAndUpdateOptiPatcherAsync;
+    procedure OptiPatcherThreadTerminated(Sender: TObject);
     property FGModPath: string read FFGModPath write FFGModPath;
     property UpdateBtn: TBitBtn read FUpdateBtn write FUpdateBtn;
     property CheckupdBtn: TBitBtn read FCheckupdBtn write FCheckupdBtn;
@@ -94,7 +98,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, IniFiles, StrUtils;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, overlay_utils, IniFiles, StrUtils;
 
 type
   TOptiUpdateThread = class(TThread)
@@ -110,6 +114,18 @@ type
     procedure Execute; override;
   public
     constructor Create(AOptiTab: TOptiscalerTab; AIsStable: Boolean; ACheckDecky: Boolean);
+  end;
+
+  TOptiPatcherCheckThread = class(TThread)
+  private
+    FOptiTab: TOptiscalerTab;
+    FNewVersion: string;
+    FUpdated: Boolean;
+    procedure SyncUpdateUI;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOptiTab: TOptiscalerTab);
   end;
 
 { TOptiUpdateThread }
@@ -324,6 +340,247 @@ begin
     goverlayform.RefreshOsStatusDots;
   end;
   WriteLn('[DEBUG] TOptiUpdateThread.SyncUpdateUI: UI synchronization finished');
+end;
+
+{ TOptiPatcherCheckThread }
+
+constructor TOptiPatcherCheckThread.Create(AOptiTab: TOptiscalerTab);
+begin
+  inherited Create(True);
+  FOptiTab := AOptiTab;
+  FNewVersion := '';
+  FUpdated := False;
+  FreeOnTerminate := True;
+end;
+
+procedure TOptiPatcherCheckThread.Execute;
+var
+  Process: TProcess;
+  Response: string;
+  KeyPos, ColonPos, QuoteStart, QuoteEnd: Integer;
+  DateVal, RemoteDateStr, RemoteVerStr, LocalVerStr: string;
+  VarsFilePath: string;
+  VarsList: TStringList;
+  TmpAsiFile, TargetAsiFile, OrigPluginsDir, EdgePluginsDir, ActivePluginsDir: string;
+  PluginsDir: string;
+  PathsToUpdate: TStringList;
+  i, LineIdx: Integer;
+begin
+  try
+    WriteLn('[OPTIPATCHER-AUTO] Checking latest rolling release from optiscaler/OptiPatcher...');
+
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('https://api.github.com/repos/optiscaler/OptiPatcher/releases/latest');
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+
+      SetLength(Response, Process.Output.NumBytesAvailable);
+      if Length(Response) > 0 then
+        Process.Output.Read(Response[1], Length(Response));
+    finally
+      Process.Free;
+    end;
+
+    if Response = '' then Exit;
+
+    RemoteDateStr := '';
+    // Extract updated_at date string from release asset JSON
+    // e.g. "updated_at":"2026-08-03T10:24:50Z"
+    KeyPos := Pos('"updated_at"', Response);
+    if KeyPos > 0 then
+    begin
+      ColonPos := PosEx(':', Response, KeyPos + 12);
+      if ColonPos > 0 then
+      begin
+        QuoteStart := PosEx('"', Response, ColonPos);
+        if QuoteStart > 0 then
+        begin
+          QuoteEnd := PosEx('"', Response, QuoteStart + 1);
+          if (QuoteEnd > QuoteStart) then
+          begin
+            DateVal := Copy(Response, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+            if Length(DateVal) >= 10 then
+            begin
+              DateVal := Copy(DateVal, 1, 10);
+              RemoteDateStr := StringReplace(DateVal, '-', '.', [rfReplaceAll]);
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    if (RemoteDateStr = '') or (Length(RemoteDateStr) <> 10) or (Pos(',', RemoteDateStr) > 0) then
+    begin
+      WriteLn('[OPTIPATCHER-AUTO] Could not parse valid release date from GitHub response (got: ', RemoteDateStr, ').');
+      Exit;
+    end;
+
+    RemoteVerStr := 'rolling-' + RemoteDateStr;
+
+    // Read local version from goverlay.vars
+    LocalVerStr := '';
+    if Assigned(FOptiTab) and (FOptiTab.FFGModPath <> '') and FileExists(IncludeTrailingPathDelimiter(FOptiTab.FFGModPath) + 'goverlay.vars') then
+      VarsFilePath := IncludeTrailingPathDelimiter(FOptiTab.FFGModPath) + 'goverlay.vars'
+    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars') then
+      VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'
+    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars') then
+      VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars'
+    else
+      VarsFilePath := '';
+
+    if (VarsFilePath <> '') and FileExists(VarsFilePath) then
+    begin
+      VarsList := TStringList.Create;
+      try
+        VarsList.LoadFromFile(VarsFilePath);
+        LocalVerStr := VarsList.Values['optipatcher'];
+      finally
+        VarsList.Free;
+      end;
+    end;
+
+    TargetAsiFile := GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi';
+
+    // If local version matches remote AND target file exists AND local version is valid
+    if (LocalVerStr = RemoteVerStr) and FileExists(TargetAsiFile) and (Pos(',', LocalVerStr) = 0) then
+    begin
+      WriteLn('[OPTIPATCHER-AUTO] OptiPatcher is up to date (', LocalVerStr, ')');
+      Exit;
+    end;
+
+    WriteLn('[OPTIPATCHER-AUTO] New OptiPatcher build detected (Local: ', LocalVerStr, ', Remote: ', RemoteVerStr, '). Downloading...');
+
+    PluginsDir := GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins';
+    ForceDirectories(PluginsDir);
+    TmpAsiFile := PluginsDir + PathDelim + 'OptiPatcher.asi.tmp';
+
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(TmpAsiFile);
+      Process.Parameters.Add('-A');
+      Process.Parameters.Add('Goverlay/1.9 (Linux)');
+      Process.Parameters.Add('https://github.com/optiscaler/OptiPatcher/releases/download/rolling/OptiPatcher.asi');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+
+    if not FileExists(TmpAsiFile) or (FileSize(TmpAsiFile) < 1000) then
+    begin
+      WriteLn('[OPTIPATCHER-AUTO] Download failed or invalid file size.');
+      if FileExists(TmpAsiFile) then DeleteFile(TmpAsiFile);
+      Exit;
+    end;
+
+    // Overwrite main target file
+    CopyFile(TmpAsiFile, TargetAsiFile);
+    DeleteFile(TmpAsiFile);
+
+    // Sync to stable cache plugins/
+    OrigPluginsDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins';
+    ForceDirectories(OrigPluginsDir);
+    CopyFile(TargetAsiFile, OrigPluginsDir + PathDelim + 'OptiPatcher.asi');
+
+    // Sync to edge cache plugins/
+    EdgePluginsDir := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'plugins';
+    ForceDirectories(EdgePluginsDir);
+    CopyFile(TargetAsiFile, EdgePluginsDir + PathDelim + 'OptiPatcher.asi');
+
+    // Sync to active game profile bgmod/plugins/
+    if Assigned(FOptiTab) and (FOptiTab.FFGModPath <> '') and DirectoryExists(FOptiTab.FFGModPath) then
+    begin
+      ActivePluginsDir := IncludeTrailingPathDelimiter(FOptiTab.FFGModPath) + 'plugins';
+      ForceDirectories(ActivePluginsDir);
+      CopyFile(TargetAsiFile, ActivePluginsDir + PathDelim + 'OptiPatcher.asi');
+    end;
+
+    // Update goverlay.vars in all locations
+    PathsToUpdate := TStringList.Create;
+    try
+      PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
+      PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars');
+      if Assigned(FOptiTab) and (FOptiTab.FFGModPath <> '') then
+        PathsToUpdate.Add(IncludeTrailingPathDelimiter(FOptiTab.FFGModPath) + 'goverlay.vars');
+      PathsToUpdate.Add(GetGOverlayDataDir + 'gameconfig' + PathDelim + 'global' + PathDelim + 'bgmod' + PathDelim + 'goverlay.vars');
+
+      for i := 0 to PathsToUpdate.Count - 1 do
+      begin
+        VarsFilePath := PathsToUpdate[i];
+        if FileExists(VarsFilePath) then
+        begin
+          VarsList := TStringList.Create;
+          try
+            VarsList.LoadFromFile(VarsFilePath);
+            LineIdx := VarsList.IndexOfName('optipatcher');
+            if LineIdx >= 0 then
+              VarsList[LineIdx] := 'optipatcher=' + RemoteVerStr
+            else
+              VarsList.Add('optipatcher=' + RemoteVerStr);
+            VarsList.SaveToFile(VarsFilePath);
+          finally
+            VarsList.Free;
+          end;
+        end;
+      end;
+    finally
+      PathsToUpdate.Free;
+    end;
+
+    FNewVersion := RemoteVerStr;
+    FUpdated := True;
+    Synchronize(@SyncUpdateUI);
+
+  except
+    on E: Exception do
+      WriteLn('[OPTIPATCHER-AUTO] Exception in update thread: ', E.Message);
+  end;
+end;
+
+procedure TOptiPatcherCheckThread.SyncUpdateUI;
+begin
+  if FUpdated and (FNewVersion <> '') and Assigned(FOptiTab) then
+  begin
+    if Assigned(FOptiTab.OptiPatcherLabel) then
+    begin
+      FOptiTab.OptiPatcherLabel.Caption := FNewVersion;
+      FOptiTab.OptiPatcherLabel.Font.Color := clGreen;
+    end;
+
+    if Assigned(goverlayform) then
+    begin
+      goverlayform.RefreshHomeOptiStatus;
+      goverlayform.RefreshOsStatusDots;
+    end;
+
+    ShowToast(ntSuccess, 'OptiPatcher auto-updated to ' + FNewVersion + '!', 4000);
+  end;
+end;
+
+procedure TOptiscalerTab.CheckAndUpdateOptiPatcherAsync;
+begin
+  // Debounce checks: max 1 check per 60 seconds
+  if (Now - FLastOptiPatcherCheckTime) < (1.0 / 1440.0) then Exit;
+
+  if Assigned(FOptiPatcherCheckThread) then Exit;
+
+  FLastOptiPatcherCheckTime := Now;
+  FOptiPatcherCheckThread := TOptiPatcherCheckThread.Create(Self);
+  FOptiPatcherCheckThread.OnTerminate := @OptiPatcherThreadTerminated;
+  FOptiPatcherCheckThread.Start;
+end;
+
+procedure TOptiscalerTab.OptiPatcherThreadTerminated(Sender: TObject);
+begin
+  FOptiPatcherCheckThread := nil;
 end;
 
 // Function to get the correct OptiScaler installation path with XDG compliance
@@ -1261,6 +1518,9 @@ begin
     end;
 
     // Update OptiPatcher label
+    if Pos(',', OptiPatcherVer) > 0 then
+      OptiPatcherVer := '';
+
     if Assigned(FOptiPatcherLabel) and (OptiPatcherVer <> '') then
     begin
       try

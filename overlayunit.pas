@@ -4529,6 +4529,10 @@ begin
   optiscalertabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:= optiscalerTabsheet;
 
+  // Auto-check and update OptiPatcher (rolling release) in background
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.CheckAndUpdateOptiPatcherAsync;
+
   //Hide notification messages
   notificationLabel.Visible:=false;
   commandPanel.Visible:=false;
