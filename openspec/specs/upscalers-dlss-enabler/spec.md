@@ -27,15 +27,15 @@ When selecting "DLSS Enabler", if no custom proxy DLL is previously configured f
 - **THEN** DLSS Enabler image becomes 100% opaque, OptiScaler image becomes 40% opaque, and version.dll is pre-selected if no proxy was configured
 
 ### Requirement: DLSS Enabler Downloading and Version Tracking
-GOverlay SHALL download and extract the latest DLSS Enabler release from `https://github.com/bygalacos/OptiScalerBuilder` into `~/.local/share/goverlay/dlssenabler-edge`.
-GOverlay SHALL parse the release description body from `bygalacos/OptiScalerBuilder` to extract the specific `DLSS Enabler` version (e.g. `4.8.10.11`) and integrated `OptiScaler` version (e.g. `v0.10.0-pre1`) and write them to `dlssenabler-edge/goverlay.vars` as `dlssenablerversion` and `optiscalerversion`.
+GOverlay SHALL download and extract the latest DLSS Enabler release from `https://github.com/bygalacos/OptiScalerBuilder` into `~/.local/share/goverlay/dlssenabler-stable`.
+GOverlay SHALL parse the release description body from `bygalacos/OptiScalerBuilder` to extract the specific `DLSS Enabler` version (e.g. `4.8.10.11`) and integrated `OptiScaler` version (e.g. `v0.10.0-pre1`) and write them to `dlssenabler-stable/goverlay.vars` as `dlssenablerversion` and `optiscalerversion`.
 The Software Status section on the Upscalers tab SHALL display the parsed DLSS Enabler version and integrated OptiScaler version.
-When DLSS Enabler is enabled (`UPSCALER_TYPE=1`), background update checking and manual update operations SHALL target the `bygalacos/OptiScalerBuilder` repository instead of standard OptiScaler channels.
-Global uninstallation via `bgmod-uninstaller --global` SHALL remove the `~/.local/share/goverlay/dlssenabler-edge` directory.
+When DLSS Enabler is enabled (`UPSCALER_TYPE=1`), background update checking and manual update operations SHALL target the `bygalacos/OptiScalerBuilder` repository instead of standard OptiScaler channels, and the channel dropdown `optversionComboBox` SHALL select index 0 ("Stable Channel") and be disabled.
+Global uninstallation via `bgmod-uninstaller --global` SHALL remove the `~/.local/share/goverlay/dlssenabler-stable` directory.
 
 #### Scenario: Global uninstallation cleans DLSS Enabler cache
 - **WHEN** user runs `bgmod-uninstaller --global`
-- **THEN** system removes the `dlssenabler-edge` cache directory
+- **THEN** system removes the `dlssenabler-stable` cache directory
 
 #### Scenario: Parsing DLSS Enabler release versions
 - **WHEN** GOverlay checks or downloads a release from `bygalacos/OptiScalerBuilder`

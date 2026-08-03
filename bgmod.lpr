@@ -296,7 +296,7 @@ begin
   end;
 
   if UpscalerType = 1 then
-    ChannelFolder := 'dlssenabler-edge'
+    ChannelFolder := 'dlssenabler-stable'
   else if IsStable then
     ChannelFolder := 'optiscaler-stable'
   else

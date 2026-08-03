@@ -650,11 +650,13 @@ begin
     overrideCheckBox.AnchorSideRight.Control  := nil; overrideCheckBox.AnchorSideBottom.Control := nil;
     overrideCheckBox.Anchors := [akLeft, akTop]; overrideCheckBox.Top := 190;
     overrideCheckBox.Parent  := FOsFakeSec;
+    overrideCheckBox.Visible := False;
 
     tracelogCheckBox.AnchorSideLeft.Control   := nil; tracelogCheckBox.AnchorSideTop.Control    := nil;
     tracelogCheckBox.AnchorSideRight.Control  := nil; tracelogCheckBox.AnchorSideBottom.Control := nil;
     tracelogCheckBox.Anchors := [akLeft, akTop]; tracelogCheckBox.Top := 235;
     tracelogCheckBox.Parent  := FOsFakeSec;
+    tracelogCheckBox.Visible := False;
 
     // DLL & Options section
     DarkLbl(filenameLabel,    PURPLE); filenameLabel.Transparent    := True;
@@ -1076,8 +1078,8 @@ begin
       forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, FakeW - 20, 20);
       latencyflexComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
-      overrideCheckBox.SetBounds(10, Y0 + 124, FakeW - 20, 20);
-      tracelogCheckBox.SetBounds(10, Y0 + 156, FakeW - 20, 20);
+      overrideCheckBox.Visible := False;
+      tracelogCheckBox.Visible := False;
     end;
 
     // ── Card 2: Software Status (Anchored to Bottom) ─────────────────────
@@ -1087,9 +1089,9 @@ begin
     ComboW := CW - 2 * PAD - 8 - CheckW;
     if ComboW < 80 then ComboW := 80;
     Y := HDR + 6;
-    optversionComboBox.SetBounds(PAD, Y + (BTN_H - CB_H) div 2, ComboW, CB_H);
-    checkupdBitBtn.SetBounds(PAD + ComboW + 8, Y, CheckW, BTN_H);
-    updateBitBtn.SetBounds(PAD + ComboW + 8, Y, CheckW, BTN_H);
+    optversionComboBox.SetBounds(PAD, Y + (BTN_H - 28) div 2, ComboW, 28);
+    checkupdBitBtn.SetBounds(PAD + ComboW + 8, Y + (BTN_H - 28) div 2, CheckW, 28);
+    updateBitBtn.SetBounds(PAD + ComboW + 8, Y + (BTN_H - 28) div 2, CheckW, 28);
 
     updateProgressBar.SetBounds(PAD, Y + (BTN_H - PB_H) div 2, ComboW, PB_H);
     updatestatusLabel.SetBounds(PAD + ComboW + 4, Y + (BTN_H - PB_H) div 2, CheckW + 4, PB_H);
@@ -1195,7 +1197,7 @@ begin
       begin
         dlssenablerRadioButton.Checked := True;
         optiscalerRadioButton.Checked := False;
-        optversionComboBox.ItemIndex := 1; // Bleeding-edge
+        optversionComboBox.ItemIndex := 0; // Stable Channel
         optversionComboBox.Enabled := False;
       end
       else

@@ -4352,6 +4352,8 @@ var
   Idx: Integer;
   OptVer: string;
 begin
+  if Assigned(optiscalerRadioButton) and not optiscalerRadioButton.Checked then Exit;
+
   if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
   begin
     optiscalerRadioButton.Checked := True;
@@ -4392,6 +4394,8 @@ procedure Tgoverlayform.dlssenablerRadioButtonClick(Sender: TObject);
 var
   Idx: Integer;
 begin
+  if Assigned(dlssenablerRadioButton) and not dlssenablerRadioButton.Checked then Exit;
+
   if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
   begin
     dlssenablerRadioButton.Checked := True;
@@ -4403,12 +4407,6 @@ begin
       if Idx >= 0 then
         filenameComboBox.ItemIndex := Idx;
     end;
-
-    if Assigned(optversionComboBox) then
-    begin
-      optversionComboBox.ItemIndex := 1; // Bleeding-edge
-      optversionComboBox.Enabled := False;
-    end;
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
@@ -4418,6 +4416,12 @@ begin
   RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
+
+  if Assigned(optversionComboBox) then
+  begin
+    optversionComboBox.ItemIndex := 0; // Stable Channel
+    optversionComboBox.Enabled := False;
+  end;
 end;
 
 procedure Tgoverlayform.UpdateUpscalerImageOpacity;

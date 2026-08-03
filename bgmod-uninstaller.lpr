@@ -607,10 +607,15 @@ begin
       SafeDeleteDirectory(TempStr + 'optiscaler-edge');
     end;
 
-    // Delete dlssenabler edge cache
+    // Delete dlssenabler cache
+    if DirectoryExists(TempStr + 'dlssenabler-stable') then
+    begin
+      Log('Removing dlssenabler stable cache directory: ' + TempStr + 'dlssenabler-stable');
+      SafeDeleteDirectory(TempStr + 'dlssenabler-stable');
+    end;
     if DirectoryExists(TempStr + 'dlssenabler-edge') then
     begin
-      Log('Removing dlssenabler edge cache directory: ' + TempStr + 'dlssenabler-edge');
+      Log('Removing legacy dlssenabler edge cache directory: ' + TempStr + 'dlssenabler-edge');
       SafeDeleteDirectory(TempStr + 'dlssenabler-edge');
     end;
 

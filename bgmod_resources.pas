@@ -177,7 +177,7 @@ end;
 
 function GetDlssEnablerPath: string;
 begin
-  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-edge';
+  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-stable';
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location
