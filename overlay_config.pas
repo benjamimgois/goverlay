@@ -1204,7 +1204,7 @@ begin
   Settings.OverrideChecked := False;
   Settings.SpoofChecked := False;
   Settings.FsrversionItemIndex := 0;
-  Settings.OptipatcherChecked := False;
+  Settings.OptipatcherChecked := True;
   Settings.ForceReflexChecked := False;
   Settings.ReflexItemIndex := 0;
   Settings.ForceLatencyFlexChecked := False;
@@ -1260,7 +1260,8 @@ begin
           Settings.MenuScalePosition := Round(FloatValue * 10);
 
         Settings.OverrideChecked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
-        Settings.OptipatcherChecked := SameText(OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, ''), 'true');
+        Value := OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, '');
+        Settings.OptipatcherChecked := not SameText(Value, 'false');
 
         if SameText(OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, ''), 'true') then
           Settings.FsrversionItemIndex := 0;

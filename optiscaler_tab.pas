@@ -233,8 +233,8 @@ begin
     FOsBgPanel.Width      := FOsScrollBox.ClientWidth;
     FOsBgPanel.Height     := 600;  // provisional; updated by ReflowOptiScalerTabNew
 
-    // ── Card 0a: Upscaler (Left) ────────────────────────────────────────
-    MakeCard(FOsUpscalerCard, 'Upscaler');
+    // ── Card 0a: Method (Left) ──────────────────────────────────────────
+    MakeCard(FOsUpscalerCard, 'Method');
 
     optiscalerRadioButton := TRadioButton.Create(FForm);
     optiscalerRadioButton.Parent := FOsUpscalerCard;

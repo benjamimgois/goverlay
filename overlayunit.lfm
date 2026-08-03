@@ -11770,6 +11770,7 @@ object goverlayform: Tgoverlayform
               BorderSpacing.Top = 30
               BorderSpacing.Right = 20
               Caption = 'OptiPatcher'
+              Checked = True
               Font.Height = -12
               Font.Name = 'Noto Sans'
               Font.Quality = fqAntialiased
