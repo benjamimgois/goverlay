@@ -781,18 +781,19 @@ begin
   with FForm do
   begin
     TB := Sender as TTrackBar;
-  Idx := TB.Tag;
-  case Idx of
-    6: // Hue — degrees, -180..180
-      Val := TB.Position - 180;
-    2: // Exposure — -3..3
-      Val := (TB.Position - 300) / 100;
-    else // -1..1
-      Val := (TB.Position - 100) / 100;
-  end;
-  S := FormatFloat('0.00', Val);
-  if S = '-0.00' then S := '0.00';
-  FVsValLabels[Idx].Caption := S;
+    Idx := TB.Tag;
+    case Idx of
+      6: // Hue — degrees, -180..180
+        Val := TB.Position - 180;
+      2: // Exposure — -3..3
+        Val := (TB.Position - 300) / 100;
+      else // -1..1
+        Val := (TB.Position - 100) / 100;
+    end;
+    S := FormatFloat('0.00', Val);
+    if S = '-0.00' then S := '0.00';
+    FVsValLabels[Idx].Caption := S;
+    StartAutoSaveTimer;
   end;
 end;
 
@@ -803,14 +804,14 @@ begin
   with FForm do
   begin
     for i := 0 to 14 do
-  begin
-    if Assigned(FVsTrackbars[i]) then
     begin
-      FVsTrackbars[i].Position := PARAMS[i].Default;
-      VkSumiSliderChange(FVsTrackbars[i]);
+      if Assigned(FVsTrackbars[i]) then
+      begin
+        FVsTrackbars[i].Position := PARAMS[i].Default;
+        VkSumiSliderChange(FVsTrackbars[i]);
+      end;
     end;
-  end;
-  SaveVkSumiConfig;
+    TriggerAutoSave;
   end;
 end;
 
@@ -833,7 +834,7 @@ begin
     if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
     if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
-    SendNotification('vkBasalt', 'Settings restored to defaults', GetIconFile());
+    TriggerAutoSave;
     ShowStatusMessage('🔄 vkBasalt settings restored to defaults');
   end;
 end;
@@ -1380,6 +1381,7 @@ begin
             else
               acteffectsListBox.Items.Add(EffectPath);
             PB.Invalidate;
+            TriggerAutoSave;
           end;
           Exit;
         end;
@@ -1399,6 +1401,7 @@ begin
             else
               acteffectsListBox.Items.Add(EffectPath);
             PB.Invalidate;
+            TriggerAutoSave;
           end;
           Exit;
         end;

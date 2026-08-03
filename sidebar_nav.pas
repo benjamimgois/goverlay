@@ -749,10 +749,7 @@ end;
 procedure TSidebarNavHelper.SetSaveBtnEnabled(AEnabled: Boolean);
 begin
   FForm.saveBitBtn.Enabled := AEnabled;
-  if AEnabled then
-    FForm.saveBitBtn.Color := $008300   // original green
-  else
-    FForm.saveBitBtn.Color := $00666666; // grey when disabled
+  FForm.saveBitBtn.Visible := False;
 end;
 
 procedure TSidebarNavHelper.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);

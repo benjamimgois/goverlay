@@ -599,6 +599,14 @@ type
     procedure tweaksLabelMouseLeave(Sender: TObject);
     procedure SearchEditChange(Sender: TObject);
     procedure whitecolorBitBtnClick(Sender: TObject);
+    procedure GenericControlClick(Sender: TObject);
+    procedure GenericControlChange(Sender: TObject);
+    procedure WireAutoSaveEvents;
+    procedure autoSaveTimerTimer(Sender: TObject);
+    procedure savedStatusTimerTimer(Sender: TObject);
+    procedure TriggerAutoSave;
+    procedure StartAutoSaveTimer;
+    procedure ShowSavedStatus;
     procedure LoadVkBasaltConfig;
     procedure vkbasaltTabSheetShow(Sender: TObject);
     procedure vkSumiTabSheetShow(Sender: TObject);
@@ -1005,6 +1013,10 @@ type
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
     procedure RestoreIfMaximized;
   public
+    FLoadingConfig: Boolean;
+    autoSaveTimer: TTimer;
+    savedStatusTimer: TTimer;
+    savedStatusLabel: TLabel;
     // OptiScaler fields (moved from private)
     FOsScrollBox:    TScrollBox;
     FOsBgPanel:      TPanel;
@@ -2266,53 +2278,58 @@ procedure Tgoverlayform.LoadVkBasaltConfig;
 var
   Settings: TVkBasaltSettings;
 begin
-  // Reset all controls before loading so stale values from a previous config
-  // do not bleed into the newly loaded one.
-  acteffectsListBox.Items.Clear;
-  casTrackBar.Position  := 0;
-  fxaaTrackBar.Position := 0;
-  smaaTrackBar.Position := 0;
-  dlsTrackBar.Position  := 0;
-  casvalueLabel.Caption  := '0';
-  fxaavalueLabel.Caption := '0';
-  smaavalueLabel.Caption := '0';
-  dlsvalueLabel.Caption  := '0';
-  if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := '0';
-  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
-  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
-  if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+  FLoadingConfig := True;
+  try
+    // Reset all controls before loading so stale values from a previous config
+    // do not bleed into the newly loaded one.
+    acteffectsListBox.Items.Clear;
+    casTrackBar.Position  := 0;
+    fxaaTrackBar.Position := 0;
+    smaaTrackBar.Position := 0;
+    dlsTrackBar.Position  := 0;
+    casvalueLabel.Caption  := '0';
+    fxaavalueLabel.Caption := '0';
+    smaavalueLabel.Caption := '0';
+    dlsvalueLabel.Caption  := '0';
+    if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := '0';
+    if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
+    if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
+    if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
 
-  if not FileExists(VKBASALTCFGFILE) then
-    Exit;
+    if not FileExists(VKBASALTCFGFILE) then
+      Exit;
 
-  if not overlay_config.LoadVkBasaltConfig(VKBASALTCFGFILE, aveffectsListbox.Items, acteffectsListBox.Items, Settings) then
-    Exit;
+    if not overlay_config.LoadVkBasaltConfig(VKBASALTCFGFILE, aveffectsListbox.Items, acteffectsListBox.Items, Settings) then
+      Exit;
 
-  // Map settings back to controls
-  casTrackBar.Position := Settings.CasPosition;
-  casvalueLabel.Caption := IntToStr(casTrackBar.Position);
-  if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
+    // Map settings back to controls
+    casTrackBar.Position := Settings.CasPosition;
+    casvalueLabel.Caption := IntToStr(casTrackBar.Position);
+    if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvalueLabel.Caption;
 
-  fxaaTrackBar.Position := Settings.FxaaPosition;
-  fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
-  if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
+    fxaaTrackBar.Position := Settings.FxaaPosition;
+    fxaavalueLabel.Caption := IntToStr(fxaaTrackBar.Position);
+    if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
 
-  smaaTrackBar.Position := Settings.SmaaPosition;
-  smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
-  if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
+    smaaTrackBar.Position := Settings.SmaaPosition;
+    smaavalueLabel.Caption := IntToStr(smaaTrackBar.Position);
+    if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
 
-  dlsTrackBar.Position := Settings.DlsPosition;
-  dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
-  if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
+    dlsTrackBar.Position := Settings.DlsPosition;
+    dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
+    if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
 
-  if Settings.ToggleKey <> '' then
-  begin
-    vkbtogglekeyCombobox.Text := Settings.ToggleKey;
-    if Assigned(FVkToggleCaptureBtn) then
-      FVkToggleCaptureBtn.Caption := '⌨ ' + Settings.ToggleKey;
+    if Settings.ToggleKey <> '' then
+    begin
+      vkbtogglekeyCombobox.Text := Settings.ToggleKey;
+      if Assigned(FVkToggleCaptureBtn) then
+        FVkToggleCaptureBtn.Caption := '⌨ ' + Settings.ToggleKey;
+    end;
+
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+  finally
+    FLoadingConfig := False;
   end;
-
-  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 end;
 
 procedure Tgoverlayform.vkbasaltTabSheetShow(Sender: TObject);
@@ -2842,6 +2859,49 @@ begin
   // Mark controls that should preserve their custom colors during theme changes.
   // This replaces the hardcoded name blacklist in themeunit.pas.
   saveBitBtn.Tag := 9999;
+  saveBitBtn.Visible := False;
+
+  // Align popupBitBtn (Menu ☰) to the right side of goverlaybarPanel (left of savedStatusLabel)
+  if Assigned(popupBitBtn) then
+  begin
+    popupBitBtn.AnchorSideLeft.Control := nil;
+    popupBitBtn.AnchorSideRight.Control := goverlaybarPanel;
+    popupBitBtn.AnchorSideRight.Side := asrBottom;
+    popupBitBtn.AnchorSideTop.Control := goverlaybarPanel;
+    popupBitBtn.AnchorSideTop.Side := asrCenter;
+    popupBitBtn.AnchorSideBottom.Control := goverlaybarPanel;
+    popupBitBtn.AnchorSideBottom.Side := asrCenter;
+    popupBitBtn.Anchors := [akRight, akBottom];
+    popupBitBtn.BorderSpacing.Right := 85;
+  end;
+
+  savedStatusLabel := TLabel.Create(Self);
+  savedStatusLabel.Parent := goverlaybarPanel;
+  savedStatusLabel.AnchorSideLeft.Control := nil;
+  savedStatusLabel.AnchorSideRight.Control := goverlaybarPanel;
+  savedStatusLabel.AnchorSideRight.Side := asrBottom;
+  savedStatusLabel.AnchorSideTop.Control := goverlaybarPanel;
+  savedStatusLabel.AnchorSideTop.Side := asrCenter;
+  savedStatusLabel.AnchorSideBottom.Control := goverlaybarPanel;
+  savedStatusLabel.AnchorSideBottom.Side := asrCenter;
+  savedStatusLabel.Anchors := [akRight, akBottom];
+  savedStatusLabel.BorderSpacing.Right := 16;
+  savedStatusLabel.Caption := '✓ Saved';
+  savedStatusLabel.Font.Name := 'Noto Sans';
+  savedStatusLabel.Font.Size := 10;
+  savedStatusLabel.Font.Style := [fsBold];
+  savedStatusLabel.Font.Color := RGBToColor(48, 190, 240);
+  savedStatusLabel.Visible := False;
+
+  autoSaveTimer := TTimer.Create(Self);
+  autoSaveTimer.Interval := 300;
+  autoSaveTimer.Enabled := False;
+  autoSaveTimer.OnTimer := @autoSaveTimerTimer;
+
+  savedStatusTimer := TTimer.Create(Self);
+  savedStatusTimer.Interval := 2000;
+  savedStatusTimer.Enabled := False;
+  savedStatusTimer.OnTimer := @savedStatusTimerTimer;
   notificationLabel.Tag := 9999;
   dependenciesLabel.Tag := 9999;
   vkbasaltLabel.Tag := 9999;
@@ -3432,6 +3492,9 @@ begin
 
     // Load saved toggle states for global mode on startup
     LoadGameToggleStates;
+
+    // Wire all checkboxes, radiobuttons, comboboxes, spin edits, etc. to trigger auto-save
+    WireAutoSaveEvents;
 end; // form create
 
 // ---------------------------------------------------------------------------
@@ -3964,6 +4027,9 @@ begin
 
   // Initialize Intel CPU power monitoring fix button state
   InitializeIntelPowerFixButton;
+
+  // Ensure all UI controls fire auto-save
+  WireAutoSaveEvents;
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -4156,7 +4222,12 @@ end;
 
 procedure Tgoverlayform.LoadTweaksFromFGMod;
 begin
-  TTweaksMD3Helper(FTweaksHelper).LoadTweaksFromFGMod;
+  FLoadingConfig := True;
+  try
+    TTweaksMD3Helper(FTweaksHelper).LoadTweaksFromFGMod;
+  finally
+    FLoadingConfig := False;
+  end;
 end;
 
 procedure Tgoverlayform.mangocolorBitBtnClick(Sender: TObject);
@@ -4308,9 +4379,18 @@ DbgLog('<< mangohudLabelClick END');
 end;
 
 procedure Tgoverlayform.menuscaleTrackBarChange(Sender: TObject);
+var
+  Idx: Integer;
 begin
   //Display new values and trackbar changes (divide by 10)
   menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
+  if Assigned(menuscaleComboBox) then
+  begin
+    Idx := menuscaleTrackbar.Position - 10;
+    if (Idx >= 0) and (Idx < menuscaleComboBox.Items.Count) then
+      menuscaleComboBox.ItemIndex := Idx;
+  end;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.mesaRadioButtonChange(Sender: TObject);
@@ -4639,6 +4719,7 @@ procedure Tgoverlayform.mipmapTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+  StartAutoSaveTimer;
 end;
 
 
@@ -4646,6 +4727,7 @@ procedure Tgoverlayform.fontsizeTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   fontsizevalueLabel.Caption:= inttostr(fontsizeTrackbar.Position);
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.coreloadtypeBitBtnClick(Sender: TObject);
@@ -4738,6 +4820,7 @@ begin
   if added > 0 then
     acteffectsListbox.ItemIndex := acteffectsListbox.Items.Count - 1;
 
+  TriggerAutoSave;
 end;
 
 procedure Tgoverlayform.afterburnercolorBitBtn1Click(Sender: TObject);
@@ -4854,6 +4937,17 @@ procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
 begin
   casvaluelabel.Caption := inttostr(casTrackbar.Position);
   if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvaluelabel.Caption;
+  if casTrackbar.Position > 0 then
+  begin
+    if acteffectsListbox.Items.IndexOf('cas') = -1 then
+      acteffectsListbox.Items.Add('cas');
+  end
+  else
+  begin
+    if acteffectsListbox.Items.IndexOf('cas') <> -1 then
+      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('cas'));
+  end;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
@@ -4866,6 +4960,17 @@ procedure Tgoverlayform.dlsTrackBarChange(Sender: TObject);
 begin
   dlsvaluelabel.Caption := inttostr(dlsTrackbar.Position);
   if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvaluelabel.Caption;
+  if dlsTrackbar.Position > 0 then
+  begin
+    if acteffectsListbox.Items.IndexOf('dls') = -1 then
+      acteffectsListbox.Items.Add('dls');
+  end
+  else
+  begin
+    if acteffectsListbox.Items.IndexOf('dls') <> -1 then
+      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('dls'));
+  end;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.donateMenuItemClick(Sender: TObject);
@@ -4957,7 +5062,7 @@ begin
   end;
 
   // Popup a notification
-  SendNotification('MangoHud', 'Configuration saved', GetIconFile);
+  // SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
 end;
 
@@ -4988,6 +5093,17 @@ procedure Tgoverlayform.fxaaTrackBarChange(Sender: TObject);
 begin
   fxaavaluelabel.Caption := inttostr(fxaaTrackbar.Position);
   if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavaluelabel.Caption;
+  if fxaaTrackbar.Position > 0 then
+  begin
+    if acteffectsListbox.Items.IndexOf('fxaa') = -1 then
+      acteffectsListbox.Items.Add('fxaa');
+  end
+  else
+  begin
+    if acteffectsListbox.Items.IndexOf('fxaa') <> -1 then
+      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('fxaa'));
+  end;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.goverlayBitBtnClick(Sender: TObject);
@@ -5431,8 +5547,8 @@ begin
     deckpreset3MenuItem.Visible := False;
     deckpreset4MenuItem.Visible := False;
     blacklistMenuItem.Visible := False;
-    runvkcubeItem.Visible := True;
-    runpascubetItem.Visible := True;
+    runvkcubeItem.Visible := False;
+    runpascubetItem.Visible := False;
   end
   else if (goverlayPageControl.ActivePage = optiscalerTabSheet) or
           (goverlayPageControl.ActivePage = tweaksTabSheet) then
@@ -5492,9 +5608,8 @@ begin
   Settings.Version := GVERSION;
   Settings.Channel := GCHANNEL;
   if Assigned(FVsEnabledCB) then
-    Settings.Enabled := FVsEnabledCB.Checked
-  else
-    Settings.Enabled := True;
+    FVsEnabledCB.Checked := True;
+  Settings.Enabled := True;
 
   if Assigned(FVsToggleEdit) and (Trim(FVsToggleEdit.Text) <> '') then
     Settings.ToggleKeys := FVsToggleEdit.Text
@@ -5525,7 +5640,7 @@ begin
       'VKSUMI_CONFIG_FILE',
       VKSUMICFGFILE);
 
-  SendNotification('vkSumi', 'Configuration saved to ' + VKSUMICFGFILE, GetIconFile);
+  // SendNotification('vkSumi', 'Configuration saved to ' + VKSUMICFGFILE, GetIconFile);
 
   // Always show the bgmod command — use game-specific bgmod copy when in game mode
   if FActiveGameName <> '' then
@@ -5556,37 +5671,42 @@ var
   Settings: TVkSumiSettings;
   i: Integer;
 begin
-  if Assigned(FVsEnabledCB) then
-    FVsEnabledCB.Checked := False;
+  FLoadingConfig := True;
+  try
+    if Assigned(FVsEnabledCB) then
+      FVsEnabledCB.Checked := True;
 
-  if Assigned(FVsToggleEdit) then
-    FVsToggleEdit.Text := 'Home';
+    if Assigned(FVsToggleEdit) then
+      FVsToggleEdit.Text := 'Home';
 
-  if Assigned(FVsToggleCaptureBtn) then
-    FVsToggleCaptureBtn.Caption := '⌨ Home';
+    if Assigned(FVsToggleCaptureBtn) then
+      FVsToggleCaptureBtn.Caption := '⌨ Home';
 
-  for i := 0 to 14 do
-  begin
-    if Assigned(FVsTrackbars[i]) then
-      FVsTrackbars[i].Position := 0;
-  end;
+    for i := 0 to 14 do
+    begin
+      if Assigned(FVsTrackbars[i]) then
+        FVsTrackbars[i].Position := 0;
+    end;
 
-  if not overlay_config.LoadVkSumiConfig(VKSUMICFGFILE, Settings) then
-    Exit;
+    if not overlay_config.LoadVkSumiConfig(VKSUMICFGFILE, Settings) then
+      Exit;
 
-  if Assigned(FVsEnabledCB) then
-    FVsEnabledCB.Checked := Settings.Enabled;
+    if Assigned(FVsEnabledCB) then
+      FVsEnabledCB.Checked := Settings.Enabled;
 
-  if Assigned(FVsToggleEdit) then
-    FVsToggleEdit.Text := Settings.ToggleKeys;
+    if Assigned(FVsToggleEdit) then
+      FVsToggleEdit.Text := Settings.ToggleKeys;
 
-  if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
-    FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
+    if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
+      FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
 
-  for i := 0 to 14 do
-  begin
-    if Assigned(FVsTrackbars[i]) then
-      FVsTrackbars[i].Position := Settings.TrackbarPositions[i];
+    for i := 0 to 14 do
+    begin
+      if Assigned(FVsTrackbars[i]) then
+        FVsTrackbars[i].Position := Settings.TrackbarPositions[i];
+    end;
+  finally
+    FLoadingConfig := False;
   end;
 end;
 
@@ -5639,7 +5759,7 @@ begin
       'VKBASALT_CONFIG_FILE',
       VKBASALTCFGFILE);
 
-  SendNotification('vkBasalt', 'configuration saved', GetIconFile);
+  // SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
   // Always show the bgmod command — use game-specific bgmod copy when in game mode
   if FActiveGameName <> '' then
@@ -5699,7 +5819,7 @@ begin
     SaveMangoHudConfig;
 
   // Popup a notification
-    SendNotification('MangoHud', 'Configuration saved', GetIconFile);
+    // SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
   // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
     // If global enable is active, show message instead of command
@@ -6068,6 +6188,17 @@ procedure Tgoverlayform.smaaTrackBarChange(Sender: TObject);
 begin
   smaavaluelabel.Caption := inttostr(smaaTrackbar.Position);
   if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavaluelabel.Caption;
+  if smaaTrackbar.Position > 0 then
+  begin
+    if acteffectsListbox.Items.IndexOf('smaa') = -1 then
+      acteffectsListbox.Items.Add('smaa');
+  end
+  else
+  begin
+    if acteffectsListbox.Items.IndexOf('smaa') <> -1 then
+      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('smaa'));
+  end;
+  StartAutoSaveTimer;
 end;
 
 
@@ -6138,6 +6269,8 @@ begin
     else
       acteffectsListbox.ItemIndex := -1;
   end;
+
+  TriggerAutoSave;
 end;
 
 procedure Tgoverlayform.ToggleSpeedButtonClick(Sender: TObject);
@@ -6182,6 +6315,7 @@ procedure Tgoverlayform.transpTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.SaveMangoHudPreset(PresetNumber: Integer);
@@ -6684,9 +6818,120 @@ begin
   Result := TSidebarNavHelper(FNavHelper).ActiveToolIndex;
 end;
 
+procedure Tgoverlayform.GenericControlClick(Sender: TObject);
+begin
+  if FLoadingConfig then Exit;
+  TriggerAutoSave;
+end;
+
+procedure Tgoverlayform.GenericControlChange(Sender: TObject);
+begin
+  if FLoadingConfig then Exit;
+  TriggerAutoSave;
+end;
+
+procedure Tgoverlayform.WireAutoSaveEvents;
+  procedure ProcessWinControl(AWinCtrl: TWinControl);
+  var
+    i: Integer;
+    Ctrl: TControl;
+  begin
+    if AWinCtrl = nil then Exit;
+    for i := 0 to AWinCtrl.ControlCount - 1 do
+    begin
+      Ctrl := AWinCtrl.Controls[i];
+
+      if Ctrl is TCheckBox then
+      begin
+        if not Assigned(TCheckBox(Ctrl).OnClick) then
+          TCheckBox(Ctrl).OnClick := @GenericControlClick;
+      end
+      else if Ctrl is TRadioButton then
+      begin
+        if not Assigned(TRadioButton(Ctrl).OnClick) then
+          TRadioButton(Ctrl).OnClick := @GenericControlClick;
+      end
+      else if Ctrl is TComboBox then
+      begin
+        if not Assigned(TComboBox(Ctrl).OnChange) then
+          TComboBox(Ctrl).OnChange := @GenericControlChange;
+      end
+      else if Ctrl is TColorButton then
+      begin
+        if not Assigned(TColorButton(Ctrl).OnColorChanged) then
+          TColorButton(Ctrl).OnColorChanged := @GenericControlClick;
+      end
+      else if Ctrl is TListBox then
+      begin
+        if not Assigned(TListBox(Ctrl).OnClick) then
+          TListBox(Ctrl).OnClick := @GenericControlClick;
+      end
+      else if Ctrl is TSpinEdit then
+      begin
+        if not Assigned(TSpinEdit(Ctrl).OnChange) then
+          TSpinEdit(Ctrl).OnChange := @GenericControlChange;
+      end;
+
+      if Ctrl is TWinControl then
+        ProcessWinControl(TWinControl(Ctrl));
+    end;
+  end;
+begin
+  ProcessWinControl(Self);
+end;
+
+procedure Tgoverlayform.TriggerAutoSave;
+begin
+  if FLoadingConfig then Exit;
+  saveBitBtnClick(nil);
+  ShowSavedStatus;
+end;
+
+procedure Tgoverlayform.StartAutoSaveTimer;
+begin
+  if FLoadingConfig then Exit;
+  if Assigned(autoSaveTimer) then
+  begin
+    autoSaveTimer.Enabled := False;
+    autoSaveTimer.Interval := 300;
+    autoSaveTimer.Enabled := True;
+  end;
+end;
+
+procedure Tgoverlayform.ShowSavedStatus;
+begin
+  if Assigned(savedStatusLabel) then
+  begin
+    savedStatusLabel.Caption := '✓ Saved';
+    savedStatusLabel.Visible := True;
+  end;
+
+  if Assigned(savedStatusTimer) then
+  begin
+    savedStatusTimer.Enabled := False;
+    savedStatusTimer.Interval := 2000;
+    savedStatusTimer.Enabled := True;
+  end;
+end;
+
+procedure Tgoverlayform.autoSaveTimerTimer(Sender: TObject);
+begin
+  autoSaveTimer.Enabled := False;
+  TriggerAutoSave;
+end;
+
+procedure Tgoverlayform.savedStatusTimerTimer(Sender: TObject);
+begin
+  savedStatusTimer.Enabled := False;
+  if Assigned(savedStatusLabel) then
+    savedStatusLabel.Visible := False;
+end;
+
 procedure Tgoverlayform.SetSaveBtnEnabled(AEnabled: Boolean);
 begin
   TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(AEnabled);
+  if AEnabled and not FLoadingConfig then
+    TriggerAutoSave;
 end;
 
 procedure Tgoverlayform.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);

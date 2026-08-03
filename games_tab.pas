@@ -922,6 +922,13 @@ begin
   FPreviewBtn.Parent      := goverlaybarPanel;
   // Align height (30) and vertical position (5) with the rest of the bar
   FPreviewBtn.SetBounds(684, 5, 28, 30);
+  FPreviewBtn.AnchorSideLeft.Control := nil;
+  if Assigned(popupBitBtn) then
+  begin
+    FPreviewBtn.AnchorSideRight.Control := popupBitBtn;
+    FPreviewBtn.AnchorSideRight.Side    := asrLeft;
+    FPreviewBtn.BorderSpacing.Right     := 6;
+  end;
   FPreviewBtn.Anchors     := [akRight, akBottom];
   FPreviewBtn.Caption     := '▶';
   FPreviewBtn.Color       := $00445566;
@@ -937,6 +944,7 @@ begin
   // preventing the panel from drawing over the preview button.
   commandPanel.AnchorSideRight.Control := FPreviewBtn;
   commandPanel.AnchorSideRight.Side    := asrLeft;
+  commandPanel.BorderSpacing.Right     := 6;
 
   // Informative hint for the launch-command box
   commandPanel.Hint := 'Copy this command and paste it into the game''s Launch Options in Steam.';

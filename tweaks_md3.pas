@@ -1351,7 +1351,7 @@ begin
     FForm.SyncTweaksGridFromCheckBoxes;
 
     // Show notification
-    SendNotification('Tweaks', 'Configuration saved', GetIconFile);
+    // SendNotification('Tweaks', 'Configuration saved', GetIconFile);
 
   finally
     Ini.Free;

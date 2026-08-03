@@ -1284,8 +1284,8 @@ begin
     if ErrMsg <> '' then
       ShowMessage(ErrMsg);
 
-    if not ASilent then
-      SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
+    // if not ASilent then
+    //   SendNotification('OptiScaler', 'Configuration saved', GetIconFile);
 
     if Assigned(FOptiscalerUpdate) then
     begin

@@ -1475,9 +1475,9 @@ end;
 procedure TGoverlayGuiTests.TestVkBasaltRestoreDefaults;
 begin
   goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
-  goverlayform.acteffectsListBox.Items.Add('cas');
+  goverlayform.acteffectsListBox.Items.Clear;
+  goverlayform.casTrackBar.Position := 0;
   goverlayform.casTrackBar.Position := 8;
-  goverlayform.fxaaTrackBar.Position := 5;
 
   AssertEquals('acteffectsListBox has item before restore', 1, goverlayform.acteffectsListBox.Items.Count);
   AssertEquals('casTrackBar is 8 before restore', 8, goverlayform.casTrackBar.Position);

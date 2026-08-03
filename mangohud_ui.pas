@@ -2780,9 +2780,11 @@ var
   i: Integer;
   ParentControl: TWinControl;
 begin
-  with FForm do
-  begin
-    FActiveLayoutCard := -1;
+  FForm.FLoadingConfig := True;
+  try
+    with FForm do
+    begin
+      FActiveLayoutCard := -1;
     FActiveColorCard  := -1;
 
     // 1. Reset all checkboxes inside MangoHud tabs to False
@@ -2915,6 +2917,9 @@ begin
     offsetSpinedit.Value := 0;
     offsetxSpinEdit.Value := 0;
     offsetySpinEdit.Value := 0;
+    end;
+  finally
+    FForm.FLoadingConfig := False;
   end;
 end;
 
@@ -2925,66 +2930,71 @@ var
   i, ColonPos: Integer;
   IntValue: Integer;
 begin
-  ResetMangoHudControls;
-
-  if not FileExists(MANGOHUDCFGFILE) then
-    Exit;
-
-  ConfigLines := TStringList.Create;
+  FForm.FLoadingConfig := True;
   try
-    ConfigLines.LoadFromFile(MANGOHUDCFGFILE);
+    ResetMangoHudControls;
 
-    for i := 0 to ConfigLines.Count - 1 do
-    begin
-      Line := ConfigLines[i];
-      TrimmedLine := Trim(Line);
+    if not FileExists(MANGOHUDCFGFILE) then
+      Exit;
 
-      // Ignore empty lines
-      if TrimmedLine = '' then
-        Continue;
+    ConfigLines := TStringList.Create;
+    try
+      ConfigLines.LoadFromFile(MANGOHUDCFGFILE);
 
-      // Handle special commented line #offset=
-      if (Length(TrimmedLine) > 8) and (Copy(TrimmedLine, 1, 8) = MANGO_COMMENT_OFFSET) then
+      for i := 0 to ConfigLines.Count - 1 do
       begin
-        if TryStrToInt(Copy(TrimmedLine, 9, Length(TrimmedLine)), IntValue) then
+        Line := ConfigLines[i];
+        TrimmedLine := Trim(Line);
+
+        // Ignore empty lines
+        if TrimmedLine = '' then
+          Continue;
+
+        // Handle special commented line #offset=
+        if (Length(TrimmedLine) > 8) and (Copy(TrimmedLine, 1, 8) = MANGO_COMMENT_OFFSET) then
         begin
-          with FForm do
-            offsetSpinedit.Value := IntValue;
+          if TryStrToInt(Copy(TrimmedLine, 9, Length(TrimmedLine)), IntValue) then
+          begin
+            with FForm do
+              offsetSpinedit.Value := IntValue;
+          end;
+          Continue;
         end;
-        Continue;
+
+        // Ignore other comments
+        if TrimmedLine[1] = '#' then
+          Continue;
+
+        ColonPos := Pos('=', TrimmedLine);
+
+        // Keys without value (boolean flags)
+        if ColonPos = 0 then
+        begin
+          LoadMangoHudBoolFlag(TrimmedLine);
+          Continue;
+        end;
+
+        // Keys with value
+        Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
+        Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
+
+        // Remove quotes if present
+        if (Length(Value) > 0) and (Value[1] = '"') then
+          Value := StringReplace(Value, '"', '', [rfReplaceAll]);
+
+        LoadMangoHudKeyValue(Key, Value);
       end;
 
-      // Ignore other comments
-      if TrimmedLine[1] = '#' then
-        Continue;
-
-      ColonPos := Pos('=', TrimmedLine);
-
-      // Keys without value (boolean flags)
-      if ColonPos = 0 then
-      begin
-        LoadMangoHudBoolFlag(TrimmedLine);
-        Continue;
-      end;
-
-      // Keys with value
-      Key := Trim(Copy(TrimmedLine, 1, ColonPos - 1));
-      Value := Trim(Copy(TrimmedLine, ColonPos + 1, Length(TrimmedLine)));
-
-      // Remove quotes if present
-      if (Length(Value) > 0) and (Value[1] = '"') then
-        Value := StringReplace(Value, '"', '', [rfReplaceAll]);
-
-      LoadMangoHudKeyValue(Key, Value);
+    finally
+      ConfigLines.Free;
     end;
 
+    // Sync FPS chip visuals and preset card selection highlighting with the newly loaded state
+    UpdatePerfCardTheme;
+    UpdatePresetCardVisuals;
   finally
-    ConfigLines.Free;
+    FForm.FLoadingConfig := False;
   end;
-
-  // Sync FPS chip visuals and preset card selection highlighting with the newly loaded state
-  UpdatePerfCardTheme;
-  UpdatePresetCardVisuals;
 end;
 
 procedure TMangoHudUiHelper.LoadMangoHudBoolFlag(const ATrimmedLine: string);
