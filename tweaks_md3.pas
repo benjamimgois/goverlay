@@ -853,6 +853,7 @@ begin
                 begin
                   Chk.Checked := not Chk.Checked;
                   PB.Invalidate;
+                  FForm.TriggerAutoSave;
                 end;
               end;
             end;
@@ -892,6 +893,7 @@ begin
                 begin
                   Chk.Checked := not Chk.Checked;
                   PB.Invalidate;
+                  FForm.TriggerAutoSave;
                 end;
               end;
             end;
@@ -933,6 +935,7 @@ begin
           begin
             FForm.FTweaksGrid.DeleteRow(i);
             PB.Invalidate;
+            FForm.TriggerAutoSave;
             Exit;
           end;
           ToggleX := ItemX + ItemW - 66;
@@ -943,6 +946,7 @@ begin
             else
               FForm.FTweaksGrid.Cells[0, i] := '1';
             PB.Invalidate;
+            FForm.TriggerAutoSave;
           end;
           Exit;
         end;
@@ -958,6 +962,7 @@ begin
           begin
             FForm.FTweaksGrid.DeleteRow(i);
             PB.Invalidate;
+            FForm.TriggerAutoSave;
             Exit;
           end;
           ToggleX := PB.Width - 66;
@@ -968,6 +973,7 @@ begin
             else
               FForm.FTweaksGrid.Cells[0, i] := '1';
             PB.Invalidate;
+            FForm.TriggerAutoSave;
           end;
           Exit;
         end;
@@ -1016,6 +1022,7 @@ begin
   FForm.FTweaksGrid.Cells[2, Row] := Val;
   FForm.FTweaksGrid.Cells[3, Row] := '';
   FForm.FTweaksPaintBox.Invalidate;
+  FForm.TriggerAutoSave;
 end;
 
 procedure TTweaksMD3Helper.InitTweaksCards;
