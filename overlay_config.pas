@@ -665,7 +665,7 @@ begin
   if Settings.OptipatcherChecked then
     LoadAsiPluginsValue := 'true'
   else
-    LoadAsiPluginsValue := 'auto';
+    LoadAsiPluginsValue := 'false';
 
   case Settings.PreferredUpscalerItemIndex of
     0: PreferredUpscalerValue := 'auto';
@@ -1261,7 +1261,10 @@ begin
 
         Settings.OverrideChecked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
         Value := OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, '');
-        Settings.OptipatcherChecked := not SameText(Value, 'false');
+        if SameText(Value, 'false') or SameText(Value, 'auto') then
+          Settings.OptipatcherChecked := False
+        else
+          Settings.OptipatcherChecked := True;
 
         if SameText(OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, ''), 'true') then
           Settings.FsrversionItemIndex := 0;

@@ -400,7 +400,7 @@ begin
   goverlayform.optipatcherCheckBox.Checked := False;
   SaveOpti;
   Content := ReadFileText(OptiIniPath);
-  AssertTrue('LoadAsiPlugins=auto persisted', Pos('LoadAsiPlugins=auto', Content) > 0);
+  AssertTrue('LoadAsiPlugins=false persisted', Pos('LoadAsiPlugins=false', Content) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiFsrVersionPinned;
