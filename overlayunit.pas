@@ -4529,9 +4529,13 @@ begin
   optiscalertabsheet.TabVisible:=true;
   goverlayPageControl.ActivePage:= optiscalerTabsheet;
 
-  // Auto-check and update OptiPatcher (rolling release) in background
+  // Auto-check and update OptiPatcher (rolling release) or DLSS Enabler in background
   if Assigned(FOptiscalerUpdate) then
+  begin
     FOptiscalerUpdate.CheckAndUpdateOptiPatcherAsync;
+    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
+      FOptiscalerUpdate.CheckForUpdatesOnClick;
+  end;
 
   //Hide notification messages
   notificationLabel.Visible:=false;

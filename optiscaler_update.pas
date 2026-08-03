@@ -48,6 +48,7 @@ type
     function GetOptiScalerStableTag(ASilent: Boolean = False): string;
     function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
     function GetDlssEnablerLatestTag(ASilent: Boolean = False): string;
+    function FormatDlssEnablerDisplayTag(const ATag: string): string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
     function Extract7z(const A7zFile, ADestPath: string): Boolean;
@@ -190,6 +191,8 @@ var
   CurrentVersion: string;
   NormLatest, NormCurrent: string;
   CurrentIsEdge, IsCrossChannel, IsDlssEnablerActive: Boolean;
+  VarsFilePath: string;
+  VarsList: TStringList;
 begin
   if Terminated then Exit;
 
@@ -224,14 +227,31 @@ begin
     if IsDlssEnablerActive then
     begin
       CurrentVersion := '';
-      if Assigned(FOptiTab.FDlssEnablerLabel) then
+      VarsFilePath := IncludeTrailingPathDelimiter(GetDlssEnablerPath) + 'goverlay.vars';
+      if FileExists(VarsFilePath) then
+      begin
+        VarsList := TStringList.Create;
+        try
+          VarsList.LoadFromFile(VarsFilePath);
+          CurrentVersion := VarsList.Values['dlssenablerversion'];
+          if CurrentVersion = '' then
+            CurrentVersion := VarsList.Values['dlssenabler'];
+        finally
+          VarsList.Free;
+        end;
+      end;
+      if (CurrentVersion = '') and Assigned(FOptiTab.FDlssEnablerLabel) then
         CurrentVersion := FOptiTab.FDlssEnablerLabel.Caption;
 
       if (FLatestOptiTag <> '') and (CurrentVersion <> '') and (CurrentVersion <> '—') and (CurrentVersion <> FLatestOptiTag) then
       begin
-        FOptiTab.FOptiLabel2.Caption := 'DLSS Enabler Update Available (' + FLatestOptiTag + ')';
+        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FOptiTab.FormatDlssEnablerDisplayTag(FLatestOptiTag);
         FOptiTab.FOptiLabel2.Font.Color := clLime;
         FOptiTab.FOptiLabel2.Visible := True;
+        if Assigned(FOptiTab.FUpdateBtn) then
+          FOptiTab.FUpdateBtn.Visible := True;
+        if Assigned(FOptiTab.FCheckupdBtn) then
+          FOptiTab.FCheckupdBtn.Visible := False;
         HasUpdates := True;
       end
       else
@@ -845,7 +865,7 @@ function TOptiscalerTab.GetDlssEnablerLatestTag(ASilent: Boolean = False): strin
 var
   Process: TProcess;
   Response: string;
-  StartPos, EndPos: Integer;
+  StartPos, EndPos, ColonPos, QuoteStart, QuoteEnd: Integer;
 begin
   Result := '';
   Process := TProcess.Create(nil);
@@ -864,18 +884,38 @@ begin
     StartPos := Pos('"tag_name"', Response);
     if StartPos > 0 then
     begin
-      StartPos := PosEx('"', Response, StartPos + 10);
-      if StartPos > 0 then
+      ColonPos := PosEx(':', Response, StartPos + 10);
+      if ColonPos > 0 then
       begin
-        StartPos := PosEx('"', Response, StartPos + 1);
-        EndPos := PosEx('"', Response, StartPos + 1);
-        if (StartPos > 0) and (EndPos > StartPos) then
-          Result := Copy(Response, StartPos + 1, EndPos - StartPos - 1);
+        QuoteStart := PosEx('"', Response, ColonPos);
+        if QuoteStart > 0 then
+        begin
+          QuoteEnd := PosEx('"', Response, QuoteStart + 1);
+          if (QuoteEnd > QuoteStart) then
+            Result := Copy(Response, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+        end;
       end;
     end;
   finally
     Process.Free;
   end;
+end;
+
+function TOptiscalerTab.FormatDlssEnablerDisplayTag(const ATag: string): string;
+var
+  Parts: TStringArray;
+begin
+  Result := ATag;
+  if Result = '' then Exit;
+
+  if Copy(Result, 1, 11) = 'OptiScaler_' then
+    Result := Copy(Result, 12, MaxInt);
+
+  Parts := Result.Split(['_']);
+  if Length(Parts) >= 2 then
+    Result := Parts[0] + '_' + Parts[1]
+  else if Length(Parts) = 1 then
+    Result := Parts[0];
 end;
 
 function TOptiscalerTab.DownloadFile(const AURL, ADestFile: string): Boolean;
@@ -1584,9 +1624,9 @@ begin
       DlssEnablerVer := '--';
 
     if Assigned(FDlssEnablerLabel) then
-      FDlssEnablerLabel.Caption := DlssEnablerVer;
+      FDlssEnablerLabel.Caption := FormatDlssEnablerDisplayTag(DlssEnablerVer);
     if Assigned(goverlayform.dlssEnablerVersionLabel) then
-      goverlayform.dlssEnablerVersionLabel.Caption := DlssEnablerVer;
+      goverlayform.dlssEnablerVersionLabel.Caption := FormatDlssEnablerDisplayTag(DlssEnablerVer);
 
   except
     on E: Exception do
@@ -1883,8 +1923,19 @@ begin
     UpdateStatus('Downloading DLSS Enabler...');
     if CheckAndInstallDlssEnabler(True) then
     begin
+      if Assigned(FOptiLabel2) then
+        FOptiLabel2.Visible := False;
+      if Assigned(FUpdateBtn) then
+        FUpdateBtn.Visible := False;
+      if Assigned(FCheckupdBtn) then
+        FCheckupdBtn.Visible := True;
       ShowToast(ntSuccess, 'DLSS Enabler updated successfully!', 3000);
       LoadVersionsFromFile;
+      if Assigned(goverlayform) then
+      begin
+        goverlayform.RefreshHomeOptiStatus;
+        goverlayform.RefreshOsStatusDots;
+      end;
     end
     else
       ShowToast(ntError, 'Failed to update DLSS Enabler', 5000);
