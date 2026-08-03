@@ -7,6 +7,14 @@ interface
 uses
   Classes, SysUtils, IniFiles, FileUtil, StrUtils, Types, Graphics, configfile, configmanager, overlay_utils, configkeys, bgmod_resources, optiscaler_update, systemdetector, apputils;
 
+const
+  // GpuFramesJouleCaption and CoreLoadTypeCaption are matched against these
+  // values below. They are the state the UI reports, not the text it shows.
+  MANGO_CAPTION_FRAMES_PER_JOULE = 'Frames / Joule';
+  MANGO_CAPTION_JOULES_PER_FRAME = 'Joules / Frame';
+  MANGO_CAPTION_CORE_PERCENT     = 'Percent';
+  MANGO_CAPTION_CORE_GRAPH       = 'Graph';
+
 type
   TVkBasaltSettings = record
     BasaltFolder: string;
@@ -1654,7 +1662,7 @@ begin
     AddIfTrue(Settings.GpuEfficiency, 'gpu_efficiency');
 
     // Flip efficiency (Joules / Frame mode)
-    if Settings.GpuFramesJouleCaption = 'Joules / Frame' then
+    if Settings.GpuFramesJouleCaption = MANGO_CAPTION_JOULES_PER_FRAME then
       ConfigLines.Add('flip_efficiency');
 
     // GPU voltage
@@ -1687,7 +1695,7 @@ begin
     AddIfTrue(Settings.CpuLoadCore, 'core_load');
 
     // Core load type (bars)
-    if Settings.CoreLoadTypeCaption = 'Graph' then
+    if Settings.CoreLoadTypeCaption = MANGO_CAPTION_CORE_GRAPH then
       ConfigLines.Add('core_bars');
 
     // CPU load color change
