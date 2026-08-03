@@ -5210,9 +5210,12 @@ end;
 
 procedure Tgoverlayform.gpuframesjouleBitBtnClick(Sender: TObject);
 begin
-  // Toggle caption between 'Frames / Joule' and 'Joules / Frame'
-  // Both buttons share the same caption
-  if gpuframesjouleBitBtn.Caption = 'Frames / Joule' then
+  // Toggle between 'Frames / Joule' and 'Joules / Frame'. Both buttons share
+  // the same caption; the state lives in Tag so it does not depend on the
+  // text that happens to be on the button.
+  gpuframesjouleBitBtn.Tag := 1 - gpuframesjouleBitBtn.Tag;
+  cpuframesjouleBitBtn.Tag := gpuframesjouleBitBtn.Tag;
+  if gpuframesjouleBitBtn.Tag = 1 then
   begin
     gpuframesjouleBitBtn.Caption := 'Joules / Frame';
     cpuframesjouleBitBtn.Caption := 'Joules / Frame';

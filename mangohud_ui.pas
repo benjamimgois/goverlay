@@ -2850,6 +2850,8 @@ begin
     frametimetypeBitBtn.Caption := 'Curve';
     coreloadtypeBitBtn.ImageIndex := 6;
     coreloadtypeBitBtn.Caption := 'Percent';
+    gpuframesjouleBitBtn.Tag := 0;
+    cpuframesjouleBitBtn.Tag := 0;
     gpuframesjouleBitBtn.Caption := 'Frames / Joule';
     cpuframesjouleBitBtn.Caption := 'Frames / Joule';
     fpsavgBitBtn.ImageIndex := 9;
@@ -2991,6 +2993,8 @@ begin
       gpuefficiencyCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_FLIP_EFFICIENCY) then
     begin
+      gpuframesjouleBitBtn.Tag := 1;
+      cpuframesjouleBitBtn.Tag := 1;
       gpuframesjouleBitBtn.Caption := 'Joules / Frame';
       cpuframesjouleBitBtn.Caption := 'Joules / Frame';
     end
@@ -3561,7 +3565,10 @@ begin
     Settings.GpuPower := gpupowerCheckBox.Checked;
     Settings.GpuPowerLimit := gpupowerlimitCheckBox.Checked;
     Settings.GpuEfficiency := gpuefficiencyCheckBox.Checked;
-    Settings.GpuFramesJouleCaption := gpuframesjouleBitBtn.Caption;
+    if gpuframesjouleBitBtn.Tag = 1 then
+      Settings.GpuFramesJouleCaption := MANGO_CAPTION_JOULES_PER_FRAME
+    else
+      Settings.GpuFramesJouleCaption := MANGO_CAPTION_FRAMES_PER_JOULE;
     Settings.GpuVoltage := gpuvoltageCheckBox.Checked;
     Settings.GpuThrottling := gputhrottlingCheckBox.Checked;
     Settings.GpuThrottlingGraph := gputhrottlinggraphCheckBox.Checked;
@@ -3573,7 +3580,10 @@ begin
     Settings.CpuText := cpunameEdit.Text;
     Settings.CpuAvgLoad := cpuavgloadCheckBox.Checked;
     Settings.CpuLoadCore := cpuloadcoreCheckBox.Checked;
-    Settings.CoreLoadTypeCaption := coreloadtypeBitBtn.Caption;
+    if coreloadtypeBitBtn.ImageIndex = 7 then
+      Settings.CoreLoadTypeCaption := MANGO_CAPTION_CORE_GRAPH
+    else
+      Settings.CoreLoadTypeCaption := MANGO_CAPTION_CORE_PERCENT;
     Settings.CpuLoadColorChecked := cpuloadcolorCheckBox.Checked;
     Settings.CpuLoadColors[0] := cpuload1ColorButton.ButtonColor;
     Settings.CpuLoadColors[1] := cpuload2ColorButton.ButtonColor;
