@@ -5,27 +5,89 @@ unit themeunit;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, Dialogs, IniFiles, Buttons, ComCtrls,
+  Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, Dialogs, IniFiles, Buttons, ComCtrls, Math,
   configmanager;
 
 type
   TThemeMode = (tmLight, tmDark);
+  TUiLabelRole = (lrCardTitle, lrSectionTitle, lrControlLabel, lrMutedHint, lrHighlight, lrStatusOk);
 
 const
-  // Dark theme colors (BGR format)
-  DarkBackgroundColor = $0045403A;  // Dark panel color
-  DarkerBackgroundColor = $00232323;  // Darker panel color for unselected items
-  DarkTextColor = clWhite;          // Light text color
+  // ── Color Palette Tokens (BGR format) ──────────────────────────────
+  DARK_TAB_BG        = $00281A16; // rgb(22, 26, 40)
+  DARK_CARD_BG       = $002E1E1A; // rgb(26, 30, 46)
+  DARK_CARD_BORDER   = $00342620; // rgb(32, 38, 52)
+  DARK_INPUT_BG      = $00482E26; // rgb(38, 46, 72)
+  DARK_INPUT_BORDER  = $006C4637; // rgb(55, 70, 108)
+
+  // Dark theme legacy colors
+  DarkBackgroundColor = $0045403A;
+  DarkerBackgroundColor = $00232323;
+  DarkTextColor = clWhite;
 
   // Light theme colors
-  LightBackgroundColor = clWhite;   // Light panel color
-  LighterBackgroundColor = $00F5F5F5;  // Lighter gray for unselected items
-  LightTextColor = clBlack;         // Dark text color
-  LightBorderColor = $00D0D0D0;     // Light border color
-  LightButtonColor = $00E0E0E0;     // Light gray for buttons
+  LightBackgroundColor = clWhite;
+  LighterBackgroundColor = $00F5F5F5;
+  LightTextColor = clBlack;
+  LightBorderColor = $00D0D0D0;
+  LightButtonColor = $00E0E0E0;
+
+  // ── Typography Color Tokens ─────────────────────────────────────────
+  CLR_TEXT_PRIMARY   = clWhite;   // Title & primary text
+  CLR_TEXT_SECONDARY = $00CCAAAA; // Section / Sub-card titles (Cyan-Gray)
+  CLR_TEXT_MUTED     = $00AAAAAA; // Secondary hints & muted labels
+  CLR_TEXT_HIGHLIGHT = $00FF99BB; // Version tags & key highlights (purple BGR)
+  CLR_TEXT_ACCENT    = $00F0BE30; // Cyan accent
+  CLR_TEXT_SUCCESS   = $0066CC44; // Green status
+
+  // ── Typography Scale Tokens ──────────────────────────────────────────
+  UI_FONT_FAMILY     = 'Sans';
+  FONT_SZ_CARD_HDR   = 10; // Card level 1 title (Bold)
+  FONT_SZ_SEC_HDR    = 8;  // Sub-card level 2 title (Bold)
+  FONT_SZ_CONTROL    = 9;  // Form controls & labels (Regular)
+  FONT_SZ_HINT       = 8;  // Auxiliary hints & badges (Regular)
+
+  // ── Layout Metric Tokens ────────────────────────────────────────────
+  LAYOUT_MARGIN      = 4;  // Outer scrollbox margin
+  LAYOUT_GAP         = 6;  // Gap between cards & sub-cards
+  LAYOUT_PAD         = 12; // Inner card padding
+  LAYOUT_HDR_HEIGHT  = 34; // Top card header height
+  LAYOUT_ROW_HEIGHT  = 26; // Standard row height for controls
+  LAYOUT_BTN_HEIGHT  = 28; // Standard height for buttons
+  LAYOUT_COMBO_HEIGHT= 26; // Standard height for comboboxes
 
 var
-  CurrentTheme: TThemeMode = tmDark;  // Default to dark theme
+  CurrentTheme: TThemeMode = tmDark;
+
+/// <summary>
+/// Styles a main card panel with background, border, and title header
+/// </summary>
+procedure StyleMainCard(ACard: TPanel; ATitleLbl: TLabel; const ATitle: string);
+
+/// <summary>
+/// Styles a sub-card panel with subtle border and section header
+/// </summary>
+procedure StyleSubCard(ASubCard: TPanel; AHeaderLbl: TLabel; const ATitle: string);
+
+/// <summary>
+/// Styles a label according to its role in the UI hierarchy
+/// </summary>
+procedure StyleLabel(ALabel: TLabel; ARole: TUiLabelRole);
+
+/// <summary>
+/// Styles input controls (ComboBox, Edit, SpinEdit)
+/// </summary>
+procedure StyleInputControl(AControl: TControl);
+
+/// <summary>
+/// Styles CheckBoxes and RadioButtons
+/// </summary>
+procedure StyleToggleControl(AControl: TControl);
+
+/// <summary>
+/// Styles Action Buttons (TBitBtn, TSpeedButton)
+/// </summary>
+procedure StyleActionButton(AButton: TControl);
 
 /// <summary>
 /// Recursively applies dark theme colors to all controls in a form
@@ -525,6 +587,181 @@ begin
     end;
   except
     // Silently fail if we can't save the preference
+  end;
+end;
+
+procedure StyleMainCard(ACard: TPanel; ATitleLbl: TLabel; const ATitle: string);
+begin
+  if not Assigned(ACard) then Exit;
+  ACard.BevelOuter := bvNone;
+  ACard.BorderStyle := bsNone;
+  if CurrentTheme = tmDark then
+    ACard.Color := DARK_CARD_BG
+  else
+    ACard.Color := LightBackgroundColor;
+
+  if Assigned(ATitleLbl) then
+  begin
+    ATitleLbl.Caption := ATitle;
+    ATitleLbl.Font.Name := UI_FONT_FAMILY;
+    ATitleLbl.Font.Size := FONT_SZ_CARD_HDR;
+    ATitleLbl.Font.Style := [fsBold];
+    if CurrentTheme = tmDark then
+      ATitleLbl.Font.Color := CLR_TEXT_PRIMARY
+    else
+      ATitleLbl.Font.Color := LightTextColor;
+    ATitleLbl.AutoSize := True;
+    ATitleLbl.Transparent := True;
+    ATitleLbl.SetBounds(12, 8, 200, 22);
+  end;
+end;
+
+procedure StyleSubCard(ASubCard: TPanel; AHeaderLbl: TLabel; const ATitle: string);
+begin
+  if not Assigned(ASubCard) then Exit;
+  ASubCard.BevelOuter := bvNone;
+  ASubCard.BorderStyle := bsNone;
+  if CurrentTheme = tmDark then
+    ASubCard.Color := DARK_CARD_BG
+  else
+    ASubCard.Color := LightBackgroundColor;
+
+  if Assigned(AHeaderLbl) then
+  begin
+    AHeaderLbl.Caption := ATitle;
+    AHeaderLbl.Font.Name := UI_FONT_FAMILY;
+    AHeaderLbl.Font.Size := FONT_SZ_SEC_HDR;
+    AHeaderLbl.Font.Style := [fsBold];
+    if CurrentTheme = tmDark then
+      AHeaderLbl.Font.Color := CLR_TEXT_SECONDARY
+    else
+      AHeaderLbl.Font.Color := LightTextColor;
+    AHeaderLbl.AutoSize := True;
+    AHeaderLbl.Transparent := True;
+    AHeaderLbl.SetBounds(10, 6, Max(100, ASubCard.Width - 20), 16);
+  end;
+end;
+
+procedure StyleLabel(ALabel: TLabel; ARole: TUiLabelRole);
+begin
+  if not Assigned(ALabel) then Exit;
+  ALabel.Font.Name := UI_FONT_FAMILY;
+  case ARole of
+    lrCardTitle:
+      begin
+        ALabel.Font.Size := FONT_SZ_CARD_HDR;
+        ALabel.Font.Style := [fsBold];
+        if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_PRIMARY else ALabel.Font.Color := LightTextColor;
+      end;
+    lrSectionTitle:
+      begin
+        ALabel.Font.Size := FONT_SZ_SEC_HDR;
+        ALabel.Font.Style := [fsBold];
+        if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_SECONDARY else ALabel.Font.Color := LightTextColor;
+      end;
+    lrControlLabel:
+      begin
+        ALabel.Font.Size := FONT_SZ_CONTROL;
+        ALabel.Font.Style := [];
+        if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_MUTED else ALabel.Font.Color := LightTextColor;
+      end;
+    lrMutedHint:
+      begin
+        ALabel.Font.Size := FONT_SZ_HINT;
+        ALabel.Font.Style := [];
+        if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_MUTED else ALabel.Font.Color := LightTextColor;
+      end;
+    lrHighlight:
+      begin
+        ALabel.Font.Size := FONT_SZ_CONTROL;
+        ALabel.Font.Style := [];
+        if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_HIGHLIGHT else ALabel.Font.Color := LightTextColor;
+      end;
+    lrStatusOk:
+      begin
+        ALabel.Font.Size := FONT_SZ_CONTROL;
+        ALabel.Font.Style := [fsBold];
+        if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_SUCCESS else ALabel.Font.Color := clGreen;
+      end;
+  end;
+end;
+
+procedure StyleInputControl(AControl: TControl);
+var
+  SS: WideString;
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.Font.Name := UI_FONT_FAMILY;
+  AControl.Font.Size := FONT_SZ_CONTROL;
+  if CurrentTheme = tmDark then
+  begin
+    AControl.Color := DARK_INPUT_BG;
+    AControl.Font.Color := CLR_TEXT_PRIMARY;
+  end
+  else
+  begin
+    AControl.Color := LightBackgroundColor;
+    AControl.Font.Color := LightTextColor;
+  end;
+
+  if (AControl is TWinControl) and TWinControl(AControl).HandleAllocated then
+  begin
+    if CurrentTheme = tmDark then
+      SS := 'QComboBox, QLineEdit, QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
+            'QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 18px; border-left: none; }'
+    else
+      SS := 'QComboBox, QLineEdit, QSpinBox { border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
+    QWidget_setStyleSheet(TQtWidget(TWinControl(AControl).Handle).Widget, @SS);
+  end;
+end;
+
+procedure StyleToggleControl(AControl: TControl);
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.Font.Name := UI_FONT_FAMILY;
+  AControl.Font.Size := FONT_SZ_CONTROL;
+  if AControl is TCheckBox then
+  begin
+    TCheckBox(AControl).ParentColor := True;
+    if CurrentTheme = tmDark then
+      TCheckBox(AControl).Font.Color := CLR_TEXT_PRIMARY
+    else
+      TCheckBox(AControl).Font.Color := LightTextColor;
+  end;
+  if AControl is TRadioButton then
+  begin
+    TRadioButton(AControl).ParentColor := True;
+    if CurrentTheme = tmDark then
+      TRadioButton(AControl).Font.Color := CLR_TEXT_PRIMARY
+    else
+      TRadioButton(AControl).Font.Color := LightTextColor;
+  end;
+end;
+
+procedure StyleActionButton(AButton: TControl);
+var
+  SS: WideString;
+begin
+  if not Assigned(AButton) then Exit;
+  AButton.Font.Name := UI_FONT_FAMILY;
+  AButton.Font.Size := FONT_SZ_CONTROL;
+  if CurrentTheme = tmDark then
+  begin
+    AButton.Color := DARK_INPUT_BG;
+    AButton.Font.Color := CLR_TEXT_PRIMARY;
+    if (AButton is TWinControl) and TWinControl(AButton).HandleAllocated then
+    begin
+      SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+            'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+            'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
+            'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
+      QWidget_setStyleSheet(TQtWidget(TWinControl(AButton).Handle).Widget, @SS);
+    end;
+  end
+  else
+  begin
+    AButton.Color := LightButtonColor;
+    AButton.Font.Color := LightTextColor;
   end;
 end;
 

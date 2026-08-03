@@ -143,21 +143,12 @@ const
     with FForm do
     begin
       Card := TPanel.Create(FForm);
-      Card.Parent     := FOsBgPanel;
-      Card.BevelOuter := bvNone;
-      Card.BorderStyle := bsNone;
-      Card.Color      := BG;
-      Card.Caption    := '';
-      Card.OnPaint    := @SubCardPaint;
+      Card.Parent  := FOsBgPanel;
+      Card.Caption := '';
+      Card.OnPaint := @SubCardPaint;
       Lbl := TLabel.Create(Card);
-      Lbl.Parent      := Card;
-      Lbl.Caption     := ATitle;
-      Lbl.Font.Color  := WHITE;
-      Lbl.Font.Size   := 10;
-      Lbl.Font.Style  := [fsBold];
-      Lbl.AutoSize    := True;
-      Lbl.SetBounds(12, 8, 200, 22);
-      Lbl.Transparent := True;
+      Lbl.Parent   := Card;
+      StyleMainCard(Card, Lbl, ATitle);
     end;
   end;
 
@@ -169,8 +160,8 @@ const
       GB.Parent   := Card;
       GB.Visible  := True;
       GB.Caption  := '';
-      GB.Color    := BG;
-      GB.Font.Color := WHITE;
+      GB.Color    := DARK_CARD_BG;
+      GB.Font.Color := CLR_TEXT_PRIMARY;
       GB.AnchorSideLeft.Control   := nil;
       GB.AnchorSideTop.Control    := nil;
       GB.AnchorSideRight.Control  := nil;
@@ -183,31 +174,24 @@ const
 
   procedure DarkCheck(C: TCheckBox);
   begin
-    C.ParentColor := True; C.Font.Color := WHITE; C.Font.Size := 9;
+    StyleToggleControl(C);
   end;
 
   procedure DarkRadio(R: TRadioButton);
   begin
-    R.ParentColor := False; R.Color := BG; R.Font.Color := WHITE; R.Font.Size := 9;
+    StyleToggleControl(R);
   end;
 
   procedure DarkCombo(C: TComboBox);
-  var
-    SS: string;
   begin
-    if C = nil then Exit;
-    C.Color := RGBToColor(38, 46, 72);
-    C.Font.Color := WHITE;
-    C.Font.Size := 9;
-    // Qt stylesheet applied globally via QApplication_setStyleSheet in FormShow
+    StyleInputControl(C);
   end;
 
   procedure DarkLbl(L: TLabel; AColor: TColor);
   begin
-    L.Color      := BG;
-    L.Font.Color := AColor;
-    L.Font.Size  := 9;
-    L.Transparent := False;
+    StyleLabel(L, lrControlLabel);
+    if AColor <> clWhite then
+      L.Font.Color := AColor;
   end;
 
 const
@@ -388,72 +372,44 @@ begin
     fakenvapiGroupBox.Visible  := False;
 
     FOsMainSec := TPanel.Create(FForm);
-    FOsMainSec.Parent      := FOsOptionsCard;
-    FOsMainSec.BevelOuter  := bvNone;
-    FOsMainSec.BorderStyle := bsNone;
-    FOsMainSec.Caption     := '';
-    FOsMainSec.Color       := BG;
-    FOsMainSec.OnPaint     := @SubCardPaint;
+    FOsMainSec.Parent  := FOsOptionsCard;
+    FOsMainSec.Caption := '';
+    FOsMainSec.OnPaint := @SubCardPaint;
     FOsMainLbl := TLabel.Create(FOsMainSec);
-    FOsMainLbl.Parent      := FOsMainSec;
-    FOsMainLbl.Caption     := 'Main';
-    FOsMainLbl.Font.Color  := $00CCAAAA;
-    FOsMainLbl.Font.Style  := [fsBold];
-    FOsMainLbl.Font.Size   := 8;
-    FOsMainLbl.Transparent := True;
+    FOsMainLbl.Parent := FOsMainSec;
+    StyleSubCard(FOsMainSec, FOsMainLbl, 'Main');
 
     FOsSpatialSec := TPanel.Create(FForm);
-    FOsSpatialSec.Parent      := FOsOptionsCard;
-    FOsSpatialSec.BevelOuter  := bvNone;
-    FOsSpatialSec.BorderStyle := bsNone;
-    FOsSpatialSec.Caption     := '';
-    FOsSpatialSec.Color       := BG;
-    FOsSpatialSec.OnPaint     := @SubCardPaint;
+    FOsSpatialSec.Parent  := FOsOptionsCard;
+    FOsSpatialSec.Caption := '';
+    FOsSpatialSec.OnPaint := @SubCardPaint;
     FOsSpatialLbl := TLabel.Create(FOsSpatialSec);
-    FOsSpatialLbl.Parent      := FOsSpatialSec;
-    FOsSpatialLbl.Caption     := 'Spatial Upscaler';
-    FOsSpatialLbl.Font.Color  := $00CCAAAA;
-    FOsSpatialLbl.Font.Style  := [fsBold];
-    FOsSpatialLbl.Font.Size   := 8;
-    FOsSpatialLbl.Transparent := True;
+    FOsSpatialLbl.Parent := FOsSpatialSec;
+    StyleSubCard(FOsSpatialSec, FOsSpatialLbl, 'Spatial Upscaler');
 
     FOsTemporalSec := TPanel.Create(FForm);
-    FOsTemporalSec.Parent      := FOsOptionsCard;
-    FOsTemporalSec.BevelOuter  := bvNone;
-    FOsTemporalSec.BorderStyle := bsNone;
-    FOsTemporalSec.Caption     := '';
-    FOsTemporalSec.Color       := BG;
-    FOsTemporalSec.OnPaint     := @SubCardPaint;
+    FOsTemporalSec.Parent  := FOsOptionsCard;
+    FOsTemporalSec.Caption := '';
+    FOsTemporalSec.OnPaint := @SubCardPaint;
     FOsTemporalLbl := TLabel.Create(FOsTemporalSec);
-    FOsTemporalLbl.Parent      := FOsTemporalSec;
-    FOsTemporalLbl.Caption     := 'Temporal Upscaler';
-    FOsTemporalLbl.Font.Color  := $00CCAAAA;
-    FOsTemporalLbl.Font.Style  := [fsBold];
-    FOsTemporalLbl.Font.Size   := 8;
-    FOsTemporalLbl.Transparent := True;
+    FOsTemporalLbl.Parent := FOsTemporalSec;
+    StyleSubCard(FOsTemporalSec, FOsTemporalLbl, 'Temporal Upscaler');
 
     FOsImgSec := TPanel.Create(FForm);
     FOsImgSec.Parent      := FOsOptionsCard;
     FOsImgSec.BevelOuter  := bvNone;
     FOsImgSec.BorderStyle := bsNone;
     FOsImgSec.Caption     := '';
-    FOsImgSec.Color       := BG;
+    FOsImgSec.Color       := DARK_CARD_BG;
     FOsImgSec.Visible     := False;
 
     FOsFakeSec := TPanel.Create(FForm);
-    FOsFakeSec.Parent      := FOsOptionsCard;
-    FOsFakeSec.BevelOuter  := bvNone;
-    FOsFakeSec.BorderStyle := bsNone;
-    FOsFakeSec.Caption     := '';
-    FOsFakeSec.Color       := BG;
-    FOsFakeSec.OnPaint     := @SubCardPaint;
+    FOsFakeSec.Parent  := FOsOptionsCard;
+    FOsFakeSec.Caption := '';
+    FOsFakeSec.OnPaint := @SubCardPaint;
     FOsFakeLbl := TLabel.Create(FOsFakeSec);
-    FOsFakeLbl.Parent      := FOsFakeSec;
-    FOsFakeLbl.Caption     := 'Reflex / Antilag';
-    FOsFakeLbl.Font.Color  := $00CCAAAA;
-    FOsFakeLbl.Font.Style  := [fsBold];
-    FOsFakeLbl.Font.Size   := 8;
-    FOsFakeLbl.Transparent := True;
+    FOsFakeLbl.Parent := FOsFakeSec;
+    StyleSubCard(FOsFakeSec, FOsFakeLbl, 'Reflex / Antilag');
 
     // Reparent controls to their sub-cards
     // --- Sub-card 1: Main controls ---

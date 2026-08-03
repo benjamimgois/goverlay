@@ -64,14 +64,9 @@ begin
 
   TitleLbl := TLabel.Create(FVkReshadeCard);
   TitleLbl.Parent      := FVkReshadeCard;
-  TitleLbl.Caption     := '  Reshade Effects';
-  TitleLbl.Font.Name   := 'Noto Sans';
-  TitleLbl.Font.Size   := 10;
-  TitleLbl.Font.Style  := [fsBold];
-  TitleLbl.Font.Color  := CLR_WHITE;
-  TitleLbl.AutoSize    := True;
-  TitleLbl.SetBounds(12, 12, 200, 22);
-  TitleLbl.Transparent := True;
+  StyleLabel(TitleLbl, lrCardTitle);
+  TitleLbl.Caption     := 'Reshade Effects';
+  TitleLbl.SetBounds(12, 10, 200, 22);
 
   // Hide old dual-listbox UI (data still kept in hidden listboxes for save/load)
   if Assigned(FVkAvHdrLbl) then FVkAvHdrLbl.Visible := False;
@@ -111,14 +106,9 @@ begin
 
   TitleLbl := TLabel.Create(FVkBuiltinCard);
   TitleLbl.Parent      := FVkBuiltinCard;
-  TitleLbl.Caption     := '  Built-in Effects';
-  TitleLbl.Font.Name   := 'Noto Sans';
-  TitleLbl.Font.Size   := 10;
-  TitleLbl.Font.Style  := [fsBold];
-  TitleLbl.Font.Color  := CLR_WHITE;
-  TitleLbl.AutoSize    := True;
-  TitleLbl.SetBounds(12, 12, 200, 22);
-  TitleLbl.Transparent := True;
+  StyleLabel(TitleLbl, lrCardTitle);
+  TitleLbl.Caption     := 'Built-in Effects';
+  TitleLbl.SetBounds(12, 10, 200, 22);
 
   // Clear LFM anchors to prevent conflicting alignment
   casTrackBar.AnchorSideLeft.Control := nil; casTrackBar.AnchorSideTop.Control := nil; casTrackBar.AnchorSideRight.Control := nil; casTrackBar.AnchorSideBottom.Control := nil;
@@ -223,14 +213,9 @@ begin
 
   FVkToggleTitleLbl := TLabel.Create(FVkToggleCard);
   FVkToggleTitleLbl.Parent      := FVkToggleCard;
+  StyleLabel(FVkToggleTitleLbl, lrCardTitle);
   FVkToggleTitleLbl.Caption     := 'Toggle key';
-  FVkToggleTitleLbl.Font.Name   := 'Noto Sans';
-  FVkToggleTitleLbl.Font.Size   := 10;
-  FVkToggleTitleLbl.Font.Style  := [fsBold];
-  FVkToggleTitleLbl.Font.Color  := CLR_WHITE;
-  FVkToggleTitleLbl.AutoSize    := False;
-  FVkToggleTitleLbl.SetBounds(12, 12, 100, 22);
-  FVkToggleTitleLbl.Transparent := True;
+  FVkToggleTitleLbl.SetBounds(12, 10, 100, 22);
 
   // Reparent combobox off the vkbasalt tab (hidden data store)
   vkbtogglekeyCombobox.Visible := False;
@@ -245,6 +230,7 @@ begin
   FVkToggleCaptureBtn.Cursor   := crHandPoint;
   FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
   FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
+  StyleActionButton(FVkToggleCaptureBtn);
 
   // ── Restore defaults button (placed to the right of Toggle Key button)
   FVkRestoreBtn := TBitBtn.Create(FVkToggleCard);
@@ -255,6 +241,7 @@ begin
   FVkRestoreBtn.Anchors  := [akLeft, akTop];
   FVkRestoreBtn.Cursor   := crHandPoint;
   FVkRestoreBtn.OnClick  := @VkRestoreBtnClick;
+  StyleActionButton(FVkRestoreBtn);
 
   // ── Reshade sync button (placed to the right of Restore Defaults button)
   FVkReshadeSyncBtn := TBitBtn.Create(FVkToggleCard);
@@ -262,10 +249,8 @@ begin
   FVkReshadeSyncBtn.Anchors  := [akLeft, akTop];
   FVkReshadeSyncBtn.Cursor   := crHandPoint;
   FVkReshadeSyncBtn.Caption  := '↻ Sync Shaders';
-  FVkReshadeSyncBtn.Font.Name  := 'Noto Sans';
-  FVkReshadeSyncBtn.Font.Size  := 9;
-  FVkReshadeSyncBtn.Font.Color := clWhite;
   FVkReshadeSyncBtn.OnClick  := @reshaderefreshBitBtnClick;
+  StyleActionButton(FVkReshadeSyncBtn);
   end;
 end;
 
@@ -546,11 +531,8 @@ begin
 
     FVsToggleTitleLbl := TLabel.Create(Card);
     FVsToggleTitleLbl.Parent      := Card;
+    StyleLabel(FVsToggleTitleLbl, lrCardTitle);
     FVsToggleTitleLbl.Caption     := 'Toggle key';
-    FVsToggleTitleLbl.Font.Name   := 'Noto Sans';
-    FVsToggleTitleLbl.Font.Size   := 10;
-    FVsToggleTitleLbl.Font.Style  := [fsBold];
-    FVsToggleTitleLbl.AutoSize    := False;
     FVsToggleTitleLbl.SetBounds(CARD_P, CARD_P, 100, 22);
 
     FVsToggleCaptureBtn := TBitBtn.Create(Card);
@@ -561,6 +543,7 @@ begin
     FVsToggleCaptureBtn.OnClick  := @CaptureBtnClick;
     FVsToggleCaptureBtn.Caption  := '⌨ ' + FVsToggleEdit.Text;
     FVsToggleCaptureBtn.SetBounds(CARD_P, CARD_P + 26, 150, 30);
+    StyleActionButton(FVsToggleCaptureBtn);
 
     FVsRestoreBtn := TBitBtn.Create(Card);
     FVsRestoreBtn.Parent      := Card;
@@ -569,6 +552,7 @@ begin
     FVsRestoreBtn.Cursor      := crHandPoint;
     FVsRestoreBtn.OnClick     := @VsRestoreBtnClick;
     FVsRestoreBtn.SetBounds(CARD_P + 180, CARD_P + 26, 150, 30);
+    StyleActionButton(FVsRestoreBtn);
 
     // ── Left Card: Tone + 3-Band ──────────────────────────────────────────
     Card := MkCard(0, 400);
@@ -576,11 +560,8 @@ begin
 
     FVsLuminanceTitleLbl := TLabel.Create(Card);
     FVsLuminanceTitleLbl.Parent      := Card;
+    StyleLabel(FVsLuminanceTitleLbl, lrCardTitle);
     FVsLuminanceTitleLbl.Caption     := 'Luminance';
-    FVsLuminanceTitleLbl.Font.Name   := 'Noto Sans';
-    FVsLuminanceTitleLbl.Font.Size   := 10;
-    FVsLuminanceTitleLbl.Font.Style  := [fsBold];
-    FVsLuminanceTitleLbl.AutoSize    := False;
     FVsLuminanceTitleLbl.SetBounds(CARD_P, CARD_P, 150, 22);
 
     ToneSec := MkSection(Card, 'Tone', CARD_P + 30, 4 * ROW_H + 32);
@@ -599,11 +580,8 @@ begin
 
     FVsChrominanceTitleLbl := TLabel.Create(Card);
     FVsChrominanceTitleLbl.Parent      := Card;
+    StyleLabel(FVsChrominanceTitleLbl, lrCardTitle);
     FVsChrominanceTitleLbl.Caption     := 'Chrominance';
-    FVsChrominanceTitleLbl.Font.Name   := 'Noto Sans';
-    FVsChrominanceTitleLbl.Font.Size   := 10;
-    FVsChrominanceTitleLbl.Font.Style  := [fsBold];
-    FVsChrominanceTitleLbl.AutoSize    := False;
     FVsChrominanceTitleLbl.SetBounds(CARD_P, CARD_P, 150, 22);
 
     ColorSec := MkSection(Card, 'Color', CARD_P + 30, 5 * ROW_H + 32);

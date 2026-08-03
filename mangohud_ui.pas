@@ -453,35 +453,18 @@ const
   var
     Card: TPanel;
     Lbl: TLabel;
-    IsLight: Boolean;
-    BgColor, TextColor: TColor;
   begin
     with FForm do
     begin
-      IsLight   := CurrentTheme = tmLight;
-      BgColor   := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
-      TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
-
       Card := TPanel.Create(FForm);
-      Card.Parent      := visualTabSheet;
-      Card.BevelOuter  := bvNone;
-      Card.BorderStyle := bsNone;
-      Card.Caption     := '';
-      Card.Color       := BgColor;
-      Card.ParentColor := False;
-      Card.OnPaint     := @FForm.SubCardPaint;
+      Card.Parent  := visualTabSheet;
+      Card.Caption := '';
+      Card.OnPaint := @FForm.SubCardPaint;
       FVisualCards[AIndex] := Card;
 
       Lbl := TLabel.Create(Card);
-      Lbl.Parent       := Card;
-      Lbl.Caption      := ATitle;
-      Lbl.Font.Style   := [fsBold];
-      Lbl.Font.Size    := 9;
-      Lbl.Font.Color   := TextColor;
-      Lbl.Transparent  := True;
-      Lbl.AutoSize     := True;
-      Lbl.Left         := 10;
-      Lbl.Top          := TITLE_T;
+      Lbl.Parent   := Card;
+      StyleMainCard(Card, Lbl, ATitle);
     end;
   end;
 
@@ -506,24 +489,13 @@ const
     with FForm do
     begin
       Sec := TPanel.Create(FVisualCards[0]);
-      Sec.Parent      := FVisualCards[0];
-      Sec.BevelOuter  := bvNone;
-      Sec.BorderStyle := bsNone;
-      Sec.Caption     := '';
-      Sec.Color       := IfThen(CurrentTheme = tmLight, $00FFFFFF, RGBToColor(26, 30, 46));
-      Sec.ParentColor := False;
-      Sec.OnPaint     := @FForm.SubCardPaint;
+      Sec.Parent  := FVisualCards[0];
+      Sec.Caption := '';
+      Sec.OnPaint := @FForm.SubCardPaint;
       FVisualSections[AIndex] := Sec;
       Lbl := TLabel.Create(Sec);
-      Lbl.Parent     := Sec;
-      Lbl.Caption    := ATitle;
-      Lbl.Font.Color := $00AAAACC;
-      Lbl.Font.Style := [fsBold];
-      Lbl.Font.Size  := 8;
-      Lbl.Transparent := True;
-      Lbl.AutoSize    := True;
-      Lbl.Left := 6;
-      Lbl.Top  := 4;
+      Lbl.Parent := Sec;
+      StyleSubCard(Sec, Lbl, ATitle);
     end;
   end;
 
@@ -1416,27 +1388,17 @@ const
       // Left section title
       Lbl1 := TLabel.Create(Card);
       Lbl1.Parent      := Card;
+      StyleLabel(Lbl1, lrSectionTitle);
       Lbl1.Caption     := ATitle1;
-      Lbl1.Font.Style  := [fsBold];
-      Lbl1.Font.Size   := 9;
-      Lbl1.Font.Color  := TextColor;
-      Lbl1.Transparent := True;
-      Lbl1.AutoSize    := True;
-      Lbl1.Left        := 18;
-      Lbl1.Top         := 5;
+      Lbl1.SetBounds(18, 5, 200, 18);
       FPerfLeftLbl[AIndex] := Lbl1;
 
       // Right section title
       Lbl2 := TLabel.Create(Card);
       Lbl2.Parent      := Card;
+      StyleLabel(Lbl2, lrSectionTitle);
       Lbl2.Caption     := ATitle2;
-      Lbl2.Font.Style  := [fsBold];
-      Lbl2.Font.Size   := 9;
-      Lbl2.Font.Color  := TextColor;
-      Lbl2.Transparent := True;
-      Lbl2.AutoSize    := True;
-      Lbl2.Left        := HalfW + 16;
-      Lbl2.Top         := 5;
+      Lbl2.SetBounds(HalfW + 16, 5, 200, 18);
       FPerfRightLbl[AIndex] := Lbl2;
 
       // Hide original LFM groupboxes
@@ -1933,21 +1895,12 @@ const
     with FForm do
     begin
       Card := TPanel.Create(FForm);
-      Card.Parent      := FMtBgPanel;
-      Card.BevelOuter  := bvNone;
-      Card.BorderStyle := bsNone;
-      Card.Color       := CARD_BG;
-      Card.Caption     := '';
-      Card.OnPaint     := @SubCardPaint;
+      Card.Parent  := FMtBgPanel;
+      Card.Caption := '';
+      Card.OnPaint := @SubCardPaint;
       Lbl := TLabel.Create(Card);
-      Lbl.Parent      := Card;
-      Lbl.Caption     := ATitle;
-      Lbl.Font.Color  := WHITE;
-      Lbl.Font.Size   := 10;
-      Lbl.Font.Style  := [fsBold];
-      Lbl.AutoSize    := True;
-      Lbl.SetBounds(12, 8, 200, 22);
-      Lbl.Transparent := True;
+      Lbl.Parent   := Card;
+      StyleMainCard(Card, Lbl, ATitle);
     end;
   end;
 
@@ -2367,21 +2320,12 @@ const
     with FForm do
     begin
       Card := TPanel.Create(FForm);
-      Card.Parent      := FExtBgPanel;
-      Card.BevelOuter  := bvNone;
-      Card.BorderStyle := bsNone;
-      Card.Color       := CARD_BG;
-      Card.Caption     := '';
-      Card.OnPaint     := @SubCardPaint;
+      Card.Parent  := FExtBgPanel;
+      Card.Caption := '';
+      Card.OnPaint := @SubCardPaint;
       Lbl := TLabel.Create(Card);
-      Lbl.Parent      := Card;
-      Lbl.Caption     := ATitle;
-      Lbl.Font.Color  := WHITE;
-      Lbl.Font.Size   := 10;
-      Lbl.Font.Style  := [fsBold];
-      Lbl.AutoSize    := True;
-      Lbl.SetBounds(12, 8, 200, 22);
-      Lbl.Transparent := True;
+      Lbl.Parent   := Card;
+      StyleMainCard(Card, Lbl, ATitle);
     end;
   end;
 
@@ -2406,9 +2350,8 @@ const
 
   procedure DarkLabel(L: TLabel);
   begin
-    L.Font.Color  := WHITE;
-    L.Transparent := True;
-    L.ParentColor := False;
+    if L = nil then Exit;
+    StyleLabel(L, lrSectionTitle);
   end;
 
 begin
@@ -2470,6 +2413,7 @@ begin
   Place(networkCheckBox,     FExtSysCard, 128, 283 + HDR); DarkCheck(networkCheckBox);
   Place(fahrenheitCheckBox,  FExtSysCard, 254, 283 + HDR); DarkCheck(fahrenheitCheckBox);
   Place(customcommandEdit,   FExtSysCard, 372, 283 + HDR); // keeps black/lime colors
+  customcommandEdit.Font.Name := 'DejaVu Sans Mono';
   Place(mediaColorButton,    FExtSysCard, 6,   305 + HDR);
   Place(networkComboBox,     FExtSysCard, 128, 305 + HDR);
   networkComboBox.Color      := OUTER_BG;
@@ -2517,6 +2461,7 @@ begin
   Place(logfolderEdit,   FExtLogCard, 335, 143 + HDR);
   logfolderEdit.Color      := OUTER_BG;
   logfolderEdit.Font.Color := WHITE;
+  logfolderEdit.Font.Name  := 'DejaVu Sans Mono';
   Place(logfolderBitBtn, FExtLogCard, 783, 143 + HDR);
 
   Place(logtoggleImage, FExtLogCard, 325, 63 + HDR);
