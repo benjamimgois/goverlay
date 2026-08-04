@@ -3263,14 +3263,10 @@ begin
     begin
       if SameText(AValue, '0,1') then
       begin
-        for j := 0 to pcidevComboBox.Items.Count - 1 do
-        begin
-          if SameText(pcidevComboBox.Items[j], 'Use both GPUs') then
-          begin
-            pcidevComboBox.ItemIndex := j;
-            Break;
-          end;
-        end;
+        // Tag holds the 1-based position of the combined-GPU entry, 0 when
+        // the machine has a single GPU and the entry was never added.
+        if pcidevComboBox.Tag > 0 then
+          pcidevComboBox.ItemIndex := pcidevComboBox.Tag - 1;
       end
       else if TryStrToInt(AValue, IntValue) then
       begin
@@ -3540,7 +3536,9 @@ begin
 
     Settings.PciDevIndex := pcidevComboBox.ItemIndex;
     Settings.PciDevCount := pcidevComboBox.Items.Count;
-    if pcidevComboBox.ItemIndex <> -1 then
+    if (pcidevComboBox.Tag > 0) and (pcidevComboBox.ItemIndex = pcidevComboBox.Tag - 1) then
+      Settings.PciDevText := MANGO_PCIDEV_BOTH_GPUS
+    else if pcidevComboBox.ItemIndex <> -1 then
       Settings.PciDevText := pcidevComboBox.Items[pcidevComboBox.ItemIndex]
     else
       Settings.PciDevText := '';
@@ -3613,10 +3611,16 @@ begin
     Settings.Device := deviceCheckBox.Checked;
     Settings.Fps := fpsCheckBox.Checked;
     Settings.FpsAvg := fpsavgCheckBox.Checked;
-    Settings.FpsAvgCaption := fpsavgBitBtn.Caption;
+    if fpsavgBitBtn.ImageIndex = 9 then
+      Settings.FpsAvgCaption := MANGO_CAPTION_FPS_1PCT_LOW
+    else
+      Settings.FpsAvgCaption := MANGO_CAPTION_FPS_01PCT_LOW;
     Settings.FrametimeGraph := frametimegraphCheckBox.Checked;
     Settings.FrametimeGraphColor := frametimegraphColorButton.ButtonColor;
-    Settings.FrametimeTypeCaption := frametimetypeBitBtn.Caption;
+    if frametimetypeBitBtn.ImageIndex = 7 then
+      Settings.FrametimeTypeCaption := MANGO_CAPTION_FRAMETIME_HIST
+    else
+      Settings.FrametimeTypeCaption := MANGO_CAPTION_FRAMETIME_CURVE;
     Settings.FrameCount := framecountCheckBox.Checked;
     Settings.EngineVersion := engineversionCheckBox.Checked;
     Settings.EngineColor := engineColorButton.ButtonColor;
