@@ -51,6 +51,8 @@ type
     procedure TestOptiTraceLogSave;
     procedure TestOptiUpdateButtonsGuarded;
     procedure TestOptiShortcutCaptureBound;
+    procedure TestOptiScalerToggleNvidiaReEnableState;
+    procedure TestGlobalOptiScalerToggleSync;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
     procedure TestMangoVisualTab;
@@ -286,6 +288,12 @@ begin
 
   // Also seed pristine cache template in optiscaler-stable
   ForceDirectories(IsolatedHome + '/.local/share/goverlay/optiscaler-stable');
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/optiscaler-stable/OptiScaler.ini');
+  Rewrite(F);
+  WriteLn(F, '[Menu]');
+  WriteLn(F, 'ShortcutKey=auto');
+  CloseFile(F);
+
   AssignFile(F, IsolatedHome + '/.local/share/goverlay/optiscaler-stable/fakenvapi.ini');
   Rewrite(F);
   WriteLn(F, 'force_reflex=0');
@@ -607,6 +615,52 @@ begin
   NavigateOptiScalerTab;
   AssertTrue('shortcut capture button exists', Assigned(goverlayform.FOsShortcutCaptureBtn));
   AssertTrue('shortcut capture button bound', Assigned(goverlayform.FOsShortcutCaptureBtn.OnClick));
+end;
+
+procedure TGoverlayGuiTests.TestOptiScalerToggleNvidiaReEnableState;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.nvidiaRadioButton.Checked := True;
+  AssertFalse('spoofCheckBox disabled on nvidia', goverlayform.spoofCheckBox.Enabled);
+  AssertFalse('forcereflexCheckBox disabled on nvidia', goverlayform.forcereflexCheckBox.Enabled);
+
+  // Ensure tool is currently enabled
+  goverlayform.FNavToolEnabled[2] := True;
+
+  // Toggle OptiScaler OFF via sidebar button (tool index 2)
+  goverlayform.FNavToolBtns[2].OnClick(goverlayform.FNavToolBtns[2]);
+  AssertFalse('OptiScaler tool disabled', goverlayform.FNavToolEnabled[2]);
+
+  // Toggle OptiScaler ON via sidebar button
+  goverlayform.FNavToolBtns[2].OnClick(goverlayform.FNavToolBtns[2]);
+  AssertTrue('OptiScaler tool re-enabled', goverlayform.FNavToolEnabled[2]);
+
+  // Verify Nvidia restrictions remain enforced after re-enabling
+  AssertFalse('spoofCheckBox stays disabled on nvidia after re-enable', goverlayform.spoofCheckBox.Enabled);
+  AssertFalse('forcereflexCheckBox stays disabled on nvidia after re-enable', goverlayform.forcereflexCheckBox.Enabled);
+end;
+
+procedure TGoverlayGuiTests.TestGlobalOptiScalerToggleSync;
+var
+  GlobalDir: string;
+begin
+  SeedOptiScalerFiles;
+  goverlayform.FActiveGameName := '';
+  GlobalDir := IsolatedHome + '/.local/share/goverlay/gameconfig/global/';
+
+  // Delete OptiScaler.ini in global profile to test population
+  if FileExists(GlobalDir + 'OptiScaler.ini') then
+    DeleteFile(GlobalDir + 'OptiScaler.ini');
+
+  goverlayform.FNavToolEnabled[2] := False;
+
+  // Toggle OptiScaler ON in global mode
+  goverlayform.FNavToolBtns[2].OnClick(goverlayform.FNavToolBtns[2]);
+  AssertTrue('OptiScaler tool enabled globally', goverlayform.FNavToolEnabled[2]);
+
+  // Assert global profile OptiScaler.ini is created immediately
+  AssertTrue('OptiScaler.ini created in global profile on toggle ON', FileExists(GlobalDir + 'OptiScaler.ini'));
 end;
 
 // ────────────────────────── MangoHud tabs - full coverage ──────────────────────────

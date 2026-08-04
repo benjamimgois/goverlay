@@ -539,7 +539,12 @@ begin
   else
   begin
     SetGameToolEnabled('', Idx, NewEnabled);
-    if not NewEnabled then
+    if NewEnabled then
+    begin
+      if Idx = 2 then
+        CopyOptiScalerGameFiles(FForm.GetGameConfigDir(''));
+    end
+    else
     begin
       if (Idx = 0) and FileExists(MANGOHUDCFGFILE) then
         DeleteFile(MANGOHUDCFGFILE)
@@ -550,6 +555,8 @@ begin
         if FileExists(VKSUMICFGFILE) then
           DeleteFile(VKSUMICFGFILE);
       end
+      else if (Idx = 2) then
+        RemoveOptiScalerGameFiles(FForm.GetGameConfigDir(''))
       else if (Idx = 3) then
         RemoveTweaksFromGameFGMod(FForm.GetGameConfigDir('') + 'fgmod');
     end;
@@ -720,7 +727,36 @@ begin
       FForm.SetControlTreeEnabled(FForm.vkbasaltTabsheet,    AEnabled);
       FForm.SetControlTreeEnabled(FForm.vksumiTabSheet,      AEnabled);
     end;
-    2: FForm.SetControlTreeEnabled(FForm.optiscalertabsheet,  AEnabled);
+    2:
+    begin
+      FForm.SetControlTreeEnabled(FForm.optiscalertabsheet,  AEnabled);
+      if AEnabled then
+      begin
+        if Assigned(FForm.nvidiaRadioButton) and FForm.nvidiaRadioButton.Checked then
+        begin
+          if Assigned(FForm.spoofCheckBox) then FForm.spoofCheckBox.Enabled := False;
+          if Assigned(FForm.forcereflexCheckBox) then FForm.forcereflexCheckBox.Enabled := False;
+          if Assigned(FForm.reflexComboBox) then FForm.reflexComboBox.Enabled := False;
+        end
+        else if Assigned(FForm.mesaRadioButton) and FForm.mesaRadioButton.Checked then
+        begin
+          if Assigned(FForm.spoofCheckBox) then FForm.spoofCheckBox.Enabled := True;
+          if Assigned(FForm.forcereflexCheckBox) then
+          begin
+            FForm.forcereflexCheckBox.Enabled := True;
+            if not FForm.forcereflexCheckBox.Checked then
+            begin
+              FForm.forcereflexCheckBox.Checked := True;
+              if Assigned(FForm.reflexComboBox) then
+              begin
+                FForm.reflexComboBox.Enabled := True;
+                FForm.reflexComboBox.ItemIndex := 2; // Force enable
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
     3: FForm.SetControlTreeEnabled(FForm.tweaksTabSheet,      AEnabled);
   end;
   // Disable Save when the toggled tool owns the currently visible tab

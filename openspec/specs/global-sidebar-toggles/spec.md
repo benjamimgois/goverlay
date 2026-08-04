@@ -16,7 +16,7 @@ The system SHALL display the tool toggles in the navigation sidebar only when th
 - **THEN** the system shows the sidebar tool toggles
 
 ### Requirement: Global tool toggling logic
-The system SHALL support turning tool configurations ON or OFF globally via the sidebar toggles. Turning a tool OFF globally SHALL disable all associated input fields in the UI and delete its global configuration file. Turning a tool ON globally SHALL enable the associated inputs and permit saving.
+The system SHALL support turning tool configurations ON or OFF globally via the sidebar toggles. Turning a tool OFF globally SHALL disable all associated input fields in the UI and delete its global configuration file. Turning a tool ON globally SHALL enable the associated inputs and immediately populate/synchronize required tool configuration files and DLLs into `gameconfig/global/`.
 
 #### Scenario: Toggling a tool OFF globally
 - **WHEN** the user clicks a sidebar tool toggle to set it to OFF while in global mode
@@ -26,6 +26,11 @@ The system SHALL support turning tool configurations ON or OFF globally via the 
 #### Scenario: Toggling a tool ON globally
 - **WHEN** the user clicks a sidebar tool toggle to set it to ON while in global mode
 - **THEN** the system enables the tab sheets and inputs for that tool, allowing customization and saving
+
+#### Scenario: Toggling OptiScaler ON globally
+- **WHEN** the user clicks the OptiScaler sidebar tool toggle to set it to ON while in global mode (`FActiveGameName = ''`)
+- **THEN** the system enables the OptiScaler tab sheets and inputs
+- **AND** it immediately populates and synchronizes OptiScaler configuration files and DLLs into `gameconfig/global/` without requiring a manual save or driver selection change.
 
 ### Requirement: Explicit Target Config Path Assignment on Sidebar Tab Navigation
 GOverlay SHALL explicitly set `MANGOHUDCFGFILE`, `VKBASALTCFGFILE`, and `VKSUMICFGFILE` to global profile directory paths when navigating to sidebar tabs in global mode (`FActiveGameName = ''`).
