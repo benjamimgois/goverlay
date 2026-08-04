@@ -473,7 +473,7 @@ begin
 
     shortcutkeyLabel.AnchorSideLeft.Control   := nil; shortcutkeyLabel.AnchorSideTop.Control    := nil;
     shortcutkeyLabel.AnchorSideRight.Control  := nil; shortcutkeyLabel.AnchorSideBottom.Control := nil;
-    shortcutkeyLabel.Anchors  := [akLeft, akTop]; shortcutkeyLabel.Caption  := 'Toggle key';
+    shortcutkeyLabel.Anchors  := [akLeft, akTop]; shortcutkeyLabel.Caption  := 'Optiscaler toggle';
     shortcutkeyLabel.Parent   := FOsMainSec;
 
     shortcutImage.Visible := False;
@@ -492,6 +492,31 @@ begin
     FOsShortcutCaptureBtn.Width    := 100;
     FOsShortcutCaptureBtn.Height   := 28;
     FOsShortcutCaptureBtn.Caption  := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
+
+    if dlssenablerToggleLabel = nil then
+    begin
+      dlssenablerToggleLabel := TLabel.Create(FForm);
+      dlssenablerToggleLabel.Name := 'dlssenablerToggleLabel';
+    end;
+    dlssenablerToggleLabel.AnchorSideLeft.Control   := nil; dlssenablerToggleLabel.AnchorSideTop.Control    := nil;
+    dlssenablerToggleLabel.AnchorSideRight.Control  := nil; dlssenablerToggleLabel.AnchorSideBottom.Control := nil;
+    dlssenablerToggleLabel.Anchors := [akLeft, akTop];
+    dlssenablerToggleLabel.Caption := 'DLSS-Enabler toggle';
+    dlssenablerToggleLabel.Parent  := FOsMainSec;
+
+    if dlssenablerToggleBtn = nil then
+    begin
+      dlssenablerToggleBtn := TBitBtn.Create(FForm);
+      dlssenablerToggleBtn.Name := 'dlssenablerToggleBtn';
+    end;
+    dlssenablerToggleBtn.AnchorSideLeft.Control   := nil; dlssenablerToggleBtn.AnchorSideTop.Control    := nil;
+    dlssenablerToggleBtn.AnchorSideRight.Control  := nil; dlssenablerToggleBtn.AnchorSideBottom.Control := nil;
+    dlssenablerToggleBtn.Anchors  := [akLeft, akTop];
+    dlssenablerToggleBtn.Parent   := FOsMainSec;
+    dlssenablerToggleBtn.Width    := 100;
+    dlssenablerToggleBtn.Height   := 28;
+    dlssenablerToggleBtn.Caption  := '⌨ `';
+    dlssenablerToggleBtn.Enabled  := False;
 
     // --- Sub-card 2: Spatial Upscaler controls ---
     preferredUpscalerLabel.AnchorSideLeft.Control   := nil; preferredUpscalerLabel.AnchorSideTop.Control    := nil;
@@ -645,6 +670,11 @@ begin
     DarkLbl(mark2Label,          GRAY); mark2Label.Transparent := True;
     DarkLbl(mark3Label,          GRAY); mark3Label.Transparent := True;
     DarkLbl(shortcutkeyLabel,    PURPLE); shortcutkeyLabel.Transparent := True;
+    if Assigned(dlssenablerToggleLabel) then
+    begin
+      DarkLbl(dlssenablerToggleLabel, PURPLE);
+      dlssenablerToggleLabel.Transparent := True;
+    end;
     DarkCombo(shortcutkeyComboBox);
     // FakeNVAPI section
     DarkCheck(forcereflexCheckBox);
@@ -891,7 +921,7 @@ begin
     TotalH := FOsScrollBox.ClientHeight;
     if TotalH < 100 then TotalH := 600;
 
-    MinOptH := 265;
+    MinOptH := 315;
     CardTop := TotalH - MARGIN - STAT_H;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -988,6 +1018,11 @@ begin
       shortcutkeyLabel.SetBounds(10, Y0 + 166, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
         FOsShortcutCaptureBtn.SetBounds(10, Y0 + 184, Min(ColW - 20, 120), 28);
+
+      if Assigned(dlssenablerToggleLabel) then
+        dlssenablerToggleLabel.SetBounds(10, Y0 + 218, ColW - 20, 16);
+      if Assigned(dlssenablerToggleBtn) then
+        dlssenablerToggleBtn.SetBounds(10, Y0 + 236, Min(ColW - 20, 120), 28);
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler
@@ -1261,6 +1296,11 @@ begin
   if (FForm = nil) or (FForm.fgInputComboBox = nil) or (FForm.fgOutputComboBox = nil) then Exit;
 
   IsDLSSEnabler := Assigned(FForm.dlssenablerRadioButton) and FForm.dlssenablerRadioButton.Checked;
+
+  if Assigned(FForm.dlssenablerToggleLabel) then
+    FForm.dlssenablerToggleLabel.Visible := IsDLSSEnabler;
+  if Assigned(FForm.dlssenablerToggleBtn) then
+    FForm.dlssenablerToggleBtn.Visible := IsDLSSEnabler;
 
   PrevInputText := FForm.fgInputComboBox.Text;
   PrevOutputText := FForm.fgOutputComboBox.Text;

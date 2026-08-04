@@ -407,6 +407,8 @@ type
     shortcutImage: TImage;
     shortcutkeyComboBox: TComboBox;
     shortcutkeyLabel: TLabel;
+    dlssenablerToggleLabel: TLabel;
+    dlssenablerToggleBtn: TBitBtn;
     showfpslimCheckBox: TCheckBox;
     smaaLabel: TLabel;
     smaaTrackBar: TTrackBar;
@@ -1342,6 +1344,7 @@ type
     function GetAppBaseDir: string;
     procedure UpdateGeSpeedButtonState;
     procedure UpdateGlobalEnableMenuItemVisibility;
+    procedure UpdateCommandPanelRightAnchor(AButtonsVisible: Boolean);
 
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
@@ -1739,6 +1742,7 @@ commandPanel.Visible:=false;
 goverlaybarPanel.Visible:=true;
 popupBitBtn.Visible := False;
 FPreviewBtn.Visible  := False;
+UpdateCommandPanelRightAnchor(False);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
@@ -1889,6 +1893,7 @@ begin
   goverlaybarPanel.Visible:=true;
   popupBitBtn.Visible := True;
   FPreviewBtn.Visible  := True;
+  UpdateCommandPanelRightAnchor(True);
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -2703,6 +2708,23 @@ begin
     TWinControl(Ctrl).AnchorSideBottom.Control := nil;
   end;
   Ctrl.Anchors := [akTop, akLeft];
+end;
+
+procedure Tgoverlayform.UpdateCommandPanelRightAnchor(AButtonsVisible: Boolean);
+begin
+  if not Assigned(commandPanel) then Exit;
+  if AButtonsVisible and Assigned(FPreviewBtn) then
+  begin
+    commandPanel.AnchorSideRight.Control := FPreviewBtn;
+    commandPanel.AnchorSideRight.Side    := asrLeft;
+    commandPanel.BorderSpacing.Right     := 6;
+  end
+  else if Assigned(goverlaybarPanel) then
+  begin
+    commandPanel.AnchorSideRight.Control := goverlaybarPanel;
+    commandPanel.AnchorSideRight.Side    := asrRight;
+    commandPanel.BorderSpacing.Right     := 153;
+  end;
 end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -4367,6 +4389,7 @@ commandPanel.Visible:=false;
 goverlaybarPanel.Visible:=true;
 popupBitBtn.Visible := True;
 FPreviewBtn.Visible  := True;
+UpdateCommandPanelRightAnchor(True);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
@@ -4546,6 +4569,7 @@ begin
   goverlaybarPanel.Visible:=true;
   popupBitBtn.Visible := False;
   FPreviewBtn.Visible  := False;
+  UpdateCommandPanelRightAnchor(False);
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;

@@ -96,27 +96,27 @@ type
     property DlssEnablerLabel: TLabel read FDlssEnablerLabel write FDlssEnablerLabel;
   end;
 
+  TOptiUpdateThread = class(TThread)
+  private
+    FOptiTab: TOptiscalerTab;
+    FIsStableChannel: Boolean;
+    FLatestDeckyVersion: string;
+    FCheckDecky: Boolean;
+    FSpawnedFGModPath: string;
+  public
+    FLatestOptiTag: string;
+    procedure SyncUpdateUI;
+    constructor Create(AOptiTab: TOptiscalerTab; AIsStable: Boolean; ACheckDecky: Boolean);
+  protected
+    procedure Execute; override;
+  end;
+
 implementation
 
 uses
   FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, overlay_utils, IniFiles, StrUtils;
 
 type
-  TOptiUpdateThread = class(TThread)
-  private
-    FOptiTab: TOptiscalerTab;
-    FIsStableChannel: Boolean;
-    FLatestOptiTag: string;
-    FLatestDeckyVersion: string;
-    FCheckDecky: Boolean;
-    FSpawnedFGModPath: string;
-    procedure SyncUpdateUI;
-  protected
-    procedure Execute; override;
-  public
-    constructor Create(AOptiTab: TOptiscalerTab; AIsStable: Boolean; ACheckDecky: Boolean);
-  end;
-
   TOptiPatcherCheckThread = class(TThread)
   private
     FOptiTab: TOptiscalerTab;
@@ -187,7 +187,7 @@ end;
 
 procedure TOptiUpdateThread.SyncUpdateUI;
 var
-  HasUpdates: Boolean;
+  HasUpdates, HasUpdate: Boolean;
   CurrentVersion: string;
   NormLatest, NormCurrent: string;
   CurrentIsEdge, IsCrossChannel, IsDlssEnablerActive: Boolean;
@@ -233,7 +233,13 @@ begin
         VarsList := TStringList.Create;
         try
           VarsList.LoadFromFile(VarsFilePath);
-          CurrentVersion := VarsList.Values['dlssenablerversion'];
+          CurrentVersion := VarsList.Values['dlssenablertag'];
+          if CurrentVersion = '' then
+            CurrentVersion := VarsList.Values['optiScalerVersion'];
+          if CurrentVersion = '' then
+            CurrentVersion := VarsList.Values['OptiScalerVersion'];
+          if CurrentVersion = '' then
+            CurrentVersion := VarsList.Values['dlssenablerversion'];
           if CurrentVersion = '' then
             CurrentVersion := VarsList.Values['dlssenabler'];
         finally
@@ -243,7 +249,12 @@ begin
       if (CurrentVersion = '') and Assigned(FOptiTab.FDlssEnablerLabel) then
         CurrentVersion := FOptiTab.FDlssEnablerLabel.Caption;
 
-      if (FLatestOptiTag <> '') and (CurrentVersion <> '') and (CurrentVersion <> '—') and (CurrentVersion <> FLatestOptiTag) then
+      HasUpdate := (FLatestOptiTag <> '') and (CurrentVersion <> '') and (CurrentVersion <> '—') and
+                   (not SameText(CurrentVersion, FLatestOptiTag)) and
+                   (Pos(CurrentVersion, FLatestOptiTag) <> 1) and
+                   (Pos(FLatestOptiTag, CurrentVersion) <> 1);
+
+      if HasUpdate then
       begin
         FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FOptiTab.FormatDlssEnablerDisplayTag(FLatestOptiTag);
         FOptiTab.FOptiLabel2.Font.Color := clLime;
@@ -2744,6 +2755,7 @@ begin
   try
     VarsList.Add('dlssenablerversion=' + DlssEnablerVerStr);
     VarsList.Add('optiScalerVersion=' + OptiScalerVerStr);
+    VarsList.Add('dlssenablertag=' + TagName);
     VarsList.Add('upscalertype=1');
     VarsList.SaveToFile(VarsFilePath);
   finally

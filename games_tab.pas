@@ -2312,6 +2312,7 @@ begin
   goverlaybarPanel.Visible  := True;
   popupBitBtn.Visible := True;
   FPreviewBtn.Visible  := True;
+  FForm.UpdateCommandPanelRightAnchor(True);
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
   LoadMangoHudConfig;

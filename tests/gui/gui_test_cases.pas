@@ -53,6 +53,10 @@ type
     procedure TestOptiShortcutCaptureBound;
     procedure TestOptiScalerToggleNvidiaReEnableState;
     procedure TestGlobalOptiScalerToggleSync;
+    procedure TestCommandPanelRightMarginConsistency;
+    procedure TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
+    procedure TestDlssEnablerTagMatchingNoFalseUpdate;
+    procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
     procedure TestMangoVisualTab;
@@ -83,7 +87,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
+  overlayunit, games_tab, optiscaler_update, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
 
 function TGoverlayGuiTests.ReadGpuDriver: string;
 var
@@ -661,6 +665,97 @@ begin
 
   // Assert global profile OptiScaler.ini is created immediately
   AssertTrue('OptiScaler.ini created in global profile on toggle ON', FileExists(GlobalDir + 'OptiScaler.ini'));
+end;
+
+procedure TGoverlayGuiTests.TestCommandPanelRightMarginConsistency;
+begin
+  // Navigate to MangoHud tab -> bottom bar buttons visible, commandPanel anchored to FPreviewBtn (spacing 6)
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  AssertTrue('popupBitBtn visible on MangoHud tab', goverlayform.popupBitBtn.Visible);
+  AssertTrue('FPreviewBtn visible on MangoHud tab', goverlayform.FPreviewBtn.Visible);
+  AssertEquals('commandPanel right margin 6 when buttons visible', 6, goverlayform.commandPanel.BorderSpacing.Right);
+  AssertTrue('commandPanel anchored to FPreviewBtn when buttons visible', goverlayform.commandPanel.AnchorSideRight.Control = goverlayform.FPreviewBtn);
+
+  // Navigate to OptiScaler tab -> bottom bar buttons hidden, commandPanel anchored to goverlaybarPanel (spacing 153)
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  AssertFalse('popupBitBtn hidden on OptiScaler tab', goverlayform.popupBitBtn.Visible);
+  AssertFalse('FPreviewBtn hidden on OptiScaler tab', goverlayform.FPreviewBtn.Visible);
+  AssertEquals('commandPanel right margin 153 on OptiScaler tab', 153, goverlayform.commandPanel.BorderSpacing.Right);
+  AssertTrue('commandPanel anchored to goverlaybarPanel on OptiScaler tab', goverlayform.commandPanel.AnchorSideRight.Control = goverlayform.goverlaybarPanel);
+
+  // Navigate to Tweaks (EnvVars) tab -> bottom bar buttons hidden, commandPanel anchored to goverlaybarPanel (spacing 153)
+  goverlayform.tweaksLabel.OnClick(goverlayform.tweaksLabel);
+  AssertFalse('popupBitBtn hidden on Tweaks tab', goverlayform.popupBitBtn.Visible);
+  AssertFalse('FPreviewBtn hidden on Tweaks tab', goverlayform.FPreviewBtn.Visible);
+  AssertEquals('commandPanel right margin 153 on Tweaks tab', 153, goverlayform.commandPanel.BorderSpacing.Right);
+  AssertTrue('commandPanel anchored to goverlaybarPanel on Tweaks tab', goverlayform.commandPanel.AnchorSideRight.Control = goverlayform.goverlaybarPanel);
+end;
+
+procedure TGoverlayGuiTests.TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
+begin
+  AssertFalse('Auto launch PasCube menu item hidden in settings menu', goverlayform.FCubeAutoLaunchItem.Visible);
+  AssertEquals('preferredUpscalerComboBox item 0 is lowercase auto', 'auto', goverlayform.preferredUpscalerComboBox.Items[0]);
+  AssertEquals('preferredUpscalerComboBox item 1 is lowercase xess', 'xess', goverlayform.preferredUpscalerComboBox.Items[1]);
+  AssertEquals('preferredUpscalerComboBox item 2 is lowercase fsr21', 'fsr21', goverlayform.preferredUpscalerComboBox.Items[2]);
+  AssertEquals('preferredUpscalerComboBox item 3 is lowercase fsr22', 'fsr22', goverlayform.preferredUpscalerComboBox.Items[3]);
+  AssertEquals('preferredUpscalerComboBox item 4 is lowercase fsr4', 'fsr4', goverlayform.preferredUpscalerComboBox.Items[4]);
+  AssertEquals('preferredUpscalerComboBox item 5 is lowercase dlss', 'dlss', goverlayform.preferredUpscalerComboBox.Items[5]);
+end;
+
+procedure TGoverlayGuiTests.TestDlssEnablerTagMatchingNoFalseUpdate;
+var
+  VarsPath: string;
+  VarsList: TStringList;
+  UpdateThread: TOptiUpdateThread;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.dlssenablerRadioButton.Checked := True;
+
+  VarsPath := IsolatedHome + '/.local/share/goverlay/dlssenabler-stable/goverlay.vars';
+  ForceDirectories(ExtractFilePath(VarsPath));
+  VarsList := TStringList.Create;
+  try
+    VarsList.Add('dlssenablerversion=4.8.10.11');
+    VarsList.Add('optiScalerVersion=v0.10.0-pre1_7233fc0c');
+    VarsList.Add('dlssenablertag=v0.10.0-pre1_7233fc0c');
+    VarsList.SaveToFile(VarsPath);
+  finally
+    VarsList.Free;
+  end;
+
+  UpdateThread := TOptiUpdateThread.Create(goverlayform.FOptiscalerUpdate, True, False);
+  try
+    UpdateThread.FLatestOptiTag := 'v0.10.0-pre1_7233fc0c';
+    UpdateThread.SyncUpdateUI;
+  finally
+    UpdateThread.Free;
+  end;
+
+  AssertFalse('OptiLabel2 hidden when DLSS Enabler tag matches latest remote tag', goverlayform.FOptiscalerUpdate.OptiLabel2.Visible);
+end;
+
+procedure TGoverlayGuiTests.TestOptiscalerAndDlssEnablerToggleKeyDisplay;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  AssertEquals('shortcutkeyLabel caption is Optiscaler toggle', 'Optiscaler toggle', goverlayform.shortcutkeyLabel.Caption);
+  AssertEquals('dlssenablerToggleLabel caption is DLSS-Enabler toggle', 'DLSS-Enabler toggle', goverlayform.dlssenablerToggleLabel.Caption);
+  AssertEquals('dlssenablerToggleBtn caption is ⌨ `', '⌨ `', goverlayform.dlssenablerToggleBtn.Caption);
+  AssertFalse('dlssenablerToggleBtn is disabled', goverlayform.dlssenablerToggleBtn.Enabled);
+
+  // When OptiScaler radio button is checked (default)
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.optiscalerRadioButtonClick(nil);
+  AssertFalse('dlssenablerToggleLabel hidden when OptiScaler is active', goverlayform.dlssenablerToggleLabel.Visible);
+  AssertFalse('dlssenablerToggleBtn hidden when OptiScaler is active', goverlayform.dlssenablerToggleBtn.Visible);
+
+  // When DLSS Enabler radio button is checked
+  goverlayform.dlssenablerRadioButton.Checked := True;
+  goverlayform.dlssenablerRadioButtonClick(nil);
+  AssertTrue('dlssenablerToggleLabel visible when DLSS Enabler is active', goverlayform.dlssenablerToggleLabel.Visible);
+  AssertTrue('dlssenablerToggleBtn visible when DLSS Enabler is active', goverlayform.dlssenablerToggleBtn.Visible);
 end;
 
 // ────────────────────────── MangoHud tabs - full coverage ──────────────────────────

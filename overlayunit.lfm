@@ -9170,7 +9170,7 @@ object goverlayform: Tgoverlayform
             Width = 65
             BorderSpacing.Top = 40
             BorderSpacing.Bottom = 3
-            Caption = 'Toggle key'
+            Caption = 'Optiscaler toggle'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
@@ -11825,12 +11825,12 @@ object goverlayform: Tgoverlayform
               Font.Quality = fqAntialiased
               ItemHeight = 25
               Items.Strings = (
-                'AUTO'
-                'XESS'
-                'FSR21'
-                'FSR22'
-                'FSR4'
-                'DLSS'
+                'auto'
+                'xess'
+                'fsr21'
+                'fsr22'
+                'fsr4'
+                'dlss'
               )
               ParentColor = True
               ParentFont = False

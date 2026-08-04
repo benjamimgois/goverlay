@@ -335,6 +335,7 @@ begin
   FForm.FCubeAutoLaunchItem.Caption := 'Auto launch PasCube';
   FForm.FCubeAutoLaunchItem.ImageIndex := 4;
   FForm.FCubeAutoLaunchItem.Checked := FForm.FCubeAutoLaunch;
+  FForm.FCubeAutoLaunchItem.Visible := False;
   FForm.FCubeAutoLaunchItem.OnClick := @FForm.CubeAutoLaunchMenuItemClick;
   FForm.settingsMenu.Items.Insert(4, FForm.FCubeAutoLaunchItem);
 
@@ -756,6 +757,7 @@ begin
           end;
         end;
       end;
+      if Assigned(FForm.dlssenablerToggleBtn) then FForm.dlssenablerToggleBtn.Enabled := False;
     end;
     3: FForm.SetControlTreeEnabled(FForm.tweaksTabSheet,      AEnabled);
   end;
