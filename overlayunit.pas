@@ -6905,6 +6905,11 @@ procedure Tgoverlayform.WireAutoSaveEvents;
       begin
         if not Assigned(TSpinEdit(Ctrl).OnChange) then
           TSpinEdit(Ctrl).OnChange := @GenericControlChange;
+      end
+      else if (Ctrl is TCustomEdit) and (Ctrl.Tag <> 9999) then
+      begin
+        if not Assigned(TCustomEdit(Ctrl).OnChange) then
+          TCustomEdit(Ctrl).OnChange := @GenericControlChange;
       end;
 
       if Ctrl is TWinControl then

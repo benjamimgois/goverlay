@@ -49,6 +49,7 @@ type
     procedure TestOptiForceReflexSave;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
     procedure TestOptiForceReflexAutoSave;
+    procedure TestCustomEditAutoSave;
     procedure TestOptiLatencyFlexSave;
     procedure TestOptiTraceLogSave;
     procedure TestOptiUpdateButtonsGuarded;
@@ -590,6 +591,14 @@ begin
 
   Content := ReadFileText(FakeIniPath);
   AssertTrue('force_reflex removed via autosave when unchecked', Pos('force_reflex', Content) = 0);
+end;
+
+procedure TGoverlayGuiTests.TestCustomEditAutoSave;
+begin
+  goverlayform.WireAutoSaveEvents;
+  AssertTrue('hudtitleEdit OnChange wired to autosave', Assigned(goverlayform.hudtitleEdit.OnChange));
+  AssertTrue('cpunameEdit OnChange wired to autosave', Assigned(goverlayform.cpunameEdit.OnChange));
+  AssertTrue('customenvEdit OnChange wired to autosave', Assigned(goverlayform.customenvEdit.OnChange));
 end;
 
 procedure TGoverlayGuiTests.TestOptiLatencyFlexSave;
