@@ -4425,12 +4425,9 @@ begin
   if mesaRadioButton.Checked then
   begin
       //Enable reflex options
-      forcereflexCheckBox.Checked := true;
       forcereflexCheckBox.Enabled := true;
-      reflexComboBox.Enabled:= true;
-      reflexCombobox.ItemIndex:=2;
-      spoofCheckBox.Enabled:=true;
-      spoofCheckBox.Checked:=true;
+      reflexComboBox.Enabled := forcereflexCheckBox.Checked;
+      spoofCheckBox.Enabled := true;
       SaveOptiScalerDriverPreference('mesa');
       if not FOsDriverLoading then
         SaveOptiScalerConfig(True);
@@ -4442,12 +4439,9 @@ begin
   if nvidiaRadioButton.Checked then
   begin
       //disable reflex options
-      forcereflexCheckBox.Checked := false;
       forcereflexCheckBox.Enabled := false;
-      reflexComboBox.Enabled:= false;
-      reflexCombobox.ItemIndex:=0;
-      spoofCheckBox.Enabled:=false;
-      spoofCheckBox.Checked:=false;
+      reflexComboBox.Enabled := false;
+      spoofCheckBox.Enabled := false;
       SaveOptiScalerDriverPreference('nvidia');
       if not FOsDriverLoading then
         SaveOptiScalerConfig(True);
@@ -5041,12 +5035,14 @@ procedure Tgoverlayform.forcelatencyflexCheckBoxChange(Sender: TObject);
 begin
   // Enable/disable latencyflexComboBox based on forcelatencyflexCheckBox state
   latencyflexComboBox.Enabled := forcelatencyflexCheckBox.Checked;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.forcereflexCheckBoxChange(Sender: TObject);
 begin
    // Enable/disable reflexComboBox based on forcereflexCheckBox state
   reflexComboBox.Enabled := forcereflexCheckBox.Checked;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.gputempCheckBoxChange(Sender: TObject);

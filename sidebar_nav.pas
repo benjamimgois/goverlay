@@ -745,15 +745,8 @@ begin
           if Assigned(FForm.forcereflexCheckBox) then
           begin
             FForm.forcereflexCheckBox.Enabled := True;
-            if not FForm.forcereflexCheckBox.Checked then
-            begin
-              FForm.forcereflexCheckBox.Checked := True;
-              if Assigned(FForm.reflexComboBox) then
-              begin
-                FForm.reflexComboBox.Enabled := True;
-                FForm.reflexComboBox.ItemIndex := 2; // Force enable
-              end;
-            end;
+            if Assigned(FForm.reflexComboBox) then
+              FForm.reflexComboBox.Enabled := FForm.forcereflexCheckBox.Checked;
           end;
         end;
       end;

@@ -48,6 +48,7 @@ type
     procedure TestOptiEmuFp8Save;
     procedure TestOptiForceReflexSave;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
+    procedure TestOptiForceReflexAutoSave;
     procedure TestOptiLatencyFlexSave;
     procedure TestOptiTraceLogSave;
     procedure TestOptiUpdateButtonsGuarded;
@@ -131,6 +132,7 @@ begin
   goverlayform.mesaRadioButton.Checked := True;
   AssertEquals('mesa persisted after checking mesa', 'mesa', ReadGpuDriver);
   AssertTrue('forcereflex enabled on mesa', goverlayform.forcereflexCheckBox.Enabled);
+  AssertFalse('forcereflex unchecked by default on mesa', goverlayform.forcereflexCheckBox.Checked);
 
   goverlayform.nvidiaRadioButton.Checked := True;
   AssertEquals('nvidia persisted after checking nvidia', 'nvidia', ReadGpuDriver);
@@ -567,6 +569,27 @@ begin
   AssertTrue('fakenvapi.ini seeded on save', FileExists(FakeIniPath));
   Content := ReadFileText(FakeIniPath);
   AssertTrue('force_reflex=2 persisted in seeded ini', Pos('force_reflex=2', Content) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestOptiForceReflexAutoSave;
+var
+  Content: string;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.mesaRadioButton.Checked := True;
+  goverlayform.forcereflexCheckBox.Checked := True;
+  goverlayform.reflexComboBox.ItemIndex := 2;
+  goverlayform.TriggerAutoSave;
+
+  Content := ReadFileText(FakeIniPath);
+  AssertTrue('force_reflex=2 persisted via autosave', Pos('force_reflex=2', Content) > 0);
+
+  goverlayform.forcereflexCheckBox.Checked := False;
+  goverlayform.TriggerAutoSave;
+
+  Content := ReadFileText(FakeIniPath);
+  AssertTrue('force_reflex removed via autosave when unchecked', Pos('force_reflex', Content) = 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiLatencyFlexSave;
