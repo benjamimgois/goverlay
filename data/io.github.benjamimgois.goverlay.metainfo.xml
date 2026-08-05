@@ -60,6 +60,14 @@
     </screenshots>
 
     <releases>
+        <release version="1.8.11" date="2026-08-04">
+            <description>
+                <p>Bug Fixes</p>
+                <ul>
+                    <li>Fix OptiScaler Fsr4Update configuration setting default to auto</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.8.10" date="2026-07-28">
             <description>
                 <p>New Features</p>

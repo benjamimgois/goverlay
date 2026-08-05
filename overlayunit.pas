@@ -2699,7 +2699,7 @@ begin
   TestMode := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
 
   //Program Version
-  GVERSION := '1.8.10';
+  GVERSION := '1.8.11';
   GCHANNEL := 'stable'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
