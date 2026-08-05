@@ -420,7 +420,7 @@ begin
 
   SaveOpti;
   Content := ReadFileText(OptiIniPath);
-  AssertTrue('Fsr4Update=true persisted', Pos('Fsr4Update=true', Content) > 0);
+  AssertTrue('Fsr4Update=auto persisted', Pos('Fsr4Update=auto', Content) > 0);
   AssertTrue('FsrAgilitySDKUpgrade=true persisted', Pos('FsrAgilitySDKUpgrade=true', Content) > 0);
 end;
 

@@ -653,10 +653,7 @@ begin
   else
     DxgiValue := 'false';
 
-  if Settings.FsrversionItemIndex = 0 then
-    Fsr4UpdateValue := 'true'
-  else
-    Fsr4UpdateValue := 'auto';
+  Fsr4UpdateValue := 'auto';
 
   if Settings.OptipatcherChecked then
     LoadAsiPluginsValue := 'true'
@@ -1217,7 +1214,8 @@ begin
         Settings.OverrideChecked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
         Settings.OptipatcherChecked := SameText(OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, ''), 'true');
 
-        if SameText(OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, ''), 'true') then
+        Value := OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, '');
+        if SameText(Value, 'auto') or SameText(Value, 'true') then
           Settings.FsrversionItemIndex := 0;
 
         Settings.SpoofChecked := SameText(OptiCfg.GetValue(OPTI_KEY_DXGI, ''), 'auto');
