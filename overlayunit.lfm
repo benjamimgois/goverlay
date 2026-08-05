@@ -11722,7 +11722,7 @@ object goverlayform: Tgoverlayform
               AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 32
-              Hint = 'Latest FSR versions are compatible with RDNA4+ and newer.'#10'Also sets "Fsr4Update=true" in Optiscaler.ini'#10#10'4.0.2c INT8 FSR is compatible with RDNA2 and RDNA3'
+              Hint = 'Latest FSR versions are compatible with RDNA4+ and newer.'#10'Also sets "Fsr4Update=auto" in Optiscaler.ini'#10#10'4.0.2c INT8 FSR is compatible with RDNA2 and RDNA3'
               Top = 107
               Width = 109
               BorderSpacing.Top = 2
