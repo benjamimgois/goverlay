@@ -88,7 +88,7 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, IniFiles;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, IniFiles, configfile;
 
 type
   TOptiUpdateThread = class(TThread)
@@ -1488,6 +1488,7 @@ var
    FsrStableVal: string;
    FsrEdgeVal: string;
   XessStableVal: string;
+  OptiCfg: TConfigFile;
   XessEdgeVal: string;
   FsrStableValTemp: string;
   FsrEdgeValTemp: string;
@@ -1661,6 +1662,21 @@ begin
       WriteLn('[ERROR] UpdateButtonClick: 7z extraction failed, aborting');
       ShowToast(ntError, 'Failed to extract .7z file', 5000);
       Exit;
+    end;
+
+    // Ensure template OptiScaler.ini in cache uses Fsr4Update=auto
+    if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'OptiScaler.ini') then
+    begin
+      OptiCfg := TConfigFile.Create;
+      try
+        if OptiCfg.Load(IncludeTrailingPathDelimiter(OrigPath) + 'OptiScaler.ini') then
+        begin
+          OptiCfg.SetValue('Fsr4Update=', 'auto');
+          OptiCfg.Save;
+        end;
+      finally
+        OptiCfg.Free;
+      end;
     end;
 
     WriteLn('[DEBUG] UpdateButtonClick: Extraction completed successfully');
@@ -2154,6 +2170,7 @@ var
   XessEdgeValTemp: string;
   TargetFsrVersion: string;
   TargetXessVersion: string;
+  OptiCfg: TConfigFile;
 begin
   Result := False;
 
@@ -2250,6 +2267,21 @@ begin
     end;
 
     WriteLn('[AUTO-INSTALL] Extraction to .bgmod_original completed');
+
+    // Ensure template OptiScaler.ini in cache uses Fsr4Update=auto
+    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.ini') then
+    begin
+      OptiCfg := TConfigFile.Create;
+      try
+        if OptiCfg.Load(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.ini') then
+        begin
+          OptiCfg.SetValue('Fsr4Update=', 'auto');
+          OptiCfg.Save;
+        end;
+      finally
+        OptiCfg.Free;
+      end;
+    end;
 
     // MOVE CONTENTS OF SUBFOLDER "OptiScaler" TO ROOT if it exists
     if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler') then
