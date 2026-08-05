@@ -24,7 +24,8 @@ type
     procedure NavigateMangoHud;
     function MangoConfPath: string;
     procedure SaveMango;
-    procedure CycleBtnUntil(ABtn: TBitBtn; const ACaption: string; AMaxClicks: Integer);
+    procedure CycleBtnUntilImage(ABtn: TBitBtn; AImageIndex, AMaxClicks: Integer);
+    procedure CycleBtnUntilTag(ABtn: TBitBtn; ATag, AMaxClicks: Integer);
   published
     procedure TestFormCreated;
     procedure TestDriverToggleRoundTrip;
@@ -88,6 +89,18 @@ implementation
 
 uses
   overlayunit, games_tab, optiscaler_update, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
+
+const
+  // State the MangoHud toggle buttons already carry: the click handlers switch
+  // on ImageIndex (and on Tag for the frames/joule pair), the caption is only
+  // the text drawn on top of it. Tests match on these so they keep working
+  // when the interface is translated.
+  IMG_FRAMETIME_HISTOGRAM = 7;
+  IMG_CORELOAD_GRAPH      = 7;
+  IMG_FPSAVG_1PCT_LOW     = 9;
+  IMG_FPSAVG_01PCT_LOW    = 10;
+  TAG_FRAMES_PER_JOULE    = 0;
+  TAG_JOULES_PER_FRAME    = 1;
 
 function TGoverlayGuiTests.ReadGpuDriver: string;
 var
@@ -778,18 +791,31 @@ begin
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
 end;
 
-procedure TGoverlayGuiTests.CycleBtnUntil(ABtn: TBitBtn; const ACaption: string; AMaxClicks: Integer);
+procedure TGoverlayGuiTests.CycleBtnUntilImage(ABtn: TBitBtn; AImageIndex, AMaxClicks: Integer);
 var
   i: Integer;
 begin
   for i := 1 to AMaxClicks do
   begin
-    if ABtn.Caption = ACaption then Exit;
+    if ABtn.ImageIndex = AImageIndex then Exit;
     AssertTrue('button bound: ' + ABtn.Name, Assigned(ABtn.OnClick));
     ABtn.OnClick(ABtn);
   end;
-  AssertTrue(Format('button %s reached caption %s (now %s)',
-    [ABtn.Name, ACaption, ABtn.Caption]), ABtn.Caption = ACaption);
+  AssertEquals(Format('button %s reached image index', [ABtn.Name]),
+    AImageIndex, ABtn.ImageIndex);
+end;
+
+procedure TGoverlayGuiTests.CycleBtnUntilTag(ABtn: TBitBtn; ATag, AMaxClicks: Integer);
+var
+  i: Integer;
+begin
+  for i := 1 to AMaxClicks do
+  begin
+    if ABtn.Tag = ATag then Exit;
+    AssertTrue('button bound: ' + ABtn.Name, Assigned(ABtn.OnClick));
+    ABtn.OnClick(ABtn);
+  end;
+  AssertEquals(Format('button %s reached tag', [ABtn.Name]), ATag, ABtn.Tag);
 end;
 
 procedure TGoverlayGuiTests.TestMangoNavigateAndPreset;
@@ -909,7 +935,7 @@ begin
   goverlayform.gputhrottlinggraphCheckBox.Checked := True;
   goverlayform.gpumodelCheckBox.Checked := True;
   goverlayform.vulkandriverCheckBox.Checked := True;
-  CycleBtnUntil(goverlayform.gpuframesjouleBitBtn, 'Joules / Frame', 3);
+  CycleBtnUntilTag(goverlayform.gpuframesjouleBitBtn, TAG_JOULES_PER_FRAME, 3);
   SaveMango;
   C := ReadFileText(MangoConfPath);
   AssertTrue('gpu_text', Pos('gpu_text=MyGPU', C) > 0);
@@ -933,7 +959,7 @@ begin
   AssertTrue('throttling_status_graph', Pos('throttling_status_graph', C) > 0);
   AssertTrue('gpu_name', Pos('gpu_name', C) > 0);
   AssertTrue('vulkan_driver', Pos('vulkan_driver', C) > 0);
-  AssertTrue('flip_efficiency (Joules/Frame caption)', Pos('flip_efficiency', C) > 0);
+  AssertTrue('flip_efficiency (Joules/Frame state)', Pos('flip_efficiency', C) > 0);
 
   // Reload config into UI and assert controls retain state
   goverlayform.LoadMangoHudConfig;
@@ -957,13 +983,20 @@ begin
   AssertTrue('gputhrottlinggraphCheckBox reloaded', goverlayform.gputhrottlinggraphCheckBox.Checked);
   AssertTrue('gpumodelCheckBox reloaded', goverlayform.gpumodelCheckBox.Checked);
   AssertTrue('vulkandriverCheckBox reloaded', goverlayform.vulkandriverCheckBox.Checked);
-  AssertEquals('gpuframesjouleBitBtn reloaded', 'Joules / Frame', goverlayform.gpuframesjouleBitBtn.Caption);
+  AssertEquals('gpuframesjouleBitBtn reloaded', TAG_JOULES_PER_FRAME, goverlayform.gpuframesjouleBitBtn.Tag);
+
+  // Saving straight after the reload must still produce the same option: the
+  // control being back in position is only half of it, the writer has to see
+  // that position too.
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('flip_efficiency survives reload and save', Pos('flip_efficiency', C) > 0);
 
   // Reverse
   goverlayform.gpuavgloadCheckBox.Checked := False;
   goverlayform.vramusageCheckBox.Checked := False;
   goverlayform.gputempCheckBox.Checked := False;
-  CycleBtnUntil(goverlayform.gpuframesjouleBitBtn, 'Frames / Joule', 3);
+  CycleBtnUntilTag(goverlayform.gpuframesjouleBitBtn, TAG_FRAMES_PER_JOULE, 3);
   SaveMango;
   C := ReadFileText(MangoConfPath);
   AssertTrue('gpu_stats gone', Pos('gpu_stats', C) = 0);
@@ -984,7 +1017,7 @@ begin
   goverlayform.cpuavgloadCheckBox.Checked := True;
   goverlayform.cpuColorButton.ButtonColor := $000000FF;
   goverlayform.cpuloadcoreCheckBox.Checked := True;
-  CycleBtnUntil(goverlayform.coreloadtypeBitBtn, 'Graph', 4);
+  CycleBtnUntilImage(goverlayform.coreloadtypeBitBtn, IMG_CORELOAD_GRAPH, 4);
   goverlayform.cpuloadcolorCheckBox.Checked := True;
   goverlayform.cpufreqCheckBox.Checked := True;
   goverlayform.cputempCheckBox.Checked := True;
@@ -997,7 +1030,7 @@ begin
   AssertTrue('cpu_stats', Pos('cpu_stats', C) > 0);
   AssertTrue('cpu_color hex', Pos('cpu_color=FF0000', C) > 0);
   AssertTrue('core_load', Pos('core_load', C) > 0);
-  AssertTrue('core_bars (Graph caption)', Pos('core_bars', C) > 0);
+  AssertTrue('core_bars (Graph state)', Pos('core_bars', C) > 0);
   AssertTrue('cpu_load_change', Pos('cpu_load_change', C) > 0);
   AssertTrue('cpu_load_color', Pos('cpu_load_color=', C) > 0);
   AssertTrue('cpu_mhz', Pos('cpu_mhz', C) > 0);
@@ -1012,13 +1045,18 @@ begin
   AssertTrue('cpuavgloadCheckBox reloaded', goverlayform.cpuavgloadCheckBox.Checked);
   AssertEquals('cpuColorButton reloaded', TColor($000000FF), TColor(goverlayform.cpuColorButton.ButtonColor));
   AssertTrue('cpuloadcoreCheckBox reloaded', goverlayform.cpuloadcoreCheckBox.Checked);
-  AssertEquals('coreloadtypeBitBtn reloaded', 'Graph', goverlayform.coreloadtypeBitBtn.Caption);
+  AssertEquals('coreloadtypeBitBtn reloaded', IMG_CORELOAD_GRAPH, goverlayform.coreloadtypeBitBtn.ImageIndex);
   AssertTrue('cpuloadcolorCheckBox reloaded', goverlayform.cpuloadcolorCheckBox.Checked);
   AssertTrue('cpufreqCheckBox reloaded', goverlayform.cpufreqCheckBox.Checked);
   AssertTrue('cputempCheckBox reloaded', goverlayform.cputempCheckBox.Checked);
   AssertTrue('cpupowerCheckBox reloaded', goverlayform.cpupowerCheckBox.Checked);
   AssertTrue('cpuefficiencyCheckBox reloaded', goverlayform.cpuefficiencyCheckBox.Checked);
   AssertTrue('cpucoretypeCheckBox reloaded', goverlayform.cpucoretypeCheckBox.Checked);
+
+  // Saving straight after the reload must still produce the same option.
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('core_bars survives reload and save', Pos('core_bars', C) > 0);
 
   // Reverse
   goverlayform.cpuloadcoreCheckBox.Checked := False;
@@ -1090,10 +1128,10 @@ begin
   goverlayform.deviceCheckBox.Checked := True;
   goverlayform.fpsCheckBox.Checked := True;
   goverlayform.fpsavgCheckBox.Checked := True;
-  CycleBtnUntil(goverlayform.fpsavgBitBtn, '1% low', 4);
+  CycleBtnUntilImage(goverlayform.fpsavgBitBtn, IMG_FPSAVG_1PCT_LOW, 4);
   goverlayform.frametimegraphCheckBox.Checked := True;
   goverlayform.frametimegraphColorButton.ButtonColor := $00444444;
-  CycleBtnUntil(goverlayform.frametimetypeBitBtn, 'Histogram', 4);
+  CycleBtnUntilImage(goverlayform.frametimetypeBitBtn, IMG_FRAMETIME_HISTOGRAM, 4);
   goverlayform.framecountCheckBox.Checked := True;
   goverlayform.engineversionCheckBox.Checked := True;
   goverlayform.engineColorButton.ButtonColor := $00555555;
@@ -1135,7 +1173,7 @@ begin
   AssertTrue('fpsavgCheckBox reloaded', goverlayform.fpsavgCheckBox.Checked);
   AssertTrue('frametimegraphCheckBox reloaded', goverlayform.frametimegraphCheckBox.Checked);
   AssertEquals('frametimegraphColorButton reloaded', TColor($00444444), TColor(goverlayform.frametimegraphColorButton.ButtonColor));
-  AssertEquals('frametimetypeBitBtn reloaded', 'Histogram', goverlayform.frametimetypeBitBtn.Caption);
+  AssertEquals('frametimetypeBitBtn reloaded', IMG_FRAMETIME_HISTOGRAM, goverlayform.frametimetypeBitBtn.ImageIndex);
   AssertTrue('framecountCheckBox reloaded', goverlayform.framecountCheckBox.Checked);
   AssertTrue('engineversionCheckBox reloaded', goverlayform.engineversionCheckBox.Checked);
   AssertEquals('engineColorButton reloaded', TColor($00555555), TColor(goverlayform.engineColorButton.ButtonColor));
@@ -1145,8 +1183,14 @@ begin
   AssertEquals('wineColorButton reloaded', TColor($00666666), TColor(goverlayform.wineColorButton.ButtonColor));
   AssertTrue('winesyncCheckBox reloaded', goverlayform.winesyncCheckBox.Checked);
 
+  // Saving straight after the reload must still produce the same options.
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('fps_metrics 1% low survives reload and save', Pos('fps_metrics=avg,0.01', C) > 0);
+  AssertTrue('histogram survives reload and save', Pos('histogram', C) > 0);
+
   // Reverse: 0.1% low variant writes the other fps_metrics form
-  CycleBtnUntil(goverlayform.fpsavgBitBtn, '0.1% low', 4);
+  CycleBtnUntilImage(goverlayform.fpsavgBitBtn, IMG_FPSAVG_01PCT_LOW, 4);
   goverlayform.fpsCheckBox.Checked := False;
   goverlayform.wineCheckBox.Checked := False;
   SaveMango;
