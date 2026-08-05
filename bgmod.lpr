@@ -296,7 +296,12 @@ begin
   end;
 
   if UpscalerType = 1 then
-    ChannelFolder := 'dlssenabler-stable'
+  begin
+    if IsStable then
+      ChannelFolder := 'dlssenabler-stable'
+    else
+      ChannelFolder := 'dlssenabler-edge';
+  end
   else if IsStable then
     ChannelFolder := 'optiscaler-stable'
   else
@@ -1002,7 +1007,7 @@ begin
 end;
 
 var
-  DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath: string;
+  DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
   UpscalerType, InstalledUpscaler: Integer;
   Ini: TIniFile;
@@ -1209,7 +1214,38 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll.b');
           
           // 5. Core Install - Copy proxy DLL
-          if FileExists(SourceDir + 'renames' + PathDelim + DllName) then
+          if UpscalerType = 1 then
+          begin
+            // 5a. First copy base OptiScaler files from optiscaler-stable if available
+            OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
+            if OptiBaseDir = '' then OptiBaseDir := GetUserDir + '.local/share';
+            OptiBaseDir := IncludeTrailingPathDelimiter(OptiBaseDir) + 'goverlay' + PathDelim + 'optiscaler-stable' + PathDelim;
+            if FileExists(OptiBaseDir + 'OptiScaler.dll') then
+            begin
+              Log('Installing base OptiScaler files for DLSS Enabler...');
+              SafeCopyFile(OptiBaseDir + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+              SafeCopyFile(OptiBaseDir + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
+              SafeCopyFile(OptiBaseDir + 'libxess.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
+              if DirectoryExists(OptiBaseDir + 'plugins') then
+                CopyDirectory(OptiBaseDir + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+            end;
+
+            // 5b. Overwrite OptiScaler.dll with DLSS Enabler version.dll
+            if FileExists(SourceDir + 'version.dll') then
+            begin
+              Log('Installing DLSS Enabler version.dll as OptiScaler.dll');
+              SafeCopyFile(SourceDir + 'version.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+            end
+            else if FileExists(SourceDir + 'OptiScaler.dll') then
+            begin
+              SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+            end;
+
+            // 5c. Copy OptiScaler.dll as the target proxy DLL
+            Log('Using OptiScaler.dll as proxy DLL ' + DllName);
+            SafeCopyFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+          end
+          else if FileExists(SourceDir + 'renames' + PathDelim + DllName) then
           begin
             Log('Using pre-renamed dll ' + DllName);
             SafeCopyFile(SourceDir + 'renames' + PathDelim + DllName, IncludeTrailingPathDelimiter(GameDir) + DllName);

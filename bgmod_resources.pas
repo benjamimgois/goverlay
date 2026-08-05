@@ -25,7 +25,7 @@ function GetBGModOriginalPath: string;
 function GetBGModOriginalEdgePath: string;
 
 function GetGOverlayDataPath: string;
-function GetDlssEnablerPath: string;
+function GetDlssEnablerPath(AIsStable: Boolean = True): string;
 
 // Compatibility aliases for legacy FGMod calls
 function GetFGModPath: string;
@@ -175,9 +175,12 @@ begin
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
 end;
 
-function GetDlssEnablerPath: string;
+function GetDlssEnablerPath(AIsStable: Boolean = True): string;
 begin
-  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-stable';
+  if AIsStable then
+    Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-stable'
+  else
+    Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-edge';
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location

@@ -15,7 +15,7 @@ function GetOptiScalerInstallPath: string;
 function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
 
 // Check and automatically install DLSS Enabler if not present
-function CheckAndInstallDlssEnabler(AForce: Boolean = False): Boolean;
+function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
 
 type
   TOptiscalerTab = class
@@ -47,7 +47,7 @@ type
     function GetLatestReleaseTag(ASilent: Boolean = False): string;
     function GetOptiScalerStableTag(ASilent: Boolean = False): string;
     function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
-    function GetDlssEnablerLatestTag(ASilent: Boolean = False): string;
+    function GetDlssEnablerLatestTag(AIsStable: Boolean = True; ASilent: Boolean = False): string;
     function FormatDlssEnablerDisplayTag(const ATag: string): string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
@@ -155,8 +155,8 @@ begin
 
   if IsDlssEnablerActive then
   begin
-    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking DLSS Enabler channel (bygalacos/OptiScalerBuilder)...');
-    FLatestOptiTag := FOptiTab.GetDlssEnablerLatestTag(True);
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking DLSS Enabler channel (OptiScaler-builds)...');
+    FLatestOptiTag := FOptiTab.GetDlssEnablerLatestTag(FIsStableChannel, True);
   end
   else if FIsStableChannel then
   begin
@@ -227,7 +227,7 @@ begin
     if IsDlssEnablerActive then
     begin
       CurrentVersion := '';
-      VarsFilePath := IncludeTrailingPathDelimiter(GetDlssEnablerPath) + 'goverlay.vars';
+      VarsFilePath := IncludeTrailingPathDelimiter(GetDlssEnablerPath(FIsStableChannel)) + 'goverlay.vars';
       if FileExists(VarsFilePath) then
       begin
         VarsList := TStringList.Create;
@@ -872,39 +872,52 @@ begin
   end;
 end;
 
-function TOptiscalerTab.GetDlssEnablerLatestTag(ASilent: Boolean = False): string;
+function TOptiscalerTab.GetDlssEnablerLatestTag(AIsStable: Boolean = True; ASilent: Boolean = False): string;
 var
   Process: TProcess;
-  Response: string;
-  StartPos, EndPos, ColonPos, QuoteStart, QuoteEnd: Integer;
+  Response, ItemName, TargetKeyword: string;
+  StartPos, EndPos, NamePos, SpacePos: Integer;
 begin
   Result := '';
+  if AIsStable then
+    TargetKeyword := 'STABLE'
+  else
+    TargetKeyword := 'TRUNK';
+
   Process := TProcess.Create(nil);
   try
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
     Process.Parameters.Add('User-Agent: goverlay');
-    Process.Parameters.Add('https://api.github.com/repos/bygalacos/OptiScalerBuilder/releases/latest');
+    Process.Parameters.Add('https://api.github.com/repos/benjamimgois/OptiScaler-builds/contents/de?ref=nightly-action');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
     SetLength(Response, Process.Output.NumBytesAvailable);
     if Length(Response) > 0 then
       Process.Output.Read(Response[1], Length(Response));
 
-    StartPos := Pos('"tag_name"', Response);
-    if StartPos > 0 then
+    StartPos := 1;
+    while True do
     begin
-      ColonPos := PosEx(':', Response, StartPos + 10);
-      if ColonPos > 0 then
+      NamePos := PosEx('"name"', Response, StartPos);
+      if NamePos = 0 then Break;
+      StartPos := NamePos + 6;
+      StartPos := PosEx('"', Response, StartPos);
+      if StartPos = 0 then Break;
+      Inc(StartPos);
+      EndPos := PosEx('"', Response, StartPos);
+      if EndPos = 0 then Break;
+      ItemName := Copy(Response, StartPos, EndPos - StartPos);
+      StartPos := EndPos + 1;
+
+      if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS Enabler ', ItemName) > 0) then
       begin
-        QuoteStart := PosEx('"', Response, ColonPos);
-        if QuoteStart > 0 then
-        begin
-          QuoteEnd := PosEx('"', Response, QuoteStart + 1);
-          if (QuoteEnd > QuoteStart) then
-            Result := Copy(Response, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
-        end;
+        NamePos := Pos('DLSS Enabler ', ItemName) + Length('DLSS Enabler ');
+        SpacePos := PosEx(' ', ItemName, NamePos);
+        if SpacePos > NamePos then
+          Result := Copy(ItemName, NamePos, SpacePos - NamePos);
+        Break;
       end;
     end;
   finally
@@ -1594,7 +1607,7 @@ begin
       end;
     end;
 
-    DlssEdgeVars := IncludeTrailingPathDelimiter(GetDlssEnablerPath) + 'goverlay.vars';
+    DlssEdgeVars := IncludeTrailingPathDelimiter(GetDlssEnablerPath((not Assigned(FOptVersionComboBox)) or (FOptVersionComboBox.ItemIndex <> 1))) + 'goverlay.vars';
     if FileExists(DlssEdgeVars) then
     begin
       try
@@ -1933,7 +1946,7 @@ begin
   begin
     WriteLn('[DEBUG] UpdateButtonClick: DLSS Enabler selected, updating DLSS Enabler...');
     UpdateStatus('Downloading DLSS Enabler...');
-    if CheckAndInstallDlssEnabler(True) then
+    if CheckAndInstallDlssEnabler((not Assigned(FOptVersionComboBox)) or (FOptVersionComboBox.ItemIndex <> 1), True) then
     begin
       if Assigned(FOptiLabel2) then
         FOptiLabel2.Visible := False;
@@ -2600,40 +2613,35 @@ begin
   end;
 end;
 
-function CheckAndInstallDlssEnabler(AForce: Boolean = False): Boolean;
+function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
 var
-  DestDir, VarsFilePath, DownloadUrl, TagName, SevenZFile, DlssEnablerVerStr, OptiScalerVerStr: string;
+  DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response: string;
   Process: TProcess;
   VarsList: TStringList;
-  ReleaseJson: string;
-  StartPos, EndPos: Integer;
   AlreadyExtracted: Boolean;
+  StartPos, EndPos, NamePos, SpacePos: Integer;
 begin
   Result := False;
-  DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath);
+  DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath(AIsStable));
   VarsFilePath := DestDir + 'goverlay.vars';
-  AlreadyExtracted := FileExists(DestDir + 'OptiScaler.dll') or FileExists(DestDir + 'OptiScaler.ini');
+  AlreadyExtracted := FileExists(DestDir + 'version.dll');
 
   if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
   begin
-    VarsList := TStringList.Create;
-    try
-      VarsList.LoadFromFile(VarsFilePath);
-      if (VarsList.IndexOfName('optiScalerVersion') >= 0) or (VarsList.IndexOfName('OptiScalerVersion') >= 0) then
-      begin
-        if (VarsList.Values['optiScalerVersion'] <> 'Component') and (VarsList.Values['OptiScalerVersion'] <> 'Component') then
-        begin
-          Result := True;
-          Exit;
-        end;
-      end;
-    finally
-      VarsList.Free;
-    end;
+    Result := True;
+    Exit;
   end;
 
   ForceDirectories(DestDir);
-  WriteLn('[DLSS-ENABLER] Checking latest release from bygalacos/OptiScalerBuilder...');
+  if AIsStable then
+    TargetKeyword := 'STABLE'
+  else
+    TargetKeyword := 'TRUNK';
+
+  TagName := '';
+  DownloadUrl := '';
+
+  WriteLn('[DLSS-ENABLER] Fetching builds list from OptiScaler-builds...');
 
   Process := TProcess.Create(nil);
   try
@@ -2641,136 +2649,107 @@ begin
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
     Process.Parameters.Add('User-Agent: goverlay');
-    Process.Parameters.Add('https://api.github.com/repos/bygalacos/OptiScalerBuilder/releases/latest');
+    Process.Parameters.Add('https://api.github.com/repos/benjamimgois/OptiScaler-builds/contents/de?ref=nightly-action');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
-    SetLength(ReleaseJson, Process.Output.NumBytesAvailable);
-    if Length(ReleaseJson) > 0 then
-      Process.Output.Read(ReleaseJson[1], Length(ReleaseJson));
+    SetLength(Response, Process.Output.NumBytesAvailable);
+    if Length(Response) > 0 then
+      Process.Output.Read(Response[1], Length(Response));
   finally
     Process.Free;
   end;
 
-  // Extract tag_name
-  StartPos := Pos('"tag_name"', ReleaseJson);
-  if StartPos > 0 then
+  StartPos := 1;
+  while True do
   begin
-    StartPos := PosEx('"', ReleaseJson, StartPos + 10);
-    if StartPos > 0 then
+    NamePos := PosEx('"name"', Response, StartPos);
+    if NamePos = 0 then Break;
+    StartPos := NamePos + 6;
+    StartPos := PosEx('"', Response, StartPos);
+    if StartPos = 0 then Break;
+    Inc(StartPos);
+    EndPos := PosEx('"', Response, StartPos);
+    if EndPos = 0 then Break;
+    ItemName := Copy(Response, StartPos, EndPos - StartPos);
+
+    if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS Enabler ', ItemName) > 0) then
     begin
-      StartPos := PosEx('"', ReleaseJson, StartPos + 1);
-      EndPos := PosEx('"', ReleaseJson, StartPos + 1);
-      if (StartPos > 0) and (EndPos > StartPos) then
-        TagName := Copy(ReleaseJson, StartPos + 1, EndPos - StartPos - 1);
-    end;
-  end;
+      NamePos := Pos('DLSS Enabler ', ItemName) + Length('DLSS Enabler ');
+      SpacePos := PosEx(' ', ItemName, NamePos);
+      if SpacePos > NamePos then
+        TagName := Copy(ItemName, NamePos, SpacePos - NamePos);
 
-  // Extract DLSS Enabler version and OptiScaler version from body table
-  DlssEnablerVerStr := '';
-  OptiScalerVerStr := '';
-
-  // Match DLSS Enabler in release body table (| DLSS Enabler | <ver> |)
-  StartPos := Pos('| DLSS Enabler', ReleaseJson);
-  if StartPos = 0 then
-    StartPos := Pos('DLSS Enabler', ReleaseJson);
-
-  if StartPos > 0 then
-  begin
-    StartPos := PosEx('|', ReleaseJson, StartPos + 12);
-    if StartPos > 0 then
-    begin
-      EndPos := PosEx('|', ReleaseJson, StartPos + 1);
-      if (EndPos > StartPos) then
-        DlssEnablerVerStr := Trim(Copy(ReleaseJson, StartPos + 1, EndPos - StartPos - 1));
-    end;
-  end;
-
-  // Match OptiScaler in release body table (| OptiScaler | <ver> |)
-  StartPos := Pos('| OptiScaler |', ReleaseJson);
-  if StartPos = 0 then
-    StartPos := Pos('| OptiScaler', ReleaseJson);
-
-  if StartPos > 0 then
-  begin
-    StartPos := PosEx('|', ReleaseJson, StartPos + 10);
-    if StartPos > 0 then
-    begin
-      EndPos := PosEx('|', ReleaseJson, StartPos + 1);
-      if (EndPos > StartPos) then
+      // Extract download_url
+      NamePos := PosEx('"download_url"', Response, EndPos);
+      if NamePos > 0 then
       begin
-        OptiScalerVerStr := Trim(Copy(ReleaseJson, StartPos + 1, EndPos - StartPos - 1));
-        EndPos := Pos(' - SHA', OptiScalerVerStr);
-        if EndPos > 0 then
-          OptiScalerVerStr := Trim(Copy(OptiScalerVerStr, 1, EndPos - 1));
+        StartPos := PosEx('http', Response, NamePos);
+        if StartPos > 0 then
+        begin
+          SpacePos := PosEx('"', Response, StartPos);
+          if SpacePos > StartPos then
+            DownloadUrl := Copy(Response, StartPos, SpacePos - StartPos);
+        end;
       end;
+      Break;
     end;
+    StartPos := EndPos + 1;
   end;
 
-  if DlssEnablerVerStr = '' then DlssEnablerVerStr := TagName;
-  if OptiScalerVerStr = '' then OptiScalerVerStr := TagName;
-
-  // Only download & extract 7z if AForce is True OR files are not extracted yet
-  if AForce or not AlreadyExtracted then
+  if TagName = '' then
   begin
-    // Extract browser_download_url for .7z
-    StartPos := Pos('"browser_download_url"', ReleaseJson);
-    if StartPos > 0 then
-    begin
-      StartPos := PosEx('http', ReleaseJson, StartPos);
-      if StartPos > 0 then
-      begin
-        EndPos := PosEx('"', ReleaseJson, StartPos);
-        if (EndPos > StartPos) then
-          DownloadUrl := Copy(ReleaseJson, StartPos, EndPos - StartPos);
-      end;
-    end;
+    if AIsStable then TagName := '4.8.12' else TagName := '4.8.13.5';
+  end;
 
-    if TagName = '' then TagName := 'v0.10.0-pre1';
-    if DownloadUrl = '' then
-      DownloadUrl := 'https://github.com/bygalacos/OptiScalerBuilder/releases/download/' + TagName + '/OptiScaler_' + TagName + '_bygalacos.7z';
+  if DownloadUrl = '' then
+  begin
+    if AIsStable then
+      DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/DLSS%20Enabler%204.8.12%20STABLE%20757%204.8.12%202026-07-26T18-01Z%20K8HToGjQv.zip'
+    else
+      DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/DLSS%20Enabler%204.8.13.5%20TRUNK.zip';
+  end;
 
-    SevenZFile := DestDir + 'dlssenabler.7z';
-    WriteLn('[DLSS-ENABLER] Downloading from ', DownloadUrl, ' to ', SevenZFile);
+  ZipFile := DestDir + 'dlssenabler.zip';
+  WriteLn('[DLSS-ENABLER] Downloading ', DownloadUrl, ' to ', ZipFile);
 
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(ZipFile);
+    Process.Parameters.Add(DownloadUrl);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if FileExists(ZipFile) then
+  begin
+    WriteLn('[DLSS-ENABLER] Extracting zip archive into ', DestDir, '...');
     Process := TProcess.Create(nil);
     try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-sL');
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('User-Agent: goverlay');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(SevenZFile);
-      Process.Parameters.Add(DownloadUrl);
+      Process.Executable := '7z';
+      Process.Parameters.Add('x');
+      Process.Parameters.Add('-y');
+      Process.Parameters.Add('-o' + DestDir);
+      Process.Parameters.Add(ZipFile);
       Process.Options := [poWaitOnExit];
       Process.Execute;
     finally
       Process.Free;
     end;
-
-    if FileExists(SevenZFile) then
-    begin
-      WriteLn('[DLSS-ENABLER] Extracting 7z archive into ', DestDir, '...');
-      Process := TProcess.Create(nil);
-      try
-        Process.Executable := '7z';
-        Process.Parameters.Add('x');
-        Process.Parameters.Add('-y');
-        Process.Parameters.Add('-o' + DestDir);
-        Process.Parameters.Add(SevenZFile);
-        Process.Options := [poWaitOnExit];
-        Process.Execute;
-      finally
-        Process.Free;
-      end;
-      DeleteFile(SevenZFile);
-    end;
+    DeleteFile(ZipFile);
   end;
 
   // Write goverlay.vars
   VarsList := TStringList.Create;
   try
-    VarsList.Add('dlssenablerversion=' + DlssEnablerVerStr);
-    VarsList.Add('optiScalerVersion=' + OptiScalerVerStr);
+    VarsList.Add('dlssenablerversion=' + TagName);
+    VarsList.Add('optiScalerVersion=' + TagName);
     VarsList.Add('dlssenablertag=' + TagName);
     VarsList.Add('upscalertype=1');
     VarsList.SaveToFile(VarsFilePath);
@@ -2778,7 +2757,7 @@ begin
     VarsList.Free;
   end;
 
-  Result := FileExists(VarsFilePath);
+  Result := FileExists(VarsFilePath) and FileExists(DestDir + 'version.dll');
 end;
 
 // Check and automatically install OptiScaler if not present
@@ -3255,7 +3234,7 @@ begin
     end;
 
     // Also check and install DLSS Enabler if not present
-    CheckAndInstallDlssEnabler;
+    CheckAndInstallDlssEnabler(True, False);
 
     // Clean up download file
     DeleteFile(SevenZFilePath);
