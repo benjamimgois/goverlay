@@ -3276,10 +3276,14 @@ begin
     end; //while
 
 
-    // Add "Use both GPUs" option if multiple GPUs are detected
+    // Add "Use both GPUs" option if multiple GPUs are detected. Tag keeps the
+    // 1-based position of that entry (0 when it is absent), so the config
+    // logic can recognise it without matching on the item text.
+    pcidevCombobox.Tag := 0;
     if GPUNUMBER > 1 then
     begin
       pcidevCombobox.Items.Add('Use both GPUs');
+      pcidevCombobox.Tag := pcidevCombobox.Items.Count;
       GPUDESC.Add('All GPUs');
     end;
 

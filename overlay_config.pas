@@ -8,12 +8,18 @@ uses
   Classes, SysUtils, IniFiles, FileUtil, StrUtils, Types, Graphics, configfile, configmanager, overlay_utils, configkeys, bgmod_resources, optiscaler_update, systemdetector, apputils;
 
 const
-  // GpuFramesJouleCaption and CoreLoadTypeCaption are matched against these
-  // values below. They are the state the UI reports, not the text it shows.
+  // GpuFramesJouleCaption, CoreLoadTypeCaption, FrametimeTypeCaption,
+  // FpsAvgCaption and PciDevText are matched against these values below.
+  // They are the state the UI reports, not the text it shows.
   MANGO_CAPTION_FRAMES_PER_JOULE = 'Frames / Joule';
   MANGO_CAPTION_JOULES_PER_FRAME = 'Joules / Frame';
   MANGO_CAPTION_CORE_PERCENT     = 'Percent';
   MANGO_CAPTION_CORE_GRAPH       = 'Graph';
+  MANGO_CAPTION_FRAMETIME_CURVE  = 'Curve';
+  MANGO_CAPTION_FRAMETIME_HIST   = 'Histogram';
+  MANGO_CAPTION_FPS_1PCT_LOW     = '1% low';
+  MANGO_CAPTION_FPS_01PCT_LOW    = '0.1% low';
+  MANGO_PCIDEV_BOTH_GPUS         = 'Use both GPUs';
 
 type
   TVkBasaltSettings = record
@@ -1598,7 +1604,7 @@ begin
     // PCI device and GPU List logic
     if Settings.PciDevIndex <> -1 then
     begin
-      if Settings.PciDevText = 'Use both GPUs' then
+      if Settings.PciDevText = MANGO_PCIDEV_BOTH_GPUS then
       begin
         ConfigLines.Add('gpu_list=0,1');
       end
@@ -1782,7 +1788,7 @@ begin
     // FPS metrics (avg)
     if Settings.FpsAvg then
     begin
-      if Settings.FpsAvgCaption = '1% low' then
+      if Settings.FpsAvgCaption = MANGO_CAPTION_FPS_1PCT_LOW then
         ConfigLines.Add('fps_metrics=avg,0.01')
       else
         ConfigLines.Add('fps_metrics=avg,0.001');
@@ -1796,7 +1802,7 @@ begin
     end;
 
     // Histogram
-    if Settings.FrametimeTypeCaption = 'Histogram' then
+    if Settings.FrametimeTypeCaption = MANGO_CAPTION_FRAMETIME_HIST then
       ConfigLines.Add('histogram');
 
     // Frame count
